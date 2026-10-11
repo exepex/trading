@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-12T03:36:20.251126+05:30",
+ "generated": "2026-10-12T04:07:13.097815+05:30",
  "provider": "nse",
  "candidates": [
   {
@@ -121,7 +121,7 @@
    "lots": 0,
    "score": -0.2591,
    "notes": [
-    "1 lot costs Rs 21,668, above the Rs 20,000 single-trade ceiling"
+    "1 lot costs Rs 21,668, above Rs 11,000, and the evidence is not strong enough"
    ],
    "capital_used": 0.0,
    "exception": false
@@ -205,7 +205,7 @@
    "lots": 0,
    "score": -0.1977,
    "notes": [
-    "1 lot costs Rs 24,600, above the Rs 20,000 single-trade ceiling"
+    "1 lot costs Rs 24,600, above Rs 11,000, and the evidence is not strong enough"
    ],
    "capital_used": 0.0,
    "exception": false
