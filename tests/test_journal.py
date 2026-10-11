@@ -8,6 +8,9 @@ from fno.signals import compute_signals
 from fno.strategies import build_candidates
 
 
+ALL = {k: True for k in ("bull_call_spread", "bear_put_spread", "long_call", "long_put")}
+
+
 def _cand(cfg):
     p = SampleProvider(cfg)
     chain = p.chain("NIFTY", date(2026, 10, 20))
@@ -22,7 +25,7 @@ def test_charges_sell_side_includes_stt():
 
 
 def test_paper_trade_hits_target_on_rally():
-    cfg = load_config()
+    cfg = load_config(overrides={"strategies": ALL})
     trades = []
     t = journal.open_trade(trades, _cand(cfg), cfg, lots=1)
     assert t["status"] == "open"
@@ -33,7 +36,7 @@ def test_paper_trade_hits_target_on_rally():
 
 
 def test_paper_trade_stops_out_on_selloff():
-    cfg = load_config()
+    cfg = load_config(overrides={"strategies": ALL})
     trades = []
     journal.open_trade(trades, _cand(cfg), cfg, lots=1)
     journal.mark(trades, SampleProvider(cfg, spot_shift_pct=-3.0), cfg, today=date(2026, 10, 12))
@@ -41,7 +44,7 @@ def test_paper_trade_stops_out_on_selloff():
 
 
 def test_unchanged_market_stays_open():
-    cfg = load_config()
+    cfg = load_config(overrides={"strategies": ALL})
     trades = []
     journal.open_trade(trades, _cand(cfg), cfg, lots=1)
     journal.mark(trades, SampleProvider(cfg), cfg, today=date(2026, 10, 12))
@@ -49,7 +52,7 @@ def test_unchanged_market_stays_open():
 
 
 def test_max_open_trades_enforced():
-    cfg = load_config(overrides={"account": {"max_open_trades": 1}})
+    cfg = load_config(overrides={"account": {"max_open_trades": 1}, "strategies": ALL})
     trades = []
     journal.open_trade(trades, _cand(cfg), cfg)
     try:
@@ -76,3 +79,30 @@ def test_indian_rupee_grouping():
     assert inr(200000) == "₹2,00,000"
     assert inr(-6168) == "−₹6,168"
     assert inr(19832, sign=True) == "+₹19,832"
+
+
+def _closed(pnl, at):
+    return {"status": "closed", "pnl_net": pnl, "closed_at": at, "entry_value": 100, "lot_size": 65, "lots": 1}
+
+
+def test_daily_brakes():
+    cfg = load_config()
+    day = date(2026, 10, 12)
+    assert journal.day_check([], cfg, day) is None
+    assert "loss limit" in journal.day_check([_closed(-5200, "2026-10-12T11:00")], cfg, day)
+    assert "profit lock" in journal.day_check([_closed(6500, "2026-10-12T11:00")], cfg, day)
+    losses = [_closed(-500, f"2026-10-12T1{i}:00") for i in range(3)]
+    assert "in a row" in journal.day_check(losses, cfg, day)
+    assert journal.day_check([_closed(-5200, "2026-10-09T11:00")], cfg, day) is None  # other day
+
+
+def test_deployment_cap():
+    cfg = load_config(overrides={"strategies": ALL})
+    cand = _cand(cfg)
+    trades = [dict(_closed(0, ""), status="open", entry_value=160, lot_size=65, lots=5)]  # Rs 52,000 deployed
+    try:
+        journal.open_trade(trades, cand, cfg, lots=1)
+    except RuntimeError as e:
+        assert "limit" in str(e)
+        return
+    raise AssertionError("expected the deployment cap to block")

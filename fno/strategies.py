@@ -70,6 +70,25 @@ class Candidate:
     lots: int
     score: float
     notes: list[str] = field(default_factory=list)
+    capital_used: float = 0.0  # premium paid (or margin for credit trades) for the suggested lots
+    exception: bool = False  # one lot above the normal per-trade budget, allowed on strong evidence
+
+    def contract_names(self) -> list[str]:
+        """How each leg reads in the Groww app search, e.g. 'NIFTY 19 Oct 22500 Put'."""
+        from datetime import date as _d
+
+        exp = _d.fromisoformat(self.expiry)
+        return [
+            f"{self.underlying} {exp.day} {exp:%b} {int(l.strike)} {'Call' if l.kind == 'CE' else 'Put'}"
+            for l in self.legs
+        ]
+
+    def profit_text(self) -> str:
+        if self.strategy == "long_put":
+            return f"grows the further {self.underlying} falls"
+        if math.isinf(self.max_profit):
+            return f"grows the further {self.underlying} rises"
+        return f"Rs {self.max_profit * self.lot_size:,.0f}"
 
     def payoff(self, s: float) -> float:
         return sum(l.sign * l.intrinsic(s) for l in self.legs) - self.entry_value
@@ -189,7 +208,6 @@ def build_candidates(chain: OptionChain, sig: Signals, cfg: dict) -> list[Candid
     market = _terminal_grid(chain.spot, sigma, t, r, 0.0)
     tilted = _terminal_grid(chain.spot, sigma, t, r, sig.bias * view)
     acct = cfg.get("account", {})
-    budget = acct.get("capital", 0) * acct.get("risk_per_trade_pct", 2.0) / 100
 
     out: list[Candidate] = []
     for strategy, spec in _structures(chain, sig, cfg.get("strategies", {})):
@@ -241,7 +259,6 @@ def build_candidates(chain: OptionChain, sig: Signals, cfg: dict) -> list[Candid
         c.stop_amount, c.target_amount = round(min(stop, c.max_loss), 2), round(target, 2)
         c.risk_per_lot = round(c.stop_amount * chain.lot_size + c.charges_per_lot, 2)
         c.worst_case_per_lot = round(c.max_loss * chain.lot_size + c.charges_per_lot, 2)
-        c.lots = int(budget // c.risk_per_lot) if c.risk_per_lot > 0 else 0
 
         # Liquidity checks.
         for l in legs:
@@ -249,14 +266,36 @@ def build_candidates(chain: OptionChain, sig: Signals, cfg: dict) -> list[Candid
                 c.notes.append(f"thin open interest at {int(l.strike)}{l.kind} ({l.oi:,.0f})")
             if l.spread_pct is not None and l.spread_pct > liq.get("max_spread_pct", 5.0):
                 c.notes.append(f"wide bid-ask at {int(l.strike)}{l.kind} ({l.spread_pct:.1f}%)")
-        if c.lots == 0:
-            pct = c.risk_per_lot / acct.get("capital", 1) * 100
-            c.notes.append(f"1 lot risks Rs {c.risk_per_lot:,.0f} ({pct:.1f}% of capital), above your per-trade budget")
-
         cost_per_unit = c.charges_per_lot / chain.lot_size
         c.score = round((c.ev_view - cost_per_unit) / max(c.max_loss, 1e-6), 4)
+        strong = confidence_label(sig) == "high" and c.score > 0 and c.target_amount >= 2 * c.stop_amount
+        cost_per_lot = abs(entry) * chain.lot_size
+        c.lots, c.exception, note = size_position(cost_per_lot, strong, cfg.get("position_rules", {}))
+        c.capital_used = round(c.lots * cost_per_lot, 2)
+        if note:
+            c.notes.append(note)
         out.append(c)
     return out
+
+
+def size_position(cost_per_lot: float, strong: bool, rules: dict) -> tuple[int, bool, str]:
+    """Full lots within the per-trade budget (+ tolerance); one pricier lot only on strong evidence.
+
+    Returns (lots, is_exception, note).
+    """
+    budget = rules.get("per_trade_budget", 10000)
+    ceiling = budget * (1 + rules.get("budget_tolerance_pct", 10) / 100)
+    exception_max = rules.get("exception_max_per_trade", 20000)
+    if cost_per_lot <= 0:
+        return 0, False, "no valid price"
+    lots = int(ceiling // cost_per_lot)
+    if lots >= 1:
+        return lots, False, ""
+    if cost_per_lot > exception_max:
+        return 0, False, f"1 lot costs Rs {cost_per_lot:,.0f}, above the Rs {exception_max:,.0f} single-trade ceiling"
+    if strong:
+        return 1, True, f"1 lot costs Rs {cost_per_lot:,.0f}: above the normal budget, allowed on strong evidence"
+    return 0, False, f"1 lot costs Rs {cost_per_lot:,.0f}, above Rs {ceiling:,.0f}, and the evidence is not strong enough"
 
 
 def confidence_label(sig: Signals) -> str:
@@ -281,5 +320,5 @@ def select(cands: list[Candidate], sig: Signals) -> list[Candidate]:
         if any("thin open interest" in n or "wide bid-ask" in n for n in c.notes):
             continue
         keep.append(c)
-    # Setups that fit the per-trade risk budget first, then by score.
+    # Setups that fit the position rules first, then by score.
     return sorted(keep, key=lambda c: (c.lots == 0, -c.score))

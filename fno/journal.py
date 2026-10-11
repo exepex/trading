@@ -33,11 +33,49 @@ def find_candidate(cand_id: str, reports_dir: Path) -> dict:
     raise KeyError(f"Candidate {cand_id} not found in {reports_dir}; run `python -m fno brief` first.")
 
 
+def deployed(trades: list[dict]) -> float:
+    """Premium currently tied up in open trades."""
+    return sum(abs(t["entry_value"]) * t["lot_size"] * t["lots"] for t in trades if t["status"] == "open")
+
+
+def day_check(trades: list[dict], cfg: dict, today: date | None = None) -> str | None:
+    """Reason to stop opening trades today, or None."""
+    today = today or now_ist().date()
+    lim = cfg.get("daily_limits", {})
+    closed = sorted(
+        (t for t in trades if t["status"] == "closed" and t.get("closed_at", "")[:10] == today.isoformat()),
+        key=lambda t: t["closed_at"],
+    )
+    net = sum(t["pnl_net"] for t in closed)
+    if net <= -lim.get("max_loss", float("inf")):
+        return f"daily loss limit reached (net Rs {net:,.0f} today)"
+    if net >= lim.get("profit_lock", float("inf")):
+        return f"profit lock reached (net +Rs {net:,.0f} today): done for the day"
+    n = lim.get("max_consecutive_losses", 0)
+    if n and len(closed) >= n and all(t["pnl_net"] <= 0 for t in closed[-n:]):
+        return f"{n} losing trades in a row today"
+    return None
+
+
 def open_trade(trades: list[dict], cand: dict, cfg: dict, lots: int | None = None, note: str = "") -> dict:
-    max_open = cfg.get("account", {}).get("max_open_trades", 3)
+    max_open = cfg.get("account", {}).get("max_open_trades", 5)
     if sum(t["status"] == "open" for t in trades) >= max_open:
         raise RuntimeError(f"Already {max_open} open trades (account.max_open_trades). Close one first.")
-    lots = lots if lots is not None else max(cand.get("lots") or 0, 1)
+    stop = day_check(trades, cfg)
+    if stop:
+        raise RuntimeError(f"No new trades today: {stop}.")
+    lots = lots if lots is not None else (cand.get("lots") or 0)
+    if lots < 1:
+        raise RuntimeError("This setup does not fit the position rules (0 lots). See its notes.")
+    cost = abs(cand["entry_value"]) * cand["lot_size"] * lots
+    rules = cfg.get("position_rules", {})
+    cap = rules.get("max_deployed", float("inf"))
+    if not cand.get("exception"):
+        cap = min(cap, rules.get("normal_deployed", cap) * (1 + rules.get("budget_tolerance_pct", 10) / 100))
+    if deployed(trades) + cost > cap:
+        raise RuntimeError(
+            f"Opening this (Rs {cost:,.0f}) would put Rs {deployed(trades) + cost:,.0f} in open trades, over the Rs {cap:,.0f} limit."
+        )
     units = cand["lot_size"] * lots
     entry_orders = [(l["side"], l["price"]) for l in cand["legs"]]
     trade = {

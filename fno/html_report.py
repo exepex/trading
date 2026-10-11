@@ -461,9 +461,9 @@ def ticket(c: Candidate, sig: Signals, em: float | None, capital: float) -> str:
     lot = c.lot_size
     legs = "".join(
         f'<div class="leg"><span class="side {l.side}">{l.side.upper()}</span>'
-        f"<span>{escape(c.underlying)} {pts(l.strike)} {'PUT' if l.kind == 'PE' else 'CALL'}</span>"
+        f"<span>{escape(name)}</span>"
         f'<span class="num">₹{l.price:.2f}</span></div>'
-        for l in c.legs
+        for l, name in zip(c.legs, c.contract_names())
     )
     kind = "Cost per lot" if c.entry_value > 0 else "Credit per lot"
     be = ", ".join(pts(b) for b in c.breakevens) or "n/a"
@@ -476,13 +476,14 @@ def ticket(c: Candidate, sig: Signals, em: float | None, capital: float) -> str:
   <div class="eyebrow">expiry {escape(c.expiry)} · {c.dte} days · lot {lot}</div></div>
   <div class="ticket-body">
     <div class="legs">{legs}</div>
+    <p class="muted small">Type the name exactly as shown into Groww search to find the contract.</p>
     <div class="kpis">
       <div class="kpi"><span>{kind}</span><b>{inr(abs(c.entry_value) * lot)}</b></div>
       <div class="kpi"><span>Most you can lose</span><b class="down">{inr(-c.max_loss * lot)}</b></div>
-      <div class="kpi"><span>Most you can make</span><b class="up">{inr(c.max_profit * lot, True)}</b></div>
+      <div class="kpi"><span>Most you can make</span><b class="up">{inr(c.max_profit * lot, True) if c.strategy not in ("long_put", "long_call") else "no cap"}</b></div>
       <div class="kpi"><span>Breakeven at expiry</span><b>{be}</b></div>
       <div class="kpi"><span>Chance of profit*</span><b>{c.pop_market * 100:.0f}%</b></div>
-      <div class="kpi"><span>Suggested size</span><b>{c.lots} lot{'s' if c.lots != 1 else ''}</b></div>
+      <div class="kpi"><span>Suggested size · money used</span><b>{c.lots} lot{'s' if c.lots != 1 else ''} · {inr(c.capital_used)}</b></div>
     </div>
     <div class="plain"><div class="eyebrow">In plain words</div>{words}</div>
     <div><h3>Profit or loss at expiry, per lot</h3><p class="muted small">Green is profit, red is loss. Hover or tap the chart to read a value.</p></div>
@@ -493,8 +494,9 @@ def ticket(c: Candidate, sig: Signals, em: float | None, capital: float) -> str:
       <div class="rule"><span class="muted small">Cut the loss when the trade is down</span><b class="down">{inr(-c.stop_amount * lot)}</b></div>
       <div class="rule"><span class="muted small">Close it anyway</span><b>1 day before expiry</b></div>
     </div>
-    <p class="muted small">Charges ≈ {inr(c.charges_per_lot)} per lot for entry and exit. Worst case is
-    {c.worst_case_per_lot / capital * 100:.1f}% of capital per lot. *Chance of profit is what option prices themselves imply,
+    <p class="muted small">Charges ≈ {inr(c.charges_per_lot)} per lot for entry and exit. Planned loss at the stop
+    ≈ {inr(c.stop_amount * c.lot_size * max(c.lots, 1))}; if held to expiry the most you can lose is
+    {inr(c.max_loss * c.lot_size * max(c.lots, 1))}. *Chance of profit is what option prices themselves imply,
     not a promise. Paper-trade id <code>{escape(c.id)}</code>.</p>
     {notes}
   </div>
@@ -652,7 +654,7 @@ def render_html(
     <div><div class="eyebrow">F&amp;O desk · NSE index options</div><h1>Market Brief</h1></div>
     <div class="meta"><b>{now:%A, %d %B %Y}</b>
     <span class="muted small">Prices as of {escape(as_of)} · {escape(str(cfg.get('provider')).upper())} data</span>
-    <span class="muted small">Paper capital {inr(capital)} · risk {acct.get('risk_per_trade_pct')}% per trade</span></div>
+    <span class="muted small">Paper capital {inr(capital)} · {inr(cfg.get('position_rules', {}).get('per_trade_budget', 0))} per trade · max {acct.get('max_open_trades')} open</span></div>
   </header>
   {stale_html}
   {verdict}

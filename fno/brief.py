@@ -102,7 +102,8 @@ def _candidate_md(c: Candidate, sig: Signals, capital: float) -> list[str]:
         "",
         f"- Legs: {legs}",
         f"- Net {kind}: {abs(c.entry_value):.2f} per unit = Rs {abs(c.entry_value) * lot:,.0f} per lot ({lot} units)",
-        f"- Max profit: {_rs(c.max_profit * lot) if not math.isinf(c.max_profit) else 'unlimited'} per lot; "
+        f"- Groww search: {', '.join(c.contract_names())}",
+        f"- Max profit: {c.profit_text()} per lot; "
         f"max loss: Rs {c.max_loss * lot:,.0f} per lot; breakeven: {', '.join(f'{b:,.0f}' for b in c.breakevens) or 'n/a'}",
         f"- Market-implied chance of profit at expiry: {c.pop_market * 100:.0f}%",
         f"- Exit plan: take profit at +Rs {c.target_amount * lot:,.0f}/lot, stop at -Rs {c.stop_amount * lot:,.0f}/lot, "
@@ -122,7 +123,8 @@ def render_markdown(scans: list[UnderlyingScan], cfg: dict) -> str:
         f"# F&O research brief, {now:%a %d %b %Y}",
         "",
         f"Generated {now:%H:%M} IST from `{cfg.get('provider')}` data. Paper-trading experiment; "
-        f"capital Rs {capital:,.0f}, risk budget {cfg.get('account', {}).get('risk_per_trade_pct')}% per trade.",
+        f"capital Rs {capital:,.0f}, about Rs {cfg.get('position_rules', {}).get('per_trade_budget', 0):,.0f} per trade, "
+        f"max {cfg.get('account', {}).get('max_open_trades')} open trades.",
         "",
     ]
     pick, pick_sig = _pick(scans)
@@ -223,14 +225,17 @@ def slack_text(scans: list[UnderlyingScan], cfg: dict, journal_stats: dict | Non
         lines.append(f"_Data is from {s.as_of}; the market may be closed today._")
     if pick and confidence_label(sig) != "low":
         lot = pick.lot_size
-        legs = ", ".join(f"{l.side.upper()} {int(l.strike)} {l.kind} @ {l.price:.2f}" for l in pick.legs)
+        legs = ", ".join(
+            f"{l.side.upper()} *{name}* @ {l.price:.2f}" for l, name in zip(pick.legs, pick.contract_names())
+        )
         lines += [
             "",
             f"*Top setup:* {NAMES[pick.strategy]} on {pick.underlying}, expiry {pick.expiry}",
             f"{legs}",
             f"Cost Rs {abs(pick.entry_value) * lot:,.0f}/lot · max loss Rs {pick.max_loss * lot:,.0f} · "
-            f"max profit {_rs(pick.max_profit * lot)} · chance of profit {pick.pop_market * 100:.0f}%",
-            f"Stop -Rs {pick.stop_amount * lot:,.0f} · target +Rs {pick.target_amount * lot:,.0f} · size {pick.lots} lot(s)",
+            f"max profit {pick.profit_text()} · chance of profit {pick.pop_market * 100:.0f}%",
+            f"Stop -Rs {pick.stop_amount * lot * max(pick.lots, 1):,.0f} · target +Rs {pick.target_amount * lot * max(pick.lots, 1):,.0f}"
+            f" · size {pick.lots} lot(s) = Rs {pick.capital_used:,.0f}" + (" (strong-evidence exception)" if pick.exception else ""),
             f"Paper-trade id: `{pick.id}`",
         ]
     else:

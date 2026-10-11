@@ -8,7 +8,8 @@ from fno.strategies import build_candidates, select
 
 
 def _setup():
-    cfg = load_config(overrides={"strategies": {"iron_condor": True}})
+    cfg = load_config(overrides={"strategies": {k: True for k in (
+        "bull_call_spread", "bear_put_spread", "long_call", "long_put", "iron_condor")}})
     p = SampleProvider(cfg)
     chain = p.chain("NIFTY", date(2026, 10, 20))
     sig = compute_signals(p.context("NIFTY"), chain, cfg)
@@ -48,6 +49,21 @@ def test_select_respects_bias_direction():
 
 def test_sizing_respects_budget():
     cfg, _, _, cands = _setup()
-    budget = cfg["account"]["capital"] * cfg["account"]["risk_per_trade_pct"] / 100
+    rules = cfg["position_rules"]
     for c in cands:
-        assert c.lots * c.risk_per_lot <= budget
+        if c.exception:
+            assert c.lots == 1 and c.capital_used <= rules["exception_max_per_trade"]
+        else:
+            assert c.capital_used <= rules["per_trade_budget"] * 1.1
+
+
+def test_size_position_rules():
+    from fno.strategies import size_position
+
+    rules = {"per_trade_budget": 10000, "budget_tolerance_pct": 10, "exception_max_per_trade": 20000}
+    assert size_position(3000, False, rules)[0] == 3       # 9,000 fits
+    assert size_position(3600, False, rules)[0] == 3       # 10,800: slightly over is fine
+    assert size_position(5600, False, rules)[0] == 1       # 2 lots would be 11,200
+    assert size_position(15000, False, rules)[:2] == (0, False)  # pricey lot, weak evidence
+    assert size_position(15000, True, rules)[:2] == (1, True)    # pricey lot, strong evidence
+    assert size_position(25000, True, rules)[0] == 0       # above the single-trade ceiling

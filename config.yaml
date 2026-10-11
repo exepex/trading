@@ -9,9 +9,22 @@ provider: nse
 underlyings: [NIFTY, BANKNIFTY]
 
 account:
-  capital: 200000          # rupees set aside for the experiment (paper money for now)
-  risk_per_trade_pct: 2.0  # max planned loss per trade as % of capital
-  max_open_trades: 3
+  capital: 100000          # rupees set aside for the experiment (paper money for the first month)
+  max_open_trades: 5       # at most 5 open trades; a new one opens only after one closes
+
+# Position sizing agreed with the owner (12 Oct 2026). Amounts are premium paid per trade.
+position_rules:
+  per_trade_budget: 10000        # buy as many full lots as fit
+  budget_tolerance_pct: 10       # full lots may take a trade up to Rs 11,000
+  exception_max_per_trade: 20000 # one lot above Rs 11,000 only on strong evidence, never above this
+  normal_deployed: 50000         # normal total in open trades (about 5 x 10,000; +/-10% is fine)
+  max_deployed: 70000            # hard cap; only strong-evidence trades may push above normal
+
+# Day-level brakes on opening new trades (closed trades, net of charges).
+daily_limits:
+  max_loss: 5000                 # stop opening trades after a Rs 5,000 net loss today
+  profit_lock: 6000              # after a Rs 6,000 net profit today, stop opening new trades
+  max_consecutive_losses: 3      # three losses in a row today: stop for the day
 
 # Which expiries to consider (calendar days to expiry).
 # Very short expiries have explosive gamma and fast theta decay; very long ones tie up capital.
@@ -20,13 +33,13 @@ expiry:
   max_dte: 35
   max_expiries_per_underlying: 2
 
-# Strategy menu. Defined-risk spreads are on by default.
+# Owner's plan: buy calls when the market looks strong, buy puts when it looks weak.
 strategies:
-  bull_call_spread: true
-  bear_put_spread: true
   long_call: true
   long_put: true
-  iron_condor: false       # needs much more margin; enable once capital allows
+  bull_call_spread: false  # optional: cheaper, capped-risk versions of the same views
+  bear_put_spread: false
+  iron_condor: false       # option selling: needs large margin, not part of the plan
 
 # Signal thresholds.
 signals:
@@ -44,7 +57,7 @@ liquidity:
 # Exit rules applied to every paper trade.
 exits:
   debit_spread: {stop_loss_pct_of_debit: 50, take_profit_pct_of_max_profit: 60}
-  long_option: {stop_loss_pct_of_premium: 40, take_profit_pct_of_premium: 80}
+  long_option: {stop_loss_pct_of_premium: 30, take_profit_pct_of_premium: 60}
   credit_spread: {stop_loss_multiple_of_credit: 1.0, take_profit_pct_of_credit: 50}
   exit_days_before_expiry: 1
 
