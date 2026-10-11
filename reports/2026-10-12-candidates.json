@@ -1,0 +1,823 @@
+{
+ "generated": "2026-10-12T02:52:39.320252+05:30",
+ "provider": "nse",
+ "candidates": [
+  {
+   "id": "NIFTY-19Oct-BCS-22500-22700",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-19",
+   "dte": 7,
+   "strategy": "bull_call_spread",
+   "direction": "bullish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 238.85,
+     "oi": 19360.0,
+     "spread_pct": 1.9446205876136098,
+     "symbol": "OPTIDXNIFTY19-10-2026CE22500.00"
+    },
+    {
+     "kind": "CE",
+     "strike": 22700.0,
+     "side": "sell",
+     "price": 130.35,
+     "oi": 21683.0,
+     "spread_pct": 1.0682945440671543,
+     "symbol": "OPTIDXNIFTY19-10-2026CE22700.00"
+    }
+   ],
+   "entry_value": 108.5,
+   "max_profit": 91.5,
+   "max_loss": 108.5,
+   "breakevens": [
+    22608.5
+   ],
+   "pop_market": 0.4581863419627741,
+   "ev_market": -15.938353875434341,
+   "ev_view": -33.413328323724656,
+   "charges_per_lot": 139.01,
+   "stop_amount": 54.25,
+   "target_amount": 54.9,
+   "risk_per_lot": 3665.26,
+   "worst_case_per_lot": 7191.51,
+   "lots": 1,
+   "score": -0.3277,
+   "notes": []
+  },
+  {
+   "id": "NIFTY-19Oct-BPS-22500-22300",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-19",
+   "dte": 7,
+   "strategy": "bear_put_spread",
+   "direction": "bearish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 144.0,
+     "oi": 22775.0,
+     "spread_pct": 0.8018127941432843,
+     "symbol": "OPTIDXNIFTY19-10-2026PE22500.00"
+    },
+    {
+     "kind": "PE",
+     "strike": 22300.0,
+     "side": "sell",
+     "price": 84.7,
+     "oi": 17390.0,
+     "spread_pct": 1.2320328542094423,
+     "symbol": "OPTIDXNIFTY19-10-2026PE22300.00"
+    }
+   ],
+   "entry_value": 59.3,
+   "max_profit": 140.7,
+   "max_loss": 59.3,
+   "breakevens": [
+    22440.7
+   ],
+   "pop_market": 0.3993578563015848,
+   "ev_market": 14.876950430209343,
+   "ev_view": 32.32939932268146,
+   "charges_per_lot": 122.04,
+   "stop_amount": 29.65,
+   "target_amount": 84.42,
+   "risk_per_lot": 2049.29,
+   "worst_case_per_lot": 3976.54,
+   "lots": 1,
+   "score": 0.5135,
+   "notes": []
+  },
+  {
+   "id": "NIFTY-19Oct-BCS-22500-22900",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-19",
+   "dte": 7,
+   "strategy": "bull_call_spread",
+   "direction": "bullish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 238.85,
+     "oi": 19360.0,
+     "spread_pct": 1.9446205876136098,
+     "symbol": "OPTIDXNIFTY19-10-2026CE22500.00"
+    },
+    {
+     "kind": "CE",
+     "strike": 22900.0,
+     "side": "sell",
+     "price": 61.7,
+     "oi": 16952.0,
+     "spread_pct": 1.8466479325572036,
+     "symbol": "OPTIDXNIFTY19-10-2026CE22900.00"
+    }
+   ],
+   "entry_value": 177.15,
+   "max_profit": 222.85,
+   "max_loss": 177.15,
+   "breakevens": [
+    22677.2
+   ],
+   "pop_market": 0.3993578563015848,
+   "ev_market": -23.743915559343236,
+   "ev_view": -55.926465427224585,
+   "charges_per_lot": 130.72,
+   "stop_amount": 88.58,
+   "target_amount": 133.71,
+   "risk_per_lot": 5888.42,
+   "worst_case_per_lot": 11645.47,
+   "lots": 0,
+   "score": -0.3271,
+   "notes": [
+    "1 lot risks Rs 5,888 (2.9% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "NIFTY-19Oct-BPS-22500-22100",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-19",
+   "dte": 7,
+   "strategy": "bear_put_spread",
+   "direction": "bearish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 144.0,
+     "oi": 22775.0,
+     "spread_pct": 0.8018127941432843,
+     "symbol": "OPTIDXNIFTY19-10-2026PE22500.00"
+    },
+    {
+     "kind": "PE",
+     "strike": 22100.0,
+     "side": "sell",
+     "price": 49.1,
+     "oi": 8083.0,
+     "spread_pct": 2.0161290322580645,
+     "symbol": "OPTIDXNIFTY19-10-2026PE22100.00"
+    }
+   ],
+   "entry_value": 94.9,
+   "max_profit": 305.1,
+   "max_loss": 94.9,
+   "breakevens": [
+    22405.1
+   ],
+   "pop_market": 0.3763763419575236,
+   "ev_market": 24.254808238325126,
+   "ev_view": 56.249342232669484,
+   "charges_per_lot": 117.73,
+   "stop_amount": 47.45,
+   "target_amount": 183.06,
+   "risk_per_lot": 3201.98,
+   "worst_case_per_lot": 6286.23,
+   "lots": 1,
+   "score": 0.5736,
+   "notes": []
+  },
+  {
+   "id": "NIFTY-19Oct-LC-22500",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-19",
+   "dte": 7,
+   "strategy": "long_call",
+   "direction": "bullish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 238.85,
+     "oi": 19360.0,
+     "spread_pct": 1.9446205876136098,
+     "symbol": "OPTIDXNIFTY19-10-2026CE22500.00"
+    }
+   ],
+   "entry_value": 238.85,
+   "max_profit": null,
+   "max_loss": 238.85,
+   "breakevens": [
+    22738.8
+   ],
+   "pop_market": 0.35382500345989343,
+   "ev_market": -19.41350898704222,
+   "ev_view": -73.59077777504704,
+   "charges_per_lot": 76.06,
+   "stop_amount": 95.54,
+   "target_amount": 191.08,
+   "risk_per_lot": 6286.16,
+   "worst_case_per_lot": 15601.31,
+   "lots": 0,
+   "score": -0.313,
+   "notes": [
+    "1 lot risks Rs 6,286 (3.1% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "NIFTY-19Oct-LP-22500",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-19",
+   "dte": 7,
+   "strategy": "long_put",
+   "direction": "bearish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 144.0,
+     "oi": 22775.0,
+     "spread_pct": 0.8018127941432843,
+     "symbol": "OPTIDXNIFTY19-10-2026PE22500.00"
+    }
+   ],
+   "entry_value": 144.0,
+   "max_profit": 22355.99,
+   "max_loss": 144.0,
+   "breakevens": [
+    22356.0
+   ],
+   "pop_market": 0.33177529271827655,
+   "ev_market": 14.87374957958629,
+   "ev_view": 66.85841052441106,
+   "charges_per_lot": 64.6,
+   "stop_amount": 57.6,
+   "target_amount": 115.2,
+   "risk_per_lot": 3808.6,
+   "worst_case_per_lot": 9424.6,
+   "lots": 1,
+   "score": 0.4574,
+   "notes": []
+  },
+  {
+   "id": "NIFTY-27Oct-BCS-22500-22750",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "bull_call_spread",
+   "direction": "bullish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 333.35,
+     "oi": 57198.0,
+     "spread_pct": 0.4058014578793185,
+     "symbol": "OPTIDXNIFTY27-10-2026CE22500.00"
+    },
+    {
+     "kind": "CE",
+     "strike": 22750.0,
+     "side": "sell",
+     "price": 195.8,
+     "oi": 6367.0,
+     "spread_pct": 0.6109979633401164,
+     "symbol": "OPTIDXNIFTY27-10-2026CE22750.00"
+    }
+   ],
+   "entry_value": 137.55,
+   "max_profit": 112.44999999999999,
+   "max_loss": 137.55,
+   "breakevens": [
+    22637.5
+   ],
+   "pop_market": 0.4701062369315472,
+   "ev_market": -18.810896882921778,
+   "ev_view": -37.12929921696605,
+   "charges_per_lot": 158.34,
+   "stop_amount": 68.78,
+   "target_amount": 67.47,
+   "risk_per_lot": 4629.04,
+   "worst_case_per_lot": 9099.09,
+   "lots": 0,
+   "score": -0.2876,
+   "notes": [
+    "1 lot risks Rs 4,629 (2.3% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "NIFTY-27Oct-BPS-22500-22250",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "bear_put_spread",
+   "direction": "bearish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 206.7,
+     "oi": 69314.0,
+     "spread_pct": 0.8746355685131112,
+     "symbol": "OPTIDXNIFTY27-10-2026PE22500.00"
+    },
+    {
+     "kind": "PE",
+     "strike": 22250.0,
+     "side": "sell",
+     "price": 129.0,
+     "oi": 9884.0,
+     "spread_pct": 1.6528925619834756,
+     "symbol": "OPTIDXNIFTY27-10-2026PE22250.00"
+    }
+   ],
+   "entry_value": 77.7,
+   "max_profit": 172.3,
+   "max_loss": 77.7,
+   "breakevens": [
+    22422.3
+   ],
+   "pop_market": 0.3993578563015848,
+   "ev_market": 16.58460805199206,
+   "ev_view": 34.64957923139131,
+   "charges_per_lot": 134.97,
+   "stop_amount": 38.85,
+   "target_amount": 103.38,
+   "risk_per_lot": 2660.22,
+   "worst_case_per_lot": 5185.47,
+   "lots": 1,
+   "score": 0.4192,
+   "notes": []
+  },
+  {
+   "id": "NIFTY-27Oct-BCS-22500-23050",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "bull_call_spread",
+   "direction": "bullish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 333.35,
+     "oi": 57198.0,
+     "spread_pct": 0.4058014578793185,
+     "symbol": "OPTIDXNIFTY27-10-2026CE22500.00"
+    },
+    {
+     "kind": "CE",
+     "strike": 23050.0,
+     "side": "sell",
+     "price": 88.9,
+     "oi": 2989.0,
+     "spread_pct": 2.773155851358846,
+     "symbol": "OPTIDXNIFTY27-10-2026CE23050.00"
+    }
+   ],
+   "entry_value": 244.45,
+   "max_profit": 305.55,
+   "max_loss": 244.45,
+   "breakevens": [
+    22744.5
+   ],
+   "pop_market": 0.3993578563015848,
+   "ev_market": -29.961711126291657,
+   "ev_view": -67.22827081104137,
+   "charges_per_lot": 145.42,
+   "stop_amount": 122.22,
+   "target_amount": 183.33,
+   "risk_per_lot": 8089.72,
+   "worst_case_per_lot": 16034.67,
+   "lots": 0,
+   "score": -0.2842,
+   "notes": [
+    "1 lot risks Rs 8,090 (4.0% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "NIFTY-27Oct-BPS-22500-21950",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "bear_put_spread",
+   "direction": "bearish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 206.7,
+     "oi": 69314.0,
+     "spread_pct": 0.8746355685131112,
+     "symbol": "OPTIDXNIFTY27-10-2026PE22500.00"
+    },
+    {
+     "kind": "PE",
+     "strike": 21950.0,
+     "side": "sell",
+     "price": 71.55,
+     "oi": 1521.0,
+     "spread_pct": 5.040871934604908,
+     "symbol": "OPTIDXNIFTY27-10-2026PE21950.00"
+    }
+   ],
+   "entry_value": 135.15,
+   "max_profit": 414.85,
+   "max_loss": 135.15,
+   "breakevens": [
+    22364.8
+   ],
+   "pop_market": 0.3650423216412377,
+   "ev_market": 29.012982469588916,
+   "ev_view": 65.22144144232794,
+   "charges_per_lot": 128.02,
+   "stop_amount": 67.58,
+   "target_amount": 248.91,
+   "risk_per_lot": 4520.72,
+   "worst_case_per_lot": 8912.77,
+   "lots": 0,
+   "score": 0.468,
+   "notes": [
+    "wide bid-ask at 21950PE (5.0%)",
+    "1 lot risks Rs 4,521 (2.3% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "NIFTY-27Oct-LC-22500",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "long_call",
+   "direction": "bullish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 333.35,
+     "oi": 57198.0,
+     "spread_pct": 0.4058014578793185,
+     "symbol": "OPTIDXNIFTY27-10-2026CE22500.00"
+    }
+   ],
+   "entry_value": 333.35,
+   "max_profit": null,
+   "max_loss": 333.35,
+   "breakevens": [
+    22833.3
+   ],
+   "pop_market": 0.35382500345989343,
+   "ev_market": -20.004022775395786,
+   "ev_view": -85.0096912151253,
+   "charges_per_lot": 87.48,
+   "stop_amount": 133.34,
+   "target_amount": 266.68,
+   "risk_per_lot": 8754.58,
+   "worst_case_per_lot": 21755.23,
+   "lots": 0,
+   "score": -0.2591,
+   "notes": [
+    "1 lot risks Rs 8,755 (4.4% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "NIFTY-27Oct-LP-22500",
+   "underlying": "NIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "long_put",
+   "direction": "bearish",
+   "spot": 22520.45,
+   "lot_size": 65,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 22500.0,
+     "side": "buy",
+     "price": 206.7,
+     "oi": 69314.0,
+     "spread_pct": 0.8746355685131112,
+     "symbol": "OPTIDXNIFTY27-10-2026PE22500.00"
+    }
+   ],
+   "entry_value": 206.7,
+   "max_profit": 22293.29,
+   "max_loss": 206.7,
+   "breakevens": [
+    22293.3
+   ],
+   "pop_market": 0.33177529271827655,
+   "ev_market": 13.91925453964204,
+   "ev_view": 72.87380375416849,
+   "charges_per_lot": 72.18,
+   "stop_amount": 82.68,
+   "target_amount": 165.36,
+   "risk_per_lot": 5446.38,
+   "worst_case_per_lot": 13507.68,
+   "lots": 0,
+   "score": 0.3472,
+   "notes": [
+    "1 lot risks Rs 5,446 (2.7% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "BANKNIFTY-27Oct-BCS-55300-56000",
+   "underlying": "BANKNIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "bull_call_spread",
+   "direction": "bullish",
+   "spot": 55256.65,
+   "lot_size": 30,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 55300.0,
+     "side": "buy",
+     "price": 820.0,
+     "oi": 6947.0,
+     "spread_pct": 0.9003766882062931,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026CE55300.00"
+    },
+    {
+     "kind": "CE",
+     "strike": 56000.0,
+     "side": "sell",
+     "price": 462.05,
+     "oi": 38461.0,
+     "spread_pct": 0.6364273771641203,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026CE56000.00"
+    }
+   ],
+   "entry_value": 357.95,
+   "max_profit": 342.05,
+   "max_loss": 357.95,
+   "breakevens": [
+    55657.9
+   ],
+   "pop_market": 0.44630393558761927,
+   "ev_market": -45.818497184245636,
+   "ev_view": -81.16554589184209,
+   "charges_per_lot": 165.9,
+   "stop_amount": 178.97,
+   "target_amount": 205.23,
+   "risk_per_lot": 5535.0,
+   "worst_case_per_lot": 10904.4,
+   "lots": 0,
+   "score": -0.2422,
+   "notes": [
+    "1 lot risks Rs 5,535 (2.8% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "BANKNIFTY-27Oct-BPS-55300-54600",
+   "underlying": "BANKNIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "bear_put_spread",
+   "direction": "bearish",
+   "spot": 55256.65,
+   "lot_size": 30,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 55300.0,
+     "side": "buy",
+     "price": 617.0,
+     "oi": 7249.0,
+     "spread_pct": 0.3246753246753247,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026PE55300.00"
+    },
+    {
+     "kind": "PE",
+     "strike": 54600.0,
+     "side": "sell",
+     "price": 380.0,
+     "oi": 3637.0,
+     "spread_pct": 1.7865293082089124,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026PE54600.00"
+    }
+   ],
+   "entry_value": 237.0,
+   "max_profit": 463.0,
+   "max_loss": 237.0,
+   "breakevens": [
+    55063.0
+   ],
+   "pop_market": 0.422693611124357,
+   "ev_market": 42.45174803910284,
+   "ev_view": 77.9452953868874,
+   "charges_per_lot": 150.0,
+   "stop_amount": 118.5,
+   "target_amount": 277.8,
+   "risk_per_lot": 3705.0,
+   "worst_case_per_lot": 7260.0,
+   "lots": 1,
+   "score": 0.3078,
+   "notes": []
+  },
+  {
+   "id": "BANKNIFTY-27Oct-BCS-55300-56700",
+   "underlying": "BANKNIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "bull_call_spread",
+   "direction": "bullish",
+   "spot": 55256.65,
+   "lot_size": 30,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 55300.0,
+     "side": "buy",
+     "price": 820.0,
+     "oi": 6947.0,
+     "spread_pct": 0.9003766882062931,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026CE55300.00"
+    },
+    {
+     "kind": "CE",
+     "strike": 56700.0,
+     "side": "sell",
+     "price": 229.4,
+     "oi": 4649.0,
+     "spread_pct": 1.7071853052404058,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026CE56700.00"
+    }
+   ],
+   "entry_value": 590.6,
+   "max_profit": 809.4,
+   "max_loss": 590.6,
+   "breakevens": [
+    55890.6
+   ],
+   "pop_market": 0.3878179764418927,
+   "ev_market": -67.98513371345227,
+   "ev_view": -133.69598560743822,
+   "charges_per_lot": 152.93,
+   "stop_amount": 295.3,
+   "target_amount": 485.64,
+   "risk_per_lot": 9011.93,
+   "worst_case_per_lot": 17870.93,
+   "lots": 0,
+   "score": -0.235,
+   "notes": [
+    "1 lot risks Rs 9,012 (4.5% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "BANKNIFTY-27Oct-BPS-55300-53900",
+   "underlying": "BANKNIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "bear_put_spread",
+   "direction": "bearish",
+   "spot": 55256.65,
+   "lot_size": 30,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 55300.0,
+     "side": "buy",
+     "price": 617.0,
+     "oi": 7249.0,
+     "spread_pct": 0.3246753246753247,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026PE55300.00"
+    },
+    {
+     "kind": "PE",
+     "strike": 53900.0,
+     "side": "sell",
+     "price": 230.0,
+     "oi": 2385.0,
+     "spread_pct": 1.7668605903899997,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026PE53900.00"
+    }
+   ],
+   "entry_value": 387.0,
+   "max_profit": 1013.0,
+   "max_loss": 387.0,
+   "breakevens": [
+    54913.0
+   ],
+   "pop_market": 0.3878179764418927,
+   "ev_market": 72.62404953509488,
+   "ev_view": 138.49866979756385,
+   "charges_per_lot": 141.64,
+   "stop_amount": 193.5,
+   "target_amount": 607.8,
+   "risk_per_lot": 5946.64,
+   "worst_case_per_lot": 11751.64,
+   "lots": 0,
+   "score": 0.3457,
+   "notes": [
+    "1 lot risks Rs 5,947 (3.0% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "BANKNIFTY-27Oct-LC-55300",
+   "underlying": "BANKNIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "long_call",
+   "direction": "bullish",
+   "spot": 55256.65,
+   "lot_size": 30,
+   "legs": [
+    {
+     "kind": "CE",
+     "strike": 55300.0,
+     "side": "buy",
+     "price": 820.0,
+     "oi": 6947.0,
+     "spread_pct": 0.9003766882062931,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026CE55300.00"
+    }
+   ],
+   "entry_value": 820.0,
+   "max_profit": null,
+   "max_loss": 820.0,
+   "breakevens": [
+    56120.0
+   ],
+   "pop_market": 0.3427331729166255,
+   "ev_market": -40.94360257520804,
+   "ev_view": -158.9995002093923,
+   "charges_per_lot": 92.93,
+   "stop_amount": 328.0,
+   "target_amount": 656.0,
+   "risk_per_lot": 9932.93,
+   "worst_case_per_lot": 24692.93,
+   "lots": 0,
+   "score": -0.1977,
+   "notes": [
+    "1 lot risks Rs 9,933 (5.0% of capital), above your per-trade budget"
+   ]
+  },
+  {
+   "id": "BANKNIFTY-27Oct-LP-55300",
+   "underlying": "BANKNIFTY",
+   "expiry": "2026-10-27",
+   "dte": 15,
+   "strategy": "long_put",
+   "direction": "bearish",
+   "spot": 55256.65,
+   "lot_size": 30,
+   "legs": [
+    {
+     "kind": "PE",
+     "strike": 55300.0,
+     "side": "buy",
+     "price": 617.0,
+     "oi": 7249.0,
+     "spread_pct": 0.3246753246753247,
+     "symbol": "OPTIDXBANKNIFTY27-10-2026PE55300.00"
+    }
+   ],
+   "entry_value": 617.0,
+   "max_profit": 54682.99,
+   "max_loss": 617.0,
+   "breakevens": [
+    54683.0
+   ],
+   "pop_market": 0.3427331729166255,
+   "ev_market": 28.066710098069702,
+   "ev_view": 141.3941356047357,
+   "charges_per_lot": 81.61,
+   "stop_amount": 246.8,
+   "target_amount": 493.6,
+   "risk_per_lot": 7485.61,
+   "worst_case_per_lot": 18591.61,
+   "lots": 0,
+   "score": 0.2248,
+   "notes": [
+    "1 lot risks Rs 7,486 (3.7% of capital), above your per-trade budget"
+   ]
+  }
+ ]
+}

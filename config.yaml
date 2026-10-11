@@ -1,0 +1,67 @@
+# F&O research assistant configuration.
+# Every number here is a starting assumption for the paper-trading experiment.
+# Change them to match your real capital and risk appetite.
+
+# Where market data comes from: "nse" (free, public NSE website),
+# "groww" (Groww Trade API, needs credentials in env vars), or "sample" (offline synthetic data).
+provider: nse
+
+underlyings: [NIFTY, BANKNIFTY]
+
+account:
+  capital: 200000          # rupees set aside for the experiment (paper money for now)
+  risk_per_trade_pct: 2.0  # max planned loss per trade as % of capital
+  max_open_trades: 3
+
+# Which expiries to consider (calendar days to expiry).
+# Very short expiries have explosive gamma and fast theta decay; very long ones tie up capital.
+expiry:
+  min_dte: 3
+  max_dte: 35
+  max_expiries_per_underlying: 2
+
+# Strategy menu. Defined-risk spreads are on by default.
+strategies:
+  bull_call_spread: true
+  bear_put_spread: true
+  long_call: true
+  long_put: true
+  iron_condor: false       # needs much more margin; enable once capital allows
+
+# Signal thresholds.
+signals:
+  bias_threshold: 0.20     # |bias| below this = neutral, no directional trade
+  # How strongly the directional view tilts the probability model (0 = pure market-implied).
+  # Used only to rank candidates; it is an assumption, not a forecast.
+  view_strength: 0.35
+
+# Liquidity filters (per leg).
+liquidity:
+  min_open_interest: 500   # contracts (lots) of open interest
+  max_spread_pct: 5.0      # max bid-ask spread as % of mid price
+  slippage_pct: 0.5        # applied when only LTP is known (no bid/ask)
+
+# Exit rules applied to every paper trade.
+exits:
+  debit_spread: {stop_loss_pct_of_debit: 50, take_profit_pct_of_max_profit: 60}
+  long_option: {stop_loss_pct_of_premium: 40, take_profit_pct_of_premium: 80}
+  credit_spread: {stop_loss_multiple_of_credit: 1.0, take_profit_pct_of_credit: 50}
+  exit_days_before_expiry: 1
+
+# Fallback lot sizes (NSE revises these; the NSE provider infers the live value from order quantities).
+lot_sizes:
+  NIFTY: 65
+  BANKNIFTY: 30
+  FINNIFTY: 60
+  MIDCPNIFTY: 120
+
+# Groww F&O charges for options (verify against Groww's current pricing page).
+charges:
+  brokerage_per_order: 20.0
+  stt_sell_pct: 0.1            # on sell-side premium
+  exchange_txn_pct: 0.03503    # NSE options transaction charge on premium
+  sebi_per_crore: 10.0
+  stamp_duty_buy_pct: 0.003
+  gst_pct: 18.0
+
+risk_free_rate: 0.065
