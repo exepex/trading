@@ -68,8 +68,8 @@ BENCHMARK_UNDERLYING = "NIFTY"
 ENV_FNO_SLACK_BOT_TOKEN = "FNO_SLACK_BOT_TOKEN"
 ENV_FNO_SLACK_CHANNEL_ID = "FNO_SLACK_CHANNEL_ID"
 ENV_FNO_SLACK_WEBHOOK_URL = "FNO_SLACK_WEBHOOK_URL"
-ENV_RESEARCH_MOTHERDUCK_TOKEN = "MOTHERDUCK_READ_TOKEN"  # read-only access to the market-brief research
-ENV_FNO_MOTHERDUCK_TOKEN = "FNO_MOTHERDUCK_TOKEN"  # write access to the F&O results database
+# Shared with the market-brief tool for now (owner's decision); only used when a MotherDuck option is chosen.
+ENV_MOTHERDUCK_TOKEN = "MOTHERDUCK_TOKEN"
 
 # News statuses from the market-brief verification pipeline that must never support a trade.
 UNTRUSTED_NEWS_STATUSES = ("rumour", "promotional", "contradicted")

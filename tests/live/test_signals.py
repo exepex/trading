@@ -4,6 +4,7 @@ from fno.constants import Direction, OiBuildup
 from fno.live.market_view import MarketViewBuilder, ViewThresholds, combine
 from fno.live.models import SignalVote, UnderlyingSnapshot, oi_buildup
 from fno.live.research.research_context import NewsSignal, ResearchSnapshot, summarise_news
+from fno.live.research.research_source import NewsItem
 from fno.live.signals.base import SymbolInputs
 from fno.live.signals.guards import BanListGuard, EarningsGuard, MarketStressGuard
 from fno.live.signals.positioning import FuturesOiBuildup
@@ -63,13 +64,22 @@ def test_research_votes_and_trust():
     assert ModelScore(1.0, {"full_scale": 0.1}).evaluate(inputs(research=research)).score == 0.8
 
 
-def test_summarise_news_drops_rumours():
-    rows = [
-        {"ticker": "TCS", "sentiment": 0.5, "status": "rumour", "title": "x"},
-        {"ticker": "TCS", "sentiment": -0.2, "status": "corroborated", "title": "y"},
+def test_summarise_news_drops_rumours_and_unscored():
+    when = at(9, 0)
+    items = [
+        NewsItem("TCS", "x", when, 0.5, "high", "rumour"),
+        NewsItem("TCS", "y", when, -0.2, "medium", "corroborated"),
+        NewsItem("TCS", "z", when, None, None, None),  # not scored yet
+        NewsItem("TCS", "w", when, 0.9, "low", None),  # not material
     ]
-    news = summarise_news(rows)["TCS"]
+    news = summarise_news(items)["TCS"]
     assert news.items == 1 and news.trusted_items == 1 and news.mean_sentiment == -0.2
+
+
+def test_geopolitical_news_blocks_new_trades():
+    research = ResearchSnapshot(geopolitical_headlines=["Border clash escalates"])
+    verdict = MarketStressGuard({"block_on_geopolitical": True}).evaluate(inputs(research=research))
+    assert verdict.blocked and "geopolitical" in verdict.reason
 
 
 def test_guards_block():

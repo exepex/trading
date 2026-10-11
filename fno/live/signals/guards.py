@@ -28,11 +28,14 @@ class EarningsGuard(GuardRule):
 
 
 class MarketStressGuard(GuardRule):
-    """The market-brief regime flags market-wide stress: no new trades anywhere."""
+    """Market-wide risk from the stock tool's research: a stressed regime or high-impact geopolitical news."""
 
     name = "market_stress"
 
     def evaluate(self, inputs: SymbolInputs) -> GuardVerdict:
         research = inputs.research
-        blocked = research.stress and self.settings.get("block_on_stress", True)
-        return self.verdict(blocked, f"market regime {research.regime or 'unknown'}, stress {research.stress}")
+        if research.stress and self.settings.get("block_on_stress", True):
+            return self.verdict(True, f"market regime {research.regime or 'unknown'} under stress")
+        if research.geopolitical_headlines and self.settings.get("block_on_geopolitical", True):
+            return self.verdict(True, f"high-impact geopolitical news: {research.geopolitical_headlines[0][:80]}")
+        return self.verdict(False, f"market regime {research.regime or 'unknown'}, no stress")

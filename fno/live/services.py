@@ -10,6 +10,7 @@ from ..notify import SlackTarget
 from ..providers import Provider, get_provider
 from .alerts import LiveAlerts
 from .contract_picker import ContractPicker, ExitLevels, PickerRules
+from .duckdb_results_store import DuckDbResultsStore
 from .exit_policy import ExitPolicy
 from .feeds.nse_feed import NseLiveFeed
 from .feeds.price_feed import IntradayPriceFeed, YahooPriceFeed
@@ -17,17 +18,26 @@ from .kill_switch import KillSwitch
 from .market_clock import MarketClock, SessionTimes
 from .market_view import MarketViewBuilder, ViewThresholds
 from .paper_desk import PaperDesk
+from .research.motherduck_source import MotherDuckResearchSource
+from .research.repo_source import DATASETS, RepoResearchSource
+from .research.repo_sync import ResearchRepoSync
 from .research.research_context import ResearchContextLoader
-from .research.warehouse import ResearchWarehouse
-from .results_store import ResultsStore
+from .research.research_source import ResearchSource
+from .results_store import JsonlResultsStore, ResultsStore
 from .risk_gate import PortfolioGate
 from .shortlist import ShortlistRules
 from .signals.registry import build_guard_rules, build_signal_rules
 
 DEFAULT_JOURNAL = ROOT / "journal" / "live_trades.json"
-DEFAULT_STATE_DIR = ROOT / "data" / "live"
+DEFAULT_STATE_DIR = ROOT / "data" / "live" / "state"  # not committed: kill flag, local databases
+DEFAULT_RESULTS_DIR = ROOT / "data" / "live" / "events"  # committed: the desk's daily event log
+DEFAULT_RESEARCH_CLONE = ROOT / "data" / "research"  # not committed: copy of the stock tool's research files
 KILL_FLAG_NAME = "KILL"
 LOCAL_RESULTS_NAME = "fno_desk.duckdb"
+RESEARCH_FROM_REPO = "repo"
+RESEARCH_FROM_MOTHERDUCK = "motherduck"
+RESULTS_TO_FILES = "files"
+RESULTS_TO_DUCKDB = "duckdb"
 
 
 @dataclass
@@ -84,9 +94,29 @@ def build_live_services(
         gate=PortfolioGate(cfg, kill_switch, live.get("reentry_cooldown_minutes", 30)),
         desk=PaperDesk(journal_path, cfg, chain_source, exit_policy),
         alerts=LiveAlerts(SlackTarget.from_environment(cfg)),
-        store=ResultsStore(state_dir / LOCAL_RESULTS_NAME, live.get("results_database", "fno_desk")),
+        store=build_results_store(live.get("results", {}), state_dir),
         clock=clock,
         kill_switch=kill_switch,
-        research_loader=ResearchContextLoader(ResearchWarehouse(), live.get("news_lookback_hours", 24)),
+        research_loader=ResearchContextLoader(
+            build_research_source(live.get("research", {})), live.get("news_lookback_hours", 24)
+        ),
         shortlist_rules=ShortlistRules.from_config(live.get("shortlist")),
     )
+
+
+def build_research_source(research_cfg: dict) -> ResearchSource:
+    """The stock tool's research: its GitHub data files by default, its MotherDuck copy as an option."""
+    market = research_cfg.get("market", "india")
+    if research_cfg.get("source", RESEARCH_FROM_REPO) == RESEARCH_FROM_MOTHERDUCK:
+        return MotherDuckResearchSource(market)
+    clone = Path(research_cfg.get("local_path") or DEFAULT_RESEARCH_CLONE)
+    folders = [f"data/{market}/{dataset}" for dataset in DATASETS]
+    sync = ResearchRepoSync(research_cfg["repo_url"], clone, folders) if research_cfg.get("repo_url") else None
+    return RepoResearchSource(clone / "data" / market, sync)
+
+
+def build_results_store(results_cfg: dict, state_dir: Path) -> ResultsStore:
+    """Daily JSONL files saved to GitHub by default; DuckDB/MotherDuck as an option."""
+    if results_cfg.get("store", RESULTS_TO_FILES) == RESULTS_TO_DUCKDB:
+        return DuckDbResultsStore(state_dir / LOCAL_RESULTS_NAME, results_cfg.get("database", "fno_desk"))
+    return JsonlResultsStore(Path(results_cfg.get("directory") or DEFAULT_RESULTS_DIR))

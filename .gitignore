@@ -5,5 +5,7 @@ __pycache__/
 .venv/
 reports/*.png
 
-# Live desk state (local results database, kill-switch flag)
-data/live/
+# Live desk: state (kill flag, local databases) and the copy of the stock tool's research are not committed;
+# data/live/events/ (the desk's daily event log) is.
+data/live/state/
+data/research/

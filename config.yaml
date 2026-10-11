@@ -96,7 +96,14 @@ charges:
 # Live scanner (python -m fno live run). All ~200 NSE F&O underlyings, paper trades only.
 live:
   chain_provider: nse              # nse now; groww once the Trade API subscription is active
-  results_database: fno_desk       # MotherDuck database (FNO_MOTHERDUCK_TOKEN) or local data/live/fno_desk.duckdb
+  research:                        # the stock tool's research (news, verification, earnings, regime, model)
+    source: repo                   # repo = its GitHub data files (default) | motherduck = its MotherDuck copy
+    repo_url: https://github.com/contactexepex/agentic-stock-prediction
+    market: india
+  results:
+    store: files                   # files = data/live/events/YYYY/MM/<date>.jsonl, saved to GitHub (default)
+                                   # duckdb = MotherDuck db `database` with MOTHERDUCK_TOKEN, else a local file
+    database: fno_desk
   min_days_to_expiry: 4            # holding rules never touch expiry day
   reentry_cooldown_minutes: 30     # no new trade on an underlying within 30 min of exiting it
   news_lookback_hours: 24
@@ -133,7 +140,7 @@ live:
   guards:
     ban_list: {}
     earnings: {min_days_before_results: 2}
-    market_stress: {block_on_stress: true}
+    market_stress: {block_on_stress: true, block_on_geopolitical: true}
 
 # F&O Slack channel. Credentials come only from FNO_SLACK_* environment variables (see fno/notify.py).
 slack:

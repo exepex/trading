@@ -42,17 +42,22 @@ Every 3 minutes during the session the desk:
 6. every minute re-prices open trades and exits on stop (-30%), target (+60%), the 15:15 square-off on the
    last holding day, or the day before expiry. Every entry and exit posts to #fno-desk with net P&L.
 
-Research comes read-only from the market-brief MotherDuck database (`MOTHERDUCK_READ_TOKEN`). Results go to the
-`fno_desk` MotherDuck database with `FNO_MOTHERDUCK_TOKEN`, or to `data/live/fno_desk.duckdb` without it.
-Raw minute data is never stored in MotherDuck.
+Research is read from the stock tool's GitHub data files (`data/india/` in agentic-stock-prediction: news,
+its scores and verification, earnings dates, regime, model scores). The desk keeps a small sparse clone in
+`data/research/` and pulls it every 30 minutes. The desk's own results are daily JSONL files in
+`data/live/events/`, saved to GitHub at the end of each day. MotherDuck is optional for both
+(`live.research.source: motherduck`, `live.results.store: duckdb`, using `MOTHERDUCK_TOKEN`); raw minute data is
+never stored anywhere.
 
 ```
 fno/live/
   feeds/       nse_feed (lots, ban list, holidays, OI moves) · price_feed (Yahoo; Groww later)
-  research/    warehouse (MotherDuck reader) · research_context (regime, earnings, news, model)
+  research/    research_source (interface) · repo_source + repo_sync (GitHub files, default)
+               motherduck_source (optional) · research_context (snapshot used by the rules)
   signals/     base · price_action · positioning · research_signals · guards · registry
   market_view  shortlist  contract_picker  risk_gate  exit_policy  market_clock  kill_switch
-  paper_desk   alerts  results_store  universe  scanner  runner  services (wiring)  cli
+  paper_desk   alerts  results_store (JSONL, default) + duckdb_results_store (optional)
+  universe  scanner  runner  services (wiring)  cli
 ```
 Add a signal rule: subclass `SignalRule` in `fno/live/signals/`, register it in `registry.py`, give it a weight in
 `config.yaml` (`live.signals`). Nothing else changes.

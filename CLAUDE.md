@@ -49,6 +49,7 @@ After it is merged, use `main`.
 - Names say what things do. Small single-purpose modules; new behaviour goes in a new class behind an existing
   interface (`SignalRule`, `GuardRule`, `IntradayPriceFeed`, `Provider`) rather than into an existing one.
 - `fno/live/services.py` is the only place that wires concrete classes together.
-- The live desk never places real orders. Market-brief research is read-only (`MOTHERDUCK_READ_TOKEN`);
-  never write to the `market_brief` database.
+- The live desk never places real orders. The stock tool's research is read-only: never write to its repository
+  or to its `market_brief` MotherDuck database. GitHub files are the default store for research input and
+  results; MotherDuck is an optional trial using the shared `MOTHERDUCK_TOKEN` (no new variables).
 - Settings live in `config.yaml`; see README.md for the layout.

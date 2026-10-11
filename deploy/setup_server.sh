@@ -19,8 +19,8 @@ if [ ! -f "$ENV_FILE" ]; then
   cat > "$ENV_FILE" <<'VARS'
 # Secrets for the F&O desk. Readable only by you (chmod 600). Never commit this file.
 FNO_SLACK_BOT_TOKEN=
-MOTHERDUCK_READ_TOKEN=
-FNO_MOTHERDUCK_TOKEN=
+# Optional, only for the MotherDuck options in config.yaml (shared with the market-brief tool):
+MOTHERDUCK_TOKEN=
 # Groww Trade API, once subscribed:
 GROWW_API_KEY=
 GROWW_API_SECRET=

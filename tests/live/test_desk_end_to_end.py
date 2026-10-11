@@ -7,6 +7,7 @@ from fno.constants import ExitReason, SessionPhase
 from fno.live.feeds.nse_feed import OpenInterestMove
 from fno.live.feeds.price_feed import DayQuote
 from fno.live.research.research_context import ResearchSnapshot
+from fno.live.results_store import JsonlResultsStore
 from fno.live.runner import LiveRunner
 from fno.live.scanner import LiveScanner
 from fno.live.services import build_live_services
@@ -34,7 +35,20 @@ def services(tmp_path: Path, chain_source):
     )
     nse = FakeNseFeed({"NIFTY": OpenInterestMove("NIFTY", 9.0, 22950.0, 1e10)}, LOTS)
     base.desk.chain_source = chain_source
-    return replace(base, price_feed=price_feed, nse_feed=nse, chain_source=chain_source, alerts=CapturingAlerts())
+    return replace(
+        base,
+        price_feed=price_feed,
+        nse_feed=nse,
+        chain_source=chain_source,
+        alerts=CapturingAlerts(),
+        store=JsonlResultsStore(tmp_path / "events"),
+        research_loader=StubResearchLoader(),
+    )
+
+
+class StubResearchLoader:
+    def load(self, now, news_since=None):
+        return ResearchSnapshot(loaded_at=now)
 
 
 def test_scan_opens_a_paper_trade_and_runner_exits_on_target(tmp_path):
