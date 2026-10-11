@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from ..models import GuardVerdict
+import math
+
+from ...analytics import atm_iv
+from ..models import Candle, GuardVerdict
 from .base import GuardRule, SymbolInputs
 
 
@@ -39,3 +42,40 @@ class MarketStressGuard(GuardRule):
         if research.geopolitical_headlines and self.settings.get("block_on_geopolitical", True):
             return self.verdict(True, f"high-impact geopolitical news: {research.geopolitical_headlines[0][:80]}")
         return self.verdict(False, f"market regime {research.regime or 'unknown'}, no stress")
+
+
+INTRADAY_BARS_PER_YEAR = 75 * 252  # 5-minute bars in an NSE session x trading days
+
+
+def realised_volatility(candles: list[Candle]) -> float | None:
+    """Annualised volatility from 5-minute returns within each session (overnight gaps excluded), e.g. 0.14."""
+    returns = [
+        math.log(b.close / a.close)
+        for a, b in zip(candles, candles[1:])
+        if a.start.date() == b.start.date() and a.close > 0 and b.close > 0
+    ]
+    if len(returns) < 30:
+        return None
+    mean = sum(returns) / len(returns)
+    variance = sum((r - mean) ** 2 for r in returns) / (len(returns) - 1)
+    return math.sqrt(variance * INTRADAY_BARS_PER_YEAR)
+
+
+class ExpensiveOptionsGuard(GuardRule):
+    """Do not buy options priced for far bigger moves than the stock actually makes: time decay wins."""
+
+    name = "expensive_options"
+
+    def evaluate(self, inputs: SymbolInputs) -> GuardVerdict:
+        if inputs.chain is None:
+            return self.verdict(False, "no option chain")
+        implied = atm_iv(inputs.chain)
+        realised = realised_volatility(inputs.history + inputs.candles)
+        if implied is None or not realised:
+            return self.verdict(False, "volatility not measurable")
+        ratio = implied / realised
+        limit = self.settings.get("max_iv_to_realised", 1.6)
+        return self.verdict(
+            ratio > limit,
+            f"options priced at {implied * 100:.0f}% vol vs {realised * 100:.0f}% realised ({ratio:.1f}x)",
+        )

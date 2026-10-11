@@ -9,7 +9,7 @@ from pathlib import Path
 from .. import journal
 from ..constants import ExitReason, SessionPhase, TradeStatus
 from ..providers import Provider
-from .exit_policy import ExitPolicy
+from .exit_policy import PEAK_VALUE_FIELD, ExitPolicy
 from .models import TradeIdea
 
 
@@ -73,6 +73,7 @@ class PaperDesk:
 
     def _review(self, trade: dict, now: datetime, phase: SessionPhase) -> bool:
         value, orders, spot = journal.close_value(trade, self.chain_source, self.slippage)
+        trade[PEAK_VALUE_FIELD] = round(max(trade.get(PEAK_VALUE_FIELD, trade["entry_value"]), value), 2)
         units = trade["lot_size"] * trade["lots"]
         trade["last_mark"] = {
             "at": now.isoformat(timespec="minutes"),

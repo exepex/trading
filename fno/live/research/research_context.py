@@ -6,11 +6,13 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
 from ...constants import TRUSTED_NEWS_STATUSES, UNTRUSTED_NEWS_STATUSES
-from .research_source import NewsItem, ResearchSource
+from .research_source import Announcement, NewsItem, ResearchSource
 
 MATERIAL_LEVELS = ("medium", "high")
 HIGH_MATERIALITY = "high"
 MODEL_HORIZON_DAYS = 1
+DEALS_LOOKBACK_DAYS = 5
+FLOWS_LOOKBACK_DAYS = 7
 
 
 @dataclass
@@ -33,6 +35,9 @@ class ResearchSnapshot:
     news: dict[str, NewsSignal] = field(default_factory=dict)
     model_prob_up: dict[str, float] = field(default_factory=dict)
     geopolitical_headlines: list[str] = field(default_factory=list)  # high-materiality geopolitical stories
+    announcements: dict[str, list[Announcement]] = field(default_factory=dict)  # filings since the last close
+    block_deal_net: dict[str, float] = field(default_factory=dict)  # rupees, recent block/bulk deals
+    foreign_flows_cr: list[float] = field(default_factory=list)  # daily net FPI equity buying, oldest first
 
     def days_to_earnings(self, symbol: str, today: date) -> int | None:
         when = self.next_earnings.get(symbol)
@@ -59,6 +64,11 @@ class ResearchContextLoader:
         snapshot.news = summarise_news(news)
         snapshot.geopolitical_headlines = geopolitical_headlines(news)
         snapshot.model_prob_up = self.source.model_prob_up(MODEL_HORIZON_DAYS)
+        for filing in self.source.announcements_since(since):
+            snapshot.announcements.setdefault(filing.ticker, []).append(filing)
+        snapshot.block_deal_net = self.source.block_deal_net_value(now.date() - timedelta(days=DEALS_LOOKBACK_DAYS))
+        flows = self.source.foreign_flows(now.date() - timedelta(days=FLOWS_LOOKBACK_DAYS))
+        snapshot.foreign_flows_cr = [net for _, net in flows]
         return snapshot
 
 

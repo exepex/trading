@@ -6,6 +6,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from ...models import OptionChain
+from ..market_backdrop import MarketBackdrop
 from ..models import Candle, GuardVerdict, SignalVote, UnderlyingSnapshot
 from ..research.research_context import ResearchSnapshot
 
@@ -16,15 +18,23 @@ class SymbolInputs:
 
     symbol: str
     snapshot: UnderlyingSnapshot
-    candles: list[Candle]
+    candles: list[Candle]  # today's 5-minute candles
     benchmark_change_pct: float | None
     research: ResearchSnapshot
     banned: set[str] = field(default_factory=set)
     now: datetime | None = None
+    history: list[Candle] = field(default_factory=list)  # 5-minute candles of the previous few sessions
+    chain: OptionChain | None = None  # the option chain the trade would use
+    backdrop: MarketBackdrop = field(default_factory=MarketBackdrop)
+    industry: str | None = None  # NSE industry, None for indices
 
     @property
     def closes(self) -> list[float]:
         return [c.close for c in self.candles]
+
+    @property
+    def day_change_pct(self) -> float | None:
+        return self.snapshot.day_change_pct
 
 
 class SignalRule(ABC):

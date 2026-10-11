@@ -28,6 +28,7 @@ class TradeStatus(StrEnum):
 
 class ExitReason(StrEnum):
     STOP_LOSS = "stop loss"
+    TRAILING_STOP = "trailing stop"
     TARGET = "target"
     INTRADAY_SQUARE_OFF = "intraday square-off"
     MAX_HOLDING_DAYS = "maximum holding days"

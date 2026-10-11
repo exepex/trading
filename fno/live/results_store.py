@@ -9,14 +9,12 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from ..models import IST
 
 log = logging.getLogger(__name__)
-
-EVENT_KINDS = ("scan", "idea", "rejected", "opened", "closed", "kill_switch")
 
 
 class ResultsStore(ABC):
@@ -31,6 +29,10 @@ class ResultsStore(ABC):
 
     @abstractmethod
     def count(self, kind: str | None = None) -> int: ...
+
+    @abstractmethod
+    def payloads(self, kind: str, since_day: date) -> list[dict]:
+        """Payloads of one kind of event recorded on or after since_day, oldest first."""
 
     def close(self) -> None:  # noqa: B027 - optional hook
         """Release connections, if any."""
@@ -59,6 +61,15 @@ class JsonlResultsStore(ResultsStore):
                 handle.write(json.dumps(line, default=str) + "\n")
         except OSError as exc:
             log.error("could not store %s event: %s", kind, exc)
+
+    def payloads(self, kind: str, since_day: date) -> list[dict]:
+        out = []
+        for path in sorted(self.root.rglob("*.jsonl")):
+            if path.stem < since_day.isoformat():
+                continue
+            with path.open(encoding="utf-8") as handle:
+                out += [e["payload"] for line in handle if (e := json.loads(line))["kind"] == kind]
+        return out
 
     def count(self, kind: str | None = None) -> int:
         total = 0

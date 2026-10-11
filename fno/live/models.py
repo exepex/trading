@@ -144,6 +144,7 @@ class ScanReport:
     opened: list[str] = field(default_factory=list)  # journal trade ids
     rejected: dict[str, str] = field(default_factory=dict)  # idea id -> reason
     errors: list[str] = field(default_factory=list)
+    prices: dict[str, float] = field(default_factory=dict)  # last price of every underlying, for outcome tracking
 
     def summary(self) -> dict:
         return {

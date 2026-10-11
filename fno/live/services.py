@@ -11,7 +11,7 @@ from ..providers import Provider, get_provider
 from .alerts import LiveAlerts
 from .contract_picker import ContractPicker, ExitLevels, PickerRules
 from .duckdb_results_store import DuckDbResultsStore
-from .exit_policy import ExitPolicy
+from .exit_policy import ExitPolicy, TrailingStop
 from .feeds.nse_feed import NseLiveFeed
 from .feeds.price_feed import IntradayPriceFeed, YahooPriceFeed
 from .kill_switch import KillSwitch
@@ -75,6 +75,7 @@ def build_live_services(
         clock,
         max_holding_days=holding.get("max_days", 2),
         exit_days_before_expiry=cfg.get("exits", {}).get("exit_days_before_expiry", 1),
+        trailing=TrailingStop.from_config(cfg.get("exits", {}).get("trailing_stop", {})),
     )
     return LiveServices(
         cfg=cfg,

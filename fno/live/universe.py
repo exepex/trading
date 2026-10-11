@@ -18,6 +18,7 @@ class ReferenceData:
     lot_sizes: dict[str, int] = field(default_factory=dict)
     banned: set[str] = field(default_factory=set)
     holidays: set[date] = field(default_factory=set)
+    industries: dict[str, str] = field(default_factory=dict)  # NSE industry per stock
 
     @property
     def symbols(self) -> list[str]:
@@ -26,7 +27,11 @@ class ReferenceData:
     @classmethod
     def load(cls, feed: NseLiveFeed, today: date) -> ReferenceData:
         return cls(
-            loaded_on=today, lot_sizes=feed.lot_sizes(), banned=feed.ban_list(), holidays=feed.trading_holidays()
+            loaded_on=today,
+            lot_sizes=feed.lot_sizes(),
+            banned=feed.ban_list(),
+            holidays=feed.trading_holidays(),
+            industries=feed.industries(),
         )
 
 

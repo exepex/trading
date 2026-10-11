@@ -100,5 +100,15 @@ def test_portfolio_gate(tmp_path: Path):
     assert "less than" in gate.refusal(idea, recent, SessionPhase.TRADING, at(11, 0))
     full = [{"status": "open", "underlying": f"S{i}", "entry_value": 10, "lot_size": 1, "lots": 1} for i in range(5)]
     assert "already open" in gate.refusal(idea, full, SessionPhase.TRADING, at(11, 0))
+    bullish = [
+        {"status": "open", "underlying": f"S{i}", "direction": "bullish", "entry_value": 10, "lot_size": 1, "lots": 1}
+        for i in range(3)
+    ]
+    assert "bullish trades open" in gate.refusal(idea, bullish, SessionPhase.TRADING, at(11, 0))
+    indices = [
+        {"status": "open", "underlying": u, "direction": "bearish", "entry_value": 10, "lot_size": 1, "lots": 1}
+        for u in ("BANKNIFTY", "FINNIFTY")
+    ]
+    assert "index trades" in gate.refusal(idea, indices, SessionPhase.TRADING, at(11, 0))
     switch.engage("test", at(11, 0))
     assert "kill switch" in gate.refusal(idea, [], SessionPhase.TRADING, at(11, 0))

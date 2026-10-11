@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ...constants import BENCHMARK_UNDERLYING
 from ..indicators import clamp, ema_gap_pct, opening_range, vwap
 from ..models import SignalVote
 from .base import SignalRule, SymbolInputs
@@ -62,7 +63,7 @@ class RelativeStrength(SignalRule):
 
     def evaluate(self, inputs: SymbolInputs) -> SignalVote | None:
         own = inputs.snapshot.day_change_pct
-        if own is None or inputs.benchmark_change_pct is None:
+        if own is None or inputs.benchmark_change_pct is None or inputs.symbol == BENCHMARK_UNDERLYING:
             return None
         diff = own - inputs.benchmark_change_pct
         full_scale = self.settings.get("full_scale_pct", 1.5)

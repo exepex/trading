@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from .. import journal
-from ..constants import SessionPhase, TradeStatus
+from ..constants import INDEX_UNDERLYINGS, SessionPhase, TradeStatus
 from .kill_switch import KillSwitch
 from .models import TradeIdea
 
@@ -23,6 +23,7 @@ class PortfolioGate:
             self._session,
             self._open_slots,
             self._same_underlying,
+            self._concentration,
             self._recent_exit,
             self._daily_brakes,
             self._deployment,
@@ -47,6 +48,19 @@ class PortfolioGate:
     def _same_underlying(self, idea, trades, phase, now) -> str | None:
         clash = any(t["status"] == TradeStatus.OPEN.value and t["underlying"] == idea.underlying for t in trades)
         return f"already holding a {idea.underlying} trade" if clash else None
+
+    def _concentration(self, idea, trades, phase, now) -> str | None:
+        """Several calls on NIFTY, BANKNIFTY and FINNIFTY are one bet: cap same-side and index exposure."""
+        account = self.cfg.get("account", {})
+        open_trades = [t for t in trades if t["status"] == TradeStatus.OPEN.value]
+        same_side = sum(t.get("direction") == idea.view.direction.value for t in open_trades)
+        if same_side >= account.get("max_same_direction", 3):
+            return f"already {same_side} {idea.view.direction.value} trades open"
+        if idea.underlying in INDEX_UNDERLYINGS:
+            index_trades = sum(t["underlying"] in INDEX_UNDERLYINGS for t in open_trades)
+            if index_trades >= account.get("max_index_trades", 2):
+                return f"already {index_trades} index trades open"
+        return None
 
     def _recent_exit(self, idea, trades, phase, now) -> str | None:
         for t in trades:

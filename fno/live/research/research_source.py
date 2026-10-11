@@ -21,6 +21,14 @@ class NewsItem:
 
 
 @dataclass(frozen=True)
+class Announcement:
+    ticker: str
+    category: str
+    subject: str
+    published_at: datetime
+
+
+@dataclass(frozen=True)
 class RegimeReading:
     regime: str | None
     stress: bool
@@ -52,3 +60,17 @@ class ResearchSource(ABC):
     @abstractmethod
     def model_prob_up(self, horizon_days: int) -> dict[str, float]:
         """Latest calibrated probability of a rise per ticker."""
+
+    # Optional datasets: sources without them return nothing and the matching rules abstain.
+
+    def announcements_since(self, since: datetime) -> list[Announcement]:
+        """Company filings on the exchange published at or after since."""
+        return []
+
+    def block_deal_net_value(self, since_day: date) -> dict[str, float]:
+        """Rupees bought minus sold in block and bulk deals per ticker, from since_day on."""
+        return {}
+
+    def foreign_flows(self, since_day: date) -> list[tuple[date, float]]:
+        """Daily net FPI equity buying in the secondary market (rupees crore), oldest first."""
+        return []

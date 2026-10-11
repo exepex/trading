@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from ..constants import ExitReason, SessionPhase
 from ..models import IST
 from .alerts import day_summary_message, exit_message
+from .learning.view_outcomes import ViewOutcomeTracker
 from .research.research_context import ResearchSnapshot
 from .scanner import LiveScanner
 from .services import LiveServices
@@ -53,6 +54,9 @@ class LiveRunner:
         self.services = services
         self.scanner = LiveScanner(services)
         self.timings = LoopTimings.from_config(services.live_cfg.get("timings"))
+        self.outcomes = ViewOutcomeTracker(
+            services.store, tuple(services.live_cfg.get("learning", {}).get("horizons_minutes", (30, 90)))
+        )
         self.reference: ReferenceData | None = None
         self.research = ResearchSnapshot()
         self.state = DayState(day=date.min)
@@ -85,6 +89,7 @@ class LiveRunner:
         if self.state.day == today:
             return
         self.state = DayState(day=today)
+        self.outcomes.end_of_day()
         self.reference = ReferenceData.load(self.services.nse_feed, today)
         self.services.clock.holidays = self.reference.holidays
         log.info(
@@ -105,6 +110,7 @@ class LiveRunner:
             return
         self.state.last_scan = now
         report = self.scanner.run_cycle(now, phase, self.reference, self._research(now))
+        self.outcomes.observe(report)
         self.state.scans += 1
         new_ideas = {i.id for i in report.ideas} - self.state.seen_ideas
         self.state.ideas += len(new_ideas)

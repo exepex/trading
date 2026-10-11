@@ -18,6 +18,7 @@ YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 YAHOO_BATCH_SIZE = 20
 YAHOO_EXCHANGE_SUFFIX = ".NS"
 CANDLE_INTERVAL = "5m"
+CANDLE_HISTORY_RANGE = "5d"  # today plus recent sessions: previous-day levels, normal volume, realised volatility
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"
 
 
@@ -37,11 +38,16 @@ class IntradayPriceFeed(ABC):
 
     @abstractmethod
     def candles(self, symbol: str) -> list[Candle]:
-        """Today's 5-minute candles, oldest first."""
+        """5-minute candles for the last few sessions (today included), oldest first."""
 
 
 def yahoo_symbol(symbol: str) -> str:
-    return YAHOO_SYMBOLS.get(symbol, f"{symbol}{YAHOO_EXCHANGE_SUFFIX}")
+    """NSE symbol to Yahoo; symbols already in Yahoo form (^CNXIT, ES=F, X.NS) pass through."""
+    if symbol in YAHOO_SYMBOLS:
+        return YAHOO_SYMBOLS[symbol]
+    if symbol.startswith("^") or "=" in symbol or symbol.endswith(YAHOO_EXCHANGE_SUFFIX):
+        return symbol
+    return f"{symbol}{YAHOO_EXCHANGE_SUFFIX}"
 
 
 class YahooPriceFeed(IntradayPriceFeed):
@@ -69,7 +75,7 @@ class YahooPriceFeed(IntradayPriceFeed):
 
     def candles(self, symbol: str) -> list[Candle]:
         url = YAHOO_CHART_URL.format(symbol=quote(yahoo_symbol(symbol), safe=""))
-        payload = self._get(url, {"range": "1d", "interval": CANDLE_INTERVAL})
+        payload = self._get(url, {"range": CANDLE_HISTORY_RANGE, "interval": CANDLE_INTERVAL})
         return parse_chart_candles(payload)
 
 

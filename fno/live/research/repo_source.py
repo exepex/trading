@@ -12,7 +12,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from .repo_sync import ResearchRepoSync
-from .research_source import NewsItem, RegimeReading, ResearchSource
+from .research_source import Announcement, NewsItem, RegimeReading, ResearchSource
 
 log = logging.getLogger(__name__)
 
@@ -22,7 +22,12 @@ NEWS_VERIFIED = "news_verified"
 EVENTS = "events"
 REGIME = "regime"
 MODEL_SCORES = "model_scores"
-DATASETS = (NEWS, NEWS_ENRICHED, NEWS_VERIFIED, EVENTS, REGIME, MODEL_SCORES)
+ANNOUNCEMENTS = "announcements"
+DEALS = "deals"
+FPI = "fpi"
+DATASETS = (NEWS, NEWS_ENRICHED, NEWS_VERIFIED, EVENTS, REGIME, MODEL_SCORES, ANNOUNCEMENTS, DEALS, FPI)
+FPI_EQUITY, FPI_SECONDARY_MARKET = "Equity", "Stock Exchange"
+DEAL_BUY = "buy"
 EARNINGS_EVENT_TYPE = "earnings"
 FILE_PATTERN = "*.jsonl"
 
@@ -118,6 +123,32 @@ class RepoResearchSource(ResearchSource):
             if row["ticker"] not in latest or as_of > latest[row["ticker"]][0]:
                 latest[row["ticker"]] = (as_of, float(row["prob_up"]))
         return {ticker: prob for ticker, (_, prob) in latest.items()}
+
+    def announcements_since(self, since: datetime) -> list[Announcement]:
+        items = []
+        for row in self._rows(self._files(ANNOUNCEMENTS, since.date() - timedelta(days=1))):
+            published = parse_time(row.get("published_at"))
+            if published and published >= since and row.get("ticker"):
+                items.append(Announcement(row["ticker"], row.get("category", ""), row.get("subject", ""), published))
+        return items
+
+    def block_deal_net_value(self, since_day: date) -> dict[str, float]:
+        net: dict[str, float] = {}
+        seen: set[str] = set()
+        for row in self._rows(self._files(DEALS, since_day)):
+            if row["id"] in seen or not row.get("ticker") or row.get("date", "") < since_day.isoformat():
+                continue
+            seen.add(row["id"])
+            sign = 1 if row.get("side") == DEAL_BUY else -1
+            net[row["ticker"]] = net.get(row["ticker"], 0.0) + sign * float(row.get("value") or 0)
+        return net
+
+    def foreign_flows(self, since_day: date) -> list[tuple[date, float]]:
+        by_day: dict[date, float] = {}
+        for row in self._rows(self._files(FPI, since_day)):
+            if row.get("asset_class") == FPI_EQUITY and row.get("route") == FPI_SECONDARY_MARKET:
+                by_day[date.fromisoformat(row["reporting_date"])] = float(row.get("net_cr") or 0)
+        return sorted(by_day.items())
 
     # ------------------------------------------------------------------ helpers
 

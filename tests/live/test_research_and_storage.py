@@ -139,3 +139,45 @@ def test_loader_refreshes_before_checking_availability(tmp_path):
 
     snapshot = ResearchContextLoader(FirstRunSource(tmp_path / "data" / "india")).load(at(9, 0))
     assert snapshot.regime == "CALM"
+
+
+def test_repo_source_reads_filings_deals_and_foreign_flows(tmp_path):
+    root = market_dir(tmp_path)
+    write(
+        root,
+        "announcements",
+        "2026-10-12",
+        [
+            {
+                "ticker": "TCS",
+                "category": "Outcome of Board Meeting",
+                "subject": "Results",
+                "published_at": "2026-10-12T03:00:00+00:00",
+            },
+            {"ticker": "TCS", "category": "Old", "subject": "", "published_at": "2026-10-01T03:00:00+00:00"},
+        ],
+    )
+    write(
+        root,
+        "deals",
+        "2026-10-12",
+        [
+            {"id": "d1", "date": "2026-10-09", "ticker": "TCS", "side": "buy", "value": 3e9},
+            {"id": "d1", "date": "2026-10-09", "ticker": "TCS", "side": "buy", "value": 3e9},  # duplicate line
+            {"id": "d2", "date": "2026-10-09", "ticker": "TCS", "side": "sell", "value": 1e9},
+        ],
+    )
+    write(
+        root,
+        "fpi",
+        "2026-10-12",
+        [
+            {"reporting_date": "2026-10-08", "asset_class": "Equity", "route": "Stock Exchange", "net_cr": -6206.3},
+            {"reporting_date": "2026-10-08", "asset_class": "Debt", "route": "Stock Exchange", "net_cr": 900.0},
+            {"reporting_date": "2026-10-09", "asset_class": "Equity", "route": "Stock Exchange", "net_cr": 1500.0},
+        ],
+    )
+    snapshot = ResearchContextLoader(RepoResearchSource(root)).load(at(9, 0), at(9, 0).replace(day=9))
+    assert [a.category for a in snapshot.announcements["TCS"]] == ["Outcome of Board Meeting"]
+    assert snapshot.block_deal_net == {"TCS": 2e9}
+    assert snapshot.foreign_flows_cr == [-6206.3, 1500.0]

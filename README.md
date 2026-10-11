@@ -33,14 +33,25 @@ python -m fno live resume
 Every 3 minutes during the session the desk:
 1. snapshots all ~200 F&O underlyings (price move, futures open-interest change, F&O ban list);
 2. shortlists the 12 most active liquid names (NIFTY and BANKNIFTY always included);
-3. scores each with signal rules: opening-range breakout, VWAP, 5-minute EMA trend, strength vs NIFTY,
-   futures OI build-up, and the market-brief research (verified news sentiment, model probability);
-4. applies guards: F&O ban list, results within 2 days (IV crush), market-wide stress from the research regime;
+3. scores each with 17 signal rules (weights in `config.yaml` `live.signals`):
+   - price action today: opening-range breakout, VWAP, 5-minute EMA trend, strength vs NIFTY;
+   - today vs earlier sessions: previous-day high/low breakout, volume vs normal for the time of day;
+   - derivatives positioning: futures OI build-up, fresh put vs call writing near the money;
+   - market backdrop: sector index vs NIFTY, breadth across all F&O stocks, global markets, India VIX direction;
+   - the stock tool's research: verified news sentiment, model probability, fresh exchange filings,
+     block/bulk deals, foreign investor flows;
+4. applies guards: F&O ban list, results within 2 days (IV crush), market stress or high-impact geopolitical
+   news, and options priced far above the stock's realised volatility;
 5. picks one liquid option near 0.55 delta (calls when bullish, puts when bearish), sizes it with
    `position_rules`, and opens a paper trade if the portfolio gate allows it (5 open max, Rs 70,000 cap,
    daily loss limit, profit lock, no entries after 14:45);
-6. every minute re-prices open trades and exits on stop (-30%), target (+60%), the 15:15 square-off on the
-   last holding day, or the day before expiry. Every entry and exit posts to #fno-desk with net P&L.
+6. every minute re-prices open trades and exits on stop (-30%), target (+60%), a trailing stop (after +30%,
+   keep at least half the best gain), the 15:15 square-off on the last holding day, or the day before expiry.
+   Every entry and exit posts to #fno-desk with net P&L. Concentration limits: at most 3 trades on the same
+   side and 2 index trades at once.
+7. grades every view: the price 30 and 90 minutes later is compared with each rule's vote.
+   `python -m fno live signal-report` shows each rule's hit rate and information coefficient, and suggests
+   weights. Use it to keep the rules that predict and drop the noise.
 
 Research is read from the stock tool's GitHub data files (`data/india/` in agentic-stock-prediction: news,
 its scores and verification, earnings dates, regime, model scores). The desk keeps a small sparse clone in

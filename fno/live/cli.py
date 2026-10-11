@@ -5,12 +5,14 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import replace
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from .. import journal
 from ..config import load_config
 from ..constants import SessionPhase
 from ..models import IST
+from .learning.signal_report import format_report, rule_accuracy, suggested_weights
+from .learning.view_outcomes import VIEW_OUTCOME_KIND
 from .runner import LiveRunner
 from .scanner import LiveScanner
 from .services import build_live_services
@@ -39,6 +41,9 @@ def add_live_parser(subparsers) -> None:
     kill = actions.add_parser("kill", help="close all paper trades and stop new ones")
     kill.add_argument("reason", nargs="?", default="manual stop")
     actions.add_parser("resume", help="release the kill switch")
+    report = actions.add_parser("signal-report", help="how well each signal predicted the later price move")
+    report.add_argument("--days", type=int, default=20, help="look back this many days")
+    report.add_argument("--horizon", type=int, default=30, help="minutes after the view (30 or 90)")
     live.set_defaults(func=run_live_command)
 
 
@@ -58,6 +63,8 @@ def run_live_command(args) -> int:
     elif args.live_cmd == "resume":
         services.kill_switch.release()
         print("Kill switch released. New trades are allowed again.")
+    elif args.live_cmd == "signal-report":
+        _print_signal_report(services, now, args.days, args.horizon)
     return 0
 
 
@@ -91,6 +98,17 @@ def _scan_once(services, now: datetime, as_json: bool) -> int:
     for error in report.errors:
         print(f"  error: {error}")
     return 0
+
+
+def _print_signal_report(services, now: datetime, days: int, horizon: int) -> None:
+    learning = services.live_cfg.get("learning", {})
+    outcomes = services.store.payloads(VIEW_OUTCOME_KIND, now.date() - timedelta(days=days))
+    results = rule_accuracy(outcomes, horizon, learning.get("min_abs_score", 0.2))
+    min_votes = learning.get("min_votes_for_verdict", 50)
+    print(format_report(results, horizon, min_votes))
+    print("\nSuggested weights (copy to config.yaml live.signals once rules have enough votes):")
+    for rule, weight in suggested_weights(results, min_votes).items():
+        print(f"  {rule}: {weight}")
 
 
 def _print_status(services, now: datetime) -> None:

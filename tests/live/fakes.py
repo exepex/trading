@@ -62,6 +62,9 @@ class FakeNseFeed:
     def trading_holidays(self):
         return set()
 
+    def industries(self):
+        return {}
+
 
 class CapturingAlerts:
     def __init__(self):

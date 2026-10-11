@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 from ..constants import ENV_MOTHERDUCK_TOKEN
@@ -67,6 +67,13 @@ class DuckDbResultsStore(ResultsStore):
     def count(self, kind: str | None = None) -> int:
         sql = f"select count(*) from {EVENTS_TABLE}" + (" where kind = ?" if kind else "")
         return self._connect().execute(sql, [kind] if kind else []).fetchone()[0]
+
+    def payloads(self, kind: str, since_day: date) -> list[dict]:
+        rows = self._connect().execute(
+            f"select payload from {EVENTS_TABLE} where kind = ? and recorded_at >= ? order by recorded_at",
+            [kind, since_day],
+        )
+        return [json.loads(row[0]) for row in rows.fetchall()]
 
     def close(self) -> None:
         if self._connection is not None:

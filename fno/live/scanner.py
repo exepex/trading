@@ -1,4 +1,4 @@
-"""One scan cycle: universe → shortlist → signals → contract → risk gate → paper trade."""
+"""One scan cycle: universe → backdrop → shortlist → signals → contract → risk gate → paper trade."""
 
 from __future__ import annotations
 
@@ -7,8 +7,10 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from ..constants import BENCHMARK_UNDERLYING, Direction, SessionPhase
+from ..models import OptionChain
 from .alerts import entry_message
-from .models import MarketView, ScanReport, TradeIdea, UnderlyingSnapshot, as_record
+from .market_backdrop import MarketBackdrop, build_market_backdrop
+from .models import Candle, MarketView, ScanReport, UnderlyingSnapshot, as_record
 from .research.research_context import ResearchSnapshot
 from .services import LiveServices
 from .shortlist import build_shortlist
@@ -27,6 +29,15 @@ class CycleContext:
     reference: ReferenceData
     research: ResearchSnapshot
     benchmark_change_pct: float | None
+    backdrop: MarketBackdrop
+
+
+def split_sessions(candles: list[Candle]) -> tuple[list[Candle], list[Candle]]:
+    """(latest session's candles, earlier sessions' candles)."""
+    if not candles:
+        return [], []
+    latest_day = candles[-1].start.date()
+    return [c for c in candles if c.start.date() == latest_day], [c for c in candles if c.start.date() != latest_day]
 
 
 class LiveScanner:
@@ -42,8 +53,16 @@ class LiveScanner:
         snapshots = self._snapshots(reference, report)
         if not snapshots:
             return report
+        report.prices = {sym: snap.last_price for sym, snap in snapshots.items()}
         benchmark = snapshots.get(BENCHMARK_UNDERLYING)
-        context = CycleContext(now, phase, reference, research, benchmark.day_change_pct if benchmark else None)
+        context = CycleContext(
+            now,
+            phase,
+            reference,
+            research,
+            benchmark.day_change_pct if benchmark else None,
+            self._backdrop(snapshots, report),
+        )
         held = {t["underlying"] for t in s.desk.open_trades()}
         report.shortlisted = build_shortlist(
             snapshots,
@@ -70,23 +89,43 @@ class LiveScanner:
             return {}
         return build_snapshots(reference.symbols, quotes, oi_moves)
 
+    def _backdrop(self, snapshots: dict[str, UnderlyingSnapshot], report: ScanReport) -> MarketBackdrop:
+        try:
+            return build_market_backdrop(self.services.price_feed, snapshots)
+        except Exception as exc:  # sector and global context is helpful, not essential
+            report.errors.append(f"market backdrop failed: {exc}")
+            return MarketBackdrop()
+
     def _examine(self, snapshot: UnderlyingSnapshot, context: CycleContext, report: ScanReport) -> None:
         s, symbol, now = self.services, snapshot.symbol, context.now
+        today, history = split_sessions(s.price_feed.candles(symbol))
+        chain = self._chain(symbol, context.reference, now.date(), report)
         inputs = SymbolInputs(
             symbol=symbol,
             snapshot=snapshot,
-            candles=s.price_feed.candles(symbol),
+            candles=today,
             benchmark_change_pct=context.benchmark_change_pct,
             research=context.research,
             banned=context.reference.banned,
             now=now,
+            history=history,
+            chain=chain,
+            backdrop=context.backdrop,
+            industry=context.reference.industries.get(symbol),
         )
         view = s.view_builder.build(inputs)
         report.views.append(view)
-        if view.blocked or view.direction is Direction.NEUTRAL:
+        if view.blocked or view.direction is Direction.NEUTRAL or chain is None:
             return
-        idea = self._idea(view, context.reference, now.date(), report)
+        self._trade_if_allowed(view, chain, context, report)
+
+    def _trade_if_allowed(
+        self, view: MarketView, chain: OptionChain, context: CycleContext, report: ScanReport
+    ) -> None:
+        s, now, symbol = self.services, context.now, view.symbol
+        idea, reason = s.picker.pick(view, chain, now.date())
         if idea is None:
+            report.rejected[symbol] = reason
             return
         report.ideas.append(idea)
         s.store.record("idea", as_record(idea), now, symbol)
@@ -100,18 +139,16 @@ class LiveScanner:
         s.store.record("opened", trade, now, symbol)
         s.alerts.send(entry_message(idea, trade["id"]))
 
-    def _idea(self, view: MarketView, reference: ReferenceData, today: date, report: ScanReport) -> TradeIdea | None:
+    def _chain(self, symbol: str, reference: ReferenceData, today: date, report: ScanReport) -> OptionChain | None:
+        """The chain of the expiry a trade would use, fetched before the view so option signals can read it."""
         s = self.services
-        expiry = choose_expiry(self._expiries_for(view.symbol, today), today, s.live_cfg.get("min_days_to_expiry", 4))
+        expiry = choose_expiry(self._expiries_for(symbol, today), today, s.live_cfg.get("min_days_to_expiry", 4))
         if expiry is None:
-            report.rejected[view.symbol] = "no expiry far enough away"
+            report.rejected[symbol] = "no expiry far enough away"
             return None
-        chain = s.chain_source.chain(view.symbol, expiry)
-        chain.lot_size = reference.lot_sizes.get(view.symbol, chain.lot_size)
-        idea, reason = s.picker.pick(view, chain, today)
-        if idea is None:
-            report.rejected[view.symbol] = reason
-        return idea
+        chain = s.chain_source.chain(symbol, expiry)
+        chain.lot_size = reference.lot_sizes.get(symbol, chain.lot_size)
+        return chain
 
     def _expiries_for(self, symbol: str, today: date) -> list[date]:
         key = (symbol, today)

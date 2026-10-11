@@ -11,6 +11,8 @@ underlyings: [NIFTY, BANKNIFTY]
 account:
   capital: 100000          # rupees set aside for the experiment (paper money for the first month)
   max_open_trades: 5       # at most 5 open trades; a new one opens only after one closes
+  max_same_direction: 3    # at most 3 open trades betting the same way (calls, or puts)
+  max_index_trades: 2      # NIFTY, BANKNIFTY, FINNIFTY... move together: at most 2 at once
 
 # Position sizing agreed with the owner (12 Oct 2026). Amounts are premium paid per trade.
 position_rules:
@@ -75,6 +77,8 @@ exits:
   long_option: {stop_loss_pct_of_premium: 30, take_profit_pct_of_premium: 60}
   credit_spread: {stop_loss_multiple_of_credit: 1.0, take_profit_pct_of_credit: 50}
   exit_days_before_expiry: 1
+  # Protect winners: once a trade is up 30%, exit if it falls back to half of its best gain.
+  trailing_stop: {enabled: true, activate_gain_pct: 30, lock_pct: 50}
 
 # Fallback lot sizes (NSE revises these; the NSE provider infers the live value from order quantities).
 lot_sizes:
@@ -129,18 +133,42 @@ live:
     min_premium: 20
     max_spread_pct: 3.0
     min_open_interest: 200
-  signals:                         # weight = how much each rule counts; set enabled: false to switch one off
+  # weight = how much each rule counts; enabled: false switches one off. Starting weights are judgement calls:
+  # replace them with `python -m fno live signal-report` suggestions once each rule has enough graded votes.
+  signals:
+    # price action, today
     opening_range: {weight: 1.0, minutes: 15}
     vwap: {weight: 1.0, full_scale_pct: 0.6}
     intraday_trend: {weight: 1.0, fast: 9, slow: 21, full_scale_pct: 0.3}
     relative_strength: {weight: 0.8, full_scale_pct: 1.5}
+    # today versus earlier sessions
+    previous_day_levels: {weight: 0.8}
+    volume_confirmation: {weight: 0.7, min_ratio: 1.3, full_ratio: 2.5}
+    # derivatives positioning
     oi_buildup: {weight: 1.2, min_oi_change_pct: 2.0}
+    option_writing: {weight: 1.0, strikes_each_side: 5}
+    # market-wide backdrop
+    sector_strength: {weight: 0.7, full_scale_pct: 1.0}
+    market_breadth: {weight: 0.6, full_scale: 0.6}
+    global_cues: {weight: 0.4, full_scale_pct: 1.0}
+    vix_direction: {weight: 0.4, full_scale_pct: 8.0}
+    # the stock tool's research (agentic-stock-prediction data files)
     news: {weight: 0.8, full_scale: 0.4, unverified_factor: 0.5}
     model: {weight: 0.5, full_scale: 0.1}
+    announcement: {weight: 0.8, min_move_pct: 1.0, full_scale_pct: 3.0, ignored_categories: [
+        "Copy of Newspaper Publication", "Trading Window", "General Updates", "Certificate under SEBI (Depositories and Participants) Regulations, 2018",
+        "Analysts/Institutional Investor Meet/Con. Call Updates", "Shareholders meeting", "Loss of Share Certificate"]}
+    block_deals: {weight: 0.6, full_scale_crore: 200}
+    foreign_flows: {weight: 0.4, days: 3, full_scale_crore: 10000}
   guards:
     ban_list: {}
     earnings: {min_days_before_results: 2}
     market_stress: {block_on_stress: true, block_on_geopolitical: true}
+    expensive_options: {max_iv_to_realised: 1.6}
+  learning:
+    horizons_minutes: [30, 90]     # grade every view by the price move this long afterwards
+    min_abs_score: 0.2             # votes weaker than this do not count towards a hit rate
+    min_votes_for_verdict: 50
 
 # F&O Slack channel. Credentials come only from FNO_SLACK_* environment variables (see fno/notify.py).
 slack:
