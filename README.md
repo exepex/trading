@@ -12,7 +12,8 @@ not place orders. You decide whether to take a trade and place it yourself on Gr
 
 ```bash
 pip install -r requirements.txt
-python -m fno brief                  # scan config underlyings, write reports/<date>-brief.md
+python -m fno daily                  # morning routine: mark paper trades, write brief (.md/.html) + Slack text
+python -m fno brief                  # scan config underlyings, write reports/<date>-brief.md/.html
 python -m fno brief NIFTY            # just one underlying
 python -m fno chain NIFTY            # print the chain around the money (nearest expiry)
 python -m fno --provider sample brief  # offline synthetic data, for testing
@@ -76,10 +77,12 @@ fno/
   analytics.py Black-Scholes, IV, PCR, max pain, OI walls, EMA/RSI/realised vol
   signals.py   directional bias + volatility regime
   strategies.py candidate construction, payoff analysis, scoring, sizing
-  brief.py     daily Markdown/JSON brief
+  brief.py     daily Markdown/JSON brief and Slack summary
+  html_report.py phone-friendly HTML brief
   journal.py   paper-trading journal and scorecard
   costs.py     Groww + statutory charges
-reports/       daily briefs and candidate files
+reports/       daily briefs (Markdown, HTML), Slack summaries and candidate files
+conversations/ daily conversation logs
 journal/       paper trades
 tests/         unit tests (incl. a real NSE chain fixture)
 ```

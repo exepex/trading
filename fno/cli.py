@@ -32,6 +32,31 @@ def cmd_brief(args) -> int:
     return 0
 
 
+def cmd_daily(args) -> int:
+    """Morning routine: re-price paper trades, then write the brief (Markdown, HTML, Slack text)."""
+    from html import escape
+
+    from .brief import run_brief
+
+    cfg = _cfg(args)
+    provider = get_provider(cfg["provider"], cfg)
+    path = Path(args.journal)
+    trades = journal.load(path)
+    log = journal.mark(trades, provider, cfg) if trades else []
+    journal.save(trades, path)
+    st = journal.stats(trades)
+    jhtml = (
+        f"<div>{st['closed']} closed trades ({st['win_rate']:.0f}% wins), net ₹{st['net']:,.0f} after charges · "
+        f"{st['open']} open, unrealised ₹{st['unrealised']:,.0f}</div>"
+        + "".join(f'<div class="muted">{escape(line)}</div>' for line in log)
+    )
+    md, _, _ = run_brief(provider, cfg, args.out, journal_stats=st, journal_html=jhtml)
+    for line in log:
+        print(line)
+    print(f"Wrote {md.with_suffix('.html')} and {md.parent / md.name.replace('-brief.md', '-slack.md')}")
+    return 0
+
+
 def cmd_chain(args) -> int:
     from . import analytics as an
 
@@ -90,6 +115,11 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("underlyings", nargs="*")
     b.add_argument("--out", default=str(ROOT / "reports"))
     b.set_defaults(func=cmd_brief)
+
+    d = sub.add_parser("daily", help="morning routine: mark paper trades + write brief, HTML and Slack text")
+    d.add_argument("--out", default=str(ROOT / "reports"))
+    d.add_argument("--journal", default=str(journal.DEFAULT_PATH))
+    d.set_defaults(func=cmd_daily)
 
     c = sub.add_parser("chain", help="print an option chain around the money")
     c.add_argument("underlying")

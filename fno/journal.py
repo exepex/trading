@@ -153,6 +153,20 @@ def close(trades: list[dict], trade_id: str, provider: Provider, cfg: dict, reas
     return t
 
 
+def stats(trades: list[dict]) -> dict:
+    closed = [t for t in trades if t["status"] == "closed"]
+    pnl = [t["pnl_net"] for t in closed]
+    wins = [p for p in pnl if p > 0]
+    return {
+        "closed": len(closed),
+        "open": sum(t["status"] == "open" for t in trades),
+        "wins": len(wins),
+        "win_rate": len(wins) / len(closed) * 100 if closed else 0.0,
+        "net": sum(pnl),
+        "unrealised": sum((t.get("last_mark") or {}).get("pnl", 0) for t in trades if t["status"] == "open"),
+    }
+
+
 def report(trades: list[dict], capital: float) -> str:
     closed = [t for t in trades if t["status"] == "closed"]
     opened = [t for t in trades if t["status"] == "open"]

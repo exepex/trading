@@ -188,7 +188,50 @@ def render_markdown(scans: list[UnderlyingScan], cfg: dict) -> str:
     return "\n".join(lines)
 
 
-def run_brief(provider: Provider, cfg: dict, out_dir: str | Path = "reports") -> tuple[Path, Path, list[UnderlyingScan]]:
+def slack_text(scans: list[UnderlyingScan], cfg: dict, journal_stats: dict | None = None) -> str:
+    """Short Slack message that summarises the brief; the full HTML report is attached."""
+    now = now_ist()
+    pick, sig = _pick(scans)
+    lines = [f"*F&O Market Brief, {now:%a %d %b %Y}*"]
+    for s in scans:
+        if s.error or not s.expiries:
+            lines.append(f"• {s.underlying}: skipped ({s.error})")
+            continue
+        g = s.expiries[0].signals
+        chg = f" ({s.day_change_pct:+.2f}%)" if s.day_change_pct is not None else ""
+        lines.append(
+            f"• {s.underlying} {s.spot:,.0f}{chg}: *{g.label}* (bias {g.bias:+.2f}, confidence {confidence_label(g)}), "
+            f"options look {g.vol_regime}"
+        )
+    if s := next((x for x in scans if x.as_of and now.strftime("%d %b %Y") not in x.as_of), None):
+        lines.append(f"_Data is from {s.as_of}; the market may be closed today._")
+    if pick and confidence_label(sig) != "low":
+        lot = pick.lot_size
+        legs = ", ".join(f"{l.side.upper()} {int(l.strike)} {l.kind} @ {l.price:.2f}" for l in pick.legs)
+        lines += [
+            "",
+            f"*Top setup:* {NAMES[pick.strategy]} on {pick.underlying}, expiry {pick.expiry}",
+            f"{legs}",
+            f"Cost Rs {abs(pick.entry_value) * lot:,.0f}/lot · max loss Rs {pick.max_loss * lot:,.0f} · "
+            f"max profit {_rs(pick.max_profit * lot)} · chance of profit {pick.pop_market * 100:.0f}%",
+            f"Stop -Rs {pick.stop_amount * lot:,.0f} · target +Rs {pick.target_amount * lot:,.0f} · size {pick.lots} lot(s)",
+            f"Paper-trade id: `{pick.id}`",
+        ]
+    else:
+        lines += ["", "*No trade today.* Signals are weak or mixed."]
+    if journal_stats:
+        j = journal_stats
+        lines += [
+            "",
+            f"*Paper scorecard:* {j['closed']} closed ({j['win_rate']:.0f}% wins), net Rs {j['net']:,.0f}; "
+            f"{j['open']} open (unrealised Rs {j['unrealised']:,.0f})",
+        ]
+    lines.append("_Research aid only. Full report attached._")
+    return "\n".join(lines)
+
+
+def run_brief(provider: Provider, cfg: dict, out_dir: str | Path = "reports", journal_stats: dict | None = None,
+              journal_html: str = "") -> tuple[Path, Path, list[UnderlyingScan]]:
     scans = []
     for u in cfg.get("underlyings", []):
         try:
@@ -201,6 +244,10 @@ def run_brief(provider: Provider, cfg: dict, out_dir: str | Path = "reports") ->
     md_path = out / f"{stamp}-brief.md"
     json_path = out / f"{stamp}-candidates.json"
     md_path.write_text(render_markdown(scans, cfg), encoding="utf-8")
+    from .html_report import render_html
+
+    (out / f"{stamp}-brief.html").write_text(render_html(scans, cfg, journal_html), encoding="utf-8")
+    (out / f"{stamp}-slack.md").write_text(slack_text(scans, cfg, journal_stats), encoding="utf-8")
     payload = {
         "generated": now_ist().isoformat(),
         "provider": cfg.get("provider"),
