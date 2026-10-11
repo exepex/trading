@@ -34,8 +34,6 @@ def cmd_brief(args) -> int:
 
 def cmd_daily(args) -> int:
     """Morning routine: re-price paper trades, then write the brief (Markdown, HTML, Slack text)."""
-    from html import escape
-
     from .brief import run_brief
 
     cfg = _cfg(args)
@@ -45,15 +43,13 @@ def cmd_daily(args) -> int:
     log = journal.mark(trades, provider, cfg) if trades else []
     journal.save(trades, path)
     st = journal.stats(trades)
-    jhtml = (
-        f"<div>{st['closed']} closed trades ({st['win_rate']:.0f}% wins), net ₹{st['net']:,.0f} after charges · "
-        f"{st['open']} open, unrealised ₹{st['unrealised']:,.0f}</div>"
-        + "".join(f'<div class="muted">{escape(line)}</div>' for line in log)
-    )
-    md, _, _ = run_brief(provider, cfg, args.out, journal_stats=st, journal_html=jhtml)
+    md, _, _ = run_brief(provider, cfg, args.out, journal_stats=st, journal_log=log)
     for line in log:
         print(line)
-    print(f"Wrote {md.with_suffix('.html')} and {md.parent / md.name.replace('-brief.md', '-slack.md')}")
+    stem = md.name.replace("-brief.md", "")
+    for suffix in ("-brief.html", "-brief.png", "-page.html", "-slack.md"):
+        f = md.parent / f"{stem}{suffix}"
+        print(f"Wrote {f}" if f.exists() else f"Missing {f}")
     return 0
 
 

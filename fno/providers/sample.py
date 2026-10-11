@@ -69,11 +69,13 @@ class SampleProvider(Provider):
         spot = self._spot(underlying)
         closes = [spot * (1 + 0.0008 * (i - 120) + 0.006 * math.sin(i / 3)) for i in range(121)]
         closes[-1] = spot
+        dates = [self.as_of.date() - timedelta(days=(120 - i) * 7 // 5) for i in range(121)]
         return MarketContext(
             underlying=underlying.upper(),
             spot=spot,
             prev_close=closes[-2],
             closes=closes,
+            dates=dates,
             vix=14.0,
             vix_year_low=9.0,
             vix_year_high=28.0,

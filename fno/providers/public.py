@@ -63,6 +63,9 @@ class PublicData:
         return self._indices
 
     def daily_closes(self, underlying: str, rng: str = "1y") -> list[float]:
+        return [c for _, c in self.daily_history(underlying, rng)]
+
+    def daily_history(self, underlying: str, rng: str = "1y") -> list[tuple[date, float]]:
         symbol = YAHOO_SYMBOLS.get(underlying.upper(), f"{underlying.upper()}.NS")
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
         try:
@@ -72,7 +75,10 @@ class PublicData:
             resp.raise_for_status()
             result = resp.json()["chart"]["result"][0]
             closes = result["indicators"]["quote"][0]["close"]
-            return [float(c) for c in closes if c is not None]
+            stamps = result["timestamp"]
+            return [
+                (datetime.fromtimestamp(ts, IST).date(), float(c)) for ts, c in zip(stamps, closes) if c is not None
+            ]
         except (requests.RequestException, KeyError, IndexError, ValueError):
             return []
 
@@ -178,7 +184,8 @@ class NSEProvider(Provider):
         if name:
             row = self.client.all_indices().get(name) or {}
             spot, prev = row.get("last"), row.get("previousClose")
-        closes = self.client.daily_closes(underlying)
+        history = self.client.daily_history(underlying)
+        closes = [c for _, c in history]
         if spot is None and closes:
             spot = closes[-1]
         vix, lo, hi = self.client.vix()
@@ -187,6 +194,7 @@ class NSEProvider(Provider):
             spot=float(spot or 0),
             prev_close=prev,
             closes=closes,
+            dates=[d for d, _ in history],
             vix=vix,
             vix_year_low=lo,
             vix_year_high=hi,

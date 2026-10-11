@@ -102,7 +102,8 @@ class GrowwProvider(Provider):
         return parse_groww_chain(resp, underlying, expiry, self.fallback_lot_size(underlying))
 
     def context(self, underlying: str) -> MarketContext:
-        closes = self.public.daily_closes(underlying)
+        history = self.public.daily_history(underlying)
+        closes = [c for _, c in history]
         vix, lo, hi = self.public.vix()
         spot = closes[-1] if closes else 0.0
         return MarketContext(
@@ -110,6 +111,7 @@ class GrowwProvider(Provider):
             spot=spot,
             prev_close=closes[-2] if len(closes) > 1 else None,
             closes=closes,
+            dates=[d for d, _ in history],
             vix=vix,
             vix_year_low=lo,
             vix_year_high=hi,

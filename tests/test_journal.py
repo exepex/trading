@@ -57,3 +57,22 @@ def test_max_open_trades_enforced():
     except RuntimeError:
         return
     raise AssertionError("expected max_open_trades to block")
+
+
+def test_html_report_renders_with_sample_data(tmp_path):
+    from fno.brief import run_brief
+
+    cfg = load_config(overrides={"provider": "sample"})
+    md, _, _ = run_brief(SampleProvider(cfg), cfg, tmp_path, journal_stats=journal.stats([]), journal_log=[])
+    html = (tmp_path / md.name.replace("-brief.md", "-brief.html")).read_text()
+    page = (tmp_path / md.name.replace("-brief.md", "-page.html")).read_text()
+    assert html.startswith("<!doctype html>") and "Jargon buster" in html and "<svg" in html
+    assert not page.lstrip().startswith("<!doctype") and "<title>" in page[:8192]
+
+
+def test_indian_rupee_grouping():
+    from fno.html_report import inr
+
+    assert inr(200000) == "₹2,00,000"
+    assert inr(-6168) == "−₹6,168"
+    assert inr(19832, sign=True) == "+₹19,832"

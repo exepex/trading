@@ -96,6 +96,7 @@ class MarketContext:
     spot: float
     prev_close: float | None = None
     closes: list[float] = field(default_factory=list)  # daily closes, oldest first
+    dates: list[date] = field(default_factory=list)  # same length as closes when known
     vix: float | None = None
     vix_year_low: float | None = None
     vix_year_high: float | None = None

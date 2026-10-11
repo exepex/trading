@@ -7,7 +7,7 @@ import math
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .models import now_ist
+from .models import MarketContext, OptionChain, now_ist
 from .providers import Provider
 from .signals import Signals, compute_signals
 from .strategies import Candidate, build_candidates, confidence_label, select
@@ -28,6 +28,7 @@ class ExpiryScan:
     signals: Signals
     candidates: list[Candidate]
     selected: list[Candidate]
+    oi_profile: list[tuple[float, float, float]] = field(default_factory=list)  # strike, call OI, put OI
 
 
 @dataclass
@@ -40,6 +41,18 @@ class UnderlyingScan:
     lot_size: int
     expiries: list[ExpiryScan] = field(default_factory=list)
     error: str | None = None
+    context: MarketContext | None = None
+
+
+def oi_profile(chain: OptionChain, n: int = 9) -> list[tuple[float, float, float]]:
+    """Call and put open interest for n strikes either side of the money."""
+    strikes = chain.strikes()
+    i = strikes.index(chain.atm_strike())
+    out = []
+    for k in strikes[max(0, i - n) : i + n + 1]:
+        ce, pe = chain.get(k, "CE"), chain.get(k, "PE")
+        out.append((k, ce.oi if ce else 0.0, pe.oi if pe else 0.0))
+    return out
 
 
 def scan_underlying(provider: Provider, underlying: str, cfg: dict) -> UnderlyingScan:
@@ -50,6 +63,7 @@ def scan_underlying(provider: Provider, underlying: str, cfg: dict) -> Underlyin
     ][: exp_cfg.get("max_expiries_per_underlying", 2)]
     ctx = provider.context(underlying)
     scan = UnderlyingScan(underlying, ctx.spot, ctx.day_change_pct, ctx.vix, "", provider.fallback_lot_size(underlying))
+    scan.context = ctx
     if not expiries:
         scan.error = "no expiry inside the configured days-to-expiry window"
         return scan
@@ -60,7 +74,9 @@ def scan_underlying(provider: Provider, underlying: str, cfg: dict) -> Underlyin
         scan.lot_size = chain.lot_size
         sig = compute_signals(ctx, chain, cfg)
         cands = build_candidates(chain, sig, cfg)
-        scan.expiries.append(ExpiryScan(exp.isoformat(), (exp - today).days, sig, cands, select(cands, sig)))
+        scan.expiries.append(
+            ExpiryScan(exp.isoformat(), (exp - today).days, sig, cands, select(cands, sig), oi_profile(chain))
+        )
     return scan
 
 
@@ -226,12 +242,12 @@ def slack_text(scans: list[UnderlyingScan], cfg: dict, journal_stats: dict | Non
             f"*Paper scorecard:* {j['closed']} closed ({j['win_rate']:.0f}% wins), net Rs {j['net']:,.0f}; "
             f"{j['open']} open (unrealised Rs {j['unrealised']:,.0f})",
         ]
-    lines.append("_Research aid only. Full report attached._")
+    lines.append("_Research aid only, not advice. Report pages are attached as images below._")
     return "\n".join(lines)
 
 
 def run_brief(provider: Provider, cfg: dict, out_dir: str | Path = "reports", journal_stats: dict | None = None,
-              journal_html: str = "") -> tuple[Path, Path, list[UnderlyingScan]]:
+              journal_log: list[str] | None = None) -> tuple[Path, Path, list[UnderlyingScan]]:
     scans = []
     for u in cfg.get("underlyings", []):
         try:
@@ -246,7 +262,16 @@ def run_brief(provider: Provider, cfg: dict, out_dir: str | Path = "reports", jo
     md_path.write_text(render_markdown(scans, cfg), encoding="utf-8")
     from .html_report import render_html
 
-    (out / f"{stamp}-brief.html").write_text(render_html(scans, cfg, journal_html), encoding="utf-8")
+    html_path = out / f"{stamp}-brief.html"
+    html_path.write_text(render_html(scans, cfg, journal_stats, journal_log), encoding="utf-8")
+    # Body-only variant for publishing as a claude.ai Artifact page.
+    (out / f"{stamp}-page.html").write_text(render_html(scans, cfg, journal_stats, journal_log, fragment=True), encoding="utf-8")
+    from .snapshot import snapshot, split_png
+
+    for old in out.glob(f"{stamp}-brief-*of*.png"):
+        old.unlink()
+    if snapshot(html_path, out / f"{stamp}-brief.png"):
+        split_png(out / f"{stamp}-brief.png")
     (out / f"{stamp}-slack.md").write_text(slack_text(scans, cfg, journal_stats), encoding="utf-8")
     payload = {
         "generated": now_ist().isoformat(),

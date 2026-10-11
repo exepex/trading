@@ -13,13 +13,21 @@ API keys or tokens.
 ## Daily market brief (weekday routine)
 
 1. `pip install -q -r requirements.txt`
-2. `python -m fno daily`: re-prices paper trades, writes `reports/<date>-brief.{md,html}`,
-   `reports/<date>-candidates.json` and `reports/<date>-slack.md`.
-3. Post to Slack channel `#market-brief` (ID `C0C6REB7QS2`): upload `reports/<date>-brief.html` with the
-   contents of `reports/<date>-slack.md` as the message.
-4. Append a short entry to `conversations/<date>.md` (create it if needed): time, top setup or "no trade",
-   any paper-trade exits, the Slack link, and any errors.
-5. Commit `reports/`, `journal/` and `conversations/` and push.
+2. `python -m fno daily`: re-prices paper trades and writes, under `reports/`:
+   `<date>-brief.md`, `<date>-brief.html` (full page), `<date>-page.html` (Artifact body),
+   `<date>-brief-NofM.png` (report split into phone-sized page images), `<date>-slack.md`, `<date>-candidates.json`.
+3. Update the web version: read the Artifact https://claude.ai/artifact/8tokXxQfSPnB3DxMpkYpXX
+   (`action: "read"`), then publish `reports/<date>-page.html` to it with `url` set to that link.
+   If the Artifact tool is unavailable, skip this step and say so in the log.
+4. Post to Slack channel `#market-brief` (ID `C0C6REB7QS2`), in order:
+   - page 1 image with the text of `reports/<date>-slack.md` plus the line
+     "Interactive web version: https://claude.ai/artifact/8tokXxQfSPnB3DxMpkYpXX" as its message;
+   - the remaining page images, each with a short caption ("Page 2/4 · NIFTY ...").
+   Use the two-step upload (get upload URL, POST the bytes with Content-Type image/png, complete with the channel ID).
+   Never upload the .html file to Slack: Slack shows HTML as code.
+5. Append a short entry to `conversations/<date>.md` (create it if needed): time, top setup or "no trade",
+   any paper-trade exits, the Slack links, and any errors.
+6. Commit `reports/` (PNG files are git-ignored), `journal/` and `conversations/` and push.
 
 If NSE data fails, still post a short Slack message saying the brief could not be generated and why.
 If the data timestamp is not today (holiday or weekend), post the brief anyway; it marks the data as stale.
