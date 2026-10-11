@@ -93,4 +93,9 @@ charges:
   stamp_duty_buy_pct: 0.003
   gst_pct: 18.0                # CGST 9% + SGST 9% (or IGST 18%)
 
+# F&O Slack channel. Credentials come only from FNO_SLACK_* environment variables (see fno/notify.py).
+slack:
+  channel_name: fno-desk
+  channel_id: C0C89E8QCCD
+
 risk_free_rate: 0.065

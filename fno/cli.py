@@ -53,6 +53,16 @@ def cmd_daily(args) -> int:
     return 0
 
 
+def cmd_notify(args) -> int:
+    from .models import now_ist
+    from .notify import post_brief
+
+    cfg = _cfg(args)
+    stamp = args.date or now_ist().strftime("%Y-%m-%d")
+    print(post_brief(Path(args.out), stamp, cfg, args.web_url))
+    return 0
+
+
 def cmd_chain(args) -> int:
     from . import analytics as an
 
@@ -116,6 +126,12 @@ def main(argv: list[str] | None = None) -> int:
     d.add_argument("--out", default=str(ROOT / "reports"))
     d.add_argument("--journal", default=str(journal.DEFAULT_PATH))
     d.set_defaults(func=cmd_daily)
+
+    n = sub.add_parser("notify", help="post the day's brief (text + page images) to the F&O Slack channel")
+    n.add_argument("--date", help="YYYY-MM-DD (default: today IST)")
+    n.add_argument("--out", default=str(ROOT / "reports"))
+    n.add_argument("--web-url", default="https://claude.ai/artifact/8tokXxQfSPnB3DxMpkYpXX")
+    n.set_defaults(func=cmd_notify)
 
     c = sub.add_parser("chain", help="print an option chain around the money")
     c.add_argument("underlying")

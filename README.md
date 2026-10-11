@@ -63,6 +63,19 @@ Paper fills assume you buy at the ask and sell at the bid, and they include Grow
 Groww credentials are read from environment variables only. Never commit them:
 `GROWW_ACCESS_TOKEN`, or `GROWW_API_KEY` with `GROWW_API_SECRET` (or `GROWW_TOTP_SECRET`).
 
+## Slack
+
+The F&O bot posts to `#fno-desk` and uses its own environment variables, separate from the market-brief tool's
+`SLACK_*` ones:
+
+| Variable | Purpose |
+|---|---|
+| `FNO_SLACK_BOT_TOKEN` | Bot token of the F&O Slack app (scopes `chat:write`, `files:write`); posts text and page images |
+| `FNO_SLACK_CHANNEL_ID` | Optional; defaults to `slack.channel_id` in `config.yaml` |
+| `FNO_SLACK_WEBHOOK_URL` | Optional incoming webhook for a text-only post when there is no bot token |
+
+`python -m fno notify` posts the day's brief.
+
 ## Configuration
 
 Everything lives in `config.yaml`: capital, risk per trade, max open trades, expiry window, strategy menu,

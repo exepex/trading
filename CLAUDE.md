@@ -19,11 +19,14 @@ API keys or tokens.
 3. Update the web version: read the Artifact https://claude.ai/artifact/8tokXxQfSPnB3DxMpkYpXX
    (`action: "read"`), then publish `reports/<date>-page.html` to it with `url` set to that link.
    If the Artifact tool is unavailable, skip this step and say so in the log.
-4. Post to Slack channel `#market-brief` (ID `C0C6REB7QS2`), in order:
-   - page 1 image with the text of `reports/<date>-slack.md` plus the line
-     "Interactive web version: https://claude.ai/artifact/8tokXxQfSPnB3DxMpkYpXX" as its message;
-   - the remaining page images, each with a short caption ("Page 2/4 · NIFTY ...").
-   Use the two-step upload (get upload URL, POST the bytes with Content-Type image/png, complete with the channel ID).
+4. Post to Slack channel `#fno-desk` (ID `C0C89E8QCCD`). Never post F&O output to `#market-brief`: that
+   channel belongs to the separate market-brief tool, and its `SLACK_*` variables must not be used here.
+   - If `FNO_SLACK_BOT_TOKEN` is set: `python -m fno notify` (one message: the text of
+     `reports/<date>-slack.md`, the web-version link and all page images).
+   - Otherwise use the Slack connector: upload the page images (`reports/<date>-brief-NofM.png`) to
+     `C0C89E8QCCD`, page 1 with the Slack text plus "Interactive web version: <artifact link>" as its message,
+     then the rest with short captions. Two-step upload: get upload URL, POST the bytes with
+     Content-Type image/png, complete with the channel ID.
    Never upload the .html file to Slack: Slack shows HTML as code.
 5. Append a short entry to `conversations/<date>.md` (create it if needed): time, top setup or "no trade",
    any paper-trade exits, the Slack links, and any errors.
