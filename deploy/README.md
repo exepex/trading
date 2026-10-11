@@ -1,29 +1,50 @@
-# Running the live desk on a server
+# Running the desk on any machine
 
-For the paper-trading month the desk runs on the owner's always-on Windows PC: see `deploy/windows/README.md`.
-This page is for the later move to a Linux cloud VM in Mumbai.
+One setup and one set of commands for Windows, Linux and macOS. Use the always-on Windows PC for the paper month
+and a Mumbai cloud VM later: the steps are the same. The desk never places real orders.
 
-The live desk is a long-running process that scans all NSE F&O underlyings during market hours and keeps paper
-trades. It never places real orders.
+## Install once
 
-## One-time setup (AWS Lightsail, Mumbai)
+1. **Python 3.11 or newer** (python.org; on Windows tick *Add python.exe to PATH*) and **git**
+   (Windows: Git for Windows). Set the machine's time zone to **India Standard Time**.
+2. Get the code:
+   ```
+   git clone https://github.com/exepex/trading.git
+   cd trading
+   git checkout claude/beautiful-pascal-566jb5     # until the pull request is merged into main
+   ```
+3. Run the setup (Windows: `py deploy\setup.py`, Linux/macOS: `python3 deploy/setup.py`).
+   The first run creates `~/.trading.env` (`%USERPROFILE%\.trading.env` on Windows). Put your
+   `FNO_SLACK_BOT_TOKEN` in it and run the setup again. It then installs everything into `.venv`, runs the tests,
+   registers two jobs with the machine's own scheduler (Task Scheduler on Windows, cron elsewhere) and starts the
+   desk.
 
-1. Create an instance: Ubuntu 24.04, 2 GB RAM, region Mumbai (ap-south-1). Attach a **static IP** (Groww only
-   accepts API orders from a whitelisted static IP; we register it now so going live later is one step).
-2. SSH in, then clone the repo and give the server push access (a deploy key with write access on GitHub):
-   `git clone git@github.com:exepex/trading.git ~/trading`
-3. Run `bash ~/trading/deploy/setup_server.sh`. The first run creates `~/.trading.env`; fill in the values
-   (`nano ~/.trading.env`) and run the script again. It installs everything, runs the tests, starts the
-   service and schedules the 16:00 end-of-day save to GitHub.
-4. Optional: install Claude Code on the server and enable Remote Control to work with Claude there directly.
+| Job | When | What |
+|---|---|---|
+| FNO Desk Watchdog | every 5 minutes | starts the desk if it is not running (after a reboot, crash or update) |
+| FNO End of Day Sync | weekdays 16:00 | saves the day's paper trades and results to GitHub |
 
-## Everyday commands (on the server, inside ~/trading)
+On Windows the jobs run while you are logged on (a locked screen is fine). Optional: automatic sign-in
+(`netplwiz`) so a restart needs no action. Set Windows Update *active hours* to 08:00-17:00.
+
+## Everyday commands
+
+Same on every machine. `PY` means `.venv\Scripts\python` on Windows and `.venv/bin/python` elsewhere.
 
 | What | Command |
 |---|---|
-| Live log | `journalctl -u fno-live@$USER -f` |
-| Status: open trades, today's P&L | `.venv/bin/python -m fno live status` |
-| One diagnostic scan now | `.venv/bin/python -m fno live scan-once` |
-| **Kill switch**: close everything, stop new trades | `.venv/bin/python -m fno live kill "reason"` |
-| Release the kill switch | `.venv/bin/python -m fno live resume` |
-| Restart after a code update | `git pull && sudo systemctl restart fno-live@$USER` |
+| Is the desk running? | `PY deploy/desk.py deploy status` |
+| Open trades and today's P&L | `PY deploy/desk.py live status` |
+| One diagnostic scan now | `PY deploy/desk.py live scan-once` |
+| Signal accuracy so far | `PY deploy/desk.py live signal-report` |
+| **Kill switch** (close all paper trades, no new ones) | `PY deploy/desk.py live kill "reason"` |
+| Release the kill switch | `PY deploy/desk.py live resume` |
+| Restart after `git pull` | `PY deploy/desk.py deploy stop` (the watchdog starts it again within 5 minutes) |
+| Remove everything from the scheduler | `PY deploy/desk.py deploy uninstall` |
+
+Logs: `logs/live-desk-<date>.log`.
+
+## Claude Code on the machine
+
+Install Claude Code (https://code.claude.com/docs) and sign in with your Claude account. The AI desk
+(docs/AI_DESK_PLAN.md) will run its analyst roles through it, and you can work with Claude there directly.

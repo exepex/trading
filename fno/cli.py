@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import journal
 from .config import ROOT, load_config
+from .deploy.cli import add_deploy_parser
 from .live.cli import add_live_parser
 from .providers import get_provider
 
@@ -158,6 +159,7 @@ def main(argv: list[str] | None = None) -> int:
     j.set_defaults(func=cmd_paper)
 
     add_live_parser(sub)
+    add_deploy_parser(sub)
 
     args = p.parse_args(argv)
     if args.cmd == "paper" and args.action in ("open", "close") and not args.target:
