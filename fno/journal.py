@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from .config import ROOT
-from .costs import legs_charges
+from .costs import CHARGE_NAMES, legs_breakdown, legs_charges
 from .models import now_ist
 from .providers import Provider
 
@@ -94,6 +94,8 @@ def open_trade(trades: list[dict], cand: dict, cfg: dict, lots: int | None = Non
         "stop_amount": cand["stop_amount"],
         "target_amount": cand["target_amount"],
         "entry_charges": round(legs_charges(entry_orders, units, cfg.get("charges", {})), 2),
+        "capital_used": round(abs(cand["entry_value"]) * units, 2),
+        "charge_breakdown": {k: round(v, 2) for k, v in legs_breakdown(entry_orders, units, cfg.get("charges", {})).items()},
         "status": "open",
         "note": note,
         "last_mark": None,
@@ -129,7 +131,11 @@ def _intrinsic_value(trade: dict, spot: float) -> tuple[float, list[tuple[str, f
 
 def _finalise(trade: dict, value: float, orders: list[tuple[str, float]], reason: str, cfg: dict, spot: float) -> None:
     units = trade["lot_size"] * trade["lots"]
-    exit_charges = legs_charges([o for o in orders if o[1] > 0], units, cfg.get("charges", {}))
+    exit_orders = [o for o in orders if o[1] > 0]
+    exit_charges = legs_charges(exit_orders, units, cfg.get("charges", {}))
+    breakdown = dict(trade.get("charge_breakdown") or {})
+    for k, v in legs_breakdown(exit_orders, units, cfg.get("charges", {})).items():
+        breakdown[k] = round(breakdown.get(k, 0.0) + v, 2)
     gross = (value - trade["entry_value"]) * units
     trade.update(
         status="closed",
@@ -140,6 +146,7 @@ def _finalise(trade: dict, value: float, orders: list[tuple[str, float]], reason
         pnl_gross=round(gross, 2),
         charges=round(trade["entry_charges"] + exit_charges, 2),
         pnl_net=round(gross - trade["entry_charges"] - exit_charges, 2),
+        charge_breakdown=breakdown,
     )
 
 
@@ -220,10 +227,16 @@ def report(trades: list[dict], capital: float) -> str:
             max_dd = max(max_dd, peak - equity)
         avg_win = sum(wins) / len(wins) if wins else 0.0
         avg_loss = sum(losses) / len(losses) if losses else 0.0
+        gross = sum(t["pnl_gross"] for t in closed)
+        used = sum(t.get("capital_used") or abs(t["entry_value"]) * t["lot_size"] * t["lots"] for t in closed)
+        breakdown = {k: sum((t.get("charge_breakdown") or {}).get(k, 0.0) for t in closed) for k in CHARGE_NAMES}
         lines += [
             f"- Closed trades: {len(closed)} ({len(wins)} wins, {len(losses)} losses, "
             f"win rate {len(wins) / len(closed) * 100:.0f}%)",
-            f"- Net P&L after charges: Rs {sum(pnl):,.0f} ({sum(pnl) / capital * 100:+.2f}% of capital)",
+            f"- Gross P&L: Rs {gross:,.0f}",
+            "- Charges: " + ", ".join(f"{CHARGE_NAMES[k]} Rs {v:,.0f}" for k, v in breakdown.items() if v),
+            f"- **Net P&L after all charges: Rs {sum(pnl):,.0f}** ({sum(pnl) / capital * 100:+.2f}% of capital)",
+            f"- Net margin on money used: {sum(pnl) / used * 100:+.1f}%" if used else "- Net margin: n/a",
             f"- Average win Rs {avg_win:,.0f}, average loss Rs {avg_loss:,.0f}",
             f"- Expectancy per trade: Rs {sum(pnl) / len(pnl):,.0f}",
             f"- Total charges paid: Rs {sum(t['charges'] for t in closed):,.0f}",

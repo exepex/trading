@@ -22,7 +22,7 @@ position_rules:
 
 # Day-level brakes on opening new trades (closed trades, net of charges).
 daily_limits:
-  max_loss: 5000                 # stop opening trades after a Rs 5,000 net loss today
+  max_loss: 6000                 # stop trading for the day after a Rs 6,000 net loss
   profit_lock: 6000              # after a Rs 6,000 net profit today, stop opening new trades
   max_consecutive_losses: 3      # three losses in a row today: stop for the day
 
@@ -74,7 +74,8 @@ charges:
   stt_sell_pct: 0.1            # on sell-side premium
   exchange_txn_pct: 0.03503    # NSE options transaction charge on premium
   sebi_per_crore: 10.0
+  ipft_per_crore: 50.0         # NSE investor protection fund, options premium
   stamp_duty_buy_pct: 0.003
-  gst_pct: 18.0
+  gst_pct: 18.0                # CGST 9% + SGST 9% (or IGST 18%)
 
 risk_free_rate: 0.065

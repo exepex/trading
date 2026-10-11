@@ -89,11 +89,11 @@ def test_daily_brakes():
     cfg = load_config()
     day = date(2026, 10, 12)
     assert journal.day_check([], cfg, day) is None
-    assert "loss limit" in journal.day_check([_closed(-5200, "2026-10-12T11:00")], cfg, day)
+    assert "loss limit" in journal.day_check([_closed(-6200, "2026-10-12T11:00")], cfg, day)
     assert "profit lock" in journal.day_check([_closed(6500, "2026-10-12T11:00")], cfg, day)
     losses = [_closed(-500, f"2026-10-12T1{i}:00") for i in range(3)]
     assert "in a row" in journal.day_check(losses, cfg, day)
-    assert journal.day_check([_closed(-5200, "2026-10-09T11:00")], cfg, day) is None  # other day
+    assert journal.day_check([_closed(-6200, "2026-10-09T11:00")], cfg, day) is None  # other day
 
 
 def test_deployment_cap():
@@ -106,3 +106,16 @@ def test_deployment_cap():
         assert "limit" in str(e)
         return
     raise AssertionError("expected the deployment cap to block")
+
+
+def test_scorecard_is_net_of_every_charge():
+    cfg = load_config(overrides={"strategies": ALL})
+    trades = []
+    journal.open_trade(trades, _cand(cfg), cfg, lots=1)
+    journal.mark(trades, SampleProvider(cfg, spot_shift_pct=3.0), cfg, today=date(2026, 10, 12))
+    t = trades[0]
+    assert abs(sum(t["charge_breakdown"].values()) - t["charges"]) < 0.05
+    assert t["charge_breakdown"]["stt"] > 0 and t["charge_breakdown"]["gst"] > 0 and t["charge_breakdown"]["stamp"] > 0
+    assert abs(t["pnl_gross"] - t["charges"] - t["pnl_net"]) < 0.05
+    rep = journal.report(trades, cfg["account"]["capital"])
+    assert "Net P&L after all charges" in rep and "Net margin" in rep and "STT" in rep
