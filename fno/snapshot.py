@@ -11,7 +11,12 @@ from pathlib import Path
 CANDIDATES = [
     "/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell",
     "/opt/pw-browsers/chromium-*/chrome-linux/chrome",
+    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+    r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",  # every Windows 10/11 machine has Edge
+    r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
 ]
+BROWSER_COMMANDS = ("chromium", "chromium-browser", "google-chrome", "chrome", "msedge")
 
 
 def find_browser() -> str | None:
@@ -22,7 +27,7 @@ def find_browser() -> str | None:
         hits = sorted(glob.glob(pattern))
         if hits:
             return hits[-1]
-    for name in ("chromium", "chromium-browser", "google-chrome", "chrome"):
+    for name in BROWSER_COMMANDS:
         path = shutil.which(name)
         if path:
             return path

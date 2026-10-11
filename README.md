@@ -24,7 +24,7 @@ python -m pytest -q
 
 ```bash
 python -m fno live scan-once        # one diagnostic scan now: views, ideas, why others were skipped
-python -m fno live run              # market-hours service (see deploy/README.md for the server)
+python -m fno live run              # market-hours service: deploy/windows/README.md (now), deploy/README.md (VM later)
 python -m fno live status           # open paper trades, today's net P&L, kill switch
 python -m fno live kill "reason"    # close all paper trades and block new ones
 python -m fno live resume

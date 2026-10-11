@@ -9,3 +9,6 @@ reports/*.png
 # data/live/events/ (the desk's daily event log) is.
 data/live/state/
 data/research/
+
+# Desk log files (Windows and Linux runners)
+logs/

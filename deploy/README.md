@@ -1,5 +1,8 @@
 # Running the live desk on a server
 
+For the paper-trading month the desk runs on the owner's always-on Windows PC: see `deploy/windows/README.md`.
+This page is for the later move to a Linux cloud VM in Mumbai.
+
 The live desk is a long-running process that scans all NSE F&O underlyings during market hours and keeps paper
 trades. It never places real orders.
 
