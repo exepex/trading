@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import math
 from dataclasses import asdict, dataclass, field
+from datetime import date
 
 from .analytics import norm_pdf
 from .costs import legs_charges
 from .models import OptionChain, now_ist
+from .naming import groww_contract_name
 from .signals import Signals
 
 CODES = {
@@ -75,13 +77,8 @@ class Candidate:
 
     def contract_names(self) -> list[str]:
         """How each leg reads in the Groww app search, e.g. 'NIFTY 19 Oct 22500 Put'."""
-        from datetime import date as _d
-
-        exp = _d.fromisoformat(self.expiry)
-        return [
-            f"{self.underlying} {exp.day} {exp:%b} {int(l.strike)} {'Call' if l.kind == 'CE' else 'Put'}"
-            for l in self.legs
-        ]
+        expiry = date.fromisoformat(self.expiry)
+        return [groww_contract_name(self.underlying, expiry, leg.strike, leg.kind) for leg in self.legs]
 
     def profit_text(self) -> str:
         if self.strategy == "long_put":
@@ -207,8 +204,6 @@ def build_candidates(chain: OptionChain, sig: Signals, cfg: dict) -> list[Candid
     view = cfg.get("signals", {}).get("view_strength", 0.35)
     market = _terminal_grid(chain.spot, sigma, t, r, 0.0)
     tilted = _terminal_grid(chain.spot, sigma, t, r, sig.bias * view)
-    acct = cfg.get("account", {})
-
     out: list[Candidate] = []
     for strategy, spec in _structures(chain, sig, cfg.get("strategies", {})):
         legs = [_make_leg(chain, k, kind, side, slippage) for k, kind, side in spec]
@@ -219,9 +214,7 @@ def build_candidates(chain: OptionChain, sig: Signals, cfg: dict) -> list[Candid
             continue
         if strategy != "iron_condor" and entry <= 0:
             continue
-        cid = f"{chain.underlying}-{chain.expiry:%d%b}-{CODES[strategy]}-" + "-".join(
-            f"{int(l.strike)}" for l in legs
-        )
+        cid = f"{chain.underlying}-{chain.expiry:%d%b}-{CODES[strategy]}-" + "-".join(f"{int(l.strike)}" for l in legs)
         c = Candidate(
             id=cid,
             underlying=chain.underlying,
@@ -295,7 +288,11 @@ def size_position(cost_per_lot: float, strong: bool, rules: dict) -> tuple[int, 
         return 0, False, f"1 lot costs Rs {cost_per_lot:,.0f}, above the Rs {exception_max:,.0f} single-trade ceiling"
     if strong:
         return 1, True, f"1 lot costs Rs {cost_per_lot:,.0f}: above the normal budget, allowed on strong evidence"
-    return 0, False, f"1 lot costs Rs {cost_per_lot:,.0f}, above Rs {ceiling:,.0f}, and the evidence is not strong enough"
+    return (
+        0,
+        False,
+        f"1 lot costs Rs {cost_per_lot:,.0f}, above Rs {ceiling:,.0f}, and the evidence is not strong enough",
+    )
 
 
 def confidence_label(sig: Signals) -> str:

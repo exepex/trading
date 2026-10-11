@@ -42,5 +42,13 @@ After it is merged, use `main`.
 
 ## Code
 
-- `python -m pytest -q` must pass before pushing code changes.
+- `python -m pytest -q` and `ruff check fno tests` must pass before pushing code changes; format with `ruff format`.
+- No Python file or class over 350 lines (the self-contained HTML report template `fno/html_report.py` is exempt).
+- Fixed strings, enum values and environment-variable names live in `fno/constants.py`; module-specific
+  URLs, SQL and message templates are named constants at the top of their module.
+- Names say what things do. Small single-purpose modules; new behaviour goes in a new class behind an existing
+  interface (`SignalRule`, `GuardRule`, `IntradayPriceFeed`, `Provider`) rather than into an existing one.
+- `fno/live/services.py` is the only place that wires concrete classes together.
+- The live desk never places real orders. Market-brief research is read-only (`MOTHERDUCK_READ_TOKEN`);
+  never write to the `market_brief` database.
 - Settings live in `config.yaml`; see README.md for the layout.

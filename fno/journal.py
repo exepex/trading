@@ -74,7 +74,8 @@ def open_trade(trades: list[dict], cand: dict, cfg: dict, lots: int | None = Non
         cap = min(cap, rules.get("normal_deployed", cap) * (1 + rules.get("budget_tolerance_pct", 10) / 100))
     if deployed(trades) + cost > cap:
         raise RuntimeError(
-            f"Opening this (Rs {cost:,.0f}) would put Rs {deployed(trades) + cost:,.0f} in open trades, over the Rs {cap:,.0f} limit."
+            f"Opening this (Rs {cost:,.0f}) would put Rs {deployed(trades) + cost:,.0f} in open trades, "
+            f"over the Rs {cap:,.0f} limit."
         )
     units = cand["lot_size"] * lots
     entry_orders = [(l["side"], l["price"]) for l in cand["legs"]]
@@ -95,7 +96,9 @@ def open_trade(trades: list[dict], cand: dict, cfg: dict, lots: int | None = Non
         "target_amount": cand["target_amount"],
         "entry_charges": round(legs_charges(entry_orders, units, cfg.get("charges", {})), 2),
         "capital_used": round(abs(cand["entry_value"]) * units, 2),
-        "charge_breakdown": {k: round(v, 2) for k, v in legs_breakdown(entry_orders, units, cfg.get("charges", {})).items()},
+        "charge_breakdown": {
+            k: round(v, 2) for k, v in legs_breakdown(entry_orders, units, cfg.get("charges", {})).items()
+        },
         "status": "open",
         "note": note,
         "last_mark": None,
@@ -104,7 +107,7 @@ def open_trade(trades: list[dict], cand: dict, cfg: dict, lots: int | None = Non
     return trade
 
 
-def _close_value(trade: dict, provider: Provider, slippage: float) -> tuple[float, list[tuple[str, float]], float]:
+def close_value(trade: dict, provider: Provider, slippage: float) -> tuple[float, list[tuple[str, float]], float]:
     """Current per-unit value of the position if closed now, the closing orders, and spot."""
     chain = provider.chain(trade["underlying"], date.fromisoformat(trade["expiry"]))
     value, orders = 0.0, []
@@ -129,7 +132,9 @@ def _intrinsic_value(trade: dict, spot: float) -> tuple[float, list[tuple[str, f
     return value, orders
 
 
-def _finalise(trade: dict, value: float, orders: list[tuple[str, float]], reason: str, cfg: dict, spot: float) -> None:
+def finalise_trade(
+    trade: dict, value: float, orders: list[tuple[str, float]], reason: str, cfg: dict, spot: float
+) -> None:
     units = trade["lot_size"] * trade["lots"]
     exit_orders = [o for o in orders if o[1] > 0]
     exit_charges = legs_charges(exit_orders, units, cfg.get("charges", {}))
@@ -163,10 +168,10 @@ def mark(trades: list[dict], provider: Provider, cfg: dict, today: date | None =
         if today > expiry:
             spot = provider.context(t["underlying"]).spot
             value, orders = _intrinsic_value(t, spot)
-            _finalise(t, value, orders, "expired (settled at intrinsic, approx.)", cfg, spot)
+            finalise_trade(t, value, orders, "expired (settled at intrinsic, approx.)", cfg, spot)
             log.append(f"{t['id']} expired: net P&L Rs {t['pnl_net']:,.0f}")
             continue
-        value, orders, spot = _close_value(t, provider, slippage)
+        value, orders, spot = close_value(t, provider, slippage)
         pnl_unit = value - t["entry_value"]
         t["last_mark"] = {
             "at": now_ist().isoformat(timespec="minutes"),
@@ -182,7 +187,7 @@ def mark(trades: list[dict], provider: Provider, cfg: dict, today: date | None =
         elif today >= expiry - timedelta(days=exit_days):
             reason = "time exit before expiry"
         if reason:
-            _finalise(t, value, orders, reason, cfg, spot)
+            finalise_trade(t, value, orders, reason, cfg, spot)
             log.append(f"{t['id']} closed on {reason}: net P&L Rs {t['pnl_net']:,.0f}")
         else:
             log.append(f"{t['id']} open: unrealised Rs {t['last_mark']['pnl']:,.0f} (spot {spot:,.1f})")
@@ -193,8 +198,8 @@ def close(trades: list[dict], trade_id: str, provider: Provider, cfg: dict, reas
     t = next((t for t in trades if t["id"] == trade_id and t["status"] == "open"), None)
     if t is None:
         raise KeyError(f"No open trade {trade_id}")
-    value, orders, spot = _close_value(t, provider, cfg.get("liquidity", {}).get("slippage_pct", 0.5))
-    _finalise(t, value, orders, reason, cfg, spot)
+    value, orders, spot = close_value(t, provider, cfg.get("liquidity", {}).get("slippage_pct", 0.5))
+    finalise_trade(t, value, orders, reason, cfg, spot)
     return t
 
 
@@ -246,9 +251,14 @@ def report(trades: list[dict], capital: float) -> str:
             "|---|---|---|---|---:|",
         ]
         for t in closed:
-            lines.append(f"| {t['id']} | {t['candidate']} | {t['opened_at'][:10]} | {t['exit_reason']} | {t['pnl_net']:,.0f} |")
+            lines.append(
+                f"| {t['id']} | {t['candidate']} | {t['opened_at'][:10]} | {t['exit_reason']} | {t['pnl_net']:,.0f} |"
+            )
         if len(closed) < 20:
-            lines += ["", f"_Only {len(closed)} closed trades so far. Wait for at least 20-30 before drawing conclusions._"]
+            lines += [
+                "",
+                f"_Only {len(closed)} closed trades so far. Wait for at least 20-30 before drawing conclusions._",
+            ]
     else:
         lines.append("No closed trades yet.")
     lines.append("")

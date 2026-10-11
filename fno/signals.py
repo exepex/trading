@@ -57,7 +57,9 @@ def compute_signals(ctx: MarketContext, chain: OptionChain, config: dict) -> Sig
             s = -1.0
         else:
             s = 0.4 if spot > e50 else -0.4
-        comps.append(Component("trend", s, WEIGHTS["trend"], f"spot {spot:,.0f} vs EMA20 {e20:,.0f} / EMA50 {e50:,.0f}"))
+        comps.append(
+            Component("trend", s, WEIGHTS["trend"], f"spot {spot:,.0f} vs EMA20 {e20:,.0f} / EMA50 {e50:,.0f}")
+        )
 
     # Momentum: 20-day return, +/-4% maps to +/-1.
     if len(closes) >= 21:
@@ -108,7 +110,12 @@ def compute_signals(ctx: MarketContext, chain: OptionChain, config: dict) -> Sig
     iv = an.atm_iv(chain, config.get("risk_free_rate", 0.065))
     hv = an.historical_vol(closes, 20)
     vix_pct = None
-    if ctx.vix is not None and ctx.vix_year_low is not None and ctx.vix_year_high and ctx.vix_year_high > ctx.vix_year_low:
+    if (
+        ctx.vix is not None
+        and ctx.vix_year_low is not None
+        and ctx.vix_year_high
+        and ctx.vix_year_high > ctx.vix_year_low
+    ):
         vix_pct = (ctx.vix - ctx.vix_year_low) / (ctx.vix_year_high - ctx.vix_year_low)
     regime = "normal"
     ratio = iv / hv if iv and hv else None

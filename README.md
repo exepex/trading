@@ -20,6 +20,43 @@ python -m fno --provider sample brief  # offline synthetic data, for testing
 python -m pytest -q
 ```
 
+## Live desk (all F&O underlyings, intraday)
+
+```bash
+python -m fno live scan-once        # one diagnostic scan now: views, ideas, why others were skipped
+python -m fno live run              # market-hours service (see deploy/README.md for the server)
+python -m fno live status           # open paper trades, today's net P&L, kill switch
+python -m fno live kill "reason"    # close all paper trades and block new ones
+python -m fno live resume
+```
+
+Every 3 minutes during the session the desk:
+1. snapshots all ~200 F&O underlyings (price move, futures open-interest change, F&O ban list);
+2. shortlists the 12 most active liquid names (NIFTY and BANKNIFTY always included);
+3. scores each with signal rules: opening-range breakout, VWAP, 5-minute EMA trend, strength vs NIFTY,
+   futures OI build-up, and the market-brief research (verified news sentiment, model probability);
+4. applies guards: F&O ban list, results within 2 days (IV crush), market-wide stress from the research regime;
+5. picks one liquid option near 0.55 delta (calls when bullish, puts when bearish), sizes it with
+   `position_rules`, and opens a paper trade if the portfolio gate allows it (5 open max, Rs 70,000 cap,
+   daily loss limit, profit lock, no entries after 14:45);
+6. every minute re-prices open trades and exits on stop (-30%), target (+60%), the 15:15 square-off on the
+   last holding day, or the day before expiry. Every entry and exit posts to #fno-desk with net P&L.
+
+Research comes read-only from the market-brief MotherDuck database (`MOTHERDUCK_READ_TOKEN`). Results go to the
+`fno_desk` MotherDuck database with `FNO_MOTHERDUCK_TOKEN`, or to `data/live/fno_desk.duckdb` without it.
+Raw minute data is never stored in MotherDuck.
+
+```
+fno/live/
+  feeds/       nse_feed (lots, ban list, holidays, OI moves) · price_feed (Yahoo; Groww later)
+  research/    warehouse (MotherDuck reader) · research_context (regime, earnings, news, model)
+  signals/     base · price_action · positioning · research_signals · guards · registry
+  market_view  shortlist  contract_picker  risk_gate  exit_policy  market_clock  kill_switch
+  paper_desk   alerts  results_store  universe  scanner  runner  services (wiring)  cli
+```
+Add a signal rule: subclass `SignalRule` in `fno/live/signals/`, register it in `registry.py`, give it a weight in
+`config.yaml` (`live.signals`). Nothing else changes.
+
 ## Paper-trading loop
 
 ```bash

@@ -59,7 +59,9 @@ def scan_underlying(provider: Provider, underlying: str, cfg: dict) -> Underlyin
     exp_cfg = cfg.get("expiry", {})
     today = now_ist().date()
     expiries = [
-        e for e in provider.expiries(underlying) if exp_cfg.get("min_dte", 3) <= (e - today).days <= exp_cfg.get("max_dte", 35)
+        e
+        for e in provider.expiries(underlying)
+        if exp_cfg.get("min_dte", 3) <= (e - today).days <= exp_cfg.get("max_dte", 35)
     ][: exp_cfg.get("max_expiries_per_underlying", 2)]
     ctx = provider.context(underlying)
     scan = UnderlyingScan(underlying, ctx.spot, ctx.day_change_pct, ctx.vix, "", provider.fallback_lot_size(underlying))
@@ -104,11 +106,14 @@ def _candidate_md(c: Candidate, sig: Signals, capital: float) -> list[str]:
         f"- Net {kind}: {abs(c.entry_value):.2f} per unit = Rs {abs(c.entry_value) * lot:,.0f} per lot ({lot} units)",
         f"- Groww search: {', '.join(c.contract_names())}",
         f"- Max profit: {c.profit_text()} per lot; "
-        f"max loss: Rs {c.max_loss * lot:,.0f} per lot; breakeven: {', '.join(f'{b:,.0f}' for b in c.breakevens) or 'n/a'}",
+        f"max loss: Rs {c.max_loss * lot:,.0f} per lot; "
+        f"breakeven: {', '.join(f'{b:,.0f}' for b in c.breakevens) or 'n/a'}",
         f"- Market-implied chance of profit at expiry: {c.pop_market * 100:.0f}%",
-        f"- Exit plan: take profit at +Rs {c.target_amount * lot:,.0f}/lot, stop at -Rs {c.stop_amount * lot:,.0f}/lot, "
+        f"- Exit plan: take profit at +Rs {c.target_amount * lot:,.0f}/lot, "
+        f"stop at -Rs {c.stop_amount * lot:,.0f}/lot, "
         "and close the day before expiry regardless",
-        f"- Size: {c.lots} lot(s). Planned risk Rs {c.risk_per_lot:,.0f}/lot incl. ~Rs {c.charges_per_lot:,.0f} charges; "
+        f"- Size: {c.lots} lot(s). Planned risk Rs {c.risk_per_lot:,.0f}/lot "
+        f"incl. ~Rs {c.charges_per_lot:,.0f} charges; "
         f"worst case Rs {c.worst_case_per_lot:,.0f}/lot ({c.worst_case_per_lot / capital * 100:.1f}% of capital)",
     ]
     for n in c.notes:
@@ -123,7 +128,8 @@ def render_markdown(scans: list[UnderlyingScan], cfg: dict) -> str:
         f"# F&O research brief, {now:%a %d %b %Y}",
         "",
         f"Generated {now:%H:%M} IST from `{cfg.get('provider')}` data. Paper-trading experiment; "
-        f"capital Rs {capital:,.0f}, about Rs {cfg.get('position_rules', {}).get('per_trade_budget', 0):,.0f} per trade, "
+        f"capital Rs {capital:,.0f}, "
+        f"about Rs {cfg.get('position_rules', {}).get('per_trade_budget', 0):,.0f} per trade, "
         f"max {cfg.get('account', {}).get('max_open_trades')} open trades.",
         "",
     ]
@@ -234,8 +240,10 @@ def slack_text(scans: list[UnderlyingScan], cfg: dict, journal_stats: dict | Non
             f"{legs}",
             f"Cost Rs {abs(pick.entry_value) * lot:,.0f}/lot · max loss Rs {pick.max_loss * lot:,.0f} · "
             f"max profit {pick.profit_text()} · chance of profit {pick.pop_market * 100:.0f}%",
-            f"Stop -Rs {pick.stop_amount * lot * max(pick.lots, 1):,.0f} · target +Rs {pick.target_amount * lot * max(pick.lots, 1):,.0f}"
-            f" · size {pick.lots} lot(s) = Rs {pick.capital_used:,.0f}" + (" (strong-evidence exception)" if pick.exception else ""),
+            f"Stop -Rs {pick.stop_amount * lot * max(pick.lots, 1):,.0f} · "
+            f"target +Rs {pick.target_amount * lot * max(pick.lots, 1):,.0f}"
+            f" · size {pick.lots} lot(s) = Rs {pick.capital_used:,.0f}"
+            + (" (strong-evidence exception)" if pick.exception else ""),
             f"Paper-trade id: `{pick.id}`",
         ]
     else:
@@ -251,8 +259,13 @@ def slack_text(scans: list[UnderlyingScan], cfg: dict, journal_stats: dict | Non
     return "\n".join(lines)
 
 
-def run_brief(provider: Provider, cfg: dict, out_dir: str | Path = "reports", journal_stats: dict | None = None,
-              journal_log: list[str] | None = None) -> tuple[Path, Path, list[UnderlyingScan]]:
+def run_brief(
+    provider: Provider,
+    cfg: dict,
+    out_dir: str | Path = "reports",
+    journal_stats: dict | None = None,
+    journal_log: list[str] | None = None,
+) -> tuple[Path, Path, list[UnderlyingScan]]:
     scans = []
     for u in cfg.get("underlyings", []):
         try:
@@ -270,7 +283,9 @@ def run_brief(provider: Provider, cfg: dict, out_dir: str | Path = "reports", jo
     html_path = out / f"{stamp}-brief.html"
     html_path.write_text(render_html(scans, cfg, journal_stats, journal_log), encoding="utf-8")
     # Body-only variant for publishing as a claude.ai Artifact page.
-    (out / f"{stamp}-page.html").write_text(render_html(scans, cfg, journal_stats, journal_log, fragment=True), encoding="utf-8")
+    (out / f"{stamp}-page.html").write_text(
+        render_html(scans, cfg, journal_stats, journal_log, fragment=True), encoding="utf-8"
+    )
     from .snapshot import snapshot, split_png
 
     for old in out.glob(f"{stamp}-brief-*of*.png"):

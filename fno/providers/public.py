@@ -5,6 +5,7 @@ These endpoints are unofficial and NSE may throttle or change them without notic
 
 from __future__ import annotations
 
+import contextlib
 import time
 from datetime import date, datetime
 from functools import reduce
@@ -18,8 +19,7 @@ from .base import INDEX_NAMES, YAHOO_SYMBOLS, Provider, is_index
 NSE = "https://www.nseindia.com"
 HEADERS = {
     "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
     ),
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
@@ -39,10 +39,8 @@ class PublicData:
 
     def _warm(self) -> None:
         if not self._warmed:
-            try:
+            with contextlib.suppress(requests.RequestException):
                 self.session.get(NSE + "/option-chain", timeout=15)
-            except requests.RequestException:
-                pass
             self._warmed = True
 
     def nse_json(self, path: str, params: dict | None = None) -> dict:

@@ -211,7 +211,9 @@ def explain_component(name: str, score: float, s: UnderlyingScan, sig: Signals) 
     if name == "pcr" and sig.pcr is not None:
         if sig.pcr >= 1:
             return f"Ratio {sig.pcr:.2f}: more puts than calls are open. Put sellers are defending a floor, mildly positive."
-        return f"Ratio {sig.pcr:.2f}: more calls than puts are open. Call sellers are capping the upside, mildly negative."
+        return (
+            f"Ratio {sig.pcr:.2f}: more calls than puts are open. Call sellers are capping the upside, mildly negative."
+        )
     if name == "oi_range" and sig.support and sig.resistance:
         floor, ceil = sig.support[0][0], sig.resistance[0][0]
         nearer = "ceiling" if score < 0 else "floor"
@@ -289,7 +291,9 @@ def price_chart(s: UnderlyingScan, n: int = 120) -> str:
     def Y(v):
         return T + (H - T - B) * (1 - (v - y0) / (y1 - y0))
 
-    out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="{escape(s.underlying)} price over the last {n} sessions">']
+    out = [
+        f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="{escape(s.underlying)} price over the last {n} sessions">'
+    ]
     v = y0
     while v <= y1 + 1e-9:
         out.append(f'<line class="grid" x1="{L}" x2="{W - R}" y1="{Y(v):.1f}" y2="{Y(v):.1f}"/>')
@@ -313,17 +317,26 @@ def price_chart(s: UnderlyingScan, n: int = 120) -> str:
     out.append(f'<path d="{path(closes)}" fill="none" stroke="var(--ink)" stroke-width="2.2"/>')
     # end labels, nudged apart so they never overlap
     ends = sorted(
-        [(Y(closes[-1]), f"{closes[-1]:,.0f}", "var(--ink)"), (Y(e20[-1]), "EMA 20", "var(--muted)"),
-         (Y(e50[-1]), "EMA 50", "var(--muted)")]
+        [
+            (Y(closes[-1]), f"{closes[-1]:,.0f}", "var(--ink)"),
+            (Y(e20[-1]), "EMA 20", "var(--muted)"),
+            (Y(e50[-1]), "EMA 50", "var(--muted)"),
+        ]
     )
     for i in range(1, len(ends)):
         if ends[i][0] - ends[i - 1][0] < 14:
             ends[i] = (ends[i - 1][0] + 14, ends[i][1], ends[i][2])
     for y, text, color in ends:
-        out.append(f'<text x="{W - R + 8}" y="{y + 4:.1f}" font-size="12" font-weight="600" fill="{color}">{text}</text>')
+        out.append(
+            f'<text x="{W - R + 8}" y="{y + 4:.1f}" font-size="12" font-weight="600" fill="{color}">{text}</text>'
+        )
     xe, ye = X(len(closes) - 1), Y(closes[-1])
-    out.append(f'<circle cx="{xe:.1f}" cy="{ye:.1f}" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>')
-    out.append(f'<line class="xh" x1="0" x2="0" y1="{T}" y2="{H - B}" stroke="var(--muted)" stroke-dasharray="3 3" style="opacity:0"/>')
+    out.append(
+        f'<circle cx="{xe:.1f}" cy="{ye:.1f}" r="4.5" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>'
+    )
+    out.append(
+        f'<line class="xh" x1="0" x2="0" y1="{T}" y2="{H - B}" stroke="var(--muted)" stroke-dasharray="3 3" style="opacity:0"/>'
+    )
     out.append("</svg>")
     hover = [
         [round(X(i), 1), round(Y(c), 1), f"{dates[i]:%d %b}: {c:,.0f}" if dates else f"{c:,.0f}"]
@@ -334,9 +347,7 @@ def price_chart(s: UnderlyingScan, n: int = 120) -> str:
         '<span><i style="background:var(--s1)"></i>20-day average</span>'
         '<span><i style="background:var(--s2)"></i>50-day average</span></div>'
     )
-    return (
-        f"<div class=\"chart\" data-hover='{escape(json.dumps(hover))}'>{''.join(out)}<div class=\"tip\" hidden></div></div>{legend}"
-    )
+    return f'<div class="chart" data-hover=\'{escape(json.dumps(hover))}\'>{"".join(out)}<div class="tip" hidden></div></div>{legend}'
 
 
 def oi_chart(e: ExpiryScan, spot: float) -> str:
@@ -368,7 +379,9 @@ def oi_chart(e: ExpiryScan, spot: float) -> str:
         cls = "lbl" if k in sup or k in res else "axis"
         out.append(f'<text class="{cls}" x="{W / 2:.1f}" y="{y + rh / 2 + 4:.1f}" text-anchor="middle">{pts(k)}</text>')
         if k in sup:
-            out.append(f'<text class="lbl" x="{cx_l - wp - 6:.1f}" y="{y + rh / 2 + 4:.1f}" text-anchor="end">floor</text>')
+            out.append(
+                f'<text class="lbl" x="{cx_l - wp - 6:.1f}" y="{y + rh / 2 + 4:.1f}" text-anchor="end">floor</text>'
+            )
         if k in res:
             out.append(f'<text class="lbl" x="{cx_r + wc + 6:.1f}" y="{y + rh / 2 + 4:.1f}">ceiling</text>')
     strikes = [k for k, _, _ in rows]
@@ -376,7 +389,9 @@ def oi_chart(e: ExpiryScan, spot: float) -> str:
         j = max(i for i, k in enumerate(strikes) if k <= spot)
         frac = 0 if j == len(strikes) - 1 else (spot - strikes[j]) / (strikes[j + 1] - strikes[j])
         ys = top + (j + frac) * rh + rh / 2
-        out.append(f'<line x1="50" x2="{W - 4}" y1="{ys:.1f}" y2="{ys:.1f}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/>')
+        out.append(
+            f'<line x1="50" x2="{W - 4}" y1="{ys:.1f}" y2="{ys:.1f}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="5 4"/>'
+        )
         out.append(
             f'<rect x="4" y="{ys - 10:.1f}" width="46" height="20" rx="10" fill="var(--ink)"/>'
             f'<text x="27" y="{ys + 4:.1f}" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--bg)">spot</text>'
@@ -412,16 +427,30 @@ def payoff_chart(c: Candidate, em: float | None) -> str:
     out = [f'<svg viewBox="0 0 {W} {H}" role="img" aria-label="Profit or loss per lot at expiry">']
     if em:
         a, b = X(max(c.spot - em, x0)), X(min(c.spot + em, x1))
-        out.append(f'<rect x="{a:.1f}" y="{T}" width="{b - a:.1f}" height="{H - T - B}" fill="var(--accent)" fill-opacity=".09"/>')
-        out.append(f'<text class="lbl-m" x="{(a + b) / 2:.1f}" y="{T + 13}" text-anchor="middle">likely range by expiry (±{pts(em)})</text>')
+        out.append(
+            f'<rect x="{a:.1f}" y="{T}" width="{b - a:.1f}" height="{H - T - B}" fill="var(--accent)" fill-opacity=".09"/>'
+        )
+        out.append(
+            f'<text class="lbl-m" x="{(a + b) / 2:.1f}" y="{T + 13}" text-anchor="middle">likely range by expiry (±{pts(em)})</text>'
+        )
     out.append(f'<line class="grid" x1="{L}" x2="{W - R}" y1="{Y(0):.1f}" y2="{Y(0):.1f}" stroke-width="1.5"/>')
     for v, lab in ((max(ys), inr(max(ys), True)), (min(ys), inr(min(ys)))):
         if not math.isinf(v):
-            out.append(f'<line class="grid" x1="{L}" x2="{W - R}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke-dasharray="2 4"/>')
+            out.append(
+                f'<line class="grid" x1="{L}" x2="{W - R}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke-dasharray="2 4"/>'
+            )
             out.append(f'<text class="axis" x="{L - 8}" y="{Y(v) + 4:.1f}" text-anchor="end">{lab}</text>')
     out.append(f'<text class="axis" x="{L - 8}" y="{Y(0) + 4:.1f}" text-anchor="end">₹0</text>')
-    pos = "M" + " L".join(f"{X(x):.1f},{Y(max(y, 0)):.1f}" for x, y in zip(xs, ys)) + f" L{X(x1):.1f},{Y(0):.1f} L{X(x0):.1f},{Y(0):.1f} Z"
-    neg = "M" + " L".join(f"{X(x):.1f},{Y(min(y, 0)):.1f}" for x, y in zip(xs, ys)) + f" L{X(x1):.1f},{Y(0):.1f} L{X(x0):.1f},{Y(0):.1f} Z"
+    pos = (
+        "M"
+        + " L".join(f"{X(x):.1f},{Y(max(y, 0)):.1f}" for x, y in zip(xs, ys))
+        + f" L{X(x1):.1f},{Y(0):.1f} L{X(x0):.1f},{Y(0):.1f} Z"
+    )
+    neg = (
+        "M"
+        + " L".join(f"{X(x):.1f},{Y(min(y, 0)):.1f}" for x, y in zip(xs, ys))
+        + f" L{X(x1):.1f},{Y(0):.1f} L{X(x0):.1f},{Y(0):.1f} Z"
+    )
     out.append(f'<path d="{pos}" fill="var(--up)" fill-opacity=".22" stroke="none"/>')
     out.append(f'<path d="{neg}" fill="var(--down)" fill-opacity=".2" stroke="none"/>')
     line = "M" + " L".join(f"{X(x):.1f},{Y(y):.1f}" for x, y in zip(xs, ys))
@@ -432,17 +461,27 @@ def payoff_chart(c: Candidate, em: float | None) -> str:
         out.append(f'<text class="axis" x="{X(v):.1f}" y="{H - 12}" text-anchor="middle">{v:,.0f}</text>')
         v += step
     xs_ = X(c.spot)
-    out.append(f'<line x1="{xs_:.1f}" x2="{xs_:.1f}" y1="{T + 20}" y2="{H - B}" stroke="var(--ink)" stroke-width="1.5"/>')
+    out.append(
+        f'<line x1="{xs_:.1f}" x2="{xs_:.1f}" y1="{T + 20}" y2="{H - B}" stroke="var(--ink)" stroke-width="1.5"/>'
+    )
     out.append(f'<text class="lbl" x="{xs_ + 5:.1f}" y="{T + 32}">today {pts(c.spot)}</text>')
     for be in c.breakevens:
         xb = X(be)
-        out.append(f'<line x1="{xb:.1f}" x2="{xb:.1f}" y1="{Y(0) - 26:.1f}" y2="{Y(0) + 26:.1f}" stroke="var(--muted)" stroke-dasharray="3 3"/>')
-        out.append(f'<circle cx="{xb:.1f}" cy="{Y(0):.1f}" r="4.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>')
-        out.append(f'<text class="lbl-m" x="{xb:.1f}" y="{Y(0) - 32:.1f}" text-anchor="middle">breakeven {pts(be)}</text>')
-    out.append(f'<line class="xh" x1="0" x2="0" y1="{T}" y2="{H - B}" stroke="var(--muted)" stroke-dasharray="3 3" style="opacity:0"/>')
+        out.append(
+            f'<line x1="{xb:.1f}" x2="{xb:.1f}" y1="{Y(0) - 26:.1f}" y2="{Y(0) + 26:.1f}" stroke="var(--muted)" stroke-dasharray="3 3"/>'
+        )
+        out.append(
+            f'<circle cx="{xb:.1f}" cy="{Y(0):.1f}" r="4.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/>'
+        )
+        out.append(
+            f'<text class="lbl-m" x="{xb:.1f}" y="{Y(0) - 32:.1f}" text-anchor="middle">breakeven {pts(be)}</text>'
+        )
+    out.append(
+        f'<line class="xh" x1="0" x2="0" y1="{T}" y2="{H - B}" stroke="var(--muted)" stroke-dasharray="3 3" style="opacity:0"/>'
+    )
     out.append("</svg>")
     hover = [[round(X(x), 1), round(Y(y), 1), f"{c.underlying} at {x:,.0f}: {inr(y, True)}"] for x, y in zip(xs, ys)]
-    return f"<div class=\"chart\" data-hover='{escape(json.dumps(hover))}'>{''.join(out)}<div class=\"tip\" hidden></div></div>"
+    return f'<div class="chart" data-hover=\'{escape(json.dumps(hover))}\'>{"".join(out)}<div class="tip" hidden></div></div>'
 
 
 # ---------------------------------------------------------------- sections
@@ -483,7 +522,7 @@ def ticket(c: Candidate, sig: Signals, em: float | None, capital: float) -> str:
       <div class="kpi"><span>Most you can make</span><b class="up">{inr(c.max_profit * lot, True) if c.strategy not in ("long_put", "long_call") else "no cap"}</b></div>
       <div class="kpi"><span>Breakeven at expiry</span><b>{be}</b></div>
       <div class="kpi"><span>Chance of profit*</span><b>{c.pop_market * 100:.0f}%</b></div>
-      <div class="kpi"><span>Suggested size · money used</span><b>{c.lots} lot{'s' if c.lots != 1 else ''} · {inr(c.capital_used)}</b></div>
+      <div class="kpi"><span>Suggested size · money used</span><b>{c.lots} lot{"s" if c.lots != 1 else ""} · {inr(c.capital_used)}</b></div>
     </div>
     <div class="plain"><div class="eyebrow">In plain words</div>{words}</div>
     <div><h3>Profit or loss at expiry, per lot</h3><p class="muted small">Green is profit, red is loss. Hover or tap the chart to read a value.</p></div>
@@ -533,11 +572,12 @@ def index_section(s: UnderlyingScan) -> str:
                 f'<div class="alt"><div><b>{escape(NAMES[c.strategy])}</b> · {ex.expiry} · '
                 + " / ".join(f"{l.side[0].upper()} {pts(l.strike)}{l.kind}" for l in c.legs)
                 + f'<br><code>{escape(c.id)}</code></div><div class="num" style="text-align:right">'
-                f"risk {inr(c.max_loss * c.lot_size)}<br><span class=\"muted\">{c.pop_market * 100:.0f}% chance</span></div></div>"
+                f'risk {inr(c.max_loss * c.lot_size)}<br><span class="muted">{c.pop_market * 100:.0f}% chance</span></div></div>'
             )
     alts_html = (
-        '<div><h3>Other setups that fit</h3>' + "".join(alts) + "</div>" if alts else
-        '<div class="empty">No setup fits this signal and passes the liquidity checks.</div>'
+        "<div><h3>Other setups that fit</h3>" + "".join(alts) + "</div>"
+        if alts
+        else '<div class="empty">No setup fits this signal and passes the liquidity checks.</div>'
     )
     return f"""
 <section class="panel" aria-label="{escape(s.underlying)}">
@@ -557,7 +597,7 @@ def index_section(s: UnderlyingScan) -> str:
   Max pain {pts(sig.max_pain)}. Put/call ratio {sig.pcr:.2f}.</p></div>
   {oi_chart(e, s.spot)}
   <div><h3>What the signals say</h3><p class="muted small">{escape(vol_words)}</p></div>
-  <div class="sigs">{''.join(sigs)}</div>
+  <div class="sigs">{"".join(sigs)}</div>
   {alts_html}
 </section>"""
 
@@ -569,7 +609,10 @@ TERMS = [
     ("Expiry", "The date the option ends. NSE index options expire on Tuesdays."),
     ("Lot", "The fixed unit you trade in. One NIFTY lot is 65 units."),
     ("Spread", "Buying one option and selling another to cut the cost and cap the risk."),
-    ("Open interest (OI)", "How many contracts are still open at a strike. Big piles show where traders expect a floor or ceiling."),
+    (
+        "Open interest (OI)",
+        "How many contracts are still open at a strike. Big piles show where traders expect a floor or ceiling.",
+    ),
     ("Put/call ratio", "Open puts divided by open calls. Above 1 leans positive, below 1 leans negative."),
     ("Implied volatility", "How big a move option prices expect. High IV means options are expensive."),
     ("Max pain", "The level where option buyers as a group would lose the most at expiry."),
@@ -582,14 +625,14 @@ def scorecard(stats: dict | None, log: list[str]) -> str:
     if not stats or (stats["closed"] == 0 and stats["open"] == 0):
         return (
             '<div class="empty">No paper trades yet. To log today\'s idea, tell Claude "log today\'s trade", '
-            'or run <code>python -m fno paper open &lt;id&gt;</code>. Results build up here every day.</div>'
+            "or run <code>python -m fno paper open &lt;id&gt;</code>. Results build up here every day.</div>"
         )
     net = stats["net"]
     tiles = f"""<div class="kpis">
-      <div class="kpi"><span>Closed trades</span><b>{stats['closed']}</b></div>
-      <div class="kpi"><span>Win rate</span><b>{stats['win_rate']:.0f}%</b></div>
-      <div class="kpi"><span>Net P&amp;L after charges</span><b class="{'up' if net >= 0 else 'down'}">{inr(net, True)}</b></div>
-      <div class="kpi"><span>Open now · unrealised</span><b>{stats['open']} · {inr(stats['unrealised'], True)}</b></div></div>"""
+      <div class="kpi"><span>Closed trades</span><b>{stats["closed"]}</b></div>
+      <div class="kpi"><span>Win rate</span><b>{stats["win_rate"]:.0f}%</b></div>
+      <div class="kpi"><span>Net P&amp;L after charges</span><b class="{"up" if net >= 0 else "down"}">{inr(net, True)}</b></div>
+      <div class="kpi"><span>Open now · unrealised</span><b>{stats["open"]} · {inr(stats["unrealised"], True)}</b></div></div>"""
     lines = "".join(f'<p class="small muted">{escape(x)}</p>' for x in log)
     return tiles + lines
 
@@ -631,12 +674,12 @@ def render_html(
         verdict = f"""
 <section class="panel verdict" aria-label="Today's call">
   <div class="eyebrow">Today's call</div>
-  <div class="headline tone-{lead_sig.label if trade_on else 'neutral'}">{escape(headline(lead_sig, lead_u, trade_on))}</div>
+  <div class="headline tone-{lead_sig.label if trade_on else "neutral"}">{escape(headline(lead_sig, lead_u, trade_on))}</div>
   <div class="chips"><span class="chip {lead_sig.label}">{lead_sig.label}</span>
   <span class="chip">confidence {confidence_label(lead_sig)}</span>
   <span class="chip">{lead_sig.agreement * 100:.0f}% of signals agree</span></div>
   {meter(lead_sig)}
-  <div><div class="eyebrow" style="margin-bottom:6px">Why</div><ul class="why">{''.join(why)}</ul></div>
+  <div><div class="eyebrow" style="margin-bottom:6px">Why</div><ul class="why">{"".join(why)}</ul></div>
 </section>"""
 
     em = None
@@ -653,13 +696,13 @@ def render_html(
   <header class="mast">
     <div><div class="eyebrow">F&amp;O desk · NSE index options</div><h1>Market Brief</h1></div>
     <div class="meta"><b>{now:%A, %d %B %Y}</b>
-    <span class="muted small">Prices as of {escape(as_of)} · {escape(str(cfg.get('provider')).upper())} data</span>
-    <span class="muted small">Paper capital {inr(capital)} · {inr(cfg.get('position_rules', {}).get('per_trade_budget', 0))} per trade · max {acct.get('max_open_trades')} open</span></div>
+    <span class="muted small">Prices as of {escape(as_of)} · {escape(str(cfg.get("provider")).upper())} data</span>
+    <span class="muted small">Paper capital {inr(capital)} · {inr(cfg.get("position_rules", {}).get("per_trade_budget", 0))} per trade · max {acct.get("max_open_trades")} open</span></div>
   </header>
   {stale_html}
   {verdict}
   {ticket_html}
-  {''.join(index_section(s) for s in scans)}
+  {"".join(index_section(s) for s in scans)}
   <section class="panel" aria-label="Paper-trading scorecard"><h2>Paper-trading scorecard</h2>{scorecard(journal_stats, journal_log or [])}</section>
   <section class="panel" aria-label="Jargon buster"><h2>Jargon buster</h2><div class="terms">{terms}</div></section>
   <footer><span>Research aid for a paper-trading experiment, not investment advice. Direction comes from a weighted
@@ -669,7 +712,9 @@ def render_html(
 </div>"""
     title = f"<title>Market Brief {now:%d %b %Y}</title>"
     if fragment:
-        return f"<title>F&amp;O Market Brief</title>\n{FONTS}\n<style>{CSS}</style>\n{body}\n<script>{SCRIPT}</script>\n"
+        return (
+            f"<title>F&amp;O Market Brief</title>\n{FONTS}\n<style>{CSS}</style>\n{body}\n<script>{SCRIPT}</script>\n"
+        )
     return (
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'

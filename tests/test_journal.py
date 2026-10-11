@@ -7,7 +7,6 @@ from fno.providers.sample import SampleProvider
 from fno.signals import compute_signals
 from fno.strategies import build_candidates
 
-
 ALL = {k: True for k in ("bull_call_spread", "bear_put_spread", "long_call", "long_put")}
 
 

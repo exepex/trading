@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from fno import notify
 
 

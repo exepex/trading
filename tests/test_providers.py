@@ -32,10 +32,20 @@ def test_parse_groww_chain_documented_shape():
             "underlying_ltp": 25641.7,
             "strikes": {
                 "25600": {
-                    "CE": {"greeks": {"iv": 12.1}, "trading_symbol": "NIFTY25N1825600CE", "ltp": 120.5,
-                           "open_interest": 900, "volume": 50},
-                    "PE": {"greeks": {"iv": 12.9}, "trading_symbol": "NIFTY25N1825600PE", "ltp": 90.0,
-                           "open_interest": 700, "volume": 40},
+                    "CE": {
+                        "greeks": {"iv": 12.1},
+                        "trading_symbol": "NIFTY25N1825600CE",
+                        "ltp": 120.5,
+                        "open_interest": 900,
+                        "volume": 50,
+                    },
+                    "PE": {
+                        "greeks": {"iv": 12.9},
+                        "trading_symbol": "NIFTY25N1825600PE",
+                        "ltp": 90.0,
+                        "open_interest": 700,
+                        "volume": 40,
+                    },
                 }
             },
         },

@@ -1,0 +1,18 @@
+# systemd unit for the live F&O paper desk. Installed by deploy/setup_server.sh.
+[Unit]
+Description=F&O live scanner and paper desk
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/%i/trading
+EnvironmentFile=/home/%i/.trading.env
+ExecStart=/home/%i/trading/.venv/bin/python -m fno live run
+Restart=always
+RestartSec=30
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

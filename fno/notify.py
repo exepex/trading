@@ -9,9 +9,12 @@ Environment variables (separate from the market-brief tool's SLACK_* variables):
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 from pathlib import Path
 
 import requests
+
+from .constants import ENV_FNO_SLACK_BOT_TOKEN, ENV_FNO_SLACK_CHANNEL_ID, ENV_FNO_SLACK_WEBHOOK_URL
 
 API = "https://slack.com/api/"
 
@@ -54,15 +57,40 @@ def post_text(text: str, token: str | None, channel: str, webhook: str | None) -
         raise SlackError("Set FNO_SLACK_BOT_TOKEN (or FNO_SLACK_WEBHOOK_URL for text only).")
 
 
+@dataclass(frozen=True)
+class SlackTarget:
+    """Where and how the F&O bot posts. Built only from FNO_SLACK_* variables and config."""
+
+    token: str | None
+    channel: str
+    webhook: str | None
+
+    @classmethod
+    def from_environment(cls, cfg: dict) -> SlackTarget:
+        return cls(
+            token=os.environ.get(ENV_FNO_SLACK_BOT_TOKEN),
+            channel=os.environ.get(ENV_FNO_SLACK_CHANNEL_ID) or cfg.get("slack", {}).get("channel_id", ""),
+            webhook=os.environ.get(ENV_FNO_SLACK_WEBHOOK_URL),
+        )
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.token or self.webhook)
+
+    def post(self, text: str) -> None:
+        post_text(text, self.token, self.channel, self.webhook)
+
+
 def post_brief(reports_dir: Path, stamp: str, cfg: dict, web_url: str | None = None) -> str:
     """Post <stamp>-slack.md plus the page images. Returns a short description of what was sent."""
-    token = os.environ.get("FNO_SLACK_BOT_TOKEN")
-    webhook = os.environ.get("FNO_SLACK_WEBHOOK_URL")
-    channel = os.environ.get("FNO_SLACK_CHANNEL_ID") or cfg.get("slack", {}).get("channel_id", "")
+    target = SlackTarget.from_environment(cfg)
+    token, webhook, channel = target.token, target.webhook, target.channel
     text = (reports_dir / f"{stamp}-slack.md").read_text(encoding="utf-8")
     if web_url:
         text += f"\nInteractive web version: {web_url}"
-    images = sorted(reports_dir.glob(f"{stamp}-brief-*of*.png"), key=lambda p: int(p.stem.split("-")[-1].split("of")[0]))
+    images = sorted(
+        reports_dir.glob(f"{stamp}-brief-*of*.png"), key=lambda p: int(p.stem.split("-")[-1].split("of")[0])
+    )
     if token and images:
         upload_images(token, channel, images, text)
         return f"posted text and {len(images)} page image(s) to {channel}"

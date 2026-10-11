@@ -9,6 +9,7 @@ from pathlib import Path
 
 from . import journal
 from .config import ROOT, load_config
+from .live.cli import add_live_parser
 from .providers import get_provider
 
 
@@ -73,17 +74,25 @@ def cmd_chain(args) -> int:
     chain = provider.chain(u, expiry)
     atm, step = chain.atm_strike(), chain.strike_step()
     print(f"{u} {expiry}  spot {chain.spot:,.2f}  lot {chain.lot_size}  as of {chain.timestamp:%d %b %H:%M}")
-    print(f"PCR {an.put_call_ratio(chain) or 0:.2f}  max pain {an.max_pain(chain):,.0f}  "
-          f"straddle move +/-{an.straddle_expected_move(chain) or 0:,.0f}")
-    print(f"{'CE OI':>10} {'CE IV':>6} {'CE bid/ask':>16} | {'strike':^8} | {'PE bid/ask':<16} {'PE IV':>6} {'PE OI':>10}")
+    print(
+        f"PCR {an.put_call_ratio(chain) or 0:.2f}  max pain {an.max_pain(chain):,.0f}  "
+        f"straddle move +/-{an.straddle_expected_move(chain) or 0:,.0f}"
+    )
+    print(
+        f"{'CE OI':>10} {'CE IV':>6} {'CE bid/ask':>16} | {'strike':^8} | {'PE bid/ask':<16} {'PE IV':>6} {'PE OI':>10}"
+    )
     for k in chain.strikes():
         if abs(k - atm) > step * args.width:
             continue
         ce, pe = chain.get(k, "CE"), chain.get(k, "PE")
+
         def ba(q):
             return f"{q.bid or 0:.2f}/{q.ask or 0:.2f}" if q else ""
-        print(f"{(ce.oi if ce else 0):>10,.0f} {(ce.iv or 0) if ce else 0:>6.1f} {ba(ce):>16} | {k:^8,.0f} | "
-              f"{ba(pe):<16} {(pe.iv or 0) if pe else 0:>6.1f} {(pe.oi if pe else 0):>10,.0f}")
+
+        print(
+            f"{(ce.oi if ce else 0):>10,.0f} {(ce.iv or 0) if ce else 0:>6.1f} {ba(ce):>16} | {k:^8,.0f} | "
+            f"{ba(pe):<16} {(pe.iv or 0) if pe else 0:>6.1f} {(pe.oi if pe else 0):>10,.0f}"
+        )
     return 0
 
 
@@ -147,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
     j.add_argument("--journal", default=str(journal.DEFAULT_PATH))
     j.add_argument("--reports", default=str(ROOT / "reports"))
     j.set_defaults(func=cmd_paper)
+
+    add_live_parser(sub)
 
     args = p.parse_args(argv)
     if args.cmd == "paper" and args.action in ("open", "close") and not args.target:

@@ -20,7 +20,9 @@ def _payload(resp: dict) -> dict:
     return resp.get("payload", resp) if isinstance(resp, dict) else resp
 
 
-def parse_groww_chain(resp: dict, underlying: str, expiry: date, lot_size: int, at: datetime | None = None) -> OptionChain:
+def parse_groww_chain(
+    resp: dict, underlying: str, expiry: date, lot_size: int, at: datetime | None = None
+) -> OptionChain:
     data = _payload(resp)
     quotes: dict[tuple[float, str], OptionQuote] = {}
     for strike_text, legs in (data.get("strikes") or {}).items():
@@ -88,7 +90,9 @@ class GrowwProvider(Provider):
         today = now_ist().date()
         found: set[date] = set()
         for year in (today.year, today.year + 1):
-            resp = _payload(self.api.get_expiries(exchange=self.api.EXCHANGE_NSE, underlying_symbol=underlying.upper(), year=year))
+            resp = _payload(
+                self.api.get_expiries(exchange=self.api.EXCHANGE_NSE, underlying_symbol=underlying.upper(), year=year)
+            )
             for text in resp.get("expiries", []):
                 d = date.fromisoformat(text)
                 if d >= today:

@@ -8,8 +8,13 @@ from fno.strategies import build_candidates, select
 
 
 def _setup():
-    cfg = load_config(overrides={"strategies": {k: True for k in (
-        "bull_call_spread", "bear_put_spread", "long_call", "long_put", "iron_condor")}})
+    cfg = load_config(
+        overrides={
+            "strategies": {
+                k: True for k in ("bull_call_spread", "bear_put_spread", "long_call", "long_put", "iron_condor")
+            }
+        }
+    )
     p = SampleProvider(cfg)
     chain = p.chain("NIFTY", date(2026, 10, 20))
     sig = compute_signals(p.context("NIFTY"), chain, cfg)
@@ -61,10 +66,10 @@ def test_size_position_rules():
     from fno.strategies import size_position
 
     rules = {"per_trade_budget": 10000, "budget_tolerance_pct": 10, "exception_max_per_trade": 25000}
-    assert size_position(3000, False, rules)[0] == 3       # 9,000 fits
-    assert size_position(3600, False, rules)[0] == 3       # 10,800: slightly over is fine
-    assert size_position(5600, False, rules)[0] == 1       # 2 lots would be 11,200
+    assert size_position(3000, False, rules)[0] == 3  # 9,000 fits
+    assert size_position(3600, False, rules)[0] == 3  # 10,800: slightly over is fine
+    assert size_position(5600, False, rules)[0] == 1  # 2 lots would be 11,200
     assert size_position(15000, False, rules)[:2] == (0, False)  # pricey lot, weak evidence
-    assert size_position(15000, True, rules)[:2] == (1, True)    # pricey lot, strong evidence
-    assert size_position(25000, True, rules)[:2] == (1, True)    # Rs 25,000 lot allowed on strong evidence
-    assert size_position(26000, True, rules)[0] == 0       # above the single-trade ceiling
+    assert size_position(15000, True, rules)[:2] == (1, True)  # pricey lot, strong evidence
+    assert size_position(25000, True, rules)[:2] == (1, True)  # Rs 25,000 lot allowed on strong evidence
+    assert size_position(26000, True, rules)[0] == 0  # above the single-trade ceiling
