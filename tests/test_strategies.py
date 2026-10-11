@@ -60,10 +60,11 @@ def test_sizing_respects_budget():
 def test_size_position_rules():
     from fno.strategies import size_position
 
-    rules = {"per_trade_budget": 10000, "budget_tolerance_pct": 10, "exception_max_per_trade": 20000}
+    rules = {"per_trade_budget": 10000, "budget_tolerance_pct": 10, "exception_max_per_trade": 25000}
     assert size_position(3000, False, rules)[0] == 3       # 9,000 fits
     assert size_position(3600, False, rules)[0] == 3       # 10,800: slightly over is fine
     assert size_position(5600, False, rules)[0] == 1       # 2 lots would be 11,200
     assert size_position(15000, False, rules)[:2] == (0, False)  # pricey lot, weak evidence
     assert size_position(15000, True, rules)[:2] == (1, True)    # pricey lot, strong evidence
-    assert size_position(25000, True, rules)[0] == 0       # above the single-trade ceiling
+    assert size_position(25000, True, rules)[:2] == (1, True)    # Rs 25,000 lot allowed on strong evidence
+    assert size_position(26000, True, rules)[0] == 0       # above the single-trade ceiling
