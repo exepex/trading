@@ -23,6 +23,19 @@ python -m pytest -q tests/research                    # the screen's rules as fi
 - Fields kept: close, previous close, settlement price, underlying price, volume, number of trades, open interest,
   historical lot size. **No bid/ask** in these files.
 
+## Download result (12 Oct 2026)
+
+725 weekdays asked: 684 files, 41 with no file (all NSE trading holidays, e.g. 26 Jan, Holi, Good Friday, 15 Aug,
+20 May 2024 election, 25 Dec); every file had NIFTY rows. One dropped connection during the run; retried.
+
+| File | sha256 |
+|---|---|
+| `data/nifty_options.csv.gz` | `815f9050d0a0bf6f1151b68ea9ee8a7f7203dd8a235c90819651802b72a89726` |
+| `data/manifest.csv` | `89b31f5d34ee2b0b7caa4f4defd4ad8d14644212ce5a2e84a0242bdabe8ed602` |
+
+The data was downloaded by the first version of `fetch.py` (direct NSE requests); the current version gets the same
+files through `fno/storage` and keeps the same extract and manifest format.
+
 ## Rules (frozen before the run)
 
 | Rule | Value |
