@@ -169,5 +169,8 @@ in tests and before every commit made by a routine.
 
 **Judge verifies:** plants a fake token in a record and confirms the routine refuses to commit.
 
-**Depends:** - · **Size:** S · **Status:** built; awaiting judge (claims: `reviews/claude/response_36_2026-10-13-o5-record-scan.md`)
+**Known limits (accepted by judge 2, finding 6):** bare 10-digit phone numbers, spaced labels such as "Client Code:",
+unlabelled random secrets and old-format Slack IDs are not caught.
+
+**Depends:** - · **Size:** S · **Status:** built; awaiting re-judge (judge 2 findings addressed) (claims: `reviews/claude/response_36_2026-10-13-o5-record-scan.md`)
 

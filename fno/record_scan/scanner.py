@@ -23,20 +23,26 @@ class Finding:
 
 
 class RecordScanner:
-    def __init__(self, patterns: list[RecordPattern], allowed_values: Iterable[str] = ()):
+    """Records get every pattern; code files only `code_patterns` (credential shapes), since code legitimately holds
+    the patterns themselves and the tests' planted examples."""
+
+    def __init__(
+        self, patterns: list[RecordPattern], allowed_values: Iterable[str] = (), code_patterns: list[RecordPattern] = ()
+    ):
         self._patterns = patterns
+        self._code_patterns = list(code_patterns)
         self._allowed = frozenset(allowed_values)
 
-    def scan_text(self, path: str, text: str) -> list[Finding]:
+    def scan_text(self, path: str, text: str, is_code: bool = False) -> list[Finding]:
         if "\x00" in text:
             return [Finding(path, 0, UNSCANNABLE)]
         found = {
             (text.count("\n", 0, start) + 1, pattern.name)
-            for pattern in self._patterns
+            for pattern in (self._code_patterns if is_code else self._patterns)
             for start, value in pattern.values_in(text)
             if value not in self._allowed
         }
         return [Finding(path, line, kind) for line, kind in sorted(found)]
 
     def scan(self, records: Iterable[RecordText]) -> list[Finding]:
-        return [finding for record in records for finding in self.scan_text(record.path, record.text)]
+        return [finding for record in records for finding in self.scan_text(record.path, record.text, record.is_code)]
