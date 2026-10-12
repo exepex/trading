@@ -20,7 +20,7 @@ data; all three were right and are corrected below. Claude's reply: `reviews/cla
 | Control tests | Replayed 205-211 completed trades, dropping positions still open at the end | All **219** entries in every control; positions still open are valued at the last price |
 | Rules (all 219 entries) | -Rs 1,90,017 (211 closed) | **-Rs 1,88,404** |
 | Coin toss, 30 runs | median -Rs 65,268 | median **-Rs 93,383**; 10th-90th percentile -Rs 1,91,526 to -Rs 1,219 |
-| Overnight gap cost | Rs 1,39,991 "lost to gaps" | Of the 27 stops on the first bar: **Rs 85,457** from the overnight gap itself, Rs 39,766 in the first 5 minutes after the open (the rest was lost before the previous close) |
+| Overnight gap cost | Rs 1,39,991 "lost to gaps" | 25 stops on the first bar (two of the 27 were 09:25 exits, fixed after review 3): **Rs 85,519** overnight option-value change (price gap plus a night of time decay), Rs 37,933 from the open to the exit, the rest before the previous close and in charges |
 | "270 sessions" | read as 270 market days | 9 names x 30 days; the names share the same market days |
 
 The main conclusion, corrected wording (ChatGPT review 2): **no positive edge was established by this test**, and the
@@ -93,9 +93,10 @@ all 30 coin-toss runs, the loss bridges).
 
 ### 3.2 Overnight gaps
 
-- 27 stop losses happened on the first bar after an overnight hold: they averaged **-47.1%** (not -30%). Of their
-  loss, **Rs 85,457** came from the overnight gap itself (previous close to open) and Rs 39,766 from the first 5
-  minutes of trading (corrected; the first version put all Rs 1,39,991 down to the gap).
+- 27 stop losses happened in the first ten minutes after an overnight hold (25 on the first bar): they averaged
+  **-47.1%** (not -30%). For the 25 first-bar stops, **Rs 85,519** is the overnight change in option value (the price
+  gap plus a night of time decay) and Rs 37,933 came from the open to the exit (corrected twice; bridges in
+  `research/2026-10-12-backtest/README.md`).
 - The other 80 stop losses averaged -32.9%.
 
 ### 3.3 Direction and market trend
@@ -187,8 +188,8 @@ What the controls say:
    (overnight gaps) outweigh the payoff.
 3. **The market's direction decided the outcome.** In a falling market, always betting down made +Rs 1.5 lakh and
    always betting up lost Rs 2.9 lakh. The rules leaned the wrong way (they bought calls on rebounds in a downtrend).
-4. **Overnight gaps were a large cost:** about Rs 85,000 of the loss came from prices jumping overnight past the stop
-   (corrected from Rs 1.4 lakh).
+4. **Overnight gaps were a large cost:** about Rs 85,000 of the loss came from the overnight change in option value
+   (mostly prices jumping past the stop, plus a night of time decay); corrected from Rs 1.4 lakh.
 
 ## 5. Option costs in numbers
 

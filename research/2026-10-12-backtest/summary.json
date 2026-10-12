@@ -44,10 +44,20 @@
   61580.38
  ],
  "first_bar_stops": {
+  "count": 25,
+  "incomplete": 0,
+  "before_the_previous_close": -6584.81,
+  "overnight_option_value_change": -85518.63,
+  "open_to_exit": -37932.93,
+  "charges": -1565.3,
+  "net": -131601.67
+ },
+ "opening_ten_minute_stops": {
   "count": 27,
-  "before_the_previous_close": -13061.02,
-  "overnight_gap": -85457.32,
-  "first_five_minutes": -39765.9,
+  "incomplete": 0,
+  "before_the_previous_close": -8951.19,
+  "overnight_option_value_change": -87596.81,
+  "open_to_exit": -41736.24,
   "charges": -1707.05,
   "net": -139991.29
  }

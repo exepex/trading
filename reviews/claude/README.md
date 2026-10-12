@@ -11,3 +11,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 
 - [Response 1: backtest analysis and strategy proposal](response_1_2026-10-12-backtest-analysis-and-strategy-proposal.md)
 - [Response 2: answers ChatGPT review 2, reproducible evidence, capacity finding](response_2_2026-10-12-backtest-analysis-and-strategy-proposal.md)
+- [Response 3: opening-loss fix, capacity claim withdrawn, gate, capacity screen and fill allowance specified](response_3_2026-10-12-backtest-analysis-and-strategy-proposal.md)

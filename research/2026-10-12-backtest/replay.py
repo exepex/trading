@@ -36,7 +36,8 @@ EXPECTED_SHA256 = {
 }
 BENCHMARK = "BENCHMARK_NIFTY"
 RANDOM_SEEDS = range(30)
-FIRST_BAR_END = time(9, 25)
+FIRST_BAR_EXIT = time(9, 20)  # a stop decided when the 09:15-09:20 bar closes
+OPENING_TEN_MINUTES_END = time(9, 25)  # first or second bar
 
 
 def check_inputs() -> None:
@@ -130,29 +131,37 @@ class Replay:
                 return {"status": "closed", "net": sim.net_pnl}
         return {"status": "open, marked at the last close", "net": self.mark(sim, candles[-1])[2]}
 
-    def gap_bridge(self, trade: SimTrade) -> dict | None:
-        """For a stop filled on the first bar after an overnight hold: where its loss came from."""
+    def opening_bridge(self, trade: SimTrade, last_exit: time) -> dict | None:
+        """For a stop hit at the open after an overnight hold (exit no later than `last_exit`): where the loss arose.
+
+        Boundaries are found explicitly: the last candle of the previous session and the first candle of the exit
+        session (attribution is marked incomplete if that session has no 09:15 candle)."""
         if trade.exit_reason != "stop loss" or trade.closed_at.date() == trade.opened_at.date():
             return None
-        if trade.closed_at.time() > FIRST_BAR_END:
+        if trade.closed_at.time() > last_exit:
             return None
         candles = self.candles[trade.symbol]
-        i = self.index[trade.symbol][trade.closed_at - BAR]
-        first, previous = candles[i], candles[i - 1]
+        day = trade.closed_at.date()
+        session = [c for c in candles if c.start.date() == day]
+        previous_close = [c for c in candles if c.start.date() < day][-1]
+        first = session[0]
+        if first.start.time() != time(9, 15):
+            return {"incomplete": 1}
         model = self.tester.model
 
         def value(spot, now):
             days = (now - trade.opened_at).total_seconds() / 86400
             return model.price(spot, trade.strike, model.days_to_expiry_at_entry - days, trade.sigma, trade.kind)
 
-        at_previous_close = value(previous.close, previous.start + BAR)
+        at_previous_close = value(previous_close.close, previous_close.start + BAR)
         at_open = value(first.open, first.start)
         units = trade.lot_size
         charges = legs_charges([("buy", trade.entry), ("sell", trade.exit_value)], units, self.tester.charges)
         return {
+            "incomplete": 0,
             "before_the_previous_close": (at_previous_close - trade.entry) * units,
-            "overnight_gap": (at_open - at_previous_close) * units,
-            "first_five_minutes": (trade.exit_value - at_open) * units,
+            "overnight_option_value_change": (at_open - at_previous_close) * units,  # price gap and time decay
+            "open_to_exit": (trade.exit_value - at_open) * units,
             "charges": -charges,
             "net": trade.net_pnl,
         }
@@ -205,7 +214,10 @@ def main() -> None:
         rng = random.Random(seed)
         nets = [run.replay(t, rng.choice([Direction.BULLISH, Direction.BEARISH]))["net"] for t in entries]
         random_runs.append({"seed": seed, "net": round(sum(nets), 2), "wins": sum(x > 0 for x in nets)})
-    bridges = [b for b in (run.gap_bridge(t) for t in entries) if b]
+    opening = {}
+    for name, last_exit in (("first_bar_stops", FIRST_BAR_EXIT), ("opening_ten_minute_stops", OPENING_TEN_MINUTES_END)):
+        bridges = [b for b in (run.opening_bridge(t, last_exit) for t in entries) if b]
+        opening[name] = {"count": len(bridges), **{k: round(sum(b[k] for b in bridges), 2) for k in bridges[0]}}
     closed = [t for t in trades if t["status"] == "closed"]
     still_open = [t for t in trades if t["status"] != "closed"]
     summary = {
@@ -217,10 +229,7 @@ def main() -> None:
         "all_entries_net": round(sum(t["net"] for t in trades), 2),
         "controls": totals,
         "random_runs_sorted": sorted(r["net"] for r in random_runs),
-        "first_bar_stops": {
-            "count": len(bridges),
-            **{k: round(sum(b[k] for b in bridges), 2) for k in bridges[0]},
-        },
+        **opening,
     }
     for name, rows in (("trades", trades), ("controls", controls), ("random_runs", random_runs)):
         with open(HERE / f"{name}.csv", "w", newline="") as f:
