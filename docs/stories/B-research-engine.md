@@ -242,7 +242,7 @@ decisions; ledger updated.
 
 **Judge verifies:** commit order (frozen protocol before challenge results), re-runs both periods, compares hashes.
 
-**Depends:** B1-B4, A1, A3, A5, A6, C1 · **Size:** M · **Status:** doing (protocol in review)
+**Depends:** B1-B4, A1, A3, A5, A6, C1 · **Size:** M · **Status:** doing (protocol v2.1 agreed, review 14; freeze after B1-B3 are built)
 
 ---
 

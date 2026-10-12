@@ -58,7 +58,7 @@ check against Drive recorded in the conversation log with the command's output.
 folder (count of files per dataset and year); opens 10 random files and compares their SHA-256 with the laptop
 tool's manifest where one exists.
 
-**Depends:** - · **Size:** S · **Status:** doing (tool done and delivered; owner downloading; coverage command next)
+**Depends:** - · **Size:** S · **Status:** doing (tool done; owner's upload complete 12 Oct 2026, sample-checked; coverage command next)
 
 ---
 
