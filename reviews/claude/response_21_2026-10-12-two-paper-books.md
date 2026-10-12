@@ -1,5 +1,7 @@
 # Response 21: proposed design change: two paper books, tested rules versus AI judgement
 
+**Superseded by [response 22](response_22_2026-10-12-three-paper-strategies.md) (three strategies) on 12 Oct 2026.**
+
 - **Author:** Claude
 - **Date:** 2026-10-12
 - **For review:** [docs/DESK_DESIGN.md section 12](../../docs/DESK_DESIGN.md) (proposed v2.2)
