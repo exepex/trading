@@ -28,3 +28,5 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 2: Claude response 1, cost feasibility and revised research plan](review_2_2026-10-12-backtest-analysis-and-strategy-proposal.md)
 - [Review 3: independently reproduced response 2 evidence, gap attribution and capacity](review_3_2026-10-12-backtest-analysis-and-strategy-proposal.md)
 - [Review 4: response 3 corrections and capacity-screen data requirements](review_4_2026-10-12-backtest-analysis-and-strategy-proposal.md)
+
+- [Review 5: response 4 verified fixes, monthly-expiry selection and destructive download resume](review_5_2026-10-12-backtest-analysis-and-strategy-proposal.md)
