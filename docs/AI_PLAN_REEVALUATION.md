@@ -84,6 +84,10 @@ the judge and owner approval.
 > **Update (review 18):** for the three paper books proposed in `docs/DESK_DESIGN.md` section 12, D1 and D2 are
 > resolved per book in section 12.9, which supersedes the D1/D2 recommendations below once section 12 is approved.
 
+> **Owner decisions (12 Oct 2026):** D1 and D2 resolved per book by design section 12.9; **D3: remove the old setup
+> entirely** (no users; the new app starts clean), which also settles D6 and D7; D5 approved (withdraw self-merging);
+> D4 to be decided before books 2 and 3 start. See `docs/DESK_DECISIONS.md`.
+
 ## 3. Conflicts that need an owner decision (one at a time; D6 and D7 added by ChatGPT review 17)
 
 | # | Question | Recommendation (reasoning only) |
