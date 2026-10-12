@@ -81,6 +81,9 @@ Old: idea -> spec -> backtest -> shadow paper -> promote. **Superseded** by the 
 B4-B6, D1, E3), which keeps the same steps and adds the ledger, frozen protocols, a historical challenge, the red team,
 the judge and owner approval.
 
+> **Update (review 18):** for the three paper books proposed in `docs/DESK_DESIGN.md` section 12, D1 and D2 are
+> resolved per book in section 12.9, which supersedes the D1/D2 recommendations below once section 12 is approved.
+
 ## 3. Conflicts that need an owner decision (one at a time; D6 and D7 added by ChatGPT review 17)
 
 | # | Question | Recommendation (reasoning only) |

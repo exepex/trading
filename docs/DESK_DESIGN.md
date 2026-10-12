@@ -255,84 +255,127 @@ Three NIFTY trades are close to one bet, so the account is checked as a whole be
    adds net value against the code-only desk.
 5. Intraday watching only if data shows it helps.
 
-## 12. Three paper strategies: pure rules, hybrid, fully AI (proposed v2.2, for review)
+## 12. Three paper strategies: pure rules, hybrid, fully AI (proposed v2.2, revised after review 18)
 
-Status: **proposed by the owner on 12 Oct 2026, for ChatGPT review**; replaces the two-book draft of the same day; not
-part of the approved v2.1 until agreed and approved. Owner's aim: "we do not know whether AI or rules are smarter ...
-prove both, find where each is lacking, and get the best of both", working as a team of roles.
+Status: **proposed by the owner on 12 Oct 2026; revised after ChatGPT review 18** (answer:
+`reviews/claude/response_23_2026-10-12-review-18.md`); not part of the approved v2.1 until agreed and approved. Owner's
+aim: "we do not know whether AI or rules are smarter ... prove both, find where each is lacking, and get the best of
+both", working as a team of roles. This section supersedes the D1/D2 recommendations in
+`docs/AI_PLAN_REEVALUATION.md` for the three books (12.9).
 
-### 12.1 The three strategies (three paper books)
+### 12.1 The three books and the questions they answer
 | | Book 1: pure rules | Book 2: hybrid | Book 3: fully AI |
 |---|---|---|---|
-| Who analyses the data | Code: statistics and tested formulas | AI roles (finding cards, section 3) | AI roles |
-| Who decides the trade | Tested playbook rules only | AI decides, **inside boundaries set by tested rules** (which strategies are allowed, entry conditions that must hold, sizes) | AI decides everything, including designing its own strategies |
-| AI while trading | None (AI only helps research beforehand) | Analysis; chooses, times, skips or exits early within the boundaries | Full control within the owner's money limits |
-| Evidence before paper | Historical test (experiment protocols, sections 4-6) | Boundaries tested on history; the AI's choices only on paper | None possible: an AI's judgement on past dates is contaminated by hindsight; paper only |
-| A change is | A new playbook version (research loop) | New boundary version (research loop) or new AI version (recorded) | A new AI version (model, prompts, roles), recorded |
+| Who analyses | Code (statistics, tested formulas) | AI roles (finding cards, section 3) | AI roles |
+| Who decides | Tested playbook rules only | AI, inside a frozen **authority envelope** (12.2) around tested playbook rules | AI, including designing its own strategies, inside the Book-3 constitution (12.3) |
+| Evidence before paper | Historical test (sections 4-6) | Playbook tested on history; AI's changes only on paper | None possible (an AI's judgement on past dates is contaminated by hindsight) |
+| Question answered | Do tested rules alone make net money forward? | Does AI judgement add value **within the same tested strategy family**? | Does the **complete AI system** (strategy invention + market reading + execution choices) make more net money under the same risk budget? |
 
-The three answer three separate questions: do tested rules alone make money; does AI judgement improve tested rules;
-does AI alone beat both.
+Book 3's results are labelled as a whole-system result: a Book-3 win is never claimed as "AI daily judgement beats
+rules" unless the matched comparison (12.5, scoreboard A) shows it.
 
-### 12.2 The owner's money limits apply to all three (not strategy rules)
-Enforced by code for every book (C2, C4), whatever the strategy decides: Rs 10,000 maximum loss per trade including
-costs; at most 3 open trades; Rs 30,000 entry-blocking drawdown brake; portfolio stress; **defined-risk trades only**
-(maximum loss known at entry); never real orders. Without these, a book could win by taking risks the others may not,
-and the comparison would teach the wrong lesson.
+### 12.2 Book 2's authority envelope (frozen per playbook version, machine-readable)
+Each action is `allowed`, `shadow-only` or `forbidden`, fixed before paper starts and versioned with the playbook:
+| Action | Default |
+|---|---|
+| Choose among simultaneously eligible approved strategies | allowed |
+| No trade / veto an eligible trade | allowed |
+| Delay entry (same day only, until the 15:30 close) | allowed |
+| Choose strike or width from the playbook's pre-approved discrete set | allowed |
+| Reduce size (never increase) | allowed |
+| Choose or tighten an exit from the playbook's pre-approved exit set | allowed |
+| Early event or news exit | allowed, recorded with its evidence |
+| Change any threshold, feature, structure or strategy | **forbidden** (a new playbook version through the research loop) |
+Every Book-2 decision record holds the rule's default action and the AI's action with its reason.
 
-### 12.3 Same rules of the game (fairness)
-- Separate Rs 5 lakh paper accounts per book (E4's lock is per account; books never share an account).
-- Same market at the start: NIFTY options, holding up to 3 weeks; book 3 chooses its own structures, strikes and
-  expiries within that. Wider markets (BANKNIFTY, stocks) are opened to all books together, later.
-- Same decision time (about 15:00 IST), data cutoff, real 3 pm quotes (A4), fill model (E1) and charges (C1).
-- Independence: no book sees another book's decision of the day before committing its own.
-- Pre-commitment: every decision with its reasons is written to the decision record (D3) and committed to git before any
-  fill or outcome exists.
-- Each book's AI costs are charged to its own account ledger (C1, F5); book 1 has none at run time.
+### 12.3 Book 3's constitution (frozen before its first counted decision)
+- Market: NIFTY options; holding up to 3 weeks; **defined-risk structures only** (no naked short options); decision at
+  about 15:00 IST with the common data cutoff; allowed data sources listed.
+- **Strategy identity:** every trade carries a `strategy_id` whose full specification (entry, structure, size, exits)
+  and hash are recorded **before its first trade**, with the date proposed and the model, prompt and role versions that
+  created it, and whether it is new or reused. A material rule change creates a new `strategy_id`; rules are never
+  edited after seeing an outcome.
+- Book 3 may invent paper strategies; it may never change the owner's risk limits, data-integrity rules, the scoring
+  protocol, its own evaluation criteria, or touch real money.
+- Red team and judge review Book-3 strategies and decisions as evidence (sections 7, F2, F3); their objections are
+  recorded, not hard blocks.
 
-### 12.4 Scoring predictions every day, not only trades
-Each book makes 2-3 trades a month: after 3 months about 10 trades each, too few to separate skill from luck unless
-the difference is very large. So all three books answer a **fixed set of daily forecast questions** (frozen before the
-start), for example: probability that NIFTY closes within +/-2%, +/-3% and +/-5% of today's close at the next monthly
-expiry; probability that India VIX is higher in 10 trading days. Scored daily with proper scores (Brier and log score):
-about 20 scored days a month per book.
-- Book 1's forecasts come from code (its tested conditional frequencies); books 2 and 3 from their AI roles.
-- All are compared with the **option market's own forecast**: the probabilities implied by that day's NIFTY option
-  prices. Beating the option market's forecast is the real test of skill.
-- With three books, comparisons are pairwise (1 vs 2, 2 vs 3, 1 vs 3, each vs the market) and the uncertainty bands
-  account for the number of comparisons.
+### 12.4 The owner's money limits and hard validity apply to all three
+Enforced by code for every book (C2, C4): Rs 10,000 maximum loss per trade including costs; at most 3 open trades;
+Rs 30,000 entry-blocking drawdown brake; portfolio stress; defined-risk only; never real orders. C4 has two modes:
+books 1 and 2 are checked against their playbook; Book 3 is checked only against **hard facts and owner constraints**
+(contracts exist, quotes and cutoff, payoff and maximum loss, charges, margin and stress, account limits, allowed market
+and horizon, no prohibited structure). The quality of Book 3's thesis is judge and red-team evidence, not hard validity.
 
-### 12.5 Evaluation plan (fixed before the start)
-- Monthly report: three ledgers per book, drawdown, open risk, forecast scores against each other and against the
-  option-implied baseline, with uncertainty.
-- First scheduled verdict after 6 months; nothing is switched off for statistical reasons before a scheduled review
-  (hard-loss rules act at once, as for every strategy).
-- "Better" is judged on paired days: forecast-score differences with their intervals, and net account result after
-  costs. An inconclusive result is reported as inconclusive.
-- Where each book fails is studied by the roles (lessons memory) and becomes research questions.
+### 12.5 Two scoreboards
+- **Scoreboard A, matched decisions (does AI judgement add value?):** on the same eligible opportunities, same
+  approved strategy universe, same data cutoff, same fill model and costs, each book's decision is committed
+  independently and scored on a standardised shadow account. Books 1 and 2 meet this naturally; Book 3 also commits a
+  **matched shadow decision** on the common opportunity set every day.
+- **Scoreboard B, whole systems (which complete system made more net paper money?):** each book's real paper account
+  under its own permitted universe and the same owner risk budget.
+- The two are never merged into one "AI beats rules" claim.
+- Reported for both: raw account net, net per unit of risk used (maximum loss, stress usage, margin-days), trades,
+  gross, execution costs, AI and data costs, net, and each version segment separately.
 
-### 12.6 Combining the best
-A combination of what works in each book is a **new design**, tested like any other: registered, evaluated on forward
-paper data it was not built from, judged and approved by the owner. No book silently borrows another's decisions.
+### 12.6 Fairness controls
+- Separate Rs 5 lakh paper accounts per book (E4's lock is per account); same quotes (A4), fill model (E1), charges
+  (C1) and decision time.
+- **Common start:** the head-to-head trade comparison starts on a predeclared date when all three books can trade.
+  Book 3's earlier trades are kept and reported as **Book-3 pilot evidence**, never as head-to-head evidence. Cash held
+  by books 1 and 2 after the common start is an outcome; before it, it is not counted.
+- **Independence and firewall:** no book sees another's decision of the day before committing; lessons or memories
+  derived from another book's outcomes never enter a competing book during an evaluation window.
+- **Versioning:** a change of model, prompt, role set, authority envelope or strategy starts a new evaluation segment;
+  an emergency provider or model substitution pauses scoring for that book until recorded as a new version.
+- Pre-commitment: every decision with its reasons is committed to git before any fill or outcome exists (D3).
+- Each book's AI costs go to its own account ledger (C1, F5).
 
-### 12.7 Timing and effect on the plan
-- Book 1 trades only after a strategy passes the historical test (experiment 1 and later); until then it holds cash but
-  still forecasts from code, so forecast scoring starts on day one.
-- Book 2 trades only inside approved boundaries, so it also waits for a passed strategy; its AI forecasts can start
-  earlier.
-- Book 3 needs no historical test, only plumbing: paper account and fills (E1 fill model on A4 quotes), risk and
-  validity code (C2, C4), decision records (D3), role agents (F1), cost tracking (F5). It can start first.
-- Owner decisions D1 and D2 (`docs/AI_PLAN_REEVALUATION.md`) resolve per book: no AI authority in book 1; AI choices
-  within boundaries in book 2; AI vetoes, entries and early exits in book 3; all inside the money limits. D4 (runtime and
-  budget) must be decided before books 2 and 3 start.
-- The implementation plan is rewritten for the three books (data, research engine, code roles and playbook mostly
-  unchanged; paper desk per book; AI layer for books 2 and 3; forecast scoring; comparison report), and the GitHub
-  issues are recreated from it as a clean set.
+### 12.7 Daily forecasts: a secondary diagnostic
+Trade profit decides; forecasts only diagnose market reading and cannot promote an unprofitable book. All books
+answer five frozen questions every trading day, as probabilities:
+1. P(NIFTY close in 20 trading days > today's close).
+2. P(|NIFTY return over the next 20 trading days| >= 3%).
+3. P(next-20-day annualised realised volatility > trailing 20-day realised volatility today).
+4. P(India VIX close in 10 trading days > today's close).
+5. P(next-20-day annualised realised volatility < today's 30-day at-the-money implied volatility) (the volatility
+   premium at the core of edge families E1-E2).
+Scoring: Brier score for all; log score with probabilities clipped to [0.01, 0.99]; calibration tables. Pairwise score
+differences by forecast date with a moving-block bootstrap of block length 20 trading days (the targets overlap);
+multiplicity across questions and pairs adjusted as fixed in the forecast protocol before scoring.
+Baselines, each computed point-in-time by a frozen method: (a) the **risk-neutral** probabilities implied by NIFTY
+option prices (labelled risk-neutral: option prices include risk premia and are not real-world probabilities); (b) a
+historical base rate from a frozen rolling window; (c) for questions 3-5, a frozen simple statistical model. Book 1's
+own forecasts come from a frozen point-in-time method, never refitted after outcomes.
 
-### 12.8 Honest limits
-- Slow: trade-level proof takes many months; forecast scores come sooner but measure reading the market, not profit.
-- A changing AI (new model versions) makes books 2 and 3 moving targets: each version is recorded and scored separately.
-- Book 3's own strategies cannot be tested on history, so its early paper results are the first evidence of any kind.
-- Three books need three times the paper bookkeeping and, for books 2 and 3, a monthly AI budget.
+### 12.8 Evaluation and stopping
+- Primary verdict: net account result after execution and operating costs, within the risk budget, on scoreboards A and
+  B; forecasts are secondary.
+- Monthly report; the **first scheduled review is after 6 months of common-start trading**. Six months is a review date,
+  not proof: promoting or combining anything requires the uncertainty criterion fixed in the evaluation protocol.
+- No switch-off for statistical reasons before a scheduled review, **except**: the account brake (common to all), a
+  strategy-level catastrophic loss rule, and any data, integrity or safety failure, which pause that book or strategy
+  at once.
+- Where each book fails is studied by the roles and becomes research questions.
+
+### 12.9 Decisions D1 and D2 per book (supersedes the earlier recommendation)
+Book 1: no AI authority (any AI view is a shadow record). Book 2: the actions in 12.2. Book 3: AI vetoes, entries and
+early exits within 12.3 and 12.4. D4 (runtime and AI budget) is decided by the owner before books 2 and 3 start.
+
+### 12.10 Combining the best
+A combination is a new design, tested like any other on forward paper data it was not built from, judged and approved
+by the owner. No book silently borrows another's decisions.
+
+### 12.11 Timing and effect on the plan
+Book 1 and Book 2 trade once a strategy passes the historical test; their forecasts start earlier. Book 3 starts as a
+pilot once its constitution, decision records, fills and costs, C2 and C4 (Book-3 mode), role agents and the forecast
+protocol exist. The implementation plan is then rewritten, reusing the approved A-D stories and adding book-specific
+extensions, and the GitHub issues are recreated as a clean set.
+
+### 12.12 Honest limits
+Trade-level proof takes many months; forecast scores measure reading the market, not profit; changing AI versions
+make books 2 and 3 moving targets (scored per version); Book 3's strategies cannot be tested on history; three books
+need three times the bookkeeping and a monthly AI budget.
 
 ## 11. Closing the design
 
@@ -350,7 +393,7 @@ paper data it was not built from, judged and approved by the owner. No book sile
 | 8.1 Portfolio risk | Agreed (covered by section 8) | Agreed as research framework; proposed thresholds require calibration (review 11) | Approved 12 Oct 2026 |
 | 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
 | 10 Build order | Agreed | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
-| 12 Three paper strategies (proposed v2.2) | Proposed: owner's idea, written up 12 Oct 2026 | | |
+| 12 Three paper strategies (proposed v2.2) | Agreed after review 18 revisions (response 23) | Changes required (review 18); re-review pending | |
 
 Both AIs agreed every section (ChatGPT review 11, Claude response 12). Review 11's clarifications (exact binomial
 figures, experiment-specific significance test, fuller stress scenarios) are folded into 3.5 and 8.1 without changing
