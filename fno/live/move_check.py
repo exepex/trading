@@ -8,12 +8,13 @@ from dataclasses import dataclass
 from math import sqrt
 
 from ..analytics import Greeks, atm_iv
+from ..constants import CALENDAR_DAYS_PER_TRADING_DAY
 from ..models import OptionChain
 
 PERCENT = 100.0
 DAYS_PER_YEAR = 365.0
 PROBLEM = "needs more than {limit:g}x the move the market expects"
-NOT_MEASURABLE = "move check: not measurable (no ATM implied volatility or spot); not applied"
+NOT_MEASURABLE = "move check: cannot be judged (no ATM implied volatility, spot or option sensitivity); not applied"
 DETAIL = "needs a {needed:,.0f}-point move, {ratio:.2f}x the {likely:,.0f} points the market expects in {days:g} days"
 
 
@@ -30,7 +31,7 @@ def move_needed(gain: float, greeks: Greeks) -> float | None:
 @dataclass(frozen=True)
 class MoveCheck:
     max_needed_to_likely: float = 1.5
-    hold_days: float = 2.8  # calendar days: the 2-trading-day hold spans a weekend about every other time
+    hold_days: float = 2 * CALENDAR_DAYS_PER_TRADING_DAY  # calendar days for the 2-trading-day hold
     take_profit_pct: float = 60.0
     risk_free_rate: float = 0.065
 

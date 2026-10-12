@@ -32,6 +32,12 @@ def quantiles(values: list[float]) -> list[float]:
     return [round(ordered[int(len(ordered) * q)], 2) for q in QUANTILES] if ordered else []
 
 
+YAHOO_RANGES = ("5d", "1mo", "60d")
+NO_DATA = "no data (every source failed)"
+DEFAULT_IV_PCT = 15.0
+RISK_FREE_RATE = 0.065
+
+
 def efficiency_report(history_range: str, minimum: float) -> list[str]:
     feed, whole, hourly = YahooPriceFeed(), [], []
     for symbol in EFFICIENCY_SYMBOLS:
@@ -43,7 +49,9 @@ def efficiency_report(history_range: str, minimum: float) -> list[str]:
         for bars in (s for s in sessions if len(s) >= MIN_SESSION_BARS):
             whole.append(path_efficiency(bars))
             hourly += [path_efficiency(bars[i - WINDOW : i]) for i in range(WINDOW, len(bars))]
-    share = sum(v >= minimum for v in hourly) / len(hourly) if hourly else 0.0
+    if not hourly:
+        return []
+    share = sum(v >= minimum for v in hourly) / len(hourly)
     return [
         f"sessions: {len(whole)}",
         f"whole-day efficiency p10/25/50/75/90: {quantiles(whole)}",
@@ -69,7 +77,8 @@ def move_report(cfg: dict, check: MoveCheck) -> list[str]:
                 quote = chain.get(strike, kind)
                 if quote is None or not quote.ltp:
                     continue
-                greeks = bs_greeks(chain.spot, strike, chain.years_to_expiry(), 0.065, (quote.iv or 15) / 100, kind)
+                sigma = (quote.iv or DEFAULT_IV_PCT) / 100
+                greeks = bs_greeks(chain.spot, strike, chain.years_to_expiry(), RISK_FREE_RATE, sigma, kind)
                 detail = check.detail(chain, quote.fill_price(OrderSide.BUY.value), greeks)
                 lines.append(f"{symbol} {expiry} {strike:g} {kind}: {detail}")
     return lines
@@ -77,17 +86,18 @@ def move_report(cfg: dict, check: MoveCheck) -> list[str]:
 
 def add_calibrate_parser(subparsers) -> None:
     p = subparsers.add_parser("calibrate", help="re-measure the sideways-day and move-check calibration")
-    p.add_argument("--range", default="5d", help="history for path efficiency (Yahoo: up to 60d)")
+    p.add_argument("--range", default="5d", choices=YAHOO_RANGES, help="history for path efficiency")
     p.set_defaults(func=run_calibrate_command)
 
 
 def run_calibrate_command(args) -> int:
+    from ..live.services import build_move_check
+
     cfg = load_config(args.config)
-    live, holding = cfg.get("live", {}), cfg.get("holding", {})
-    minimum = live.get("guards", {}).get("sideways_day", {}).get("min_efficiency", 0.3)
-    check = MoveCheck(
-        live.get("contract", {}).get("max_needed_to_likely_move", 1.5), holding.get("max_days", 2) * 7 / 5
-    )
-    for line in efficiency_report(args.range, minimum) + [""] + move_report(cfg, check):
+    minimum = cfg.get("live", {}).get("guards", {}).get("sideways_day", {}).get("min_efficiency", 0.3)
+    efficiency = efficiency_report(args.range, minimum)
+    moves = move_report(cfg, build_move_check(cfg))
+    priced = [line for line in moves if "unavailable" not in line]
+    for line in (efficiency or [f"path efficiency: {NO_DATA}"]) + [""] + (moves or [f"move check: {NO_DATA}"]):
         print(line)
-    return 0
+    return 0 if efficiency or priced else 1

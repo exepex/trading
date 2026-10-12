@@ -40,6 +40,10 @@ class CachedProvider(Provider):
             self._chains[key] = (self.clock(), chain)
         return chain
 
+    def forget(self, underlying: str) -> None:
+        with self._lock:
+            self._chains = {k: v for k, v in self._chains.items() if k[0] != underlying}
+
     def context(self, underlying: str) -> MarketContext:
         return self.inner.context(underlying)
 

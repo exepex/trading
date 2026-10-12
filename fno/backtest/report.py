@@ -5,9 +5,12 @@ from __future__ import annotations
 from .simulator import BacktestResult
 
 DISCLAIMER = (
-    "APPROXIMATION: option prices are modelled (Black-Scholes, volatility from the stock's own recent moves, "
-    "about 10 days to expiry), not real quotes; no bid-ask spread beyond charges; only rules that can be judged "
-    "from price history vote (no option chain, OI, news or research). Use it to compare rules, not to predict profit."
+    "APPROXIMATION: option prices are modelled (Black-Scholes, volatility from the stock's own 5-minute moves x 1.1, "
+    "floor 8%, about 10 days to expiry), not real quotes; no bid-ask spread beyond charges; only rules that can be "
+    "judged from price history vote (no option chain, OI, news or research). Each name is simulated on its own: the "
+    "re-entry and post-loss pauses apply, but not the portfolio limits (open trades, trades per day, families), the "
+    "shortlist, the contract picker or the move check. Holidays are not known, so a holiday counts as a holding day. "
+    "Rule votes weaker than 0.2 are not graded. Use it to compare rules, not to predict profit."
 )
 TRADE_ROW = "{symbol:<12} {trades:>6} {won:>5.0f}% {net:>12,.0f} {avg:>10,.0f}"
 RULE_ROW = "{rule:<22} {votes:>7} {hit:>7.1f}%"
@@ -29,6 +32,9 @@ def format_report(results: dict[str, BacktestResult], days: int) -> str:
             hits, votes = grades.get(rule, (0, 0))
             grades[rule] = (hits + grade.hits, votes + grade.votes)
     lines.append(f"{'all':<12} {total_trades:>6} {'':>6} {total_net:>12,.0f}")
+    sessions = sum(r.sessions for r in results.values())
+    unfinished = sum(r.unfinished for r in results.values())
+    lines.append(f"Sessions simulated: {sessions}; trades still open when the data ended (not counted): {unfinished}")
     lines += ["", "Exits: " + (", ".join(f"{r} {n}" for r, n in sorted(reasons.items())) or "none"), ""]
     lines.append(f"{'rule':<22} {'votes':>7} {'right':>8}   (direction of the next 30 minutes; 50% = coin toss)")
     for rule, (hits, votes) in sorted(grades.items(), key=lambda kv: -kv[1][1]):

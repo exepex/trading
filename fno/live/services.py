@@ -4,22 +4,31 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import time, timedelta
 from pathlib import Path
 
+from ..backtest.option_model import OptionModel
+from ..backtest.simulator import Backtester, Cooldowns
 from ..config import ROOT
-from ..constants import ENV_ASKNEWS_API_KEY, ENV_FINNHUB_API_KEY, ENV_MARKETAUX_API_TOKEN, INDEX_UNDERLYINGS
+from ..constants import (
+    CALENDAR_DAYS_PER_TRADING_DAY,
+    ENV_ASKNEWS_API_KEY,
+    ENV_FINNHUB_API_KEY,
+    ENV_MARKETAUX_API_TOKEN,
+    INDEX_UNDERLYINGS,
+)
 from ..http_pacing import PacedSession
 from ..notify import SlackTarget
 from ..providers import Provider, get_provider
 from ..providers.cached import CachedProvider
+from ..providers.groww import GrowwProvider
 from ..providers.public import PublicData
 from .alerts import LiveAlerts
 from .contract_picker import ContractPicker, ExitLevels, PickerRules
 from .duckdb_results_store import DuckDbResultsStore
 from .exit_policy import ExitPolicy, TrailingStop
-from .feeds.live_prices import GrowwLivePrices, LivePriceSource
+from .feeds.live_prices import GrowwLivePrices
 from .feeds.nse_feed import NseLiveFeed
 from .feeds.price_feed import IntradayPriceFeed, YahooPriceFeed
 from .kill_switch import KillSwitch
@@ -37,6 +46,7 @@ from .news.tagging import SymbolTagger
 from .news.watcher import NewsWatcher
 from .news_exit import AdverseNewsExit
 from .paper_desk import PaperDesk
+from .price_watch import PriceWatch
 from .research.motherduck_source import MotherDuckResearchSource
 from .research.repo_source import DATASETS, RepoResearchSource
 from .research.repo_sync import ResearchRepoSync
@@ -64,8 +74,6 @@ RESULTS_TO_FILES = "files"
 RESULTS_TO_DUCKDB = "duckdb"
 DEFAULT_NEWS_INTERVAL_SECONDS = 120
 NEWS_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"  # honest, and accepted by the feeds
-GROWW_PROVIDER = "groww"
-CALENDAR_DAYS_PER_TRADING_DAY = 7 / 5
 NEWS_USAGE_FILE = "news_usage.json"  # requests today per capped source, kept across restarts
 SOURCE_CONFIG_KEYS = {"NSE filings": "nse_announcements", "BSE filings": "bse_announcements"}
 
@@ -91,8 +99,7 @@ class LiveServices:
     news_room: NewsRoom | None = None  # filled by the news watcher, read by the scanner and the exit check
     iv_history: IvHistory | None = None  # daily ATM implied volatility per underlying, for IV rank
     news_exit: AdverseNewsExit | None = None  # early exit on strong credible news against a trade
-    live_prices: LivePriceSource | None = None  # frequent prices for the sudden-move detector (Groww only)
-    shock_detector: ShockDetector = field(default_factory=ShockDetector)
+    price_watch: PriceWatch | None = None  # sudden-move detector on frequent prices (Groww only)
 
     @property
     def live_cfg(self) -> dict:
@@ -103,17 +110,10 @@ def build_live_services(
     cfg: dict, journal_path: Path = DEFAULT_JOURNAL, state_dir: Path = DEFAULT_STATE_DIR
 ) -> LiveServices:
     live = cfg.get("live", {})
-    holding = cfg.get("holding", {})
-    signals_cfg = live.get("signals", {})
-    clock = MarketClock(SessionTimes.from_config(holding, signals_cfg.get("opening_range", {}).get("minutes", 15)))
+    clock = build_clock(cfg)
     chain_source = CachedProvider(get_provider(live.get("chain_provider", cfg.get("provider", "nse")), cfg))
     kill_switch = KillSwitch(state_dir / KILL_FLAG_NAME)
-    exit_policy = ExitPolicy(
-        clock,
-        max_holding_days=holding.get("max_days", 2),
-        exit_days_before_expiry=cfg.get("exits", {}).get("exit_days_before_expiry", 1),
-        trailing=TrailingStop.from_config(cfg.get("exits", {}).get("trailing_stop", {})),
-    )
+    exit_policy = build_exit_policy(cfg, clock)
     store = LockedResultsStore(build_results_store(live.get("results", {}), state_dir))
     news_room = build_news_room(live.get("news", {}))
     adverse = cfg.get("exits", {}).get("adverse_news", {})
@@ -127,22 +127,14 @@ def build_live_services(
         nse_feed=NseLiveFeed(),
         price_feed=YahooPriceFeed(),
         chain_source=chain_source,
-        view_builder=MarketViewBuilder(
-            build_signal_rules(signals_cfg),
-            build_guard_rules(live.get("guards", {})),
-            ViewThresholds.from_config(live.get("thresholds")),
-        ),
+        view_builder=build_view_builder(cfg),
         picker=ContractPicker(
             PickerRules.from_config(live.get("contract", {})),
             ExitLevels.from_config(cfg.get("exits", {}).get("long_option", {})),
             cfg.get("position_rules", {}),
             max_planned_loss(cfg),
             chain_source,
-            MoveCheck(
-                live.get("contract", {}).get("max_needed_to_likely_move", 1.5),
-                holding.get("max_days", 2) * CALENDAR_DAYS_PER_TRADING_DAY,  # theta and IV are per calendar day
-                cfg.get("exits", {}).get("long_option", {}).get("take_profit_pct_of_premium", 60.0),
-            ),
+            build_move_check(cfg),
         ),
         gate=PortfolioGate(cfg, kill_switch, live.get("reentry_cooldown_minutes", 30)),
         desk=PaperDesk(journal_path, cfg, chain_source, exit_policy),
@@ -157,14 +149,73 @@ def build_live_services(
         state_dir=state_dir,
         news_room=news_room,
         news_exit=news_exit,
-        live_prices=GrowwLivePrices(chain_source.inner) if chain_source.inner.name == GROWW_PROVIDER else None,
-        shock_detector=ShockDetector(ShockRules.from_config(live.get("shock"))),
+        price_watch=(
+            PriceWatch(
+                GrowwLivePrices(chain_source.inner), ShockDetector(ShockRules.from_config(live.get("shock"))), store
+            )
+            if chain_source.inner.name == GrowwProvider.name
+            else None
+        ),
         iv_history=IvHistory(store, **live.get("iv_history", {})),
         shadow_desk=(
             PaperDesk(journal_path.with_name(SHADOW_JOURNAL_NAME), cfg, chain_source, exit_policy, enforce_limits=False)
             if live.get("shadow_book", {}).get("enabled")
             else None
         ),
+    )
+
+
+def build_clock(cfg: dict) -> MarketClock:
+    opening_minutes = cfg.get("live", {}).get("signals", {}).get("opening_range", {}).get("minutes", 15)
+    return MarketClock(SessionTimes.from_config(cfg.get("holding", {}), opening_minutes))
+
+
+def build_exit_policy(cfg: dict, clock: MarketClock) -> ExitPolicy:
+    exits = cfg.get("exits", {})
+    return ExitPolicy(
+        clock,
+        max_holding_days=cfg.get("holding", {}).get("max_days", 2),
+        exit_days_before_expiry=exits.get("exit_days_before_expiry", 1),
+        trailing=TrailingStop.from_config(exits.get("trailing_stop", {})),
+    )
+
+
+def build_view_builder(cfg: dict, guard_names: tuple[str, ...] | None = None) -> MarketViewBuilder:
+    """The desk's rules and guards; `guard_names` keeps only those guards (the backtest uses price-only ones)."""
+    live = cfg.get("live", {})
+    guards = {k: v for k, v in live.get("guards", {}).items() if guard_names is None or k in guard_names}
+    return MarketViewBuilder(
+        build_signal_rules(live.get("signals", {})),
+        build_guard_rules(guards),
+        ViewThresholds.from_config(live.get("thresholds")),
+    )
+
+
+def build_backtester(cfg: dict, guard_names: tuple[str, ...]) -> Backtester:
+    """The backtest with the desk's own rules, exits, charges and re-entry/loss cooldowns."""
+    clock = build_clock(cfg)
+    exits = ExitLevels.from_config(cfg.get("exits", {}).get("long_option", {}))
+    cooldowns = Cooldowns(
+        cfg.get("live", {}).get("reentry_cooldown_minutes", 30),
+        cfg.get("account", {}).get("cooldown_after_loss_minutes", 0),
+    )
+    return Backtester(
+        build_view_builder(cfg, guard_names),
+        clock,
+        build_exit_policy(cfg, clock),
+        OptionModel(),
+        exits.stop_loss_pct,
+        exits.take_profit_pct,
+        cfg.get("charges", {}),
+        cooldowns,
+    )
+
+
+def build_move_check(cfg: dict) -> MoveCheck:
+    return MoveCheck(
+        cfg.get("live", {}).get("contract", {}).get("max_needed_to_likely_move", 1.5),
+        cfg.get("holding", {}).get("max_days", 2) * CALENDAR_DAYS_PER_TRADING_DAY,  # theta and IV per calendar day
+        cfg.get("exits", {}).get("long_option", {}).get("take_profit_pct_of_premium", 60.0),
     )
 
 

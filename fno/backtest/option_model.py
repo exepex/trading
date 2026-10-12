@@ -11,7 +11,8 @@ from ..constants import INDEX_UNDERLYINGS
 DAYS_PER_YEAR = 365.0
 BARS_PER_SESSION = 75  # 5-minute bars, 09:15-15:30
 INDEX_STRIKE_STEP = {"NIFTY": 50.0, "BANKNIFTY": 100.0, "FINNIFTY": 50.0}
-STOCK_STRIKE_STEP_PCT = 1.0  # stock strikes modelled at about 1% apart
+STOCK_STRIKE_STEPS = ((250, 2.5), (500, 5.0), (1000, 10.0), (2500, 20.0), (5000, 50.0), (10000, 100.0))  # by price
+LARGEST_STOCK_STEP = 250.0
 MIN_SIGMA, MAX_SIGMA = 0.08, 1.5
 
 
@@ -32,8 +33,10 @@ class OptionModel:
         return min(MAX_SIGMA, max(MIN_SIGMA, annual * self.iv_over_realised))
 
     def atm_strike(self, symbol: str, spot: float) -> float:
+        """Nearest listed-style strike: index steps, or NSE-like steps by price band for stocks."""
         step = INDEX_STRIKE_STEP.get(symbol) if symbol in INDEX_UNDERLYINGS else None
-        step = step or max(spot * STOCK_STRIKE_STEP_PCT / 100, 0.5)
+        if step is None:
+            step = next((size for limit, size in STOCK_STRIKE_STEPS if spot < limit), LARGEST_STOCK_STEP)
         return round(spot / step) * step
 
     def price(self, spot: float, strike: float, days_left: float, sigma: float, kind: str) -> float:

@@ -47,6 +47,9 @@ class Provider(ABC):
     def context(self, underlying: str) -> MarketContext:
         """Spot, price history and volatility context."""
 
+    def forget(self, underlying: str) -> None:  # noqa: B027 - optional hook
+        """Drop any cached data for this underlying (after a sudden move). Providers without a cache do nothing."""
+
     def live_quote(self, chain: OptionChain, strike: float, kind: str) -> OptionQuote | None:
         """The contract's current bid/ask when the chain itself has none (Groww's chain gives last price only).
         None when the provider cannot quote it; callers then fall back to last price +/- slippage."""

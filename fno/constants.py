@@ -138,3 +138,4 @@ INDEX_FAMILIES = {
     "MIDCPNIFTY": BROAD_MARKET_FAMILY,
 }
 EVENT_PRICE_SHOCK = "price_shock"  # a sudden move of an underlying, seen on the live price feed
+CALENDAR_DAYS_PER_TRADING_DAY = 7 / 5  # a 2-trading-day hold spans about 2.8 calendar days (weekends)

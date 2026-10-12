@@ -145,3 +145,26 @@ def test_a_damaged_usage_file_only_resets_that_source(tmp_path):
         [SourcePlan(Quiet("AskNews"), 60, 5), SourcePlan(Quiet("Marketaux"), 60, 95)], 5, usage_file=usage
     )
     assert schedule.plans[0].used_today == 0 and schedule.plans[1].used_today == 7
+
+
+def test_prioritise_never_breaks_a_limit():
+    class Quiet(NewsSource):
+        min_interval_seconds = 0.0
+
+        def __init__(self, name):
+            self.name = name
+
+        def fetch(self, now):
+            return []
+
+    healthy, failing, refused = (SourcePlan(Quiet(n), 300) for n in ("Marketaux", "NSE filings", "BSE filings"))
+    schedule = PollSchedule([healthy, failing, refused], 5, ActiveWindow(is_trading_day=lambda d: True))
+    schedule.record(healthy, NOW, ok=True)
+    schedule.record(failing, NOW, ok=False)
+    schedule.record(refused, NOW, ok=True, pause_seconds=900)
+    before = (failing.next_due, refused.next_due)
+    schedule.prioritise({"Marketaux", "NSE filings", "BSE filings"}, NOW + timedelta(seconds=10))
+    assert healthy.next_due == NOW + timedelta(seconds=60)  # sooner than 300 s, never sooner than a minute
+    assert (failing.next_due, refused.next_due) == before  # back-off and refusal pauses untouched
+    schedule.prioritise({"Marketaux"}, NOW + timedelta(seconds=120))
+    assert healthy.next_due == NOW + timedelta(seconds=60)  # never moved later either

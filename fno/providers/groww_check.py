@@ -33,6 +33,15 @@ def groww_check_lines(cfg: dict, underlying: str = CHECK_UNDERLYING) -> list[str
         lines.append(f"quote bid/ask: {quote.get('bid_price')} / {quote.get('offer_price')}")
     from ..live.feeds.live_prices import GrowwLivePrices
 
-    prices = GrowwLivePrices(provider).prices(["NIFTY", "BANKNIFTY", "RELIANCE"])
-    lines.append(f"live prices (sudden-move detector): {prices or 'none returned: check the symbol format'}")
+    wanted = ["NIFTY", "BANKNIFTY", "FINNIFTY", "RELIANCE"]
+    try:
+        prices = GrowwLivePrices(provider).prices(wanted)
+    except Exception as exc:  # noqa: BLE001 - report it; the lines above still stand
+        lines.append(f"live prices (sudden-move detector) FAILED: {type(exc).__name__}: {exc}")
+        return lines
+    lines.append(f"live prices (sudden-move detector): {prices}")
+    missing = [s for s in wanted if s not in prices]
+    if missing:
+        raw = api.get_ltp(exchange_trading_symbols=tuple(f"NSE_{s}" for s in missing), segment=api.SEGMENT_CASH)
+        lines.append(f"not priced: {', '.join(missing)}; raw answer keys: {sorted(_payload(raw))[:10]}")
     return lines

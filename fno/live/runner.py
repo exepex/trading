@@ -5,14 +5,16 @@ from __future__ import annotations
 import logging
 import threading
 import time as wall_clock
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from ..constants import EVENT_PRICE_SHOCK, EVENT_SHADOW_CLOSED, ExitReason, SessionPhase
+from ..constants import EVENT_SHADOW_CLOSED, ExitReason, SessionPhase
 from ..models import IST
 from .alerts import day_summary_message, exit_message
 from .learning.performance import performance_stop_reason
 from .learning.view_outcomes import ViewOutcomeTracker
+from .news.api_sources import MARKETAUX_SOURCE
+from .news.exchange_sources import BSE_SOURCE, NSE_SOURCE
 from .research.research_context import ResearchSnapshot
 from .scanner import LiveScanner
 from .services import LiveServices, build_news_watcher
@@ -20,7 +22,7 @@ from .universe import ReferenceData
 
 log = logging.getLogger(__name__)
 LOOP_SLEEP_SECONDS = 5
-PRIORITY_NEWS_SOURCES = {"NSE filings", "BSE filings", "Marketaux"}  # asked first after a sudden move
+PRIORITY_NEWS_SOURCES = {NSE_SOURCE, BSE_SOURCE, MARKETAUX_SOURCE}  # asked sooner after a sudden move
 KILL_LEFT_OPEN = "kill switch: could not close {trades} (no price); retrying every review"
 REFERENCE_RETRY = timedelta(minutes=5)
 REFERENCE_FAILED = "could not load today's F&O reference data (retrying in 5 minutes): {error}"
@@ -180,6 +182,9 @@ class LiveRunner:
         if not self._due(self.state.last_review, now, self.timings.review_every_seconds):
             return
         self.state.last_review = now
+        self._review(now, phase)
+
+    def _review(self, now: datetime, phase: SessionPhase) -> None:
         closed, errors = self.services.desk.review_open_trades(now, phase)
         try:
             if self.services.news_exit is not None:
@@ -196,26 +201,22 @@ class LiveRunner:
         self._review_shadow_book(now, phase)
 
     def _watch_prices_if_due(self, now: datetime, phase: SessionPhase) -> None:
-        """Every few seconds (Groww only): a sudden move re-checks open trades at once and asks the filing and news
-        sources about that name first. Exits still come only from the normal rules (stop, trailing, news)."""
+        """Every few seconds (Groww only): a sudden move on a held name re-checks open trades at once on fresh prices
+        (the regular review stays on schedule), and the filing and news sources are asked sooner. Exit only."""
         s = self.services
-        if s.live_prices is None or not self._due(self.state.last_price_watch, now, self.timings.price_watch_seconds):
+        if s.price_watch is None or not self._due(self.state.last_price_watch, now, self.timings.price_watch_seconds):
             return
         self.state.last_price_watch = now
         held = {t["underlying"] for t in s.desk.open_trades()}
         symbols = sorted(set(s.live_cfg.get("always_scan", [])) | held)
-        try:
-            prices = s.live_prices.prices(symbols)
-        except Exception as exc:  # noqa: BLE001 - the 2-minute review still protects open trades
-            log.warning("live prices unavailable: %s", exc)
-            return
-        shocks = [shock for symbol, price in prices.items() if (shock := s.shock_detector.observe(symbol, price, now))]
-        for shock in shocks:
-            s.store.record(EVENT_PRICE_SHOCK, {**asdict(shock), "held": shock.symbol in held}, now, shock.symbol)
+        shocks = s.price_watch.check(symbols, held, now, self._report_problem)
         if shocks and self.news_watcher is not None:
             self.news_watcher.schedule.prioritise(PRIORITY_NEWS_SOURCES, now)
-        if any(shock.symbol in held for shock in shocks):
-            self.state.last_review = None  # re-check open trades in this same tick
+        hit = {shock.symbol for shock in shocks} & held
+        if hit:
+            for symbol in hit:
+                s.chain_source.forget(symbol)  # price the re-check on a fresh chain, not one cached before the move
+            self._review(now, phase)
 
     def _review_shadow_book(self, now: datetime, phase: SessionPhase) -> None:
         """Same exit rules for the shadow book (news exit included), recorded quietly: no alerts, no kill switch."""

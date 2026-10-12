@@ -40,6 +40,20 @@ class SimTrade:
     net_pnl: float = 0.0
 
 
+@dataclass(frozen=True)
+class Cooldowns:
+    """The desk's entry pauses: after any exit on the name, and longer after a losing one."""
+
+    after_exit_minutes: float = 30
+    after_loss_minutes: float = 45
+
+    def blocks(self, last: SimTrade | None, now: datetime) -> bool:
+        if last is None or last.closed_at is None:
+            return False
+        pause = max(self.after_exit_minutes, self.after_loss_minutes if last.net_pnl < 0 else 0)
+        return now - last.closed_at < timedelta(minutes=pause)
+
+
 @dataclass
 class RuleGrade:
     hits: int = 0
@@ -71,8 +85,10 @@ class Backtester:
         stop_pct: float,
         target_pct: float,
         charges: dict,
+        cooldowns: Cooldowns | None = None,
     ):
         self.builder, self.clock, self.exits, self.model = builder, clock, exits, model
+        self.cooldowns = cooldowns or Cooldowns()
         self.stop_pct, self.target_pct, self.charges = stop_pct, target_pct, charges
 
     def run(
@@ -82,6 +98,7 @@ class Backtester:
         sessions = sessions_of(candles)
         bench = {c.start: c.close for c in benchmark or []}
         open_trade: SimTrade | None = None
+        last_closed: SimTrade | None = None
         for index in range(1, len(sessions)):
             today, history = sessions[index], [c for s in sessions[max(0, index - HISTORY_SESSIONS) : index] for c in s]
             previous_close = sessions[index - 1][-1].close
@@ -91,12 +108,13 @@ class Backtester:
                 now = bar.start + BAR  # decisions are made when the bar has closed
                 if open_trade is not None and self._manage(open_trade, bar.close, now):
                     result.trades.append(open_trade)
-                    open_trade = None
+                    open_trade, last_closed = None, open_trade
                 inputs = self._inputs(symbol, today[: i + 1], history, previous_close, bench, bench_prev, now)
                 view = self.builder.build(inputs)
                 self._grade(view.votes, today, i, result.grades)
                 tradeable = view.direction is not Direction.NEUTRAL and not view.blocked
-                if open_trade is None and tradeable and self.clock.phase(now) is SessionPhase.TRADING:
+                allowed = not self.cooldowns.blocks(last_closed, now)
+                if open_trade is None and tradeable and allowed and self.clock.phase(now) is SessionPhase.TRADING:
                     open_trade = self._open(symbol, view.direction, bar.close, now, lot_size, history + today[: i + 1])
         result.unfinished = int(open_trade is not None)  # still open when the data ends: not counted
         return result

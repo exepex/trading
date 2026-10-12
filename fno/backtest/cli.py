@@ -7,17 +7,11 @@ from pathlib import Path
 
 from ..config import ROOT, load_config
 from ..constants import BENCHMARK_UNDERLYING
-from ..live.contract_picker import ExitLevels
-from ..live.exit_policy import ExitPolicy, TrailingStop
 from ..live.feeds.nse_feed import NseLiveFeed
 from ..live.feeds.price_feed import YahooPriceFeed
-from ..live.market_clock import MarketClock, SessionTimes
-from ..live.market_view import MarketViewBuilder, ViewThresholds
-from ..live.signals.registry import build_guard_rules, build_signal_rules
+from ..live.services import build_backtester
 from ..models import IST
-from .option_model import OptionModel
 from .report import format_report
-from .simulator import Backtester
 
 DEFAULT_SYMBOLS = ["NIFTY", "BANKNIFTY", "FINNIFTY", "RELIANCE", "HDFCBANK", "ICICIBANK", "INFY", "TCS", "SBIN"]
 MAX_DAYS = 59  # Yahoo keeps 60 days of 5-minute prices
@@ -34,23 +28,7 @@ def add_backtest_parser(subparsers) -> None:
 
 def run_backtest_command(args) -> int:
     cfg = load_config(args.config)
-    live, holding = cfg.get("live", {}), cfg.get("holding", {})
-    clock = MarketClock(
-        SessionTimes.from_config(holding, live.get("signals", {}).get("opening_range", {}).get("minutes", 15))
-    )
-    exits = ExitLevels.from_config(cfg.get("exits", {}).get("long_option", {}))
-    guards = {k: v for k, v in live.get("guards", {}).items() if k in PRICE_GUARDS}
-    builder = MarketViewBuilder(
-        build_signal_rules(live.get("signals", {})),
-        build_guard_rules(guards),
-        ViewThresholds.from_config(live.get("thresholds")),
-    )
-    policy = ExitPolicy(
-        clock, holding.get("max_days", 2), 1, TrailingStop.from_config(cfg.get("exits", {}).get("trailing_stop", {}))
-    )
-    tester = Backtester(
-        builder, clock, policy, OptionModel(), exits.stop_loss_pct, exits.take_profit_pct, cfg.get("charges", {})
-    )
+    tester = build_backtester(cfg, PRICE_GUARDS)
     days = min(args.days, MAX_DAYS)
     feed, lots = YahooPriceFeed(), _lot_sizes(cfg)
     benchmark = feed.candles(BENCHMARK_UNDERLYING, f"{days + 1}d")

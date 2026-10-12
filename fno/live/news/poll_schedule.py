@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
@@ -24,6 +25,7 @@ log = logging.getLogger(__name__)
 DEFAULT_ACTIVE_FROM = time(8, 45)  # half an hour before the 09:15 open: pre-open news matters
 DEFAULT_ACTIVE_UNTIL = time(15, 45)  # a little after the 15:30 close
 MAX_BACKOFF_SECONDS = 30 * 60
+PRIORITY_MIN_SECONDS = 60  # a prioritised source is still never asked more than once a minute
 LOOKAHEAD_DAYS = 10  # far enough to cross a long weekend plus holidays
 
 
@@ -63,6 +65,7 @@ class SourcePlan:
     used_today: int = 0
     usage_day: date | None = None
     polls: int = field(default=0)
+    last_polled: datetime | None = None
 
     @property
     def name(self) -> str:
@@ -83,6 +86,7 @@ class PollSchedule:
         self.window = window or ActiveWindow()
         self.usage_file = usage_file
         self._last_request: datetime | None = None
+        self._lock = threading.Lock()  # the desk thread may prioritise while the watcher thread schedules
         self._load_usage()
 
     def start(self, now: datetime) -> None:
@@ -93,6 +97,10 @@ class PollSchedule:
     def next_request(self, now: datetime) -> tuple[SourcePlan | None, datetime]:
         """The source to ask next and when (never sooner than the gap since the last request). Outside the window:
         no source, and the time the window opens again."""
+        with self._lock:
+            return self._next_request(now)
+
+    def _next_request(self, now: datetime) -> tuple[SourcePlan | None, datetime]:
         if not self.window.contains(now):
             opens = self.window.next_start(now)
             for plan in self.plans:  # stagger again from the opening, as on a fresh start
@@ -108,13 +116,22 @@ class PollSchedule:
         return plan, max(plan.next_due, earliest, now)
 
     def prioritise(self, source_names: set[str], now: datetime) -> None:
-        """Ask these sources next (a sudden price move suggests news): still one at a time, still within limits."""
-        for plan in self.plans:
-            if plan.name in source_names and plan.next_due is not None and plan.next_due > now:
-                plan.next_due = now
+        """Ask these sources sooner (a sudden price move suggests news), within every limit: never a source that is
+        failing or paused after a refusal, never sooner than PRIORITY_MIN_SECONDS (or its own cache time) after its
+        last request, and the daily allowance still applies."""
+        with self._lock:
+            for plan in self.plans:
+                if plan.name not in source_names or plan.next_due is None or plan.failures or plan.last_polled is None:
+                    continue
+                floor = max(PRIORITY_MIN_SECONDS, plan.source.min_interval_seconds)
+                plan.next_due = min(plan.next_due, max(now, plan.last_polled + timedelta(seconds=floor)))
 
     def record(self, plan: SourcePlan, now: datetime, ok: bool, pause_seconds: float | None = None) -> None:
-        self._last_request = now
+        with self._lock:
+            self._record(plan, now, ok, pause_seconds)
+
+    def _record(self, plan: SourcePlan, now: datetime, ok: bool, pause_seconds: float | None) -> None:
+        self._last_request = plan.last_polled = now
         plan.polls += 1
         self._count_usage(plan, now)
         interval = self.interval(plan, now)
@@ -125,6 +142,7 @@ class PollSchedule:
             interval = min(interval * 2**plan.failures, MAX_BACKOFF_SECONDS)
         if pause_seconds:
             interval = max(interval, pause_seconds)
+            plan.failures = max(plan.failures, 1)  # a refused source is not asked early by prioritise
         plan.next_due = now + timedelta(seconds=interval)
 
     def interval(self, plan: SourcePlan, now: datetime) -> float:

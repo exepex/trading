@@ -92,7 +92,7 @@ def test_move_check_refuses_unrealistic_targets_and_notes_the_ratio():
     assert any("the market expects" in note for note in idea.notes)
     blind = replace(chain, spot=0.0)
     assert MoveCheck().problem(blind, quote.ltp, greeks) is None
-    assert MoveCheck().detail(blind, quote.ltp, greeks).startswith("move check: not measurable")
+    assert MoveCheck().detail(blind, quote.ltp, greeks).startswith("move check: cannot be judged")
 
 
 def test_participant_file_parsing_and_fii_shift():

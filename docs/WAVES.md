@@ -63,10 +63,10 @@ the session exist. Calibrated on 45 real sessions: whole-day efficiency (median 
 **W2.2 Move needed vs move likely.** Before entry, the underlying move needed for the option to reach its target
 (delta and gamma, net of time decay over the holding period) must be at most a set share of the move the market
 expects (ATM implied volatility over the holding period). Otherwise the idea is refused; accepted ideas carry the
-numbers in their notes (or "not measurable" when there is no ATM IV). The hold is the 2-trading-day maximum in
-calendar days (x7/5 = 2.8), since theta and IV are per calendar day. Calibrated on real chains (12 Oct): near-the-
-money 2-week options need about 1.0-1.5x the expected move to make +60%, so the limit is 1.5x; the +60% target
-itself is to be reviewed with paper data. `python -m fno calibrate` re-measures both wave-2 calibrations.
+numbers in their notes (or "cannot be judged" when there is no ATM IV, spot or option sensitivity). The hold is the 2-trading-day maximum in
+calendar days (x7/5 = 2.8), since theta and IV are per calendar day. Calibrated on real chains (12 Oct, `python -m fno calibrate`): near-the-
+money 2-week calls need 0.83-1.51x and puts 0.67-1.21x the expected move to make +60%, so the 1.5x limit refuses
+only the dearest edge (1 of 42 contracts); the +60% target itself is to be reviewed with paper data. `python -m fno calibrate` re-measures both wave-2 calibrations.
 **W2.3 Big-investor positioning.** A signal for the indices from NSE's daily participant-wise open interest (last 10
 sessions, read each morning): the change in foreign investors' index futures long share against its recent average
 and the change in the tilt of their index options book. Change, not level: FIIs hold structurally short index
@@ -79,11 +79,13 @@ held are read every 20 seconds (Groww `get_ltp`, up to 50 per call; no free sour
 of 0.4% (index) or 1.5% (stock) within two minutes is a shock (once per 10 minutes per name): it is recorded
 (`price_shock`), open trades are re-checked in the same tick (stop, target, trailing, news exit: exit only), and the
 exchange-filing and Marketaux news sources are asked next. Without Groww the detector is off (the 2-minute review
-still protects trades).
+still protects trades). The 20 s cadence holds between scans; while a scan runs (tens of seconds) the next price
+check waits for it, since the desk loop is one thread.
 **W3.2 Backtest harness.** `python -m fno backtest [symbols] [--days N]` replays the desk's own rules, guards that
 can be judged from prices (sideways day), exits (stop, target, trailing, holding days) and charges on up to 59 days
 of 5-minute prices (Yahoo's limit), one modelled option per underlying at a time (Black-Scholes, volatility from
 the underlying's own recent moves x 1.1, ~10 days to expiry), and grades every rule's vote against the next 30
 minutes. Clearly labelled as an approximation; report saved to `reports/backtest-<date>.md`.
-First run (12 Oct, 30 days, 9 names): 243 trades, net -Rs 1.86 lakh at one lot each; rule hit rates 49-54%:
-price-action rules alone are no edge.
+Run of 12 Oct (30 days, 9 names, with the desk's re-entry and post-loss pauses): 219 trades, net -Rs 1.95 lakh
+at one lot each; rule hit rates 49-54%: price-action rules alone show no edge. (The first run, without the pauses,
+gave 243 trades and -Rs 1.86 lakh; superseded.)
