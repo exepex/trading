@@ -15,3 +15,4 @@ Written only by the independent judge session (`docs/JUDGE.md`). One file per ve
 | 7 | A5 monthly-expiry identity | FAIL (1 should fix: quote recorder still uses the last-of-month rule, picks the 30 Apr 2025 weekly; 2 minor) | `judge_7_a5_monthly_expiry.md` |
 | 8 | A6 events calendar | FAIL (1 should fix: rescheduled meetings unknown before the reschedule; criteria 4 and 5 pending F3 and the challenge run; 3 minor) | `judge_8_a6_events_calendar.md` |
 | 9 | X1 Azure PostgreSQL, round 3 (omenix-dashboard 0fa812f) | FAIL for owner action only (judge 5 findings A, B accepted; builder side clean; 2 minor) | `judge_9_x1_azure_postgres_rejudge2.md` |
+| 10 | C1 three ledgers, round 2 (re-judge) | PASS (judge 6 findings all accepted; 1 new minor) | `judge_10_c1_three_ledgers_rejudge.md` |
