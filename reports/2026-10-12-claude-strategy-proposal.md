@@ -1,6 +1,8 @@
 # Claude's proposal: how I would rebuild the core after the failed backtest
 
-Written 12 Oct 2026, after `reports/2026-10-12-backtest-analysis.md`. I built the first version and made the mistakes
+Written 12 Oct 2026, after `reports/2026-10-12-backtest-analysis.md`. **Update after ChatGPT review 1:** several claims here are
+downgraded or corrected (SEBI figures, the sellers' edge, sizing); see
+`reviews/claude/response_1_2026-10-12-backtest-analysis-and-strategy-proposal.md`. I built the first version and made the mistakes
 described there. This is how I would do it differently if I were running a large derivatives book, read with a
 statistician's eye. Everything below is a set of **hypotheses to test**, not trades to place. Facts about SEBI
 studies and market rules come from `reports/Retail FnO losses and safeguards.md` (sourced); my own reasoning is marked

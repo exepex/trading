@@ -10,6 +10,23 @@ report, (2) answer sections 9 and 10 **on your own first**, then (3) read Claude
 asking you to check the analysis: we want your own solution, so the three of us can agree on a strong core before
 anything more is built.
 
+## Corrections after ChatGPT review 1 (12 Oct 2026)
+
+ChatGPT's review (`reviews/chatgpt/review_1_...md`) found three measurement errors. Claude re-checked each on the same
+data; all three were right and are corrected below. Claude's reply: `reviews/claude/response_1_...md`.
+
+| Item | First version | Corrected |
+|---|---|---|
+| Control tests | Replayed 205-211 completed trades, dropping positions still open at the end | All **219** entries in every control; positions still open are valued at the last price |
+| Rules (all 219 entries) | -Rs 1,90,017 (211 closed) | **-Rs 1,88,404** |
+| Coin toss, 30 runs | median -Rs 65,268 | median **-Rs 93,383**; 10th-90th percentile -Rs 1,91,526 to -Rs 1,219 |
+| Overnight gap cost | Rs 1,39,991 "lost to gaps" | Of the 27 stops on the first bar: **Rs 85,457** from the overnight gap itself, Rs 39,766 in the first 5 minutes after the open (the rest was lost before the previous close) |
+| "270 sessions" | read as 270 market days | 9 names x 30 days; the names share the same market days |
+
+The main conclusion stands (no edge; the falling market decided the result), but one claim is weaker: the rules sit
+at about the 10th percentile of coin tosses, so "worse than a coin toss" is **not statistically clear**. They were no
+better than one.
+
 ## 1. Background
 
 - **Who:** a retail investor in India (broker: Groww) building a research and paper-trading tool for NSE futures and
@@ -73,8 +90,9 @@ anything more is built.
 
 ### 3.2 Overnight gaps
 
-- 27 stop losses happened at the open, after an overnight price gap: they averaged **-47.1%** (not -30%) and cost
-  **-Rs 1,39,991**, 74% of the total loss.
+- 27 stop losses happened on the first bar after an overnight hold: they averaged **-47.1%** (not -30%). Of their
+  loss, **Rs 85,457** came from the overnight gap itself (previous close to open) and Rs 39,766 from the first 5
+  minutes of trading (corrected; the first version put all Rs 1,39,991 down to the gap).
 - The other 80 stop losses averaged -32.9%.
 
 ### 3.3 Direction and market trend
@@ -141,16 +159,17 @@ the true sample is much smaller than the counts suggest, and a 30-minute lean do
 
 ## 4. Control tests (same entry moments, same exits, same charges; only the direction changes)
 
-These replay each of the 211 trades from the exact same moment with the same option model and exits. The first line
-checks the replay: it reproduces the real result exactly.
+These replay all 219 entries from the exact same moment with the same option model and exits (corrected: the first
+version dropped positions still open at the end). Positions still open are valued at the last price, minus the cost
+of selling.
 
 | Direction chosen by | Net | Win rate |
 |---|---|---|
-| The rules (check: identical to the real run) | -Rs 1,90,017 | 39% |
-| A coin toss (30 runs) | median **-Rs 65,268** (best +Rs 55,185, worst -Rs 2,08,653) | about 50% |
-| The opposite of the rules | +Rs 45,352 | 50% |
-| Always bullish | -Rs 2,94,258 | 32% |
-| Always bearish | +Rs 1,49,594 | 57% |
+| The rules | -Rs 1,88,404 | 39% |
+| A coin toss (30 runs) | median **-Rs 93,383** (10th-90th percentile -Rs 1,91,526 to -Rs 1,219; best +Rs 61,580, worst -Rs 2,39,389) | about 50% |
+| The opposite of the rules | +Rs 38,444 | 50% |
+| Always bullish | -Rs 3,05,020 | 32% |
+| Always bearish | +Rs 1,55,059 | 58% |
 
 **Diagnostic (not a proposal):** the same entries and directions, but every trade closed by 15:15 the same day (stop
 and target kept): -Rs 30,116, win rate 47%. This only shows how much the overnight gaps cost in this period; choosing
@@ -158,14 +177,15 @@ a rule because it looked good on these same 30 days would be overfitting.
 
 What the controls say:
 
-1. **The rules did worse than a coin toss.** A random direction lost about Rs 65,000 at the median; the rules lost
-   Rs 1,90,000.
-2. **The structure loses even with a coin toss.** With random direction the trades lose about Rs 300 each on average:
+1. **The rules were no better than a coin toss.** A random direction lost about Rs 93,000 at the median; the rules
+   lost Rs 1,88,000, about the 10th percentile of coin tosses: bad, but not clearly worse than chance.
+2. **The structure loses even with a coin toss.** With random direction the trades lose about Rs 430 each on average:
    the cost of the trade (time decay of the option, charges) plus exits that cut losses later than planned
    (overnight gaps) outweigh the payoff.
 3. **The market's direction decided the outcome.** In a falling market, always betting down made +Rs 1.5 lakh and
    always betting up lost Rs 2.9 lakh. The rules leaned the wrong way (they bought calls on rebounds in a downtrend).
-4. **Overnight gaps were the largest single cost:** Rs 1.4 lakh of the Rs 1.9 lakh loss.
+4. **Overnight gaps were a large cost:** about Rs 85,000 of the loss came from prices jumping overnight past the stop
+   (corrected from Rs 1.4 lakh).
 
 ## 5. Option costs in numbers
 

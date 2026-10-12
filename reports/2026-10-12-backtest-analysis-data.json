@@ -251,5 +251,24 @@
   "trades": 209,
   "net": -30116,
   "win_rate": 47
+ },
+ "corrections_after_review_1": {
+  "all_entries": 219,
+  "rules_with_open_marked": -188404,
+  "opposite": 38444,
+  "always_bullish": -305020,
+  "always_bearish": 155059,
+  "coin_toss_30_runs": {
+   "median": -93383,
+   "p10": -191526,
+   "p90": -1219,
+   "best": 61580,
+   "worst": -239389
+  },
+  "first_bar_stops": {
+   "count": 27,
+   "overnight_gap_prev_close_to_open": -85457,
+   "open_to_0920": -39766
+  }
  }
 }
