@@ -257,7 +257,8 @@ Three NIFTY trades are close to one bet, so the account is checked as a whole be
 
 ## 12. Three paper strategies: pure rules, hybrid, fully AI (proposed v2.2, revised after review 18)
 
-Status: **proposed by the owner on 12 Oct 2026; revised after ChatGPT review 18** (answer:
+Status: **proposed by the owner on 12 Oct 2026; revised after ChatGPT review 18; agreed by both AIs (review 19)**, awaiting
+owner approval (answer:
 `reviews/claude/response_23_2026-10-12-review-18.md`); not part of the approved v2.1 until agreed and approved. Owner's
 aim: "we do not know whether AI or rules are smarter ... prove both, find where each is lacking, and get the best of
 both", working as a team of roles. This section supersedes the D1/D2 recommendations in
@@ -393,7 +394,7 @@ need three times the bookkeeping and a monthly AI budget.
 | 8.1 Portfolio risk | Agreed (covered by section 8) | Agreed as research framework; proposed thresholds require calibration (review 11) | Approved 12 Oct 2026 |
 | 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
 | 10 Build order | Agreed | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
-| 12 Three paper strategies (proposed v2.2) | Agreed after review 18 revisions (response 23) | Changes required (review 18); re-review pending | |
+| 12 Three paper strategies (proposed v2.2) | Agreed after review 18 revisions (response 23) | Agreed (review 19) | Awaiting owner approval |
 
 Both AIs agreed every section (ChatGPT review 11, Claude response 12). Review 11's clarifications (exact binomial
 figures, experiment-specific significance test, fuller stress scenarios) are folded into 3.5 and 8.1 without changing
