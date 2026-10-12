@@ -27,6 +27,7 @@ pip install -r requirements.txt                  # add requirements-groww.txt fo
 python -m fno chain NIFTY                         # option chain around the money (root `provider` in config.yaml)
 python -m fno quotes record                       # 3 pm quote recorder (story A4); run by a weekday routine
 python -m fno quotes report                       # half-spread by distance from the money, from recorded days
+python -m fno account show book1_rules          # a book's paper account: cash, closed equity, open legs (E1)
 python -m fno groww-check                         # check the Groww data connection (prints no secrets)
 python -m fno drive-check                         # check the Google Drive archive can be read (prints no secrets)
 python -m fno data-coverage [--from --to]          # raw NSE files missing or damaged in Drive, against the NSE calendar (A1)
@@ -64,11 +65,13 @@ fno/
   research_engine/   trial ledger and its guard (story B4)
   record_scan/       public-record safety scan: patterns, scanner, which files (story O5)
   accounting/        research ledgers
+  books/             the three books' Rs 5 lakh paper accounts and their single-writer lock (story E1)
   analytics.py       Black-Scholes, Greeks, implied volatility, chain metrics
   costs.py           Groww and statutory charges
   config.py          settings (`config.yaml`, allowed keys only)
 tools/               NSE raw-file downloader, import-graph check, public-record scan
 research/            studies, ledger, recorded data
+journal/<book>/account/  each book's paper account: cash_ledger.csv (append-only), positions.json, equity_history.csv
 tests/               unit and integration tests
 ```
 

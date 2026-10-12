@@ -49,7 +49,8 @@ through `with AccountLock(book):`.
 
 **Judge verifies:** starts two writers on one book and two on different books; reads the results.
 
-**Depends:** C1 · **Size:** M · **Status:** later
+**Depends:** C1 · **Size:** M · **Status:** built 13 Oct 2026 (`fno/books/`, `journal/<book>/account/`; claims in
+`reviews/claude/response_37_2026-10-13-e1-paper-accounts.md`; awaiting judge)
 
 ---
 
