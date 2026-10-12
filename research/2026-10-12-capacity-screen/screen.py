@@ -37,6 +37,11 @@ PADS = (0.0, 0.5, 1.0, 2.0)  # rupees per leg per executed order, one way and ad
 PROFILES = {"2L_1pct": 2000.0, "2L_2pct": 4000.0, "5L_1pct": 5000.0}
 REFERENCE = "2L_1pct"
 DIRECTIONS = {"bull_call": ("CE", 1), "bear_put": ("PE", -1)}
+SCREEN_FIELDS = [
+    "date", "direction", "width", "pad", "status", "expiry", "days_to_expiry", "spot", "long_strike", "short_strike",
+    "spot_minus_long_strike", "historical_lot", "long_close", "short_close", "debit_points", "admission",
+    *(f"fits_{name}" for name in PROFILES),
+]  # fmt: skip
 
 
 def nearest_strike(spot: float, strikes: list[float]) -> float:
@@ -143,9 +148,8 @@ def main() -> None:
             results.append({"date": entry["date"], "status": "data_unavailable"})
             continue
         results += screen_day(date.fromisoformat(entry["date"]), rows, monthly[entry["date"]], charges)
-    fields = sorted({k for r in results for k in r}, key=lambda k: list(results[0]).index(k) if k in results[0] else 99)
     with open(HERE / "screen.csv", "w", newline="") as f:
-        writer = csv.DictWriter(f, fields)
+        writer = csv.DictWriter(f, SCREEN_FIELDS)  # a fixed order, so every run writes identical bytes
         writer.writeheader()
         writer.writerows(results)
     write_summary(manifest, results)

@@ -77,3 +77,9 @@ def test_no_monthly_in_the_window_means_no_trade_even_if_a_weekly_is_priced():
     weekly_rows = [row(22350, "CE", 400, expiry="2026-11-17"), row(22400, "CE", 372, expiry="2026-11-17")]
     out = screen.screen_day(date(2026, 10, 12), weekly_rows, {date(2026, 12, 29)}, NO_CHARGES)
     assert {r["status"] for r in out} == {"no_eligible_expiry"}
+
+
+def test_every_column_has_a_fixed_place_so_runs_write_identical_files():
+    rows = [row(22350, "CE", 400), row(22400, "CE", 372), row(22350, "PE", 300), row(22300, "PE", 280)]
+    out = screen.screen_day(date(2026, 10, 12), rows, MONTHLY, NO_CHARGES)
+    assert {k for r in out for k in r} <= set(screen.SCREEN_FIELDS)
