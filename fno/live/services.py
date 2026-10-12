@@ -65,6 +65,7 @@ RESULTS_TO_DUCKDB = "duckdb"
 DEFAULT_NEWS_INTERVAL_SECONDS = 120
 NEWS_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"  # honest, and accepted by the feeds
 GROWW_PROVIDER = "groww"
+CALENDAR_DAYS_PER_TRADING_DAY = 7 / 5
 NEWS_USAGE_FILE = "news_usage.json"  # requests today per capped source, kept across restarts
 SOURCE_CONFIG_KEYS = {"NSE filings": "nse_announcements", "BSE filings": "bse_announcements"}
 
@@ -139,7 +140,7 @@ def build_live_services(
             chain_source,
             MoveCheck(
                 live.get("contract", {}).get("max_needed_to_likely_move", 1.5),
-                holding.get("max_days", 2),
+                holding.get("max_days", 2) * CALENDAR_DAYS_PER_TRADING_DAY,  # theta and IV are per calendar day
                 cfg.get("exits", {}).get("long_option", {}).get("take_profit_pct_of_premium", 60.0),
             ),
         ),

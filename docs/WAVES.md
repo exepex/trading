@@ -63,12 +63,14 @@ the session exist. Calibrated on 45 real sessions: whole-day efficiency (median 
 **W2.2 Move needed vs move likely.** Before entry, the underlying move needed for the option to reach its target
 (delta and gamma, net of time decay over the holding period) must be at most a set share of the move the market
 expects (ATM implied volatility over the holding period). Otherwise the idea is refused; accepted ideas carry the
-numbers in their notes. Calibrated on real chains (12 Oct): near-the-money 2-week options need 1.2-1.5x the
-expected 2-day move to make +60%, so the limit is 1.5x; the +60% target itself is to be reviewed with paper data.
+numbers in their notes (or "not measurable" when there is no ATM IV). The hold is the 2-trading-day maximum in
+calendar days (x7/5 = 2.8), since theta and IV are per calendar day. Calibrated on real chains (12 Oct): near-the-
+money 2-week options need about 1.0-1.5x the expected move to make +60%, so the limit is 1.5x; the +60% target
+itself is to be reviewed with paper data. `python -m fno calibrate` re-measures both wave-2 calibrations.
 **W2.3 Big-investor positioning.** A signal for the indices from NSE's daily participant-wise open interest (last 10
 sessions, read each morning): the change in foreign investors' index futures long share against its recent average
 and the change in the tilt of their index options book. Change, not level: FIIs hold structurally short index
-futures (about 10% long in Oct 2026).
+futures (about 10% long in Oct 2026). Abstains when the latest file is more than 5 days old.
 
 ## Wave 3: speed and evidence
 

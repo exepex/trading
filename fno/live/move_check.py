@@ -13,6 +13,7 @@ from ..models import OptionChain
 PERCENT = 100.0
 DAYS_PER_YEAR = 365.0
 PROBLEM = "needs more than {limit:g}x the move the market expects"
+NOT_MEASURABLE = "move check: not measurable (no ATM implied volatility or spot); not applied"
 DETAIL = "needs a {needed:,.0f}-point move, {ratio:.2f}x the {likely:,.0f} points the market expects in {days:g} days"
 
 
@@ -29,7 +30,7 @@ def move_needed(gain: float, greeks: Greeks) -> float | None:
 @dataclass(frozen=True)
 class MoveCheck:
     max_needed_to_likely: float = 1.5
-    hold_days: float = 2.0  # the longest the desk holds a trade
+    hold_days: float = 2.8  # calendar days: the 2-trading-day hold spans a weekend about every other time
     take_profit_pct: float = 60.0
     risk_free_rate: float = 0.065
 
@@ -49,9 +50,9 @@ class MoveCheck:
             return PROBLEM.format(limit=self.max_needed_to_likely)
         return None
 
-    def detail(self, chain: OptionChain, price: float, greeks: Greeks) -> str | None:
+    def detail(self, chain: OptionChain, price: float, greeks: Greeks) -> str:
         measured = self.measure(chain, price, greeks)
         if measured is None:
-            return None
+            return NOT_MEASURABLE
         needed, likely = measured
         return DETAIL.format(needed=needed, ratio=needed / likely, likely=likely, days=self.hold_days)

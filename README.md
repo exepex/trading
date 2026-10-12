@@ -30,13 +30,14 @@ python -m fno live status           # open paper trades, today's net P&L, kill s
 python -m fno live kill "reason"    # close all paper trades and block new ones
 python -m fno live trade-stats      # results by entry time, days to expiry and exit reason (--shadow: shadow book)
 python -m fno backtest              # replay the rules on 59 days of 5-minute prices (modelled options; an approximation)
+python -m fno calibrate             # re-measure the sideways-day and move-check calibration
 python -m fno live resume
 ```
 
 Every 5 minutes during the session (free data sources; 3 minutes once the Groww feed is in) the desk:
 1. snapshots all ~200 F&O underlyings (price move, futures open-interest change, F&O ban list);
 2. shortlists the 12 most active liquid names (NIFTY, BANKNIFTY and FINNIFTY always included);
-3. scores each with 18 signal rules (weights in `config.yaml` `live.signals`):
+3. scores each with 19 signal rules (weights in `config.yaml` `live.signals`):
    - price action today: opening-range breakout, VWAP, 5-minute EMA trend, strength vs NIFTY;
    - today vs earlier sessions: previous-day high/low breakout, volume vs normal for the time of day;
    - derivatives positioning: futures OI build-up, fresh put vs call writing near the money;
@@ -44,10 +45,13 @@ Every 5 minutes during the session (free data sources; 3 minutes once the Groww 
    - the stock tool's research: verified news sentiment, model probability, fresh exchange filings,
      block/bulk deals, foreign investor flows;
    - fast news: each story's type x credibility x relevance x freshness x direction (`live.news.impact`);
-4. applies guards: F&O ban list, results within 2 days (IV crush), market stress or high-impact geopolitical
-   news, options priced far above the stock's realised volatility, and the 15 minutes after credible big news
-   whose direction is unclear;
-5. picks one liquid option near 0.55 delta (calls when bullish, puts when bearish), sizes it with
+   - foreign investors' index futures and options positioning vs their recent average (NSE participant OI);
+4. applies guards: F&O ban list, results within 3 days (IV crush), market stress or high-impact geopolitical
+   news, options priced far above the stock's realised volatility or dear against their own history (IV rank),
+   a sideways last hour (5-minute path efficiency below 0.30), and the 15 minutes after credible big news whose
+   direction is unclear;
+5. picks one liquid option near 0.55 delta (calls when bullish, puts when bearish) whose +60% target needs at most
+   1.5x the move the market expects over the hold and whose real bid/ask spread is acceptable, sizes it with
    `position_rules`, and opens a paper trade if the portfolio gate allows it (5 open max, Rs 70,000 cap,
    daily loss limit, profit lock, no entries after 14:45);
 6. every 2 minutes re-prices open trades and exits on stop (-30%), target (+60%), a trailing stop (after +30%,
@@ -78,11 +82,16 @@ never stored anywhere.
 
 ```
 fno/live/
-  feeds/       nse_feed (lots, ban list, holidays, OI moves) · price_feed (Yahoo; Groww later)
+  feeds/       nse_feed (lots, ban list, holidays, OI moves) · participant_oi (FII positioning)
+               price_feed (Yahoo) · live_prices (Groww, sudden-move detector)
   research/    research_source (interface) · repo_source + repo_sync (GitHub files, default)
                motherduck_source (optional) · research_context (snapshot used by the rules)
-  signals/     base · price_action · positioning · research_signals · guards · registry
-  market_view  shortlist  contract_picker  risk_gate  exit_policy  market_clock  kill_switch
+  signals/     base · price_action · positioning · research_signals · news_signals · participant_signals
+               day_type (sideways guard) · guards · registry
+  news/        sources (RSS, NSE/BSE filings, APIs) · poll_schedule · story_book · tagging · classifier · impact
+               watcher (fast news, see docs/NEWS_FEED_PLAN.md)
+  market_view  shortlist  contract_picker  move_check  risk_gate  exit_policy  news_exit  shock_detector
+  market_clock  kill_switch
   paper_desk   alerts  results_store (JSONL, default) + duckdb_results_store (optional)
   universe  scanner  runner  services (wiring)  cli
 ```

@@ -65,6 +65,9 @@ class FakeNseFeed:
     def industries(self):
         return {}
 
+    def archive_text_or_none(self, url):
+        return None
+
 
 class CapturingAlerts:
     def __init__(self):

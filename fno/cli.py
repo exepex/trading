@@ -8,6 +8,7 @@ from datetime import date
 from pathlib import Path
 
 from . import journal
+from .backtest.calibration import add_calibrate_parser
 from .backtest.cli import add_backtest_parser
 from .config import ROOT, load_config
 from .deploy.cli import add_deploy_parser
@@ -172,6 +173,7 @@ def main(argv: list[str] | None = None) -> int:
 
     add_live_parser(sub)
     add_backtest_parser(sub)
+    add_calibrate_parser(sub)
     add_deploy_parser(sub)
 
     args = p.parse_args(argv)

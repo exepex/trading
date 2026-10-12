@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 
 from fno.analytics import Greeks, bs_greeks
@@ -89,6 +90,9 @@ def test_move_check_refuses_unrealistic_targets_and_notes_the_ratio():
     )
     idea, _ = relaxed.pick(view, chain, SESSION_DAY)
     assert any("the market expects" in note for note in idea.notes)
+    blind = replace(chain, spot=0.0)
+    assert MoveCheck().problem(blind, quote.ltp, greeks) is None
+    assert MoveCheck().detail(blind, quote.ltp, greeks).startswith("move check: not measurable")
 
 
 def test_participant_file_parsing_and_fii_shift():
@@ -115,6 +119,44 @@ def test_fii_signal_votes_on_change_for_indices_only():
     )
     signal = FiiPositioningSignal(0.6)
     vote = signal.evaluate(inputs(symbol="NIFTY", fii=FiiPositioning(days)))
-    assert vote.score > 0.9 and "added" in vote.reason
+    assert vote.score > 0.9 and "+2.0% pts" in vote.reason and "03 Oct" in vote.reason
     assert signal.evaluate(inputs(symbol="RELIANCE", fii=FiiPositioning(days))) is None
     assert signal.evaluate(inputs(symbol="NIFTY", fii=FiiPositioning(days[:2]))) is None
+    stale = START.replace(day=20)  # 17 days after the latest file
+    assert signal.evaluate(inputs(symbol="NIFTY", fii=FiiPositioning(days), now=stale)) is None
+    fresh = START.replace(day=6)
+    assert signal.evaluate(inputs(symbol="NIFTY", fii=FiiPositioning(days), now=fresh)) is not None
+
+
+def test_participant_files_missing_or_failing():
+    import pytest
+    import requests
+
+    from fno.live.feeds.nse_feed import NseLiveFeed
+    from fno.live.universe import ReferenceData
+
+    from .fakes import FakeNseFeed
+
+    class Answer:
+        def __init__(self, status):
+            self.status_code, self.text = status, "csv"
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.HTTPError(str(self.status_code))
+
+    class Client:
+        def __init__(self, status):
+            self.session = type("S", (), {"get": lambda _self, url, timeout: Answer(status)})()
+
+    assert NseLiveFeed(Client(404)).archive_text_or_none("u") is None
+    assert NseLiveFeed(Client(200)).archive_text_or_none("u") == "csv"
+    with pytest.raises(requests.HTTPError):
+        NseLiveFeed(Client(500)).archive_text_or_none("u")
+
+    class FailingFii(FakeNseFeed):
+        def archive_text_or_none(self, url):
+            raise requests.ConnectionError("NSE down")
+
+    reference = ReferenceData.load(FailingFii({}, {"NIFTY": 65}, banned={"XYZ"}), date(2026, 10, 12))
+    assert reference.fii is None and reference.lot_sizes == {"NIFTY": 65} and reference.banned == {"XYZ"}
