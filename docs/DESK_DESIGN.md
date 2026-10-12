@@ -185,13 +185,13 @@ model each day (KISS); a separate forecasting model is added only if it beats th
 | Agents disagree | Recorded; the playbook rule decides; the red team's objection is shown to the judge |
 | Judge or AI unavailable | No new trades that day; risk-reducing exits still run (code) |
 | Risk limits hit | Code closes or blocks; no discussion |
-| Drawdown brake hit | Definition to be decided by the owner (equity basis, threshold, block entries or close, who restarts) |
+| Drawdown brake hit | Owner decision: Rs 30,000 (6%) below the account's highest point; no new trades until the owner restarts in writing. New desk: open protected trades keep their own exit rules (decided in code). Current live desk: its kill switch closes everything |
 | A protective leg missing | Not a protected trade: close it |
 | Paper results outside the expected range | Per the strategy's evaluation plan; a paused strategy's open trades are still managed |
 
 Owner limits, stated precisely: Rs 10,000 maximum loss per trade and 3 open trades cap the money at risk **at one
 time** (Rs 30,000, 6%). They do not cap a month's loss: six full losses in a month are Rs 60,000 (12%). That is what
-the drawdown brake is for.
+the drawdown brake (Rs 30,000) is for.
 
 ## 8. Cost and effort: net profit includes the desk's own running cost
 

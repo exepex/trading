@@ -267,7 +267,7 @@ profiles:
       profit_lock: 15000
       weekly_max_loss: 30000
     performance_kill:
-      max_drawdown: 50000
+      max_drawdown: 30000          # owner decision 12 Oct 2026: Rs 30,000 (6%) below the peak stops the desk
   live: {}                         # the conservative values above, unchanged
 
 slack:
