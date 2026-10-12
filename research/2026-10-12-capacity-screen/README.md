@@ -13,34 +13,37 @@ python -m pytest -q tests/research                    # the screen's rules as fi
 
 ## Data
 
-- NSE daily F&O files in the UDiFF format, `BhavCopy_NSE_FO_0_0_0_<yyyymmdd>_F_0000.csv.zip`, from 1 Jan 2024 to
-  9 Oct 2026. NSE serves this format for every date from January 2024 (checked: 2 Jan 2024 is available, 2023 is
-  not), so no legacy-format file is used and no underlying-price or lot-size join is needed.
-- `data/manifest.csv`: every weekday asked for, its URL, HTTP status (404 = no file: market closed) and the SHA-256
-  of the ZIP bytes.
-- `data/nifty_options.csv.gz`: only NIFTY option rows 20-55 calendar days to expiry with strikes within 1,500
-  points of the underlying (enough for the screen; the full files are not stored).
-- Fields kept: close, previous close, settlement price, underlying price, volume, number of trades, open interest,
-  historical lot size. **No bid/ask** in these files.
+- NSE daily F&O files in the UDiFF format, `BhavCopy_NSE_FO_0_0_0_<yyyymmdd>_F_0000.csv.zip`, for every calendar
+  day from 1 Jan 2024 to 9 Oct 2026 (weekends included: special sessions exist). NSE serves this format for every
+  date from January 2024, so no legacy-format file or join is needed.
+- `data/manifest.csv`: every day asked, its URL, HTTP status (200 = a file; 404 = no file at that URL, which is file
+  availability, not a certified exchange calendar) and the SHA-256 of the ZIP bytes.
+- `data/nifty_expiries.csv.gz`: for every day with a file, every NIFTY option expiry listed that day and whether it
+  is the monthly one, decided only from that day's complete list (`expiries.py`). The screen takes monthly identity
+  from here, never from the filtered prices.
+- `data/nifty_options.csv.gz`: NIFTY option rows 20-55 calendar days to expiry with strikes within 1,500 points of
+  the underlying (close, previous close, settlement, underlying, volume, trades, open interest, historical lot).
+  **No bid/ask** in these files.
+- The `.gz` files and the manifest are the master copies and always describe the same days; `fetch.py` resumes from
+  them, saves every 50 days, never saves when nothing new arrived, and stops without writing if they disagree.
 
-## Download result (12 Oct 2026)
+## Download result (12 Oct 2026, rebuilt after ChatGPT review 5)
 
-725 weekdays asked: 684 files, 41 with no file (all NSE trading holidays, e.g. 26 Jan, Holi, Good Friday, 15 Aug,
-20 May 2024 election, 25 Dec); every file had NIFTY rows. One dropped connection during the run; retried.
+1,013 calendar days asked: 689 files, 324 with no file. The 684 weekday files of the first download are
+byte-identical (same SHA-256); the 5 new files are weekend sessions: Sat 20 Jan 2024, Sat 2 Mar 2024, Sat 18 May 2024,
+Sat 1 Feb 2025 (Budget), Sun 1 Feb 2026 (Budget).
 
 | File | sha256 |
 |---|---|
-| `data/nifty_options.csv.gz` | `815f9050d0a0bf6f1151b68ea9ee8a7f7203dd8a235c90819651802b72a89726` |
-| `data/manifest.csv` | `89b31f5d34ee2b0b7caa4f4defd4ad8d14644212ce5a2e84a0242bdabe8ed602` |
-
-The data was downloaded by the first version of `fetch.py` (direct NSE requests); the current version gets the same
-files through `fno/storage` and keeps the same extract and manifest format.
+| `data/manifest.csv` | `3f53e16b3eb01d7ebcaeaf89dbc9c66aeccf08ddd07e7ae259e302a2ddf14f00` |
+| `data/nifty_expiries.csv.gz` | `267367dfd314cd78ac24a653dc8f7cdd54bfeaae1307633cbf5cb63687864a76` |
+| `data/nifty_options.csv.gz` | `56e38fd3a093ef4651657d59bd87606b71ef6a0f1b9226e1499152c7c1050f56` |
 
 ## Rules (frozen before the run)
 
 | Rule | Value |
 |---|---|
-| Expiry | The month's last listed expiry, 30-45 calendar days away; none in range = `no_eligible_expiry` (never forced) |
+| Expiry | The monthly expiry (the month's last expiry in **that day's complete list**), 30-45 calendar days away; none in range = `no_eligible_expiry` (never a weekly substitute, never forced) |
 | Strike | Nearest listed strike to the underlying close; a tie goes to the lower strike |
 | Spreads | Bull call: buy that strike, sell the strike `width` above. Bear put: buy that strike, sell `width` below. Widths 50 / 100 / 200 |
 | Price | The day's closing price of each leg (`ClsPric`); settlement price kept but not used as a fill |
