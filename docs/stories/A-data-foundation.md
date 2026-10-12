@@ -300,15 +300,15 @@ checks types, dates, sources and that `announced_on` is before `date` for schedu
 2. The file includes 1 Feb 2020 and 1 Feb 2025 (Saturday budgets), 1 Feb 2026 (Sunday budget), 23 May 2019 and 4 Jun 2024
    (election results), and every RBI policy decision day 2019-2026, with unscheduled ones marked "no".
 3. The validator rejects a row with an unknown type, a bad date, a missing source or a missing announcement source.
-4. Unscheduled events (e.g. an unscheduled RBI decision) are kept with `scheduled = no` and can never be used as a
-   known-ahead feature; a test proves F3 ignores them.
-5. The file is committed before experiment 1's challenge run (its commit precedes the challenge results commit).
+4. Unscheduled events (e.g. an unscheduled RBI decision) are kept with `scheduled = no` and `known_on` never returns
+   them ahead. (The test that F3 ignores them moved to B1 criterion 6 on 13 Oct 2026: F3 does not exist yet.)
+5. (Moved to B5 criterion 8 on 13 Oct 2026: the commit order can only be checked at the challenge run.)
 
 **Test plan:** validator unit tests; a count check (RBI decisions per year as published by the RBI).
 
 **Judge verifies:** samples 10 rows and opens their source links; confirms the commit order.
 
-**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026; judge 8 fixes built 13 Oct 2026 (response 42); awaiting re-judge
+**Depends:** - · **Size:** S · **Status:** done (judge 11: builder side clean; criteria 4 and 5 moved to B1 and B5, `reviews/judge/judge_11_a6_events_calendar_rejudge.md`)
 
 **Implementation notes (facts found while building):** 61 events (49 RBI policy decisions incl. 3 off-cycle,
 10 Budgets incl. 2 interim, 2 election results), every date from a page actually opened; sources and every gap in
