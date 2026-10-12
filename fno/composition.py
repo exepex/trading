@@ -3,6 +3,12 @@ and sources are wired in `fno/storage/wiring.py`). Swapping a provider or store 
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from pathlib import Path
+
+from .books.account import AccountWriter, PaperAccount
+from .books.lock import DEFAULT_LEASE_SECONDS, AccountLock
+from .config import ROOT
 from .providers import AUTO_PROVIDER, get_provider
 from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.recorder import QuoteSnapshotRecorder
@@ -15,3 +21,16 @@ def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     file for expiry dates the provider cannot list."""
     provider = get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg)
     return QuoteSnapshotRecorder(provider, build_quote_store(), fallback=NseDailyFileExpiries(build_nse_fo_library()))
+
+
+@contextmanager
+def open_account_writer(book: str, root: Path = ROOT, lease_seconds: float = DEFAULT_LEASE_SECONDS):
+    """The one way to write a book's paper account (story E1): takes the book's single-writer lock without waiting
+    (`AccountBusy` if another writer holds it) and yields the account's writer; the lock is released on exit."""
+    with AccountLock(root, book, lease_seconds) as lock:
+        yield AccountWriter(PaperAccount(root, book), lock)
+
+
+def build_paper_account(book: str, root: Path = ROOT) -> PaperAccount:
+    """Read-only view of a book's paper account."""
+    return PaperAccount(root, book)
