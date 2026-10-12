@@ -49,7 +49,7 @@ through `with AccountLock(book):`.
 
 **Judge verifies:** starts two writers on one book and two on different books; reads the results.
 
-**Depends:** C1 · **Size:** M · **Status:** built 13 Oct 2026 (`fno/books/`, `journal/<book>/account/`; claims in
+**Depends:** C1 · **Size:** M · **Status:** done (judge passed, `reviews/judge/judge_1_e1_paper_accounts.md`)
 `reviews/claude/response_37_2026-10-13-e1-paper-accounts.md`; awaiting judge)
 
 ---
@@ -125,7 +125,7 @@ frozen in the evaluation protocol (S1). `fno/desk/daily_run.py` (`DailyRun.run(d
 per day; a second start sees the completed steps and does nothing), each step recorded with its time. A decision
 committed after the deadline is ignored and a "no decision (late)" record is committed for that book.
 **Across containers (13 Oct 2026, from E1):** E1's operating-system lock protects one machine only; cloud routines run in
-separate checkouts. Every account write therefore runs as: pull, write under `AccountLock`, commit, push; if the push is rejected, pull and retry with the same fill IDs (E1 makes fills idempotent by fill ID).
+separate checkouts. Every account write therefore runs as: pull, write under `AccountLock`, commit, push; if the push is rejected, drop the unpushed local account commit, reset to the new `origin/main` and re-apply the same fills (E1 makes fills idempotent by fill ID; a plain pull merge-conflicts on `cash_ledger.csv`, judge 1). E1's 600-second lock lease can block a retry in the same container inside the fills window: set the lease for E3's timetable, not by default.
 
 **Acceptance criteria:**
 1. Given a book that has not committed by the deadline, a "no decision (late)" record is committed for it, and the
