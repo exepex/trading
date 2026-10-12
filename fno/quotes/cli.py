@@ -15,6 +15,10 @@ CROSS_CHECK_ALERT = (
     "3 pm quote recorder: {reason} ({snapshot_id}, kept with complete=False). Check NSE for an unlisted closure or a "
     "data outage; if NSE was closed, add the day to the calendar file with its circular."
 )
+MONTHLY_UNVERIFIED_ALERT = (
+    "3 pm quote recorder: monthly contracts chosen by the last-listed-expiry rule, not verified against NSE's history "
+    "({reason}; {snapshot_id}). Quotes were kept; check the contract choice later (meta.json monthly_check)."
+)
 GOOD_STATUSES = ("recorded", "already recorded", "not a trading day")
 
 
@@ -45,8 +49,9 @@ def record_today(
     build: Callable[[], QuoteSnapshotRecorder], alerts: AlertSender, outside_window: bool, calendar_file: str
 ) -> int:
     """Runs one day's recording, prints the result line and returns the exit code. A calendar that cannot answer for
-    today (outside its years, or an invalid file) stops the run loudly; a session day with no same-day trade is
-    alerted to #fno-desk. Each alert's outcome line is printed ("alert NOT sent" without the Slack token)."""
+    today (outside its years, or an invalid file) stops the run loudly. A session day with no same-day trade, and
+    monthly contracts chosen without NSE's history, are alerted to #fno-desk; each alert's outcome line is printed
+    ("alert NOT sent" without the Slack token)."""
     try:
         result = build().record(outside_window=outside_window)
     except CalendarError as error:
@@ -58,6 +63,9 @@ def record_today(
     print(f"{result.status}: {result.snapshot_id or '-'} ({result.rows} contracts, complete={result.complete}){reason}")
     if result.reason == NO_SAME_DAY_TRADES:
         print(alerts.send(CROSS_CHECK_ALERT.format(reason=result.reason, snapshot_id=result.snapshot_id)))
+    if result.monthly_unverified:
+        alert = MONTHLY_UNVERIFIED_ALERT.format(reason=result.monthly_unverified, snapshot_id=result.snapshot_id)
+        print(alerts.send(alert))
     return exit_code(result, outside_window)
 
 

@@ -7,6 +7,7 @@ import pytest
 
 from fno.models import IST
 from fno.quotes import expiry_listing
+from fno.quotes.cli import record_today
 from fno.quotes.expiry_listing import ExpiryHistory, ExpiryListUnavailable, NseDailyFileExpiries
 from fno.quotes.monthly_contracts import PointInTimeMonthlies
 from fno.quotes.recorder import QuoteSnapshotRecorder
@@ -16,6 +17,7 @@ from fno.storage.raw_store import LocalFolderStore
 
 from .test_quote_recorder import Clock, FakeProvider
 from .test_recorder_baseline import BASELINE, SCENARIOS, _files
+from .test_recorder_calendar import Alerts
 
 APRIL_2 = date(2025, 4, 2)
 # NSE's NIFTY expiries on 2 Apr 2025 (UDiFF file of that day, up to June): 30 Apr is a weekly moved for a holiday
@@ -65,7 +67,8 @@ def test_the_recorder_records_the_24_april_monthly_and_the_files_that_proved_it(
     result = april_recorder(tmp_path, history).record()
     meta = json.loads(next(tmp_path.rglob("*.meta.json")).read_text())
     assert result.complete and meta["expiries"] == ["2025-04-24", "2025-05-29"]
-    assert meta["monthly_check"] and all(source["source"] == "fake" for source in meta["monthly_check"])
+    check = meta["monthly_check"]
+    assert check["status"] == "verified" and check["files"] and all(f["source"] == "fake" for f in check["files"])
 
 
 def test_earlier_files_are_read_once_across_retries():
@@ -76,12 +79,16 @@ def test_earlier_files_are_read_once_across_retries():
     assert check.monthlies("NIFTY", LISTED_APRIL_2, APRIL_2) == first and history.reads == reads
 
 
-def test_an_unreadable_history_is_a_recorded_failure_never_a_guess(tmp_path):
-    rec = april_recorder(tmp_path, april_history(fail=True), datetime(2025, 4, 2, 15, 9, 30, tzinfo=IST))
-    result = rec.record()
-    metas = [json.loads(p.read_text()) for p in tmp_path.rglob("*.meta.json")]
-    assert not result.complete and result.rows == 0 and rec.canonical(APRIL_2) == "none"
-    assert all(m["expiries"] == [] and any(f.startswith("monthly check") for f in m["failures"]) for m in metas)
+def test_an_unreadable_history_keeps_the_quotes_flags_the_choice_and_alerts(tmp_path, capsys):
+    rec = april_recorder(tmp_path, april_history(fail=True))
+    alerts = Alerts()
+    assert record_today(lambda: rec, alerts, False, "nse_sessions.csv") == 0  # the quotes themselves are complete
+    meta = json.loads(next(tmp_path.rglob("*.meta.json")).read_text())
+    assert meta["complete"] and meta["expiries"] == ["2025-04-30", "2025-05-29"]  # the fallback rule's choice
+    check = meta["monthly_check"]  # a later verification finds every fallback day by this key
+    assert check["status"] == "unverified" and check["rule"] == "last listed expiry of month"
+    assert "ExpiryListUnavailable" in check["reason"]
+    assert len(alerts.sent) == 1 and "not verified" in alerts.sent[0] and "alert sent" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize("name", sorted(SCENARIOS))
@@ -101,7 +108,7 @@ def test_with_a_consistent_history_the_baseline_records_the_same_contracts(tmp_p
     for path, data in expected.items():
         if path.endswith(".meta.json"):
             meta = json.loads(got[path])
-            assert "monthly_check" in meta
+            assert meta["monthly_check"]["status"] == "verified"
             del meta["monthly_check"]
             assert meta == json.loads(data)
         else:

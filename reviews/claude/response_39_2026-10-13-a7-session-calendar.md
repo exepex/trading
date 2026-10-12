@@ -110,15 +110,21 @@ was a weekly moved for a holiday, the monthly was 24 Apr).
   `NseDailyFileExpiries` implements it (lines 46-47) through one shared `_latest` reader (line 49). `listed()` still
   looks only at the 7 days before today.
 - `fno/quotes/recorder.py:90, 96, 140-151, 158, 162, 197`: with `history` the recorder picks the nearest two monthlies
-  by that rule, and meta.json gets `monthly_check` (the NSE files that proved it: source, file, date, SHA-256). An
-  unreadable history is a recorded failure (`monthly check: ...`, attempt incomplete), never a guess. Without
-  `history` (the A4 tests and baseline) the old last-of-month rule stays, as for the calendar.
+  by that rule, and meta.json gets `monthly_check` = `{"status": "verified", "rule": ..., "files": [...]}` (the NSE
+  files that proved it: source, file, date, SHA-256). Without `history` (the A4 tests and baseline) the old
+  last-of-month rule stays, as for the calendar.
+- Unreadable history (orchestrator's decision, accepted: a lost day of quotes can never be recorded later, a flagged
+  contract choice can be checked later): the recorder falls back to the last-listed-expiry rule, keeps `complete` as
+  the quotes themselves warrant, writes `monthly_check` = `{"status": "unverified", "rule": "last listed expiry of
+  month", "reason": "..."}` and the command alerts #fno-desk (`fno/quotes/cli.py`, `MONTHLY_UNVERIFIED_ALERT`).
+  A later verification finds every fallback day by `monthly_check.status == "unverified"`.
 - `fno/composition.py:31`: the app passes the same `NseDailyFileExpiries` as `history`.
 
 **Tests** (`tests/quotes/test_monthly_contracts.py`, 9 tests, all pass):
 - `test_the_holiday_moved_weekly_of_30_april_2025_is_not_taken_for_the_monthly`: gives [24 Apr, 29 May].
 - `test_the_recorder_records_the_24_april_monthly_and_the_files_that_proved_it`: the full recorder on 2 Apr 2025.
-- `test_an_unreadable_history_is_a_recorded_failure_never_a_guess`.
+- `test_an_unreadable_history_keeps_the_quotes_flags_the_choice_and_alerts`: complete quotes, exit 0, fallback
+  contracts [30 Apr, 29 May] recorded with `monthly_check.status = "unverified"` and its reason, one alert.
 - `test_earlier_files_are_read_once_across_retries`.
 - `test_nse_files_answer_on_or_before_the_day_and_listed_keeps_looking_only_before_today`.
 - `test_with_a_consistent_history_the_baseline_records_the_same_contracts` (4 scenarios): with a history consistent
@@ -140,11 +146,11 @@ against origin/main.
 
 Dry run of 13 Oct 2026 at 14:55, built from the real parts (real calendar, real NSE history, fake provider listing
 the 9 Oct expiries, temporary store): `recorded, complete=True`, expiries [2026-10-27, 2026-11-23], no failures,
-`monthly_check` = the 21 Aug, 28 Aug, 4 Sep, 11 Sep, 18 Sep and 1 Oct 2026 files. The first attempt took 15.8 s.
+`monthly_check.files` = the 21 Aug, 28 Aug, 4 Sep, 11 Sep, 18 Sep and 1 Oct 2026 files. The first attempt took 15.8 s.
 
 **Doubts:**
 - The first attempt of each day reads about 6 NSE files (about 15 s, from Drive or NSE). The live run of 13 Oct picks
-  the same contracts as before (27 Oct, 23 Nov). If Drive and NSE are both unreachable, the attempt is incomplete and
-  retried; if they stay unreachable until 15:10 the day is "none" (fail closed, no guess).
-- Judge-7 minor finding 3 (two functions named `monthly_expiries`) is not renamed: the unchanged A4 test imports
+  the same contracts as before (27 Oct, 23 Nov). If Drive and NSE are both unreachable, the quotes are still recorded
+  with the fallback rule's contracts, flagged "unverified" and alerted (see above).
+- Left as minor, by the orchestrator's decision: judge-7 minor finding 3 (two functions named `monthly_expiries`) is not renamed: the unchanged A4 test imports
   `fno.quotes.recorder.monthly_expiries`. Minor finding 2 (a data check on the 42-day weekly horizon) is not in scope here.

@@ -23,6 +23,7 @@ from ..constants import SESSION_MUHURAT, SESSION_REGULAR, SESSION_SPECIAL
 from ..models import IST, OptionChain, QuoteBook, now_ist
 from ..providers.base import Provider
 from ..research_data.calendar import SessionCalendar
+from ..research_data.expiries import MONTHLY_LISTING_DAYS
 from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
 from .expiry_listing import ExpiryHistory, ListedExpiries
@@ -39,6 +40,9 @@ WEEKEND_START = 5  # only when built without a calendar (the A4 tests): weekends
 RECORDED_SESSION_KINDS = (SESSION_REGULAR, SESSION_SPECIAL)  # a muhurat session is one evening hour, not 14:55-15:10
 MUHURAT_ONLY = "muhurat session only: the market is closed from 14:55 to 15:10"
 NO_SAME_DAY_TRADES = "calendar says session, no same-day trades"
+VERIFIED, UNVERIFIED = "verified", "unverified"  # status of meta.json's monthly_check
+POINT_IN_TIME_RULE = f"listed more than {MONTHLY_LISTING_DAYS} days ahead by that day (A5 monthly_as_of)"
+FALLBACK_RULE = "last listed expiry of month"
 NONE_MARKER = "none"
 COLUMNS = (
     "snapshot_id", "request_sent_at", "response_received_at", "quote_time", "age_basis", "freshness_proxy",
@@ -82,6 +86,7 @@ class RecordResult:
     complete: bool = False
     rows: int = 0
     reason: str = ""  # why a session day was skipped or failed the calendar cross-check
+    monthly_unverified: str = ""  # why the monthly contracts were chosen by the fallback rule (alerted, never hidden)
 
 
 class QuoteSnapshotRecorder:
@@ -137,29 +142,34 @@ class QuoteSnapshotRecorder:
             return SESSION_REGULAR if day.weekday() < WEEKEND_START else None
         return self.calendar.session_kind(day)
 
-    def _nearest_monthlies(self, listed: list[date], day: date, failures: list, checked: list) -> list[date]:
-        """The nearest monthly contracts: by A5's point-in-time rule when NSE's history is available (its files go
-        into `checked`), else A4's last-of-month rule. A history that cannot be read is a failure, never a guess."""
+    def _nearest_monthlies(self, listed: list[date], day: date, check: dict) -> list[date]:
+        """The nearest monthly contracts by A5's point-in-time rule, with the NSE files that proved them in `check`.
+        If that history cannot be read, the last-of-month rule is used and `check` says so: a lost day of quotes can
+        never be recorded later, while a flagged contract choice can be verified later. Without a history (the A4
+        tests), the last-of-month rule is A4's own and nothing is flagged."""
         if self.monthly_check is None:
             return monthly_expiries(listed, day)
         try:
             monthly, used = self.monthly_check.monthlies(UNDERLYING, listed, day)
         except Exception as exc:
-            failures.append(f"monthly check: {type(exc).__name__}: {exc}")
-            return []
-        checked += [source for source in used if source not in checked]
+            check.update(status=UNVERIFIED, rule=FALLBACK_RULE, reason=f"{type(exc).__name__}: {exc}")
+            return monthly_expiries(listed, day)
+        if check.get("status") != UNVERIFIED:
+            check.update(status=VERIFIED, rule=POINT_IN_TIME_RULE)
+            files = check.setdefault("files", [])
+            files += [source for source in used if source not in files]
         return sorted(monthly)[:MONTHLY_EXPIRIES]
 
     def _attempt(self, day: date, canonical_allowed: bool) -> RecordResult:
         started = self.now()
         snapshot_id = f"nifty_{started:%Y%m%d_%H%M%S}"
-        failures, rows, chains, expiry_source, checked = [], [], [], {"source": self.provider.name}, []
+        failures, rows, chains, expiry_source, check = [], [], [], {"source": self.provider.name}, {}
         try:
-            months = self._nearest_monthlies(self.provider.expiries(UNDERLYING), day, failures, checked)
+            months = self._nearest_monthlies(self.provider.expiries(UNDERLYING), day, check)
             if len(months) < MONTHLY_EXPIRIES and self.fallback:  # late December: Groww lists no next-year dates
                 try:
                     listed, expiry_source = self.fallback.listed(UNDERLYING, day)
-                    months = self._nearest_monthlies(listed, day, failures, checked)
+                    months = self._nearest_monthlies(listed, day, check)
                 except Exception as exc:
                     failures.append(f"expiry fallback: {type(exc).__name__}: {exc}")
             if len(months) < MONTHLY_EXPIRIES:
@@ -194,13 +204,14 @@ class QuoteSnapshotRecorder:
             "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
         }  # fmt: skip
         if self.monthly_check is not None:
-            meta["monthly_check"] = checked  # NSE files that proved which expiries are monthly (A5's rule)
+            meta["monthly_check"] = check  # verified with the NSE files that proved it, or unverified and why
         self.store.put(self.path(day, f"{snapshot_id}.csv"), csv_bytes)
         self.store.put(self.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:
             self.store.put(self.path(day, f"nifty_{day:%Y%m%d}.canonical"), snapshot_id.encode())
         reason = NO_SAME_DAY_TRADES if NO_SAME_DAY_TRADES in failures else ""
-        return RecordResult("recorded", snapshot_id, complete, len(rows), reason)
+        unverified = check["reason"] if check.get("status") == UNVERIFIED else ""
+        return RecordResult("recorded", snapshot_id, complete, len(rows), reason, unverified)
 
     @staticmethod
     def _contracts(chain: OptionChain) -> list[tuple[float, str]]:
