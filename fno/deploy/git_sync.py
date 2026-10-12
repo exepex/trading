@@ -6,7 +6,7 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
-SYNCED_PATHS = ("journal", "reports", "conversations", "data/live/events")
+SYNCED_PATHS = ("journal", "reports", "conversations", "data/live/events", "data/live/news")
 COMMIT_MESSAGE = "Live desk: end-of-day paper trades {day}"
 
 
