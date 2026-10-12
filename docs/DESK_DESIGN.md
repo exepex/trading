@@ -1,6 +1,6 @@
 # Desk design: a team of experts finding the most profitable F&O trades, against the odds
 
-Version 2.1 (12 Oct 2026; agreed by both AIs, awaiting owner approval): version 2 amended after ChatGPT review 10 (answer: `reviews/claude/response_10_2026-10-12-desk-design-v2.md`), plus the owner's additions (discovery engine 3.5, portfolio risk 8.1).
+Version 2.1 (12 Oct 2026; agreed by both AIs; **approved by the owner as the framework on 12 Oct 2026**, implementation waits for the owner's separate decision): version 2 amended after ChatGPT review 10 (answer: `reviews/claude/response_10_2026-10-12-desk-design-v2.md`), plus the owner's additions (discovery engine 3.5, portfolio risk 8.1).
 Version 2 was a full rewrite. Version 1 described controls well but not the core: **how a team of experts
 in different fields works together to find winning trades**. This version puts that first; the controls agreed in
 review 9 are kept in sections 6-9. Nothing is built yet; the AI layer stays on hold until the owner approves.
@@ -259,20 +259,20 @@ Three NIFTY trades are close to one bet, so the account is checked as a whole be
 
 | Section | Claude | ChatGPT | Owner |
 |---|---|---|---|
-| 1 Goal and odds | Agreed; amended per review 10 (v2.1) | Agreed (review 11, v2.1) | |
-| 2 Edge map | Agreed; amended per review 10, E9 added (v2.1) | Agreed (review 11, v2.1) | |
-| 3 The team and how it works | Agreed; scorecards amended, 3.5 discovery engine added (v2.1) | Agreed (review 11, v2.1) | |
-| 3.5 Discovery engine | Agreed (covered by section 3) | Agreed as research framework (review 11) | |
-| 4 Two loops | Agreed | Agreed (review 11, v2.1) | |
-| 5 Playbook and decision record | Agreed | Agreed (review 11, v2.1) | |
-| 6 Evidence rules | Agreed; 2019-2023 and screen clarifications added (v2.1) | Agreed (review 11, v2.1) | |
-| 7 Red team and judge | Agreed (from review 9) | Agreed (review 11, v2.1) | |
-| 8 Owner limits, risk and money | Agreed; brake action and basis defined, 8.1 portfolio risk added (v2.1) | Agreed (review 11, v2.1) | |
-| 8.1 Portfolio risk | Agreed (covered by section 8) | Agreed as research framework; proposed thresholds require calibration (review 11) | |
-| 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | |
-| 10 Build order | Agreed | Agreed (review 11, v2.1) | |
+| 1 Goal and odds | Agreed; amended per review 10 (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 2 Edge map | Agreed; amended per review 10, E9 added (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 3 The team and how it works | Agreed; scorecards amended, 3.5 discovery engine added (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 3.5 Discovery engine | Agreed (covered by section 3) | Agreed as research framework (review 11) || Approved 12 Oct 2026 |
+| 4 Two loops | Agreed | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 5 Playbook and decision record | Agreed | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 6 Evidence rules | Agreed; 2019-2023 and screen clarifications added (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 7 Red team and judge | Agreed (from review 9) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 8 Owner limits, risk and money | Agreed; brake action and basis defined, 8.1 portfolio risk added (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 8.1 Portfolio risk | Agreed (covered by section 8) | Agreed as research framework; proposed thresholds require calibration (review 11) || Approved 12 Oct 2026 |
+| 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 10 Build order | Agreed | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
 
 Both AIs agreed every section (ChatGPT review 11, Claude response 12). Review 11's clarifications (exact binomial
 figures, experiment-specific significance test, fuller stress scenarios) are folded into 3.5 and 8.1 without changing
-their substance. **Remaining step: owner approval.** Approval covers the framework only: no strategy is proven, and
+their substance. **Owner approved the framework on 12 Oct 2026 ("A, approve design v2.1 but wait for my decision for implementation"). Implementation, research experiments and building wait for the owner's separate go-ahead.** Approval covers the framework only: no strategy is proven, and
 the proposed thresholds (e.g. Rs 15,000 exposure limits) are set from research before paper trading.
