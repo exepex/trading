@@ -42,7 +42,8 @@ class SimTrade:
 
 @dataclass(frozen=True)
 class Cooldowns:
-    """The desk's entry pauses: after any exit on the name, and longer after a losing one."""
+    """Entry pauses per name: after any exit, and longer after a losing one (the desk's post-loss pause is
+    account-wide; see the report's disclaimer)."""
 
     after_exit_minutes: float = 30
     after_loss_minutes: float = 45
