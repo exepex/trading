@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+.venv/
+reports/*.png
+
+# Live desk: state (kill flag, local databases) and the copy of the stock tool's research are not committed;
+# data/live/events/ (the desk's daily event log) is.
+data/live/state/
+data/research/
+
+# Desk log files (Windows and Linux runners)
+logs/
+.claude/worktrees/
