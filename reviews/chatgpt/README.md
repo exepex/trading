@@ -36,3 +36,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 9: desk design, expert inference, adaptive policies, costs and decision validation](review_9_2026-10-12-desk-design.md)
 - [Review 10: desk design v2 section closure, economics, role scorecards and conditional buying thesis](review_10_2026-10-12-desk-design-v2.md)
 - [Review 11: desk design v2.1 sign-off and closure checklist](review_11_2026-10-12-closure-checklist.md)
+- [Review 12: implementation plan (28 stories) and Experiment 1 protocol](review_12_2026-10-12-implementation-plan-and-experiment-1.md)
