@@ -44,8 +44,8 @@ API keys or tokens.
 ## 3 pm quote recorder (daily routine, stories A4 and A7)
 
 Started by a scheduled session at about 14:50 IST every day; the NSE session calendar (A7) decides whether it is a
-trading day, so special weekend sessions are recorded and closed days print "not a trading day". Research data only: never places, modifies or cancels
-orders.
+trading day, so special weekend sessions are recorded and closed days print "not a trading day". Research data
+only: never places, modifies or cancels orders.
 1. `pip install -q -r requirements.txt -r requirements-groww.txt` and `git config core.hooksPath .githooks` (turns on
    the public-record scan, story O5, for every commit).
 2. `python -m fno quotes record` (waits for 14:55 IST, records NIFTY monthly quotes, retries until 15:10 if a capture is
@@ -57,11 +57,11 @@ orders.
    (`--no-verify`). The hook posts its lines (file, line and kind of value; never the value) to #fno-desk itself when
    `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector. Note them in
    `conversations/<date>.md`.
-4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day", post one line to
-   #fno-desk (`C0C89E8QCCD`) with the result, and note it in `conversations/<date>.md`.
-   The command posts two alerts to #fno-desk itself (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day
-   trades" and "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add
-   NSE's holiday circular rows for that year). Post those yourself only if it printed "alert NOT sent".
+4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
+   posts its two alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades" and
+   "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday
+   circular rows for that year). Post one line with the result to #fno-desk (`C0C89E8QCCD`) yourself only for any
+   other result, or if it printed "alert NOT sent". Note every such result in `conversations/<date>.md`.
 
 ## Branch
 
