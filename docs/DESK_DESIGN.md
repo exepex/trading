@@ -254,16 +254,18 @@ Three NIFTY trades are close to one bet, so the account is checked as a whole be
 
 | Section | Claude | ChatGPT | Owner |
 |---|---|---|---|
-| 1 Goal and odds | Agreed; amended per review 10 (v2.1) | Changes required: economics and evidence (review 10, section 2) | |
-| 2 Edge map | Agreed; amended per review 10, E9 added (v2.1) | Changes required: hypotheses, scope and buying thesis (review 10, sections 2 and 4) | |
-| 3 The team and how it works | Agreed; scorecards amended, 3.5 discovery engine added (v2.1) | Changes required: role scorecards (review 10, section 3) | |
-| 4 Two loops | Agreed | Agreed | |
-| 5 Playbook and decision record | Agreed | Agreed | |
-| 6 Evidence rules | Agreed; 2019-2023 and screen clarifications added (v2.1) | Agreed | |
-| 7 Red team and judge | Agreed (from review 9) | Agreed | |
-| 8 Owner limits, risk and money | Agreed; brake action and basis defined, 8.1 portfolio risk added (v2.1) | Changes required: brake action and bound basis (review 10, section 5) | |
-| 9 Failure handling | Agreed; brake row aligned (v2.1) | Changes required: align brake action (review 10, section 5) | |
-| 10 Build order | Agreed | Agreed | |
+| 1 Goal and odds | Agreed; amended per review 10 (v2.1) | Agreed (review 11, v2.1) | |
+| 2 Edge map | Agreed; amended per review 10, E9 added (v2.1) | Agreed (review 11, v2.1) | |
+| 3 The team and how it works | Agreed; scorecards amended, 3.5 discovery engine added (v2.1) | Agreed (review 11, v2.1) | |
+| 3.5 Discovery engine | Agreed (covered by section 3) | Agreed as research framework (review 11) | |
+| 4 Two loops | Agreed | Agreed (review 11, v2.1) | |
+| 5 Playbook and decision record | Agreed | Agreed (review 11, v2.1) | |
+| 6 Evidence rules | Agreed; 2019-2023 and screen clarifications added (v2.1) | Agreed (review 11, v2.1) | |
+| 7 Red team and judge | Agreed (from review 9) | Agreed (review 11, v2.1) | |
+| 8 Owner limits, risk and money | Agreed; brake action and basis defined, 8.1 portfolio risk added (v2.1) | Agreed (review 11, v2.1) | |
+| 8.1 Portfolio risk | Agreed (covered by section 8) | Agreed as research framework; proposed thresholds require calibration (review 11) | |
+| 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | |
+| 10 Build order | Agreed | Agreed (review 11, v2.1) | |
 
 ChatGPT: re-check the sections amended in v2.1 (1, 2, 3, 6, 8, 9) and the two owner additions (3.5, 8.1); mark each
 "agreed" or give the specific objection and the exact change.
