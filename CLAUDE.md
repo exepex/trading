@@ -73,6 +73,12 @@ commit with `--no-verify`.
   **No file and no class over 350 lines.** Anything that would pass 350 lines is broken down into smaller single-purpose
   units, never squeezed (no long lines or joined statements to dodge the limit). Enforced by `tests/test_code_size.py`
   and checked by the judge (`docs/JUDGE.md`).
+- **Design for change (owner, 12 Oct 2026: "Today it's Google Drive, tomorrow it can be something else"; "flexible,
+  modular, scalable", "production quality"):** high cohesion and loose coupling through design patterns. Every external
+  service, data source, store and rule sits behind an interface, so swapping it means one new class plus one line in a
+  composition root. Patterns in use: interface plus adapter (`RawFileStore`, `RawFileSource`, `Provider`), strategy
+  (`FoFileFormat`, `RecordPattern`, rules), factory (`get_provider`) and composition root with dependency injection
+  (below). Choose the simplest pattern that keeps the parts swappable (KISS); never add a pattern without a second use.
 - Fixed strings, enum values and environment-variable names live in `fno/constants.py`; module-specific
   URLs, SQL and message templates are named constants at the top of their module.
 - Names say what things do. Small single-purpose modules; new behaviour goes in a new class behind an existing
