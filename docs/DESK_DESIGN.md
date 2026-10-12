@@ -322,7 +322,7 @@ and horizon, no prohibited structure). The quality of Book 3's thesis is judge a
   gross, execution costs, AI and data costs, net, and each version segment separately.
 
 ### 12.6 Fairness controls
-- Separate Rs 5 lakh paper accounts per book (a per-account single-writer lock, story E1 criterion 9); same quotes (A4), fill model (E1), charges
+- Separate Rs 5 lakh paper accounts per book (a per-account single-writer lock, story E1 criterion 2); same quotes (A4), fill model (E4), charges
   (C1) and decision time.
 - **Common start:** the head-to-head trade comparison starts on a predeclared date when all three books can trade.
   Book 3's earlier trades are kept and reported as **Book-3 pilot evidence**, never as head-to-head evidence. Cash held
