@@ -50,6 +50,21 @@ class OptionQuote:
         return self.ltp + adj if side == "buy" else max(self.ltp - adj, 0.05)
 
 
+@dataclass(frozen=True)
+class QuoteBook:
+    """One contract's order book as the provider reported it (never filled in or guessed)."""
+
+    symbol: str
+    bid: float | None
+    ask: float | None
+    bid_qty: float | None
+    ask_qty: float | None
+    last: float | None
+    last_trade_time: datetime | None
+    book_source: str  # "fields" (best bid/offer fields) or "depth" (top of the market depth) or "" (none)
+    raw_sha256: str  # SHA-256 of the provider's raw response, for audit
+
+
 @dataclass
 class OptionChain:
     underlying: str

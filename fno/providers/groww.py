@@ -12,12 +12,14 @@ Market-data calls need no fixed IP address; SEBI's static-IP rule applies to pla
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 
 from ..constants import ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY, ENV_GROWW_API_SECRET, ENV_GROWW_TOTP_SECRET
-from ..models import MarketContext, OptionChain, OptionQuote, now_ist
+from ..models import IST, MarketContext, OptionChain, OptionQuote, QuoteBook, now_ist
 from .base import Provider
 from .public import PublicData
 
@@ -87,6 +89,36 @@ def parse_groww_book(quote: dict) -> tuple[float | None, float | None]:
     return (float(bid) if bid else None), (float(ask) if ask else None)
 
 
+def parse_groww_quote_book(symbol: str, payload: dict) -> QuoteBook:
+    """Groww's quote as a QuoteBook: best bid/offer fields when present, else the top of the market depth (marked).
+    Groww gives the last trade time (Unix seconds) but no timestamp for the quote itself."""
+    bid, ask = payload.get("bid_price"), payload.get("offer_price")
+    bid_qty, ask_qty, source = payload.get("bid_quantity"), payload.get("offer_quantity"), "fields"
+    if not bid and not ask:
+        depth = payload.get("depth") or {}
+        top_buy, top_sell = (depth.get("buy") or [{}])[0], (depth.get("sell") or [{}])[0]
+        bid, bid_qty, ask, ask_qty = (
+            top_buy.get("price"),
+            top_buy.get("quantity"),
+            top_sell.get("price"),
+            top_sell.get("quantity"),
+        )
+        source = "depth" if (bid or ask) else ""
+    traded = payload.get("last_trade_time")
+    raw = json.dumps(payload, sort_keys=True, default=str).encode()
+    return QuoteBook(
+        symbol=symbol,
+        bid=float(bid) if bid else None,
+        ask=float(ask) if ask else None,
+        bid_qty=float(bid_qty) if bid_qty else None,
+        ask_qty=float(ask_qty) if ask_qty else None,
+        last=float(payload["last_price"]) if payload.get("last_price") else None,
+        last_trade_time=datetime.fromtimestamp(int(traded), IST) if traded else None,
+        book_source=source,
+        raw_sha256=hashlib.sha256(raw).hexdigest(),
+    )
+
+
 class GrowwProvider(Provider):
     name = "groww"
 
@@ -130,9 +162,16 @@ class GrowwProvider(Provider):
         today = now_ist().date()
         found: set[date] = set()
         for year in (today.year, today.year + 1):
-            resp = _payload(
-                self.api.get_expiries(exchange=self.api.EXCHANGE_NSE, underlying_symbol=underlying.upper(), year=year)
-            )
+            try:
+                resp = _payload(
+                    self.api.get_expiries(
+                        exchange=self.api.EXCHANGE_NSE, underlying_symbol=underlying.upper(), year=year
+                    )
+                )
+            except Exception:
+                if year == today.year:
+                    raise
+                continue  # Groww refuses any future year ("Year cannot be in the future"); this year's list suffices
             for text in resp.get("expiries", []):
                 d = date.fromisoformat(text)
                 if d >= today:
@@ -154,6 +193,15 @@ class GrowwProvider(Provider):
         )
         bid, ask = parse_groww_book(_payload(resp))
         return replace(leg, bid=bid, ask=ask) if bid and ask else None
+
+    def quote_book(self, chain: OptionChain, strike: float, kind: str) -> QuoteBook | None:
+        leg = chain.get(strike, kind)
+        if leg is None or not leg.symbol:
+            return None
+        payload = _payload(
+            self.api.get_quote(trading_symbol=leg.symbol, exchange=self.api.EXCHANGE_NSE, segment=self.api.SEGMENT_FNO)
+        )
+        return parse_groww_quote_book(leg.symbol, payload)
 
     def context(self, underlying: str) -> MarketContext:
         history = self.public.daily_history(underlying)

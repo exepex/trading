@@ -46,7 +46,7 @@ before C4 (C4 checks the decision record).
 | [A1](stories/A-data-foundation.md#a1-raw-nse-archive-complete-and-checked) | Raw NSE archive complete and checked | - | S | doing (tool done and delivered; owner downloading; coverage command next) |
 | [A2](stories/A-data-foundation.md#a2-one-reader-for-both-fo-formats) | One reader for both F&O formats | - | M | done (128 of 128 overlap days identical, 5,793,044 rows) |
 | [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | A1, A2 | M | next |
-| [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | - | M | next (start early) |
+| [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | - | M | built 12 Oct 2026; first real windowed snapshot pending |
 | [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | - | S | next |
 | [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | - | S | next |
 | [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | A3, A6 | M | later |

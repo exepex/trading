@@ -13,6 +13,7 @@ from .backtest.cli import add_backtest_parser
 from .config import ROOT, load_config
 from .deploy.cli import add_deploy_parser
 from .live.cli import add_live_parser
+from .live.quote_cli import add_quotes_parser
 from .providers import get_provider
 
 
@@ -182,6 +183,7 @@ def main(argv: list[str] | None = None) -> int:
     j.set_defaults(func=cmd_paper)
 
     add_live_parser(sub)
+    add_quotes_parser(sub)
     add_backtest_parser(sub)
     add_calibrate_parser(sub)
     add_deploy_parser(sub)

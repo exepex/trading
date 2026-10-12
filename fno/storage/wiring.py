@@ -48,3 +48,13 @@ def build_nse_legacy_fo_library(project_folder: Path | None = None) -> RawFileLi
 def build_nse_index_close_library(project_folder: Path | None = None) -> RawFileLibrary:
     """NSE daily index closing values (NIFTY 50, India VIX and others)."""
     return build_nse_library(NseIndexCloseSource, project_folder)
+
+
+QUOTES_FOLDER = (
+    Path(__file__).resolve().parents[2] / "research" / "data" / "quotes"
+)  # repository: Drive is read-only here
+
+
+def build_quote_store(folder: Path | None = None) -> RawFileStore:
+    """Where the 3 pm quote snapshots are written: a folder in the repository (committed daily)."""
+    return LocalFolderStore(folder or QUOTES_FOLDER)

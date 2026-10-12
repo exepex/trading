@@ -41,6 +41,18 @@ Before ending any working session with the user, write or append to `conversatio
 "Decisions so far" and "Open questions" sections. Commit and push it. Never include email addresses,
 API keys or tokens.
 
+## 3 pm quote recorder (weekday routine, story A4)
+
+Started by a scheduled session at about 14:50 IST on weekdays. Research data only: never places, modifies or cancels
+orders.
+1. `pip install -q -r requirements.txt -r requirements-groww.txt`
+2. `python -m fno quotes record` (waits for 14:55 IST, records NIFTY monthly quotes, retries until 15:10 if a capture is
+   incomplete; on a market holiday it records nothing). It prints the result line.
+3. Commit `research/data/quotes/` and push to `main` (`git pull --no-rebase` first). Never edit or delete a recorded
+   attempt or `.canonical` file.
+4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day", post one line to
+   #fno-desk (`C0C89E8QCCD`) with the result, and note it in `conversations/<date>.md`.
+
 ## Daily market brief (weekday routine)
 
 1. `pip install -q -r requirements.txt`

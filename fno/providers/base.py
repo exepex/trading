@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
 
-from ..models import MarketContext, OptionChain, OptionQuote
+from ..models import MarketContext, OptionChain, OptionQuote, QuoteBook
 
 INDEX_NAMES = {
     "NIFTY": "NIFTY 50",
@@ -49,6 +49,11 @@ class Provider(ABC):
 
     def forget(self, underlying: str) -> None:  # noqa: B027 - optional hook
         """Drop any cached data for this underlying (after a sudden move). Providers without a cache do nothing."""
+
+    def quote_book(self, chain: OptionChain, strike: float, kind: str) -> QuoteBook | None:
+        """The contract's full order book (bid, ask, sizes, last trade time) for the 3 pm quote recorder. None when the
+        provider cannot give one; the recorder then records the contract as unquoted."""
+        return None
 
     def live_quote(self, chain: OptionChain, strike: float, kind: str) -> OptionQuote | None:
         """The contract's current bid/ask when the chain itself has none (Groww's chain gives last price only).

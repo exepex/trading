@@ -331,3 +331,14 @@ def _config_key(source_name: str) -> str:
 
 def _plan(source, opts: dict) -> SourcePlan:
     return SourcePlan(source, opts.get("every_seconds", DEFAULT_NEWS_INTERVAL_SECONDS), opts.get("daily_limit"))
+
+
+def build_quote_recorder(cfg: dict):
+    """The 3 pm quote recorder (story A4): the configured chain provider (Groww when its credentials are set) and the
+    repository quote store."""
+    from ..storage.wiring import build_quote_store
+    from .quote_recorder import QuoteSnapshotRecorder
+
+    return QuoteSnapshotRecorder(
+        get_provider(cfg.get("live", {}).get("chain_provider", "auto"), cfg), build_quote_store()
+    )
