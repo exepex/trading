@@ -18,3 +18,4 @@ Written only by the independent judge session (`docs/JUDGE.md`). One file per ve
 | 10 | C1 three ledgers, round 2 (re-judge) | PASS (judge 6 findings all accepted; 1 new minor) | `judge_10_c1_three_ledgers_rejudge.md` |
 | 11 | A6 events calendar, round 2 (re-judge) | FAIL pending only (judge 8 findings all accepted; criteria 4 and 5 wait on F3 and the challenge run); C1 58323c5 spot-checked | `judge_11_a6_events_calendar_rejudge.md` |
 | 12 | A7 recorder uses the session calendar | PASS (4 minor; trigger prompt stale) | `judge_12_a7_session_calendar.md` |
+| 13 | A5 monthly expiry, round 2 (re-judge) | PASS (recorder now uses monthly_as_of, verified on real NSE files; judge 7 minors 2-3 accepted as open; 2 new minor) | `judge_13_a5_monthly_expiry_rejudge.md` |
