@@ -178,6 +178,8 @@ class Ledgers:
             checks += [
                 _close(year["account_result"], sum(m["account_result"] for m in in_year)),
                 _close(year["tax_base"], year["trade_net"] - deductible),
+                _close(year["tax"], self.tax_rate_pct / 100 * max(0.0, year["tax_base"])),
+                _close(year["after_tax"], year["account_result"] - year["tax"]),
             ]
         return all(checks)
 

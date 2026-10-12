@@ -106,6 +106,8 @@ def sample_ledgers() -> Ledgers:
         ("years", "2026-27", "account_result"),  # a year that is not the sum of its months
         ("years", "2025-26", "tax_base"),  # a tax base that ignores the deductible costs
         ("years", "2026-27", "operating_costs"),
+        ("years", "2026-27", "tax"),  # judge 10: a tax figure that is not the rate times the base
+        ("years", "2026-27", "after_tax"),
     ],
 )
 def test_a_broken_ledger_does_not_reconcile(table, period, key):

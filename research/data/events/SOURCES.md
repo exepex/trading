@@ -10,6 +10,14 @@ Every date below was read from a page that was actually opened during the run. N
 - `announced_on`: the **earliest official page found** that gives the **final** date. This is not always the date of the annual schedule:
   - For April MPC meetings, the date first appeared in the February resolution ("The next meeting of the MPC is scheduled ..."). That came before the annual schedule press release, so `announced_on` uses the February date. The annual schedule date is in `description`.
   - For rescheduled meetings, `announced_on` is the date of the reschedule press release. `revised_from` is the decision day that was originally announced, meaning the last day of the original meeting window.
+- `first_announced_on`, `first_announcement_source_url` (13 Oct 2026, judge 8): for a moved meeting, when its
+  ORIGINAL date was first published, so the calendar knows the meeting at its original date until the move (taken
+  from the annual-schedule press release named in `description`). `first_withdrawn_on`: set only when the original
+  date was withdrawn before the new date was announced (Oct 2020: postponed 28 Sep, new dates 6 Oct). Empty for
+  2020-03-27: the Feb 2020 resolution that first gave the Mar 31-Apr 3 meeting is named in `description` but its page
+  was not opened, so that meeting is treated as unknown before 27 Mar (never look-ahead, but a gap).
+- `source_url` must be an official https page on rbi.org.in, pib.gov.in, indiabudget.gov.in or eci.gov.in (the
+  validator refuses anything else for a past event).
 - `announcement_source_url` and `source_url`: official pages (rbi.org.in, pib.gov.in, rajyasabha.nic.in, ECI press notes). Where a press article is cited, it appears only inside `description` and is labelled as press.
 
 ## 1. RBI MPC decision days (49 rows)
