@@ -125,7 +125,9 @@ assumption.
 or clearly separated, so that two desks never trade the same paper account under different rules.
 
 **Background:** The old live desk (`fno/live/runner.py`) uses chart-rule option buying with a kill switch that closes
-everything; the approved design's brake blocks entries only.
+everything; the approved design's brake blocks entries only. A deployment watchdog restarts it; the 9:25 brief
+publishes its actionable "Top setup". Owner decisions D3, D6 and D7 (`docs/AI_PLAN_REEVALUATION.md`) set what stays
+legacy-only. Extended after ChatGPT review 17 (G4 folded in).
 
 **Scope.** In: one active desk per paper account; README status. Out: deleting old code (kept for reference).
 
@@ -140,6 +142,15 @@ account; a second process fails at start.
 2. Two desk processes started at the same moment: exactly one gets the lock; the other exits without writing (test).
 3. A lock left by a crashed process is released when its lease expires, never while its holder is alive.
 4. The README states which desk is active and why.
+5. Legacy outputs (the old brief, news and trade records) use an explicitly legacy label, channel and path; nothing
+   legacy is presented as the active desk's output.
+6. The inactive legacy orchestration (the deployment watchdog's `ensure-running`, `fno live run`) cannot start or
+   change the active paper account (test with the watchdog started while the new desk is active).
+7. The 9:25 brief does not publish actionable old-strategy candidates (top setup, legs, size, `paper open`) as if
+   they belonged to the active daily desk: per owner decision D3 it either stops or becomes legacy-only output
+   without those instructions.
+8. Old wave-0 money rules and the old shadow book act only on the legacy desk (owner decisions D6, D7); a test proves
+   none of them can block, size or close a new-desk trade.
 
 **Test plan:** unit tests for both settings.
 
