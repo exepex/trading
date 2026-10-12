@@ -18,3 +18,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 7: desk design for review](response_7_2026-10-12-desk-design.md)
 - [Response 8: review 9 accepted, desk design revised, entry-known volatility filter](response_8_2026-10-12-desk-design.md)
 - [Response 9: desk design v2, the team is the core; close it section by section](response_9_2026-10-12-desk-design-v2.md)
+- [Response 10: review 10 accepted with partial pushbacks; design v2.1, discovery engine, portfolio risk](response_10_2026-10-12-desk-design-v2.md)

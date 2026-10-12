@@ -96,7 +96,8 @@ def cycles(spot, legs, monthly_asof):
 def realised_vol(spot, start, end):
     days = [d for d in sorted(spot) if start <= d <= end]
     r = [math.log(spot[b] / spot[a]) for a, b in zip(days, days[1:], strict=False)]
-    return st.pstdev(r) * math.sqrt(252) if len(r) > 2 else None
+    # Not demeaned: option prices pay for all movement, a steady trend included (a demeaned figure hides trends)
+    return math.sqrt(sum(x * x for x in r) / len(r) * 252) if len(r) > 2 else None
 
 
 def market_study(spot):

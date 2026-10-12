@@ -20,7 +20,8 @@ days left (about 2-3 weeks). Re-run: `python research/2026-10-12-desk-meeting-1/
 
 ### Options strategist: are options fairly priced?
 - Implied volatility of 30-45-day at-the-money options averaged **13.8%**; the volatility that then happened until
-  exit averaged **11.9%**. Options were priced above what followed in **73%** of the 33 cycles.
+  exit averaged **12.2%** (all movement counted, trends included; 11.9% in the first run, which subtracted the
+  average daily move). Options were priced above what followed in **73%** of the 33 cycles.
 - **Reading:** option buyers paid for moves that mostly did not come. This is the volatility risk premium; it is the
   economic reason premium sellers are paid (they carry crash risk). (Some evidence: one period, 33 cycles.)
 

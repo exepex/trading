@@ -2,9 +2,9 @@
  "cycles": 32,
  "average_pct": {
   "atm_iv_pct": 13.8,
-  "realised_vol_pct": 12.0,
-  "rv_to_expiry_pct": 12.2,
-  "rv_past_pct": 12.2
+  "realised_vol_pct": 12.3,
+  "rv_to_expiry_pct": 12.4,
+  "rv_past_pct": 12.5
  },
  "splits": [
   {
@@ -55,15 +55,15 @@
   {
    "split": "entry-known: IV > past 20-day realised + 2",
    "yes": {
-    "cycles": 18,
-    "wins": 17,
-    "net": 243172,
+    "cycles": 16,
+    "wins": 15,
+    "net": 226128,
     "worst": -7867
    },
    "no": {
-    "cycles": 14,
-    "wins": 9,
-    "net": 50691,
+    "cycles": 16,
+    "wins": 11,
+    "net": 67735,
     "worst": -41030
    }
   }
@@ -74,39 +74,39 @@
    "short_straddle": -41030,
    "atm_iv_pct": 11.6,
    "rv_past_pct": 15.3,
-   "realised_vol_pct": 15.4,
+   "realised_vol_pct": 16.6,
    "move_pct": -5.67
   },
   {
    "entry": "2025-04-15",
    "short_straddle": -15858,
    "atm_iv_pct": 14.6,
-   "rv_past_pct": 20.7,
-   "realised_vol_pct": 10.8,
+   "rv_past_pct": 20.9,
+   "realised_vol_pct": 11.6,
    "move_pct": 4.05
   },
   {
    "entry": "2024-06-10",
    "short_straddle": -13794,
    "atm_iv_pct": 15.2,
-   "rv_past_pct": 29.2,
-   "realised_vol_pct": 5.1,
+   "rv_past_pct": 29.5,
+   "realised_vol_pct": 6.5,
    "move_pct": 4.48
   },
   {
    "entry": "2025-03-10",
    "short_straddle": -7867,
    "atm_iv_pct": 13.8,
-   "rv_past_pct": 10.5,
-   "realised_vol_pct": 12.1,
+   "rv_past_pct": 11.2,
+   "realised_vol_pct": 12.6,
    "move_pct": 3.52
   },
   {
    "entry": "2024-12-16",
    "short_straddle": -7440,
    "atm_iv_pct": 13.7,
-   "rv_past_pct": 12.9,
-   "realised_vol_pct": 13.8,
+   "rv_past_pct": 13.4,
+   "realised_vol_pct": 14.5,
    "move_pct": -4.63
   }
  ]

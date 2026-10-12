@@ -19,4 +19,6 @@ Untouched checks still available: NIFTY 2019-2023 (older NSE files) and forward 
 | 18-19 | 2026-10-12 | review 9 | Hindsight splits: IV vs realised (holding / to expiry) | Not usable: future data | Diagnostic only |
 | 20-21 | 2026-10-12 | review 9 | Entry-known: IV > past 20-day realised (+0 / +2 points), on the short straddle | +0: kept 27 cycles, +Rs 3,10,568, worst -Rs 7,867; skipped 5, -Rs 16,705 incl. the 3 worst | Candidate filter, to test on protected trades and 2019-2023 |
 
+| - | 2026-10-12 | review 10 | Correction, not a trial: realised volatility now counts all movement (not demeaned) | Average realised 11.9% -> 12.2%; trade P&Ls unchanged; the +2 variant now keeps 16 cycles (+Rs 2,26,128) | Fixed in desk.py |
+
 Total trials so far: 21 (count every new variant, threshold or filter here before reading its result).
