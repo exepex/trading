@@ -42,3 +42,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 15: judge A4 quote recorder and B4 ledger guard](review_15_2026-10-12-judge-a4-b4.md)
 - [Review 16: A4/B4 blocker re-check — PASS](review_16_2026-10-12-recheck-a4-b4-blockers.md)
 - [Review 17: AI plan re-evaluation against legacy behavior](review_17_2026-10-12-ai-plan-reevaluation.md)
+- [Review 18: proposed three-paper-strategy design and Response 20](review_18_2026-10-12-three-paper-strategies.md)
