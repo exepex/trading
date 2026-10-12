@@ -1,9 +1,9 @@
 """Gets NSE daily F&O files and keeps only the NIFTY option rows the capacity screen needs.
 
-Run from the repository root:  python research/2026-10-12-capacity-screen/fetch.py [--keep-raw FOLDER]
+Run from the repository root:  python research/2026-10-12-capacity-screen/fetch.py [--keep-raw PROJECT_FOLDER]
 Files come from the raw-file library (fno/storage): a local or Google Drive copy if one exists, otherwise NSE, one
-polite request at a time. --keep-raw saves every original ZIP into FOLDER (for example a Google Drive for desktop
-folder). Resumable: dates already in the manifest are skipped.
+polite request at a time. --keep-raw saves every original ZIP under PROJECT_FOLDER/raw/ (point it at the
+fno-research folder that Google Drive for desktop syncs). Resumable: dates already in the manifest are skipped.
 Writes data/nifty_options.csv.gz (NIFTY options, 20-55 calendar days to expiry, strikes within 1,500 points of the
 underlying) and data/manifest.csv (every date tried: URL, status 200 = file / 404 = none, SHA-256 of the ZIP bytes,
 rows kept).
@@ -56,7 +56,7 @@ def kept_rows(zip_bytes: bytes, day: date) -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--keep-raw", type=Path, help="folder to keep every original ZIP in")
+    parser.add_argument("--keep-raw", type=Path, help="project folder; originals are kept under its raw/ area")
     library = build_nse_fo_library(parser.parse_args().keep_raw)
     DATA.mkdir(exist_ok=True)
     manifest_path, rows_path = DATA / "manifest.csv", DATA / "nifty_options.csv"

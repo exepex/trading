@@ -9,8 +9,8 @@ from fno.constants import ENV_GDRIVE_FOLDER_ID, ENV_GDRIVE_SERVICE_ACCOUNT_JSON
 from fno.storage.google_drive import DRIVE_FILES_URL, GoogleDriveStore
 from fno.storage.raw_library import RawFile, RawFileLibrary
 from fno.storage.raw_source import NseDailyFoSource, RawFileSource, RawSourceUnavailable
-from fno.storage.raw_store import LocalFolderStore, RawFileConflict, ReadOnlyStoreError, path_parts
-from fno.storage.wiring import build_raw_stores
+from fno.storage.raw_store import AreaStore, LocalFolderStore, RawFileConflict, ReadOnlyStoreError, path_parts
+from fno.storage.wiring import RAW_AREA, build_nse_fo_library, build_raw_stores
 
 
 class Response:
@@ -150,4 +150,18 @@ def test_drive_is_used_only_when_both_settings_exist(tmp_path, monkeypatch):
     assert [s.name for s in build_raw_stores(tmp_path, token_for=lambda key: "t")] == ["local folder"]
     monkeypatch.setenv(ENV_GDRIVE_FOLDER_ID, "folder123")
     stores = build_raw_stores(tmp_path, token_for=lambda key: "t")
-    assert [s.name for s in stores] == ["local folder", "Google Drive"] and stores[1].folder_id == "folder123"
+    assert [s.name for s in stores] == ["local folder", "Google Drive"]
+    assert all(s.area == RAW_AREA for s in stores) and stores[1].store.folder_id == "folder123"
+
+
+def test_everything_stays_inside_one_area_of_the_project_folder(tmp_path):
+    project = tmp_path / "fno-research"
+    store = AreaStore(LocalFolderStore(project), "raw")
+    store.put("nse/derivatives/fo-bhavcopy/2024/01/a.zip", b"data")
+    assert [p.name for p in project.iterdir()] == ["raw"]  # nothing loose in the project folder
+    assert (project / "raw/nse/derivatives/fo-bhavcopy/2024/01/a.zip").read_bytes() == b"data"
+    assert store.get("nse/derivatives/fo-bhavcopy/2024/01/a.zip") == b"data"
+    library = build_nse_fo_library(project)
+    assert library.archive.area == RAW_AREA and library.archive.store.folder == project
+    with pytest.raises(ValueError):
+        AreaStore(LocalFolderStore(project), "../outside")

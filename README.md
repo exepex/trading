@@ -162,8 +162,8 @@ concrete ones, so Google Drive or NSE can be replaced without touching anything 
 
 | Store | Setup |
 |---|---|
-| Local folder | `--keep-raw FOLDER` on a fetch script; use a Google Drive for desktop folder on the PC to archive to Drive |
-| Google Drive (read-only) | `FNO_GDRIVE_SERVICE_ACCOUNT_JSON` (a service account key's JSON text) and `FNO_GDRIVE_FOLDER_ID` (the folder's ID from its link); share the folder with the service account's e-mail as Viewer. Service accounts cannot upload to a personal Drive, so files reach Drive through the desktop sync |
+| Local folder | `--keep-raw PROJECT_FOLDER` on a fetch script (originals go under its `raw/` area); point it at the `fno-research` folder that Google Drive for desktop syncs |
+| Google Drive (read-only) | `FNO_GDRIVE_SERVICE_ACCOUNT_JSON` (a service account key's JSON text) and `FNO_GDRIVE_FOLDER_ID` (the `fno-research` project folder's ID from its link); share the folder with the service account's e-mail as Viewer. Service accounts cannot upload to a personal Drive, so files reach Drive through the desktop sync |
 
 ## Slack
 

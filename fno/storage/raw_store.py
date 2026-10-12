@@ -1,5 +1,6 @@
 """A store of large static files, addressed by a relative path that follows the archive layout
-(`<publisher>/<market>/<dataset>/<YYYY>/<MM>/<original file name>`, see fno/storage/README.md).
+(`<area>/<publisher>/<market>/<dataset>/<YYYY>/<MM>/<original file name>` under one project folder, see
+fno/storage/README.md).
 
 Raw files never change: saving the same bytes again is a no-op, and different bytes at an existing path are refused.
 """
@@ -63,3 +64,19 @@ class LocalFolderStore(RawFileStore):
         temporary = file.with_name(f".{file.name}.part")
         temporary.write_bytes(data)
         temporary.replace(file)  # never leaves a half-written file under the real name
+
+
+class AreaStore(RawFileStore):
+    """One area (sub-folder such as `raw`) of a store rooted at the project folder, so every kind of file has its own
+    branch and nothing lands loose in the project folder. Wraps any store; the store itself never knows."""
+
+    def __init__(self, store: RawFileStore, area: str):
+        path_parts(area)  # validates the area name
+        self.store, self.area = store, area
+        self.name = store.name
+
+    def get(self, path: str) -> bytes | None:
+        return self.store.get(f"{self.area}/{path}")
+
+    def put(self, path: str, data: bytes) -> None:
+        self.store.put(f"{self.area}/{path}", data)
