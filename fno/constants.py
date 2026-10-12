@@ -73,6 +73,11 @@ ENV_FNO_SLACK_CHANNEL_ID = "FNO_SLACK_CHANNEL_ID"
 ENV_FNO_SLACK_WEBHOOK_URL = "FNO_SLACK_WEBHOOK_URL"
 # Shared with the market-brief tool for now (owner's decision); only used when a MotherDuck option is chosen.
 ENV_MOTHERDUCK_TOKEN = "MOTHERDUCK_TOKEN"
+# Groww Trade API (market data only; the desk never places orders)
+ENV_GROWW_ACCESS_TOKEN = "GROWW_ACCESS_TOKEN"
+ENV_GROWW_API_KEY = "GROWW_API_KEY"
+ENV_GROWW_API_SECRET = "GROWW_API_SECRET"
+ENV_GROWW_TOTP_SECRET = "GROWW_TOTP_SECRET"
 
 # News statuses from the market-brief verification pipeline that must never support a trade.
 UNTRUSTED_NEWS_STATUSES = ("rumour", "promotional", "contradicted")

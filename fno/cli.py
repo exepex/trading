@@ -65,6 +65,14 @@ def cmd_notify(args) -> int:
     return 0
 
 
+def cmd_groww_check(args) -> int:
+    from .providers.groww_check import groww_check_lines
+
+    for line in groww_check_lines(_cfg(args)):
+        print(line)
+    return 0
+
+
 def cmd_chain(args) -> int:
     from . import analytics as an
 
@@ -142,6 +150,9 @@ def main(argv: list[str] | None = None) -> int:
     n.add_argument("--out", default=str(ROOT / "reports"))
     n.add_argument("--web-url", default="https://claude.ai/artifact/8tokXxQfSPnB3DxMpkYpXX")
     n.set_defaults(func=cmd_notify)
+
+    g = sub.add_parser("groww-check", help="check the Groww data connection (prints no secrets)")
+    g.set_defaults(func=cmd_groww_check)
 
     c = sub.add_parser("chain", help="print an option chain around the money")
     c.add_argument("underlying")

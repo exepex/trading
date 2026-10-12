@@ -20,7 +20,15 @@ Protections built in (`fno/http_pacing.py`, `fno/providers/cached.py`):
 The desk runs on the owner's PC, so it does not share an internet address with the stock tool's cloud runs:
 a block here cannot break the stock tool's daily briefs, and the reverse.
 
-## Before real money: the Groww feed
+## Groww Trade API (subscribed 12 Oct 2026)
+
+Option chains (with Greeks) come from Groww as soon as `GROWW_API_KEY` and `GROWW_TOTP_SECRET` are in
+`~/.trading.env` on the desk's PC (`live.chain_provider: auto`). Data calls work from a changing home IP: Groww's
+static-IP requirement is worded around order placement only (groww.in/blog/static-ip-api-trading-setup), and this tool
+never places orders. Still to move to Groww: stock prices and 5-minute candles (Yahoo today), and bid/ask for the chosen
+contract (Groww's chain gives last price only; the quote call gives bid/ask).
+
+## Earlier plan: the Groww feed
 
 Free sources are fine for building and paper testing, not for real trades: they lag, they can block us, and their
 terms forbid automated use. Prices and option chains move to the official **Groww Trade API** (Rs 499 a month,

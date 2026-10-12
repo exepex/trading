@@ -122,8 +122,12 @@ Paper fills assume you buy at the ask and sell at the bid, and they include Grow
 | `groww` | about Rs 499/month | Official Groww Trade API (`pip install growwapi`). Read-only use here. |
 | `sample` | free | Synthetic, deterministic data for tests. |
 
-Groww credentials are read from environment variables only. Never commit them:
-`GROWW_ACCESS_TOKEN`, or `GROWW_API_KEY` with `GROWW_API_SECRET` (or `GROWW_TOTP_SECRET`).
+Groww credentials are read from environment variables or `~/.trading.env` only. Never commit them.
+Recommended: `GROWW_API_KEY` with `GROWW_TOTP_SECRET` (TOTP key: no daily approval). The desk signs in again by itself
+after tokens expire at 06:00 IST. `live.chain_provider: auto` uses Groww whenever these are set, else the NSE website.
+Check the connection with `python -m fno groww-check` (prints no secrets). The SDK is in `requirements-groww.txt`,
+which `deploy/setup.py` installs. Data calls need no fixed IP address; the static-IP rule covers placing orders, which
+this tool never does.
 
 ## Slack
 

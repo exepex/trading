@@ -21,9 +21,9 @@ ENV_TEMPLATE = """# Secrets for the F&O desk. Only your account can read this fi
 FNO_SLACK_BOT_TOKEN=
 # Optional, only for the MotherDuck options in config.yaml (shared with the market-brief tool):
 MOTHERDUCK_TOKEN=
-# Groww Trade API, once subscribed:
+# Groww Trade API (market data only). Recommended: the TOTP key and its TOTP secret, no daily approval needed.
 GROWW_API_KEY=
-GROWW_API_SECRET=
+GROWW_TOTP_SECRET=
 """
 
 
@@ -50,7 +50,7 @@ def main() -> int:
         venv.create(VENV_DIR, with_pip=True)
     python = str(venv_python())
     run(python, "-m", "pip", "install", "--quiet", "--upgrade", "pip")
-    run(python, "-m", "pip", "install", "--quiet", "-r", "requirements.txt")
+    run(python, "-m", "pip", "install", "--quiet", "-r", "requirements.txt", "-r", "requirements-groww.txt")
 
     step(2, "Tests")
     run(python, "-m", "pytest", "-q")

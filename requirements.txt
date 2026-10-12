@@ -5,6 +5,4 @@ duckdb==1.5.6       # same version as the market-brief tool's MotherDuck extensi
 pytz>=2024.1        # duckdb needs it for time zones
 Pillow>=10.0
 psutil>=5.9          # cross-platform process checks for the desk watchdog
-# Optional, only for the Groww provider:
-# growwapi>=1.5
-# pyotp>=2.9
+# Groww Trade API: requirements-groww.txt (installed by deploy/setup.py on the desk's PC)

@@ -4,16 +4,36 @@ Credentials come from environment variables, never from files in this repo:
   GROWW_ACCESS_TOKEN                      a ready access token, or
   GROWW_API_KEY + GROWW_API_SECRET        approval-flow key/secret, or
   GROWW_API_KEY + GROWW_TOTP_SECRET       TOTP-flow key plus the TOTP seed (needs `pyotp`)
+
+Groww access tokens expire every morning at 06:00 IST. With a key plus TOTP seed (recommended: no daily approval)
+or key plus secret, the provider fetches a new token by itself after that time, so the desk runs unattended.
+Market-data calls need no fixed IP address; SEBI's static-IP rule applies to placing orders, which this never does.
 """
 
 from __future__ import annotations
 
 import os
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 
+from ..constants import ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY, ENV_GROWW_API_SECRET, ENV_GROWW_TOTP_SECRET
 from ..models import MarketContext, OptionChain, OptionQuote, now_ist
 from .base import Provider
 from .public import PublicData
+
+TOKEN_EXPIRY_TIME_IST = time(6, 0)
+CREDENTIALS_MISSING = (
+    f"Groww credentials missing: set {ENV_GROWW_API_KEY} with {ENV_GROWW_TOTP_SECRET} (or {ENV_GROWW_API_SECRET}), "
+    f"or a ready {ENV_GROWW_ACCESS_TOKEN}, in ~/.trading.env."
+)
+
+
+def has_groww_credentials() -> bool:
+    return bool(os.environ.get(ENV_GROWW_ACCESS_TOKEN) or os.environ.get(ENV_GROWW_API_KEY))
+
+
+def token_day(moment: datetime) -> date:
+    """Tokens live from 06:00 IST to 06:00 the next day; this names the window a moment falls in."""
+    return (moment - timedelta(hours=TOKEN_EXPIRY_TIME_IST.hour, minutes=TOKEN_EXPIRY_TIME_IST.minute)).date()
 
 
 def _payload(resp: dict) -> dict:
@@ -62,29 +82,34 @@ class GrowwProvider(Provider):
         except ImportError as exc:  # pragma: no cover - depends on optional install
             raise RuntimeError("Install the Groww SDK first: pip install growwapi") from exc
         self.GrowwAPI = GrowwAPI
-        self.api = GrowwAPI(self._token())
+        self._api = None
+        self._api_day: date | None = None
         # VIX and daily history still come from public sources.
         self.public = public or PublicData()
 
+    @property
+    def api(self):
+        """The SDK client, signed in again with a fresh token once the 06:00 IST expiry has passed."""
+        today = token_day(now_ist())
+        if self._api is None or self._api_day != today:
+            self._api = self.GrowwAPI(self._token())
+            self._api_day = today
+        return self._api
+
     def _token(self) -> str:
-        token = os.environ.get("GROWW_ACCESS_TOKEN")
-        if token:
-            return token
-        key = os.environ.get("GROWW_API_KEY")
-        if not key:
-            raise RuntimeError(
-                "Groww credentials missing: set GROWW_ACCESS_TOKEN, or GROWW_API_KEY with "
-                "GROWW_API_SECRET or GROWW_TOTP_SECRET as environment secrets."
-            )
-        secret = os.environ.get("GROWW_API_SECRET")
-        if secret:
-            return self.GrowwAPI.get_access_token(api_key=key, secret=secret)
-        totp_seed = os.environ.get("GROWW_TOTP_SECRET")
-        if totp_seed:
+        key = os.environ.get(ENV_GROWW_API_KEY)
+        totp_seed = os.environ.get(ENV_GROWW_TOTP_SECRET)
+        secret = os.environ.get(ENV_GROWW_API_SECRET)
+        if key and totp_seed:
             import pyotp
 
             return self.GrowwAPI.get_access_token(api_key=key, totp=pyotp.TOTP(totp_seed).now())
-        raise RuntimeError("Set GROWW_API_SECRET or GROWW_TOTP_SECRET alongside GROWW_API_KEY.")
+        if key and secret:
+            return self.GrowwAPI.get_access_token(api_key=key, secret=secret)
+        token = os.environ.get(ENV_GROWW_ACCESS_TOKEN)  # a manual token: works only until the next 06:00 IST
+        if token:
+            return token
+        raise RuntimeError(CREDENTIALS_MISSING)
 
     def expiries(self, underlying: str) -> list[date]:
         today = now_ist().date()

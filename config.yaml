@@ -117,7 +117,7 @@ charges:
 
 # Live scanner (python -m fno live run). All ~200 NSE F&O underlyings, paper trades only.
 live:
-  chain_provider: nse              # nse now; groww once the Trade API subscription is active
+  chain_provider: auto             # groww when GROWW_* credentials are set (owner's PC), else the free NSE website
   research:                        # the stock tool's research (news, verification, earnings, regime, model)
     source: repo                   # repo = its GitHub data files (default) | motherduck = its MotherDuck copy
     repo_url: https://github.com/contactexepex/agentic-stock-prediction
