@@ -38,3 +38,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 11: desk design v2.1 sign-off and closure checklist](review_11_2026-10-12-closure-checklist.md)
 - [Review 12: implementation plan (28 stories) and Experiment 1 protocol](review_12_2026-10-12-implementation-plan-and-experiment-1.md)
 - [Review 13: revised stories and Experiment 1 protocol v2](review_13_2026-10-12-revised-stories-and-experiment-1-v2.md)
+- [Review 14: Response 16 closure and Experiment 1 protocol v2.1](review_14_2026-10-12-response-16-closure.md)
