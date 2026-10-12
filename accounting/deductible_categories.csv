@@ -1,0 +1,5 @@
+category,deductible,note
+ai,yes,AI subscriptions and API calls used for the trading research (assumed deductible)
+data,yes,market data subscriptions used for the trading (assumed deductible)
+compute,yes,servers and storage used for the trading (assumed deductible)
+other,no,anything else unless declared

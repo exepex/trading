@@ -39,7 +39,7 @@ Research results report the scenario after the pre-tax pass/fail tests; tax neve
 
 **Judge verifies:** recomputes one month's three ledgers by hand from the trade list and the costs file.
 
-**Depends:** - · **Size:** S · **Status:** next (before experiment 1 runs)
+**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026 (`fno/accounting/ledgers.py`, `accounting/*.csv`; awaiting judge)
 
 ---
 

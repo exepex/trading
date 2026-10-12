@@ -55,7 +55,7 @@ before C4 (C4 checks the decision record).
 | [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | - | S | done (judge passed) |
 | [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | B1-B4, A1, A3, A5, A6, C1 | M | doing (protocol in review) |
 | [B6](stories/B-research-engine.md#b6-candidate-scan) | Candidate scan | B3 | L | later |
-| [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | - | S | next (before experiment 1 runs) |
+| [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | - | S | built; awaiting judge |
 | [C2](stories/C-code-roles.md#c2-risk-manager) | Risk manager | B2 | L | later |
 | [C3](stories/C-code-roles.md#c3-data-checks-before-every-decision) | Data checks before every decision | A3, A4 | S | later |
 | [C4](stories/C-code-roles.md#c4-hard-validity-checks-judge-part-1) | Hard-validity checks (judge part 1) | C2, D3 | M | later |
