@@ -4,9 +4,11 @@ Prepared 12 Oct 2026 for an independent review (the owner, Claude and ChatGPT). 
 happened, what the control tests show, what we got wrong in the process, and what we do not know yet. The raw numbers
 are in `reports/2026-10-12-backtest-analysis-data.json`.
 
-**To the reviewer:** please read the whole report, then answer sections 9 and 10. We are not only asking you to check
-the analysis; we want your own solution, as an experienced F&O trader and portfolio manager, so the owner can compare
-it with Claude's and the three of us can agree on the core strategy before anything more is built.
+**To the reviewer:** this is a three-way solution design between the owner, Claude and you. Please (1) read this
+report, (2) answer sections 9 and 10 **on your own first**, then (3) read Claude's proposal
+(`reports/2026-10-12-claude-strategy-proposal.md`, shared with this report) and answer section 11. We are not only
+asking you to check the analysis: we want your own solution, so the three of us can agree on a strong core before
+anything more is built.
 
 ## 1. Background
 
@@ -227,8 +229,8 @@ What the controls say:
 
 ## 10. Your recommendation: how would you trade this?
 
-Imagine you are an experienced portfolio manager and F&O trader in India, with years of real results trading NSE
-index and stock options, and you have been handed this account (Rs 2-5 lakh, Groww, no co-location, research and
+Imagine you are, at once, a portfolio manager running thousands of crores, an F&O trader with years of real results on
+NSE index and stock options, a statistician and a mathematician. You have been handed this account (Rs 2-5 lakh, Groww, no co-location, research and
 paper trading first, real money only after proven net profit). Please answer as that person, plainly and honestly:
 
 1. **Your diagnosis in one paragraph:** what is the real reason this lost money?
@@ -246,8 +248,28 @@ paper trading first, real money only after proven net profit). Please answer as 
    away.
 8. **Where AI helps and where it does not:** which decisions should stay rule-based and which an AI analyst could
    improve.
-9. **Your honest view:** if you think a retail account like this should not trade options at all, or only one narrow
-   setup, say so and explain.
+9. **As a statistician and mathematician:** how would you read this data differently? Which measures, controls,
+   sample sizes, significance tests and checks against overfitting would you insist on? What in our numbers would
+   you not trust?
+10. **As an F&O expert reading the market:** what would you watch that we do not (implied vs realised volatility,
+    skew, term structure, open interest, FII positioning, expiry effects, gaps, events), and how exactly would each
+    feed a decision?
+11. **Reading news:** how should news be used by a retail desk that can never be fastest (as a trigger, a guard, an
+    event calendar, a surprise measure)? How would you test whether it adds anything?
+12. **Your honest view:** if you think a retail account like this should not trade options at all, or only one narrow
+    setup, say so and explain.
 
 Please be blunt; give numbers where you can; mark assumptions and uncertainty; no guarantees of profit. A short
 summary table of your recommended setup(s) at the end would help us compare your answer with Claude's.
+
+
+## 11. After your own answer: critique Claude's proposal
+
+Claude built the first version and has written how it would redo it (`reports/2026-10-12-claude-strategy-proposal.md`).
+After answering section 10 on your own, please:
+
+1. Say where you **agree**, where you **disagree** and why, point by point.
+2. Point out anything **wrong, missing or naive** (market facts, statistics, risk, costs, margin, Indian rules).
+3. Rank Claude's strategy candidates (A-D) and yours together, by likelihood of a real net edge for this account.
+4. Propose the **combined plan** you would sign off on: what to build first, what to test, the pass and stop
+   criteria, and what to leave out.
