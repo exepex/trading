@@ -168,5 +168,5 @@ in tests and before every commit made by a routine.
 
 **Judge verifies:** plants a fake token in a record and confirms the routine refuses to commit.
 
-**Depends:** - · **Size:** S · **Status:** later
+**Depends:** - · **Size:** S · **Status:** built; awaiting judge (claims: `reviews/claude/response_36_2026-10-13-o5-record-scan.md`)
 

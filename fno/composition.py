@@ -6,6 +6,8 @@ from __future__ import annotations
 from .providers import AUTO_PROVIDER, get_provider
 from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.recorder import QuoteSnapshotRecorder
+from .record_scan.catalogue import ALLOWED_VALUES, record_patterns
+from .record_scan.scanner import RecordScanner
 from .storage.wiring import build_nse_fo_library, build_quote_store
 
 
@@ -15,3 +17,8 @@ def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     file for expiry dates the provider cannot list."""
     provider = get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg)
     return QuoteSnapshotRecorder(provider, build_quote_store(), fallback=NseDailyFileExpiries(build_nse_fo_library()))
+
+
+def build_record_scanner() -> RecordScanner:
+    """The public-record scan (story O5): every pattern of the catalogue, with the #fno-desk channel ID allowed."""
+    return RecordScanner(record_patterns(), ALLOWED_VALUES)

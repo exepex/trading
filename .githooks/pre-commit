@@ -1,0 +1,4 @@
+#!/bin/sh
+# Public-record safety scan (story O5): refuses the commit when a staged record holds a credential, personal data or a
+# broker identifier. Routines enable it with `git config core.hooksPath .githooks` (CLAUDE.md).
+exec python "$(dirname "$0")/../tools/check_records.py" --staged --root "$(git rev-parse --show-toplevel)"
