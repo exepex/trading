@@ -39,8 +39,8 @@ Vercel's "promote previous deployment" (instant), plus reconnecting the old repo
 
 ## Decisions the owner makes first (step 0)
 
-1. **Repository name and owner account** for the dashboard (suggestion: `exepex/dashboard`, public during
-   development like the others, private when stable).
+1. **Repository name and owner account** for the dashboard: **`exepex/omenix-dashboard`** (created by the owner on
+   12 Oct 2026; public during development, private when stable).
 2. **Azure region:** put the database and the Vercel functions close together. Today the database is in
    `eu-central-1` (MotherDuck) and the owner is in India. Suggestion: Azure **Central India**, and set the Vercel
    functions' region to Mumbai (`bom1`) in both projects. Check that latency to the cloud routines is acceptable.
@@ -82,6 +82,12 @@ Vercel's "promote previous deployment" (instant), plus reconnecting the old repo
    those in MotherDuck. Any difference is fixed before going further.
 
 ## Phase 3: the new dashboard repository (story W1, dashboard repository)
+
+**Done 12 Oct 2026 (steps 10-12):** `exepex/omenix-dashboard` holds `web/`, `api/`, the web-tests workflow and the
+files the app's tests and design-sync tool read (`design/system/`, `design/mockups/`, `config/warehouse.yaml`, the
+vendored chart file), with 298 commits of history, byte-identical to the stock repository at `0435bd1`; typecheck,
+303 of 303 tests and the production build pass. Repository constants were **not** moved yet (step 11 waits until a
+second backend needs them). Until the cutover, dashboard changes must be made in one repository only.
 
 10. Create the repository (step 0). Bring over `web/` **with its history**:
     `git clone agentic-stock-prediction tmp && cd tmp && git filter-repo --path web/ --path api/ --path .github/workflows/web-tests.yml`
