@@ -81,3 +81,18 @@ class ExpensiveOptionsGuard(GuardRule):
             ratio > limit,
             f"options priced at {implied * 100:.0f}% vol vs {realised * 100:.0f}% realised ({ratio:.1f}x)",
         )
+
+
+class IvRankGuard(GuardRule):
+    """No option purchase when options are dear against their own history (IV rank above the limit).
+    Abstains until the desk has stored enough daily IV snapshots (see fno/live/learning/iv_history.py)."""
+
+    name = "iv_rank"
+
+    def evaluate(self, inputs: SymbolInputs) -> GuardVerdict:
+        limit = self.settings.get("max_iv_rank", 80)
+        if inputs.iv_rank is None:
+            return self.verdict(False, "not enough IV history yet")
+        if inputs.iv_rank > limit:
+            return self.verdict(True, f"options dear: IV rank {inputs.iv_rank:.0f} above {limit}")
+        return self.verdict(False, f"IV rank {inputs.iv_rank:.0f}")

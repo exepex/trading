@@ -5,7 +5,15 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import date, datetime
 
-from ..constants import STRATEGY_LONG_CALL, STRATEGY_LONG_PUT, Direction, OiBuildup, OptionKind, OrderSide
+from ..constants import (
+    FILL_LAST_PRICE,
+    STRATEGY_LONG_CALL,
+    STRATEGY_LONG_PUT,
+    Direction,
+    OiBuildup,
+    OptionKind,
+    OrderSide,
+)
 
 
 @dataclass(frozen=True)
@@ -94,6 +102,7 @@ class TradeIdea:
     view: MarketView
     exception: bool = False  # one lot above the normal budget, allowed on strong evidence
     notes: list[str] = field(default_factory=list)
+    fill_source: str = FILL_LAST_PRICE
 
     @property
     def capital_used(self) -> float:
@@ -126,6 +135,7 @@ class TradeIdea:
             "stop_amount": round(self.entry_price - self.stop_price, 2),
             "target_amount": round(self.target_price - self.entry_price, 2),
             "exception": self.exception,
+            "fill_source": self.fill_source,
             "contract_name": self.contract_name,
             "score": round(self.view.score, 3),
             "reasons": [v.reason for v in self.view.votes if v.score * self.view.score > 0],

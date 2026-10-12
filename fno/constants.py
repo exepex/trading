@@ -120,3 +120,20 @@ class NewsEventType(StrEnum):
     MACRO = "macro or world"
     ROUTINE = "routine filing"
     OTHER = "other"
+
+
+# How a paper fill was priced (stored on every trade so results are honest about their realism)
+FILL_BID_ASK = "bid/ask"
+FILL_LAST_PRICE = "last price +/- slippage"
+EVENT_IV_SNAPSHOT = "iv_snapshot"  # one at-the-money implied volatility per underlying per trading day
+
+# Which family an index belongs to for the one-bet rule: BANKNIFTY and FINNIFTY move with financial stocks.
+FINANCIALS_FAMILY = "Financial Services"  # NSE's industry name for banks, NBFCs and insurers
+BROAD_MARKET_FAMILY = "broad market"
+INDEX_FAMILIES = {
+    "BANKNIFTY": FINANCIALS_FAMILY,
+    "FINNIFTY": FINANCIALS_FAMILY,
+    "NIFTY": BROAD_MARKET_FAMILY,
+    "NIFTYNXT50": BROAD_MARKET_FAMILY,
+    "MIDCPNIFTY": BROAD_MARKET_FAMILY,
+}

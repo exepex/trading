@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, timedelta
 
 from fno import journal
@@ -93,3 +94,22 @@ def test_readiness_needs_a_long_profitable_record():
     trades = [closed(300 if i % 3 else -200, (at(10, 0) + timedelta(days=i)).isoformat()) for i in range(30)]
     checks = {c.name: c for c in readiness_checks(trades, CFG, SESSION_DAY + timedelta(days=40))}
     assert not checks["closed trades"].passed and checks["net profit after all charges"].passed
+
+
+def test_correlated_trades_count_as_one_bet():
+    gate = PortfolioGate(CFG, KillSwitch(__import__("pathlib").Path("/nonexistent/KILL")))
+    gate.industries = {
+        "HDFCBANK": "Financial Services",
+        "ICICIBANK": "Financial Services",
+        "TCS": "Information Technology",
+    }
+    holding = [
+        dict(closed(0, "2026-10-09T10:00+05:30", underlying=u), status="open", closed_at=None, direction="bearish")
+        for u in ("HDFCBANK", "ICICIBANK")
+    ]
+    bank_index = replace(idea(), underlying="BANKNIFTY")
+    reason = gate.refusal(bank_index, holding, SessionPhase.TRADING, at(11, 0))
+    assert reason and "Financial Services" in reason and "max 2" in reason
+    it_stock = replace(idea(), underlying="TCS")
+    assert gate.refusal(it_stock, holding, SessionPhase.TRADING, at(11, 0)) is None
+    assert gate.family("UNKNOWNCO") == "UNKNOWNCO" and gate.family("NIFTY") == "broad market"

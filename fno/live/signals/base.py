@@ -29,6 +29,7 @@ class SymbolInputs:
     backdrop: MarketBackdrop = field(default_factory=MarketBackdrop)
     industry: str | None = None  # NSE industry, None for indices
     news: NewsPulse | None = None  # the fast news watcher's view of this underlying, when it runs
+    iv_rank: float | None = None  # 0-100 where today's ATM IV sits in its own history; None until enough history
 
     @property
     def closes(self) -> list[float]:

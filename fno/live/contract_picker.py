@@ -7,8 +7,10 @@ from datetime import date
 
 from ..analytics import Greeks, bs_greeks
 from ..constants import INDEX_UNDERLYINGS, Direction, OptionKind, OrderSide
+from ..journal import fill_source
 from ..models import OptionChain, OptionQuote
 from ..naming import groww_contract_name, trade_idea_id
+from ..providers import Provider
 from ..strategies import size_position
 from .models import MarketView, TradeIdea
 
@@ -46,11 +48,19 @@ class ExitLevels:
 
 
 class ContractPicker:
-    def __init__(self, rules: PickerRules, exits: ExitLevels, position_rules: dict, max_planned_loss: float):
+    def __init__(
+        self,
+        rules: PickerRules,
+        exits: ExitLevels,
+        position_rules: dict,
+        max_planned_loss: float,
+        live_quotes: Provider | None = None,
+    ):
         self.rules = rules
         self.exits = exits
         self.position_rules = position_rules
         self.max_planned_loss = max_planned_loss  # rupees lost if the stop is hit (2% of capital)
+        self.live_quotes = live_quotes  # real bid/ask for the chosen contract when the chain has none
 
     def pick(self, view: MarketView, chain: OptionChain, today: date) -> tuple[TradeIdea | None, str]:
         """The best liquid contract for the view, or None with the reason."""
@@ -58,6 +68,9 @@ class ContractPicker:
             return None, "no clear direction"
         kind = OptionKind.CALL.value if view.direction is Direction.BULLISH else OptionKind.PUT.value
         quote, reason = self._best_quote(chain, kind)
+        if quote is None:
+            return None, reason
+        quote, reason = self._confirm_with_live_quote(chain, quote)
         if quote is None:
             return None, reason
         entry = round(quote.fill_price(OrderSide.BUY.value), 2)
@@ -87,8 +100,19 @@ class ContractPicker:
             view=view,
             exception=exception,
             notes=[size_note] if size_note else [],
+            fill_source=fill_source(quote),
         )
         return idea, "ok"
+
+    def _confirm_with_live_quote(self, chain: OptionChain, quote: OptionQuote) -> tuple[OptionQuote | None, str]:
+        """A chain without bid/ask (Groww) is checked again against the contract's live bid/ask before buying."""
+        if quote.has_book or self.live_quotes is None:
+            return quote, "ok"
+        live = self.live_quotes.live_quote(chain, quote.strike, quote.kind)
+        if live is None or not live.has_book:
+            return quote, "ok"  # priced at last price + slippage, and recorded as such
+        problem = self._contract_problem(chain, live, self._greeks(chain, live, chain.years_to_expiry()))
+        return (None, f"live quote: {problem}") if problem else (live, "ok")
 
     def _best_quote(self, chain: OptionChain, kind: str) -> tuple[OptionQuote | None, str]:
         years = chain.years_to_expiry()

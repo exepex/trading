@@ -74,5 +74,44 @@
   "note": "shadow",
   "last_mark": null,
   "contract_name": "BANKNIFTY 27 Oct 55200 Call"
+ },
+ {
+  "id": "T003",
+  "candidate": "DMART-27Oct-3600PE",
+  "opened_at": "2026-10-12T08:04+05:30",
+  "underlying": "DMART",
+  "expiry": "2026-10-27",
+  "strategy": "long_put",
+  "direction": "bearish",
+  "spot_at_entry": 3516.8,
+  "legs": [
+   {
+    "kind": "PE",
+    "strike": 3600.0,
+    "side": "buy",
+    "price": 149.15
+   }
+  ],
+  "lot_size": 150,
+  "lots": 1,
+  "entry_value": 149.15,
+  "fill_source": "bid/ask",
+  "stop_amount": 44.74,
+  "target_amount": 89.49,
+  "entry_charges": 33.68,
+  "capital_used": 22372.5,
+  "charge_breakdown": {
+   "brokerage": 20.0,
+   "stt": 0.0,
+   "exchange": 7.84,
+   "sebi": 0.02,
+   "ipft": 0.11,
+   "stamp": 0.67,
+   "gst": 5.03
+  },
+  "status": "open",
+  "note": "shadow",
+  "last_mark": null,
+  "contract_name": "DMART 27 Oct 3600 Put"
  }
 ]

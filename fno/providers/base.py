@@ -5,7 +5,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
 
-from ..models import MarketContext, OptionChain
+from ..models import MarketContext, OptionChain, OptionQuote
 
 INDEX_NAMES = {
     "NIFTY": "NIFTY 50",
@@ -46,3 +46,8 @@ class Provider(ABC):
     @abstractmethod
     def context(self, underlying: str) -> MarketContext:
         """Spot, price history and volatility context."""
+
+    def live_quote(self, chain: OptionChain, strike: float, kind: str) -> OptionQuote | None:
+        """The contract's current bid/ask when the chain itself has none (Groww's chain gives last price only).
+        None when the provider cannot quote it; callers then fall back to last price +/- slippage."""
+        return None

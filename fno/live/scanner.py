@@ -113,12 +113,19 @@ class LiveScanner:
             backdrop=context.backdrop,
             industry=context.reference.industries.get(symbol),
             news=s.news_room.pulse(symbol, now) if s.news_room else None,
+            iv_rank=self._iv_rank(symbol, chain, now),
         )
         view = s.view_builder.build(inputs)
         report.views.append(view)
         if view.blocked or view.direction is Direction.NEUTRAL or chain is None:
             return
         self._trade_if_allowed(view, chain, context, report)
+
+    def _iv_rank(self, symbol: str, chain: OptionChain | None, now: datetime) -> float | None:
+        if chain is None or self.services.iv_history is None:
+            return None
+        iv = self.services.iv_history.observe(symbol, chain)
+        return self.services.iv_history.rank(symbol, iv, now.date())
 
     def _trade_if_allowed(
         self, view: MarketView, chain: OptionChain, context: CycleContext, report: ScanReport

@@ -107,6 +107,7 @@ class LiveRunner:
         self.outcomes.end_of_day()
         self.reference = ReferenceData.load(self.services.nse_feed, today)
         self.services.clock.holidays = self.reference.holidays
+        self.services.gate.industries = self.reference.industries
         log.info(
             "new day %s: %d F&O underlyings, %d banned", today, len(self.reference.symbols), len(self.reference.banned)
         )
@@ -202,6 +203,8 @@ class LiveRunner:
     def _send_day_summary_once(self, now: datetime) -> None:
         if self.state.summary_sent or not self.services.clock.is_trading_day(now.date()):
             return
+        if self.services.iv_history is not None:
+            self.services.iv_history.flush(now)
         desk = self.services.desk
         message = day_summary_message(
             now.date(), desk.closed_on(now.date()), desk.open_trades(), self.state.scans, self.state.ideas

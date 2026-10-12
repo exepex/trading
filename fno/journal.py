@@ -7,6 +7,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from .config import ROOT
+from .constants import FILL_BID_ASK, FILL_LAST_PRICE
 from .costs import CHARGE_NAMES, legs_breakdown, legs_charges
 from .models import now_ist
 from .providers import Provider
@@ -107,6 +108,7 @@ def open_trade(
         "lot_size": cand["lot_size"],
         "lots": lots,
         "entry_value": cand["entry_value"],
+        "fill_source": cand.get("fill_source", FILL_LAST_PRICE),
         "stop_amount": cand["stop_amount"],
         "target_amount": cand["target_amount"],
         "entry_charges": round(legs_charges(entry_orders, units, cfg.get("charges", {})), 2),
@@ -122,18 +124,27 @@ def open_trade(
     return trade
 
 
+def fill_source(quote) -> str:
+    """How a price was reached: the real bid/ask, or last traded price +/- assumed slippage."""
+    return FILL_BID_ASK if quote.has_book else FILL_LAST_PRICE
+
+
 def close_value(trade: dict, provider: Provider, slippage: float) -> tuple[float, list[tuple[str, float]], float]:
     """Current per-unit value of the position if closed now, the closing orders, and spot."""
     chain = provider.chain(trade["underlying"], date.fromisoformat(trade["expiry"]))
-    value, orders = 0.0, []
+    value, orders, sources = 0.0, [], set()
     for leg in trade["legs"]:
         q = chain.get(leg["strike"], leg["kind"])
         close_side = "sell" if leg["side"] == "buy" else "buy"
         if q is None:
             raise KeyError(f"{leg['strike']} {leg['kind']} missing from chain")
+        if not q.has_book:
+            q = provider.live_quote(chain, leg["strike"], leg["kind"]) or q
+        sources.add(fill_source(q))
         price = q.fill_price(close_side, slippage)
         orders.append((close_side, price))
         value += (1 if leg["side"] == "buy" else -1) * price
+    trade["exit_fill_source"] = FILL_LAST_PRICE if FILL_LAST_PRICE in sources else FILL_BID_ASK  # latest mark
     return value, orders, chain.spot
 
 

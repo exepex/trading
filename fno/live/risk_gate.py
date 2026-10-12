@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from .. import journal
-from ..constants import INDEX_UNDERLYINGS, SessionPhase, TradeStatus
+from ..constants import INDEX_FAMILIES, INDEX_UNDERLYINGS, SessionPhase, TradeStatus
 from .kill_switch import KillSwitch
 from .models import TradeIdea
 
@@ -15,6 +15,12 @@ class PortfolioGate:
         self.cfg = cfg
         self.kill_switch = kill_switch
         self.cooldown = timedelta(minutes=reentry_cooldown_minutes)
+        self.industries: dict[str, str] = {}  # NSE industry per stock; set each morning from the reference data
+
+    def family(self, symbol: str) -> str:
+        """Underlyings that move together count as one bet: a stock's NSE industry; indices per INDEX_FAMILIES.
+        A stock whose industry is unknown is its own family."""
+        return INDEX_FAMILIES.get(symbol) or self.industries.get(symbol) or symbol
 
     def refusal(self, idea: TradeIdea, trades: list[dict], phase: SessionPhase, now: datetime) -> str | None:
         """None if the idea may be opened now, otherwise the first rule it breaks."""
@@ -24,6 +30,7 @@ class PortfolioGate:
             self._open_slots,
             self._same_underlying,
             self._concentration,
+            self._same_family,
             self._trade_frequency,
             self._loss_cooldown,
             self._recent_exit,
@@ -62,6 +69,16 @@ class PortfolioGate:
             index_trades = sum(t["underlying"] in INDEX_UNDERLYINGS for t in open_trades)
             if index_trades >= account.get("max_index_trades", 2):
                 return f"already {index_trades} index trades open"
+        return None
+
+    def _same_family(self, idea, trades, phase, now) -> str | None:
+        """Three bank stocks and BANKNIFTY are one bet on banks, not four trades."""
+        limit = self.cfg.get("account", {}).get("max_per_family", 2)
+        family = self.family(idea.underlying)
+        held = [t["underlying"] for t in trades if t["status"] == TradeStatus.OPEN.value]
+        same = [u for u in held if self.family(u) == family]
+        if len(same) >= limit:
+            return f"already {len(same)} open trades in {family} ({', '.join(same)}; max {limit})"
         return None
 
     def _trade_frequency(self, idea, trades, phase, now) -> str | None:

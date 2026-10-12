@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .base import GuardRule, SignalRule
-from .guards import BanListGuard, EarningsGuard, ExpensiveOptionsGuard, MarketStressGuard
+from .guards import BanListGuard, EarningsGuard, ExpensiveOptionsGuard, IvRankGuard, MarketStressGuard
 from .market_signals import GlobalCues, MarketBreadth, SectorStrength, VixDirection
 from .news_signals import FastNews, NewsShockGuard
 from .option_signals import OptionWritingPressure
@@ -37,7 +37,7 @@ SIGNAL_RULES: dict[str, type[SignalRule]] = {
 }
 GUARD_RULES: dict[str, type[GuardRule]] = {
     guard.name: guard
-    for guard in (BanListGuard, EarningsGuard, MarketStressGuard, ExpensiveOptionsGuard, NewsShockGuard)
+    for guard in (BanListGuard, EarningsGuard, MarketStressGuard, ExpensiveOptionsGuard, NewsShockGuard, IvRankGuard)
 }
 
 

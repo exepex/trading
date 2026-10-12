@@ -20,6 +20,7 @@ from .exit_policy import ExitPolicy, TrailingStop
 from .feeds.nse_feed import NseLiveFeed
 from .feeds.price_feed import IntradayPriceFeed, YahooPriceFeed
 from .kill_switch import KillSwitch
+from .learning.iv_history import IvHistory
 from .market_clock import MarketClock, SessionTimes
 from .market_view import MarketViewBuilder, ViewThresholds
 from .news.api_sources import api_sources_from_environment
@@ -78,6 +79,7 @@ class LiveServices:
     shortlist_rules: ShortlistRules
     shadow_desk: PaperDesk | None = None
     news_room: NewsRoom | None = None  # filled by the news watcher, read by the scanner and the exit check
+    iv_history: IvHistory | None = None  # daily ATM implied volatility per underlying, for IV rank
 
     @property
     def live_cfg(self) -> dict:
@@ -99,6 +101,7 @@ def build_live_services(
         exit_days_before_expiry=cfg.get("exits", {}).get("exit_days_before_expiry", 1),
         trailing=TrailingStop.from_config(cfg.get("exits", {}).get("trailing_stop", {})),
     )
+    store = LockedResultsStore(build_results_store(live.get("results", {}), state_dir))
     return LiveServices(
         cfg=cfg,
         nse_feed=NseLiveFeed(),
@@ -114,11 +117,12 @@ def build_live_services(
             ExitLevels.from_config(cfg.get("exits", {}).get("long_option", {})),
             cfg.get("position_rules", {}),
             max_planned_loss(cfg),
+            chain_source,
         ),
         gate=PortfolioGate(cfg, kill_switch, live.get("reentry_cooldown_minutes", 30)),
         desk=PaperDesk(journal_path, cfg, chain_source, exit_policy),
         alerts=LiveAlerts(SlackTarget.from_environment(cfg)),
-        store=LockedResultsStore(build_results_store(live.get("results", {}), state_dir)),
+        store=store,
         clock=clock,
         kill_switch=kill_switch,
         research_loader=ResearchContextLoader(
@@ -126,6 +130,7 @@ def build_live_services(
         ),
         shortlist_rules=ShortlistRules.from_config(live.get("shortlist")),
         news_room=build_news_room(live.get("news", {})),
+        iv_history=IvHistory(store, **live.get("iv_history", {})),
         shadow_desk=(
             PaperDesk(journal_path.with_name(SHADOW_JOURNAL_NAME), cfg, chain_source, exit_policy, enforce_limits=False)
             if live.get("shadow_book", {}).get("enabled")

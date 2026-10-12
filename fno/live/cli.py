@@ -13,6 +13,7 @@ from ..constants import SessionPhase
 from ..models import IST
 from .learning.performance import readiness_checks
 from .learning.signal_report import format_report, rule_accuracy, suggested_weights
+from .learning.trade_stats import format_trade_stats, trade_stats
 from .learning.view_outcomes import VIEW_OUTCOME_KIND
 from .news.cli import news_once, news_report
 from .runner import LiveRunner
@@ -47,6 +48,8 @@ def add_live_parser(subparsers) -> None:
     report = actions.add_parser("signal-report", help="how well each signal predicted the later price move")
     report.add_argument("--days", type=int, default=20, help="look back this many days")
     report.add_argument("--horizon", type=int, default=30, help="minutes after the view (30 or 90)")
+    stats = actions.add_parser("trade-stats", help="results by time of entry, days to expiry and exit reason")
+    stats.add_argument("--shadow", action="store_true", help="the shadow book (one lot of every idea) instead")
     actions.add_parser("news-once", help="ask every news source once and show what it returns")
     speed = actions.add_parser("news-report", help="which news source delivered stories first")
     speed.add_argument("--days", type=int, default=14, help="look back this many days")
@@ -59,6 +62,12 @@ def run_live_command(args) -> int:
     now = datetime.now(IST)
     if args.live_cmd == "run":
         LiveRunner(services).run_forever()
+    elif args.live_cmd == "trade-stats":
+        book = services.shadow_desk if args.shadow else services.desk
+        if book is None:
+            print("The shadow book is switched off (live.shadow_book.enabled).")
+            return 1
+        print(format_trade_stats(trade_stats(book.trades())))
     elif args.live_cmd == "news-once":
         return news_once(services, now)
     elif args.live_cmd == "news-report":

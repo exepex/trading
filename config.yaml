@@ -19,6 +19,7 @@ account:
   max_open_trades: 5       # at most 5 open trades; a new one opens only after one closes
   max_same_direction: 3    # at most 3 open trades betting the same way (calls, or puts)
   max_index_trades: 2      # NIFTY, BANKNIFTY, FINNIFTY... move together: at most 2 at once
+  max_per_family: 2        # correlated trades are one bet: at most 2 per industry (BANKNIFTY/FINNIFTY = financials)
   max_new_trades_per_day: 2      # overtrading drives losses (SEBI FY26: traders active >100 days = 87% of losses)
   max_new_trades_per_week: 8
   cooldown_after_loss_minutes: 45  # no new entry right after any losing exit (revenge-trading guard)
@@ -165,6 +166,7 @@ live:
       - {name: BusinessLine Companies, outlet: BusinessLine, url: "https://www.thehindubusinessline.com/companies/feeder/default.rss", every_seconds: 300}
       - {name: BBC Business, url: "https://feeds.bbci.co.uk/news/business/rss.xml", every_seconds: 180}
       - {name: MarketWatch Bulletins, url: "https://feeds.content.dowjones.io/public/rss/mw_bulletins", every_seconds: 180}
+  iv_history: {min_days: 60, lookback_days: 365}  # one ATM IV per underlying per day, stored after the close
   shadow_book:
     enabled: true                  # one quiet paper lot of every idea in journal/shadow_trades.json, no limits,
                                    # no Slack: grades ideas the portfolio limits turned away
@@ -227,6 +229,7 @@ live:
     market_stress: {block_on_stress: true, block_on_geopolitical: true, block_on_major_event: true}
     expensive_options: {max_iv_to_realised: 1.3}
     news_shock: {quiet_minutes: 15, min_weight: 0.5}  # wait after credible big news whose direction is unclear
+    iv_rank: {max_iv_rank: 80}       # no purchase when options are dear vs their own history (needs live.iv_history)
   learning:
     horizons_minutes: [30, 90]     # grade every view by the price move this long afterwards
     min_abs_score: 0.2             # votes weaker than this do not count towards a hit rate

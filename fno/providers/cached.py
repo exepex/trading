@@ -6,7 +6,7 @@ import threading
 import time
 from datetime import date
 
-from ..models import MarketContext, OptionChain
+from ..models import MarketContext, OptionChain, OptionQuote
 from .base import Provider
 
 DEFAULT_CHAIN_MAX_AGE_SECONDS = 50  # just under the fastest review interval: every review still sees a fresh quote
@@ -42,3 +42,6 @@ class CachedProvider(Provider):
 
     def context(self, underlying: str) -> MarketContext:
         return self.inner.context(underlying)
+
+    def live_quote(self, chain: OptionChain, strike: float, kind: str) -> OptionQuote | None:
+        return self.inner.live_quote(chain, strike, kind)  # never cached: it is the price we trade at
