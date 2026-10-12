@@ -24,10 +24,14 @@ cloud into Drive (impossible with a service account); stock price files (not nee
 - New command `python -m fno data-coverage [--from 2019-01-01] [--to today]` in `fno/cli.py`, logic in a new module
   `fno/storage/coverage.py` (under 150 lines) that depends only on `RawFileStore` and the three `NseArchiveSource`
   classes (path naming), wired through `fno/storage/wiring.py`.
-- Trading days are taken as the union of days with any F&O file (current or old) plus NSE's published holiday-free
-  weekdays; a weekday with no file in any dataset is listed as "no file (holiday?)" for a person to confirm.
-- For each dataset and day: present / missing; zip files opened and checked with their internal checksums; CSV files
-  parsed (index closes must contain "Nifty 50" and "India VIX").
+- Expected trading days come from an **independent, versioned NSE session calendar**, not from the files themselves:
+  `research/data/calendar/nse_sessions.csv` (`date, session (regular | special | muhurat), source_url`), built from
+  NSE's published annual holiday circulars and special-session circulars (e.g. Budget Saturdays, muhurat trading),
+  committed with its sources. Weekdays not in the holiday list are sessions; weekend sessions are listed explicitly.
+- For each dataset and expected session: present, checksum-valid (zip internal checksums), schema-valid (required
+  columns; index closes contain "Nifty 50" and "India VIX"), or a **documented exception** in
+  `research/data/calendar/exceptions.csv` (`dataset, date, reason, source_url`), e.g. a session NSE never published a
+  file for. Any gap without an exception fails.
 - Output: a short table per dataset (days expected, present, missing, damaged) and the lists of missing and damaged
   days; exit code 0 when nothing is missing or damaged, 1 otherwise. Never writes to Drive; prints no secrets.
 
@@ -39,10 +43,13 @@ cloud into Drive (impossible with a service account); stock price files (not nee
    no file are not requested again. (Done; tested.)
 3. Given a Drive folder with one day's old-format file missing and one zip with a flipped byte, when
    `data-coverage` runs, then it lists exactly that missing day and that damaged file and exits 1.
-4. Given the owner's complete upload, when `data-coverage` runs for 2019-01-01 to the last download day, then it
-   reports 0 missing and 0 damaged for all three datasets, or names each exception with a reason (for example a day
-   NSE never published).
-5. The command makes only read requests to Drive (verified by a test with a fake Drive that fails on any write).
+4. Given the owner's complete upload, when `data-coverage` runs for 2019-01-01 to the last download day, then every
+   expected session of every dataset is present, checksum-valid and schema-valid, or has a sourced exception row; any
+   unexplained gap makes it exit 1.
+5. Given a file present on a day the calendar says is a holiday, it is reported as "unexpected file" for review.
+6. The calendar file is validated: every holiday and special session has a source link; its commit precedes any
+   coverage result that relies on it.
+7. The command makes only read requests to Drive (verified by a test with a fake Drive that fails on any write).
 
 **Test plan:** unit tests with a fake `RawFileStore` (missing day, damaged zip, damaged CSV, complete set); one real
 check against Drive recorded in the conversation log with the command's output.
@@ -118,9 +125,15 @@ underlyings (later stories), intraday data.
    2019-2023 the old format is used (`legacy`).
 3. Given the same raw files, when the panel is built twice, then the output files are byte-identical.
 4. Given a day with no F&O file, then the day is absent from the panel and listed in the manifest as "no file".
-5. Every row's `underlying` equals that day's NIFTY 50 index close and `vix` that day's India VIX close; a day whose
-   index file is missing is reported and its rows keep empty `underlying` and `vix`.
-6. The panel's 2024-2026 NIFTY rows reproduce the existing extract's rows (same days, expiries, strikes and prices)
+5. Every row's `underlying` equals that day's NIFTY 50 index close and `vix` that day's India VIX close.
+6. (date, expiry, strike, type) is unique in the panel; a duplicate fails the build.
+7. `manifest.json` records, per day, the SHA-256 of both the F&O source file and the index-close file used.
+8. **Research-ready gate:** `build` exits with failure, naming the days, if any expected session (A1 calendar) lacks
+   its F&O file, NIFTY 50 close or India VIX close, unless the day has a sourced exception; it never silently writes
+   empty `underlying` or `vix`.
+9. Format precedence is deterministic and tested: on a day with both formats, the current format is used and the
+    choice is recorded.
+10. The panel's 2024-2026 NIFTY rows reproduce the existing extract's rows (same days, expiries, strikes and prices)
    for every contract the extract contains.
 
 **Test plan:** unit tests on two fixture days (one per format); a determinism test (build twice, compare bytes); a
@@ -153,28 +166,39 @@ storage, a spread report. Out: order placement (never), other underlyings, intra
   as the daily brief).
 - Each snapshot saved as `raw/groww-or-nse/derivatives/quote-snapshots/<YYYY>/<MM>/nifty_<YYYYMMDD>_1500.csv` through
   a writable store (the repository folder `research/data/quotes/` while Drive is read-only), never overwritten.
-- Columns: `captured_at` (IST timestamp), `provider`, `expiry`, `strike`, `type`, `bid`, `ask`, `last`, `bid_qty`,
-  `ask_qty`, `spot`.
+- Columns: `request_sent_at`, `response_received_at` (IST, from the machine clock synced to NTP), `quote_time` (the
+  provider's own quote timestamp per leg, empty when the provider gives none), `provider`, `contract_id` (the
+  provider's instrument key), `expiry`, `strike`, `type`, `bid`, `ask`, `last`, `bid_qty`, `ask_qty`, `spot`,
+  `quote_age_seconds` (receive time minus quote time), `valid` (true only when bid > 0, ask > 0, bid <= ask, both
+  quantities > 0 and quote age at most 60 seconds), `invalid_reason`.
+- Each snapshot has a sidecar `nifty_<YYYYMMDD>_1500.meta.json`: expected contract count, recorded count, failed
+  requests with errors, SHA-256 of every raw provider response, and `complete` (true only if every expected contract
+  was recorded).
 - Command `python -m fno quotes report` prints the median half-spread (ask minus bid, halved) by distance from the
   money (0-1%, 1-2%, 2-3%, 3-5%) and the share of contracts with no two-sided quote.
 
 **Acceptance criteria:**
 1. Given a trading day at 15:00 IST, when the recorder runs, then one file holds every contract of the two nearest
    monthly expiries within 5% of spot with bid, ask, last and capture time.
-2. Given a contract with no bid or no ask, then the row is kept with the missing side empty (never filled from last).
+2. Given a contract with no bid or no ask, a crossed quote (bid > ask) or a stale quote, then the row is kept, marked
+   `valid = false` with the reason, and never counted as executable (never filled from last).
 3. Given an existing file for that day, when the recorder runs again, then the file is not changed and the run reports
    "already recorded".
 4. Given a weekend or exchange holiday, then nothing is recorded and nothing fails.
 5. The recorder never calls any order, modify or cancel function (test: the provider fake fails on any such call);
    credentials only from the environment, never written to files or logs.
-6. Given 20 recorded days, when `quotes report` runs, then it prints the median half-spread per distance band and the
-   count of days and contracts used.
+6. Given 20 recorded days, when `quotes report` runs, then it prints, per distance band, the median and 90th
+   percentile half-spread of valid quotes, the share of invalid quotes, and the count of days and contracts used.
+7. Given a partial failure (some requests failed), the snapshot is written with `complete = false` and the run exits
+   with an error and alert: never a silent partial success. A missing day is logged, never back-filled.
+8. These are quotes, not fills: the report and the files say so; fill realism is measured later (E1, E3).
 
 **Test plan:** unit tests with a fake provider (normal day, missing sides, rerun, holiday, forbidden order calls);
 first real snapshot attached to the conversation log.
 
-**Judge verifies:** reads three days of snapshots, checks capture times are 14:55-15:05 IST, checks bid at most ask for
-every two-sided row, recomputes one day's report by hand.
+**Judge verifies:** reads three days of snapshots and their sidecars, checks request and quote times (a capture
+window alone is not proof of a 15:00 price), recomputes `valid` for 20 random rows, recomputes one day's report by
+hand.
 
 **Depends:** - · **Size:** M · **Status:** next (start early)
 
@@ -198,6 +222,10 @@ import so earlier scripts still run.
 1. Given the move, when meeting 1's `desk.py` and `variants.py` and the capacity screen are re-run, then their output
    files are byte-identical to the committed ones.
 2. The existing expiry tests pass from their new location, including the 30 Apr 2025 and Sep 2025 cases.
+3. The rule is point-in-time (it already only uses listings seen on or before each day): a test adds future listings
+   to the input and proves no earlier day's classification changes.
+4. Re-run outputs are compared both semantically (same cycles, same expiries) and as bytes; the scripts write with a
+   fixed column order, so bytes must match too.
 
 **Test plan:** move tests; re-run the three scripts and compare outputs.
 
@@ -221,16 +249,20 @@ the feature knowable at the decision time; unscheduled shocks are not events for
 (later stories).
 
 **Expected design:** `research/data/events/events.csv` with columns `date, type (rbi_policy | budget |
-election_result), scheduled (yes | no), announced_on, description, source_url`; a validator
-`fno/research_data/events.py` that loads it and checks types, dates and that `announced_on` is before `date` for
-scheduled events.
+election_result), scheduled (yes | no), announced_on, announcement_source_url, revised_from, description,
+source_url`. `announced_on` is the date the event's date was first publicly announced (e.g. the RBI's annual MPC
+schedule, the Election Commission's schedule press note), from an independent source, not the event day itself;
+`revised_from` records an earlier announced date when the event was moved. A validator `fno/research_data/events.py`
+checks types, dates, sources and that `announced_on` is before `date` for scheduled events.
 
 **Acceptance criteria:**
 1. Every row has a source link to the RBI, the Ministry of Finance / India Budget site, the Election Commission or PIB.
 2. The file includes 1 Feb 2020 and 1 Feb 2025 (Saturday budgets), 1 Feb 2026 (Sunday budget), 23 May 2019 and 4 Jun 2024
    (election results), and every RBI policy decision day 2019-2026, with unscheduled ones marked "no".
-3. The validator rejects a row with an unknown type, a bad date or a missing source.
-4. The file is committed before experiment 1's challenge run (its commit precedes the challenge results commit).
+3. The validator rejects a row with an unknown type, a bad date, a missing source or a missing announcement source.
+4. Unscheduled events (e.g. an unscheduled RBI decision) are kept with `scheduled = no` and can never be used as a
+   known-ahead feature; a test proves F3 ignores them.
+5. The file is committed before experiment 1's challenge run (its commit precedes the challenge results commit).
 
 **Test plan:** validator unit tests; a count check (RBI decisions per year as published by the RBI).
 

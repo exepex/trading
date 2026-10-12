@@ -25,9 +25,15 @@ and commit, red-team note, judge verdict, owner approval date)`.
 **Acceptance criteria:**
 1. A file missing any field, or with an unknown feature or structure code, is rejected with the field named.
 2. Two files with the same name and version are rejected; a changed parameter in an existing version is detected
-   (stored hash) and rejected.
-3. A strategy cannot have status `paper` unless all evidence fields are filled and the owner approval date is set.
-4. A worked example file for experiment 1's best policy (if any passes) loads without errors.
+   and rejected: approved versions and their SHA-256 are recorded in an append-only registry
+   `playbook/registry.csv` (`name, version, sha256, status, changed_on, approved_by, evidence_commit`), whose past
+   rows are never edited (a test compares it with git history).
+3. Allowed status changes only: research -> paper (needs evidence and owner approval), paper -> paused (automatic on a
+   hard-loss rule or owner), paused -> paper (owner approval only), any -> retired (owner). Each change is a new
+   registry row.
+4. A strategy cannot have status `paper` unless all evidence fields are filled and the owner approval date is set.
+5. A worked example file (clearly marked `status: research`, not a passed strategy) loads without errors; no example
+   claims a passed strategy unless one actually passed.
 
 **Test plan:** schema unit tests with valid and invalid files.
 
@@ -47,10 +53,15 @@ rule first; an unproven strategy holds at most 1 of 3 slots.
 
 **Scope.** In: firing rules, ranking, slot limits, the no-trade option. Out: AI selection (later, by comparison).
 
-**Expected design:** `fno/playbook/evaluate.py`: for each `paper` strategy, compute its features (B1) on today's data;
-fire when all conditions hold; build the structure (B2 logic on live quotes); rank fired candidates by expected net per
-rupee of maximum loss (from the strategy's tested P&L distribution), after C2 checks; open at most the free slots;
-strategies with fewer than 20 paper trades limited to one open trade.
+**Expected design:** `fno/playbook/evaluate.py`: for each `paper` strategy, compute its **15:00 live features** (the
+validated live versions, never the close-only research features) on today's snapshot; fire when all conditions hold;
+build the structure on live quotes; run C2 checks; rank surviving candidates by score = (frozen expected net per
+opportunity from the strategy's challenge results, recorded in its playbook file) / (maximum loss including costs);
+maximum loss is always positive for these structures (a zero or negative value is a validity failure). A candidate
+needs expected net above a no-trade threshold of Rs 0 after costs. Ties: lower maximum loss first, then earlier
+expiry, then strategy name. Candidates compete for slots and cash/margin in rank order; each takes its margin from
+available cash before the next is considered. The unproven limit is **per strategy**: a strategy with fewer than 20
+completed paper trades may hold at most 1 open trade; the 3-slot limit is shared by all strategies.
 
 **Acceptance criteria:**
 1. Given all conditions true except one, the rule does not fire and the unmet condition is recorded.
@@ -76,7 +87,11 @@ why), so that every decision can be reproduced, reviewed and learned from.
 
 **Scope.** In: record format, storage, replay. Out: AI role cards (F1 adds them later).
 
-**Expected design:** `journal/decisions/<date>/<strategy>-<n>.json` written by `fno/playbook/decision_record.py`:
+**Expected design:** `journal/decisions/<date>/<run_id>/<opportunity_id>.json` written by
+`fno/playbook/decision_record.py` atomically (write to a temporary file, then rename). `run_id` = date plus a counter;
+`opportunity_id` = strategy, expiry and run; a second run on the same day with the same inputs is detected and
+refused (idempotent). Header: `schema_version`, `run_id`, `opportunity_id`, SHA-256 of the code version (git commit),
+`config.yaml`, the strategy file and every input snapshot. Body:
 `inputs` (each value with source and availability time, plus snapshot file hashes), `features`, `rule_result`,
 `structure` (legs, prices, width, size), `expected` (tested P&L distribution summary: mean, 10th and 90th percentile,
 worst), `risk` (C2 verdicts with numbers), `validity` (C4 result), `decision` (trade or no trade and reason),
@@ -84,8 +99,10 @@ worst), `risk` (C2 verdicts with numbers), `validity` (C4 result), `decision` (t
 
 **Acceptance criteria:**
 1. Every evaluated opportunity has a record, including no-trade outcomes.
-2. Replaying a record's inputs through D2 reproduces its decision exactly.
-3. Records are never edited after writing (a correction is a new record linked to the old one).
+2. Replaying a record's inputs through D2 reproduces its decision exactly, including the rejected alternatives and
+   every risk and validity reason.
+3. A crash during writing leaves either the complete record or none (test kills the writer mid-way).
+4. Records are never edited after writing (a correction is a new record linked to the old one).
 
 **Test plan:** replay test; immutability test.
 

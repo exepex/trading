@@ -1,6 +1,6 @@
 # Implementation plan: desk design v2.1 as stories
 
-Status: **draft for ChatGPT review** (12 Oct 2026). Source: `docs/DESK_DESIGN.md` v2.1 (owner-approved framework).
+Status: **revised after ChatGPT review 12** (12 Oct 2026; answer: `reviews/claude/response_15_2026-10-12-review-12.md`). Source: `docs/DESK_DESIGN.md` v2.1 (owner-approved framework).
 The owner started development on 12 Oct 2026; the AI layer (epic F) stays on hold until the owner says otherwise.
 
 **Story format (agile):** every story in `docs/stories/` has
@@ -27,7 +27,9 @@ The owner started development on 12 Oct 2026; the AI layer (epic F) stays on hol
 | M3 Code-only paper desk | E1-E4 | Daily 3 pm paper decisions on the first approved strategy, no AI |
 | M4 AI layer (on hold) | F1-F5 | Only after the owner starts it; each role kept only if it adds net value |
 
-Started early because only time builds it: **A4** (record real 3 pm bid/ask quotes every trading day).
+Start now (review 12): **A4** (record real 3 pm quotes; only time builds that history) and **B4** (ledger guard), alongside
+A1. Finish A5, A6 and C1 before experiment 1 runs; B5 runs only after A1, A3 and B1-B4 are verified. D3's schema comes
+before C4 (C4 checks the decision record).
 
 ## Stories
 
@@ -49,10 +51,10 @@ Started early because only time builds it: **A4** (record real 3 pm bid/ask quot
 | [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | A3, A6 | M | later |
 | [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | A3, A5 | M | later |
 | [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | B1, B2, B4 | M | later |
-| [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | - | S | later |
-| [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | B1-B4, A1, A6 | M | doing (protocol in review) |
+| [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | - | S | next (start now) |
+| [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | B1-B4, A1, A3, A5, A6, C1 | M | doing (protocol in review) |
 | [B6](stories/B-research-engine.md#b6-candidate-scan) | Candidate scan | B3 | L | later |
-| [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | - | S | later |
+| [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | - | S | next (before experiment 1 runs) |
 | [C2](stories/C-code-roles.md#c2-risk-manager) | Risk manager | B2 | L | later |
 | [C3](stories/C-code-roles.md#c3-data-checks-before-every-decision) | Data checks before every decision | A3, A4 | S | later |
 | [C4](stories/C-code-roles.md#c4-hard-validity-checks-judge-part-1) | Hard-validity checks (judge part 1) | C2, D3 | M | later |

@@ -1,85 +1,137 @@
 # Experiment 1 protocol: protected sell vs protected buy vs no trade, on NIFTY monthly options
 
-Status: **draft for ChatGPT review, written before any 2019-2023 data is read** (12 Oct 2026). After review it is
-frozen: commit hash recorded here, nothing below changes once 2019-2023 results are seen. Design rules:
-`docs/DESK_DESIGN.md` sections 3.5, 5, 6 and 8.
+Status: **version 2, draft for ChatGPT review** (12 Oct 2026), written before any 2019-2023 outcome is read.
+Version 1 was reviewed in ChatGPT review 12; changes answered in `reviews/claude/response_15_...`. Freezing (section
+10) happens before the challenge period is read and records the protocol commit and the hashes of the code, settings
+and calendars used. Design rules: `docs/DESK_DESIGN.md` sections 3.5, 5, 6 and 8. Engine stories: B1-B5.
 
 ## 1. Question
 Which entry-known conditions improve the net payoff of a fully protected NIFTY monthly trade, within the owner's
-limits, compared with no trade and with the same trade taken every month?
+limits, compared with no trade, with the same trade taken every month, and with the same trade taken at random times?
 
 ## 2. Data and periods
-- NSE daily F&O files (both formats, one reader: `fno/fo_bhavcopy.py`, proven identical on 128 overlap days) and NSE
-  daily index closes (NIFTY 50 and India VIX).
-- **Discovery: 1 Jan 2024 - 9 Oct 2026** (already looked at; about 33 cycles). Results reported, no pass/fail.
-- **Challenge: 1 Jan 2019 - 31 Dec 2023** (not yet read; about 60 cycles). The pass/fail in section 7 applies here only.
-- Forward paper trading follows for anything that passes.
+- NSE daily F&O files (both formats, one reader: `fno/fo_bhavcopy.py`, identical on all 128 overlap days), NSE daily
+  index closes (NIFTY 50, India VIX), the NSE session calendar (story A1) and the events calendar (story A6).
+- **Discovery: 1 Jan 2024 - 9 Oct 2026** (already looked at; about 33 opportunities). Results reported, no pass/fail.
+- **Challenge: 1 Jan 2019 - 31 Dec 2023** (about 60 opportunities). The pass/fail in section 8 applies here only.
+- What the challenge is: a **pre-registered historical holdout** of data not used to form these policies. It is
+  earlier in time than the discovery period, so it is not a forward test; anything that passes still needs forward
+  paper trading (owner's paper gate). All features use only data available at each historical decision day.
+- What it is not: a test of the 15:00 desk. All prices are daily closes (**close-proxy**); a 15:00 version of any
+  feature or fill is a different thing and needs its own forward evidence.
 
-## 3. The trade cycle (same for every policy)
-- **Expiry:** NIFTY monthly, identified as of each day (`expiries.monthly_as_of`: listed that day and listed more
-  than 50 days ahead on that day or before).
-- **Decision day:** the first trading day the expiry is 30-45 calendar days away; features use data up to that close.
-- **Entry fill:** next trading day's close (close-proxy for the 3 pm desk, labelled as such), Rs 1 worse per leg.
-- **Exit fill:** last trading day with 21 or more calendar days to expiry, its close, Rs 1 worse per leg. No other
-  exits in this experiment (loss and profit exits are a later experiment).
-- **Prices:** a leg's close if it traded that day; otherwise its settlement price, flagged. A cycle with more than
-  half of its legs flagged at entry or exit is reported "unfillable" and counts as no trade.
-- **Price sanity:** a short structure whose credit is at least its width, or a long one whose debit is at most zero,
-  cannot exist in a real market (stale prices of untraded options): the cycle is reported "bad prices", no trade.
-- **Costs:** current Groww and exchange charges (`config.yaml` charges), current lot 65, 1 lot.
-- **Tax:** 31.2% on each calendar year's positive net (losses offset within the year), reported separately.
+## 3. Opportunities and timing (identical for every policy and control)
+- **One opportunity per NIFTY monthly expiry.** Monthly identity as of each day (`monthly_as_of`: listed that day and
+  listed more than 50 days ahead on that day or before).
+- **Decision day:** the first trading day the expiry is 30-45 calendar days away. Features use data up to that day's
+  official close. F3 events must have been announced on or before the decision day.
+- **Entry fill:** next trading day's close. **Exit fill:** the last trading day with 21 or more calendar days to
+  expiry, its close. No other exits in this experiment. If the entry day is not before the exit day, the opportunity
+  is `no_entry_window`.
+- Holding periods do not overlap: in 2024-26 every exit is at least 4 days before the next entry (checked on all 33
+  cycles), which supports resampling opportunities as units (section 8).
 
-## 4. Structures (strikes from the nearest listed strike; all legs same expiry)
-| Code | Structure | Legs |
-|---|---|---|
-| SF | Short iron fly | sell ATM call and put; buy call and put W points away |
-| SC | Short iron condor | sell call at spot +2% and put at spot -2%; buy each W points further out |
-| BF | Long iron fly (bounded-debit buying, E9) | buy ATM call and put; sell call and put W points away |
+## 4. Prices, strikes, costs and the loss cap
+- **Strikes:** nearest listed strike to the target; ATM ties take the lower strike; a short out-of-the-money leg tie
+  takes the strike farther from spot; a wing W points away must be listed exactly, else that width is unavailable.
+- **Prices:** a leg's close if it traded that day (volume > 0), else its settlement price, flagged. Settlement is a
+  valuation proxy, not an executable price. A zero or missing price, or more than half the legs flagged at entry or
+  exit, makes the opportunity `unfillable`. A short structure's credit at least its width, or a long structure's debit
+  at most zero, makes it `bad_prices` (stale prices).
+- **Fills and costs:** bought legs at price + Rs 1, sold legs at price - Rs 1, at entry and exit; current Groww and
+  exchange charges (`config.yaml` charges, hash recorded at freeze) per leg and side; current lot 65; 1 lot.
+- **Structures:** SF short iron fly (sell ATM call and put, buy each W away); SC short condor (sell call nearest
+  spot x 1.02 and put nearest spot x 0.98, buy each W further out); BF long iron fly (buy ATM call and put, sell each
+  W away).
+- **Width rule (owner's Rs 10,000 cap):** W is the largest of 300, 250, 200, 150, 100 points for which the **modelled
+  maximum terminal payoff loss** (short: (W - credit) x 65; long: debit x 65) plus entry charges, exit charges at the
+  worst-case exit prices and all pads is at most Rs 10,000. No listed width fits: `no_trade_cap`. Wings not listed at
+  all: `missing_strikes` (a data condition, reported separately). A realised loss above the cap should be impossible
+  for these structures; if one appears it is reported and investigated, never hidden.
+- **Sensitivity (reported, never used to pass):** the same results with every opportunity that needed a settlement
+  price treated as no trade.
 
-**Width rule (owner's Rs 10,000 cap):** W is the largest of 100, 150, 200, 250, 300 points for which the maximum
-possible loss at entry prices, including entry and exit charges and pads, is at most Rs 10,000. If none fits, the
-cycle is "no trade (cap)". Meeting 1's 300- and 500-point condors could lose more than that per lot, so
-most were outside this cap (maximum loss = (width - credit) x 65: up to about Rs 30,000 for 500-point wings); their results are not comparable.
+## 5. Entry-known features (decision-day close)
+- **F1 volatility premium:** ATM implied volatility (average of call and put; Black-Scholes, rate 6.5%, time =
+  calendar days / 365, solver bounds 1%-200%; only traded legs) minus NIFTY's realised volatility over the past 20
+  trading days (root mean square of daily log returns, not demeaned, x sqrt 252). Missing or failed: `None`.
+- **F2 VIX level:** India VIX close above the median of the previous 250 trading days' closes; fewer than 250 valid
+  closes: `None`.
+- **F3 scheduled event:** a `scheduled = yes` event in `events.csv` dated after the entry day and on or before the exit
+  day, announced on or before the decision day. Unscheduled events are never used.
+- A condition with a `None` input counts as not met.
 
-## 5. Entry-known features (all computed at the decision-day close)
-- **F1 volatility premium:** ATM implied volatility (average of call and put, Black-Scholes, rate 6.5%) minus NIFTY's
-  realised volatility over the past 20 trading days (root mean square of daily log returns, not demeaned, x sqrt 252).
-- **F2 VIX level:** India VIX close above its median over the past 250 trading days.
-- **F3 scheduled event:** an RBI policy announcement, Union Budget or general-election result day falls between entry
-  and exit. Dates come from `events.csv` (official RBI and government announcements), committed before results.
+## 6. Policies and controls (registered in the ledger before any challenge result)
+| Code | Rule | Candidate for paper? | Compared with (criterion 4) |
+|---|---|---|---|
+| P1 | SC every opportunity | yes | - |
+| P2 | SF every opportunity | yes | - |
+| P3 | BF every opportunity | yes | - |
+| P4 | SC if F1 > 0, else no trade | yes | P1 |
+| P5 | SC if F1 > 0, else BF | yes | P1 and P4 (the BF branch must add value) |
+| P6 | SC if F1 > 0 and not F3, else no trade | yes | P1 and P4 (the event filter must add value) |
+| P7 | SC if F2, else no trade | yes | P1 |
+| P8 | SF if F1 > 0, else no trade | yes | P2 |
 
-## 6. Policies (registered trials; every one goes in `research/LEDGER.md` before results)
-| Code | Rule |
-|---|---|
-| P1 | SC every cycle |
-| P2 | SF every cycle |
-| P3 | BF every cycle |
-| P4 | SC if F1 > 0, else no trade |
-| P5 | SC if F1 > 0, else BF |
-| P6 | SC if F1 > 0 and not F3, else no trade |
-| P7 | SC if F2, else no trade |
-| P8 | SF if F1 > 0, else no trade |
-| C1 | Control: SC or no trade by coin toss (10,000 seeded runs) |
-| C2 | Control: opposite of P4 (SC only when F1 <= 0) |
+**Hypothesis family:** all 8 policies are promotion candidates, so 8 tests.
 
-Thresholds are fixed as written (0 for F1, the median for F2). No other variant is tried on the challenge period.
+**Controls (not hypotheses):**
+- **C1 random timing:** for each conditional policy (P4-P8), 10,000 sequences (seed 20261012) that take each of the
+  policy's actions on randomly chosen opportunities with the same counts as the policy took in that period (e.g. P4
+  traded SC on 40 of 60: each sequence trades SC on 40 random opportunities of the same 60, no trade on the rest).
+  Opportunities of any status are eligible; a chosen opportunity that is `unfillable`, `bad_prices`, `no_trade_cap`
+  or `missing_strikes` for that structure scores 0, exactly as for the policy. Statistic: total net. For P1-P3 the
+  control is identical to the policy and is not applied.
+- **C2 opposite condition:** for each conditional policy, its action taken when its condition is false (and the
+  condition's input is not `None`): P4 -> SC if F1 <= 0; P5 -> BF if F1 > 0, SC if F1 <= 0; P6 -> SC if F1 > 0 is
+  false or F3 is true; P7 -> SC if F2 is false; P8 -> SF if F1 <= 0. Statistic: total net.
 
-## 7. Pass / fail on 2019-2023 (all must hold for a policy to go to paper trading)
-1. Total net P&L after charges and pads > 0.
-2. Mean net per cycle: lower bound of a one-sided 99.3% interval > 0 (95% Bonferroni-adjusted for 7 policies;
-   cycle-level bootstrap, 10,000 resamples, seed 20261012).
-3. Total net above the 95th percentile of control C1, and above control C2.
-4. For P4-P8: total net above the same structure taken every cycle (P1 or P2), i.e. the condition adds value.
-5. No cycle loses more than Rs 10,000 (else the implementation is wrong and the run is void).
-Also reported, not pass/fail: win rate, worst cycle, longest losing run, yearly net after tax, results by year,
-cycles with no trade (cap) or unfillable.
+## 7. Statistics
+- **Per-opportunity P&L:** every opportunity counts; no trade and every non-traded status count as Rs 0. Traded-only
+  statistics are reported separately and never used to pass.
+- Reported for each policy and period: total and mean net per opportunity, count by status, traded count, win rate
+  (traded only), worst opportunity, longest losing run, maximum drawdown over opportunities, results by calendar
+  year and the share of total net from the best year, and the assumed tax scenario (section 9).
+- **Bootstrap:** resampling unit = opportunity (holding periods do not overlap); 10,000 resamples with replacement of
+  the challenge opportunities; seed 20261012 (numpy `default_rng`); statistic = mean net per opportunity; the lower
+  bound is the resampled means sorted ascending, taken at index 62 (0-based), i.e. the 0.625th percentile
+  (one-sided 99.375%), with no interpolation.
+- **Sensitivity (reported, never used to pass):** year-block bootstrap (resampling whole calendar years, 10,000
+  resamples, same seed) to show the effect of volatility clustering; with five years its interval is very wide.
+- Monte Carlo error: with 10,000 resamples about 62 values lie below the bound; a policy within Rs 50 of passing on
+  criterion 2 is reported as "borderline", and the verdict still follows the rule as written.
 
-A policy that fails is not traded; it may stay in research only as a new registered trial with a new protocol.
-Passing means paper trading under the agreed evaluation plan, not real money.
+## 8. Pass / fail on 2019-2023 (pre-tax; all applicable criteria must hold)
+1. Total net per-opportunity P&L after charges and pads > 0.
+2. Bootstrap lower bound of mean net per opportunity > 0 (one-sided 99.375% = 95% Bonferroni over 8 policies).
+3. (P4-P8) Total net above the 95th percentile of its C1 random-timing control, and above its C2 opposite control.
+4. (P4-P8) Total net above each policy in its "compared with" column.
+5. No traded opportunity's modelled maximum terminal loss including charges and pads exceeds Rs 10,000 (else the run
+   is void and investigated).
 
-## 8. Known limits (stated before results)
-- Daily closes, not 3 pm quotes; no bid-ask (Rs 1 pad is an assumption until calibrated from real quotes).
-- About 60 challenge cycles: a real but small edge may fail criterion 2. That is accepted: a false "pass" costs
-  money, a false "fail" costs time.
-- 2019-2023 had different lot sizes and charges; the test applies today's lot and charges to every cycle.
+**Meaning of the result:** pass = goes to paper trading under the agreed evaluation plan (not real money). Fail =
+**insufficient evidence** under a deliberately strict test with about 60 opportunities, not proof that no edge
+exists; it is not traded and may only return as a new registered trial with a new protocol and data not yet used.
+No criterion is relaxed after results.
+
+## 9. Tax (reported, never used to pass)
+One assumed scenario, the same as story C1: Indian financial year (April-March); base = the year's trade net (research
+has no operating costs); tax = 31.2% of max(0, base); losses offset within the year; no carry-forward modelled. It is
+an assumption for comparison, not a verified tax liability.
+
+## 10. Freeze and access
+- Before the challenge period is read, `research/2026-10-12-experiment-1/FREEZE.md` records: the protocol commit;
+  SHA-256 of the engine code (B1-B4), `config.yaml` charges, `events.csv`, the session calendar and the panel
+  manifest; the ledger registration commit (an ancestor of the run commit).
+- **Access attestation (so far):** to build the old-format reader, Claude opened the first lines of the NSE
+  old-format files for 1 and 2 Jan 2019 (header and a few BANKNIFTY futures rows) and the index-close file for
+  2 Jan 2019 (NIFTY 50 close 10,792.5). No 2019-2023 option outcome, cycle, feature or P&L has been computed or
+  viewed. Any further access before the freeze is added here with its reason.
+- After the freeze, the challenge run is executed once by the engine; its results file and the run commit are
+  published as they come out.
+
+## 11. Known limits (stated before results)
+- Daily closes, not 15:00 quotes; no bid-ask (the Rs 1 pad is an assumption until calibrated from A4 quotes).
+- About 60 challenge opportunities: a real but small edge may fail criterion 2.
+- 2019-2023 had different lot sizes and charges; today's lot and charges are applied to every opportunity.
 - The policies were chosen after seeing 2024-2026 (meeting 1); that is why the challenge period decides.

@@ -18,21 +18,28 @@ profit. Design section 8: AI and data bills count against profit; code roles add
 
 **Expected design:** `fno/accounting/ledgers.py` with `TradeLedger` (per trade: gross, charges by component from
 `fno.costs.order_charges_breakdown`, pads, net), `AccountLedger` (trade net minus operating costs by month, from
-`accounting/operating_costs.csv` with `month, item, amount_rs, source`), `TaxModel` (financial year April-March: tax =
-31.2% of max(0, year net), losses offset within the year, no carry-forward in the model, stated as a simplification).
+`accounting/operating_costs.csv` with `month, item, category, amount_rs, source`), `TaxModel`.
+**One tax scenario everywhere (research and paper):** an *assumed* scenario, not a verified tax liability: Indian
+financial year (April-March); base = trade net of the year (F&O treated as business income) minus operating costs in
+the categories marked deductible in `accounting/deductible_categories.csv` (default: AI and data subscriptions used
+for the trading); tax = 31.2% of max(0, base); losses offset within the year; no carry-forward modelled (stated).
+Research results report the scenario after the pre-tax pass/fail tests; tax never enters a pass/fail criterion.
 
 **Acceptance criteria:**
-1. Given a year with trades +10,000, -4,000 and +6,000 net and operating costs Rs 3,000, then trade net = 12,000,
-   account result = 9,000 and modelled tax = 2,808 (31.2% of 9,000), each shown separately.
-2. Given a losing year, then modelled tax is 0 and the loss is shown, not carried forward (with a note).
-3. Charges per trade equal `fno.costs` for every leg and order; pads are shown separately from charges.
-4. Financial years run April to March (a trade closed on 31 Mar 2025 counts in FY 2024-25).
+1. Given a year with trades +10,000, -4,000 and +6,000 net and deductible operating costs Rs 3,000, then trade net =
+   12,000, account result = 9,000, tax base = 9,000 and modelled tax = 2,808 (31.2% of 9,000), each shown separately
+   and labelled "assumed scenario".
+2. The three ledgers reconcile: account result = trade net - operating costs; tax base = trade net - deductible
+   costs; a test fails if they do not.
+3. Given a losing year, then modelled tax is 0 and the loss is shown, not carried forward (with a note).
+4. Charges per trade equal `fno.costs` for every leg and order; pads are shown separately from charges.
+5. Financial years run April to March (a trade closed on 31 Mar 2025 counts in FY 2024-25).
 
 **Test plan:** unit tests with the known-answer year above and edge dates.
 
 **Judge verifies:** recomputes one month's three ledgers by hand from the trade list and the costs file.
 
-**Depends:** - · **Size:** S · **Status:** later
+**Depends:** - · **Size:** S · **Status:** next (before experiment 1 runs)
 
 ---
 
@@ -60,6 +67,21 @@ calculation itself (an input: measured from NSE SPAN files or the broker's calcu
   x0.5; joint (NIFTY -8% with IV x2, NIFTY +5% with IV x0.5); and historical replays applying the NIFTY and VIX moves
   of 23 Mar 2020, 4 Jun 2024 and Feb 2026's worst day. Reports loss from current marked value and loss from entry.
 - All limits read from `config.yaml` `profiles.paper.risk`, never hard-coded.
+- **Definitions:** closed equity = Rs 5 lakh + sum of net P&L of closed trades; marked equity = closed equity + open
+  trades valued at mid of valid quotes (or last valid mark, flagged stale); available cash = marked equity minus
+  margin blocked minus premium reserved for pending orders.
+- **Margin:** per structure and lot, from the broker's margin calculator or NSE's SPAN parameter files, recorded with
+  source and date in `research/data/margins/margins.csv`; older than 7 days or missing means the check **fails
+  closed** (no trade). Stressed margin = margin under the worst stress scenario (re-looked up or scaled by a recorded
+  factor).
+- **Two different Rs 30,000 limits:** the drawdown brake uses closed equity against its high-water mark; the stress
+  limit uses the combined stress loss of open trades plus the proposal from current marks. They are separate rules
+  with separate tests.
+- **Stress repricing:** each leg revalued with Black-Scholes at its current implied volatility scaled by the scenario,
+  one calendar day of time decay, the scenario's NIFTY level; losses summed across all legs and trades (no netting
+  assumptions beyond the legs themselves).
+- **Owner restart:** a row in `journal/owner_overrides.csv` (`date, action = restart_brake, reason, entered_by`)
+  committed to the repository; the brake re-arms at that day's closing closed equity minus Rs 30,000.
 
 **Acceptance criteria:**
 1. Given a proposal with maximum loss Rs 9,999 including costs, it passes `MaxLossPerTrade`; Rs 10,001 is blocked
@@ -98,9 +120,11 @@ leg has a two-sided quote or is marked unquotable; the previous trading day's NS
 
 **Acceptance criteria:**
 1. Given a snapshot older than 15 minutes, the decision is "no new trade: stale data" with an alert.
-2. Given a leg without a two-sided quote, that leg cannot be used for a fill; a trade needing it is not opened.
-3. Given failed data checks and an open trade at its loss limit, the exit still runs at the next valid quote and is
-   marked as such.
+2. **Per leg:** a leg is usable only if its own quote is valid (A4: bid > 0, ask > 0, bid <= ask, quantities > 0,
+   provider quote age at most 60 seconds, or capture age when the provider gives no quote time, flagged). A trade
+   needing an unusable leg is not opened.
+3. Given failed data checks and an open trade due to exit, the exit is recorded as **pending exit** with an alert and
+   executed at the next valid quotes; a fill is never invented from stale or last prices.
 
 **Test plan:** unit tests per check with fake snapshots.
 
@@ -121,9 +145,12 @@ override a hard-validity failure.
 **Scope.** In: independent recomputation from raw inputs. Out: judgement on research sufficiency or interpretation
 (F3).
 
-**Expected design:** `fno/checks/validity.py` re-reads the decision record's inputs and recomputes, without importing
-the proposer's pricing code paths beyond shared primitives (`fno.costs`, `fno.analytics`): contract exists and expiry
-is the intended monthly one; dates are today's; leg prices equal the snapshot; maximum loss and charges; all C2 limits.
+**Expected design:** `fno/checks/validity.py` re-reads the decision record's raw inputs (verifying each snapshot's
+SHA-256 and that its capture time is before the decision cutoff) and recomputes **with an independent
+implementation**: maximum loss from the payoff at expiry evaluated on a strike grid (not the width-minus-credit
+formula the proposer uses), charges from the charge table directly (not via `fno.costs`), checked against committed
+reference vectors (hand-computed trades). Checks: contract exists and expiry is the intended monthly one; dates are
+today's; leg prices equal the snapshot; maximum loss and charges; all C2 limits.
 Output: pass or fail with each check's numbers; failures written to `journal/validity_failures.csv`.
 
 **Acceptance criteria:**
@@ -131,6 +158,10 @@ Output: pass or fail with each check's numbers; failures written to `journal/val
    snapshot, maximum loss miscomputed by Rs 1 or more, a limit breach.
 2. A correct proposal passes with every check's numbers recorded.
 3. There is no code path that turns a hard-validity failure into a pass (test: the override function rejects it).
+4. Tampered evidence (a snapshot whose hash differs from the record) and absent evidence (a missing snapshot) both
+   fail.
+5. The reference vectors (at least 10 hand-computed trades across all structures) match the independent
+   implementation to Rs 0.01.
 
 **Test plan:** a seeded set of 10 wrong proposals and 3 correct ones.
 

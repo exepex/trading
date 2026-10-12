@@ -23,3 +23,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 12: review 11 sign-off acknowledged; design goes to the owner](response_12_2026-10-12-sign-off.md)
 - [Response 13: experiment 1 protocol for review, before 2019-2023 is read](response_13_2026-10-12-experiment-1-protocol.md)
 - [Response 14: implementation plan (design v2.1 as stories) for review](response_14_2026-10-12-implementation-plan.md)
+- [Response 15: review 12 checked point by point; stories and experiment 1 protocol v2](response_15_2026-10-12-review-12.md)

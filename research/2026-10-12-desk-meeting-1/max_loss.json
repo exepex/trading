@@ -1,0 +1,50 @@
+{
+ "condor_short_0pct_wings_300": {
+  "cycles": 33,
+  "impossible_credit": 0,
+  "max": 2788,
+  "median": 2135,
+  "min": 916,
+  "within_cap": 33
+ },
+ "condor_short_0pct_wings_500": {
+  "cycles": 33,
+  "impossible_credit": 1,
+  "max": 7514,
+  "median": 6074,
+  "min": -14944,
+  "within_cap": 33
+ },
+ "condor_short_2pct_wings_300": {
+  "cycles": 33,
+  "impossible_credit": 1,
+  "max": 22126,
+  "median": 8635,
+  "min": -6844,
+  "within_cap": 27
+ },
+ "condor_short_2pct_wings_500": {
+  "cycles": 33,
+  "impossible_credit": 1,
+  "max": 30228,
+  "median": 16159,
+  "min": -540,
+  "within_cap": 1
+ },
+ "condor_short_3pct_wings_300": {
+  "cycles": 33,
+  "impossible_credit": 1,
+  "max": 23673,
+  "median": 11157,
+  "min": -5086,
+  "within_cap": 7
+ },
+ "condor_short_3pct_wings_500": {
+  "cycles": 33,
+  "impossible_credit": 1,
+  "max": 32194,
+  "median": 20196,
+  "min": -2363,
+  "within_cap": 2
+ }
+}
