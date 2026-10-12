@@ -124,6 +124,8 @@ completed C4 pass** on the committed decision, for every book. Times are calibra
 frozen in the evaluation protocol (S1). `fno/desk/daily_run.py` (`DailyRun.run(day)`): idempotent per day (a run ID
 per day; a second start sees the completed steps and does nothing), each step recorded with its time. A decision
 committed after the deadline is ignored and a "no decision (late)" record is committed for that book.
+**Across containers (13 Oct 2026, from E1):** E1's operating-system lock protects one machine only; cloud routines run in
+separate checkouts. Every account write therefore runs as: pull, write under `AccountLock`, commit, push; if the push is rejected, pull and retry with the same fill IDs (E1 makes fills idempotent by fill ID).
 
 **Acceptance criteria:**
 1. Given a book that has not committed by the deadline, a "no decision (late)" record is committed for it, and the
