@@ -265,7 +265,13 @@ LEVEL_STOP = r"(?:back|from|with|after|off|since|against|amid|on)"
 LEVEL_FILLER = rf"(?:\s+(?!(?:{LOW_LEVEL}|{HIGH_LEVEL}|{LEVEL_STOP})\b)(?:an?\s+)?[\w-]+){{0,3}}"
 RUPEE_HITS_LOW = rf"hits{LEVEL_FILLER}\s+{LOW_LEVEL}"  # "hits record low", "hits weakest level"
 RUPEE_HITS_HIGH = rf"hits{LEVEL_FILLER}\s+{HIGH_LEVEL}"  # "hits one-year peak"
-STRONG_DOLLAR = re.compile(r"\b(?:strong(?:er)?|firm(?:er)?|surging|rising)\s+dollar\b|\bdollar strength\b", re.I)
+# A strong dollar is a cost only as the stated cause of a move ("rupee falls on strong dollar"): never after "despite",
+# never when it is fading or describes something else ("strong dollar inflows", "dollar strength eases")
+STRONG_DOLLAR = re.compile(
+    r"(\bdespite\s+(?:an?\s+|the\s+)?)?\b(?:(?:strong(?:er)?|firm(?:er)?|surging|rising)\s+dollar|dollar strength)\b"
+    r"(?!\s+(?:inflows?|revenues?|deposits?|bonds?|fades?|eases?|wanes?|ebbs?|cools?)\b)",
+    re.IGNORECASE,
+)
 RUPEE_FALLS = _moves(RUPEE_SUBJECT, (*DOWN_WORDS, "down", RUPEE_HITS_LOW))
 RUPEE_RISES = _moves(RUPEE_SUBJECT, (*UP_WORDS, "up", RUPEE_HITS_HIGH))
 
@@ -291,11 +297,15 @@ def direction(story: Story) -> float:
     if story.sentiment is not None:
         return max(-1.0, min(1.0, story.sentiment))
     text, macro = story.title, []
-    costs = ((COST_RISES, -1.0), (COST_FALLS, 1.0), (RUPEE_FALLS, -1.0), (RUPEE_RISES, 1.0), (STRONG_DOLLAR, -1.0))
-    for pattern, sign in costs:
+    for pattern, sign in ((COST_RISES, -1.0), (COST_FALLS, 1.0), (RUPEE_FALLS, -1.0), (RUPEE_RISES, 1.0)):
         for match in pattern.finditer(text):
             macro.append(sign)
             text = text.replace(match.group(0), " ")
+    strong_dollar = [m for m in STRONG_DOLLAR.finditer(text) if not m.group(1)]
+    for match in STRONG_DOLLAR.finditer(text):
+        text = text.replace(match.group(0), " ")  # "strong" here is about the dollar, not the stock
+    if strong_dollar and not macro:  # only a cause when no rupee or cost move was named
+        macro.append(-1.0)
     up, down = len(POSITIVE.findall(text)), len(NEGATIVE.findall(text))
     parts = ([(up - down) / (up + down)] if up + down else []) + ([_sign(sum(macro))] if macro else [])
     return sum(parts) / len(parts) if parts else 0.0
