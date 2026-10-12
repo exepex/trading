@@ -18,16 +18,23 @@ class RawSourceUnavailable(RuntimeError):
 
 class RawFileSource(ABC):
     name: str = "source"
+    dataset: str = ""  # archive folder of this source's files: "<publisher>/<market>/<dataset>"
 
     @abstractmethod
-    def fetch(self, filename: str) -> bytes | None:
-        """The file's bytes; None when the source does not publish it; RawSourceUnavailable on a failure."""
+    def fetch(self, path: str) -> bytes | None:
+        """The file at an archive path; None when the source does not publish it; RawSourceUnavailable on a failure."""
+
+    @staticmethod
+    def dated_path(dataset: str, day: date, filename: str) -> str:
+        """`<dataset>/<YYYY>/<MM>/<original file name>`: one folder per month, original names kept."""
+        return f"{dataset}/{day:%Y}/{day:%m}/{filename}"
 
 
 class NseDailyFoSource(RawFileSource):
     """NSE's daily F&O file (UDiFF format, served for every date from January 2024), through a polite session."""
 
     name = "NSE archive"
+    dataset = "nse/derivatives/fo-bhavcopy"
     BASE_URL = "https://nsearchives.nseindia.com/content/fo/"
     FILENAME = "BhavCopy_NSE_FO_0_0_0_{day:%Y%m%d}_F_0000.csv.zip"
     RETRY_WAITS = (5, 15, 45)  # seconds before each retry of a dropped connection
@@ -37,19 +44,20 @@ class NseDailyFoSource(RawFileSource):
         self.session, self.sleep = session, sleep
 
     @classmethod
-    def filename_for(cls, day: date) -> str:
-        return cls.FILENAME.format(day=day)
+    def path_for(cls, day: date) -> str:
+        return cls.dated_path(cls.dataset, day, cls.FILENAME.format(day=day))
 
-    def url_for(self, filename: str) -> str:
-        return self.BASE_URL + filename
+    @classmethod
+    def url_for(cls, path: str) -> str:
+        return cls.BASE_URL + path.rsplit("/", 1)[-1]
 
-    def fetch(self, filename: str) -> bytes | None:
+    def fetch(self, path: str) -> bytes | None:
         for wait in (*self.RETRY_WAITS, None):
             try:
-                response = self.session.get(self.url_for(filename), timeout=self.TIMEOUT_SECONDS)
+                response = self.session.get(self.url_for(path), timeout=self.TIMEOUT_SECONDS)
             except requests.RequestException as exc:
                 if wait is None:
-                    raise RawSourceUnavailable(f"{self.name}: {filename}: {exc}") from exc
+                    raise RawSourceUnavailable(f"{self.name}: {path}: {exc}") from exc
                 self.sleep(wait)
                 continue
             if response.status_code == NOT_PUBLISHED:

@@ -12,12 +12,12 @@ import json
 
 import requests
 
-from .raw_store import RawFileStore, ReadOnlyStoreError
+from .raw_store import RawFileConflict, RawFileStore, ReadOnlyStoreError, path_parts
 
 DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files"
 DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
-LIST_QUERY = "'{folder}' in parents and trashed = false"
-PAGE_SIZE = 1000
+FOLDER_TYPE = "application/vnd.google-apps.folder"
+CHILD_QUERY = "'{parent}' in parents and name = '{name}' and trashed = false and mimeType {op} '" + FOLDER_TYPE + "'"
 TIMEOUT_SECONDS = 60
 READ_ONLY = "Google Drive is read-only here: save files into the Drive for desktop folder on the PC instead"
 
@@ -34,43 +34,45 @@ def service_account_token(key_json: str) -> str:
 
 
 class GoogleDriveStore(RawFileStore):
+    """Files under one shared root folder, in the same tree as the local archive (one folder per path part)."""
+
     name = "Google Drive"
 
     def __init__(self, folder_id: str, token: str, session: requests.Session | None = None):
         self.folder_id = folder_id
         self.session = session or requests.Session()
         self.session.headers["Authorization"] = f"Bearer {token}"
-        self._ids: dict[str, str] | None = None
+        self._ids: dict[tuple[str, str, bool], str | None] = {}
 
-    def _file_ids(self) -> dict[str, str]:
-        """Name -> file ID for everything in the folder, read once (all pages)."""
-        if self._ids is None:
-            ids, page = {}, None
-            while True:
-                params = {
-                    "q": LIST_QUERY.format(folder=self.folder_id),
-                    "fields": "nextPageToken, files(id, name)",
-                    "pageSize": PAGE_SIZE,
-                }
-                if page:
-                    params["pageToken"] = page
-                response = self.session.get(DRIVE_FILES_URL, params=params, timeout=TIMEOUT_SECONDS)
-                response.raise_for_status()
-                body = response.json()
-                ids.update({f["name"]: f["id"] for f in body.get("files", [])})
-                page = body.get("nextPageToken")
-                if not page:
-                    break
-            self._ids = ids
-        return self._ids
+    def _child(self, parent_id: str, name: str, folder: bool) -> str | None:
+        """The ID of the named folder or file directly inside a folder (cached); None if absent."""
+        key = (parent_id, name, folder)
+        if key not in self._ids:
+            query = CHILD_QUERY.format(
+                parent=parent_id, name=name.replace("\\", "\\\\").replace("'", "\\'"), op="=" if folder else "!="
+            )
+            params = {"q": query, "fields": "files(id, name)", "pageSize": 10}
+            response = self.session.get(DRIVE_FILES_URL, params=params, timeout=TIMEOUT_SECONDS)
+            response.raise_for_status()
+            found = response.json().get("files", [])
+            if len(found) > 1:
+                raise RawFileConflict(f"{len(found)} items named {name!r} in one Drive folder")
+            self._ids[key] = found[0]["id"] if found else None
+        return self._ids[key]
 
-    def get(self, filename: str) -> bytes | None:
-        file_id = self._file_ids().get(filename)
+    def get(self, path: str) -> bytes | None:
+        *folders, filename = path_parts(path)
+        parent: str | None = self.folder_id
+        for name in folders:
+            parent = self._child(parent, name, folder=True)
+            if parent is None:
+                return None
+        file_id = self._child(parent, filename, folder=False)
         if file_id is None:
             return None
         response = self.session.get(f"{DRIVE_FILES_URL}/{file_id}", params={"alt": "media"}, timeout=TIMEOUT_SECONDS)
         response.raise_for_status()
         return response.content
 
-    def put(self, filename: str, data: bytes) -> None:
+    def put(self, path: str, data: bytes) -> None:
         raise ReadOnlyStoreError(READ_ONLY)

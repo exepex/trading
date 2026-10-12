@@ -9,7 +9,7 @@ from fno.constants import ENV_GDRIVE_FOLDER_ID, ENV_GDRIVE_SERVICE_ACCOUNT_JSON
 from fno.storage.google_drive import DRIVE_FILES_URL, GoogleDriveStore
 from fno.storage.raw_library import RawFile, RawFileLibrary
 from fno.storage.raw_source import NseDailyFoSource, RawFileSource, RawSourceUnavailable
-from fno.storage.raw_store import LocalFolderStore, ReadOnlyStoreError
+from fno.storage.raw_store import LocalFolderStore, RawFileConflict, ReadOnlyStoreError, path_parts
 from fno.storage.wiring import build_raw_stores
 
 
@@ -25,25 +25,47 @@ class Response:
 
 
 class FakeDrive:
-    """Two pages of folder listing and one downloadable file."""
+    """A Drive tree: root -> nse -> derivatives -> fo-bhavcopy -> 2024 -> 01 -> one file (and a duplicate name)."""
+
+    TREE = {
+        ("root", "nse", True): ["f1"],
+        ("f1", "derivatives", True): ["f2"],
+        ("f2", "fo-bhavcopy", True): ["f3"],
+        ("f3", "2024", True): ["f4"],
+        ("f4", "01", True): ["f5"],
+        ("f5", "a.zip", False): ["file-a"],
+        ("f5", "twice.zip", False): ["x", "y"],
+    }
 
     def __init__(self):
-        self.headers, self.calls = {}, []
+        self.headers, self.queries = {}, []
 
     def get(self, url, params=None, timeout=None):
-        self.calls.append((url, dict(params or {})))
-        if url == DRIVE_FILES_URL and "pageToken" not in params:
-            return Response({"files": [{"id": "1", "name": "a.zip"}], "nextPageToken": "p2"})
-        if url == DRIVE_FILES_URL:
-            return Response({"files": [{"id": "2", "name": "b.zip"}]})
-        return Response(content=b"bytes of " + url.rsplit("/", 1)[1].encode())
+        if url != DRIVE_FILES_URL:
+            return Response(content=b"bytes of " + url.rsplit("/", 1)[1].encode())
+        q = params["q"]
+        self.queries.append(q)
+        parent, name = q.split("'")[1], q.split("'")[3]
+        ids = self.TREE.get((parent, name, "mimeType = " in q), [])
+        return Response({"files": [{"id": i, "name": name} for i in ids]})
 
 
-def test_local_folder_saves_whole_files_and_reads_them_back(tmp_path):
-    store = LocalFolderStore(tmp_path / "raw")
-    assert store.get("x.zip") is None
-    store.put("x.zip", b"data")
-    assert store.get("x.zip") == b"data" and [p.name for p in (tmp_path / "raw").iterdir()] == ["x.zip"]
+def test_local_folder_keeps_the_archive_tree_and_never_overwrites(tmp_path):
+    store, path = LocalFolderStore(tmp_path / "raw"), "nse/derivatives/fo-bhavcopy/2024/01/a.zip"
+    assert store.get(path) is None
+    store.put(path, b"data")
+    store.put(path, b"data")  # the same bytes again: nothing happens
+    assert store.get(path) == b"data" and (tmp_path / "raw" / "nse/derivatives/fo-bhavcopy/2024/01/a.zip").is_file()
+    assert [p.name for p in (tmp_path / "raw/nse/derivatives/fo-bhavcopy/2024/01").iterdir()] == ["a.zip"]
+    with pytest.raises(RawFileConflict):
+        store.put(path, b"other")
+    assert store.get(path) == b"data"
+
+
+@pytest.mark.parametrize("bad", ["", "/abs/a.zip", "nse//a.zip", "nse/../a.zip", "./a.zip"])
+def test_archive_paths_must_be_plain_relative_paths(bad):
+    with pytest.raises(ValueError):
+        path_parts(bad)
 
 
 class CountingSource(RawFileSource):
@@ -59,12 +81,14 @@ class CountingSource(RawFileSource):
 
 def test_library_uses_a_stored_copy_first_and_archives_what_it_fetches(tmp_path):
     stored, archive = LocalFolderStore(tmp_path / "drive"), LocalFolderStore(tmp_path / "keep")
-    stored.put("old.zip", b"stored")
-    source = CountingSource({"old.zip": b"origin", "new.zip": b"fresh"})
+    stored.put("d/2024/01/old.zip", b"stored")
+    source = CountingSource({"d/2024/01/old.zip": b"origin", "d/2024/02/new.zip": b"fresh"})
     library = RawFileLibrary([stored], source, archive)
-    assert library.get("old.zip") == RawFile(b"stored", "local folder") and source.asked == []
-    assert library.get("new.zip") == RawFile(b"fresh", "origin") and archive.get("new.zip") == b"fresh"
-    assert library.get("holiday.zip") == RawFile(None, "origin") and archive.get("holiday.zip") is None
+    assert library.get("d/2024/01/old.zip") == RawFile(b"stored", "local folder") and source.asked == []
+    assert library.get("d/2024/02/new.zip") == RawFile(b"fresh", "origin")
+    assert archive.get("d/2024/02/new.zip") == b"fresh"
+    assert library.get("d/2024/03/holiday.zip") == RawFile(None, "origin")
+    assert archive.get("d/2024/03/holiday.zip") is None
 
 
 class Answer:
@@ -89,7 +113,9 @@ class Flaky:
 
 
 def test_nse_source_names_files_retries_drops_and_reports_holidays():
-    assert NseDailyFoSource.filename_for(date(2026, 10, 9)) == "BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip"
+    path = NseDailyFoSource.path_for(date(2026, 10, 9))
+    assert path == "nse/derivatives/fo-bhavcopy/2026/10/BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip"
+    assert NseDailyFoSource.url_for(path).endswith("/content/fo/BhavCopy_NSE_FO_0_0_0_20261009_F_0000.csv.zip")
     waits = []
     session = Flaky([requests.ConnectionError("reset"), Answer(200, b"zip")])
     source = NseDailyFoSource(session, sleep=waits.append)
@@ -100,15 +126,19 @@ def test_nse_source_names_files_retries_drops_and_reports_holidays():
         down.fetch("f.zip")
 
 
-def test_drive_lists_every_page_downloads_by_id_and_never_writes():
+def test_drive_walks_the_same_tree_folder_by_folder_and_never_writes():
     session = FakeDrive()
-    store = GoogleDriveStore("folder123", "token", session)
+    store = GoogleDriveStore("root", "token", session)
     assert session.headers["Authorization"] == "Bearer token"
-    assert store.get("b.zip") == b"bytes of 2" and store.get("missing.zip") is None
-    listings = [p for url, p in session.calls if url == DRIVE_FILES_URL]
-    assert len(listings) == 2 and "'folder123' in parents" in listings[0]["q"]  # listed once, both pages
+    assert store.get("nse/derivatives/fo-bhavcopy/2024/01/a.zip") == b"bytes of file-a"
+    assert len(session.queries) == 6 and "'root' in parents" in session.queries[0]
+    assert store.get("nse/derivatives/fo-bhavcopy/2024/01/a.zip") == b"bytes of file-a"
+    assert len(session.queries) == 6  # folder and file IDs are cached
+    assert store.get("nse/derivatives/fo-bhavcopy/2024/02/a.zip") is None  # no such month folder
+    with pytest.raises(RawFileConflict):
+        store.get("nse/derivatives/fo-bhavcopy/2024/01/twice.zip")
     with pytest.raises(ReadOnlyStoreError):
-        store.put("c.zip", b"data")
+        store.put("nse/derivatives/fo-bhavcopy/2024/01/c.zip", b"data")
 
 
 def test_drive_is_used_only_when_both_settings_exist(tmp_path, monkeypatch):

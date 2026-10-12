@@ -19,12 +19,12 @@ class RawFileLibrary:
     def __init__(self, stores: list[RawFileStore], source: RawFileSource, archive: RawFileStore | None = None):
         self.stores, self.source, self.archive = stores, source, archive
 
-    def get(self, filename: str) -> RawFile:
+    def get(self, path: str) -> RawFile:
         for store in self.stores:
-            data = store.get(filename)
+            data = store.get(path)
             if data is not None:
                 return RawFile(data, store.name)
-        data = self.source.fetch(filename)
+        data = self.source.fetch(path)
         if data is not None and self.archive is not None:
-            self.archive.put(filename, data)
+            self.archive.put(path, data)  # RawFileConflict if a different file is there
         return RawFile(data, self.source.name)

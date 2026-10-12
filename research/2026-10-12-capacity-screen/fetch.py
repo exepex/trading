@@ -71,9 +71,9 @@ def main() -> None:
         day = FIRST_DAY
         while day <= LAST_DAY:
             if day.weekday() < 5 and day.isoformat() not in done:
-                filename = NseDailyFoSource.filename_for(day)
+                path = NseDailyFoSource.path_for(day)
                 try:
-                    raw = library.get(filename)
+                    raw = library.get(path)
                 except RawSourceUnavailable as exc:
                     print(f"skipped for now: {exc}")  # not recorded, so the next run asks again
                     day += timedelta(days=1)
@@ -83,7 +83,7 @@ def main() -> None:
                 manifest.writerow(
                     {
                         "date": day.isoformat(),
-                        "url": NseDailyFoSource.BASE_URL + filename,
+                        "url": NseDailyFoSource.url_for(path),
                         "status": 200 if raw.data else 404,
                         "sha256": hashlib.sha256(raw.data).hexdigest() if raw.data else "",
                         "rows_kept": len(found),
