@@ -24,6 +24,8 @@ ChatGPT judges in `reviews/chatgpt/review_<n>_<story>.md` (indexed in its README
 **Independent judge session (owner decision, 13 Oct 2026).** Every story built by a parallel builder session is also
 judged by a separate judge cloud session that did not build it and shares no context with the builders or the
 orchestrator. It follows this file exactly, writes only its verdicts in `reviews/judge/judge_<n>_<story>.md` and their
-index `reviews/judge/README.md`, and never edits code, tests, stories or other files. A story is done only when the
+index `reviews/judge/README.md`, and never edits code, tests, stories or other files. Each verdict shows a per-criterion table (criterion, builder's claim, the judge's own evidence, MET / NOT MET /
+PARTLY), a "claims vs reality" section quoting and checking every builder claim, and the project-rule check; a
+criterion the judge could not verify itself is NOT MET. A story is done only when the
 judge's verdict is PASS (ChatGPT's judgment, when given, is weighed the same way: checked with evidence, never accepted
 blindly). A FAIL goes back to a builder with the numbered findings; the judge then re-judges the fix.
