@@ -138,6 +138,9 @@ an assumption for comparison, not a verified tax liability.
   old-format files for 1 and 2 Jan 2019 (header and a few BANKNIFTY futures rows) and the index-close file for
   2 Jan 2019 (NIFTY 50 close 10,792.5). No 2019-2023 option outcome, cycle, feature or P&L has been computed or
   viewed. Any further access before the freeze is added here with its reason.
+- 12 Oct 2026, after the owner's upload: Claude listed the Drive files (names, sizes, counts per year) and checked
+  integrity of 60 random old-format zips (internal checksums) and 30 random index-close files (header present and a
+  "Nifty 50" line present). No value was read, printed or computed.
 - After the freeze, the challenge run is executed once by the engine; its results file and the run commit are
   published as they come out.
 
