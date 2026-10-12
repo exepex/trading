@@ -48,7 +48,7 @@ before C4 (C4 checks the decision record).
 | [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | A1, A2 | M | next |
 | [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | - | M | done (judge passed) |
 | [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | - | S | built; awaiting judge |
-| [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | - | S | next |
+| [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | - | S | built; awaiting judge |
 | [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | A3, A6 | M | later |
 | [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | A3, A5 | M | later |
 | [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | B1, B2, B4 | M | later |

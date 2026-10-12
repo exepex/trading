@@ -287,4 +287,14 @@ checks types, dates, sources and that `announced_on` is before `date` for schedu
 
 **Judge verifies:** samples 10 rows and opens their source links; confirms the commit order.
 
-**Depends:** - · **Size:** S · **Status:** next
+**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026; awaiting judge
+
+**Implementation notes (facts found while building):** 61 events (49 RBI policy decisions incl. 3 off-cycle,
+10 Budgets incl. 2 interim, 2 election results), every date from a page actually opened; sources and every gap in
+`research/data/events/SOURCES.md`. `announced_on` = the earliest page that gave the final date (for RBI April
+meetings, the February resolution, earlier than the yearly schedule). Budget announcement dates are **late bounds**
+(the earliest official page that could be opened; earlier posts on X could not be opened), which can only make the
+event filter treat a Budget as unknown when it was in fact known: conservative, never look-ahead. For the 2019 and
+2020 Budgets no official advance page exists; the announcement source is press (ANI, PTI), labelled in the row. An
+upcoming meeting (4 Dec 2026) has its announcement source but no "held" source until it happens; the validator
+allows that only for dates after today. Rescheduled meetings keep the earlier date in `revised_from`.

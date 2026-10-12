@@ -34,8 +34,11 @@ def _iso(text: str, row: int, column: str) -> date:
         raise ValueError(f"row {row}: bad {column} {text!r}") from exc
 
 
-def read_events(text: str) -> list[Event]:
-    """Validated events; any bad row raises with its row number (nothing is read partly)."""
+def read_events(text: str, today: date | None = None) -> list[Event]:
+    """Validated events; any bad row raises with its row number (nothing is read partly). An event dated after
+    `today` (an upcoming, already announced meeting) may lack the source confirming it happened, never its
+    announcement source."""
+    today = today or date.today()
     reader = csv.DictReader(io.StringIO(text))
     if tuple(reader.fieldnames or ()) != COLUMNS:
         raise ValueError(f"events columns must be {COLUMNS}")
@@ -45,9 +48,9 @@ def read_events(text: str) -> list[Event]:
             raise ValueError(f"row {number}: unknown type {row['type']!r}")
         if row["scheduled"] not in ("yes", "no"):
             raise ValueError(f"row {number}: scheduled must be yes or no")
-        if not row["source_url"].startswith("http"):
-            raise ValueError(f"row {number}: missing source")
         day = _iso(row["date"], number, "date")
+        if not row["source_url"].startswith("http") and day <= today:
+            raise ValueError(f"row {number}: missing source")
         scheduled = row["scheduled"] == "yes"
         announced = _iso(row["announced_on"], number, "announced_on") if row["announced_on"] else None
         if scheduled:
