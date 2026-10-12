@@ -1,4 +1,8 @@
-# F&O options research assistant (India)
+# Omenix F&O (India)
+
+Part of **Omenix**: Omenix F&O (this repository, the F&O backend), the Omenix stock prediction backend
+(`contactexepex/agentic-stock-prediction`) and the one Omenix dashboard (`exepex/omenix-dashboard`). The Python
+package stays `fno` and the Slack channel stays #fno-desk.
 
 The owner's research and paper-trading tool for NSE index options (NIFTY first). Goal: find trades that are
 profitable after charges, slippage and 31.2% tax, prove them on real historical data, then on paper. If paper trading
@@ -25,6 +29,7 @@ python -m fno quotes record                       # 3 pm quote recorder (story A
 python -m fno quotes report                       # half-spread by distance from the money, from recorded days
 python -m fno groww-check                         # check the Groww data connection (prints no secrets)
 python -m fno drive-check                         # check the Google Drive archive can be read (prints no secrets)
+python -m fno data-coverage [--from --to]          # raw NSE files missing or damaged in Drive, against the NSE calendar (A1)
 python -m pytest -q && ruff check fno tests tools # tests and lint; python tools/check_imports.py checks imports
 ```
 

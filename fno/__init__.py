@@ -1,1 +1,1 @@
-"""Indian F&O options research assistant for paper trading."""
+"""Omenix F&O: Indian F&O options research and paper trading (part of Omenix)."""

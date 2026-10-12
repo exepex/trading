@@ -1,4 +1,4 @@
-# F&O research assistant settings. Only the keys listed in fno/config.py (ALLOWED_APP_KEYS) are allowed; any other
+# Omenix F&O settings. Only the keys listed in fno/config.py (ALLOWED_APP_KEYS) are allowed; any other
 # key is an error. Money rules (account size, per-trade risk, brake) arrive with their stories, never ad hoc.
 
 # Market data for the `chain` and `groww-check` commands: "nse" (free, public NSE website),

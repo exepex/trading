@@ -1,6 +1,6 @@
 # Project instructions
 
-This repo is an F&O options research assistant for the owner's Indian trading experiment (broker: Groww).
+This repo is **Omenix F&O** (part of Omenix; the dashboard is `exepex/omenix-dashboard`), an F&O options research assistant for the owner's Indian trading experiment (broker: Groww).
 It is research and paper trading only: never place orders, never ask for or store broker credentials in files.
 
 ## How to work with the owner (always)

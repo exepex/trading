@@ -5,6 +5,8 @@ the same rules (see `CLAUDE.md`).
 
 ## The project
 
+- Name: **Omenix F&O** (the F&O backend of Omenix; the shared dashboard is `exepex/omenix-dashboard`).
+
 - A **personal research tool** for the owner, an Indian retail investor, to learn F&O (futures and options) trading
   on NSE and make their own trading decisions. Broker: Groww, used for data only.
 - It is not for the public and not investment advice. It tests ideas on real data, paper-trades them and shows the
