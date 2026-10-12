@@ -6,6 +6,7 @@ from fno.config import load_config
 from fno.constants import ExitReason, SessionPhase
 from fno.live.feeds.nse_feed import OpenInterestMove
 from fno.live.feeds.price_feed import DayQuote
+from fno.live.news.models import NewsItem
 from fno.live.research.research_context import ResearchSnapshot
 from fno.live.results_store import JsonlResultsStore
 from fno.live.runner import LiveRunner
@@ -109,3 +110,20 @@ def test_kill_switch_closes_everything_once(tmp_path):
     runner.tick(at(11, 7))
     assert not svc.desk.open_trades()
     assert svc.alerts.messages.count("kill switch") == 1
+
+
+def test_strong_credible_news_against_an_open_trade_closes_it_early(tmp_path):
+    cfg = load_config()
+    market = ShiftableSample(cfg, as_of=at(11, 0))
+    svc = services(tmp_path, market)
+    reference = ReferenceData(loaded_on=at(11, 0).date(), lot_sizes=LOTS)
+    LiveScanner(svc).run_cycle(at(11, 0), SessionPhase.TRADING, reference, ResearchSnapshot())
+    trade = svc.desk.open_trades()[0]
+    assert trade["direction"] == "bullish"
+    shock = NewsItem("NSE filings", "NIFTY: SEBI bans derivatives trading, markets plunge", symbols=("NIFTY",))
+    svc.news_room.book.add(shock, at(11, 5))
+    runner = LiveRunner(svc)
+    runner.reference, runner.state.day = reference, at(11, 0).date()
+    runner.tick(at(11, 6))
+    closed = [t for t in svc.desk.trades() if t["id"] == trade["id"]][0]
+    assert closed["exit_reason"] == ExitReason.ADVERSE_NEWS.value and "regulatory" in closed["exit_note"]

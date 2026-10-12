@@ -7,6 +7,7 @@ from fno.constants import EVENT_NEWS_SIGHTING, EVENT_NEWS_STORY, NEWS_THEME_WORL
 from fno.live.learning.news_speed import format_speed_report, source_speeds
 from fno.live.news.api_sources import MarketauxNewsSource, indian_symbols
 from fno.live.news.exchange_sources import parse_bse_announcements, parse_nse_announcements
+from fno.live.news.impact import NewsRoom
 from fno.live.news.models import NewsItem
 from fno.live.news.poll_schedule import ActiveWindow, PollSchedule, SourcePlan
 from fno.live.news.rss_source import RssFeedSource, parse_feed
@@ -199,7 +200,10 @@ def test_watcher_reports_only_fresh_news_and_survives_failures(tmp_path):
     )
     gossip = SourcePlan(ScriptedSource("Gossip", [[], [NewsItem("Gossip", "Ten tips for a happy retirement")]]), 60)
     watcher = NewsWatcher(
-        PollSchedule([nse, et, world, gossip], 5), StoryBook(SymbolTagger(NAMES)), store, frozenset({"RELIANCE"})
+        PollSchedule([nse, et, world, gossip], 5),
+        NewsRoom(StoryBook(SymbolTagger(NAMES))),
+        store,
+        frozenset({"RELIANCE"}),
     )
     watcher.start(MARKET_TIME)
     assert watcher.poll(nse, MARKET_TIME) == []  # first answer = already published: baseline
@@ -217,6 +221,8 @@ def test_watcher_reports_only_fresh_news_and_survives_failures(tmp_path):
     assert speeds["NSE filings"].first == 1 and speeds["ET Markets"].later == 1
     assert "0.5 min" in format_speed_report(list(speeds.values()))
 
-    restarted = NewsWatcher(PollSchedule([], 5), StoryBook(SymbolTagger(NAMES)), store, frozenset({"RELIANCE"}))
+    restarted = NewsWatcher(
+        PollSchedule([], 5), NewsRoom(StoryBook(SymbolTagger(NAMES))), store, frozenset({"RELIANCE"})
+    )
     restarted.start(MARKET_TIME + timedelta(minutes=5))
     assert restarted.book.add(copy, MARKET_TIME + timedelta(minutes=6)) is None  # known before the restart

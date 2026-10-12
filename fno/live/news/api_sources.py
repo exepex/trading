@@ -91,6 +91,11 @@ def indian_symbols(entities: list[dict]) -> tuple[str, ...]:
     return tuple(dict.fromkeys(out))
 
 
+def mean_sentiment(entities: list[dict]) -> float | None:
+    scores = [e["sentiment_score"] for e in entities or [] if isinstance(e.get("sentiment_score"), int | float)]
+    return sum(scores) / len(scores) if scores else None
+
+
 class MarketauxNewsSource(NewsSource):
     """Indian market news with tagged stocks. Asks only for articles published since its last request."""
 
@@ -122,6 +127,7 @@ class MarketauxNewsSource(NewsSource):
                 published_at=_iso(a.get("published_at")),
                 summary=(a.get("description") or a.get("snippet") or "").strip(),
                 symbols=indian_symbols(a.get("entities")),
+                sentiment=mean_sentiment(a.get("entities")),
             )
             for a in (resp.json() or {}).get("data", [])
             if a.get("title")

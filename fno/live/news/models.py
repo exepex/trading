@@ -20,6 +20,7 @@ class NewsItem:
     published_at: datetime | None = None
     summary: str = ""
     symbols: tuple[str, ...] = ()  # tickers the source itself tagged (e.g. Marketaux entities, NSE filings)
+    sentiment: float | None = None  # -1..+1 when the source scores it (Marketaux)
 
 
 CORROBORATED_OUTLETS = 2
@@ -48,6 +49,7 @@ class Story:
     sightings: list[Sighting] = field(default_factory=list)
     title_tokens: frozenset[str] = frozenset()
     numbers: frozenset[str] = frozenset()  # amounts and figures in the news (e.g. 20000, 7.5): strong match evidence
+    sentiment: float | None = None
     baseline: bool = False  # already known when the watcher started, or too old to be news: never reported
 
     @property

@@ -8,11 +8,12 @@ import time as wall_clock
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from ..constants import EVENT_SHADOW_CLOSED, ExitReason, SessionPhase
+from ..constants import EVENT_SHADOW_CLOSED, Direction, ExitReason, SessionPhase
 from ..models import IST
 from .alerts import day_summary_message, exit_message
 from .learning.performance import performance_stop_reason
 from .learning.view_outcomes import ViewOutcomeTracker
+from .news.impact import STRONG_CREDIBILITY
 from .research.research_context import ResearchSnapshot
 from .scanner import LiveScanner
 from .services import LiveServices, build_news_watcher
@@ -144,6 +145,7 @@ class LiveRunner:
             return
         self.state.last_review = now
         closed, errors = self.services.desk.review_open_trades(now, phase)
+        closed += self._exit_on_adverse_news(now)
         for trade in closed:
             self.services.store.record("closed", trade, now, trade["underlying"])
             self.services.alerts.send(exit_message(trade))
@@ -152,6 +154,23 @@ class LiveRunner:
         if closed:
             self._stop_if_performance_breaks(now)
         self._review_shadow_book(now, phase)
+
+    def _exit_on_adverse_news(self, now: datetime) -> list[dict]:
+        """Strong, credible news against an open trade closes it early. Exit only: news never adds to a trade."""
+        room, settings = self.services.news_room, self.services.cfg.get("exits", {}).get("adverse_news", {})
+        if room is None or not settings.get("enabled", True):
+            return []
+        closed = []
+        for trade in self.services.desk.open_trades():
+            pulse = room.pulse(trade["underlying"], now)
+            side = 1 if trade.get("direction") == Direction.BULLISH.value else -1
+            strongest = pulse.strongest
+            credible = strongest is not None and strongest.story.credibility in STRONG_CREDIBILITY
+            if credible and pulse.score * side <= -settings.get("min_score", 0.5):
+                exited = self.services.desk.close(trade["id"], ExitReason.ADVERSE_NEWS, strongest.reason)
+                if exited:
+                    closed.append(exited)
+        return closed
 
     def _review_shadow_book(self, now: datetime, phase: SessionPhase) -> None:
         """Same exit rules for the shadow book, recorded quietly: no alerts, no kill switch."""

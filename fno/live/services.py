@@ -24,6 +24,7 @@ from .market_clock import MarketClock, SessionTimes
 from .market_view import MarketViewBuilder, ViewThresholds
 from .news.api_sources import api_sources_from_environment
 from .news.exchange_sources import BSE_SOURCE, NSE_SOURCE, BseAnnouncementsSource, NseAnnouncementsSource
+from .news.impact import ImpactSettings, NewsRoom
 from .news.poll_schedule import ActiveWindow, PollSchedule, SourcePlan
 from .news.rss_source import RssFeedSource
 from .news.story_book import StoryBook
@@ -76,6 +77,7 @@ class LiveServices:
     research_loader: ResearchContextLoader
     shortlist_rules: ShortlistRules
     shadow_desk: PaperDesk | None = None
+    news_room: NewsRoom | None = None  # filled by the news watcher, read by the scanner and the exit check
 
     @property
     def live_cfg(self) -> dict:
@@ -123,6 +125,7 @@ def build_live_services(
             build_research_source(live.get("research", {})), live.get("news_lookback_hours", 24)
         ),
         shortlist_rules=ShortlistRules.from_config(live.get("shortlist")),
+        news_room=build_news_room(live.get("news", {})),
         shadow_desk=(
             PaperDesk(journal_path.with_name(SHADOW_JOURNAL_NAME), cfg, chain_source, exit_policy, enforce_limits=False)
             if live.get("shadow_book", {}).get("enabled")
@@ -149,13 +152,27 @@ def build_results_store(results_cfg: dict, state_dir: Path) -> ResultsStore:
     return JsonlResultsStore(Path(results_cfg.get("directory") or DEFAULT_RESULTS_DIR))
 
 
+def build_news_room(news_cfg: dict) -> NewsRoom | None:
+    """Where stories live during the day. Tags by index words until company names are loaded by the watcher."""
+    if not news_cfg.get("enabled"):
+        return None
+    book = StoryBook(
+        SymbolTagger({}),
+        timedelta(hours=news_cfg.get("dedupe_window_hours", 24)),
+        outlet_of={feed["name"]: feed.get("outlet", feed["name"]) for feed in news_cfg.get("feeds", [])},
+        primary_sources=frozenset({NSE_SOURCE, BSE_SOURCE}),
+    )
+    return NewsRoom(book, ImpactSettings.from_config(news_cfg.get("impact")))
+
+
 def build_news_watcher(services: LiveServices) -> NewsWatcher | None:
     """The fast news watcher from `live.news`, or None when it is switched off. Makes two requests at start (the F&O
     list and company names, used to tag headlines and keep only news that matters to F&O)."""
     news_cfg = services.live_cfg.get("news", {})
-    if not news_cfg.get("enabled"):
+    if not news_cfg.get("enabled") or services.news_room is None:
         return None
     fno_symbols, names = _fno_names(services)
+    services.news_room.book.use_tagger(SymbolTagger(names))
     session = PacedSession()
     session.headers["User-Agent"] = NEWS_USER_AGENT
     source_cfg = news_cfg.get("sources", {})
@@ -176,17 +193,10 @@ def build_news_watcher(services: LiveServices) -> NewsWatcher | None:
         time.fromisoformat(news_cfg.get("active_until", "15:45")),
         services.clock.is_trading_day,
     )
-    book = StoryBook(
-        SymbolTagger(names),
-        timedelta(hours=news_cfg.get("dedupe_window_hours", 24)),
-        outlet_of={feed["name"]: feed.get("outlet", feed["name"]) for feed in feeds},
-        primary_sources=frozenset({NSE_SOURCE, BSE_SOURCE}),
-    )
     store = LockedResultsStore(JsonlResultsStore(Path(news_cfg.get("directory") or DEFAULT_NEWS_DIR)))
     relevant = frozenset(fno_symbols) | frozenset(INDEX_UNDERLYINGS) if fno_symbols else None
-    return NewsWatcher(
-        PollSchedule(plans, news_cfg.get("min_seconds_between_requests", 5), window), book, store, relevant
-    )
+    schedule = PollSchedule(plans, news_cfg.get("min_seconds_between_requests", 5), window)
+    return NewsWatcher(schedule, services.news_room, store, relevant)
 
 
 def build_news_store(services: LiveServices) -> ResultsStore:

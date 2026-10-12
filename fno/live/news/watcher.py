@@ -17,9 +17,10 @@ from ...constants import EVENT_NEWS_SIGHTING, EVENT_NEWS_STORY, NEWS_THEME_WORLD
 from ...http_pacing import COOL_OFF_SECONDS, SourceCoolingOff
 from ...models import IST
 from ..results_store import ResultsStore
-from .models import NewsItem, Story
+from .impact import NewsRoom
+from .models import NewsItem
 from .poll_schedule import PollSchedule, SourcePlan
-from .story_book import Arrival, StoryBook
+from .story_book import Arrival
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class NewsWatcher:
     def __init__(
         self,
         schedule: PollSchedule,
-        book: StoryBook,
+        room: NewsRoom,
         store: ResultsStore,
         relevant_symbols: frozenset[str] | None = None,
         clock=None,
@@ -40,7 +41,8 @@ class NewsWatcher:
         """relevant_symbols: F&O underlyings and indices. Only stories about them, or world-risk stories, are stored;
         the rest is kept in memory for a day so its copies are still recognised. None = store every tagged story."""
         self.schedule = schedule
-        self.book = book
+        self.room = room
+        self.book = room.book
         self.store = store
         self.relevant_symbols = relevant_symbols
         self.clock = clock or (lambda: datetime.now(IST))
@@ -48,8 +50,10 @@ class NewsWatcher:
         self._stored: set[str] = set()
 
     def start(self, now: datetime) -> None:
-        for record in self.store.payloads(EVENT_NEWS_STORY, (now - timedelta(days=RELOAD_DAYS)).date()):
-            self.book.remember(record)
+        records = self.store.payloads(EVENT_NEWS_STORY, (now - timedelta(days=RELOAD_DAYS)).date())
+        with self.room.lock:
+            for record in records:
+                self.book.remember(record)
         self.schedule.start(now)
 
     def run_forever(self, stop: threading.Event) -> None:
@@ -77,7 +81,8 @@ class NewsWatcher:
         self.errors.pop(plan.name, None)
         arrivals = []
         for item in items:
-            arrival = self.book.add(item, now, baseline=first_answer or self._too_old(item, now))
+            with self.room.lock:
+                arrival = self.book.add(item, now, baseline=first_answer or self._too_old(item, now))
             if arrival and self._worth_storing(arrival):
                 self._record(arrival, now)
                 arrivals.append(arrival)
@@ -92,9 +97,6 @@ class NewsWatcher:
         if self.relevant_symbols is None:
             return bool(story.symbols)
         return any(symbol in self.relevant_symbols for symbol in story.symbols)
-
-    def recent(self, symbol: str, minutes: int) -> list[Story]:
-        return self.book.recent(symbol, self.clock() - timedelta(minutes=minutes))
 
     def _failed(self, plan: SourcePlan, now: datetime, message: str, pause: float | None = None) -> None:
         self.schedule.record(plan, now, ok=False, pause_seconds=pause)

@@ -100,6 +100,20 @@ class PaperDesk:
             closed.append(trade)
         return closed
 
+    def close(self, trade_id: str, reason: ExitReason, note: str = "") -> dict | None:
+        """Close one open trade now (an early exit the rules or the AI called for), with why in `exit_note`."""
+        with self._lock:
+            trades = self.trades()
+            trade = next((t for t in trades if t["id"] == trade_id and t["status"] == TradeStatus.OPEN.value), None)
+            if trade is None:
+                return None
+            value, orders, spot = journal.close_value(trade, self.chain_source, self.slippage)
+            journal.finalise_trade(trade, value, orders, reason.value, self.cfg, spot)
+            if note:
+                trade["exit_note"] = note
+            journal.save(trades, self.journal_path)
+            return trade
+
     def close_all(self, reason: ExitReason) -> list[dict]:
         closed = []
         with self._lock:

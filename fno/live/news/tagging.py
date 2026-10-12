@@ -25,38 +25,11 @@ WORLD_RISK_PATTERN = re.compile(
     r"ukraine|houthi\w*|wall street|nasdaq|dow|s&p|nikkei|kospi|hang seng)\b",
     re.IGNORECASE,
 )
-GENERIC_FIRST_WORDS = {  # first words that name many things besides one company: never used alone
-    "india",
-    "indian",
-    "bharat",
-    "global",
-    "national",
-    "state",
-    "power",
-    "steel",
-    "union",
-    "central",
-    "general",
-    "great",
-    "hindustan",
-    "united",
-    "eastern",
-    "western",
-    "southern",
-    "northern",
-    "life",
-    "first",
-    "prime",
-    "capital",
-    "sun",
-    "bank",
-    "star",
-    "max",
-    "oil",
-    "coal",
-    "gujarat",
-    "indus",
-}
+GENERIC_FIRST_WORDS = frozenset(  # first words that name many things besides one company: never used alone
+    "india indian bharat global national state power steel union central general great hindustan united "  # noqa: SIM905
+    "eastern western southern northern life first prime capital sun bank star max oil coal gujarat indus "
+    "asian money metro home".split()
+)
 COMMON_WORD_SYMBOLS = {"IDEA", "BEL", "ABB", "MRF", "PEL", "SAIL", "IRFC", "NHPC", "GAIL"}  # matched by name only
 
 

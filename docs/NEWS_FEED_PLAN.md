@@ -116,3 +116,18 @@ Owner's direction: free tiers only; one or two minutes late is fine; never bomba
   single source. The AI analyst treats single-source news with care and can judge doubtful merges itself.
 - Known limit: name tagging is by rules, so it can mis-tag (e.g. "Canara HSBC Life" also matching Canara Bank). The
   AI analyst reads the story before acting; tags only decide what is stored and shown to it.
+
+## News weighting (built 12 Oct 2026)
+
+`fno/live/news/classifier.py` reads each headline: type (results, guidance, regulatory action, order, macro/world,
+corporate action, stake sale/block deal, management change, broker rating, other, routine filing) and direction
+(-1..+1; Marketaux's own sentiment when present; rising oil, yields or dollar count as bad for Indian markets).
+Previews, stock-pick lists and live blogs are "other" (talk about news, not news).
+`fno/live/news/impact.py`: story impact = type weight x credibility weight x relevance x freshness x direction;
+relevance 1.0 for the stock's own news, world news 0.6 for indices and 0.2 for single stocks; freshness halves every
+45 minutes; summed over two hours into a -1..+1 `NewsPulse` per underlying (weights in `live.news.impact`).
+Used by: the `fast_news` signal (weight 0.8); the `news_shock` guard (no entry for 15 minutes after credible big news
+whose direction is unclear); the `adverse_news` exit (credible news scoring -0.5 or worse against an open trade).
+All starting weights are judgement; `live signal-report` grades `fast_news` against later moves and they are tuned
+from evidence. Known limits: rules miss negation ("no impact ... ban") and context; the AI analyst reads the
+important stories.

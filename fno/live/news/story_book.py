@@ -134,6 +134,13 @@ class StoryBook:
     def recent(self, symbol: str, since: datetime) -> list[Story]:
         return [s for s in self.stories if symbol in s.symbols and s.first_seen_at >= since and not s.baseline]
 
+    def recent_theme(self, theme: str, since: datetime) -> list[Story]:
+        return [s for s in self.stories if theme in s.themes and s.first_seen_at >= since and not s.baseline]
+
+    def use_tagger(self, tagger: SymbolTagger) -> None:
+        """Company names arrive after start-up (one NSE request); later headlines are tagged with them."""
+        self.tagger = tagger
+
     def _sighting(self, source: str, seen_at: datetime) -> Sighting:
         return Sighting(source, seen_at, self.outlet_of.get(source, source), source in self.primary_sources)
 
@@ -155,6 +162,7 @@ class StoryBook:
             sightings=[sighting],
             title_tokens=headline.tokens,
             numbers=headline.numbers,
+            sentiment=item.sentiment,
         )
         self.stories.append(story)
         if item.url:

@@ -9,6 +9,7 @@ from datetime import datetime
 from ...models import OptionChain
 from ..market_backdrop import MarketBackdrop
 from ..models import Candle, GuardVerdict, SignalVote, UnderlyingSnapshot
+from ..news.impact import NewsPulse
 from ..research.research_context import ResearchSnapshot
 
 
@@ -27,6 +28,7 @@ class SymbolInputs:
     chain: OptionChain | None = None  # the option chain the trade would use
     backdrop: MarketBackdrop = field(default_factory=MarketBackdrop)
     industry: str | None = None  # NSE industry, None for indices
+    news: NewsPulse | None = None  # the fast news watcher's view of this underlying, when it runs
 
     @property
     def closes(self) -> list[float]:

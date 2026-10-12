@@ -97,6 +97,8 @@ exits:
   exit_days_before_expiry: 1
   # Protect winners: once a trade is up 30%, exit if it falls back to half of its best gain.
   trailing_stop: {enabled: true, activate_gain_pct: 30, lock_pct: 50}
+  # Close early when credible news pushes hard against an open trade (news score -0.5 or worse for its side).
+  adverse_news: {enabled: true, min_score: 0.5}
 
 # Fallback lot sizes (NSE revises these; the NSE provider infers the live value from order quantities).
 lot_sizes:
@@ -136,6 +138,16 @@ live:
     active_from: "08:45"              # trading days only, IST; nothing is fetched outside these hours
     active_until: "15:45"
     directory: data/live/news         # one small file a day, only stories about F&O names, indices or world risks
+    impact:                           # story impact = type x credibility x relevance x freshness x direction
+      lookback_minutes: 120
+      half_life_minutes: 45           # a story's push halves every 45 minutes
+      full_scale: 1.0
+      world_relevance_index: 0.6      # world news (war, oil, Fed) for NIFTY/BANKNIFTY/FINNIFTY
+      world_relevance_stock: 0.2      # ... and for a single stock, whose own news matters far more
+      type_weights: {results: 1.0, guidance: 0.9, regulatory_action: 0.9, order_or_contract: 0.7, macro_or_world: 0.7,
+                     corporate_action: 0.6, stake_sale_or_block_deal: 0.6, management_change: 0.5, broker_rating: 0.4,
+                     other: 0.2, routine_filing: 0.0}
+      credibility_weights: {exchange_filing: 1.0, widely_reported: 0.9, corroborated: 0.7, single_source: 0.4}
     dedupe_window_hours: 24
     sources:                          # API sources run only when their key is in ~/.trading.env
       nse_announcements: {every_seconds: 60}
@@ -201,6 +213,8 @@ live:
     vix_direction: {weight: 0.4, full_scale_pct: 8.0}
     # the stock tool's research (agentic-stock-prediction data files)
     news: {weight: 0.8, full_scale: 0.4, unverified_factor: 0.5}
+    # the desk's own fast news watcher (live.news): weighted push of the last two hours' stories
+    fast_news: {weight: 0.8}
     model: {weight: 0.5, full_scale: 0.1}
     announcement: {weight: 0.8, min_move_pct: 1.0, full_scale_pct: 3.0, ignored_categories: [
         "Copy of Newspaper Publication", "Trading Window", "General Updates", "Certificate under SEBI (Depositories and Participants) Regulations, 2018",
@@ -212,6 +226,7 @@ live:
     earnings: {min_days_before_results: 3}
     market_stress: {block_on_stress: true, block_on_geopolitical: true, block_on_major_event: true}
     expensive_options: {max_iv_to_realised: 1.3}
+    news_shock: {quiet_minutes: 15, min_weight: 0.5}  # wait after credible big news whose direction is unclear
   learning:
     horizons_minutes: [30, 90]     # grade every view by the price move this long afterwards
     min_abs_score: 0.2             # votes weaker than this do not count towards a hit rate

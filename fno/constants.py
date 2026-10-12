@@ -36,6 +36,7 @@ class ExitReason(StrEnum):
     OVERNIGHT_LIMIT = "overnight exposure limit"
     PERFORMANCE_STOP = "performance kill switch"
     KILL_SWITCH = "kill switch"
+    ADVERSE_NEWS = "strong news against the trade"
     MANUAL = "manual"
 
 
@@ -103,3 +104,19 @@ class NewsCredibility(StrEnum):
     WIDELY_REPORTED = "widely reported"  # three or more independent outlets
     CORROBORATED = "corroborated"  # two independent outlets
     SINGLE_SOURCE = "single source"  # one outlet only: treat with care
+
+
+class NewsEventType(StrEnum):
+    """What a story is about; decides how much it can move a stock and its options."""
+
+    RESULTS = "results"
+    GUIDANCE = "guidance"
+    REGULATORY = "regulatory action"
+    ORDER = "order or contract"
+    CORPORATE_ACTION = "corporate action"
+    DEAL_FLOW = "stake sale or block deal"
+    MANAGEMENT = "management change"
+    RATING = "broker rating"
+    MACRO = "macro or world"
+    ROUTINE = "routine filing"
+    OTHER = "other"

@@ -5,6 +5,7 @@ from __future__ import annotations
 from .base import GuardRule, SignalRule
 from .guards import BanListGuard, EarningsGuard, ExpensiveOptionsGuard, MarketStressGuard
 from .market_signals import GlobalCues, MarketBreadth, SectorStrength, VixDirection
+from .news_signals import FastNews, NewsShockGuard
 from .option_signals import OptionWritingPressure
 from .positioning import FuturesOiBuildup
 from .price_action import IntradayTrend, OpeningRangeBreakout, RelativeStrength, VwapPosition
@@ -31,10 +32,12 @@ SIGNAL_RULES: dict[str, type[SignalRule]] = {
         AnnouncementCatalyst,
         BlockDealFlow,
         ForeignFlow,
+        FastNews,
     )
 }
 GUARD_RULES: dict[str, type[GuardRule]] = {
-    guard.name: guard for guard in (BanListGuard, EarningsGuard, MarketStressGuard, ExpensiveOptionsGuard)
+    guard.name: guard
+    for guard in (BanListGuard, EarningsGuard, MarketStressGuard, ExpensiveOptionsGuard, NewsShockGuard)
 }
 
 

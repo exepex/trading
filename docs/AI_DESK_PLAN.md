@@ -40,6 +40,29 @@ the position rules, daily loss limit, profit lock or concentration limits.
 The stock tool and the F&O desk share the slow, verified layer (the stock tool's GitHub data); only the F&O desk
 needs the fast layer (Groww and minute-level news), because options magnify moves and decay with time.
 
+## Before the AI layer: what an option buyer still needs (recommended 12 Oct 2026)
+
+In priority order. Each new rule is graded like every other signal and kept only if it earns its place.
+
+1. **Realistic fills and IV history**: price paper entries/exits at Groww's bid/ask (quote call) and start storing
+   one end-of-day ATM implied-volatility snapshot per underlying now, so IV rank is possible in ~3 months.
+2. **Day-type filter (trend vs range)**: option buyers lose most on sideways days (time decay plus spreads). Classify
+   each underlying after the opening range: directional efficiency of the first hour, opening-range width vs
+   average range, VIX. Buy options only on trending conditions.
+3. **Move needed vs move likely**: before entry, the underlying move the option needs to reach its target within the
+   holding time (delta, gamma, theta) against the move the market expects (ATM straddle, recent intraday range).
+   Skip trades that need most of the expected move.
+4. **One bet, not three**: count correlated trades as one (bank stocks + BANKNIFTY; IT stocks together): at most two
+   open trades per sector or index family.
+5. **FII/DII derivatives positioning**: NSE's free daily participant-wise open interest (FII index futures long/short,
+   index options) as a pre-market bias for NIFTY/BANKNIFTY/FINNIFTY.
+6. **Price-shock detector**: Groww live feed (up to 1,000 instruments, push); a sudden move protects open trades within
+   seconds and pulls the news for that name.
+7. **Backtest harness**: replay the rules on Groww historical candles to give weights an evidence-based start instead
+   of waiting 13 weeks of paper trading.
+8. **Time-of-day and expiry-week statistics**: record when trades are opened and how they do (opening hour, midday,
+   last hour; days to expiry) so the desk learns its good and bad hours.
+
 ## Reliability
 
 - Facts come from code, reasoning from the AI: a context pack of verified numbers goes in; structured JSON comes

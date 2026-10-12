@@ -112,6 +112,7 @@ class LiveScanner:
             chain=chain,
             backdrop=context.backdrop,
             industry=context.reference.industries.get(symbol),
+            news=s.news_room.pulse(symbol, now) if s.news_room else None,
         )
         view = s.view_builder.build(inputs)
         report.views.append(view)
