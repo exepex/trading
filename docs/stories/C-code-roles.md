@@ -78,7 +78,8 @@ calculation itself (an input: measured from NSE SPAN files or the broker's calcu
   trades valued at mid of valid quotes (or last valid mark, flagged stale); available cash = the lower of cash and
   marked equity, minus margin blocked, minus premium reserved for pending orders (13 Oct 2026: "marked equity minus
   margin" counted a bought option's premium as spendable a second time; the lower of the two is conservative for both
-  long premium and short-option losses; E1 implements it in `fno/books/equity.py`).
+  long premium and short-option losses; E1 implements it in `fno/books/equity.py`); judge 1: if margin blocked is the broker's total margin for a short structure, which already includes the
+  mark-to-market loss, the loss is counted twice, so C2 states which margin figure it uses).
 - **Margin:** per structure and lot, from the broker's margin calculator or NSE's SPAN parameter files, recorded with
   source and date in `research/data/margins/margins.csv`; older than 7 days or missing means the check **fails
   closed** (no trade). **Stressed margin, one frozen method:** set in `config.yaml` `risk.stressed_margin` before any
