@@ -363,7 +363,7 @@ the attempt is recorded as incomplete with reason "calendar says session, no sam
 
 **Judge verifies:** runs the special-Saturday and holiday tests; confirms the baseline test is untouched and passes.
 
-**Depends:** A1 (calendar) · **Size:** S · **Status:** later
+**Depends:** A1 (calendar) · **Size:** S · **Status:** built; awaiting judge
 
 ---
 

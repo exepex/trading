@@ -3,6 +3,10 @@
 Only time builds this history: daily NSE files have no bid or ask. Each run is an immutable *attempt* saved under its
 capture time; an incomplete attempt may be retried inside the window, and the day's canonical snapshot is the first
 complete attempt (or "none"). Quotes are not fills. Never places, modifies or cancels orders.
+
+Whether today is a session comes from NSE's session calendar (story A7), never from the weekday or from the quotes: a
+special weekend session is recorded, a weekday holiday is not, and a session day with no same-day trade is a failure
+to report (calendar says session, quotes say closed), not a quiet "not a trading day".
 """
 
 from __future__ import annotations
@@ -15,8 +19,10 @@ import time as clock
 from dataclasses import dataclass
 from datetime import date, datetime, time
 
+from ..constants import SESSION_MUHURAT, SESSION_REGULAR, SESSION_SPECIAL
 from ..models import IST, OptionChain, QuoteBook, now_ist
 from ..providers.base import Provider
+from ..research_data.calendar import SessionCalendar
 from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
 from .expiry_listing import ListedExpiries
@@ -28,7 +34,10 @@ MAX_EARLY_WAIT_SECONDS = 20 * 60  # a run started up to 20 minutes early waits f
 RETRY_GAP_SECONDS = 60
 SPOT_BAND = 0.05  # strikes within 5% of spot
 MONTHLY_EXPIRIES = 2
-WEEKEND_START = 5
+WEEKEND_START = 5  # only when built without a calendar (the A4 tests): weekends closed, no same-day trade = holiday
+RECORDED_SESSION_KINDS = (SESSION_REGULAR, SESSION_SPECIAL)  # a muhurat session is one evening hour, not 14:55-15:10
+MUHURAT_ONLY = "muhurat session only: the market is closed from 14:55 to 15:10"
+NO_SAME_DAY_TRADES = "calendar says session, no same-day trades"
 NONE_MARKER = "none"
 COLUMNS = (
     "snapshot_id", "request_sent_at", "response_received_at", "quote_time", "age_basis", "freshness_proxy",
@@ -70,13 +79,16 @@ class RecordResult:
     snapshot_id: str = ""
     complete: bool = False
     rows: int = 0
+    reason: str = ""  # why a session day was skipped or failed the calendar cross-check
 
 
 class QuoteSnapshotRecorder:
     def __init__(self, provider: Provider, store: RawFileStore, clock_now=now_ist, sleep=clock.sleep,
-                 fallback: ListedExpiries | None = None):  # fmt: skip
+                 fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None):  # fmt: skip
+        """The app always passes `calendar` (fno/composition.py). Without one (the A4 tests and byte-identical
+        baseline), A4's inference stays: weekends are closed and a day with no same-day trade is a holiday."""
         self.provider, self.store, self.now, self.sleep = provider, store, clock_now, sleep
-        self.fallback = fallback
+        self.fallback, self.calendar = fallback, calendar
 
     @staticmethod
     def path(day: date, name: str) -> str:
@@ -88,11 +100,13 @@ class QuoteSnapshotRecorder:
 
     def record(self, outside_window: bool = False) -> RecordResult:
         """One day's recording: waits for the window if early, retries incomplete attempts until the window ends.
-        `outside_window` (testing only) makes one attempt now; such an attempt is never canonical."""
+        `outside_window` (testing only) makes one attempt now; such an attempt is never canonical.
+        Raises `CalendarError` for a day outside the calendar's years (never guesses)."""
         now = self.now()
         day = now.date()
-        if now.weekday() >= WEEKEND_START:
-            return RecordResult("not a trading day")
+        kind = self._session_kind(day)
+        if kind not in RECORDED_SESSION_KINDS:
+            return RecordResult("not a trading day", reason=MUHURAT_ONLY if kind == SESSION_MUHURAT else "")
         if self.canonical(day) is not None:
             return RecordResult("already recorded", self.canonical(day))
         if outside_window:
@@ -111,6 +125,12 @@ class QuoteSnapshotRecorder:
         if self.canonical(day) is None:
             self.store.put(self.path(day, f"nifty_{day:%Y%m%d}.canonical"), NONE_MARKER.encode())
         return result
+
+    def _session_kind(self, day: date) -> str | None:
+        """The calendar's answer; without a calendar (A4 tests), every weekday is a regular session."""
+        if self.calendar is None:
+            return SESSION_REGULAR if day.weekday() < WEEKEND_START else None
+        return self.calendar.session_kind(day)
 
     def _attempt(self, day: date, canonical_allowed: bool) -> RecordResult:
         started = self.now()
@@ -141,7 +161,9 @@ class QuoteSnapshotRecorder:
                     continue
                 rows.append(self._row(snapshot_id, sent, self.now(), chain, strike, kind, book, day))
         if rows and not any(r["last_trade_time"].startswith(day.isoformat()) for r in rows):
-            return RecordResult("not a trading day", snapshot_id)  # no contract traded today: market closed
+            if self.calendar is None:
+                return RecordResult("not a trading day", snapshot_id)  # A4 inference: no contract traded, closed
+            failures.append(NO_SAME_DAY_TRADES)  # kept and retried; the day ends "none" if it persists to 15:10
         complete = bool(chains) and not failures and len(rows) == expected
         csv_bytes = self._csv(rows)
         meta = {
@@ -157,7 +179,8 @@ class QuoteSnapshotRecorder:
         self.store.put(self.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:
             self.store.put(self.path(day, f"nifty_{day:%Y%m%d}.canonical"), snapshot_id.encode())
-        return RecordResult("recorded", snapshot_id, complete, len(rows))
+        reason = NO_SAME_DAY_TRADES if NO_SAME_DAY_TRADES in failures else ""
+        return RecordResult("recorded", snapshot_id, complete, len(rows), reason)
 
     @staticmethod
     def _contracts(chain: OptionChain) -> list[tuple[float, str]]:
