@@ -18,8 +18,10 @@ from pathlib import Path
 # record folder (journal/, playbook/, agents/, book3/ ...) is scanned without being listed anywhere.
 CODE_FOLDERS = ("fno/", "tests/", "tools/")
 TRACKED_FILES = ("git", "ls-files", "-z")
-STAGED_FILES = ("git", "diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR")
-STAGED_BLOB = ("git", "show")  # + ":<path>": the staged bytes, which are what the commit will hold
+# Staged entries with their mode and blob id: ":<old mode> <new mode> <old id> <new id> <status>\0<path>\0"
+STAGED_ENTRIES = ("git", "diff", "--cached", "--raw", "-z", "--full-index", "--no-renames", "--diff-filter=ACMR")
+STAGED_BLOB = ("git", "cat-file", "blob")  # + "<id>": the staged bytes, which are what the commit will hold
+GITLINK_MODE = "160000"  # a nested repository (submodule or agent worktree): a commit id, no content to scan
 
 
 @dataclass(frozen=True)
@@ -90,6 +92,13 @@ class TrackedRecords(RecordSource):
                 yield from texts_of(path, file.read_bytes(), is_code(path))
 
 
+def staged_blobs(output: bytes) -> list[tuple[str, str]]:
+    """(path, blob id) of each staged file; gitlinks are left out because they hold no content of this repository."""
+    fields = output.decode("utf-8").split("\0")
+    entries = zip(fields[0::2], fields[1::2])  # (":<modes> <ids> <status>", path) pairs
+    return [(path, info.split()[3]) for info, path in entries if info.split()[1] != GITLINK_MODE]
+
+
 class StagedRecords(RecordSource):
     """The files staged for the next commit, exactly as the commit will hold them."""
 
@@ -97,8 +106,8 @@ class StagedRecords(RecordSource):
         self._root = root
 
     def records(self) -> Iterator[RecordText]:
-        for path in _paths(_git(self._root, *STAGED_FILES)):
-            yield from texts_of(path, _git(self._root, *STAGED_BLOB, f":{path}"), is_code(path))
+        for path, blob in staged_blobs(_git(self._root, *STAGED_ENTRIES)):
+            yield from texts_of(path, _git(self._root, *STAGED_BLOB, blob), is_code(path))
 
 
 class NamedFiles(RecordSource):

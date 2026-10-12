@@ -80,6 +80,22 @@ def test_code_folders_are_scanned_for_credentials_only(repo):
     assert commit.returncode != 0 and "tools/x/notes.md:1: Slack token" in commit.stderr
 
 
+def test_staged_gitlink_is_skipped_not_a_crash(repo):
+    """A nested repository (submodule, agent worktree) is staged as a gitlink: no content, so it is skipped."""
+    nested = repo / ".claude/worktrees/agent-1"
+    nested.mkdir(parents=True)
+    git(nested, "init", "-q")
+    git(nested, "-c", "user.name=a", "-c", "user.email=a@example.invalid", "commit", "-q", "--allow-empty", "-m", "x")
+    git(repo, "add", ".claude/worktrees/agent-1")
+    stage(repo, "journal/x.md", f"{FAKE_TOKEN}\n")
+    assert "160000" in git(repo, "ls-files", "-s").stdout
+    assert [r.path for r in StagedRecords(repo).records()] == ["journal/x.md"]
+    result = scan("--staged", "--root", str(repo))
+    assert (
+        result.returncode == 1 and "Traceback" not in result.stderr and "journal/x.md:1: Slack token" in result.stdout
+    )
+
+
 def test_zip_members_are_scanned(repo):
     packed = io.BytesIO()
     with zipfile.ZipFile(packed, "w") as archive:
@@ -148,8 +164,10 @@ def test_hook_without_slack_token_still_refuses_and_says_the_alert_was_not_sent(
 def test_fresh_checkout_is_gated_by_the_session_start_hook(tmp_path):
     """Judge 2, finding 2: a fresh checkout whose session runs .claude/settings.json's SessionStart command refuses a
     planted token (before that command runs, the same commit goes through)."""
-    for part in (".claude", ".githooks", "fno", "tools"):
+    for part in (".githooks", "fno", "tools"):
         shutil.copytree(ROOT / part, tmp_path / part, ignore=shutil.ignore_patterns("__pycache__"))
+    (tmp_path / ".claude").mkdir()  # only the committed settings: a local .claude/ may hold agent worktrees
+    shutil.copy(ROOT / ".claude/settings.json", tmp_path / ".claude/settings.json")
     git(tmp_path, "init", "-q")
     git(tmp_path, "config", "user.name", "session")
     git(tmp_path, "config", "user.email", "session@example.invalid")
