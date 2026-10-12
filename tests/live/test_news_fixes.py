@@ -54,6 +54,8 @@ def test_the_marketaux_token_never_appears_in_connection_errors():
         ("Rupee hits weakest level since 2013", -1),
         ("Rupee hits the lowest level ever", -1),
         ("Rupee hits 3-week high after lows", 1),
+        ("Rupee hits record low on strong dollar", -1),
+        ("Rupee weakens on strong dollar demand", -1),
         ("Rupee hits peak after record lows", 1),
         ("Rupee hits strongest since lows of 2023", 1),
         ("Crude up 3% on supply fears", -1),
@@ -78,7 +80,13 @@ def test_headline_direction(headline, sign):
 
 @pytest.mark.parametrize(
     "headline",
-    ["Rupee hits back from lowest levels", "Rupee hits importers with lowest margins", "Rupee hits 88 per dollar"],
+    [
+        "Crude falls after Sensex lows",
+        "Rupee rises after market lows",
+        "Rupee hits back from lowest levels",
+        "Rupee hits importers with lowest margins",
+        "Rupee hits 88 per dollar",
+    ],
 )
 def test_rupee_hits_without_a_level_says_nothing(headline):
     assert direction(Story("x", headline, "", None, (), (), "", [Sighting("s", NOW)])) == 0

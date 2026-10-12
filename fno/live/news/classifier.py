@@ -246,7 +246,8 @@ IN_BETWEEN = r"(?:\s+(?:prices?|futures|index|sharply|further|again|nearly|over|
 MOVE_TAIL = (
     r"(?:\s+(?:by\s+)?[\d.,]+\s*(?:%|paise|points?|bps|basis points)?)?"
     r"(?:\s+(?:to|from|at)\s+(?:a\s+)?[\w-]+(?:\s+[\w-]+)?\s+(?:highs?|lows?))?"
-    r"(?:\s+(?:after|from|off|since)(?:\s+[\w-]+)?\s+(?:highs?|lows?)(?:\s+of\s+\d{4})?)?"  # "high after record lows"
+    r"(?:\s+(?:after|from|off|since)(?:\s+(?:record|fresh|recent|lifetime|all-time|multi-year|session|intraday|"
+    r"\d+-\w+))?\s+(?:highs?|lows?)(?:\s+of\s+\d{4})?)?"  # "high after record lows", never "after Nifty lows"
 )
 
 
@@ -264,6 +265,7 @@ LEVEL_STOP = r"(?:back|from|with|after|off|since|against|amid|on)"
 LEVEL_FILLER = rf"(?:\s+(?!(?:{LOW_LEVEL}|{HIGH_LEVEL}|{LEVEL_STOP})\b)(?:an?\s+)?[\w-]+){{0,3}}"
 RUPEE_HITS_LOW = rf"hits{LEVEL_FILLER}\s+{LOW_LEVEL}"  # "hits record low", "hits weakest level"
 RUPEE_HITS_HIGH = rf"hits{LEVEL_FILLER}\s+{HIGH_LEVEL}"  # "hits one-year peak"
+STRONG_DOLLAR = re.compile(r"\b(?:strong(?:er)?|firm(?:er)?|surging|rising)\s+dollar\b|\bdollar strength\b", re.I)
 RUPEE_FALLS = _moves(RUPEE_SUBJECT, (*DOWN_WORDS, "down", RUPEE_HITS_LOW))
 RUPEE_RISES = _moves(RUPEE_SUBJECT, (*UP_WORDS, "up", RUPEE_HITS_HIGH))
 
@@ -289,7 +291,8 @@ def direction(story: Story) -> float:
     if story.sentiment is not None:
         return max(-1.0, min(1.0, story.sentiment))
     text, macro = story.title, []
-    for pattern, sign in ((COST_RISES, -1.0), (COST_FALLS, 1.0), (RUPEE_FALLS, -1.0), (RUPEE_RISES, 1.0)):
+    costs = ((COST_RISES, -1.0), (COST_FALLS, 1.0), (RUPEE_FALLS, -1.0), (RUPEE_RISES, 1.0), (STRONG_DOLLAR, -1.0))
+    for pattern, sign in costs:
         for match in pattern.finditer(text):
             macro.append(sign)
             text = text.replace(match.group(0), " ")
