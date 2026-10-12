@@ -14,6 +14,17 @@ fno-research/                        local: the --keep-raw folder; Drive: the sh
 
 Example: `fno-research/raw/nse/derivatives/fo-bhavcopy/2024/01/BhavCopy_NSE_FO_0_0_0_20240102_F_0000.csv.zip`.
 
+Datasets so far (all from NSE's public archive, `raw_source.py`):
+
+| Folder | Source class | Files | Dates |
+|---|---|---|---|
+| `nse/derivatives/fo-bhavcopy` | `NseDailyFoSource` | F&O, current UDiFF format | 1 Jan 2024 onwards |
+| `nse/derivatives/fo-bhavcopy-legacy` | `NseLegacyFoSource` | F&O, old format (`fo02JAN2019bhav.csv.zip`) | up to 5 Jul 2024 |
+| `nse/indices/index-close` | `NseIndexCloseSource` | daily index closes (NIFTY 50, NIFTY Bank, India VIX...) | 2019 onwards |
+
+Both F&O formats are read into one record format by `fno/fo_bhavcopy.py` (originals stay unchanged); the old format's
+missing underlying price for index options comes from the index-close file of the same day.
+
 Rules:
 - Nothing is written loose in the project folder: every store is wrapped in an `AreaStore` for its area.
 - Each source declares its own `dataset` folder and builds paths with `RawFileSource.dated_path` (one place).

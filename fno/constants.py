@@ -144,3 +144,6 @@ INDEX_FAMILIES = {
 }
 EVENT_PRICE_SHOCK = "price_shock"  # a sudden move of an underlying, seen on the live price feed
 CALENDAR_DAYS_PER_TRADING_DAY = 7 / 5  # a 2-trading-day hold spans about 2.8 calendar days (weekends)
+
+# Month codes in NSE file names and dates (e.g. fo02JAN2019bhav), independent of the computer's language settings
+MONTH_CODES = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")

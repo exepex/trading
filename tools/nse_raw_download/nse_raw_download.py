@@ -1,7 +1,13 @@
-"""Downloads NSE's daily F&O files (2 Jan 2024 to today) into your fno-research folder.
+"""Downloads NSE's daily files for the research into your fno-research folder:
+
+- F&O files in the current format, 1 Jan 2024 to today;
+- F&O files in the old format, 1 Jan 2019 to 5 Jul 2024 (NSE's last old-format day);
+- NSE's daily index closes (NIFTY 50, NIFTY Bank, India VIX and others), 1 Jan 2019 to today.
 
 Run it with no options:   python nse_raw_download.py
-It asks which folder to use (press Enter for the folder you are in). That's all.
+It asks which folder to use (press Enter for the folder you are in). That's all. Files you already have are kept and
+skipped, so if it stops, just run it again. The original files are saved unchanged; the research code reads both
+formats into one (fno/fo_bhavcopy.py in the repository).
 """
 
 from __future__ import annotations
@@ -14,15 +20,62 @@ import subprocess
 import sys
 import tempfile
 import time
+from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-BASE_URL = "https://nsearchives.nseindia.com/content/fo/"
-FILENAME = "BhavCopy_NSE_FO_0_0_0_{day:%Y%m%d}_F_0000.csv.zip"
-LAYOUT = "raw/nse/derivatives/fo-bhavcopy/{day:%Y}/{day:%m}/{filename}"  # same as fno/storage (tested in the repo)
-FIRST_DAY = date(2024, 1, 2)  # NSE serves this file format from January 2024
+NSE = "https://nsearchives.nseindia.com/content/"
+MONTH_CODES = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+
+
+@dataclass(frozen=True)
+class Dataset:
+    """One kind of daily NSE file: its name, address and folder (the same layout as fno/storage, tested there)."""
+
+    label: str
+    url: str  # format string: day, mon, filename
+    filename: str  # format string: day, mon
+    folder: str
+    first: date
+    last: date | None = None  # None: still published
+
+    def name_for(self, day: date) -> str:
+        return self.filename.format(day=day, mon=MONTH_CODES[day.month - 1])
+
+    def path_for(self, day: date) -> str:
+        return f"{self.folder}/{day:%Y}/{day:%m}/{self.name_for(day)}"
+
+    def url_for(self, day: date) -> str:
+        return self.url.format(day=day, mon=MONTH_CODES[day.month - 1], filename=self.name_for(day))
+
+    def covers(self, day: date) -> bool:
+        return self.first <= day and (self.last is None or day <= self.last)
+
+
+CURRENT_FO = Dataset(
+    "F&O (current format)",
+    NSE + "fo/{filename}",
+    "BhavCopy_NSE_FO_0_0_0_{day:%Y%m%d}_F_0000.csv.zip",
+    "raw/nse/derivatives/fo-bhavcopy",
+    date(2024, 1, 1),
+)
+OLD_FO = Dataset(
+    "F&O (old format)",
+    NSE + "historical/DERIVATIVES/{day:%Y}/{mon}/{filename}",
+    "fo{day:%d}{mon}{day:%Y}bhav.csv.zip",
+    "raw/nse/derivatives/fo-bhavcopy-legacy",
+    date(2019, 1, 1),
+    date(2024, 7, 5),
+)
+INDEX_CLOSE = Dataset(
+    "index closes", NSE + "indices/{filename}", "ind_close_all_{day:%d%m%Y}.csv", "raw/nse/indices/index-close",
+    date(2019, 1, 1),
+)  # fmt: skip
+FO_DATASETS = (CURRENT_FO, OLD_FO)
+FIRST_DAY = date(2019, 1, 1)
+NO_FILE_LOG = "nse-days-without-files.txt"  # next to the raw folder, so a re-run does not ask NSE again
 GAP_SECONDS = 1.0
 RETRY_WAITS = (5, 15, 45)
 REFUSED = (403, 429)
@@ -35,7 +88,7 @@ USER_AGENT = "Mozilla/5.0 (personal research; one request per second)"
 
 
 def relative_path(day: date) -> str:
-    return LAYOUT.format(day=day, filename=FILENAME.format(day=day))
+    return CURRENT_FO.path_for(day)
 
 
 def load_manifest(path: Path) -> tuple[dict[str, str], set[str]]:
@@ -105,48 +158,76 @@ def choose_folder(argv: list[str]) -> Path:
     return Path(answer.strip().strip('"')) if answer.strip() else here
 
 
+class Stop(RuntimeError):
+    """NSE refused requests: stop now to avoid a block, and run again later."""
+
+
+class Downloader:
+    """Fetches one day's file of one dataset unless it is already there or known to have none."""
+
+    def __init__(self, dest: Path, expected: dict[str, str], no_file: set[str]):
+        self.dest, self.expected, self.no_file = dest, expected, no_file
+        self.counts = {"saved": 0, "already there": 0, "no file that day": 0, "mismatch": 0, "failed": 0}
+        self.log = dest / NO_FILE_LOG
+
+    def get(self, dataset: Dataset, day: date) -> bool:
+        """True when the file exists (saved now or before)."""
+        target = self.dest / dataset.path_for(day)
+        tag = f"{dataset.folder}|{day.isoformat()}"
+        want = self.expected.get(day.isoformat()) if dataset is CURRENT_FO else None
+        if target.is_file():
+            if want and hashlib.sha256(target.read_bytes()).hexdigest() != want:
+                print(f"MISMATCH {day} {dataset.label}: existing file differs from the recorded fingerprint; untouched")
+                self.counts["mismatch"] += 1
+            else:
+                self.counts["already there"] += 1
+            return True
+        if tag in self.no_file:
+            return False
+        status, data = download(dataset.url_for(day))
+        time.sleep(GAP_SECONDS)
+        if status in REFUSED:
+            raise Stop(f"NSE refused the request (HTTP {status}). Stopped to avoid a block; run again later.")
+        if status == 404:
+            self.counts["no file that day"] += 1
+            self.no_file.add(tag)
+            with self.log.open("a") as f:
+                f.write(tag + "\n")
+            return False
+        if status != 200:
+            print(f"{day} {dataset.label}: unexpected HTTP {status}; skipped (run again later)")
+            self.counts["failed"] += 1
+            return False
+        if want and hashlib.sha256(data).hexdigest() != want:
+            print(f"MISMATCH {day} {dataset.label}: NSE's file differs from the recorded fingerprint; not saved")
+            self.counts["mismatch"] += 1
+            return False
+        save(target, data)
+        self.counts["saved"] += 1
+        print(f"saved {day} {dataset.label}  ({len(data) / 1e6:.2f} MB)")
+        return True
+
+
 def run(dest: Path, start: date = FIRST_DAY, end: date | None = None, manifest: Path | None = None) -> int:
     end = end or date.today()
     expected, holidays = load_manifest(manifest or Path(__file__).with_name("manifest.csv"))
-    counts = {"saved": 0, "already there": 0, "no file (holiday)": 0, "mismatch": 0}
-    print(f"Saving into {dest / 'raw'}  (about 30 minutes; you can stop with Ctrl+C and run again later)")
+    log = dest / NO_FILE_LOG
+    no_file = set(log.read_text().split()) if log.is_file() else set()
+    no_file |= {f"{CURRENT_FO.folder}|{d}" for d in holidays}
+    dest.mkdir(parents=True, exist_ok=True)
+    loader = Downloader(dest, expected, no_file)
+    print(f"Saving into {dest / 'raw'}  (about 1.5 hours the first time; stop with Ctrl+C and run again any time)")
     day = start
-    while day <= end:
-        if day.isoformat() in holidays:  # known to have no file; every other day is asked (weekend sessions exist)
+    try:
+        while day <= end:
+            traded = [loader.get(d, day) for d in FO_DATASETS if d.covers(day)]
+            if any(traded) and INDEX_CLOSE.covers(day):  # index closes only for trading days
+                loader.get(INDEX_CLOSE, day)
             day += timedelta(days=1)
-            continue
-        target = dest / relative_path(day)
-        want = expected.get(day.isoformat())
-        if target.is_file():
-            have = hashlib.sha256(target.read_bytes()).hexdigest()
-            if want and have != want:
-                print(f"MISMATCH {day}: existing file differs from the recorded fingerprint; left untouched")
-                counts["mismatch"] += 1
-            else:
-                counts["already there"] += 1
-            day += timedelta(days=1)
-            continue
-        status, data = download(BASE_URL + FILENAME.format(day=day))
-        if status in REFUSED:
-            print(f"NSE refused the request (HTTP {status}). Stopping to avoid a block; run again later.")
-            break
-        if status == 404:
-            counts["no file (holiday)"] += 1
-        elif status == 200:
-            got = hashlib.sha256(data).hexdigest()
-            if want and got != want:
-                print(f"MISMATCH {day}: NSE's file differs from the recorded fingerprint; not saved")
-                counts["mismatch"] += 1
-            else:
-                save(target, data)
-                counts["saved"] += 1
-                print(f"saved {day}  ({len(data) / 1e6:.1f} MB)")
-        else:
-            print(f"{day}: unexpected HTTP {status}; skipped (run again later)")
-        time.sleep(GAP_SECONDS)
-        day += timedelta(days=1)
-    print("Done. " + "; ".join(f"{k}: {v}" for k, v in counts.items()))
-    return 1 if counts["mismatch"] else 0
+    except Stop as exc:
+        print(exc)
+    print("Done. " + "; ".join(f"{k}: {v}" for k, v in loader.counts.items()))
+    return 1 if loader.counts["mismatch"] else 0
 
 
 def main() -> int:

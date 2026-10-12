@@ -10,7 +10,7 @@ from ..constants import ENV_GDRIVE_FOLDER_ID, ENV_GDRIVE_SERVICE_ACCOUNT_JSON, R
 from ..http_pacing import PacedSession
 from .google_drive import GoogleDriveStore, service_account_token
 from .raw_library import RawFileLibrary
-from .raw_source import NseDailyFoSource
+from .raw_source import NseArchiveSource, NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
@@ -26,10 +26,25 @@ def build_raw_stores(project_folder: Path | None = None, token_for=service_accou
     return stores
 
 
-def build_nse_fo_library(project_folder: Path | None = None) -> RawFileLibrary:
-    """NSE daily F&O files: from the stores if they have them, else from NSE (saved under the local project folder's
-    `raw` area if given)."""
+def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path | None = None) -> RawFileLibrary:
+    """One NSE dataset: from the stores if they have it, else from NSE (saved under the local project folder's `raw`
+    area if given)."""
     archive = AreaStore(LocalFolderStore(project_folder), RAW_AREA) if project_folder else None
     session = PacedSession()
     session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
-    return RawFileLibrary(build_raw_stores(project_folder), NseDailyFoSource(session), archive)
+    return RawFileLibrary(build_raw_stores(project_folder), source_type(session), archive)
+
+
+def build_nse_fo_library(project_folder: Path | None = None) -> RawFileLibrary:
+    """NSE daily F&O files in the current (UDiFF) format, January 2024 onwards."""
+    return build_nse_library(NseDailyFoSource, project_folder)
+
+
+def build_nse_legacy_fo_library(project_folder: Path | None = None) -> RawFileLibrary:
+    """NSE daily F&O files in the older format, up to 5 July 2024."""
+    return build_nse_library(NseLegacyFoSource, project_folder)
+
+
+def build_nse_index_close_library(project_folder: Path | None = None) -> RawFileLibrary:
+    """NSE daily index closing values (NIFTY 50, India VIX and others)."""
+    return build_nse_library(NseIndexCloseSource, project_folder)

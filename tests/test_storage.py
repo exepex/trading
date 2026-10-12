@@ -183,3 +183,21 @@ def test_the_nse_library_names_itself_honestly():
 
     library = build_nse_fo_library()
     assert library.source.session.headers["User-Agent"] == RESEARCH_USER_AGENT
+
+
+def test_old_format_and_index_close_sources_use_nse_names_and_addresses():
+    from fno.storage.raw_source import NseIndexCloseSource, NseLegacyFoSource
+    from fno.storage.wiring import build_nse_index_close_library, build_nse_legacy_fo_library
+
+    day = date(2019, 1, 2)
+    path = NseLegacyFoSource.path_for(day)
+    assert path == "nse/derivatives/fo-bhavcopy-legacy/2019/01/fo02JAN2019bhav.csv.zip"
+    assert NseLegacyFoSource.url_for(path) == (
+        "https://nsearchives.nseindia.com/content/historical/DERIVATIVES/2019/JAN/fo02JAN2019bhav.csv.zip"
+    )
+    path = NseIndexCloseSource.path_for(date(2026, 10, 9))
+    assert path == "nse/indices/index-close/2026/10/ind_close_all_09102026.csv"
+    assert NseIndexCloseSource.url_for(path).endswith("/content/indices/ind_close_all_09102026.csv")
+    assert NseLegacyFoSource(Flaky([Answer(404)]), sleep=lambda s: None).fetch(path) is None
+    assert isinstance(build_nse_legacy_fo_library().source, NseLegacyFoSource)
+    assert isinstance(build_nse_index_close_library().source, NseIndexCloseSource)
