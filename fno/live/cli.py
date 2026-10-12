@@ -14,6 +14,7 @@ from ..models import IST
 from .learning.performance import readiness_checks
 from .learning.signal_report import format_report, rule_accuracy, suggested_weights
 from .learning.view_outcomes import VIEW_OUTCOME_KIND
+from .news.cli import news_once, news_report
 from .runner import LiveRunner
 from .scanner import LiveScanner
 from .services import build_live_services
@@ -46,6 +47,9 @@ def add_live_parser(subparsers) -> None:
     report = actions.add_parser("signal-report", help="how well each signal predicted the later price move")
     report.add_argument("--days", type=int, default=20, help="look back this many days")
     report.add_argument("--horizon", type=int, default=30, help="minutes after the view (30 or 90)")
+    actions.add_parser("news-once", help="ask every news source once and show what it returns")
+    speed = actions.add_parser("news-report", help="which news source delivered stories first")
+    speed.add_argument("--days", type=int, default=14, help="look back this many days")
     live.set_defaults(func=run_live_command)
 
 
@@ -55,6 +59,10 @@ def run_live_command(args) -> int:
     now = datetime.now(IST)
     if args.live_cmd == "run":
         LiveRunner(services).run_forever()
+    elif args.live_cmd == "news-once":
+        return news_once(services, now)
+    elif args.live_cmd == "news-report":
+        return news_report(services, now, args.days)
     elif args.live_cmd == "scan-once":
         return _scan_once(services, now, args.json)
     elif args.live_cmd == "status":

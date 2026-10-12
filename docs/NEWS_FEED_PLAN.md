@@ -79,3 +79,17 @@ known, not the first spike.
 
 Build order: (1) Groww live feed and shock detector; (2) NSE/BSE announcements; (3) publisher RSS and aggregators,
 with the source-speed table; (4) Telegram, once the channels are verified.
+
+## Built (12 Oct 2026): sequential free-source watcher
+
+Owner's direction: free tiers only; one or two minutes late is fine; never bombard a source; one request at a time.
+- `fno/live/news/`: `NewsSource` interface; RSS feeds (conditional requests, own cache time as a floor), NSE and BSE
+  filings, Finnhub, Marketaux and AskNews (only when keyed); `PollSchedule` (sequential, 5 s apart, staggered,
+  doubling back-off on failure, daily allowances, 5x slower off hours); `StoryBook` (one story per news item across
+  sources: same link or similar headline); `SymbolTagger` (company names from NSE's NIFTY 500 list, index words,
+  WORLD theme); `NewsWatcher` (runs in a thread beside the desk; first answer after a start and items older than
+  3 hours are background, never reported).
+- Events `news_story` and `news_sighting` (with the delay behind the first source) in the desk's daily results.
+- Checked from the cloud on 12 Oct: every feed and NSE filings answered; BSE refuses cloud servers (to be checked
+  from the owner's PC). About 7 requests a minute in total across 13 sources during market hours.
+- Next: a price-shock detector on the Groww live feed; the trade analyst and position guardian read `recent()` stories.

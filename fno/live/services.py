@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 
 from ..config import ROOT
+from ..http_pacing import PacedSession
 from ..notify import SlackTarget
 from ..providers import Provider, get_provider
 from ..providers.cached import CachedProvider
@@ -18,16 +21,25 @@ from .feeds.price_feed import IntradayPriceFeed, YahooPriceFeed
 from .kill_switch import KillSwitch
 from .market_clock import MarketClock, SessionTimes
 from .market_view import MarketViewBuilder, ViewThresholds
+from .news.api_sources import api_sources_from_environment
+from .news.exchange_sources import BseAnnouncementsSource, NseAnnouncementsSource
+from .news.poll_schedule import PollSchedule, SourcePlan
+from .news.rss_source import RssFeedSource
+from .news.story_book import StoryBook
+from .news.tagging import SymbolTagger
+from .news.watcher import NewsWatcher
 from .paper_desk import PaperDesk
 from .research.motherduck_source import MotherDuckResearchSource
 from .research.repo_source import DATASETS, RepoResearchSource
 from .research.repo_sync import ResearchRepoSync
 from .research.research_context import ResearchContextLoader
 from .research.research_source import ResearchSource
-from .results_store import JsonlResultsStore, ResultsStore
+from .results_store import JsonlResultsStore, LockedResultsStore, ResultsStore
 from .risk_gate import PortfolioGate
 from .shortlist import ShortlistRules
 from .signals.registry import build_guard_rules, build_signal_rules
+
+log = logging.getLogger(__name__)
 
 DEFAULT_JOURNAL = ROOT / "journal" / "live_trades.json"
 SHADOW_JOURNAL_NAME = "shadow_trades.json"  # next to the main journal: one lot of every idea, for grading
@@ -40,6 +52,9 @@ RESEARCH_FROM_REPO = "repo"
 RESEARCH_FROM_MOTHERDUCK = "motherduck"
 RESULTS_TO_FILES = "files"
 RESULTS_TO_DUCKDB = "duckdb"
+DEFAULT_NEWS_INTERVAL_SECONDS = 120
+NEWS_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"  # honest, and accepted by the feeds
+SOURCE_CONFIG_KEYS = {"NSE filings": "nse_announcements", "BSE filings": "bse_announcements"}
 
 
 @dataclass
@@ -99,7 +114,7 @@ def build_live_services(
         gate=PortfolioGate(cfg, kill_switch, live.get("reentry_cooldown_minutes", 30)),
         desk=PaperDesk(journal_path, cfg, chain_source, exit_policy),
         alerts=LiveAlerts(SlackTarget.from_environment(cfg)),
-        store=build_results_store(live.get("results", {}), state_dir),
+        store=LockedResultsStore(build_results_store(live.get("results", {}), state_dir)),
         clock=clock,
         kill_switch=kill_switch,
         research_loader=ResearchContextLoader(
@@ -130,6 +145,43 @@ def build_results_store(results_cfg: dict, state_dir: Path) -> ResultsStore:
     if results_cfg.get("store", RESULTS_TO_FILES) == RESULTS_TO_DUCKDB:
         return DuckDbResultsStore(state_dir / LOCAL_RESULTS_NAME, results_cfg.get("database", "fno_desk"))
     return JsonlResultsStore(Path(results_cfg.get("directory") or DEFAULT_RESULTS_DIR))
+
+
+def build_news_watcher(services: LiveServices) -> NewsWatcher | None:
+    """The fast news watcher from `live.news`, or None when it is switched off. Makes one request (company names)."""
+    news_cfg = services.live_cfg.get("news", {})
+    if not news_cfg.get("enabled"):
+        return None
+    try:
+        names = services.nse_feed.company_names()
+    except Exception as exc:  # noqa: BLE001 - tagging by index words and source tags still works without names
+        log.warning("company names unavailable, news tagged by symbols only: %s", exc)
+        names = {}
+    session = PacedSession()
+    session.headers["User-Agent"] = NEWS_USER_AGENT
+    source_cfg = news_cfg.get("sources", {})
+    sources = [RssFeedSource(feed["name"], feed["url"], session) for feed in news_cfg.get("feeds", [])]
+    exchange_sources = {
+        "nse_announcements": lambda: NseAnnouncementsSource(services.nse_feed.client),
+        "bse_announcements": lambda: BseAnnouncementsSource(session),
+    }
+    sources += [build() for key, build in exchange_sources.items() if source_cfg.get(key, {}).get("enabled", True)]
+    sources += api_sources_from_environment(session, source_cfg)
+    by_name = {feed["name"]: feed for feed in news_cfg.get("feeds", [])}
+    plans = [
+        _plan(source, by_name.get(source.name) or source_cfg.get(_config_key(source.name), {})) for source in sources
+    ]
+    schedule = PollSchedule(plans, news_cfg.get("min_seconds_between_requests", 5), news_cfg.get("off_hours_factor", 5))
+    book = StoryBook(SymbolTagger(names), timedelta(hours=news_cfg.get("dedupe_window_hours", 24)))
+    return NewsWatcher(schedule, book, services.store)
+
+
+def _config_key(source_name: str) -> str:
+    return SOURCE_CONFIG_KEYS.get(source_name, source_name.lower())
+
+
+def _plan(source, opts: dict) -> SourcePlan:
+    return SourcePlan(source, opts.get("every_seconds", DEFAULT_NEWS_INTERVAL_SECONDS), opts.get("daily_limit"))
 
 
 def max_planned_loss(cfg: dict) -> float:

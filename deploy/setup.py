@@ -24,6 +24,10 @@ MOTHERDUCK_TOKEN=
 # Groww Trade API (market data only). Recommended: the TOTP key and its TOTP secret, no daily approval needed.
 GROWW_API_KEY=
 GROWW_TOTP_SECRET=
+# Fast news (free plans; leave empty to skip a source):
+FINNHUB_API_KEY=
+MARKETAUX_API_TOKEN=
+ASKNEWS_API_KEY=
 """
 
 

@@ -86,3 +86,11 @@ TRUSTED_NEWS_STATUSES = ("confirmed_primary", "corroborated")
 # Shadow book (one paper lot of every idea, for grading) event names in the results store
 EVENT_SHADOW_OPENED = "shadow_opened"
 EVENT_SHADOW_CLOSED = "shadow_closed"
+
+# Fast news watcher (fno/live/news): API keys live only in ~/.trading.env or the environment
+ENV_FINNHUB_API_KEY = "FINNHUB_API_KEY"
+ENV_MARKETAUX_API_TOKEN = "MARKETAUX_API_TOKEN"
+ENV_ASKNEWS_API_KEY = "ASKNEWS_API_KEY"
+EVENT_NEWS_STORY = "news_story"  # a story seen for the first time, by the source that had it first
+EVENT_NEWS_SIGHTING = "news_sighting"  # the same story from another source later, with the delay
+NEWS_THEME_WORLD = "WORLD"  # world-risk news (war, oil, central banks, tariffs) that moves indices

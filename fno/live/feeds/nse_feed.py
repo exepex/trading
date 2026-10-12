@@ -13,6 +13,7 @@ LOT_SIZES_URL = "https://nsearchives.nseindia.com/content/fo/fo_mktlots.csv"
 BAN_LIST_URL = "https://nsearchives.nseindia.com/content/fo/fo_secban.csv"
 INDUSTRY_LIST_URL = "https://nsearchives.nseindia.com/content/indices/ind_nifty500list.csv"
 INDUSTRY_COLUMN, INDUSTRY_SYMBOL_COLUMN = "Industry", "Symbol"
+COMPANY_NAME_COLUMN = "Company Name"
 OI_SPURTS_PATH = "/api/live-analysis-oi-spurts-underlyings"
 HOLIDAYS_PATH = "/api/holiday-master"
 HOLIDAY_SEGMENT = "FO"
@@ -51,6 +52,10 @@ class NseLiveFeed:
         """NSE industry for each NIFTY 500 stock (covers almost every F&O stock)."""
         return parse_industries(self._archive_text(INDUSTRY_LIST_URL))
 
+    def company_names(self) -> dict[str, str]:
+        """NSE symbol -> company name for the NIFTY 500 (used to tag news headlines)."""
+        return parse_company_names(self._archive_text(INDUSTRY_LIST_URL))
+
     def open_interest_moves(self) -> dict[str, OpenInterestMove]:
         return parse_oi_spurts(self.client.nse_json(OI_SPURTS_PATH))
 
@@ -78,6 +83,14 @@ def parse_industries(text: str) -> dict[str, str]:
         row[INDUSTRY_SYMBOL_COLUMN].strip(): row[INDUSTRY_COLUMN].strip()
         for row in csv.DictReader(io.StringIO(text))
         if row.get(INDUSTRY_SYMBOL_COLUMN) and row.get(INDUSTRY_COLUMN)
+    }
+
+
+def parse_company_names(text: str) -> dict[str, str]:
+    return {
+        row[INDUSTRY_SYMBOL_COLUMN].strip(): row[COMPANY_NAME_COLUMN].strip()
+        for row in csv.DictReader(io.StringIO(text))
+        if row.get(INDUSTRY_SYMBOL_COLUMN) and row.get(COMPANY_NAME_COLUMN)
     }
 
 

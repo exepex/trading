@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time as wall_clock
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
@@ -14,7 +15,7 @@ from .learning.performance import performance_stop_reason
 from .learning.view_outcomes import ViewOutcomeTracker
 from .research.research_context import ResearchSnapshot
 from .scanner import LiveScanner
-from .services import LiveServices
+from .services import LiveServices, build_news_watcher
 from .universe import ReferenceData
 
 log = logging.getLogger(__name__)
@@ -61,12 +62,24 @@ class LiveRunner:
         self.reference: ReferenceData | None = None
         self.research = ResearchSnapshot()
         self.state = DayState(day=date.min)
+        self.news_watcher = None
+        self._stop_news = threading.Event()
 
     def run_forever(self) -> None:
         log.info("live desk started; results stored at %s", self.services.store.location)
+        self._start_news_watcher()
         while True:
             self.tick(datetime.now(IST))
             wall_clock.sleep(self.timings.idle_sleep_seconds // 4 or 1)
+
+    def _start_news_watcher(self) -> None:
+        """The news watcher runs beside the desk in its own thread, one request at a time."""
+        watcher = build_news_watcher(self.services)
+        if watcher is None:
+            return
+        self.news_watcher = watcher
+        threading.Thread(target=watcher.run_forever, args=(self._stop_news,), name="news-watcher", daemon=True).start()
+        log.info("news watcher started with %d sources", len(watcher.schedule.plans))
 
     def tick(self, now: datetime) -> None:
         """One pass of the loop. Safe to call as often as you like: each job runs only when it is due."""

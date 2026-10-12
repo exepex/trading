@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from abc import ABC, abstractmethod
 from datetime import date, datetime
 from pathlib import Path
@@ -77,3 +78,31 @@ class JsonlResultsStore(ResultsStore):
             with path.open(encoding="utf-8") as handle:
                 total += sum(1 for line in handle if kind is None or json.loads(line)["kind"] == kind)
         return total
+
+
+class LockedResultsStore(ResultsStore):
+    """Wraps any store so the desk and the news watcher (two threads) never write at the same moment."""
+
+    def __init__(self, inner: ResultsStore):
+        self.inner = inner
+        self._lock = threading.Lock()
+
+    @property
+    def location(self) -> str:
+        return self.inner.location
+
+    def record(self, kind: str, payload: dict, at: datetime, symbol: str | None = None) -> None:
+        with self._lock:
+            self.inner.record(kind, payload, at, symbol)
+
+    def count(self, kind: str | None = None) -> int:
+        with self._lock:
+            return self.inner.count(kind)
+
+    def payloads(self, kind: str, since_day: date) -> list[dict]:
+        with self._lock:
+            return self.inner.payloads(kind, since_day)
+
+    def close(self) -> None:
+        with self._lock:
+            self.inner.close()

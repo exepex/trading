@@ -54,6 +54,14 @@ Every 5 minutes during the session (free data sources; 3 minutes once the Groww 
    `python -m fno live signal-report` shows each rule's hit rate and information coefficient, and suggests
    weights. Use it to keep the rules that predict and drop the noise.
 
+**Fast news** (`live.news`, docs/NEWS_FEED_PLAN.md): beside the desk, a watcher asks free sources one request at a
+time, at least 5 seconds apart, each at its own pace and never faster than its own cache time: NSE and BSE company
+filings every minute, ET Markets, Mint, CNBC-TV18, Business Standard, BusinessLine, BBC and MarketWatch feeds every
+1.5-5 minutes, and Finnhub, Marketaux and AskNews when their keys are set. Outside market hours it slows down 5x.
+The same news from several sources becomes one story, tagged with its stocks or indices (or WORLD for war, oil,
+central banks), and every later source is timed against the first. `python -m fno live news-once` checks every source;
+`python -m fno live news-report` shows which sources deliver first.
+
 Research is read from the stock tool's GitHub data files (`data/india/` in agentic-stock-prediction: news,
 its scores and verification, earnings dates, regime, model scores). The desk keeps a small sparse clone in
 `data/research/` and pulls it every 30 minutes. The desk's own results are daily JSONL files in
