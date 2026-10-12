@@ -1,0 +1,255 @@
+{
+ "period": "27 Aug 2026 to 12 Oct 2026",
+ "totals": {
+  "trades": 211,
+  "net": -190017,
+  "sessions": 270,
+  "unfinished": 8
+ },
+ "charges": {
+  "gross_before_charges": -174667,
+  "charges": 15350
+ },
+ "premium_per_trade": {
+  "median": 10848,
+  "min": 4114,
+  "max": 23141,
+  "total_deployed": 2415026
+ },
+ "win_loss": {
+  "wins": 82,
+  "losses": 129,
+  "win_rate": 38.9,
+  "avg_win": 3646,
+  "avg_loss": -3791,
+  "largest_win": 12343,
+  "largest_loss": -12186
+ },
+ "by_exit": {
+  "maximum holding days": {
+   "trades": 37,
+   "net": 6191,
+   "win_rate": 51,
+   "avg_move_pct_of_premium": 3.2,
+   "avg_hold_hours": 33.2
+  },
+  "stop loss": {
+   "trades": 107,
+   "net": -450145,
+   "win_rate": 0,
+   "avg_move_pct_of_premium": -36.5,
+   "avg_hold_hours": 27.7
+  },
+  "target": {
+   "trades": 29,
+   "net": 195476,
+   "win_rate": 100,
+   "avg_move_pct_of_premium": 71.3,
+   "avg_hold_hours": 27.8
+  },
+  "trailing stop": {
+   "trades": 38,
+   "net": 58461,
+   "win_rate": 89,
+   "avg_move_pct_of_premium": 14.1,
+   "avg_hold_hours": 17.8
+  }
+ },
+ "by_direction": {
+  "bearish": {
+   "trades": 116,
+   "net": 33114,
+   "win_rate": 53,
+   "avg_move_pct_of_premium": 3.3,
+   "avg_hold_hours": 24.9
+  },
+  "bullish": {
+   "trades": 95,
+   "net": -223131,
+   "win_rate": 22,
+   "avg_move_pct_of_premium": -16.4,
+   "avg_hold_hours": 29.3
+  }
+ },
+ "by_symbol": {
+  "BANKNIFTY": {
+   "trades": 22,
+   "net": -75192,
+   "win_rate": 23,
+   "avg_move_pct_of_premium": -20.0,
+   "avg_hold_hours": 27.6
+  },
+  "FINNIFTY": {
+   "trades": 22,
+   "net": -19402,
+   "win_rate": 41,
+   "avg_move_pct_of_premium": -5.6,
+   "avg_hold_hours": 23.9
+  },
+  "HDFCBANK": {
+   "trades": 22,
+   "net": 10254,
+   "win_rate": 41,
+   "avg_move_pct_of_premium": 9.8,
+   "avg_hold_hours": 32.1
+  },
+  "ICICIBANK": {
+   "trades": 26,
+   "net": -207,
+   "win_rate": 46,
+   "avg_move_pct_of_premium": 1.4,
+   "avg_hold_hours": 21.0
+  },
+  "INFY": {
+   "trades": 21,
+   "net": -27451,
+   "win_rate": 38,
+   "avg_move_pct_of_premium": -11.4,
+   "avg_hold_hours": 36.5
+  },
+  "NIFTY": {
+   "trades": 23,
+   "net": 6432,
+   "win_rate": 48,
+   "avg_move_pct_of_premium": 5.1,
+   "avg_hold_hours": 26.7
+  },
+  "RELIANCE": {
+   "trades": 25,
+   "net": 5119,
+   "win_rate": 52,
+   "avg_move_pct_of_premium": 3.2,
+   "avg_hold_hours": 19.8
+  },
+  "SBIN": {
+   "trades": 27,
+   "net": -29905,
+   "win_rate": 37,
+   "avg_move_pct_of_premium": -10.1,
+   "avg_hold_hours": 25.8
+  },
+  "TCS": {
+   "trades": 23,
+   "net": -59665,
+   "win_rate": 22,
+   "avg_move_pct_of_premium": -24.1,
+   "avg_hold_hours": 31.1
+  }
+ },
+ "by_entry_time": {
+  "09:30-11:00": {
+   "trades": 104,
+   "net": -73056,
+   "win_rate": 42,
+   "avg_move_pct_of_premium": -3.5,
+   "avg_hold_hours": 25.5
+  },
+  "11:00-13:00": {
+   "trades": 63,
+   "net": -70619,
+   "win_rate": 37,
+   "avg_move_pct_of_premium": -8.4,
+   "avg_hold_hours": 23.3
+  },
+  "13:00-14:45": {
+   "trades": 44,
+   "net": -46342,
+   "win_rate": 34,
+   "avg_move_pct_of_premium": -6.4,
+   "avg_hold_hours": 35.3
+  }
+ },
+ "by_overnight": {
+  "closed same day": {
+   "trades": 67,
+   "net": -85970,
+   "win_rate": 34,
+   "avg_move_pct_of_premium": -10.8,
+   "avg_hold_hours": 3.0
+  },
+  "held overnight": {
+   "trades": 144,
+   "net": -104047,
+   "win_rate": 41,
+   "avg_move_pct_of_premium": -3.2,
+   "avg_hold_hours": 38.0
+  }
+ },
+ "stops_at_the_open_after_a_gap": {
+  "count": 27,
+  "net": -139991,
+  "avg_pct": -47.1
+ },
+ "other_stops": {
+  "count": 80,
+  "avg_pct": -32.9
+ },
+ "underlying_change_pct_over_window": {
+  "NIFTY": -7.3,
+  "BANKNIFTY": -4.5,
+  "FINNIFTY": -5.4,
+  "RELIANCE": -9.9,
+  "HDFCBANK": -0.6,
+  "ICICIBANK": -6.6,
+  "INFY": -10.0,
+  "TCS": -5.4,
+  "SBIN": -10.1
+ },
+ "rule_hit_rates": {
+  "previous_day_levels": {
+   "votes": 11076,
+   "right_pct": 51.5
+  },
+  "relative_strength": {
+   "votes": 10257,
+   "right_pct": 50.3
+  },
+  "opening_range": {
+   "votes": 9315,
+   "right_pct": 53.6
+  },
+  "vwap": {
+   "votes": 8255,
+   "right_pct": 54.1
+  },
+  "intraday_trend": {
+   "votes": 6194,
+   "right_pct": 52.3
+  },
+  "volume_confirmation": {
+   "votes": 3193,
+   "right_pct": 50.3
+  }
+ },
+ "time_decay_atm_10_days_15pct_vol_pct_per_day": 5.5,
+ "control_same_direction_check": {
+  "trades": 211,
+  "net": -190017,
+  "win_rate": 39
+ },
+ "control_opposite_direction": {
+  "trades": 205,
+  "net": 45352,
+  "win_rate": 50
+ },
+ "control_random_direction_30_runs": {
+  "median_net": -65268,
+  "best": 55185,
+  "worst": -208653
+ },
+ "control_always_bullish": {
+  "trades": 209,
+  "net": -294258,
+  "win_rate": 32
+ },
+ "control_always_bearish": {
+  "trades": 207,
+  "net": 149594,
+  "win_rate": 57
+ },
+ "diagnostic_same_entries_closed_same_day": {
+  "trades": 209,
+  "net": -30116,
+  "win_rate": 47
+ }
+}
