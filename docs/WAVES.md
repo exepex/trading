@@ -86,6 +86,7 @@ can be judged from prices (sideways day), exits (stop, target, trailing, holding
 of 5-minute prices (Yahoo's limit), one modelled option per underlying at a time (Black-Scholes, volatility from
 the underlying's own recent moves x 1.1, ~10 days to expiry), and grades every rule's vote against the next 30
 minutes. Clearly labelled as an approximation; report saved to `reports/backtest-<date>.md`.
-Run of 12 Oct (30 days, 9 names, with the desk's re-entry and post-loss pauses): 219 trades, net -Rs 1.95 lakh
+Run of 12 Oct (30 days, 9 names, with the desk's re-entry and post-loss pauses, the
+post-loss pause applied per name, not account-wide as on the desk): 219 trades, net -Rs 1.95 lakh
 at one lot each; rule hit rates 49-54%: price-action rules alone show no edge. (The first run, without the pauses,
 gave 243 trades and -Rs 1.86 lakh; superseded.)

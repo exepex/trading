@@ -75,7 +75,7 @@ RESULTS_TO_DUCKDB = "duckdb"
 DEFAULT_NEWS_INTERVAL_SECONDS = 120
 NEWS_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"  # honest, and accepted by the feeds
 NEWS_USAGE_FILE = "news_usage.json"  # requests today per capped source, kept across restarts
-SOURCE_CONFIG_KEYS = {"NSE filings": "nse_announcements", "BSE filings": "bse_announcements"}
+SOURCE_CONFIG_KEYS = {NSE_SOURCE: "nse_announcements", BSE_SOURCE: "bse_announcements"}
 
 
 @dataclass

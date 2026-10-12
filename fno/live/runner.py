@@ -52,11 +52,9 @@ class DayState:
     scans: int = 0
     ideas: int = 0
     summary_sent: bool = False
-    kill_reported: bool = False
     last_scan: datetime | None = None
     last_review: datetime | None = None
     last_price_watch: datetime | None = None
-    last_kill_attempt: datetime | None = None
     last_problem_alert: datetime | None = None
     seen_ideas: set[str] = field(default_factory=set)
 
@@ -77,6 +75,9 @@ class LiveRunner:
         self._news_thread: threading.Thread | None = None
         self._news_down_reported = False
         self._reference_retry_at: datetime | None = None
+        self._reference_down_reported = False
+        self._kill_reported = False  # kept across midnight: one kill alert until the switch is released
+        self._last_kill_attempt: datetime | None = None
 
     def run_forever(self) -> None:
         log.info("live desk started; results stored at %s", self.services.store.location)
@@ -104,11 +105,15 @@ class LiveRunner:
     def tick(self, now: datetime) -> None:
         """One pass of the loop. Safe to call as often as you like: each job runs only when it is due."""
         try:
+            self._check_news_watcher(now)  # before the reference retry, which could take the alert slot
             self._start_day_if_needed(now)
-            self._check_news_watcher(now)
             phase = self.services.clock.phase(now)
-            if self.services.kill_switch.engaged:
+            if not self.services.kill_switch.engaged:
+                self._kill_reported = False
+            else:
                 self._handle_kill_switch(now, phase)
+                if phase is SessionPhase.CLOSED and now.time() > self.services.clock.times.market_close:
+                    self._send_day_summary_once(now)  # a kill-switch day still gets its summary
                 return
             if phase in ACTIVE_PHASES:
                 self._watch_prices_if_due(now, phase)
@@ -138,7 +143,8 @@ class LiveRunner:
 
     def _load_reference_if_needed(self, now: datetime) -> None:
         """Today's lot sizes, ban list, holidays and industries; on failure retried every 5 minutes, and no scan
-        runs on another day's data meanwhile (reviews and exits carry on)."""
+        runs on another day's data meanwhile (reviews and exits carry on). Reported once per outage, and only on a
+        trading day before the close."""
         today = now.date()
         if self._reference_today(today) or (self._reference_retry_at and now < self._reference_retry_at):
             return
@@ -146,13 +152,21 @@ class LiveRunner:
             reference = ReferenceData.load(self.services.nse_feed, today)
         except Exception as exc:  # noqa: BLE001 - NSE down: try again soon, never give up for the day
             self._reference_retry_at = now + REFERENCE_RETRY
-            self._report_problem(now, REFERENCE_FAILED.format(error=exc))
+            if not self._reference_down_reported and self._market_day_ahead(now):  # once per outage
+                self._reference_down_reported = self._report_problem(now, REFERENCE_FAILED.format(error=exc))
+            else:
+                log.warning(REFERENCE_FAILED.format(error=exc))
             return
-        self._reference_retry_at = None
+        self._reference_retry_at, self._reference_down_reported = None, False
         self.reference = reference
         self.services.clock.holidays = reference.holidays
         self.services.gate.industries = reference.industries
         log.info("new day %s: %d F&O underlyings, %d banned", today, len(reference.symbols), len(reference.banned))
+
+    def _market_day_ahead(self, now: datetime) -> bool:
+        """A trading day whose market has not yet closed: the only time a missing reference matters."""
+        clock = self.services.clock
+        return clock.is_trading_day(now.date()) and now.time() <= clock.times.market_close
 
     def _reference_today(self, today: date) -> bool:
         return self.reference is not None and self.reference.loaded_on == today
@@ -254,19 +268,19 @@ class LiveRunner:
         """Close everything once; a trade that cannot be priced is retried every review during market hours until
         it closes (there are no prices to close at overnight)."""
         desk = self.services.desk
-        review_due = self._due(self.state.last_kill_attempt, now, self.timings.review_every_seconds)
-        if self.state.kill_reported and (not desk.open_trades() or phase not in ACTIVE_PHASES or not review_due):
+        review_due = self._due(self._last_kill_attempt, now, self.timings.review_every_seconds)
+        if self._kill_reported and (not desk.open_trades() or phase not in ACTIVE_PHASES or not review_due):
             return
-        self.state.last_kill_attempt = now
+        self._last_kill_attempt = now
         closed = desk.close_all(ExitReason.KILL_SWITCH)
         for trade in closed:
             self.services.store.record("closed", trade, now, trade["underlying"])
         left = [t["id"] for t in desk.open_trades()]
-        if not self.state.kill_reported:
+        if not self._kill_reported:
             reason = self.services.kill_switch.reason
             self.services.store.record("kill_switch", {"reason": reason, "closed": len(closed), "left_open": left}, now)
             self.services.alerts.kill_switch(left)
-            self.state.kill_reported = True
+            self._kill_reported = True
         if left:
             self._report_problem(now, KILL_LEFT_OPEN.format(trades=", ".join(left)))
 

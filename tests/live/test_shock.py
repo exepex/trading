@@ -80,8 +80,26 @@ def test_a_failing_price_feed_backs_off_and_is_reported_once(tmp_path):
     reports = []
     t = at(11, 0)
     for second in range(0, 600, 20):  # ten minutes of 20-second checks
-        watch.check(["NIFTY"], set(), t + timedelta(seconds=second), lambda now, msg: reports.append(msg))
+        watch.check(["NIFTY"], set(), t + timedelta(seconds=second), lambda now, msg: reports.append(msg) or True)
     assert Failing.calls <= 6 and len(reports) == 1  # 20 s, 40 s, 80 s, 160 s, 320 s ... not 30 calls
+
+
+def test_the_feed_down_alert_is_not_lost_to_the_rate_limit(tmp_path):
+    from fno.live.results_store import JsonlResultsStore
+
+    watch = PriceWatch(Failing(), ShockDetector(), JsonlResultsStore(tmp_path))
+    sent, t = [], at(11, 0)
+    slot_free_at = t + timedelta(minutes=15)  # another problem alert went out a moment before the feed failed
+
+    def report(now, msg):
+        if now < slot_free_at:
+            return False
+        sent.append(msg)
+        return True
+
+    for second in range(0, 3 * 3600, 20):
+        watch.check(["NIFTY"], set(), t + timedelta(seconds=second), report)
+    assert len(sent) == 1 and "live price feed failing" in sent[0]
 
 
 def test_groww_prices_in_batches_of_fifty_and_mapped_back():

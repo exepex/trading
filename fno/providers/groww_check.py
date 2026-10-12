@@ -42,6 +42,9 @@ def groww_check_lines(cfg: dict, underlying: str = CHECK_UNDERLYING) -> list[str
     lines.append(f"live prices (sudden-move detector): {prices}")
     missing = [s for s in wanted if s not in prices]
     if missing:
-        raw = api.get_ltp(exchange_trading_symbols=tuple(f"NSE_{s}" for s in missing), segment=api.SEGMENT_CASH)
-        lines.append(f"not priced: {', '.join(missing)}; raw answer keys: {sorted(_payload(raw))[:10]}")
+        try:
+            raw = api.get_ltp(exchange_trading_symbols=tuple(f"NSE_{s}" for s in missing), segment=api.SEGMENT_CASH)
+            lines.append(f"not priced: {', '.join(missing)}; raw answer keys: {sorted(_payload(raw))[:10]}")
+        except Exception as exc:  # noqa: BLE001 - keep the lines already collected
+            lines.append(f"not priced: {', '.join(missing)}; raw check FAILED: {type(exc).__name__}: {exc}")
     return lines

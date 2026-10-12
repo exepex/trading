@@ -58,6 +58,11 @@ def test_the_marketaux_token_never_appears_in_connection_errors():
         ("Oil prices jump 3%", -1),
         ("Rupee gains against dollar", 1),
         ("Bond yields climb; banks fall", -1),
+        ("Rupee hits one-year peak against dollar", 1),
+        ("Rupee hits highest level since May", 1),
+        ("Rupee hits strongest level in a year", 1),
+        ("Rupee hits record high against dollar", 1),
+        ("Rupee hits three-month high on FII inflows", 1),
     ],
 )
 def test_headline_direction(headline, sign):

@@ -8,7 +8,8 @@ DISCLAIMER = (
     "APPROXIMATION: option prices are modelled (Black-Scholes, volatility from the stock's own 5-minute moves x 1.1, "
     "floor 8%, about 10 days to expiry), not real quotes; no bid-ask spread beyond charges; only rules that can be "
     "judged from price history vote (no option chain, OI, news or research). Each name is simulated on its own: the "
-    "re-entry and post-loss pauses apply, but not the portfolio limits (open trades, trades per day, families), the "
+    "re-entry and post-loss pauses apply (the post-loss pause per name, not account-wide as on the desk), but not "
+    "the portfolio limits (open trades, trades per day, families), the "
     "shortlist, the contract picker or the move check. Holidays are not known, so a holiday counts as a holding day. "
     "Rule votes weaker than 0.2 are not graded. Use it to compare rules, not to predict profit."
 )

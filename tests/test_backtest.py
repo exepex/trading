@@ -66,6 +66,14 @@ def test_no_new_trade_within_the_re_entry_or_loss_pause():
         assert (nxt.opened_at - previous.closed_at).total_seconds() >= pause * 60
 
 
+def test_no_new_trade_within_the_re_entry_pause_after_a_win():
+    days = [date(2026, 10, 5) + timedelta(days=i) for i in range(4)]
+    rally = [c for i, d in enumerate(days) for c in session(d, 22000 + 300 * i, 4.0)]
+    trades = make_tester().run("NIFTY", rally, 65).trades
+    gaps = [(n.opened_at - p.closed_at).total_seconds() for p, n in zip(trades, trades[1:], strict=False)]
+    assert all(p.net_pnl > 0 for p in trades) and gaps and min(gaps) >= 30 * 60
+
+
 def test_decisions_never_look_ahead():
     days = [date(2026, 10, 5) + timedelta(days=i) for i in range(3)]
     base = [c for i, d in enumerate(days) for c in session(d, 22000 + 300 * i, 4.0)]
