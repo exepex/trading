@@ -23,9 +23,12 @@ data; all three were right and are corrected below. Claude's reply: `reviews/cla
 | Overnight gap cost | Rs 1,39,991 "lost to gaps" | Of the 27 stops on the first bar: **Rs 85,457** from the overnight gap itself, Rs 39,766 in the first 5 minutes after the open (the rest was lost before the previous close) |
 | "270 sessions" | read as 270 market days | 9 names x 30 days; the names share the same market days |
 
-The main conclusion stands (no edge; the falling market decided the result), but one claim is weaker: the rules sit
-at about the 10th percentile of coin tosses, so "worse than a coin toss" is **not statistically clear**. They were no
-better than one.
+The main conclusion, corrected wording (ChatGPT review 2): **no positive edge was established by this test**, and the
+falling market decided the result. The rules ranked below the random-direction median, with 4 of 30 coin-toss runs
+doing worse (about the 13th percentile); that neither shows a lasting edge nor proves they equal a coin toss.
+
+Everything here can be re-run from frozen inputs: `research/2026-10-12-backtest/` (all 219 entries, every control,
+all 30 coin-toss runs, the loss bridges).
 
 ## 1. Background
 
