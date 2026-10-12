@@ -21,3 +21,12 @@ URL format (use long passwords of letters and digits only, so nothing needs URL-
 
 Steps A (Azure), B (repository and staging), C (after code), D (cutover) and E (clean-up) are in the conversation
 log of 12 Oct 2026 and summarised in `docs/MIGRATION_PLAN.md`; `azure_setup.sql` is the script for step A7.
+
+## Tested (12 Oct 2026)
+
+`azure_setup.sql` was run on a local PostgreSQL 16.15 as a non-superuser admin with only `CREATEDB` and `CREATEROLE`
+(like Azure's admin). Role matrix: the three owner roles could create tables in their own schema; 8 allowed runtime
+actions succeeded (writers insert and update their own schema, the dashboard reads both schemas and inserts into
+`app`, the inbox reader reads `app`); 15 forbidden actions were refused (create, drop or alter tables, writing or
+reading another tool's schema, creating in `public`, temporary tables, the dashboard deleting rows, the inbox reader
+writing, a writer switching to its owner role).

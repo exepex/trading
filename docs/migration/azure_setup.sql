@@ -3,10 +3,10 @@
 -- it, set each role's password interactively with \password (see docs/migration/README.md step A8).
 -- Safe to read before running; run it once on a new server.
 
--- Part 1: connected to the default database "postgres"
+-- Run the whole file at once:  psql "host=<server>.postgres.database.azure.com port=5432 dbname=postgres user=<admin> sslmode=require" -f azure_setup.sql
+-- (psql may ask for the admin password twice: once to connect, once when it switches to the new database).
 CREATE DATABASE omenix;
-
--- Part 2: reconnect to the new database first:   \c omenix
+\c omenix
 -- Nobody gets anything by default.
 REVOKE ALL ON DATABASE omenix FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
