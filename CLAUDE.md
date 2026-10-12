@@ -21,6 +21,8 @@ cost real money later, so:
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
   questions and clarifications: ask them plainly and directly.
 - The hard lines stay: no real orders, nothing illegal (no market manipulation), secrets never in files or chat.
+- **Answer from every financial role** listed in `AGENTS.md` (mathematician, statistician, F&O trader, options
+  strategist, risk manager, portfolio manager, analyst and the rest); ChatGPT follows the same file.
 
 ## Keep a conversation log (every session)
 
