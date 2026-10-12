@@ -29,3 +29,16 @@ PARTLY), a "claims vs reality" section quoting and checking every builder claim,
 criterion the judge could not verify itself is NOT MET. A story is done only when the
 judge's verdict is PASS (ChatGPT's judgment, when given, is weighed the same way: checked with evidence, never accepted
 blindly). A FAIL goes back to a builder with the numbered findings; the judge then re-judges the fix.
+
+## Judge and builder loop (owner decision, 13 Oct 2026)
+
+The orchestrator session runs the loop; nobody accepts or rejects anything blindly.
+1. On a FAIL, the orchestrator sends the builder the verdict file and each failed criterion with the judge's reason
+   and evidence.
+2. For each finding, the builder either fixes it (and shows the proof: commit, test, command output) or pushes back
+   with its reason and proof that the criterion is already met and the judge missed it. "I disagree" without
+   evidence is not a pushback.
+3. The judge re-judges: for each fix or pushback it states accepted or rejected, with its own evidence and reason.
+   A pushback is accepted only when the judge reproduces the proof.
+4. The loop repeats until PASS. If the builder and the judge still disagree after two rounds, the orchestrator
+   checks the evidence itself and takes the question, with both sides' evidence, to the owner.
