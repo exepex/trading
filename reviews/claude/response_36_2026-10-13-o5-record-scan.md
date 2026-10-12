@@ -11,7 +11,7 @@ Story: `docs/stories/O-operations.md#o5-public-record-safety-scan` (issue "O5").
 | Environment-variable names watched: every `ENV_*` in `fno/constants.py` (two added: `FNO_SLACK_BOT_TOKEN`, `MOTHERDUCK_TOKEN`), plus the channel ID constant | `fno/record_scan/catalogue.py:66`, `fno/constants.py:15-19` |
 | Scanner: a finding is file, line and kind, never the value | `fno/record_scan/scanner.py:16`, `:30` |
 | Interface `RecordSource`: committed records, staged records, named files (session exports) | `fno/record_scan/record_files.py:38`, `:52`, `:65`, `:76` |
-| Wiring | `fno/composition.py:22` `build_record_scanner()` |
+| Wiring | `fno/composition.py:28` `build_record_scanner()` |
 | CLI | `tools/check_records.py` (`--staged`, `--root`, or paths) |
 | Routine gate: git pre-commit hook | `.githooks/pre-commit` |
 | Routine change (minimal: two sentences) | `CLAUDE.md:48-49` (step 1 turns the hook on), `CLAUDE.md:53-55` (step 3: refused means no commit, never `--no-verify`, post the lines to #fno-desk and log them) |
@@ -72,14 +72,14 @@ exit=1
 
 ```
 $ python tools/check_records.py
-record scan: clean (145 files)
+record scan: clean (155 files)
 ```
 
 ## Checks run
 
 ```
 $ python -m pytest -q
-211 passed in 12.10s
+235 passed in 30.85s (after merging main with E1)
 $ ruff check fno tests tools
 All checks passed!
 $ python tools/check_imports.py
