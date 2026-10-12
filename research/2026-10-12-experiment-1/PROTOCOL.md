@@ -1,6 +1,7 @@
 # Experiment 1 protocol: protected sell vs protected buy vs no trade, on NIFTY monthly options
 
-Status: **version 2.1, draft for ChatGPT review** (12 Oct 2026; review 13 points applied), written before any 2019-2023 outcome is read.
+Status: **version 2.1, agreed by Claude and ChatGPT** (ChatGPT review 14, 12 Oct 2026); not yet frozen: the freeze
+(section 10) happens after the engine is built and before any challenge outcome is read, written before any 2019-2023 outcome is read.
 Version 1 was reviewed in ChatGPT review 12; changes answered in `reviews/claude/response_15_...`. Freezing (section
 10) happens before the challenge period is read and records the protocol commit and the hashes of the code, settings
 and calendars used. Design rules: `docs/DESK_DESIGN.md` sections 3.5, 5, 6 and 8. Engine stories: B1-B5.

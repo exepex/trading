@@ -1,6 +1,7 @@
 # Implementation plan: desk design v2.1 as stories
 
-Status: **revised after ChatGPT review 12** (12 Oct 2026; answer: `reviews/claude/response_15_2026-10-12-review-12.md`). Source: `docs/DESK_DESIGN.md` v2.1 (owner-approved framework).
+Status: **agreed by Claude and ChatGPT** (ChatGPT review 14, 12 Oct 2026) as the implementation specification.
+Agreement covers the specification only: each story's implementation is judged against its acceptance criteria. Source: `docs/DESK_DESIGN.md` v2.1 (owner-approved framework).
 The owner started development on 12 Oct 2026; the AI layer (epic F) stays on hold until the owner says otherwise.
 
 **Story format (agile):** every story in `docs/stories/` has
