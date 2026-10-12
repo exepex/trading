@@ -171,7 +171,12 @@ storage, a spread report. Out: order placement (never), other underlyings, intra
   provider's instrument key), `expiry`, `strike`, `type`, `bid`, `ask`, `last`, `bid_qty`, `ask_qty`, `spot`,
   `quote_age_seconds` (receive time minus quote time), `valid` (true only when bid > 0, ask > 0, bid <= ask, both
   quantities > 0 and quote age at most 60 seconds), `invalid_reason`.
-- Each snapshot has a sidecar `nifty_<YYYYMMDD>_1500.meta.json`: expected contract count, recorded count, failed
+- **Attempts, not overwrites:** every run is an immutable attempt saved as
+  `nifty_<YYYYMMDD>_<HHMMSS>.csv` with its own sidecar (`snapshot_id` = date and capture time). An incomplete attempt
+  may be retried within the capture window (14:55-15:10 IST); no attempt is ever overwritten or deleted. The day's
+  **canonical snapshot** is the first complete attempt in the window, recorded in `nifty_<YYYYMMDD>.canonical`
+  (or "none" if no attempt completed).
+- Each attempt has a sidecar `nifty_<YYYYMMDD>_<HHMMSS>.meta.json`: expected contract count, recorded count, failed
   requests with errors, SHA-256 of every raw provider response, and `complete` (true only if every expected contract
   was recorded).
 - Command `python -m fno quotes report` prints the median half-spread (ask minus bid, halved) by distance from the
@@ -182,15 +187,17 @@ storage, a spread report. Out: order placement (never), other underlyings, intra
    monthly expiries within 5% of spot with bid, ask, last and capture time.
 2. Given a contract with no bid or no ask, a crossed quote (bid > ask) or a stale quote, then the row is kept, marked
    `valid = false` with the reason, and never counted as executable (never filled from last).
-3. Given an existing file for that day, when the recorder runs again, then the file is not changed and the run reports
-   "already recorded".
+3. Given a complete canonical snapshot for the day, when the recorder runs again, it records nothing and reports
+   "already recorded"; given only incomplete attempts and time left in the window, it makes a new attempt, keeping
+   every earlier attempt unchanged; the first complete attempt becomes canonical.
 4. Given a weekend or exchange holiday, then nothing is recorded and nothing fails.
 5. The recorder never calls any order, modify or cancel function (test: the provider fake fails on any such call);
    credentials only from the environment, never written to files or logs.
 6. Given 20 recorded days, when `quotes report` runs, then it prints, per distance band, the median and 90th
    percentile half-spread of valid quotes, the share of invalid quotes, and the count of days and contracts used.
 7. Given a partial failure (some requests failed), the snapshot is written with `complete = false` and the run exits
-   with an error and alert: never a silent partial success. A missing day is logged, never back-filled.
+   with an error and alert: never a silent partial success. After the window closes, a day without a complete attempt
+   has canonical "none"; it is logged, never back-filled.
 8. These are quotes, not fills: the report and the files say so; fill realism is measured later (E1, E3).
 
 **Test plan:** unit tests with a fake provider (normal day, missing sides, rerun, holiday, forbidden order calls);

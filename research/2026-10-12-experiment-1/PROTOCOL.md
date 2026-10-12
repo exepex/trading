@@ -1,6 +1,6 @@
 # Experiment 1 protocol: protected sell vs protected buy vs no trade, on NIFTY monthly options
 
-Status: **version 2, draft for ChatGPT review** (12 Oct 2026), written before any 2019-2023 outcome is read.
+Status: **version 2.1, draft for ChatGPT review** (12 Oct 2026; review 13 points applied), written before any 2019-2023 outcome is read.
 Version 1 was reviewed in ChatGPT review 12; changes answered in `reviews/claude/response_15_...`. Freezing (section
 10) happens before the challenge period is read and records the protocol commit and the hashes of the code, settings
 and calendars used. Design rules: `docs/DESK_DESIGN.md` sections 3.5, 5, 6 and 8. Engine stories: B1-B5.
@@ -68,8 +68,8 @@ limits, compared with no trade, with the same trade taken every month, and with 
 | P2 | SF every opportunity | yes | - |
 | P3 | BF every opportunity | yes | - |
 | P4 | SC if F1 > 0, else no trade | yes | P1 |
-| P5 | SC if F1 > 0, else BF | yes | P1 and P4 (the BF branch must add value) |
-| P6 | SC if F1 > 0 and not F3, else no trade | yes | P1 and P4 (the event filter must add value) |
+| P5 | SC if F1 > 0, else BF (no trade if F1 is None) | yes | P1 and P4, plus the BF-branch test (criterion 5) |
+| P6 | SC if F1 > 0 and not F3, else no trade | yes | P1 and P4, plus the event-filter test (criterion 6) |
 | P7 | SC if F2, else no trade | yes | P1 |
 | P8 | SF if F1 > 0, else no trade | yes | P2 |
 
@@ -82,9 +82,13 @@ limits, compared with no trade, with the same trade taken every month, and with 
   Opportunities of any status are eligible; a chosen opportunity that is `unfillable`, `bad_prices`, `no_trade_cap`
   or `missing_strikes` for that structure scores 0, exactly as for the policy. Statistic: total net. For P1-P3 the
   control is identical to the policy and is not applied.
-- **C2 opposite condition:** for each conditional policy, its action taken when its condition is false (and the
-  condition's input is not `None`): P4 -> SC if F1 <= 0; P5 -> BF if F1 > 0, SC if F1 <= 0; P6 -> SC if F1 > 0 is
-  false or F3 is true; P7 -> SC if F2 is false; P8 -> SF if F1 <= 0. Statistic: total net.
+- **C2 opposite condition** (exact formulas; a `None` input means no trade):
+  - P4: SC if F1 is not None and F1 <= 0, else no trade.
+  - P5: BF if F1 is not None and F1 > 0; SC if F1 is not None and F1 <= 0; no trade if F1 is None.
+  - P6: SC if F1 is not None and (F1 <= 0 or F3 is true), else no trade.
+  - P7: SC if F2 is not None and F2 is false, else no trade.
+  - P8: SF if F1 is not None and F1 <= 0, else no trade.
+  Statistic: total net.
 
 ## 7. Statistics
 - **Per-opportunity P&L:** every opportunity counts; no trade and every non-traded status count as Rs 0. Traded-only
@@ -98,15 +102,21 @@ limits, compared with no trade, with the same trade taken every month, and with 
   (one-sided 99.375%), with no interpolation.
 - **Sensitivity (reported, never used to pass):** year-block bootstrap (resampling whole calendar years, 10,000
   resamples, same seed) to show the effect of volatility clustering; with five years its interval is very wide.
-- Monte Carlo error: with 10,000 resamples about 62 values lie below the bound; a policy within Rs 50 of passing on
-  criterion 2 is reported as "borderline", and the verdict still follows the rule as written.
+- Monte Carlo error: with 10,000 resamples about 62 values lie below the bound. For criterion 2 the report shows the
+  lower bound's distance from zero in Rs per opportunity and its Monte Carlo standard error (from 20 repeat bootstraps
+  with seeds 20261012 + 1 to + 20, reported only); the verdict uses the main seed only. No "borderline" category.
 
 ## 8. Pass / fail on 2019-2023 (pre-tax; all applicable criteria must hold)
 1. Total net per-opportunity P&L after charges and pads > 0.
 2. Bootstrap lower bound of mean net per opportunity > 0 (one-sided 99.375% = 95% Bonferroni over 8 policies).
 3. (P4-P8) Total net above the 95th percentile of its C1 random-timing control, and above its C2 opposite control.
-4. (P4-P8) Total net above each policy in its "compared with" column.
-5. No traded opportunity's modelled maximum terminal loss including charges and pads exceeds Rs 10,000 (else the run
+4. (P4-P8) Total net above each policy in its "compared with" column (whole-policy superiority).
+5. (P5 only) **BF-branch test:** on the opportunities where P5 chose BF, the sum of BF per-opportunity P&L (statuses
+   other than `traded` count 0) is > 0. P5 claims the BF branch adds value only if this holds.
+6. (P6 only) **Event-filter test:** on the opportunities where P4 would trade SC but P6 does not (F1 > 0 and F3 true),
+   the sum of SC per-opportunity P&L is < 0, i.e. the trades the filter removed lost money. P6 claims the event filter
+   adds value only if this holds.
+7. No traded opportunity's modelled maximum terminal loss including charges and pads exceeds Rs 10,000 (else the run
    is void and investigated).
 
 **Meaning of the result:** pass = goes to paper trading under the agreed evaluation plan (not real money). Fail =

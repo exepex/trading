@@ -72,8 +72,11 @@ calculation itself (an input: measured from NSE SPAN files or the broker's calcu
   margin blocked minus premium reserved for pending orders.
 - **Margin:** per structure and lot, from the broker's margin calculator or NSE's SPAN parameter files, recorded with
   source and date in `research/data/margins/margins.csv`; older than 7 days or missing means the check **fails
-  closed** (no trade). Stressed margin = margin under the worst stress scenario (re-looked up or scaled by a recorded
-  factor).
+  closed** (no trade). **Stressed margin, one frozen method:** set in `config.yaml` `risk.stressed_margin` before any
+  proposal is evaluated: `scenario_lookup` (margin per stress scenario from SPAN parameter files, when available for
+  the structure) or `multiplier` (current margin x a predeclared conservative factor, with its source and date). The
+  method in force is recorded in every decision record so the judge reproduces it; a missing or expired multiplier
+  (older than 30 days) fails closed.
 - **Two different Rs 30,000 limits:** the drawdown brake uses closed equity against its high-water mark; the stress
   limit uses the combined stress loss of open trades plus the proposal from current marks. They are separate rules
   with separate tests.

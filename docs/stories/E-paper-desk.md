@@ -40,8 +40,11 @@ judged on its own forward paper record (E3), never assumed equal to the backtest
    the trade does not open.
 4. Restart: killing the process after the paper fill and restarting the same day does not fill twice.
 5. Missing exit quotes produce a pending exit and an alert, never a closing price taken from stale or last data.
-6. Given a structure whose protective leg cannot be filled, the trade is not opened (and if a protective leg goes
-   missing on an open trade, the trade is closed).
+6. Given a structure whose protective leg cannot be filled, the trade is not opened. If protection is absent or invalid
+   on an open position (e.g. a protective leg's contract unquotable), the desk blocks new risk, raises a critical
+   alert, marks the position `protection_unverified`, and attempts the risk-reducing exit at the next valid executable
+   quotes; the position is recorded closed only when every required exit fill is recorded. The end-to-end test
+   includes this case.
 7. Given an open trade reaching its exit rule, it is closed at the next valid quotes and recorded.
 8. The loop never calls an order function (test with a provider fake that fails on any order call).
 

@@ -75,7 +75,8 @@ untraded options (credits larger than the width) and maximum losses above the ow
   (short strikes nearest spot x 1.02 and spot x 0.98), `LongIronFly`.
 - `simulator.py`: `simulate(cycle, structure, panel, charges, lot=65, pad=1.0, cap=10_000) -> CycleResult` with
   fields: widths tried, width used, legs with entry and exit prices and flags, gross, charges, pads, net, max loss,
-  status (`traded | no_trade_cap | unfillable | bad_prices`).
+  status, an exhaustive enum `CycleStatus` = `traded | no_trade_cap | missing_strikes | no_entry_window | unfillable
+  | bad_prices` (B3 consumes exactly this enum; any other value is an error).
 - Strikes: nearest listed strike to the target (spot, spot x 1.02, spot x 0.98); on an equal-distance tie the ATM strike is the
   lower one (as in F1), a short out-of-the-money leg takes the strike farther from spot (more conservative); a wing W points away must be listed exactly,
   otherwise that width is unavailable.
@@ -123,15 +124,20 @@ untraded options (credits larger than the width) and maximum losses above the ow
 **User story:** As the statistician, I want registered policies and controls run over a period with the protocol's
 metrics and pass/fail computed by code, so that the verdict is reproducible and nobody judges by eye.
 
-**Background:** Experiment 1 protocol sections 6 and 7: policies P1-P8, controls C1 (coin toss) and C2 (opposite of
-P4), pass/fail on 2019-2023.
+**Background:** Experiment 1 protocol sections 6-8: policies P1-P8; per conditional policy (P4-P8) two controls,
+`random_timing` (C1: frequency-matched random timing) and `opposite` (C2: the action taken when the condition is false,
+exact formulas in protocol section 6); pass/fail on 2019-2023, including the branch tests for P5 and P6.
 
 **Scope.** In: running policies, controls, metrics, bootstrap, verdicts, results file. Out: choosing policies (that
 is the protocol's job).
 
 **Expected design:**
-- `fno/research_engine/policies.py`: `Policy` interface (`decide(features) -> structure code or None`); P1-P8 and C2
-  as data-driven rules; C1 as a seeded random policy run 10,000 times.
+- `fno/research_engine/policies.py`: `Policy` interface (`decide(features) -> structure code or None`); P1-P8 and
+  each policy's `opposite` control as data-driven rules using the protocol's exact formulas.
+- `controls.py`: `random_timing(policy_actions, opportunities, runs=10_000, seed=20261012)`: for one conditional
+  policy, its observed count of each action (e.g. P5: k SC and m BF) is assigned to that many randomly chosen
+  opportunities per run (without replacement, no trade elsewhere), each scored with the same simulator results; one
+  distribution of total net per conditional policy.
 - `metrics.py`: total and mean net, win rate, worst cycle, longest losing run, max drawdown over cycles, yearly net,
   yearly tax at 31.2% (losses offset within the financial year), counts by status.
 - **Denominator:** one opportunity per monthly expiry. Every opportunity counts in per-opportunity statistics; no
@@ -149,8 +155,9 @@ is the protocol's job).
 1. Given a policy not registered in the ledger, when run, then it stops with "not registered" (via B4).
 2. Given the same panel and protocol, when run twice, then both results files are byte-identical.
 3. **Golden tests:** a fixed committed set of 60 per-opportunity P&L values with its bootstrap lower bound computed
-   independently (a separate short script in the test, same seed and convention) must match to Rs 0.01; a fixed coin
-   toss sequence set gives a committed 95th percentile exactly.
+   independently (a separate short script in the test, same seed and convention) must match to Rs 0.01; the
+   `random_timing` control on a fixed small example gives a committed 95th percentile exactly, for a binary policy
+   (P4-like) **and** a mixed-action policy (P5-like: SC and BF counts preserved).
 4. A policy that never trades scores 0 per opportunity and fails criterion 1; counts by status are in the results.
 5. Each criterion in the results file shows its value, its threshold and pass/fail; the overall verdict is pass only
    if all pass.
