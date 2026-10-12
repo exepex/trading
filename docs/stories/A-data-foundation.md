@@ -250,7 +250,7 @@ import so earlier scripts still run.
 
 **Judge verifies:** `git diff` of the regenerated outputs is empty.
 
-**Depends:** - · **Size:** S · **Status:** next
+**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026 (`fno/research_data/expiries.py`; research outputs byte-identical; awaiting judge)
 
 ---
 

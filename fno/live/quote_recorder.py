@@ -17,6 +17,7 @@ from datetime import date, datetime, time
 
 from ..models import IST, OptionChain, QuoteBook, now_ist
 from ..providers.base import Provider
+from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
 from .expiry_listing import ListedExpiries
 
@@ -38,11 +39,8 @@ COLUMNS = (
 
 
 def monthly_expiries(expiries: list[date], today: date, count: int = MONTHLY_EXPIRIES) -> list[date]:
-    """The last listed expiry of each calendar month, from today on: the monthly contracts."""
-    last_in_month: dict[tuple[int, int], date] = {}
-    for expiry in sorted(e for e in expiries if e >= today):
-        last_in_month[(expiry.year, expiry.month)] = expiry
-    return sorted(last_in_month.values())[:count]
+    """The nearest `count` monthly contracts: the last listed expiry of each calendar month, from today on."""
+    return sorted(last_expiry_of_each_month({e for e in expiries if e >= today}))[:count]
 
 
 NO_QUOTE_TIME = "unknown: provider gives no quote timestamp"
