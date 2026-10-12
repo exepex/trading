@@ -16,24 +16,28 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date
 
+from ..constants import SIDE_BUY, SIDE_SELL
 from ..costs import CHARGE_NAMES, order_charges_breakdown
 
 DEFAULT_TAX_RATE_PCT = 31.2  # owner decision: 30% slab + 4% cess, on the year's net F&O profit
 TAX_LABEL = "assumed scenario (30% slab + 4% cess on yearly net F&O profit), not a verified tax liability"
 NO_CARRY_FORWARD = "loss shown; carry-forward to later years is not modelled"
 COST_COLUMNS = ("month", "item", "category", "amount_rs", "source")
+CATEGORY_COLUMNS = ("category", "deductible", "note")
+CATEGORY_DEDUCTIBLE, CATEGORY_NOT_DEDUCTIBLE = "yes", "no"
+TOLERANCE_RS = 0.01  # rounding allowed when ledgers are compared
 
 
 @dataclass(frozen=True)
 class Order:
-    side: str  # "buy" or "sell"
+    side: str  # SIDE_BUY or SIDE_SELL
     quoted_price: float  # the price the market showed
     units: int  # lots x lot size
     pad: float = 0.0  # rupees per unit worse than quoted (assumed slippage)
 
     @property
     def fill_price(self) -> float:
-        return self.quoted_price + self.pad if self.side == "buy" else max(self.quoted_price - self.pad, 0.0)
+        return self.quoted_price + self.pad if self.side == SIDE_BUY else max(self.quoted_price - self.pad, 0.0)
 
 
 @dataclass(frozen=True)
@@ -57,7 +61,7 @@ class TradeLine:
 
 
 def trade_line(trade: Trade, charges_table: dict) -> TradeLine:
-    sign = {"buy": -1.0, "sell": 1.0}
+    sign = {SIDE_BUY: -1.0, SIDE_SELL: 1.0}
     gross = sum(sign[o.side] * o.quoted_price * o.units for o in trade.orders)
     fills = sum(sign[o.side] * o.fill_price * o.units for o in trade.orders)
     charges = dict.fromkeys(CHARGE_NAMES, 0.0)
@@ -73,26 +77,49 @@ def financial_year(day: date) -> str:
     return f"{start}-{(start + 1) % 100:02d}"
 
 
+def _rows(text: str, columns: tuple[str, ...], what: str) -> list[dict]:
+    reader = csv.DictReader(io.StringIO(text))
+    if tuple(reader.fieldnames or ()) != columns:
+        raise ValueError(f"{what} columns must be {columns}")
+    rows = list(reader)
+    if any(None in row or None in row.values() for row in rows):
+        raise ValueError(f"{what}: a row has the wrong number of fields")
+    return rows
+
+
 def read_operating_costs(text: str) -> list[dict]:
-    rows = list(csv.DictReader(io.StringIO(text)))
+    rows = _rows(text, COST_COLUMNS, "operating costs")
     for row in rows:
-        if tuple(row) != COST_COLUMNS:
-            raise ValueError(f"operating costs columns must be {COST_COLUMNS}")
         float(row["amount_rs"])
         date.fromisoformat(row["month"] + "-01")
     return rows
 
 
-def read_deductible(text: str) -> set[str]:
-    return {r["category"] for r in csv.DictReader(io.StringIO(text)) if r["deductible"].strip().lower() == "yes"}
+def read_cost_categories(text: str) -> dict[str, bool]:
+    """Every declared operating-cost category -> deductible or not (an undeclared category is refused later)."""
+    categories = {}
+    for row in _rows(text, CATEGORY_COLUMNS, "cost categories"):
+        flag = row["deductible"].strip()
+        if flag not in (CATEGORY_DEDUCTIBLE, CATEGORY_NOT_DEDUCTIBLE):
+            raise ValueError(f"category {row['category']!r}: deductible must be yes or no, not {flag!r}")
+        categories[row["category"]] = flag == CATEGORY_DEDUCTIBLE
+    return categories
 
 
 @dataclass
 class Ledgers:
     trades: list[TradeLine]
     operating_costs: list[dict]
-    deductible: set[str]
+    categories: dict[str, bool]  # every declared category -> deductible (read_cost_categories)
     tax_rate_pct: float = DEFAULT_TAX_RATE_PCT
+
+    def __post_init__(self):
+        unknown = sorted({c["category"] for c in self.operating_costs} - set(self.categories))
+        if unknown:
+            raise ValueError(f"undeclared operating-cost categories {unknown}: declare each one first")
+
+    def _deductible(self, cost: dict) -> bool:
+        return self.categories[cost["category"]]
 
     def by_month(self) -> dict[str, dict[str, float]]:
         months: dict[str, dict[str, float]] = defaultdict(lambda: {"trade_net": 0.0, "operating_costs": 0.0})
@@ -113,7 +140,7 @@ class Ledgers:
         for cost in self.operating_costs:
             year = years[financial_year(date.fromisoformat(cost["month"] + "-01"))]
             year["operating_costs"] += float(cost["amount_rs"])
-            if cost["category"] in self.deductible:
+            if self._deductible(cost):
                 year["deductible_costs"] += float(cost["amount_rs"])
         for values in years.values():
             values["account_result"] = values["trade_net"] - values["operating_costs"]
@@ -125,16 +152,35 @@ class Ledgers:
                 values["note"] = NO_CARRY_FORWARD
         return dict(sorted(years.items()))
 
-    def reconciles(self) -> bool:
-        """Account result = trade net - operating costs, and tax base = trade net - deductible costs, every year."""
+    def reconciles(self, months: dict | None = None, years: dict | None = None) -> bool:
+        """The ledgers agree with each other and with the raw entries: all months add up to the raw trade and cost
+        totals; every financial year equals the sum of its months; every tax base equals the year's trade net minus
+        its deductible costs recomputed from the raw costs. `months` and `years` default to the computed tables (they
+        can be passed in, e.g. to prove that a broken table is caught)."""
+        months = self.by_month() if months is None else months
+        years = self.tax_by_year() if years is None else years
         trade_total = sum(t.net for t in self.trades)
         cost_total = sum(float(c["amount_rs"]) for c in self.operating_costs)
-        months = self.by_month()
-        years = self.tax_by_year()
-        month_ok = abs(sum(m["account_result"] for m in months.values()) - (trade_total - cost_total)) < 0.01
-        year_ok = all(
-            abs(y["account_result"] - (y["trade_net"] - y["operating_costs"])) < 0.01
-            and abs(y["tax_base"] - (y["trade_net"] - y["deductible_costs"])) < 0.01
-            for y in years.values()
-        )
-        return month_ok and year_ok
+        checks = [
+            _close(sum(m["trade_net"] for m in months.values()), trade_total),
+            _close(sum(m["operating_costs"] for m in months.values()), cost_total),
+            _close(sum(m["account_result"] for m in months.values()), trade_total - cost_total),
+            set(years) == {financial_year(date.fromisoformat(m + "-01")) for m in months},
+        ]
+        for label, year in years.items():
+            in_year = [m for key, m in months.items() if financial_year(date.fromisoformat(key + "-01")) == label]
+            deductible = sum(
+                float(c["amount_rs"])
+                for c in self.operating_costs
+                if self._deductible(c) and financial_year(date.fromisoformat(c["month"] + "-01")) == label
+            )
+            checks += [_close(year[k], sum(m[k] for m in in_year)) for k in ("trade_net", "operating_costs")]
+            checks += [
+                _close(year["account_result"], sum(m["account_result"] for m in in_year)),
+                _close(year["tax_base"], year["trade_net"] - deductible),
+            ]
+        return all(checks)
+
+
+def _close(a: float, b: float) -> bool:
+    return abs(a - b) < TOLERANCE_RS

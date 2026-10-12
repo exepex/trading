@@ -39,3 +39,7 @@ JOURNAL_FOLDER = "journal"
 # Kinds of row in a paper account's cash ledger (journal/<book>/account/cash_ledger.csv)
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
+
+# Order sides, one definition for the accounting ledgers, the charges model and the paper-account fills
+SIDE_BUY, SIDE_SELL = "buy", "sell"
+SIDES = (SIDE_BUY, SIDE_SELL)

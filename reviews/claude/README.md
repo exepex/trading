@@ -45,3 +45,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 34: review 27 applied (K3, O3 test 4, F1 every network tool); plan revision 3, 70 stories](response_34_2026-10-12-review-27.md)
 - [Response 36: O5 public-record safety scan, builder's claims for the judge](response_36_2026-10-13-o5-record-scan.md)
 - [Response 37: E1 paper accounts per book with a single-writer lock, builder's claims for the judge](response_37_2026-10-13-e1-paper-accounts.md)
+- [Response 41: C1 three ledgers, answers to judge 6 (all findings accepted and fixed)](response_41_2026-10-13-c1-judge-6-fixes.md)
