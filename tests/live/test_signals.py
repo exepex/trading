@@ -106,3 +106,25 @@ def test_registry_rejects_unknown_rules():
         assert "astrology" in str(exc)
         return
     raise AssertionError("unknown rule must be rejected")
+
+
+def test_chart_rules_alone_never_open_a_trade():
+    from fno.config import load_config
+    from fno.live.services import build_backtester, build_view_builder
+    from fno.live.signals.base import SignalRule
+
+    class Agrees(SignalRule):
+        name = "fast_news"
+
+        def evaluate(self, inputs):
+            return self.vote(0.6, "credible good news")
+
+    cfg = load_config()
+    desk = build_view_builder(cfg).thresholds
+    assert desk.min_other_votes == 1 and "vwap" in desk.chart_rules and "fast_news" not in desk.chart_rules
+    chart = build_signal_rules({"vwap": {"weight": 1}, "intraday_trend": {"weight": 1}, "opening_range": {"weight": 1}})
+    alone = MarketViewBuilder(chart, [], desk).build(inputs())
+    assert alone.direction is Direction.NEUTRAL  # strong chart agreement, nothing else: no trade
+    confirmed = MarketViewBuilder([*chart, Agrees(0.8)], [], desk).build(inputs())
+    assert confirmed.direction is Direction.BULLISH
+    assert build_backtester(cfg, ("sideways_day",)).builder.thresholds.min_other_votes == 0  # chart-only replay

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from ..constants import Direction
 from .models import MarketView, SignalVote
 from .signals.base import GuardRule, SignalRule, SymbolInputs
+
+MIN_CONFIRMING_SCORE = 0.2  # a weaker vote does not count as confirmation
 
 
 @dataclass(frozen=True)
@@ -19,10 +21,21 @@ class ViewThresholds:
     strong_score: float = 0.55  # strong evidence allows a pricier single lot
     strong_agreement: float = 0.75
     strong_min_votes: int = 4
+    # Chart rules alone have shown no edge (backtest, 12 Oct): a direction also needs this many agreeing votes from
+    # rules outside `chart_rules` (news, positioning, research, option chain, market backdrop).
+    chart_rules: tuple[str, ...] = ()
+    min_other_votes: int = 0
 
     @classmethod
     def from_config(cls, cfg: dict) -> ViewThresholds:
-        return cls(**{k: v for k, v in (cfg or {}).items() if k in cls.__dataclass_fields__})
+        values = {k: v for k, v in (cfg or {}).items() if k in cls.__dataclass_fields__}
+        if "chart_rules" in values:
+            values["chart_rules"] = tuple(values["chart_rules"])
+        return cls(**values)
+
+    def chart_only(self) -> ViewThresholds:
+        """The same thresholds without the confirmation rule (the backtest can replay chart rules only)."""
+        return replace(self, min_other_votes=0)
 
 
 class MarketViewBuilder:
@@ -37,7 +50,7 @@ class MarketViewBuilder:
         score, agreement = combine(votes)
         return MarketView(
             symbol=inputs.symbol,
-            direction=self._direction(score, agreement, len(votes)),
+            direction=self._direction(score, agreement, votes),
             score=round(score, 3),
             agreement=round(agreement, 3),
             votes=votes,
@@ -45,11 +58,17 @@ class MarketViewBuilder:
             strong_evidence=self._is_strong(score, agreement, len(votes)),
         )
 
-    def _direction(self, score: float, agreement: float, n_votes: int) -> Direction:
+    def _direction(self, score: float, agreement: float, votes: list[SignalVote]) -> Direction:
         t = self.thresholds
-        if n_votes < t.min_votes or abs(score) < t.min_score or agreement < t.min_agreement:
+        if len(votes) < t.min_votes or abs(score) < t.min_score or agreement < t.min_agreement:
             return Direction.NEUTRAL
+        if self._other_agreeing(score, votes) < t.min_other_votes:
+            return Direction.NEUTRAL  # the chart alone never opens a trade
         return Direction.BULLISH if score > 0 else Direction.BEARISH
+
+    def _other_agreeing(self, score: float, votes: list[SignalVote]) -> int:
+        chart = set(self.thresholds.chart_rules)
+        return sum(v.rule not in chart and v.score * score > 0 and abs(v.score) >= MIN_CONFIRMING_SCORE for v in votes)
 
     def _is_strong(self, score: float, agreement: float, n_votes: int) -> bool:
         t = self.thresholds

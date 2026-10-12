@@ -181,13 +181,15 @@ def build_exit_policy(cfg: dict, clock: MarketClock) -> ExitPolicy:
 
 
 def build_view_builder(cfg: dict, guard_names: tuple[str, ...] | None = None) -> MarketViewBuilder:
-    """The desk's rules and guards; `guard_names` keeps only those guards (the backtest uses price-only ones)."""
+    """The desk's rules and guards; `guard_names` keeps only those guards and drops the confirmation rule (the backtest
+    replays chart rules only)."""
     live = cfg.get("live", {})
     guards = {k: v for k, v in live.get("guards", {}).items() if guard_names is None or k in guard_names}
+    thresholds = ViewThresholds.from_config(live.get("thresholds"))
     return MarketViewBuilder(
         build_signal_rules(live.get("signals", {})),
         build_guard_rules(guards),
-        ViewThresholds.from_config(live.get("thresholds")),
+        thresholds if guard_names is None else thresholds.chart_only(),
     )
 
 

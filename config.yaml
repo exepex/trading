@@ -187,6 +187,10 @@ live:
     strong_score: 0.55             # strong evidence: allows one pricier lot (up to position_rules.exception_max_per_trade)
     strong_agreement: 0.75
     strong_min_votes: 4
+    # Chart rules alone lost money in the backtest (12 Oct): a trade also needs at least one agreeing vote from
+    # another kind of rule (news, positioning, option chain, research, market backdrop).
+    chart_rules: [opening_range, vwap, intraday_trend, relative_strength, previous_day_levels, volume_confirmation]
+    min_other_votes: 1
   contract:
     target_delta: 0.55
     strikes_each_side: 6           # search window; min_abs_delta and the risk limit decide what is usable
