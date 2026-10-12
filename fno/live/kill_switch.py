@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from ..models import now_ist
+from ..models import IST, now_ist
 
 RELEASED_SUFFIX = ".released"
 
@@ -30,7 +30,10 @@ class KillSwitch:
     def released_at(self) -> datetime | None:
         """When a person last released the switch: the automatic stop then judges only trades closed after it."""
         marker = self._released_marker
-        return datetime.fromisoformat(marker.read_text(encoding="utf-8").strip()) if marker.exists() else None
+        if not marker.exists():
+            return None
+        released = datetime.fromisoformat(marker.read_text(encoding="utf-8").strip())
+        return released if released.tzinfo else released.replace(tzinfo=IST)  # a hand-edited time is IST
 
     def release(self, at: datetime | None = None) -> None:
         self.flag_path.unlink(missing_ok=True)

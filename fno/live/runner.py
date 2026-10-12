@@ -21,6 +21,9 @@ from .universe import ReferenceData
 log = logging.getLogger(__name__)
 LOOP_SLEEP_SECONDS = 5
 PRIORITY_NEWS_SOURCES = {"NSE filings", "BSE filings", "Marketaux"}  # asked first after a sudden move
+KILL_LEFT_OPEN = "kill switch: could not close {trades} (no price); retrying every review"
+REFERENCE_RETRY = timedelta(minutes=5)
+REFERENCE_FAILED = "could not load today's F&O reference data (retrying in 5 minutes): {error}"
 NEWS_WATCHER_DOWN = "news watcher stopped: news guard and news exit are off until the desk restarts"
 
 ACTIVE_PHASES = (SessionPhase.OPENING_RANGE, SessionPhase.TRADING, SessionPhase.NO_NEW_ENTRIES, SessionPhase.SQUARE_OFF)
@@ -51,6 +54,7 @@ class DayState:
     last_scan: datetime | None = None
     last_review: datetime | None = None
     last_price_watch: datetime | None = None
+    last_kill_attempt: datetime | None = None
     last_problem_alert: datetime | None = None
     seen_ideas: set[str] = field(default_factory=set)
 
@@ -70,13 +74,11 @@ class LiveRunner:
         self._stop_news = threading.Event()
         self._news_thread: threading.Thread | None = None
         self._news_down_reported = False
+        self._reference_retry_at: datetime | None = None
 
     def run_forever(self) -> None:
         log.info("live desk started; results stored at %s", self.services.store.location)
-        try:
-            self._start_day_if_needed(datetime.now(IST))  # holidays known before the news watcher starts
-        except Exception:  # noqa: BLE001 - the first tick retries; the watcher then falls back to weekdays
-            log.exception("could not load today's reference data before starting the news watcher")
+        self._start_day_if_needed(datetime.now(IST))  # holidays known before the watcher starts (retried on failure)
         self._start_news_watcher()
         while True:
             self.tick(datetime.now(IST))
@@ -121,14 +123,22 @@ class LiveRunner:
         self._report_problem(now, NEWS_WATCHER_DOWN)
 
     def _start_day_if_needed(self, now: datetime) -> None:
+        """Load the day's reference data; on failure keep yesterday's day state and retry every 5 minutes."""
         today = now.date()
-        if self.state.day == today:
+        if self.state.day == today or (self._reference_retry_at and now < self._reference_retry_at):
             return
+        try:
+            reference = ReferenceData.load(self.services.nse_feed, today)
+        except Exception as exc:  # noqa: BLE001 - NSE down: try again soon, never give up for the day
+            self._reference_retry_at = now + REFERENCE_RETRY
+            self._report_problem(now, REFERENCE_FAILED.format(error=exc))
+            return
+        self._reference_retry_at = None
         self.state = DayState(day=today)
         self.outcomes.end_of_day()
         if self.services.iv_history is not None:
             self.services.iv_history.flush(now)  # readings of a day that ended early, under their own day
-        self.reference = ReferenceData.load(self.services.nse_feed, today)
+        self.reference = reference
         self.services.clock.holidays = self.reference.holidays
         self.services.gate.industries = self.reference.industries
         log.info(
@@ -143,8 +153,10 @@ class LiveRunner:
         return self.research
 
     def _scan_if_due(self, now: datetime, phase: SessionPhase) -> None:
-        if phase is not SessionPhase.TRADING or not self._due(
-            self.state.last_scan, now, self.timings.scan_every_seconds
+        if (
+            phase is not SessionPhase.TRADING
+            or not self._due(self.state.last_scan, now, self.timings.scan_every_seconds)
+            or self.reference is None
         ):
             return
         self.state.last_scan = now
@@ -212,7 +224,10 @@ class LiveRunner:
             return
         closed, _ = shadow_desk.review_open_trades(now, phase)
         if self.services.news_exit is not None:
-            closed += self.services.news_exit.close_hit(shadow_desk, now)[0]
+            news_closed, errors = self.services.news_exit.close_hit(shadow_desk, now)
+            closed += news_closed
+            for error in errors:
+                log.warning("shadow book: %s", error)
         for trade in closed:
             self.services.store.record(EVENT_SHADOW_CLOSED, trade, now, trade["underlying"])
 
@@ -225,16 +240,25 @@ class LiveRunner:
             self.services.kill_switch.engage(f"automatic: {reason}", now)
 
     def _handle_kill_switch(self, now: datetime) -> None:
-        if self.state.kill_reported:
+        """Close everything once; a trade that cannot be priced is retried every review until it closes."""
+        desk = self.services.desk
+        if self.state.kill_reported and (
+            not desk.open_trades()
+            or not self._due(self.state.last_kill_attempt, now, self.timings.review_every_seconds)
+        ):
             return
-        closed = self.services.desk.close_all(ExitReason.KILL_SWITCH)
+        self.state.last_kill_attempt = now
+        closed = desk.close_all(ExitReason.KILL_SWITCH)
         for trade in closed:
             self.services.store.record("closed", trade, now, trade["underlying"])
-        self.services.store.record(
-            "kill_switch", {"reason": self.services.kill_switch.reason, "closed": len(closed)}, now
-        )
-        self.services.alerts.kill_switch()
-        self.state.kill_reported = True
+        left = [t["id"] for t in desk.open_trades()]
+        if not self.state.kill_reported:
+            reason = self.services.kill_switch.reason
+            self.services.store.record("kill_switch", {"reason": reason, "closed": len(closed), "left_open": left}, now)
+            self.services.alerts.kill_switch(left)
+            self.state.kill_reported = True
+        if left:
+            self._report_problem(now, KILL_LEFT_OPEN.format(trades=", ".join(left)))
 
     def _send_day_summary_once(self, now: datetime) -> None:
         if self.state.summary_sent or not self.services.clock.is_trading_day(now.date()):

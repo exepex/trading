@@ -71,7 +71,7 @@ exit rules. It has no limits and sends no Slack messages. It exists only to meas
 | Daily loss limit | stop for the day after -Rs 6,000 (3%) or 2 losses in a row |
 | Profit lock | stop for the day after +Rs 6,000 |
 | Weekly loss limit | stop for the week after -Rs 12,000 (6%) |
-| Automatic kill switch | everything closes and stops for review if the last 20 trades lose money in total, or the drawdown reaches Rs 20,000 (10%) |
+| Automatic kill switch | everything closes and stops for review if the last 20 trades lose money in total, or net results are currently Rs 20,000 (10%) below their best point; after a person resumes it (`live resume`) only later trades count. A trade that cannot be priced is retried every review until it closes |
 | Manual kill switch | `python deploy/desk.py live kill "reason"` |
 | Every profit figure | after brokerage, STT (0.15% since 1 Apr 2026), exchange charges, SEBI fee, stamp duty and GST |
 
@@ -81,4 +81,4 @@ exit rules. It has no limits and sends no Slack messages. It exists only to meas
 
 - at least 100 closed paper trades over at least 13 weeks;
 - net profit after every charge, with statistical confidence (t-stat 2 or more);
-- profit factor 1.3 or more, and a drawdown no worse than Rs 20,000.
+- profit factor 1.3 or more, and a worst-ever drawdown no worse than 10% of capital (Rs 20,000 live, Rs 50,000 paper).

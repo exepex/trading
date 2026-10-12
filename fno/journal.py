@@ -192,7 +192,7 @@ def finalise_trade(trade: dict, price: ClosePrice, reason: str, cfg: dict) -> No
     gross = (value - trade["entry_value"]) * units
     trade.update(
         status="closed",
-        closed_at=now_ist().isoformat(timespec="minutes"),
+        closed_at=now_ist().isoformat(timespec="seconds"),
         exit_value=round(value, 2),
         exit_reason=reason,
         spot_at_exit=spot,

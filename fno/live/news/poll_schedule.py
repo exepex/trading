@@ -147,9 +147,12 @@ class PollSchedule:
             log.warning("news usage file unreadable, counting from zero: %s", exc)
             return
         for plan in self.plans:
-            day, used = saved.get(plan.name, (None, 0))
-            if day:
-                plan.usage_day, plan.used_today = date.fromisoformat(day), int(used)
+            try:
+                day, used = saved.get(plan.name, (None, 0))
+                if day:
+                    plan.usage_day, plan.used_today = date.fromisoformat(day), int(used)
+            except (TypeError, ValueError, AttributeError) as exc:  # a damaged entry only resets that source
+                log.warning("news usage for %s unreadable, counting from zero: %s", plan.name, exc)
 
     def _save_usage(self) -> None:
         if self.usage_file is None:

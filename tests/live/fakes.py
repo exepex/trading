@@ -80,5 +80,5 @@ class CapturingAlerts:
     def problem(self, message: str) -> bool:
         return self.send(f"problem: {message}")
 
-    def kill_switch(self) -> bool:
-        return self.send("kill switch")
+    def kill_switch(self, left_open=None) -> bool:
+        return self.send("kill switch" if not left_open else f"kill switch, still open: {', '.join(left_open)}")

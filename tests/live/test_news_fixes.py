@@ -43,6 +43,13 @@ def test_the_marketaux_token_never_appears_in_connection_errors():
         ("Rupee falls against dollar", -1),
         ("Infosys wins software deal", 1),
         ("Adani Enterprises shares slump 5%", -1),
+        ("Dollar steady, Sensex rises 500 points", 1),
+        ("US yields ease, Nifty gains 1%", 1),
+        ("Crude oil steady as Sensex rallies", 1),
+        ("Yields steady as Nifty falls", -1),
+        ("Brent flat, Nifty climbs to record high", 1),
+        ("Crude jumps 4% after attack on Saudi plant", -1),
+        ("Rupee hits record low against dollar", -1),
     ],
 )
 def test_headline_direction(headline, sign):
@@ -119,3 +126,22 @@ def test_daily_allowances_survive_a_restart(tmp_path):
     restarted = PollSchedule([SourcePlan(Quiet(), 60, daily_limit=2)], 5, usage_file=usage)
     restarted.start(NOW)
     assert restarted.next_request(NOW + timedelta(minutes=5))[0] is None  # allowance already used today
+
+
+def test_a_damaged_usage_file_only_resets_that_source(tmp_path):
+    usage = tmp_path / "news_usage.json"
+    usage.write_text('{"AskNews": "x", "Marketaux": ["2026-10-13", 7]}')
+
+    class Quiet(NewsSource):
+        min_interval_seconds = 0.0
+
+        def __init__(self, name):
+            self.name = name
+
+        def fetch(self, now):
+            return []
+
+    schedule = PollSchedule(
+        [SourcePlan(Quiet("AskNews"), 60, 5), SourcePlan(Quiet("Marketaux"), 60, 95)], 5, usage_file=usage
+    )
+    assert schedule.plans[0].used_today == 0 and schedule.plans[1].used_today == 7

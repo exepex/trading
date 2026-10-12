@@ -109,3 +109,63 @@ def test_the_shadow_book_ignores_the_overnight_cap_and_follows_the_news_exit(tmp
     svc.news_room.book.add(shock, at(11, 5))
     shadow_closed, _ = svc.news_exit.close_hit(svc.shadow_desk, at(11, 6))
     assert [t["exit_reason"] for t in shadow_closed] == [ExitReason.ADVERSE_NEWS.value]
+
+
+def test_kill_switch_keeps_retrying_a_trade_it_cannot_price(tmp_path):
+    svc, market, reference, trade = desk_with_trades(tmp_path)
+    market.broken = {trade["underlying"]}
+    svc.kill_switch.engage("test", at(11, 10))
+    runner = LiveRunner(svc)
+    runner.reference, runner.state.day = reference, at(11, 0).date()
+    runner.tick(at(11, 11))
+    runner.tick(at(11, 12))
+    assert svc.desk.open_trades() and any("still open" in m for m in svc.alerts.messages)
+    assert any("could not close" in m for m in svc.alerts.messages)  # said honestly, not "all closed"
+    market.broken = set()
+    runner.tick(at(11, 20))  # the next review interval: retried and closed
+    assert svc.desk.open_trades() == []
+
+
+def test_a_failed_morning_reference_load_is_retried(tmp_path):
+    svc, _, _, _ = desk_with_trades(tmp_path)
+    calls = []
+    original = svc.nse_feed.lot_sizes
+
+    def flaky():
+        calls.append(1)
+        if len(calls) == 1:
+            raise ConnectionError("NSE down")
+        return original()
+
+    svc.nse_feed.lot_sizes = flaky
+    runner = LiveRunner(svc)
+    runner.tick(at(9, 0))
+    assert runner.reference is None and any("reference data" in m for m in svc.alerts.messages)
+    runner.tick(at(9, 2))  # too soon: not asked again
+    assert len(calls) == 1
+    runner.tick(at(9, 6))
+    assert runner.reference is not None and runner.state.day == at(9, 6).date() and len(calls) == 2
+
+
+def test_a_dead_news_watcher_is_reported_once(tmp_path):
+    import threading
+
+    svc, _, reference, _ = desk_with_trades(tmp_path)
+    runner = LiveRunner(svc)
+    runner.reference, runner.state.day = reference, at(11, 0).date()
+    runner._news_thread = threading.Thread(target=lambda: None)
+    runner._news_thread.start()
+    runner._news_thread.join()
+    runner.tick(at(11, 30))
+    runner.tick(at(11, 45))
+    assert sum("news watcher stopped" in m for m in svc.alerts.messages) == 1
+
+
+def test_a_loss_closed_seconds_after_a_release_counts(tmp_path):
+    cfg = load_config(overrides={"profile": "live"})
+    switch = KillSwitch(tmp_path / "KILL")
+    switch.release(at(10, 5) + timedelta(seconds=30))
+    loss = {"status": "closed", "pnl_net": -21000, "closed_at": (at(10, 5) + timedelta(seconds=45)).isoformat()}
+    assert performance_stop_reason([loss], cfg, since=switch.released_at)
+    (tmp_path / "KILL.released").write_text("2026-10-12T10:05:00")  # a hand-edited time without a zone
+    assert switch.released_at.utcoffset() == timedelta(hours=5, minutes=30)

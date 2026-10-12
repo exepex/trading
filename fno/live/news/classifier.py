@@ -235,14 +235,22 @@ NEGATIVE = _words(
     r"lows?",
     r"turmoil",
 )
-# Costs for Indian markets: when these themselves rise it is bad news, when they fall good news.
-COST_SUBJECT = (
-    r"\b(?:crude(?: oil)?|oil prices?|brent|bond yields?|(?:us )?yields?|treasury yields?|dollar(?: index)?)\b"
-)
-COST_RISES = re.compile(COST_SUBJECT + r"[^.;:]{0,25}?\b(?:" + "|".join(UP_WORDS) + r")\b", re.IGNORECASE)
-COST_FALLS = re.compile(COST_SUBJECT + r"[^.;:]{0,25}?\b(?:" + "|".join(DOWN_WORDS) + r")\b", re.IGNORECASE)
-RUPEE_FALLS = re.compile(r"\brupee\b[^.;:]{0,25}?\b(?:" + "|".join(DOWN_WORDS) + r"|record low)\b", re.IGNORECASE)
-RUPEE_RISES = re.compile(r"\brupee\b[^.;:]{0,25}?\b(?:" + "|".join(UP_WORDS) + r")\b", re.IGNORECASE)
+# Costs for Indian markets: when these themselves rise it is bad news, when they fall good news. The move word must
+# follow the cost directly ("crude jumps 4%", "US yields ease"), never across a clause ("Dollar steady, Sensex rises").
+COST_SUBJECT = r"\b(?:crude(?: oil)?|oil prices?|brent(?: crude)?|(?:us |bond |treasury )?yields?|dollar(?: index)?)"
+RUPEE_SUBJECT = r"\brupee"
+COST_EASES = (r"eases?", r"cools?", r"softens?", r"retreats?")
+IN_BETWEEN = r"(?:\s+(?:prices?|futures|index|sharply|further|again|nearly|over|by|up|down|\$?[\d.,]+%?))*"
+
+
+def _moves(subject: str, words: tuple[str, ...]) -> re.Pattern:
+    return re.compile(subject + IN_BETWEEN + r"\s+(?:" + "|".join(words) + r")\b", re.IGNORECASE)
+
+
+COST_RISES = _moves(COST_SUBJECT, UP_WORDS)
+COST_FALLS = _moves(COST_SUBJECT, DOWN_WORDS + COST_EASES)
+RUPEE_FALLS = _moves(RUPEE_SUBJECT, (*DOWN_WORDS, "hits record low", "record low"))
+RUPEE_RISES = _moves(RUPEE_SUBJECT, UP_WORDS)
 
 
 def event_type(story: Story) -> NewsEventType:

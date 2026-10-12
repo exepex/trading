@@ -15,6 +15,10 @@ ENTRY_HEADER = ":large_green_circle: *{tag} BUY · {name}*"
 EXIT_HEADER = ":checkered_flag: *{tag} EXIT · {name}* ({reason})"
 SUMMARY_HEADER = ":bar_chart: *F&O desk, {day:%a %d %b}: day summary ({tag})*"
 KILL_HEADER = ":octagonal_sign: *Kill switch engaged.* All paper trades closed; no new trades until released."
+KILL_PARTIAL = (
+    ":octagonal_sign: *Kill switch engaged.* No new trades until released. Could not close yet (no price): {trades}; "
+    "retrying every review."
+)
 PROBLEM_HEADER = ":warning: *F&O desk problem:* {message}"
 
 
@@ -92,5 +96,5 @@ class LiveAlerts:
     def problem(self, message: str) -> bool:
         return self.send(PROBLEM_HEADER.format(message=message))
 
-    def kill_switch(self) -> bool:
-        return self.send(KILL_HEADER)
+    def kill_switch(self, left_open: list[str] | None = None) -> bool:
+        return self.send(KILL_PARTIAL.format(trades=", ".join(left_open)) if left_open else KILL_HEADER)
