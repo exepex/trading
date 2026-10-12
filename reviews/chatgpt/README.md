@@ -41,3 +41,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 14: Response 16 closure and Experiment 1 protocol v2.1](review_14_2026-10-12-response-16-closure.md)
 - [Review 15: judge A4 quote recorder and B4 ledger guard](review_15_2026-10-12-judge-a4-b4.md)
 - [Review 16: A4/B4 blocker re-check — PASS](review_16_2026-10-12-recheck-a4-b4-blockers.md)
+- [Review 17: AI plan re-evaluation against legacy behavior](review_17_2026-10-12-ai-plan-reevaluation.md)
