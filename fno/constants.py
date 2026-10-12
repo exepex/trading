@@ -91,6 +91,9 @@ EVENT_SHADOW_CLOSED = "shadow_closed"
 ENV_FINNHUB_API_KEY = "FINNHUB_API_KEY"
 ENV_MARKETAUX_API_TOKEN = "MARKETAUX_API_TOKEN"
 ENV_ASKNEWS_API_KEY = "ASKNEWS_API_KEY"
+# Raw-file archive on Google Drive (fno/storage): read-only service account; both only in the environment
+ENV_GDRIVE_SERVICE_ACCOUNT_JSON = "FNO_GDRIVE_SERVICE_ACCOUNT_JSON"  # the service account key's JSON text
+ENV_GDRIVE_FOLDER_ID = "FNO_GDRIVE_FOLDER_ID"  # the shared folder's ID (from its Drive link)
 EVENT_NEWS_STORY = "news_story"  # a story seen for the first time, by the source that had it first
 EVENT_NEWS_SIGHTING = "news_sighting"  # the same story from another source later, with the delay
 NEWS_THEME_WORLD = "WORLD"  # world-risk news (war, oil, central banks, tariffs) that moves indices

@@ -25,7 +25,7 @@ from ..providers.cached import CachedProvider
 from ..providers.groww import GrowwProvider
 from ..providers.public import PublicData
 from .alerts import LiveAlerts
-from .contract_picker import ContractPicker, ExitLevels, PickerRules
+from .contract_picker import ContractPicker, ExitLevels, PickerRules, max_planned_loss
 from .duckdb_results_store import DuckDbResultsStore
 from .exit_policy import ExitPolicy, TrailingStop
 from .feeds.live_prices import GrowwLivePrices
@@ -331,9 +331,3 @@ def _config_key(source_name: str) -> str:
 
 def _plan(source, opts: dict) -> SourcePlan:
     return SourcePlan(source, opts.get("every_seconds", DEFAULT_NEWS_INTERVAL_SECONDS), opts.get("daily_limit"))
-
-
-def max_planned_loss(cfg: dict) -> float:
-    """Rupees a single trade may lose at its stop: risk_per_trade_pct of capital."""
-    capital = cfg.get("account", {}).get("capital", 0)
-    return capital * cfg.get("position_rules", {}).get("risk_per_trade_pct", 2.0) / 100

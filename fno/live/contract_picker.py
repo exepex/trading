@@ -49,6 +49,12 @@ class ExitLevels:
         )
 
 
+def max_planned_loss(cfg: dict) -> float:
+    """Rupees a single trade may lose at its stop: risk_per_trade_pct of capital."""
+    capital = cfg.get("account", {}).get("capital", 0)
+    return capital * cfg.get("position_rules", {}).get("risk_per_trade_pct", 2.0) / PERCENT
+
+
 class ContractPicker:
     def __init__(
         self,

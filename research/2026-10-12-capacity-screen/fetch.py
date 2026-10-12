@@ -1,32 +1,37 @@
-"""Downloads NSE daily F&O files (UDiFF format) and keeps only the NIFTY option rows the capacity screen needs.
+"""Gets NSE daily F&O files and keeps only the NIFTY option rows the capacity screen needs.
 
-Run from the repository root:  python research/2026-10-12-capacity-screen/fetch.py
-One request at a time, one second apart. Resumable: dates already in the manifest are skipped.
+Run from the repository root:  python research/2026-10-12-capacity-screen/fetch.py [--keep-raw FOLDER]
+Files come from the raw-file library (fno/storage): a local or Google Drive copy if one exists, otherwise NSE, one
+polite request at a time. --keep-raw saves every original ZIP into FOLDER (for example a Google Drive for desktop
+folder). Resumable: dates already in the manifest are skipped.
 Writes data/nifty_options.csv.gz (NIFTY options, 20-55 calendar days to expiry, strikes within 1,500 points of the
-underlying) and data/manifest.csv (every date tried: URL, HTTP status, SHA-256 of the ZIP bytes, rows kept).
+underlying) and data/manifest.csv (every date tried: URL, status 200 = file / 404 = none, SHA-256 of the ZIP bytes,
+rows kept).
 """
 
 from __future__ import annotations
 
+import argparse
 import csv
 import gzip
 import hashlib
 import io
-import time as wall_clock
+import sys
 import zipfile
 from datetime import date, timedelta
 from pathlib import Path
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+
+from fno.storage.raw_source import NseDailyFoSource, RawSourceUnavailable  # noqa: E402
+from fno.storage.wiring import build_nse_fo_library  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 DATA = HERE / "data"
-URL = "https://nsearchives.nseindia.com/content/fo/BhavCopy_NSE_FO_0_0_0_{day:%Y%m%d}_F_0000.csv.zip"
 FIRST_DAY, LAST_DAY = date(2024, 1, 1), date(2026, 10, 9)
 KEEP_DAYS_TO_EXPIRY = (20, 55)
 KEEP_STRIKE_DISTANCE = 1500.0
-GAP_SECONDS = 1.0
-RETRY_WAITS = (5, 15, 45)
 FIELDS = [
     "TradDt", "XpryDt", "StrkPric", "OptnTp", "ClsPric", "PrvsClsgPric", "SttlmPric", "UndrlygPric",
     "TtlTradgVol", "TtlNbOfTxsExctd", "OpnIntrst", "NewBrdLotQty",
@@ -43,27 +48,19 @@ def keep(row: dict, day: date) -> bool:
     return abs(float(row["StrkPric"]) - float(row["UndrlygPric"])) <= KEEP_STRIKE_DISTANCE
 
 
-def fetch(day: date) -> tuple[int | str, bytes]:
-    """HTTP status and body. A dropped connection is retried after 5, 15 and 45 seconds, then recorded as an error
-    (and retried on the next run, since only completed answers are written to the manifest)."""
-    request = Request(URL.format(day=day), headers={"User-Agent": "Mozilla/5.0"})
-    for wait in RETRY_WAITS:
-        try:
-            with urlopen(request, timeout=60) as response:
-                return response.status, response.read()
-        except HTTPError as exc:
-            return exc.code, b""
-        except (URLError, OSError):
-            wall_clock.sleep(wait)
-    return "error", b""
+def kept_rows(zip_bytes: bytes, day: date) -> list[dict]:
+    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+        text = zf.read(zf.namelist()[0]).decode("utf-8")
+    return [row for row in csv.DictReader(io.StringIO(text)) if keep(row, day)]
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--keep-raw", type=Path, help="folder to keep every original ZIP in")
+    library = build_nse_fo_library(parser.parse_args().keep_raw)
     DATA.mkdir(exist_ok=True)
     manifest_path, rows_path = DATA / "manifest.csv", DATA / "nifty_options.csv"
-    done = set()
-    if manifest_path.exists():
-        done = {r["date"] for r in csv.DictReader(manifest_path.open())}
+    done = {r["date"] for r in csv.DictReader(manifest_path.open())} if manifest_path.exists() else set()
     new_manifest = not manifest_path.exists()
     with manifest_path.open("a", newline="") as mf, rows_path.open("a", newline="") as rf:
         manifest = csv.DictWriter(mf, MANIFEST_FIELDS)
@@ -74,24 +71,26 @@ def main() -> None:
         day = FIRST_DAY
         while day <= LAST_DAY:
             if day.weekday() < 5 and day.isoformat() not in done:
-                status, body = fetch(day)
-                kept = 0
-                if status == 200 and body:
-                    with zipfile.ZipFile(io.BytesIO(body)) as zf:
-                        text = zf.read(zf.namelist()[0]).decode("utf-8")
-                    for row in csv.DictReader(io.StringIO(text)):
-                        if keep(row, day):
-                            rows.writerow(row)
-                            kept += 1
-                if status == "error":
+                filename = NseDailyFoSource.filename_for(day)
+                try:
+                    raw = library.get(filename)
+                except RawSourceUnavailable as exc:
+                    print(f"skipped for now: {exc}")  # not recorded, so the next run asks again
                     day += timedelta(days=1)
-                    continue  # not recorded: the next run asks again
-                digest = hashlib.sha256(body).hexdigest() if body else ""
-                manifest.writerow({"date": day.isoformat(), "url": URL.format(day=day), "status": status,
-                                   "sha256": digest, "rows_kept": kept})  # fmt: skip
+                    continue
+                found = kept_rows(raw.data, day) if raw.data else []
+                rows.writerows(found)
+                manifest.writerow(
+                    {
+                        "date": day.isoformat(),
+                        "url": NseDailyFoSource.BASE_URL + filename,
+                        "status": 200 if raw.data else 404,
+                        "sha256": hashlib.sha256(raw.data).hexdigest() if raw.data else "",
+                        "rows_kept": len(found),
+                    }
+                )
                 mf.flush()
                 rf.flush()
-                wall_clock.sleep(GAP_SECONDS)
             day += timedelta(days=1)
     with rows_path.open("rb") as src, gzip.GzipFile(DATA / "nifty_options.csv.gz", "wb", mtime=0) as dst:
         dst.write(src.read())

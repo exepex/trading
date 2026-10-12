@@ -76,8 +76,10 @@ After it is merged, use `main`.
 - Fixed strings, enum values and environment-variable names live in `fno/constants.py`; module-specific
   URLs, SQL and message templates are named constants at the top of their module.
 - Names say what things do. Small single-purpose modules; new behaviour goes in a new class behind an existing
-  interface (`SignalRule`, `GuardRule`, `IntradayPriceFeed`, `Provider`) rather than into an existing one.
-- `fno/live/services.py` is the only place that wires concrete classes together.
+  interface (`SignalRule`, `GuardRule`, `IntradayPriceFeed`, `Provider`, `RawFileStore`, `RawFileSource`) rather than
+  into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
+- Concrete classes are wired together only in the composition roots: `fno/live/services.py` (the desk, backtest,
+  news) and `fno/storage/wiring.py` (raw data stores and sources).
 - The live desk never places real orders. The stock tool's research is read-only: never write to its repository
   or to its `market_brief` MotherDuck database. GitHub files are the default store for research input and
   results; MotherDuck is an optional trial using the shared `MOTHERDUCK_TOKEN` (no new variables).

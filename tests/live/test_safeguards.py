@@ -4,12 +4,11 @@ from datetime import date, timedelta
 from fno import journal
 from fno.config import load_config
 from fno.constants import Direction, SessionPhase
-from fno.live.contract_picker import ContractPicker, ExitLevels, PickerRules
+from fno.live.contract_picker import ContractPicker, ExitLevels, PickerRules, max_planned_loss
 from fno.live.kill_switch import KillSwitch
 from fno.live.learning.performance import max_drawdown, performance_stop_reason, readiness_checks
 from fno.live.models import MarketView
 from fno.live.risk_gate import PortfolioGate
-from fno.live.services import max_planned_loss
 from fno.providers.sample import SampleProvider
 
 from .fakes import SESSION_DAY, at

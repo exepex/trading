@@ -153,6 +153,18 @@ Check the connection with `python -m fno groww-check` (prints no secrets). The S
 which `deploy/setup.py` installs. Data calls need no fixed IP address; the static-IP rule covers placing orders, which
 this tool never does.
 
+## Raw data files (fno/storage)
+
+Large static files (for example NSE's daily F&O files) are fetched through a raw-file library: it looks in the
+stores first (a local folder, then Google Drive), and only then asks the original source (NSE), politely. Stores and
+sources are interfaces (`RawFileStore`, `RawFileSource`); `fno/storage/wiring.py` is the only place that picks the
+concrete ones, so Google Drive or NSE can be replaced without touching anything else.
+
+| Store | Setup |
+|---|---|
+| Local folder | `--keep-raw FOLDER` on a fetch script; use a Google Drive for desktop folder on the PC to archive to Drive |
+| Google Drive (read-only) | `FNO_GDRIVE_SERVICE_ACCOUNT_JSON` (a service account key's JSON text) and `FNO_GDRIVE_FOLDER_ID` (the folder's ID from its link); share the folder with the service account's e-mail as Viewer. Service accounts cannot upload to a personal Drive, so files reach Drive through the desktop sync |
+
 ## Slack
 
 The F&O bot posts to `#fno-desk` and uses its own environment variables, separate from the market-brief tool's

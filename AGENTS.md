@@ -77,3 +77,9 @@ roles disagree.
    source, main risk, how to prove it, pass/stop numbers.
 5. When reviewing someone else's work (the owner's, Claude's, yours), list agreements, disagreements with reasons, and
    what is wrong or missing.
+
+## Code (when an agent changes code)
+
+Follow the code rules in `CLAUDE.md` ("Code" section): SOLID, KISS, DRY, small single-purpose modules, interfaces
+for anything that can be swapped (data sources, stores, rules), wiring only in the composition roots, tests and
+linting before pushing, no file over 350 lines.
