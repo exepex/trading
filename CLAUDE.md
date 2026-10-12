@@ -16,6 +16,10 @@ cost real money later, so:
   limit), find another legitimate way: another source, a test, a workaround, or a clear question to the owner. If it
   truly cannot be done, say so plainly and why. Never skip it silently or hide it.
 - **No patches.** Find the root cause, validate it with data and tests, then fix the design.
+- **Own limits too.** This applies to Claude's own limits and boundaries, not only tools: always give the fullest, most
+  direct answer possible. If a limit ever shapes an answer, say so openly (what was limited and why), give everything
+  that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
+  questions and clarifications: ask them plainly and directly.
 - The hard lines stay: no real orders, nothing illegal (no market manipulation), secrets never in files or chat.
 
 ## Keep a conversation log (every session)
