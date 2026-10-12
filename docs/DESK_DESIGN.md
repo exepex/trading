@@ -255,22 +255,92 @@ Three NIFTY trades are close to one bet, so the account is checked as a whole be
    adds net value against the code-only desk.
 5. Intraday watching only if data shows it helps.
 
+## 12. Two paper books: tested rules versus AI judgement (proposed v2.2, for review)
+
+Status: **proposed by the owner on 12 Oct 2026, for ChatGPT review**; not part of the approved v2.1 until agreed and
+approved. Owner's aim: "we do not know whether AI or rules are smarter ... prove both, find where each is lacking, and
+get the best of both", working as a team of roles.
+
+### 12.1 The two books
+| | Book R: rules desk | Book A: AI desk |
+|---|---|---|
+| Who decides | Playbook rules, tested on history and approved (sections 4-6) | AI roles decide each day from their own analysis (finding cards, section 3) |
+| Role of AI | Research, analysis, red team, judge; any AI "skip" is a **shadow veto** only (recorded, scored, no effect) | Decides what to trade, when to enter and when to exit early, within the hard limits |
+| Evidence before paper | Historical test (experiment protocols) | None possible: an AI's judgement on past dates is contaminated by hindsight; forward paper trading only |
+| Changes | New playbook version through the research loop | A change of model, prompt or role set is a new version of book A, recorded |
+
+### 12.2 Same rules of the game (fairness)
+- Separate paper accounts of Rs 5 lakh each (E4's lock is per account; books never share an account).
+- Same owner limits for both, **enforced by code** (C2, C4): Rs 10,000 maximum loss per trade including costs, at most 3
+  open trades, Rs 30,000 entry-blocking drawdown brake, portfolio stress; no real orders, ever.
+- Same universe at the start: NIFTY options, **defined-risk structures only** (the maximum loss is known at entry),
+  holding up to 3 weeks; book A chooses its own structure, strikes and expiry within that.
+- Same decision time (about 15:00 IST), same data cutoff, same real 3 pm quotes (A4) and the same fill model (E1), same
+  charges (C1).
+- Independence: book A does not see book R's decision of the day before committing its own (no copying).
+- Pre-commitment: every decision with its reasons is written to the decision record (D3) and committed to git before
+  any fill or outcome exists.
+- Book A's AI costs are charged to book A's account ledger (C1, F5).
+
+### 12.3 Scoring predictions every day, not only trades
+Each book makes 2-3 trades a month: after 3 months about 10 trades each, too few to separate skill from luck unless
+the difference is very large. So both books also answer a **fixed set of daily forecast questions** (frozen before
+the start), for example: probability that NIFTY closes within +/-2%, +/-3% and +/-5% of today's close at the next
+monthly expiry; probability that India VIX is higher in 10 trading days. Scored daily with a proper score (Brier and
+log score), about 20 scored days a month.
+- Book R's forecasts come from code: its tested conditional frequencies (the decision record's forecast, section 5).
+- Book A's forecasts come from the AI roles.
+- Both are compared with the **market's own forecast**: the probabilities implied by that day's NIFTY option prices.
+  Beating the option market's forecast is the real test of skill.
+
+### 12.4 Evaluation plan (fixed before the start)
+- Monthly report: three ledgers per book, drawdown, open risk, forecast scores against each other and against the
+  option-implied baseline, with uncertainty.
+- First scheduled verdict after 6 months; nothing is switched off for statistical reasons before a scheduled review
+  (hard-loss rules act at once, as for every strategy).
+- "Better" is judged on paired days: forecast-score difference with its interval, and net account result after costs.
+  An inconclusive result is reported as inconclusive.
+- Where each book fails is studied by the roles (lessons memory, G1) and becomes research questions.
+
+### 12.5 Combining the best of both
+A combination (for example: rules decide, AI may veto; or AI decides, rules filter) is a **new design**, tested like
+any other: registered, evaluated on forward paper data that it was not built from, judged, approved by the owner. No
+book silently borrows the other's decisions.
+
+### 12.6 Timing and effect on the plan
+- Book A needs no historical test, only time, so it can start once its plumbing exists: paper account and fills (E1 fill
+  model on A4 quotes), risk and validity code (C2, C4), decision records (D3), role agents (F1), cost tracking (F5).
+  Before book R has an approved strategy, book R holds cash; its daily forecasts still run from code, so forecast
+  scoring starts on day one.
+- Owner decisions D1 and D2 (`docs/AI_PLAN_REEVALUATION.md`) resolve per book: shadow veto and rule-based exits in
+  book R; AI vetoes, entries and early exits allowed in book A, inside the hard limits. D4 (runtime and budget) must be
+  decided before book A starts.
+- New stories needed (epic G, after review): G1 book A daily decision session; G2 forecast questions and scoring with
+  the option-implied baseline; G3 book A paper account and fills; G4 two-book comparison report. The AI layer (epic F)
+  moves from "on hold" to "needed for book A"; the owner decides when it starts.
+
+### 12.7 Honest limits
+- Slow: trade-level proof takes many months; forecast scores come sooner but measure reading the market, not profit.
+- A changing AI (new model versions) makes book A a moving target: each version is recorded and scored separately.
+- Book A's reasoning cannot be tested on history, so early paper results are the first evidence of any kind.
+
 ## 11. Closing the design
 
 | Section | Claude | ChatGPT | Owner |
 |---|---|---|---|
-| 1 Goal and odds | Agreed; amended per review 10 (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 2 Edge map | Agreed; amended per review 10, E9 added (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 3 The team and how it works | Agreed; scorecards amended, 3.5 discovery engine added (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 3.5 Discovery engine | Agreed (covered by section 3) | Agreed as research framework (review 11) || Approved 12 Oct 2026 |
-| 4 Two loops | Agreed | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 5 Playbook and decision record | Agreed | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 6 Evidence rules | Agreed; 2019-2023 and screen clarifications added (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 7 Red team and judge | Agreed (from review 9) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 8 Owner limits, risk and money | Agreed; brake action and basis defined, 8.1 portfolio risk added (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 8.1 Portfolio risk | Agreed (covered by section 8) | Agreed as research framework; proposed thresholds require calibration (review 11) || Approved 12 Oct 2026 |
-| 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
-| 10 Build order | Agreed | Agreed (review 11, v2.1) || Approved 12 Oct 2026 |
+| 1 Goal and odds | Agreed; amended per review 10 (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 2 Edge map | Agreed; amended per review 10, E9 added (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 3 The team and how it works | Agreed; scorecards amended, 3.5 discovery engine added (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 3.5 Discovery engine | Agreed (covered by section 3) | Agreed as research framework (review 11) | Approved 12 Oct 2026 |
+| 4 Two loops | Agreed | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 5 Playbook and decision record | Agreed | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 6 Evidence rules | Agreed; 2019-2023 and screen clarifications added (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 7 Red team and judge | Agreed (from review 9) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 8 Owner limits, risk and money | Agreed; brake action and basis defined, 8.1 portfolio risk added (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 8.1 Portfolio risk | Agreed (covered by section 8) | Agreed as research framework; proposed thresholds require calibration (review 11) | Approved 12 Oct 2026 |
+| 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 10 Build order | Agreed | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
+| 12 Two paper books (proposed v2.2) | Proposed: owner's idea, written up 12 Oct 2026 | | |
 
 Both AIs agreed every section (ChatGPT review 11, Claude response 12). Review 11's clarifications (exact binomial
 figures, experiment-specific significance test, fuller stress scenarios) are folded into 3.5 and 8.1 without changing

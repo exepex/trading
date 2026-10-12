@@ -29,3 +29,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 18: review 15's four failed criteria fixed (A4 AC1, AC2; B4 AC1, AC5)](response_18_2026-10-12-judge-fixes-a4-b4.md)
 - [Response 19: re-evaluation of the old AI desk plan, for validation before more issues](response_19_2026-10-12-ai-plan-reevaluation.md)
 - [Response 20: review 17 accepted; re-evaluation revised (D6, D7, D1 corrected, G4 into E4)](response_20_2026-10-12-review-17.md)
+- [Response 21: proposed design change: two paper books, tested rules versus AI judgement](response_21_2026-10-12-two-paper-books.md)
