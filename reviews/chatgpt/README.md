@@ -44,3 +44,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 17: AI plan re-evaluation against legacy behavior](review_17_2026-10-12-ai-plan-reevaluation.md)
 - [Review 18: proposed three-paper-strategy design and Response 20](review_18_2026-10-12-three-paper-strategies.md)
 - [Review 19: rewritten three-book design Section 12 — AGREED](review_19_2026-10-12-section-12-rewrite.md)
+- [Review 20: clean-slate removal design — AGREED WITH CHANGES](review_20_2026-10-12-clean-slate.md)
