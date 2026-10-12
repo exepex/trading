@@ -24,6 +24,12 @@ RESEARCH_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)
 # Month codes in NSE file names and dates (e.g. fo02JAN2019bhav), independent of the computer's language settings
 MONTH_CODES = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
 
+# NSE session calendar (fno/research_data/calendar.py): kinds of rows in nse_sessions.csv, and of sessions
+SESSION_HOLIDAY, SESSION_SPECIAL, SESSION_MUHURAT, SESSION_REGULAR = "holiday", "special", "muhurat", "regular"
+
+# Index names in NSE's daily index-close file that every file must carry (the research needs both)
+INDEX_NIFTY_50, INDEX_INDIA_VIX = "Nifty 50", "India VIX"
+
 # The three paper books (design 12.1, story E1): each has its own Rs 5 lakh paper account under journal/<book>/account/
 BOOK1_RULES = "book1_rules"  # pure rules
 BOOK2_HYBRID = "book2_hybrid"  # AI inside the authority envelope
