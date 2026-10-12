@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import date
 
 from .feeds.nse_feed import NseLiveFeed, OpenInterestMove
+from .feeds.participant_oi import FiiPositioning, load_fii_positioning
 from .feeds.price_feed import DayQuote
 from .models import UnderlyingSnapshot
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -19,6 +23,7 @@ class ReferenceData:
     banned: set[str] = field(default_factory=set)
     holidays: set[date] = field(default_factory=set)
     industries: dict[str, str] = field(default_factory=dict)  # NSE industry per stock
+    fii: FiiPositioning | None = None  # foreign investors' index positioning over recent sessions
 
     @property
     def symbols(self) -> list[str]:
@@ -32,7 +37,16 @@ class ReferenceData:
             banned=feed.ban_list(),
             holidays=feed.trading_holidays(),
             industries=feed.industries(),
+            fii=_fii_positioning(feed, today),
         )
+
+
+def _fii_positioning(feed: NseLiveFeed, today: date) -> FiiPositioning | None:
+    try:
+        return load_fii_positioning(feed.archive_text_or_none, today)
+    except Exception as exc:  # noqa: BLE001 - helpful context, never a reason to stop the day
+        log.warning("FII positioning unavailable: %s", exc)
+        return None
 
 
 def build_snapshots(

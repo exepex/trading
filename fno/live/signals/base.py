@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from ...models import OptionChain
+from ..feeds.participant_oi import FiiPositioning
 from ..market_backdrop import MarketBackdrop
 from ..models import Candle, GuardVerdict, SignalVote, UnderlyingSnapshot
 from ..news.impact import NewsPulse
@@ -29,6 +30,7 @@ class SymbolInputs:
     backdrop: MarketBackdrop = field(default_factory=MarketBackdrop)
     industry: str | None = None  # NSE industry, None for indices
     news: NewsPulse | None = None  # the fast news watcher's view of this underlying, when it runs
+    fii: FiiPositioning | None = None  # foreign investors' index positioning, recent sessions
     iv_rank: float | None = None  # 0-100 where today's ATM IV sits in its own history; None until enough history
 
     @property

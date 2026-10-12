@@ -23,6 +23,7 @@ from .kill_switch import KillSwitch
 from .learning.iv_history import IvHistory
 from .market_clock import MarketClock, SessionTimes
 from .market_view import MarketViewBuilder, ViewThresholds
+from .move_check import MoveCheck
 from .news.api_sources import api_sources_from_environment
 from .news.exchange_sources import BSE_SOURCE, NSE_SOURCE, BseAnnouncementsSource, NseAnnouncementsSource
 from .news.impact import ImpactSettings, NewsRoom
@@ -118,6 +119,11 @@ def build_live_services(
             cfg.get("position_rules", {}),
             max_planned_loss(cfg),
             chain_source,
+            MoveCheck(
+                live.get("contract", {}).get("max_needed_to_likely_move", 1.5),
+                holding.get("max_days", 2),
+                cfg.get("exits", {}).get("long_option", {}).get("take_profit_pct_of_premium", 60.0),
+            ),
         ),
         gate=PortfolioGate(cfg, kill_switch, live.get("reentry_cooldown_minutes", 30)),
         desk=PaperDesk(journal_path, cfg, chain_source, exit_policy),

@@ -56,13 +56,19 @@ underlying per day stored from today, so we can tell cheap options from expensiv
 
 ## Wave 2: trade only when the odds favour an option buyer
 
-**W2.1 Trending or sideways day.** No new option purchase on an underlying whose session so far is sideways: the
-efficiency of its 5-minute moves (net move / total path) is below a threshold after at least 30 minutes.
+**W2.1 Trending or sideways day.** No new option purchase on an underlying that is not trending now: the efficiency
+of its 5-minute moves over the last hour (net move / total path) is below 0.30, and until at least 30 minutes of
+the session exist. Calibrated on 45 real sessions: whole-day efficiency (median 0.12) is too noisy; the last hour
+(median 0.26) is used, and 0.30 lets through roughly the most trending 45% of hours.
 **W2.2 Move needed vs move likely.** Before entry, the underlying move needed for the option to reach its target
 (delta and gamma, net of time decay over the holding period) must be at most a set share of the move the market
-expects (ATM implied volatility over the holding period). Otherwise the idea is refused with the numbers.
-**W2.3 Big-investor positioning.** A signal for NIFTY, BANKNIFTY and FINNIFTY from NSE's daily participant-wise open
-interest: foreign investors' index futures long share and its change, and their index options positioning.
+expects (ATM implied volatility over the holding period). Otherwise the idea is refused; accepted ideas carry the
+numbers in their notes. Calibrated on real chains (12 Oct): near-the-money 2-week options need 1.2-1.5x the
+expected 2-day move to make +60%, so the limit is 1.5x; the +60% target itself is to be reviewed with paper data.
+**W2.3 Big-investor positioning.** A signal for the indices from NSE's daily participant-wise open interest (last 10
+sessions, read each morning): the change in foreign investors' index futures long share against its recent average
+and the change in the tilt of their index options book. Change, not level: FIIs hold structurally short index
+futures (about 10% long in Oct 2026).
 
 ## Wave 3: speed and evidence
 

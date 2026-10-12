@@ -17,6 +17,7 @@ COMPANY_NAME_COLUMN = "Company Name"
 OI_SPURTS_PATH = "/api/live-analysis-oi-spurts-underlyings"
 HOLIDAYS_PATH = "/api/holiday-master"
 HOLIDAY_SEGMENT = "FO"
+NOT_FOUND = 404
 LOT_FILE_SYMBOL_COLUMN = 1
 LOT_FILE_FIRST_MONTH_COLUMN = 2
 
@@ -37,6 +38,14 @@ class NseLiveFeed:
 
     def _archive_text(self, url: str) -> str:
         resp = self.client.session.get(url, timeout=20)
+        resp.raise_for_status()
+        return resp.text
+
+    def archive_text_or_none(self, url: str) -> str | None:
+        """An NSE archive file, or None when it does not exist (404: weekend, holiday, not published yet)."""
+        resp = self.client.session.get(url, timeout=20)
+        if resp.status_code == NOT_FOUND:
+            return None
         resp.raise_for_status()
         return resp.text
 

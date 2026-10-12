@@ -114,6 +114,7 @@ class LiveScanner:
             industry=context.reference.industries.get(symbol),
             news=s.news_room.pulse(symbol, now) if s.news_room else None,
             iv_rank=self._iv_rank(symbol, chain, now),
+            fii=context.reference.fii,
         )
         view = s.view_builder.build(inputs)
         report.views.append(view)

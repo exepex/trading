@@ -13,6 +13,7 @@ from ..naming import groww_contract_name, trade_idea_id
 from ..providers import Provider
 from ..strategies import size_position
 from .models import MarketView, TradeIdea
+from .move_check import MoveCheck
 
 PERCENT = 100.0
 
@@ -55,12 +56,14 @@ class ContractPicker:
         position_rules: dict,
         max_planned_loss: float,
         live_quotes: Provider | None = None,
+        move_check: MoveCheck | None = None,
     ):
         self.rules = rules
         self.exits = exits
         self.position_rules = position_rules
         self.max_planned_loss = max_planned_loss  # rupees lost if the stop is hit (2% of capital)
         self.live_quotes = live_quotes  # real bid/ask for the chosen contract when the chain has none
+        self.move_check = move_check  # refuses contracts whose target needs an unlikely move
 
     def pick(self, view: MarketView, chain: OptionChain, today: date) -> tuple[TradeIdea | None, str]:
         """The best liquid contract for the view, or None with the reason."""
@@ -99,10 +102,15 @@ class ContractPicker:
             spot=chain.spot,
             view=view,
             exception=exception,
-            notes=[size_note] if size_note else [],
+            notes=[n for n in (size_note, self._move_note(chain, quote, entry)) if n],
             fill_source=fill_source(quote),
         )
         return idea, "ok"
+
+    def _move_note(self, chain: OptionChain, quote: OptionQuote, entry: float) -> str | None:
+        if self.move_check is None:
+            return None
+        return self.move_check.detail(chain, entry, self._greeks(chain, quote, chain.years_to_expiry()))
 
     def _confirm_with_live_quote(self, chain: OptionChain, quote: OptionQuote) -> tuple[OptionQuote | None, str]:
         """A chain without bid/ask (Groww) is checked again against the contract's live bid/ask before buying."""
@@ -154,6 +162,8 @@ class ContractPicker:
             return "too far out of the money"
         if -greeks.theta / price * PERCENT > rules.max_daily_theta_pct:
             return "time decay too fast"
+        if self.move_check is not None:
+            return self.move_check.problem(chain, price, greeks)
         return None
 
     def _greeks(self, chain: OptionChain, quote: OptionQuote, years: float) -> Greeks:
