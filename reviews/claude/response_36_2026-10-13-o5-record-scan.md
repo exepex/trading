@@ -95,10 +95,10 @@ Largest new file: 98 lines (`patterns.py`). A full scan takes about 5 s (most of
    #fno-desk is CLAUDE.md step 3. When P4 lands, the hook output can be sent by code.
 2. **The hook only works if the routine runs step 1** (`git config core.hooksPath .githooks`), and `--no-verify`
    bypasses it. CLAUDE.md forbids the bypass. A fresh cloud clone has no hooks otherwise.
-3. **No GitHub Actions CI exists in this repository.** The "CI gate" is the repository test (`:87`), which every push
-   must pass under CLAUDE.md. A workflow running `python tools/check_records.py` on every push would also catch pushes
-   from sessions that skipped the tests; proposed for the orchestrator/owner, not built (outside the story's minimal
-   change).
+3. **CI gate (added after the orchestrator's request):** `.github/workflows/checks.yml` runs on every push and pull
+   request to `main`: pytest (which includes the repository scan test), `ruff check fno tests tools`,
+   `python tools/check_imports.py` and `python tools/check_records.py`; Python 3.11, pip cache, no secrets. It catches
+   a session that pushed without running the checks, after the push (it cannot block a direct push to `main`).
 4. **Phone numbers:** a bare 10-digit number is not flagged, because it cannot be told apart from a volume or
    turnover in the quote and market files. Only `+91 ...` or a number after a phone word is caught (some evidence:
    the repository's data files contain many 10-digit numbers).
