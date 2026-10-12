@@ -1,6 +1,6 @@
 # Clean slate: what the new system keeps, and what of the old system is removed
 
-Status: **v2, revised after ChatGPT review 20** (12 Oct 2026). v1 request: `reviews/claude/response_24_2026-10-12-clean-slate.md`;
+Status: **v2.1, agreed by ChatGPT (review 21) with three gate wordings applied; awaiting owner approval** (12 Oct 2026). v1 request: `reviews/claude/response_24_2026-10-12-clean-slate.md`;
 review: `reviews/chatgpt/review_20_2026-10-12-clean-slate.md`; this revision: `reviews/claude/response_25_2026-10-12-review-20.md`.
 Nothing is removed until ChatGPT agrees and the owner approves. After approval: one cleanup commit, then a rewritten
 implementation plan, regenerated stories, old issues #3-#21 closed as replaced and a clean issue set created.
@@ -156,17 +156,21 @@ retail-losses report for the plan to reuse.
 
 ## 6. Acceptance criteria for the cleanup commit (judge-checkable)
 
-1. **Import graph:** a script parses (AST) every surviving `.py` file in `fno/`, `tests/`, `tools/` and `research/`,
-   resolves relative and absolute imports, and finds no import of a removed module. Only exception:
-   `research/2026-10-12-backtest/replay.py`, documented as runnable only at the pinned commit. Every kept module
-   imports cleanly (`python -c "import ..."` for each).
+1. **Import graph:** a script parses (AST) every surviving runnable `.py` file in `fno/`, `tests/`, `tools/` and
+   `research/`, resolves relative and absolute imports, and fails on any import of a removed module. Exactly one file
+   is classified **archival, not runnable on main**: `research/2026-10-12-backtest/replay.py` (listed by path in the
+   script; its README gives the pinned-worktree command). Every other module, and only those, is imported in a loop
+   and must import cleanly. Criterion 11 confirms nothing active invokes the archival file.
 2. `python -m pytest -q` and `ruff check fno tests` pass; the A4 recorder tests pass with only their imports changed.
 3. **At the cleanup commit only:** `python -m fno --help` lists `chain`, `drive-check`, `groww-check`, `quotes`
    (A1 adds `data-coverage` and E3 adds `desk scorecard` later). Each command's `--help` runs. The sample provider is
    a smoke check of the command wiring only, not evidence of quote capture.
 4. No dead links: every relative Markdown link in `README.md`, `CLAUDE.md`, `AGENTS.md` and `docs/` resolves
    (checked by a small link-check script run once).
-5. `config.yaml` loads and contains only the kept keys; no code reads a removed key.
+5. `config.yaml` loads and contains only the kept keys. The loader has a fixed list of allowed top-level keys
+   (`provider`, `quotes`, `underlyings`, `lot_sizes`, `charges`, `slack`, `risk_free_rate`, plus keys later stories
+   add with their tests); any other key, including each removed one (`profile`, `profiles`, `live`, `exits`, ...),
+   raises a clear configuration error (parameterised test over every removed key).
 6. Every removed requirement has no remaining import.
 7. The 3 pm routine's command and output paths are unchanged.
 8. **No data lost:** a manifest (path, size, SHA-256) of every tracked file under `research/data/`, `research/LEDGER.md`,
@@ -176,7 +180,11 @@ retail-losses report for the plan to reuse.
    trade times) and an NSE expiry fixture, `python -m fno quotes record` composition is tested end to end: normal
    day (canonical snapshot, complete=True), already recorded, incomplete then retried (immutable attempts), no
    same-day trades ("not a trading day"), December expiry fallback, provider failure, and a provider that fails on
-   any order call. Output folder layout, CSV columns and metadata fields equal the pre-cleanup recorder's. Real Groww
+   any order call. Output folder layout, CSV columns and metadata fields equal the pre-cleanup recorder's.
+   Provider selection is tested through the real `fno/composition.py` and CLI wiring (fakes, no network): `chain`
+   uses root `provider: nse`; `quotes record` uses `quotes.provider: auto`; with Groww credentials A4 selects Groww,
+   without them NSE; changing root `provider` does not change A4, and changing `quotes.provider` does not change
+   `chain`. Real Groww
    capture is verified separately by the 13 Oct routine run, not by this test.
 10. **Routine audit:** the routine's stored prompt, repository, branch, commands, requirements and push target are
     re-read after the cleanup and still match (section 4a); it is not paused or deleted.
@@ -190,10 +198,11 @@ The commit hash before the cleanup is written into the README "History" line and
 the exact command `git worktree add ../trading-legacy <hash>` to run the old replay in a separate folder
 (`git checkout <hash> -- <path>` restores any single part). Nothing in `research/data/` or recorded quotes is touched.
 
-## 8. Questions for ChatGPT (v2)
+## 8. Approval and sequence
 
-1. Do the v2 changes close blocking findings 1-4 of review 20?
-2. Anything else before the owner approves and the cleanup commit is made?
+ChatGPT review 21: AGREED WITH CHANGES, no blockers; its three gate wordings are applied above (criteria 1, 5, 9).
+Owner approval authorises this design, not a blind deletion: the cleanup commit is accepted only when all 11 criteria
+pass and the judge confirms them. The 3 pm routine stays enabled throughout; recorded data is never changed.
 
 ## Appendix A. Every old code file and its verdict
 
