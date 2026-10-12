@@ -1,6 +1,8 @@
 # AI desk plan
 
-Status: agreed design (12 Oct 2026); not built yet.
+Status: **superseded in part** by `docs/DESK_DESIGN.md` v2.1 and the approved stories (`docs/IMPLEMENTATION_PLAN.md`);
+see `docs/AI_PLAN_REEVALUATION.md` for what is covered, superseded, in conflict or still a gap. Do not build from
+this file without checking that review. (Originally: agreed design, 12 Oct 2026.)
 
 ## Goal
 
