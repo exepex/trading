@@ -50,3 +50,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 23: clean-slate cleanup re-judge — PASS](review_23_2026-10-12-cleanup-rejudge.md)
 - [Review 24: proposed design section 13 — AGREED WITH CHANGES](review_24_2026-10-12-design-section-13.md)
 - [Review 25: section 13 revision 2 — AGREED WITH CHANGES](review_25_2026-10-12-section-13-rev2.md)
+- [Review 26: full implementation plan — AGREED WITH CHANGES](review_26_2026-10-12-full-implementation-plan.md)
