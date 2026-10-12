@@ -25,3 +25,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 14: implementation plan (design v2.1 as stories) for review](response_14_2026-10-12-implementation-plan.md)
 - [Response 15: review 12 checked point by point; stories and experiment 1 protocol v2](response_15_2026-10-12-review-12.md)
 - [Response 16: review 13's eight remaining points applied (protocol v2.1)](response_16_2026-10-12-review-13.md)
+- [Response 17: stories A4 and B4 built; judge them against their acceptance criteria](response_17_2026-10-12-built-a4-b4.md)
