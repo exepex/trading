@@ -3,8 +3,9 @@
 - **closed equity** = starting cash + net P&L of closed trades (net of pads and every charge);
 - **marked equity** = closed equity + open trades valued at the mid of valid quotes (or the last valid mark, flagged
   stale); equal to cash + the marked value of open positions;
-- **available cash** = marked equity - margin blocked - premium reserved for pending orders (C2's definition; margin
-  and pending premium are inputs, from C2 and E4).
+- **available cash** = min(cash, marked equity) - margin blocked - premium reserved for pending orders (decided 13 Oct
+  2026 in place of C2's first text "marked equity - ...", which counted a bought option's premium as spendable twice;
+  margin and pending premium are inputs, from C2 and E4).
 
 A missing mark for an open contract is an error: a price is never invented.
 """
@@ -72,7 +73,9 @@ class AccountState:
 
     @property
     def available_cash(self) -> float:
-        return self.marked_equity - self.margin_blocked - self.premium_reserved
+        """min(cash, marked equity) - margin blocked - premium reserved: a bought option's premium is not spendable
+        again (cash is lower), and a short option's unrealised loss is not spendable either (marked equity is lower)."""
+        return min(self.cash, self.marked_equity) - self.margin_blocked - self.premium_reserved
 
 
 def account_state(

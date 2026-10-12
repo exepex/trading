@@ -69,10 +69,34 @@ def test_the_three_measures_by_hand(root):
     assert state.cash == pytest.approx(cash) and state.closed_equity == 500_000  # nothing closed yet
     assert state.open_value == pytest.approx(-120.0 * 65 + 40.0 * 65)
     assert state.marked_equity == pytest.approx(cash - 120.0 * 65 + 40.0 * 65)  # = cash + marked open value
-    assert state.available_cash == pytest.approx(state.marked_equity - 30_000)
+    assert state.available_cash == pytest.approx(state.marked_equity - 30_000)  # marked equity < cash here
     assert state.open_trades == 1 and state.stale_marks == ("CE25200",)
     with pytest.raises(MissingMark, match="CE25200"):
         account.state({"CE25000": Mark(120.0)})  # a price is never invented
+
+
+def test_available_cash_never_counts_a_bought_premium_as_spendable(root):
+    with open_account_writer(BOOK1_RULES, root) as writer:
+        writer.apply_fill(fill("f1", "long", "CE25000", "buy", 100.0))  # pays 100.5 x 65 = 6,532.50 + charges
+    account = build_paper_account(BOOK1_RULES, root)
+    state = account.state({"CE25000": Mark(100.0)}, margin_blocked=0, premium_reserved=1_000)
+    assert state.marked_equity > state.cash  # the option's value is in marked equity, not in cash
+    assert state.available_cash == pytest.approx(state.cash - 1_000)
+    assert state.available_cash < 500_000 - 6_532.5
+
+
+def test_available_cash_never_counts_a_short_options_open_loss_as_spendable(root):
+    with open_account_writer(BOOK1_RULES, root) as writer:
+        writer.apply_fill(fill("f1", "short", "PE24000", "sell", 100.0))  # receives 99.5 x 65 - charges
+    account = build_paper_account(BOOK1_RULES, root)
+    state = account.state({"PE24000": Mark(180.0)}, margin_blocked=40_000)  # the put has risen: open loss
+    assert state.cash > 500_000 and state.marked_equity == pytest.approx(state.cash - 180.0 * 65)
+    assert state.available_cash == pytest.approx(state.marked_equity - 40_000)
+
+
+def test_available_cash_of_a_flat_account_is_its_cash(root):
+    state = build_paper_account(BOOK1_RULES, root).state({}, margin_blocked=0, premium_reserved=0)
+    assert state.available_cash == state.cash == state.marked_equity == 500_000
 
 
 def test_a_closed_trade_matches_the_cost_accountants_trade_net(root):

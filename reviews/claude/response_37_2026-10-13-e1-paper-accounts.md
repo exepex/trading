@@ -27,7 +27,8 @@ a repeated day replaces its row). `.lock` and `*.tmp` are git-ignored.
 
 **Definitions (from C2's text, implemented in `fno/books/equity.py:78-110`):** closed equity = Rs 5 lakh + net P&L of
 closed trades; marked equity = closed equity + open trades at their marks (= cash + marked value of open positions;
-tested); available cash = marked equity - margin blocked - premium reserved. A missing mark raises `MissingMark`;
+tested); available cash = min(cash, marked equity) - margin blocked - premium reserved (orchestrator decision
+13 Oct 2026 on doubt 2 below; `fno/books/equity.py:75`). A missing mark raises `MissingMark`;
 stale marks are listed in the state.
 
 ## Acceptance criteria
@@ -45,19 +46,20 @@ Extra tests: `::test_the_three_measures_by_hand` (a two-leg spread valued by han
 marks), `::test_a_closed_trade_matches_the_cost_accountants_trade_net` (a closed trade's account P&L equals C1's
 `trade_line(...).net`, so the account and the three ledgers agree; a new fill on a closed trade is refused),
 `::test_a_repeated_fill_id_is_skipped_and_a_reused_one_refused`, `::test_the_equity_history_keeps_one_row_per_day`,
-`::test_bad_fills_are_refused`.
+`::test_bad_fills_are_refused`, and for available cash `::test_available_cash_never_counts_a_bought_premium_as_spendable`,
+`::test_available_cash_never_counts_a_short_options_open_loss_as_spendable`, `::test_available_cash_of_a_flat_account_is_its_cash`.
 
 ## Command output (13 Oct 2026)
 
 ```
 $ python -m pytest -q
-188 passed in 22.89s
+191 passed in 22.70s
 $ ruff check fno tests tools
 All checks passed!
 $ python tools/check_imports.py
 clean: 80 files, 1 archival skipped
-$ python -m pytest tests/books -v      (17 tests)
-test_account_processes.py: 7 passed (criteria 2, 3, 4, 5); test_paper_account.py: 10 passed (criteria 1, 6, definitions)
+$ python -m pytest tests/books -v      (20 tests)
+test_account_processes.py: 7 passed (criteria 2, 3, 4, 5); test_paper_account.py: 13 passed (criteria 1, 6, definitions)
 $ python -m fno account init
 book1_rules: started / book2_hybrid: started / book3_ai: started      (first run)
 book1_rules: already started; unchanged ...                           (second run, exit 0)
@@ -72,18 +74,19 @@ Largest files: `fno/books/account.py` 211 lines, `fno/books/lock.py` 180; none o
    containers the guards are git (a push from a stale checkout is rejected; the routine must pull, re-run and retry)
    and fill-ID idempotency. E3/O1 should state "pull, write under the lock, commit, push; on rejection pull and retry
    with the same fill IDs". Reasoning only for the routine design; it belongs to E3/O1, not E1.
-2. **C2's "available cash" counts long options' marked value as cash** (strong evidence, arithmetic): buying 65 units
-   at Rs 100 pays Rs 6,500 plus charges; cash falls by that much, but marked equity (and so available cash) stays about
-   the same. A broker would not let the owner spend that Rs 6,500 again. Implemented as C2 defines it (the
-   orchestrator's instruction), with `cash` exposed separately. Proposal for C2: available cash = cash - margin blocked
-   - premium reserved. The owner or C2 decides.
+2. **C2's first "available cash" counted a bought option's premium as spendable twice** (strong evidence,
+   arithmetic): buying 65 units at Rs 100 lowers cash by Rs 6,500 plus charges while marked equity barely moves; and a
+   short option's open loss lowers marked equity but not cash. **Resolved 13 Oct 2026 (orchestrator decision):**
+   available cash = min(cash, marked equity) - margin blocked - premium reserved, implemented and tested (three tests
+   above). The orchestrator updates C2's story text and the decision record.
 3. **Crash recovery waits for the lease** (default 600 s) even on the same host, where the dead `flock` already proves
    the holder gone. This follows the criterion's wording ("released when its lease expires and its holder is gone").
-   600 s is a choice (reasoning only): a desk write takes seconds; a retry within 10 minutes of a crash waits.
+   600 s is a choice (reasoning only), accepted by the orchestrator; it is the named constant
+   `DEFAULT_LEASE_SECONDS` in `fno/books/lock.py` (and a parameter of `open_account_writer`), not a magic number.
 4. A lease holder on another host cannot be checked: it counts as alive until its lease expires. A lease that cannot
    be read (crash while writing it) counts as held until the default lease has passed since the file was written.
 5. Linux and macOS only (`fcntl`); fine for cloud routines, not for Windows.
 6. Design 12.6 has two stale references: "story E1 criterion 9" (E1 has six criteria) and "fill model (E1)" (the fill
-   model is E4). Not edited here (not this story's file); reported to the orchestrator.
+   model is E4). Not edited here (not this story's file); the orchestrator fixes them.
 7. Money safety: no order function; no price is ever invented (missing mark raises); a reused fill ID with different
    content raises rather than being skipped; a closed trade cannot be reopened under the same ID.
