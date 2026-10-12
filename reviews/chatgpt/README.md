@@ -34,3 +34,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 7: research direction, role accountability and actual progress](review_7_2026-10-12-research-direction-and-status.md)
 - [Review 8: owner's data-driven discovery mandate across all expert roles](review_8_2026-10-12-data-driven-multirole-research-mandate.md)
 - [Review 9: desk design, expert inference, adaptive policies, costs and decision validation](review_9_2026-10-12-desk-design.md)
+- [Review 10: desk design v2 section closure, economics, role scorecards and conditional buying thesis](review_10_2026-10-12-desk-design-v2.md)
