@@ -143,7 +143,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [O2](stories/O-operations.md#o2-failure-handling-end-to-end) | Failure handling, end to end | trading | E3, E4, P3, P4 (F1, F4 for the AI-book cases, added in M5) | M | later |
 | [O3](stories/O-operations.md#o3-cross-repository-integration-tests) | Cross-repository integration tests | trading | P3, X1, W2, W3, O1 (W6, W7, K3 for test 4) | M | later |
 | [O4](stories/O-operations.md#o4-runbook-and-documentation) | Runbook and documentation | trading | O1, O2 | S | later |
-| [O5](stories/O-operations.md#o5-public-record-safety-scan) | Public-record safety scan | trading | - | S | built; awaiting re-judge |
+| [O5](stories/O-operations.md#o5-public-record-safety-scan) | Public-record safety scan | trading | - | S | done (judge passed) |
 
 ## Removed or merged from the previous plan
 
