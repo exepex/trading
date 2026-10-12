@@ -269,7 +269,7 @@ import so earlier scripts still run.
 
 **Judge verifies:** `git diff` of the regenerated outputs is empty.
 
-**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026 (`fno/research_data/expiries.py`; research outputs byte-identical; awaiting judge)
+**Depends:** - · **Size:** S · **Status:** done (judge passed in round 2, `reviews/judge/judge_13_a5_monthly_expiry_rejudge.md`)
 
 ---
 

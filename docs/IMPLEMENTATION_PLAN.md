@@ -78,7 +78,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [A2](stories/A-data-foundation.md#a2-one-reader-for-both-fo-formats) | One reader for both F&O formats | trading | - | M | done |
 | [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | trading | A1, A2 | M | next |
 | [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | trading | - | M | done (judge passed) |
-| [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | trading | - | S | built; awaiting judge |
+| [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | trading | - | S | done (judge passed) |
 | [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | trading | - | S | done (judge passed; criteria 4-5 moved to B1, B5) |
 | [A7](stories/A-data-foundation.md#a7-every-component-uses-the-session-calendar) | Every component uses the session calendar | trading | A1 (calendar) | S | done (judge passed) |
 | [A8](stories/A-data-foundation.md#a8-positioning-data-source-participant-open-interest) | Positioning data source (participant open interest) | trading | A1 | M | later |
