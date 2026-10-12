@@ -52,7 +52,7 @@ before C4 (C4 checks the decision record).
 | [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | A3, A6 | M | later |
 | [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | A3, A5 | M | later |
 | [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | B1, B2, B4 | M | later |
-| [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | - | S | next (start now) |
+| [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | - | S | built 12 Oct 2026 |
 | [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | B1-B4, A1, A3, A5, A6, C1 | M | doing (protocol in review) |
 | [B6](stories/B-research-engine.md#b6-candidate-scan) | Candidate scan | B3 | L | later |
 | [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | - | S | next (before experiment 1 runs) |

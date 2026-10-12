@@ -186,8 +186,11 @@ past entries.
 
 **Expected design:** `research/ledger.csv` (`trial_id, experiment, description, kind (retrospective | prospective),
 registered_in_commit, protocol_commit, first_run_on, run_commit`). Registration is proved by git, not by editable
-dates: a trial counts as registered only if the commit that added its row is an ancestor of the commit that runs it,
-and the protocol commit is an ancestor of the registration commit (checked with `git merge-base --is-ancestor`).
+dates: a trial counts as registered only if the commit that added its row is an ancestor of the commit that runs it;
+its frozen protocol commit must also be an ancestor of the run commit and the protocol file unchanged since then
+(checked with `git merge-base --is-ancestor` and `git diff`). *As built (12 Oct 2026):* the protocol commit is not
+required to precede the registration, because experiment 1's trials were registered before its protocol was frozen;
+what protects the test is that the rules cannot change between the freeze and the run.
 `fno/research_engine/ledger.py` with `register`, `require_registered`, `mark_run`, `count(experiment)`. Trials 1-31
 are imported as `retrospective` (registered after or while being run) and are never presented as pre-registered.
 
@@ -203,7 +206,7 @@ are imported as `retrospective` (registered after or while being run) and are ne
 
 **Judge verifies:** tries to run an unregistered policy and confirms the refusal.
 
-**Depends:** - · **Size:** S · **Status:** next (start now)
+**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026 (`fno/research_engine/ledger.py`, `research/ledger.csv`, 6 tests)
 
 ---
 

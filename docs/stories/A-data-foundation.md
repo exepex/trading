@@ -209,7 +209,7 @@ hand.
 
 **Depends:** - · **Size:** M · **Status:** built 12 Oct 2026 (`fno/live/quote_recorder.py`, `quote_report.py`; daily schedule from 13 Oct); first real windowed snapshot pending
 
-**Implementation notes (facts found while building):** Groww gives each contract's last trade time but **no quote timestamp**, so `quote_time` stays empty and ages are capture-based (`age_basis = capture`); after the close Groww's best bid/offer fields are empty and only the depth remains (`book_source = depth`, flagged stale when nothing traded that day). Groww refuses to list next year's expiries, so in late December fewer than two monthlies may be found: the attempt is recorded but marked incomplete with that reason (a fix via NSE's own list is pending before December).
+**Implementation notes (facts found while building):** Groww gives each contract's last trade time but **no quote timestamp**, so `quote_time` stays empty and ages are capture-based (`age_basis = capture`); after the close Groww's best bid/offer fields are empty and only the depth remains (`book_source = depth`, flagged stale when nothing traded that day). Groww refuses to list next year's expiries, so in late December fewer than two monthlies may be found: the attempt is recorded but marked incomplete with that reason (a fix is pending before December: Groww's chain call does serve far expiries when asked by date, checked on 12 Oct 2026 for Dec 2026, Mar 2027, Jun 2027 and Dec 2028; the dates can come from NSE's latest daily file, which lists every NIFTY expiry out to June 2031).
 
 ---
 

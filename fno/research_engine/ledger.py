@@ -1,0 +1,128 @@
+"""The research ledger guard (story B4): no trial runs unless it was registered first, proved by git history.
+
+`research/ledger.csv` is the machine record (one row per trial); `research/LEDGER.md` is the readable history. A trial
+may run only if:
+1. its row was committed in a commit that is an ancestor of the commit being run (registration is in history, not
+   just in the working tree, and cannot be back-dated by editing a date);
+2. it names a frozen protocol (commit and file) that is an ancestor of the commit being run;
+3. the protocol file is unchanged since that frozen commit.
+Trials 1-31 were recorded while or after being run: they are `retrospective` and never presented as pre-registered.
+"""
+
+from __future__ import annotations
+
+import csv
+import io
+import subprocess
+from dataclasses import dataclass
+from datetime import date
+from pathlib import Path
+
+LEDGER_FILE = "research/ledger.csv"
+COLUMNS = (
+    "trial_id", "experiment", "description", "kind", "hypothesis", "registered_on", "protocol_path",
+    "protocol_commit", "first_run_on", "run_commit",
+)  # fmt: skip
+KINDS = ("retrospective", "prospective", "control")
+
+
+class NotRegistered(RuntimeError):
+    """The trial may not run: it is missing, not committed, or its protocol is not frozen and unchanged."""
+
+
+@dataclass(frozen=True)
+class Git:
+    """The few git questions the guard asks, against one repository folder."""
+
+    root: Path
+
+    def _run(self, *args: str) -> subprocess.CompletedProcess:
+        return subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True)
+
+    def head(self) -> str:
+        return self._run("rev-parse", "HEAD").stdout.strip()
+
+    def is_ancestor(self, older: str, newer: str) -> bool:
+        return bool(older) and self._run("merge-base", "--is-ancestor", older, newer).returncode == 0
+
+    def first_commit_containing(self, text: str, path: str) -> str | None:
+        """The earliest commit whose change to `path` added `text` (git's pickaxe search)."""
+        found = self._run("log", "--format=%H", "--reverse", "-S", text, "--", path).stdout.split()
+        return found[0] if found else None
+
+    def unchanged_since(self, commit: str, path: str) -> bool:
+        tracked = self._run("diff", "--quiet", commit, "HEAD", "--", path).returncode == 0
+        untouched = self._run("diff", "--quiet", "HEAD", "--", path).returncode == 0
+        return tracked and untouched
+
+
+def read_ledger(text: str) -> list[dict]:
+    rows = list(csv.DictReader(io.StringIO(text)))
+    for row in rows:
+        if tuple(row) != COLUMNS:
+            raise ValueError(f"ledger columns must be {COLUMNS}")
+        if row["kind"] not in KINDS or row["hypothesis"] not in ("yes", "no"):
+            raise ValueError(f"trial {row['trial_id']}: bad kind or hypothesis flag")
+    ids = [r["trial_id"] for r in rows]
+    if len(ids) != len(set(ids)):
+        raise ValueError("duplicate trial ids in the ledger")
+    return rows
+
+
+def write_ledger(rows: list[dict]) -> str:
+    out = io.StringIO()
+    writer = csv.DictWriter(out, fieldnames=COLUMNS, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(rows)
+    return out.getvalue()
+
+
+class Ledger:
+    def __init__(self, root: Path, git: Git | None = None):
+        self.root, self.git = Path(root), git or Git(Path(root))
+        self.file = self.root / LEDGER_FILE
+
+    def rows(self) -> list[dict]:
+        return read_ledger(self.file.read_text()) if self.file.is_file() else []
+
+    def register(self, trial_id: str, experiment: str, description: str, kind: str, hypothesis: bool,
+                 protocol_path: str = "", today: date | None = None) -> None:  # fmt: skip
+        """Adds a row (commit it before the trial runs)."""
+        rows = self.rows()
+        if any(r["trial_id"] == trial_id for r in rows):
+            raise ValueError(f"trial {trial_id} is already registered")
+        row = dict.fromkeys(COLUMNS, "")
+        row.update(trial_id=trial_id, experiment=experiment, description=description, kind=kind,
+                   hypothesis="yes" if hypothesis else "no", registered_on=(today or date.today()).isoformat(),
+                   protocol_path=protocol_path)  # fmt: skip
+        read_ledger(write_ledger([*rows, row]))  # validates
+        self.file.write_text(write_ledger([*rows, row]))
+
+    def require_registered(self, trial_id: str) -> dict:
+        """The trial's row if it may run now; NotRegistered with the reason otherwise. Call before reading any data."""
+        row = next((r for r in self.rows() if r["trial_id"] == trial_id), None)
+        if row is None:
+            raise NotRegistered(f"trial {trial_id} is not in {LEDGER_FILE}")
+        head = self.git.head()
+        registered = self.git.first_commit_containing(f"\n{trial_id},", LEDGER_FILE)
+        if not registered or not self.git.is_ancestor(registered, head):
+            raise NotRegistered(f"trial {trial_id} is not in a committed ledger (commit the registration first)")
+        if not row["protocol_commit"] or not row["protocol_path"]:
+            raise NotRegistered(f"trial {trial_id} has no frozen protocol commit")
+        if not self.git.is_ancestor(row["protocol_commit"], head):
+            raise NotRegistered(f"trial {trial_id}: protocol commit {row['protocol_commit'][:10]} is not in history")
+        if not self.git.unchanged_since(row["protocol_commit"], row["protocol_path"]):
+            raise NotRegistered(f"trial {trial_id}: {row['protocol_path']} changed after it was frozen")
+        return row
+
+    def mark_run(self, trial_id: str, today: date | None = None) -> None:
+        """Records the first run once (date and commit); later runs never change it."""
+        rows = self.rows()
+        for row in rows:
+            if row["trial_id"] == trial_id and not row["first_run_on"]:
+                row["first_run_on"], row["run_commit"] = (today or date.today()).isoformat(), self.git.head()
+        self.file.write_text(write_ledger(rows))
+
+    def count(self, experiment: str) -> dict[str, int]:
+        rows = [r for r in self.rows() if r["experiment"] == experiment]
+        return {"registered_rows": len(rows), "hypotheses": sum(r["hypothesis"] == "yes" for r in rows)}
