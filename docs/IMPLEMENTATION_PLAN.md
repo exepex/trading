@@ -1,6 +1,7 @@
 # Implementation plan: every story for the finished product (70 stories)
 
-Status: **revision 3 (12 Oct 2026), agreed by ChatGPT after reviews 26-27, for owner approval** (responses 32-34). Source: `docs/DESK_DESIGN.md` sections 1-13
+Status: **revision 3, agreed by ChatGPT (reviews 26-27) and approved by the owner on 12 Oct 2026** ("A, approve the
+plan and recreate the issues"; responses 32-34). GitHub issues are created from the table below. Source: `docs/DESK_DESIGN.md` sections 1-13
 (all approved by the owner; section 13 revision 3 on 12 Oct 2026) and `docs/DESK_DECISIONS.md`. This plan replaces the
 28-story plan agreed in review 14: approved stories are carried over (updated where the three books, section 13 or
 the clean slate changed them), new stories cover the rest of the finished product (design 13.1). After ChatGPT and
