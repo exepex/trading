@@ -107,3 +107,32 @@ def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospecti
         "registered_rows": 10,
         "hypotheses": 8,
     }  # P1-P8; controls are not hypotheses
+
+
+def test_an_uncommitted_edit_to_a_registered_row_is_refused(repo):
+    ledger = Ledger(repo)
+    ledger.register("P1", "exp", "policy one", "prospective", True, PROTOCOL, date(2026, 10, 12))
+    protocol_commit = commit(repo, "register")
+    freeze(repo, ledger, "P1", protocol_commit)
+    assert ledger.require_registered("P1")
+    text = ledger.file.read_text().replace("policy one,prospective,yes", "policy one,prospective,no")
+    ledger.file.write_text(text)  # e.g. quietly dropping it from the hypothesis family
+    with pytest.raises(NotRegistered, match="uncommitted"):
+        ledger.require_registered("P1")
+    git(repo, "add", LEDGER_FILE)  # staged but not committed is still refused
+    with pytest.raises(NotRegistered, match="uncommitted"):
+        ledger.require_registered("P1")
+
+
+def test_a_registration_only_on_another_branch_is_refused(repo):
+    ledger = Ledger(repo)
+    git(repo, "checkout", "-qb", "side")
+    ledger.register("P9", "exp", "side idea", "prospective", True, PROTOCOL, date(2026, 10, 12))
+    commit(repo, "register on a side branch")
+    git(repo, "checkout", "-q", "-")
+    assert not any(r["trial_id"] == "P9" for r in ledger.rows())
+    with pytest.raises(NotRegistered, match="not in"):
+        ledger.require_registered("P9")  # the run's own history has no registration
+    git(repo, "checkout", "side", "--", LEDGER_FILE)  # row brought over without being committed here
+    with pytest.raises(NotRegistered, match="uncommitted"):
+        ledger.require_registered("P9")

@@ -2,8 +2,8 @@
 
 `research/ledger.csv` is the machine record (one row per trial); `research/LEDGER.md` is the readable history. A trial
 may run only if:
-1. its row was committed in a commit that is an ancestor of the commit being run (registration is in history, not
-   just in the working tree, and cannot be back-dated by editing a date);
+1. the ledger file equals the committed HEAD version (no staged or unstaged edits), and the commit that first added
+   the trial's row is an ancestor of the commit being run (registration is in history and cannot be back-dated);
 2. it names a frozen protocol (commit and file) that is an ancestor of the commit being run;
 3. the protocol file is unchanged since that frozen commit.
 Trials 1-31 were recorded while or after being run: they are `retrospective` and never presented as pre-registered.
@@ -49,6 +49,11 @@ class Git:
         """The earliest commit whose change to `path` added `text` (git's pickaxe search)."""
         found = self._run("log", "--format=%H", "--reverse", "-S", text, "--", path).stdout.split()
         return found[0] if found else None
+
+    def committed_text(self, path: str) -> str | None:
+        """The file as committed at HEAD (None if not committed)."""
+        result = self._run("show", f"HEAD:{path}")
+        return result.stdout if result.returncode == 0 else None
 
     def unchanged_since(self, commit: str, path: str) -> bool:
         tracked = self._run("diff", "--quiet", commit, "HEAD", "--", path).returncode == 0
@@ -104,6 +109,11 @@ class Ledger:
         if row is None:
             raise NotRegistered(f"trial {trial_id} is not in {LEDGER_FILE}")
         head = self.git.head()
+        committed = self.git.committed_text(LEDGER_FILE)
+        if committed is None or not self.git.unchanged_since("HEAD", LEDGER_FILE):
+            raise NotRegistered("the ledger has uncommitted changes: commit it so the run uses exactly what is in git")
+        if row not in read_ledger(committed):
+            raise NotRegistered(f"trial {trial_id}: its row differs from the committed ledger")
         registered = self.git.first_commit_containing(f"\n{trial_id},", LEDGER_FILE)
         if not registered or not self.git.is_ancestor(registered, head):
             raise NotRegistered(f"trial {trial_id} is not in a committed ledger (commit the registration first)")

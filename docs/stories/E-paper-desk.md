@@ -29,6 +29,9 @@ a leg without a valid quote becomes a **pending exit** with an alert, retried ev
 next day; never an invented price.
 **Scheduling:** one run per trading day, idempotent (a run id per day; a second start sees the completed run and
 does nothing); a crash mid-run resumes from the last completed step recorded in the D3 records.
+**Quote-age limit (review 15):** Groww quotes carry no quote timestamp, so a Groww book fetched within 2 minutes
+is not proof the exchange quote is 2 minutes old; every paper fill from Groww data carries `quote_age_unknown`
+unless a source with exchange quote timestamps is used.
 **Validation note:** the research tested next-day-close fills; this 15:00 desk is a different execution and is
 judged on its own forward paper record (E3), never assumed equal to the backtest.
 

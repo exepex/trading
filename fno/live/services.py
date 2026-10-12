@@ -334,11 +334,11 @@ def _plan(source, opts: dict) -> SourcePlan:
 
 
 def build_quote_recorder(cfg: dict):
-    """The 3 pm quote recorder (story A4): the configured chain provider (Groww when its credentials are set) and the
-    repository quote store."""
-    from ..storage.wiring import build_quote_store
+    """The 3 pm quote recorder (story A4): the configured chain provider (Groww when its credentials are set), the
+    repository quote store, and NSE's daily file for expiry dates the provider cannot list."""
+    from ..storage.wiring import build_nse_fo_library, build_quote_store
+    from .expiry_listing import NseDailyFileExpiries
     from .quote_recorder import QuoteSnapshotRecorder
 
-    return QuoteSnapshotRecorder(
-        get_provider(cfg.get("live", {}).get("chain_provider", "auto"), cfg), build_quote_store()
-    )
+    provider = get_provider(cfg.get("live", {}).get("chain_provider", "auto"), cfg)
+    return QuoteSnapshotRecorder(provider, build_quote_store(), fallback=NseDailyFileExpiries(build_nse_fo_library()))

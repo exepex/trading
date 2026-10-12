@@ -185,8 +185,10 @@ storage, a spread report. Out: order placement (never), other underlyings, intra
 **Acceptance criteria:**
 1. Given a trading day at 15:00 IST, when the recorder runs, then one file holds every contract of the two nearest
    monthly expiries within 5% of spot with bid, ask, last and capture time.
-2. Given a contract with no bid or no ask, a crossed quote (bid > ask) or a stale quote, then the row is kept, marked
-   `valid = false` with the reason, and never counted as executable (never filled from last).
+2. Given a contract with no bid or no ask, a crossed quote (bid > ask), no size, or no trade in the contract today
+   (Groww gives no quote timestamp; a same-day trade is the only freshness evidence), then the row is kept, marked
+   `valid = false` with the reason, and never counted as executable (never filled from last). A valid row's quote age
+   is still unknown and is never claimed.
 3. Given a complete canonical snapshot for the day, when the recorder runs again, it records nothing and reports
    "already recorded"; given only incomplete attempts and time left in the window, it makes a new attempt, keeping
    every earlier attempt unchanged; the first complete attempt becomes canonical.
@@ -209,7 +211,15 @@ hand.
 
 **Depends:** - · **Size:** M · **Status:** built 12 Oct 2026 (`fno/live/quote_recorder.py`, `quote_report.py`; daily schedule from 13 Oct); first real windowed snapshot pending
 
-**Implementation notes (facts found while building):** Groww gives each contract's last trade time but **no quote timestamp**, so `quote_time` stays empty and ages are capture-based (`age_basis = capture`); after the close Groww's best bid/offer fields are empty and only the depth remains (`book_source = depth`, flagged stale when nothing traded that day). Groww refuses to list next year's expiries, so in late December fewer than two monthlies may be found: the attempt is recorded but marked incomplete with that reason (a fix is pending before December: Groww's chain call does serve far expiries when asked by date, checked on 12 Oct 2026 for Dec 2026, Mar 2027, Jun 2027 and Dec 2028; the dates can come from NSE's latest daily file, which lists every NIFTY expiry out to June 2031).
+**Implementation notes (facts found while building; rulings of ChatGPT review 15):** Groww gives each contract's last
+trade time but **no quote timestamp**: `quote_time` stays empty, `age_basis` = "unknown: provider gives no quote
+timestamp", and the quote's age is never claimed. Freshness proxy for validity, for every Groww book (best-bid/offer
+fields or depth): the contract must have traded today (`freshness_proxy` = "same-day trade (market active; quote age
+unknown)"); otherwise the row is kept but invalid. Groww's expiry list refuses future years, so when it yields fewer
+than two monthlies the recorder takes the listed expiries from NSE's latest daily F&O file of the past 7 days
+(`fno/live/expiry_listing.py`), records its file, date and SHA-256 in `expiry_source`, and asks Groww's chain by
+explicit date (checked to work out to Dec 2028); no recent NSE file means incomplete (fail closed). NSE lists about
+three monthlies ahead, so the January monthly appears in NSE's file well before late December.
 
 ---
 

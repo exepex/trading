@@ -103,10 +103,14 @@ def test_bad_quotes_are_kept_but_never_valid():
     crossed = QuoteBook("x", 12.0, 11.0, 65, 65, 10.0, TRADED, "fields", "h")
     no_size = QuoteBook("x", 10.0, 11.0, 0, 65, 10.0, TRADED, "fields", "h")
     stale_depth = QuoteBook("x", 10.0, 11.0, 65, 65, 10.0, TRADED - timedelta(days=1), "depth", "h")
+    stale_fields = QuoteBook("x", 10.0, 11.0, 65, 65, 10.0, TRADED - timedelta(days=1), "fields", "h")
+    never_traded = QuoteBook("x", 10.0, 11.0, 65, 65, None, None, "fields", "h")
     good = QuoteBook("x", 10.0, 11.0, 65, 65, 10.0, TRADED, "fields", "h")
     assert quote_validity(None, DAY) == "no quote"
     assert quote_validity(one_sided, DAY) and quote_validity(crossed, DAY).startswith("crossed")
     assert quote_validity(no_size, DAY) == "no size" and "stale" in quote_validity(stale_depth, DAY)
+    assert "no trade today" in quote_validity(stale_fields, DAY)  # best bid/offer fields are not proof of freshness
+    assert "no trade today" in quote_validity(never_traded, DAY)
     assert quote_validity(good, DAY) == ""
 
 
@@ -134,3 +138,45 @@ def test_fewer_than_two_monthly_expiries_is_recorded_but_incomplete(tmp_path):
     rec, _ = recorder(tmp_path, December(traded=december_trade), datetime(2026, 12, 23, 15, 9, 30, tzinfo=IST))
     result = rec.record()
     assert result.rows == 6 and not result.complete and rec.canonical(date(2026, 12, 23)) == "none"
+
+
+class FakeListing:
+    def __init__(self, dates=None, fail=False):
+        self.dates, self.fail = dates or [], fail
+
+    def listed(self, underlying, today):
+        if self.fail:
+            raise RuntimeError("no recent NSE file")
+        return self.dates, {"source": "nse-file", "file": "f.zip", "sha256": "abc"}
+
+
+def test_december_takes_january_from_the_nse_listing_and_records_where_it_came_from(tmp_path):
+    class December(FakeProvider):
+        def expiries(self, underlying):
+            return [date(2026, 12, 22), date(2026, 12, 29)]
+
+    trade = datetime(2026, 12, 23, 14, 58, tzinfo=IST)
+    nse = FakeListing([date(2026, 12, 29), date(2027, 1, 5), date(2027, 1, 12), date(2027, 1, 26), date(2027, 3, 30)])
+    clock = Clock(datetime(2026, 12, 23, 14, 55, tzinfo=IST))
+    rec = QuoteSnapshotRecorder(
+        December(traded=trade), LocalFolderStore(tmp_path), clock.now, clock.sleep, fallback=nse
+    )
+    result = rec.record()
+    assert result.complete and result.rows == 12
+    meta = next(tmp_path.rglob("*.meta.json")).read_text()
+    assert '"2027-01-26"' in meta and '"nse-file"' in meta and '"abc"' in meta
+
+
+def test_an_unavailable_listing_keeps_december_incomplete(tmp_path):
+    class December(FakeProvider):
+        def expiries(self, underlying):
+            return [date(2026, 12, 29)]
+
+    trade = datetime(2026, 12, 23, 14, 58, tzinfo=IST)
+    clock = Clock(datetime(2026, 12, 23, 15, 9, 30, tzinfo=IST))
+    rec = QuoteSnapshotRecorder(
+        December(traded=trade), LocalFolderStore(tmp_path), clock.now, clock.sleep, fallback=FakeListing(fail=True)
+    )
+    result = rec.record()
+    assert not result.complete and rec.canonical(date(2026, 12, 23)) == "none"
+    assert "expiry fallback" in next(tmp_path.rglob("*.meta.json")).read_text()

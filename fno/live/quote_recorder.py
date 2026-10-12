@@ -18,6 +18,7 @@ from datetime import date, datetime, time
 from ..models import IST, OptionChain, QuoteBook, now_ist
 from ..providers.base import Provider
 from ..storage.raw_store import RawFileStore
+from .expiry_listing import ListedExpiries
 
 UNDERLYING = "NIFTY"
 DATASET = "groww/derivatives/quote-snapshots"
@@ -29,7 +30,8 @@ MONTHLY_EXPIRIES = 2
 WEEKEND_START = 5
 NONE_MARKER = "none"
 COLUMNS = (
-    "snapshot_id", "request_sent_at", "response_received_at", "quote_time", "age_basis", "last_trade_time",
+    "snapshot_id", "request_sent_at", "response_received_at", "quote_time", "age_basis", "freshness_proxy",
+    "last_trade_time",
     "provider", "contract_id", "expiry", "strike", "type", "bid", "ask", "last", "bid_qty", "ask_qty", "spot",
     "book_source", "valid", "invalid_reason", "raw_sha256",
 )  # fmt: skip
@@ -43,8 +45,14 @@ def monthly_expiries(expiries: list[date], today: date, count: int = MONTHLY_EXP
     return sorted(last_in_month.values())[:count]
 
 
+NO_QUOTE_TIME = "unknown: provider gives no quote timestamp"
+FRESHNESS_PROXY = "same-day trade (market active; quote age unknown)"
+
+
 def quote_validity(book: QuoteBook | None, today: date) -> str:
-    """Empty when the quote is usable as a two-sided market; otherwise the reason it is not."""
+    """Empty when the quote is usable as a two-sided market; otherwise the reason it is not. Groww gives no quote
+    timestamp, so the only freshness evidence is a trade in the contract today: without one the book is not valid.
+    Even when valid, the quote's age is unknown (not proven to be seconds old)."""
     if book is None:
         return "no quote"
     if not book.bid or not book.ask:
@@ -53,8 +61,8 @@ def quote_validity(book: QuoteBook | None, today: date) -> str:
         return "crossed (bid above ask)"
     if not book.bid_qty or not book.ask_qty:
         return "no size"
-    if book.book_source == "depth" and (book.last_trade_time is None or book.last_trade_time.date() != today):
-        return "depth only, no trade today (stale book)"
+    if book.last_trade_time is None or book.last_trade_time.date() != today:
+        return "no trade today (quote age unknown, possibly stale)"
     return ""
 
 
@@ -67,8 +75,10 @@ class RecordResult:
 
 
 class QuoteSnapshotRecorder:
-    def __init__(self, provider: Provider, store: RawFileStore, clock_now=now_ist, sleep=clock.sleep):
+    def __init__(self, provider: Provider, store: RawFileStore, clock_now=now_ist, sleep=clock.sleep,
+                 fallback: ListedExpiries | None = None):  # fmt: skip
         self.provider, self.store, self.now, self.sleep = provider, store, clock_now, sleep
+        self.fallback = fallback
 
     @staticmethod
     def path(day: date, name: str) -> str:
@@ -107,11 +117,17 @@ class QuoteSnapshotRecorder:
     def _attempt(self, day: date, canonical_allowed: bool) -> RecordResult:
         started = self.now()
         snapshot_id = f"nifty_{started:%Y%m%d_%H%M%S}"
-        failures, rows, chains = [], [], []
+        failures, rows, chains, expiry_source = [], [], [], {"source": self.provider.name}
         try:
             months = monthly_expiries(self.provider.expiries(UNDERLYING), day)
-            if len(months) < MONTHLY_EXPIRIES:  # e.g. late December: Groww lists no next-year expiries
-                failures.append(f"only {len(months)} monthly expiries listed by the provider")
+            if len(months) < MONTHLY_EXPIRIES and self.fallback:  # late December: Groww lists no next-year dates
+                try:
+                    listed, expiry_source = self.fallback.listed(UNDERLYING, day)
+                    months = monthly_expiries(listed, day)
+                except Exception as exc:
+                    failures.append(f"expiry fallback: {type(exc).__name__}: {exc}")
+            if len(months) < MONTHLY_EXPIRIES:
+                failures.append(f"only {len(months)} monthly expiries found")
             for expiry in months:
                 chains.append(self.provider.chain(UNDERLYING, expiry))
         except Exception as exc:  # recorded, never hidden: the attempt is incomplete
@@ -134,9 +150,10 @@ class QuoteSnapshotRecorder:
             "snapshot_id": snapshot_id, "underlying": UNDERLYING, "provider": self.provider.name,
             "started_at": started.isoformat(), "finished_at": self.now().isoformat(),
             "expiries": [c.expiry.isoformat() for c in chains], "spot": chains[0].spot if chains else None,
+            "expiry_source": expiry_source,
             "expected_contracts": expected, "recorded_contracts": len(rows), "failures": failures,
             "complete": complete, "in_window": canonical_allowed, "csv_sha256": hashlib.sha256(csv_bytes).hexdigest(),
-            "note": "quotes, not fills; Groww gives no quote timestamp, so ages are capture-based (age_basis)",
+            "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
         }  # fmt: skip
         self.store.put(self.path(day, f"{snapshot_id}.csv"), csv_bytes)
         self.store.put(self.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
@@ -154,7 +171,8 @@ class QuoteSnapshotRecorder:
         leg = chain.get(strike, kind)
         return {
             "snapshot_id": snapshot_id, "request_sent_at": sent.isoformat(),
-            "response_received_at": received.isoformat(), "quote_time": "", "age_basis": "capture",
+            "response_received_at": received.isoformat(), "quote_time": "", "age_basis": NO_QUOTE_TIME,
+            "freshness_proxy": FRESHNESS_PROXY,
             "provider": self.provider.name,
             "last_trade_time": book.last_trade_time.isoformat() if book and book.last_trade_time else "",
             "contract_id": book.symbol if book else (leg.symbol if leg else ""), "expiry": chain.expiry.isoformat(),

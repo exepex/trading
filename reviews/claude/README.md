@@ -26,3 +26,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 15: review 12 checked point by point; stories and experiment 1 protocol v2](response_15_2026-10-12-review-12.md)
 - [Response 16: review 13's eight remaining points applied (protocol v2.1)](response_16_2026-10-12-review-13.md)
 - [Response 17: stories A4 and B4 built; judge them against their acceptance criteria](response_17_2026-10-12-built-a4-b4.md)
+- [Response 18: review 15's four failed criteria fixed (A4 AC1, AC2; B4 AC1, AC5)](response_18_2026-10-12-judge-fixes-a4-b4.md)
