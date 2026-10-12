@@ -51,3 +51,15 @@ this repo; the stock tool is not changed.
 | Drishti (drishti.manasija.in) | free sandbox (1,000 credits, once); Starter Rs 2,000/month | Indian stocks only: news tagged by symbol with a positive/negative/neutral label, structured NSE/BSE filings (Reg 30), block deals; WebSocket push for 100 symbols on Starter | best fit; trial the free sandbox first. New company (terms dated June 2026), no published latency or source list |
 | NewsData.io | free plan delayed 12 hours; Basic $199.99/month | worldwide news, sentiment only from $349.99/month | not for trading: free is too late, paid too expensive |
 | Upstox News API | free with an Upstox account | Upstox's own articles for up to 30 stocks per call, last 7 days, no sentiment | needs a second broker account and its daily login; not worth it for news alone |
+
+### Cheap global news APIs (checked on their pricing pages, 12 Oct 2026)
+
+| API | Price | Quota | Fit |
+|---|---|---|---|
+| Marketaux Basic | $29/month ($24 yearly) | 2,500 requests/day, 20 articles each | global + Indian (.NS/.BO) symbols tagged, sentiment -1..+1 per stock, filter by country/exchange/symbol and `published_after`; one call a minute for India and one for the world fits in market hours. Free plan: 100/day, 3 articles: enough only for a trial |
+| Finnhub Free | $0, personal use | 60 calls/minute | world market headlines and US company news every minute; India company news not covered |
+| TheNewsAPI Basic | $19/month | 2,500 requests/day, 25 articles each | general world news, no stock tagging or sentiment |
+| Drishti Starter | Rs 2,000/month | WebSocket push, 100 symbols | India only; exchange filings |
+
+Recommended: Finnhub Free for world headlines plus a Marketaux trial; Marketaux Basic if the trial shows timely Indian
+coverage. A paid quota is not a blocking risk: polling within the plan is what the customer pays for.
