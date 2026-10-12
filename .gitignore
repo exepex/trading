@@ -13,3 +13,4 @@ data/research/
 # Desk log files (Windows and Linux runners)
 logs/
 .claude/worktrees/
+nse_raw_download.zip

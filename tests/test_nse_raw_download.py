@@ -1,0 +1,52 @@
+"""The standalone NSE download tool (tools/nse_raw_download) keeps the archive layout and never overwrites."""
+
+import hashlib
+import importlib.util
+import sys
+from datetime import date
+from pathlib import Path
+
+from fno.storage.raw_source import NseDailyFoSource
+from fno.storage.wiring import RAW_AREA
+
+SCRIPT = Path(__file__).resolve().parents[1] / "tools" / "nse_raw_download" / "nse_raw_download.py"
+spec = importlib.util.spec_from_file_location("nse_raw_download", SCRIPT)
+tool = importlib.util.module_from_spec(spec)
+sys.modules[spec.name] = tool
+spec.loader.exec_module(tool)
+
+
+def test_the_tool_uses_exactly_the_archive_layout_of_fno_storage():
+    for day in (date(2024, 1, 2), date(2026, 10, 9)):
+        assert tool.relative_path(day) == f"{RAW_AREA}/{NseDailyFoSource.path_for(day)}"
+        assert tool.BASE_URL + tool.FILENAME.format(day=day) == NseDailyFoSource.url_for(NseDailyFoSource.path_for(day))
+
+
+def run(tmp_path, monkeypatch, manifest_rows, answers, start="2024-01-25", end="2024-01-26"):
+    manifest = tmp_path / "manifest.csv"
+    manifest.write_text("date,url,status,sha256,rows_kept\n" + "".join(f"{r}\n" for r in manifest_rows))
+    asked = []
+
+    def fake_download(url):
+        asked.append(url)
+        return answers.pop(0)
+
+    monkeypatch.setattr(tool, "download", fake_download)
+    monkeypatch.setattr(tool.time, "sleep", lambda s: None)
+    argv = ["x", "--dest", str(tmp_path / "fno-research"), "--start", start, "--end", end, "--manifest", str(manifest)]
+    monkeypatch.setattr(sys, "argv", argv)
+    return tool.main(), asked
+
+
+def test_verified_files_are_saved_holidays_are_not_asked_and_a_mismatch_is_never_saved(tmp_path, monkeypatch):
+    good = hashlib.sha256(b"zip").hexdigest()
+    rows = [f"2024-01-25,u,200,{good},1", "2024-01-26,u,404,,0"]
+    code, asked = run(tmp_path, monkeypatch, rows, [(200, b"zip")])
+    saved = tmp_path / "fno-research" / tool.relative_path(date(2024, 1, 25))
+    assert code == 0 and saved.read_bytes() == b"zip" and len(asked) == 1  # the holiday was not requested
+    saved.write_bytes(b"changed")
+    code, asked = run(tmp_path, monkeypatch, rows, [])
+    assert code == 1 and asked == [] and saved.read_bytes() == b"changed"  # reported, untouched
+    saved.unlink()
+    code, _ = run(tmp_path, monkeypatch, rows, [(200, b"tampered")])
+    assert code == 1 and not saved.exists()
