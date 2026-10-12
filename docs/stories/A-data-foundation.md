@@ -1,18 +1,20 @@
 # Epic A: data foundation
 
 Roles: data and backtesting engineer (owner of the epic), quant researcher, execution specialist, macro economist.
-Goal: every number the desk uses comes from complete, verified, point-in-time data. Template and shared definition of
-done: `docs/IMPLEMENTATION_PLAN.md`.
+Goal: every number the desk uses comes from complete, verified, point-in-time data (design sections 6 and 13.1
+item 1). Story template, definition of done and the full story index: `docs/IMPLEMENTATION_PLAN.md`.
 
 ---
 
 ## A1. Raw NSE archive complete and checked
 
-**User story:** As the data engineer, I want every raw NSE file the research needs stored unchanged in the project's
+**Repository:** trading
+
+**Description:** As the data engineer, I want every raw NSE file the research needs stored unchanged in the project's
 Drive folder, with a command that lists what is missing or damaged, so that every later result rests on complete,
 verified inputs.
 
-**Background:** The owner downloads files on a laptop (NSE serves them freely; the cloud session cannot write to a
+**Context and why:** The owner downloads files on a laptop (NSE serves them freely; the cloud session cannot write to a
 personal Drive) and drags them into `fno-research/raw` on Drive. On 12 Oct 2026, 683 of 689 current-format files
 were there (6 missing: 1 Jan 2024, the tool started a day late; 5 weekend sessions). The tool now also fetches old-format
 F&O (2019 to 5 Jul 2024) and daily index closes with India VIX.
@@ -34,6 +36,11 @@ cloud into Drive (impossible with a service account); stock price files (not nee
   file for. Any gap without an exception fails.
 - Output: a short table per dataset (days expected, present, missing, damaged) and the lists of missing and damaged
   days; exit code 0 when nothing is missing or damaged, 1 otherwise. Never writes to Drive; prints no secrets.
+- **One calendar for the whole product (design 13.1 item 1):** a small `SessionCalendar` interface in
+  `fno/research_data/calendar.py` (`is_session(day)`, `sessions(start, end)`, `previous_session(day)`,
+  `next_session(day)`, `session_kind(day)`, `calendar_sha256()`) reads `nse_sessions.csv`; every later component
+  (A3, A7, B2, C3, E3, P3) asks this interface, never `weekday()`. Adding `data-coverage` to the CLI is expected
+  (the clean-slate command list is a transitional state).
 
 **Acceptance criteria:**
 1. Given the laptop tool and an empty folder, when it runs for 2019-01-01 to 2019-01-04, then it saves the old-format
@@ -50,6 +57,9 @@ cloud into Drive (impossible with a service account); stock price files (not nee
 6. The calendar file is validated: every holiday and special session has a source link; its commit precedes any
    coverage result that relies on it.
 7. The command makes only read requests to Drive (verified by a test with a fake Drive that fails on any write).
+8. `SessionCalendar` answers a weekday holiday (not a session), a special Saturday session (a session, kind
+   `special`) and a muhurat session (kind `muhurat`) from the file; a day outside the file's covered range raises an
+   error instead of guessing.
 
 **Test plan:** unit tests with a fake `RawFileStore` (missing day, damaged zip, damaged CSV, complete set); one real
 check against Drive recorded in the conversation log with the command's output.
@@ -58,16 +68,18 @@ check against Drive recorded in the conversation log with the command's output.
 folder (count of files per dataset and year); opens 10 random files and compares their SHA-256 with the laptop
 tool's manifest where one exists.
 
-**Depends:** - · **Size:** S · **Status:** doing (tool done; owner's upload complete 12 Oct 2026, sample-checked; coverage command next)
+**Depends:** - · **Size:** M · **Status:** doing (tool done; owner's upload complete 12 Oct 2026, sample-checked; calendar and coverage command next)
 
 ---
 
 ## A2. One reader for both F&O formats
 
-**User story:** As the quant researcher, I want old-format and current-format NSE F&O files read into the same
+**Repository:** trading
+
+**Description:** As the quant researcher, I want old-format and current-format NSE F&O files read into the same
 columns, so that 2019-2026 research uses one format without converting or altering the originals.
 
-**Background:** NSE published the old format until 5 Jul 2024 and the current UDiFF format from 1 Jan 2024. The old
+**Context and why:** NSE published the old format until 5 Jul 2024 and the current UDiFF format from 1 Jan 2024. The old
 format lacks the underlying price, lot size, last price, previous close and number of trades.
 
 **Scope.** In: `fno/fo_bhavcopy.py` (`FoFileFormat` interface, `UdiffFormat`, `LegacyFormat`, `read_fo_file`,
@@ -98,11 +110,13 @@ instruments from the same day's index close (NIFTY to "Nifty 50" and the other i
 
 ## A3. NIFTY option-chain panel
 
-**User story:** As the quant researcher, I want one table of every NIFTY option on every trading day since 2019 (all
+**Repository:** trading
+
+**Description:** As the quant researcher, I want one table of every NIFTY option on every trading day since 2019 (all
 strikes and expiries, with the underlying and India VIX), built from the raw files, so that experiments can price any
 structure, including far strikes the old extract lacked.
 
-**Background:** Meeting 1 used an extract limited to 20-55 days to expiry, which lacked far strikes (a "data gap").
+**Context and why:** Meeting 1 used an extract limited to 20-55 days to expiry, which lacked far strikes (a "data gap").
 Experiment 1 needs every strike of the monthly expiries from entry to exit.
 
 **Scope.** In: NIFTY index options (and NIFTY futures for reference), 2019-01-01 to the last available day. Out: other
@@ -148,11 +162,13 @@ consistency check against `research/2026-10-12-capacity-screen/data/nifty_option
 
 ## A4. Daily 3 pm quote recorder
 
-**User story:** As the execution specialist, I want real bid, ask and last prices of NIFTY monthly options near the
+**Repository:** trading
+
+**Description:** As the execution specialist, I want real bid, ask and last prices of NIFTY monthly options near the
 money recorded at about 3 pm every trading day, so that the Rs 1 fill-cost assumption can be replaced by measured
 spreads and the 3 pm desk can be tested on what it would really have seen.
 
-**Background:** Daily NSE files have no bid or ask. The desk decides at 3 pm. Only recording builds this history, so it
+**Context and why:** Daily NSE files have no bid or ask. The desk decides at 3 pm. Only recording builds this history, so it
 starts before anything else needs it.
 
 **Scope.** In: NIFTY, the nearest two monthly expiries, strikes within 5% of spot, one snapshot a day near 15:00 IST,
@@ -226,10 +242,12 @@ three monthlies ahead, so the January monthly appears in NSE's file well before 
 
 ## A5. Monthly-expiry identity in the package
 
-**User story:** As the data engineer, I want the rule that identifies NIFTY monthly expiries in the `fno` package
+**Repository:** trading
+
+**Description:** As the data engineer, I want the rule that identifies NIFTY monthly expiries in the `fno` package
 with its tests, so that research and the desk use one tested definition.
 
-**Background:** `research/2026-10-12-capacity-screen/expiries.py` holds `monthly_as_of`: an expiry is monthly if it is
+**Context and why:** `research/2026-10-12-capacity-screen/expiries.py` holds `monthly_as_of`: an expiry is monthly if it is
 listed that day and was listed more than 50 days ahead on that day or before (handles the 30 Apr 2025 holiday-moved
 weekly and the Sep 2025 re-dating).
 
@@ -257,11 +275,13 @@ import so earlier scripts still run.
 
 ## A6. Events calendar
 
-**User story:** As the macro economist, I want a dated list of RBI policy announcements, Union Budgets and
+**Repository:** trading
+
+**Description:** As the macro economist, I want a dated list of RBI policy announcements, Union Budgets and
 general-election results for 2019-2026, each with its official source, so that the "event inside the holding
 window" condition can be tested without hindsight.
 
-**Background:** Experiment 1's feature F3 needs scheduled events. Using only scheduled, publicly announced dates keeps
+**Context and why:** Experiment 1's feature F3 needs scheduled events. Using only scheduled, publicly announced dates keeps
 the feature knowable at the decision time; unscheduled shocks are not events for this purpose.
 
 **Scope.** In: RBI Monetary Policy Committee decision days (including unscheduled ones, marked), Union Budget days
@@ -299,3 +319,80 @@ event filter treat a Budget as unknown when it was in fact known: conservative, 
 2020 Budgets no official advance page exists; the announcement source is press (ANI, PTI), labelled in the row. An
 upcoming meeting (4 Dec 2026) has its announcement source but no "held" source until it happens; the validator
 allows that only for dates after today. Rescheduled meetings keep the earlier date in `revised_from`.
+
+---
+
+## A7. Every component uses the session calendar
+
+**Repository:** trading
+
+**Description:** As the data engineer, I want the 3 pm quote recorder (and every later scheduled component) to decide
+"is today a trading session" from the A1 session calendar, so that a special Saturday session is recorded and a
+weekday holiday is never mistaken for a failure.
+
+**Context and why:** Today `fno/quotes/recorder.py` (`record`, line about `WEEKEND_START`) skips every Saturday and
+Sunday and treats "no contract traded today" as a holiday. NSE sometimes opens on a Saturday (Budget days, e.g.
+1 Feb 2025) and that session would be lost forever: only recording builds quote history. ChatGPT reviews 20-21 and
+design 13.1 item 1 require one calendar for A1, B2, E1 and the recorder. The A4 behaviour is judge-passed, so this
+change must keep every A4 criterion and the byte-identical baseline (`tests/quotes/test_recorder_baseline.py`).
+
+**Scope.** In: the recorder's trading-day decision; a fail-closed cross-check. Out: changing capture times, columns or
+validity rules (A4).
+
+**Expected design:** `QuoteSnapshotRecorder` receives a `SessionCalendar` (A1) through `fno/composition.py`. `record()`
+asks `calendar.is_session(today)`; not a session -> "not a trading day" (records nothing). A session day keeps the
+existing "no contract traded today" check as a **cross-check**: if the calendar says session but no contract traded,
+the attempt is recorded as incomplete with reason "calendar says session, no same-day trades" (never silently
+"not a trading day"), and an alert is raised; the day's canonical becomes "none" if this persists to 15:10.
+
+**Acceptance criteria:**
+1. Given a special Saturday session in the calendar and a fake provider with same-day trades, the recorder records
+   it and writes a canonical snapshot.
+2. Given a weekday holiday in the calendar, nothing is recorded and the result is "not a trading day".
+3. Given a calendar session with no same-day trades at all, the attempt is kept with `complete = false` and the stated
+   reason, the run exits non-zero, and no day is silently skipped.
+4. All A4 tests and the four byte-identical baseline scenarios still pass unchanged.
+5. A day outside the calendar's covered range fails loudly (no guess).
+
+**Test plan:** extend `tests/quotes/` with calendar fakes for the three cases; run the baseline test.
+
+**Judge verifies:** runs the special-Saturday and holiday tests; confirms the baseline test is untouched and passes.
+
+**Depends:** A1 (calendar) · **Size:** S · **Status:** later
+
+---
+
+## A8. Positioning data source (participant open interest)
+
+**Repository:** trading
+
+**Description:** As the positioning analyst, I want NSE's daily participant-wise open interest (FII, DII, pro,
+client) stored as raw files with point-in-time rules, so that positioning can be studied (edge family E6) and given
+to AI roles without look-ahead.
+
+**Context and why:** The old desk's parser was removed in the clean slate (`docs/CLEAN_SLATE_DESIGN.md` section 4);
+the design requires a named story before any E6, F2 or AI-book use, with release time, coverage and archive stability
+checked. Spot check 12 Oct 2026: NSE's archive served `fao_participant_oi_DDMMYYYY.csv` for 3 Jun 2019, 2 Jan 2020,
+3 Jan 2022, 1 Oct 2025 and 9 Oct 2026; full coverage and release times are not verified.
+
+**Scope.** In: a `RawFileSource` for the file, download through the laptop tool and the raw library, coverage check,
+a parser, a release-time rule. Out: any trading signal (B6 or a research experiment decides that).
+
+**Expected design:** `ParticipantOiSource(NseArchiveSource)` in `fno/storage/raw_source.py` wired in
+`fno/storage/wiring.py`; the laptop tool (`tools/nse_raw_download/`) gains the dataset; `data-coverage` (A1) checks
+it; parser `fno/research_data/participant_oi.py` returning per participant long and short contracts by instrument
+group; **availability rule:** a day's file is usable for decisions only from the next session's decision time unless
+its actual publication time is measured and recorded (a small recorder logs the first time the file is reachable on
+each of 20 days; the rule is then set from that evidence and committed).
+
+**Acceptance criteria:**
+1. Coverage for 2019 to today reports every session present or a sourced exception; damaged files fail.
+2. The parser returns identical numbers to a hand reading of three real files (one per year 2019, 2022, 2026).
+3. A look-ahead test proves a decision on day D never sees D's file unless the measured release rule allows it.
+4. Raw files are stored unchanged with SHA-256, like A1.
+
+**Test plan:** parser tests with three committed real files; coverage test with a fake store; look-ahead test.
+
+**Judge verifies:** re-reads one file by hand; confirms the release-time evidence file exists before any use.
+
+**Depends:** A1 · **Size:** M · **Status:** later

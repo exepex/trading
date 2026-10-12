@@ -2,17 +2,19 @@
 
 Roles: quant researcher and statistician (owners), volatility trader, quantitative modeller, F&O trader, tax and
 cost accountant, red team, head of desk. Goal: test ideas on real data in a way that cannot fool the desk
-(design sections 3.5 and 6). Template and shared definition of done: `docs/IMPLEMENTATION_PLAN.md`.
+(design sections 3.5 and 6). Story template, definition of done and the full story index: `docs/IMPLEMENTATION_PLAN.md`.
 
 ---
 
 ## B1. Feature library
 
-**User story:** As the volatility trader and the quant modeller, I want each entry condition as a small named feature
+**Repository:** trading
+
+**Description:** As the volatility trader and the quant modeller, I want each entry condition as a small named feature
 with a declared availability time, so that the engine can combine them and can never use information from after the
 decision.
 
-**Background:** Experiment 1 uses F1 (ATM implied volatility minus past 20-day realised volatility), F2 (India VIX
+**Context and why:** Experiment 1 uses F1 (ATM implied volatility minus past 20-day realised volatility), F2 (India VIX
 above its past 250-day median) and F3 (a scheduled event between entry and exit). The discovery scan (B6) will add
 many more. Look-ahead (using data not yet known) is the most common way backtests lie.
 
@@ -58,10 +60,12 @@ panel's prices.
 
 ## B2. Cycle simulator
 
-**User story:** As the F&O trader and the tax and cost accountant, I want one simulator that takes a structure
+**Repository:** trading
+
+**Description:** As the F&O trader and the tax and cost accountant, I want one simulator that takes a structure
 through a monthly cycle exactly as the protocol says, so that every policy is judged on identical, realistic terms.
 
-**Background:** Experiment 1 protocol section 3. Meeting 1 showed two traps this must handle: stale prices of
+**Context and why:** Experiment 1 protocol section 3. Meeting 1 showed two traps this must handle: stale prices of
 untraded options (credits larger than the width) and maximum losses above the owner's Rs 10,000 cap.
 
 **Scope.** In: monthly cycle dates, structures SF, SC, BF, fills, charges, pads, width rule, flags. Out: early exits
@@ -121,10 +125,12 @@ untraded options (credits larger than the width) and maximum losses above the ow
 
 ## B3. Policy runner and verdict
 
-**User story:** As the statistician, I want registered policies and controls run over a period with the protocol's
+**Repository:** trading
+
+**Description:** As the statistician, I want registered policies and controls run over a period with the protocol's
 metrics and pass/fail computed by code, so that the verdict is reproducible and nobody judges by eye.
 
-**Background:** Experiment 1 protocol sections 6-8: policies P1-P8; per conditional policy (P4-P8) two controls,
+**Context and why:** Experiment 1 protocol sections 6-8: policies P1-P8; per conditional policy (P4-P8) two controls,
 `random_timing` (C1: frequency-matched random timing) and `opposite` (C2: the action taken when the condition is false,
 exact formulas in protocol section 6); pass/fail on 2019-2023, including the branch tests for P5 and P6.
 
@@ -175,10 +181,12 @@ criterion (total net) from the per-cycle list.
 
 ## B4. Ledger guard
 
-**User story:** As the red team, I want the engine to refuse any trial not registered in the ledger first, so that the
+**Repository:** trading
+
+**Description:** As the red team, I want the engine to refuse any trial not registered in the ledger first, so that the
 number of ideas tried is always counted and lucky winners cannot hide.
 
-**Background:** `research/LEDGER.md` lists trials by hand today (31 so far). The bar for significance must rise with
+**Context and why:** `research/LEDGER.md` lists trials by hand today (31 so far). The bar for significance must rise with
 the number of trials (design 3.5), which needs a reliable count.
 
 **Scope.** In: a machine-readable ledger beside the readable one, registration, the guard, counts. Out: rewriting
@@ -212,10 +220,12 @@ are imported as `retrospective` (registered after or while being run) and are ne
 
 ## B5. Experiment 1
 
-**User story:** As the head of desk, I want experiment 1 run under its frozen protocol, so that the desk learns, with
+**Repository:** trading
+
+**Description:** As the head of desk, I want experiment 1 run under its frozen protocol, so that the desk learns, with
 a fair test, whether any NIFTY monthly rule deserves paper trading.
 
-**Background:** `research/2026-10-12-experiment-1/PROTOCOL.md` (in review). Discovery 2024-26 has already been looked
+**Context and why:** `research/2026-10-12-experiment-1/PROTOCOL.md` (in review). Discovery 2024-26 has already been looked
 at; challenge 2019-23 has not and decides.
 
 **Scope.** In: freezing, discovery run, challenge run, write-up, ChatGPT review, decisions. Out: changing the protocol
@@ -248,11 +258,13 @@ decisions; ledger updated.
 
 ## B6. Candidate scan
 
-**User story:** As the quant researcher, I want a systematic scan of feature, structure and action combinations on
+**Repository:** trading
+
+**Description:** As the quant researcher, I want a systematic scan of feature, structure and action combinations on
 discovery data, each counted as a trial, so that the desk uses its computing power to find candidates a person would
 miss, without fooling itself.
 
-**Background:** Design 3.5. Example of the danger: among 1,000 random patterns on 33 cycles, about 18 win 23 or more
+**Context and why:** Design 3.5. Example of the danger: among 1,000 random patterns on 33 cycles, about 18 win 23 or more
 by luck alone.
 
 **Scope.** In: candidate generation, automatic registration, scan on discovery data, the multiple-testing bar, a
@@ -277,3 +289,44 @@ net, worst cycle, results by year and the trial count.
 **Judge verifies:** runs the noise test; checks the count and the protocol commit order.
 
 **Depends:** B3 · **Size:** L · **Status:** later
+
+---
+
+## B7. Live 3 pm feature versions and their validation
+
+**Repository:** trading
+
+**Description:** As the volatility trader, I want each feature a playbook strategy uses computed from the 3 pm data
+the desk actually has, and checked against its daily-close research version before any book trades on it, so that
+paper decisions use the condition that was tested and not a silently different one.
+
+**Context and why:** B1's features are daily-close features, labelled close-proxy (design 6). The desk decides at
+15:00 from the A4 quote snapshot (no close yet). D2 must use "validated live versions", but no story built them. If a
+live feature behaves differently from its research version, a tested strategy is not what the desk trades.
+
+**Scope.** In: a live version of each feature used by an approved playbook strategy (at least F1-F3), the validation
+report, the rule for when a live version may be used. Out: new features (B6).
+
+**Expected design:** `fno/research_engine/live_features.py`: same `Feature` interface; inputs at the 15:00 cutoff: spot and
+ATM option mids from the canonical A4 snapshot (valid quotes only), VIX at the cutoff, past closes from the panel up
+to the previous session; validation reads the recorded A4 history directly, and once E2 exists the desk computes the
+same features from the common market pack (same functions, pack inputs). Validation command
+`python -m fno research validate-live <feature>` compares, for every recorded day (A4 history), the live value with
+the same day's close value and reports mean and largest difference and the share of days where the boolean condition
+differs. **Use rule (frozen per strategy in its playbook file):** a live feature may drive paper decisions only after
+at least 20 recorded days and a condition agreement of at least 90% (proposed; the owner can set a stricter value);
+disagreement days are listed for the red team.
+
+**Acceptance criteria:**
+1. The look-ahead harness (B1) passes for every live feature with the 15:00 cutoff: changing any data after 15:00
+   changes nothing.
+2. Given 20 fixture days with known close and live values, the validation report numbers match a hand computation.
+3. A playbook strategy whose live features are not validated cannot reach status `paper` (D1 loader check).
+4. Invalid or missing quotes give `None` (condition not met), never a fallback to last price.
+
+**Test plan:** unit tests per live feature; validation report test; D1 loader test for the gate.
+
+**Judge verifies:** recomputes one live value from a committed snapshot; checks the gate refuses an unvalidated
+strategy.
+
+**Depends:** B1, A4, A7 · **Size:** M · **Status:** later

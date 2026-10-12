@@ -1,80 +1,160 @@
-# Implementation plan: desk design v2.1 as stories
+# Implementation plan: every story for the finished product
 
-Status: **agreed by Claude and ChatGPT** (ChatGPT review 14, 12 Oct 2026) as the implementation specification.
-Agreement covers the specification only: each story's implementation is judged against its acceptance criteria. Source: `docs/DESK_DESIGN.md` v2.1 (owner-approved framework).
-The owner started development on 12 Oct 2026; the AI layer (epic F) stays on hold until the owner says otherwise.
+Status: **proposed 12 Oct 2026, for ChatGPT review and owner approval** (request:
+`reviews/claude/response_32_2026-10-12-full-implementation-plan.md`). Source: `docs/DESK_DESIGN.md` sections 1-13
+(all approved by the owner; section 13 revision 3 on 12 Oct 2026) and `docs/DESK_DECISIONS.md`. This plan replaces the
+28-story plan agreed in review 14: approved stories are carried over (updated where the three books, section 13 or
+the clean slate changed them), new stories cover the rest of the finished product (design 13.1). After ChatGPT and
+the owner approve it, GitHub issues #3-#21 are closed as replaced and a clean issue set is created from this table.
 
-**Story format (agile):** every story in `docs/stories/` has
-- **heading**: ID and name;
-- **user story**: "As a <role>, I want <what>, so that <why>";
-- **background**: the facts and decisions it rests on;
+## Story format
+
+Every story in `docs/stories/` has:
+- **heading**: ID and title;
+- **repository**: where it is built (`trading` = this repository; `dashboard`, `platform`, `agentic-stock-prediction`
+  are specified here and built in their own repositories, design 13.8);
+- **description**: "As a <role>, I want <what>, so that <why>";
+- **context and why**: the design sections, decisions, facts and current code the story rests on, so that an agent can
+  implement it without asking;
 - **scope**: what is in and what is out;
 - **expected design**: modules, interfaces, inputs, outputs, file formats, where it is wired;
-- **acceptance criteria**: numbered, testable, "given ... when ... then ..." where it helps;
-- **test plan**: which tests prove the criteria;
-- **judge verifies**: how the independent judge checks the claim, with commands or evidence;
-- **depends, size, status**. Sizes: S = under a day, M = 1-3 days, L = more.
+- **acceptance criteria**: numbered and testable;
+- **test plan**, **judge verifies** (how the independent judge checks the claim);
+- **depends, size, status**. Sizes: S = under a day, M = 1-3 days, L = more. Status: done, built (awaiting judge),
+  doing, next, later.
 
-**Definition of done (every story, in addition to its own criteria):** tests and `ruff` pass; no file or class over
-350 lines; new behaviour behind an interface, concrete classes wired only in `fno/composition.py` or
-`fno/storage/wiring.py`; fixed strings in `fno/constants.py`; docs updated; any research trial registered in
-`research/LEDGER.md` before its result is read; the other AI reviews the result in the repository.
+**Definition of done (every story, in addition to its own criteria):** tests, `ruff check fno tests tools` and
+`python tools/check_imports.py` pass; no Python file or class over 350 lines; new behaviour behind an interface,
+concrete classes wired only in `fno/composition.py` or `fno/storage/wiring.py`; fixed strings and environment-variable
+names in `fno/constants.py`; settings only through allowed `config.yaml` keys (`fno/config.py`); docs updated; any
+research trial registered in `research/LEDGER.md` and `research/ledger.csv` before its result is read; never an order
+function, never a credential in a file; the other AI judges the result in the repository (`docs/JUDGE.md`). Stories in
+other repositories follow that repository's rules as well.
 
-## Milestones
+## How the stories cover the finished product (design 13.1)
+
+| 13.1 item | Stories |
+|---|---|
+| 1 Data | A1-A8, C3 |
+| 2 Research | B1-B7, B5 (experiment 1), B6 (discovery) |
+| 3 Playbook and decisions | D1-D6, C4, F4 (judge, overrides) |
+| 4 Three paper books | E1-E6, C1, C2, C4 |
+| 5 AI layer | F1-F9 |
+| 6 Forecasts | G1-G4 |
+| 7 Scoreboards A and B | S1-S3 |
+| 8 Owner surfaces | P1-P4, X1, W1-W5, K1-K2, S4 |
+| 9 Research feedback | S5, S4 |
+| 10 Operations | O1-O4 |
+
+## Milestones and order
+
+Dependency order for the cross-repository part (design 13.8): canonical F&O records -> read-model schema and publisher
+-> Azure platform contract -> dashboard read path -> F&O screens -> migration and cutover -> automated operations.
+
 | Milestone | Stories | Outcome |
 |---|---|---|
-| M1 Data and first experiment | A1-A6, B1-B5, C1 | Experiment 1 run on 2024-26 (discovery) and 2019-23 (challenge) with the frozen protocol |
-| M2 Risk, playbook, validity | C2-C4, D1-D3 | A strategy that passed can be written as a playbook version and checked by code |
-| M3 Code-only paper desk | E1-E3 | Daily 3 pm paper decisions on the first approved strategy, no AI |
-| M4 AI layer (on hold) | F1-F5 | Only after the owner starts it; each role kept only if it adds net value |
+| M1 Data and experiment 1 | A1, A3, A5, A6, A7, B1, B2, B3, B5, C1 (A2, A4, B4 done) | Experiment 1 run on discovery (2024-26) and challenge (2019-23) data under its frozen protocol: a strategy passes or "no strategy passed" is documented |
+| M2 Decision machinery and Book 1 | B7, C2, C3, C4, D1, D2, D3, D6, E1, E2, E4, E3, E5, E6 | Book 1 decides and paper-trades daily (or records "no approved strategy") |
+| M3 Forecasts | G1-G4 | All books' forecasts and baselines recorded and scored (forecasts start before trading, 12.11) |
+| M4 Publishing and the shared dashboard | S1, S2, P1, P2, X1, P3, P4, W1, W2, W3, W4, O1, O2 | The owner sees Book 1, scoreboard B and forecasts on the F&O screens and in Slack every day |
+| M5 AI books | D4, D5, F1-F9, S3 | Books 2 and 3 decide in isolated sessions; all three books on both scoreboards |
+| M6 Review, cutover and operations | S4, S5, O3, O4, W5, K1, K2 | Monthly reports and the first scheduled review; stock dashboard moved; MotherDuck retired |
+| M7 Research expansion | B6, A8 | Discovery scan and positioning data feed new research questions |
 
-Start now (review 12): **A4** (record real 3 pm quotes; only time builds that history) and **B4** (ledger guard), alongside
-A1. Finish A5, A6 and C1 before experiment 1 runs; B5 runs only after A1, A3 and B1-B4 are verified. D3's schema comes
-before C4 (C4 checks the decision record).
+**Order inside M1 (as agreed in reviews 12-14):** A1 (calendar and coverage), A3, then B1, B2, B3; finish A5, A6 and
+C1 judging before B5 runs; B5's challenge run only after its freeze. **If no strategy passes,** books 1 and 2 record
+"no approved strategy" every day (a result, not an error) while research continues (S5, B6); Book 3 can still run as a
+pilot once M5 exists; the owner's rule applies: if paper trading shows no net profit, the tools are shut down.
 
-## Stories
+## All stories
 
-- Epic A: [Data foundation](stories/A-data-foundation.md)
-- Epic B: [Research and discovery engine](stories/B-research-engine.md)
-- Epic C: [Code roles](stories/C-code-roles.md)
-- Epic D: [Playbook and decisions](stories/D-playbook-decisions.md)
-- Epic E: [Code-only daily paper desk](stories/E-paper-desk.md)
-- Epic F: [AI layer (on hold)](stories/F-ai-layer.md)
+| ID | Story | Repository | Depends | Size | Status |
+|---|---|---|---|---|---|
+| [A1](stories/A-data-foundation.md#a1-raw-nse-archive-complete-and-checked) | Raw NSE archive complete and checked | trading | - | M | doing |
+| [A2](stories/A-data-foundation.md#a2-one-reader-for-both-fo-formats) | One reader for both F&O formats | trading | - | M | done |
+| [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | trading | A1, A2 | M | next |
+| [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | trading | - | M | done (judge passed) |
+| [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | trading | - | S | built; awaiting judge |
+| [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | trading | - | S | built; awaiting judge |
+| [A7](stories/A-data-foundation.md#a7-every-component-uses-the-session-calendar) | Every component uses the session calendar | trading | A1 (calendar) | S | later |
+| [A8](stories/A-data-foundation.md#a8-positioning-data-source-participant-open-interest) | Positioning data source (participant open interest) | trading | A1 | M | later |
+| [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | trading | A3, A6 | M | later |
+| [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | trading | A3, A5 | M | later |
+| [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | trading | B1, B2, B4 | M | later |
+| [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | trading | - | S | done (judge passed) |
+| [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | trading | B1-B4, A1, A3, A5, A6, C1 | M | doing |
+| [B6](stories/B-research-engine.md#b6-candidate-scan) | Candidate scan | trading | B3 | L | later |
+| [B7](stories/B-research-engine.md#b7-live-3-pm-feature-versions-and-their-validation) | Live 3 pm feature versions and their validation | trading | B1, A4, A7 | M | later |
+| [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | trading | - | S | built; awaiting judge |
+| [C2](stories/C-code-roles.md#c2-risk-manager) | Risk manager | trading | B2 | L | later |
+| [C3](stories/C-code-roles.md#c3-data-checks-before-every-decision) | Data checks before every decision | trading | A3, A4, A7, E2 | S | later |
+| [C4](stories/C-code-roles.md#c4-hard-validity-checks-judge-part-1) | Hard-validity checks (judge part 1) | trading | C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) | M | later |
+| [D1](stories/D-playbook-decisions.md#d1-playbook-format) | Playbook format | trading | B5, B7 | M | later |
+| [D2](stories/D-playbook-decisions.md#d2-rule-evaluation-and-allocation) | Rule evaluation and allocation | trading | D1, C2, B7 | M | later |
+| [D3](stories/D-playbook-decisions.md#d3-decision-record) | Decision record | trading | D2, E2 | M | later |
+| [D4](stories/D-playbook-decisions.md#d4-book-2s-authority-envelope) | Book 2's authority envelope | trading | D1 | S | later |
+| [D5](stories/D-playbook-decisions.md#d5-book-3s-constitution-and-strategy-registry) | Book 3's constitution and strategy registry | trading | B4 (git-ancestry pattern), C2 | M | later |
+| [D6](stories/D-playbook-decisions.md#d6-version-registry-and-evaluation-segments) | Version registry and evaluation segments | trading | D3 | S | later |
+| [E1](stories/E-paper-desk.md#e1-paper-accounts-per-book-with-a-single-writer-lock) | Paper accounts per book, with a single-writer lock | trading | C1 | M | later |
+| [E2](stories/E-paper-desk.md#e2-common-market-pack-and-book-private-packs) | Common market pack and book-private packs | trading | A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) | M | later |
+| [E3](stories/E-paper-desk.md#e3-daily-timetable-deadline-execution-snapshot-and-exits) | Daily timetable: deadline, execution snapshot and exits | trading | A4, A7, C3, D3, E1, E2, E4 | L | later |
+| [E4](stories/E-paper-desk.md#e4-fill-model-and-exits) | Fill model and exits | trading | A4, C1, C2, E1 | M | later |
+| [E5](stories/E-paper-desk.md#e5-book-1-pure-rules) | Book 1: pure rules | trading | D2, D3, E2, E3 | S | later |
+| [E6](stories/E-paper-desk.md#e6-strategy-paper-scorecard-and-pause-rules) | Strategy paper scorecard and pause rules | trading | C1, D1, E4 | M | later |
+| [F1](stories/F-ai-layer.md#f1-isolated-ai-book-sessions) | Isolated AI book sessions | trading | D3, D6, E2, E3 | L | later |
+| [F2](stories/F-ai-layer.md#f2-role-agents-and-finding-cards) | Role agents and finding cards | trading | F1 | L | later |
+| [F3](stories/F-ai-layer.md#f3-red-team) | Red team | trading | F1, F2 | M | later |
+| [F4](stories/F-ai-layer.md#f4-ai-judge-parts-2-and-3-owner-overrides-and-the-monthly-audit) | AI judge (parts 2 and 3), owner overrides and the monthly audit | trading | C4, F1, F2 | M | later |
+| [F5](stories/F-ai-layer.md#f5-book-2-ai-decisions-inside-the-envelope) | Book 2: AI decisions inside the envelope | trading | D2, D4, F1, F2, F3, F4 | M | later |
+| [F6](stories/F-ai-layer.md#f6-book-3-the-fully-ai-system-and-its-pilot) | Book 3: the fully AI system and its pilot | trading | C2, C4, D5, D6, F1, F2, F3, F4, G1 | L | later |
+| [F7](stories/F-ai-layer.md#f7-matched-shadow-decisions-for-scoreboard-a) | Matched shadow decisions for scoreboard A | trading | E2, F6 | S | later |
+| [F8](stories/F-ai-layer.md#f8-ai-usage-and-cost-attribution) | AI usage and cost attribution | trading | C1, F1 | S | later |
+| [F9](stories/F-ai-layer.md#f9-role-value-evaluation-does-each-ai-role-earn-its-cost) | Role-value evaluation (does each AI role earn its cost?) | trading | F1, F2, F8, S1, E4 | M | later |
+| [G1](stories/G-forecasts.md#g1-forecast-protocol-and-the-30-day-atm-implied-volatility-estimator) | Forecast protocol and the 30-day ATM implied-volatility estimator | trading | A1, A3, B1, B4 | M | later |
+| [G2](stories/G-forecasts.md#g2-frozen-baselines) | Frozen baselines | trading | G1, A3, A4 | M | later |
+| [G3](stories/G-forecasts.md#g3-forecast-capture-for-every-book) | Forecast capture for every book | trading | G1, G2, E3 (F1 for books 2 and 3) | S | later |
+| [G4](stories/G-forecasts.md#g4-forecast-scoring-and-reports) | Forecast scoring and reports | trading | G1, G3 | M | later |
+| [S1](stories/S-scoreboards.md#s1-evaluation-protocol) | Evaluation protocol | trading | B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) | S | later |
+| [S2](stories/S-scoreboards.md#s2-scoreboard-b-whole-systems) | Scoreboard B: whole systems | trading | C1, D6, E1, E4, S1 (F8 for the AI books' allocated cost) | M | later |
+| [S3](stories/S-scoreboards.md#s3-scoreboard-a-matched-decisions) | Scoreboard A: matched decisions | trading | E2, E4, F7, D6, S1 | M | later |
+| [S4](stories/S-scoreboards.md#s4-monthly-report-and-scheduled-reviews) | Monthly report and scheduled reviews | trading | S2, S3, G4, F4, F8, F9 | M | later |
+| [S5](stories/S-scoreboards.md#s5-research-feedback-loop) | Research feedback loop | trading | S4, D1, D4, D5, D6 | S | later |
+| [P1](stories/P-publishing.md#p1-fo-read-model-contract) | F&O read-model contract | trading | D3, S2 (S3 for the scoreboard A page) | M | later |
+| [P2](stories/P-publishing.md#p2-read-model-builder) | Read-model builder | trading | P1, E3, S2, G4 (S3 for the scoreboard A page) | M | later |
+| [P3](stories/P-publishing.md#p3-atomic-publisher-to-azure) | Atomic publisher to Azure | trading | P2, X1, A1 | M | later |
+| [P4](stories/P-publishing.md#p4-slack-daily-message-and-alerts) | Slack daily message and alerts | trading | P2 | S | later |
+| [X1](stories/X-cross-repository.md#x1-azure-database-for-postgresql-server-schemas-roles-and-tests) | Azure Database for PostgreSQL: server, schemas, roles and tests | platform | owner's Azure access | M | later |
+| [W1](stories/X-cross-repository.md#w1-shared-dashboard-repository-copy-of-the-stock-dashboard) | Shared dashboard repository (copy of the stock dashboard) | dashboard | - | M | later |
+| [W2](stories/X-cross-repository.md#w2-azure-read-path-publication-aware-reads-and-contract-checks) | Azure read path, publication-aware reads and contract checks | dashboard | W1, X1, P3 | M | later |
+| [W3](stories/X-cross-repository.md#w3-fo-screens) | F&O screens | dashboard | W2, P1 | L | later |
+| [W4](stories/X-cross-repository.md#w4-access-and-freshness-contract-tests) | Access and freshness contract tests | dashboard | W2, W3 | S | later |
+| [W5](stories/X-cross-repository.md#w5-cutover-and-rollback) | Cutover and rollback | dashboard | W1-W4, K1 | S | later |
+| [K1](stories/X-cross-repository.md#k1-stock-backend-publishes-to-azure-dual-publication-and-parity) | Stock backend publishes to Azure (dual publication and parity) | agentic-stock-prediction | X1 | M | later |
+| [K2](stories/X-cross-repository.md#k2-retire-motherduck) | Retire MotherDuck | agentic-stock-prediction | W5 | S | later |
+| [O1](stories/O-operations.md#o1-the-daily-desk-routine) | The daily desk routine | trading | E3, P3, P4, A7 | S | later |
+| [O2](stories/O-operations.md#o2-failure-handling-end-to-end) | Failure handling, end to end | trading | E3, E4, P3, P4 (F1, F4 for the AI-book cases, added in M5) | M | later |
+| [O3](stories/O-operations.md#o3-cross-repository-integration-tests) | Cross-repository integration tests | trading | P3, X1, W2, W3, O1 | M | later |
+| [O4](stories/O-operations.md#o4-runbook-and-documentation) | Runbook and documentation | trading | O1, O2 | S | later |
 
-| ID | Story | Depends | Size | Status |
-|---|---|---|---|---|
-| [A1](stories/A-data-foundation.md#a1-raw-nse-archive-complete-and-checked) | Raw NSE archive complete and checked | - | S | doing (tool done; owner's upload complete 12 Oct 2026, sample-checked; coverage command next) |
-| [A2](stories/A-data-foundation.md#a2-one-reader-for-both-fo-formats) | One reader for both F&O formats | - | M | done (128 of 128 overlap days identical, 5,793,044 rows) |
-| [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | A1, A2 | M | next |
-| [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | - | M | done (judge passed) |
-| [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | - | S | built; awaiting judge |
-| [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | - | S | built; awaiting judge |
-| [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | A3, A6 | M | later |
-| [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | A3, A5 | M | later |
-| [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | B1, B2, B4 | M | later |
-| [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | - | S | done (judge passed) |
-| [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | B1-B4, A1, A3, A5, A6, C1 | M | doing (protocol v2.1 agreed, review 14; freeze after B1-B3 are built) |
-| [B6](stories/B-research-engine.md#b6-candidate-scan) | Candidate scan | B3 | L | later |
-| [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | - | S | built; awaiting judge |
-| [C2](stories/C-code-roles.md#c2-risk-manager) | Risk manager | B2 | L | later |
-| [C3](stories/C-code-roles.md#c3-data-checks-before-every-decision) | Data checks before every decision | A3, A4 | S | later |
-| [C4](stories/C-code-roles.md#c4-hard-validity-checks-judge-part-1) | Hard-validity checks (judge part 1) | C2, D3 | M | later |
-| [D1](stories/D-playbook-decisions.md#d1-playbook-format) | Playbook format | B5 | M | later |
-| [D2](stories/D-playbook-decisions.md#d2-rule-evaluation-and-allocation) | Rule evaluation and allocation | D1, C2, B1 | M | later |
-| [D3](stories/D-playbook-decisions.md#d3-decision-record) | Decision record | D2 | M | later |
-| [E1](stories/E-paper-desk.md#e1-daily-3-pm-loop) | Daily 3 pm loop | C2, C3, C4, D1, D2, D3, A4 | L | later |
-| [E2](stories/E-paper-desk.md#e2-daily-report) | Daily report | E1 | S | later |
-| [E3](stories/E-paper-desk.md#e3-paper-scorecard) | Paper scorecard | E1, C1 | M | later |
-| [F1](stories/F-ai-layer.md#f1-role-agents) | Role agents | E1 | L | on hold |
-| [F2](stories/F-ai-layer.md#f2-red-team) | Red team | F1 | M | on hold |
-| [F3](stories/F-ai-layer.md#f3-ai-judge-parts-2-and-3) | AI judge (parts 2 and 3) | C4, F1 | M | on hold |
-| [F4](stories/F-ai-layer.md#f4-role-scorecards) | Role scorecards | F1, E3 | M | on hold |
-| [F5](stories/F-ai-layer.md#f5-operating-cost-tracking) | Operating-cost tracking | C1 | S | on hold |
+## Removed or merged from the previous plan
+
+- **E4 (retire or separate the old live desk):** removed by the clean slate; its per-account lock moved to E1.
+- **Old E1 (daily 3 pm loop):** split into E1 (accounts and lock), E2 (packs), E3 (timetable), E4 (fills and exits),
+  E5 (Book 1).
+- **Old E2 (daily report):** now P4 (Slack) and W3 (screens). **Old E3 (paper scorecard):** now E6.
+- **Old F1-F5:** rewritten for cloud routines and the three books (F1-F9); old F4 (role scorecards) is F9, old F5
+  (per-call API cost) is F8 (allocated plan cost, 13.6).
+- **Not included (not in the approved design):** a lessons memory shared across days, an AI-written daily summary and
+  automated weekly research meetings (proposed as G1-G3 in the old re-evaluation, never approved). They can be
+  proposed later as design changes.
 
 ## Questions for review
-1. Is anything in the approved design missing from these stories, or any story not justified by it?
-2. Is every acceptance criterion testable as written? Which would you tighten?
-3. Is the order right: data and experiment 1 first, then risk and playbook, then the paper desk, AI last?
-4. A4 (recording real 3 pm quotes) is started early because only time builds that history: agree?
-5. Is each story detailed enough that an implementing agent knows exactly what to build and the judge knows exactly
-   what to check? Name any story where either would have to guess.
+
+1. First, re-check section 13 revision 3 (response 31): atomic publication, Postgres roles, migration order, F&O
+   freshness. The owner approved it on the understanding that you confirm these four changes here.
+2. Is any part of the approved design (sections 1-13) not covered by a story, or any story not justified by it?
+3. Is every story implementable by an agent from its text alone (context and why, expected design), and every
+   acceptance criterion testable as written? Name any story where an implementer or the judge would have to guess.
+4. Are the dependencies and milestones in the right order, including the cross-repository order of 13.8?
+5. Are the corrections to approved stories right (C3's quote rule now follows A4; C4's two modes; D3's three-book
+   fields; A1's calendar interface)?

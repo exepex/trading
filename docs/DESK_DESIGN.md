@@ -380,9 +380,9 @@ Trade-level proof takes many months; forecast scores measure reading the market,
 make books 2 and 3 moving targets (scored per version); Book 3's strategies cannot be tested on history; three books
 need three times the bookkeeping and a monthly AI budget.
 
-## 13. The end product: what "finished" means, how the owner sees it, where the AI runs (v2.3, proposed, revision 3)
+## 13. The end product: what "finished" means, how the owner sees it, where the AI runs (v2.3, revision 3, approved by the owner on 12 Oct 2026)
 
-Status: **proposed, revision 3 (12 Oct 2026), for owner approval.** Revision 1 (response 29) was reviewed in ChatGPT
+Status: **revision 3, approved by the owner on 12 Oct 2026** ("A, approve and write the full implementation plan"). Revision 1 (response 29) was reviewed in ChatGPT
 review 24, revision 2 (response 30) in review 25 (both agreed with changes); revision 3 applies review 25's four points
 (response 31), after which review 25 judged the design complete enough for the full implementation plan. Owner decisions (12 Oct 2026): web dashboard plus Slack; AI roles as cloud routines (D4
 runtime); **one shared dashboard repository** serving the stock tool and this tool on separate screens, with both
@@ -569,7 +569,7 @@ own design and approval.
 | 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
 | 10 Build order | Agreed | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
 | 12 Three paper strategies (v2.2) | Agreed after review 18 revisions (response 23) | Agreed (review 19) | Approved 12 Oct 2026 |
-| 13 End product, dashboard, data store, AI runtime (v2.3) | Revision 3 after reviews 24-25 (response 31) | Agreed with changes (reviews 24, 25); review 25: complete enough for the plan once its two should-fix points are applied (done in revision 3) | Decisions given 12 Oct 2026; revision 3 pending approval |
+| 13 End product, dashboard, data store, AI runtime (v2.3) | Revision 3 after reviews 24-25 (response 31) | Agreed with changes (reviews 24, 25); review 25: complete enough for the plan once its two should-fix points are applied (done in revision 3) | Approved 12 Oct 2026 (revision 3) |
 
 Both AIs agreed every section (ChatGPT review 11, Claude response 12). Review 11's clarifications (exact binomial
 figures, experiment-specific significance test, fuller stress scenarios) are folded into 3.5 and 8.1 without changing

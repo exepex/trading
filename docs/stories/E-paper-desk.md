@@ -1,132 +1,253 @@
-# Epic E: code-only daily paper desk
+# Epic E: the daily paper desk for three books
 
-Roles: head of desk (owner), F&O trader, risk manager, portfolio manager. Goal: paper-trade the first approved
-strategy every trading day at about 3 pm exactly as tested, with no AI (design sections 4 and 10 step 3). Template
-and shared definition of done: `docs/IMPLEMENTATION_PLAN.md`.
+Roles: head of desk, F&O trader, risk manager, portfolio manager, data engineer. Goal: every trading day at about
+15:00, each of the three books (12.1) decides independently on the same data, its decision is committed, and all
+timely decisions are filled by one fill model against one execution snapshot, each in its own paper account (design
+sections 4, 8, 9, 12.4-12.6, 13.5). Story template, definition of done and the full story index:
+`docs/IMPLEMENTATION_PLAN.md`.
 
----
-
-## E1. Daily 3 pm loop
-
-**User story:** As the owner, I want the desk to run every trading day at about 3 pm (check data, evaluate rules,
-check risk and validity, paper-fill, review open trades), so that the first approved strategy is paper-traded exactly
-as tested.
-
-**Background:** Owner decisions: decisions once a day at about 3 pm; holdings up to 2-3 weeks; paper account Rs 5 lakh.
-Design 2.2 and 8: fresh quote check before a fill; protection bought first and sold last.
-
-**Scope.** In: the daily sequence, paper fills, exits, scheduling. Out: real orders (never), intraday watching
-(later, only if proven useful).
-
-**Expected design:** `fno/desk/daily_loop.py` (`DailyDesk.run(now)`) composed in `fno/composition.py`: A4 snapshot,
-C3 data checks, D2 evaluation, C2 risk, C4 validity, paper fill, open-trade review, D3 records, E2 report.
-**Fill model (stated as a model, not a guaranteed fill):** a leg fills at the ask (buy) or bid (sell) of a valid quote
-taken within 2 minutes before the fill, only if the quote's size covers the lot; otherwise that leg does not fill.
-Legs are filled in order: protective legs first, then short legs; if a protective leg does not fill, nothing opens;
-if a short leg does not fill after the protection filled, the protective legs are sold back at their bids (legging
-cost recorded) and the trade is "not opened: partial fill". Exit: short legs bought back first, then protection sold;
-a leg without a valid quote becomes a **pending exit** with an alert, retried every 15 minutes until the close and the
-next day; never an invented price.
-**Scheduling:** one run per trading day, idempotent (a run id per day; a second start sees the completed run and
-does nothing); a crash mid-run resumes from the last completed step recorded in the D3 records.
-**Quote-age limit (review 15):** Groww quotes carry no quote timestamp, so a Groww book fetched within 2 minutes
-is not proof the exchange quote is 2 minutes old; every paper fill from Groww data carries `quote_age_unknown`
-unless a source with exchange quote timestamps is used.
-**Validation note:** the research tested next-day-close fills; this 15:00 desk is a different execution and is
-judged on its own forward paper record (E3), never assumed equal to the backtest.
-
-**Acceptance criteria:**
-1. Given any failed step, no new trade opens and the record states the failed step and reason; exits still run.
-2. Given a fill, each leg's price is the ask (buy) or bid (sell) of a valid quote at most 2 minutes old with enough
-   size, and the snapshot hash is in the record.
-3. Partial fill: a failed short leg after filled protection unwinds the protection and records the legging cost;
-   the trade does not open.
-4. Restart: killing the process after the paper fill and restarting the same day does not fill twice.
-5. Missing exit quotes produce a pending exit and an alert, never a closing price taken from stale or last data.
-6. Given a structure whose protective leg cannot be filled, the trade is not opened. If protection is absent or invalid
-   on an open position (e.g. a protective leg's contract unquotable), the desk blocks new risk, raises a critical
-   alert, marks the position `protection_unverified`, and attempts the risk-reducing exit at the next valid executable
-   quotes; the position is recorded closed only when every required exit fill is recorded. The end-to-end test
-   includes this case.
-7. Given an open trade reaching its exit rule, it is closed at the next valid quotes and recorded.
-8. The loop never calls an order function (test with a provider fake that fails on any order call).
-9. **One writer per paper account** (moved from E4 by the clean-slate design): every desk process takes an
-   account-scoped exclusive lock (an operating-system lock with a lease) before writing to a paper account. Tests:
-   two books started at the same moment both run (different accounts); two writers on one account: exactly one gets
-   the lock and the other exits without writing, so no fill is doubled; a lock left by a crashed process is released
-   only when its lease expires, never while its holder is alive; a restart after an interrupted write neither loses
-   nor repeats a fill.
-10. Fills use only validated `quote_book` bids and asks, never a last price or a slippage guess (negative test).
-
-**Test plan:** an end-to-end test over 5 simulated days with fakes (open, hold, exit, failed data day, brake day).
-
-**Judge verifies:** reads one week of records and checks each step ran in order with its numbers.
-
-**Depends:** C2, C3, C4, D1, D2, D3, A4 · **Size:** L · **Status:** later
+Book names used everywhere: `book1_rules` (pure rules), `book2_hybrid` (AI inside the authority envelope),
+`book3_ai` (fully AI under the constitution).
 
 ---
 
-## E2. Daily report
+## E1. Paper accounts per book, with a single-writer lock
 
-**User story:** As the owner, I want a daily #fno-desk message with the day's decision and each step's reason, so
-that I can follow and question the desk without reading code.
+**Repository:** trading
 
-**Background:** F&O output goes only to #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_*` settings; never #market-brief.
+**Description:** As the risk manager, I want each book to have its own Rs 5 lakh paper account that only one process
+can write at a time, so that books never share money, positions or results, and a restart or a second run can never
+double a fill.
 
-**Scope.** In: the message and its content. Out: AI commentary (F1).
+**Context and why:** Design 12.6: separate Rs 5 lakh paper accounts per book. Moved here from the removed story E4
+(clean-slate design, section 5): an operating-system lock with a lease per account, and safe restart. Three books, a
+scheduled run, manual runs and retries can otherwise write the same account at once.
 
-**Expected design:** `fno/desk/report.py` builds plain text: data status; rules checked and which fired; trade or no
-trade with reasons and numbers; open trades with P&L and days left; limits used (open trades out of 3, rupees at
-risk, distance to the drawdown brake).
+**Scope.** In: account files, positions, cash, closed and marked equity per book, the lock, restart. Out: deciding
+(E5, F5, F6), filling (E4), risk rules (C2).
+
+**Expected design:** `fno/books/account.py`: `PaperAccount(book)` stored under `journal/<book>/account/`
+(`positions.json`, `cash_ledger.csv` append-only, `equity_history.csv`); definitions as C2 (closed equity, marked
+equity, available cash). `fno/books/lock.py`: `AccountLock(book)` holding an exclusive operating-system lock on
+`journal/<book>/account/.lock` with a lease (holder, start, expiry) written inside; a lock is released on exit or when
+its lease expires and its holder process is gone; never while the holder is alive. Every write to an account goes
+through `with AccountLock(book):`.
 
 **Acceptance criteria:**
-1. The message is posted only to #fno-desk; a test asserts the channel ID and that `SLACK_*` variables are never read.
-2. A no-trade day still posts a message with the reasons.
-3. Numbers in the message equal the day's decision records.
+1. Each book starts at Rs 5,00,000 cash with no positions; the starting state is committed once.
+2. Two processes writing the same book at the same moment: exactly one gets the lock, the other exits without writing
+   (test with two processes).
+3. Two books written at the same moment both succeed (different locks).
+4. A lock left by a crashed process is released when its lease expires and its holder is gone; never while the holder
+   is alive (test).
+5. A restart after an interrupted write neither loses nor repeats a fill: writes are idempotent by fill ID (test kills
+   the writer mid-way and restarts).
+6. No code path lets one book read or write another book's account files (test: the account object refuses a path
+   outside its book).
 
-**Test plan:** message rendering tests from fixed records.
+**Test plan:** multi-process lock tests; crash and restart tests; idempotency tests.
 
-**Judge verifies:** compares one posted message with its records.
+**Judge verifies:** starts two writers on one book and two on different books; reads the results.
 
-**Depends:** E1 · **Size:** S · **Status:** later
+**Depends:** C1 · **Size:** M · **Status:** later
 
 ---
 
-## E3. Paper scorecard
+## E2. Common market pack and book-private packs
 
-**User story:** As the portfolio manager, I want each strategy measured against its own evaluation plan, so that
-pausing, keeping or retiring it follows rules fixed in advance, not mood.
+**Repository:** trading
 
-**Background:** Design 6: paper gate at least 3 months and 20 positions (a minimum, not proof); evaluation plan fixed
-before paper trading; hard-loss pauses at once, statistical reviews only on scheduled dates.
+**Description:** As the head of desk, I want the day's shared market data frozen in one hashed pack and each book's
+own state in a separate hashed pack, so that all books decide on identical market data and no book ever sees another
+book's positions, decisions or memory.
 
-**Scope.** In: scorecard, plan checks, three ledgers, fill comparison. Out: changing a strategy (needs a new version).
+**Context and why:** Design 13.5 steps 1-2 (ChatGPT review 24): the **common market pack** holds market observations
+(daily files, quotes, VIX), session and event data, the common opportunity set for scoreboard A, and each item's
+source and availability time, and **no** book's decisions, positions, P&L, findings or memory. A **book-private
+pack** holds that book's account, positions and open exits, its own past decisions, its frozen playbook and envelope
+(Book 2) or constitution and strategy registry (Book 3), and only the sources its version allows. Both hashes are in
+every decision (D3). Firewall: 12.6.
 
-**Expected design:** command `python -m fno desk scorecard` reading decision records and the playbook's evaluation
-plan; shows results against the expected range, three ledgers (C1), and real fill prices against the backtest's pad
-assumption.
+**Scope.** In: pack builders, schemas, hashing, commit, the common opportunity set. Out: the decisions (E5, F5, F6).
+
+**Expected design:** `fno/desk/packs.py`: `build_common_pack(day, cutoff) -> CommonPack` and
+`build_private_pack(book, day) -> PrivatePack`, written to `journal/packs/<date>/common.json` and
+`journal/<book>/packs/<date>/private.json` with SHA-256, then committed. **Common opportunity set:** every
+(approved strategy, expiry) eligible today under its playbook version, plus a "no trade" opportunity, computed by code
+from the playbooks (D1) so that all books are scored on the same set (S3). Source contract: each pack item lists its
+source and availability time; an item available after the cutoff is refused. A private pack contains only paths under
+`journal/<book>/`, `playbook/` (Book 2's own versions) or `book3/` (Book 3).
 
 **Acceptance criteria:**
-1. Given a hard-loss pause rule hit, the strategy's status becomes `paused` at once (no new trades) and the owner is
-   told.
-2. **Gate to any real-money discussion:** at least 3 months of paper trading **and** at least 20 completed positions
-   (closed, not open), judged only on the predetermined review dates; open positions at a review are reported
-   separately at their marks and do not count as completed; an inconclusive result is never promoted.
-3. Execution costs are measured from the paper record: average half-spread paid, legging costs, the share of attempted
-   trades that did not fill, and pending-exit delays, against the Rs 1 pad assumed in research.
-4. Given a review date, the scorecard compares results with the plan and states keep, pause or retire per the plan's
-   own rules.
-5. The fill comparison shows the average real half-spread against the Rs 1 pad used in research.
+1. The common pack contains no field from any `journal/<book>/` path (schema test plus a test that plants a position
+   and confirms it is absent).
+2. A private pack never contains another book's data (test for each pair of books).
+3. Building a pack twice from the same inputs gives byte-identical files and the same hash.
+4. An input with an availability time after the cutoff is refused with its name.
+5. The common opportunity set equals a hand computation on fixture playbooks and data.
+
+**Test plan:** schema tests; leak tests; determinism tests.
+
+**Judge verifies:** rebuilds one day's packs from committed inputs and compares hashes; greps the common pack for any
+book field.
+
+**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** later
+
+---
+
+## E3. Daily timetable: deadline, execution snapshot and exits
+
+**Repository:** trading
+
+**Description:** As the owner, I want one fixed daily timetable (packs, decisions, a hard decision deadline, one
+execution snapshot, fills, exits), so that a slow or failed book can never delay or change the others' fills, and
+every timely decision is filled against exactly the same quotes.
+
+**Context and why:** Design 13.5 steps 4-5 (ChatGPT review 24): a book without a committed valid decision by the
+deadline gets a committed "no decision (unavailable or late)" and cannot join later; the execution snapshot is taken at
+a fixed time whatever any book did; every timely decision is filled against the same snapshot identifier and hash; if
+the snapshot is invalid or incomplete, no book opens new risk unless the same retry for all books gives a valid one
+before the close; risk-reducing exits run independently (section 9). The 3 pm recorder (A4) already captures a
+canonical snapshot in 14:55-15:10.
+
+**Scope.** In: the timetable, the orchestrator, the deadline, the execution snapshot, no-decision records, the exit
+review, idempotent runs. Out: how each book decides (E5, F5, F6), the fill model itself (E4).
+
+**Expected design:** `fno/desk/timetable.py` with the frozen times in `config.yaml` `desk.timetable` (this story adds
+the key, with tests): pack build (about 14:58, after the canonical quote snapshot), decision deadline (proposed 15:12),
+execution snapshot (proposed 15:15, a second recorder capture with its own ID and hash, same A4 rules), fills by
+15:20, exit review, publication (P3). Times are calibrated from measured run times before the first counted day and
+frozen in the evaluation protocol (S1). `fno/desk/daily_run.py` (`DailyRun.run(day)`): idempotent per day (a run ID
+per day; a second start sees the completed steps and does nothing), each step recorded with its time. A decision
+committed after the deadline is ignored and a "no decision (late)" record is committed for that book.
+
+**Acceptance criteria:**
+1. Given a book that has not committed by the deadline, a "no decision (late)" record is committed for it, and the
+   other books' fills happen at the scheduled snapshot unchanged (test with a fake slow book).
+2. All timely decisions of a day reference the same execution snapshot ID and hash (test).
+3. Given an invalid or incomplete execution snapshot, no book opens new risk; the one common retry is attempted for
+   all books together; exits still run (test).
+4. Given a non-session day (A1 calendar), nothing runs and nothing fails.
+5. Restarting the run the same day after any step repeats nothing already done (test kills it after the fills).
+6. Every step's start and end time, inputs and result are written to `journal/runs/<date>.json` and committed.
+
+**Test plan:** an end-to-end test over 5 simulated days with fakes: normal day, slow book, failed snapshot, holiday,
+restart after fills.
+
+**Judge verifies:** reads one week of run files and checks the order of commits (decisions before the snapshot, the
+snapshot before fills).
+
+**Depends:** A4, A7, C3, D3, E1, E2, E4 · **Size:** L · **Status:** later
+
+---
+
+## E4. Fill model and exits
+
+**Repository:** trading
+
+**Description:** As the F&O trader, I want paper fills and exits priced only from valid quotes in the execution
+snapshot, protection first and last, with pending exits when quotes are missing, so that paper results are as close
+to real trading as the data allows and never use an invented price.
+
+**Context and why:** Design 6 (stale prices never fill), 8 (protection bought first and sold last; a missing
+protective leg means close; margin tracked apart), 12.6 (same fill model for all books). Groww gives no quote
+timestamp, so a fill from Groww data carries `quote_age_unknown` (A4). The research tested next-day-close fills; this
+15:00 desk is judged on its own forward record, never assumed equal to the backtest.
+
+**Scope.** In: entry fills, partial fills, exits, pending exits, legging cost, the fill record. Out: choosing what to
+trade (deciders), risk (C2).
+
+**Expected design:** `fno/desk/fills.py`: a leg fills at the ask (buy) or bid (sell) of a valid quote (A4 rule) in the
+execution snapshot, only if the quote's size covers the lots; otherwise it does not fill. Legs in order: protective
+legs first, then short legs; a protective leg that does not fill means nothing opens; a short leg that does not fill
+after the protection filled means the protection is sold back at its bid (legging cost recorded) and the trade is "not
+opened: partial fill". Exits: short legs bought back first, then protection sold; a leg without a valid quote becomes
+a **pending exit** with an alert, retried at the next scheduled snapshot; never a last or stale price. A position whose
+protection becomes unquotable is marked `protection_unverified`, blocks new risk for that book and is exited at the
+next valid quotes. Every fill row: book, decision ID, snapshot ID and hash, leg, side, price, size, charges (C1),
+`quote_age_unknown`.
+
+**Acceptance criteria:**
+1. Each fill price equals the snapshot's ask (buy) or bid (sell) for that leg, with the snapshot hash in the row.
+2. Partial fill: a failed short leg after filled protection unwinds the protection and records the legging cost; the
+   trade does not open.
+3. Missing exit quotes give a pending exit and an alert, never a fill from last or stale data.
+4. A position whose protective leg is unquotable is marked `protection_unverified`; that book opens no new risk until
+   it is resolved; it is recorded closed only when every exit fill is recorded.
+5. An exit rule reached closes the trade at the next valid quotes and records it.
+6. The fill code never calls an order function (test with a provider fake that fails on any order call).
+
+**Test plan:** unit tests per case with fixture snapshots.
+
+**Judge verifies:** recomputes one day's fills from its snapshot by hand.
+
+**Depends:** A4, C1, C2, E1 · **Size:** M · **Status:** later
+
+---
+
+## E5. Book 1: pure rules
+
+**Repository:** trading
+
+**Description:** As the owner, I want Book 1 to decide every day by code alone from its approved playbook strategies,
+so that the first scoreboard question, "do tested rules alone make net money forward?", is answered cleanly.
+
+**Context and why:** Design 12.1 and 12.9: Book 1 has no AI authority; any AI view is a shadow record only. Book 1
+trades once a strategy has passed the historical test (12.11) and is `paper` in the playbook. Its decision is D2's
+evaluation on the common and private packs.
+
+**Scope.** In: Book 1's decider, its decision records, its forecasts' source (G3 frozen method). Out: AI (none).
+
+**Expected design:** `fno/books/book1.py`: reads the two packs, runs D2 with C2 (Book 1's account) and C4 (playbook
+mode), writes the D3 record with `chosen_action = rule action`, commits before the deadline. With no `paper` strategy,
+it records "no approved strategy" each day (that is a result, not an error).
+
+**Acceptance criteria:**
+1. Book 1's decision equals D2's result on the same inputs (replay test on fixture days).
+2. No AI call is reachable from Book 1's code path (test with an AI fake that fails on any call).
+3. Without any `paper` strategy, each session day has a committed "no approved strategy" record.
+4. Book 1's records are committed before the deadline on every fixture day.
+
+**Test plan:** replay tests; the AI-fake test.
+
+**Judge verifies:** replays three Book-1 records.
+
+**Depends:** D2, D3, E2, E3 · **Size:** S · **Status:** later
+
+---
+
+## E6. Strategy paper scorecard and pause rules
+
+**Repository:** trading
+
+**Description:** As the portfolio manager, I want each paper strategy measured against its own evaluation plan, with
+hard-loss pauses at once and statistical reviews only on scheduled dates, so that keeping, pausing or retiring a
+strategy follows rules fixed in advance, not mood.
+
+**Context and why:** Design 6 (paper gate at least 3 months and 20 positions, a minimum, not proof; plan fixed before
+paper), 12.8 (no switch-off for statistical reasons before a scheduled review, except the brake, a strategy-level
+catastrophic loss rule and any data, integrity or safety failure). Execution costs must be measured from the record
+against the research pad.
+
+**Scope.** In: per-strategy scorecard per book, pause rules, measured execution costs. Out: the book-level scoreboards
+(S2, S3), changing a strategy (a new version).
+
+**Expected design:** command `python -m fno desk scorecard [--book] [--strategy]` reading decision records, fills and
+the playbook's evaluation plan; shows results against the expected range, the three ledgers (C1), the average
+half-spread paid, legging costs, the share of attempted trades that did not fill and pending-exit delays, against the
+Rs 1 pad used in research. Pause rules fire automatically and are recorded as a playbook status change (D1 registry).
+
+**Acceptance criteria:**
+1. Given a strategy's catastrophic-loss rule hit, its status becomes `paused` at once (no new trades in any book) and
+   the owner is alerted.
+2. Gate to any real-money discussion: at least 3 months and at least 20 completed positions, judged only on
+   predetermined review dates; open positions are reported at their marks and not counted; an inconclusive result is
+   never promoted.
+3. Execution costs measured from the record match a hand computation on fixture fills.
+4. On a review date, the scorecard states keep, pause or retire per the plan's own rules.
 
 **Test plan:** tests with simulated paper histories.
 
 **Judge verifies:** recomputes one scorecard number from the records.
 
-**Depends:** E1, C1 · **Size:** M · **Status:** later
-
----
-
-## E4 (removed)
-
-The old live desk was removed in the clean-slate cleanup (`docs/CLEAN_SLATE_DESIGN.md`), so nothing is left to
-separate. E4's per-account single-writer lock and restart rules moved to E1 criterion 9.
+**Depends:** C1, D1, E4 · **Size:** M · **Status:** later
