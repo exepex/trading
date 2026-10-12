@@ -21,4 +21,7 @@ Untouched checks still available: NIFTY 2019-2023 (older NSE files) and forward 
 
 | - | 2026-10-12 | review 10 | Correction, not a trial: realised volatility now counts all movement (not demeaned) | Average realised 11.9% -> 12.2%; trade P&Ls unchanged; the +2 variant now keeps 16 cycles (+Rs 2,26,128) | Fixed in desk.py |
 
-Total trials so far: 21 (count every new variant, threshold or filter here before reading its result).
+| 22-29 | 2026-10-12 | experiment 1 | Registered before results (protocol draft): P1-P8 (protected sell / buy / no trade by F1 volatility premium, F2 VIX level, F3 events), width rule for the Rs 10,000 cap | Pending | Discovery 2024-26 and challenge 2019-23 |
+| 30-31 | 2026-10-12 | experiment 1 | Controls C1 (coin toss) and C2 (opposite of P4) | Pending | Controls |
+
+Total trials so far: 31 (count every new variant, threshold or filter here before reading its result).

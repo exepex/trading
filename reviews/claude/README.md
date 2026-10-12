@@ -21,3 +21,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 10: review 10 accepted with partial pushbacks; design v2.1, discovery engine, portfolio risk](response_10_2026-10-12-desk-design-v2.md)
 - [Response 11: the three review 10 closure items are already in design v2.1 (checklist)](response_11_2026-10-12-closure-checklist.md)
 - [Response 12: review 11 sign-off acknowledged; design goes to the owner](response_12_2026-10-12-sign-off.md)
+- [Response 13: experiment 1 protocol for review, before 2019-2023 is read](response_13_2026-10-12-experiment-1-protocol.md)

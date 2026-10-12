@@ -47,8 +47,12 @@ Per cycle, one lot, 33 cycles (settlement price used for the rare option that di
 ### Risk manager: can the account survive it?
 - The unprotected straddle's worst month was -Rs 41,030: **20% of a Rs 2 lakh account in one trade**, and it needs
   margin well above Rs 2 lakh. **Rejected as is.**
-- Iron condors cap the loss. Their maximum possible loss per lot is roughly Rs 9,000-16,000 (2% short strikes), i.e.
-  4.5-8% of Rs 2 lakh: above any sensible per-trade limit for that account. They fit a Rs 5 lakh account at 2-3%.
+- Iron condors cap the loss, but the cap is (wing width - credit) x 65. **Correction (12 Oct 2026, experiment 1
+  protocol):** the figure first written here (Rs 9,000-16,000) was wrong. Measured per cycle, median maximum loss per
+  lot: short at the money with 300 / 500 wings Rs 2,135 / 6,074; 2% with 300 / 500 wings Rs 8,635 / 16,159; 3% with
+  300 / 500 wings Rs 11,157 / 20,196. Under the owner's Rs 10,000 cap, the best-looking variant (2% / 500, +Rs 69,026)
+  fits in only 1 of 33 months; the at-the-money ones fit every month. A few cycles show a credit larger than the
+  width, which is impossible in a real market: stale prices of untraded options.
 - **Reading:** the edge found needs either more capital or smaller exposure per trade (fewer contracts are not
   possible: one lot is the minimum). Capital and risk per trade are now the owner's key decision.
 
