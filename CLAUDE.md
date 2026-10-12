@@ -68,7 +68,11 @@ commit with `--no-verify`.
 
 - `python -m pytest -q`, `ruff check fno tests tools` and `python tools/check_imports.py` must pass before pushing code
   changes; format with `ruff format`.
-- No Python file or class over 350 lines.
+- **Engineering standards (owner, mandatory for every agent and every session):** SOLID, DRY, KISS and clean code
+  (clear names, small single-purpose functions and classes, no duplication, no dead code, comments only for the "why").
+  **No file and no class over 350 lines.** Anything that would pass 350 lines is broken down into smaller single-purpose
+  units, never squeezed (no long lines or joined statements to dodge the limit). Enforced by `tests/test_code_size.py`
+  and checked by the judge (`docs/JUDGE.md`).
 - Fixed strings, enum values and environment-variable names live in `fno/constants.py`; module-specific
   URLs, SQL and message templates are named constants at the top of their module.
 - Names say what things do. Small single-purpose modules; new behaviour goes in a new class behind an existing

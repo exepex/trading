@@ -14,7 +14,8 @@ its verdict. It trusts nothing it has not checked itself.
    credentials, network failure, time zones), money-safety rule breaks (anything that could enlarge a trade, bypass a
    limit or invent a price), look-ahead, secrets in files or logs, dead code, misleading docs, tests that pass
    without testing the claim.
-5. Check the project rules in `CLAUDE.md` and `AGENTS.md`.
+5. Check the project rules in `CLAUDE.md` and `AGENTS.md`, including the engineering standards: SOLID, DRY, KISS,
+   clean code, and no file or class over 350 lines (a breach is a should-fix finding at least).
 6. Verdict: PASS, or FAIL with numbered findings, each with severity (blocking / should fix / minor), evidence and
    the fix expected. A story passes only with no blocking and no should-fix findings left.
 

@@ -110,6 +110,8 @@ part of the same goal. Say which role a point comes from when it matters, and sa
 
 ## Code (when an agent changes code)
 
-Follow the code rules in `CLAUDE.md` ("Code" section): SOLID, KISS, DRY, small single-purpose modules, interfaces
+Follow the code rules in `CLAUDE.md` ("Code" section), mandatory for every agent: SOLID, DRY, KISS and clean code
+(clear names, small single-purpose functions and classes, no duplication, no dead code); no file and no class over
+350 lines (break it down, never squeeze it); small single-purpose modules, interfaces
 for anything that can be swapped (data sources, stores, rules), wiring only in the composition roots, tests and
-linting before pushing, no file over 350 lines.
+linting before pushing.
