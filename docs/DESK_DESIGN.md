@@ -255,11 +255,10 @@ Three NIFTY trades are close to one bet, so the account is checked as a whole be
    adds net value against the code-only desk.
 5. Intraday watching only if data shows it helps.
 
-## 12. Three paper strategies: pure rules, hybrid, fully AI (proposed v2.2, revised after review 18)
+## 12. Three paper strategies: pure rules, hybrid, fully AI (v2.2, approved by the owner on 12 Oct 2026)
 
-Status: **proposed by the owner on 12 Oct 2026; revised after ChatGPT review 18; agreed by both AIs (review 19)**, awaiting
-owner approval (answer:
-`reviews/claude/response_23_2026-10-12-review-18.md`); not part of the approved v2.1 until agreed and approved. Owner's
+Status: **approved by the owner on 12 Oct 2026** after ChatGPT reviews 18-19 (answer:
+`reviews/claude/response_23_2026-10-12-review-18.md`); now part of the approved design (v2.2). Owner's
 aim: "we do not know whether AI or rules are smarter ... prove both, find where each is lacking, and get the best of
 both", working as a team of roles. This section supersedes the D1/D2 recommendations in
 `docs/AI_PLAN_REEVALUATION.md` for the three books (12.9).
@@ -316,6 +315,9 @@ and horizon, no prohibited structure). The quality of Book 3's thesis is judge a
 - **Scoreboard B, whole systems (which complete system made more net paper money?):** each book's real paper account
   under its own permitted universe and the same owner risk budget.
 - The two are never merged into one "AI beats rules" claim.
+- **Owner's requirement (approval, 12 Oct 2026): all three books appear on both scoreboards, with every detail**, so the
+  strategies can be compared from every angle: scoreboard A for all three (Book 3 through its matched shadow
+  decisions) and scoreboard B for all three, each with the full reporting below and the daily forecast scores.
 - Reported for both: raw account net, net per unit of risk used (maximum loss, stress usage, margin-days), trades,
   gross, execution costs, AI and data costs, net, and each version segment separately.
 
@@ -394,7 +396,7 @@ need three times the bookkeeping and a monthly AI budget.
 | 8.1 Portfolio risk | Agreed (covered by section 8) | Agreed as research framework; proposed thresholds require calibration (review 11) | Approved 12 Oct 2026 |
 | 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
 | 10 Build order | Agreed | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
-| 12 Three paper strategies (proposed v2.2) | Agreed after review 18 revisions (response 23) | Agreed (review 19) | Awaiting owner approval |
+| 12 Three paper strategies (v2.2) | Agreed after review 18 revisions (response 23) | Agreed (review 19) | Approved 12 Oct 2026 |
 
 Both AIs agreed every section (ChatGPT review 11, Claude response 12). Review 11's clarifications (exact binomial
 figures, experiment-specific significance test, fuller stress scenarios) are folded into 3.5 and 8.1 without changing
