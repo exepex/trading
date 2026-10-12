@@ -1,0 +1,22 @@
+{
+ "complete": true,
+ "csv_sha256": "0767e73254972435f12fda303343e82a4c276eb84c217745c00277436fa8c744",
+ "expected_contracts": 12,
+ "expiries": [
+  "2026-10-27",
+  "2026-11-24"
+ ],
+ "expiry_source": {
+  "source": "fake"
+ },
+ "failures": [],
+ "finished_at": "2026-10-13T14:55:28+05:30",
+ "in_window": true,
+ "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
+ "provider": "fake",
+ "recorded_contracts": 12,
+ "snapshot_id": "nifty_20261013_145503",
+ "spot": 22000.0,
+ "started_at": "2026-10-13T14:55:03+05:30",
+ "underlying": "NIFTY"
+}

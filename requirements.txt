@@ -1,9 +1,5 @@
 requests>=2.31
 PyYAML>=6.0
 pytest>=8.0
-duckdb==1.5.6       # same version as the market-brief tool's MotherDuck extension
-pytz>=2024.1        # duckdb needs it for time zones
-Pillow>=10.0
 google-auth>=2.35       # raw-file archive on Google Drive (service account); used only when configured
-psutil>=5.9          # cross-platform process checks for the desk watchdog
-# Groww Trade API: requirements-groww.txt (installed by deploy/setup.py on the desk's PC)
+# Groww Trade API (market data only): requirements-groww.txt

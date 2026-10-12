@@ -20,10 +20,5 @@ def test_greeks_signs():
     assert -0.6 < g.delta < -0.4 and g.gamma > 0 and g.theta < 0 and g.vega > 0
 
 
-def test_rsi_extremes():
-    assert an.rsi(list(range(1, 40))) == 100.0
-    assert an.rsi(list(range(40, 1, -1))) < 1
-
-
 def test_historical_vol_flat_series_is_zero():
     assert an.historical_vol([100.0] * 30) == 0.0

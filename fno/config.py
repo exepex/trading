@@ -1,4 +1,4 @@
-"""Configuration loading with defaults merged from config.yaml."""
+"""Settings: the app's `config.yaml` (checked against the allowed keys) and plain reading of frozen research inputs."""
 
 from __future__ import annotations
 
@@ -11,6 +11,13 @@ import yaml
 ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_CONFIG_PATH = ROOT / "config.yaml"
 
+# Top-level keys the app's config.yaml may hold. A story that adds a setting adds its key here, with a test.
+ALLOWED_APP_KEYS = frozenset({"provider", "quotes", "underlyings", "lot_sizes", "charges", "slack", "risk_free_rate"})
+
+
+class ConfigError(ValueError):
+    """The app's settings file holds a key the app does not use (often one left from the removed old desk)."""
+
 
 def _merge(base: dict, override: dict) -> dict:
     out = copy.deepcopy(base)
@@ -22,19 +29,22 @@ def _merge(base: dict, override: dict) -> dict:
     return out
 
 
-PROFILE_KEY = "profile"
-PROFILES_KEY = "profiles"
-
-
 def load_config(path: str | Path | None = None, overrides: dict[str, Any] | None = None) -> dict:
-    """config.yaml, then the active profile's overrides (e.g. `paper` or `live`), then any explicit overrides."""
+    """A settings file as written, then any explicit overrides. No key check: research studies use this to read their
+    own frozen input copies, which keep the keys of their time."""
     path = Path(path) if path else DEFAULT_CONFIG_PATH
     with open(path, encoding="utf-8") as fh:
         cfg = yaml.safe_load(fh) or {}
-    profiles = cfg.pop(PROFILES_KEY, {}) or {}
-    active = (overrides or {}).get(PROFILE_KEY) or cfg.get(PROFILE_KEY)
-    if active and active not in profiles:
-        raise ValueError(f"Unknown profile '{active}'. Known: {', '.join(sorted(profiles)) or 'none'}")
-    if active:
-        cfg = _merge(cfg, profiles[active])
     return _merge(cfg, overrides or {})
+
+
+def load_app_config(path: str | Path | None = None, overrides: dict[str, Any] | None = None) -> dict:
+    """The app's settings: like `load_config`, but any top-level key outside `ALLOWED_APP_KEYS` is an error, so a
+    stale or misspelt setting is never silently ignored."""
+    cfg = load_config(path, overrides)
+    unknown = sorted(set(cfg) - ALLOWED_APP_KEYS)
+    if unknown:
+        raise ConfigError(
+            f"Unknown setting(s) in config.yaml: {', '.join(unknown)}. Allowed: {sorted(ALLOWED_APP_KEYS)}"
+        )
+    return cfg

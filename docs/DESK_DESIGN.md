@@ -213,7 +213,7 @@ exits; expected net value and adverse scenarios; account room and the no-trade o
   Rs 30,000 below the equity on the restart day (recorded). Worst case basis: from the closed-equity high point, with
   every open trade fully protected and capped, about Rs 60,000 (Rs 30,000 + 3 x Rs 10,000), 12%; not a monthly bound
   and not a bound if protection or funding breaks. Marked account value and open exposure are always shown too.
-  (Today's old live desk closes all trades when its kill switch fires; the new desk follows this rule.)
+  (The removed old desk closed all trades when its kill switch fired; the new desk follows this rule.)
 - Protection bought first and sold last; a missing protective leg means close. Margin is tracked apart from loss.
 
 ### 8.1 Portfolio risk: the whole account, not just each trade (risk manager, code)
@@ -260,8 +260,8 @@ Three NIFTY trades are close to one bet, so the account is checked as a whole be
 Status: **approved by the owner on 12 Oct 2026** after ChatGPT reviews 18-19 (answer:
 `reviews/claude/response_23_2026-10-12-review-18.md`); now part of the approved design (v2.2). Owner's
 aim: "we do not know whether AI or rules are smarter ... prove both, find where each is lacking, and get the best of
-both", working as a team of roles. This section supersedes the D1/D2 recommendations in
-`docs/AI_PLAN_REEVALUATION.md` for the three books (12.9).
+both", working as a team of roles. This section supersedes the D1/D2 recommendations of the
+old AI-plan re-evaluation (removed in the clean-slate cleanup; in git history) for the three books (12.9).
 
 ### 12.1 The three books and the questions they answer
 | | Book 1: pure rules | Book 2: hybrid | Book 3: fully AI |
@@ -322,7 +322,7 @@ and horizon, no prohibited structure). The quality of Book 3's thesis is judge a
   gross, execution costs, AI and data costs, net, and each version segment separately.
 
 ### 12.6 Fairness controls
-- Separate Rs 5 lakh paper accounts per book (E4's lock is per account); same quotes (A4), fill model (E1), charges
+- Separate Rs 5 lakh paper accounts per book (a per-account single-writer lock, story E1 criterion 9); same quotes (A4), fill model (E1), charges
   (C1) and decision time.
 - **Common start:** the head-to-head trade comparison starts on a predeclared date when all three books can trade.
   Book 3's earlier trades are kept and reported as **Book-3 pilot evidence**, never as head-to-head evidence. Cash held

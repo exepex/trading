@@ -1,11 +1,6 @@
-from datetime import date
-
 import pytest
 
-from fno.config import load_config
 from fno.http_pacing import RequestPacer, SourceCoolingOff
-from fno.providers.cached import CachedProvider
-from fno.providers.sample import SampleProvider
 
 
 class FakeClock:
@@ -44,24 +39,3 @@ def test_two_refusals_in_a_row_pause_the_host():
         p.wait_turn("nse")
     clock.now += 901
     p.wait_turn("nse")
-
-
-class CountingSample(SampleProvider):
-    calls = 0
-
-    def chain(self, underlying, expiry):
-        self.calls += 1
-        return super().chain(underlying, expiry)
-
-
-def test_one_chain_fetch_serves_every_reader_until_it_is_stale():
-    clock = FakeClock()
-    inner = CountingSample(load_config())
-    cached = CachedProvider(inner, chain_max_age_seconds=50, clock=clock)
-    expiry = date(2026, 10, 27)
-    for _ in range(4):
-        cached.chain("NIFTY", expiry)
-    assert inner.calls == 1
-    clock.now = 51
-    cached.chain("NIFTY", expiry)
-    assert inner.calls == 2

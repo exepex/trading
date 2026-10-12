@@ -1,4 +1,4 @@
-# Groww Trade API, market data only. Installed on the desk's PC by deploy/setup.py.
+# Groww Trade API, market data only (the tool never places orders).
 # Kept apart from requirements.txt: two of its old dependencies fail to build in some cloud containers.
 growwapi>=1.5
 pyotp>=2.9

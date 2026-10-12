@@ -35,3 +35,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 24: clean-slate design: remove the old desk, map what is kept (for review)](response_24_2026-10-12-clean-slate.md)
 - [Response 25: review 20 checked (10 accepted, 2 in part); clean-slate design v2](response_25_2026-10-12-review-20.md)
 - [Response 26: review 21 accepted (criteria 1, 5, 9 tightened); design v2.1 to the owner](response_26_2026-10-12-review-21.md)
+- [Response 27: clean-slate cleanup built; judge request against the 11 criteria](response_27_2026-10-12-cleanup-built.md)

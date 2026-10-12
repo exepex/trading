@@ -18,7 +18,7 @@ Design 2.2 and 8: fresh quote check before a fill; protection bought first and s
 **Scope.** In: the daily sequence, paper fills, exits, scheduling. Out: real orders (never), intraday watching
 (later, only if proven useful).
 
-**Expected design:** `fno/desk/daily_loop.py` (`DailyDesk.run(now)`) composed in `fno/live/services.py`: A4 snapshot,
+**Expected design:** `fno/desk/daily_loop.py` (`DailyDesk.run(now)`) composed in `fno/composition.py`: A4 snapshot,
 C3 data checks, D2 evaluation, C2 risk, C4 validity, paper fill, open-trade review, D3 records, E2 report.
 **Fill model (stated as a model, not a guaranteed fill):** a leg fills at the ask (buy) or bid (sell) of a valid quote
 taken within 2 minutes before the fill, only if the quote's size covers the lot; otherwise that leg does not fill.
@@ -50,6 +50,13 @@ judged on its own forward paper record (E3), never assumed equal to the backtest
    includes this case.
 7. Given an open trade reaching its exit rule, it is closed at the next valid quotes and recorded.
 8. The loop never calls an order function (test with a provider fake that fails on any order call).
+9. **One writer per paper account** (moved from E4 by the clean-slate design): every desk process takes an
+   account-scoped exclusive lock (an operating-system lock with a lease) before writing to a paper account. Tests:
+   two books started at the same moment both run (different accounts); two writers on one account: exactly one gets
+   the lock and the other exits without writing, so no fill is doubled; a lock left by a crashed process is released
+   only when its lease expires, never while its holder is alive; a restart after an interrupted write neither loses
+   nor repeats a fill.
+10. Fills use only validated `quote_book` bids and asks, never a last price or a slippage guess (negative test).
 
 **Test plan:** an end-to-end test over 5 simulated days with fakes (open, hold, exit, failed data day, brake day).
 
@@ -119,41 +126,7 @@ assumption.
 
 ---
 
-## E4. Retire or separate the old live desk
+## E4 (removed)
 
-**User story:** As the risk manager, I want the old intraday desk (whose kill switch closes all trades) switched off
-or clearly separated, so that two desks never trade the same paper account under different rules.
-
-**Background:** The old live desk (`fno/live/runner.py`) uses chart-rule option buying with a kill switch that closes
-everything; the approved design's brake blocks entries only. A deployment watchdog restarts it; the 9:25 brief
-publishes its actionable "Top setup". Owner decisions D3, D6 and D7 (`docs/AI_PLAN_REEVALUATION.md`) set what stays
-legacy-only. Extended after ChatGPT review 17 (G4 folded in).
-
-**Scope.** In: one active desk per paper account; README status. Out: deleting old code (kept for reference).
-
-**Expected design:** a setting `desk.active` in `config.yaml` (`daily_paper_desk` or `old_live_desk`); each desk
-refuses to run when it is not the active one; separate journals. Because a setting cannot stop two processes started
-at once, every desk must also take an **account-scoped single-writer lock** (an exclusive lock file
-`journal/paper_account.lock` held with an operating-system lock and a lease time) before writing to the paper
-account; a second process fails at start.
-
-**Acceptance criteria:**
-1. With `desk.active: daily_paper_desk`, the old runner exits at start with a clear message; and the reverse.
-2. Two desk processes started at the same moment: exactly one gets the lock; the other exits without writing (test).
-3. A lock left by a crashed process is released when its lease expires, never while its holder is alive.
-4. The README states which desk is active and why.
-5. Legacy outputs (the old brief, news and trade records) use an explicitly legacy label, channel and path; nothing
-   legacy is presented as the active desk's output.
-6. The inactive legacy orchestration (the deployment watchdog's `ensure-running`, `fno live run`) cannot start or
-   change the active paper account (test with the watchdog started while the new desk is active).
-7. The 9:25 brief does not publish actionable old-strategy candidates (top setup, legs, size, `paper open`) as if
-   they belonged to the active daily desk: per owner decision D3 it either stops or becomes legacy-only output
-   without those instructions.
-8. Old wave-0 money rules and the old shadow book act only on the legacy desk (owner decisions D6, D7); a test proves
-   none of them can block, size or close a new-desk trade.
-
-**Test plan:** unit tests for both settings.
-
-**Judge verifies:** tries to start the inactive desk and confirms the refusal.
-
-**Depends:** E1 · **Size:** S · **Status:** later
+The old live desk was removed in the clean-slate cleanup (`docs/CLEAN_SLATE_DESIGN.md`), so nothing is left to
+separate. E4's per-account single-writer lock and restart rules moved to E1 criterion 9.

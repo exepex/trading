@@ -16,7 +16,7 @@ The owner started development on 12 Oct 2026; the AI layer (epic F) stays on hol
 - **depends, size, status**. Sizes: S = under a day, M = 1-3 days, L = more.
 
 **Definition of done (every story, in addition to its own criteria):** tests and `ruff` pass; no file or class over
-350 lines; new behaviour behind an interface, concrete classes wired only in `fno/live/services.py` or
+350 lines; new behaviour behind an interface, concrete classes wired only in `fno/composition.py` or
 `fno/storage/wiring.py`; fixed strings in `fno/constants.py`; docs updated; any research trial registered in
 `research/LEDGER.md` before its result is read; the other AI reviews the result in the repository.
 
@@ -25,7 +25,7 @@ The owner started development on 12 Oct 2026; the AI layer (epic F) stays on hol
 |---|---|---|
 | M1 Data and first experiment | A1-A6, B1-B5, C1 | Experiment 1 run on 2024-26 (discovery) and 2019-23 (challenge) with the frozen protocol |
 | M2 Risk, playbook, validity | C2-C4, D1-D3 | A strategy that passed can be written as a playbook version and checked by code |
-| M3 Code-only paper desk | E1-E4 | Daily 3 pm paper decisions on the first approved strategy, no AI |
+| M3 Code-only paper desk | E1-E3 | Daily 3 pm paper decisions on the first approved strategy, no AI |
 | M4 AI layer (on hold) | F1-F5 | Only after the owner starts it; each role kept only if it adds net value |
 
 Start now (review 12): **A4** (record real 3 pm quotes; only time builds that history) and **B4** (ledger guard), alongside
@@ -65,7 +65,6 @@ before C4 (C4 checks the decision record).
 | [E1](stories/E-paper-desk.md#e1-daily-3-pm-loop) | Daily 3 pm loop | C2, C3, C4, D1, D2, D3, A4 | L | later |
 | [E2](stories/E-paper-desk.md#e2-daily-report) | Daily report | E1 | S | later |
 | [E3](stories/E-paper-desk.md#e3-paper-scorecard) | Paper scorecard | E1, C1 | M | later |
-| [E4](stories/E-paper-desk.md#e4-retire-or-separate-the-old-live-desk) | Retire or separate the old live desk | E1 | S | later |
 | [F1](stories/F-ai-layer.md#f1-role-agents) | Role agents | E1 | L | on hold |
 | [F2](stories/F-ai-layer.md#f2-red-team) | Red team | F1 | M | on hold |
 | [F3](stories/F-ai-layer.md#f3-ai-judge-parts-2-and-3) | AI judge (parts 2 and 3) | C4, F1 | M | on hold |

@@ -1,0 +1,35 @@
+{
+ "complete": false,
+ "csv_sha256": "41e5960c099ccbdb5a3d3dfc38dfe9ff895a07654ac816ec387976a2cf03693c",
+ "expected_contracts": 12,
+ "expiries": [
+  "2026-10-27",
+  "2026-11-24"
+ ],
+ "expiry_source": {
+  "source": "fake"
+ },
+ "failures": [
+  "2026-10-27 21000 CE: ConnectionError: dropped",
+  "2026-10-27 21000 PE: ConnectionError: dropped",
+  "2026-10-27 22000 CE: ConnectionError: dropped",
+  "2026-10-27 22000 PE: ConnectionError: dropped",
+  "2026-10-27 23000 CE: ConnectionError: dropped",
+  "2026-10-27 23000 PE: ConnectionError: dropped",
+  "2026-11-24 21000 CE: ConnectionError: dropped",
+  "2026-11-24 21000 PE: ConnectionError: dropped",
+  "2026-11-24 22000 CE: ConnectionError: dropped",
+  "2026-11-24 22000 PE: ConnectionError: dropped",
+  "2026-11-24 23000 CE: ConnectionError: dropped",
+  "2026-11-24 23000 PE: ConnectionError: dropped"
+ ],
+ "finished_at": "2026-10-13T15:09:46+05:30",
+ "in_window": true,
+ "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
+ "provider": "fake",
+ "recorded_contracts": 0,
+ "snapshot_id": "nifty_20261013_150933",
+ "spot": 22000.0,
+ "started_at": "2026-10-13T15:09:33+05:30",
+ "underlying": "NIFTY"
+}

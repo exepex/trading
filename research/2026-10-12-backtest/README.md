@@ -11,6 +11,19 @@ review 2, section 2). No network access and no orders.
 | `inputs/lot_sizes.json` | Lot sizes used | `b4d05c83...f55669` |
 | `inputs/config.yaml` | The configuration used (charges, exits, cooldowns, rules) | `cc6d55bd...b14742` |
 
+## Archival since 12 Oct 2026 (clean-slate cleanup)
+
+`replay.py` drives the old intraday desk, which was removed from `main` (`docs/CLEAN_SLATE_DESIGN.md`). It runs only
+at the last commit before the removal, in a separate folder:
+
+```
+git worktree add ../trading-legacy 184ff7e9acca6fd1b47598f69fbac5bb1b3b5914
+cd ../trading-legacy && python research/2026-10-12-backtest/replay.py
+```
+
+Its test (`tests/research/test_opening_bridges.py`) lives at that commit too. `cost_table.py` still runs on `main`.
+The results below were produced by these scripts and are unchanged.
+
 ## Commands (from the repository root)
 
 ```

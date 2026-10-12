@@ -1,6 +1,6 @@
 # Clean slate: what the new system keeps, and what of the old system is removed
 
-Status: **v2.1, agreed by ChatGPT (review 21) with three gate wordings applied; awaiting owner approval** (12 Oct 2026). v1 request: `reviews/claude/response_24_2026-10-12-clean-slate.md`;
+Status: **v2.1, agreed by ChatGPT (review 21); approved by the owner and built 12 Oct 2026** (see section 9). v1 request: `reviews/claude/response_24_2026-10-12-clean-slate.md`;
 review: `reviews/chatgpt/review_20_2026-10-12-clean-slate.md`; this revision: `reviews/claude/response_25_2026-10-12-review-20.md`.
 Nothing is removed until ChatGPT agrees and the owner approves. After approval: one cleanup commit, then a rewritten
 implementation plan, regenerated stories, old issues #3-#21 closed as replaced and a clean issue set created.
@@ -203,6 +203,21 @@ the exact command `git worktree add ../trading-legacy <hash>` to run the old rep
 ChatGPT review 21: AGREED WITH CHANGES, no blockers; its three gate wordings are applied above (criteria 1, 5, 9).
 Owner approval authorises this design, not a blind deletion: the cleanup commit is accepted only when all 11 criteria
 pass and the judge confirms them. The 3 pm routine stays enabled throughout; recorded data is never changed.
+
+## 9. As built (12 Oct 2026): differences from the text above, each with its reason
+
+1. `parse_groww_book` removed, not moved to the Groww tests: its only caller was `Provider.live_quote`, removed per
+   review 20 finding 5, so it became dead code. `parse_groww_quote_book` (used by `quote_book`) stays, with its tests.
+2. `Direction` removed from `fno/constants.py`: its only remaining user is the archival replay.
+3. Settings: `load_config` stays a plain reader, because research studies read their own frozen settings copies
+   (`research/2026-10-12-backtest/inputs/config.yaml`) that keep the old keys; changing those files would break
+   criterion 8. The app reads `config.yaml` through the new strict `load_app_config` (criterion 5). Checked: the old
+   profiles never touched `charges`, and `cost_table.py` re-runs with byte-identical output.
+4. `tests/research/test_opening_bridges.py` removed with the archive: it executes `replay.py`. It runs at the pinned
+   commit (backtest README).
+5. `tests/conftest.py` now protects `research/data/` and `journal/` from writes by tests.
+6. Recorder baseline: the four scenarios' output files from the pre-cleanup recorder are committed in
+   `tests/fixtures/quote_recorder_golden/`; `tests/quotes/test_recorder_baseline.py` requires identical bytes.
 
 ## Appendix A. Every old code file and its verdict
 

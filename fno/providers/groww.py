@@ -15,7 +15,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 
 from ..constants import ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY, ENV_GROWW_API_SECRET, ENV_GROWW_TOTP_SECRET
@@ -76,17 +75,6 @@ def parse_groww_chain(
         quotes=quotes,
         source="groww",
     )
-
-
-def parse_groww_book(quote: dict) -> tuple[float | None, float | None]:
-    """Best bid and ask from a Groww quote: its bid/offer fields, else the top of its market depth."""
-    bid, ask = quote.get("bid_price"), quote.get("offer_price")
-    depth = quote.get("depth") or {}
-    if not bid and depth.get("buy"):
-        bid = depth["buy"][0].get("price")
-    if not ask and depth.get("sell"):
-        ask = depth["sell"][0].get("price")
-    return (float(bid) if bid else None), (float(ask) if ask else None)
 
 
 def parse_groww_quote_book(symbol: str, payload: dict) -> QuoteBook:
@@ -183,16 +171,6 @@ class GrowwProvider(Provider):
             exchange=self.api.EXCHANGE_NSE, underlying=underlying.upper(), expiry_date=expiry.isoformat()
         )
         return parse_groww_chain(resp, underlying, expiry, self.fallback_lot_size(underlying))
-
-    def live_quote(self, chain: OptionChain, strike: float, kind: str) -> OptionQuote | None:
-        leg = chain.get(strike, kind)
-        if leg is None or not leg.symbol:
-            return None
-        resp = self.api.get_quote(
-            trading_symbol=leg.symbol, exchange=self.api.EXCHANGE_NSE, segment=self.api.SEGMENT_FNO
-        )
-        bid, ask = parse_groww_book(_payload(resp))
-        return replace(leg, bid=bid, ask=ask) if bid and ask else None
 
     def quote_book(self, chain: OptionChain, strike: float, kind: str) -> QuoteBook | None:
         leg = chain.get(strike, kind)

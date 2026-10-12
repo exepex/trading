@@ -137,35 +137,6 @@ def straddle_expected_move(chain: OptionChain) -> float | None:
 # ---------------------------------------------------------------- price history
 
 
-def ema(values: list[float], period: int) -> list[float]:
-    if not values:
-        return []
-    k = 2 / (period + 1)
-    out = [values[0]]
-    for v in values[1:]:
-        out.append(v * k + out[-1] * (1 - k))
-    return out
-
-
-def rsi(values: list[float], period: int = 14) -> float | None:
-    if len(values) <= period:
-        return None
-    gains, losses = 0.0, 0.0
-    for a, b in zip(values[:period], values[1 : period + 1]):
-        d = b - a
-        gains += max(d, 0)
-        losses += max(-d, 0)
-    avg_gain, avg_loss = gains / period, losses / period
-    for a, b in zip(values[period:], values[period + 1 :]):
-        d = b - a
-        avg_gain = (avg_gain * (period - 1) + max(d, 0)) / period
-        avg_loss = (avg_loss * (period - 1) + max(-d, 0)) / period
-    if avg_loss == 0:
-        return 100.0
-    rs = avg_gain / avg_loss
-    return 100 - 100 / (1 + rs)
-
-
 def historical_vol(values: list[float], window: int = 20) -> float | None:
     """Annualised close-to-close volatility over the last `window` returns."""
     if len(values) <= window:

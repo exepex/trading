@@ -53,49 +53,25 @@ orders.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day", post one line to
    #fno-desk (`C0C89E8QCCD`) with the result, and note it in `conversations/<date>.md`.
 
-## Daily market brief (weekday routine)
-
-1. `pip install -q -r requirements.txt`
-2. `python -m fno daily`: re-prices paper trades and writes, under `reports/`:
-   `<date>-brief.md`, `<date>-brief.html` (full page), `<date>-page.html` (Artifact body),
-   `<date>-brief-NofM.png` (report split into phone-sized page images), `<date>-slack.md`, `<date>-candidates.json`.
-3. Update the web version: read the Artifact https://claude.ai/artifact/8tokXxQfSPnB3DxMpkYpXX
-   (`action: "read"`), then publish `reports/<date>-page.html` to it with `url` set to that link.
-   If the Artifact tool is unavailable, skip this step and say so in the log.
-4. Post to Slack channel `#fno-desk` (ID `C0C89E8QCCD`). Never post F&O output to `#market-brief`: that
-   channel belongs to the separate market-brief tool, and its `SLACK_*` variables must not be used here.
-   - If `FNO_SLACK_BOT_TOKEN` is set: `python -m fno notify` (one message: the text of
-     `reports/<date>-slack.md`, the web-version link and all page images).
-   - Otherwise use the Slack connector: upload the page images (`reports/<date>-brief-NofM.png`) to
-     `C0C89E8QCCD`, page 1 with the Slack text plus "Interactive web version: <artifact link>" as its message,
-     then the rest with short captions. Two-step upload: get upload URL, POST the bytes with
-     Content-Type image/png, complete with the channel ID.
-   Never upload the .html file to Slack: Slack shows HTML as code.
-5. Append a short entry to `conversations/<date>.md` (create it if needed): time, top setup or "no trade",
-   any paper-trade exits, the Slack links, and any errors.
-6. Commit `reports/` (PNG files are git-ignored), `journal/` and `conversations/` and push.
-
-If NSE data fails, still post a short Slack message saying the brief could not be generated and why.
-If the data timestamp is not today (holiday or weekend), post the brief anyway; it marks the data as stale.
-
 ## Branch
 
-Until PR exepex/trading#1 is merged, code and daily files live on branch `claude/beautiful-pascal-566jb5`.
-After it is merged, use `main`.
+Work on `main` (`git pull --no-rebase origin main` before every push: ChatGPT also pushes to `main`).
 
 ## Code
 
-- `python -m pytest -q` and `ruff check fno tests` must pass before pushing code changes; format with `ruff format`.
-- No Python file or class over 350 lines (the self-contained HTML report template `fno/html_report.py` is exempt).
+- `python -m pytest -q`, `ruff check fno tests tools` and `python tools/check_imports.py` must pass before pushing code
+  changes; format with `ruff format`.
+- No Python file or class over 350 lines.
 - Fixed strings, enum values and environment-variable names live in `fno/constants.py`; module-specific
   URLs, SQL and message templates are named constants at the top of their module.
 - Names say what things do. Small single-purpose modules; new behaviour goes in a new class behind an existing
-  interface (`SignalRule`, `GuardRule`, `IntradayPriceFeed`, `Provider`, `RawFileStore`, `RawFileSource`,
-  `FoFileFormat`) rather than
-  into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
-- Concrete classes are wired together only in the composition roots: `fno/live/services.py` (the desk, backtest,
-  news) and `fno/storage/wiring.py` (raw data stores and sources).
-- The live desk never places real orders. The stock tool's research is read-only: never write to its repository
-  or to its `market_brief` MotherDuck database. GitHub files are the default store for research input and
-  results; MotherDuck is an optional trial using the shared `MOTHERDUCK_TOKEN` (no new variables).
-- Settings live in `config.yaml`; see README.md for the layout.
+  interface (`Provider`, `RawFileStore`, `RawFileSource`, `FoFileFormat`, `ListedExpiries`, and those the stories add)
+  rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
+- Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services) and
+  `fno/storage/wiring.py` (raw data stores and sources).
+- Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
+  repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
+  and results.
+- F&O output goes only to Slack #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_BOT_TOKEN`; never the market-brief tool's
+  `SLACK_*` variables or #market-brief.
+- Settings live in `config.yaml` (allowed keys only, see `fno/config.py`); see README.md for the layout.

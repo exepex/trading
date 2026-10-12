@@ -42,13 +42,6 @@ class OptionQuote:
             return None
         return (self.ask - self.bid) / self.mid * 100
 
-    def fill_price(self, side: str, slippage_pct: float = 0.5) -> float:
-        """Conservative fill: buy at ask, sell at bid; LTP +/- slippage if no book."""
-        if self.has_book:
-            return self.ask if side == "buy" else self.bid
-        adj = self.ltp * slippage_pct / 100
-        return self.ltp + adj if side == "buy" else max(self.ltp - adj, 0.05)
-
 
 @dataclass(frozen=True)
 class QuoteBook:

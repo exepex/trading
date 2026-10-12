@@ -159,11 +159,11 @@ starts before anything else needs it.
 storage, a spread report. Out: order placement (never), other underlyings, intraday series.
 
 **Expected design:**
-- Class `QuoteSnapshotRecorder` in `fno/live/quote_recorder.py` using the existing `Provider` interface (`chain`,
-  `live_quote`); provider chosen in `fno/live/services.py` (Groww when its credentials are in the environment, else
-  NSE's public chain).
-- Command `python -m fno quotes record` and a scheduled run near 15:00 IST on trading days (same scheduling mechanism
-  as the daily brief).
+- Class `QuoteSnapshotRecorder` in `fno/quotes/recorder.py` (moved from `fno/live/` by the clean-slate cleanup,
+  output unchanged) using the `Provider` interface (`expiries`, `chain`, `quote_book`); provider chosen in
+  `fno/composition.py` from its own setting `quotes.provider: auto` (Groww when its credentials are in the
+  environment, else NSE's public chain).
+- Command `python -m fno quotes record` and a scheduled cloud routine near 15:00 IST on weekdays.
 - Each snapshot saved as `raw/groww-or-nse/derivatives/quote-snapshots/<YYYY>/<MM>/nifty_<YYYYMMDD>_1500.csv` through
   a writable store (the repository folder `research/data/quotes/` while Drive is read-only), never overwritten.
 - Columns: `request_sent_at`, `response_received_at` (IST, from the machine clock synced to NTP), `quote_time` (the
@@ -217,7 +217,7 @@ timestamp", and the quote's age is never claimed. Freshness proxy for validity, 
 fields or depth): the contract must have traded today (`freshness_proxy` = "same-day trade (market active; quote age
 unknown)"); otherwise the row is kept but invalid. Groww's expiry list refuses future years, so when it yields fewer
 than two monthlies the recorder takes the listed expiries from NSE's latest daily F&O file of the past 7 days
-(`fno/live/expiry_listing.py`), records its file, date and SHA-256 in `expiry_source`, and asks Groww's chain by
+(`fno/quotes/expiry_listing.py`), records its file, date and SHA-256 in `expiry_source`, and asks Groww's chain by
 explicit date (checked to work out to Dec 2028); no recent NSE file means incomplete (fail closed). NSE lists about
 three monthlies ahead, so the January monthly appears in NSE's file well before late December.
 
