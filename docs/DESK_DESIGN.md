@@ -380,79 +380,140 @@ Trade-level proof takes many months; forecast scores measure reading the market,
 make books 2 and 3 moving targets (scored per version); Book 3's strategies cannot be tested on history; three books
 need three times the bookkeeping and a monthly AI budget.
 
-## 13. The end product: what "finished" means, how the owner sees it, where the AI runs (v2.3, proposed)
+## 13. The end product: what "finished" means, how the owner sees it, where the AI runs (v2.3, proposed, revision 2)
 
-Status: **proposed 12 Oct 2026, for ChatGPT review and owner approval** (request:
-`reviews/claude/response_29_2026-10-12-design-section-13.md`). Owner decisions behind it (12 Oct 2026): a **web
-dashboard plus Slack**; AI roles run as **cloud routines** (decision D4, runtime part). The approved sections 1-12 are
-unchanged. The implementation plan is regenerated only after this section is approved.
+Status: **proposed, revision 2 (12 Oct 2026), for ChatGPT re-review and owner approval.** Revision 1 (response 29)
+was reviewed in ChatGPT review 24 (agreed with changes); revision 2 applies all of its points and the owner's later
+decisions (response 30). Owner decisions (12 Oct 2026): web dashboard plus Slack; AI roles as cloud routines (D4
+runtime); **one shared dashboard repository** serving the stock tool and this tool on separate screens, with both
+repositories as backends; **Azure Database for PostgreSQL** as the shared data store. Sections 1-12 are unchanged.
 
 ### 13.1 Definition of done for the whole product
 The product is finished when all of the following run every trading day without the owner doing anything, and the
 first scheduled review (12.8) can be held on their records:
 1. **Data:** NSE daily files 2019 to today on Drive with a passing coverage check (A1-A3); one versioned session
-   calendar (A1); the 3 pm quote recorder (A4); the events calendar (A6).
+   calendar (A1) used by every component; the 3 pm quote recorder (A4); data checks before any decision (C3); the
+   events calendar (A6).
 2. **Research:** the research engine, ledger and protocol freeze (B1-B5); experiment 1 run on discovery and challenge
-   data; the discovery engine (B6); at least one strategy approved through the research loop, or a documented
-   "no strategy passed" result (which itself is a valid end: section 1, shut down if nothing is net profitable).
-3. **Three paper books** (12.1), each with its own Rs 5 lakh paper account and single-writer lock, decision records
-   committed before fills, the shared fill model, exits, risk manager (C2) and validity checks (C4, both modes),
-   three ledgers (C1).
-4. **AI layer** for books 2 and 3: role agents, red team, AI judge, Book-2 authority envelope, Book-3 constitution and
-   strategy registry, matched shadow decisions, cost attribution, the firewall between books.
-5. **Forecasts** (12.7) for all books with the frozen baselines, and their scoring.
-6. **Scoreboards A and B for all three books with every detail** (12.5), version segments, pilot vs head-to-head.
-7. **Owner surfaces** (13.2-13.4): dashboard, daily Slack message, monthly report.
-8. **Operations:** routines, alerts, failure handling (section 9), tests, and a judge pass on every story.
+   data; the discovery engine (B6); at least one strategy approved through the research loop, or a documented "no
+   strategy passed" result (a valid end: section 1, shut down if nothing is net profitable).
+3. **Playbook and decisions:** versioned playbooks with evaluation plans (section 5); deterministic rule evaluation
+   and allocation; one immutable decision record per opportunity, committed before any fill, holding input hashes and
+   availability times, the rule's default action, the chosen action, reasons, the judge result and any written owner
+   override (section 7); Book 2's authority envelope and Book 3's constitution and strategy registry, versioned with
+   them.
+4. **Three paper books** (12.1), each with its own Rs 5 lakh paper account and single-writer lock, the shared fill
+   model, exits, risk manager (C2), validity checks (C4, both modes) and three ledgers (C1).
+5. **AI layer** for books 2 and 3: role agents, red team, AI judge, matched shadow decisions, the firewall between
+   books, version registration, cost attribution and the role-value evaluation (13.6).
+6. **Forecasts** (12.7) for all books with the frozen baselines, and their scoring.
+7. **Scoreboards A and B for all three books with every detail** (12.5), version segments, pilot vs head-to-head.
+8. **Owner surfaces** (13.2-13.4): the F&O screens of the shared dashboard, the daily Slack message, the monthly
+   report.
+9. **Research feedback:** scorecards, judge audits and failures become research questions; any change reaches a book
+   only as a new, owner-approved version, never by editing a live version (sections 4, 12.6, 12.8).
+10. **Operations:** routines, alerts, failure handling (section 9), tests, and a judge pass on every story.
 Real money, intraday decisions, other underlyings and stock options are **outside** this product; each would need its
 own design and approval.
 
-### 13.2 The dashboard (one private web page)
-- A private claude.ai Artifact at one fixed link, **regenerated after every 3 pm run and after each monthly report**.
-- **Generated by code from committed repository files only** (decision records, ledgers, scoreboards, forecasts,
-  data-health records): every number on the page traces to a file and commit; no AI writes or edits a number on it.
-- Sections, phone-friendly: today per book (trade or no trade, with the reasons, rule default vs AI action for
-  Book 2); open positions with marks, exits pending and days left; risk used per book against every owner limit
-  (per-trade, 3 slots, brake distance, stress, exposure); **scoreboard A and scoreboard B, all three books, every
-  detail in 12.5**; forecast scores against the baselines; the three ledgers including AI and data costs; data health
-  and alerts; version segments and the common-start date (pilot evidence labelled apart).
-- Every page states "paper trading only, not advice". No secrets, no broker identifiers, never a real-order
-  instruction.
-- If the Artifact cannot be published (tool unavailable), the page is still written to the repository and the Slack
-  message says the web page is stale and why.
+### 13.2 The dashboard: one shared, private web app
+- **Architecture (owner decision):** a separate **dashboard repository** holds the web app (moved out of the stock
+  tool, where it lives today as `web/`, a Next.js app on Vercel). It serves the stock screens (`/india`, `/us`) and
+  the F&O screens (`/fno`) behind one login (Vercel Authentication, owner only). The stock repository and this
+  repository are **backends only**: each publishes its own data; neither writes to the other or to the dashboard
+  repository.
+- **Data path:** after each run, this repository's code builds the F&O dashboard pages as **read-model rows** (the
+  pattern the stock tool already uses: one row per page, keyed by page, with `as_of`, cutoff, built-at time,
+  `schema_version`, `source_commit`, `payload_sha256` and the page payload as JSON) and writes them to its own area of
+  the shared database (13.3). The dashboard reads the database only, never a backend repository.
+- **Every number traces to a committed file:** the payloads are generated by code from committed repository records
+  (decision records, ledgers, scoreboards, forecasts, data-health records); no AI writes or edits a number.
+- **Data contract:** this repository owns a versioned JSON schema for its pages, with tests; the dashboard checks the
+  version it expects; a breaking change is a new version.
+- **F&O screens:** today per book (trade or no trade with reasons; Book 2's rule default vs AI action); open positions
+  with marks, pending exits and days left; risk used per book against every owner limit (per-trade, 3 slots, brake
+  distance, stress, exposure); **scoreboard A and scoreboard B, all three books, every detail in 12.5**; forecast
+  scores against the baselines; the three ledgers with AI costs labelled as in 13.6; data health and alerts; version
+  segments and the common-start date (pilot evidence apart); **judge results per book** (approvals, rejections,
+  abstentions, owner overrides scored separately, hard-validity failures) and **drill-down to the evidence**: the
+  hashes and commits of the common pack, the book's private pack, the decision, the fill snapshot and the version.
+- **Access and freshness contract:** the publishing story verifies that the F&O screens and data are reachable only
+  through the owner's login (an unauthenticated request is refused: test), that no secret, credential or broker
+  identifier is ever in a payload, and that every screen shows its built-at time and source commit and **marks itself
+  stale** when the latest completed trading day is not published. The repository records remain the source of truth;
+  if access control cannot be verified, the screens are not published.
+- Every screen states "paper trading only, not advice" and never shows a real-order instruction.
+- **Migration (stock and dashboard work, outside this repository):** the dashboard is copied into its new repository
+  and deployed next to the current one; the owner's login and domain switch only after every stock screen matches;
+  `web/` is then removed from the stock repository. The F&O screens are built in the dashboard repository; this
+  repository's plan lists them as stories for that repository.
+- **Repositories are public during development** (owner decision, to keep GitHub Actions free); they become private
+  once stable. Until then the login protects the dashboard, not the repository contents.
 
-### 13.3 Slack (#fno-desk only)
-- One message per trading day after the run: one line per book (decision, account value, brake distance), any
-  alerts, the dashboard link. A no-trade day still posts. Monthly: the report's headline numbers and link.
-- Failures (data, AI session, publish) post a short alert the same day.
-- Only channel `C0C89E8QCCD`; only `FNO_SLACK_BOT_TOKEN` or the Slack connector; never `SLACK_*` variables or
-  #market-brief; text only (no HTML files). The poster refuses any other channel and any webhook (tests).
+### 13.3 The shared data store: Azure Database for PostgreSQL
+- One managed Azure Database for PostgreSQL server (owner's Azure subscription; backups on). Separate schemas and
+  **separate least-privilege roles**: the stock backend writes only its schema; this repository writes only `fno`;
+  the dashboard reads the backend schemas and writes only its own `app` schema (inbox, assistant log). No role can
+  write another backend's schema (test with each role).
+- Credentials live only in each environment (Vercel settings, routine environment), never in files.
+- The `fno` schema is a **derived copy**: it can always be rebuilt from this repository's committed records; losing
+  it loses no evidence.
+- Moving the stock tool off MotherDuck is the stock tool's own project; the F&O tool never uses MotherDuck.
 
-### 13.4 Monthly report
-`reports/<YYYY-MM>-scoreboard.md`, committed: both scoreboards for all three books, forecast scores, costs, version
-segments, judge audit results, open questions for the research loop. The dashboard links to it.
+### 13.4 Slack and monthly report
+- Slack (#fno-desk only): one message per trading day after the run (one line per book: decision, account value,
+  brake distance; alerts; the dashboard link); a no-trade day still posts; failures post a short alert the same day;
+  monthly headline numbers. Only channel `C0C89E8QCCD`, only `FNO_SLACK_BOT_TOKEN` or the Slack connector, never
+  `SLACK_*` or #market-brief; text only; the poster refuses any other channel and any webhook (tests). Slack is a
+  summary and alert surface, never the record.
+- Monthly report `reports/<YYYY-MM>-scoreboard.md`, committed: both scoreboards for all three books, forecast scores,
+  costs (labelled as 13.6), version segments, the judge and override audit, open research questions.
 
-### 13.5 Where the AI runs (D4: cloud routines)
-- The daily run is a **scheduled Claude Code cloud session** (as the 3 pm recorder is), started before 15:00 IST.
-  Code prepares one **context pack** at the common data cutoff (data, quotes, positions, allowed sources), hashed and
-  committed. Each AI book then decides **in its own isolated sub-session** that sees only the pack and its own book's
-  history (firewall, 12.6); each decision is committed before any fill. Code then takes a **fresh quote snapshot** and
-  fills every book's decisions by the same fill model before the 15:30 close.
-- **Model identity:** each decision records the model the session actually served; a model change or fallback starts a
-  new version segment (12.6) and that day's AI decisions are scored apart.
-- **Cost:** cloud routines draw on the owner's Claude plan, not per-call billing, so AI cost per book is an
-  **attributed** figure: the owner's monthly plan cost (a rupee figure the owner records) shared by measured session
-  usage. It is labelled approximate on every scoreboard. Whether each AI role earns more than it costs (8.1) is judged
-  on this attributed figure, stated as such.
-- **Failure:** if a session fails or hits a usage limit, that book records "no decision (AI unavailable)": counted as
-  no trade for scoreboard B, excluded from judgement scores on scoreboard A, and alerted; code still runs risk-reducing
-  exits (section 9).
-- No API keys are needed for the AI; secrets stay in the environment; nothing places orders.
+### 13.5 Where the AI runs (D4: cloud routines) and the daily protocol
+- The daily run is a **scheduled Claude Code cloud session** (like the 3 pm recorder), started before 15:00 IST, on a
+  fixed timetable frozen in the protocol (exact times calibrated with A4 and measured run times):
+  1. **Common market pack** at the common data cutoff: market observations (daily files, quotes, VIX), session and
+     event data, the common opportunity set for scoreboard A, and each item's source and availability time. It holds
+     **no** book's decisions, positions, P&L, findings or memory. Hashed and committed.
+  2. **Book-private pack** per book: that book's account, positions and open exits, its own past decisions, its frozen
+     playbook and authority envelope (Book 2) or constitution and strategy registry (Book 3), and only the sources its
+     version is allowed. Hashed and committed.
+  3. Each book decides in **its own isolated sub-session** that sees only the common pack and its own private pack:
+     no shared conversation, cache, memory, temporary files or another book's findings. Book 1 decides by code. Every
+     decision records both pack hashes and is committed.
+  4. **Decision deadline** (fixed time): a book without a committed valid decision gets a committed "no decision
+     (unavailable or late)" and cannot join later that day.
+  5. **Execution snapshot** at a fixed time after the deadline, whatever any book did: one fresh quote snapshot, and
+     every timely decision is filled by the same fill model against the **same snapshot identifier and hash**. If that
+     snapshot is invalid or incomplete, **no book opens new risk** that day, unless the protocol's retry (the same for
+     all books) produces a valid one before the close. Risk-reducing exits run independently (section 9).
+- **Model identity and versions:** a version (model, prompt, role set, source contract) is **registered and committed
+  before its first counted decision**. Each decision records the model the session actually served; if it differs
+  from the registered version (an unplanned fallback), that day's decision is "AI unavailable, unscored", and scoring
+  for that book pauses until a new version is registered (12.6). A version is never declared after seeing its
+  decisions.
+- **Failure:** a failed session or usage limit gives "no decision (AI unavailable)": no trade on scoreboard B,
+  excluded from judgement scores on scoreboard A, alerted. Code still runs risk-reducing exits.
+- No AI API keys; secrets only in the environment; nothing places orders.
 
-### 13.6 Honest limits
-- Plan usage limits are not under our control: a busy day could block the AI books (handled as "AI unavailable").
-- Attributed AI cost is an estimate, not a bill.
-- The dashboard depends on the Artifact tool being available to the routine; the repository copy is the record.
+### 13.6 AI cost and whether each AI role earns its cost
+- **Three labelled figures, never merged:** (1) **actual cash spend** that can be identified (none expected beyond
+  the plan); (2) **allocated plan cost**: the owner's recorded monthly plan cost shared by measured usage (sessions,
+  duration, and tokens where available) with a frozen formula, labelled "allocated, not a bill"; (3) **incremental
+  value estimate** from the role-value evaluation below.
+- **Role-value evaluation:** before a role or role group is counted, its evaluation is fixed: where safe, a paired
+  **ablation** (the same eligible decisions with the role withheld, as a shadow decision) scored on the same outcome
+  metric; roles that cannot be separated are evaluated and costed **as a bundle**, never credited individually.
+  Keep or drop only at predeclared review dates with the uncertainty and sample rules of the evaluation protocol.
+  Mandatory control roles (data, risk, cost, validity, the judge's hard checks) are scored on caught violations and
+  prevented invalid actions, not on profit (section 3.1).
+
+### 13.7 Honest limits
+- Plan usage limits are outside our control: a busy day can make an AI book unavailable (handled in 13.5).
+- Allocated AI cost is an estimate, and ablation estimates need many decisions before they mean anything.
+- The F&O screens depend on the dashboard migration done in other repositories; until then the monthly report and
+  Slack carry the results, and the database rows are ready.
+- While the repositories are public, anything committed (decision records, logs, quotes) is visible to anyone.
 
 ## 11. Closing the design
 
@@ -471,7 +532,7 @@ segments, judge audit results, open questions for the research loop. The dashboa
 | 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
 | 10 Build order | Agreed | Agreed (review 11, v2.1) | Approved 12 Oct 2026 |
 | 12 Three paper strategies (v2.2) | Agreed after review 18 revisions (response 23) | Agreed (review 19) | Approved 12 Oct 2026 |
-| 13 End product, dashboard, AI runtime (v2.3) | Proposed (response 29) | Pending | Decisions given 12 Oct 2026 (dashboard + Slack; cloud routines); section pending approval |
+| 13 End product, dashboard, data store, AI runtime (v2.3) | Revision 2 after review 24 and owner decisions (response 30) | Revision 1 agreed with changes (review 24); revision 2 pending | Decisions given 12 Oct 2026 (shared dashboard repo, Azure Postgres, Slack, cloud routines); section pending approval |
 
 Both AIs agreed every section (ChatGPT review 11, Claude response 12). Review 11's clarifications (exact binomial
 figures, experiment-specific significance test, fuller stress scenarios) are folded into 3.5 and 8.1 without changing
