@@ -4,6 +4,10 @@ Prepared 12 Oct 2026 for an independent review (the owner, Claude and ChatGPT). 
 happened, what the control tests show, what we got wrong in the process, and what we do not know yet. The raw numbers
 are in `reports/2026-10-12-backtest-analysis-data.json`.
 
+**To the reviewer:** please read the whole report, then answer sections 9 and 10. We are not only asking you to check
+the analysis; we want your own solution, as an experienced F&O trader and portfolio manager, so the owner can compare
+it with Claude's and the three of us can agree on the core strategy before anything more is built.
+
 ## 1. Background
 
 - **Who:** a retail investor in India (broker: Groww) building a research and paper-trading tool for NSE futures and
@@ -220,3 +224,30 @@ What the controls say:
 7. How should the system decide when *not* to trade (market mood, volatility level, events)?
 8. What risk rules should be non-negotiable (size per trade, daily and monthly loss limits, overnight and event
    exposure, expiry-day rules)?
+
+## 10. Your recommendation: how would you trade this?
+
+Imagine you are an experienced portfolio manager and F&O trader in India, with years of real results trading NSE
+index and stock options, and you have been handed this account (Rs 2-5 lakh, Groww, no co-location, research and
+paper trading first, real money only after proven net profit). Please answer as that person, plainly and honestly:
+
+1. **Your diagnosis in one paragraph:** what is the real reason this lost money?
+2. **What you would do:** the strategy or strategies you would actually run, with exact rules: instrument (option
+   buying, debit spreads, credit spreads, iron condors, futures, or none), underlyings, entry conditions, strike and
+   expiry choice, position size, stop, target or exit logic, holding time, and when you would stay out.
+3. **Why you expect an edge:** the market reason it should work (who is on the other side and why they lose), and the
+   evidence you know of. Say clearly where you are unsure.
+4. **What you would never do** with an account this size, and why.
+5. **Risk rules** you would not break: per trade, per day, per month, overnight, around events and on expiry day.
+6. **How you would prove it before risking money:** data needed, test design, out-of-sample split, minimum number of
+   trades, and the exact numbers that must be met (for example net expectancy per trade, profit factor, worst
+   drawdown, worst losing run) before going live, and the numbers at which you would stop.
+7. **What to keep from the current system** (news reader, FII positioning, guards, exits, scoring) and what to throw
+   away.
+8. **Where AI helps and where it does not:** which decisions should stay rule-based and which an AI analyst could
+   improve.
+9. **Your honest view:** if you think a retail account like this should not trade options at all, or only one narrow
+   setup, say so and explain.
+
+Please be blunt; give numbers where you can; mark assumptions and uncertainty; no guarantees of profit. A short
+summary table of your recommended setup(s) at the end would help us compare your answer with Claude's.
