@@ -32,6 +32,7 @@ python -m fno groww-check                         # check the Groww data connect
 python -m fno drive-check                         # check the Google Drive archive can be read (prints no secrets)
 python -m fno data-coverage [--from --to]          # raw NSE files missing or damaged in Drive, against the NSE calendar (A1)
 python -m pytest -q && ruff check fno tests tools # tests and lint; python tools/check_imports.py checks imports
+python tools/check_records.py [--staged | PATH]   # public-record scan: no secrets, personal data or broker IDs (O5)
 ```
 
 ## Routines
@@ -47,6 +48,8 @@ python -m pytest -q && ruff check fno tests tools # tests and lint; python tools
   `fno/storage/README.md` and `tools/nse_raw_download/`.
 - Credentials (`GROWW_*`, `FNO_GDRIVE_*`, `FNO_SLACK_BOT_TOKEN`) live only in environment variables or
   `~/.trading.env`, never in files. F&O output goes only to Slack #fno-desk.
+- The repository is public: every committed record (all tracked files outside `fno/`, `tests/`, `tools/`) must pass
+  `tools/check_records.py` (a test runs it; routines run it as a git pre-commit hook from `.githooks/`).
 
 ## Layout
 
@@ -60,12 +63,13 @@ fno/
   fo_bhavcopy.py     NSE F&O daily file reader (old and current formats)
   research_data/     expiry dates and the events calendar
   research_engine/   trial ledger and its guard (story B4)
+  record_scan/       public-record safety scan: patterns, scanner, which files (story O5)
   accounting/        research ledgers
   books/             the three books' Rs 5 lakh paper accounts and their single-writer lock (story E1)
   analytics.py       Black-Scholes, Greeks, implied volatility, chain metrics
   costs.py           Groww and statutory charges
   config.py          settings (`config.yaml`, allowed keys only)
-tools/               NSE raw-file downloader, import-graph check
+tools/               NSE raw-file downloader, import-graph check, public-record scan
 research/            studies, ledger, recorded data
 journal/<book>/account/  each book's paper account: cash_ledger.csv (append-only), positions.json, equity_history.csv
 tests/               unit and integration tests
