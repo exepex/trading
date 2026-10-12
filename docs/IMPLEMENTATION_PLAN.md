@@ -46,13 +46,13 @@ before C4 (C4 checks the decision record).
 | [A1](stories/A-data-foundation.md#a1-raw-nse-archive-complete-and-checked) | Raw NSE archive complete and checked | - | S | doing (tool done and delivered; owner downloading; coverage command next) |
 | [A2](stories/A-data-foundation.md#a2-one-reader-for-both-fo-formats) | One reader for both F&O formats | - | M | done (128 of 128 overlap days identical, 5,793,044 rows) |
 | [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | A1, A2 | M | next |
-| [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | - | M | built 12 Oct 2026; first real windowed snapshot pending |
+| [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | - | M | done (judge passed) |
 | [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | - | S | next |
 | [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | - | S | next |
 | [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | A3, A6 | M | later |
 | [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | A3, A5 | M | later |
 | [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | B1, B2, B4 | M | later |
-| [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | - | S | built 12 Oct 2026 |
+| [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | - | S | done (judge passed) |
 | [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | B1-B4, A1, A3, A5, A6, C1 | M | doing (protocol in review) |
 | [B6](stories/B-research-engine.md#b6-candidate-scan) | Candidate scan | B3 | L | later |
 | [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | - | S | next (before experiment 1 runs) |

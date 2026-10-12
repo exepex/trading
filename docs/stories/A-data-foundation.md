@@ -209,7 +209,7 @@ first real snapshot attached to the conversation log.
 window alone is not proof of a 15:00 price), recomputes `valid` for 20 random rows, recomputes one day's report by
 hand.
 
-**Depends:** - · **Size:** M · **Status:** built 12 Oct 2026 (`fno/live/quote_recorder.py`, `quote_report.py`; daily schedule from 13 Oct); first real windowed snapshot pending
+**Depends:** - · **Size:** M · **Status:** done: judge passed (ChatGPT reviews 15-16, 12 Oct 2026); daily recording from 13 Oct
 
 **Implementation notes (facts found while building; rulings of ChatGPT review 15):** Groww gives each contract's last
 trade time but **no quote timestamp**: `quote_time` stays empty, `age_basis` = "unknown: provider gives no quote

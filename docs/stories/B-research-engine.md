@@ -206,7 +206,7 @@ are imported as `retrospective` (registered after or while being run) and are ne
 
 **Judge verifies:** tries to run an unregistered policy and confirms the refusal.
 
-**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026 (`fno/research_engine/ledger.py`, `research/ledger.csv`, 6 tests)
+**Depends:** - · **Size:** S · **Status:** done: judge passed (ChatGPT reviews 15-16, 12 Oct 2026)
 
 ---
 
