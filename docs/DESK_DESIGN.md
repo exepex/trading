@@ -1,224 +1,213 @@
-# Desk design: a team of expert roles finding net profitable F&O trades
+# Desk design: a team of experts finding the most profitable F&O trades, against the odds
 
-Status: **design, revised after ChatGPT review 9** (12 Oct 2026; answer: `reviews/claude/response_8_2026-10-12-desk-design.md`). Nothing here is built yet; the AI layer stays on hold until the owner
-approves. Owner decisions it must respect: `docs/DESK_DECISIONS.md`. Roles and working rules: `AGENTS.md`.
+Version 2 (12 Oct 2026), a full rewrite. Version 1 described controls well but not the core: **how a team of experts
+in different fields works together to find winning trades**. This version puts that first; the controls agreed in
+review 9 are kept in sections 6-9. Nothing is built yet; the AI layer stays on hold until the owner approves.
+Owner decisions: `docs/DESK_DECISIONS.md`. Roles and working rules: `AGENTS.md`.
 
-## 1. The goal and the one principle
+**How this design is closed:** section 11 lists every section with each AI's position. The design is final when both
+AIs mark every section "agreed" (or the owner settles a disagreement) and the owner approves. No next step (desk
+meeting 2, building) starts before that.
 
-**Goal:** net profitable NSE F&O trades: profitable after all charges, slippage and tax (31.2%), proven on real data,
-then on paper, before any real money.
+## 1. The goal and the odds we are up against
 
-**Principle: the decision policy is fixed and tested in advance; its daily outputs are dynamic.** A strategy is
-never invented and traded on the same day: an untested rule is a guess. Strategies are created slowly in a research
-loop and stored in a versioned playbook; every day the desk decides, from that day's data, whether a playbook rule
-fires, on which contracts and at what size. A rule may adapt automatically (for example a volatility forecast refitted
-on past data only, or size scaled by remaining risk room) when **the adaptation method itself** is fixed and was
-tested chronologically: inputs, update schedule, fitting method and parameter bounds. Any other change (a new
-threshold, prompt, override or fitting method) is a new version.
+**Goal:** the most profitable NSE F&O trades **net** of charges, slippage, the desk's own running costs and 31.2% tax,
+proven on real data, then on paper, before any real money.
 
-## 2. Two loops
+**The odds (SEBI studies; details and sources in `reports/Retail FnO losses and safeguards.md`):**
+- 88-93% of individual F&O traders lost money in every year measured (FY22-FY26); FY26 losses Rs 91,685 crore.
+- About 93% of individuals only buy options, and about 90% of them lose; of the few who mainly sell, about 44% lose.
+- Only 0.5% were profitable in all five years FY22-FY26; loss rates rise, not fall, with experience.
+- Costs alone were 35% of loss-makers' gross losses; 4.4 lakh traders profitable before costs lost after costs.
+- 59% of index-option turnover is same-day expiry; 97% within a week.
+- The money goes mostly to proprietary firms and foreign investors, 96-99% of it to algorithmic desks.
 
-```
- RESEARCH LOOP (weekly / monthly)                         DAILY LOOP (3:00 pm IST, trading days)
- data -> role analyses -> strategy proposal                today's data -> role reports
-      -> historical test -> red team -> judge                   -> playbook rules checked -> trade proposal
-      -> owner approval -> PLAYBOOK (versioned) ---------->     -> cost/tax check -> judge -> paper trade
-      <- paper results feed back (keep / change / drop)  <-     -> daily review of open trades
-```
+**What "winning against the odds" means for us (reasoning, built on that evidence):** we will not out-run algorithms
+at speed or out-guess the market's direction day to day. We win only by standing on the side that is **paid**, at a
+horizon and in contracts the crowd and the fast desks leave alone, with costs kept small and losses capped. Every
+trade must answer one question first: **who pays us, and why will they keep paying?**
 
-### 2.1 Research loop: how strategies are created
-1. **Question.** The head of desk sets one question, e.g. "Are NIFTY options overpriced, and when?"
-2. **Independent analyses.** Each relevant role studies the data on its own and writes a finding: numbers, method,
-   confidence label (strong evidence / some evidence / reasoning only).
-3. **Proposal.** The portfolio manager combines findings into a strategy with exact rules (section 4).
-4. **Test.** The quant runs it on real historical prices with the agreed protocol: real charges, Rs 1 adverse fill per
-   leg per order (to be calibrated), 31.2% tax on yearly net profit, owner's limits, out-of-sample period, controls.
-   Every input has an **availability time**, not just a date: a test only uses what was known at its decision time.
-   Every idea tried, including rejected ones, goes into the research ledger (`research/LEDGER.md`), so the number of
-   trials behind any winner is visible. Data already looked at (NIFTY 2024-2026) is **discovery data**: it can never
-   later be called out-of-sample. The untouched checks are 2019-2023 (older NSE files) and forward paper trading.
-5. **Red team.** Tries to break it: luck, a period that flatters it, a scenario that blows the Rs 10,000 limit.
-6. **Judge.** Verifies every claim (section 6). Fails send the work back.
-7. **Owner approval.** Approved strategies enter the playbook as a new version; nothing enters without it.
-8. **Paper trading.** At least 3 months and 20 positions before any real-money discussion (a minimum, not proof:
-   positions overlap and share shocks). Before paper trading starts, the strategy file fixes its evaluation plan:
-   the expected range (from the test), the unit (monthly net P&L), the review dates, and what each result triggers.
-   A hard-loss limit pauses at once; an uncertain statistical result waits for the scheduled review (no switching on
-   daily noise).
+## 2. Where a small, patient desk can win: the edge map
 
-### 2.2 Daily loop: how decisions are made (3:00 pm)
-1. **Data check** (data engineer, code): today's NSE/Groww data present, fresh and consistent; otherwise no new trades.
-   At 3:00 pm the day's close and end-of-day files do not exist yet: inputs are 3:00 pm quotes plus the last
-   published figures (yesterday's FII/DII, yesterday's close). Research that uses daily closes is labelled a
-   **close-proxy** and does not claim to reproduce the 3:00 pm desk.
-2. **Role reports** (independent, in parallel), each a short structured report, for example:
-   - volatility trader: implied vs realised volatility, skew, term structure, and how that compares with history;
-   - macro / event analyst: scheduled events inside each candidate holding window (RBI, Budget, elections, results);
-   - positioning analyst: open interest, put-call ratio, FII/DII positions;
-   - quant modeller: volatility forecast and market regime;
-   - risk manager (code): open trades, rupees at risk, room left under the limits.
-3. **Playbook check** (code): each approved rule is evaluated on measured inputs; a rule fires only if all its
-   conditions hold. The rule, not a model, chooses strikes and size. If several fire, a fixed **allocation rule**
-   (code, part of the playbook) chooses; an AI selector is only tried later, compared on the same opportunities.
-4. **Decision record and value check** (code): one record per opportunity (section 4.1); the expected net value after
-   charges, pads and tax must stay positive, and the account must have the cash or margin for it.
-5. **Judge check:** inputs are today's, every rule was applied as written, limits respected, reports consistent.
-6. **Paper trade** opens after quotes and limits are re-checked just before the fill (an approved proposal is not a
-   lasting price). Protection is bought first and sold last: a trade with a missing protective leg is not a protected
-   trade and is closed. Slack message to #fno-desk with the reasons from each role.
-7. **Open-trade review** (same team, same time): hold, take profit, or close at the rule's limit; the risk manager's
-   hard limits apply without discussion. A once-a-day loss check is an observation, not a guaranteed exit price:
-   tests fill such exits at the next observed price, never at the threshold. The bought protection is what caps the
-   loss across gaps.
+Each edge family has an economic reason (who pays), owning roles, the data that tests it, and its evidence today.
+The team's research works through this map; any role may add a family when it has a reason and data.
 
-Intraday watching is a later layer, added only if data shows it improves net results (owner decision).
+| # | Edge family | Who pays us, and why | Owning roles | Data to test it | Evidence now |
+|---|---|---|---|---|---|
+| E1 | Volatility risk premium (sell protected insurance) | Buyers of protection and lottery options overpay for moves that mostly do not come | Volatility trader, options strategist, risk manager | NSE daily option chains, 2019-2026 | **Some evidence:** IV 13.8% vs realised 12.0-12.2%; protected condors +Rs 24,757 to +69,026 (10-30 months, data gap) |
+| E2 | Conditional volatility pricing (when to sell, when to stay out) | Same payers; the edge is skipping months when options are cheap relative to live risk | Volatility trader, quant modeller, statistician | Same, plus past realised volatility | **Some evidence at most:** "IV above past 20-day realised" kept 27 months (+Rs 3,10,568, worst -7,867), skipped 5 incl. the 3 worst (naked straddle, diagnostic) |
+| E3 | Event premium | Option buyers before RBI, Budget, elections, results; IV often falls after (VIX -12% to -34% on past event days), but surprises spike it | Macro economist, equity research, volatility trader | Event calendar + chains around each event | Untested |
+| E4 | Term structure and short-dated richness | Retail crowds into weekly and same-day options; sellers of near-dated options or calendar structures may be paid | Positioning analyst, volatility trader, regulation | Weekly vs monthly chains | Untested; expiry-day trading itself is excluded (algorithm territory) |
+| E5 | Skew (puts vs calls) | Hedgers pay for downside puts; lottery buyers pay for far calls | Options strategist, behavioural finance | Full chains (far strikes) | Untested; needs the full raw files |
+| E6 | Conditional direction | Forced or slow flows (FII positioning extremes, after-shock drift) | Positioning analyst, macro, quant | FII/DII data, futures OI, prices | Simple trend: **none** (50-52%); conditional: untested |
+| E7 | Stock vs index | Single-stock moves on results vs index volatility (dispersion) | Equity research, investment banker, volatility trader | Stock option chains, results calendar | Untested; stock options settle physically, need own rules |
+| E8 | Cost advantage | Not an edge alone: a patient monthly trader with limit orders avoids the cost drag that sinks the crowd | Execution, tax and cost accountant | Real quotes (to calibrate the Rs 1 pad) | Assumed, not measured |
 
-## 3. The team
+**Not ours (no edge for us, by evidence):** intraday speed, expiry-day games, closing-auction moves, order-flow
+reading, buying cheap far-out options. Algorithms and prop desks own these.
 
-One shared goal; each role has its own job, inputs and output, and no role decides alone.
+## 3. The team: how experts work together (the core)
 
-| Role | Runs as | Daily job | Research job |
-|---|---|---|---|
-| Head of desk | AI | Runs the meeting; makes sure every role reported | Sets questions; records decisions |
-| Portfolio manager | Code (rule) + AI | Allocation rule picks among firing rules (code) | Turns findings into strategy proposals; designs the allocation rule |
-| Volatility trader | Code + AI | Implied vs realised volatility, skew, term structure | Volatility-premium studies |
-| Options strategist | AI | Checks the structure fits the view | Designs structures (spreads, condors) |
-| F&O trader | AI | Liquidity, spreads, expiry and gap practicalities | What fails in live markets |
-| Quant / statistician | Code | Regime and forecast numbers | Backtests, controls, significance |
-| Quantitative modeller | Code | Volatility forecast | Builds and validates forecasts |
-| Risk manager | **Code** | Limits: Rs 10,000 per trade, 3 open, drawdown brake, cash/margin room | Worst cases, stress tests |
-| Macro economist / event analyst | AI | Events inside holding windows | Event effects on volatility |
-| Positioning analyst | Code + AI | OI, PCR, FII/DII | Does positioning add anything |
-| Market research analyst | AI | Market mood, sectors, news against expectations | News impact studies |
-| Equity research analyst | AI | (stock options) results, company news | Stock-specific edges |
-| Investment banker | AI | Corporate actions, block deals | Event-driven moves |
-| Microstructure / execution | Code + AI | Bid-ask, fill assumptions | Calibrate the pad from real quotes |
-| Regulation (SEBI/NSE) | AI | Rule changes, lot sizes, expiry days | Effect of rule changes |
-| Behavioural finance | AI | Flags overtrading, chasing | Owner's and retail biases |
-| Tax and cost accountant | **Code** | Net value after charges; three ledgers (section 8) | Net results of every test |
-| Data and backtesting engineer | **Code** | Data present, fresh, consistent | Data quality, no look-ahead |
-| Mathematician | AI | Sanity of payoffs and sizes | Pricing and expected value |
-| Red team | AI | Challenges the day's proposal | Tries to break each strategy |
-| **Judge** | AI, **different model** from the work checked | Verifies the day's decision | Verifies every research claim |
+### 3.1 One goal, distinct jobs
+Every role works for the same goal (net profitable trades) from its own field. Each role:
+- **owns** edge families and questions (section 2), its own data, and the risks of its field;
+- produces **finding cards**: observation (data, source, when it was known), interpretation, measurable implication
+  for a trade, confidence (strong / some / reasoning only), counter-evidence, what would prove it wrong; or "not
+  applicable" (never invented numbers);
+- has a **scorecard**: did its contributions change decisions, and did those changes add net money? A role that adds
+  nothing over time is re-scoped or removed.
 
-"Code" roles are deterministic, tested Python: exact numbers, same answer every time. "AI" roles are language-model
-agents for judgement. Every role contributes, but not every role needs its own paid model call: a role whose data or
-instrument does not apply reports "not applicable / input unavailable" and never invents numbers. AI reports follow
-one format: observations (with sources), interpretation, measurable implication, uncertainty, counter-evidence, and
-missing data. Confidence words are not probabilities; numbers and money come from code and tested models.
+### 3.2 How a trade idea is built: no single role can make one
+A trade thesis needs every part below, each from the role that owns it:
 
-**Historical AI replays are exploratory only:** a model may already know what happened later, and hiding later rows
-from its prompt does not remove that. An AI role's added value is measured on forward paper decisions.
+| Part | Question | Owner |
+|---|---|---|
+| Payer | Who pays us and why will they keep paying? | Portfolio manager, behavioural finance, market research |
+| Signal | What measurable, entry-known condition says the edge is present today? | Volatility trader, quant / statistician, quant modeller |
+| Context | Which events, flows or rules inside the holding window change this? | Macro economist, positioning analyst, equity research, investment banker, regulation |
+| Structure | Which exact legs express the view with capped loss? | Options strategist, mathematician |
+| Price | Can we actually trade it, at what cost? | F&O trader, execution, tax and cost accountant |
+| Survival | Worst case, margin, limits, correlation with open trades | Risk manager |
+| Attack | How could this be luck, a flattering period, or a disaster? | Red team |
 
-## 4. The playbook (what a strategy is)
+A thesis missing any part is not a trade. The **portfolio manager** assembles theses and ranks them by expected net
+money per rupee of risk, against the no-trade option.
 
-A strategy is a versioned file, e.g. `playbook/protected-selling-v1.yaml`, with:
-- **Hypothesis and economic reason:** who pays us and why (e.g. option buyers overpay for volatility).
-- **Instrument and structure:** e.g. NIFTY monthly iron condor, short strikes 2% from spot, protection 500 points out.
-- **Entry conditions:** each measurable (implied minus realised volatility above a threshold; no listed event in the
-  window; days to expiry 30-45; risk room).
-- **Size rule:** lots so that maximum loss including costs stays within Rs 10,000.
-- **Exit rules:** profit target, loss limit, time exit (e.g. at 21 days to expiry), event exit.
-- **Evidence:** links to the test, the red-team note, the judge's verdict and the owner's approval.
-- **Status:** research / paper / paused / retired; paper scorecard kept beside it.
+### 3.3 The meeting (research and daily use the same rhythm)
+1. **Question** (head of desk): one question, e.g. "Which entry-known conditions improve a protected seller's net
+   payoff?"
+2. **Independent findings:** each role studies the data alone and submits its cards before seeing anyone else's
+   (prevents copying and groupthink).
+3. **Cross-examination:** every role must challenge at least one finding from another field, e.g. the risk manager
+   tests the volatility trader's idea against the worst gap; the macro economist names the event that breaks it.
+4. **Thesis assembly** (portfolio manager): combine findings into theses (3.2); record disagreements.
+5. **Settle disagreements with data, not votes:** the disputing roles agree a test and its pass/fail **before** it
+   runs; the result decides.
+6. **Red team, then judge** (section 7).
+7. **Decisions:** which theses go to testing, to paper, or are dropped and why; the next question.
 
-- **Evaluation plan:** expected range, unit, review dates, pause rules (section 2.1 step 8).
-- **Funding:** cash or margin needed per lot (from NSE/Groww margin, measured), separate from maximum loss.
+### 3.4 The roles
+| Role | Field and edge families | Runs as |
+|---|---|---|
+| Head of desk | Sets questions, makes every role contribute, records decisions | AI |
+| Portfolio manager | Payers, ranking theses, allocation, when to switch a strategy off | AI for research; fixed rule (code) for daily allocation |
+| Volatility trader | E1-E5: implied vs realised, regimes, skew, term structure, event premium | Code measures + AI interprets |
+| Options strategist | Structures for each view; Greeks; capped loss | AI, checked by code |
+| Mathematician | Payoffs, expected value, whether the numbers can work | AI, checked by code |
+| Statistician / quant researcher | Sample size, controls, out-of-sample, multiple testing | Code + AI |
+| Quantitative modeller | Forecasts (volatility, regime), tested out of sample | Code |
+| F&O trader | What works and fails live: fills, gaps, expiry, liquidity | AI |
+| Execution / microstructure | Spreads, fill assumptions, pad calibration (E8) | Code + AI |
+| Risk manager | Limits, worst case, margin, correlation; hard rules | **Code** |
+| Tax and cost accountant | Net after charges, running costs and tax (E8) | **Code** |
+| Data and backtesting engineer | Data quality, availability times, no look-ahead | **Code** |
+| Macro economist | E3, E6: RBI, Budget, global cues, gaps | AI |
+| Positioning analyst | E4, E6: OI, put-call ratio, FII/DII positions | Code + AI |
+| Market research analyst | Mood, sectors, news against expectations | AI |
+| Equity research analyst | E7: company results, sector news | AI |
+| Investment banker | E7: corporate actions, block deals | AI |
+| Regulation (SEBI/NSE) | Lot sizes, expiry days, margins, rule changes | AI |
+| Behavioural finance | E5, the payers' biases; our own biases (overtrading, chasing) | AI |
+| Red team | Breaks every thesis | AI, different model from the author |
+| Judge | Verifies every claim and decision (section 7) | Code checks + AI, different model from the author |
 
-Parameters are fixed per version. Changing a threshold makes a new version, which goes through the research loop
-again. A version number alone does not cure selection bias; the research ledger records how many variants were tried
-(Bailey et al., *The Probability of Backtest Overfitting*).
+Every role contributes; not every role needs its own paid model call every day. Roles with nothing to say report
+"not applicable".
 
-### 4.1 The decision record (one per opportunity, code)
+## 4. Two loops
 
-| Step | Content |
-|---|---|
-| Observations | Inputs with source and availability time; missing inputs; which role contributed what |
-| Forecast | What is forecast and over which horizon: e.g. realised volatility from entry to the planned exit, as the rule's tested conditional distribution of P&L in similar conditions |
-| Trade | Exact legs, prices, size, exits, expiry; the feasible alternatives considered |
-| Value | Expected net P&L over the whole trade life after charges and pads; adverse scenarios; sensitivity to forecast error |
-| Account | Cash/margin, open exposure, risk used, and the no-trade alternative |
-| Reason | Why this information should help; what would prove it wrong; disagreements and the final reason |
+**Research loop (weekly / monthly), where strategies are found:** meeting (3.3) on an edge family -> thesis -> test
+on real data -> red team -> judge -> owner approval -> playbook version -> paper trading -> results fed back.
 
-For a fixed rule the forecast is normally the tested rule's own P&L distribution in comparable conditions, not a new
-model each day (KISS); a separate forecasting model is added only if it beats that baseline in tests.
+**Daily loop (3:00 pm), where decisions are made:** data check -> role reports on today's data -> each approved
+playbook rule checked -> decision record (section 5) -> judge -> paper trade -> review of open trades.
 
-## 5. Independent agents
+**Fixed policy, dynamic decisions:** a strategy is never invented and traded the same day. A rule may adapt
+automatically only if the adaptation method itself (inputs, update schedule, fitting, bounds) was fixed and tested in
+time order; any other change is a new version.
 
-- **One agent per AI role:** its own prompt (from `AGENTS.md`), its own inputs, a fixed report format (JSON plus a
-  short text). Agents run in parallel and do **not** see each other's reports before submitting (avoids copying and
-  groupthink).
-- **Combination is explicit:** the head of desk and portfolio manager read all reports; disagreements are recorded,
-  not hidden.
-- **Different models where it matters:** the judge always runs on a different model from the work it checks (e.g.
-  Claude proposes, ChatGPT judges, or the reverse); the red team should also differ from the proposer. This is a
-  process control, not a guarantee: both can repeat the same wrong input.
-- **Anything that can change a trade is part of the algorithm:** prompts and models that affect decisions are
-  versioned and evaluated; a trader's or strategist's discretionary veto is recorded and its effect measured
-  separately.
-- **No agent can change limits, data or the playbook.** Agents read data and write reports; code applies the rules.
-- **Everything is recorded:** every report, decision and verdict is stored with the data it used (reproducible).
+## 5. Playbook and decision record
 
-## 6. The judge
+**A playbook strategy** (`playbook/<name>-v<n>.yaml`): payer and economic reason; edge family; structure; entry-known
+conditions; size rule (maximum loss including costs within Rs 10,000); funding (margin per lot, measured); exits
+(profit, loss, time, event); evaluation plan fixed before paper (expected range, unit, review dates, pause rules);
+evidence links (test, red team, judge, owner); status (research / paper / paused / retired).
 
-- **Independent:** checks work, never does it; different model from the author; no stake in the outcome.
-- **Three separate checks:**
-  1. **Hard validity** (code, not a model's opinion): timestamps, contracts, arithmetic, funding, owner limits.
-  2. **Research sufficiency:** sample, uncertainty, number of trials (ledger), execution assumptions, counter-evidence.
-  3. **Interpretation:** does the economic reason follow from the evidence.
-- **Verdicts:** pass, or fail with the exact reasons and what must be redone. A failed daily decision means no trade
-  that day; a failed research claim goes back to its author.
-- **Authority:** can block any trade or strategy. Only the owner can overrule a judgement (2 or 3), in writing,
-  logged, and overridden paper trades are scored separately from the tested policy. No one can overrule a hard
-  validity failure: stale data or wrong arithmetic stays invalid.
-- **Is itself audited:** failure categories are fixed in advance; each month a stratified sample of approvals,
-  rejections and abstentions (and every override) is re-checked against independently recalculated evidence and
-  seeded test cases with known answers, counting false approvals and false rejections. Agreement between two models
-  is not the ground truth.
+**Decision record** (one per opportunity, code): observations with availability times; forecast (normally the tested
+rule's own P&L distribution in similar conditions; a separate model only if it beats that); exact legs, prices, size,
+exits; expected net value and adverse scenarios; account room and the no-trade option; reasons and disagreements.
 
-## 7. Failure handling
+## 6. Evidence rules (so the team does not fool itself)
+
+- **Ledger:** every idea tried, including failures, goes in `research/LEDGER.md` before its result is read.
+- **Discovery data:** NIFTY 2024-2026 has been looked at and can never be called out-of-sample. Untouched checks:
+  2019-2023 and forward paper trading.
+- **Pass/fail fixed before a test runs.** No tuning on the check data.
+- **Availability times:** a test uses only what was known at decision time; daily-close research is labelled
+  close-proxy, not the 3:00 pm desk.
+- **Fills:** real charges, Rs 1 adverse fill per leg per order until calibrated; daily loss checks fill at the next
+  observed price, never at the threshold; stale prices never fill.
+- **Historical AI replays are exploratory** (a model may know what happened later); AI value is measured forward.
+- **Paper gate:** at least 3 months and 20 positions (a minimum, not proof), judged by the plan fixed in advance.
+
+## 7. Red team and judge
+
+- **Red team:** a different model from the author; attacks every thesis (luck, flattering period, the disaster case).
+- **Judge**, three checks: (1) hard validity in code (dates, contracts, arithmetic, funding, limits); (2) research
+  sufficiency (sample, trials in the ledger, execution assumptions, counter-evidence); (3) interpretation (does the
+  economic reason follow from the evidence). Fail = no trade, or the work goes back to its author.
+- **Authority:** the judge can block anything. Only the owner can overrule a judgement (2 or 3), in writing, and
+  overridden trades are scored separately. No one overrules a hard-validity failure.
+- **Judge audited monthly:** a stratified sample of approvals, rejections, abstentions and all overrides re-checked
+  against recalculated evidence and seeded known-answer cases; false approvals and rejections counted.
+
+## 8. Owner limits, risk and money
+
+- Rs 5 lakh paper account; Rs 10,000 maximum loss per trade including charges; at most 3 open trades (Rs 30,000 at
+  risk at one time); drawdown brake Rs 30,000 below the highest point (no new trades until the owner restarts; the
+  realistic worst including open trades is about Rs 60,000, 12%); holdings up to 2-3 weeks; decisions at 3:00 pm.
+- Protection bought first and sold last; a missing protective leg means close. Margin is tracked apart from loss.
+- **Three ledgers:** trade P&L after charges and pads; account result after the desk's running costs (AI, data);
+  tax at 31.2% on the year's net F&O profit (research model, not tax advice). Each AI role must earn more than it
+  costs.
+
+## 9. Failure handling
 
 | Situation | What happens |
 |---|---|
-| Data missing or stale | No new trades; last good prices are marked stale and never used as fill prices; alert |
-| An AI role fails to report | Its rule conditions count as not met (no trade on missing information) |
-| Agents disagree | Recorded; the playbook rule decides; the red team's objection is shown to the judge |
-| Judge or AI unavailable | No new trades that day; risk-reducing exits still run (code) |
-| Risk limits hit | Code closes or blocks; no discussion |
-| Drawdown brake hit | Owner decision: Rs 30,000 (6%) below the account's highest point; no new trades until the owner restarts in writing. New desk: open protected trades keep their own exit rules (decided in code). Current live desk: its kill switch closes everything |
-| A protective leg missing | Not a protected trade: close it |
-| Paper results outside the expected range | Per the strategy's evaluation plan; a paused strategy's open trades are still managed |
+| Data missing or stale | No new trades; stale prices marked and never used as fills; alert |
+| A role fails to report | Its conditions count as not met |
+| Roles disagree | Recorded; settled by an agreed test; until then the playbook rule decides |
+| Judge or AI unavailable | No new trades; risk-reducing exits still run (code) |
+| Limit or drawdown brake hit | Code blocks or closes; no discussion |
+| Paper results outside the plan | As the strategy's evaluation plan says; open trades still managed |
 
-Owner limits, stated precisely: Rs 10,000 maximum loss per trade and 3 open trades cap the money at risk **at one
-time** (Rs 30,000, 6%). They do not cap a month's loss: six full losses in a month are Rs 60,000 (12%). That is what
-the drawdown brake (Rs 30,000) is for.
+## 10. Build order (after owner approval of this design)
 
-## 8. Cost and effort: net profit includes the desk's own running cost
+1. Research meetings by hand on the edge map (E1-E2 first, with full chains and 2019-2023), until one strategy passes.
+2. Playbook format and the code roles (data, risk, cost/tax, rule evaluation, hard-validity checks).
+3. Daily paper desk with code roles on the first approved strategy; the other AI reviews results in the repository.
+4. AI roles, red team and AI judge added one at a time (after the owner starts the AI plan); each kept only if it
+   adds net value against the code-only desk.
+5. Intraday watching only if data shows it helps.
 
-About 10-15 AI role calls a day plus research sessions. Needs AI API keys (owner's environment, never in files) and a
-monthly budget to be estimated once the design is agreed. Code roles add no cash cost today (they run in the existing
-environment); any real compute, storage or data bill is counted at its actual amount.
+## 11. Closing the design
 
-Three ledgers: (1) **trade P&L** after charges and pads; (2) **account result** after the desk's operating costs (AI,
-data); (3) **tax** at 31.2% on the year's net F&O profit (a research model, not tax advice). Example: three trades
-making Rs 500 each is Rs 1,500 a month; a Rs 3,000 monthly AI bill makes the desk lose money. Each AI role must add
-more net decision value than it costs, or it is removed.
+| Section | Claude | ChatGPT | Owner |
+|---|---|---|---|
+| 1 Goal and odds | Agreed | | |
+| 2 Edge map | Agreed (any role may add families) | | |
+| 3 The team and how it works | Agreed | | |
+| 4 Two loops | Agreed | | |
+| 5 Playbook and decision record | Agreed | | |
+| 6 Evidence rules | Agreed (from review 9) | | |
+| 7 Red team and judge | Agreed (from review 9) | | |
+| 8 Owner limits, risk and money | Agreed | | |
+| 9 Failure handling | Agreed | | |
+| 10 Build order | Agreed | | |
 
-## 9. Build order (after owner approval)
-
-1. Research loop first, by hand (as in desk meeting 1): the playbook needs at least one strategy that passes before
-   anything is automated.
-2. Playbook format and the code roles (data, risk, cost/tax, rule evaluation).
-3. Daily paper desk with code roles only, on the first approved strategy. Judging at this stage: the code hard-validity
-   checks every day, plus a manual independent review (the other AI, in the repository) of research and paper results.
-4. AI roles and the AI judge added one at a time (only after the owner starts the AI plan); each must show it improves
-   decisions against the code-only desk on the same opportunities, including its abstentions, or it is removed.
-5. Intraday watching, only if data shows it helps.
-
-## 10. Questions for review (answered in ChatGPT review 9; open points in response 8)
-
-1. Is the split "fixed strategies, dynamic decisions" right, or should some strategy parameters adapt automatically
-   (and how would that be tested without overfitting)?
-2. Which roles must be code, and which genuinely need a language model?
-3. How should the judge be audited, and what stops it being too lenient or too strict?
-4. What is missing for the goal: a role, a check, a failure case?
+ChatGPT: mark each section "agreed" or give the specific objection and the change you want. Open questions:
+1. Is the edge map complete? Which edge family is missing, or should be dropped, and why?
+2. Is "who pays us" the right first test of every trade?
+3. Does the thesis table (3.2) give every role a real job, or is any role decoration?
+4. How should a role's scorecard measure its added net value fairly?
