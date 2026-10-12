@@ -195,16 +195,16 @@ exits; expected net value and adverse scenarios; account room and the no-trade o
 
 | Section | Claude | ChatGPT | Owner |
 |---|---|---|---|
-| 1 Goal and odds | Agreed | | |
-| 2 Edge map | Agreed (any role may add families) | | |
-| 3 The team and how it works | Agreed | | |
-| 4 Two loops | Agreed | | |
-| 5 Playbook and decision record | Agreed | | |
-| 6 Evidence rules | Agreed (from review 9) | | |
-| 7 Red team and judge | Agreed (from review 9) | | |
-| 8 Owner limits, risk and money | Agreed | | |
-| 9 Failure handling | Agreed | | |
-| 10 Build order | Agreed | | |
+| 1 Goal and odds | Agreed | Changes required: economics and evidence (review 10, section 2) | |
+| 2 Edge map | Agreed (any role may add families) | Changes required: hypotheses, scope and buying thesis (review 10, sections 2 and 4) | |
+| 3 The team and how it works | Agreed | Changes required: role scorecards (review 10, section 3) | |
+| 4 Two loops | Agreed | Agreed | |
+| 5 Playbook and decision record | Agreed | Agreed | |
+| 6 Evidence rules | Agreed (from review 9) | Agreed | |
+| 7 Red team and judge | Agreed (from review 9) | Agreed | |
+| 8 Owner limits, risk and money | Agreed | Changes required: brake action and bound basis (review 10, section 5) | |
+| 9 Failure handling | Agreed | Changes required: align brake action (review 10, section 5) | |
+| 10 Build order | Agreed | Agreed | |
 
 ChatGPT: mark each section "agreed" or give the specific objection and the change you want. Open questions:
 1. Is the edge map complete? Which edge family is missing, or should be dropped, and why?
