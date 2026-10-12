@@ -6,7 +6,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from ..constants import ENV_GDRIVE_FOLDER_ID, ENV_GDRIVE_SERVICE_ACCOUNT_JSON
+from ..constants import ENV_GDRIVE_FOLDER_ID, ENV_GDRIVE_SERVICE_ACCOUNT_JSON, RESEARCH_USER_AGENT
 from ..http_pacing import PacedSession
 from .google_drive import GoogleDriveStore, service_account_token
 from .raw_library import RawFileLibrary
@@ -30,4 +30,6 @@ def build_nse_fo_library(project_folder: Path | None = None) -> RawFileLibrary:
     """NSE daily F&O files: from the stores if they have them, else from NSE (saved under the local project folder's
     `raw` area if given)."""
     archive = AreaStore(LocalFolderStore(project_folder), RAW_AREA) if project_folder else None
-    return RawFileLibrary(build_raw_stores(project_folder), NseDailyFoSource(PacedSession()), archive)
+    session = PacedSession()
+    session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
+    return RawFileLibrary(build_raw_stores(project_folder), NseDailyFoSource(session), archive)

@@ -158,7 +158,8 @@ def update(data: Path, library, first: date, last: date, rebuild: bool = False) 
             day += timedelta(days=1)
     except (RawSourceUnavailable, KeyboardInterrupt) as exc:
         print(f"stopped early ({type(exc).__name__}); saving the days done so far")
-    save(data, existing)
+    if added["days"]:
+        save(data, existing)  # never replaces the files when nothing new arrived (e.g. a failed --rebuild)
     return added
 
 

@@ -176,3 +176,10 @@ def test_the_key_may_be_plain_json_or_base64_of_it():
     assert service_account_info(text) == key
     assert service_account_info(base64.b64encode(text.encode()).decode()) == key
     assert service_account_info("  " + json.dumps(key) + "\n") == key
+
+
+def test_the_nse_library_names_itself_honestly():
+    from fno.constants import RESEARCH_USER_AGENT
+
+    library = build_nse_fo_library()
+    assert library.source.session.headers["User-Agent"] == RESEARCH_USER_AGENT

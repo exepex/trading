@@ -17,6 +17,7 @@ from ..constants import (
     ENV_FINNHUB_API_KEY,
     ENV_MARKETAUX_API_TOKEN,
     INDEX_UNDERLYINGS,
+    RESEARCH_USER_AGENT,
 )
 from ..http_pacing import PacedSession
 from ..notify import SlackTarget
@@ -73,7 +74,6 @@ RESEARCH_FROM_MOTHERDUCK = "motherduck"
 RESULTS_TO_FILES = "files"
 RESULTS_TO_DUCKDB = "duckdb"
 DEFAULT_NEWS_INTERVAL_SECONDS = 120
-NEWS_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"  # honest, and accepted by the feeds
 NEWS_USAGE_FILE = "news_usage.json"  # requests today per capped source, kept across restarts
 SOURCE_CONFIG_KEYS = {NSE_SOURCE: "nse_announcements", BSE_SOURCE: "bse_announcements"}
 
@@ -261,7 +261,7 @@ def build_news_watcher(services: LiveServices) -> NewsWatcher | None:
     fno_symbols, names = _fno_names(services)
     services.news_room.book.use_tagger(SymbolTagger(names))
     session = PacedSession()
-    session.headers["User-Agent"] = NEWS_USER_AGENT
+    session.headers["User-Agent"] = RESEARCH_USER_AGENT
     source_cfg = news_cfg.get("sources", {})
     feeds = news_cfg.get("feeds", [])
     sources = [RssFeedSource(feed["name"], feed["url"], session) for feed in feeds]

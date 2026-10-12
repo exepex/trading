@@ -101,3 +101,15 @@ def test_a_manifest_without_its_extracts_stops_without_writing(tmp_path):
     with pytest.raises(fetch.InconsistentData):
         fetch.update(tmp_path, library_for([]), JAN_2, date(2024, 1, 3))
     assert (tmp_path / "manifest.csv").read_bytes() == manifest and not (tmp_path / "nifty_options.csv.gz").exists()
+
+
+class Unreachable:
+    def get(self, path):
+        raise fetch.RawSourceUnavailable("NSE: connection refused")
+
+
+def test_a_rebuild_that_fetches_nothing_leaves_the_files_untouched(tmp_path):
+    fetch.update(tmp_path, library_for([JAN_2]), JAN_2, JAN_2)
+    before = {f: (tmp_path / f).read_bytes() for f in fetch.FILES.values()}
+    added = fetch.update(tmp_path, Unreachable(), JAN_2, date(2024, 1, 3), rebuild=True)
+    assert added["days"] == 0 and {f: (tmp_path / f).read_bytes() for f in fetch.FILES.values()} == before

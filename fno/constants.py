@@ -89,6 +89,8 @@ EVENT_SHADOW_CLOSED = "shadow_closed"
 
 # Fast news watcher (fno/live/news): API keys live only in ~/.trading.env or the environment
 ENV_FINNHUB_API_KEY = "FINNHUB_API_KEY"
+# How this tool names itself to public websites (NSE, news feeds): honest, and accepted by them
+RESEARCH_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"
 ENV_MARKETAUX_API_TOKEN = "MARKETAUX_API_TOKEN"
 ENV_ASKNEWS_API_KEY = "ASKNEWS_API_KEY"
 # Raw-file archive on Google Drive (fno/storage): read-only service account; both only in the environment
