@@ -33,6 +33,8 @@ class ExitReason(StrEnum):
     INTRADAY_SQUARE_OFF = "intraday square-off"
     MAX_HOLDING_DAYS = "maximum holding days"
     BEFORE_EXPIRY = "time exit before expiry"
+    OVERNIGHT_LIMIT = "overnight exposure limit"
+    PERFORMANCE_STOP = "performance kill switch"
     KILL_SWITCH = "kill switch"
     MANUAL = "manual"
 

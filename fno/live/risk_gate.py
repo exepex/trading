@@ -24,6 +24,8 @@ class PortfolioGate:
             self._open_slots,
             self._same_underlying,
             self._concentration,
+            self._trade_frequency,
+            self._loss_cooldown,
             self._recent_exit,
             self._daily_brakes,
             self._deployment,
@@ -60,6 +62,29 @@ class PortfolioGate:
             index_trades = sum(t["underlying"] in INDEX_UNDERLYINGS for t in open_trades)
             if index_trades >= account.get("max_index_trades", 2):
                 return f"already {index_trades} index trades open"
+        return None
+
+    def _trade_frequency(self, idea, trades, phase, now) -> str | None:
+        """Fewer, better trades: overtrading is where most retail F&O losses come from."""
+        account = self.cfg.get("account", {})
+        today = now.date()
+        week_start = today - timedelta(days=today.weekday())
+        opened_days = [datetime.fromisoformat(t["opened_at"]).date() for t in trades if t.get("opened_at")]
+        per_day, per_week = account.get("max_new_trades_per_day", 2), account.get("max_new_trades_per_week", 8)
+        if sum(d == today for d in opened_days) >= per_day:
+            return f"already {per_day} new trades today"
+        if sum(d >= week_start for d in opened_days) >= per_week:
+            return f"already {per_week} new trades this week"
+        return None
+
+    def _loss_cooldown(self, idea, trades, phase, now) -> str | None:
+        """A pause after any losing exit, so a loss is never chased with a hasty new trade."""
+        minutes = self.cfg.get("account", {}).get("cooldown_after_loss_minutes", 0)
+        losing_exits = [
+            datetime.fromisoformat(t["closed_at"]) for t in trades if t.get("closed_at") and t.get("pnl_net", 0) < 0
+        ]
+        if minutes and losing_exits and now - max(losing_exits) < timedelta(minutes=minutes):
+            return f"cooling off for {minutes} minutes after a losing trade"
         return None
 
     def _recent_exit(self, idea, trades, phase, now) -> str | None:

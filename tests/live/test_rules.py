@@ -59,7 +59,7 @@ def test_choose_expiry_keeps_away_from_expiry_day():
 
 
 def picker(cfg):
-    return ContractPicker(PickerRules(min_open_interest=0), ExitLevels(), cfg["position_rules"])
+    return ContractPicker(PickerRules(min_open_interest=0), ExitLevels(), cfg["position_rules"], 4000.0)
 
 
 def test_picker_buys_calls_for_bullish_and_puts_for_bearish():

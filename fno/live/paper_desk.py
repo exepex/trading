@@ -49,8 +49,29 @@ class PaperDesk:
                         closed.append(trade)
                 except Exception as exc:  # one bad quote must not stop the others being checked
                     errors.append(f"{trade['id']} {trade.get('contract_name', '')}: {exc}")
+            if phase is SessionPhase.SQUARE_OFF:
+                closed += self._trim_overnight_exposure(trades)
             journal.save(trades, self.journal_path)
         return closed, errors
+
+    def _trim_overnight_exposure(self, trades: list[dict]) -> list[dict]:
+        """At square-off, close the largest positions until what is held overnight fits the cap (gap risk)."""
+        cap = self.cfg.get("account", {}).get("max_overnight_premium")
+        if cap is None:
+            return []
+        still_open = sorted(
+            (t for t in trades if t["status"] == TradeStatus.OPEN.value),
+            key=lambda t: t["entry_value"] * t["lot_size"] * t["lots"],
+            reverse=True,
+        )
+        closed = []
+        for trade in still_open:
+            if journal.deployed(trades) <= cap:
+                break
+            value, orders, spot = journal.close_value(trade, self.chain_source, self.slippage)
+            journal.finalise_trade(trade, value, orders, ExitReason.OVERNIGHT_LIMIT.value, self.cfg, spot)
+            closed.append(trade)
+        return closed
 
     def close_all(self, reason: ExitReason) -> list[dict]:
         closed = []

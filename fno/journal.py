@@ -54,6 +54,12 @@ def day_check(trades: list[dict], cfg: dict, today: date | None = None) -> str |
     n = lim.get("max_consecutive_losses", 0)
     if n and len(closed) >= n and all(t["pnl_net"] <= 0 for t in closed[-n:]):
         return f"{n} losing trades in a row today"
+    week_start = (today - timedelta(days=today.weekday())).isoformat()
+    week_net = sum(
+        t["pnl_net"] for t in trades if t["status"] == "closed" and t.get("closed_at", "")[:10] >= week_start
+    )
+    if week_net <= -lim.get("weekly_max_loss", float("inf")):
+        return f"weekly loss limit reached (net Rs {week_net:,.0f} this week)"
     return None
 
 

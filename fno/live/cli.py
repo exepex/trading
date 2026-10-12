@@ -11,6 +11,7 @@ from .. import journal
 from ..config import load_config
 from ..constants import SessionPhase
 from ..models import IST
+from .learning.performance import readiness_checks
 from .learning.signal_report import format_report, rule_accuracy, suggested_weights
 from .learning.view_outcomes import VIEW_OUTCOME_KIND
 from .runner import LiveRunner
@@ -41,6 +42,7 @@ def add_live_parser(subparsers) -> None:
     kill = actions.add_parser("kill", help="close all paper trades and stop new ones")
     kill.add_argument("reason", nargs="?", default="manual stop")
     actions.add_parser("resume", help="release the kill switch")
+    actions.add_parser("readiness", help="go-live test: is the paper record good enough for real money?")
     report = actions.add_parser("signal-report", help="how well each signal predicted the later price move")
     report.add_argument("--days", type=int, default=20, help="look back this many days")
     report.add_argument("--horizon", type=int, default=30, help="minutes after the view (30 or 90)")
@@ -63,6 +65,8 @@ def run_live_command(args) -> int:
     elif args.live_cmd == "resume":
         services.kill_switch.release()
         print("Kill switch released. New trades are allowed again.")
+    elif args.live_cmd == "readiness":
+        _print_readiness(services, now)
     elif args.live_cmd == "signal-report":
         _print_signal_report(services, now, args.days, args.horizon)
     return 0
@@ -109,6 +113,14 @@ def _print_signal_report(services, now: datetime, days: int, horizon: int) -> No
     print("\nSuggested weights (copy to config.yaml live.signals once rules have enough votes):")
     for rule, weight in suggested_weights(results, min_votes).items():
         print(f"  {rule}: {weight}")
+
+
+def _print_readiness(services, now: datetime) -> None:
+    checks = readiness_checks(services.desk.trades(), services.cfg, now.date())
+    for check in checks:
+        print(f"  {'PASS' if check.passed else 'not yet'}  {check.name}: {check.detail}")
+    ready = all(c.passed for c in checks)
+    print("READY for a small real-money trial." if ready else "NOT READY: keep paper trading.")
 
 
 def _print_status(services, now: datetime) -> None:

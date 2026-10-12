@@ -5,7 +5,8 @@ Each run scans the option chain, scores the market's direction and volatility, b
 trades, sizes them to your risk budget, and writes a daily brief. It is a research aid. It does
 not place orders. You decide whether to take a trade and place it yourself on Groww.
 
-> Reality check: SEBI's studies found roughly 9 in 10 individual F&O traders lost money.
+> Reality check: SEBI's studies found roughly 9 in 10 individual F&O traders lost money. How the desk guards
+> against each cause: `docs/SAFEGUARDS.md` (research: `reports/Retail FnO losses and safeguards.md`).
 > Run this as a paper-trading experiment first and judge it on 20-30 closed trades, not on a few wins.
 
 ## Quick start

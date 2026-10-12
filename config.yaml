@@ -8,11 +8,16 @@ provider: nse
 
 underlyings: [NIFTY, BANKNIFTY]
 
+# Safeguards are set from the research in reports/Retail FnO losses and safeguards.md (12 Oct 2026).
 account:
-  capital: 100000          # rupees set aside for the experiment (paper money for the first month)
+  capital: 200000          # the most the owner will ever have at stake in F&O
   max_open_trades: 5       # at most 5 open trades; a new one opens only after one closes
   max_same_direction: 3    # at most 3 open trades betting the same way (calls, or puts)
   max_index_trades: 2      # NIFTY, BANKNIFTY, FINNIFTY... move together: at most 2 at once
+  max_new_trades_per_day: 2      # overtrading drives losses (SEBI FY26: traders active >100 days = 87% of losses)
+  max_new_trades_per_week: 8
+  cooldown_after_loss_minutes: 45  # no new entry right after any losing exit (revenge-trading guard)
+  max_overnight_premium: 20000     # at most 10% of capital held overnight (gap risk); the rest closes at 15:15
 
 # Position sizing agreed with the owner (12 Oct 2026). Amounts are premium paid per trade.
 position_rules:
@@ -21,6 +26,7 @@ position_rules:
   exception_max_per_trade: 25000 # one lot above Rs 11,000 only on strong evidence, never above this
   normal_deployed: 50000         # normal total in open trades (about 5 x 10,000; +/-10% is fine)
   max_deployed: 70000            # hard cap; only strong-evidence trades may push above normal
+  risk_per_trade_pct: 2.0        # planned loss at the stop <= 2% of capital (Rs 4,000); lots are cut to fit
 
 # Holding discipline: every trade closes before expiry day, no exceptions.
 holding:
@@ -28,20 +34,27 @@ holding:
   no_new_entries_after: "14:45"  # IST; avoid late entries that cannot be managed
   intraday_square_off: "15:15"   # IST; intraday trades are closed by this time
 
-# What the paper month must show before any real-money trading (agreed later with the owner).
+# What paper trading must show before any real money (python -m fno live readiness checks it).
 go_live_criteria:
-  min_trading_weeks: 4
-  min_closed_trades: 30
+  min_trading_weeks: 13          # about 3 months
+  min_closed_trades: 100         # fewer trades cannot tell skill from luck
   net_profit_positive: true      # after every charge
+  min_t_stat: 2.0                # mean net P&L per trade / its standard error
   min_profit_factor: 1.3         # gross wins / gross losses, net of charges
-  max_drawdown: 15000            # rupees, peak-to-trough on closed trades
+  max_drawdown: 20000            # rupees (10% of capital), peak-to-trough on closed trades
   rule_breaks_allowed: 0         # every stop, limit and expiry exit followed
+
+# Automatic stop of the whole experiment: engages the kill switch for a human review.
+performance_kill:
+  rolling_trades: 20             # if the last 20 closed trades lose money in total...
+  max_drawdown: 20000            # ...or closed-trade drawdown from the peak reaches 10% of capital
 
 # Day-level brakes on opening new trades (closed trades, net of charges).
 daily_limits:
-  max_loss: 6000                 # stop trading for the day after a Rs 6,000 net loss
+  max_loss: 6000                 # stop trading for the day after a Rs 6,000 (3%) net loss
   profit_lock: 6000              # after a Rs 6,000 net profit today, stop opening new trades
-  max_consecutive_losses: 3      # three losses in a row today: stop for the day
+  max_consecutive_losses: 2      # two losses in a row today: stop for the day
+  weekly_max_loss: 12000         # stop for the rest of the week after a Rs 12,000 (6%) net loss
 
 # Which expiries to consider (calendar days to expiry).
 # Very short expiries have explosive gamma and fast theta decay; very long ones tie up capital.
@@ -90,7 +103,7 @@ lot_sizes:
 # Groww F&O charges for options (verify against Groww's current pricing page).
 charges:
   brokerage_per_order: 20.0
-  stt_sell_pct: 0.1            # on sell-side premium
+  stt_sell_pct: 0.15           # on sell-side premium; raised from 0.1% by Budget 2026, from 1 Apr 2026
   exchange_txn_pct: 0.03503    # NSE options transaction charge on premium
   sebi_per_crore: 10.0
   ipft_per_crore: 50.0         # NSE investor protection fund, options premium
@@ -129,10 +142,13 @@ live:
     strong_min_votes: 4
   contract:
     target_delta: 0.55
-    strikes_each_side: 3
-    min_premium: 20
-    max_spread_pct: 3.0
+    strikes_each_side: 6           # search window; min_abs_delta and the risk limit decide what is usable
+    min_premium: 25                # below this, charges plus the spread eat too much of the premium
+    max_spread_pct: 2.0            # bid-ask gap for index options
+    max_spread_pct_stock: 5.0      # stock options are less liquid
     min_open_interest: 200
+    min_abs_delta: 0.30            # nothing further out of the money ("lottery tickets")
+    max_daily_theta_pct: 12        # skip if time decay would eat more than 12% of the premium per day
   # weight = how much each rule counts; enabled: false switches one off. Starting weights are judgement calls:
   # replace them with `python -m fno live signal-report` suggestions once each rule has enough graded votes.
   signals:
@@ -162,9 +178,9 @@ live:
     foreign_flows: {weight: 0.4, days: 3, full_scale_crore: 10000}
   guards:
     ban_list: {}
-    earnings: {min_days_before_results: 2}
-    market_stress: {block_on_stress: true, block_on_geopolitical: true}
-    expensive_options: {max_iv_to_realised: 1.6}
+    earnings: {min_days_before_results: 3}
+    market_stress: {block_on_stress: true, block_on_geopolitical: true, block_on_major_event: true}
+    expensive_options: {max_iv_to_realised: 1.3}
   learning:
     horizons_minutes: [30, 90]     # grade every view by the price move this long afterwards
     min_abs_score: 0.2             # votes weaker than this do not count towards a hit rate

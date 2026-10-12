@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta
 from ..constants import ExitReason, SessionPhase
 from ..models import IST
 from .alerts import day_summary_message, exit_message
+from .learning.performance import performance_stop_reason
 from .learning.view_outcomes import ViewOutcomeTracker
 from .research.research_context import ResearchSnapshot
 from .scanner import LiveScanner
@@ -135,6 +136,14 @@ class LiveRunner:
             self.services.alerts.send(exit_message(trade))
         if errors:
             self._report_problem(now, "could not re-price: " + "; ".join(errors[:3]))
+        if closed:
+            self._stop_if_performance_breaks(now)
+
+    def _stop_if_performance_breaks(self, now: datetime) -> None:
+        """A losing run or deep drawdown stops everything until a person reviews it (kill switch)."""
+        reason = performance_stop_reason(self.services.desk.trades(), self.services.cfg)
+        if reason and not self.services.kill_switch.engaged:
+            self.services.kill_switch.engage(f"automatic: {reason}", now)
 
     def _handle_kill_switch(self, now: datetime) -> None:
         if self.state.kill_reported:

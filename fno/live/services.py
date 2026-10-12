@@ -91,6 +91,7 @@ def build_live_services(
             PickerRules.from_config(live.get("contract", {})),
             ExitLevels.from_config(cfg.get("exits", {}).get("long_option", {})),
             cfg.get("position_rules", {}),
+            max_planned_loss(cfg),
         ),
         gate=PortfolioGate(cfg, kill_switch, live.get("reentry_cooldown_minutes", 30)),
         desk=PaperDesk(journal_path, cfg, chain_source, exit_policy),
@@ -121,3 +122,9 @@ def build_results_store(results_cfg: dict, state_dir: Path) -> ResultsStore:
     if results_cfg.get("store", RESULTS_TO_FILES) == RESULTS_TO_DUCKDB:
         return DuckDbResultsStore(state_dir / LOCAL_RESULTS_NAME, results_cfg.get("database", "fno_desk"))
     return JsonlResultsStore(Path(results_cfg.get("directory") or DEFAULT_RESULTS_DIR))
+
+
+def max_planned_loss(cfg: dict) -> float:
+    """Rupees a single trade may lose at its stop: risk_per_trade_pct of capital."""
+    capital = cfg.get("account", {}).get("capital", 0)
+    return capital * cfg.get("position_rules", {}).get("risk_per_trade_pct", 2.0) / 100

@@ -39,6 +39,8 @@ class MarketStressGuard(GuardRule):
         research = inputs.research
         if research.stress and self.settings.get("block_on_stress", True):
             return self.verdict(True, f"market regime {research.regime or 'unknown'} under stress")
+        if research.major_events and self.settings.get("block_on_major_event", True):
+            return self.verdict(True, f"major scheduled event: {', '.join(research.major_events)[:80]}")
         if research.geopolitical_headlines and self.settings.get("block_on_geopolitical", True):
             return self.verdict(True, f"high-impact geopolitical news: {research.geopolitical_headlines[0][:80]}")
         return self.verdict(False, f"market regime {research.regime or 'unknown'}, no stress")
