@@ -36,6 +36,14 @@ the same rules (see `CLAUDE.md`).
   changes what you do.
 - **No patches.** Find the root cause, validate it with data and tests, then fix the design. When a component keeps
   needing fixes, question the design.
+- **No blind acceptance or rejection of reviews.** Check every review comment and piece of feedback (from the owner,
+  Claude, ChatGPT or a judge) with your own reasoning and, where possible, data: re-run the numbers, read the code,
+  test the claim. Accept it only when the check shows it is correct; push back when it is not. Every acceptance and
+  every rejection states its reason and evidence. Partial agreement is fine: say which part and why.
+- **Everything for the other AI goes in the repository.** Questions, proposals, solutions, suggestions and feedback
+  meant for ChatGPT (or from it) are written as Markdown files in the repository, never only in chat, so each side
+  reads them directly: ChatGPT writes to `reviews/chatgpt/review_<n>_<name>.md`, Claude to
+  `reviews/claude/response_<n>_<name>.md` (questions and proposals included), each folder with a README index.
 - **Hard lines:** no real orders placed by the tool; nothing illegal (no market manipulation); API keys, passwords
   and tokens never in files or chat.
 

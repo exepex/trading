@@ -16,6 +16,14 @@ cost real money later, so:
   limit), find another legitimate way: another source, a test, a workaround, or a clear question to the owner. If it
   truly cannot be done, say so plainly and why. Never skip it silently or hide it.
 - **No patches.** Find the root cause, validate it with data and tests, then fix the design.
+- **No blind acceptance or rejection of reviews.** Check every review comment and piece of feedback (from the owner,
+  Claude, ChatGPT or a judge) with your own reasoning and, where possible, data: re-run the numbers, read the code,
+  test the claim. Accept it only when the check shows it is correct; push back when it is not. Every acceptance and
+  every rejection states its reason and evidence. Partial agreement is fine: say which part and why.
+- **Everything for the other AI goes in the repository.** Questions, proposals, solutions, suggestions and feedback
+  meant for ChatGPT (or from it) are written as Markdown files in the repository, never only in chat, so each side
+  reads them directly: ChatGPT writes to `reviews/chatgpt/review_<n>_<name>.md`, Claude to
+  `reviews/claude/response_<n>_<name>.md` (questions and proposals included), each folder with a README index.
 - **Own limits too.** This applies to Claude's own limits and boundaries, not only tools: always give the fullest, most
   direct answer possible. If a limit ever shapes an answer, say so openly (what was limited and why), give everything
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
