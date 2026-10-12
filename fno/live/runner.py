@@ -80,7 +80,10 @@ class LiveRunner:
 
     def run_forever(self) -> None:
         log.info("live desk started; results stored at %s", self.services.store.location)
-        self._start_day_if_needed(datetime.now(IST))  # holidays known before the watcher starts (retried on failure)
+        try:
+            self._start_day_if_needed(datetime.now(IST))  # holidays known before the watcher starts
+        except Exception:  # noqa: BLE001 - the next tick retries; the watcher then falls back to weekdays
+            log.exception("start-of-day setup failed before the news watcher started")
         self._start_news_watcher()
         while True:
             self.tick(datetime.now(IST))
@@ -105,7 +108,7 @@ class LiveRunner:
             self._check_news_watcher(now)
             phase = self.services.clock.phase(now)
             if self.services.kill_switch.engaged:
-                self._handle_kill_switch(now)
+                self._handle_kill_switch(now, phase)
                 return
             if phase in ACTIVE_PHASES:
                 self._watch_prices_if_due(now, phase)
@@ -121,13 +124,23 @@ class LiveRunner:
         """A dead watcher silently switches off the news guard and exit: say so once."""
         if self._news_thread is None or self._news_thread.is_alive() or self._news_down_reported:
             return
-        self._news_down_reported = True
-        self._report_problem(now, NEWS_WATCHER_DOWN)
+        self._news_down_reported = self._report_problem(now, NEWS_WATCHER_DOWN)  # retried until it goes out
 
     def _start_day_if_needed(self, now: datetime) -> None:
-        """Load the day's reference data; on failure keep yesterday's day state and retry every 5 minutes."""
+        """A new date always starts a new day state; the day's reference data loads separately (retried)."""
         today = now.date()
-        if self.state.day == today or (self._reference_retry_at and now < self._reference_retry_at):
+        if self.state.day != today:
+            self.state = DayState(day=today)
+            self.outcomes.end_of_day()
+            if self.services.iv_history is not None:
+                self.services.iv_history.flush(now)  # readings of a day that ended early, under their own day
+        self._load_reference_if_needed(now)
+
+    def _load_reference_if_needed(self, now: datetime) -> None:
+        """Today's lot sizes, ban list, holidays and industries; on failure retried every 5 minutes, and no scan
+        runs on another day's data meanwhile (reviews and exits carry on)."""
+        today = now.date()
+        if self._reference_today(today) or (self._reference_retry_at and now < self._reference_retry_at):
             return
         try:
             reference = ReferenceData.load(self.services.nse_feed, today)
@@ -136,16 +149,13 @@ class LiveRunner:
             self._report_problem(now, REFERENCE_FAILED.format(error=exc))
             return
         self._reference_retry_at = None
-        self.state = DayState(day=today)
-        self.outcomes.end_of_day()
-        if self.services.iv_history is not None:
-            self.services.iv_history.flush(now)  # readings of a day that ended early, under their own day
         self.reference = reference
-        self.services.clock.holidays = self.reference.holidays
-        self.services.gate.industries = self.reference.industries
-        log.info(
-            "new day %s: %d F&O underlyings, %d banned", today, len(self.reference.symbols), len(self.reference.banned)
-        )
+        self.services.clock.holidays = reference.holidays
+        self.services.gate.industries = reference.industries
+        log.info("new day %s: %d F&O underlyings, %d banned", today, len(reference.symbols), len(reference.banned))
+
+    def _reference_today(self, today: date) -> bool:
+        return self.reference is not None and self.reference.loaded_on == today
 
     def _research(self, now: datetime) -> ResearchSnapshot:
         loaded = self.research.loaded_at
@@ -158,7 +168,7 @@ class LiveRunner:
         if (
             phase is not SessionPhase.TRADING
             or not self._due(self.state.last_scan, now, self.timings.scan_every_seconds)
-            or self.reference is None
+            or not self._reference_today(now.date())
         ):
             return
         self.state.last_scan = now
@@ -240,13 +250,12 @@ class LiveRunner:
         if reason and not self.services.kill_switch.engaged:
             self.services.kill_switch.engage(f"automatic: {reason}", now)
 
-    def _handle_kill_switch(self, now: datetime) -> None:
-        """Close everything once; a trade that cannot be priced is retried every review until it closes."""
+    def _handle_kill_switch(self, now: datetime, phase: SessionPhase) -> None:
+        """Close everything once; a trade that cannot be priced is retried every review during market hours until
+        it closes (there are no prices to close at overnight)."""
         desk = self.services.desk
-        if self.state.kill_reported and (
-            not desk.open_trades()
-            or not self._due(self.state.last_kill_attempt, now, self.timings.review_every_seconds)
-        ):
+        review_due = self._due(self.state.last_kill_attempt, now, self.timings.review_every_seconds)
+        if self.state.kill_reported and (not desk.open_trades() or phase not in ACTIVE_PHASES or not review_due):
             return
         self.state.last_kill_attempt = now
         closed = desk.close_all(ExitReason.KILL_SWITCH)
@@ -273,10 +282,13 @@ class LiveRunner:
         self.services.alerts.send(message)
         self.state.summary_sent = True
 
-    def _report_problem(self, now: datetime, message: str) -> None:
-        if self._due(self.state.last_problem_alert, now, self.timings.problem_alert_every_minutes * 60):
-            self.state.last_problem_alert = now
-            self.services.alerts.problem(message)
+    def _report_problem(self, now: datetime, message: str) -> bool:
+        """Send a problem alert, at most one every 15 minutes. Returns whether it was sent."""
+        if not self._due(self.state.last_problem_alert, now, self.timings.problem_alert_every_minutes * 60):
+            return False
+        self.state.last_problem_alert = now
+        self.services.alerts.problem(message)
+        return True
 
     @staticmethod
     def _due(last: datetime | None, now: datetime, every_seconds: int) -> bool:

@@ -156,6 +156,7 @@ MACRO_PATTERN = _words(
     r"sanctions?",
 )
 UP_WORDS = (
+    r"recovers?",
     r"jumps?",
     r"surges?",
     r"soars?",
@@ -240,17 +241,22 @@ NEGATIVE = _words(
 COST_SUBJECT = r"\b(?:crude(?: oil)?|oil prices?|brent(?: crude)?|(?:us |bond |treasury )?yields?|dollar(?: index)?)"
 RUPEE_SUBJECT = r"\brupee"
 COST_EASES = (r"eases?", r"cools?", r"softens?", r"retreats?")
-IN_BETWEEN = r"(?:\s+(?:prices?|futures|index|sharply|further|again|nearly|over|by|up|down|\$?[\d.,]+%?))*"
+IN_BETWEEN = r"(?:\s+(?:prices?|futures|index|sharply|further|again|nearly|over|by|\$?[\d.,]+%?))*"
+# what usually follows the move and must go with it: "to a 16-year high", "from record low", "3%", "20 paise"
+MOVE_TAIL = (
+    r"(?:\s+(?:by\s+)?[\d.,]+\s*(?:%|paise|points?|bps|basis points)?)?"
+    r"(?:\s+(?:to|from|at)\s+(?:a\s+)?[\w-]+(?:\s+[\w-]+)?\s+(?:highs?|lows?))?"
+)
 
 
 def _moves(subject: str, words: tuple[str, ...]) -> re.Pattern:
-    return re.compile(subject + IN_BETWEEN + r"\s+(?:" + "|".join(words) + r")\b", re.IGNORECASE)
+    return re.compile(subject + IN_BETWEEN + r"\s+(?:" + "|".join(words) + r")\b" + MOVE_TAIL, re.IGNORECASE)
 
 
-COST_RISES = _moves(COST_SUBJECT, UP_WORDS)
-COST_FALLS = _moves(COST_SUBJECT, DOWN_WORDS + COST_EASES)
-RUPEE_FALLS = _moves(RUPEE_SUBJECT, (*DOWN_WORDS, "hits record low", "record low"))
-RUPEE_RISES = _moves(RUPEE_SUBJECT, UP_WORDS)
+COST_RISES = _moves(COST_SUBJECT, (*UP_WORDS, "up"))
+COST_FALLS = _moves(COST_SUBJECT, (*DOWN_WORDS, *COST_EASES, "down"))
+RUPEE_FALLS = _moves(RUPEE_SUBJECT, (*DOWN_WORDS, "down", "hits"))
+RUPEE_RISES = _moves(RUPEE_SUBJECT, (*UP_WORDS, "up"))
 
 
 def event_type(story: Story) -> NewsEventType:

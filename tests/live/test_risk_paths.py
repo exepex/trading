@@ -169,3 +169,38 @@ def test_a_loss_closed_seconds_after_a_release_counts(tmp_path):
     assert performance_stop_reason([loss], cfg, since=switch.released_at)
     (tmp_path / "KILL.released").write_text("2026-10-12T10:05:00")  # a hand-edited time without a zone
     assert switch.released_at.utcoffset() == timedelta(hours=5, minutes=30)
+
+
+def test_a_new_day_with_failing_reference_data_scans_nothing_but_still_sends_its_summary(tmp_path):
+    svc, _, reference, _ = desk_with_trades(tmp_path)
+    runner = LiveRunner(svc)
+    runner.reference, runner.state.day = reference, at(11, 0).date()
+    runner.state.summary_sent = True  # yesterday's summary went out
+    next_day = at(11, 0).date() + timedelta(days=1)
+
+    def down():
+        raise ConnectionError("NSE down")
+
+    svc.nse_feed.lot_sizes = down
+    scans = []
+    runner.scanner.run_cycle = lambda *args, **kwargs: scans.append(args)
+    runner.tick(at(11, 0, next_day))
+    runner.tick(at(11, 6, next_day))
+    assert runner.state.day == next_day and scans == []  # no scan on yesterday's ban list and lot sizes
+    runner.tick(at(15, 45, next_day))
+    assert runner.state.summary_sent  # today's summary still goes out
+
+
+def test_the_dead_watcher_alert_is_not_lost_to_the_rate_limit(tmp_path):
+    import threading
+
+    svc, _, reference, _ = desk_with_trades(tmp_path)
+    runner = LiveRunner(svc)
+    runner.reference, runner.state.day = reference, at(11, 0).date()
+    runner._report_problem(at(11, 0), "some other problem")
+    runner._news_thread = threading.Thread(target=lambda: None)
+    runner._news_thread.start()
+    runner._news_thread.join()
+    runner.tick(at(11, 5))  # rate-limited: not sent yet
+    runner.tick(at(11, 16))  # the limit has passed: sent now
+    assert sum("news watcher stopped" in m for m in svc.alerts.messages) == 1

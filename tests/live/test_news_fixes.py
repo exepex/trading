@@ -50,6 +50,14 @@ def test_the_marketaux_token_never_appears_in_connection_errors():
         ("Brent flat, Nifty climbs to record high", 1),
         ("Crude jumps 4% after attack on Saudi plant", -1),
         ("Rupee hits record low against dollar", -1),
+        ("Crude up 3% on supply fears", -1),
+        ("Rupee down 20 paise against dollar", -1),
+        ("US yields rise to 16-year high", -1),
+        ("Dollar index jumps to two-year high", -1),
+        ("Rupee recovers from record low", 1),
+        ("Oil prices jump 3%", -1),
+        ("Rupee gains against dollar", 1),
+        ("Bond yields climb; banks fall", -1),
     ],
 )
 def test_headline_direction(headline, sign):
