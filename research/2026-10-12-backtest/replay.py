@@ -146,7 +146,7 @@ class Replay:
         previous_close = [c for c in candles if c.start.date() < day][-1]
         first = session[0]
         if first.start.time() != time(9, 15):
-            return {"incomplete": 1}
+            return {"incomplete": 1, "reason": "no 09:15 candle in the exit session", "net": trade.net_pnl}
         model = self.tester.model
 
         def value(spot, now):
@@ -165,6 +165,25 @@ class Replay:
             "charges": -charges,
             "net": trade.net_pnl,
         }
+
+
+BRIDGE_PARTS = ("before_the_previous_close", "overnight_option_value_change", "open_to_exit", "charges")
+
+
+def summarise_bridges(bridges: list[dict], ids: list[str]) -> dict:
+    """Totals of an opening-loss group. Parts are summed over complete bridges only and labelled as such; incomplete
+    ones are listed with their reason, and the group's net still includes them (it is known from the trade)."""
+    complete = [b for b in bridges if not b["incomplete"]]
+    incomplete = [(i, b) for i, b in zip(ids, bridges, strict=True) if b["incomplete"]]
+    return {
+        "matched": len(bridges),
+        "complete": len(complete),
+        "incomplete": len(incomplete),
+        "incomplete_entries": [{"id": i, "reason": b["reason"], "net": round(b["net"], 2)} for i, b in incomplete],
+        "net_of_all_matched": round(sum(b["net"] for b in bridges), 2),
+        "parts_over_complete_bridges_only": {k: round(sum(b[k] for b in complete), 2) for k in BRIDGE_PARTS},
+        "net_of_complete_bridges": round(sum(b["net"] for b in complete), 2),
+    }
 
 
 def main() -> None:
@@ -217,7 +236,8 @@ def main() -> None:
     opening = {}
     for name, last_exit in (("first_bar_stops", FIRST_BAR_EXIT), ("opening_ten_minute_stops", OPENING_TEN_MINUTES_END)):
         bridges = [b for b in (run.opening_bridge(t, last_exit) for t in entries) if b]
-        opening[name] = {"count": len(bridges), **{k: round(sum(b[k] for b in bridges), 2) for k in bridges[0]}}
+        ids = [f"E{n:03d}" for n, t in enumerate(entries, 1) if run.opening_bridge(t, last_exit)]
+        opening[name] = summarise_bridges(bridges, ids)
     closed = [t for t in trades if t["status"] == "closed"]
     still_open = [t for t in trades if t["status"] != "closed"]
     summary = {
