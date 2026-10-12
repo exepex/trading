@@ -15,11 +15,14 @@ from abc import ABC, abstractmethod
 from datetime import date, timedelta
 from pathlib import Path
 
-HOLIDAY, SPECIAL, MUHURAT, REGULAR = "holiday", "special", "muhurat", "regular"
+from ..constants import SESSION_HOLIDAY as HOLIDAY
+from ..constants import SESSION_MUHURAT as MUHURAT
+from ..constants import SESSION_REGULAR as REGULAR
+from ..constants import SESSION_SPECIAL as SPECIAL
+
 ROW_KINDS = (HOLIDAY, SPECIAL, MUHURAT)
 FIELDS = ("date", "kind", "description", "source_url")
 SATURDAY = 5
-CALENDAR_FILE = Path(__file__).resolve().parents[2] / "research" / "data" / "calendar" / "nse_sessions.csv"
 
 
 class CalendarError(ValueError):
@@ -100,5 +103,5 @@ class CsvSessionCalendar(SessionCalendar):
         return self._sha256
 
 
-def load_session_calendar(path: Path = CALENDAR_FILE) -> CsvSessionCalendar:
+def load_session_calendar(path: Path) -> CsvSessionCalendar:
     return CsvSessionCalendar(path.read_text(encoding="utf-8"))

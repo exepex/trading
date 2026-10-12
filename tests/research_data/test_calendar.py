@@ -4,7 +4,8 @@ from datetime import date
 
 import pytest
 
-from fno.research_data.calendar import CALENDAR_FILE, CalendarError, CsvSessionCalendar, load_session_calendar
+from fno.research_data.calendar import CalendarError, CsvSessionCalendar, load_session_calendar
+from fno.storage.wiring import CALENDAR_FILE
 
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/example.pdf"
 HEADER = "date,kind,description,source_url\n"

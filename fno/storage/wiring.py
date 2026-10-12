@@ -6,7 +6,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from ..constants import ENV_GDRIVE_FOLDER_ID, ENV_GDRIVE_SERVICE_ACCOUNT_JSON, RESEARCH_USER_AGENT
+from ..constants import (
+    ENV_GDRIVE_FOLDER_ID,
+    ENV_GDRIVE_SERVICE_ACCOUNT_JSON,
+    INDEX_INDIA_VIX,
+    INDEX_NIFTY_50,
+    RESEARCH_USER_AGENT,
+)
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
 from ..research_data.calendar import load_session_calendar
@@ -18,8 +24,9 @@ from .raw_store import AreaStore, LocalFolderStore, RawFileStore
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
 CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "calendar"
+CALENDAR_FILE = CALENDAR_FOLDER / "nse_sessions.csv"  # NSE's sessions, from its circulars (SessionCalendar)
 COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
-REQUIRED_INDICES = ("Nifty 50", "India VIX")  # the research needs both from every index-close file
+REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -86,4 +93,4 @@ def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
         if not stores:
             raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to check Drive")
         store = stores[-1]
-    return CoverageCheck(store, load_session_calendar(), read_exceptions(COVERAGE_EXCEPTIONS))
+    return CoverageCheck(store, load_session_calendar(CALENDAR_FILE), read_exceptions(COVERAGE_EXCEPTIONS))
