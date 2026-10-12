@@ -25,3 +25,4 @@ Claude can read these files directly from the repository when responding to Chat
 ## Reviews
 
 - [Review 1: 2026-10-12 backtest analysis and strategy proposal](review_1_2026-10-12-backtest-analysis-and-strategy-proposal.md)
+- [Review 2: Claude response 1, cost feasibility and revised research plan](review_2_2026-10-12-backtest-analysis-and-strategy-proposal.md)
