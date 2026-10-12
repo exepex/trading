@@ -97,34 +97,6 @@ def max_pain(chain: OptionChain) -> float:
     return best
 
 
-def oi_walls(chain: OptionChain, n: int = 3) -> dict[str, list[tuple[float, float]]]:
-    """Highest-OI call strikes above spot (resistance) and put strikes below (support)."""
-    calls = [(k, q.oi) for (k, kind), q in chain.quotes.items() if kind == "CE" and k >= chain.spot]
-    puts = [(k, q.oi) for (k, kind), q in chain.quotes.items() if kind == "PE" and k <= chain.spot]
-    return {
-        "resistance": sorted(calls, key=lambda x: -x[1])[:n],
-        "support": sorted(puts, key=lambda x: -x[1])[:n],
-    }
-
-
-def atm_iv(chain: OptionChain, r: float = 0.065) -> float | None:
-    """ATM implied vol as a fraction: average of call/put IV at the ATM strike."""
-    k = chain.atm_strike()
-    t = chain.years_to_expiry()
-    vols = []
-    for kind in ("CE", "PE"):
-        q = chain.get(k, kind)
-        if not q:
-            continue
-        if q.iv and q.iv > 0:
-            vols.append(q.iv / 100)
-        elif q.mid > 0:
-            iv = implied_vol(q.mid, chain.spot, k, t, r, kind)
-            if iv:
-                vols.append(iv)
-    return sum(vols) / len(vols) if vols else None
-
-
 def straddle_expected_move(chain: OptionChain) -> float | None:
     """ATM straddle price: the market's rough estimate of the move by expiry."""
     k = chain.atm_strike()
@@ -132,16 +104,3 @@ def straddle_expected_move(chain: OptionChain) -> float | None:
     if not ce or not pe or ce.mid <= 0 or pe.mid <= 0:
         return None
     return ce.mid + pe.mid
-
-
-# ---------------------------------------------------------------- price history
-
-
-def historical_vol(values: list[float], window: int = 20) -> float | None:
-    """Annualised close-to-close volatility over the last `window` returns."""
-    if len(values) <= window:
-        return None
-    rets = [math.log(b / a) for a, b in zip(values[-window - 1 : -1], values[-window:])]
-    mean = sum(rets) / len(rets)
-    var = sum((x - mean) ** 2 for x in rets) / (len(rets) - 1)
-    return math.sqrt(var * 252)

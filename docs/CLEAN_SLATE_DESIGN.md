@@ -219,6 +219,18 @@ pass and the judge confirms them. The 3 pm routine stays enabled throughout; rec
 6. Recorder baseline: the four scenarios' output files from the pre-cleanup recorder are committed in
    `tests/fixtures/quote_recorder_golden/`; `tests/quotes/test_recorder_baseline.py` requires identical bytes.
 
+### 9b. After judge review 22 (F1: old Yahoo market-context code survived)
+
+A whole-package scan (every function, class and constant in `fno/` against every caller in `fno/`, `tools/` and
+`research/`, tests not counted as callers) found more than the judge named. Removed: `Provider.context()` and its
+three implementations, `MarketContext`, `PublicData.all_indices/daily_closes/daily_history/vix`, `YAHOO_SYMBOLS`, the
+Yahoo hosts in `http_pacing.py`, Groww's unused `PublicData` member; and, contrary to section 3, `analytics.atm_iv`,
+`historical_vol` (B1 specifies realised volatility as root mean square, which this demeaned formula is not), `oi_walls`,
+`costs.legs_breakdown/legs_charges` (B2 specifies `order_charges` per leg), `OptionQuote.spread_pct` and the unused
+`ENV_FNO_SLACK_BOT_TOKEN` (E2 adds it with its code). Kept, with the story that uses each: `bs_greeks` (C2 delta and
+vega limits), `accounting/ledgers.py` (C1), `research_data/events.py` (A6), `research_engine/ledger.py` (B4); these
+are new-system parts built and tested before their callers exist.
+
 ## Appendix A. Every old code file and its verdict
 
 Lines and descriptions are taken from each file's own header (12 Oct 2026). R = remove, K = keep, M = move.

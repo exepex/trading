@@ -36,16 +36,3 @@ def order_charges_breakdown(premium: float, units: int, side: str, charges: dict
 def order_charges(premium: float, units: int, side: str, charges: dict) -> float:
     """All-in statutory + broker charges for one executed options order (rupees)."""
     return sum(order_charges_breakdown(premium, units, side, charges).values())
-
-
-def legs_breakdown(legs: list[tuple[str, float]], units: int, charges: dict) -> dict[str, float]:
-    total = {k: 0.0 for k in CHARGE_NAMES}
-    for side, price in legs:
-        for k, v in order_charges_breakdown(price, units, side, charges).items():
-            total[k] += v
-    return total
-
-
-def legs_charges(legs: list[tuple[str, float]], units: int, charges: dict) -> float:
-    """Charges for a set of (side, premium) orders."""
-    return sum(order_charges(price, units, side, charges) for side, price in legs)

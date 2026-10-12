@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 # Environment variable names (values are never stored in files).
-# F&O Slack bot (story E2 posts only to #fno-desk; never the market-brief tool's SLACK_* variables)
-ENV_FNO_SLACK_BOT_TOKEN = "FNO_SLACK_BOT_TOKEN"
 # Groww Trade API (market data only; the tool never places orders)
 ENV_GROWW_ACCESS_TOKEN = "GROWW_ACCESS_TOKEN"
 ENV_GROWW_API_KEY = "GROWW_API_KEY"

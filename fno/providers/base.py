@@ -5,20 +5,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from datetime import date
 
-from ..models import MarketContext, OptionChain, QuoteBook
+from ..models import OptionChain, QuoteBook
 
 INDEX_NAMES = {
     "NIFTY": "NIFTY 50",
     "BANKNIFTY": "NIFTY BANK",
     "FINNIFTY": "NIFTY FINANCIAL SERVICES",
     "MIDCPNIFTY": "NIFTY MID SELECT",
-}
-
-YAHOO_SYMBOLS = {
-    "NIFTY": "^NSEI",
-    "BANKNIFTY": "^NSEBANK",
-    "FINNIFTY": "NIFTY_FIN_SERVICE.NS",
-    "MIDCPNIFTY": "NIFTY_MID_SELECT.NS",
 }
 
 
@@ -42,10 +35,6 @@ class Provider(ABC):
     @abstractmethod
     def chain(self, underlying: str, expiry: date) -> OptionChain:
         """Full option chain for one expiry."""
-
-    @abstractmethod
-    def context(self, underlying: str) -> MarketContext:
-        """Spot, price history and volatility context."""
 
     def quote_book(self, chain: OptionChain, strike: float, kind: str) -> QuoteBook | None:
         """The contract's full order book (bid, ask, sizes, last trade time) for the 3 pm quote recorder. None when the

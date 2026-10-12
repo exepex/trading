@@ -18,9 +18,8 @@ import os
 from datetime import date, datetime, time, timedelta
 
 from ..constants import ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY, ENV_GROWW_API_SECRET, ENV_GROWW_TOTP_SECRET
-from ..models import IST, MarketContext, OptionChain, OptionQuote, QuoteBook, now_ist
+from ..models import IST, OptionChain, OptionQuote, QuoteBook, now_ist
 from .base import Provider
-from .public import PublicData
 
 TOKEN_EXPIRY_TIME_IST = time(6, 0)
 CREDENTIALS_MISSING = (
@@ -110,7 +109,7 @@ def parse_groww_quote_book(symbol: str, payload: dict) -> QuoteBook:
 class GrowwProvider(Provider):
     name = "groww"
 
-    def __init__(self, config: dict, public: PublicData | None = None):
+    def __init__(self, config: dict):
         super().__init__(config)
         try:
             from growwapi import GrowwAPI
@@ -119,8 +118,6 @@ class GrowwProvider(Provider):
         self.GrowwAPI = GrowwAPI
         self._api = None
         self._api_day: date | None = None
-        # VIX and daily history still come from public sources.
-        self.public = public or PublicData()
 
     @property
     def api(self):
@@ -180,19 +177,3 @@ class GrowwProvider(Provider):
             self.api.get_quote(trading_symbol=leg.symbol, exchange=self.api.EXCHANGE_NSE, segment=self.api.SEGMENT_FNO)
         )
         return parse_groww_quote_book(leg.symbol, payload)
-
-    def context(self, underlying: str) -> MarketContext:
-        history = self.public.daily_history(underlying)
-        closes = [c for _, c in history]
-        vix, lo, hi = self.public.vix()
-        spot = closes[-1] if closes else 0.0
-        return MarketContext(
-            underlying=underlying.upper(),
-            spot=spot,
-            prev_close=closes[-2] if len(closes) > 1 else None,
-            closes=closes,
-            dates=[d for d, _ in history],
-            vix=vix,
-            vix_year_low=lo,
-            vix_year_high=hi,
-        )

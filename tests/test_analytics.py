@@ -18,7 +18,3 @@ def test_implied_vol_round_trip():
 def test_greeks_signs():
     g = an.bs_greeks(22500, 22500, 14 / 365, 0.065, 0.13, "PE")
     assert -0.6 < g.delta < -0.4 and g.gamma > 0 and g.theta < 0 and g.vega > 0
-
-
-def test_historical_vol_flat_series_is_zero():
-    assert an.historical_vol([100.0] * 30) == 0.0

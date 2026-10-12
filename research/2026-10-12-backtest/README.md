@@ -24,10 +24,12 @@ cd ../trading-legacy && python research/2026-10-12-backtest/replay.py
 Its test (`tests/research/test_opening_bridges.py`) lives at that commit too. `cost_table.py` still runs on `main`.
 The results below were produced by these scripts and are unchanged.
 
-## Commands (from the repository root)
+## Commands
 
 ```
+# legacy worktree root only (see above): fails on main, which no longer has the old desk
 python research/2026-10-12-backtest/replay.py      # trades.csv, controls.csv, random_runs.csv, summary.json
+# current main root
 python research/2026-10-12-backtest/cost_table.py  # the NIFTY debit-spread cost table (cost_table.md)
 ```
 

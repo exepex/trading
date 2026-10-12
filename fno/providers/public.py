@@ -14,8 +14,8 @@ from math import gcd
 import requests
 
 from ..http_pacing import PacedSession
-from ..models import IST, MarketContext, OptionChain, OptionQuote
-from .base import INDEX_NAMES, YAHOO_SYMBOLS, Provider, is_index
+from ..models import IST, OptionChain, OptionQuote
+from .base import Provider, is_index
 
 NSE = "https://www.nseindia.com"
 HEADERS = {
@@ -29,14 +29,13 @@ HEADERS = {
 
 
 class PublicData:
-    """Thin HTTP client shared by providers that need public NSE/Yahoo data."""
+    """Thin HTTP client for the public NSE website."""
 
     def __init__(self, pause: float = 0.4):
         self.session = PacedSession()
         self.session.headers.update(HEADERS)
         self.pause = pause
         self._warmed = False
-        self._indices: dict | None = None
 
     def _warm(self) -> None:
         if not self._warmed:
@@ -54,41 +53,6 @@ class PublicData:
             time.sleep(1.5 * (attempt + 1))
         resp.raise_for_status()
         raise RuntimeError(f"NSE returned an empty response for {path}")
-
-    def all_indices(self) -> dict[str, dict]:
-        if self._indices is None:
-            data = self.nse_json("/api/allIndices")
-            self._indices = {row["index"]: row for row in data.get("data", [])}
-        return self._indices
-
-    def daily_closes(self, underlying: str, rng: str = "1y") -> list[float]:
-        return [c for _, c in self.daily_history(underlying, rng)]
-
-    def daily_history(self, underlying: str, rng: str = "1y") -> list[tuple[date, float]]:
-        symbol = YAHOO_SYMBOLS.get(underlying.upper(), f"{underlying.upper()}.NS")
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
-        try:
-            resp = self.session.get(
-                url, params={"range": rng, "interval": "1d"}, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=20
-            )
-            resp.raise_for_status()
-            result = resp.json()["chart"]["result"][0]
-            closes = result["indicators"]["quote"][0]["close"]
-            stamps = result["timestamp"]
-            return [
-                (datetime.fromtimestamp(ts, IST).date(), float(c)) for ts, c in zip(stamps, closes) if c is not None
-            ]
-        except (requests.RequestException, KeyError, IndexError, ValueError):
-            return []
-
-    def vix(self) -> tuple[float | None, float | None, float | None]:
-        try:
-            row = self.all_indices().get("INDIA VIX")
-        except (requests.RequestException, ValueError, RuntimeError):
-            return None, None, None
-        if not row:
-            return None, None, None
-        return row.get("last"), row.get("yearLow"), row.get("yearHigh")
 
 
 def parse_nse_date(text: str) -> date:
@@ -176,25 +140,3 @@ class NSEProvider(Provider):
         }
         payload = self.client.nse_json("/api/option-chain-v3", params)
         return parse_nse_chain(payload, underlying, expiry, self.fallback_lot_size(underlying))
-
-    def context(self, underlying: str) -> MarketContext:
-        spot, prev = None, None
-        name = INDEX_NAMES.get(underlying.upper())
-        if name:
-            row = self.client.all_indices().get(name) or {}
-            spot, prev = row.get("last"), row.get("previousClose")
-        history = self.client.daily_history(underlying)
-        closes = [c for _, c in history]
-        if spot is None and closes:
-            spot = closes[-1]
-        vix, lo, hi = self.client.vix()
-        return MarketContext(
-            underlying=underlying.upper(),
-            spot=float(spot or 0),
-            prev_close=prev,
-            closes=closes,
-            dates=[d for d, _ in history],
-            vix=vix,
-            vix_year_low=lo,
-            vix_year_high=hi,
-        )

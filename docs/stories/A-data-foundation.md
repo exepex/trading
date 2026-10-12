@@ -164,13 +164,14 @@ storage, a spread report. Out: order placement (never), other underlyings, intra
   `fno/composition.py` from its own setting `quotes.provider: auto` (Groww when its credentials are in the
   environment, else NSE's public chain).
 - Command `python -m fno quotes record` and a scheduled cloud routine near 15:00 IST on weekdays.
-- Each snapshot saved as `raw/groww-or-nse/derivatives/quote-snapshots/<YYYY>/<MM>/nifty_<YYYYMMDD>_1500.csv` through
-  a writable store (the repository folder `research/data/quotes/` while Drive is read-only), never overwritten.
-- Columns: `request_sent_at`, `response_received_at` (IST, from the machine clock synced to NTP), `quote_time` (the
-  provider's own quote timestamp per leg, empty when the provider gives none), `provider`, `contract_id` (the
-  provider's instrument key), `expiry`, `strike`, `type`, `bid`, `ask`, `last`, `bid_qty`, `ask_qty`, `spot`,
-  `quote_age_seconds` (receive time minus quote time), `valid` (true only when bid > 0, ask > 0, bid <= ask, both
-  quantities > 0 and quote age at most 60 seconds), `invalid_reason`.
+- Each attempt saved as `groww/derivatives/quote-snapshots/<YYYY>/<MM>/nifty_<YYYYMMDD>_<HHMMSS>.csv` through a
+  writable store (the repository folder `research/data/quotes/` while Drive is read-only), never overwritten.
+- Columns (as built): `snapshot_id`, `request_sent_at`, `response_received_at` (IST, machine clock), `quote_time`
+  (the provider's own quote timestamp; empty for Groww, which gives none), `age_basis`, `freshness_proxy`,
+  `last_trade_time`, `provider`, `contract_id`, `expiry`, `strike`, `type`, `bid`, `ask`, `last`, `bid_qty`,
+  `ask_qty`, `spot`, `book_source` (best-bid/offer fields or market depth), `valid`, `invalid_reason`, `raw_sha256`.
+  `valid` is true only when bid > 0, ask > 0, bid <= ask, both quantities > 0 and the contract traded today; the
+  quote's age is never claimed (see the clarification below). No `quote_age_seconds` column: no source gives it.
 - **Attempts, not overwrites:** every run is an immutable attempt saved as
   `nifty_<YYYYMMDD>_<HHMMSS>.csv` with its own sidecar (`snapshot_id` = date and capture time). An incomplete attempt
   may be retried within the capture window (14:55-15:10 IST); no attempt is ever overwritten or deleted. The day's

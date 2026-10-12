@@ -6,7 +6,7 @@ import math
 from datetime import date, datetime, timedelta
 
 from ..analytics import bs_price
-from ..models import IST, MarketContext, OptionChain, OptionQuote
+from ..models import IST, OptionChain, OptionQuote
 from .base import Provider
 
 SPOTS = {"NIFTY": 22500.0, "BANKNIFTY": 55000.0, "FINNIFTY": 25000.0}
@@ -64,19 +64,3 @@ class SampleProvider(Provider):
                     iv=round(sigma * 100, 2),
                 )
         return chain
-
-    def context(self, underlying: str) -> MarketContext:
-        spot = self._spot(underlying)
-        closes = [spot * (1 + 0.0008 * (i - 120) + 0.006 * math.sin(i / 3)) for i in range(121)]
-        closes[-1] = spot
-        dates = [self.as_of.date() - timedelta(days=(120 - i) * 7 // 5) for i in range(121)]
-        return MarketContext(
-            underlying=underlying.upper(),
-            spot=spot,
-            prev_close=closes[-2],
-            closes=closes,
-            dates=dates,
-            vix=14.0,
-            vix_year_low=9.0,
-            vix_year_high=28.0,
-        )

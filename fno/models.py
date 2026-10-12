@@ -36,12 +36,6 @@ class OptionQuote:
             return (self.bid + self.ask) / 2
         return self.ltp
 
-    @property
-    def spread_pct(self) -> float | None:
-        if not self.has_book or self.mid <= 0:
-            return None
-        return (self.ask - self.bid) / self.mid * 100
-
 
 @dataclass(frozen=True)
 class QuoteBook:
@@ -94,23 +88,3 @@ class OptionChain:
     def days_to_expiry(self, today: date | None = None) -> int:
         today = today or self.timestamp.date()
         return (self.expiry - today).days
-
-
-@dataclass
-class MarketContext:
-    """Non-chain context for one underlying."""
-
-    underlying: str
-    spot: float
-    prev_close: float | None = None
-    closes: list[float] = field(default_factory=list)  # daily closes, oldest first
-    dates: list[date] = field(default_factory=list)  # same length as closes when known
-    vix: float | None = None
-    vix_year_low: float | None = None
-    vix_year_high: float | None = None
-
-    @property
-    def day_change_pct(self) -> float | None:
-        if not self.prev_close:
-            return None
-        return (self.spot / self.prev_close - 1) * 100

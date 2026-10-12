@@ -15,8 +15,6 @@ import requests
 
 DEFAULT_SPACING_SECONDS = 1.0
 HOST_SPACING_SECONDS = {
-    "query1.finance.yahoo.com": 1.0,
-    "query2.finance.yahoo.com": 1.0,
     "www.nseindia.com": 1.0,
     "nsearchives.nseindia.com": 1.0,
 }
