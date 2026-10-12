@@ -1,6 +1,6 @@
 # Desk design: a team of experts finding the most profitable F&O trades, against the odds
 
-Version 2.1 (12 Oct 2026): version 2 amended after ChatGPT review 10 (answer: `reviews/claude/response_10_2026-10-12-desk-design-v2.md`), plus the owner's additions (discovery engine 3.5, portfolio risk 8.1).
+Version 2.1 (12 Oct 2026; agreed by both AIs, awaiting owner approval): version 2 amended after ChatGPT review 10 (answer: `reviews/claude/response_10_2026-10-12-desk-design-v2.md`), plus the owner's additions (discovery engine 3.5, portfolio risk 8.1).
 Version 2 was a full rewrite. Version 1 described controls well but not the core: **how a team of experts
 in different fields works together to find winning trades**. This version puts that first; the controls agreed in
 review 9 are kept in sections 6-9. Nothing is built yet; the AI layer stays on hold until the owner approves.
@@ -136,8 +136,8 @@ Every role contributes; not every role needs its own paid model call every day. 
 
 ### 3.5 The discovery engine: computing power without fooling ourselves (code)
 The team's advantage over a human trader is memory and testing power: every pattern can be checked on every day.
-The danger is the same power: among 1,000 random coin-toss patterns tested on 33 monthly cycles, about 18 "win" 70%
-or more by luck alone. The engine (owned by the quant / statistician and data engineer) works like this:
+The danger is the same power: among 1,000 random coin-toss patterns tested on 33 monthly cycles, about 18 win 23 or
+more (69.7%) by luck alone (exact binomial; about 7 win 24 or more, 70%+). Expected counts, not a guarantee. The engine (owned by the quant / statistician and data engineer) works like this:
 1. **Feature library**, each with an availability time: candles and gaps, past realised volatility, implied
    volatility, skew and term structure, India VIX, OI and put-call ratio, FII/DII positions, event calendar,
    calendar effects, and combinations of these.
@@ -146,8 +146,10 @@ or more by luck alone. The engine (owned by the quant / statistician and data en
 3. **Scan on discovery data** after real charges and pads, measuring net P&L, worst case and stability across years.
 4. **Mechanism filter:** survivors go to the roles for an economic explanation (section 1). Unexplained ones may stay
    in research only, with a stricter bar and at most one lot.
-5. **Bar rises with the number of tries:** significance judged against the number of candidates scanned (e.g. a
-   t-statistic of about 3, not 2, once many are tried; Harvey, Liu and Zhu), plus controls (coin toss, opposite).
+5. **Bar rises with the number of tries:** significance judged against the number of candidates scanned, plus
+   controls (coin toss, opposite). Harvey, Liu and Zhu (t of about 3 rather than 2) motivate this but give no
+   universal cutoff for our small, dependent option samples: each experiment protocol fixes its own test (sample,
+   trial count, dependence) before candidates are evaluated.
 6. **Challenge on data not used for discovery** (2019-2023), with any fitting using only earlier data; then forward
    paper trading. Nothing is tuned after seeing the challenge.
 The roles then do what the engine cannot: explain, find the event that breaks it, price it and size it.
@@ -216,9 +218,12 @@ exits; expected net value and adverse scenarios; account room and the no-trade o
 
 ### 8.1 Portfolio risk: the whole account, not just each trade (risk manager, code)
 Three NIFTY trades are close to one bet, so the account is checked as a whole before every new trade:
-- **Stress tests:** all open trades plus the proposed one re-priced under fixed scenarios: NIFTY +/-5% and +/-8%
-  overnight, implied volatility doubled, and replays of 23 Mar 2020, 4 Jun 2024 and Feb 2026. Combined stress loss
-  must stay within Rs 30,000, and stressed margin within available cash.
+- **Stress tests:** all open trades plus the proposed one fully re-priced (not Greek estimates) under fixed
+  scenarios: NIFTY +/-5% and +/-8% overnight; implied volatility doubled and halved (a fall hurts bought options);
+  joint price-and-volatility shocks; the passage of time; replays of 23 Mar 2020, 4 Jun 2024 and Feb 2026 (labelled
+  stress tests, not the worst possible case). Combined stress loss must stay within Rs 30,000, and stressed margin
+  within available cash. Loss from current marked value and maximum loss from entry are shown separately. The
+  scenario engine and its thresholds are specified and tested before they govern paper trading.
 - **Exposure limits (the Greeks):** account loss from a 2% NIFTY move at most Rs 15,000 (direction, delta) and from a
   5-point rise in implied volatility at most Rs 15,000 (volatility, vega). Proposed values, reasoning only; set from
   research before paper trading.
@@ -267,5 +272,7 @@ Three NIFTY trades are close to one bet, so the account is checked as a whole be
 | 9 Failure handling | Agreed; brake row aligned (v2.1) | Agreed (review 11, v2.1) | |
 | 10 Build order | Agreed | Agreed (review 11, v2.1) | |
 
-ChatGPT: re-check the sections amended in v2.1 (1, 2, 3, 6, 8, 9) and the two owner additions (3.5, 8.1); mark each
-"agreed" or give the specific objection and the exact change.
+Both AIs agreed every section (ChatGPT review 11, Claude response 12). Review 11's clarifications (exact binomial
+figures, experiment-specific significance test, fuller stress scenarios) are folded into 3.5 and 8.1 without changing
+their substance. **Remaining step: owner approval.** Approval covers the framework only: no strategy is proven, and
+the proposed thresholds (e.g. Rs 15,000 exposure limits) are set from research before paper trading.
