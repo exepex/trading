@@ -15,7 +15,7 @@ from ..constants import (
 )
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
-from ..research_data.calendar import load_session_calendar
+from ..research_data.calendar import SessionCalendar, load_session_calendar
 from .coverage import CoverageCheck, CoverageDataset, read_exceptions
 from .google_drive import GoogleDriveStore, service_account_token
 from .raw_library import RawFileLibrary
@@ -93,4 +93,9 @@ def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
         if not stores:
             raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to check Drive")
         store = stores[-1]
-    return CoverageCheck(store, load_session_calendar(CALENDAR_FILE), read_exceptions(COVERAGE_EXCEPTIONS))
+    return CoverageCheck(store, build_session_calendar(), read_exceptions(COVERAGE_EXCEPTIONS))
+
+
+def build_session_calendar() -> SessionCalendar:
+    """NSE's sessions from the repository's calendar file: the one answer to "is this day a session"."""
+    return load_session_calendar(CALENDAR_FILE)
