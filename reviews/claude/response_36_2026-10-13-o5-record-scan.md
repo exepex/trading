@@ -167,3 +167,9 @@ never bypass the scan. journal/o5-dry-run.md:2: Slack token" (read back with the
 - (d) Known limits in the story now also list the all-letter password next to its label and the Claude-only hook
   (other pushers caught only by CI after the push).
 - Checks: pytest 266 passed; ruff, check_imports and the record scan (267 files) clean.
+- Orchestrator's finding (gitlinks): reproduced. A staged nested repository (an agent worktree under
+  `.claude/worktrees/`, or a submodule) made `git show :<path>` exit 128, and the scan crashed with a traceback. Fixed
+  at the root: the staged scan now reads `git diff --cached --raw --full-index` and each blob by its id, and it skips
+  gitlinks (mode 160000), which hold a commit id and no content (`record_files.py`, `staged_blobs`). The
+  fresh-checkout test now copies only `.claude/settings.json`. New test: `test_staged_gitlink_is_skipped_not_a_crash`.
+  It was also re-run with a real local `.claude/worktrees/agent-probe` repository present: it passes.
