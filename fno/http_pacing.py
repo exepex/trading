@@ -1,7 +1,7 @@
-"""Polite HTTP for free public sources (NSE website, Yahoo): space requests per host, back off when refused.
+"""Polite HTTP for free public sources (NSE website and archives): space requests per host, back off when refused.
 
-Every session in the process shares one pacer, so the daily brief, the live desk and its feeds together never
-send a host more than one request per spacing interval. A "too many requests" or "forbidden" answer pauses that
+Every session in the process shares one pacer, so all commands and downloads together never send a host more than
+one request per spacing interval. A "too many requests" or "forbidden" answer pauses that
 host for a cool-off period instead of retrying into a longer block.
 """
 

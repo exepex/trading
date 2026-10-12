@@ -1,5 +1,5 @@
-"""Composition root for raw data: the only place that picks concrete stores and sources (the live desk's is
-fno/live/services.py). Swapping Google Drive or NSE for something else changes this file only."""
+"""Composition root for raw data: the only place that picks concrete stores and sources (the app's services are
+wired in fno/composition.py). Swapping Google Drive or NSE for something else changes this file only."""
 
 from __future__ import annotations
 
