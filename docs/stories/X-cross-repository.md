@@ -237,7 +237,7 @@ reference.
 
 **Scope.** In: Azure write adapters for every dashboard writer, the `app` schema tables (migrations by its owner role,
 X1), SQL dialect changes, history migration, identity and authorisation of writes, idempotency, the switch to one
-writer, rollback of writes. Out: the stock backend's reads of the inbox (K1 criterion 3 follows this switch).
+writer, rollback of writes. Out: the stock backend's reads of the inbox (K3, after this switch).
 
 **Expected design:** `app` tables mirroring the inbox and assistant stores; Azure implementations of the inbox and
 conversation stores behind their existing interfaces; a migration script copying history with counts and hashes; a
@@ -288,7 +288,7 @@ back (tested once before the real switch); rollback period fixed in the checklis
 
 **Judge verifies:** reads the checklist evidence and the rehearsal record.
 
-**Depends:** W1-W4, W6, W7, K1 · **Size:** S · **Status:** later
+**Depends:** W1-W4, W6, W7, K1, K3 · **Size:** S · **Status:** later
 
 ---
 
@@ -314,8 +314,7 @@ page on a set of dates; the inbox copied with row counts and hashes matched.
 **Acceptance criteria:**
 1. For a comparison set of pages and dates, Azure and MotherDuck payload hashes are identical.
 2. The stock runtime role can write only the `stock` schema (X1 matrix).
-3. The stock backend's own reads of the inbox (`company.py import-inbox`, `portfolio.py import-inbox`) read the
-   `app` schema after W7's switch (the dashboard-side write migration is W7).
+(The stock backend's own inbox readers move in K3, after W7.)
 
 **Test plan:** parity script; role matrix.
 
@@ -347,4 +346,39 @@ indefinitely is a reliability risk.
 
 **Judge verifies:** searches the repository and reads the revocation record.
 
-**Depends:** W5, W7 · **Size:** S · **Status:** later
+**Depends:** W5, W7, K3 · **Size:** S · **Status:** later
+
+---
+
+## K3. Stock backend's inbox readers switch to Azure
+
+**Repository:** agentic-stock-prediction
+
+**Description:** As the owner, I want the stock tool's routines that read the dashboard inbox to read the Azure `app`
+schema after the dashboard's write switch, so that requests I make on the dashboard keep reaching the stock tool.
+
+**Context and why:** The stock tool's post-close routine imports inbox requests and paper-portfolio changes
+(`company.py import-inbox`, `portfolio.py import-inbox`, per `routine/POSTCLOSE_PROMPT.md`) from MotherDuck's inbox
+database today. W7 moves the dashboard's writes to Azure; without this story the stock tool would read an inbox that no
+longer receives anything. Split out of K1 after ChatGPT review 27 (K1 is the read-model publisher; this is app state).
+
+**Scope.** In: the stock tool's inbox readers on Azure with a read-only grant on the named `app` tables (X1), the switch
+timed with W7, rollback. Out: the dashboard's writers (W7).
+
+**Expected design:** decided in the stock repository under its own rules; this specification requires: the readers
+use a dedicated least-privilege credential (read on the inbox tables, plus the "imported" marking if the design keeps
+one, granted explicitly in X1); they switch in the same window as W7's one-writer switch; a rehearsal shows no request
+lost or imported twice.
+
+**Acceptance criteria:**
+1. A request written on the dashboard after W7's switch is imported exactly once by the next stock routine (test on
+   the disposable server and once for real).
+2. The reader credential cannot write anything else (X1 matrix row).
+3. A rollback rehearsal (W7's) also returns the readers to the old store without loss or duplicates.
+
+**Test plan:** integration test on the disposable server; the rehearsal.
+
+**Judge verifies:** reads the rehearsal record and the exactly-once test.
+
+**Depends:** W7, X1 · **Size:** S · **Status:** later
+

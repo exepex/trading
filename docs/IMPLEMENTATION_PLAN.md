@@ -1,7 +1,6 @@
-# Implementation plan: every story for the finished product (69 stories)
+# Implementation plan: every story for the finished product (70 stories)
 
-Status: **proposed 12 Oct 2026, revision 2 after ChatGPT review 26, for owner approval** (requests:
-`reviews/claude/response_32_2026-10-12-full-implementation-plan.md`, `response_33_2026-10-12-review-26.md`). Source: `docs/DESK_DESIGN.md` sections 1-13
+Status: **revision 3 (12 Oct 2026), agreed by ChatGPT after reviews 26-27, for owner approval** (responses 32-34). Source: `docs/DESK_DESIGN.md` sections 1-13
 (all approved by the owner; section 13 revision 3 on 12 Oct 2026) and `docs/DESK_DECISIONS.md`. This plan replaces the
 28-story plan agreed in review 14: approved stories are carried over (updated where the three books, section 13 or
 the clean slate changed them), new stories cover the rest of the finished product (design 13.1). After ChatGPT and
@@ -43,7 +42,7 @@ other repositories follow that repository's rules as well.
 | 5 AI layer | F1-F9 |
 | 6 Forecasts | G1-G5 |
 | 7 Scoreboards A and B | S1-S3 |
-| 8 Owner surfaces | P1-P4, X1, W1-W7, K1-K2, S4 |
+| 8 Owner surfaces | P1-P4, X1, W1-W7, K1-K3, S4 |
 | 9 Research feedback | S5, S4 |
 | 10 Operations | O1-O5 |
 
@@ -59,7 +58,7 @@ Dependency order for the cross-repository part (design 13.8): canonical F&O reco
 | M3 Forecasts | G1, G2, G3, G4 | Forecast protocol, baselines, scoring engine and Book 1's forecasts running (forecasts start before trading, 12.11); AI books' forecasts come with M5 (G5) |
 | M4 Publishing and the shared dashboard | S1, S2, P1, P2, X1, P3, P4, W1, W2, W3, W4, O1, O2 | The owner sees Book 1, scoreboard B and forecasts on the F&O screens and in Slack every day; the F&O launch does not wait for the stock migration |
 | M5 AI books | D4, D5, F1-F9, G5, S3 | Books 2 and 3 decide in isolated sessions; all three books on both scoreboards |
-| M6 Review, cutover and operations | S4, S5, O3, O4, K1, W6, W7, W5, K2 | Monthly reports and the first scheduled review; stock dashboard moved; MotherDuck retired |
+| M6 Review, cutover and operations | S4, S5, O3, O4, K1, W6, W7, K3, W5, K2 | Monthly reports and the first scheduled review; stock dashboard moved; MotherDuck retired |
 | M7 Research expansion | B6, A8 | Discovery scan and positioning data feed new research questions |
 
 **Order inside M1 (as agreed in reviews 12-14):** A1 (calendar and coverage), A3, then B1, B2, B3; finish A5, A6 and
@@ -132,12 +131,13 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [W4](stories/X-cross-repository.md#w4-access-and-freshness-contract-tests) | Access and freshness contract tests | dashboard | W2, W3 | S | later |
 | [W6](stories/X-cross-repository.md#w6-stock-reads-on-azure-and-parity) | Stock reads on Azure and parity | dashboard | W2, K1 | M | later |
 | [W7](stories/X-cross-repository.md#w7-dashboard-writes-on-azure-inbox-assistant-and-control-state) | Dashboard writes on Azure (inbox, assistant and control state) | dashboard | W1, X1 | M | later |
-| [W5](stories/X-cross-repository.md#w5-cutover-and-rollback) | Cutover and rollback | dashboard | W1-W4, W6, W7, K1 | S | later |
+| [W5](stories/X-cross-repository.md#w5-cutover-and-rollback) | Cutover and rollback | dashboard | W1-W4, W6, W7, K1, K3 | S | later |
 | [K1](stories/X-cross-repository.md#k1-stock-backend-publishes-to-azure-dual-publication-and-parity) | Stock backend publishes to Azure (dual publication and parity) | agentic-stock-prediction | X1 | M | later |
-| [K2](stories/X-cross-repository.md#k2-retire-motherduck) | Retire MotherDuck | agentic-stock-prediction | W5, W7 | S | later |
+| [K2](stories/X-cross-repository.md#k2-retire-motherduck) | Retire MotherDuck | agentic-stock-prediction | W5, W7, K3 | S | later |
+| [K3](stories/X-cross-repository.md#k3-stock-backends-inbox-readers-switch-to-azure) | Stock backend's inbox readers switch to Azure | agentic-stock-prediction | W7, X1 | S | later |
 | [O1](stories/O-operations.md#o1-the-daily-desk-routine) | The daily desk routine | trading | E3, P3, P4, A7 | S | later |
 | [O2](stories/O-operations.md#o2-failure-handling-end-to-end) | Failure handling, end to end | trading | E3, E4, P3, P4 (F1, F4 for the AI-book cases, added in M5) | M | later |
-| [O3](stories/O-operations.md#o3-cross-repository-integration-tests) | Cross-repository integration tests | trading | P3, X1, W2, W3, O1 | M | later |
+| [O3](stories/O-operations.md#o3-cross-repository-integration-tests) | Cross-repository integration tests | trading | P3, X1, W2, W3, O1 (W6, W7, K3 for test 4) | M | later |
 | [O4](stories/O-operations.md#o4-runbook-and-documentation) | Runbook and documentation | trading | O1, O2 | S | later |
 | [O5](stories/O-operations.md#o5-public-record-safety-scan) | Public-record safety scan | trading | - | S | later |
 
@@ -170,3 +170,7 @@ deadline, then a promotion deadline before the execution snapshot; unenforceable
 independent comparison"); W2 split into W2 (F&O, M4) and W6 (stock parity after K1, M6); new W7 (dashboard writes
 on Azure); C4 a hard dependency of E5 and F5 and of every fill (E3); G3 split into G3 (Book 1, M3) and G5 (AI books,
 M5); a role matrix (`agents/roles.yaml`, F2); new O5 (public-record safety scan).
+
+**Revision 3 (ChatGPT review 27, response 34):** new K3 (the stock tool's inbox readers move to Azure after W7; split
+out of K1); O3 test 4 fully specified (W6, W7, K3 together before W5); F1's real isolation test covers every
+network-capable tool and records the environment's network policy in the version.

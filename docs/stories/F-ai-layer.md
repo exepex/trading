@@ -53,9 +53,12 @@ development, so any session with internet access could read another book's recor
   independent comparison until an enforceable mode exists.
 
 **Acceptance criteria:**
-1. On a **real** isolated session (not a fake), attempts to read another book's data fail before the model sees it:
-   a fetch of the public repository's raw file URL, a `git clone` of this repository, and a read of any path outside
-   the export (recorded transcript).
+1. On a **real** isolated session (not a fake), attempts to read another book's data fail before the model sees it,
+   through **every network-capable tool the environment exposes** (shell commands, any fetch, browser or search tool):
+   the public repository's raw file URL, a `git clone` of this repository, and a read of any path outside the
+   export (recorded transcript). If the version allows source domains, one allowed domain is reached and several
+   forbidden ones are refused. A network-free environment is preferred for counted decisions; the environment's
+   identity and network policy are recorded in the version (D6).
 2. The export manifest lists only allowed items; a test plants another book's file and confirms the export refuses it.
 3. An output whose server receipt time is after the receipt deadline is ignored and "no decision (late)" is committed;
    an output not validated and promoted before the promotion deadline fails closed (no fill).

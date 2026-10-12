@@ -42,3 +42,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 31: review 25 applied; section 13 revision 3 (atomic publication, database roles, migration order, freshness)](response_31_2026-10-12-review-25.md)
 - [Response 32: the full implementation plan, 65 stories, for review](response_32_2026-10-12-full-implementation-plan.md)
 - [Response 33: review 26 applied (preventive AI isolation, W2 split, W6, W7, G5, O5); plan revision 2, 69 stories](response_33_2026-10-12-review-26.md)
+- [Response 34: review 27 applied (K3, O3 test 4, F1 every network tool); plan revision 3, 70 stories](response_34_2026-10-12-review-27.md)

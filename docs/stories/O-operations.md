@@ -98,12 +98,14 @@ versioned artifact the dashboard repository's CI consumes for (2); a recorded ma
 2. Test 2 passes in the dashboard repository's CI using this repository's fixture publication of the current contract
    version.
 3. Test 3's record shows five numbers matching between the repository records, the database and the screens.
+4. Test 4: W6 parity and W7 one-writer switch, write continuity and rollback, and K3's exactly-once inbox import pass
+   together on one disposable Azure-compatible Postgres built from X1's scripts, before W5's cutover.
 
-**Test plan:** the three tests.
+**Test plan:** the four tests.
 
-**Judge verifies:** re-runs tests 1 and 2 and reads test 3's record.
+**Judge verifies:** re-runs tests 1, 2 and 4 and reads test 3's record.
 
-**Depends:** P3, X1, W2, W3, O1 · **Size:** M · **Status:** later
+**Depends:** P3, X1, W2, W3, O1 (W6, W7, K3 for test 4) · **Size:** M · **Status:** later
 
 ---
 
