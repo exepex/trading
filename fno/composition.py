@@ -22,11 +22,14 @@ from .storage.wiring import build_nse_fo_library, build_quote_store, build_sessi
 
 def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     """The 3 pm quote recorder (story A4): its own `quotes.provider` setting (`auto`: Groww when its credentials are
-    set, else NSE), never the root `provider` used by the `chain` command; the repository quote store; and NSE's daily
-    file for expiry dates the provider cannot list; NSE's session calendar decides whether today is a session (A7)."""
+    set, else NSE), never the root `provider` used by the `chain` command; the repository quote store; NSE's daily
+    files, for expiry dates the provider cannot list and to prove which expiries are monthly (A5's point-in-time rule);
+    and NSE's session calendar, which decides whether today is a session (A7)."""
     provider = get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg)
     expiries = NseDailyFileExpiries(build_nse_fo_library())
-    return QuoteSnapshotRecorder(provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar())
+    return QuoteSnapshotRecorder(
+        provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar(), history=expiries
+    )
 
 
 def build_record_scanner() -> RecordScanner:

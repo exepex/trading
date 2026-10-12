@@ -25,7 +25,8 @@ from ..providers.base import Provider
 from ..research_data.calendar import SessionCalendar
 from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
-from .expiry_listing import ListedExpiries
+from .expiry_listing import ExpiryHistory, ListedExpiries
+from .monthly_contracts import PointInTimeMonthlies
 
 UNDERLYING = "NIFTY"
 DATASET = "groww/derivatives/quote-snapshots"
@@ -48,7 +49,8 @@ COLUMNS = (
 
 
 def monthly_expiries(expiries: list[date], today: date, count: int = MONTHLY_EXPIRIES) -> list[date]:
-    """The nearest `count` monthly contracts: the last listed expiry of each calendar month, from today on."""
+    """The nearest `count` monthly contracts: the last listed expiry of each calendar month, from today on. Used only
+    by a recorder built without NSE's expiry history (the A4 tests); the app uses `PointInTimeMonthlies` (A5's rule)."""
     return sorted(last_expiry_of_each_month({e for e in expiries if e >= today}))[:count]
 
 
@@ -84,11 +86,14 @@ class RecordResult:
 
 class QuoteSnapshotRecorder:
     def __init__(self, provider: Provider, store: RawFileStore, clock_now=now_ist, sleep=clock.sleep,
-                 fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None):  # fmt: skip
-        """The app always passes `calendar` (fno/composition.py). Without one (the A4 tests and byte-identical
-        baseline), A4's inference stays: weekends are closed and a day with no same-day trade is a holiday."""
+                 fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None,
+                 history: ExpiryHistory | None = None):  # fmt: skip
+        """The app always passes `calendar` and `history` (fno/composition.py). Without them (the A4 tests and
+        byte-identical baseline), A4's rules stay: weekends are closed, a day with no same-day trade is a holiday, and
+        the monthly is the last listed expiry of each month."""
         self.provider, self.store, self.now, self.sleep = provider, store, clock_now, sleep
         self.fallback, self.calendar = fallback, calendar
+        self.monthly_check = PointInTimeMonthlies(history) if history else None
 
     @staticmethod
     def path(day: date, name: str) -> str:
@@ -132,16 +137,29 @@ class QuoteSnapshotRecorder:
             return SESSION_REGULAR if day.weekday() < WEEKEND_START else None
         return self.calendar.session_kind(day)
 
+    def _nearest_monthlies(self, listed: list[date], day: date, failures: list, checked: list) -> list[date]:
+        """The nearest monthly contracts: by A5's point-in-time rule when NSE's history is available (its files go
+        into `checked`), else A4's last-of-month rule. A history that cannot be read is a failure, never a guess."""
+        if self.monthly_check is None:
+            return monthly_expiries(listed, day)
+        try:
+            monthly, used = self.monthly_check.monthlies(UNDERLYING, listed, day)
+        except Exception as exc:
+            failures.append(f"monthly check: {type(exc).__name__}: {exc}")
+            return []
+        checked += [source for source in used if source not in checked]
+        return sorted(monthly)[:MONTHLY_EXPIRIES]
+
     def _attempt(self, day: date, canonical_allowed: bool) -> RecordResult:
         started = self.now()
         snapshot_id = f"nifty_{started:%Y%m%d_%H%M%S}"
-        failures, rows, chains, expiry_source = [], [], [], {"source": self.provider.name}
+        failures, rows, chains, expiry_source, checked = [], [], [], {"source": self.provider.name}, []
         try:
-            months = monthly_expiries(self.provider.expiries(UNDERLYING), day)
+            months = self._nearest_monthlies(self.provider.expiries(UNDERLYING), day, failures, checked)
             if len(months) < MONTHLY_EXPIRIES and self.fallback:  # late December: Groww lists no next-year dates
                 try:
                     listed, expiry_source = self.fallback.listed(UNDERLYING, day)
-                    months = monthly_expiries(listed, day)
+                    months = self._nearest_monthlies(listed, day, failures, checked)
                 except Exception as exc:
                     failures.append(f"expiry fallback: {type(exc).__name__}: {exc}")
             if len(months) < MONTHLY_EXPIRIES:
@@ -175,6 +193,8 @@ class QuoteSnapshotRecorder:
             "complete": complete, "in_window": canonical_allowed, "csv_sha256": hashlib.sha256(csv_bytes).hexdigest(),
             "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
         }  # fmt: skip
+        if self.monthly_check is not None:
+            meta["monthly_check"] = checked  # NSE files that proved which expiries are monthly (A5's rule)
         self.store.put(self.path(day, f"{snapshot_id}.csv"), csv_bytes)
         self.store.put(self.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:

@@ -94,3 +94,57 @@ No other scheduled component exists in the code today.
    not recorded.
 6. **Yearly update needed:** the calendar ends 2026-12-31. On 1 Jan 2027 the recorder stops with the message above
    until NSE's 2027 circular rows are added. A yearly task should add them each December once NSE publishes the list.
+
+## A5 judge-7 fix (finding 1: the recorder used a different monthly rule)
+
+**Finding accepted** (reproduced: on NSE's real 2 Apr 2025 list the old recorder rule gives [30 Apr, 29 May]; 30 Apr
+was a weekly moved for a holiday, the monthly was 24 Apr).
+
+**Fix:** the recorder now uses A5's single definition, `research_data.expiries.monthly_as_of`.
+- `fno/quotes/monthly_contracts.py` (new, `PointInTimeMonthlies`, line 34 calls `monthly_as_of`). An expiry more than
+  `MONTHLY_LISTING_DAYS` (50) ahead today is monthly from today's list. For a nearer one it reads NSE's file of the
+  latest day on or before `expiry - 51 days`. A contract stays listed from its listing day to its expiry, so a monthly
+  is in that file and a weekly (never listed more than 42 days ahead) is not. Same answer as `monthly_as_of` over the
+  full history, with one file per near expiry. Files are cached, so later attempts in the window read nothing again.
+- `fno/quotes/expiry_listing.py:32-34`: new interface `ExpiryHistory.listed_on(underlying, day)`.
+  `NseDailyFileExpiries` implements it (lines 46-47) through one shared `_latest` reader (line 49). `listed()` still
+  looks only at the 7 days before today.
+- `fno/quotes/recorder.py:90, 96, 140-151, 158, 162, 197`: with `history` the recorder picks the nearest two monthlies
+  by that rule, and meta.json gets `monthly_check` (the NSE files that proved it: source, file, date, SHA-256). An
+  unreadable history is a recorded failure (`monthly check: ...`, attempt incomplete), never a guess. Without
+  `history` (the A4 tests and baseline) the old last-of-month rule stays, as for the calendar.
+- `fno/composition.py:31`: the app passes the same `NseDailyFileExpiries` as `history`.
+
+**Tests** (`tests/quotes/test_monthly_contracts.py`, 9 tests, all pass):
+- `test_the_holiday_moved_weekly_of_30_april_2025_is_not_taken_for_the_monthly`: gives [24 Apr, 29 May].
+- `test_the_recorder_records_the_24_april_monthly_and_the_files_that_proved_it`: the full recorder on 2 Apr 2025.
+- `test_an_unreadable_history_is_a_recorded_failure_never_a_guess`.
+- `test_earlier_files_are_read_once_across_retries`.
+- `test_nse_files_answer_on_or_before_the_day_and_listed_keeps_looking_only_before_today`.
+- `test_with_a_consistent_history_the_baseline_records_the_same_contracts` (4 scenarios): with a history consistent
+  with the baseline lists, the CSVs are byte-identical and meta.json is identical except for the added
+  `monthly_check`.
+- Mutation check: forcing the old rule back makes 2 of these tests fail.
+
+**Baseline:** none of the four scenarios changed. They build the recorder without `history`, and
+`tests/quotes/test_recorder_baseline.py`, `tests/quotes/test_quote_recorder.py` and `tests/fixtures` are unchanged
+against origin/main.
+
+**Real NSE data** (files from the shared Drive, which mirrors NSE; NSE's archive also answered directly):
+
+```
+2025-04-02  A4 last-of-month: [2025-04-30, 2025-05-29]   A5 point-in-time: [2025-04-24, 2025-05-29]  (5 files, 9.0s)
+2025-08-18  A4 last-of-month: [2025-08-28, 2025-09-30]   A5 point-in-time: [2025-08-28, 2025-09-30]  (6 files)
+2026-10-09  A4 last-of-month: [2026-10-27, 2026-11-23]   A5 point-in-time: [2026-10-27, 2026-11-23]  (6 files, 14.2s)
+```
+
+Dry run of 13 Oct 2026 at 14:55, built from the real parts (real calendar, real NSE history, fake provider listing
+the 9 Oct expiries, temporary store): `recorded, complete=True`, expiries [2026-10-27, 2026-11-23], no failures,
+`monthly_check` = the 21 Aug, 28 Aug, 4 Sep, 11 Sep, 18 Sep and 1 Oct 2026 files. The first attempt took 15.8 s.
+
+**Doubts:**
+- The first attempt of each day reads about 6 NSE files (about 15 s, from Drive or NSE). The live run of 13 Oct picks
+  the same contracts as before (27 Oct, 23 Nov). If Drive and NSE are both unreachable, the attempt is incomplete and
+  retried; if they stay unreachable until 15:10 the day is "none" (fail closed, no guess).
+- Judge-7 minor finding 3 (two functions named `monthly_expiries`) is not renamed: the unchanged A4 test imports
+  `fno.quotes.recorder.monthly_expiries`. Minor finding 2 (a data check on the 42-day weekly horizon) is not in scope here.
