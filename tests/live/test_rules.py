@@ -88,6 +88,7 @@ def test_picker_skips_neutral():
 
 def test_portfolio_gate(tmp_path: Path):
     cfg = load_config()
+    cfg["account"]["max_open_trades"] = 5  # room above the direction limit (3), so each rule is tested on its own
     chain = SampleProvider(cfg).chain("NIFTY", date(2026, 10, 27))
     idea, _ = picker(cfg).pick(view(strong=True), chain, SESSION_DAY)
     switch = KillSwitch(tmp_path / "KILL")
