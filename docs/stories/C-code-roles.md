@@ -41,7 +41,14 @@ Research results report the scenario after the pre-tax pass/fail tests; tax neve
 
 **Judge verifies:** recomputes one month's three ledgers by hand from the trade list and the costs file.
 
-**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026 (`fno/accounting/ledgers.py`, `accounting/*.csv`; awaiting judge)
+**Known limits (13 Oct 2026, judge 6):** one charges table (`config.yaml` `charges`) is applied to every trade date, so
+historical research trades are charged today's rates (STT 0.15% of sell-side option premium from 1 Apr 2026, Budget
+2026; before that 0.1% from Oct 2024 and lower earlier). That is conservative while today's rates are higher and is
+the right test for trading from now on ("would it work at today's costs"); every research report states it. The STT
+rate is confirmed by broker and press summaries of the Budget (ICICI Direct, Groww, Outlook Money); the Finance Act
+text itself is still to be cited.
+
+**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026; judge 6 FAIL fixed 13 Oct 2026 (response 41); awaiting re-judge
 
 ---
 
