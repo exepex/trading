@@ -255,7 +255,7 @@ def _moves(subject: str, words: tuple[str, ...]) -> re.Pattern:
 
 COST_RISES = _moves(COST_SUBJECT, (*UP_WORDS, "up"))
 COST_FALLS = _moves(COST_SUBJECT, (*DOWN_WORDS, *COST_EASES, "down"))
-RUPEE_HITS_LOW = r"hits(?:\s+(?:an?\s+)?[\w-]+){0,2}\s+lows?"  # "hits record low", "hits a fresh low"
+RUPEE_HITS_LOW = r"hits(?:\s+(?:an?\s+)?[\w-]+){0,3}\s+(?:lows?|lowest|weakest)"  # "hits record low", "hits weakest"
 RUPEE_HITS_HIGH = r"hits(?:\s+(?:an?\s+)?[\w-]+){0,3}\s+(?:highs?|peak|highest|strongest)"  # "hits one-year peak"
 RUPEE_FALLS = _moves(RUPEE_SUBJECT, (*DOWN_WORDS, "down", RUPEE_HITS_LOW))
 RUPEE_RISES = _moves(RUPEE_SUBJECT, (*UP_WORDS, "up", RUPEE_HITS_HIGH))

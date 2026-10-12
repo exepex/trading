@@ -37,11 +37,27 @@ def test_a_reference_outage_is_reported_once_and_never_overnight(tmp_path):
     svc, _, _, _ = desk_with_trades(tmp_path)
     svc.nse_feed.lot_sizes = nse_down
     runner = LiveRunner(svc)
-    start = at(16, 0)  # after Monday's close
+    start, runner_now, sent_at = at(16, 0), [None], []  # from after Monday's close
+    runner.services.alerts.problem = lambda message: sent_at.append((runner_now[0], message)) or True
     for step in range(0, 24 * 60, 5):
-        runner.tick(start + timedelta(minutes=step))
-    reference_alerts = [m for m in svc.alerts.messages if "reference data" in m]
-    assert len(reference_alerts) == 1  # Tuesday morning only: not Monday evening, not every 15 minutes
+        runner_now[0] = start + timedelta(minutes=step)
+        runner.tick(runner_now[0])
+    reference_alerts = [when for when, m in sent_at if "reference data" in m]
+    assert reference_alerts == [at(8, 45, start.date() + timedelta(days=1))]  # Tuesday 08:45 only
+
+
+def test_a_new_day_never_sends_two_problem_alerts_at_once(tmp_path):
+    svc, _, reference, _ = desk_with_trades(tmp_path)
+    svc.nse_feed.lot_sizes = nse_down
+    runner = LiveRunner(svc)
+    runner.reference, runner.state.day = reference, at(11, 0).date()
+    runner._news_thread = dead_thread()
+    tuesday = at(11, 0).date() + timedelta(days=1)
+    runner.tick(at(8, 50, tuesday))  # the watcher alert goes out; the reference alert waits 15 minutes
+    problems = [m for m in svc.alerts.messages if m.startswith("problem:")]
+    assert len(problems) == 1 and "news watcher stopped" in problems[0]
+    runner.tick(at(9, 5, tuesday))
+    assert sum("reference data" in m for m in svc.alerts.messages) == 1
 
 
 def test_a_kill_switch_day_alerts_once_across_midnight_and_still_sends_its_summary(tmp_path):

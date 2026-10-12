@@ -15,6 +15,7 @@ from .learning.performance import performance_stop_reason
 from .learning.view_outcomes import ViewOutcomeTracker
 from .news.api_sources import MARKETAUX_SOURCE
 from .news.exchange_sources import BSE_SOURCE, NSE_SOURCE
+from .news.poll_schedule import DEFAULT_ACTIVE_FROM
 from .research.research_context import ResearchSnapshot
 from .scanner import LiveScanner
 from .services import LiveServices, build_news_watcher
@@ -55,7 +56,6 @@ class DayState:
     last_scan: datetime | None = None
     last_review: datetime | None = None
     last_price_watch: datetime | None = None
-    last_problem_alert: datetime | None = None
     seen_ideas: set[str] = field(default_factory=set)
 
 
@@ -76,6 +76,7 @@ class LiveRunner:
         self._news_down_reported = False
         self._reference_retry_at: datetime | None = None
         self._reference_down_reported = False
+        self._last_problem_alert: datetime | None = None  # kept across midnight: the 15-minute limit holds
         self._kill_reported = False  # kept across midnight: one kill alert until the switch is released
         self._last_kill_attempt: datetime | None = None
 
@@ -164,9 +165,10 @@ class LiveRunner:
         log.info("new day %s: %d F&O underlyings, %d banned", today, len(reference.symbols), len(reference.banned))
 
     def _market_day_ahead(self, now: datetime) -> bool:
-        """A trading day whose market has not yet closed: the only time a missing reference matters."""
+        """From the pre-market news start to the close of a trading day: the only time a missing reference matters
+        (an outage overnight is alerted when the morning starts, not at midnight)."""
         clock = self.services.clock
-        return clock.is_trading_day(now.date()) and now.time() <= clock.times.market_close
+        return clock.is_trading_day(now.date()) and DEFAULT_ACTIVE_FROM <= now.time() <= clock.times.market_close
 
     def _reference_today(self, today: date) -> bool:
         return self.reference is not None and self.reference.loaded_on == today
@@ -298,9 +300,9 @@ class LiveRunner:
 
     def _report_problem(self, now: datetime, message: str) -> bool:
         """Send a problem alert, at most one every 15 minutes. Returns whether it was sent."""
-        if not self._due(self.state.last_problem_alert, now, self.timings.problem_alert_every_minutes * 60):
+        if not self._due(self._last_problem_alert, now, self.timings.problem_alert_every_minutes * 60):
             return False
-        self.state.last_problem_alert = now
+        self._last_problem_alert = now
         self.services.alerts.problem(message)
         return True
 
