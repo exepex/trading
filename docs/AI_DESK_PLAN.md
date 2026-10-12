@@ -1,6 +1,6 @@
 # AI desk plan
 
-Status: proposal, agreed direction pending three owner decisions (see the end).
+Status: agreed design (12 Oct 2026); not built yet.
 
 ## Goal
 
@@ -36,10 +36,24 @@ the position rules, daily loss limit, profit lock or concentration limits.
 - Memory: reports, lessons and decisions stored in GitHub; relevant past lessons (same stock, setup, conditions)
   are given to the AI before each decision.
 
-## Open decisions
+## Owner decisions (12 Oct 2026)
 
-1. Runtime: Claude Code on the Mumbai server with the owner's subscription (recommended start) or the Claude API.
-2. AI authority in the paper month: may skip/delay entries and trigger early exits automatically; never enlarge
-   trades or override limits.
-3. Rule-change approval: weekly Slack summary + GitHub PR approved by the owner, or small automatic weight changes
-   within fixed bounds.
+1. Runtime: the owner's always-on PC with Claude Code (subscription). Cloud VM or API only after a proven record.
+2. AI authority: may skip or delay entries and trigger early exits automatically; never enlarge trades or override
+   limits.
+3. Rule changes: Claude may open and merge pull requests itself within fixed bounds:
+   - allowed: signal weight change up to +/-50% per week within 0-2; disable a rule the accuracy report shows is
+     noise; entry thresholds within fixed ranges;
+   - owner approval: anything touching money rules (sizes, rupee limits, stops, daily limits), any loosening of
+     safety rules, and promoting a new strategy to live.
+
+## How strategies are created
+
+Idea (AI reviews or owner) -> exact specification (entry, contract choice, exits; one versioned file) ->
+backtest on history (Groww historical candles) -> shadow paper trading beside the live strategies -> promoted only
+if it beats them on net profit after charges over enough trades; retired the same way.
+
+## Before real money
+
+Groww accepts API orders only from a whitelisted static IP: real trading needs a static IP (ISP add-on, Groww
+Cloud, or the Mumbai VM). Paper trading and research do not.
