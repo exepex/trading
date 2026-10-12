@@ -89,7 +89,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | trading | B1-B4, A1, A3, A5, A6, C1 | M | doing |
 | [B6](stories/B-research-engine.md#b6-candidate-scan) | Candidate scan | trading | B3 | L | later |
 | [B7](stories/B-research-engine.md#b7-live-3-pm-feature-versions-and-their-validation) | Live 3 pm feature versions and their validation | trading | B1, A4, A7 | M | later |
-| [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | trading | - | S | judge 6 fixes built; awaiting re-judge |
+| [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | trading | - | S | done (judge passed) |
 | [C2](stories/C-code-roles.md#c2-risk-manager) | Risk manager | trading | B2 | L | later |
 | [C3](stories/C-code-roles.md#c3-data-checks-before-every-decision) | Data checks before every decision | trading | A3, A4, A7, E2 | S | later |
 | [C4](stories/C-code-roles.md#c4-hard-validity-checks-judge-part-1) | Hard-validity checks (judge part 1) | trading | C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) | M | later |

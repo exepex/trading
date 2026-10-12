@@ -48,7 +48,7 @@ the right test for trading from now on ("would it work at today's costs"); every
 rate is confirmed by broker and press summaries of the Budget (ICICI Direct, Groww, Outlook Money); the Finance Act
 text itself is still to be cited.
 
-**Depends:** - · **Size:** S · **Status:** built 12 Oct 2026; judge 6 FAIL fixed 13 Oct 2026 (response 41); awaiting re-judge
+**Depends:** - · **Size:** S · **Status:** done (judge passed in round 2, `reviews/judge/judge_10_c1_three_ledgers_rejudge.md`)
 
 ---
 
