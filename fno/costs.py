@@ -7,6 +7,8 @@ brokerage + exchange + SEBI + IPFT charges.
 
 from __future__ import annotations
 
+from .constants import SIDE_BUY, SIDE_SELL
+
 CHARGE_NAMES = {
     "brokerage": "Brokerage",
     "stt": "STT (securities transaction tax)",
@@ -26,8 +28,8 @@ def order_charges_breakdown(premium: float, units: int, side: str, charges: dict
         "exchange": turnover * charges.get("exchange_txn_pct", 0.03503) / 100,
         "sebi": turnover * charges.get("sebi_per_crore", 10.0) / 1e7,
         "ipft": turnover * charges.get("ipft_per_crore", 50.0) / 1e7,
-        "stt": turnover * charges.get("stt_sell_pct", 0.1) / 100 if side == "sell" else 0.0,
-        "stamp": turnover * charges.get("stamp_duty_buy_pct", 0.003) / 100 if side == "buy" else 0.0,
+        "stt": turnover * charges.get("stt_sell_pct", 0.1) / 100 if side == SIDE_SELL else 0.0,
+        "stamp": turnover * charges.get("stamp_duty_buy_pct", 0.003) / 100 if side == SIDE_BUY else 0.0,
     }
     out["gst"] = (out["brokerage"] + out["exchange"] + out["sebi"] + out["ipft"]) * charges.get("gst_pct", 18.0) / 100
     return out
