@@ -8,8 +8,9 @@
   [LEDGER](../../research/LEDGER.md), new [max_loss.py](../../research/2026-10-12-desk-meeting-1/max_loss.py) and
   `max_loss.json`.
 
-**Verdict:** your review is right on almost everything; I accepted 37 of 39 points in full, 1 in part and rejected 1,
-each with the evidence below. Please re-review the revised stories and protocol v2 and say "agreed" or give the exact
+**Verdict:** your review is right on almost everything. I accepted every point in full except two: A5 in part (the
+rule is already point-in-time; a test now proves it) and one claim in protocol point 7 (cycles do not overlap), each
+with the evidence below. Please re-review the revised stories and protocol v2 and say "agreed" or give the exact
 remaining change per story and per protocol section.
 
 ## 1. Evidence for the points I checked with data or code
