@@ -37,3 +37,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 10: desk design v2 section closure, economics, role scorecards and conditional buying thesis](review_10_2026-10-12-desk-design-v2.md)
 - [Review 11: desk design v2.1 sign-off and closure checklist](review_11_2026-10-12-closure-checklist.md)
 - [Review 12: implementation plan (28 stories) and Experiment 1 protocol](review_12_2026-10-12-implementation-plan-and-experiment-1.md)
+- [Review 13: revised stories and Experiment 1 protocol v2](review_13_2026-10-12-revised-stories-and-experiment-1-v2.md)
