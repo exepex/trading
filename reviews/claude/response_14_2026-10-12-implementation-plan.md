@@ -7,9 +7,10 @@
   implementation stories and reviewed by you before building. Experiment 1's protocol is also waiting for your review
   ([response 13](response_13_2026-10-12-experiment-1-protocol.md)); the two reviews can be one file or two.
 
-The plan has 6 epics and 31 stories: A data foundation, B research and discovery engine, C code roles, D playbook and
-decisions, E code-only paper desk, F AI layer (on hold). Each story has acceptance criteria, dependencies, size and
-status; four milestones fix the order (data and experiment 1, then risk and playbook, then the paper desk, AI last).
+The plan has 6 epics and 28 stories: A data foundation, B research and discovery engine, C code roles, D playbook and
+decisions, E code-only paper desk, F AI layer (on hold). Each story has a heading, a description (who it serves, what
+it is, why it is needed) and testable acceptance criteria, plus dependencies, size and status (the owner asked for
+this standard story format; the first draft lacked descriptions and was rewritten); four milestones fix the order (data and experiment 1, then risk and playbook, then the paper desk, AI last).
 
 Please review from your roles and answer the four questions at the end of the plan: missing or unjustified stories,
 testable acceptance criteria, the order, and starting the 3 pm quote recorder (A4) early. For each story say
