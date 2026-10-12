@@ -1,0 +1,13 @@
+HOW TO RUN (3 steps)
+
+1. Install Python from python.org (tick "Add Python to PATH" on Windows).
+
+2. Double-click nse_raw_download.py
+   (or open a terminal in this folder and type:  python nse_raw_download.py)
+
+3. When it asks "Which folder?", paste your fno-research folder from Google Drive
+   (for example  G:\My Drive\fno-research ) and press Enter.
+
+It downloads the NSE files (about 30 minutes) into  fno-research\raw\...
+Google Drive uploads them by itself. If it stops, just run it again:
+files already downloaded are skipped.

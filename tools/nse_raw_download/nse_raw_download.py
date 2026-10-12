@@ -1,18 +1,11 @@
-"""Downloads NSE's daily F&O files (2024 onwards) into the fno-research project folder, ready for Google Drive.
+"""Downloads NSE's daily F&O files (2 Jan 2024 to today) into your fno-research folder.
 
-Standalone: needs only Python 3.9+ (no packages, no repository). Run on your own computer:
-
-    python nse_raw_download.py --dest "G:/My Drive/fno-research"
-
-Files go to <dest>/raw/nse/derivatives/fo-bhavcopy/<YYYY>/<MM>/<NSE's own file name>, the same layout the research
-tool uses (fno/storage). One request per second, so NSE is never flooded. Safe to stop and run again: files already
-there are checked and skipped. If manifest.csv (next to this script) lists a file's SHA-256, every download and every
-existing file is checked against it. A file that differs is reported and never overwritten.
+Run it with no options:   python nse_raw_download.py
+It asks which folder to use (press Enter for the folder you are in). That's all.
 """
 
 from __future__ import annotations
 
-import argparse
 import csv
 import hashlib
 import sys
@@ -69,21 +62,26 @@ def save(target: Path, data: bytes) -> None:
     temporary.replace(target)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--dest", required=True, type=Path, help="the fno-research project folder")
-    parser.add_argument("--start", type=date.fromisoformat, default=FIRST_DAY, help="first date, YYYY-MM-DD")
-    parser.add_argument("--end", type=date.fromisoformat, default=date.today(), help="last date, YYYY-MM-DD")
-    parser.add_argument("--manifest", type=Path, default=Path(__file__).with_name("manifest.csv"))
-    args = parser.parse_args()
-    expected, holidays = load_manifest(args.manifest)
+def choose_folder(argv: list[str]) -> Path:
+    """The folder named after the script, or asked for (Enter = the current folder)."""
+    if argv:
+        return Path(argv[0].strip().strip('"'))
+    here = Path.cwd()
+    answer = input(f"Which folder should the files go into?\nPress Enter for {here}\nor paste another folder: ")
+    return Path(answer.strip().strip('"')) if answer.strip() else here
+
+
+def run(dest: Path, start: date = FIRST_DAY, end: date | None = None, manifest: Path | None = None) -> int:
+    end = end or date.today()
+    expected, holidays = load_manifest(manifest or Path(__file__).with_name("manifest.csv"))
     counts = {"saved": 0, "already there": 0, "no file (holiday)": 0, "mismatch": 0}
-    day = args.start
-    while day <= args.end:
+    print(f"Saving into {dest / 'raw'}  (about 30 minutes; you can stop with Ctrl+C and run again later)")
+    day = start
+    while day <= end:
         if day.weekday() >= 5 or day.isoformat() in holidays:
             day += timedelta(days=1)
             continue
-        target = args.dest / relative_path(day)
+        target = dest / relative_path(day)
         want = expected.get(day.isoformat())
         if target.is_file():
             have = hashlib.sha256(target.read_bytes()).hexdigest()
@@ -108,13 +106,21 @@ def main() -> int:
             else:
                 save(target, data)
                 counts["saved"] += 1
-                print(f"saved {target.relative_to(args.dest)} ({len(data) / 1e6:.1f} MB)")
+                print(f"saved {day}  ({len(data) / 1e6:.1f} MB)")
         else:
             print(f"{day}: unexpected HTTP {status}; skipped (run again later)")
         time.sleep(GAP_SECONDS)
         day += timedelta(days=1)
-    print("; ".join(f"{k}: {v}" for k, v in counts.items()))
+    print("Done. " + "; ".join(f"{k}: {v}" for k, v in counts.items()))
     return 1 if counts["mismatch"] else 0
+
+
+def main() -> int:
+    dest = choose_folder(sys.argv[1:])
+    code = run(dest)
+    if not sys.argv[1:]:
+        input("Press Enter to close.")
+    return code
 
 
 if __name__ == "__main__":

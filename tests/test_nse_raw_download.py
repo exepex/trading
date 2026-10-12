@@ -22,7 +22,7 @@ def test_the_tool_uses_exactly_the_archive_layout_of_fno_storage():
         assert tool.BASE_URL + tool.FILENAME.format(day=day) == NseDailyFoSource.url_for(NseDailyFoSource.path_for(day))
 
 
-def run(tmp_path, monkeypatch, manifest_rows, answers, start="2024-01-25", end="2024-01-26"):
+def run(tmp_path, monkeypatch, manifest_rows, answers, start=date(2024, 1, 25), end=date(2024, 1, 26)):
     manifest = tmp_path / "manifest.csv"
     manifest.write_text("date,url,status,sha256,rows_kept\n" + "".join(f"{r}\n" for r in manifest_rows))
     asked = []
@@ -33,9 +33,16 @@ def run(tmp_path, monkeypatch, manifest_rows, answers, start="2024-01-25", end="
 
     monkeypatch.setattr(tool, "download", fake_download)
     monkeypatch.setattr(tool.time, "sleep", lambda s: None)
-    argv = ["x", "--dest", str(tmp_path / "fno-research"), "--start", start, "--end", end, "--manifest", str(manifest)]
-    monkeypatch.setattr(sys, "argv", argv)
-    return tool.main(), asked
+    return tool.run(tmp_path / "fno-research", start, end, manifest), asked
+
+
+def test_the_folder_comes_from_the_command_line_or_one_question(monkeypatch, tmp_path):
+    assert tool.choose_folder(['"G:/My Drive/fno-research"']) == Path("G:/My Drive/fno-research")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("builtins.input", lambda prompt: "")
+    assert tool.choose_folder([]) == tmp_path  # Enter = the current folder
+    monkeypatch.setattr("builtins.input", lambda prompt: "  D:/fno-research  ")
+    assert tool.choose_folder([]) == Path("D:/fno-research")
 
 
 def test_verified_files_are_saved_holidays_are_not_asked_and_a_mismatch_is_never_saved(tmp_path, monkeypatch):
