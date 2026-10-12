@@ -26,6 +26,20 @@ the position rules, daily loss limit, profit lock or concentration limits.
 | Daily | Plain-English reporter | simple report: what happened, why, what we learned, tomorrow's plan (Slack + GitHub) |
 | Weekends | Weekly researcher | which setups make net money in which conditions; proposed rule and weight changes for approval |
 
+## Data by phase (owner's model, 12 Oct 2026)
+
+| Phase (IST) | What decides | News and data used |
+|---|---|---|
+| Overnight to 08:30 | the world moves | stock tool: news runs every 4 h (world, India, filings) and its 07:40 pre-open analysis, read from GitHub; fast news watcher keeps collecting overnight headlines |
+| 08:30-09:15 pre-market | strategist: day plan for NIFTY, BANKNIFTY, FINNIFTY and catalyst stocks | stock tool's pre-open results and news; US close; Asia live (Nikkei, Kospi, Hang Seng); US futures, crude, gold, dollar, USD/INR, US yields; India VIX; results/events calendar |
+| 09:15-09:30 opening | no entries; opening range forms; open checked against the plan | Groww prices and option chains; fast news |
+| 09:30-15:15 session | scanner, trade analyst, position guardian | Groww every scan; fast news watcher (minutes) for open trades, shortlist, indices and world-risk themes |
+| 15:45-16:30 evening | reviewer: what went right/wrong and why, missed moves | the day's trades, views, news timeline; stock tool's post-close run |
+| Weekend | weekly researcher | the week's graded signals, AI calls and news-source speed table |
+
+The stock tool and the F&O desk share the slow, verified layer (the stock tool's GitHub data); only the F&O desk
+needs the fast layer (Groww and minute-level news), because options magnify moves and decay with time.
+
 ## Reliability
 
 - Facts come from code, reasoning from the AI: a context pack of verified numbers goes in; structured JSON comes
