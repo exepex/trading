@@ -99,7 +99,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [D4](stories/D-playbook-decisions.md#d4-book-2s-authority-envelope) | Book 2's authority envelope | trading | D1 | S | later |
 | [D5](stories/D-playbook-decisions.md#d5-book-3s-constitution-and-strategy-registry) | Book 3's constitution and strategy registry | trading | B4 (git-ancestry pattern), C2 | M | later |
 | [D6](stories/D-playbook-decisions.md#d6-version-registry-and-evaluation-segments) | Version registry and evaluation segments | trading | D3 | S | later |
-| [E1](stories/E-paper-desk.md#e1-paper-accounts-per-book-with-a-single-writer-lock) | Paper accounts per book, with a single-writer lock | trading | C1 | M | later |
+| [E1](stories/E-paper-desk.md#e1-paper-accounts-per-book-with-a-single-writer-lock) | Paper accounts per book, with a single-writer lock | trading | C1 | M | done (judge passed) |
 | [E2](stories/E-paper-desk.md#e2-common-market-pack-and-book-private-packs) | Common market pack and book-private packs | trading | A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) | M | later |
 | [E3](stories/E-paper-desk.md#e3-daily-timetable-deadline-execution-snapshot-and-exits) | Daily timetable: deadline, execution snapshot and exits | trading | A4, A7, C3, C4, D3, E1, E2, E4 | L | later |
 | [E4](stories/E-paper-desk.md#e4-fill-model-and-exits) | Fill model and exits | trading | A4, C1, C2, E1 | M | later |
@@ -143,7 +143,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [O2](stories/O-operations.md#o2-failure-handling-end-to-end) | Failure handling, end to end | trading | E3, E4, P3, P4 (F1, F4 for the AI-book cases, added in M5) | M | later |
 | [O3](stories/O-operations.md#o3-cross-repository-integration-tests) | Cross-repository integration tests | trading | P3, X1, W2, W3, O1 (W6, W7, K3 for test 4) | M | later |
 | [O4](stories/O-operations.md#o4-runbook-and-documentation) | Runbook and documentation | trading | O1, O2 | S | later |
-| [O5](stories/O-operations.md#o5-public-record-safety-scan) | Public-record safety scan | trading | - | S | later |
+| [O5](stories/O-operations.md#o5-public-record-safety-scan) | Public-record safety scan | trading | - | S | done (judge passed) |
 
 ## Removed or merged from the previous plan
 

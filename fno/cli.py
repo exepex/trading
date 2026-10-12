@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from datetime import date, timedelta
 
+from .books.cli import add_account_parser
 from .config import ROOT, load_app_config
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
@@ -103,6 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     c.set_defaults(func=cmd_chain)
 
     add_quotes_parser(sub)
+    add_account_parser(sub)
 
     args = p.parse_args(argv)
     return args.func(args)

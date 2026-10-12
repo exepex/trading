@@ -11,6 +11,12 @@ ENV_GROWW_TOTP_SECRET = "GROWW_TOTP_SECRET"
 # Raw-file archive on Google Drive (fno/storage): read-only service account; both only in the environment
 ENV_GDRIVE_SERVICE_ACCOUNT_JSON = "FNO_GDRIVE_SERVICE_ACCOUNT_JSON"  # the key's JSON text, or it base64-encoded
 ENV_GDRIVE_FOLDER_ID = "FNO_GDRIVE_FOLDER_ID"  # the shared folder's ID (from its Drive link)
+# Other secrets the routines' environment holds; named here so the public-record scan (story O5) watches them too
+ENV_FNO_SLACK_BOT_TOKEN = "FNO_SLACK_BOT_TOKEN"
+ENV_MOTHERDUCK_TOKEN = "MOTHERDUCK_TOKEN"
+
+# Slack channel for all F&O output (#fno-desk); its ID is public by design and allowed in committed records
+FNO_DESK_CHANNEL_ID = "C0C89E8QCCD"
 
 # How this tool names itself to public websites (NSE): honest, and accepted by them
 RESEARCH_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"
@@ -23,3 +29,13 @@ SESSION_HOLIDAY, SESSION_SPECIAL, SESSION_MUHURAT, SESSION_REGULAR = "holiday", 
 
 # Index names in NSE's daily index-close file that every file must carry (the research needs both)
 INDEX_NIFTY_50, INDEX_INDIA_VIX = "Nifty 50", "India VIX"
+
+# The three paper books (design 12.1, story E1): each has its own Rs 5 lakh paper account under journal/<book>/account/
+BOOK1_RULES = "book1_rules"  # pure rules
+BOOK2_HYBRID = "book2_hybrid"  # AI inside the authority envelope
+BOOK3_AI = "book3_ai"  # fully AI under the constitution
+BOOKS = (BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI)
+JOURNAL_FOLDER = "journal"
+# Kinds of row in a paper account's cash ledger (journal/<book>/account/cash_ledger.csv)
+LEDGER_OPENING = "opening_balance"
+LEDGER_FILL = "fill"

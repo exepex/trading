@@ -1,0 +1,2 @@
+entry_id,kind,trade_id,filled_at,contract,side,units,quoted_price,pad,fill_price,brokerage,stt,exchange,sebi,ipft,stamp,gst,charges_rs,amount_rs,cash_after_rs
+opening,opening_balance,,2026-10-13,,,,,,,,,,,,,,,500000.0,500000.0

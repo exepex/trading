@@ -27,10 +27,12 @@ pip install -r requirements.txt                  # add requirements-groww.txt fo
 python -m fno chain NIFTY                         # option chain around the money (root `provider` in config.yaml)
 python -m fno quotes record                       # 3 pm quote recorder (story A4); run by a weekday routine
 python -m fno quotes report                       # half-spread by distance from the money, from recorded days
+python -m fno account show book1_rules          # a book's paper account: cash, closed equity, open legs (E1)
 python -m fno groww-check                         # check the Groww data connection (prints no secrets)
 python -m fno drive-check                         # check the Google Drive archive can be read (prints no secrets)
 python -m fno data-coverage [--from --to]          # raw NSE files missing or damaged in Drive, against the NSE calendar (A1)
 python -m pytest -q && ruff check fno tests tools # tests and lint; python tools/check_imports.py checks imports
+python tools/check_records.py [--staged | PATH] [--alert]  # public-record scan: no secrets, personal data or broker IDs (O5)
 ```
 
 ## Routines
@@ -46,6 +48,10 @@ python -m pytest -q && ruff check fno tests tools # tests and lint; python tools
   `fno/storage/README.md` and `tools/nse_raw_download/`.
 - Credentials (`GROWW_*`, `FNO_GDRIVE_*`, `FNO_SLACK_BOT_TOKEN`) live only in environment variables or
   `~/.trading.env`, never in files. F&O output goes only to Slack #fno-desk.
+- The repository is public: every committed file must pass `tools/check_records.py` (records, i.e. everything outside
+  `fno/`, `tests/`, `tools/`, against every pattern; code against credential shapes). It runs as a git pre-commit hook
+  in every session (`.githooks/`, turned on by `.claude/settings.json`), in the tests and in CI
+  (`.github/workflows/checks.yml`); a refusal is posted to #fno-desk.
 
 ## Layout
 
@@ -59,12 +65,16 @@ fno/
   fo_bhavcopy.py     NSE F&O daily file reader (old and current formats)
   research_data/     expiry dates and the events calendar
   research_engine/   trial ledger and its guard (story B4)
+  record_scan/       public-record safety scan: patterns, scanner, which files (story O5)
+  alerts/            alert sender to Slack #fno-desk (used by the record scan; P4 extends it)
   accounting/        research ledgers
+  books/             the three books' Rs 5 lakh paper accounts and their single-writer lock (story E1)
   analytics.py       Black-Scholes, Greeks, implied volatility, chain metrics
   costs.py           Groww and statutory charges
   config.py          settings (`config.yaml`, allowed keys only)
-tools/               NSE raw-file downloader, import-graph check
+tools/               NSE raw-file downloader, import-graph check, public-record scan
 research/            studies, ledger, recorded data
+journal/<book>/account/  each book's paper account: cash_ledger.csv (append-only), positions.json, equity_history.csv
 tests/               unit and integration tests
 ```
 

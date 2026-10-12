@@ -1,0 +1,2 @@
+dataset,date,reason,source_url
+nse/derivatives/fo-bhavcopy-legacy,2021-03-30,"Normal trading day (no holiday circular; cash bhavcopy and NSE's F&O market-activity zip exist for it), but NSE's archive has no old-format F&O bhavcopy for it: 404 from both archive hosts, checked 12 Oct 2026",https://nsearchives.nseindia.com/archives/fo/mkt/fo30032021.zip

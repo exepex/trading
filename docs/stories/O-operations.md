@@ -26,6 +26,7 @@ commit and push rules, merging with the existing recorder routine. Out: the step
 `python -m fno desk run` (E3's `DailyRun`), commit `journal/`, `research/data/quotes/`, `reports/dashboard/`, push to
 `main` after `git pull --no-rebase`; failures alert through P4. The existing recorder routine is updated (not deleted)
 to the new prompt on the day E3 goes live, so quote history has no gap. Never places orders; never prints credentials.
+**Across containers (13 Oct 2026, from E1):** E1's operating-system lock protects one machine only; cloud routines run in separate checkouts. Every account write therefore runs as: pull, write under `AccountLock`, commit, push; if the push is rejected, drop the unpushed local account commit, reset to the new `origin/main` and re-apply the same fills (E1 makes fills idempotent by fill ID; a plain pull merge-conflicts on `cash_ledger.csv`, judge 1). E1's 600-second lock lease can block a retry in the same container inside the fills window: set the lease for E3's timetable, not by default.
 
 **Acceptance criteria:**
 1. A dry run on a non-counted day completes every step and commits every record (recorded in the conversation log).
@@ -168,5 +169,8 @@ in tests and before every commit made by a routine.
 
 **Judge verifies:** plants a fake token in a record and confirms the routine refuses to commit.
 
-**Depends:** - · **Size:** S · **Status:** later
+**Known limits (accepted by judge 2, finding 6):** bare 10-digit phone numbers, spaced labels such as "Client Code:",
+unlabelled random secrets and old-format Slack IDs are not caught.
+
+**Depends:** - · **Size:** S · **Status:** done (judge passed, `reviews/judge/judge_4_o5_record_scan_rejudge.md`)
 
