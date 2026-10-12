@@ -7,7 +7,7 @@ import time as wall_clock
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from ..constants import ExitReason, SessionPhase
+from ..constants import EVENT_SHADOW_CLOSED, ExitReason, SessionPhase
 from ..models import IST
 from .alerts import day_summary_message, exit_message
 from .learning.performance import performance_stop_reason
@@ -138,6 +138,16 @@ class LiveRunner:
             self._report_problem(now, "could not re-price: " + "; ".join(errors[:3]))
         if closed:
             self._stop_if_performance_breaks(now)
+        self._review_shadow_book(now, phase)
+
+    def _review_shadow_book(self, now: datetime, phase: SessionPhase) -> None:
+        """Same exit rules for the shadow book, recorded quietly: no alerts, no kill switch."""
+        shadow_desk = self.services.shadow_desk
+        if shadow_desk is None:
+            return
+        closed, _ = shadow_desk.review_open_trades(now, phase)
+        for trade in closed:
+            self.services.store.record(EVENT_SHADOW_CLOSED, trade, now, trade["underlying"])
 
     def _stop_if_performance_breaks(self, now: datetime) -> None:
         """A losing run or deep drawdown stops everything until a person reviews it (kill switch)."""

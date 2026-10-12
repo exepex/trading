@@ -4,6 +4,31 @@ Every rule below is enforced in code; the AI can make a trade more cautious but 
 The numbers come from the research in `reports/Retail FnO losses and safeguards.md` and are sized for a
 **Rs 2 lakh** experiment with **Rs 50,000-70,000** in trades at any time. Settings live in `config.yaml`.
 
+## Paper phase vs real money
+
+The numbers below are the **live** profile: the limits for real money. While the framework is being built and
+tested, `config.yaml` runs the **paper** profile, which changes only the money limits so that BANKNIFTY and
+FINNIFTY lots fit and more trades get graded:
+
+| Setting | Paper (now) | Live (real money) |
+|---|---|---|
+| Capital | Rs 5 lakh | Rs 2 lakh |
+| Most one trade may lose at its stop (2%) | Rs 10,000 | Rs 4,000 |
+| Most in trades at once | Rs 1,00,000 | Rs 70,000 |
+| One exceptional lot (strong evidence) | up to Rs 30,000 | up to Rs 25,000 |
+| New trades per day / week | 3 / 12 | 2 / 8 |
+| Daily loss limit and profit lock | Rs 15,000 | Rs 6,000 |
+| Weekly loss limit | Rs 30,000 | Rs 12,000 |
+| Held overnight | Rs 50,000 | Rs 20,000 |
+| Automatic stop on drawdown | Rs 50,000 | Rs 20,000 |
+
+Stops, targets, time exits, contract filters and guards are identical in both. Before going live the settings
+switch to `profile: live`, and results are judged as a percentage of capital, not in rupees.
+
+**Shadow book.** Besides the real paper book, the desk quietly records one lot of *every* idea that passes the
+signals and guards (`journal/shadow_trades.json`), even ones the limits turned away, and closes it on the same
+exit rules. It has no limits and sends no Slack messages. It exists only to measure which signals work, faster.
+
 ## Before a trade
 
 | Rule | Setting | Why (in plain words) |

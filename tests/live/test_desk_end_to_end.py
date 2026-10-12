@@ -35,6 +35,7 @@ def services(tmp_path: Path, chain_source):
     )
     nse = FakeNseFeed({"NIFTY": OpenInterestMove("NIFTY", 9.0, 22950.0, 1e10)}, LOTS)
     base.desk.chain_source = chain_source
+    base.shadow_desk.chain_source = chain_source
     return replace(
         base,
         price_feed=price_feed,
@@ -74,6 +75,23 @@ def test_scan_opens_a_paper_trade_and_runner_exits_on_target(tmp_path):
     assert closed and closed[0]["exit_reason"] == ExitReason.TARGET.value
     assert closed[0]["pnl_net"] == round(closed[0]["pnl_gross"] - closed[0]["charges"], 2)
     assert any("PAPER EXIT" in m for m in svc.alerts.messages)
+
+    # The shadow book tracked the same idea at one lot and closed it on the same rule, without alerts.
+    first = svc.shadow_desk.trades()[0]
+    assert first["candidate"] == trade["candidate"] and first["lots"] == 1
+    assert first["exit_reason"] == ExitReason.TARGET.value
+    assert svc.store.count("shadow_closed") == 1
+    assert not any("shadow" in m.lower() for m in svc.alerts.messages)
+
+
+def test_shadow_book_takes_each_contract_once_a_day(tmp_path):
+    cfg = load_config()
+    market = ShiftableSample(cfg, as_of=at(11, 0))
+    svc = services(tmp_path, market)
+    reference = ReferenceData(loaded_on=at(11, 0).date(), lot_sizes=LOTS)
+    for minute in (0, 3, 6):
+        LiveScanner(svc).run_cycle(at(11, minute), SessionPhase.TRADING, reference, ResearchSnapshot())
+    assert len(svc.shadow_desk.trades()) == 1
 
 
 def test_kill_switch_closes_everything_once(tmp_path):

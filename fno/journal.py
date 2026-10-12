@@ -63,16 +63,14 @@ def day_check(trades: list[dict], cfg: dict, today: date | None = None) -> str |
     return None
 
 
-def open_trade(trades: list[dict], cand: dict, cfg: dict, lots: int | None = None, note: str = "") -> dict:
+def check_portfolio_limits(trades: list[dict], cand: dict, cfg: dict, lots: int) -> None:
+    """Raise if opening this trade would break the open-trade, daily or deployment limits."""
     max_open = cfg.get("account", {}).get("max_open_trades", 5)
     if sum(t["status"] == "open" for t in trades) >= max_open:
         raise RuntimeError(f"Already {max_open} open trades (account.max_open_trades). Close one first.")
     stop = day_check(trades, cfg)
     if stop:
         raise RuntimeError(f"No new trades today: {stop}.")
-    lots = lots if lots is not None else (cand.get("lots") or 0)
-    if lots < 1:
-        raise RuntimeError("This setup does not fit the position rules (0 lots). See its notes.")
     cost = abs(cand["entry_value"]) * cand["lot_size"] * lots
     rules = cfg.get("position_rules", {})
     cap = rules.get("max_deployed", float("inf"))
@@ -83,6 +81,17 @@ def open_trade(trades: list[dict], cand: dict, cfg: dict, lots: int | None = Non
             f"Opening this (Rs {cost:,.0f}) would put Rs {deployed(trades) + cost:,.0f} in open trades, "
             f"over the Rs {cap:,.0f} limit."
         )
+
+
+def open_trade(
+    trades: list[dict], cand: dict, cfg: dict, lots: int | None = None, note: str = "", enforce_limits: bool = True
+) -> dict:
+    """Record a new paper trade. enforce_limits=False is only for the shadow book, which grades every idea."""
+    lots = lots if lots is not None else (cand.get("lots") or 0)
+    if lots < 1:
+        raise RuntimeError("This setup does not fit the position rules (0 lots). See its notes.")
+    if enforce_limits:
+        check_portfolio_limits(trades, cand, cfg, lots)
     units = cand["lot_size"] * lots
     entry_orders = [(l["side"], l["price"]) for l in cand["legs"]]
     trade = {

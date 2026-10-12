@@ -13,7 +13,7 @@ from fno.providers.sample import SampleProvider
 
 from .fakes import SESSION_DAY, at
 
-CFG = load_config()
+CFG = load_config(overrides={"profile": "live"})  # the conservative real-money limits
 
 
 def idea(symbol="NIFTY"):

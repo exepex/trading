@@ -6,11 +6,11 @@ import logging
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from ..constants import BENCHMARK_UNDERLYING, Direction, SessionPhase
+from ..constants import BENCHMARK_UNDERLYING, EVENT_SHADOW_OPENED, Direction, SessionPhase
 from ..models import OptionChain
 from .alerts import entry_message
 from .market_backdrop import MarketBackdrop, build_market_backdrop
-from .models import Candle, MarketView, ScanReport, UnderlyingSnapshot, as_record
+from .models import Candle, MarketView, ScanReport, TradeIdea, UnderlyingSnapshot, as_record
 from .research.research_context import ResearchSnapshot
 from .services import LiveServices
 from .shortlist import build_shortlist
@@ -129,6 +129,7 @@ class LiveScanner:
             return
         report.ideas.append(idea)
         s.store.record("idea", as_record(idea), now, symbol)
+        self._shadow(idea, now)
         refusal = s.gate.refusal(idea, s.desk.trades(), context.phase, now)
         if refusal:
             report.rejected[idea.id] = refusal
@@ -138,6 +139,15 @@ class LiveScanner:
         report.opened.append(trade["id"])
         s.store.record("opened", trade, now, symbol)
         s.alerts.send(entry_message(idea, trade["id"]))
+
+    def _shadow(self, idea: TradeIdea, now: datetime) -> None:
+        """Grade every idea, taken or not: one quiet paper lot in the shadow book (no limits, no Slack)."""
+        shadow_desk = self.services.shadow_desk
+        if shadow_desk is None:
+            return
+        trade = shadow_desk.shadow(idea, now.date())
+        if trade:
+            self.services.store.record(EVENT_SHADOW_OPENED, trade, now, idea.underlying)
 
     def _chain(self, symbol: str, reference: ReferenceData, today: date, report: ScanReport) -> OptionChain | None:
         """The chain of the expiry a trade would use, fetched before the view so option signals can read it."""

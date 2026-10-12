@@ -33,7 +33,7 @@ python -m fno live resume
 
 Every 3 minutes during the session the desk:
 1. snapshots all ~200 F&O underlyings (price move, futures open-interest change, F&O ban list);
-2. shortlists the 12 most active liquid names (NIFTY and BANKNIFTY always included);
+2. shortlists the 12 most active liquid names (NIFTY, BANKNIFTY and FINNIFTY always included);
 3. scores each with 17 signal rules (weights in `config.yaml` `live.signals`):
    - price action today: opening-range breakout, VWAP, 5-minute EMA trend, strength vs NIFTY;
    - today vs earlier sessions: previous-day high/low breakout, volume vs normal for the time of day;
@@ -73,6 +73,14 @@ fno/live/
 ```
 Add a signal rule: subclass `SignalRule` in `fno/live/signals/`, register it in `registry.py`, give it a weight in
 `config.yaml` (`live.signals`). Nothing else changes.
+
+### Settings profiles and the shadow book
+
+`config.yaml` holds the conservative real-money limits (Rs 2 lakh). `profile: paper` (the default while testing)
+merges `profiles.paper` over them: Rs 5 lakh paper capital at 2% risk, so BANKNIFTY and FINNIFTY lots fit.
+Set `profile: live` before real money. With `live.shadow_book.enabled`, every idea that passes the signals and
+guards is also paper-traded at one lot in `journal/shadow_trades.json`, ignoring portfolio limits and without
+Slack messages, to grade signals on more data. Details: `docs/SAFEGUARDS.md`.
 
 ## Paper-trading loop
 

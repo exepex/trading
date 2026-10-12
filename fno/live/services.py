@@ -29,6 +29,7 @@ from .shortlist import ShortlistRules
 from .signals.registry import build_guard_rules, build_signal_rules
 
 DEFAULT_JOURNAL = ROOT / "journal" / "live_trades.json"
+SHADOW_JOURNAL_NAME = "shadow_trades.json"  # next to the main journal: one lot of every idea, for grading
 DEFAULT_STATE_DIR = ROOT / "data" / "live" / "state"  # not committed: kill flag, local databases
 DEFAULT_RESULTS_DIR = ROOT / "data" / "live" / "events"  # committed: the desk's daily event log
 DEFAULT_RESEARCH_CLONE = ROOT / "data" / "research"  # not committed: copy of the stock tool's research files
@@ -56,6 +57,7 @@ class LiveServices:
     kill_switch: KillSwitch
     research_loader: ResearchContextLoader
     shortlist_rules: ShortlistRules
+    shadow_desk: PaperDesk | None = None
 
     @property
     def live_cfg(self) -> dict:
@@ -103,6 +105,11 @@ def build_live_services(
             build_research_source(live.get("research", {})), live.get("news_lookback_hours", 24)
         ),
         shortlist_rules=ShortlistRules.from_config(live.get("shortlist")),
+        shadow_desk=(
+            PaperDesk(journal_path.with_name(SHADOW_JOURNAL_NAME), cfg, chain_source, exit_policy, enforce_limits=False)
+            if live.get("shadow_book", {}).get("enabled")
+            else None
+        ),
     )
 
 

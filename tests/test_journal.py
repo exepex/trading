@@ -85,7 +85,7 @@ def _closed(pnl, at):
 
 
 def test_daily_brakes():
-    cfg = load_config()
+    cfg = load_config(overrides={"profile": "live"})
     day = date(2026, 10, 12)
     assert journal.day_check([], cfg, day) is None
     assert "loss limit" in journal.day_check([_closed(-6200, "2026-10-12T11:00")], cfg, day)
@@ -96,7 +96,7 @@ def test_daily_brakes():
 
 
 def test_deployment_cap():
-    cfg = load_config(overrides={"strategies": ALL})
+    cfg = load_config(overrides={"profile": "live", "strategies": ALL})
     cand = _cand(cfg)
     trades = [dict(_closed(0, ""), status="open", entry_value=160, lot_size=65, lots=5)]  # Rs 52,000 deployed
     try:
@@ -118,3 +118,23 @@ def test_scorecard_is_net_of_every_charge():
     assert abs(t["pnl_gross"] - t["charges"] - t["pnl_net"]) < 0.05
     rep = journal.report(trades, cfg["account"]["capital"])
     assert "Net P&L after all charges" in rep and "Net margin" in rep and "STT" in rep
+
+
+def test_shadow_book_ignores_portfolio_limits():
+    cfg = load_config(overrides={"profile": "live", "strategies": ALL})
+    trades = [dict(_closed(0, ""), status="open", entry_value=160, lot_size=65, lots=5)]  # over the cap
+    trade = journal.open_trade(trades, _cand(cfg), cfg, lots=1, enforce_limits=False)
+    assert trade["lots"] == 1
+
+
+def test_profiles():
+    paper, live = load_config(), load_config(overrides={"profile": "live"})
+    assert paper["account"]["capital"] == 500000 and live["account"]["capital"] == 200000
+    assert paper["daily_limits"]["max_loss"] > live["daily_limits"]["max_loss"]
+    assert paper["exits"] == live["exits"]  # only the money limits differ
+    try:
+        load_config(overrides={"profile": "nope"})
+    except ValueError as e:
+        assert "Unknown profile" in str(e)
+    else:
+        raise AssertionError("expected an unknown profile to fail")

@@ -77,3 +77,7 @@ ENV_MOTHERDUCK_TOKEN = "MOTHERDUCK_TOKEN"
 # News statuses from the market-brief verification pipeline that must never support a trade.
 UNTRUSTED_NEWS_STATUSES = ("rumour", "promotional", "contradicted")
 TRUSTED_NEWS_STATUSES = ("confirmed_primary", "corroborated")
+
+# Shadow book (one paper lot of every idea, for grading) event names in the results store
+EVENT_SHADOW_OPENED = "shadow_opened"
+EVENT_SHADOW_CLOSED = "shadow_closed"

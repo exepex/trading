@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from dataclasses import replace
 from datetime import date, datetime
 from pathlib import Path
 
@@ -12,10 +13,20 @@ from ..providers import Provider
 from .exit_policy import PEAK_VALUE_FIELD, ExitPolicy
 from .models import TradeIdea
 
+SHADOW_NOTE = "shadow"
+
 
 class PaperDesk:
-    def __init__(self, journal_path: Path, cfg: dict, chain_source: Provider, exit_policy: ExitPolicy):
+    def __init__(
+        self,
+        journal_path: Path,
+        cfg: dict,
+        chain_source: Provider,
+        exit_policy: ExitPolicy,
+        enforce_limits: bool = True,
+    ):
         self.journal_path = journal_path
+        self.enforce_limits = enforce_limits  # False for the shadow book: every idea is tracked, 1 lot each
         self.cfg = cfg
         self.chain_source = chain_source
         self.exit_policy = exit_policy
@@ -31,10 +42,26 @@ class PaperDesk:
     def open(self, idea: TradeIdea, note: str = "") -> dict:
         with self._lock:
             trades = self.trades()
-            trade = journal.open_trade(trades, idea.to_journal_candidate(), self.cfg, lots=idea.lots, note=note)
+            trade = journal.open_trade(
+                trades,
+                idea.to_journal_candidate(),
+                self.cfg,
+                lots=idea.lots,
+                note=note,
+                enforce_limits=self.enforce_limits,
+            )
             trade["contract_name"] = idea.contract_name
             journal.save(trades, self.journal_path)
             return trade
+
+    def shadow(self, idea: TradeIdea, today: date) -> dict | None:
+        """Shadow book: one lot of every idea, once per contract per day, regardless of portfolio limits."""
+        for trade in self.trades():
+            if trade["candidate"] != idea.id:
+                continue
+            if trade["status"] == TradeStatus.OPEN.value or trade["opened_at"][:10] == today.isoformat():
+                return None
+        return self.open(replace(idea, lots=1), note=SHADOW_NOTE)
 
     def review_open_trades(self, now: datetime, phase: SessionPhase) -> tuple[list[dict], list[str]]:
         """Re-price every open trade and close those an exit rule calls for. Returns (closed trades, errors)."""
