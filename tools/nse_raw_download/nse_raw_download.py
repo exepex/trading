@@ -39,7 +39,7 @@ def relative_path(day: date) -> str:
 
 
 def load_manifest(path: Path) -> tuple[dict[str, str], set[str]]:
-    """date -> expected SHA-256 for days NSE published a file, and the days it published none (holidays)."""
+    """date -> expected SHA-256 for days NSE published a file, and the days it published none (weekends, holidays)."""
     if not path.is_file():
         return {}, set()
     with path.open(newline="") as f:
@@ -112,7 +112,7 @@ def run(dest: Path, start: date = FIRST_DAY, end: date | None = None, manifest: 
     print(f"Saving into {dest / 'raw'}  (about 30 minutes; you can stop with Ctrl+C and run again later)")
     day = start
     while day <= end:
-        if day.weekday() >= 5 or day.isoformat() in holidays:
+        if day.isoformat() in holidays:  # known to have no file; every other day is asked (weekend sessions exist)
             day += timedelta(days=1)
             continue
         target = dest / relative_path(day)
