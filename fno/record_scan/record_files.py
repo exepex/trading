@@ -7,6 +7,7 @@ import gzip
 import io
 import subprocess
 import zipfile
+import zlib
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -26,6 +27,10 @@ class RecordText:
     path: str
     text: str
     is_code: bool = False
+    unreadable: bool = False  # a damaged archive: reported as a finding, never skipped
+
+
+ARCHIVE_ERRORS = (OSError, EOFError, zlib.error, zipfile.BadZipFile)
 
 
 def _decode(data: bytes) -> str:
@@ -34,7 +39,14 @@ def _decode(data: bytes) -> str:
 
 def texts_of(path: str, data: bytes, is_code: bool = False) -> list[RecordText]:
     """The file's text; gzip files are unpacked, and each member of a zip file is one text named `<zip>/<member>`
-    (their content is committed too)."""
+    (their content is committed too). A damaged archive gives one unreadable text, so the scan refuses it."""
+    try:
+        return _texts_of(path, data, is_code)
+    except ARCHIVE_ERRORS:
+        return [RecordText(path, "", is_code, unreadable=True)]
+
+
+def _texts_of(path: str, data: bytes, is_code: bool) -> list[RecordText]:
     if path.endswith(".gz"):
         return [RecordText(path, _decode(gzip.decompress(data)), is_code)]
     if path.endswith(".zip"):

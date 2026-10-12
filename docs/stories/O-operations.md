@@ -170,7 +170,9 @@ in tests and before every commit made by a routine.
 **Judge verifies:** plants a fake token in a record and confirms the routine refuses to commit.
 
 **Known limits (accepted by judge 2, finding 6):** bare 10-digit phone numbers, spaced labels such as "Client Code:",
-unlabelled random secrets and old-format Slack IDs are not caught.
+unlabelled random secrets and old-format Slack IDs are not caught. Added after judge 4: a short all-letter password next to its label
+("password: sunshine") or a key in parentheses after its label is not caught; the git hook gates Claude sessions only,
+so a push from ChatGPT, Codex or a person's own clone is caught only by CI after the push.
 
 **Depends:** - · **Size:** S · **Status:** done (judge passed, `reviews/judge/judge_4_o5_record_scan_rejudge.md`)
 

@@ -90,6 +90,19 @@ def test_zip_members_are_scanned(repo):
     assert scan("--staged", "--root", str(repo)).stdout.startswith("research/data.zip/inner.csv:2: Slack token")
 
 
+@pytest.mark.parametrize("name", ["research/broken.csv.gz", "tests/fixtures/broken.zip"])
+def test_damaged_archive_is_refused_with_an_alert(repo, name):
+    """Judge 4, finding (a): a corrupt .gz or .zip is a finding with an alert, not a crash."""
+    import check_records
+
+    (repo / name).parent.mkdir(parents=True)
+    (repo / name).write_bytes(b"not an archive")
+    git(repo, "add", ".")
+    alerts = FakeAlerts()
+    assert check_records.main(["--staged", "--alert", "--root", str(repo)], alerts=alerts) == 1
+    assert f"{name}:0: unreadable archive" in alerts.sent[0]
+
+
 def test_gzip_records_are_unpacked_and_scanned(repo):
     (repo / "research").mkdir()
     (repo / "research/data.csv.gz").write_bytes(gzip.compress(f"a,b\n1,{FAKE_TOKEN}\n".encode()))

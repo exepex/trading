@@ -158,3 +158,12 @@ never bypass the scan. journal/o5-dry-run.md:2: Slack token" (read back with the
 - Any session with `FNO_SLACK_BOT_TOKEN` set now posts a refusal to #fno-desk, builders included. That is deliberate
   (a refused commit is worth seeing), but it can add noise while sessions iterate.
 - The 8-character / digit rule misses a short all-letter password next to a secret word ("password: sunshine").
+
+## After judge 4 (PASS): minor follow-ups
+
+- (a) A damaged `.gz` or `.zip` is now a finding, "unreadable archive", with the alert, not a crash
+  (`fno/record_scan/record_files.py:39-45`, `scanner.py`). Test: `test_damaged_archive_is_refused_with_an_alert`
+  (a record `.gz` and a code `.zip`).
+- (d) Known limits in the story now also list the all-letter password next to its label and the Claude-only hook
+  (other pushers caught only by CI after the push).
+- Checks: pytest 266 passed; ruff, check_imports and the record scan (267 files) clean.

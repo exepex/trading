@@ -10,6 +10,7 @@ from .patterns import RecordPattern
 from .record_files import RecordText
 
 UNSCANNABLE = "binary content that cannot be scanned"
+UNREADABLE = "unreadable archive"
 
 
 @dataclass(frozen=True)
@@ -45,4 +46,12 @@ class RecordScanner:
         return [Finding(path, line, kind) for line, kind in sorted(found)]
 
     def scan(self, records: Iterable[RecordText]) -> list[Finding]:
-        return [finding for record in records for finding in self.scan_text(record.path, record.text, record.is_code)]
+        return [
+            finding
+            for record in records
+            for finding in (
+                [Finding(record.path, 0, UNREADABLE)]
+                if record.unreadable
+                else self.scan_text(record.path, record.text, record.is_code)
+            )
+        ]
