@@ -42,3 +42,12 @@ Breaking news for the shortlist and open trades will come from publishers' own R
 Business Standard, BusinessLine) every 10 minutes during market hours, asking "anything new since last time?" so
 unchanged feeds cost almost nothing. Not Google News (its robots.txt disallows `/rss`) and not BSE. This runs in
 this repo; the stock tool is not changed.
+
+## Paid news options checked (12 Oct 2026)
+
+| Option | Cost | What it gives | Verdict |
+|---|---|---|---|
+| Groww Trade API | already paid | no news at all | prices and chains only |
+| Drishti (drishti.manasija.in) | free sandbox (1,000 credits, once); Starter Rs 2,000/month | Indian stocks only: news tagged by symbol with a positive/negative/neutral label, structured NSE/BSE filings (Reg 30), block deals; WebSocket push for 100 symbols on Starter | best fit; trial the free sandbox first. New company (terms dated June 2026), no published latency or source list |
+| NewsData.io | free plan delayed 12 hours; Basic $199.99/month | worldwide news, sentiment only from $349.99/month | not for trading: free is too late, paid too expensive |
+| Upstox News API | free with an Upstox account | Upstox's own articles for up to 30 stocks per call, last 7 days, no sentiment | needs a second broker account and its daily login; not worth it for news alone |
