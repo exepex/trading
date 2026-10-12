@@ -47,10 +47,31 @@ the same rules (see `CLAUDE.md`).
 - **Hard lines:** no real orders placed by the tool; nothing illegal (no market manipulation); API keys, passwords
   and tokens never in files or chat.
 
-## Roles: answer from all of them
+## Desk meetings: how the two AIs work together (the main job)
 
-Tackle every problem from each of these angles. Say which role a point comes from when it matters, and say when the
-roles disagree.
+The goal is to **find profitable trades from data**, not to audit each other's code. Work like a trading desk where
+every expert role looks at the same data from its own angle:
+
+1. **Start from the data, not from a strategy.** Read the real NSE data in the repository (and Google Drive), ask
+   what each role would ask (Is there a trend? Are options over- or under-priced? Who loses money to whom? What does
+   news, positioning or the calendar change? What kills the account?), measure it, and reason from the numbers.
+2. **Each role reports a finding** with numbers and a confidence label, then the portfolio manager combines them into
+   trade ideas with exact rules, sizes and the economic reason they should work.
+3. **Challenge findings, not formatting.** The other AI attacks the reasoning: wrong economics, a statistic that
+   cannot carry the claim, a risk nobody priced, a better trade. Bring new analyses and new ideas, not only objections.
+4. **Bugs are side notes.** A data or code error is fixed directly by whoever owns the code, with a test, and
+   mentioned in one line. It becomes a discussion topic only if it changes a finding.
+5. **Every round ends with decisions:** which ideas move forward, what to measure next, which are dropped and why.
+
+Records: `research/<date>-desk-meeting-<n>/` (analysis scripts, results, minutes); the other AI answers in
+`reviews/<ai>/` as before.
+
+## Roles: one team, one goal
+
+**The shared goal of every role: find net profitable F&O trades**, meaning profitable after all charges, slippage and
+tax, proven on real data and then on paper. Each role has its own job, but no role works alone: findings are shared,
+combined and challenged until the team agrees on trades worth testing. Fixing data, code, logic or the algorithm is
+part of the same goal. Say which role a point comes from when it matters, and say when the roles disagree.
 
 | Role | What it checks |
 |---|---|
@@ -67,6 +88,13 @@ roles disagree.
 | Regulation (SEBI/NSE) | Current rules: lot sizes, expiry days, margins, position limits, retail algo rules |
 | Behavioural finance | The owner's and retail traders' biases: overtrading, revenge trades, holding losers, lottery tickets |
 | Data and backtesting engineer | Data quality, look-ahead bias, survivorship, realistic costs, reproducible tests |
+| Volatility trader | The volatility surface: implied vs realised volatility, skew, term structure, volatility regimes, when options are cheap or rich, event premium before and after news |
+| Derivatives flow / positioning analyst | Open interest build-up, put-call ratios, FII/DII index futures and options positions, where large players are hedged or exposed |
+| Equity research analyst | For stock options: company results against expectations, sector news, why a stock may move more or less than the index |
+| Quantitative modeller | Forecasts and features from data (volatility forecasts, regime detection, signals), tested out of sample, kept simple enough to trust |
+| Tax and cost accountant | Net result after Groww and exchange charges, slippage and Indian tax on F&O income; whether a strategy is still profitable after all of them |
+| Red team / devil's advocate | Tries to break every finding: hidden bias, luck, a period that flatters the result, a scenario that wipes the account |
+| Head of desk | Runs the meeting: sets the question, makes sure every role contributes, records decisions and next steps toward the shared goal |
 
 ## How to answer
 

@@ -91,6 +91,12 @@ def load_existing(data: Path) -> dict[str, list[dict]]:
     with_file = {r["date"] for r in existing["manifest"] if r["status"] == "200"}
     if with_file != {r["date"] for r in existing["expiries"]}:
         raise InconsistentData(f"manifest and expiry list cover different days; {REBUILD_HINT}")
+    expected = {r["date"]: int(r["rows_kept"]) for r in existing["manifest"] if int(r["rows_kept"])}
+    found: dict[str, int] = {}
+    for row in existing["options"]:
+        found[row["TradDt"]] = found.get(row["TradDt"], 0) + 1
+    if found != expected:
+        raise InconsistentData(f"option rows do not match the manifest's counts per day; {REBUILD_HINT}")
     return existing
 
 

@@ -113,3 +113,37 @@ def test_a_rebuild_that_fetches_nothing_leaves_the_files_untouched(tmp_path):
     before = {f: (tmp_path / f).read_bytes() for f in fetch.FILES.values()}
     added = fetch.update(tmp_path, Unreachable(), JAN_2, date(2024, 1, 3), rebuild=True)
     assert added["days"] == 0 and {f: (tmp_path / f).read_bytes() for f in fetch.FILES.values()} == before
+
+
+def test_a_holiday_moved_weekly_is_not_mistaken_for_the_monthly():
+    from expiries import monthly_as_of
+
+    listings = {
+        date(2025, 2, 20): {date(2025, 4, 24): 63},  # the April monthly is listed two months ahead
+        date(2025, 3, 27): {date(2025, 4, 24): 28, date(2025, 4, 30): 34},  # the 30 Apr weekly appears in April
+    }
+    assert monthly_as_of(listings)[date(2025, 3, 27)] == {date(2025, 4, 24)}
+
+
+def test_option_rows_that_disagree_with_the_manifest_are_rejected(tmp_path):
+    fetch.update(tmp_path, library_for([JAN_2, date(2024, 1, 3)]), JAN_2, date(2024, 1, 3))
+    rows = fetch.read_csv(tmp_path / "nifty_options.csv.gz")
+    for broken in ([], rows[1:]):  # header only; one row missing
+        fetch.write_csv(tmp_path / "nifty_options.csv.gz", fetch.OPTION_FIELDS, broken)
+        with pytest.raises(fetch.InconsistentData):
+            fetch.update(tmp_path, library_for([]), JAN_2, date(2024, 1, 4))
+    fetch.write_csv(tmp_path / "nifty_options.csv.gz", fetch.OPTION_FIELDS, rows)
+    assert fetch.update(tmp_path, library_for([]), JAN_2, date(2024, 1, 3)) == {"days": 0, "files": 0}
+
+
+def test_a_re_dated_monthly_keeps_only_its_new_date():
+    from expiries import eligible_monthly, monthly_as_of
+
+    listings = {
+        date(2025, 7, 1): {date(2025, 9, 25): 86},  # listed for Thursday 25 Sep
+        date(2025, 8, 1): {date(2025, 9, 30): 60},  # NSE moved it to Tuesday 30 Sep; the old date is gone
+        date(2025, 8, 18): {date(2025, 9, 30): 43, date(2025, 8, 26): 8},
+    }
+    monthly = monthly_as_of(listings)
+    assert monthly[date(2025, 8, 18)] == {date(2025, 9, 30)}
+    assert eligible_monthly(date(2025, 8, 18), monthly[date(2025, 8, 18)]) == date(2025, 9, 30)

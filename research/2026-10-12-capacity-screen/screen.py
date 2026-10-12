@@ -2,8 +2,8 @@
 
 Run from the repository root after fetch.py:  python research/2026-10-12-capacity-screen/screen.py
 Scope (agreed in ChatGPT review 4):
-- the monthly NIFTY expiry with 30-45 calendar days left; monthly identity comes from that day's complete expiry
-  list (data/nifty_expiries.csv.gz), never from the filtered prices;
+- the monthly NIFTY expiry with 30-45 calendar days left; an expiry is monthly once NSE has listed it more than 50
+  days ahead (expiries.monthly_as_of, from the stored expiry lists, as of each day), never from the filtered prices;
 - nearest listed strike; bull call and bear put spreads 50/100/200 points wide;
 - daily closing prices (not executable quotes); today's lot size and charges (a labelled counterfactual quantity
   for old dates); a one-way adverse pad per leg per order.
@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from expiries import eligible_monthly  # noqa: E402
+from expiries import eligible_monthly, monthly_as_of  # noqa: E402
 
 from fno.config import load_config  # noqa: E402
 from fno.costs import order_charges  # noqa: E402
@@ -128,12 +128,11 @@ def main() -> None:
     with gzip.open(HERE / "data" / "nifty_options.csv.gz", "rt") as f:
         for row in csv.DictReader(f):
             by_day[row["TradDt"]].append(row)
-    monthly: dict[str, set[date]] = defaultdict(set)
+    listings: dict[date, dict[date, int]] = defaultdict(dict)
     with gzip.open(HERE / "data" / "nifty_expiries.csv.gz", "rt") as f:
         for row in csv.DictReader(f):
-            listed = monthly[row["date"]]  # every day with a file appears, even if no expiry is monthly
-            if row["monthly"] == "1":
-                listed.add(date.fromisoformat(row["expiry"]))
+            listings[date.fromisoformat(row["date"])][date.fromisoformat(row["expiry"])] = int(row["days_to_expiry"])
+    monthly = {day.isoformat(): known for day, known in monthly_as_of(listings).items()}
     with open(HERE / "data" / "manifest.csv") as f:
         manifest = list(csv.DictReader(f))
     results = []

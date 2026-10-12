@@ -29,6 +29,8 @@ cost real money later, so:
   that can be given, and point to where the rest can be found. Never quietly water an answer down. The same applies to
   questions and clarifications: ask them plainly and directly.
 - The hard lines stay: no real orders, nothing illegal (no market manipulation), secrets never in files or chat.
+- **The main job is the desk meeting** (see `AGENTS.md`): find profitable trades from data, every role reasoning from its
+  own angle; code and data bugs are fixed directly and mentioned in one line, never the main topic.
 - **Answer from every financial role** listed in `AGENTS.md` (mathematician, statistician, F&O trader, options
   strategist, risk manager, portfolio manager, analyst and the rest); ChatGPT follows the same file.
 
