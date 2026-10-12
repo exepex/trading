@@ -116,7 +116,10 @@ review, idempotent runs. Out: how each book decides (E5, F5, F6), the fill model
 **Expected design:** `fno/desk/timetable.py` with the frozen times in `config.yaml` `desk.timetable` (this story adds
 the key, with tests): pack build (about 14:58, after the canonical quote snapshot), decision deadline (proposed 15:12),
 execution snapshot (proposed 15:15, a second recorder capture with its own ID and hash, same A4 rules), fills by
-15:20, exit review, publication (P3). Times are calibrated from measured run times before the first counted day and
+15:20, exit review, publication (P3). For AI books the decision deadline is a **receipt deadline** measured by the
+server-side time of the session's output (F1), followed by a **promotion deadline** by which the runner has
+validated, checked (C2, C4) and committed it; both come before the execution snapshot. **No new fill without a
+completed C4 pass** on the committed decision, for every book. Times are calibrated from measured run times before the first counted day and
 frozen in the evaluation protocol (S1). `fno/desk/daily_run.py` (`DailyRun.run(day)`): idempotent per day (a run ID
 per day; a second start sees the completed steps and does nothing), each step recorded with its time. A decision
 committed after the deadline is ignored and a "no decision (late)" record is committed for that book.
@@ -130,6 +133,7 @@ committed after the deadline is ignored and a "no decision (late)" record is com
 4. Given a non-session day (A1 calendar), nothing runs and nothing fails.
 5. Restarting the run the same day after any step repeats nothing already done (test kills it after the fills).
 6. Every step's start and end time, inputs and result are written to `journal/runs/<date>.json` and committed.
+7. A decision without a completed C4 pass is never filled, for any book (test per book).
 
 **Test plan:** an end-to-end test over 5 simulated days with fakes: normal day, slow book, failed snapshot, holiday,
 restart after fills.
@@ -137,7 +141,7 @@ restart after fills.
 **Judge verifies:** reads one week of run files and checks the order of commits (decisions before the snapshot, the
 snapshot before fills).
 
-**Depends:** A4, A7, C3, D3, E1, E2, E4 · **Size:** L · **Status:** later
+**Depends:** A4, A7, C3, C4, D3, E1, E2, E4 · **Size:** L · **Status:** later
 
 ---
 
@@ -207,12 +211,13 @@ it records "no approved strategy" each day (that is a result, not an error).
 2. No AI call is reachable from Book 1's code path (test with an AI fake that fails on any call).
 3. Without any `paper` strategy, each session day has a committed "no approved strategy" record.
 4. Book 1's records are committed before the deadline on every fixture day.
+5. End-to-end negative test: a Book-1 decision failing C4 never becomes a fill.
 
 **Test plan:** replay tests; the AI-fake test.
 
 **Judge verifies:** replays three Book-1 records.
 
-**Depends:** D2, D3, E2, E3 · **Size:** S · **Status:** later
+**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** later
 
 ---
 

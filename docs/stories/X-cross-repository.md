@@ -88,7 +88,7 @@ working against MotherDuck initially; new Vercel project with owner-only authent
 
 ---
 
-## W2. Azure read path, publication-aware reads and contract checks
+## W2. Azure read path for F&O: publication-aware reads and contract checks
 
 **Repository:** dashboard
 
@@ -101,8 +101,10 @@ pages of the current publication (P3); checks the contract version (P1); F&O fre
 status, not the stock app's fixed `FRESH_MINUTES = 1140`; the stock code today returns `rows[0]` of a keyed SELECT
 with no stated uniqueness (`web/lib/data/store.ts`), which the history table's unique key fixes.
 
-**Scope.** In: an Azure `RowStore` for both products, publication-aware queries, contract version checks, freshness per
-product, error paths. Out: F&O screens (W3).
+**Scope.** In: an Azure `RowStore` for the **F&O** product, publication-aware queries, contract version checks, F&O
+freshness, error paths; the stock screens keep reading MotherDuck until W6. Out: F&O screens (W3), stock reads on
+Azure (W6, after K1), dashboard writes (W7). Split after ChatGPT review 26 so the F&O launch never waits for the stock
+migration.
 
 **Expected design:** a `RowStore` implementation on Azure Postgres with the dashboard runtime role; F&O query: join
 `fno.current_publication` to `fno.pages_history` by `publication_id` and `page_key`; contract major version check per
@@ -113,9 +115,8 @@ page with a clear "incompatible data version" screen; F&O freshness from `fno.ru
    previous one with "stale" and the reason (integration test with P3's test database).
 2. A payload with an unexpected major version shows the incompatibility screen, never a broken page.
 3. Database errors never leak driver text or credentials to the browser (test).
-4. Stock pages read from Azure equal their MotherDuck versions for the comparison set (needs K1).
 
-**Test plan:** integration tests against a disposable Postgres; comparison script with K1's dual publication.
+**Test plan:** integration tests against a disposable Postgres.
 
 **Judge verifies:** runs the publishing/stale integration test.
 
@@ -189,6 +190,77 @@ payloads for secret patterns, and checks the stale and publishing states on a te
 
 ---
 
+## W6. Stock reads on Azure and parity
+
+**Repository:** dashboard
+
+**Description:** As the owner, I want the stock screens to read the stock tool's Azure publications and be proven
+equal to their MotherDuck versions, so that the stock dashboard can move to Azure without losing a screen.
+
+**Context and why:** Design 13.2 migration steps 2-4; split from W2 after ChatGPT review 26 (W2's stock-parity check
+needed K1, scheduled later). The stock app reads one JSON row per page (`web/lib/data/store.ts`, `rows[0]` of a keyed
+SELECT); on Azure it reads the current publication (K1 uses P3's pattern).
+
+**Scope.** In: the stock `RowStore` on Azure with the dashboard role, a switch per environment, the parity comparison.
+Out: dashboard writes (W7), cutover (W5).
+
+**Expected design:** an Azure `RowStore` for the stock product reading `stock` current publications; a configuration
+switch so the private beside-production deployment reads Azure while production keeps MotherDuck; a parity script
+comparing envelopes, payload hashes and API outputs over a fixed set of pages and dates.
+
+**Acceptance criteria:**
+1. For the comparison set, Azure and MotherDuck responses are identical (payload hashes and API outputs).
+2. Stock freshness keeps its own rule (`FRESH_MINUTES` logic) unchanged.
+3. A failed or partial stock publication shows the previous complete one (K1's atomic pattern).
+
+**Test plan:** parity script; integration tests against a disposable Postgres.
+
+**Judge verifies:** runs the parity script.
+
+**Depends:** W2, K1 · **Size:** M · **Status:** later
+
+---
+
+## W7. Dashboard writes on Azure (inbox, assistant and control state)
+
+**Repository:** dashboard
+
+**Description:** As the owner, I want the dashboard's own writes (inbox requests, command log, assistant
+conversations and any control state) moved from MotherDuck to the Azure `app` schema with their history, so that
+nothing the dashboard writes is lost or split between two stores.
+
+**Context and why:** ChatGPT review 26: the stock dashboard writes live data to MotherDuck's inbox database
+(`web/lib/tools/motherduck.ts`, inbox writes; `web/lib/assistant/store.ts` and `web/lib/assistant/sql.ts`, assistant
+conversations), which is **not** derived from any repository and cannot be rebuilt (`docs/ARCHITECTURE.md` of the
+stock tool). The read-model migration (K1, W6) does not cover these writers. K2 later requires no MotherDuck
+reference.
+
+**Scope.** In: Azure write adapters for every dashboard writer, the `app` schema tables (migrations by its owner role,
+X1), SQL dialect changes, history migration, identity and authorisation of writes, idempotency, the switch to one
+writer, rollback of writes. Out: the stock backend's reads of the inbox (K1 criterion 3 follows this switch).
+
+**Expected design:** `app` tables mirroring the inbox and assistant stores; Azure implementations of the inbox and
+conversation stores behind their existing interfaces; a migration script copying history with counts and hashes; a
+cutover flag so exactly one store accepts writes at any time; dual-read during verification; a rollback procedure that
+copies writes made after the switch back if the cutover is reversed.
+
+**Acceptance criteria:**
+1. History copied: row counts and content hashes match per table.
+2. At any time exactly one store accepts writes (test toggling the flag under concurrent writes; no write lost or
+   duplicated, idempotency keys).
+3. Every writer in the dashboard code uses the Azure implementation after the switch (search for MotherDuck writers
+   finds none).
+4. A rollback rehearsal returns post-switch writes to the old store with matching counts.
+5. The dashboard role can write only the named `app` tables (X1 matrix).
+
+**Test plan:** migration and concurrency tests against a disposable Postgres; rollback rehearsal.
+
+**Judge verifies:** runs the count and hash comparison and reads the rollback rehearsal record.
+
+**Depends:** W1, X1 · **Size:** M · **Status:** later
+
+---
+
 ## W5. Cutover and rollback
 
 **Repository:** dashboard (with `agentic-stock-prediction`)
@@ -216,7 +288,7 @@ back (tested once before the real switch); rollback period fixed in the checklis
 
 **Judge verifies:** reads the checklist evidence and the rehearsal record.
 
-**Depends:** W1-W4, K1 · **Size:** S · **Status:** later
+**Depends:** W1-W4, W6, W7, K1 · **Size:** S · **Status:** later
 
 ---
 
@@ -242,8 +314,8 @@ page on a set of dates; the inbox copied with row counts and hashes matched.
 **Acceptance criteria:**
 1. For a comparison set of pages and dates, Azure and MotherDuck payload hashes are identical.
 2. The stock runtime role can write only the `stock` schema (X1 matrix).
-3. Inbox rows and assistant logs are copied with matching counts and hashes, and new writes go to one place only
-   after cutover.
+3. The stock backend's own reads of the inbox (`company.py import-inbox`, `portfolio.py import-inbox`) read the
+   `app` schema after W7's switch (the dashboard-side write migration is W7).
 
 **Test plan:** parity script; role matrix.
 
@@ -275,4 +347,4 @@ indefinitely is a reliability risk.
 
 **Judge verifies:** searches the repository and reads the revocation record.
 
-**Depends:** W5 · **Size:** S · **Status:** later
+**Depends:** W5, W7 · **Size:** S · **Status:** later

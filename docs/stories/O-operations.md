@@ -87,7 +87,8 @@ dashboard read path -> F&O screens -> migration and cutover -> automated operati
 **Scope.** In: three integration tests: (1) publisher to platform: P3 writes a fixture publication to a disposable
 Postgres built from X1's scripts using the F&O runtime role; (2) platform to dashboard: W2 reads it with the dashboard
 role and renders W3's screens with the right freshness state; (3) daily operation: one dry-run day from O1 appears on
-the deployed dashboard with matching numbers. Out: unit tests inside each repository.
+the deployed dashboard with matching numbers; (4) the stock migration: W6 parity and W7 write continuity pass on the
+same disposable server before W5's cutover. Out: unit tests inside each repository.
 
 **Expected design:** `tests/integration/` in this repository for (1); a shared fixture publication published as a
 versioned artifact the dashboard repository's CI consumes for (2); a recorded manual-plus-script check for (3).
@@ -130,3 +131,40 @@ restart, judge overrides, approvals and pausing (design 7, 8, 12.8).
 **Judge verifies:** follows the runbook for one alert on a test day.
 
 **Depends:** O1, O2 · **Size:** S · **Status:** later
+
+---
+
+## O5. Public-record safety scan
+
+**Repository:** trading
+
+**Description:** As the owner, I want every committed record scanned for credentials, personal data and broker
+identifiers, so that the public repository never exposes anything it should not, while numbers and hashes stay
+auditable.
+
+**Context and why:** Both repositories are public during development (owner decision, design 13.2 and 13.7); the
+dashboard login protects the screens, not committed records. Decision records, packs, role cards, session exports,
+forecasts and reports are committed (D3, E2, F1, G3, P2). ChatGPT review 26 (M2): the dashboard payload scan (W4) is
+not enough.
+
+**Scope.** In: a scanner and its CI gate over `journal/`, `research/data/quotes/`, `reports/`, `book3/`, `playbook/`,
+`agents/` and session exports before they are sent. Out: rewriting git history (if anything is ever found, the
+owner decides; credentials are rotated at once).
+
+**Expected design:** `tools/check_records.py`: patterns for tokens and keys (including the names in
+`fno/constants.py`), e-mail addresses, phone numbers, Indian PAN and Aadhaar formats, broker client and account
+identifiers, and Groww order or account fields; an allow-list for known safe values (the #fno-desk channel ID); runs
+in tests and before every commit made by a routine.
+
+**Acceptance criteria:**
+1. Planted examples of each pattern in fixture records are all caught; the allow-listed channel ID is not.
+2. The daily routine refuses to commit when the scan finds anything and sends an alert naming the file (not the
+   value).
+3. The scan of the current repository passes.
+
+**Test plan:** fixture tests; a routine dry run with a planted value.
+
+**Judge verifies:** plants a fake token in a record and confirms the routine refuses to commit.
+
+**Depends:** - · **Size:** S · **Status:** later
+

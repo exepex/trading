@@ -29,33 +29,46 @@ transcript can be read back (`get_session`, `list_events`).
 **Scope.** In: creating the per-book session, what it can see, collecting its decision, model identity, breach audit,
 failure handling. Out: what the book decides (F5, F6).
 
-**Expected design:** `fno/ai/session_runner.py` used by the daily run (E3): for each AI book, after the packs are
-committed (pack commit `P`), create one cloud session on this repository at commit `P` with a **sparse checkout**
-limited to `journal/packs/<date>/`, the book's own `journal/<book>/packs/<date>/`, its own versions (`playbook/` for
-Book 2, `book3/` for Book 3), the role prompts `agents/prompts/` and the code it needs; the prompt names the book, the
-version ID and the allowed paths. The session writes its decision record (D3 schema) and role cards (F2) and pushes
-them to the branch `ai/<book>/<date>`. After the deadline, the runner reads that branch, validates the record, reads
-the session's served model (`get_session`) and its tool calls (`list_events`), and copies the files into
-`journal/<book>/` on `main`. **Breach audit:** any read, fetch or command touching a path or URL outside the allowed
-set (including another book's files or this repository's other branches over the network) marks the decision
-`firewall breach, unscored` and alerts. Model mismatch: `unscored` per D6. No session, a failed session, a usage limit
-or no push before the deadline: "no decision (AI unavailable)".
+**Expected design (revised after ChatGPT review 26):** isolation is **preventive**, not only detected afterwards.
+A sparse checkout does not stop git from reading other paths from history, and both repositories are public during
+development, so any session with internet access could read another book's records. Therefore:
+- **No repository, no network.** Each AI book session is created **without a source repository** in a dedicated cloud
+  environment (set up by the owner) whose network access is the most restrictive level offered: none, or only the
+  domains in the book version's source contract (never `github.com`). It has no credentials of any kind.
+- **Input by export.** `fno/ai/export.py` builds an allowlisted export for the book: the common pack, that book's
+  private pack, its prompts and its version's allowed sources, with a manifest of every item and its SHA-256, verified
+  by code before sending. The export is delivered inside the session's prompt (the story measures the size limit; an
+  export over the limit is a failed day, never a truncated one).
+- **Output by message.** The session returns its decision record, role cards, forecasts and (Book 3) shadow decisions
+  as one JSON block in its final message. `fno/ai/session_runner.py` (outside the AI) reads it from the session's
+  event log, whose server-side timestamps are the **receipt time**: an output received after the **receipt deadline**
+  is ignored ("no decision (late)"). The runner validates the output, runs C2 and C4, and commits it before the
+  **promotion deadline**, which comes before the execution snapshot (E3); anything not promoted by then fails closed.
+- **Defence in depth.** The runner still reads the session's tool calls and marks any network or file access outside
+  the export as `firewall breach, unscored`.
+- **Model identity:** the served model is read from the session record; a mismatch with the registered version gives
+  `unscored` and pauses scoring (D6). A failed or limited session gives "no decision (AI unavailable)".
+- **If the platform cannot enforce this isolation** (for example no network-free environment), the limitation is
+  written down, books 2 and 3 run labelled "isolation not enforced", and their results are **not** scored as an
+  independent comparison until an enforceable mode exists.
 
 **Acceptance criteria:**
-1. A fake session that reads another book's file is detected from its event log and its decision marked `firewall
-   breach, unscored`.
-2. A fake session whose served model differs from the registered version gives `unscored` and pauses scoring (D6).
-3. A session that pushes after the deadline is ignored; "no decision (late)" is committed (E3).
-4. A failed or limited session gives "no decision (AI unavailable)", counted as no trade on scoreboard B and excluded
-   from judgement scores on scoreboard A (S2, S3).
-5. The session prompt contains no secret; the session has no broker credentials and no order function (test on the
-   prompt builder and the environment it requests).
-6. Both pack hashes are in the collected decision and match the committed packs.
+1. On a **real** isolated session (not a fake), attempts to read another book's data fail before the model sees it:
+   a fetch of the public repository's raw file URL, a `git clone` of this repository, and a read of any path outside
+   the export (recorded transcript).
+2. The export manifest lists only allowed items; a test plants another book's file and confirms the export refuses it.
+3. An output whose server receipt time is after the receipt deadline is ignored and "no decision (late)" is committed;
+   an output not validated and promoted before the promotion deadline fails closed (no fill).
+4. A served model different from the registered version gives `unscored` and pauses scoring (D6).
+5. A failed or limited session gives "no decision (AI unavailable)", counted as no trade on scoreboard B and excluded
+   from judgement scores on scoreboard A.
+6. The session receives no secret and no credential; the export and prompt are scanned (O5).
+7. Both pack hashes in the collected decision match the committed packs.
 
-**Test plan:** unit tests with a fake session API (event logs, served model, branches); one real dry run on a
-non-counted day recorded in the conversation log.
+**Test plan:** unit tests with a fake session API (event logs, served model, receipt times); the real-session
+isolation test of criterion 1 on a non-counted day, recorded in the conversation log.
 
-**Judge verifies:** reads one real session's event log and confirms the audit result; checks the hashes.
+**Judge verifies:** re-runs the real isolation test; reads one session's event log; checks receipt times and hashes.
 
 **Depends:** D3, D6, E2, E3 · **Size:** L · **Status:** later
 
@@ -79,8 +92,10 @@ are exploratory only). Roles for the AI books: macro economist, market research 
 book's final decision (F5, F6), red team (F3), judge (F4).
 
 **Expected design:** prompts versioned in `agents/prompts/<role>-v<n>.md` (part of the version, D6). Inside the book's
-session, each role runs as a separate sub-agent given only the packs and its prompt; cards are written to the book's
-branch before the book's decider reads them. Card JSON (schema versioned in `fno/ai/cards.py`): `schema_version,
+isolated session (F1), each role runs as a separate sub-agent given only the export and its prompt; all cards are
+collected before the book's decider reads any, and returned in the session's output. **Role matrix:**
+`agents/roles.yaml` lists every role of design 3.4 with how it is implemented (code story, AI card, decision
+authority, or not applicable for a book) so that no approved perspective disappears by accident. Card JSON (schema versioned in `fno/ai/cards.py`): `schema_version,
 book, role, decision_cutoff, observations[] (claim, value, source (pack path or URL), source_time, retrieved_at),
 interpretation, implication (measurable condition and direction), confidence, counter_evidence[], missing_data[],
 not_applicable (bool, reason), prompt_version, input_hashes`. Validation in code after collection.
@@ -92,6 +107,7 @@ not_applicable (bool, reason), prompt_version, input_hashes`. Validation in code
    (from the event log), and no role sub-agent receives another card (test on the orchestration with fakes).
 4. A role with nothing applicable returns `not_applicable` with a reason.
 5. External sources (if the version allows any) are only those listed in the book's source contract (E2).
+6. `agents/roles.yaml` accounts for every role in design 3.4 (a test compares it with the design's role table).
 
 **Test plan:** schema tests; orchestration tests with fake sub-agents.
 
@@ -203,12 +219,13 @@ before the deadline.
    envelope says so); the attempted action is recorded.
 3. `shadow-only` actions are recorded for scoreboard A while the account follows the rule default.
 4. With no `paper` strategy, Book 2 records "no approved strategy" daily, like Book 1.
+5. End-to-end negative test: a Book-2 decision failing C4 never becomes a fill.
 
 **Test plan:** tests with fake sessions covering each envelope action.
 
 **Judge verifies:** replays three Book-2 records against their envelope and packs.
 
-**Depends:** D2, D4, F1, F2, F3, F4 · **Size:** M · **Status:** later
+**Depends:** C4, D2, D4, F1, F2, F3, F4 · **Size:** M · **Status:** later
 
 ---
 

@@ -87,33 +87,33 @@ date with a fixed refit schedule), its specification frozen in the protocol.
 
 ---
 
-## G3. Forecast capture for every book
+## G3. Book 1 forecast capture
 
 **Repository:** trading
 
-**Description:** As the head of desk, I want every book's five probabilities committed each session day with its
-decision, so that forecast skill is measured on the same days for all books.
+**Description:** As the head of desk, I want Book 1's five probabilities committed each session day by its frozen
+method, so that forecast scoring can start before any book trades and before the AI books exist.
 
-**Context and why:** Design 12.7: all books answer the five questions every trading day. Book 1 uses a frozen
-point-in-time method (code); books 2 and 3 answer in their isolated sessions (F1) from the same common pack.
+**Context and why:** Design 12.7 (Book 1's forecasts come from a frozen point-in-time method, never refitted after
+outcomes) and 12.11 (forecasts start earlier than trading). The AI books' forecasts come later with their sessions
+(G5; ChatGPT review 26: M3 must not claim three-book forecasts before the AI books exist).
 
-**Scope.** In: capture, validation, commit. Out: scoring (G4).
+**Scope.** In: Book 1's method, capture, validation, commit. Out: AI books (G5), scoring (G4).
 
-**Expected design:** Book 1's method `fno/forecast/book1_method.py` (frozen; by default the base-rate and statistical
-baselines combined by a fixed rule written in the protocol); AI books write `forecasts.json` in their session;
-validated by `fno/forecast/schema.py` and committed before the deadline with the decision (D3 link).
+**Expected design:** `fno/forecast/book1_method.py` (frozen; by default the base-rate and statistical baselines
+combined by a fixed rule written in the protocol); records validated by `fno/forecast/schema.py` and committed daily
+(before the deadline once the desk runs; by the daily routine before then).
 
 **Acceptance criteria:**
-1. Each book has five probabilities in [0, 1] per session day, or a recorded "no forecast" (counted as missing, not
-   imputed).
-2. Forecasts committed after the deadline are ignored.
-3. Book 1's method is identical on every day of a version (hash of the method file in each record).
+1. Book 1 has five probabilities in [0, 1] per session day, or a recorded "no forecast" (missing, never imputed).
+2. Book 1's method is identical on every day of a version (hash of the method file in each record).
+3. Forecasts committed after the deadline are ignored.
 
-**Test plan:** validation tests; deadline tests with fakes.
+**Test plan:** validation tests; method-hash test.
 
-**Judge verifies:** checks one week of forecast files for completeness and commit order.
+**Judge verifies:** checks one week of Book-1 forecast files for completeness and commit order.
 
-**Depends:** G1, G2, E3 (F1 for books 2 and 3) · **Size:** S · **Status:** later
+**Depends:** G1, G2 · **Size:** S · **Status:** later
 
 ---
 
@@ -145,4 +145,33 @@ differences with the block bootstrap (seed fixed in the protocol) and the frozen
 
 **Judge verifies:** recomputes one book's Brier score for one month.
 
-**Depends:** G1, G3 · **Size:** M · **Status:** later
+**Depends:** G1, G3 (G5 for books 2 and 3) · **Size:** M · **Status:** later
+
+---
+
+## G5. AI books' forecast capture
+
+**Repository:** trading
+
+**Description:** As the statistician, I want books 2 and 3 to answer the same five questions in their isolated
+sessions every session day, so that all three books are compared on forecasts too.
+
+**Context and why:** Design 12.7 (all books answer the five questions every trading day); F1 (isolated sessions,
+receipt and promotion deadlines). Split from G3 after ChatGPT review 26.
+
+**Scope.** In: the forecast part of the AI books' session output, validation, commit; G4 reports missing AI forecasts
+before this story is done as "not yet running", never as zero skill. Out: scoring (G4).
+
+**Expected design:** the AI book's session output (F1) includes `forecasts`; validated by `fno/forecast/schema.py` and
+committed with the decision before the promotion deadline.
+
+**Acceptance criteria:**
+1. Each AI book has five probabilities per session day, or a recorded "no forecast".
+2. Forecasts received after the receipt deadline are ignored.
+3. G4's report shows each book's coverage (days with forecasts / session days).
+
+**Test plan:** validation tests with fake session outputs.
+
+**Judge verifies:** checks one week of AI-book forecast files.
+
+**Depends:** G1, G3, F1 · **Size:** S · **Status:** later
