@@ -50,26 +50,44 @@ class RegexPattern(RecordPattern):
 
 
 # Placeholders written in docs and examples instead of a real secret: `$VAR`, `${VAR}`, `<your key>`, `***`, `...`
-PLACEHOLDER = re.compile(r"^[$<*.]|^(?:x+|changeme|redacted|placeholder|none|null|true|false)$", re.IGNORECASE)
+PLACEHOLDER = re.compile(
+    r"^[$<{*.]|^(?:x+|changeme|redacted|placeholder|none|null|true|false|password|pass|pwd|secret)$", re.IGNORECASE
+)
 
 
-# A secret's name (not part of a longer name), an optional quote, then `:` or `=`, then the value up to a space or quote
-SECRET_NAME = r"(?<![A-Za-z0-9_])(?:{names})(?![A-Za-z0-9_])[\"']?[ \t]*[:=][ \t]*[\"']?"
-SECRET_VALUE = r"(?P<value>[^\s\"'`,;]{{{min_length},}})"
-
-
-class SecretAssignmentPattern(RegexPattern):
-    """A value written next to a secret's name: `GROWW_API_KEY=...`, `"access_token": "..."`. Placeholders pass."""
-
-    def __init__(
-        self, name: str, secret_names: Iterable[str], min_length: int, flags: int = 0, required: Iterable[str] = ()
-    ):
-        names = sorted(secret_names, key=len, reverse=True)
-        regex = SECRET_NAME.format(names="|".join(names)) + SECRET_VALUE.format(min_length=min_length)
-        super().__init__(name, regex, flags, required or [n.lower() for n in names])
+class SecretValuePattern(RegexPattern):
+    """A regex whose matched value is a secret unless it is a placeholder."""
 
     def is_real(self, value: str) -> bool:
         return not PLACEHOLDER.search(value)
+
+
+# A secret's name (not part of a longer name), then `:` or `=` (optional quotes), or the word "is" before a value that
+# holds a digit (so "GROWW_API_KEY is required" passes and "GROWW_API_KEY is ab12..." does not)
+SECRET_NAME = r"(?<![A-Za-z0-9_])(?:{names})(?![A-Za-z0-9_])"
+SECRET_SEPARATOR = r"(?:[\"']?[ \t]*[:=][ \t]*[\"']?|[ \t]+is[ \t]+(?=[^\s\"'`,;]*\d))"
+# The value: at least `short` characters with a digit in them, or at least `long` characters of any kind
+SECRET_VALUE = r"(?P<value>(?=[^\s\"'`,;]*\d)[^\s\"'`,;]{{{short},}}|[^\s\"'`,;]{{{long},}})"
+
+
+class SecretAssignmentPattern(SecretValuePattern):
+    """A value written next to a secret's name: `GROWW_API_KEY=...`, `"access_token": "..."`, `API secret is ...`.
+    Placeholders pass."""
+
+    def __init__(
+        self,
+        name: str,
+        secret_names: Iterable[str],
+        lengths: tuple[int, int],
+        flags: int = 0,
+        required: Iterable[str] = (),
+    ):
+        names = sorted(secret_names, key=len, reverse=True)
+        short, long = lengths
+        regex = (
+            SECRET_NAME.format(names="|".join(names)) + SECRET_SEPARATOR + SECRET_VALUE.format(short=short, long=long)
+        )
+        super().__init__(name, regex, flags, required or [n.lower() for n in names])
 
 
 # Verhoeff checksum tables (UIDAI's check digit for Aadhaar numbers)

@@ -3,16 +3,19 @@ and sources are wired in `fno/storage/wiring.py`). Swapping a provider or store 
 
 from __future__ import annotations
 
+import os
 from contextlib import contextmanager
 from pathlib import Path
 
+from .alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
 from .books.account import AccountWriter, PaperAccount
 from .books.lock import DEFAULT_LEASE_SECONDS, AccountLock
 from .config import ROOT
+from .constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID
 from .providers import AUTO_PROVIDER, get_provider
 from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.recorder import QuoteSnapshotRecorder
-from .record_scan.catalogue import ALLOWED_VALUES, record_patterns
+from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .record_scan.scanner import RecordScanner
 from .storage.wiring import build_nse_fo_library, build_quote_store
 
@@ -26,8 +29,9 @@ def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
 
 
 def build_record_scanner() -> RecordScanner:
-    """The public-record scan (story O5): every pattern of the catalogue, with the #fno-desk channel ID allowed."""
-    return RecordScanner(record_patterns(), ALLOWED_VALUES)
+    """The public-record scan (story O5): every pattern of the catalogue for records, credential shapes for code, with
+    the #fno-desk channel ID allowed."""
+    return RecordScanner(record_patterns(), ALLOWED_VALUES, credential_patterns())
 
 
 @contextmanager
@@ -41,3 +45,9 @@ def open_account_writer(book: str, root: Path = ROOT, lease_seconds: float = DEF
 def build_paper_account(book: str, root: Path = ROOT) -> PaperAccount:
     """Read-only view of a book's paper account."""
     return PaperAccount(root, book)
+
+
+def build_alert_sender() -> AlertSender:
+    """Alerts go to #fno-desk with `FNO_SLACK_BOT_TOKEN`; without it, nothing is sent and the outcome says so."""
+    token = os.environ.get(ENV_FNO_SLACK_BOT_TOKEN)
+    return SlackChannelAlerts(token, FNO_DESK_CHANNEL_ID) if token else NoAlertSender()

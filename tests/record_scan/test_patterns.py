@@ -22,6 +22,7 @@ PLANTED = {
     + "JhbGciOiJIUzI1NiJ9.ey"
     + "JzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
     "bearer token": "Authorization: Bear" + "er abcdefghijklmnopqrstuvwxyz012345",
+    "password in a URL": "postgresql://omenix:" + "S3cretPw@db.example.local:5432/fno",
     "value of a secret environment variable": "GROWW_" + "ACCESS_TOKEN=abc123def456ghi",
     "value next to a secret's name": '{"api_' + 'key": "Zx81kq0LmN3pR7tYw2"}',
     "e-mail address": "owner: someone" + "@example.com",
@@ -83,6 +84,46 @@ def test_broker_field_as_a_csv_column_is_caught(header):
 
 def test_broker_field_name_in_prose_is_not_caught():
     assert kinds("fields such as `ucc`, `client_code` and `groww_order_id` must never be committed") == []
+
+
+# Judge 2, finding 3: secrets written the way a person writes them
+@pytest.mark.parametrize(
+    "worded",
+    [
+        "Groww API key: " + "Ab3dE6gH9jK2mN5pQ8rS1tU",
+        "API secret: " + "7f3a9c1e5b2d8f4a",
+        "TOTP secret: " + "JBSWY3DPEHPK3PXP",
+        "access token: " + "q8Zr2LmN0pX4vT7w",
+        "GROWW_API_SECRET is " + "9f8e7d6c5b4a",
+        "export GROWW_API_SECRET=" + "9f8e7d6c5b4a",
+        "password: " + "hunter2go",
+        "slack app token xapp-1-" + "A0123BCDEF-1234567890-abcdef0123",
+    ],
+)
+def test_secret_written_in_words_is_caught(worded):
+    assert kinds(worded)
+
+
+@pytest.mark.parametrize(
+    "prose",
+    [
+        "GROWW_API_KEY is required",
+        "API key: required for Groww",
+        "password: see the vault",
+        "set the access token in the environment",
+        "postgresql://user:${PGPASSWORD}@host/db",
+        "https://user:password@host",
+        "https://nsearchives.nseindia.com/content/fo/BhavCopy.csv.zip",
+    ],
+)
+def test_secret_words_in_prose_are_not_caught(prose):
+    assert kinds(prose) == []
+
+
+def test_code_is_scanned_for_credential_shapes_only():
+    scanner = build_record_scanner()
+    assert [f.kind for f in scanner.scan_text("fno/x.py", PLANTED["Slack token"], is_code=True)] == ["Slack token"]
+    assert scanner.scan_text("tests/x.py", PLANTED["e-mail address"] + " " + PLANTED["PAN"], is_code=True) == []
 
 
 def test_binary_content_is_reported_not_skipped():

@@ -1,17 +1,20 @@
-"""Which files the public-record scan reads (story O5): the committed records, the records staged for a routine's
-commit, or files named explicitly (a session export before it is sent)."""
+"""Which files the public-record scan reads (story O5): the committed files, the files staged for a commit, or files
+named explicitly (a session export before it is sent). Code files are read too, and marked as code."""
 
 from __future__ import annotations
 
 import gzip
+import io
 import subprocess
+import zipfile
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-# Code folders: they hold the scan's own patterns and the tests' planted values. Everything else tracked is a record,
-# so a new record folder (journal/, playbook/, agents/, book3/ ...) is scanned without being listed anywhere.
+# Code folders: they hold the scan's own patterns and the tests' planted examples, so they are scanned only for
+# credential-shaped values (keys and tokens). Everything else tracked is a record and gets every pattern, so a new
+# record folder (journal/, playbook/, agents/, book3/ ...) is scanned without being listed anywhere.
 CODE_FOLDERS = ("fno/", "tests/", "tools/")
 TRACKED_FILES = ("git", "ls-files", "-z")
 STAGED_FILES = ("git", "diff", "--cached", "--name-only", "-z", "--diff-filter=ACMR")
@@ -22,17 +25,30 @@ STAGED_BLOB = ("git", "show")  # + ":<path>": the staged bytes, which are what t
 class RecordText:
     path: str
     text: str
+    is_code: bool = False
 
 
-def as_text(path: str, data: bytes) -> str:
-    """The file's text; gzip files are unpacked first (their content is committed too)."""
-    if path.endswith(".gz"):
-        data = gzip.decompress(data)
+def _decode(data: bytes) -> str:
     return data.decode("utf-8", errors="replace")
 
 
-def is_record(path: str) -> bool:
-    return not path.startswith(CODE_FOLDERS)
+def texts_of(path: str, data: bytes, is_code: bool = False) -> list[RecordText]:
+    """The file's text; gzip files are unpacked, and each member of a zip file is one text named `<zip>/<member>`
+    (their content is committed too)."""
+    if path.endswith(".gz"):
+        return [RecordText(path, _decode(gzip.decompress(data)), is_code)]
+    if path.endswith(".zip"):
+        with zipfile.ZipFile(io.BytesIO(data)) as archive:
+            return [
+                RecordText(f"{path}/{name}", _decode(archive.read(name)), is_code)
+                for name in archive.namelist()
+                if not name.endswith("/")
+            ]
+    return [RecordText(path, _decode(data), is_code)]
+
+
+def is_code(path: str) -> bool:
+    return path.startswith(CODE_FOLDERS)
 
 
 class RecordSource(ABC):
@@ -50,31 +66,31 @@ def _paths(output: bytes) -> list[str]:
 
 
 class TrackedRecords(RecordSource):
-    """Every record git tracks, as it is in the working tree."""
+    """Every file git tracks, as it is in the working tree."""
 
     def __init__(self, root: Path):
         self._root = root
 
     def records(self) -> Iterator[RecordText]:
-        for path in filter(is_record, _paths(_git(self._root, *TRACKED_FILES))):
+        for path in _paths(_git(self._root, *TRACKED_FILES)):
             file = self._root / path
             if file.is_file():  # deleted in the working tree but not yet in the index
-                yield RecordText(path, as_text(path, file.read_bytes()))
+                yield from texts_of(path, file.read_bytes(), is_code(path))
 
 
 class StagedRecords(RecordSource):
-    """The records staged for the next commit, exactly as the commit will hold them."""
+    """The files staged for the next commit, exactly as the commit will hold them."""
 
     def __init__(self, root: Path):
         self._root = root
 
     def records(self) -> Iterator[RecordText]:
-        for path in filter(is_record, _paths(_git(self._root, *STAGED_FILES))):
-            yield RecordText(path, as_text(path, _git(self._root, *STAGED_BLOB, f":{path}")))
+        for path in _paths(_git(self._root, *STAGED_FILES)):
+            yield from texts_of(path, _git(self._root, *STAGED_BLOB, f":{path}"), is_code(path))
 
 
 class NamedFiles(RecordSource):
-    """Files named on the command line (whole folders included), wherever they are."""
+    """Files named on the command line (whole folders included), wherever they are; all are records."""
 
     def __init__(self, paths: list[Path]):
         self._paths = paths
@@ -83,4 +99,4 @@ class NamedFiles(RecordSource):
         for given in self._paths:
             files = sorted(p for p in given.rglob("*") if p.is_file()) if given.is_dir() else [given]
             for file in files:
-                yield RecordText(file.as_posix(), as_text(file.name, file.read_bytes()))
+                yield from texts_of(file.as_posix(), file.read_bytes())

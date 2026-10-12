@@ -11,7 +11,7 @@ Story: `docs/stories/O-operations.md#o5-public-record-safety-scan` (issue "O5").
 | Environment-variable names watched: every `ENV_*` in `fno/constants.py` (two added: `FNO_SLACK_BOT_TOKEN`, `MOTHERDUCK_TOKEN`), plus the channel ID constant | `fno/record_scan/catalogue.py:66`, `fno/constants.py:15-19` |
 | Scanner: a finding is file, line and kind, never the value | `fno/record_scan/scanner.py:16`, `:30` |
 | Interface `RecordSource`: committed records, staged records, named files (session exports) | `fno/record_scan/record_files.py:38`, `:52`, `:65`, `:76` |
-| Wiring | `fno/composition.py:28` `build_record_scanner()` |
+| Wiring | `fno/composition.py:31` `build_record_scanner()`, `:50` `build_alert_sender()` |
 | CLI | `tools/check_records.py` (`--staged`, `--root`, or paths) |
 | Routine gate: git pre-commit hook | `.githooks/pre-commit` |
 | Routine change (minimal: two sentences) | `CLAUDE.md:48-49` (step 1 turns the hook on), `CLAUDE.md:53-55` (step 3: refused means no commit, never `--no-verify`, post the lines to #fno-desk and log them) |
@@ -115,3 +115,46 @@ Largest new file: 98 lines (`patterns.py`). A full scan takes about 5 s (most of
 10. **Wiring:** `catalogue.py` creates the pattern objects (they are data: name plus regex); the scanner itself is
     built only in `fno/composition.py`. A judge may see this as wiring outside the composition root; moving the list
     into `composition.py` is a one-line change if so.
+
+## Round 2: answers to judge 2 (`reviews/judge/judge_2_o5_record_scan.md`)
+
+All six findings accepted after checking them; each was reproduced first (the judge's missed forms ran through
+`build_record_scanner().scan_text` and were all missed before the fix). This section supersedes doubts 1, 2 and the
+"code folders are not scanned" statement above.
+
+| # | Finding | Decision and reason | Fix and proof |
+|---|---|---|---|
+| 1 | Alert not built or verified | Accepted: an instruction cannot be verified | Interface `AlertSender` with `SlackChannelAlerts` (#fno-desk, `FNO_SLACK_BOT_TOKEN` only) and `NoAlertSender` (`fno/alerts/sender.py:17`, `:23`, `:43`), wired at `fno/composition.py:50`. `tools/check_records.py --alert` posts the finding lines when refused; the hook always passes `--alert`. Tests: `tests/test_alert_sender.py` (HTTP faked: channel, token header, Slack error, network failure, no token), `tests/record_scan/test_routine_gate.py:118` (alert text names file:line:kind, not the value), `:129` (no token: still refused, prints "alert NOT sent"). Real dry run below. |
+| 2 | Gate on in one routine only | Accepted: builders, the orchestrator and log writers committed ungated | `.claude/settings.json` SessionStart hook runs `git config core.hooksPath .githooks` in every Claude session; CLAUDE.md "Branch" rule for every session (run it yourself if empty, never `--no-verify`). Test `test_routine_gate.py:135`: a fresh checkout runs the settings' SessionStart command, then a planted token in `conversations/` is refused. This session's own commits now go through the hook. |
+| 3 | Secrets written in words missed | Accepted: reproduced | Separators `[ _-]?` (`catalogue.py:29`), "is" before a value with a digit (`patterns.py:68`), values of 8+ chars with a digit or 16+ of any kind, `xapp-` tokens (`catalogue.py:17`), new "password in a URL" pattern (`catalogue.py:26`). Tests: `test_patterns.py:103` (8 worded forms caught), `:119` (7 prose forms not caught: "GROWW_API_KEY is required", "API key: required", `${PGPASSWORD}`, `user:password@` ...), the planted-example test now covers 19 kinds. |
+| 4 | Code folders never scanned | Accepted | Code files are scanned with the credential-shape patterns (`catalogue.py:75`, `scanner.py`); `.zip` members are unpacked like `.gz` (test fixtures included). Tests: `test_patterns.py:123`, `test_routine_gate.py:75` (token in `tools/x/notes.md` refused; example e-mail in a test file allowed), `:83` (zip). Full scan: 261 files clean. |
+| 5 | Hook calls `python` | Accepted | `.githooks/pre-commit` uses `python3`, else `python`, else refuses with a clear message that says never use `--no-verify`. |
+| 6 | Accepted limits | Agreed | Listed under "Known limits" in the story (`docs/stories/O-operations.md`, O5). |
+
+**Routine dry run with the real alert** (throwaway copy named `trading-o5-dry-run`; hook off before, then the
+SessionStart command, a clean base commit, then a planted Slack token in `journal/`):
+
+```
+before: []
+after: [.githooks]
+record scan: clean (14 files)
+base committed (scan clean)
+journal/o5-dry-run.md:2: Slack token
+record scan: REFUSED, 1 finding(s); do not commit or send these files (values are not shown)
+alert sent to #fno-desk
+exit=1
+```
+HEAD stayed at the base commit. #fno-desk received at 00:46:17 CEST (13 Oct 2026), from the bot: "Public-record scan
+refused a commit in trading-o5-dry-run (1 finding(s); values are not shown). Remove the values, then commit again;
+never bypass the scan. journal/o5-dry-run.md:2: Slack token" (read back with the Slack connector; no value posted).
+
+**Checks after round 2:** `python -m pytest -q`: 264 passed; `ruff check fno tests tools`: all passed;
+`python tools/check_imports.py`: clean; `python tools/check_records.py`: clean (261 files).
+
+**Remaining doubts (round 2):**
+- The SessionStart hook is a Claude Code setting: it gates Claude sessions, not ChatGPT/Codex pushes or a person's
+  own clone (CI still reports those after the push). Proven by the test and by this session's own hook, not yet by a
+  newly started cloud session (some evidence: it is the documented cloud mechanism).
+- Any session with `FNO_SLACK_BOT_TOKEN` set now posts a refusal to #fno-desk, builders included. That is deliberate
+  (a refused commit is worth seeing), but it can add noise while sessions iterate.
+- The 8-character / digit rule misses a short all-letter password next to a secret word ("password: sunshine").

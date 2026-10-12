@@ -10,11 +10,11 @@ from __future__ import annotations
 import re
 
 from .. import constants
-from .patterns import AadhaarPattern, RecordPattern, RegexPattern, SecretAssignmentPattern
+from .patterns import AadhaarPattern, RecordPattern, RegexPattern, SecretAssignmentPattern, SecretValuePattern
 
 # Credentials with a recognisable shape (the provider's documented prefix or format)
 PRIVATE_KEY = r"-----BEGIN [A-Z ]*PRIVATE KEY-----"
-SLACK_TOKEN = r"\bxox[abposr]-[A-Za-z0-9-]{10,}"
+SLACK_TOKEN = r"\b(?:xox[abposr]-[A-Za-z0-9-]{10,}|xapp-\d-[A-Za-z0-9-]{10,})"  # bot, user and app tokens
 SLACK_WEBHOOK = r"hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+"
 GITHUB_TOKEN = r"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})"
 GOOGLE_API_KEY = r"\bAIza[0-9A-Za-z_-]{35}"
@@ -22,14 +22,18 @@ AWS_ACCESS_KEY = r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"
 AI_API_KEY = r"\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}"
 JWT = r"\beyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"  # Groww access and MotherDuck tokens
 BEARER = r"\bBearer[ \t]+[A-Za-z0-9._~+/-]{20,}=*"
-# A value written next to a word that names a secret (`api_key: ...`, `"password": "..."`)
+# A password inside a URL: `postgresql://user:<password>@host`
+CREDENTIAL_URL = r"\b[A-Za-z][A-Za-z0-9+.-]{1,20}://[^\s:/@'\"`]+:(?P<value>[^\s/@'\"`]+)@"
+# A value written next to words that name a secret, joined by `_`, `-`, a space or nothing (`api_key: ...`,
+# `API secret: ...`, `"password": "..."`)
 SECRET_WORDS = (
-    "api[_-]?key", "api[_-]?secret", "secret[_-]?key", "client[_-]?secret", "access[_-]?token", "auth[_-]?token",
-    "refresh[_-]?token", "bot[_-]?token", "totp[_-]?secret", "password", "passwd", "private[_-]?key",
+    "api[ _-]?key", "api[ _-]?secret", "secret[ _-]?key", "client[ _-]?secret", "access[ _-]?token",
+    "auth[ _-]?token", "refresh[ _-]?token", "bot[ _-]?token", "totp[ _-]?secret", "totp[ _-]?seed", "password",
+    "passwd", "passphrase", "private[ _-]?key",
 )  # fmt: skip
-SECRET_WORD_STEMS = ("key", "token", "secret", "passw")  # every secret word contains one of these
-SECRET_MIN_LENGTH = 16
-ENV_SECRET_MIN_LENGTH = 8
+SECRET_WORD_STEMS = ("key", "token", "secret", "passw", "passp", "seed")  # every secret word contains one of these
+# A secret value: 8+ characters with a digit, or 16+ of any kind (so "API key: required" in prose is not one)
+SECRET_LENGTHS = (8, 16)
 
 # Personal data
 EMAIL = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b"
@@ -68,10 +72,11 @@ def secret_env_names() -> list[str]:
     return [value for key, value in vars(constants).items() if key.startswith("ENV_")]
 
 
-def record_patterns() -> list[RecordPattern]:
+def credential_patterns() -> list[RecordPattern]:
+    """Values with a credential's own shape: scanned in code files too (story O5, judge finding 4)."""
     return [
         RegexPattern("private key", PRIVATE_KEY, required=["private key"]),
-        RegexPattern("Slack token", SLACK_TOKEN, required=["xox"]),
+        RegexPattern("Slack token", SLACK_TOKEN, required=["xox", "xapp-"]),
         RegexPattern("Slack webhook", SLACK_WEBHOOK, required=["hooks.slack.com"]),
         RegexPattern("GitHub token", GITHUB_TOKEN, required=["gh", "github_pat_"]),
         RegexPattern("Google API key", GOOGLE_API_KEY, required=["aiza"]),
@@ -79,9 +84,16 @@ def record_patterns() -> list[RecordPattern]:
         RegexPattern("AI API key", AI_API_KEY, required=["sk-"]),
         RegexPattern("JSON web token", JWT, required=["eyj"]),
         RegexPattern("bearer token", BEARER, required=["bearer"]),
-        SecretAssignmentPattern("value of a secret environment variable", secret_env_names(), ENV_SECRET_MIN_LENGTH),
+    ]
+
+
+def record_patterns() -> list[RecordPattern]:
+    return [
+        *credential_patterns(),
+        SecretValuePattern("password in a URL", CREDENTIAL_URL, required=["://"]),
+        SecretAssignmentPattern("value of a secret environment variable", secret_env_names(), SECRET_LENGTHS),
         SecretAssignmentPattern(
-            "value next to a secret's name", SECRET_WORDS, SECRET_MIN_LENGTH, re.IGNORECASE, SECRET_WORD_STEMS
+            "value next to a secret's name", SECRET_WORDS, SECRET_LENGTHS, re.IGNORECASE, SECRET_WORD_STEMS
         ),
         RegexPattern("e-mail address", EMAIL, required=["@"]),
         RegexPattern("phone number", PHONE, required=PHONE_WORDS),
