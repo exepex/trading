@@ -114,3 +114,17 @@ class NseIndexCloseSource(NseArchiveSource):
     @classmethod
     def url_for(cls, path: str) -> str:
         return cls.BASE_URL + path.rsplit("/", 1)[-1]
+
+
+class ParticipantOiSource(NseArchiveSource):
+    """NSE's daily participant-wise open interest (client, DII, FII, pro: long and short contracts per instrument
+    group), e.g. fao_participant_oi_09102026.csv. Published after the close (story A8)."""
+
+    dataset = "nse/derivatives/participant-oi"
+    first_day = date(2019, 1, 1)
+    BASE_URL = "https://nsearchives.nseindia.com/content/nsccl/"
+    FILENAME = "fao_participant_oi_{day:%d%m%Y}.csv"
+
+    @classmethod
+    def url_for(cls, path: str) -> str:
+        return cls.BASE_URL + path.rsplit("/", 1)[-1]

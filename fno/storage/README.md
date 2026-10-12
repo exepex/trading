@@ -21,6 +21,7 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `nse/derivatives/fo-bhavcopy` | `NseDailyFoSource` | F&O, current UDiFF format | 1 Jan 2024 onwards |
 | `nse/derivatives/fo-bhavcopy-legacy` | `NseLegacyFoSource` | F&O, old format (`fo02JAN2019bhav.csv.zip`) | up to 5 Jul 2024 |
 | `nse/indices/index-close` | `NseIndexCloseSource` | daily index closes (NIFTY 50, NIFTY Bank, India VIX...) | 2019 onwards |
+| `nse/derivatives/participant-oi` | `ParticipantOiSource` | participant-wise open interest (client, DII, FII, pro; story A8) | 2019 onwards |
 
 Both F&O formats are read into one record format by `fno/fo_bhavcopy.py` (originals stay unchanged); the old format's
 missing underlying price for index options comes from the index-close file of the same day.

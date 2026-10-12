@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
+from datetime import time
 from pathlib import Path
 
 from .alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
@@ -17,7 +18,21 @@ from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.recorder import QuoteSnapshotRecorder
 from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .record_scan.scanner import RecordScanner
-from .storage.wiring import build_nse_fo_library, build_quote_store
+from .research_data.availability import AvailabilityRule
+from .research_data.calendar import load_session_calendar
+from .research_data.positioning import PointInTimeParticipantOi
+from .research_data.release_times import ReleaseLog, ReleaseTimeRecorder, choose_availability_rule
+from .storage.raw_source import ParticipantOiSource
+from .storage.wiring import (
+    CALENDAR_FILE,
+    PARTICIPANT_OI_RELEASE_LOG,
+    build_nse_fo_library,
+    build_nse_source,
+    build_participant_oi_library,
+    build_quote_store,
+)
+
+DESK_DECISION_TIME = time(15, 0)  # design 13.5: books decide at about 15:00 IST; story E3 freezes the exact timetable
 
 
 def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
@@ -51,3 +66,30 @@ def build_alert_sender() -> AlertSender:
     """Alerts go to #fno-desk with `FNO_SLACK_BOT_TOKEN`; without it, nothing is sent and the outcome says so."""
     token = os.environ.get(ENV_FNO_SLACK_BOT_TOKEN)
     return SlackChannelAlerts(token, FNO_DESK_CHANNEL_ID) if token else NoAlertSender()
+
+
+def build_release_time_recorder() -> ReleaseTimeRecorder:
+    """Story A8: checks NSE's archive itself (never Drive) for a session's participant-OI file and logs each check."""
+    return ReleaseTimeRecorder(
+        build_nse_source(ParticipantOiSource),
+        ParticipantOiSource.path_for,
+        load_session_calendar(CALENDAR_FILE),
+        ReleaseLog(PARTICIPANT_OI_RELEASE_LOG),
+    )
+
+
+def build_participant_oi_rule() -> AvailabilityRule:
+    """When a decision may use a day's participant-OI file: set from the committed release-time evidence."""
+    checks = ReleaseLog(PARTICIPANT_OI_RELEASE_LOG).checks()
+    return choose_availability_rule(checks, load_session_calendar(CALENDAR_FILE), DESK_DECISION_TIME)
+
+
+def build_point_in_time_participant_oi(project_folder: Path | None = None) -> PointInTimeParticipantOi:
+    """Participant OI as a decision at a given moment could have known it (story A8)."""
+    library = build_participant_oi_library(project_folder)
+    return PointInTimeParticipantOi(
+        lambda day: library.get(ParticipantOiSource.path_for(day)).data,
+        ParticipantOiSource.filename_for,
+        load_session_calendar(CALENDAR_FILE),
+        build_participant_oi_rule(),
+    )

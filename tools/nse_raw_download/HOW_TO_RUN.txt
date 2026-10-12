@@ -9,6 +9,7 @@ HOW TO RUN
      - F&O files, current format, 2024 to today
      - F&O files, old format, 2019 to July 2024
      - daily index closes (NIFTY, Bank NIFTY, India VIX), 2019 to today
+     - daily participant open interest (client, DII, FII, pro), 2019 to today
    About 1.5 hours the first time. If it stops, double-click again: it carries on where it stopped.
 
 3. Open drive.google.com in your browser, open your fno-research folder,

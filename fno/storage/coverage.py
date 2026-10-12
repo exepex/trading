@@ -7,6 +7,7 @@ a file on a day the calendar calls closed is reported for review.
 from __future__ import annotations
 
 import csv
+import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -43,6 +44,28 @@ class DatasetCoverage:
     @property
     def ok(self) -> bool:
         return not (self.missing or self.damaged)
+
+
+def read_fingerprints(path: Path) -> dict[str, str]:
+    """NSE file name -> SHA-256, from a laptop tool manifest (`date,url,status,sha256,...`; rows with status 200)."""
+    if not path.is_file():
+        return {}
+    rows = csv.DictReader(path.read_text(encoding="utf-8").splitlines())
+    return {r["url"].rsplit("/", 1)[-1]: r["sha256"] for r in rows if r["status"] == "200" and r["sha256"]}
+
+
+@dataclass(frozen=True)
+class FingerprintCheck:
+    """A validator that also requires a file's SHA-256 to match the manifest, where the manifest has the file."""
+
+    validate: Validator
+    fingerprints: dict[str, str]
+
+    def __call__(self, filename: str, data: bytes) -> None:
+        want = self.fingerprints.get(filename)
+        if want and hashlib.sha256(data).hexdigest() != want:
+            raise ValueError(f"{filename}: SHA-256 differs from the manifest")
+        self.validate(filename, data)
 
 
 def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
