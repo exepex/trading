@@ -57,3 +57,26 @@ def test_verified_files_are_saved_holidays_are_not_asked_and_a_mismatch_is_never
     saved.unlink()
     code, _ = run(tmp_path, monkeypatch, rows, [(200, b"tampered")])
     assert code == 1 and not saved.exists()
+
+
+def test_a_certificate_failure_stops_at_once_with_plain_advice(monkeypatch):
+    import ssl
+    from urllib.error import URLError
+
+    waits = []
+
+    def refuse(request, timeout=None, context=None):
+        raise URLError(ssl.SSLCertVerificationError("unable to get local issuer certificate"))
+
+    monkeypatch.setattr(tool, "urlopen", refuse)
+    monkeypatch.setattr(tool.time, "sleep", waits.append)
+    try:
+        tool.download("https://example.invalid/f.zip")
+    except tool.CertificateProblem as exc:
+        assert "Install Certificates.command" in str(exc) and waits == []  # no pointless retries
+    else:
+        raise AssertionError("expected CertificateProblem")
+
+
+def test_verification_is_never_switched_off():
+    assert tool.CONTEXT.verify_mode == __import__("ssl").CERT_REQUIRED and tool.CONTEXT.check_hostname

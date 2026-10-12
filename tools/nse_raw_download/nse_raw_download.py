@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import platform
+import ssl
+import subprocess
 import sys
+import tempfile
 import time
 from datetime import date, timedelta
 from pathlib import Path
@@ -22,6 +26,11 @@ FIRST_DAY = date(2024, 1, 2)  # NSE serves this file format from January 2024
 GAP_SECONDS = 1.0
 RETRY_WAITS = (5, 15, 45)
 REFUSED = (403, 429)
+MAC_ROOT_CERTIFICATES = "/System/Library/Keychains/SystemRootCertificates.keychain"
+CERTIFICATE_HELP = (
+    "This computer's Python cannot check secure websites (missing certificates).\n"
+    "On a Mac: open Finder > Applications > Python 3.x and double-click 'Install Certificates.command', then run again."
+)
 USER_AGENT = "Mozilla/5.0 (personal research; one request per second)"
 
 
@@ -39,15 +48,40 @@ def load_manifest(path: Path) -> tuple[dict[str, str], set[str]]:
     return expected, {r["date"] for r in rows if r.get("status") == "404"}
 
 
+def secure_context() -> ssl.SSLContext:
+    """Python's own certificates, or on a Mac without them the Mac's built-in ones. Checking is never switched off."""
+    context = ssl.create_default_context()
+    if context.cert_store_stats()["x509_ca"] or platform.system() != "Darwin":
+        return context
+    try:
+        pem = subprocess.run(
+            ["security", "find-certificate", "-a", "-p", MAC_ROOT_CERTIFICATES], capture_output=True, check=True
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return context
+    with tempfile.NamedTemporaryFile("wb", suffix=".pem", delete=False) as bundle:
+        bundle.write(pem)
+    return ssl.create_default_context(cafile=bundle.name)
+
+
+CONTEXT = secure_context()
+
+
+class CertificateProblem(RuntimeError):
+    """The computer cannot verify NSE's secure certificate; retrying will not help."""
+
+
 def download(url: str) -> tuple[int, bytes]:
     request = Request(url, headers={"User-Agent": USER_AGENT})
     for wait in (*RETRY_WAITS, None):
         try:
-            with urlopen(request, timeout=60) as response:
+            with urlopen(request, timeout=60, context=CONTEXT) as response:
                 return response.status, response.read()
         except HTTPError as exc:
             return exc.code, b""
         except (URLError, OSError) as exc:
+            if isinstance(getattr(exc, "reason", exc), ssl.SSLCertVerificationError):
+                raise CertificateProblem(CERTIFICATE_HELP) from exc
             if wait is None:
                 raise RuntimeError(f"network failure for {url}: {exc}") from exc
             print(f"  connection problem ({exc}); retrying in {wait} s")
@@ -117,7 +151,11 @@ def run(dest: Path, start: date = FIRST_DAY, end: date | None = None, manifest: 
 
 def main() -> int:
     dest = choose_folder(sys.argv[1:])
-    code = run(dest)
+    try:
+        code = run(dest)
+    except (CertificateProblem, RuntimeError) as exc:
+        print(f"\nStopped: {exc}")
+        code = 2
     if not sys.argv[1:]:
         input("Press Enter to close.")
     return code

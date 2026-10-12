@@ -11,3 +11,6 @@ HOW TO RUN
    and drag the "raw" folder into it. Google Drive uploads it.
 
 That's all. You do not need any Google Drive program on your computer.
+
+If it says "cannot check secure websites" (Mac): open Finder > Applications > Python 3.x,
+double-click "Install Certificates.command", then run the script again.
