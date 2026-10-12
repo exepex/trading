@@ -145,7 +145,7 @@ class LiveRunner:
     def _load_reference_if_needed(self, now: datetime) -> None:
         """Today's lot sizes, ban list, holidays and industries; on failure retried every 5 minutes, and no scan
         runs on another day's data meanwhile (reviews and exits carry on). Reported once per outage, and only on a
-        trading day before the close."""
+        trading day from 08:45 to the close."""
         today = now.date()
         if self._reference_today(today) or (self._reference_retry_at and now < self._reference_retry_at):
             return

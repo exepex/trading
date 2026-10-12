@@ -53,6 +53,9 @@ def test_the_marketaux_token_never_appears_in_connection_errors():
         ("Rupee hits lowest level in a year", -1),
         ("Rupee hits weakest level since 2013", -1),
         ("Rupee hits the lowest level ever", -1),
+        ("Rupee hits 3-week high after lows", 1),
+        ("Rupee hits peak after record lows", 1),
+        ("Rupee hits strongest since lows of 2023", 1),
         ("Crude up 3% on supply fears", -1),
         ("Rupee down 20 paise against dollar", -1),
         ("US yields rise to 16-year high", -1),
@@ -71,6 +74,14 @@ def test_the_marketaux_token_never_appears_in_connection_errors():
 def test_headline_direction(headline, sign):
     story = Story("x", headline, "", None, (), (), "", [Sighting("s", NOW)])
     assert direction(story) * sign > 0
+
+
+@pytest.mark.parametrize(
+    "headline",
+    ["Rupee hits back from lowest levels", "Rupee hits importers with lowest margins", "Rupee hits 88 per dollar"],
+)
+def test_rupee_hits_without_a_level_says_nothing(headline):
+    assert direction(Story("x", headline, "", None, (), (), "", [Sighting("s", NOW)])) == 0
 
 
 def test_a_re_served_article_is_one_outlet_and_other_publishers_corroborate_it():

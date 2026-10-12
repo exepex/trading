@@ -246,6 +246,7 @@ IN_BETWEEN = r"(?:\s+(?:prices?|futures|index|sharply|further|again|nearly|over|
 MOVE_TAIL = (
     r"(?:\s+(?:by\s+)?[\d.,]+\s*(?:%|paise|points?|bps|basis points)?)?"
     r"(?:\s+(?:to|from|at)\s+(?:a\s+)?[\w-]+(?:\s+[\w-]+)?\s+(?:highs?|lows?))?"
+    r"(?:\s+(?:after|from|off|since)(?:\s+[\w-]+)?\s+(?:highs?|lows?)(?:\s+of\s+\d{4})?)?"  # "high after record lows"
 )
 
 
@@ -255,8 +256,14 @@ def _moves(subject: str, words: tuple[str, ...]) -> re.Pattern:
 
 COST_RISES = _moves(COST_SUBJECT, (*UP_WORDS, "up"))
 COST_FALLS = _moves(COST_SUBJECT, (*DOWN_WORDS, *COST_EASES, "down"))
-RUPEE_HITS_LOW = r"hits(?:\s+(?:an?\s+)?[\w-]+){0,3}\s+(?:lows?|lowest|weakest)"  # "hits record low", "hits weakest"
-RUPEE_HITS_HIGH = r"hits(?:\s+(?:an?\s+)?[\w-]+){0,3}\s+(?:highs?|peak|highest|strongest)"  # "hits one-year peak"
+LOW_LEVEL = r"(?:lows?|lowest|weakest)"
+HIGH_LEVEL = r"(?:highs?|peak|highest|strongest)"
+LEVEL_STOP = r"(?:back|from|with|after|off|since|against|amid|on)"
+# up to 3 words between "hits" and the level, never past another level word or a linking word: "hits 3-week high after
+# lows" is a high, "hits importers with lowest margins" says nothing about the rupee's level
+LEVEL_FILLER = rf"(?:\s+(?!(?:{LOW_LEVEL}|{HIGH_LEVEL}|{LEVEL_STOP})\b)(?:an?\s+)?[\w-]+){{0,3}}"
+RUPEE_HITS_LOW = rf"hits{LEVEL_FILLER}\s+{LOW_LEVEL}"  # "hits record low", "hits weakest level"
+RUPEE_HITS_HIGH = rf"hits{LEVEL_FILLER}\s+{HIGH_LEVEL}"  # "hits one-year peak"
 RUPEE_FALLS = _moves(RUPEE_SUBJECT, (*DOWN_WORDS, "down", RUPEE_HITS_LOW))
 RUPEE_RISES = _moves(RUPEE_SUBJECT, (*UP_WORDS, "up", RUPEE_HITS_HIGH))
 
