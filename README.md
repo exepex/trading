@@ -160,10 +160,12 @@ stores first (a local folder, then Google Drive), and only then asks the origina
 sources are interfaces (`RawFileStore`, `RawFileSource`); `fno/storage/wiring.py` is the only place that picks the
 concrete ones, so Google Drive or NSE can be replaced without touching anything else.
 
+Check the Drive setup with `python -m fno drive-check` (prints no secrets).
+
 | Store | Setup |
 |---|---|
 | Local folder | `--keep-raw PROJECT_FOLDER` on a fetch script (originals go under its `raw/` area); point it at the `fno-research` folder that Google Drive for desktop syncs |
-| Google Drive (read-only) | `FNO_GDRIVE_SERVICE_ACCOUNT_JSON` (a service account key's JSON text) and `FNO_GDRIVE_FOLDER_ID` (the `fno-research` project folder's ID from its link); share the folder with the service account's e-mail as Viewer. Service accounts cannot upload to a personal Drive, so files reach Drive through the desktop sync |
+| Google Drive (read-only) | `FNO_GDRIVE_SERVICE_ACCOUNT_JSON` (a service account key's JSON text, or that text base64-encoded as one plain line) and `FNO_GDRIVE_FOLDER_ID` (the `fno-research` project folder's ID from its link); share the folder with the service account's e-mail as Viewer. Service accounts cannot upload to a personal Drive, so files reach Drive through the desktop sync |
 
 ## Slack
 

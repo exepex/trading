@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from fno.constants import ENV_GDRIVE_FOLDER_ID, ENV_GDRIVE_SERVICE_ACCOUNT_JSON
-from fno.storage.google_drive import DRIVE_FILES_URL, GoogleDriveStore
+from fno.storage.google_drive import DRIVE_FILES_URL, GoogleDriveStore, service_account_info
 from fno.storage.raw_library import RawFile, RawFileLibrary
 from fno.storage.raw_source import NseDailyFoSource, RawFileSource, RawSourceUnavailable
 from fno.storage.raw_store import AreaStore, LocalFolderStore, RawFileConflict, ReadOnlyStoreError, path_parts
@@ -165,3 +165,14 @@ def test_everything_stays_inside_one_area_of_the_project_folder(tmp_path):
     assert library.archive.area == RAW_AREA and library.archive.store.folder == project
     with pytest.raises(ValueError):
         AreaStore(LocalFolderStore(project), "../outside")
+
+
+def test_the_key_may_be_plain_json_or_base64_of_it():
+    import base64
+    import json
+
+    key = {"type": "service_account", "private_key": "-----BEGIN\nabc\n-----END\n"}
+    text = json.dumps(key, indent=2)
+    assert service_account_info(text) == key
+    assert service_account_info(base64.b64encode(text.encode()).decode()) == key
+    assert service_account_info("  " + json.dumps(key) + "\n") == key

@@ -67,6 +67,14 @@ def cmd_notify(args) -> int:
     return 0
 
 
+def cmd_drive_check(args) -> int:
+    from .storage.drive_check import drive_check_lines
+
+    lines = drive_check_lines()
+    print("\n".join(lines))
+    return 0 if lines[-1].startswith("inside it") else 1
+
+
 def cmd_groww_check(args) -> int:
     from .providers.groww_check import groww_check_lines
 
@@ -153,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
     n.add_argument("--web-url", default="https://claude.ai/artifact/8tokXxQfSPnB3DxMpkYpXX")
     n.set_defaults(func=cmd_notify)
 
+    d = sub.add_parser("drive-check", help="check the Google Drive project folder can be read (prints no secrets)")
+    d.set_defaults(func=cmd_drive_check)
     g = sub.add_parser("groww-check", help="check the Groww data connection (prints no secrets)")
     g.set_defaults(func=cmd_groww_check)
 

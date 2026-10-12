@@ -8,6 +8,7 @@ Google Drive for desktop on the owner's PC, never through this class.
 
 from __future__ import annotations
 
+import base64
 import json
 
 import requests
@@ -19,15 +20,25 @@ DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 FOLDER_TYPE = "application/vnd.google-apps.folder"
 CHILD_QUERY = "'{parent}' in parents and name = '{name}' and trashed = false and mimeType {op} '" + FOLDER_TYPE + "'"
 TIMEOUT_SECONDS = 60
+ROOT_QUERY = "'{parent}' in parents and trashed = false"
 READ_ONLY = "Google Drive is read-only here: save files into the Drive for desktop folder on the PC instead"
 
 
-def service_account_token(key_json: str) -> str:
+def service_account_info(key_text: str) -> dict:
+    """The service account key from its JSON text or from that text base64-encoded (one plain line that every
+    settings screen keeps intact)."""
+    text = key_text.strip()
+    if not text.startswith("{"):
+        text = base64.b64decode(text).decode("utf-8")
+    return json.loads(text)
+
+
+def service_account_token(key_text: str) -> str:
     """A short-lived access token from a service account key (needs the google-auth package)."""
     from google.auth.transport.requests import Request
     from google.oauth2 import service_account
 
-    info = json.loads(key_json)
+    info = service_account_info(key_text)
     credentials = service_account.Credentials.from_service_account_info(info, scopes=[DRIVE_READ_SCOPE])
     credentials.refresh(Request())
     return credentials.token
@@ -73,6 +84,20 @@ class GoogleDriveStore(RawFileStore):
         response = self.session.get(f"{DRIVE_FILES_URL}/{file_id}", params={"alt": "media"}, timeout=TIMEOUT_SECONDS)
         response.raise_for_status()
         return response.content
+
+    def root_listing(self) -> tuple[str, list[str]]:
+        """The root folder's name and the names directly inside it (for the access check)."""
+        response = self.session.get(
+            f"{DRIVE_FILES_URL}/{self.folder_id}", params={"fields": "name, mimeType"}, timeout=TIMEOUT_SECONDS
+        )
+        response.raise_for_status()
+        listing = self.session.get(
+            DRIVE_FILES_URL,
+            params={"q": ROOT_QUERY.format(parent=self.folder_id), "fields": "files(name)", "pageSize": 100},
+            timeout=TIMEOUT_SECONDS,
+        )
+        listing.raise_for_status()
+        return response.json()["name"], sorted(f["name"] for f in listing.json().get("files", []))
 
     def put(self, path: str, data: bytes) -> None:
         raise ReadOnlyStoreError(READ_ONLY)
