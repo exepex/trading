@@ -7,13 +7,19 @@ import os
 from pathlib import Path
 
 from ..constants import ENV_GDRIVE_FOLDER_ID, ENV_GDRIVE_SERVICE_ACCOUNT_JSON, RESEARCH_USER_AGENT
+from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
+from ..research_data.calendar import load_session_calendar
+from .coverage import CoverageCheck, CoverageDataset, read_exceptions
 from .google_drive import GoogleDriveStore, service_account_token
 from .raw_library import RawFileLibrary
 from .raw_source import NseArchiveSource, NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
+CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "calendar"
+COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
+REQUIRED_INDICES = ("Nifty 50", "India VIX")  # the research needs both from every index-close file
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -58,3 +64,26 @@ QUOTES_FOLDER = (
 def build_quote_store(folder: Path | None = None) -> RawFileStore:
     """Where the 3 pm quote snapshots are written: a folder in the repository (committed daily)."""
     return LocalFolderStore(folder or QUOTES_FOLDER)
+
+
+def validate_index_close(filename: str, data: bytes) -> None:
+    missing = [name for name in REQUIRED_INDICES if name not in read_index_closes(data, filename)]
+    if missing:
+        raise BadFile(f"{filename}: no closing value for {missing}")
+
+
+COVERAGE_DATASETS = (
+    CoverageDataset(NseLegacyFoSource, read_fo_file),
+    CoverageDataset(NseDailyFoSource, read_fo_file),
+    CoverageDataset(NseIndexCloseSource, validate_index_close),
+)
+
+
+def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
+    """The coverage check of the shared Drive project folder's `raw` area (read-only), or of the given store."""
+    if store is None:
+        stores = build_raw_stores()
+        if not stores:
+            raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to check Drive")
+        store = stores[-1]
+    return CoverageCheck(store, load_session_calendar(), read_exceptions(COVERAGE_EXCEPTIONS))

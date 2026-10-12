@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from datetime import date
+from datetime import date, timedelta
 
 from .config import ROOT, load_app_config
 from .providers import get_provider
@@ -22,6 +22,17 @@ def cmd_drive_check(args) -> int:
     lines = drive_check_lines()
     print("\n".join(lines))
     return 0 if lines[-1].startswith("inside it") else 1
+
+
+def cmd_data_coverage(args) -> int:
+    from .storage.coverage import report_lines
+    from .storage.wiring import COVERAGE_DATASETS, build_coverage_check
+
+    check = build_coverage_check()
+    results = [check.run(dataset, args.start, args.end) for dataset in COVERAGE_DATASETS]
+    print("\n".join(report_lines(results)))
+    print(f"calendar sha256 {check.calendar.calendar_sha256()}")
+    return 0 if all(r.ok for r in results) else 1
 
 
 def cmd_groww_check(args) -> int:
@@ -65,13 +76,23 @@ def cmd_chain(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(prog="fno", description="Indian F&O options research assistant (paper trading).")
+    p = argparse.ArgumentParser(prog="fno", description="Omenix F&O: Indian F&O options research (paper trading).")
     p.add_argument("--config", default=str(ROOT / "config.yaml"))
     p.add_argument("--provider", choices=["nse", "groww", "sample"], help="override the root provider (chain only)")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     d = sub.add_parser("drive-check", help="check the Google Drive project folder can be read (prints no secrets)")
     d.set_defaults(func=cmd_drive_check)
+    v = sub.add_parser("data-coverage", help="list raw NSE files missing or damaged in Drive (read-only)")
+    v.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 1, 1), help="YYYY-MM-DD")
+    v.add_argument(
+        "--to",
+        dest="end",
+        type=date.fromisoformat,
+        default=date.today() - timedelta(days=1),
+        help="YYYY-MM-DD (default: yesterday)",
+    )
+    v.set_defaults(func=cmd_data_coverage)
     g = sub.add_parser("groww-check", help="check the Groww data connection (prints no secrets)")
     g.set_defaults(func=cmd_groww_check)
 

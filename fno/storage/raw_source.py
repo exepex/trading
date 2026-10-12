@@ -21,6 +21,8 @@ class RawSourceUnavailable(RuntimeError):
 class RawFileSource(ABC):
     name: str = "source"
     dataset: str = ""  # archive folder of this source's files: "<publisher>/<market>/<dataset>"
+    first_day: date | None = None  # first day the archive keeps files for (None: not dated)
+    last_day: date | None = None  # last day it publishes them for (None: still publishing)
 
     @abstractmethod
     def fetch(self, path: str) -> bytes | None:
@@ -77,6 +79,7 @@ class NseDailyFoSource(NseArchiveSource):
     """NSE's daily F&O file in the UDiFF format, served for every date from 1 January 2024."""
 
     dataset = "nse/derivatives/fo-bhavcopy"
+    first_day = date(2024, 1, 1)
     BASE_URL = "https://nsearchives.nseindia.com/content/fo/"
     FILENAME = "BhavCopy_NSE_FO_0_0_0_{day:%Y%m%d}_F_0000.csv.zip"
 
@@ -90,6 +93,7 @@ class NseLegacyFoSource(NseArchiveSource):
     holds the year and month, read back from the archive path."""
 
     dataset = "nse/derivatives/fo-bhavcopy-legacy"
+    first_day, last_day = date(2019, 1, 1), date(2024, 7, 5)  # the research needs nothing older than 2019
     BASE_URL = "https://nsearchives.nseindia.com/content/historical/DERIVATIVES/"
     FILENAME = "fo{day:%d}{mon}{day:%Y}bhav.csv.zip"
 
@@ -103,6 +107,7 @@ class NseIndexCloseSource(NseArchiveSource):
     """NSE's daily closing values of all its indices (NIFTY 50, NIFTY Bank, India VIX and the rest)."""
 
     dataset = "nse/indices/index-close"
+    first_day = date(2019, 1, 1)
     BASE_URL = "https://nsearchives.nseindia.com/content/indices/"
     FILENAME = "ind_close_all_{day:%d%m%Y}.csv"
 
