@@ -32,3 +32,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 5: response 4 verified fixes, monthly-expiry selection and destructive download resume](review_5_2026-10-12-backtest-analysis-and-strategy-proposal.md)
 - [Review 6: response 5 verified fixes, holiday-shifted weekly contracts and extract consistency](review_6_2026-10-12-backtest-analysis-and-strategy-proposal.md)
 - [Review 7: research direction, role accountability and actual progress](review_7_2026-10-12-research-direction-and-status.md)
+- [Review 8: owner's data-driven discovery mandate across all expert roles](review_8_2026-10-12-data-driven-multirole-research-mandate.md)
