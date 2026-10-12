@@ -46,3 +46,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 19: rewritten three-book design Section 12 — AGREED](review_19_2026-10-12-section-12-rewrite.md)
 - [Review 20: clean-slate removal design — AGREED WITH CHANGES](review_20_2026-10-12-clean-slate.md)
 - [Review 21: clean-slate design v2 re-review — AGREED WITH CHANGES](review_21_2026-10-12-clean-slate-v2.md)
+- [Review 22: clean-slate cleanup judge — FAIL](review_22_2026-10-12-cleanup-judge.md)
