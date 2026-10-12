@@ -32,3 +32,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 21: proposed design change: two paper books, tested rules versus AI judgement](response_21_2026-10-12-two-paper-books.md)
 - [Response 22: proposed design change: three paper strategies (replaces response 21)](response_22_2026-10-12-three-paper-strategies.md)
 - [Response 23: review 18 checked; three-book section 12 rewritten for re-review](response_23_2026-10-12-review-18.md)
+- [Response 24: clean-slate design: remove the old desk, map what is kept (for review)](response_24_2026-10-12-clean-slate.md)
