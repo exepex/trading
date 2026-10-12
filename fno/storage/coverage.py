@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -57,22 +58,32 @@ def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
     return exceptions
 
 
+DEFAULT_WORKERS = 8  # files read at the same time (Drive allows far more requests per minute than this makes)
+
+
 class CoverageCheck:
-    def __init__(self, store: RawFileStore, calendar: SessionCalendar, exceptions: dict[tuple[str, date], str]):
-        self.store, self.calendar, self.exceptions = store, calendar, exceptions
+    def __init__(
+        self,
+        store: RawFileStore,
+        calendar: SessionCalendar,
+        exceptions: dict[tuple[str, date], str],
+        workers: int = DEFAULT_WORKERS,
+    ):
+        self.store, self.calendar, self.exceptions, self.workers = store, calendar, exceptions, workers
 
     def run(self, dataset: CoverageDataset, start: date, end: date) -> DatasetCoverage:
         source = dataset.source
         start = max(start, source.first_day or start)
         end = min(end, source.last_day or end)
         result = DatasetCoverage(source.dataset, start, end)
-        for offset in range((end - start).days + 1):
-            self._check_day(dataset, start + timedelta(offset), result)
+        days = [start + timedelta(offset) for offset in range((end - start).days + 1)]
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:  # reads in parallel, results in day order
+            for day, data in zip(days, pool.map(lambda d: self.store.get(source.path_for(d)), days)):
+                self._check_day(dataset, day, data, result)
         return result
 
-    def _check_day(self, dataset: CoverageDataset, day: date, result: DatasetCoverage) -> None:
+    def _check_day(self, dataset: CoverageDataset, day: date, data: bytes | None, result: DatasetCoverage) -> None:
         source = dataset.source
-        data = self.store.get(source.path_for(day))
         if not self.calendar.is_session(day):
             if data is not None:
                 result.unexpected.append(day)

@@ -35,7 +35,7 @@ def build_raw_stores(project_folder: Path | None = None, token_for=service_accou
     stores: list[RawFileStore] = [AreaStore(LocalFolderStore(project_folder), RAW_AREA)] if project_folder else []
     key, folder = os.environ.get(ENV_GDRIVE_SERVICE_ACCOUNT_JSON), os.environ.get(ENV_GDRIVE_FOLDER_ID)
     if key and folder:
-        stores.append(AreaStore(GoogleDriveStore(folder, token_for(key)), RAW_AREA))
+        stores.append(AreaStore(GoogleDriveStore(folder, lambda: token_for(key)), RAW_AREA))
     return stores
 
 

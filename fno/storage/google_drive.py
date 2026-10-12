@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import json
+from collections.abc import Callable
 
 import requests
 
@@ -20,6 +21,7 @@ DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 FOLDER_TYPE = "application/vnd.google-apps.folder"
 CHILD_QUERY = "'{parent}' in parents and name = '{name}' and trashed = false and mimeType {op} '" + FOLDER_TYPE + "'"
 TIMEOUT_SECONDS = 60
+UNAUTHORIZED = 401  # the access token expired: sign in again once
 ROOT_QUERY = "'{parent}' in parents and trashed = false"
 READ_ONLY = "Google Drive is read-only here: save files into the Drive for desktop folder on the PC instead"
 
@@ -49,11 +51,25 @@ class GoogleDriveStore(RawFileStore):
 
     name = "Google Drive"
 
-    def __init__(self, folder_id: str, token: str, session: requests.Session | None = None):
-        self.folder_id = folder_id
+    def __init__(self, folder_id: str, token: Callable[[], str], session: requests.Session | None = None):
+        """`token` returns a fresh access token; it is asked again when Drive answers 401 (tokens last about an
+        hour, so a long run would otherwise fail midway)."""
+        self.folder_id, self.token = folder_id, token
         self.session = session or requests.Session()
-        self.session.headers["Authorization"] = f"Bearer {token}"
+        self._sign_in()
         self._ids: dict[tuple[str, str, bool], str | None] = {}
+
+    def _sign_in(self) -> None:
+        self.session.headers["Authorization"] = f"Bearer {self.token()}"
+
+    def _get(self, url: str, **kwargs) -> requests.Response:
+        """GET with one fresh sign-in when the token has expired; any other error is raised."""
+        response = self.session.get(url, timeout=TIMEOUT_SECONDS, **kwargs)
+        if getattr(response, "status_code", None) == UNAUTHORIZED:
+            self._sign_in()
+            response = self.session.get(url, timeout=TIMEOUT_SECONDS, **kwargs)
+        response.raise_for_status()
+        return response
 
     def _child(self, parent_id: str, name: str, folder: bool) -> str | None:
         """The ID of the named folder or file directly inside a folder (cached); None if absent."""
@@ -63,8 +79,7 @@ class GoogleDriveStore(RawFileStore):
                 parent=parent_id, name=name.replace("\\", "\\\\").replace("'", "\\'"), op="=" if folder else "!="
             )
             params = {"q": query, "fields": "files(id, name)", "pageSize": 10}
-            response = self.session.get(DRIVE_FILES_URL, params=params, timeout=TIMEOUT_SECONDS)
-            response.raise_for_status()
+            response = self._get(DRIVE_FILES_URL, params=params)
             found = response.json().get("files", [])
             if len(found) > 1:
                 raise RawFileConflict(f"{len(found)} items named {name!r} in one Drive folder")
@@ -81,22 +96,15 @@ class GoogleDriveStore(RawFileStore):
         file_id = self._child(parent, filename, folder=False)
         if file_id is None:
             return None
-        response = self.session.get(f"{DRIVE_FILES_URL}/{file_id}", params={"alt": "media"}, timeout=TIMEOUT_SECONDS)
-        response.raise_for_status()
-        return response.content
+        return self._get(f"{DRIVE_FILES_URL}/{file_id}", params={"alt": "media"}).content
 
     def root_listing(self) -> tuple[str, list[str]]:
         """The root folder's name and the names directly inside it (for the access check)."""
-        response = self.session.get(
-            f"{DRIVE_FILES_URL}/{self.folder_id}", params={"fields": "name, mimeType"}, timeout=TIMEOUT_SECONDS
-        )
-        response.raise_for_status()
-        listing = self.session.get(
+        response = self._get(f"{DRIVE_FILES_URL}/{self.folder_id}", params={"fields": "name, mimeType"})
+        listing = self._get(
             DRIVE_FILES_URL,
             params={"q": ROOT_QUERY.format(parent=self.folder_id), "fields": "files(name)", "pageSize": 100},
-            timeout=TIMEOUT_SECONDS,
         )
-        listing.raise_for_status()
         return response.json()["name"], sorted(f["name"] for f in listing.json().get("files", []))
 
     def put(self, path: str, data: bytes) -> None:
