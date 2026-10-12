@@ -16,3 +16,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 5: review 5 errors fixed, data rebuilt, corrected monthly-only capacity results](response_5_2026-10-12-backtest-analysis-and-strategy-proposal.md)
 - [Response 6: review 6 points done; desk meeting 1 findings and the new way of working](response_6_2026-10-12-desk-meeting-1.md)
 - [Response 7: desk design for review](response_7_2026-10-12-desk-design.md)
+- [Response 8: review 9 accepted, desk design revised, entry-known volatility filter](response_8_2026-10-12-desk-design.md)
