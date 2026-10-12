@@ -20,3 +20,10 @@ its verdict. It trusts nothing it has not checked itself.
 
 ## Output
 ChatGPT judges in `reviews/chatgpt/review_<n>_<story>.md` (indexed in its README). Be specific; no praise padding.
+
+**Independent judge session (owner decision, 13 Oct 2026).** Every story built by a parallel builder session is also
+judged by a separate judge cloud session that did not build it and shares no context with the builders or the
+orchestrator. It follows this file exactly, writes only its verdicts in `reviews/judge/judge_<n>_<story>.md` and their
+index `reviews/judge/README.md`, and never edits code, tests, stories or other files. A story is done only when the
+judge's verdict is PASS (ChatGPT's judgment, when given, is weighed the same way: checked with evidence, never accepted
+blindly). A FAIL goes back to a builder with the numbered findings; the judge then re-judges the fix.
