@@ -137,3 +137,4 @@ INDEX_FAMILIES = {
     "NIFTYNXT50": BROAD_MARKET_FAMILY,
     "MIDCPNIFTY": BROAD_MARKET_FAMILY,
 }
+EVENT_PRICE_SHOCK = "price_shock"  # a sudden move of an underlying, seen on the live price feed

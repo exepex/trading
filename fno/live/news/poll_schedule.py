@@ -107,6 +107,12 @@ class PollSchedule:
         earliest = self._last_request + self.min_gap if self._last_request else now
         return plan, max(plan.next_due, earliest, now)
 
+    def prioritise(self, source_names: set[str], now: datetime) -> None:
+        """Ask these sources next (a sudden price move suggests news): still one at a time, still within limits."""
+        for plan in self.plans:
+            if plan.name in source_names and plan.next_due is not None and plan.next_due > now:
+                plan.next_due = now
+
     def record(self, plan: SourcePlan, now: datetime, ok: bool, pause_seconds: float | None = None) -> None:
         self._last_request = now
         plan.polls += 1

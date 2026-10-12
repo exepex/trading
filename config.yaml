@@ -166,12 +166,14 @@ live:
       - {name: BusinessLine Companies, outlet: BusinessLine, url: "https://www.thehindubusinessline.com/companies/feeder/default.rss", every_seconds: 300}
       - {name: BBC Business, url: "https://feeds.bbci.co.uk/news/business/rss.xml", every_seconds: 180}
       - {name: MarketWatch Bulletins, url: "https://feeds.content.dowjones.io/public/rss/mw_bulletins", every_seconds: 180}
+  shock: {window_seconds: 120, index_move_pct: 0.4, stock_move_pct: 1.5, cooldown_seconds: 600}  # sudden moves
   iv_history: {min_days: 60, lookback_days: 365}  # one ATM IV per underlying per day, stored after the close
   shadow_book:
     enabled: true                  # one quiet paper lot of every idea in journal/shadow_trades.json, no limits,
                                    # no Slack: grades ideas the portfolio limits turned away
   timings:                         # free NSE/Yahoo sources: no faster (docs/DATA_SOURCES.md); a broker feed allows 180/60
     scan_every_seconds: 300
+    price_watch_seconds: 20        # sudden-move check on Groww live prices (off without Groww)
     review_every_seconds: 120
     research_every_minutes: 30
   shortlist:

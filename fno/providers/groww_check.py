@@ -31,4 +31,8 @@ def groww_check_lines(cfg: dict, underlying: str = CHECK_UNDERLYING) -> list[str
         quote = _payload(api.get_quote(trading_symbol=symbol, exchange=api.EXCHANGE_NSE, segment=api.SEGMENT_FNO))
         lines.append(f"quote {symbol} fields: {sorted(quote)}")
         lines.append(f"quote bid/ask: {quote.get('bid_price')} / {quote.get('offer_price')}")
+    from ..live.feeds.live_prices import GrowwLivePrices
+
+    prices = GrowwLivePrices(provider).prices(["NIFTY", "BANKNIFTY", "RELIANCE"])
+    lines.append(f"live prices (sudden-move detector): {prices or 'none returned: check the symbol format'}")
     return lines

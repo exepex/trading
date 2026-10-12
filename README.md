@@ -29,6 +29,7 @@ python -m fno live run              # market-hours service; unattended on any OS
 python -m fno live status           # open paper trades, today's net P&L, kill switch
 python -m fno live kill "reason"    # close all paper trades and block new ones
 python -m fno live trade-stats      # results by entry time, days to expiry and exit reason (--shadow: shadow book)
+python -m fno backtest              # replay the rules on 59 days of 5-minute prices (modelled options; an approximation)
 python -m fno live resume
 ```
 
@@ -51,7 +52,9 @@ Every 5 minutes during the session (free data sources; 3 minutes once the Groww 
    daily loss limit, profit lock, no entries after 14:45);
 6. every 2 minutes re-prices open trades and exits on stop (-30%), target (+60%), a trailing stop (after +30%,
    keep at least half the best gain), the 15:15 square-off on the last holding day, or the day before expiry.
-   Strong, credible news against an open trade closes it early (`exits.adverse_news`).
+   Strong, credible news against an open trade closes it early (`exits.adverse_news`). With Groww, prices of the
+   indices and held names are checked every 20 seconds; a sudden move re-checks open trades at once and asks the
+   filing and news sources about that name first (`live.shock`).
    Every entry and exit posts to #fno-desk with net P&L. Concentration limits: at most 3 trades on the same
    side and 2 index trades at once.
 7. grades every view: the price 30 and 90 minutes later is compared with each rule's vote.

@@ -72,9 +72,16 @@ futures (about 10% long in Oct 2026).
 
 ## Wave 3: speed and evidence
 
-**W3.1 Sudden-move detector.** With Groww credentials, live ticks for the F&O underlyings and open contracts are
-watched; a move beyond a threshold within a minute is recorded, exits an open trade it hurts (exit only) and asks
-the news sources about that name first.
-**W3.2 Backtest harness.** `python -m fno backtest` replays the price-action rules on stored 5-minute history,
-prices options with Black-Scholes from implied or realised volatility, applies the same exits and all charges, and
-reports net results per rule; clearly labelled as an approximation.
+**W3.1 Sudden-move detector.** With Groww credentials, the latest prices of the indices and of every underlying
+held are read every 20 seconds (Groww `get_ltp`, up to 50 per call; no free source may be polled this often). A move
+of 0.4% (index) or 1.5% (stock) within two minutes is a shock (once per 10 minutes per name): it is recorded
+(`price_shock`), open trades are re-checked in the same tick (stop, target, trailing, news exit: exit only), and the
+exchange-filing and Marketaux news sources are asked next. Without Groww the detector is off (the 2-minute review
+still protects trades).
+**W3.2 Backtest harness.** `python -m fno backtest [symbols] [--days N]` replays the desk's own rules, guards that
+can be judged from prices (sideways day), exits (stop, target, trailing, holding days) and charges on up to 59 days
+of 5-minute prices (Yahoo's limit), one modelled option per underlying at a time (Black-Scholes, volatility from
+the underlying's own recent moves x 1.1, ~10 days to expiry), and grades every rule's vote against the next 30
+minutes. Clearly labelled as an approximation; report saved to `reports/backtest-<date>.md`.
+First run (12 Oct, 30 days, 9 names): 243 trades, net -Rs 1.86 lakh at one lot each; rule hit rates 49-54%:
+price-action rules alone are no edge.

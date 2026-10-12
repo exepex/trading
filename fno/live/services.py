@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import time, timedelta
 from pathlib import Path
 
@@ -19,6 +19,7 @@ from .alerts import LiveAlerts
 from .contract_picker import ContractPicker, ExitLevels, PickerRules
 from .duckdb_results_store import DuckDbResultsStore
 from .exit_policy import ExitPolicy, TrailingStop
+from .feeds.live_prices import GrowwLivePrices, LivePriceSource
 from .feeds.nse_feed import NseLiveFeed
 from .feeds.price_feed import IntradayPriceFeed, YahooPriceFeed
 from .kill_switch import KillSwitch
@@ -43,6 +44,7 @@ from .research.research_context import ResearchContextLoader
 from .research.research_source import ResearchSource
 from .results_store import JsonlResultsStore, LockedResultsStore, ResultsStore
 from .risk_gate import PortfolioGate
+from .shock_detector import ShockDetector, ShockRules
 from .shortlist import ShortlistRules
 from .signals.registry import build_guard_rules, build_signal_rules
 
@@ -62,6 +64,7 @@ RESULTS_TO_FILES = "files"
 RESULTS_TO_DUCKDB = "duckdb"
 DEFAULT_NEWS_INTERVAL_SECONDS = 120
 NEWS_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"  # honest, and accepted by the feeds
+GROWW_PROVIDER = "groww"
 NEWS_USAGE_FILE = "news_usage.json"  # requests today per capped source, kept across restarts
 SOURCE_CONFIG_KEYS = {"NSE filings": "nse_announcements", "BSE filings": "bse_announcements"}
 
@@ -87,6 +90,8 @@ class LiveServices:
     news_room: NewsRoom | None = None  # filled by the news watcher, read by the scanner and the exit check
     iv_history: IvHistory | None = None  # daily ATM implied volatility per underlying, for IV rank
     news_exit: AdverseNewsExit | None = None  # early exit on strong credible news against a trade
+    live_prices: LivePriceSource | None = None  # frequent prices for the sudden-move detector (Groww only)
+    shock_detector: ShockDetector = field(default_factory=ShockDetector)
 
     @property
     def live_cfg(self) -> dict:
@@ -151,6 +156,8 @@ def build_live_services(
         state_dir=state_dir,
         news_room=news_room,
         news_exit=news_exit,
+        live_prices=GrowwLivePrices(chain_source.inner) if chain_source.inner.name == GROWW_PROVIDER else None,
+        shock_detector=ShockDetector(ShockRules.from_config(live.get("shock"))),
         iv_history=IvHistory(store, **live.get("iv_history", {})),
         shadow_desk=(
             PaperDesk(journal_path.with_name(SHADOW_JOURNAL_NAME), cfg, chain_source, exit_policy, enforce_limits=False)

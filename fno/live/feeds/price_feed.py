@@ -74,9 +74,10 @@ class YahooPriceFeed(IntradayPriceFeed):
             quotes.update(parse_spark(payload, by_yahoo))
         return quotes
 
-    def candles(self, symbol: str) -> list[Candle]:
+    def candles(self, symbol: str, history_range: str = CANDLE_HISTORY_RANGE) -> list[Candle]:
+        """5-minute candles; history_range up to "60d" (Yahoo's limit for 5-minute data)."""
         url = YAHOO_CHART_URL.format(symbol=quote(yahoo_symbol(symbol), safe=""))
-        payload = self._get(url, {"range": CANDLE_HISTORY_RANGE, "interval": CANDLE_INTERVAL})
+        payload = self._get(url, {"range": history_range, "interval": CANDLE_INTERVAL})
         return parse_chart_candles(payload)
 
 
