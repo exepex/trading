@@ -31,7 +31,7 @@ python -m fno live kill "reason"    # close all paper trades and block new ones
 python -m fno live resume
 ```
 
-Every 3 minutes during the session the desk:
+Every 5 minutes during the session (free data sources; 3 minutes once the Groww feed is in) the desk:
 1. snapshots all ~200 F&O underlyings (price move, futures open-interest change, F&O ban list);
 2. shortlists the 12 most active liquid names (NIFTY, BANKNIFTY and FINNIFTY always included);
 3. scores each with 17 signal rules (weights in `config.yaml` `live.signals`):
@@ -46,7 +46,7 @@ Every 3 minutes during the session the desk:
 5. picks one liquid option near 0.55 delta (calls when bullish, puts when bearish), sizes it with
    `position_rules`, and opens a paper trade if the portfolio gate allows it (5 open max, Rs 70,000 cap,
    daily loss limit, profit lock, no entries after 14:45);
-6. every minute re-prices open trades and exits on stop (-30%), target (+60%), a trailing stop (after +30%,
+6. every 2 minutes re-prices open trades and exits on stop (-30%), target (+60%), a trailing stop (after +30%,
    keep at least half the best gain), the 15:15 square-off on the last holding day, or the day before expiry.
    Every entry and exit posts to #fno-desk with net P&L. Concentration limits: at most 3 trades on the same
    side and 2 index trades at once.

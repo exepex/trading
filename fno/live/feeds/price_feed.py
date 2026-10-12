@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 import requests
 
+from ...http_pacing import PacedSession
 from ...models import IST
 from ...providers.base import YAHOO_SYMBOLS
 from ..models import Candle
@@ -52,7 +53,7 @@ def yahoo_symbol(symbol: str) -> str:
 
 class YahooPriceFeed(IntradayPriceFeed):
     def __init__(self, session: requests.Session | None = None, timeout: int = 20):
-        self.session = session or requests.Session()
+        self.session = session or PacedSession()
         self.session.headers.update({"User-Agent": USER_AGENT})
         self.timeout = timeout
 

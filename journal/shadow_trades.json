@@ -1,0 +1,78 @@
+[
+ {
+  "id": "T001",
+  "candidate": "NIFTY-19Oct-22500CE",
+  "opened_at": "2026-10-12T06:15+05:30",
+  "underlying": "NIFTY",
+  "expiry": "2026-10-19",
+  "strategy": "long_call",
+  "direction": "bullish",
+  "spot_at_entry": 22520.45,
+  "legs": [
+   {
+    "kind": "CE",
+    "strike": 22500.0,
+    "side": "buy",
+    "price": 238.85
+   }
+  ],
+  "lot_size": 65,
+  "lots": 1,
+  "entry_value": 238.85,
+  "stop_amount": 71.66,
+  "target_amount": 143.31,
+  "entry_charges": 30.59,
+  "capital_used": 15525.25,
+  "charge_breakdown": {
+   "brokerage": 20.0,
+   "stt": 0.0,
+   "exchange": 5.44,
+   "sebi": 0.02,
+   "ipft": 0.08,
+   "stamp": 0.47,
+   "gst": 4.6
+  },
+  "status": "open",
+  "note": "shadow",
+  "last_mark": null,
+  "contract_name": "NIFTY 19 Oct 22500 Call"
+ },
+ {
+  "id": "T002",
+  "candidate": "BANKNIFTY-27Oct-55200CE",
+  "opened_at": "2026-10-12T06:15+05:30",
+  "underlying": "BANKNIFTY",
+  "expiry": "2026-10-27",
+  "strategy": "long_call",
+  "direction": "bullish",
+  "spot_at_entry": 55256.65,
+  "legs": [
+   {
+    "kind": "CE",
+    "strike": 55200.0,
+    "side": "buy",
+    "price": 878.0
+   }
+  ],
+  "lot_size": 30,
+  "lots": 1,
+  "entry_value": 878.0,
+  "stop_amount": 263.4,
+  "target_amount": 526.8,
+  "entry_charges": 35.46,
+  "capital_used": 26340.0,
+  "charge_breakdown": {
+   "brokerage": 20.0,
+   "stt": 0.0,
+   "exchange": 9.23,
+   "sebi": 0.03,
+   "ipft": 0.13,
+   "stamp": 0.79,
+   "gst": 5.29
+  },
+  "status": "open",
+  "note": "shadow",
+  "last_mark": null,
+  "contract_name": "BANKNIFTY 27 Oct 55200 Call"
+ }
+]

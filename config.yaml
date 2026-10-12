@@ -133,9 +133,9 @@ live:
   shadow_book:
     enabled: true                  # one quiet paper lot of every idea in journal/shadow_trades.json, no limits,
                                    # no Slack: grades ideas the portfolio limits turned away
-  timings:
-    scan_every_seconds: 180
-    review_every_seconds: 60
+  timings:                         # free NSE/Yahoo sources: no faster (docs/DATA_SOURCES.md); a broker feed allows 180/60
+    scan_every_seconds: 300
+    review_every_seconds: 120
     research_every_minutes: 30
   shortlist:
     size: 12                       # deep looks (option chain + candles) per scan

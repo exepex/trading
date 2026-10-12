@@ -13,6 +13,7 @@ from math import gcd
 
 import requests
 
+from ..http_pacing import PacedSession
 from ..models import IST, MarketContext, OptionChain, OptionQuote
 from .base import INDEX_NAMES, YAHOO_SYMBOLS, Provider, is_index
 
@@ -31,7 +32,7 @@ class PublicData:
     """Thin HTTP client shared by providers that need public NSE/Yahoo data."""
 
     def __init__(self, pause: float = 0.4):
-        self.session = requests.Session()
+        self.session = PacedSession()
         self.session.headers.update(HEADERS)
         self.pause = pause
         self._warmed = False
@@ -67,7 +68,7 @@ class PublicData:
         symbol = YAHOO_SYMBOLS.get(underlying.upper(), f"{underlying.upper()}.NS")
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
         try:
-            resp = requests.get(
+            resp = self.session.get(
                 url, params={"range": rng, "interval": "1d"}, headers={"User-Agent": HEADERS["User-Agent"]}, timeout=20
             )
             resp.raise_for_status()

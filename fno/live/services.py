@@ -8,6 +8,7 @@ from pathlib import Path
 from ..config import ROOT
 from ..notify import SlackTarget
 from ..providers import Provider, get_provider
+from ..providers.cached import CachedProvider
 from .alerts import LiveAlerts
 from .contract_picker import ContractPicker, ExitLevels, PickerRules
 from .duckdb_results_store import DuckDbResultsStore
@@ -71,7 +72,7 @@ def build_live_services(
     holding = cfg.get("holding", {})
     signals_cfg = live.get("signals", {})
     clock = MarketClock(SessionTimes.from_config(holding, signals_cfg.get("opening_range", {}).get("minutes", 15)))
-    chain_source = get_provider(live.get("chain_provider", cfg.get("provider", "nse")), cfg)
+    chain_source = CachedProvider(get_provider(live.get("chain_provider", cfg.get("provider", "nse")), cfg))
     kill_switch = KillSwitch(state_dir / KILL_FLAG_NAME)
     exit_policy = ExitPolicy(
         clock,
