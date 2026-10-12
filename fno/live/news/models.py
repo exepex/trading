@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from ...constants import NewsCredibility
+
 SUMMARY_MAX_CHARS = 300
 
 
@@ -20,10 +22,16 @@ class NewsItem:
     symbols: tuple[str, ...] = ()  # tickers the source itself tagged (e.g. Marketaux entities, NSE filings)
 
 
+CORROBORATED_OUTLETS = 2
+WIDELY_REPORTED_OUTLETS = 3
+
+
 @dataclass(frozen=True)
 class Sighting:
     source: str
     seen_at: datetime
+    outlet: str = ""  # the publisher behind the source: two feeds of one newspaper are one outlet
+    primary: bool = False  # an exchange filing
 
 
 @dataclass
@@ -39,6 +47,7 @@ class Story:
     summary: str
     sightings: list[Sighting] = field(default_factory=list)
     title_tokens: frozenset[str] = frozenset()
+    numbers: frozenset[str] = frozenset()  # amounts and figures in the news (e.g. 20000, 7.5): strong match evidence
     baseline: bool = False  # already known when the watcher started, or too old to be news: never reported
 
     @property
@@ -48,6 +57,19 @@ class Story:
     @property
     def first_source(self) -> str:
         return self.sightings[0].source
+
+    @property
+    def outlets(self) -> set[str]:
+        return {s.outlet or s.source for s in self.sightings}
+
+    @property
+    def credibility(self) -> NewsCredibility:
+        if any(s.primary for s in self.sightings):
+            return NewsCredibility.EXCHANGE_FILING
+        count = len(self.outlets)
+        if count >= WIDELY_REPORTED_OUTLETS:
+            return NewsCredibility.WIDELY_REPORTED
+        return NewsCredibility.CORROBORATED if count >= CORROBORATED_OUTLETS else NewsCredibility.SINGLE_SOURCE
 
     def as_record(self) -> dict:
         return {
@@ -60,4 +82,5 @@ class Story:
             "symbols": list(self.symbols),
             "themes": list(self.themes),
             "summary": self.summary[:SUMMARY_MAX_CHARS],
+            "credibility": self.credibility.value,
         }

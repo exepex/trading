@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import time, timedelta
 from pathlib import Path
 
 from ..config import ROOT
+from ..constants import INDEX_UNDERLYINGS
 from ..http_pacing import PacedSession
 from ..notify import SlackTarget
 from ..providers import Provider, get_provider
@@ -22,8 +23,8 @@ from .kill_switch import KillSwitch
 from .market_clock import MarketClock, SessionTimes
 from .market_view import MarketViewBuilder, ViewThresholds
 from .news.api_sources import api_sources_from_environment
-from .news.exchange_sources import BseAnnouncementsSource, NseAnnouncementsSource
-from .news.poll_schedule import PollSchedule, SourcePlan
+from .news.exchange_sources import BSE_SOURCE, NSE_SOURCE, BseAnnouncementsSource, NseAnnouncementsSource
+from .news.poll_schedule import ActiveWindow, PollSchedule, SourcePlan
 from .news.rss_source import RssFeedSource
 from .news.story_book import StoryBook
 from .news.tagging import SymbolTagger
@@ -45,6 +46,7 @@ DEFAULT_JOURNAL = ROOT / "journal" / "live_trades.json"
 SHADOW_JOURNAL_NAME = "shadow_trades.json"  # next to the main journal: one lot of every idea, for grading
 DEFAULT_STATE_DIR = ROOT / "data" / "live" / "state"  # not committed: kill flag, local databases
 DEFAULT_RESULTS_DIR = ROOT / "data" / "live" / "events"  # committed: the desk's daily event log
+DEFAULT_NEWS_DIR = ROOT / "data" / "live" / "news"  # committed once a day: only stories that matter to F&O
 DEFAULT_RESEARCH_CLONE = ROOT / "data" / "research"  # not committed: copy of the stock tool's research files
 KILL_FLAG_NAME = "KILL"
 LOCAL_RESULTS_NAME = "fno_desk.duckdb"
@@ -148,32 +150,59 @@ def build_results_store(results_cfg: dict, state_dir: Path) -> ResultsStore:
 
 
 def build_news_watcher(services: LiveServices) -> NewsWatcher | None:
-    """The fast news watcher from `live.news`, or None when it is switched off. Makes one request (company names)."""
+    """The fast news watcher from `live.news`, or None when it is switched off. Makes two requests at start (the F&O
+    list and company names, used to tag headlines and keep only news that matters to F&O)."""
     news_cfg = services.live_cfg.get("news", {})
     if not news_cfg.get("enabled"):
         return None
-    try:
-        names = services.nse_feed.company_names()
-    except Exception as exc:  # noqa: BLE001 - tagging by index words and source tags still works without names
-        log.warning("company names unavailable, news tagged by symbols only: %s", exc)
-        names = {}
+    fno_symbols, names = _fno_names(services)
     session = PacedSession()
     session.headers["User-Agent"] = NEWS_USER_AGENT
     source_cfg = news_cfg.get("sources", {})
-    sources = [RssFeedSource(feed["name"], feed["url"], session) for feed in news_cfg.get("feeds", [])]
+    feeds = news_cfg.get("feeds", [])
+    sources = [RssFeedSource(feed["name"], feed["url"], session) for feed in feeds]
     exchange_sources = {
         "nse_announcements": lambda: NseAnnouncementsSource(services.nse_feed.client),
         "bse_announcements": lambda: BseAnnouncementsSource(session),
     }
     sources += [build() for key, build in exchange_sources.items() if source_cfg.get(key, {}).get("enabled", True)]
     sources += api_sources_from_environment(session, source_cfg)
-    by_name = {feed["name"]: feed for feed in news_cfg.get("feeds", [])}
+    by_name = {feed["name"]: feed for feed in feeds}
     plans = [
         _plan(source, by_name.get(source.name) or source_cfg.get(_config_key(source.name), {})) for source in sources
     ]
-    schedule = PollSchedule(plans, news_cfg.get("min_seconds_between_requests", 5), news_cfg.get("off_hours_factor", 5))
-    book = StoryBook(SymbolTagger(names), timedelta(hours=news_cfg.get("dedupe_window_hours", 24)))
-    return NewsWatcher(schedule, book, services.store)
+    window = ActiveWindow(
+        time.fromisoformat(news_cfg.get("active_from", "08:45")),
+        time.fromisoformat(news_cfg.get("active_until", "15:45")),
+        services.clock.is_trading_day,
+    )
+    book = StoryBook(
+        SymbolTagger(names),
+        timedelta(hours=news_cfg.get("dedupe_window_hours", 24)),
+        outlet_of={feed["name"]: feed.get("outlet", feed["name"]) for feed in feeds},
+        primary_sources=frozenset({NSE_SOURCE, BSE_SOURCE}),
+    )
+    store = LockedResultsStore(JsonlResultsStore(Path(news_cfg.get("directory") or DEFAULT_NEWS_DIR)))
+    relevant = frozenset(fno_symbols) | frozenset(INDEX_UNDERLYINGS) if fno_symbols else None
+    return NewsWatcher(
+        PollSchedule(plans, news_cfg.get("min_seconds_between_requests", 5), window), book, store, relevant
+    )
+
+
+def build_news_store(services: LiveServices) -> ResultsStore:
+    news_cfg = services.live_cfg.get("news", {})
+    return JsonlResultsStore(Path(news_cfg.get("directory") or DEFAULT_NEWS_DIR))
+
+
+def _fno_names(services: LiveServices) -> tuple[set[str], dict[str, str]]:
+    """F&O symbols and the company names of those in the NIFTY 500 (empty when NSE cannot be reached)."""
+    try:
+        fno_symbols = set(services.nse_feed.lot_sizes())
+        names = services.nse_feed.company_names()
+    except Exception as exc:  # noqa: BLE001 - index words and source tags still work without them
+        log.warning("F&O list or company names unavailable, news tagged by index words and source tags: %s", exc)
+        return set(), {}
+    return fno_symbols, {s: n for s, n in names.items() if s in fno_symbols}
 
 
 def _config_key(source_name: str) -> str:

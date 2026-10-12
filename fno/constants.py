@@ -94,3 +94,12 @@ ENV_ASKNEWS_API_KEY = "ASKNEWS_API_KEY"
 EVENT_NEWS_STORY = "news_story"  # a story seen for the first time, by the source that had it first
 EVENT_NEWS_SIGHTING = "news_sighting"  # the same story from another source later, with the delay
 NEWS_THEME_WORLD = "WORLD"  # world-risk news (war, oil, central banks, tariffs) that moves indices
+
+
+class NewsCredibility(StrEnum):
+    """How far a story can be trusted, from who carried it."""
+
+    EXCHANGE_FILING = "exchange filing"  # the company's own filing with NSE/BSE: the primary source
+    WIDELY_REPORTED = "widely reported"  # three or more independent outlets
+    CORROBORATED = "corroborated"  # two independent outlets
+    SINGLE_SOURCE = "single source"  # one outlet only: treat with care

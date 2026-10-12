@@ -3,12 +3,12 @@ from datetime import datetime, timedelta
 import pytest
 import requests
 
-from fno.constants import EVENT_NEWS_SIGHTING, EVENT_NEWS_STORY, NEWS_THEME_WORLD
+from fno.constants import EVENT_NEWS_SIGHTING, EVENT_NEWS_STORY, NEWS_THEME_WORLD, NewsCredibility
 from fno.live.learning.news_speed import format_speed_report, source_speeds
 from fno.live.news.api_sources import MarketauxNewsSource, indian_symbols
 from fno.live.news.exchange_sources import parse_bse_announcements, parse_nse_announcements
 from fno.live.news.models import NewsItem
-from fno.live.news.poll_schedule import PollSchedule, SourcePlan
+from fno.live.news.poll_schedule import ActiveWindow, PollSchedule, SourcePlan
 from fno.live.news.rss_source import RssFeedSource, parse_feed
 from fno.live.news.source import NewsSource
 from fno.live.news.story_book import StoryBook
@@ -114,19 +114,37 @@ def test_tagging_by_name_symbol_index_and_world_theme():
     assert tagger.themes("Houthis attack Saudi Arabia; crude jumps") == (NEWS_THEME_WORLD,)
 
 
-def test_one_story_from_many_sources_measures_each_delay():
-    book = StoryBook(SymbolTagger(NAMES))
-    first = book.add(
-        NewsItem("NSE filings", "Reliance Industries board approves Rs 20,000 crore fund raise"), MARKET_TIME
-    )
-    later = book.add(
-        NewsItem("ET Markets", "Reliance Industries board approves Rs 20,000 crore fund raise via QIP"),
+def book():
+    outlets = {"BS Markets": "Business Standard", "BS Companies": "Business Standard"}
+    return StoryBook(SymbolTagger(NAMES), outlet_of=outlets, primary_sources=frozenset({"NSE filings"}))
+
+
+def test_more_outlets_raise_credibility_and_one_outlet_repeating_is_a_duplicate():
+    stories = book()
+    first = stories.add(NewsItem("ET Markets", "Reliance Industries board approves fund raise via QIP"), MARKET_TIME)
+    assert first.is_new and first.story.symbols == ("RELIANCE",)
+    assert first.story.credibility is NewsCredibility.SINGLE_SOURCE
+    later = stories.add(
+        NewsItem("BS Markets", "Reliance Industries board approves QIP fund raise of Rs 20,000 crore"),
         MARKET_TIME + timedelta(seconds=150),
     )
-    assert first.is_new and not later.is_new and later.lag_seconds == 150
-    assert first.story.symbols == ("RELIANCE",)
-    repeat = NewsItem("ET Markets", "Reliance Industries board approves Rs 20,000 crore fund raise via QIP")
-    assert book.add(repeat, MARKET_TIME + timedelta(seconds=200)) is None
+    assert not later.is_new and later.lag_seconds == 150
+    assert later.story.credibility is NewsCredibility.CORROBORATED
+    same_paper = NewsItem("BS Companies", "Reliance Industries board clears fund raise via QIP route")
+    assert stories.add(same_paper, MARKET_TIME + timedelta(seconds=200)) is None  # same newspaper, other feed
+    filing = NewsItem("NSE filings", "Reliance Industries: board approves fund raise via QIP", symbols=("RELIANCE",))
+    assert (
+        stories.add(filing, MARKET_TIME + timedelta(seconds=210)).story.credibility is NewsCredibility.EXCHANGE_FILING
+    )
+
+
+def test_reworded_headlines_match_on_company_and_figures_but_other_companies_never_do():
+    stories = book()
+    stories.add(NewsItem("ET Markets", "Reliance to raise Rs 20,000 crore through QIP"), MARKET_TIME)
+    reworded = NewsItem("Livemint", "Reliance Industries board okays Rs 20,000-crore share sale to institutions")
+    assert not stories.add(reworded, MARKET_TIME + timedelta(minutes=1)).is_new
+    other = NewsItem("Livemint", "TCS to raise Rs 20,000 crore through QIP")
+    assert stories.add(other, MARKET_TIME + timedelta(minutes=2)).is_new
 
 
 class ScriptedSource(NewsSource):
@@ -145,7 +163,7 @@ class ScriptedSource(NewsSource):
 def test_schedule_is_sequential_staggered_and_backs_off():
     a = SourcePlan(ScriptedSource("a", []), every_seconds=60)
     b = SourcePlan(ScriptedSource("b", []), every_seconds=60, daily_limit=1)
-    schedule = PollSchedule([a, b], min_gap_seconds=5)
+    schedule = PollSchedule([a, b], min_gap_seconds=5, window=ActiveWindow())
     schedule.start(MARKET_TIME)
     plan, at = schedule.next_request(MARKET_TIME)
     assert plan is a and at == MARKET_TIME
@@ -155,9 +173,18 @@ def test_schedule_is_sequential_staggered_and_backs_off():
     schedule.record(b, at, ok=False)
     assert b.next_due == at + timedelta(seconds=120)  # a failure doubles the wait
     assert schedule.next_request(at + timedelta(seconds=500))[0] is a  # b used its daily allowance
-    assert schedule.interval(a, EVENING) == 300  # off hours: 5x slower
     a.source.min_interval_seconds = 480  # a feed whose cache lasts 8 minutes is never asked sooner
-    assert schedule.interval(a, MARKET_TIME) == 480 and schedule.interval(a, EVENING) == 480
+    assert schedule.interval(a, MARKET_TIME) == 480
+
+
+def test_nothing_is_fetched_outside_indian_market_hours_or_on_holidays():
+    holiday = MARKET_TIME.date() + timedelta(days=1)
+    window = ActiveWindow(is_trading_day=lambda day: day.weekday() < 5 and day != holiday)
+    schedule = PollSchedule([SourcePlan(ScriptedSource("a", []), every_seconds=60)], 5, window)
+    plan, opens = schedule.next_request(EVENING)
+    assert plan is None and opens == datetime(2026, 10, 15, 8, 45, tzinfo=IST)  # skips the holiday
+    plan, at = schedule.next_request(opens)
+    assert plan is not None and at == opens
 
 
 def test_watcher_reports_only_fresh_news_and_survives_failures(tmp_path):
@@ -167,19 +194,29 @@ def test_watcher_reports_only_fresh_news_and_survives_failures(tmp_path):
     copy = NewsItem("ET Markets", "Reliance Industries board approves fund raise of Rs 20,000 crore today")
     nse = SourcePlan(ScriptedSource("NSE filings", [[old], [old, fresh]]), every_seconds=60)
     et = SourcePlan(ScriptedSource("ET Markets", [requests.ConnectionError("down"), [copy]]), every_seconds=60)
-    watcher = NewsWatcher(PollSchedule([nse, et], 5), StoryBook(SymbolTagger(NAMES)), store)
+    world = SourcePlan(
+        ScriptedSource("BBC", [[], [NewsItem("BBC", "Houthis attack Saudi oil plant; crude jumps 6%")]]), 60
+    )
+    gossip = SourcePlan(ScriptedSource("Gossip", [[], [NewsItem("Gossip", "Ten tips for a happy retirement")]]), 60)
+    watcher = NewsWatcher(
+        PollSchedule([nse, et, world, gossip], 5), StoryBook(SymbolTagger(NAMES)), store, frozenset({"RELIANCE"})
+    )
     watcher.start(MARKET_TIME)
     assert watcher.poll(nse, MARKET_TIME) == []  # first answer = already published: baseline
     assert watcher.poll(et, MARKET_TIME) == [] and "ET Markets" in watcher.errors
     assert len(watcher.poll(nse, MARKET_TIME + timedelta(seconds=60))) == 1
     assert len(watcher.poll(et, MARKET_TIME + timedelta(seconds=90))) == 1 and not watcher.errors
+    for plan in (world, gossip):
+        watcher.poll(plan, MARKET_TIME)
+        watcher.poll(plan, MARKET_TIME + timedelta(seconds=100))  # world news is kept, gossip is not
     stories = store.payloads(EVENT_NEWS_STORY, MARKET_TIME.date())
     sightings = store.payloads(EVENT_NEWS_SIGHTING, MARKET_TIME.date())
-    assert [s["source"] for s in stories] == ["NSE filings"] and sightings[0]["lag_seconds"] == 30
-    speeds = source_speeds(stories, sightings)
-    assert speeds[0].source == "NSE filings" and speeds[0].first == 1
-    assert "0.5 min" in format_speed_report(speeds)
+    assert [s["source"] for s in stories] == ["NSE filings", "BBC"] and sightings[0]["lag_seconds"] == 30
+    assert sightings[0]["credibility"] == NewsCredibility.CORROBORATED.value
+    speeds = {s.source: s for s in source_speeds(stories, sightings)}
+    assert speeds["NSE filings"].first == 1 and speeds["ET Markets"].later == 1
+    assert "0.5 min" in format_speed_report(list(speeds.values()))
 
-    restarted = NewsWatcher(PollSchedule([], 5), StoryBook(SymbolTagger(NAMES)), store)
+    restarted = NewsWatcher(PollSchedule([], 5), StoryBook(SymbolTagger(NAMES)), store, frozenset({"RELIANCE"}))
     restarted.start(MARKET_TIME + timedelta(minutes=5))
     assert restarted.book.add(copy, MARKET_TIME + timedelta(minutes=6)) is None  # known before the restart

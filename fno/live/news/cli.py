@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from ...constants import EVENT_NEWS_SIGHTING, EVENT_NEWS_STORY
 from ..learning.news_speed import format_speed_report, source_speeds
-from ..services import LiveServices, build_news_watcher
+from ..services import LiveServices, build_news_store, build_news_watcher
 
 ONCE_ROW = "{name:<28} {status}"
 HEADLINE_ROW = "    {when} {title}  [{symbols}]"
@@ -37,8 +37,9 @@ def news_once(services: LiveServices, now: datetime) -> int:
 
 def news_report(services: LiveServices, now: datetime, days: int) -> int:
     since = (now - timedelta(days=days)).date()
-    stories = services.store.payloads(EVENT_NEWS_STORY, since)
-    sightings = services.store.payloads(EVENT_NEWS_SIGHTING, since)
+    store = build_news_store(services)
+    stories = store.payloads(EVENT_NEWS_STORY, since)
+    sightings = store.payloads(EVENT_NEWS_SIGHTING, since)
     print(f"News sources over the last {days} days: {len(stories)} stories")
     print(format_speed_report(source_speeds(stories, sightings)))
     return 0

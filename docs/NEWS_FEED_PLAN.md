@@ -93,3 +93,26 @@ Owner's direction: free tiers only; one or two minutes late is fine; never bomba
 - Checked from the cloud on 12 Oct: every feed and NSE filings answered; BSE refuses cloud servers (to be checked
   from the owner's PC). About 7 requests a minute in total across 13 sources during market hours.
 - Next: a price-shock detector on the Groww live feed; the trade analyst and position guardian read `recent()` stories.
+
+## Market hours only, storage, duplicates and credibility (12 Oct 2026)
+
+- **When**: trading days only (NSE holiday list), 08:45-15:45 IST. Nothing is fetched outside these hours; at the
+  next opening the sources start again, staggered.
+- **What is kept**: only stories about an F&O underlying (219 today) or an index, or world-risk news (war, oil,
+  central banks, tariffs, global markets). Everything else stays in memory for a day so its copies are recognised,
+  and is never written.
+- **Where**: `data/live/news/YYYY/MM/YYYY-MM-DD.jsonl`, one file a day, committed once a day with the desk's
+  results. Each story once (title, link, time, tags, credibility, 300-character summary, never full text), plus one
+  short line per confirmation by another outlet.
+- **How big**: measured 12 Oct: one round of all sources gave 544 headlines, 236 worth keeping, 680 bytes each.
+  Expect a few hundred stories a day: about 0.2-0.3 MB a day, 60-80 MB a year as text; git stores files compressed,
+  so the repository grows roughly 15-20 MB a year. If it ever matters, older months can move to a yearly archive
+  file or MotherDuck without changing the desk (same `ResultsStore` interface).
+- **Duplicates vs confirmations**: the same outlet repeating or rewording a story (including its second feed, e.g.
+  Business Standard Markets and Companies) is a duplicate and ignored. A different outlet carrying it is a
+  confirmation. Same news is recognised by the same link, or the same company plus shared words or the same figures
+  (e.g. "Rs 20,000 crore"), or for market-wide news most words in common. Different companies never merge.
+- **Credibility**: exchange filing (NSE/BSE: the source itself) > widely reported (3+ outlets) > corroborated (2) >
+  single source. The AI analyst treats single-source news with care and can judge doubtful merges itself.
+- Known limit: name tagging is by rules, so it can mis-tag (e.g. "Canara HSBC Life" also matching Canara Bank). The
+  AI analyst reads the story before acting; tags only decide what is stored and shown to it.

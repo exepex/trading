@@ -133,7 +133,9 @@ live:
   news:                            # fast news watcher (docs/NEWS_FEED_PLAN.md): free sources, one request at a time
     enabled: true
     min_seconds_between_requests: 5   # never two requests closer than this, across all sources
-    off_hours_factor: 5               # outside 09:00-15:30 IST every source is asked 5x less often
+    active_from: "08:45"              # trading days only, IST; nothing is fetched outside these hours
+    active_until: "15:45"
+    directory: data/live/news         # one small file a day, only stories about F&O names, indices or world risks
     dedupe_window_hours: 24
     sources:                          # API sources run only when their key is in ~/.trading.env
       nse_announcements: {every_seconds: 60}
@@ -145,10 +147,10 @@ live:
       - {name: ET Markets, url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms", every_seconds: 90}
       - {name: Livemint Markets, url: "https://www.livemint.com/rss/markets", every_seconds: 90}
       - {name: CNBC-TV18 Market, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml", every_seconds: 120}
-      - {name: Business Standard Markets, url: "https://www.business-standard.com/rss/markets-106.rss", every_seconds: 120}
-      - {name: Business Standard Companies, url: "https://www.business-standard.com/rss/companies-101.rss", every_seconds: 180}
-      - {name: BusinessLine Markets, url: "https://www.thehindubusinessline.com/markets/feeder/default.rss", every_seconds: 300}
-      - {name: BusinessLine Companies, url: "https://www.thehindubusinessline.com/companies/feeder/default.rss", every_seconds: 300}
+      - {name: Business Standard Markets, outlet: Business Standard, url: "https://www.business-standard.com/rss/markets-106.rss", every_seconds: 120}
+      - {name: Business Standard Companies, outlet: Business Standard, url: "https://www.business-standard.com/rss/companies-101.rss", every_seconds: 180}
+      - {name: BusinessLine Markets, outlet: BusinessLine, url: "https://www.thehindubusinessline.com/markets/feeder/default.rss", every_seconds: 300}
+      - {name: BusinessLine Companies, outlet: BusinessLine, url: "https://www.thehindubusinessline.com/companies/feeder/default.rss", every_seconds: 300}
       - {name: BBC Business, url: "https://feeds.bbci.co.uk/news/business/rss.xml", every_seconds: 180}
       - {name: MarketWatch Bulletins, url: "https://feeds.content.dowjones.io/public/rss/mw_bulletins", every_seconds: 180}
   shadow_book:

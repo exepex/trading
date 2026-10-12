@@ -63,3 +63,10 @@ this repo; the stock tool is not changed.
 
 Recommended: Finnhub Free for world headlines plus a Marketaux trial; Marketaux Basic if the trial shows timely Indian
 coverage. A paid quota is not a blocking risk: polling within the plan is what the customer pays for.
+
+## Free broker feeds checked (12 Oct 2026)
+
+Upstox (staff on its forum: "Realtime market data over our web-sockets is completely free") and Angel One SmartAPI
+(free APIs, real-time WebSocket; static IP needed only for orders) both offer free live data, but each needs its own
+broker account and daily login. Groww (already paid) supplies prices and option chains, so these stay a fallback if
+Groww's feed proves unreliable.
