@@ -29,6 +29,7 @@ class PickerRules:
     max_daily_theta_pct: float = 12.0  # time decay per day as % of premium
     min_open_interest: float = 200  # contracts
     risk_free_rate: float = 0.065
+    require_bid_ask: bool = True  # never buy without checking a real bid/ask spread
 
     @classmethod
     def from_config(cls, cfg: dict) -> PickerRules:
@@ -116,9 +117,14 @@ class ContractPicker:
         """A chain without bid/ask (Groww) is checked again against the contract's live bid/ask before buying."""
         if quote.has_book or self.live_quotes is None:
             return quote, "ok"
-        live = self.live_quotes.live_quote(chain, quote.strike, quote.kind)
+        try:
+            live = self.live_quotes.live_quote(chain, quote.strike, quote.kind)
+        except Exception as exc:  # noqa: BLE001 - a failed quote means the spread cannot be checked
+            live, failure = None, f"live quote failed: {exc}"
+        else:
+            failure = "no live bid/ask to check the spread"
         if live is None or not live.has_book:
-            return quote, "ok"  # priced at last price + slippage, and recorded as such
+            return (None, failure) if self.rules.require_bid_ask else (quote, "ok")
         problem = self._contract_problem(chain, live, self._greeks(chain, live, chain.years_to_expiry()))
         return (None, f"live quote: {problem}") if problem else (live, "ok")
 

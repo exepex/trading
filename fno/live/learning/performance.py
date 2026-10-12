@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from ...constants import TradeStatus
 
@@ -23,16 +23,30 @@ def max_drawdown(pnls: list[float]) -> float:
     return worst
 
 
-def performance_stop_reason(trades: list[dict], cfg: dict) -> str | None:
-    """Why the whole experiment should stop for review: a losing recent run or a deep drawdown."""
+def current_drawdown(pnls: list[float]) -> float:
+    """How far cumulative net P&L is below its best point right now (rupees, positive)."""
+    equity = peak = 0.0
+    for pnl in pnls:
+        equity += pnl
+        peak = max(peak, equity)
+    return peak - equity
+
+
+def performance_stop_reason(trades: list[dict], cfg: dict, since: datetime | None = None) -> str | None:
+    """Why the whole experiment should stop for review: a losing recent run, or being deep below the best point.
+    `since` (the last manual release of the kill switch) restarts the count, so a reviewed stop does not re-fire
+    on the same history; a recovered drawdown no longer counts."""
     rules = cfg.get("performance_kill", {})
-    pnls = [t["pnl_net"] for t in closed_trades(trades)]
+    closed = closed_trades(trades)
+    if since is not None:
+        closed = [t for t in closed if datetime.fromisoformat(t["closed_at"]) > since]
+    pnls = [t["pnl_net"] for t in closed]
     window = rules.get("rolling_trades", 20)
     if len(pnls) >= window and sum(pnls[-window:]) < 0:
         return f"the last {window} trades lost Rs {-sum(pnls[-window:]):,.0f} in total"
     limit = rules.get("max_drawdown")
-    if limit and max_drawdown(pnls) >= limit:
-        return f"drawdown of Rs {max_drawdown(pnls):,.0f} from the peak (limit Rs {limit:,.0f})"
+    if limit and current_drawdown(pnls) >= limit:
+        return f"Rs {current_drawdown(pnls):,.0f} below the best point (limit Rs {limit:,.0f})"
     return None
 
 
@@ -56,7 +70,9 @@ def readiness_checks(trades: list[dict], cfg: dict, today: date) -> list[Readine
     t_stat = mean / (spread / math.sqrt(n)) if spread else 0.0
     wins, losses = sum(p for p in pnls if p > 0), -sum(p for p in pnls if p < 0)
     profit_factor = wins / losses if losses else (math.inf if wins else 0.0)
-    drawdown = max_drawdown(pnls)
+    drawdown = max_drawdown(pnls)  # the worst fall ever counts for go-live, even if it later recovered
+    capital = cfg.get("account", {}).get("capital", 0)
+    drawdown_limit = capital * rules["max_drawdown_pct"] / 100 if "max_drawdown_pct" in rules else math.inf
     return [
         ReadinessCheck(
             "closed trades", n >= rules.get("min_closed_trades", 100), f"{n} of {rules.get('min_closed_trades', 100)}"
@@ -79,7 +95,7 @@ def readiness_checks(trades: list[dict], cfg: dict, today: date) -> list[Readine
         ),
         ReadinessCheck(
             "max drawdown",
-            drawdown <= rules.get("max_drawdown", math.inf),
-            f"Rs {drawdown:,.0f}, limit Rs {rules.get('max_drawdown', 0):,.0f}",
+            drawdown <= drawdown_limit,
+            f"Rs {drawdown:,.0f}, limit Rs {drawdown_limit:,.0f} ({rules.get('max_drawdown_pct', 0):g}% of capital)",
         ),
     ]

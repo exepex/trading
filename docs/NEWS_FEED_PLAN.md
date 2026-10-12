@@ -85,7 +85,7 @@ with the source-speed table; (4) Telegram, once the channels are verified.
 Owner's direction: free tiers only; one or two minutes late is fine; never bombard a source; one request at a time.
 - `fno/live/news/`: `NewsSource` interface; RSS feeds (conditional requests, own cache time as a floor), NSE and BSE
   filings, Finnhub, Marketaux and AskNews (only when keyed); `PollSchedule` (sequential, 5 s apart, staggered,
-  doubling back-off on failure, daily allowances, 5x slower off hours); `StoryBook` (one story per news item across
+  doubling back-off on failure, daily allowances kept across restarts, trading days 08:45-15:45 IST only); `StoryBook` (one story per news item across
   sources: same link or similar headline); `SymbolTagger` (company names from NSE's NIFTY 500 list, index words,
   WORLD theme); `NewsWatcher` (runs in a thread beside the desk; first answer after a start and items older than
   3 hours are background, never reported).

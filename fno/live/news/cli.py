@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import time
 from datetime import datetime, timedelta
 
 from ...constants import EVENT_NEWS_SIGHTING, EVENT_NEWS_STORY
@@ -21,7 +22,9 @@ def news_once(services: LiveServices, now: datetime) -> int:
         print(DISABLED)
         return 1
     watcher.schedule.start(now)
-    for plan in watcher.schedule.plans:
+    for i, plan in enumerate(watcher.schedule.plans):
+        if i:
+            time.sleep(watcher.schedule.min_gap.total_seconds())  # the usual gap between requests
         try:
             items = plan.source.fetch(now)
         except Exception as exc:  # noqa: BLE001 - a diagnostic shows every failure and carries on

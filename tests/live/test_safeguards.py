@@ -68,9 +68,13 @@ def test_trade_frequency_and_loss_cooldown():
     new_idea = idea()
     two_today = [closed(100, f"2026-10-12T10:0{i}+05:30", underlying=f"S{i}") for i in range(2)]
     assert "2 new trades today" in gate.refusal(new_idea, two_today, SessionPhase.TRADING, at(11, 0))
-    week = [closed(100, f"2026-10-{d:02d}T10:00+05:30", underlying=f"S{d}") for d in (5, 6, 7, 8, 9, 12, 12)]
-    week = [t for t in week if t["opened_at"][:10] >= "2026-10-12"]  # Monday 12 Oct starts a new week
-    assert gate.refusal(new_idea, week, SessionPhase.TRADING, at(11, 0)) is not None  # 2 already today
+    friday = date(2026, 10, 16)
+    week = [
+        closed(100, f"2026-10-{d:02d}T1{i}:00+05:30", underlying=f"S{d}{i}") for d in (12, 13, 14, 15) for i in (0, 1)
+    ]
+    assert "8 new trades this week" in gate.refusal(new_idea, week, SessionPhase.TRADING, at(11, 0, friday))
+    last_week = [dict(t, opened_at=t["opened_at"].replace("2026-10-1", "2026-10-0")) for t in week]
+    assert gate.refusal(new_idea, last_week, SessionPhase.TRADING, at(11, 0, friday)) is None  # a new week
     loser = [closed(-500, "2026-10-12T10:40+05:30", opened_at="2026-10-09T10:00+05:30")]
     assert "cooling off" in gate.refusal(new_idea, loser, SessionPhase.TRADING, at(11, 0))
     assert "cooling off" not in (gate.refusal(new_idea, loser, SessionPhase.TRADING, at(11, 30)) or "")

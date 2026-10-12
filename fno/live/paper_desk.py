@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from dataclasses import replace
 from datetime import date, datetime
@@ -14,6 +15,7 @@ from .exit_policy import PEAK_VALUE_FIELD, ExitPolicy
 from .models import TradeIdea
 
 SHADOW_NOTE = "shadow"
+log = logging.getLogger(__name__)
 
 
 class PaperDesk:
@@ -76,15 +78,17 @@ class PaperDesk:
                         closed.append(trade)
                 except Exception as exc:  # one bad quote must not stop the others being checked
                     errors.append(f"{trade['id']} {trade.get('contract_name', '')}: {exc}")
-            if phase is SessionPhase.SQUARE_OFF:
-                closed += self._trim_overnight_exposure(trades)
-            journal.save(trades, self.journal_path)
+            try:
+                if phase is SessionPhase.SQUARE_OFF:
+                    closed += self._trim_overnight_exposure(trades)
+            finally:
+                journal.save(trades, self.journal_path)  # closes made this cycle are never lost
         return closed, errors
 
     def _trim_overnight_exposure(self, trades: list[dict]) -> list[dict]:
         """At square-off, close the largest positions until what is held overnight fits the cap (gap risk)."""
         cap = self.cfg.get("account", {}).get("max_overnight_premium")
-        if cap is None:
+        if cap is None or not self.enforce_limits:  # the shadow book ignores portfolio limits
             return []
         still_open = sorted(
             (t for t in trades if t["status"] == TradeStatus.OPEN.value),
@@ -95,8 +99,12 @@ class PaperDesk:
         for trade in still_open:
             if journal.deployed(trades) <= cap:
                 break
-            value, orders, spot = journal.close_value(trade, self.chain_source, self.slippage)
-            journal.finalise_trade(trade, value, orders, ExitReason.OVERNIGHT_LIMIT.value, self.cfg, spot)
+            try:
+                price = journal.price_to_close(trade, self.chain_source, self.slippage)
+            except Exception as exc:  # noqa: BLE001 - one unpriceable trade must not keep the others open
+                log.error("could not price %s for the overnight trim: %s", trade["id"], exc)
+                continue
+            journal.finalise_trade(trade, price, ExitReason.OVERNIGHT_LIMIT.value, self.cfg)
             closed.append(trade)
         return closed
 
@@ -107,8 +115,9 @@ class PaperDesk:
             trade = next((t for t in trades if t["id"] == trade_id and t["status"] == TradeStatus.OPEN.value), None)
             if trade is None:
                 return None
-            value, orders, spot = journal.close_value(trade, self.chain_source, self.slippage)
-            journal.finalise_trade(trade, value, orders, reason.value, self.cfg, spot)
+            journal.finalise_trade(
+                trade, journal.price_to_close(trade, self.chain_source, self.slippage), reason.value, self.cfg
+            )
             if note:
                 trade["exit_note"] = note
             journal.save(trades, self.journal_path)
@@ -118,12 +127,19 @@ class PaperDesk:
         closed = []
         with self._lock:
             trades = self.trades()
-            for trade in trades:
-                if trade["status"] == TradeStatus.OPEN.value:
-                    value, orders, spot = journal.close_value(trade, self.chain_source, self.slippage)
-                    journal.finalise_trade(trade, value, orders, reason.value, self.cfg, spot)
+            try:
+                for trade in trades:
+                    if trade["status"] != TradeStatus.OPEN.value:
+                        continue
+                    try:
+                        price = journal.price_to_close(trade, self.chain_source, self.slippage)
+                    except Exception as exc:  # noqa: BLE001 - close every trade that can be priced; report the rest
+                        log.error("could not price %s to close it: %s", trade["id"], exc)
+                        continue
+                    journal.finalise_trade(trade, price, reason.value, self.cfg)
                     closed.append(trade)
-            journal.save(trades, self.journal_path)
+            finally:
+                journal.save(trades, self.journal_path)
         return closed
 
     def closed_on(self, day: date) -> list[dict]:
@@ -134,7 +150,8 @@ class PaperDesk:
         ]
 
     def _review(self, trade: dict, now: datetime, phase: SessionPhase) -> bool:
-        value, orders, spot = journal.close_value(trade, self.chain_source, self.slippage)
+        price = journal.price_to_close(trade, self.chain_source, self.slippage)
+        value, spot = price.value, price.spot
         trade[PEAK_VALUE_FIELD] = round(max(trade.get(PEAK_VALUE_FIELD, trade["entry_value"]), value), 2)
         units = trade["lot_size"] * trade["lots"]
         trade["last_mark"] = {
@@ -146,5 +163,5 @@ class PaperDesk:
         reason = self.exit_policy.exit_reason(trade, value, now, phase)
         if reason is None:
             return False
-        journal.finalise_trade(trade, value, orders, reason.value, self.cfg, spot)
+        journal.finalise_trade(trade, price, reason.value, self.cfg)
         return True

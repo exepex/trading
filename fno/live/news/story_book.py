@@ -51,6 +51,19 @@ def canonical_url(url: str) -> str:
     return urlunsplit((parts.scheme, parts.netloc.lower().removeprefix("www."), parts.path.rstrip("/"), "", ""))
 
 
+SECOND_LEVEL_LABELS = {"co", "com", "net", "org", "gov", "ac", "edu"}
+
+
+def outlet_domain(url: str) -> str:
+    """The publisher behind a link: economictimes.indiatimes.com -> indiatimes.com, www.bbc.co.uk -> bbc.co.uk.
+    News services (Finnhub, Marketaux, AskNews) re-serve other outlets' articles; the link names the real outlet."""
+    host = (urlsplit(url.strip()).hostname or "").lower().removeprefix("www.")
+    parts = host.split(".")
+    if len(parts) >= 3 and parts[-2] in SECOND_LEVEL_LABELS and len(parts[-1]) == 2:
+        return ".".join(parts[-3:])
+    return ".".join(parts[-2:]) if len(parts) >= 2 else host
+
+
 def jaccard(a: frozenset[str], b: frozenset[str]) -> float:
     return len(a & b) / max(len(a | b), 1)
 
@@ -111,7 +124,7 @@ class StoryBook:
             figures(f"{item.title} {item.summary}"),
             self.tagger.symbols(item.title, item.symbols),
         )
-        sighting = self._sighting(item.source, seen_at)
+        sighting = self._sighting(item.source, seen_at, item.url)
         story = self._find(item, headline)
         if story is None:
             story = self._new_story(item, headline, sighting)
@@ -127,7 +140,7 @@ class StoryBook:
         item = NewsItem(source=record["source"], title=record["title"], url=record.get("url", ""))
         seen_at = datetime.fromisoformat(record["first_seen_at"])
         headline = Headline(title_tokens(item.title), figures(item.title), tuple(record.get("symbols", ())))
-        story = self._new_story(item, headline, self._sighting(item.source, seen_at))
+        story = self._new_story(item, headline, self._sighting(item.source, seen_at, item.url))
         story.id = record["id"]
         story.baseline = True
 
@@ -141,8 +154,10 @@ class StoryBook:
         """Company names arrive after start-up (one NSE request); later headlines are tagged with them."""
         self.tagger = tagger
 
-    def _sighting(self, source: str, seen_at: datetime) -> Sighting:
-        return Sighting(source, seen_at, self.outlet_of.get(source, source), source in self.primary_sources)
+    def _sighting(self, source: str, seen_at: datetime, url: str = "") -> Sighting:
+        """The outlet is the article's own publisher (from its link); without a link, the configured outlet."""
+        outlet = outlet_domain(url) if url else ""
+        return Sighting(source, seen_at, outlet or self.outlet_of.get(source, source), source in self.primary_sources)
 
     def _find(self, item: NewsItem, headline: Headline) -> Story | None:
         url = canonical_url(item.url) if item.url else ""

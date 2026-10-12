@@ -29,35 +29,37 @@ class IvHistory:
         self.min_days = min_days
         self.lookback_days = lookback_days
         self.risk_free_rate = risk_free_rate
-        self._today: dict[str, float] = {}  # latest ATM IV seen today, per underlying
+        self._seen: dict[tuple[str, str], float] = {}  # (symbol, IST day) -> latest ATM IV seen that day
         self._past: dict[str, dict[str, float]] | None = None  # symbol -> {day: iv}, loaded once
         self._lock = threading.Lock()
 
-    def observe(self, symbol: str, chain: OptionChain) -> float | None:
-        """Remember the latest ATM IV of a chain the desk read. Returns it as a percentage."""
+    def observe(self, symbol: str, chain: OptionChain, now: datetime) -> float | None:
+        """Remember the latest ATM IV of a chain read on `now`'s IST day. Returns it as a percentage."""
         iv = atm_iv(chain, self.risk_free_rate)
         if iv is None or iv <= 0:
             return None
+        value = round(iv * PERCENT, 2)
         with self._lock:
-            self._today[symbol] = round(iv * PERCENT, 2)
-        return self._today[symbol]
+            self._seen[(symbol, now.astimezone(IST).date().isoformat())] = value
+        return value
 
     def flush(self, now: datetime) -> int:
-        """Store today's latest ATM IV for every underlying seen (once, after the close). Returns how many."""
-        day = now.astimezone(IST).date().isoformat()
+        """Store every held reading under its own day, once (after the close, and at the start of the next day for
+        a day that ended early, e.g. under the kill switch). Returns how many were stored."""
         with self._lock:
-            today, self._today = self._today, {}
-        for symbol, iv in sorted(today.items()):
+            held, self._seen = self._seen, {}
+        for (symbol, day), iv in sorted(held.items()):
             self.store.record(EVENT_IV_SNAPSHOT, {"symbol": symbol, "day": day, "atm_iv": iv}, now, symbol)
             if self._past is not None:
                 self._past.setdefault(symbol, {})[day] = iv
-        return len(today)
+        return len(held)
 
     def rank(self, symbol: str, iv: float | None, today: date) -> float | None:
         """0-100 position of `iv` (percent) between the stored low and high, or None without enough history."""
         if iv is None:
             return None
-        past = {d: v for d, v in self._history(today).get(symbol, {}).items() if d < today.isoformat()}
+        oldest = (today - timedelta(days=self.lookback_days)).isoformat()
+        past = {d: v for d, v in self._history(today).get(symbol, {}).items() if oldest <= d < today.isoformat()}
         if len(past) < self.min_days:
             return None
         low, high = min(past.values()), max(past.values())

@@ -9,12 +9,17 @@
 
 from __future__ import annotations
 
+import json
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
+from pathlib import Path
 
 from ...models import IST
 from .source import NewsSource
+
+log = logging.getLogger(__name__)
 
 DEFAULT_ACTIVE_FROM = time(8, 45)  # half an hour before the 09:15 open: pre-open news matters
 DEFAULT_ACTIVE_UNTIL = time(15, 45)  # a little after the 15:30 close
@@ -65,11 +70,20 @@ class SourcePlan:
 
 
 class PollSchedule:
-    def __init__(self, plans: list[SourcePlan], min_gap_seconds: float = 5.0, window: ActiveWindow | None = None):
+    def __init__(
+        self,
+        plans: list[SourcePlan],
+        min_gap_seconds: float = 5.0,
+        window: ActiveWindow | None = None,
+        usage_file: Path | None = None,
+    ):
+        """usage_file keeps each source's requests today across restarts (paid and capped allowances)."""
         self.plans = plans
         self.min_gap = timedelta(seconds=min_gap_seconds)
         self.window = window or ActiveWindow()
+        self.usage_file = usage_file
         self._last_request: datetime | None = None
+        self._load_usage()
 
     def start(self, now: datetime) -> None:
         """Spread first requests out: source i starts i gaps after the first."""
@@ -115,6 +129,31 @@ class PollSchedule:
         if plan.usage_day != today:
             plan.usage_day, plan.used_today = today, 0
         plan.used_today += 1
+        if plan.daily_limit is not None:
+            self._save_usage()
+
+    def _load_usage(self) -> None:
+        if self.usage_file is None or not self.usage_file.exists():
+            return
+        try:
+            saved = json.loads(self.usage_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            log.warning("news usage file unreadable, counting from zero: %s", exc)
+            return
+        for plan in self.plans:
+            day, used = saved.get(plan.name, (None, 0))
+            if day:
+                plan.usage_day, plan.used_today = date.fromisoformat(day), int(used)
+
+    def _save_usage(self) -> None:
+        if self.usage_file is None:
+            return
+        usage = {p.name: (p.usage_day.isoformat(), p.used_today) for p in self.plans if p.usage_day}
+        try:
+            self.usage_file.parent.mkdir(parents=True, exist_ok=True)
+            self.usage_file.write_text(json.dumps(usage), encoding="utf-8")
+        except OSError as exc:
+            log.warning("could not save news usage: %s", exc)
 
     @staticmethod
     def _has_allowance(plan: SourcePlan, now: datetime) -> bool:

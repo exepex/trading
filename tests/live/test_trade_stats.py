@@ -11,6 +11,8 @@ def test_buckets():
     assert entry_bucket("2026-10-13T14:00:00+05:30") == "13:30-15:30 afternoon"
     assert expiry_bucket("2026-10-13T10:00:00+05:30", "2026-10-15") == "0-4 days to expiry"
     assert expiry_bucket("2026-10-13T10:00:00+05:30", "2026-10-27") == "10+ days to expiry"
+    assert entry_bucket("2026-10-13T04:00:00+00:00") == "09:15-10:30 opening"  # 09:30 IST
+    assert expiry_bucket("2026-10-13T10:00:00+05:30", None) == "unknown"
 
 
 def test_groups_count_wins_and_net_pnl():

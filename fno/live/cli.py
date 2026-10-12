@@ -93,9 +93,8 @@ def _scan_once(services, now: datetime, as_json: bool) -> int:
     reference = ReferenceData.load(services.nse_feed, now.date())
     research = services.research_loader.load(now, services.clock.previous_session_close(now))
     # Diagnostic run: report what would be traded, but never open a trade outside the real session.
-    report = LiveScanner(replace(services, alerts=SilentSink(), store=SilentSink())).run_cycle(
-        now, SessionPhase.CLOSED, reference, research
-    )
+    quiet = replace(services, alerts=SilentSink(), store=SilentSink(), shadow_desk=None, iv_history=None)
+    report = LiveScanner(quiet).run_cycle(now, SessionPhase.CLOSED, reference, research)
     if as_json:
         print(json.dumps(report.summary(), indent=1))
         return 0

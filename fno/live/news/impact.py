@@ -46,6 +46,12 @@ class ScoredStory:
     direction: float
     weight: float  # everything except direction
     age_minutes: float
+    relevance: float = 1.0  # 1.0 = the underlying's own news; less for world news
+
+    @property
+    def importance(self) -> float:
+        """How big the story is, before scaling by how much it concerns this underlying."""
+        return self.weight / self.relevance if self.relevance else 0.0
 
     @property
     def impact(self) -> float:
@@ -74,18 +80,15 @@ class NewsPulse:
         return max(self.stories, key=lambda s: abs(s.impact), default=None)
 
     def major_unclear(self, within_minutes: float, min_weight: float) -> ScoredStory | None:
-        """A fresh, credible, high-impact story whose direction the headline does not tell: wait for the market."""
-        return next(
-            (
-                s
-                for s in self.stories
-                if s.direction == 0
-                and s.age_minutes <= within_minutes
-                and s.weight >= min_weight
-                and s.story.credibility in STRONG_CREDIBILITY
-            ),
-            None,
-        )
+        """A fresh, credible, important story whose direction the headline does not tell: wait for the market.
+        Importance is judged before relevance, so big world news counts for the indices it moves; for a single
+        stock only its own news counts (world news reaches stocks through the indices and the backdrop)."""
+        for s in self.stories:
+            concerns = s.relevance >= 1.0 or self.symbol in INDEX_UNDERLYINGS
+            fresh = s.age_minutes <= within_minutes and s.story.credibility in STRONG_CREDIBILITY
+            if concerns and fresh and s.direction == 0 and s.importance >= min_weight:
+                return s
+        return None
 
 
 @dataclass
@@ -134,4 +137,4 @@ class NewsRoom:
         age = max((now - story.first_seen_at).total_seconds() / 60, 0.0)
         freshness = 0.5 ** (age / s.half_life_minutes)
         weight = s.type_weights[event] * s.credibility_weights[story.credibility] * relevance * freshness
-        return ScoredStory(story, event, direction(story), weight, age)
+        return ScoredStory(story, event, direction(story), weight, age, relevance)

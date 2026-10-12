@@ -8,10 +8,7 @@ from __future__ import annotations
 
 import logging
 import threading
-import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
-
-import requests
 
 from ...constants import EVENT_NEWS_SIGHTING, EVENT_NEWS_STORY, NEWS_THEME_WORLD
 from ...http_pacing import COOL_OFF_SECONDS, SourceCoolingOff
@@ -26,7 +23,7 @@ log = logging.getLogger(__name__)
 
 MAX_ITEM_AGE = timedelta(hours=3)  # older headlines are background, not news
 RELOAD_DAYS = 1  # stories stored today and yesterday are reloaded after a restart
-FETCH_ERRORS = (requests.RequestException, ValueError, ET.ParseError)
+UNEXPECTED_ERROR_PAUSE_SECONDS = 30
 
 
 class NewsWatcher:
@@ -59,12 +56,16 @@ class NewsWatcher:
     def run_forever(self, stop: threading.Event) -> None:
         self.start(self.clock())
         while not stop.is_set():
-            plan, at = self.schedule.next_request(self.clock())
-            wait = (at - self.clock()).total_seconds()
-            if wait > 0 and stop.wait(wait):
-                break
-            if plan is not None:
-                self.poll(plan, self.clock())
+            try:
+                plan, at = self.schedule.next_request(self.clock())
+                wait = (at - self.clock()).total_seconds()
+                if wait > 0 and stop.wait(wait):
+                    break
+                if plan is not None:
+                    self.poll(plan, self.clock())
+            except Exception:  # noqa: BLE001 - the watcher must outlive any one bad answer or bug
+                log.exception("news watcher loop error; carrying on")
+                stop.wait(UNEXPECTED_ERROR_PAUSE_SECONDS)
 
     def poll(self, plan: SourcePlan, now: datetime) -> list[Arrival]:
         """Ask one source once. Its first answer after a start is baseline (already-published news)."""
@@ -72,20 +73,23 @@ class NewsWatcher:
         try:
             items = plan.source.fetch(now)
         except SourceCoolingOff as exc:
-            self._failed(plan, now, str(exc), pause=COOL_OFF_SECONDS)
+            self._failed(plan, self.clock(), str(exc), pause=COOL_OFF_SECONDS)
             return []
-        except FETCH_ERRORS as exc:
-            self._failed(plan, now, str(exc))
+        except Exception as exc:  # noqa: BLE001 - any failure of one source: back off, keep the others going
+            self._failed(plan, self.clock(), f"{type(exc).__name__}: {exc}")
             return []
-        self.schedule.record(plan, now, ok=True)
+        self.schedule.record(plan, self.clock(), ok=True)  # the gap to the next request starts when this one ends
         self.errors.pop(plan.name, None)
         arrivals = []
         for item in items:
-            with self.room.lock:
-                arrival = self.book.add(item, now, baseline=first_answer or self._too_old(item, now))
-            if arrival and self._worth_storing(arrival):
-                self._record(arrival, now)
-                arrivals.append(arrival)
+            try:
+                with self.room.lock:
+                    arrival = self.book.add(item, now, baseline=first_answer or self._too_old(item, now))
+                if arrival and self._worth_storing(arrival):
+                    self._record(arrival, now)
+                    arrivals.append(arrival)
+            except Exception as exc:  # noqa: BLE001 - one malformed headline is skipped, the rest are kept
+                log.warning("news source %s: skipped a malformed item: %s", plan.name, exc)
         return arrivals
 
     def _worth_storing(self, arrival: Arrival) -> bool:

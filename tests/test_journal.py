@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fno import journal
 from fno.config import load_config
@@ -138,3 +138,14 @@ def test_profiles():
         assert "Unknown profile" in str(e)
     else:
         raise AssertionError("expected an unknown profile to fail")
+
+
+def test_expired_trades_say_they_were_settled_at_intrinsic_value():
+    from fno.constants import FILL_INTRINSIC
+
+    cfg = load_config(overrides={"strategies": ALL})
+    trades = []
+    journal.open_trade(trades, _cand(cfg), cfg, lots=1)
+    expiry = date.fromisoformat(trades[0]["expiry"])
+    journal.mark(trades, SampleProvider(cfg), cfg, today=expiry + timedelta(days=1))
+    assert trades[0]["status"] == "closed" and trades[0]["exit_fill_source"] == FILL_INTRINSIC

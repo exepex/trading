@@ -34,7 +34,6 @@ class ExitReason(StrEnum):
     MAX_HOLDING_DAYS = "maximum holding days"
     BEFORE_EXPIRY = "time exit before expiry"
     OVERNIGHT_LIMIT = "overnight exposure limit"
-    PERFORMANCE_STOP = "performance kill switch"
     KILL_SWITCH = "kill switch"
     ADVERSE_NEWS = "strong news against the trade"
     MANUAL = "manual"
@@ -125,6 +124,7 @@ class NewsEventType(StrEnum):
 # How a paper fill was priced (stored on every trade so results are honest about their realism)
 FILL_BID_ASK = "bid/ask"
 FILL_LAST_PRICE = "last price +/- slippage"
+FILL_INTRINSIC = "intrinsic value at expiry"
 EVENT_IV_SNAPSHOT = "iv_snapshot"  # one at-the-money implied volatility per underlying per trading day
 
 # Which family an index belongs to for the one-bet rule: BANKNIFTY and FINNIFTY move with financial stocks.

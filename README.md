@@ -28,6 +28,7 @@ python -m fno live scan-once        # one diagnostic scan now: views, ideas, why
 python -m fno live run              # market-hours service; unattended on any OS: deploy/README.md
 python -m fno live status           # open paper trades, today's net P&L, kill switch
 python -m fno live kill "reason"    # close all paper trades and block new ones
+python -m fno live trade-stats      # results by entry time, days to expiry and exit reason (--shadow: shadow book)
 python -m fno live resume
 ```
 
@@ -60,7 +61,7 @@ Every 5 minutes during the session (free data sources; 3 minutes once the Groww 
 **Fast news** (`live.news`, docs/NEWS_FEED_PLAN.md): beside the desk, a watcher asks free sources one request at a
 time, at least 5 seconds apart, each at its own pace and never faster than its own cache time: NSE and BSE company
 filings every minute, ET Markets, Mint, CNBC-TV18, Business Standard, BusinessLine, BBC and MarketWatch feeds every
-1.5-5 minutes, and Finnhub, Marketaux and AskNews when their keys are set. Outside market hours it slows down 5x.
+1.5-5 minutes, and Finnhub, Marketaux and AskNews when their keys are set. Only on trading days, 08:45-15:45 IST.
 The same news from several sources becomes one story, tagged with its stocks or indices (or WORLD for war, oil,
 central banks), and every later source is timed against the first. `python -m fno live news-once` checks every source;
 `python -m fno live news-report` shows which sources deliver first.

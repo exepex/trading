@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import json
+import logging
+from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
 from .config import ROOT
-from .constants import FILL_BID_ASK, FILL_LAST_PRICE
+from .constants import FILL_BID_ASK, FILL_INTRINSIC, FILL_LAST_PRICE
 from .costs import CHARGE_NAMES, legs_breakdown, legs_charges
 from .models import now_ist
 from .providers import Provider
+
+log = logging.getLogger(__name__)
 
 DEFAULT_PATH = ROOT / "journal" / "trades.json"
 
@@ -129,8 +133,27 @@ def fill_source(quote) -> str:
     return FILL_BID_ASK if quote.has_book else FILL_LAST_PRICE
 
 
-def close_value(trade: dict, provider: Provider, slippage: float) -> tuple[float, list[tuple[str, float]], float]:
-    """Current per-unit value of the position if closed now, the closing orders, and spot."""
+@dataclass(frozen=True)
+class ClosePrice:
+    """What closing a trade now would fetch per unit, the closing orders, the spot, and how it was priced."""
+
+    value: float
+    orders: list[tuple[str, float]]
+    spot: float
+    fill_source: str
+
+
+def _live_quote_or_none(provider: Provider, chain, strike: float, kind: str):
+    """The live bid/ask, or None on any failure: pricing realism must never stop a stop loss or a kill switch."""
+    try:
+        return provider.live_quote(chain, strike, kind)
+    except Exception as exc:  # noqa: BLE001 - network, rate limit, expired token: fall back to the chain price
+        log.warning("live quote failed for %s %s, using the chain price: %s", strike, kind, exc)
+        return None
+
+
+def price_to_close(trade: dict, provider: Provider, slippage: float) -> ClosePrice:
+    """Current per-unit value of the position if closed now (bid for longs), with the closing orders and spot."""
     chain = provider.chain(trade["underlying"], date.fromisoformat(trade["expiry"]))
     value, orders, sources = 0.0, [], set()
     for leg in trade["legs"]:
@@ -139,13 +162,13 @@ def close_value(trade: dict, provider: Provider, slippage: float) -> tuple[float
         if q is None:
             raise KeyError(f"{leg['strike']} {leg['kind']} missing from chain")
         if not q.has_book:
-            q = provider.live_quote(chain, leg["strike"], leg["kind"]) or q
+            q = _live_quote_or_none(provider, chain, leg["strike"], leg["kind"]) or q
         sources.add(fill_source(q))
         price = q.fill_price(close_side, slippage)
         orders.append((close_side, price))
         value += (1 if leg["side"] == "buy" else -1) * price
-    trade["exit_fill_source"] = FILL_LAST_PRICE if FILL_LAST_PRICE in sources else FILL_BID_ASK  # latest mark
-    return value, orders, chain.spot
+    source = FILL_LAST_PRICE if FILL_LAST_PRICE in sources else FILL_BID_ASK
+    return ClosePrice(value, orders, chain.spot, source)
 
 
 def _intrinsic_value(trade: dict, spot: float) -> tuple[float, list[tuple[str, float]]]:
@@ -158,9 +181,8 @@ def _intrinsic_value(trade: dict, spot: float) -> tuple[float, list[tuple[str, f
     return value, orders
 
 
-def finalise_trade(
-    trade: dict, value: float, orders: list[tuple[str, float]], reason: str, cfg: dict, spot: float
-) -> None:
+def finalise_trade(trade: dict, price: ClosePrice, reason: str, cfg: dict) -> None:
+    value, orders, spot = price.value, price.orders, price.spot
     units = trade["lot_size"] * trade["lots"]
     exit_orders = [o for o in orders if o[1] > 0]
     exit_charges = legs_charges(exit_orders, units, cfg.get("charges", {}))
@@ -178,6 +200,7 @@ def finalise_trade(
         charges=round(trade["entry_charges"] + exit_charges, 2),
         pnl_net=round(gross - trade["entry_charges"] - exit_charges, 2),
         charge_breakdown=breakdown,
+        exit_fill_source=price.fill_source,
     )
 
 
@@ -186,7 +209,7 @@ def mark(trades: list[dict], provider: Provider, cfg: dict, today: date | None =
     today = today or now_ist().date()
     slippage = cfg.get("liquidity", {}).get("slippage_pct", 0.5)
     exit_days = cfg.get("exits", {}).get("exit_days_before_expiry", 1)
-    log = []
+    messages = []
     for t in trades:
         if t["status"] != "open":
             continue
@@ -194,10 +217,12 @@ def mark(trades: list[dict], provider: Provider, cfg: dict, today: date | None =
         if today > expiry:
             spot = provider.context(t["underlying"]).spot
             value, orders = _intrinsic_value(t, spot)
-            finalise_trade(t, value, orders, "expired (settled at intrinsic, approx.)", cfg, spot)
-            log.append(f"{t['id']} expired: net P&L Rs {t['pnl_net']:,.0f}")
+            settled = ClosePrice(value, orders, spot, FILL_INTRINSIC)
+            finalise_trade(t, settled, "expired (settled at intrinsic, approx.)", cfg)
+            messages.append(f"{t['id']} expired: net P&L Rs {t['pnl_net']:,.0f}")
             continue
-        value, orders, spot = close_value(t, provider, slippage)
+        price = price_to_close(t, provider, slippage)
+        value, spot = price.value, price.spot
         pnl_unit = value - t["entry_value"]
         t["last_mark"] = {
             "at": now_ist().isoformat(timespec="minutes"),
@@ -213,19 +238,18 @@ def mark(trades: list[dict], provider: Provider, cfg: dict, today: date | None =
         elif today >= expiry - timedelta(days=exit_days):
             reason = "time exit before expiry"
         if reason:
-            finalise_trade(t, value, orders, reason, cfg, spot)
-            log.append(f"{t['id']} closed on {reason}: net P&L Rs {t['pnl_net']:,.0f}")
+            finalise_trade(t, price, reason, cfg)
+            messages.append(f"{t['id']} closed on {reason}: net P&L Rs {t['pnl_net']:,.0f}")
         else:
-            log.append(f"{t['id']} open: unrealised Rs {t['last_mark']['pnl']:,.0f} (spot {spot:,.1f})")
-    return log
+            messages.append(f"{t['id']} open: unrealised Rs {t['last_mark']['pnl']:,.0f} (spot {spot:,.1f})")
+    return messages
 
 
 def close(trades: list[dict], trade_id: str, provider: Provider, cfg: dict, reason: str = "manual") -> dict:
     t = next((t for t in trades if t["id"] == trade_id and t["status"] == "open"), None)
     if t is None:
         raise KeyError(f"No open trade {trade_id}")
-    value, orders, spot = close_value(t, provider, cfg.get("liquidity", {}).get("slippage_pct", 0.5))
-    finalise_trade(t, value, orders, reason, cfg, spot)
+    finalise_trade(t, price_to_close(t, provider, cfg.get("liquidity", {}).get("slippage_pct", 0.5)), reason, cfg)
     return t
 
 

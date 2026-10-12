@@ -47,7 +47,7 @@ go_live_criteria:
   net_profit_positive: true      # after every charge
   min_t_stat: 2.0                # mean net P&L per trade / its standard error
   min_profit_factor: 1.3         # gross wins / gross losses, net of charges
-  max_drawdown: 20000            # rupees (10% of capital), peak-to-trough on closed trades
+  max_drawdown_pct: 10           # worst peak-to-trough fall on closed trades, % of capital (Rs 20,000 live, 50,000 paper)
   rule_breaks_allowed: 0         # every stop, limit and expiry exit followed
 
 # Automatic stop of the whole experiment: engages the kill switch for a human review.
@@ -195,6 +195,7 @@ live:
     min_abs_delta: 0.30            # nothing further out of the money ("lottery tickets")
     max_daily_theta_pct: 12        # skip if time decay would eat more than 12% of the premium per day
     max_needed_to_likely_move: 1.5   # the +60% target may need at most 1.5x the move the market expects over the hold
+    require_bid_ask: true          # never buy without a real bid/ask to check the spread (Groww: live quote)
   # weight = how much each rule counts; enabled: false switches one off. Starting weights are judgement calls:
   # replace them with `python -m fno live signal-report` suggestions once each rule has enough graded votes.
   signals:
@@ -231,7 +232,7 @@ live:
     earnings: {min_days_before_results: 3}
     market_stress: {block_on_stress: true, block_on_geopolitical: true, block_on_major_event: true}
     expensive_options: {max_iv_to_realised: 1.3}
-    news_shock: {quiet_minutes: 15, min_weight: 0.5}  # wait after credible big news whose direction is unclear
+    news_shock: {quiet_minutes: 15, min_weight: 0.45}  # wait after credible big news whose direction is unclear
     iv_rank: {max_iv_rank: 80}       # no purchase when options are dear vs their own history (needs live.iv_history)
     # buy options only when the last hour trended (path efficiency of 5-minute moves; calibrated on real sessions)
     sideways_day: {min_candles: 6, window_candles: 12, min_efficiency: 0.3, block_until_known: true}

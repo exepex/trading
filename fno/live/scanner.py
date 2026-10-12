@@ -125,7 +125,7 @@ class LiveScanner:
     def _iv_rank(self, symbol: str, chain: OptionChain | None, now: datetime) -> float | None:
         if chain is None or self.services.iv_history is None:
             return None
-        iv = self.services.iv_history.observe(symbol, chain)
+        iv = self.services.iv_history.observe(symbol, chain, now)
         return self.services.iv_history.rank(symbol, iv, now.date())
 
     def _trade_if_allowed(
@@ -138,7 +138,8 @@ class LiveScanner:
             return
         report.ideas.append(idea)
         s.store.record("idea", as_record(idea), now, symbol)
-        self._shadow(idea, now)
+        if context.phase is SessionPhase.TRADING:  # shadow fills only at real session prices
+            self._shadow(idea, now)
         refusal = s.gate.refusal(idea, s.desk.trades(), context.phase, now)
         if refusal:
             report.rejected[idea.id] = refusal

@@ -8,7 +8,6 @@ from fno.live.feeds.nse_feed import OpenInterestMove
 from fno.live.feeds.price_feed import DayQuote
 from fno.live.news.models import NewsItem
 from fno.live.research.research_context import ResearchSnapshot
-from fno.live.results_store import JsonlResultsStore
 from fno.live.runner import LiveRunner
 from fno.live.scanner import LiveScanner
 from fno.live.services import build_live_services
@@ -28,7 +27,16 @@ class ShiftableSample(SampleProvider):
 
 
 def services(tmp_path: Path, chain_source):
-    cfg = load_config(overrides={"live": {"always_scan": [], "shortlist": {"min_traded_value": 0}}})
+    cfg = load_config(
+        overrides={
+            "live": {
+                "always_scan": [],
+                "shortlist": {"min_traded_value": 0},
+                "results": {"directory": str(tmp_path / "events")},  # never the repository's data folder
+                "news": {"directory": str(tmp_path / "news")},
+            }
+        }
+    )
     base = build_live_services(cfg, journal_path=tmp_path / "live.json", state_dir=tmp_path)
     price_feed = FakePriceFeed(
         {"NIFTY": DayQuote("NIFTY", 22950.0, 22500.0), "BANKNIFTY": DayQuote("BANKNIFTY", 55000.0, 55000.0)},
@@ -43,7 +51,6 @@ def services(tmp_path: Path, chain_source):
         nse_feed=nse,
         chain_source=chain_source,
         alerts=CapturingAlerts(),
-        store=JsonlResultsStore(tmp_path / "events"),
         research_loader=StubResearchLoader(),
     )
 
@@ -127,3 +134,12 @@ def test_strong_credible_news_against_an_open_trade_closes_it_early(tmp_path):
     runner.tick(at(11, 6))
     closed = [t for t in svc.desk.trades() if t["id"] == trade["id"]][0]
     assert closed["exit_reason"] == ExitReason.ADVERSE_NEWS.value and "regulatory" in closed["exit_note"]
+
+
+def test_no_shadow_fills_outside_the_session(tmp_path):
+    cfg = load_config()
+    market = ShiftableSample(cfg, as_of=at(8, 30))
+    svc = services(tmp_path, market)
+    reference = ReferenceData(loaded_on=at(8, 30).date(), lot_sizes=LOTS)
+    LiveScanner(svc).run_cycle(at(8, 30), SessionPhase.CLOSED, reference, ResearchSnapshot())
+    assert svc.shadow_desk.trades() == [] and svc.desk.trades() == []

@@ -30,7 +30,7 @@ class NewsShockGuard(GuardRule):
         pulse = inputs.news
         if pulse is None:
             return self.verdict(False, "no fast news")
-        unclear = pulse.major_unclear(self.settings.get("quiet_minutes", 15), self.settings.get("min_weight", 0.5))
+        unclear = pulse.major_unclear(self.settings.get("quiet_minutes", 15), self.settings.get("min_weight", 0.45))
         if unclear is None:
             return self.verdict(False, "no unclear major news")
         return self.verdict(True, QUIET_REASON.format(age=unclear.age_minutes, title=unclear.story.title[:80]))

@@ -25,8 +25,9 @@ a block here cannot break the stock tool's daily briefs, and the reverse.
 Option chains (with Greeks) come from Groww as soon as `GROWW_API_KEY` and `GROWW_TOTP_SECRET` are in
 `~/.trading.env` on the desk's PC (`live.chain_provider: auto`). Data calls work from a changing home IP: Groww's
 static-IP requirement is worded around order placement only (groww.in/blog/static-ip-api-trading-setup), and this tool
-never places orders. Still to move to Groww: stock prices and 5-minute candles (Yahoo today), and bid/ask for the chosen
-contract (Groww's chain gives last price only; the quote call gives bid/ask).
+never places orders. Groww's chain gives last prices only, so the chosen contract is checked against its live
+quote (bid/ask) before entry and priced at the live bid on exit (falling back to last price if the quote call fails).
+Still to move to Groww: stock prices and 5-minute candles (Yahoo today).
 
 ## Earlier plan: the Groww feed
 
@@ -40,7 +41,7 @@ and reviews every minute. (Upstox and Angel One offer free feeds, but would mean
 
 Breaking news for the shortlist and open trades will come from publishers' own RSS feeds (ET Markets, Livemint,
 Business Standard, BusinessLine) every 10 minutes during market hours, asking "anything new since last time?" so
-unchanged feeds cost almost nothing. Not Google News (its robots.txt disallows `/rss`) and not BSE. This runs in
+unchanged feeds cost almost nothing. Not Google News (its robots.txt disallows `/rss`). BSE filings are asked once a minute from the owner's PC; BSE refuses cloud servers, and the watcher then simply backs off. This runs in
 this repo; the stock tool is not changed.
 
 ## Paid news options checked (12 Oct 2026)

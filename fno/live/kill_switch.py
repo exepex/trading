@@ -5,6 +5,10 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
+from ..models import now_ist
+
+RELEASED_SUFFIX = ".released"
+
 
 class KillSwitch:
     def __init__(self, flag_path: Path):
@@ -22,5 +26,17 @@ class KillSwitch:
         self.flag_path.parent.mkdir(parents=True, exist_ok=True)
         self.flag_path.write_text(f"{at.isoformat(timespec='seconds')} {reason}\n", encoding="utf-8")
 
-    def release(self) -> None:
+    @property
+    def released_at(self) -> datetime | None:
+        """When a person last released the switch: the automatic stop then judges only trades closed after it."""
+        marker = self._released_marker
+        return datetime.fromisoformat(marker.read_text(encoding="utf-8").strip()) if marker.exists() else None
+
+    def release(self, at: datetime | None = None) -> None:
         self.flag_path.unlink(missing_ok=True)
+        self._released_marker.parent.mkdir(parents=True, exist_ok=True)
+        self._released_marker.write_text((at or now_ist()).isoformat(timespec="seconds"), encoding="utf-8")
+
+    @property
+    def _released_marker(self) -> Path:
+        return self.flag_path.with_name(self.flag_path.name + RELEASED_SUFFIX)

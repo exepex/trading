@@ -3,12 +3,10 @@
 
 from __future__ import annotations
 
-import os
 from datetime import UTC, datetime, timedelta
 
 import requests
 
-from ...constants import ENV_ASKNEWS_API_KEY, ENV_FINNHUB_API_KEY, ENV_MARKETAUX_API_TOKEN
 from .models import NewsItem
 from .source import NewsSource
 
@@ -28,16 +26,13 @@ ASKNEWS_ARTICLES = 10
 FIRST_LOOKBACK = timedelta(minutes=30)  # how far back the first request of a run looks
 
 
-HTTP_ERROR_TEMPLATE = "{source} answered HTTP {status}"  # never the URL: Marketaux's token travels in it
+HTTP_ERROR_TEMPLATE = "{source} answered HTTP {status}"
+REQUEST_FAILED_TEMPLATE = "{source} request failed: {kind}"  # never the URL: Marketaux's token travels in it
 
 
 def _check(resp: requests.Response, source: str) -> None:
     if not resp.ok:
         raise requests.HTTPError(HTTP_ERROR_TEMPLATE.format(source=source, status=resp.status_code), response=resp)
-
-
-def _key(env_name: str) -> str | None:
-    return os.environ.get(env_name) or None
 
 
 def _iso(text: str | None) -> datetime | None:
@@ -116,7 +111,12 @@ class MarketauxNewsSource(NewsSource):
             "published_after": since.astimezone(UTC).strftime(MARKETAUX_TIME_FORMAT),
             "api_token": self.api_token,
         }
-        resp = self.session.get(MARKETAUX_NEWS_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+        try:
+            resp = self.session.get(MARKETAUX_NEWS_URL, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+        except requests.RequestException as exc:  # its text holds the URL, and the URL holds the token
+            raise requests.RequestException(
+                REQUEST_FAILED_TEMPLATE.format(source=self.name, kind=type(exc).__name__)
+            ) from None
         _check(resp, self.name)
         self._since = now
         return [
@@ -174,25 +174,3 @@ class AskNewsSource(NewsSource):
             for a in (resp.json() or {}).get("as_dicts") or []
             if a.get("eng_title") or a.get("title")
         ]
-
-
-def api_sources_from_environment(session: requests.Session, enabled: dict[str, dict]) -> list[NewsSource]:
-    """The API sources whose keys are set and which config leaves enabled."""
-    builders = {
-        "finnhub": (ENV_FINNHUB_API_KEY, lambda key, opts: FinnhubNewsSource(key, session)),
-        "marketaux": (
-            ENV_MARKETAUX_API_TOKEN,
-            lambda key, opts: MarketauxNewsSource(key, session, opts.get("countries", "in")),
-        ),
-        "asknews": (
-            ENV_ASKNEWS_API_KEY,
-            lambda key, opts: AskNewsSource(key, session, opts.get("query", ASKNEWS_DEFAULT_QUERY)),
-        ),
-    }
-    sources = []
-    for name, (env_name, build) in builders.items():
-        opts = enabled.get(name)
-        key = _key(env_name)
-        if opts is not None and opts.get("enabled", True) and key:
-            sources.append(build(key, opts))
-    return sources

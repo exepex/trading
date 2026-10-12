@@ -7,7 +7,7 @@ The numbers come from the research in `reports/Retail FnO losses and safeguards.
 ## Paper phase vs real money
 
 The numbers below are the **live** profile: the limits for real money. While the framework is being built and
-tested, `config.yaml` runs the **paper** profile, which changes only the money limits so that BANKNIFTY and
+tested, `config.yaml` runs the **paper** profile, which changes the money limits (and allows a few more trades a day and week, to collect more evidence) so that BANKNIFTY and
 FINNIFTY lots fit and more trades get graded:
 
 | Setting | Paper (now) | Live (real money) |
@@ -23,7 +23,7 @@ FINNIFTY lots fit and more trades get graded:
 | Automatic stop on drawdown | Rs 50,000 | Rs 20,000 |
 
 Stops, targets, time exits, contract filters and guards are identical in both. Before going live the settings
-switch to `profile: live`, and results are judged as a percentage of capital, not in rupees.
+switch to `profile: live`. The go-live drawdown test is a percentage of capital (10%), so it scales with the profile.
 
 **Shadow book.** Besides the real paper book, the desk quietly records one lot of *every* idea that passes the
 signals and guards (`journal/shadow_trades.json`), even ones the limits turned away, and closes it on the same
@@ -44,6 +44,12 @@ exit rules. It has no limits and sends no Slack messages. It exists only to meas
 | No trade within 3 days of a company's results, or around big scheduled events | | Option prices collapse after the news (India VIX fell ~30% on election results days) |
 | No trade on stocks in the F&O ban list, in a stressed market, or on high-impact geopolitical news | | |
 | At most 3 trades betting the same way, at most 2 index trades | | Several index calls are really one bet |
+| At most 2 open trades per industry family (BANKNIFTY and FINNIFTY count with bank and finance stocks) | `max_per_family` | Three bank stocks and BANKNIFTY are one bet on banks |
+| Never buy without a real bid/ask to check the spread (Groww: the contract's live quote) | `require_bid_ask` | Paper results must be priced as a real order would be |
+| No buying when options are dear against their own history (IV rank above 80, once 60 days are stored) | `iv_rank` guard | Dear options lose value when volatility falls back |
+| Only when the last hour trended (5-minute path efficiency 0.30 or more; nothing in the first 30 minutes) | `sideways_day` guard | Sideways markets let time decay eat the premium |
+| The +60% target may need at most 1.5x the move the market expects over the 2-day hold | `max_needed_to_likely_move` | Unrealistic targets mean the option decays while waiting |
+| No entry for 15 minutes after credible big news whose direction is unclear | `news_shock` guard | Let the market digest it first |
 | No new entries after 14:45; first 15 minutes are watch-only | | The open and the close are where big players move prices |
 
 ## While a trade is open
@@ -54,6 +60,8 @@ exit rules. It has no limits and sends no Slack messages. It exists only to meas
 | Target | exit at +60% |
 | Trailing stop | after +30%, never give back more than half the best gain |
 | Overnight | at most Rs 20,000 held overnight; larger positions are closed at 15:15 |
+| Bad news | credible news scoring -0.5 or worse against the trade closes it early (`adverse_news`) |
+| Pricing | exits at the real bid; if the live quote fails, at last price minus slippage, so a stop is never skipped |
 | Holding period | at most 2 trading days, and always out the day before expiry |
 
 ## For the whole day, week and experiment

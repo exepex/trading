@@ -3,16 +3,18 @@
 from __future__ import annotations
 
 import logging
+import os
 from dataclasses import dataclass
 from datetime import time, timedelta
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import INDEX_UNDERLYINGS
+from ..constants import ENV_ASKNEWS_API_KEY, ENV_FINNHUB_API_KEY, ENV_MARKETAUX_API_TOKEN, INDEX_UNDERLYINGS
 from ..http_pacing import PacedSession
 from ..notify import SlackTarget
 from ..providers import Provider, get_provider
 from ..providers.cached import CachedProvider
+from ..providers.public import PublicData
 from .alerts import LiveAlerts
 from .contract_picker import ContractPicker, ExitLevels, PickerRules
 from .duckdb_results_store import DuckDbResultsStore
@@ -24,7 +26,7 @@ from .learning.iv_history import IvHistory
 from .market_clock import MarketClock, SessionTimes
 from .market_view import MarketViewBuilder, ViewThresholds
 from .move_check import MoveCheck
-from .news.api_sources import api_sources_from_environment
+from .news.api_sources import ASKNEWS_DEFAULT_QUERY, AskNewsSource, FinnhubNewsSource, MarketauxNewsSource
 from .news.exchange_sources import BSE_SOURCE, NSE_SOURCE, BseAnnouncementsSource, NseAnnouncementsSource
 from .news.impact import ImpactSettings, NewsRoom
 from .news.poll_schedule import ActiveWindow, PollSchedule, SourcePlan
@@ -32,6 +34,7 @@ from .news.rss_source import RssFeedSource
 from .news.story_book import StoryBook
 from .news.tagging import SymbolTagger
 from .news.watcher import NewsWatcher
+from .news_exit import AdverseNewsExit
 from .paper_desk import PaperDesk
 from .research.motherduck_source import MotherDuckResearchSource
 from .research.repo_source import DATASETS, RepoResearchSource
@@ -59,6 +62,7 @@ RESULTS_TO_FILES = "files"
 RESULTS_TO_DUCKDB = "duckdb"
 DEFAULT_NEWS_INTERVAL_SECONDS = 120
 NEWS_USER_AGENT = "Mozilla/5.0 (compatible; fno-desk/1.0; personal research)"  # honest, and accepted by the feeds
+NEWS_USAGE_FILE = "news_usage.json"  # requests today per capped source, kept across restarts
 SOURCE_CONFIG_KEYS = {"NSE filings": "nse_announcements", "BSE filings": "bse_announcements"}
 
 
@@ -78,9 +82,11 @@ class LiveServices:
     kill_switch: KillSwitch
     research_loader: ResearchContextLoader
     shortlist_rules: ShortlistRules
+    state_dir: Path = DEFAULT_STATE_DIR
     shadow_desk: PaperDesk | None = None
     news_room: NewsRoom | None = None  # filled by the news watcher, read by the scanner and the exit check
     iv_history: IvHistory | None = None  # daily ATM implied volatility per underlying, for IV rank
+    news_exit: AdverseNewsExit | None = None  # early exit on strong credible news against a trade
 
     @property
     def live_cfg(self) -> dict:
@@ -103,6 +109,13 @@ def build_live_services(
         trailing=TrailingStop.from_config(cfg.get("exits", {}).get("trailing_stop", {})),
     )
     store = LockedResultsStore(build_results_store(live.get("results", {}), state_dir))
+    news_room = build_news_room(live.get("news", {}))
+    adverse = cfg.get("exits", {}).get("adverse_news", {})
+    news_exit = (
+        AdverseNewsExit(news_room, adverse.get("min_score", 0.5))
+        if news_room and adverse.get("enabled", True)
+        else None
+    )
     return LiveServices(
         cfg=cfg,
         nse_feed=NseLiveFeed(),
@@ -135,7 +148,9 @@ def build_live_services(
             build_research_source(live.get("research", {})), live.get("news_lookback_hours", 24)
         ),
         shortlist_rules=ShortlistRules.from_config(live.get("shortlist")),
-        news_room=build_news_room(live.get("news", {})),
+        state_dir=state_dir,
+        news_room=news_room,
+        news_exit=news_exit,
         iv_history=IvHistory(store, **live.get("iv_history", {})),
         shadow_desk=(
             PaperDesk(journal_path.with_name(SHADOW_JOURNAL_NAME), cfg, chain_source, exit_policy, enforce_limits=False)
@@ -190,11 +205,11 @@ def build_news_watcher(services: LiveServices) -> NewsWatcher | None:
     feeds = news_cfg.get("feeds", [])
     sources = [RssFeedSource(feed["name"], feed["url"], session) for feed in feeds]
     exchange_sources = {
-        "nse_announcements": lambda: NseAnnouncementsSource(services.nse_feed.client),
+        "nse_announcements": lambda: NseAnnouncementsSource(PublicData()),  # own session: the desk thread has one
         "bse_announcements": lambda: BseAnnouncementsSource(session),
     }
     sources += [build() for key, build in exchange_sources.items() if source_cfg.get(key, {}).get("enabled", True)]
-    sources += api_sources_from_environment(session, source_cfg)
+    sources += _api_news_sources(session, source_cfg)
     by_name = {feed["name"]: feed for feed in feeds}
     plans = [
         _plan(source, by_name.get(source.name) or source_cfg.get(_config_key(source.name), {})) for source in sources
@@ -206,7 +221,9 @@ def build_news_watcher(services: LiveServices) -> NewsWatcher | None:
     )
     store = LockedResultsStore(JsonlResultsStore(Path(news_cfg.get("directory") or DEFAULT_NEWS_DIR)))
     relevant = frozenset(fno_symbols) | frozenset(INDEX_UNDERLYINGS) if fno_symbols else None
-    schedule = PollSchedule(plans, news_cfg.get("min_seconds_between_requests", 5), window)
+    schedule = PollSchedule(
+        plans, news_cfg.get("min_seconds_between_requests", 5), window, services.state_dir / NEWS_USAGE_FILE
+    )
     return NewsWatcher(schedule, services.news_room, store, relevant)
 
 
@@ -224,6 +241,27 @@ def _fno_names(services: LiveServices) -> tuple[set[str], dict[str, str]]:
         log.warning("F&O list or company names unavailable, news tagged by index words and source tags: %s", exc)
         return set(), {}
     return fno_symbols, {s: n for s, n in names.items() if s in fno_symbols}
+
+
+def _api_news_sources(session, source_cfg: dict) -> list:
+    """News APIs whose keys are set (environment or ~/.trading.env) and which config leaves enabled."""
+    builders = {
+        "finnhub": (ENV_FINNHUB_API_KEY, lambda key, opts: FinnhubNewsSource(key, session)),
+        "marketaux": (
+            ENV_MARKETAUX_API_TOKEN,
+            lambda key, opts: MarketauxNewsSource(key, session, opts.get("countries", "in")),
+        ),
+        "asknews": (
+            ENV_ASKNEWS_API_KEY,
+            lambda key, opts: AskNewsSource(key, session, opts.get("query", ASKNEWS_DEFAULT_QUERY)),
+        ),
+    }
+    sources = []
+    for name, (env_name, build) in builders.items():
+        opts, key = source_cfg.get(name), os.environ.get(env_name)
+        if opts is not None and opts.get("enabled", True) and key:
+            sources.append(build(key, opts))
+    return sources
 
 
 def _config_key(source_name: str) -> str:

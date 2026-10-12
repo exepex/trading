@@ -8,18 +8,18 @@ import time as wall_clock
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 
-from ..constants import EVENT_SHADOW_CLOSED, Direction, ExitReason, SessionPhase
+from ..constants import EVENT_SHADOW_CLOSED, ExitReason, SessionPhase
 from ..models import IST
 from .alerts import day_summary_message, exit_message
 from .learning.performance import performance_stop_reason
 from .learning.view_outcomes import ViewOutcomeTracker
-from .news.impact import STRONG_CREDIBILITY
 from .research.research_context import ResearchSnapshot
 from .scanner import LiveScanner
 from .services import LiveServices, build_news_watcher
 from .universe import ReferenceData
 
 log = logging.getLogger(__name__)
+NEWS_WATCHER_DOWN = "news watcher stopped: news guard and news exit are off until the desk restarts"
 
 ACTIVE_PHASES = (SessionPhase.OPENING_RANGE, SessionPhase.TRADING, SessionPhase.NO_NEW_ENTRIES, SessionPhase.SQUARE_OFF)
 
@@ -65,9 +65,15 @@ class LiveRunner:
         self.state = DayState(day=date.min)
         self.news_watcher = None
         self._stop_news = threading.Event()
+        self._news_thread: threading.Thread | None = None
+        self._news_down_reported = False
 
     def run_forever(self) -> None:
         log.info("live desk started; results stored at %s", self.services.store.location)
+        try:
+            self._start_day_if_needed(datetime.now(IST))  # holidays known before the news watcher starts
+        except Exception:  # noqa: BLE001 - the first tick retries; the watcher then falls back to weekdays
+            log.exception("could not load today's reference data before starting the news watcher")
         self._start_news_watcher()
         while True:
             self.tick(datetime.now(IST))
@@ -79,13 +85,17 @@ class LiveRunner:
         if watcher is None:
             return
         self.news_watcher = watcher
-        threading.Thread(target=watcher.run_forever, args=(self._stop_news,), name="news-watcher", daemon=True).start()
+        self._news_thread = threading.Thread(
+            target=watcher.run_forever, args=(self._stop_news,), name="news-watcher", daemon=True
+        )
+        self._news_thread.start()
         log.info("news watcher started with %d sources", len(watcher.schedule.plans))
 
     def tick(self, now: datetime) -> None:
         """One pass of the loop. Safe to call as often as you like: each job runs only when it is due."""
         try:
             self._start_day_if_needed(now)
+            self._check_news_watcher(now)
             phase = self.services.clock.phase(now)
             if self.services.kill_switch.engaged:
                 self._handle_kill_switch(now)
@@ -99,12 +109,21 @@ class LiveRunner:
             log.exception("tick failed")
             self._report_problem(now, f"{type(exc).__name__}: {exc}")
 
+    def _check_news_watcher(self, now: datetime) -> None:
+        """A dead watcher silently switches off the news guard and exit: say so once."""
+        if self._news_thread is None or self._news_thread.is_alive() or self._news_down_reported:
+            return
+        self._news_down_reported = True
+        self._report_problem(now, NEWS_WATCHER_DOWN)
+
     def _start_day_if_needed(self, now: datetime) -> None:
         today = now.date()
         if self.state.day == today:
             return
         self.state = DayState(day=today)
         self.outcomes.end_of_day()
+        if self.services.iv_history is not None:
+            self.services.iv_history.flush(now)  # readings of a day that ended early, under their own day
         self.reference = ReferenceData.load(self.services.nse_feed, today)
         self.services.clock.holidays = self.reference.holidays
         self.services.gate.industries = self.reference.industries
@@ -146,45 +165,36 @@ class LiveRunner:
             return
         self.state.last_review = now
         closed, errors = self.services.desk.review_open_trades(now, phase)
-        closed += self._exit_on_adverse_news(now)
-        for trade in closed:
-            self.services.store.record("closed", trade, now, trade["underlying"])
-            self.services.alerts.send(exit_message(trade))
-        if errors:
-            self._report_problem(now, "could not re-price: " + "; ".join(errors[:3]))
-        if closed:
-            self._stop_if_performance_breaks(now)
+        try:
+            if self.services.news_exit is not None:
+                news_closed, news_errors = self.services.news_exit.close_hit(self.services.desk, now)
+                closed, errors = closed + news_closed, errors + news_errors
+        finally:  # closes already made are always recorded, alerted and checked against the kill switch
+            for trade in closed:
+                self.services.store.record("closed", trade, now, trade["underlying"])
+                self.services.alerts.send(exit_message(trade))
+            if errors:
+                self._report_problem(now, "could not re-price or close: " + "; ".join(errors[:3]))
+            if closed:
+                self._stop_if_performance_breaks(now)
         self._review_shadow_book(now, phase)
 
-    def _exit_on_adverse_news(self, now: datetime) -> list[dict]:
-        """Strong, credible news against an open trade closes it early. Exit only: news never adds to a trade."""
-        room, settings = self.services.news_room, self.services.cfg.get("exits", {}).get("adverse_news", {})
-        if room is None or not settings.get("enabled", True):
-            return []
-        closed = []
-        for trade in self.services.desk.open_trades():
-            pulse = room.pulse(trade["underlying"], now)
-            side = 1 if trade.get("direction") == Direction.BULLISH.value else -1
-            strongest = pulse.strongest
-            credible = strongest is not None and strongest.story.credibility in STRONG_CREDIBILITY
-            if credible and pulse.score * side <= -settings.get("min_score", 0.5):
-                exited = self.services.desk.close(trade["id"], ExitReason.ADVERSE_NEWS, strongest.reason)
-                if exited:
-                    closed.append(exited)
-        return closed
-
     def _review_shadow_book(self, now: datetime, phase: SessionPhase) -> None:
-        """Same exit rules for the shadow book, recorded quietly: no alerts, no kill switch."""
+        """Same exit rules for the shadow book (news exit included), recorded quietly: no alerts, no kill switch."""
         shadow_desk = self.services.shadow_desk
         if shadow_desk is None:
             return
         closed, _ = shadow_desk.review_open_trades(now, phase)
+        if self.services.news_exit is not None:
+            closed += self.services.news_exit.close_hit(shadow_desk, now)[0]
         for trade in closed:
             self.services.store.record(EVENT_SHADOW_CLOSED, trade, now, trade["underlying"])
 
     def _stop_if_performance_breaks(self, now: datetime) -> None:
         """A losing run or deep drawdown stops everything until a person reviews it (kill switch)."""
-        reason = performance_stop_reason(self.services.desk.trades(), self.services.cfg)
+        reason = performance_stop_reason(
+            self.services.desk.trades(), self.services.cfg, since=self.services.kill_switch.released_at
+        )
         if reason and not self.services.kill_switch.engaged:
             self.services.kill_switch.engage(f"automatic: {reason}", now)
 

@@ -29,7 +29,10 @@ CREDENTIALS_MISSING = (
 
 
 def has_groww_credentials() -> bool:
-    return bool(os.environ.get(ENV_GROWW_ACCESS_TOKEN) or os.environ.get(ENV_GROWW_API_KEY))
+    """A usable set: a ready token, or a key with its TOTP seed or secret. A key alone cannot sign in."""
+    key = os.environ.get(ENV_GROWW_API_KEY)
+    paired = key and (os.environ.get(ENV_GROWW_TOTP_SECRET) or os.environ.get(ENV_GROWW_API_SECRET))
+    return bool(os.environ.get(ENV_GROWW_ACCESS_TOKEN) or paired)
 
 
 def token_day(moment: datetime) -> date:
