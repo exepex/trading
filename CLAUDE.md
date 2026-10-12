@@ -41,9 +41,10 @@ Before ending any working session with the user, write or append to `conversatio
 "Decisions so far" and "Open questions" sections. Commit and push it. Never include email addresses,
 API keys or tokens.
 
-## 3 pm quote recorder (weekday routine, story A4)
+## 3 pm quote recorder (daily routine, stories A4 and A7)
 
-Started by a scheduled session at about 14:50 IST on weekdays. Research data only: never places, modifies or cancels
+Started by a scheduled session at about 14:50 IST every day; the NSE session calendar (A7) decides whether it is a
+trading day, so special weekend sessions are recorded and closed days print "not a trading day". Research data only: never places, modifies or cancels
 orders.
 1. `pip install -q -r requirements.txt -r requirements-groww.txt` and `git config core.hooksPath .githooks` (turns on
    the public-record scan, story O5, for every commit).
