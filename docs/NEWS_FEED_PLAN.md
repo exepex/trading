@@ -50,3 +50,32 @@ fastest signal; news explains them.
    Rs 3,200/month for both.
 
 Keys go in `~/.trading.env` on the PC only: `FINNHUB_API_KEY`, `MARKETAUX_API_TOKEN`, `ASKNEWS_API_KEY`.
+
+## Speed plan (12 Oct 2026, after "if news is not faster, what is the point")
+
+News travels: event -> company files with NSE/BSE, or a journalist writes it -> aggregators index it -> we fetch it.
+Each step adds delay, so speed comes from (a) reading as close to the origin as possible, (b) being pushed rather than
+polling, and (c) not waiting for words at all when the price itself shows something happened.
+
+| Layer | Source | Delivery | Expected delay | Cost |
+|---|---|---|---|---|
+| 0. Price shock | Groww live feed: up to 1,000 instruments at once (all F&O stocks, indices, our option contracts) | push (WebSocket) | seconds | already paid |
+| 1. Origin: filings | NSE and BSE corporate announcements | poll every 30-60 s from the home PC (NSE's terms discourage automation); licensed push alternative: Drishti WebSocket, Rs 2,000/month, 100 symbols | under 1-2 min after the exchange posts | free / Rs 2,000 |
+| 2. Push: Telegram | official channels of business media and exchanges, where they exist (to be verified), read with Telegram's official API | push | seconds after the channel posts | free |
+| 3. Publishers | RSS of ET Markets, Livemint, Business Standard, BusinessLine, Moneycontrol, CNBC | poll every 60 s, "anything new since?" requests | 1-2 min after publishing | free |
+| 4. Aggregators | Finnhub (1 min), Marketaux (5 min), AskNews (15 min) | poll | 2-15 min | free plans |
+
+Not used: X (Twitter), where news often breaks first: its API is expensive and AskNews only searches it from the
+$250/month plan. Finnhub's news WebSocket is premium only.
+
+How the layers work together: a price shock (layer 0) protects open trades at once under the existing rules (the AI
+may exit early, never add) and triggers an immediate search of layers 1-4 for that symbol to find the reason. Every
+story is stamped with the time each source delivered it and compared with the price shock, so after two weeks the desk
+knows which sources were early, which were late, and whether a paid source would have helped.
+
+Honest limit: machines trade on news within milliseconds, and no retail source beats them. The aim is never to be the
+last to know: protect within seconds, understand within a minute or two, and trade the follow-through once the news is
+known, not the first spike.
+
+Build order: (1) Groww live feed and shock detector; (2) NSE/BSE announcements; (3) publisher RSS and aggregators,
+with the source-speed table; (4) Telegram, once the channels are verified.
