@@ -12,3 +12,4 @@ data/research/
 
 # Desk log files (Windows and Linux runners)
 logs/
+.claude/worktrees/
