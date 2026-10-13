@@ -16,7 +16,7 @@ from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.overrides import brake_restarts, overrides_file
 from fno.risk.stress import Shock, StressEngine, stress_positions
 
-from .builders import CHARGES, DAY, FLY, LOT, contract, market, proposal, short_fly
+from .builders import CHARGES, DAY, FLY, LOT, MODEL, contract, market, proposal, short_fly
 
 START_DAY = date(2026, 9, 1)
 EXPIRY = DAY + timedelta(days=14)
@@ -77,7 +77,9 @@ def test_a_stress_test_of_one_book_never_includes_another_books_positions(root):
     assert [p.trade_id for p in stress_positions(book1, _new())] == ["new"]
     assert [p.trade_id for p in stress_positions(book3, None)] == []
     assert [p.trade_id for p in stress_positions(book2, None)] == ["fly"]
-    (down,) = StressEngine().run(stress_positions(book2, None), market(25000, PRICES, EXPIRY), [Shock("d", -8, days=1)])
+    (down,) = StressEngine(MODEL).run(
+        stress_positions(book2, None), market(25000, PRICES, EXPIRY), [Shock("d", -8, days=1)]
+    )
     assert down.trades[0].loss_from_marks > 0
 
 

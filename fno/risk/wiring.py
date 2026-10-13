@@ -8,6 +8,7 @@ from pathlib import Path
 
 from ..config import ROOT
 from ..constants import STRESSED_MARGIN_MULTIPLIER
+from ..research_engine.implied_vol import Black76
 from .drawdown import DrawdownBrake
 from .manager import RiskManager
 from .margins import MarginTable, MultiplierMargin, ScenarioLookupMargin, StressedMargin
@@ -29,7 +30,7 @@ def build_stressed_margin(settings: RiskSettings) -> StressedMargin:
 
 def build_risk_manager(cfg: dict, root: Path = ROOT) -> RiskManager:
     """Story C2: every owner limit and risk check from config.yaml `risk`, with B2's cost model for a trade's money."""
-    settings, costs, engine = risk_settings(cfg, root), SimulatorTradeCosts(cfg["charges"]), StressEngine()
+    settings, costs, engine = risk_settings(cfg, root), SimulatorTradeCosts(cfg["charges"]), StressEngine(Black76())
     stressed = build_stressed_margin(settings)
     rules = (
         MaxLossPerTrade(costs, settings.max_loss_per_trade_rs),

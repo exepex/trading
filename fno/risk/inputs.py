@@ -15,6 +15,7 @@ from datetime import date
 
 from ..books.equity import AccountState, Mark
 from ..constants import OPTION_CALL, OPTION_PUT
+from ..research_data.panel_reader import FutureQuote
 from ..research_engine.structures import Leg
 
 
@@ -28,7 +29,7 @@ class ContractQuote:
     kind: str  # "CE" or "PE"
     expiry: date
     mid: float  # mid of valid quotes, or the last valid mark when `stale`
-    iv: float  # implied volatility as a fraction, from the same mid
+    iv: float  # implied volatility as a fraction, from the same mid, by the engine's model (B1's Black-76)
     stale: bool = False
 
     def __post_init__(self):
@@ -43,8 +44,9 @@ class ContractQuote:
 class Market:
     day: date  # the decision day; one calendar day passes in each stress scenario
     spot: float  # NIFTY
-    rate: float  # risk-free rate (config.yaml `risk_free_rate`)
+    rate: float  # risk-free rate (config.yaml `risk_free_rate`): only discounts under Black-76
     quotes: Mapping[str, ContractQuote]
+    futures: Mapping[date, FutureQuote]  # NIFTY future by expiry: the forward each option is priced on (Black-76)
 
     def quote(self, contract: str) -> ContractQuote:
         if contract not in self.quotes:

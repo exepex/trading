@@ -6,12 +6,15 @@ from datetime import date, timedelta
 
 from fno.books.equity import AccountState
 from fno.constants import OPTION_CALL, OPTION_PUT, STRUCTURE_SHORT_CONDOR, STRUCTURE_SHORT_IRON_FLY
+from fno.research_data.panel_reader import FutureQuote
+from fno.research_engine.implied_vol import Black76
 from fno.research_engine.structures import BOUGHT, SOLD, Leg
 from fno.risk.inputs import ContractQuote, Market, OpenTrade, Proposal, ProposedLeg, RiskBook, TradeTerms
 
 DAY = date(2026, 10, 13)
 LOT = 65  # NIFTY units per lot (config.yaml lot_sizes)
 START = 500_000.0
+MODEL = Black76()  # the app's model (fno/risk/wiring.py)
 ZERO_CHARGES = dict.fromkeys(
     (
         "brokerage_per_order",
@@ -46,13 +49,17 @@ def market(
     iv: float = 0.15,
     day: date = DAY,
     stale: frozenset = frozenset(),
+    forward: float | None = None,
+    rate: float = 0.065,
 ) -> Market:
-    """A market whose quotes are `(strike, kind) -> mid`, all of one expiry and one implied volatility."""
+    """A market whose quotes are `(strike, kind) -> mid`, all of one expiry and one implied volatility, with a traded
+    same-expiry future at `forward` (the spot unless given)."""
     quotes = {
         contract(k, kind, expiry): ContractQuote(k, kind, expiry, mid, iv, (k, kind) in stale)
         for (k, kind), mid in prices.items()
     }
-    return Market(day, spot, 0.065, quotes)
+    future = FutureQuote(expiry, forward or spot, forward or spot, 1, 1)
+    return Market(day, spot, rate, quotes, {expiry: future})
 
 
 def legs_of(spec: list[tuple[float, str, int]]) -> list[Leg]:

@@ -13,7 +13,7 @@ from fno.risk.settings import ExposureSettings
 from fno.risk.stress import StressEngine
 from fno.risk.trade_costs import SimulatorTradeCosts
 
-from .builders import CHARGES, CONDOR, DAY, FLY, LOT, ZERO_CHARGES, book, market, open_trade, proposal, short_fly
+from .builders import CHARGES, CONDOR, DAY, FLY, LOT, MODEL, ZERO_CHARGES, book, market, open_trade, proposal, short_fly
 
 EXPIRY = DAY + timedelta(days=20)
 FLY_PRICES = {(25000, "CE"): 180.0, (25000, "PE"): 170.0, (25200, "CE"): 95.0, (24800, "PE"): 90.0}
@@ -86,7 +86,7 @@ def _exposure_case():
 
 
 def _exposure(max_move_loss: float, max_iv_loss: float = 15000) -> ExposureLimit:
-    return ExposureLimit(StressEngine(), ExposureSettings(2, max_move_loss, 5, max_iv_loss))
+    return ExposureLimit(StressEngine(MODEL), ExposureSettings(2, max_move_loss, 5, max_iv_loss))
 
 
 def test_a_proposal_pushing_the_2pct_move_loss_above_the_setting_is_blocked():

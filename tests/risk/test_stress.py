@@ -6,6 +6,7 @@ so far Rs 8,000. Proposed: a short condor 25,500/24,500 with 200-point wings, en
 (credit 20 + 25 - 6 - 8 = 31 points, Rs 2,015 a lot).
 """
 
+import math
 from datetime import date, timedelta
 
 import pytest
@@ -18,7 +19,21 @@ from fno.risk.settings import Scenario
 from fno.risk.stress import Shock, StressEngine, stress_positions
 from fno.risk.trade_costs import SimulatorTradeCosts
 
-from .builders import CONDOR, DAY, FLY, LOT, ZERO_CHARGES, book, market, open_trade, proposal, short_condor, short_fly
+from .builders import (
+    CHARGES,
+    CONDOR,
+    DAY,
+    FLY,
+    LOT,
+    MODEL,
+    ZERO_CHARGES,
+    book,
+    market,
+    open_trade,
+    proposal,
+    short_condor,
+    short_fly,
+)
 
 EXPIRY = DAY + timedelta(days=1)
 PRICES = {
@@ -65,7 +80,7 @@ def _results(lots: int = 1):
     condor, the_book, the_market = _setup(lots)
     costs = SimulatorTradeCosts(ZERO_CHARGES, pad=0.0)
     positions = stress_positions(the_book, condor, costs.entry_cash_flow(condor, the_market))
-    return StressEngine().run(positions, the_market, [Shock.of(s) for s in SCENARIOS])
+    return StressEngine(MODEL).run(positions, the_market, [Shock.of(s) for s in SCENARIOS])
 
 
 def test_the_proposal_entry_cash_flow_is_its_credit_by_hand():
@@ -93,7 +108,7 @@ def test_worked_numbers_of_the_down_8pct_scenario():
 
 
 def _stress_rule(limit: float) -> StressLoss:
-    return StressLoss(StressEngine(), SimulatorTradeCosts(ZERO_CHARGES, pad=0.0), SCENARIOS, limit)
+    return StressLoss(StressEngine(MODEL), SimulatorTradeCosts(ZERO_CHARGES, pad=0.0), SCENARIOS, limit)
 
 
 def test_one_lot_condor_passes_and_three_lots_are_blocked_above_30000():
@@ -109,21 +124,21 @@ def test_stress_limit_just_inside_and_just_outside(limit, ok):
     assert _stress_rule(limit).check(*_setup()).ok is ok
 
 
-def test_repricing_uses_black_scholes_with_the_iv_factor_and_one_day_of_decay():
-    """A textbook value: spot 100, strike 100, 1 year, 5%, 20% volatility: call 10.4506. The quote's IV 10% is doubled
-    and one of 366 days passes."""
+def test_repricing_uses_black_76_on_the_future_with_the_iv_factor_and_one_day_of_decay():
+    """A textbook value: Black-Scholes with spot 100, strike 100, 1 year, 5%, 20% volatility gives a call of 10.4506;
+    Black-76 on the forward 100 x e^0.05 with the same rate must give the same. The quote's IV 10% is doubled and one
+    of 366 days passes."""
     expiry = DAY + timedelta(days=366)
-    the_market = market(100, {(100, OPTION_CALL): 9.0}, expiry, iv=0.10)
-    the_market = type(the_market)(DAY, 100, 0.05, the_market.quotes)
+    the_market = market(100, {(100, OPTION_CALL): 9.0}, expiry, iv=0.10, forward=100 * math.exp(0.05), rate=0.05)
     held = open_trade("call", FLY, 100, [(100, OPTION_CALL, BOUGHT)], expiry, cash_flow=-9.0 * LOT)
-    (result,) = StressEngine().run(stress_positions(book([held]), None), the_market, [Shock("iv", 0, 2.0, 0, 1)])
+    (result,) = StressEngine(MODEL).run(stress_positions(book([held]), None), the_market, [Shock("iv", 0, 2.0, 0, 1)])
     assert bs_price(100, 100, 1.0, 0.05, 0.2, OPTION_CALL) == pytest.approx(10.4506, abs=1e-4)
     assert result.trades[0].loss_from_marks == pytest.approx((9.0 - 10.4506) * LOT, abs=0.01)
 
 
 def test_a_leg_expiring_today_is_worth_its_intrinsic_value():
     today = market(25100, {(25000, OPTION_CALL): 100.0}, DAY)
-    assert StressEngine().leg_value(next(iter(today.quotes)), 1, today, Shock("none", 0)) == pytest.approx(100.0)
+    assert StressEngine(MODEL).leg_value(next(iter(today.quotes)), 1, today, Shock("none", 0)) == pytest.approx(100.0)
 
 
 def test_the_stress_never_includes_a_position_the_book_does_not_hold():
@@ -136,4 +151,33 @@ def test_expired_quotes_are_refused():
     old = market(25000, PRICES, date(2026, 10, 12))
     fly = open_trade("fly-1", FLY, 200, short_fly(25000, 200), date(2026, 10, 12), cash_flow=0.0)
     with pytest.raises(ValueError, match="expired"):
-        StressEngine().run(stress_positions(book([fly]), None), old, [Shock("x", 0)])
+        StressEngine(MODEL).run(stress_positions(book([fly]), None), old, [Shock("x", 0)])
+
+
+def test_the_forward_not_the_spot_is_what_moves_and_prices():
+    """Same spot, a future 100 points higher: an at-the-money call is worth more, priced on the future."""
+    expiry = DAY + timedelta(days=30)
+    near, far = (market(25000, {(25000, OPTION_CALL): 300.0}, expiry, forward=f) for f in (25000, 25100))
+    value = [StressEngine(MODEL).leg_value(next(iter(m.quotes)), 1, m, Shock("none", 0)) for m in (near, far)]
+    assert value[1] - value[0] > 40
+
+
+def test_a_leg_without_a_traded_future_fails_closed():
+    expiry = DAY + timedelta(days=30)
+    the_market = market(25000, {(25000, OPTION_CALL): 300.0}, expiry)
+    no_future = type(the_market)(DAY, 25000, 0.065, the_market.quotes, {})
+    with pytest.raises(ValueError, match="no usable NIFTY future"):
+        StressEngine(MODEL).leg_value(next(iter(no_future.quotes)), 1, no_future, Shock("none", 0))
+
+
+def test_the_proposals_pads_and_charges_count_in_the_stress_loss():
+    """Judge 43 minor 1: with real charges and Rs 1 pads the proposal's loss from entry exceeds its loss from its mark,
+    and a limit between the two refuses it: counting it from its mark would let it through."""
+    condor = proposal("condor-1", CONDOR, 200, short_condor(25500, 24500, 200), EXPIRY)
+    rule = StressLoss(StressEngine(MODEL), SimulatorTradeCosts(CHARGES), SCENARIOS, 1e9)
+    the_market = market(25000, PRICES, EXPIRY)
+    worst = max(rule.results(condor, book(), the_market), key=lambda r: r.counted_loss)
+    from_mark, from_entry = worst.trades[0].loss_from_marks, worst.trades[0].loss_from_entry
+    assert from_entry - from_mark > 4 * LOT  # at least the four Rs 1 pads, plus charges
+    between = StressLoss(StressEngine(MODEL), SimulatorTradeCosts(CHARGES), SCENARIOS, (from_mark + from_entry) / 2)
+    assert not between.check(condor, book(), the_market).ok

@@ -74,8 +74,9 @@ calculation itself (an input: measured from NSE SPAN files or the broker's calcu
   closed equity, re-arm at restart-day equity minus 30,000, restart only via an owner entry in
   `journal/<book>/owner_overrides.csv`), `StressLoss` (scenarios below, combined loss at most 30,000), `ExposureLimit`
   (delta and vega, values from `config.yaml` `risk.exposure`), `MarginRoom` (stressed margin at most available cash).
-- Stress engine `fno/risk/stress.py`: reprices every leg of open trades plus the proposal with `fno.analytics.bs_price`
-  at each leg's current implied volatility, under: NIFTY -8%, -5%, +5%, +8% (overnight, one day passes); IV x2 and
+- Stress engine `fno/risk/stress.py`: reprices every leg of open trades plus the proposal with the project's
+  implied-volatility model (B1's `ImpliedVolModel`; the app wires `Black76`: the option on its same-expiry NIFTY future,
+  the rate only discounting; judge 43) at each leg's current implied volatility from that same model, under: NIFTY -8%, -5%, +5%, +8% (overnight, one day passes); IV x2 and
   x0.5; joint (NIFTY -8% with IV x2, NIFTY +5% with IV x0.5); and historical replays applying the NIFTY and VIX moves
   of 23 Mar 2020, 4 Jun 2024 and Feb 2026's worst day. Reports loss from current marked value and loss from entry.
 - All limits read from a new `risk` block in `config.yaml` (this story adds `risk` to `ALLOWED_APP_KEYS` in
@@ -97,8 +98,9 @@ calculation itself (an input: measured from NSE SPAN files or the broker's calcu
 - **Two different Rs 30,000 limits:** the drawdown brake uses closed equity against its high-water mark; the stress
   limit uses the combined stress loss of open trades plus the proposal from current marks. They are separate rules
   with separate tests.
-- **Stress repricing:** each leg revalued with Black-Scholes at its current implied volatility scaled by the scenario,
-  one calendar day of time decay, the scenario's NIFTY level; losses summed across all legs and trades (no netting
+- **Stress repricing:** each leg revalued with Black-76 on its same-expiry future (moved by the scenario's NIFTY move)
+  at its current implied volatility scaled by the scenario, one calendar day of time decay (13 Oct 2026, judge 43:
+  Black-Scholes on spot with Black-76 volatilities misprices an ATM leg by about Rs 1,000 a lot with no move); losses summed across all legs and trades (no netting
   assumptions beyond the legs themselves).
 - **Owner restart:** a row in `journal/<book>/owner_overrides.csv` (`date, action = restart_brake, reason, entered_by`)
   committed to the repository; the brake re-arms at that day's closing closed equity minus Rs 30,000.

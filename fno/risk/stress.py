@@ -1,8 +1,12 @@
 """Whole-account stress tests with full repricing (story C2, design 8.1).
 
-Every leg of the book's open trades and of the proposal is revalued with `fno.analytics.bs_price` at the scenario's
-NIFTY level, its own current implied volatility times the scenario's factor (plus any added points), after the
-scenario's calendar days of time decay. Losses are summed across all legs and trades: no netting beyond the legs
+Every leg of the book's open trades and of the proposal is revalued with the project's implied-volatility model (B1's
+`ImpliedVolModel`; the app uses `Black76`: the option priced on its same-expiry NIFTY future, the rate only
+discounting), so the volatilities in the quotes and the repricing use one model and a zero-move, zero-day scenario
+values every leg at its mark (judge 43: Black-Scholes on spot with Black-76 volatilities was off by about Rs 1,000 a lot
+per ATM leg). Each leg is revalued with the underlying moved by the scenario's NIFTY move, its own current implied
+volatility times the scenario's factor (plus any added points), after the scenario's calendar days of time decay; on
+expiry a leg is worth its intrinsic value. Losses are summed across all legs and trades: no netting beyond the legs
 themselves. Two losses are reported for every trade: from its current marked value and from its entry (its cash flow
 so far). The loss the stress limit counts is each open trade's loss from its current mark plus the proposal's loss from
 its entry, so the proposal's pads and charges count too.
@@ -13,8 +17,9 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from ..analytics import bs_price
-from .inputs import Market, Proposal, RiskBook
+from ..constants import OPTION_CALL
+from ..research_engine.implied_vol import ImpliedVolModel, OptionPricing
+from .inputs import ContractQuote, Market, Proposal, RiskBook, RiskInputError
 from .settings import Scenario
 
 DAYS_PER_YEAR = 365.0
@@ -80,13 +85,31 @@ def stress_positions(book: RiskBook, proposal: Proposal | None, proposal_cash_fl
     return positions
 
 
+def _intrinsic(quote: ContractQuote, underlying: float) -> float:
+    gap = underlying - quote.strike if quote.kind == OPTION_CALL else quote.strike - underlying
+    return max(gap, 0.0)
+
+
 class StressEngine:
+    def __init__(self, model: ImpliedVolModel):
+        self.model = model  # the same model the quotes' implied volatilities come from
+
+    def underlying(self, quote: ContractQuote, market: Market) -> float:
+        underlying = self.model.underlying(market.spot, market.futures.get(quote.expiry))
+        if underlying is None:
+            raise RiskInputError(f"no usable NIFTY future for expiry {quote.expiry}: the option cannot be priced")
+        return underlying
+
     def leg_value(self, contract: str, units: int, market: Market, shock: Shock) -> float:
         quote = market.quote(contract)
-        days_left = (quote.expiry - market.day).days - shock.days
-        spot = market.spot * (1 + shock.nifty_move_pct / 100)
+        underlying = self.underlying(quote, market) * (1 + shock.nifty_move_pct / 100)
+        years = max((quote.expiry - market.day).days - shock.days, 0) / DAYS_PER_YEAR
+        if years == 0:
+            return units * _intrinsic(quote, underlying)
         sigma = quote.iv * shock.iv_factor + shock.iv_add
-        return units * bs_price(spot, quote.strike, max(days_left, 0) / DAYS_PER_YEAR, market.rate, sigma, quote.kind)
+        return units * self.model.price(
+            OptionPricing(quote.mid, underlying, quote.strike, quote.kind, years, market.rate), sigma
+        )
 
     def marked_value(self, position: StressPosition, market: Market) -> float:
         return sum(units * market.quote(contract).mid for contract, units in position.units.items())
