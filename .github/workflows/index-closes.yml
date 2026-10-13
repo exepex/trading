@@ -5,12 +5,17 @@
 #   3. `pipeline index-closes` appends the NIFTY 50 and India VIX closes to research/data/nifty-panel/warmup_closes.csv
 #      from the version first archived (point in time), never rewriting a row, and the panel reader serves them as
 #      closes-only sessions after the panel's last day.
-# One #fno-desk line when a step fails. Secrets: the A12 Drive and Slack ones; none is printed or written to a file.
+# G1 v2's live forecast needs the previous session's closes before 14:00 IST (judge 47 addendum 4): NSE publishes in
+# the evening, so the 21:11 run normally adds them; the 07:41 and 11:41 runs retry, and a close still missing posts one
+# #fno-desk line before 14:00. A run before 19:00 IST stops at yesterday (today's file is not out yet), so a morning
+# run never alerts about today. One #fno-desk line when a step fails. Secrets: the A12 Drive and Slack ones; none is printed or written to a file.
 name: index-closes
 
 on:
   schedule:
     - cron: "41 15 * * *" # 21:11 IST every day: the calendar decides (a closed day adds nothing)
+    - cron: "11 2 * * *" # 07:41 IST: retry for the previous session if the evening run missed it
+    - cron: "11 6 * * *" # 11:41 IST: last retry, still before 14:00 (GitHub's schedule can start late)
   workflow_dispatch:
 
 permissions:
@@ -44,22 +49,27 @@ jobs:
           git config core.hooksPath .githooks
           git config user.name "omenix-index-closes"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: The last session whose file is due (today from 19:00 IST, else yesterday)
+        run: |
+          if (( 10#$(TZ=Asia/Kolkata date +%H) >= 19 )); then due=$(TZ=Asia/Kolkata date +%F)
+          else due=$(TZ=Asia/Kolkata date -d yesterday +%F); fi
+          echo "DUE=$due" >> "$GITHUB_ENV"; echo "closes due through $due"
       - name: Archive the last week's index-close files in Drive (A9)
         id: librarian
         continue-on-error: true
         run: |
           python -m fno data-librarian index-close \
-            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$(TZ=Asia/Kolkata date +%F)"
+            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$DUE"
       - name: Keep later NSE versions beside the originals (A11)
         id: revisions
         continue-on-error: true
         run: |
           python -m fno data-revisions sweep index-close \
-            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$(TZ=Asia/Kolkata date +%F)"
+            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$DUE"
       - name: Append the new sessions' closes (point in time, never rewriting)
         id: append
         continue-on-error: true
-        run: python -m fno pipeline index-closes
+        run: python -m fno pipeline index-closes --to "$DUE"
       - name: Commit the closes
         run: |
           git add "$CLOSES"
