@@ -1,6 +1,6 @@
 # Pinned dashboard contract (story P6)
 
-Byte copies of `exepex/omenix-dashboard`'s `api/openapi.yaml`, `api/schemas/*.yaml` and `api/examples/blocks-33-34.json`
+Byte copies of `exepex/omenix-dashboard`'s `api/openapi.yaml`, `api/schemas/*.yaml` and the examples `api/examples/blocks-33-34.json`, `blocks-32.json` and `blocks.json`
 at the commit named in `pin.json`, with the contract version and each file's SHA-256. The market read models are
 validated against these schemas before they may be published (`fno/market_read_models/contract.py`).
 

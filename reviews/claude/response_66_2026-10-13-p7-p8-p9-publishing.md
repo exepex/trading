@@ -442,3 +442,41 @@ My earlier mutation check ("reading only up to the session day fails the test") 
 - 14 Oct's publication reads 13 Oct's values from those copies: FII net -1305.13 and NSDL 2000.73 crore. Their SHA-256s are `216a4b93…` and `0296e1dc…`, which equal the manifest rows.
 - From then on, each session's 21:10 IST copy serves its own publication.
 - The 07:10 run's own morning copy (filed the next day) is never read for D. It serves the next publication as the latest copy of D.
+
+## Addendum: contract 2.6, India's session states `hours_status` (orchestrator, 14 Oct)
+
+**The pin:** omenix-dashboard c6b4dc7 (`c6b4dc74…`), version 2.6.0.
+- Three pinned files changed: `openapi.yaml`, `blocks-frame.yaml` and `blocks-responses.yaml`.
+- The 2.6 example `getSessionIndia_india_hours_not_issued` is in `api/examples/blocks.json`. That file is now pinned as well. Its 48 example names share none with `blocks-33-34.json` or `blocks-32.json`.
+
+**The block** (`SessionIndiaBlock`):
+- The `session` page is always published and always states `hours_status`.
+- For a muhurat next session, whose hours exist only in the calendar's notes, the page has:
+  - `session_date` set;
+  - `open_utc`, `close_utc` and `next_open_utc` null;
+  - `hours_status: "not_issued"`.
+- The 2.5 workaround is gone: the page is no longer left out.
+- Every other session has `hours_status: "known"` and NSE's regular hours.
+
+**One field differs from the example, on purpose (reasoning only):**
+- **Our value:** `post_close_at` is `2026-11-09T01:40:00Z`, 07:10 IST on 9 Nov.
+- **Why not the example's null:** 2.6 defines `post_close_at` as "when today's post-close run is due … null once it ran". The 07:10 IST market run on 9 Nov is still due, and it is what brings 8 Nov's close.
+- **The contract owner can override:** if they want null while the hours are not issued, it is a one-line change.
+
+**Tests:**
+- `test_a_muhurat_session_without_issued_hours_publishes_as_not_issued_and_the_run_publishes`:
+  - Uses the real calendar row for 8 Nov 2026.
+  - The page equals the contract's example except for `post_close_at`.
+  - A planted "guessed open time while not_issued" is refused by the 2.6 `Session` schema.
+  - A full run publishes with exit 0 and no alert, and the stored page says `not_issued`.
+- The regular session test now expects `hours_status: "known"`.
+- The pin test expects version 2.6.0.
+
+**Mutation checks:**
+
+| Plant | Result |
+|---|---|
+| Muhurat treated as known hours | caught (1 failed) |
+| `hours_status` dropped | caught (4 failed; `SessionIndiaResponse` requires it) |
+
+**Owner action (unchanged):** when NSE issues the muhurat circular, add the hours to the calendar. The block then publishes them as `known`. That needs the calendar's hours fields, which A7 owns.

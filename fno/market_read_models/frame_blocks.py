@@ -15,11 +15,8 @@ from .home_blocks import FiguresNotComputed
 EXCHANGE, ZONE = "India (NSE)", "IST"
 OPEN_IST, CLOSE_IST = time(9, 15), time(15, 30)  # NSE's regular hours; its special sessions keep them (calendar notes)
 MARKET_RUN_IST = time(7, 10)  # the next morning's market run brings the close (market-publish.yml)
-MUHURAT = "muhurat"
-NO_MUHURAT_HOURS = (
-    "{day} is a muhurat session: its hours are not in the session calendar's fields, and contract 2.5's Session has "
-    "no field to say so (its empty form means a non-trading day), so this page is left out of the publication"
-)
+MUHURAT = "muhurat"  # its hours are only in the calendar's notes (NSE issues them by a later circular)
+HOURS_KNOWN, HOURS_NOT_ISSUED = "known", "not_issued"  # contract 2.6's Session.hours_status
 INDEX_LEVELS = (  # (name in NSE's index file, id, symbol, name, role)
     ("Nifty 50", "NIFTY50", "NIFTY 50", "Index · NSE", "benchmark"),
     ("India VIX", "INDIAVIX", "INDIA VIX", "Volatility index · NSE", "vol_index"),
@@ -35,25 +32,22 @@ def utc(day: date, at: time) -> str:
 
 
 class SessionIndiaBlock(BlockBuilder):
-    """A session whose hours are unknown (a muhurat session) is a block-level state, never a run failure: the page is
-    left out, so the route answers "page missing" while every other page publishes."""
+    """A muhurat session's hours are not in the calendar's fields, so it publishes as contract 2.6's `not_issued`:
+    session_date set and the three times null; the screen says "hours not announced yet", never "closed"."""
 
     page_key, served_schema = "session", "SessionIndiaResponse"
-
-    def pages(self, rows: SessionRows) -> dict[str, dict]:
-        return {} if rows.frame.next_session_kind == MUHURAT else {self.page_key: self.build(rows)}
 
     def build(self, rows: SessionRows) -> dict:
         frame = rows.frame
         predicted = frame.next_session
-        if frame.next_session_kind == MUHURAT:
-            raise FiguresNotComputed(NO_MUHURAT_HOURS.format(day=predicted))
+        known = frame.next_session_kind != MUHURAT
         majors = [e["title"] for e in fno_events(rows) if e["date"] == predicted.isoformat() and e["major"]]
+        opens, closes = (utc(predicted, OPEN_IST), utc(predicted, CLOSE_IST)) if known else (None, None)
         return {
-            "exchange": EXCHANGE, "zone": ZONE, "session_date": predicted.isoformat(),
-            "open_utc": utc(predicted, OPEN_IST), "close_utc": utc(predicted, CLOSE_IST),
-            "next_open_utc": utc(predicted, OPEN_IST), "regime": None,  # no regime is recorded by the F&O tool yet
+            "exchange": EXCHANGE, "zone": ZONE, "session_date": predicted.isoformat(), "open_utc": opens,
+            "close_utc": closes, "next_open_utc": opens, "regime": None,  # no regime is recorded by the F&O tool yet
             "post_close_at": utc(predicted + timedelta(days=1), MARKET_RUN_IST), "major_event_names": majors,
+            "hours_status": HOURS_KNOWN if known else HOURS_NOT_ISSUED,
         }  # fmt: skip
 
 

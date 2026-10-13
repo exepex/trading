@@ -17,7 +17,11 @@ from jsonschema import Draft202012Validator
 PIN_FILE = "pin.json"
 OPENAPI_FILE = "api/openapi.yaml"
 SCHEMA_FOLDER = "api/schemas"
-EXAMPLES_FILES = ("api/examples/blocks-33-34.json", "api/examples/blocks-32.json")  # Screener and Markets; chain (P9)
+EXAMPLES_FILES = (  # Screener and Markets; chain (P9); the frame, whose India session example states hours (2.6)
+    "api/examples/blocks-33-34.json",
+    "api/examples/blocks-32.json",
+    "api/examples/blocks.json",
+)
 GITHUB_RAW = "https://raw.githubusercontent.com/{repository}/{branch}/"
 DRIFT_TIMEOUT_SECONDS = 30
 NOT_FOUND = 404
