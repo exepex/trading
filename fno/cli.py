@@ -32,7 +32,7 @@ def cmd_drive_check(args) -> int:
 
 def cmd_data_coverage(args) -> int:
     from .storage.coverage import report_lines
-    from .storage.wiring import build_coverage_check, coverage_datasets
+    from .storage.wiring import build_coverage_check, build_manifest_recorder, coverage_datasets
 
     check = build_coverage_check()
     results = []
@@ -41,7 +41,15 @@ def cmd_data_coverage(args) -> int:
         print(f"checked {results[-1].dataset}: {results[-1].expected} sessions", flush=True)
     print("\n".join(report_lines(results)))
     print(f"calendar sha256 {check.calendar.calendar_sha256()}")
-    return 0 if all(r.ok for r in results) else 1
+    uncommitted = uncommitted_lines(build_manifest_recorder())
+    for line in uncommitted:
+        print(line)
+    return 0 if all(r.ok for r in results) and not uncommitted else 1
+
+
+def uncommitted_lines(recorder) -> list[str]:
+    """Manifest rows written but not committed are not yet evidence: a fresh checkout would lack them."""
+    return [f"NOT COMMITTED: {path} (rows written at save time; commit and push it)" for path in recorder.pending()]
 
 
 def cmd_nifty_panel(args) -> int:
