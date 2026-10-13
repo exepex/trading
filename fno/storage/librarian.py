@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from ..research_data.calendar import SessionCalendar
-from .coverage import Validator, archive_range, days_between
+from .coverage import CoverageDataset, archive_range, days_between
 from .raw_source import NseArchiveSource
 from .raw_store import RawFileStore, StoredCopyDamaged
 
@@ -44,15 +44,17 @@ class RawDataLibrarian:
         self,
         store: RawFileStore,
         source: NseArchiveSource,
-        validate: Validator,
+        dataset: CoverageDataset,
         calendar: SessionCalendar,
         exceptions: dict[tuple[str, date], str],
         log: Callable[[str], None] = print,
     ):
-        self.store, self.source, self.validate = store, source, validate
+        """`dataset` verifies each file (content, and SHA-256 where its manifest has a row); `store` should record a
+        manifest row for each file it saves (FingerprintingStore)."""
+        self.store, self.source, self.dataset = store, source, dataset
         self.calendar, self.exceptions, self.log = calendar, exceptions, log
 
-    def fill(self, start: date, end: date) -> FillReport:
+    def fill(self, start: date | None, end: date) -> FillReport:
         start, end = archive_range(type(self.source), start, end)
         report = FillReport(self.source.dataset, start, end)
         sessions = [day for day in days_between(start, end) if self.calendar.is_session(day)]
@@ -93,7 +95,7 @@ class RawDataLibrarian:
 
     def _problem(self, filename: str, data: bytes) -> str | None:
         try:
-            self.validate(filename, data)
+            self.dataset.check(filename, data)
         except ValueError as exc:
             return str(exc)
         return None

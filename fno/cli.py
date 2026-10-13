@@ -31,11 +31,11 @@ def cmd_drive_check(args) -> int:
 
 def cmd_data_coverage(args) -> int:
     from .storage.coverage import report_lines
-    from .storage.wiring import COVERAGE_DATASETS, build_coverage_check
+    from .storage.wiring import build_coverage_check, coverage_datasets
 
     check = build_coverage_check()
     results = []
-    for dataset in COVERAGE_DATASETS:  # one progress line per dataset, so a long run shows where it is
+    for dataset in coverage_datasets():  # one progress line per dataset, so a long run shows where it is
         results.append(check.run(dataset, args.start, args.end))
         print(f"checked {results[-1].dataset}: {results[-1].expected} sessions", flush=True)
     print("\n".join(report_lines(results)))
@@ -56,6 +56,23 @@ def cmd_nifty_panel(args) -> int:
         print(f"NOT built, nothing written: {exc}")
         return 1
     print("\n".join(summary_lines(panel)))
+    return 0
+
+
+def cmd_nifty_warmup(args) -> int:
+    from .research_data.nifty_panel import PanelBuildError
+    from .research_data.warmup_closes import build_warmup_rows, write_warmup_closes
+    from .storage import wiring
+
+    try:
+        rows = build_warmup_rows(
+            wiring.build_index_close_files(), wiring.build_session_calendar(), args.start, args.end
+        )
+    except PanelBuildError as exc:
+        print(f"NOT written: {exc}")
+        return 1
+    path = write_warmup_closes(wiring.PANEL_FOLDER, rows)
+    print(f"wrote {path.name}: {len(rows)} sessions, {rows[0][0]} to {rows[-1][0]} (index closes only)")
     return 0
 
 
@@ -107,8 +124,16 @@ def main(argv: list[str] | None = None) -> int:
 
     d = sub.add_parser("drive-check", help="check the Google Drive project folder can be read (prints no secrets)")
     d.set_defaults(func=cmd_drive_check)
-    v = sub.add_parser("data-coverage", help="list raw NSE files missing or damaged in Drive (read-only)")
-    v.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 1, 1), help="YYYY-MM-DD")
+    v = sub.add_parser(
+        "data-coverage", help="list raw NSE files missing, damaged or unfingerprinted in Drive (read-only)"
+    )
+    v.add_argument(
+        "--from",
+        dest="start",
+        type=date.fromisoformat,
+        default=None,
+        help="YYYY-MM-DD (default: each dataset's first day)",
+    )
     v.add_argument(
         "--to",
         dest="end",
@@ -122,6 +147,10 @@ def main(argv: list[str] | None = None) -> int:
     n.add_argument("--to", dest="end", type=date.fromisoformat, required=True, help="YYYY-MM-DD: last day to include")
     n.add_argument("--raw-folder", type=Path, help="local project folder searched before Drive (its raw area)")
     n.set_defaults(func=cmd_nifty_panel)
+    w = sub.add_parser("nifty-warmup", help="write the NIFTY 50 and India VIX closes before the panel (story A10)")
+    w.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2017, 1, 1), help="YYYY-MM-DD")
+    w.add_argument("--to", dest="end", type=date.fromisoformat, default=date(2018, 12, 31), help="YYYY-MM-DD")
+    w.set_defaults(func=cmd_nifty_warmup)
     g = sub.add_parser("groww-check", help="check the Groww data connection (prints no secrets)")
     g.set_defaults(func=cmd_groww_check)
 
