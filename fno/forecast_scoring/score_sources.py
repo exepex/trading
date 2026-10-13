@@ -16,10 +16,11 @@ import hashlib
 import json
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
+from ..forecast.iv30 import AtmIv30
 from ..forecast.record_files import read_records, read_records_v2
 from ..storage.raw_store import RawFileStore
 from .score_inputs import ScoredForecast, from_backfill, from_live
@@ -27,6 +28,7 @@ from .score_inputs import ScoredForecast, from_backfill, from_live
 RECEIPT = re.compile(r"receipt: (\d{4}-\d{2}-\d{2}) pack ([0-9a-f]{64}) records ([0-9a-f]{64})")
 CAPTURE_RUNS = "runs/forecast-capture"
 PACK_SUFFIX, RECORDS_SUFFIX = "_pack.json", "_forecasts.csv"
+INTERPOLATED, FLAGGED = "interpolated", "flagged"
 
 
 def backfill_forecasts(data: bytes, first_day: date) -> list[ScoredForecast]:
@@ -73,21 +75,24 @@ class NoReceipts(CaptureReceipts):
 
 @dataclass
 class LiveForecasts:
-    forecasts: list[ScoredForecast]
-    late: int  # records generated after their deadline (not scored)
-    unverified: list[str]  # days whose files do not match a receipt (not scored)
+    forecasts: list[ScoredForecast] = field(default_factory=list)
+    late: int = 0  # records generated after their deadline (not scored)
+    unverified: list[str] = field(default_factory=list)  # days whose files do not match a receipt (not scored)
+    packs: dict[date, str] = field(default_factory=dict)  # receipt-verified day -> its pack's SHA-256
+    pack_iv30: dict[date, AtmIv30 | None] = field(default_factory=dict)  # verified day -> the pack's 15:00 IV30
 
 
 def live_forecasts(folder: Path, receipts: CaptureReceipts) -> LiveForecasts:
-    out = LiveForecasts([], 0, [])
+    out = LiveForecasts()
     for records_path in sorted(folder.glob(f"*/*{RECORDS_SUFFIX}")):
         day = date.fromisoformat(records_path.name.removesuffix(RECORDS_SUFFIX))
         pack_path = records_path.with_name(f"{day.isoformat()}{PACK_SUFFIX}")
         receipt, text = receipts.receipt(day), records_path.read_text(encoding="utf-8")
-        if receipt is None or not pack_path.is_file() or receipt != Receipt(_sha256(pack_path.read_bytes()),
-                                                                            _sha256(text.encode("utf-8"))):  # fmt: skip
+        pack = pack_path.read_bytes() if pack_path.is_file() else None
+        if receipt is None or pack is None or receipt != Receipt(_sha256(pack), _sha256(text.encode("utf-8"))):
             out.unverified.append(day.isoformat())
             continue
+        out.packs[day], out.pack_iv30[day] = receipt.pack_sha256, pack_iv30(pack)
         for record in read_records_v2(text):
             scored = from_live(record)
             if scored is None:
@@ -95,6 +100,15 @@ def live_forecasts(folder: Path, receipts: CaptureReceipts) -> LiveForecasts:
             else:
                 out.forecasts.append(scored)
     return out
+
+
+def pack_iv30(pack: bytes) -> AtmIv30 | None:
+    """The pack's 15:00 IV30 (protocol v2 section 2), which live question 5 is scored against (response 69, item 7)."""
+    iv30 = json.loads(pack).get("iv30")
+    if not iv30 or iv30.get("status") not in (INTERPOLATED, FLAGGED):
+        return None
+    expiries = tuple(date.fromisoformat(e) for e in iv30.get("expiries", ()))
+    return AtmIv30(float(iv30["points"]), iv30["status"] == FLAGGED, expiries)
 
 
 def _sha256(data: bytes) -> str:

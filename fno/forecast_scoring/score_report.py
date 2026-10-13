@@ -10,10 +10,11 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import date
 
-from ..constants import BASELINE_BASE_RATE, BOOK1_RULES, FORECAST_QUESTIONS
+from ..ai.record_writer import ISOLATION as ISOLATION_LABEL
+from ..constants import AI_BOOKS, BASELINE_BASE_RATE, BOOK1_RULES, FORECAST_QUESTIONS
 from .scoring import ComparisonResult, ModeScores, QuestionScores
 
 SCHEMA = "forecast_scores/v1"
@@ -23,7 +24,7 @@ STANDING = (
 )
 NOT_YET = (
     "Descriptive only: no comparison is called significant before the first scheduled review, six months of "
-    "common-start trading of the compared books (design 12.8); Books 2 and 3 do not forecast yet."
+    "common-start trading of the compared books (design 12.8)."
 )
 QUESTION_WORDS = dict(zip(FORECAST_QUESTIONS, (
     "NIFTY up in 20 days", "NIFTY moves 3% in 20 days", "realised vol rises", "VIX up in 10 days",
@@ -38,6 +39,10 @@ class ReportContext:
     confirmatory_allowed: bool
     late_live_records: int
     unverified_live_days: tuple[str, ...]  # live days whose files do not match their capture receipt (not scored)
+    common_start: date | None = None  # first live day of all three books; coverage and the review clock start here
+    coverage: dict | None = None  # book -> {counted_days, pack_days} since the common start (story G5 criterion 3)
+    ai_isolation: dict[str, list[str]] = field(default_factory=dict)  # AI book -> isolation labels in its audits
+    unscored_ai_days: tuple[dict, ...] = ()  # {day, book, reason}: AI days never scored
 
 
 def _comparison(c: ComparisonResult, allowed: bool) -> dict:
@@ -66,6 +71,10 @@ def report_document(context: ReportContext, modes: Sequence[ModeScores]) -> dict
         "inputs": context.inputs,
         "late_live_records": context.late_live_records,
         "unverified_live_days": list(context.unverified_live_days),
+        "common_start": context.common_start.isoformat() if context.common_start else None,
+        "coverage": context.coverage,
+        "ai_isolation": {**dict.fromkeys(AI_BOOKS, [ISOLATION_LABEL]), **context.ai_isolation},
+        "unscored_ai_days": list(context.unscored_ai_days),
         "modes": [
             {
                 "mode": m.mode,
@@ -94,6 +103,7 @@ def weekly_summary(document: dict) -> list[str]:
         for q in FORECAST_QUESTIONS:
             c = by_key.get((q, BOOK1_RULES, BASELINE_BASE_RATE))
             lines.append(f"- {QUESTION_WORDS[q]}: {_difference_words(c)}")
+    lines += _coverage_lines(document)
     if not document["confirmatory_allowed"]:
         lines.append("Too early to tell: " + NOT_YET)
     if document["unverified_live_days"]:
@@ -101,6 +111,15 @@ def weekly_summary(document: dict) -> list[str]:
             f"Not scored (files differ from the capture receipt): {', '.join(document['unverified_live_days'])}"
         )
     return lines
+
+
+def _coverage_lines(document: dict) -> list[str]:
+    if not document["coverage"]:
+        return ["Live coverage: no common start yet"]
+    parts = [f"{book} {c['counted_days']} of {c['pack_days']}" for book, c in document["coverage"].items()]
+    isolation = "; ".join(f"{book}: {', '.join(labels)}" for book, labels in document["ai_isolation"].items())
+    return [f"Live coverage since {document['common_start']} (days with counted forecasts of session days): "
+            + ", ".join(parts), f"AI books' isolation: {isolation}"]  # fmt: skip
 
 
 def _difference_words(c: dict | None) -> str:
