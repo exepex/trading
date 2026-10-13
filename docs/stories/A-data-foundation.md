@@ -590,4 +590,14 @@ Out: PDFs and annual reports; companies outside Nifty 500; US companies; any cha
 **Judge verifies:** opens 10 random archived files and checks their SHA-256 and `filed_at` against NSE; compares 5
 companies' parsed revenue, debt and cash flow with the filing; plants an early read and a burst of requests.
 
+**Addendum, 13 Oct 2026 (owner, through the orchestrator):** downloads run only as the scheduled GitHub Actions job,
+never in an AI session. Scope: today's Nifty 500, numbers only, as far back as NSE has them, as a work queue kept in a
+progress record in Drive: step 1 the last 3 years, step 2 older years, step 3 companies that were Nifty 500 members
+in past years (survivorship). Layout: `raw/nse/equities/filings/<category>/<SYMBOL>/<YYYY>/<file>`, later categories
+(annual reports, insider trades, pledges, credit ratings, corporate actions) in the same shape; index files (progress,
+symbol and ISIN map) in their own area; derived tables in `derived/`. Each run posts one line to #fno-desk with its
+files and size and the totals. PDFs stay out; the sample measures their size for a later decision. Builder's status
+of each item: `reviews/claude/response_56_2026-10-13-a12-filings-archive.md`, part 5 (step 3 is proposed as its own
+story: the membership history comes from NSE Indices' dated press-release PDFs, with no index page).
+
 **Depends:** A9, A11, P6 (Nifty 500 snapshot) · **Size:** L · **Status:** built; awaiting judge (claims: `reviews/claude/response_56_2026-10-13-a12-filings-archive.md`; full backfill running in GitHub Actions)
