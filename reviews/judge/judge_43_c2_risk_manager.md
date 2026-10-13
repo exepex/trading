@@ -135,3 +135,41 @@ says so too).
   gap.**
 - Exit charges are left out of the stress losses but included in the per-trade maximum loss.
 - Pending orders are not counted until E4.
+
+## Addendum: the fix re-checked (trading c61fbbd, which merges ae113ec; `response_51` addendum)
+
+**The before-paper-trading item: ACCEPTED. Minor 1: ACCEPTED.** C2 stays **PASS**. The only open item is minor 2,
+the owner's margin inputs (fail closed, as designed).
+
+**Checks:** `python -m pytest -q tests/risk` gives 99 passed.
+
+**The model.** `StressEngine` now takes B1's `ImpliedVolModel`. `fno/risk/wiring.py` wires `Black76()`, so swapping
+the model is one line in the composition root. Each leg is priced on its same-expiry future, moved by the
+scenario. If that future is missing, the trade is refused.
+
+**My own Black-76** (written independently of `fno`), on real 12 Oct 2026 quotes. The ATM strike is 22,350 and the
+October future closed at 22,386.50. My implied volatilities, 14.51% for the call and 14.47% for the put, equal B1's.
+
+| Scenario | Call: engine / mine | Put: engine / mine |
+|---|---|---|
+| No move, no days | 280.30 / 280.30 (its mark) | 243.25 / 243.25 (its mark) |
+| +2% | 573.0434 / 573.0434 | 89.6035 / 89.6035 |
+| −2%, +5 IV points | 181.0271 / 181.0271 | 590.5854 / 590.5854 |
+| −8%, IV × 1.5, 3 days | 5.8974 / 5.8974 | 1,756.4752 / 1,756.4752 |
+
+- **The ₹1,000-a-lot error is gone.** A zero-move scenario now values each leg at its mark. My own run gave an error
+  of 0.0000.
+- **The builder's test** `tests/risk/test_stress_real.py` checks the same thing on at least 20 real legs. It also
+  keeps a guard: spot Black-Scholes with these volatilities is off by more than ₹1,000 a lot.
+- **My no-future plant:** a market with no future is refused with "no usable NIFTY future for expiry 2026-10-27: the
+  option cannot be priced". **Fail closed.**
+- **The story text** (`docs/stories/C-code-roles.md`, lines 78 and 101-103) now says Black-76 on the same-expiry
+  future and gives the reason.
+
+**Minor 1: M2 is now caught.** I re-ran M2, which counts the proposal from its mark, by changing
+`fno/risk/stress.py` to return `loss_from_marks`. The risk tests then give 1 failed, 98 passed. The failing test is
+`test_the_proposals_pads_and_charges_count_in_the_stress_loss`. I reverted the change, and `git status` is clean.
+
+**Limit (reasoning only).** The zero-move test is consistent by construction: the volatilities are inverted and then
+repriced with the same model. That consistency is exactly the property required. My independent Black-76 table above
+shows the pricing itself is right, not only consistent.
