@@ -9,6 +9,10 @@
 # day's canonical snapshot is in (at most until 15:13 IST), and generates the forecasts from the pack by 15:15 IST. The
 # receipt line (pack hash, records hash, generation time) is locked in this run's log and step summary; the Git push
 # after it is transport only.
+# Stories F1 and G5 (Hybrid and AI team): the pack alone is committed first, then each AI book's routine is fired with
+# its pointer; the books seal their answers on main by 15:15:00 IST (GitHub's push time) and reveal them after it. Book
+# 1's and the baselines' records are committed only after the collection (after 15:15), so no AI book can read them in
+# the repository before its own answer is sealed.
 name: forecast-capture
 
 on:
@@ -33,6 +37,11 @@ jobs:
       FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
+      FNO_ROUTINE_BOOK2_HYBRID_TRIGGER_ID: ${{ secrets.FNO_ROUTINE_BOOK2_HYBRID_TRIGGER_ID }}
+      FNO_ROUTINE_BOOK2_HYBRID_TOKEN: ${{ secrets.FNO_ROUTINE_BOOK2_HYBRID_TOKEN }}
+      FNO_ROUTINE_BOOK3_AI_TRIGGER_ID: ${{ secrets.FNO_ROUTINE_BOOK3_AI_TRIGGER_ID }}
+      FNO_ROUTINE_BOOK3_AI_TOKEN: ${{ secrets.FNO_ROUTINE_BOOK3_AI_TOKEN }}
+      GITHUB_TOKEN: ${{ github.token }} # reads GitHub's push log of main: the AI books' receipt times
     steps:
       - uses: actions/checkout@v4
         with:
@@ -65,15 +74,35 @@ jobs:
           set -o pipefail
           python -m fno forecast capture --run-id "${{ github.run_id }}-${{ github.run_attempt }}" | tee capture.log
           grep '^receipt: ' capture.log >> "$GITHUB_STEP_SUMMARY" || echo "no receipt: nothing recorded" >> "$GITHUB_STEP_SUMMARY"
-      - name: Commit the pack and records (transport; the receipt above is the lock)
+      - name: Commit the pack only (the AI books read it; the records wait until after 15:15)
         run: |
-          git add research/forecasts # the live folder does not exist before the first trading-day record
-          git diff --cached --quiet || git commit -m "G3 Actions: forecast v2 pack and records $(TZ=Asia/Kolkata date +%F)"
+          git add 'research/forecasts/live_v2/*/*_pack.json' # no pack on a closed day: nothing to commit
+          git diff --cached --quiet || git commit -m "G3 Actions: forecast v2 pack $(TZ=Asia/Kolkata date +%F)"
+          git pull --no-rebase --no-edit origin main && git push origin HEAD:main
+      - name: Fire the AI books' routines (F1, G5; one #fno-desk line per failure)
+        run: python -m fno ai fire | tee ai.log
+      - name: Wait for the AI books' reveals (after 15:15 IST, at most until 15:30 IST)
+        run: |
+          limit=$(TZ=Asia/Kolkata date -d 'today 15:30' +%s)
+          until python -m fno ai reveals-ready || (( $(TZ=Asia/Kolkata date +%s) >= limit )); do
+            sleep 20; git pull -q --no-rebase --no-edit origin main
+          done
+          git pull -q --no-rebase --no-edit origin main
+      - name: Collect the AI books' forecasts (GitHub's push times are the receipts)
+        run: |
+          set -o pipefail
+          python -m fno ai collect | tee -a ai.log
+          grep '^ai receipt: ' ai.log >> "$GITHUB_STEP_SUMMARY" || echo "no AI receipt: nothing collected" >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit the records (transport; the receipts above are the lock)
+        if: ${{ !cancelled() }}
+        run: |
+          git add research/forecasts # Book 1, the baselines, the AI books and the fire log
+          git diff --cached --quiet || git commit -m "G3/G5 Actions: forecast v2 records $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: One line to #fno-desk
         run: |
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
-            "$(head -n 1 capture.log)"
+            "$(head -n 1 capture.log; grep '^Omenix F&O AI' ai.log)"
       - name: Alert #fno-desk when the job itself failed
         if: ${{ failure() }}
         run: |

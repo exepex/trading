@@ -6,6 +6,7 @@ import argparse
 from datetime import date, timedelta
 from pathlib import Path
 
+from .ai.cli import add_ai_parser
 from .books.cli import add_account_parser
 from .config import ROOT, load_app_config
 from .filings.cli import add_filings_parser
@@ -190,6 +191,7 @@ def main(argv: list[str] | None = None) -> int:
     add_research_parser(sub)
     add_filings_parser(sub)
     add_pipeline_parser(sub)
+    add_ai_parser(sub)
     add_forecast_parser(sub)
     add_forecast_scores_parser(sub)
 

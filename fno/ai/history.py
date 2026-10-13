@@ -1,0 +1,16 @@
+"""The repository questions the collector asks (stories F1 and G5): on top of the research ledger's `Git`, which
+commit first added a file. A book's commitment counts as first published; a later rewrite of the file never changes
+its receipt."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from ..research_engine.ledger import Git
+
+
+@dataclass(frozen=True)
+class RepoHistory(Git):
+    def first_commit_adding(self, path: str) -> str | None:
+        found = self._run("log", "--format=%H", "--reverse", "--diff-filter=A", "--", path).stdout.split()
+        return found[0] if found else None

@@ -147,3 +147,12 @@ ENV_ROUTINE_DRY_RUN_TRIGGER_ID = "FNO_ROUTINE_DRY_RUN_TRIGGER_ID"
 ENV_ROUTINE_DRY_RUN_TOKEN = "FNO_ROUTINE_DRY_RUN_TOKEN"
 ROUTINE_DRY_RUN = "dry-run"  # the example reasoning routine: reads a pointer, writes a small derived summary
 PIPELINE_AREA, DERIVED_AREA = "pipeline", "derived"  # Drive areas beside raw/ and revisions/ (fno/storage/README.md)
+
+# Stories F1 and G5: the AI books' daily forecasts, one routine per book fired by the forecast-capture job
+AI_BOOKS = (BOOK2_HYBRID, BOOK3_AI)
+ENV_ROUTINE_BOOK2_TRIGGER_ID = "FNO_ROUTINE_BOOK2_HYBRID_TRIGGER_ID"
+ENV_ROUTINE_BOOK2_TOKEN = "FNO_ROUTINE_BOOK2_HYBRID_TOKEN"
+ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"
+ENV_ROUTINE_BOOK3_TOKEN = "FNO_ROUTINE_BOOK3_AI_TOKEN"
+ENV_GITHUB_TOKEN = "GITHUB_TOKEN"  # the Actions run's own token: reads the repository's push log (receipt times)
+GITHUB_REPOSITORY_VARIABLE = "GITHUB_REPOSITORY"  # owner/name, set by GitHub Actions (not a secret, so no ENV_ name)

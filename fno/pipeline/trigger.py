@@ -6,10 +6,9 @@ reason a person can act on; no message ever contains the token."""
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import Protocol
 
 import requests
-
-from .pointer import BatchPointer
 
 FIRE_URL = "https://api.anthropic.com/v1/claude_code/routines/{trigger_id}/fire"
 FIRE_HEADERS = {"anthropic-beta": "experimental-cc-routine-2026-04-01", "anthropic-version": "2023-06-01"}
@@ -23,6 +22,13 @@ NOT_REACHED = "routine API not reached ({error})"
 SESSION_FIELDS = ("claude_code_session_url", "claude_code_session_id")
 
 
+class FiredText(Protocol):
+    """What a routine is fired with: a pointer that writes itself as one line of text (O6's batch pointer, F1's book
+    pointer)."""
+
+    def to_text(self) -> str: ...
+
+
 class FireFailed(RuntimeError):
     """The routine was not started; the message says why (never containing a credential)."""
 
@@ -31,7 +37,7 @@ class RoutineTrigger(ABC):
     name: str = "routine"
 
     @abstractmethod
-    def fire(self, pointer: BatchPointer) -> str:
+    def fire(self, pointer: FiredText) -> str:
         """Starts one run with the pointer as its text; returns the run's link (empty if the API gave none)."""
 
 
@@ -40,7 +46,7 @@ class RoutineFireTrigger(RoutineTrigger):
         self.name, self._trigger_id, self._token = name, trigger_id, token
         self._session = session or requests.Session()
 
-    def fire(self, pointer: BatchPointer) -> str:
+    def fire(self, pointer: FiredText) -> str:
         headers = {**FIRE_HEADERS, "Authorization": f"Bearer {self._token}"}
         try:
             response = self._session.post(
@@ -74,5 +80,5 @@ class UnconfiguredTrigger(RoutineTrigger):
     def __init__(self, name: str, missing: tuple[str, ...]):
         self.name, self._missing = name, missing
 
-    def fire(self, pointer: BatchPointer) -> str:
+    def fire(self, pointer: FiredText) -> str:
         raise FireFailed(f"routine {self.name} not configured: add the secrets {', '.join(self._missing)}")
