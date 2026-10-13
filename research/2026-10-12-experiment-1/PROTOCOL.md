@@ -1,9 +1,13 @@
 # Experiment 1 protocol: protected sell vs protected buy vs no trade, on NIFTY monthly options
 
-Status: **version 2.2, agreed by Claude and ChatGPT** (ChatGPT review 28 section 1, 13 Oct 2026; Claude's check in
-`reviews/claude/response_60_2026-10-13-on-review-28.md`); **not yet frozen**: the judge checks this text first, then
-the freeze recipe (section 10) runs, before any challenge outcome is read. Version history: section 12. Freezing
-records the protocol commit and the hashes of the code, settings and calendars used. Design rules: `docs/DESK_DESIGN.md` sections 3.5, 5, 6 and 8. Engine stories: B1-B5.
+Status: **version 2.2, agreed by Claude and ChatGPT** (ChatGPT review 28 section 1 and review 29 section 1,
+13 Oct 2026; Claude's checks in responses 60 and 63). **Frozen** on 13 Oct 2026 by the orchestrator's decision after
+judge 53 (to stop further exposure): this text is final, and the `frozen at commit` line below names the commit that
+holds it. The judge re-checks the freeze, and ChatGPT reviews section 10's added disclosure, after it; any change to a
+rule from here on is post-hoc and means a new experiment. Version history: section 12. `FREEZE.md` records the
+hashes of the code, settings and calendars used. Design rules: `docs/DESK_DESIGN.md` sections 3.5, 5, 6 and 8.
+Engine stories: B1-B5.
+Freeze: frozen at commit `9d16431d5a9e1fdf1f0979de9cc5c605bfd34837` (13 Oct 2026; `FREEZE.md`).
 
 ## 1. Question
 Which entry-known conditions improve the net payoff of a fully protected NIFTY monthly trade, within the owner's
@@ -19,7 +23,8 @@ limits, compared with no trade, with the same trade taken every month, and with 
   day**: calendar year for "results by year" and the year-block bootstrap, Indian financial year (April-March) for the
   tax scenario.
 - What the challenge is: a **pre-registered historical holdout** of data not used to form these policies, with
-  limited pre-freeze predictor exposure (section 10). It is earlier in time than the discovery period, so it is not
+  pre-freeze exposure of predictors and of some forecast-target outcomes; rules fixed before any exposure (section
+  10). It is earlier in time than the discovery period, so it is not
   a forward test; anything that passes still needs forward paper trading (owner's paper gate). All features use only data available at each historical decision day.
 - What it is not: a test of the 15:00 desk. All prices are daily closes (**close-proxy**); a 15:00 version of any
   feature or fill is a different thing and needs its own forward evidence.
@@ -215,21 +220,38 @@ an assumption for comparison, not a verified tax liability.
     thresholds had been fixed.
     - File: added in commit `769fac7` (13 Oct 2026 14:24 UTC), SHA-256
       `dcb011864502dca2566ff168c6014187e17292d03a8f756a60c7fbab0f1355c5` (unchanged since).
-    - Order: the last rule-setting commit, the owner's F1 10-contract floor `ec2e9a5` (13 Oct 2026 12:43 UTC), came
-      before G1's first computation of these values for commit `f936156` (12:56 UTC) and before the file itself. The
-      policies P1-P8 and their thresholds were fixed in version 2.1 (12 Oct 2026). Later version 2.2 changes are
-      listing-date rules and conventions, not chosen from these values.
     - Views: while writing version 2.2, Claude printed the file's first four rows (1 to 4 Jan 2019, none a decision
-      day).
+      day). Judge 47 round 2 (about 14:35 UTC) printed golden rows for 24 Feb-12 Mar and 26 Mar-12 Apr 2021 and
+      published trailing RV20 on **12 Apr 2021, a challenge decision day (expiry 27 May 2021), = 21.8136** in
+      `reviews/judge/judge_47_g1_forecast_protocol.md`; IV30 of 22.85 for that day was printed in that session, not
+      committed.
+  - **G2's back-fill (story G2):** `research/forecasts/backfill/backfill_v1.csv.gz`, committed in `5632bfc`
+    (13 Oct 2026 16:30 UTC), SHA-256 `5b9d4306ff2977690f73ecdc8f56c1f8a107697f1bb892ab6290dcb5459faa58` (unchanged
+    since). It holds, for every day 2019-2026, the forecast baselines' and Book 1's probabilities for the forecast
+    questions Q1-Q5. Its base-rate columns are a rolling share of the last 750 resolved outcomes, so they step when a
+    target resolves and **reveal individual 2019-2023 Q1-Q5 outcomes**, i.e. whether NIFTY moved, whether it moved 3%
+    or more in 20 days (Q2), whether realised volatility rose. Q2 is close to a short condor's fate over its 2-3 week
+    hold. No one analysed these values for Experiment 1. It holds no option price, no P&L and no F1 as such. Views:
+    judge 53 printed 12 back-fill rows (Q2, risk-neutral and base rate, 1-7 Apr 2021); the base rate stepped on
+    5 Apr 2021, which reveals one early-March 2021 Q2 outcome.
+  - **Timing (commit times, UTC):** every rule that decides the challenge test was written by **12:44 on 13 Oct 2026**
+    (response 55, `bf73705`): P1-P8, thresholds and criteria (version 2.1, 12 Oct), the conventions (response 48,
+    09:56), the owner's 10-contract floor (`ec2e9a5`, 12:43). The first challenge-period derived values appeared at
+    **12:56** (`f936156`, G1's IV30 and RV20), the golden file at **14:24** (`769fac7`), the back-fill at **16:30**
+    (`5632bfc`). Version 2.2's text (`d37b78e`, 15:52) changes no P1-P8 rule, threshold or criterion beyond items
+    proposed by 12:44 (judge 53 diffed it); ChatGPT's section 3 wording (review 28) is a dates-only rule, coded at
+    13:34 (`d2949b8`) from listings only.
   - **Hard rule from now until the challenge run:** no Experiment-1 rule, F1 threshold, structure, policy, control or
-    pass criterion may be changed in response to any 2019-2023 golden value. A data or code correctness bug may be
-    fixed, but it must be disclosed and independently judged before the freeze. No one prints or analyses the golden
-    file's challenge-period values for Experiment 1 before the run; the committed file stays (deleting it would not
-    unsee it).
-  - **Label:** the final report describes 2019-2023 as a **historical holdout with limited pre-freeze predictor
-    exposure**, not a perfectly untouched or blinded holdout. A pass remains only a gate to forward paper trading.
-  - Otherwise no 2019-2023 option price, Experiment-1 feature value (F1, F2, F3 as such), option outcome or P&L was
-    computed or viewed.
+    pass criterion may be changed in response to any 2019-2023 golden or back-fill value; after this freeze any rule
+    change is post-hoc by definition. A data or code correctness bug may be
+    fixed, but it must be disclosed and independently judged. No one prints or analyses the golden file's or the
+    back-fill's challenge-period values for Experiment 1 before the run; the committed files stay (deleting them
+    would not unsee them).
+  - **Label:** the final report describes 2019-2023 as a **historical holdout with pre-freeze exposure of predictors
+    and of some forecast-target outcomes; rules fixed before any exposure**, not an untouched or blinded holdout. A
+    pass remains only a gate to forward paper trading.
+  - Otherwise no Experiment-1 F1, F2 or F3 decision-day series, policy action, 2019-2023 option price or option
+    outcome, trade P&L, control statistic or pass/fail result was computed or viewed.
 
 ## 11. Known limits (stated before results)
 - Daily closes, not 15:00 quotes; no bid-ask (the Rs 1 pad is an assumption until calibrated from A4 quotes).
@@ -253,4 +275,6 @@ an assumption for comparison, not a verified tax liability.
   windows opened before the panel); the reader revision of 30 Mar 2021 and the access record since 2.1 (section 10).
   Then, after ChatGPT review 29 section 1 (response 63): G1's golden-file disclosure in review 29's words, its
   commit and SHA-256, the order against the rule-setting commits, the hard rule until the run, and the final-report
-  label (section 10).
+  label (section 10). Then, after judge 53: G2's back-fill (`5632bfc`) and the judges' own views added, the timing
+  line, and the label changed to "historical holdout with pre-freeze exposure of predictors and of some
+  forecast-target outcomes; rules fixed before any exposure" (sections 2, 10). This is the frozen text.
