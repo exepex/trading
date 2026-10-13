@@ -509,3 +509,27 @@ and never to be opened by experiment code: the warm-up is index closes only).
 unfingerprinted file and confirms the result is not complete.
 
 **Depends:** A1, A9, B1 · **Size:** M · **Status:** built; awaiting judge
+
+---
+
+## A11. Revisions of NSE files (NSE rewrites a file after first publishing it)
+
+**Repository:** trading
+
+**Description:** As the data engineer and the statistician, I want every later version of an NSE file archived beside the
+first one, never over it, so that research can use exactly what was known at a decision time and publishing can use
+NSE's latest version.
+
+**Context and why:** P6 found (13 Oct 2026) that NSE rewrote `ind_close_all_12102026.csv` at 23:20 IST on 12 Oct, adding
+two indices; our archived copy is the earlier version. Raw files never change (A1). Orchestrator decision (owner may
+override): an append-only revisions area.
+
+**Acceptance criteria:**
+1. A later NSE version of an archived file is stored under a revisions area with the same path, a revision timestamp and
+   its SHA-256; the raw file is never overwritten (test).
+2. A point-in-time reader returns the version available at a given time; a latest reader returns the newest; both are
+   tested on the real 12 Oct 2026 index-close case (both versions archived, fingerprints recorded).
+3. A8's rewrite sweep stores what it finds as revisions instead of only reporting it.
+4. Coverage reports revisions per dataset; code size, lint, imports, tests pass.
+
+**Depends:** A1, A8, A9, A10 · **Size:** S · **Status:** later

@@ -22,7 +22,7 @@ ruff check fno tests tools && python tools/check_imports.py
 | `fno/risk/verdict.py` | `RiskRule` interface: `check(proposal, book, market) -> RiskVerdict(rule, ok, reason, numbers)` |
 | `fno/risk/rules.py` | `MaxLossPerTrade`, `MaxOpenTrades`, `StressLoss`, `ExposureLimit`, `MarginRoom` (one class each) |
 | `fno/risk/drawdown.py` | `DrawdownBrake` and the high-water mark with owner restarts |
-| `fno/risk/stress.py` | stress engine: full repricing with `fno.analytics.bs_price` |
+| `fno/risk/stress.py` | stress engine: full repricing through B1's `ImpliedVolModel` (Black-76 on the future; addendum) |
 | `fno/risk/margins.py` | `MarginTable` (margins.csv, 7-day fail-closed) and the two frozen stressed-margin methods |
 | `fno/risk/trade_costs.py` | `TradeCosts` interface; `SimulatorTradeCosts` reuses B2's `PositionCosts` (max loss, pads, charges) |
 | `fno/risk/inputs.py` | proposal, market snapshot, one book's view; input errors |
@@ -45,7 +45,7 @@ through E1's fills (charges by component); B2's `PositionCosts.max_loss` for the
 | 1 | Rs 9,999 passes, Rs 10,001 blocked with reason and numbers | `rules.py` `MaxLossPerTrade` | `test_rules.py::test_max_loss_per_trade_threshold` (9,999 / 10,000 pass; 10,000.01 / 10,001 blocked; numbers checked); end to end with B2's model: `test_manager.py` (1 lot Rs 3,354.54 passes, 4 lots Rs 12,851.77 blocked) |
 | 2 | 3 open trades: a fourth is blocked | `MaxOpenTrades` | `test_rules.py::test_max_open_trades_allows_a_third_and_blocks_a_fourth` |
 | 3 | Brake at 30,000 below the high blocks entries, open trades not closed, owner restart re-arms 30,000 below that day | `drawdown.py` | `test_drawdown.py` (all 7 tests), on real accounts `test_books.py::test_the_owners_restart_row_reopens_only_its_own_book` |
-| 4 | Open short fly + proposed short condor: per-scenario losses equal a hand computation; blocked above 30,000 | `stress.py`, `StressLoss` | `test_stress.py`: hand values in the module docstring and `HAND_VALUES` (e.g. NIFTY -8%: fly Rs 6,110 from marks, condor Rs 10,985 from entry, Rs 17,095 counted); 3 lots: Rs 39,065, blocked; Black-Scholes repricing checked against the textbook value 10.4506 |
+| 4 | Open short fly + proposed short condor: per-scenario losses equal a hand computation; blocked above 30,000 | `stress.py`, `StressLoss` | `test_stress.py`: hand values in the module docstring and `HAND_VALUES` (e.g. NIFTY -8%: fly Rs 6,110 from marks, condor Rs 10,985 from entry, Rs 17,095 counted); 3 lots: Rs 39,065, blocked; repricing checked against the textbook value 10.4506 (Black-76 on the forward) |
 | 5 | A proposal pushing the 2%-move loss above the setting is blocked | `ExposureLimit` | `test_rules.py::test_a_proposal_pushing_the_2pct_move_loss_above_the_setting_is_blocked` (alone Rs 6,500, with the open spread Rs 19,500 > 15,000) |
 | 6 | Every rule: just inside and just outside | all rules | max loss, open trades, brake (490,000.01 / 490,000.00), stress (17,095.00 / 17,094.99), exposure move and IV rise, margin room (44,850.00 / 44,850.01) |
 | 7 | Two books: a brake in one blocks only that one; stress never includes another book | `book_view.py`, `stress_positions` | `test_books.py` on real E1 accounts in a temporary journal (book 1 brake hit, book 2 open fly) |
@@ -94,8 +94,8 @@ limit) and borderline (the limit equal to the maximum loss passes, one paisa les
   a trade (C4/E4) must keep them; until then an open trade without terms refuses new trades in its book.
 - **Stale marks** are recorded in every decision but do not block here: design 9 makes stale data a no-new-trade
   condition, which is story C3's check. If C3 is not built before paper trading, this is a gap.
-- Stress repricing uses Black-Scholes on spot with each leg's given IV. If the snapshot's IV is not implied from the
-  same mid on the same model, a zero-move scenario shows a small non-zero loss; C3/E4 should supply consistent IVs.
+- Stress repricing uses B1's Black-76 (addendum). The snapshot's IVs must come from the same model and mids (C3/E4
+  supply them); with them, a zero-move scenario is neutral to under a paisa a lot on real quotes.
 - Stress losses leave out exit charges (the per-trade maximum loss includes them).
 - Pending orders are not counted as open trades; E4 adds them through `premium_reserved` and the open count.
 - Exposure limits (Rs 15,000 each) are design 8.1's proposed values, reasoning only, to be set from research.
@@ -109,3 +109,27 @@ limit) and borderline (the limit equal to the maximum loss passes, one paisa les
 - No `# fmt: skip` in the new code; constants in `fno/constants.py` (`OWNER_OVERRIDES_FILE`,
   `OVERRIDE_RESTART_BRAKE`, stressed-margin method names); every limit from `config.yaml`; no secrets; research data
   untouched by tests (conftest guard).
+
+## Addendum (judge 43: PASS, plus one fix before paper trading and minor 1)
+
+**Fix: stress and exposure now reprice with B1's Black-76 on the future.** I agree with judge 43, and the evidence
+reproduces: on 12 Oct 2026 the project's IVs are B1's Black-76 IVs, and pricing them on spot with Black-Scholes gave
+the ATM call about +Rs 1,000 a lot and the put about -Rs 1,000 a lot with no move (the guard test
+`test_spot_black_scholes_with_these_volatilities_would_be_off_by_about_rs_1000_a_lot` measures this). Root cause: two
+pricing models, one for the IVs and one for the repricing. Fix:
+- `StressEngine(model: ImpliedVolModel)` prices each leg with `model.price` on `model.underlying(spot, same-expiry
+  future)`, moved by the scenario's NIFTY move; a leg on its expiry day is worth its intrinsic value. `fno/risk/wiring.py`
+  wires `Black76()`, so swapping the model is one line.
+- `Market` carries the NIFTY futures by expiry; no usable same-expiry future means the leg cannot be priced and the
+  rule refuses the trade (fails closed; `test_a_leg_without_a_traded_future_fails_closed`).
+- New `tests/risk/test_stress_real.py`: on real 12 Oct 2026 quotes (Oct expiry, 300 points around ATM 22,350, every
+  traded call and put), a zero-move, zero-day scenario values every leg at its mark within one paisa a lot.
+- `test_the_forward_not_the_spot_is_what_moves_and_prices`; the textbook check now prices Black-76 on the forward
+  100 x e^0.05 (Black-76 on the forward S x e^rT equals Black-Scholes on S: 10.4506).
+- Story text (`docs/stories/C-code-roles.md`, C2) amended to say Black-76.
+
+**Minor 1, accepted:** `test_the_proposals_pads_and_charges_count_in_the_stress_loss` uses real charges and Rs 1 pads;
+the proposal's loss from entry exceeds its loss from its mark by more than the four pads, and a limit between the two
+refuses it, so counting the proposal from its mark (judge's break M2) now fails this test.
+
+Minor 2 (owner inputs: margins and the stressed-margin factor) is unchanged: it waits on the owner.
