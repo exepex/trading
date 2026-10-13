@@ -13,7 +13,12 @@ import tempfile
 from pathlib import Path
 
 SUPERUSER = "postgres"
-PLATFORM_SCHEMA = "create schema fno"
+PLATFORM = (  # on Azure, X1's platform SQL creates the schema and the roles, not the migrations
+    "create schema fno",
+    "create role fno_writer login",
+    "create role dashboard_app login",
+    "grant usage on schema fno to fno_writer, dashboard_app",
+)
 MIGRATIONS = Path(__file__).resolve().parents[2] / "db" / "fno" / "migrations"
 
 
@@ -76,6 +81,7 @@ class PostgresServer:
         import psycopg
 
         with psycopg.connect(self.url, autocommit=True) as connection:
-            connection.execute(PLATFORM_SCHEMA)  # on Azure, X1's platform SQL creates the schema, not the migrations
+            for statement in PLATFORM:
+                connection.execute(statement)
             for migration in sorted(MIGRATIONS.glob("*.sql")):
                 connection.execute(migration.read_text(encoding="utf-8"))

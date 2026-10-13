@@ -17,7 +17,6 @@ from pathlib import Path
 
 DAILY_DATASETS = ("fo-bhavcopy", "index-close", "cm-bhavcopy", "security-delivery")
 DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "symbol-change", "corporate-actions")
-FETCH_FAILED = "Omenix F&O market read models for {day}: NSE files not archived ({reason}); nothing published."
 
 
 def add_market_parser(subparsers) -> None:
@@ -46,28 +45,24 @@ def cmd_market(args) -> int:
 
 
 def _publish(args) -> int:
-    from ..composition import build_market_run, build_read_model_publisher
     from ..config import load_app_config
+    from .wiring import build_market_run
 
-    code, lines = build_market_run(load_app_config(), build_read_model_publisher(args.local)).run(args.day)
+    code, lines = build_market_run(load_app_config(), args.local).run(args.day)
     print("\n".join(lines))
     return code
 
 
 def _daily(args) -> int:
-    from ..composition import build_alert_sender
+    from ..config import load_app_config
     from ..models import now_ist
     from ..storage.wiring import build_session_calendar
+    from .wiring import build_market_run
 
     day = args.day or build_session_calendar().previous_session(now_ist().date())
-    problem = _archive_session(day)
-    if problem:
-        message = FETCH_FAILED.format(day=day, reason=problem)
-        print(message)
-        print(build_alert_sender().send(message))
-        return 1
-    args.day, args.local = day, None
-    return _publish(args)
+    code, lines = build_market_run(load_app_config()).run(day, prepare=_archive_session)
+    print("\n".join(lines))
+    return code
 
 
 def _archive_session(day: date) -> str | None:
@@ -107,7 +102,7 @@ def _archive_revisions(day: date) -> None:
 
 
 def _db_check(args) -> int:
-    from ..composition import build_database_check
+    from .wiring import build_database_check
 
     code, lines = build_database_check().run()
     print("\n".join(lines))
@@ -127,10 +122,10 @@ def _look_up(args) -> int:
 
 def _archive_own_lists(day: date) -> None:
     """Archives the own corporate-action list of each symbol with an unexplained jump in the session's window."""
-    from ..composition import build_session_rows_builder
     from ..config import load_app_config
     from ..storage.snapshot_source import CorporateActionsBySymbolSource
     from ..storage.wiring import build_own_list_taker
+    from .wiring import build_session_rows_builder
 
     symbols = build_session_rows_builder(load_app_config()).symbols_to_look_up(day)
     taker = build_own_list_taker()
@@ -140,9 +135,9 @@ def _archive_own_lists(day: date) -> None:
 
 
 def _compare(args) -> int:
-    from ..composition import build_market_blocks, build_pinned_contract, build_session_rows_builder
     from ..config import load_app_config
     from .contract_examples import compare
+    from .wiring import build_market_blocks, build_pinned_contract, build_session_rows_builder
 
     rows = build_session_rows_builder(load_app_config()).build(args.day)
     blocks = {b.page_key: b.build(rows) for b in build_market_blocks()}
@@ -156,8 +151,8 @@ def _compare(args) -> int:
 
 
 def _contract_check(args) -> int:
-    from ..composition import build_pinned_contract, build_published_contract
     from .contract import drift
+    from .wiring import build_pinned_contract, build_published_contract
 
     contract = build_pinned_contract()
     changed = contract.changed_files()

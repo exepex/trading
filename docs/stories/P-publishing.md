@@ -202,3 +202,83 @@ stock-tool fields, the paper books (P2).
 the published rows with the dashboard role.
 
 **Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** done: judge 49 PASS round 2 (13 Oct 2026); criterion 4 met (publish run 38438666957, dashboard-role read-back, response 50 addenda 4-5)
+
+---
+
+## P7. Run status for every publish run
+
+**Repository:** trading
+
+**Description:** As the owner, I want every publish run to leave a status row (started, finished, result, reason), so
+that when the dashboard shows F&O data as "stale" it can say why the run failed, not only what is missing.
+
+**Context and why:** Judge 57 (W2): "stale with the reason" names the missing data and when it was due, but not why a
+run failed, because no publisher writes a run-status table. P3 named `fno.run_status`; the W11 catalog lists it as the
+source of the dashboard's bell (W8). Orchestrator, 13 Oct 2026.
+
+**Scope.** In: the table (a migration the owner runs as `fno_owner`), one row per product and run written by the
+publish run at its start and its end, a fixed set of reason codes, the field list for the dashboard's read side.
+Out: the dashboard's read (a small W2 follow-up), the bell (W8).
+
+**Expected design:** `db/fno/migrations/002_run_status.sql`; a `RunStatusRecorder` interface with a Postgres adapter
+(same verified connection as the publisher) and a local one for tests; `MarketRun` records `running` at the start and
+`published`, `failed` (with a reason code) or `skipped` (not a session) at the end. A status write that fails never
+hides the run's own result.
+
+**Acceptance criteria:**
+1. A successful run leaves one row: `result = published`, `publication_id` set, `finished_at` after `started_at`.
+2. Each failure class gives its own reason code (archive, contract, schema, read-back, each database class); a test per
+   code.
+3. A closed day leaves `result = skipped`, `reason_code = not_a_session`.
+4. A second run of the same day adds its own row (one row per run), never changing an earlier one.
+5. The runtime role can insert, update and read rows but never delete them, and a finished row never changes; the
+   dashboard role can only read (grants in the migration, tested as each role).
+6. Size, lint, imports, tests pass.
+
+**Judge verifies:** runs the migration on a throwaway server, a successful and a failing run, and reads the rows.
+
+**Depends:** P6 · **Size:** S · **Status:** in progress
+
+---
+
+## P8. FII/DII cash-market flows for Markets 34
+
+**Repository:** trading
+
+**Description:** As the owner, I want NSE's daily FII/DII cash-market buy and sell values archived and shown in Markets
+34's "What did big investors do?".
+
+**Context and why:** Orchestrator, 13 Oct 2026. **Stopped before building (contract):** W11 has a contract for this
+block (`Flows`, endpoint `getFlows_india`), but its catalog assigns it to **publisher `stock`, status published**
+(`api/schemas/blocks-overview.yaml`: "the stock tool's flows (NSE FII/DII, provisional) and fpi (NSDL) records"). A
+second publisher for the same block would make two sources of truth. Needs a decision by the orchestrator or owner:
+either W11 moves the block to publisher `fno` (then this story builds the download and the block against it), or the
+block stays with the stock tool and only a raw archive here is wanted (research use), or nothing is built.
+
+**Status:** blocked: contract assigns the block to the stock tool (see response 66)
+
+---
+
+## P9. NIFTY option chain read models for screen 32
+
+**Repository:** trading
+
+**Description:** As the owner, I want the option chain screen (32) fed from NSE's daily F&O file, published by this
+repository, so that the signed-off screen shows real end-of-day chains.
+
+**Context and why:** W13 froze six India-only chain blocks for publisher exepex/trading (W11 contract 2.3,
+`api/schemas/blocks-chain.yaml` and `blocks-chain-history.yaml`, examples `api/examples/blocks-32.json`), "not
+published yet". The F&O file is already archived daily (A1, A9); the market run already publishes atomically (P6).
+
+**Scope.** In: the chain blocks W13 defines (underlying, expiries, rows, history, contract history, sources) built from
+the archived F&O and index files, validated against the pinned schemas, published in the same publication as P6's
+blocks (one pointer, one run, one status). Out: bid and ask, 3 pm quotes (not published yet, as the contract says).
+
+**Acceptance criteria:**
+1. For 12 Oct 2026 every built chain block equals the W13 example field by field, or each difference is traced to its
+   source.
+2. Every payload validates against the pinned schemas; a planted break fails the run.
+3. The chain pages publish in the same transaction as P6's, through the same publisher and run status.
+4. Size, lint, imports, tests pass.
+
+**Depends:** P6, P7, W13 · **Size:** M · **Status:** in progress

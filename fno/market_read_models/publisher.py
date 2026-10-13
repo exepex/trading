@@ -10,7 +10,12 @@ from .publication import Publication
 
 
 class PublishFailed(RuntimeError):
-    """Nothing of the publication became visible; the previous one is still current."""
+    """Nothing of the publication became visible; the previous one is still current. `failure_class` names a database
+    failure (db_errors), None for any other refusal."""
+
+    def __init__(self, message: str, failure_class: str | None = None):
+        super().__init__(message)
+        self.failure_class = failure_class
 
 
 class ReadModelPublisher(ABC):

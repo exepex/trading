@@ -1,10 +1,10 @@
 """Story P6, judge 49 minor 1: the comparison serves each W11 example from our stored table by its own query
 (`x-query`), with the contract's route semantics (filters, sorts, ties, pages), for every India block we publish."""
 
-from fno.composition import CONTRACT_FOLDER
 from fno.market_read_models.contract import PinnedContract
 from fno.market_read_models.contract_examples import compare, page_key, view
 from fno.market_read_models.screener_route import fno_page, stocks_page
+from fno.market_read_models.wiring import CONTRACT_FOLDER
 
 TABLE = {"as_of": "2026-10-12T10:00:00Z", "currency": "INR"}
 

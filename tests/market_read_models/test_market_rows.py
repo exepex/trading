@@ -173,8 +173,8 @@ def test_a_followed_stock_is_tagged_ours_after_the_nse_universes():
 
 
 def test_the_committed_followed_list_holds_the_stock_tools_20_india_companies_of_12_october():
-    from fno.composition import FOLLOWED_COMPANIES_FOLDER, build_pinned_contract
     from fno.market_read_models.followed import FollowedCompaniesFolder
+    from fno.market_read_models.wiring import FOLLOWED_COMPANIES_FOLDER, build_pinned_contract
 
     followed = FollowedCompaniesFolder(FOLLOWED_COMPANIES_FOLDER).on_or_before(DAY)
     assert followed.as_of == DAY and len(followed.companies) == 20
