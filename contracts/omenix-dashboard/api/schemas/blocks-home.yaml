@@ -1,0 +1,206 @@
+# Home's own sections (31-dashboard/notes.md rows 4-6): who trades, open trades, needs you, coming up, top news.
+# Each group, book and trade keeps its own figures; the only sum is the owner's per-group total (AGENTS.md, 13 Oct 2026).
+
+Groups:
+  type: object
+  description: >-
+    "Who trades" on stocks: one entry per approach (Rule-based, Hybrid, AI team) and the Baselines comparison line.
+    A group's total is the sum of that group's own strategies' paper results (strategy scope, accuracy view, forward
+    basis, all horizons; the AI team is one team, so its total is its own pick_rule record until it publishes its
+    strategies). Groups are never added together; the F&O book is the separate FnoBooks block. Empty state: `total`
+    null with `empty` saying why ("No hybrid stock strategy yet (planned).")
+  x-catalog: {publisher: stock, source: 'rm.strategies (scoreboard_row scope strategy; AI team scope pick_rule)', freshness: post-close run, story: K4-proposed, status: published}
+  x-element: [h31.who-trades]
+  required: [currency, groups, baselines]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    groups:
+      type: array
+      minItems: 3
+      maxItems: 3
+      items: {$ref: '#/components/schemas/StockGroup'}
+    baselines:
+      type: object
+      description: The comparison line (yardsticks to beat), its own total
+      required: [total, strategies]
+      properties:
+        total: {$ref: '#/components/schemas/GroupTotal'}
+        strategies:
+          type: array
+          items: {$ref: '#/components/schemas/StrategyResult'}
+StockGroup:
+  type: object
+  required: [family, total, strategies, empty]
+  properties:
+    family: {type: string, enum: [rule, hybrid, ai], x-unit: enum}
+    total:
+      oneOf: [{$ref: '#/components/schemas/GroupTotal'}, {type: 'null', x-unit: none}]
+    strategies:
+      type: array
+      description: "Each strategy's own result (the collapsed list); empty for the AI team until it publishes its strategies"
+      items: {$ref: '#/components/schemas/StrategyResult'}
+    empty: {type: ['string', 'null'], x-unit: text, description: The empty-state text when the group has no strategy yet}
+GroupTotal:
+  type: object
+  description: The owner's per-group total (the one allowed sum); `basis` says how it was formed
+  required: [net, trades, wins, with_trades, count, basis]
+  x-catalog: {source: 'sum of the group''s rm.strategies rows (block builder)', status: planned}
+  properties:
+    net: {type: number, x-unit: market currency, x-aggregate: group_total, x-notes: ['h31.who-trades:total.net@group', 'h31.who-trades:total.net@baselines'], description: 'Total paper profit or loss after costs of the group''s own strategies (green a profit, red a loss, with the sign)'}
+    trades: {type: integer, minimum: 0, x-unit: count, x-aggregate: group_total, x-notes: ['h31.who-trades:total.trades']}
+    wins: {type: integer, minimum: 0, x-unit: count, x-aggregate: group_total, x-notes: ['h31.who-trades:total.wins']}
+    with_trades: {type: integer, minimum: 0, x-unit: count, x-notes: ['h31.who-trades:total.with_trades'], description: Strategies with at least one settled trade}
+    count: {type: integer, minimum: 0, x-unit: count, description: Strategies in the group}
+    basis: {type: string, enum: [strategies_sum, team_record], x-unit: enum}
+StrategyResult:
+  type: object
+  required: [id, name, trades, wins, net]
+  properties:
+    id: {type: string, x-unit: id}
+    name: {type: string, x-unit: text}
+    trades: {type: integer, minimum: 0, x-unit: count}
+    wins: {type: integer, minimum: 0, x-unit: count}
+    net: {type: ['number', 'null'], x-unit: market currency, x-notes: ['h31.who-trades:net'], description: "This strategy's own profit after costs; null with no settled trade"}
+
+FnoBooks:
+  type: object
+  description: >-
+    The three F&O paper books (India only), each its own Rs 5 lakh account: Book 1 rule-based, Book 2 hybrid,
+    Book 3 AI team. Feeds the "F&O: total profit / loss" line of each group card (never added to the stock total) and
+    the order window's account list (books are listed, never tradable by hand)
+  x-catalog: {publisher: fno, source: "fno.pages_history pages 'risk' and 'scoreboard_b' (P1) over E1's paper accounts", freshness: '3 pm run and the post-close marks (NSE session calendar)', story: P1, status: planned}
+  x-element: [h31.who-trades]
+  required: [currency, books]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    books:
+      type: array
+      minItems: 3
+      maxItems: 3
+      items: {$ref: '#/components/schemas/FnoBook'}
+FnoBook:
+  type: object
+  required: [book, family, name, value, pnl, approved, limit_used, limit_max, as_of]
+  properties:
+    book: {type: integer, enum: [1, 2, 3], x-unit: book number}
+    family: {type: string, enum: [rule, hybrid, ai], x-unit: enum}
+    name: {type: string, x-unit: text, x-notes: ['s30.order-account:name@book']}
+    value: {type: number, x-unit: INR, x-price: true, x-aggregate: single_account, description: "The book's own account value (E1 marked equity)"}
+    pnl: {type: number, x-unit: INR, x-price: true, x-aggregate: single_account, x-notes: ['h31.who-trades:pnl'], description: "The book's own paper profit or loss (its total; never added to a stock total)"}
+    approved:
+      type: array
+      description: The book's approved strategies; empty means "no approved strategy yet"
+      items: {type: string, x-unit: text}
+    limit_used: {type: number, minimum: 0, x-unit: INR, description: "At risk now (C2's max_at_risk used)", x-catalog: {source: "fno.pages_history page 'risk'", story: C2}}
+    limit_max: {type: number, minimum: 0, x-unit: INR}
+    as_of: {type: string, format: date-time, x-unit: UTC time}
+
+StrategyTrades:
+  type: object
+  description: >-
+    The strategies' open paper trades (accuracy view), one row per trade; the screen groups them per stock and family
+    and shows P&L per trade, never summed. Empty state: `strategy_trades` empty ("Nothing open here")
+  x-catalog: {publisher: stock, source: 'rm.trades (OpenTrade, accuracy view)', freshness: 'intraday checks and the post-close run', story: K4-proposed, status: published}
+  x-element: [h31.trades-strategies]
+  required: [currency, strategy_trades]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    strategy_trades:
+      type: array
+      x-notes: ['h31.trades-strategies:strategy_trades']
+      items:
+        type: object
+        required: [id, family, strategy_id, strategy, horizon, qty, avg, unrealised, exit, amount, as_of]
+        properties:
+          id: {$ref: '#/components/schemas/InstrumentRef', x-notes: ['h31.trades-strategies:id']}
+          family: {type: string, enum: [rule, hybrid, ai, baseline], x-unit: enum, x-notes: ['h31.trades-strategies:family']}
+          strategy_id: {type: string, x-unit: id, x-notes: ['h31.trades-strategies:strategy_id'], description: 'A key, never shown on screen (see PickSignal.strategy_id)'}
+          strategy: {type: string, x-unit: text, x-notes: ['h31.trades-strategies:strategy']}
+          horizon: {$ref: '#/components/schemas/Horizon', x-unit: sessions (N+k), x-notes: ['h31.trades-strategies:horizon']}
+          qty: {type: number, x-unit: shares (negative = sold short), x-notes: ['h31.trades-strategies:qty']}
+          avg: {type: number, minimum: 0, x-unit: price (market currency), x-notes: ['h31.trades-strategies:avg'], x-catalog: {source: OpenTrade.entry_price}}
+          unrealised: {type: number, x-unit: market currency, x-price: true, x-notes: ['h31.trades-strategies:unrealised'], x-catalog: {source: OpenTrade.unrealised_pnl}}
+          exit: {type: string, format: date, x-unit: date, x-notes: ['h31.trades-strategies:exit'], x-catalog: {source: OpenTrade.exit_date}}
+          amount: {type: number, minimum: 0, x-unit: market currency, x-notes: ['h31.trades-strategies:amount']}
+          as_of: {type: string, format: date-time, x-unit: UTC time, description: The price the trade is marked to (OpenTrade.last_price_date)}
+
+Attention:
+  type: object
+  description: >-
+    "Needs you": the dashboard's rules over the stock tool's records (trades exiting today from open_trade.exit_date,
+    the post-close run not done from runs.post_close.next_at, a major event today from events.major, promotional or
+    rumour news on a tracked stock from news_item.status). Empty state: `attention` empty ("Nothing needs you")
+  x-catalog: {publisher: dashboard, source: 'dashboard rules over rm.trades, rm.status runs, the events block and rm.news', freshness: each run, story: W9, status: planned}
+  x-element: [h31.needs-you]
+  required: [attention]
+  properties:
+    attention:
+      type: array
+      x-notes: ['h31.needs-you:attention', 'h31.glance-needs:attention']
+      items:
+        type: object
+        required: [icon, tone, title, sub, inst]
+        properties:
+          icon: {type: string, x-unit: icon name, x-notes: ['h31.needs-you:icon']}
+          tone: {type: string, enum: [info, warn, primary, danger, success], x-unit: enum, x-notes: ['h31.needs-you:tone']}
+          title: {type: string, x-unit: text, x-notes: ['h31.needs-you:title']}
+          sub: {type: string, x-unit: text, x-notes: ['h31.needs-you:sub']}
+          inst: {type: ['string', 'null'], x-unit: id, x-notes: ['h31.needs-you:inst'], description: The instrument the item is about; null for market-wide items}
+
+Events:
+  type: object
+  description: >-
+    "Coming up": the market's scheduled events and the active companies' results from the session being predicted
+    onwards, as known at the cut-off. In the US, F&O expiries are absent. Empty state: `events` empty
+  x-catalog: {publisher: stock, source: 'calendar_event (config/events.yaml via core/calendar.market_events, the events kind, the market calendar)', freshness: daily (pre-open run), story: K4-proposed, status: planned}
+  x-element: [h31.coming-up]
+  required: [events]
+  properties:
+    events:
+      type: array
+      x-notes: ['h31.coming-up:events']
+      items:
+        type: object
+        required: [date, title, kind, major, inst]
+        properties:
+          date: {type: string, format: date, x-unit: date, x-notes: ['h31.coming-up:date', 'h34.coming-up:date']}
+          title: {type: string, x-unit: text, x-notes: ['h31.coming-up:title', 'h34.coming-up:name']}
+          kind:
+            type: string
+            enum: [rbi_policy, fomc, cpi, jobs_report, fno_expiry, weekly_expiry, opex, triple_witching, index_rebalance, budget, earnings, ex_dividend, filing, holiday]
+            x-unit: enum
+            x-notes: ['h31.coming-up:kind', 'h34.coming-up:type']
+            description: 'The display words are x-kind-labels; 34''s type "economy" is the group x-kind-groups.economy'
+            x-kind-labels: {rbi_policy: Policy, fomc: Fed, cpi: Inflation, jobs_report: Jobs data, fno_expiry: F&O expiry, weekly_expiry: Weekly expiry, opex: Options expiry, triple_witching: Triple witching, index_rebalance: Index change, budget: Budget, earnings: Results, ex_dividend: Ex-dividend, filing: Filing, holiday: Holiday}
+            x-kind-groups: {economy: [rbi_policy, fomc, cpi, jobs_report, budget], expiry: [fno_expiry, weekly_expiry, opex, triple_witching]}
+          major: {type: boolean, x-unit: yes/no, x-notes: ['h31.coming-up:major'], description: 'Open gap (W11): 34-markets'' events carry no major flag; until the stock tool publishes one it is derived from the regime record (an event named in major_event_names)'}
+          inst: {type: ['string', 'null'], x-unit: id, x-notes: ['h31.coming-up:inst', 'h34.coming-up:ticker']}
+
+TopNews:
+  type: object
+  description: "Top news from the news run, each with how far it is confirmed. Rumour and promotional items never support a call. Empty state: `news` empty"
+  x-catalog: {publisher: stock, source: 'rm.news (NewsItemRecord: title, source, status, first_seen_at, tickers)', freshness: news run, story: K4-proposed, status: published}
+  x-element: [h31.top-news]
+  required: [news]
+  properties:
+    news:
+      type: array
+      maxItems: 10
+      x-notes: ['h31.top-news:news']
+      items:
+        type: object
+        required: [title, src, status, at, tickers]
+        properties:
+          title: {type: string, x-unit: text, x-notes: ['h31.top-news:title']}
+          src: {type: string, x-unit: text, x-notes: ['h31.top-news:src'], description: The outlet}
+          status:
+            type: string
+            enum: [confirmed_primary, corroborated, single_source, unverified, rumour, promotional, contradicted, not_checked]
+            x-unit: enum
+            x-notes: ['h31.top-news:status']
+            description: Verification status; not_checked for an item verification has not reached yet
+          at: {type: string, format: date-time, x-unit: UTC time, x-notes: ['h31.top-news:at'], description: When the item was first stored (first_seen_at)}
+          tickers:
+            type: array
+            x-notes: ['h31.top-news:tickers']
+            items: {type: string, x-unit: ticker}

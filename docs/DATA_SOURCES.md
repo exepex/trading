@@ -11,6 +11,9 @@ re-added only through an approved story with point-in-time rules.
 | F&O daily file, current UDiFF format | `nsearchives.nseindia.com/content/fo/` (`fno/storage/raw_source.py`) | from 1 Jan 2024 | closing prices, OI, volumes per contract; no bid or ask |
 | F&O daily file, old format `foDDMONYYYYbhav.csv.zip` | `.../content/historical/DERIVATIVES/YYYY/MON/` | up to 5 Jul 2024 | reader proven identical to the new format on 128 overlap days (5,793,044 rows; `research/2026-10-12-legacy-format/`) |
 | Index closes `ind_close_all_DDMMYYYY.csv` (incl. India VIX) | `.../content/indices/` | 2017 on (2017-18 as warm-up only, story A10) | |
+| Capital-market file `BhavCopy_NSE_CM_0_0_0_YYYYMMDD_F_0000.csv.zip` (UDiFF) | `.../content/cm/` | archived from 1 Oct 2025 (story P6) | EQ and BE rows feed the screener |
+| Security-wise delivery `sec_bhavdata_full_DDMMYYYY.csv` | `.../products/content/` | archived from 1 Oct 2025 (P6) | delivery % |
+| Listed companies `EQUITY_L.csv`, Nifty 500 list `ind_nifty500list.csv` | `.../content/equities/`, `.../content/indices/` | one copy per day fetched, from 13 Oct 2026 (P6) | names and industries; replaced in place by NSE |
 | Participant-wise OI (FII, DII, pro, client) | `.../content/nsccl/fao_participant_oi_DDMMYYYY.csv` (`ParticipantOiSource`, parser `fno/research_data/participant_oi.py`) | every session 1 Jan 2019 to 12 Oct 2026 (1,929 files, checked 13 Oct 2026; SHA-256 in `tools/nse_raw_download/manifest_participant_oi.csv`) | published after the close; usable only from the next session's decision time until release times are measured (story A8, `research/data/participant_oi/`) |
 
 The owner downloads these once with `tools/nse_raw_download/` and keeps them on Google Drive (current format 690 files,

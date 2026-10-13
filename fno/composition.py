@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 from contextlib import contextmanager
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
@@ -16,7 +17,24 @@ from .alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
 from .books.account import AccountWriter, PaperAccount
 from .books.lock import DEFAULT_LEASE_SECONDS, AccountLock
 from .config import ROOT
-from .constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID, NIFTY_SYMBOL, STRESSED_MARGIN_MULTIPLIER
+from .constants import ENV_FNO_DB_URL, ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID, NIFTY_SYMBOL
+from .market_read_models.blocks import (
+    BlockBuilder,
+    FnoRowsBlock,
+    FnoSummaryBlock,
+    IndicesBlock,
+    ScreenerStocksBlock,
+    ScreenerSummaryBlock,
+    SectorsBlock,
+)
+from .market_read_models.contract import GitHubRawContract, PinnedContract, PublishedContract
+from .market_read_models.fno_rows import FnoRowBuilder
+from .market_read_models.local_publisher import LocalFolderPublisher
+from .market_read_models.market_run import MarketRun
+from .market_read_models.postgres_publisher import PostgresPublisher
+from .market_read_models.publication import PublicationBuilder
+from .market_read_models.publisher import ReadModelPublisher
+from .market_read_models.session_rows import SessionRowsBuilder
 from .providers import AUTO_PROVIDER, get_provider
 from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.recorder import QuoteSnapshotRecorder
@@ -35,7 +53,7 @@ from .research_engine.cycles import EXIT_MIN_DAYS, Cycle, TradingDays, cycle_row
 from .research_engine.event_features import ScheduledEventInWindow
 from .research_engine.experiments import Period
 from .research_engine.features import DecisionContext, Feature, ResearchData
-from .research_engine.implied_vol import Black76
+from .research_engine.implied_vol import Black76, SpotBlackScholes
 from .research_engine.ledger import Ledger
 from .research_engine.live_features import LiveAtmIvMinusRealised, LiveScheduledEventInWindow, LiveVixAboveMedian
 from .research_engine.live_validation import ValidationReport, validate
@@ -44,13 +62,6 @@ from .research_engine.simulator import CycleSimulator
 from .research_engine.structures import LongIronFly, ShortCondor, ShortIronFly, Structure
 from .research_engine.trial_guard import LedgerTrialGuard
 from .research_engine.volatility_features import AtmIvMinusRealised, VixAboveMedian
-from .risk.drawdown import DrawdownBrake
-from .risk.manager import RiskManager
-from .risk.margins import MarginTable, MultiplierMargin, ScenarioLookupMargin, StressedMargin
-from .risk.rules import ExposureLimit, MarginRoom, MaxLossPerTrade, MaxOpenTrades, StressLoss
-from .risk.settings import RiskSettings, risk_settings
-from .risk.stress import StressEngine
-from .risk.trade_costs import SimulatorTradeCosts
 from .storage.raw_source import ParticipantOiSource
 from .storage.wiring import (
     CALENDAR_FILE,
@@ -59,6 +70,7 @@ from .storage.wiring import (
     PARTICIPANT_OI_LAST_MODIFIED,
     PARTICIPANT_OI_RELEASE_LOG,
     PARTICIPANT_OI_SWEEPS,
+    build_drive_reader,
     build_nse_fo_library,
     build_nse_source,
     build_participant_oi_library,
@@ -249,26 +261,49 @@ def run_live_validation(cfg: dict, live_name: str, today: date) -> ValidationRep
     return validate(live, close, data, sessions, lambda day: validation_context(data, day))
 
 
-def build_stressed_margin(settings: RiskSettings) -> StressedMargin:
-    """The one stressed-margin method frozen in `risk.stressed_margin`."""
-    if settings.stressed_margin.method == STRESSED_MARGIN_MULTIPLIER:
-        return MultiplierMargin(
-            MarginTable(settings.margins_file, settings.margin_max_age_days), settings.stressed_margin
-        )
-    names = [scenario.name for scenario in settings.scenarios]
-    return ScenarioLookupMargin(settings.stressed_margin, names, settings.margin_max_age_days)
+CONTRACT_FOLDER = ROOT / "contracts" / "omenix-dashboard"  # the pinned W11 contract (story P6)
+DASHBOARD_REPOSITORY = "exepex/omenix-dashboard"
 
 
-def build_risk_manager(cfg: dict, root: Path = ROOT) -> RiskManager:
-    """Story C2: every owner limit and risk check from config.yaml `risk`, with B2's cost model for a trade's money."""
-    settings, costs, engine = risk_settings(cfg, root), SimulatorTradeCosts(cfg["charges"]), StressEngine()
-    stressed = build_stressed_margin(settings)
-    rules = (
-        MaxLossPerTrade(costs, settings.max_loss_per_trade_rs),
-        MaxOpenTrades(settings.max_open_trades),
-        DrawdownBrake(settings.drawdown_brake_rs),
-        StressLoss(engine, costs, settings.scenarios, settings.max_stress_loss_rs),
-        ExposureLimit(engine, settings.exposure),
-        MarginRoom(stressed, costs),
-    )
-    return RiskManager(rules, stressed.record())
+def build_market_blocks() -> list[BlockBuilder]:
+    """Story P6: the India blocks W11 assigns to publisher fno, in publication order."""
+    return [ScreenerSummaryBlock(), ScreenerStocksBlock(), FnoSummaryBlock(), FnoRowsBlock(), IndicesBlock(),
+            SectorsBlock()]  # fmt: skip
+
+
+def build_pinned_contract() -> PinnedContract:
+    return PinnedContract(CONTRACT_FOLDER)
+
+
+def build_published_contract() -> PublishedContract:
+    return GitHubRawContract(DASHBOARD_REPOSITORY)
+
+
+def build_read_model_publisher(local_folder: Path | None = None) -> ReadModelPublisher:
+    """A local folder when given (tests, dry runs), else the Azure fno schema with the publisher role's URL."""
+    if local_folder is not None:
+        return LocalFolderPublisher(local_folder)
+    url = os.environ.get(ENV_FNO_DB_URL)
+    if not url:
+        raise RuntimeError(f"set {ENV_FNO_DB_URL} (the fno publisher role's connection string) to publish to Azure")
+    return PostgresPublisher(url)
+
+
+def build_market_run(cfg: dict, publisher: ReadModelPublisher) -> MarketRun:
+    """Story P6's run: the archived NSE files in Drive, the pinned contract, the given publisher, #fno-desk alerts."""
+    contract = build_pinned_contract()
+    publications = PublicationBuilder(build_market_blocks(), contract, repository_commit())
+    rows = build_session_rows_builder(cfg)
+    return MarketRun(build_session_calendar(), contract, rows, publications, publisher, build_alert_sender())
+
+
+def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
+    """A session's rows from the archived NSE files in Drive (ATM IV: Black-Scholes on the spot, as W11's examples)."""
+    fno_rows = FnoRowBuilder(SpotBlackScholes(), cfg["risk_free_rate"])
+    return SessionRowsBuilder(build_drive_reader(), build_session_calendar(), fno_rows)
+
+
+def repository_commit() -> str:
+    """The commit of the code that builds (each publication names it)."""
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True)
+    return head.stdout.strip() or "unknown"

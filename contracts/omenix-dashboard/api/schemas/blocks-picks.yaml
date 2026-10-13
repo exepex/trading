@@ -1,0 +1,150 @@
+# Today's buy picks (30-shell/notes.md picks panel; 31-dashboard rows 1 and 3): the stock tool's picks and, in India only,
+# the F&O tool's state. Two publishers, two endpoints: the F&O one exists only under /markets/india/fno.
+
+Picks:
+  type: object
+  description: >-
+    The stock tool's head-to-head picks of the session being predicted (each approach's pick, at most one row per
+    company, approach and horizon), with agreement, the picking strategy's record on that company and the go-live
+    position. Empty state: `signals` empty and the screen says "No pick today"; `no_pick` names companies nobody buys
+  x-catalog: {publisher: stock, source: 'rm.home payload.head_to_head (kind head_to_head_picks)', freshness: 'pre-open run (02:10 UTC India, 11:45 UTC US)', story: K4-proposed, status: published}
+  x-element: [s30.picks-row, h31.picks-inline]
+  required: [currency, signals, no_pick, go_live]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    signals:
+      type: array
+      description: Best first (the first row is Home's top pick); 6 rows a page on screen
+      x-notes: ['s30.picks-row:signals', 'h31.glance-pick:signals']
+      items: {$ref: '#/components/schemas/PickSignal'}
+    no_pick:
+      type: array
+      description: Companies with status no_candidate (no strategy buys them today)
+      x-element: [s30.picks-nopick]
+      x-notes: ['s30.picks-nopick:no_pick']
+      items: {$ref: '#/components/schemas/InstrumentRef'}
+    go_live:
+      type: object
+      description: "The reference strategy's position against the go-live bar (\"Not proven yet · N trades to go\")"
+      x-element: [s30.picks-golive]
+      x-catalog: {source: 'rm.home payload.go_live (scoreboard go_live, your-cost view)', freshness: post-close run}
+      required: [proven, months_forward, trades_needed]
+      properties:
+        proven: {type: boolean, x-unit: yes/no, x-notes: ['s30.picks-golive:proven']}
+        months_forward: {type: number, minimum: 0, x-unit: months, x-notes: ['s30.picks-golive:months_forward']}
+        trades_needed: {type: integer, minimum: 0, x-unit: count, x-notes: ['s30.picks-golive:trades_needed']}
+PickSignal:
+  type: object
+  required: [id, family, strategy_id, strategy, pick_rules, horizon, prob_up, move_pct, loss_pct, costs_pct, exp_gain_pct, amount, agree, record]
+  properties:
+    id: {$ref: '#/components/schemas/InstrumentRef', x-notes: ['s30.picks-row:id', 'h31.glance-pick:id']}
+    family: {type: string, enum: [rule, ai], x-unit: enum, x-notes: ['s30.picks-row:family'], description: "rule or ai; a hybrid pick comes only from the F&O tool (FnoPicks)"}
+    strategy_id: {type: string, x-unit: id, x-notes: ['s30.picks-row:strategy_id'], description: "The stock tool's strategy id: a key, never shown on screen (some ids carry the name of the model the strategy was built with; the screen shows `strategy`)"}
+    strategy: {type: string, x-unit: text, x-notes: ['s30.picks-row:strategy'], description: Display name; never names an AI model}
+    pick_rules:
+      type: array
+      minItems: 1
+      x-notes: ['s30.picks-row:pick_rules']
+      items: {type: string, enum: [best_expected_gain, highest_probability], x-unit: enum}
+    horizon: {$ref: '#/components/schemas/Horizon', x-unit: sessions (N+k), x-notes: ['s30.picks-row:horizon']}
+    prob_up: {type: number, minimum: 0, maximum: 1, x-unit: probability 0-1, x-notes: ['s30.picks-row:prob_up']}
+    move_pct: {type: number, x-unit: percent points, x-notes: ['s30.picks-row:move_pct']}
+    loss_pct: {type: number, x-unit: percent points, x-notes: ['s30.picks-row:loss_pct']}
+    costs_pct: {type: number, x-unit: percent points, x-notes: ['s30.picks-row:costs_pct']}
+    exp_gain_pct: {type: number, x-unit: percent points, x-notes: ['s30.picks-row:exp_gain_pct', 's30.picks-yesno:exp_gain_pct', 'h31.glance-pick:exp_gain_pct'], description: 'After market costs: above 0 is Yes (green), else No (red), always with the number'}
+    amount: {type: number, x-unit: market currency, x-notes: ['s30.picks-row:amount'], description: Money per paper trade}
+    agree:
+      type: object
+      description: How many strategies buy this company at the pick's horizon
+      x-element: [s30.picks-agree]
+      x-catalog: {source: 'rm.home payload.agreement (Agreement, derived from today''s predictions)'}
+      required: [buy, of, by_family]
+      properties:
+        buy: {type: integer, minimum: 0, x-unit: count, x-notes: ['s30.picks-agree:agree.buy', 'h31.glance-pick:agree.buy']}
+        of: {type: integer, minimum: 0, x-unit: count, x-notes: ['s30.picks-agree:agree.of', 'h31.glance-pick:agree.of']}
+        by_family:
+          type: object
+          x-notes: ['s30.picks-agree:agree.by_family']
+          required: [rule, ai, baseline]
+          properties:
+            rule: {$ref: '#/components/schemas/BuyOf'}
+            ai: {$ref: '#/components/schemas/BuyOf'}
+            baseline: {$ref: '#/components/schemas/BuyOf'}
+    record:
+      type: object
+      description: "The picking strategy's settled record on this company (\"Record here\"); badge too_few_to_rank under 20 trades"
+      x-element: [s30.picks-record]
+      x-catalog: {source: 'rm.stock_strategies (scoreboard_row scope strategy_company, market-cost view)', freshness: post-close run}
+      required: [trades, win_rate, net_pnl, badge]
+      properties:
+        trades: {type: integer, minimum: 0, x-unit: count, x-notes: ['s30.picks-record:record.trades']}
+        win_rate: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, x-notes: ['s30.picks-record:record.win_rate']}
+        net_pnl: {type: ['number', 'null'], x-unit: market currency, x-notes: ['s30.picks-record:record.net_pnl'], description: "Profit after costs of this strategy's own settled trades on this company (one scoreboard row; nothing added across strategies)"}
+        badge: {type: ['string', 'null'], enum: [ok, too_few_to_rank, null], x-unit: enum, x-notes: ['s30.picks-record:record.badge']}
+BuyOf:
+  type: object
+  required: [buy, of]
+  properties:
+    buy: {type: integer, minimum: 0, x-unit: count}
+    of: {type: integer, minimum: 0, x-unit: count}
+
+FnoPicks:
+  type: object
+  description: >-
+    The F&O tool's 3 pm state for the picks panel (India only). While no F&O strategy has passed testing,
+    `fno_state.approved` is false, the note says so and `rows` is empty (the honest empty state). Rows appear only for
+    an approved book strategy; each opens its basket
+  x-catalog: {publisher: fno, source: "fno.pages_history page 'today' (P1): each book's decision record (D3) and approved-strategy flag", freshness: '3 pm run (NSE session calendar)', story: P1, status: planned}
+  x-element: [s30.picks-fno, h31.picks-inline]
+  required: [currency, fno_state, rows, baskets]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    fno_state:
+      type: object
+      required: [approved, note]
+      properties:
+        approved: {type: boolean, x-unit: yes/no, x-notes: ['s30.picks-fno:fno_state.approved']}
+        note: {type: string, x-unit: text, x-notes: ['s30.picks-fno:fno_state.note']}
+    rows:
+      type: array
+      items: {$ref: '#/components/schemas/FnoPickRow'}
+    baskets:
+      type: object
+      description: Each row's basket (its legs), keyed by basket id
+      additionalProperties: {$ref: '#/components/schemas/FnoBasket'}
+FnoPickRow:
+  type: object
+  required: [basket, family, strategy, name, pop, max_loss]
+  oneOf: [{required: [credit]}, {required: [debit]}]
+  properties:
+    basket: {type: string, x-unit: id, x-notes: ['s30.picks-fno:basket']}
+    family: {type: string, enum: [rule, hybrid, ai], x-unit: enum, description: 'Book 1 rule-based, Book 2 hybrid, Book 3 AI team'}
+    strategy: {type: string, x-unit: text}
+    name: {type: string, x-unit: text, x-notes: ['s30.picks-fno:name']}
+    pop: {type: number, minimum: 0, maximum: 100, x-unit: percent (risk-neutral probability of profit), x-notes: ['s30.picks-fno:pop']}
+    max_loss: {type: number, minimum: 0, x-unit: INR, x-notes: ['s30.picks-fno:max_loss']}
+    credit: {type: number, minimum: 0, x-unit: INR, x-notes: ['s30.picks-fno:credit']}
+    debit: {type: number, minimum: 0, x-unit: INR, x-notes: ['s30.picks-fno:debit']}
+FnoBasket:
+  type: object
+  required: [name, kind, width, pop, breakevens, margin_per_lot, legs]
+  x-element: [s30.picks-fno, s30.order-margin]
+  properties:
+    name: {type: string, x-unit: text}
+    kind: {type: string, enum: [credit, debit], x-unit: enum}
+    width: {type: number, minimum: 0, x-unit: index points}
+    pop: {type: number, minimum: 0, maximum: 100, x-unit: percent (risk-neutral probability of profit)}
+    breakevens:
+      type: array
+      items: {type: number, x-unit: index points}
+    margin_per_lot: {type: number, minimum: 0, x-unit: INR, x-notes: ['s30.order-margin:margin_per_lot'], x-catalog: {source: "the F&O tool's margin source (fno.pages_history page 'today')"}}
+    legs:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        required: [id, side, lots]
+        properties:
+          id: {$ref: '#/components/schemas/InstrumentRef'}
+          side: {type: string, enum: [buy, sell], x-unit: enum}
+          lots: {type: integer, minimum: 1, x-unit: lots}

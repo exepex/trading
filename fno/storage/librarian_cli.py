@@ -26,7 +26,7 @@ SOURCE_STOPPED = "stopped: {error}. Run the same command again later to resume (
 
 
 def add_librarian_parser(subparsers) -> None:
-    from .wiring import LIBRARIAN_DATASETS
+    from .wiring import LIBRARIAN_DATASETS, SNAPSHOT_DATASETS
 
     lib = subparsers.add_parser("data-librarian", help="upload a dataset's missing raw files to Drive (story A9)")
     lib.add_argument("dataset", choices=sorted(LIBRARIAN_DATASETS))
@@ -45,6 +45,10 @@ def add_librarian_parser(subparsers) -> None:
         help="YYYY-MM-DD (default: yesterday)",
     )
     lib.set_defaults(func=cmd_data_librarian)
+    snap = subparsers.add_parser("data-snapshot", help="archive today's copy of an NSE reference list (story P6)")
+    snap.add_argument("dataset", choices=sorted(SNAPSHOT_DATASETS))
+    snap.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD the copy is filed under (default: today, IST)")
+    snap.set_defaults(func=cmd_data_snapshot)
 
 
 def cmd_data_librarian(args) -> int:
@@ -54,6 +58,21 @@ def cmd_data_librarian(args) -> int:
     build = partial(build_librarian, args.dataset, log=print_now)
     recorder, what = build_manifest_recorder(), f"data-librarian {args.dataset}"
     return run_librarian(build, build_alert_sender(), recorder, what, args.start, args.end)
+
+
+def cmd_data_snapshot(args) -> int:
+    from ..models import now_ist
+    from .wiring import build_manifest_recorder, build_snapshot_taker
+
+    recorder = build_manifest_recorder()
+    try:
+        print(build_snapshot_taker(args.dataset).take(args.day or now_ist().date()))
+        return 0
+    except (RawSourceUnavailable, ValueError) as exc:
+        print(f"NOT archived: {exc}")
+        return 1
+    finally:
+        print(recorder.commit(f"data-snapshot {args.dataset}"))
 
 
 def print_now(line: str) -> None:

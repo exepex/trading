@@ -5,10 +5,10 @@ from datetime import timedelta
 
 import pytest
 
-from fno.composition import build_risk_manager
 from fno.config import load_app_config
 from fno.risk.manager import RiskManager
 from fno.risk.verdict import RiskRule
+from fno.risk.wiring import build_risk_manager
 
 from .builders import DAY, FLY, book, market, open_trade, proposal, short_fly
 

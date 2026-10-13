@@ -1,0 +1,140 @@
+# The one search box and the hover card / quick view (30-shell/notes.md "App bar" Search, "Hover card, quick view",
+# order window price basis and refusal). Stock tool for stocks, indices, strategies and news; F&O tool for contracts
+# (India only); the pages list is the dashboard's static navigation (no endpoint).
+
+Search:
+  type: object
+  description: >-
+    Matches for `q` in the stock tool's records, best first. Empty state: every list empty ("No match"); the screen
+    still lists matching pages from its own navigation
+  x-catalog: {publisher: stock, source: 'rm.blocks search index (rm.companies + rm.status levels + config/strategies.yaml + rm.news)', freshness: "each stock run (prices: the post-close run)", story: K4-proposed, status: published}
+  x-element: [s30.search]
+  required: [q, currency, instruments, strategies, news]
+  properties:
+    q: {type: string, x-unit: text, description: The query as received}
+    currency: {$ref: '#/components/schemas/Currency'}
+    instruments:
+      type: array
+      maxItems: 20
+      items:
+        type: object
+        required: [id, sym, name, code, kind, last, chg_pct, as_of, source, state]
+        x-catalog: {source: 'rm.companies (CompanyRecord) and rm.status (LevelBlock)'}
+        properties:
+          id: {$ref: '#/components/schemas/InstrumentRef', x-notes: ['s30.search:instrument.id']}
+          sym: {type: string, x-unit: text, x-notes: ['s30.search:instrument.sym']}
+          name: {type: string, x-unit: text, x-notes: ['s30.search:instrument.name']}
+          code: {type: string, x-unit: exchange symbol, x-notes: ['s30.search:instrument.code']}
+          kind: {type: string, enum: [stock, index], x-unit: enum, x-notes: ['s30.search:instrument.kind'], description: 'Futures and options come only from FnoSearch (India)'}
+          last: {type: number, x-unit: price (market currency), x-price: true, x-notes: ['s30.search:instrument.last']}
+          chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.search:instrument.chg_pct']}
+          as_of: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.search:instrument.as_of']}
+          source: {$ref: '#/components/schemas/PriceSource', x-notes: ['s30.search:instrument.source']}
+          state: {type: string, enum: [active, inactive], x-unit: enum, description: 'inactive: no longer tracked; its price is its last recorded close'}
+    strategies:
+      type: array
+      maxItems: 20
+      items:
+        type: object
+        required: [id, name, family]
+        x-catalog: {source: 'config/strategies.yaml registry (Strategy: id, name, family)', freshness: on registry change}
+        properties:
+          id: {type: string, x-unit: id, x-notes: ['s30.search:strategy.id']}
+          name: {type: string, x-unit: text, x-notes: ['s30.search:strategy.name'], description: Never names an AI model}
+          family: {type: string, enum: [rule, hybrid, ai, baseline], x-unit: enum}
+    news:
+      type: array
+      maxItems: 20
+      items:
+        type: object
+        required: [title, source, tickers]
+        x-catalog: {source: 'rm.news (NewsItemRecord title, source, tickers)', freshness: news run}
+        properties:
+          title: {type: string, x-unit: text, x-notes: ['s30.search:news.title']}
+          source: {type: string, x-unit: text, x-notes: ['s30.search:news.source'], description: The outlet}
+          tickers:
+            type: array
+            x-notes: ['s30.search:news.tickers']
+            items: {type: string, x-unit: ticker or "market"}
+
+FnoSearch:
+  type: object
+  description: "Matches for `q` among NIFTY futures and options by words (\"nifty 22800 call\") or NSE code (NIFTY26OCT22800CE). India only. Empty state: `contracts` empty"
+  x-catalog: {publisher: fno, source: "fno.pages_history page 'contracts' (proposed P1 page: the contract list of A3's option-chain panel with A5's expiry identity)", freshness: 'NSE end-of-day file and the 3 pm snapshot', story: P1-extension-proposed, status: planned}
+  x-element: [s30.search]
+  required: [q, currency, contracts]
+  properties:
+    q: {type: string, x-unit: text}
+    currency: {$ref: '#/components/schemas/Currency'}
+    contracts:
+      type: array
+      maxItems: 20
+      items:
+        type: object
+        required: [id, sym, name, code, kind, underlying, lot, last, chg_pct, as_of, source]
+        properties:
+          id: {$ref: '#/components/schemas/InstrumentRef', x-notes: ['s30.search:contract.id']}
+          sym: {type: string, x-unit: text, x-notes: ['s30.search:contract.sym']}
+          name: {type: string, x-unit: text, x-notes: ['s30.search:contract.name']}
+          code: {type: string, x-unit: NSE trading symbol, x-notes: ['s30.search:contract.code']}
+          kind: {type: string, enum: [future, option], x-unit: enum, x-notes: ['s30.search:contract.kind']}
+          underlying: {type: string, x-unit: text}
+          lot: {type: integer, minimum: 1, x-unit: units per lot}
+          last: {type: number, x-unit: INR, x-price: true, x-notes: ['s30.search:contract.last']}
+          chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.search:contract.chg_pct']}
+          as_of: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.search:contract.as_of']}
+          source: {$ref: '#/components/schemas/PriceSource', x-notes: ['s30.search:contract.source']}
+
+Instrument:
+  type: object
+  description: One stock or index for the hover card, the quick view and the order window's price basis
+  x-catalog: {publisher: stock, source: 'rm.companies (CompanyRecord last_close, change_pct) and rm.bars (the last 30 daily closes)', freshness: "the stock tool's post-close run", story: K4-proposed, status: published}
+  x-element: [s30.hover]
+  required: [id, sym, name, code, kind, currency, last, chg_pct, as_of, source, state, spark, note]
+  properties:
+    id: {$ref: '#/components/schemas/InstrumentRef'}
+    sym: {type: string, x-unit: text}
+    name: {type: string, x-unit: text}
+    code: {type: string, x-unit: exchange symbol}
+    kind: {type: string, enum: [stock, index], x-unit: enum}
+    currency: {$ref: '#/components/schemas/Currency'}
+    last: {type: number, x-unit: price (market currency), x-price: true, x-notes: ['s30.hover:stock.last', 's30.order-price:last']}
+    chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.hover:stock.chg_pct']}
+    as_of: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.hover:stock.as_of', 's30.order-price:as_of']}
+    source: {$ref: '#/components/schemas/PriceSource', x-notes: ['s30.hover:stock.source']}
+    state: {type: string, enum: [active, inactive], x-unit: enum}
+    spark:
+      type: ['array', 'null']
+      description: The last 30 daily closes, oldest first, the newest being `last` at `as_of`; null when not tracked
+      x-price: true
+      x-notes: ['s30.hover:spark']
+      x-catalog: {source: rm.bars (close)}
+      items: {type: number, x-unit: price (market currency)}
+    note: {type: ['string', 'null'], x-unit: text, description: 'Why a value is old or missing (e.g. no longer tracked)'}
+
+FnoContract:
+  type: object
+  description: >-
+    One NIFTY future or option (India only): its last recorded price and, from the 3 pm snapshot, best bid, ask and
+    implied volatility. A contract is executable in the order window only when `source` is snap3pm and bid and ask
+    are present (the dashboard's refusal rule over these fields)
+  x-catalog: {publisher: fno, source: "fno.pages_history page 'quotes' (proposed P1 page: A4's canonical 3 pm snapshot, A2's end-of-day reader)", freshness: '3 pm snapshot (26 h) or NSE end-of-day file (78 h)', story: P1-extension-proposed, status: planned}
+  x-element: [s30.hover]
+  required: [id, sym, name, code, kind, underlying, lot, currency, last, chg_pct, bid, ask, iv, as_of, source, note]
+  properties:
+    id: {$ref: '#/components/schemas/InstrumentRef'}
+    sym: {type: string, x-unit: text}
+    name: {type: string, x-unit: text}
+    code: {type: string, x-unit: NSE trading symbol}
+    kind: {type: string, enum: [future, option], x-unit: enum}
+    underlying: {type: string, x-unit: text}
+    lot: {type: integer, minimum: 1, x-unit: units per lot}
+    currency: {$ref: '#/components/schemas/Currency'}
+    last: {type: number, x-unit: INR, x-price: true, x-notes: ['s30.hover:contract.last']}
+    chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.hover:contract.chg_pct']}
+    bid: {type: ['number', 'null'], x-unit: INR, x-price: true, x-notes: ['s30.hover:bid', 's30.order-price:bid', 's30.order-refusal:bid'], description: Best bid of the 3 pm snapshot; null without one}
+    ask: {type: ['number', 'null'], x-unit: INR, x-price: true, x-notes: ['s30.hover:ask', 's30.order-price:ask', 's30.order-refusal:ask']}
+    iv: {type: ['number', 'null'], x-unit: percent points (annualised), x-notes: ['s30.hover:iv']}
+    as_of: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.hover:contract.as_of']}
+    source: {$ref: '#/components/schemas/PriceSource', x-notes: ['s30.hover:contract.source', 's30.order-refusal:source']}
+    note: {type: ['string', 'null'], x-unit: text}

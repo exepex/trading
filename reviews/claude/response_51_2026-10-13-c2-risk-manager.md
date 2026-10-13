@@ -1,7 +1,7 @@
 # Response 51: C2 risk manager, builder's claims for the judge
 
-Story: `docs/stories/C-code-roles.md` section C2 (issue #38). Package `fno/risk/`, wired in `fno/composition.py`
-(`build_risk_manager`), settings in `config.yaml` `risk` (now in `ALLOWED_APP_KEYS`). Tests: `tests/risk/` (94 tests).
+Story: `docs/stories/C-code-roles.md` section C2 (issue #38). Package `fno/risk/`, wired in its own composition
+root `fno/risk/wiring.py` (`build_risk_manager`), settings in `config.yaml` `risk` (now in `ALLOWED_APP_KEYS`). Tests: `tests/risk/` (94 tests).
 
 **Verdict first:** every acceptance criterion has code and a test; the desk cannot open any paper trade yet, on
 purpose, because no margin and no stressed-margin factor have been entered (owner input, below). Strong evidence for
@@ -30,6 +30,7 @@ ruff check fno tests tools && python tools/check_imports.py
 | `fno/risk/overrides.py` | reads `journal/<book>/owner_overrides.csv` through the E1 book-path firewall |
 | `fno/risk/manager.py` | runs every rule; any unusable input refuses the trade; the decision record |
 | `fno/risk/settings.py` | reads and checks the `risk` block; a missing limit is an error, never a default |
+| `fno/risk/wiring.py` | composition root: picks the rules, B2 cost model and stressed-margin method |
 
 Reuse (as asked): E1 for cash, closed and marked equity and available cash (`fno/books/equity.py`, unchanged); C1
 through E1's fills (charges by component); B2's `PositionCosts.max_loss` for the per-trade maximum loss (test
@@ -101,6 +102,10 @@ limit) and borderline (the limit equal to the maximum loss passes, one paisa les
 
 ## Project rules
 
-Files 30-170 lines (`fno/composition.py` 274); no `# fmt: skip` in the new code; constants in `fno/constants.py`
-(`OWNER_OVERRIDES_FILE`, `OVERRIDE_RESTART_BRAKE`, stressed-margin method names); every limit from `config.yaml`;
-wiring only in `fno/composition.py`; no secrets; research data untouched by tests (conftest guard).
+- Files 20-170 lines. **`fno/composition.py` is not changed by C2:** merged with the parallel P6 work it would have
+  been 347 of 350 lines, so the risk wiring is a third composition root, `fno/risk/wiring.py` (the pattern of
+  `fno/storage/wiring.py`), and CLAUDE.md's list of composition roots names it. Please check this choice.
+  `fno/composition.py` is at 314 lines after P6: the next story that adds to it should split it by area.
+- No `# fmt: skip` in the new code; constants in `fno/constants.py` (`OWNER_OVERRIDES_FILE`,
+  `OVERRIDE_RESTART_BRAKE`, stressed-margin method names); every limit from `config.yaml`; no secrets; research data
+  untouched by tests (conftest guard).

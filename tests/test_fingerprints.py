@@ -100,5 +100,7 @@ def test_a_live_file_that_differs_is_reported_as_an_nse_rewrite_and_the_archive_
 def test_every_raw_dataset_has_a_committed_manifest_in_one_folder():
     manifests = build_manifest_folder()
     for dataset in coverage_datasets():
-        assert manifests.path_for(dataset.source).is_file() and len(dataset.fingerprints) > 600, dataset.source
+        assert manifests.path_for(dataset.source).is_file() and len(dataset.fingerprints) >= 250, (
+            dataset.source
+        )  # a year+
     assert all(f.url.startswith("https://nsearchives.nseindia.com/") for f in manifests.read(NseDailyFoSource))
