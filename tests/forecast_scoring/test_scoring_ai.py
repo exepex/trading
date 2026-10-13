@@ -11,9 +11,9 @@ import pytest
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, FORECAST_Q5_RV_BELOW_IV
 from fno.forecast.iv30 import AtmIv30
 from fno.forecast_scoring.coverage import book_coverage
+from fno.forecast_scoring.q5_thresholds import pack_iv30
 from fno.forecast_scoring.score_inputs import CLOSE_PROXY, LIVE, ScoredForecast
 from fno.forecast_scoring.score_report import ReportContext, report_document, weekly_summary
-from fno.forecast_scoring.score_sources import pack_iv30
 from fno.forecast_scoring.scoring import ForecastScorer
 from tests.forecast_scoring.scoring_fixtures import FIRST, horizon_day, outcomes
 

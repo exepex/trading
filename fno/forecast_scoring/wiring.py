@@ -31,9 +31,9 @@ from ..storage.raw_store import AreaStore, LocalFolderStore
 from ..storage.wiring import PANEL_FOLDER, build_session_calendar
 from .ai_sources import ai_forecasts
 from .coverage import book_coverage
+from .q5_thresholds import mode_resolvers
 from .replay import LiveReplay
-from .resolution import OfficialOutcomes, panel_iv30
-from .score_inputs import CLOSE_PROXY, LIVE
+from .resolution import panel_iv30
 from .score_report import ReportContext, report_document
 from .score_sources import CaptureReceipts, NoReceipts, RunSummaryReceipts, backfill_forecasts, live_forecasts
 from .scoring import ForecastScorer
@@ -78,11 +78,7 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
     history = build_forecast_history(cfg, list(range(HISTORY_START.year, as_of.year + 1)))
     closes, calendar = CommittedClosesFile(CLOSES_FILE).closes(), build_session_calendar()
     live = live_forecasts(root / LIVE_FOLDER, receipts)
-    resolvers = {  # question 5: history against the panel's close IV30, live against its own 15:00 pack IV30
-        CLOSE_PROXY: OfficialOutcomes(closes, calendar, as_of, panel_iv30(history), history.horizon_day),
-        LIVE: OfficialOutcomes(closes, calendar, as_of, lambda day: (True, live.pack_iv30.get(day)),
-                               history.horizon_day),
-    }  # fmt: skip
+    resolvers = mode_resolvers(closes, calendar, as_of, panel_iv30(history), live.pack_iv30, history.horizon_day)
     ai = ai_forecasts(root, live.packs, as_of)
     backfill = backfill_forecasts((root / BACKFILL_FILE).read_bytes(), HISTORY_START)
     scored = [f for f in backfill + live.forecasts + ai.forecasts if f.day <= as_of]

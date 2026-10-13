@@ -1,9 +1,10 @@
 -- The fno schema's run-status table (story P7; P3 named it; the W11 catalog's source for the dashboard's bell, W8).
 -- One row per product and publish run, written by the runtime publisher role: `running` at the start, then
--- `published`, `failed` (with a reason code) or `skipped` (not a session) at the end; a finished row never changes
--- (trigger below). Rows are never deleted; a run
+-- `published`, `failed` (with a reason code) or `skipped` (not a session) at the end; a row is born running and once
+-- finished never changes (trigger below). Rows are never deleted; a run
 -- that crashed without finishing stays `running` (the dashboard treats a `running` row older than the run's time limit
--- as a run that did not report). Run by the migration role (fno_owner), like 001.
+-- as a run that did not report). Run by the migration role (fno_owner), like 001. Also narrows the runtime role's
+-- rights on 001's tables (privileges at the end).
 
 create table if not exists fno.run_status (
     product         text        not null,
@@ -26,21 +27,40 @@ create table if not exists fno.run_status (
 
 create index if not exists run_status_latest on fno.run_status (product, started_at desc);
 
--- A finished run never changes (judge 59): the runtime role may update a row only while it is `running`, so no bug,
--- reused run ID or manual command can turn a recorded failure into a success, or the reverse.
-create or replace function fno.run_status_finished_never_changes() returns trigger language plpgsql as $$
+-- A run is born `running`, keeps its identity, and once finished never changes (judge 59, addendum 1): no bug, reused
+-- run ID or manual command under the runtime role can record a success that never ran, or turn a recorded failure into
+-- a success, or the reverse.
+create or replace function fno.run_status_guard() returns trigger language plpgsql as $$
 begin
-    if old.result <> 'running' then
+    if tg_op = 'INSERT' then
+        if new.result <> 'running' or new.finished_at is not null or new.reason_code is not null
+           or new.reason is not null or new.publication_id is not null then
+            raise exception 'fno.run_status: run % must be recorded as running first', new.run_id
+                using errcode = 'restrict_violation';
+        end if;
+    elsif old.result <> 'running' then
         raise exception 'fno.run_status: run % finished as %; a finished run never changes', old.run_id, old.result
+            using errcode = 'restrict_violation';
+    elsif (new.product, new.run_id, new.session, new.started_at)
+          is distinct from (old.product, old.run_id, old.session, old.started_at) then
+        raise exception 'fno.run_status: run % keeps its product, ID, session and start', old.run_id
             using errcode = 'restrict_violation';
     end if;
     return new;
 end
 $$;
 
-drop trigger if exists run_status_finished_never_changes on fno.run_status;
-create trigger run_status_finished_never_changes before update on fno.run_status
-    for each row execute function fno.run_status_finished_never_changes();
+drop trigger if exists run_status_guard on fno.run_status;
+create trigger run_status_guard before insert or update on fno.run_status
+    for each row execute function fno.run_status_guard();
 
-grant select, insert, update on fno.run_status to fno_writer;  -- no delete: the history stays
-grant select on fno.run_status to dashboard_app;
+-- Privileges. X1's step 40 gives fno_writer SELECT, INSERT, UPDATE and DELETE on every table fno_owner creates in
+-- schema fno (and dashboard_app SELECT), so each table's runtime rights are narrowed here to what the publisher needs.
+-- Nothing at runtime deletes: a retention or rebuild job would run as fno_owner.
+revoke update, delete, truncate on fno.pages_history from fno_writer;  -- history: append only (insert, select)
+revoke delete, truncate on fno.current_publication from fno_writer;  -- a pointer: upserted (insert, update, select)
+revoke delete, truncate on fno.run_status from fno_writer;  -- one row per run: insert, then finish once (update)
+grant select, insert on fno.pages_history to fno_writer;
+grant select, insert, update on fno.current_publication to fno_writer;
+grant select, insert, update on fno.run_status to fno_writer;
+grant select on fno.pages_history, fno.current_publication, fno.run_status to dashboard_app;
