@@ -121,6 +121,7 @@ QUOTES_FOLDER = (
 PARTICIPANT_OI_EVIDENCE = Path(__file__).resolve().parents[2] / "research" / "data" / "participant_oi"
 PARTICIPANT_OI_RELEASE_LOG = PARTICIPANT_OI_EVIDENCE / "release_checks.csv"  # NSE's release times, committed (A8)
 PARTICIPANT_OI_LAST_MODIFIED = PARTICIPANT_OI_EVIDENCE / "archive_last_modified_2026-10-13.csv"  # with the download
+PARTICIPANT_OI_SWEEPS = PARTICIPANT_OI_EVIDENCE / "last_modified_sweeps.csv"  # write times that moved later (judge 16)
 
 
 def build_quote_store(folder: Path | None = None) -> RawFileStore:
