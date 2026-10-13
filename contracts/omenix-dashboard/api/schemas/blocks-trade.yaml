@@ -1,0 +1,143 @@
+# The owner's own paper account and the order window's inputs (30-shell/notes.md "Order window", "Hover card" held,
+# "Owner-changeable defaults"; 31-dashboard rows 1, 4 (You) and 5 (yours)). Nothing here places or submits an order.
+
+Accounts:
+  type: object
+  description: >-
+    The Manual paper account (the owner's own trades; capital is an owner-changeable default: Rs 5 lakh, US $5,000)
+    and the stock strategies' accounts, which the order window lists but never lets the owner trade. The F&O books'
+    accounts are the FnoBooks block (India). Every figure is this one account's own, in the market's currency
+  x-catalog: {publisher: dashboard, source: 'Manual account store (app schema; proposed story MA1-proposed): capital, cash, own positions marked to the stock tool''s closes', freshness: 'post-close run (marks); on record (trades)', story: MA1-proposed, status: planned}
+  x-element: [s30.order-account, s30.defaults]
+  required: [currency, accounts]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    accounts:
+      type: object
+      x-notes: ['s30.order-account:accounts']
+      required: [manual, strategies]
+      properties:
+        manual: {$ref: '#/components/schemas/ManualAccount'}
+        strategies:
+          type: array
+          description: Listed in the order window, not tradable by hand
+          items: {$ref: '#/components/schemas/StrategyAccount'}
+ManualAccount:
+  type: object
+  required: [id, name, kind, approach, capital, cash, value, open_profit, as_of, capital_note]
+  properties:
+    id: {type: string, x-unit: id}
+    name: {type: string, x-unit: text, x-notes: ['s30.order-account:name@manual']}
+    kind: {type: string, const: manual, x-unit: enum, x-notes: ['s30.order-account:kind@manual']}
+    approach: {type: string, const: manual, x-unit: enum}
+    capital: {type: number, minimum: 0, x-unit: market currency, x-notes: ['s30.order-account:capital'], description: Starting cash (owner-changeable default)}
+    cash: {type: number, x-unit: market currency, x-element: [s30.order-account, h31.glance-account], x-notes: ['s30.order-account:cash', 'h31.glance-account:cash']}
+    value:
+      type: number
+      x-unit: market currency
+      x-price: true
+      x-aggregate: single_account
+      x-element: [h31.who-trades, h31.glance-account]
+      description: Cash plus this account's own positions at their marks (one account; nothing from another account or currency)
+    open_profit:
+      type: number
+      x-unit: market currency
+      x-price: true
+      x-aggregate: single_account
+      x-element: [h31.who-trades, h31.glance-account]
+      x-notes: ['h31.who-trades:open_profit']
+      description: Unrealised profit or loss of this account's open positions, before costs
+    as_of: {type: string, format: date-time, x-unit: UTC time, description: The newest close the marks use}
+    open_structures: {type: integer, minimum: 0, x-unit: count, x-market: india, x-notes: ['s30.order-account:open_structures'], description: 'Open option structures, counted against the F&O limit max_open_structures. India only: absent in the US'}
+    at_risk: {type: number, minimum: 0, x-unit: INR, x-market: india, x-notes: ['s30.order-account:at_risk'], description: 'Maximum loss of the open structures, against max_at_risk. India only: absent in the US'}
+    capital_note: {type: string, x-unit: text}
+StrategyAccount:
+  type: object
+  required: [id, name, kind, approach]
+  x-catalog: {source: 'dashboard config: the stock tool''s head-to-head portfolios, one per approach (rm.portfolio)', story: W8}
+  properties:
+    id: {type: string, x-unit: id}
+    name: {type: string, x-unit: text, x-notes: ['s30.order-account:name@strategy']}
+    kind: {type: string, const: strategy, x-unit: enum, x-notes: ['s30.order-account:kind@strategy']}
+    approach: {type: string, enum: [rule, hybrid, ai], x-unit: enum}
+
+Positions:
+  type: object
+  description: >-
+    The Manual account's open positions (the owner's own paper trades, FIFO), each marked to the stock tool's last
+    close, before costs. Feeds Home's "yours" rows, the glance's account line (qty, avg, unrealised) and every
+    hover card's "held" (account, qty, avg); the You card's open count is the length of `own`.
+    Empty state: `own` empty ("Nothing open here")
+  x-catalog: {publisher: stock, source: 'rm.portfolio owner positions (OwnerPosition over portfolio_trades)', freshness: 'post-close run (marks); on record (trades)', story: K4-proposed, status: published}
+  x-element: [h31.trades-yours, s30.defaults]
+  required: [currency, own]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    own:
+      type: array
+      x-notes: ['h31.trades-yours:own', 's30.hover:held']
+      items: {$ref: '#/components/schemas/OwnPosition'}
+OwnPosition:
+  type: object
+  required: [id, account, qty, avg, last, unrealised, as_of, price_source, source]
+  properties:
+    id: {$ref: '#/components/schemas/InstrumentRef', x-notes: ['h31.trades-yours:id']}
+    account: {type: string, x-unit: id, x-notes: ['s30.hover:account']}
+    qty: {type: number, x-unit: shares (negative = sold short), x-notes: ['h31.trades-yours:qty', 's30.hover:qty', 'h31.glance-account:qty']}
+    avg: {type: number, minimum: 0, x-unit: price (market currency), x-notes: ['h31.trades-yours:avg', 's30.hover:avg', 'h31.glance-account:avg_price'], description: Average entry price (FIFO)}
+    last: {type: number, x-unit: price (market currency), x-price: true, description: The close the position is marked to}
+    unrealised: {type: number, x-unit: market currency, x-price: true, x-notes: ['h31.trades-yours:unrealised', 'h31.glance-account:pnl'], description: This position's own unrealised profit or loss, before costs}
+    as_of: {type: string, format: date-time, x-unit: UTC time}
+    price_source: {$ref: '#/components/schemas/PriceSource'}
+    source: {type: string, x-unit: text, x-notes: ['h31.trades-yours:source'], description: 'How the trade was recorded, e.g. "Recorded from Slack"', x-catalog: {source: portfolio_trades channel}}
+
+OrderRules:
+  type: object
+  description: The stock order window's charge estimate and when a stock order would fill (the next price check)
+  x-catalog: {publisher: stock, source: "config/costs.yaml (the stock tool's charge schedule) and the run timetable", freshness: on config change; daily (next check), story: K4-proposed, status: planned}
+  x-element: [s30.order-charges, s30.order-fill]
+  required: [currency, charges, next_quotes]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    charges: {$ref: '#/components/schemas/ChargeSchedule', x-notes: ['s30.order-charges:stock.charges']}
+    next_quotes:
+      type: object
+      required: [stock]
+      properties:
+        stock: {type: string, x-unit: text, x-element: [s30.order-fill], x-notes: ['s30.order-fill:next_quotes.stock'], description: "Which price check a stock order would fill at, e.g. \"the stock tool's next price check (8 Oct, first run after 09:15 IST)\""}
+ChargeSchedule:
+  type: object
+  description: An estimate's rate table for one kind of trade; every number is labelled an estimate on screen
+  required: [label, kind, rates]
+  properties:
+    label: {type: string, x-unit: text}
+    kind: {type: string, enum: [equity_delivery, equity, option], x-unit: enum}
+    rates:
+      type: object
+      description: "Rate name -> value: a name ending in _pct is percent points of the traded value, _flat or _per_share a flat amount in the market currency"
+      additionalProperties: {type: number, minimum: 0, x-unit: percent points or market currency (by name)}
+
+FnoOrderRules:
+  type: object
+  description: "The F&O order window's inputs (India only): option charges, the owner's limits, the margin estimate and the next 3 pm snapshot"
+  x-catalog: {publisher: fno, source: "fno.pages_history page 'order_rules' (proposed P1 page): C1 charge schedule, C2 owner limits, the margin source", freshness: on version change; daily (next snapshot), story: P1-extension-proposed, status: planned}
+  x-element: [s30.order-charges, s30.order-limits, s30.order-margin, s30.order-fill]
+  required: [currency, charges, limits, short_option_margin_per_lot, next_quotes]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    charges: {$ref: '#/components/schemas/ChargeSchedule', x-notes: ['s30.order-charges:fno.charges'], x-catalog: {source: C1 charges code}}
+    limits:
+      type: object
+      x-element: [s30.order-limits]
+      x-catalog: {source: C2 risk manager (owner limits), story: C2}
+      required: [max_loss_per_trade, max_open_structures, max_at_risk]
+      properties:
+        max_loss_per_trade: {type: number, minimum: 0, x-unit: INR, x-notes: ['s30.order-limits:limits.max_loss_per_trade']}
+        max_open_structures: {type: integer, minimum: 0, x-unit: count, x-notes: ['s30.order-limits:max_open_structures']}
+        max_at_risk: {type: number, minimum: 0, x-unit: INR, x-notes: ['s30.order-limits:max_at_risk']}
+    short_option_margin_per_lot: {type: number, minimum: 0, x-unit: INR, x-element: [s30.order-margin], x-notes: ['s30.order-margin:short_option_margin_per_lot']}
+    next_quotes:
+      type: object
+      required: [option]
+      properties:
+        option: {type: string, x-unit: text, x-element: [s30.order-fill], x-notes: ['s30.order-fill:next_quotes.option']}

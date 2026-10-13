@@ -1,0 +1,145 @@
+# The option chain's history and notes blocks (32-option-chain; story W13). India only, publisher exepex/trading.
+
+ChainHistory:
+  type: object
+  additionalProperties: false
+  description: >-
+    Daily NIFTY and India VIX closes and each expiry's put-call ratio since the extract's first day (the NIFTY card's
+    5D, 1M, 3M chart; the mood card), with the history-dependent figures published with their coverage: a change or a
+    3-month middle exists only when the days cover the period, else it is null and the screen says how many days it has
+  x-element: [c32.nifty, c32.mood]
+  required: [dates, nifty, vix, pcr, coverage]
+  properties:
+    dates:
+      type: array
+      description: The NSE sessions of the series, oldest first; every series below is aligned to them
+      items: {type: string, format: date, x-unit: date}
+    nifty:
+      type: array
+      x-element: [c32.nifty]
+      x-notes: ['c32.nifty:history.nifty']
+      items: {type: number, x-unit: index points}
+    vix:
+      type: array
+      x-element: [c32.mood]
+      x-notes: ['c32.mood:history.vix']
+      items: {type: number, x-unit: index points}
+    pcr:
+      type: object
+      description: Expiry date -> its daily put-call ratio (null before the expiry was listed)
+      x-element: [c32.mood]
+      x-notes: ['c32.mood:history.pcr']
+      additionalProperties:
+        type: array
+        items: {type: ['number', 'null'], x-unit: ratio}
+    coverage:
+      type: object
+      additionalProperties: false
+      required: [nifty, vix_middle_3m]
+      properties:
+        nifty:
+          type: object
+          additionalProperties: false
+          description: NIFTY's change over each chart period
+          x-element: [c32.nifty]
+          required: [d5, m1, m3]
+          properties:
+            d5: {$ref: '#/components/schemas/CoveredValue'}
+            m1: {$ref: '#/components/schemas/CoveredValue'}
+            m3: {$ref: '#/components/schemas/CoveredValue'}
+        vix_middle_3m:
+          $ref: '#/components/schemas/CoveredValue'
+          description: India VIX's 3-month middle (the median of its last 63 closes)
+          x-element: [c32.mood]
+CoveredValue:
+  type: object
+  additionalProperties: false
+  description: >-
+    A figure that needs N sessions of history: `value` is a number only when `complete` (days = days_in_period), else
+    null (check_semantics recomputes it from the series)
+  x-catalog: {status: planned, source: 'computed from the series (ours)'}
+  required: [days_in_period, days, complete, value]
+  properties:
+    days_in_period: {type: integer, minimum: 1, x-unit: sessions}
+    days: {type: integer, minimum: 0, x-unit: sessions}
+    complete: {type: boolean, x-unit: yes/no}
+    value: {type: ['number', 'null'], x-unit: percent points (a change) or index points (a middle)}
+  if: {properties: {complete: {const: true}}}
+  then: {properties: {value: {type: number}}}
+  else: {properties: {value: {type: 'null'}}}
+
+ContractHistory:
+  type: object
+  additionalProperties: false
+  description: >-
+    One contract's daily close (null on a day without trades) and open interest since it was listed (or the extract's
+    first day), with each chart period's coverage (5D, 1M, 3M; Life always covers). From the F&O tool's A3 panel
+  x-element: [c32.history]
+  required: [code, dates, close, oi, periods]
+  properties:
+    code: {type: string, x-unit: NSE trading symbol, x-notes: ['c32.history:history.contracts']}
+    dates:
+      type: array
+      description: The contract's sessions, oldest first (the first is where its history starts)
+      x-notes: ['c32.history:history.dates', 'c32.history:from']
+      items: {type: string, format: date, x-unit: date}
+    close:
+      type: array
+      x-notes: ['c32.history:close']
+      items: {type: ['number', 'null'], x-unit: INR}
+    oi:
+      type: array
+      x-notes: ['c32.history:oi']
+      items: {type: integer, minimum: 0, x-unit: units}
+    periods:
+      type: object
+      additionalProperties: false
+      required: [d5, m1, m3, life]
+      properties:
+        d5: {$ref: '#/components/schemas/PeriodCoverage'}
+        m1: {$ref: '#/components/schemas/PeriodCoverage'}
+        m3: {$ref: '#/components/schemas/PeriodCoverage'}
+        life: {$ref: '#/components/schemas/PeriodCoverage'}
+PeriodCoverage:
+  type: object
+  additionalProperties: false
+  description: 'Whether the contract has the period''s sessions: complete only when days = days_in_period (life: every session it has)'
+  x-catalog: {status: planned, source: 'computed from the contract''s sessions (ours)'}
+  required: [days_in_period, days, complete]
+  properties:
+    days_in_period: {type: ['integer', 'null'], minimum: 1, x-unit: sessions, description: Null for life}
+    days: {type: integer, minimum: 0, x-unit: sessions}
+    complete: {type: boolean, x-unit: yes/no}
+
+ChainSources:
+  type: object
+  additionalProperties: false
+  description: "Where the page's figures come from and what is missing (the source chips; Buy and Sell stay grey while quotes are not published)"
+  x-element: [c32.sources]
+  required: [source, quotes, computed, books]
+  properties:
+    source:
+      type: object
+      additionalProperties: false
+      required: [eod, index, as_of, history_from]
+      properties:
+        eod: {type: string, x-unit: text, x-notes: ['c32.sources:source.eod']}
+        index: {type: string, x-unit: text, x-notes: ['c32.sources:source.index']}
+        as_of: {type: string, format: date-time, x-unit: UTC time, x-notes: ['c32.sources:source.as_of']}
+        history_from: {type: string, format: date, x-unit: date}
+    quotes:
+      type: object
+      additionalProperties: false
+      required: [status, started, text]
+      properties:
+        status: {type: string, enum: [not_published, published], x-unit: enum, x-element: [c32.sources, c32.buysell], x-notes: ['c32.sources:quotes.status', 'c32.buysell:quotes.status'], description: "The F&O tool's 3 pm bid and ask (A4); not_published keeps Buy and Sell grey"}
+        started: {type: string, format: date, x-unit: date}
+        text: {type: string, x-unit: text, x-notes: ['c32.sources:quotes.text']}
+    computed:
+      type: object
+      additionalProperties: false
+      required: [iv, chance]
+      properties:
+        iv: {type: string, x-unit: text, x-notes: ['c32.sources:computed.iv']}
+        chance: {type: string, x-unit: text, x-notes: ['c32.sources:computed.chance']}
+    books: {type: string, x-unit: text, x-notes: ['c32.sources:books'], description: "The F&O books' state (no position while no strategy has passed testing)"}

@@ -32,7 +32,7 @@ class Fingerprint:
 
     @classmethod
     def of(cls, source: type[NseArchiveSource], path: str, data: bytes) -> Fingerprint:
-        day = source.day_for(path.rsplit("/", 1)[-1])
+        day = source.day_for_path(path)
         return cls(day, source.url_for(path), hashlib.sha256(data).hexdigest(), len(data))
 
     @property

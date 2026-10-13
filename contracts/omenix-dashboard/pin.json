@@ -1,0 +1,31 @@
+{
+ "repository": "exepex/omenix-dashboard",
+ "commit": "616d0e899fb066dbc7b061d56adf1df8a14a5487",
+ "contract_version": "2.4.0",
+ "files": {
+  "api/examples/blocks-33-34.json": "e6b3165ae860b87cbf179842c0ae63f4528ac1b690fafd5a2d0c8c0f478e6663",
+  "api/openapi.yaml": "722fb2773f1700ac06b17a924b110d38ef5ddba72579f4170cfa4bd23645440c",
+  "api/schemas/blocks-chain-history.yaml": "3f381293c4a0e050be7366dd0c35a3cc5d643c379a8a0692af7f46c669d0cf6c",
+  "api/schemas/blocks-chain.yaml": "4fb4d1897a50c5aa5d94a1988fe02a85800cde00838e0cd6f02c18bf6d873de4",
+  "api/schemas/blocks-common.yaml": "4118548d7a696e3b359c8d02900975f57d92480b0aed2a8efdbe7fa95b9eff11",
+  "api/schemas/blocks-frame.yaml": "54fe93077b7d9ab155036ba14dd29bc42d720b6e91a98bd7c717ae89122d93fa",
+  "api/schemas/blocks-home.yaml": "613aa166a99139d90a6cd464300df0418d9cb0e50890b1e20c59e2767040c980",
+  "api/schemas/blocks-overview.yaml": "94292297dd0b3a0ec53a34bce6b5f13207156920cd2598631383e29ae8e9a733",
+  "api/schemas/blocks-picks.yaml": "28eceb88575085d77b9fdf5d7700b5439c9ebb4fcdbd82eaaf8c36be91b77f1c",
+  "api/schemas/blocks-responses.yaml": "607b231861dfdd471ef90f4b800c1ec548bf9aee74d0943d9e30e1533bca9dd1",
+  "api/schemas/blocks-screener.yaml": "0f256ab4ccab54d05d7380541df78a679929ef3c8bc2938e405302f5b85a49bd",
+  "api/schemas/blocks-search.yaml": "2646dcc5881085b8d56d38e17dcc3b1c4590f24b7dc5c09e09984b14176942e7",
+  "api/schemas/blocks-stored.yaml": "a25b836821e411f8386b037217f06b6184d31f719275aeebfbff5dbaa2a0aa7e",
+  "api/schemas/blocks-trade.yaml": "a37303a8d3729e40ab966c32fb1621aac24629c2d6a7daf5c87149954b04ca83",
+  "api/schemas/brief.yaml": "ce27dfd055f0b69936e0b3b120c7e77509585eddb4eed377b5ef0d1977cbdf1d",
+  "api/schemas/companies.yaml": "498e380ad032c5522a202b99bdbe71c0a8d7691d9ee336856f99797e35877411",
+  "api/schemas/company.yaml": "f2e8085bc98753a8276f747f2c48e8366414cc2fd715ed29cdc01d19b3886a22",
+  "api/schemas/home.yaml": "8ca97bf5a6b70c89a1c2864311e56b4a2e0ea9999d7c6431f7cc230e19720e7b",
+  "api/schemas/news.yaml": "9dc8a05e3f60ceb132435b94957b649c4c78b03f8ae0ee0317c3edfaee921d48",
+  "api/schemas/paper-portfolios.yaml": "6d607d251488f15b416986be2b2d72bc8728b87fbc1c948accf0869ae257ee33",
+  "api/schemas/rule-vs-ai.yaml": "5e08fb10ef3adfaa027a6c2d901a3b4cc27272a62859984ae0e03ea3e447c0b7",
+  "api/schemas/strategy-lab.yaml": "4906cb0b8bada1e9902d27867db1153e2f91acb6dc3ea071fcf3cf21dbd91b83",
+  "api/schemas/track-record.yaml": "a77ebf8a6a96f1424dcfdb9d7a32a4a6ac06453add36a1765c9b2ff7c278e33f",
+  "api/schemas/watchlist.yaml": "5dc2913c53678cdc43975ce9fbb0c266794c2b8516e4d6de387241b54677f02a"
+ }
+}

@@ -21,6 +21,7 @@ from ..constants import (
 )
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
+from ..market_read_models.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
 from ..research_data.calendar import SessionCalendar, load_session_calendar
 from ..research_data.nifty_panel import DailyFiles
 from ..research_data.panel_store import CsvGzPanelFolder, PanelSink
@@ -36,11 +37,15 @@ from .raw_library import RawFileLibrary
 from .raw_source import (
     NseArchiveSource,
     NseDailyFoSource,
+    NseDeliverySource,
+    NseEquityBhavcopySource,
     NseIndexCloseSource,
     NseLegacyFoSource,
     ParticipantOiSource,
 )
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
+from .snapshot_source import EquityListSource, Nifty500ListSource
+from .snapshot_taker import SnapshotTaker
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
 CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "calendar"
@@ -49,7 +54,16 @@ COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
 REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
 REPOSITORY = Path(__file__).resolve().parents[2]
 MANIFEST_FOLDER = REPOSITORY / "research" / "data" / "manifests"  # SHA-256 per file (A10)
-RAW_SOURCES = (NseLegacyFoSource, NseDailyFoSource, NseIndexCloseSource, ParticipantOiSource)
+DATED_SOURCES = (
+    NseLegacyFoSource,
+    NseDailyFoSource,
+    NseIndexCloseSource,
+    ParticipantOiSource,
+    NseEquityBhavcopySource,
+    NseDeliverySource,
+)  # one file per session: the coverage check's datasets
+SNAPSHOT_SOURCES = (EquityListSource, Nifty500ListSource)  # reference lists, one copy per day fetched (P6)
+RAW_SOURCES = DATED_SOURCES + SNAPSHOT_SOURCES  # every dataset with a manifest
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -157,22 +171,40 @@ VALIDATORS = {
     NseDailyFoSource: read_fo_file,
     NseIndexCloseSource: validate_index_close,
     ParticipantOiSource: validate_participant_oi,
+    NseEquityBhavcopySource: lambda filename, data: read_equity_bhavcopy(data, filename),
+    NseDeliverySource: lambda filename, data: read_delivery(data, filename),
+    EquityListSource: lambda filename, data: read_equity_list(data, filename),
+    Nifty500ListSource: lambda filename, data: read_nifty500_list(data, filename),
 }
 
 
 def coverage_datasets(manifests: ManifestFolder | None = None) -> tuple[CoverageDataset, ...]:
     """Every raw dataset with its content check and its manifest's fingerprints (read now, never cached)."""
     manifests = manifests or build_manifest_folder()
-    return tuple(CoverageDataset(s, VALIDATORS[s], manifests.fingerprints(s)) for s in RAW_SOURCES)
+    return tuple(CoverageDataset(s, VALIDATORS[s], manifests.fingerprints(s)) for s in DATED_SOURCES)
 
 
 def dataset_name(source: type[NseArchiveSource]) -> str:
     return source.dataset.rsplit("/", 1)[-1]
 
 
-# Datasets the librarian may upload: each new one needs its own story (A9: participant OI; A10: index closes).
-LIBRARIAN_DATASETS = {dataset_name(s): s for s in (ParticipantOiSource, NseIndexCloseSource)}
-FINGERPRINT_SOURCES = {dataset_name(s): s for s in RAW_SOURCES}
+# Datasets the librarian may upload: each new one needs its own story (A9: participant OI; A10: index closes; P6: the
+# equity, delivery and current-format F&O files the market read models need each day, and the reference lists).
+LIBRARIAN_DATASETS = {
+    dataset_name(s): s
+    for s in (ParticipantOiSource, NseIndexCloseSource, NseEquityBhavcopySource, NseDeliverySource, NseDailyFoSource)
+}
+SNAPSHOT_DATASETS = {dataset_name(s): s for s in SNAPSHOT_SOURCES}
+FINGERPRINT_SOURCES = {dataset_name(s): s for s in DATED_SOURCES}
+
+
+def build_snapshot_taker(name: str) -> SnapshotTaker:
+    """Today's copy of one reference list (a key of SNAPSHOT_DATASETS) into the owner's Drive, with its manifest row."""
+    store = build_owner_drive_store()
+    if store is None:
+        raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
+    source_type = SNAPSHOT_DATASETS[name]
+    return SnapshotTaker(store, build_nse_source(source_type), VALIDATORS[source_type])
 
 
 def build_librarian(name: str, log=print) -> RawDataLibrarian:

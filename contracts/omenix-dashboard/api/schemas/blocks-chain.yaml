@@ -1,0 +1,132 @@
+# The option chain's blocks (design/mockups/32-option-chain/notes.md; story W13). India only (NIFTY options), publisher
+# exepex/trading (fno), from NSE's daily F&O file and index file; not published yet (story TR-CHAIN-proposed). Every
+# object is closed (additionalProperties false), so nothing else can ride along. History-dependent figures carry their
+# coverage: a value exists only when the days cover the period (W11's rule).
+
+ChainUnderlying:
+  type: object
+  additionalProperties: false
+  description: NIFTY and India VIX at the day's close (the header names the underlying; the NIFTY and mood cards)
+  x-element: [c32.nifty]
+  required: [sym, spot, chg, chg_pct, vix, as_of]
+  properties:
+    sym: {type: string, const: NIFTY, x-unit: text, x-element: [c32.header, c32.nifty], x-notes: ['c32.header:sym'], description: The underlying the header and the NIFTY card name}
+    spot: {type: number, x-unit: index points, x-price: true, x-notes: ['c32.nifty:spot'], description: "NSE's UndrlygPric at the close"}
+    chg: {type: number, x-unit: index points, x-price: true, x-notes: ['c32.nifty:chg']}
+    chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['c32.nifty:chg_pct']}
+    vix: {type: number, x-unit: index points, x-price: true, x-element: [c32.mood], x-notes: ['c32.mood:vix'], description: India VIX at the close (NSE's index file)}
+    as_of: {type: string, format: date-time, x-unit: UTC time}
+
+ChainExpiries:
+  type: object
+  additionalProperties: false
+  description: >-
+    Every expiry in the file (weekly ones marked: end of day only, the F&O tool does not trade them) with its summary:
+    the range priced in, where positions sit and the put-call ratio (the expiry chips, range, positions and mood cards)
+  x-element: [c32.expiries]
+  required: [as_of, expiries]
+  properties:
+    as_of: {type: string, format: date-time, x-unit: UTC time}
+    expiries:
+      type: array
+      minItems: 1
+      items:
+        type: object
+        additionalProperties: false
+        x-as-of-from: ChainExpiries
+        required: [expiry, days, monthly, future, stats]
+        description: 'A monthly expiry has a future; a weekly has none (null). check_chain: monthly = the last listed expiry of its month'
+        if: {properties: {monthly: {const: true}}, required: [monthly]}
+        then: {properties: {future: {type: number}}}
+        else: {properties: {future: {type: 'null'}}}
+        properties:
+          expiry: {type: string, format: date, x-unit: date, x-notes: ['c32.expiries:expiry']}
+          days: {type: integer, minimum: 0, x-unit: calendar days, x-element: [c32.expiries, c32.range], x-notes: ['c32.expiries:days', 'c32.range:days']}
+          monthly: {type: boolean, x-unit: yes/no, x-notes: ['c32.expiries:monthly'], description: 'The last expiry of its month. A weekly is end of day only: its 3 pm quotes are not recorded today (A4 records monthlies)'}
+          future: {type: ['number', 'null'], x-unit: index points, x-price: true, description: "The expiry's future close; null for a weekly expiry (no future)"}
+          stats: {$ref: '#/components/schemas/ChainStats'}
+ChainStats:
+  type: object
+  additionalProperties: false
+  description: "Computed the F&O tool's way (fno/analytics.py: straddle_expected_move, max_pain, put_call_ratio) from the day's NSE file"
+  x-element: [c32.range, c32.positions, c32.mood, c32.chain-simple]
+  required: [pcr, max_pain, atm, atm_iv, straddle, range, call_wall, put_wall, call_add, put_add]
+  properties:
+    pcr: {type: ['number', 'null'], minimum: 0, x-unit: ratio, x-element: [c32.mood], x-notes: ['c32.mood:stats.pcr'], description: 'Put OI ÷ call OI of the expiry, strikes in the file'}
+    max_pain: {type: number, x-unit: index points, x-element: [c32.positions], x-notes: ['c32.positions:stats.max_pain']}
+    atm: {type: number, x-unit: index points, x-element: [c32.chain-simple], x-notes: ['c32.chain-simple:stats.atm'], description: The strike nearest spot (a tie to the lower)}
+    atm_iv: {type: ['number', 'null'], x-unit: percent points (annualised), x-element: [c32.range]}
+    straddle: {type: number, minimum: 0, x-unit: index points, x-element: [c32.range], x-notes: ['c32.range:stats.straddle'], description: ATM call close + ATM put close}
+    range:
+      type: array
+      description: '[spot − straddle, spot + straddle]'
+      minItems: 2
+      maxItems: 2
+      x-element: [c32.range]
+      x-notes: ['c32.range:stats.range']
+      items: {type: number, x-unit: index points}
+    call_wall: {type: number, x-unit: index points, x-element: [c32.positions], x-notes: ['c32.positions:stats.call_wall'], description: The strike at or above spot with the most call OI}
+    put_wall: {type: number, x-unit: index points, x-element: [c32.positions], x-notes: ['c32.positions:stats.put_wall']}
+    call_add: {type: number, x-unit: index points, x-element: [c32.positions], x-notes: ['c32.positions:stats.call_add'], description: The strike at or above spot with the most call OI added today}
+    put_add: {type: number, x-unit: index points, x-element: [c32.positions], x-notes: ['c32.positions:stats.put_add']}
+
+ChainRows:
+  type: object
+  additionalProperties: false
+  description: >-
+    One expiry's strikes (query: expiry; strikes = near (21 nearest the money, the default), band (within 5%, the 3 pm
+    band) or all (within 10%)), calls and puts at the day's close. Feeds the chain (Simple, Detailed, Greeks), the open
+    interest and IV charts, the contract view and the combination tray. No bid or ask: not published yet
+  x-element: [c32.chain-simple]
+  required: [as_of, currency, lot, expiry, strikes, rows]
+  properties:
+    as_of: {type: string, format: date-time, x-unit: UTC time}
+    currency: {$ref: '#/components/schemas/Currency'}
+    lot: {type: integer, minimum: 1, x-unit: units per lot, x-element: [c32.header, c32.chain-simple], x-notes: ['c32.header:lot', 'c32.chain-simple:lot'], description: "NSE's NewBrdLotQty (65), a column of every contract row: carried with the rows that need it for ₹ a lot"}
+    expiry: {type: string, format: date, x-unit: date}
+    strikes: {type: string, enum: [near, band, all], x-unit: enum, x-element: [c32.strikes], description: 'The strikes asked for (near: 21 nearest the money; band: within 5%, the 3 pm band; all: within 10%, every strike in the file)'}
+    rows:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [strike, CE, PE]
+        properties:
+          strike: {type: number, x-unit: index points}
+          CE: {$ref: '#/components/schemas/ChainSide'}
+          PE: {$ref: '#/components/schemas/ChainSide'}
+ChainSide:
+  type: object
+  additionalProperties: false
+  x-as-of-from: ChainRows
+  required: [code, close, chg, chg_pct, oi, oi_chg, volume, iv, greeks, breakeven, chance]
+  description: 'A leg that did not trade (volume 0) has no IV, Greeks or chance (null): notes row 8, "Blank when the contract did not trade"'
+  if: {properties: {volume: {const: 0}}, required: [volume]}
+  then: {properties: {iv: {type: 'null'}, greeks: {type: 'null'}, chance: {type: 'null'}}}
+  properties:
+    code: {type: string, x-unit: NSE trading symbol, x-element: [c32.tray, c32.contract], x-notes: ['c32.tray:code', 'c32.contract:code'], description: 'NIFTY26OCT22400CE (monthly), NIFTY26O1322400CE (weekly)'}
+    close: {type: number, minimum: 0, x-unit: INR (₹ a unit; × lot = ₹ a lot), x-price: true, x-element: [c32.chain-simple, c32.tray, c32.contract], x-notes: ['c32.chain-simple:close', 'c32.tray:close', 'c32.contract:close'], description: "NSE's ClsPric (not a traded price when volume is 0)"}
+    chg: {type: number, x-unit: INR, x-price: true, description: "close − NSE's PrvsClsgPric"}
+    chg_pct: {type: ['number', 'null'], x-unit: percent points, x-price: true, x-element: [c32.chain-simple, c32.contract], x-notes: ['c32.chain-simple:chg_pct', 'c32.contract:chg_pct']}
+    oi: {type: integer, minimum: 0, x-unit: units, x-element: [c32.chain-simple, c32.oi-chart, c32.contract], x-notes: ['c32.chain-simple:oi', 'c32.oi-chart:oi', 'c32.contract:oi'], description: "NSE's OpnIntrst"}
+    oi_chg: {type: integer, x-unit: units, x-element: [c32.chain-detailed, c32.oi-chart, c32.contract], x-notes: ['c32.chain-detailed:oi_chg', 'c32.oi-chart:oi_chg', 'c32.contract:oi_chg'], description: "NSE's ChngInOpnIntrst"}
+    volume: {type: integer, minimum: 0, x-unit: units, x-element: [c32.chain-detailed, c32.contract], x-notes: ['c32.chain-detailed:volume', 'c32.contract:volume'], description: "NSE's TtlTradgVol; 0 = no trade"}
+    iv: {type: ['number', 'null'], x-unit: percent points (annualised), x-element: [c32.chain-detailed, c32.chain-greeks, c32.iv-chart, c32.contract], x-notes: ['c32.chain-detailed:iv', 'c32.chain-greeks:iv', 'c32.iv-chart:iv', 'c32.contract:iv'], description: 'Ours: Black-Scholes from the close, only when the contract traded; null otherwise'}
+    greeks:
+      oneOf: [{$ref: '#/components/schemas/ChainGreeks'}, {type: 'null', x-unit: none}]
+      x-element: [c32.chain-greeks, c32.contract]
+      x-notes: ['c32.contract:greeks']
+      description: Null when the contract did not trade
+    breakeven: {type: number, x-unit: index points, x-element: [c32.contract], x-notes: ['c32.contract:breakeven'], description: strike ± close}
+    chance: {type: ['integer', 'null'], minimum: 0, maximum: 100, x-unit: percent (risk-neutral; not a forecast), x-element: [c32.contract], x-notes: ['c32.contract:chance'], description: "N(d2) at the break-even from the contract's own IV; null when not traded"}
+ChainGreeks:
+  type: object
+  additionalProperties: false
+  description: "From the same Black-Scholes model (fno/analytics.py bs_greeks)"
+  x-element: [c32.chain-greeks, c32.contract]
+  required: [delta, gamma, theta, vega]
+  properties:
+    delta: {type: number, minimum: -1, maximum: 1, x-unit: ratio, x-notes: ['c32.chain-greeks:greeks.delta']}
+    gamma: {type: number, x-unit: per index point, x-notes: ['c32.chain-greeks:gamma']}
+    theta: {type: number, x-unit: INR a day, x-notes: ['c32.chain-greeks:theta']}
+    vega: {type: number, x-unit: INR per IV point, x-notes: ['c32.chain-greeks:vega']}

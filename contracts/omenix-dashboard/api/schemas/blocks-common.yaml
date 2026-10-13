@@ -1,0 +1,96 @@
+# Shared parts of the block endpoints (story W10: the frame 30-shell and Home 31-dashboard as many small endpoints).
+# Catalog extensions (api/catalog/README.md): x-catalog {publisher, source, freshness, story, status} is inherited
+# downward and a property overrides single keys; x-element names the notes.md elements a field feeds; x-notes names the
+# notes.md field tokens it implements ("<element>:<key>"); x-unit is on every leaf; x-price marks a price or a value
+# marked to a price (its object then requires `as_of`); x-aggregate marks a figure that adds numbers up.
+
+# ---------- envelopes ----------
+BlockFreshness:
+  type: object
+  description: >-
+    Serve-time freshness of the block's row (the route computes it; never stored). Stock blocks keep the stock rule
+    (stale after FRESH_MINUTES = 1140 since built_at); F&O blocks follow the NSE session calendar and the run status
+    (exepex/trading design 13.2: "publishing" while the daily run is in progress, "stale" when the latest completed
+    trading day has no complete publication); dashboard blocks inherit the oldest freshness of their inputs
+  required: [state, rule, built_at, age_minutes, reason]
+  x-catalog: {publisher: dashboard, source: 'the route''s serve step (web/lib/data; story by product: W6 stock, W2 F&O, W8 dashboard blocks)', freshness: each request, status: planned}
+  x-element: [s30.freshness]
+  properties:
+    state: {type: string, enum: [fresh, stale, publishing, unknown], x-unit: enum}
+    rule: {type: string, enum: [stock_age, fno_calendar, static, inputs], x-unit: enum, description: 'stock_age = FRESH_MINUTES; fno_calendar = session calendar + run status; static = deploy-time config; inputs = the oldest input block'}
+    built_at: {type: ['string', 'null'], format: date-time, x-unit: UTC time}
+    age_minutes: {type: ['integer', 'null'], x-unit: minutes}
+    reason: {type: ['string', 'null'], x-unit: text, description: 'Why it is stale or publishing (e.g. the failed run id and reason); null when fresh'}
+BlockMetaFields:
+  type: object
+  description: What every block response carries besides ReadModelMeta
+  required: [publisher, freshness, paper]
+  x-element: [s30.freshness]
+  x-catalog: {publisher: dashboard, source: 'the route envelope (story by product: W6 stock, W2 F&O, W8 dashboard blocks)', freshness: each request, status: planned}
+  properties:
+    publisher: {type: string, enum: [stock, fno, dashboard], x-unit: enum, description: 'stock = contactexepex/agentic-stock-prediction; fno = exepex/trading (its F&O read models and, owner 13 Oct 2026, the blocks built from NSE''s daily files); dashboard = this repository'}
+    freshness: {$ref: '#/components/schemas/BlockFreshness'}
+    paper: {type: string, const: Paper, x-unit: text, description: 'Every block is research and paper trading only; the screen shows Paper on every signal and money figure'}
+StockBlockMeta:
+  description: Envelope of a stock-tool block (rm.<table> row of the stock schema, docs/ARCHITECTURE.md 4.1)
+  allOf:
+    - $ref: '#/components/schemas/ReadModelMeta'
+    - $ref: '#/components/schemas/BlockMetaFields'
+    - type: object
+      properties:
+        publisher: {const: stock}
+FnoBlockMeta:
+  description: >-
+    Envelope of an exepex/trading block (its F&O read models and the blocks it builds from NSE's daily files): the
+    stock envelope plus `product` and `publication_id` (exepex/trading P1 criterion 4); the dashboard reads only rows of
+    `fno.current_publication` (P3). India only
+  allOf:
+    - $ref: '#/components/schemas/ReadModelMeta'
+    - $ref: '#/components/schemas/BlockMetaFields'
+    - type: object
+      required: [product, publication_id]
+      x-element: [s30.freshness]
+      properties:
+        market: {const: india}
+        publisher: {const: fno}
+        product: {type: string, const: fno, x-unit: enum, x-element: [s30.freshness], x-catalog: {publisher: fno, source: fno.pages_history.product, freshness: each publication, story: P3, status: planned}}
+        publication_id: {type: string, x-unit: id, x-element: [s30.freshness], x-catalog: {publisher: fno, source: fno.current_publication.publication_id, freshness: each publication, story: P3, status: planned}}
+DashboardBlockMeta:
+  description: >-
+    Envelope of a block the dashboard composes (static config or rules over backend rows). as_of, cutoff and built_at
+    are those of the oldest input row, so freshness is never overstated; source_commit is the dashboard deploy commit;
+    payload_sha256 hashes the composed payload
+  allOf:
+    - $ref: '#/components/schemas/ReadModelMeta'
+    - $ref: '#/components/schemas/BlockMetaFields'
+    - type: object
+      properties:
+        publisher: {const: dashboard}
+
+# ---------- rules every market-scoped block response applies ----------
+MarketCurrency:
+  description: The payload's currency is the market's own (INR in India, USD in the US); currencies are never summed or converted
+  if: {properties: {market: {const: india}}, required: [market]}
+  then: {properties: {payload: {properties: {currency: {const: INR}}}}}
+  else: {properties: {payload: {properties: {currency: {const: USD}}}}}
+
+# ---------- shared values ----------
+Currency:
+  type: string
+  enum: [INR, USD]
+  x-unit: enum
+PriceSource:
+  type: string
+  description: Which recorded price a value is (price-sources block); none is live
+  enum: [close, eod, snap3pm]
+  x-unit: enum
+Family:
+  type: string
+  description: Who decides (approaches block); `manual` is the owner
+  enum: [rule, hybrid, ai, baseline, manual]
+  x-unit: enum
+InstrumentRef:
+  type: string
+  description: An instrument id as the frame uses it (a stock or index ticker, an NSE contract code)
+  pattern: '^[A-Z0-9.&-]{1,30}$'
+  x-unit: id
