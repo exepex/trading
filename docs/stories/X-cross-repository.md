@@ -553,7 +553,43 @@ W10 (judge 17). Written 13 Oct 2026 after the build (judge 27 minor: no story te
 **Judge verifies:** reviews mockups, contract and catalog together; plants an F&O key in a US payload and a conflicting
 calendar example.
 
-**Depends:** W10, owner sign-off of 33 and 34 · **Size:** M · **Status:** doing (judge 27 FAIL, round 2)
+**Depends:** W10, owner sign-off of 33 and 34 · **Size:** M · **Status:** done: judge 35 PASS (13 Oct 2026)
+
+---
+
+## W12. Screener and Markets in the real app
+
+**Repository:** omenix-dashboard
+
+**Description:** As the owner, I want the signed-off Screener (33) and Markets (34) screens in the real app, reading only
+their W11 blocks, so that they look exactly as signed off and switch from examples to real data with one wiring line.
+
+**Acceptance criteria:**
+1. Every gallery state of 33 and 34 that the W11 examples cover renders at 390 to 1680 px; side-by-side screenshots;
+   differences listed.
+2. Components depend only on the W11 typed block contracts; the import-graph test (W8 resolver, transitive) enforces it.
+3. DOM assertions compare rendered rows and figures with their own source fields (data-src, as W9), incl. breadth
+   counts, movers and flows; a flows period without full coverage shows "—" with the coverage text.
+4. F&O and India-only elements are absent (not empty) in the US; a harness case proves it.
+5. No model or vendor name on any screen (W9 detector gate); Buy/Sell only for followed companies, grey otherwise with
+   the reason.
+6. Code size, typecheck, tests, build and the UI harness pass in CI.
+
+**Depends:** W8, W9, W11 · **Size:** L · **Status:** doing
+
+---
+
+## W13. API contract and data catalog for the option chain (32)
+
+**Repository:** omenix-dashboard
+
+**Description:** As in W10 and W11, for the signed-off option chain (32): small independent block endpoints, validated
+examples from its data.json, catalog rows (publisher exepex/trading), India only.
+
+**Acceptance criteria:** W11's criteria 1-6 applied to 32 (one fixture per shared endpoint, US absence by schema,
+coverage on history-dependent fields, additive-only changes, checks green).
+
+**Depends:** W11, owner sign-off of 32 · **Size:** M · **Status:** doing
 
 ---
 
