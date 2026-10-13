@@ -41,6 +41,11 @@ class RawFileSource(ABC):
         data = self.fetch(path)
         return None if data is None else PublishedFile(data, None)
 
+    def last_written(self, path: str) -> datetime | None:
+        """When the source last wrote the file (None if it has none or does not say); sources may answer cheaper."""
+        found = self.fetch_published(path)
+        return found.last_modified if found else None
+
     @staticmethod
     def dated_path(dataset: str, day: date, filename: str) -> str:
         """`<dataset>/<YYYY>/<MM>/<original file name>`: one folder per month, original names kept."""
@@ -78,15 +83,22 @@ class NseArchiveSource(RawFileSource):
 
     def fetch_published(self, path: str) -> PublishedFile | None:
         response = self._response(path)
-        if response is None:
-            return None
-        stamp = response.headers.get("Last-Modified")
-        return PublishedFile(response.content, parsedate_to_datetime(stamp) if stamp else None)
+        return None if response is None else PublishedFile(response.content, self._stamp(response))
 
-    def _response(self, path: str) -> requests.Response | None:
+    def last_written(self, path: str) -> datetime | None:
+        response = self._response(path, head=True)  # headers only: a sweep of every file stays light
+        return None if response is None else self._stamp(response)
+
+    @staticmethod
+    def _stamp(response: requests.Response) -> datetime | None:
+        stamp = response.headers.get("Last-Modified")
+        return parsedate_to_datetime(stamp) if stamp else None
+
+    def _response(self, path: str, head: bool = False) -> requests.Response | None:
+        send = self.session.head if head else self.session.get
         for wait in (*self.RETRY_WAITS, None):
             try:
-                response = self.session.get(self.url_for(path), timeout=self.TIMEOUT_SECONDS)
+                response = send(self.url_for(path), timeout=self.TIMEOUT_SECONDS)
             except requests.RequestException as exc:
                 if wait is None:
                     raise RawSourceUnavailable(f"{self.name}: {path}: {exc}") from exc

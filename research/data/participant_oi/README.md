@@ -43,3 +43,13 @@ when the file first appeared, so it cannot set the rule; it only supports or que
 this table and the recorder's `last_modified` column (the latest time per day wins). This holds back exactly the 105
 rewritten days and leaves the other 1,824 unchanged. Each recorder run also re-reads the last 5 seen files and logs
 `rewritten` when their bytes change, and the command then exits 1.
+
+## Monthly sweep (judge 16)
+
+`python -m fno participant-oi sweep` asks NSE for the headers of every recorded file (HEAD only, through the polite
+session; about 35 minutes for 1,929 files) and compares each Last-Modified with the latest one on record. A day whose
+write time moved later gets a row in `last_modified_sweeps.csv` (`day, checked_at, last_modified`), is printed as
+`MOVED <day> ...`, and is held back by the rule from then on; the command exits 1 on any moved or unanswered file. The
+recorder's own recheck covers only the last 5 sessions, so this sweep is what catches a rewrite months later. A moved
+day also means the bytes held in Drive are an older version than NSE now serves; re-download and compare before using
+that day.
