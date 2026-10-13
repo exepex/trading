@@ -135,6 +135,8 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [W4](stories/X-cross-repository.md#w4-access-and-freshness-contract-tests) | Access and freshness contract tests | dashboard | W2, W3 | S | later |
 | [W6](stories/X-cross-repository.md#w6-stock-reads-on-azure-and-parity) | Stock reads on Azure and parity | dashboard | W2, K1 | M | later |
 | [W7](stories/X-cross-repository.md#w7-dashboard-writes-on-azure-inbox-assistant-and-control-state) | Dashboard writes on Azure (inbox, assistant and control state) | dashboard | W1, X1 | M | later |
+| [W8](stories/X-cross-repository.md#w8-the-signed-off-app-frame-in-the-real-app) | The signed-off app frame in the real app | dashboard | W1 | L | next |
+| [W9](stories/X-cross-repository.md#w9-the-signed-off-home-screen-in-the-real-app) | The signed-off Home screen in the real app | dashboard | W8 | M | later |
 | [W5](stories/X-cross-repository.md#w5-cutover-and-rollback) | Cutover and rollback | dashboard | W1-W4, W6, W7, K1, K3 | S | later |
 | [K1](stories/X-cross-repository.md#k1-stock-backend-publishes-to-azure-dual-publication-and-parity) | Stock backend publishes to Azure (dual publication and parity) | agentic-stock-prediction | X1 | M | later |
 | [K2](stories/X-cross-repository.md#k2-retire-motherduck) | Retire MotherDuck | agentic-stock-prediction | W5, W7, K3 | S | later |

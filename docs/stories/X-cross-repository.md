@@ -382,3 +382,96 @@ lost or imported twice.
 
 **Depends:** W7, X1 · **Size:** S · **Status:** later
 
+
+---
+
+## W8. The signed-off app frame in the real app
+
+**Repository:** dashboard
+
+**Description:** As the owner, I want the app frame I signed off (mockup `design/mockups/30-shell`, 13 Oct 2026) to be the
+real frame of the Omenix app, so that every screen, old and new, sits inside it and the platform looks and behaves
+the way I approved.
+
+**Context and why:** The owner signed off 30-shell on 13 Oct 2026; its `notes.md` is the frozen data contract (fields,
+units, freshness, publisher per element). The frame comprises the top bar with the one search box, the India/US switch,
+the market open/closed chip and the manual trading lock, the navigation rail, the "Today's buy picks" panel, the right
+drawer with the order window, and the phone bottom tabs. The app today (`web/`, Next.js 15) still has the old
+cockpit navigation. Backends do not publish the new read models yet (W2, W6, P stories), so the frame reads through
+an interface with a fixture adapter built from the same example records the mockup uses; real adapters plug in later
+without touching components (design for change).
+
+**Scope.** In:
+- the frame components in `web/`, built from the design system only;
+- typed contract types for 30's elements and a `ShellData` interface, with a fixture adapter;
+- search over the fixture instruments, including option codes;
+- the market status chip and the lock rule (the session times come through the interface);
+- the order window as a preview (estimates, checks, the lock), with no order submission;
+- the existing pages working inside the frame.
+
+Out:
+- submitting paper orders (it needs the Manual account and its store, a later story);
+- real backend reads (W2, W6);
+- new screens.
+
+**Expected design:** small components (each file under 350 lines); `web/lib/shell/contract.ts` (types from 30's
+`notes.md`), `web/lib/shell/source.ts` (interface), `web/lib/shell/fixture-source.ts` (adapter), wiring in one place;
+no SQL or vendor SDK in components; Buy always green and Sell always red, words always shown; F&O absent in the US
+market.
+
+**Acceptance criteria:**
+1. Every page of the app renders inside the frame at 390, 768, 1280 and 1680 px; `node design/system/check_page.js`
+   against the running app reports no console errors, no external requests and no horizontal overflow.
+2. The frame matches the signed-off mockup: a side-by-side screenshot comparison at 1280 and 390 px for the
+   default, dark, US and closed-market states, committed with the claims; any visible difference is listed and
+   explained.
+3. Search finds a stock by name, by ticker and an option by its NSE code (e.g. `NIFTY26OCT22800CE`), and in the US
+   market finds no F&O instrument (tests).
+4. While the market is closed every manual Buy and Sell control is disabled with the reason, by one rule (test over
+   search results, picks, hover card and order window).
+5. Components import only the `ShellData` interface, never the fixture adapter or a data client (an import-graph
+   test enforces it); swapping the adapter is one line in the wiring.
+6. The order window shows estimates labelled as estimates, names the snapshot or price check the fill would use,
+   and has no submit path to any backend (test).
+7. `node tools/check_code_size.mjs`, typecheck, all existing tests (303 or more) and the build pass; no regression in
+   the existing pages' tests.
+
+**Test plan:** unit tests for search, the lock rule, the contract adapter; an import-graph test; the screenshot
+comparison; check_page on the running app.
+
+**Judge verifies:** runs the app, opens three old pages and Home inside the frame at 390 and 1280 px, compares with
+the mockup screenshots, plants a component import of the fixture adapter and confirms the test fails.
+
+**Depends:** W1 (done in practice: the repository exists and builds) · **Size:** L · **Status:** next
+
+---
+
+## W9. The signed-off Home screen in the real app
+
+**Repository:** dashboard
+
+**Description:** As the owner, I want the Home screen I signed off (mockup `design/mockups/31-dashboard`, 13 Oct 2026)
+in the real app, reading through the same kind of interface, so that the backends can later fill it with real data
+without any change to the screen.
+
+**Context and why:** 31's `notes.md` is the frozen Home contract (signed off as of commit e8cd360). W8 provides the
+frame.
+
+**Scope.** In: Home's sections in the signed-off order; typed contract and `HomeData` interface with a fixture adapter;
+honest empty states ("no approved strategy yet", "no hybrid strategy yet"); group totals per the owner's exception
+(never across groups, markets or currencies). Out: real reads (W2, W6), paper order submission.
+
+**Acceptance criteria:**
+1. Home renders every state of the mockup's gallery that the fixture data covers, at 390 to 1680 px, with
+   check_page clean.
+2. The screen matches the signed-off mockup (side-by-side screenshots, differences listed).
+3. Components depend only on `HomeData`; an import-graph test enforces it.
+4. No figure adds numbers across groups, markets or currencies, except the owner's per-group totals (test over the
+   rendered numbers against the fixture).
+5. Code size, typecheck, tests and build pass.
+
+**Test plan:** contract and rendering tests; screenshot comparison; check_page.
+
+**Judge verifies:** compares screenshots with the mockup; checks the no-merge test with a planted cross-currency sum.
+
+**Depends:** W8 · **Size:** M · **Status:** later
