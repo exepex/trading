@@ -73,7 +73,7 @@ isolation test of criterion 1 on a non-counted day, recorded in the conversation
 
 **Judge verifies:** re-runs the real isolation test; reads one session's event log; checks receipt times and hashes.
 
-**Depends:** D3, D6, E2, E3 · **Size:** L · **Status:** forecast part built: seal PASS (judge 62); owner's conditions 1-2 met (judge 62 addendum 1); audit-seed fix (0688ad5) and G4's gate (22ace2f) awaiting judge; first live run 14 Oct 2026 ~15:10 IST. Trading part later (slice 4)
+**Depends:** D3, D6, E2, E3 · **Size:** L · **Status:** forecast part built: seal PASS (judge 62); owner's conditions 1-2 met (judge 62 addendum 1); audit seed (0688ad5, 567ceea) and G4's gate (22ace2f, 44090c1) PASS (judge 62 addenda 2-3); first live run 14 Oct 2026 ~15:10 IST. Trading part later (slice 4)
 
 ---
 
