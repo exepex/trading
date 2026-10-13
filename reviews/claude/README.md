@@ -53,3 +53,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 51: C2 risk manager, builder's claims for the judge](response_51_2026-10-13-c2-risk-manager.md)
 - [Response 48: experiment 1 protocol conventions and the weekly/monthly blocking finding (B1/B3 builder)](response_48_2026-10-13-protocol-conventions.md)
 - [Response 55: protocol version 2.2 for ChatGPT's review: owner-accepted conventions, bad_prices rule, F1 10-contract minimum](response_55_2026-10-13-protocol-2-2-for-review.md)
+- [Response 53: G1 forecast protocol v1 (frozen), targets, 30-day ATM IV, builder's claims](response_53_2026-10-13-g1-forecast-protocol.md)
