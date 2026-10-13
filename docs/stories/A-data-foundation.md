@@ -508,4 +508,4 @@ and never to be opened by experiment code: the warm-up is index closes only).
 **Judge verifies:** runs data-coverage; recomputes F2 for 2 Jan 2019 from raw India VIX closes; plants an
 unfingerprinted file and confirms the result is not complete.
 
-**Depends:** A1, A9, B1 · **Size:** M · **Status:** later
+**Depends:** A1, A9, B1 · **Size:** M · **Status:** built; awaiting judge
