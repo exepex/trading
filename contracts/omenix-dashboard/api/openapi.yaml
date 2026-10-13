@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: market-brief app API
-  version: 2.4.0
+  version: 2.5.0
   summary: Read API over the precomputed read models (docs/ARCHITECTURE.md section 4), plus planned governed writes.
   description: |
     Research only: nothing here places, routes or suggests a trade, and nothing is investment advice.
@@ -49,6 +49,14 @@ info:
     whole tables and served as pages (page_size at most 100; `x-stored`); the stock tool stores only the India companies
     it follows, which exepex/trading reads to tag and count "ours" over its NSE rows (`x-inputs`; orchestrator decision,
     13 Oct 2026, judge 40).
+
+    Version 2.5 (owner decision, 14 Oct 2026; no field shape changed): India's NSE market blocks are exepex/trading's
+    (publisher `fno`), the US equivalents stay the stock tool's. The session and the indices split by market like W11's
+    blocks: getSessionIndia and getIndicesIndia (envelope FnoBlockMeta, pages `session` and `indices`) beside
+    getSessionUs and getIndicesUs (stock); the URLs are unchanged. India's NSE F&O expiries leave the stock calendar for
+    their own block, getFnoEvents (/api/v1/markets/india/fno/events, page `fno_events`); a screen merges it with
+    getEvents and applies its own query to the merged list. getFlows moves to `fno` (page `flows`). The F&O books and
+    picks keep W10's pages `risk` and `today` (orchestrator, judge 63: the contract's names win over P10's).
 
     Serve-time fields (2.0 page payloads): the stored payload carries no time of its build, so a rebuild of the same data
     keeps its hash. The route adds `cutoff` and `built_at` (the row's envelope) at the top of a page payload and

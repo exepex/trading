@@ -113,7 +113,7 @@ Flows:
     screen: a total exists only when the days cover the whole period, else it is null and the screen shows "—" with
     "only N days of data" (judge 27, finding 3). Open question for the owner: the stock tool's records give 5 days, so
     only 1D and 1W have totals; a year of daily flows would give 1M, 3M and 1Y
-  x-catalog: {publisher: stock, source: "the stock tool's flows (NSE FII/DII, provisional) and fpi (NSDL) records", freshness: next morning, story: K5-proposed, status: published}
+  x-catalog: {publisher: fno, source: "NSE's daily FII/DII cash-market report (provisional) and NSDL's daily FPI equity net, archived by exepex/trading (2.5, owner 14 Oct 2026; was the stock tool's)", freshness: next morning, story: P8, status: planned}
   x-element: [h34.flows]
   required: [currency, days, nsdl, totals]
   properties:
@@ -165,7 +165,7 @@ FlowTotal:
   if: {properties: {complete: {const: true}}}
   then: {properties: {fii: {type: number}, dii: {type: number}}}
   else: {properties: {fii: {type: 'null'}, dii: {type: 'null'}}}
-  x-catalog: {status: planned, source: "computed from the stock tool's flows records (sum of the period's days)"}
+  x-catalog: {status: planned, source: "computed from the archived daily flows (sum of the period's days)"}
 FlowSide:
   type: object
   additionalProperties: false

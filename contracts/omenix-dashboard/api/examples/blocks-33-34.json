@@ -10,7 +10,7 @@
    "built_at": "2026-10-12T12:30:00Z",
    "schema_version": "2.2.0",
    "source_commit": "e28b43d",
-   "payload_sha256": "8bda860bb4722d1b8aae9072eccef569356afad5cc199638194bbf54aa0814f9",
+   "payload_sha256": "e4d8d13b5e878af1541a4132a6fd7f59b9f8617df30eed2995a565c776dd2ad0",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -33,14 +33,14 @@
       "high": 12,
       "near_high": 56,
       "low": 10,
-      "near_low": 247,
-      "up_1m": 695,
+      "near_low": 240,
+      "up_1m": 697,
       "screens": {
        "movers": 165,
        "volume": 63,
-       "trend": 250,
-       "fall": 646,
-       "oversold": 246,
+       "trend": 251,
+       "fall": 647,
+       "oversold": 247,
        "delivery": 145
       }
      },
@@ -52,13 +52,13 @@
       "high": 1,
       "near_high": 7,
       "low": 1,
-      "near_low": 54,
+      "near_low": 53,
       "up_1m": 100,
       "screens": {
        "movers": 18,
        "volume": 12,
        "trend": 14,
-       "fall": 112,
+       "fall": 113,
        "oversold": 44,
        "delivery": 10
       }
@@ -3849,7 +3849,7 @@
    "built_at": "2026-10-12T12:30:00Z",
    "schema_version": "2.2.0",
    "source_commit": "e28b43d",
-   "payload_sha256": "71eae2330014e4c9d58e378b88aa5ad88c9a75fb361353631ac6a70e2da68325",
+   "payload_sha256": "d8ac003ed21cb602d2249c52ab2631db5f68dab68f89579d47af1ccaa688bba7",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -4207,7 +4207,7 @@
       "w1": 0.9,
       "m1": 6.27,
       "m3": -2.1,
-      "y1": null,
+      "y1": 35.18,
       "h": 1774.0,
       "l": 1091.1,
       "v": 572,
@@ -10229,7 +10229,7 @@
    "built_at": "2026-10-12T12:30:00Z",
    "schema_version": "2.2.0",
    "source_commit": "59b606d",
-   "payload_sha256": "bad8b2a2283d6197cf115fb5e3e583d81e93f2f7f59df02c62d1bfddbfaaccaf",
+   "payload_sha256": "2bf88cacb2b01f53f1d7fa3f79a29bdfb2c0d354352fdb78b78c7a25999988fc",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -11727,9 +11727,9 @@
       "n": 69,
       "d1": 1.16,
       "w1": -0.59,
-      "m1": -3.82,
-      "m3": -0.4,
-      "y1": 25.24,
+      "m1": -3.94,
+      "m3": -0.21,
+      "y1": 25.26,
       "up": 49,
       "down": 20,
       "best": [
@@ -11767,7 +11767,7 @@
       "w1": -0.63,
       "m1": -6.66,
       "m3": -4.69,
-      "y1": 10.71,
+      "y1": 9.6,
       "up": 32,
       "down": 8,
       "best": [
@@ -11824,7 +11824,7 @@
       "w1": 1.37,
       "m1": -2.1,
       "m3": -3.12,
-      "y1": -12.34,
+      "y1": -12.81,
       "up": 13,
       "down": 12,
       "best": [
@@ -14816,15 +14816,17 @@
    "schema_version": "2.2.0",
    "source_commit": "59b606d",
    "payload_sha256": "6fa9148f5330883f33045c50a74848dfd63617156823b86308d449e7186db5b8",
-   "publisher": "stock",
+   "publisher": "fno",
    "freshness": {
     "state": "fresh",
-    "rule": "stock_age",
+    "rule": "fno_calendar",
     "built_at": "2026-10-12T12:30:00Z",
     "age_minutes": 0,
     "reason": null
    },
    "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-2026-10-07",
    "payload": {
     "currency": "INR",
     "totals": {
@@ -19685,7 +19687,7 @@
    "built_at": "2026-10-12T12:30:00Z",
    "schema_version": "2.2.0",
    "source_commit": "59b606d",
-   "payload_sha256": "555351ef1ce3499e9e586a74d998828c975de325bf7363fa70193824358648fd",
+   "payload_sha256": "644de4d5c9c3f674f1662231e07b8069b49eabb1f5994bc9dd1393744849d88a",
    "publisher": "stock",
    "freshness": {
     "state": "fresh",
@@ -19702,13 +19704,6 @@
       "title": "RBI policy decision",
       "kind": "rbi_policy",
       "major": true,
-      "inst": null
-     },
-     {
-      "date": "2026-10-13",
-      "title": "NIFTY weekly expiry",
-      "kind": "weekly_expiry",
-      "major": false,
       "inst": null
      },
      {
@@ -19748,13 +19743,6 @@
      },
      {
       "date": "2026-10-19",
-      "title": "NIFTY weekly expiry",
-      "kind": "weekly_expiry",
-      "major": false,
-      "inst": null
-     },
-     {
-      "date": "2026-10-19",
       "title": "UltraTech Cement results",
       "kind": "earnings",
       "major": false,
@@ -19787,13 +19775,6 @@
       "kind": "earnings",
       "major": false,
       "inst": "SBILIFE"
-     },
-     {
-      "date": "2026-10-27",
-      "title": "NSE monthly F&O expiry (last Tuesday)",
-      "kind": "fno_expiry",
-      "major": true,
-      "inst": null
      },
      {
       "date": "2026-10-28",
@@ -19836,13 +19817,6 @@
       "kind": "earnings",
       "major": false,
       "inst": "MARUTI"
-     },
-     {
-      "date": "2026-11-03",
-      "title": "NIFTY weekly expiry",
-      "kind": "weekly_expiry",
-      "major": false,
-      "inst": null
      },
      {
       "date": "2026-11-03",
@@ -19904,7 +19878,7 @@
    "built_at": "2026-10-12T12:30:00Z",
    "schema_version": "2.2.0",
    "source_commit": "59b606d",
-   "payload_sha256": "64cf5a91d709d71425a813861571db442efc5bcf304c581bed7932923c47e62b",
+   "payload_sha256": "0b2d24f4aa8a7dca4a938c293b764e5b546f88e4462a3f7490764117cd3b4a0e",
    "publisher": "stock",
    "freshness": {
     "state": "fresh",
@@ -19916,13 +19890,6 @@
    "paper": "Paper",
    "payload": {
     "events": [
-     {
-      "date": "2026-10-13",
-      "title": "NIFTY weekly expiry",
-      "kind": "weekly_expiry",
-      "major": false,
-      "inst": null
-     },
      {
       "date": "2026-10-14",
       "title": "Tata Consultancy Services ex-dividend (est. 12, last dividend)",
@@ -19960,13 +19927,6 @@
      },
      {
       "date": "2026-10-19",
-      "title": "NIFTY weekly expiry",
-      "kind": "weekly_expiry",
-      "major": false,
-      "inst": null
-     },
-     {
-      "date": "2026-10-19",
       "title": "UltraTech Cement results",
       "kind": "earnings",
       "major": false,
@@ -19994,9 +19954,23 @@
       "inst": "SBILIFE"
      },
      {
-      "date": "2026-10-27",
-      "title": "NSE monthly F&O expiry (last Tuesday)",
-      "kind": "fno_expiry",
+      "date": "2026-10-28",
+      "title": "Adani Ports results",
+      "kind": "earnings",
+      "major": false,
+      "inst": "ADANIPORTS"
+     },
+     {
+      "date": "2026-10-28",
+      "title": "Larsen & Toubro results",
+      "kind": "earnings",
+      "major": false,
+      "inst": "LT"
+     },
+     {
+      "date": "2026-10-29",
+      "title": "FOMC rate decision (previous US evening)",
+      "kind": "fomc",
       "major": true,
       "inst": null
      }
@@ -20031,7 +20005,7 @@
    "built_at": "2026-10-12T12:30:00Z",
    "schema_version": "2.2.0",
    "source_commit": "59b606d",
-   "payload_sha256": "564ff2b8aa3c0faf7da4c081719e1b4351483bc1c723bfafde40cfc4b63ef568",
+   "payload_sha256": "acd6acc5170f22672d784c616fdf0a36b96e6d40b8586f7800147e635d8e9dba",
    "publisher": "stock",
    "freshness": {
     "state": "fresh",
@@ -20065,17 +20039,17 @@
       "inst": "HDFCBANK"
      },
      {
+      "date": "2026-10-17",
+      "title": "ICICI Bank results",
+      "kind": "earnings",
+      "major": false,
+      "inst": "ICICIBANK"
+     },
+     {
       "date": "2026-10-20",
       "title": "NSE closed",
       "kind": "holiday",
       "major": false,
-      "inst": null
-     },
-     {
-      "date": "2026-10-27",
-      "title": "NSE monthly F&O expiry (last Tuesday)",
-      "kind": "fno_expiry",
-      "major": true,
       "inst": null
      },
      {
@@ -20559,6 +20533,211 @@
     "UAL",
     "WMT",
     "XOM"
+   ]
+  }
+ },
+ "getFnoEvents_india_calendar": {
+  "summary": "Mock (india): the full calendar of 12 Oct (every kind; both screens query it)",
+  "description": "Taken from design/mockups/34-markets/data.json (signed off as of 59b606d; real NSE files and stock-tool records of 12 Oct 2026)",
+  "value": {
+   "market": "india",
+   "page_key": "fno_events",
+   "as_of": "2026-10-12",
+   "cutoff": "2026-10-12T12:30:00Z",
+   "built_at": "2026-10-12T12:30:00Z",
+   "schema_version": "2.2.0",
+   "source_commit": "59b606d",
+   "payload_sha256": "cd20ddb48bd472569917d97572ca19bf8d4fcf3dc4c57dd6af5e569309e21577",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-10-12T12:30:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-2026-10-07",
+   "payload": {
+    "events": [
+     {
+      "date": "2026-10-13",
+      "title": "NIFTY weekly expiry",
+      "kind": "weekly_expiry",
+      "major": false,
+      "inst": null
+     },
+     {
+      "date": "2026-10-19",
+      "title": "NIFTY weekly expiry",
+      "kind": "weekly_expiry",
+      "major": false,
+      "inst": null
+     },
+     {
+      "date": "2026-10-27",
+      "title": "NSE monthly F&O expiry (last Tuesday)",
+      "kind": "fno_expiry",
+      "major": true,
+      "inst": null
+     },
+     {
+      "date": "2026-11-03",
+      "title": "NIFTY weekly expiry",
+      "kind": "weekly_expiry",
+      "major": false,
+      "inst": null
+     }
+    ]
+   }
+  },
+  "x-query": {
+   "from": "2026-10-13"
+  }
+ },
+ "getFnoEvents_india_markets": {
+  "summary": "Mock (india): the Markets overview's view: kinds=results, ex-dividend, expiries, filing, economy; limit=12",
+  "description": "Taken from design/mockups/34-markets/data.json (signed off as of 59b606d; real NSE files and stock-tool records of 12 Oct 2026)",
+  "value": {
+   "market": "india",
+   "page_key": "fno_events",
+   "as_of": "2026-10-12",
+   "cutoff": "2026-10-12T12:30:00Z",
+   "built_at": "2026-10-12T12:30:00Z",
+   "schema_version": "2.2.0",
+   "source_commit": "59b606d",
+   "payload_sha256": "cd20ddb48bd472569917d97572ca19bf8d4fcf3dc4c57dd6af5e569309e21577",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-10-12T12:30:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-2026-10-07",
+   "payload": {
+    "events": [
+     {
+      "date": "2026-10-13",
+      "title": "NIFTY weekly expiry",
+      "kind": "weekly_expiry",
+      "major": false,
+      "inst": null
+     },
+     {
+      "date": "2026-10-19",
+      "title": "NIFTY weekly expiry",
+      "kind": "weekly_expiry",
+      "major": false,
+      "inst": null
+     },
+     {
+      "date": "2026-10-27",
+      "title": "NSE monthly F&O expiry (last Tuesday)",
+      "kind": "fno_expiry",
+      "major": true,
+      "inst": null
+     },
+     {
+      "date": "2026-11-03",
+      "title": "NIFTY weekly expiry",
+      "kind": "weekly_expiry",
+      "major": false,
+      "inst": null
+     }
+    ]
+   }
+  },
+  "x-query": {
+   "kinds": [
+    "earnings",
+    "ex_dividend",
+    "fno_expiry",
+    "weekly_expiry",
+    "filing",
+    "rbi_policy",
+    "fomc",
+    "cpi",
+    "jobs_report",
+    "budget"
+   ],
+   "limit": 12,
+   "from": "2026-10-13"
+  }
+ },
+ "getFnoEvents_india_home20": {
+  "summary": "Mock (india): Home's query on the real calendar (the stock tool's 20 companies, from 13 Oct): market-wide events kept",
+  "description": "Taken from design/mockups/34-markets/data.json (signed off as of 59b606d; real NSE files and stock-tool records of 12 Oct 2026)",
+  "value": {
+   "market": "india",
+   "page_key": "fno_events",
+   "as_of": "2026-10-12",
+   "cutoff": "2026-10-12T12:30:00Z",
+   "built_at": "2026-10-12T12:30:00Z",
+   "schema_version": "2.2.0",
+   "source_commit": "59b606d",
+   "payload_sha256": "6167d2cbf3fe6acdbf216ead48df8bb65680f0cb60c9c1d9fc366b075a6228e8",
+   "publisher": "fno",
+   "freshness": {
+    "state": "fresh",
+    "rule": "fno_calendar",
+    "built_at": "2026-10-12T12:30:00Z",
+    "age_minutes": 0,
+    "reason": null
+   },
+   "paper": "Paper",
+   "product": "fno",
+   "publication_id": "mock-2026-10-07",
+   "payload": {
+    "events": [
+     {
+      "date": "2026-10-27",
+      "title": "NSE monthly F&O expiry (last Tuesday)",
+      "kind": "fno_expiry",
+      "major": true,
+      "inst": null
+     }
+    ]
+   }
+  },
+  "x-query": {
+   "kinds": [
+    "rbi_policy",
+    "earnings",
+    "holiday",
+    "fno_expiry",
+    "fomc",
+    "cpi",
+    "jobs_report"
+   ],
+   "limit": 6,
+   "market_first": true,
+   "from": "2026-10-13",
+   "tickers": [
+    "ADANIPORTS",
+    "DRREDDY",
+    "HDFCBANK",
+    "HDFCLIFE",
+    "HINDALCO",
+    "HINDUNILVR",
+    "ICICIBANK",
+    "INDIGO",
+    "INFY",
+    "ITC",
+    "LT",
+    "M&M",
+    "MARUTI",
+    "ONGC",
+    "RELIANCE",
+    "SBILIFE",
+    "SUNPHARMA",
+    "TATASTEEL",
+    "TCS",
+    "ULTRACEMCO"
    ]
   }
  }
