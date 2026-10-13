@@ -11,6 +11,7 @@ from fno.fo_bhavcopy import BadFile
 from fno.research_data.participant_oi import read_participant_oi
 
 NSE = Path(__file__).resolve().parents[1] / "fixtures" / "nse"
+JAN_3 = date(2022, 1, 3)
 
 # Read by hand from the files: per participant, (long, short) for future index, future stock, index call, index put,
 # stock call, stock put, then the totals. NSE's columns are FIL FIS FSL FSS, then option longs (index call, index put,
@@ -136,7 +137,7 @@ def test_the_parser_returns_the_numbers_read_by_hand(day):
 
 def test_net_is_long_minus_short():
     name, data = real_file(date(2026, 10, 9))
-    assert read_participant_oi(data, name).position("FII", "future_index").net == 34943 - 328931
+    assert read_participant_oi(data, name, date(2026, 10, 9)).position("FII", "future_index").net == 34943 - 328931
 
 
 def test_the_three_files_span_the_formats_nse_used():
@@ -145,12 +146,12 @@ def test_the_three_files_span_the_formats_nse_used():
     assert b"Future Stock Short\t" in raw[date(2022, 1, 3)] and b"Future Stock Short       " in raw[date(2026, 10, 9)]
 
 
-def test_nse_rounding_of_one_contract_is_accepted_but_more_is_damage():
-    name, data = real_file(date(2022, 1, 3))  # NSE's own client long groups add up to 6035641, total says 6035640
-    assert read_participant_oi(data, name).totals["Client"].long == 6035640
-    damaged = data.replace(b",6035640,", b",6035642,")  # 2 off: the TOTAL row no longer matches either
+def test_nse_rounding_of_up_to_two_contracts_is_accepted_but_more_is_damage():
+    name, data = real_file(JAN_3)  # NSE's own client long groups add up to 6035641, total says 6035640
+    assert read_participant_oi(data, name, JAN_3).totals["Client"].long == 6035640
+    assert read_participant_oi(data.replace(b",6035640,", b",6035641,"), name, JAN_3)  # column now 2 off TOTAL
     with pytest.raises(BadFile, match="add up to"):
-        read_participant_oi(damaged, name)
+        read_participant_oi(data.replace(b",6035640,", b",6035644,"), name, JAN_3)  # 3 off their parts
 
 
 @pytest.mark.parametrize(
@@ -172,9 +173,9 @@ def test_a_damaged_or_foreign_file_is_refused(change, message):
 def test_a_file_cut_short_is_refused():
     name, data = real_file(date(2019, 6, 3))
     with pytest.raises(BadFile):
-        read_participant_oi(data[: len(data) // 2], name)
+        read_participant_oi(data[: len(data) // 2], name, date(2019, 6, 3))
     with pytest.raises(BadFile):
-        read_participant_oi(b"\xff\xfe\x00", name)
+        read_participant_oi(b"\xff\xfe\x00", name, date(2019, 6, 3))
 
 
 @pytest.mark.parametrize(
@@ -192,9 +193,25 @@ def test_numbers_written_with_indian_grouping_and_a_zero_fraction_are_read_but_a
     """12 Dec 2019's FII row reads "80,776.00","10,02,064.00", ..."""
     name, data = real_file(date(2022, 1, 3))
     grouped = data.replace(b"FII,127535,55563,913854,", b'FII,"1,27,535.00",55563,"9,13,854.00",')
-    oi = read_participant_oi(grouped, name)
+    oi = read_participant_oi(grouped, name, JAN_3)
     assert (oi.position("FII", "future_index").long, oi.position("FII", "future_stock").long) == (127535, 913854)
     with pytest.raises(BadFile, match="not a whole number"):
-        read_participant_oi(data.replace(b"FII,127535,", b"FII,127535.50,"), name)
+        read_participant_oi(data.replace(b"FII,127535,", b"FII,127535.50,"), name, JAN_3)
     with pytest.raises(BadFile, match="not a whole number"):
-        read_participant_oi(data.replace(b"FII,127535,", b"FII,-127535,"), name)
+        read_participant_oi(data.replace(b"FII,127535,", b"FII,-127535,"), name, JAN_3)
+
+
+def test_a_title_without_a_year_must_still_match_month_and_day_and_unnamed_columns_are_ignored():
+    """8 Jun 2021's title has no year; 22 Feb 2024 has a 16th column with no name (one stray sum in the FII row)."""
+    name, data = real_file(JAN_3)
+    no_year = data.replace(b"as on Jan 03,2022", b"as on Jan 03")
+    assert read_participant_oi(no_year, name, JAN_3).day == JAN_3
+    with pytest.raises(BadFile, match="title says"):
+        read_participant_oi(no_year.replace(b"Jan 03", b"Jan 04"), name, JAN_3)
+    trailing = b"\r\n".join(line + b"," for line in data.split(b"\r\n") if line)
+    assert read_participant_oi(trailing, name, JAN_3).totals == read_participant_oi(data, name, JAN_3).totals
+    stray = trailing.replace(b",1303300,", b",1303300,3078338")
+    assert read_participant_oi(stray, name, JAN_3).totals["FII"].short == 1303300  # a value under no column: ignored
+    named = trailing.replace(b"Total Short Contracts,", b"Total Short Contracts,Extra")
+    with pytest.raises(BadFile, match="unexpected columns"):
+        read_participant_oi(named, name, JAN_3)

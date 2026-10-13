@@ -104,8 +104,7 @@ def validate_index_close(filename: str, data: bytes) -> None:
 
 
 def validate_participant_oi(filename: str, data: bytes) -> None:
-    if ParticipantOiSource.filename_for(read_participant_oi(data, filename).day) != filename:
-        raise BadFile(f"{filename}: its title names another day")
+    read_participant_oi(data, filename, ParticipantOiSource.day_for(filename))
 
 
 COVERAGE_DATASETS = (

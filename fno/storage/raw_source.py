@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from datetime import date
+from datetime import date, datetime
 
 import requests
 
@@ -124,7 +124,12 @@ class ParticipantOiSource(NseArchiveSource):
     first_day = date(2019, 1, 1)
     BASE_URL = "https://nsearchives.nseindia.com/content/nsccl/"
     FILENAME = "fao_participant_oi_{day:%d%m%Y}.csv"
+    FILENAME_PATTERN = "fao_participant_oi_%d%m%Y.csv"  # the same name, for reading the day back
 
     @classmethod
     def url_for(cls, path: str) -> str:
         return cls.BASE_URL + path.rsplit("/", 1)[-1]
+
+    @classmethod
+    def day_for(cls, filename: str) -> date:
+        return datetime.strptime(filename, cls.FILENAME_PATTERN).date()

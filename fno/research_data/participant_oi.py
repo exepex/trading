@@ -30,7 +30,9 @@ from ..fo_bhavcopy import BadFile
 
 LONG, SHORT = "long", "short"
 TOTAL_ROW = "TOTAL"
-ROUNDING_TOLERANCE = 1  # contracts: NSE's sums can be 1 off their parts (rounding), measured over 2019-2026
+ROUNDING_TOLERANCE = (
+    2  # contracts: NSE's sums can be up to 2 off their parts (rounding): measured, 1,929 files 2019-2026
+)
 GROUP_COLUMNS = {  # NSE's column for each instrument group and side, in the file's order
     (OI_FUTURE_INDEX, LONG): "Future Index Long",
     (OI_FUTURE_INDEX, SHORT): "Future Index Short",
@@ -47,7 +49,7 @@ GROUP_COLUMNS = {  # NSE's column for each instrument group and side, in the fil
 }
 TOTAL_COLUMNS = {LONG: "Total Long Contracts", SHORT: "Total Short Contracts"}
 COLUMNS = ("Client Type", *GROUP_COLUMNS.values(), *TOTAL_COLUMNS.values())
-TITLE_DATE = re.compile(r"as on\W*([A-Za-z]{3})[a-z]*\W*(\d{1,2})\W+(\d{4})")  # typed by hand: "Aug 05 2019"
+TITLE_DATE = re.compile(r"as on\W*([A-Za-z]{3})[a-z]*\W*(\d{1,2})(?:\W+(\d{4}))?")  # typed by hand: "Aug 05 2019"
 
 
 @dataclass(frozen=True)
@@ -70,15 +72,19 @@ class ParticipantOi:
         return self.positions[participant][group]
 
 
-def _title_day(title: str, filename: str) -> date:
+def _check_title(title: str, filename: str, day: date) -> None:
+    """The title's date must be the file's day; a title without a year (8 Jun 2021) must match month and day."""
     found = TITLE_DATE.search(title)
     if not found or found.group(1).upper() not in MONTH_CODES:
         raise BadFile(f"{filename}: no 'as on <date>' in the title {title!r}")
-    month, day, year = MONTH_CODES.index(found.group(1).upper()) + 1, int(found.group(2)), int(found.group(3))
-    return date(year, month, day)
+    month, number, year = MONTH_CODES.index(found.group(1).upper()) + 1, int(found.group(2)), found.group(3)
+    if (month, number) != (day.month, day.day) or (year is not None and int(year) != day.year):
+        raise BadFile(f"{filename}: the title says {found.group(0)!r}, the file is for {day}")
 
 
-def _rows(data: bytes, filename: str) -> tuple[str, list[str], dict[str, list[str]]]:
+def _rows(data: bytes, filename: str) -> tuple[str, dict[str, list[str]]]:
+    """The title line as written (its quoting varies) and each participant's cells under NSE's named columns. Columns
+    without a header name are ignored whatever they hold (22 Feb 2024: one stray sum in the FII row)."""
     try:
         text = data.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
@@ -88,12 +94,15 @@ def _rows(data: bytes, filename: str) -> tuple[str, list[str], dict[str, list[st
     if len(lines) < 2:
         raise BadFile(f"{filename}: no title and header")
     header = [cell.strip() for cell in lines[1]]
-    if tuple(header) != COLUMNS:
+    if tuple(header[: len(COLUMNS)]) != COLUMNS or any(header[len(COLUMNS) :]):
         raise BadFile(f"{filename}: unexpected columns {header}")
     body = {row[0].strip(): row for row in lines[2:]}
     if len(body) != len(lines) - 2 or set(body) != {*PARTICIPANTS, TOTAL_ROW}:
         raise BadFile(f"{filename}: participants {sorted(body)} are not {sorted({*PARTICIPANTS, TOTAL_ROW})}")
-    return text_lines[0], header, body  # the title as written: its quoting varies
+    for name, row in body.items():
+        if not len(COLUMNS) <= len(row) <= len(header):
+            raise BadFile(f"{filename}: row {name!r} has {len(row)} values, not {len(COLUMNS)}")
+    return text_lines[0], {name: row[: len(COLUMNS)] for name, row in body.items()}
 
 
 def _count(cell: str) -> int:
@@ -104,14 +113,11 @@ def _count(cell: str) -> int:
     return int(whole)
 
 
-def _numbers(row: list[str], header: list[str], filename: str) -> dict[str, int]:
-    if len(row) != len(header):
-        raise BadFile(f"{filename}: row {row[0].strip()!r} has {len(row)} values, not {len(header)}")
+def _numbers(row: list[str], filename: str) -> dict[str, int]:
     try:
-        values = {name: _count(cell) for name, cell in zip(header[1:], row[1:])}
+        return {name: _count(cell) for name, cell in zip(COLUMNS[1:], row[1:])}
     except ValueError as exc:
         raise BadFile(f"{filename}: row {row[0].strip()!r} has a value that is not a whole number") from exc
-    return values
 
 
 def _check_identities(numbers: dict[str, dict[str, int]], filename: str) -> None:
@@ -133,16 +139,14 @@ def _position(values: dict[str, int], group: str) -> Position:
     return Position(values[GROUP_COLUMNS[group, LONG]], values[GROUP_COLUMNS[group, SHORT]])
 
 
-def read_participant_oi(data: bytes, filename: str, day: date | None = None) -> ParticipantOi:
-    """The file's positions; BadFile when it is damaged, not NSE's format, or (given `day`) for another day."""
-    title, header, body = _rows(data, filename)
-    file_day = _title_day(title, filename)
-    if day is not None and file_day != day:
-        raise BadFile(f"{filename}: the title says {file_day}, the file is for {day}")
-    numbers = {name: _numbers(row, header, filename) for name, row in body.items()}
+def read_participant_oi(data: bytes, filename: str, day: date) -> ParticipantOi:
+    """The positions in session `day`'s file; BadFile when it is damaged, not NSE's format, or for another day."""
+    title, body = _rows(data, filename)
+    _check_title(title, filename, day)
+    numbers = {name: _numbers(row, filename) for name, row in body.items()}
     _check_identities(numbers, filename)
     positions = {name: {group: _position(numbers[name], group) for group in OI_GROUPS} for name in PARTICIPANTS}
     totals = {
         name: Position(numbers[name][TOTAL_COLUMNS[LONG]], numbers[name][TOTAL_COLUMNS[SHORT]]) for name in PARTICIPANTS
     }
-    return ParticipantOi(file_day, positions, totals)
+    return ParticipantOi(day, positions, totals)
