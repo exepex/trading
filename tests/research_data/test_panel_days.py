@@ -15,7 +15,7 @@ from panel_fixtures import FIXTURES, FixtureCalendar, build, panel_rows
 from fno.forecast.freeze import NotFrozen
 from fno.forecast.freeze_v2 import NotYetFrozen
 from fno.models import IST
-from fno.pipeline.panel_days import PanelDayJob
+from fno.pipeline.panel_days import PanelDayJob, last_complete_day
 from fno.pipeline.panel_wiring import first_archived_inputs
 from fno.research_data.nifty_panel import NiftyPanelBuilder
 from fno.research_data.panel_append import PanelAppender
@@ -118,13 +118,16 @@ def test_an_official_close_not_appended_yet_or_from_another_version_stops_the_ru
     assert _manifest(panel)["end"] == str(BASE)
 
 
-def test_before_the_v3_freeze_nothing_is_appended_and_nothing_alerts(setup):
+def test_a_missing_freeze_record_is_an_alerting_failure_never_a_silent_stop(setup):
+    """Judge 64 addendum 2: a scheduled job that silently appends nothing leaves Q5 stale about 21 sessions later."""
+
     def not_yet():
         raise NotYetFrozen("research/forecasts/FREEZE_v3.md does not exist")
 
     alerts = RecordingAlerts()
-    assert _job(*setup, alerts, not_yet).run(B) == 0
-    assert _manifest(setup[1])["end"] == str(BASE) and alerts.lines == []
+    assert _job(*setup, alerts, not_yet).run(B) == 1
+    assert _manifest(setup[1])["end"] == str(BASE)
+    assert len(alerts.lines) == 1 and "FREEZE_v3.md does not exist" in alerts.lines[0]
 
 
 def test_a_failed_freeze_check_appends_nothing_and_alerts(setup):
@@ -162,11 +165,27 @@ def test_a_crash_between_the_year_file_and_the_manifest_is_refused_and_recovers(
     assert len(panel_rows(panel, 2024)) == _manifest(panel)["files"]["options_2024.csv.gz"]["rows"]
 
 
-def test_the_real_job_writes_nothing_until_v3_is_frozen():
+def test_the_panel_wiring_checks_the_panel_days_section(monkeypatch):
+    """Judge 64 addendum 2: the composition root must ask for its own section, never the scoring one."""
+    import fno.freeze_sections as sections
     from fno.pipeline.panel_wiring import require_v3_frozen
 
-    with pytest.raises(NotYetFrozen):  # no research/forecasts/FREEZE_v3.md yet
-        require_v3_frozen()
+    asked = []
+    monkeypatch.setattr(sections, "require_section_frozen", lambda root, commit, section: asked.append(section))
+    require_v3_frozen()
+    assert asked == [sections.PANEL_DAYS]
+
+
+@pytest.mark.parametrize(
+    "now, day",
+    [
+        (datetime(2026, 10, 14, 21, 41, tzinfo=IST), date(2026, 10, 14)),  # the evening run: today's session
+        (datetime(2026, 10, 15, 12, 11, tzinfo=IST), date(2026, 10, 14)),  # the morning retry: yesterday's
+        (datetime(2026, 10, 14, 20, 59, tzinfo=IST), date(2026, 10, 13)),  # before 21:00 today's files are not due
+    ],
+)
+def test_a_run_appends_through_the_last_day_whose_files_are_due(now, day):
+    assert last_complete_day(now) == day
 
 
 @pytest.mark.parametrize("name", ["options_2020.csv.gz", "futures_2020.csv.gz"])

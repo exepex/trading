@@ -179,5 +179,13 @@ The fix, in `fno/forecast_scoring/ai_sources.py`:
    - a scored day with a wrong or unverified pack is unscored.
 
 **What the tests do not cover end to end:** `score_forecasts` itself, which needs the frozen back-fill, the git
-freezes and the panel. It calls exactly `ai_forecasts(root, live.packs, as_of)`. The tests run that reader, then
+freezes and the panel. It calls exactly `ai_forecasts(root, live.packs)`. The tests run that reader, then
 coverage and the report, on the same outputs.
+
+**Collision with F1's same-hour change (fixed):** F1's `0688ad5` (the weekly draw seeded by the week's last official
+NIFTY 50 close) removed `today` from `scoring_status(root, day, book)`. My `22ace2f` still passed `as_of`. Both
+merged cleanly as text, so merge commit `a31c36f` broke the 4 gate tests (TypeError) for one commit on `main`. I pushed
+it after re-running the suite on the merge before that pull, not after it; that was my mistake. The fix drops `as_of`
+from `ai_forecasts`, so the reader passes exactly what the gate takes. The G1 v3 session made the same fix in its
+protocol commit `904c036`; my identical fix merged into it, and only this note is new. A day whose week has no seed yet is now
+`pending` with the gate's reason "weekly audit draw not made yet ...".

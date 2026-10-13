@@ -3,8 +3,9 @@ session after the panel's last day is built with A3's own builder (unchanged rul
 of its F&O and index-close files in Drive (A11's later versions are recorded, never used), and appended in place
 (`PanelAppender`), never rewriting a day.
 
-A run is all or nothing: it writes only under a frozen protocol (the injected freeze check runs first), only after
-the whole panel matches its manifest (`verify`), and only if every pending session passes. Each session's inputs are
+A run is all or nothing: it writes only under a frozen protocol (the injected freeze check runs first; a missing or
+failing freeze record is an alerting failure, never a silent stop), only after the whole panel matches its manifest
+(`verify`), and only if every pending session passes. Each session's inputs are
 checked before it is built, with a named reason: `fo_file_missing`, `index_close_missing` (also when story O6 has not
 appended that day's official close yet) or `index_close_differs` (O6's row came from another index-close version). The
 first failure stops the run, appends nothing and posts one line; the next run (the morning retry) starts again from
@@ -15,13 +16,12 @@ from __future__ import annotations
 
 import csv
 from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
 from ..constants import PANEL_FO_FILE_MISSING, PANEL_INDEX_CLOSE_DIFFERS, PANEL_INDEX_CLOSE_MISSING
 from ..forecast.freeze import NotFrozen
-from ..forecast.freeze_v2 import NotYetFrozen
 from ..research_data.calendar import SessionCalendar
 from ..research_data.nifty_panel import NiftyPanelBuilder, PanelBuildError
 from ..research_data.panel_append import AppendRefused, PanelAppender
@@ -29,10 +29,16 @@ from ..research_data.panel_store import WARMUP_FILE, PanelDay
 
 ADDED = "panel days: {added} sessions appended ({first} to {last})"
 NOTHING_NEW = "panel days: nothing new after {last}"
-WAITING = "panel days: nothing appended: {reason}"
 STOPPED = "Omenix F&O daily NIFTY panel: nothing appended: {day}: {problem}. The next run retries from {day}"
 REFUSED = "Omenix F&O daily NIFTY panel: nothing appended: {problem}"
+FILES_BY = time(21, 0)  # IST: a session's F&O and index-close files are archived by then (the evening run is 21:41)
 VersionLookup = Callable[[date, str], list[dict]]  # (day, dataset label) -> later A11 versions known now
+
+
+def last_complete_day(now: datetime) -> date:
+    """The last day whose session files can be expected: today from 21:00 IST, else yesterday (a morning retry or a
+    manual run must not wait for today's session, which would stop the whole run)."""
+    return now.date() if now.time() >= FILES_BY else now.date() - timedelta(days=1)
 
 
 def official_index_files(folder: Path) -> dict[str, str]:
@@ -88,10 +94,7 @@ class PanelDayJob:
     def run(self, today: date) -> int:
         try:
             self.freeze_check()
-        except NotYetFrozen as waiting:
-            self.log(WAITING.format(reason=waiting))
-            return 0
-        except NotFrozen as problem:
+        except NotFrozen as problem:  # not yet frozen too: a scheduled job never stops silently (judge 64 addendum 2)
             return self._fail(REFUSED.format(problem=f"protocol freeze check failed: {problem}"))
         try:
             self.appender.verify()
