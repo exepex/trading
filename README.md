@@ -31,6 +31,7 @@ python -m fno account show book1_rules          # a book's paper account: cash, 
 python -m fno groww-check                         # check the Groww data connection (prints no secrets)
 python -m fno drive-check                         # check the Google Drive archive can be read (prints no secrets)
 python -m fno data-coverage [--from --to]          # raw NSE files missing or damaged in Drive, against the NSE calendar (A1)
+python -m fno nifty-panel --to YYYY-MM-DD [--from --raw-folder]  # NIFTY option-chain panel from the raw files (A3)
 python -m pytest -q && ruff check fno tests tools # tests and lint; python tools/check_imports.py checks imports
 python tools/check_records.py [--staged | PATH] [--alert]  # public-record scan: no secrets, personal data or broker IDs (O5)
 ```

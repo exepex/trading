@@ -76,7 +76,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 |---|---|---|---|---|---|
 | [A1](stories/A-data-foundation.md#a1-raw-nse-archive-complete-and-checked) | Raw NSE archive complete and checked | trading | - | M | doing |
 | [A2](stories/A-data-foundation.md#a2-one-reader-for-both-fo-formats) | One reader for both F&O formats | trading | - | M | done |
-| [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | trading | A1, A2 | M | next |
+| [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | trading | A1, A2 | M | built; awaiting judge |
 | [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | trading | - | M | done (judge passed) |
 | [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | trading | - | S | done (judge passed) |
 | [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | trading | - | S | done (judge passed; criteria 4-5 moved to B1, B5) |
@@ -135,6 +135,9 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [W4](stories/X-cross-repository.md#w4-access-and-freshness-contract-tests) | Access and freshness contract tests | dashboard | W2, W3 | S | later |
 | [W6](stories/X-cross-repository.md#w6-stock-reads-on-azure-and-parity) | Stock reads on Azure and parity | dashboard | W2, K1 | M | later |
 | [W7](stories/X-cross-repository.md#w7-dashboard-writes-on-azure-inbox-assistant-and-control-state) | Dashboard writes on Azure (inbox, assistant and control state) | dashboard | W1, X1 | M | later |
+| [W8](stories/X-cross-repository.md#w8-the-signed-off-app-frame-in-the-real-app) | The signed-off app frame in the real app | dashboard | W1 | L | next |
+| [W9](stories/X-cross-repository.md#w9-the-signed-off-home-screen-in-the-real-app) | The signed-off Home screen in the real app | dashboard | W8 | M | later |
+| [W10](stories/X-cross-repository.md#w10-api-contract-and-data-catalog-for-the-frame-and-home-small-independent-endpoints) | API contract and data catalog for the frame and Home (small independent endpoints) | dashboard | 30, 31 sign-off | M | next |
 | [W5](stories/X-cross-repository.md#w5-cutover-and-rollback) | Cutover and rollback | dashboard | W1-W4, W6, W7, K1, K3 | S | later |
 | [K1](stories/X-cross-repository.md#k1-stock-backend-publishes-to-azure-dual-publication-and-parity) | Stock backend publishes to Azure (dual publication and parity) | agentic-stock-prediction | X1 | M | later |
 | [K2](stories/X-cross-repository.md#k2-retire-motherduck) | Retire MotherDuck | agentic-stock-prediction | W5, W7, K3 | S | later |

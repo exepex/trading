@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import date, timedelta
+from pathlib import Path
 
 from .books.cli import add_account_parser
 from .config import ROOT, load_app_config
@@ -38,6 +39,21 @@ def cmd_data_coverage(args) -> int:
     print("\n".join(report_lines(results)))
     print(f"calendar sha256 {check.calendar.calendar_sha256()}")
     return 0 if all(r.ok for r in results) else 1
+
+
+def cmd_nifty_panel(args) -> int:
+    from .research_data.nifty_panel import PanelBuildError, build_nifty_panel, summary_lines
+    from .storage import wiring
+
+    fo_files, index_files = wiring.build_nifty_panel_files(args.raw_folder)
+    rules = {"calendar": wiring.build_session_calendar(), "exceptions": wiring.build_file_exceptions()}
+    try:
+        panel = build_nifty_panel(fo_files, index_files, args.start, args.end, sink=wiring.build_panel_sink(), **rules)
+    except PanelBuildError as exc:
+        print(f"NOT research-ready, nothing written: {exc}")
+        return 1
+    print("\n".join(summary_lines(panel)))
+    return 0
 
 
 def cmd_groww_check(args) -> int:
@@ -98,6 +114,11 @@ def main(argv: list[str] | None = None) -> int:
         help="YYYY-MM-DD (default: yesterday)",
     )
     v.set_defaults(func=cmd_data_coverage)
+    n = sub.add_parser("nifty-panel", help="build the NIFTY option-chain panel from the raw NSE files (story A3)")
+    n.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 1, 1), help="YYYY-MM-DD")
+    n.add_argument("--to", dest="end", type=date.fromisoformat, required=True, help="YYYY-MM-DD: last day to include")
+    n.add_argument("--raw-folder", type=Path, help="local project folder searched before Drive (its raw area)")
+    n.set_defaults(func=cmd_nifty_panel)
     g = sub.add_parser("groww-check", help="check the Groww data connection (prints no secrets)")
     g.set_defaults(func=cmd_groww_check)
 
