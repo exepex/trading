@@ -37,9 +37,13 @@ from .market_read_models.publication import PublicationBuilder
 from .market_read_models.publisher import ReadModelPublisher
 from .market_read_models.session_rows import SessionRowsBuilder
 from .providers import AUTO_PROVIDER, get_provider
+from .providers.base import Provider
+from .providers.nse_quotes import NseQuoteProvider
 from .providers.public import PublicData
 from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.market_levels import NseLevelSource
+from .quotes.recorder import DATASET as GROWW_QUOTE_DATASET
+from .quotes.recorder import NSE_DATASET as NSE_QUOTE_DATASET
 from .quotes.recorder import QuoteSnapshotRecorder
 from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .record_scan.scanner import RecordScanner
@@ -93,10 +97,20 @@ def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     NSE's session calendar, which decides whether today is a session (A7); and India VIX with the NIFTY futures from
     NSE's public website at capture, for the live features (B7)."""
     provider = get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg)
+    return _quote_recorder(provider, GROWW_QUOTE_DATASET)
+
+
+def build_nse_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
+    """Story O6, owner's choice (a): the same recorder on NSE's public option chain (no broker key), into its own
+    dataset beside Groww's, so the two can be compared and are never mixed."""
+    return _quote_recorder(NseQuoteProvider(cfg), NSE_QUOTE_DATASET)
+
+
+def _quote_recorder(provider: Provider, dataset: str) -> QuoteSnapshotRecorder:
     expiries, levels = NseDailyFileExpiries(build_nse_fo_library()), NseLevelSource(PublicData().nse_json)
     return QuoteSnapshotRecorder(
         provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar(), history=expiries,
-        levels=levels,
+        levels=levels, dataset=dataset,
     )  # fmt: skip
 
 

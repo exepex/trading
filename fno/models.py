@@ -50,6 +50,8 @@ class QuoteBook:
     last_trade_time: datetime | None
     book_source: str  # "fields" (best bid/offer fields) or "depth" (top of the market depth) or "" (none)
     raw_sha256: str  # SHA-256 of the provider's raw response, for audit
+    quote_time: datetime | None = None  # when the provider says the quote was taken (NSE: its page timestamp)
+    traded_today: bool | None = None  # NSE: the contract's day volume > 0 (it gives no last trade time)
 
 
 @dataclass

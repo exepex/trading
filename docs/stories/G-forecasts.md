@@ -47,7 +47,7 @@ pack_sha256`.
 
 **Judge verifies:** recomputes one target and one IV value by hand; checks the freeze commit order.
 
-**Depends:** A1, A3, B1, B4 · **Size:** M · **Status:** awaiting judge (judge 47 fixes done; ChatGPT review 28 changes applied, response 57 addendum); frozen only after agreement
+**Depends:** A1, A3, B1, B4 · **Size:** M · **Status:** frozen; awaiting judge re-check (protocol v1 with review 28 changes; freeze record research/forecasts/FREEZE.md)
 
 ---
 
@@ -83,7 +83,7 @@ date with a fixed refit schedule), its specification frozen in the protocol.
 
 **Judge verifies:** recomputes one risk-neutral probability and one base rate by hand.
 
-**Depends:** G1, A3, A4 · **Size:** M · **Status:** later
+**Depends:** G1, A3, A4 · **Size:** M · **Status:** awaiting judge (claims: response 62; live values wait for a protocol version naming the live input pack)
 
 ---
 
@@ -113,7 +113,7 @@ combined by a fixed rule written in the protocol); records validated by `fno/for
 
 **Judge verifies:** checks one week of Book-1 forecast files for completeness and commit order.
 
-**Depends:** G1, G2 · **Size:** S · **Status:** later
+**Depends:** G1, G2 · **Size:** S · **Status:** awaiting judge (claims: response 62; records "no forecast" daily until live inputs are approved)
 
 ---
 
