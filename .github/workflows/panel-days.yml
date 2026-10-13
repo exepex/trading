@@ -58,13 +58,13 @@ jobs:
         continue-on-error: true
         run: |
           python -m fno data-librarian fo-bhavcopy \
-            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$(TZ=Asia/Kolkata date +%F)"
+            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$(python -c 'from fno.models import now_ist; from fno.pipeline.panel_days import last_complete_day; print(last_complete_day(now_ist()))')"
       - name: Keep later NSE versions beside the originals (A11)
         id: revisions
         continue-on-error: true
         run: |
           python -m fno data-revisions sweep fo-bhavcopy \
-            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$(TZ=Asia/Kolkata date +%F)"
+            --from "$(TZ=Asia/Kolkata date -d '-7 days' +%F)" --to "$(python -c 'from fno.models import now_ist; from fno.pipeline.panel_days import last_complete_day; print(last_complete_day(now_ist()))')"
       - name: Append the new sessions (point in time, never rewriting; only under the v3 freeze)
         id: append
         continue-on-error: true
@@ -78,9 +78,8 @@ jobs:
       - name: One line to #fno-desk when the librarian failed (the append step alerts by itself)
         if: ${{ steps.librarian.outcome != 'success' }}
         run: |
-          python -c "from fno.composition import build_alert_sender;
-          print(build_alert_sender().send('Omenix F&O daily NIFTY panel: the Drive archive step failed; see
-          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"
+          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            "Omenix F&O daily NIFTY panel: the Drive archive step failed; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1
       - name: Fail the run when the append stopped (already alerted)
         if: ${{ steps.append.outcome != 'success' }}
