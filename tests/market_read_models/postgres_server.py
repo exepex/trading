@@ -44,13 +44,25 @@ class PostgresServer:
         args = ["su", SUPERUSER, "-c", line] if self.as_root else ["sh", "-c", line]
         subprocess.run(args, check=True, capture_output=True)
 
-    def start(self) -> PostgresServer:
+    def start(self, certificate: tuple[Path, Path] | None = None) -> PostgresServer:
+        """Started on a free port; with (certificate, key), TLS is on (the certificate is for "localhost")."""
         data = self.folder / "data"
         self._run(str(self.bin / "initdb"), "-D", str(data), "-A", "trust", "-U", SUPERUSER)
+        if certificate:
+            self._enable_tls(data, certificate)
         options = f"'-k {self.folder} -p {self.port} -h 127.0.0.1'"
         log = str(self.folder / "log")
         self._run(str(self.bin / "pg_ctl"), "-D", str(data), "-o", options, "-l", log, "-w", "start")
         return self
+
+    def _enable_tls(self, data: Path, certificate: tuple[Path, Path]) -> None:
+        for source, name in zip(certificate, ("server.crt", "server.key")):
+            shutil.copy(source, data / name)
+            os.chmod(data / name, 0o600)
+            if self.as_root:
+                shutil.chown(data / name, SUPERUSER)
+        with open(data / "postgresql.conf", "a", encoding="utf-8") as conf:
+            conf.write("ssl = on\n")
 
     def stop(self) -> None:
         self._run(str(self.bin / "pg_ctl"), "-D", str(self.folder / "data"), "-m", "immediate", "stop")

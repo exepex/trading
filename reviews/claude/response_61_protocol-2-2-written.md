@@ -83,3 +83,25 @@ byte-identical.
 - `fno/forecast/iv30.py`'s docstring says monthly expiries are those with a NIFTY future listed that day "(story A5's
   rule)": the rule is right, the attribution is not (it is B2's `monthly_from_futures`). Wording only; left for G1's
   owner.
+
+## 6. Addendum (13 Oct 2026): ChatGPT review 29 section 1, accepted in response 63
+
+`PROTOCOL.md` §10 now has, still **not frozen**:
+- **Review 29's exact disclosure wording** for G1's golden file (verbatim, as the first lines of the bullet).
+- **Commit and hash:** added in `769fac7` (13 Oct 14:24 UTC); SHA-256
+  `dcb011864502dca2566ff168c6014187e17292d03a8f756a60c7fbab0f1355c5`, computed both from `git show 769fac7:...` and
+  from today's file: identical, so the file is unchanged since.
+- **Order:** `ec2e9a5` (owner's 10-contract floor, 12:43 UTC) before `f936156` (G1's first computation, 12:56 UTC),
+  before the file; P1-P8 and thresholds fixed in v2.1 (12 Oct).
+- **Hard rule until the run:** no Experiment-1 rule, F1 threshold, structure, policy, control or pass criterion
+  changes in response to any 2019-2023 golden value; a correctness fix is disclosed and judged before the freeze; no
+  one prints or analyses the file's challenge-period values for Experiment 1 before the run.
+- **Label:** "historical holdout with limited pre-freeze predictor exposure" for the final report; §2's description
+  of the challenge now carries the same qualifier, so the two sections agree.
+- The closing sentence was narrowed to "no ... Experiment-1 feature value (F1, F2, F3 as such), option outcome or
+  P&L", so no blanket "no feature value" claim remains. §12 (version history) notes this round.
+
+**F1's 10-contract floor: implemented and tested (confirmed again on this commit).**
+`fno/research_engine/volatility_features.py:18` `F1_MIN_LEG_VOLUME = 10`, passed by F1 at line 82;
+`pytest -rA -k thinner` → `test_f1_needs_at_least_10_contracts_on_the_thinner_atm_leg[CE]` and `[PE]` PASSED (9
+contracts → None, 10 → value). Discovery re-run: results byte-identical. The freeze was not run.

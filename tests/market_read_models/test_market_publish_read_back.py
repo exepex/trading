@@ -44,9 +44,14 @@ def test_the_workflow_publishes_the_previous_session_daily_or_a_given_day_and_ne
     flow = yaml.safe_load(text)
     triggers = flow[True]  # YAML 1.1 reads the key "on" as True
     assert triggers["workflow_dispatch"]["inputs"]["day"]["required"] is False
+    assert triggers["workflow_dispatch"]["inputs"]["check_only"]["type"] == "boolean"
     assert [s["cron"] for s in triggers["schedule"]] == ["40 1 * * *"]  # 07:10 IST, before 07:30 (Actions starts late)
     job = flow["jobs"]["publish"]
     assert job["env"]["FNO_DB_URL"] == "${{ secrets.FNO_DB_URL }}"
     steps = " ".join(str(step.get("run", "")) for step in job["steps"])
     assert "python -m fno market daily" in steps and "FNO_DB_URL" not in steps  # never echoed or pasted
+    check, archive = (
+        next(s for s in job["steps"] if command in str(s.get("run"))) for command in ("db-check", "daily")
+    )
+    assert "if" not in check and archive["if"] == "${{ !inputs.check_only }}"  # the check always runs first
     assert any("failure()" in str(step.get("if", "")) for step in job["steps"])  # one line to #fno-desk
