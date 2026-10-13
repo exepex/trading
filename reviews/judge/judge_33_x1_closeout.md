@@ -51,3 +51,22 @@ The other follow-ups the orchestrator lists are improvements, not X1 criteria:
 - #2: a scheduled check for the accepted exceptions;
 - #3: retry closing exceptions 1 and 2;
 - #4: the restore cost and a quarterly restore.
+
+## Addendum: criterion 5 read back (omenix-dashboard 990c463)
+
+**Criterion 5: MET.** X1 has no criterion left open.
+- **The evidence:** the owner's run of `owner/server_evidence.sh`, committed as
+  `platform/evidence/2026-10-13-x1-server.txt` (17:23 UTC), reads back the firewall rule `vercel-and-routines
+  0.0.0.0 - 255.255.255.255` and shows **RESULT: 0 difference(s) from platform/README.md; 0 setting(s) could not be
+  read**.
+- **My condition is met:** this is exactly what this verdict set ("RESULT shows 0 difference(s)").
+- **Closing issue #1 on this evidence is correct.**
+
+**What this criterion does and does not mean:**
+- It proves the server matches its written design. It does not make an open firewall safe.
+- The rule admits every address, and the protection rests on TLS (`require_secure_transport = on`, TLS 1.2 minimum)
+  and the role passwords. That was the owner's accepted exception, recorded at the time.
+
+**Note:** the evidence file's last line ("Saved: …") shows the owner's local home-folder path, including the account
+name, in a public repository. No secret or e-mail is shown. If the owner prefers, the script can print only the path
+relative to the repository.
