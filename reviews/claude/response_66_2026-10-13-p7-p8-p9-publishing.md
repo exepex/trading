@@ -206,3 +206,32 @@ All market tests pass (106).
 3. **Where `FnoBooks` is stored:** W10's `x-read-model` names P1's proposed pages `risk` and `scoreboard_b`. Those don't exist yet, so I store the block as one page, `fno_books`. The dashboard's route reads it by that key; please confirm, or W10 can change the read-model note.
 
 **End-to-end check (all of P7, P9 and P10 together):** `python -m fno market publish --day 2026-10-12 --local <folder>` through the real wiring (Drive files, the repository's books, `config.yaml`) published 1,279 pages, with read-back equal and exit 0. The six P6 page hashes equal those published to Azure in run 38438666957 (for example `screener_stocks cfb0584223818102…`, `overview_sectors 2bf88cacb2b01f53…`), so P7–P10 left P6's output byte-identical. Full suite: 1,618 tests pass; ruff, imports and the record scan are clean.
+
+## Addendum P8 and P10 (rest), after the owner's decision of 14 Oct: data side ready, blocks waiting for the contract
+
+**The decision:** the owner said "yes" to moving the India market band (indices, session), India `fno_expiry` events and India FII/DII flows to publisher `fno`; the US stays with the stock API. The dashboard builder is changing W10/W11 to split the publisher by market, with no field-shape changes.
+
+**Contract status when I checked (omenix-dashboard `main` at dca854d):** not pushed yet. `getFlows`, `getIndices`, `getSession` and `getEvents` still read `x-publisher: stock`. As instructed, I built only the downloader and the data side. The blocks wait for the contract commit that names the publisher split.
+
+**Built (data side, P8):**
+- **Two new archived datasets.** Both serve only their latest day, so each is archived as one copy per day fetched, and the session a copy covers is read from the copy itself:
+  - `nse/flows/fii-dii-cash` (`FiiDiiCashSource`, NSE's `api/fiidiiTradeReact`, JSON): provisional FII/FPI and DII cash-market buy, sell and net, in Rs crore;
+  - `nsdl/fpi/fpi-daily` (`NsdlFpiDailySource`, NSDL's `Reports/Latest.aspx`, HTML): the daily FPI report, from which the reader takes the **equity sub-total net over all routes** (the contract's `nsdl.net`). Bracketed amounts are negatives.
+- **Readers:** `fno/market_read_models/flows_files.py`. They are also the archive's content checks, so a blocked or maintenance page is refused before it is saved.
+- **First copies are in Drive, with SHA-256 manifest rows committed:**
+  - `nse/flows/fii-dii-cash/2026/10/14/fii-dii-cash.json` (13 Oct: FII/FPI net −1,305.13 crore; DII +2,439.24);
+  - `nsdl/fpi/fpi-daily/2026/10/14/fpi-daily-latest.html` (13 Oct: FPI equity net +2,000.73 crore).
+- **Daily download:** `.github/workflows/flows-download.yml` runs at 21:10 IST, after NSE's evening release, with the same Drive and Slack secrets as the other jobs and one alert on failure. The 07:10 IST publish run also takes a copy (`DAILY_SNAPSHOTS`).
+- **Versions:** a later NSE version of the same day is never written over the first. It lands as the next day's copy, and the reader takes the latest copy per session, so publishing reads the latest version while every copy stays.
+- **Tests** (`test_flows_files.py`, 7): both readers on the real 13 Oct files, refusals, paths and URLs, the content checks, and the workflow.
+
+**History (stated plainly):**
+- Both sources give only the latest day, so our flow history starts on 13 Oct 2026.
+- The contract's period totals are null until the days cover them: 1D now, 1W after 5 sessions, 1M after 21, 3M after 63, 1Y after 250. That is the contract's own rule (judge 27), so nothing is invented. The stock tool's example shows 5 days.
+- Backfilling a year would need NSE's or NSDL's archive pages, which are date-range forms. That is not attempted. Ask if the owner wants it.
+
+**Waiting for the contract, then built against it, through the same publisher, run status and validation:**
+- **P8:** the India `Flows` block. It needs FII and DII per day, NSDL per day, and the period totals with coverage.
+- **P10 rest:**
+  - the India band: `Indices` from P6's index rows and `Session` from NSE's session calendar (A7);
+  - India `fno_expiry` (and `weekly_expiry`) events: from the listed NIFTY expiries (A5) and the calendar.

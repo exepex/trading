@@ -134,3 +134,25 @@ named. One day cannot have two closes.
 
 No 2019-2023 row of `golden_iv30_rv20.csv` or the G2 back-fill was opened, printed or analysed for this proposal. The
 tests use synthetic raw files and a temporary panel folder.
+
+## Addendum 1: A13 built, unwired (for the judge after ChatGPT)
+
+The code matches sections 2-3 above. No frozen file changed: v1's and v2's freeze checks both still pass at HEAD.
+
+| Part | Where | Evidence |
+|---|---|---|
+| Append in place | `fno/research_data/panel_append.py` (`PanelAppender`) | `tests/research_data/test_panel_append.py` (7), on real 2024 NSE subsets (`panel_fixtures.py`). A3's panel of 2 Jan 2024 with 2 Mar 2024 appended has the same decompressed `options_2024`/`futures_2024` content as A3's build of both days at once; the manifest's day entry equals A3's plus the stamp; the touched files' `csv_sha256` and row counts are equal. The old file bytes are a prefix. The old entry, `start`, `columns` and `calendar_sha256` are unchanged. The reader returns the appended day's options. A repeated or earlier day is refused and writes nothing. A tampered file is refused as an interrupted append. A new year gets its own file with A3's header. Other columns are refused. |
+| Daily job | `fno/pipeline/panel_days.py` (`PanelDayJob`), wired in `fno/pipeline/wiring.py` `build_panel_day_job` (A11 reader `as_of` = run start; A3's `NiftyPanelBuilder` unchanged) | `tests/research_data/test_panel_days.py` (7). Appends once, and a second run changes no byte. `NotYetFrozen`: nothing appended, no alert. A failed freeze check: nothing appended, one alert. A session without its file stops there, keeps the earlier days and sends one alert. Closes that differ from `warmup_closes.csv`, or a missing warm-up row, stop the day. The real guard `require_v3_frozen` refuses today. |
+| Command and workflow | `python -m fno pipeline panel-days [--to]`; `.github/workflows/panel-days.yml` | Manual dispatch only, with `fetch-depth: 0`. Steps: librarian `fo-bhavcopy`, then A11 sweep, then append, then commit. One #fno-desk line per failure. |
+
+**Not done yet (waits for ChatGPT and the judge, by the orchestrator's order):**
+- `PROTOCOL_v3.md` and `FREEZE_v3.md`;
+- the schedule;
+- the re-scoping of `tests/forecast/test_golden.py` and `tests/forecast/test_backfill.py`. Those two only fail once the
+  real panel grows, so they are changed in the same commit as the first append.
+
+**Limits:**
+- **No run against Drive.** The job has not run against the real Drive from this session. GitHub Actions has the
+  secrets; this container does not.
+- **Fixtures are older than the live window.** The fixture days are 2024 real subsets, not October 2026. NSE's current
+  UDiFF format is the same one A3 reads from 2024 (some evidence: A3 built 2024 to 12 Oct 2026 with the same reader).
