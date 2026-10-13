@@ -47,7 +47,9 @@ from .snapshot_source import (
     CorporateActionsBySymbolSource,
     CorporateActionsSource,
     EquityListSource,
+    FiiDiiCashSource,
     Nifty500ListSource,
+    NsdlFpiDailySource,
     SymbolChangeSource,
 )
 from .snapshot_taker import SnapshotTaker
@@ -75,7 +77,9 @@ SNAPSHOT_SOURCES = (
     SymbolChangeSource,
     CorporateActionsSource,
     CorporateActionsBySymbolSource,
-)  # reference lists, one copy per day fetched (P6)
+    FiiDiiCashSource,
+    NsdlFpiDailySource,
+)  # reference lists and latest-day reports, one copy per day fetched (P6)
 RAW_SOURCES = DATED_SOURCES + SNAPSHOT_SOURCES  # every dataset with a manifest
 
 

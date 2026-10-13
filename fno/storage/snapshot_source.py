@@ -64,6 +64,38 @@ class SymbolChangeSource(SnapshotSource):
     FILENAME = "symbolchange.csv"
 
 
+class FiiDiiCashSource(SnapshotSource):
+    """NSE's provisional FII/FPI and DII cash-market buy and sell values (JSON from its website). NSE serves only the
+    latest session, so each day's copy is archived under the day it was fetched and the history builds from the first
+    copy; the session it covers is inside the file (P8)."""
+
+    dataset = "nse/flows/fii-dii-cash"
+    first_day = date(2026, 10, 14)  # the first copy archived (P8)
+    FILENAME = "fii-dii-cash.json"
+    API = "https://www.nseindia.com/api/fiidiiTradeReact"
+
+    @classmethod
+    def url_for(cls, path: str) -> str:
+        cls.day_for_path(path)  # refuses a path that is not one of this dataset's copies
+        return cls.API
+
+
+class NsdlFpiDailySource(SnapshotSource):
+    """NSDL's latest daily FPI investment report (HTML): the FPI equity net over all routes, for the session it names.
+    Served for the latest reporting day only, so archived per day fetched like NSE's FII/DII values (P8)."""
+
+    dataset = "nsdl/fpi/fpi-daily"
+    first_day = date(2026, 10, 14)
+    FILENAME = "fpi-daily-latest.html"
+    BASE_URL = "https://www.fpi.nsdl.co.in/web/Reports/"
+    PAGE = "Latest.aspx"
+
+    @classmethod
+    def url_for(cls, path: str) -> str:
+        cls.day_for_path(path)
+        return cls.BASE_URL + cls.PAGE
+
+
 class CorporateActionsSource(SnapshotSource):
     """NSE's list of equity corporate actions (splits, bonuses, demergers, dividends...) over the year to the day it is
     fetched, from NSE's website (JSON; its own name has no file, so the list is filed under a fixed name)."""

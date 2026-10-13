@@ -54,3 +54,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 27: implementation plan revision 2 — AGREED WITH CHANGES](review_27_2026-10-12-plan-revision-2.md)
 - [Review 28: Experiment 1 v2.2, G1 forecast protocol, and thin-slice build order](review_28_2026-10-13-protocols-and-build-order.md)
 - [Review 29: Experiment 1 v2.2 holdout disclosure and forecast live inputs](review_29_2026-10-13-protocol-2-2-and-forecast-inputs.md)
+- [Review 30: G1 v3 append-only panel extension](review_30_2026-10-14-g1-v3-panel-extension.md)
