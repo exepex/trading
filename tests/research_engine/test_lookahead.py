@@ -139,6 +139,15 @@ def test_a_live_cutoff_changes_the_decision_days_own_closing_data(real_data):
         assert assert_no_lookahead(_PreviousCloseAboveFirst(), real_data, day, context) in (True, False)
 
 
+def test_a_threshold_feature_declared_live_fails_on_the_removal_trial_alone(real_data):
+    """Judge 64 addendum 3: with no random trial at all, the deterministic removal of every panel value after the 15:00
+    cutoff catches a real threshold feature (VIX above its 250-day median) wrongly declared live, on every day."""
+    for day in twenty_random_days(real_data)[:5]:
+        context = real_context(real_data, day)
+        with pytest.raises(AssertionError, match="every panel value after it removed"):
+            assert_no_lookahead(_LiveVersion(VixAboveMedian()), real_data, day, context, trials=0)
+
+
 def test_the_harness_refuses_to_pass_when_nothing_follows_the_cutoff(real_data):
     last = real_data.panel.sessions[-1].day
     with pytest.raises(AssertionError, match="prove nothing"):
