@@ -92,7 +92,8 @@ commit with `--no-verify`.
   rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
   `fno/storage/wiring.py` (raw data stores and sources), `fno/risk/wiring.py` (the risk manager, story C2),
-  `fno/forecast/wiring.py` (the forecasts, epic G) and `fno/filings/wiring.py` (the company filings archive, story A12).
+  `fno/forecast/wiring.py` (the forecasts, epic G), `fno/filings/wiring.py` (the company filings archive, story A12)
+  and `fno/pipeline/wiring.py` (fetch-and-trigger jobs, story O6).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.
