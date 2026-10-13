@@ -188,3 +188,58 @@ real 15:00 behaviour. Only recorded A4 days can measure that.
     The exception is **30 Mar 2021**, where the panel holds no close but the file has NSE's 14,845.10. That is a gap
     in the panel, outside the discovery period and outside this fix, noted for A3 and for the challenge run.
 - **Full suite:** 1,094 passed.
+
+## Addendum: round 2 (trading 9f39718, merged 0364b22; response 49 addendum)
+
+**Verdict on B7: PASS.**
+- Both should-fixes and all 3 minors are fixed, and each is re-checked with my own judge-44 cases.
+- The two routed additions (A4 levels, and the 30 Mar 2021 closes) are correct.
+- 1 new minor, below.
+- Criterion 3 stays as before: the gate is built and tested, and D1 must call it. D1 does not exist yet; that is not
+  a defect of B7.
+
+**Checks:**
+- `python -m pytest -q` 1,299 passed; ruff and imports clean (288 files); code size passes.
+- Discovery re-run: `814a79a5…`, still byte-identical.
+
+| Judge 44 item | Re-check (mine) | Decision |
+|---|---|---|
+| 1 Agreement on three decision states | My 20-day case (close −1; live None ×2, +0.5 ×2, −1 ×16) now gives agreement **0.80**, not validated (was 0.90, validated) | ACCEPTED |
+| 2 Gate applies the strategy's frozen rule and ignores the flag | A 0.95-agreement report: allowed under the default rule, **refused under a 99% rule**. My forged report (`validated` true, agreement 1.0, days 99, availability 1.0 over per-day values giving 0.80): **refused**. | ACCEPTED |
+| Minor 1 F2 history leak | My B4 break (today's VIX in the median) now fails 1 test (was 0) | ACCEPTED |
+| Minor 2 Concrete Black-76 | Constructor takes `ImpliedVolModel`, with no default; the root passes `Black76()` | ACCEPTED |
+| Minor 3 Capture time per day | `captured_at` carried in every comparison (test) | ACCEPTED |
+
+**Live F1 by hand, with the recorded future.**
+- I took my A4-format snapshot of real 12 Oct prices and added the levels as the recorder writes them
+  (`futures: [{expiry 27 Oct, last 22,386.50}]`, `india_vix` 15.25).
+- IVs: 14.5055% (call) and 14.4695% (put), equal to B1's research values (14.51 / 14.47).
+- Live F1: **0.5214** by my hand, equal to the engine's 0.521399. It now equals the close version on the same
+  prices, as it should once both use the same model and future. The parity forward is gone.
+
+**A4 levels (routed).**
+- `market_levels.py` reads NSE's India VIX and NIFTY futures inside each attempt, before `finished_at`. A failing
+  endpoint is recorded and never blocks the capture. Built without a level source, A4's golden bytes are unchanged.
+- **Not yet proven:** NSE answering these endpoints at 15:00 from the routine's network. The first real 3 pm run will
+  show it in `levels_failures`.
+
+**30 Mar 2021 (routed; my judge-44 panel finding).**
+- The reader now gives that session NSE's index closes, 14,845.10 and 20.65. I fetched NSE's
+  `ind_close_all_30032021.csv` myself, and they are equal. It still has 0 option and 0 future rows.
+- **Consequences, for the orchestrator:**
+  - **Experiment 1's challenge period:** the cycle decided on **12 Apr 2021** (expiry 27 May 2021) sits inside the
+    21 sessions after 30 Mar. Its F1 was previously None (the window broke), and now has a value. That is a data
+    correction before the freeze, so it is legitimate, but the freeze record must name this reader rule.
+  - **G1:** no golden file exists yet. `research/forecasts` still holds only PROTOCOL.md and FREEZE.md, and
+    `fno/forecast` is unchanged since ef5b818. So **no golden value has been computed before this change**. The
+    golden IV30/RV20 file must be generated at or after 0364b22, and its record must name that commit. Values from
+    30 Mar to about 28 Apr 2021 differ from any computation made before it.
+  - Round 2 did not edit any of G1's three hashed files (`git show --stat`), and `test_freeze.py` passes.
+
+**Minor (new): the gate trusts per-day values written into the report.**
+- My report with per-day `live` values hand-edited to equal `close` passes, as the gate recomputes from those values.
+- It is still much stronger than round 1: no flag or summary is trusted, and an edit is visible in the committed
+  report's diff.
+- **Expected (reasoning only, before D1 uses it for real):** D1's gate recomputes from the committed A4 snapshots
+  and the panel (`run_live_validation`), not from the report file. Or the report records the snapshot SHA-256 values
+  it was built from, and the gate checks them.

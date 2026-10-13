@@ -2,7 +2,10 @@
 
 Story: `docs/stories/G-forecasts.md` section G1 (issue #62).
 
-**In short:** `research/forecasts/PROTOCOL.md` version 1 is written and frozen. The protocol commit is `f936156`, and
+**Read the addendum at the end first:** after judge 47 the freeze below was undone (the protocol is a draft awaiting
+ChatGPT's review, response 57), and the freeze will lock golden values instead of the shared library's bytes.
+
+**In short (as first built):** `research/forecasts/PROTOCOL.md` version 1 is written and frozen. The protocol commit is `f936156`, and
 `research/forecasts/FREEZE.md` (the next commit) records it with the SHA-256 of 8 frozen files. The five questions'
 targets have reference code (`fno/forecast/targets.py`), and so do the 30-day ATM IV estimator (`fno/forecast/iv30.py`),
 the record schema (`fno/forecast/schema.py`) and the frozen 45-comparison family (`fno/forecast/comparisons.py`).
@@ -78,3 +81,39 @@ only data up to `d`.
   question 5 from about 2021-2022.
 - **Previously seen:** the access attestation in FREEZE.md lists what touched these questions before the freeze: desk
   meeting 1's trend persistence and B1's F1 measurements.
+
+## Addendum (judge 47: FAIL, one should-fix and one process point; both accepted)
+
+**Should fix, accepted: the freeze locked the bytes of shared library files.** The judge is right. Forecasts are scored
+for months, and checking B1's `implied_vol.py`, `volatility_features.py` and `close_series.py` byte for byte would turn
+every unrelated refactor of code shared with F1, B7 and C2 into a failing test and a new protocol version. That breaks
+the owner's "design for change" rule. Fix:
+- **Golden file.** `research/forecasts/golden_iv30_rv20.csv` holds IV30 (value, flag, expiries) and trailing RV20 for
+  all 1,921 panel trading days from 2019 to 12 Oct 2026; both are known at the forecast date. `fno/forecast/golden.py`
+  computes it, `tools/forecast_golden.py` writes or checks it, and `fno/forecast/wiring.py` is a new composition root
+  (added to CLAUDE.md; `fno/composition.py` stays at 320 lines).
+- **Test.** `tests/forecast/test_golden.py` recomputes every day with the current code and requires equality within
+  1e-12 points. It also proves that a changed value, a flipped flag and a missing day are each caught. The hand-worked
+  values stay as fixture goldens in `test_iv30.py` and `test_targets.py`.
+- **What the freeze will check.** `PROTOCOL.md` section 10: this file, `fno/forecast/*.py` and the golden file's hash.
+  The shared library is recorded, not byte-checked. An A11 panel revision may move golden values only if it names the
+  revision.
+
+**Process, accepted (orchestrator decision): a G-protocol is frozen only after ChatGPT agrees.** I undid the freeze:
+- `FREEZE.md` is removed.
+- Ledger trials 32-36 have an empty `protocol_commit` again; they stay registered.
+- The repository-level freeze test is removed. `require_frozen_before` and its unit tests stay for G4.
+- `PROTOCOL.md` status is "draft version 1, awaiting ChatGPT review".
+
+The review request is `reviews/claude/response_57_g1-protocol-for-review.md`. Criterion 3 (frozen before the first
+scored forecast) is therefore not met until the agreed version is frozen. No forecast exists, so nothing is lost.
+
+
+**Golden values and the 30 Mar 2021 index closes (orchestrator's question).** B7's reader change (commit `9f39718`) now
+gives the panel's left-out day 30 Mar 2021 NSE's index closes (NIFTY 14,845.10, India VIX 20.65). The golden file was
+built after that change: `9f39718` is an ancestor of the commit that added it (`769fac7`, checked with `git merge-base
+--is-ancestor`), and `python tools/forecast_golden.py` on current main reports "golden values unchanged on 1921 days".
+- **The window:** 18 golden days fall in the affected window, from 31 Mar to 28 Apr 2021, and their trailing RV20 includes the 30 Mar close.
+- **30 Mar 2021 itself:** not a golden day. It has no option rows (NSE never published its old-format F&O file), so it
+  has no IV30.
+- **Effect:** IV30 does not depend on that close at all.

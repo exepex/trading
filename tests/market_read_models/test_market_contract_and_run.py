@@ -11,7 +11,6 @@ from fno.alerts.sender import AlertSender
 from fno.composition import CONTRACT_FOLDER, build_market_blocks
 from fno.market_read_models.blocks import SessionRows
 from fno.market_read_models.contract import ContractBroken, PinnedContract, PublishedContract, drift
-from fno.market_read_models.contract_examples import EXAMPLE_PAGE_KEYS
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.market_run import MarketRun
 from fno.market_read_models.publication import PublicationBuilder
@@ -28,7 +27,7 @@ CALENDAR = CsvSessionCalendar(
 
 def example_rows() -> SessionRows:
     """The session's rows as the W11 examples show them (their first pages)."""
-    payload = {name: copy.deepcopy(EXAMPLES[name]["value"]["payload"]) for name in EXAMPLE_PAGE_KEYS}
+    payload = {name: copy.deepcopy(example["value"]["payload"]) for name, example in EXAMPLES.items()}
     stocks = payload["getScreenerStocksIndia_india"]["rows"]
     indices = payload["getOverviewIndicesIndia_india"]["indices"] + payload["getIndiaSectors_india"]["indices"]
     for row in indices:

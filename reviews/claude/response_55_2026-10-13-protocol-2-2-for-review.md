@@ -55,3 +55,10 @@ that, and only after the blocking bug in item 0 is fixed and judged.
 - Since then, 2019-2023 data was read only to count listing days and volumes (the weekly/monthly finding and the F1
   volume table).
 - No 2019-2023 price, feature value or P&L has been computed or viewed.
+
+## Freeze record addition (judge 44 addendum, 13 Oct 2026)
+
+The panel reader now gives 30 Mar 2021 NSE's index closes (NIFTY 50 14,845.10, India VIX 20.65; still no option rows),
+story B7 round 2. This changes closes-based values for about 20 sessions after it: the challenge cycle decided 12 Apr
+2021 (expiry 27 May 2021) had F1 = None and now has a value. This is legitimate before the freeze; the freeze record
+names this reader rule and the commit it took effect (0364b22).

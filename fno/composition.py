@@ -74,13 +74,13 @@ from .storage.wiring import (
     PARTICIPANT_OI_LAST_MODIFIED,
     PARTICIPANT_OI_RELEASE_LOG,
     PARTICIPANT_OI_SWEEPS,
-    build_drive_reader,
     build_nse_fo_library,
     build_nse_source,
     build_participant_oi_library,
     build_quote_store,
     build_revision_capturing_source,
     build_session_calendar,
+    build_versioned_reader,
 )
 
 DESK_DECISION_TIME = time(15, 0)  # design 13.5: books decide at about 15:00 IST; story E3 freezes the exact timetable
@@ -308,10 +308,11 @@ def build_market_run(cfg: dict, publisher: ReadModelPublisher) -> MarketRun:
 
 
 def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
-    """A session's rows from the archived NSE files in Drive (ATM IV: Black-Scholes on the spot, as W11's examples)."""
+    """A session's rows from the archived NSE files in Drive (ATM IV: Black-Scholes on the spot, as W11's examples).
+    Publishing reads NSE's latest version of each file (A11's revisions; judge 49); research reads point in time."""
     fno_rows = FnoRowBuilder(SpotBlackScholes(), cfg["risk_free_rate"])
     followed = FollowedCompaniesFolder(FOLLOWED_COMPANIES_FOLDER)
-    return SessionRowsBuilder(build_drive_reader(), build_session_calendar(), fno_rows, followed)
+    return SessionRowsBuilder(build_versioned_reader(), build_session_calendar(), fno_rows, followed)
 
 
 def repository_commit() -> str:

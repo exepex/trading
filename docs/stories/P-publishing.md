@@ -183,6 +183,8 @@ stock-tool fields, the paper books (P2).
   SHA-256; a test fails if the pinned copy differs from the dashboard's published version).
 - A daily routine after NSE's evening files: fetch, verify, build, validate, publish; alerts to #fno-desk on any
   failure; never publishes a partial session.
+- Which version of a file (judge 49, A11): publishing reads NSE's latest version of each archived file (A11's
+  revisions); research reads the version available at its decision time (point in time, no look-ahead).
 
 **Acceptance criteria:**
 1. For 12 Oct 2026, every built block equals the W11 example payload for India field by field (the examples were made
@@ -199,4 +201,4 @@ stock-tool fields, the paper books (P2).
 **Judge verifies:** rebuilds 12 Oct from the raw files and compares with the W11 examples; plants a schema break; reads
 the published rows with the dashboard role.
 
-**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** built; awaiting judge (claims: reviews/claude/response_50_2026-10-13-p6-nse-read-models.md)
+**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** judge 49 fixes built; awaiting re-judge (claims: reviews/claude/response_50_2026-10-13-p6-nse-read-models.md, addendum 1)

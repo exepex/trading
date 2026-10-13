@@ -1,42 +1,36 @@
-"""Compares built blocks with the W11 contract's India examples, field by field (story P6, criterion 1). The examples
-show pages of the paged blocks, so the route's views are reproduced here exactly as the examples' own builder made them
-(dashboard tools/api/examples_screens.py)."""
+"""Compares built blocks with the W11 contract's India examples, field by field (story P6, criterion 1). A paged
+example is the route's page for its own query (`x-query`), made from our stored table by the contract's route
+semantics (screener_route); the other examples are the whole block."""
 
 from __future__ import annotations
 
 from collections.abc import Iterator
 
-from .blocks import default_page
-from .stock_rows import UNIVERSE_NIFTY_500
+from .screener_route import fno_page, stocks_page
 
-GAINERS_PAGE = 8
-INDEX_OPTIONS = ("BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTY")
-EXAMPLE_PAGE_KEYS = {  # example name in api/examples/blocks-33-34.json -> page key
-    "getScreenerSummaryIndia_india": "screener_summary",
-    "getScreenerStocksIndia_india": "screener_stocks",
-    "getScreenerStocksIndia_india_high": "screener_stocks",
-    "getScreenerStocksIndia_india_gainers": "screener_stocks",
-    "getFnoScreenerSummary_india": "fno_screener_summary",
-    "getFnoScreenerRows_india": "fno_screener_rows",
-    "getFnoScreenerRows_india_index_options": "fno_screener_rows",
-    "getOverviewIndicesIndia_india": "overview_indices",
-    "getIndiaSectors_india": "overview_sectors",
+QUERY_KEY = "x-query"
+OPERATION_PAGE_KEYS = {  # the example's operation (its name before "_india") -> our page key
+    "getScreenerSummaryIndia": "screener_summary",
+    "getScreenerStocksIndia": "screener_stocks",
+    "getFnoScreenerSummary": "fno_screener_summary",
+    "getFnoScreenerRows": "fno_screener_rows",
+    "getOverviewIndicesIndia": "overview_indices",
+    "getIndiaSectors": "overview_sectors",
 }
+PAGES = {"screener_stocks": stocks_page, "fno_screener_rows": fno_page}
+INDIA = "_india"
 
 
-def view(example_name: str, block: dict) -> dict:
-    """The served response the example shows, from the published block (the route's default page or query)."""
-    rows = block.get("rows")
-    if example_name.endswith("_high"):
-        high = [r for r in rows if r["h"] and r["p"] >= r["h"] * 0.98]
-        return default_page(block, sorted(high, key=lambda r: -(r["p"] - r["l"]) / (r["h"] - r["l"])))
-    if example_name.endswith("_gainers"):
-        nifty_500 = [r for r in rows if UNIVERSE_NIFTY_500 in r["u"]]
-        return default_page(block, sorted(nifty_500, key=lambda r: -r["d1"]), size=GAINERS_PAGE)
-    if example_name.endswith("_index_options"):
-        index = sorted((r for r in rows if r["s"] in INDEX_OPTIONS), key=lambda r: r["s"])
-        return default_page(block, index)
-    return default_page(block) if rows is not None else block
+def page_key(example_name: str) -> str | None:
+    """Our page key for an India example of a block we publish, else None (US blocks and other publishers' blocks)."""
+    operation, india, _ = example_name.partition(INDIA)
+    return OPERATION_PAGE_KEYS.get(operation) if india else None
+
+
+def view(example: dict, page: str, block: dict) -> dict:
+    """The served response the example shows, from the published block."""
+    query = example.get(QUERY_KEY)
+    return PAGES[page](block, query) if query and page in PAGES else block
 
 
 def differences(ours, theirs, path: str = "") -> Iterator[tuple[str, object, object]]:
@@ -52,9 +46,11 @@ def differences(ours, theirs, path: str = "") -> Iterator[tuple[str, object, obj
 
 
 def compare(blocks: dict[str, dict], examples: dict) -> dict[str, list[tuple[str, object, object]]]:
-    """Example name -> its differences from our blocks (empty: equal field by field)."""
+    """Example name -> its differences from our blocks (empty: equal field by field), for every India example of a
+    block we publish."""
     out = {}
-    for name, page_key in EXAMPLE_PAGE_KEYS.items():
-        theirs = examples[name]["value"]["payload"]
-        out[name] = list(differences(view(name, blocks[page_key]), theirs))
+    for name, example in examples.items():
+        page = page_key(name)
+        if page is not None:
+            out[name] = list(differences(view(example, page, blocks[page]), example["value"]["payload"]))
     return out

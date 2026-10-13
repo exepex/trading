@@ -23,28 +23,37 @@ How each figure is computed follows the contract's own examples (dashboard `desi
 months of F&O files, the same formulas (returns 1, 5, 21, 63, 250 sessions back; Wilder RSI 14; ATM IV by
 Black-Scholes on the spot with the B1 solver, rate `risk_free_rate`). Past prices and volumes are put on today's share basis from NSE's corporate-actions list (`corporate_actions.py`,
 judge 42): a split or bonus divides earlier prices by NSE's stated ratio (KOTAKBANK 5:1 on 14 Jan 2026); a demerger by
-the previous close / the ex-date open (NSE's special pre-open price; without an ex-date trade, or for a scheme with no
-ratio, only the sessions from the ex-date are used and older figures are null); bonus preference shares, dividends,
+the previous close / the ex-date open (the pre-open auction's price: NSE's special pre-open session for stocks with
+derivatives, the normal pre-open auction for the others; without an ex-date trade, or for a scheme with no ratio, only
+the sessions from the ex-date are used, and every figure whose window reaches past the cut is null: changes, 52-week
+high and low, volume average); bonus preference shares, dividends,
 buy-backs and rights change nothing (price returns). NSE's range list leaves out some symbols (ETFs such as
 BANKNIFTY1): a symbol with a one-session close ratio outside 0.55-1.8 and no share-count action in the list gets its own
 list looked up (`market look-up`, run by `market daily`), archived per symbol; the jump only chooses where to look, the
-ratio is NSE's. A symbol needing a lookup that is not archived stops the build. Other deliberate differences: sessions come from
+ratio is NSE's. A symbol needing a lookup that is not archived stops the build. A renamed stock keeps its sessions under
+the old symbol (NSE's `symbolchange.csv`, archived daily; `symbol_changes.py`): NSE lists corporate actions under the
+current symbol, so without the join TMPV (TATAMOTORS until 24 Oct 2025) and HEGAM (HEG until 22 Sep 2026) lose both
+their year and their demerger adjustment. Publishing reads NSE's latest version of every file (A11's revisions,
+`build_versioned_reader()`); research reads the version available at its decision time. Other deliberate differences: sessions come from
 NSE's calendar, never weekdays (the examples once skipped the 1 Feb 2026 Sunday Budget session), and an index absent
 from a session's file carries its own last date in `as_of` instead of passing an older close off as the day's.
 
-Modules: `nse_files.py` (readers, also the archive's content checks), `stock_rows.py`, `fno_rows.py`, `index_rows.py`,
+Modules: `nse_files.py` (readers, also the archive's content checks), `symbol_changes.py`, `stock_rows.py`, `fno_rows.py`, `index_rows.py`,
 `session_rows.py` (reads one session's archived files; a missing file stops the build), `blocks.py` (one builder class
-per block, pure), `contract.py` (the pin, validation, drift), `publication.py` (stored rows, validated as stored and as
+per block, pure), `contract.py` (the pin, validation, drift), `contract_examples.py` and `screener_route.py` (the comparison), `publication.py` (stored rows, validated as stored and as
 served), `publisher.py` (`ReadModelPublisher`), `local_publisher.py`, `postgres_publisher.py` (the Azure `fno` schema,
 tables in `db/fno/migrations/`), `market_run.py` (one session, all or nothing, alerts), `cli.py`.
 
 Commands:
 - `python -m fno market daily [--day D]`: the routine. Archives the session's F&O, index, capital-market and delivery
-  files and the two reference lists to Drive (with manifest rows, committed), then builds, validates and publishes to
+  files, any newer NSE version of them (A11 revisions), the reference lists and the symbol changes to Drive (with
+  manifest rows, committed), then builds, validates and publishes to
   Azure (`FNO_DB_URL`, the fno publisher role; environment settings only). Run it the next morning (for example 07:30
   IST): NSE rewrites some evening files late (the 12 Oct 2026 index file gained two indices at 23:20 IST).
 - `python -m fno market publish --day D [--local FOLDER]`: one session from the archived files.
-- `python -m fno market compare --day 2026-10-12`: the built blocks against the pinned W11 examples, field by field.
+- `python -m fno market compare --day 2026-10-12`: the built blocks against every pinned W11 India example, field by
+  field; a paged example is served from our stored table by its own query (`x-query`) with the contract's route
+  semantics (`screener_route.py`, ported from the dashboard's reference).
 - `python -m fno market contract-check`: the pinned contract against the dashboard's published files.
 
 Any failure (a missing file, a schema break, a refused publish) stops the run before anything is visible, prints the

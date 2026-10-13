@@ -22,6 +22,7 @@ from ..storage.snapshot_source import (
     CorporateActionsSource,
     EquityListSource,
     Nifty500ListSource,
+    SymbolChangeSource,
 )
 from .blocks import SessionRows
 from .corporate_actions import CorporateAction, adjusted, read_corporate_actions, unexplained
@@ -38,6 +39,7 @@ from .nse_files import (
     read_nifty500_list,
 )
 from .stock_rows import UNIVERSE_NIFTY_500, stock_rows, stock_series
+from .symbol_changes import joined, read_symbol_changes
 
 EQUITY_WINDOW = timedelta(days=372)  # the examples' window: a year of sessions (250) and a week to spare
 INDEX_WINDOW = timedelta(days=372)
@@ -75,14 +77,16 @@ class SessionRowsBuilder:
             raise IncompleteSession(day, missing)
         names = read_equity_list(names, EquityListSource.FILENAME)
         history = self._fno_history(fo)
+        rebased = on_todays_basis(series, actions, day)
         stocks = stock_rows(
-            on_todays_basis(series, actions, day),
+            rebased,
             day,
             names,
             read_nifty500_list(members, Nifty500ListSource.FILENAME),
             read_delivery(delivery, NseDeliverySource.filename_for(day)),
             set(history),
             followed.companies,
+            cut={symbol for symbol, bars in rebased.items() if len(bars) < len(series[symbol])},
         )
         figures = [(d, read_index_figures(data, name)) for d, name, data in indices]
         nifty_500 = [r for r in stocks if UNIVERSE_NIFTY_500 in r["u"]]
@@ -98,12 +102,15 @@ class SessionRowsBuilder:
         return [s for s in unexplained(series, actions) if self._find(self._own_list_path(s), day) is None]
 
     def _equity(self, day: date, missing: list[str]) -> tuple[dict[str, list[EquityBar]], list[CorporateAction]]:
-        """The window's raw equity series and NSE's corporate-action list up to the session (empty if missing)."""
+        """The window's raw equity series, renamed stocks joined to their old symbol's sessions, and NSE's
+        corporate-action list up to the session (empty if missing)."""
         equity = self._files(NseEquityBhavcopySource, day - EQUITY_WINDOW, day, missing)
         listed = self._snapshot(CorporateActionsSource.path_for, day, missing)
+        renames = self._snapshot(SymbolChangeSource.path_for, day, missing)
         series = stock_series(read_equity_bhavcopy(data, name) for _, name, data in equity)
         actions = read_corporate_actions(listed, CorporateActionsSource.FILENAME) if listed else []
-        return series, [a for a in actions if a.ex_date <= day]
+        changes = read_symbol_changes(renames, SymbolChangeSource.FILENAME) if renames else []
+        return joined(series, [a for a in actions if a.ex_date <= day], [c for c in changes if c.effective <= day])
 
     def _own_lists(self, day: date, symbols: list[str], missing: list[str]) -> list[CorporateAction]:
         actions = []

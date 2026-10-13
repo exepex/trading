@@ -30,6 +30,7 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `nse/equities/equity-list` | `EquityListSource` | the list of listed companies (`EQUITY_L.csv`), one copy per day fetched (P6) | 13 Oct 2026 onwards |
 | `nse/indices/nifty500-list` | `Nifty500ListSource` | the Nifty 500's members and industries (`ind_nifty500list.csv`), per day fetched (P6) | 13 Oct 2026 onwards |
 | `nse/equities/corporate-actions-by-symbol` | `CorporateActionsBySymbolSource` | one symbol's own corporate-action list, for symbols the range list leaves out (ETFs such as BANKNIFTY1), filed as `<YYYY>/<MM>/<DD>/<SYMBOL>.json` (P6) | 12 Oct 2026 onwards |
+| `nse/equities/symbol-change` | `SymbolChangeSource` | NSE's symbol changes with their effective dates (`symbolchange.csv`, replaced in place, so archived per day fetched; P6, judge 49) | 13 Oct 2026 onwards |
 | `nse/equities/corporate-actions` | `CorporateActionsSource` | NSE's equity corporate actions over the 400 days to the day fetched (website JSON, filed as `corporate-actions-equities.json`; P6) | 13 Oct 2026 onwards |
 | `nse/equities/filings/results-xbrl/<SYMBOL>/<YYYY>` | `NseFilingFileSource` | a company's results XBRL files by the year of the period reported, NSE's names kept (story A12) | NSE has XBRL from 2018 |
 | `nse/equities/filings/shareholding-xbrl/<SYMBOL>/<YYYY>` | `NseFilingFileSource` | a company's shareholding-pattern XBRL files (A12) | NSE lists the latest 20 quarters |

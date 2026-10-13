@@ -8,6 +8,7 @@ from ..constants import INDEX_INDIA_VIX, INDEX_NIFTY_50
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..market_read_models.corporate_actions import read_corporate_actions
 from ..market_read_models.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
+from ..market_read_models.symbol_changes import read_symbol_changes
 from ..research_data.participant_oi import read_participant_oi
 from .raw_source import (
     NseDailyFoSource,
@@ -22,6 +23,7 @@ from .snapshot_source import (
     CorporateActionsSource,
     EquityListSource,
     Nifty500ListSource,
+    SymbolChangeSource,
 )
 
 REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
@@ -46,6 +48,7 @@ VALIDATORS = {
     NseDeliverySource: lambda filename, data: read_delivery(data, filename),
     EquityListSource: lambda filename, data: read_equity_list(data, filename),
     Nifty500ListSource: lambda filename, data: read_nifty500_list(data, filename),
+    SymbolChangeSource: lambda filename, data: read_symbol_changes(data, filename),
     CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
     CorporateActionsBySymbolSource: lambda filename, data: read_corporate_actions(data, filename),
 }
