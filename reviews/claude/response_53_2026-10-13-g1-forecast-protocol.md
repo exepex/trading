@@ -117,3 +117,7 @@ built after that change: `9f39718` is an ancestor of the commit that added it (`
 - **30 Mar 2021 itself:** not a golden day. It has no option rows (NSE never published its old-format F&O file), so it
   has no IV30.
 - **Effect:** IV30 does not depend on that close at all.
+
+## Frozen (13 Oct 2026)
+
+The protocol commit is `cf489e4`. The freeze record is `research/forecasts/FREEZE.md`, in the commit after it. It checks the bytes of `PROTOCOL.md`, every `fno/forecast/*.py` file and the golden file (flag included); B1's library files are recorded but not byte-checked. Ledger trials 32-36 carry the protocol commit. Status: frozen; awaiting the judge's re-check.
