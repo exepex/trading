@@ -124,8 +124,37 @@ result built on NIFTY 50 or India VIX closes for 12 Oct changes (test
     with only NSE faked; the moved write is logged, the revision is stored and the raw bytes are unchanged.
   - `test_the_sweep_command_alerts_on_a_moved_write_and_on_no_answer`, updated: the summary line and one commit per
     run.
-- Real run: `python -m fno participant-oi sweep` over all 1,929 recorded files was still running when this was
-  committed; its result is added to this file in a follow-up commit.
+- Real run (13 Oct 2026, 18:41 to 19:20 IST), every recorded file read in full from NSE:
+
+  ```
+  $ python -m fno participant-oi sweep
+  MOVED 2023-08-17: NSE rewrote the file at 2023-08-17 15:05 UTC (recorded 2023-08-17 15:05 UTC)
+  ... (178 MOVED lines)
+  sweep: 1929 files checked, 178 moved, 0 unanswered, 0 new revisions
+  manifest rows: nothing new to commit
+  ```
+
+  The log `research/data/participant_oi/last_modified_sweeps.csv` (178 rows) is committed.
+
+**New finding: Last-Modified moves while the bytes stay the same (strong evidence; data and code role).**
+- All 178 "moved" participant-OI files have bytes identical to the archived file (SHA-256 against the manifest:
+  0 revisions).
+- Yet their Last-Modified differs from the one recorded on 13 Oct morning
+  (`archive_last_modified_2026-10-13.csv`):
+  - median shift 1 second;
+  - 147 within 60 s, 176 within 10 min;
+  - two large shifts: 2024-08-27 by 10.2 hours and 2025-03-10 by 2.1 hours.
+- So NSE's Last-Modified is not a reliable "content changed" signal; this is very likely what "HEAD is unreliable"
+  meant (the header, not the method).
+- Consequences:
+  1. A11 detects a rewrite by SHA-256, never by the header. The design already does this, and this run confirms the
+     need.
+  2. A8's `LastWriteBoundRule` treats every moved header as a rewrite, so it now holds those 178 days back to the later
+     time. That is safe (more conservative, never look-ahead). But it is driven by noise: for 2024-08-27 the file
+     becomes usable 10 h later than its bytes justify.
+- Proposal for the orchestrator or the A8 owner (not done here; outside A11's criteria): have the sweep log a moved
+  write only when the SHA-256 also changed, i.e. feed the rule from the revision index. That one change would make the
+  rule follow content, not header noise.
 
 ### 4. Coverage, size, lint, imports, tests
 
