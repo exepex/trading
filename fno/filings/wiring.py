@@ -67,9 +67,11 @@ def build_day_list_librarian(name: str, log=print) -> RawDataLibrarian:
 
 
 def build_companies() -> list[str]:
-    """The Nifty 500's symbols from the archived list in Drive, checked against its manifest's SHA-256."""
+    """The Nifty 500's symbols from the archived list in Drive, checked against its manifest's SHA-256. Read with the
+    owner sign-in when its settings are there (the scheduled job has them), else with the service account."""
     path = Nifty500ListSource.path_for(NIFTY500_SNAPSHOT_DAY)
-    data = storage.build_drive_reader().get(path)
+    reader = _owner_raw_area() if storage.build_owner_drive() else storage.build_drive_reader()
+    data = reader.get(path)
     want = storage.build_manifest_folder().fingerprints(Nifty500ListSource).get(Nifty500ListSource.FILENAME)
     if data is None or hashlib.sha256(data).hexdigest() != want:
         raise StoredCopyDamaged(f"{path}: missing in Drive or not the manifest's SHA-256")

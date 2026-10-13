@@ -9,8 +9,10 @@ LEGACY = [
      "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/INDAS_1.xml", "consolidated": "Consolidated"},
     {"toDate": "30-Sep-2024", "broadCastDate": "10-Oct-2024 18:58:00", "exchdisstime": None,
      "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/-", "consolidated": "Non-Consolidated"},
-    {"toDate": "30-Jun-2005", "broadCastDate": "15-Jul-2005 10:00:00", "exchdisstime": None,
+    {"toDate": "30-Jun-2005", "broadCastDate": None, "exchdisstime": None, "filingDate": "-",
      "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/OLD.xml", "consolidated": "Consolidated"},
+    {"toDate": "31-Mar-2023", "broadCastDate": None, "exchdisstime": None, "filingDate": "21-Apr-2023 14:50",
+     "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/LATE.xml", "consolidated": "Consolidated"},
 ]  # fmt: skip
 
 
@@ -31,7 +33,13 @@ def test_legacy_list_keeps_the_window_and_the_later_public_time():
     assert (
         found[1].url == "" and found[1].consolidation == STANDALONE
     )  # NSE's link ends in '-' when there is no XBRL file
-    assert calls[0][1]["symbol"] == "TCS"
+    assert calls[0][1]["symbol"] == "TCS"  # 2005 has no time at all (NSE): never parsed; 2023 is before the window
+
+
+def test_a_row_with_only_nse_filing_minute_uses_it():
+    row = dict(LEGACY[3], filingDate="02-Oct-2023 14:50")
+    (found,) = NseLegacyResultsIndex(lambda path, params: [row]).filings("TCS", date(2023, 10, 1))
+    assert found.filed_at == datetime(2023, 10, 2, 14, 50, tzinfo=IST)
 
 
 def test_integrated_list_reads_every_page_and_only_financials():
