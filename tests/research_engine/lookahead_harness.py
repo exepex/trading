@@ -62,9 +62,15 @@ def perturb_panel(data: ResearchData, cutoff: datetime, rng: Random) -> tuple[Re
     """Changes every panel value available after the cutoff; returns the new data and how many sessions changed."""
     panel = data.panel
     later = {s.day for s in panel.sessions if available_at(s.day, s.session) > cutoff}
-    sessions = tuple(_shake_session(s, rng) if s.day in later else s for s in panel.sessions)
-    options = {d: _shake_options(q, rng) if d in later else q for d, q in panel.options.items()}
-    futures = {d: _shake_futures(q, rng) if d in later else q for d, q in panel.futures.items()}
+    trial = rng.getrandbits(64)  # exactly one draw per call, so the perturbers after this one never depend on the panel
+
+    def day_rng(day: date, table: str) -> Random:
+        """Each day's changes come from its own stream: appending days (story A13) never changes another day's draws."""
+        return Random(f"{trial}-{table}-{day}")
+
+    sessions = tuple(_shake_session(s, day_rng(s.day, "close")) if s.day in later else s for s in panel.sessions)
+    options = {d: _shake_options(q, day_rng(d, "options")) if d in later else q for d, q in panel.options.items()}
+    futures = {d: _shake_futures(q, day_rng(d, "futures")) if d in later else q for d, q in panel.futures.items()}
     return dataclasses.replace(data, panel=NiftyPanel(sessions, options, futures)), len(later)
 
 

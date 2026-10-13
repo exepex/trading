@@ -108,7 +108,7 @@ class _LateDeclaredLeakyF1(Feature):
 
     def value(self, data, decision_day, context):
         later = next(s.underlying for s in data.panel.sessions if s.day > decision_day)
-        return self.f1.value(data, decision_day, context) + later
+        return self.f1.value(data, decision_day, context), later  # the next close always changes: caught on any draw
 
 
 DAY = date(2025, 6, 16)  # a decision day: the 31 Jul 2025 monthly expiry is 45 days away
