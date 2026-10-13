@@ -66,6 +66,7 @@ from .research_engine.structures import LongIronFly, ShortCondor, ShortIronFly, 
 from .research_engine.trial_guard import LedgerTrialGuard
 from .research_engine.volatility_features import AtmIvMinusRealised, VixAboveMedian
 from .storage.raw_source import ParticipantOiSource
+from .storage.revisions import RevisionArchive
 from .storage.wiring import (
     CALENDAR_FILE,
     EVENTS_FILE,
@@ -78,6 +79,7 @@ from .storage.wiring import (
     build_nse_source,
     build_participant_oi_library,
     build_quote_store,
+    build_revision_capturing_source,
     build_session_calendar,
 )
 
@@ -148,9 +150,11 @@ def participant_oi_last_writes() -> dict[date, datetime]:
     return latest_writes(table, last_written_times(checks), read_sweeps(PARTICIPANT_OI_SWEEPS))
 
 
-def build_last_write_sweep() -> LastWriteSweep:
-    """Judge 16: a headers-only pass over every recorded participant-OI file, straight to NSE (never Drive)."""
-    return LastWriteSweep(build_nse_source(ParticipantOiSource), ParticipantOiSource.path_for, PARTICIPANT_OI_SWEEPS)
+def build_last_write_sweep(archive: RevisionArchive) -> LastWriteSweep:
+    """Judge 16: a pass over every recorded participant-OI file, straight to NSE (never Drive); story A11: each file is
+    read in full and a version that differs from the archived one is saved as a revision."""
+    source = build_revision_capturing_source(ParticipantOiSource, archive)
+    return LastWriteSweep(source, ParticipantOiSource.path_for, PARTICIPANT_OI_SWEEPS)
 
 
 def build_point_in_time_participant_oi(project_folder: Path | None = None) -> PointInTimeParticipantOi:

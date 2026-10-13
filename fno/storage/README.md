@@ -9,6 +9,9 @@ fno-research/                        local: the --keep-raw folder; Drive: the sh
     <publisher>/<market>/<dataset>/  what the files are, readable from the path
       <YYYY>/<MM>/                   one folder per month of the file's date
         <original file name>         the publisher's own name, unchanged
+  revisions/                         area: later NSE versions of raw files (story A11; wiring.REVISIONS_AREA)
+    <raw file's path>/               a folder named like the raw file's full path
+      <YYYYMMDDTHHMMSS+0530>_<sha256><ext>   one file per version: when it became available, its SHA-256
   <other area>/                      future kinds of files (exports, backups...), each in its own area
 ```
 
@@ -86,3 +89,23 @@ every file both have).
 
 Adding a store (S3, Dropbox) or a source (another exchange) means one new class behind `RawFileStore` or
 `RawFileSource`, and one line in `wiring.py`.
+
+## Revisions: later NSE versions of a file (story A11)
+
+NSE sometimes rewrites a file after first publishing it (`ind_close_all_12102026.csv` was rewritten at 23:20 IST on
+12 Oct 2026 with 21 more indices; no existing row changed). The raw file is never touched. Every later version found
+is saved in the `revisions` area (above) and gets one row in `research/data/manifests/revisions/<dataset>.csv`
+(`date,path,sha256,size_bytes,available_from,last_modified,found_at`; append-only, committed like the manifests):
+- `available_from`: NSE's Last-Modified for those bytes when it gives one, else the time we fetched them;
+- the same version found again changes nothing; bytes for a file the raw archive does not hold are not a revision.
+
+Readers (`versioned_store.VersionedRawStore`, a read-only `RawFileStore`, `wiring.build_versioned_reader`):
+- **point in time** (`as_of`): the newest version available at that moment, for research (no look-ahead);
+- **latest** (`as_of` None): the newest version we hold, for publishing.
+
+Finding them: `python -m fno data-revisions sweep <dataset> [--from] [--to]` reads each session's file from NSE in
+full (a SHA-256 proves a rewrite; the bytes are needed to keep it) and saves new versions; A8's
+`python -m fno participant-oi sweep` does the same while it checks write times (`RevisionCapturingSource`).
+`python -m fno data-revisions versions <dataset> --day D [--as-of TIME]` shows a day's versions and which one each
+reader returns. `data-coverage` counts the days with revisions per dataset ("revised"). Versions NSE published and
+replaced between two of our reads are never seen.

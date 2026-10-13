@@ -4,6 +4,7 @@ wired in fno/composition.py). Swapping Google Drive or NSE for something else ch
 from __future__ import annotations
 
 import os
+from datetime import datetime
 from pathlib import Path
 
 from ..constants import (
@@ -45,16 +46,21 @@ from .raw_source import (
     ParticipantOiSource,
 )
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
+from .revision_source import RevisionCapturingSource
+from .revisions import RevisionArchive, RevisionIndex
 from .snapshot_source import CorporateActionsSource, EquityListSource, Nifty500ListSource
 from .snapshot_taker import SnapshotTaker
+from .versioned_store import VersionedRawStore
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
+REVISIONS_AREA = "revisions"  # later versions NSE published of raw files, under the same paths (A11)
 CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "calendar"
 CALENDAR_FILE = CALENDAR_FOLDER / "nse_sessions.csv"  # NSE's sessions, from its circulars (SessionCalendar)
 COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
 REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
 REPOSITORY = Path(__file__).resolve().parents[2]
 MANIFEST_FOLDER = REPOSITORY / "research" / "data" / "manifests"  # SHA-256 per file (A10)
+REVISION_INDEX_FOLDER = MANIFEST_FOLDER / "revisions"  # one row per archived later version (A11)
 DATED_SOURCES = (
     NseLegacyFoSource,
     NseDailyFoSource,
@@ -75,10 +81,16 @@ def build_raw_stores(project_folder: Path | None = None, token_for=service_accou
     """Where raw files are looked for, in order: the `raw` area of a local (Drive-synced) project folder, then of the
     shared Google Drive project folder if set up."""
     stores: list[RawFileStore] = [AreaStore(LocalFolderStore(project_folder), RAW_AREA)] if project_folder else []
-    key, folder = os.environ.get(ENV_GDRIVE_SERVICE_ACCOUNT_JSON), os.environ.get(ENV_GDRIVE_FOLDER_ID)
-    if key and folder:
-        stores.append(AreaStore(GoogleDriveStore(folder, lambda: token_for(key)), RAW_AREA))
+    drive = _service_account_drive(token_for)
+    if drive is not None:
+        stores.append(AreaStore(drive, RAW_AREA))
     return stores
+
+
+def _service_account_drive(token_for=service_account_token) -> GoogleDriveStore | None:
+    """The shared Drive project folder, read with the service account; None unless both settings are set."""
+    key, folder = os.environ.get(ENV_GDRIVE_SERVICE_ACCOUNT_JSON), os.environ.get(ENV_GDRIVE_FOLDER_ID)
+    return GoogleDriveStore(folder, lambda: token_for(key)) if key and folder else None
 
 
 OWNER_UPLOAD_SETTINGS = (
@@ -92,12 +104,48 @@ OWNER_UPLOAD_SETTINGS = (
 def build_owner_drive_store(env=os.environ, session=None) -> RawFileStore | None:
     """The `raw` area of the Drive project folder, written as the owner (story A9); None unless all four settings
     are set. Signs in at once, so an expired consent shows up here as DriveSignInRefused."""
+    drive = _owner_drive(env, session)
+    if drive is None:
+        return None
+    raw = AreaStore(drive, RAW_AREA)
+    return FingerprintingStore(raw, build_manifest_folder(), RAW_SOURCES)  # every saved file gets its manifest row
+
+
+def _owner_drive(env=os.environ, session=None) -> GoogleDriveUploadStore | None:
     folder, client_id, client_secret, refresh_token = (env.get(name) for name in OWNER_UPLOAD_SETTINGS)
     if not (folder and client_id and client_secret and refresh_token):
         return None
-    token = OwnerAccessToken(client_id, client_secret, refresh_token)
-    drive = AreaStore(GoogleDriveUploadStore(folder, token, session), RAW_AREA)
-    return FingerprintingStore(drive, build_manifest_folder(), RAW_SOURCES)  # every saved file gets its manifest row
+    return GoogleDriveUploadStore(folder, OwnerAccessToken(client_id, client_secret, refresh_token), session)
+
+
+def build_revision_index() -> RevisionIndex:
+    return RevisionIndex(REVISION_INDEX_FOLDER, DATED_SOURCES)
+
+
+def build_revision_archive(env=os.environ, session=None) -> RevisionArchive:
+    """Later NSE versions of raw files, saved to the owner's Drive `revisions` area with an index row (story A11)."""
+    drive = _owner_drive(env, session)
+    if drive is None:
+        raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to archive revisions in Drive")
+    raw, revisions = AreaStore(drive, RAW_AREA), AreaStore(drive, REVISIONS_AREA)
+    return RevisionArchive(raw, revisions, build_revision_index(), build_manifest_folder())
+
+
+def build_revision_capturing_source(
+    source_type: type[NseArchiveSource], archive: RevisionArchive
+) -> RevisionCapturingSource:
+    """One NSE dataset whose every full read is offered to the revision archive (A8's sweep, data-revisions)."""
+    return RevisionCapturingSource(build_nse_source(source_type), archive)
+
+
+def build_versioned_reader(as_of: datetime | None = None) -> VersionedRawStore:
+    """Raw files in Drive with their revisions (read with the service account): the version available at `as_of`
+    for research, or NSE's newest one we hold when `as_of` is None, for publishing (story A11)."""
+    drive = _service_account_drive()
+    if drive is None:
+        raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to read Drive")
+    raw, revisions = AreaStore(drive, RAW_AREA), AreaStore(drive, REVISIONS_AREA)
+    return VersionedRawStore(raw, revisions, build_revision_index(), as_of)
 
 
 def build_manifest_folder() -> ManifestFolder:
@@ -187,7 +235,10 @@ VALIDATORS = {
 def coverage_datasets(manifests: ManifestFolder | None = None) -> tuple[CoverageDataset, ...]:
     """Every raw dataset with its content check and its manifest's fingerprints (read now, never cached)."""
     manifests = manifests or build_manifest_folder()
-    return tuple(CoverageDataset(s, VALIDATORS[s], manifests.fingerprints(s)) for s in DATED_SOURCES)
+    revisions = build_revision_index()
+    return tuple(
+        CoverageDataset(s, VALIDATORS[s], manifests.fingerprints(s), revisions.counts(s)) for s in DATED_SOURCES
+    )
 
 
 def dataset_name(source: type[NseArchiveSource]) -> str:

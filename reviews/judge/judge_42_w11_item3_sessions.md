@@ -99,3 +99,61 @@ itself, so the split is inferred from the price path. The builder's other 87 row
 - `company.yaml` has an `adjusted` flag because its bars are raw sessions that a reader may re-adjust. Here the served
   figures are already derived, so the definition plus the publisher's test is the right guard.
 - A visible "adjusted for a 5:1 split" marker would be a design change for the owner, as the orchestrator says.
+
+## Addendum 2: point 4 re-checked (omenix-dashboard 000df7a, verified at 1dc47e3; `response_23`)
+
+**Point 4: ACCEPTED.** Judge 42's should-fix is closed. There is 1 new minor finding, demergers, which my own point
+1 left out.
+
+**Checks:** `check_contract` reports 58 planted breaks, all caught, and 5 daily series on NSE's sessions.
+`check_mapping` and `examples.py --check` are green.
+
+**The served example now matches the contract's adjusted definition.** `getScreenerStocksIndia_india` serves
+KOTAKBANK with `y1` +4.24, `h` 453.2 and `m3` 15.27 (443.40 / 384.65 = +15.27%).
+
+**Actions against NSE's corporate-actions API** (fetched by me), and prices against NSE's equity bhavcopies:
+
+| Symbol | NSE action | NSE closes (bhavcopy) | Served (adjusted) | Check |
+|---|---|---|---|---|
+| KOTAKBANK | 14 Jan 2026, split ₹5 to ₹1 | 13 Jan 2,132.60, then 14 Jan 421.00. 250 sessions back (7 Oct 2025): 2,126.90 | 1Y close 425.38, so `y1` = 443.40 / 425.38 − 1 = **+4.24%**. `h` = 2,266 × 0.2 = 453.20. | equal |
+| ANGELONE | 26 Feb 2026, split ₹10 to ₹1 | 25 Feb 2,489.90, then 26 Feb 246.50. 7 Oct 2025: 2,250.50 | 225.05, so **+34.30%** | equal |
+| BHARATRAS | 12 Dec 2025, split ₹10 to ₹5 **and** bonus 1:1 | 11 Dec 9,900, then 12 Dec 2,657. 7 Oct 2025: 9,936 | 9,936 × 0.5 × 0.5 = 2,484.00 | equal |
+| BESTAGRO | 16 Jan 2026, split ₹10 to ₹1 **and** bonus 1:2 | 7 Oct 2025: 354.25 | 354.25 × 0.1 × 2/3 = 23.62 | equal |
+| DELPHIFX | 13 Feb 2026, split ₹10 to ₹2 **and** bonus 2:1 | 12 Feb 228.13, then 13 Feb 16.70. 7 Oct 2025: 239.91 | 239.91 × 0.2 × 1/3 = 15.99 | equal |
+| BANKNIFTY1, AASTHA, CUB, BEML, MOLDTKPAC | Ex-date and ratio as in `actions.csv` | – | – | equal |
+
+**Notes on the checks:**
+- **Bonus factors are right in every form present:** 1:1 = 1/2, 1:2 = 2/3, 1:3 = 3/4, 2:1 = 1/3, 4:1 = 1/5.
+- **Same-day split and bonus are compounded,** not just one applied.
+- **The change list** has 317 values on 99 stocks, as claimed.
+
+**My judge-42 estimate of "about +3%" was the wrong base, not a data error.**
+- It used a calendar year back (13 Oct 2025).
+- The contract's `y1` is 250 sessions back. Counting the 21 Oct 2025 muhurat session (NSE published an equity
+  bhavcopy for it), that is 7 Oct 2025. The exact adjusted figure is +4.24%.
+
+### Minor (new): demergers are not adjusted, so two stocks still show a corporate action as a crash
+
+- **The contract's rule** (and my own expected point 1) covers splits and bonuses only. NSE lists demergers as
+  corporate actions too.
+
+| Symbol | Demerger (NSE) | Closes either side (bhavcopy) | Served 1Y |
+|---|---|---|---|
+| INDIAGLYCO | 2 Sep 2026 | 1,111.70 the day before, 236.20 on the ex-date | **−64.5%** (3M from 1,088.20) |
+| DCMSRIND | 26 Dec 2025 | 172.16 on 24 Dec, 54.52 on the ex-date | **−76.3%** |
+
+- **Why it matters:** a holder of these shares also received shares of the demerged company, so most of each "fall"
+  is value moved, not lost.
+- **Why it is not a simple fix:** a demerger has no fixed ratio in NSE's action record, so it cannot be scaled like
+  a split.
+- **Expected (reasoning only; owner or design decision):**
+  - **Either** adjust demergers by the standard price factor: the ex-date's price-discovery base divided by the
+    previous close.
+  - **Or** state in the contract that demergers are not adjusted, and mark such rows (a design change).
+- **Not blocking:** the contract as written is met.
+
+**Also seen:** INDOTHAI shows −89.3% with no split, bonus or demerger on NSE since July 2025. That looks like a
+genuine fall, and the contract is correct to show it.
+
+**Not judged:** the same commit carries unrelated changes (Google Search Console's ownership file and the 36 home
+page). I judged only the data fix.
