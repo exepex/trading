@@ -533,3 +533,61 @@ override): an append-only revisions area.
 4. Coverage reports revisions per dataset; code size, lint, imports, tests pass.
 
 **Depends:** A1, A8, A9, A10 · **Size:** S · **Status:** built; awaiting judge (claims: `reviews/claude/response_54_2026-10-13-a11-revisions.md`)
+
+---
+
+## A12. Company filings archive (Nifty 500, last 3 years, numbers only)
+
+**Repository:** trading
+
+**Description:** As the analyst and the statistician, I want every listed company's filed numbers (results, balance
+sheet, cash flow, shareholding, the list of announcements and board meetings) stored in Google Drive by a scheduled job,
+so that any rule or prediction can use them point-in-time without calling a third-party server.
+
+**Context and why:** Owner decisions, 13 Oct 2026 (`docs/DESK_DECISIONS.md`):
+- every filing of a listed company is research input; one downloader stores the raw files in Drive, and every consumer
+  reads only from Drive;
+- start with **Nifty 500, last 3 years, numbers only** (no PDFs); later batches of 500 for the rest of NSE, then US
+  companies from the SEC's bulk files; older years and PDFs only when a rule needs them;
+- polite: about one request per second per site, never bursts;
+- the download runs as a plain scheduled job (GitHub Actions; this repository is public, so its runners are free), not
+  inside an AI session.
+
+Facts to verify, not assume (reasoning only today): Indian companies file the balance sheet and cash flow every half
+year (September and March results), not every quarter; how far back NSE's XBRL results go; whether NSE's filings API
+answers from GitHub's runners (if not: BSE's filings, then report).
+
+**Scope.** In:
+- a `RawFileSource` per filing type (results XBRL, shareholding XBRL, announcement and board-meeting lists), NSE first,
+  BSE as a swappable second source; the company list from the archived Nifty 500 snapshot (P6);
+- archive layout under `fno-research/raw/<publisher>/<market>/filings/...` (`fno/storage/README.md`), each file with its
+  SHA-256 and the time NSE says it was published (`filed_at`) and the time we first saw it; a revised filing is a new
+  version, never an overwrite (A11's rule);
+- a resumable librarian job that respects a 6-hour run limit and the one-request-per-second pace;
+- a scheduled GitHub Actions workflow: backfill until complete, then daily new filings; failures post to #fno-desk with
+  `FNO_SLACK_BOT_TOKEN`;
+- a parser that turns results XBRL into a point-in-time table (revenue, profit before tax, net profit, EPS, total
+  debt, cash and equivalents, operating, investing and financing cash flow, total assets, equity) read only from Drive;
+- a measured sample first (20 companies): real file sizes, counts and history depth, reported before the full run.
+
+Out: PDFs and annual reports; companies outside Nifty 500; US companies; any change to the stock tool's repository.
+
+**Acceptance criteria:**
+1. Sample report: for 20 companies, real counts, sizes and earliest available date per filing type, with the
+   projection for Nifty 500 (3 years) in GB and hours.
+2. The full backfill is in Drive: `python -m fno data-coverage` reports, per filing type, companies covered of 500 and
+   files present, with 0 damaged and every file fingerprinted; any company or period NSE does not have is listed with
+   the reason, never silently skipped.
+3. Point-in-time: the parsed table never returns a filing before its `filed_at` (test with a planted early read); a
+   revised filing keeps both versions.
+4. Polite and resumable: tests show at most one request per second per host, and a stopped run restarts only what is
+   missing.
+5. Runs without AI: the workflow runs on schedule in GitHub Actions; the owner's one-time step (adding the Drive
+   upload settings as repository secrets) is written as a checklist; no secret value in any file or log (record scan).
+6. Half-year balance sheet and cash flow are present for at least 90% of Nifty 500 companies for each of the last 6
+   half-years, or the gap is explained with NSE's own data.
+
+**Judge verifies:** opens 10 random archived files and checks their SHA-256 and `filed_at` against NSE; compares 5
+companies' parsed revenue, debt and cash flow with the filing; plants an early read and a burst of requests.
+
+**Depends:** A9, A11, P6 (Nifty 500 snapshot) · **Size:** L · **Status:** to do
