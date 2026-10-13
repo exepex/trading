@@ -81,7 +81,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | trading | - | S | done (judge passed) |
 | [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | trading | - | S | done (judge passed; criteria 4-5 moved to B1, B5) |
 | [A7](stories/A-data-foundation.md#a7-every-component-uses-the-session-calendar) | Every component uses the session calendar | trading | A1 (calendar) | S | done (judge passed) |
-| [A8](stories/A-data-foundation.md#a8-positioning-data-source-participant-open-interest) | Positioning data source (participant open interest) | trading | A1 | M | later |
+| [A8](stories/A-data-foundation.md#a8-positioning-data-source-participant-open-interest) | Positioning data source (participant open interest) | trading | A1 | M | partly built; waiting on the owner's Drive upload and 20 measured release days |
 | [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | trading | A3, A6 | M | later |
 | [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | trading | A3, A5 | M | later |
 | [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | trading | B1, B2, B4 | M | later |
