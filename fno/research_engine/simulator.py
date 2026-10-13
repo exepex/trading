@@ -74,9 +74,10 @@ class CycleSimulator:
         if not cycle.has_entry_window:
             return CycleResult(cycle, structure.code, CycleStatus.NO_ENTRY_WINDOW)
         session = self.panel.session_on(cycle.entry_day)
-        if session is None or session.underlying is None:
-            return CycleResult(cycle, structure.code, CycleStatus.UNFILLABLE)  # the panel has no entry-day data
         quotes = contracts_on(self.panel.options_on(cycle.entry_day, cycle.expiry))
+        if session is None or session.underlying is None or not quotes:
+            # the panel has no entry-day data: no close, or no option rows (a day it left out keeps only index closes)
+            return CycleResult(cycle, structure.code, CycleStatus.UNFILLABLE)
         trials: list[WidthTrial] = []
         for width in self.terms.widths:
             legs = structure.legs(frozenset(quotes), session.underlying, width)

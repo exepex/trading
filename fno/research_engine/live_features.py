@@ -2,19 +2,18 @@
 only from what the desk has then.
 
 Inputs at the cutoff: the canonical A4 snapshot of the day, used only if its capture finished by the cutoff (a later
-capture is data after the cutoff); its spot and its valid two-sided option quotes (mids, never the last price); India
-VIX at the cutoff (A4 records none yet, so live F2 is None); closes from the panel up to the previous session.
-- Live F1: ATM strike = the snapshot's strike nearest spot (lower on a tie); the forward from put-call parity at that
-  strike, F = K + e^(rT) (C - P), because A4 records no futures quote (the research F1 uses the future's close); then
-  Black-76 IVs of the call and put mids (equal by construction at that strike), averaged. Realised volatility: the last
-  20 log returns of the previous 20 sessions' closes followed by the 15:00 spot.
+capture is data after the cutoff); its spot, its valid two-sided option quotes (mids, never the last price), India VIX
+and the NIFTY futures recorded during the capture; closes from the panel up to the previous session.
+- Live F1: ATM strike = the snapshot's strike nearest spot (lower on a tie); the IV model's underlying from the
+  recorded same-expiry future (Black-76, as research F1; a future that has not traded today gives None); the call and
+  put IVs of the mids, averaged. Realised volatility: the last 20 log returns of the previous 20 sessions' closes
+  followed by the 15:00 spot.
 - Live F2: VIX at the cutoff above the median of the previous 250 valid closes.
 - Live F3: F3 itself (events are dated by announcement day), declared at the cutoff.
 """
 
 from __future__ import annotations
 
-import math
 from datetime import date, datetime, time, timedelta
 from statistics import median
 
@@ -29,7 +28,7 @@ from ..research_data.quote_snapshots import CutoffSnapshot, LiveQuote
 from .close_series import daily_sessions, last_valid, realised_vol_points
 from .event_features import ScheduledEventInWindow
 from .features import DecisionContext, Feature, ResearchData
-from .implied_vol import Black76, OptionPricing
+from .implied_vol import ImpliedVolModel, OptionPricing
 from .volatility_features import DAYS_PER_YEAR, REALISED_RETURNS, VIX_HISTORY
 
 
@@ -56,9 +55,9 @@ def _mid(quotes: list[LiveQuote], strike: float, kind: str) -> float | None:
 class LiveAtmIvMinusRealised(LiveFeature):
     name = FEATURE_ATM_IV_MINUS_RV20_LIVE
 
-    def __init__(self, cutoff: time, rate: float, model: Black76 | None = None):
+    def __init__(self, cutoff: time, rate: float, model: ImpliedVolModel):
         super().__init__(cutoff)
-        self.rate, self.model = rate, model or Black76()
+        self.rate, self.model = rate, model
 
     def value(self, data: ResearchData, decision_day: date, context: DecisionContext) -> float | None:
         snapshot = self.snapshot(data, decision_day)
@@ -72,19 +71,23 @@ class LiveAtmIvMinusRealised(LiveFeature):
     def atm_implied_vol_points(self, snapshot: CutoffSnapshot, expiry: date) -> float | None:
         quotes = snapshot.quotes_for(expiry)
         strikes = {q.strike for q in quotes}
-        if not strikes:
+        underlying = self.model.underlying(snapshot.spot, snapshot.future_for(expiry))
+        years = (expiry - snapshot.day).days / DAYS_PER_YEAR
+        if not strikes or underlying is None or years <= 0:
             return None
         strike = min(strikes, key=lambda k: (abs(k - snapshot.spot), k))
-        call, put = _mid(quotes, strike, OPTION_CALL), _mid(quotes, strike, OPTION_PUT)
-        years = (expiry - snapshot.day).days / DAYS_PER_YEAR
-        if call is None or put is None or years <= 0:
-            return None
-        forward = strike + math.exp(self.rate * years) * (call - put)
-        vols = [
-            self.model.implied_vol(OptionPricing(price, forward, strike, kind, years, self.rate))
-            for price, kind in ((call, OPTION_CALL), (put, OPTION_PUT))
-        ]
-        return None if None in vols or forward <= 0 else sum(vols) / len(vols) * 100
+        vols = []
+        for kind in (OPTION_CALL, OPTION_PUT):
+            price = _mid(quotes, strike, kind)
+            vol = (
+                None
+                if price is None
+                else self.model.implied_vol(OptionPricing(price, underlying, strike, kind, years, self.rate))
+            )
+            if vol is None:
+                return None
+            vols.append(vol)
+        return sum(vols) / len(vols) * 100
 
 
 class LiveVixAboveMedian(LiveFeature):
