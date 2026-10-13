@@ -378,3 +378,5 @@ The owner's `dashboard_app` read-back (Addendum 2's command) should show these 6
 - **The failure step** now adds the `database check FAILED: <class>` line to its one #fno-desk alert.
 
 Checks: 1,488 tests pass (more since), ruff, imports and the record scan are clean, and `fno/composition.py` is at 348 of its 350 lines. The next addition there needs a split.
+
+**Second run of the same day, on the real database:** run 38439360415 started from a newer commit (e38eabd, other stories' work in between). It printed `published 6 blocks as nse-2026-10-12-40630e1cd4ec … (0 rows added)` and read back the same 6 hashes. So a second run adds no rows, and a code commit does not change the ID, which is named by content.
