@@ -174,4 +174,4 @@ committed with the decision before the promotion deadline.
 
 **Judge verifies:** checks one week of AI-book forecast files.
 
-**Depends:** G1, G3, F1 · **Size:** S · **Status:** later
+**Depends:** G1, G3, F1 · **Size:** S · **Status:** awaiting judge (claims: `reviews/claude/response_67_f1-g5.md`; first live run waits on the owner's routines and secrets, `docs/stories/F1-G5-owner-checklist.md`)

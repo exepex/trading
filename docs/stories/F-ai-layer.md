@@ -73,7 +73,7 @@ isolation test of criterion 1 on a non-counted day, recorded in the conversation
 
 **Judge verifies:** re-runs the real isolation test; reads one session's event log; checks receipt times and hashes.
 
-**Depends:** D3, D6, E2, E3 · **Size:** L · **Status:** later
+**Depends:** D3, D6, E2, E3 · **Size:** L · **Status:** forecast part built (owner, 13 Oct 2026: Books 2 and 3's forecasts start before the pause): awaiting judge (claims: `reviews/claude/response_67_f1-g5.md`; owner steps: `docs/stories/F1-G5-owner-checklist.md`). Built as routines with the repository and sealed answers, so criterion 1 (no repository, no network) is not met; trading decisions (slice 4) still need it
 
 ---
 

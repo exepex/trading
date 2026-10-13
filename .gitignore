@@ -9,3 +9,4 @@ nse_raw_download.zip
 # Single-writer lock files of the paper accounts (journal/<book>/account/.lock): local to one machine
 journal/*/account/.lock
 journal/*/account/*.tmp
+.ai_book/
