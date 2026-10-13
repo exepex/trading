@@ -7,6 +7,7 @@ holds it. The judge re-checks the freeze, and ChatGPT reviews section 10's added
 rule from here on is post-hoc and means a new experiment. Version history: section 12. `FREEZE.md` records the
 hashes of the code, settings and calendars used. Design rules: `docs/DESK_DESIGN.md` sections 3.5, 5, 6 and 8.
 Engine stories: B1-B5.
+Freeze: frozen at commit `9d16431d5a9e1fdf1f0979de9cc5c605bfd34837` (13 Oct 2026; `FREEZE.md`).
 
 ## 1. Question
 Which entry-known conditions improve the net payoff of a fully protected NIFTY monthly trade, within the owner's
