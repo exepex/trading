@@ -9,6 +9,22 @@ alone, and a judge could not tell a convention from a convenient choice made aft
 evidence. None of them was chosen after seeing a challenge result: no 2019-2023 option row, feature or P&L has been
 computed (B3 claims, response 47).
 
+## 0. Blocking finding: the engine counts weekly expiries as monthly in 2019-2023 (must be fixed before the freeze)
+
+- **What:** the engine finds **216 decision days in 2019-2023** (48, 52, 52, 52, 12 by year) where the protocol expects
+  about 60. From April 2019 to early 2023 it takes nearly every weekly expiry as a "monthly" one.
+- **Root cause:** A5's `monthly_as_of` calls an expiry monthly if it was ever listed more than 50 days ahead; that
+  limit was measured on 2024-26 only (weeklies listed at most 41 days ahead). In 2019-2022, NSE listed NIFTY weeklies
+  up to **69 days ahead** (first-seen days to expiry of non-last-of-month expiries; 2023 shows one at 97), so they pass
+  the 50-day test. Measured from listing dates only (strong evidence).
+- **Effect if not fixed:** ~4x the opportunities, most of them weeklies whose ATM legs do not trade 30-45 days out
+  (163 of the 216 decision days have an untraded ATM leg); every challenge statistic would be wrong.
+- **Fix (owner of A5/B2 decides):** a monthly identity that holds in both eras, e.g. the last listed expiry of each
+  month as of the day, with A5's guard for a weekly moved into the month (30 Apr 2025), or a horizon per period
+  measured from the listings. With "last listed expiry of the month over the period", 2019-2023 gives **59** decision
+  days (about 60, as the protocol says) and 2024-26 gives 31 (the engine finds 33: the two extra need checking against
+  A5's moved-expiry cases). This is a data/code bug for A5/B2, reported here because it decides the freeze.
+
 ## 1. F1 uses Black-76 on the same-expiry future, not Black-Scholes on spot (section 5) — a change
 
 - **Today's text:** "ATM implied volatility (average of call and put; Black-Scholes, rate 6.5%, time = calendar days /
@@ -83,13 +99,40 @@ computed (B3 claims, response 47).
   commit (F); (c) set `protocol_commit` = F in ledger rows 22-31, commit; (d) `python -m fno research run
   2026-10-12-experiment-1 --period challenge`; (e) commit the results and the ledger's first-run record.
 
+## 8. A minimum traded volume for F1's legs (judge 34 desk note) — new, the threshold is the owner's and ChatGPT's
+
+- **Today:** F1 needs each ATM leg to have traded (volume > 0); one contract is enough. On 14 Jan 2019 the ATM call
+  traded 2 contracts (judge 34): F1 can rest on a single stale print.
+- **Counts (decision days on true monthly expiries, the smaller of the ATM call and put volume; no price, feature or
+  P&L computed):**
+
+  | F1 loses its value when the smaller ATM leg volume is below | 2019-2023 (59 days) | 2024-26 (31 days) |
+  |---|---|---|
+  | 1 contract (today's rule) | 8 | 0 |
+  | 10 | 10 | 0 |
+  | 50 | 21 | 1 |
+  | 100 | 24 | 2 |
+  | 500 | 34 | 14 |
+
+  Open interest instead (smaller ATM leg, units): below 1,000: 11 and 0 days; below 10,000: 29 and 8; below 50,000:
+  39 and 16.
+- **Trade-off:** a higher threshold makes F1 an honest price but removes F1 (so P4-P6 and P8 do not trade, and P5
+  does nothing) on up to 40% of challenge days at 100 contracts; 2019-2022 ATM options 30-45 days out were thin. Some
+  evidence that thin prints distort F1; no outcome was looked at to choose. **Proposal (reasoning only):** 10 contracts
+  (removes 2 more challenge days than today, none in discovery), or 50 if the desk prefers cleaner prices at the cost of
+  13 days. The owner and ChatGPT pick the number before the freeze.
+
 ## Access attestation additions (section 10)
 
+- 13 Oct 2026, at the orchestrator's request (judge 34 desk note): Claude read the 2019-2024 option files to list each
+  2019-2023 decision day's expiries and the volume and open interest of its ATM legs; only dates, counts of listing
+  days and leg volume/open-interest counts were computed and printed (above). No price, feature value or P&L of
+  2019-2023 was computed or viewed. This also found the weekly/monthly bug in item 0.
 - The discovery run (`results_discovery.json`) read 2023 NIFTY 50 and India VIX closes for the features' look-back by
   parsing the 2023 options file; every 2023 option row was dropped before being stored and nothing from it was printed
   or written. Once A10 lands, the look-back will come from index-close files only (judge 28 minor).
 
 ## Asked of the owner and ChatGPT
 
-Accept, change or reject each of items 1-7, with reasons. If accepted, the protocol becomes version 2.2 with these
+Fix item 0 (A5/B2 owner) and accept, change or reject each of items 1-8, with reasons. If accepted, the protocol becomes version 2.2 with these
 texts, and the freeze follows A10.
