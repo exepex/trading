@@ -532,4 +532,4 @@ override): an append-only revisions area.
 3. A8's rewrite sweep stores what it finds as revisions instead of only reporting it.
 4. Coverage reports revisions per dataset; code size, lint, imports, tests pass.
 
-**Depends:** A1, A8, A9, A10 · **Size:** S · **Status:** later
+**Depends:** A1, A8, A9, A10 · **Size:** S · **Status:** built; awaiting judge (claims: `reviews/claude/response_54_2026-10-13-a11-revisions.md`)
