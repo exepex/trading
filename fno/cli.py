@@ -10,6 +10,7 @@ from .books.cli import add_account_parser
 from .config import ROOT, load_app_config
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
+from .forecast_scoring.cli import add_forecast_scores_parser
 from .market_read_models.cli import add_market_parser
 from .pipeline.cli import add_pipeline_parser
 from .providers import get_provider
@@ -190,6 +191,7 @@ def main(argv: list[str] | None = None) -> int:
     add_filings_parser(sub)
     add_pipeline_parser(sub)
     add_forecast_parser(sub)
+    add_forecast_scores_parser(sub)
 
     args = p.parse_args(argv)
     return args.func(args)

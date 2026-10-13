@@ -34,6 +34,7 @@ python -m fno data-coverage [--from --to]          # raw NSE files missing or da
 python -m fno nifty-panel --to YYYY-MM-DD [--from --raw-folder]  # NIFTY option-chain panel from the raw files (A3)
 python -m fno research run 2026-10-12-experiment-1 --period discovery|challenge  # policies, controls, verdict (B3)
 python -m fno research validate-live F1_live_atm_iv_minus_rv20  # a live 15:00 feature against its close version (B7)
+python -m fno forecast-scores run|summary [--as-of --send]  # forecast scores (G4); secondary to net profit
 python -m pytest -q && ruff check fno tests tools # tests and lint; python tools/check_imports.py checks imports
 python tools/check_records.py [--staged | PATH] [--alert]  # public-record scan: no secrets, personal data or broker IDs (O5)
 ```
@@ -74,6 +75,7 @@ fno/
   books/             the three books' Rs 5 lakh paper accounts and their single-writer lock (story E1)
   risk/              risk manager per book: owner limits, drawdown brake, stress and exposure, margin room (C2)
   forecast/          forecast protocol code (G1, frozen), baselines and history back-fill (G2), Book 1's capture (G3)
+  forecast_scoring/  forecast scores, comparisons and the weekly summary (G4): research/forecasts/scores/<day>.json
   analytics.py       Black-Scholes, Greeks, implied volatility, chain metrics
   costs.py           Groww and statutory charges
   config.py          settings (`config.yaml`, allowed keys only)
