@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import base64
 import json
+import time
 from collections.abc import Callable
 
 import requests
@@ -22,6 +23,8 @@ FOLDER_TYPE = "application/vnd.google-apps.folder"
 CHILD_QUERY = "'{parent}' in parents and name = '{name}' and trashed = false and mimeType {op} '" + FOLDER_TYPE + "'"
 TIMEOUT_SECONDS = 60
 UNAUTHORIZED = 401  # the access token expired: sign in again once
+TRANSIENT = frozenset({429, 500, 502, 503, 504})  # Google's temporary answers: wait and try again
+RETRY_WAITS = (2, 8, 30, 60)  # seconds before each retry of a temporary failure
 ROOT_QUERY = "'{parent}' in parents and trashed = false"
 READ_ONLY = "Google Drive is read-only here: save files into the Drive for desktop folder on the PC instead"
 
@@ -51,10 +54,16 @@ class GoogleDriveStore(RawFileStore):
 
     name = "Google Drive"
 
-    def __init__(self, folder_id: str, token: Callable[[], str], session: requests.Session | None = None):
+    def __init__(
+        self,
+        folder_id: str,
+        token: Callable[[], str],
+        session: requests.Session | None = None,
+        sleep: Callable[[float], None] = time.sleep,
+    ):
         """`token` returns a fresh access token; it is asked again when Drive answers 401 (tokens last about an
         hour, so a long run would otherwise fail midway)."""
-        self.folder_id, self.token = folder_id, token
+        self.folder_id, self.token, self.sleep = folder_id, token, sleep
         self.session = session or requests.Session()
         self._sign_in()
         self._ids: dict[tuple[str, str, bool], str | None] = {}
@@ -63,13 +72,29 @@ class GoogleDriveStore(RawFileStore):
         self.session.headers["Authorization"] = f"Bearer {self.token()}"
 
     def _get(self, url: str, **kwargs) -> requests.Response:
-        """GET with one fresh sign-in when the token has expired; any other error is raised."""
-        response = self.session.get(url, timeout=TIMEOUT_SECONDS, **kwargs)
-        if getattr(response, "status_code", None) == UNAUTHORIZED:
-            self._sign_in()
-            response = self.session.get(url, timeout=TIMEOUT_SECONDS, **kwargs)
-        response.raise_for_status()
-        return response
+        """GET that signs in again once when the token has expired and retries Google's temporary failures (429,
+        5xx, dropped connections) after growing waits; anything else, or the last failure, is raised."""
+        signed_in_again = False
+        for wait in (*RETRY_WAITS, None):
+            try:
+                response = self.session.get(url, timeout=TIMEOUT_SECONDS, **kwargs)
+            except requests.ConnectionError:
+                if wait is None:
+                    raise
+                self.sleep(wait)
+                continue
+            status = getattr(response, "status_code", None)
+            if status == UNAUTHORIZED and not signed_in_again:
+                self._sign_in()
+                signed_in_again = True
+                response = self.session.get(url, timeout=TIMEOUT_SECONDS, **kwargs)
+                status = getattr(response, "status_code", None)
+            if status in TRANSIENT and wait is not None:
+                self.sleep(wait)
+                continue
+            response.raise_for_status()
+            return response
+        raise AssertionError("unreachable")
 
     def _child(self, parent_id: str, name: str, folder: bool) -> str | None:
         """The ID of the named folder or file directly inside a folder (cached); None if absent."""

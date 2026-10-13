@@ -228,3 +228,34 @@ def test_a_token_that_still_fails_after_renewal_raises():
     store = GoogleDriveStore("root", lambda: "same", ExpiringDrive(bad_tokens=5))
     with pytest.raises(requests.HTTPError):
         store.get("nse/x.zip")
+
+
+class FlakyDrive:
+    """Answers a list of statuses or exceptions in order, then an empty listing."""
+
+    def __init__(self, answers):
+        self.headers, self.answers = {}, list(answers)
+
+    def get(self, url, params=None, timeout=None):
+        answer = self.answers.pop(0) if self.answers else 200
+        if isinstance(answer, Exception):
+            raise answer
+        return Answer(answer) if answer != 200 else Response({"files": []}, content=b"")
+
+
+def test_temporary_drive_failures_are_retried_after_growing_waits():
+    waits = []
+    drive = FlakyDrive([500, requests.ConnectionError("reset"), 503])
+    store = GoogleDriveStore("root", lambda: "t", drive, sleep=waits.append)
+    assert store.get("nse/x.zip") is None and waits == [2, 8, 30]
+
+
+def test_a_drive_failure_that_persists_is_raised_and_a_real_error_at_once():
+    store = GoogleDriveStore("root", lambda: "t", FlakyDrive([500] * 5), sleep=lambda s: None)
+    with pytest.raises(requests.HTTPError):
+        store.get("nse/x.zip")
+    waits = []
+    store = GoogleDriveStore("root", lambda: "t", FlakyDrive([404]), sleep=waits.append)
+    with pytest.raises(requests.HTTPError):
+        store.get("nse/x.zip")
+    assert waits == []  # not temporary: no retry
