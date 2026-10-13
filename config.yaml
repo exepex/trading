@@ -35,3 +35,46 @@ slack:
   channel_id: C0C89E8QCCD
 
 risk_free_rate: 0.065
+
+# Risk manager (story C2, fno/risk/). Owner decisions of 12 Oct 2026 (docs/DESK_DECISIONS.md), per book on its own
+# Rs 5 lakh paper account. A rule passes at its limit and refuses beyond it.
+risk:
+  max_loss_per_trade_rs: 10000     # one trade's modelled maximum loss, every charge and pad included
+  max_open_trades: 3
+  drawdown_brake_rs: 30000         # closed equity this far below its high: no new trades until the owner restarts
+  max_stress_loss_rs: 30000        # open trades (from marks) plus the proposal (from entry), worst scenario below
+  # Stress scenarios (design 8.1): NIFTY move in %, every leg's implied volatility times iv_factor, days that pass.
+  # Replays: the NIFTY 50 and India VIX close-to-close moves of the day (previous session to that day), from
+  # research/data/nifty-panel/warmup_closes.csv; tests/risk/test_scenarios_data.py checks them against those closes.
+  scenarios:
+    - {name: nifty_down_8pct, nifty_move_pct: -8, iv_factor: 1, days: 1}
+    - {name: nifty_down_5pct, nifty_move_pct: -5, iv_factor: 1, days: 1}
+    - {name: nifty_up_5pct, nifty_move_pct: 5, iv_factor: 1, days: 1}
+    - {name: nifty_up_8pct, nifty_move_pct: 8, iv_factor: 1, days: 1}
+    - {name: iv_double, nifty_move_pct: 0, iv_factor: 2, days: 1}
+    - {name: iv_half, nifty_move_pct: 0, iv_factor: 0.5, days: 1}
+    - {name: nifty_down_8pct_iv_double, nifty_move_pct: -8, iv_factor: 2, days: 1}
+    - {name: nifty_up_5pct_iv_half, nifty_move_pct: 5, iv_factor: 0.5, days: 1}
+    - {name: replay_2020-03-23, nifty_move_pct: -12.9805, iv_factor: 1.0729, days: 1}
+    - {name: replay_2024-06-04, nifty_move_pct: -5.9294, iv_factor: 1.2775, days: 1}
+    - {name: replay_2026-02-01, nifty_move_pct: -1.9557, iv_factor: 1.1079, days: 1}  # Feb 2026's largest fall
+    - {name: replay_2026-02-03, nifty_move_pct: 2.5476, iv_factor: 0.9301, days: 1}   # Feb 2026's largest move
+  # Proposed values, reasoning only (design 8.1); to be set from research before paper trading.
+  exposure:
+    nifty_move_pct: 2
+    max_move_loss_rs: 15000
+    iv_rise_points: 5
+    max_iv_loss_rs: 15000
+  # Initial margin (SPAN plus exposure) per structure, width and lot, with source and date; older than this, or
+  # missing, refuses the trade.
+  margins:
+    file: research/data/margins/margins.csv
+    max_age_days: 7
+  # One frozen stressed-margin method: multiplier (factor, source and as_of required; expires after max_age_days) or
+  # scenario_lookup (scenario_file: a margin per scenario above). Not set yet: every trade is refused until it is.
+  stressed_margin:
+    method: multiplier
+    multiplier: null
+    source: null
+    as_of: null
+    max_age_days: 30

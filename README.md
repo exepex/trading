@@ -72,12 +72,14 @@ fno/
   alerts/            alert sender to Slack #fno-desk (used by the record scan; P4 extends it)
   accounting/        research ledgers
   books/             the three books' Rs 5 lakh paper accounts and their single-writer lock (story E1)
+  risk/              risk manager per book: owner limits, drawdown brake, stress and exposure, margin room (C2)
   analytics.py       Black-Scholes, Greeks, implied volatility, chain metrics
   costs.py           Groww and statutory charges
   config.py          settings (`config.yaml`, allowed keys only)
 tools/               NSE raw-file downloader, import-graph check, public-record scan
 research/            studies, ledger, recorded data
 journal/<book>/account/  each book's paper account: cash_ledger.csv (append-only), positions.json, equity_history.csv
+journal/<book>/owner_overrides.csv  the owner's written restarts of that book's drawdown brake (C2)
 tests/               unit and integration tests
 ```
 

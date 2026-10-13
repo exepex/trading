@@ -14,11 +14,16 @@ class BookPathError(ValueError):
     """A book name that is not one of the three books, or a path that leaves the book's own account folder."""
 
 
-def account_folder(root: Path, book: str) -> Path:
-    """`<root>/journal/<book>/account` for one of the three books; anything else is refused."""
+def book_folder(root: Path, book: str) -> Path:
+    """`<root>/journal/<book>` for one of the three books; anything else is refused."""
     if book not in BOOKS:
         raise BookPathError(f"unknown book {book!r}; the books are {', '.join(BOOKS)}")
-    return Path(root) / JOURNAL_FOLDER / book / ACCOUNT_FOLDER
+    return Path(root) / JOURNAL_FOLDER / book
+
+
+def account_folder(root: Path, book: str) -> Path:
+    """`<root>/journal/<book>/account` for one of the three books; anything else is refused."""
+    return book_folder(root, book) / ACCOUNT_FOLDER
 
 
 def file_in_account(folder: Path, name: str) -> Path:

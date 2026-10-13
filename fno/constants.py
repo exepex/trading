@@ -108,3 +108,10 @@ FEATURE_ATM_IV_MINUS_RV20_LIVE = "F1_live_atm_iv_minus_rv20"
 FEATURE_VIX_ABOVE_MEDIAN_LIVE = "F2_live_vix_above_250d_median"
 FEATURE_EVENT_IN_WINDOW_LIVE = "F3_live_scheduled_event_in_window"
 ENV_FNO_DB_URL = "FNO_DB_URL"  # the fno schema's runtime publisher role (stories P3, P6); environment settings only
+
+# Risk manager (story C2, fno/risk/): the owner's restart entry for a book's drawdown brake, and the two frozen ways
+# to stress a margin
+OWNER_OVERRIDES_FILE = "owner_overrides.csv"  # journal/<book>/owner_overrides.csv, written by the owner only
+OVERRIDE_RESTART_BRAKE = "restart_brake"
+STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
+STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
