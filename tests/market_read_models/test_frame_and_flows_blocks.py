@@ -16,7 +16,7 @@ from fno.storage.raw_store import LocalFolderStore
 from fno.storage.snapshot_source import FiiDiiCashSource, NsdlFpiDailySource
 from fno.storage.wiring import build_session_calendar
 
-from .test_market_contract_and_run import CONTRACT, builder, example_rows
+from .test_market_contract_and_run import CONTRACT, DAY, Rows, builder, example_rows, run
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "flows"
 CALENDAR = build_session_calendar()
@@ -36,9 +36,20 @@ def test_the_session_is_the_next_one_with_nses_hours_and_the_next_mornings_run()
 def test_a_monthly_expiry_session_names_it_and_a_muhurat_session_is_not_guessed():
     rows = replace(example_rows(), frame=FrameInputs(date(2026, 10, 27), "regular"))
     assert SessionIndiaBlock().build(rows)["major_event_names"] == ["NSE monthly F&O expiry (last Tuesday)"]
-    muhurat = replace(example_rows(), frame=FrameInputs(date(2026, 11, 8), "muhurat"))
     with pytest.raises(FiguresNotComputed, match="muhurat"):
-        SessionIndiaBlock().build(muhurat)
+        SessionIndiaBlock().build(replace(example_rows(), frame=FrameInputs(date(2026, 11, 8), "muhurat")))
+
+
+def test_an_unknown_muhurat_session_leaves_out_only_the_session_page_and_the_run_publishes(tmp_path):
+    """The real calendar row: 8 Nov 2026, muhurat, "timings circular not yet issued"; the session after Friday 6 Nov."""
+    frame = frame_inputs(CALENDAR, date(2026, 11, 6))
+    assert frame == FrameInputs(date(2026, 11, 8), "muhurat")
+    rows = replace(example_rows(), frame=frame)
+    assert SessionIndiaBlock().pages(rows) == {}
+    market, alerts, publisher = run(tmp_path, Rows(rows))
+    code, lines = market.run(DAY)
+    assert code == 0 and alerts.sent == [] and "session" not in publisher.current()
+    assert {"indices", "fno_events", "flows", "risk", "today", "chain_expiries"} <= set(publisher.current())
 
 
 def test_the_indices_are_nifty_and_india_vix_at_the_close():

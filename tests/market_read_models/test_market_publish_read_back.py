@@ -51,9 +51,31 @@ def test_the_workflow_publishes_the_previous_session_daily_or_a_given_day_and_ne
     job = flow["jobs"]["publish"]
     assert job["env"]["FNO_DB_URL"] == "${{ secrets.FNO_DB_URL }}"
     steps = " ".join(str(step.get("run", "")) for step in job["steps"])
-    assert "python -m fno market daily" in steps and "FNO_DB_URL" not in steps  # never echoed or pasted
-    check, archive = (
-        next(s for s in job["steps"] if command in str(s.get("run"))) for command in ("db-check", "daily")
+    assert "python -m fno market publish" in steps and "FNO_DB_URL" not in steps  # never echoed or pasted
+    runs = [str(s.get("run", "")) for s in job["steps"]]
+    archive, check, publish = (
+        next(i for i, r in enumerate(runs) if command in r)
+        for command in ("market archive", "db-check", "market publish")
     )
-    assert "if" not in check and archive["if"] == "${{ !inputs.check_only }}"  # the check always runs first
+    assert archive < check < publish  # raw data never waits for the database (G1 builder, 13 Oct 2026)
+    assert job["steps"][check]["if"] == "${{ !cancelled() }}"  # the check runs even when the archive failed
+    assert "steps.dbcheck.outcome == 'success'" in job["steps"][publish]["if"]
     assert any("failure()" in str(step.get("if", "")) for step in job["steps"])  # one line to #fno-desk
+
+
+def test_the_archive_command_needs_no_database_and_says_what_is_missing(monkeypatch, capsys):
+    from argparse import Namespace
+    from datetime import date
+
+    from fno.market_read_models import cli
+
+    monkeypatch.delenv("FNO_DB_URL", raising=False)  # archiving never touches the database
+    monkeypatch.setattr(cli, "_archive_session", lambda day: None)
+    assert cli._archive(Namespace(day=date(2026, 10, 12))) == 0
+    monkeypatch.setattr(cli, "_archive_session", lambda day: "cm-bhavcopy: 1 not published yet, 0 damaged, 0 rejected")
+    assert cli._archive(Namespace(day=date(2026, 10, 12))) == 1
+    assert capsys.readouterr().out.splitlines() == [
+        "2026-10-12: the session's NSE files are archived in Drive",
+        "Omenix F&O market archive for 2026-10-12: NOT complete (cm-bhavcopy: 1 not published yet, 0 damaged, "
+        "0 rejected); the publish step will say what it lacks",
+    ]
