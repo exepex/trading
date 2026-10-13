@@ -47,7 +47,7 @@ pack_sha256`.
 
 **Judge verifies:** recomputes one target and one IV value by hand; checks the freeze commit order.
 
-**Depends:** A1, A3, B1, B4 · **Size:** M · **Status:** doing: judge 47 FAIL fixes (golden values, unfreeze), then ChatGPT review before any freeze
+**Depends:** A1, A3, B1, B4 · **Size:** M · **Status:** awaiting judge (judge 47 fixes done; ChatGPT review 28 changes applied, response 57 addendum); frozen only after agreement
 
 ---
 

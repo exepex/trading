@@ -73,3 +73,51 @@ fixed:
 I will answer each point in a numbered response, with data where data can settle it. The agreed version is then
 frozen as section 10 describes, and ledger trials 32-36 get its protocol commit. If anything changes, the draft is
 amended before the freeze; no forecast-protocol version is ever edited after its freeze.
+
+## Addendum: ChatGPT review 28, section 2 (accepted by the orchestrator in response 60); both changes applied
+
+I checked both changes and agree with each:
+- **Change 1** removes a known, regime-dependent estimator error from a confirmatory score. The flagged days are 13%
+  of history and mostly 2019-2020.
+- **Change 2** matches the test family to the actual question. With about 6 independent 20-day spans in 6 months,
+  Holm over 45 tests (first threshold 0.0011) would almost always say "no difference". Over 10 tests the first
+  threshold is 0.005.
+
+**1. Flagged IV30 days and question 5.**
+- **Protocol:**
+  - The question 5 row of section 2 now says "void when IV30(d) is flagged or missing".
+  - Section 3 states the rule and why.
+  - Section 4: baseline (a) may use flagged IV30, with the flag carried, and questions 1-2 are reported split into
+    flagged and unflagged days. Baseline (b) for question 5 voids flagged days too.
+  - Section 7: question 5's primary score uses interpolated days only. Flagged days are a descriptive sensitivity
+    beside it, with the period's flag rate.
+- **Code:** `fno/forecast/targets.py`:
+  - `rv_below_iv(day, iv30)` now takes the `AtmIv30` estimate and returns void when it is flagged or missing.
+  - New `rv_below_iv_flagged(day, iv30)` gives the sensitivity outcome on flagged days only.
+  - The flag stays in the golden file (`iv30_flagged`) and in `AtmIv30`.
+- **Tests:** `tests/forecast/test_targets.py::test_q5_is_void_on_a_flagged_iv30_day_and_reported_only_as_a_sensitivity`.
+  It checks that a flagged day is void for the primary outcome and present in the sensitivity, and that unflagged
+  days are never in the sensitivity.
+
+**2. A 10-test primary family replaces the 45-test family.**
+- **Protocol section 8:**
+  - **Primary:** for each question, Book 2 vs Book 1 and Book 3 vs Book 1. Same Brier difference, L = 20 moving-block
+    bootstrap, B = 10,000, centred two-sided p-value, and Holm at 5% over these 10 only.
+  - **Kept from before:** the minimum of 40 paired dates, p = 1 for comparisons not yet possible, and no significance
+    claim before the 6-month review.
+  - **Secondary, descriptive only:** Book 2 vs Book 3, every book vs each baseline, log scores, calibration, and
+    question 5 on flagged days. These get effect sizes and unadjusted intervals, and are never called confirmatory.
+  - **Six months:** the protocol states that six months is a first review, not a deadline to pick a winner.
+- **Code:** `fno/forecast/comparisons.py`:
+  - `primary_family()` returns the 10 tests, numbered 1-10. The number is the bootstrap seed word.
+  - `secondary_comparisons()` returns the 35 descriptive comparisons, numbered 11-45. They are flagged
+    `primary=False`.
+- **Tests:** `tests/forecast/test_schema_and_family.py`:
+  - The primary family is 10 tests, in order, with Book 2 and Book 3 against Book 1.
+  - The secondary comparisons are 35, never primary, and do not overlap the primary family.
+  - The protocol text names "10 tests", Holm, 5%, L = 20, B = 10,000, the seed, "never called confirmatory" and
+    "first review, not a deadline".
+
+**Status:** draft version 1 with both changes, awaiting the judge. Once the judge passes it and ChatGPT confirms the
+changes, it is frozen as section 10 describes, and ledger trials 32-36 get its protocol commit. The research ledger's
+history row now names the 10-test primary family; the CSV rows are unchanged (registration is never edited).

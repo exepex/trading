@@ -5,8 +5,15 @@ from datetime import UTC, date, datetime
 import pytest
 
 from fno.config import ROOT
-from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, FORECAST_Q1_UP_20D, FORECAST_Q5_RV_BELOW_IV
-from fno.forecast.comparisons import BOOTSTRAP_SEED, RESAMPLES, comparison_family
+from fno.constants import (
+    BOOK1_RULES,
+    BOOK2_HYBRID,
+    BOOK3_AI,
+    FORECAST_Q1_UP_20D,
+    FORECAST_Q5_RV_BELOW_IV,
+    FORECAST_QUESTIONS,
+)
+from fno.forecast.comparisons import BOOTSTRAP_SEED, RESAMPLES, primary_family, secondary_comparisons
 from fno.forecast.schema import RECORD_COLUMNS, ForecastRecord, ForecastRecordError
 from fno.models import IST
 
@@ -69,23 +76,29 @@ def test_unreadable_rows_are_refused():
         ForecastRecord.from_row({k: v for k, v in _record().row().items() if k != "pack_sha256"})
 
 
-def test_the_family_is_45_comparisons_in_the_protocols_order():
-    family = comparison_family()
-    assert len(family) == 45 and [c.k for c in family] == list(range(1, 46))
-    first_nine = [(c.first, c.second) for c in family[:9]]
-    assert first_nine == [
-        (BOOK1_RULES, BOOK2_HYBRID), (BOOK1_RULES, BOOK3_AI), (BOOK2_HYBRID, BOOK3_AI),
-        (BOOK1_RULES, "baseline_a_risk_neutral"), (BOOK2_HYBRID, "baseline_a_risk_neutral"),
-        (BOOK3_AI, "baseline_a_risk_neutral"), (BOOK1_RULES, "baseline_b_base_rate"),
-        (BOOK2_HYBRID, "baseline_b_base_rate"), (BOOK3_AI, "baseline_b_base_rate"),
-    ]  # fmt: skip
-    q5 = [c for c in family if c.question == FORECAST_Q5_RV_BELOW_IV]
-    assert {c.second for c in q5} == {BOOK2_HYBRID, BOOK3_AI, "baseline_b_base_rate", "baseline_c_model"}
-    assert len({(c.question, c.first, c.second) for c in family}) == 45
+def test_the_primary_family_is_10_tests_book2_and_book3_against_book1():
+    family = primary_family()
+    assert len(family) == 10 and [c.k for c in family] == list(range(1, 11)) and all(c.primary for c in family)
+    assert [(c.first, c.second) for c in family[:2]] == [(BOOK2_HYBRID, BOOK1_RULES), (BOOK3_AI, BOOK1_RULES)]
+    assert [c.question for c in family[::2]] == list(FORECAST_QUESTIONS)
+
+
+def test_secondary_comparisons_are_descriptive_and_never_in_the_primary_family():
+    secondary = secondary_comparisons()
+    assert len(secondary) == 5 * 7 and not any(c.primary for c in secondary)
+    assert [c.k for c in secondary] == list(range(11, 46))
+    q5 = [c for c in secondary if c.question == FORECAST_Q5_RV_BELOW_IV]
+    assert (BOOK2_HYBRID, BOOK3_AI) in {(c.first, c.second) for c in q5}
+    assert {c.second for c in q5} - {BOOK3_AI} == {"baseline_b_base_rate", "baseline_c_model"}
+    primary = {(c.question, c.first, c.second) for c in primary_family()}
+    assert not primary & {(c.question, c.first, c.second) for c in secondary}
 
 
 def test_the_protocol_names_the_exact_multiplicity_procedure():
     text = (ROOT / "research" / "forecasts" / "PROTOCOL.md").read_text(encoding="utf-8")
-    for phrase in ("45 comparisons", "Holm's step-down", "5%", "block length L = 20", f"B = {RESAMPLES:,}",
-                   f"SeedSequence([{BOOTSTRAP_SEED},", "Only Brier is tested"):  # fmt: skip
+    phrases = (
+        "10 tests", "Holm's step-down", "5%", "block length L = 20", f"B = {RESAMPLES:,}",
+        f"SeedSequence([{BOOTSTRAP_SEED},", "never called confirmatory", "first review, not a deadline",
+    )  # fmt: skip
+    for phrase in phrases:
         assert phrase in text, phrase

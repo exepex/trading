@@ -23,6 +23,7 @@ from ..constants import (
 )
 from ..research_data.calendar import SessionCalendar
 from ..research_engine.close_series import realised_vol_points
+from .iv30 import AtmIv30
 
 PRICE_HORIZON = 20  # trading days, questions 1, 2, 3 and 5
 VIX_HORIZON = 10  # trading days, question 4
@@ -111,18 +112,26 @@ class ForecastTargets:
         today, later = self.closes.vix.get(day), self.closes.vix.get(target) if target else None
         return later > today if target and _valid(today, later) else None
 
-    def rv_below_iv(self, day: date, atm_iv30_points: float | None) -> bool | None:
-        """Q5: next-20-day realised volatility strictly below `day`'s 30-day ATM implied volatility (both in points)."""
-        later = self.next_rv(day)
-        return None if later is None or atm_iv30_points is None else later < atm_iv30_points
+    def rv_below_iv(self, day: date, iv30: AtmIv30 | None) -> bool | None:
+        """Q5, primary: next-20-day realised volatility strictly below `day`'s 30-day ATM implied volatility (both in
+        points). Void when IV30 is missing or flagged (a single-expiry fallback is an approximation, review 28)."""
+        return None if iv30 is None or iv30.flagged else self._rv_below(day, iv30.points)
 
-    def outcome(self, question: str, day: date, atm_iv30_points: float | None = None) -> bool | None:
+    def rv_below_iv_flagged(self, day: date, iv30: AtmIv30 | None) -> bool | None:
+        """Q5's descriptive sensitivity: the same comparison, only on days whose IV30 is flagged; never confirmatory."""
+        return self._rv_below(day, iv30.points) if iv30 is not None and iv30.flagged else None
+
+    def _rv_below(self, day: date, iv30_points: float) -> bool | None:
+        later = self.next_rv(day)
+        return None if later is None else later < iv30_points
+
+    def outcome(self, question: str, day: date, iv30: AtmIv30 | None = None) -> bool | None:
         rules: dict[str, Callable[[date], bool | None]] = {
             FORECAST_Q1_UP_20D: self.nifty_up,
             FORECAST_Q2_MOVE_3PCT_20D: self.nifty_moves_3pct,
             FORECAST_Q3_RV_RISES_20D: self.rv_rises,
             FORECAST_Q4_VIX_UP_10D: self.vix_up,
-            FORECAST_Q5_RV_BELOW_IV: lambda d: self.rv_below_iv(d, atm_iv30_points),
+            FORECAST_Q5_RV_BELOW_IV: lambda d: self.rv_below_iv(d, iv30),
         }
         if question not in rules:
             raise ValueError(f"unknown forecast question {question!r}")

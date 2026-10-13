@@ -1,8 +1,10 @@
 # Forecast protocol, version 1 (story G1)
 
-**Status: draft version 1, awaiting ChatGPT review** (request: `reviews/claude/response_57_g1-protocol-for-review.md`).
-Written by Claude on 13 Oct 2026. Not frozen: a forecast protocol is frozen only after ChatGPT has reviewed and agreed
-it (orchestrator decision of 13 Oct 2026, after judge 47). It is frozen as section 10 says, before any forecast is made
+**Status: draft version 1, ChatGPT review 28's two changes applied; awaiting the judge.** Written by Claude on 13 Oct
+2026 (review request: `reviews/claude/response_57_g1-protocol-for-review.md`). ChatGPT review 28 asked for two
+changes before freezing (question 5 void on flagged IV30 days; a 10-test primary family), accepted by the orchestrator
+in `reviews/claude/response_60_2026-10-13-on-review-28.md`; both are in sections 2, 3, 7 and 8. Not frozen: a forecast
+protocol is frozen only after ChatGPT has agreed it (orchestrator decision of 13 Oct 2026, after judge 47). It is frozen as section 10 says, before any forecast is made
 or scored; after that any change is a new version (a new file and a new freeze), never an edit. No forecast exists yet.
 Design: `docs/DESK_DESIGN.md` 12.7 (daily forecasts, a secondary diagnostic), 12.8, 12.11. Registered in the research
 ledger as trials 32-36 (one per question); their protocol commit is filled in at the freeze.
@@ -43,7 +45,7 @@ Reference code: `fno/forecast/targets.py` (`ForecastTargets`); question names in
 | 2 | `q2_nifty_move_3pct_20d` | P(abs NIFTY return over the next 20 trading days >= 3%) | abs(close(d+20) / close(d) - 1) >= 0.03 (simple return) |
 | 3 | `q3_rv20_above_trailing` | P(next-20-day RV > trailing 20-day RV today) | next RV(d) > trailing RV(d) |
 | 4 | `q4_vix_up_10d` | P(India VIX close in 10 trading days > today's close) | VIX(d+10) > VIX(d) |
-| 5 | `q5_rv20_below_atm_iv30` | P(next-20-day RV < today's 30-day ATM implied volatility) | next RV(d) < IV30(d) (section 3) |
+| 5 | `q5_rv20_below_atm_iv30` | P(next-20-day RV < today's 30-day ATM implied volatility) | next RV(d) < IV30(d) (section 3); **void when IV30(d) is flagged or missing** |
 
 ## 3. The 30-day at-the-money implied volatility, IV30(d)
 
@@ -59,11 +61,15 @@ Reference code: `fno/forecast/iv30.py`.
   `e2` (the earliest with 30 or more), in total variance:
   `w_i = IV_i^2 x days_i`, `w30 = w1 + (w2 - w1) x (30 - days1) / (days2 - days1)`, `IV30 = sqrt(w30 / 30)`.
 - **Not bracketed** (no `e1` or no `e2`, or either ATM IV missing): the monthly expiry with at least 7 days left whose
-  days are nearest 30 (a tie goes to the longer one), alone, **flagged**. None such: no value (question 5 is void that
-  day, and no baseline forecasts it).
+  days are nearest 30 (a tie goes to the longer one), alone, **flagged**. None such: no value.
+- **Question 5 uses interpolated IV30 only** (ChatGPT review 28): a single expiry is an approximation of 30-day IV, and
+  the flagged days cluster in 2019-2020, so mixing them would mix estimator error with forecast skill. On a flagged or
+  missing day question 5's primary outcome is void (never scored or tested); on flagged days the same comparison is
+  kept as a separate descriptive sensitivity (`ForecastTargets.rv_below_iv_flagged`), never in a confirmatory test.
+  The flag stays in every record of IV30 and in the golden file, and the flag rate of each scored period is reported.
 - **How often (measured on the panel, 2019 to 12 Oct 2026, 1,922 trading days):** 1,662 interpolated, 258 flagged
   (13%), 2 without a value. Flagged days are mostly 2019-2020 (84 and 80 a year), where the next month's ATM call or put
-  often did not trade; 11 to 23 a year from 2021. Flagged days are reported as a separate group in every Q5 score.
+  often did not trade; 11 to 23 a year from 2021. Flagged days are void for question 5's primary score (above).
 - **Sanity check, not a target:** on 1 Sep, 15 Sep, 29 Sep, 1 Oct and 12 Oct 2026 IV30 was 10.09, 12.79, 12.90, 13.83 and
   14.46 against India VIX 11.49, 13.43, 13.41, 14.46 and 15.25. VIX prices the whole smile, so it sits above ATM.
 
@@ -74,7 +80,7 @@ All point-in-time: nothing known after the cutoff of `d` is used. Each value is 
 
 **(a) Risk-neutral, questions 1 and 2 only.** Labelled "risk-neutral: option prices include risk premia; not a
 real-world probability". Lognormal: `ln(S_T / S_0)` is normal with mean `m = ln(F_T / S_0) - s^2 tau / 2` and variance
-`s^2 tau`, where `S_0` is NIFTY at the cutoff, `s = IV30(d) / 100` (flagged values used and the flag carried), `tau` =
+`s^2 tau`, where `S_0` is NIFTY at the cutoff, `s = IV30(d) / 100` (flagged values used, the flag carried, and questions 1-2 reported split into flagged and unflagged days), `tau` =
 calendar days from `d` to `d+20` / 365, and `F_T = S_0 x exp(c x tau)` with the carry `c = ln(F_1 / S_0) / tau_1` from
 the traded close `F_1` of the first expiry IV30 used (`tau_1` its calendar days / 365).
 Q1 = `N((ln(F_T/S_0) - s^2 tau/2) / (s sqrt(tau)))`;
@@ -85,7 +91,7 @@ VIX options are not in the data; question 5's IV is already the market's price).
 
 **(b) Base rate, all questions.** The share of outcomes equal to 1 among the most recent 750 trading days `t < d`
 whose outcome was resolved before the cutoff of `d` (its last close is on a day before `d`) and not void (question 5
-uses IV30(t)). At least 500 such days, else no forecast.
+uses IV30(t), so its flagged days are void here too). At least 500 such days, else no forecast.
 
 **(c) Simple statistical models, questions 3, 4 and 5.** Ordinary least squares with an intercept, fitted on the same
 kind of window as (b): the most recent 750 trading days `t` before the refit day whose target was resolved before the
@@ -120,30 +126,37 @@ carries its time zone and falls on `date` in IST; `probability` in [0, 1] or emp
 - **Calibration table** per forecaster and question: 10 bins `[0, 0.1)`, `[0.1, 0.2)`, ..., `[0.9, 1.0]`; per bin the
   count, mean forecast and observed frequency.
 - Reported per forecaster and question: count of forecasts, of "no forecast", of void outcomes; mean Brier, mean log
-  score, calibration; question 5 also split into interpolated and flagged IV30 days.
+  score, calibration. **Question 5:** its primary score uses interpolated IV30 days only (flagged and missing days are
+  void, section 2); the same scores on flagged days are reported beside it as a descriptive sensitivity, with the flag
+  rate of the period. **Baseline (a):** questions 1 and 2 also reported split into flagged and unflagged IV30 days.
 
-## 8. Comparisons and the multiplicity adjustment (fixed before any score exists)
+## 8. Comparisons and the multiplicity adjustment (fixed before any score exists; ChatGPT review 28)
 
-- **The family: 45 comparisons**, fixed now. For each question: the 3 book pairs (book 1 vs 2, 1 vs 3, 2 vs 3) and each
-  book against each of the question's two baselines (questions 1-2: (a) and (b); questions 3-5: (b) and (c)), so 9 per
-  question. Comparisons not yet possible (books 2 and 3 do not exist yet) stay in the family with p = 1: the
-  adjustment never gets weaker because a book is missing. Comparison `k` (1 to 45) is numbered in that order:
-  question 1 to 5, then pairs 1-2, 1-3, 2-3, then book 1, 2, 3 against the first baseline, then against the second.
+- **Primary (confirmatory) family: 10 tests.** For each question, Book 2 against Book 1 and Book 3 against Book 1: does
+  AI judgement inside the rules, and then the full AI system, read the market better than the rules alone? Comparison
+  `k` (1 to 10) is numbered question 1 to 5, each with Book 2 vs Book 1 first, then Book 3 vs Book 1. A comparison not
+  yet possible (the AI books do not exist yet) stays in the family with p = 1, so the adjustment never weakens.
 - **Statistic:** on the dates where both forecasters gave a probability and the outcome is resolved and not void, in
-  date order, `D_t = Brier_A(t) - Brier_B(t)`; the statistic is their mean `D`. Negative favours A.
+  date order, `D_t = Brier_A(t) - Brier_B(t)` (A is Book 2 or 3, B is Book 1); the statistic is their mean `D`.
+  Negative favours A.
 - **Uncertainty: moving-block bootstrap**, block length L = 20 trading days (the targets overlap), B = 10,000
   resamples. For `n` paired dates: draw `ceil(n / L)` block starts uniformly from `0 .. n - L` with replacement, join
   the blocks in draw order, cut to `n` values, take the mean. Random numbers: NumPy
   `default_rng(SeedSequence([20261013, k]))` for comparison `k`, so each comparison reproduces exactly on its own.
-  The family and these constants are in code: `fno/forecast/comparisons.py`.
+  The families and these constants are in code: `fno/forecast/comparisons.py`.
 - **p-value (two-sided):** `p = (1 + #{b : |D*_b - D| >= |D|}) / (B + 1)` (the bootstrap distribution centred on the
   observed mean). Fewer than 40 paired dates (2L): not tested, p = 1, "too few dates".
-- **Adjustment: Holm's step-down** over all 45 p-values at a family-wise error rate of 5%: sort ascending,
-  `p_(i)` is significant while `p_(i) <= 0.05 / (45 - i + 1)`; the first that fails stops it.
+- **Adjustment: Holm's step-down** over the 10 primary p-values at a family-wise error rate of 5%: sort ascending,
+  `p_(i)` is significant while `p_(i) <= 0.05 / (10 - i + 1)`; the first that fails stops it.
+- **Secondary (descriptive only):** Book 2 against Book 3, and every book against each of the question's two baselines
+  (questions 1-2: (a) and (b); questions 3-5: (b) and (c)), numbered 11 to 45 after the primary family; also every log
+  score and calibration table, and question 5 on flagged IV30 days (section 3). They are reported as effect sizes
+  (`D`) with unadjusted 95% bootstrap intervals (same method and seeding), and never called confirmatory.
 - **Intervals:** the 2.5% and 97.5% percentiles of `D*_b`, labelled "unadjusted 95%".
-- **Only Brier is tested.** The log score and calibration are descriptive, so the family stays 45.
-- No comparison is called significant before the first scheduled review (design 12.8: 6 months of common-start
-  trading); before it, every number is reported as descriptive.
+- **Timing:** no comparison is called significant before the first scheduled review (design 12.8: 6 months of
+  common-start trading); before it, every number is descriptive. Six months is a first review, not a deadline to pick a
+  winner: about 125 daily forecasts on 20-day overlapping targets hold only about 6 independent 20-day spans, so a
+  "no significant difference" then means "not yet known", and the comparison continues.
 
 ## 9. Known limits (stated before any forecast)
 

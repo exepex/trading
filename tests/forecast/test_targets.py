@@ -25,6 +25,7 @@ from fno.constants import (
     FORECAST_Q4_VIX_UP_10D,
     FORECAST_Q5_RV_BELOW_IV,
 )
+from fno.forecast.iv30 import AtmIv30
 from fno.forecast.targets import DailyCloses, ForecastTargets, daily_closes, trading_days
 from fno.research_data.calendar import CsvSessionCalendar
 
@@ -54,6 +55,10 @@ def _closes(days: tuple[date, ...], drop: date | None = None) -> list:
     return rows
 
 
+def _iv30(points: float, flagged: bool = False) -> AtmIv30:
+    return AtmIv30(points, flagged, (date(2026, 3, 26),))
+
+
 @pytest.fixture
 def targets() -> ForecastTargets:
     days = trading_days(CALENDAR, START, END)
@@ -79,8 +84,8 @@ def test_the_five_outcomes_by_hand(targets):
     assert targets.outcome(FORECAST_Q2_MOVE_3PCT_20D, D) is True  # 6.18% >= 3%
     assert targets.outcome(FORECAST_Q3_RV_RISES_20D, D) is True  # 34.05 > 15.87
     assert targets.outcome(FORECAST_Q4_VIX_UP_10D, D) is True  # 16 > 15
-    assert targets.outcome(FORECAST_Q5_RV_BELOW_IV, D, atm_iv30_points=40.0) is True  # 34.05 < 40
-    assert targets.outcome(FORECAST_Q5_RV_BELOW_IV, D, atm_iv30_points=30.0) is False  # 34.05 >= 30
+    assert targets.outcome(FORECAST_Q5_RV_BELOW_IV, D, iv30=_iv30(40.0)) is True  # 34.05 < 40
+    assert targets.outcome(FORECAST_Q5_RV_BELOW_IV, D, iv30=_iv30(30.0)) is False  # 34.05 >= 30
 
 
 def _two_closes(first: float, last: float) -> ForecastTargets:
@@ -105,7 +110,7 @@ def test_a_day_after_d_with_a_tie_in_vix_is_no(targets):
 def test_a_missing_close_makes_the_outcome_void_never_a_guess():
     days = trading_days(CALENDAR, START, END)
     gap = ForecastTargets(daily_closes(CALENDAR, START, END, _closes(days, drop=date(2026, 2, 20))))
-    assert gap.next_rv(D) is None and gap.rv_rises(D) is None and gap.rv_below_iv(D, 40.0) is None
+    assert gap.next_rv(D) is None and gap.rv_rises(D) is None and gap.rv_below_iv(D, _iv30(40.0)) is None
     assert gap.nifty_up(D) is True  # questions 1 and 2 need only d and d+20
 
 
@@ -125,3 +130,14 @@ def test_daily_closes_keeps_calendar_days_without_a_close_as_missing():
     days = trading_days(CALENDAR, START, END)
     closes = daily_closes(CALENDAR, START, END, _closes(days, drop=D + timedelta(days=1)))
     assert closes.nifty[D + timedelta(days=1)] is None and D + timedelta(days=1) in closes.days
+
+
+def test_q5_is_void_on_a_flagged_iv30_day_and_reported_only_as_a_sensitivity(targets):
+    """Review 28: a single-expiry IV30 is an approximation, so Q5's primary outcome is void on flagged days; the same
+    comparison is kept as a descriptive sensitivity on those days only."""
+    flagged = _iv30(40.0, flagged=True)
+    assert targets.rv_below_iv(D, flagged) is None
+    assert targets.outcome(FORECAST_Q5_RV_BELOW_IV, D, iv30=flagged) is None
+    assert targets.rv_below_iv_flagged(D, flagged) is True  # 34.05 < 40
+    assert targets.rv_below_iv_flagged(D, _iv30(40.0)) is None  # unflagged days are not in the sensitivity
+    assert targets.rv_below_iv_flagged(D, None) is None
