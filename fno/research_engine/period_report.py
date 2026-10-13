@@ -47,7 +47,7 @@ def _result_row(opportunity: Opportunity, code: str) -> dict:
     return {
         "status": opportunity.status(code), "width": result.width, "gross": result.gross, "charges": result.charges,
         "pads": result.pads, "net": result.net, "max_loss": result.max_loss,
-        "needs_settlement": result.needs_settlement,
+        "needs_settlement": result.needs_settlement, "exit_outside_payoff": result.exit_outside_payoff,
     }  # fmt: skip
 
 

@@ -25,10 +25,11 @@ from ..research_data.calendar import SessionCalendar, load_session_calendar
 from ..research_data.nifty_panel import DailyFiles
 from ..research_data.panel_store import CsvGzPanelFolder, PanelSink
 from ..research_data.participant_oi import read_participant_oi
-from .coverage import CoverageCheck, CoverageDataset, FingerprintCheck, read_exceptions, read_fingerprints
+from .coverage import CoverageCheck, CoverageDataset, read_exceptions
 from .google_drive import GoogleDriveStore, service_account_token
 from .google_drive_upload import GoogleDriveUploadStore
 from .librarian import RawDataLibrarian
+from .manifest_folder import FingerprintingStore, ManifestFolder
 from .owner_token import OwnerAccessToken
 from .raw_library import RawFileLibrary
 from .raw_source import (
@@ -45,11 +46,8 @@ CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "c
 CALENDAR_FILE = CALENDAR_FOLDER / "nse_sessions.csv"  # NSE's sessions, from its circulars (SessionCalendar)
 COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
 REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
-LAPTOP_TOOL_FOLDER = Path(__file__).resolve().parents[2] / "tools" / "nse_raw_download"
-PARTICIPANT_OI_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest_participant_oi.csv"  # SHA-256 of NSE's files (story A8)
-FO_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest.csv"  # the laptop tool's download of the current F&O format
-LEGACY_FO_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest_fo_bhavcopy_legacy.csv"  # read from Drive (story A9)
-INDEX_CLOSE_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest_index_close.csv"  # read from Drive (story A9)
+MANIFEST_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "manifests"  # SHA-256 per file (A10)
+RAW_SOURCES = (NseLegacyFoSource, NseDailyFoSource, NseIndexCloseSource, ParticipantOiSource)
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -77,7 +75,12 @@ def build_owner_drive_store(env=os.environ, session=None) -> RawFileStore | None
     if not (folder and client_id and client_secret and refresh_token):
         return None
     token = OwnerAccessToken(client_id, client_secret, refresh_token)
-    return AreaStore(GoogleDriveUploadStore(folder, token, session), RAW_AREA)
+    drive = AreaStore(GoogleDriveUploadStore(folder, token, session), RAW_AREA)
+    return FingerprintingStore(drive, build_manifest_folder(), RAW_SOURCES)  # every saved file gets its manifest row
+
+
+def build_manifest_folder() -> ManifestFolder:
+    return ManifestFolder(MANIFEST_FOLDER)
 
 
 def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path | None = None) -> RawFileLibrary:
@@ -142,20 +145,27 @@ def validate_participant_oi(filename: str, data: bytes) -> None:
     read_participant_oi(data, filename, ParticipantOiSource.day_for(filename))
 
 
-COVERAGE_DATASETS = (
-    CoverageDataset(NseLegacyFoSource, FingerprintCheck(read_fo_file, read_fingerprints(LEGACY_FO_MANIFEST))),
-    CoverageDataset(NseDailyFoSource, FingerprintCheck(read_fo_file, read_fingerprints(FO_MANIFEST))),
-    CoverageDataset(
-        NseIndexCloseSource, FingerprintCheck(validate_index_close, read_fingerprints(INDEX_CLOSE_MANIFEST))
-    ),
-    CoverageDataset(
-        ParticipantOiSource, FingerprintCheck(validate_participant_oi, read_fingerprints(PARTICIPANT_OI_MANIFEST))
-    ),
-)
+VALIDATORS = {
+    NseLegacyFoSource: read_fo_file,
+    NseDailyFoSource: read_fo_file,
+    NseIndexCloseSource: validate_index_close,
+    ParticipantOiSource: validate_participant_oi,
+}
 
 
-# Datasets the librarian may upload: each new one needs its own story (A9 scope); participant OI has a manifest.
-LIBRARIAN_DATASETS = {"participant-oi": COVERAGE_DATASETS[3]}
+def coverage_datasets(manifests: ManifestFolder | None = None) -> tuple[CoverageDataset, ...]:
+    """Every raw dataset with its content check and its manifest's fingerprints (read now, never cached)."""
+    manifests = manifests or build_manifest_folder()
+    return tuple(CoverageDataset(s, VALIDATORS[s], manifests.fingerprints(s)) for s in RAW_SOURCES)
+
+
+def dataset_name(source: type[NseArchiveSource]) -> str:
+    return source.dataset.rsplit("/", 1)[-1]
+
+
+# Datasets the librarian may upload: each new one needs its own story (A9: participant OI; A10: index closes).
+LIBRARIAN_DATASETS = {dataset_name(s): s for s in (ParticipantOiSource, NseIndexCloseSource)}
+FINGERPRINT_SOURCES = {dataset_name(s): s for s in RAW_SOURCES}
 
 
 def build_librarian(name: str, log=print) -> RawDataLibrarian:
@@ -163,23 +173,10 @@ def build_librarian(name: str, log=print) -> RawDataLibrarian:
     store = build_owner_drive_store()
     if store is None:
         raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
-    dataset = LIBRARIAN_DATASETS[name]
-    source = build_nse_source(dataset.source)
-    return RawDataLibrarian(store, source, dataset.validate, build_session_calendar(), build_file_exceptions(), log)
-
-
-FINGERPRINT_SOURCES = {
-    "fo-bhavcopy": NseDailyFoSource,
-    "fo-bhavcopy-legacy": NseLegacyFoSource,
-    "index-close": NseIndexCloseSource,
-    "participant-oi": ParticipantOiSource,
-}
-FINGERPRINT_MANIFESTS = {
-    "fo-bhavcopy": FO_MANIFEST,
-    "fo-bhavcopy-legacy": LEGACY_FO_MANIFEST,
-    "index-close": INDEX_CLOSE_MANIFEST,
-    "participant-oi": PARTICIPANT_OI_MANIFEST,
-}
+    source_type = LIBRARIAN_DATASETS[name]
+    dataset = next(d for d in coverage_datasets() if d.source is source_type)
+    source = build_nse_source(source_type)
+    return RawDataLibrarian(store, source, dataset, build_session_calendar(), build_file_exceptions(), log)
 
 
 def build_drive_reader() -> RawFileStore:
@@ -217,7 +214,12 @@ def build_nifty_panel_files(project_folder: Path | None = None) -> tuple[list[Da
         daily_files(PANEL_FORMAT_UDIFF, NseDailyFoSource, build_nse_fo_library(project_folder)),
         daily_files(PANEL_FORMAT_LEGACY, NseLegacyFoSource, build_nse_legacy_fo_library(project_folder)),
     ]
-    return fo_files, daily_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, build_nse_index_close_library(project_folder))
+    return fo_files, build_index_close_files(project_folder)
+
+
+def build_index_close_files(project_folder: Path | None = None) -> DailyFiles:
+    """NSE's daily index-close files (the panel's closes, and story A10's warm-up closes; never an F&O file)."""
+    return daily_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, build_nse_index_close_library(project_folder))
 
 
 def build_panel_sink(folder: Path | None = None) -> PanelSink:

@@ -102,8 +102,11 @@ def test_long_iron_fly_by_hand_on_the_only_listed_width():
     assert_money(r, 1625, charges, 1625 - charges - PADS, max_loss, (1625, 353, 520, 752, 6963))
 
 
+FLY_LEGS = {(24000, CE): 300, (24000, PE): 280, (24300, CE): 150, (23700, PE): 140}  # credit 290, width 300 only
+
+
 def fly_prices():
-    return {**strikes_listed(FLY_STRIKES), (24000, CE): 300, (24000, PE): 280, (24300, CE): 150, (23700, PE): 140}
+    return {**strikes_listed(FLY_STRIKES), **FLY_LEGS}
 
 
 def test_an_untraded_leg_uses_its_settlement_price_flagged():
@@ -119,17 +122,26 @@ def test_an_untraded_leg_uses_its_settlement_price_flagged():
 @pytest.mark.parametrize("side", ["entry", "exit"])
 def test_three_of_four_legs_on_settlement_is_unfillable(side):
     flagged = {(24000, CE): 300.0, (24000, PE): 280.0, (24300, CE): 150.0}
-    traded = {k: v for k, v in fly_prices().items() if k not in flagged}
-    prices = {"entry": (traded, fly_prices(), flagged, None), "exit": (fly_prices(), traded, None, flagged)}[side]
+    traded = {k: v for k, v in FLY_LEGS.items() if k not in flagged}
+    prices = {"entry": (traded, FLY_LEGS, flagged, None), "exit": (FLY_LEGS, traded, None, flagged)}[side]
     r = simulate(ShortIronFly(), 24010.0, *prices[:2], entry_settle=prices[2], exit_settle=prices[3])
     assert r.status == CycleStatus.UNFILLABLE and r.net == 0.0
 
 
+@pytest.mark.parametrize("side", ["entry", "exit"])
+def test_exactly_half_the_legs_on_settlement_is_still_fillable(side):
+    """Judge 25 minor 1: "more than half" is the rule, so 2 of 4 legs on settlement trade (flagged)."""
+    flagged = {(24000, CE): 300.0, (24300, CE): 150.0}
+    traded = {k: v for k, v in FLY_LEGS.items() if k not in flagged}
+    prices = {"entry": (traded, FLY_LEGS, flagged, None), "exit": (FLY_LEGS, traded, None, flagged)}[side]
+    r = simulate(ShortIronFly(), 24010.0, *prices[:2], entry_settle=prices[2], exit_settle=prices[3])
+    assert r.status == CycleStatus.TRADED and r.needs_settlement
+
+
 def test_a_zero_settlement_is_no_price():
     """Judge 20: NSE's expiry-day settlement was 0.00 up to 30 Jan 2020; a 0.00 settlement is missing, not a price."""
-    entry = fly_prices()
-    del entry[(24300, CE)]
-    r = simulate(ShortIronFly(), 24010.0, entry, fly_prices(), entry_settle={(24300, CE): 0.0})
+    entry = {k: v for k, v in FLY_LEGS.items() if k != (24300, CE)}
+    r = simulate(ShortIronFly(), 24010.0, entry, FLY_LEGS, entry_settle={(24300, CE): 0.0})
     assert r.widths_tried[0].outcome == CycleStatus.UNFILLABLE and r.status == CycleStatus.UNFILLABLE
 
 
@@ -148,6 +160,47 @@ def test_a_credit_equal_to_the_width_is_bad_prices():
 def test_a_long_debit_of_zero_is_bad_prices():
     prices = {(24000, CE): 200, (24000, PE): 200, (24300, CE): 200, (23700, PE): 200}
     assert simulate(LongIronFly(), 24010.0, prices, prices).status == CycleStatus.BAD_PRICES
+
+
+@pytest.mark.parametrize("debit", [300.0, 300.05])
+def test_a_long_debit_at_least_the_width_cannot_win_and_is_bad_prices(debit):
+    """Owner decision 13 Oct 2026: a long iron fly pays at most its width at expiry, so a debit of at least the width
+    cannot win; just below the width it is a (costly) trade."""
+    prices = {(24000, CE): debit, (24000, PE): 200, (24300, CE): 100, (23700, PE): 100}  # debit: CE price
+    assert simulate(LongIronFly(), 24010.0, prices, prices).status == CycleStatus.BAD_PRICES
+    below = {**prices, (24000, CE): 299.90}
+    assert simulate(LongIronFly(), 24010.0, below, below).widths_tried[0].outcome != CycleStatus.BAD_PRICES
+
+
+def test_a_short_credit_of_zero_cannot_win_and_is_bad_prices():
+    prices = {(24000, CE): 150, (24000, PE): 140, (24300, CE): 150, (23700, PE): 140}
+    assert simulate(ShortIronFly(), 24010.0, prices, prices).status == CycleStatus.BAD_PRICES
+
+
+def test_wider_widths_over_the_cap_and_a_narrowest_width_with_impossible_prices_is_bad_prices():
+    """The three real 2024-26 BF cycles' shape: 300 to 150 break the cap, the 100-point fly costs more than 100. With
+    150 listed it trades there; without it, the narrowest listed width's problem is the status."""
+    prices = {**ladder(300, 280), (24100, CE): 240, (23900, PE): 239}  # debit 101 at width 100
+    r = simulate(LongIronFly(), 24010.0, prices, prices)
+    assert [t.outcome for t in r.widths_tried] == [CycleStatus.NO_TRADE_CAP] * 3 + [CycleStatus.TRADED]
+    without_150 = {k: v for k, v in prices.items() if k not in {(24150, CE), (23850, PE)}}
+    r = simulate(LongIronFly(), 24010.0, without_150, without_150)
+    assert [t.outcome for t in r.widths_tried] == [CycleStatus.NO_TRADE_CAP] * 3 + [
+        CycleStatus.MISSING_STRIKES,
+        CycleStatus.BAD_PRICES,
+    ]
+    assert r.status == CycleStatus.BAD_PRICES
+
+
+def test_an_exit_valued_beyond_the_payoff_bounds_is_traded_and_flagged():
+    """Judge 25: the July 2024 shape. The short fly's call spread closes at 301.25, more than its 300 width."""
+    exit_ = {(24000, CE): 1168.65, (24000, PE): 36.0, (24300, CE): 867.40, (23700, PE): 21.85}
+    r = simulate(ShortIronFly(), 24010.0, FLY_LEGS, exit_)
+    assert r.status == CycleStatus.TRADED and r.exit_outside_payoff
+    inside = {**exit_, (24300, CE): 870.0}  # spread 298.65 + put spread 14.15 = 312.80: still beyond 300
+    assert simulate(ShortIronFly(), 24010.0, FLY_LEGS, inside).exit_outside_payoff
+    fair = {**exit_, (24300, CE): 880.0, (23700, PE): 25.0}  # 288.65 + 11.00 = 299.65: within the bounds
+    assert not simulate(ShortIronFly(), 24010.0, FLY_LEGS, fair).exit_outside_payoff
 
 
 def ladder(atm_call, atm_put):
@@ -172,9 +225,13 @@ def test_only_the_150_point_width_fits_under_the_cap():
 
 
 def test_no_width_fits_is_no_trade_cap():
-    r = simulate(LongIronFly(), 24010.0, ladder(400, 380), ladder(400, 380))
+    """Any listed 100-point width with possible prices fits (at most 100 x 65 plus costs), so here only 300 to 200
+    are listed, each with a debit below its width but a loss above the cap."""
+    narrow = {(24150, CE), (23850, PE), (24100, CE), (23900, PE)}
+    prices = {k: v for k, v in ladder(300, 280).items() if k not in narrow}
+    r = simulate(LongIronFly(), 24010.0, prices, prices)
     assert r.status == CycleStatus.NO_TRADE_CAP and r.width is None and r.net == 0.0
-    assert all(t.outcome == CycleStatus.NO_TRADE_CAP for t in r.widths_tried)
+    assert [t.outcome for t in r.widths_tried] == [CycleStatus.NO_TRADE_CAP] * 3 + [CycleStatus.MISSING_STRIKES] * 2
 
 
 def test_no_wing_listed_at_all_is_missing_strikes():

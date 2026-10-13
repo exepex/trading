@@ -11,11 +11,17 @@ SPOT_CHECK_SEED = 13102026  # fixed, so a judge draws the same sample
 
 
 def add_fingerprints_parser(subparsers) -> None:
-    from .wiring import FINGERPRINT_MANIFESTS
+    from .wiring import FINGERPRINT_SOURCES
 
     fp = subparsers.add_parser("data-fingerprints", help="write a dataset's SHA-256 manifest from Drive (read-only)")
-    fp.add_argument("dataset", choices=sorted(FINGERPRINT_MANIFESTS))
-    fp.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 1, 1), help="YYYY-MM-DD")
+    fp.add_argument("dataset", choices=sorted(FINGERPRINT_SOURCES))
+    fp.add_argument(
+        "--from",
+        dest="start",
+        type=date.fromisoformat,
+        default=None,
+        help="YYYY-MM-DD (default: the dataset's first day)",
+    )
     fp.add_argument(
         "--to",
         dest="end",
@@ -29,9 +35,10 @@ def add_fingerprints_parser(subparsers) -> None:
 
 def cmd_data_fingerprints(args) -> int:
     from . import wiring
-    from .fingerprints import compare_with_source, fingerprint_store, write_manifest
+    from .fingerprints import compare_with_source, fingerprint_store
 
-    source_type, manifest = wiring.FINGERPRINT_SOURCES[args.dataset], wiring.FINGERPRINT_MANIFESTS[args.dataset]
+    source_type, manifests = wiring.FINGERPRINT_SOURCES[args.dataset], wiring.build_manifest_folder()
+    manifest = manifests.path_for(source_type)
     found = fingerprint_store(
         wiring.build_drive_reader(), source_type, wiring.build_session_calendar(), args.start, args.end
     )
@@ -39,7 +46,7 @@ def cmd_data_fingerprints(args) -> int:
     if manifest.exists():
         print(f"{manifest.name} exists and is kept as it is (the coverage check verifies Drive against it)")
     else:
-        write_manifest(manifest, found)
+        manifests.write(source_type, found)
         print(f"wrote {manifest.name}: {len(found)} rows")
     sample = sorted(random.Random(SPOT_CHECK_SEED).sample(found, min(args.spot_check, len(found))), key=lambda f: f.day)
     lines = compare_with_source(wiring.build_nse_source(source_type), sample)

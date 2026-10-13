@@ -1,6 +1,7 @@
 """The NIFTY panel (story A3) read back for research: every session of the manifest with its Nifty 50 and India VIX
-closes, and each day's option and future rows. Read-only; values are the panel's, never filled in: a session the panel
-left out (manifest status other than "ok") keeps no closes and no rows."""
+closes, and each day's option and future rows; before the first session, the warm-up sessions (A10) with closes only.
+Read-only; values are the panel's, never filled in: a session the panel left out (manifest status other than "ok")
+keeps no closes and no rows."""
 
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ from typing import NamedTuple
 
 from ..constants import PANEL_DAY_OK
 from .panel_rows import FUTURE_COLUMNS, FUTURES, OPTION_COLUMNS, OPTIONS
-from .panel_store import MANIFEST_FILE, TABLE_FILE
+from .panel_store import MANIFEST_FILE, TABLE_FILE, WARMUP_FILE
 
 O = {name: i for i, name in enumerate(OPTION_COLUMNS)}
 F = {name: i for i, name in enumerate(FUTURE_COLUMNS)}
@@ -49,7 +50,7 @@ class SessionClose(NamedTuple):
 
 @dataclass(frozen=True)
 class NiftyPanel:
-    sessions: tuple[SessionClose, ...]  # every session the manifest lists, in date order
+    sessions: tuple[SessionClose, ...]  # the warm-up sessions, then every session the manifest lists, in date order
     options: Mapping[date, tuple[OptionQuote, ...]]
     futures: Mapping[date, tuple[FutureQuote, ...]]
 
@@ -88,7 +89,23 @@ def read_nifty_panel(
     sessions = tuple(
         _session(_day(day), entry, closes) for day, entry in sorted(manifest["days"].items()) if int(day[:4]) in wanted
     )
-    return NiftyPanel(sessions, _frozen(options), _frozen(futures))
+    first = min(_day(day) for day in manifest["days"])
+    warmup = _warmup_sessions(folder, first) if first.year in wanted else ()
+    return NiftyPanel(warmup + sessions, _frozen(options), _frozen(futures))
+
+
+def _warmup_sessions(folder: Path, before: date) -> tuple[SessionClose, ...]:
+    """Closes-only sessions before the panel's first session (story A10's warm-up file; none if absent): history for
+    features, with no option or future rows."""
+    path = folder / WARMUP_FILE
+    if not path.is_file():
+        return ()
+    rows = csv.DictReader(path.read_text(encoding="utf-8").splitlines())
+    return tuple(
+        SessionClose(_day(r["date"]), r["session"], float(r["underlying"]), float(r["vix"]))
+        for r in rows
+        if _day(r["date"]) < before
+    )
 
 
 @cache

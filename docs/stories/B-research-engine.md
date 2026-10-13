@@ -89,14 +89,17 @@ untraded options (credits larger than the width) and maximum losses above the ow
   fields: widths tried, width used, legs with entry and exit prices and flags, gross, charges, pads, net, max loss,
   status, an exhaustive enum `CycleStatus` = `traded | no_trade_cap | missing_strikes | no_entry_window | unfillable
   | bad_prices` (B3 consumes exactly this enum; any other value is an error).
-- Strikes: nearest listed strike to the target (spot, spot x 1.02, spot x 0.98); on an equal-distance tie the ATM strike is the
+- Strikes: chosen from the **entry day's** spot close and option chain (13 Oct 2026, judge 25 minor 2); nearest listed strike to the target (spot, spot x 1.02, spot x 0.98); on an equal-distance tie the ATM strike is the
   lower one (as in F1), a short out-of-the-money leg takes the strike farther from spot (more conservative); a wing W points away must be listed exactly,
   otherwise that width is unavailable.
 - Price: the leg's close if it traded that day (volume > 0), else its settlement price, flagged. Settlement is a
   valuation proxy, not an executable price; every result also reports a **no-settlement sensitivity** (cycles needing
   any settlement price treated as no trade). More than half the legs flagged at entry or exit means `unfillable`.
   A missing or zero price for any leg means `unfillable`. Credit at least the width (short) or debit at most zero
-  (long) means `bad_prices`.
+  (long) means `bad_prices`; so does a trade that cannot win: a long debit at least the width (owner decision of 13 Oct
+  2026, `docs/DESK_DECISIONS.md`) or a short credit at most zero. If no width trades, the status is the outcome of the
+  narrowest listed width. A traded exit valued beyond the position's payoff bounds (e.g. a closing spread above its
+  width) is flagged and counted in the results, report only.
 - Fill direction: bought legs at price + Rs 1, sold legs at price - Rs 1, at entry and at exit; charges per leg and per
   side through `fno.costs.order_charges` (four legs, two orders each).
 - Calendar: decision day must have the expiry 30-45 calendar days away; if the next trading day is the expiry's last

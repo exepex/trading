@@ -9,7 +9,7 @@ so its terminal payoff is flat beyond the outer strikes and its extremes lie at 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from ..constants import (
@@ -49,6 +49,18 @@ class Leg:
 def terminal_value(legs: Iterable[Leg], underlying: float) -> float:
     """What the position is worth per unit at expiry with the index at `underlying` (bought legs count plus)."""
     return sum(leg.side * leg.intrinsic(underlying) for leg in legs)
+
+
+def position_value(legs: Iterable[Leg], prices: Iterable[float]) -> float:
+    """What the position is worth per unit at these leg prices (bought legs count plus)."""
+    return sum(leg.side * price for leg, price in zip(legs, prices, strict=True))
+
+
+def payoff_bounds(legs: Sequence[Leg]) -> tuple[float, float]:
+    """The least and most the position can be worth at expiry, per unit (its extremes lie at strikes). A market value
+    outside these bounds is an impossible price: no-arbitrage keeps a position between its worst and best payoff."""
+    values = [terminal_value(legs, leg.strike) for leg in legs]
+    return min(values), max(values)
 
 
 def nearest_strike(strikes: Iterable[float], target: float, tie_higher: bool) -> float:

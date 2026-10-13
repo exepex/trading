@@ -6,7 +6,7 @@
   "events": "6429b5b243e289fa09d3e4bc1eb141d3dda0c24ef8c0eeb8a81769fa81fb3c19",
   "numpy": "2.5.3",
   "panel_manifest": "89a063763de5159cf9ce1b4bc259ed4288ffdbb493a3369ceb8e3a8e75bf7636",
-  "session_calendar": "6101c8746fe17926498fbfcac895b7aad5218c4653982bba82337b6b5dea3961"
+  "session_calendar": "e34fbad752bb244e6116c1e474902208a72a03f5af6037c6d75bf9baa6756b4d"
  },
  "ledger": {
   "hypotheses": 8,
@@ -29,6 +29,7 @@
    "structures": {
     "BF": {
      "charges": 387.758539,
+     "exit_outside_payoff": false,
      "gross": 42.25,
      "max_loss": 9947.35821,
      "needs_settlement": false,
@@ -39,6 +40,7 @@
     },
     "SC": {
      "charges": 283.442421,
+     "exit_outside_payoff": false,
      "gross": 1927.25,
      "max_loss": 9610.097965,
      "needs_settlement": false,
@@ -49,6 +51,7 @@
     },
     "SF": {
      "charges": 370.273485,
+     "exit_outside_payoff": false,
      "gross": 490.75,
      "max_loss": 3420.561846,
      "needs_settlement": false,
@@ -74,6 +77,7 @@
    "structures": {
     "BF": {
      "charges": 452.706977,
+     "exit_outside_payoff": false,
      "gross": -659.75,
      "max_loss": 7178.006046,
      "needs_settlement": false,
@@ -84,6 +88,7 @@
     },
     "SC": {
      "charges": 316.849644,
+     "exit_outside_payoff": false,
      "gross": -1966.25,
      "max_loss": 8993.73044,
      "needs_settlement": false,
@@ -94,6 +99,7 @@
     },
     "SF": {
      "charges": 424.915051,
+     "exit_outside_payoff": false,
      "gross": -286.0,
      "max_loss": 2644.241117,
      "needs_settlement": false,
@@ -119,6 +125,7 @@
    "structures": {
     "BF": {
      "charges": 381.705629,
+     "exit_outside_payoff": false,
      "gross": 188.5,
      "max_loss": 9917.425216,
      "needs_settlement": false,
@@ -129,6 +136,7 @@
     },
     "SC": {
      "charges": 272.847744,
+     "exit_outside_payoff": false,
      "gross": 3945.5,
      "max_loss": 8866.20639,
      "needs_settlement": false,
@@ -139,6 +147,7 @@
     },
     "SF": {
      "charges": 363.98896,
+     "exit_outside_payoff": false,
      "gross": 877.5,
      "max_loss": 3029.623895,
      "needs_settlement": false,
@@ -164,6 +173,7 @@
    "structures": {
     "BF": {
      "charges": 384.367654,
+     "exit_outside_payoff": false,
      "gross": -110.5,
      "max_loss": 7261.225409,
      "needs_settlement": false,
@@ -174,6 +184,7 @@
     },
     "SC": {
      "charges": 269.327144,
+     "exit_outside_payoff": false,
      "gross": 2678.0,
      "max_loss": 9802.634975,
      "needs_settlement": false,
@@ -184,6 +195,7 @@
     },
     "SF": {
      "charges": 360.053796,
+     "exit_outside_payoff": false,
      "gross": 1556.75,
      "max_loss": 2389.554803,
      "needs_settlement": false,
@@ -209,6 +221,7 @@
    "structures": {
     "BF": {
      "charges": 509.196297,
+     "exit_outside_payoff": false,
      "gross": -851.5,
      "max_loss": 9839.039087,
      "needs_settlement": false,
@@ -219,6 +232,7 @@
     },
     "SC": {
      "charges": 379.741395,
+     "exit_outside_payoff": false,
      "gross": 409.5,
      "max_loss": 6839.091517,
      "needs_settlement": false,
@@ -229,6 +243,7 @@
     },
     "SF": {
      "charges": 488.469004,
+     "exit_outside_payoff": false,
      "gross": -201.5,
      "max_loss": 3032.193034,
      "needs_settlement": false,
@@ -253,17 +268,19 @@
    },
    "structures": {
     "BF": {
-     "charges": 500.137976,
-     "gross": 903.5,
-     "max_loss": 7347.844996,
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
      "needs_settlement": false,
-     "net": -116.637976,
-     "pads": 520.0,
-     "status": "traded",
-     "width": 100.0
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
     },
     "SC": {
      "charges": 344.752105,
+     "exit_outside_payoff": false,
      "gross": -3526.25,
      "max_loss": 8277.668669,
      "needs_settlement": false,
@@ -274,6 +291,7 @@
     },
     "SF": {
      "charges": 468.740829,
+     "exit_outside_payoff": true,
      "gross": -3035.5,
      "max_loss": 2886.012949,
      "needs_settlement": false,
@@ -298,17 +316,19 @@
    },
    "structures": {
     "BF": {
-     "charges": 430.776258,
-     "gross": -263.25,
-     "max_loss": 7378.048221,
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
      "needs_settlement": false,
-     "net": -1214.026258,
-     "pads": 520.0,
-     "status": "traded",
-     "width": 100.0
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
     },
     "SC": {
      "charges": 302.921334,
+     "exit_outside_payoff": false,
      "gross": 2440.75,
      "max_loss": 9377.757445,
      "needs_settlement": false,
@@ -319,6 +339,7 @@
     },
     "SF": {
      "charges": 406.80728,
+     "exit_outside_payoff": false,
      "gross": 1066.0,
      "max_loss": 2890.27381,
      "needs_settlement": false,
@@ -344,6 +365,7 @@
    "structures": {
     "BF": {
      "charges": 502.877915,
+     "exit_outside_payoff": true,
      "gross": 1030.25,
      "max_loss": 9809.187947,
      "needs_settlement": false,
@@ -354,6 +376,7 @@
     },
     "SC": {
      "charges": 364.778709,
+     "exit_outside_payoff": false,
      "gross": -3116.75,
      "max_loss": 8408.32108,
      "needs_settlement": false,
@@ -364,6 +387,7 @@
     },
     "SF": {
      "charges": 482.606331,
+     "exit_outside_payoff": false,
      "gross": -2752.75,
      "max_loss": 4878.467392,
      "needs_settlement": true,
@@ -389,6 +413,7 @@
    "structures": {
     "BF": {
      "charges": 396.837168,
+     "exit_outside_payoff": false,
      "gross": -338.0,
      "max_loss": 7259.762124,
      "needs_settlement": false,
@@ -399,6 +424,7 @@
     },
     "SC": {
      "charges": 278.997311,
+     "exit_outside_payoff": false,
      "gross": 2353.0,
      "max_loss": 6747.08355,
      "needs_settlement": false,
@@ -409,6 +435,7 @@
     },
     "SF": {
      "charges": 374.044038,
+     "exit_outside_payoff": false,
      "gross": 1511.25,
      "max_loss": 3135.897396,
      "needs_settlement": false,
@@ -434,6 +461,7 @@
    "structures": {
     "BF": {
      "charges": 439.84921,
+     "exit_outside_payoff": false,
      "gross": 156.0,
      "max_loss": 9952.197878,
      "needs_settlement": false,
@@ -444,6 +472,7 @@
     },
     "SC": {
      "charges": 313.157531,
+     "exit_outside_payoff": false,
      "gross": 2005.25,
      "max_loss": 8490.716518,
      "needs_settlement": false,
@@ -454,6 +483,7 @@
     },
     "SF": {
      "charges": 421.137673,
+     "exit_outside_payoff": false,
      "gross": -230.75,
      "max_loss": 3496.902899,
      "needs_settlement": false,
@@ -479,6 +509,7 @@
    "structures": {
     "BF": {
      "charges": 468.483153,
+     "exit_outside_payoff": true,
      "gross": 1625.0,
      "max_loss": 8998.03953,
      "needs_settlement": false,
@@ -489,6 +520,7 @@
     },
     "SC": {
      "charges": 329.564056,
+     "exit_outside_payoff": false,
      "gross": -3952.0,
      "max_loss": 9100.912988,
      "needs_settlement": false,
@@ -499,6 +531,7 @@
     },
     "SF": {
      "charges": 444.92297,
+     "exit_outside_payoff": false,
      "gross": -1118.0,
      "max_loss": 2839.621572,
      "needs_settlement": false,
@@ -524,6 +557,7 @@
    "structures": {
     "BF": {
      "charges": 452.66121,
+     "exit_outside_payoff": false,
      "gross": -575.25,
      "max_loss": 7202.924146,
      "needs_settlement": false,
@@ -534,6 +568,7 @@
     },
     "SC": {
      "charges": 320.582899,
+     "exit_outside_payoff": false,
      "gross": 1378.0,
      "max_loss": 8701.638424,
      "needs_settlement": false,
@@ -544,6 +579,7 @@
     },
     "SF": {
      "charges": 426.80427,
+     "exit_outside_payoff": false,
      "gross": 617.5,
      "max_loss": 2704.963847,
      "needs_settlement": false,
@@ -569,6 +605,7 @@
    "structures": {
     "BF": {
      "charges": 439.916935,
+     "exit_outside_payoff": false,
      "gross": 22.75,
      "max_loss": 9996.933337,
      "needs_settlement": false,
@@ -579,6 +616,7 @@
     },
     "SC": {
      "charges": 313.453578,
+     "exit_outside_payoff": false,
      "gross": 2271.75,
      "max_loss": 7364.031152,
      "needs_settlement": false,
@@ -589,6 +627,7 @@
     },
     "SF": {
      "charges": 420.206893,
+     "exit_outside_payoff": false,
      "gross": 484.25,
      "max_loss": 2507.742183,
      "needs_settlement": false,
@@ -614,6 +653,7 @@
    "structures": {
     "BF": {
      "charges": 412.267217,
+     "exit_outside_payoff": false,
      "gross": -689.0,
      "max_loss": 7062.833444,
      "needs_settlement": false,
@@ -624,6 +664,7 @@
     },
     "SC": {
      "charges": 292.624889,
+     "exit_outside_payoff": false,
      "gross": 3129.75,
      "max_loss": 9112.208444,
      "needs_settlement": false,
@@ -634,6 +675,7 @@
     },
     "SF": {
      "charges": 388.723535,
+     "exit_outside_payoff": false,
      "gross": 1937.0,
      "max_loss": 2759.64506,
      "needs_settlement": false,
@@ -659,6 +701,7 @@
    "structures": {
     "BF": {
      "charges": 454.180553,
+     "exit_outside_payoff": false,
      "gross": -321.75,
      "max_loss": 7192.190453,
      "needs_settlement": false,
@@ -669,6 +712,7 @@
     },
     "SC": {
      "charges": 319.031249,
+     "exit_outside_payoff": false,
      "gross": -2054.0,
      "max_loss": 8843.900938,
      "needs_settlement": false,
@@ -679,6 +723,7 @@
     },
     "SF": {
      "charges": 426.10712,
+     "exit_outside_payoff": false,
      "gross": -965.25,
      "max_loss": 2986.86961,
      "needs_settlement": false,
@@ -704,6 +749,7 @@
    "structures": {
     "BF": {
      "charges": 502.972701,
+     "exit_outside_payoff": false,
      "gross": -3610.75,
      "max_loss": 7142.070789,
      "needs_settlement": false,
@@ -714,6 +760,7 @@
     },
     "SC": {
      "charges": 366.179484,
+     "exit_outside_payoff": false,
      "gross": -4806.75,
      "max_loss": 9577.599644,
      "needs_settlement": false,
@@ -724,6 +771,7 @@
     },
     "SF": {
      "charges": 480.535917,
+     "exit_outside_payoff": false,
      "gross": 2408.25,
      "max_loss": 3330.030679,
      "needs_settlement": false,
@@ -749,6 +797,7 @@
    "structures": {
     "BF": {
      "charges": 451.226883,
+     "exit_outside_payoff": false,
      "gross": 26.0,
      "max_loss": 7115.274224,
      "needs_settlement": false,
@@ -759,6 +808,7 @@
     },
     "SC": {
      "charges": 323.907542,
+     "exit_outside_payoff": false,
      "gross": 2310.75,
      "max_loss": 8252.721563,
      "needs_settlement": false,
@@ -769,6 +819,7 @@
     },
     "SF": {
      "charges": 425.832707,
+     "exit_outside_payoff": false,
      "gross": 653.25,
      "max_loss": 2877.184467,
      "needs_settlement": false,
@@ -794,6 +845,7 @@
    "structures": {
     "BF": {
      "charges": 428.952808,
+     "exit_outside_payoff": false,
      "gross": 175.5,
      "max_loss": 9936.333892,
      "needs_settlement": false,
@@ -804,6 +856,7 @@
     },
     "SC": {
      "charges": 300.187992,
+     "exit_outside_payoff": false,
      "gross": 1358.5,
      "max_loss": 8941.892127,
      "needs_settlement": false,
@@ -814,6 +867,7 @@
     },
     "SF": {
      "charges": 409.537011,
+     "exit_outside_payoff": false,
      "gross": -16.25,
      "max_loss": 3051.79174,
      "needs_settlement": false,
@@ -839,6 +893,7 @@
    "structures": {
     "BF": {
      "charges": 388.218851,
+     "exit_outside_payoff": false,
      "gross": -107.25,
      "max_loss": 9991.769138,
      "needs_settlement": false,
@@ -849,6 +904,7 @@
     },
     "SC": {
      "charges": 274.103176,
+     "exit_outside_payoff": false,
      "gross": 1586.0,
      "max_loss": 8635.736992,
      "needs_settlement": false,
@@ -859,6 +915,7 @@
     },
     "SF": {
      "charges": 369.919416,
+     "exit_outside_payoff": false,
      "gross": 182.0,
      "max_loss": 3309.010381,
      "needs_settlement": false,
@@ -884,6 +941,7 @@
    "structures": {
     "BF": {
      "charges": 357.863575,
+     "exit_outside_payoff": false,
      "gross": -406.25,
      "max_loss": 7274.21549,
      "needs_settlement": false,
@@ -894,6 +952,7 @@
     },
     "SC": {
      "charges": 251.173289,
+     "exit_outside_payoff": false,
      "gross": 3841.5,
      "max_loss": 8952.908376,
      "needs_settlement": false,
@@ -904,6 +963,7 @@
     },
     "SF": {
      "charges": 335.861017,
+     "exit_outside_payoff": false,
      "gross": 1638.0,
      "max_loss": 3329.258331,
      "needs_settlement": false,
@@ -929,6 +989,7 @@
    "structures": {
     "BF": {
      "charges": 344.363467,
+     "exit_outside_payoff": false,
      "gross": -422.5,
      "max_loss": 7094.560143,
      "needs_settlement": false,
@@ -939,6 +1000,7 @@
     },
     "SC": {
      "charges": 243.550847,
+     "exit_outside_payoff": false,
      "gross": 2853.5,
      "max_loss": 8018.774705,
      "needs_settlement": false,
@@ -949,6 +1011,7 @@
     },
     "SF": {
      "charges": 323.20249,
+     "exit_outside_payoff": false,
      "gross": 1823.25,
      "max_loss": 3701.943466,
      "needs_settlement": false,
@@ -974,6 +1037,7 @@
    "structures": {
     "BF": {
      "charges": 397.621113,
+     "exit_outside_payoff": false,
      "gross": -162.5,
      "max_loss": 9948.875613,
      "needs_settlement": false,
@@ -984,6 +1048,7 @@
     },
     "SC": {
      "charges": 275.798197,
+     "exit_outside_payoff": false,
      "gross": -757.25,
      "max_loss": 9161.140762,
      "needs_settlement": false,
@@ -994,6 +1059,7 @@
     },
     "SF": {
      "charges": 378.415764,
+     "exit_outside_payoff": false,
      "gross": 136.5,
      "max_loss": 3002.663521,
      "needs_settlement": false,
@@ -1019,6 +1085,7 @@
    "structures": {
     "BF": {
      "charges": 362.539399,
+     "exit_outside_payoff": false,
      "gross": -266.5,
      "max_loss": 9886.142702,
      "needs_settlement": false,
@@ -1029,6 +1096,7 @@
     },
     "SC": {
      "charges": 253.505924,
+     "exit_outside_payoff": false,
      "gross": 3948.75,
      "max_loss": 8893.419042,
      "needs_settlement": false,
@@ -1039,6 +1107,7 @@
     },
     "SF": {
      "charges": 346.286613,
+     "exit_outside_payoff": false,
      "gross": 1261.0,
      "max_loss": 3430.739849,
      "needs_settlement": false,
@@ -1064,6 +1133,7 @@
    "structures": {
     "BF": {
      "charges": 368.540005,
+     "exit_outside_payoff": false,
      "gross": 45.5,
      "max_loss": 9808.746565,
      "needs_settlement": false,
@@ -1074,6 +1144,7 @@
     },
     "SC": {
      "charges": 249.01018,
+     "exit_outside_payoff": false,
      "gross": 1527.5,
      "max_loss": 9310.792497,
      "needs_settlement": false,
@@ -1084,6 +1155,7 @@
     },
     "SF": {
      "charges": 350.560267,
+     "exit_outside_payoff": false,
      "gross": 429.0,
      "max_loss": 3375.942148,
      "needs_settlement": false,
@@ -1108,17 +1180,19 @@
    },
    "structures": {
     "BF": {
-     "charges": 384.423817,
-     "gross": -406.25,
-     "max_loss": 7389.481101,
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
      "needs_settlement": false,
-     "net": -1310.673817,
-     "pads": 520.0,
-     "status": "traded",
-     "width": 100.0
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
     },
     "SC": {
      "charges": 265.78054,
+     "exit_outside_payoff": false,
      "gross": 2717.0,
      "max_loss": 8830.917109,
      "needs_settlement": false,
@@ -1129,6 +1203,7 @@
     },
     "SF": {
      "charges": 361.135459,
+     "exit_outside_payoff": false,
      "gross": 1225.25,
      "max_loss": 3022.087909,
      "needs_settlement": false,
@@ -1154,6 +1229,7 @@
    "structures": {
     "BF": {
      "charges": 540.63926,
+     "exit_outside_payoff": true,
      "gross": 2096.25,
      "max_loss": 9745.436118,
      "needs_settlement": false,
@@ -1164,6 +1240,7 @@
     },
     "SC": {
      "charges": 398.791775,
+     "exit_outside_payoff": false,
      "gross": -5378.75,
      "max_loss": 8875.443799,
      "needs_settlement": false,
@@ -1174,6 +1251,7 @@
     },
     "SF": {
      "charges": 518.413591,
+     "exit_outside_payoff": false,
      "gross": -2206.75,
      "max_loss": 3416.501323,
      "needs_settlement": false,
@@ -1199,6 +1277,7 @@
    "structures": {
     "BF": {
      "charges": 530.993206,
+     "exit_outside_payoff": false,
      "gross": -198.25,
      "max_loss": 9741.325653,
      "needs_settlement": false,
@@ -1209,6 +1288,7 @@
     },
     "SC": {
      "charges": 400.126777,
+     "exit_outside_payoff": false,
      "gross": 1391.0,
      "max_loss": 7027.699358,
      "needs_settlement": false,
@@ -1219,6 +1299,7 @@
     },
     "SF": {
      "charges": 511.349208,
+     "exit_outside_payoff": false,
      "gross": 578.5,
      "max_loss": 2830.201595,
      "needs_settlement": false,
@@ -1244,6 +1325,7 @@
    "structures": {
     "BF": {
      "charges": 464.339855,
+     "exit_outside_payoff": false,
      "gross": -620.75,
      "max_loss": 7290.822817,
      "needs_settlement": false,
@@ -1254,6 +1336,7 @@
     },
     "SC": {
      "charges": 333.569046,
+     "exit_outside_payoff": false,
      "gross": 3373.5,
      "max_loss": 7308.179275,
      "needs_settlement": false,
@@ -1264,6 +1347,7 @@
     },
     "SF": {
      "charges": 439.167482,
+     "exit_outside_payoff": false,
      "gross": 1430.0,
      "max_loss": 2302.045573,
      "needs_settlement": false,
@@ -1289,6 +1373,7 @@
    "structures": {
     "BF": {
      "charges": 449.580724,
+     "exit_outside_payoff": false,
      "gross": 208.0,
      "max_loss": 6960.999478,
      "needs_settlement": false,
@@ -1299,6 +1384,7 @@
     },
     "SC": {
      "charges": 322.935565,
+     "exit_outside_payoff": false,
      "gross": 3887.0,
      "max_loss": 7754.307717,
      "needs_settlement": false,
@@ -1309,6 +1395,7 @@
     },
     "SF": {
      "charges": 424.052402,
+     "exit_outside_payoff": false,
      "gross": 962.0,
      "max_loss": 2699.771913,
      "needs_settlement": false,
@@ -1334,6 +1421,7 @@
    "structures": {
     "BF": {
      "charges": 393.179079,
+     "exit_outside_payoff": false,
      "gross": 68.25,
      "max_loss": 9909.604497,
      "needs_settlement": false,
@@ -1344,6 +1432,7 @@
     },
     "SC": {
      "charges": 277.592381,
+     "exit_outside_payoff": false,
      "gross": 1725.75,
      "max_loss": 9355.882765,
      "needs_settlement": false,
@@ -1354,6 +1443,7 @@
     },
     "SF": {
      "charges": 374.799505,
+     "exit_outside_payoff": false,
      "gross": 227.5,
      "max_loss": 3298.169902,
      "needs_settlement": false,
@@ -1379,6 +1469,7 @@
    "structures": {
     "BF": {
      "charges": 405.618712,
+     "exit_outside_payoff": false,
      "gross": 334.75,
      "max_loss": 9822.493221,
      "needs_settlement": false,
@@ -1389,6 +1480,7 @@
     },
     "SC": {
      "charges": 279.224504,
+     "exit_outside_payoff": false,
      "gross": 1147.25,
      "max_loss": 9806.788325,
      "needs_settlement": false,
@@ -1399,6 +1491,7 @@
     },
     "SF": {
      "charges": 385.899232,
+     "exit_outside_payoff": false,
      "gross": -380.25,
      "max_loss": 3269.369228,
      "needs_settlement": false,
@@ -1424,6 +1517,7 @@
    "structures": {
     "BF": {
      "charges": 360.423137,
+     "exit_outside_payoff": false,
      "gross": -152.75,
      "max_loss": 9771.793661,
      "needs_settlement": false,
@@ -1434,6 +1528,7 @@
     },
     "SC": {
      "charges": 253.581216,
+     "exit_outside_payoff": false,
      "gross": 1797.25,
      "max_loss": 9421.997222,
      "needs_settlement": false,
@@ -1444,6 +1539,7 @@
     },
     "SF": {
      "charges": 343.431777,
+     "exit_outside_payoff": false,
      "gross": 773.5,
      "max_loss": 3579.52052,
      "needs_settlement": false,
@@ -1469,6 +1565,7 @@
    "structures": {
     "BF": {
      "charges": 381.799468,
+     "exit_outside_payoff": false,
      "gross": -208.0,
      "max_loss": 9820.697337,
      "needs_settlement": false,
@@ -1479,6 +1576,7 @@
     },
     "SC": {
      "charges": 276.326245,
+     "exit_outside_payoff": false,
      "gross": 1816.75,
      "max_loss": 8693.747086,
      "needs_settlement": false,
@@ -1489,6 +1587,7 @@
     },
     "SF": {
      "charges": 365.218893,
+     "exit_outside_payoff": false,
      "gross": 1209.0,
      "max_loss": 3387.900624,
      "needs_settlement": false,
@@ -1544,6 +1643,8 @@
    ],
    "summary": {
     "best_year_share": 1.136881,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
     "largest_modelled_max_loss": 9806.788325,
     "longest_losing_run": 2,
     "max_drawdown": 13633.534541,
@@ -1623,6 +1724,8 @@
    ],
    "summary": {
     "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -4024.240829,
     "largest_modelled_max_loss": 4878.467392,
     "longest_losing_run": 4,
     "max_drawdown": 18610.201094,
@@ -1702,19 +1805,22 @@
    ],
    "summary": {
     "best_year_share": null,
+    "exits_outside_payoff": 3,
+    "exits_outside_payoff_net": 1679.499672,
     "largest_modelled_max_loss": 9996.933337,
-    "longest_losing_run": 14,
-    "max_drawdown": 34735.268749,
-    "mean_net": -1052.583901,
+    "longest_losing_run": 13,
+    "max_drawdown": 32093.930698,
+    "mean_net": -972.543354,
     "net_by_year": {
-     "2024": -8852.196776,
+     "2024": -7521.532541,
      "2025": -17570.284711,
-     "2026": -8312.787263
+     "2026": -7002.113446
     },
-    "no_settlement_total_net": -34735.268749,
+    "no_settlement_total_net": -32093.930698,
     "opportunities": 33,
     "status_counts": {
-     "traded": 33
+     "bad_prices": 3,
+     "traded": 30
     },
     "tax_by_financial_year": {
      "2023-24": {
@@ -1722,11 +1828,11 @@
       "tax": 0.0
      },
      "2024-25": {
-      "net": -10460.576621,
+      "net": -9129.912387,
       "tax": 0.0
      },
      "2025-26": {
-      "net": -14582.042431,
+      "net": -13271.368615,
       "tax": 0.0
      },
      "2026-27": {
@@ -1735,11 +1841,11 @@
      }
     },
     "tax_total": 0.0,
-    "total_net": -34735.268749,
-    "traded": 33,
-    "traded_mean_net": -1052.583901,
-    "traded_total_net": -34735.268749,
-    "win_rate_traded": 0.090909,
+    "total_net": -32093.930698,
+    "traded": 30,
+    "traded_mean_net": -1069.79769,
+    "traded_total_net": -32093.930698,
+    "win_rate_traded": 0.1,
     "worst_opportunity": -4633.722701
    }
   },
@@ -1781,6 +1887,8 @@
    ],
    "summary": {
     "best_year_share": 0.44402,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
     "largest_modelled_max_loss": 9806.788325,
     "longest_losing_run": 1,
     "max_drawdown": 4801.564056,
@@ -1861,6 +1969,8 @@
    ],
    "summary": {
     "best_year_share": null,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
     "largest_modelled_max_loss": 9577.599644,
     "longest_losing_run": 1,
     "max_drawdown": 18916.159615,
@@ -1940,20 +2050,23 @@
     "SC"
    ],
    "summary": {
-    "best_year_share": 0.589412,
+    "best_year_share": 0.584921,
+    "exits_outside_payoff": 2,
+    "exits_outside_payoff_net": 1042.982825,
     "largest_modelled_max_loss": 9809.187947,
     "longest_losing_run": 3,
     "max_drawdown": 8980.706255,
-    "mean_net": 460.420224,
+    "mean_net": 463.954708,
     "net_by_year": {
-     "2024": 2304.885528,
+     "2024": 2421.523504,
      "2025": 3933.538375,
      "2026": 8955.443477
     },
-    "no_settlement_total_net": 15193.867379,
+    "no_settlement_total_net": 15310.505355,
     "opportunities": 33,
     "status_counts": {
-     "traded": 33
+     "bad_prices": 1,
+     "traded": 32
     },
     "tax_by_financial_year": {
      "2023-24": {
@@ -1961,8 +2074,8 @@
       "tax": 0.0
      },
      "2024-25": {
-      "net": 8277.016227,
-      "tax": 2582.429063
+      "net": 8393.654203,
+      "tax": 2618.820111
      },
      "2025-26": {
       "net": 3366.019761,
@@ -1973,12 +2086,12 @@
       "tax": 1631.798518
      }
     },
-    "tax_total": 5264.425747,
-    "total_net": 15193.867379,
-    "traded": 33,
-    "traded_mean_net": 460.420224,
-    "traded_total_net": 15193.867379,
-    "win_rate_traded": 0.727273,
+    "tax_total": 5300.816795,
+    "total_net": 15310.505355,
+    "traded": 32,
+    "traded_mean_net": 478.453292,
+    "traded_total_net": 15310.505355,
+    "win_rate_traded": 0.75,
     "worst_opportunity": -4801.564056
    }
   },
@@ -2020,19 +2133,22 @@
    ],
    "summary": {
     "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": 636.516847,
     "largest_modelled_max_loss": 9996.933337,
-    "longest_losing_run": 10,
-    "max_drawdown": 44873.80282,
-    "mean_net": -1359.812207,
+    "longest_losing_run": 7,
+    "max_drawdown": 42349.102745,
+    "mean_net": -1283.306144,
     "net_by_year": {
-     "2024": -17135.461698,
+     "2024": -15921.43544,
      "2025": -16217.422153,
-     "2026": -11520.918968
+     "2026": -10210.245152
     },
-    "no_settlement_total_net": -44873.80282,
+    "no_settlement_total_net": -42349.102745,
     "opportunities": 33,
     "status_counts": {
-     "traded": 33
+     "bad_prices": 2,
+     "traded": 31
     },
     "tax_by_financial_year": {
      "2023-24": {
@@ -2040,11 +2156,11 @@
       "tax": 0.0
      },
      "2024-25": {
-      "net": -18743.841544,
+      "net": -17529.815285,
       "tax": 0.0
      },
      "2025-26": {
-      "net": -20562.332389,
+      "net": -19251.658572,
       "tax": 0.0
      },
      "2026-27": {
@@ -2053,11 +2169,11 @@
      }
     },
     "tax_total": 0.0,
-    "total_net": -44873.80282,
-    "traded": 33,
-    "traded_mean_net": -1359.812207,
-    "traded_total_net": -44873.80282,
-    "win_rate_traded": 0.090909,
+    "total_net": -42349.102745,
+    "traded": 31,
+    "traded_mean_net": -1366.100089,
+    "traded_total_net": -42349.102745,
+    "win_rate_traded": 0.096774,
     "worst_opportunity": -6297.541775
    }
   },
@@ -2099,6 +2215,8 @@
    ],
    "summary": {
     "best_year_share": 0.758438,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
     "largest_modelled_max_loss": 9806.788325,
     "longest_losing_run": 1,
     "max_drawdown": 4801.564056,
@@ -2179,6 +2297,8 @@
    ],
    "summary": {
     "best_year_share": null,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
     "largest_modelled_max_loss": 9610.097965,
     "longest_losing_run": 2,
     "max_drawdown": 11403.870338,
@@ -2259,6 +2379,8 @@
    ],
    "summary": {
     "best_year_share": null,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
     "largest_modelled_max_loss": 9806.788325,
     "longest_losing_run": 2,
     "max_drawdown": 18296.40286,
@@ -2339,6 +2461,8 @@
    ],
    "summary": {
     "best_year_share": 0.447646,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
     "largest_modelled_max_loss": 9421.997222,
     "longest_losing_run": 1,
     "max_drawdown": 2893.031249,
@@ -2419,6 +2543,8 @@
    ],
    "summary": {
     "best_year_share": null,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
     "largest_modelled_max_loss": 3701.943466,
     "longest_losing_run": 4,
     "max_drawdown": 9171.404236,
@@ -2499,6 +2625,8 @@
    ],
    "summary": {
     "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -4024.240829,
     "largest_modelled_max_loss": 4878.467392,
     "longest_losing_run": 1,
     "max_drawdown": 9909.629375,

@@ -45,6 +45,10 @@ class Opportunity:
     def no_settlement_pnl(self, action: Action) -> float:
         return self.result(action).no_settlement_net if self.traded(action) else 0.0
 
+    def exit_outside_payoff(self, action: Action) -> bool:
+        """A traded exit valued beyond what the position can pay at expiry (B2's report-only flag)."""
+        return self.traded(action) and self.result(action).exit_outside_payoff
+
 
 def build_opportunities(
     cycles: Sequence[Cycle],

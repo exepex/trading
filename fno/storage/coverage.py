@@ -1,14 +1,16 @@
-"""Which raw NSE files the archive is missing or holds damaged, against NSE's session calendar (story A1).
+"""Which raw NSE files the archive is missing, holds damaged or holds without a fingerprint, against NSE's session
+calendar (stories A1, A10).
 
-Read-only: it only calls `RawFileStore.get`. A session without a file fails unless a sourced exception explains it;
-a file on a day the calendar calls closed is reported for review.
+Read-only: it only calls `RawFileStore.get`. A session without a file fails unless a sourced exception explains it; a
+file whose SHA-256 differs from its manifest row is damaged; a file with no manifest row is only content-checked, so
+the result is not complete until it has one. A file on a day the calendar calls closed is reported for review.
 """
 
 from __future__ import annotations
 
 import csv
 import hashlib
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, timedelta
@@ -19,7 +21,12 @@ from .raw_source import NseArchiveSource
 from .raw_store import RawFileStore
 
 EXCEPTION_FIELDS = ("dataset", "date", "reason", "source_url")
-TABLE_HEADER = f"{'dataset':<36} {'from':>10} {'to':>10} {'expected':>8} {'present':>7} {'missing':>7} {'damaged':>7}"
+TABLE_HEADER = (
+    f"{'dataset':<36} {'from':>10} {'to':>10} {'expected':>8} {'present':>7} {'missing':>7} {'damaged':>7} "
+    f"{'no sha':>6}"
+)
+
+INCOMPLETE = "INCOMPLETE: missing, damaged or unfingerprinted files above"
 
 Validator = Callable[[str, bytes], None]  # raises ValueError when the file is damaged or not in its schema
 
@@ -28,6 +35,16 @@ Validator = Callable[[str, bytes], None]  # raises ValueError when the file is d
 class CoverageDataset:
     source: type[NseArchiveSource]
     validate: Validator
+    fingerprints: Mapping[str, str] = field(default_factory=dict)  # file name -> SHA-256 (the dataset's manifest)
+
+    def check(self, filename: str, data: bytes) -> bool:
+        """Verifies a file (ValueError when its SHA-256 differs from its manifest row or its content is damaged);
+        True when the manifest has it, False when only its content could be checked."""
+        want = self.fingerprints.get(filename)
+        if want is not None and hashlib.sha256(data).hexdigest() != want:
+            raise ValueError(f"{filename}: SHA-256 differs from the manifest")
+        self.validate(filename, data)
+        return want is not None
 
 
 @dataclass
@@ -41,32 +58,11 @@ class DatasetCoverage:
     damaged: list[tuple[date, str]] = field(default_factory=list)
     excepted: list[tuple[date, str]] = field(default_factory=list)
     unexpected: list[date] = field(default_factory=list)
+    unfingerprinted: list[date] = field(default_factory=list)  # present and content-checked, but no manifest row
 
     @property
     def ok(self) -> bool:
-        return not (self.missing or self.damaged)
-
-
-def read_fingerprints(path: Path) -> dict[str, str]:
-    """NSE file name -> SHA-256, from a laptop tool manifest (`date,url,status,sha256,...`; rows with status 200)."""
-    if not path.is_file():
-        return {}
-    rows = csv.DictReader(path.read_text(encoding="utf-8").splitlines())
-    return {r["url"].rsplit("/", 1)[-1]: r["sha256"] for r in rows if r["status"] == "200" and r["sha256"]}
-
-
-@dataclass(frozen=True)
-class FingerprintCheck:
-    """A validator that also requires a file's SHA-256 to match the manifest, where the manifest has the file."""
-
-    validate: Validator
-    fingerprints: dict[str, str]
-
-    def __call__(self, filename: str, data: bytes) -> None:
-        want = self.fingerprints.get(filename)
-        if want and hashlib.sha256(data).hexdigest() != want:
-            raise ValueError(f"{filename}: SHA-256 differs from the manifest")
-        self.validate(filename, data)
+        return not (self.missing or self.damaged or self.unfingerprinted)
 
 
 def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
@@ -81,8 +77,9 @@ def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
     return exceptions
 
 
-def archive_range(source: type[NseArchiveSource], start: date, end: date) -> tuple[date, date]:
-    """The requested range clipped to the days the source's archive keeps files for."""
+def archive_range(source: type[NseArchiveSource], start: date | None, end: date) -> tuple[date, date]:
+    """The requested range clipped to the days the source's archive keeps files for (start None: its first day)."""
+    start = start or source.first_day
     return max(start, source.first_day or start), min(end, source.last_day or end)
 
 
@@ -103,7 +100,7 @@ class CoverageCheck:
     ):
         self.store, self.calendar, self.exceptions, self.workers = store, calendar, exceptions, workers
 
-    def run(self, dataset: CoverageDataset, start: date, end: date) -> DatasetCoverage:
+    def run(self, dataset: CoverageDataset, start: date | None, end: date) -> DatasetCoverage:
         source = dataset.source
         start, end = archive_range(source, start, end)
         result = DatasetCoverage(source.dataset, start, end)
@@ -128,11 +125,13 @@ class CoverageCheck:
                 result.missing.append(day)
             return
         try:
-            dataset.validate(source.filename_for(day), data)
+            fingerprinted = dataset.check(source.filename_for(day), data)
         except ValueError as exc:
             result.damaged.append((day, str(exc)))
             return
         result.present += 1
+        if not fingerprinted:
+            result.unfingerprinted.append(day)
 
 
 def report_lines(results: list[DatasetCoverage]) -> list[str]:
@@ -140,12 +139,13 @@ def report_lines(results: list[DatasetCoverage]) -> list[str]:
     for r in results:
         lines.append(
             f"{r.dataset:<36} {r.start:%Y-%m-%d} {r.end:%Y-%m-%d} {r.expected:>8} {r.present:>7} "
-            f"{len(r.missing):>7} {len(r.damaged):>7}"
+            f"{len(r.missing):>7} {len(r.damaged):>7} {len(r.unfingerprinted):>6}"
         )
     for r in results:
         lines += [f"missing  {r.dataset} {day}" for day in r.missing]
         lines += [f"damaged  {r.dataset} {day}: {reason}" for day, reason in r.damaged]
         lines += [f"excepted {r.dataset} {day}: {reason}" for day, reason in r.excepted]
         lines += [f"unexpected file (calendar says closed; review) {r.dataset} {day}" for day in r.unexpected]
-    verdict = "complete" if all(r.ok for r in results) else "INCOMPLETE: missing or damaged files above"
+        lines += [f"no fingerprint (content checked only) {r.dataset} {day}" for day in r.unfingerprinted]
+    verdict = "complete" if all(r.ok for r in results) else INCOMPLETE
     return [*lines, f"result: {verdict}"]

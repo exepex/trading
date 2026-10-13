@@ -111,3 +111,31 @@ change. Reasoning only for the proposal; the 3 cycles are data.
   (expiry 29 Feb 2024, entry 16 Jan, exit 8 Feb, spot 22,032.30): SF legs 22050 CE/PE sold, 22350 CE and 21750 PE
   bought, net -Rs 399.52, modelled max Rs 3,420.56; SC 22450 CE / 21600 PE sold, 22750 CE / 21300 PE bought, net
   +Rs 1,123.81, max Rs 9,610.10; BF width 150 (300-200 over the cap), net -Rs 865.51, max Rs 9,947.36.
+
+## 7. Addendum (13 Oct 2026, after judge 25 PASS): owner decision and judge 25 minors
+
+Asked by the orchestrator: the owner's decision (`docs/DESK_DECISIONS.md`, 13 Oct: a long debit at least the width is
+`bad_prices`), judge 25's report-only exit flag and its two minors.
+
+| Item | What changed | Evidence |
+|---|---|---|
+| Owner decision: "cannot win" is `bad_prices` | One rule for both directions: at entry, the position's value must lie strictly inside its payoff bounds at expiry (`structures.payoff_bounds`, `position_value`). At or beyond the worst payoff = cannot lose (short credit ≥ width, long debit ≤ 0, as before); at or beyond the best payoff = cannot win (long debit ≥ width, **new**, and short credit ≤ 0, its mirror). | `test_a_long_debit_at_least_the_width_cannot_win_and_is_bad_prices[300.0, 300.05]` (299.90 still trades), `test_a_short_credit_of_zero_cannot_win_and_is_bad_prices`; real: `test_the_three_long_flies_that_cannot_win_are_bad_prices` (Jul 2024, Aug 2024, Feb 2026) |
+| Status when no width trades | **Changed:** the outcome of the narrowest listed width (was: `no_trade_cap` if any width broke the cap). Why: in the 3 real BF cycles, widths 300-150 break the cap and the 100-point fly has impossible prices; the old precedence would have called them `no_trade_cap`, contradicting the decision. The narrowest listed width is where the search ended, so its problem is the reason no trade happened. | `test_wider_widths_over_the_cap_and_a_narrowest_width_with_impossible_prices_is_bad_prices`; `test_no_width_fits_is_no_trade_cap` |
+| Judge 25 mirror: impossible exit closes | `CycleResult.exit_outside_payoff`: a traded exit valued beyond the payoff bounds (e.g. Jul 2024 SF: call spread 301.25 > width 300). Report only: the trade stays traded and its net counts. B3 shows it: per opportunity (`exit_outside_payoff`) and per policy (`exits_outside_payoff`, `exits_outside_payoff_net`; column "Impossible exits (count, net)" in the .md). | `test_an_exit_valued_beyond_the_payoff_bounds_is_traded_and_flagged`; `test_traded_exits_beyond_the_payoff_bounds_are_flagged` (real: 4 of 96 traded exits: SF Jul 2024 -Rs 4,024; BF Sep 2024 +7, Dec 2024 +637, Mar 2026 +1,036); `test_metrics.py::test_traded_exits_beyond_the_payoff_bounds_are_counted_with_their_net` |
+| Judge 25 minor 1: exact half | 2 of 4 legs on settlement trades (flagged), at entry and at exit | `test_exactly_half_the_legs_on_settlement_is_still_fillable[entry, exit]` |
+| Judge 25 minor 2: which day chooses strikes | The entry day's spot close and option chain; now written in the story (B2 design, Strikes) and the simulator docstring | `docs/stories/B-research-engine.md` |
+
+**Side fact found while rewriting the tests:** with possible prices, a listed 100-point width always fits the cap
+(at most 100 x 65 = Rs 6,500 plus about Rs 700 of costs and pads), so `no_trade_cap` can only happen when the narrow
+wings are not listed.
+
+**B3 discovery re-run** (`python -m fno research run 2026-10-12-experiment-1 --period discovery`, twice, identical
+output): only the expected fields change. P3 (BF every month) -Rs 34,735 → **-Rs 32,094** (30 traded, 3 `bad_prices`;
+the 3 skipped cycles had lost Rs 2,641 together); P5 and P5's opposite change through their BF branch; every policy
+now shows its impossible-exit count and net (P2: 1, -Rs 4,024; P3: 3, +Rs 1,680). Discovery is reported only; no
+pass/fail.
+
+**Not done here (not mine):** the protocol text (section 4) still needs the decision written in before the freeze, as
+`DESK_DECISIONS.md` says; I did not edit `PROTOCOL.md`.
+
+Checks on this commit: `python -m pytest -q` 828 passed; `ruff check fno tests tools` and `ruff format --check` clean; `python tools/check_imports.py` clean.

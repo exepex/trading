@@ -24,6 +24,8 @@ from .panel_rows import TABLE_COLUMNS
 TABLE_FILE = "{table}_{year}.csv.gz"
 TABLE_GLOB = "*_[0-9][0-9][0-9][0-9].csv.gz"
 MANIFEST_FILE = "manifest.json"
+WARMUP_FILE = "warmup_closes.csv"  # closes before the first session, for feature history (story A10)
+WARMUP_FIELDS = ("date", "session", "underlying", "vix", "index_file", "index_sha256")
 PART_SUFFIX = ".part"
 GZIP_LEVEL = 9
 

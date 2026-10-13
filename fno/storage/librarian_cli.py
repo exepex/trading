@@ -28,7 +28,13 @@ def add_librarian_parser(subparsers) -> None:
 
     lib = subparsers.add_parser("data-librarian", help="upload a dataset's missing raw files to Drive (story A9)")
     lib.add_argument("dataset", choices=sorted(LIBRARIAN_DATASETS))
-    lib.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 1, 1), help="YYYY-MM-DD")
+    lib.add_argument(
+        "--from",
+        dest="start",
+        type=date.fromisoformat,
+        default=None,
+        help="YYYY-MM-DD (default: the dataset's first day)",
+    )
     lib.add_argument(
         "--to",
         dest="end",
