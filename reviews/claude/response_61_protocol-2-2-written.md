@@ -105,3 +105,32 @@ byte-identical.
 `fno/research_engine/volatility_features.py:18` `F1_MIN_LEG_VOLUME = 10`, passed by F1 at line 82;
 `pytest -rA -k thinner` → `test_f1_needs_at_least_10_contracts_on_the_thinner_atm_leg[CE]` and `[PE]` PASSED (9
 contracts → None, 10 → value). Discovery re-run: results byte-identical. The freeze was not run.
+
+## 7. Addendum (13 Oct 2026): §10 completed after judge 53, and the freeze (steps a-c)
+
+**§10 additions, each checked against git metadata or the judges' own verdict text (no 2019-2023 row of the golden
+or back-fill files opened):**
+- G2's back-fill `research/forecasts/backfill/backfill_v1.csv.gz`, `5632bfc` (16:30:01 UTC), SHA-256
+  `5b9d4306ff2977690f73ecdc8f56c1f8a107697f1bb892ab6290dcb5459faa58` (from `git show 5632bfc:...`; identical today):
+  its base-rate steps reveal individual 2019-2023 Q1-Q5 outcomes; Q2 is close to a condor's fate; not analysed for
+  Experiment 1.
+- The judges' views as judge 53 lists them: judge 47 round 2 (Feb-Apr 2021 golden rows; RV20 on 12 Apr 2021 =
+  21.8136 committed; IV30 22.85 printed); judge 53 (back-fill rows 1-7 Apr 2021; base rate stepped on 5 Apr).
+- Timing line: response 55 `bf73705` at 12:44:31 UTC; `f936156` 12:56; `769fac7` 14:24; `5632bfc` 16:30;
+  `d37b78e` 15:52 changes no P1-P8 rule, threshold or criterion beyond items proposed by 12:44 (judge 53's diff);
+  §3's wording is dates-only, coded at 13:34 (`d2949b8`).
+- Label (§2 and §10): "historical holdout with pre-freeze exposure of predictors and of some forecast-target outcomes;
+  rules fixed before any exposure". Hard rule extended to back-fill values; the closing "otherwise" line narrowed so
+  no blanket claim remains.
+
+**Freeze:**
+- (a) Protocol commit **`9d16431d5a9e1fdf1f0979de9cc5c605bfd34837`** (final text; status line already says frozen).
+- (b) **`c52a6b877fd2606328f24c114030c6bb3c26d5d5`**: the line "frozen at commit `9d16431...`" and `FREEZE.md`
+  (inputs as in every results file: panel manifest, events, session calendar, config terms, numpy 2.5.3; `sha256sum`
+  of 7 data/settings files and 39 engine files at commit A). Checked with the guard's own functions: the protocol
+  without the line equals commit A's text exactly.
+- (c) **`0c1c957`**: ledger trials 22-31 `protocol_commit` = `c52a6b8...` (10 rows, nothing else changed).
+- `LedgerTrialGuard.check(..., decisive=True)` now passes (git and ledger only, no data read).
+- **Not done:** step (d), the challenge run, and (e). They wait for the judge's re-check and the orchestrator.
+
+Checks: 1,463 tests passed; ruff and import checks clean; discovery results byte-identical.
