@@ -78,9 +78,8 @@ jobs:
       - name: One line to #fno-desk when the librarian failed (the append step alerts by itself)
         if: ${{ steps.librarian.outcome != 'success' }}
         run: |
-          python -c "from fno.composition import build_alert_sender;
-          print(build_alert_sender().send('Omenix F&O daily index closes: the Drive archive step failed; see
-          ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'))"
+          python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
+            "Omenix F&O daily index closes: the Drive archive step failed; see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           exit 1
       - name: Fail the run when the append stopped (already alerted)
         if: ${{ steps.append.outcome != 'success' }}
