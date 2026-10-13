@@ -89,14 +89,15 @@ def read_nifty_panel(
     sessions = tuple(
         _session(_day(day), entry, closes) for day, entry in sorted(manifest["days"].items()) if int(day[:4]) in wanted
     )
-    first = min(_day(day) for day in manifest["days"])
-    warmup = _warmup_sessions(folder, first) if first.year in wanted else ()
+    first = sessions[0].day if sessions else None
+    warmup = _warmup_sessions(folder, first) if first else ()
     return NiftyPanel(warmup + sessions, _frozen(options), _frozen(futures))
 
 
 def _warmup_sessions(folder: Path, before: date) -> tuple[SessionClose, ...]:
-    """Closes-only sessions before the panel's first session (story A10's warm-up file; none if absent): history for
-    features, with no option or future rows."""
+    """Closes-only sessions before the first session read (story A10's index-close file; none if absent): history for
+    features, with no option or future rows. Reading later years only (story B3's discovery period) therefore gets the
+    earlier years' closes from NSE's index-close files, never from an earlier year's option rows."""
     path = folder / WARMUP_FILE
     if not path.is_file():
         return ()

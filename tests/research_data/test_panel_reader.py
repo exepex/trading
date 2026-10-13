@@ -56,3 +56,25 @@ def test_years_and_keep_limit_what_is_held_but_not_the_closes(tmp_path):
     assert [q.expiry for q in panel.options[D3]] == [date(2025, 1, 30)]
     assert panel.session_on(D3).underlying == 23500.10
     assert [s.day for s in panel.sessions_through(D2)] == [D2]
+
+
+def test_reading_later_years_takes_earlier_closes_from_the_index_close_file_only(tmp_path):
+    """Judge 28 minor: reading 2025 on gets 2024's closes from the index-close file, never 2024's option rows."""
+    import csv
+
+    from fno.research_data.panel_store import WARMUP_FIELDS, WARMUP_FILE
+
+    write_panel(tmp_path)
+    with (tmp_path / WARMUP_FILE).open("w", newline="") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        writer.writerow(WARMUP_FIELDS)
+        writer.writerow(["2024-12-30", "regular", "23400.00", "14.10", "ind_close_all_30122024.csv", "x"])
+        writer.writerow(["2024-12-31", "regular", "23450.00", "14.20", "ind_close_all_31122024.csv", "x"])
+        writer.writerow(["2025-01-01", "regular", "99999.00", "99.00", "ind_close_all_01012025.csv", "x"])
+    panel = read_nifty_panel(tmp_path, years=[2025])
+    assert [(s.day, s.underlying, s.vix) for s in panel.sessions[:2]] == [
+        (date(2024, 12, 30), 23400.0, 14.1),
+        (date(2024, 12, 31), 23450.0, 14.2),  # from the file, not from D1's option rows (23500.10)
+    ]
+    assert panel.session_on(D2).underlying is None  # inside the years read, the panel's own record stands
+    assert D1 not in panel.options and D1 not in panel.futures
