@@ -97,3 +97,8 @@ class CycleStatus(StrEnum):
     NO_ENTRY_WINDOW = "no_entry_window"  # the entry day is not before the exit day
     UNFILLABLE = "unfillable"  # a missing or zero price, or more than half the legs on settlement prices
     BAD_PRICES = "bad_prices"  # stale prices: a short credit at least the width, or a long debit at most zero
+
+
+# Policy runner (story B3): the periods of an experiment, and an opportunity a policy chose not to trade
+PERIOD_DISCOVERY, PERIOD_CHALLENGE = "discovery", "challenge"
+NO_TRADE = "no_trade"

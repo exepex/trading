@@ -32,6 +32,7 @@ python -m fno groww-check                         # check the Groww data connect
 python -m fno drive-check                         # check the Google Drive archive can be read (prints no secrets)
 python -m fno data-coverage [--from --to]          # raw NSE files missing or damaged in Drive, against the NSE calendar (A1)
 python -m fno nifty-panel --to YYYY-MM-DD [--from --raw-folder]  # NIFTY option-chain panel from the raw files (A3)
+python -m fno research run 2026-10-12-experiment-1 --period discovery|challenge  # policies, controls, verdict (B3)
 python -m pytest -q && ruff check fno tests tools # tests and lint; python tools/check_imports.py checks imports
 python tools/check_records.py [--staged | PATH] [--alert]  # public-record scan: no secrets, personal data or broker IDs (O5)
 ```
@@ -64,9 +65,8 @@ fno/
   quotes/            3 pm quote recorder and spread report (story A4)
   storage/           raw file stores and sources (NSE archives, local folder, Google Drive)
   fo_bhavcopy.py     NSE F&O daily file reader (old and current formats)
-  research_data/     expiry dates, the events calendar, the NIFTY panel and its reader
-  research_engine/   trial ledger and its guard (story B4); features F1-F3 with availability times, Black-76 IV (B1);
-                     monthly cycles, structures SF/SC/BF and the cycle simulator (B2)
+  research_engine/   ledger guard (B4), features F1-F3 (B1), monthly cycles, structures SF/SC/BF and the cycle
+                     simulator (B2), policy runner, controls, bootstrap and verdict (B3)
   record_scan/       public-record safety scan: patterns, scanner, which files (story O5)
   alerts/            alert sender to Slack #fno-desk (used by the record scan; P4 extends it)
   accounting/        research ledgers

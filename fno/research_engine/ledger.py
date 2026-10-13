@@ -50,10 +50,13 @@ class Git:
         found = self._run("log", "--format=%H", "--reverse", "-S", text, "--", path).stdout.split()
         return found[0] if found else None
 
-    def committed_text(self, path: str) -> str | None:
-        """The file as committed at HEAD (None if not committed)."""
-        result = self._run("show", f"HEAD:{path}")
+    def committed_text(self, path: str, commit: str = "HEAD") -> str | None:
+        """The file as committed at `commit` (None if not committed there)."""
+        result = self._run("show", f"{commit}:{path}")
         return result.stdout if result.returncode == 0 else None
+
+    def commit_exists(self, commit: str) -> bool:
+        return bool(commit) and self._run("cat-file", "-e", f"{commit}^{{commit}}").returncode == 0
 
     def unchanged_since(self, commit: str, path: str) -> bool:
         tracked = self._run("diff", "--quiet", commit, "HEAD", "--", path).returncode == 0
@@ -103,23 +106,28 @@ class Ledger:
         read_ledger(write_ledger([*rows, row]))  # validates
         self.file.write_text(write_ledger([*rows, row]))
 
-    def require_registered(self, trial_id: str) -> dict:
-        """The trial's row if it may run now; NotRegistered with the reason otherwise. Call before reading any data."""
+    def require_committed(self, trial_id: str) -> dict:
+        """The trial's row if its registration is committed history (no protocol check): enough to run an already
+        looked-at period, never the one that decides. NotRegistered with the reason otherwise."""
         row = next((r for r in self.rows() if r["trial_id"] == trial_id), None)
         if row is None:
-            raise NotRegistered(f"trial {trial_id} is not in {LEDGER_FILE}")
-        head = self.git.head()
+            raise NotRegistered(f"trial {trial_id} is not registered: it is not in {LEDGER_FILE}")
         committed = self.git.committed_text(LEDGER_FILE)
         if committed is None or not self.git.unchanged_since("HEAD", LEDGER_FILE):
             raise NotRegistered("the ledger has uncommitted changes: commit it so the run uses exactly what is in git")
         if row not in read_ledger(committed):
             raise NotRegistered(f"trial {trial_id}: its row differs from the committed ledger")
         registered = self.git.first_commit_containing(f"\n{trial_id},", LEDGER_FILE)
-        if not registered or not self.git.is_ancestor(registered, head):
+        if not registered or not self.git.is_ancestor(registered, self.git.head()):
             raise NotRegistered(f"trial {trial_id} is not in a committed ledger (commit the registration first)")
+        return row
+
+    def require_registered(self, trial_id: str) -> dict:
+        """The trial's row if it may run now; NotRegistered with the reason otherwise. Call before reading any data."""
+        row = self.require_committed(trial_id)
         if not row["protocol_commit"] or not row["protocol_path"]:
             raise NotRegistered(f"trial {trial_id} has no frozen protocol commit")
-        if not self.git.is_ancestor(row["protocol_commit"], head):
+        if not self.git.is_ancestor(row["protocol_commit"], self.git.head()):
             raise NotRegistered(f"trial {trial_id}: protocol commit {row['protocol_commit'][:10]} is not in history")
         if not self.git.unchanged_since(row["protocol_commit"], row["protocol_path"]):
             raise NotRegistered(f"trial {trial_id}: {row['protocol_path']} changed after it was frozen")

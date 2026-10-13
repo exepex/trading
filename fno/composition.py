@@ -3,10 +3,14 @@ and sources are wired in `fno/storage/wiring.py`). Swapping a provider or store 
 
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 from contextlib import contextmanager
 from datetime import date, datetime, time
 from pathlib import Path
+
+import numpy
 
 from .alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
 from .books.account import AccountWriter, PaperAccount
@@ -26,15 +30,20 @@ from .research_data.positioning import PointInTimeParticipantOi
 from .research_data.release_times import ReleaseLog, ReleaseTimeRecorder, choose_availability_rule, last_written_times
 from .research_data.write_sweep import LastWriteSweep, read_sweeps
 from .research_engine.cycle_costs import CycleTerms
-from .research_engine.cycles import Cycle, monthly_cycles
+from .research_engine.cycles import Cycle, cycle_rows, monthly_cycles
 from .research_engine.event_features import ScheduledEventInWindow
+from .research_engine.experiments import Period
 from .research_engine.features import Feature, ResearchData
 from .research_engine.implied_vol import Black76
+from .research_engine.ledger import Ledger
+from .research_engine.runner import ExperimentRunner
 from .research_engine.simulator import CycleSimulator
 from .research_engine.structures import LongIronFly, ShortCondor, ShortIronFly, Structure
+from .research_engine.trial_guard import LedgerTrialGuard
 from .research_engine.volatility_features import AtmIvMinusRealised, VixAboveMedian
 from .storage.raw_source import ParticipantOiSource
 from .storage.wiring import (
+    CALENDAR_FILE,
     EVENTS_FILE,
     PANEL_FOLDER,
     PARTICIPANT_OI_LAST_MODIFIED,
@@ -153,3 +162,43 @@ def build_cycle_simulator(cfg: dict, panel: NiftyPanel) -> CycleSimulator:
     """Story B2's simulator: one NIFTY lot (`lot_sizes`) and the `charges` block of config.yaml; the protocol's pad,
     loss cap and widths."""
     return CycleSimulator(panel, CycleTerms(lot=cfg["lot_sizes"][NIFTY_SYMBOL], charges=cfg["charges"]))
+
+
+def load_period_data(period: Period) -> ResearchData:
+    """A period's research data (story B3): option rows only from the period's first decision day on (and only those
+    cycles use, 21+ days to expiry), so an earlier period's option outcomes are never held; index closes from the year
+    before, for the features' look-back (F1: 21 closes, F2: 250); option rows a year after the end, for late exits."""
+    years = range(period.start.year - 1, period.end.year + 2)
+    return load_research_data(years, keep=lambda day, expiry: day >= period.start and cycle_rows(day, expiry))
+
+
+def research_inputs(cfg: dict) -> dict:
+    """SHA-256 of every input a results file depends on, and the numpy version (its generator streams)."""
+
+    files = {"panel_manifest": PANEL_FOLDER / "manifest.json", "events": EVENTS_FILE, "session_calendar": CALENDAR_FILE}
+    terms = {key: cfg[key] for key in ("charges", "lot_sizes", "risk_free_rate")}
+    return {
+        **{name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in files.items()},
+        "config_terms": hashlib.sha256(json.dumps(terms, sort_keys=True).encode()).hexdigest(),
+        "numpy": numpy.__version__,
+    }
+
+
+def build_ledger(root: Path = ROOT) -> Ledger:
+    return Ledger(root)
+
+
+def build_experiment_runner(cfg: dict, root: Path = ROOT) -> ExperimentRunner:
+    """Story B3's runner: B4's ledger guard, the repository's panel and events, B1's features, B2's cycles,
+    structures and simulator."""
+    ledger = build_ledger(root)
+    return ExperimentRunner(
+        guard=LedgerTrialGuard(ledger),
+        load_data=load_period_data,
+        build_cycles=build_cycles,
+        features=build_features(cfg),
+        structures=build_structures(),
+        build_simulator=lambda panel: build_cycle_simulator(cfg, panel),
+        ledger_count=ledger.count,
+        inputs=lambda: research_inputs(cfg),
+    )
