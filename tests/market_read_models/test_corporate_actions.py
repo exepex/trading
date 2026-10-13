@@ -89,6 +89,7 @@ def test_a_demerger_rebases_earlier_prices_on_nses_discovered_ex_date_open():
     ],
 )
 def test_judge_42s_demergers_on_nses_ex_date_open(symbol, year_back, before, ex_open, last, y1, raw_y1):
+    """Both stocks have no derivatives, so their ex-date open is the normal pre-open auction's price (judge 49)."""
     days = [date(2025, 10, 7) + timedelta(days=i) for i in range(251)]
     closes = [year_back] + [before] * 149 + [ex_open] * 100 + [last]
     opens = [ex_open if i == 150 else None for i in range(251)]  # NSE's special pre-open price on the ex-date

@@ -1,7 +1,8 @@
 """`python -m fno market ...` (story P6): the NSE market read models for the dashboard's Screener and Markets.
 
-market daily [--day D]          the routine: archive the session's NSE files to Drive, then publish (default: the
-                                last session before today, IST; run after NSE's late-evening rewrites)
+market daily [--day D]          the routine: archive the session's NSE files (and any newer NSE version, A11) to
+                                Drive, then publish (default: the last session before today, IST; run at 07:30 IST,
+                                after NSE's late-evening rewrites)
 market publish --day D [--local FOLDER]   build, validate and publish one session from the archived files
 market compare --day D          compare the built blocks with the pinned W11 examples, field by field
 market contract-check           compare the pinned W11 contract with the dashboard's published one
@@ -14,7 +15,7 @@ from datetime import date
 from pathlib import Path
 
 DAILY_DATASETS = ("fo-bhavcopy", "index-close", "cm-bhavcopy", "security-delivery")
-DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "corporate-actions")
+DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "symbol-change", "corporate-actions")
 FETCH_FAILED = "Omenix F&O market read models for {day}: NSE files not archived ({reason}); nothing published."
 
 
@@ -78,6 +79,7 @@ def _archive_session(day: date) -> str | None:
             if not report.complete:
                 gaps = len(report.not_published), len(report.damaged), len(report.rejected)
                 return f"{name}: {gaps[0]} not published yet, {gaps[1]} damaged, {gaps[2]} rejected"
+        _archive_revisions(day)
         for name in DAILY_SNAPSHOTS:
             print(build_snapshot_taker(name).take(day))
         _archive_own_lists(day)
@@ -86,6 +88,20 @@ def _archive_session(day: date) -> str | None:
         return f"{type(exc).__name__}: {exc}"
     finally:
         print(recorder.commit(f"market daily {day}"))
+
+
+def _archive_revisions(day: date) -> None:
+    """Reads the session's files from NSE again: a version NSE rewrote after the archived one is kept as a revision
+    (A11), so the publication uses NSE's latest version (judge 49: 12 Oct's index file, rewritten at 23:20 IST)."""
+    from ..storage import wiring
+    from ..storage.revision_source import sweep_revisions
+    from ..storage.revisions_cli import revision_lines
+
+    archive = wiring.build_revision_archive()
+    for name in DAILY_DATASETS:
+        source_type = wiring.FINGERPRINT_SOURCES[name]
+        sweep_revisions(wiring.build_revision_capturing_source(source_type, archive), [source_type.path_for(day)])
+    print("\n".join(revision_lines(archive)) or f"{day}: no newer NSE versions")
 
 
 def _look_up(args) -> int:

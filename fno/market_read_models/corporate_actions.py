@@ -5,10 +5,12 @@ RSI). Raw NSE closes jump at a split or bonus (KOTAKBANK's 5:1 split on 14 Jan 2
 - A split or consolidation ("Face Value Split ... From Rs 5/- Per Share To Re 1/- Per Share") divides earlier prices
   by old face value / new face value; a bonus a:b (a new shares for b held) by (a + b) / b. Earlier volumes are
   multiplied by the same factor (more shares).
-- A demerger divides earlier prices by the previous close / the ex-date open: on a demerger's ex-date NSE runs a special
-  pre-open call auction, and the open is the price it discovers for the share without the demerged business (the
-  W11 contract's method). Volumes stay (the share count does not change). Without an ex-date trade there is no such
-  price: only the sessions from the ex-date on are used (figures needing older closes are null).
+- A demerger divides earlier prices by the previous close / the ex-date open, the price the exchange's pre-open call
+  auction discovers for the share without the demerged business (the W11 contract's method). For a stock with
+  derivatives (F&O) that auction is NSE's special pre-open session, whose price NSE itself uses for index adjustment;
+  for any other stock it is the normal pre-open auction (still exchange-discovered, but noisier: DCMSRIND opened at
+  51.00 and closed at 54.52 on its ex-date). Volumes stay (the share count does not change). Without an ex-date trade
+  there is no such price: only the sessions from the ex-date on are used (figures needing older ones are null).
 - Another scheme of arrangement, an amalgamation or a capital reduction has no ratio in NSE's list: only the sessions
   from its ex-date on are used. A bonus of preference shares ("Scheme Of Arrangement - Bonus NCRPS") is another
   security and changes no equity price, like a dividend.
@@ -101,7 +103,8 @@ def adjusted(bars: list[EquityBar], actions: list[CorporateAction]) -> list[Equi
 
 
 def _demerger_factor(bars: list[EquityBar], ex_date: date) -> float | None:
-    """Previous close / ex-date open (NSE's discovered price); None without a trade on the ex-date."""
+    """Previous close / ex-date open (the pre-open auction's price: the special session for F&O stocks, the normal one
+    for others); None without a trade on the ex-date."""
     for before, on in pairwise(bars):
         if on.day == ex_date:
             return before.close / on.open if on.open and before.close else None

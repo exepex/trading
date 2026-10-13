@@ -48,6 +48,7 @@ from .snapshot_source import (
     CorporateActionsSource,
     EquityListSource,
     Nifty500ListSource,
+    SymbolChangeSource,
 )
 from .snapshot_taker import SnapshotTaker
 from .versioned_store import VersionedRawStore
@@ -71,6 +72,7 @@ DATED_SOURCES = (
 SNAPSHOT_SOURCES = (
     EquityListSource,
     Nifty500ListSource,
+    SymbolChangeSource,
     CorporateActionsSource,
     CorporateActionsBySymbolSource,
 )  # reference lists, one copy per day fetched (P6)
@@ -120,7 +122,7 @@ def build_owner_drive(env=os.environ, session=None) -> GoogleDriveUploadStore | 
 
 
 def build_revision_index() -> RevisionIndex:
-    return RevisionIndex(REVISION_INDEX_FOLDER, DATED_SOURCES)
+    return RevisionIndex(REVISION_INDEX_FOLDER, RAW_SOURCES)  # every dataset with a manifest; snapshots have none
 
 
 def build_revision_archive(env=os.environ, session=None) -> RevisionArchive:

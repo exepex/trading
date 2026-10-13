@@ -1,4 +1,5 @@
-"""NSE reference lists whose file name has no date (story P6): the list of listed companies and the Nifty 500 list.
+"""NSE reference lists whose file name has no date (story P6): the list of listed companies, the Nifty 500 list, the
+symbol changes and the corporate actions.
 NSE replaces them in place, so each copy is archived under the day it was fetched:
 `<dataset>/<YYYY>/<MM>/<DD>/<original file name>` (the original name kept, one folder per day)."""
 
@@ -51,6 +52,16 @@ class Nifty500ListSource(SnapshotSource):
     first_day = date(2026, 10, 13)
     BASE_URL = "https://nsearchives.nseindia.com/content/indices/"
     FILENAME = "ind_nifty500list.csv"
+
+
+class SymbolChangeSource(SnapshotSource):
+    """Every symbol change on NSE's capital market since 2003, with its effective date (symbolchange.csv): a renamed
+    stock's earlier sessions are under its old symbol (TATAMOTORS became TMPV on 24 Oct 2025)."""
+
+    dataset = "nse/equities/symbol-change"
+    first_day = date(2026, 10, 13)
+    BASE_URL = "https://nsearchives.nseindia.com/content/equities/"
+    FILENAME = "symbolchange.csv"
 
 
 class CorporateActionsSource(SnapshotSource):
