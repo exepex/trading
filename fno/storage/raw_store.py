@@ -48,6 +48,10 @@ class RawFileStore(ABC):
         checked from one listing (story A12). Stores that cannot list say so."""
         raise NotImplementedError(f"{self.name} cannot list a folder")
 
+    def folders(self, folder: str) -> list[str]:
+        """The names of the folders directly in a folder ([] when it does not exist)."""
+        raise NotImplementedError(f"{self.name} cannot list a folder")
+
 
 class LocalFolderStore(RawFileStore):
     """A folder on disk; point it at a Google Drive for desktop folder and Drive uploads the same tree."""
@@ -70,6 +74,10 @@ class LocalFolderStore(RawFileStore):
             return {}
         files = (f for f in found.iterdir() if f.is_file() and not f.name.startswith("."))
         return {f.name: hashlib.md5(f.read_bytes()).hexdigest() for f in files}  # noqa: S324 - Drive's checksum
+
+    def folders(self, folder: str) -> list[str]:
+        found = self.folder.joinpath(*path_parts(folder))
+        return sorted(f.name for f in found.iterdir() if f.is_dir()) if found.is_dir() else []
 
     def put(self, path: str, data: bytes) -> None:
         file = self._file(path)
@@ -100,3 +108,6 @@ class AreaStore(RawFileStore):
 
     def checksums(self, folder: str) -> dict[str, str]:
         return self.store.checksums(f"{self.area}/{folder}")
+
+    def folders(self, folder: str) -> list[str]:
+        return self.store.folders(f"{self.area}/{folder}")

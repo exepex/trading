@@ -31,10 +31,12 @@ def test_counts_companies_files_and_checks_each_copy(tmp_path):
 
 def test_a_changed_copy_is_damaged_and_an_unlisted_file_unfingerprinted(tmp_path):
     coverage = build(tmp_path)
-    (tmp_path / "drive" / FOLDER / "A" / "A1.xml").write_bytes(b"other bytes")
-    (tmp_path / "drive" / FOLDER / "B" / "PLANTED.xml").write_bytes(b"x")
+    (tmp_path / "drive" / FOLDER / "A" / "2025" / "A1.xml").write_bytes(b"other bytes")
+    (tmp_path / "drive" / FOLDER / "B" / "2025" / "PLANTED.xml").write_bytes(b"x")
+    (tmp_path / "drive" / FOLDER / "B" / "OLD.xml").write_bytes(b"x")  # the trial's layout, before year folders
     (result,) = coverage.run(["A", "B", "C"], TODAY, [FILING_RESULTS])
-    assert result.damaged == ["A/A1.xml: MD5 differs"] and result.unfingerprinted == ["B/PLANTED.xml"]
+    assert result.damaged == ["A/2025/A1.xml: MD5 differs"] and result.unfingerprinted == ["B/2025/PLANTED.xml"]
+    assert result.outside_layout == ["B/OLD.xml"]
     lines = filings_coverage_lines([result], {})
     assert lines[-1].startswith("result: INCOMPLETE")
 

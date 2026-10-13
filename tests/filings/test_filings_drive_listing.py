@@ -33,7 +33,9 @@ class ListingDrive:
             return Answer({"files": [{"id": "B", "name": "b"}]})
         if "name = " in q:
             return Answer({"files": []})
-        assert q.startswith("'B' in parents") and "mimeType != " in q
+        assert q.startswith("'B' in parents")
+        if "mimeType = " in q:
+            return Answer({"files": [{"name": "2025"}, {"name": "2024"}]})
         page = int(params.get("pageToken", 0))
         body = {"files": self.pages[page]}
         if page + 1 < len(self.pages):
@@ -58,3 +60,7 @@ def test_two_files_with_one_name_are_refused():
     pages = [[{"name": "x.xml", "md5Checksum": "m1"}, {"name": "x.xml", "md5Checksum": "m2"}]]
     with pytest.raises(RawFileConflict):
         drive(pages).checksums("a/b")
+
+
+def test_lists_the_folders_inside_a_folder():
+    assert drive([]).folders("a/b") == ["2024", "2025"]

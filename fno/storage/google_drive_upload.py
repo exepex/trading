@@ -74,6 +74,17 @@ class GoogleDriveUploadStore(GoogleDriveStore):
             return self._download(file_id) == data
         return checksum == hashlib.md5(data).hexdigest()  # noqa: S324 - Drive's own transfer checksum, not security
 
+    def replace_contents(self, file_id: str, data: bytes) -> None:
+        """New contents for an existing file, checked against Drive's MD5. Only for index files (IndexFileStore):
+        raw files are never replaced."""
+        params = {"uploadType": "media", "fields": "md5Checksum"}
+        headers = {"Content-Type": FILE_TYPE}
+        response = self.drive.request(
+            "patch", f"{DRIVE_UPLOAD_URL}/{file_id}", params=params, data=data, headers=headers
+        )
+        if response.json().get("md5Checksum") != hashlib.md5(data).hexdigest():  # noqa: S324 - Drive's checksum
+            raise StoredCopyDamaged(f"Drive file {file_id} holds different bytes than were sent")
+
     def _new_id(self) -> str:
         if not self._new_ids:
             params = {"count": IDS_PER_REQUEST, "space": "drive", "type": "files"}

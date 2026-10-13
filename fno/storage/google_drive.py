@@ -23,7 +23,7 @@ DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 FOLDER_TYPE = "application/vnd.google-apps.folder"
 CHILD_QUERY = "'{parent}' in parents and name = '{name}' and trashed = false and mimeType {op} '" + FOLDER_TYPE + "'"
 ROOT_QUERY = "'{parent}' in parents and trashed = false"
-FILES_QUERY = "'{parent}' in parents and trashed = false and mimeType != '" + FOLDER_TYPE + "'"
+LISTING_QUERY = "'{parent}' in parents and trashed = false and mimeType {op} '" + FOLDER_TYPE + "'"
 LISTING_PAGE = 1000  # Drive's largest page
 READ_ONLY = "the service account only reads Google Drive: uploads sign in as the owner (GoogleDriveUploadStore)"
 
@@ -81,24 +81,40 @@ class GoogleDriveStore(RawFileStore):
         return self._ids[key]
 
     def get(self, path: str) -> bytes | None:
+        file_id = self._file_id(path, fresh=False)
+        return None if file_id is None else self._download(file_id)
+
+    def file_id(self, path: str) -> str | None:
+        """The Drive ID of the file at an archive path (None when absent; looked up afresh, never a cached absence)."""
+        return self._file_id(path, fresh=True)
+
+    def _file_id(self, path: str, fresh: bool) -> str | None:
         *folders, filename = path_parts(path)
         parent: str | None = self.folder_id
         for name in folders:
             parent = self._child(parent, name, folder=True)
             if parent is None:
                 return None
-        file_id = self._child(parent, filename, folder=False)
-        return None if file_id is None else self._download(file_id)
+        if fresh:
+            self._ids.pop((parent, filename, False), None)
+        return self._child(parent, filename, folder=False)
 
     def checksums(self, folder: str) -> dict[str, str]:
+        return self._listing(folder, folders=False)
+
+    def folders(self, folder: str) -> list[str]:
+        return sorted(self._listing(folder, folders=True))
+
+    def _listing(self, folder: str, folders: bool) -> dict[str, str]:
+        """Name -> MD5 ("" for a folder) of the files, or the folders, directly in a folder; {} if it is absent."""
         parent: str | None = self.folder_id
         for name in path_parts(folder):
             parent = self._child(parent, name, folder=True)
             if parent is None:
                 return {}
         found: dict[str, str] = {}
-        params = {"q": FILES_QUERY.format(parent=parent), "fields": "nextPageToken, files(name, md5Checksum)"}
-        params["pageSize"] = LISTING_PAGE
+        query = LISTING_QUERY.format(parent=parent, op="=" if folders else "!=")
+        params = {"q": query, "fields": "nextPageToken, files(name, md5Checksum)", "pageSize": LISTING_PAGE}
         while True:
             page = self.drive.get(DRIVE_FILES_URL, params=params).json()
             for item in page.get("files", []):

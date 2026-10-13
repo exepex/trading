@@ -4,7 +4,9 @@ and stores for filings. Swapping NSE for BSE, or Drive for another store, change
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 from datetime import date
 
 from ..market_read_models.nse_files import read_nifty500_list
@@ -12,6 +14,7 @@ from ..models import now_ist
 from ..providers.public import PublicData
 from ..storage import wiring as storage
 from ..storage.coverage import CoverageDataset
+from ..storage.index_store import DriveIndexStore
 from ..storage.librarian import RawDataLibrarian
 from ..storage.manifest_folder import FingerprintingStore
 from ..storage.raw_store import AreaStore, RawFileStore, StoredCopyDamaged
@@ -23,14 +26,14 @@ from .gaps import GapLog
 from .index import NseIntegratedResultsIndex, NseLegacyResultsIndex, NseShareholdingIndex
 from .librarian import FilingsLibrarian
 from .manifest import FilingManifest
+from .progress import ProgressRecord
 from .results_table import ResultsTable
-from .runs import RunLog
 from .sources import NseAnnouncementsSource, NseBoardMeetingsSource, NseFilingFileSource
 
 FILINGS_MANIFEST_FOLDER = storage.MANIFEST_FOLDER / "filings"
 GAPS_FILE = FILINGS_MANIFEST_FOLDER / "gaps.csv"
-RUNS_FILE = FILINGS_MANIFEST_FOLDER / "runs.csv"
-BACKFILL_SINCE = date(2023, 10, 1)  # three years, from the first results of the September 2023 half-year on
+INDEX_AREA = "index"  # Drive area for files a job rewrites (progress, symbol map); never under `raw`
+SYMBOL_MAP_PATH = "nse/equities/filings/symbols.csv"
 NIFTY500_SNAPSHOT_DAY = date(2026, 10, 13)  # the archived Nifty 500 list the company list comes from (P6)
 DAY_LIST_SOURCES = (NseAnnouncementsSource, NseBoardMeetingsSource)
 DAY_LISTS = {s.dataset.rsplit("/", 1)[-1]: s for s in DAY_LIST_SOURCES}
@@ -67,15 +70,20 @@ def build_day_list_librarian(name: str, log=print) -> RawDataLibrarian:
 
 
 def build_companies() -> list[str]:
-    """The Nifty 500's symbols from the archived list in Drive, checked against its manifest's SHA-256. Read with the
-    owner sign-in when its settings are there (the scheduled job has them), else with the service account."""
+    """The Nifty 500's symbols from the archived list in Drive."""
+    return sorted(read_nifty500_list(_nifty500_list(), Nifty500ListSource.FILENAME))
+
+
+def _nifty500_list() -> bytes:
+    """The archived Nifty 500 list, checked against its manifest's SHA-256. Read with the owner sign-in when its
+    settings are there (the scheduled job has them), else with the service account."""
     path = Nifty500ListSource.path_for(NIFTY500_SNAPSHOT_DAY)
     reader = _owner_raw_area() if storage.build_owner_drive() else storage.build_drive_reader()
     data = reader.get(path)
     want = storage.build_manifest_folder().fingerprints(Nifty500ListSource).get(Nifty500ListSource.FILENAME)
     if data is None or hashlib.sha256(data).hexdigest() != want:
         raise StoredCopyDamaged(f"{path}: missing in Drive or not the manifest's SHA-256")
-    return sorted(read_nifty500_list(data, Nifty500ListSource.FILENAME))
+    return data
 
 
 def build_filings_coverage() -> FilingsCoverage:
@@ -91,5 +99,27 @@ def build_gap_log() -> GapLog:
     return GapLog(GAPS_FILE)
 
 
-def build_run_log() -> RunLog:
-    return RunLog(RUNS_FILE)
+def _index_area() -> DriveIndexStore:
+    drive = storage.build_owner_drive()
+    if drive is None:
+        raise RuntimeError(UPLOAD_SETTINGS_MISSING)
+    return DriveIndexStore(drive, INDEX_AREA)
+
+
+def build_progress() -> ProgressRecord:
+    """The work queue and what each step has finished, from the progress file in Drive's index area."""
+    return ProgressRecord(_index_area())
+
+
+def write_symbol_map() -> None:
+    """`index/nse/equities/filings/symbols.csv`: each company's symbol, ISIN and name from the archived Nifty 500
+    list, so a symbol NSE renames later still leads to its history (rewritten only when it changes)."""
+    rows = csv.DictReader(io.StringIO(_nifty500_list().decode("utf-8-sig")))
+    out = io.StringIO()
+    writer = csv.writer(out, lineterminator="\n")
+    writer.writerow(("symbol", "isin", "company_name", "source"))
+    source = Nifty500ListSource.path_for(NIFTY500_SNAPSHOT_DAY)
+    writer.writerows((r["Symbol"], r["ISIN Code"], r["Company Name"], source) for r in rows)
+    index, data = _index_area(), out.getvalue().encode()
+    if index.get(SYMBOL_MAP_PATH) != data:
+        index.replace(SYMBOL_MAP_PATH, data)

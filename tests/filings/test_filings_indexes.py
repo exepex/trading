@@ -55,4 +55,4 @@ def test_shareholding_list_reads_upper_case_months():
              "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/SHP_1.xml"}]  # fmt: skip
     (found,) = NseShareholdingIndex(lambda path, params: rows).filings("TCS", date(2023, 10, 1))
     assert found.kind == FILING_SHAREHOLDING and found.period_end == date(2026, 6, 30)
-    assert found.path == "nse/equities/filings/shareholding-xbrl/TCS/SHP_1.xml"
+    assert found.path == "nse/equities/filings/shareholding-xbrl/TCS/2026/SHP_1.xml"

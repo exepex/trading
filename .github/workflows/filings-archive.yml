@@ -1,20 +1,23 @@
 # Story A12: the company filings archive, run as a plain scheduled job (no AI session). Research data only: it reads
 # NSE's public filing lists and XBRL files (about one request per second per host) and saves them to the owner's
-# Google Drive; it never trades. Until the backfill is complete every run continues it (each stops itself after 5.5
-# hours and the next resumes); after that the archive check runs once a day and the day lists add yesterday.
+# Google Drive; it never trades. It follows the owner's work queue in the progress file in Drive (step 1: the Nifty
+# 500's last 3 years; step 2: older years), each run continuing where the last stopped; after that, a daily check.
 # Secrets: the owner adds them once (docs/stories/A12-owner-checklist.md); none is printed or written to a file.
 name: filings-archive
 
 on:
-  # schedule paused (13 Oct 2026) until the Drive layout gains the owner's <YYYY> level; restored with that change:
-  # schedule:
-  #   - cron: "17 */6 * * *" # every 6 hours; once complete, `--daily` makes three of the four runs a no-op
+  schedule:
+    - cron: "17 */6 * * *" # every 6 hours; after the backfill, three of the four runs find the daily check done
   workflow_dispatch:
     inputs:
       probe_only:
-        description: "Only check that NSE's filing lists answer from GitHub's runners (no Drive, no secrets)"
+        description: "Only check that NSE's filing lists answer from GitHub's runners (no Drive)"
         type: boolean
         default: false
+      symbols:
+        description: "Only these symbols (comma-separated), e.g. a trial; empty: the work queue"
+        type: string
+        default: ""
 
 permissions:
   contents: write # commits the manifest rows, gaps and run log (research/data/manifests/)
@@ -51,9 +54,11 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Results and shareholding XBRL (backfill, then daily)
         if: ${{ !inputs.probe_only }}
-        run: python -m fno filings archive --daily
+        env:
+          SYMBOLS: ${{ inputs.symbols }} # passed through the environment, never pasted into the shell line
+        run: python -m fno filings archive ${SYMBOLS:+--symbols "$SYMBOLS"}
       - name: Announcement and board-meeting day lists
-        if: ${{ !inputs.probe_only }}
+        if: ${{ !inputs.probe_only && !inputs.symbols }}
         run: python -m fno filings day-lists
       - name: Alert #fno-desk when the job itself failed
         if: ${{ failure() && !inputs.probe_only }}

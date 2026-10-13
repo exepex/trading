@@ -23,7 +23,7 @@ def test_saves_every_listed_file_with_its_manifest_row(tmp_path):
     host = FakeXbrlHost({"A.xml": results_xbrl(), "B.xml": results_xbrl(half_year=False)})
     report = run(tmp_path, index, host)
     assert report.complete and report.saved == 2
-    stored = tmp_path / "drive" / "nse/equities/filings/results-xbrl/TCS/A.xml"
+    stored = tmp_path / "drive" / "nse/equities/filings/results-xbrl/TCS/2025/A.xml"
     assert stored.read_bytes() == results_xbrl()
     rows = FilingManifest(tmp_path / "manifests").rows(FILING_RESULTS)
     row = rows["https://nsearchives.nseindia.com/corporate/xbrl/A.xml"]

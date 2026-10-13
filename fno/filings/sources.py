@@ -15,7 +15,7 @@ from ..storage.raw_source import NseArchiveSource
 
 NSE_XBRL_FOLDER = "https://nsearchives.nseindia.com/corporate/xbrl/"
 WEB_PAGE_STARTS = (b"<!doctype html", b"<html")
-DAY_LIST_FIRST_DAY = date(2023, 10, 13)  # three years before the archive started (owner decision, 13 Oct 2026)
+DAY_LIST_FIRST_DAY = date(2005, 1, 1)  # NSE answers these lists from 2005 (measured); the queue decides the order
 
 
 class NseFilingFileSource(NseArchiveSource):

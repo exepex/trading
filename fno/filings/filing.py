@@ -28,7 +28,7 @@ class Filing:
 
     @property
     def path(self) -> str:
-        return filing_path(self.kind, self.symbol, self.filename)
+        return filing_path(self.kind, self.symbol, self.period_end.year, self.filename)
 
 
 def company_folder(kind: str, symbol: str) -> str:
@@ -36,9 +36,10 @@ def company_folder(kind: str, symbol: str) -> str:
     return f"{NSE_FILINGS_FOLDER}/{kind}/{symbol}"
 
 
-def filing_path(kind: str, symbol: str, filename: str) -> str:
-    """`<company folder>/<original file name>`: NSE's own file name kept."""
-    return f"{company_folder(kind, symbol)}/{filename}"
+def filing_path(kind: str, symbol: str, year: int, filename: str) -> str:
+    """`<company folder>/<YYYY>/<original file name>`: the year of the period the filing reports (so a revision lands
+    beside its original), NSE's own file name kept (owner's layout, 13 Oct 2026)."""
+    return f"{company_folder(kind, symbol)}/{year}/{filename}"
 
 
 @dataclass(frozen=True)

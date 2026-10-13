@@ -29,10 +29,11 @@ sent in chat.
    needed unless a branch rule on `main` blocks pushes by GitHub Actions (*Settings* → *Rules* or *Branches*). If one
    does, allow `github-actions[bot]` to push to `main`; otherwise each run's rows are not committed and the next run
    fetches those files again (a waste, never a loss: Drive refuses duplicates).
-4. [x] **Start it.** Started by the builder on 13 Oct 2026 (*Actions* → *filings-archive* → *Run workflow*, "probe
-   only" unticked, starts it again any time). A run archives about 300 companies in its 5.5 hours (measured 63 s per
-   company); the schedule continues every 6 hours, so the backfill should finish in the second run. Progress:
-   `research/data/manifests/filings/runs.csv` (one row per run) and the job log.
+4. [x] **Start it.** First a 20-company trial run by the builder (13 Oct 2026), then the schedule (*Actions* → *filings-archive* → *Run workflow*, "probe
+   only" unticked, starts it again any time). A run archives about 240 companies in its 4.3 hours (measured 63 s per
+   company); the schedule continues every 6 hours. Progress: the file `index/nse/equities/filings/progress.json` in
+   the Drive project folder (work queue, companies done per step, last runs with files and bytes), the one line each
+   run posts to #fno-desk, and the job log.
 5. [ ] **Check after a day.** `python -m fno data-coverage --filings` (any machine with the Drive read settings)
    prints, per filing type, companies covered of 501, files, damaged, unfingerprinted and every gap with its reason,
    and the half-year balance-sheet and cash-flow share.
