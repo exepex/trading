@@ -54,13 +54,13 @@ def test_day_lists_resume_at_the_first_day_without_a_manifest_row(tmp_path):
     from fno.storage.manifest_folder import Fingerprint, ManifestFolder
 
     manifests, source = ManifestFolder(tmp_path), NseAnnouncementsSource
-    first = source.first_day
-    assert first_unarchived_day(source, date(2026, 10, 12), manifests) == first
+    first = date(2023, 10, 13)
+    assert first_unarchived_day(source, date(2026, 10, 12), manifests, first) == first
     days = [first, date(2023, 10, 14), date(2023, 10, 16)]
     for day in days:
         manifests.record(source, Fingerprint.of(source, source.path_for(day), b"[]"))
-    assert first_unarchived_day(source, date(2026, 10, 12), manifests) == date(2023, 10, 15)
-    assert first_unarchived_day(source, date(2023, 10, 14), manifests) == date(2023, 10, 15)  # all done: end + 1
+    assert first_unarchived_day(source, date(2026, 10, 12), manifests, first) == date(2023, 10, 15)
+    assert first_unarchived_day(source, date(2023, 10, 14), manifests, first) == date(2023, 10, 15)  # all done: end + 1
 
 
 def test_nse_not_found_web_page_served_with_200_is_not_published():

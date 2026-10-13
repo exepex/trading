@@ -64,6 +64,12 @@ def _timed(row: dict) -> bool:
     return bool(nse_time(row.get("broadCastDate")) or nse_time(row.get("exchdisstime")))
 
 
+def _placeable(row: dict) -> bool:
+    """Rows before about 2008 may have neither a time nor an XBRL file: nothing to archive and no moment to place
+    them at, so they are left out (rows with an XBRL file always have a time; one without would fail loudly)."""
+    return _timed(row) or bool(nse_time(row.get("filingDate"))) or bool(xbrl_link(row.get("xbrl")))
+
+
 class FilingIndex(ABC):
     name: str = "index"
     kind: str = ""  # FILING_RESULTS or FILING_SHAREHOLDING
@@ -83,7 +89,7 @@ class NseLegacyResultsIndex(FilingIndex):
 
     def filings(self, symbol: str, since: date) -> list[Filing]:
         rows = self.get_json(NSE_LEGACY_RESULTS, {"index": "equities", "symbol": symbol, "period": "Quarterly"})
-        recent = [r for r in rows or [] if nse_day(r["toDate"]) >= since - OLDEST_LATE_FILING]  # older rows lack times
+        recent = [r for r in rows or [] if nse_day(r["toDate"]) >= since - OLDEST_LATE_FILING and _placeable(r)]
         found = (self._filing(symbol, row) for row in recent)
         return [f for f in found if f.filed_at.date() >= since]
 

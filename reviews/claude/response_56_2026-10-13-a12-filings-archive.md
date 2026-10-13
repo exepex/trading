@@ -1,7 +1,9 @@
 # Response 56: story A12, company filings archive (sample first, then the builder's claims)
 
-**Status: built, tested, real 2-company run in Drive; the full backfill is running in GitHub Actions (started 13 Oct
-2026). Awaiting the judge.** Builder: Claude. Story: `docs/stories/A-data-foundation.md#a12`, issue exepex/trading#87.
+**Status: built and tested; queue steps 1 and 2 built, step 3 (past members) NOT built (part 5). The backfill is
+not running yet: the first GitHub run failed on a bug (fixed), the second was cancelled for the layout change, and the
+20-company trial run 38415612862 is the first real run from GitHub (result in part 5); the 6-hour schedule is restored
+and takes over after it. Awaiting the judge.** Builder: Claude. Story: `docs/stories/A-data-foundation.md#a12`, issue exepex/trading#87.
 Research data only: nothing here places, changes or cancels an order.
 
 ## Part 1. The measured sample (20 Nifty 500 companies, 13 Oct 2026)
@@ -131,7 +133,7 @@ requests (35 minutes) plus the new filings.
   SHA-256, Drive's MD5, size, balance sheet yes/no, cash flow yes/no) is appended in the same operation to
   `research/data/manifests/filings/<type>.csv`; a different SHA-256 for a known link is refused.
 - `librarian.py`: resumable (only links without a row are fetched), stops at its deadline or at once when NSE refuses
-  us, records gaps with reasons (`gaps.csv`) and failures; `runs.csv` logs each run.
+  us, records gaps with reasons (`gaps.csv`) and failures; the progress record in Drive (part 5) logs each run.
 - `xbrl.py` + `results_parser.py`: revenue (banks: total income), profit before tax, net profit, EPS, total debt,
   cash, total assets, equity (banks: capital plus reserves), operating, investing and financing cash flow, with the
   cash-flow months. `results_table.py`: the point-in-time table, read only from Drive, checking each file's SHA-256.
@@ -146,11 +148,10 @@ requests (35 minutes) plus the new filings.
 1. **Sample report: done.** Part 1 above: counts, sizes and earliest dates per filing type for 20 companies across 18
    industries, with the projection in GB and hours (strong evidence: measured).
 2. **Full backfill in Drive: running, not yet complete. Built and proven on 2 companies.**
-   Real run on 13 Oct 2026 (IRCTC, POLYCAB): 74 XBRL files saved to Drive in 2 min 7 s, manifest rows committed and
-   pushed by the run itself (commits `788e583`, `1dc1395`). The full backfill (about 10 hours) does not fit one short
-   run here, so it is left to the workflow, as instructed; the repository secrets were already there, so I started
-   the workflow (its runs then continue every 6 hours). The judge checks this criterion once `runs.csv` shows a
-   complete run over 501 companies. `data-coverage --filings` prints per type: companies
+   Real run on 13 Oct 2026 (IRCTC, POLYCAB, before the year folders): 74 XBRL files saved to Drive in 2 min 7 s,
+   manifest rows committed and pushed by the run itself (commits `788e583`, `1dc1395`). The full backfill does not
+   fit one short run here, so it is left to the workflow, as instructed; the trial run from GitHub is in part 5. The
+   judge checks this criterion once the progress record in Drive shows step 1 finished. `data-coverage --filings` prints per type: companies
    covered of 501, files, present, damaged, unfingerprinted, gaps, and every quarter without a file with its reason
    (tests: `tests/filings/test_filings_coverage.py`, including a changed copy reported damaged and a planted file
    reported unfingerprinted).
@@ -162,8 +163,8 @@ requests (35 minutes) plus the new filings.
    a planted burst of 10 requests on each NSE host to at least 1 second apart (test). Resume: a run stopped by its
    deadline, restarted, fetches only what was missing (test), and on real data the second IRCTC/POLYCAB run fetched
    nothing (10.8 s, 0 saved, 74 already there).
-5. **Runs without AI: done, except one owner step.** The workflow runs every 6 hours (`--daily` makes it one full check a
-   day once a complete run exists over the whole list), commits its rows, and alerts #fno-desk on a refused sign-in,
+5. **Runs without AI: done, except one owner step.** The workflow runs every 6 hours, follows the work queue in
+   the progress record (one daily check after the backfill), commits its rows, posts one line per run, and alerts #fno-desk on a refused sign-in,
    NSE refusing us, a failed list or file, or a failed job. The owner's one-time steps are the checklist
    `docs/stories/A12-owner-checklist.md`: the five secrets were already set (the probe run's log shows each as set,
    never its value), and the run is started. **Still open for the owner: publish the Google OAuth app** if it is in
@@ -191,14 +192,85 @@ requests (35 minutes) plus the new filings.
   `DUMMYHEG`, which shows as a gap "no filings"). Companies that left the index during the 3 years are not included
   (survivorship: fine for an archive, not for a backtest universe; the statistician should note it).
 
-- **Two differences from what the owner was told in chat (13 Oct afternoon):** (a) the Drive layout is
-  `raw/nse/equities/filings/<type>/<SYMBOL>/<file>`, without a `<YYYY>` level: about 38 files per company folder, so
-  one Drive listing checks a whole company and nothing is gained by a year level; the filing date is in the manifest
-  (`filed_at`). Changing it now would leave the 74 files already uploaded in old folders (nothing in Drive is ever
-  deleted), so I ask before changing it. (b) The progress record is `research/data/manifests/filings/runs.csv` in
-  GitHub (committed each run), not a file in Drive: the manifests the coverage check reads live there too. Each run
-  that does work posts one line to #fno-desk (companies checked, files saved, gaps, complete or continuing, or the
-  problem).
+- The layout and the progress record now follow the owner's addendum (part 5).
+
+## Part 5. The owner's addendum (13 Oct 2026): what changed, what is measured, where I disagree
+
+The orchestrator's six messages reached this session late, after the first full run had started. I cancelled that
+run (run 38413023134, cancelled after its NSE probe passed on the runner) and paused the schedule, because the folder
+layout was about to change and nothing in Drive is ever deleted. It had uploaded one company (360ONE, 18 files) in
+the old layout. With my 74 trial files that makes **92 files outside the year layout**. They are kept (never
+deleted) and listed with path and Drive's MD5 in `research/data/manifests/filings/outside-layout.csv`; their earlier
+SHA-256 and `filed_at` rows are in git history (commit `1dc1395`). Coverage counts them on a separate line; no reader
+uses them, and the year layout holds its own copy of each.
+
+**Done as asked**
+- Layout `raw/nse/equities/filings/<category>/<SYMBOL>/<YYYY>/<file>` (YYYY = year of the period reported, so a
+  revision sits beside its original). Coverage walks the year folders.
+- Progress record in Drive (`index/nse/equities/filings/progress.json`): the work queue, the companies each step has
+  finished, totals, and the last 120 runs with files, bytes, gaps and failures. Each run reads it and starts with the
+  companies not yet finished; a company counts as finished only after its manifest rows are committed. `runs.csv` is
+  gone from GitHub.
+- Symbol, ISIN and name map in Drive (`index/nse/equities/filings/symbols.csv`).
+- Queue: step 1 (last 3 years), then step 2 (older years), then a daily check; schedule every 6 hours; one
+  `concurrency` group; `workflow_dispatch` with a `symbols` input for trials.
+- One line per run to #fno-desk: step, companies done of 501, this run's files and GB, failures, archive totals.
+- First real run: a manual dispatch over the 20 sample companies (result below).
+
+**Where I did not follow the message, and why (please decide)**
+1. *Index files under `raw/`*: put in their own Drive area, `index/`, instead. Raw files never change (A1, and the
+   storage README's rule "each kind of file has its own area"); a progress file changes every run.
+2. *Announcements as one file per company per day*: kept as one all-company file per day. Per company would be 501
+   requests a day instead of 1 (the per-day list was checked complete: every TCS announcement of the sampled days is
+   in it, from 00:33 to 23:32), and the raw file stays NSE's exact answer. A per-company split is a derived table
+   (`derived/filings/...`) when a rule needs it.
+3. *Manifests out of GitHub*: the SHA-256 manifests (with `filed_at`) stay in `research/data/manifests/filings/`.
+   They cannot be rebuilt from Drive's listing: Drive gives an MD5, not the SHA-256, and not `filed_at`, which comes
+   from NSE's lists, and those lists drop an original once it is revised (finding 3). Losing them loses the
+   point-in-time record. A10 also made the repository the only place manifests live (one code path, judged). Cost:
+   one commit per run. Only the progress record moved to Drive.
+
+**Measured for the full target (13 Oct 2026; 20-company sample plus extra probes)**
+
+| What | Finding (strong evidence unless marked) |
+|---|---|
+| Results XBRL, older years | NSE's lists reach 2005, but **XBRL files start in 2018** (TCS, SBIN: every row before 2018 has no XBRL). 35.4 more files per company for 2018 to mid-2023, 40-73 KB each |
+| Shareholding XBRL, older | NSE's list holds only the **latest 20 quarters** (TCS: June 2022 on); a date range or page 2 gives nothing more |
+| Announcement and board-meeting lists | answer back to **2005** (5 Jan 2005: 42 announcements, 5 board meetings; 2010: 81; 2020: 272) |
+| Annual reports (PDF) | NSE lists them from 2009 (TCS, SBIN, DLF: 16-17 years); the latest are 16.6-28.6 MB each |
+| Announcement attachments (PDF) | TCS: 580 attachments, 265 MB in 3 years; all companies on 9 Oct 2025: 768 MB in one day |
+
+| Queue step | Files | Size | Time at 1 request/s (with uploads) |
+|---|---|---|---|
+| 1. Nifty 500, last 3 years (numbers) | about 21,300 | about 6.2 GB | about 10 h |
+| 2. Nifty 500, older years (XBRL 2018 to 2023, lists 2005 to 2023) | about 33,900 | about 2.3 GB | about 13 h |
+| **Today's Nifty 500, all history, numbers only** | **about 55,000** | **about 8.5 GB** | **about 23 h (4 runs, about 1.5 days)** |
+| 3. Past members (reasoning only, see below) | | about 2-5 GB | about 5-15 h |
+| PDFs, if wanted: annual reports, 3 years / all years | | about 33 GB / 100-190 GB | |
+| PDFs, if wanted: announcement attachments, Nifty 500, 3 years | | about 50-130 GB (some evidence: one company and one day) | |
+
+Everything numbers-only stays far under the 150 GB stop line, so no stop. PDFs for 3 years (about 80-160 GB) would
+fit the 400 GB Drive; all years of both would not.
+
+**Step 3, past Nifty 500 members: not built, proposed as its own story.** The source is NSE Indices' press releases
+(`niftyindices.com/Press_Release/ind_prsDDMMYYYY.pdf`, reachable from here). The 23 Feb 2026 review alone excluded 31
+companies and added 31. There is no index page: finding every release means trying each date's file name (about
+7,500 dates since 2005, about 2 hours at 1 per second), then reading each PDF's Nifty 500 table, plus ad hoc
+replacements between reviews (a December 2025 release swapped one company). Reasoning only: about 30 changes per
+review, so about 180 extra companies for 3 years and perhaps 600-900 since 2005. Two unknowns need measuring first:
+how complete the old releases are, and whether NSE's per-company filing lists still answer for delisted or renamed
+symbols. Building this inside A12 would double its size, so I propose story A13 (membership history, point in time),
+after which step 3 is one more queue entry. Not silently filled.
+
+**Progress record:** the orchestrator first asked for it in Drive, later accepted GitHub. It is built in Drive
+(`index/.../progress.json`), so GitHub gets commits only when a run wrote manifest rows (the recorder commits nothing
+when nothing changed). Moving it back is one class swap if preferred.
+
+**For O6 (shared pipeline layer, #88), stable interfaces it can reuse:** `FilingsReport` (counts, bytes, gaps,
+failures, `finished`) as a run report; `ProgressRecord` (work queue, finished companies, run history) on any
+`IndexFileStore`; `IndexFileStore`/`DriveIndexStore` for rewritable files; `run_line()` for the one-line message;
+`FilingManifest` rows as the processed record; `ResultsTable.as_of` as the reader a routine would call. No trigger
+is built here.
 
 ## Desk view (short)
 

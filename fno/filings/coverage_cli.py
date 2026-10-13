@@ -25,6 +25,11 @@ def filings_coverage_lines(results: list[KindCoverage], shares: dict) -> list[st
         lines += [f"unfingerprinted {r.kind} {line}" for line in r.unfingerprinted[:SHOWN]]
         lines += [f"gap {g.kind} {g.symbol}: {g.reason}" for g in r.gaps]
         lines += [f"no file {line}" for line in r.missing_periods]
+        if r.outside_layout:
+            lines.append(
+                f"{r.kind}: {len(r.outside_layout)} files outside the year layout (trial run of 13 Oct 2026, before "
+                "the owner's year folders; not used by any reader, safe for the owner to delete by hand)"
+            )
     for end, (share, misses) in shares.items():
         below = "" if share >= HALF_YEAR_TARGET else f" (below {HALF_YEAR_TARGET:.0%})"
         lines.append(f"half-year {end}: balance sheet and cash flow for {share:.1%} of companies{below}")

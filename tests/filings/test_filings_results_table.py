@@ -35,6 +35,6 @@ def test_other_companies_and_standalone_rows_are_separate(table):
 
 
 def test_a_changed_copy_in_the_store_is_refused(tmp_path, table):
-    (tmp_path / "drive/nse/equities/filings/results-xbrl/TCS/REVISED.xml").write_bytes(ORIGINAL)
+    (tmp_path / "drive/nse/equities/filings/results-xbrl/TCS/2025/REVISED.xml").write_bytes(ORIGINAL)
     with pytest.raises(StoredCopyDamaged):
         table.as_of("TCS", at(21))

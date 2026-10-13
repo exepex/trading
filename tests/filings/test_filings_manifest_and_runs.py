@@ -7,8 +7,9 @@ from fno.filings.filing import FilingGap
 from fno.filings.gaps import GapLog
 from fno.filings.librarian import FilingsReport
 from fno.filings.manifest import ArchivedFiling, FilingManifest
-from fno.filings.runs import RunLog
+from fno.filings.progress import QUEUE, ProgressRecord
 from fno.models import IST
+from fno.storage.index_store import LocalIndexStore
 from fno.storage.raw_store import RawFileConflict
 from tests.filings.fakes import at, filing
 
@@ -37,22 +38,40 @@ def test_gap_log_replaces_only_the_companies_checked(tmp_path):
     assert log.read() == [FilingGap("B", "results-xbrl", "y")]
 
 
-def test_run_log_knows_the_last_complete_run(tmp_path):
-    runs = RunLog(tmp_path / "runs.csv")
-    assert runs.last_complete(2) is None
-    runs.append(SEEN, SEEN.replace(hour=10), FilingsReport(companies=2, checked=["A", "B"]))
-    runs.append(SEEN, SEEN.replace(hour=11), FilingsReport(companies=2, checked=["A"]))  # incomplete
-    runs.append(SEEN, SEEN.replace(hour=12), FilingsReport(companies=1, checked=["A"]))  # a trial over one symbol
-    assert runs.last_complete(2) == SEEN.replace(hour=10)
+def test_progress_follows_the_queue_and_resumes_from_drive(tmp_path):
+    store = LocalIndexStore(tmp_path)
+    progress = ProgressRecord(store)
+    first, second = QUEUE
+    assert progress.step() == first and progress.since(first, SEEN.date()).isoformat() == "2023-10-01"
+    progress.finish_companies(first, ["A"])
+    progress.finish_step_if_done(first, ["A", "B"])
+    progress.record_run(first, SEEN, SEEN, FilingsReport(companies=2, checked=["A"]))
+    progress.save({"files": 1, "bytes": 10})
+    again = ProgressRecord(store)  # the next run reads the record back
+    assert again.remaining(first, ["A", "B"]) == ["B"] and again.step() == first
+    again.finish_companies(first, ["B"])
+    again.finish_step_if_done(first, ["A", "B"])
+    assert again.step() == second and again.remaining(second, ["A", "B"]) == ["A", "B"]
+    again.finish_companies(second, ["A", "B"])
+    again.finish_step_if_done(second, ["A", "B"])
+    assert again.step() is None and again.since(None, SEEN.date()) < SEEN.date()  # daily: a year of lists
+    assert again.last_daily_run() is None
+    again.record_run(None, SEEN, SEEN, FilingsReport(companies=2, checked=["A", "B"]))
+    assert again.last_daily_run() == SEEN
 
 
-def test_one_line_run_report_names_progress_or_the_problem():
-    from fno.filings.runs_cli import _problem, _run_line
+def test_one_line_run_report_names_progress_or_the_problem(tmp_path):
+    from fno.filings.runs_cli import problem_of, run_line
 
-    stopped = FilingsReport(companies=501, checked=["A"] * 300, saved=11000, stopped="deadline reached")
-    assert _problem(stopped) == ""  # the time limit needs nobody
-    assert _run_line(stopped, "").endswith(
-        "300 of 501 companies checked, 11000 files saved, 0 gaps with reasons; continues in the next run"
+    progress, step = ProgressRecord(LocalIndexStore(tmp_path)), QUEUE[0]
+    progress.finish_companies(step, ["A"] * 1)
+    stopped = FilingsReport(companies=2, checked=["A"], saved=10, bytes_saved=2_000_000_000, stopped="deadline")
+    assert problem_of(stopped, "manifest rows committed and pushed (1 file(s))") == ""
+    line = run_line(step, progress, ["A", "B"], stopped, {"files": 12, "bytes": 3_000_000_000}, "")
+    assert line == (
+        "Omenix F&O filings archive, step 1 last 3 years: 1 of 2 companies done; this run 10 files, 2.00 GB, "
+        "0 failures; archive 12 files, 3.00 GB"
     )
-    failed = FilingsReport(companies=2, checked=["A", "B"], failures=["A: NSE results list not read: timeout"])
-    assert "A: NSE results list not read" in _run_line(failed, _problem(failed))
+    failed = FilingsReport(companies=2, checked=["A"], failures=["A: NSE results list not read: timeout"])
+    assert "NSE results list not read" in problem_of(failed, "manifest rows: nothing new to commit")
+    assert problem_of(stopped, "manifest rows NOT committed: push failed: x").startswith("manifest rows NOT")

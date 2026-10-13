@@ -40,6 +40,7 @@ class KindCoverage:
     unfingerprinted: list[str] = field(default_factory=list)
     gaps: list[FilingGap] = field(default_factory=list)
     missing_periods: list[str] = field(default_factory=list)  # "SYMBOL: reason", explained, not damage
+    outside_layout: list[str] = field(default_factory=list)  # files directly in a company folder (trial, 13 Oct 2026)
 
     @property
     def ok(self) -> bool:
@@ -74,8 +75,12 @@ class FilingsCoverage:
         return result
 
     def _check_folder(self, kind: str, symbol: str, rows: list[ArchivedFiling], result: KindCoverage) -> None:
-        held = self.store.checksums(company_folder(kind, symbol))
-        listed = {r.filing.filename: r.md5 for r in rows}
+        folder = company_folder(kind, symbol)
+        result.outside_layout += [f"{symbol}/{name}" for name in self.store.checksums(folder)]
+        held = {}
+        for year in self.store.folders(folder):
+            held.update({f"{year}/{name}": md5 for name, md5 in self.store.checksums(f"{folder}/{year}").items()})
+        listed = {f"{r.filing.period_end.year}/{r.filing.filename}": r.md5 for r in rows}
         for name, md5 in listed.items():
             if held.get(name) == md5:
                 result.present += 1

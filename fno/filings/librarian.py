@@ -24,7 +24,7 @@ from .filing import Filing, FilingGap
 from .index import FilingIndex
 
 NO_FILINGS = "NSE lists no {kind} filing made public since {since}"
-NO_FILE = "NSE lists the {period} filing with no XBRL file"
+NO_FILE = "NSE lists {count} filing(s) with no XBRL file (periods {first} to {last})"
 NOT_SERVED = "NSE's link for the {period} filing answers 'not found': {url}"
 UNEXPECTED_LINK = "NSE's link for the {period} filing is outside its XBRL folder: {url}"
 LIST_ERRORS = (requests.RequestException, RuntimeError, ValueError, KeyError, TypeError)
@@ -35,10 +35,17 @@ class FilingsReport:
     companies: int = 0
     checked: list[str] = field(default_factory=list)
     saved: int = 0
+    bytes_saved: int = 0
     present: int = 0
     gaps: list[FilingGap] = field(default_factory=list)
     failures: list[str] = field(default_factory=list)
+    failed: set[str] = field(default_factory=set)  # companies with a failure: not finished, the next run retries
     stopped: str = ""  # why the run stopped before checking every company ("" when it did not)
+
+    @property
+    def finished(self) -> list[str]:
+        """Companies checked without a failure: their step needs nothing more from them."""
+        return [s for s in self.checked if s not in self.failed]
 
     @property
     def complete(self) -> bool:
@@ -71,6 +78,7 @@ class FilingsLibrarian:
         return report
 
     def _company(self, symbol: str, since: date, deadline: datetime, report: FilingsReport) -> None:
+        without_file: dict[str, list[date]] = {}
         for index in self.indexes:
             try:
                 filings = index.filings(symbol, since)
@@ -78,11 +86,18 @@ class FilingsLibrarian:
                 raise
             except LIST_ERRORS as exc:
                 report.failures.append(f"{symbol}: {index.name} not read: {exc}")
+                report.failed.add(symbol)
                 continue
             for filing in filings:
                 if self.clock() >= deadline:
                     return  # not marked as checked: the next run reads this company again
-                self._filing(filing, report)
+                if filing.url:
+                    self._filing(filing, report)
+                else:
+                    without_file.setdefault(filing.kind, []).append(filing.period_end)
+        for kind, periods in sorted(without_file.items()):
+            reason = NO_FILE.format(count=len(periods), first=min(periods), last=max(periods))
+            report.gaps.append(FilingGap(symbol, kind, reason))
         for kind in sorted({i.kind for i in self.indexes}):
             if not self.archive.has_any(symbol, kind, since):
                 report.gaps.append(FilingGap(symbol, kind, NO_FILINGS.format(kind=kind, since=since)))
@@ -101,6 +116,7 @@ class FilingsLibrarian:
             data = self.source.fetch(filing.path)
         except requests.HTTPError as exc:
             report.failures.append(f"{filing.symbol} {filing.filename}: NSE answered {exc}")
+            report.failed.add(filing.symbol)
             return
         if data is None:
             report.gaps.append(FilingGap(filing.symbol, filing.kind, NOT_SERVED.format(period=period, url=filing.url)))
@@ -109,12 +125,12 @@ class FilingsLibrarian:
             self.archive.save(filing, data)
         except (ValueError, RawFileConflict) as exc:  # not XBRL, or a different file already at that path
             report.failures.append(f"{filing.symbol} {filing.filename}: not saved: {exc}")
+            report.failed.add(filing.symbol)
             return
         report.saved += 1
+        report.bytes_saved += len(data)
 
     def _gap(self, filing: Filing, period: str) -> str:
-        if not filing.url:
-            return NO_FILE.format(period=period)
         if self.source.url_for(filing.path) != filing.url:
             return UNEXPECTED_LINK.format(period=period, url=filing.url)
         return ""
