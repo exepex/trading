@@ -91,3 +91,41 @@ before the week ends, for example the SHA-256 of the first commit on `main` afte
 capture receipt of the week, recorded beside the draw. Anyone can still redraw it.
 
 **Verdict now:** the fire and collection side is ready for today. The scoring side is NOT MET until G4 reads the gate.
+
+## Addendum 2 (G4 reader through F1's gate, 22ace2f with 44090c1 and 904c036; weekly audit seed, 0688ad5)
+
+**1. A breach is now unscored in G4: MET (the must-fix is closed).** `fno/forecast_scoring/ai_sources.py` now calls
+`fno.ai.scoring_gate.scoring_status(root, day, book)` for every AI book-day. I ran my scenario from addendum 1 through
+G4's real reader:
+- **Before any audit:** nothing scored; both book-days are `pending` ("transcript audit due") and listed apart.
+- **After the audits:** a `read_other_records` breach recorded for Hybrid and a clean audit for the AI team. Hybrid's
+  day is `unscored` ("transcript breach: read_other_records") and the AI team's is scored.
+
+Coverage counts only scored forecasts, so pending and unscored days count as not covered. The report lists
+`unscored_ai_days` and `pending_ai_days` separately. `tests/ai` and `tests/forecast_scoring`: 78 passed.
+
+**2. The weekly audit seed: MET for "not known in advance" and "deterministic"; one should-fix on tampering.**
+- **The seed** is the SHA-256 of the week label, its last session's date and that session's official NIFTY 50 close,
+  as the text stands in `warmup_closes.csv`.
+- **Timing:** a week gets a seed only when a later week's close is in the file. My plant, giving the newest week a
+  seed as well, is caught.
+- **Determinism:** the seed is a pure function of the file's text. Each draw is recorded once in
+  `ai_v1/draws/<week>.json` with its seed inputs, so anyone can redraw it.
+- **Content:** my plant, a seed from the week label alone, is caught (1 failed).
+
+**Can a routine or builder push influence it? Yes, though only visibly (should fix, reasoning only).**
+- The draw is recorded by `ai audits-due` in the capture job at about 15:20 IST.
+- That is after the next week's first routine sessions have run with push access to `main` (from about 15:11).
+- On that Monday, the week's last close (Friday's) is already final and public in `warmup_closes.csv`. A routine,
+  or anyone with push rights, could push an edited Friday close before 15:20. That would set the seed to a value of
+  their choice and steer the draw away from a session.
+- It would show in git history and is a breach under condition 1. But nothing checks it, and the transcript audit it
+  would dodge is the very check that would catch it.
+- **Fix (either):**
+  - record the week's draw in O6's `index-closes` job, in the same run that appends the close completing the week
+    (no AI session runs in between);
+  - or have `record_draws` verify the seed close against the archived NSE index file's own value (the row carries
+    `index_sha256`).
+
+  Today no draw exists yet: the first 10 days are all audited. So this is not urgent, but it must land before the first
+  weekly draw, about 10 session days from 14 Oct.
