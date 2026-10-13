@@ -589,7 +589,7 @@ examples from its data.json, catalog rows (publisher exepex/trading), India only
 **Acceptance criteria:** W11's criteria 1-6 applied to 32 (one fixture per shared endpoint, US absence by schema,
 coverage on history-dependent fields, additive-only changes, checks green).
 
-**Depends:** W11, owner sign-off of 32 · **Size:** M · **Status:** doing
+**Depends:** W11, owner sign-off of 32 · **Size:** M · **Status:** done: judge 38 PASS (13 Oct 2026); minors in progress
 
 ---
 
