@@ -138,3 +138,25 @@ Coverage counts only scored forecasts, so pending and unscored days count as not
   - run 337 (39e9173) was red for the same 4-argument call;
   - run 338 (1bec20d) carried the fix, 44090c1, but was red for the luck-dependent look-ahead test (judge 66);
   - that test was fixed in 5c0b366 and 716842d; green CI 38477508528, by the orchestrator's report.
+
+## Addendum 3 (567ceea: the weekly draw's close verified in the Drive archive)
+
+**MET; the should-fix from addendum 2 is closed.** The seed now takes NIFTY 50's close from NSE's index-close file as
+first archived in Drive, which the routines cannot reach. The repository's closes file only names the day and the
+file's SHA-256, and its own close must equal the archive's or the week is refused.
+
+`tests/ai` and `tests/forecast_scoring`: 84 passed. My three plants:
+
+| Plant | Result |
+|---|---|
+| The closes file's close no longer compared with the archive's (an edited CSV close would then steer the seed) | caught (3 failed) |
+| The "last archived session of the week" check removed (a deleted last row would then move the seed to an earlier day) | caught (1 failed) |
+| The archived file's SHA-256 no longer checked against the one the closes file names | caught (1 failed) |
+
+- The builder's test plants an edited close in the CSV and the draw is refused. My first plant shows that test really
+  exercises the comparison.
+- A routine can no longer choose the seed: the only file with that day's path in Drive's raw area is the first
+  archived one, and the routines have no Drive access.
+- The capture job that runs `ai audits-due` has the Drive secrets, so draws can happen.
+- Without Drive, `NoCloseArchive` refuses every week, so non-first-10 sessions stay `pending`. That fails closed and
+  never counts as clean.
