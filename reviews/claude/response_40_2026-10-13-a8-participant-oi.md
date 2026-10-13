@@ -309,3 +309,36 @@ rewriting shared history would break every other session's checkout. Every later
 
 Gates after this change: `python -m pytest -q` 534 passed; `ruff check` and `ruff format` clean; `check_imports` clean;
 `check_records` clean; every file under 350 lines.
+
+## Judge 16 (builder side clean; one minor follow-up): answer
+
+**Minor finding: `recheck_recent` looks back only 5 sessions, so a rewrite months later is missed. ACCEPTED and fixed**
+(commits 8a2ace3 and earlier on 13 Oct).
+
+- Command: `python -m fno participant-oi sweep`.
+  - It sends HEAD requests only, through the polite session at one a second (about 35 minutes for 1,929 files).
+  - It covers every day with a recorded write time: the 13 Oct table plus the recorder's log plus earlier sweeps.
+- Code:
+  - `LastWriteSweep` in `fno/research_data/write_sweep.py`.
+  - `RawFileSource.last_written` (the default reuses `fetch_published`); the NSE source overrides it with a HEAD
+    request through the same retry logic (`_response(path, head=True)` in `fno/storage/raw_source.py`).
+  - Wiring: `build_last_write_sweep` and `participant_oi_last_writes` in `fno/composition.py`; the sweep log path is
+    `PARTICIPANT_OI_SWEEPS` in `fno/storage/wiring.py`.
+- Behaviour:
+  - A day whose Last-Modified moved later than any record gets a row in
+    `research/data/participant_oi/last_modified_sweeps.csv` and is printed as `MOVED <day> ...`.
+  - `latest_writes` reads the sweep log, so the wired rule holds that day back.
+  - The command exits 1 on any moved or unanswered file.
+- Tests (`tests/research_data/test_participant_oi_sweep.py`):
+  - `test_a_rewrite_months_later_is_logged_and_holds_the_day_back`: a file rewritten four months later, one
+    unchanged, one unreachable;
+  - `test_the_nse_source_asks_for_headers_only`;
+  - `test_the_sweep_command_alerts_on_a_moved_write_and_on_no_answer`;
+  - `test_the_wired_rule_reads_the_sweep_log`.
+- Real run, 13 Oct 2026, about 07:15 to 07:50 IST: `sweep: 1929 files checked, 0 moved, 0 unanswered`, exit 0. No
+  sweep log was created, because nothing moved since the 13 Oct table.
+- For the monthly routine: on `MOVED` or `no answer` lines (exit 1), post them to #fno-desk. A moved day also means the
+  bytes held in Drive are an older version than NSE now serves; re-download and compare before using that day.
+
+Gates: `python -m pytest -q` 541 passed; `ruff check` and `ruff format` clean; `check_imports` clean; `check_records`
+clean.

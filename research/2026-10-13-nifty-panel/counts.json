@@ -2,44 +2,60 @@
  "days_checked": 1928,
  "per_year": {
   "2019": {
-   "bytes": 7847437,
-   "rows": 773364,
-   "sessions": 245
+   "futures_bytes": 12682,
+   "futures_rows": 735,
+   "options_bytes": 7896561,
+   "options_rows": 773364,
+   "sessions_ok": 245
   },
   "2020": {
-   "bytes": 7784181,
-   "rows": 736996,
-   "sessions": 252
+   "futures_bytes": 13284,
+   "futures_rows": 756,
+   "options_bytes": 7830681,
+   "options_rows": 736996,
+   "sessions_ok": 252
   },
   "2021": {
-   "bytes": 5674148,
-   "rows": 510565,
-   "sessions": 247
+   "futures_bytes": 12814,
+   "futures_rows": 741,
+   "options_bytes": 5703115,
+   "options_rows": 510565,
+   "sessions_ok": 247
   },
   "2022": {
-   "bytes": 6293798,
-   "rows": 562041,
-   "sessions": 248
+   "futures_bytes": 13122,
+   "futures_rows": 744,
+   "options_bytes": 6325390,
+   "options_rows": 562041,
+   "sessions_ok": 248
   },
   "2023": {
-   "bytes": 4058232,
-   "rows": 340423,
-   "sessions": 246
+   "futures_bytes": 12792,
+   "futures_rows": 738,
+   "options_bytes": 4075485,
+   "options_rows": 340423,
+   "sessions_ok": 246
   },
   "2024": {
-   "bytes": 4841225,
-   "rows": 398739,
-   "sessions": 249
+   "futures_bytes": 13379,
+   "futures_rows": 747,
+   "options_bytes": 4860485,
+   "options_rows": 398739,
+   "sessions_ok": 249
   },
   "2025": {
-   "bytes": 4856221,
-   "rows": 395866,
-   "sessions": 249
+   "futures_bytes": 13267,
+   "futures_rows": 747,
+   "options_bytes": 4875747,
+   "options_rows": 395866,
+   "sessions_ok": 249
   },
   "2026": {
-   "bytes": 4267262,
-   "rows": 340704,
-   "sessions": 192
+   "futures_bytes": 10385,
+   "futures_rows": 576,
+   "options_bytes": 4284854,
+   "options_rows": 340704,
+   "sessions_ok": 192
   }
  },
  "problems": [],
