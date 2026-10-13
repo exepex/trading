@@ -12,6 +12,7 @@ from fno.constants import (
 )
 from fno.forecast.iv30 import AtmIv30
 from fno.forecast_scoring.resolution import PENDING, RESOLVED, VOID
+from fno.forecast_scoring.score_inputs import CLOSE_PROXY
 from fno.forecast_scoring.scoring import ForecastScorer
 from tests.forecast_scoring.scoring_fixtures import DAYS, FIRST, forecast, horizon_day, nifty_close, outcomes
 
@@ -65,9 +66,9 @@ def test_the_scorer_counts_pending_forecasts_and_scores_none_of_them():
         forecast(BOOK1_RULES, FIRST, FORECAST_Q1_UP_20D, 0.6),
         forecast(BOOK1_RULES, DAYS[1], FORECAST_Q1_UP_20D, None),
     ]
-    (mode,) = ForecastScorer(outcomes(BEFORE)).score(items)
+    (mode,) = ForecastScorer({CLOSE_PROXY: outcomes(BEFORE)}).score(items)
     scores = mode.scores[(BOOK1_RULES, FORECAST_Q1_UP_20D)]
     assert scores.counts == {"forecasts": 2, "no_forecast": 1, PENDING: 1, VOID: 0, RESOLVED: 0}
     assert scores.primary.scored == 0 and scores.primary.mean_brier is None
-    (mode,) = ForecastScorer(outcomes(TARGET_20)).score(items)
+    (mode,) = ForecastScorer({CLOSE_PROXY: outcomes(TARGET_20)}).score(items)
     assert mode.scores[(BOOK1_RULES, FORECAST_Q1_UP_20D)].counts[RESOLVED] == 1
