@@ -36,5 +36,25 @@ Rules:
 - Paths are relative, with no empty, `.` or `..` parts.
 - Derived files (extracts, results) live with the research that made them, not in the raw archive.
 
+## Reading and writing Google Drive
+
+- **Reads** use the service account (`GoogleDriveStore`, Viewer on the folder; `FNO_GDRIVE_SERVICE_ACCOUNT_JSON`).
+- **Uploads** sign in as the owner (`GoogleDriveUploadStore`, story A9), because a service account has no storage
+  quota. Settings: `FNO_GDRIVE_FOLDER_ID` plus `FNO_GDRIVE_OAUTH_CLIENT_ID`, `FNO_GDRIVE_OAUTH_CLIENT_SECRET` and
+  `FNO_GDRIVE_OAUTH_REFRESH_TOKEN`, made once with `tools/gdrive_oauth_setup.py`. Missing folders are created; every
+  new folder and file gets an ID reserved from Drive first, so a retried create cannot make a duplicate; each upload is
+  checked against Drive's MD5 of what it received.
+- Both share `DriveSession`: one fresh sign-in on a 401, growing waits on 429, 5xx and dropped connections.
+- While the owner's Google Cloud app is in "Testing", the refresh token expires after 7 days. The librarian then stops
+  with `DriveSignInRefused` and alerts #fno-desk with the fix (rerun the setup tool, or publish the app).
+
+## The librarian
+
+`python -m fno data-librarian participant-oi [--from YYYY-MM-DD] [--to YYYY-MM-DD]` fills the dataset's gaps in Drive
+from NSE (`librarian.py`): for each session (NSE's calendar) it keeps a verified file already there, else fetches the
+file through the paced NSE session, verifies it (schema, and SHA-256 where the manifest has it) and uploads it. A
+damaged file in Drive is reported and never replaced. Run it again after a stop: only missing files are fetched. Each
+new dataset needs its own story before it is added to `wiring.LIBRARIAN_DATASETS`.
+
 Adding a store (S3, Dropbox) or a source (another exchange) means one new class behind `RawFileStore` or
 `RawFileSource`, and one line in `wiring.py`.

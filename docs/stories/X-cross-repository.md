@@ -518,7 +518,7 @@ W2, W6, P stories); changing the signed-off mockups.
 **Judge verifies:** reviews the mockups, the contract and the catalog together: picks 10 random screen elements and
 traces each to its endpoint field and its publisher; checks the independence of endpoints against the screen layout.
 
-**Depends:** sign-off of 30-shell and 31-dashboard (13 Oct 2026) · **Size:** M · **Status:** next
+**Depends:** sign-off of 30-shell and 31-dashboard (13 Oct 2026) · **Size:** M · **Status:** done (judge passed, `reviews/judge/judge_17_w10_api_contract.md`; omenix-dashboard 7aa81a3)
 
 ---
 
