@@ -11,7 +11,7 @@ re-added only through an approved story with point-in-time rules.
 | F&O daily file, current UDiFF format | `nsearchives.nseindia.com/content/fo/` (`fno/storage/raw_source.py`) | from 1 Jan 2024 | closing prices, OI, volumes per contract; no bid or ask |
 | F&O daily file, old format `foDDMONYYYYbhav.csv.zip` | `.../content/historical/DERIVATIVES/YYYY/MON/` | up to 5 Jul 2024 | reader proven identical to the new format on 128 overlap days (5,793,044 rows; `research/2026-10-12-legacy-format/`) |
 | Index closes `ind_close_all_DDMMYYYY.csv` (incl. India VIX) | `.../content/indices/` | 2019 on | |
-| Participant-wise OI (FII, DII, pro, client) | `.../content/nsccl/fao_participant_oi_DDMMYYYY.csv` | spot-checked 5 dates, 3 Jun 2019 to 9 Oct 2026 | not used yet; a future story must verify coverage and release times first |
+| Participant-wise OI (FII, DII, pro, client) | `.../content/nsccl/fao_participant_oi_DDMMYYYY.csv` (`ParticipantOiSource`, parser `fno/research_data/participant_oi.py`) | every session 1 Jan 2019 to 12 Oct 2026 (1,929 files, checked 13 Oct 2026; SHA-256 in `tools/nse_raw_download/manifest_participant_oi.csv`) | published after the close; usable only from the next session's decision time until release times are measured (story A8, `research/data/participant_oi/`) |
 
 The owner downloads these once with `tools/nse_raw_download/` and keeps them on Google Drive (current format 690 files,
 old format 1,366, index closes 1,928; read-only access through `fno/storage/google_drive.py`). The raw-file library

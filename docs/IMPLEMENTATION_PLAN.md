@@ -81,7 +81,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | trading | - | S | done (judge passed) |
 | [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | trading | - | S | done (judge passed; criteria 4-5 moved to B1, B5) |
 | [A7](stories/A-data-foundation.md#a7-every-component-uses-the-session-calendar) | Every component uses the session calendar | trading | A1 (calendar) | S | done (judge passed) |
-| [A8](stories/A-data-foundation.md#a8-positioning-data-source-participant-open-interest) | Positioning data source (participant open interest) | trading | A1 | M | later |
+| [A8](stories/A-data-foundation.md#a8-positioning-data-source-participant-open-interest) | Positioning data source (participant open interest) | trading | A1 | M | partly built; waiting on the owner's Drive upload and 20 measured release days |
 | [B1](stories/B-research-engine.md#b1-feature-library) | Feature library | trading | A3, A6 | M | later |
 | [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | trading | A3, A5 | M | later |
 | [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | trading | B1, B2, B4 | M | later |
@@ -137,6 +137,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [W7](stories/X-cross-repository.md#w7-dashboard-writes-on-azure-inbox-assistant-and-control-state) | Dashboard writes on Azure (inbox, assistant and control state) | dashboard | W1, X1 | M | later |
 | [W8](stories/X-cross-repository.md#w8-the-signed-off-app-frame-in-the-real-app) | The signed-off app frame in the real app | dashboard | W1 | L | next |
 | [W9](stories/X-cross-repository.md#w9-the-signed-off-home-screen-in-the-real-app) | The signed-off Home screen in the real app | dashboard | W8 | M | later |
+| [W10](stories/X-cross-repository.md#w10-api-contract-and-data-catalog-for-the-frame-and-home-small-independent-endpoints) | API contract and data catalog for the frame and Home (small independent endpoints) | dashboard | 30, 31 sign-off | M | next |
 | [W5](stories/X-cross-repository.md#w5-cutover-and-rollback) | Cutover and rollback | dashboard | W1-W4, W6, W7, K1, K3 | S | later |
 | [K1](stories/X-cross-repository.md#k1-stock-backend-publishes-to-azure-dual-publication-and-parity) | Stock backend publishes to Azure (dual publication and parity) | agentic-stock-prediction | X1 | M | later |
 | [K2](stories/X-cross-repository.md#k2-retire-motherduck) | Retire MotherDuck | agentic-stock-prediction | W5, W7, K3 | S | later |

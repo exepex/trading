@@ -61,7 +61,7 @@ def test_verified_files_are_saved_holidays_are_not_asked_and_a_mismatch_is_never
     day, holiday = date(2025, 1, 27), date(2025, 1, 28)
     good = hashlib.sha256(b"zip").hexdigest()
     rows = [f"{day},u,200,{good},1", f"{holiday},u,404,,0"]
-    answers = [(200, b"zip"), (200, b"index csv"), (200, b"oi csv"), (404, b"")]
+    answers = [(200, b"zip"), (200, b"oi csv"), (200, b"index csv"), (404, b"")]
     code, asked = run(tmp_path, monkeypatch, rows, answers, day, holiday)
     root = tmp_path / "fno-research"
     saved = root / tool.CURRENT_FO.path_for(day)
@@ -78,7 +78,7 @@ def test_verified_files_are_saved_holidays_are_not_asked_and_a_mismatch_is_never
 
 def test_old_years_get_old_format_and_index_files_and_days_without_files_are_asked_once(tmp_path, monkeypatch):
     friday, saturday = date(2019, 1, 4), date(2019, 1, 5)
-    answers = [(200, b"old zip"), (200, b"index"), (200, b"oi"), (404, b""), (404, b"")]
+    answers = [(200, b"old zip"), (200, b"oi"), (200, b"index"), (404, b""), (404, b"")]
     code, asked = run(tmp_path, monkeypatch, [], answers, friday, saturday)
     root = tmp_path / "fno-research"
     assert code == 0 and len(asked) == 5 and "historical/DERIVATIVES/2019/JAN/fo04JAN2019bhav.csv.zip" in asked[0]
@@ -91,7 +91,7 @@ def test_old_years_get_old_format_and_index_files_and_days_without_files_are_ask
 
 def test_both_formats_are_fetched_where_nse_has_both_and_a_refusal_stops_at_once(tmp_path, monkeypatch):
     day = date(2024, 7, 5)
-    code, asked = run(tmp_path, monkeypatch, [], [(200, b"new"), (200, b"old"), (200, b"idx"), (200, b"oi")], day, day)
+    code, asked = run(tmp_path, monkeypatch, [], [(200, b"new"), (200, b"old"), (200, b"oi"), (200, b"idx")], day, day)
     assert code == 0 and len(asked) == 4 and "/content/fo/" in asked[0] and "historical" in asked[1]
     code, asked = run(tmp_path, monkeypatch, [], [(429, b"")], date(2024, 7, 8), date(2024, 7, 12))
     assert asked == [tool.CURRENT_FO.url_for(date(2024, 7, 8))]  # nothing more after the refusal
@@ -123,7 +123,7 @@ def test_verification_is_never_switched_off():
 def test_participant_oi_is_checked_against_its_own_manifest_and_its_known_gaps_are_not_asked(tmp_path, monkeypatch):
     day, gap = date(2026, 10, 9), date(2026, 10, 10)
     oi_rows = [f"{day},u,200,{hashlib.sha256(b'oi').hexdigest()},5", f"{gap},u,404,,0"]
-    answers = [(200, b"zip"), (200, b"idx"), (200, b"tampered oi"), (404, b"")]
+    answers = [(200, b"zip"), (200, b"tampered oi"), (200, b"idx"), (404, b"")]
     code, asked = run(tmp_path, monkeypatch, [], answers, day, gap, oi_manifest_rows=oi_rows)
     assert code == 1 and not (tmp_path / "fno-research" / tool.PARTICIPANT_OI.path_for(day)).exists()
     assert tool.PARTICIPANT_OI.url_for(gap) not in asked  # the manifest says NSE has no file that day
@@ -137,3 +137,19 @@ def test_the_shipped_participant_oi_manifest_is_read():
     )
     assert tool.file_tag(tool.PARTICIPANT_OI, "2019-06-03") in expected
     assert tool.file_tag(tool.PARTICIPANT_OI, "2019-01-05") in no_file  # a Saturday
+
+
+def test_index_closes_are_fetched_on_a_trading_day_without_an_fo_file(tmp_path, monkeypatch):
+    """30 Mar 2021: NSE has no old-format F&O file, but publishes participant OI and the index closes."""
+    day = date(2021, 3, 30)
+    code, asked = run(tmp_path, monkeypatch, [], [(404, b""), (200, b"oi"), (200, b"index")], day, day)
+    root = tmp_path / "fno-research"
+    assert code == 0 and asked[-1] == tool.INDEX_CLOSE.url_for(day)
+    assert (root / tool.INDEX_CLOSE.path_for(day)).read_bytes() == b"index"
+    assert not (root / tool.OLD_FO.path_for(day)).exists()
+
+
+def test_index_closes_are_not_asked_on_a_day_without_any_derivatives_file(tmp_path, monkeypatch):
+    sunday = date(2021, 3, 28)
+    code, asked = run(tmp_path, monkeypatch, [], [(404, b""), (404, b"")], sunday, sunday)
+    assert code == 0 and tool.INDEX_CLOSE.url_for(sunday) not in asked and len(asked) == 2

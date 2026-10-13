@@ -400,4 +400,4 @@ each of 20 days; the rule is then set from that evidence and committed).
 
 **Judge verifies:** re-reads one file by hand; confirms the release-time evidence file exists before any use.
 
-**Depends:** A1 · **Size:** M · **Status:** later
+**Depends:** A1 · **Size:** M · **Status:** partly built; waiting on the owner's Drive upload and 20 measured release days (claims: `reviews/claude/response_40_2026-10-13-a8-participant-oi.md`)
