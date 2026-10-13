@@ -58,3 +58,17 @@ part of this push.
    but nothing says that the counts for a close must use the latest list dated **on or before** that close. A list
    published the morning after, which adds a company, must not recount the previous close. Expected: one line in the
    schema description, and a semantic check that the list's `as_of` is not after the table's close.
+
+## Addendum: the minor re-checked (omenix-dashboard f3e7f5f)
+
+**ACCEPTED.** W11's follow-ups have no open finding.
+
+- The schema now says: "The counts and tags of a close use the latest list dated on or before that close, never a
+  later one". All contract checks are green, with 55 plants caught.
+- My own plants through `check_stored`:
+
+| List dated | Close | Result |
+|---|---|---|
+| 2026-10-12 | 12 Oct | accepted |
+| 2026-10-09 | 12 Oct | accepted |
+| 2026-10-14 | 12 Oct | **refused**: "the list of 2026-10-14 is later than the close 2026-10-12" |
