@@ -13,6 +13,7 @@ re-added only through an approved story with point-in-time rules.
 | Index closes `ind_close_all_DDMMYYYY.csv` (incl. India VIX) | `.../content/indices/` | 2017 on (2017-18 as warm-up only, story A10) | |
 | Capital-market file `BhavCopy_NSE_CM_0_0_0_YYYYMMDD_F_0000.csv.zip` (UDiFF) | `.../content/cm/` | archived from 1 Oct 2025 (story P6) | EQ and BE rows feed the screener |
 | Security-wise delivery `sec_bhavdata_full_DDMMYYYY.csv` | `.../products/content/` | archived from 1 Oct 2025 (P6) | delivery % |
+| Equity corporate actions (splits, bonuses, demergers, dividends) | `www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=…&to_date=…` (JSON) | one copy per day fetched, from 13 Oct 2026 (P6) | ex-date and NSE's text; splits and bonuses adjust past prices |
 | Listed companies `EQUITY_L.csv`, Nifty 500 list `ind_nifty500list.csv` | `.../content/equities/`, `.../content/indices/` | one copy per day fetched, from 13 Oct 2026 (P6) | names and industries; replaced in place by NSE |
 | Participant-wise OI (FII, DII, pro, client) | `.../content/nsccl/fao_participant_oi_DDMMYYYY.csv` (`ParticipantOiSource`, parser `fno/research_data/participant_oi.py`) | every session 1 Jan 2019 to 12 Oct 2026 (1,929 files, checked 13 Oct 2026; SHA-256 in `tools/nse_raw_download/manifest_participant_oi.csv`) | published after the close; usable only from the next session's decision time until release times are measured (story A8, `research/data/participant_oi/`) |
 

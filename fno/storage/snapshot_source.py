@@ -4,7 +4,7 @@ NSE replaces them in place, so each copy is archived under the day it was fetche
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from .raw_source import NseArchiveSource
 
@@ -50,3 +50,19 @@ class Nifty500ListSource(SnapshotSource):
     first_day = date(2026, 10, 13)
     BASE_URL = "https://nsearchives.nseindia.com/content/indices/"
     FILENAME = "ind_nifty500list.csv"
+
+
+class CorporateActionsSource(SnapshotSource):
+    """NSE's list of equity corporate actions (splits, bonuses, demergers, dividends...) over the year to the day it is
+    fetched, from NSE's website (JSON; its own name has no file, so the list is filed under a fixed name)."""
+
+    dataset = "nse/equities/corporate-actions"
+    first_day = date(2026, 10, 13)
+    FILENAME = "corporate-actions-equities.json"
+    API = "https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date={start}&to_date={end}"
+    WINDOW = timedelta(days=400)  # covers the screener's year and a week
+
+    @classmethod
+    def url_for(cls, path: str) -> str:
+        day = cls.day_for_path(path)
+        return cls.API.format(start=f"{day - cls.WINDOW:%d-%m-%Y}", end=f"{day:%d-%m-%Y}")

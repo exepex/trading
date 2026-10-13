@@ -16,12 +16,14 @@ from ..storage.raw_source import (
     NseIndexCloseSource,
 )
 from ..storage.raw_store import RawFileStore
-from ..storage.snapshot_source import EquityListSource, Nifty500ListSource, SnapshotSource
+from ..storage.snapshot_source import CorporateActionsSource, EquityListSource, Nifty500ListSource, SnapshotSource
 from .blocks import SessionRows
+from .corporate_actions import CorporateAction, adjusted, read_corporate_actions
 from .fno_rows import FnoRowBuilder, UnderlyingDay, underlying_days
 from .followed import FollowedCompaniesSource
 from .index_rows import index_rows, industries
 from .nse_files import (
+    EquityBar,
     read_delivery,
     read_equity_bhavcopy,
     read_equity_list,
@@ -58,7 +60,9 @@ class SessionRowsBuilder:
         fo = self._files(NseDailyFoSource, day - FNO_WINDOW, day, missing)
         indices = self._files(NseIndexCloseSource, day - INDEX_WINDOW, day, missing)
         delivery = self._file(NseDeliverySource.path_for(day), missing)
-        names, members = (self._snapshot(s, day, missing) for s in (EquityListSource, Nifty500ListSource))
+        names, members, actions = (
+            self._snapshot(s, day, missing) for s in (EquityListSource, Nifty500ListSource, CorporateActionsSource)
+        )
         followed = self.followed.on_or_before(day)
         if followed is None:
             missing.append(f"the stock tool's followed-companies list on or before {day}")
@@ -67,7 +71,11 @@ class SessionRowsBuilder:
         names = read_equity_list(names, EquityListSource.FILENAME)
         history = self._fno_history(fo)
         stocks = stock_rows(
-            stock_series(read_equity_bhavcopy(data, name) for _, name, data in equity),
+            on_todays_basis(
+                stock_series(read_equity_bhavcopy(data, name) for _, name, data in equity),
+                read_corporate_actions(actions, CorporateActionsSource.FILENAME),
+                day,
+            ),
             day,
             names,
             read_nifty500_list(members, Nifty500ListSource.FILENAME),
@@ -109,3 +117,14 @@ class SessionRowsBuilder:
             for u in underlying_days(d, read_fo_rows(data, name)):
                 history.setdefault(u.symbol, []).append(u)
         return history
+
+
+def on_todays_basis(
+    series: dict[str, list[EquityBar]], actions: list[CorporateAction], day: date
+) -> dict[str, list[EquityBar]]:
+    """Each symbol's bars adjusted for its corporate actions with an ex-date up to `day` (never a later one)."""
+    by_symbol: dict[str, list[CorporateAction]] = {}
+    for action in actions:
+        if action.ex_date <= day:
+            by_symbol.setdefault(action.symbol, []).append(action)
+    return {symbol: adjusted(bars, by_symbol.get(symbol, [])) for symbol, bars in series.items()}
