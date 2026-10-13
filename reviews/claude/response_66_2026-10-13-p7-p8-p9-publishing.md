@@ -235,3 +235,33 @@ All market tests pass (106).
 - **P10 rest:**
   - the India band: `Indices` from P6's index rows and `Session` from NSE's session calendar (A7);
   - India `fno_expiry` (and `weekly_expiry`) events: from the listed NIFTY expiries (A5) and the calendar.
+
+## Addendum: judges 59-61 and 63 fixes
+
+**P7, judge 59 FAIL: a finished row could be rewritten by a plain UPDATE.** Accepted; I checked the judge's plant before fixing it.
+- **Fixed inside `002_run_status.sql`,** since the owner has not run it: a `before update` trigger (`fno.run_status_finished_never_changes`) raises `restrict_violation` when the old row is not `running`.
+- **The adapter is unchanged.** Its `where result = 'running'` never touches a finished row, so the trigger never fires on the normal path.
+- **Test:** `test_a_finished_row_cannot_be_rewritten_even_by_a_plain_update_as_the_publisher_role` connects as `fno_writer` and runs the judge's exact UPDATE. It is refused (`RestrictViolation`) and the row stays `published`.
+- **Mutation check:** with the trigger removed from the migration the test fails; with it, it passes.
+- **The owner's step is unchanged:** the same `psql … -f db/fno/migrations/002_run_status.sql` as `fno_owner`. It now also creates the function and trigger, which needs `fno_owner`'s CREATE on schema `fno`, the same right 001 used.
+
+**P10, judges 61 and 63: page keys.** Accepted: the contract wins.
+- **Picks:** `FnoPicks` → page **`today`**, exactly as W10 names it (`api/paths/blocks-fno.yaml:37`: `x-read-model: 'fno.pages_history page today (P1)'`).
+- **Books:** `FnoBooks` → page **`risk`**. W10 is ambiguous here; it names two pages for one block:
+  - `api/paths/blocks-fno.yaml:117`: `x-read-model: 'fno.pages_history pages risk and scoreboard_b (P1)'`
+  - `api/schemas/blocks-home.yaml:71`: `source: "fno.pages_history pages 'risk' and 'scoreboard_b' (P1) over E1's paper accounts"`
+
+  The dashboard's only reader of the block reads one page, `risk`: `web/lib/home/azure-source.ts:14`, `fnoBooks: () => payload("risk")` (W9-F&O). I followed that reader rather than guess a split, since `FnoBooks` is one closed object and nothing says which fields would go to `scoreboard_b`. **Contract owner:** please reduce line 117 and the catalog source to "page risk", or say which fields `scoreboard_b` holds.
+- **Test:** `test_the_page_keys_are_the_ones_w10_names_in_the_pinned_schemas` reads both names from the pinned W10 schemas' catalog text. The payloads were already validated against `FnoBooksResponse` and `FnoPicksResponse`.
+
+**P9, judge 60 minors.**
+- **ATM tie test added:** `test_a_spot_exactly_between_two_strikes_takes_the_lower_as_atm` (spot 22,375 between 22,350 and 22,400 gives 22,350). The judge's plant (tie to the higher strike) now fails it; I checked by applying the plant.
+- **Page keys against W13's proposal** (W13 calls them "proposed"; listed, not renamed twice):
+
+  | Block | W13 (`api/paths/blocks-chain.yaml`) | P9 publishes |
+  |---|---|---|
+  | rows | line 63: `chain_rows:<expiry>` ("the route picks the strikes") | `chain_rows:<expiry>:<near\|band\|all>` (three pages per expiry, each a served answer) |
+  | contract history | line 121: `chain_contract:<code>` | `contract_history:<code>` |
+  | underlying, expiries, history, sources | lines 11, 37, 95, 150 | the same names |
+
+  If W13 keeps its proposal, P9 changes two key formats. For rows that means storing the "all" strikes once per expiry, with the route filtering near and band (14 fewer pages on 12 Oct). Both are one-line changes in `chain_blocks.py`. Whoever owns W13 decides.

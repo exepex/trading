@@ -70,7 +70,7 @@ def test_both_blocks_validate_and_say_the_truth():
     assert picks == {"currency": "INR", "fno_state": {"approved": False, "note": OPENING_BOOKS.approval_note},
                      "rows": [], "baskets": {}}  # fmt: skip
     publication = builder().build(rows)
-    for key in ("fno_books", "fno_picks"):
+    for key in ("risk", "today"):
         assert publication.records[key]["payload"] in (books, picks)
     CONTRACT.validate("FnoBooks", books)
 
@@ -91,3 +91,12 @@ def test_a_figure_this_story_does_not_compute_stops_the_run_with_its_code(tmp_pa
     assert LocalRunStatus(tmp_path, "fno").rows()[0]["reason_code"] == "figures_not_computed"
     with pytest.raises(FiguresNotComputed):
         (FnoBooksBlock() if home.approved == [] else FnoPicksBlock()).build(rows)
+
+
+def test_the_page_keys_are_the_ones_w10_names_in_the_pinned_schemas():
+    """W10's catalog names the read-model pages (judges 61, 63): FnoPicks is page 'today'; FnoBooks names 'risk' and
+    'scoreboard_b' for one block, and the dashboard reads 'risk' (web/lib/home/azure-source.ts): the block is 'risk'."""
+    picks_source = CONTRACT.schemas["FnoPicks"]["x-catalog"]["source"]
+    books_source = CONTRACT.schemas["FnoBooks"]["x-catalog"]["source"]
+    assert "page 'today'" in picks_source and FnoPicksBlock.page_key == "today"
+    assert "pages 'risk' and 'scoreboard_b'" in books_source and FnoBooksBlock.page_key == "risk"

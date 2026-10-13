@@ -162,3 +162,15 @@ def test_postgres_refuses_an_unknown_code_or_a_failure_without_one(postgres):
     status.start("gh-3-1", DAY)
     assert status.finish("gh-3-1", Outcome("failed", "made_up", "x")).startswith("run status NOT recorded (other")
     assert status.finish("gh-3-1", Outcome("failed")).startswith("run status NOT recorded")
+
+
+def test_a_finished_row_cannot_be_rewritten_even_by_a_plain_update_as_the_publisher_role(postgres):
+    status = PostgresRunStatus(as_role(postgres, "fno_writer"), psycopg.connect, "fno")
+    status.start("gh-9-1", DAY)
+    status.finish("gh-9-1", Outcome("published", publication_id="nse-2026-10-12-abc"))
+    with psycopg.connect(as_role(postgres, "fno_writer")) as writer, pytest.raises(psycopg.errors.RestrictViolation):
+        writer.execute(  # judge 59's plant: a plain UPDATE, not the adapter's guarded one
+            "update fno.run_status set result = 'failed', reason_code = 'crashed', reason = 'rewritten' "
+            "where run_id = 'gh-9-1' and result = 'published'"
+        )
+    assert ("gh-9-1", "published", None, "nse-2026-10-12-abc", True) in table(postgres)
