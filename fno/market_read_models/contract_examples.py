@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 from .chain_blocks import CONTRACT_PAGE, ROWS_PAGE
+from .chain_route import strikes_view
 from .screener_route import fno_page, stocks_page
 
 QUERY_KEY = "x-query"
@@ -24,7 +25,7 @@ OPERATION_PAGE_KEYS = {  # the example's operation (its name before "_india") ->
     "getChainSources": "chain_sources",
 }
 PARAMETER_PAGES = {  # operations asked for by a parameter: our page key from the example's own payload
-    "getChainRows": lambda p: ROWS_PAGE.format(expiry=p["expiry"], strikes=p["strikes"]),
+    "getChainRows": lambda p: ROWS_PAGE.format(expiry=p["expiry"]),
     "getContractHistory": lambda p: CONTRACT_PAGE.format(code=p["code"]),
 }
 NOT_PUBLISHED = {  # examples that are a view, not a page any publisher stores
@@ -44,10 +45,17 @@ def page_key(example_name: str, example: dict | None = None) -> str | None:
     return OPERATION_PAGE_KEYS.get(operation)
 
 
-def view(example: dict, page: str, block: dict) -> dict:
-    """The served response the example shows, from the published page."""
+def view(example: dict, page: str, block: dict, pages: dict[str, dict] | None = None) -> dict:
+    """The served response the example shows, from the published page (a chain rows example: the route's strike set,
+    from the expiry's page with every strike, NIFTY from the underlying block and the ATM strike from the expiries)."""
     query = example.get(QUERY_KEY)
-    return PAGES[page](block, query) if query and page in PAGES else block
+    if query and page in PAGES:
+        return PAGES[page](block, query)
+    if page.startswith(ROWS_PAGE.format(expiry="")) and pages:
+        expiry = next(e for e in pages["chain_expiries"]["expiries"] if e["expiry"] == block["expiry"])
+        strikes = example["value"]["payload"]["strikes"]
+        return strikes_view(block, strikes, pages["chain_underlying"]["spot"], expiry["stats"]["atm"])
+    return block
 
 
 def differences(ours, theirs, path: str = "") -> Iterator[tuple[str, object, object]]:
@@ -72,5 +80,5 @@ def compare(pages: dict[str, dict], examples: dict) -> dict[str, list[tuple[str,
         if key not in pages:
             out[name] = [(".", "<no such page>", key)]
             continue
-        out[name] = list(differences(view(example, key, pages[key]), example["value"]["payload"]))
+        out[name] = list(differences(view(example, key, pages[key], pages), example["value"]["payload"]))
     return out

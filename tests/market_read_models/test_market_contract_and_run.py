@@ -60,7 +60,10 @@ def test_the_pinned_copy_matches_its_pin_and_names_the_contract_version():
 def test_every_block_built_from_valid_rows_validates_as_stored_and_as_served():
     publication = builder().build(example_rows())
     pages = {key for b in build_market_blocks() for key in b.pages(example_rows())}
-    assert set(publication.records) == pages and {"chain_history", "chain_rows:2026-10-27:near"} <= pages
+    assert (
+        set(publication.records) == pages
+        and {"chain_history", "chain_rows:2026-10-27", "chain_contract:NIFTY26OCT22350CE"} <= pages
+    )
     record = publication.records["screener_summary"]
     assert set(record["payload"]["universes"]) == {"all", "n500", "fno", "ours"}  # ours: the followed list (judge 40)
     assert record["publication_id"].startswith("nse-2026-10-12-") and record["product"] == "fno"
@@ -154,7 +157,7 @@ def run(tmp_path, rows, publications=None):
 def test_a_good_session_is_published_and_a_closed_day_publishes_nothing(tmp_path):
     market, alerts, publisher = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and lines[0].startswith("2026-10-12: published 1279 blocks") and alerts.sent == []
+    assert code == 0 and lines[0].startswith("2026-10-12: published 1265 blocks") and alerts.sent == []
     assert market.run(date(2026, 10, 11)) == (0, ["2026-10-11: not a trading day, nothing to publish"])
     assert set(publisher.current()) == {key for b in build_market_blocks() for key in b.pages(example_rows())}
 
