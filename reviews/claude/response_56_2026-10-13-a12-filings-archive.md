@@ -305,6 +305,14 @@ stay as gaps, now worded only with what is known: "NSE's lists return no results
 re-reads every company's lists. Finding 2 above is corrected by this. Also: the probe tries each list once more
 after 30 s, because one NSE read timeout (seen here today) would otherwise fail a whole scheduled job.
 
+**Runs under GitHub's 6-hour limit (orchestrator's question, 13 Oct 2026, run 38445744385):** the XBRL step stops
+itself at 260 minutes and commits; the day lists now stop themselves too (`TimeBudgetedFill`: 30-day chunks, 50
+minutes by default), so a job ends at about 310 of its 355 minutes instead of being killed. If a job is killed anyway
+before its commit: Drive keeps one copy of each file (uploads are single creates under a reserved ID; the same bytes
+again change nothing), no half-written file is left, and the next run writes the missing rows; XBRL files are fetched
+from NSE once more (the cost of a kill), day-list files are not (their Drive copy is verified and its row rewritten;
+the shared librarian now does that for any file found without a row). Tests: `tests/filings/test_filings_killed_runs.py`.
+
 ## Desk view (short)
 
 - Statistician: the table is point-in-time by `filed_at` (later of NSE's two times), but the archive's history of

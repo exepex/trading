@@ -5,14 +5,16 @@ queue in the progress record (Drive), commits the manifest rows it wrote, and po
 from __future__ import annotations
 
 from datetime import date, timedelta
+from functools import partial
 
+from ..models import now_ist
 from ..storage.librarian_cli import SIGN_IN_REFUSED, print_now, run_librarian
 from ..storage.manifest_commit import COMMITTED, NOTHING
 from ..storage.owner_token import DriveSignInRefused
 from .progress import QUEUE
 
 DEFAULT_MAX_MINUTES = 260  # leaves the 6-hour job time for the day lists and the commits
-DEFAULT_MAX_DAYS = 500  # day-list days per list per run (about 30 minutes for both lists)
+DEFAULT_DAY_LIST_MINUTES = 50  # with the archive's 260: 310 of the job's 355 minutes, room for setup and commits
 DAILY_GAP_HOURS = 20  # after the backfill, one full check a day
 ALREADY_DONE = "filings archive: daily check done at {finished:%Y-%m-%d %H:%M}, less than {hours} h ago; nothing to do"
 GB = 1e9
@@ -29,7 +31,7 @@ def add_archive_parsers(actions) -> None:
     archive.set_defaults(func=cmd_filings_archive)
     lists = actions.add_parser("day-lists", help="archive NSE's all-company announcement and board-meeting lists")
     lists.add_argument("--name", choices=sorted(DAY_LISTS), help="one list (default: both)")
-    lists.add_argument("--max-days", type=int, default=DEFAULT_MAX_DAYS, help="days per list in this run")
+    lists.add_argument("--max-minutes", type=int, default=DEFAULT_DAY_LIST_MINUTES, help="stop after this long")
     lists.add_argument(
         "--to", dest="end", type=date.fromisoformat, default=None, help="YYYY-MM-DD (default: yesterday)"
     )
@@ -38,7 +40,6 @@ def add_archive_parsers(actions) -> None:
 
 def cmd_filings_archive(args) -> int:
     from ..composition import build_alert_sender
-    from ..models import now_ist
     from ..storage.wiring import build_manifest_recorder
     from .wiring import build_companies, build_filings_librarian, build_gap_log, build_progress, write_symbol_map
 
@@ -124,18 +125,25 @@ def run_line(step, progress, companies, report, totals: dict, problem: str) -> s
 def cmd_filings_day_lists(args) -> int:
     from ..composition import build_alert_sender
     from ..storage.wiring import build_manifest_folder, build_manifest_recorder
-    from .wiring import DAY_LISTS, build_day_list_librarian, build_progress
+    from .wiring import DAY_LISTS, build_progress
 
     step = build_progress().step()
     first = step.day_lists_since if step else QUEUE[-1].day_lists_since
     end = args.end or date.today() - timedelta(days=1)
+    deadline = now_ist() + timedelta(minutes=args.max_minutes)
     worst = 0
     for name in [args.name] if args.name else sorted(DAY_LISTS):
         start = first_unarchived_day(DAY_LISTS[name], end, build_manifest_folder(), first)
-        last = min(end, start + timedelta(days=args.max_days - 1))
-        build = lambda name=name: build_day_list_librarian(name, log=print_now)  # noqa: E731 - one per list
-        worst = max(worst, run_librarian(build, build_alert_sender(), build_manifest_recorder(), name, start, last))
+        build = partial(_budgeted_day_list, name, deadline)
+        worst = max(worst, run_librarian(build, build_alert_sender(), build_manifest_recorder(), name, start, end))
     return worst
+
+
+def _budgeted_day_list(name: str, deadline):
+    from .day_lists import TimeBudgetedFill
+    from .wiring import build_day_list_librarian
+
+    return TimeBudgetedFill(build_day_list_librarian(name, log=print_now), now_ist, deadline)
 
 
 def first_unarchived_day(source, end: date, manifests, first: date) -> date:

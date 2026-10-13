@@ -3,7 +3,8 @@
 For every session in the range it reads the store first: a file already there is verified and kept as it is (never
 replaced, even when damaged: that is reported). A missing file is fetched from the source, verified (its schema, and
 its SHA-256 where a manifest has it) and only then saved. A stopped run is resumed by running it again: only what is
-still missing is fetched. Knows only the interfaces, never a concrete store or source.
+still missing is fetched, and a file already there without a manifest row (a run stopped before its commit) gets its
+row. Knows only the interfaces, never a concrete store or source.
 """
 
 from __future__ import annotations
@@ -72,8 +73,10 @@ class RawDataLibrarian:
             problem = self._problem(filename, stored)
             if problem:
                 report.damaged.append((day, problem))
-            else:
-                report.present += 1
+                return
+            if filename not in self.dataset.fingerprints:  # saved by a run stopped before its manifest commit
+                self.store.put(path, stored)  # the same bytes: the store keeps its copy and the row is written
+            report.present += 1
             return
         if (self.source.dataset, day) in self.exceptions:
             report.excepted += 1
