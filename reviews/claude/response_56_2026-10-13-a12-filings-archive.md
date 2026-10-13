@@ -3,7 +3,13 @@
 **Status: built and tested; queue steps 1 and 2 built, step 3 (past members) NOT built (part 5). The backfill is
 not running yet: the first GitHub run failed on a bug (fixed), the second was cancelled for the layout change, and the
 20-company trial run 38415612862 is the first real run from GitHub (result in part 5); the 6-hour schedule is restored
-and takes over after it. Awaiting the judge.** Builder: Claude. Story: `docs/stories/A-data-foundation.md#a12`, issue exepex/trading#87.
+and takes over after it. Awaiting the judge.**
+
+**Trial run 38415612862 (GitHub Actions, 13 Oct 2026, 14:42 to 15:22 UTC): passed.** 20 of 20 sample companies,
+744 XBRL files (0.23 GB) saved in Drive's year layout, 0 failures, 3 gaps with reasons (two LT links NSE serves as
+"not found", one Sun Pharma filing without an XBRL file), manifest rows committed by the run (commit `1312940`), one
+line posted to #fno-desk. NSE answered from GitHub's runner throughout. Measured pace there: about 2 minutes per
+company (folder creation per year, and the runner's distance to Drive), slower than the 63 s measured here. Builder: Claude. Story: `docs/stories/A-data-foundation.md#a12`, issue exepex/trading#87.
 Research data only: nothing here places, changes or cancels an order.
 
 ## Part 1. The measured sample (20 Nifty 500 companies, 13 Oct 2026)
@@ -116,8 +122,10 @@ Because TCS filed its September 2023 results on 11 Oct 2023, the backfill starts
 | Announcements, board meetings (one file per day, all companies) | 2,192 | about 0.35 GB | 2,192 |
 | **Total** | **about 21,300** | **about 6.2 GB** | **about 23,300 (6.5 hours of requests)** |
 
-Measured end to end with Drive uploads (real run below): 63 seconds per company, so about **8.8 hours** for the XBRL
-files plus about **1.2 hours** for the day lists: **about 10 hours**, i.e. two scheduled runs of 5.5 hours. Both are
+Measured end to end with Drive uploads: 63 seconds per company from this cloud, but **about 2 minutes per company
+on GitHub's runner** (trial run, 20 companies in 40 minutes). With the runner's pace: about **17 hours** for the XBRL
+files plus about **1.2 hours** for the day lists, i.e. about **18 hours, four or five scheduled runs (about a
+day)**. Both are
 under the stop limits (20 GB, 24 hours), so the build went ahead. Drive has room: the owner's Drive reports a 429.5 GB
 limit with 3.5 GB used (checked with the owner sign-in, 13 Oct 2026). Daily cost after the backfill: about 2,000 list
 requests (35 minutes) plus the new filings.
@@ -242,9 +250,9 @@ uses them, and the year layout holds its own copy of each.
 
 | Queue step | Files | Size | Time at 1 request/s (with uploads) |
 |---|---|---|---|
-| 1. Nifty 500, last 3 years (numbers) | about 21,300 | about 6.2 GB | about 10 h |
-| 2. Nifty 500, older years (XBRL 2018 to 2023, lists 2005 to 2023) | about 33,900 | about 2.3 GB | about 13 h |
-| **Today's Nifty 500, all history, numbers only** | **about 55,000** | **about 8.5 GB** | **about 23 h (4 runs, about 1.5 days)** |
+| 1. Nifty 500, last 3 years (numbers) | about 21,300 | about 6.2 GB | about 18 h (runner pace) |
+| 2. Nifty 500, older years (XBRL 2018 to 2023, lists 2005 to 2023) | about 33,900 | about 2.3 GB | about 20 h (runner pace) |
+| **Today's Nifty 500, all history, numbers only** | **about 55,000** | **about 8.5 GB** | **about 38 h (9 or 10 runs, about 2.5 days)** |
 | 3. Past members (reasoning only, see below) | | about 2-5 GB | about 5-15 h |
 | PDFs, if wanted: annual reports, 3 years / all years | | about 33 GB / 100-190 GB | |
 | PDFs, if wanted: announcement attachments, Nifty 500, 3 years | | about 50-130 GB (some evidence: one company and one day) | |
