@@ -143,3 +143,28 @@ def test_discovery_has_no_pass_fail(document):
     assert discovery["period"] == {"name": "discovery", "start": "2024-01-01", "end": "2026-10-09"}
     assert discovery["opportunities"] == []  # the synthetic cycles are all in 2019-2023
     assert date.fromisoformat(document["opportunities"][-1]["cycle"]["decision_day"]) <= date(2023, 12, 31)
+
+
+def test_a_total_exactly_at_a_threshold_fails():
+    """Judge 28 minor: the criteria are strict (>), so a total equal to its C1 threshold fails. When every
+    opportunity's SC P&L is the same, every random sequence totals what the policy totals: threshold == total."""
+    from policy_fixtures import opportunity
+
+    from fno.research_engine.verdict import Criterion, ScoredPeriod, policy_verdict
+
+    assert not Criterion("x", 100.0, ">", 100.0).passed and Criterion("x", 100.0, "<=", 100.0).passed
+    opportunities = [opportunity(i, {F1: 1.0 if i % 2 else -1.0, F2: None, F3: False}, NETS) for i in range(20)]
+    scored = ScoredPeriod(
+        opportunities,
+        {
+            "P4": ["SC" if i % 2 else None for i in range(20)],
+            "P4 opposite": ["SC" if i % 2 == 0 else None for i in range(20)],
+            "P1": ["SC"] * 20,
+        },
+        ("BF", "SC", "SF"),
+    )
+    criteria = {c.name: c for c in policy_verdict(EXPERIMENT_1.spec("P4"), scored, EXPERIMENT_1)["criteria"]}
+    random_timing = criteria["3_above_random_timing"]
+    assert random_timing.value == random_timing.threshold == 10 * 1000.0 and not random_timing.passed
+    opposite = criteria["3_above_opposite"]
+    assert opposite.value == opposite.threshold and not opposite.passed
