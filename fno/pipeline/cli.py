@@ -58,7 +58,7 @@ def cmd_pipeline_index_closes(args) -> int:
 
 def cmd_pipeline_panel_days(args) -> int:
     from ..models import now_ist
-    from .wiring import build_panel_day_job
+    from .panel_wiring import build_panel_day_job
 
     return build_panel_day_job().run(args.end or now_ist().date())
 
