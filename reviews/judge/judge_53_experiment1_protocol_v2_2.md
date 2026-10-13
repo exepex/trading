@@ -73,3 +73,47 @@
 4. **Process (for the orchestrator):**
    - freeze experiment 1 before any further G-story or research step touches 2019-2023 data;
    - until then, no builder or judge opens the back-fill's or the golden file's 2019-2023 rows.
+
+## Addendum: the freeze (protocol 9d16431, freeze record c52a6b8)
+
+**The freeze: PASS.** §10 is complete, the recipe is followed, and every recorded hash is right at the protocol
+commit.
+
+**One condition before the challenge run (should fix).** Three frozen engine files have changed since the freeze, and
+the run's guard does not check engine hashes.
+
+**What I checked:**
+- **Order:** `9d16431` (17:24:59 UTC) precedes `c52a6b8` (17:25:46).
+- **§10 has all three of judge 53's items:**
+  - G2's back-fill (`5632bfc`, with the base rate's outcome leak);
+  - the judge's own views (judge 47 round 2's rows and 12 Apr 2021 RV20 and IV30; judge 53's back-fill rows);
+  - the timing line (rules by 12:44; first derived values 12:56; golden 14:24; back-fill 16:30).
+  - It also states the rule "no rule … may be changed in response to any 2019-2023 golden or back-fill value; after
+    this freeze any rule change is post-hoc".
+- **Only §10, the status lines and the holdout description changed after v2.2.** In the `d37b78e..9d16431` diff of
+  PROTOCOL.md, no P1-P8 rule, threshold or criterion changed. The challenge is now honestly described as "a
+  pre-registered historical holdout … with pre-freeze exposure of predictors and of some forecast-target outcomes;
+  rules fixed before any exposure".
+- **Hashes at the protocol commit:** all 45 engine and data files listed in `FREEZE.md` equal their recorded SHA-256 at
+  `9d16431`. numpy is 2.5.3, as recorded.
+- **Ledger:** trials 22-31 carry `c52a6b8` (the freeze commit).
+- **Discovery at today's HEAD:** still `814a79a5…`, byte-identical.
+
+**The condition: three frozen files differ at HEAD.**
+
+| File | Changed after the freeze by | Effect on 2019-2023 (reasoning; not run, holdout rule) |
+|---|---|---|
+| `research/data/nifty-panel/warmup_closes.csv` | `e38eabd`: the O6 daily job appends 13 Oct 2026 closes | None expected: rows after 12 Oct 2026 only |
+| `fno/research_data/panel_reader.py` | `277b31b`: reads the appended closes after the panel | None expected for 2019-2023 sessions |
+| `fno/composition.py` | `0772a7c`: P6 database TLS | None expected: not on the research path |
+
+- `trial_guard._require_frozen` checks the protocol text and the frozen-commit ancestry, **not the engine hashes**.
+- So a challenge run at HEAD would run an engine that is not byte-identical to the one frozen. Discovery is unchanged,
+  which is some evidence of no effect, but the challenge period cannot be compared before the run.
+- **Expected for the run (choose one, and record it in the results):**
+  1. **(Recommended)** run the challenge from a checkout of `c52a6b8`'s engine and data files (a worktree), so
+     `sha256sum -c` against `FREEZE.md` passes, and record that commit in the results; or
+  2. run at HEAD only after `sha256sum -c` passes, which it does not today.
+- **For future experiments:** the guard should verify the engine hashes itself and refuse a mismatch. Files that
+  grow daily (the warm-up closes) should be pinned by content up to the experiment's last date, not by whole-file
+  bytes. That is the same lesson as G1 (judge 47).
