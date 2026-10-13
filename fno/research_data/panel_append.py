@@ -5,14 +5,17 @@ touched year file gets the new rows as one more gzip member (no header, no file 
 an exact prefix and every gzip reader still reads one CSV. The manifest keeps every existing entry as it was; it gains
 the new days (A3's entry plus the stamp the caller gives, e.g. when and with which calendar it was appended), a later
 `end`, and new hashes and row counts for the touched files only. Everything is written under temporary names and
-swapped in at the end, the manifest last; a panel whose files no longer match its manifest is refused before anything
-is written (an interrupted append is never appended to again).
+swapped in at the end, the manifest last. A crash between those swaps leaves files that no longer match the manifest:
+`verify` checks every file's SHA-256, content SHA-256 and row count against it, and the job runs it before anything
+else, so an interrupted append is refused (fix: restore the committed panel, `git checkout research/data/nifty-panel/`),
+never appended to again. In GitHub Actions the run commits only after a clean exit, so a crash publishes nothing.
 """
 
 from __future__ import annotations
 
 import csv
 import gzip
+import hashlib
 import io
 import json
 from collections.abc import Sequence
@@ -21,6 +24,9 @@ from pathlib import Path
 
 from .panel_rows import TABLE_COLUMNS
 from .panel_store import GZIP_LEVEL, MANIFEST_FILE, PART_SUFFIX, TABLE_FILE, PanelDay, file_sha256
+
+RESTORE = "restore the committed panel: git checkout research/data/nifty-panel/"
+CHUNK = 1 << 20
 
 
 class AppendRefused(RuntimeError):
@@ -46,6 +52,16 @@ class PanelAppender:
         if not path.is_file():
             raise AppendRefused(f"no {MANIFEST_FILE} in {self.folder}: build the panel with A3 first")
         return json.loads(path.read_text(encoding="utf-8"))
+
+    def verify(self) -> None:
+        """Every file the manifest lists has its recorded SHA-256, content SHA-256 and rows; AppendRefused otherwise."""
+        manifest = self.manifest()
+        for name, recorded in sorted(manifest["files"].items()):
+            path = self.folder / name
+            found = _fingerprint(path) if path.is_file() else None
+            wanted = (recorded["sha256"], recorded["csv_sha256"], recorded["rows"])
+            if found != wanted:
+                raise AppendRefused(f"{name} does not match {MANIFEST_FILE} (an interrupted append?): {RESTORE}")
 
     def last_day(self) -> date:
         return date.fromisoformat(self.manifest()["end"])
@@ -85,7 +101,7 @@ class PanelAppender:
         if recorded is None and not path.exists():
             return
         if recorded is None or not path.is_file() or file_sha256(path.read_bytes()) != recorded["sha256"]:
-            raise AppendRefused(f"{name} does not match {MANIFEST_FILE} (an interrupted append?): restore it first")
+            raise AppendRefused(f"{name} does not match {MANIFEST_FILE} (an interrupted append?): {RESTORE}")
 
     def _grown_files(self, manifest: dict, days: Sequence[PanelDay]) -> dict[str, bytes]:
         rows: dict[str, list[tuple[str, ...]]] = {}
@@ -115,3 +131,13 @@ class PanelAppender:
     @staticmethod
     def _name(table: str, year: int) -> str:
         return TABLE_FILE.format(table=table, year=year)
+
+
+def _fingerprint(path: Path) -> tuple[str, str, int]:
+    """The file's SHA-256, its decompressed content's SHA-256 and its data rows (header excluded), read in chunks."""
+    content, lines = hashlib.sha256(), 0
+    with gzip.open(path, "rb") as stream:
+        while chunk := stream.read(CHUNK):
+            content.update(chunk)
+            lines += chunk.count(b"\n")
+    return file_sha256(path.read_bytes()), content.hexdigest(), lines - 1

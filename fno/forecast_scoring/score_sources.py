@@ -5,6 +5,7 @@
   1's holdout; the orchestrator's rule for G4).
 - **Live records** (`research/forecasts/live_v2/<YYYY>/<d>_pack.json` and `<d>_forecasts.csv`): scored only when both
   files hash to the day's capture receipt (protocol v2 section 5: the Git commit is transport, the receipt is the lock).
+  The verified pack's 15:00 IV30 is kept per day: live question 5 is resolved against it (protocol v3).
   `CaptureReceipts` is the interface; `RunSummaryReceipts` reads the receipt lines the capture saves in its run summary
   (Drive's pipeline area, `runs/forecast-capture/<YYYY>/<MM>/<run>.json`).
 """
@@ -16,10 +17,11 @@ import hashlib
 import json
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 
+from ..forecast.iv30 import AtmIv30
 from ..forecast.record_files import read_records, read_records_v2
 from ..storage.raw_store import RawFileStore
 from .score_inputs import ScoredForecast, from_backfill, from_live
@@ -76,6 +78,16 @@ class LiveForecasts:
     forecasts: list[ScoredForecast]
     late: int  # records generated after their deadline (not scored)
     unverified: list[str]  # days whose files do not match a receipt (not scored)
+    iv30: dict[date, AtmIv30 | None] = field(default_factory=dict)  # each verified day's 15:00 IV30, from its pack
+
+
+def pack_iv30(pack: bytes) -> AtmIv30 | None:
+    """The 15:00 IV30 a v2 pack locked (None when the pack has none)."""
+    found = json.loads(pack).get("iv30")
+    if found is None:
+        return None
+    expiries = tuple(date.fromisoformat(e) for e in found["expiries"])
+    return AtmIv30(found["points"], found["status"] == "flagged", expiries)
 
 
 def live_forecasts(folder: Path, receipts: CaptureReceipts) -> LiveForecasts:
@@ -84,10 +96,11 @@ def live_forecasts(folder: Path, receipts: CaptureReceipts) -> LiveForecasts:
         day = date.fromisoformat(records_path.name.removesuffix(RECORDS_SUFFIX))
         pack_path = records_path.with_name(f"{day.isoformat()}{PACK_SUFFIX}")
         receipt, text = receipts.receipt(day), records_path.read_text(encoding="utf-8")
-        if receipt is None or not pack_path.is_file() or receipt != Receipt(_sha256(pack_path.read_bytes()),
-                                                                            _sha256(text.encode("utf-8"))):  # fmt: skip
+        pack = pack_path.read_bytes() if pack_path.is_file() else None
+        if receipt is None or pack is None or receipt != Receipt(_sha256(pack), _sha256(text.encode("utf-8"))):
             out.unverified.append(day.isoformat())
             continue
+        out.iv30[day] = pack_iv30(pack)
         for record in read_records_v2(text):
             scored = from_live(record)
             if scored is None:

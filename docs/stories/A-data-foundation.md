@@ -658,4 +658,4 @@ file. The owner must choose:
 **Judge verifies:** rebuilds two appended days with A3's builder and compares them; plants a rewrite; checks that every
 frozen file's hash is unchanged.
 
-**Depends:** A3, A9, A11, O6 · **Size:** M · **Status:** owner chose option A through G1 protocol v3 (14 Oct 2026). Built and tested unwired: `PanelAppender`, `PanelDayJob`, `pipeline panel-days`, `panel-days.yml` (manual dispatch only), writing only under v3's freeze. Proposal for ChatGPT: response 68. Awaiting ChatGPT, then the judge; then the tests re-scoped, v3 frozen, and the job scheduled
+**Depends:** A3, A9, A11, O6 · **Size:** M · **Status:** owner chose option A through G1 protocol v3 (14 Oct 2026). Built and tested unwired: `PanelAppender`, `PanelDayJob`, `pipeline panel-days`, `panel-days.yml` (manual dispatch only), writing only under v3's freeze. ChatGPT review 30 agreed with changes; response 69's seven changes built (response 68 addendum 2; `PROTOCOL_v3.md` draft). Awaiting the judge; then v3 frozen and the job scheduled

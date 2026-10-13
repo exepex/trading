@@ -2,6 +2,7 @@
 
 python -m fno forecast-scores run [--as-of YYYY-MM-DD]           # write research/forecasts/scores/<as-of>.json
 python -m fno forecast-scores summary [--as-of YYYY-MM-DD] [--send]  # plain-words summary (--send: to #fno-desk)
+python -m fno forecast-scores replay --day YYYY-MM-DD           # recompute a live day from its commit's inputs
 """
 
 from __future__ import annotations
@@ -18,14 +19,28 @@ def add_forecast_scores_parser(subparsers) -> None:
     summary = actions.add_parser("summary", help="the plain-words summary of the latest report up to a day")
     summary.add_argument("--as-of", type=date.fromisoformat, help="YYYY-MM-DD (default: today in IST)")
     summary.add_argument("--send", action="store_true", help="also post it to #fno-desk")
+    replay = actions.add_parser("replay", help="recompute a live day from the inputs its capture read (protocol v3)")
+    replay.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
     scores.set_defaults(func=cmd_forecast_scores)
 
 
 def cmd_forecast_scores(args) -> int:
     from ..models import now_ist
 
+    if args.scores_cmd == "replay":
+        return _replay(args.day)
     as_of = args.as_of or now_ist().date()
     return (_run if args.scores_cmd == "run" else _summary)(as_of, args)
+
+
+def _replay(day: date) -> int:
+    from .wiring import build_live_replay
+
+    result = build_live_replay().replay(day)
+    verdict = "reproduces" if result.matches else f"DIFFERS ({', '.join(n for n, s in result.same.items() if not s)})"
+    print(f"Omenix F&O live replay {day}: {verdict}; inputs from {result.inputs_commit[:10]}, "
+          f"records from {result.records_commit[:10]}")  # fmt: skip
+    return 0 if result.matches else 1
 
 
 def _run(as_of: date, args) -> int:

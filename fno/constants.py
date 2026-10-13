@@ -65,6 +65,9 @@ RELEASE_REWRITTEN = "rewritten"  # present, but with other bytes than the first 
 # NIFTY option-chain panel (story A3, fno/research_data/nifty_panel.py)
 PANEL_FORMAT_UDIFF, PANEL_FORMAT_LEGACY = "udiff", "legacy"  # source_format: which F&O file a day's rows came from
 PANEL_INDEX_CLOSE = "index-close"  # the index-close file of a day (underlying and India VIX)
+# Why the daily panel job (story A13) cannot append a session yet
+PANEL_FO_FILE_MISSING, PANEL_INDEX_CLOSE_MISSING = "fo_file_missing", "index_close_missing"
+PANEL_INDEX_CLOSE_DIFFERS = "index_close_differs"
 PANEL_DAY_OK, PANEL_DAY_NO_FILE, PANEL_DAY_NO_INDEX = "ok", "no file", "no index close"  # a day's status (manifest)
 PANEL_DAY_FAILED = "failed"  # the day breaks the research-ready gate: the build fails, naming it
 NIFTY_SYMBOL, INDEX_OPTION, INDEX_FUTURE = "NIFTY", "IDO", "IDF"  # F&O symbol; UDiFF codes of index options, futures

@@ -3,7 +3,9 @@ void; never earlier").
 
 Outcomes use the official NIFTY 50 and India VIX closes (`warmup_closes.csv`, which story O6 extends every trading
 evening) **through the as-of day only**, so nothing after it can be read, and the targets of `targets.py` (protocol
-section 2). Question 5 also needs the day's IV30 (protocol section 3, from the panel).
+section 2). Question 5 also needs the day's IV30: for history (`close_proxy`) the panel's close-proxy IV30 (protocol
+section 3); for live forecasts (`live_1500_proxy`) the 15:00 IV30 locked in that day's hashed pack (protocol v3, ChatGPT
+review 30 item 7), never a value computed later. Live and history Q5 scores are separate series.
 - **pending:** the target trading day (calendar) is after the as-of day or after the last official close, or (question
   5) the panel does not reach the forecast day yet. Never scored; scored on a later day.
 - **void:** the target day is covered but a needed close is missing, or (question 5) IV30 is flagged or missing.
@@ -23,6 +25,7 @@ from ..forecast.history import HORIZONS, ForecastHistory
 from ..forecast.iv30 import AtmIv30
 from ..forecast.targets import ForecastTargets, daily_closes
 from ..research_data.calendar import SessionCalendar
+from .score_inputs import CLOSE_PROXY, LIVE
 
 RESOLVED, PENDING, VOID = "resolved", "pending", "void"
 
@@ -35,8 +38,8 @@ class Resolution(NamedTuple):
 
 class OutcomeResolver(ABC):
     @abstractmethod
-    def resolve(self, question: str, day: date) -> Resolution:
-        """The outcome of `question` for forecast day `day` as known on the resolver's as-of day."""
+    def resolve(self, question: str, day: date, mode: str = CLOSE_PROXY) -> Resolution:
+        """The outcome of `question` for forecast day `day` and input mode `mode`, as known on the as-of day."""
 
 
 class CloseDay(NamedTuple):
@@ -46,7 +49,8 @@ class CloseDay(NamedTuple):
 
 
 class OfficialOutcomes(OutcomeResolver):
-    """Outcomes from the official closes through `as_of`; question 5's IV30 from `iv30(day)` (None: panel not there)."""
+    """Outcomes from the official closes through `as_of`. Question 5's IV30: history from `iv30(day)` (not covered: the
+    panel is not there yet); live from `live_iv30(day)`, the forecast's own 15:00 pack."""
 
     def __init__(
         self,
@@ -55,21 +59,22 @@ class OfficialOutcomes(OutcomeResolver):
         as_of: date,
         iv30: Callable[[date], tuple[bool, AtmIv30 | None]],
         horizon_day: Callable[[date, int], date | None],
+        live_iv30: Callable[[date], AtmIv30 | None] = lambda day: None,
     ):
         known = closes.through(as_of + timedelta(days=1))  # `through` excludes its own day; the as-of close counts
         self.last_close = max(known) if known else None
         rows = [CloseDay(day, nifty, vix) for day, (nifty, vix) in known.items()]
         self.targets = ForecastTargets(daily_closes(calendar, min(known), self.last_close, rows)) if known else None
-        self.iv30, self.horizon_day = iv30, horizon_day
+        self.iv30, self.horizon_day, self.live_iv30 = iv30, horizon_day, live_iv30
 
-    def resolve(self, question: str, day: date) -> Resolution:
+    def resolve(self, question: str, day: date, mode: str = CLOSE_PROXY) -> Resolution:
         target = self.horizon_day(day, HORIZONS[question])
         if self.targets is None or target is None or target > self.last_close:
             return Resolution(PENDING)
         if question != FORECAST_Q5_RV_BELOW_IV:
             outcome = self.targets.outcome(question, day)
             return Resolution(VOID) if outcome is None else Resolution(RESOLVED, outcome)
-        covered, iv30 = self.iv30(day)
+        covered, iv30 = (True, self.live_iv30(day)) if mode == LIVE else self.iv30(day)
         if not covered:
             return Resolution(PENDING)
         primary, flagged = self.targets.rv_below_iv(day, iv30), self.targets.rv_below_iv_flagged(day, iv30)

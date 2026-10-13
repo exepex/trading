@@ -58,12 +58,12 @@ class ModeScores:
 class ForecastScorer:
     def __init__(self, resolver: OutcomeResolver):
         self.resolver = resolver
-        self._resolved: dict[tuple[str, date], Resolution] = {}
+        self._resolved: dict[tuple[str, date, str], Resolution] = {}
 
-    def resolution(self, question: str, day: date) -> Resolution:
-        key = (question, day)
+    def resolution(self, question: str, day: date, mode: str) -> Resolution:
+        key = (question, day, mode)  # question 5's threshold depends on the mode (live: the 15:00 pack's IV30)
         if key not in self._resolved:
-            self._resolved[key] = self.resolver.resolve(question, day)
+            self._resolved[key] = self.resolver.resolve(question, day, mode)
         return self._resolved[key]
 
     def score(self, forecasts: Iterable[ScoredForecast]) -> tuple[ModeScores, ...]:
@@ -77,12 +77,12 @@ class ForecastScorer:
         scores = {key: self._question_scores(items) for key, items in _grouped(forecasts).items()}
         q5_days = {f.day: f.iv30_status for f in forecasts if f.question == FORECAST_Q5_RV_BELOW_IV}
         flag_rate = sum(s == FLAGGED for s in q5_days.values()) / len(q5_days) if q5_days else None
-        primary = self._comparisons(forecasts, primary_family())
+        primary = self._comparisons(mode, forecasts, primary_family())
         significant = holm_significant([c.result.p_value for c in primary])
         primary = tuple(ComparisonResult(c.comparison, c.result, s) for c, s in zip(primary, significant, strict=True))
         days = [f.day for f in forecasts]
         return ModeScores(mode, min(days, default=None), max(days, default=None), scores, flag_rate, primary,
-                          self._comparisons(forecasts, secondary_comparisons()))  # fmt: skip
+                          self._comparisons(mode, forecasts, secondary_comparisons()))  # fmt: skip
 
     def _question_scores(self, items: Sequence[ScoredForecast]) -> QuestionScores:
         out = QuestionScores()
@@ -93,7 +93,7 @@ class ForecastScorer:
             if f.probability is None:
                 out.counts[NO_FORECAST] += 1
                 continue
-            res = self.resolution(f.question, f.day)
+            res = self.resolution(f.question, f.day, f.mode)
             out.counts[res.status] += 1
             if res.status == RESOLVED:
                 pairs.append((f.probability, res.outcome))
@@ -107,7 +107,7 @@ class ForecastScorer:
         out.sensitivities = {name: summarise(values) for name, values in sorted(sensitivity.items())}
         return out
 
-    def _comparisons(self, forecasts: list[ScoredForecast], family: Sequence[Comparison]) -> tuple:
+    def _comparisons(self, mode: str, forecasts: list[ScoredForecast], family: Sequence[Comparison]) -> tuple:
         probability = {(f.book, f.question, f.day): f.probability for f in forecasts if f.probability is not None}
         days = sorted({f.day for f in forecasts})
         results = []
@@ -117,7 +117,7 @@ class ForecastScorer:
                 a, b = probability.get((c.first, c.question, day)), probability.get((c.second, c.question, day))
                 if a is None or b is None:
                     continue
-                res = self.resolution(c.question, day)
+                res = self.resolution(c.question, day, mode)
                 if res.status == RESOLVED:
                     differences.append(brier(a, res.outcome) - brier(b, res.outcome))
             results.append(ComparisonResult(c, compare(differences, c.k)))

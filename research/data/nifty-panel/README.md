@@ -93,13 +93,18 @@ Not included: other underlyings, open/high/low, previous close, lot size.
 
 ## Daily sessions after the build (story A13, waiting for G1 protocol v3)
 
-Built, not yet active. `python -m fno pipeline panel-days` (GitHub Actions `.github/workflows/panel-days.yml`) appends
-each new session's NIFTY option and future rows in place:
-- each day is built with A3's own builder from the F&O and index-close files in Drive, using the newest version held at
-  the run (A11);
-- the day's closes must equal O6's `warmup_closes.csv` row;
-- days are only appended after the manifest's `end`, never rewritten;
-- a touched year file gets one more gzip member, so its old bytes stay a prefix;
-- old manifest entries stay as they were, and new days carry `appended_at` and the calendar SHA-256 they used.
+Built, not yet active. Rules: `research/forecasts/PROTOCOL_v3.md` section 1.
 
-It appends nothing until `research/forecasts/FREEZE_v3.md` exists. Proposal: `reviews/claude/response_68_g1-v3-panel-extension.md`.
+`python -m fno pipeline panel-days` (GitHub Actions `.github/workflows/panel-days.yml`) works like this:
+1. It checks every panel file against `manifest.json`. A mismatch is refused; the fix is
+   `git checkout research/data/nifty-panel/`.
+2. It builds each new session with A3's own builder from the **first archived** F&O and index-close files in Drive.
+3. It requires O6's official close of that day to come from the same index-close file.
+4. It appends all pending sessions or none, never rewriting a day:
+   - touched year files get one more gzip member, so their old bytes stay a prefix;
+   - old manifest entries stay as they were;
+   - each new day records its input versions, the later A11 versions known at the run, `inputs_read_at` and
+     `appended_at`.
+5. The workflow commits the panel only when the job exits 0.
+
+It appends nothing until `research/forecasts/FREEZE_v3.md` exists.
