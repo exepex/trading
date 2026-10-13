@@ -43,14 +43,15 @@ def cmd_data_coverage(args) -> int:
 
 def cmd_nifty_panel(args) -> int:
     from .research_data.nifty_panel import PanelBuildError, build_nifty_panel, summary_lines
+    from .research_data.panel_store import PanelRangeError
     from .storage import wiring
 
     fo_files, index_files = wiring.build_nifty_panel_files(args.raw_folder)
     rules = {"calendar": wiring.build_session_calendar(), "exceptions": wiring.build_file_exceptions()}
     try:
         panel = build_nifty_panel(fo_files, index_files, args.start, args.end, sink=wiring.build_panel_sink(), **rules)
-    except PanelBuildError as exc:
-        print(f"NOT research-ready, nothing written: {exc}")
+    except (PanelBuildError, PanelRangeError) as exc:
+        print(f"NOT built, nothing written: {exc}")
         return 1
     print("\n".join(summary_lines(panel)))
     return 0

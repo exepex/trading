@@ -128,8 +128,11 @@ underlyings (later stories), intraday data.
   in `fno/storage/wiring.py` (Drive first, NSE for missing files, never writing to Drive).
 - For each trading day: the current-format file when it exists, else the old-format file; index closes for that day.
 - Output files under `research/data/nifty-panel/`: `options_<year>.csv.gz` with columns `date, expiry, strike, type,
-  close, settle, volume, open_interest, underlying, vix, source_format`; and `manifest.json` with, per day, the source
-  file name, its SHA-256 and the row count.
+  close, settle, volume, open_interest, underlying, vix, source_format, session`; `futures_<year>.csv.gz` (every
+  listed NIFTY index future) with columns `date, expiry, close, settle, volume, open_interest, underlying,
+  source_format, session`; and `manifest.json` with, per day, the source file name, its SHA-256 and the row counts.
+  (`session` = the calendar's session kind, and the futures file, added after judge 14 by orchestrator decision,
+  13 Oct 2026.) A build never drops days the existing panel holds: a narrower range is refused.
 - Deterministic: rows sorted by date, expiry, strike, type; fixed column order; gzip written with a fixed timestamp.
 
 **Acceptance criteria:**

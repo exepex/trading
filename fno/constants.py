@@ -63,7 +63,7 @@ PANEL_FORMAT_UDIFF, PANEL_FORMAT_LEGACY = "udiff", "legacy"  # source_format: wh
 PANEL_INDEX_CLOSE = "index-close"  # the index-close file of a day (underlying and India VIX)
 PANEL_DAY_OK, PANEL_DAY_NO_FILE, PANEL_DAY_NO_INDEX = "ok", "no file", "no index close"  # a day's status (manifest)
 PANEL_DAY_FAILED = "failed"  # the day breaks the research-ready gate: the build fails, naming it
-NIFTY_SYMBOL, INDEX_OPTION = "NIFTY", "IDO"  # F&O symbol and instrument code (UDiFF) of NIFTY index options
+NIFTY_SYMBOL, INDEX_OPTION, INDEX_FUTURE = "NIFTY", "IDO", "IDF"  # F&O symbol; UDiFF codes of index options, futures
 
 # Google Drive uploads as the owner (OAuth "Desktop app" client, one-time consent with tools/gdrive_oauth_setup.py);
 # values only in the cloud environment's settings, never in files or chat. Service accounts cannot upload (no quota).
