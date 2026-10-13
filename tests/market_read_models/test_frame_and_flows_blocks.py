@@ -44,14 +44,14 @@ def test_a_monthly_expiry_session_names_it():
 
 def test_a_muhurat_session_without_issued_hours_publishes_as_not_issued_and_the_run_publishes(tmp_path):
     """Contract 2.6, with the real calendar row: 8 Nov 2026, muhurat, "timings circular not yet issued", the session
-    after Friday 6 Nov. Equal to the contract's example but for post_close_at: the 07:10 IST run on 9 Nov still brings
-    the session's close (the example's null is "once it ran")."""
+    after Friday 6 Nov. Equal to the contract's example field by field (66f129b: post_close_at is the 07:10 IST run on
+    9 Nov, still due, which brings the session's close)."""
     frame = frame_inputs(CALENDAR, date(2026, 11, 6))
     assert frame == FrameInputs(date(2026, 11, 8), "muhurat")
     rows = replace(example_rows(), frame=frame)
     session = SessionIndiaBlock().build(rows)
     example = CONTRACT.examples()["getSessionIndia_india_hours_not_issued"]["value"]["payload"]
-    assert session == {**example, "post_close_at": "2026-11-09T01:40:00Z"}
+    assert session == example and session["post_close_at"] == "2026-11-09T01:40:00Z"
     planted = {**session, "open_utc": "2026-11-08T12:45:00Z"}  # an hour guessed while the hours are not issued
     with pytest.raises(ContractBroken):
         CONTRACT.validate("Session", planted)

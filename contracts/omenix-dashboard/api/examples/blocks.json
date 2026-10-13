@@ -302,7 +302,7 @@
    "built_at": "2026-10-07T12:00:00Z",
    "schema_version": "2.1.0",
    "source_commit": "cadf1d2",
-   "payload_sha256": "779d2749ca713128057eeb823c5897a0cfed489301618c6dd665c47d40f50730",
+   "payload_sha256": "68dfc8878ea17b6de83d801ad33cf7f752b822f46f80786e67d6f03ecbcc9c03",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -322,7 +322,7 @@
     "close_utc": null,
     "next_open_utc": null,
     "regime": null,
-    "post_close_at": null,
+    "post_close_at": "2026-11-09T01:40:00Z",
     "major_event_names": [],
     "hours_status": "not_issued"
    }

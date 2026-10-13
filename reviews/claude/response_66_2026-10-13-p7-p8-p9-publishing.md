@@ -480,3 +480,10 @@ My earlier mutation check ("reading only up to the session day fails the test") 
 | `hours_status` dropped | caught (4 failed; `SessionIndiaResponse` requires it) |
 
 **Owner action (unchanged):** when NSE issues the muhurat circular, add the hours to the calendar. The block then publishes them as `known`. That needs the calendar's hours fields, which A7 owns.
+
+## Addendum: re-pinned to omenix-dashboard 66f129b (judge 66 addendum)
+
+The dashboard corrected its `not_issued` example. Its `post_close_at` is now `2026-11-09T01:40:00Z`, the value this block already publishes.
+- **Pin:** 66f129b (`66f129b6…`), still version 2.6.0.
+- **What changed:** only `api/examples/blocks.json`. Every schema file is byte-equal.
+- **Test:** the muhurat page now equals the contract's example field by field, with no exception left.
