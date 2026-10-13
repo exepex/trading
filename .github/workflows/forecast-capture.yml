@@ -93,6 +93,9 @@ jobs:
           set -o pipefail
           python -m fno ai collect | tee -a ai.log
           grep '^ai receipt: ' ai.log >> "$GITHUB_STEP_SUMMARY" || echo "no AI receipt: nothing collected" >> "$GITHUB_STEP_SUMMARY"
+      - name: Record new weekly audit draws and list the transcript audits due (owner's condition 1)
+        if: ${{ !cancelled() }}
+        run: python -m fno ai audits-due | tee audits.log
       - name: Commit the records (transport; the receipts above are the lock)
         if: ${{ !cancelled() }}
         run: |
@@ -102,7 +105,7 @@ jobs:
       - name: One line to #fno-desk
         run: |
           python -c "import sys; from fno.composition import build_alert_sender; print(build_alert_sender().send(sys.argv[1]))" \
-            "$(head -n 1 capture.log; grep '^Omenix F&O AI' ai.log; python -m fno ai audits-due | head -n 1)"
+            "$(head -n 1 capture.log; grep '^Omenix F&O AI' ai.log; head -n 1 audits.log)"
       - name: Alert #fno-desk when the job itself failed
         if: ${{ failure() }}
         run: |

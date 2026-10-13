@@ -9,9 +9,10 @@ from datetime import date, datetime, timedelta
 
 import pytest
 
-from fno.ai.audit_plan import FiredSession, audits_due, sessions_to_audit
+from fno.ai.audit_plan import FiredSession, audits_due, record_draws, sessions_to_audit
+from fno.ai.draw_seed import WeekSeed, week_label, week_seeds
 from fno.ai.fire import AiBookFirer
-from fno.ai.paths import fired_path, pack_path, rules_path
+from fno.ai.paths import CLOSES_FILE, fired_path, pack_path, rules_path
 from fno.ai.scoring_gate import PENDING, SCORED, UNSCORED, scoring_status
 from fno.ai.stop_rule import stop_reason
 from fno.ai.transcript_audit import AuditRefused, TranscriptAudits, new_audit
@@ -21,7 +22,6 @@ from tests.ai.fakes import DAY, Clock, at
 from tests.ai.test_fire_and_collect import Desk
 
 NOW = datetime(2026, 10, 14, 16, 0, tzinfo=IST)
-LATER = date(2026, 12, 1)  # weeks after DAY: every week drawn
 
 
 @pytest.fixture
@@ -59,13 +59,13 @@ def test_an_audit_is_written_once_and_a_breach_must_name_its_kind(desk):
 
 
 def test_a_planted_breach_makes_the_day_unscored_and_a_due_audit_keeps_it_pending(desk):
-    assert scoring_status(desk.root, DAY, BOOK2_HYBRID, LATER).status == PENDING  # first 10 days: audit due
+    assert scoring_status(desk.root, DAY, BOOK2_HYBRID).status == PENDING  # first 10 days: audit due
     audit(desk, BOOK2_HYBRID, breaches=["read_other_records"])
     audit(desk, BOOK3_AI)
-    breached, clean = (scoring_status(desk.root, DAY, b, LATER) for b in (BOOK2_HYBRID, BOOK3_AI))
+    breached, clean = (scoring_status(desk.root, DAY, b) for b in (BOOK2_HYBRID, BOOK3_AI))
     assert breached.status == UNSCORED and "read_other_records" in breached.reason
     assert clean.status == SCORED and clean.isolation == "sealed_same_day"
-    assert audits_due(desk.root, LATER) == []
+    assert audits_due(desk.root) == []
 
 
 def test_a_late_day_is_unscored_whatever_its_audit(tmp_path):
@@ -73,7 +73,7 @@ def test_a_late_day_is_unscored_whatever_its_audit(tmp_path):
     desk.fire()
     desk.answer(BOOK3_AI, sealed=datetime(2026, 10, 13, 15, 15, 1, tzinfo=IST))
     desk.collect()
-    assert scoring_status(desk.root, DAY, BOOK3_AI, LATER).status == UNSCORED
+    assert scoring_status(desk.root, DAY, BOOK3_AI).status == UNSCORED
 
 
 def plant_days(desk, days):
@@ -112,21 +112,56 @@ def sessions(days, books=(BOOK2_HYBRID, BOOK3_AI)):
     return [FiredSession(d, b, {"fired": True}) for d in days for b in books]
 
 
-def test_the_first_10_days_are_all_audited_then_2_a_week_drawn_once_the_week_is_over():
-    days = [
-        date(2026, 10, 14) + timedelta(days=n)
-        for n in range(30)
-        if (date(2026, 10, 14) + timedelta(days=n)).weekday() < 5
-    ]
-    fired = sessions(days)
-    first = {s.day for s in sessions_to_audit(fired, days[9])}
-    assert first == set(days[:10])
-    later = sessions_to_audit(fired, date(2026, 12, 1))
+WEEKDAYS = [d for d in (date(2026, 10, 14) + timedelta(days=n) for n in range(30)) if d.weekday() < 5]
+
+
+def seed(week, close="22721.95"):
+    return WeekSeed(week_label(week), "2026-10-16", close, "closes.csv")
+
+
+def test_the_first_10_days_are_all_audited_then_2_a_week_once_the_week_has_its_seed():
+    fired = sessions(WEEKDAYS)
+    assert {s.day for s in sessions_to_audit(fired, {})} == set(WEEKDAYS[:10])  # no seed yet: no weekly draw
+    seeds = {d.isocalendar()[:2]: seed(d.isocalendar()[:2]) for d in WEEKDAYS}
+    chosen = sessions_to_audit(fired, seeds)
     by_week = {}
-    for s in later:
-        if s.day not in days[:10]:
+    for s in chosen:
+        if s.day not in WEEKDAYS[:10]:
             by_week.setdefault(s.day.isocalendar()[:2], []).append(s)
-    assert by_week and all(len(chosen) == 2 for chosen in by_week.values())
-    assert later == sessions_to_audit(list(reversed(fired)), date(2026, 12, 1))  # fixed by the week, not the order
-    open_week = sessions_to_audit(fired, days[-1])
-    assert all(s.day.isocalendar()[:2] < days[-1].isocalendar()[:2] or s.day in days[:10] for s in open_week)
+    assert by_week and all(len(drawn) == 2 for drawn in by_week.values())
+    assert chosen == sessions_to_audit(list(reversed(fired)), seeds)  # the same inputs give the same draw
+
+
+def test_the_seed_needs_the_weeks_last_close_and_takes_its_value():
+    assert seed((2026, 43)).value == seed((2026, 43)).value
+    assert seed((2026, 43)).value != seed((2026, 43), close="22722.00").value  # the close, unknown in advance, decides
+
+
+def write_closes(path, days):
+    rows = "".join(f"{d},regular,{22000 + i}.5,14.1,f,s\n" for i, d in enumerate(days))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("date,session,underlying,vix,index_file,index_sha256\n" + rows)
+
+
+def test_a_week_cannot_be_drawn_before_a_later_close_is_in(tmp_path):
+    week = [d for d in WEEKDAYS if d.isocalendar()[:2] == WEEKDAYS[0].isocalendar()[:2]]
+    write_closes(tmp_path / "closes.csv", week)
+    assert week_seeds(tmp_path / "closes.csv", "closes.csv") == {}  # the week's last close may not be final
+    next_monday = week[-1] + timedelta(days=3)
+    write_closes(tmp_path / "closes.csv", week + [next_monday])
+    seeds = week_seeds(tmp_path / "closes.csv", "closes.csv")
+    assert list(seeds) == [week[0].isocalendar()[:2]]
+    assert seeds[week[0].isocalendar()[:2]].close_date == week[-1].isoformat()
+
+
+def test_each_draw_is_recorded_once_with_its_seed_inputs(tmp_path):
+    for day in WEEKDAYS:
+        (tmp_path / fired_path(day)).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / fired_path(day)).write_text(json.dumps({BOOK3_AI: {"fired": True, "version": "v", "session": "s"}}))
+    write_closes(tmp_path / CLOSES_FILE, WEEKDAYS)
+    written = record_draws(tmp_path)
+    assert written and record_draws(tmp_path) == []
+    record = json.loads((tmp_path / written[0]).read_text())
+    assert set(record["seed"]) == {"week", "close_date", "nifty_close", "source"} and len(record["drawn"]) == 2
+    due = {(s.day.isoformat(), s.book) for s in audits_due(tmp_path)}
+    assert {tuple(d) for d in record["drawn"]} <= due and len(due) == 10 + 2 * len(written)

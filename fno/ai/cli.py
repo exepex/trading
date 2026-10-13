@@ -4,7 +4,7 @@
 - `reveals-ready`: exit 0 once every fired book's reveal is in the checkout (or nothing was fired);
 - `collect`: after 15:15 IST, turns the books' sealed submissions into records and audit files (written once);
 - `coverage`: per book, the pack days with a counted forecast (story G5 criterion 3);
-- `audits-due`: the routine sessions the owner's audit rule selects that have no transcript audit yet;
+- `audits-due`: records any new weekly draw (with its seed inputs), then lists the selected sessions not audited yet;
 - `audit-record`: records one session's transcript audit (clean, or the breach kinds found), written once.
 The routine side is `python -m fno.ai` (standard library only).
 """
@@ -82,10 +82,14 @@ def _coverage(day: date) -> int:
 
 def _audits_due(day: date) -> int:
     from ..config import ROOT
-    from .audit_plan import audits_due
+    from .audit_plan import audits_due, record_draws
 
-    due = audits_due(ROOT, day)
-    print(f"Omenix F&O AI transcript audits due: {len(due)}")
+    drawn = record_draws(ROOT)
+    due = audits_due(ROOT)
+    print(
+        f"Omenix F&O AI transcript audits due: {len(due)}"
+        + (f"; new weekly draws: {', '.join(drawn)}" if drawn else "")
+    )
     for session in due:
         print(f"  {session.day} {session.book} {session.entry.get('session', '(no link)')}")
     return 0

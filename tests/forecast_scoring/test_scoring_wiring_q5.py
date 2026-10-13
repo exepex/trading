@@ -93,3 +93,23 @@ def test_the_composition_root_scores_live_q5_against_the_pack(tmp_path, monkeypa
     assert q5["counts"]["resolved"] == 1
     assert q5["primary"]["mean_brier"] == pytest.approx((0.7 - 1) ** 2)  # yes: 4.62 < 5.0, the 15:00 pack
     assert CLOSE_PROXY not in {m["mode"] for m in document["modes"]}  # nothing pooled with history
+
+
+def test_scoring_refuses_when_its_own_v3_section_does_not_hold(tmp_path, monkeypatch):
+    from fno.forecast.freeze import NotFrozen
+
+    receipt = _repository(tmp_path)
+    _closes_file(tmp_path / "closes.csv")
+    frozen = SimpleNamespace(protocol_commit="0" * 40)
+
+    def q5_changed(*args, **kwargs):
+        raise NotFrozen("forecast-scores's frozen files changed: fno/forecast_scoring/q5_thresholds.py")
+
+    monkeypatch.setattr(wiring, "require_frozen_before", lambda *a, **k: frozen)
+    monkeypatch.setattr(wiring, "require_version_frozen", lambda *a, **k: frozen)
+    monkeypatch.setattr(wiring, "require_section_frozen", q5_changed)
+    monkeypatch.setattr(wiring, "build_forecast_history", lambda cfg, years: _PanelHistory())
+    monkeypatch.setattr(wiring, "CLOSES_FILE", tmp_path / "closes.csv")
+    monkeypatch.setattr(wiring, "build_session_calendar", lambda: CALENDAR)
+    with pytest.raises(NotFrozen, match="q5_thresholds"):
+        wiring.score_forecasts({}, AS_OF, _Receipts({FIRST: receipt}), root=tmp_path)

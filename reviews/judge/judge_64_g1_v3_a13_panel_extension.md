@@ -78,3 +78,32 @@ against A3's build.
 New behaviour in new classes; constants in `fno/constants.py`; file sizes within 350 lines (largest 143); no secret in
 files; the workflow has no AI and posts only to #fno-desk. Drive was read with the owner drive connection, read-only;
 my scratch append went to a copy outside the repository.
+
+## Addendum 1 (re-judge of 94880cc): PASS; v3 can be frozen, with one scope decision first
+
+| Judge 64 item | My check | Result |
+|---|---|---|
+| (d) replay anchor | My own scenario, in the capture's real order: panel, then the pack commit, then a commit pulled in that changes the manifest, then the records commit. Against the new `replay.py`: `inputs_commit` is the checkout the pack was computed from, and the replay matches. Before the fix it read the pulled-in commit and reported a mismatch. `PROTOCOL_v3.md` section 2 now says the same | MET |
+| (c) `verify()` untested | I made `verify()` return at once: 2 tests fail (the new test with untouched 2020 files). The builder also found and fixed a crash on a damaged gzip | MET |
+| (e) live Q5 wiring untested | The rule now lives in `fno/forecast_scoring/q5_thresholds.py`. My plant giving the live resolver the panel IV30 fails `test_scoring_wiring_q5` (1 failed, 39 passed) | MET |
+| shared O6 wiring frozen | A13 has its own root, `fno/pipeline/panel_wiring.py` (listed in CLAUDE.md); O6's `wiring.py` only imports `drive_files` from it, never the reverse | MET |
+
+Gates at 76eede9:
+- tests: forecast, forecast_scoring, research_data, pipeline and research, 314 passed;
+- ruff and imports: clean.
+
+**One scope decision before the freeze (some evidence, from the builder's own note and the freeze list).** v3's list
+byte-freezes `resolution.py`, `score_sources.py` and `scoring.py`. Those are G4's general scoring files, not only
+question 5. The v3 check runs inside the panel job, so any later G4 change to them stops the daily panel appends. This
+is the shared-file trap again, one level down.
+
+Simplest fix (reasoning only): freeze `q5_thresholds.py` and `replay.py` as v3's G4 part, since they now hold the live
+Q5 rule and the replay, not the three general files. Alternatively, split the check: the panel job checks the protocol
+and the A13 files only, and G4's `score_forecasts` checks the Q5 files whenever live records exist, as it does for v2.
+Either is fine. Freezing as listed would also work today, but it will hurt the first time G4 changes. The
+judge 62 must-fix touches `ai_sources.py`, which is not on the list.
+
+**On PASS:** v3 can be frozen once that scope is settled, and A13's schedule switched on. After the first two real
+appends I will compare them with A3's build, as A13's "judge verifies" asks. Note the builder's point: until
+`panel-days.yml` is scheduled, 13 Oct's F&O file reaches Drive only through `market-publish.yml`, which depends on the
+database check.

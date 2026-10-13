@@ -77,3 +77,50 @@ publication ID); I did. The criterion speaks of changes, not inserts, so this is
 check that new rows are `running` would close it if every code path starts with `running` (reasoning only).
 `pages_history` and `current_publication` (001) carry the same default DELETE; whether P6 meant them to be
 append-only is for the builder to state.
+
+## Addendum 2 (re-judge of ab629ff, merged e5c4e91): PASS; the owner may run 002
+
+I reproduced Azure's set-up on a throwaway PostgreSQL 16 with **X1's own platform files** (omenix-dashboard
+`platform/sql/00_roles.sql`, `20_schemas.sql`, `30_grants.sql`, `40_default_privileges.sql`), not the repository's
+fixture copy. Then:
+1. I ran 001 as `fno_owner`.
+2. As `fno_writer`, I inserted one `pages_history` row and one `current_publication` row (001's live state, with the
+   step-40 rights including DELETE).
+3. I ran 002 as `fno_owner`, then ran it again.
+
+**Migration:** the first run exit 0, the second run exit 0 (idempotent: only "already exists, skipping" notices).
+Both rows were kept.
+
+**Rights after 002 (information_schema):**
+
+| Role | `pages_history` | `current_publication` | `run_status` |
+|---|---|---|---|
+| `fno_writer` | INSERT, SELECT | INSERT, SELECT, UPDATE | INSERT, SELECT, UPDATE |
+| `dashboard_app` | SELECT | SELECT | SELECT |
+
+**Probes as `fno_writer`:**
+
+| Attempt | Result |
+|---|---|
+| `delete` and `truncate` on each of the three tables | refused, all six |
+| `update` on `pages_history` | refused |
+| Insert a run born `published` | refused ("must be recorded as running first") |
+| Insert a run born `running` with a reason | refused |
+| Insert a proper `running` row, then finish it once | allowed |
+| Change a running row's run ID | refused (identity kept) |
+| Rewrite the finished row | refused |
+| Upsert over the finished row | refused |
+| Update the pointer, as the publisher needs | allowed |
+| Disable or drop the trigger, replace its function, `session_replication_role` | refused |
+
+**Probes as `dashboard_app`:** insert refused, select allowed.
+
+**The publisher's own SQL fits the narrowed rights:**
+- pages: `insert ... on conflict do nothing` needs INSERT only;
+- pointer: an upsert, which needs INSERT and UPDATE;
+- run status: the insert as `running`, then one update.
+
+`tests/market_read_models`: 129 passed (the fixture now mirrors X1 steps 00-40 and runs the migrations as `fno_owner`).
+
+All six criteria are now MET. **Verdict: PASS.** The owner can run 002 as `fno_owner`. Expect two NOTICE lines on the
+first run, about the trigger and index not existing yet; they are harmless.
