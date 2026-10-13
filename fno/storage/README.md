@@ -22,6 +22,13 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `nse/derivatives/fo-bhavcopy-legacy` | `NseLegacyFoSource` | F&O, old format (`fo02JAN2019bhav.csv.zip`) | up to 5 Jul 2024 |
 | `nse/indices/index-close` | `NseIndexCloseSource` | daily index closes (NIFTY 50, NIFTY Bank, India VIX...) | 2017 onwards (2017-18: warm-up, A10) |
 | `nse/derivatives/participant-oi` | `ParticipantOiSource` | participant-wise open interest (client, DII, FII, pro; story A8) | 2019 onwards |
+| `nse/equities/cm-bhavcopy` | `NseEquityBhavcopySource` | capital-market file, UDiFF (every security's prices and volume; P6) | 1 Oct 2025 onwards |
+| `nse/equities/security-delivery` | `NseDeliverySource` | security-wise file with delivery % (`sec_bhavdata_full_DDMMYYYY.csv`; P6) | 1 Oct 2025 onwards |
+| `nse/equities/equity-list` | `EquityListSource` | the list of listed companies (`EQUITY_L.csv`), one copy per day fetched (P6) | 13 Oct 2026 onwards |
+| `nse/indices/nifty500-list` | `Nifty500ListSource` | the Nifty 500's members and industries (`ind_nifty500list.csv`), per day fetched (P6) | 13 Oct 2026 onwards |
+
+NSE's reference lists have no date in their name and are replaced in place, so each copy is filed under the day it was
+fetched: `<dataset>/<YYYY>/<MM>/<DD>/<original name>` (`snapshot_source.py`; `python -m fno data-snapshot <name>`).
 
 Both F&O formats are read into one record format by `fno/fo_bhavcopy.py` (originals stay unchanged); the old format's
 missing underlying price for index options comes from the index-close file of the same day.

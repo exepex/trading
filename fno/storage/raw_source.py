@@ -79,10 +79,17 @@ class NseArchiveSource(RawFileSource):
     def path_for(cls, day: date) -> str:
         return cls.dated_path(cls.dataset, day, cls.filename_for(day))
 
+    BASE_URL = ""  # NSE folder the files are served from
+
     @classmethod
-    @abstractmethod
     def url_for(cls, path: str) -> str:
-        """NSE's URL for an archive path."""
+        """NSE's URL for an archive path: the folder's URL and the original file name."""
+        return cls.BASE_URL + path.rsplit("/", 1)[-1]
+
+    @classmethod
+    def day_for_path(cls, path: str) -> date:
+        """The day an archive path is for (dated sources: from the file name)."""
+        return cls.day_for(path.rsplit("/", 1)[-1])
 
     def fetch(self, path: str) -> bytes | None:
         response = self._response(path)
@@ -126,10 +133,6 @@ class NseDailyFoSource(NseArchiveSource):
     BASE_URL = "https://nsearchives.nseindia.com/content/fo/"
     FILENAME = "BhavCopy_NSE_FO_0_0_0_{day:%Y%m%d}_F_0000.csv.zip"
 
-    @classmethod
-    def url_for(cls, path: str) -> str:
-        return cls.BASE_URL + path.rsplit("/", 1)[-1]
-
 
 class NseLegacyFoSource(NseArchiveSource):
     """NSE's daily F&O file in the older format (served up to 5 July 2024), e.g. fo02JAN2019bhav.csv.zip. Its URL
@@ -154,10 +157,6 @@ class NseIndexCloseSource(NseArchiveSource):
     BASE_URL = "https://nsearchives.nseindia.com/content/indices/"
     FILENAME = "ind_close_all_{day:%d%m%Y}.csv"
 
-    @classmethod
-    def url_for(cls, path: str) -> str:
-        return cls.BASE_URL + path.rsplit("/", 1)[-1]
-
 
 class ParticipantOiSource(NseArchiveSource):
     """NSE's daily participant-wise open interest (client, DII, FII, pro: long and short contracts per instrument
@@ -168,6 +167,22 @@ class ParticipantOiSource(NseArchiveSource):
     BASE_URL = "https://nsearchives.nseindia.com/content/nsccl/"
     FILENAME = "fao_participant_oi_{day:%d%m%Y}.csv"
 
-    @classmethod
-    def url_for(cls, path: str) -> str:
-        return cls.BASE_URL + path.rsplit("/", 1)[-1]
+
+class NseEquityBhavcopySource(NseArchiveSource):
+    """NSE's daily capital-market file in the UDiFF format (every listed security's open, high, low, close, volume;
+    story P6), e.g. BhavCopy_NSE_CM_0_0_0_20261012_F_0000.csv.zip."""
+
+    dataset = "nse/equities/cm-bhavcopy"
+    first_day = date(2025, 10, 1)  # P6: a year and a week before 12 Oct 2026 (the screener's 1Y figures, RSI)
+    BASE_URL = "https://nsearchives.nseindia.com/content/cm/"
+    FILENAME = "BhavCopy_NSE_CM_0_0_0_{day:%Y%m%d}_F_0000.csv.zip"
+
+
+class NseDeliverySource(NseArchiveSource):
+    """NSE's daily security-wise file with delivery quantities and delivery % (story P6), e.g.
+    sec_bhavdata_full_12102026.csv."""
+
+    dataset = "nse/equities/security-delivery"
+    first_day = date(2025, 10, 1)
+    BASE_URL = "https://nsearchives.nseindia.com/products/content/"
+    FILENAME = "sec_bhavdata_full_{day:%d%m%Y}.csv"

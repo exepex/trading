@@ -1,0 +1,74 @@
+# What each publisher STORES for a block that the dashboard's route serves differently (W11 follow-ups, 13 Oct 2026).
+# The served schemas (blocks-screener.yaml) stay as they are; these are the shapes the publishers write, so a backend
+# validates its own part before publishing. tools/api/check_stored.py builds every part from the mockups' data,
+# validates it here, and checks that the route's merge or page of it validates against the served schema.
+#   x-stored-by: who writes the part, where, and under which story
+
+ScreenerSummaryNsePart:
+  type: object
+  additionalProperties: false
+  description: >-
+    India's NSE universes (every NSE stock, the Nifty 500, the F&O stocks), counted from NSE's daily files. The route
+    merges it with the stock tool's ScreenerSummaryOursPart into the served ScreenerSummary (universes all, n500, fno
+    from here; ours from there; as_of from here, served only when both parts are of the same close)
+  x-stored-by: {publisher: fno, read_model: 'fno.pages_history page screener_summary (proposed)', story: TR-NSE-proposed, status: planned}
+  required: [as_of, universes]
+  properties:
+    as_of: {type: string, format: date-time}
+    universes:
+      type: object
+      additionalProperties: false
+      required: [all, n500, fno]
+      properties:
+        all: {$ref: '#/components/schemas/UniverseCounts'}
+        n500: {$ref: '#/components/schemas/UniverseCounts'}
+        fno: {$ref: '#/components/schemas/UniverseCounts'}
+ScreenerSummaryOursPart:
+  type: object
+  additionalProperties: false
+  description: >-
+    The counts over the companies the stock tool follows in India (its "ours" universe): the stock tool knows which
+    companies it follows, so it publishes this part itself (owner decision (a), 13 Oct 2026)
+  x-stored-by: {publisher: stock, read_model: 'rm.blocks page_key screener_summary_ours (K5-proposed)', story: K5-proposed, status: planned}
+  required: [as_of, ours]
+  properties:
+    as_of: {type: string, format: date-time, description: The NSE close the counts are of (equal to the NSE part's as_of when merged)}
+    ours: {$ref: '#/components/schemas/UniverseCounts'}
+
+ScreenerStocksTable:
+  type: object
+  additionalProperties: false
+  description: >-
+    The whole day's stock table as a publisher stores it: every row (no page), total = the number of rows. The route
+    filters, sorts and pages it into the served ScreenerStocks (page_size at most 100)
+  required: [as_of, currency, total, rows]
+  properties:
+    as_of: {type: string, format: date-time}
+    currency: {$ref: '#/components/schemas/Currency'}
+    total: {type: integer, minimum: 0, description: Equals the number of rows (check_stored)}
+    rows: {type: array, items: {$ref: '#/components/schemas/ScreenerStock'}}
+ScreenerStocksTableIndia:
+  description: India's table, from NSE's files
+  x-stored-by: {publisher: fno, read_model: 'fno.pages_history page screener_stocks (proposed)', story: TR-NSE-proposed, status: planned}
+  allOf:
+    - $ref: '#/components/schemas/ScreenerStocksTable'
+    - {properties: {currency: {const: INR}}}
+    - $ref: '#/components/schemas/IndiaStockRows'
+ScreenerStocksTableUs:
+  description: The US table, the stock tool's 20 companies
+  x-stored-by: {publisher: stock, read_model: 'rm.blocks page_key screener_stocks (K5-proposed)', story: K5-proposed, status: planned}
+  allOf:
+    - $ref: '#/components/schemas/ScreenerStocksTable'
+    - {properties: {currency: {const: USD}}}
+    - $ref: '#/components/schemas/UsStockRows'
+FnoScreenerTable:
+  type: object
+  additionalProperties: false
+  description: Every F&O underlying of the day as exepex/trading stores it (no page); the route pages it into FnoScreenerRows
+  x-stored-by: {publisher: fno, read_model: 'fno.pages_history page fno_screener_rows (proposed)', story: TR-NSE-proposed, status: planned}
+  required: [as_of, currency, total, rows]
+  properties:
+    as_of: {type: string, format: date-time}
+    currency: {type: string, const: INR}
+    total: {type: integer, minimum: 0, description: Equals the number of rows (check_stored)}
+    rows: {type: array, items: {$ref: '#/components/schemas/FnoScreenerRow'}}

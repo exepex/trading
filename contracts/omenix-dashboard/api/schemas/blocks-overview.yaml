@@ -1,0 +1,207 @@
+# The Markets overview's own blocks (design/mockups/34-markets/notes.md; story W11). Breadth and movers are the
+# screener's blocks (blocks-screener.yaml); the header is the frame's session block; "What is coming?" is Home's events
+# block. India index rows come from NSE's daily index file (publisher fno: exepex/trading, owner 13 Oct 2026; not published yet); the rest from the
+# stock tool's records. A shared schema takes its publisher from the operation's x-catalog.
+
+OverviewQuote:
+  type: object
+  additionalProperties: false
+  description: >-
+    One index, fund or instrument at its own last close, with its changes over each period and its daily closes
+    (oldest first, ending at `as_of`). NSE's index rows also carry NSE's own P/E, P/B and dividend yield; US sector funds
+    carry the stock tool's companies' sectors they stand for
+  required: [name, kind, close, as_of, d1, w1, m1, m3, y1, hi52, lo52, closes]
+  properties:
+    id: {type: string, x-unit: id, description: "The stock tool's instrument id (absent for NSE's index rows, named by name)"}
+    name: {type: string, x-unit: text, x-notes: ['h34.main-card:name', 'h34.broad:name', 'h34.sectors:name', 'h34.world:name']}
+    kind: {type: string, enum: [broad, vol, sector, benchmark, vol_index, sector_etf, cue, factor, fx], x-unit: enum, description: "NSE's group (broad, vol, sector) or the stock tool's role"}
+    close: {type: number, x-unit: index points or price, x-price: true, x-notes: ['h34.main-card:close', 'h34.broad:close', 'h34.vix:close', 'h34.world:close']}
+    as_of: {type: string, format: date, x-unit: date, x-notes: ['h34.world:as_of'], description: "The trading date of the close (each instrument at its own market's close)"}
+    d1: {$ref: '#/components/schemas/PeriodChange', x-notes: ['h34.period:d1', 'h34.vix:d1']}
+    w1: {$ref: '#/components/schemas/PeriodChange', x-notes: ['h34.period:w1']}
+    m1: {$ref: '#/components/schemas/PeriodChange', x-notes: ['h34.period:m1']}
+    m3: {$ref: '#/components/schemas/PeriodChange', x-notes: ['h34.period:m3']}
+    y1: {$ref: '#/components/schemas/PeriodChange', x-notes: ['h34.period:y1']}
+    hi52: {type: ['number', 'null'], x-unit: index points or price, x-price: true, x-notes: ['h34.main-card:hi52', 'h34.sectors:hi52', 'h34.vix:hi52'], x-catalog: {status: planned, source: 'computed: ours, from the daily closes'}}
+    lo52: {type: ['number', 'null'], x-unit: index points or price, x-price: true, x-notes: ['h34.main-card:lo52', 'h34.sectors:lo52', 'h34.vix:lo52'], x-catalog: {status: planned, source: 'computed: ours, from the daily closes'}}
+    pe: {type: ['number', 'null'], x-unit: ratio, x-notes: ['h34.main-card:pe', 'h34.broad:pe', 'h34.sectors:pe'], description: "NSE's P/E (index rows only)"}
+    pb: {type: ['number', 'null'], x-unit: ratio, x-notes: ['h34.main-card:pb']}
+    dy: {type: ['number', 'null'], x-unit: percent, x-notes: ['h34.main-card:dy']}
+    closes:
+      type: array
+      description: Daily closes, oldest first, the last one being `close`
+      x-price: true
+      items: {type: ['number', 'null'], x-unit: index points or price}
+    sectors:
+      type: ['array', 'null']
+      description: "US sector funds: the stock tool's company sectors the fund stands for"
+      x-notes: ['h34.sectors:sectors']
+      items: {type: string, x-unit: text}
+
+OverviewIndices:
+  type: object
+  additionalProperties: false
+  description: >-
+    The market's broad indices and its volatility index (India: Nifty 50, Next 50, 500, Midcap 100, Smallcap 100 and
+    India VIX from NSE's file; US: the S&P 500 fund and the VIX from the stock tool). Feeds the main index card, the
+    broad list and, in India, "How nervous is the market?" (the VIX row; its 3-month middle is the median of its last
+    63 closes)
+  x-element: [h34.main-card, h34.broad]
+  required: [indices]
+  properties:
+    indices:
+      type: array
+      minItems: 1
+      items: {$ref: '#/components/schemas/OverviewQuote'}
+
+IndiaSectors:
+  type: object
+  additionalProperties: false
+  description: "Which sectors led (India): NSE's 18 sector indices, and the Nifty 500 grouped by industry (equal-weighted, ours)"
+  x-catalog: {publisher: fno, source: "NSE's daily index file (sector indices) and daily equity file with the Nifty 500 list (industries, computed: ours)", freshness: 'daily, after the NSE files', story: TR-NSE-proposed, status: planned}
+  x-element: [h34.sectors]
+  required: [indices, industries]
+  properties:
+    indices:
+      type: array
+      items: {$ref: '#/components/schemas/OverviewQuote'}
+    industries:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [g, n, d1, w1, m1, m3, y1, up, down, best, worst]
+        properties:
+          g: {type: string, x-unit: text, x-notes: ['h34.sectors:g'], description: Industry (Nifty 500 list)}
+          n: {type: integer, minimum: 1, x-unit: count, x-notes: ['h34.sectors:n'], description: Stocks in the industry}
+          d1: {$ref: '#/components/schemas/PeriodChange'}
+          w1: {$ref: '#/components/schemas/PeriodChange'}
+          m1: {$ref: '#/components/schemas/PeriodChange'}
+          m3: {$ref: '#/components/schemas/PeriodChange'}
+          y1: {$ref: '#/components/schemas/PeriodChange'}
+          up: {type: integer, minimum: 0, x-unit: count, x-notes: ['h34.sectors:up']}
+          down: {type: integer, minimum: 0, x-unit: count, x-notes: ['h34.sectors:down']}
+          best: {$ref: '#/components/schemas/SymbolMove', x-notes: ['h34.sectors:best']}
+          worst: {$ref: '#/components/schemas/SymbolMove', x-notes: ['h34.sectors:worst']}
+SymbolMove:
+  type: array
+  description: "[symbol, its % change today]"
+  prefixItems: [{type: string}, {type: number}]
+  minItems: 2
+  maxItems: 2
+  x-unit: symbol and percent points
+
+UsSectors:
+  type: object
+  additionalProperties: false
+  description: "Which sectors led (US): the stock tool's US sector funds, each with the sectors of its companies it stands for"
+  x-catalog: {publisher: stock, source: "the stock tool's daily closes (prices, Yahoo Finance) of its sector funds", freshness: post-close run, story: K5-proposed, status: published}
+  x-element: [h34.sectors]
+  required: [funds]
+  properties:
+    funds:
+      type: array
+      items: {$ref: '#/components/schemas/OverviewQuote'}
+
+Flows:
+  type: object
+  additionalProperties: false
+  description: >-
+    What big investors did (India): FII/FPI and DII net buying in the cash market per day (NSE, provisional) and
+    NSDL's FPI equity net. Each series is its own. The period totals (34 row 8) are published, never added up on
+    screen: a total exists only when the days cover the whole period, else it is null and the screen shows "—" with
+    "only N days of data" (judge 27, finding 3). Open question for the owner: the stock tool's records give 5 days, so
+    only 1D and 1W have totals; a year of daily flows would give 1M, 3M and 1Y
+  x-catalog: {publisher: stock, source: "the stock tool's flows (NSE FII/DII, provisional) and fpi (NSDL) records", freshness: next morning, story: K5-proposed, status: published}
+  x-element: [h34.flows]
+  required: [currency, days, nsdl, totals]
+  properties:
+    currency: {$ref: '#/components/schemas/Currency'}
+    totals:
+      type: object
+      additionalProperties: false
+      description: One total per period switch value (1D, 1W, 1M, 3M, 1Y = the last 1, 5, 21, 63, 250 sessions)
+      required: [d1, w1, m1, m3, y1]
+      properties:
+        d1: {$ref: '#/components/schemas/FlowTotal'}
+        w1: {$ref: '#/components/schemas/FlowTotal'}
+        m1: {$ref: '#/components/schemas/FlowTotal'}
+        m3: {$ref: '#/components/schemas/FlowTotal'}
+        y1: {$ref: '#/components/schemas/FlowTotal'}
+    days:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [date, fii, dii]
+        properties:
+          date: {type: string, format: date, x-unit: date}
+          fii: {$ref: '#/components/schemas/FlowSide'}
+          dii: {$ref: '#/components/schemas/FlowSide'}
+    nsdl:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [date, net]
+        properties:
+          date: {type: string, format: date, x-unit: date}
+          net: {type: number, x-unit: INR crore, description: "NSDL's FPI equity net (all routes)"}
+FlowTotal:
+  type: object
+  additionalProperties: false
+  description: >-
+    One series' net over the period's sessions, each series on its own (FII and DII are never added together).
+    complete is true only when `days` equals `days_in_period`; then fii and dii are the sums of those days, else both are
+    null (check_contract proves it on every example)
+  required: [days_in_period, days, complete, fii, dii]
+  properties:
+    days_in_period: {type: integer, enum: [1, 5, 21, 63, 250], x-unit: sessions}
+    days: {type: integer, minimum: 0, x-unit: sessions, description: The days of data the publisher has within the period}
+    complete: {type: boolean, x-unit: yes/no}
+    fii: {type: ['number', 'null'], x-unit: INR crore, description: FII/FPI net over the period; null unless complete}
+    dii: {type: ['number', 'null'], x-unit: INR crore, description: DII net over the period; null unless complete}
+  if: {properties: {complete: {const: true}}}
+  then: {properties: {fii: {type: number}, dii: {type: number}}}
+  else: {properties: {fii: {type: 'null'}, dii: {type: 'null'}}}
+  x-catalog: {status: planned, source: "computed from the stock tool's flows records (sum of the period's days)"}
+FlowSide:
+  type: object
+  additionalProperties: false
+  required: [buy, sell, net, provisional]
+  properties:
+    buy: {type: number, minimum: 0, x-unit: INR crore}
+    sell: {type: number, minimum: 0, x-unit: INR crore}
+    net: {type: number, x-unit: INR crore, x-notes: ['h34.flows:net']}
+    provisional: {type: boolean, x-unit: yes/no}
+
+Rates:
+  type: object
+  additionalProperties: false
+  description: 'What interest rates say (US): US Treasury par yields by maturity, as the stock tool records them'
+  x-catalog: {publisher: stock, source: "the stock tool's macro records (treasury.gov par yields)", freshness: daily, story: K5-proposed, status: published}
+  x-element: [h34.rates]
+  required: [yields]
+  properties:
+    yields:
+      type: array
+      items:
+        type: object
+        additionalProperties: false
+        required: [name, value, date]
+        properties:
+          name: {type: string, x-unit: text, x-notes: ['h34.rates:name'], description: 'Maturity, e.g. 1 Mo, 10 Yr'}
+          value: {type: number, x-unit: percent, x-notes: ['h34.rates:value']}
+          date: {type: string, format: date, x-unit: date, x-notes: ['h34.rates:date']}
+
+World:
+  type: object
+  additionalProperties: false
+  description: World markets, currencies and commodities, each at its own last close (some quotes keep a weekend date)
+  x-catalog: {publisher: stock, source: "the stock tool's daily closes of its non-company instruments (prices, Yahoo Finance)", freshness: "each instrument's own close; the stock tool's runs", story: K5-proposed, status: published}
+  x-element: [h34.world]
+  required: [quotes]
+  properties:
+    quotes:
+      type: array
+      items: {$ref: '#/components/schemas/OverviewQuote'}

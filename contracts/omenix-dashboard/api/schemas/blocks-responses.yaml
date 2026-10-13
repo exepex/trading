@@ -1,0 +1,253 @@
+# Response schemas of the block endpoints: the publisher's envelope + the payload (+ the market rules).
+
+FrameMarketsResponse:
+  allOf:
+    - $ref: '#/components/schemas/DashboardBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FrameMarkets'}}}
+ApproachesResponse:
+  allOf:
+    - $ref: '#/components/schemas/DashboardBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Approaches'}}}
+PriceSourcesResponse:
+  allOf:
+    - $ref: '#/components/schemas/DashboardBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/PriceSources'}}}
+    - $ref: '#/components/schemas/UsPriceSourcesRule'
+SessionResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Session'}}}
+IndicesResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Indices'}}}
+TrackedMovesResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/TrackedMoves'}}}
+NotificationsResponse:
+  allOf:
+    - $ref: '#/components/schemas/DashboardBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Notifications'}}}
+SearchResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Search'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+FnoSearchResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoSearch'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+PicksResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Picks'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+FnoPicksResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoPicks'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+InstrumentResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Instrument'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+FnoContractResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoContract'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+AccountsResponse:
+  allOf:
+    - $ref: '#/components/schemas/DashboardBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Accounts'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+    - $ref: '#/components/schemas/UsAccountsRule'
+    - $ref: '#/components/schemas/IndiaAccountsRule'
+PositionsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Positions'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+OrderRulesResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/OrderRules'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+FnoOrderRulesResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoOrderRules'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+GroupsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Groups'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+FnoBooksResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoBooks'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+StrategyTradesResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/StrategyTrades'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+AttentionResponse:
+  allOf:
+    - $ref: '#/components/schemas/DashboardBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Attention'}}}
+EventsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Events'}}}
+    - $ref: '#/components/schemas/UsEventsRule'
+TopNewsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/TopNews'}}}
+
+# ---------- F&O absent in the US (not empty, not null: absent) ----------
+UsPriceSourcesRule:
+  description: 'In the US only the close exists: eod and snap3pm (F&O sources) are absent'
+  if: {properties: {market: {const: us}}, required: [market]}
+  then: {properties: {payload: {properties: {sources: {properties: {eod: false, snap3pm: false}}}}}}
+UsAccountsRule:
+  description: 'In the US the Manual account has no F&O figures: open_structures and at_risk are absent'
+  if: {properties: {market: {const: us}}, required: [market]}
+  then: {properties: {payload: {properties: {accounts: {properties: {manual: {properties: {open_structures: false, at_risk: false}}}}}}}}
+UsEventsRule:
+  description: 'In the US no India-only event is listed: no NSE F&O expiry (monthly or weekly), no RBI policy decision'
+  if: {properties: {market: {const: us}}, required: [market]}
+  then: {properties: {payload: {properties: {events: {items: {properties: {kind: {not: {enum: [fno_expiry, weekly_expiry, rbi_policy]}}}}}}}}}
+IndiaAccountsRule:
+  description: 'In India the Manual account carries its F&O figures'
+  if: {properties: {market: {const: india}}, required: [market]}
+  then: {properties: {payload: {properties: {accounts: {properties: {manual: {required: [open_structures, at_risk]}}}}}}}
+
+# ---------- W11: the screener (33) and the Markets overview (34) ----------
+ScreenerSummaryIndiaResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ScreenerSummary'}}}
+    - $ref: '#/components/schemas/IndiaScreenerSummaryRule'
+ScreenerSummaryUsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ScreenerSummary'}}}
+    - $ref: '#/components/schemas/UsMarket'
+    - $ref: '#/components/schemas/UsScreenerSummaryRule'
+ScreenerStocksIndiaResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ScreenerStocks'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+    - $ref: '#/components/schemas/IndiaScreenerStocksRule'
+ScreenerStocksUsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ScreenerStocks'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+    - $ref: '#/components/schemas/UsMarket'
+    - $ref: '#/components/schemas/UsScreenerStocksRule'
+ScreenerToolsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ScreenerTools'}}}
+FnoScreenerSummaryResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoScreenerSummary'}}}
+FnoScreenerRowsResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoScreenerRows'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+OverviewIndicesIndiaResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/OverviewIndices'}}}
+OverviewIndicesUsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/OverviewIndices'}}}
+    - $ref: '#/components/schemas/UsMarket'
+IndiaSectorsResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/IndiaSectors'}}}
+UsSectorsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/UsSectors'}}}
+    - $ref: '#/components/schemas/UsMarket'
+FlowsResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Flows'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+    - $ref: '#/components/schemas/IndiaMarket'
+RatesResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Rates'}}}
+    - $ref: '#/components/schemas/UsMarket'
+WorldResponse:
+  allOf:
+    - $ref: '#/components/schemas/StockBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/World'}}}
+
+UsMarket:
+  description: A US-only block
+  properties: {market: {const: us}}
+IndiaMarket:
+  description: An India-only block (absent in the US)
+  properties: {market: {const: india}}
+IndiaScreenerSummaryRule:
+  description: 'India counts every NSE stock, the Nifty 500, the F&O stocks and the stock tool''s companies'
+  properties: {payload: {properties: {universes: {required: [all, n500, fno, ours], additionalProperties: {properties: {screens: {required: [delivery]}}}}}}}
+UsScreenerSummaryRule:
+  description: 'The US has only the stock tool''s 20 companies: no NSE universe and no F&O universe (absent, not empty)'
+  properties: {payload: {properties: {universes: {required: [ours], properties: {all: false, n500: false, fno: false, ours: {properties: {screens: {properties: {delivery: false}}}}}}}}}
+UsScreenerStocksRule:
+  description: 'US rows belong only to the stock tool''s companies: no F&O or Nifty 500 tag, and no NSE delivery figure (dl absent, not null)'
+  properties: {payload: {$ref: '#/components/schemas/UsStockRows'}}
+IndiaScreenerStocksRule:
+  description: 'India rows carry NSE''s delivery figure (dl; null when NSE gives none)'
+  properties: {payload: {$ref: '#/components/schemas/IndiaStockRows'}}
+UsStockRows:
+  description: The US rule on a list of stock rows (a served page or a stored table)
+  properties: {rows: {items: {properties: {u: {items: {const: ours}}, dl: false}}}}
+IndiaStockRows:
+  description: The India rule on a list of stock rows (a served page or a stored table)
+  properties: {rows: {items: {required: [dl]}}}
+
+# ---------- W13: the option chain (32), India only ----------
+ChainUnderlyingResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ChainUnderlying'}}}
+ChainExpiriesResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ChainExpiries'}}}
+ChainRowsResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ChainRows'}}}
+    - $ref: '#/components/schemas/MarketCurrency'
+ChainHistoryResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ChainHistory'}}}
+ContractHistoryResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ContractHistory'}}}
+ChainSourcesResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/ChainSources'}}}

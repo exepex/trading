@@ -1,0 +1,191 @@
+# The frame's reference and market blocks (30-shell/notes.md: app bar, market status chip, approaches, freshness rules;
+# 31-dashboard/notes.md row 2, the market band). One schema per endpoint; see blocks-common.yaml for the extensions.
+
+FrameMarkets:
+  type: object
+  description: The market switch (India · US). Static dashboard configuration; F&O exists only where `fno` is true
+  x-catalog: {publisher: dashboard, source: 'dashboard config (web/lib/shell, W8), mirrors config/markets/<market>.yaml of the stock tool', freshness: static (per deploy), story: W8, status: planned}
+  x-element: [s30.market-switch]
+  required: [markets]
+  properties:
+    markets:
+      type: array
+      minItems: 2
+      maxItems: 2
+      items:
+        type: object
+        required: [market, label, exchange, currency, zone, fno]
+        properties:
+          market: {$ref: '#/components/schemas/Market', x-unit: enum}
+          label: {type: string, x-unit: text, x-notes: ['s30.market-switch:label']}
+          exchange: {type: string, x-unit: text, description: "e.g. India (NSE), US (NYSE/Nasdaq)"}
+          currency: {$ref: '#/components/schemas/Currency'}
+          zone: {type: string, enum: [IST, ET], x-unit: enum, description: The zone every time of this market is shown in}
+          fno: {type: boolean, x-unit: yes/no, x-notes: ['s30.market-switch:fno'], description: 'true only for India; false means every F&O element is absent (the /markets/india/fno/* blocks exist only for India)'}
+
+Approaches:
+  type: object
+  description: 'Who decides, in the owner''s order (rule, hybrid, ai, baseline, manual), with each approach''s description for this market (F&O named only in India) and the pick-rule labels'
+  x-catalog: {publisher: dashboard, source: 'dashboard config (owner wording of 13 Oct 2026, 30-shell/notes.md "Approaches")', freshness: static (per deploy), story: W8, status: planned}
+  x-element: [s30.approaches]
+  required: [families, family_text, pick_rules]
+  properties:
+    families:
+      type: array
+      minItems: 5
+      maxItems: 5
+      x-notes: ['s30.approaches:families']
+      items:
+        type: object
+        required: [family, label, icon, long]
+        properties:
+          family: {$ref: '#/components/schemas/Family'}
+          label: {type: string, x-unit: text, description: "Short label (Rule-based, Hybrid, AI team, Baselines, You); never an AI model's name"}
+          icon: {type: string, x-unit: icon name}
+          long: {type: string, x-unit: text}
+    family_text:
+      type: object
+      description: Per approach, its description for this market
+      x-notes: ['s30.approaches:family_text']
+      required: [manual, rule, hybrid, ai, baseline]
+      properties:
+        manual: {type: string, x-unit: text}
+        rule: {type: string, x-unit: text}
+        hybrid: {type: string, x-unit: text}
+        ai: {type: string, x-unit: text}
+        baseline: {type: string, x-unit: text}
+    pick_rules:
+      type: object
+      description: Labels of the stock tool's two pick rules (part of the approaches vocabulary; shown on each pick row)
+      x-element: [s30.approaches, s30.picks-row]
+      required: [best_expected_gain, highest_probability]
+      properties:
+        best_expected_gain: {type: string, x-unit: text}
+        highest_probability: {type: string, x-unit: text}
+
+PriceSources:
+  type: object
+  description: >-
+    Freshness rules of each recorded price source (30-shell/notes.md "Freshness rules"): a value older than max_age_h
+    is greyed and says "stale". In the US only `close` exists (eod and snap3pm are F&O sources: absent, not null)
+  x-catalog: {publisher: dashboard, source: 'dashboard config (30-shell/notes.md "Freshness rules")', freshness: static (per deploy), story: W8, status: planned}
+  x-element: [s30.freshness]
+  required: [sources]
+  properties:
+    sources:
+      type: object
+      x-notes: ['s30.freshness:sources']
+      required: [close]
+      additionalProperties: false
+      properties:
+        close: {$ref: '#/components/schemas/PriceSourceRule', x-notes: ['s30.freshness:close']}
+        eod: {$ref: '#/components/schemas/PriceSourceRule', x-notes: ['s30.freshness:eod'], x-market: india}
+        snap3pm: {$ref: '#/components/schemas/PriceSourceRule', x-notes: ['s30.freshness:snap3pm'], x-market: india}
+PriceSourceRule:
+  type: object
+  required: [label, detail, max_age_h]
+  properties:
+    label: {type: string, x-unit: text}
+    detail: {type: string, x-unit: text}
+    max_age_h: {type: integer, minimum: 1, x-unit: hours, description: 'close 30 h, eod 78 h (covers a weekend), snap3pm 26 h'}
+
+Session:
+  type: object
+  description: >-
+    Today's session of the market's exchange (holidays included). The screen decides open or closed from these times
+    and the reader's clock (never a stored "open now" flag, which would go stale); the manual trading lock is the
+    dashboard's rule over the same fields. An instant is UTC
+  x-catalog: {publisher: stock, source: 'rm.status payload.session (StatusBlock.session, pipeline/market_status.py over the NSE and NYSE calendars)', freshness: 'each stock run (pre-open, intraday, post-close)', story: K4-proposed, status: published}
+  x-element: [s30.status-chip, s30.lock, h31.band]
+  required: [exchange, zone, session_date, open_utc, close_utc, next_open_utc, regime, post_close_at]
+  properties:
+    exchange: {type: string, x-unit: text, description: 'The exchange, as the chip names it, e.g. "India (NSE)", "US (NYSE/Nasdaq)"', x-catalog: {source: 'config/markets/<market>.yaml exchange'}}
+    zone: {type: string, enum: [IST, ET], x-unit: enum, x-notes: ['s30.status-chip:zone']}
+    session_date: {type: string, format: date, x-unit: date, x-element: [h31.band], x-notes: ['h31.band:session.date'], description: 'The session being predicted (D)'}
+    open_utc: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:open_utc'], description: "Today's open; null on a non-trading day"}
+    close_utc: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:close_utc'], description: "Today's close; null on a non-trading day"}
+    next_open_utc: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:next_open_utc'], description: 'The next opening after the cut-off (today''s open when it is still ahead)', x-catalog: {status: planned, source: 'pipeline/market_status.py next session (not in rm.status yet)'}}
+    regime:
+      type: ['string', 'null']
+      description: "The newest regime code stored by the cut-off (the stock tool's `regime` kind: TRENDING, EVENT_HEAVY, UNSTABLE, ...)"
+      x-unit: code
+      x-element: [h31.band]
+      x-notes: ['h31.band:session.regime', 'h34.header:regime']
+      x-catalog: {source: rm.status payload.regime}
+    post_close_at: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-element: [h31.band], x-notes: ['h31.band:session.post_close_at'], description: "When today's post-close run is due (its result brings today's close); null once it ran", x-catalog: {source: rm.status payload.runs.post_close.next_at}}
+    major_event_names:
+      type: array
+      description: "The stock tool's major events for the session (e.g. US CPI); empty when none. Optional (added in 2.2 for the Markets header)"
+      x-notes: ['h34.header:major_event_names']
+      x-catalog: {source: "the stock tool's regime record (major_event_names)", story: K5-proposed}
+      items: {type: string, x-unit: text}
+
+Indices:
+  type: object
+  description: >-
+    The market's benchmark and volatility index at their last recorded close (NIFTY 50 and India VIX; S&P 500 ETF and
+    VIX). Feeds the top bar's index strip (hidden on Home) and Home's market band, which never show at once
+  x-catalog: {publisher: stock, source: 'rm.status payload.benchmark, payload.vol_index (LevelBlock)', freshness: "the stock tool's post-close run", story: K4-proposed, status: published}
+  x-element: [s30.index-strip, h31.band]
+  required: [indices]
+  properties:
+    indices:
+      type: array
+      minItems: 2
+      maxItems: 2
+      x-notes: ['s30.index-strip:indices']
+      items: {$ref: '#/components/schemas/IndexLevel'}
+IndexLevel:
+  type: object
+  required: [id, sym, name, role, last, chg_pct, chg_5d_pct, as_of, source]
+  properties:
+    id: {$ref: '#/components/schemas/InstrumentRef'}
+    sym: {type: string, x-unit: text}
+    name: {type: string, x-unit: text}
+    role: {type: string, enum: [benchmark, vol_index], x-unit: enum}
+    last: {type: number, x-unit: index points, x-price: true, x-notes: ['s30.index-strip:last', 'h31.band:last'], x-catalog: {source: LevelBlock.close}}
+    chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.index-strip:chg_pct', 'h31.band:chg_pct@index'], x-catalog: {source: LevelBlock.change_pct}}
+    chg_5d_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.index-strip:chg_5d_pct', 'h31.band:chg_5d_pct'], x-catalog: {source: LevelBlock.change_5d_pct}}
+    as_of: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.index-strip:as_of', 'h31.band:as_of'], description: 'The close the value is (LevelBlock.close_date at the exchange close)', x-catalog: {source: LevelBlock.close_date}}
+    source: {$ref: '#/components/schemas/PriceSource', x-notes: ['s30.index-strip:source']}
+
+TrackedMoves:
+  type: object
+  description: "How the stock tool's tracked (active) companies moved on the last close (Home's market band)"
+  x-catalog: {publisher: stock, source: 'rm.companies (CompanyRecord last_close, change_pct, last_close_date of active companies)', freshness: "the stock tool's post-close run", story: K4-proposed, status: published}
+  x-element: [h31.band]
+  required: [companies]
+  properties:
+    companies:
+      type: array
+      description: Active companies only, highest change first; empty when the market has none
+      items:
+        type: object
+        required: [id, sym, last, chg_pct, as_of, source]
+        properties:
+          id: {$ref: '#/components/schemas/InstrumentRef'}
+          sym: {type: string, x-unit: text}
+          last: {type: number, x-unit: price (market currency), x-price: true}
+          chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['h31.band:chg_pct@company']}
+          as_of: {type: string, format: date-time, x-unit: UTC time}
+          source: {$ref: '#/components/schemas/PriceSource'}
+
+Notifications:
+  type: object
+  description: The bell. Built by the dashboard's alert rules over both backends' run events
+  x-catalog: {publisher: dashboard, source: 'dashboard alert rules over rm.status payload.runs (stock) and fno.run_status (F&O, India)', freshness: each run of either backend, story: W8, status: planned}
+  x-element: [s30.bell]
+  required: [notifications]
+  properties:
+    notifications:
+      type: array
+      description: Newest first; empty when nothing is new
+      x-notes: ['s30.bell:notifications']
+      items:
+        type: object
+        required: [icon, title, sub, unread]
+        properties:
+          icon: {type: string, x-unit: icon name, x-notes: ['s30.bell:icon']}
+          title: {type: string, x-unit: text, x-notes: ['s30.bell:title']}
+          sub: {type: string, x-unit: text, x-notes: ['s30.bell:sub']}
+          unread: {type: boolean, x-unit: yes/no, x-notes: ['s30.bell:unread']}
