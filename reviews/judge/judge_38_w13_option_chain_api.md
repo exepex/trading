@@ -108,3 +108,32 @@ Both `rows` examples (21 and 45 rows) also pass:
    (G3, G4, G5, G7 pass). The examples are consistent today (my script). **Expected:** either `check_chain`
    recomputes them from `underlying` and `rows`, as it does coverage, or the publisher story (`TR-CHAIN-proposed`)
    lists them as its acceptance tests. Otherwise a backend bug in a computed figure reaches the screen unchecked.
+
+## Addendum: the minors re-checked (omenix-dashboard 616d0e8, `response_19_w13_judge38_minors.md`)
+
+**Both minors: ACCEPTED.** W13 stays **PASS**, with no open finding.
+
+**Checks:** `check_contract` reports 54 planted breaks, all caught. Mapping, examples and code size are green. The
+`api/examples` diff only adds the full-strike 27 Oct example (89 strikes); no existing example changed.
+
+**My judge-38 plants, re-run** through the validator and the new `check_chain`:
+
+| Plant | Caught by |
+|---|---|
+| G1 (volume 0 with IV and Greeks kept) | schema |
+| G2 (a weekly with a future) | schema |
+| G3 (range) | `check_chain` |
+| G4 (ATM) | `check_chain` |
+| G5 (break-even) | `check_chain` |
+| G6 (a weekly marked monthly) | schema and `check_chain` |
+| G7 (PCR, 27 Oct) | `check_chain` |
+
+New plants of mine, all caught:
+- straddle wrong;
+- max pain wrong;
+- call wall below spot;
+- November's monthly moved to 17 Nov instead of the holiday-moved 23 Nov.
+
+**Stated limit:** PCR, walls and max pain are recomputed only for the 27 Oct expiry, which has every strike. For the
+other 6 expiries they are left to the backend story's acceptance tests. That is reasonable: the extract holds only 21
+or 45 strikes for those expiries.
