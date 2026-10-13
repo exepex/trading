@@ -201,3 +201,36 @@ Version 1 is untouched.
 `response_received_at` really fall at or before 15:00:00. A4's capture starts at 14:55, and B7's minor 3 found late
 captures possible. v2 correctly turns a late field into "no forecast", so a late capture shows up as a run of empty
 days, not as wrong numbers.
+
+## Addendum 4: the version 2 freeze (protocol ab2e811, freeze 0fc5723)
+
+**PASS.** The freeze checks the v2 code itself, which is judge 53's lesson applied.
+
+**The freeze:**
+- **Order:** `ab2e811` precedes `0fc5723`.
+- **The 34 byte-checked files** in `FREEZE_v2.md` all equal their SHA-256 at HEAD (my script). They are the protocol,
+  every `fno/forecast/*.py` (the live pack, history gates, closes source, v2 schema, capture, freeze check, command
+  line and the v1 code used), `tools/forecast_live_golden.py`, and every v2 golden input and output.
+- **The check runs first:** `python -m fno forecast capture` calls `require_version_frozen` before anything is
+  written.
+- **Shared libraries** (B1's Black-76, B7's live ATM rule, the panel and quote readers) are recorded, not
+  byte-checked. The workflow covers them by behaviour: `forecast-capture.yml` runs `python tools/forecast_live_golden.py`
+  **before** the capture, so a drift in any of them stops the day's run.
+- **CI:** both workflows use `fetch-depth: 0`.
+
+**The first live run's gates (response 62 addendum) are as stated:**
+
+| Gate | Status |
+|---|---|
+| Freeze in history | Met |
+| Both golden cases reproduce | Met (the run recomputes them) |
+| Closes through d−1 | `warmup_closes.csv` holds 13 Oct (e38eabd) |
+| Q5's panel IV30 within 21 trading days | Met until about 10 Nov 2026, after which the panel must be rebuilt |
+| A canonical A4 snapshot committed by 15:13 IST, with quotes, futures and VIX at or before 15:00:00 | **Unproven.** No snapshot has ever been committed on `main`. |
+
+**Honest risk (reasoning only):**
+- The snapshot window is tight. A4 captures from 14:55, retries until 15:10, and must commit and push before the
+  capture's 15:13 pull limit.
+- A slow capture or a late push gives "no forecast" for the day, which is by design and safe.
+- So expect some empty days at first. Count them in the first week's report.
+- From 15 Oct on, the closes gate also needs O6's daily close job to have appended d−1 before the 14:00 start.
