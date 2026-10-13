@@ -60,6 +60,15 @@ nothing is written. Muhurat sessions are kept with `session` = `muhurat` (the fe
   needs new days: each rebuild rewrites the current year's files.
 - Raw files are read through `RawFileLibrary` (local folder, then Drive, then NSE); Drive is never written.
 
+## Daily closes after the panel (story O6, for G3)
+
+From 13 Oct 2026 the GitHub Actions job `.github/workflows/index-closes.yml` (21:11 IST every day) archives NSE's
+index-close file in Drive (A9, revisions kept per A11) and `python -m fno pipeline index-closes` appends each new
+session's NIFTY 50 and India VIX close to `warmup_closes.csv`, from the version first archived in Drive (point in
+time; a later NSE version never rewrites a row). Rows are only appended (`append_warmup_rows`). The reader gives
+these days as closes-only sessions after the panel's last day whenever a read reaches that day, so live features and
+base rates have closes through yesterday without rebuilding the panel.
+
 ## Build of 13 Oct 2026 (2019-01-01 to 2026-10-12)
 
 1,928 sessions in the panel, 1 left out (2021-03-30: NSE never published its old-format F&O file; sourced exception).

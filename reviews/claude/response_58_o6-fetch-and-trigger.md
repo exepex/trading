@@ -257,3 +257,23 @@ the committed log has only the 06:06 checks for 13 Oct. The routine still shows 
 difference is the routine's lost push, not the data. Fix for the owner: add `exepex/trading` to that routine's
 repositories (claude.ai/code, Routines, the routine, Repositories). The Actions job has no such gap: it pushes with
 its own `contents: write` token. This builder did not edit the routine (out of scope).
+
+## 7. Daily index closes for G3 (orchestrator's request, 13 Oct 2026; response 62 gap 2)
+
+- **Job:** `.github/workflows/index-closes.yml`, 21:11 IST every day: A9 librarian (`data-librarian index-close`, the
+  last 7 days, gaps refilled, manifest rows committed), A11 sweep (`data-revisions sweep index-close`, later versions
+  kept beside the originals), then `python -m fno pipeline index-closes`.
+- **Where the closes go:** appended to `research/data/nifty-panel/warmup_closes.csv`, the file the panel reader already
+  takes closes from. Found while building: the reader used that file only before the panel's first day (and for
+  left-out days), so appended rows after 12 Oct would have been invisible. The reader now adds closes-only sessions
+  after the panel's last day when a read reaches it (`panel_reader._after`); a read of earlier years gets none.
+- **Point in time, never overwriting:** the job reads the file archived in Drive (`build_index_close_appender` in
+  `fno/pipeline/wiring.py`, no NSE fetch), so a row is the first archived version; `append_warmup_rows` only appends
+  after the last day, skips an identical row and refuses a different one (`WarmupConflict`).
+- **Failures:** the append stops at the first session without its file or either close, keeps the earlier days, posts
+  one line (`stopped at <day>: ...; the next run retries`) and exits 1; a failed librarian step posts one line too.
+  The sweep's exit 1 (a new version found, or NSE silent) is not alerted: it is a finding printed in the log, and the
+  closes never change because of it.
+- **Tests:** `tests/pipeline/test_index_closes.py` (appended once and read after the panel; a missing session stops,
+  keeps earlier days and alerts once; rows never rewritten; an earlier-years read gets no later closes). The A10
+  warm-up tests still pass.

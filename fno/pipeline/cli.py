@@ -2,11 +2,14 @@
 
 - `fire <job>`: run by a GitHub Actions workflow after its download step: fires the job's routine once per new batch
   and version, saves the run summary in Drive and posts one line to #fno-desk (plus one per failure);
+- `index-closes`: the daily job that appends the NIFTY 50 and India VIX closes from Drive to the warm-up file;
 - `dry-run <pointer>`: run by the dry-run routine with the text it was fired with (untrusted: checked field by field
   before anything is read).
 """
 
 from __future__ import annotations
+
+from datetime import date
 
 from .pointer import PointerRefused, parse_pointer
 
@@ -26,6 +29,9 @@ def add_pipeline_parser(subparsers) -> None:
     fire.add_argument("--run-id", required=True, help="GitHub's run ID and attempt, e.g. 123456-1")
     fire.add_argument("--note", action="append", default=[], help="a result line of the download command")
     fire.set_defaults(func=cmd_pipeline_fire)
+    closes = actions.add_parser("index-closes", help="append NIFTY 50 and India VIX closes from Drive (daily job)")
+    closes.add_argument("--to", dest="end", type=date.fromisoformat, default=None, help="YYYY-MM-DD (default today)")
+    closes.set_defaults(func=cmd_pipeline_index_closes)
     dry_run = actions.add_parser("dry-run", help="the example routine: summarise one pointed-to file into Drive")
     dry_run.add_argument("pointer", help="the JSON text the routine was fired with")
     dry_run.set_defaults(func=cmd_pipeline_dry_run)
@@ -36,6 +42,13 @@ def cmd_pipeline_fire(args) -> int:
 
     notes = tuple(n.strip() for n in args.note if n.strip())
     return build_pipeline_run(args.job, args.days).run(args.run_id, args.download, notes)
+
+
+def cmd_pipeline_index_closes(args) -> int:
+    from ..models import now_ist
+    from .wiring import build_index_close_appender
+
+    return build_index_close_appender().run(args.end or now_ist().date())
 
 
 def cmd_pipeline_dry_run(args) -> int:
