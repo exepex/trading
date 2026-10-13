@@ -13,7 +13,7 @@ from datetime import date
 from pathlib import Path
 
 DAILY_DATASETS = ("fo-bhavcopy", "index-close", "cm-bhavcopy", "security-delivery")
-DAILY_SNAPSHOTS = ("equity-list", "nifty500-list")
+DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "corporate-actions")
 FETCH_FAILED = "Omenix F&O market read models for {day}: NSE files not archived ({reason}); nothing published."
 
 
