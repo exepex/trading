@@ -115,3 +115,20 @@ OWNER_OVERRIDES_FILE = "owner_overrides.csv"  # journal/<book>/owner_overrides.c
 OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
+
+# Daily forecasts (epic G, research/forecasts/PROTOCOL.md): the five frozen questions and who answers them
+FORECAST_Q1_UP_20D = "q1_nifty_up_20d"  # P(NIFTY close in 20 trading days > today's close)
+FORECAST_Q2_MOVE_3PCT_20D = "q2_nifty_move_3pct_20d"  # P(|NIFTY return over 20 trading days| >= 3%)
+FORECAST_Q3_RV_RISES_20D = "q3_rv20_above_trailing"  # P(next-20-day realised vol > trailing 20-day realised vol)
+FORECAST_Q4_VIX_UP_10D = "q4_vix_up_10d"  # P(India VIX close in 10 trading days > today's close)
+FORECAST_Q5_RV_BELOW_IV = "q5_rv20_below_atm_iv30"  # P(next-20-day realised vol < today's 30-day ATM IV)
+FORECAST_QUESTIONS = (
+    FORECAST_Q1_UP_20D, FORECAST_Q2_MOVE_3PCT_20D, FORECAST_Q3_RV_RISES_20D, FORECAST_Q4_VIX_UP_10D,
+    FORECAST_Q5_RV_BELOW_IV,
+)  # fmt: skip
+BASELINE_RISK_NEUTRAL, BASELINE_BASE_RATE, BASELINE_MODEL = (
+    "baseline_a_risk_neutral",
+    "baseline_b_base_rate",
+    "baseline_c_model",
+)
+FORECASTERS = BOOKS + (BASELINE_RISK_NEUTRAL, BASELINE_BASE_RATE, BASELINE_MODEL)

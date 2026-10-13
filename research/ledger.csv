@@ -30,3 +30,8 @@ trial_id,experiment,description,kind,hypothesis,registered_on,protocol_path,prot
 29,experiment-1,P8 SF if F1 > 0,prospective,yes,2026-10-12,research/2026-10-12-experiment-1/PROTOCOL.md,,,
 30,experiment-1,"C1 random timing (frequency-matched), per conditional policy",control,no,2026-10-12,research/2026-10-12-experiment-1/PROTOCOL.md,,,
 31,experiment-1,"C2 opposite condition, per conditional policy",control,no,2026-10-12,research/2026-10-12-experiment-1/PROTOCOL.md,,,
+32,forecasts-v1,"Q1 P(NIFTY up in 20 trading days): books vs baselines (diagnostic, never promotes a book)",prospective,no,2026-10-13,research/forecasts/PROTOCOL.md,,,
+33,forecasts-v1,"Q2 P(abs NIFTY move >= 3% in 20 trading days): books vs baselines (diagnostic, never promotes a book)",prospective,no,2026-10-13,research/forecasts/PROTOCOL.md,,,
+34,forecasts-v1,"Q3 P(next 20-day RV > trailing 20-day RV): books vs baselines (diagnostic, never promotes a book)",prospective,no,2026-10-13,research/forecasts/PROTOCOL.md,,,
+35,forecasts-v1,"Q4 P(India VIX up in 10 trading days): books vs baselines (diagnostic, never promotes a book)",prospective,no,2026-10-13,research/forecasts/PROTOCOL.md,,,
+36,forecasts-v1,"Q5 P(next 20-day RV < 30-day ATM IV): books vs baselines (diagnostic, never promotes a book)",prospective,no,2026-10-13,research/forecasts/PROTOCOL.md,,,
