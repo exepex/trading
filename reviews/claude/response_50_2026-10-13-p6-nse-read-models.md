@@ -380,3 +380,23 @@ The owner's `dashboard_app` read-back (Addendum 2's command) should show these 6
 Checks: 1,488 tests pass (more since), ruff, imports and the record scan are clean, and `fno/composition.py` is at 348 of its 350 lines. The next addition there needs a split.
 
 **Second run of the same day, on the real database:** run 38439360415 started from a newer commit (e38eabd, other stories' work in between). It printed `published 6 blocks as nse-2026-10-12-40630e1cd4ec … (0 rows added)` and read back the same 6 hashes. So a second run adds no rows, and a code commit does not change the ID, which is named by content.
+
+## Addendum 5 (13 Oct 2026): the dashboard-role read-back (criterion 4, last part)
+
+The owner ran this on their Mac as `dashboard_app` (password typed at psql's hidden prompt; nothing else shared):
+
+```
+select h.page_key, h.payload_sha256 from fno.current_publication c
+join fno.pages_history h using (product, publication_id) order by h.page_key;
+
+ fno_screener_rows    | 2b472f047c22c5fc9a2b02e783782af77ddd32d16bba135ba1f7bea8ceb8d6d0
+ fno_screener_summary | 4c1121a66d8695cf86186ae6389d033dc1b3cd35d744a74e3ef114adb9743c53
+ overview_indices     | 4ed3007055b26438b1887f0799fa4c064b056631a7c575fa2e9015d416d571ec
+ overview_sectors     | 2bf88cacb2b01f53f1d7fa3f79a29bdfb2c0d354352fdb78b78c7a25999988fc
+ screener_stocks      | cfb0584223818102f3b0d80a20997106b909da06e64912bbd21201b401518edb
+ screener_summary     | e4d8d13b5e878af1541a4132a6fd7f59b9f8617df30eed2995a565c776dd2ad0
+(6 rows)
+```
+
+All 6 equal the SHA-256 values the publishing run recorded (addendum 4, run 38438666957), checked by the orchestrator
+string for string. The dashboard role reads exactly the current publication `nse-2026-10-12-40630e1cd4ec`.
