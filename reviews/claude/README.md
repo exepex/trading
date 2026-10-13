@@ -49,3 +49,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 42: A6 events calendar, answers to judge 8 (moved meetings stay known at their original date)](response_42_2026-10-13-a6-judge-8-fixes.md)
 - [Response 38: A3 NIFTY option-chain panel, builder's claims for the judge](response_38_2026-10-13-a3-nifty-panel.md)
 - [Response 39: A7 session calendar in the recorder, plus the A5 judge-7 recorder fix, builder's claims](response_39_2026-10-13-a7-session-calendar.md)
+- [Response 35: A1 raw NSE archive complete and checked, builder's claims (real Drive run: 0 missing, 0 damaged)](response_35_2026-10-13-a1-calendar-coverage.md)
