@@ -98,13 +98,25 @@ Session:
     2026): India's is exepex/trading's, the US's the stock tool's; each path carries its own x-catalog
   x-element: [s30.status-chip, s30.lock, h31.band]
   required: [exchange, zone, session_date, open_utc, close_utc, next_open_utc, regime, post_close_at]
+  if: {properties: {hours_status: {const: not_issued}}, required: [hours_status]}
+  then: {properties: {open_utc: {type: 'null'}, close_utc: {type: 'null'}, next_open_utc: {type: 'null'}}}
+  else: {properties: {next_open_utc: {type: string}}}
   properties:
     exchange: {type: string, x-unit: text, description: 'The exchange, as the chip names it, e.g. "India (NSE)", "US (NYSE/Nasdaq)"'}
     zone: {type: string, enum: [IST, ET], x-unit: enum, x-notes: ['s30.status-chip:zone']}
     session_date: {type: string, format: date, x-unit: date, x-element: [h31.band], x-notes: ['h31.band:session.date'], description: 'The session being predicted (D)'}
     open_utc: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:open_utc'], description: "Today's open; null on a non-trading day"}
     close_utc: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:close_utc'], description: "Today's close; null on a non-trading day"}
-    next_open_utc: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:next_open_utc'], description: 'The next opening after the cut-off (today''s open when it is still ahead)', x-catalog: {status: planned}}
+    next_open_utc: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:next_open_utc'], description: 'The next opening after the cut-off (today''s open when it is still ahead); null only while its hours are not issued (hours_status)', x-catalog: {status: planned}}
+    hours_status:
+      type: string
+      enum: [known, not_issued]
+      x-unit: enum
+      description: >-
+        Whether the exchange has issued the session's hours (2.6, additive). not_issued: a session exists on session_date
+        (a special or muhurat session announced without its timings) but NSE's timings circular is not out yet, so
+        open_utc, close_utc and next_open_utc are null; the screen says "Special session on <date>; hours not announced
+        yet", never "market closed". Absent means known (the stock tool's US blocks); India's block always states it
     regime:
       type: ['string', 'null']
       description: "The newest regime code stored by the cut-off (the stock tool's `regime` kind: TRENDING, EVENT_HEAVY, UNSTABLE, ...)"

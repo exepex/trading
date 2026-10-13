@@ -174,4 +174,4 @@ committed with the decision before the promotion deadline.
 
 **Judge verifies:** checks one week of AI-book forecast files.
 
-**Depends:** G1, G3, F1 · **Size:** S · **Status:** awaiting judge (claims: `reviews/claude/response_67_f1-g5.md`; first live run waits on the owner's routines and secrets, `docs/stories/F1-G5-owner-checklist.md`)
+**Depends:** G1, G3, F1 · **Size:** S · **Status:** built: criterion 3 (coverage in G4's report) MET (judge 62 addendum 1); G4's scoring-gate fix 22ace2f awaiting judge; first live run 14 Oct 2026 ~15:10 IST

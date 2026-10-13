@@ -85,3 +85,30 @@ Flows now read only copies filed on or before the published session (the 21:10 I
 publication records the copies behind each session's figures (dataset, session, filing day, SHA-256), so a re-run can
 be compared copy for copy. My plant, widening the window back to the next session, is now caught (1 failed, 137
 passed). The minor point from item 1 is closed. Item 4 (the real 07:10 IST publish) is still pending.
+
+## Addendum 2 (contract 2.6, omenix-dashboard c6b4dc7; P10 build 803ca61)
+
+**Item 2's gap is closed.** Contract 2.6 adds `Session.hours_status` (`known | not_issued`). With `not_issued`, the
+schema makes `open_utc`, `close_utc` and `next_open_utc` null (an `if/then` rule), and India's response always
+requires the field. The trading pin is at c6b4dc7.
+
+P10 now publishes the 8 Nov muhurat as `not_issued`, with the session date set and the three times null, instead of
+leaving the page out. `tests/market_read_models` passes 138. My two plants are each caught (1 failed each):
+- `hours_status` always `known`;
+- times filled for a muhurat session.
+
+**Minor difference from the example (information):** the contract's `hours_not_issued` example has
+`post_close_at: null`. Ours keeps the next 07:10 IST market run (9 Nov). The schema allows both. "When the next run
+brings the close" is still true for a muhurat session, so I accept ours. The contract owner may want the example to
+match.
+
+Item 4 (the real 07:10 IST publish) is still pending my 02:40 UTC check.
+
+## Addendum 3 (contract example fix, omenix-dashboard 66f129b)
+
+The `getSessionIndia_india_hours_not_issued` example now has `post_close_at: 2026-11-09T01:40:00Z`. That is exactly
+what P10 (803ca61) computes for the 8 Nov muhurat (`utc(9 Nov, 07:10 IST)`, my run). The contract and the publisher
+agree.
+
+Note: trading's pin is still c6b4dc7, from before this example change. Re-pin when convenient, so the pinned
+examples equal the contract.

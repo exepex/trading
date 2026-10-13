@@ -48,7 +48,7 @@ def test_a_planted_transcript_breach_is_unscored_and_not_covered(tmp_path):
     write_day(tmp_path, BOOK3_AI)
     transcript(tmp_path, BOOK2_HYBRID, ["read_other_records"])
     transcript(tmp_path, BOOK3_AI, [])
-    out = ai_forecasts(tmp_path, {DAY: PACK})
+    out = ai_forecasts(tmp_path, {DAY: PACK}, {})
     assert {f.book for f in out.forecasts} == {BOOK3_AI} and out.pending == []
     assert out.unscored == [{"day": "2026-10-14", "book": BOOK2_HYBRID,
                              "reason": "transcript breach: read_other_records"}]  # fmt: skip
@@ -63,12 +63,12 @@ def test_a_planted_transcript_breach_is_unscored_and_not_covered(tmp_path):
 
 def test_a_day_awaiting_its_transcript_audit_is_pending_then_scored_once_clean(tmp_path):
     write_day(tmp_path, BOOK2_HYBRID)  # one of the first 10 fired days: every session is audited
-    out = ai_forecasts(tmp_path, {DAY: PACK})
+    out = ai_forecasts(tmp_path, {DAY: PACK}, {})
     assert out.forecasts == [] and out.unscored == []
     assert out.pending == [{"day": "2026-10-14", "book": BOOK2_HYBRID, "reason": "transcript audit due"}]
     assert book_coverage([DAY], out.forecasts, DAY, AS_OF)[BOOK2_HYBRID]["counted_days"] == 0
     transcript(tmp_path, BOOK2_HYBRID, [])
-    cleared = ai_forecasts(tmp_path, {DAY: PACK})
+    cleared = ai_forecasts(tmp_path, {DAY: PACK}, {})
     assert (
         len(cleared.forecasts) == 5
         and cleared.pending == []
@@ -79,7 +79,7 @@ def test_a_day_awaiting_its_transcript_audit_is_pending_then_scored_once_clean(t
 def test_withdrawn_collections_are_unscored_with_the_gate_reason(tmp_path):
     write_day(tmp_path, BOOK2_HYBRID, status="exposed")
     write_day(tmp_path, BOOK3_AI, status="model_mismatch")
-    out = ai_forecasts(tmp_path, {DAY: PACK})
+    out = ai_forecasts(tmp_path, {DAY: PACK}, {})
     assert out.forecasts == [] and {(e["book"], e["reason"]) for e in out.unscored} == {
         (BOOK2_HYBRID, "exposed"), (BOOK3_AI, "model_mismatch")
     }  # fmt: skip
@@ -88,5 +88,5 @@ def test_withdrawn_collections_are_unscored_with_the_gate_reason(tmp_path):
 def test_a_scored_day_still_needs_its_verified_pack(tmp_path):
     write_day(tmp_path, BOOK3_AI, pack="d" * 64)
     transcript(tmp_path, BOOK3_AI, [])
-    assert "another pack" in ai_forecasts(tmp_path, {DAY: PACK}).unscored[0]["reason"]
-    assert "receipt" in ai_forecasts(tmp_path, {}).unscored[0]["reason"]
+    assert "another pack" in ai_forecasts(tmp_path, {DAY: PACK}, {}).unscored[0]["reason"]
+    assert "receipt" in ai_forecasts(tmp_path, {}, {}).unscored[0]["reason"]

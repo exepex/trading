@@ -19,11 +19,12 @@ SessionResponse:
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Session'}}}
     - $ref: '#/components/schemas/UsMarket'
 SessionIndiaResponse:
-  description: 'India''s session, published by exepex/trading (2.5, owner 14 Oct 2026)'
+  description: 'India''s session, published by exepex/trading (2.5, owner 14 Oct 2026); it always states hours_status (2.6)'
   allOf:
     - $ref: '#/components/schemas/FnoBlockMeta'
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Session'}}}
     - $ref: '#/components/schemas/IndiaMarket'
+    - {properties: {payload: {required: [hours_status]}}}
 IndicesResponse:
   allOf:
     - $ref: '#/components/schemas/StockBlockMeta'

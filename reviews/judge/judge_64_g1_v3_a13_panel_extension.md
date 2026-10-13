@@ -190,3 +190,18 @@ harness improvement, not a defect today.
 
 **Still to do (my side):** compare the first two scheduled appends (from 14 Oct, 21:41 IST) with A3's build. The 13 Oct
 day came from the manual dispatch run 38474280810.
+
+## Addendum 4 (look-ahead harness: the deterministic removal trial, 7d5dd17)
+
+**MET, nothing loosened.**
+- After its random trials, `assert_no_lookahead` now runs one fixed trial: every panel close after the cutoff is set
+  to None, and that day's option and future rows are dropped.
+- The new test makes `VixAboveMedian` (a real threshold feature) a live feature by mistake. With `trials=0` the test
+  is caught by the removal trial alone, on 5 days.
+- My plant, skipping the removal trial's assertion, makes that test fail (1 failed, 9 passed).
+- The diff to `test_lookahead.py` only adds a test; no assertion or plant was removed or weakened.
+- `tests/research_engine` with the baseline tests: 189 passed. So no correct feature reads data after its cutoff, even
+  with everything after it removed.
+
+**Note (information):** a feature that crashes on a missing value would raise a TypeError instead of the look-ahead
+assertion. It still fails loudly, so no leak can pass silently.

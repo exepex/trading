@@ -113,3 +113,29 @@ against the filings. It belongs to the final judgment, once the backfill is comp
 
 **Still waiting:** criteria 2 and 6 on the backfill (next scheduled run 18:17 UTC), and criterion 5 on the owner's
 OAuth publish step.
+
+## Addendum 2 (963ed42: time budget, rows for files found without one; backfill progress at 22:50 UTC, 13 Oct)
+
+**Resume after a stop or a kill: MET.** `tests/filings` passes 49, including `test_filings_killed_runs.py`, and the
+storage tests pass. Each of my three plants is caught (1 failed each, 67 tests):
+- the librarian no longer writes the row for a file found in Drive without one (the "killed before commit" case);
+- the time budget ignored (`TimeBudgetedFill` running past its deadline);
+- the report claiming the whole range when the budget stopped it.
+
+A file already in Drive is re-`put` with the same bytes. The Drive store compares the bytes and uploads nothing, so the
+row is written without a duplicate file. A damaged stored file is still reported and left alone.
+
+**Real-world note.** Run 38445744385 (dispatched 18:19 UTC, started before this fix) is still running after about 4.5
+hours. It has no time budget, so GitHub may kill it at 6 hours (about 00:19 UTC) before it commits its rows. The new
+"row for a file found without one" path is exactly what the next run then needs. Scheduled run 38479538255 is queued
+behind it. I will look at the next commit of `research/data/manifests/filings/` for rows added this way.
+
+**Open criteria against the backfill, as committed now:**
+
+| # | Status | Evidence |
+|---|---|---|
+| 2 | **NOT MET YET (in progress)** | `results-xbrl` 4,767 rows for 209 companies; `shareholding-xbrl` 2,553 rows for 208 companies, of about 500. `gaps.csv` holds 27 named reasons; the finding-1 wording is to be re-checked when the backfill ends |
+| 5 | **MET in substance, pending one scheduled completion** | The workflow now fires on its schedule (run 38479538255, event `schedule`). The secrets are in place (run 3 succeeded with Drive). The record scan is clean on its commits |
+| 6 | **NOT MET YET** | Companies with a results file per half-year among the 209 done: Sep 2023 182, Mar 2024 187, Sep 2024 195, Mar 2025 199, Sep 2025 204, Mar 2026 208. The test is 90% of about 500, so at least 450 per half-year. It cannot be judged until about 500 companies are in. Sep 2023 is already the weakest (182 of 209, 87%) |
+
+I will re-judge 2 and 6 when the coverage reaches the full list.

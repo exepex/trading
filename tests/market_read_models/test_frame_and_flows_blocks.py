@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from fno.market_read_models.contract import ContractBroken
 from fno.market_read_models.flows_block import FlowsBlock, FlowsCopy
 from fno.market_read_models.frame_blocks import FnoEventsBlock, IndicesIndiaBlock, SessionIndiaBlock
 from fno.market_read_models.frame_inputs import FlowsReader, FrameInputs, frame_inputs
@@ -30,28 +31,33 @@ def test_the_session_is_the_next_one_with_nses_hours_and_the_next_mornings_run()
         "exchange": "India (NSE)", "zone": "IST", "session_date": "2026-10-13", "open_utc": "2026-10-13T03:45:00Z",
         "close_utc": "2026-10-13T10:00:00Z", "next_open_utc": "2026-10-13T03:45:00Z", "regime": None,
         "post_close_at": "2026-10-14T01:40:00Z", "major_event_names": [],  # 13 Oct: a weekly expiry, not major
+        "hours_status": "known",
     }  # fmt: skip
     friday = frame_inputs(CALENDAR, date(2026, 10, 9))
     assert friday == FrameInputs(date(2026, 10, 12), "regular")  # Friday's next session: Monday
 
 
-def test_a_monthly_expiry_session_names_it_and_a_muhurat_session_is_not_guessed():
+def test_a_monthly_expiry_session_names_it():
     rows = replace(example_rows(), frame=FrameInputs(date(2026, 10, 27), "regular"))
     assert SessionIndiaBlock().build(rows)["major_event_names"] == ["NSE monthly F&O expiry (last Tuesday)"]
-    with pytest.raises(FiguresNotComputed, match="muhurat"):
-        SessionIndiaBlock().build(replace(example_rows(), frame=FrameInputs(date(2026, 11, 8), "muhurat")))
 
 
-def test_an_unknown_muhurat_session_leaves_out_only_the_session_page_and_the_run_publishes(tmp_path):
-    """The real calendar row: 8 Nov 2026, muhurat, "timings circular not yet issued"; the session after Friday 6 Nov."""
+def test_a_muhurat_session_without_issued_hours_publishes_as_not_issued_and_the_run_publishes(tmp_path):
+    """Contract 2.6, with the real calendar row: 8 Nov 2026, muhurat, "timings circular not yet issued", the session
+    after Friday 6 Nov. Equal to the contract's example field by field (66f129b: post_close_at is the 07:10 IST run on
+    9 Nov, still due, which brings the session's close)."""
     frame = frame_inputs(CALENDAR, date(2026, 11, 6))
     assert frame == FrameInputs(date(2026, 11, 8), "muhurat")
     rows = replace(example_rows(), frame=frame)
-    assert SessionIndiaBlock().pages(rows) == {}
+    session = SessionIndiaBlock().build(rows)
+    example = CONTRACT.examples()["getSessionIndia_india_hours_not_issued"]["value"]["payload"]
+    assert session == example and session["post_close_at"] == "2026-11-09T01:40:00Z"
+    planted = {**session, "open_utc": "2026-11-08T12:45:00Z"}  # an hour guessed while the hours are not issued
+    with pytest.raises(ContractBroken):
+        CONTRACT.validate("Session", planted)
     market, alerts, publisher = run(tmp_path, Rows(rows))
-    code, lines = market.run(DAY)
-    assert code == 0 and alerts.sent == [] and "session" not in publisher.current()
-    assert {"indices", "fno_events", "flows", "risk", "today", "chain_expiries"} <= set(publisher.current())
+    code, _ = market.run(DAY)
+    assert code == 0 and alerts.sent == [] and publisher.current()["session"]["payload"]["hours_status"] == "not_issued"
 
 
 def test_the_indices_are_nifty_and_india_vix_at_the_close():

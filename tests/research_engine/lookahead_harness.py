@@ -106,6 +106,18 @@ def perturb_events(data: ResearchData, cutoff: datetime, rng: Random) -> tuple[R
 DEFAULT_PERTURBERS: tuple[Perturber, ...] = (perturb_panel, perturb_events)
 
 
+def remove_panel_after(data: ResearchData, cutoff: datetime) -> tuple[ResearchData, int]:
+    """The deterministic trial: every panel value available after the cutoff removed (no closes, no option or future
+    rows), so a feature that reads any of them moves on every run, not only on a lucky random draw (judge 64 addendum
+    3: a threshold feature wrongly declared live is caught every time)."""
+    panel = data.panel
+    later = {s.day for s in panel.sessions if available_at(s.day, s.session) > cutoff}
+    sessions = tuple(s._replace(underlying=None, vix=None) if s.day in later else s for s in panel.sessions)
+    options = {d: () if d in later else q for d, q in panel.options.items()}
+    futures = {d: () if d in later else q for d, q in panel.futures.items()}
+    return dataclasses.replace(data, panel=NiftyPanel(sessions, options, futures)), len(later)
+
+
 def assert_no_lookahead(
     feature: Feature,
     data: ResearchData,
@@ -117,7 +129,8 @@ def assert_no_lookahead(
     seed: int = 20261013,
     perturbers: Sequence[Perturber] = DEFAULT_PERTURBERS,
 ):
-    """The feature's value, after proving that `trials` random changes of the data after the cutoff leave it equal."""
+    """The feature's value, after proving that `trials` random changes of the data after the cutoff, and one removal of
+    every panel value after it, leave it equal."""
     cutoff = min(cutoff or feature.known_at(decision_day), datetime.combine(decision_day, SESSION_CLOSE_TIME))
     expected = feature.value(data, decision_day, context)
     rng = Random(f"{seed}-{feature.name}-{decision_day}")
@@ -126,12 +139,19 @@ def assert_no_lookahead(
         for perturb in perturbers:
             changed, count = perturb(changed, cutoff, rng)
             assert count > 0, f"{perturb.__name__}: nothing after {cutoff} to change, the test would prove nothing"
-        got = feature.value(changed, decision_day, context)
-        assert got == expected, (
-            f"look-ahead: {feature.name} on {decision_day} moved from {expected!r} to {got!r} when data after "
-            f"{cutoff} changed (trial {trial})"
-        )
+        _assert_unmoved(feature, changed, decision_day, context, expected, cutoff, f"trial {trial}")
+    removed, count = remove_panel_after(data, cutoff)
+    assert count > 0, f"remove_panel_after: nothing after {cutoff} to remove, the test would prove nothing"
+    _assert_unmoved(feature, removed, decision_day, context, expected, cutoff, "every panel value after it removed")
     return expected
+
+
+def _assert_unmoved(feature, changed, decision_day, context, expected, cutoff, how: str) -> None:
+    got = feature.value(changed, decision_day, context)
+    assert got == expected, (
+        f"look-ahead: {feature.name} on {decision_day} moved from {expected!r} to {got!r} when data after "
+        f"{cutoff} changed ({how})"
+    )
 
 
 def _shake_quote(q, rng: Random):

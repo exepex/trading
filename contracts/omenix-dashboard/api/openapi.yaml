@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: market-brief app API
-  version: 2.5.0
+  version: 2.6.0
   summary: Read API over the precomputed read models (docs/ARCHITECTURE.md section 4), plus planned governed writes.
   description: |
     Research only: nothing here places, routes or suggests a trade, and nothing is investment advice.
@@ -57,6 +57,11 @@ info:
     their own block, getFnoEvents (/api/v1/markets/india/fno/events, page `fno_events`); a screen merges it with
     getEvents and applies its own query to the merged list. getFlows moves to `fno` (page `flows`). The F&O books and
     picks keep W10's pages `risk` and `today` (orchestrator, judge 63: the contract's names win over P10's).
+
+    Version 2.6 (13 Oct 2026; additive): Session gains `hours_status` (known | not_issued). not_issued says a session
+    exists on session_date but NSE has not issued its hours (e.g. the 8 Nov 2026 muhurat session before its timings
+    circular): open_utc, close_utc and next_open_utc are then null (next_open_utc is otherwise still required as a
+    time). India's session always states it; the US's may omit it (known).
 
     Serve-time fields (2.0 page payloads): the stored payload carries no time of its build, so a rebuild of the same data
     keeps its hash. The route adds `cutoff` and `built_at` (the row's envelope) at the top of a page payload and

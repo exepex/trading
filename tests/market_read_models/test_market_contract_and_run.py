@@ -61,7 +61,7 @@ def builder() -> PublicationBuilder:
 
 
 def test_the_pinned_copy_matches_its_pin_and_names_the_contract_version():
-    assert CONTRACT.changed_files() == [] and CONTRACT.version == "2.5.0"
+    assert CONTRACT.changed_files() == [] and CONTRACT.version == "2.6.0"
     assert "api/schemas/blocks-stored.yaml" in CONTRACT.pin["files"]
     assert CONTRACT.pin["repository"] == "exepex/omenix-dashboard" and len(CONTRACT.pin["commit"]) == 40
 
