@@ -58,6 +58,11 @@ class BlockBuilder(ABC):
         """Page key -> stored payload: one page, unless the route asks for the block by a parameter (P9)."""
         return {self.page_key: self.build(rows)}
 
+    def inputs(self, rows: SessionRows) -> list:
+        """The archived copies the block read where more than one could serve a day (P8's flows); recorded with the
+        publication, outside the contract's row (it has no field for them)."""
+        return []
+
 
 def as_of(day: date) -> str:
     return day.isoformat() + CLOSE_UTC

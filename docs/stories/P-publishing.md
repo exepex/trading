@@ -255,7 +255,7 @@ second publisher for the same block would make two sources of truth. Needs a dec
 either W11 moves the block to publisher `fno` (then this story builds the download and the block against it), or the
 block stays with the stock tool and only a raw archive here is wanted (research use), or nothing is built.
 
-**Status:** built; awaiting judge (contract 2.5 page `flows`; response 66, addendum on contract 2.5)
+**Status:** built; awaiting judge (contract 2.5 page `flows`; response 66, addenda on contract 2.5 and judge 66's flows window)
 
 ---
 

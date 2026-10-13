@@ -17,6 +17,7 @@ from fno.market_read_models.home_inputs import BookFigures, HomeInputs
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.market_run import MarketRun
 from fno.market_read_models.publication import PublicationBuilder
+from fno.market_read_models.publication_inputs import PublicationInputsFile
 from fno.market_read_models.run_status import LocalRunStatus
 from fno.market_read_models.session_rows import IncompleteSession
 from fno.market_read_models.wiring import CONTRACT_FOLDER, build_market_blocks
@@ -156,9 +157,9 @@ class Rows:
 
 def run(tmp_path, rows, publications=None):
     alerts, publisher, ids = Alerts(), LocalFolderPublisher(tmp_path), iter(range(1, 100))
-    status = LocalRunStatus(tmp_path, "fno")
+    status, inputs = LocalRunStatus(tmp_path, "fno"), PublicationInputsFile(tmp_path / "publication-inputs.csv")
     market = MarketRun(CALENDAR, CONTRACT, rows, publications or builder(), publisher, alerts, status,
-                       lambda: f"run-{next(ids)}")  # fmt: skip
+                       lambda: f"run-{next(ids)}", inputs)  # fmt: skip
     return market, alerts, publisher
 
 

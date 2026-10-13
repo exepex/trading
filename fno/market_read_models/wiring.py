@@ -14,6 +14,7 @@ from ..config import ROOT
 from ..constants import BOOKS, ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID
 from ..research_engine.implied_vol import SpotBlackScholes
 from ..risk.settings import risk_settings
+from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.wiring import build_session_calendar, build_versioned_reader
 from .blocks import (
     BlockBuilder,
@@ -47,12 +48,14 @@ from .local_publisher import LocalFolderPublisher
 from .market_run import MarketRun
 from .postgres_publisher import PostgresPublisher
 from .publication import PRODUCT, PublicationBuilder
+from .publication_inputs import PublicationInputsFile
 from .publisher import ReadModelPublisher
 from .run_status import LocalRunStatus, PostgresRunStatus, RunStatusRecorder
 from .session_rows import SessionRowsBuilder
 
 CONTRACT_FOLDER = ROOT / "contracts" / "omenix-dashboard"  # the pinned W11 contract (story P6)
 AZURE_POSTGRES_ROOTS = ROOT / "db" / "fno" / "azure-postgres-roots.pem"  # the CAs the publisher trusts (P6)
+PUBLICATION_INPUTS = ROOT / "research" / "data" / "publications" / "publication-inputs.csv"  # judge 66
 DASHBOARD_REPOSITORY = "exepex/omenix-dashboard"
 FOLLOWED_COMPANIES_FOLDER = ROOT / "research" / "data" / "followed-companies" / "india"  # W11 input (judge 40)
 LATEST_FROZEN_EXPERIMENT = (  # its decisive run's passing policies are the only approved strategies (P10)
@@ -112,7 +115,14 @@ def build_market_run(cfg: dict, local_folder: Path | None = None) -> MarketRun:
     rows = build_session_rows_builder(cfg)
     publisher, status = build_read_model_publisher(local_folder), build_run_status(local_folder)
     return MarketRun(build_session_calendar(), contract, rows, publications, publisher, build_alert_sender(), status,
-                     run_id)  # fmt: skip
+                     run_id, build_publication_inputs(local_folder))  # fmt: skip
+
+
+def build_publication_inputs(local_folder: Path | None = None) -> PublicationInputsFile:
+    """Judge 66: the flows copies each publication read, beside a local publication, else committed here."""
+    if local_folder is not None:
+        return PublicationInputsFile(local_folder / PUBLICATION_INPUTS.name)
+    return PublicationInputsFile(PUBLICATION_INPUTS, GitManifestRecorder(ROOT, PUBLICATION_INPUTS.parent).commit)
 
 
 def run_id(env=os.environ, clock=lambda: datetime.now(UTC)) -> str:

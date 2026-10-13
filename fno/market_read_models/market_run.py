@@ -15,6 +15,7 @@ from ..research_data.calendar import SessionCalendar
 from .contract import ContractBroken, PinnedContract
 from .home_blocks import FiguresNotComputed
 from .publication import Publication, PublicationBuilder, hashes
+from .publication_inputs import PublicationInputsFile
 from .publisher import PublishFailed, ReadModelPublisher
 from .run_status import (
     ARCHIVE_INCOMPLETE,
@@ -65,10 +66,11 @@ class MarketRun:
         alerts: AlertSender,
         status: RunStatusRecorder,
         run_id: Callable[[], str],
+        inputs: PublicationInputsFile | None = None,
     ):
         self.calendar, self.contract, self.rows = calendar, contract, rows
         self.publications, self.publisher, self.alerts = publications, publisher, alerts
-        self.status, self.run_id = status, run_id
+        self.status, self.run_id, self.inputs = status, run_id, inputs
 
     def run(self, day: date, prepare: Prepare | None = None) -> tuple[int, list[str]]:
         """(exit code, lines to print). The status row is written whatever happens; a crash is recorded, then raised."""
@@ -95,7 +97,9 @@ class MarketRun:
                                      publisher=self.publisher.name, added=added)  # fmt: skip
         stored = hashes(publication)
         read_back = READ_BACK.format(count=len(stored), publication_id=publication.publication_id)
-        return 0, [line, read_back, *hash_lines(stored)], Outcome(PUBLISHED, publication_id=publication.publication_id)
+        inputs = self.inputs.record(publication) if self.inputs else []
+        lines = [line, read_back, *hash_lines(stored), *inputs]
+        return 0, lines, Outcome(PUBLISHED, publication_id=publication.publication_id)
 
     def _publish(self, day: date, prepare: Prepare | None) -> tuple[Publication, int]:
         problem = prepare(day) if prepare else None

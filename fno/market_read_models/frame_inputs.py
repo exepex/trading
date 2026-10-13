@@ -1,17 +1,18 @@
 """Inputs of India's market band and flows blocks (stories P10 and P8), read when a session is built: the session the
 reader acts on next (from NSE's session calendar) and the archived flows copies (one per day fetched; the latest copy
-of each session wins, and nothing after the published session is read: no look-ahead)."""
+of each session wins; only copies taken before the publication's own moment are read: no look-ahead, judge 66)."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, timedelta
+from hashlib import sha256
 
 from ..research_data.calendar import SessionCalendar
 from ..storage.raw_store import RawFileStore
 from ..storage.snapshot_source import FiiDiiCashSource, NsdlFpiDailySource
-from .flows_block import DAYS_KEPT, FlowsInputs
+from .flows_block import DAYS_KEPT, FlowsCopy, FlowsInputs
 from .flows_files import CashFlows, read_fii_dii, read_nsdl_equity
 
 
@@ -27,6 +28,11 @@ def frame_inputs(calendar: SessionCalendar, day: date) -> FrameInputs:
 
 
 class FlowsReader:
+    """A copy is filed under the IST day it was fetched, at any time of that day (flows-download at 21:10 IST, the
+    07:10 IST market run, a hand run). Session D is published at 07:10 IST the next morning, so only copies filed on or
+    before D are surely older than its publication; a copy filed the next day may be newer, and is never read for D.
+    The archive keeps one copy per day (a different one is refused), so a re-run of D reads exactly the same copies."""
+
     def __init__(self, store: RawFileStore, calendar: SessionCalendar):
         self.store, self.calendar = store, calendar
 
@@ -34,21 +40,22 @@ class FlowsReader:
         sessions = self.calendar.sessions(day - timedelta(days=DAYS_KEPT * 2), day)[-DAYS_KEPT:]
         cash = self._latest(FiiDiiCashSource, day, _cash)
         nsdl = self._latest(NsdlFpiDailySource, day, _nsdl)
+        copies = [copy for found in (cash, nsdl) for copy, _ in (found[d] for d in sorted(found))]
         return FlowsInputs(
-            [cash[d] for d in sorted(cash)], [nsdl[d] for d in sorted(nsdl)], sessions,
+            [cash[d][1] for d in sorted(cash)], [nsdl[d][1] for d in sorted(nsdl)], sessions, copies,
         )  # fmt: skip
 
-    def _latest(self, source, day: date, read: Callable[[bytes, str], tuple[date, object]]) -> dict[date, object]:
-        """Session -> its latest archived copy's figures (copies read oldest first), for sessions up to `day`."""
-        found: dict[date, object] = {}
-        fetched, last_fetch = source.first_day, self.calendar.next_session(day)
-        while fetched <= last_fetch:  # NSE serves a session's values until the next one's release: every copy of it
-            data = self.store.get(source.path_for(fetched))
+    def _latest(self, source, day: date, read: Callable[[bytes, str], tuple[date, object]]) -> dict[date, tuple]:
+        """Session -> (the copy, its figures) of its latest copy filed on or before `day` (copies read oldest first)."""
+        found: dict[date, tuple] = {}
+        filed = source.first_day
+        while filed <= day:
+            data = self.store.get(source.path_for(filed))
             if data is not None:
                 covered, figures = read(data, source.FILENAME)
                 if covered <= day:
-                    found[covered] = figures
-            fetched += timedelta(days=1)
+                    found[covered] = (FlowsCopy(source.dataset, covered, filed, sha256(data).hexdigest()), figures)
+            filed += timedelta(days=1)
         return found
 
 

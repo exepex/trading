@@ -4,7 +4,7 @@ period totals published only when the days cover the whole period (W11's rule, j
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from .blocks import CURRENCY, BlockBuilder, SessionRows
@@ -15,10 +15,21 @@ DAYS_KEPT = 250
 
 
 @dataclass(frozen=True)
+class FlowsCopy:
+    """The archived copy a session's figures were read from (judge 66: each publication records it)."""
+
+    dataset: str
+    session: date  # the session the copy covers
+    filed_on: date  # the IST day it was fetched (the archive's folder); the time of day is not kept
+    sha256: str
+
+
+@dataclass(frozen=True)
 class FlowsInputs:
     cash: list[CashFlows]  # one per session, the latest copy of each, sessions up to the published one
     nsdl: list[tuple[date, float]]  # (reporting day, FPI equity net)
     sessions: list[date]  # the NSE sessions up to the published one, the last 250, oldest first
+    copies: list[FlowsCopy] = field(default_factory=list)  # the copy behind each session's figures, both series
 
 
 class FlowsBlock(BlockBuilder):
@@ -34,6 +45,10 @@ class FlowsBlock(BlockBuilder):
             "days": [{"date": c.day.isoformat(), "fii": _side(c.fii), "dii": _side(c.dii)} for c in cash],
             "nsdl": [{"date": d.isoformat(), "net": net} for d, net in flows.nsdl if d in kept],
         }
+
+    def inputs(self, rows: SessionRows) -> list[FlowsCopy]:
+        kept = set(rows.flows.sessions[-DAYS_KEPT:])
+        return [c for c in rows.flows.copies if c.session in kept]
 
 
 def period_total(cash: list[CashFlows], sessions: list[date], n: int) -> dict:

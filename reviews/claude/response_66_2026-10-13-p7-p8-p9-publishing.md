@@ -404,3 +404,41 @@ Full suite and the real local publish: see the commit.
 - **Tests:**
   - the workflow test checks archive < database check < publish, that the check runs after a failed archive, and that publish waits for the check;
   - `test_the_archive_command_needs_no_database_and_says_what_is_missing` checks the command's exit code and lines with no `FNO_DB_URL` set.
+
+## Addendum: judge 66's minor, the flows window bounded by the publication's own moment
+
+**Accepted, with evidence. My earlier claim was wrong.** I had said copies "fetched up to the next session" are read, to catch "the morning copy". The judge is right on both points:
+- The upper bound was untested: their plant widening it by two sessions passed every test.
+- The bound was too wide. Session D is published at 07:10 IST the next morning. A copy filed the next day may be taken after that moment (flows-download runs at 21:10 IST), so a re-run of D could read values the live run could not have seen.
+
+My earlier mutation check ("reading only up to the session day fails the test") tested the opposite rule, so it proved the wrong thing.
+
+**The rule now** (`FlowsReader`, `frame_inputs.py`):
+- A copy is filed under the IST day it was fetched. The archive keeps no time of day, only the day folder.
+- Session D publishes at 07:10 IST the day after D. So only copies **filed on or before D** are surely older than D's publication, and only those are read.
+- The archive keeps one copy per day and refuses a different one, so a re-run of D reads exactly the same copies and builds the same pages.
+- Within the window, the latest copy of each session still wins, and a copy covering a later session is still never read.
+
+**Which copies each publication read is now recorded:**
+- **Why not in the stored row:** the contract's stored row has no field for this, and I did not invent one.
+- **Where it is recorded:** the run writes one row per publication, page and dataset to `research/data/publications/publication-inputs.csv`. The row gives the number of copies, the newest copy's filing day, and the SHA-256 of the full list (`<session> <filed on> <sha256>` lines, sorted). The publish run commits this file through the same git recorder as the manifests, with the record scan on and never bypassed. The run log prints the same lines.
+- **How to check it:** the list itself is the reader's output for D, rebuilt from the append-only archive and checked against that SHA-256. Each copy's SHA-256 also equals its manifest row.
+- **A re-run** that publishes the same ID adds no row ("already recorded").
+- **Limit:** the judge asked for the fetch *time*. Only the fetch *day* exists, and the rule is designed around that.
+
+**Tests:**
+- `test_flows_read_only_copies_filed_by_the_session_itself_never_a_later_one`: NSE's revised 13 Oct values, filed 14 Oct, are not read for 13 Oct (net -1305.13, not -1300.00). They are read for 14 Oct, where they are the latest copy of 13 Oct. The test also checks each copy's dataset, session, filing day and SHA-256.
+- `test_each_publication_records_the_copies_its_flows_read_once`: the run's lines, the CSV row, and a re-run adding nothing.
+
+**Mutation checks** (each run on the flows test file, then restored):
+
+| Plant | Result |
+|---|---|
+| Window widened by one session (`next_session(day)`) | caught (1 failed) |
+| Window widened by one calendar day | caught (1 failed) |
+
+**Real archive (some evidence; what the owner will see):**
+- The only flows copies so far were filed on 14 Oct (02:18 IST, a hand run), so **13 Oct's publication has empty flows**. That copy was in fact taken before 13 Oct's 07:10 publish, but the day-level rule cannot prove it, so it is left out. That costs one day.
+- 14 Oct's publication reads 13 Oct's values from those copies: FII net -1305.13 and NSDL 2000.73 crore. Their SHA-256s are `216a4b93…` and `0296e1dc…`, which equal the manifest rows.
+- From then on, each session's 21:10 IST copy serves its own publication.
+- The 07:10 run's own morning copy (filed the next day) is never read for D. It serves the next publication as the latest copy of D.

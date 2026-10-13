@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 
 from .blocks import BlockBuilder, SessionRows
@@ -24,6 +24,7 @@ class Publication:
     day: date
     publication_id: str
     records: dict[str, dict]  # page key -> stored row
+    inputs: dict[str, list] = field(default_factory=dict)  # page key -> the archived copies it read (P8, judge 66)
 
 
 def canonical(payload) -> bytes:
@@ -53,7 +54,8 @@ class PublicationBuilder:
             }  # fmt: skip
             self.check(builder, record)
             records[key] = record
-        return Publication(rows.day, publication_id, records)
+        inputs = {builder.page_key: builder.inputs(rows) for builder in self.builders}
+        return Publication(rows.day, publication_id, records, {key: used for key, used in inputs.items() if used})
 
     def check(self, builder: BlockBuilder, record: dict) -> None:
         """ContractBroken unless the stored payload matches W11's stored schema (where W11 names one) and the response
