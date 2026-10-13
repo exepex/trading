@@ -15,6 +15,7 @@ from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
 from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
+from .storage.revisions_cli import add_revisions_parser
 
 
 def _cfg(args) -> dict:
@@ -175,6 +176,7 @@ def main(argv: list[str] | None = None) -> int:
     add_participant_oi_parser(sub)
     add_librarian_parser(sub)
     add_fingerprints_parser(sub)
+    add_revisions_parser(sub)
     add_market_parser(sub)
     add_research_parser(sub)
 

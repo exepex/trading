@@ -14,3 +14,9 @@ row keeps the result from being "complete".
 
 New files get their row when they are saved (`FingerprintingStore`, `fno/storage/manifest_folder.py`). A row is never
 edited or deleted by hand; a different SHA-256 for a day that has a row is refused by the code.
+
+## Revisions (story A11)
+
+`revisions/<dataset>.csv` lists the later NSE versions of archived files, kept in Drive's `revisions` area beside
+`raw` (`date,path,sha256,size_bytes,available_from,last_modified,found_at`). Append-only, one row per version, never
+edited; the raw file's row above never changes. See `fno/storage/README.md`.

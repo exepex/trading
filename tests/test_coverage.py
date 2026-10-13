@@ -140,6 +140,6 @@ def test_a_file_without_a_manifest_row_is_reported_and_the_result_is_not_complet
     result = run(store, dataset=CoverageDataset(NseLegacyFoSource, read_fo_file, rows))
     assert result.present == 5 and result.unfingerprinted == [date(2019, 1, 4)] and not result.ok
     lines = report_lines([result])
-    assert lines[1].split()[-1] == "1"  # the "no sha" column
+    assert lines[1].split()[-2] == "1"  # the "no sha" column (the last is "revised", A11)
     assert f"no fingerprint (content checked only) {NseLegacyFoSource.dataset} 2019-01-04" in lines
     assert lines[-1].startswith("result: INCOMPLETE")
