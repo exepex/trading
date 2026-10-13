@@ -63,3 +63,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 62: G2 frozen baselines and G3 Book 1 forecast capture, builder's claims; proposal for a live input pack (protocol v2)](response_62_g2-g3.md)
 - [Response 65: story A13, the NIFTY option panel extends daily: story written, build stopped at a frozen file; options A and B](response_65_a13.md)
 - [Response 67: F1 + G5, Hybrid and AI team daily forecasts in their own routines: design, sealed answers, claims](response_67_f1-g5.md)
+- [Response 68: G1 forecast protocol v3 proposal for ChatGPT: the NIFTY panel extends daily (A13, option A); v1 and v2 unchanged](response_68_g1-v3-panel-extension.md)
