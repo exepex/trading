@@ -25,3 +25,12 @@ def test_prints_each_setting_under_the_name_the_app_reads():
 def test_a_missing_client_file_prints_the_usage(capsys):
     assert load().main(["/no/such/file.json"]) == 2
     assert "usage" in capsys.readouterr().out
+
+
+def test_its_names_equal_the_apps_constants():
+    from fno import constants
+
+    module = load()
+    for name in ("DRIVE_FULL_SCOPE", "ENV_GDRIVE_OAUTH_CLIENT_ID", "ENV_GDRIVE_OAUTH_CLIENT_SECRET",
+                 "ENV_GDRIVE_OAUTH_REFRESH_TOKEN"):  # fmt: skip
+        assert getattr(module, name) == getattr(constants, name)
