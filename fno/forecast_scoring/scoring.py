@@ -12,7 +12,7 @@ before the first scheduled review (design 12.8: six months of common-start tradi
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -56,14 +56,17 @@ class ModeScores:
 
 
 class ForecastScorer:
-    def __init__(self, resolver: OutcomeResolver):
-        self.resolver = resolver
-        self._resolved: dict[tuple[str, date], Resolution] = {}
+    """`resolvers`: input mode -> its outcome resolver (history scores question 5 against the panel's close IV30, live
+    against the forecast's own 15:00 pack IV30; response 69, item 7)."""
 
-    def resolution(self, question: str, day: date) -> Resolution:
-        key = (question, day)
+    def __init__(self, resolvers: Mapping[str, OutcomeResolver]):
+        self.resolvers = resolvers
+        self._resolved: dict[tuple[str, str, date], Resolution] = {}
+
+    def resolution(self, mode: str, question: str, day: date) -> Resolution:
+        key = (mode, question, day)
         if key not in self._resolved:
-            self._resolved[key] = self.resolver.resolve(question, day)
+            self._resolved[key] = self.resolvers[mode].resolve(question, day)
         return self._resolved[key]
 
     def score(self, forecasts: Iterable[ScoredForecast]) -> tuple[ModeScores, ...]:
@@ -77,12 +80,12 @@ class ForecastScorer:
         scores = {key: self._question_scores(items) for key, items in _grouped(forecasts).items()}
         q5_days = {f.day: f.iv30_status for f in forecasts if f.question == FORECAST_Q5_RV_BELOW_IV}
         flag_rate = sum(s == FLAGGED for s in q5_days.values()) / len(q5_days) if q5_days else None
-        primary = self._comparisons(forecasts, primary_family())
+        primary = self._comparisons(mode, forecasts, primary_family())
         significant = holm_significant([c.result.p_value for c in primary])
         primary = tuple(ComparisonResult(c.comparison, c.result, s) for c, s in zip(primary, significant, strict=True))
         days = [f.day for f in forecasts]
         return ModeScores(mode, min(days, default=None), max(days, default=None), scores, flag_rate, primary,
-                          self._comparisons(forecasts, secondary_comparisons()))  # fmt: skip
+                          self._comparisons(mode, forecasts, secondary_comparisons()))  # fmt: skip
 
     def _question_scores(self, items: Sequence[ScoredForecast]) -> QuestionScores:
         out = QuestionScores()
@@ -93,7 +96,7 @@ class ForecastScorer:
             if f.probability is None:
                 out.counts[NO_FORECAST] += 1
                 continue
-            res = self.resolution(f.question, f.day)
+            res = self.resolution(f.mode, f.question, f.day)
             out.counts[res.status] += 1
             if res.status == RESOLVED:
                 pairs.append((f.probability, res.outcome))
@@ -107,7 +110,7 @@ class ForecastScorer:
         out.sensitivities = {name: summarise(values) for name, values in sorted(sensitivity.items())}
         return out
 
-    def _comparisons(self, forecasts: list[ScoredForecast], family: Sequence[Comparison]) -> tuple:
+    def _comparisons(self, mode: str, forecasts: list[ScoredForecast], family: Sequence[Comparison]) -> tuple:
         probability = {(f.book, f.question, f.day): f.probability for f in forecasts if f.probability is not None}
         days = sorted({f.day for f in forecasts})
         results = []
@@ -117,7 +120,7 @@ class ForecastScorer:
                 a, b = probability.get((c.first, c.question, day)), probability.get((c.second, c.question, day))
                 if a is None or b is None:
                     continue
-                res = self.resolution(c.question, day)
+                res = self.resolution(mode, c.question, day)
                 if res.status == RESOLVED:
                     differences.append(brier(a, res.outcome) - brier(b, res.outcome))
             results.append(ComparisonResult(c, compare(differences, c.k)))

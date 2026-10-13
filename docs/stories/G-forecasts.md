@@ -145,7 +145,7 @@ differences with the block bootstrap (seed fixed in the protocol) and the frozen
 
 **Judge verifies:** recomputes one book's Brier score for one month.
 
-**Depends:** G1, G3 (G5 for books 2 and 3) · **Size:** M · **Status:** built; awaiting judge (claims: `reviews/claude/response_66_g4.md`; code in `fno/forecast_scoring/`, outside the frozen `fno/forecast/`)
+**Depends:** G1, G3 (G5 for books 2 and 3) · **Size:** M · **Status:** done (judge 58 PASS; claims `reviews/claude/response_66_g4.md`; code in `fno/forecast_scoring/`, outside the frozen `fno/forecast/`). AI books' scoring (judge 58's list) added after the pass: response 66 section "Addendum"
 
 ---
 

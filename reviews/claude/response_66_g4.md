@@ -121,3 +121,36 @@ clean. The real report as of 13 Oct 2026 is byte-identical on re-run (SHA-256 `2
 To recompute one book's Brier for one month, take `research/forecasts/scores/2026-10-13.json` (mode `close_proxy`).
 For a month's back-fill rows of `book1_rules` and one question, compute the outcomes by hand from
 `warmup_closes.csv` and average (p - o)^2. Note that the report gives the whole-period mean, not monthly means.
+
+## Addendum (13-14 Oct 2026): judge 58 PASS, then the AI books' scoring (judge 58's list) and live Q5
+
+G4 is **done** (judge 58: PASS, Book 1's Brier recomputed independently to every digit). After the pass, at the
+orchestrator's request, these follow-ups are in place.
+
+| Item | What was built | Evidence |
+|---|---|---|
+| 1. Read the AI books' records | `fno/forecast_scoring/ai_sources.py` reads `research/forecasts/ai_v1/<YYYY>/<d>_<book>_forecasts.csv` with its `_audit.json`. An AI day is scored only on a receipt-verified v2 pack day, and only when every record names that pack | `tests/forecast_scoring/test_scoring_ai.py::test_an_on_time_ai_day_on_a_verified_pack_is_scored_and_its_isolation_reported` |
+| 2. Never score `model_mismatch`, `exposed`, a breach, or an unscored day | Scored only when the audit `status` is `on_time` (an allow-list, so any status F1 adds later, such as `breach`, is excluded automatically) and the audit has no `"unscored": true`. Unscored days are listed in the report with their reason | `test_withdrawn_breached_or_mismatched_ai_days_are_never_scored` (6 cases: exposed, model_mismatch, breach, unscored flag, no audit, another pack) |
+| 3. Coverage per book (G5 criterion 3) and the isolation label | `coverage.py`: per book (all three), days with a counted forecast out of every v2 pack day from the common start to the as-of day. The report's `coverage`, `ai_isolation` (from the audits; `sealed_same_day` by default) and the weekly summary lines | `test_coverage_counts_from_the_common_start_and_a_missed_day_lowers_it`, `test_the_report_shows_coverage_common_start_isolation_and_unscored_days` |
+| 4. `COMMON_START = 14 Oct 2026` | Fixed in `fno/forecast_scoring/wiring.py`; no protocol fixes another date (design 12.8 and protocols v1/v2 name none). A missed day lowers coverage, never moves the start. The review gate opens on 14 Apr 2027 | `test_confirmatory_claims_only_after_six_months_of_common_start_trading` |
+| Response 69 item 7: live Q5 against the pack's 15:00 IV30 | `ForecastScorer` takes one resolver per input mode: history (`close_proxy`) uses the panel's close IV30 (unchanged), live (`live_1500_proxy`) uses the IV30 in the day's own verified pack (`score_sources.pack_iv30`). This applies to Book 1 and the AI books alike | `test_live_question_5_is_scored_against_the_pack_iv30_and_history_against_the_panel` (planted disagreement: panel IV30 = next RV - 1 gives "no", Brier 0.81; pack IV30 = next RV + 1 gives "yes", Brier 0.01, same day and p = 0.9); `test_the_pack_iv30_is_read_from_the_pack_and_none_or_unknown_is_no_value` |
+
+This reverses my earlier interpretation 1 (live Q5 against the panel's IV30), which judge 58 had accepted. The change
+follows ChatGPT review 30 and response 69 item 7. The protocol text for it is the G1 session's
+(`PROTOCOL_v3.md`, not on `main` yet). This scorer change does not depend on it, but v3 must say the same rule.
+
+### Contract proposed to the F1 session (the "unscored" field) and the G1 session (Q5 text)
+
+I could not agree these live: `send_message` blocked on a permission prompt earlier in this session, and the
+orchestrator told me not to use it. They are written here for the orchestrator to relay; the code accepts both
+forms, so F1 can choose.
+- **F1 (`session_01AGpndRQcLERm1xLMNb3Tmj`):** a day counts only if the audit's `status` is `on_time`. To unscore a
+  day after the fact (a transcript audit finds a breach), either set `status` to a new value (e.g. `breach`) or keep
+  it and add `"unscored": true` with `"unscored_reason": "<who, which session, what>"`. G4 lists either with its
+  reason and never scores it. Coverage then shows the day as not counted.
+- **G1 (`session_01Ur7pxMsg1quhFZNN7EkmQB`):** v3 should say "live question 5 is scored against the IV30 in the
+  forecast's own 15:00 pack (v2 section 2), void when that IV30 is flagged or missing; the history back-fill keeps the
+  panel's close IV30 (v1 section 3)". G4 implements exactly this.
+
+Checks: see the commit message (pytest, ruff, check_imports). The report for 13 Oct 2026 is regenerated with the new
+fields (`common_start`, `coverage`, `ai_isolation`, `unscored_ai_days`); the scores themselves are unchanged.

@@ -13,6 +13,8 @@ import subprocess
 from datetime import date
 from pathlib import Path
 
+from ..ai.coverage import pack_days
+from ..ai.paths import AI_FOLDER
 from ..config import ROOT
 from ..constants import PIPELINE_AREA
 from ..forecast.backfill import BACKFILL_FILE
@@ -25,14 +27,18 @@ from ..research_engine.ledger import Git
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from ..storage.wiring import PANEL_FOLDER, build_session_calendar
+from .ai_sources import ai_forecasts
+from .coverage import book_coverage
 from .resolution import OfficialOutcomes, panel_iv30
+from .score_inputs import CLOSE_PROXY, LIVE
 from .score_report import ReportContext, report_document
 from .score_sources import CaptureReceipts, NoReceipts, RunSummaryReceipts, backfill_forecasts, live_forecasts
 from .scoring import ForecastScorer
 
 HISTORY_START = date(2024, 1, 1)
 SCORES_FOLDER = "research/forecasts/scores"
-COMMON_START = None  # the first day Books 1, 2 and 3 all forecast live; None until Books 2 and 3 exist (story G5)
+COMMON_START = date(2026, 10, 14)  # first live day for all three books (orchestrator, judge 58); fixed: a book that
+# misses it shows lower coverage, never a later start. No protocol fixes another date (design 12.8 names none).
 REVIEW_MONTHS = 6  # design 12.8: no comparison is called significant before six months of common-start trading
 
 
@@ -67,11 +73,16 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
     live_files = sorted((root / LIVE_FOLDER).glob("*/*_forecasts.csv"))
     v2 = require_version_frozen(root, git.head(), git=git) if live_files else None
     history = build_forecast_history(cfg, list(range(HISTORY_START.year, as_of.year + 1)))
-    closes = CommittedClosesFile(CLOSES_FILE).closes()
-    resolver = OfficialOutcomes(closes, build_session_calendar(), as_of, panel_iv30(history), history.horizon_day)
-    backfill = [f for f in backfill_forecasts((root / BACKFILL_FILE).read_bytes(), HISTORY_START) if f.day <= as_of]
+    closes, calendar = CommittedClosesFile(CLOSES_FILE).closes(), build_session_calendar()
     live = live_forecasts(root / LIVE_FOLDER, receipts)
-    modes = ForecastScorer(resolver).score(backfill + [f for f in live.forecasts if f.day <= as_of])
+    resolvers = {  # question 5: history against the panel's close IV30, live against its own 15:00 pack IV30
+        CLOSE_PROXY: OfficialOutcomes(closes, calendar, as_of, panel_iv30(history), history.horizon_day),
+        LIVE: OfficialOutcomes(closes, calendar, as_of, lambda day: (True, live.pack_iv30.get(day)),
+                               history.horizon_day),
+    }  # fmt: skip
+    ai = ai_forecasts(root / AI_FOLDER, live.packs)
+    backfill = backfill_forecasts((root / BACKFILL_FILE).read_bytes(), HISTORY_START)
+    scored = [f for f in backfill + live.forecasts + ai.forecasts if f.day <= as_of]
     inputs = {
         "backfill_file": BACKFILL_FILE, "backfill_sha256": _sha256(root / BACKFILL_FILE),
         "backfill_commit": backfill_commit, "history_start": HISTORY_START.isoformat(),
@@ -79,5 +90,9 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
         "protocol_v1_commit": v1.protocol_commit, "protocol_v2_commit": v2.protocol_commit if v2 else None,
         "live_days": len(live_files),
     }  # fmt: skip
-    context = ReportContext(as_of, inputs, confirmatory_allowed(as_of), live.late, tuple(live.unverified))
-    return report_document(context, modes)
+    context = ReportContext(
+        as_of, inputs, confirmatory_allowed(as_of), live.late, tuple(live.unverified), COMMON_START,
+        book_coverage(pack_days(root), scored, COMMON_START, as_of),
+        {book: sorted(labels) for book, labels in ai.isolation.items()}, tuple(ai.unscored),
+    )  # fmt: skip
+    return report_document(context, ForecastScorer(resolvers).score(scored))

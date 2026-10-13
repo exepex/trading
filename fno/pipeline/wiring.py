@@ -12,19 +12,29 @@ from ..constants import (
     DERIVED_AREA,
     ENV_ROUTINE_DRY_RUN_TOKEN,
     ENV_ROUTINE_DRY_RUN_TRIGGER_ID,
+    PANEL_FORMAT_LEGACY,
+    PANEL_FORMAT_UDIFF,
     PANEL_INDEX_CLOSE,
     PIPELINE_AREA,
     ROUTINE_DRY_RUN,
 )
 from ..models import now_ist
-from ..research_data.nifty_panel import DailyFiles
+from ..research_data.nifty_panel import DailyFiles, NiftyPanelBuilder
+from ..research_data.panel_append import PanelAppender
 from ..storage import wiring as storage
-from ..storage.raw_source import NseArchiveSource, NseIndexCloseSource, ParticipantOiSource
+from ..storage.raw_source import (
+    NseArchiveSource,
+    NseDailyFoSource,
+    NseIndexCloseSource,
+    NseLegacyFoSource,
+    ParticipantOiSource,
+)
 from ..storage.raw_store import AreaStore, RawFileStore
 from .batches import ManifestBatches
 from .dispatcher import BatchDispatcher
 from .dry_run import DryRunRoutine
 from .index_closes import IndexCloseAppender
+from .panel_days import PanelDayJob
 from .records import PipelineRecords
 from .run import PipelineRun
 from .run_summary import RunSummaryStore
@@ -81,13 +91,40 @@ def build_dry_run_routine(env=os.environ) -> DryRunRoutine:
 def build_index_close_appender(env=os.environ) -> IndexCloseAppender:
     """The daily index-close job: NSE's index-close files as archived in the owner's Drive (never fetched here, so a
     row is the first archived version), appended to the panel folder's warm-up closes."""
-    raw = AreaStore(_project_drive(env), storage.RAW_AREA)
-    source = NseIndexCloseSource
-    files = DailyFiles(
-        PANEL_INDEX_CLOSE,
-        source.dataset,
-        source.first_day,
-        source.last_day,
-        lambda day: (source.filename_for(day), raw.get(source.path_for(day))),
-    )
+    files = _drive_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, AreaStore(_project_drive(env), storage.RAW_AREA))
     return IndexCloseAppender(files, storage.build_session_calendar(), storage.PANEL_FOLDER, build_alert_sender())
+
+
+def _drive_files(label: str, source: type[NseArchiveSource], store: RawFileStore) -> DailyFiles:
+    """A dataset's daily files as held in Drive (never fetched from NSE here)."""
+    return DailyFiles(
+        label, source.dataset, source.first_day, source.last_day,
+        lambda day: (source.filename_for(day), store.get(source.path_for(day))),
+    )  # fmt: skip
+
+
+PROTOCOL_V3 = "research/forecasts/PROTOCOL_v3.md"  # G1 v3: the panel extends daily (response 68); not frozen yet
+FREEZE_V3 = "research/forecasts/FREEZE_v3.md"
+
+
+def require_v3_frozen() -> None:
+    from ..config import ROOT
+    from ..forecast.freeze_v2 import require_version_frozen
+    from ..research_engine.ledger import Git
+
+    require_version_frozen(ROOT, Git(ROOT).head(), PROTOCOL_V3, FREEZE_V3)
+
+
+def build_panel_day_job() -> PanelDayJob:
+    """Story A13: A3's builder on the F&O and index-close files in Drive (A11: the newest version held at the run),
+    appended to the panel folder, only under G1 protocol v3's freeze."""
+    reader = storage.build_versioned_reader(now_ist())
+    fo_files = [
+        _drive_files(PANEL_FORMAT_UDIFF, NseDailyFoSource, reader),
+        _drive_files(PANEL_FORMAT_LEGACY, NseLegacyFoSource, reader),
+    ]
+    calendar = storage.build_session_calendar()
+    index_files = _drive_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, reader)
+    builder = NiftyPanelBuilder(fo_files, index_files, calendar, storage.build_file_exceptions())
+    appender = PanelAppender(storage.PANEL_FOLDER)
+    return PanelDayJob(builder, appender, calendar, require_v3_frozen, build_alert_sender(), now_ist)
