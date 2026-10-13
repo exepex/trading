@@ -5,6 +5,7 @@ Reference lists use the copy archived on the session's day or the latest before 
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 
@@ -16,9 +17,14 @@ from ..storage.raw_source import (
     NseIndexCloseSource,
 )
 from ..storage.raw_store import RawFileStore
-from ..storage.snapshot_source import CorporateActionsSource, EquityListSource, Nifty500ListSource, SnapshotSource
+from ..storage.snapshot_source import (
+    CorporateActionsBySymbolSource,
+    CorporateActionsSource,
+    EquityListSource,
+    Nifty500ListSource,
+)
 from .blocks import SessionRows
-from .corporate_actions import CorporateAction, adjusted, read_corporate_actions
+from .corporate_actions import CorporateAction, adjusted, read_corporate_actions, unexplained
 from .fno_rows import FnoRowBuilder, UnderlyingDay, underlying_days
 from .followed import FollowedCompaniesSource
 from .index_rows import index_rows, industries
@@ -56,26 +62,21 @@ class SessionRowsBuilder:
 
     def build(self, day: date) -> SessionRows:
         missing: list[str] = []
-        equity = self._files(NseEquityBhavcopySource, day - EQUITY_WINDOW, day, missing)
+        series, actions = self._equity(day, missing)
         fo = self._files(NseDailyFoSource, day - FNO_WINDOW, day, missing)
         indices = self._files(NseIndexCloseSource, day - INDEX_WINDOW, day, missing)
         delivery = self._file(NseDeliverySource.path_for(day), missing)
-        names, members, actions = (
-            self._snapshot(s, day, missing) for s in (EquityListSource, Nifty500ListSource, CorporateActionsSource)
-        )
+        names, members = (self._snapshot(s.path_for, day, missing) for s in (EquityListSource, Nifty500ListSource))
         followed = self.followed.on_or_before(day)
         if followed is None:
             missing.append(f"the stock tool's followed-companies list on or before {day}")
+        actions += self._own_lists(day, unexplained(series, actions), missing)
         if missing:
             raise IncompleteSession(day, missing)
         names = read_equity_list(names, EquityListSource.FILENAME)
         history = self._fno_history(fo)
         stocks = stock_rows(
-            on_todays_basis(
-                stock_series(read_equity_bhavcopy(data, name) for _, name, data in equity),
-                read_corporate_actions(actions, CorporateActionsSource.FILENAME),
-                day,
-            ),
+            on_todays_basis(series, actions, day),
             day,
             names,
             read_nifty500_list(members, Nifty500ListSource.FILENAME),
@@ -86,6 +87,37 @@ class SessionRowsBuilder:
         figures = [(d, read_index_figures(data, name)) for d, name, data in indices]
         nifty_500 = [r for r in stocks if UNIVERSE_NIFTY_500 in r["u"]]
         return SessionRows(day, stocks, self.fno.rows(history, day, names), index_rows(figures), industries(nifty_500))
+
+    def symbols_to_look_up(self, day: date) -> list[str]:
+        """Symbols with an unexplained price jump in the session's window whose own corporate-action list is not
+        archived yet (the daily routine archives them before building)."""
+        missing: list[str] = []
+        series, actions = self._equity(day, missing)
+        if missing:
+            raise IncompleteSession(day, missing)
+        return [s for s in unexplained(series, actions) if self._find(self._own_list_path(s), day) is None]
+
+    def _equity(self, day: date, missing: list[str]) -> tuple[dict[str, list[EquityBar]], list[CorporateAction]]:
+        """The window's raw equity series and NSE's corporate-action list up to the session (empty if missing)."""
+        equity = self._files(NseEquityBhavcopySource, day - EQUITY_WINDOW, day, missing)
+        listed = self._snapshot(CorporateActionsSource.path_for, day, missing)
+        series = stock_series(read_equity_bhavcopy(data, name) for _, name, data in equity)
+        actions = read_corporate_actions(listed, CorporateActionsSource.FILENAME) if listed else []
+        return series, [a for a in actions if a.ex_date <= day]
+
+    def _own_lists(self, day: date, symbols: list[str], missing: list[str]) -> list[CorporateAction]:
+        actions = []
+        for symbol in symbols:
+            data = self._find(self._own_list_path(symbol), day)
+            if data is None:
+                missing.append(f"{symbol}'s own corporate-action list (an unexplained price jump)")
+            else:
+                actions += [a for a in read_corporate_actions(data, f"{symbol}.json") if a.ex_date <= day]
+        return actions
+
+    @staticmethod
+    def _own_list_path(symbol: str) -> Callable[[date], str]:
+        return lambda d: CorporateActionsBySymbolSource.path_for_symbol(d, symbol)
 
     def _files(self, source, start: date, end: date, missing: list[str]) -> list[tuple[date, str, bytes]]:
         days = self.calendar.sessions(start, end)
@@ -100,14 +132,19 @@ class SessionRowsBuilder:
             missing.append(path)
         return data
 
-    def _snapshot(self, source: type[SnapshotSource], day: date, missing: list[str]) -> bytes | None:
+    def _snapshot(self, path_for: Callable[[date], str], day: date, missing: list[str]) -> bytes | None:
+        data = self._find(path_for, day)
+        if data is None:
+            missing.append(f"{path_for(day)} (no copy within {SNAPSHOT_SEARCH_DAYS} days)")
+        return data
+
+    def _find(self, path_for: Callable[[date], str], day: date) -> bytes | None:
         """The copy filed on `day` or the latest before it, else the nearest after it (a back-filled session)."""
         offsets = [-n for n in range(SNAPSHOT_SEARCH_DAYS + 1)] + list(range(1, SNAPSHOT_SEARCH_DAYS + 1))
         for offset in offsets:
-            data = self.store.get(source.path_for(day + timedelta(days=offset)))
+            data = self.store.get(path_for(day + timedelta(days=offset)))
             if data is not None:
                 return data
-        missing.append(f"{source.dataset} (no copy within {SNAPSHOT_SEARCH_DAYS} days of {day})")
         return None
 
     @staticmethod

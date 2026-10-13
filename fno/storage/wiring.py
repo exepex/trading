@@ -45,7 +45,12 @@ from .raw_source import (
     ParticipantOiSource,
 )
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
-from .snapshot_source import CorporateActionsSource, EquityListSource, Nifty500ListSource
+from .snapshot_source import (
+    CorporateActionsBySymbolSource,
+    CorporateActionsSource,
+    EquityListSource,
+    Nifty500ListSource,
+)
 from .snapshot_taker import SnapshotTaker
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
@@ -67,6 +72,7 @@ SNAPSHOT_SOURCES = (
     EquityListSource,
     Nifty500ListSource,
     CorporateActionsSource,
+    CorporateActionsBySymbolSource,
 )  # reference lists, one copy per day fetched (P6)
 RAW_SOURCES = DATED_SOURCES + SNAPSHOT_SOURCES  # every dataset with a manifest
 
@@ -181,6 +187,7 @@ VALIDATORS = {
     EquityListSource: lambda filename, data: read_equity_list(data, filename),
     Nifty500ListSource: lambda filename, data: read_nifty500_list(data, filename),
     CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
+    CorporateActionsBySymbolSource: lambda filename, data: read_corporate_actions(data, filename),
 }
 
 
@@ -202,6 +209,15 @@ LIBRARIAN_DATASETS = {
 }
 SNAPSHOT_DATASETS = {dataset_name(s): s for s in SNAPSHOT_SOURCES}
 FINGERPRINT_SOURCES = {dataset_name(s): s for s in DATED_SOURCES}
+
+
+def build_own_list_taker() -> SnapshotTaker:
+    """A symbol's own NSE corporate-action list into the owner's Drive (symbols NSE's range list leaves out)."""
+    store = build_owner_drive_store()
+    if store is None:
+        raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
+    source = CorporateActionsBySymbolSource
+    return SnapshotTaker(store, build_nse_source(source), VALIDATORS[source])
 
 
 def build_snapshot_taker(name: str) -> SnapshotTaker:

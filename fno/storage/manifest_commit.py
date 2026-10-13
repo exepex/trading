@@ -12,6 +12,7 @@ import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+PUSH_ATTEMPTS = 3
 COMMIT_MESSAGE = "Manifests: SHA-256 rows written at save time ({what})"
 COMMITTED = "manifest rows committed and pushed ({count} file(s))"
 NOTHING = "manifest rows: nothing new to commit"
@@ -44,17 +45,25 @@ class GitManifestRecorder(ManifestRecorder):
         files = self.pending()
         if not files:
             return NOTHING
-        steps = (
+        for step, args in (
             ("add", ("add", "--", self.folder)),
             ("commit", ("commit", "-m", COMMIT_MESSAGE.format(what=what), "--", self.folder)),
-            ("pull", ("pull", "--no-rebase", "--no-edit", "origin", self._branch())),
-            ("push", ("push", "origin", "HEAD")),
-        )
-        for step, args in steps:
+        ):
             result = self._git(*args)
             if result.returncode != 0:
                 return NOT_COMMITTED.format(step=step, reason=_first_line(result))
-        return COMMITTED.format(count=len(files))
+        return self._publish(len(files))
+
+    def _publish(self, count: int) -> str:
+        """Pulls and pushes; another session pushing in between is retried (PUSH_ATTEMPTS in all)."""
+        for _ in range(PUSH_ATTEMPTS):
+            pulled = self._git("pull", "--no-rebase", "--no-edit", "origin", self._branch())
+            if pulled.returncode != 0:
+                return NOT_COMMITTED.format(step="pull", reason=_first_line(pulled))
+            pushed = self._git("push", "origin", "HEAD")
+            if pushed.returncode == 0:
+                return COMMITTED.format(count=count)
+        return NOT_COMMITTED.format(step="push", reason=_first_line(pushed))
 
     def _branch(self) -> str:
         return self._git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()

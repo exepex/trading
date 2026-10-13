@@ -17,6 +17,8 @@ import json
 import re
 from dataclasses import dataclass, replace
 from datetime import date, datetime
+from itertools import pairwise
+from math import prod
 
 from ..fo_bhavcopy import BadFile
 from .nse_files import EquityBar
@@ -26,6 +28,7 @@ BONUS = re.compile(r"Bonus\s+(\d+)\s*:\s*(\d+)", re.IGNORECASE)
 HISTORY_BREAKS = ("demerger", "arrangement", "amalgamation", "capital reduction")
 EX_DATE_FORMAT = "%d-%b-%Y"
 PRICE_DECIMALS = 2
+JUMP = (0.55, 1.8)  # a one-session close ratio outside this, with no action in the list, gets its symbol looked up
 
 
 @dataclass(frozen=True)
@@ -65,19 +68,19 @@ def _action(record: dict) -> CorporateAction:
 
 
 def adjusted(bars: list[EquityBar], actions: list[CorporateAction]) -> list[EquityBar]:
-    """A symbol's bars on its latest share basis, using the actions with an ex-date up to its last bar."""
-    last = bars[-1].day
-    for action in sorted(actions, key=lambda a: a.ex_date):
-        if action.ex_date > last or action.ex_date <= bars[0].day:
-            continue
-        if action.breaks_history:
-            bars = [b for b in bars if b.day >= action.ex_date]
-        elif action.factor:
-            bars = [_rebased(b, action.factor) if b.day < action.ex_date else b for b in bars]
-    return bars
+    """A symbol's bars on its latest share basis, using the actions with an ex-date up to its last bar: each earlier
+    bar divided once by the product of the factors after it (rounded once), and nothing before a history break."""
+    inside = [a for a in actions if bars[0].day < a.ex_date <= bars[-1].day]
+    breaks = [a.ex_date for a in inside if a.breaks_history]
+    if breaks:
+        bars = [b for b in bars if b.day >= max(breaks)]
+    factors = [a for a in inside if a.factor]
+    return [_rebased(b, prod(a.factor for a in factors if b.day < a.ex_date)) for b in bars] if factors else bars
 
 
 def _rebased(bar: EquityBar, factor: float) -> EquityBar:
+    if factor == 1.0:
+        return bar
     return replace(
         bar,
         close=round(bar.close / factor, PRICE_DECIMALS),
@@ -85,3 +88,15 @@ def _rebased(bar: EquityBar, factor: float) -> EquityBar:
         low=round(bar.low / factor, PRICE_DECIMALS),
         volume=round(bar.volume * factor),
     )
+
+
+def unexplained(series: dict[str, list[EquityBar]], actions: list[CorporateAction]) -> list[str]:
+    """Symbols with a one-session close jump outside JUMP and no share-count action in the list: NSE's list over a date
+    range leaves out some (ETFs such as BANKNIFTY1), so their own lists are looked up. The jump only chooses where to
+    look; any adjustment comes from NSE's stated ratio."""
+    covered = {a.symbol for a in actions if a.factor or a.breaks_history}
+    return sorted(symbol for symbol, bars in series.items() if symbol not in covered and _jumps(bars))
+
+
+def _jumps(bars: list[EquityBar]) -> bool:
+    return any(not JUMP[0] < b.close / a.close < JUMP[1] for a, b in pairwise(bars) if a.close)

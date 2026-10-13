@@ -75,3 +75,23 @@ def test_an_action_after_the_session_is_never_applied():
 def test_a_list_that_is_not_nses_is_refused():
     with pytest.raises(BadFile):
         read_corporate_actions(b'{"not": "a list"}', "list.json")
+
+
+def test_only_a_jump_without_a_share_count_action_in_the_list_gets_a_symbol_lookup():
+    from fno.market_read_models.corporate_actions import unexplained
+
+    bars, ex_date = kotak_bars()
+    etf = [EquityBar(b.day, "BANKNIFTY1", "EQ", b.close, b.high, b.low, b.volume) for b in bars]
+    steady = [EquityBar(b.day, "STEADY", "EQ", 100.0, 101.0, 99.0, 10) for b in bars]
+    listed = read_corporate_actions(nse_list(("KOTAKBANK", f"{ex_date:%d-%b-%Y}", KOTAK_SPLIT)), "list.json")
+    series = {"KOTAKBANK": bars, "BANKNIFTY1": etf, "STEADY": steady}
+    assert unexplained(series, listed) == ["BANKNIFTY1"]
+
+
+def test_a_symbols_own_list_is_filed_per_symbol_and_asked_without_a_date_range():
+    from fno.storage.snapshot_source import CorporateActionsBySymbolSource as Own
+
+    path = Own.path_for_symbol(date(2026, 10, 12), "M&M")
+    assert path == "nse/equities/corporate-actions-by-symbol/2026/10/12/M&M.json"
+    assert Own.day_for_path(path) == date(2026, 10, 12)
+    assert Own.url_for(path).endswith("index=equities&symbol=M%26M") and "from_date" not in Own.url_for(path)
