@@ -2,7 +2,10 @@
 
 Story: `docs/stories/G-forecasts.md` section G1 (issue #62).
 
-**In short:** `research/forecasts/PROTOCOL.md` version 1 is written and frozen. The protocol commit is `f936156`, and
+**Read the addendum at the end first:** after judge 47 the freeze below was undone (the protocol is a draft awaiting
+ChatGPT's review, response 57), and the freeze will lock golden values instead of the shared library's bytes.
+
+**In short (as first built):** `research/forecasts/PROTOCOL.md` version 1 is written and frozen. The protocol commit is `f936156`, and
 `research/forecasts/FREEZE.md` (the next commit) records it with the SHA-256 of 8 frozen files. The five questions'
 targets have reference code (`fno/forecast/targets.py`), and so do the 30-day ATM IV estimator (`fno/forecast/iv30.py`),
 the record schema (`fno/forecast/schema.py`) and the frozen 45-comparison family (`fno/forecast/comparisons.py`).
