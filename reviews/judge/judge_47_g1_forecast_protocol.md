@@ -141,3 +141,37 @@ All equal the builder's.
   freeze, together with the Holm procedure, against the frozen text.
 
 **Checks:** `tests/forecast` 44 passed; my plants above reverted, and `git status` is clean.
+
+## Addendum 2: the freeze (protocol cf489e4, freeze fd95a42)
+
+**The freeze's content: MET. But the ancestry rule does NOT hold in CI. That is 1 should-fix, and `main`'s CI is red
+because of it.**
+
+**Content (my checks):**
+- **The freeze order:** `cf489e4` is an ancestor of `fd95a42`.
+- **The 10 checked files:** every SHA-256 in `FREEZE.md`'s checked table equals the file at HEAD. They are the
+  protocol, the golden file and `fno/forecast/*`. **No `fno/research_engine/` file is byte-checked**: the three B1
+  files are recorded only, "behaviour locked by the golden values".
+- **The golden contract includes the IV30 flag:** 1,921 days, 258 flagged, 1 without IV30. My round-2 plants showed a
+  value change fails and a refactor passes.
+- **Review 28's two changes are in the frozen text:**
+  - PROTOCOL.md line 49: Q5 is "void when IV30(d) is flagged or missing";
+  - lines 67-69: flagged days are kept only as a descriptive sensitivity;
+  - the confirmatory family is 10 tests (line 5 and section 8).
+- **The ledger:** trials 32-36 carry `protocol_commit` cf489e4.
+
+**Should fix: the ancestry check fails in CI's shallow clone.**
+- `.github/workflows/checks.yml` uses `actions/checkout@v4` with no `fetch-depth`, so only one commit is present.
+  `require_frozen_before` then cannot find cf489e4 in the history.
+- **Evidence:** run 38427592927 (238, on 6917ff9, the first commit containing the freeze) failed:
+  `test_the_repository_protocol_is_frozen_before_this_commit_and_unchanged` with "NotFrozen: the freeze is not in the
+  history of 6917ff96b3" (1 failed, 1,398 passed).
+- The last green run, 237 on 1f82a27, does not contain the freeze. Run 239 (15defa6) has the same checkout, so it
+  will fail the same way.
+- **Expected:**
+  - `fetch-depth: 0` on the checkout in `checks.yml`, and in every workflow that runs, or later will run, G4's
+    `require_frozen_before` (G4's scoring job included).
+  - So that a missing history can never pass by accident: on a shallow clone the check should say "history not
+    available" (it fails today, which is the safe side; keep it failing, never skip).
+- **Why it matters:** "the freeze precedes the first scored forecast" is only proven where the full history is
+  present. CI is that place.
