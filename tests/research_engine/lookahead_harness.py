@@ -126,3 +126,25 @@ def assert_no_lookahead(
             f"{cutoff} changed (trial {trial})"
         )
     return expected
+
+
+def _shake_quote(q, rng: Random):
+    return q.__class__(q.expiry, q.strike, q.kind, _scaled(q.bid, rng), _scaled(q.ask, rng), rng.random() < 0.5)
+
+
+def perturb_snapshots(data: ResearchData, cutoff: datetime, rng: Random) -> tuple[ResearchData, int]:
+    """Story B7: changes every 3 pm snapshot whose capture finished after the cutoff (a later day's, or the same day's
+    when it finished late): quotes repriced or made invalid, spot and VIX changed."""
+    later = {day for day, s in data.snapshots.items() if s.finished_at > cutoff}
+    snapshots = {
+        day: dataclasses.replace(
+            s, spot=_scaled(s.spot, rng), vix=_scaled(s.vix, rng), quotes=tuple(_shake_quote(q, rng) for q in s.quotes)
+        )
+        if day in later
+        else s
+        for day, s in data.snapshots.items()
+    }
+    return dataclasses.replace(data, snapshots=snapshots), len(later)
+
+
+LIVE_PERTURBERS: tuple[Perturber, ...] = (perturb_panel, perturb_events, perturb_snapshots)

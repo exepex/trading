@@ -102,3 +102,8 @@ class CycleStatus(StrEnum):
 # Policy runner (story B3): the periods of an experiment, and an opportunity a policy chose not to trade
 PERIOD_DISCOVERY, PERIOD_CHALLENGE = "discovery", "challenge"
 NO_TRADE = "no_trade"
+
+# Live 15:00 feature versions (story B7): different features from F1-F3, validated against them before use
+FEATURE_ATM_IV_MINUS_RV20_LIVE = "F1_live_atm_iv_minus_rv20"
+FEATURE_VIX_ABOVE_MEDIAN_LIVE = "F2_live_vix_above_250d_median"
+FEATURE_EVENT_IN_WINDOW_LIVE = "F3_live_scheduled_event_in_window"
