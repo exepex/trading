@@ -215,3 +215,23 @@ existing F&O routines (owner to check on the Routines page).
 
 Gates (14 Oct 2026, merged with main at 9931ef3): `python -m pytest -q` 1673 passed; `ruff check fno tests tools`, `ruff format --check`,
 `tools/check_imports.py` and `tools/check_records.py` all pass; the v2 freeze check passes.
+
+## Addendum 1 (14 Oct 2026, 02:15 IST): owner set up the routines and secrets; isolation recommendation
+
+**Recommendation: accept `sealed_same_day` for the forecast contest, on three conditions** (reasoning only; no
+live data yet):
+1. **Every session's transcript is audited** for the first 10 session days, then 2 sessions a week chosen at random.
+   A breach (opening any file other than what `brief` printed, any network use except the two Git pushes, running
+   `fno.forecast` code, reading `research/forecasts/`) makes that book's day unscored, and two breaches in 20 days
+   stop the contest for that book until the prompt or the design is fixed.
+2. **The label stays on every record and every report**: "isolation: sealed same day (not full F1)".
+3. **Trading decisions (slice 4) do not inherit it**: they need full F1 isolation (no repository, no network).
+
+Why, by role: the statistician's real worry is one AI copying the other's judgement, and that is prevented. What
+stays open is either public information (the baselines are a fixed function of the same pack; Book 1's past forecasts
+are public) or a breach the transcript shows (a peek at the market after 15:00). The volatility trader's view: 10-20
+trading-day questions barely move on 10 minutes of extra market. The red team's counterpoint, kept: a "fully AI"
+book that quietly reruns the baselines is not fully AI; the audit catches it, and the scores would show it as
+near-identical to Book 1.
+
+**Owner's decision (14 Oct 2026):** "yes, accept sealed_same_day with your three conditions" (`docs/DESK_DECISIONS.md`).
