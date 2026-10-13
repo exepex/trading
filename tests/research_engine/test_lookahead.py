@@ -1,6 +1,6 @@
 """Story B1 criteria 1 and 4: no feature moves when data after its cutoff changes; the harness catches leaks."""
 
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from random import Random
 
 import pytest
@@ -85,11 +85,34 @@ class _EventsIgnoringAnnouncement(Feature):
         return any(context.entry_day < e.day <= context.exit_day for e in data.events)
 
 
+class _LateDeclaredLeakyF1(Feature):
+    """F1 plus the next session's close, declaring itself known a week after the decision day."""
+
+    name = "leaky F1 known a week later"
+
+    def __init__(self, f1):
+        self.f1 = f1
+
+    def known_at(self, decision_day):
+        return datetime.combine(decision_day + timedelta(days=7), time(15, 30))
+
+    def value(self, data, decision_day, context):
+        later = next(s.underlying for s in data.panel.sessions if s.day > decision_day)
+        return self.f1.value(data, decision_day, context) + later
+
+
 DAY = date(2025, 6, 16)  # a decision day: the 31 Jul 2025 monthly expiry is 45 days away
 
 
 @pytest.mark.parametrize("leaky", [_NextClose(), _EventsIgnoringAnnouncement()], ids=lambda f: f.name)
 def test_the_harness_catches_a_feature_that_reads_data_after_the_decision_day(real_data, leaky):
+    with pytest.raises(AssertionError, match="look-ahead"):
+        assert_no_lookahead(leaky, real_data, DAY, real_context(real_data, DAY))
+
+
+def test_a_feature_cannot_hide_a_leak_behind_a_later_known_at(real_data):
+    """Judge 26 minor: the cutoff is never later than the decision day's close, whatever the feature declares."""
+    leaky = _LateDeclaredLeakyF1(build_features(load_app_config())[0])
     with pytest.raises(AssertionError, match="look-ahead"):
         assert_no_lookahead(leaky, real_data, DAY, real_context(real_data, DAY))
 

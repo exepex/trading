@@ -1,8 +1,10 @@
 """Reusable look-ahead harness (story B1 criteria 1 and 4; story B7 reuses it for the live 15:00 features).
 
 `assert_no_lookahead(feature, data, decision_day, context)` computes the feature, then changes every input available
-after the feature's cutoff (`feature.known_at(decision_day)`, or an explicit `cutoff`) and proves the value does not
-move. Each input carries an availability time:
+after the cutoff and proves the value does not
+move. The cutoff is the feature's `known_at(decision_day)` (or an explicit `cutoff`), but never later than the
+decision day's close: a feature that declares a later availability is still tested at the close, so it cannot hide a
+leak behind its own declaration (judge 26). Each input carries an availability time:
 - panel rows (closes, options, futures): `available_at(day, session)`, the session's close (15:30 IST; the evening
   muhurat session at the end of its day). So a 15:00 cutoff also changes the decision day's own closing data;
 - events: a scheduled event's date is known from `announced_on`, an unscheduled one only when it happens (its date);
@@ -19,6 +21,7 @@ from collections.abc import Callable, Sequence
 from datetime import date, datetime, time, timedelta
 from random import Random
 
+from fno.constants import SESSION_CLOSE_TIME
 from fno.research_data.events import Event
 from fno.research_data.panel_reader import FutureQuote, NiftyPanel, OptionQuote, SessionClose
 from fno.research_engine.features import DecisionContext, Feature, ResearchData, available_at
@@ -109,7 +112,7 @@ def assert_no_lookahead(
     perturbers: Sequence[Perturber] = DEFAULT_PERTURBERS,
 ):
     """The feature's value, after proving that `trials` random changes of the data after the cutoff leave it equal."""
-    cutoff = cutoff or feature.known_at(decision_day)
+    cutoff = min(cutoff or feature.known_at(decision_day), datetime.combine(decision_day, SESSION_CLOSE_TIME))
     expected = feature.value(data, decision_day, context)
     rng = Random(f"{seed}-{feature.name}-{decision_day}")
     for trial in range(trials):
