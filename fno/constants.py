@@ -64,3 +64,10 @@ PANEL_INDEX_CLOSE = "index-close"  # the index-close file of a day (underlying a
 PANEL_DAY_OK, PANEL_DAY_NO_FILE, PANEL_DAY_NO_INDEX = "ok", "no file", "no index close"  # a day's status (manifest)
 PANEL_DAY_FAILED = "failed"  # the day breaks the research-ready gate: the build fails, naming it
 NIFTY_SYMBOL, INDEX_OPTION = "NIFTY", "IDO"  # F&O symbol and instrument code (UDiFF) of NIFTY index options
+
+# Google Drive uploads as the owner (OAuth "Desktop app" client, one-time consent with tools/gdrive_oauth_setup.py);
+# values only in the cloud environment's settings, never in files or chat. Service accounts cannot upload (no quota).
+ENV_GDRIVE_OAUTH_CLIENT_ID = "FNO_GDRIVE_OAUTH_CLIENT_ID"
+ENV_GDRIVE_OAUTH_CLIENT_SECRET = "FNO_GDRIVE_OAUTH_CLIENT_SECRET"
+ENV_GDRIVE_OAUTH_REFRESH_TOKEN = "FNO_GDRIVE_OAUTH_REFRESH_TOKEN"
+DRIVE_FULL_SCOPE = "https://www.googleapis.com/auth/drive"  # needed to add files inside the owner's existing folders
