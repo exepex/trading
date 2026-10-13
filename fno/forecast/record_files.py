@@ -9,6 +9,7 @@ import io
 from collections.abc import Iterable
 
 from .schema import RECORD_COLUMNS, ForecastRecord
+from .schema_v2 import RECORD_COLUMNS_V2, ForecastRecordV2
 
 
 def records_csv(records: Iterable[ForecastRecord]) -> str:
@@ -28,3 +29,15 @@ def records_gzip(records: Iterable[ForecastRecord]) -> bytes:
 
 def read_records(text: str) -> list[ForecastRecord]:
     return [ForecastRecord.from_row(row) for row in csv.DictReader(io.StringIO(text))]
+
+
+def records_csv_v2(records: Iterable[ForecastRecordV2]) -> str:
+    out = io.StringIO()
+    writer = csv.DictWriter(out, fieldnames=RECORD_COLUMNS_V2, lineterminator="\n")
+    writer.writeheader()
+    writer.writerows(r.row() for r in records)
+    return out.getvalue()
+
+
+def read_records_v2(text: str) -> list[ForecastRecordV2]:
+    return [ForecastRecordV2.from_row(row) for row in csv.DictReader(io.StringIO(text))]

@@ -37,7 +37,8 @@ class ForecastHistory:
     def __init__(self, panel: NiftyPanel, calendar: SessionCalendar, estimator: PanelAtmIv30):
         self.panel, self.calendar, self.estimator = panel, calendar, estimator
         dated = [s for s in panel.sessions if s.underlying is not None]
-        self.closes = daily_closes(calendar, dated[0].day, dated[-1].day, panel.sessions)
+        last = max(s.day for s in panel.sessions)  # the forecast day even when its own close is missing
+        self.closes = daily_closes(calendar, dated[0].day, last, panel.sessions)
         self.targets = ForecastTargets(self.closes)
         self.days = self.closes.days
         self.index = {day: i for i, day in enumerate(self.days)}

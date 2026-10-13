@@ -1,11 +1,14 @@
-# Story G3: Book 1's daily forecast record, as a plain scheduled job (no AI; owner principle, story O6). Book 1 is the
-# frozen mean of two baselines (fno/forecast/book1_method.py), so nothing here needs reasoning.
-# Today every trading day gets a recorded "no forecast": the frozen protocol (research/forecasts/PROTOCOL.md section
-# 1) allows live inputs only from story E2's market pack, which does not exist yet. The job still runs daily so the
-# record, its commit time and the #fno-desk line are proven before live inputs are approved. It first checks the G1
-# freeze (full history, fetch-depth 0) and records nothing if the freeze does not hold.
-# Timing: GitHub's schedule can start late, so it starts at about 14:00 IST and waits until 15:10 IST (after the 3 pm
-# quote snapshots); the record must be committed by 15:30 IST (the deadline), or scoring ignores it. Never orders.
+# Stories G2-G3 under forecast protocol version 2 (research/forecasts/PROTOCOL_v2.md): the daily live forecasts of the
+# three baselines and Book 1, as a plain scheduled job (no AI; owner principle, story O6). Book 1 is the frozen mean of
+# two baselines (fno/forecast/book1_method.py), so nothing here needs reasoning. Never orders.
+# Inputs: the day's canonical A4 snapshot (committed by the 3 pm recorder), the official closes through the day before
+# (story O6's index-closes job appends them each evening) and the panel's past IV30. Each same-day field counts only if
+# observed by 15:00:00 IST. The job first checks the version 2 freeze (full history, fetch-depth 0): before version 2
+# is frozen it records nothing and says so; a failed freeze check fails the run.
+# Timing: GitHub's schedule can start late, so it starts at about 14:00 IST, waits until 15:10 IST, pulls until the
+# day's canonical snapshot is in (at most until 15:13 IST), and generates the forecasts from the pack by 15:15 IST. The
+# receipt line (pack hash, records hash, generation time) is locked in this run's log and step summary; the Git push
+# after it is transport only.
 name: forecast-capture
 
 on:
@@ -49,14 +52,21 @@ jobs:
         run: |
           now=$(TZ=Asia/Kolkata date +%s); start=$(TZ=Asia/Kolkata date -d 'today 15:10' +%s)
           if (( now < start )); then sleep $(( start - now )); fi
-      - name: Record Book 1's forecasts (refused unless the G1 protocol freeze holds)
+      - name: Pull until the day's canonical A4 snapshot is in (at most until 15:13 IST)
+        run: |
+          limit=$(TZ=Asia/Kolkata date -d 'today 15:13' +%s)
+          until python -m fno forecast snapshot-ready || (( $(TZ=Asia/Kolkata date +%s) >= limit )); do
+            sleep 20; git pull -q --no-rebase --no-edit origin main
+          done
+      - name: Generate the forecasts from the pack by 15:15 IST (refused unless the version 2 freeze holds)
         run: |
           set -o pipefail
           python -m fno forecast capture --run-id "${{ github.run_id }}-${{ github.run_attempt }}" | tee capture.log
-      - name: Commit the record (deadline 15:30 IST)
+          grep '^receipt: ' capture.log >> "$GITHUB_STEP_SUMMARY" || echo "no receipt: nothing recorded" >> "$GITHUB_STEP_SUMMARY"
+      - name: Commit the pack and records (transport; the receipt above is the lock)
         run: |
           git add research/forecasts # the live folder does not exist before the first trading-day record
-          git diff --cached --quiet || git commit -m "G3 Actions: Book 1 forecast record $(TZ=Asia/Kolkata date +%F)"
+          git diff --cached --quiet || git commit -m "G3 Actions: forecast v2 pack and records $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: One line to #fno-desk
         run: |
