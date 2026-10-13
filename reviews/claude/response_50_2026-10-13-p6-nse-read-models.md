@@ -323,3 +323,58 @@ Built: `.github/workflows/market-publish.yml`. It runs as a plain scheduled job,
 - The usual Azure setting is "Allow public access from any Azure service within Azure to this server". It admits any Azure address, including GitHub's runners, so access then rests on the role's password and TLS.
 - The tighter alternative is a self-hosted runner with a fixed address.
 - That choice is the owner's, as a platform (X1) decision.
+
+## Addendum 4 (13 Oct 2026): criterion 4 MET; the publish failure diagnosed and fixed
+
+**Result:** GitHub Actions run 38438666957 (`market-publish`, day 2026-10-12) published and read back as `fno_writer`.
+```
+2026-10-12: published 6 blocks as nse-2026-10-12-40630e1cd4ec to Azure Postgres (fno schema) (6 rows added)
+read back 6 pages of nse-2026-10-12-40630e1cd4ec: every payload SHA-256 equals the built records
+    fno_screener_rows    2b472f047c22c5fc9a2b02e783782af77ddd32d16bba135ba1f7bea8ceb8d6d0
+    fno_screener_summary 4c1121a66d8695cf86186ae6389d033dc1b3cd35d744a74e3ef114adb9743c53
+    overview_indices     4ed3007055b26438b1887f0799fa4c064b056631a7c575fa2e9015d416d571ec
+    overview_sectors     2bf88cacb2b01f53f1d7fa3f79a29bdfb2c0d354352fdb78b78c7a25999988fc
+    screener_stocks      cfb0584223818102f3b0d80a20997106b909da06e64912bbd21201b401518edb
+    screener_summary     e4d8d13b5e878af1541a4132a6fd7f59b9f8617df30eed2995a565c776dd2ad0
+```
+The owner's `dashboard_app` read-back (Addendum 2's command) should show these 6 page keys with these hashes.
+
+### Why run 38436281593 failed: TLS (strong evidence)
+
+- **The cause:** `psycopg[binary]` (3.3.6, libpq 18) bundles its own OpenSSL. That OpenSSL's default root store is a path from its build machine:
+  ```
+  OPENSSLDIR "/host/tmp/libpq.build"
+  X509_get_default_cert_file -> /host/tmp/libpq.build/cert.pem   exists: False
+  X509_get_default_cert_dir  -> /host/tmp/libpq.build/certs      exists: False
+  ```
+  `sslrootcert=system` asks libpq for those default roots, so it trusts **nothing** on any machine.
+- **Reproduced:** on a throwaway TLS PostgreSQL with a test CA, `sslrootcert=system` gives "SSL error: certificate verify failed". It succeeds once `SSL_CERT_FILE` names the CA, which shows "system" means the bundled OpenSSL's defaults. The failed run's bare `OperationalError` (not `ConnectionTimeout`) fits a TLS failure.
+- **Firewall caveat (reasoning only):** the owner says the Azure firewall rule may have been added just before. So run 1 might also have met the firewall, but it would have failed on TLS anyway.
+
+### The fix (no weaker sslmode)
+
+- **Pinned roots:** `db/fno/azure-postgres-roots.pem` holds the three Azure roots, with their SHA-256 written in the file:
+  - DigiCert Global Root G2;
+  - Microsoft RSA Root CA 2017;
+  - DigiCert Global Root CA, for older servers. Mozilla dropped it, but it matches DigiCert's own download.
+
+  The first two also match Mozilla's bundle (certifi).
+- **The connection:** `VerifiedConnection` (`db_connection.py`, wired in `fno/composition.py`) always passes `sslmode=verify-full`, `sslrootcert=<that bundle>` and a 15 s `connect_timeout`. These override whatever the URL says.
+- **Tested on real TLS:** with `sslrootcert=system` or even `sslmode=disable` in the URL, the connection is still TLS and verified. A server the Azure roots never signed is refused and named "TLS or certificate".
+
+### No more blind failures
+
+- **Failure classes:** `db_errors.py` names every database failure: network (TCP timeout or refused), firewall (server refused the address), TLS or certificate, authentication, permission denied, or other. It maps them from psycopg's type, the SQLSTATE (28000/28P01 authentication, 42501 privilege) and libpq's message.
+- **What gets printed:** only the class, the exception type and the SQLSTATE, never the message (it names the host and user). `PublishFailed`, the read-back and the alert all use it. There are 11 parametrized mapping tests.
+- **`market db-check`, the cheap diagnostic:** it connects as the publisher would, runs `select current_user = <the URL's user>` plus `has_table_privilege` for the five rights, and prints yes/no only. The workflow runs it first in every run, and the `check_only` input stops there.
+- **Diagnostic run 38438592197:**
+  ```
+  database check: connected with TLS (verify-full, pinned Azure roots)
+      current_user is the URL's user: yes
+      pages_history INSERT: yes          pages_history SELECT: yes
+      current_publication INSERT: yes    current_publication UPDATE: yes    current_publication SELECT: yes
+  ```
+- **The firewall** admits GitHub's runners now (the owner's rule). Nothing was changed on Azure from here. The trade-off of that rule is in Addendum 3: access then rests on the role's password and TLS, while a self-hosted runner with a fixed address would be tighter.
+- **The failure step** now adds the `database check FAILED: <class>` line to its one #fno-desk alert.
+
+Checks: 1,488 tests pass (more since), ruff, imports and the record scan are clean, and `fno/composition.py` is at 348 of its 350 lines. The next addition there needs a split.
