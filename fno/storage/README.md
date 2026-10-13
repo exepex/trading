@@ -12,6 +12,12 @@ fno-research/                        local: the --keep-raw folder; Drive: the sh
   revisions/                         area: later NSE versions of raw files (story A11; wiring.REVISIONS_AREA)
     <raw file's path>/               a folder named like the raw file's full path
       <YYYYMMDDTHHMMSS+0530>_<sha256><ext>   one file per version: when it became available, its SHA-256
+  pipeline/                          area: the fetch-then-trigger bookkeeping (story O6; constants.PIPELINE_AREA)
+    runs/<job>/<YYYY>/<MM>/<run id>.json                  one run's summary and every batch's outcome
+    fired/<routine>/<dataset>/<batch>/<version>.json      a download job fired the routine for this version
+    processed/<routine>/<dataset>/<batch>/<version>.json  the routine finished this version
+  derived/                           area: what routines produce, one result per version (O6; constants.DERIVED_AREA)
+    <routine>/<dataset>/<batch>/<version>.json
   <other area>/                      future kinds of files (exports, backups...), each in its own area
 ```
 

@@ -125,13 +125,14 @@ def build_alert_sender() -> AlertSender:
     return SlackChannelAlerts(token, FNO_DESK_CHANNEL_ID) if token else NoAlertSender()
 
 
-def build_release_time_recorder() -> ReleaseTimeRecorder:
-    """Story A8: checks NSE's archive itself (never Drive) for a session's participant-OI file and logs each check."""
+def build_release_time_recorder(log: Path | None = None) -> ReleaseTimeRecorder:
+    """Story A8: checks NSE's archive itself (never Drive) for a session's participant-OI file and logs each check
+    (to `log`: story O6's side-by-side Actions run keeps its own)."""
     return ReleaseTimeRecorder(
         build_nse_source(ParticipantOiSource),
         ParticipantOiSource.path_for,
         build_session_calendar(),
-        ReleaseLog(PARTICIPANT_OI_RELEASE_LOG),
+        ReleaseLog(log or PARTICIPANT_OI_RELEASE_LOG),
     )
 
 
@@ -150,11 +151,11 @@ def participant_oi_last_writes() -> dict[date, datetime]:
     return latest_writes(table, last_written_times(checks), read_sweeps(PARTICIPANT_OI_SWEEPS))
 
 
-def build_last_write_sweep(archive: RevisionArchive) -> LastWriteSweep:
+def build_last_write_sweep(archive: RevisionArchive, log: Path | None = None) -> LastWriteSweep:
     """Judge 16: a pass over every recorded participant-OI file, straight to NSE (never Drive); story A11: each file is
     read in full and a version that differs from the archived one is saved as a revision."""
     source = build_revision_capturing_source(ParticipantOiSource, archive)
-    return LastWriteSweep(source, ParticipantOiSource.path_for, PARTICIPANT_OI_SWEEPS)
+    return LastWriteSweep(source, ParticipantOiSource.path_for, log or PARTICIPANT_OI_SWEEPS)  # O6: Actions' own log
 
 
 def build_point_in_time_participant_oi(project_folder: Path | None = None) -> PointInTimeParticipantOi:

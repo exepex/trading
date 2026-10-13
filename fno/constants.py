@@ -139,3 +139,10 @@ FILING_ANNOUNCEMENTS, FILING_BOARD_MEETINGS = "announcements", "board-meetings" 
 FILING_FILE_KINDS = (FILING_RESULTS, FILING_SHAREHOLDING)
 CONSOLIDATED, STANDALONE = "consolidated", "standalone"
 NSE_FILINGS_FOLDER = "nse/equities/filings"  # archive folder of every NSE filing type
+
+# Story O6: GitHub Actions fetch, then fire the Claude routine that reasons on the new data. One trigger ID and one
+# bearer token per routine (made by the owner on the routine's web page, shown once); repository secrets only.
+ENV_ROUTINE_DRY_RUN_TRIGGER_ID = "FNO_ROUTINE_DRY_RUN_TRIGGER_ID"
+ENV_ROUTINE_DRY_RUN_TOKEN = "FNO_ROUTINE_DRY_RUN_TOKEN"
+ROUTINE_DRY_RUN = "dry-run"  # the example reasoning routine: reads a pointer, writes a small derived summary
+PIPELINE_AREA, DERIVED_AREA = "pipeline", "derived"  # Drive areas beside raw/ and revisions/ (fno/storage/README.md)
