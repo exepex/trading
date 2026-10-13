@@ -1,4 +1,4 @@
-"""Every NIFTY option on every NSE session since 2019, built from the raw daily files (story A3).
+"""Every NIFTY option and NIFTY future on every NSE session since 2019, built from the raw daily files (story A3).
 
 For each session in NSE's calendar the day's F&O file is read in the first format that covers the day (current UDiFF
 before the old format, so 2024 days before 6 July use UDiFF), with that day's index-close file for the NIFTY 50 close
@@ -13,13 +13,11 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal, InvalidOperation
+from decimal import InvalidOperation
 
 from ..constants import (
     INDEX_INDIA_VIX,
     INDEX_NIFTY_50,
-    INDEX_OPTION,
-    NIFTY_SYMBOL,
     PANEL_DAY_FAILED,
     PANEL_DAY_NO_FILE,
     PANEL_DAY_NO_INDEX,
@@ -27,9 +25,9 @@ from ..constants import (
 )
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from .calendar import SessionCalendar
-from .panel_store import PANEL_COLUMNS, Panel, PanelDay, PanelSink, file_sha256
+from .panel_rows import FUTURES, OPTIONS, TABLE_COLUMNS, nifty_rows
+from .panel_store import Panel, PanelDay, PanelSink, file_sha256
 
-CENTS = Decimal("0.01")
 NamedFile = tuple[str, bytes | None]  # (original file name, its bytes; None when no store or source has it)
 
 
@@ -59,23 +57,8 @@ class DailyFiles:
 @dataclass
 class DayResult:
     entry: dict
-    rows: list[tuple[str, ...]] = field(default_factory=list)
+    rows: dict[str, list[tuple[str, ...]]] = field(default_factory=dict)
     problem: str | None = None
-
-
-def cents(text: str) -> str:
-    """A price or strike with exactly two decimals; more decimals than two is refused, never rounded."""
-    value = Decimal(text)
-    if value != value.quantize(CENTS):
-        raise BadFile(f"value {text!r} has more than two decimals")
-    return str(value.quantize(CENTS))
-
-
-def whole(text: str) -> str:
-    value = Decimal(text)
-    if value != value.to_integral_value():
-        raise BadFile(f"count {text!r} is not a whole number")
-    return str(int(value))
 
 
 class NiftyPanelBuilder:
@@ -116,12 +99,14 @@ class NiftyPanelBuilder:
             missing = [name for name in (INDEX_NIFTY_50, INDEX_INDIA_VIX) if name not in closes]
             if missing:
                 return DayResult(entry, problem=f"{index_name} has no closing value for {missing}")
-            rows = self._rows(day, read_fo_file(fo_name, fo_data, closes), closes, files.label)
+            records = read_fo_file(fo_name, fo_data, closes)
+            rows = nifty_rows(day, records, closes, files.label, entry["session"])
         except (BadFile, InvalidOperation) as exc:
             return DayResult(entry, problem=f"{type(exc).__name__}: {exc}")
-        if not rows:
-            return DayResult(entry, problem=f"{fo_name} has no NIFTY option rows")
-        entry.update(status=PANEL_DAY_OK, rows=len(rows))
+        empty = [table for table in (OPTIONS, FUTURES) if not rows[table]]
+        if empty:
+            return DayResult(entry, problem=f"{fo_name} has no NIFTY {' or '.join(empty)} rows")
+        entry.update(status=PANEL_DAY_OK, rows=len(rows[OPTIONS]), futures_rows=len(rows[FUTURES]))
         return DayResult(entry, rows)
 
     def _fo_file(self, day: date) -> tuple[DailyFiles, tuple[str, bytes]] | None:
@@ -143,24 +128,6 @@ class NiftyPanelBuilder:
         ]
         return DayResult(entry, problem=f"{status}: no file and no sourced exception in {unexplained}")
 
-    @staticmethod
-    def _rows(day: date, records: list[dict], closes: dict[str, float], label: str) -> list[tuple[str, ...]]:
-        underlying, vix = cents(repr(closes[INDEX_NIFTY_50])), cents(repr(closes[INDEX_INDIA_VIX]))
-        rows, seen = [], set()
-        for r in records:
-            if r["FinInstrmTp"] != INDEX_OPTION or r["TckrSymb"] != NIFTY_SYMBOL:
-                continue
-            if r["TradDt"] != day.isoformat():
-                raise BadFile(f"row dated {r['TradDt']} in the file of {day}")
-            key = (r["XpryDt"], Decimal(r["StrkPric"]), r["OptnTp"])
-            if key in seen:
-                raise BadFile(f"duplicate contract {day} {key[0]} {key[1]} {key[2]}")
-            seen.add(key)
-            row = (day.isoformat(), r["XpryDt"], cents(r["StrkPric"]), r["OptnTp"], cents(r["ClsPric"]))
-            rows.append((*row, cents(r["SttlmPric"]), whole(r["TtlTradgVol"]), whole(r["OpnIntrst"]), underlying, vix))
-        rows.sort(key=lambda row: (row[1], Decimal(row[2]), row[3]))
-        return [(*row, label) for row in rows]
-
 
 def build_nifty_panel(
     fo_libraries: Sequence[DailyFiles],
@@ -175,6 +142,7 @@ def build_nifty_panel(
     """Builds the panel into `sink`; on any gate failure the sink is discarded and PanelBuildError names the days."""
     if start > end:
         raise ValueError(f"empty range {start} to {end}: a build would replace the panel with nothing")
+    sink.begin(start, end)  # refuses a range that would drop days of the existing panel
     builder = NiftyPanelBuilder(fo_libraries, index_library, calendar, exceptions)
     try:
         for panel_day in builder.days(start, end):
@@ -183,7 +151,7 @@ def build_nifty_panel(
         sink.discard()
         raise
     header = {"start": start.isoformat(), "end": end.isoformat(), "calendar_sha256": calendar.calendar_sha256()}
-    return sink.finish({**header, "columns": list(PANEL_COLUMNS)})
+    return sink.finish({**header, "columns": {table: list(columns) for table, columns in TABLE_COLUMNS.items()}})
 
 
 def summary_lines(panel: Panel) -> list[str]:

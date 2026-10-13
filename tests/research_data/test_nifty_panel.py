@@ -1,11 +1,8 @@
-"""Story A3: the NIFTY option-chain panel, built from small real subsets of NSE files (rows copied unchanged from
-the originals in the owner's Drive) for a regular day per format, a day with both formats, a Diwali muhurat Sunday
-(2019-10-27), a Saturday Budget session (2020-02-01) and a Saturday DR-site session (2024-03-02)."""
+"""Story A3: the NIFTY option-chain panel's options table, its research-ready gate and determinism, on small real
+subsets of NSE files (panel_fixtures.py)."""
 
-import csv
 import gzip
 import hashlib
-import io
 import json
 import shutil
 import zipfile
@@ -13,96 +10,25 @@ from datetime import date
 from pathlib import Path
 
 import pytest
+from panel_fixtures import (
+    CALENDAR,
+    DAYS,
+    FIXTURES,
+    LEGACY_GAP,
+    FixtureCalendar,
+    build,
+    inputs,
+    nifty_rows_in,
+    panel_rows,
+    raw,
+)
 
 from fno.constants import ENV_GDRIVE_SERVICE_ACCOUNT_JSON
-from fno.research_data.calendar import SessionCalendar
-from fno.research_data.nifty_panel import PanelBuildError, build_nifty_panel, cents, whole
-from fno.research_data.panel_store import MANIFEST_FILE, PANEL_COLUMNS, CsvGzPanelFolder
-from fno.storage.raw_library import RawFileLibrary
-from fno.storage.raw_source import NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource, RawFileSource
-from fno.storage.raw_store import AreaStore, LocalFolderStore, RawFileStore
-from fno.storage.wiring import RAW_AREA, build_file_exceptions, build_session_calendar, daily_files
-
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "nse_panel"
-CALENDAR = build_session_calendar()  # the real NSE calendar: special sessions come from it, not from the test
-LEGACY_GAP = date(2021, 3, 30)  # a real session with no old-format F&O file at NSE (sourced exception, A1)
-
-
-class ReadOnlyDrive(RawFileStore):
-    """The fixture tree as Drive: any write fails the test."""
-
-    name = "fake Drive"
-
-    def __init__(self, folder: Path, asked: list[str] | None = None):
-        self.files, self.asked = AreaStore(LocalFolderStore(folder), RAW_AREA), asked if asked is not None else []
-
-    def get(self, path):
-        self.asked.append(path)
-        return self.files.get(path)
-
-    def put(self, path, data):
-        raise AssertionError("the panel must never write to Drive")
-
-
-class NoSource(RawFileSource):
-    def fetch(self, path):
-        return None  # NSE does not have it either
-
-
-def inputs(folder: Path = FIXTURES, asked: list[str] | None = None):
-    def files(label, source):
-        return daily_files(label, source, RawFileLibrary([ReadOnlyDrive(folder, asked)], NoSource()))
-
-    return [files("udiff", NseDailyFoSource), files("legacy", NseLegacyFoSource)], files(
-        "index-close", NseIndexCloseSource
-    )
-
-
-def build(out: Path, start: date, end: date | None = None, *, folder=FIXTURES, calendar=CALENDAR, exceptions=None):
-    fo, index = inputs(folder)
-    exceptions = build_file_exceptions() if exceptions is None else exceptions
-    sink = CsvGzPanelFolder(out)
-    return build_nifty_panel(fo, index, start, end or start, calendar=calendar, exceptions=exceptions, sink=sink)
-
-
-def panel_rows(out: Path, year: int) -> list[dict]:
-    with gzip.open(out / f"options_{year}.csv.gz", "rt", encoding="utf-8", newline="") as f:
-        return list(csv.DictReader(f))
-
-
-def raw(dataset: str, day: date, filename: str) -> bytes:
-    return (FIXTURES / RAW_AREA / RawFileSource.dated_path(dataset, day, filename)).read_bytes()
-
-
-def nifty_option_rows_in(dataset: str, day: date, filename: str) -> list[dict]:
-    """Counted straight from the file, without the panel's reader."""
-    with zipfile.ZipFile(io.BytesIO(raw(dataset, day, filename))) as z:
-        rows = list(csv.DictReader(io.StringIO(z.read(z.namelist()[0]).decode("utf-8-sig"))))
-    if "INSTRUMENT" in rows[0]:
-        return [r for r in rows if r["INSTRUMENT"] == "OPTIDX" and r["SYMBOL"] == "NIFTY"]
-    return [r for r in rows if r["FinInstrmTp"] == "IDO" and r["TckrSymb"] == "NIFTY"]
-
-
-class FixtureCalendar(SessionCalendar):
-    """Only the given days are sessions (to build several fixture days in one panel)."""
-
-    def __init__(self, kinds: dict[date, str]):
-        self.kinds = kinds
-
-    def session_kind(self, day):
-        return self.kinds.get(day)
-
-    def calendar_sha256(self):
-        return "fixture"
-
-
-DAYS = {
-    date(2019, 1, 2): (NseLegacyFoSource, "legacy", "regular"),
-    date(2019, 10, 27): (NseLegacyFoSource, "legacy", "muhurat"),
-    date(2020, 2, 1): (NseLegacyFoSource, "legacy", "special"),
-    date(2024, 1, 2): (NseDailyFoSource, "udiff", "regular"),
-    date(2024, 3, 2): (NseDailyFoSource, "udiff", "special"),
-}
+from fno.research_data.nifty_panel import PanelBuildError, build_nifty_panel
+from fno.research_data.panel_rows import OPTION_COLUMNS, cents, whole
+from fno.research_data.panel_store import MANIFEST_FILE, CsvGzPanelFolder
+from fno.storage.raw_source import NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource
+from fno.storage.wiring import RAW_AREA
 
 
 @pytest.mark.parametrize("day", DAYS, ids=str)
@@ -111,7 +37,7 @@ def test_each_day_has_every_nifty_option_of_its_file_with_both_files_fingerprint
     manifest = build(tmp_path, day).manifest
     fo_name, index_name = source.filename_for(day), NseIndexCloseSource.filename_for(day)
     rows = [r for r in panel_rows(tmp_path, day.year) if r["date"] == day.isoformat()]
-    assert len(rows) == len(nifty_option_rows_in(source.dataset, day, fo_name)) == manifest["days"][str(day)]["rows"]
+    assert len(rows) == len(nifty_rows_in(source.dataset, day, fo_name)) == manifest["days"][str(day)]["rows"]
     assert manifest["days"][str(day)] == {
         "session": session,  # special and muhurat sessions are real sessions, read from NSE's calendar
         "status": "ok",
@@ -121,6 +47,7 @@ def test_each_day_has_every_nifty_option_of_its_file_with_both_files_fingerprint
         "index_file": index_name,
         "index_sha256": hashlib.sha256(raw(NseIndexCloseSource.dataset, day, index_name)).hexdigest(),
         "rows": len(rows),
+        "futures_rows": len(nifty_rows_in(source.dataset, day, fo_name, futures=True)),
     }
     assert {r["source_format"] for r in rows} == {source_format}
 
@@ -128,11 +55,11 @@ def test_each_day_has_every_nifty_option_of_its_file_with_both_files_fingerprint
 def test_rows_copy_the_raw_values_with_the_index_close_and_vix_of_the_day(tmp_path):
     build(tmp_path, date(2019, 10, 27))
     rows = panel_rows(tmp_path, 2019)
-    assert tuple(rows[0]) == PANEL_COLUMNS
+    assert tuple(rows[0]) == OPTION_COLUMNS
     assert rows[1] == {  # raw: OPTIDX,NIFTY,31-Oct-2019,9250,CE,0,0,0,1604.1,2382.85,0,0,0,0,27-OCT-2019
         "date": "2019-10-27", "expiry": "2019-10-31", "strike": "9250.00", "type": "CE", "close": "1604.10",
         "settle": "2382.85", "volume": "0", "open_interest": "0", "underlying": "11627.15", "vix": "15.59",
-        "source_format": "legacy",
+        "source_format": "legacy", "session": "muhurat",
     }  # fmt: skip
     assert {(r["underlying"], r["vix"]) for r in rows} == {("11627.15", "15.59")}  # Nifty 50 and India VIX closes
 
@@ -158,7 +85,8 @@ def test_same_raw_files_give_byte_identical_outputs(tmp_path):
     first = build(tmp_path / "a", date(2019, 1, 1), date(2024, 12, 31), calendar=calendar)
     build(tmp_path / "b", date(2019, 1, 1), date(2024, 12, 31), calendar=calendar)
     names = sorted(p.name for p in (tmp_path / "a").iterdir())
-    assert names == ["manifest.json", "options_2019.csv.gz", "options_2020.csv.gz", "options_2024.csv.gz"]
+    years = ("2019", "2020", "2024")
+    assert names == sorted(["manifest.json", *(f"{t}_{y}.csv.gz" for t in ("options", "futures") for y in years)])
     for name in names:
         assert (tmp_path / "a" / name).read_bytes() == (tmp_path / "b" / name).read_bytes(), name
     for name, file in first.manifest["files"].items():  # no build time or file name inside the gzip header either
@@ -176,14 +104,15 @@ def test_a_session_without_a_file_but_with_a_sourced_exception_is_left_out_and_l
 
 def test_a_session_without_a_file_or_exception_fails_the_build_naming_it_and_writes_nothing(tmp_path):
     (tmp_path / "out").mkdir()
-    (tmp_path / "out" / MANIFEST_FILE).write_text("previous panel\n")
+    previous = '{"start": "2021-03-30", "end": "2021-03-30"}\n'  # a panel of the same range
+    (tmp_path / "out" / MANIFEST_FILE).write_text(previous)
     with pytest.raises(PanelBuildError) as failure:
         build(tmp_path / "out", LEGACY_GAP, exceptions={})
     assert failure.value.problems == [
         "2021-03-30: no file: no file and no sourced exception in ['nse/derivatives/fo-bhavcopy-legacy']"
     ]
     assert sorted(p.name for p in (tmp_path / "out").iterdir()) == [MANIFEST_FILE]
-    assert (tmp_path / "out" / MANIFEST_FILE).read_text() == "previous panel\n"
+    assert (tmp_path / "out" / MANIFEST_FILE).read_text() == previous
 
 
 def without_index(tmp_path: Path, day: date, keep_lines: int | None) -> Path:
@@ -240,15 +169,6 @@ def test_only_sessions_are_asked_for_and_nothing_is_written_to_drive(tmp_path):
     build_nifty_panel(fo, index, date(2019, 10, 26), date(2019, 10, 28), calendar=CALENDAR, exceptions={}, sink=sink)
     # Sat 26 Oct closed, Sun 27 muhurat, Mon 28 Oct a holiday (Diwali Balipratipada): only the 27th is asked for
     assert {p.rsplit("/", 1)[-1] for p in asked} == {"fo27OCT2019bhav.csv.zip", "ind_close_all_27102019.csv"}
-
-
-def test_a_new_build_replaces_years_it_does_not_cover(tmp_path):
-    calendar = FixtureCalendar({day: kind for day, (_, _, kind) in DAYS.items()})
-    build(tmp_path, date(2019, 1, 1), date(2024, 12, 31), calendar=calendar)
-    manifest = build(tmp_path, date(2024, 1, 1), date(2024, 12, 31), calendar=calendar).manifest
-    assert sorted(p.name for p in tmp_path.glob("options_*")) == ["options_2024.csv.gz"]
-    assert sorted(manifest["days"]) == ["2024-01-02", "2024-03-02"]
-    assert json.loads((tmp_path / MANIFEST_FILE).read_text()) == manifest
 
 
 def test_the_command_builds_from_a_local_raw_folder_without_drive(tmp_path, monkeypatch, capsys):
