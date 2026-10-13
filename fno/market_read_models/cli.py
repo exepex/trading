@@ -5,7 +5,7 @@ market daily [--day D]          the routine: archive the session's NSE files to 
 market publish --day D [--local FOLDER]   build, validate and publish one session from the archived files
 market compare --day D          compare the built blocks with the pinned W11 examples, field by field
 market contract-check           compare the pinned W11 contract with the dashboard's published one
-    market look-up --day D          archive the own corporate-action lists of symbols with an unexplained jump
+market look-up --day D          archive the own corporate-action lists of symbols with an unexplained jump
 """
 
 from __future__ import annotations
