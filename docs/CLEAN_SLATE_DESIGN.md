@@ -28,7 +28,7 @@ fno/
   cli.py                commands at the cleanup commit: drive-check, groww-check, chain, quotes record|report
                         (approved stories add data-coverage (A1) and desk scorecard (E3) later)
   providers/            market data only (Groww, NSE public, sample for tests)
-  storage/              raw file stores and sources (NSE archives, repository, Google Drive read-only)
+  storage/              raw file stores and sources (NSE archives, repository, Google Drive; uploads as the owner)
   fo_bhavcopy.py        NSE F&O daily file reader (old and UDiFF formats)
   research_data/        expiries, events calendar
   research_engine/      trial ledger and its guard

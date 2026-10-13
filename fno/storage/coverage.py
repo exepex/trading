@@ -81,6 +81,15 @@ def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
     return exceptions
 
 
+def archive_range(source: type[NseArchiveSource], start: date, end: date) -> tuple[date, date]:
+    """The requested range clipped to the days the source's archive keeps files for."""
+    return max(start, source.first_day or start), min(end, source.last_day or end)
+
+
+def days_between(start: date, end: date) -> list[date]:
+    return [start + timedelta(offset) for offset in range((end - start).days + 1)]
+
+
 DEFAULT_WORKERS = 8  # files read at the same time (Drive allows far more requests per minute than this makes)
 
 
@@ -96,10 +105,9 @@ class CoverageCheck:
 
     def run(self, dataset: CoverageDataset, start: date, end: date) -> DatasetCoverage:
         source = dataset.source
-        start = max(start, source.first_day or start)
-        end = min(end, source.last_day or end)
+        start, end = archive_range(source, start, end)
         result = DatasetCoverage(source.dataset, start, end)
-        days = [start + timedelta(offset) for offset in range((end - start).days + 1)]
+        days = days_between(start, end)
         with ThreadPoolExecutor(max_workers=self.workers) as pool:  # reads in parallel, results in day order
             for day, data in zip(days, pool.map(lambda d: self.store.get(source.path_for(d)), days)):
                 self._check_day(dataset, day, data, result)

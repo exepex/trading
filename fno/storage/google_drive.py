@@ -3,7 +3,7 @@
 Setup: create a Google Cloud service account with the Drive API enabled, download its JSON key, share the Drive
 folder with the service account's e-mail address as Viewer, and put the key's JSON text and the folder ID in the
 environment (names in fno/constants.py). Service accounts have no Drive storage of their own, so uploads go through
-Google Drive for desktop on the owner's PC, never through this class.
+the owner's own sign-in (GoogleDriveUploadStore), never through this class.
 """
 
 from __future__ import annotations
@@ -15,18 +15,15 @@ from collections.abc import Callable
 
 import requests
 
+from .drive_session import DriveSession
 from .raw_store import RawFileConflict, RawFileStore, ReadOnlyStoreError, path_parts
 
 DRIVE_FILES_URL = "https://www.googleapis.com/drive/v3/files"
 DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 FOLDER_TYPE = "application/vnd.google-apps.folder"
 CHILD_QUERY = "'{parent}' in parents and name = '{name}' and trashed = false and mimeType {op} '" + FOLDER_TYPE + "'"
-TIMEOUT_SECONDS = 60
-UNAUTHORIZED = 401  # the access token expired: sign in again once
-TRANSIENT = frozenset({429, 500, 502, 503, 504})  # Google's temporary answers: wait and try again
-RETRY_WAITS = (2, 8, 30, 60)  # seconds before each retry of a temporary failure
 ROOT_QUERY = "'{parent}' in parents and trashed = false"
-READ_ONLY = "Google Drive is read-only here: save files into the Drive for desktop folder on the PC instead"
+READ_ONLY = "the service account only reads Google Drive: uploads sign in as the owner (GoogleDriveUploadStore)"
 
 
 def service_account_info(key_text: str) -> dict:
@@ -61,40 +58,10 @@ class GoogleDriveStore(RawFileStore):
         session: requests.Session | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ):
-        """`token` returns a fresh access token; it is asked again when Drive answers 401 (tokens last about an
-        hour, so a long run would otherwise fail midway)."""
-        self.folder_id, self.token, self.sleep = folder_id, token, sleep
-        self.session = session or requests.Session()
-        self._sign_in()
+        """`token` returns a fresh access token (see DriveSession for renewal and retries)."""
+        self.folder_id = folder_id
+        self.drive = DriveSession(token, session, sleep)
         self._ids: dict[tuple[str, str, bool], str | None] = {}
-
-    def _sign_in(self) -> None:
-        self.session.headers["Authorization"] = f"Bearer {self.token()}"
-
-    def _get(self, url: str, **kwargs) -> requests.Response:
-        """GET that signs in again once when the token has expired and retries Google's temporary failures (429,
-        5xx, dropped connections) after growing waits; anything else, or the last failure, is raised."""
-        signed_in_again = False
-        for wait in (*RETRY_WAITS, None):
-            try:
-                response = self.session.get(url, timeout=TIMEOUT_SECONDS, **kwargs)
-            except requests.ConnectionError:
-                if wait is None:
-                    raise
-                self.sleep(wait)
-                continue
-            status = getattr(response, "status_code", None)
-            if status == UNAUTHORIZED and not signed_in_again:
-                self._sign_in()
-                signed_in_again = True
-                response = self.session.get(url, timeout=TIMEOUT_SECONDS, **kwargs)
-                status = getattr(response, "status_code", None)
-            if status in TRANSIENT and wait is not None:
-                self.sleep(wait)
-                continue
-            response.raise_for_status()
-            return response
-        raise AssertionError("unreachable")
 
     def _child(self, parent_id: str, name: str, folder: bool) -> str | None:
         """The ID of the named folder or file directly inside a folder (cached); None if absent."""
@@ -104,7 +71,7 @@ class GoogleDriveStore(RawFileStore):
                 parent=parent_id, name=name.replace("\\", "\\\\").replace("'", "\\'"), op="=" if folder else "!="
             )
             params = {"q": query, "fields": "files(id, name)", "pageSize": 10}
-            response = self._get(DRIVE_FILES_URL, params=params)
+            response = self.drive.get(DRIVE_FILES_URL, params=params)
             found = response.json().get("files", [])
             if len(found) > 1:
                 raise RawFileConflict(f"{len(found)} items named {name!r} in one Drive folder")
@@ -119,14 +86,15 @@ class GoogleDriveStore(RawFileStore):
             if parent is None:
                 return None
         file_id = self._child(parent, filename, folder=False)
-        if file_id is None:
-            return None
-        return self._get(f"{DRIVE_FILES_URL}/{file_id}", params={"alt": "media"}).content
+        return None if file_id is None else self._download(file_id)
+
+    def _download(self, file_id: str) -> bytes:
+        return self.drive.get(f"{DRIVE_FILES_URL}/{file_id}", params={"alt": "media"}).content
 
     def root_listing(self) -> tuple[str, list[str]]:
         """The root folder's name and the names directly inside it (for the access check)."""
-        response = self._get(f"{DRIVE_FILES_URL}/{self.folder_id}", params={"fields": "name, mimeType"})
-        listing = self._get(
+        response = self.drive.get(f"{DRIVE_FILES_URL}/{self.folder_id}", params={"fields": "name, mimeType"})
+        listing = self.drive.get(
             DRIVE_FILES_URL,
             params={"q": ROOT_QUERY.format(parent=self.folder_id), "fields": "files(name)", "pageSize": 100},
         )

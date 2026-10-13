@@ -14,8 +14,9 @@ re-added only through an approved story with point-in-time rules.
 | Participant-wise OI (FII, DII, pro, client) | `.../content/nsccl/fao_participant_oi_DDMMYYYY.csv` (`ParticipantOiSource`, parser `fno/research_data/participant_oi.py`) | every session 1 Jan 2019 to 12 Oct 2026 (1,929 files, checked 13 Oct 2026; SHA-256 in `tools/nse_raw_download/manifest_participant_oi.csv`) | published after the close; usable only from the next session's decision time until release times are measured (story A8, `research/data/participant_oi/`) |
 
 The owner downloads these once with `tools/nse_raw_download/` and keeps them on Google Drive (current format 690 files,
-old format 1,366, index closes 1,928; read-only access through `fno/storage/google_drive.py`). The raw-file library
-looks in the local folder, then Drive, then NSE itself.
+old format 1,366, index closes 1,928; read through `fno/storage/google_drive.py`). Participant OI is uploaded from
+NSE by the cloud itself (`python -m fno data-librarian participant-oi`, story A9). The raw-file library looks in the
+local folder, then Drive, then NSE itself, and archives what it fetches to Drive when the owner's upload keys are set.
 
 ## Live market data
 

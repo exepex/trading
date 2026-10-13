@@ -19,6 +19,10 @@ class RawFileConflict(RuntimeError):
     """A different file already exists at that path (or the path is ambiguous); nothing was overwritten."""
 
 
+class StoredCopyDamaged(RuntimeError):
+    """The store's copy of a file just saved differs from the bytes sent (reported, never trusted)."""
+
+
 def path_parts(path: str) -> list[str]:
     """The folders and file name of an archive path; refuses absolute paths, '..' and empty parts."""
     parts = path.split("/")
