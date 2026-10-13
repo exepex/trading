@@ -51,7 +51,16 @@ def test_every_block_built_from_valid_rows_validates_as_stored_and_as_served():
     assert sorted(publication.records) == sorted(b.page_key for b in build_market_blocks())
     record = publication.records["screener_summary"]
     assert set(record["payload"]["universes"]) == {"all", "n500", "fno", "ours"}  # ours: the followed list (judge 40)
-    assert record["publication_id"] == "nse-2026-10-12-cccccccccccc" and record["product"] == "fno"
+    assert record["publication_id"].startswith("nse-2026-10-12-") and record["product"] == "fno"
+
+
+def test_the_publication_id_names_the_content_never_the_commit_or_the_build_time():
+    first = builder().build(example_rows())
+    later = PublicationBuilder(build_market_blocks(), CONTRACT, "d" * 40, clock=lambda: "2026-10-13T02:00:00Z")
+    assert later.build(example_rows()).publication_id == first.publication_id  # a later commit, same pages
+    changed = example_rows()
+    changed.stocks[0] = {**changed.stocks[0], "p": changed.stocks[0]["p"] + 1}  # NSE's later version of a file
+    assert builder().build(changed).publication_id != first.publication_id
 
 
 class Planted:

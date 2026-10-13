@@ -50,6 +50,11 @@ Commands:
   manifest rows, committed), then builds, validates and publishes to
   Azure (`FNO_DB_URL`, the fno publisher role; environment settings only). Run it the next morning (for example 07:30
   IST): NSE rewrites some evening files late (the 12 Oct 2026 index file gained two indices at 23:20 IST).
+  It runs in GitHub Actions (`.github/workflows/market-publish.yml`, daily at 07:10 IST for the previous session, or
+  dispatched with a `day`), never in an AI session: Claude's cloud containers cannot reach Postgres on port 5432.
+  After publishing it reads back what the store holds for the publication as the publisher role and checks every
+  page's SHA-256 against the built records, printing only counts and hashes. A publication is named by its content
+  (`nse-<day>-<12 hex of the pages' hashes>`), so a second run of the same day adds no rows.
 - `python -m fno market publish --day D [--local FOLDER]`: one session from the archived files.
 - `python -m fno market compare --day 2026-10-12`: the built blocks against every pinned W11 India example, field by
   field; a paged example is served from our stored table by its own query (`x-query`) with the contract's route

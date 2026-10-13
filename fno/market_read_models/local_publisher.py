@@ -8,7 +8,7 @@ import json
 import shutil
 from pathlib import Path
 
-from .publication import Publication
+from .publication import Publication, hashes
 from .publisher import PublishFailed, ReadModelPublisher
 
 CURRENT_FILE = "current.json"
@@ -21,17 +21,26 @@ class LocalFolderPublisher(ReadModelPublisher):
     def __init__(self, folder: Path):
         self.folder = Path(folder)
 
-    def publish(self, publication: Publication) -> None:
+    def publish(self, publication: Publication) -> int:
         target = self.folder / PUBLICATIONS / publication.publication_id
+        added = 0
         try:
             if not target.exists():
                 self._write_folder(target, publication)
-            elif self._read_folder(target) != publication.records:
-                raise PublishFailed(f"{publication.publication_id} exists with different records")
+                added = len(publication.records)
+            elif self.stored(publication.publication_id) != hashes(publication):
+                raise PublishFailed(f"{publication.publication_id} exists with different pages")
             self._write_json(self.folder / CURRENT_FILE, {"publication_id": publication.publication_id,
                                                          "day": publication.day.isoformat()})  # fmt: skip
         except OSError as exc:
             raise PublishFailed(f"{publication.publication_id}: {exc}") from exc
+        return added
+
+    def stored(self, publication_id: str) -> dict[str, str]:
+        return {
+            key: r["payload_sha256"]
+            for key, r in self._read_folder(self.folder / PUBLICATIONS / publication_id).items()
+        }
 
     def current(self) -> dict[str, dict]:
         pointer = self.folder / CURRENT_FILE

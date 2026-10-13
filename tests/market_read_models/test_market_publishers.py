@@ -10,7 +10,7 @@ import pytest
 
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.postgres_publisher import PostgresPublisher
-from fno.market_read_models.publication import Publication, canonical
+from fno.market_read_models.publication import Publication, canonical, hashes
 from fno.market_read_models.publisher import PublishFailed
 
 PAGES = ("screener_summary", "screener_stocks", "overview_indices")
@@ -48,8 +48,8 @@ class FailsOnThirdBlock(LocalFolderPublisher):
 def test_the_local_folder_publishes_all_blocks_at_once_and_reads_them_back(tmp_path):
     publisher = LocalFolderPublisher(tmp_path)
     assert publisher.current() == {}
-    publisher.publish(FIRST)
-    assert publisher.current() == FIRST.records
+    assert publisher.publish(FIRST) == 3 and publisher.publish(FIRST) == 0
+    assert publisher.current() == FIRST.records and publisher.stored(FIRST.publication_id) == hashes(FIRST)
     publisher.publish(SECOND)
     assert publisher.current() == SECOND.records
 
@@ -107,12 +107,21 @@ def test_a_postgres_failure_in_any_block_leaves_the_previous_session_current_and
     assert publisher.current() == FIRST.records and stored_rows(postgres) == 3  # the first two inserts rolled back
 
 
+def pointer_time(postgres):
+    with psycopg.connect(postgres.url) as connection:
+        return connection.execute("select published_at from fno.current_publication").fetchone()[0]
+
+
 def test_postgres_publishing_the_same_session_twice_adds_no_rows(postgres):
     clean(postgres)
     publisher = PostgresPublisher(postgres.url)
-    publisher.publish(FIRST)
-    publisher.publish(FIRST)
+    assert publisher.publish(FIRST) == 3
+    published_at = pointer_time(postgres)
+    rerun = Publication(FIRST.day, FIRST.publication_id, {k: {**r, "built_at": f"{FIRST.day}T23:59:00Z"}
+                                                          for k, r in FIRST.records.items()})  # fmt: skip
+    assert publisher.publish(rerun) == 0 and pointer_time(postgres) == published_at  # a later run: nothing changes
     assert stored_rows(postgres) == 3 and publisher.current() == FIRST.records
+    assert publisher.stored(FIRST.publication_id) == hashes(FIRST)  # read back with the publisher's own role
     changed = Publication(FIRST.day, FIRST.publication_id, publication(FIRST.day, 9).records)
     for record in changed.records.values():
         record["publication_id"] = FIRST.publication_id

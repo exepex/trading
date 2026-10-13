@@ -286,3 +286,40 @@ The owner ran `001_read_models.sql` as `fno_owner` and set `FNO_DB_URL` (role `f
   `psql "host=<server>.postgres.database.azure.com port=5432 dbname=<db> user=dashboard_app sslmode=verify-full sslrootcert=system" -c "select h.page_key, h.payload_sha256 from fno.current_publication c join fno.pages_history h using (product, publication_id) order by h.page_key;"`
   Expected: 6 rows, one per block. `sslrootcert=system` needs psql 16 or later; on older psql, point `sslrootcert` at
   the server's CA file.
+
+## Addendum 3 (13 Oct 2026): criterion 4 moves to GitHub Actions (orchestrator, O6)
+
+Built: `.github/workflows/market-publish.yml`. It runs as a plain scheduled job, not an AI session, because Claude's cloud containers cannot open port 5432 (Addendum 2).
+
+- **When it runs:**
+  - daily at 07:10 IST (`cron 40 1 * * *` UTC). That is 20 minutes before the 07:30 target, because Actions often starts late, and after NSE's late-evening rewrites;
+  - or on `workflow_dispatch` with a `day` input. Empty means the last session before today.
+- **The session calendar decides:** `market daily` takes the previous session from NSE's session calendar, never from weekdays. A closed day publishes nothing. On a Sunday it re-checks Friday's session and adds nothing.
+- **Steps:** archive the session's NSE files and NSE's later versions to Drive (with manifest and revision rows committed), build, validate against W11, publish in one transaction as `fno_writer`, then **read back** as `fno_writer`.
+- **The read-back:**
+  - `ReadModelPublisher.stored(publication_id)`, implemented by both adapters, returns each page's `payload_sha256` as the store holds it.
+  - The run compares them with the records it built, then prints only `published 6 blocks as nse-<day>-<hash> (N rows added)`, `read back 6 pages … every payload SHA-256 equals the built records`, and one `page_key sha256` line per page.
+  - A mismatch fails the run and alerts #fno-desk.
+- **Secrets:**
+  - `FNO_DB_URL` comes from the repository secret of that name. It is passed only as an environment variable and never pasted into a shell line or printed. A test checks that no `run:` line names it.
+  - Drive: the owner's OAuth secrets the other jobs already use. The versioned reader now falls back to the owner's sign-in when no service account is set, so no new Drive secret is needed.
+  - Slack: `FNO_SLACK_BOT_TOKEN`.
+- **One line to #fno-desk on failure:** the run's own failures (missing file, schema, publish, read-back) already post their line. The workflow's failure step posts one only when the log has no such line, for a crash or an install failure, so a failure never posts twice.
+- **A second run adds no rows (root-cause fix, strong evidence):**
+  - The publication ID used to be `nse-<day>-<commit>`. But the job commits manifest rows, so every later run would check out a new commit, get a new ID, and add 6 rows of identical content.
+  - It is now named by its content: `nse-<day>-<12 hex of the SHA-256 over the pages' hashes>`. The same pages always get the same ID; NSE's later version of a file gives a new one.
+  - The pointer upsert no longer touches `published_at` when the publication is already current.
+  - `source_commit` stays in each row as metadata.
+- **O6 pipeline records** (`fno/pipeline`): not used, because they don't fit. They record "fired" and "processed" for AI routines started per batch, and this job fires no routine. Its record is the publication itself: `fno.pages_history` keyed by the content ID, plus the read-back lines in the Actions log.
+- **Tests:**
+  - `test_market_publish_read_back.py` (4): read-back lines are counts and hashes only, a second run adds 0 rows, a differing read-back alerts, and the workflow's schedule, input and secret handling.
+  - `test_market_publishers.py` (real throwaway PostgreSQL 16): `publish` returns 3 then 0, a later re-run leaves `published_at` unchanged, and `stored` equals the built hashes.
+  - `test_market_contract_and_run.py`: the ID ignores the commit and build time and changes when the content changes.
+
+**The owner's one step:** in GitHub, exepex/trading → Settings → Secrets and variables → Actions → New repository secret. Name it `FNO_DB_URL`; the value is the `fno_writer` connection string already set here (with `sslmode=verify-full`). Then the orchestrator dispatches `market-publish` with `day = 2026-10-12`, and the owner runs the `dashboard_app` read-back above from their Mac.
+
+**Likely next blocker (reasoning only, untested):** the Azure server's firewall. GitHub-hosted runners connect from changing Azure addresses.
+- If the first run fails with `ConnectionTimeout` at publish, the firewall refused the runner.
+- The usual Azure setting is "Allow public access from any Azure service within Azure to this server". It admits any Azure address, including GitHub's runners, so access then rests on the role's password and TLS.
+- The tighter alternative is a self-hosted runner with a fixed address.
+- That choice is the owner's, as a platform (X1) decision.

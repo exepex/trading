@@ -142,11 +142,12 @@ def build_revision_capturing_source(
 
 
 def build_versioned_reader(as_of: datetime | None = None) -> VersionedRawStore:
-    """Raw files in Drive with their revisions (read with the service account): the version available at `as_of`
-    for research, or NSE's newest one we hold when `as_of` is None, for publishing (story A11)."""
-    drive = _service_account_drive()
+    """Raw files in Drive with their revisions: the version available at `as_of` for research, or NSE's newest one we
+    hold when `as_of` is None, for publishing (story A11). Read with the service account, else with the owner's own
+    sign-in (GitHub Actions has only the owner's secrets: market-publish.yml)."""
+    drive = _service_account_drive() or build_owner_drive()
     if drive is None:
-        raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to read Drive")
+        raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} or {', '.join(OWNER_UPLOAD_SETTINGS)} to read Drive")
     raw, revisions = AreaStore(drive, RAW_AREA), AreaStore(drive, REVISIONS_AREA)
     return VersionedRawStore(raw, revisions, build_revision_index(), as_of)
 

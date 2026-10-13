@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from .publication import PRODUCT, Publication
+from .publication import PRODUCT, Publication, hashes
 from .publisher import PublishFailed, ReadModelPublisher
 
 INSERT_PAGE = """
@@ -22,6 +22,7 @@ MOVE_CURRENT = """
 insert into fno.current_publication (product, publication_id, as_of, published_at) values (%s, %s, %s, now())
 on conflict (product) do update set publication_id = excluded.publication_id, as_of = excluded.as_of,
                                     published_at = excluded.published_at
+where fno.current_publication.publication_id is distinct from excluded.publication_id
 """
 CURRENT_PAGES = """
 select h.page_key, h.market, h.as_of::text, to_char(h.cutoff at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
@@ -46,22 +47,28 @@ class PostgresPublisher(ReadModelPublisher):
     def __init__(self, url: str, connect: Callable = psycopg_connect):
         self._url, self._connect = url, connect  # the URL holds the credential: never printed
 
-    def publish(self, publication: Publication) -> None:
+    def publish(self, publication: Publication) -> int:
         from psycopg import Error
         from psycopg.types.json import Jsonb
 
+        added = 0
         try:
             with self._connect(self._url) as connection, connection.cursor() as cursor:
                 for record in publication.records.values():
                     cursor.execute(INSERT_PAGE, {**record, "payload": Jsonb(record["payload"])})
+                    added += cursor.rowcount
                 cursor.execute(STORED_HASHES, (PRODUCT, publication.publication_id))
-                stored = dict(cursor.fetchall())
-                wanted = {key: r["payload_sha256"] for key, r in publication.records.items()}
-                if stored != wanted:
+                if dict(cursor.fetchall()) != hashes(publication):
                     raise PublishFailed(f"{publication.publication_id}: stored pages differ from this publication")
                 cursor.execute(MOVE_CURRENT, (PRODUCT, publication.publication_id, publication.day))
         except Error as exc:
             raise PublishFailed(f"{publication.publication_id}: {type(exc).__name__}") from exc
+        return added
+
+    def stored(self, publication_id: str) -> dict[str, str]:
+        with self._connect(self._url) as connection, connection.cursor() as cursor:
+            cursor.execute(STORED_HASHES, (PRODUCT, publication_id))
+            return dict(cursor.fetchall())
 
     def current(self) -> dict[str, dict]:
         with self._connect(self._url) as connection, connection.cursor() as cursor:
