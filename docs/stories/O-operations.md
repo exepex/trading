@@ -176,3 +176,59 @@ so a push from ChatGPT, Codex or a person's own clone is caught only by CI after
 
 **Depends:** - · **Size:** S · **Status:** done (judge passed, `reviews/judge/judge_4_o5_record_scan_rejudge.md`)
 
+
+---
+
+## O6. Fetch in GitHub Actions, reason in triggered Claude routines
+
+**Repository:** trading
+
+**Description:** As the owner, I want every scheduled download to run as a free GitHub Actions job that stores raw data
+in Google Drive and then triggers the Claude routine that reasons on it, so that AI runs only when new data exists,
+every role reuses the same data from Drive, and no AI credit is spent on downloading.
+
+**Context and why:** Owner decisions, 13 Oct 2026 (`docs/DESK_DECISIONS.md`): fetch and reason are separate; GitHub
+Actions download raw data into Drive and fire the matching routine through its API trigger; the routine reads from
+Drive, reasons and writes results back to Drive (derived area); a publisher's new version triggers a re-run, with old
+and new results kept; routines run on the owner's Claude subscription, never on pay-per-use API keys. The current
+scheduled routines keep running until the new pipeline is deployed and proven, then they are decommissioned (or kept
+once a day as a fallback). Facts checked in Claude Code's routines documentation (13 Oct 2026): `POST
+https://api.anthropic.com/v1/claude_code/routines/<trigger id>/fire` with a per-routine bearer token (made by the owner
+in the web page, shown once), headers `anthropic-beta: experimental-cc-routine-2026-04-01` and `anthropic-version:
+2023-06-01`, optional `{"text": ...}` delivered to the run as untrusted data; 30 fires per hour per routine; research
+preview, so the shape may change.
+
+**Scope.** In:
+- a small shared pipeline layer reused by every download job (A12's filings job included; agree the boundary with the
+  A12 builder by reading its code, never by rewriting it): run summary and progress manifest in Drive, one-line
+  run report to #fno-desk, and a `RoutineTrigger` interface with a `/fire` adapter (wired in a composition root) that
+  sends only a pointer (dataset, Drive path, batch id, version), never data;
+- an idempotent "processed" record in Drive per batch and version, so a routine never processes the same version
+  twice, and a new version is processed again;
+- migrate the F&O routines that need no AI to plain Actions: the 3 pm quote recorder (start early, about 14:20 IST,
+  and wait, since Actions schedules can start late; first check whether NSE's public option data can replace Groww so
+  no broker key goes into GitHub; if Groww is still needed, stop and ask the owner), the daily participant-OI release
+  check and the monthly participant-OI sweep. Each keeps its current commands, outputs and alerts;
+- one example reasoning routine wired end to end (a dry-run routine that reads the pointer, opens the files from Drive,
+  writes a small derived summary and its processed record), to prove the trigger path;
+- the owner checklist: which tokens to generate, which secrets to add, how to switch off each old routine.
+
+Out: any change to the stock tool's repository (paused; its routines move later with the owner's go-ahead); deleting
+or disabling any existing routine (the owner decides after the new path has run cleanly for 5 sessions).
+
+**Acceptance criteria:**
+1. Each migrated job runs on schedule in GitHub Actions and gives the same outputs as its routine on the same day
+   (the 3 pm recorder for at least 3 sessions side by side; the participant-OI check for at least 3).
+2. A download that finds new data fires its routine exactly once per batch and version; no new data fires nothing; a
+   republished file fires again (tests with a fake trigger; one real fire of the dry-run routine).
+3. A failed fire, an expired token or a refused Drive upload posts one clear line to #fno-desk and never fails
+   silently (tests).
+4. No secret value in any file or log (record scan; a test greps the output). No broker key in GitHub unless the owner
+   approved it.
+5. The pipeline layer sits behind interfaces with concrete classes wired only in composition roots; no file or class
+   over 350 lines.
+
+**Judge verifies:** compares a migrated job's outputs with the routine's for the same day; plants a duplicate batch and
+a republished file; reads the Actions logs for secrets.
+
+**Depends:** A9, A11, A12 · **Size:** L · **Status:** to do
