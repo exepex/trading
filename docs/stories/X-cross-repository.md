@@ -50,7 +50,7 @@ server (or a disposable copy), including DDL, cross-schema writes, reads it shou
 
 **Judge verifies:** runs the role matrix against the real server with each runtime credential.
 
-**Depends:** owner's Azure access · **Size:** M · **Status:** later
+**Depends:** owner's Azure access · **Size:** M · **Status:** done: judge 33 close-out (13 Oct 2026); criterion 5 moved to omenix-dashboard#1 (owner)
 
 ---
 
@@ -444,7 +444,7 @@ comparison; check_page on the running app.
 **Judge verifies:** runs the app, opens three old pages and Home inside the frame at 390 and 1280 px, compares with
 the mockup screenshots, plants a component import of the fixture adapter and confirms the test fails.
 
-**Depends:** W1 (done in practice: the repository exists and builds) · **Size:** L · **Status:** next
+**Depends:** W1 (done in practice: the repository exists and builds) · **Size:** L · **Status:** done: judge 22 PASS (13 Oct 2026)
 
 ---
 
@@ -479,7 +479,7 @@ honest empty states ("no approved strategy yet", "no hybrid strategy yet"); grou
 
 **Judge verifies:** compares screenshots with the mockup; checks the no-merge test with a planted cross-currency sum.
 
-**Depends:** W8 · **Size:** M · **Status:** later
+**Depends:** W8 · **Size:** M · **Status:** done: judge 35 close (13 Oct 2026)
 
 ---
 

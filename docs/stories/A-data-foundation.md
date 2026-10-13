@@ -159,7 +159,7 @@ consistency check against `research/2026-10-12-capacity-screen/data/nifty_option
 **Judge verifies:** rebuilds the panel from Drive in a fresh checkout and compares SHA-256 of the outputs; spot-checks
 5 random days against the raw files by hand-picked contracts.
 
-**Depends:** A1, A2 · **Size:** M · **Status:** built; awaiting judge (13 Oct 2026; claims in `reviews/claude/response_38_2026-10-13-a3-nifty-panel.md`)
+**Depends:** A1, A2 · **Size:** M · **Status:** done: judge 20 PASS (13 Oct 2026; claims `reviews/claude/response_38_2026-10-13-a3-nifty-panel.md`)
 
 ---
 

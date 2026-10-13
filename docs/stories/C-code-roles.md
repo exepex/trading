@@ -124,7 +124,7 @@ against the panel's NIFTY and VIX closes for those dates.
 
 **Judge verifies:** feeds three crafted proposals (inside, outside, borderline) and checks verdicts and numbers.
 
-**Depends:** B2 · **Size:** L · **Status:** doing
+**Depends:** B2 · **Size:** L · **Status:** done: judge 43 PASS (13 Oct 2026)
 
 ---
 
