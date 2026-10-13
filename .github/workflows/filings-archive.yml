@@ -6,8 +6,9 @@
 name: filings-archive
 
 on:
-  schedule:
-    - cron: "17 */6 * * *" # every 6 hours; once complete, `--daily` makes three of the four runs a no-op
+  # schedule paused (13 Oct 2026) until the Drive layout gains the owner's <YYYY> level; restored with that change:
+  # schedule:
+  #   - cron: "17 */6 * * *" # every 6 hours; once complete, `--daily` makes three of the four runs a no-op
   workflow_dispatch:
     inputs:
       probe_only:
