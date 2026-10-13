@@ -30,7 +30,7 @@ def test_every_feature_is_unchanged_by_data_after_its_cutoff_on_20_random_days(r
             values[feature.name].append(assert_no_lookahead(feature, real_data, day, context, trials=1))
     f1, f2, f3 = values.values()
     # the test must exercise real values, not compare None with None
-    assert sum(v is not None for v in f1) >= 18 and all(v is not None for v in f2)
+    assert all(v is not None for v in f1) and all(v is not None for v in f2)
     assert {True, False} <= set(f2) and set(f3) == {False}  # see the next test for F3 days that are true
 
 
