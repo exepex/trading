@@ -1,0 +1,80 @@
+# Judge 64: G1 protocol v3 and story A13 (the NIFTY panel extends daily)
+
+Date: 13 Oct 2026 (UTC). Code: trading `main` at 217fa7c, merged as b5e5e9b. Claims: `reviews/claude/response_68_g1-v3-panel-extension.md`
+addendum 2; ChatGPT review 30; Claude response 69. Holdout rule kept: I opened no 2019-2023 row of the golden file or
+the back-fill (I ran their tests; I read no rows).
+
+## Verdict: NOT YET: one must-fix (replay reads the wrong commit) and two should-fix items before v3 is frozen
+
+The A13 append itself is sound. Two real days rebuilt from Drive match the panel row for row. The first archived
+version is used even when a revision has a different close. Crashes are refused. v1 and v2 hold. **Do not freeze v3
+yet:** its text and the byte-frozen `replay.py` anchor the replay on the wrong commit. Once that is fixed (small) and
+re-checked, v3 can be frozen and A13's schedule switched on.
+
+## Gates
+
+- CI `checks` at b5e5e9b: **success** (run 38469554175). Runs at 20ea237, c8b03c9 and 6d21d6d failed while `main`
+  was broken (the ISOLATION import), as the orchestrator said.
+- My local run at b5e5e9b: 1,777 passed; ruff and imports clean.
+- v2's `require_version_frozen` at HEAD passes (protocol ab2e811, every byte-checked file equal). The v1 and v2 freeze
+  tests and the new experiment 1 freeze-hash test pass (13). The diff 6d21d6d..b5e5e9b touches nothing under
+  `fno/forecast/` and no panel data file.
+
+## The orchestrator's checks
+
+| # | Question | Finding | Result |
+|---|---|---|---|
+| a | v1/v2 still hold; re-scoped tests not weaker | `test_golden.py` keeps the golden file's own days; `differences` still names every golden day missing from the recomputation, and every value must match. `test_backfill.py` recomputes the back-fill's own days and takes the pack hash from `manifest.json` at the commit that last wrote the back-fill (CI uses `fetch-depth: 0`). A rewritten old panel row would still fail both | MET |
+| b | First archived version for both inputs | My planted revision with a **different NIFTY close** (+111.11) in the revisions area: the day records the first file's SHA-256 and A11's later version. Code plant "prefer the revision when it exists": caught (3 tests fail). The builder's own test changes only a trailing newline, so mine is the stronger case | MET |
+| c | Crash test; commit only on exit 0 | The crash test passes. The workflow adds `research/data/nifty-panel` only when `steps.append.outcome == success` (true exit status, even with continue-on-error). **But** `PanelAppender.verify()`, the start-of-run check response 69 promised, has **no test**: I disabled it and all 132 `tests/research_data` tests passed. The crash test passes only because `_require_unchanged` re-checks the files being appended to. An untouched older year file that is corrupt would not be caught by any test | PARTLY (should fix: one test corrupting an untouched year file) |
+| d | Replay uses the panel at the forecast's parent commit | **Wrong under the real workflow.** Since F1/G5, `forecast-capture.yml` commits the pack alone at about 15:12, then pulls `main` (steps at lines 81, 88 and 90), then commits the records at about 15:16-15:30. The records commit's first parent is therefore `main` after those pulls, not the checkout the capture computed from. I built that commit order in a temporary repo (panel, pack commit, another commit pulled in, records commit): `inputs_commit` is the pulled-in commit, and the replay **reports a mismatch** on `pack.json`. The builder's test commits pack and records together, so it cannot see this. Fix: anchor on the commit that added `<d>_pack.json` (committed before any pull, so its first parent is what the capture read), in `replay.py` and in v3 section 3's text, plus a test with the real commit order | **NOT MET (must fix)** |
+| e | Live Q5 against the 15:00 pack IV30 | `score_sources.pack_iv30` reads the receipt-verified pack; flagged or missing IV30 voids primary Q5. G4's planted-disagreement test passes. **But** the rule sits in `fno/forecast_scoring/wiring.py` (`LIVE: ... live.pack_iv30.get(day)`), and my plant swapping it for the panel IV30 passed all 39 `tests/forecast_scoring` tests. That file is also not in v3's freeze list | PARTLY (should fix: a wiring test, or freeze the file) |
+| f | Archive time = run read time: enough for point in time? | See below | Enough, with one condition |
+
+**(f), statistician and data engineer:** for a live forecast, point in time means the capture at day *t* reads no
+data from day *t* or later. That is guaranteed by **git order**, not by the archive time. The capture reads the panel
+committed before its run. NSE publishes day *t*'s F&O file in the evening, so the panel cannot hold day *t* at 15:10.
+`LiveForecastHistory` also reads only `d < day` (v3 section 3). `inputs_read_at` is then an audit field (an upper bound
+for when the file existed in Drive), and the append commit time in git is a second bound. **Condition:** the morning
+retry must never run on the same day as a session's own F&O file. It cannot, since the file comes out after 15:30.
+Reasoning only; no counter-case found.
+
+## A13 criteria
+
+| # | Criterion | Check | Result |
+|---|---|---|---|
+| 1 | Appended day equals A3's build | Real data: I rebuilt 9 Oct and 12 Oct 2026 from Drive's first archived files with A3's builder through `first_archived_inputs` and compared with the committed panel: options 1,888 = 1,888 and futures 3 = 3 on each day, equal row for row. A real append (13 Oct) could not run: the F&O file is not archived in Drive yet (the workflow's librarian step does that first) | MET (by the equivalent real rebuild; the first two real appends still to be compared) |
+| 2 | A day is never rewritten; a planted rewrite names the day | `_check` refuses a day already present or not after the end, with the day named; tests pass | MET |
+| 3 | Old bytes are a prefix | One new gzip member per touched year file; `_require_unchanged` checks the old file's SHA-256 before growing it | MET |
+| 4 | A missing file, close or contract fails the day, one line, writes nothing | Delayed-input and official-close tests pass for both inputs; my real run on 13 Oct stopped with `fo_file_missing` and wrote nothing | MET |
+| 5 | `iv30_history_stale` does not fire 30 sessions on | Covered by the builder's test (not re-planted by me) | MET (not planted) |
+| 6 | No frozen file changes | v1, v2 and experiment 1 freeze hashes hold | MET |
+
+## Review 30 section 8 tests
+
+| Test | Result |
+|---|---|
+| 1 Crash leaves previous generation readable, recovers | Tested; but the start-of-run check is untested (c) |
+| 2 First archived versions, first and revised closes disagree | Builder's test differs only by a newline; my different-close plant passes. Should use a real value difference |
+| 3 Replay uses its recorded panel generation | Tested only in a commit order the workflow does not produce (d) |
+| 4 Live Q5 uses the 15:00 IV30 | Tested at the resolver; not at the wiring (e) |
+| 5 Delayed close fails explicitly, retry without gaps | Tested for both inputs |
+
+## Before the freeze (my advice, reasoning only)
+
+1. Must: fix the replay anchor (pack commit) in `replay.py` and v3 section 3, with a test in the real commit order.
+2. Should: a test for `verify()` on an untouched year file; a wiring test for live Q5, or add
+   `fno/forecast_scoring/wiring.py` to v3's freeze list.
+3. Should, design: v3 freezes `fno/pipeline/wiring.py`, which is O6's shared composition root (triggers, closes,
+   dry runs). Byte-freezing it means any later O6 or F1 wiring change stops the panel job. This is the same trap as
+   G1 v1's shared-file freeze (judge 47). Move A13's wiring into its own small composition root and freeze that
+   instead.
+
+Then: v3 can be frozen and A13's schedule switched on, with the first two real appended days compared by me
+against A3's build.
+
+## Project rules
+
+New behaviour in new classes; constants in `fno/constants.py`; file sizes within 350 lines (largest 143); no secret in
+files; the workflow has no AI and posts only to #fno-desk. Drive was read with the owner drive connection, read-only;
+my scratch append went to a copy outside the repository.
