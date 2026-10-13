@@ -20,3 +20,4 @@ Written only by the independent judge session (`docs/JUDGE.md`). One file per ve
 | 12 | A7 recorder uses the session calendar | PASS (4 minor; trigger prompt stale) | `judge_12_a7_session_calendar.md` |
 | 13 | A5 monthly expiry, round 2 (re-judge) | PASS (recorder now uses monthly_as_of, verified on real NSE files; judge 7 minors 2-3 accepted as open; 2 new minor) | `judge_13_a5_monthly_expiry_rejudge.md` |
 | 14 | A3 NIFTY option-chain panel | FAIL (criteria 1-10 met, 2019 and 2024 rebuilt byte-identical; 1 should fix: futures in scope but not built or rescoped; 6 minor) | `judge_14_a3_nifty_panel.md` |
+| 15 | A8 participant open interest | FAIL (parser, coverage code, look-ahead guard and fingerprints verified; 1 should fix: 105 rewritten days used without a flag; Drive coverage and measured rule pending) | `judge_15_a8_participant_oi.md` |
