@@ -73,6 +73,7 @@ fno/
   accounting/        research ledgers
   books/             the three books' Rs 5 lakh paper accounts and their single-writer lock (story E1)
   risk/              risk manager per book: owner limits, drawdown brake, stress and exposure, margin room (C2)
+  forecast/          forecast protocol code (G1, frozen), baselines and history back-fill (G2), Book 1's capture (G3)
   analytics.py       Black-Scholes, Greeks, implied volatility, chain metrics
   costs.py           Groww and statutory charges
   config.py          settings (`config.yaml`, allowed keys only)

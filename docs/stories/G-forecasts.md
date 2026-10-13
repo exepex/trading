@@ -83,7 +83,7 @@ date with a fixed refit schedule), its specification frozen in the protocol.
 
 **Judge verifies:** recomputes one risk-neutral probability and one base rate by hand.
 
-**Depends:** G1, A3, A4 · **Size:** M · **Status:** later
+**Depends:** G1, A3, A4 · **Size:** M · **Status:** awaiting judge (claims: response 62; live values wait for a protocol version naming the live input pack)
 
 ---
 
@@ -113,7 +113,7 @@ combined by a fixed rule written in the protocol); records validated by `fno/for
 
 **Judge verifies:** checks one week of Book-1 forecast files for completeness and commit order.
 
-**Depends:** G1, G2 · **Size:** S · **Status:** later
+**Depends:** G1, G2 · **Size:** S · **Status:** awaiting judge (claims: response 62; records "no forecast" daily until live inputs are approved)
 
 ---
 
