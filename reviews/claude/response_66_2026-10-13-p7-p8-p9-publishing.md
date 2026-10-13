@@ -98,3 +98,64 @@ So the stock tool is the contract's publisher, and its status is already `publis
 3. **Nothing.**
 
 My lean is option 2 if the desk wants FII/DII cash flows as a research input; otherwise option 3. I see no gain in moving a block the stock tool already publishes. This is reasoning only.
+
+## Addendum P9: NIFTY option chain read models for screen 32 (built; awaiting judge)
+
+**What:** the six India-only chain blocks of W13's frozen contract (`blocks-chain.yaml`, `blocks-chain-history.yaml`, W11 2.3), built from the archived NSE F&O and index files. They publish in the **same publication** as P6's blocks: one transaction, one pointer, one run status (P7). So screens 32, 33 and 34 always show the same session.
+
+**Pages** (the route reads them by these keys; for the dashboard's W13 route follow-up):
+
+| Page key | Endpoint | 12 Oct 2026 |
+|---|---|---|
+| `chain_underlying` | `/markets/india/fno/chain/underlying` | 1 |
+| `chain_expiries` | `/markets/india/fno/chain/expiries` | 1 (7 expiries) |
+| `chain_rows:<expiry>:<near\|band\|all>` | `/markets/india/fno/chain/rows?expiry=&strikes=` | 21 (7 × 3) |
+| `chain_history` | `/markets/india/fno/chain/history` | 1 |
+| `contract_history:<code>` | `/markets/india/fno/chain/contracts/{code}/history` | 1,246 (every contract in scope: W13 x-empty, owner default) |
+| `chain_sources` | `/markets/india/fno/chain/sources` | 1 |
+
+W13 defines no stored shape for the blocks asked for by a parameter (W11 2.4's `x-stored` covers only the screener). So I store one page per answer, and each page validates directly against the served schema (`ChainRowsResponse`, `ContractHistoryResponse`). That needs no new contract shape; the route only maps the parameter to the key.
+
+**Method** (W13's examples, the mockup's `design/mockups/_platform/chain_data.py`, ported and tested):
+- **Scope:**
+  - NIFTY index options and futures, from NSE's UDiFF file;
+  - expiries after the session up to the end of its second following month (on 12 Oct: through 31 Dec, the mockup's year-end cut; my rule stays sensible in December, when "the year's end" would leave nothing);
+  - options within 10% of the day's NIFTY, with both legs per strike;
+  - monthly = the last expiry of its month.
+- **Per contract:**
+  - close, change, OI and its change, volume;
+  - IV by Black-Scholes from the close, only when the contract traded, searched within 1%–200% (outside that, the close is not a usable price: no IV, Greeks or chance);
+  - prices and Greeks from `fno/analytics.py` (B1), using the repo's `risk_free_rate` of 0.065;
+  - break-even, and the risk-neutral chance N(d2).
+- **Per expiry:** put-call ratio, max pain, the ATM strike (a tie goes to the lower strike), ATM IV, straddle and range, call and put walls, and where OI was added.
+- **History:**
+  - from W13's extract day, 1 Jun 2026, keeping at most six months (bounded daily reads);
+  - NIFTY and VIX closes, and each expiry's daily PCR;
+  - coverage as W11's rule (a value only when the days cover the period);
+  - each contract's own sessions, with the close null on a day without trades.
+- **The F&O files are read once:** the session build reads the chain's longer window and parses each file once. P6's F&O rows still use only their own 95-day window, so their figures are unchanged (the comparison proves it).
+
+**Criteria:**
+1. **Every chain example equals ours field by field: MET (strong evidence).**
+   - A real `python -m fno market compare --day 2026-10-12`, from the archived Drive files through the new session build (3 min 10 s), gives 0 differences for all 9 chain examples: `getChainUnderlying`, `getChainExpiries`, `getChainRows` (near, weekly band, all), `getChainHistory`, `getContractHistory` (near and long) and `getChainSources`.
+   - `getChainHistory_india_short` is a view (the history cut to 30 sessions to show the nulls), not a page. A test rebuilds it from our series and gets it exactly.
+   - The 33–34 differences are unchanged from response 50: renamed stocks plus one sub-cent rounding.
+2. **Validation: MET.** All 1,271 chain pages validate against the pinned served schemas (2.4 s). The planted-break tests still refuse the whole publication.
+3. **One transaction, one run status: MET.** The chain blocks are in `build_market_blocks()`, so they publish through the same `PostgresPublisher` transaction and the same run row. A re-run adds no rows (the content-named ID covers every page).
+   - The read-back now prints one line per block: a single page's hash, or a multi-page block's page count and the SHA-256 of its pages' hashes. That keeps 1,277 pages to 14 log lines.
+4. **Size, lint, imports, tests: MET.**
+   - 1,558 tests pass; ruff, imports and the record scan are clean; the largest new file is under 150 lines.
+   - **Pinned:** `api/examples/blocks-32.json` was added to the pin at dashboard b2c92ee. Nothing under `api/` changed since, and the chain schemas were already pinned.
+   - **Fixture:** `tests/fixtures/nse/chain/` (307 KB) is our own cut of the archived files. It holds the 21,590 in-scope NIFTY rows (UDiFF columns) of 1 Jun to 12 Oct, plus NIFTY 50 and India VIX from the index files. The equality test therefore runs offline in CI.
+
+**Doubts and costs (stated plainly):**
+- **Storage (some evidence):**
+  - The chain adds about 1.5 MB of JSON per session (1,271 pages); P6's pages are about 2–3 MB. `fno.pages_history` keeps every publication, so that is roughly 1 GB a year, before index overhead.
+  - **Options (reasoning only):**
+    - a retention job that keeps the last N publications (my lean: a small P-story);
+    - contract histories only near the money (the mockup's 21 strikes: about 300 pages instead of 1,246);
+    - accepting the growth.
+  - The owner's call.
+- **Fixed text (interim):** `chain_sources.books` is fixed text ("No F&O book holds a position…"). It is true today (no strategy has passed testing) but is not read from the books yet. When a book can hold a position, this must come from the books' state (C-stories). `quotes.status` is `not_published` until the 3 pm quotes are published.
+- **Not checked from here:** the dashboard's route for the chain (W13 follow-up) must map its parameters to the page keys above.
+- **Daily run:** the job (`market-publish.yml`, 07:10 IST) will publish the chain from its next run. Publish run time grows by about 30 s (the extra F&O files).

@@ -13,6 +13,23 @@ The India blocks of the dashboard's Screener (33) and Markets overview (34) that
 | `overview_indices` | `/markets/india/overview/indices` | the served payload | as stored |
 | `overview_sectors` | `/markets/india/overview/sectors` | the served payload | as stored |
 
+The NIFTY option chain for screen 32 (story P9, W13's contract `blocks-chain.yaml`, `blocks-chain-history.yaml`)
+publishes in the same publication, one pointer and one run status for both screens:
+
+| Page key | W13 endpoint | Pages |
+|---|---|---|
+| `chain_underlying` | `/markets/india/fno/chain/underlying` | one |
+| `chain_expiries` | `/markets/india/fno/chain/expiries` | one |
+| `chain_rows:<expiry>:<strikes>` | `/markets/india/fno/chain/rows?expiry=&strikes=` | one per expiry and strike set (near, band, all) |
+| `chain_history` | `/markets/india/fno/chain/history` | one |
+| `contract_history:<code>` | `/markets/india/fno/chain/contracts/{code}/history` | one per contract in scope |
+| `chain_sources` | `/markets/india/fno/chain/sources` | one |
+
+Computed as W13's examples were (`chain_expiries.py`, `chain_history.py`, `chain_math.py`): NIFTY contracts of the
+next three calendar months within 10% of the day's NIFTY, both legs per strike; IV by Black-Scholes from the close
+only when the contract traded, searched within 1%-200% (else no IV, Greeks or chance); Greeks and prices from
+`fno/analytics.py`; history from 1 Jun 2026, at most six months (`chain_session.py`).
+
 "ours" (the companies the stock tool follows) is counted and tagged here over the NSE rows, from the stock tool's list
 (W11 input `FollowedCompaniesIndia`, orchestrator decision of 13 Oct 2026, judge 40): a close uses the latest list dated
 on or before it (`followed.py`). Until the stock tool publishes the list (K5-proposed), lists are recorded in
@@ -38,7 +55,8 @@ their year and their demerger adjustment. Publishing reads NSE's latest version 
 NSE's calendar, never weekdays (the examples once skipped the 1 Feb 2026 Sunday Budget session), and an index absent
 from a session's file carries its own last date in `as_of` instead of passing an older close off as the day's.
 
-Modules: `nse_files.py` (readers, also the archive's content checks), `symbol_changes.py`, `stock_rows.py`, `fno_rows.py`, `index_rows.py`,
+Modules: `nse_files.py` (readers, also the archive's content checks), `chain_*.py` (the option chain, P9),
+`run_status.py` (P7), `wiring.py` (this package's composition root), `symbol_changes.py`, `stock_rows.py`, `fno_rows.py`, `index_rows.py`,
 `session_rows.py` (reads one session's archived files; a missing file stops the build), `blocks.py` (one builder class
 per block, pure), `contract.py` (the pin, validation, drift), `contract_examples.py` and `screener_route.py` (the comparison), `publication.py` (stored rows, validated as stored and as
 served), `publisher.py` (`ReadModelPublisher`), `local_publisher.py`, `postgres_publisher.py` (the Azure `fno` schema,

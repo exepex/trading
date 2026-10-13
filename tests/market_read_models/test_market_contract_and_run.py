@@ -8,7 +8,7 @@ from datetime import date
 import pytest
 
 from fno.alerts.sender import AlertSender
-from fno.market_read_models.blocks import SessionRows
+from fno.market_read_models.blocks import BlockBuilder, SessionRows
 from fno.market_read_models.contract import ContractBroken, PinnedContract, PublishedContract, drift
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.market_run import MarketRun
@@ -17,6 +17,8 @@ from fno.market_read_models.run_status import LocalRunStatus
 from fno.market_read_models.session_rows import IncompleteSession
 from fno.market_read_models.wiring import CONTRACT_FOLDER, build_market_blocks
 from fno.research_data.calendar import CsvSessionCalendar
+
+from .chain_fixture import chain_of_12_october
 
 DAY = date(2026, 10, 12)
 CONTRACT = PinnedContract(CONTRACT_FOLDER)
@@ -34,7 +36,8 @@ def example_rows() -> SessionRows:
     for row in indices:
         row["group"] = row["kind"]
     sectors = payload["getIndiaSectors_india"]["industries"]
-    return SessionRows(DAY, stocks, payload["getFnoScreenerRows_india"]["rows"], indices, sectors)
+    fno = payload["getFnoScreenerRows_india"]["rows"]
+    return SessionRows(DAY, stocks, fno, indices, sectors, chain_of_12_october())
 
 
 def builder() -> PublicationBuilder:
@@ -49,7 +52,8 @@ def test_the_pinned_copy_matches_its_pin_and_names_the_contract_version():
 
 def test_every_block_built_from_valid_rows_validates_as_stored_and_as_served():
     publication = builder().build(example_rows())
-    assert sorted(publication.records) == sorted(b.page_key for b in build_market_blocks())
+    pages = {key for b in build_market_blocks() for key in b.pages(example_rows())}
+    assert set(publication.records) == pages and {"chain_history", "chain_rows:2026-10-27:near"} <= pages
     record = publication.records["screener_summary"]
     assert set(record["payload"]["universes"]) == {"all", "n500", "fno", "ours"}  # ours: the followed list (judge 40)
     assert record["publication_id"].startswith("nse-2026-10-12-") and record["product"] == "fno"
@@ -64,13 +68,13 @@ def test_the_publication_id_names_the_content_never_the_commit_or_the_build_time
     assert builder().build(changed).publication_id != first.publication_id
 
 
-class Planted:
+class Planted(BlockBuilder):
     def __init__(self, block, change):
         self.block, self.change = block, change
         self.page_key, self.stored_schema, self.served_schema = block.page_key, block.stored_schema, block.served_schema
 
     def build(self, rows):
-        payload = self.block.build(rows)
+        payload = copy.deepcopy(self.block.build(rows))  # never change the shared session rows
         self.change(payload)
         return payload
 
@@ -96,7 +100,7 @@ def test_a_planted_extra_or_missing_field_fails_and_nothing_is_published(tmp_pat
 def example_rows_with_many_stocks() -> SessionRows:
     rows = example_rows()
     stocks = rows.stocks + [dict(r, s=f"{r['s']}{i}") for i in range(2) for r in rows.stocks]  # 75 rows
-    return SessionRows(rows.day, stocks, rows.fno, rows.indices, rows.industries)
+    return SessionRows(rows.day, stocks, rows.fno, rows.indices, rows.industries, rows.chain)
 
 
 class Published(PublishedContract):
@@ -143,9 +147,9 @@ def run(tmp_path, rows, publications=None):
 def test_a_good_session_is_published_and_a_closed_day_publishes_nothing(tmp_path):
     market, alerts, publisher = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and lines[0].startswith("2026-10-12: published 6 blocks") and alerts.sent == []
+    assert code == 0 and lines[0].startswith("2026-10-12: published 1277 blocks") and alerts.sent == []
     assert market.run(date(2026, 10, 11)) == (0, ["2026-10-11: not a trading day, nothing to publish"])
-    assert set(publisher.current()) == {b.page_key for b in build_market_blocks()}
+    assert set(publisher.current()) == {key for b in build_market_blocks() for key in b.pages(example_rows())}
 
 
 def test_a_missing_file_or_a_schema_break_alerts_and_leaves_the_previous_publication(tmp_path):

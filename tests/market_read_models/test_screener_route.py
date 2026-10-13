@@ -15,7 +15,8 @@ def stock(s, p, v, d1=0.0, u=("n500",), h=None, l=None, r=None, m1=None, va=1.0,
 
 def test_the_examples_compared_are_every_india_example_of_a_block_we_publish():
     names = [n for n in PinnedContract(CONTRACT_FOLDER).examples() if page_key(n)]
-    assert len(names) == 21 and not any("_us" in n for n in names)  # 8 before the pin moved, 13 new (d7c982a)
+    assert len(names) == 30 and not any("_us" in n for n in names)  # 21 Screener and Markets, 9 chain (P9)
+    assert page_key("getChainHistory_india_short") is None  # a view cut to 30 sessions, not a page
     assert page_key("getScreenerStocksUs_us") is None and page_key("getIndiaSectors_india") == "overview_sectors"
 
 

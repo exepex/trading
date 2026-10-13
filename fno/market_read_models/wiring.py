@@ -23,6 +23,15 @@ from .blocks import (
     ScreenerSummaryBlock,
     SectorsBlock,
 )
+from .chain_blocks import (
+    ChainExpiriesBlock,
+    ChainHistoryBlock,
+    ChainRowsBlock,
+    ChainSourcesBlock,
+    ChainUnderlyingBlock,
+    ContractHistoryBlock,
+)
+from .chain_session import ChainBuilder
 from .contract import GitHubRawContract, PinnedContract, PublishedContract
 from .db_check import DatabaseCheck, url_user
 from .db_connection import VerifiedConnection
@@ -43,9 +52,11 @@ FOLLOWED_COMPANIES_FOLDER = ROOT / "research" / "data" / "followed-companies" / 
 
 
 def build_market_blocks() -> list[BlockBuilder]:
-    """Story P6: the India blocks W11 assigns to publisher fno, in publication order."""
+    """Stories P6 and P9: the India blocks the contract assigns to publisher fno (Screener and Markets; the NIFTY
+    option chain), in publication order, all in one publication."""
     return [ScreenerSummaryBlock(), ScreenerStocksBlock(), FnoSummaryBlock(), FnoRowsBlock(), IndicesBlock(),
-            SectorsBlock()]  # fmt: skip
+            SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
+            ContractHistoryBlock(), ChainSourcesBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
@@ -105,7 +116,8 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     Publishing reads NSE's latest version of each file (A11's revisions; judge 49); research reads point in time."""
     fno_rows = FnoRowBuilder(SpotBlackScholes(), cfg["risk_free_rate"])
     followed = FollowedCompaniesFolder(FOLLOWED_COMPANIES_FOLDER)
-    return SessionRowsBuilder(build_versioned_reader(), build_session_calendar(), fno_rows, followed)
+    chain = ChainBuilder(cfg["risk_free_rate"])
+    return SessionRowsBuilder(build_versioned_reader(), build_session_calendar(), fno_rows, followed, chain)
 
 
 def repository_commit() -> str:

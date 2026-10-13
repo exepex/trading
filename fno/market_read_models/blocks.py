@@ -7,9 +7,13 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
+from typing import TYPE_CHECKING
 
 from .fno_rows import BUILDUPS
 from .stock_rows import UNIVERSE_FNO, UNIVERSE_FOLLOWED, UNIVERSE_NIFTY_500
+
+if TYPE_CHECKING:
+    from .chain_session import ChainSession
 
 CLOSE_UTC = "T10:00:00Z"  # NSE closes at 15:30 IST
 CURRENCY = "INR"
@@ -28,6 +32,7 @@ class SessionRows:
     fno: list[dict]
     indices: list[dict]
     industries: list[dict]
+    chain: ChainSession | None = None  # the NIFTY option chain (P9)
 
 
 class BlockBuilder(ABC):
@@ -42,6 +47,10 @@ class BlockBuilder(ABC):
     def served(self, payload: dict) -> dict:
         """The payload the route serves from the stored one by default (a paged block: its first page)."""
         return payload
+
+    def pages(self, rows: SessionRows) -> dict[str, dict]:
+        """Page key -> stored payload: one page, unless the route asks for the block by a parameter (P9)."""
+        return {self.page_key: self.build(rows)}
 
 
 def as_of(day: date) -> str:

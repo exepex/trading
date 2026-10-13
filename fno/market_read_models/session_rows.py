@@ -25,6 +25,7 @@ from ..storage.snapshot_source import (
     SymbolChangeSource,
 )
 from .blocks import SessionRows
+from .chain_session import ChainBuilder, history_start
 from .corporate_actions import CorporateAction, adjusted, read_corporate_actions, unexplained
 from .fno_rows import FnoRowBuilder, UnderlyingDay, underlying_days
 from .followed import FollowedCompaniesSource
@@ -58,14 +59,19 @@ class IncompleteSession(RuntimeError):
 
 class SessionRowsBuilder:
     def __init__(
-        self, store: RawFileStore, calendar: SessionCalendar, fno: FnoRowBuilder, followed: FollowedCompaniesSource
+        self,
+        store: RawFileStore,
+        calendar: SessionCalendar,
+        fno: FnoRowBuilder,
+        followed: FollowedCompaniesSource,
+        chain: ChainBuilder,
     ):
-        self.store, self.calendar, self.fno, self.followed = store, calendar, fno, followed
+        self.store, self.calendar, self.fno, self.followed, self.chain = store, calendar, fno, followed, chain
 
     def build(self, day: date) -> SessionRows:
         missing: list[str] = []
         series, actions = self._equity(day, missing)
-        fo = self._files(NseDailyFoSource, day - FNO_WINDOW, day, missing)
+        fo = self._files(NseDailyFoSource, min(day - FNO_WINDOW, history_start(day)), day, missing)
         indices = self._files(NseIndexCloseSource, day - INDEX_WINDOW, day, missing)
         delivery = self._file(NseDeliverySource.path_for(day), missing)
         names, members = (self._snapshot(s.path_for, day, missing) for s in (EquityListSource, Nifty500ListSource))
@@ -76,7 +82,8 @@ class SessionRowsBuilder:
         if missing:
             raise IncompleteSession(day, missing)
         names = read_equity_list(names, EquityListSource.FILENAME)
-        history = self._fno_history(fo)
+        parsed = [(d, read_fo_rows(data, name)) for d, name, data in fo]  # each file parsed once
+        history = self._fno_history([(d, rows) for d, rows in parsed if d >= day - FNO_WINDOW])
         rebased = on_todays_basis(series, actions, day)
         stocks = stock_rows(
             rebased,
@@ -90,7 +97,9 @@ class SessionRowsBuilder:
         )
         figures = [(d, read_index_figures(data, name)) for d, name, data in indices]
         nifty_500 = [r for r in stocks if UNIVERSE_NIFTY_500 in r["u"]]
-        return SessionRows(day, stocks, self.fno.rows(history, day, names), index_rows(figures), industries(nifty_500))
+        chain = self.chain.build(day, parsed, indices)
+        fno = self.fno.rows(history, day, names)
+        return SessionRows(day, stocks, fno, index_rows(figures), industries(nifty_500), chain)
 
     def symbols_to_look_up(self, day: date) -> list[str]:
         """Symbols with an unexplained price jump in the session's window whose own corporate-action list is not
@@ -155,10 +164,10 @@ class SessionRowsBuilder:
         return None
 
     @staticmethod
-    def _fno_history(fo: list[tuple[date, str, bytes]]) -> dict[str, list[UnderlyingDay]]:
+    def _fno_history(fo: list[tuple[date, list[dict[str, str]]]]) -> dict[str, list[UnderlyingDay]]:
         history: dict[str, list[UnderlyingDay]] = {}
-        for d, name, data in fo:
-            for u in underlying_days(d, read_fo_rows(data, name)):
+        for d, rows in fo:
+            for u in underlying_days(d, rows):
                 history.setdefault(u.symbol, []).append(u)
         return history
 
