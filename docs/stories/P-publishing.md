@@ -201,4 +201,4 @@ stock-tool fields, the paper books (P2).
 **Judge verifies:** rebuilds 12 Oct from the raw files and compares with the W11 examples; plants a schema break; reads
 the published rows with the dashboard role.
 
-**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** judge 49 fixes built; awaiting re-judge (claims: reviews/claude/response_50_2026-10-13-p6-nse-read-models.md, addendum 1)
+**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** done except criterion 4: judge 49 PASS round 2 (13 Oct 2026); criterion 4 blocked by the owner (`FNO_DB_URL` and the tables in `db/fno/migrations/`)
