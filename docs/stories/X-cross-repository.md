@@ -420,8 +420,10 @@ no SQL or vendor SDK in components; Buy always green and Sell always red, words 
 market.
 
 **Acceptance criteria:**
-1. Every page of the app renders inside the frame at 390, 768, 1280 and 1680 px; `node design/system/check_page.js`
-   against the running app reports no console errors, no external requests and no horizontal overflow.
+1. Every page of the app renders inside the frame at 390, 768, 1280 and 1680 px; the running-app harness
+   (`web/tests/ui/harness.mjs`, the same checks as `design/system/check_page.js`, which only opens files) reports no
+   console errors, no request off the app's origin and no horizontal overflow (corrected 13 Oct 2026, W8 builder's
+   finding).
 2. The frame matches the signed-off mockup: a side-by-side screenshot comparison at 1280 and 390 px for the
    default, dark, US and closed-market states, committed with the claims; any visible difference is listed and
    explained.
