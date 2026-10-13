@@ -1,39 +1,27 @@
-# What each publisher STORES for a block that the dashboard's route serves differently (W11 follow-ups, 13 Oct 2026).
-# The served schemas (blocks-screener.yaml) stay as they are; these are the shapes the publishers write, so a backend
-# validates its own part before publishing. tools/api/check_stored.py builds every part from the mockups' data,
-# validates it here, and checks that the route's merge or page of it validates against the served schema.
+# What publishers STORE where it differs from what the dashboard's route serves (W11 follow-ups, 13 Oct 2026): a whole
+# table the route pages (x-stored on the operation), or an input one publisher writes and another reads to build the
+# block (x-inputs). The served schemas (blocks-screener.yaml) stay as they are. tools/api/check_stored.py builds every
+# part from the mockups' data, validates it here, and checks the served examples against it; the publishing stories
+# name it as their acceptance check.
 #   x-stored-by: who writes the part, where, and under which story
 
-ScreenerSummaryNsePart:
+FollowedCompaniesIndia:
   type: object
   additionalProperties: false
   description: >-
-    India's NSE universes (every NSE stock, the Nifty 500, the F&O stocks), counted from NSE's daily files. The route
-    merges it with the stock tool's ScreenerSummaryOursPart into the served ScreenerSummary (universes all, n500, fno
-    from here; ours from there; as_of from here, served only when both parts are of the same close)
-  x-stored-by: {publisher: fno, read_model: 'fno.pages_history page screener_summary (proposed)', story: TR-NSE-proposed, status: planned}
-  required: [as_of, universes]
+    The NSE symbols of the India companies the stock tool follows: the one input it owns for the screener. exepex/trading
+    reads it to tag its NSE rows "ours" and to count the "ours" universe over its own NSE rows (delivery, 52-week range,
+    volume: inputs only NSE's files give). Orchestrator decision, 13 Oct 2026 (judge 40); it replaces the earlier split
+    in which the stock tool stored the counts
+  x-stored-by: {publisher: stock, read_model: 'rm.blocks page_key followed_companies (K5-proposed)', story: K5-proposed, status: planned}
+  required: [as_of, companies]
   properties:
-    as_of: {type: string, format: date-time}
-    universes:
-      type: object
-      additionalProperties: false
-      required: [all, n500, fno]
-      properties:
-        all: {$ref: '#/components/schemas/UniverseCounts'}
-        n500: {$ref: '#/components/schemas/UniverseCounts'}
-        fno: {$ref: '#/components/schemas/UniverseCounts'}
-ScreenerSummaryOursPart:
-  type: object
-  additionalProperties: false
-  description: >-
-    The counts over the companies the stock tool follows in India (its "ours" universe): the stock tool knows which
-    companies it follows, so it publishes this part itself (owner decision (a), 13 Oct 2026)
-  x-stored-by: {publisher: stock, read_model: 'rm.blocks page_key screener_summary_ours (K5-proposed)', story: K5-proposed, status: planned}
-  required: [as_of, ours]
-  properties:
-    as_of: {type: string, format: date-time, description: The NSE close the counts are of (equal to the NSE part's as_of when merged)}
-    ours: {$ref: '#/components/schemas/UniverseCounts'}
+    as_of: {type: string, format: date, description: 'The day the list holds from. The counts and tags of a close use the latest list dated on or before that close, never a later one (check_stored: as_of is not after the table''s close)'}
+    companies:
+      type: array
+      minItems: 1
+      uniqueItems: true
+      items: {type: string, pattern: '^[A-Z0-9&-]+$', description: NSE symbol}
 
 ScreenerStocksTable:
   type: object

@@ -21,7 +21,7 @@ ScreenerSummary:
         all: {$ref: '#/components/schemas/UniverseCounts', x-market: india}
         n500: {$ref: '#/components/schemas/UniverseCounts', x-market: india}
         fno: {$ref: '#/components/schemas/UniverseCounts', x-market: india, description: 'Stocks with F&O on NSE. India only: absent in the US'}
-        ours: {$ref: '#/components/schemas/UniverseCounts', x-catalog: {publisher: stock, source: 'the stock tool''s followed companies, counted over their rows of the day', story: K5-proposed, status: planned}, description: 'The companies the stock tool follows. In India the stock tool stores these counts as its own part (ScreenerSummaryOursPart) and the route merges them'}
+        ours: {$ref: '#/components/schemas/UniverseCounts', description: 'The companies the stock tool follows. India: exepex/trading counts them over its NSE rows, from the stock tool''s list (FollowedCompaniesIndia); US: the stock tool''s own rows'}
 UniverseCounts:
   type: object
   additionalProperties: false

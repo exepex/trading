@@ -6,12 +6,17 @@ The India blocks of the dashboard's Screener (33) and Markets overview (34) that
 
 | Page key | W11 endpoint | Stored as (W11 2.4) | Served by the route |
 |---|---|---|---|
-| `screener_summary` | `/markets/india/screener/summary` | `ScreenerSummaryNsePart` (all, n500, fno) | merged with the stock tool's `ours` part |
+| `screener_summary` | `/markets/india/screener/summary` | the served payload (all, n500, fno, ours) | as stored |
 | `screener_stocks` | `/markets/india/screener/stocks` | `ScreenerStocksTableIndia` (every row) | filtered, sorted, paged (Markets movers are pages) |
 | `fno_screener_summary` | `/markets/india/fno/screener/summary` | the served payload | as stored |
 | `fno_screener_rows` | `/markets/india/fno/screener/rows` | `FnoScreenerTable` (every row) | paged (Markets index options: four rows) |
 | `overview_indices` | `/markets/india/overview/indices` | the served payload | as stored |
 | `overview_sectors` | `/markets/india/overview/sectors` | the served payload | as stored |
+
+"ours" (the companies the stock tool follows) is counted and tagged here over the NSE rows, from the stock tool's list
+(W11 input `FollowedCompaniesIndia`, orchestrator decision of 13 Oct 2026, judge 40): a close uses the latest list dated
+on or before it (`followed.py`). Until the stock tool publishes the list (K5-proposed), lists are recorded in
+`research/data/followed-companies/india/<as_of>.json`; without a list for a close, the run stops.
 
 How each figure is computed follows the contract's own examples (dashboard `design/mockups/33-screener/fetch_nse.py`,
 `_platform/screener_data.py`, `_platform/markets_data.py`): one year and a week of capital-market and index files, three

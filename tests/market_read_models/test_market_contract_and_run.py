@@ -27,11 +27,9 @@ CALENDAR = CsvSessionCalendar(
 
 
 def example_rows() -> SessionRows:
-    """The session's rows as the W11 examples show them (their first pages; the stock tool's tag removed)."""
+    """The session's rows as the W11 examples show them (their first pages)."""
     payload = {name: copy.deepcopy(EXAMPLES[name]["value"]["payload"]) for name in EXAMPLE_PAGE_KEYS}
     stocks = payload["getScreenerStocksIndia_india"]["rows"]
-    for row in stocks:
-        row["u"] = [u for u in row["u"] if u != "ours"]
     indices = payload["getOverviewIndicesIndia_india"]["indices"] + payload["getIndiaSectors_india"]["indices"]
     for row in indices:
         row["group"] = row["kind"]
@@ -45,6 +43,7 @@ def builder() -> PublicationBuilder:
 
 def test_the_pinned_copy_matches_its_pin_and_names_the_contract_version():
     assert CONTRACT.changed_files() == [] and CONTRACT.version == "2.4.0"
+    assert "api/schemas/blocks-stored.yaml" in CONTRACT.pin["files"]
     assert CONTRACT.pin["repository"] == "exepex/omenix-dashboard" and len(CONTRACT.pin["commit"]) == 40
 
 
@@ -52,7 +51,7 @@ def test_every_block_built_from_valid_rows_validates_as_stored_and_as_served():
     publication = builder().build(example_rows())
     assert sorted(publication.records) == sorted(b.page_key for b in build_market_blocks())
     record = publication.records["screener_summary"]
-    assert set(record["payload"]["universes"]) == {"all", "n500", "fno"}  # the stock tool adds "ours" (W11 2.4)
+    assert set(record["payload"]["universes"]) == {"all", "n500", "fno", "ours"}  # ours: the followed list (judge 40)
     assert record["publication_id"] == "nse-2026-10-12-cccccccccccc" and record["product"] == "fno"
 
 
@@ -76,7 +75,7 @@ class Planted:
         ("fno_screener_summary", lambda p: p.update(extra=1)),  # an extra field
         ("overview_indices", lambda p: p["indices"][0].pop("close")),  # a missing field
         ("screener_stocks", lambda p: p["rows"][40].pop("dl")),  # a missing field beyond the first page
-        ("screener_summary", lambda p: p["universes"].update(ours=p["universes"]["all"])),  # not ours to store
+        ("screener_summary", lambda p: p["universes"].pop("ours")),  # India's summary needs the followed universe
     ],
 )
 def test_a_planted_extra_or_missing_field_fails_and_nothing_is_published(tmp_path, page_key, change):

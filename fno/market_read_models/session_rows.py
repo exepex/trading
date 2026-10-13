@@ -19,6 +19,7 @@ from ..storage.raw_store import RawFileStore
 from ..storage.snapshot_source import EquityListSource, Nifty500ListSource, SnapshotSource
 from .blocks import SessionRows
 from .fno_rows import FnoRowBuilder, UnderlyingDay, underlying_days
+from .followed import FollowedCompaniesSource
 from .index_rows import index_rows, industries
 from .nse_files import (
     read_delivery,
@@ -46,8 +47,10 @@ class IncompleteSession(RuntimeError):
 
 
 class SessionRowsBuilder:
-    def __init__(self, store: RawFileStore, calendar: SessionCalendar, fno: FnoRowBuilder):
-        self.store, self.calendar, self.fno = store, calendar, fno
+    def __init__(
+        self, store: RawFileStore, calendar: SessionCalendar, fno: FnoRowBuilder, followed: FollowedCompaniesSource
+    ):
+        self.store, self.calendar, self.fno, self.followed = store, calendar, fno, followed
 
     def build(self, day: date) -> SessionRows:
         missing: list[str] = []
@@ -56,6 +59,9 @@ class SessionRowsBuilder:
         indices = self._files(NseIndexCloseSource, day - INDEX_WINDOW, day, missing)
         delivery = self._file(NseDeliverySource.path_for(day), missing)
         names, members = (self._snapshot(s, day, missing) for s in (EquityListSource, Nifty500ListSource))
+        followed = self.followed.on_or_before(day)
+        if followed is None:
+            missing.append(f"the stock tool's followed-companies list on or before {day}")
         if missing:
             raise IncompleteSession(day, missing)
         names = read_equity_list(names, EquityListSource.FILENAME)
@@ -67,6 +73,7 @@ class SessionRowsBuilder:
             read_nifty500_list(members, Nifty500ListSource.FILENAME),
             read_delivery(delivery, NseDeliverySource.filename_for(day)),
             set(history),
+            followed.companies,
         )
         figures = [(d, read_index_figures(data, name)) for d, name, data in indices]
         nifty_500 = [r for r in stocks if UNIVERSE_NIFTY_500 in r["u"]]

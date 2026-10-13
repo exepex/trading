@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from .fno_rows import BUILDUPS
-from .stock_rows import UNIVERSE_FNO, UNIVERSE_NIFTY_500
+from .stock_rows import UNIVERSE_FNO, UNIVERSE_FOLLOWED, UNIVERSE_NIFTY_500
 
 CLOSE_UTC = "T10:00:00Z"  # NSE closes at 15:30 IST
 CURRENCY = "INR"
@@ -74,10 +74,10 @@ def in_universe(rows: list[dict], universe: str) -> list[dict]:
 
 
 class ScreenerSummaryBlock(BlockBuilder):
-    page_key, stored_schema = "screener_summary", "ScreenerSummaryNsePart"  # the route adds the stock tool's "ours"
+    page_key, served_schema = "screener_summary", "ScreenerSummaryIndiaResponse"
 
     def build(self, rows: SessionRows) -> dict:
-        universes = (UNIVERSE_ALL, UNIVERSE_NIFTY_500, UNIVERSE_FNO)
+        universes = (UNIVERSE_ALL, UNIVERSE_NIFTY_500, UNIVERSE_FNO, UNIVERSE_FOLLOWED)
         stocks = rows.stocks
         return {"as_of": as_of(rows.day), "universes": {u: universe_counts(in_universe(stocks, u)) for u in universes}}
 
