@@ -129,3 +129,12 @@ Coverage counts only scored forecasts, so pending and unscored days count as not
 
   Today no draw exists yet: the first 10 days are all audited. So this is not urgent, but it must land before the first
   weekly draw, about 10 session days from 14 Oct.
+
+**CI note on the G4 fix (orchestrator's request).**
+- 22ace2f was pushed through merge a31c36f without re-running the suite after a second pull (the builder confirms this).
+- `scoring_status` was called with 4 arguments after 0688ad5 made it 3, so CI was red on runs 332, 333 and 334.
+- **Correction to "green from 335":**
+  - runs 335 (c1bf97f) and 336 (43b92bd) were green only because they were on a line without 22ace2f;
+  - run 337 (39e9173) was red for the same 4-argument call;
+  - run 338 (1bec20d) carried the fix, 44090c1, but was red for the luck-dependent look-ahead test (judge 66);
+  - that test was fixed in 5c0b366 and 716842d; green CI 38477508528, by the orchestrator's report.
