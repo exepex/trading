@@ -1,7 +1,7 @@
 """The 3 pm quote snapshots of story A4 read back for live features (story B7): a day's canonical snapshot, with each
-contract's bid, ask and validity, the spot at capture and when the capture finished. Read-only; a day whose canonical
-marker is "none" or missing has no snapshot. A4 records no India VIX and no futures quote, so `vix` is always None
-from this source (a later recorder version can fill it)."""
+contract's bid, ask and validity, the spot at capture, when the capture finished, and (since the recorder reads them,
+13 Oct 2026) India VIX and the NIFTY futures' last prices. Read-only; a day whose canonical marker is "none" or missing
+has no snapshot; an older capture without levels has `vix` None and no futures."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from datetime import date, datetime
 from ..models import IST
 from ..quotes.recorder import NONE_MARKER, QuoteSnapshotRecorder
 from ..storage.raw_store import RawFileStore
+from .panel_reader import FutureQuote
 
 VALID = "true"
 
@@ -42,6 +43,10 @@ class CutoffSnapshot:
     spot: float | None
     vix: float | None
     quotes: tuple[LiveQuote, ...]
+    futures: tuple[FutureQuote, ...] = ()  # last price as `close`; no settlement (0.0) or open interest (0) at 3 pm
+
+    def future_for(self, expiry: date) -> FutureQuote | None:
+        return next((f for f in self.futures if f.expiry == expiry), None)
 
     def quotes_for(self, expiry: date) -> list[LiveQuote]:
         return [q for q in self.quotes if q.expiry == expiry]
@@ -72,7 +77,11 @@ def parse_snapshot(day: date, csv_bytes: bytes, meta_bytes: bytes) -> CutoffSnap
         )  # fmt: skip
         for row in csv.DictReader(io.StringIO(csv_bytes.decode()))
     )
-    return CutoffSnapshot(day, _ist(meta["finished_at"]), meta.get("spot"), meta.get("vix"), quotes)
+    futures = tuple(
+        FutureQuote(date.fromisoformat(f["expiry"]), float(f["last"]), 0.0, int(f["volume"]), 0)
+        for f in meta.get("futures", [])
+    )
+    return CutoffSnapshot(day, _ist(meta["finished_at"]), meta.get("spot"), meta.get("india_vix"), quotes, futures)
 
 
 class RecordedSnapshots:

@@ -27,6 +27,7 @@ from ..research_data.expiries import MONTHLY_LISTING_DAYS
 from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
 from .expiry_listing import ExpiryHistory, ListedExpiries
+from .market_levels import LevelSource
 from .monthly_contracts import PointInTimeMonthlies
 
 UNDERLYING = "NIFTY"
@@ -92,12 +93,12 @@ class RecordResult:
 class QuoteSnapshotRecorder:
     def __init__(self, provider: Provider, store: RawFileStore, clock_now=now_ist, sleep=clock.sleep,
                  fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None,
-                 history: ExpiryHistory | None = None):  # fmt: skip
+                 history: ExpiryHistory | None = None, levels: LevelSource | None = None):  # fmt: skip
         """The app always passes `calendar` and `history` (fno/composition.py). Without them (the A4 tests and
         byte-identical baseline), A4's rules stay: weekends are closed, a day with no same-day trade is a holiday, and
         the monthly is the last listed expiry of each month."""
         self.provider, self.store, self.now, self.sleep = provider, store, clock_now, sleep
-        self.fallback, self.calendar = fallback, calendar
+        self.fallback, self.calendar, self.levels = fallback, calendar, levels
         self.monthly_check = PointInTimeMonthlies(history) if history else None
 
     @staticmethod
@@ -178,6 +179,7 @@ class QuoteSnapshotRecorder:
                 chains.append(self.provider.chain(UNDERLYING, expiry))
         except Exception as exc:  # recorded, never hidden: the attempt is incomplete
             failures.append(f"chain: {type(exc).__name__}: {exc}")
+        levels = self.levels.levels(UNDERLYING) if self.levels else None  # inside the capture: before finished_at
         expected = sum(len(self._contracts(c)) for c in chains)
         for chain in chains:
             for strike, kind in self._contracts(chain):
@@ -205,6 +207,8 @@ class QuoteSnapshotRecorder:
         }  # fmt: skip
         if self.monthly_check is not None:
             meta["monthly_check"] = check  # verified with the NSE files that proved it, or unverified and why
+        if levels is not None:
+            meta.update(levels.meta(), levels_source=self.levels.name)  # India VIX and futures for live features
         self.store.put(self.path(day, f"{snapshot_id}.csv"), csv_bytes)
         self.store.put(self.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:

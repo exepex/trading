@@ -7,6 +7,7 @@ import pytest
 from live_fixtures import CUTOFF, DAY, DAYS, RATE, live_context, live_data, snapshot
 from lookahead_harness import LIVE_PERTURBERS, assert_no_lookahead
 
+from fno.research_engine.implied_vol import Black76
 from fno.research_engine.live_features import (
     LiveAtmIvMinusRealised,
     LiveFeature,
@@ -14,7 +15,7 @@ from fno.research_engine.live_features import (
     LiveVixAboveMedian,
 )
 
-LIVE = (LiveAtmIvMinusRealised(CUTOFF, RATE), LiveVixAboveMedian(CUTOFF), LiveScheduledEventInWindow(CUTOFF))
+LIVE = (LiveAtmIvMinusRealised(CUTOFF, RATE, Black76()), LiveVixAboveMedian(CUTOFF), LiveScheduledEventInWindow(CUTOFF))
 
 
 @pytest.mark.parametrize("day", DAYS[255:259])

@@ -1,7 +1,7 @@
 """The NIFTY panel (story A3) read back for research: every session of the manifest with its Nifty 50 and India VIX
-closes, and each day's option and future rows; before the first session, the warm-up sessions (A10) with closes only.
-Read-only; values are the panel's, never filled in: a session the panel left out (manifest status other than "ok")
-keeps no closes and no rows."""
+closes, and each day's option and future rows; before the first session read, closes-only sessions from NSE's
+index-close files (A10's file). Read-only; values are copied, never guessed: a session the panel left out (manifest
+status other than "ok") has no option or future rows and takes its closes from the index-close file if it has them."""
 
 from __future__ import annotations
 
@@ -86,27 +86,28 @@ def read_nifty_panel(
                 options.setdefault(day, []).append(_option(row, expiry))
         for row in _rows(folder, FUTURES, year):
             futures.setdefault(_day(row[F["date"]]), []).append(_future(row))
+    index_closes = _index_closes(folder)
     sessions = tuple(
-        _session(_day(day), entry, closes) for day, entry in sorted(manifest["days"].items()) if int(day[:4]) in wanted
+        _session(_day(day), entry, closes, index_closes)
+        for day, entry in sorted(manifest["days"].items())
+        if int(day[:4]) in wanted
     )
     first = sessions[0].day if sessions else None
-    warmup = _warmup_sessions(folder, first) if first else ()
+    warmup = tuple(s for day, s in index_closes.items() if first and day < first)
     return NiftyPanel(warmup + sessions, _frozen(options), _frozen(futures))
 
 
-def _warmup_sessions(folder: Path, before: date) -> tuple[SessionClose, ...]:
-    """Closes-only sessions before the first session read (story A10's index-close file; none if absent): history for
-    features, with no option or future rows. Reading later years only (story B3's discovery period) therefore gets the
-    earlier years' closes from NSE's index-close files, never from an earlier year's option rows."""
+def _index_closes(folder: Path) -> dict[date, SessionClose]:
+    """Story A10's index-close file (NSE's index-close files only; empty if absent), as closes-only sessions in date
+    order. Before the first session read they are the features' history (a later period gets earlier closes here,
+    never from an earlier year's option rows); a session the panel left out takes its closes here (30 Mar 2021: NSE
+    published no old-format F&O file, but its index-close file has the closes)."""
     path = folder / WARMUP_FILE
     if not path.is_file():
-        return ()
+        return {}
     rows = csv.DictReader(path.read_text(encoding="utf-8").splitlines())
-    return tuple(
-        SessionClose(_day(r["date"]), r["session"], float(r["underlying"]), float(r["vix"]))
-        for r in rows
-        if _day(r["date"]) < before
-    )
+    sessions = (SessionClose(_day(r["date"]), r["session"], float(r["underlying"]), float(r["vix"])) for r in rows)
+    return {s.day: s for s in sessions}
 
 
 @cache
@@ -138,8 +139,14 @@ def _future(row: list[str]) -> FutureQuote:
     )  # fmt: skip
 
 
-def _session(day: date, entry: dict, closes: dict[date, tuple[float, float]]) -> SessionClose:
-    underlying, vix = closes.get(day, (None, None)) if entry["status"] == PANEL_DAY_OK else (None, None)
+def _session(day: date, entry: dict, closes: dict, index_closes: dict[date, SessionClose]) -> SessionClose:
+    """A panel day's closes from its option rows; a day the panel left out keeps the index-close file's closes, or
+    none."""
+    if entry["status"] == PANEL_DAY_OK:
+        underlying, vix = closes.get(day, (None, None))
+    else:
+        found = index_closes.get(day)
+        underlying, vix = (found.underlying, found.vix) if found else (None, None)
     return SessionClose(day, entry["session"], underlying, vix)
 
 
