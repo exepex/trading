@@ -280,6 +280,20 @@ failures, `finished`) as a run report; `ProgressRecord` (work queue, finished co
 `FilingManifest` rows as the processed record; `ResultsTable.as_of` as the reader a routine would call. No trigger
 is built here.
 
+## Part 6. Judge's verdict (957e3b4): FAIL for now, one should-fix, fixed
+
+- **Should-fix accepted (the judge is right; checked in the code):** coverage gave every quarter of the 481
+  companies the queue had not reached "NSE's lists hold no filing" (5,778 + 5,772 false reasons). Root cause: coverage
+  could not tell a company not yet fetched from a company whose lists were read and found empty. Now coverage takes
+  the companies the progress record has finished (`ProgressRecord.fetched()`); any other company is counted as
+  **not fetched yet** (its own column and one line), and only a finished company can get a "no filing" reason. Test:
+  `test_a_company_not_fetched_yet_is_pending_never_a_gap_on_nse`.
+- **360ONE:** its 18 old-layout files have no year-layout copy yet; checked in the real progress record: 360ONE is not
+  finished and is first in the queue (481 remaining), so the next run fetches it into the layout. The old 18 stay
+  listed in `outside-layout.csv`.
+- **Criteria 2 and 6** wait on the backfill. **Criterion 5** waits on one owner step, now written as exact clicks in
+  `docs/stories/A12-owner-checklist.md` step 1 (publish the OAuth app, make a new refresh token, update one secret).
+
 ## Desk view (short)
 
 - Statistician: the table is point-in-time by `filed_at` (later of NSE's two times), but the archive's history of

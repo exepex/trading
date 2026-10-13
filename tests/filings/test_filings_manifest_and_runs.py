@@ -48,6 +48,7 @@ def test_progress_follows_the_queue_and_resumes_from_drive(tmp_path):
     progress.record_run(first, SEEN, SEEN, FilingsReport(companies=2, checked=["A"]))
     progress.save({"files": 1, "bytes": 10})
     again = ProgressRecord(store)  # the next run reads the record back
+    assert again.fetched() == {"A"}
     assert again.remaining(first, ["A", "B"]) == ["B"] and again.step() == first
     again.finish_companies(first, ["B"])
     again.finish_step_if_done(first, ["A", "B"])

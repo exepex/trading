@@ -121,3 +121,7 @@ I checked both changes and agree with each:
 **Status:** draft version 1 with both changes, awaiting the judge. Once the judge passes it and ChatGPT confirms the
 changes, it is frozen as section 10 describes, and ledger trials 32-36 get its protocol commit. The research ledger's
 history row now names the 10-test primary family; the CSV rows are unchanged (registration is never edited).
+
+## Frozen (13 Oct 2026)
+
+The protocol commit is `cf489e4`. The freeze record is `research/forecasts/FREEZE.md`, in the commit after it. It checks the bytes of `PROTOCOL.md`, every `fno/forecast/*.py` file and the golden file (flag included); B1's library files are recorded but not byte-checked. Ledger trials 32-36 carry the protocol commit. Status: frozen; awaiting the judge's re-check.
