@@ -113,3 +113,54 @@ Largest file 7.8 MB, total 46.3 MB: inside the limit, so it is committed.
    the ledger (B4), not file access (reasoning only).
 9. `--to` has no default on purpose: "the last available day" must be stated, since a session without files fails
    the build.
+
+## Judge 14 (FAIL, 1 should-fix, 6 minors): answers
+
+Verdict: `reviews/judge/judge_14_a3_nifty_panel.md`. Orchestrator decisions of 13 Oct 2026: build the futures file
+(finding 1); fix minors 2, 4 and 5; minor 3 is fixed on main in 769878d; minor 6 is known and stays as is. The
+panel was rebuilt with all changes; **the SHA-256 values in "Command output" above are superseded by the ones below.**
+
+| # | Finding | Answer | Proof |
+|---|---|---|---|
+| 1 | Should fix: futures in scope, not built | **Fixed.** New `futures_<year>.csv.gz`: every listed NIFTY index future (`IDF`/`FUTIDX`), columns `date, expiry, close, settle, volume, open_interest, underlying, source_format, session`; same deterministic writing; manifest `futures_rows` per day and file entries; a session without NIFTY futures, or a future listed twice, fails the build. Story text updated to match (`docs/stories/A-data-foundation.md`, A3 expected design) | Code: `fno/research_data/panel_rows.py:41-67` (both tables from one pass; `_add` refuses duplicates), `nifty_panel.py:106-109` (gate, counts), `panel_store.py:69-100` (`YearlyGzTable` per table). Tests: `tests/research_data/test_nifty_panel_futures.py` (`test_each_day_has_every_nifty_future_of_its_file_...` on all 5 fixture days counted from the raw file, `test_future_rows_copy_the_raw_values`, `test_a_day_without_nifty_futures_fails_the_build`, `test_a_duplicate_future_fails_the_build`); determinism test now covers both tables. Rebuild check: `check_panel.py` also recounts futures per day from the raw files and checks their underlying and session: 1,928 days, 0 problems. Real data: 3 futures on every one of the 1,928 sessions, 5,784 rows |
+| 2 | Minor: a partial-range build deletes other years | **Fixed by refusing.** `PanelSink.begin(start, end)` runs before any file is read; `CsvGzPanelFolder.begin` raises `PanelRangeError` when the range starts later or ends earlier than the existing manifest's; extending is allowed; the CLI exits 1 with the reason. Merging untouched years was not chosen: a range cutting a year in half would still lose that year's other days (reasoning only) | `panel_store.py:106-116`, `nifty_panel.py:145`, `cli.py:53`. Tests: `test_a_build_that_would_drop_days_is_refused_and_changes_nothing` (later start and earlier end, all files byte-identical after), `test_a_build_may_extend_the_panel_and_keeps_every_year`, `test_the_command_refuses_a_narrower_range` |
+| 3 | Minor: Drive store has no retry | Fixed on main by the orchestrator (769878d); included in this push | merged before this change |
+| 4 | Minor: `settle` on expiry day | **Fixed, and the judge's statement corrected with data.** Measured on every expiry-day row of the build: from 6 Feb 2020 on, an expiring option's `settle` equals that day's Nifty 50 close; up to 30 Jan 2020 it is 0.00. So it is not only a UDiFF matter (2020-2023 old-format files carry it too). README warning added | per year: 2019 all 7,868 rows 0.00; 2020 714 rows 0.00 (to 30 Jan) and 10,161 = index close (from 6 Feb); 2021-2026 all = index close. `research/data/nifty-panel/README.md`, "On its expiry day" |
+| 5 | Minor: muhurat closes not marked on rows | **Fixed.** New last column `session` (`regular`, `special`, `muhurat`) on both tables, from the calendar; README explains muhurat closes | `panel_rows.py` (row tuples), tests: every fixture day's options and futures carry their session (`test_each_day_has_every_nifty_future_..._and_every_row_its_session_kind`); `check_panel.py` checks the session of every row of every day |
+| 6 | Minor: merge commit ee29335 without trailer | Known; left as is (orchestrator). Merges now use `git fetch` + `git merge -m` with the trailer | - |
+
+Structure: row extraction moved to a new module `fno/research_data/panel_rows.py` (67 lines) so the builder stays
+small (`nifty_panel.py` 168 lines, `panel_store.py` 152); the tests' shared fixtures moved to
+`tests/research_data/panel_fixtures.py`.
+
+### Command output after the fixes (13 Oct 2026)
+
+```
+$ python -m fno nifty-panel --from 2019-01-01 --to 2026-10-12 --raw-folder <local read-only copy of Drive raw/>
+futures_2019.csv.gz: 735 rows, sha256 085e92fb5409dade2e58bfd0027c2313c9064781a39c3e38ec4b29efe8739c89
+futures_2020.csv.gz: 756 rows, sha256 899beb08590c4df740235ec610b8ef12027ee08d81d7c0e1fead981ddc2179d4
+futures_2021.csv.gz: 741 rows, sha256 ccb6252317069b2f7d1e0fe3ddfc65b1a5159c861209bf273df4210c133d24f4
+futures_2022.csv.gz: 744 rows, sha256 3c068591861ad7427bc05d9b0ecf8d33e36d511c7a9b23b37b9599256d647d5b
+futures_2023.csv.gz: 738 rows, sha256 531cfd75040677fde51490d126d242882a9bec33bfc9a3726ae1930abefa6170
+futures_2024.csv.gz: 747 rows, sha256 cf9484633ae103e71ca8de983c1ca25c97be9f044648bb82c7cc1964184a6c3c
+futures_2025.csv.gz: 747 rows, sha256 cc4244fda7692ea4792a72109a681a65e87d0baadf59d03a1645748075caaf4a
+futures_2026.csv.gz: 576 rows, sha256 4e08686ff29c60e0c5691350ec8015ee59d03304166fcb3bd7369738b9fa7644
+options_2019.csv.gz: 773,364 rows, sha256 6f7888acf91ad98d6cda57c43a59b4baa2f30e18559728e84eaf4299e48cb9a9
+options_2020.csv.gz: 736,996 rows, sha256 6ef42455e676c37f2d2afefda3c0ed3c5b95a6cc9dc530d66aeb179fae8cc56a
+options_2021.csv.gz: 510,565 rows, sha256 a71f743c748d0c11fd0d3a61835bcb596c42af1d93442825fa730bd2e588ca3d
+options_2022.csv.gz: 562,041 rows, sha256 865a79785812fa2c280a1445e12717a204aef4997143af618cc9331dd2c51744
+options_2023.csv.gz: 340,423 rows, sha256 6934492c5fabbc4efc92b0016281c0038b1ef8f6f35337fc3d1cea7f4b9c5fe2
+options_2024.csv.gz: 398,739 rows, sha256 d736337ec69b96eda8ffebf8337e25bdd70fa1e0e4c4051e5c469cac13cee15f
+options_2025.csv.gz: 395,866 rows, sha256 829ac6aed10d069a579e9628dc014555a2f20c6c4a0d39f72a57033ef45d3b43
+options_2026.csv.gz: 340,704 rows, sha256 b48a401139c8f03ab087ca4090b1fadcda0fe3de1bbc1034f0426be3a54073ac
+sessions: 1 no file, 1928 ok        (23 min 49 s)
+second build into another folder: all 17 files identical (manifest.json 89a06376...7636)
+$ python research/2026-10-13-nifty-panel/check_panel.py <raw copy>   -> 1928 days checked, 0 problem(s)
+$ python research/2026-10-13-nifty-panel/compare_extract.py          -> 249958/249958 found, 0 differences, 689 = 689 days
+$ python -m pytest -q                       -> 540 passed
+$ ruff check fno tests tools                -> All checks passed!
+$ python tools/check_imports.py             -> clean: 119 files, 1 archival skipped
+```
+
+Option row counts are unchanged from the first build; the option files' bytes changed only because of the new
+`session` column. Size now 46.7 MB in total (options 45.8 MB, futures 0.1 MB, manifest 0.8 MB); largest file 7.9 MB.
