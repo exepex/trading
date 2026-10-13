@@ -14,7 +14,6 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..ai.coverage import pack_days
-from ..ai.paths import AI_FOLDER
 from ..config import ROOT, load_app_config
 from ..constants import PIPELINE_AREA
 from ..forecast.backfill import BACKFILL_FILE
@@ -90,7 +89,7 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
     closes, calendar = CommittedClosesFile(CLOSES_FILE).closes(), build_session_calendar()
     live = live_forecasts(root / LIVE_FOLDER, receipts)
     resolvers = mode_resolvers(closes, calendar, as_of, panel_iv30(history), live.pack_iv30, history.horizon_day)
-    ai = ai_forecasts(root / AI_FOLDER, live.packs)
+    ai = ai_forecasts(root, live.packs, as_of)
     backfill = backfill_forecasts((root / BACKFILL_FILE).read_bytes(), HISTORY_START)
     scored = [f for f in backfill + live.forecasts + ai.forecasts if f.day <= as_of]
     inputs = {
@@ -104,7 +103,7 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
     context = ReportContext(
         as_of, inputs, confirmatory_allowed(as_of), live.late, tuple(live.unverified), COMMON_START,
         book_coverage(pack_days(root), scored, COMMON_START, as_of),
-        {book: sorted(labels) for book, labels in ai.isolation.items()}, tuple(ai.unscored),
+        {book: sorted(labels) for book, labels in ai.isolation.items()}, tuple(ai.unscored), tuple(ai.pending),
     )  # fmt: skip
     return report_document(context, ForecastScorer(resolvers).score(scored))
 
