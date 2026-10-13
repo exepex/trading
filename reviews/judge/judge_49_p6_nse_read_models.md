@@ -91,3 +91,51 @@ $ python -m fno market compare --day 2026-10-12                (rebuilt from the
 | The demerger rule applies "as claimed" (sessions before a no-trade ex-date dropped, figures null) | **True for the period changes; partial for 52-week** (minor 2) |
 | The schema refuses a planted extra field and nothing publishes | **True** (my real run) |
 | Atomic publishing on real Postgres | **True** (tests run against a real server) |
+
+## Addendum: round 2 (response 50, addendum 1)
+
+**Verdict on P6: PASS. Criterion 4 is still BLOCKED BY THE OWNER** (`FNO_DB_URL`).
+
+**Checks:** P6 tests 61 passed. I rebuilt 12 Oct from Drive (`market compare`) against the new pin: **21 India
+examples**.
+
+| Result | Blocks |
+|---|---|
+| 0 differences | 18 of 21, including the sectors' `.indices` (the 826 are gone) |
+| Remaining | summary 7, oversold 1, filters 1, sectors 5 (in `.industries`) |
+
+**The should-fix is ACCEPTED.**
+- Publishing reads A11's latest version, and the root also covers the reference lists.
+- The rule "publish latest, research point in time" is written into the story.
+- The real rebuild shows Nifty Capital Goods and Nifty Telecommunications.
+
+**The remaining 14 differences are the examples' error, not P6's (strong evidence; two cases checked against NSE by
+hand):**
+
+| Stock | NSE facts (bhavcopies; symbol change) | P6 publishes | My hand value |
+|---|---|---|---|
+| TMPV (TATAMOTORS until 24 Oct 2025) | Ex-date 14 Oct 2025: previous close 660.75, open 400.00, factor 1.6519. TATAMOTORS on 7 Oct 2025 (250 sessions back): 698.05. 12 Oct close 284.45. | `y1` −32.69% | 284.45 / (698.05 / 1.6519) − 1 = **−32.69%** |
+| HEGAM (HEG until 22 Sep 2026) | HEG 4 Sep 2026 close 728.25, 7 Sep open 260.00, factor 2.8010. HEG 7 Oct 2025: 510.75. HEGAM 12 Oct close 231.29. | `y1` +26.84% | 231.29 / (510.75 / 2.8010) − 1 = **+26.84%** |
+
+- **The cause:** the examples break a renamed stock's history at its rename, so they show null or partial-year
+  figures. P6 joins the history through NSE's `symbolchange.csv`, and the summary counts and industry averages move
+  with those rows.
+- **Correction to my own judge 42 addendum 3:** I called HEGAM "a new listing (14 sessions)". That was wrong. HEG
+  was renamed HEGAM on 22 Sep 2026, and its demerger (7 Sep) is filed under the new symbol.
+- **Criterion 1, now MET:** every remaining difference is traced to the example's missing join. P6's figures are the
+  correct ones by NSE's own files.
+- **For design (routed):** the 33 and 34 fetch must join renames through `symbolchange.csv`. The examples then equal
+  P6's figures.
+
+**Minors 1-4: ACCEPTED.**
+
+| Minor | What changed |
+|---|---|
+| 1 | New pin (only the examples file changed; schemas byte-identical). All 21 examples are compared through a port of the dashboard's `screener_route.py` by their own `x-query`. |
+| 2 | A history cut by an action without a price makes `h`, `l` and `va` null. A later listing keeps its range, which is right because no earlier session exists. |
+| 3 | TMPV is joined, as above. |
+| 4 | Pre-open wording fixed. |
+
+**Remaining risk (the builder's own, agreed; reasoning only):**
+- A rename with an unlisted price change inside the 0.55-1.8 jump band would pass unnoticed.
+- The jump check still guards every joined series, and the 12 Oct build passed it.
