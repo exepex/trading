@@ -1,7 +1,21 @@
 # Judge 29: story W9 re-judged (round 2)
 
-**Verdict: PASS.** Both of judge 24's should-fix findings are ACCEPTED as fixed at their root cause. Three minor
-findings remain:
+**Verdict: FAIL** (changed from PASS on 13 Oct 2026, after this file was first written). There is 1 should-fix
+finding: apply the owner's "Claude" decision.
+
+**Why it changed:** I wrote below that "Claude" on screens "stays the owner's decision and is not counted". That was
+wrong when I wrote it. The owner had already decided, at 09:55 UTC: "Screens never show 'Claude' either (owner:
+'remove')", recorded in trading `docs/DESK_DECISIONS.md` by 13986d0, before this verdict (10:09 UTC). At 1c026c4
+the screens still say "the Claude app" (companies help, the conversation channel label) and "the Claude API"
+(assistant Spend card and messages), and `lib/ui/model-names.ts` leaves "Claude" unmatched on purpose.
+- **Criterion 5 is therefore PARTLY met.**
+- The builder could not have known: 1c026c4 predates the decision.
+- **The fix is small:** "Claude" becomes a model name in the detector (the builder's "one entry"), and the copy
+  names the channel and the cost source without it (e.g. "the AI assistant app", "the AI provider's API").
+- Everything else below stands.
+
+**Earlier verdict text, kept:** PASS. Both of judge 24's should-fix findings are ACCEPTED as fixed at their root
+cause. Three minor findings remain:
 - free-text forms the generic detector still misses, or over-matches;
 - the builder's partial disagreement (rule and baseline names not allowlisted), which I accept only once minor 1 is
   closed;
@@ -60,7 +74,7 @@ As strategy names (`ai.`, `rule.` and `base.` ids):
 |---|---|---|---|---|
 | 1 | Should fix: the money check was set membership | Every money figure carries a required `data-src="<block>:<path>"`, and the check compares it with exactly that field from the app's own adapters (sign, currency, decimals). Money text without a source fails. 4 plants are injected on every run. | Code read (`home-checks.mjs`, `sources.ts`); my P1 is caught at every width with the exact field and value; full harness 148/0 | ACCEPTED |
 | 2 | Should fix: the model-name rule was a blocklist | Strategy labels come from an allowlist (family approach plus a known role; an unknown role shows the approach only). Free text goes through a generic detector by family and id shape, matching whole tokens. The harness gate uses the same detector on every page. | AI-family labels can no longer show a model, whatever the backend publishes (my Fable, o3 and odd-role cases). The garbling is gone (`claude-sonnet-5` becomes "AI team"). Remaining free-text gaps and over-matches are in minor 1. | ACCEPTED |
-| 3 | Owner: "Claude" on screens | Unchanged; one entry when the owner decides | The owner's decision, still open | Not counted |
+| 3 | Owner: "Claude" on screens | Unchanged; one entry when the owner decides | **The owner decided "remove" (13986d0, 13 Oct 09:55 UTC)**; still shown at 1c026c4 | **Should fix (new)** |
 | 4 | Minor: notes.md row 5 "Hybrid (India)" | Left frozen; listed among the differences | As judge 24 | Stays with the owner |
 | 5 | Minor: three empty states not shown by any fixture | Proposal: W10 adds empty examples (`getAttention_india_empty` and similar), giving one harness case per state without an app change | Sound: Home reads W10's examples server-side, which W9 may not edit | ACCEPTED as a proposal; stays open until W10's examples exist |
 
@@ -73,9 +87,9 @@ detector, the alternative is the strict list the builder offers ("one line").
 
 ## Criteria
 
-All 6 are MET:
-- **Criterion 4:** the exact-field check; P1 caught.
-- **Criterion 5:** every fixture state is clean, and the gate runs on every page.
+5 of 6 are MET; criterion 5 is PARTLY met:
+- **Criterion 4:** MET: the exact-field check; P1 caught.
+- **Criterion 5:** PARTLY. Every fixture state is clean of the models the detector knows, and the gate runs on every page; but "Claude", which the owner ruled a model name to remove, is still shown (see the top).
 - **Criterion 6:** 363 tests, typecheck, build and code size.
 - **Criteria 1 to 3:** unchanged since judge 24, and the harness is 148/0 again.
 
