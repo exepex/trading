@@ -29,6 +29,7 @@ from .coverage import CoverageCheck, CoverageDataset, read_exceptions
 from .google_drive import GoogleDriveStore, service_account_token
 from .google_drive_upload import GoogleDriveUploadStore
 from .librarian import RawDataLibrarian
+from .manifest_commit import GitManifestRecorder, ManifestRecorder
 from .manifest_folder import FingerprintingStore, ManifestFolder
 from .owner_token import OwnerAccessToken
 from .raw_library import RawFileLibrary
@@ -46,7 +47,8 @@ CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "c
 CALENDAR_FILE = CALENDAR_FOLDER / "nse_sessions.csv"  # NSE's sessions, from its circulars (SessionCalendar)
 COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
 REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
-MANIFEST_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "manifests"  # SHA-256 per file (A10)
+REPOSITORY = Path(__file__).resolve().parents[2]
+MANIFEST_FOLDER = REPOSITORY / "research" / "data" / "manifests"  # SHA-256 per file (A10)
 RAW_SOURCES = (NseLegacyFoSource, NseDailyFoSource, NseIndexCloseSource, ParticipantOiSource)
 
 
@@ -81,6 +83,11 @@ def build_owner_drive_store(env=os.environ, session=None) -> RawFileStore | None
 
 def build_manifest_folder() -> ManifestFolder:
     return ManifestFolder(MANIFEST_FOLDER)
+
+
+def build_manifest_recorder() -> ManifestRecorder:
+    """Commits the manifest rows of this repository (git, with its hooks)."""
+    return GitManifestRecorder(REPOSITORY, MANIFEST_FOLDER)
 
 
 def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path | None = None) -> RawFileLibrary:

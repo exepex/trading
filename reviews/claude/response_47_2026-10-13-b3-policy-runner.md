@@ -110,3 +110,23 @@ Desk reading (some evidence at most; these are the cycles the policies were chos
 - Nothing in the six criteria is unmet. The challenge itself cannot run until the protocol is frozen (by design).
 - F2 is `None` for nearly all 2019 decision days until A10 adds 2018 closes (B1 limit 1, confirmed by judge 26).
 - Discovery is in-sample and must not be read as evidence (protocol section 2).
+
+## Judge 28 minor 2 (13 Oct 2026, after story A10): look-back from index-close files only
+
+- `load_period_data` now opens only the period's own years' option and future files (plus one year after, for late
+  exits); the features' look-back before the period comes from the panel's index-close file
+  (`research/data/nifty-panel/warmup_closes.csv`, built by `python -m fno nifty-warmup` from NSE's index-close files
+  only), now extended from 2017-18 to every session up to 12 Oct 2026 (2,423 sessions; its 2017-18 rows are
+  unchanged). The panel reader puts closes-only sessions before the first session it reads.
+- Evidence: `tests/research_engine/test_period_data.py` (no earlier year's option file is opened for either period;
+  the file equals the panel's closes on every 2026 session); `tests/research_data/test_panel_reader.py` (earlier closes
+  come from the file, earlier option rows are never held). The discovery results are byte-identical before and after
+  (SHA-256 `814a79a56db4361d9925364642c791d0b82c6a7cb15f98fd18170cfe3353c98b`): the index-close closes equal those the
+  panel held.
+- **F2 in 2019:** every 2019 daily session now has a VIX close and at least 250 valid earlier VIX closes
+  (`test_every_2019_session_has_250_previous_vix_closes`), so F2 has a value on every 2019 decision day. Checked by
+  counts only; no 2019 F2 value was computed before experiment 1's freeze.
+- Two A10 tests assumed the file held 2017-18 only; they now check the pre-2019 rows as before and the whole range.
+- Found while counting for judge 34 (response 48, item 0, blocking): the engine takes 2019-2023 weekly expiries as
+  monthly (A5's 50-day listing rule; weeklies were listed up to 69 days ahead then), giving 216 challenge decision days
+  instead of about 59. This is for the A5/B2 owner to fix before the freeze.

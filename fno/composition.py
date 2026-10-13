@@ -168,10 +168,11 @@ def build_cycle_simulator(cfg: dict, panel: NiftyPanel) -> CycleSimulator:
 
 
 def load_period_data(period: Period) -> ResearchData:
-    """A period's research data (story B3): option rows only from the period's first decision day on (and only those
-    cycles use, 21+ days to expiry), so an earlier period's option outcomes are never held; index closes from the year
-    before, for the features' look-back (F1: 21 closes, F2: 250); option rows a year after the end, for late exits."""
-    years = range(period.start.year - 1, period.end.year + 2)
+    """A period's research data (story B3): option and future rows only from the period's years (option rows from its
+    first decision day on, and only those cycles use, 21+ days to expiry), plus a year after the end for late exits.
+    The features' look-back before the period (F1: 21 closes, F2: 250) comes from the panel's index-close file (NSE's
+    index-close files, story A10), so no earlier year's option file is ever opened (judge 28)."""
+    years = range(period.start.year, period.end.year + 2)
     return load_research_data(years, keep=lambda day, expiry: day >= period.start and cycle_rows(day, expiry))
 
 

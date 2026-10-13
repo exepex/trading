@@ -100,10 +100,14 @@ def features():
     return build_features(load_app_config(str(ROOT / "config.yaml")))
 
 
-def test_the_warmup_file_covers_every_2017_and_2018_session_with_index_closes_only():
+def test_the_warmup_file_covers_every_session_with_index_closes_only():
+    """Every 2017-18 session (A10), and since judge 28 every later session too (B3's look-back reads it instead of an
+    earlier year's option file)."""
     rows = list(csv.DictReader(WARMUP.read_text().splitlines()))
-    sessions = build_session_calendar().sessions(date(2017, 1, 1), date(2018, 12, 31))
-    assert [date.fromisoformat(r["date"]) for r in rows] == sessions
+    days = [date.fromisoformat(r["date"]) for r in rows]
+    calendar = build_session_calendar()
+    assert [d for d in days if d.year < 2019] == calendar.sessions(date(2017, 1, 1), date(2018, 12, 31))
+    assert days == calendar.sessions(date(2017, 1, 1), days[-1])
     assert all(r["index_file"].startswith("ind_close_all_") for r in rows)  # never an F&O file
 
 
@@ -116,7 +120,8 @@ def test_no_2017_or_2018_option_or_future_row_reaches_experiment_code(year_2019)
 
 def daily_closes(panel, through: date, value) -> list[float]:
     """Hand-made series: the warm-up file's rows, then the panel's 2019 sessions, muhurat sessions left out."""
-    warm = [float(r[value]) for r in csv.DictReader(WARMUP.read_text().splitlines()) if r["session"] != SESSION_MUHURAT]
+    rows = csv.DictReader(WARMUP.read_text().splitlines())
+    warm = [float(r[value]) for r in rows if r["session"] != SESSION_MUHURAT and r["date"] < "2019-01-01"]
     later = [getattr(s, "underlying" if value == "underlying" else "vix") for s in panel.sessions]
     later = [v for s, v in zip(panel.sessions, later) if date(2019, 1, 1) <= s.day <= through]
     return warm + later

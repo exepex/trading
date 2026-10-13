@@ -1,6 +1,7 @@
-"""Warm-up closes before the NIFTY panel's first session (story A10): the NIFTY 50 and India VIX close of every NSE
-session from 2017 to 2018, read from NSE's index-close files, so the 2019 features have their history (F2 needs the
-previous 250 India VIX closes, F1 the previous 21 NIFTY 50 closes).
+"""Index closes of every NSE session (story A10): the NIFTY 50 and India VIX close of each session from 2017 on, read
+from NSE's index-close files, so features have their history before the first year a run reads (F2 needs the previous
+250 India VIX closes, F1 the previous 21 NIFTY 50 closes): 2017-18 for 2019, and, since judge 28, any earlier year for
+a later period (story B3's discovery reads 2023's closes here, never 2023's option file).
 
 Index closes only, never an option or future row: the 2017-18 F&O files are never opened (no experiment may see a
 2018 outcome). A session without its file or either close fails the whole build, naming the days; nothing is written.

@@ -151,3 +151,52 @@ payloads.
 **Judge verifies:** compares one posted message with its payloads.
 
 **Depends:** P2 · **Size:** S · **Status:** later
+
+---
+
+## P6. NSE market read models for the Screener and Markets
+
+**Repository:** trading
+
+**Description:** As the owner, I want the India Screener (33) and Markets (34) screens fed from NSE's own daily files,
+published by this repository, so that the signed-off screens show real data instead of examples.
+
+**Context and why:** Owner decision (13 Oct 2026, DESK_DECISIONS): exepex/trading publishes NSE's daily market files for
+the dashboard. The blocks and their schemas are the dashboard's W11 contract (omenix-dashboard `api/`, catalog marks
+them "publisher fno, not published today"). This repository already downloads, verifies and archives NSE files (A1, A9,
+A10); it does not yet publish market read models.
+
+**Scope.** In: the India blocks W11 assigns to publisher `fno` (screener summary and stock rows, F&O screener summary and
+rows, indices and sectors overview, breadth, movers, index-option rows) built from archived NSE files, validated
+against the W11 JSON schemas, and published through a `ReadModelPublisher` interface. Out: US blocks (stock tool),
+stock-tool fields, the paper books (P2).
+
+**Expected design:**
+- New raw datasets as needed (equity bhavcopy, delivery, index file with P/E, P/B, yield) archived through the A9
+  librarian with fingerprints (A10); coverage and manifests like the others.
+- `fno/market_read_models/`: one small builder class per block, each a pure function of archived files for one
+  session; no network in builders.
+- `ReadModelPublisher` interface; first adapter writes the blocks to the Azure `fno` read-model tables with the X1
+  publisher role (credential only in environment settings), atomically per session (all blocks or none); a local file
+  adapter for tests. Wired only in the composition root.
+- Every payload is validated against the W11 schema copied from omenix-dashboard (pinned by contract version and
+  SHA-256; a test fails if the pinned copy differs from the dashboard's published version).
+- A daily routine after NSE's evening files: fetch, verify, build, validate, publish; alerts to #fno-desk on any
+  failure; never publishes a partial session.
+
+**Acceptance criteria:**
+1. For 12 Oct 2026, every built block equals the W11 example payload for India field by field (the examples were made
+   from the same NSE files), except fields W11 marks as derived elsewhere.
+2. Every payload validates against the pinned W11 schema; a planted extra or missing field fails the run.
+3. Publishing is atomic per session: a failure in any block leaves the previous session's blocks unchanged (test with
+   a failing adapter).
+4. A real publish of 12 Oct to Azure succeeds with the publisher role, and a read with the dashboard role returns the
+   same payloads (evidence redacted like X1).
+5. New raw datasets are complete in Drive with fingerprints for 2025-10-13 to 2026-10-12 (one year, what the 1Y views
+   need), coverage 0 missing, 0 damaged.
+6. Code size, lint, imports, tests pass; no US block is built here.
+
+**Judge verifies:** rebuilds 12 Oct from the raw files and compares with the W11 examples; plants a schema break; reads
+the published rows with the dashboard role.
+
+**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** later

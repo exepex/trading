@@ -36,11 +36,13 @@ daily files by
 
 ## Warm-up closes (story A10)
 
-`warmup_closes.csv`: the NIFTY 50 and India VIX close of every NSE session of 2017 and 2018, columns
+`warmup_closes.csv`: the NIFTY 50 and India VIX close of every NSE session from 2017 (since 13 Oct 2026: to
+12 Oct 2026, 2,423 sessions, including 2021-03-30 that the panel leaves out), columns
 `date, session, underlying, vix, index_file, index_sha256`, from NSE's index-close files only, built by
-`python -m fno nifty-warmup [--from 2017-01-01] [--to 2018-12-31]` (`fno/research_data/warmup_closes.py`). The panel
-reader puts these days before the panel's first session as closes-only sessions (no option or future rows), so the
-2019 features have their history: F2 needs the previous 250 India VIX closes and 2018 has only 245 daily sessions,
+`python -m fno nifty-warmup --from 2017-01-01 --to YYYY-MM-DD` (`fno/research_data/warmup_closes.py`). The panel
+reader puts these days before the first session it reads as closes-only sessions (no option or future rows), so a run
+that reads 2024 on (experiment 1's discovery) gets 2023's closes here, never from 2023's option file (judge 28); for
+2019 on: F2 needs the previous 250 India VIX closes and 2018 has only 245 daily sessions,
 hence 2017 too. 2017-18 F&O files are never opened. A session without its file or either close fails the build and
 nothing is written. Muhurat sessions are kept with `session` = `muhurat` (the features leave them out).
 

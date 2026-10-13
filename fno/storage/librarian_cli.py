@@ -1,6 +1,7 @@
 """`python -m fno data-librarian <dataset>`: fills a dataset's gaps in the owner's Google Drive from NSE (story A9).
 
-Resumable: run it again after a stop and it fetches only what is still missing. A refused Drive sign-in stops the
+Resumable: run it again after a stop and it fetches only what is still missing. The manifest rows it wrote are
+committed and pushed at the end of every run, finished or stopped. A refused Drive sign-in stops the
 run with a clear error and an alert to #fno-desk naming the owner's fix; nothing is skipped silently.
 """
 
@@ -10,6 +11,7 @@ from datetime import date, timedelta
 from functools import partial
 
 from ..alerts.sender import AlertSender
+from .manifest_commit import ManifestRecorder
 from .owner_token import DriveSignInRefused
 from .raw_source import RawSourceUnavailable
 
@@ -47,10 +49,11 @@ def add_librarian_parser(subparsers) -> None:
 
 def cmd_data_librarian(args) -> int:
     from ..composition import build_alert_sender
-    from .wiring import build_librarian
+    from .wiring import build_librarian, build_manifest_recorder
 
     build = partial(build_librarian, args.dataset, log=print_now)
-    return run_librarian(build, build_alert_sender(), args.start, args.end)
+    recorder, what = build_manifest_recorder(), f"data-librarian {args.dataset}"
+    return run_librarian(build, build_alert_sender(), recorder, what, args.start, args.end)
 
 
 def print_now(line: str) -> None:
@@ -58,7 +61,17 @@ def print_now(line: str) -> None:
     print(line, flush=True)
 
 
-def run_librarian(build, alerts: AlertSender, start: date, end: date, out=print) -> int:
+def run_librarian(
+    build, alerts: AlertSender, recorder: ManifestRecorder, what: str, start: date, end: date, out=print
+) -> int:
+    """Runs the librarian, then commits the manifest rows it wrote, whether the run finished or stopped."""
+    try:
+        return _fill(build, alerts, start, end, out)
+    finally:
+        out(recorder.commit(what))
+
+
+def _fill(build, alerts: AlertSender, start: date, end: date, out) -> int:
     from .librarian import fill_report_lines
 
     try:
