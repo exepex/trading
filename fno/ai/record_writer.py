@@ -16,12 +16,10 @@ from ..forecast.schema_v2 import ForecastRecordV2
 from ..models import IST
 from .outcome import Outcome
 from .paths import audit_path, records_path
+from .versions import version_by_label
 
 LIVE_MODE, CUTOFF_HOUR = "live_1500_proxy", 15
 ALREADY = "already recorded"
-ISOLATION = (
-    "sealed_same_day"  # the other AI book's answer was sealed; full F1 isolation (no repository) is not in force
-)
 
 
 class AiRecordWriter:
@@ -58,7 +56,7 @@ class AiRecordWriter:
     def _audit(day: date, outcome: Outcome, fired: dict) -> str:
         audit = {
             "book": outcome.book, "day": day.isoformat(), "version": outcome.version, "status": outcome.status,
-            "isolation": ISOLATION, "notes": outcome.notes,
+            "isolation": version_by_label(outcome.version).isolation, "notes": outcome.notes,
             "commitment_received_at": outcome.committed_at.isoformat() if outcome.committed_at else None,
             "reveal_received_at": outcome.revealed_at.isoformat() if outcome.revealed_at else None,
             "model_reported": outcome.model_reported, "model_check": outcome.model_check,

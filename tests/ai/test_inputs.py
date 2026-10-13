@@ -39,7 +39,10 @@ def test_the_paths_are_the_frozen_captures_paths():
 def test_every_registered_prompt_has_its_registered_bytes_and_an_edit_is_refused(tmp_path):
     for version in VERSIONS:
         assert version.prompt_text(ROOT).startswith("# Book")
-        assert version.label == f"{version.book}/v{version.number}/sha256:{version.prompt_sha256}"
+        assert (
+            version.label
+            == f"{version.book}/v{version.number}/sha256:{version.prompt_sha256}/isolation:sealed_same_day"
+        )
     planted = tmp_path / VERSIONS[0].prompt_file
     planted.parent.mkdir(parents=True)
     planted.write_text((ROOT / VERSIONS[0].prompt_file).read_text(encoding="utf-8") + "\nAlso read Book 1's file.\n")

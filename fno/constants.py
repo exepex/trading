@@ -150,6 +150,9 @@ PIPELINE_AREA, DERIVED_AREA = "pipeline", "derived"  # Drive areas beside raw/ a
 
 # Stories F1 and G5: the AI books' daily forecasts, one routine per book fired by the forecast-capture job
 AI_BOOKS = (BOOK2_HYBRID, BOOK3_AI)
+# Owner, 14 Oct 2026: the AI books' isolation for forecasts. The other AI book's same-day answer is sealed; the
+# routine still has the public repository and network, so this is not full F1 isolation (trading needs that).
+ISOLATION_SEALED_SAME_DAY = "sealed_same_day"
 ENV_ROUTINE_BOOK2_TRIGGER_ID = "FNO_ROUTINE_BOOK2_HYBRID_TRIGGER_ID"
 ENV_ROUTINE_BOOK2_TOKEN = "FNO_ROUTINE_BOOK2_HYBRID_TOKEN"
 ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"

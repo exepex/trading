@@ -2,7 +2,7 @@
 the day's v2 pack: one pointer per book to its own routine (O6's `/fire` trigger), Hybrid's with the rules' numbers,
 the AI team's without. The fire log (`<d>_fired.json`, committed with the records after 15:15) keeps each routine's
 session link for the audit. Fired once per day; every failure posts one #fno-desk line and is recorded, never retried
-with more time."""
+with more time. A book stopped by two transcript breaches (`stop_rule.py`) is not fired."""
 
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ from ..pipeline.trigger import FireFailed, RoutineTrigger
 from .paths import fired_path, pack_path
 from .pointer import BookPointer
 from .rules import RulesMissing, rules_of_day
+from .stop_rule import stop_reason
 from .versions import current_version
 
 LINE = "Omenix F&O AI forecasts (GitHub Actions): {day}: {result}"
@@ -47,6 +48,10 @@ class AiBookFirer:
     def _fire_one(self, day: date, book: str, pack_sha: str) -> dict:
         version = current_version(book).label
         entry = {"version": version, "fired_at": self.clock().isoformat()}
+        stopped = stop_reason(self.root, book, version, day)
+        if stopped:
+            self.alerts.send(LINE.format(day=day, result=f"{book} not fired: {stopped}"))
+            return entry | {"fired": False, "reason": stopped}
         try:
             rules = rules_of_day(self.root, day) if book == BOOK2_HYBRID else None
             session = self.triggers[book].fire(BookPointer(book, day, pack_sha, version, rules))
