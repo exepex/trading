@@ -40,6 +40,7 @@ class KindCoverage:
     unfingerprinted: list[str] = field(default_factory=list)
     gaps: list[FilingGap] = field(default_factory=list)
     missing_periods: list[str] = field(default_factory=list)  # "SYMBOL: reason", explained, not damage
+    pending: list[str] = field(default_factory=list)  # companies whose lists are not fetched yet (queue not there)
     outside_layout: list[str] = field(default_factory=list)  # files directly in a company folder (trial, 13 Oct 2026)
 
     @property
@@ -52,11 +53,13 @@ class FilingsCoverage:
         self.store, self.manifest, self.gaps = store, manifest, gaps
 
     def run(
-        self, companies: Sequence[str], today: date, kinds: Sequence[str] = FILING_FILE_KINDS
+        self, companies: Sequence[str], today: date, fetched: set[str], kinds: Sequence[str] = FILING_FILE_KINDS
     ) -> list[KindCoverage]:
-        return [self._kind(kind, companies, today) for kind in kinds]
+        """`fetched`: the companies whose NSE lists the archive has read in full (the progress record's finished
+        ones). Only they can have a quarter "NSE's lists hold no filing for"; the rest are pending, not gaps."""
+        return [self._kind(kind, companies, today, fetched) for kind in kinds]
 
-    def _kind(self, kind: str, companies: Sequence[str], today: date) -> KindCoverage:
+    def _kind(self, kind: str, companies: Sequence[str], today: date, fetched: set[str]) -> KindCoverage:
         result = KindCoverage(kind, len(companies), gaps=[g for g in self.gaps if g.kind == kind])
         by_company: dict[str, list[ArchivedFiling]] = {}
         for row in self.manifest.rows(kind).values():
@@ -66,6 +69,9 @@ class FilingsCoverage:
             result.covered += bool(rows)
             result.files += len(rows)
             self._check_folder(kind, symbol, rows, result)
+            if symbol not in fetched:
+                result.pending.append(symbol)
+                continue
             held = {r.filing.period_end for r in rows}
             result.missing_periods += [
                 f"{symbol}: {NO_PERIOD.format(kind=kind, end=end)}"

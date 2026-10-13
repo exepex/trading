@@ -49,6 +49,10 @@ class ProgressRecord:
         done = set(self.state["done"].get(step.name, [])) if step else set()
         return [c for c in companies if c not in done]
 
+    def fetched(self) -> set[str]:
+        """Every company some step has finished: its NSE lists were read in full at least once."""
+        return {s for done in self.state["done"].values() for s in done}
+
     def since(self, step: Step | None, today: date) -> date:
         return step.since if step else today - DAILY_LOOKBACK
 

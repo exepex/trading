@@ -22,7 +22,7 @@ def build(tmp_path):
 
 
 def test_counts_companies_files_and_checks_each_copy(tmp_path):
-    (result, *_) = build(tmp_path).run(["A", "B", "C"], TODAY, [FILING_RESULTS])
+    (result, *_) = build(tmp_path).run(["A", "B", "C"], TODAY, {"A", "B", "C"}, [FILING_RESULTS])
     assert (result.companies, result.covered, result.files, result.present) == (3, 2, 2, 2)
     assert result.ok and [g.symbol for g in result.gaps] == ["C"]
     missing = [line.split(": ", 1) for line in result.missing_periods]  # the only quarter due is September 2023
@@ -34,7 +34,7 @@ def test_a_changed_copy_is_damaged_and_an_unlisted_file_unfingerprinted(tmp_path
     (tmp_path / "drive" / FOLDER / "A" / "2025" / "A1.xml").write_bytes(b"other bytes")
     (tmp_path / "drive" / FOLDER / "B" / "2025" / "PLANTED.xml").write_bytes(b"x")
     (tmp_path / "drive" / FOLDER / "B" / "OLD.xml").write_bytes(b"x")  # the trial's layout, before year folders
-    (result,) = coverage.run(["A", "B", "C"], TODAY, [FILING_RESULTS])
+    (result,) = coverage.run(["A", "B", "C"], TODAY, {"A", "B", "C"}, [FILING_RESULTS])
     assert result.damaged == ["A/2025/A1.xml: MD5 differs"] and result.unfingerprinted == ["B/2025/PLANTED.xml"]
     assert result.outside_layout == ["B/OLD.xml"]
     lines = filings_coverage_lines([result], {})
@@ -67,3 +67,13 @@ def test_quarters_due_follow_sebi_deadlines():
     assert quarter_ends(date(2024, 5, 30), "results-xbrl")[-1] == date(2023, 12, 31)  # March needs 60 days
     assert quarter_ends(date(2024, 5, 31), "results-xbrl")[-1] == date(2024, 3, 31)
     assert quarter_ends(date(2024, 4, 22), "shareholding-xbrl")[-1] == date(2024, 3, 31)  # 21 days
+
+
+def test_a_company_not_fetched_yet_is_pending_never_a_gap_on_nse(tmp_path):
+    """Judge, 13 Oct 2026: before the queue reaches a company, coverage must not say NSE has no filing for it."""
+    (result,) = build(tmp_path).run(["A", "B", "C"], TODAY, {"A"}, [FILING_RESULTS])
+    assert result.pending == ["B", "C"]
+    assert [line.split(":")[0] for line in result.missing_periods] == ["A"]  # only a list read in full may say so
+    lines = filings_coverage_lines([result], {})
+    assert "results-xbrl: 2 companies not fetched yet (the work queue has not reached them)" in lines
+    assert not any(line.startswith(("no file B", "no file C")) for line in lines)
