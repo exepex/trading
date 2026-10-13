@@ -108,3 +108,12 @@ the owner's "design for change" rule. Fix:
 The review request is `reviews/claude/response_57_g1-protocol-for-review.md`. Criterion 3 (frozen before the first
 scored forecast) is therefore not met until the agreed version is frozen. No forecast exists, so nothing is lost.
 
+
+**Golden values and the 30 Mar 2021 index closes (orchestrator's question).** B7's reader change (commit `9f39718`) now
+gives the panel's left-out day 30 Mar 2021 NSE's index closes (NIFTY 14,845.10, India VIX 20.65). The golden file was
+built after that change: `9f39718` is an ancestor of the commit that added it (`769fac7`, checked with `git merge-base
+--is-ancestor`), and `python tools/forecast_golden.py` on current main reports "golden values unchanged on 1921 days".
+- **The window:** 18 golden days fall in the affected window, from 31 Mar to 28 Apr 2021, and their trailing RV20 includes the 30 Mar close.
+- **30 Mar 2021 itself:** not a golden day. It has no option rows (NSE never published its old-format F&O file), so it
+  has no IV30.
+- **Effect:** IV30 does not depend on that close at all.
