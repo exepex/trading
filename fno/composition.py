@@ -28,6 +28,8 @@ from .market_read_models.blocks import (
     SectorsBlock,
 )
 from .market_read_models.contract import GitHubRawContract, PinnedContract, PublishedContract
+from .market_read_models.db_check import DatabaseCheck, url_user
+from .market_read_models.db_connection import VerifiedConnection
 from .market_read_models.fno_rows import FnoRowBuilder
 from .market_read_models.followed import FollowedCompaniesFolder
 from .market_read_models.local_publisher import LocalFolderPublisher
@@ -286,6 +288,7 @@ def run_live_validation(cfg: dict, live_name: str, today: date) -> ValidationRep
 
 
 CONTRACT_FOLDER = ROOT / "contracts" / "omenix-dashboard"  # the pinned W11 contract (story P6)
+AZURE_POSTGRES_ROOTS = ROOT / "db" / "fno" / "azure-postgres-roots.pem"  # the CAs the publisher trusts (P6)
 DASHBOARD_REPOSITORY = "exepex/omenix-dashboard"
 FOLLOWED_COMPANIES_FOLDER = ROOT / "research" / "data" / "followed-companies" / "india"  # W11 input (judge 40)
 
@@ -308,10 +311,19 @@ def build_read_model_publisher(local_folder: Path | None = None) -> ReadModelPub
     """A local folder when given (tests, dry runs), else the Azure fno schema with the publisher role's URL."""
     if local_folder is not None:
         return LocalFolderPublisher(local_folder)
+    return PostgresPublisher(_database_url(), VerifiedConnection(AZURE_POSTGRES_ROOTS))
+
+
+def build_database_check() -> DatabaseCheck:
+    """`market db-check`: connects as the publisher would (TLS, pinned roots) and reads its identity and rights."""
+    return DatabaseCheck(_database_url(), VerifiedConnection(AZURE_POSTGRES_ROOTS), url_user)
+
+
+def _database_url() -> str:
     url = os.environ.get(ENV_FNO_DB_URL)
     if not url:
         raise RuntimeError(f"set {ENV_FNO_DB_URL} (the fno publisher role's connection string) to publish to Azure")
-    return PostgresPublisher(url)
+    return url
 
 
 def build_market_run(cfg: dict, publisher: ReadModelPublisher) -> MarketRun:

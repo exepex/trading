@@ -7,6 +7,7 @@ market publish --day D [--local FOLDER]   build, validate and publish one sessio
 market compare --day D          compare the built blocks with the pinned W11 examples, field by field
 market contract-check           compare the pinned W11 contract with the dashboard's published one
 market look-up --day D          archive the own corporate-action lists of symbols with an unexplained jump
+market db-check                 connect as the publisher (TLS, pinned roots) and read only its identity and rights
 """
 
 from __future__ import annotations
@@ -32,13 +33,14 @@ def add_market_parser(subparsers) -> None:
     actions.add_parser("contract-check", help="compare the pinned W11 contract with the dashboard's")
     look_up = actions.add_parser("look-up", help="archive the own corporate-action lists the session needs")
     look_up.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
+    actions.add_parser("db-check", help="connect as the publisher and read only its identity and rights")
     market.set_defaults(func=cmd_market)
 
 
 def cmd_market(args) -> int:
     handlers = {
         "daily": _daily, "publish": _publish, "compare": _compare, "contract-check": _contract_check,
-        "look-up": _look_up,
+        "look-up": _look_up, "db-check": _db_check,
     }  # fmt: skip
     return handlers[args.market_cmd](args)
 
@@ -102,6 +104,14 @@ def _archive_revisions(day: date) -> None:
         source_type = wiring.FINGERPRINT_SOURCES[name]
         sweep_revisions(wiring.build_revision_capturing_source(source_type, archive), [source_type.path_for(day)])
     print("\n".join(revision_lines(archive)) or f"{day}: no newer NSE versions")
+
+
+def _db_check(args) -> int:
+    from ..composition import build_database_check
+
+    code, lines = build_database_check().run()
+    print("\n".join(lines))
+    return code
 
 
 def _look_up(args) -> int:
