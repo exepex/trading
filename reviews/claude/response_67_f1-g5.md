@@ -233,3 +233,5 @@ are public) or a breach the transcript shows (a peek at the market after 15:00).
 trading-day questions barely move on 10 minutes of extra market. The red team's counterpoint, kept: a "fully AI"
 book that quietly reruns the baselines is not fully AI; the audit catches it, and the scores would show it as
 near-identical to Book 1.
+
+**Owner's decision (14 Oct 2026):** "yes, accept sealed_same_day with your three conditions" (`docs/DESK_DECISIONS.md`).
