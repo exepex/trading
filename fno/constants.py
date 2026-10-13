@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import time
+
 # Environment variable names (values are never stored in files).
 # Groww Trade API (market data only; the tool never places orders)
 ENV_GROWW_ACCESS_TOKEN = "GROWW_ACCESS_TOKEN"
@@ -72,3 +74,10 @@ ENV_GDRIVE_OAUTH_CLIENT_ID = "FNO_GDRIVE_OAUTH_CLIENT_ID"
 ENV_GDRIVE_OAUTH_CLIENT_SECRET = "FNO_GDRIVE_OAUTH_CLIENT_SECRET"
 ENV_GDRIVE_OAUTH_REFRESH_TOKEN = "FNO_GDRIVE_OAUTH_REFRESH_TOKEN"
 DRIVE_FULL_SCOPE = "https://www.googleapis.com/auth/drive"  # needed to add files inside the owner's existing folders
+
+# Research features (story B1, fno/research_engine/): the names policies refer to, and when a day's close is known
+FEATURE_ATM_IV_MINUS_RV20 = "F1_atm_iv_minus_rv20"  # ATM implied minus past 20-day realised volatility, in points
+FEATURE_VIX_ABOVE_MEDIAN = "F2_vix_above_250d_median"  # India VIX close above its previous 250 closes' median
+FEATURE_EVENT_IN_WINDOW = "F3_scheduled_event_in_window"  # a known scheduled event after entry, up to exit
+SESSION_CLOSE_TIME = time(15, 30)  # IST: a regular or special session's closing prices exist from here
+OPTION_CALL, OPTION_PUT = "CE", "PE"

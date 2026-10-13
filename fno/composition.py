@@ -19,12 +19,20 @@ from .quotes.recorder import QuoteSnapshotRecorder
 from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .record_scan.scanner import RecordScanner
 from .research_data.availability import AvailabilityRule, LastWriteBoundRule
+from .research_data.events import read_events
 from .research_data.last_written import latest_writes, read_last_modified_table
+from .research_data.panel_reader import read_nifty_panel
 from .research_data.positioning import PointInTimeParticipantOi
 from .research_data.release_times import ReleaseLog, ReleaseTimeRecorder, choose_availability_rule, last_written_times
 from .research_data.write_sweep import LastWriteSweep, read_sweeps
+from .research_engine.event_features import ScheduledEventInWindow
+from .research_engine.features import Feature, ResearchData
+from .research_engine.implied_vol import Black76
+from .research_engine.volatility_features import AtmIvMinusRealised, VixAboveMedian
 from .storage.raw_source import ParticipantOiSource
 from .storage.wiring import (
+    EVENTS_FILE,
+    PANEL_FOLDER,
     PARTICIPANT_OI_LAST_MODIFIED,
     PARTICIPANT_OI_RELEASE_LOG,
     PARTICIPANT_OI_SWEEPS,
@@ -114,3 +122,14 @@ def build_point_in_time_participant_oi(project_folder: Path | None = None) -> Po
         build_session_calendar(),
         build_participant_oi_rule(),
     )
+
+
+def build_features(cfg: dict) -> tuple[Feature, ...]:
+    """Experiment 1's daily-close features (story B1). F1 prices on the same-expiry future with Black-76 (story B1 note
+    of 13 Oct 2026); the `risk_free_rate` setting only discounts."""
+    return (AtmIvMinusRealised(Black76(), cfg["risk_free_rate"]), VixAboveMedian(), ScheduledEventInWindow())
+
+
+def load_research_data(years=None, keep=None) -> ResearchData:
+    """The repository's NIFTY panel (story A3; `years` and `keep` as in `read_nifty_panel`) and events calendar (A6)."""
+    return ResearchData(read_nifty_panel(PANEL_FOLDER, years, keep), tuple(read_events(EVENTS_FILE.read_text())))

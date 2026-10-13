@@ -64,8 +64,8 @@ fno/
   quotes/            3 pm quote recorder and spread report (story A4)
   storage/           raw file stores and sources (NSE archives, local folder, Google Drive)
   fo_bhavcopy.py     NSE F&O daily file reader (old and current formats)
-  research_data/     expiry dates and the events calendar
-  research_engine/   trial ledger and its guard (story B4)
+  research_data/     expiry dates, the events calendar, the NIFTY panel and its reader
+  research_engine/   trial ledger and its guard (story B4); features F1-F3 with availability times, Black-76 IV (B1)
   record_scan/       public-record safety scan: patterns, scanner, which files (story O5)
   alerts/            alert sender to Slack #fno-desk (used by the record scan; P4 extends it)
   accounting/        research ledgers
