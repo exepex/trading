@@ -255,7 +255,7 @@ second publisher for the same block would make two sources of truth. Needs a dec
 either W11 moves the block to publisher `fno` (then this story builds the download and the block against it), or the
 block stays with the stock tool and only a raw archive here is wanted (research use), or nothing is built.
 
-**Status:** built; awaiting judge (contract 2.5 page `flows`; response 66, addenda on contract 2.5 and judge 66's flows window)
+**Status:** done for the built data and page: judge 66 items 1-3 and addenda 1-2 PASS (contract 2.5 page `flows`, filed-by-session window); live publish read-back at 07:10 IST 14 Oct pending (judge 66 item 4)
 
 ---
 
@@ -314,4 +314,4 @@ contract:** a reason code for the empty picks state (W10's `FnoPicks` has only `
 4. A book with an open trade stops the run rather than publish a risk figure this story does not compute.
 5. Size, lint, imports, tests pass.
 
-**Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built criteria PASS (judge 61 and addendum 1; page keys today and risk); contract 2.5 blocks (India band, expiries) awaiting judge (claims: response 66, addendum P10 and addendum on contract 2.5)
+**Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built criteria PASS (judge 61 and addendum 1; page keys today and risk); contract 2.5/2.6 blocks (India band, expiries, session hours_status) PASS (judge 66 items 1-3, addendum 2); live publish read-back at 07:10 IST 14 Oct pending
