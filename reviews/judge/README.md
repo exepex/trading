@@ -11,3 +11,11 @@ Written only by the independent judge session (`docs/JUDGE.md`). One file per ve
 | 3 | X1 Azure PostgreSQL (omenix-dashboard platform/) | FAIL (1 blocking = owner real-server runs pending, 2 should fix, 4 minor) | `judge_3_x1_azure_postgres.md` |
 | 4 | O5 public-record safety scan, round 2 (re-judge) | PASS (judge 2 findings all accepted; 4 new minor) | `judge_4_o5_record_scan_rejudge.md` |
 | 5 | X1 Azure PostgreSQL, round 2 (re-judge; omenix-dashboard 00c44ed/8ea2757) | FAIL (owner runs pending; 1 should fix: exception 2 understated, large objects in other databases; 1 minor) | `judge_5_x1_azure_postgres_rejudge.md` |
+| 6 | C1 cost and tax accountant, three ledgers | FAIL (1 should fix: no test that a non-reconciling ledger fails; 4 minor) | `judge_6_c1_three_ledgers.md` |
+| 7 | A5 monthly-expiry identity | FAIL (1 should fix: quote recorder still uses the last-of-month rule, picks the 30 Apr 2025 weekly; 2 minor) | `judge_7_a5_monthly_expiry.md` |
+| 8 | A6 events calendar | FAIL (1 should fix: rescheduled meetings unknown before the reschedule; criteria 4 and 5 pending F3 and the challenge run; 3 minor) | `judge_8_a6_events_calendar.md` |
+| 9 | X1 Azure PostgreSQL, round 3 (omenix-dashboard 0fa812f) | FAIL for owner action only (judge 5 findings A, B accepted; builder side clean; 2 minor) | `judge_9_x1_azure_postgres_rejudge2.md` |
+| 10 | C1 three ledgers, round 2 (re-judge) | PASS (judge 6 findings all accepted; 1 new minor) | `judge_10_c1_three_ledgers_rejudge.md` |
+| 11 | A6 events calendar, round 2 (re-judge) | FAIL pending only (judge 8 findings all accepted; criteria 4 and 5 wait on F3 and the challenge run); C1 58323c5 spot-checked | `judge_11_a6_events_calendar_rejudge.md` |
+| 12 | A7 recorder uses the session calendar | PASS (4 minor; trigger prompt stale) | `judge_12_a7_session_calendar.md` |
+| 13 | A5 monthly expiry, round 2 (re-judge) | PASS (recorder now uses monthly_as_of, verified on real NSE files; judge 7 minors 2-3 accepted as open; 2 new minor) | `judge_13_a5_monthly_expiry_rejudge.md` |

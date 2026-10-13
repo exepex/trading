@@ -29,13 +29,27 @@ class ListedExpiries(ABC):
         """Every listed option expiry of the underlying, and where the list came from (file, date, SHA-256)."""
 
 
-class NseDailyFileExpiries(ListedExpiries):
+class ExpiryHistory(ABC):
+    @abstractmethod
+    def listed_on(self, underlying: str, day: date) -> tuple[date, list[date], dict]:
+        """What NSE had listed by `day`: the date of its latest file on or before `day`, every option expiry of the
+        underlying in it, and where it came from."""
+
+
+class NseDailyFileExpiries(ListedExpiries, ExpiryHistory):
     def __init__(self, library: RawFileLibrary):
         self.library = library
 
     def listed(self, underlying: str, today: date) -> tuple[list[date], dict]:
-        for back in range(1, LOOKBACK_DAYS + 1):
-            day = today - timedelta(days=back)
+        return self._latest(underlying, today - timedelta(days=1))[1:]
+
+    def listed_on(self, underlying: str, day: date) -> tuple[date, list[date], dict]:
+        return self._latest(underlying, day)
+
+    def _latest(self, underlying: str, last_day: date) -> tuple[date, list[date], dict]:
+        """The newest file from `last_day` back over LOOKBACK_DAYS days."""
+        for back in range(LOOKBACK_DAYS):
+            day = last_day - timedelta(days=back)
             path = NseDailyFoSource.path_for(day)
             found = self.library.get(path)
             if found.data is None:
@@ -50,5 +64,5 @@ class NseDailyFileExpiries(ListedExpiries):
             )
             provenance = {"source": found.origin, "file": path, "file_date": day.isoformat(),
                           "sha256": hashlib.sha256(found.data).hexdigest()}  # fmt: skip
-            return expiries, provenance
-        raise ExpiryListUnavailable(f"no NSE F&O file in the {LOOKBACK_DAYS} days before {today}")
+            return day, expiries, provenance
+        raise ExpiryListUnavailable(f"no NSE F&O file in the {LOOKBACK_DAYS} days up to {last_day}")

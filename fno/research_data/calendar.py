@@ -23,6 +23,10 @@ from ..constants import SESSION_SPECIAL as SPECIAL
 ROW_KINDS = (HOLIDAY, SPECIAL, MUHURAT)
 FIELDS = ("date", "kind", "description", "source_url")
 SATURDAY = 5
+OUTSIDE_RANGE = (
+    "{day} is outside the calendar ({first} to {last}): add every row of NSE's {year} holiday circular (weekday "
+    "holidays, weekend special sessions, the muhurat session), each with its https source link, to the calendar file"
+)
 
 
 class CalendarError(ValueError):
@@ -93,7 +97,7 @@ class CsvSessionCalendar(SessionCalendar):
 
     def session_kind(self, day: date) -> str | None:
         if not self.first <= day <= self.last:
-            raise CalendarError(f"{day} is outside the calendar ({self.first} to {self.last}): extend the file")
+            raise CalendarError(OUTSIDE_RANGE.format(day=day, first=self.first, last=self.last, year=day.year))
         kind = self._kinds.get(day)
         if kind is None:
             return REGULAR if day.weekday() < SATURDAY else None

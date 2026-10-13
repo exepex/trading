@@ -28,7 +28,7 @@ def drive_check_lines(env=os.environ, token_for=service_account_token, session=N
         return [f"{ENV_GDRIVE_SERVICE_ACCOUNT_JSON} is not a readable key (JSON or base64 of it): {type(exc).__name__}"]
     lines = [f"key read: type {info.get('type')}, Cloud project {info.get('project_id')}"]
     try:
-        store = GoogleDriveStore(folder, token_for(key), session)
+        store = GoogleDriveStore(folder, lambda: token_for(key), session)
     except Exception as exc:  # noqa: BLE001 - report any sign-in failure plainly
         return [*lines, f"sign-in FAILED: {type(exc).__name__}: {exc}"]
     lines.append("signed in to Google (token obtained)")

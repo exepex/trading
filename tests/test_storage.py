@@ -128,7 +128,7 @@ def test_nse_source_names_files_retries_drops_and_reports_holidays():
 
 def test_drive_walks_the_same_tree_folder_by_folder_and_never_writes():
     session = FakeDrive()
-    store = GoogleDriveStore("root", "token", session)
+    store = GoogleDriveStore("root", lambda: "token", session)
     assert session.headers["Authorization"] == "Bearer token"
     assert store.get("nse/derivatives/fo-bhavcopy/2024/01/a.zip") == b"bytes of file-a"
     assert len(session.queries) == 6 and "'root' in parents" in session.queries[0]
@@ -201,3 +201,30 @@ def test_old_format_and_index_close_sources_use_nse_names_and_addresses():
     assert NseLegacyFoSource(Flaky([Answer(404)]), sleep=lambda s: None).fetch(path) is None
     assert isinstance(build_nse_legacy_fo_library().source, NseLegacyFoSource)
     assert isinstance(build_nse_index_close_library().source, NseIndexCloseSource)
+
+
+class ExpiringDrive:
+    """Answers 401 to the first token and works with the second (an access token that expired mid-run)."""
+
+    def __init__(self, bad_tokens: int):
+        self.headers, self.bad_left = {}, bad_tokens
+
+    def get(self, url, params=None, timeout=None):
+        if self.headers["Authorization"] == "Bearer old" or self.bad_left > 1:
+            self.bad_left -= 1
+            return Answer(401)
+        return Response({"files": []}, content=b"")
+
+
+def test_an_expired_drive_token_is_renewed_once_and_the_read_retried():
+    tokens = iter(["old", "new"])
+    session = ExpiringDrive(bad_tokens=1)
+    store = GoogleDriveStore("root", lambda: next(tokens), session)
+    assert store.get("nse/x.zip") is None  # 401 with "old", signed in again, "new" works
+    assert session.headers["Authorization"] == "Bearer new"
+
+
+def test_a_token_that_still_fails_after_renewal_raises():
+    store = GoogleDriveStore("root", lambda: "same", ExpiringDrive(bad_tokens=5))
+    with pytest.raises(requests.HTTPError):
+        store.get("nse/x.zip")

@@ -31,7 +31,10 @@ def cmd_data_coverage(args) -> int:
     from .storage.wiring import COVERAGE_DATASETS, build_coverage_check
 
     check = build_coverage_check()
-    results = [check.run(dataset, args.start, args.end) for dataset in COVERAGE_DATASETS]
+    results = []
+    for dataset in COVERAGE_DATASETS:  # one progress line per dataset, so a long run shows where it is
+        results.append(check.run(dataset, args.start, args.end))
+        print(f"checked {results[-1].dataset}: {results[-1].expected} sessions", flush=True)
     print("\n".join(report_lines(results)))
     print(f"calendar sha256 {check.calendar.calendar_sha256()}")
     return 0 if all(r.ok for r in results) else 1

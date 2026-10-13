@@ -11,10 +11,9 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from ..accounting.ledgers import Order
-from ..constants import LEDGER_FILL, LEDGER_OPENING
+from ..constants import LEDGER_FILL, LEDGER_OPENING, SIDE_BUY, SIDES
 from ..costs import CHARGE_NAMES, order_charges_breakdown
 
-SIDES = ("buy", "sell")  # as in `fno.accounting.ledgers.Order`
 LEDGER_COLUMNS = (
     ("entry_id", "kind", "trade_id", "filled_at", "contract", "side", "units", "quoted_price", "pad", "fill_price")
     + tuple(CHARGE_NAMES)
@@ -64,7 +63,7 @@ class Fill:
 
     @property
     def signed_units(self) -> int:
-        return int(self.order.units) if self.order.side == "buy" else -int(self.order.units)
+        return int(self.order.units) if self.order.side == SIDE_BUY else -int(self.order.units)
 
     @property
     def amount(self) -> float:

@@ -15,7 +15,7 @@ from ..constants import (
 )
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
-from ..research_data.calendar import load_session_calendar
+from ..research_data.calendar import SessionCalendar, load_session_calendar
 from ..research_data.participant_oi import read_participant_oi
 from .coverage import CoverageCheck, CoverageDataset, FingerprintCheck, read_exceptions, read_fingerprints
 from .google_drive import GoogleDriveStore, service_account_token
@@ -44,7 +44,7 @@ def build_raw_stores(project_folder: Path | None = None, token_for=service_accou
     stores: list[RawFileStore] = [AreaStore(LocalFolderStore(project_folder), RAW_AREA)] if project_folder else []
     key, folder = os.environ.get(ENV_GDRIVE_SERVICE_ACCOUNT_JSON), os.environ.get(ENV_GDRIVE_FOLDER_ID)
     if key and folder:
-        stores.append(AreaStore(GoogleDriveStore(folder, token_for(key)), RAW_AREA))
+        stores.append(AreaStore(GoogleDriveStore(folder, lambda: token_for(key)), RAW_AREA))
     return stores
 
 
@@ -124,4 +124,9 @@ def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
         if not stores:
             raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to check Drive")
         store = stores[-1]
-    return CoverageCheck(store, load_session_calendar(CALENDAR_FILE), read_exceptions(COVERAGE_EXCEPTIONS))
+    return CoverageCheck(store, build_session_calendar(), read_exceptions(COVERAGE_EXCEPTIONS))
+
+
+def build_session_calendar() -> SessionCalendar:
+    """NSE's sessions from the repository's calendar file: the one answer to "is this day a session"."""
+    return load_session_calendar(CALENDAR_FILE)

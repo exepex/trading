@@ -40,6 +40,10 @@ JOURNAL_FOLDER = "journal"
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
 
+# Order sides, one definition for the accounting ledgers, the charges model and the paper-account fills
+SIDE_BUY, SIDE_SELL = "buy", "sell"
+SIDES = (SIDE_BUY, SIDE_SELL)
+
 # NSE participant-wise open interest (story A8, fno/research_data/participant_oi.py): who holds the contracts, and the
 # instrument groups NSE splits them into
 PARTICIPANT_CLIENT, PARTICIPANT_DII, PARTICIPANT_FII, PARTICIPANT_PRO = "Client", "DII", "FII", "Pro"
