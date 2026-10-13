@@ -682,4 +682,4 @@ buttons without a border look like labels; the side-menu flyout stays open after
 5. Every signed-off page audited, findings listed and fixed; shared components and templates replace page-local
    styles and duplicated markup; 350-line limit and design rules hold.
 
-**Depends:** W8, W9, W12, W2 · **Size:** M · **Status:** doing (session W14)
+**Depends:** W8, W9, W12, W2 · **Size:** M · **Status:** done: judge 65 PASS with addenda 1-2 (round 2 375ceee; API allow-list 8893f17); live after the owner's next Vercel deploy
