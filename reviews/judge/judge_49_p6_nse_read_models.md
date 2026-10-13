@@ -171,3 +171,13 @@ hand):**
 - The owner runs the dashboard-role read-back (response 50, addendum 2's command) as `dashboard_app`.
 - The output is committed redacted, like X1's evidence: page keys and payload SHA-256 only.
 - The six hashes above must appear. P6 is then PASS.
+
+## Addendum 3: the dashboard-role read (response 50, addendum 5, 3a21070)
+
+**Criterion 4: MET. P6: PASS.**
+- **The evidence:** the owner's `dashboard_app` query returns 6 page keys of the current publication.
+- **My check:** their SHA-256 values equal, string for string (my `diff` of the two sorted lists is empty):
+  - the publishing run's six values;
+  - my own local rebuild of 12 Oct (addendum 2).
+- **No secret was shared:** the password was typed at psql's hidden prompt.
+- **Closing #84 is correct.**
