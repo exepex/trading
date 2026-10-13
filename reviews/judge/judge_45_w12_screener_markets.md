@@ -190,3 +190,39 @@ $ npm run build && node tests/ui/harness.mjs      (clean tree at 52a07f6)
 
 **Every page passes**, so the frame change (`useFrame`'s server view) breaks no page. The only open item on
 criterion 6 is the CI run itself, which is outside my reach (see above).
+
+## Addendum 2: round 2 (omenix-dashboard e885f17, `response_25`)
+
+**Round 2's own scope is ACCEPTED. W12 stays FAIL:** finding 1 (the scrub rewrites real company names) is not part of
+this round and is still in the code (`lib/ui/strategy-names.ts:76`).
+
+**Checks:**
+- tsc clean; `npm test` 388 of 388; build ok.
+- Harness: **Screener 19 cases and Markets 12 cases, 0 failed**; `home-open` passes.
+- CI for e885f17: not visible to me (outside my GitHub scope).
+
+**The 13 states are now covered by real W11 examples.**
+- The adapter reads each example's own `x-query`, so the examples are the one source of truth. I confirmed this in
+  round 1 with my any-query probe.
+- Each state is now a committed case beside its gallery picture. Criterion 1 no longer depends on the "not covered"
+  wording.
+
+**The tools order (picks: most buying; results: soonest). My plant reversed `toolsOrder`:**
+- **The unit test catches it** (1 failing).
+- **`screener-picks` still passes.** `orderProblems` builds its expected order with the app's own `toolsOrder`, so
+  the UI check is circular. It proves the page applies the function, not that the order is right.
+- **Minor 4 (new):** the UI check should state the order from the tools block's fields directly (most buying first,
+  then the route's order), not call the app's function. Correctness is held by the unit test today, so this is
+  minor.
+
+**The near-high tie order** (exact position against the rounded percent): agreed. Same set and same count, and it is
+listed as a difference.
+
+**Still open from round 1:**
+
+| Finding | Status |
+|---|---|
+| 1 (should fix) | Open: model-name scrub rewrites "GPT Healthcare/Infraprojects Limited" |
+| Minor 1 | Partly: the uncovered list is gone; the regenerated-examples differences are still not listed |
+| Minor 2 | Open: computed `import()` |
+| Minor 3 | Open: not in the frame's 1680 list |
