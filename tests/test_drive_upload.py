@@ -141,7 +141,7 @@ class Uploads:
         answer = self.answers.pop(0)
         if isinstance(answer, Exception):
             raise answer
-        return Answer(answer, {})
+        return answer if isinstance(answer, Answer) else Answer(answer, {})
 
 
 def test_uploads_share_the_drive_sign_in_and_retry_rules():
@@ -184,3 +184,23 @@ def test_a_refused_sign_in_names_googles_error_code_and_nothing_else(status, bod
         OwnerAccessToken("cid-value", "secret-value", "refresh-value", TokenEndpoint(status, body))()
     assert refused.value.reason == reason
     assert not any(v in str(refused.value) for v in ("cid-value", "secret-value", "refresh-value"))
+
+
+class RateLimited(Answer):
+    def __init__(self, reason):
+        super().__init__(403, {"error": {"errors": [{"reason": reason}]}})
+
+
+def test_googles_403_rate_limit_is_retried_but_a_real_403_is_raised_at_once():
+    waits = []
+    session = Uploads([RateLimited("userRateLimitExceeded"), RateLimited("rateLimitExceeded"), 200])
+    assert DriveSession(lambda: "t", session, sleep=waits.append).post("u").status_code == 200 and waits == [2, 8]
+    refused = Uploads([RateLimited("insufficientFilePermissions")])
+    with pytest.raises(requests.HTTPError):
+        DriveSession(lambda: "t", refused, sleep=waits.append).post("u")
+    assert waits == [2, 8]
+
+
+def test_a_drive_error_names_googles_reason():
+    with pytest.raises(requests.HTTPError, match="Google: insufficientFilePermissions"):
+        DriveSession(lambda: "t", Uploads([RateLimited("insufficientFilePermissions")])).post("u")

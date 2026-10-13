@@ -12,6 +12,8 @@ TIMEOUT_SECONDS = 60
 UNAUTHORIZED = 401  # the access token expired: sign in again once
 TRANSIENT = frozenset({429, 500, 502, 503, 504})  # Google's temporary answers: wait and try again
 RETRY_WAITS = (2, 8, 30, 60)  # seconds before each retry of a temporary failure
+FORBIDDEN = 403
+RATE_LIMIT_REASONS = frozenset({"rateLimitExceeded", "userRateLimitExceeded"})  # Google sends these as 403, not 429
 
 
 class DriveSession:
@@ -50,11 +52,11 @@ class DriveSession:
                 signed_in_again = True
                 response = send(url, timeout=TIMEOUT_SECONDS, **kwargs)
                 status = getattr(response, "status_code", None)
-            if status in TRANSIENT and wait is not None:
+            if wait is not None and (status in TRANSIENT or _rate_limited(response, status)):
                 self.sleep(wait)
                 continue
             if status not in accept:
-                response.raise_for_status()
+                _raise_with_reason(response)
             return response
         raise AssertionError("unreachable")
 
@@ -63,3 +65,28 @@ class DriveSession:
 
     def post(self, url: str, **kwargs) -> requests.Response:
         return self.request("post", url, **kwargs)
+
+
+def _reasons(response: requests.Response) -> list[str]:
+    """Google's error reasons (e.g. "userRateLimitExceeded") from an error answer; empty when it gives none."""
+    try:
+        errors = response.json().get("error", {}).get("errors", [])
+    except (ValueError, AttributeError):
+        return []
+    return [e["reason"] for e in errors if isinstance(e, dict) and isinstance(e.get("reason"), str)]
+
+
+def _rate_limited(response: requests.Response, status: int | None) -> bool:
+    """Drive's 403 that means "slow down" (retry later), told apart from a real refusal by Google's error reason."""
+    return status == FORBIDDEN and any(reason in RATE_LIMIT_REASONS for reason in _reasons(response))
+
+
+def _raise_with_reason(response: requests.Response) -> None:
+    """raise_for_status, with Google's reason added so a failure says why (never a credential: reasons are codes)."""
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        reasons = _reasons(response)
+        if not reasons:
+            raise
+        raise requests.HTTPError(f"{exc} (Google: {', '.join(reasons)})", response=response) from exc
