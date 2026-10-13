@@ -575,7 +575,7 @@ their W11 blocks, so that they look exactly as signed off and switch from exampl
    the reason.
 6. Code size, typecheck, tests, build and the UI harness pass in CI.
 
-**Depends:** W8, W9, W11 · **Size:** L · **Status:** doing
+**Depends:** W8, W9, W11 · **Size:** L · **Status:** done: judge 45 PASS round 3 (13 Oct 2026); follow-up minor (bare "GPT" in prose) with the builder
 
 ---
 
