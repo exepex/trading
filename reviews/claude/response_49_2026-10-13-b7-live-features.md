@@ -75,3 +75,45 @@ forward 20,100 and 17%. Parity: F = 20,000 + e^(0.065 x 41/365) x (C - P) = 20,1
 - No real validation report yet (no committed A4 days; the panel ends 12 Oct 2026). Once 20+ days exist and the panel
   is rebuilt past them, `python -m fno research validate-live <feature>` writes the first real reports.
 - Judge-28's second minor (look-back from index-close files only) waits for story A10; not done here.
+
+## Addendum: judge 44 (FAIL, 2 should-fix, 3 minor) and the items routed to B7's builder
+
+Commit `9f39718` (merged `0364b22`). Full suite 1,128 passed; `ruff check` clean; `check_imports` clean; discovery
+results unchanged (SHA-256 `814a79a5...`). Each finding: accepted, with the fix and its proof.
+
+| # | Judge's finding | Accepted? | Fix | Proof |
+|---|---|---|---|---|
+| 1 (should fix) | Agreement maps live None to "condition false"; policies have three states | **Accepted.** `policies.py` has `Positive`, `NotPositive` and `IsFalse`, so a live None against a close <= 0 is "no trade" against "butterfly" in P5 | `live_validation.decision_state`: above zero / at most zero / unknown for numbers, true / false / unknown for flags; agreement compares states | `test_agreement_compares_the_policys_three_decision_states`: the judge's case (close -1 on 20 days; live None 2, +0.5 2, -1 16) now gives agreement 0.80, availability 0.90, not validated (was 0.90, validated). A never-computed feature now scores agreement 0.0 |
+| 2 (should fix) | The gate cannot apply a strategy's frozen rule and trusts a flag | **Accepted** | `require_validated(strategy, features, reports, rule)` recomputes days, state agreement and availability from each report's per-day (live, close) values and checks them against the strategy's `LiveUseRule`; the `validated` flag and summary numbers are never read | `test_the_gate_rechecks_every_report_under_the_strategys_frozen_rule` (a 0.90 report passes the default rule and is refused under a 95% rule; a missing report is refused); `test_a_forged_flag_or_summary_does_not_pass_the_gate` (flag true, agreement 1.0, days 99 in the summary: refused, per-day values give 0.85) |
+| minor 1 | Live F2's history including today's close passes all tests | **Accepted** (the code was right; the test was missing) | New test | `test_live_f2_history_ends_at_the_previous_session`: 125 x 10 and 125 x 20 before today, today's close 100, 3 pm VIX 17. Correct: True (median 15). With the judge's break B4 applied I ran it: it fails (median 20), then restored the code |
+| minor 2 | Live F1 depends on the concrete `Black76` | **Accepted** | `LiveAtmIvMinusRealised(cutoff, rate, model: ImpliedVolModel)`, no default; the composition root passes `Black76()`. With the recorded future (below), live F1 now uses `model.underlying(spot, future)` exactly as research F1: the parity forward is gone, so nothing in the class is Black-76-specific | `test_live_f1_equals_the_hand_calculation` (17% from the recorded 20,100 future; live F1 1.13); `test_live_f1_needs_the_recorded_same_expiry_future_and_that_it_traded` |
+| minor 3 | Late captures give None; report capture time per day | **Accepted** (measurement needs real days) | Each compared day carries `captured_at` (the capture's finish time) in the report | `test_each_compared_day_carries_its_capture_time`. Capture duration cannot be measured until A4 has real days; A4's levels add two NSE requests to each attempt |
+
+### Routed: A4 records India VIX and the NIFTY futures at capture
+
+- `fno/quotes/market_levels.py`: `LevelSource` interface and `NseLevelSource` (NSE's public `/api/allIndices` for
+  India VIX with NSE's own timestamp, `/api/liveEquity-derivatives?index=nse50_fut` for every listed NIFTY future:
+  last price and volume; no bid or ask exists there). Wired in `build_quote_recorder`. Research data only, read-only.
+- The recorder reads the levels inside each attempt (before `finished_at`) and writes `india_vix`, `india_vix_time`,
+  `futures`, `levels_failures` and `levels_source` into the meta. A failing endpoint is recorded and never blocks the
+  option capture or changes "complete". Built without a level source (A4's golden tests), the bytes are unchanged.
+- Checked live from this container on 13 Oct 2026 (after the close): India VIX 14.04 (stamp 15:30), futures 27 Oct
+  22,860 (volume 3,932,695), 23 Nov 22,965, 29 Dec 23,109. Whether NSE answers from the routine's network at 15:00
+  is not yet proven; a refusal shows in `levels_failures`.
+- The snapshot reader passes VIX to live F2 and the futures to live F1 (as `FutureQuote`, last price as close, no
+  settlement or open interest at 3 pm).
+- Tests: `tests/quotes/test_market_levels.py` (payload parsing, a failing endpoint recorded, the recorder writes the
+  levels and the reader returns them, the app wires NSE).
+- **Real validation still needs 20 or more committed A4 days with levels** (the first is the next 3 pm run) and a
+  panel rebuilt past them. Until then live F1 and F2 cannot be validated and no strategy using them can reach paper.
+
+### Routed: the panel's 30 Mar 2021 gap
+
+- The panel reader now gives a session the panel left out the closes of the index-close file (NSE's
+  `ind_close_all_30032021.csv`: NIFTY 50 14,845.10, India VIX 20.65) and still no option or future rows. So F1's
+  21-close window and F2's history run through that day instead of breaking for 21 sessions.
+- B2's simulator keeps such an entry day unfillable (no entry-day option rows), never a strike condition:
+  `test_an_entry_day_with_index_closes_but_no_option_rows_is_unfillable`.
+- Tests: `test_a_left_out_session_takes_its_closes_from_the_index_close_file`; the panel README says so.
+- I did not rebuild the panel itself: the gap is filled at reading time from the committed index-close file, the one
+  source of index closes. If the desk prefers the closes inside the panel's manifest, that is an A3 build change.

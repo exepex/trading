@@ -37,7 +37,9 @@ from .market_read_models.publication import PublicationBuilder
 from .market_read_models.publisher import ReadModelPublisher
 from .market_read_models.session_rows import SessionRowsBuilder
 from .providers import AUTO_PROVIDER, get_provider
+from .providers.public import PublicData
 from .quotes.expiry_listing import NseDailyFileExpiries
+from .quotes.market_levels import NseLevelSource
 from .quotes.recorder import QuoteSnapshotRecorder
 from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .record_scan.scanner import RecordScanner
@@ -88,12 +90,14 @@ def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     """The 3 pm quote recorder (story A4): its own `quotes.provider` setting (`auto`: Groww when its credentials are
     set, else NSE), never the root `provider` used by the `chain` command; the repository quote store; NSE's daily
     files, for expiry dates the provider cannot list and to prove which expiries are monthly (A5's point-in-time rule);
-    and NSE's session calendar, which decides whether today is a session (A7)."""
+    NSE's session calendar, which decides whether today is a session (A7); and India VIX with the NIFTY futures from
+    NSE's public website at capture, for the live features (B7)."""
     provider = get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg)
-    expiries = NseDailyFileExpiries(build_nse_fo_library())
+    expiries, levels = NseDailyFileExpiries(build_nse_fo_library()), NseLevelSource(PublicData().nse_json)
     return QuoteSnapshotRecorder(
-        provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar(), history=expiries
-    )
+        provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar(), history=expiries,
+        levels=levels,
+    )  # fmt: skip
 
 
 def build_record_scanner() -> RecordScanner:
@@ -239,7 +243,7 @@ def build_live_features(cfg: dict) -> tuple[Feature, ...]:
     """Story B7: the 15:00 versions of F1-F3, known at the desk's decision time, in the order of `build_features`."""
     cutoff = DESK_DECISION_TIME
     return (
-        LiveAtmIvMinusRealised(cutoff, cfg["risk_free_rate"]),
+        LiveAtmIvMinusRealised(cutoff, cfg["risk_free_rate"], Black76()),
         LiveVixAboveMedian(cutoff),
         LiveScheduledEventInWindow(cutoff),
     )

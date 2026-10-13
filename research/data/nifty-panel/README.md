@@ -63,6 +63,9 @@ nothing is written. Muhurat sessions are kept with `session` = `muhurat` (the fe
 ## Build of 13 Oct 2026 (2019-01-01 to 2026-10-12)
 
 1,928 sessions in the panel, 1 left out (2021-03-30: NSE never published its old-format F&O file; sourced exception).
+The reader (`fno/research_data/panel_reader.py`) gives a left-out session the closes of `warmup_closes.csv` (NSE's
+index-close file: NIFTY 50 14,845.10, India VIX 20.65 on 2021-03-30) and no option or future rows, so close series run
+through it; a cycle entering on it is unfillable (no entry-day option data).
 4,058,698 option rows and 5,784 future rows (3 listed NIFTY futures every session); 46.7 MB compressed with the
 manifest. Checks: `research/2026-10-13-nifty-panel/`.
 

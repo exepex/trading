@@ -9,12 +9,7 @@ from feature_fixtures import make_panel
 
 from fno.research_data.quote_snapshots import CutoffSnapshot
 from fno.research_engine.features import DecisionContext, Feature, ResearchData
-from fno.research_engine.live_gate import (
-    LiveFeaturesNotValidated,
-    require_validated,
-    unvalidated,
-    validated_from_reports,
-)
+from fno.research_engine.live_gate import LiveFeaturesNotValidated, reports_from_folder, require_validated, unvalidated
 from fno.research_engine.live_validation import LiveUseRule, validate
 
 START = date(2026, 11, 2)
@@ -46,7 +41,8 @@ def report(live=LIVE, close=CLOSE, recorded=20, rule=None):
 
 
 def test_the_report_equals_the_hand_computation():
-    """Conditions differ on days 9, 10 and 20 (live None, live -0.5 against close 2, live 0.5 against close -1):
+    """Decision states differ on days 9, 10 and 20 (live None against close 2, live -0.5 against close 2, live 0.5
+    against close -1):
     agreement 17/20 = 0.85. Numeric differences on 19 days: 8 x 0.5 + 2.5 + 9 x 0.25 + 1.5 = 10.25, mean 10.25 / 19,
     largest 2.5. Live available 19/20. Not validated: 0.85 is below 0.90."""
     summary = report().summary()
@@ -66,17 +62,45 @@ def test_the_use_rule_passes_at_twenty_days_and_ninety_percent():
 
 def test_a_live_feature_that_is_never_computed_cannot_pass_vacuously():
     never = report([None] * 20, [-1.0] * 20)
-    assert never.agreement == 1.0 and never.available == 0.0 and never.validated is False
+    assert never.numbers == (20, 0.0, 0.0) and never.validated is False  # None is not "at most zero"
 
 
-def test_an_unvalidated_live_feature_keeps_a_strategy_from_paper(tmp_path):
-    (tmp_path / "f1.json").write_text(json.dumps({"live_feature": "F1_live", "validated": True}))
-    (tmp_path / "f2.json").write_text(json.dumps({"live_feature": "F2_live", "validated": False}))
-    validated = validated_from_reports(tmp_path)
-    assert unvalidated(["F1_live", "F2_live", "F3_live"], validated) == ["F2_live", "F3_live"]
+def test_agreement_compares_the_policys_three_decision_states():
+    """Judge 44's case: close -1 on all 20 days; live None on 2, +0.5 on 2, -1 on 16. P5 trades a butterfly on a close
+    of -1 but nothing on a live None, so only the 16 days agree: 0.80, not validated (the old measure said 0.90)."""
+    judged = report([None, None, 0.5, 0.5] + [-1.0] * 16, [-1.0] * 20)
+    assert judged.numbers == (20, 0.8, 0.9) and judged.validated is False
+    assert report([None] * 20, [None] * 20).numbers == (20, 1.0, 0.0)  # both unknown agree; availability still fails
+
+
+def write_reports(folder, **reports):
+    for name, summary in reports.items():
+        (folder / f"{name}.json").write_text(json.dumps(summary))
+    return reports_from_folder(folder)
+
+
+def test_the_gate_rechecks_every_report_under_the_strategys_frozen_rule(tmp_path):
+    live = LIVE[:9] + [1.0] + LIVE[10:19] + [-0.5]  # 19 of 20 agree: 0.95
+    passing, ninety = report(live).summary(), report(LIVE[:9] + [1.0] + LIVE[10:]).summary()  # 0.95 and 0.90
+    reports = write_reports(tmp_path, F1_live={**passing, "live_feature": "F1_live"},
+                            F2_live={**ninety, "live_feature": "F2_live"})  # fmt: skip
+    default, strict = LiveUseRule(), LiveUseRule(min_agreement=0.95)
+    assert unvalidated(["F1_live", "F2_live", "F3_live"], reports, default) == ["F3_live"]  # no report: refused
+    assert unvalidated(["F1_live", "F2_live"], reports, strict) == ["F2_live"]  # 0.90 fails a 95% strategy
     with pytest.raises(LiveFeaturesNotValidated, match="cannot reach status paper"):
-        require_validated("sc_when_premium_high", ["F1_live", "F2_live"], validated)
-    require_validated("sc_when_premium_high", ["F1_live"], validated)  # every live feature validated: allowed
+        require_validated("sc_when_premium_high", ["F1_live", "F2_live"], reports, strict)
+    require_validated("sc_when_premium_high", ["F1_live"], reports, strict)
+
+
+def test_a_forged_flag_or_summary_does_not_pass_the_gate(tmp_path):
+    forged = {**report().summary(), "live_feature": "F1_live", "validated": True, "agreement": 1.0, "days": 99}
+    reports = write_reports(tmp_path, F1_live=forged)
+    assert unvalidated(["F1_live"], reports, LiveUseRule()) == ["F1_live"]  # recomputed from the per-day values: 0.85
+
+
+def test_each_compared_day_carries_its_capture_time():
+    rows = report().summary()["comparisons"]
+    assert rows[0]["captured_at"] == f"{DAYS[0].isoformat()}T14:56:00"
 
 
 def test_the_wired_validation_runs_on_the_repository_and_reports_no_days_yet():

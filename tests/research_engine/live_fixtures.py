@@ -7,6 +7,7 @@ from datetime import date, datetime, time, timedelta
 from feature_fixtures import black76, make_panel, session_days, zigzag_closes
 
 from fno.research_data.events import Event
+from fno.research_data.panel_reader import FutureQuote
 from fno.research_data.quote_snapshots import CutoffSnapshot, LiveQuote
 from fno.research_engine.features import DecisionContext, ResearchData
 
@@ -30,8 +31,12 @@ def quotes(day: date, prices: dict | None = None, valid: bool = True, spread: fl
     return tuple(out)
 
 
-def snapshot(day: date, finished: time = time(14, 56), vix: float | None = 14.0, **kwargs) -> CutoffSnapshot:
-    return CutoffSnapshot(day, datetime.combine(day, finished), SPOT, vix, quotes(day, **kwargs))
+def snapshot(
+    day: date, finished: time = time(14, 56), vix: float | None = 14.0, future_volume: int | None = 100, **kwargs
+) -> CutoffSnapshot:
+    """A capture with the recorded same-expiry future at 20,100 (None: no future recorded)."""
+    futures = () if future_volume is None else (FutureQuote(EXPIRY, FORWARD, 0.0, future_volume, 0),)
+    return CutoffSnapshot(day, datetime.combine(day, finished), SPOT, vix, quotes(day, **kwargs), futures)
 
 
 def live_data(snapshots: dict | None = None) -> ResearchData:
