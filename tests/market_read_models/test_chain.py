@@ -8,6 +8,7 @@ from fno.market_read_models.blocks import SessionRows
 from fno.market_read_models.chain_expiries import FoRow, contract_code, in_scope, monthly_expiries
 from fno.market_read_models.chain_history import covered_change, covered_middle
 from fno.market_read_models.chain_math import bounded_iv
+from fno.market_read_models.chain_route import strikes_view
 from fno.market_read_models.contract import PinnedContract
 from fno.market_read_models.contract_examples import compare
 from fno.market_read_models.wiring import CONTRACT_FOLDER, build_market_blocks
@@ -30,13 +31,15 @@ def test_every_published_chain_block_equals_w13s_example_of_12_october():
     assert {name: diffs for name, diffs in found.items() if diffs} == {}
 
 
-def test_the_pages_one_per_expiry_and_strike_set_and_one_per_contract():
+def test_the_pages_one_per_expiry_and_one_per_contract():
     pages = chain_pages()
     expiries = [e["expiry"] for e in chain_of_12_october().expiries]
-    assert len(expiries) == 7 and sum(k.startswith("chain_rows:") for k in pages) == 7 * 3
-    assert sum(k.startswith("contract_history:") for k in pages) == len(chain_of_12_october().contracts) == 1246
-    near = pages["chain_rows:2026-10-27:near"]["rows"]
-    assert len(near) == 21 and near[10]["strike"] == 22350.0  # 10 strikes each side of the ATM strike
+    assert len(expiries) == 7 and sum(k.startswith("chain_rows:") for k in pages) == 7  # W13: one page per expiry
+    assert sum(k.startswith("chain_contract:") for k in pages) == len(chain_of_12_october().contracts) == 1246
+    stored = pages["chain_rows:2026-10-27"]
+    assert stored["strikes"] == "all" and len(stored["rows"]) == 89  # every strike within 10%, stored once
+    near = strikes_view(stored, "near", 22363.35, 22350.0)["rows"]
+    assert len(near) == 21 and near[10]["strike"] == 22350.0  # the route: 10 strikes each side of the ATM strike
 
 
 def test_the_short_history_example_is_our_series_cut_to_its_last_30_sessions():

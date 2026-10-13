@@ -265,3 +265,30 @@ All market tests pass (106).
   | underlying, expiries, history, sources | lines 11, 37, 95, 150 | the same names |
 
   If W13 keeps its proposal, P9 changes two key formats. For rows that means storing the "all" strikes once per expiry, with the route filtering near and band (14 fewer pages on 12 Oct). Both are one-line changes in `chain_blocks.py`. Whoever owns W13 decides.
+
+## Addendum: W13's page keys adopted (orchestrator decision); yearly size, measured
+
+**Decision applied:** P9 now publishes W13's proposed keys exactly (`api/paths/blocks-chain.yaml` lines 63 and 121):
+- **`chain_rows:<expiry>`:** one page per expiry with every strike in scope (`strikes: "all"`, 89 strikes for 27 Oct). The route serves "near" (the ATM strike and 10 either side) and "band" (within 5% of NIFTY) from it.
+- **`chain_contract:<code>`:** replaces `contract_history:<code>`.
+
+**The route's strike sets are code here** (`chain_route.strikes_view`). The comparison serves W13's near, weekly-band and all examples through it, from the stored page, NIFTY from the underlying block and the ATM strike from the expiries block. All 9 chain examples still equal ours field by field (`test_chain.py`, offline on the real-file fixture). Pages for 12 Oct: 1,265 in all (7 rows pages instead of 21).
+
+**Yearly size (some evidence: payload sizes measured on 12 Oct as compact JSON; the disk factor is reasoning):**
+
+| Pages | 12 Oct | Per session |
+|---|---|---|
+| Chain: 7 rows + 1,246 contracts + 4 single | 0.27 MB rows, 0.85 MB contracts, 0.01 MB others | 1.13 MB |
+| Screener, Markets, Home (P6, P10): 8 pages | measured from the real local publish | 0.65 MB |
+| **Total** | | **1.78 MB** |
+
+- **Per year:** about 250 sessions × 1.78 MB ≈ **0.44 GB of payload a year** in `fno.pages_history`, which keeps every publication.
+- **Saved by this change:** the dropped near and band pages were 0.21 MB a session, about 52 MB a year.
+- **On disk:** Postgres compresses large JSONB values (TOAST), and this JSON repeats keys heavily, so the disk share is likely 2–4× smaller, roughly 0.1–0.2 GB a year plus indexes. That is reasoning, not measured on Azure.
+- **Correction:** my earlier "about 1 GB a year" was too high. It assumed 2–3 MB for P6's pages; measured, they are 0.65 MB.
+- **The largest part is the contract histories** (0.85 MB, 1,246 pages), each repeating up to six months of history every day. A retention job keeping the last N publications would bound the total; my lean is that is still worth a small story.
+
+Tests:
+- `test_the_pages_one_per_expiry_and_one_per_contract`: 7 rows pages, 1,246 contract pages, 89 stored strikes, and the route's near set of 21 around 22,350;
+- the equality test through the route;
+- the run and read-back tests (1,265 pages; read-back shows "chain_rows 7 pages").

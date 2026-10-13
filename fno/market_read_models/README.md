@@ -20,9 +20,9 @@ publishes in the same publication, one pointer and one run status for both scree
 |---|---|---|
 | `chain_underlying` | `/markets/india/fno/chain/underlying` | one |
 | `chain_expiries` | `/markets/india/fno/chain/expiries` | one |
-| `chain_rows:<expiry>:<strikes>` | `/markets/india/fno/chain/rows?expiry=&strikes=` | one per expiry and strike set (near, band, all) |
+| `chain_rows:<expiry>` | `/markets/india/fno/chain/rows?expiry=&strikes=` | one per expiry with every strike; the route serves near and band (`chain_route.py`) |
 | `chain_history` | `/markets/india/fno/chain/history` | one |
-| `contract_history:<code>` | `/markets/india/fno/chain/contracts/{code}/history` | one per contract in scope |
+| `chain_contract:<code>` | `/markets/india/fno/chain/contracts/{code}/history` | one per contract in scope |
 | `chain_sources` | `/markets/india/fno/chain/sources` | one |
 
 Computed as W13's examples were (`chain_expiries.py`, `chain_history.py`, `chain_math.py`): NIFTY contracts of the

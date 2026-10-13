@@ -1,18 +1,17 @@
 """The option chain's blocks for screen 32 (story P9, W13's contract `blocks-chain.yaml`, `blocks-chain-history.yaml`),
 each a pure function of the session's chain. Blocks the route asks for by a parameter are stored one page per answer,
-validated against the served schema itself: rows per expiry and strike set (`chain_rows:<expiry>:<strikes>`) and
-history per contract (`contract_history:<code>`, every contract in scope: owner default, W13 x-empty)."""
+validated against the served schema itself: rows per expiry with every strike (`chain_rows:<expiry>`; the route serves
+near and band from it) and history per contract (`chain_contract:<code>`, every contract in scope: owner default, W13
+x-empty)."""
 
 from __future__ import annotations
 
 from .blocks import CURRENCY, BlockBuilder, SessionRows, as_of
 from .chain_expiries import CALL
+from .chain_route import ALL
 from .chain_session import ChainSession
 
-NEAR_EACH_SIDE = 10  # "near": the 21 strikes nearest the money
-BAND = 0.05  # "band": strikes within 5% of NIFTY (the 3 pm band)
-STRIKE_SETS = ("near", "band", "all")
-ROWS_PAGE, CONTRACT_PAGE = "chain_rows:{expiry}:{strikes}", "contract_history:{code}"
+ROWS_PAGE, CONTRACT_PAGE = "chain_rows:{expiry}", "chain_contract:{code}"  # W13's page keys (blocks-chain.yaml)
 EOD_SOURCE = "NSE daily F&O file of {day}: close, settlement, open interest and its change, volume (no bid or ask)"
 INDEX_SOURCE = "NSE daily index file (NIFTY 50, India VIX)"
 QUOTES = {
@@ -58,28 +57,20 @@ class ChainExpiriesBlock(BlockBuilder):
 
 
 class ChainRowsBlock(BlockBuilder):
+    """One page per expiry with every strike in scope ("all"); the route serves near and band from it (W13)."""
+
     page_key, served_schema = "chain_rows", "ChainRowsResponse"
 
     def build(self, rows: SessionRows) -> dict:
-        return self.page(rows, default_expiry(_chain(rows)), "near")
+        return self.page(rows, default_expiry(_chain(rows)))
 
     def pages(self, rows: SessionRows) -> dict[str, dict]:
-        return {
-            ROWS_PAGE.format(expiry=e["expiry"], strikes=s): self.page(rows, e, s)
-            for e in _chain(rows).expiries for s in STRIKE_SETS
-        }  # fmt: skip
+        return {ROWS_PAGE.format(expiry=e["expiry"]): self.page(rows, e) for e in _chain(rows).expiries}
 
     @staticmethod
-    def page(rows: SessionRows, expiry: dict, strikes: str) -> dict:
-        chain, picked = _chain(rows), expiry["rows"]
-        spot = chain.underlying["spot"]
-        if strikes == "near":
-            i = next(n for n, r in enumerate(picked) if r["strike"] == expiry["stats"]["atm"])
-            picked = picked[max(0, i - NEAR_EACH_SIDE) : i + NEAR_EACH_SIDE + 1]
-        elif strikes == "band":
-            picked = [r for r in picked if abs(r["strike"] - spot) <= spot * BAND]
-        return {"as_of": as_of(rows.day), "currency": CURRENCY, "lot": chain.underlying["lot"],
-                "expiry": expiry["expiry"], "strikes": strikes, "rows": picked}  # fmt: skip
+    def page(rows: SessionRows, expiry: dict) -> dict:
+        return {"as_of": as_of(rows.day), "currency": CURRENCY, "lot": _chain(rows).underlying["lot"],
+                "expiry": expiry["expiry"], "strikes": ALL, "rows": expiry["rows"]}  # fmt: skip
 
 
 class ChainHistoryBlock(BlockBuilder):
