@@ -93,3 +93,23 @@ against the filings. It belongs to the final judgment, once the backfill is comp
   a progress file changes every run. This is the owner's call, since it differs from the addendum's wording.
 - **Survivorship (companies that left the Nifty 500):** stated, and proposed as step 3 in its own story. Agreed: fine
   for an archive, but not a backtest universe until step 3 exists.
+
+## Addendum: the should-fix re-checked (f77c910)
+
+**Finding 1: ACCEPTED.**
+- `python -m fno data-coverage --filings` (my run against Drive) now gives a "not fetched yet" column: **481** for
+  each type, with "481 companies not fetched yet (the work queue has not reached them)".
+- "NSE's lists hold no filing" is now limited to fetched companies: **6 lines instead of 11,550**.
+- `tests/filings`: 44 passed.
+
+**Minor (new): the 6 remaining lines (all LICI) give the wrong cause.**
+- They read "NSE's lists hold no results-xbrl filing for the quarter ended 2023-09-30 … 2024-12-31 (**not listed
+  then, or not filed**)".
+- **The absence is real.** My query of NSE's `corporates-financial-results` list for LICI returns 0 rows.
+- **The cause is wrong.** LIC has been listed since May 2022 and publishes quarterly results; they are not in the list
+  NSE serves for it in XBRL (likely an insurer's different format, reasoning only).
+- **Expected:** the reason should not guess "not listed or not filed". Say "NSE's results lists carry no XBRL for
+  this company in these quarters", and route insurers to the format question for the owner.
+
+**Still waiting:** criteria 2 and 6 on the backfill (next scheduled run 18:17 UTC), and criterion 5 on the owner's
+OAuth publish step.
