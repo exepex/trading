@@ -1,13 +1,14 @@
 # Forecast protocol, version 1 (story G1)
 
-**Status: draft version 1, ChatGPT review 28's two changes applied; awaiting the judge.** Written by Claude on 13 Oct
-2026 (review request: `reviews/claude/response_57_g1-protocol-for-review.md`). ChatGPT review 28 asked for two
-changes before freezing (question 5 void on flagged IV30 days; a 10-test primary family), accepted by the orchestrator
-in `reviews/claude/response_60_2026-10-13-on-review-28.md`; both are in sections 2, 3, 7 and 8. Not frozen: a forecast
-protocol is frozen only after ChatGPT has agreed it (orchestrator decision of 13 Oct 2026, after judge 47). It is frozen as section 10 says, before any forecast is made
-or scored; after that any change is a new version (a new file and a new freeze), never an edit. No forecast exists yet.
-Design: `docs/DESK_DESIGN.md` 12.7 (daily forecasts, a secondary diagnostic), 12.8, 12.11. Registered in the research
-ledger as trials 32-36 (one per question); their protocol commit is filled in at the freeze.
+**Status: version 1, frozen.** Written by Claude on 13 Oct 2026 (review request:
+`reviews/claude/response_57_g1-protocol-for-review.md`). ChatGPT review 28 (section 2) gave "CHANGE before freeze:
+(1) and (2); everything else can remain"; both changes (question 5 void on flagged IV30 days; a 10-test primary family)
+are in sections 2, 3, 4, 7 and 8, accepted by the orchestrator in `reviews/claude/response_60_2026-10-13-on-review-28.md`,
+and judge 47's round 2 accepted the golden-value freeze. The commit that adds this text is the protocol commit;
+`research/forecasts/FREEZE.md` records it (section 10). No forecast existed at the freeze. Any change from here is a new
+version (a new file and a new freeze), never an edit. Design: `docs/DESK_DESIGN.md` 12.7 (daily forecasts, a secondary
+diagnostic), 12.8, 12.11. Registered in the research ledger as trials 32-36 (one per question), which carry the
+protocol commit.
 
 **Standing.** Trade profit decides. Forecast scores only diagnose market reading and can never promote a book that
 does not make net money (design 12.7). Every report that shows them says so.
