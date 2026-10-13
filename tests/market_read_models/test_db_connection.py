@@ -66,6 +66,12 @@ def test_a_server_the_pinned_roots_do_not_vouch_for_is_refused_and_named_tls(tls
     assert "localhost" not in described(refused.value) and "postgres" not in described(refused.value).lower()
 
 
+def test_the_connection_always_asks_for_verify_full_the_pinned_roots_and_a_timeout():
+    assert VerifiedConnection(AZURE_POSTGRES_ROOTS).options() == {
+        "sslmode": "verify-full", "sslrootcert": str(AZURE_POSTGRES_ROOTS), "connect_timeout": "15",
+    }  # fmt: skip
+
+
 def test_the_shipped_bundle_holds_the_three_azure_roots():
     text = AZURE_POSTGRES_ROOTS.read_text()
     assert text.count("-----BEGIN CERTIFICATE-----") == 3 and "DigiCert Global Root G2" in text

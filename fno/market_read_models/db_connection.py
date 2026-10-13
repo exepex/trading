@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 
 VERIFIED = "verify-full"
+CONNECT_TIMEOUT_SECONDS = "15"  # a firewall that drops packets fails fast, named "network" (libpq waits forever)
 
 
 class VerifiedConnection:
@@ -18,7 +19,7 @@ class VerifiedConnection:
 
     def options(self) -> dict[str, str]:
         """Connection options that override the URL's own (libpq takes the later value)."""
-        return {"sslmode": VERIFIED, "sslrootcert": str(self.roots)}
+        return {"sslmode": VERIFIED, "sslrootcert": str(self.roots), "connect_timeout": CONNECT_TIMEOUT_SECONDS}
 
     def __call__(self, url: str):
         import psycopg
