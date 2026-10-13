@@ -20,7 +20,7 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 |---|---|---|---|
 | `nse/derivatives/fo-bhavcopy` | `NseDailyFoSource` | F&O, current UDiFF format | 1 Jan 2024 onwards |
 | `nse/derivatives/fo-bhavcopy-legacy` | `NseLegacyFoSource` | F&O, old format (`fo02JAN2019bhav.csv.zip`) | up to 5 Jul 2024 |
-| `nse/indices/index-close` | `NseIndexCloseSource` | daily index closes (NIFTY 50, NIFTY Bank, India VIX...) | 2019 onwards |
+| `nse/indices/index-close` | `NseIndexCloseSource` | daily index closes (NIFTY 50, NIFTY Bank, India VIX...) | 2017 onwards (2017-18: warm-up, A10) |
 | `nse/derivatives/participant-oi` | `ParticipantOiSource` | participant-wise open interest (client, DII, FII, pro; story A8) | 2019 onwards |
 
 Both F&O formats are read into one record format by `fno/fo_bhavcopy.py` (originals stay unchanged); the old format's
@@ -50,11 +50,28 @@ Rules:
 
 ## The librarian
 
-`python -m fno data-librarian participant-oi [--from YYYY-MM-DD] [--to YYYY-MM-DD]` fills the dataset's gaps in Drive
-from NSE (`librarian.py`): for each session (NSE's calendar) it keeps a verified file already there, else fetches the
-file through the paced NSE session, verifies it (schema, and SHA-256 where the manifest has it) and uploads it. A
-damaged file in Drive is reported and never replaced. Run it again after a stop: only missing files are fetched. Each
-new dataset needs its own story before it is added to `wiring.LIBRARIAN_DATASETS`.
+`python -m fno data-librarian <participant-oi|index-close> [--from YYYY-MM-DD] [--to YYYY-MM-DD]` fills the dataset's
+gaps in Drive from NSE (`librarian.py`): for each session (NSE's calendar) it keeps a verified file already there, else
+fetches the file through the paced NSE session, verifies it (schema, and SHA-256 where the manifest has it) and uploads
+it. A damaged file in Drive is reported and never replaced. Run it again after a stop: only missing files are fetched.
+Each new dataset needs its own story before it is added to `wiring.LIBRARIAN_DATASETS` (A9: participant OI; A10: index
+closes).
+
+## Manifests: a SHA-256 for every archived file
+
+`research/data/manifests/<dataset>.csv` (`date,url,status,sha256,size_bytes`, one row per archived file) is the only
+manifest the code reads (`manifest_folder.py`), produced by one code path:
+- **at save time**: the Drive upload store is wrapped in `FingerprintingStore`, so every file saved (by the librarian
+  or by a `RawFileLibrary` archiving what it fetched) gets its row in the same operation, after Drive accepted it; a
+  different SHA-256 for a day that already has a row is refused;
+- **whole, from Drive**: `python -m fno data-fingerprints <dataset>` reads every file (read-only) and writes the
+  manifest when the dataset has none (an existing manifest is never overwritten); `--spot-check N` compares N files
+  with NSE's live bytes.
+
+`python -m fno data-coverage` checks every file's SHA-256 against its row; a file without a row is counted under
+"no sha" and listed, and the result is not "complete" until it has one. The laptop tool's manifests in
+`tools/nse_raw_download/` serve that tool only; the code no longer reads them (the regenerated ones agree with them on
+every file both have).
 
 Adding a store (S3, Dropbox) or a source (another exchange) means one new class behind `RawFileStore` or
 `RawFileSource`, and one line in `wiring.py`.

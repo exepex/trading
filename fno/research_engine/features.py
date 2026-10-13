@@ -10,12 +10,14 @@ feature (story B7). A feature returns `None` when its inputs are missing, never 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from datetime import date, datetime, time
 
 from ..constants import SESSION_CLOSE_TIME, SESSION_MUHURAT
 from ..research_data.events import Event
 from ..research_data.panel_reader import NiftyPanel
+from ..research_data.quote_snapshots import CutoffSnapshot
 
 END_OF_DAY = time(23, 59, 59)  # muhurat sessions trade in the evening, at hours that change every year
 
@@ -24,11 +26,13 @@ FeatureValue = float | bool | None
 
 @dataclass(frozen=True)
 class ResearchData:
-    """Everything a feature may read: the NIFTY panel (story A3) and the events calendar (story A6). Both are inputs
-    the look-ahead harness changes after the cutoff, so a feature gets nothing else."""
+    """Everything a feature may read: the NIFTY panel (story A3), the events calendar (story A6) and, for live
+    features, the 3 pm quote snapshots (story A4). All are inputs the look-ahead harness changes after the cutoff, so
+    a feature gets nothing else."""
 
     panel: NiftyPanel
     events: tuple[Event, ...]
+    snapshots: Mapping[date, CutoffSnapshot] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

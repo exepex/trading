@@ -68,11 +68,6 @@ class PositionCosts:
         return payoff_loss * self.terms.lot + self.charges(legs, entry, True) + self.pads(legs) + exit_charges
 
 
-def payoff_loss(legs: Sequence[Leg], entry: Sequence[float]) -> float:
-    """The largest terminal payoff loss per unit, before costs: width minus credit (short), the debit (long)."""
-    return max(_terminal_losses(legs, entry).values())
-
-
 def _terminal_losses(legs: Sequence[Leg], entry: Sequence[float]) -> dict[float, float]:
     """Index level at expiry (each strike) -> the position's loss per unit there, entry premium included."""
     credit = -sum(leg.side * price for leg, price in zip(legs, entry, strict=True))

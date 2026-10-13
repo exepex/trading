@@ -7,7 +7,7 @@ import hashlib
 import json
 import os
 from contextlib import contextmanager
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
 import numpy
@@ -27,15 +27,18 @@ from .research_data.events import read_events
 from .research_data.last_written import latest_writes, read_last_modified_table
 from .research_data.panel_reader import NiftyPanel, read_nifty_panel
 from .research_data.positioning import PointInTimeParticipantOi
+from .research_data.quote_snapshots import RecordedSnapshots
 from .research_data.release_times import ReleaseLog, ReleaseTimeRecorder, choose_availability_rule, last_written_times
 from .research_data.write_sweep import LastWriteSweep, read_sweeps
 from .research_engine.cycle_costs import CycleTerms
-from .research_engine.cycles import Cycle, cycle_rows, monthly_cycles
+from .research_engine.cycles import EXIT_MIN_DAYS, Cycle, TradingDays, cycle_rows, monthly_cycles
 from .research_engine.event_features import ScheduledEventInWindow
 from .research_engine.experiments import Period
-from .research_engine.features import Feature, ResearchData
+from .research_engine.features import DecisionContext, Feature, ResearchData
 from .research_engine.implied_vol import Black76
 from .research_engine.ledger import Ledger
+from .research_engine.live_features import LiveAtmIvMinusRealised, LiveScheduledEventInWindow, LiveVixAboveMedian
+from .research_engine.live_validation import ValidationReport, validate
 from .research_engine.runner import ExperimentRunner
 from .research_engine.simulator import CycleSimulator
 from .research_engine.structures import LongIronFly, ShortCondor, ShortIronFly, Structure
@@ -202,3 +205,37 @@ def build_experiment_runner(cfg: dict, root: Path = ROOT) -> ExperimentRunner:
         ledger_count=ledger.count,
         inputs=lambda: research_inputs(cfg),
     )
+
+
+LIVE_HISTORY_START = date(2026, 10, 1)  # before A4's first recorded day; days without a snapshot are skipped
+
+
+def build_live_features(cfg: dict) -> tuple[Feature, ...]:
+    """Story B7: the 15:00 versions of F1-F3, known at the desk's decision time, in the order of `build_features`."""
+    cutoff = DESK_DECISION_TIME
+    return (
+        LiveAtmIvMinusRealised(cutoff, cfg["risk_free_rate"]),
+        LiveVixAboveMedian(cutoff),
+        LiveScheduledEventInWindow(cutoff),
+    )
+
+
+def validation_context(data: ResearchData, day: date) -> DecisionContext | None:
+    """The context both versions are compared in: the day's farther recorded monthly expiry (the next monthly), entry
+    the next trading day, exit the last trading day with 21 or more days to expiry (as story B2's cycles)."""
+    snapshot = data.snapshots.get(day)
+    if snapshot is None or not snapshot.expiries:
+        return None
+    days, expiry = TradingDays(build_session_calendar()), max(snapshot.expiries)
+    return DecisionContext(expiry, days.next_after(day), days.last_on_or_before(expiry - timedelta(days=EXIT_MIN_DAYS)))
+
+
+def run_live_validation(cfg: dict, live_name: str, today: date) -> ValidationReport:
+    """Story B7's validation of one live feature against its research version over every recorded A4 day."""
+    live_features = build_live_features(cfg)
+    position = [f.name for f in live_features].index(live_name)
+    live, close = live_features[position], build_features(cfg)[position]
+    sessions = build_session_calendar().sessions(LIVE_HISTORY_START, today)
+    data = load_research_data(range(LIVE_HISTORY_START.year - 1, today.year + 1), keep=cycle_rows)
+    data = ResearchData(data.panel, data.events, RecordedSnapshots(build_quote_store()).snapshots(sessions))
+    return validate(live, close, data, sessions, lambda day: validation_context(data, day))

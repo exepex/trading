@@ -1,6 +1,7 @@
 """Story A1: the coverage check lists exactly the missing and damaged raw files, against the session calendar, and
 never writes."""
 
+import hashlib
 import zipfile
 from datetime import date
 from io import BytesIO
@@ -13,7 +14,7 @@ from fno.research_data.calendar import CsvSessionCalendar
 from fno.storage.coverage import CoverageCheck, CoverageDataset, read_exceptions, report_lines
 from fno.storage.raw_source import NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource
 from fno.storage.raw_store import RawFileStore
-from fno.storage.wiring import COVERAGE_DATASETS, validate_index_close
+from fno.storage.wiring import coverage_datasets, validate_index_close
 
 NSE = Path(__file__).parent / "fixtures" / "nse"
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/example.pdf"
@@ -22,7 +23,6 @@ CALENDAR = CsvSessionCalendar(
     f"2019-01-02,holiday,Test holiday,{SOURCE}\n"
     f"2019-01-05,special,Test Saturday session,{SOURCE}\n"
 )
-LEGACY = CoverageDataset(NseLegacyFoSource, read_fo_file)
 
 
 class ReadOnlyFakeDrive(RawFileStore):
@@ -68,8 +68,14 @@ def drive(days: list[date], damaged: date | None = None) -> ReadOnlyFakeDrive:
 SESSIONS = [date(2019, 1, d) for d in (1, 3, 4, 5, 7)]
 
 
-def run(store, exceptions=None, start=date(2019, 1, 1), end=date(2019, 1, 7)):
-    return CoverageCheck(store, CALENDAR, exceptions or {}).run(LEGACY, start, end)
+def fingerprinted(store: ReadOnlyFakeDrive) -> CoverageDataset:
+    """The old-format dataset with a manifest row for every file the store holds."""
+    rows = {path.rsplit("/", 1)[1]: hashlib.sha256(data).hexdigest() for path, data in store.files.items()}
+    return CoverageDataset(NseLegacyFoSource, read_fo_file, rows)
+
+
+def run(store, exceptions=None, start=date(2019, 1, 1), end=date(2019, 1, 7), dataset=None):
+    return CoverageCheck(store, CALENDAR, exceptions or {}).run(dataset or fingerprinted(store), start, end)
 
 
 def test_complete_set_passes():
@@ -99,7 +105,7 @@ def test_file_on_a_closed_day_is_reported_for_review():
 
 def test_range_is_clipped_to_the_days_the_dataset_exists():
     result = CoverageCheck(ReadOnlyFakeDrive({}), CALENDAR, {}).run(
-        COVERAGE_DATASETS[1], date(2019, 1, 1), date(2019, 1, 7)
+        coverage_datasets()[1], date(2019, 1, 1), date(2019, 1, 7)
     )
     assert result.expected == 0 and result.start == NseDailyFoSource.first_day  # UDiFF starts on 1 Jan 2024
 
@@ -107,10 +113,10 @@ def test_range_is_clipped_to_the_days_the_dataset_exists():
 def test_real_nse_files_pass_their_validators():
     day = date(2024, 1, 2)
     for source in (NseDailyFoSource, NseLegacyFoSource, NseIndexCloseSource):
-        dataset = next(d for d in COVERAGE_DATASETS if d.source is source)
+        dataset = next(d for d in coverage_datasets() if d.source is source)
         filename = source.filename_for(day)
         # The fixtures are trimmed copies of NSE's files, so they pass the content check, not the manifest's SHA-256.
-        dataset.validate.validate(filename, (NSE / filename).read_bytes())
+        dataset.validate(filename, (NSE / filename).read_bytes())
 
 
 def test_index_close_without_india_vix_is_damaged():
@@ -125,3 +131,15 @@ def test_exceptions_need_a_source(tmp_path):
     with pytest.raises(ValueError, match="source"):
         read_exceptions(path)
     assert read_exceptions(tmp_path / "absent.csv") == {}
+
+
+def test_a_file_without_a_manifest_row_is_reported_and_the_result_is_not_complete():
+    store = drive(SESSIONS)
+    rows = dict(fingerprinted(store).fingerprints)
+    del rows[NseLegacyFoSource.filename_for(date(2019, 1, 4))]  # planted: archived, but no manifest row
+    result = run(store, dataset=CoverageDataset(NseLegacyFoSource, read_fo_file, rows))
+    assert result.present == 5 and result.unfingerprinted == [date(2019, 1, 4)] and not result.ok
+    lines = report_lines([result])
+    assert lines[1].split()[-1] == "1"  # the "no sha" column
+    assert f"no fingerprint (content checked only) {NseLegacyFoSource.dataset} 2019-01-04" in lines
+    assert lines[-1].startswith("result: INCOMPLETE")

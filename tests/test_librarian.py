@@ -9,9 +9,10 @@ import pytest
 from fno.alerts.sender import AlertSender
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.storage import wiring
-from fno.storage.coverage import FingerprintCheck
+from fno.storage.coverage import CoverageDataset
 from fno.storage.librarian import RawDataLibrarian, fill_report_lines
 from fno.storage.librarian_cli import run_librarian
+from fno.storage.manifest_folder import FingerprintingStore
 from fno.storage.owner_token import DriveSignInRefused, OwnerAccessToken
 from fno.storage.raw_source import ParticipantOiSource, RawSourceUnavailable
 from fno.storage.raw_store import AreaStore, LocalFolderStore
@@ -30,7 +31,7 @@ def accept_any(filename, data):
 
 
 MANIFEST = {ParticipantOiSource.filename_for(d): hashlib.sha256(file_for(d)).hexdigest() for d in DAYS}
-VERIFY = FingerprintCheck(accept_any, MANIFEST)
+VERIFY = CoverageDataset(ParticipantOiSource, accept_any, MANIFEST)
 
 
 class FakeNse(ParticipantOiSource):
@@ -172,7 +173,9 @@ def test_drive_uploads_are_wired_only_when_all_four_settings_exist(monkeypatch):
     for missing in OWNER_ENV:
         assert wiring.build_owner_drive_store({k: v for k, v in OWNER_ENV.items() if k != missing}) is None
     store = wiring.build_owner_drive_store(OWNER_ENV)
-    assert isinstance(store, AreaStore) and store.area == wiring.RAW_AREA and store.store.folder_id == "folder123"
+    assert isinstance(store, FingerprintingStore) and store.manifests.folder == wiring.MANIFEST_FOLDER
+    drive = store.store
+    assert isinstance(drive, AreaStore) and drive.area == wiring.RAW_AREA and drive.store.folder_id == "folder123"
 
 
 def test_the_library_archives_fetched_files_straight_to_drive_when_uploads_are_set_up(monkeypatch, tmp_path):
@@ -180,8 +183,9 @@ def test_the_library_archives_fetched_files_straight_to_drive_when_uploads_are_s
     for name, value in OWNER_ENV.items():
         monkeypatch.setenv(name, value)
     library = wiring.build_participant_oi_library(tmp_path)
-    assert isinstance(library.archive.store, wiring.GoogleDriveUploadStore) and library.archive.area == wiring.RAW_AREA
-    assert set(wiring.LIBRARIAN_DATASETS) == {"participant-oi"}
+    drive = library.archive.store  # FingerprintingStore -> AreaStore -> the upload store
+    assert isinstance(drive.store, wiring.GoogleDriveUploadStore) and drive.area == wiring.RAW_AREA
+    assert set(wiring.LIBRARIAN_DATASETS) == {"participant-oi", "index-close"}  # each added by its own story
     with pytest.raises(RuntimeError, match="FNO_GDRIVE_OAUTH_REFRESH_TOKEN"):
         monkeypatch.delenv("FNO_GDRIVE_OAUTH_REFRESH_TOKEN")
         wiring.build_librarian("participant-oi")

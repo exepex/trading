@@ -63,7 +63,7 @@ def test_every_traded_cycle_is_within_the_loss_cap(panel, cycles):
     simulator = build_cycle_simulator(load_app_config(), panel)
     results = [simulator.simulate(c, s) for c in cycles for s in build_structures()]
     traded = [r for r in results if r.status == CycleStatus.TRADED]
-    assert len(results) == 99 and traded
+    assert len(results) == 99 and len(traded) == 96  # the three BF cycles below are bad_prices
     over_model = [(r.structure, r.cycle.expiry, r.max_loss) for r in traded if r.max_loss > CAP]
     over_realised = [(r.structure, r.cycle.expiry, r.net) for r in traded if -r.net > CAP]
     assert not over_model, f"modelled maximum loss above the cap: {over_model}"
@@ -82,3 +82,28 @@ def test_the_one_realised_loss_above_its_model_comes_from_exit_closes_above_the_
     calls = {leg.leg.strike: leg.exit.price for leg in result.legs if leg.leg.kind == "CE"}
     assert calls == {23250.0: 1168.65, 23550.0: 867.4} and calls[23250.0] - calls[23550.0] > result.width
     assert round(result.net) == -4024 and round(result.max_loss) == 2886
+
+
+def test_the_three_long_flies_that_cannot_win_are_bad_prices(panel, cycles):
+    """Owner decision of 13 Oct 2026: debit 100.15, 100.60 and 101.10 for a 100-point fly that pays at most 100. The
+    wider widths broke the cap, so the narrowest listed width's problem is the status."""
+    simulator = build_cycle_simulator(load_app_config(), panel)
+    long_fly = build_structures()[2]
+    bad = [c.expiry for c in cycles if simulator.simulate(c, long_fly).status == CycleStatus.BAD_PRICES]
+    assert bad == [JULY_2024, date(2024, 8, 29), date(2026, 2, 24)]
+
+
+def test_traded_exits_beyond_the_payoff_bounds_are_flagged(panel, cycles):
+    """Report only (judge 25, owner decision of 13 Oct 2026): 4 of 96 traded exits close beyond what the position can
+    pay at expiry; their net is counted in the results, never dropped."""
+    simulator = build_cycle_simulator(load_app_config(), panel)
+    flagged = {
+        (s.code, c.expiry): round(r.net)
+        for c in cycles
+        for s in build_structures()
+        if (r := simulator.simulate(c, s)).exit_outside_payoff
+    }
+    assert flagged == {
+        ("SF", JULY_2024): -4024, ("BF", date(2024, 9, 26)): 7, ("BF", date(2024, 12, 26)): 637,
+        ("BF", date(2026, 3, 30)): 1036,
+    }  # fmt: skip

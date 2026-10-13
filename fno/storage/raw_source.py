@@ -3,6 +3,7 @@ naming and transport; callers see one interface."""
 
 from __future__ import annotations
 
+import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -67,6 +68,12 @@ class NseArchiveSource(RawFileSource):
     @classmethod
     def filename_for(cls, day: date) -> str:
         return cls.FILENAME.format(day=day, mon=MONTH_CODES[day.month - 1])
+
+    @classmethod
+    def day_for(cls, filename: str) -> date:
+        """The day an original file name is for (the inverse of filename_for); ValueError for any other name."""
+        pattern = re.sub(r"\{day:(%[^}]+)\}", r"\1", cls.FILENAME).replace("{mon}", "%b")
+        return datetime.strptime(filename, pattern).date()
 
     @classmethod
     def path_for(cls, day: date) -> str:
@@ -143,7 +150,7 @@ class NseIndexCloseSource(NseArchiveSource):
     """NSE's daily closing values of all its indices (NIFTY 50, NIFTY Bank, India VIX and the rest)."""
 
     dataset = "nse/indices/index-close"
-    first_day = date(2019, 1, 1)
+    first_day = date(2017, 1, 1)  # 2017-18: warm-up closes for 2019 features (F2: 250 previous VIX closes; A10)
     BASE_URL = "https://nsearchives.nseindia.com/content/indices/"
     FILENAME = "ind_close_all_{day:%d%m%Y}.csv"
 
@@ -160,12 +167,7 @@ class ParticipantOiSource(NseArchiveSource):
     first_day = date(2019, 1, 1)
     BASE_URL = "https://nsearchives.nseindia.com/content/nsccl/"
     FILENAME = "fao_participant_oi_{day:%d%m%Y}.csv"
-    FILENAME_PATTERN = "fao_participant_oi_%d%m%Y.csv"  # the same name, for reading the day back
 
     @classmethod
     def url_for(cls, path: str) -> str:
         return cls.BASE_URL + path.rsplit("/", 1)[-1]
-
-    @classmethod
-    def day_for(cls, filename: str) -> date:
-        return datetime.strptime(filename, cls.FILENAME_PATTERN).date()

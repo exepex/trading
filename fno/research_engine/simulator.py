@@ -1,12 +1,16 @@
 """One structure through one monthly cycle, exactly as experiment 1's protocol says (story B2, sections 3-4).
 
-Entry (the cycle's entry day, at the close): widths are tried largest first; a width is skipped when a contract is not
-listed (`missing_strikes`), a leg has no usable price or more than half are on settlement (`unfillable`), the prices
-promise a trade that cannot lose (`bad_prices`: a short credit at least the width, a long debit at most zero) or the
-modelled maximum loss is above the cap (`no_trade_cap`). The first width that passes is traded. If none passes, the
-cycle's status is `no_trade_cap` when any width broke the cap, `missing_strikes` when no width was listed, else the
-problem of the largest listed width. Exit (the exit day's close) uses the same legs; a leg without a usable price there,
-or more than half on settlement, makes the traded width `unfillable`. Entry never looks at exit-day data.
+Entry (the cycle's entry day, at the close): the strikes come from the entry day's spot close and option chain.
+Widths are tried largest first; a width is skipped when a contract is not listed (`missing_strikes`), a leg has no
+usable price or more than half are on settlement (`unfillable`; exactly half is fillable), the prices are impossible
+(`bad_prices`: the position is valued at or beyond its worst or best payoff at expiry, so it cannot lose or cannot
+win: a short credit at least the width or at most zero, a long debit at most zero or at least the width; owner
+decision of 13 Oct 2026) or the modelled maximum loss is above the cap (`no_trade_cap`). The first width that passes is
+traded. If none passes, the status is the outcome of the narrowest listed width, or `missing_strikes` when no width
+was listed. Exit (the exit day's close) uses the same legs; a leg without a usable price there, or more than half on
+settlement, makes the traded width `unfillable`. An exit valued beyond the position's payoff bounds is a traded result,
+flagged (`exit_outside_payoff`, report only) so results can show how much rests on impossible closes. Entry never looks
+at exit-day data.
 """
 
 from __future__ import annotations
@@ -16,10 +20,10 @@ from dataclasses import dataclass
 
 from ..constants import CycleStatus
 from ..research_data.panel_reader import NiftyPanel
-from .cycle_costs import CycleTerms, PositionCosts, payoff_loss
+from .cycle_costs import CycleTerms, PositionCosts
 from .cycles import Cycle
 from .leg_prices import LegPrice, contracts_on, fill_problem, leg_price
-from .structures import Leg, Structure
+from .structures import Leg, Structure, payoff_bounds, position_value
 
 
 @dataclass(frozen=True)
@@ -49,6 +53,7 @@ class CycleResult:
     pads: float = 0.0
     net: float = 0.0  # gross - charges - pads
     max_loss: float | None = None  # modelled maximum loss of the chosen width, rupees
+    exit_outside_payoff: bool = False  # report only: a traded exit valued beyond what the position can pay at expiry
 
     @property
     def needs_settlement(self) -> bool:
@@ -90,8 +95,11 @@ class CycleSimulator:
         if problem:
             return WidthTrial(width, problem)
         prices = [p.price for p in entry]
-        if payoff_loss(legs, prices) <= 0:
-            return WidthTrial(width, CycleStatus.BAD_PRICES)
+        lowest, highest = payoff_bounds(legs)
+        if not lowest < position_value(legs, prices) < highest:
+            return WidthTrial(
+                width, CycleStatus.BAD_PRICES
+            )  # the prices promise a trade that cannot lose or cannot win
         loss = self.costs.max_loss(legs, prices)
         return WidthTrial(width, CycleStatus.TRADED if loss <= self.terms.cap else CycleStatus.NO_TRADE_CAP, loss)
 
@@ -110,15 +118,16 @@ class CycleSimulator:
         gross = self.costs.gross(legs, entry_prices, exit_prices)
         charges = self.costs.charges(legs, entry_prices, True) + self.costs.charges(legs, exit_prices, False)
         pads = self.costs.pads(legs)
+        lowest, highest = payoff_bounds(legs)
+        impossible = not lowest <= position_value(legs, exit_prices) <= highest
         return CycleResult(
             cycle, structure.code, CycleStatus.TRADED, trials, chosen.width, results,
-            gross, charges, pads, gross - charges - pads, chosen.max_loss,
+            gross, charges, pads, gross - charges - pads, chosen.max_loss, impossible,
         )  # fmt: skip
 
 
 def _no_trade_status(trials: Sequence[WidthTrial]) -> CycleStatus:
-    outcomes = [t.outcome for t in trials]
-    if CycleStatus.NO_TRADE_CAP in outcomes:
-        return CycleStatus.NO_TRADE_CAP
-    listed = [o for o in outcomes if o != CycleStatus.MISSING_STRIKES]
-    return listed[0] if listed else CycleStatus.MISSING_STRIKES
+    """Why the search ended without a trade: the outcome of the narrowest listed width (wider widths only show that a
+    narrower one had to be tried), or `missing_strikes` when no width was listed."""
+    listed = [t.outcome for t in trials if t.outcome != CycleStatus.MISSING_STRIKES]
+    return listed[-1] if listed else CycleStatus.MISSING_STRIKES
