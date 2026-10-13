@@ -1,6 +1,13 @@
 # Judge 21: story W8 re-judged (round 2)
 
-**Verdict: PASS.**
+**Verdict: FAIL** (changed from PASS on 13 Oct 2026, after this file was first written).
+
+**Why it changed:** the new `ui` CI job (minor 2) is not green. The orchestrator reports that run 38335689110 failed
+at the step "UI harness" (job 115095122372), while the `web` job passed. I cannot see this repository's CI runs from
+this session, so this comes from the orchestrator, not from my own check. A CI job that this story added and that
+fails is a should-fix finding: the story is not done until that job runs green. Everything else below stands.
+
+**Earlier verdict text, kept:**
 
 - Judge 19's should-fix finding is fixed, and I re-planted my own bypasses to check it.
 - Minor findings 1 and 2 are fixed. Minor 1 rests on a CI run I could not see, so I take it on some evidence only.
@@ -39,7 +46,7 @@ old Rule vs AI page comes from backend payload data, not from dashboard code.
 | # | Finding | Builder's answer | Judge's evidence | Decision |
 |---|---|---|---|---|
 | 1 | Should fix: criterion 5 enforcement can be bypassed (the `@/` alias, a re-export) | One resolver handling alias, extensionless, index, re-export, dynamic and require. Three rules: no module but the wiring imports the adapter; only the layout imports the wiring; a transitive walk from every frame component. Planted tests. | Plants a, b and c caught. The test file holds its own planted cases (7 pass). | ACCEPTED |
-| 2 | Minor: the UI harness is not in CI | New `ui` job in `.github/workflows/web-tests.yml`: Playwright 1.56.1 pinned, Chromium, build, harness, artifact upload | Workflow read and correct in form. **First run 38335689110: result not verified by me.** This session has no GitHub API access to omenix-dashboard. Some evidence until a green run is seen. | ACCEPTED (run unverified) |
+| 2 | Minor: the UI harness is not in CI | New `ui` job in `.github/workflows/web-tests.yml`: Playwright 1.56.1 pinned, Chromium, build, harness, artifact upload | Workflow read and correct in form. **First run 38335689110: result not verified by me.** This session has no GitHub API access to omenix-dashboard. Some evidence until a green run is seen. | **REJECTED for now:** the run failed at "UI harness" (job 115095122372, reported by the orchestrator). Should fix: make the `ui` job pass in CI. |
 | 3 | Minor: the RELIAN / CE word break | The page area is a size container; KPI cards go 2 per row below 1040 px | Screenshot above; harness 147/0 | ACCEPTED |
 | 4 | Minor: "AI combined (Opus)" on the old page | Pushback: this is stock-backend payload data, not W8 code. Fix it once, in W9 or the backend, not by patching one page. | Grep confirms no such string in app code. The orchestrator has added "screens never name an AI model" to W9 as an acceptance criterion with a test. **The pushback is correct for W8's scope**, provided that W9 criterion exists. | ACCEPTED |
 
