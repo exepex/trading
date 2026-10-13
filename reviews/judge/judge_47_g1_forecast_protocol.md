@@ -109,3 +109,35 @@ All equal the builder's.
   confusion.
 - **IV30's flag rate** (13%, mostly 2019-20 where the next month's ATM leg did not trade) is measured and stated.
 - **Book 1 = the mean of two baselines** is fixed in the protocol, as G3 requires.
+
+## Addendum: round 2 (769fac7, then 3bd5b37 after ChatGPT review 28)
+
+**Both findings: ACCEPTED.**
+- **Why G1 is still not PASS:** criterion 3 ("the protocol is frozen") is deliberately not met now. Version 1 was put
+  back to draft so ChatGPT could review it first.
+- **What completes G1:** ChatGPT's agreement to the applied review-28 changes, then the freeze. I re-check the
+  freeze record and its commit order at that point. That is a short check.
+
+**Finding 1 (freeze behaviour, not library bytes): ACCEPTED (my own checks).**
+- **Built after the 30 Mar 2021 change:** `research/forecasts/golden_iv30_rv20.csv` (1,921 days, 2019 to 12 Oct
+  2026) was added in 769fac7, which contains B7's 0364b22. So the golden values already include the 30 Mar 2021 closes.
+- **Hand check across the filled session:** trailing RV20 on 12 Apr 2021, over the 21 closes from 10 Mar to 12 Apr
+  (30 Mar included), is **21.813638387166204** by my own script on NSE's index closes. That equals the golden value to
+  the last digit. 30 Mar itself has no row, which is right: it has no option rows, so no IV30.
+- **The behaviour freeze bites:** I changed the library's year length (252 to 252.0001): `tests/forecast` gives
+  **2 failed**.
+- **A refactor passes:** a harmless edit to the same file gives **44 passed**. Shared files can change; numbers
+  cannot.
+
+**Minor (process): ACCEPTED.**
+- `PROTOCOL.md` is marked "draft version 1 … Not frozen: … frozen only after ChatGPT has agreed it" (orchestrator
+  decision after judge 47).
+- `FREEZE.md` is gone.
+- Ledger trials 32-36 now carry no protocol commit, filled in at the freeze.
+- ChatGPT's review 28 exists, and its two changes are answered in response 60 and applied:
+  - Q5 is void on flagged IV30 days;
+  - the primary family is 10 tests (Book 2 and Book 3 against Book 1).
+- I did not re-judge the statistics of the new 10-test family this round, to save cost. I will check it with the
+  freeze, together with the Holm procedure, against the frozen text.
+
+**Checks:** `tests/forecast` 44 passed; my plants above reverted, and `git status` is clean.
