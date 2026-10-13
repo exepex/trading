@@ -206,3 +206,54 @@ Built after the owner chose (a). No broker key in GitHub; the workflow installs 
   GitHub's runners (A12's probe proved other NSE JSON endpoints do), and how stale NSE's page time is at 15:00 (it
   showed 15:40:00 after the close, so it does update during the day; its refresh interval during the session is not
   measured yet). Nothing switches until the owner has seen `quotes compare` for at least 3 sessions.
+
+## 6. Criterion 2's real fire, end to end (13 Oct 2026)
+
+The owner created the dry-run routine (`trig_01Tb8CYfG4DKnC4ARaUn1dqD`), added the two secrets and ran
+`participant-oi-release` by hand.
+
+**First run, Actions run 38429626109 (success, 21:50:28 to 21:51:00 IST).** The run summary in Drive
+(`pipeline/runs/participant-oi-release/2026/10/38429626109-1.json`, download `success`) lists 4 batches in the 5-day
+window, all `fired`, each with its routine session:
+
+| Batch | Version (SHA-256, first 12) | Routine session | `pipeline/fired` | `pipeline/processed` | `derived/dry-run` |
+|---|---|---|---|---|---|
+| 2026-10-08 | 277ff398753f | cse_01HDGovSvsGEptc3t4Tn9A4H | yes | yes | yes |
+| 2026-10-09 | d95f403185bb | cse_01Kyd9QHUhW2G2ZLkfbnMrmj | yes | yes | yes |
+| 2026-10-12 | 8ceb5e8a2937 | cse_01WzUooPmNGNxdJqtMaCCLWQ | yes | yes | yes |
+| 2026-10-13 | de403e686af8 | cse_019Vbzuq2QUCYAhzLgcuKgoD | yes | yes | yes |
+
+(Read from Drive with the owner sign-in; each record file is named by the full SHA-256.) 2026-10-10 and 11 are a
+weekend: no file, no batch.
+
+**The routine's printed line** (session cse_019Vbzuq2QUCYAhzLgcuKgoD, fired 16:20:57 UTC): `processed: 7 lines, 976
+bytes; summary dry-run/nse/derivatives/participant-oi/2026-10-13/de403e686af87a4a841704616476ea26715fd1f5e2f576643eec65ecfeb6b88c.json`.
+The pointer arrived inside `<routine-fire-payload>` marked as data, exactly as sent.
+
+**Finding fixed in the checklist:** in that session plain `pip install` installed into a different Python than
+`python` (`ModuleNotFoundError: requests`); the routine recovered with `python -m pip`. The prompt in
+`docs/stories/O6-owner-checklist.md` now says `python -m pip install`. **The owner must paste that line into the
+routine's prompt** (a routine's prompt is not read from the repository).
+
+**Cost, measured (strong evidence):** that session ran 75 s and reported USD 0.13 at list price on the Sonnet model
+(4 turns, about 216,000 input tokens, mostly cached). Four fires on the first run, about USD 0.54; afterwards about
+one fire per session day, so roughly USD 3 a month for this dry-run routine on the subscription. Most of the cost is
+the routine's fixed start-up context, not the work.
+
+**Second run, Actions run 38430016919 (dispatched by this builder, success, 16:22:51 to 16:23:22 UTC).** Job log:
+`Omenix F&O participant-oi-release (GitHub Actions run 38430016919-1): download success; 4 batches in window, 0 fired
+to dry-run, 4 already fired, 0 failed` / `alert sent to #fno-desk`. No routine session was started. The watch
+returned today's check already in the Actions log (present at 21:50 IST, `de403e686af8`) and committed nothing new;
+the librarian found the file "already there and verified". Every secret in the log shows as `***`.
+
+**Criterion 2: MET** (tests, plus one real fire of 4 batches, each processed once, and a second run that fired
+nothing).
+
+**Finding on the old routine (strong evidence, from its own transcript):** the 17:11 IST run of "participant-OI
+release times" (session cse_01GciwRDoU5NX9U5CWYwig8K) recorded its checks, but every push to `main` failed with HTTP
+403 ("`exepex/trading` isn't in this session's authorized repository set"). Its 6 commits stay in a dead container;
+the committed log has only the 06:06 checks for 13 Oct. The routine still shows `SUCCEEDED`. So
+`participant-oi compare` shows 13 Oct as `DIFFERENT` (routine: absent at 06:06; Actions: present, 21:50 IST): the
+difference is the routine's lost push, not the data. Fix for the owner: add `exepex/trading` to that routine's
+repositories (claude.ai/code, Routines, the routine, Repositories). The Actions job has no such gap: it pushes with
+its own `contents: write` token. This builder did not edit the routine (out of scope).
