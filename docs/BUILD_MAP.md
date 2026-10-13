@@ -71,3 +71,7 @@ work), **gap** (no story yet).
    buy and sell values). India VIX history needs no story (the panel carries it). F&O news waits until its source,
    point-in-time rule, revision behaviour and consumer are named.
 4. Keep the story status lines true: each PASS updates its line the same day.
+5. Keep the live forecast inputs fresh (judge 47 addendum 4): d-1's NIFTY and VIX closes must be appended before 14:00
+   IST each session (O6's index-close job); the NIFTY option panel needs a rebuild path by about 10 Nov 2026 so Q5's
+   panel IV30 does not go stale (write the story before the pause).
+
