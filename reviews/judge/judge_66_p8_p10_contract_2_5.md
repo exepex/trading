@@ -103,3 +103,12 @@ brings the close" is still true for a muhurat session, so I accept ours. The con
 match.
 
 Item 4 (the real 07:10 IST publish) is still pending my 02:40 UTC check.
+
+## Addendum 3 (contract example fix, omenix-dashboard 66f129b)
+
+The `getSessionIndia_india_hours_not_issued` example now has `post_close_at: 2026-11-09T01:40:00Z`. That is exactly
+what P10 (803ca61) computes for the 8 Nov muhurat (`utc(9 Nov, 07:10 IST)`, my run). The contract and the publisher
+agree.
+
+Note: trading's pin is still c6b4dc7, from before this example change. Re-pin when convenient, so the pinned
+examples equal the contract.

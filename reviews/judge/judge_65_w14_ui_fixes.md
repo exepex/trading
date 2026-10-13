@@ -89,3 +89,18 @@ On `restore_test.sh` as it was before a0bb4bb, the same check fails two endings:
 
 So the check really catches the bash 3.2 trap bug. Note: e20cc12 adds the check only. The script's fix is a0bb4bb,
 and this commit proves that fix.
+
+## Addendum 2 (8893f17: the Strategy lab API projection is now an allow-list)
+
+**MET; the should-fix is closed.** The projection now keeps only `PUBLIC_KEYS` (`id`, `family`, `name`, `horizons`,
+`live`, `live_from`, `settled_trades`). The tests name the forbidden keys literally and plant an unknown field
+(`planted_secret_setting`). My plants, run on the strategy-pages and data-handler tests (109 pass at baseline):
+
+| Plant | Result |
+|---|---|
+| `threshold` added to the public list (the old plant, the other way round under an allow-list) | caught (2 failed) |
+| `parameters` added to the public list | caught (2 failed) |
+| No projection at all (entry returned as is) | caught (2 failed) |
+
+A new registry setting now stays private unless someone adds it to the list on purpose. The test's planted field
+shows that.
