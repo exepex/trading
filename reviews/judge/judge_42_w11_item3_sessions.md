@@ -157,3 +157,46 @@ genuine fall, and the contract is correct to show it.
 
 **Not judged:** the same commit carries unrelated changes (Google Search Console's ownership file and the 36 home
 page). I judged only the data fix.
+
+## Addendum 3: demergers adjusted (omenix-dashboard 00abb11)
+
+**ACCEPTED.** Addendum 2's minor is closed. There are 2 new minor findings on the edge cases.
+
+**The method:** factor = the ex-date's opening price ÷ the previous close, from NSE's equity bhavcopies.
+
+**Three cases against NSE's files** (`OpnPric` on the ex-date, `PrvsClsgPric` = the previous close):
+
+| Symbol | Ex-date | NSE open / previous close | Factor | Builder's factor | Served now |
+|---|---|---|---|---|---|
+| INDIAGLYCO | 2 Sep 2026 | 225.00 / 1,111.70 | 0.202393 | 0.202393 | 1Y close 182.41 → `y1` +75.32% |
+| DCMSRIND | 26 Dec 2025 | 51.00 / 172.16 | 0.296236 | 0.296236 | 1Y close 51.32 → −20.05% |
+| VEDL | 30 Apr 2026 | 289.50 / 773.60 | 0.374224 | 0.374224 | 1Y close 176.58 → +50.02% |
+
+All three factors equal NSE's numbers exactly.
+
+**The "special pre-open" claim (some evidence; partly true).**
+- **Where it is true:** NSE's own page on special pre-open sessions and its FAQ cover stocks **with derivatives
+  contracts** on the ex-date after a corporate restructuring such as a demerger. There, the session's discovered
+  price is the price NSE itself uses for index adjustment (the demerged entity enters at the T−1 close minus that
+  price). For F&O stocks (VEDL; Tata Motors, HUL), the open is that discovered price.
+- **Where it is not:** INDIAGLYCO and DCMSRIND have no derivatives, so their open comes from the normal pre-open call
+  auction. It is still an exchange-discovered price, but noisier. DCMSRIND opened at 51.00 and closed at 54.52 (+7%)
+  on its ex-date.
+- **Why the method is still right:** it is the only price-based factor NSE's files allow, and better than no
+  adjustment. The README should say "pre-open price (special session for F&O stocks)".
+
+**Minor findings:**
+1. **TMPV's recorded reason is wrong.** `actions.csv` says "not adjusted: no trade on the ex-date". NSE's
+   bhavcopy for 14 Oct 2025 shows the stock **did** trade, under its old symbol TATAMOTORS: open 400.00, previous
+   close 660.75, factor 0.6054.
+   - **No wrong figure is served:** the TMPV series starts after the symbol change (239 sessions), so its 1Y is
+     null.
+   - **But** its 52-week high and low (419.00 / 272.20) cover only 239 sessions, without saying so.
+   - **Expected:** follow NSE's symbol-change file into the old symbol's history, or record the reason as "symbol
+     changed" and treat a 52-week window shorter than 250 sessions like the 1Y.
+2. **The pre-open wording** (above): name the special session only for F&O stocks.
+
+HEGAM (14 sessions, a new listing) is correctly left unadjusted.
+
+Sources: [NSE: special pre-open session](https://www.nseindia.com/products-services/equity-market-special-pre-open-session),
+[NSE FAQ on the special pre-open session](https://nsearchives.nseindia.com/web/sites/default/files/inline-files/FAQs%20on%20Special%20Pre-Open%20Session.pdf).
