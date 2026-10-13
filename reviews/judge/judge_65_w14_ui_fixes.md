@@ -45,3 +45,47 @@ Story: trading `docs/stories/X-cross-repository.md` W14.
 1. The Strategy lab internals breach (owner rule): its own story. This is the most important follow-up.
 2. W14's criterion 5 remainder: merge the duplicate `.go` and sort-header rules and the second `useWidth`.
 3. The size allowlist (10 files, up to 607 lines): a cleanup story, so the 350-line rule holds without exceptions.
+
+## Addendum 1 (W14 round 2, omenix-dashboard 375ceee; X1 restore check e20cc12)
+
+**Verdict: PASS on criterion 5 and the internals breach on the Strategy lab and Help. One should-fix: the API
+projection is a deny-list whose test is circular.**
+
+**Duplicates and the guard: MET.**
+- `lib/ui/tests/duplicates.test.ts` fails on my plant (a `.sec-head` rule block re-added to `markets.css`: 1 failed).
+- `check_code_size.mjs` passes. `strategy-lab-page.tsx` is off the allowlist; the largest part is 143 lines.
+- 38 older duplicate blocks are listed in a shrink-only allowlist. Stated, and not hidden.
+
+**Internals on the pages: MET.** I planted a tooltip with each strategy's description back into `lab-detail.tsx` and
+rebuilt. `w14-no-internals-lab` fails, naming four strategies' descriptions (the fixture still carries them, as
+claimed). `w14-no-internals-help` passes.
+
+**Internals in the API, partly:**
+- **Removing the projection step from the page spec is caught:** 1 failed.
+- **Should fix: removing `threshold` from `INTERNAL_KEYS` is not caught.** All 450 tests pass, and the stored registry
+  entry does carry `threshold: 0.55`, so the API would send it again. The cause: both projection tests loop over
+  `INTERNAL_KEYS` itself, so they can never notice a key leaving that list. A future registry field (another setting)
+  would also pass straight through, because the projection is a deny-list.
+- **Fix (reasoning only):** project to an allow-list of the public fields (`id`, `family`, `name`, `horizons`, `live`,
+  `live_from`, `settled_trades`), and make the test name the forbidden keys literally, not through the module's own
+  constant.
+- I could not call the real route: it answers 503 without the data service, and the harness serves fixtures in the
+  browser. The route check rests on the handler test.
+
+**Still open (the builder listed these; I agree they matter):**
+- Display names and ids carry how a strategy decides ("60% bar", "calm markets only"; ids like `rule.model_news.v1`).
+- The stock-strategies, lifecycle and track-record endpoints still carry thresholds.
+- The payload's `backtest_run.note` still says the model-only strategy needs "walk-forward probabilities". That is
+  method, not a decision rule, but worth the same review.
+- These are the owner's call and a follow-up story.
+
+**X1 restore marker (e20cc12): MET, verified by running it.** I started Docker and ran
+`platform/tests/restore_marker_check.sh` in `bash:3.2` (3.2.57) with stubbed `psql` and `az` (no Azure). All 4
+endings send `DROP TABLE` and write the evidence line.
+
+On `restore_test.sh` as it was before a0bb4bb, the same check fails two endings:
+- "normal": the marker written, no drop;
+- "ctrl-c-in-wait": the evidence line missing.
+
+So the check really catches the bash 3.2 trap bug. Note: e20cc12 adds the check only. The script's fix is a0bb4bb,
+and this commit proves that fix.
