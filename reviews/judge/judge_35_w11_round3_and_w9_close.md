@@ -67,3 +67,19 @@ proves it.
   a permanent harness plant, "a group figure under another group's source".
 
 **W9: PASS.** No open finding. The empty-state examples remain a W10 proposal, not a W9 criterion.
+
+## Addendum: the W9 minors push (1bbcfde, `response_10_w9_home.md`), probed at ed21a5a
+
+- **Vendor and brand names:**
+  - matched: "the Anthropic console" → Anthropic, "OpenAI API" → OpenAI, "ChatGPT said" → ChatGPT, "Qwen2.5" → Qwen2.5;
+  - left alone: "a haiku" → no match.
+
+  "Anthropic console" remains only in a code comment (`assistant-page.tsx:70`), not on a screen.
+- **Baseline:** `base.llm_only.v1` "claude_opus_4 only" shows as "Baseline".
+- **Dotted ids:** "scored by anthropic/claude-3.5-sonnet" becomes "scored by AI team/AI team". No model is named, but
+  the text reads oddly. Cosmetic; not a finding.
+- **The hydration fix:** `startTransition` is present in `components/frame/use-frame-state.ts:109`. The one-off React
+  #418 failure was not reproduced by the builder or by me, so the root cause is **some evidence** only. The full
+  harness passes (148/0).
+
+W9 stays **PASS**.
