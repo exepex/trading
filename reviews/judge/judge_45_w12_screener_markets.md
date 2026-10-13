@@ -226,3 +226,36 @@ listed as a difference.
 | Minor 1 | Partly: the uncovered list is gone; the regenerated-examples differences are still not listed |
 | Minor 2 | Open: computed `import()` |
 | Minor 3 | Open: not in the frame's 1680 list |
+
+## Addendum 3: round 3 (omenix-dashboard 758c6d3, 7bc0e0c, 672c9a0; `response_26`)
+
+**Verdict on W12: PASS.** The should-fix and all four minors are fixed, and each is re-checked with my own plants.
+There is 1 new minor on the detector's reach.
+
+**Checks:**
+- tsc clean; `npm test` 392 of 392; build ok.
+- Harness: **Screener 21, Markets 14, frame-page 20 (now including both pages at 390-1680 px), `home-open` 1:
+  0 failed.**
+
+| Judge 45 item | My re-check | Decision |
+|---|---|---|
+| 1 Should fix: the scrub rewrote real company names | My run of the detector over all 2,606 NSE names: **0 hits**. GPT Healthcare and GPT Infraprojects stay as published. W12's blocks skip the strategy rule. **My plant:** "Moneyview GPT-4o Limited" in the contract example and its copy, rebuilt. It is now **flagged**, not rewritten: `screener-stocks` and `frame-page-screener-stocks` fail at every width with "names an AI model: … Moneyview GPT-4o Limited". | ACCEPTED |
+| Minor 1 Differences list | The regenerated-example differences are now listed (near-high 56, near-low 247, volume 63; KOTAKBANK 91%; "results" and the expiry title) | ACCEPTED |
+| Minor 2 Computed `import()` | My `import(m)` plant in a Markets component: **caught** (1 failing) | ACCEPTED |
+| Minor 3 Pages at 1680 | The frame list now runs `screener-stocks`, `screener-us`, `markets-india` and `markets-us` at 390-1680 px; all pass | ACCEPTED |
+| Minor 4 Circular order check | My reversed `toolsOrder` plant: `screener-results` **fails** ("the results rows read ULTRACEMCO … not the tools order HDFCLIFE …"). `screener-picks` still passes, because all seven picks tie at 3 buys, so only the symbol tie-break orders them. That is correct and is now unit-tested. | ACCEPTED |
+| `home-open` claim | Restated as a mechanism fix, not reproduced on demand ("some evidence"). That matches my finding. | ACCEPTED (honest restatement) |
+
+**Minor (new): what the detector now misses.** Making "GPT" need a version removes the false positives on company
+names, at a cost:
+
+| Text | Before | Now |
+|---|---|---|
+| "uses GPT" (bare, in prose) | flagged | **not flagged** |
+| "gpt-oss-120b" (an open model's name) | flagged (brand) | **not flagged**: "-oss" is neither a digit part nor a listed variant |
+| "GPT-4o", "gpt4", "GPT 5", "ChatGPT", "OpenAI", "Claude", "(GPT)", "o3" | flagged | flagged |
+
+- **Why it is minor:** none of these appear in any fixture, and the backends' outputs pass through the strategy
+  allowlist.
+- **Expected:** add "oss" (and the vendor's other open-model suffixes) to the variants, and accept bare "GPT" as a
+  known residual risk in the owner's rule text, since it collides with listed company names.
