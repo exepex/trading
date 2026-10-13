@@ -1,7 +1,8 @@
 """Which routine sessions must be audited (owner's condition 1, 14 Oct 2026): every session of the first 10 session days
 on which the AI books were fired, then 2 sessions a week drawn at random from that week's fired sessions. The draw's
-seed is the week and its last session's official NIFTY 50 close (`draw_seed.py`), so it exists only after the week is
-over and nobody can know or steer it in advance. Each draw is recorded once with its seed inputs
+seed is the week and its last session's official NIFTY 50 close, confirmed against the Drive archive (`draw_seed.py`),
+so it exists only after the week is over and nobody can know or steer it in advance. Callers pass the verified seeds
+(built in `wiring.py`); a week without one is not drawn. Each draw is recorded once with its seed inputs
 (`research/forecasts/ai_v1/draws/<YYYY>-W<ww>.json`), so anyone can redraw it."""
 
 from __future__ import annotations
@@ -12,8 +13,8 @@ from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
 
-from .draw_seed import Week, WeekSeed, week_seeds
-from .paths import AI_FOLDER, CLOSES_FILE
+from .draw_seed import Week, WeekSeed
+from .paths import AI_FOLDER
 from .transcript_audit import TranscriptAudits
 
 FIRST_DAYS_ALL_AUDITED = 10
@@ -44,6 +45,12 @@ def first_days(sessions: list[FiredSession]) -> set[date]:
     return set(sorted({s.day for s in sessions})[:FIRST_DAYS_ALL_AUDITED])
 
 
+def weeks_to_draw(sessions: list[FiredSession]) -> set[Week]:
+    """The weeks with fired sessions after the first 10 days: the only ones whose seed is needed."""
+    first = first_days(sessions)
+    return {s.day.isocalendar()[:2] for s in sessions if s.day not in first}
+
+
 def weekly_draws(sessions: list[FiredSession], seeds: dict[Week, WeekSeed]) -> dict[Week, list[FiredSession]]:
     """The 2 sessions drawn from each week after the first 10 days, for weeks whose seed exists."""
     first, weeks = first_days(sessions), {}
@@ -61,13 +68,9 @@ def sessions_to_audit(sessions: list[FiredSession], seeds: dict[Week, WeekSeed])
     return sorted([s for s in sessions if s.day in first] + drawn)
 
 
-def seeds_of(root: Path) -> dict[Week, WeekSeed]:
-    return week_seeds(Path(root) / CLOSES_FILE, CLOSES_FILE)
-
-
-def record_draws(root: Path) -> list[str]:
+def record_draws(root: Path, seeds: dict[Week, WeekSeed]) -> list[str]:
     """Writes each new week's draw with its seed inputs (written once); returns the files written."""
-    seeds, written = seeds_of(root), []
+    written = []
     for week, chosen in weekly_draws(fired_sessions(root), seeds).items():
         path = Path(root) / DRAWS_FOLDER / f"{seeds[week].week}.json"
         if path.is_file():
@@ -79,7 +82,7 @@ def record_draws(root: Path) -> list[str]:
     return written
 
 
-def audits_due(root: Path) -> list[FiredSession]:
+def audits_due(root: Path, seeds: dict[Week, WeekSeed]) -> list[FiredSession]:
     """Selected sessions without an audit record yet."""
     audits = TranscriptAudits(root)
-    return [s for s in sessions_to_audit(fired_sessions(root), seeds_of(root)) if audits.get(s.day, s.book) is None]
+    return [s for s in sessions_to_audit(fired_sessions(root), seeds) if audits.get(s.day, s.book) is None]

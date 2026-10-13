@@ -10,7 +10,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from .audit_plan import fired_sessions, first_days, seeds_of, sessions_to_audit
+from .audit_plan import fired_sessions, first_days, sessions_to_audit
+from .draw_seed import Week, WeekSeed
 from .outcome import ON_TIME
 from .paths import audit_path
 from .transcript_audit import BREACH, TranscriptAudits
@@ -29,7 +30,8 @@ class ScoringStatus:
         return self.status == SCORED
 
 
-def scoring_status(root: Path, day: date, book: str) -> ScoringStatus:
+def scoring_status(root: Path, day: date, book: str, seeds: dict[Week, WeekSeed]) -> ScoringStatus:
+    """`seeds`: the weekly draws' verified seeds (`fno.ai.wiring.build_audit_seeds`); none means no week is drawn."""
     collected = Path(root) / audit_path(day, book)
     if not collected.is_file():
         return ScoringStatus(PENDING, "not collected", "")
@@ -41,16 +43,16 @@ def scoring_status(root: Path, day: date, book: str) -> ScoringStatus:
     if transcript and transcript.result == BREACH:
         return ScoringStatus(UNSCORED, f"transcript breach: {', '.join(transcript.breaches)}", isolation)
     if transcript is None:
-        waiting = _awaiting_audit(root, day, book)
+        waiting = _awaiting_audit(root, day, book, seeds)
         if waiting:
             return ScoringStatus(PENDING, waiting, isolation)
     return ScoringStatus(SCORED, "on time; transcript clean or not drawn", isolation)
 
 
-def _awaiting_audit(root: Path, day: date, book: str) -> str:
-    sessions, seeds = fired_sessions(root), seeds_of(root)
+def _awaiting_audit(root: Path, day: date, book: str, seeds: dict[Week, WeekSeed]) -> str:
+    sessions = fired_sessions(root)
     if any(s.day == day and s.book == book for s in sessions_to_audit(sessions, seeds)):
         return "transcript audit due"
     if day not in first_days(sessions) and day.isocalendar()[:2] not in seeds:
-        return "weekly audit draw not made yet (it waits for the week's last NIFTY 50 close)"
+        return "weekly audit draw not made yet (it waits for the week's last NIFTY 50 close, confirmed in Drive)"
     return ""

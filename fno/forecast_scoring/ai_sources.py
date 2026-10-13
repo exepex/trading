@@ -34,14 +34,14 @@ class AiForecasts:
     isolation: dict[str, set[str]] = field(default_factory=dict)  # book -> isolation labels
 
 
-def ai_forecasts(root: Path, verified_packs: dict[date, str]) -> AiForecasts:
-    """`verified_packs`: day -> SHA-256 of the day's receipt-verified v2 pack. F1's gate decides each book-day from
-    the recorded audits and weekly draws (no "today": 0688ad5)."""
+def ai_forecasts(root: Path, verified_packs: dict[date, str], seeds: dict) -> AiForecasts:
+    """`verified_packs`: day -> SHA-256 of the day's receipt-verified v2 pack. `seeds`: the weekly audit draws' seeds,
+    each confirmed in the Drive archive (`fno.ai.wiring.build_audit_seeds`). F1's gate decides each book-day."""
     out = AiForecasts()
     for records_path in sorted((Path(root) / AI_FOLDER).glob(f"*/*{RECORDS_SUFFIX}")):
         stem = records_path.name.removesuffix(RECORDS_SUFFIX)
         day, book = date.fromisoformat(stem[:10]), stem[11:]
-        gate = scoring_status(root, day, book)
+        gate = scoring_status(root, day, book, seeds)
         if gate.isolation:
             out.isolation.setdefault(book, set()).add(gate.isolation)
         entry = {"day": day.isoformat(), "book": book, "reason": gate.reason}

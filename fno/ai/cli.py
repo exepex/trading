@@ -81,11 +81,16 @@ def _coverage(day: date) -> int:
 
 
 def _audits_due(day: date) -> int:
+    from ..composition import build_alert_sender
     from ..config import ROOT
     from .audit_plan import audits_due, record_draws
+    from .wiring import build_audit_seeds
 
-    drawn = record_draws(ROOT)
-    due = audits_due(ROOT)
+    seeds, refused = build_audit_seeds()
+    for line in refused:  # a close the archive does not confirm: that week is not drawn, and the desk is told
+        print(line, "|", build_alert_sender().send(line))
+    drawn = record_draws(ROOT, seeds)
+    due = audits_due(ROOT, seeds)
     print(
         f"Omenix F&O AI transcript audits due: {len(due)}"
         + (f"; new weekly draws: {', '.join(drawn)}" if drawn else "")

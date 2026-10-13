@@ -295,3 +295,42 @@ routines push to `main`). Fixed:
 - The fire path is unchanged in this addendum.
 
 Gates: `python -m pytest -q` 1784 passed; ruff clean; `check_imports` clean.
+
+## Addendum 4 (14 Oct 2026, about 05:00 IST): the draw's close comes from the Drive archive (judge 62 addendum 2)
+
+Judge 62 addendum 2: the draw ran after Monday's routines had push access to `main`. A routine could have edited
+Friday's close in `warmup_closes.csv` and steered the draw. I checked this and the judge is right. While testing it I
+found two more ways in that the judge did not name, and fixed them too:
+- **blanking the close**, which made the reader skip the row;
+- **deleting the row.**
+
+Either one silently moved the seed to Thursday's close.
+
+What changed:
+- **Source** (`fno/ai/close_archive.py`): `CloseArchive` is an interface. Its `DriveIndexCloseArchive` adapter reads
+  the index-close file in Drive's raw area, which holds the first archived version. Routines have no Drive access.
+- **Checks** (`fno/ai/draw_seed.py`). The repository file names only the day and the archived file's SHA-256. A week is
+  refused, and so not drawn, when:
+  - the archived file's hash differs from that SHA-256;
+  - the closes file's close differs from the archive's;
+  - a close is blank or unreadable;
+  - Drive holds a later session of that week that the closes file lacks.
+
+  The seed is the archive's close. Each refused week posts one #fno-desk line from the capture job's `audits-due` step.
+  Without Drive settings no week is drawn, and those sessions stay pending (fails closed).
+- **Only the weeks needed are checked:** those with fired sessions after the first 10 days, so about one Drive read a
+  week.
+- **Callers pass the verified seeds:** `audits_due(root, seeds)`, `record_draws(root, seeds)`,
+  `scoring_status(root, day, book, seeds)`. G4's `ai_forecasts` now takes `seeds`, and its wiring passes
+  `fno.ai.wiring.build_audit_seeds(root)`; this was a 3-line change to keep `main` green after G4 adopted the gate.
+- **Tests** (`tests/ai/test_draw_seed.py`), each with a planted edit:
+  - edited close: refused, not steered;
+  - edited hash: refused;
+  - blank or unreadable close: refused;
+  - deleted last-session row: refused;
+  - no archive, or no Drive settings: refused.
+
+  Also tested: the seed is the archived close; the same inputs give the same seed; a week waits for a later close; only
+  the needed weeks are checked; draws are recorded once with their seed inputs.
+
+Gates: `python -m pytest -q` 1863 passed; ruff and `check_imports` clean. The fire path is unchanged.
