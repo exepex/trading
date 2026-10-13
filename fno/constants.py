@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import time
+from enum import StrEnum
 
 # Environment variable names (values are never stored in files).
 # Groww Trade API (market data only; the tool never places orders)
@@ -81,3 +82,18 @@ FEATURE_VIX_ABOVE_MEDIAN = "F2_vix_above_250d_median"  # India VIX close above i
 FEATURE_EVENT_IN_WINDOW = "F3_scheduled_event_in_window"  # a known scheduled event after entry, up to exit
 SESSION_CLOSE_TIME = time(15, 30)  # IST: a regular or special session's closing prices exist from here
 OPTION_CALL, OPTION_PUT = "CE", "PE"
+
+# Cycle simulator (story B2, fno/research_engine/): structure codes, as the experiment 1 protocol names them
+STRUCTURE_SHORT_IRON_FLY, STRUCTURE_SHORT_CONDOR, STRUCTURE_LONG_IRON_FLY = "SF", "SC", "BF"
+STRUCTURES = (STRUCTURE_SHORT_IRON_FLY, STRUCTURE_SHORT_CONDOR, STRUCTURE_LONG_IRON_FLY)
+
+
+class CycleStatus(StrEnum):
+    """Every outcome of one structure in one monthly cycle (story B2); story B3 consumes exactly these values."""
+
+    TRADED = "traded"
+    NO_TRADE_CAP = "no_trade_cap"  # every listed, priceable width breaks the Rs 10,000 cap
+    MISSING_STRIKES = "missing_strikes"  # a data condition: no width has all its strikes listed on the entry day
+    NO_ENTRY_WINDOW = "no_entry_window"  # the entry day is not before the exit day
+    UNFILLABLE = "unfillable"  # a missing or zero price, or more than half the legs on settlement prices
+    BAD_PRICES = "bad_prices"  # stale prices: a short credit at least the width, or a long debit at most zero

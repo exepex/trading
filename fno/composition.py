@@ -12,7 +12,7 @@ from .alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
 from .books.account import AccountWriter, PaperAccount
 from .books.lock import DEFAULT_LEASE_SECONDS, AccountLock
 from .config import ROOT
-from .constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID
+from .constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID, NIFTY_SYMBOL
 from .providers import AUTO_PROVIDER, get_provider
 from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.recorder import QuoteSnapshotRecorder
@@ -21,13 +21,17 @@ from .record_scan.scanner import RecordScanner
 from .research_data.availability import AvailabilityRule, LastWriteBoundRule
 from .research_data.events import read_events
 from .research_data.last_written import latest_writes, read_last_modified_table
-from .research_data.panel_reader import read_nifty_panel
+from .research_data.panel_reader import NiftyPanel, read_nifty_panel
 from .research_data.positioning import PointInTimeParticipantOi
 from .research_data.release_times import ReleaseLog, ReleaseTimeRecorder, choose_availability_rule, last_written_times
 from .research_data.write_sweep import LastWriteSweep, read_sweeps
+from .research_engine.cycle_costs import CycleTerms
+from .research_engine.cycles import Cycle, monthly_cycles
 from .research_engine.event_features import ScheduledEventInWindow
 from .research_engine.features import Feature, ResearchData
 from .research_engine.implied_vol import Black76
+from .research_engine.simulator import CycleSimulator
+from .research_engine.structures import LongIronFly, ShortCondor, ShortIronFly, Structure
 from .research_engine.volatility_features import AtmIvMinusRealised, VixAboveMedian
 from .storage.raw_source import ParticipantOiSource
 from .storage.wiring import (
@@ -133,3 +137,19 @@ def build_features(cfg: dict) -> tuple[Feature, ...]:
 def load_research_data(years=None, keep=None) -> ResearchData:
     """The repository's NIFTY panel (story A3; `years` and `keep` as in `read_nifty_panel`) and events calendar (A6)."""
     return ResearchData(read_nifty_panel(PANEL_FOLDER, years, keep), tuple(read_events(EVENTS_FILE.read_text())))
+
+
+def build_cycles(panel: NiftyPanel) -> list[Cycle]:
+    """Experiment 1's monthly cycles of the panel (story B2): A5's monthly rule and NSE's session calendar (A1)."""
+    return monthly_cycles(panel, build_session_calendar())
+
+
+def build_structures() -> tuple[Structure, ...]:
+    """Experiment 1's structures SF, SC and BF (story B2)."""
+    return ShortIronFly(), ShortCondor(), LongIronFly()
+
+
+def build_cycle_simulator(cfg: dict, panel: NiftyPanel) -> CycleSimulator:
+    """Story B2's simulator: one NIFTY lot (`lot_sizes`) and the `charges` block of config.yaml; the protocol's pad,
+    loss cap and widths."""
+    return CycleSimulator(panel, CycleTerms(lot=cfg["lot_sizes"][NIFTY_SYMBOL], charges=cfg["charges"]))
