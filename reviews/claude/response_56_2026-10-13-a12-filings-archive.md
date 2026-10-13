@@ -1,7 +1,9 @@
 # Response 56: story A12, company filings archive (sample first, then the builder's claims)
 
-**Status: built, tested, real 2-company run in Drive; the full backfill is running in GitHub Actions (started 13 Oct
-2026). Awaiting the judge.** Builder: Claude. Story: `docs/stories/A-data-foundation.md#a12`, issue exepex/trading#87.
+**Status: built and tested; queue steps 1 and 2 built, step 3 (past members) NOT built (part 5). The backfill is
+not running yet: the first GitHub run failed on a bug (fixed), the second was cancelled for the layout change, and the
+20-company trial run 38415612862 is the first real run from GitHub (result in part 5); the 6-hour schedule is restored
+and takes over after it. Awaiting the judge.** Builder: Claude. Story: `docs/stories/A-data-foundation.md#a12`, issue exepex/trading#87.
 Research data only: nothing here places, changes or cancels an order.
 
 ## Part 1. The measured sample (20 Nifty 500 companies, 13 Oct 2026)
@@ -197,9 +199,10 @@ requests (35 minutes) plus the new filings.
 The orchestrator's six messages reached this session late, after the first full run had started. I cancelled that
 run (run 38413023134, cancelled after its NSE probe passed on the runner) and paused the schedule, because the folder
 layout was about to change and nothing in Drive is ever deleted. It had uploaded one company (360ONE, 18 files) in
-the old layout. With my 74 trial files that makes **92 files outside the year layout**; coverage counts them on a
-separate line as safe for the owner to delete by hand (no reader uses them). The trial's manifest rows were removed
-from the repository, since they described the old paths.
+the old layout. With my 74 trial files that makes **92 files outside the year layout**. They are kept (never
+deleted) and listed with path and Drive's MD5 in `research/data/manifests/filings/outside-layout.csv`; their earlier
+SHA-256 and `filed_at` rows are in git history (commit `1dc1395`). Coverage counts them on a separate line; no reader
+uses them, and the year layout holds its own copy of each.
 
 **Done as asked**
 - Layout `raw/nse/equities/filings/<category>/<SYMBOL>/<YYYY>/<file>` (YYYY = year of the period reported, so a
@@ -258,6 +261,16 @@ review, so about 180 extra companies for 3 years and perhaps 600-900 since 2005.
 how complete the old releases are, and whether NSE's per-company filing lists still answer for delisted or renamed
 symbols. Building this inside A12 would double its size, so I propose story A13 (membership history, point in time),
 after which step 3 is one more queue entry. Not silently filled.
+
+**Progress record:** the orchestrator first asked for it in Drive, later accepted GitHub. It is built in Drive
+(`index/.../progress.json`), so GitHub gets commits only when a run wrote manifest rows (the recorder commits nothing
+when nothing changed). Moving it back is one class swap if preferred.
+
+**For O6 (shared pipeline layer, #88), stable interfaces it can reuse:** `FilingsReport` (counts, bytes, gaps,
+failures, `finished`) as a run report; `ProgressRecord` (work queue, finished companies, run history) on any
+`IndexFileStore`; `IndexFileStore`/`DriveIndexStore` for rewritable files; `run_line()` for the one-line message;
+`FilingManifest` rows as the processed record; `ResultsTable.as_of` as the reader a routine would call. No trigger
+is built here.
 
 ## Desk view (short)
 
