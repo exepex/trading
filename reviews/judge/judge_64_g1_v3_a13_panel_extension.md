@@ -107,3 +107,45 @@ judge 62 must-fix touches `ai_sources.py`, which is not on the list.
 appends I will compare them with A3's build, as A13's "judge verifies" asks. Note the builder's point: until
 `panel-days.yml` is scheduled, 13 Oct's F&O file reaches Drive only through `market-publish.yml`, which depends on the
 database check.
+
+## Addendum 2 (split freeze, e3e2dca / b704c36): PASS, with two small test gaps and an order rule for the freeze step
+
+**1. Each change fails only its own section: MET at the check level.** `tests/test_freeze_sections.py` (5) passes.
+My plant made `section_text` return the whole record instead of one section: 3 tests failed, so the isolation is
+really tested.
+
+**But the wiring that picks the section is not tested (should fix, small).** I swapped the section name in each
+composition root:
+- the panel job checking `forecast-scores`;
+- scoring checking `panel-days`.
+
+Both plants pass all 214 tests in `tests/test_freeze_sections.py`, `forecast_scoring`, `research_data` and
+`pipeline`. `test_scoring_refuses_when_its_own_v3_section_does_not_hold` replaces `require_section_frozen` with a
+stub that ignores its section argument. A wrong constant would leave A13's files unguarded, or would tie the panel
+to G4's files again: exactly what the split exists to prevent. Fix: each wiring test asserts the section it passes
+(`PANEL_DAYS` in `panel_wiring.py`, `FORECAST_SCORES` in G4's wiring).
+
+**2. DRY (the about eight repeated lines): acceptable.** v2's `require_version_frozen` checks every row of its
+record, and `freeze_v2.py` is byte-frozen by v2. A shared helper would mean editing a frozen file, so a new v2 for no
+behaviour change. The new module reuses v2's building blocks (`read_version_freeze`, `changed_files`, `Git`) and
+repeats only the order of checks. The clean path is the one taken: from v3 on, `freeze_sections.require_section_frozen`
+is the one shared helper for later versions. Reasoning only.
+
+**3. The freeze step, exactly (and one order rule):**
+1. The protocol commit is the commit whose `PROTOCOL_v3.md` is final; today e3e2dca last changed it. The G1 builder
+   writes `research/forecasts/FREEZE_v3.md` in a later commit: the preamble names that protocol commit, with one
+   section per job, each holding the SHA-256 of the protocol, `fno/freeze_sections.py` and its job's files, taken from
+   the files at the freeze commit. The orchestrator confirms, as for v2.
+2. **Order rule:** `panel-days.yml` is in the `panel-days` section. Its schedule must therefore be added **before or
+   in the same commit as** `FREEZE_v3.md`. If the schedule is added after the record, the workflow's bytes no longer
+   match, and the panel job refuses on its own section on its first scheduled run.
+3. With that, the schedule is the only remaining change. Then I check the record's hashes against the files, and
+   compare the first two real appended days with A3's build.
+
+**One more risk to close at the freeze (should fix, reasoning only).** Before the record exists, the panel job treats
+"no `FREEZE_v3.md`" as `NotYetFrozen`, prints "nothing appended" and exits 0 with no alert. Once the job is scheduled,
+the same path would let a deleted or renamed record stop the panel silently. Q5's base rate would then go stale
+about 21 sessions later with nobody told. Once scheduled, a missing record should fail with an alert, for example
+by making `NotYetFrozen` an alerting failure in the scheduled run.
+
+Gates: the affected suites pass (214). The full suite was not re-run for this small change.
