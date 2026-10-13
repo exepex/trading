@@ -78,3 +78,30 @@ only data up to `d`.
   question 5 from about 2021-2022.
 - **Previously seen:** the access attestation in FREEZE.md lists what touched these questions before the freeze: desk
   meeting 1's trend persistence and B1's F1 measurements.
+
+## Addendum (judge 47: FAIL, one should-fix and one process point; both accepted)
+
+**Should fix, accepted: the freeze locked the bytes of shared library files.** The judge is right. Forecasts are scored
+for months, and checking B1's `implied_vol.py`, `volatility_features.py` and `close_series.py` byte for byte would turn
+every unrelated refactor of code shared with F1, B7 and C2 into a failing test and a new protocol version. That breaks
+the owner's "design for change" rule. Fix:
+- **Golden file.** `research/forecasts/golden_iv30_rv20.csv` holds IV30 (value, flag, expiries) and trailing RV20 for
+  all 1,921 panel trading days from 2019 to 12 Oct 2026; both are known at the forecast date. `fno/forecast/golden.py`
+  computes it, `tools/forecast_golden.py` writes or checks it, and `fno/forecast/wiring.py` is a new composition root
+  (added to CLAUDE.md; `fno/composition.py` stays at 320 lines).
+- **Test.** `tests/forecast/test_golden.py` recomputes every day with the current code and requires equality within
+  1e-12 points. It also proves that a changed value, a flipped flag and a missing day are each caught. The hand-worked
+  values stay as fixture goldens in `test_iv30.py` and `test_targets.py`.
+- **What the freeze will check.** `PROTOCOL.md` section 10: this file, `fno/forecast/*.py` and the golden file's hash.
+  The shared library is recorded, not byte-checked. An A11 panel revision may move golden values only if it names the
+  revision.
+
+**Process, accepted (orchestrator decision): a G-protocol is frozen only after ChatGPT agrees.** I undid the freeze:
+- `FREEZE.md` is removed.
+- Ledger trials 32-36 have an empty `protocol_commit` again; they stay registered.
+- The repository-level freeze test is removed. `require_frozen_before` and its unit tests stay for G4.
+- `PROTOCOL.md` status is "draft version 1, awaiting ChatGPT review".
+
+The review request is `reviews/claude/response_56_g1-protocol-for-review.md`. Criterion 3 (frozen before the first
+scored forecast) is therefore not met until the agreed version is frozen. No forecast exists, so nothing is lost.
+

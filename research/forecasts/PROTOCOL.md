@@ -1,9 +1,11 @@
 # Forecast protocol, version 1 (story G1)
 
-**Status:** version 1, written by Claude on 13 Oct 2026 and frozen by `research/forecasts/FREEZE.md` before any
-forecast is made or scored. No forecast exists yet. Any change after the freeze is a new version (a new file and a new
-freeze); this file is never edited. Design: `docs/DESK_DESIGN.md` 12.7 (daily forecasts, a secondary diagnostic), 12.8,
-12.11. Registered in the research ledger as trials 32-36 (one per question).
+**Status: draft version 1, awaiting ChatGPT review** (request: `reviews/claude/response_56_g1-protocol-for-review.md`).
+Written by Claude on 13 Oct 2026. Not frozen: a forecast protocol is frozen only after ChatGPT has reviewed and agreed
+it (orchestrator decision of 13 Oct 2026, after judge 47). It is frozen as section 10 says, before any forecast is made
+or scored; after that any change is a new version (a new file and a new freeze), never an edit. No forecast exists yet.
+Design: `docs/DESK_DESIGN.md` 12.7 (daily forecasts, a secondary diagnostic), 12.8, 12.11. Registered in the research
+ledger as trials 32-36 (one per question); their protocol commit is filled in at the freeze.
 
 **Standing.** Trade profit decides. Forecast scores only diagnose market reading and can never promote a book that
 does not make net money (design 12.7). Every report that shows them says so.
@@ -153,3 +155,31 @@ carries its time zone and falls on `date` in IST; `probability` in [0, 1] or emp
 - Overlapping targets make neighbouring days' outcomes dependent; the block bootstrap handles this, a plain average's
   error would not.
 - The protocol's thresholds (3%, 20 and 10 days, the windows) come from design 12.7 and the story, not from data.
+
+## 10. The freeze (after agreement): behaviour, not library bytes
+
+- `research/forecasts/FREEZE.md` names the protocol commit and the SHA-256 of: this file, the forecast code
+  (`fno/forecast/*.py`) and the golden file `research/forecasts/golden_iv30_rv20.csv`. Story G4 refuses to score unless
+  the freeze is in the history of the scored forecast's commit (`fno.forecast.freeze.require_frozen_before`).
+- **Golden values:** for every panel trading day from 2019, IV30 (value, flag, expiries) and trailing RV20, both known at
+  the forecast date (not outcomes). `tests/forecast/test_golden.py` recomputes them with the current code and requires
+  equality within 1e-12 points; the hand-worked fixture values (IV30 14.4937 and 13.0 flagged; RV 15.8745 and
+  34.0470; the holiday and muhurat window) are checked in the same way by their tests.
+- **The shared library is recorded, not byte-checked:** B1's `implied_vol.py`, `volatility_features.py` and
+  `close_series.py`, the calendar reader and `config.yaml` may be refactored or fixed freely as long as every golden
+  value stays equal. A change to any golden value fails the test and needs a new protocol version.
+- **A panel revision** (story A11) that changes a past day's inputs moves that day's golden values legitimately; the
+  regenerated golden file (`python tools/forecast_golden.py --write`) is committed with the A11 revision that explains
+  each changed day, and the freeze record is amended only for that file's hash, citing the revision.
+
+## 11. Access attestation (what was looked at before the freeze, and why)
+
+- **30-day ATM IV and trailing RV20 on the panel, 2019 to 12 Oct 2026:** counted interpolated, flagged and missing IV30
+  days per year, read five IV30 values (1 Sep to 12 Oct 2026) against India VIX, and wrote the golden file (section
+  10). These are inputs known at the forecast date, not outcomes. No outcome of any question was computed on real
+  data; the targets were tested on fixture data only.
+- **Earlier work that touches the questions:** desk meeting 1 (12 Oct 2026, ledger trials 2-4) measured NIFTY
+  2024-2026 5/10/20-day direction persistence (50-52% same direction), related to question 1; story B1 measured F1
+  (ATM IV minus trailing 20-day RV) on 2024-2026 decision days, related to questions 3 and 5. The baselines' and Book
+  1's methods come from design 12.7 and the stories, not from these results.
+- Any further access before the freeze is added here with its reason.
