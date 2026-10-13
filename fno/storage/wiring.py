@@ -194,6 +194,7 @@ def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
 
 PANEL_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "nifty-panel"  # story A3's output
 EVENTS_FILE = Path(__file__).resolve().parents[2] / "research" / "data" / "events" / "events.csv"  # story A6
+LIVE_VALIDATION_FOLDER = Path(__file__).resolve().parents[2] / "research" / "live_validation"  # story B7 reports
 
 
 def daily_files(label: str, source_type: type[NseArchiveSource], library: RawFileLibrary) -> DailyFiles:

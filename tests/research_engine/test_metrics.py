@@ -1,5 +1,6 @@
 """Protocol section 7 and 9 metrics (story B3) on hand-made opportunities."""
 
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -34,6 +35,16 @@ def test_policy_summary_counts_every_opportunity_and_keeps_traded_only_apart():
     assert s["worst_opportunity"] == -400.0 and s["largest_modelled_max_loss"] == 9000.0
     assert s["net_by_year"] == {"2019": 600.0}
     assert s["tax_by_financial_year"]["2018-19"] == {"net": 600.0, "tax": pytest.approx(187.2)}
+
+
+def test_traded_exits_beyond_the_payoff_bounds_are_counted_with_their_net():
+    """B2's report-only flag: a flagged exit still counts in every total; its count and net are shown beside them."""
+    opportunities = [opportunity(i, {}, {"SC": net}) for i, net in enumerate((1000.0, -400.0, 300.0))]
+    flagged = replace(opportunities[1].results["SC"], exit_outside_payoff=True)
+    opportunities[1] = replace(opportunities[1], results={**opportunities[1].results, "SC": flagged})
+    s = policy_summary(opportunities, ["SC", "SC", None], tax_rate=0.312)
+    assert (s["exits_outside_payoff"], s["exits_outside_payoff_net"], s["total_net"]) == (1, -400.0, 600.0)
+    assert policy_summary(opportunities, [None, None, None], tax_rate=0.312)["exits_outside_payoff"] == 0
 
 
 def test_a_losing_financial_year_pays_no_tax_and_does_not_carry_forward():

@@ -61,6 +61,7 @@ def policy_summary(opportunities: Sequence[Opportunity], chosen: Sequence[Action
     by_fy = yearly(opportunities, pnl, financial_year)
     tax = tax_by_financial_year(by_fy, tax_rate)
     losses = [o.result(a).max_loss for o, a in zip(opportunities, chosen, strict=True) if o.traded(a)]
+    impossible = [v for o, a, v in zip(opportunities, chosen, pnl, strict=True) if o.exit_outside_payoff(a)]
     return {
         "opportunities": len(pnl),
         "total_net": total,
@@ -79,4 +80,6 @@ def policy_summary(opportunities: Sequence[Opportunity], chosen: Sequence[Action
         "tax_total": sum(year["tax"] for year in tax.values()),
         "no_settlement_total_net": sum(o.no_settlement_pnl(a) for o, a in zip(opportunities, chosen, strict=True)),
         "largest_modelled_max_loss": max(losses) if losses else None,
+        "exits_outside_payoff": len(impossible),  # report only: how much of the result rests on impossible closes
+        "exits_outside_payoff_net": sum(impossible),
     }
