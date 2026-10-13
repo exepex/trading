@@ -132,3 +132,10 @@ BASELINE_RISK_NEUTRAL, BASELINE_BASE_RATE, BASELINE_MODEL = (
     "baseline_c_model",
 )
 FORECASTERS = BOOKS + (BASELINE_RISK_NEUTRAL, BASELINE_BASE_RATE, BASELINE_MODEL)
+
+# Company filings archive (story A12, fno/filings/): the filing types archived, and where NSE serves their files
+FILING_RESULTS, FILING_SHAREHOLDING = "results-xbrl", "shareholding-xbrl"  # one XBRL file per filing
+FILING_ANNOUNCEMENTS, FILING_BOARD_MEETINGS = "announcements", "board-meetings"  # one all-company list per day
+FILING_FILE_KINDS = (FILING_RESULTS, FILING_SHAREHOLDING)
+CONSOLIDATED, STANDALONE = "consolidated", "standalone"
+NSE_FILINGS_FOLDER = "nse/equities/filings"  # archive folder of every NSE filing type

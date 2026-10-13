@@ -7,6 +7,7 @@ Raw files never change: saving the same bytes again is a no-op, and different by
 
 from __future__ import annotations
 
+import hashlib
 from abc import ABC, abstractmethod
 from pathlib import Path, PurePosixPath
 
@@ -42,6 +43,11 @@ class RawFileStore(ABC):
     def put(self, path: str, data: bytes) -> None:
         """Save a file (ReadOnlyStoreError if the store cannot, RawFileConflict if different bytes are there)."""
 
+    def checksums(self, folder: str) -> dict[str, str]:
+        """File name -> MD5 of every file directly in a folder ({} when the folder does not exist): a whole folder
+        checked from one listing (story A12). Stores that cannot list say so."""
+        raise NotImplementedError(f"{self.name} cannot list a folder")
+
 
 class LocalFolderStore(RawFileStore):
     """A folder on disk; point it at a Google Drive for desktop folder and Drive uploads the same tree."""
@@ -57,6 +63,13 @@ class LocalFolderStore(RawFileStore):
     def get(self, path: str) -> bytes | None:
         file = self._file(path)
         return file.read_bytes() if file.is_file() else None
+
+    def checksums(self, folder: str) -> dict[str, str]:
+        found = self.folder.joinpath(*path_parts(folder))
+        if not found.is_dir():
+            return {}
+        files = (f for f in found.iterdir() if f.is_file() and not f.name.startswith("."))
+        return {f.name: hashlib.md5(f.read_bytes()).hexdigest() for f in files}  # noqa: S324 - Drive's checksum
 
     def put(self, path: str, data: bytes) -> None:
         file = self._file(path)
@@ -84,3 +97,6 @@ class AreaStore(RawFileStore):
 
     def put(self, path: str, data: bytes) -> None:
         self.store.put(f"{self.area}/{path}", data)
+
+    def checksums(self, folder: str) -> dict[str, str]:
+        return self.store.checksums(f"{self.area}/{folder}")

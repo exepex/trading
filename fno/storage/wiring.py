@@ -104,14 +104,15 @@ OWNER_UPLOAD_SETTINGS = (
 def build_owner_drive_store(env=os.environ, session=None) -> RawFileStore | None:
     """The `raw` area of the Drive project folder, written as the owner (story A9); None unless all four settings
     are set. Signs in at once, so an expired consent shows up here as DriveSignInRefused."""
-    drive = _owner_drive(env, session)
+    drive = build_owner_drive(env, session)
     if drive is None:
         return None
     raw = AreaStore(drive, RAW_AREA)
     return FingerprintingStore(raw, build_manifest_folder(), RAW_SOURCES)  # every saved file gets its manifest row
 
 
-def _owner_drive(env=os.environ, session=None) -> GoogleDriveUploadStore | None:
+def build_owner_drive(env=os.environ, session=None) -> GoogleDriveUploadStore | None:
+    """The whole Drive project folder written as the owner (no area, no manifest); None unless all four settings."""
     folder, client_id, client_secret, refresh_token = (env.get(name) for name in OWNER_UPLOAD_SETTINGS)
     if not (folder and client_id and client_secret and refresh_token):
         return None
@@ -124,7 +125,7 @@ def build_revision_index() -> RevisionIndex:
 
 def build_revision_archive(env=os.environ, session=None) -> RevisionArchive:
     """Later NSE versions of raw files, saved to the owner's Drive `revisions` area with an index row (story A11)."""
-    drive = _owner_drive(env, session)
+    drive = build_owner_drive(env, session)
     if drive is None:
         raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to archive revisions in Drive")
     raw, revisions = AreaStore(drive, RAW_AREA), AreaStore(drive, REVISIONS_AREA)

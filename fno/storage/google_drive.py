@@ -23,6 +23,8 @@ DRIVE_READ_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
 FOLDER_TYPE = "application/vnd.google-apps.folder"
 CHILD_QUERY = "'{parent}' in parents and name = '{name}' and trashed = false and mimeType {op} '" + FOLDER_TYPE + "'"
 ROOT_QUERY = "'{parent}' in parents and trashed = false"
+FILES_QUERY = "'{parent}' in parents and trashed = false and mimeType != '" + FOLDER_TYPE + "'"
+LISTING_PAGE = 1000  # Drive's largest page
 READ_ONLY = "the service account only reads Google Drive: uploads sign in as the owner (GoogleDriveUploadStore)"
 
 
@@ -87,6 +89,25 @@ class GoogleDriveStore(RawFileStore):
                 return None
         file_id = self._child(parent, filename, folder=False)
         return None if file_id is None else self._download(file_id)
+
+    def checksums(self, folder: str) -> dict[str, str]:
+        parent: str | None = self.folder_id
+        for name in path_parts(folder):
+            parent = self._child(parent, name, folder=True)
+            if parent is None:
+                return {}
+        found: dict[str, str] = {}
+        params = {"q": FILES_QUERY.format(parent=parent), "fields": "nextPageToken, files(name, md5Checksum)"}
+        params["pageSize"] = LISTING_PAGE
+        while True:
+            page = self.drive.get(DRIVE_FILES_URL, params=params).json()
+            for item in page.get("files", []):
+                if item["name"] in found:
+                    raise RawFileConflict(f"two items named {item['name']!r} in Drive folder {folder}")
+                found[item["name"]] = item.get("md5Checksum", "")
+            if not page.get("nextPageToken"):
+                return found
+            params["pageToken"] = page["nextPageToken"]
 
     def _download(self, file_id: str) -> bytes:
         return self.drive.get(f"{DRIVE_FILES_URL}/{file_id}", params={"alt": "media"}).content

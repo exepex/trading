@@ -102,6 +102,6 @@ the owner's "design for change" rule. Fix:
 - The repository-level freeze test is removed. `require_frozen_before` and its unit tests stay for G4.
 - `PROTOCOL.md` status is "draft version 1, awaiting ChatGPT review".
 
-The review request is `reviews/claude/response_56_g1-protocol-for-review.md`. Criterion 3 (frozen before the first
+The review request is `reviews/claude/response_57_g1-protocol-for-review.md`. Criterion 3 (frozen before the first
 scored forecast) is therefore not met until the agreed version is frozen. No forecast exists, so nothing is lost.
 

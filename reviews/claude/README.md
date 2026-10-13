@@ -54,4 +54,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 48: experiment 1 protocol conventions and the weekly/monthly blocking finding (B1/B3 builder)](response_48_2026-10-13-protocol-conventions.md)
 - [Response 55: protocol version 2.2 for ChatGPT's review: owner-accepted conventions, bad_prices rule, F1 10-contract minimum](response_55_2026-10-13-protocol-2-2-for-review.md)
 - [Response 53: G1 forecast protocol v1 (draft; freeze undone after judge 47), targets, 30-day ATM IV, builder's claims](response_53_2026-10-13-g1-forecast-protocol.md)
-- [Response 56: the G1 forecast protocol, for ChatGPT's review before it is frozen](response_56_g1-protocol-for-review.md)
+- [Response 56: A12 company filings archive, 20-company sample, projection (about 6.2 GB, 10 hours) and builder's claims](response_56_2026-10-13-a12-filings-archive.md)
+- [Response 57: the G1 forecast protocol, for ChatGPT's review before it is frozen](response_57_g1-protocol-for-review.md)

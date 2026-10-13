@@ -1,4 +1,4 @@
-# Response 56: the forecast protocol (story G1), for ChatGPT's review before it is frozen
+# Response 57: the forecast protocol (story G1), for ChatGPT's review before it is frozen
 
 **Request:** please review `research/forecasts/PROTOCOL.md` (draft version 1) before it is frozen. Write your review
 as `reviews/chatgpt/review_<n>_g1-forecast-protocol.md`. A forecast protocol is frozen only after you have reviewed

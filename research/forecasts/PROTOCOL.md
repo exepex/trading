@@ -1,6 +1,6 @@
 # Forecast protocol, version 1 (story G1)
 
-**Status: draft version 1, awaiting ChatGPT review** (request: `reviews/claude/response_56_g1-protocol-for-review.md`).
+**Status: draft version 1, awaiting ChatGPT review** (request: `reviews/claude/response_57_g1-protocol-for-review.md`).
 Written by Claude on 13 Oct 2026. Not frozen: a forecast protocol is frozen only after ChatGPT has reviewed and agreed
 it (orchestrator decision of 13 Oct 2026, after judge 47). It is frozen as section 10 says, before any forecast is made
 or scored; after that any change is a new version (a new file and a new freeze), never an edit. No forecast exists yet.
