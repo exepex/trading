@@ -127,7 +127,7 @@ untraded options (credits larger than the width) and maximum losses above the ow
 
 **Judge verifies:** recomputes one real cycle per structure by hand from panel prices and the charges table.
 
-**Depends:** A3, A5 · **Size:** M · **Status:** built; awaiting judge (claims: `reviews/claude/response_45_2026-10-13-b2-cycle-simulator.md`)
+**Depends:** A3, A5 · **Size:** M · **Status:** done: judge 25 PASS (13 Oct 2026); protocol proposal (long debit ≥ width = `bad_prices`) awaits the owner and ChatGPT
 
 ---
 

@@ -459,4 +459,53 @@ coverage.
 **Judge verifies:** runs data-coverage for participant OI; opens 5 random files in Drive and compares their SHA-256
 with the manifest; plants a different file at an existing path and confirms it is refused.
 
-**Depends:** A1, A8 (manifest) · **Size:** M · **Status:** built; awaiting judge
+**Depends:** A1, A8 (manifest) · **Size:** M · **Status:** done: judge 23 PASS (13 Oct 2026); minors 1-2 moved to A10
+
+---
+
+## A10. 2018 warm-up closes, and a fingerprint for every new file
+
+**Repository:** trading
+
+**Description:** As the statistician and the data engineer, I want the 250 trading days before the panel's first
+decision day available as index closes, and every newly archived raw file fingerprinted when it is saved, so that F1
+and F2 are defined from the first day of the 2019-23 challenge and a damaged new file is never reported as complete.
+
+**Context and why:** B1 (13 Oct 2026) found that F2 needs 250 previous India VIX closes and F1 21 previous NIFTY
+closes; the archive starts on 1 Jan 2019, so F2 is `None` for nearly every 2019 decision day, which silently weakens
+experiment 1's challenge period for every policy using F2. Judge 23 (A9) minors 1-2: a file with no manifest row is
+checked by content only while coverage still says "complete" (true for the current-format F&O file of 12 Oct and every
+new day since), and the current-format manifest is the laptop tool's file, stopped at 9 Oct.
+
+**Scope.** In: NSE index-close files (`ind_close_all_DDMMYYYY.csv`) for the 2018 sessions needed as warm-up (NIFTY 50
+and India VIX rows are what the features read), their calendar rows, coverage and manifest; SHA-256 recorded at save
+time for every raw dataset; one way of producing every manifest. Out: 2018 option or futures outcomes (never needed,
+and never to be opened by experiment code: the warm-up is index closes only).
+
+**Expected design:**
+- 2018 sessions added to the session calendar from NSE's 2018 holiday circular (sourced, like A1/A7).
+- The librarian (A9) fetches, verifies (schema) and archives the 2018 index-close files to Drive under the existing
+  layout; a manifest row with SHA-256 is written for each file when it is saved.
+- Every raw dataset's manifest is produced by the same code path (A9's fingerprints), so `manifest.csv` (current F&O)
+  is regenerated from Drive, never the laptop tool's copy; new files get their row at save time.
+- `data-coverage` prints per dataset how many files were checked without a fingerprint, and the result is not
+  "complete" while that number is above zero.
+- The panel/feature readers can read the 2018 closes as warm-up only; a test proves no 2018 option or futures row is
+  read by any experiment code path.
+
+**Acceptance criteria:**
+1. Given the 2018 warm-up sessions, `data-coverage` shows the 2018 index-close dataset complete in Drive, 0 missing,
+   0 damaged, every file fingerprinted.
+2. F2 is not `None` on the first 2019 decision day (2 Jan 2019) and F1 is not `None` on it if its option legs traded;
+   both equal hand-computed values from the raw closes (the judge recomputes one).
+3. Given a file archived with no manifest row (planted), `data-coverage` reports it as unfingerprinted and the result
+   is not "complete"; a file saved through the librarian has its manifest row written in the same operation.
+4. `manifest.csv` for current-format F&O covers every session to the latest archived day and is produced by the same
+   code as the other manifests (the laptop copy is no longer read).
+5. No 2018 F&O option or futures data is read by experiment code (test).
+6. Code size, lint, imports, tests pass; raw files only in Drive.
+
+**Judge verifies:** runs data-coverage; recomputes F2 for 2 Jan 2019 from raw India VIX closes; plants an
+unfingerprinted file and confirms the result is not complete.
+
+**Depends:** A1, A9, B1 · **Size:** M · **Status:** later
