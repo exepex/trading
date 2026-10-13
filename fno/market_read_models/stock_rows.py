@@ -16,7 +16,7 @@ PERIOD_BACK = {"d1": 1, "w1": 5, "m1": 21, "m3": 63, "y1": 250}  # sessions back
 YEAR_SESSIONS = 250
 VOLUME_SESSIONS = 20
 RSI_SESSIONS = 14
-UNIVERSE_NIFTY_500, UNIVERSE_FNO = "n500", "fno"
+UNIVERSE_NIFTY_500, UNIVERSE_FNO, UNIVERSE_FOLLOWED = "n500", "fno", "ours"  # ours: the stock tool follows it
 
 
 def pct(now: float, then: float | None) -> float | None:
@@ -65,6 +65,7 @@ def stock_rows(
     industries: Mapping[str, str],
     delivery: Mapping[str, float | None],
     fno_symbols: set[str],
+    followed: frozenset[str] = frozenset(),
 ) -> list[dict]:
     """Every stock that traded on `day`, by symbol. A Nifty 500 industry counts only for a company on NSE's list of
     listed companies (as in the contract's examples)."""
@@ -73,8 +74,11 @@ def stock_rows(
         if bars[-1].day != day:
             continue
         sector = industries.get(symbol, "") if symbol in names else ""
-        universes = [
-            u for u, member in ((UNIVERSE_NIFTY_500, bool(sector)), (UNIVERSE_FNO, symbol in fno_symbols)) if member
-        ]
+        memberships = (
+            (UNIVERSE_NIFTY_500, bool(sector)),
+            (UNIVERSE_FNO, symbol in fno_symbols),
+            (UNIVERSE_FOLLOWED, symbol in followed),
+        )
+        universes = [universe for universe, member in memberships if member]
         rows.append(stock_row(bars, names.get(symbol) or symbol, sector, delivery.get(symbol), universes))
     return rows

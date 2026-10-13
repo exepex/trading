@@ -1,6 +1,7 @@
 """Story P6: the rows each block is built from, on small NSE-shaped inputs with hand-checked answers."""
 
 import io
+import json
 import zipfile
 from datetime import date, timedelta
 
@@ -149,3 +150,30 @@ def test_a_reference_list_snapshot_is_filed_under_its_day_with_its_original_name
     assert EquityListSource.day_for_path(path) == DAY
     with pytest.raises(ValueError):
         EquityListSource.day_for_path("nse/equities/equity-list/2026/10/12/OTHER.csv")
+
+
+def test_the_followed_list_of_a_close_is_the_latest_dated_on_or_before_it(tmp_path):
+    from fno.market_read_models.followed import FollowedCompanies, FollowedCompaniesFolder
+
+    (tmp_path / "2026-10-05.json").write_text('{"as_of": "2026-10-05", "companies": ["TCS"]}')
+    (tmp_path / "2026-10-12.json").write_text('{"as_of": "2026-10-12", "companies": ["TCS", "INFY"]}')
+    source = FollowedCompaniesFolder(tmp_path)
+    assert source.on_or_before(date(2026, 10, 9)) == FollowedCompanies(date(2026, 10, 5), frozenset({"TCS"}))
+    assert source.on_or_before(DAY).companies == {"TCS", "INFY"}
+    assert source.on_or_before(date(2026, 10, 1)) is None  # never a later list
+
+
+def test_a_followed_stock_is_tagged_ours_after_the_nse_universes():
+    series = stock_series([bars("TCS", [1.0, 2.0])])
+    (row,) = stock_rows(series, DAY, {"TCS": "Tcs"}, {"TCS": "IT"}, {}, {"TCS"}, frozenset({"TCS"}))
+    assert row["u"] == ["n500", "fno", "ours"]
+
+
+def test_the_committed_followed_list_holds_the_stock_tools_20_india_companies_of_12_october():
+    from fno.composition import FOLLOWED_COMPANIES_FOLDER, build_pinned_contract
+    from fno.market_read_models.followed import FollowedCompaniesFolder
+
+    followed = FollowedCompaniesFolder(FOLLOWED_COMPANIES_FOLDER).on_or_before(DAY)
+    assert followed.as_of == DAY and len(followed.companies) == 20
+    record = (FOLLOWED_COMPANIES_FOLDER / "2026-10-12.json").read_text()
+    build_pinned_contract().validate("FollowedCompaniesIndia", json.loads(record))

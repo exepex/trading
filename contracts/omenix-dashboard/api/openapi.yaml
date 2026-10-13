@@ -45,9 +45,10 @@ info:
     published yet; every object closed; history-dependent figures carry their coverage.
 
     Version 2.4 (W11 follow-ups, 13 Oct 2026; additions only, every served schema unchanged): what each publisher stores
-    where the route serves another shape (api/schemas/blocks-stored.yaml, `x-stored` on the operation). India's screener
-    summary is exepex/trading's NSE universes plus the stock tool's own companies, merged by the route; the screener
-    stocks and F&O rows are stored as whole tables and served as pages (page_size at most 100).
+    where the route serves another shape (api/schemas/blocks-stored.yaml): the screener stocks and F&O rows are stored as
+    whole tables and served as pages (page_size at most 100; `x-stored`); the stock tool stores only the India companies
+    it follows, which exepex/trading reads to tag and count "ours" over its NSE rows (`x-inputs`; orchestrator decision,
+    13 Oct 2026, judge 40).
 
     Serve-time fields (2.0 page payloads): the stored payload carries no time of its build, so a rebuild of the same data
     keeps its hash. The route adds `cutoff` and `built_at` (the row's envelope) at the top of a page payload and

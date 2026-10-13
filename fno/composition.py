@@ -29,6 +29,7 @@ from .market_read_models.blocks import (
 )
 from .market_read_models.contract import GitHubRawContract, PinnedContract, PublishedContract
 from .market_read_models.fno_rows import FnoRowBuilder
+from .market_read_models.followed import FollowedCompaniesFolder
 from .market_read_models.local_publisher import LocalFolderPublisher
 from .market_read_models.market_run import MarketRun
 from .market_read_models.postgres_publisher import PostgresPublisher
@@ -263,6 +264,7 @@ def run_live_validation(cfg: dict, live_name: str, today: date) -> ValidationRep
 
 CONTRACT_FOLDER = ROOT / "contracts" / "omenix-dashboard"  # the pinned W11 contract (story P6)
 DASHBOARD_REPOSITORY = "exepex/omenix-dashboard"
+FOLLOWED_COMPANIES_FOLDER = ROOT / "research" / "data" / "followed-companies" / "india"  # W11 input (judge 40)
 
 
 def build_market_blocks() -> list[BlockBuilder]:
@@ -300,7 +302,8 @@ def build_market_run(cfg: dict, publisher: ReadModelPublisher) -> MarketRun:
 def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     """A session's rows from the archived NSE files in Drive (ATM IV: Black-Scholes on the spot, as W11's examples)."""
     fno_rows = FnoRowBuilder(SpotBlackScholes(), cfg["risk_free_rate"])
-    return SessionRowsBuilder(build_drive_reader(), build_session_calendar(), fno_rows)
+    followed = FollowedCompaniesFolder(FOLLOWED_COMPANIES_FOLDER)
+    return SessionRowsBuilder(build_drive_reader(), build_session_calendar(), fno_rows, followed)
 
 
 def repository_commit() -> str:
