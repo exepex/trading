@@ -43,6 +43,7 @@ class ReportContext:
     coverage: dict | None = None  # book -> {counted_days, pack_days} since the common start (story G5 criterion 3)
     ai_isolation: dict[str, list[str]] = field(default_factory=dict)  # AI book -> isolation labels in its audits
     unscored_ai_days: tuple[dict, ...] = ()  # {day, book, reason}: AI days never scored
+    pending_ai_days: tuple[dict, ...] = ()  # {day, book, reason}: AI days awaiting their transcript audit
 
 
 def _comparison(c: ComparisonResult, allowed: bool) -> dict:
@@ -75,6 +76,7 @@ def report_document(context: ReportContext, modes: Sequence[ModeScores]) -> dict
         "coverage": context.coverage,
         "ai_isolation": {**dict.fromkeys(AI_BOOKS, [ISOLATION_LABEL]), **context.ai_isolation},
         "unscored_ai_days": list(context.unscored_ai_days),
+        "pending_ai_days": list(context.pending_ai_days),
         "modes": [
             {
                 "mode": m.mode,
@@ -118,8 +120,9 @@ def _coverage_lines(document: dict) -> list[str]:
         return ["Live coverage: no common start yet"]
     parts = [f"{book} {c['counted_days']} of {c['pack_days']}" for book, c in document["coverage"].items()]
     isolation = "; ".join(f"{book}: {', '.join(labels)}" for book, labels in document["ai_isolation"].items())
+    held = f"AI book-days not scored: {len(document['unscored_ai_days'])} unscored, {len(document['pending_ai_days'])} "
     return [f"Live coverage since {document['common_start']} (days with counted forecasts of session days): "
-            + ", ".join(parts), f"AI books' isolation: {isolation}"]  # fmt: skip
+            + ", ".join(parts), f"AI books' isolation: {isolation}", held + "pending audit"]  # fmt: skip
 
 
 def _difference_words(c: dict | None) -> str:

@@ -154,3 +154,30 @@ forms, so F1 can choose.
 
 Checks: see the commit message (pytest, ruff, check_imports). The report for 13 Oct 2026 is regenerated with the new
 fields (`common_start`, `coverage`, `ai_isolation`, `unscored_ai_days`); the scores themselves are unchanged.
+
+## Addendum 2 (14 Oct 2026): judge 62 addendum 1 must-fix, the AI reader now uses F1's scoring gate
+
+**Accepted (strong evidence).** My reader (`f03cb63`) checked only the collection audit's `status`. F1 writes
+transcript breaches to a separate `_transcript_audit.json`, so a breached or not-yet-audited day was scored and
+counted as covered. Reproduced on the old reader (`f03cb63`'s `ai_sources.py`, run against the new test's planted files): a
+`read_other_records` breach for Hybrid left all five of its records scored and nothing unscored.
+
+The fix, in `fno/forecast_scoring/ai_sources.py`:
+1. Every AI book-day goes through `fno.ai.scoring_gate.scoring_status(root, day, book, as_of)`, F1's one rule. My own
+   status checks and the `"unscored": true` field I proposed are gone; F1's transcript audit replaces them.
+2. Only `scored` days are scored. They must also name the day's receipt-verified v2 pack, else they are unscored.
+3. The report lists `unscored_ai_days` (never scored) and `pending_ai_days` (audit due, or the week's draw not made
+   yet) separately. Neither appears in the scored forecasts, so neither counts in coverage. The weekly summary prints
+   both counts.
+4. Tests in `tests/forecast_scoring/test_scoring_ai_gate.py`, on files written as F1 writes them (fire log, collection
+   audit, `TranscriptAudits.record` / `new_audit`):
+   - a planted `read_other_records` breach: unscored with "transcript breach: read_other_records", 0 counted days,
+     listed in the report and the summary;
+   - a pending audit ("transcript audit due" for one of the first 10 fired days): not scored, 0 counted, and scored
+     once a clean audit is recorded;
+   - `exposed` and `model_mismatch` are unscored with the gate's reason;
+   - a scored day with a wrong or unverified pack is unscored.
+
+**What the tests do not cover end to end:** `score_forecasts` itself, which needs the frozen back-fill, the git
+freezes and the panel. It calls exactly `ai_forecasts(root, live.packs, as_of)`. The tests run that reader, then
+coverage and the report, on the same outputs.
