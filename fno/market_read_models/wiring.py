@@ -1,0 +1,150 @@
+"""Composition root of the market read models (stories P6, P7, P9): the only place their concrete classes are wired
+together (the pinned contract, the session rows, the blocks, the publisher, the run status). Moved out of
+fno/composition.py, which reached the 350-line limit."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+from datetime import UTC, datetime
+from pathlib import Path
+
+from ..composition import build_alert_sender
+from ..config import ROOT
+from ..constants import BOOKS, ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID
+from ..research_engine.implied_vol import SpotBlackScholes
+from ..risk.settings import risk_settings
+from ..storage.manifest_commit import GitManifestRecorder
+from ..storage.wiring import build_session_calendar, build_versioned_reader
+from .blocks import (
+    BlockBuilder,
+    FnoRowsBlock,
+    FnoSummaryBlock,
+    IndicesBlock,
+    ScreenerStocksBlock,
+    ScreenerSummaryBlock,
+    SectorsBlock,
+)
+from .chain_blocks import (
+    ChainExpiriesBlock,
+    ChainHistoryBlock,
+    ChainRowsBlock,
+    ChainSourcesBlock,
+    ChainUnderlyingBlock,
+    ContractHistoryBlock,
+)
+from .chain_session import ChainBuilder
+from .contract import GitHubRawContract, PinnedContract, PublishedContract
+from .db_check import DatabaseCheck, url_user
+from .db_connection import VerifiedConnection
+from .flows_block import FlowsBlock
+from .fno_rows import FnoRowBuilder
+from .followed import FollowedCompaniesFolder
+from .frame_blocks import FnoEventsBlock, IndicesIndiaBlock, SessionIndiaBlock
+from .frame_inputs import FlowsReader
+from .home_blocks import FnoBooksBlock, FnoPicksBlock
+from .home_inputs import BooksReader, FrozenExperimentApprovals, HomeInputsReader
+from .local_publisher import LocalFolderPublisher
+from .market_run import MarketRun
+from .postgres_publisher import PostgresPublisher
+from .publication import PRODUCT, PublicationBuilder
+from .publication_inputs import PublicationInputsFile
+from .publisher import ReadModelPublisher
+from .run_status import LocalRunStatus, PostgresRunStatus, RunStatusRecorder
+from .session_rows import SessionRowsBuilder
+
+CONTRACT_FOLDER = ROOT / "contracts" / "omenix-dashboard"  # the pinned W11 contract (story P6)
+AZURE_POSTGRES_ROOTS = ROOT / "db" / "fno" / "azure-postgres-roots.pem"  # the CAs the publisher trusts (P6)
+PUBLICATION_INPUTS = ROOT / "research" / "data" / "publications" / "publication-inputs.csv"  # judge 66
+DASHBOARD_REPOSITORY = "exepex/omenix-dashboard"
+FOLLOWED_COMPANIES_FOLDER = ROOT / "research" / "data" / "followed-companies" / "india"  # W11 input (judge 40)
+LATEST_FROZEN_EXPERIMENT = (  # its decisive run's passing policies are the only approved strategies (P10)
+    ROOT / "research" / "2026-10-12-experiment-1" / "results_challenge.json",
+    "Experiment 1 (the 2019-2023 challenge)",
+)
+
+
+def build_market_blocks() -> list[BlockBuilder]:
+    """Stories P6, P8, P9 and P10: the India blocks the contract assigns to publisher fno (Screener and Markets; the
+    NIFTY option chain; Home's F&O books and picks; India's band, expiries and flows), all in one publication."""
+    return [ScreenerSummaryBlock(), ScreenerStocksBlock(), FnoSummaryBlock(), FnoRowsBlock(), IndicesBlock(),
+            SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
+            ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock(), SessionIndiaBlock(),
+            IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock()]  # fmt: skip
+
+
+def build_pinned_contract() -> PinnedContract:
+    return PinnedContract(CONTRACT_FOLDER)
+
+
+def build_published_contract() -> PublishedContract:
+    return GitHubRawContract(DASHBOARD_REPOSITORY)
+
+
+def build_read_model_publisher(local_folder: Path | None = None) -> ReadModelPublisher:
+    """A local folder when given (tests, dry runs), else the Azure fno schema with the publisher role's URL."""
+    if local_folder is not None:
+        return LocalFolderPublisher(local_folder)
+    return PostgresPublisher(_database_url(), VerifiedConnection(AZURE_POSTGRES_ROOTS))
+
+
+def build_database_check() -> DatabaseCheck:
+    """`market db-check`: connects as the publisher would (TLS, pinned roots) and reads its identity and rights."""
+    return DatabaseCheck(_database_url(), VerifiedConnection(AZURE_POSTGRES_ROOTS), url_user)
+
+
+def _database_url() -> str:
+    url = os.environ.get(ENV_FNO_DB_URL)
+    if not url:
+        raise RuntimeError(f"set {ENV_FNO_DB_URL} (the fno publisher role's connection string) to publish to Azure")
+    return url
+
+
+def build_run_status(local_folder: Path | None = None) -> RunStatusRecorder:
+    """Story P7: beside the publication (a local folder's JSON lines, else the Azure `fno.run_status` table)."""
+    if local_folder is not None:
+        return LocalRunStatus(local_folder, PRODUCT)
+    return PostgresRunStatus(_database_url(), VerifiedConnection(AZURE_POSTGRES_ROOTS), PRODUCT)
+
+
+def build_market_run(cfg: dict, local_folder: Path | None = None) -> MarketRun:
+    """Stories P6, P7: the archived NSE files in Drive, the pinned contract, the publisher and the run status (a local
+    folder when given, else Azure), #fno-desk alerts."""
+    contract = build_pinned_contract()
+    publications = PublicationBuilder(build_market_blocks(), contract, repository_commit())
+    rows = build_session_rows_builder(cfg)
+    publisher, status = build_read_model_publisher(local_folder), build_run_status(local_folder)
+    return MarketRun(build_session_calendar(), contract, rows, publications, publisher, build_alert_sender(), status,
+                     run_id, build_publication_inputs(local_folder))  # fmt: skip
+
+
+def build_publication_inputs(local_folder: Path | None = None) -> PublicationInputsFile:
+    """Judge 66: the flows copies each publication read, beside a local publication, else committed here."""
+    if local_folder is not None:
+        return PublicationInputsFile(local_folder / PUBLICATION_INPUTS.name)
+    return PublicationInputsFile(PUBLICATION_INPUTS, GitManifestRecorder(ROOT, PUBLICATION_INPUTS.parent).commit)
+
+
+def run_id(env=os.environ, clock=lambda: datetime.now(UTC)) -> str:
+    """GitHub's run ID and attempt (a re-run is its own run), else the local time."""
+    if env.get(ENV_GITHUB_RUN_ID):
+        return f"gh-{env[ENV_GITHUB_RUN_ID]}-{env.get(ENV_GITHUB_RUN_ATTEMPT, '1')}"
+    return f"local-{clock():%Y%m%dT%H%M%S%fZ}"
+
+
+def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
+    """A session's rows from the archived NSE files in Drive (ATM IV: Black-Scholes on the spot, as W11's examples).
+    Publishing reads NSE's latest version of each file (A11's revisions; judge 49); research reads point in time."""
+    fno_rows = FnoRowBuilder(SpotBlackScholes(), cfg["risk_free_rate"])
+    followed = FollowedCompaniesFolder(FOLLOWED_COMPANIES_FOLDER)
+    chain = ChainBuilder(cfg["risk_free_rate"])
+    home = HomeInputsReader(BooksReader(ROOT, BOOKS), FrozenExperimentApprovals(*LATEST_FROZEN_EXPERIMENT),
+                            risk_settings(cfg, ROOT).max_stress_loss_rs)  # fmt: skip
+    store, calendar = build_versioned_reader(), build_session_calendar()
+    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, FlowsReader(store, calendar))
+
+
+def repository_commit() -> str:
+    """The commit of the code that builds (each publication names it)."""
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True)
+    return head.stdout.strip() or "unknown"

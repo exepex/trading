@@ -120,7 +120,7 @@ page with a clear "incompatible data version" screen; F&O freshness from `fno.ru
 
 **Judge verifies:** runs the publishing/stale integration test.
 
-**Depends:** W1, X1, P3 · **Size:** M · **Status:** later
+**Depends:** W1, X1, P3 · **Size:** M · **Status:** done for the Screener and Markets blocks: judge 57 PASS (13 Oct 2026); live once the owner switches Vercel. Follow-up: P3/P6 publish `fno.run_status` so 'stale' can say why a run failed
 
 ---
 
@@ -657,3 +657,29 @@ as a preview only. Fills follow the honest rules: stocks at the stock tool's nex
    extended).
 
 **Depends:** W8, X1, W7 · **Size:** L · **Status:** later
+
+---
+
+## W14. UI interaction fixes: loading states, buttons, side menu, chart zoom, modular components
+
+**Repository:** dashboard
+
+**Description:** As the owner, I want every screen to show when it is loading, every clickable thing to look
+clickable (and disabled ones visibly disabled), menus to close when I navigate, and price charts to zoom and pan, so
+that the app is clear to use for a beginner and a professional alike.
+
+**Context and why:** Owner feedback on the deployed app, 13 Oct 2026: no loading indicator on API calls; greyed
+buttons without a border look like labels; the side-menu flyout stays open after navigation; the company page chart
+"Price with today's targets and ranges" cannot zoom; check all signed-off pages; make CSS and HTML modular.
+
+**Acceptance criteria:**
+1. Page-level loader on load and route change; block-level loader inside the block that triggered a fetch, never
+   blocking the whole screen; accessible (`aria-busy`).
+2. Clickable buttons and links are visibly interactive; disabled ones stay visible, distinct from labels and are never
+   clickable.
+3. The side-menu flyout closes on navigation, Escape and outside click.
+4. Every price chart on signed-off pages zooms, pans, resets and shows a crosshair, through one shared component.
+5. Every signed-off page audited, findings listed and fixed; shared components and templates replace page-local
+   styles and duplicated markup; 350-line limit and design rules hold.
+
+**Depends:** W8, W9, W12, W2 · **Size:** M · **Status:** doing (session W14)

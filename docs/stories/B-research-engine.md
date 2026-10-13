@@ -265,7 +265,7 @@ decisions; ledger updated.
 
 **Judge verifies:** commit order (frozen protocol before challenge results), re-runs both periods, compares hashes.
 
-**Depends:** B1-B4, A1, A3, A5, A6, C1 · **Size:** M · **Status:** doing (protocol v2.1 agreed, review 14; freeze after B1-B3 are built)
+**Depends:** B1-B4, A1, A3, A5, A6, C1 · **Size:** M · **Status:** done: protocol v2.2 frozen (9d16431), challenge run 13 Oct 2026 (a074eb9): no policy passed; judge 56 VALID
 
 ---
 

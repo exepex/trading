@@ -65,6 +65,9 @@ RELEASE_REWRITTEN = "rewritten"  # present, but with other bytes than the first 
 # NIFTY option-chain panel (story A3, fno/research_data/nifty_panel.py)
 PANEL_FORMAT_UDIFF, PANEL_FORMAT_LEGACY = "udiff", "legacy"  # source_format: which F&O file a day's rows came from
 PANEL_INDEX_CLOSE = "index-close"  # the index-close file of a day (underlying and India VIX)
+# Why the daily panel job (story A13) cannot append a session yet
+PANEL_FO_FILE_MISSING, PANEL_INDEX_CLOSE_MISSING = "fo_file_missing", "index_close_missing"
+PANEL_INDEX_CLOSE_DIFFERS = "index_close_differs"
 PANEL_DAY_OK, PANEL_DAY_NO_FILE, PANEL_DAY_NO_INDEX = "ok", "no file", "no index close"  # a day's status (manifest)
 PANEL_DAY_FAILED = "failed"  # the day breaks the research-ready gate: the build fails, naming it
 NIFTY_SYMBOL, INDEX_OPTION, INDEX_FUTURE = "NIFTY", "IDO", "IDF"  # F&O symbol; UDiFF codes of index options, futures
@@ -107,6 +110,7 @@ NO_TRADE = "no_trade"
 FEATURE_ATM_IV_MINUS_RV20_LIVE = "F1_live_atm_iv_minus_rv20"
 FEATURE_VIX_ABOVE_MEDIAN_LIVE = "F2_live_vix_above_250d_median"
 FEATURE_EVENT_IN_WINDOW_LIVE = "F3_live_scheduled_event_in_window"
+ENV_GITHUB_RUN_ID, ENV_GITHUB_RUN_ATTEMPT = "GITHUB_RUN_ID", "GITHUB_RUN_ATTEMPT"  # set by GitHub Actions (P7)
 ENV_FNO_DB_URL = "FNO_DB_URL"  # the fno schema's runtime publisher role (stories P3, P6); environment settings only
 
 # Risk manager (story C2, fno/risk/): the owner's restart entry for a book's drawdown brake, and the two frozen ways
@@ -146,3 +150,15 @@ ENV_ROUTINE_DRY_RUN_TRIGGER_ID = "FNO_ROUTINE_DRY_RUN_TRIGGER_ID"
 ENV_ROUTINE_DRY_RUN_TOKEN = "FNO_ROUTINE_DRY_RUN_TOKEN"
 ROUTINE_DRY_RUN = "dry-run"  # the example reasoning routine: reads a pointer, writes a small derived summary
 PIPELINE_AREA, DERIVED_AREA = "pipeline", "derived"  # Drive areas beside raw/ and revisions/ (fno/storage/README.md)
+
+# Stories F1 and G5: the AI books' daily forecasts, one routine per book fired by the forecast-capture job
+AI_BOOKS = (BOOK2_HYBRID, BOOK3_AI)
+# Owner, 14 Oct 2026: the AI books' isolation for forecasts. The other AI book's same-day answer is sealed; the
+# routine still has the public repository and network, so this is not full F1 isolation (trading needs that).
+ISOLATION_SEALED_SAME_DAY = "sealed_same_day"
+ENV_ROUTINE_BOOK2_TRIGGER_ID = "FNO_ROUTINE_BOOK2_HYBRID_TRIGGER_ID"
+ENV_ROUTINE_BOOK2_TOKEN = "FNO_ROUTINE_BOOK2_HYBRID_TOKEN"
+ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"
+ENV_ROUTINE_BOOK3_TOKEN = "FNO_ROUTINE_BOOK3_AI_TOKEN"
+ENV_GITHUB_TOKEN = "GITHUB_TOKEN"  # the Actions run's own token: reads the repository's push log (receipt times)
+GITHUB_REPOSITORY_VARIABLE = "GITHUB_REPOSITORY"  # owner/name, set by GitHub Actions (not a secret, so no ENV_ name)

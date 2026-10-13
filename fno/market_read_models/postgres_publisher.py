@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from .db_errors import described
+from .db_errors import described, failure_class
 from .publication import PRODUCT, Publication, hashes
 from .publisher import PublishFailed, ReadModelPublisher
 
@@ -63,7 +63,7 @@ class PostgresPublisher(ReadModelPublisher):
                     raise PublishFailed(f"{publication.publication_id}: stored pages differ from this publication")
                 cursor.execute(MOVE_CURRENT, (PRODUCT, publication.publication_id, publication.day))
         except Error as exc:
-            raise PublishFailed(f"{publication.publication_id}: {described(exc)}") from exc
+            raise PublishFailed(f"{publication.publication_id}: {described(exc)}", failure_class(exc)) from exc
         return added
 
     def stored(self, publication_id: str) -> dict[str, str]:
@@ -74,7 +74,7 @@ class PostgresPublisher(ReadModelPublisher):
                 cursor.execute(STORED_HASHES, (PRODUCT, publication_id))
                 return dict(cursor.fetchall())
         except Error as exc:
-            raise PublishFailed(f"{publication_id}: read-back: {described(exc)}") from exc
+            raise PublishFailed(f"{publication_id}: read-back: {described(exc)}", failure_class(exc)) from exc
 
     def current(self) -> dict[str, dict]:
         with self._connect(self._url) as connection, connection.cursor() as cursor:

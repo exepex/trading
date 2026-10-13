@@ -1,5 +1,5 @@
 """The dashboard's W11 contract, pinned (story P6): byte copies of omenix-dashboard's api/openapi.yaml, schemas and the
-33-34 examples, with the contract version, the source commit and each file's SHA-256 in pin.json. Every block is
+33-34 and 32 examples, with the contract version, the source commit and each file's SHA-256 in pin.json. Every block is
 validated against these schemas before it may be published; `contract-check` compares the pin with the dashboard."""
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from jsonschema import Draft202012Validator
 PIN_FILE = "pin.json"
 OPENAPI_FILE = "api/openapi.yaml"
 SCHEMA_FOLDER = "api/schemas"
-EXAMPLES_FILE = "api/examples/blocks-33-34.json"
+EXAMPLES_FILES = ("api/examples/blocks-33-34.json", "api/examples/blocks-32.json")  # Screener and Markets; chain (P9)
 GITHUB_RAW = "https://raw.githubusercontent.com/{repository}/{branch}/"
 DRIFT_TIMEOUT_SECONDS = 30
 NOT_FOUND = 404
@@ -53,7 +53,8 @@ class PinnedContract:
         return merged
 
     def examples(self) -> dict:
-        return json.loads((self.folder / EXAMPLES_FILE).read_text(encoding="utf-8"))
+        """Every pinned example by name (the files share no name)."""
+        return {k: v for f in EXAMPLES_FILES for k, v in json.loads((self.folder / f).read_text("utf-8")).items()}
 
     def validate(self, schema_name: str, instance) -> None:
         """ContractBroken listing every violation (path and message) of `instance` against the named schema."""

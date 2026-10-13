@@ -277,3 +277,14 @@ its own `contents: write` token. This builder did not edit the routine (out of s
 - **Tests:** `tests/pipeline/test_index_closes.py` (appended once and read after the panel; a missing session stops,
   keeps earlier days and alerts once; rows never rewritten; an earlier-years read gets no later closes). The A10
   warm-up tests still pass.
+- **First real run** (Actions run 38438945516, dispatched by this builder, 13 Oct 2026): committed `e38eabd` with the
+  13 Oct row: NIFTY 50 22,721.95, India VIX 14.12, `ind_close_all_13102026.csv`, SHA-256 `a402bb454057...`
+  (NIFTY 50 matches the 22,721.95 NSE's option chain showed that evening).
+- **Before 14:00 IST (judge 47 addendum 4, for G1 v2 from 15 Oct):** two morning retries were added, 07:41 and 11:41
+  IST, beside the 21:11 run. The workflow computes the last session due: today from 19:00 IST, else yesterday. So a
+  morning run looks only for the previous session and never alerts about today's file, which is not out yet. If the
+  previous session's close is still missing, the 07:41 run posts `stopped at <day>` (and the 11:41 run once more):
+  at least one #fno-desk line before 14:00. Margin: GitHub schedules can start late (often minutes, sometimes about an
+  hour); the 11:41 run still has over 2 hours. NSE usually publishes the file in the evening of the session (the
+  12 Oct file existed by 23:20 IST, when it was rewritten). Evidence: reasoning plus the one measured case; no test
+  can prove GitHub's start times.

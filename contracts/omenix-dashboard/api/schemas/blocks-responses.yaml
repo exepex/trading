@@ -17,10 +17,24 @@ SessionResponse:
   allOf:
     - $ref: '#/components/schemas/StockBlockMeta'
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Session'}}}
+    - $ref: '#/components/schemas/UsMarket'
+SessionIndiaResponse:
+  description: 'India''s session, published by exepex/trading (2.5, owner 14 Oct 2026)'
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Session'}}}
+    - $ref: '#/components/schemas/IndiaMarket'
 IndicesResponse:
   allOf:
     - $ref: '#/components/schemas/StockBlockMeta'
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Indices'}}}
+    - $ref: '#/components/schemas/UsMarket'
+IndicesIndiaResponse:
+  description: 'India''s NIFTY 50 and INDIA VIX closes, published by exepex/trading (2.5, owner 14 Oct 2026)'
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Indices'}}}
+    - $ref: '#/components/schemas/IndiaMarket'
 TrackedMovesResponse:
   allOf:
     - $ref: '#/components/schemas/StockBlockMeta'
@@ -105,6 +119,14 @@ EventsResponse:
     - $ref: '#/components/schemas/StockBlockMeta'
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Events'}}}
     - $ref: '#/components/schemas/UsEventsRule'
+    - $ref: '#/components/schemas/IndiaStockEventsRule'
+FnoEventsResponse:
+  description: 'India''s NSE F&O expiries, published by exepex/trading (2.5, owner 14 Oct 2026)'
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Events'}}}
+    - $ref: '#/components/schemas/IndiaMarket'
+    - $ref: '#/components/schemas/FnoEventsRule'
 TopNewsResponse:
   allOf:
     - $ref: '#/components/schemas/StockBlockMeta'
@@ -123,6 +145,13 @@ UsEventsRule:
   description: 'In the US no India-only event is listed: no NSE F&O expiry (monthly or weekly), no RBI policy decision'
   if: {properties: {market: {const: us}}, required: [market]}
   then: {properties: {payload: {properties: {events: {items: {properties: {kind: {not: {enum: [fno_expiry, weekly_expiry, rbi_policy]}}}}}}}}}
+IndiaStockEventsRule:
+  description: 'In India the NSE F&O expiries are exepex/trading''s (getFnoEvents, 2.5): the stock tool''s calendar lists none'
+  if: {properties: {market: {const: india}}, required: [market]}
+  then: {properties: {payload: {properties: {events: {items: {properties: {kind: {not: {enum: [fno_expiry, weekly_expiry]}}}}}}}}}
+FnoEventsRule:
+  description: 'The F&O calendar lists only NSE F&O expiries (monthly and weekly), each market-wide (no company)'
+  properties: {payload: {properties: {events: {items: {properties: {kind: {enum: [fno_expiry, weekly_expiry]}, inst: {const: null}}}}}}}
 IndiaAccountsRule:
   description: 'In India the Manual account carries its F&O figures'
   if: {properties: {market: {const: india}}, required: [market]}
@@ -186,7 +215,7 @@ UsSectorsResponse:
     - $ref: '#/components/schemas/UsMarket'
 FlowsResponse:
   allOf:
-    - $ref: '#/components/schemas/StockBlockMeta'
+    - $ref: '#/components/schemas/FnoBlockMeta'
     - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/Flows'}}}
     - $ref: '#/components/schemas/MarketCurrency'
     - $ref: '#/components/schemas/IndiaMarket'

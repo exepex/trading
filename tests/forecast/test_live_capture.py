@@ -11,7 +11,7 @@ import pytest
 from fno.forecast.capture import CaptureRefused, LiveCapture, live_probabilities
 from fno.forecast.cli import cmd_forecast
 from fno.forecast.closes_source import CommittedClosesFile, OfficialCloses
-from fno.forecast.freeze_v2 import NotYetFrozen, require_version_frozen
+from fno.forecast.freeze_v2 import NotFrozen, NotYetFrozen, require_version_frozen
 from fno.forecast.iv30 import AtmIv30
 from fno.forecast.live_history import LiveForecastHistory, stale_history, stale_iv30_history
 from fno.forecast.live_pack import CUTOFF, LIVE_MODE, LivePack, LivePackBuilder, PackField
@@ -116,11 +116,25 @@ def test_a_closed_day_records_nothing(tmp_path):
     assert not (tmp_path / "research").exists()
 
 
-def test_v2_is_not_frozen_yet_so_the_capture_records_nothing(tmp_path, capsys):
+def test_without_a_freeze_record_the_capture_records_nothing(tmp_path, capsys, monkeypatch):
     with pytest.raises(NotYetFrozen):
         require_version_frozen(tmp_path, "0" * 40)
+
+    def not_yet(*args, **kwargs):
+        raise NotYetFrozen("research/forecasts/FREEZE_v2.md does not exist")
+
+    monkeypatch.setattr("fno.forecast.freeze_v2.require_version_frozen", not_yet)
     assert cmd_forecast(Namespace(forecast_cmd="capture", day=None, run_id=None)) == 0
     assert "nothing recorded" in capsys.readouterr().out
+
+
+def test_a_failed_freeze_check_fails_the_capture(capsys, monkeypatch):
+    def changed(*args, **kwargs):
+        raise NotFrozen("frozen files changed after the freeze: fno/forecast/live_pack.py")
+
+    monkeypatch.setattr("fno.forecast.freeze_v2.require_version_frozen", changed)
+    assert cmd_forecast(Namespace(forecast_cmd="capture", day=None, run_id=None)) == 1
+    assert "freeze check failed" in capsys.readouterr().out
 
 
 def test_case_a_pack_from_the_golden_inputs_matches_the_committed_pack_values():

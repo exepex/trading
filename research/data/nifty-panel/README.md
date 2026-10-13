@@ -90,3 +90,21 @@ manifest. Checks: `research/2026-10-13-nifty-panel/`.
 | 2026 (to 12 Oct) | 192 | 340,704 | 4.3 MB | 576 | 10 KB |
 
 Not included: other underlyings, open/high/low, previous close, lot size.
+
+## Daily sessions after the build (story A13, waiting for G1 protocol v3)
+
+Built, not yet active. Rules: `research/forecasts/PROTOCOL_v3.md` section 1.
+
+`python -m fno pipeline panel-days` (GitHub Actions `.github/workflows/panel-days.yml`) works like this:
+1. It checks every panel file against `manifest.json`. A mismatch is refused; the fix is
+   `git checkout research/data/nifty-panel/`.
+2. It builds each new session with A3's own builder from the **first archived** F&O and index-close files in Drive.
+3. It requires O6's official close of that day to come from the same index-close file.
+4. It appends all pending sessions or none, never rewriting a day:
+   - touched year files get one more gzip member, so their old bytes stay a prefix;
+   - old manifest entries stay as they were;
+   - each new day records its input versions, the later A11 versions known at the run, `inputs_read_at` and
+     `appended_at`.
+5. The workflow commits the panel only when the job exits 0.
+
+It appends nothing until `research/forecasts/FREEZE_v3.md` exists.

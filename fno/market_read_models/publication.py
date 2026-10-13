@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 
 from .blocks import BlockBuilder, SessionRows
@@ -24,6 +24,7 @@ class Publication:
     day: date
     publication_id: str
     records: dict[str, dict]  # page key -> stored row
+    inputs: dict[str, list] = field(default_factory=dict)  # page key -> the archived copies it read (P8, judge 66)
 
 
 def canonical(payload) -> bytes:
@@ -41,20 +42,20 @@ class PublicationBuilder:
 
     def build(self, rows: SessionRows) -> Publication:
         built_at = self.clock()
-        payloads = {builder.page_key: builder.build(rows) for builder in self.builders}
-        sha256 = {key: hashlib.sha256(canonical(payload)).hexdigest() for key, payload in payloads.items()}
+        pages = [(builder, key, payload) for builder in self.builders for key, payload in builder.pages(rows).items()]
+        sha256 = {key: hashlib.sha256(canonical(payload)).hexdigest() for _, key, payload in pages}
         publication_id = publication_id_for(rows.day, sha256)
         records = {}
-        for builder in self.builders:
+        for builder, key, payload in pages:
             record = {
-                "market": MARKET, "page_key": builder.page_key, "as_of": rows.day.isoformat(), "cutoff": built_at,
+                "market": MARKET, "page_key": key, "as_of": rows.day.isoformat(), "cutoff": built_at,
                 "built_at": built_at, "schema_version": self.contract.version, "source_commit": self.source_commit,
-                "payload_sha256": sha256[builder.page_key], "product": PRODUCT, "publication_id": publication_id,
-                "payload": payloads[builder.page_key],
+                "payload_sha256": sha256[key], "product": PRODUCT, "publication_id": publication_id, "payload": payload,
             }  # fmt: skip
             self.check(builder, record)
-            records[builder.page_key] = record
-        return Publication(rows.day, publication_id, records)
+            records[key] = record
+        inputs = {builder.page_key: builder.inputs(rows) for builder in self.builders}
+        return Publication(rows.day, publication_id, records, {key: used for key, used in inputs.items() if used})
 
     def check(self, builder: BlockBuilder, record: dict) -> None:
         """ContractBroken unless the stored payload matches W11's stored schema (where W11 names one) and the response

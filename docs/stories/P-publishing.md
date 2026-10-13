@@ -201,4 +201,117 @@ stock-tool fields, the paper books (P2).
 **Judge verifies:** rebuilds 12 Oct from the raw files and compares with the W11 examples; plants a schema break; reads
 the published rows with the dashboard role.
 
-**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** done except criterion 4: judge 49 PASS round 2 (13 Oct 2026); criterion 4 blocked by the owner (`FNO_DB_URL` and the tables in `db/fno/migrations/`)
+**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** done: judge 49 PASS round 2 (13 Oct 2026); criterion 4 met (publish run 38438666957, dashboard-role read-back, response 50 addenda 4-5)
+
+---
+
+## P7. Run status for every publish run
+
+**Repository:** trading
+
+**Description:** As the owner, I want every publish run to leave a status row (started, finished, result, reason), so
+that when the dashboard shows F&O data as "stale" it can say why the run failed, not only what is missing.
+
+**Context and why:** Judge 57 (W2): "stale with the reason" names the missing data and when it was due, but not why a
+run failed, because no publisher writes a run-status table. P3 named `fno.run_status`; the W11 catalog lists it as the
+source of the dashboard's bell (W8). Orchestrator, 13 Oct 2026.
+
+**Scope.** In: the table (a migration the owner runs as `fno_owner`), one row per product and run written by the
+publish run at its start and its end, a fixed set of reason codes, the field list for the dashboard's read side.
+Out: the dashboard's read (a small W2 follow-up), the bell (W8).
+
+**Expected design:** `db/fno/migrations/002_run_status.sql`; a `RunStatusRecorder` interface with a Postgres adapter
+(same verified connection as the publisher) and a local one for tests; `MarketRun` records `running` at the start and
+`published`, `failed` (with a reason code) or `skipped` (not a session) at the end. A status write that fails never
+hides the run's own result.
+
+**Acceptance criteria:**
+1. A successful run leaves one row: `result = published`, `publication_id` set, `finished_at` after `started_at`.
+2. Each failure class gives its own reason code (archive, contract, schema, read-back, each database class); a test per
+   code.
+3. A closed day leaves `result = skipped`, `reason_code = not_a_session`.
+4. A second run of the same day adds its own row (one row per run), never changing an earlier one.
+5. The runtime role can insert, update and read rows but never delete them, and a finished row never changes; the
+   dashboard role can only read (grants in the migration, tested as each role).
+6. Size, lint, imports, tests pass.
+
+**Judge verifies:** runs the migration on a throwaway server, a successful and a failing run, and reads the rows.
+
+**Depends:** P6 · **Size:** S · **Status:** done (judge 59 addendum 2 PASS; migration 002 run on Azure by the owner 14 Oct 2026, fno_writer grants read back as expected; claims: reviews/claude/response_66_2026-10-13-p7-p8-p9-publishing.md, addendum P7)
+
+---
+
+## P8. FII/DII cash-market flows for Markets 34
+
+**Repository:** trading
+
+**Description:** As the owner, I want NSE's daily FII/DII cash-market buy and sell values archived and shown in Markets
+34's "What did big investors do?".
+
+**Context and why:** Orchestrator, 13 Oct 2026. **Stopped before building (contract):** W11 has a contract for this
+block (`Flows`, endpoint `getFlows_india`), but its catalog assigns it to **publisher `stock`, status published**
+(`api/schemas/blocks-overview.yaml`: "the stock tool's flows (NSE FII/DII, provisional) and fpi (NSDL) records"). A
+second publisher for the same block would make two sources of truth. Needs a decision by the orchestrator or owner:
+either W11 moves the block to publisher `fno` (then this story builds the download and the block against it), or the
+block stays with the stock tool and only a raw archive here is wanted (research use), or nothing is built.
+
+**Status:** built; awaiting judge (contract 2.5 page `flows`; response 66, addenda on contract 2.5 and judge 66's flows window)
+
+---
+
+## P9. NIFTY option chain read models for screen 32
+
+**Repository:** trading
+
+**Description:** As the owner, I want the option chain screen (32) fed from NSE's daily F&O file, published by this
+repository, so that the signed-off screen shows real end-of-day chains.
+
+**Context and why:** W13 froze six India-only chain blocks for publisher exepex/trading (W11 contract 2.3,
+`api/schemas/blocks-chain.yaml` and `blocks-chain-history.yaml`, examples `api/examples/blocks-32.json`), "not
+published yet". The F&O file is already archived daily (A1, A9); the market run already publishes atomically (P6).
+
+**Scope.** In: the chain blocks W13 defines (underlying, expiries, rows, history, contract history, sources) built from
+the archived F&O and index files, validated against the pinned schemas, published in the same publication as P6's
+blocks (one pointer, one run, one status). Out: bid and ask, 3 pm quotes (not published yet, as the contract says).
+
+**Acceptance criteria:**
+1. For 12 Oct 2026 every built chain block equals the W13 example field by field, or each difference is traced to its
+   source.
+2. Every payload validates against the pinned schemas; a planted break fails the run.
+3. The chain pages publish in the same transaction as P6's, through the same publisher and run status.
+4. Size, lint, imports, tests pass.
+
+**Depends:** P6, P7, W13 · **Size:** M · **Status:** done (judge 60 and addendum 1 PASS; W13's page keys adopted, 409825f; claims: response 66, addendum P9)
+
+---
+
+## P10. Home's F&O read models
+
+**Repository:** trading
+
+**Description:** As the owner, I want Home to show the F&O tool's real state now (the three paper books' accounts and
+the F&O picks panel), so that Home stops showing examples for F&O while the stock data waits for its own API.
+
+**Context and why:** Owner request through the orchestrator, 13 Oct 2026. W10's contract (omenix-dashboard `api/`)
+assigns two Home blocks to publisher `fno`: `FnoBooks` (`/markets/india/fno/books`, feeds "Who trades") and `FnoPicks`
+(`/markets/india/fno/picks`, the picks panel). The truth today: every book holds its Rs 5 lakh opening balance with no
+fill, and Experiment 1 passed no policy (`research/2026-10-12-experiment-1/results_challenge.json`:
+`passing_policies: []`), so no book has an approved strategy and no pick exists.
+
+**Scope.** In: `FnoBooks` (value, profit or loss, approved strategies, risk used and its limit, per book, from the
+books' own accounts, E1, and C2's limit) and `FnoPicks` (the honest empty state: `approved` false, a note saying why,
+no rows), published in the same publication and run status as P6 and P9. **Out, stopped (contract):** the India market
+band (`getIndices`, `getSession`) and the coming-up events, including `fno_expiry` (`getEvents`): W10 marks all three
+`x-publisher: stock` for every market. Publishing them here would make two publishers for one block. **Not in the
+contract:** a reason code for the empty picks state (W10's `FnoPicks` has only `fno_state.note`).
+
+**Acceptance criteria:**
+1. `FnoBooks` shows each book's own account: value = its latest marked equity on or before the session (Rs 5 lakh
+   before it opened), `pnl` = value − Rs 5 lakh, `approved` = the policies the latest frozen experiment passed (none),
+   `limit_used` = 0 with no open trade, `limit_max` = C2's `max_stress_loss_rs`; never example values.
+2. `FnoPicks` is the empty state with a note naming the reason (Experiment 1 passed no policy).
+3. Both validate against the pinned W10 schemas and publish in the same transaction and run status as P6.
+4. A book with an open trade stops the run rather than publish a risk figure this story does not compute.
+5. Size, lint, imports, tests pass.
+
+**Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built criteria PASS (judge 61 and addendum 1; page keys today and risk); contract 2.5 blocks (India band, expiries) awaiting judge (claims: response 66, addendum P10 and addendum on contract 2.5)

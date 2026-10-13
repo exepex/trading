@@ -1,10 +1,10 @@
 """Story P6, judge 49 minor 1: the comparison serves each W11 example from our stored table by its own query
 (`x-query`), with the contract's route semantics (filters, sorts, ties, pages), for every India block we publish."""
 
-from fno.composition import CONTRACT_FOLDER
 from fno.market_read_models.contract import PinnedContract
 from fno.market_read_models.contract_examples import compare, page_key, view
 from fno.market_read_models.screener_route import fno_page, stocks_page
+from fno.market_read_models.wiring import CONTRACT_FOLDER
 
 TABLE = {"as_of": "2026-10-12T10:00:00Z", "currency": "INR"}
 
@@ -15,7 +15,8 @@ def stock(s, p, v, d1=0.0, u=("n500",), h=None, l=None, r=None, m1=None, va=1.0,
 
 def test_the_examples_compared_are_every_india_example_of_a_block_we_publish():
     names = [n for n in PinnedContract(CONTRACT_FOLDER).examples() if page_key(n)]
-    assert len(names) == 21 and not any("_us" in n for n in names)  # 8 before the pin moved, 13 new (d7c982a)
+    assert len(names) == 30 and not any("_us" in n for n in names)  # 21 Screener and Markets, 9 chain (P9)
+    assert page_key("getChainHistory_india_short") is None  # a view cut to 30 sessions, not a page
     assert page_key("getScreenerStocksUs_us") is None and page_key("getIndiaSectors_india") == "overview_sectors"
 
 

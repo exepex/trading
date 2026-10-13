@@ -3,7 +3,9 @@
 market daily [--day D]          the routine: archive the session's NSE files (and any newer NSE version, A11) to
                                 Drive, then publish (default: the last session before today, IST; run at 07:30 IST,
                                 after NSE's late-evening rewrites)
-market publish --day D [--local FOLDER]   build, validate and publish one session from the archived files
+market archive [--day D]        archive the session's NSE files to Drive only (no database: GitHub Actions runs it
+                                before the database check, so an outage never leaves a gap in Drive)
+market publish [--day D] [--local FOLDER]   build, validate and publish one session from the archived files
 market compare --day D          compare the built blocks with the pinned W11 examples, field by field
 market contract-check           compare the pinned W11 contract with the dashboard's published one
 market look-up --day D          archive the own corporate-action lists of symbols with an unexplained jump
@@ -16,8 +18,11 @@ from datetime import date
 from pathlib import Path
 
 DAILY_DATASETS = ("fo-bhavcopy", "index-close", "cm-bhavcopy", "security-delivery")
-DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "symbol-change", "corporate-actions")
-FETCH_FAILED = "Omenix F&O market read models for {day}: NSE files not archived ({reason}); nothing published."
+ARCHIVED = "{day}: the session's NSE files are archived in Drive"
+ARCHIVE_FAILED = (
+    "Omenix F&O market archive for {day}: NOT complete ({problem}); the publish step will say what it lacks"
+)
+DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "symbol-change", "corporate-actions", "fii-dii-cash", "fpi-daily")
 
 
 def add_market_parser(subparsers) -> None:
@@ -25,8 +30,10 @@ def add_market_parser(subparsers) -> None:
     actions = market.add_subparsers(dest="market_cmd", required=True)
     daily = actions.add_parser("daily", help="archive the session's NSE files, then build, validate and publish")
     daily.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the last session before today)")
+    archive = actions.add_parser("archive", help="archive the session's NSE files to Drive (no database)")
+    archive.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the last session before today)")
     publish = actions.add_parser("publish", help="build, validate and publish one session from the archived files")
-    publish.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
+    publish.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the last session before today)")
     publish.add_argument("--local", type=Path, help="publish to this folder instead of Azure")
     compare = actions.add_parser("compare", help="compare the built blocks with the pinned W11 examples")
     compare.add_argument("--day", type=date.fromisoformat, default=date(2026, 10, 12), help="YYYY-MM-DD")
@@ -39,35 +46,43 @@ def add_market_parser(subparsers) -> None:
 
 def cmd_market(args) -> int:
     handlers = {
-        "daily": _daily, "publish": _publish, "compare": _compare, "contract-check": _contract_check,
-        "look-up": _look_up, "db-check": _db_check,
+        "daily": _daily, "archive": _archive, "publish": _publish, "compare": _compare,
+        "contract-check": _contract_check, "look-up": _look_up, "db-check": _db_check,
     }  # fmt: skip
     return handlers[args.market_cmd](args)
 
 
 def _publish(args) -> int:
-    from ..composition import build_market_run, build_read_model_publisher
     from ..config import load_app_config
+    from .wiring import build_market_run
 
-    code, lines = build_market_run(load_app_config(), build_read_model_publisher(args.local)).run(args.day)
+    code, lines = build_market_run(load_app_config(), args.local).run(_day(args))
     print("\n".join(lines))
     return code
 
 
-def _daily(args) -> int:
-    from ..composition import build_alert_sender
+def _archive(args) -> int:
+    day = _day(args)
+    problem = _archive_session(day)
+    print(ARCHIVE_FAILED.format(day=day, problem=problem) if problem else ARCHIVED.format(day=day))
+    return 1 if problem else 0
+
+
+def _day(args) -> date:
+    """The session asked for, else the last session before today (IST)."""
     from ..models import now_ist
     from ..storage.wiring import build_session_calendar
 
-    day = args.day or build_session_calendar().previous_session(now_ist().date())
-    problem = _archive_session(day)
-    if problem:
-        message = FETCH_FAILED.format(day=day, reason=problem)
-        print(message)
-        print(build_alert_sender().send(message))
-        return 1
-    args.day, args.local = day, None
-    return _publish(args)
+    return args.day or build_session_calendar().previous_session(now_ist().date())
+
+
+def _daily(args) -> int:
+    from ..config import load_app_config
+    from .wiring import build_market_run
+
+    code, lines = build_market_run(load_app_config()).run(_day(args), prepare=_archive_session)
+    print("\n".join(lines))
+    return code
 
 
 def _archive_session(day: date) -> str | None:
@@ -107,7 +122,7 @@ def _archive_revisions(day: date) -> None:
 
 
 def _db_check(args) -> int:
-    from ..composition import build_database_check
+    from .wiring import build_database_check
 
     code, lines = build_database_check().run()
     print("\n".join(lines))
@@ -127,10 +142,10 @@ def _look_up(args) -> int:
 
 def _archive_own_lists(day: date) -> None:
     """Archives the own corporate-action list of each symbol with an unexplained jump in the session's window."""
-    from ..composition import build_session_rows_builder
     from ..config import load_app_config
     from ..storage.snapshot_source import CorporateActionsBySymbolSource
     from ..storage.wiring import build_own_list_taker
+    from .wiring import build_session_rows_builder
 
     symbols = build_session_rows_builder(load_app_config()).symbols_to_look_up(day)
     taker = build_own_list_taker()
@@ -140,12 +155,12 @@ def _archive_own_lists(day: date) -> None:
 
 
 def _compare(args) -> int:
-    from ..composition import build_market_blocks, build_pinned_contract, build_session_rows_builder
     from ..config import load_app_config
     from .contract_examples import compare
+    from .wiring import build_market_blocks, build_pinned_contract, build_session_rows_builder
 
     rows = build_session_rows_builder(load_app_config()).build(args.day)
-    blocks = {b.page_key: b.build(rows) for b in build_market_blocks()}
+    blocks = {key: payload for b in build_market_blocks() for key, payload in b.pages(rows).items()}
     total = 0
     for name, found in compare(blocks, build_pinned_contract().examples()).items():
         total += len(found)
@@ -156,8 +171,8 @@ def _compare(args) -> int:
 
 
 def _contract_check(args) -> int:
-    from ..composition import build_pinned_contract, build_published_contract
     from .contract import drift
+    from .wiring import build_pinned_contract, build_published_contract
 
     contract = build_pinned_contract()
     changed = contract.changed_files()

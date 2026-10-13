@@ -94,38 +94,36 @@ Session:
   description: >-
     Today's session of the market's exchange (holidays included). The screen decides open or closed from these times
     and the reader's clock (never a stored "open now" flag, which would go stale); the manual trading lock is the
-    dashboard's rule over the same fields. An instant is UTC
-  x-catalog: {publisher: stock, source: 'rm.status payload.session (StatusBlock.session, pipeline/market_status.py over the NSE and NYSE calendars)', freshness: 'each stock run (pre-open, intraday, post-close)', story: K4-proposed, status: published}
+    dashboard's rule over the same fields. An instant is UTC. Its publisher depends on the market (2.5, owner 14 Oct
+    2026): India's is exepex/trading's, the US's the stock tool's; each path carries its own x-catalog
   x-element: [s30.status-chip, s30.lock, h31.band]
   required: [exchange, zone, session_date, open_utc, close_utc, next_open_utc, regime, post_close_at]
   properties:
-    exchange: {type: string, x-unit: text, description: 'The exchange, as the chip names it, e.g. "India (NSE)", "US (NYSE/Nasdaq)"', x-catalog: {source: 'config/markets/<market>.yaml exchange'}}
+    exchange: {type: string, x-unit: text, description: 'The exchange, as the chip names it, e.g. "India (NSE)", "US (NYSE/Nasdaq)"'}
     zone: {type: string, enum: [IST, ET], x-unit: enum, x-notes: ['s30.status-chip:zone']}
     session_date: {type: string, format: date, x-unit: date, x-element: [h31.band], x-notes: ['h31.band:session.date'], description: 'The session being predicted (D)'}
     open_utc: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:open_utc'], description: "Today's open; null on a non-trading day"}
     close_utc: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:close_utc'], description: "Today's close; null on a non-trading day"}
-    next_open_utc: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:next_open_utc'], description: 'The next opening after the cut-off (today''s open when it is still ahead)', x-catalog: {status: planned, source: 'pipeline/market_status.py next session (not in rm.status yet)'}}
+    next_open_utc: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.status-chip:next_open_utc'], description: 'The next opening after the cut-off (today''s open when it is still ahead)', x-catalog: {status: planned}}
     regime:
       type: ['string', 'null']
       description: "The newest regime code stored by the cut-off (the stock tool's `regime` kind: TRENDING, EVENT_HEAVY, UNSTABLE, ...)"
       x-unit: code
       x-element: [h31.band]
       x-notes: ['h31.band:session.regime', 'h34.header:regime']
-      x-catalog: {source: rm.status payload.regime}
-    post_close_at: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-element: [h31.band], x-notes: ['h31.band:session.post_close_at'], description: "When today's post-close run is due (its result brings today's close); null once it ran", x-catalog: {source: rm.status payload.runs.post_close.next_at}}
+    post_close_at: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-element: [h31.band], x-notes: ['h31.band:session.post_close_at'], description: "When today's post-close run is due (its result brings today's close); null once it ran"}
     major_event_names:
       type: array
       description: "The stock tool's major events for the session (e.g. US CPI); empty when none. Optional (added in 2.2 for the Markets header)"
       x-notes: ['h34.header:major_event_names']
-      x-catalog: {source: "the stock tool's regime record (major_event_names)", story: K5-proposed}
       items: {type: string, x-unit: text}
 
 Indices:
   type: object
   description: >-
     The market's benchmark and volatility index at their last recorded close (NIFTY 50 and India VIX; S&P 500 ETF and
-    VIX). Feeds the top bar's index strip (hidden on Home) and Home's market band, which never show at once
-  x-catalog: {publisher: stock, source: 'rm.status payload.benchmark, payload.vol_index (LevelBlock)', freshness: "the stock tool's post-close run", story: K4-proposed, status: published}
+    VIX). Feeds the top bar's index strip (hidden on Home) and Home's market band, which never show at once. Its
+    publisher depends on the market (2.5, owner 14 Oct 2026): India's is exepex/trading's, the US's the stock tool's
   x-element: [s30.index-strip, h31.band]
   required: [indices]
   properties:
@@ -143,10 +141,10 @@ IndexLevel:
     sym: {type: string, x-unit: text}
     name: {type: string, x-unit: text}
     role: {type: string, enum: [benchmark, vol_index], x-unit: enum}
-    last: {type: number, x-unit: index points, x-price: true, x-notes: ['s30.index-strip:last', 'h31.band:last'], x-catalog: {source: LevelBlock.close}}
-    chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.index-strip:chg_pct', 'h31.band:chg_pct@index'], x-catalog: {source: LevelBlock.change_pct}}
-    chg_5d_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.index-strip:chg_5d_pct', 'h31.band:chg_5d_pct'], x-catalog: {source: LevelBlock.change_5d_pct}}
-    as_of: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.index-strip:as_of', 'h31.band:as_of'], description: 'The close the value is (LevelBlock.close_date at the exchange close)', x-catalog: {source: LevelBlock.close_date}}
+    last: {type: number, x-unit: index points, x-price: true, x-notes: ['s30.index-strip:last', 'h31.band:last']}
+    chg_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.index-strip:chg_pct', 'h31.band:chg_pct@index']}
+    chg_5d_pct: {type: number, x-unit: percent points, x-price: true, x-notes: ['s30.index-strip:chg_5d_pct', 'h31.band:chg_5d_pct']}
+    as_of: {type: string, format: date-time, x-unit: UTC time, x-notes: ['s30.index-strip:as_of', 'h31.band:as_of'], description: 'The close the value is, at the exchange close'}
     source: {$ref: '#/components/schemas/PriceSource', x-notes: ['s30.index-strip:source']}
 
 TrackedMoves:

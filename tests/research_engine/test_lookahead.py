@@ -67,6 +67,16 @@ class _PreviousCloseAboveFirst(Feature):
         return before[-1].underlying > before[0].underlying
 
 
+class _DayVixClose(Feature):
+    """A daily-close feature: the decision day's own India VIX close (15:30). Any change the harness makes to that close
+    (scaled by a factor that is never 1, or removed) changes its value, so catching it never depends on random draws."""
+
+    name = "decision day's India VIX close"
+
+    def value(self, data, decision_day, context):
+        return data.panel.session_on(decision_day).vix
+
+
 class _NextClose(Feature):
     """A leaking daily feature: reads the next session's close."""
 
@@ -98,7 +108,7 @@ class _LateDeclaredLeakyF1(Feature):
 
     def value(self, data, decision_day, context):
         later = next(s.underlying for s in data.panel.sessions if s.day > decision_day)
-        return self.f1.value(data, decision_day, context) + later
+        return self.f1.value(data, decision_day, context), later  # the next close always changes: caught on any draw
 
 
 DAY = date(2025, 6, 16)  # a decision day: the 31 Jul 2025 monthly expiry is 45 days away
@@ -119,11 +129,13 @@ def test_a_feature_cannot_hide_a_leak_behind_a_later_known_at(real_data):
 
 def test_a_live_cutoff_changes_the_decision_days_own_closing_data(real_data):
     """Criterion 4: with a 15:00 cutoff the same day's closes (15:30) are changed too, so a live version that reads
-    them fails, and the daily-close features cannot pass as live versions."""
+    them fails on every day. The plant reads the close itself: a threshold feature (VIX above its median) is caught
+    only when a random change crosses the threshold, which made this test pass or fail with the panel's length (the
+    panel grows daily since story A13; the first append, 13 Oct 2026, turned it red)."""
     for day in twenty_random_days(real_data)[:5]:
         context = real_context(real_data, day)
         with pytest.raises(AssertionError, match="look-ahead"):
-            assert_no_lookahead(_LiveVersion(VixAboveMedian()), real_data, day, context)
+            assert_no_lookahead(_LiveVersion(_DayVixClose()), real_data, day, context)
         assert assert_no_lookahead(_PreviousCloseAboveFirst(), real_data, day, context) in (True, False)
 
 

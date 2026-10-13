@@ -47,7 +47,7 @@ pack_sha256`.
 
 **Judge verifies:** recomputes one target and one IV value by hand; checks the freeze commit order.
 
-**Depends:** A1, A3, B1, B4 · **Size:** M · **Status:** v1 frozen; awaiting judge re-check (protocol v1 with review 28 changes; freeze record research/forecasts/FREEZE.md). v2 (`research/forecasts/PROTOCOL_v2.md`, review 29's eight changes): written, awaiting judge, not frozen
+**Depends:** A1, A3, B1, B4 · **Size:** M · **Status:** v1 frozen; awaiting judge re-check (protocol v1 with review 28 changes; freeze record research/forecasts/FREEZE.md). v2 (`research/forecasts/PROTOCOL_v2.md`, review 29's eight changes): judge 47 addendum 3 PASS; frozen (protocol commit ab2e811, freeze record research/forecasts/FREEZE_v2.md, ledger trials 37-41). v3 (`PROTOCOL_v3.md`, the panel extends daily, A13; ChatGPT review 30, response 69): judge 64 addenda 1-2 PASS; freeze record `FREEZE_v3.md` (c1bf97f, two sections), confirmed frozen 14 Oct 2026 (protocol commit 904c036; amended before confirmation in f67065a; `docs/DESK_DECISIONS.md`)
 
 ---
 
@@ -83,7 +83,7 @@ date with a fixed refit schedule), its specification frozen in the protocol.
 
 **Judge verifies:** recomputes one risk-neutral probability and one base rate by hand.
 
-**Depends:** G1, A3, A4 · **Size:** M · **Status:** awaiting judge (claims: response 62 and its v2 addendum; live values under protocol v2, written and tested, not frozen until the judge checks it and the orchestrator confirms)
+**Depends:** G1, A3, A4 · **Size:** M · **Status:** done (judge 54 PASS; claims: response 62 and its v2 addendum; live values under protocol v2, frozen at ab2e811)
 
 ---
 
@@ -113,7 +113,7 @@ combined by a fixed rule written in the protocol); records validated by `fno/for
 
 **Judge verifies:** checks one week of Book-1 forecast files for completeness and commit order.
 
-**Depends:** G1, G2 · **Size:** S · **Status:** awaiting judge (claims: response 62 and its v2 addendum; the job runs protocol v2's live capture and records nothing until `research/forecasts/FREEZE_v2.md` exists)
+**Depends:** G1, G2 · **Size:** S · **Status:** done as built (judge 54 PASS; claims: response 62 and its v2 addendum; the job runs protocol v2's live capture from Wed 14 Oct 2026; first live run pending)
 
 ---
 
@@ -145,7 +145,7 @@ differences with the block bootstrap (seed fixed in the protocol) and the frozen
 
 **Judge verifies:** recomputes one book's Brier score for one month.
 
-**Depends:** G1, G3 (G5 for books 2 and 3) · **Size:** M · **Status:** later
+**Depends:** G1, G3 (G5 for books 2 and 3) · **Size:** M · **Status:** done (judge 58 PASS; claims `reviews/claude/response_66_g4.md`; code in `fno/forecast_scoring/`, outside the frozen `fno/forecast/`). AI books' scoring (judge 58's list) added after the pass: response 66 section "Addendum"
 
 ---
 
@@ -174,4 +174,4 @@ committed with the decision before the promotion deadline.
 
 **Judge verifies:** checks one week of AI-book forecast files.
 
-**Depends:** G1, G3, F1 · **Size:** S · **Status:** later
+**Depends:** G1, G3, F1 · **Size:** S · **Status:** awaiting judge (claims: `reviews/claude/response_67_f1-g5.md`; first live run waits on the owner's routines and secrets, `docs/stories/F1-G5-owner-checklist.md`)

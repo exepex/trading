@@ -8,7 +8,6 @@ from pathlib import Path
 import psycopg
 import pytest
 
-from fno.composition import AZURE_POSTGRES_ROOTS
 from fno.market_read_models.db_check import DatabaseCheck, url_user
 from fno.market_read_models.db_connection import VerifiedConnection
 from fno.market_read_models.db_errors import (
@@ -21,6 +20,7 @@ from fno.market_read_models.db_errors import (
     described,
     failure_class,
 )  # fmt: skip
+from fno.market_read_models.wiring import AZURE_POSTGRES_ROOTS
 
 from .postgres_server import PostgresServer
 

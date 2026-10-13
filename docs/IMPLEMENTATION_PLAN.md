@@ -106,7 +106,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [E4](stories/E-paper-desk.md#e4-fill-model-and-exits) | Fill model and exits | trading | A4, C1, C2, E1 | M | later |
 | [E5](stories/E-paper-desk.md#e5-book-1-pure-rules) | Book 1: pure rules | trading | C4, D2, D3, E2, E3 | S | later |
 | [E6](stories/E-paper-desk.md#e6-strategy-paper-scorecard-and-pause-rules) | Strategy paper scorecard and pause rules | trading | C1, D1, E4 | M | later |
-| [F1](stories/F-ai-layer.md#f1-isolated-ai-book-sessions) | Isolated AI book sessions | trading | D3, D6, E2, E3 | L | later |
+| [F1](stories/F-ai-layer.md#f1-isolated-ai-book-sessions) | Isolated AI book sessions | trading | D3, D6, E2, E3 | L | forecast part awaiting judge |
 | [F2](stories/F-ai-layer.md#f2-role-agents-and-finding-cards) | Role agents and finding cards | trading | F1 | L | later |
 | [F3](stories/F-ai-layer.md#f3-red-team) | Red team | trading | F1, F2 | M | later |
 | [F4](stories/F-ai-layer.md#f4-ai-judge-parts-2-and-3-owner-overrides-and-the-monthly-audit) | AI judge (parts 2 and 3), owner overrides and the monthly audit | trading | C4, F1, F2 | M | later |
@@ -118,8 +118,8 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [G1](stories/G-forecasts.md#g1-forecast-protocol-and-the-30-day-atm-implied-volatility-estimator) | Forecast protocol and the 30-day ATM implied-volatility estimator | trading | A1, A3, B1, B4 | M | later |
 | [G2](stories/G-forecasts.md#g2-frozen-baselines) | Frozen baselines | trading | G1, A3, A4 | M | later |
 | [G3](stories/G-forecasts.md#g3-book-1-forecast-capture) | Book 1 forecast capture | trading | G1, G2 | S | later |
-| [G4](stories/G-forecasts.md#g4-forecast-scoring-and-reports) | Forecast scoring and reports | trading | G1, G3 (G5 for books 2 and 3) | M | later |
-| [G5](stories/G-forecasts.md#g5-ai-books-forecast-capture) | AI books' forecast capture | trading | G1, G3, F1 | S | later |
+| [G4](stories/G-forecasts.md#g4-forecast-scoring-and-reports) | Forecast scoring and reports | trading | G1, G3 (G5 for books 2 and 3) | M | done (judge 58 passed) |
+| [G5](stories/G-forecasts.md#g5-ai-books-forecast-capture) | AI books' forecast capture | trading | G1, G3, F1 | S | awaiting judge |
 | [S1](stories/S-scoreboards.md#s1-evaluation-protocol) | Evaluation protocol | trading | B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) | S | later |
 | [S2](stories/S-scoreboards.md#s2-scoreboard-b-whole-systems) | Scoreboard B: whole systems | trading | C1, D6, E1, E4, S1 (F8 for the AI books' allocated cost) | M | later |
 | [S3](stories/S-scoreboards.md#s3-scoreboard-a-matched-decisions) | Scoreboard A: matched decisions | trading | E2, E4, F7, D6, S1 | M | later |

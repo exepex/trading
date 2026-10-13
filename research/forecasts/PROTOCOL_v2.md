@@ -1,10 +1,12 @@
 # Forecast protocol, version 2 (story G1 v2): the interim live input pack
 
-**Status: version 2, draft, NOT frozen.** Written by Claude on 13 Oct 2026 from ChatGPT review 29 (section 2), whose
-eight changes the orchestrator accepted in `reviews/claude/response_63_2026-10-13-on-review-29.md`. Claims and evidence:
-`reviews/claude/response_62_g2-g3.md`, addendum "Protocol version 2". It is frozen only after the judge has checked it
-and the orchestrator confirms; until `research/forecasts/FREEZE_v2.md` exists the daily capture records nothing
-(`fno/forecast/freeze_v2.py`).
+**Status: version 2, frozen.** Written by Claude on 13 Oct 2026 from ChatGPT review 29 (section 2), whose eight
+changes the orchestrator accepted in `reviews/claude/response_63_2026-10-13-on-review-29.md`. Claims and evidence:
+`reviews/claude/response_62_g2-g3.md`, addendum "Protocol version 2". Judge 47 addendum 3 passed it (1b57cb3) and the
+orchestrator confirmed the freeze. The commit that adds this text is the protocol commit;
+`research/forecasts/FREEZE_v2.md` records it (section 8). No live forecast existed at the freeze. Any change from here
+is a new version (a new file and a new freeze), never an edit. Registered in the research ledger as trials 37-41
+(`forecasts-v2`, one per question).
 
 **Relation to version 1.** Version 1 (`research/forecasts/PROTOCOL.md`, protocol commit
 `cf489e4c53714ce0fffae61db8850b49648ac391`, freeze record `research/forecasts/FREEZE.md`) stays immutable and in force
@@ -94,8 +96,12 @@ interpolated (hand value). Case B: the 23 Nov ATM put received 15:00:01 and VIX 
   day.
 - Question 5's base rate needs the panel rebuilt at least every 21 trading days (`iv30_history_stale` otherwise).
 
-## 8. The freeze (after the judge's check and the orchestrator's confirmation only)
+## 8. The freeze
 
-`research/forecasts/FREEZE_v2.md` will name the commit that adds this text in its final form and the SHA-256 of this
-file and of the v2 golden outputs; `fno.forecast.freeze_v2.require_version_frozen` checks it before every capture (full
-history; a shallow clone refuses).
+`research/forecasts/FREEZE_v2.md` names the protocol commit and the SHA-256 of this file, of every forecast code file
+(`fno/forecast/*.py`: the v2 pack, history, gate, schema, capture and freeze check, and the v1 code they use), of the
+golden tool and of every file of the v2 golden cases. `fno.forecast.freeze_v2.require_version_frozen` checks it
+before every capture (full history; a shallow clone refuses), so a change to any of them stops the live capture until
+a new version is frozen. Shared libraries (B7's live ATM rule, B1's Black-76, the panel and quote readers) are
+recorded, not byte-checked: the daily job recomputes both golden cases before it captures, and any difference fails
+the run before a forecast is made.
