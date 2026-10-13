@@ -1,7 +1,12 @@
 from datetime import date, datetime
 
 from fno.constants import CONSOLIDATED, FILING_RESULTS, FILING_SHAREHOLDING, STANDALONE
-from fno.filings.index import NseIntegratedResultsIndex, NseLegacyResultsIndex, NseShareholdingIndex
+from fno.filings.index import (
+    NseInsuranceResultsIndex,
+    NseIntegratedResultsIndex,
+    NseLegacyResultsIndex,
+    NseShareholdingIndex,
+)
 from fno.models import IST
 
 LEGACY = [
@@ -56,3 +61,19 @@ def test_shareholding_list_reads_upper_case_months():
     (found,) = NseShareholdingIndex(lambda path, params: rows).filings("TCS", date(2023, 10, 1))
     assert found.kind == FILING_SHAREHOLDING and found.period_end == date(2026, 6, 30)
     assert found.path == "nse/equities/filings/shareholding-xbrl/TCS/2026/SHP_1.xml"
+
+
+def test_insurer_results_come_from_nse_insurance_list():
+    """LIC: 0 rows in the equities list; its 2024 quarters are in the insurance list, period in `periodEnd`."""
+    row = {
+        "periodEnd": "30-Sep-2024",
+        "broadCastDate": "08-Nov-2024 16:46:04",
+        "exchdisstime": "08-Nov-2024 16:46:58",
+        "xbrl": "https://nsearchives.nseindia.com/corporate/xbrl/LI_114560.xml",
+        "consolidated": "Consolidated",
+    }
+    calls = []
+    index = NseInsuranceResultsIndex(lambda path, params: calls.append(params) or [row])
+    (found,) = index.filings("LICI", date(2023, 10, 1))
+    assert calls[0]["index"] == "insurance" and found.period_end == date(2024, 9, 30)
+    assert found.filed_at == datetime(2024, 11, 8, 16, 46, 58, tzinfo=IST) and found.consolidation == CONSOLIDATED

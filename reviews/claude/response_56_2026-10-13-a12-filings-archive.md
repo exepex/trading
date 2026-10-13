@@ -294,6 +294,17 @@ is built here.
 - **Criteria 2 and 6** wait on the backfill. **Criterion 5** waits on one owner step, now written as exact clicks in
   `docs/stories/A12-owner-checklist.md` step 1 (publish the OAuth app, make a new refresh token, update one secret).
 
+**Judge minor (LICI's 6 "no filing" lines): accepted; reason reworded and the cause found.** The judge was right that
+"(not listed then, or not filed)" guessed a cause. Checked on NSE (13 Oct 2026): the equities results list returns 0
+rows for LICI under every period (quarterly, half-yearly, annual, others), but NSE lists LIC's results under
+`index=insurance`: 6 files, the June, September and December 2024 quarters (consolidated and standalone), with XBRL
+links. New `NseInsuranceResultsIndex` (same list with the insurer market and its `periodEnd` field; test) is now one
+of the archive's lists and in the probe. LICI's September 2023 to March 2024 quarters are on neither list, so they
+stay as gaps, now worded only with what is known: "NSE's lists return no results-xbrl filing for the quarter ended
+...". LICI was already finished in step 1 with the old lists, so its 6 insurance-list files are fetched when step 2
+re-reads every company's lists. Finding 2 above is corrected by this. Also: the probe tries each list once more
+after 30 s, because one NSE read timeout (seen here today) would otherwise fail a whole scheduled job.
+
 ## Desk view (short)
 
 - Statistician: the table is point-in-time by `filed_at` (later of NSE's two times), but the archive's history of

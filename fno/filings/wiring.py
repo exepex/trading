@@ -23,7 +23,12 @@ from .archive import FilingArchive
 from .coverage import FilingsCoverage
 from .day_lists import EveryDayCalendar, check_day_list
 from .gaps import GapLog
-from .index import NseIntegratedResultsIndex, NseLegacyResultsIndex, NseShareholdingIndex
+from .index import (
+    NseInsuranceResultsIndex,
+    NseIntegratedResultsIndex,
+    NseLegacyResultsIndex,
+    NseShareholdingIndex,
+)
 from .librarian import FilingsLibrarian
 from .manifest import FilingManifest
 from .progress import ProgressRecord
@@ -53,10 +58,16 @@ def _owner_raw_area() -> RawFileStore:
 
 def build_filings_librarian(log=print) -> FilingsLibrarian:
     """NSE's filing lists and XBRL files into the owner's Drive, each file with its manifest row."""
-    get_json = PublicData().nse_json
-    indexes = (NseLegacyResultsIndex(get_json), NseIntegratedResultsIndex(get_json), NseShareholdingIndex(get_json))
+    indexes = build_filing_indexes()
     archive = FilingArchive(_owner_raw_area(), build_filings_manifest(), now_ist)
     return FilingsLibrarian(indexes, storage.build_nse_source(NseFilingFileSource), archive, now_ist, log)
+
+
+def build_filing_indexes() -> tuple:
+    """NSE's filing lists, through the shared polite session (the librarian's and the probe's)."""
+    get_json = PublicData().nse_json
+    lists = (NseLegacyResultsIndex, NseInsuranceResultsIndex, NseIntegratedResultsIndex, NseShareholdingIndex)
+    return tuple(index(get_json) for index in lists)
 
 
 def build_day_list_librarian(name: str, log=print) -> RawDataLibrarian:

@@ -11,12 +11,14 @@ alerts #fno-desk; reaching the time limit during the backfill does not (the next
 
 from __future__ import annotations
 
+import time
 from datetime import date, datetime, timedelta
 
 from ..models import IST, now_ist
 from .runs_cli import add_archive_parsers
 
 PROBE_SYMBOL = "TCS"
+PROBE_ATTEMPTS, PROBE_PAUSE_SECONDS = 2, 30
 PROBE_LINES = "{name}: {outcome}"
 
 
@@ -54,18 +56,23 @@ def cmd_filings_table(args) -> int:
     return 0
 
 
-def cmd_filings_probe(args) -> int:
-    from ..providers.public import PublicData
-    from .index import NseIntegratedResultsIndex, NseLegacyResultsIndex, NseShareholdingIndex
+def cmd_filings_probe(args, sleep=time.sleep) -> int:
+    from .wiring import build_filing_indexes
 
-    get_json = PublicData().nse_json
     since = date.today() - timedelta(days=3 * 366)
-    answered = 0
-    for index in (NseLegacyResultsIndex(get_json), NseIntegratedResultsIndex(get_json), NseShareholdingIndex(get_json)):
+    indexes = build_filing_indexes()
+    answered = sum(_probe(index, since, sleep) for index in indexes)
+    return 0 if answered == len(indexes) else 1
+
+
+def _probe(index, since: date, sleep) -> bool:
+    """One list, tried again once after a pause: a single slow answer is not "NSE refuses this machine"."""
+    for attempt in range(PROBE_ATTEMPTS):
         try:
             outcome = f"answers: {len(index.filings(PROBE_SYMBOL, since))} {PROBE_SYMBOL} filings in 3 years"
-            answered += 1
+            print(PROBE_LINES.format(name=index.name, outcome=outcome))
+            return True
         except Exception as exc:  # noqa: BLE001 - a probe reports any failure as a line, never a traceback
-            outcome = f"FAILED: {type(exc).__name__}: {exc}"
-        print(PROBE_LINES.format(name=index.name, outcome=outcome))
-    return 0 if answered == 3 else 1
+            print(PROBE_LINES.format(name=index.name, outcome=f"FAILED (try {attempt + 1}): {type(exc).__name__}"))
+            sleep(PROBE_PAUSE_SECONDS)
+    return False

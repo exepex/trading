@@ -86,10 +86,13 @@ class NseLegacyResultsIndex(FilingIndex):
     """NSE's classic quarterly results list (every quarter up to December 2024)."""
 
     name, kind = "NSE results list", FILING_RESULTS
+    MARKET, PERIOD_END = "equities", "toDate"  # NSE's list and the field holding the period's last day
 
     def filings(self, symbol: str, since: date) -> list[Filing]:
-        rows = self.get_json(NSE_LEGACY_RESULTS, {"index": "equities", "symbol": symbol, "period": "Quarterly"})
-        recent = [r for r in rows or [] if nse_day(r["toDate"]) >= since - OLDEST_LATE_FILING and _placeable(r)]
+        params = {"index": self.MARKET, "symbol": symbol, "period": "Quarterly"}
+        rows = self.get_json(NSE_LEGACY_RESULTS, params)
+        oldest = since - OLDEST_LATE_FILING
+        recent = [r for r in rows or [] if nse_day(r[self.PERIOD_END]) >= oldest and _placeable(r)]
         found = (self._filing(symbol, row) for row in recent)
         return [f for f in found if f.filed_at.date() >= since]
 
@@ -97,13 +100,21 @@ class NseLegacyResultsIndex(FilingIndex):
         return Filing(
             FILING_RESULTS,
             symbol,
-            nse_day(row["toDate"]),
+            nse_day(row[self.PERIOD_END]),
             public_time(row.get("broadCastDate"), row.get("exchdisstime"))
             if _timed(row)
             else public_time(row.get("filingDate")),
             xbrl_link(row.get("xbrl")),
             NSE_CONSOLIDATION.get(row.get("consolidated"), ""),
         )
+
+
+class NseInsuranceResultsIndex(NseLegacyResultsIndex):
+    """NSE's classic results list for insurers (`index=insurance`): their results before the integrated filings are
+    not in the equities list (LIC: 0 rows there; here the June to December 2024 quarters, measured 13 Oct 2026)."""
+
+    name = "NSE insurance results list"
+    MARKET, PERIOD_END = "insurance", "periodEnd"
 
 
 class NseIntegratedResultsIndex(FilingIndex):

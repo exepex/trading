@@ -25,7 +25,7 @@ HALF_YEARS_CHECKED = 6
 HALF_YEAR_TARGET = 0.90
 FIRST_PERIOD = date(2023, 9, 30)  # the first quarter the 3-year archive covers in full
 SHAREHOLDING_DEADLINE = timedelta(days=21)  # SEBI LODR 31: within 21 days of the quarter's end
-NO_PERIOD = "NSE's lists hold no {kind} filing for the quarter ended {end} (not listed then, or not filed)"
+NO_PERIOD = "NSE's lists return no {kind} filing for the quarter ended {end}"  # only what is known, no guessed cause
 NO_RESULTS_FILE, NO_STATEMENTS = "no results file", "results file without a readable balance sheet and cash flow"
 
 

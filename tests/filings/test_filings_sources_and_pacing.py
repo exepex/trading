@@ -79,3 +79,20 @@ def test_nse_not_found_web_page_served_with_200_is_not_published():
     assert source.fetch("nse/equities/filings/results-xbrl/LT/INTEGRATED_FILING_INDAS_1477033.xml") is None
     Answer.content = b'<?xml version="1.0"?><xbrli:xbrl/>'
     assert source.fetch("nse/equities/filings/results-xbrl/LT/X.xml") == Answer.content
+
+
+def test_probe_tries_a_slow_list_again_once(monkeypatch, capsys):
+    from fno.filings import cli, wiring
+
+    class Flaky:
+        name, calls = "flaky list", 0
+
+        def filings(self, symbol, since):
+            Flaky.calls += 1
+            if Flaky.calls == 1:
+                raise TimeoutError("read timed out")
+            return [1, 2]
+
+    monkeypatch.setattr(wiring, "build_filing_indexes", lambda: (Flaky(),))
+    assert cli.cmd_filings_probe(None, sleep=lambda s: None) == 0
+    assert "FAILED (try 1)" in capsys.readouterr().out and Flaky.calls == 2
