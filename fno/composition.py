@@ -16,7 +16,7 @@ from .alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
 from .books.account import AccountWriter, PaperAccount
 from .books.lock import DEFAULT_LEASE_SECONDS, AccountLock
 from .config import ROOT
-from .constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID, NIFTY_SYMBOL
+from .constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID, NIFTY_SYMBOL, STRESSED_MARGIN_MULTIPLIER
 from .providers import AUTO_PROVIDER, get_provider
 from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.recorder import QuoteSnapshotRecorder
@@ -44,6 +44,13 @@ from .research_engine.simulator import CycleSimulator
 from .research_engine.structures import LongIronFly, ShortCondor, ShortIronFly, Structure
 from .research_engine.trial_guard import LedgerTrialGuard
 from .research_engine.volatility_features import AtmIvMinusRealised, VixAboveMedian
+from .risk.drawdown import DrawdownBrake
+from .risk.manager import RiskManager
+from .risk.margins import MarginTable, MultiplierMargin, ScenarioLookupMargin, StressedMargin
+from .risk.rules import ExposureLimit, MarginRoom, MaxLossPerTrade, MaxOpenTrades, StressLoss
+from .risk.settings import RiskSettings, risk_settings
+from .risk.stress import StressEngine
+from .risk.trade_costs import SimulatorTradeCosts
 from .storage.raw_source import ParticipantOiSource
 from .storage.wiring import (
     CALENDAR_FILE,
@@ -240,3 +247,28 @@ def run_live_validation(cfg: dict, live_name: str, today: date) -> ValidationRep
     data = load_research_data(range(LIVE_HISTORY_START.year - 1, today.year + 1), keep=cycle_rows)
     data = ResearchData(data.panel, data.events, RecordedSnapshots(build_quote_store()).snapshots(sessions))
     return validate(live, close, data, sessions, lambda day: validation_context(data, day))
+
+
+def build_stressed_margin(settings: RiskSettings) -> StressedMargin:
+    """The one stressed-margin method frozen in `risk.stressed_margin`."""
+    if settings.stressed_margin.method == STRESSED_MARGIN_MULTIPLIER:
+        return MultiplierMargin(
+            MarginTable(settings.margins_file, settings.margin_max_age_days), settings.stressed_margin
+        )
+    names = [scenario.name for scenario in settings.scenarios]
+    return ScenarioLookupMargin(settings.stressed_margin, names, settings.margin_max_age_days)
+
+
+def build_risk_manager(cfg: dict, root: Path = ROOT) -> RiskManager:
+    """Story C2: every owner limit and risk check from config.yaml `risk`, with B2's cost model for a trade's money."""
+    settings, costs, engine = risk_settings(cfg, root), SimulatorTradeCosts(cfg["charges"]), StressEngine()
+    stressed = build_stressed_margin(settings)
+    rules = (
+        MaxLossPerTrade(costs, settings.max_loss_per_trade_rs),
+        MaxOpenTrades(settings.max_open_trades),
+        DrawdownBrake(settings.drawdown_brake_rs),
+        StressLoss(engine, costs, settings.scenarios, settings.max_stress_loss_rs),
+        ExposureLimit(engine, settings.exposure),
+        MarginRoom(stressed, costs),
+    )
+    return RiskManager(rules, stressed.record())
