@@ -329,3 +329,59 @@ Tests:
 - **Mutation check:** with the revokes removed, 5 of these fail.
 
 All market tests pass (129). The owner's step is the same command as before (`psql … user=fno_owner … -f db/fno/migrations/002_run_status.sql`). It now also narrows `fno_writer`'s rights on 001's two live tables; nothing the publisher does needs what it removes.
+
+## Addendum: contract 2.5 (publisher split), India's band, expiries and flows built
+
+**Contract:** pinned omenix-dashboard `6cc6b7a`, contract **2.5.0**, which includes 13661c0, 715048a and 3501464.
+- Changed: `openapi.yaml`, `blocks-frame.yaml`, `blocks-home.yaml`, `blocks-overview.yaml`, `blocks-responses.yaml` and the 33–34 examples.
+- India's pages under publisher fno, built to exactly these names and schemas:
+
+| Page | Endpoint (2.5) | Schema | Built from |
+|---|---|---|---|
+| `session` | `getSessionIndia` | `SessionIndiaResponse` (`Session`) | NSE's session calendar (A7) |
+| `indices` | `getIndicesIndia` | `IndicesIndiaResponse` (`Indices`) | P6's index rows (NSE's index file) |
+| `fno_events` | `getFnoEvents` | `FnoEventsResponse` (`Events`) | the NIFTY expiries NSE lists in the day's F&O file (P9's scope) |
+| `flows` | `getFlows` | `FlowsResponse` (`Flows`) | the archived NSE FII/DII and NSDL copies (P8 data side) |
+
+Books and picks stay `risk` and `today`; 2.5's catalog now says "page 'risk'" only.
+
+**How each is computed:**
+- **`session`** (the session being predicted is the next session after the published one, from the calendar, so a re-run is deterministic):
+  - `exchange` "India (NSE)", `zone` IST;
+  - open and close at NSE's regular 09:15–15:30 IST (03:45–10:00 UTC), and `next_open_utc` = that open;
+  - `post_close_at` = 07:10 IST the next day, when the next market run brings the close;
+  - `regime` null (the F&O tool records none; the catalog says so);
+  - `major_event_names` = the session's major expiries (a monthly expiry day names it).
+  - **Special sessions** keep regular hours: the calendar notes say "normal timings" for every future special session; the 2024 disaster-recovery switch days are past.
+  - **A muhurat session stops the run** (`figures_not_computed`). Its hours exist only in the calendar's free text, and 2026's (8 Nov) are "not yet issued". **Owner action before 8 Nov 2026:** when NSE's timings circular is out, give the calendar the muhurat hours (A7), or the session page is not published that day.
+- **`indices`:**
+  - NIFTY 50 and INDIA VIX, with id, symbol, name and role as in the contract's example;
+  - `last` = the close, `chg_pct` = change on the previous close, `chg_5d_pct` = change over 5 sessions (P6's d1 and w1, the same rounding);
+  - `as_of` = the index's own close date at 15:30 IST, and `source` "close".
+  - A missing index stops the run rather than publish a made-up level (the contract's x-empty).
+  - 12 Oct: NIFTY 22,363.35 (−0.70%, 5-session −0.85%); INDIA VIX 15.25 (+6.05%, +3.18%).
+- **`fno_events`:**
+  - the NIFTY expiries NSE lists after the session, within the next three calendar months: monthly = `fno_expiry` (major), weekly = `weekly_expiry`;
+  - title "NSE monthly F&O expiry (last Tuesday)", or "(moved for a holiday)" when a monthly is not the month's last Tuesday (23 Nov 2026), and "NIFTY weekly expiry";
+  - the route applies `kinds`, `from` and `limit`.
+  - 12 Oct: 7 events (13, 19 and 27 Oct, 3, 9 and 23 Nov, 29 Dec). **The first four equal the contract's `getFnoEvents_india_calendar` example field by field.** The example's horizon ends on 3 Nov; ours goes on to the expiries NSE already lists.
+- **`flows`:**
+  - per session, FII/FPI and DII buy, sell and net (NSE, `provisional: true`), plus NSDL's FPI equity net, for the last 250 sessions;
+  - period totals only when the period's sessions all have data (else `complete: false` and null).
+  - **Which copy is read:** NSE serves a session's values until the next release, so copies fetched up to the next session are read, the latest copy of each session wins, and values of a later session are never read (no look-ahead).
+  - 12 Oct: `days` empty (our first copy covers 13 Oct), so the block is the contract's empty state: "no figures yet".
+
+**Tests** (`test_frame_and_flows_blocks.py`, 6):
+- the session's times and next-morning run; Friday → Monday; a monthly-expiry session names it; muhurat stops;
+- the indices' values, and a missing index stops;
+- the expiries, the moved monthly, and the equality with the contract's calendar;
+- the flows' latest copy, no look-ahead, totals and validation against `Flows`;
+- all four pages in the publication, validated as served against 2.5.
+
+**Mutation check:** reading copies only up to the session day (missing the morning copy) fails the flows test.
+
+Full suite and the real local publish: see the commit.
+
+**Checks:**
+- Full suite: 1,806 tests pass; ruff, imports and the record scan are clean.
+- **Real local publish of 12 Oct** through the full wiring (Drive files, the repository's books and calendar, `config.yaml`): 1,269 pages in 18 blocks, read-back equal, exit 0. It includes `session` `8d812166…`, `indices` `3ce82445…`, `fno_events` `28949db2…` and `flows` `7e3bf91b…`. The six P6 pages keep their hashes from the Azure run 38438666957, so P6 is unchanged.

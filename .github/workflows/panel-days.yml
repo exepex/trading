@@ -8,12 +8,15 @@
 #      pending sessions or none, never rewriting a day;
 #   4. the panel is committed ONLY when step 3 exits 0 (the A9 manifest rows always): a crash or a stop publishes nothing,
 #      and the next run (the morning retry) starts again from the same day.
-# It writes only under G1 protocol v3's freeze (full history: fetch-depth 0); until FREEZE_v3.md exists it appends
-# nothing. NOT SCHEDULED YET: the schedule (after index-closes.yml, about 21:41 IST, plus a morning retry before 14:00)
-# is added when v3 is frozen, after ChatGPT's review and the judge. One #fno-desk line when a step fails.
+# It writes only under G1 protocol v3's freeze (its `panel-days` section; full history: fetch-depth 0); a missing or
+# failing freeze record fails the run with one #fno-desk line. Runs append through the last day whose files are due
+# (today from 21:00 IST, else yesterday). One #fno-desk line when a step fails.
 name: panel-days
 
 on:
+  schedule:
+    - cron: "11 16 * * *" # 21:41 IST, after index-closes.yml (21:11): today's session; the calendar decides
+    - cron: "41 6 * * *" # 12:11 IST: retry for yesterday's session, after index-closes' 11:41 retry, before 14:00
   workflow_dispatch:
 
 permissions:

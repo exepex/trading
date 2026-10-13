@@ -29,6 +29,7 @@ from .chain_session import ChainBuilder, history_start
 from .corporate_actions import CorporateAction, adjusted, read_corporate_actions, unexplained
 from .fno_rows import FnoRowBuilder, UnderlyingDay, underlying_days
 from .followed import FollowedCompaniesSource
+from .frame_inputs import FlowsReader, frame_inputs
 from .home_inputs import HomeInputsReader
 from .index_rows import index_rows, industries
 from .nse_files import (
@@ -67,9 +68,10 @@ class SessionRowsBuilder:
         followed: FollowedCompaniesSource,
         chain: ChainBuilder,
         home: HomeInputsReader,
+        flows: FlowsReader,
     ):
         self.store, self.calendar, self.fno, self.followed = store, calendar, fno, followed
-        self.chain, self.home = chain, home
+        self.chain, self.home, self.flows = chain, home, flows
 
     def build(self, day: date) -> SessionRows:
         missing: list[str] = []
@@ -102,7 +104,10 @@ class SessionRowsBuilder:
         nifty_500 = [r for r in stocks if UNIVERSE_NIFTY_500 in r["u"]]
         chain = self.chain.build(day, parsed, indices)
         fno = self.fno.rows(history, day, names)
-        return SessionRows(day, stocks, fno, index_rows(figures), industries(nifty_500), chain, self.home.on(day))
+        return SessionRows(
+            day, stocks, fno, index_rows(figures), industries(nifty_500), chain, self.home.on(day),
+            frame_inputs(self.calendar, day), self.flows.on(day),
+        )  # fmt: skip
 
     def symbols_to_look_up(self, day: date) -> list[str]:
         """Symbols with an unexplained price jump in the session's window whose own corporate-action list is not

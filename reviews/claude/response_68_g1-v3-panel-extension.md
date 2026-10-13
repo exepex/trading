@@ -248,3 +248,29 @@ and its file is byte-frozen by v2 (a change needs a new v2). So the new function
   - a missing section is refused.
 - `test_scoring_refuses_when_its_own_v3_section_does_not_hold` runs `score_forecasts` and shows it refuses on its own
   section.
+
+## Addendum 5: v3 frozen (judge 64 addendum 2, in the orchestrator's order)
+
+1. **Should-fix 1, section choice tested:** the panel wiring test asserts `panel-days` and the scoring wiring test
+   asserts `forecast-scores`. Swapping the section names in both composition roots fails both tests
+   (mutation-checked).
+2. **Should-fix 2, no silent stop:** a missing or failing `FREEZE_v3.md` now fails the panel job with exit 1 and one
+   #fno-desk line (`test_a_missing_freeze_record_is_an_alerting_failure_never_a_silent_stop`).
+   - Found while preparing the first run: with `--to` defaulting to today, a morning retry or a manual run always
+     included today's not-yet-published session, so the all-or-nothing run would never append anything.
+   - Runs now append through the last day whose files are due: today from 21:00 IST, else yesterday
+     (`last_complete_day`, 3 tests).
+3. **Protocol commit `904c036`:**
+   - final `PROTOCOL_v3.md` (status frozen; section 1 rules 7 and 8);
+   - the tests above;
+   - the repair of `main`: 4 G4 AI-gate tests were red because G4 (22ace2f) still passed a `today` argument that F1
+     (0688ad5) had removed from `scoring_status`, and one test called `book_coverage` without `as_of`. Both now match
+     the current signatures.
+   - Checks: 1,829 passed; ruff and check_imports clean.
+4. **Freeze commit `c1bf97f`:**
+   - `FREEZE_v3.md`: preamble naming protocol commit 904c036; a `panel-days` section of 6 files; a `forecast-scores`
+     section of 7 files (exactly section 5's lists); a recorded, not byte-checked, table for A3's builder files, the
+     reader, G4's wiring and the manifest;
+   - `panel-days.yml`'s schedule in the same commit: 21:41 IST and 12:11 IST.
+   - Real-repository tests: both sections hold at HEAD, and the real panel guard passes.
+5. **First run by dispatch:** https://github.com/exepex/trading/actions/runs/38474280810 (on c1bf97f).

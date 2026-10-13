@@ -36,8 +36,11 @@ from .chain_session import ChainBuilder
 from .contract import GitHubRawContract, PinnedContract, PublishedContract
 from .db_check import DatabaseCheck, url_user
 from .db_connection import VerifiedConnection
+from .flows_block import FlowsBlock
 from .fno_rows import FnoRowBuilder
 from .followed import FollowedCompaniesFolder
+from .frame_blocks import FnoEventsBlock, IndicesIndiaBlock, SessionIndiaBlock
+from .frame_inputs import FlowsReader
 from .home_blocks import FnoBooksBlock, FnoPicksBlock
 from .home_inputs import BooksReader, FrozenExperimentApprovals, HomeInputsReader
 from .local_publisher import LocalFolderPublisher
@@ -59,11 +62,12 @@ LATEST_FROZEN_EXPERIMENT = (  # its decisive run's passing policies are the only
 
 
 def build_market_blocks() -> list[BlockBuilder]:
-    """Stories P6, P9 and P10: the India blocks the contract assigns to publisher fno (Screener and Markets; the NIFTY
-    option chain; Home's F&O books and picks), in publication order, all in one publication."""
+    """Stories P6, P8, P9 and P10: the India blocks the contract assigns to publisher fno (Screener and Markets; the
+    NIFTY option chain; Home's F&O books and picks; India's band, expiries and flows), all in one publication."""
     return [ScreenerSummaryBlock(), ScreenerStocksBlock(), FnoSummaryBlock(), FnoRowsBlock(), IndicesBlock(),
             SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
-            ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock()]  # fmt: skip
+            ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock(), SessionIndiaBlock(),
+            IndicesIndiaBlock(), FnoEventsBlock(), FlowsBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
@@ -126,7 +130,8 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     chain = ChainBuilder(cfg["risk_free_rate"])
     home = HomeInputsReader(BooksReader(ROOT, BOOKS), FrozenExperimentApprovals(*LATEST_FROZEN_EXPERIMENT),
                             risk_settings(cfg, ROOT).max_stress_loss_rs)  # fmt: skip
-    return SessionRowsBuilder(build_versioned_reader(), build_session_calendar(), fno_rows, followed, chain, home)
+    store, calendar = build_versioned_reader(), build_session_calendar()
+    return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, FlowsReader(store, calendar))
 
 
 def repository_commit() -> str:

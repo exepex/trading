@@ -94,9 +94,9 @@ def test_a_figure_this_story_does_not_compute_stops_the_run_with_its_code(tmp_pa
 
 
 def test_the_page_keys_are_the_ones_w10_names_in_the_pinned_schemas():
-    """W10's catalog names the read-model pages (judges 61, 63): FnoPicks is page 'today'; FnoBooks names 'risk' and
-    'scoreboard_b' for one block, and the dashboard reads 'risk' (web/lib/home/azure-source.ts): the block is 'risk'."""
+    """W10's catalog names the read-model pages (judges 61, 63): FnoPicks is page 'today'; FnoBooks is page 'risk'
+    (contract 2.5 settled it: scoreboard_b belongs to S2)."""
     picks_source = CONTRACT.schemas["FnoPicks"]["x-catalog"]["source"]
     books_source = CONTRACT.schemas["FnoBooks"]["x-catalog"]["source"]
     assert "page 'today'" in picks_source and FnoPicksBlock.page_key == "today"
-    assert "pages 'risk' and 'scoreboard_b'" in books_source and FnoBooksBlock.page_key == "risk"
+    assert "page 'risk'" in books_source and FnoBooksBlock.page_key == "risk"  # 2.5: page risk only

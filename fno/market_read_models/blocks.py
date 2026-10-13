@@ -14,6 +14,8 @@ from .stock_rows import UNIVERSE_FNO, UNIVERSE_FOLLOWED, UNIVERSE_NIFTY_500
 
 if TYPE_CHECKING:
     from .chain_session import ChainSession
+    from .flows_block import FlowsInputs
+    from .frame_inputs import FrameInputs
     from .home_inputs import HomeInputs
 
 CLOSE_UTC = "T10:00:00Z"  # NSE closes at 15:30 IST
@@ -35,6 +37,8 @@ class SessionRows:
     industries: list[dict]
     chain: ChainSession | None = None  # the NIFTY option chain (P9)
     home: HomeInputs | None = None  # the F&O books and approvals for Home (P10)
+    frame: FrameInputs | None = None  # the session the reader acts on next (P10, India's band)
+    flows: FlowsInputs | None = None  # the big investors' flows (P8)
 
 
 class BlockBuilder(ABC):

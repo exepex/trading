@@ -186,5 +186,6 @@ coverage and the report, on the same outputs.
 NIFTY 50 close) removed `today` from `scoring_status(root, day, book)`. My `22ace2f` still passed `as_of`. Both
 merged cleanly as text, so merge commit `a31c36f` broke the 4 gate tests (TypeError) for one commit on `main`. I pushed
 it after re-running the suite on the merge before that pull, not after it; that was my mistake. The fix drops `as_of`
-from `ai_forecasts`, so the reader passes exactly what the gate takes. A day whose week has no seed yet is now
+from `ai_forecasts`, so the reader passes exactly what the gate takes. The G1 v3 session made the same fix in its
+protocol commit `904c036`; my identical fix merged into it, and only this note is new. A day whose week has no seed yet is now
 `pending` with the gate's reason "weekly audit draw not made yet ...".

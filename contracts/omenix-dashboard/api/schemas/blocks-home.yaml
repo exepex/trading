@@ -68,7 +68,7 @@ FnoBooks:
     The three F&O paper books (India only), each its own Rs 5 lakh account: Book 1 rule-based, Book 2 hybrid,
     Book 3 AI team. Feeds the "F&O: total profit / loss" line of each group card (never added to the stock total) and
     the order window's account list (books are listed, never tradable by hand)
-  x-catalog: {publisher: fno, source: "fno.pages_history pages 'risk' and 'scoreboard_b' (P1) over E1's paper accounts", freshness: '3 pm run and the post-close marks (NSE session calendar)', story: P1, status: planned}
+  x-catalog: {publisher: fno, source: "fno.pages_history page 'risk' (published by P10) over E1's paper accounts (scoreboard_b belongs to S2, not built: it gets its own field or block by a contract change)", freshness: '3 pm run and the post-close marks (NSE session calendar)', story: P10, status: planned}
   x-element: [h31.who-trades]
   required: [currency, books]
   properties:
@@ -151,8 +151,9 @@ Events:
   type: object
   description: >-
     "Coming up": the market's scheduled events and the active companies' results from the session being predicted
-    onwards, as known at the cut-off. In the US, F&O expiries are absent. Empty state: `events` empty
-  x-catalog: {publisher: stock, source: 'calendar_event (config/events.yaml via core/calendar.market_events, the events kind, the market calendar)', freshness: daily (pre-open run), story: K4-proposed, status: planned}
+    onwards, as known at the cut-off. In the US, F&O expiries are absent. In India they are exepex/trading's own block
+    (getFnoEvents, 2.5, owner 14 Oct 2026) and the stock tool's calendar lists none; a screen merges the two and applies
+    its own query to the merged list. Each path carries its x-catalog. Empty state: `events` empty
   x-element: [h31.coming-up]
   required: [events]
   properties:

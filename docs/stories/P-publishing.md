@@ -255,7 +255,7 @@ second publisher for the same block would make two sources of truth. Needs a dec
 either W11 moves the block to publisher `fno` (then this story builds the download and the block against it), or the
 block stays with the stock tool and only a raw archive here is wanted (research use), or nothing is built.
 
-**Status:** owner decision 14 Oct: India flows move to publisher `fno`; data side built (two archived datasets, daily download); the block waits for the dashboard's publisher-split contract (response 66, last addendum)
+**Status:** built; awaiting judge (contract 2.5 page `flows`; response 66, addendum on contract 2.5)
 
 ---
 
@@ -314,4 +314,4 @@ contract:** a reason code for the empty picks state (W10's `FnoPicks` has only `
 4. A book with an open trade stops the run rather than publish a risk figure this story does not compute.
 5. Size, lint, imports, tests pass.
 
-**Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built; awaiting judge (claims: response 66, addendum P10)
+**Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built; awaiting judge (claims: response 66, addendum P10; India band and expiries: addendum on contract 2.5)

@@ -7,8 +7,7 @@ as is:
 - `scored`: then the records must also name the day's v2 pack, and that pack must have matched its capture receipt
   (Book 1's live check); otherwise the day is unscored;
 - `unscored` (late, exposed, model mismatch, a transcript breach, ...): listed with its reason, never scored;
-- `pending` (not collected, transcript audit due, the week's audit draw not made yet: it waits for the week's last
-  official NIFTY 50 close): listed apart, not scored yet;
+- `pending` (not collected, transcript audit due, the week's audit draw not made yet): listed apart, not scored yet;
   it is scored on a later run once the audit clears it.
 Neither unscored nor pending days count in coverage. The isolation label (today `sealed_same_day`) comes from the gate.
 """
@@ -36,7 +35,8 @@ class AiForecasts:
 
 
 def ai_forecasts(root: Path, verified_packs: dict[date, str]) -> AiForecasts:
-    """`verified_packs`: day -> SHA-256 of the day's receipt-verified v2 pack."""
+    """`verified_packs`: day -> SHA-256 of the day's receipt-verified v2 pack. F1's gate decides each book-day from
+    the recorded audits and weekly draws (no "today": 0688ad5)."""
     out = AiForecasts()
     for records_path in sorted((Path(root) / AI_FOLDER).glob(f"*/*{RECORDS_SUFFIX}")):
         stem = records_path.name.removesuffix(RECORDS_SUFFIX)

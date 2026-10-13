@@ -69,3 +69,24 @@ def test_no_record_is_not_yet_frozen_and_a_missing_section_is_refused(tmp_path, 
         require_section_frozen(tmp_path / "empty", "0" * 40, PANEL_DAYS)
     with pytest.raises(NotFrozen, match="no section"):
         _check(repo, "other-job")
+
+
+def test_the_repository_v3_freeze_holds_for_both_jobs_with_the_protocol_s_file_lists():
+    from fno.config import ROOT
+    from fno.research_engine.ledger import Git
+
+    head = Git(ROOT).head()
+    panel = require_section_frozen(ROOT, head, PANEL_DAYS).hashes
+    scores = require_section_frozen(ROOT, head, FORECAST_SCORES).hashes
+    common = {PROTOCOL_V3, "fno/freeze_sections.py"}
+    assert set(panel) == common | {"fno/research_data/panel_append.py", PANEL_FILE, "fno/pipeline/panel_wiring.py",
+                                   ".github/workflows/panel-days.yml"}  # fmt: skip
+    assert set(scores) == common | {f"fno/forecast_scoring/{name}.py" for name in
+                                    ("q5_thresholds", "resolution", "score_sources", "scoring", "replay")}  # fmt: skip
+    assert "fno/pipeline/wiring.py" not in panel and "fno/forecast_scoring/wiring.py" not in scores  # shared roots
+
+
+def test_the_real_panel_job_guard_passes_under_the_freeze():
+    from fno.pipeline.panel_wiring import require_v3_frozen
+
+    require_v3_frozen()  # raises NotFrozen otherwise
