@@ -252,3 +252,10 @@ def test_cycle_status_is_exactly_the_six_values_b3_consumes():
     }  # fmt: skip
     with pytest.raises(ValueError):
         CycleStatus("no_trade")
+
+
+def test_an_entry_day_with_index_closes_but_no_option_rows_is_unfillable():
+    """A session the panel left out (30 Mar 2021) now carries NSE's index closes but still has no option rows: there
+    is no entry-day data, so the cycle is unfillable, never a strike condition."""
+    r = CycleSimulator(cycle_panel(24010.0, (), quotes(fly_prices())), TERMS).simulate(CYCLE, ShortIronFly())
+    assert r.status == CycleStatus.UNFILLABLE and r.widths_tried == ()

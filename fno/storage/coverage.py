@@ -1,5 +1,5 @@
 """Which raw NSE files the archive is missing, holds damaged or holds without a fingerprint, against NSE's session
-calendar (stories A1, A10).
+calendar (stories A1, A10), and how many days have later NSE versions in the revisions area (A11).
 
 Read-only: it only calls `RawFileStore.get`. A session without a file fails unless a sourced exception explains it; a
 file whose SHA-256 differs from its manifest row is damaged; a file with no manifest row is only content-checked, so
@@ -23,7 +23,7 @@ from .raw_store import RawFileStore
 EXCEPTION_FIELDS = ("dataset", "date", "reason", "source_url")
 TABLE_HEADER = (
     f"{'dataset':<36} {'from':>10} {'to':>10} {'expected':>8} {'present':>7} {'missing':>7} {'damaged':>7} "
-    f"{'no sha':>6}"
+    f"{'no sha':>6} {'revised':>7}"
 )
 
 INCOMPLETE = "INCOMPLETE: missing, damaged or unfingerprinted files above"
@@ -36,6 +36,7 @@ class CoverageDataset:
     source: type[NseArchiveSource]
     validate: Validator
     fingerprints: Mapping[str, str] = field(default_factory=dict)  # file name -> SHA-256 (the dataset's manifest)
+    revisions: Mapping[str, int] = field(default_factory=dict)  # file name -> later NSE versions archived (A11)
 
     def check(self, filename: str, data: bytes) -> bool:
         """Verifies a file (ValueError when its SHA-256 differs from its manifest row or its content is damaged);
@@ -59,6 +60,7 @@ class DatasetCoverage:
     excepted: list[tuple[date, str]] = field(default_factory=list)
     unexpected: list[date] = field(default_factory=list)
     unfingerprinted: list[date] = field(default_factory=list)  # present and content-checked, but no manifest row
+    revised: list[tuple[date, int]] = field(default_factory=list)  # days with later NSE versions archived (A11)
 
     @property
     def ok(self) -> bool:
@@ -130,6 +132,9 @@ class CoverageCheck:
             result.damaged.append((day, str(exc)))
             return
         result.present += 1
+        revisions = dataset.revisions.get(source.filename_for(day), 0)
+        if revisions:
+            result.revised.append((day, revisions))
         if not fingerprinted:
             result.unfingerprinted.append(day)
 
@@ -139,7 +144,7 @@ def report_lines(results: list[DatasetCoverage]) -> list[str]:
     for r in results:
         lines.append(
             f"{r.dataset:<36} {r.start:%Y-%m-%d} {r.end:%Y-%m-%d} {r.expected:>8} {r.present:>7} "
-            f"{len(r.missing):>7} {len(r.damaged):>7} {len(r.unfingerprinted):>6}"
+            f"{len(r.missing):>7} {len(r.damaged):>7} {len(r.unfingerprinted):>6} {len(r.revised):>7}"
         )
     for r in results:
         lines += [f"missing  {r.dataset} {day}" for day in r.missing]
@@ -147,5 +152,6 @@ def report_lines(results: list[DatasetCoverage]) -> list[str]:
         lines += [f"excepted {r.dataset} {day}: {reason}" for day, reason in r.excepted]
         lines += [f"unexpected file (calendar says closed; review) {r.dataset} {day}" for day in r.unexpected]
         lines += [f"no fingerprint (content checked only) {r.dataset} {day}" for day in r.unfingerprinted]
+        lines += [f"revised (later NSE versions in revisions/) {r.dataset} {day}: {n}" for day, n in r.revised]
     verdict = "complete" if all(r.ok for r in results) else INCOMPLETE
     return [*lines, f"result: {verdict}"]

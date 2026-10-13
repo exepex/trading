@@ -104,12 +104,14 @@ class FingerprintingStore(RawFileStore):
         return self.store.get(path)
 
     def put(self, path: str, data: bytes) -> None:
-        source = self._source_of(path)
+        source = source_of(path, self.sources)
         self.store.put(path, data)
         self.manifests.record(source, Fingerprint.of(source, path, data))
 
-    def _source_of(self, path: str) -> type[NseArchiveSource]:
-        for source in self.sources:
-            if path.startswith(f"{source.dataset}/"):
-                return source
-        raise ValueError(f"{path}: no dataset with a manifest; refusing to save a file nobody can verify")
+
+def source_of(path: str, sources: Iterable[type[NseArchiveSource]]) -> type[NseArchiveSource]:
+    """The dataset an archive path belongs to (ValueError when none has a manifest: nobody could verify the file)."""
+    for source in sources:
+        if path.startswith(f"{source.dataset}/"):
+            return source
+    raise ValueError(f"{path}: no dataset with a manifest; refusing to save a file nobody can verify")

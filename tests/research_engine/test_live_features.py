@@ -7,11 +7,12 @@ from datetime import time
 import pytest
 from live_fixtures import CUTOFF, DAY, RATE, live_context, live_data, quotes, snapshot
 
+from fno.research_engine.implied_vol import Black76
 from fno.research_engine.live_features import LiveAtmIvMinusRealised, LiveScheduledEventInWindow, LiveVixAboveMedian
 from fno.research_engine.volatility_features import AtmIvMinusRealised
 
 F1_LIVE, F2_LIVE, F3_LIVE = (
-    LiveAtmIvMinusRealised(CUTOFF, RATE),
+    LiveAtmIvMinusRealised(CUTOFF, RATE, Black76()),
     LiveVixAboveMedian(CUTOFF),
     LiveScheduledEventInWindow(CUTOFF),
 )
@@ -22,7 +23,8 @@ def f1(snap):
 
 
 def test_live_f1_equals_the_hand_calculation():
-    """Parity forward from the mids = 20100 exactly, so both IVs are 17%; realised from 20 +-1% returns = 15.87."""
+    """Black-76 on the recorded same-expiry future (20,100) gives 17% for both mids; realised from 20 +-1% returns =
+    15.87; live F1 = 1.13."""
     assert f1(snapshot(DAY)) == pytest.approx(17.0 - 0.01 * math.sqrt(252) * 100, abs=1e-6)
 
 
@@ -67,3 +69,21 @@ def test_live_f3_is_f3_at_the_cutoff():
 
 def test_quotes_helper_prices_mids_at_the_model():
     assert all(q.mid is not None for q in quotes(DAY))
+
+
+def test_live_f1_needs_the_recorded_same_expiry_future_and_that_it_traded():
+    assert f1(snapshot(DAY, future_volume=None)) is None  # an older capture without futures
+    assert f1(snapshot(DAY, future_volume=0)) is None  # recorded but not traded today: never a stale price
+
+
+def test_live_f2_history_ends_at_the_previous_session():
+    """Judge 44 minor 1: the 250 previous closes are 125 x 10 and 125 x 20 (median 15). If today's own close (100)
+    were counted, the oldest 10 would drop out and the median become 20, flipping the answer for a 3 pm VIX of 17."""
+    from feature_fixtures import make_panel, session_days
+
+    from fno.research_engine.features import ResearchData
+
+    days = session_days(251)
+    vix = [10.0] * 125 + [20.0] * 125 + [100.0]
+    data = ResearchData(make_panel(days, [20000.0] * 251, vix=vix), (), {days[-1]: snapshot(days[-1], vix=17.0)})
+    assert F2_LIVE.value(data, days[-1], live_context(days[-1])) is True

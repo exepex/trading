@@ -76,5 +76,23 @@ def test_reading_later_years_takes_earlier_closes_from_the_index_close_file_only
         (date(2024, 12, 30), 23400.0, 14.1),
         (date(2024, 12, 31), 23450.0, 14.2),  # from the file, not from D1's option rows (23500.10)
     ]
-    assert panel.session_on(D2).underlying is None  # inside the years read, the panel's own record stands
+    assert panel.session_on(D2).underlying == 99999.0  # the panel left D2 out: its closes come from the same file
     assert D1 not in panel.options and D1 not in panel.futures
+
+
+def test_a_left_out_session_takes_its_closes_from_the_index_close_file(tmp_path):
+    """30 Mar 2021: NSE published no old-format F&O file, but its index-close file has the closes (14,845.10)."""
+    import csv
+
+    from fno.research_data.panel_store import WARMUP_FIELDS, WARMUP_FILE
+
+    write_panel(tmp_path)
+    with (tmp_path / WARMUP_FILE).open("w", newline="") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        writer.writerow(WARMUP_FIELDS)
+        writer.writerow(["2025-01-01", "regular", "23480.50", "14.30", "ind_close_all_01012025.csv", "x"])
+    panel = read_nifty_panel(tmp_path)
+    left_out = panel.session_on(D2)
+    assert (left_out.underlying, left_out.vix) == (23480.5, 14.3)
+    assert D2 not in panel.options and D2 not in panel.futures  # still no option or future rows
+    assert panel.session_on(D3).underlying == 23500.10  # an "ok" day keeps the panel's own close

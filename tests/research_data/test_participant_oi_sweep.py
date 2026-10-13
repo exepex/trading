@@ -4,13 +4,18 @@ recheck misses, and the moved write time holds that day back in the wired rule."
 from datetime import date, datetime
 
 import fno.composition
+import fno.storage.wiring
 from fno.cli import main
 from fno.models import IST
 from fno.research_data.availability import LastWriteBoundRule, NextSessionRule
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.research_data.last_written import latest_writes
 from fno.research_data.write_sweep import LastWriteSweep, read_sweeps
-from fno.storage.raw_source import ParticipantOiSource, RawFileSource, RawSourceUnavailable
+from fno.storage.manifest_commit import ManifestRecorder
+from fno.storage.manifest_folder import ManifestFolder
+from fno.storage.raw_source import ParticipantOiSource, PublishedFile, RawFileSource, RawSourceUnavailable
+from fno.storage.raw_store import LocalFolderStore
+from fno.storage.revisions import RevisionArchive, RevisionIndex
 
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/FAOP65588.pdf"
 CALENDAR = CsvSessionCalendar(f"date,kind,description,source_url\n2025-12-25,holiday,Christmas,{SOURCE}\n")
@@ -78,21 +83,66 @@ def test_the_nse_source_asks_for_headers_only(monkeypatch):
     assert session.heads == ["https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_15012024.csv"]
 
 
+class NoRevisions:
+    stored, not_archived = [], []
+
+
+class Recorder(ManifestRecorder):
+    def __init__(self):
+        self.commits = []
+
+    def pending(self):
+        return []
+
+    def commit(self, what):
+        self.commits.append(what)
+        return "manifest rows: nothing new to commit"
+
+
 def test_the_sweep_command_alerts_on_a_moved_write_and_on_no_answer(monkeypatch, capsys, tmp_path):
-    archive = HeadersOnlyArchive({ParticipantOiSource.path_for(JAN_15): at(date(2025, 6, 2), 18)})
+    archive, recorder = HeadersOnlyArchive({ParticipantOiSource.path_for(JAN_15): at(date(2025, 6, 2), 18)}), Recorder()
     sweep = LastWriteSweep(archive, ParticipantOiSource.path_for, tmp_path / "s.csv")
-    monkeypatch.setattr(fno.composition, "build_last_write_sweep", lambda: sweep)
+    monkeypatch.setattr(fno.composition, "build_last_write_sweep", lambda revisions: sweep)
     monkeypatch.setattr(fno.composition, "participant_oi_last_writes", lambda: {JAN_15: at(JAN_15, 19)})
+    monkeypatch.setattr(fno.storage.wiring, "build_revision_archive", NoRevisions)
+    monkeypatch.setattr(fno.storage.wiring, "build_manifest_recorder", lambda: recorder)
     assert main(["participant-oi", "sweep"]) == 1
     out = capsys.readouterr().out
-    assert "MOVED 2025-01-15" in out and "sweep: 1 files checked, 1 moved, 0 unanswered" in out
+    assert "MOVED 2025-01-15" in out and "sweep: 1 files checked, 1 moved, 0 unanswered, 0 new revisions" in out
     archive.writes[ParticipantOiSource.path_for(JAN_15)] = at(JAN_15, 19)
     monkeypatch.setattr(
         fno.composition,
         "build_last_write_sweep",
-        lambda: LastWriteSweep(archive, ParticipantOiSource.path_for, tmp_path / "t.csv"),
+        lambda revisions: LastWriteSweep(archive, ParticipantOiSource.path_for, tmp_path / "t.csv"),
     )
     assert main(["participant-oi", "sweep"]) == 0
+    assert recorder.commits == ["participant-oi sweep"] * 2  # the revision index rows, every run
+
+
+class FullReadArchive(RawFileSource):
+    def __init__(self, published):
+        self.published = published
+
+    def fetch(self, path):
+        raise AssertionError("the wired sweep reads files with their Last-Modified")
+
+    def fetch_published(self, path):
+        return self.published
+
+
+def test_the_wired_sweep_reads_files_in_full_and_stores_a_rewrite_as_a_revision(monkeypatch, tmp_path):
+    path = ParticipantOiSource.path_for(JAN_15)
+    raw, revisions = LocalFolderStore(tmp_path / "raw"), LocalFolderStore(tmp_path / "revisions")
+    raw.put(path, b"first version")
+    index = RevisionIndex(tmp_path / "index", [ParticipantOiSource])
+    revision_archive = RevisionArchive(raw, revisions, index, ManifestFolder(tmp_path / "manifests"))
+    rewritten = PublishedFile(b"second version", at(date(2025, 6, 2), 18))
+    monkeypatch.setattr(fno.storage.wiring, "build_nse_source", lambda source_type: FullReadArchive(rewritten))
+    monkeypatch.setattr(fno.composition, "PARTICIPANT_OI_SWEEPS", tmp_path / "sweeps.csv")
+    result = fno.composition.build_last_write_sweep(revision_archive).run({JAN_15: at(JAN_15, 19)})
+    assert result.moved == [(JAN_15, at(JAN_15, 19), at(date(2025, 6, 2), 18))]
+    [revision] = index.for_path(path)
+    assert revisions.get(revision.revision_path) == b"second version" and raw.get(path) == b"first version"
 
 
 def test_the_wired_rule_reads_the_sweep_log(monkeypatch, tmp_path):

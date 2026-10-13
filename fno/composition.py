@@ -37,7 +37,9 @@ from .market_read_models.publication import PublicationBuilder
 from .market_read_models.publisher import ReadModelPublisher
 from .market_read_models.session_rows import SessionRowsBuilder
 from .providers import AUTO_PROVIDER, get_provider
+from .providers.public import PublicData
 from .quotes.expiry_listing import NseDailyFileExpiries
+from .quotes.market_levels import NseLevelSource
 from .quotes.recorder import QuoteSnapshotRecorder
 from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .record_scan.scanner import RecordScanner
@@ -64,6 +66,7 @@ from .research_engine.structures import LongIronFly, ShortCondor, ShortIronFly, 
 from .research_engine.trial_guard import LedgerTrialGuard
 from .research_engine.volatility_features import AtmIvMinusRealised, VixAboveMedian
 from .storage.raw_source import ParticipantOiSource
+from .storage.revisions import RevisionArchive
 from .storage.wiring import (
     CALENDAR_FILE,
     EVENTS_FILE,
@@ -76,6 +79,7 @@ from .storage.wiring import (
     build_nse_source,
     build_participant_oi_library,
     build_quote_store,
+    build_revision_capturing_source,
     build_session_calendar,
 )
 
@@ -86,12 +90,14 @@ def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     """The 3 pm quote recorder (story A4): its own `quotes.provider` setting (`auto`: Groww when its credentials are
     set, else NSE), never the root `provider` used by the `chain` command; the repository quote store; NSE's daily
     files, for expiry dates the provider cannot list and to prove which expiries are monthly (A5's point-in-time rule);
-    and NSE's session calendar, which decides whether today is a session (A7)."""
+    NSE's session calendar, which decides whether today is a session (A7); and India VIX with the NIFTY futures from
+    NSE's public website at capture, for the live features (B7)."""
     provider = get_provider(cfg.get("quotes", {}).get("provider", AUTO_PROVIDER), cfg)
-    expiries = NseDailyFileExpiries(build_nse_fo_library())
+    expiries, levels = NseDailyFileExpiries(build_nse_fo_library()), NseLevelSource(PublicData().nse_json)
     return QuoteSnapshotRecorder(
-        provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar(), history=expiries
-    )
+        provider, build_quote_store(), fallback=expiries, calendar=build_session_calendar(), history=expiries,
+        levels=levels,
+    )  # fmt: skip
 
 
 def build_record_scanner() -> RecordScanner:
@@ -144,9 +150,11 @@ def participant_oi_last_writes() -> dict[date, datetime]:
     return latest_writes(table, last_written_times(checks), read_sweeps(PARTICIPANT_OI_SWEEPS))
 
 
-def build_last_write_sweep() -> LastWriteSweep:
-    """Judge 16: a headers-only pass over every recorded participant-OI file, straight to NSE (never Drive)."""
-    return LastWriteSweep(build_nse_source(ParticipantOiSource), ParticipantOiSource.path_for, PARTICIPANT_OI_SWEEPS)
+def build_last_write_sweep(archive: RevisionArchive) -> LastWriteSweep:
+    """Judge 16: a pass over every recorded participant-OI file, straight to NSE (never Drive); story A11: each file is
+    read in full and a version that differs from the archived one is saved as a revision."""
+    source = build_revision_capturing_source(ParticipantOiSource, archive)
+    return LastWriteSweep(source, ParticipantOiSource.path_for, PARTICIPANT_OI_SWEEPS)
 
 
 def build_point_in_time_participant_oi(project_folder: Path | None = None) -> PointInTimeParticipantOi:
@@ -235,7 +243,7 @@ def build_live_features(cfg: dict) -> tuple[Feature, ...]:
     """Story B7: the 15:00 versions of F1-F3, known at the desk's decision time, in the order of `build_features`."""
     cutoff = DESK_DECISION_TIME
     return (
-        LiveAtmIvMinusRealised(cutoff, cfg["risk_free_rate"]),
+        LiveAtmIvMinusRealised(cutoff, cfg["risk_free_rate"], Black76()),
         LiveVixAboveMedian(cutoff),
         LiveScheduledEventInWindow(cutoff),
     )

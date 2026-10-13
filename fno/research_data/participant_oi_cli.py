@@ -9,6 +9,7 @@ from ..constants import RELEASE_REWRITTEN, RELEASE_UNREACHABLE
 from ..models import IST, now_ist
 
 DEFAULT_UNTIL, DEFAULT_EVERY_MINUTES = time(22, 0), 5
+MOVED = "MOVED {day}: NSE rewrote the file at {newer:%Y-%m-%d %H:%M %Z} (recorded {recorded:%Y-%m-%d %H:%M %Z})"
 
 
 def add_participant_oi_parser(subparsers) -> None:
@@ -19,7 +20,7 @@ def add_participant_oi_parser(subparsers) -> None:
     watch.add_argument("--until", type=time.fromisoformat, default=DEFAULT_UNTIL, help="HH:MM IST (default 22:00)")
     watch.add_argument("--every", type=int, default=DEFAULT_EVERY_MINUTES, help="minutes between checks (default 5)")
     actions.add_parser("rule", help="print the availability rule in force and how many days are measured")
-    actions.add_parser("sweep", help="headers-only pass over every recorded file: flag any whose write time moved")
+    actions.add_parser("sweep", help="read every recorded file: flag moved write times, keep new versions (A11)")
     oi.set_defaults(func=cmd_participant_oi)
 
 
@@ -51,11 +52,22 @@ def cmd_participant_oi(args) -> int:
 
 def _sweep() -> int:
     from ..composition import build_last_write_sweep, participant_oi_last_writes
+    from ..storage.revisions_cli import revision_lines
+    from ..storage.wiring import build_manifest_recorder, build_revision_archive
 
-    result = build_last_write_sweep().run(participant_oi_last_writes())
-    for day, recorded, newer in result.moved:
-        print(f"MOVED {day}: NSE rewrote the file at {newer:%Y-%m-%d %H:%M %Z} (recorded {recorded:%Y-%m-%d %H:%M %Z})")
-    for day in result.unanswered:
-        print(f"no answer {day}: unreachable or no Last-Modified; check again next sweep")
-    print(f"sweep: {result.checked} files checked, {len(result.moved)} moved, {len(result.unanswered)} unanswered")
-    return 1 if result.moved or result.unanswered else 0
+    archive, recorder = build_revision_archive(), build_manifest_recorder()
+    try:
+        result = build_last_write_sweep(archive).run(participant_oi_last_writes())
+        for day, recorded, newer in result.moved:
+            print(MOVED.format(day=day, newer=newer, recorded=recorded))
+        for day in result.unanswered:
+            print(f"no answer {day}: unreachable or no Last-Modified; check again next sweep")
+        print("\n".join(revision_lines(archive)))
+        moved, unanswered = len(result.moved), len(result.unanswered)
+        print(
+            f"sweep: {result.checked} files checked, {moved} moved, {unanswered} unanswered, "
+            f"{len(archive.stored)} new revisions"
+        )
+    finally:
+        print(recorder.commit("participant-oi sweep"))  # the revision index rows
+    return 1 if result.moved or result.unanswered or archive.stored else 0

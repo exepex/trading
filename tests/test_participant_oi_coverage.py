@@ -6,10 +6,11 @@ from datetime import date
 from pathlib import Path
 
 from fno.research_data.calendar import CsvSessionCalendar
+from fno.storage.content_checks import validate_participant_oi
 from fno.storage.coverage import CoverageCheck, CoverageDataset, report_lines
 from fno.storage.raw_source import ParticipantOiSource
 from fno.storage.raw_store import RawFileStore
-from fno.storage.wiring import build_manifest_folder, coverage_datasets, validate_participant_oi
+from fno.storage.wiring import build_manifest_folder, coverage_datasets
 
 NSE = Path(__file__).parent / "fixtures" / "nse"
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/FAOP71777.pdf"
