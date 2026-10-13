@@ -22,9 +22,13 @@ How each figure is computed follows the contract's own examples (dashboard `desi
 `_platform/screener_data.py`, `_platform/markets_data.py`): one year and a week of capital-market and index files, three
 months of F&O files, the same formulas (returns 1, 5, 21, 63, 250 sessions back; Wilder RSI 14; ATM IV by
 Black-Scholes on the spot with the B1 solver, rate `risk_free_rate`). Past prices and volumes are put on today's share basis from NSE's corporate-actions list (`corporate_actions.py`,
-judge 42): a split or bonus divides earlier prices by NSE's stated ratio (KOTAKBANK 5:1 on 14 Jan 2026); a demerger or
-scheme (no ratio in NSE's list) keeps only the sessions from its ex-date, so figures needing older closes are null;
-dividends, buy-backs and rights change nothing (price returns). Other deliberate differences: sessions come from
+judge 42): a split or bonus divides earlier prices by NSE's stated ratio (KOTAKBANK 5:1 on 14 Jan 2026); a demerger by
+the previous close / the ex-date open (NSE's special pre-open price; without an ex-date trade, or for a scheme with no
+ratio, only the sessions from the ex-date are used and older figures are null); bonus preference shares, dividends,
+buy-backs and rights change nothing (price returns). NSE's range list leaves out some symbols (ETFs such as
+BANKNIFTY1): a symbol with a one-session close ratio outside 0.55-1.8 and no share-count action in the list gets its own
+list looked up (`market look-up`, run by `market daily`), archived per symbol; the jump only chooses where to look, the
+ratio is NSE's. A symbol needing a lookup that is not archived stops the build. Other deliberate differences: sessions come from
 NSE's calendar, never weekdays (the examples once skipped the 1 Feb 2026 Sunday Budget session), and an index absent
 from a session's file carries its own last date in `as_of` instead of passing an older close off as the day's.
 

@@ -6,7 +6,7 @@ from datetime import date
 from statistics import median
 
 from ..constants import FEATURE_ATM_IV_MINUS_RV20, FEATURE_VIX_ABOVE_MEDIAN, OPTION_CALL, OPTION_PUT
-from ..research_data.panel_reader import OptionQuote
+from ..research_data.panel_reader import NiftyPanel, OptionQuote
 from .close_series import daily_sessions, last_valid, realised_vol_points
 from .features import DecisionContext, Feature, ResearchData
 from .implied_vol import ImpliedVolModel, OptionPricing
@@ -28,6 +28,29 @@ def traded_close(quotes: list[OptionQuote], strike: float, kind: str) -> float |
     return leg.close if leg is not None and leg.volume > 0 and leg.close > 0 else None
 
 
+def atm_implied_vol_points(
+    panel: NiftyPanel, model: ImpliedVolModel, rate: float, day: date, expiry: date, spot: float
+) -> float | None:
+    """One expiry's ATM implied volatility on `day`, in points: the mean of the call and put IVs at the ATM strike, both
+    legs traded, priced on the model's underlying (B1). `None` when a leg, the underlying or a solution is missing."""
+    quotes = panel.options_on(day, expiry)
+    strike = atm_strike(quotes, spot)
+    underlying = model.underlying(spot, panel.future_on(day, expiry))
+    if strike is None or underlying is None:
+        return None
+    years = (expiry - day).days / DAYS_PER_YEAR
+    vols = []
+    for kind in (OPTION_CALL, OPTION_PUT):
+        price = traded_close(quotes, strike, kind)
+        if price is None:
+            return None
+        vol = model.implied_vol(OptionPricing(price, underlying, strike, kind, years, rate))
+        if vol is None:
+            return None
+        vols.append(vol)
+    return sum(vols) / len(vols) * 100
+
+
 class AtmIvMinusRealised(Feature):
     """F1: ATM implied volatility (mean of the call and put IVs at the ATM strike of the cycle's expiry) minus the
     realised volatility of the past 20 daily log returns, both in volatility points. Needs both legs."""
@@ -46,22 +69,7 @@ class AtmIvMinusRealised(Feature):
         return None if implied is None or realised is None else implied - realised
 
     def atm_implied_vol_points(self, data: ResearchData, day: date, expiry: date, spot: float) -> float | None:
-        quotes = data.panel.options_on(day, expiry)
-        strike = atm_strike(quotes, spot)
-        underlying = self.model.underlying(spot, data.panel.future_on(day, expiry))
-        if strike is None or underlying is None:
-            return None
-        years = (expiry - day).days / DAYS_PER_YEAR
-        vols = []
-        for kind in (OPTION_CALL, OPTION_PUT):
-            price = traded_close(quotes, strike, kind)
-            if price is None:
-                return None
-            vol = self.model.implied_vol(OptionPricing(price, underlying, strike, kind, years, self.rate))
-            if vol is None:
-                return None
-            vols.append(vol)
-        return sum(vols) / len(vols) * 100
+        return atm_implied_vol_points(data.panel, self.model, self.rate, day, expiry, spot)
 
 
 class VixAboveMedian(Feature):

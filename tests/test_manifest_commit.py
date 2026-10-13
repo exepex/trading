@@ -92,3 +92,27 @@ def test_the_librarian_commits_its_rows_even_when_the_run_stops(tmp_path, reposi
     recorder = GitManifestRecorder(clone, manifests)
     assert run_librarian(Stops, None, recorder, "test run", None, DAY, out=out.append) == 1
     assert out[-1] == COMMITTED.format(count=1) and recorder.pending() == []
+
+
+def test_a_push_beaten_by_another_session_is_pulled_and_pushed_again(tmp_path, repository):
+    clone, origin, manifests = repository
+    other = tmp_path / "other"
+    git(tmp_path, "clone", "-q", str(origin), str(other))
+    for key, value in (("user.name", "other"), ("user.email", "other@example.invalid")):
+        git(other, "config", key, value)
+    save_one_file(tmp_path, manifests)
+
+    class Racing(GitManifestRecorder):
+        raced = False
+
+        def _git(self, *args):
+            if args[0] == "push" and not self.raced:  # another session pushes just before our first push
+                self.raced = True
+                (other / "theirs.txt").write_text("x\n")
+                git(other, "add", "theirs.txt")
+                git(other, "commit", "-q", "-m", "theirs")
+                git(other, "push", "-q", "origin", "HEAD:main")
+            return super()._git(*args)
+
+    assert Racing(clone, manifests).commit("test run") == COMMITTED.format(count=1)
+    assert "theirs.txt" in git(origin, "ls-tree", "--name-only", "main")

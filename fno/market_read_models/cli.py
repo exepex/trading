@@ -5,6 +5,7 @@ market daily [--day D]          the routine: archive the session's NSE files to 
 market publish --day D [--local FOLDER]   build, validate and publish one session from the archived files
 market compare --day D          compare the built blocks with the pinned W11 examples, field by field
 market contract-check           compare the pinned W11 contract with the dashboard's published one
+market look-up --day D          archive the own corporate-action lists of symbols with an unexplained jump
 """
 
 from __future__ import annotations
@@ -28,11 +29,16 @@ def add_market_parser(subparsers) -> None:
     compare = actions.add_parser("compare", help="compare the built blocks with the pinned W11 examples")
     compare.add_argument("--day", type=date.fromisoformat, default=date(2026, 10, 12), help="YYYY-MM-DD")
     actions.add_parser("contract-check", help="compare the pinned W11 contract with the dashboard's")
+    look_up = actions.add_parser("look-up", help="archive the own corporate-action lists the session needs")
+    look_up.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
     market.set_defaults(func=cmd_market)
 
 
 def cmd_market(args) -> int:
-    handlers = {"daily": _daily, "publish": _publish, "compare": _compare, "contract-check": _contract_check}
+    handlers = {
+        "daily": _daily, "publish": _publish, "compare": _compare, "contract-check": _contract_check,
+        "look-up": _look_up,
+    }  # fmt: skip
     return handlers[args.market_cmd](args)
 
 
@@ -74,11 +80,37 @@ def _archive_session(day: date) -> str | None:
                 return f"{name}: {gaps[0]} not published yet, {gaps[1]} damaged, {gaps[2]} rejected"
         for name in DAILY_SNAPSHOTS:
             print(build_snapshot_taker(name).take(day))
+        _archive_own_lists(day)
         return None
     except (RuntimeError, ValueError) as exc:
         return f"{type(exc).__name__}: {exc}"
     finally:
         print(recorder.commit(f"market daily {day}"))
+
+
+def _look_up(args) -> int:
+    from ..storage.wiring import build_manifest_recorder
+
+    recorder = build_manifest_recorder()
+    try:
+        _archive_own_lists(args.day)
+        return 0
+    finally:
+        print(recorder.commit(f"market look-up {args.day}"))
+
+
+def _archive_own_lists(day: date) -> None:
+    """Archives the own corporate-action list of each symbol with an unexplained jump in the session's window."""
+    from ..composition import build_session_rows_builder
+    from ..config import load_app_config
+    from ..storage.snapshot_source import CorporateActionsBySymbolSource
+    from ..storage.wiring import build_own_list_taker
+
+    symbols = build_session_rows_builder(load_app_config()).symbols_to_look_up(day)
+    taker = build_own_list_taker()
+    for symbol in symbols:
+        print(taker.take_path(CorporateActionsBySymbolSource.path_for_symbol(day, symbol)))
+    print(f"{day}: {len(symbols)} own corporate-action list(s) archived")
 
 
 def _compare(args) -> int:

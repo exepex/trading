@@ -104,3 +104,27 @@ def test_every_raw_dataset_has_a_committed_manifest_in_one_folder():
             dataset.source
         )  # a year+
     assert all(f.url.startswith("https://nsearchives.nseindia.com/") for f in manifests.read(NseDailyFoSource))
+
+
+def test_several_files_of_one_day_each_get_their_row(tmp_path):
+    from fno.storage.snapshot_source import CorporateActionsBySymbolSource as Own
+
+    manifests = ManifestFolder(tmp_path / "manifests")
+    store = FingerprintingStore(LocalFolderStore(tmp_path / "drive"), manifests, RAW_SOURCES)
+    for symbol in ("CONS", "SILVER1"):
+        store.put(Own.path_for_symbol(DAYS[0], symbol), symbol.encode())
+    store.put(Own.path_for_symbol(DAYS[0], "CONS"), b"CONS")  # the same file again: no new row
+    assert [f.url.rsplit("=", 1)[1] for f in manifests.read(Own)] == ["CONS", "SILVER1"]
+
+
+def test_a_file_archived_before_its_row_gets_the_row_when_taken_again(tmp_path):
+    from fno.storage.snapshot_source import EquityListSource
+    from fno.storage.snapshot_taker import ALREADY, SnapshotTaker
+
+    drive = LocalFolderStore(tmp_path / "drive")
+    drive.put(EquityListSource.path_for(DAYS[0]), b"SYMBOL,NAME OF COMPANY\nA,A Ltd\n")  # saved, its row lost
+    manifests = ManifestFolder(tmp_path / "manifests")
+    store = FingerprintingStore(drive, manifests, RAW_SOURCES)
+    taker = SnapshotTaker(store, EquityListSource(session=None), lambda name, data: None)
+    assert taker.take(DAYS[0]) == ALREADY.format(path=EquityListSource.path_for(DAYS[0]))
+    assert len(manifests.read(EquityListSource)) == 1

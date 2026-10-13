@@ -11,10 +11,11 @@ import pytest
 
 from fno.fo_bhavcopy import read_fo_file
 from fno.research_data.calendar import CsvSessionCalendar
+from fno.storage.content_checks import validate_index_close
 from fno.storage.coverage import CoverageCheck, CoverageDataset, read_exceptions, report_lines
 from fno.storage.raw_source import NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource
 from fno.storage.raw_store import RawFileStore
-from fno.storage.wiring import coverage_datasets, validate_index_close
+from fno.storage.wiring import coverage_datasets
 
 NSE = Path(__file__).parent / "fixtures" / "nse"
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/example.pdf"

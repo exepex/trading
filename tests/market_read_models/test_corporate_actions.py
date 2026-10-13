@@ -32,7 +32,7 @@ def kotak_bars() -> list[EquityBar]:
 def test_kotakbank_after_its_5_for_1_split_from_nses_corporate_actions_list():
     bars, ex_date = kotak_bars()
     actions = read_corporate_actions(nse_list(("KOTAKBANK", f"{ex_date:%d-%b-%Y}", KOTAK_SPLIT)), "list.json")
-    assert [(a.ex_date, a.factor, a.breaks_history) for a in actions] == [(ex_date, 5.0, False)]
+    assert [(a.ex_date, a.kind, a.factor) for a in actions] == [(ex_date, "ratio", 5.0)]
     row = stock_row(adjusted(bars, actions), "Kotak Mahindra Bank Limited", "Financial Services", None, [])
     assert row["y1"] == pct(443.40, 430.42) == 3.02  # unadjusted: -79.4%
     rebased = adjusted(bars, actions)
@@ -43,27 +43,49 @@ def test_kotakbank_after_its_5_for_1_split_from_nses_corporate_actions_list():
 
 
 @pytest.mark.parametrize(
-    "subject, factor, breaks",
+    "subject, kind, factor",
     [
-        (KOTAK_SPLIT, 5.0, False),
-        ("Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per Share", 5.0, False),
-        ("Bonus 1:1", 2.0, False),
-        ("Bonus 7:5", 2.4, False),
-        ("Demerger", None, True),
-        ("Scheme of Arrangement", None, True),
-        ("Interim Dividend - Rs 2.50 Per Share", None, False),
-        ("Buy Back", None, False),
+        (KOTAK_SPLIT, "ratio", 5.0),
+        ("Face Value Split (Sub-Division) - From Rs 10/- Per Share To Rs 2/- Per Share", "ratio", 5.0),
+        ("Bonus 1:1", "ratio", 2.0),
+        ("Bonus 7:5", "ratio", 2.4),
+        ("Demerger", "demerger", None),
+        ("Scheme Of Arrangement - Bonus Ncrps 46:1", "none", None),  # preference shares: another security
+        ("Scheme of Arrangement", "break", None),
+        ("Interim Dividend - Rs 2.50 Per Share", "none", None),
+        ("Buy Back", "none", None),
     ],
 )
-def test_each_kind_of_action_in_nses_list(subject, factor, breaks):
-    assert classify(subject) == (factor, breaks)
+def test_each_kind_of_action_in_nses_list(subject, kind, factor):
+    assert classify(subject) == (kind, factor)
 
 
-def test_a_demerger_uses_only_the_sessions_from_its_ex_date():
-    bars, ex_date = kotak_bars()
-    actions = read_corporate_actions(nse_list(("KOTAKBANK", f"{ex_date:%d-%b-%Y}", "Demerger")), "list.json")
-    kept = adjusted(bars, actions)
-    assert kept[0].day == ex_date and stock_row(kept, "K", "", None, [])["y1"] is None  # no ratio: no 1Y figure
+def demerged_bars(ex_open):
+    """A year: 1,000 before a demerger, the ex-date's open from NSE's special pre-open session, then 600."""
+    days = [date(2025, 10, 13) + timedelta(days=i) for i in range(251)]
+    ex_date = days[100]
+
+    def bar(d):
+        close = 1000.0 if d < ex_date else 600.0
+        return EquityBar(d, "PARENT", "EQ", close, close * 1.01, close * 0.99, 70, ex_open if d == ex_date else None)
+
+    return [bar(d) for d in days], ex_date
+
+
+def test_a_demerger_rebases_earlier_prices_on_nses_discovered_ex_date_open():
+    bars, ex_date = demerged_bars(ex_open=625.0)  # the market values the parent without its business at 625
+    actions = read_corporate_actions(nse_list(("PARENT", f"{ex_date:%d-%b-%Y}", "Demerger")), "list.json")
+    rebased = adjusted(bars, actions)
+    assert rebased[0].close == 625.0 and rebased[0].volume == 70  # 1,000 / (1,000 / 625); the share count stays
+    assert stock_row(rebased, "P", "", None, [])["y1"] == pct(600.0, 625.0)  # not the -40% the raw closes show
+
+
+def test_a_demerger_without_an_ex_date_trade_or_a_scheme_without_a_ratio_keeps_only_later_sessions():
+    bars, ex_date = demerged_bars(ex_open=None)
+    for subject in ("Demerger", "Scheme of Arrangement"):
+        actions = read_corporate_actions(nse_list(("PARENT", f"{ex_date:%d-%b-%Y}", subject)), "list.json")
+        kept = adjusted(bars, actions)
+        assert kept[0].day == ex_date and stock_row(kept, "P", "", None, [])["y1"] is None  # no figure, not a wrong one
 
 
 def test_an_action_after_the_session_is_never_applied():
@@ -75,3 +97,23 @@ def test_an_action_after_the_session_is_never_applied():
 def test_a_list_that_is_not_nses_is_refused():
     with pytest.raises(BadFile):
         read_corporate_actions(b'{"not": "a list"}', "list.json")
+
+
+def test_only_a_jump_without_a_share_count_action_in_the_list_gets_a_symbol_lookup():
+    from fno.market_read_models.corporate_actions import unexplained
+
+    bars, ex_date = kotak_bars()
+    etf = [EquityBar(b.day, "BANKNIFTY1", "EQ", b.close, b.high, b.low, b.volume) for b in bars]
+    steady = [EquityBar(b.day, "STEADY", "EQ", 100.0, 101.0, 99.0, 10) for b in bars]
+    listed = read_corporate_actions(nse_list(("KOTAKBANK", f"{ex_date:%d-%b-%Y}", KOTAK_SPLIT)), "list.json")
+    series = {"KOTAKBANK": bars, "BANKNIFTY1": etf, "STEADY": steady}
+    assert unexplained(series, listed) == ["BANKNIFTY1"]
+
+
+def test_a_symbols_own_list_is_filed_per_symbol_and_asked_without_a_date_range():
+    from fno.storage.snapshot_source import CorporateActionsBySymbolSource as Own
+
+    path = Own.path_for_symbol(date(2026, 10, 12), "M&M")
+    assert path == "nse/equities/corporate-actions-by-symbol/2026/10/12/M&M.json"
+    assert Own.day_for_path(path) == date(2026, 10, 12)
+    assert Own.url_for(path).endswith("index=equities&symbol=M%26M") and "from_date" not in Own.url_for(path)
