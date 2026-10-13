@@ -244,10 +244,10 @@ def run(
     try:
         while day <= end:
             traded = [loader.get(d, day) for d in FO_DATASETS if d.covers(day)]
-            if any(traded) and INDEX_CLOSE.covers(day):  # index closes only for trading days
-                loader.get(INDEX_CLOSE, day)
             if PARTICIPANT_OI.covers(day):  # every day, not only F&O-file days: its manifest lists the days without one
-                loader.get(PARTICIPANT_OI, day)
+                traded.append(loader.get(PARTICIPANT_OI, day))
+            if any(traded) and INDEX_CLOSE.covers(day):  # a trading day: NSE published any derivatives file for it
+                loader.get(INDEX_CLOSE, day)  # (30 Mar 2021: no old-format F&O file, but index closes and OI exist)
             day += timedelta(days=1)
     except Stop as exc:
         print(exc)

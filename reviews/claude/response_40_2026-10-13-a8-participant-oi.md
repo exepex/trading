@@ -227,3 +227,18 @@ measured sessions take about four weeks.
 5. **The recorder's 5-minute steps give an upper bound only.** The first `present` time can be up to 5 minutes after
    the real release. That is the safe side.
 6. Out of scope, as the story says: no signal, dashboard or API use.
+
+## Addendum (13 Oct 2026): orchestrator's scope notes
+
+- **Raw files stay out of GitHub (owner's ruling, relayed by the orchestrator).** The full participant-OI set is
+  1,929 files, 1,805,141 bytes. It was measured, not committed, and no repository store was added. Drive coverage
+  (criterion 1 on Drive) stays **pending** the upload route the orchestrator is settling with the owner.
+- **Laptop-tool fix: index closes on trading days without an F&O file.**
+  - Root cause: the tool treated "an F&O file exists" as "trading day". On 30 Mar 2021 NSE has no old-format F&O file
+    but publishes `ind_close_all_30032021.csv` (HTTP 200, 8,474 bytes, checked 13 Oct 2026), so the owner's archive
+    lacks that file.
+  - Fix: a trading day is now any day NSE published a derivatives file, F&O or participant OI (participant OI is
+    fetched first, independently).
+  - Tests: `test_index_closes_are_fetched_on_a_trading_day_without_an_fo_file` (that exact day) and
+    `test_index_closes_are_not_asked_on_a_day_without_any_derivatives_file`.
+  - Owner effect: the next laptop run also fetches that one missing index-close file.
