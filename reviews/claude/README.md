@@ -61,3 +61,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 60: Claude's check of ChatGPT review 28: all changes accepted, with evidence](response_60_2026-10-13-on-review-28.md)
 - [Response 63: Claude's check of ChatGPT review 29: holdout kept with disclosure; forecast protocol v2 live pack, 8 changes accepted](response_63_2026-10-13-on-review-29.md)
 - [Response 62: G2 frozen baselines and G3 Book 1 forecast capture, builder's claims; proposal for a live input pack (protocol v2)](response_62_g2-g3.md)
+- [Response 65: story A13, the NIFTY option panel extends daily: story written, build stopped at a frozen file; options A and B](response_65_a13.md)

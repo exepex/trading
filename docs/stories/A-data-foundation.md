@@ -601,3 +601,61 @@ of each item: `reviews/claude/response_56_2026-10-13-a12-filings-archive.md`, pa
 story: the membership history comes from NSE Indices' dated press-release PDFs, with no index page).
 
 **Depends:** A9, A11, P6 (Nifty 500 snapshot) · **Size:** L · **Status:** built; awaiting judge (claims: `reviews/claude/response_56_2026-10-13-a12-filings-archive.md`; full backfill running in GitHub Actions)
+
+## A13. NIFTY option panel extends daily
+
+**Repository:** trading
+
+**Description:** As the statistician, I want the NIFTY option panel (A3) to gain each new session's option and future
+rows the evening after it closes, so that live forecasts and features that need past implied volatility never go stale
+waiting for a manual rebuild.
+
+**Context and why:** Judge 47 addendum 4. G1 protocol v2 (frozen at ab2e811) reads past IV30 from the panel for
+question 5's base rate. Its gate `iv30_history_stale` needs option rows up to 21 trading days before the forecast day.
+The panel ends on 12 Oct 2026, so from **13 Nov 2026** (the first stale day by the session calendar) Q5's base rate
+records "no forecast". O6 already appends the daily closes (`warmup_closes.csv`); this story does the same for the
+option and future rows.
+
+**Scope.** In:
+- a scheduled GitHub Actions step after NSE's evening F&O file, with no AI session, that adds each new session's NIFTY
+  option and future rows using A3's rules (calendar days, the same columns, values copied never rounded, a missing
+  file or close fails the day and is named);
+- the input is the F&O daily file already archived in Drive (A9), its latest version under A11;
+- point in time: rows are only appended after the panel's last day; a day already present is never rewritten. A later
+  NSE revision is kept beside the original (A11) and changes past rows only through an A11 revision, named day by day;
+- one #fno-desk line when the step fails.
+
+Out: any change to rows already in the panel; any change to a frozen file.
+
+**Design constraint (13 Oct 2026, why the build is stopped):** every way to extend the panel today touches a frozen
+file. The owner must choose:
+- **Option A: append into the existing panel folder.** A new module writes one new gzip member per year file and adds
+  the day's entries to `manifest.json`.
+  - No frozen code changes: the reader is unchanged, and `baseline_wiring.py` already reads this folder.
+  - But `manifest.json` and the 2026 panel files are experiment 1's frozen inputs (hashes in
+    `research/2026-10-12-experiment-1/FREEZE.md`). G1 v1 and v2 record them as "grows with new days" (not
+    byte-checked).
+  - Two unfrozen G tests would then fail and must be re-scoped to their own date range:
+    `tests/forecast/test_golden.py` (a new day is "not in the golden file") and `tests/forecast/test_backfill.py` (the
+    back-fill's `pack_sha256` is the manifest's hash at its build).
+- **Option B: a separate append-only folder with a new reader module.**
+  - Experiment 1's and G2's inputs never change.
+  - But wiring the new reader means editing `fno/forecast/baseline_wiring.py`, which is byte-frozen by G1 v2. That needs
+    protocol version 3 (text, judge, freeze) before the live capture can read it.
+
+**Acceptance criteria:**
+1. After each session the panel holds that session's NIFTY option and future rows, equal to A3's build of the same
+   day: a test rebuilds the day with A3's builder and compares them row for row.
+2. Point in time: a day already present is never rewritten. A planted second run with changed values fails and names
+   the day.
+3. Rows from before the append are byte-for-byte unchanged (old files' bytes are a prefix of the new, or the old
+   folder is untouched under option B).
+4. A missing file, close or contract fails the day, posts one #fno-desk line, and writes nothing.
+5. The live capture's Q5 base rate stays fresh: `iv30_history_stale` does not fire on a test day 30 sessions after
+   the last manual build.
+6. No frozen file changes, or the change is approved and frozen as a new version first.
+
+**Judge verifies:** rebuilds two appended days with A3's builder and compares them; plants a rewrite; checks that every
+frozen file's hash is unchanged.
+
+**Depends:** A3, A9, A11, O6 · **Size:** M · **Status:** blocked: the owner chooses option A or B (claims: response 65)

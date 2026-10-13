@@ -239,7 +239,7 @@ Tests in `tests/forecast/test_freeze_v2.py`:
 2. **Both golden cases reproduce.** True today.
 3. **Official closes through Tue 13 Oct** in `warmup_closes.csv`. True: O6 added 13 Oct (e38eabd), and the file
    covers 2017 to 13 Oct with no gap.
-4. **Panel IV30 for Q5's base rate**, up to 21 trading days before the forecast day. True until about 10 Nov 2026,
+4. **Panel IV30 for Q5's base rate**, up to 21 trading days before the forecast day. True until 12 Nov 2026 (first stale day 13 Nov, by the calendar; corrected in response 65),
    because the panel ends 12 Oct.
 5. **A canonical A4 snapshot for 14 Oct, committed by 15:13 IST.** It can come from the Groww routine
    (`research/data/quotes/groww/...`), used first, or the NSE Actions recorder (`research/data/quotes/nse/...`). Inside
