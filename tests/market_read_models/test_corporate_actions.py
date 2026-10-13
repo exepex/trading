@@ -1,5 +1,6 @@
 """Story P6 (judge 42): past prices are put on today's share basis from NSE's corporate-actions list before 1W-1Y
-changes, 52-week high and low, volume average and RSI are computed. KOTAKBANK's 5:1 split is the named case."""
+changes, 52-week high and low, volume average and RSI are computed. KOTAKBANK's 5:1 split and the INDIAGLYCO and
+DCMSRIND demergers are the named cases."""
 
 import json
 from datetime import date, timedelta
@@ -78,6 +79,23 @@ def test_a_demerger_rebases_earlier_prices_on_nses_discovered_ex_date_open():
     rebased = adjusted(bars, actions)
     assert rebased[0].close == 625.0 and rebased[0].volume == 70  # 1,000 / (1,000 / 625); the share count stays
     assert stock_row(rebased, "P", "", None, [])["y1"] == pct(600.0, 625.0)  # not the -40% the raw closes show
+
+
+@pytest.mark.parametrize(
+    "symbol, year_back, before, ex_open, last, y1, raw_y1",
+    [  # NSE's closes (judge 42): a year back (7 Oct 2025), the day before the ex-date, its open, 12 Oct 2026
+        ("INDIAGLYCO", 901.25, 1111.70, 225.00, 319.80, 75.32, -64.52),  # ex-date 2 Sep 2026
+        ("DCMSRIND", 173.23, 172.16, 51.00, 41.03, -20.05, -76.31),  # ex-date 26 Dec 2025
+    ],
+)
+def test_judge_42s_demergers_on_nses_ex_date_open(symbol, year_back, before, ex_open, last, y1, raw_y1):
+    days = [date(2025, 10, 7) + timedelta(days=i) for i in range(251)]
+    closes = [year_back] + [before] * 149 + [ex_open] * 100 + [last]
+    opens = [ex_open if i == 150 else None for i in range(251)]  # NSE's special pre-open price on the ex-date
+    bars = [EquityBar(d, symbol, "EQ", c, c, c, 1, o) for d, c, o in zip(days, closes, opens)]
+    actions = read_corporate_actions(nse_list((symbol, f"{days[150]:%d-%b-%Y}", "Demerger")), "list.json")
+    assert stock_row(adjusted(bars, actions), symbol, "", None, [])["y1"] == y1  # as published for 12 Oct
+    assert stock_row(bars, symbol, "", None, [])["y1"] == raw_y1  # the unadjusted fall judge 42 found
 
 
 def test_a_demerger_without_an_ex_date_trade_or_a_scheme_without_a_ratio_keeps_only_later_sessions():
