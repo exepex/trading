@@ -255,7 +255,7 @@ second publisher for the same block would make two sources of truth. Needs a dec
 either W11 moves the block to publisher `fno` (then this story builds the download and the block against it), or the
 block stays with the stock tool and only a raw archive here is wanted (research use), or nothing is built.
 
-**Status:** blocked: contract assigns the block to the stock tool (see response 51)
+**Status:** blocked: contract assigns the block to the stock tool (see response 66)
 
 ---
 

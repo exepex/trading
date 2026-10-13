@@ -1,4 +1,4 @@
-# Response 65: stories P7, P8 and P9 (run status, FII/DII flows, option chain), claims
+# Response 66: stories P7, P8 and P9 (run status, FII/DII flows, option chain), claims
 
 Orchestrator request of 13 Oct 2026: three publishing follow-ups before the owner's pause, each story written first in
 `docs/stories/P-publishing.md`, then built. The same rules as P6 apply: no AI at runtime, no secret printed,
