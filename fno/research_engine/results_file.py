@@ -45,8 +45,8 @@ def results_markdown(document: dict) -> str:
         + ("Pass/fail applies (protocol section 8)." if document["decisive"] else "Reported only: no pass/fail."),
         "",
         "| Policy | Total net (Rs) | Mean per opportunity | Traded | Win rate (traded) | Worst | Max drawdown | "
-        "No-settlement total | Best-year share | Statuses |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "No-settlement total | Impossible exits (count, net) | Best-year share | Statuses |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for code, policy in document["policies"].items():
         s = policy["summary"]
@@ -54,7 +54,8 @@ def results_markdown(document: dict) -> str:
         lines.append(
             f"| {code} | {_money(s['total_net'])} | {_money(s['mean_net'])} | {s['traded']} | "
             f"{_share(s['win_rate_traded'])} | {_money(s['worst_opportunity'])} | {_money(s['max_drawdown'])} | "
-            f"{_money(s['no_settlement_total_net'])} | {_share(s['best_year_share'])} | {statuses} |"
+            f"{_money(s['no_settlement_total_net'])} | {s['exits_outside_payoff']}, "
+            f"{_money(s['exits_outside_payoff_net'])} | {_share(s['best_year_share'])} | {statuses} |"
         )
     if document["decisive"]:
         lines += _verdict_lines(document)
