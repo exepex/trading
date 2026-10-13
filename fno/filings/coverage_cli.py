@@ -8,7 +8,7 @@ from .coverage import HALF_YEAR_TARGET, KindCoverage, half_year_misses, half_yea
 SHOWN = 20  # problem lines printed per kind and type of problem
 TABLE_HEADER = (
     f"{'filing type':<20} {'companies':>12} {'files':>7} {'present':>7} {'damaged':>7} {'no sha':>6} {'gaps':>5} "
-    f"{'no file for a quarter':>21}"
+    f"{'no file for a quarter':>21} {'not fetched yet':>15}"
 )
 
 
@@ -18,13 +18,15 @@ def filings_coverage_lines(results: list[KindCoverage], shares: dict) -> list[st
     for r in results:
         lines.append(
             f"{r.kind:<20} {f'{r.covered} of {r.companies}':>12} {r.files:>7} {r.present:>7} {len(r.damaged):>7} "
-            f"{len(r.unfingerprinted):>6} {len(r.gaps):>5} {len(r.missing_periods):>21}"
+            f"{len(r.unfingerprinted):>6} {len(r.gaps):>5} {len(r.missing_periods):>21} {len(r.pending):>15}"
         )
     for r in results:
         lines += [f"damaged {r.kind} {line}" for line in r.damaged[:SHOWN]]
         lines += [f"unfingerprinted {r.kind} {line}" for line in r.unfingerprinted[:SHOWN]]
         lines += [f"gap {g.kind} {g.symbol}: {g.reason}" for g in r.gaps]
         lines += [f"no file {line}" for line in r.missing_periods]
+        if r.pending:
+            lines.append(f"{r.kind}: {len(r.pending)} companies not fetched yet (the work queue has not reached them)")
         if r.outside_layout:
             lines.append(
                 f"{r.kind}: {len(r.outside_layout)} files outside the year layout (trial run of 13 Oct 2026, before "
@@ -40,10 +42,10 @@ def filings_coverage_lines(results: list[KindCoverage], shares: dict) -> list[st
 
 
 def cmd_filings_coverage(args) -> int:
-    from .wiring import build_companies, build_filings_coverage, build_filings_manifest
+    from .wiring import build_companies, build_filings_coverage, build_filings_manifest, build_progress
 
     companies, today, manifest = build_companies(), now_ist().date(), build_filings_manifest()
-    results = build_filings_coverage().run(companies, today)
+    results = build_filings_coverage().run(companies, today, build_progress().fetched())
     shares = half_year_shares(manifest, companies, half_years(today))
     shares = {end: (share, half_year_misses(manifest, companies, end)) for end, share in shares.items()}
     print("\n".join(filings_coverage_lines(results, shares)))

@@ -2,17 +2,27 @@
 
 The filings archive runs by itself in GitHub Actions (`.github/workflows/filings-archive.yml`), every 6 hours until
 the 3-year backfill is complete, then once a day. It needs the same Drive and Slack settings the cloud environment
-already has, added once as **repository secrets** (five; already added). Nobody else can add them: secrets are never written to a file or
-sent in chat.
+already has, added once as **repository secrets** (five; already added). Nobody else can add them: secrets are
+never written to a file or sent in chat.
 
 ## Checklist (about 10 minutes, once)
 
-1. [ ] **Publish the Google OAuth app** (or the upload stops every 7 days). Google Cloud console, the project of the
-   "Desktop app" client, *Google Auth Platform → Audience* (older screens: *OAuth consent screen*), **Publish app**.
-   While the app is in "Testing", Google expires the refresh token after 7 days and every run fails with
-   "Google refused the Drive upload sign-in" (an alert in #fno-desk says so). If you publish it now, run
-   `python3 tools/gdrive_oauth_setup.py <client_secret JSON>` once more on your computer to get a refresh token that
-   does not expire, and use that one in step 2.
+1. [ ] **Publish the Google OAuth app (the only step left; about 5 minutes).** While the app is in "Testing", Google
+   expires its refresh token 7 days after it was made, and every run then stops with "Google refused the Drive upload
+   sign-in" (an alert in #fno-desk says so). Exactly:
+   1. Open console.cloud.google.com, signed in as the Drive owner, and pick the project that holds the "Desktop app"
+      OAuth client used by `tools/gdrive_oauth_setup.py`.
+   2. Menu → *Google Auth Platform* → *Audience* (older screens: *APIs & Services* → *OAuth consent screen*).
+   3. If "Publishing status" says **Testing**, click **Publish app**, then **Confirm**. (Google may say the app needs
+      verification for the Drive scope; for an app only you use, you can go on unverified: at sign-in you will see
+      "Google hasn't verified this app", click *Advanced* → *Go to ... (unsafe)*.) If it already says **In
+      production** and the refresh token was made after it was published, you are done; if the token is older,
+      do steps 4 and 5.
+   4. On your computer: `python3 tools/gdrive_oauth_setup.py <path to the client_secret JSON>`, sign in, allow access.
+      It prints a new refresh token (a token made before publishing still expires after 7 days).
+   5. github.com/exepex/trading → *Settings* → *Secrets and variables* → *Actions* → `FNO_GDRIVE_OAUTH_REFRESH_TOKEN`
+      → *Update secret*, paste the new token. Put the same value in the cloud environment's setting of that name.
+   6. Tell the desk "OAuth published" (no token in chat); the next run's line in #fno-desk confirms the sign-in works.
 2. [x] **Add five repository secrets.** Already done: the probe run of 13 Oct 2026 shows all five set. To change one:
    github.com/exepex/trading → *Settings* → *Secrets and variables* → *Actions*, one per name, each value copied
    from the cloud environment's settings (or from the setup tool's output):
