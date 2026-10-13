@@ -28,9 +28,9 @@ the engine runs, so how do UI and engine proceed without rework or misleading sc
 |---|---|---|---|---|
 | 0 | Foundation (prerequisite, not an end-to-end slice) | A1-A12, O6 (fetch in Actions, reason in triggered routines) | none (feeds all) | A1-A11 done except A8 (waits 20 release days); A12 and O6 with the judge; filings backfill running |
 | 1 | Market data | P6 → W12 (Screener, Markets) | live market screens | P6 and W12 in re-judge |
-| 2 | Forecast contest, Book 1 | G1 → G2 baselines → G3 Book 1 capture → G4 scoring → P1/P2 read model → Forecast screen (new mockup) | Rule-based forecasts against yardsticks, scored daily | G1 in fix, then ChatGPT review; rest not started |
+| 2 | Forecast contest, Book 1 | G1 → G2 baselines → G3 Book 1 capture → G4 scoring → P1/P2 read model → Forecast lab (37, deep dive) and the prediction section of the Strategy lab (38) | Rule-based forecasts against yardsticks, scored daily | G1 v1 and v2 frozen or freezing; G2, G3 built; live capture from 14 Oct |
 | 2b | Forecast contest, Books 2 and 3 | F1 isolated AI book sessions → G5 AI books' capture (through O6 triggers) | Hybrid and AI team in the same screen | not started |
-| 3 | Paper trading, Book 1 | B5 experiment 1 (freeze after ChatGPT agrees, response 55) → D1-D3 playbook and decision record → C3/C4 checks → E2-E6 paper desk → S1/S2 scoreboard B → F&O book screen (new mockup) | Book 1 paper trades with costs | B5 waits for ChatGPT; rest not started |
+| 3 | Paper trading, Book 1 | B5 experiment 1 (freeze after ChatGPT agrees, response 55) → D1-D3 playbook and decision record → C3/C4 checks → E2-E6 paper desk → S1/S2 scoreboard B → Strategy lab (38): which family makes net profit on paper | Book 1 paper trades with costs | experiment 1 frozen, challenge run in progress; rest not started |
 | 4 | Paper trading, Books 2 and 3 | D4/D5 envelopes → F2-F7 → S3 scoreboard A | three books trading and compared | not started |
 | 5 | Operations | O1 daily routine → O2 failures → P3/P4 Azure and Slack → O3/O4 | runs by itself, alerts | not started |
 
@@ -59,12 +59,12 @@ work), **gap** (no story yet).
 | 34 markets | big investors' flows (FII/DII) | stock tool today; F&O download planned (owner order: after filings) | gap: download story to write |
 | 35 stock | prices, financials, forecast, strategies, AI team, news, costs | stock tool | stock tool (paused); data gaps in `35-stock/notes.md` |
 | 35 stock | F&O block (contracts, chain, IV) | NSE F&O files | read model not built (same P-story as 32) |
-| new | Forecast contest screen | G4 + P1/P2 | slice 2 (mockup next) |
-| new | F&O book screen (trades, P&L, risk) | E + S2 | slice 3 (mockup later) |
+| 37 Forecast lab | forecast accuracy per family (deep dive) | G4 + P1/P2 | slice 2 (mockup in review) |
+| 38 Strategy lab (owner, 13 Oct: "which family makes net profit") | go-live readiness, leaderboard, equity curves with NIFTY, months, drivers, per-strategy; Stocks and F&O blocks | F&O: E + S1-S3; stocks: stock tool scoreboards | slice 3-4 (mockup in progress; real data nearly empty until paper trades settle) |
 
 ## Next actions
 
-1. Mockup: the Forecast contest screen (slice 2), against G1's protocol fields.
+1. Mockups: the Forecast lab (37) and the Strategy lab (38), the owner's main decision screen.
 2. G2 + G3 builder, after G1 passes the judge.
 3. Write the missing stories: option-chain read model (32 and 35's F&O block); Manual paper account backend and
    read model (Home); forecast read model for G4's report fields; FII/DII download (NSE's daily FII/DII cash-market
