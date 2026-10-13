@@ -24,7 +24,8 @@
 Each NSE session's NIFTY option and future rows are appended to the existing panel folder `research/data/nifty-panel/`
 after the evening's files, so past IV30 (question 5's base rate, v2's `iv30_history_stale`) stays fresh. Code:
 - `fno/research_data/panel_append.py` (`PanelAppender`);
-- `fno/pipeline/panel_days.py` (`PanelDayJob`), wired in `fno/pipeline/wiring.py` (`build_panel_day_job`);
+- `fno/pipeline/panel_days.py` (`PanelDayJob`), wired in its own composition root `fno/pipeline/panel_wiring.py`
+  (`build_panel_day_job`; apart from O6's shared `fno/pipeline/wiring.py`, judge 64);
 - the command `python -m fno pipeline panel-days`;
 - the workflow `.github/workflows/panel-days.yml`.
 
@@ -65,17 +66,22 @@ Rules:
    - the calendar SHA-256 it used.
 
    The append commit is the commit that adds the day to `manifest.json`.
-7. **Writes only under this freeze.** The job runs `require_version_frozen(ROOT, HEAD, PROTOCOL_v3.md, FREEZE_v3.md)`
-   (v2's check, unchanged) before it reads anything.
+7. **Writes only under this freeze.** Before it reads anything, the job checks its own section of the freeze record:
+   `require_section_frozen(ROOT, HEAD, "panel-days")` (`fno/freeze_sections.py`, v2's rules applied to one section;
+   section 5).
 
 ## 2. No look-ahead, and replay
 
 - **No look-ahead.** A day's rows exist only from its evening, or the next morning's retry. The live capture reads past
   IV30 only for days before the forecast day (`LiveForecastHistory`: `panel.options` with `d < day`).
-- **Replay.** A live day is replayed from the inputs at the **parent of the commit that added its records**, never from
-  today's grown panel. Those inputs are the panel and its official closes, the quote snapshots, the session calendar
-  and `config.yaml`. The replay recomputes the day with the recorded generation time and compares the pack and the
-  records byte for byte (`fno/forecast_scoring/replay.py`, `python -m fno forecast-scores replay --day YYYY-MM-DD`).
+- **Replay.** A live day is replayed from the inputs at the **parent of the commit that added its pack**, never from
+  today's grown panel. The capture computes the pack and Book 1's records from its checkout and commits the pack alone
+  on top of it. It then pulls `main` while the AI books answer, so other jobs' commits come in, and commits the records
+  later (`forecast-capture.yml`). So the records commit's parent is not what the capture read; the pack commit's parent
+  is (judge 64). The replay exports the panel and its official closes, the quote snapshots, the session calendar and
+  `config.yaml` from that commit. It recomputes the day with the recorded generation time and compares the pack and
+  the records byte for byte (`fno/forecast_scoring/replay.py`, `python -m fno forecast-scores replay --day
+  YYYY-MM-DD`).
 - **The history back-fill** is checked against the panel it was built from: its own days, and its `pack_sha256` equal to
   the manifest's SHA-256 at the commit that wrote it (`tests/forecast/test_backfill.py`).
 - **Golden values.** The v1 golden test compares the golden file's own days, all of which must still be present and
@@ -99,23 +105,40 @@ at the forecast's cutoff.
 - **Realised volatility** uses the official closes over the next 20 trading sessions, as before.
 - **Separate series.** Live and back-fill question 5 scores are never pooled or compared as one number. All books on
   a day share one pack, so the contest stays fair.
-- **Code and test** (built by the G4 session, f03cb63, judge 58):
-  - `fno/forecast_scoring/wiring.py` holds one resolver per input mode. The live resolver takes question 5's IV30 from
-    `LiveForecasts.pack_iv30`, which `score_sources.py` reads from each receipt-verified pack.
-  - `tests/forecast_scoring/test_scoring_ai.py`
-    (`test_live_question_5_is_scored_against_the_pack_iv30_and_history_against_the_panel`) plants a disagreement
-    between the 15:00 pack and the panel.
+- **Code and test** (built by the G4 session, f03cb63, judge 58; moved into its own module after judge 64):
+  - `fno/forecast_scoring/q5_thresholds.py`: `mode_resolvers` builds one resolver per input mode. The live resolver
+    takes question 5's IV30 from `LiveForecasts.pack_iv30`, which `score_sources.py` reads with `pack_iv30` from each
+    receipt-verified pack.
+  - The disagreement between the 15:00 pack and the panel is planted twice:
+    - `tests/forecast_scoring/test_scoring_ai.py` tests the scorer directly;
+    - `tests/forecast_scoring/test_scoring_wiring_q5.py` runs G4's real composition root, `score_forecasts`.
 
 ## 5. The freeze (after the judge and the orchestrator only)
 
-`research/forecasts/FREEZE_v3.md` will name the commit that adds this text in its final form, and the SHA-256 of:
-- this file;
-- the A13 code: `fno/research_data/panel_append.py`, `fno/pipeline/panel_days.py`, `fno/pipeline/wiring.py`;
-- the live Q5 and replay code: `fno/forecast_scoring/resolution.py`, `score_sources.py`, `scoring.py`, `replay.py`
-  (G4's other files change with G4's own stories and are not part of this freeze);
-- `.github/workflows/panel-days.yml`.
+`research/forecasts/FREEZE_v3.md` will name the commit that adds this text in its final form. It holds one section per
+job that checks it, so a change fails only the job whose files it touches (orchestrator, after judge 64). Each section
+lists the SHA-256 of this file, of `fno/freeze_sections.py` (the check itself), and of its job's files:
+- **`panel-days`**, checked by the daily panel job before every run:
+  - `fno/research_data/panel_append.py`, `fno/pipeline/panel_days.py`;
+  - A13's own composition root `fno/pipeline/panel_wiring.py` (never O6's shared `fno/pipeline/wiring.py`);
+  - `.github/workflows/panel-days.yml`.
+- **`forecast-scores`**, checked by G4's `score_forecasts` whenever live records exist:
+  - the files that decide live question 5: `fno/forecast_scoring/q5_thresholds.py` (the per-mode thresholds and the
+    pack's IV30), `resolution.py`, `score_sources.py` (reads the receipt-verified pack) and `scoring.py` (routes each
+    forecast to its mode's resolver);
+  - the replay, `replay.py`.
 
-The daily panel job checks it before every run.
+The check is `fno.freeze_sections.require_section_frozen`: v2's rules, applied to the protocol file and one section's
+files. v2's `require_version_frozen` checks every row of a record and is byte-frozen by v2, so it is reused through
+its building blocks.
+
+Behaviour:
+- Before `FREEZE_v3.md` exists, the panel job appends nothing and scoring proceeds as under v2.
+- After it exists, a changed file fails only its own section's job. `tests/test_freeze_sections.py` plants a question 5
+  change, which fails scoring but not panel-days, and the reverse.
+- A changed protocol fails both.
+- G4's composition root `fno/forecast_scoring/wiring.py` is not frozen. `tests/forecast_scoring/test_scoring_wiring_q5.py`
+  runs it and fails if the live resolver is given the panel's IV30.
 
 At the freeze, `panel-days.yml` gains its schedule: after `index-closes.yml`, about 21:41 IST, plus one morning retry
 before 14:00 IST. v1's and v2's freeze records stay as they are and keep being checked by their own users.

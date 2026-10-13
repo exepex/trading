@@ -39,7 +39,7 @@ def _replay(day: date) -> int:
     result = build_live_replay().replay(day)
     verdict = "reproduces" if result.matches else f"DIFFERS ({', '.join(n for n, s in result.same.items() if not s)})"
     print(f"Omenix F&O live replay {day}: {verdict}; inputs from {result.inputs_commit[:10]}, "
-          f"records from {result.records_commit[:10]}")  # fmt: skip
+          f"pack from {result.pack_commit[:10]}")  # fmt: skip
     return 0 if result.matches else 1
 
 

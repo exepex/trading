@@ -1,10 +1,13 @@
 """Replay of a live forecast day (G1 protocol v3; ChatGPT review 30 item 5, response 69).
 
-The panel on `main` grows every evening (story A13), so the panel a live forecast read is not today's: it is the panel
-at the parent of the commit that added that day's records (the capture committed its records on top of the checkout it
-computed from). A replay exports the inputs from that parent commit (the panel and its official closes, the quote
-snapshots, the session calendar and `config.yaml`), recomputes the day with the recorded generation time, and compares
-the pack and the records byte for byte with the committed ones. Read-only: it never writes to the repository.
+The panel on `main` grows every evening (story A13), so the panel a live forecast read is not today's. It is the panel
+at the parent of the commit that added that day's **pack**: the capture computes the pack and Book 1's records from its
+checkout and commits the pack alone on top of it, then pulls `main` (other jobs' commits come in) while the AI books
+answer, and commits the records later (`.github/workflows/forecast-capture.yml`; judge 64). So the records commit's
+parent is not what the capture read; the pack commit's parent is. A replay exports the inputs from that parent commit
+(the panel and its official closes, the quote snapshots, the session calendar and `config.yaml`), recomputes the day
+with the recorded generation time, and compares the pack and the records byte for byte with the committed ones.
+Read-only: it never writes to the repository.
 """
 
 from __future__ import annotations
@@ -29,8 +32,8 @@ Recompute = Callable[[Path, date, datetime], dict[str, bytes]]  # (exported inpu
 @dataclass(frozen=True)
 class ReplayResult:
     day: date
-    records_commit: str
-    inputs_commit: str  # the records commit's first parent: what the capture read
+    pack_commit: str  # the commit that added the day's pack
+    inputs_commit: str  # the pack commit's first parent: the checkout the capture computed from
     same: dict[str, bool]  # output name -> equal to the committed bytes
 
     @property
@@ -44,14 +47,18 @@ class LiveReplay:
 
     def replay(self, day: date) -> ReplayResult:
         paths = {name: f"{LIVE_FOLDER}/{day:%Y}/{day.isoformat()}_{name}" for name in OUTPUTS}
-        commit = self._first_commit_adding(paths["forecasts.csv"])
+        commit = self._first_commit_adding(paths["pack.json"])
         parent = self._git("rev-parse", f"{commit}^1").decode().strip()
-        committed = {name: self._git("show", f"{commit}:{path}") for name, path in paths.items()}
+        committed = {name: self._added(path) for name, path in paths.items()}
         generated = read_records_v2(committed["forecasts.csv"].decode("utf-8"))[0].generated_at
         with tempfile.TemporaryDirectory() as folder:
             self._export(parent, Path(folder))
             outputs = self.recompute(Path(folder), day, generated)
         return ReplayResult(day, commit, parent, {name: outputs[name] == committed[name] for name in OUTPUTS})
+
+    def _added(self, path: str) -> bytes:
+        """The file as the commit that added it wrote it (records are written once)."""
+        return self._git("show", f"{self._first_commit_adding(path)}:{path}")
 
     def _first_commit_adding(self, path: str) -> str:
         found = self._git("log", "--diff-filter=A", "--format=%H", "--", path).decode().split()

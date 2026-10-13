@@ -2945,6 +2945,7 @@
    ]
   }
  ],
+ "pending_ai_days": [],
  "schema": "forecast_scores/v1",
  "standing": "Forecast scores are secondary to net profit: they only diagnose market reading and can never promote a book that does not make net money (design 12.7).",
  "unscored_ai_days": [],

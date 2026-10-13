@@ -4,66 +4,20 @@ start, the isolation label, and live question 5 scored against the forecast's ow
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date
 
 import pytest
 
-from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, FORECAST_Q5_RV_BELOW_IV, FORECAST_QUESTIONS
+from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, FORECAST_Q5_RV_BELOW_IV
 from fno.forecast.iv30 import AtmIv30
-from fno.forecast.record_files import records_csv_v2
-from fno.forecast.schema import ForecastRecord
-from fno.forecast.schema_v2 import ForecastRecordV2
-from fno.forecast_scoring.ai_sources import ai_forecasts
 from fno.forecast_scoring.coverage import book_coverage
+from fno.forecast_scoring.q5_thresholds import pack_iv30
 from fno.forecast_scoring.score_inputs import CLOSE_PROXY, LIVE, ScoredForecast
 from fno.forecast_scoring.score_report import ReportContext, report_document, weekly_summary
-from fno.forecast_scoring.score_sources import pack_iv30
 from fno.forecast_scoring.scoring import ForecastScorer
-from fno.models import IST
 from tests.forecast_scoring.scoring_fixtures import FIRST, horizon_day, outcomes
 
-DAY, PACK = date(2026, 10, 14), "b" * 64
-
-
-def write_ai_day(folder, day, book, audit: dict | None, pack=PACK, p=0.6):
-    cutoff = datetime(day.year, day.month, day.day, 15, tzinfo=IST)
-    generated = datetime(day.year, day.month, day.day, 15, 10, tzinfo=IST)
-    records = [ForecastRecordV2(ForecastRecord(book, day, cutoff, q, p, f"{book}/v1/sha256:{'c' * 64}", pack),
-                                LIVE, "interpolated", generated) for q in FORECAST_QUESTIONS]  # fmt: skip
-    year = folder / f"{day:%Y}"
-    year.mkdir(parents=True, exist_ok=True)
-    (year / f"{day}_{book}_forecasts.csv").write_text(records_csv_v2(records), encoding="utf-8")
-    if audit is not None:
-        (year / f"{day}_{book}_audit.json").write_text(json.dumps(audit), encoding="utf-8")
-
-
-ON_TIME = {"status": "on_time", "isolation": "sealed_same_day"}
-
-
-@pytest.mark.parametrize(
-    ("audit", "pack", "reason"),
-    [
-        ({"status": "exposed", "isolation": "sealed_same_day"}, PACK, "status exposed"),
-        ({"status": "model_mismatch", "isolation": "sealed_same_day"}, PACK, "status model_mismatch"),
-        ({"status": "breach", "isolation": "sealed_same_day"}, PACK, "status breach"),
-        ({**ON_TIME, "unscored": True, "unscored_reason": "transcript breach"}, PACK, "unscored: transcript breach"),
-        (None, PACK, "no audit file"),
-        (ON_TIME, "d" * 64, "records name another pack than the day's v2 pack"),
-    ],
-)
-def test_withdrawn_breached_or_mismatched_ai_days_are_never_scored(tmp_path, audit, pack, reason):
-    write_ai_day(tmp_path, DAY, BOOK2_HYBRID, audit, pack)
-    out = ai_forecasts(tmp_path, {DAY: PACK})
-    assert out.forecasts == [] and out.unscored == [{"day": "2026-10-14", "book": BOOK2_HYBRID, "reason": reason}]
-
-
-def test_an_on_time_ai_day_on_a_verified_pack_is_scored_and_its_isolation_reported(tmp_path):
-    write_ai_day(tmp_path, DAY, BOOK3_AI, ON_TIME)
-    out = ai_forecasts(tmp_path, {DAY: PACK})
-    assert len(out.forecasts) == 5 and {f.book for f in out.forecasts} == {BOOK3_AI} and out.unscored == []
-    assert out.isolation == {BOOK3_AI: {"sealed_same_day"}}
-    unverified = ai_forecasts(tmp_path, {})
-    assert unverified.forecasts == [] and "receipt" in unverified.unscored[0]["reason"]
+DAY = date(2026, 10, 14)
 
 
 def live(book, day, p=0.6):

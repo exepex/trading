@@ -271,3 +271,27 @@ and `unscored` (with `reason`) in coverage; print `isolation` ("sealed same day,
 coverage from `fno.ai.coverage.coverage`.
 
 Gates: `python -m pytest -q` 1717 passed; ruff check and format clean; `check_imports` clean.
+
+## Addendum 3 (14 Oct 2026, about 03:30 IST): the weekly draw's seed (judge 62 addendum 1)
+
+Judge 62 addendum 1 found that the weekly draw's seed was the ISO week label alone, so a routine with the repository
+could compute whether its session would be audited. Checked: correct. A commit SHA as the seed would be no better (both
+routines push to `main`). Fixed:
+- **Seed** (`fno/ai/draw_seed.py`): the week label, the date of the week's last session and NSE's official NIFTY 50
+  close that day, taken from `research/data/nifty-panel/warmup_closes.csv` as written (O6 appends each close once,
+  from the first archived version). Nobody controls the close, and nobody knows it until the week is over.
+- **Only after the week:** a week gets a seed only once a later week's close is in the file, so its last close is final.
+  Until then the draw does not run, and its sessions stay `pending` for the scorer.
+- **Recorded:** `python -m fno ai audits-due` writes each new draw once to
+  `research/forecasts/ai_v1/draws/<YYYY>-W<ww>.json`, holding the seed inputs and the sessions drawn. The forecast-capture
+  job runs it before its records commit, so draws are committed and anyone can redraw them.
+- **Tests** (`tests/ai/test_owner_conditions.py`):
+  - no draw before a later close exists;
+  - the same inputs give the same draw (in either order);
+  - a different close gives a different seed;
+  - 2 drawn per seeded week;
+  - draws are recorded once with their seed inputs.
+- `scoring_status(root, day, book)` lost its `today` argument; nothing outside `fno/ai` called it yet.
+- The fire path is unchanged in this addendum.
+
+Gates: `python -m pytest -q` 1784 passed; ruff clean; `check_imports` clean.

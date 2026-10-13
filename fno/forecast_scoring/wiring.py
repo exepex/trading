@@ -14,7 +14,6 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..ai.coverage import pack_days
-from ..ai.paths import AI_FOLDER
 from ..config import ROOT, load_app_config
 from ..constants import PIPELINE_AREA
 from ..forecast.backfill import BACKFILL_FILE
@@ -22,8 +21,9 @@ from ..forecast.baseline_wiring import CLOSES_FILE, LIVE_PANEL_YEARS, build_fore
 from ..forecast.capture import LIVE_FOLDER
 from ..forecast.closes_source import CommittedClosesFile
 from ..forecast.freeze import require_frozen_before
-from ..forecast.freeze_v2 import require_version_frozen
+from ..forecast.freeze_v2 import NotYetFrozen, require_version_frozen
 from ..forecast.wiring import GOLDEN_OPTION_DAYS
+from ..freeze_sections import FORECAST_SCORES, require_section_frozen
 from ..research_data.calendar import load_session_calendar
 from ..research_data.panel_reader import read_nifty_panel
 from ..research_engine.ledger import Git
@@ -32,9 +32,9 @@ from ..storage.raw_store import AreaStore, LocalFolderStore
 from ..storage.wiring import PANEL_FOLDER, build_session_calendar
 from .ai_sources import ai_forecasts
 from .coverage import book_coverage
+from .q5_thresholds import mode_resolvers
 from .replay import LiveReplay
-from .resolution import OfficialOutcomes, panel_iv30
-from .score_inputs import CLOSE_PROXY, LIVE
+from .resolution import panel_iv30
 from .score_report import ReportContext, report_document
 from .score_sources import CaptureReceipts, NoReceipts, RunSummaryReceipts, backfill_forecasts, live_forecasts
 from .scoring import ForecastScorer
@@ -69,6 +69,14 @@ def _sha256(path: Path) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
+def _v3_scoring_section(root: Path, git: Git):
+    """G1 v3's freeze, this job's section only: the files that decide live question 5 (None before v3 is frozen)."""
+    try:
+        return require_section_frozen(root, git.head(), FORECAST_SCORES, git=git)
+    except NotYetFrozen:
+        return None
+
+
 def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Path = ROOT) -> dict:
     """The G4 report document as of `as_of` (only data through that day is read for outcomes)."""
     git = Git(root)
@@ -76,15 +84,12 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
     v1 = require_frozen_before(root, backfill_commit, git)  # protocol v1 section 10: scored only under the freeze
     live_files = sorted((root / LIVE_FOLDER).glob("*/*_forecasts.csv"))
     v2 = require_version_frozen(root, git.head(), git=git) if live_files else None
+    v3 = _v3_scoring_section(root, git) if live_files else None
     history = build_forecast_history(cfg, list(range(HISTORY_START.year, as_of.year + 1)))
     closes, calendar = CommittedClosesFile(CLOSES_FILE).closes(), build_session_calendar()
     live = live_forecasts(root / LIVE_FOLDER, receipts)
-    resolvers = {  # question 5: history against the panel's close IV30, live against its own 15:00 pack IV30
-        CLOSE_PROXY: OfficialOutcomes(closes, calendar, as_of, panel_iv30(history), history.horizon_day),
-        LIVE: OfficialOutcomes(closes, calendar, as_of, lambda day: (True, live.pack_iv30.get(day)),
-                               history.horizon_day),
-    }  # fmt: skip
-    ai = ai_forecasts(root / AI_FOLDER, live.packs)
+    resolvers = mode_resolvers(closes, calendar, as_of, panel_iv30(history), live.pack_iv30, history.horizon_day)
+    ai = ai_forecasts(root, live.packs, as_of)
     backfill = backfill_forecasts((root / BACKFILL_FILE).read_bytes(), HISTORY_START)
     scored = [f for f in backfill + live.forecasts + ai.forecasts if f.day <= as_of]
     inputs = {
@@ -92,12 +97,13 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
         "backfill_commit": backfill_commit, "history_start": HISTORY_START.isoformat(),
         "closes_sha256": _sha256(CLOSES_FILE), "panel_manifest_sha256": _sha256(PANEL_FOLDER / "manifest.json"),
         "protocol_v1_commit": v1.protocol_commit, "protocol_v2_commit": v2.protocol_commit if v2 else None,
+        "protocol_v3_commit": v3.protocol_commit if v3 else None,
         "live_days": len(live_files),
     }  # fmt: skip
     context = ReportContext(
         as_of, inputs, confirmatory_allowed(as_of), live.late, tuple(live.unverified), COMMON_START,
         book_coverage(pack_days(root), scored, COMMON_START, as_of),
-        {book: sorted(labels) for book, labels in ai.isolation.items()}, tuple(ai.unscored),
+        {book: sorted(labels) for book, labels in ai.isolation.items()}, tuple(ai.unscored), tuple(ai.pending),
     )  # fmt: skip
     return report_document(context, ForecastScorer(resolvers).score(scored))
 

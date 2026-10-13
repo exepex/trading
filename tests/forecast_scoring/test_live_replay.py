@@ -22,6 +22,7 @@ DAY = date(2026, 10, 14)
 GENERATED = datetime(2026, 10, 14, 15, 5, tzinfo=IST)
 MANIFEST = "research/data/nifty-panel/manifest.json"
 RECORDS = "research/forecasts/live_v2/2026/2026-10-14_forecasts.csv"
+PACK = RECORDS.replace("forecasts.csv", "pack.json")
 
 
 def _git(root, *args):
@@ -48,34 +49,42 @@ def _fake_recompute(seen):
     return recompute
 
 
-def test_a_live_day_replays_from_the_panel_its_capture_read_not_the_grown_one(tmp_path):
-    _git(tmp_path, "init", "-q")
-    (tmp_path / MANIFEST).parent.mkdir(parents=True)
-    (tmp_path / MANIFEST).write_text('{"end": "2026-10-13"}')
-    panel_then = _commit(tmp_path, "panel through 13 Oct")
+def _write(root, path, data: bytes):
+    (root / path).parent.mkdir(parents=True, exist_ok=True)
+    (root / path).write_bytes(data)
+
+
+def test_a_live_day_replays_from_the_checkout_its_pack_was_computed_from(tmp_path):
+    """The capture's real commit order (forecast-capture.yml, judge 64): the pack is committed alone on the checkout it
+    was computed from; `git pull` then merges another job's commit (the panel grew); the records come last."""
+    _git(tmp_path, "init", "-q", "-b", "main")
+    _write(tmp_path, MANIFEST, b'{"end": "2026-10-13"}')
+    checkout = _commit(tmp_path, "panel through 13 Oct")
     outputs = _fake_recompute([])(tmp_path, DAY, GENERATED)
-    (tmp_path / RECORDS).parent.mkdir(parents=True)
-    (tmp_path / RECORDS).write_bytes(outputs["forecasts.csv"])
-    (tmp_path / RECORDS.replace("forecasts.csv", "pack.json")).write_bytes(outputs["pack.json"])
-    records = _commit(tmp_path, "capture 14 Oct")
-    (tmp_path / MANIFEST).write_text('{"end": "2026-10-14"}')  # A13 appends that evening
-    _commit(tmp_path, "panel through 14 Oct")
+    _write(tmp_path, PACK, outputs["pack.json"])
+    pack = _commit(tmp_path, "capture: the pack")
+    _git(tmp_path, "checkout", "-q", "-b", "other-job", checkout)
+    _write(tmp_path, MANIFEST, b'{"end": "2026-10-14"}')  # another job's push in the meantime
+    _commit(tmp_path, "panel grows")
+    _git(tmp_path, "checkout", "-q", "main")
+    _git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "merge", "-q", "--no-edit", "other-job")
+    _write(tmp_path, RECORDS, outputs["forecasts.csv"])
+    records = _commit(tmp_path, "capture: the records, after the pull")
+    assert _git(tmp_path, "rev-parse", f"{records}^1") != checkout  # the records' parent already holds the grown panel
     seen = []
     result = LiveReplay(tmp_path, _fake_recompute(seen)).replay(DAY)
-    assert result.matches and (result.records_commit, result.inputs_commit) == (records, panel_then)
-    assert seen == [b'{"end": "2026-10-13"}']  # never today's manifest
+    assert result.matches and (result.pack_commit, result.inputs_commit) == (pack, checkout)
+    assert seen == [b'{"end": "2026-10-13"}']  # never the panel pulled in later
 
 
 def test_a_replay_that_differs_says_which_output(tmp_path):
     _git(tmp_path, "init", "-q")
-    (tmp_path / MANIFEST).parent.mkdir(parents=True)
-    (tmp_path / MANIFEST).write_text("{}")
+    _write(tmp_path, MANIFEST, b"{}")
     _commit(tmp_path, "panel")
-    outputs = _fake_recompute([])(tmp_path, DAY, GENERATED)
-    (tmp_path / RECORDS).parent.mkdir(parents=True)
-    (tmp_path / RECORDS).write_bytes(outputs["forecasts.csv"])
-    (tmp_path / RECORDS.replace("forecasts.csv", "pack.json")).write_bytes(b"tampered")
-    _commit(tmp_path, "capture")
+    _write(tmp_path, PACK, b"tampered")
+    _commit(tmp_path, "capture: the pack")
+    _write(tmp_path, RECORDS, _fake_recompute([])(tmp_path, DAY, GENERATED)["forecasts.csv"])
+    _commit(tmp_path, "capture: the records")
     result = LiveReplay(tmp_path, _fake_recompute([])).replay(DAY)
     assert not result.matches and result.same == {"pack.json": False, "forecasts.csv": True}
 

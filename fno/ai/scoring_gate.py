@@ -1,7 +1,7 @@
 """Whether an AI book-day may be scored (owner's conditions 1 and 2, 14 Oct 2026; the one rule story G4's AI reader
 must call, so the rule lives in one place). Scored only when the collection said `on_time` and the transcript audit
-did not find a breach; a day the audit rule selected but nobody audited yet, or a day whose week is still open to the
-weekly draw, is `pending` (not scored yet, never scored as clean by default)."""
+did not find a breach; a day the audit rule selected but nobody audited yet, or a day whose week is not drawn yet, is
+`pending` (not scored yet, never scored as clean by default)."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from .audit_plan import FIRST_DAYS_ALL_AUDITED, fired_sessions, sessions_to_audit
+from .audit_plan import fired_sessions, first_days, seeds_of, sessions_to_audit
 from .outcome import ON_TIME
 from .paths import audit_path
 from .transcript_audit import BREACH, TranscriptAudits
@@ -29,7 +29,7 @@ class ScoringStatus:
         return self.status == SCORED
 
 
-def scoring_status(root: Path, day: date, book: str, today: date) -> ScoringStatus:
+def scoring_status(root: Path, day: date, book: str) -> ScoringStatus:
     collected = Path(root) / audit_path(day, book)
     if not collected.is_file():
         return ScoringStatus(PENDING, "not collected", "")
@@ -41,17 +41,16 @@ def scoring_status(root: Path, day: date, book: str, today: date) -> ScoringStat
     if transcript and transcript.result == BREACH:
         return ScoringStatus(UNSCORED, f"transcript breach: {', '.join(transcript.breaches)}", isolation)
     if transcript is None:
-        waiting = _awaiting_audit(root, day, book, today)
+        waiting = _awaiting_audit(root, day, book)
         if waiting:
             return ScoringStatus(PENDING, waiting, isolation)
     return ScoringStatus(SCORED, "on time; transcript clean or not drawn", isolation)
 
 
-def _awaiting_audit(root: Path, day: date, book: str, today: date) -> str:
-    sessions = fired_sessions(root)
-    if any(s.day == day and s.book == book for s in sessions_to_audit(sessions, today)):
+def _awaiting_audit(root: Path, day: date, book: str) -> str:
+    sessions, seeds = fired_sessions(root), seeds_of(root)
+    if any(s.day == day and s.book == book for s in sessions_to_audit(sessions, seeds)):
         return "transcript audit due"
-    first_days = sorted({s.day for s in sessions})[:FIRST_DAYS_ALL_AUDITED]
-    if day not in first_days and day.isocalendar()[:2] >= today.isocalendar()[:2]:
-        return "week not finished: the weekly audit draw is not made yet"
+    if day not in first_days(sessions) and day.isocalendar()[:2] not in seeds:
+        return "weekly audit draw not made yet (it waits for the week's last NIFTY 50 close)"
     return ""
