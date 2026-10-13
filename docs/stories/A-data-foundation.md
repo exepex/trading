@@ -508,7 +508,7 @@ and never to be opened by experiment code: the warm-up is index closes only).
 **Judge verifies:** runs data-coverage; recomputes F2 for 2 Jan 2019 from raw India VIX closes; plants an
 unfingerprinted file and confirms the result is not complete.
 
-**Depends:** A1, A9, B1 · **Size:** M · **Status:** built; awaiting judge
+**Depends:** A1, A9, B1 · **Size:** M · **Status:** done: judge 34 PASS (13 Oct 2026)
 
 ---
 
@@ -532,7 +532,7 @@ override): an append-only revisions area.
 3. A8's rewrite sweep stores what it finds as revisions instead of only reporting it.
 4. Coverage reports revisions per dataset; code size, lint, imports, tests pass.
 
-**Depends:** A1, A8, A9, A10 · **Size:** S · **Status:** built; awaiting judge (claims: `reviews/claude/response_54_2026-10-13-a11-revisions.md`)
+**Depends:** A1, A8, A9, A10 · **Size:** S · **Status:** done: judge 48 PASS (13 Oct 2026; claims `reviews/claude/response_54_2026-10-13-a11-revisions.md`)
 
 ---
 

@@ -31,6 +31,18 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `nse/indices/nifty500-list` | `Nifty500ListSource` | the Nifty 500's members and industries (`ind_nifty500list.csv`), per day fetched (P6) | 13 Oct 2026 onwards |
 | `nse/equities/corporate-actions-by-symbol` | `CorporateActionsBySymbolSource` | one symbol's own corporate-action list, for symbols the range list leaves out (ETFs such as BANKNIFTY1), filed as `<YYYY>/<MM>/<DD>/<SYMBOL>.json` (P6) | 12 Oct 2026 onwards |
 | `nse/equities/corporate-actions` | `CorporateActionsSource` | NSE's equity corporate actions over the 400 days to the day fetched (website JSON, filed as `corporate-actions-equities.json`; P6) | 13 Oct 2026 onwards |
+| `nse/equities/filings/results-xbrl/<SYMBOL>` | `NseFilingFileSource` | a company's results XBRL files, NSE's names kept (story A12) | filings public from 1 Oct 2023 |
+| `nse/equities/filings/shareholding-xbrl/<SYMBOL>` | `NseFilingFileSource` | a company's shareholding-pattern XBRL files (A12) | filings public from 1 Oct 2023 |
+| `nse/equities/filings/announcements` | `NseAnnouncementsSource` | every company's announcements made public on one day (website JSON, `announcements_YYYYMMDD.json`; A12) | 13 Oct 2023 onwards |
+| `nse/equities/filings/board-meetings` | `NseBoardMeetingsSource` | every company's board-meeting notices of one day (`board-meetings_YYYYMMDD.json`; A12) | 13 Oct 2023 onwards |
+
+Filing files are grouped by company, not by month (`fno/filings/`): a company's filings are read together, and a
+filing's date is in its manifest row (`filed_at`), not its folder. Their manifests are
+`research/data/manifests/filings/<type>.csv` (with `filed_at`, `first_seen`, SHA-256 and Drive's MD5), plus `gaps.csv`
+(what NSE does not have, with the reason) and `runs.csv` (one row per run). `python -m fno filings archive` fills
+them; `python -m fno data-coverage --filings` checks them; `python -m fno filings table <SYMBOL> --as-of ...` reads
+the point-in-time figures. The scheduled job is `.github/workflows/filings-archive.yml`; the composition root is
+`fno/filings/wiring.py`.
 
 NSE's reference lists have no date in their name and are replaced in place, so each copy is filed under the day it was
 fetched: `<dataset>/<YYYY>/<MM>/<DD>/<original name>` (`snapshot_source.py`; `python -m fno data-snapshot <name>`).

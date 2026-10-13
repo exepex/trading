@@ -91,7 +91,8 @@ commit with `--no-verify`.
   interface (`Provider`, `RawFileStore`, `RawFileSource`, `FoFileFormat`, `ListedExpiries`, and those the stories add)
   rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
-  `fno/storage/wiring.py` (raw data stores and sources) and `fno/risk/wiring.py` (the risk manager, story C2).
+  `fno/storage/wiring.py` (raw data stores and sources), `fno/risk/wiring.py` (the risk manager, story C2) and
+  `fno/filings/wiring.py` (the company filings archive, story A12).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.

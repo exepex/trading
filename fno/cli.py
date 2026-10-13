@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .books.cli import add_account_parser
 from .config import ROOT, load_app_config
+from .filings.cli import add_filings_parser
 from .market_read_models.cli import add_market_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
@@ -33,6 +34,10 @@ def cmd_drive_check(args) -> int:
 
 
 def cmd_data_coverage(args) -> int:
+    if args.filings:
+        from .filings.coverage_cli import cmd_filings_coverage
+
+        return cmd_filings_coverage(args)
     from .storage.coverage import report_lines
     from .storage.wiring import build_coverage_check, build_manifest_recorder, coverage_datasets
 
@@ -152,6 +157,7 @@ def main(argv: list[str] | None = None) -> int:
         default=date.today() - timedelta(days=1),
         help="YYYY-MM-DD (default: yesterday)",
     )
+    v.add_argument("--filings", action="store_true", help="the company filings archive instead (story A12)")
     v.set_defaults(func=cmd_data_coverage)
     n = sub.add_parser("nifty-panel", help="build the NIFTY option-chain panel from the raw NSE files (story A3)")
     n.add_argument("--from", dest="start", type=date.fromisoformat, default=date(2019, 1, 1), help="YYYY-MM-DD")
@@ -179,6 +185,7 @@ def main(argv: list[str] | None = None) -> int:
     add_revisions_parser(sub)
     add_market_parser(sub)
     add_research_parser(sub)
+    add_filings_parser(sub)
 
     args = p.parse_args(argv)
     return args.func(args)
