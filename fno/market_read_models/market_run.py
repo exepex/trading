@@ -6,6 +6,7 @@ code, or `skipped` (P7). It prints only counts and hashes, never a credential.""
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable
 from datetime import date
 
@@ -34,6 +35,7 @@ NOT_A_SESSION_LINE = "{day}: not a trading day, nothing to publish"
 PUBLISHED_LINE = "{day}: published {count} blocks as {publication_id} to {publisher} ({added} rows added)"
 READ_BACK = "read back {count} pages of {publication_id}: every payload SHA-256 equals the built records"
 PAGE_HASH = "    {page_key} {sha256}"
+FAMILY_HASH = "    {family} {count} pages, SHA-256 of their hashes {sha256}"
 READ_BACK_DIFFERS = "read back {publication_id}: {pages} differ from the built records"
 FAILED_LINE = (
     "Omenix F&O market read models for {day} NOT published ({step}): {reason}. The previous publication stays current."
@@ -89,9 +91,9 @@ class MarketRun:
             return 1, [message, self.alerts.send(message)], Outcome(FAILED, stop.code, message)
         line = PUBLISHED_LINE.format(day=day, count=len(publication.records), publication_id=publication.publication_id,
                                      publisher=self.publisher.name, added=added)  # fmt: skip
-        pages = [PAGE_HASH.format(page_key=k, sha256=v) for k, v in sorted(hashes(publication).items())]
-        read_back = READ_BACK.format(count=len(pages), publication_id=publication.publication_id)
-        return 0, [line, read_back, *pages], Outcome(PUBLISHED, publication_id=publication.publication_id)
+        stored = hashes(publication)
+        read_back = READ_BACK.format(count=len(stored), publication_id=publication.publication_id)
+        return 0, [line, read_back, *hash_lines(stored)], Outcome(PUBLISHED, publication_id=publication.publication_id)
 
     def _publish(self, day: date, prepare: Prepare | None) -> tuple[Publication, int]:
         problem = prepare(day) if prepare else None
@@ -117,3 +119,19 @@ class MarketRun:
             reason = READ_BACK_DIFFERS.format(publication_id=publication.publication_id, pages=", ".join(differing))
             raise Stopped("read-back", READ_BACK_MISMATCH, reason)
         return publication, added
+
+
+def hash_lines(stored: dict[str, str]) -> list[str]:
+    """One line per block: its page's SHA-256, or for a block stored one page per parameter (`<block>:<parameter>`,
+    P9) its page count and the SHA-256 of its pages' keys and hashes, so a day's log stays short."""
+    families: dict[str, list[str]] = {}
+    for key in sorted(stored):
+        families.setdefault(key.split(":", 1)[0], []).append(key)
+    lines = []
+    for family, keys in families.items():
+        if keys == [family]:
+            lines.append(PAGE_HASH.format(page_key=family, sha256=stored[family]))
+        else:
+            joined = "\n".join(f"{k} {stored[k]}" for k in keys).encode()
+            lines.append(FAMILY_HASH.format(family=family, count=len(keys), sha256=hashlib.sha256(joined).hexdigest()))
+    return lines

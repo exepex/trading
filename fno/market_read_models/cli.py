@@ -140,7 +140,7 @@ def _compare(args) -> int:
     from .wiring import build_market_blocks, build_pinned_contract, build_session_rows_builder
 
     rows = build_session_rows_builder(load_app_config()).build(args.day)
-    blocks = {b.page_key: b.build(rows) for b in build_market_blocks()}
+    blocks = {key: payload for b in build_market_blocks() for key, payload in b.pages(rows).items()}
     total = 0
     for name, found in compare(blocks, build_pinned_contract().examples()).items():
         total += len(found)

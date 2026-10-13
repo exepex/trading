@@ -237,7 +237,7 @@ hides the run's own result.
 
 **Judge verifies:** runs the migration on a throwaway server, a successful and a failing run, and reads the rows.
 
-**Depends:** P6 · **Size:** S · **Status:** in progress
+**Depends:** P6 · **Size:** S · **Status:** built; awaiting judge (claims: reviews/claude/response_66_2026-10-13-p7-p8-p9-publishing.md, addendum P7)
 
 ---
 
@@ -281,4 +281,4 @@ blocks (one pointer, one run, one status). Out: bid and ask, 3 pm quotes (not pu
 3. The chain pages publish in the same transaction as P6's, through the same publisher and run status.
 4. Size, lint, imports, tests pass.
 
-**Depends:** P6, P7, W13 · **Size:** M · **Status:** in progress
+**Depends:** P6, P7, W13 · **Size:** M · **Status:** built; awaiting judge (claims: response 66, addendum P9)
