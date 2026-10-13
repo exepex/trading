@@ -207,3 +207,75 @@ Judge 54 is right. m = -σ²τ/2 = -0.04 × (28/365) / 2 = -0.001534, not -0.000
 - Q2 = 1 - N(0.5613) + N(-0.5222) = 0.58807.
 
 The test docstring and the table row above now carry these values. The asserts did not change.
+
+## Addendum: protocol version 2 frozen; the first live run (Wed 14 Oct 2026)
+
+**Frozen.** This follows judge 47 addendum 3 (PASS at 1b57cb3) and the orchestrator's confirmation, using the same
+recipe as v1:
+- **Protocol commit `ab2e811`.** Final status text, the run-time golden check in section 8, and ledger trials 37-41
+  (`forecasts-v2`) registered.
+- **Freeze commit `0fc5723`.** `research/forecasts/FREEZE_v2.md` and the trials' `protocol_commit` set.
+
+**The freeze checks the v2 code, not only the text** (the judge's point on experiment 1). 34 files are checked byte for
+byte:
+- the protocol;
+- every `fno/forecast/*.py`: the pack, history and gates, closes source, v2 schema, capture, freeze check, command
+  line, and the v1 code they use;
+- `tools/forecast_live_golden.py`;
+- every v2 golden input and output.
+
+Shared libraries are recorded, not byte-checked: B7's live ATM rule, B1's Black-76, and the panel and quote readers.
+The daily job recomputes both golden cases before it captures, so a behaviour change in any of them fails the run
+before a forecast is made.
+
+Tests in `tests/forecast/test_freeze_v2.py`:
+- the real repository's freeze holds, and covers every v2 code file and golden file;
+- a planted cutoff edit (15:00:01) is refused;
+- no record means "not yet frozen";
+- ledger trials 37-41 carry `ab2e811`.
+
+**What the first live run needs** (`forecast-capture.yml`, starts 14:00 IST):
+1. **The freeze in history.** Done; the job checks out with `fetch-depth: 0`.
+2. **Both golden cases reproduce.** True today.
+3. **Official closes through Tue 13 Oct** in `warmup_closes.csv`. True: O6 added 13 Oct (e38eabd), and the file
+   covers 2017 to 13 Oct with no gap.
+4. **Panel IV30 for Q5's base rate**, up to 21 trading days before the forecast day. True until about 10 Nov 2026,
+   because the panel ends 12 Oct.
+5. **A canonical A4 snapshot for 14 Oct, committed by 15:13 IST.** It can come from the Groww routine
+   (`research/data/quotes/groww/...`), used first, or the NSE Actions recorder (`research/data/quotes/nse/...`). Inside
+   the snapshot:
+   - quotes received by 15:00:00;
+   - the futures and VIX read before the first quote request, at or before 15:00:00;
+   - NSE's VIX stamp at or before 15:00:00.
+
+   This is the one input not yet proven. No snapshot has ever been committed on `main`.
+
+**If an input is missing** (shown by a dry run of 14 Oct on today's repository, with no snapshot, into a scratch
+folder):
+- **No snapshot by 15:13:** spot, VIX, futures and IV30 are all missing.
+  - The pack lists four problems; `iv30_status` is `none`.
+  - Risk-neutral and the model record "no forecast".
+  - The base rate still forecasts all five questions. It needs only past outcomes, so this is correct under the
+    protocol. Book 1 is then the base rate alone: 10 of 20 probabilities.
+  - Q5 on that day is void at scoring anyway, because IV30 is missing.
+  - The pack, the records and the receipt are still written once, so the day stays an honest record of what was
+    known at 15:00.
+- **Snapshot present but a field late (after 15:00:00):** only that field is missing.
+  - Late VIX: no VIX input.
+  - Late futures (the first request after 15:00): no futures and no IV30.
+  - A late ATM leg: that expiry has no IV, so IV30 falls back to a single expiry and is flagged, or is `none`.
+- **Closes for d-1 missing (O6 failed the evening before):** `history_stale`. Base rate and model record "no
+  forecast" for every question. Book 1 is risk-neutral alone for Q1-Q2; Q3-Q5 have no Book 1 forecast.
+- **Golden difference or a changed frozen file:** the run fails before any forecast, with a #fno-desk alert. Nothing
+  is recorded, and a new version is needed.
+- **The run starts after 15:15** (GitHub's schedule is late): records are written with their `generated_at`.
+  `on_time` is false, so scoring ignores them.
+
+**Risks for Wednesday** (reasoning only, except where marked):
+- **The 3 pm snapshot's timing.** The recorder captures from 14:55. If the first attempt is incomplete, its retries
+  run after 15:00, and their quotes are excluded under the per-field cutoff. A bad 14:55 attempt therefore means a
+  partial or empty pack, not wrong numbers. This is the judge's "watch the first live day".
+- **The NSE fallback.** Using NSE's snapshot when Groww's is missing is in the frozen text (section 1). The orchestrator
+  said the NSE recorder "runs side by side" and that nothing switches until the owner has seen `quotes compare` for 3
+  sessions. If the owner wants NSE snapshots excluded from forecasts until then, that needs a version 3. Please
+  decide.
