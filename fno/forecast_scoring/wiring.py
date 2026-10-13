@@ -89,7 +89,7 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
     closes, calendar = CommittedClosesFile(CLOSES_FILE).closes(), build_session_calendar()
     live = live_forecasts(root / LIVE_FOLDER, receipts)
     resolvers = mode_resolvers(closes, calendar, as_of, panel_iv30(history), live.pack_iv30, history.horizon_day)
-    ai = ai_forecasts(root, live.packs, as_of)
+    ai = ai_forecasts(root, live.packs)
     backfill = backfill_forecasts((root / BACKFILL_FILE).read_bytes(), HISTORY_START)
     scored = [f for f in backfill + live.forecasts + ai.forecasts if f.day <= as_of]
     inputs = {
