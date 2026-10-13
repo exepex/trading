@@ -590,4 +590,4 @@ Out: PDFs and annual reports; companies outside Nifty 500; US companies; any cha
 **Judge verifies:** opens 10 random archived files and checks their SHA-256 and `filed_at` against NSE; compares 5
 companies' parsed revenue, debt and cash flow with the filing; plants an early read and a burst of requests.
 
-**Depends:** A9, A11, P6 (Nifty 500 snapshot) · **Size:** L · **Status:** to do
+**Depends:** A9, A11, P6 (Nifty 500 snapshot) · **Size:** L · **Status:** built; awaiting judge (claims: `reviews/claude/response_56_2026-10-13-a12-filings-archive.md`; full backfill running in GitHub Actions)

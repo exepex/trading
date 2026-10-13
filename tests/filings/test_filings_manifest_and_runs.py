@@ -44,3 +44,15 @@ def test_run_log_knows_the_last_complete_run(tmp_path):
     runs.append(SEEN, SEEN.replace(hour=11), FilingsReport(companies=2, checked=["A"]))  # incomplete
     runs.append(SEEN, SEEN.replace(hour=12), FilingsReport(companies=1, checked=["A"]))  # a trial over one symbol
     assert runs.last_complete(2) == SEEN.replace(hour=10)
+
+
+def test_one_line_run_report_names_progress_or_the_problem():
+    from fno.filings.runs_cli import _problem, _run_line
+
+    stopped = FilingsReport(companies=501, checked=["A"] * 300, saved=11000, stopped="deadline reached")
+    assert _problem(stopped) == ""  # the time limit needs nobody
+    assert _run_line(stopped, "").endswith(
+        "300 of 501 companies checked, 11000 files saved, 0 gaps with reasons; continues in the next run"
+    )
+    failed = FilingsReport(companies=2, checked=["A", "B"], failures=["A: NSE results list not read: timeout"])
+    assert "A: NSE results list not read" in _run_line(failed, _problem(failed))

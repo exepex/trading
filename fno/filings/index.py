@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from ..constants import CONSOLIDATED, FILING_RESULTS, FILING_SHAREHOLDING, STANDALONE
 from ..models import IST
@@ -24,14 +24,19 @@ NSE_INTEGRATED_RESULTS = "/api/integrated-filing-results"
 NSE_SHAREHOLDING = "/api/corporate-share-holdings-master"
 INTEGRATED_FINANCIALS = "Integrated Filing- Financials"  # NSE's type name (the governance filings are not numbers)
 NSE_CONSOLIDATION = {"Consolidated": CONSOLIDATED, "Non-Consolidated": STANDALONE, "Standalone": STANDALONE}
+OLDEST_LATE_FILING = timedelta(days=400)  # a period ending this long before the window cannot be filed inside it
 MAX_PAGES = 20  # NSE pages the integrated list 20 per page; 3 years are about 3 pages
 
 
 def nse_time(text: str | None) -> datetime | None:
-    """NSE's '09-Jan-2025 21:39:43' or '21-JUL-2026 15:44:00' (month in any case) as IST; None when absent."""
+    """NSE's '09-Jan-2025 21:39:43', '21-JUL-2026 15:44:00' or '21-Apr-2007 14:50' (month in any case) as IST; None
+    when absent."""
     if not text or text.strip() in ("-", ""):
         return None
-    return datetime.strptime(text.strip(), "%d-%b-%Y %H:%M:%S").replace(tzinfo=IST)
+    text = text.strip()
+    return datetime.strptime(text, "%d-%b-%Y %H:%M:%S" if text.count(":") == 2 else "%d-%b-%Y %H:%M").replace(
+        tzinfo=IST
+    )
 
 
 def nse_day(text: str) -> date:
@@ -53,6 +58,12 @@ def xbrl_link(value: str | None) -> str:
     return value
 
 
+def _timed(row: dict) -> bool:
+    """Whether a classic results row has NSE's broadcast or dissemination time (rows before about 2008 have only the
+    filing date and minute)."""
+    return bool(nse_time(row.get("broadCastDate")) or nse_time(row.get("exchdisstime")))
+
+
 class FilingIndex(ABC):
     name: str = "index"
     kind: str = ""  # FILING_RESULTS or FILING_SHAREHOLDING
@@ -72,7 +83,8 @@ class NseLegacyResultsIndex(FilingIndex):
 
     def filings(self, symbol: str, since: date) -> list[Filing]:
         rows = self.get_json(NSE_LEGACY_RESULTS, {"index": "equities", "symbol": symbol, "period": "Quarterly"})
-        found = (self._filing(symbol, row) for row in rows or [])
+        recent = [r for r in rows or [] if nse_day(r["toDate"]) >= since - OLDEST_LATE_FILING]  # older rows lack times
+        found = (self._filing(symbol, row) for row in recent)
         return [f for f in found if f.filed_at.date() >= since]
 
     def _filing(self, symbol: str, row: dict) -> Filing:
@@ -80,7 +92,9 @@ class NseLegacyResultsIndex(FilingIndex):
             FILING_RESULTS,
             symbol,
             nse_day(row["toDate"]),
-            public_time(row.get("broadCastDate"), row.get("exchdisstime")),
+            public_time(row.get("broadCastDate"), row.get("exchdisstime"))
+            if _timed(row)
+            else public_time(row.get("filingDate")),
             xbrl_link(row.get("xbrl")),
             NSE_CONSOLIDATION.get(row.get("consolidated"), ""),
         )

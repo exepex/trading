@@ -13,6 +13,7 @@ DEFAULT_MAX_MINUTES = 330  # GitHub stops a job at 6 hours; this leaves time to 
 DAILY_GAP_HOURS = 20  # after a complete run, the next full check waits this long (one check a day)
 ALREADY_DONE = "filings archive: complete run at {finished:%Y-%m-%d %H:%M}, less than {hours} h ago; nothing to do"
 NEEDS_OWNER = "Omenix F&O filings archive: {problem}. Run log: research/data/manifests/filings/runs.csv"
+RUN_LINE = "Omenix F&O filings archive: {done}, {gaps} gaps with reasons; {state}"
 SHOWN_LINES = 30  # gap and failure lines printed per run (all of them are in gaps.csv and the alert count)
 
 
@@ -70,9 +71,16 @@ def _archive(args, started, runs, alerts) -> int:
     for line in _report_lines(report):
         print(line)
     problem = _problem(report)
-    if problem:
-        print(alerts.send(NEEDS_OWNER.format(problem=problem)))
+    print(alerts.send(_run_line(report, problem)))  # one line per run that did work; "nothing to do" runs stay quiet
     return 1 if problem else 0
+
+
+def _run_line(report, problem: str) -> str:
+    done = f"{len(report.checked)} of {report.companies} companies checked, {report.saved} files saved"
+    if problem:
+        return NEEDS_OWNER.format(problem=f"{done}; {problem}")
+    state = "complete" if report.complete else "continues in the next run"
+    return RUN_LINE.format(done=done, gaps=len(report.gaps), state=state)
 
 
 def _report_lines(report) -> list[str]:
