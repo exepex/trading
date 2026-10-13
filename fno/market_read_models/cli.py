@@ -16,7 +16,7 @@ from datetime import date
 from pathlib import Path
 
 DAILY_DATASETS = ("fo-bhavcopy", "index-close", "cm-bhavcopy", "security-delivery")
-DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "symbol-change", "corporate-actions")
+DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "symbol-change", "corporate-actions", "fii-dii-cash", "fpi-daily")
 
 
 def add_market_parser(subparsers) -> None:

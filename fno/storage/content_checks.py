@@ -7,6 +7,7 @@ from __future__ import annotations
 from ..constants import INDEX_INDIA_VIX, INDEX_NIFTY_50
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..market_read_models.corporate_actions import read_corporate_actions
+from ..market_read_models.flows_files import read_fii_dii, read_nsdl_equity
 from ..market_read_models.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
 from ..market_read_models.symbol_changes import read_symbol_changes
 from ..research_data.participant_oi import read_participant_oi
@@ -22,7 +23,9 @@ from .snapshot_source import (
     CorporateActionsBySymbolSource,
     CorporateActionsSource,
     EquityListSource,
+    FiiDiiCashSource,
     Nifty500ListSource,
+    NsdlFpiDailySource,
     SymbolChangeSource,
 )
 
@@ -49,6 +52,8 @@ VALIDATORS = {
     EquityListSource: lambda filename, data: read_equity_list(data, filename),
     Nifty500ListSource: lambda filename, data: read_nifty500_list(data, filename),
     SymbolChangeSource: lambda filename, data: read_symbol_changes(data, filename),
+    FiiDiiCashSource: lambda filename, data: read_fii_dii(data, filename),
+    NsdlFpiDailySource: lambda filename, data: read_nsdl_equity(data, filename),
     CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
     CorporateActionsBySymbolSource: lambda filename, data: read_corporate_actions(data, filename),
 }
