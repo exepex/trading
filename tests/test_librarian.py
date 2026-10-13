@@ -12,6 +12,7 @@ from fno.storage import wiring
 from fno.storage.coverage import CoverageDataset
 from fno.storage.librarian import RawDataLibrarian, fill_report_lines
 from fno.storage.librarian_cli import run_librarian
+from fno.storage.manifest_commit import NOTHING, ManifestRecorder
 from fno.storage.manifest_folder import FingerprintingStore
 from fno.storage.owner_token import DriveSignInRefused, OwnerAccessToken
 from fno.storage.raw_source import ParticipantOiSource, RawSourceUnavailable
@@ -105,6 +106,14 @@ def test_a_stopped_run_restarted_uploads_only_what_is_missing(tmp_path):
     assert report.present == 2 and report.uploaded == DAYS[2:] and len(store.saved) == 4
 
 
+class NoNewRows(ManifestRecorder):
+    def pending(self):
+        return []
+
+    def commit(self, what):
+        return NOTHING
+
+
 class SentAlerts(AlertSender):
     def __init__(self):
         self.sent = []
@@ -135,10 +144,10 @@ def test_a_refused_sign_in_stops_with_a_clear_error_and_an_alert_naming_the_fix(
         return librarian(wiring.GoogleDriveUploadStore("folder", token), FakeNse({}))
 
     alerts, out = SentAlerts(), []
-    assert run_librarian(build, alerts, DAYS[0], DAYS[-1], out=out.append) == 1
+    assert run_librarian(build, alerts, NoNewRows(), "test", DAYS[0], DAYS[-1], out=out.append) == 1
     assert len(alerts.sent) == 1 and "invalid_grant" in alerts.sent[0]
     assert "tools/gdrive_oauth_setup.py" in alerts.sent[0] and "FNO_GDRIVE_OAUTH_REFRESH_TOKEN" in alerts.sent[0]
-    assert out == [alerts.sent[0], "alert sent to #fno-desk"]
+    assert out == [alerts.sent[0], "alert sent to #fno-desk", NOTHING]
     printed = "\n".join(out + alerts.sent)
     assert not any(value in printed for value in SECRETS.values())
 
@@ -150,13 +159,16 @@ def test_a_refusal_midway_is_raised_too_never_skipped(tmp_path):
 
     alerts, out = SentAlerts(), []
     build = lambda: librarian(Refuses(tmp_path), FakeNse(nse_with(DAYS)))  # noqa: E731
-    assert run_librarian(build, alerts, DAYS[0], DAYS[-1], out=out.append) == 1 and len(alerts.sent) == 1
+    assert (
+        run_librarian(build, alerts, NoNewRows(), "test", DAYS[0], DAYS[-1], out=out.append) == 1
+        and len(alerts.sent) == 1
+    )
 
 
 def test_a_source_outage_stops_the_run_and_says_how_to_resume(tmp_path):
     out = []
     build = lambda: librarian(LocalFolderStore(tmp_path), FakeNse(nse_with(DAYS), fail_after=0))  # noqa: E731
-    assert run_librarian(build, SentAlerts(), DAYS[0], DAYS[-1], out=out.append) == 1
+    assert run_librarian(build, SentAlerts(), NoNewRows(), "test", DAYS[0], DAYS[-1], out=out.append) == 1
     assert out[0].startswith("stopped: NSE archive: connection refused") and "resume" in out[0]
 
 

@@ -69,7 +69,10 @@ manifest the code reads (`manifest_folder.py`), produced by one code path:
   with NSE's live bytes.
 
 `python -m fno data-coverage` checks every file's SHA-256 against its row; a file without a row is counted under
-"no sha" and listed, and the result is not "complete" until it has one. The laptop tool's manifests in
+"no sha" and listed, and the result is not "complete" until it has one. Rows written at save time are only evidence
+once committed: every `data-librarian` run, finished or stopped, commits and pushes `research/data/manifests/`
+(`manifest_commit.py`: `git pull --no-rebase` first, the record-scan hook on, never `--no-verify`; a refused commit is
+printed, not bypassed), and `data-coverage` lists any manifest file still uncommitted and exits 1. The laptop tool's manifests in
 `tools/nse_raw_download/` serve that tool only; the code no longer reads them (the regenerated ones agree with them on
 every file both have).
 

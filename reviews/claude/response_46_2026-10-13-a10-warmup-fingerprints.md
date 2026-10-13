@@ -112,3 +112,25 @@ laptop copy is no longer read.** MET (strong evidence).
   commit them. The librarian does not remind it. A saved file whose row is never committed shows as "no sha" in a
   fresh checkout, so the failure is loud, not silent.
 - `fno/research_data/panel_reader.py` (A3's reader) gained the warm-up hook; B1's files are untouched.
+
+## Judge 34 minor 1: manifest rows written at save time are now committed (fixed)
+
+Accepted: the judge is right. Before this fix nothing committed the rows, and my claims only said so as a doubt.
+- Code: `fno/storage/manifest_commit.py`. `ManifestRecorder` is the interface; `GitManifestRecorder` commits only
+  `research/data/manifests/`, then runs `git pull --no-rebase --no-edit origin <branch>` and `git push origin HEAD`.
+  The repository's hooks run (record scan on, never `--no-verify`). A failed step returns
+  `manifest rows NOT committed: <step> failed: <reason>`. `run_librarian` (`fno/storage/librarian_cli.py`) commits in a
+  `finally`, so a finished run, a source outage and a refused sign-in all commit what was written.
+  `python -m fno data-coverage` (`fno/cli.py`, `uncommitted_lines`) lists every manifest file still uncommitted and
+  exits 1. Wired in `fno/storage/wiring.py` (`build_manifest_recorder`).
+- Tests: `tests/test_manifest_commit.py`, run against a real temporary git repository with a bare origin.
+  - `test_a_save_without_a_committed_row_is_reported_until_it_is_committed_and_pushed`: data-coverage's line until the
+    commit; the row is then on origin; a second commit finds nothing to do.
+  - `test_only_the_manifest_folder_is_committed`: someone else's staged file is left staged.
+  - `test_a_refusing_hook_is_reported_and_never_bypassed`: the hook's message is printed and the row stays pending.
+  - `test_the_librarian_commits_its_rows_even_when_the_run_stops`.
+- Real check: `uncommitted_lines(build_manifest_recorder())` on this repository gives `[]` (every row written so far
+  is committed).
+- Doubt (reasoning only): the push happens inside the command. If the session that runs it has no push rights, the
+  outcome line says `push failed` and the rows stay committed locally. data-coverage on another checkout would then
+  show "no sha", which is loud, not silent.
