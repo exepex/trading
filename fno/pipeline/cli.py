@@ -35,7 +35,8 @@ def add_pipeline_parser(subparsers) -> None:
     closes.add_argument("--to", dest="end", type=date.fromisoformat, default=None, help="YYYY-MM-DD (default today)")
     closes.set_defaults(func=cmd_pipeline_index_closes)
     panel = actions.add_parser("panel-days", help="append new sessions' NIFTY rows to the panel from Drive (A13)")
-    panel.add_argument("--to", dest="end", type=date.fromisoformat, default=None, help="YYYY-MM-DD (default today)")
+    panel.add_argument("--to", dest="end", type=date.fromisoformat, default=None,
+                       help="YYYY-MM-DD (default: today from 21:00 IST, else yesterday)")  # fmt: skip
     panel.set_defaults(func=cmd_pipeline_panel_days)
     dry_run = actions.add_parser("dry-run", help="the example routine: summarise one pointed-to file into Drive")
     dry_run.add_argument("pointer", help="the JSON text the routine was fired with")
@@ -58,9 +59,10 @@ def cmd_pipeline_index_closes(args) -> int:
 
 def cmd_pipeline_panel_days(args) -> int:
     from ..models import now_ist
+    from .panel_days import last_complete_day
     from .panel_wiring import build_panel_day_job
 
-    return build_panel_day_job().run(args.end or now_ist().date())
+    return build_panel_day_job().run(args.end or last_complete_day(now_ist()))
 
 
 def cmd_pipeline_dry_run(args) -> int:

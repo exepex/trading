@@ -1,12 +1,14 @@
 # Forecast protocol, version 3 (story G1 v3): the panel extends daily, and live Q5 uses the 15:00 pack
 
-**Status: version 3, draft, NOT frozen.**
+**Status: version 3, frozen.**
 - Written by Claude (G1 builder) on 14 Oct 2026, from the owner's decision (`docs/DESK_DECISIONS.md`, 14 Oct 2026,
   "A13 now, through G1 protocol version 3"), the proposal `reviews/claude/response_68_g1-v3-panel-extension.md`,
   ChatGPT review 30 ("AGREED WITH CHANGES") and the orchestrator's decisions in
   `reviews/claude/response_69_2026-10-14-on-review-30.md`.
-- It is frozen only after the judge passes it and the orchestrator confirms. Until `research/forecasts/FREEZE_v3.md`
-  exists, the daily panel job appends nothing (section 2).
+- Judge 64 and its addenda passed it (the split freeze in addendum 2, b312262), and the orchestrator confirmed the
+  freeze. The commit that adds this text is the protocol commit. `research/forecasts/FREEZE_v3.md` records it, with
+  one section per job (section 5). No append under v3 and no live question 5 score existed at the freeze. Any change
+  from here is a new version, never an edit.
 
 **Relation to versions 1 and 2:**
 - Version 1 (`PROTOCOL.md`, protocol commit cf489e4) and version 2 (`PROTOCOL_v2.md`, protocol commit ab2e811) stay
@@ -68,7 +70,11 @@ Rules:
    The append commit is the commit that adds the day to `manifest.json`.
 7. **Writes only under this freeze.** Before it reads anything, the job checks its own section of the freeze record:
    `require_section_frozen(ROOT, HEAD, "panel-days")` (`fno/freeze_sections.py`, v2's rules applied to one section;
-   section 5).
+   section 5). A missing or failing record is an alerting failure: exit 1 and one #fno-desk line, never a silent stop.
+   Otherwise Q5 would go stale about 21 sessions later (judge 64 addendum 2).
+8. **Which sessions a run appends.** It appends every session after the manifest's `end` through the last day whose
+   files are due: today from 21:00 IST, else yesterday (`last_complete_day`). The evening run (about 21:41 IST) takes
+   today's session; the morning retry (before 14:00 IST) takes yesterday's and never waits for today's.
 
 ## 2. No look-ahead, and replay
 
@@ -133,7 +139,7 @@ files. v2's `require_version_frozen` checks every row of a record and is byte-fr
 its building blocks.
 
 Behaviour:
-- Before `FREEZE_v3.md` exists, the panel job appends nothing and scoring proceeds as under v2.
+- Without `FREEZE_v3.md`, the panel job fails with an alert and appends nothing; scoring proceeds as under v2.
 - After it exists, a changed file fails only its own section's job. `tests/test_freeze_sections.py` plants a question 5
   change, which fails scoring but not panel-days, and the reverse.
 - A changed protocol fails both.

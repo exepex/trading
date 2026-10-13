@@ -24,6 +24,7 @@ from fno.forecast.schema_v2 import ForecastRecordV2
 from fno.forecast_scoring import wiring
 from fno.forecast_scoring.score_inputs import CLOSE_PROXY, LIVE
 from fno.forecast_scoring.score_sources import Receipt
+from fno.freeze_sections import FORECAST_SCORES
 from fno.models import IST
 from fno.research_data.panel_reader import SessionClose
 from tests.forecast_scoring.scoring_fixtures import CALENDAR, FIRST, closes, horizon_day
@@ -102,7 +103,10 @@ def test_scoring_refuses_when_its_own_v3_section_does_not_hold(tmp_path, monkeyp
     _closes_file(tmp_path / "closes.csv")
     frozen = SimpleNamespace(protocol_commit="0" * 40)
 
-    def q5_changed(*args, **kwargs):
+    asked = []
+
+    def q5_changed(root, commit, section, git=None):
+        asked.append(section)
         raise NotFrozen("forecast-scores's frozen files changed: fno/forecast_scoring/q5_thresholds.py")
 
     monkeypatch.setattr(wiring, "require_frozen_before", lambda *a, **k: frozen)
@@ -113,3 +117,4 @@ def test_scoring_refuses_when_its_own_v3_section_does_not_hold(tmp_path, monkeyp
     monkeypatch.setattr(wiring, "build_session_calendar", lambda: CALENDAR)
     with pytest.raises(NotFrozen, match="q5_thresholds"):
         wiring.score_forecasts({}, AS_OF, _Receipts({FIRST: receipt}), root=tmp_path)
+    assert asked == [FORECAST_SCORES]  # its own section, never the panel job's (judge 64 addendum 2)
