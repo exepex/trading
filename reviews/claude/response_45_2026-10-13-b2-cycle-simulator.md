@@ -139,3 +139,53 @@ pass/fail.
 `DESK_DECISIONS.md` says; I did not edit `PROTOCOL.md`.
 
 Checks on this commit: `python -m pytest -q` 828 passed; `ruff check fno tests tools` and `ruff format --check` clean; `python tools/check_imports.py` clean.
+
+## 8. Addendum 2 (13 Oct 2026): monthly identity fixed for both eras (response 48 item 0, blocking)
+
+**Verdict:** fixed at the root. A monthly expiry is now one with a **NIFTY future listed that day**
+(`fno.research_data.expiries.monthly_from_futures`, used by `cycles.futures_monthly`, the default `expiry_rule`).
+2019-2023: **60 cycles, 12 a year** (A5's horizon rule gave 216). 2024-26: **33**, the same dates as before and as
+meeting 1. B3's discovery results re-run: **byte-identical** (no change).
+
+**Why futures, not "last listed expiry of the month" (strong evidence, listing dates only):**
+- NSE lists index futures only on monthly contracts. On all 1,928 panel sessions 2019-2026 there are exactly 3 NIFTY
+  futures, and every future's expiry also has options that day.
+- No horizon is needed, so the rule holds in both eras. A weekly listed far ahead has no future (18 Apr 2019: first
+  listed 15 Feb 2019, 62 days ahead; A5 took it as monthly), nor does a weekly that a holiday moved to the month's end
+  (30 Apr 2025). A re-dated monthly (25 → 30 Sep 2025) moves with its future.
+- Compared on first-in-window decision days, 2019-2026: futures rule = A5's rule exactly in 2024-26. Futures rule =
+  "last listed expiry of each month" everywhere **except 30 Apr 2025**, which last-of-month wrongly takes (the moved
+  weekly). So last-of-month needs A5's guard as a patch; the futures rule does not.
+- **About "31 vs 33" (response 48):** I cannot reproduce 31. My measurements: futures rule 33 complete cycles in
+  2024-26 (equal to A5 and meeting 1, test `test_cycle_dates_equal_meeting_1_with_next_day_entry`, still passing
+  unchanged); last-of-month gives 34 (the extra is the 30 Apr 2025 weekly). The 2 "extra" cycles the response
+  suspected are not extra: they are meeting 1's.
+
+**Second fix found while counting:** a cycle is returned only if its 30-45 day window opens on or after the first
+session with listed contracts. The January 2019 expiry's window opened on 17 Dec 2018, before the panel, so its first
+trading day in the window is unknown; it was previously a cycle decided on 1 Jan 2019 at 30 days. Story A10's
+closes-only warm-up sessions (now prepended by `read_nifty_panel`) list no contracts and are ignored for the same
+reason.
+
+| Claim | Evidence |
+|---|---|
+| 12 cycles every year 2019-2025, 9 in 2026 to date; one per calendar month; every cycle's expiry has a future on its decision day; 18 Apr 2019 is not a cycle | `tests/research_engine/test_cycles_eras.py::test_every_year_has_one_cycle_per_monthly_expiry` |
+| 18 Apr 2019 first listed 15 Feb 2019 at 62 days ahead, never with a future | `test_cycles_eras.py::test_the_far_listed_2019_weekly_had_no_future` |
+| A weekly listed far ahead, or moved to be the month's last expiry, is not monthly | `test_cycles.py::test_a_weekly_listed_far_ahead_or_moved_into_the_month_is_not_monthly` |
+| A window that opened before the panel gives no cycle | `test_cycles.py::test_a_window_that_opened_before_the_panel_gives_no_cycle` |
+| 2024-26 unchanged | `test_cycles_real.py` (meeting 1 dates); discovery results byte-identical after re-running `python -m fno research run 2026-10-12-experiment-1 --period discovery` |
+
+**Access (before the freeze):** the 2019-2023 tests read the panel with `keep` refusing every option row
+(`no_option_rows`), so they hold only session dates, the presence of closes and futures' expiry dates; one test keeps
+only the 18 Apr 2019 weekly's rows to find its first listing date. My counting scripts read only the `date` and
+`expiry` columns. No 2019-2023 option price, feature, P&L or outcome was computed, printed or viewed.
+
+**For others (not changed here):**
+- `PROTOCOL.md` section 3 still names `monthly_as_of` as the monthly identity: it needs the futures rule written in
+  before the freeze.
+- A5's `monthly_as_of` stays in use by the 3 pm quote recorder. It is right today (2024-26 weeklies are listed at most
+  41 days ahead) but would break if NSE again lists weeklies more than 50 days ahead; the recorder could use the same
+  futures rule (A5's owner to decide).
+
+Checks on this commit: `python -m pytest -q` 1,099 passed; `ruff check`, `ruff format --check` and
+`python tools/check_imports.py` clean.

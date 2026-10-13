@@ -83,3 +83,39 @@ calls: **0 hits in both.**
 
 **Recommendation for the owner:** either the webhook, or a private repository. If the owner accepts the bot token as
 built, record it in `docs/DESK_DECISIONS.md` like the X1 exceptions.
+
+## Addendum: the owner's decision applied (omenix-dashboard b6b3e7a)
+
+**ACCEPTED.** Issue #2's owner decision is closed.
+- **The owner chose the webhook.** It is recorded in `docs/DESK_DECISIONS.md` (13 Oct 2026, owner: "webhook").
+- **`FNO_SLACK_BOT_TOKEN` is gone from the repository.** It is no longer in the workflow, the monitor or the owner
+  script. The only remaining mention is the checklist's instruction to delete the old secret. The web app's own
+  `SLACK_BOT_TOKEN` test fakes are unrelated.
+
+**Checks:**
+- **The full platform CI** (`platform/tests/ci.sh`) on a disposable Postgres 16 (never Azure): **all passed**,
+  including the 4 new webhook tests.
+- **`owner_scripts_test.sh`:** all passed.
+
+**My own probes of `notify_slack.sh`, with a fake curl that logs its arguments and stdin and writes the config back on
+stderr:**
+
+| Webhook secret | Result |
+|---|---|
+| A valid `https://hooks.slack.com/services/…`, Slack answers `ok` | exit 0. The URL appears only in curl's stdin config, never on its command line. Curl's stderr, which quoted the URL, is not shown. |
+| The same, Slack answers an error body that contains a URL | exit 1, "Slack refused the message: invalid_tokenhttpshooksslackcomservices". The upper-case secret part is stripped. See the note below. |
+| The same, curl fails (exit 6) | "Slack could not be reached (curl exit 6)". Nothing else is printed. |
+| A config injection: `…SECRETX"` followed by a new line and `output = "/tmp/pwn"` | **refused** ("characters a URL cannot hold"). Curl is never called. |
+| A trailing backslash | **refused** |
+| `https://hooks.slack.com.evil.com/…` or `http://hooks.slack.com/…` | **refused** ("not a Slack incoming webhook") |
+| A path holding "@" and another host name after `/services/` | accepted, which is safe: the "@" is in the path, so the host stays `hooks.slack.com` |
+
+**Note (reasoning only, not a finding):**
+- A refusal prints up to 40 lower-case letters and underscores from Slack's answer. If Slack ever echoed the webhook
+  URL, the lower-case letters of its secret part could appear in the public log.
+- Slack's webhook errors are fixed codes (`invalid_payload`, `no_service`, …), so I see no realistic path for that.
+- Printing the answer only when it matches `^[a-z_]{1,40}$`, and otherwise a fixed "unexpected answer", would remove
+  even that path.
+
+**Residual risk, as the README now states:** a leaked webhook can post to #fno-desk and read nothing. That is
+strictly less than the bot token's exposure.
