@@ -62,7 +62,7 @@ and put IVs at the same strike agreeing within 0.5 points on a real liquid day.
 **Judge verifies:** reads the look-ahead test and runs it; recomputes F1 for one real day with a calculator from the
 panel's prices.
 
-**Depends:** A3, A6 · **Size:** M · **Status:** later
+**Depends:** A3, A6 · **Size:** M · **Status:** done: judge 26 PASS (13 Oct 2026); minors (harness cutoff, settlement test) in progress
 
 ---
 

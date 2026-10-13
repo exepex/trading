@@ -1,0 +1,2545 @@
+{
+ "decisive": false,
+ "experiment": "2026-10-12-experiment-1",
+ "inputs": {
+  "config_terms": "8f65c3ab9e2f1eef4c7f144b56db31956ce22b4c435f261a0ba08a9f29b45118",
+  "events": "6429b5b243e289fa09d3e4bc1eb141d3dda0c24ef8c0eeb8a81769fa81fb3c19",
+  "numpy": "2.5.3",
+  "panel_manifest": "89a063763de5159cf9ce1b4bc259ed4288ffdbb493a3369ceb8e3a8e75bf7636",
+  "session_calendar": "6101c8746fe17926498fbfcac895b7aad5218c4653982bba82337b6b5dea3961"
+ },
+ "ledger": {
+  "hypotheses": 8,
+  "registered_rows": 10
+ },
+ "note": "Already looked at when the policies were chosen: reported only, never judged. Close-proxy data (daily closes), not a 15:00 desk validation.",
+ "opportunities": [
+  {
+   "cycle": {
+    "decision_day": "2024-01-15",
+    "entry_day": "2024-01-16",
+    "exit_day": "2024-02-08",
+    "expiry": "2024-02-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 3.187262,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 387.758539,
+     "gross": 42.25,
+     "max_loss": 9947.35821,
+     "needs_settlement": false,
+     "net": -865.508539,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 283.442421,
+     "gross": 1927.25,
+     "max_loss": 9610.097965,
+     "needs_settlement": false,
+     "net": 1123.807579,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 370.273485,
+     "gross": 490.75,
+     "max_loss": 3420.561846,
+     "needs_settlement": false,
+     "net": -399.523485,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-02-12",
+    "entry_day": "2024-02-13",
+    "exit_day": "2024-03-07",
+    "expiry": "2024-03-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.325416,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 452.706977,
+     "gross": -659.75,
+     "max_loss": 7178.006046,
+     "needs_settlement": false,
+     "net": -1632.456977,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 316.849644,
+     "gross": -1966.25,
+     "max_loss": 8993.73044,
+     "needs_settlement": false,
+     "net": -2803.099644,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 424.915051,
+     "gross": -286.0,
+     "max_loss": 2644.241117,
+     "needs_settlement": false,
+     "net": -1230.915051,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-03-11",
+    "entry_day": "2024-03-12",
+    "exit_day": "2024-04-04",
+    "expiry": "2024-04-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 4.181263,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 381.705629,
+     "gross": 188.5,
+     "max_loss": 9917.425216,
+     "needs_settlement": false,
+     "net": -713.205629,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 272.847744,
+     "gross": 3945.5,
+     "max_loss": 8866.20639,
+     "needs_settlement": false,
+     "net": 3152.652256,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 363.98896,
+     "gross": 877.5,
+     "max_loss": 3029.623895,
+     "needs_settlement": false,
+     "net": -6.48896,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-04-15",
+    "entry_day": "2024-04-16",
+    "exit_day": "2024-05-09",
+    "expiry": "2024-05-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.443451,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 384.367654,
+     "gross": -110.5,
+     "max_loss": 7261.225409,
+     "needs_settlement": false,
+     "net": -1014.867654,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 269.327144,
+     "gross": 2678.0,
+     "max_loss": 9802.634975,
+     "needs_settlement": false,
+     "net": 1888.672856,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 360.053796,
+     "gross": 1556.75,
+     "max_loss": 2389.554803,
+     "needs_settlement": false,
+     "net": 676.696204,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-05-13",
+    "entry_day": "2024-05-14",
+    "exit_day": "2024-06-06",
+    "expiry": "2024-06-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 10.023805,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 509.196297,
+     "gross": -851.5,
+     "max_loss": 9839.039087,
+     "needs_settlement": false,
+     "net": -1880.696297,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 379.741395,
+     "gross": 409.5,
+     "max_loss": 6839.091517,
+     "needs_settlement": false,
+     "net": -490.241395,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 488.469004,
+     "gross": -201.5,
+     "max_loss": 3032.193034,
+     "needs_settlement": false,
+     "net": -1209.969004,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-06-10",
+    "entry_day": "2024-06-11",
+    "exit_day": "2024-07-04",
+    "expiry": "2024-07-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -14.149693,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 500.137976,
+     "gross": 903.5,
+     "max_loss": 7347.844996,
+     "needs_settlement": false,
+     "net": -116.637976,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 344.752105,
+     "gross": -3526.25,
+     "max_loss": 8277.668669,
+     "needs_settlement": false,
+     "net": -4391.002105,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 468.740829,
+     "gross": -3035.5,
+     "max_loss": 2886.012949,
+     "needs_settlement": false,
+     "net": -4024.240829,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-07-15",
+    "entry_day": "2024-07-16",
+    "exit_day": "2024-08-08",
+    "expiry": "2024-08-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 6.61576,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 430.776258,
+     "gross": -263.25,
+     "max_loss": 7378.048221,
+     "needs_settlement": false,
+     "net": -1214.026258,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 302.921334,
+     "gross": 2440.75,
+     "max_loss": 9377.757445,
+     "needs_settlement": false,
+     "net": 1617.828666,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 406.80728,
+     "gross": 1066.0,
+     "max_loss": 2890.27381,
+     "needs_settlement": false,
+     "net": 139.19272,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-08-12",
+    "entry_day": "2024-08-13",
+    "exit_day": "2024-09-05",
+    "expiry": "2024-09-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -0.468548,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 502.877915,
+     "gross": 1030.25,
+     "max_loss": 9809.187947,
+     "needs_settlement": false,
+     "net": 7.372085,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 364.778709,
+     "gross": -3116.75,
+     "max_loss": 8408.32108,
+     "needs_settlement": false,
+     "net": -4001.528709,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 482.606331,
+     "gross": -2752.75,
+     "max_loss": 4878.467392,
+     "needs_settlement": true,
+     "net": -3755.356331,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-09-16",
+    "entry_day": "2024-09-17",
+    "exit_day": "2024-10-10",
+    "expiry": "2024-10-31"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.638844,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 396.837168,
+     "gross": -338.0,
+     "max_loss": 7259.762124,
+     "needs_settlement": false,
+     "net": -1254.837168,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 278.997311,
+     "gross": 2353.0,
+     "max_loss": 6747.08355,
+     "needs_settlement": false,
+     "net": 1554.002689,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 374.044038,
+     "gross": 1511.25,
+     "max_loss": 3135.897396,
+     "needs_settlement": false,
+     "net": 617.205962,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-10-14",
+    "entry_day": "2024-10-15",
+    "exit_day": "2024-11-07",
+    "expiry": "2024-11-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.482671,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 439.84921,
+     "gross": 156.0,
+     "max_loss": 9952.197878,
+     "needs_settlement": false,
+     "net": -803.84921,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 313.157531,
+     "gross": 2005.25,
+     "max_loss": 8490.716518,
+     "needs_settlement": false,
+     "net": 1172.092469,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 421.137673,
+     "gross": -230.75,
+     "max_loss": 3496.902899,
+     "needs_settlement": false,
+     "net": -1171.887673,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-11-11",
+    "entry_day": "2024-11-12",
+    "exit_day": "2024-12-05",
+    "expiry": "2024-12-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.08528,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 468.483153,
+     "gross": 1625.0,
+     "max_loss": 8998.03953,
+     "needs_settlement": false,
+     "net": 636.516847,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 329.564056,
+     "gross": -3952.0,
+     "max_loss": 9100.912988,
+     "needs_settlement": false,
+     "net": -4801.564056,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 444.92297,
+     "gross": -1118.0,
+     "max_loss": 2839.621572,
+     "needs_settlement": false,
+     "net": -2082.92297,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2024-12-16",
+    "entry_day": "2024-12-17",
+    "exit_day": "2025-01-09",
+    "expiry": "2025-01-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.144882,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 452.66121,
+     "gross": -575.25,
+     "max_loss": 7202.924146,
+     "needs_settlement": false,
+     "net": -1547.91121,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 320.582899,
+     "gross": 1378.0,
+     "max_loss": 8701.638424,
+     "needs_settlement": false,
+     "net": 537.417101,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 426.80427,
+     "gross": 617.5,
+     "max_loss": 2704.963847,
+     "needs_settlement": false,
+     "net": -329.30427,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-01-13",
+    "entry_day": "2025-01-14",
+    "exit_day": "2025-02-06",
+    "expiry": "2025-02-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.782961,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 439.916935,
+     "gross": 22.75,
+     "max_loss": 9996.933337,
+     "needs_settlement": false,
+     "net": -937.166935,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 313.453578,
+     "gross": 2271.75,
+     "max_loss": 7364.031152,
+     "needs_settlement": false,
+     "net": 1438.296422,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 420.206893,
+     "gross": 484.25,
+     "max_loss": 2507.742183,
+     "needs_settlement": false,
+     "net": -455.956893,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-02-10",
+    "entry_day": "2025-02-11",
+    "exit_day": "2025-03-06",
+    "expiry": "2025-03-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.161916,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 412.267217,
+     "gross": -689.0,
+     "max_loss": 7062.833444,
+     "needs_settlement": false,
+     "net": -1621.267217,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 292.624889,
+     "gross": 3129.75,
+     "max_loss": 9112.208444,
+     "needs_settlement": false,
+     "net": 2317.125111,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 388.723535,
+     "gross": 1937.0,
+     "max_loss": 2759.64506,
+     "needs_settlement": false,
+     "net": 1028.276465,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-03-10",
+    "entry_day": "2025-03-11",
+    "exit_day": "2025-04-03",
+    "expiry": "2025-04-24"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.548643,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 454.180553,
+     "gross": -321.75,
+     "max_loss": 7192.190453,
+     "needs_settlement": false,
+     "net": -1295.930553,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 319.031249,
+     "gross": -2054.0,
+     "max_loss": 8843.900938,
+     "needs_settlement": false,
+     "net": -2893.031249,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 426.10712,
+     "gross": -965.25,
+     "max_loss": 2986.86961,
+     "needs_settlement": false,
+     "net": -1911.35712,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-04-15",
+    "entry_day": "2025-04-16",
+    "exit_day": "2025-05-08",
+    "expiry": "2025-05-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -6.140099,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 502.972701,
+     "gross": -3610.75,
+     "max_loss": 7142.070789,
+     "needs_settlement": false,
+     "net": -4633.722701,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 366.179484,
+     "gross": -4806.75,
+     "max_loss": 9577.599644,
+     "needs_settlement": false,
+     "net": -5692.929484,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 480.535917,
+     "gross": 2408.25,
+     "max_loss": 3330.030679,
+     "needs_settlement": false,
+     "net": 1407.714083,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-05-12",
+    "entry_day": "2025-05-13",
+    "exit_day": "2025-06-05",
+    "expiry": "2025-06-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -4.483273,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 451.226883,
+     "gross": 26.0,
+     "max_loss": 7115.274224,
+     "needs_settlement": false,
+     "net": -945.226883,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 323.907542,
+     "gross": 2310.75,
+     "max_loss": 8252.721563,
+     "needs_settlement": false,
+     "net": 1466.842458,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 425.832707,
+     "gross": 653.25,
+     "max_loss": 2877.184467,
+     "needs_settlement": false,
+     "net": -292.582707,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-06-16",
+    "entry_day": "2025-06-17",
+    "exit_day": "2025-07-10",
+    "expiry": "2025-07-31"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 3.963293,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 428.952808,
+     "gross": 175.5,
+     "max_loss": 9936.333892,
+     "needs_settlement": false,
+     "net": -773.452808,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 300.187992,
+     "gross": 1358.5,
+     "max_loss": 8941.892127,
+     "needs_settlement": false,
+     "net": 538.312008,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 409.537011,
+     "gross": -16.25,
+     "max_loss": 3051.79174,
+     "needs_settlement": false,
+     "net": -945.787011,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-07-14",
+    "entry_day": "2025-07-15",
+    "exit_day": "2025-08-07",
+    "expiry": "2025-08-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 3.216815,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 388.218851,
+     "gross": -107.25,
+     "max_loss": 9991.769138,
+     "needs_settlement": false,
+     "net": -1015.468851,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 274.103176,
+     "gross": 1586.0,
+     "max_loss": 8635.736992,
+     "needs_settlement": false,
+     "net": 791.896824,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 369.919416,
+     "gross": 182.0,
+     "max_loss": 3309.010381,
+     "needs_settlement": false,
+     "net": -707.919416,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-08-18",
+    "entry_day": "2025-08-19",
+    "exit_day": "2025-09-09",
+    "expiry": "2025-09-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.699917,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 357.863575,
+     "gross": -406.25,
+     "max_loss": 7274.21549,
+     "needs_settlement": false,
+     "net": -1284.113575,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 251.173289,
+     "gross": 3841.5,
+     "max_loss": 8952.908376,
+     "needs_settlement": false,
+     "net": 3070.326711,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 335.861017,
+     "gross": 1638.0,
+     "max_loss": 3329.258331,
+     "needs_settlement": false,
+     "net": 782.138983,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-09-15",
+    "entry_day": "2025-09-16",
+    "exit_day": "2025-10-07",
+    "expiry": "2025-10-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.572999,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 344.363467,
+     "gross": -422.5,
+     "max_loss": 7094.560143,
+     "needs_settlement": false,
+     "net": -1286.863467,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 243.550847,
+     "gross": 2853.5,
+     "max_loss": 8018.774705,
+     "needs_settlement": false,
+     "net": 2089.949153,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 323.20249,
+     "gross": 1823.25,
+     "max_loss": 3701.943466,
+     "needs_settlement": false,
+     "net": 980.04751,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-10-13",
+    "entry_day": "2025-10-14",
+    "exit_day": "2025-11-04",
+    "expiry": "2025-11-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.724546,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 397.621113,
+     "gross": -162.5,
+     "max_loss": 9948.875613,
+     "needs_settlement": false,
+     "net": -1080.121113,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 275.798197,
+     "gross": -757.25,
+     "max_loss": 9161.140762,
+     "needs_settlement": false,
+     "net": -1553.048197,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 378.415764,
+     "gross": 136.5,
+     "max_loss": 3002.663521,
+     "needs_settlement": false,
+     "net": -761.915764,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-11-17",
+    "entry_day": "2025-11-18",
+    "exit_day": "2025-12-09",
+    "expiry": "2025-12-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.906608,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 362.539399,
+     "gross": -266.5,
+     "max_loss": 9886.142702,
+     "needs_settlement": false,
+     "net": -1149.039399,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 253.505924,
+     "gross": 3948.75,
+     "max_loss": 8893.419042,
+     "needs_settlement": false,
+     "net": 3175.244076,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 346.286613,
+     "gross": 1261.0,
+     "max_loss": 3430.739849,
+     "needs_settlement": false,
+     "net": 394.713387,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2025-12-15",
+    "entry_day": "2025-12-16",
+    "exit_day": "2026-01-06",
+    "expiry": "2026-01-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.856089,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 368.540005,
+     "gross": 45.5,
+     "max_loss": 9808.746565,
+     "needs_settlement": false,
+     "net": -843.040005,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 249.01018,
+     "gross": 1527.5,
+     "max_loss": 9310.792497,
+     "needs_settlement": false,
+     "net": 758.48982,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 350.560267,
+     "gross": 429.0,
+     "max_loss": 3375.942148,
+     "needs_settlement": false,
+     "net": -441.560267,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-01-12",
+    "entry_day": "2026-01-13",
+    "exit_day": "2026-02-03",
+    "expiry": "2026-02-24"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 3.556818,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 384.423817,
+     "gross": -406.25,
+     "max_loss": 7389.481101,
+     "needs_settlement": false,
+     "net": -1310.673817,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 265.78054,
+     "gross": 2717.0,
+     "max_loss": 8830.917109,
+     "needs_settlement": false,
+     "net": 1931.21946,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 361.135459,
+     "gross": 1225.25,
+     "max_loss": 3022.087909,
+     "needs_settlement": false,
+     "net": 344.114541,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-02-13",
+    "entry_day": "2026-02-16",
+    "exit_day": "2026-03-09",
+    "expiry": "2026-03-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -3.764257,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 540.63926,
+     "gross": 2096.25,
+     "max_loss": 9745.436118,
+     "needs_settlement": false,
+     "net": 1035.61074,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 398.791775,
+     "gross": -5378.75,
+     "max_loss": 8875.443799,
+     "needs_settlement": false,
+     "net": -6297.541775,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 518.413591,
+     "gross": -2206.75,
+     "max_loss": 3416.501323,
+     "needs_settlement": false,
+     "net": -3245.163591,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-03-16",
+    "entry_day": "2026-03-17",
+    "exit_day": "2026-04-07",
+    "expiry": "2026-04-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 3.329122,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 530.993206,
+     "gross": -198.25,
+     "max_loss": 9741.325653,
+     "needs_settlement": false,
+     "net": -1249.243206,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 400.126777,
+     "gross": 1391.0,
+     "max_loss": 7027.699358,
+     "needs_settlement": false,
+     "net": 470.873223,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 511.349208,
+     "gross": 578.5,
+     "max_loss": 2830.201595,
+     "needs_settlement": false,
+     "net": -452.849208,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-04-13",
+    "entry_day": "2026-04-15",
+    "exit_day": "2026-05-05",
+    "expiry": "2026-05-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -8.739741,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 464.339855,
+     "gross": -620.75,
+     "max_loss": 7290.822817,
+     "needs_settlement": false,
+     "net": -1605.089855,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 333.569046,
+     "gross": 3373.5,
+     "max_loss": 7308.179275,
+     "needs_settlement": false,
+     "net": 2519.930954,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 439.167482,
+     "gross": 1430.0,
+     "max_loss": 2302.045573,
+     "needs_settlement": false,
+     "net": 470.832518,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-05-18",
+    "entry_day": "2026-05-19",
+    "exit_day": "2026-06-09",
+    "expiry": "2026-06-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 4.434902,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 449.580724,
+     "gross": 208.0,
+     "max_loss": 6960.999478,
+     "needs_settlement": false,
+     "net": -761.580724,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 322.935565,
+     "gross": 3887.0,
+     "max_loss": 7754.307717,
+     "needs_settlement": false,
+     "net": 3044.064435,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 424.052402,
+     "gross": 962.0,
+     "max_loss": 2699.771913,
+     "needs_settlement": false,
+     "net": 17.947598,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-06-15",
+    "entry_day": "2026-06-16",
+    "exit_day": "2026-07-07",
+    "expiry": "2026-07-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.53301,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 393.179079,
+     "gross": 68.25,
+     "max_loss": 9909.604497,
+     "needs_settlement": false,
+     "net": -844.929079,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 277.592381,
+     "gross": 1725.75,
+     "max_loss": 9355.882765,
+     "needs_settlement": false,
+     "net": 928.157619,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 374.799505,
+     "gross": 227.5,
+     "max_loss": 3298.169902,
+     "needs_settlement": false,
+     "net": -667.299505,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-07-13",
+    "entry_day": "2026-07-14",
+    "exit_day": "2026-08-04",
+    "expiry": "2026-08-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.619586,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 405.618712,
+     "gross": 334.75,
+     "max_loss": 9822.493221,
+     "needs_settlement": false,
+     "net": -590.868712,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 279.224504,
+     "gross": 1147.25,
+     "max_loss": 9806.788325,
+     "needs_settlement": false,
+     "net": 348.025496,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 385.899232,
+     "gross": -380.25,
+     "max_loss": 3269.369228,
+     "needs_settlement": false,
+     "net": -1286.149232,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-08-17",
+    "entry_day": "2026-08-18",
+    "exit_day": "2026-09-08",
+    "expiry": "2026-09-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.19085,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 360.423137,
+     "gross": -152.75,
+     "max_loss": 9771.793661,
+     "needs_settlement": false,
+     "net": -1033.173137,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 253.581216,
+     "gross": 1797.25,
+     "max_loss": 9421.997222,
+     "needs_settlement": false,
+     "net": 1023.668784,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 343.431777,
+     "gross": 773.5,
+     "max_loss": 3579.52052,
+     "needs_settlement": false,
+     "net": -89.931777,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2026-09-15",
+    "entry_day": "2026-09-16",
+    "exit_day": "2026-10-06",
+    "expiry": "2026-10-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 4.556959,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 381.799468,
+     "gross": -208.0,
+     "max_loss": 9820.697337,
+     "needs_settlement": false,
+     "net": -1109.799468,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 276.326245,
+     "gross": 1816.75,
+     "max_loss": 8693.747086,
+     "needs_settlement": false,
+     "net": 1020.423755,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 365.218893,
+     "gross": 1209.0,
+     "max_loss": 3387.900624,
+     "needs_settlement": false,
+     "net": 323.781107,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  }
+ ],
+ "period": {
+  "end": "2026-10-09",
+  "name": "discovery",
+  "start": "2024-01-01"
+ },
+ "policies": {
+  "P1": {
+   "actions": [
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": 1.136881,
+    "largest_modelled_max_loss": 9806.788325,
+    "longest_losing_run": 2,
+    "max_drawdown": 13633.534541,
+    "mean_net": 153.191918,
+    "net_by_year": {
+     "2024": -5978.379395,
+     "2025": 5286.400933,
+     "2026": 5747.311771
+    },
+    "no_settlement_total_net": 5055.333309,
+    "opportunities": 33,
+    "status_counts": {
+     "traded": 33
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -1679.292065,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": -6.248696,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -2614.270196,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": 9355.144266,
+      "tax": 2918.805011
+     }
+    },
+    "tax_total": 2918.805011,
+    "total_net": 5055.333309,
+    "traded": 33,
+    "traded_mean_net": 153.191918,
+    "traded_total_net": 5055.333309,
+    "win_rate_traded": 0.727273,
+    "worst_opportunity": -6297.541775
+   }
+  },
+  "P2": {
+   "actions": [
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "largest_modelled_max_loss": 4878.467392,
+    "longest_losing_run": 4,
+    "max_drawdown": 18610.201094,
+    "mean_net": -554.133939,
+    "net_by_year": {
+     "2024": -12448.209417,
+     "2025": -811.932753,
+     "2026": -5026.277817
+    },
+    "no_settlement_total_net": -14531.063656,
+    "opportunities": 33,
+    "status_counts": {
+     "traded": 33
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -1630.438536,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": -10574.755579,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -4397.557372,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": -1683.6685,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 0.0,
+    "total_net": -18286.419987,
+    "traded": 33,
+    "traded_mean_net": -554.133939,
+    "traded_total_net": -18286.419987,
+    "win_rate_traded": 0.363636,
+    "worst_opportunity": -4024.240829
+   }
+  },
+  "P3": {
+   "actions": [
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "largest_modelled_max_loss": 9996.933337,
+    "longest_losing_run": 14,
+    "max_drawdown": 34735.268749,
+    "mean_net": -1052.583901,
+    "net_by_year": {
+     "2024": -8852.196776,
+     "2025": -17570.284711,
+     "2026": -8312.787263
+    },
+    "no_settlement_total_net": -34735.268749,
+    "opportunities": 33,
+    "status_counts": {
+     "traded": 33
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -2497.965516,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": -10460.576621,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -14582.042431,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": -7194.68418,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 0.0,
+    "total_net": -34735.268749,
+    "traded": 33,
+    "traded_mean_net": -1052.583901,
+    "traded_total_net": -34735.268749,
+    "win_rate_traded": 0.090909,
+    "worst_opportunity": -4633.722701
+   }
+  },
+  "P4": {
+   "actions": [
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": 0.44402,
+    "largest_modelled_max_loss": 9806.788325,
+    "longest_losing_run": 1,
+    "max_drawdown": 4801.564056,
+    "mean_net": 650.047332,
+    "net_by_year": {
+     "2024": 2414.151418,
+     "2025": 9512.487959,
+     "2026": 9524.922592
+    },
+    "no_settlement_total_net": 21451.561969,
+    "opportunities": 33,
+    "status_counts": {
+     "no_trade": 6,
+     "traded": 27
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -1679.292065,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": 8386.282118,
+      "tax": 2616.520021
+     },
+     "2025-26": {
+      "net": 7909.358605,
+      "tax": 2467.719885
+     },
+     "2026-27": {
+      "net": 6835.213312,
+      "tax": 2132.586553
+     }
+    },
+    "tax_total": 7216.826459,
+    "total_net": 21451.561969,
+    "traded": 27,
+    "traded_mean_net": 794.502295,
+    "traded_total_net": 21451.561969,
+    "win_rate_traded": 0.814815,
+    "worst_opportunity": -4801.564056
+   }
+  },
+  "P4 opposite": {
+   "actions": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "summary": {
+    "best_year_share": null,
+    "largest_modelled_max_loss": 9577.599644,
+    "longest_losing_run": 1,
+    "max_drawdown": 18916.159615,
+    "mean_net": -496.855414,
+    "net_by_year": {
+     "2024": -8392.530813,
+     "2025": -4226.087026,
+     "2026": -3777.610821
+    },
+    "no_settlement_total_net": -16396.228661,
+    "opportunities": 33,
+    "status_counts": {
+     "no_trade": 27,
+     "traded": 6
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": 0.0,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": -8392.530813,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -10523.628801,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": 2519.930954,
+      "tax": 786.218458
+     }
+    },
+    "tax_total": 786.218458,
+    "total_net": -16396.228661,
+    "traded": 6,
+    "traded_mean_net": -2732.704777,
+    "traded_total_net": -16396.228661,
+    "win_rate_traded": 0.333333,
+    "worst_opportunity": -6297.541775
+   }
+  },
+  "P5": {
+   "actions": [
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "BF",
+    "SC",
+    "BF",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "BF",
+    "BF",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "BF",
+    "SC",
+    "BF",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": 0.589412,
+    "largest_modelled_max_loss": 9809.187947,
+    "longest_losing_run": 3,
+    "max_drawdown": 8980.706255,
+    "mean_net": 460.420224,
+    "net_by_year": {
+     "2024": 2304.885528,
+     "2025": 3933.538375,
+     "2026": 8955.443477
+    },
+    "no_settlement_total_net": 15193.867379,
+    "opportunities": 33,
+    "status_counts": {
+     "traded": 33
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -1679.292065,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": 8277.016227,
+      "tax": 2582.429063
+     },
+     "2025-26": {
+      "net": 3366.019761,
+      "tax": 1050.198165
+     },
+     "2026-27": {
+      "net": 5230.123457,
+      "tax": 1631.798518
+     }
+    },
+    "tax_total": 5264.425747,
+    "total_net": 15193.867379,
+    "traded": 33,
+    "traded_mean_net": 460.420224,
+    "traded_total_net": 15193.867379,
+    "win_rate_traded": 0.727273,
+    "worst_opportunity": -4801.564056
+   }
+  },
+  "P5 opposite": {
+   "actions": [
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "SC",
+    "BF",
+    "SC",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "SC",
+    "SC",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "SC",
+    "BF",
+    "SC",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "largest_modelled_max_loss": 9996.933337,
+    "longest_losing_run": 10,
+    "max_drawdown": 44873.80282,
+    "mean_net": -1359.812207,
+    "net_by_year": {
+     "2024": -17135.461698,
+     "2025": -16217.422153,
+     "2026": -11520.918968
+    },
+    "no_settlement_total_net": -44873.80282,
+    "opportunities": 33,
+    "status_counts": {
+     "traded": 33
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -2497.965516,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": -18743.841544,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -20562.332389,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": -3069.663372,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 0.0,
+    "total_net": -44873.80282,
+    "traded": 33,
+    "traded_mean_net": -1359.812207,
+    "traded_total_net": -44873.80282,
+    "win_rate_traded": 0.090909,
+    "worst_opportunity": -6297.541775
+   }
+  },
+  "P6": {
+   "actions": [
+    null,
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": 0.758438,
+    "largest_modelled_max_loss": 9806.788325,
+    "longest_losing_run": 1,
+    "max_drawdown": 4801.564056,
+    "mean_net": 258.939695,
+    "net_by_year": {
+     "2024": -1391.24612,
+     "2025": 3455.397906,
+     "2026": 6480.858157
+    },
+    "no_settlement_total_net": 8545.009944,
+    "opportunities": 33,
+    "status_counts": {
+     "no_trade": 14,
+     "traded": 19
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -2803.099644,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": 5704.692159,
+      "tax": 1779.863954
+     },
+     "2025-26": {
+      "net": 1852.268553,
+      "tax": 577.907788
+     },
+     "2026-27": {
+      "net": 3791.148877,
+      "tax": 1182.83845
+     }
+    },
+    "tax_total": 3540.610191,
+    "total_net": 8545.009944,
+    "traded": 19,
+    "traded_mean_net": 449.737365,
+    "traded_total_net": 8545.009944,
+    "win_rate_traded": 0.789474,
+    "worst_opportunity": -4801.564056
+   }
+  },
+  "P6 opposite": {
+   "actions": [
+    "SC",
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    null
+   ],
+   "summary": {
+    "best_year_share": null,
+    "largest_modelled_max_loss": 9610.097965,
+    "longest_losing_run": 2,
+    "max_drawdown": 11403.870338,
+    "mean_net": -105.747777,
+    "net_by_year": {
+     "2024": -4587.133275,
+     "2025": 1831.003026,
+     "2026": -733.546386
+    },
+    "no_settlement_total_net": -3489.676635,
+    "opportunities": 33,
+    "status_counts": {
+     "no_trade": 19,
+     "traded": 14
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": 1123.807579,
+      "tax": 350.627965
+     },
+     "2024-25": {
+      "net": -5710.940854,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -4466.538749,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": 5563.995389,
+      "tax": 1735.966561
+     }
+    },
+    "tax_total": 2086.594526,
+    "total_net": -3489.676635,
+    "traded": 14,
+    "traded_mean_net": -249.262617,
+    "traded_total_net": -3489.676635,
+    "win_rate_traded": 0.642857,
+    "worst_opportunity": -6297.541775
+   }
+  },
+  "P7": {
+   "actions": [
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "largest_modelled_max_loss": 9806.788325,
+    "longest_losing_run": 2,
+    "max_drawdown": 18296.40286,
+    "mean_net": -200.087707,
+    "net_by_year": {
+     "2024": -8704.474552,
+     "2025": 67.646514,
+     "2026": 2033.933706
+    },
+    "no_settlement_total_net": -6602.894331,
+    "opportunities": 33,
+    "status_counts": {
+     "no_trade": 12,
+     "traded": 21
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -1679.292065,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": -3269.760954,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -9985.316794,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": 8331.475482,
+      "tax": 2599.42035
+     }
+    },
+    "tax_total": 2599.42035,
+    "total_net": -6602.894331,
+    "traded": 21,
+    "traded_mean_net": -314.42354,
+    "traded_total_net": -6602.894331,
+    "win_rate_traded": 0.666667,
+    "worst_opportunity": -6297.541775
+   }
+  },
+  "P7 opposite": {
+   "actions": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null
+   ],
+   "summary": {
+    "best_year_share": 0.447646,
+    "largest_modelled_max_loss": 9421.997222,
+    "longest_losing_run": 1,
+    "max_drawdown": 2893.031249,
+    "mean_net": 353.279625,
+    "net_by_year": {
+     "2024": 2726.095157,
+     "2025": 5218.754418,
+     "2026": 3713.378064
+    },
+    "no_settlement_total_net": 11658.22764,
+    "opportunities": 33,
+    "status_counts": {
+     "no_trade": 21,
+     "traded": 12
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": 0.0,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": 3263.512258,
+      "tax": 1018.215825
+     },
+     "2025-26": {
+      "net": 7371.046597,
+      "tax": 2299.766538
+     },
+     "2026-27": {
+      "net": 1023.668784,
+      "tax": 319.384661
+     }
+    },
+    "tax_total": 3637.367024,
+    "total_net": 11658.22764,
+    "traded": 12,
+    "traded_mean_net": 971.51897,
+    "traded_total_net": 11658.22764,
+    "win_rate_traded": 0.833333,
+    "worst_opportunity": -2893.031249
+   }
+  },
+  "P8": {
+   "actions": [
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    null,
+    "SF",
+    null,
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    null,
+    null,
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    null,
+    "SF",
+    null,
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "largest_modelled_max_loss": 3701.943466,
+    "longest_losing_run": 4,
+    "max_drawdown": 9171.404236,
+    "mean_net": -268.109792,
+    "net_by_year": {
+     "2024": -4668.612258,
+     "2025": -1927.064129,
+     "2026": -2251.946743
+    },
+    "no_settlement_total_net": -8847.62313,
+    "opportunities": 33,
+    "status_counts": {
+     "no_trade": 6,
+     "traded": 27
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": -1630.438536,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": -2795.158419,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -2267.525157,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": -2154.501017,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 0.0,
+    "total_net": -8847.62313,
+    "traded": 27,
+    "traded_mean_net": -327.689746,
+    "traded_total_net": -8847.62313,
+    "win_rate_traded": 0.37037,
+    "worst_opportunity": -2082.92297
+   }
+  },
+  "P8 opposite": {
+   "actions": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    null,
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    null,
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null
+   ],
+   "summary": {
+    "best_year_share": null,
+    "largest_modelled_max_loss": 4878.467392,
+    "longest_losing_run": 1,
+    "max_drawdown": 9909.629375,
+    "mean_net": -286.024147,
+    "net_by_year": {
+     "2024": -7779.59716,
+     "2025": 1115.131376,
+     "2026": -2774.331074
+    },
+    "no_settlement_total_net": -5683.440526,
+    "opportunities": 33,
+    "status_counts": {
+     "no_trade": 27,
+     "traded": 6
+    },
+    "tax_by_financial_year": {
+     "2023-24": {
+      "net": 0.0,
+      "tax": 0.0
+     },
+     "2024-25": {
+      "net": -7779.59716,
+      "tax": 0.0
+     },
+     "2025-26": {
+      "net": -2130.032215,
+      "tax": 0.0
+     },
+     "2026-27": {
+      "net": 470.832518,
+      "tax": 146.899746
+     }
+    },
+    "tax_total": 146.899746,
+    "total_net": -9438.796857,
+    "traded": 6,
+    "traded_mean_net": -1573.13281,
+    "traded_total_net": -9438.796857,
+    "win_rate_traded": 0.333333,
+    "worst_opportunity": -4024.240829
+   }
+  }
+ }
+}

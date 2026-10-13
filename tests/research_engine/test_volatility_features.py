@@ -135,3 +135,18 @@ def test_f2_is_none_with_fewer_than_250_valid_previous_closes():
     assert f2([None, *history[1:]], 300.0) is None
     assert f2([5.0, None, *history[1:]], 300.0) is True  # a left-out session is skipped, not counted
     assert f2(history, None) is None
+
+
+def test_settlement_is_never_used_for_features():
+    """Judge 26 minor: an untraded ATM leg or future with a real settlement price still gives no F1."""
+    panel = f1_panel()
+    for kind in ("CE", "PE"):
+        quotes = tuple(
+            q._replace(volume=0, settle=q.close + 1.0) if q.strike == SPOT and q.kind == kind else q
+            for q in panel.options[DAY]
+        )
+        assert all(q.settle > 0 for q in quotes if q.strike == SPOT and q.kind == kind)
+        assert f1(make_panel(DAYS, zigzag_closes(21), options={DAY: quotes}, futures=panel.futures)) is None
+    untraded_future = {DAY: [future(FORWARD, volume=0)]}  # settle = close = 20100, volume 0
+    assert untraded_future[DAY][0].settle > 0
+    assert f1(make_panel(DAYS, zigzag_closes(21), options=panel.options, futures=untraded_future)) is None
