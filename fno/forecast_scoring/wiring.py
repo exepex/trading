@@ -10,25 +10,29 @@ from __future__ import annotations
 import hashlib
 import os
 import subprocess
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from ..ai.coverage import pack_days
 from ..ai.paths import AI_FOLDER
-from ..config import ROOT
+from ..config import ROOT, load_app_config
 from ..constants import PIPELINE_AREA
 from ..forecast.backfill import BACKFILL_FILE
-from ..forecast.baseline_wiring import CLOSES_FILE, build_forecast_history
+from ..forecast.baseline_wiring import CLOSES_FILE, LIVE_PANEL_YEARS, build_forecast_history, build_live_capture
 from ..forecast.capture import LIVE_FOLDER
 from ..forecast.closes_source import CommittedClosesFile
 from ..forecast.freeze import require_frozen_before
 from ..forecast.freeze_v2 import require_version_frozen
+from ..forecast.wiring import GOLDEN_OPTION_DAYS
+from ..research_data.calendar import load_session_calendar
+from ..research_data.panel_reader import read_nifty_panel
 from ..research_engine.ledger import Git
 from ..storage import wiring as storage
-from ..storage.raw_store import AreaStore
+from ..storage.raw_store import AreaStore, LocalFolderStore
 from ..storage.wiring import PANEL_FOLDER, build_session_calendar
 from .ai_sources import ai_forecasts
 from .coverage import book_coverage
+from .replay import LiveReplay
 from .resolution import OfficialOutcomes, panel_iv30
 from .score_inputs import CLOSE_PROXY, LIVE
 from .score_report import ReportContext, report_document
@@ -96,3 +100,24 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
         {book: sorted(labels) for book, labels in ai.isolation.items()}, tuple(ai.unscored),
     )  # fmt: skip
     return report_document(context, ForecastScorer(resolvers).score(scored))
+
+
+def recompute_live_day(inputs: Path, day: date, generated_at: datetime) -> dict[str, bytes]:
+    """Protocol v2's live capture of `day` on one commit's exported inputs (panel, closes, quotes, calendar, config)."""
+    panel_folder = inputs / "research" / "data" / "nifty-panel"
+    capture = build_live_capture(load_app_config(inputs / "config.yaml"))
+    calendar = load_session_calendar(inputs / "research" / "data" / "calendar" / "nse_sessions.csv")
+    years = list(range(day.year - LIVE_PANEL_YEARS + 1, day.year + 1))
+    keep = lambda d, e: (e - d).days <= GOLDEN_OPTION_DAYS  # noqa: E731  (as baseline_wiring's live panel)
+    capture.root, capture.quotes = inputs / "replayed", LocalFolderStore(inputs / "research" / "data" / "quotes")
+    capture.closes = CommittedClosesFile(panel_folder / "warmup_closes.csv")
+    capture.panel = lambda: read_nifty_panel(panel_folder, years, keep=keep)
+    capture.calendar, capture.calendar_sha256 = calendar, calendar.calendar_sha256()
+    capture.clock = lambda: generated_at
+    capture.capture(day)
+    folder = capture.root / LIVE_FOLDER / f"{day:%Y}"
+    return {name: (folder / f"{day.isoformat()}_{name}").read_bytes() for name in ("pack.json", "forecasts.csv")}
+
+
+def build_live_replay(root: Path = ROOT) -> LiveReplay:
+    return LiveReplay(root, recompute_live_day)

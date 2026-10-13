@@ -235,3 +235,39 @@ book that quietly reruns the baselines is not fully AI; the audit catches it, an
 near-identical to Book 1.
 
 **Owner's decision (14 Oct 2026):** "yes, accept sealed_same_day with your three conditions" (`docs/DESK_DECISIONS.md`).
+
+## Addendum 2 (14 Oct 2026, about 03:30 IST): the owner's conditions 1 and 2 enforced (judge 62)
+
+Judge 62 found conditions 1 and 2 written but not enforced. Checked against the code: correct on both. Built:
+
+- **Condition 2, label on every record:** the isolation mode is now part of each book's registered version (D6 says
+  the environment's isolation belongs to the version), so every record's `method_or_version` reads
+  `<book>/v1/sha256:<prompt hash>/isolation:sealed_same_day`, and the audit JSON keeps `"isolation"`. The frozen v2
+  schema is unchanged. (Before the first live run, so no sealed answer carries the old label.)
+- **Condition 1, audit recorded:** `fno/ai/transcript_audit.py`: one record per audited book-day,
+  `research/forecasts/ai_v1/<YYYY>/<d>_<book>_transcript_audit.json`, written once: session, version, auditor, time,
+  `clean` or `breach` with named kinds (`file_outside_input`, `network_beyond_pushes`, `ran_forecast_code`,
+  `read_other_records`) and the evidence. Command: `python -m fno ai audit-record --day --book [--breach KIND]
+  --evidence --auditor`.
+- **Which sessions:** `fno/ai/audit_plan.py`: every fired session of the first 10 fired session days, then 2 a week
+  drawn with a seed fixed by the ISO week, drawn only after the week ends. `python -m fno ai audits-due` lists what is
+  missing; its count rides in the daily #fno-desk line.
+- **Unscored for the scorer:** `fno/ai/scoring_gate.py` `scoring_status(root, day, book, today)` is the one rule G4's
+  AI reader must call: `scored` only when the collection said `on_time` and no breach was recorded; `unscored` for a
+  breach (or any non-`on_time` status); `pending` while a selected session is unaudited or its week is still open to
+  the draw. The records themselves stay write-once evidence; the unscored mark is the audit file beside them, read
+  through this one function (the same pattern as G4's receipt check beside Book 1's records).
+- **Stop after two breaches:** `fno/ai/stop_rule.py`: two breaches by a book in its last 20 session days, under its
+  current version, and the fire step does not fire it, records `not_fired` with the reason and posts one #fno-desk
+  line. A new registered version (the fix) starts clean.
+- **Tests** (`tests/ai/test_owner_conditions.py`, planted breaches): the label on every record; written once and
+  named kinds; a planted breach makes the day unscored while a clean one scores; a due audit keeps the day pending;
+  two planted breaches stop Book 3's fire with the line while Hybrid (one breach) still fires; a new version is not
+  stopped; the draw (all of the first 10 days, then exactly 2 per finished week, independent of order).
+
+**For G4's session (fields to read, no code duplicated):** for each `research/forecasts/ai_v1/<YYYY>/<d>_<book>_forecasts.csv`
+(v2 schema), call `fno.ai.scoring_gate.scoring_status(ROOT, day, book, today)`; score only `scored`; count `pending`
+and `unscored` (with `reason`) in coverage; print `isolation` ("sealed same day, not full F1") beside the AI books;
+coverage from `fno.ai.coverage.coverage`.
+
+Gates: `python -m pytest -q` 1717 passed; ruff check and format clean; `check_imports` clean.

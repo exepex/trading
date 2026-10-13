@@ -42,3 +42,38 @@ as `fno_writer` on a finished row and expects a refusal.
 
 Migration runs as `fno_owner` from the owner's Mac (no secret in files); composition root `fno/market_read_models/wiring.py`
 listed in CLAUDE.md; no secret, host or user in `reason` (db_errors). I did not connect to Azure.
+
+## Addendum 1 (re-judge of 8cf2584, merged 2344965): still FAIL, a new must-fix (DELETE on Azure)
+
+**The trigger works.** On a throwaway PostgreSQL 16 (001 and 002 applied), as `fno_writer`:
+
+| Attempt | Result |
+|---|---|
+| My exact plain `update ... set result='failed' ... where result='published'` | refused (RestrictViolation, "a finished run never changes") |
+| `insert ... on conflict do update` over the finished row | refused by the same trigger |
+| `alter table ... disable trigger`, `drop trigger` | refused (must be owner) |
+| `create or replace function fno.run_status_finished_never_changes` | refused (no CREATE on schema fno) |
+| `set session_replication_role = replica` | refused |
+| `truncate`, `delete` | refused **in the test fixture** |
+
+**But on Azure, DELETE is granted.** X1's `platform/sql/40_default_privileges.sql` (omenix-dashboard) sets, as
+`fno_owner`: `ALTER DEFAULT PRIVILEGES IN SCHEMA fno GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO fno_writer`.
+Migration 002 is run as `fno_owner`, so `fno.run_status` is born with DELETE for `fno_writer`; the migration's
+`grant select, insert, update` adds, it does not take away. I rebuilt this on a throwaway server: roles as X1,
+`fno_owner`'s default privileges as in step 40, both migrations run as `fno_owner`. Then as `fno_writer`:
+`delete from fno.run_status` **deleted 1 row**. `information_schema.role_table_grants` shows
+`DELETE, INSERT, SELECT, UPDATE` for `fno_writer` on `run_status`, `pages_history` and `current_publication`.
+
+The repository's PostgreSQL fixture (`tests/market_read_models/postgres_server.py`, `PLATFORM`) creates the schema and
+roles but not X1's default privileges, so the test "fno_writer cannot delete" passes locally and would be false on
+Azure. A delete also bypasses the update trigger: the run history can still be erased.
+
+**Fix (reasoning only):** in 002, `revoke delete, truncate on fno.run_status from fno_writer;` (or a `before delete`
+trigger), and make the fixture apply X1's step-40 defaults as `fno_owner` and run the migrations as `fno_owner`, so the
+tests see Azure's grants. The owner should not run 002 until then.
+
+**Also noted, not a criterion:** `fno_writer` can insert a row that is born finished (`result='published'` with a made-up
+publication ID); I did. The criterion speaks of changes, not inserts, so this is information. A `before insert`
+check that new rows are `running` would close it if every code path starts with `running` (reasoning only).
+`pages_history` and `current_publication` (001) carry the same default DELETE; whether P6 meant them to be
+append-only is for the builder to state.

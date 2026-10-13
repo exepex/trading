@@ -2,8 +2,12 @@
 # panel (research/data/nifty-panel/) as a plain job (no AI session). Research data only; never trades.
 #   1. the A9 librarian archives the last week's F&O daily files (fo-bhavcopy) in Drive;
 #   2. the A11 sweep keeps any later NSE version beside the original;
-#   3. `pipeline panel-days` builds each session after the panel's last day with A3's builder (the newest version held
-#      in Drive at the run), checks its closes against O6's warm-up closes, and appends it, never rewriting a day.
+#   3. `pipeline panel-days` verifies the whole panel against its manifest, builds each session after the panel's last
+#      day with A3's builder from the FIRST archived version of its F&O and index-close files (A11's later versions are
+#      recorded, never used), checks that O6's official close came from the same index-close file, and appends all
+#      pending sessions or none, never rewriting a day;
+#   4. the panel is committed ONLY when step 3 exits 0 (the A9 manifest rows always): a crash or a stop publishes nothing,
+#      and the next run (the morning retry) starts again from the same day.
 # It writes only under G1 protocol v3's freeze (full history: fetch-depth 0); until FREEZE_v3.md exists it appends
 # nothing. NOT SCHEDULED YET: the schedule (after index-closes.yml, about 21:41 IST, plus a morning retry before 14:00)
 # is added when v3 is frozen, after ChatGPT's review and the judge. One #fno-desk line when a step fails.
@@ -30,6 +34,7 @@ jobs:
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
       PANEL: research/data/nifty-panel
+      MANIFESTS: research/data/manifests
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,9 +66,10 @@ jobs:
         id: append
         continue-on-error: true
         run: python -m fno pipeline panel-days
-      - name: Commit the panel
+      - name: Commit the A9 manifest rows always, the panel only after a clean append
         run: |
-          git add "$PANEL"
+          git add "$MANIFESTS"
+          if [ "${{ steps.append.outcome }}" = "success" ]; then git add "$PANEL"; fi
           git diff --cached --quiet || git commit -m "A13 Actions: NIFTY panel sessions $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
       - name: One line to #fno-desk when the librarian failed (the append step alerts by itself)

@@ -65,6 +65,9 @@ RELEASE_REWRITTEN = "rewritten"  # present, but with other bytes than the first 
 # NIFTY option-chain panel (story A3, fno/research_data/nifty_panel.py)
 PANEL_FORMAT_UDIFF, PANEL_FORMAT_LEGACY = "udiff", "legacy"  # source_format: which F&O file a day's rows came from
 PANEL_INDEX_CLOSE = "index-close"  # the index-close file of a day (underlying and India VIX)
+# Why the daily panel job (story A13) cannot append a session yet
+PANEL_FO_FILE_MISSING, PANEL_INDEX_CLOSE_MISSING = "fo_file_missing", "index_close_missing"
+PANEL_INDEX_CLOSE_DIFFERS = "index_close_differs"
 PANEL_DAY_OK, PANEL_DAY_NO_FILE, PANEL_DAY_NO_INDEX = "ok", "no file", "no index close"  # a day's status (manifest)
 PANEL_DAY_FAILED = "failed"  # the day breaks the research-ready gate: the build fails, naming it
 NIFTY_SYMBOL, INDEX_OPTION, INDEX_FUTURE = "NIFTY", "IDO", "IDF"  # F&O symbol; UDiFF codes of index options, futures
@@ -150,6 +153,9 @@ PIPELINE_AREA, DERIVED_AREA = "pipeline", "derived"  # Drive areas beside raw/ a
 
 # Stories F1 and G5: the AI books' daily forecasts, one routine per book fired by the forecast-capture job
 AI_BOOKS = (BOOK2_HYBRID, BOOK3_AI)
+# Owner, 14 Oct 2026: the AI books' isolation for forecasts. The other AI book's same-day answer is sealed; the
+# routine still has the public repository and network, so this is not full F1 isolation (trading needs that).
+ISOLATION_SEALED_SAME_DAY = "sealed_same_day"
 ENV_ROUTINE_BOOK2_TRIGGER_ID = "FNO_ROUTINE_BOOK2_HYBRID_TRIGGER_ID"
 ENV_ROUTINE_BOOK2_TOKEN = "FNO_ROUTINE_BOOK2_HYBRID_TOKEN"
 ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"

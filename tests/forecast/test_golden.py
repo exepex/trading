@@ -18,8 +18,12 @@ def golden():
 
 
 def test_every_panel_day_equals_the_golden_values(golden):
+    """Every golden day must still be recomputed with equal values; a day the panel gained later (story A13, G1 v3)
+    is not part of the golden contract (ChatGPT review 30: historical golden days must match exactly)."""
     assert len(golden) >= 1900
-    assert differences(golden, forecast_golden_rows(load_app_config(), YEARS)) == []
+    last = max(r["date"] for r in golden)
+    recomputed = [r for r in forecast_golden_rows(load_app_config(), YEARS) if r["date"] <= last]
+    assert differences(golden, recomputed) == []
 
 
 def test_the_golden_file_has_values_on_almost_every_day(golden):

@@ -40,3 +40,7 @@ def audit_path(day: date, book: str) -> str:
 
 def fired_path(day: date) -> str:
     return f"{AI_FOLDER}/{day:%Y}/{day.isoformat()}_fired.json"
+
+
+def transcript_audit_path(day: date, book: str) -> str:
+    return f"{AI_FOLDER}/{day:%Y}/{day.isoformat()}_{book}_transcript_audit.json"

@@ -156,3 +156,38 @@ The code matches sections 2-3 above. No frozen file changed: v1's and v2's freez
   secrets; this container does not.
 - **Fixtures are older than the live window.** The fixture days are 2024 real subsets, not October 2026. NSE's current
   UDiFF format is the same one A3 reads from 2024 (some evidence: A3 built 2024 to 12 Oct 2026 with the same reader).
+
+## Addendum 2: response 69's seven changes, built (for the judge)
+
+Everything stays unwired and unscheduled. `FREEZE_v3.md` does not exist, so the job appends nothing. v1's and v2's
+freeze checks still pass, and no file they list changed.
+
+| # | Change (response 69) | Where | Test evidence |
+|---|---|---|---|
+| 1 | Per-day provenance | `PanelDayJob._provenance`. Each new day's entry carries `inputs_version`, `inputs_read_at` (an upper bound for the archive time: A9 records no save time, stated as a limit), `later_versions` (A11 SHA-256 and availability per input), `appended_at`, the calendar SHA-256, and A3's file names and SHA-256. The append commit is the commit adding the day to `manifest.json`. | `test_pending_sessions_are_appended_once_with_their_input_versions` |
+| 2 | Named input check, plus delay and retry | `input_problem` and `official_close_problem`, with reasons `fo_file_missing`, `index_close_missing` (including an O6 row not yet appended) and `index_close_differs` in `fno/constants.py` | `test_a_delayed_input_stops_with_its_reason_and_the_retry_appends_without_a_gap`, run for both inputs: a held-back file stops the run with nothing appended, B is never added over a missing A, and the restored file makes the retry append A and B. `test_an_official_close_not_appended_yet_or_from_another_version_stops_the_run` |
+| 3 | First archived version for both inputs | `first_archived_inputs`: Drive's raw area only, memoised so each file is fetched once | `test_the_first_archived_version_is_used_never_a_later_one`: a different revision sits in the revisions area, and the day records the first version's SHA-256 |
+| 4 | Start-of-run consistency, crash test, commit only on exit 0 | `PanelAppender.verify` (every file's SHA-256, content SHA-256 and rows; streaming, about 1 s on the real panel, which verifies). The run is all or nothing. In `panel-days.yml` the panel is committed only when the append succeeds; the A9 manifest rows are always committed. | `test_a_crash_between_the_year_file_and_the_manifest_is_refused_and_recovers`: a crash at the manifest swap is refused and named on the next run; restoring the committed files reads as before and appends cleanly |
+| 5 | Replay from the panel at the forecast's parent commit | `fno/forecast_scoring/replay.py` (`LiveReplay`), `recompute_live_day`, `forecast-scores replay --day` | `test_live_replay.py` (3). In a temporary git repo whose panel grows after the capture, the replay reads the parent commit's manifest and not HEAD's. A tampered pack is named. The real recompute reproduces golden case A's pack (only the calendar label differs). |
+| 6 | Experiment 1 freeze-hash test and reproduction command | `research/2026-10-12-experiment-1/README.md` | `tests/research/test_experiment_1_frozen.py`: all 45 FREEZE.md hashes hold at `0c1c957`, and `results_challenge.json` SHA-256 is `4826897e...` |
+| 7 | `PROTOCOL_v3.md` and live Q5 against the 15:00 pack | `research/forecasts/PROTOCOL_v3.md` (draft). The G4 change was built in parallel by the G4 session (f03cb63, judge 58): one resolver per mode, with the live one reading `LiveForecasts.pack_iv30` from each receipt-verified pack. On merging I dropped my own overlapping version (same rule, duplicate code) and kept theirs. | G4's `test_live_question_5_is_scored_against_the_pack_iv30_and_history_against_the_panel` (planted disagreement), passing |
+
+**Also done, as response 68 said:**
+- `tests/forecast/test_golden.py` now compares the golden file's own days.
+- `tests/forecast/test_backfill.py` now recomputes the back-fill's own days, with the pack hash being the manifest at
+  the back-fill's commit.
+- Both pass on today's panel, so CI stays green when the first append lands.
+
+**G4 coordination:**
+- The G4 session had already built live Q5 against the pack (f03cb63), so G4's scorer files are theirs, unchanged by
+  me.
+- I added only the replay (`fno/forecast_scoring/replay.py`, plus `recompute_live_day` and `build_live_replay` in its
+  wiring, and the `forecast-scores replay` command).
+- **Root-cause fix to `main`:** the merge 7f2c92e left `score_report.py` importing `ISOLATION` from
+  `fno/ai/record_writer.py`, which F1/G5 (d6d8c46) had moved to `fno/constants.py` as `ISOLATION_SEALED_SAME_DAY`
+  (same value, "sealed_same_day"). All G4 tests failed to import on `main`. That import now points at the constant.
+
+**Limits:**
+- The job has not run against the real Drive.
+- A9 does not record when it saved a file, so `inputs_read_at` is only an upper bound for the archive time.
+- The replay has no real live day to replay yet; it is proven on a temporary repository and on golden case A.

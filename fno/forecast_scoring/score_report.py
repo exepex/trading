@@ -13,8 +13,8 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import date
 
-from ..ai.record_writer import ISOLATION as ISOLATION_LABEL
 from ..constants import AI_BOOKS, BASELINE_BASE_RATE, BOOK1_RULES, FORECAST_QUESTIONS
+from ..constants import ISOLATION_SEALED_SAME_DAY as ISOLATION_LABEL
 from .scoring import ComparisonResult, ModeScores, QuestionScores
 
 SCHEMA = "forecast_scores/v1"
