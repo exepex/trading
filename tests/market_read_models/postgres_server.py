@@ -13,6 +13,7 @@ import tempfile
 from pathlib import Path
 
 SUPERUSER = "postgres"
+PLATFORM_SCHEMA = "create schema fno"
 MIGRATIONS = Path(__file__).resolve().parents[2] / "db" / "fno" / "migrations"
 
 
@@ -63,5 +64,6 @@ class PostgresServer:
         import psycopg
 
         with psycopg.connect(self.url, autocommit=True) as connection:
+            connection.execute(PLATFORM_SCHEMA)  # on Azure, X1's platform SQL creates the schema, not the migrations
             for migration in sorted(MIGRATIONS.glob("*.sql")):
                 connection.execute(migration.read_text(encoding="utf-8"))

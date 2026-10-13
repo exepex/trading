@@ -1,7 +1,8 @@
 -- The fno schema's read-model tables (story P6, following story P3's design: one history table with a unique
 -- (product, page_key, publication_id), and one current-publication pointer per product). Run by the migration role
 -- (X1); the runtime publisher role only inserts into fno.pages_history and upserts fno.current_publication.
-create schema if not exists fno;
+-- The fno schema itself is created by X1's platform SQL (omenix-dashboard platform/sql); fno_owner has no CREATE on the
+-- database by design, so even "create schema if not exists" is refused (13 Oct 2026, first real run).
 
 create table if not exists fno.pages_history (
     product         text        not null,
