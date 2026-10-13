@@ -69,3 +69,33 @@ itself, so the split is inferred from the price path. The builder's other 87 row
 3. **No heuristic in the contract** (such as "h above 3 × p"). A real crash would trip it, and a small split would
    pass it. The definition and the publisher's test are the right guard.
 4. **33 is rebuilt and the examples regenerated,** with the changed values listed, as was done for item 3.
+
+## Addendum: the contract-side fix (omenix-dashboard c48860a, `response_22_w11_split_adjusted.md`)
+
+**Points 1 to 3: ACCEPTED. Point 4: pending.** The builder's pushback (no per-row `adjusted` flag) is **ACCEPTED**.
+
+**Checks:** `check_contract` and `check_mapping` are green.
+
+**What the diff says now:**
+- **`PeriodChange`:** "% change on the close … back, that past close adjusted for every split and bonus since (NSE's
+  corporate-actions file …), so a 5:1 split is not a −80% year".
+- **`ScreenerStock`:** `h`, `l` and RSI are computed from adjusted closes; `p` and `v` are as traded.
+- **`OverviewQuote`:** `closes`, `hi52` and `lo52` are adjusted (index levels have none).
+- **The catalog sources** are updated.
+- **`TR-NSE-proposed`** names the KOTAKBANK case (about +3%) as an acceptance test.
+
+**Decisions on my four expected points:**
+
+| # | Expected | Decision |
+|---|---|---|
+| 1 | The rule stated in the contract | ACCEPTED |
+| 2 | The publisher adjusts from NSE's corporate-actions file, with KOTAKBANK as a named test | ACCEPTED, as story text. It is built in design's new `_platform/nse_actions.py` and in `fetch_nse.py`; the backend comes later. |
+| 3 | No heuristic | ACCEPTED |
+| 4 | Rebuild 33, regenerate the examples, list the changes | **Pending.** Today the served example still shows KOTAKBANK `y1` −79.15% and `h` 2,266, which now **contradicts the contract's own definition**. It must close with design's rebuild (the builder says so). Until then, W11's examples carry a known wrong value. |
+
+**The pushback: no per-row `adjusted` flag. ACCEPTED** (reasoning, checked).
+- Frozen 33 and 34 have no element that shows adjustment.
+- `check_mapping` requires every field to serve an element, so a flag would be a field with no screen.
+- `company.yaml` has an `adjusted` flag because its bars are raw sessions that a reader may re-adjust. Here the served
+  figures are already derived, so the definition plus the publisher's test is the right guard.
+- A visible "adjusted for a 5:1 split" marker would be a design change for the owner, as the orchestrator says.
