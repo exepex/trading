@@ -69,8 +69,8 @@ def _without(panel, kind):
     return make_panel(DAYS, zigzag_closes(21), options={DAY: quotes}, futures=panel.futures)
 
 
-def _untraded(panel, kind):
-    quotes = tuple(q._replace(volume=0) if q.strike == SPOT and q.kind == kind else q for q in panel.options[DAY])
+def _untraded(panel, kind, volume=0):
+    quotes = tuple(q._replace(volume=volume) if q.strike == SPOT and q.kind == kind else q for q in panel.options[DAY])
     return make_panel(DAYS, zigzag_closes(21), options={DAY: quotes}, futures=panel.futures)
 
 
@@ -78,6 +78,14 @@ def _untraded(panel, kind):
 def test_f1_is_none_for_a_missing_or_untraded_atm_leg(kind):
     assert f1(_without(f1_panel(), kind)) is None
     assert f1(_untraded(f1_panel(), kind)) is None
+
+
+@pytest.mark.parametrize("kind", ["CE", "PE"])
+def test_f1_needs_at_least_10_contracts_on_the_thinner_atm_leg(kind):
+    """Protocol v2.2 (owner, 13 Oct 2026): 9 contracts on either ATM leg gives None, never a settlement price; 10 is
+    enough."""
+    assert f1(_untraded(f1_panel(), kind, volume=9)) is None
+    assert f1(_untraded(f1_panel(), kind, volume=10)) == pytest.approx(f1(f1_panel()))
 
 
 @pytest.mark.parametrize(
