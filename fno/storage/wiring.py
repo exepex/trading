@@ -47,6 +47,9 @@ COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
 REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
 LAPTOP_TOOL_FOLDER = Path(__file__).resolve().parents[2] / "tools" / "nse_raw_download"
 PARTICIPANT_OI_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest_participant_oi.csv"  # SHA-256 of NSE's files (story A8)
+FO_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest.csv"  # the laptop tool's download of the current F&O format
+LEGACY_FO_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest_fo_bhavcopy_legacy.csv"  # read from Drive (story A9)
+INDEX_CLOSE_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest_index_close.csv"  # read from Drive (story A9)
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -140,9 +143,11 @@ def validate_participant_oi(filename: str, data: bytes) -> None:
 
 
 COVERAGE_DATASETS = (
-    CoverageDataset(NseLegacyFoSource, read_fo_file),
-    CoverageDataset(NseDailyFoSource, read_fo_file),
-    CoverageDataset(NseIndexCloseSource, validate_index_close),
+    CoverageDataset(NseLegacyFoSource, FingerprintCheck(read_fo_file, read_fingerprints(LEGACY_FO_MANIFEST))),
+    CoverageDataset(NseDailyFoSource, FingerprintCheck(read_fo_file, read_fingerprints(FO_MANIFEST))),
+    CoverageDataset(
+        NseIndexCloseSource, FingerprintCheck(validate_index_close, read_fingerprints(INDEX_CLOSE_MANIFEST))
+    ),
     CoverageDataset(
         ParticipantOiSource, FingerprintCheck(validate_participant_oi, read_fingerprints(PARTICIPANT_OI_MANIFEST))
     ),
@@ -163,14 +168,31 @@ def build_librarian(name: str, log=print) -> RawDataLibrarian:
     return RawDataLibrarian(store, source, dataset.validate, build_session_calendar(), build_file_exceptions(), log)
 
 
+FINGERPRINT_SOURCES = {
+    "fo-bhavcopy": NseDailyFoSource,
+    "fo-bhavcopy-legacy": NseLegacyFoSource,
+    "index-close": NseIndexCloseSource,
+    "participant-oi": ParticipantOiSource,
+}
+FINGERPRINT_MANIFESTS = {
+    "fo-bhavcopy": FO_MANIFEST,
+    "fo-bhavcopy-legacy": LEGACY_FO_MANIFEST,
+    "index-close": INDEX_CLOSE_MANIFEST,
+    "participant-oi": PARTICIPANT_OI_MANIFEST,
+}
+
+
+def build_drive_reader() -> RawFileStore:
+    """The shared Drive project folder's `raw` area, read with the service account."""
+    stores = build_raw_stores()
+    if not stores:
+        raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to read Drive")
+    return stores[-1]
+
+
 def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
     """The coverage check of the shared Drive project folder's `raw` area (read-only), or of the given store."""
-    if store is None:
-        stores = build_raw_stores()
-        if not stores:
-            raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to check Drive")
-        store = stores[-1]
-    return CoverageCheck(store, build_session_calendar(), build_file_exceptions())
+    return CoverageCheck(store or build_drive_reader(), build_session_calendar(), build_file_exceptions())
 
 
 PANEL_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "nifty-panel"  # story A3's output

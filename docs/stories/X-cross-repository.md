@@ -470,7 +470,10 @@ honest empty states ("no approved strategy yet", "no hybrid strategy yet"); grou
 3. Components depend only on `HomeData`; an import-graph test enforces it.
 4. No figure adds numbers across groups, markets or currencies, except the owner's per-group totals (test over the
    rendered numbers against the fixture).
-5. Code size, typecheck, tests and build pass.
+5. No screen names an AI model (owner rule): one dashboard display-name rule maps backend strategy names to their
+   approach (Rule-based, Hybrid, AI team); a test renders every fixture state and finds no model name (e.g. Opus,
+   Sonnet, Haiku, GPT, Gemini). Added 13 Oct 2026 after W8 judge 19 found "AI combined (Opus)" in stock payload data.
+6. Code size, typecheck, tests and build pass.
 
 **Test plan:** contract and rendering tests; screenshot comparison; check_page.
 

@@ -11,6 +11,7 @@ from .config import ROOT, load_app_config
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
 from .research_data.participant_oi_cli import add_participant_oi_parser
+from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
 
 
@@ -134,6 +135,7 @@ def main(argv: list[str] | None = None) -> int:
     add_account_parser(sub)
     add_participant_oi_parser(sub)
     add_librarian_parser(sub)
+    add_fingerprints_parser(sub)
 
     args = p.parse_args(argv)
     return args.func(args)

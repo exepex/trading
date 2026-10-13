@@ -109,7 +109,8 @@ def test_real_nse_files_pass_their_validators():
     for source in (NseDailyFoSource, NseLegacyFoSource, NseIndexCloseSource):
         dataset = next(d for d in COVERAGE_DATASETS if d.source is source)
         filename = source.filename_for(day)
-        dataset.validate(filename, (NSE / filename).read_bytes())
+        # The fixtures are trimmed copies of NSE's files, so they pass the content check, not the manifest's SHA-256.
+        dataset.validate.validate(filename, (NSE / filename).read_bytes())
 
 
 def test_index_close_without_india_vix_is_damaged():
