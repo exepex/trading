@@ -459,4 +459,4 @@ coverage.
 **Judge verifies:** runs data-coverage for participant OI; opens 5 random files in Drive and compares their SHA-256
 with the manifest; plants a different file at an existing path and confirms it is refused.
 
-**Depends:** A1, A8 (manifest) · **Size:** M · **Status:** next
+**Depends:** A1, A8 (manifest) · **Size:** M · **Status:** built; awaiting judge
