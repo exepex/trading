@@ -9,6 +9,11 @@ Frozen on 14 Oct 2026 (IST), after:
 - the orchestrator's confirmation to freeze, in the order: protocol commit, then this record together with
   `panel-days.yml`'s schedule (that workflow is in the `panel-days` section, so both change in this one commit).
 
+**Amended before confirmation, 14 Oct 2026:** `panel-days.yml`'s hash was re-recorded, from `5a7ec8dd156a6588c11edfb6cb592f3bdb3290d6aa6819c20bf7a96a0d1f9587` to `6971c6876c1bb4c157e74bb960653430eb8704c53e83f9364a7260b17f124b5a`.
+The change fixes the archive steps' end day and the alert, two bugs found on the first run (38474280810). The protocol
+commit is unchanged. The orchestrator approved this before confirming the freeze and before the judge's check of this
+record. The protocol text, the `forecast-scores` section and every other hash are unchanged.
+
 No append under v3 and no live question 5 score existed at the freeze. Versions 1 and 2 stay frozen and unchanged
 (`FREEZE.md`, `FREEZE_v2.md`).
 
@@ -40,7 +45,7 @@ The daily NIFTY panel job (story A13) checks this before every run.
 | `fno/research_data/panel_append.py` | `ccd187c5eda4b09d1043067578ea02497dcddb1aacec1231f78e37be98eafdde` |
 | `fno/pipeline/panel_days.py` | `57b16a6c1025b87c0e1a8ba6d721cb4f3624aa6bc540ac81dd440c33981421a0` |
 | `fno/pipeline/panel_wiring.py` | `980d0e374a8eb17891337a16639809e62fd108c6ae8c203fb6ca3c58baa717bc` |
-| `.github/workflows/panel-days.yml` | `5a7ec8dd156a6588c11edfb6cb592f3bdb3290d6aa6819c20bf7a96a0d1f9587` |
+| `.github/workflows/panel-days.yml` | `6971c6876c1bb4c157e74bb960653430eb8704c53e83f9364a7260b17f124b5a` |
 
 ## Checked by `forecast-scores`
 
