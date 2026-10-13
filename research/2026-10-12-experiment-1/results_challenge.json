@@ -1,0 +1,4890 @@
+{
+ "decisive": true,
+ "experiment": "2026-10-12-experiment-1",
+ "inputs": {
+  "config_terms": "8f65c3ab9e2f1eef4c7f144b56db31956ce22b4c435f261a0ba08a9f29b45118",
+  "events": "6429b5b243e289fa09d3e4bc1eb141d3dda0c24ef8c0eeb8a81769fa81fb3c19",
+  "numpy": "2.5.3",
+  "panel_manifest": "89a063763de5159cf9ce1b4bc259ed4288ffdbb493a3369ceb8e3a8e75bf7636",
+  "session_calendar": "e34fbad752bb244e6116c1e474902208a72a03f5af6037c6d75bf9baa6756b4d"
+ },
+ "ledger": {
+  "hypotheses": 8,
+  "registered_rows": 10
+ },
+ "note": "Pre-registered historical holdout on close-proxy data (daily closes), not a 15:00 desk validation and not a forward test; anything that passes still needs forward paper evidence.",
+ "opportunities": [
+  {
+   "cycle": {
+    "decision_day": "2019-01-14",
+    "entry_day": "2019-01-15",
+    "exit_day": "2019-02-07",
+    "expiry": "2019-02-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 291.163171,
+     "exit_outside_payoff": false,
+     "gross": 45.5,
+     "max_loss": 9235.022728,
+     "needs_settlement": false,
+     "net": -765.663171,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 235.605227,
+     "exit_outside_payoff": false,
+     "gross": 3831.75,
+     "max_loss": 7920.752876,
+     "needs_settlement": true,
+     "net": 3076.144773,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 275.855112,
+     "exit_outside_payoff": false,
+     "gross": 861.25,
+     "max_loss": 4644.534674,
+     "needs_settlement": false,
+     "net": 65.394888,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-02-11",
+    "entry_day": "2019-02-12",
+    "exit_day": "2019-03-07",
+    "expiry": "2019-03-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.789577,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
+    },
+    "SC": {
+     "charges": 237.549876,
+     "exit_outside_payoff": false,
+     "gross": 3175.25,
+     "max_loss": 5496.917431,
+     "needs_settlement": true,
+     "net": 2417.700124,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 275.888922,
+     "exit_outside_payoff": false,
+     "gross": 2804.75,
+     "max_loss": 2126.753515,
+     "needs_settlement": true,
+     "net": 2008.861078,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-03-11",
+    "entry_day": "2019-03-12",
+    "exit_day": "2019-04-04",
+    "expiry": "2019-04-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 306.722628,
+     "exit_outside_payoff": false,
+     "gross": 861.25,
+     "max_loss": 8793.994663,
+     "needs_settlement": true,
+     "net": 34.527372,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 243.238736,
+     "exit_outside_payoff": false,
+     "gross": 1391.0,
+     "max_loss": 5396.430262,
+     "needs_settlement": true,
+     "net": 627.761264,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 288.083317,
+     "exit_outside_payoff": false,
+     "gross": -1157.0,
+     "max_loss": 5155.145317,
+     "needs_settlement": false,
+     "net": -1965.083317,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-04-15",
+    "entry_day": "2019-04-16",
+    "exit_day": "2019-05-09",
+    "expiry": "2019-05-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 12.697319,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 395.7351,
+     "exit_outside_payoff": false,
+     "gross": 432.25,
+     "max_loss": 6700.339906,
+     "needs_settlement": false,
+     "net": -483.4851,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 273.083001,
+     "exit_outside_payoff": true,
+     "gross": -10552.75,
+     "max_loss": 8151.908229,
+     "needs_settlement": true,
+     "net": -11345.833001,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 370.433417,
+     "exit_outside_payoff": false,
+     "gross": -497.25,
+     "max_loss": 4083.867644,
+     "needs_settlement": false,
+     "net": -1387.683417,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-05-13",
+    "entry_day": "2019-05-14",
+    "exit_day": "2019-06-06",
+    "expiry": "2019-06-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 395.150494,
+     "exit_outside_payoff": false,
+     "gross": 344.5,
+     "max_loss": 6683.550738,
+     "needs_settlement": false,
+     "net": -570.650494,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 290.681532,
+     "exit_outside_payoff": false,
+     "gross": -4273.75,
+     "max_loss": 8688.469304,
+     "needs_settlement": true,
+     "net": -5084.431532,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 366.132918,
+     "exit_outside_payoff": false,
+     "gross": -666.25,
+     "max_loss": 2678.672565,
+     "needs_settlement": false,
+     "net": -1552.382918,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-06-10",
+    "entry_day": "2019-06-11",
+    "exit_day": "2019-07-04",
+    "expiry": "2019-07-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -4.634563,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    },
+    "SC": {
+     "charges": 238.461854,
+     "exit_outside_payoff": false,
+     "gross": 4914.0,
+     "max_loss": 9358.747692,
+     "needs_settlement": true,
+     "net": 4155.538146,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-07-15",
+    "entry_day": "2019-07-16",
+    "exit_day": "2019-08-08",
+    "expiry": "2019-08-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -0.439398,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 337.564741,
+     "exit_outside_payoff": true,
+     "gross": 16604.25,
+     "max_loss": 4447.164794,
+     "needs_settlement": true,
+     "net": 15746.685259,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SC": {
+     "charges": 256.585101,
+     "exit_outside_payoff": false,
+     "gross": -4290.0,
+     "max_loss": 7940.615197,
+     "needs_settlement": false,
+     "net": -5066.585101,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 298.531678,
+     "exit_outside_payoff": true,
+     "gross": -12909.0,
+     "max_loss": 7411.498733,
+     "needs_settlement": false,
+     "net": -13727.531678,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-08-13",
+    "entry_day": "2019-08-14",
+    "exit_day": "2019-09-05",
+    "expiry": "2019-09-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 297.512259,
+     "exit_outside_payoff": false,
+     "gross": 4390.75,
+     "max_loss": 6884.052872,
+     "needs_settlement": true,
+     "net": 3573.237741,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SC": {
+     "charges": 248.639872,
+     "exit_outside_payoff": false,
+     "gross": 6831.5,
+     "max_loss": 3680.127887,
+     "needs_settlement": true,
+     "net": 6062.860128,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 282.315819,
+     "exit_outside_payoff": false,
+     "gross": -3269.5,
+     "max_loss": 9571.25762,
+     "needs_settlement": true,
+     "net": -4071.815819,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-09-16",
+    "entry_day": "2019-09-17",
+    "exit_day": "2019-10-10",
+    "expiry": "2019-10-31"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -0.47678,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 322.443841,
+     "exit_outside_payoff": false,
+     "gross": 7322.25,
+     "max_loss": 8549.318469,
+     "needs_settlement": true,
+     "net": 6479.806159,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SC": {
+     "charges": 261.137752,
+     "exit_outside_payoff": false,
+     "gross": 1956.5,
+     "max_loss": 6675.519797,
+     "needs_settlement": true,
+     "net": 1175.362248,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 304.631567,
+     "exit_outside_payoff": false,
+     "gross": -1339.0,
+     "max_loss": 4679.021876,
+     "needs_settlement": false,
+     "net": -2163.631567,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-10-14",
+    "entry_day": "2019-10-15",
+    "exit_day": "2019-11-07",
+    "expiry": "2019-11-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    },
+    "SC": {
+     "charges": 295.088986,
+     "exit_outside_payoff": false,
+     "gross": -3948.75,
+     "max_loss": 8957.917561,
+     "needs_settlement": true,
+     "net": -4763.838986,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-11-11",
+    "entry_day": "2019-11-13",
+    "exit_day": "2019-12-05",
+    "expiry": "2019-12-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 4.566449,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    },
+    "SC": {
+     "charges": 236.391248,
+     "exit_outside_payoff": false,
+     "gross": 1368.25,
+     "max_loss": 6849.45707,
+     "needs_settlement": false,
+     "net": 611.858752,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 286.49631,
+     "exit_outside_payoff": false,
+     "gross": 3204.5,
+     "max_loss": 1089.906927,
+     "needs_settlement": true,
+     "net": 2398.00369,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2019-12-16",
+    "entry_day": "2019-12-17",
+    "exit_day": "2020-01-09",
+    "expiry": "2020-01-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.940092,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 275.649858,
+     "exit_outside_payoff": false,
+     "gross": 1368.25,
+     "max_loss": 9944.033948,
+     "needs_settlement": true,
+     "net": 572.600142,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SC": {
+     "charges": 226.259147,
+     "exit_outside_payoff": false,
+     "gross": 1709.5,
+     "max_loss": 7447.725885,
+     "needs_settlement": false,
+     "net": 963.240853,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 264.417578,
+     "exit_outside_payoff": false,
+     "gross": 1261.0,
+     "max_loss": 5062.617019,
+     "needs_settlement": false,
+     "net": 476.582422,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-01-13",
+    "entry_day": "2020-01-14",
+    "exit_day": "2020-02-06",
+    "expiry": "2020-02-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 289.846205,
+     "exit_outside_payoff": false,
+     "gross": 916.5,
+     "max_loss": 8346.587319,
+     "needs_settlement": false,
+     "net": 106.653795,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 236.704961,
+     "exit_outside_payoff": false,
+     "gross": 2314.0,
+     "max_loss": 9447.137869,
+     "needs_settlement": true,
+     "net": 1557.295039,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 276.494841,
+     "exit_outside_payoff": false,
+     "gross": -559.0,
+     "max_loss": 7346.855629,
+     "needs_settlement": true,
+     "net": -1355.494841,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-02-10",
+    "entry_day": "2020-02-11",
+    "exit_day": "2020-03-05",
+    "expiry": "2020-03-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 362.436774,
+     "exit_outside_payoff": true,
+     "gross": 12483.25,
+     "max_loss": 9321.717916,
+     "needs_settlement": true,
+     "net": 11600.813226,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SC": {
+     "charges": 299.704606,
+     "exit_outside_payoff": false,
+     "gross": 5339.75,
+     "max_loss": 4896.475534,
+     "needs_settlement": true,
+     "net": 4520.045394,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 347.99738,
+     "exit_outside_payoff": false,
+     "gross": -2691.0,
+     "max_loss": 5430.510353,
+     "needs_settlement": false,
+     "net": -3558.99738,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-03-16",
+    "entry_day": "2020-03-17",
+    "exit_day": "2020-04-09",
+    "expiry": "2020-04-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 13.390316,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    },
+    "SC": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    },
+    "SF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-04-13",
+    "entry_day": "2020-04-15",
+    "exit_day": "2020-05-07",
+    "expiry": "2020-05-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -43.717687,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    },
+    "SC": {
+     "charges": 429.374357,
+     "exit_outside_payoff": false,
+     "gross": 4884.75,
+     "max_loss": 6585.071673,
+     "needs_settlement": true,
+     "net": 3935.375643,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "unfillable",
+     "width": null
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-05-11",
+    "entry_day": "2020-05-12",
+    "exit_day": "2020-06-04",
+    "expiry": "2020-06-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 448.227238,
+     "exit_outside_payoff": false,
+     "gross": 1228.5,
+     "max_loss": 5876.896157,
+     "needs_settlement": false,
+     "net": 260.272762,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 367.112392,
+     "exit_outside_payoff": false,
+     "gross": -4004.0,
+     "max_loss": 8182.63007,
+     "needs_settlement": false,
+     "net": -4891.112392,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 418.703741,
+     "exit_outside_payoff": false,
+     "gross": -1943.5,
+     "max_loss": 4181.843967,
+     "needs_settlement": false,
+     "net": -2882.203741,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-06-15",
+    "entry_day": "2020-06-16",
+    "exit_day": "2020-07-09",
+    "expiry": "2020-07-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 4.158615,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 449.057276,
+     "exit_outside_payoff": false,
+     "gross": -614.25,
+     "max_loss": 7024.408279,
+     "needs_settlement": false,
+     "net": -1583.307276,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 368.255668,
+     "exit_outside_payoff": false,
+     "gross": -2778.75,
+     "max_loss": 6080.612317,
+     "needs_settlement": false,
+     "net": -3667.005668,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 422.802498,
+     "exit_outside_payoff": false,
+     "gross": 178.75,
+     "max_loss": 3033.306493,
+     "needs_settlement": false,
+     "net": -764.052498,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-07-13",
+    "entry_day": "2020-07-14",
+    "exit_day": "2020-08-06",
+    "expiry": "2020-08-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 7.291974,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 394.6468,
+     "exit_outside_payoff": true,
+     "gross": 419.25,
+     "max_loss": 6939.214538,
+     "needs_settlement": false,
+     "net": -495.3968,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 318.110498,
+     "exit_outside_payoff": false,
+     "gross": -916.5,
+     "max_loss": 6584.234052,
+     "needs_settlement": false,
+     "net": -1754.610498,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 367.866536,
+     "exit_outside_payoff": false,
+     "gross": -734.5,
+     "max_loss": 3412.902575,
+     "needs_settlement": false,
+     "net": -1622.366536,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-08-10",
+    "entry_day": "2020-08-11",
+    "exit_day": "2020-09-03",
+    "expiry": "2020-09-24"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 352.53945,
+     "exit_outside_payoff": false,
+     "gross": 7718.75,
+     "max_loss": 2112.392975,
+     "needs_settlement": true,
+     "net": 6846.21055,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 296.749255,
+     "exit_outside_payoff": false,
+     "gross": 6136.0,
+     "max_loss": 1648.188576,
+     "needs_settlement": true,
+     "net": 5319.250745,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 320.48901,
+     "exit_outside_payoff": false,
+     "gross": 149.5,
+     "max_loss": 3890.797515,
+     "needs_settlement": false,
+     "net": -690.98901,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-09-14",
+    "entry_day": "2020-09-15",
+    "exit_day": "2020-10-08",
+    "expiry": "2020-10-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 5.2424,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 340.354801,
+     "exit_outside_payoff": false,
+     "gross": 471.25,
+     "max_loss": 9189.881064,
+     "needs_settlement": false,
+     "net": -389.104801,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 274.526454,
+     "exit_outside_payoff": false,
+     "gross": -123.5,
+     "max_loss": 7290.185716,
+     "needs_settlement": false,
+     "net": -918.026454,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 321.816096,
+     "exit_outside_payoff": false,
+     "gross": 94.25,
+     "max_loss": 3913.172314,
+     "needs_settlement": false,
+     "net": -747.566096,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-10-12",
+    "entry_day": "2020-10-13",
+    "exit_day": "2020-11-05",
+    "expiry": "2020-11-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": null,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 341.472403,
+     "exit_outside_payoff": false,
+     "gross": 8664.5,
+     "max_loss": 8101.650596,
+     "needs_settlement": true,
+     "net": 7803.027597,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SC": {
+     "charges": 298.550617,
+     "exit_outside_payoff": false,
+     "gross": 1521.0,
+     "max_loss": 7921.4799,
+     "needs_settlement": true,
+     "net": 702.449383,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 329.422118,
+     "exit_outside_payoff": false,
+     "gross": 845.0,
+     "max_loss": 2341.120789,
+     "needs_settlement": false,
+     "net": -4.422118,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-11-17",
+    "entry_day": "2020-11-18",
+    "exit_day": "2020-12-10",
+    "expiry": "2020-12-31"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.859648,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 359.717877,
+     "exit_outside_payoff": false,
+     "gross": 130.0,
+     "max_loss": 9733.206503,
+     "needs_settlement": false,
+     "net": -749.717877,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 280.910741,
+     "exit_outside_payoff": false,
+     "gross": -3708.25,
+     "max_loss": 9601.359768,
+     "needs_settlement": false,
+     "net": -4509.160741,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 340.471241,
+     "exit_outside_payoff": false,
+     "gross": -1634.75,
+     "max_loss": 4526.080694,
+     "needs_settlement": false,
+     "net": -2495.221241,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2020-12-14",
+    "entry_day": "2020-12-15",
+    "exit_day": "2021-01-07",
+    "expiry": "2021-01-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 6.039883,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
+    },
+    "SC": {
+     "charges": 315.272327,
+     "exit_outside_payoff": false,
+     "gross": -5700.5,
+     "max_loss": 7175.020819,
+     "needs_settlement": false,
+     "net": -6535.772327,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SF": {
+     "charges": 377.275652,
+     "exit_outside_payoff": true,
+     "gross": -890.5,
+     "max_loss": 829.329129,
+     "needs_settlement": false,
+     "net": -1787.775652,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-01-11",
+    "entry_day": "2021-01-12",
+    "exit_day": "2021-02-04",
+    "expiry": "2021-02-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 6.859461,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
+    },
+    "SC": {
+     "charges": 330.406886,
+     "exit_outside_payoff": false,
+     "gross": 1755.0,
+     "max_loss": 5065.06949,
+     "needs_settlement": false,
+     "net": 904.593114,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 397.877981,
+     "exit_outside_payoff": false,
+     "gross": 1439.75,
+     "max_loss": 2201.302677,
+     "needs_settlement": true,
+     "net": 521.872019,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-02-08",
+    "entry_day": "2021-02-09",
+    "exit_day": "2021-03-04",
+    "expiry": "2021-03-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -2.830102,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 417.480297,
+     "exit_outside_payoff": false,
+     "gross": 789.75,
+     "max_loss": 8792.666,
+     "needs_settlement": false,
+     "net": -147.730297,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 328.142848,
+     "exit_outside_payoff": false,
+     "gross": 2265.25,
+     "max_loss": 6634.547983,
+     "needs_settlement": false,
+     "net": 1417.107152,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 396.791114,
+     "exit_outside_payoff": false,
+     "gross": 448.5,
+     "max_loss": 3157.232885,
+     "needs_settlement": false,
+     "net": -468.291114,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-03-15",
+    "entry_day": "2021-03-16",
+    "exit_day": "2021-04-08",
+    "expiry": "2021-04-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -2.058504,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 384.008976,
+     "exit_outside_payoff": false,
+     "gross": 35.75,
+     "max_loss": 6792.013277,
+     "needs_settlement": false,
+     "net": -868.258976,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 293.376707,
+     "exit_outside_payoff": false,
+     "gross": 3445.0,
+     "max_loss": 7011.593422,
+     "needs_settlement": false,
+     "net": 2631.623293,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 359.283877,
+     "exit_outside_payoff": false,
+     "gross": 1452.75,
+     "max_loss": 2751.592455,
+     "needs_settlement": false,
+     "net": 573.466123,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-04-12",
+    "entry_day": "2021-04-13",
+    "exit_day": "2021-05-06",
+    "expiry": "2021-05-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.214744,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
+    },
+    "SC": {
+     "charges": 303.294908,
+     "exit_outside_payoff": false,
+     "gross": 585.0,
+     "max_loss": 7664.713875,
+     "needs_settlement": false,
+     "net": -238.294908,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 373.559117,
+     "exit_outside_payoff": false,
+     "gross": 689.0,
+     "max_loss": 2721.974835,
+     "needs_settlement": false,
+     "net": -204.559117,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-05-10",
+    "entry_day": "2021-05-11",
+    "exit_day": "2021-06-03",
+    "expiry": "2021-06-24"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -0.630373,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 433.622615,
+     "exit_outside_payoff": false,
+     "gross": 15057.25,
+     "max_loss": 4152.63364,
+     "needs_settlement": true,
+     "net": 14103.627385,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SC": {
+     "charges": 359.498972,
+     "exit_outside_payoff": false,
+     "gross": -2275.0,
+     "max_loss": 6428.658378,
+     "needs_settlement": true,
+     "net": -3154.498972,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 411.970102,
+     "exit_outside_payoff": false,
+     "gross": -611.0,
+     "max_loss": 2248.670815,
+     "needs_settlement": false,
+     "net": -1542.970102,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-06-14",
+    "entry_day": "2021-06-15",
+    "exit_day": "2021-07-08",
+    "expiry": "2021-07-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.619535,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 318.494845,
+     "exit_outside_payoff": false,
+     "gross": -760.5,
+     "max_loss": 9870.87003,
+     "needs_settlement": false,
+     "net": -1598.994845,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 255.450898,
+     "exit_outside_payoff": false,
+     "gross": 1358.5,
+     "max_loss": 3519.041637,
+     "needs_settlement": false,
+     "net": 583.049102,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SF": {
+     "charges": 304.690314,
+     "exit_outside_payoff": false,
+     "gross": 2174.25,
+     "max_loss": 3776.410492,
+     "needs_settlement": false,
+     "net": 1349.559686,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-07-12",
+    "entry_day": "2021-07-13",
+    "exit_day": "2021-08-05",
+    "expiry": "2021-08-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 5.657794,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 342.336068,
+     "exit_outside_payoff": false,
+     "gross": 383.5,
+     "max_loss": 9615.729828,
+     "needs_settlement": false,
+     "net": -478.836068,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 295.353484,
+     "exit_outside_payoff": false,
+     "gross": 5180.5,
+     "max_loss": 1925.618456,
+     "needs_settlement": true,
+     "net": 4365.146516,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 322.602325,
+     "exit_outside_payoff": false,
+     "gross": -607.75,
+     "max_loss": 3549.947861,
+     "needs_settlement": false,
+     "net": -1450.352325,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-08-16",
+    "entry_day": "2021-08-17",
+    "exit_day": "2021-09-09",
+    "expiry": "2021-09-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.872295,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 372.506475,
+     "exit_outside_payoff": false,
+     "gross": 100.75,
+     "max_loss": 9390.854675,
+     "needs_settlement": false,
+     "net": -791.756475,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 277.355372,
+     "exit_outside_payoff": false,
+     "gross": -5531.5,
+     "max_loss": 9651.540892,
+     "needs_settlement": false,
+     "net": -6328.855372,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 351.116502,
+     "exit_outside_payoff": false,
+     "gross": -2431.0,
+     "max_loss": 4599.122599,
+     "needs_settlement": false,
+     "net": -3302.116502,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-09-13",
+    "entry_day": "2021-09-14",
+    "exit_day": "2021-10-07",
+    "expiry": "2021-10-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.673261,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 348.770021,
+     "exit_outside_payoff": false,
+     "gross": 708.5,
+     "max_loss": 9280.451666,
+     "needs_settlement": false,
+     "net": -160.270021,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 263.028769,
+     "exit_outside_payoff": false,
+     "gross": -1283.75,
+     "max_loss": 9318.504979,
+     "needs_settlement": false,
+     "net": -2066.778769,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 330.052193,
+     "exit_outside_payoff": false,
+     "gross": -1306.5,
+     "max_loss": 4823.342981,
+     "needs_settlement": false,
+     "net": -2156.552193,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-10-11",
+    "entry_day": "2021-10-12",
+    "exit_day": "2021-11-03",
+    "expiry": "2021-11-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 4.055424,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 366.026675,
+     "exit_outside_payoff": false,
+     "gross": -208.0,
+     "max_loss": 7024.977746,
+     "needs_settlement": false,
+     "net": -1094.026675,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 273.659176,
+     "exit_outside_payoff": false,
+     "gross": 3461.25,
+     "max_loss": 8935.211069,
+     "needs_settlement": false,
+     "net": 2667.590824,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 343.366227,
+     "exit_outside_payoff": false,
+     "gross": 1517.75,
+     "max_loss": 3362.304637,
+     "needs_settlement": false,
+     "net": 654.383773,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-11-15",
+    "entry_day": "2021-11-16",
+    "exit_day": "2021-12-09",
+    "expiry": "2021-12-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.023521,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 363.196439,
+     "exit_outside_payoff": false,
+     "gross": -48.75,
+     "max_loss": 7116.102768,
+     "needs_settlement": false,
+     "net": -931.946439,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 269.516067,
+     "exit_outside_payoff": false,
+     "gross": 2327.0,
+     "max_loss": 9332.536187,
+     "needs_settlement": false,
+     "net": 1537.483933,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 340.336552,
+     "exit_outside_payoff": false,
+     "gross": 871.0,
+     "max_loss": 3655.266992,
+     "needs_settlement": false,
+     "net": 10.663448,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2021-12-13",
+    "entry_day": "2021-12-14",
+    "exit_day": "2022-01-06",
+    "expiry": "2022-01-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -3.363194,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 402.540035,
+     "exit_outside_payoff": false,
+     "gross": -169.0,
+     "max_loss": 7068.726199,
+     "needs_settlement": false,
+     "net": -1091.540035,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 297.220928,
+     "exit_outside_payoff": false,
+     "gross": -351.0,
+     "max_loss": 7742.209092,
+     "needs_settlement": false,
+     "net": -1168.220928,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 376.263031,
+     "exit_outside_payoff": false,
+     "gross": -507.0,
+     "max_loss": 3428.913506,
+     "needs_settlement": false,
+     "net": -1403.263031,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-01-10",
+    "entry_day": "2022-01-11",
+    "exit_day": "2022-02-03",
+    "expiry": "2022-02-24"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.776161,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 409.581867,
+     "exit_outside_payoff": false,
+     "gross": -2151.5,
+     "max_loss": 9724.05585,
+     "needs_settlement": false,
+     "net": -3081.081867,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 316.88114,
+     "exit_outside_payoff": false,
+     "gross": 2411.5,
+     "max_loss": 7249.944637,
+     "needs_settlement": false,
+     "net": 1574.61886,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 394.287272,
+     "exit_outside_payoff": false,
+     "gross": 2996.5,
+     "max_loss": 2982.100379,
+     "needs_settlement": false,
+     "net": 2082.212728,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-02-14",
+    "entry_day": "2022-02-15",
+    "exit_day": "2022-03-10",
+    "expiry": "2022-03-31"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -0.635983,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 456.039572,
+     "exit_outside_payoff": false,
+     "gross": -1729.0,
+     "max_loss": 6916.26311,
+     "needs_settlement": false,
+     "net": -2705.039572,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 350.335338,
+     "exit_outside_payoff": false,
+     "gross": 107.25,
+     "max_loss": 7850.024747,
+     "needs_settlement": false,
+     "net": -763.085338,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 430.595139,
+     "exit_outside_payoff": false,
+     "gross": 806.0,
+     "max_loss": 3211.005052,
+     "needs_settlement": false,
+     "net": -144.595139,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-03-14",
+    "entry_day": "2022-03-15",
+    "exit_day": "2022-04-07",
+    "expiry": "2022-04-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -5.715201,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 535.215604,
+     "exit_outside_payoff": true,
+     "gross": 965.25,
+     "max_loss": 7270.520749,
+     "needs_settlement": false,
+     "net": -89.965604,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 413.687715,
+     "exit_outside_payoff": false,
+     "gross": -2457.0,
+     "max_loss": 6578.920286,
+     "needs_settlement": false,
+     "net": -3390.687715,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 505.822266,
+     "exit_outside_payoff": false,
+     "gross": -1657.5,
+     "max_loss": 2753.144129,
+     "needs_settlement": false,
+     "net": -2683.322266,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-04-11",
+    "entry_day": "2022-04-12",
+    "exit_day": "2022-05-05",
+    "expiry": "2022-05-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 0.48635,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 444.830546,
+     "exit_outside_payoff": false,
+     "gross": 182.0,
+     "max_loss": 9470.24885,
+     "needs_settlement": false,
+     "net": -782.830546,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 340.956251,
+     "exit_outside_payoff": false,
+     "gross": -419.25,
+     "max_loss": 7685.648325,
+     "needs_settlement": false,
+     "net": -1280.206251,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 424.169999,
+     "exit_outside_payoff": false,
+     "gross": -1095.25,
+     "max_loss": 3836.449264,
+     "needs_settlement": false,
+     "net": -2039.419999,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-05-16",
+    "entry_day": "2022-05-17",
+    "exit_day": "2022-06-09",
+    "expiry": "2022-06-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.305619,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 407.931149,
+     "exit_outside_payoff": false,
+     "gross": 110.5,
+     "max_loss": 7068.966516,
+     "needs_settlement": false,
+     "net": -817.431149,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 309.523716,
+     "exit_outside_payoff": false,
+     "gross": 2460.25,
+     "max_loss": 7575.438131,
+     "needs_settlement": false,
+     "net": 1630.726284,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 383.201945,
+     "exit_outside_payoff": false,
+     "gross": 835.25,
+     "max_loss": 2993.396017,
+     "needs_settlement": false,
+     "net": -67.951945,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-06-13",
+    "entry_day": "2022-06-14",
+    "exit_day": "2022-07-07",
+    "expiry": "2022-07-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -1.616651,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 416.320532,
+     "exit_outside_payoff": false,
+     "gross": -416.0,
+     "max_loss": 7286.267339,
+     "needs_settlement": false,
+     "net": -1352.320532,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 318.135425,
+     "exit_outside_payoff": false,
+     "gross": 328.25,
+     "max_loss": 7719.997193,
+     "needs_settlement": false,
+     "net": -509.885425,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 391.855149,
+     "exit_outside_payoff": false,
+     "gross": -3.25,
+     "max_loss": 3659.922821,
+     "needs_settlement": false,
+     "net": -915.105149,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-07-11",
+    "entry_day": "2022-07-12",
+    "exit_day": "2022-08-04",
+    "expiry": "2022-08-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 3.910433,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 496.796467,
+     "exit_outside_payoff": false,
+     "gross": -2232.75,
+     "max_loss": 9056.133475,
+     "needs_settlement": false,
+     "net": -3249.546467,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 390.67649,
+     "exit_outside_payoff": false,
+     "gross": -4212.0,
+     "max_loss": 7707.784078,
+     "needs_settlement": false,
+     "net": -5122.67649,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 477.249393,
+     "exit_outside_payoff": false,
+     "gross": -1722.5,
+     "max_loss": 5664.888527,
+     "needs_settlement": false,
+     "net": -2719.749393,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-08-16",
+    "entry_day": "2022-08-17",
+    "exit_day": "2022-09-08",
+    "expiry": "2022-09-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.458158,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 370.252812,
+     "exit_outside_payoff": false,
+     "gross": -250.25,
+     "max_loss": 9951.688055,
+     "needs_settlement": false,
+     "net": -1140.502812,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 281.126236,
+     "exit_outside_payoff": false,
+     "gross": 3032.25,
+     "max_loss": 8688.030645,
+     "needs_settlement": false,
+     "net": 2231.123764,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 353.424282,
+     "exit_outside_payoff": false,
+     "gross": 1238.25,
+     "max_loss": 3132.283056,
+     "needs_settlement": false,
+     "net": 364.825718,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-09-12",
+    "entry_day": "2022-09-13",
+    "exit_day": "2022-10-06",
+    "expiry": "2022-10-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.885496,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 411.549147,
+     "exit_outside_payoff": false,
+     "gross": -3542.5,
+     "max_loss": 9860.54726,
+     "needs_settlement": false,
+     "net": -4474.049147,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 315.279056,
+     "exit_outside_payoff": false,
+     "gross": 100.75,
+     "max_loss": 8606.096982,
+     "needs_settlement": false,
+     "net": -734.529056,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 397.150734,
+     "exit_outside_payoff": false,
+     "gross": 3328.0,
+     "max_loss": 3193.729904,
+     "needs_settlement": false,
+     "net": 2410.849266,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-10-10",
+    "entry_day": "2022-10-11",
+    "exit_day": "2022-11-03",
+    "expiry": "2022-11-24"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.450117,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 496.78353,
+     "exit_outside_payoff": false,
+     "gross": 533.0,
+     "max_loss": 6804.388385,
+     "needs_settlement": false,
+     "net": -483.78353,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 384.255614,
+     "exit_outside_payoff": false,
+     "gross": -2752.75,
+     "max_loss": 6250.975229,
+     "needs_settlement": true,
+     "net": -3657.005614,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 467.609126,
+     "exit_outside_payoff": false,
+     "gross": -1241.5,
+     "max_loss": 2988.303163,
+     "needs_settlement": false,
+     "net": -2229.109126,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-11-14",
+    "entry_day": "2022-11-15",
+    "exit_day": "2022-12-08",
+    "expiry": "2022-12-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.41649,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 357.822675,
+     "exit_outside_payoff": false,
+     "gross": 78.0,
+     "max_loss": 6841.292697,
+     "needs_settlement": false,
+     "net": -799.822675,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 259.833407,
+     "exit_outside_payoff": false,
+     "gross": 2320.5,
+     "max_loss": 8932.829762,
+     "needs_settlement": false,
+     "net": 1540.666593,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 332.864854,
+     "exit_outside_payoff": false,
+     "gross": 780.0,
+     "max_loss": 3103.419831,
+     "needs_settlement": false,
+     "net": -72.864854,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2022-12-12",
+    "entry_day": "2022-12-13",
+    "exit_day": "2023-01-04",
+    "expiry": "2023-01-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 5.131898,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 360.748382,
+     "exit_outside_payoff": false,
+     "gross": -19.5,
+     "max_loss": 9932.794608,
+     "needs_settlement": false,
+     "net": -900.248382,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 273.998585,
+     "exit_outside_payoff": false,
+     "gross": 620.75,
+     "max_loss": 6235.185211,
+     "needs_settlement": false,
+     "net": -173.248585,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 343.991337,
+     "exit_outside_payoff": false,
+     "gross": 780.0,
+     "max_loss": 3471.050639,
+     "needs_settlement": false,
+     "net": -83.991337,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-01-09",
+    "entry_day": "2023-01-10",
+    "exit_day": "2023-02-02",
+    "expiry": "2023-02-23"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.669759,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 368.51226,
+     "exit_outside_payoff": false,
+     "gross": -149.5,
+     "max_loss": 9756.754509,
+     "needs_settlement": false,
+     "net": -1038.01226,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 283.121223,
+     "exit_outside_payoff": false,
+     "gross": 5599.75,
+     "max_loss": 6622.735,
+     "needs_settlement": false,
+     "net": 4796.628777,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 352.608537,
+     "exit_outside_payoff": false,
+     "gross": 1800.5,
+     "max_loss": 3249.02002,
+     "needs_settlement": false,
+     "net": 927.891463,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-02-13",
+    "entry_day": "2023-02-14",
+    "exit_day": "2023-03-08",
+    "expiry": "2023-03-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.59674,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 315.307928,
+     "exit_outside_payoff": false,
+     "gross": -630.5,
+     "max_loss": 9634.460737,
+     "needs_settlement": false,
+     "net": -1465.807928,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 240.913046,
+     "exit_outside_payoff": false,
+     "gross": 4108.0,
+     "max_loss": 8816.831782,
+     "needs_settlement": false,
+     "net": 3347.086954,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 301.988911,
+     "exit_outside_payoff": false,
+     "gross": 2372.5,
+     "max_loss": 4027.166003,
+     "needs_settlement": false,
+     "net": 1550.511089,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-03-13",
+    "entry_day": "2023-03-14",
+    "exit_day": "2023-04-06",
+    "expiry": "2023-04-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.433689,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
+    },
+    "SC": {
+     "charges": 279.870523,
+     "exit_outside_payoff": false,
+     "gross": -1176.5,
+     "max_loss": 8768.31537,
+     "needs_settlement": false,
+     "net": -1976.370523,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 362.958959,
+     "exit_outside_payoff": false,
+     "gross": -120.25,
+     "max_loss": 2524.166659,
+     "needs_settlement": false,
+     "net": -1003.208959,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-04-10",
+    "entry_day": "2023-04-11",
+    "exit_day": "2023-05-04",
+    "expiry": "2023-05-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -0.234385,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 354.858817,
+     "exit_outside_payoff": false,
+     "gross": -133.25,
+     "max_loss": 9612.085574,
+     "needs_settlement": false,
+     "net": -1008.108817,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 258.128857,
+     "exit_outside_payoff": false,
+     "gross": -1969.5,
+     "max_loss": 7356.762493,
+     "needs_settlement": false,
+     "net": -2747.628857,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 335.200574,
+     "exit_outside_payoff": false,
+     "gross": -1514.5,
+     "max_loss": 4424.183452,
+     "needs_settlement": false,
+     "net": -2369.700574,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-05-15",
+    "entry_day": "2023-05-16",
+    "exit_day": "2023-06-08",
+    "expiry": "2023-06-29"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 3.213511,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 340.691135,
+     "exit_outside_payoff": false,
+     "gross": 357.5,
+     "max_loss": 9806.965729,
+     "needs_settlement": false,
+     "net": -503.191135,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 249.983384,
+     "exit_outside_payoff": false,
+     "gross": -256.75,
+     "max_loss": 8666.201289,
+     "needs_settlement": false,
+     "net": -1026.733384,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 322.712228,
+     "exit_outside_payoff": false,
+     "gross": 191.75,
+     "max_loss": 3474.995219,
+     "needs_settlement": false,
+     "net": -650.962228,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-06-12",
+    "entry_day": "2023-06-13",
+    "exit_day": "2023-07-06",
+    "expiry": "2023-07-27"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 3.558621,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 396.770293,
+     "exit_outside_payoff": false,
+     "gross": -104.0,
+     "max_loss": 7169.843569,
+     "needs_settlement": false,
+     "net": -1020.770293,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 283.547721,
+     "exit_outside_payoff": false,
+     "gross": -4088.5,
+     "max_loss": 7302.250252,
+     "needs_settlement": false,
+     "net": -4892.047721,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 369.246767,
+     "exit_outside_payoff": false,
+     "gross": -1472.25,
+     "max_loss": 3514.08177,
+     "needs_settlement": false,
+     "net": -2361.496767,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-07-17",
+    "entry_day": "2023-07-18",
+    "exit_day": "2023-08-10",
+    "expiry": "2023-08-31"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.743124,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": true
+   },
+   "structures": {
+    "BF": {
+     "charges": 315.817864,
+     "exit_outside_payoff": false,
+     "gross": -702.0,
+     "max_loss": 9735.60304,
+     "needs_settlement": false,
+     "net": -1537.817864,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 0.0,
+     "exit_outside_payoff": false,
+     "gross": 0.0,
+     "max_loss": null,
+     "needs_settlement": false,
+     "net": 0.0,
+     "pads": 0.0,
+     "status": "bad_prices",
+     "width": null
+    },
+    "SF": {
+     "charges": 302.830957,
+     "exit_outside_payoff": false,
+     "gross": 2658.5,
+     "max_loss": 3855.416496,
+     "needs_settlement": false,
+     "net": 1835.669043,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-08-14",
+    "entry_day": "2023-08-16",
+    "exit_day": "2023-09-07",
+    "expiry": "2023-09-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.996251,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 328.872933,
+     "exit_outside_payoff": false,
+     "gross": -22.75,
+     "max_loss": 9715.87062,
+     "needs_settlement": false,
+     "net": -871.622933,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 240.797475,
+     "exit_outside_payoff": false,
+     "gross": 1901.25,
+     "max_loss": 8741.308401,
+     "needs_settlement": false,
+     "net": 1140.452525,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 311.66803,
+     "exit_outside_payoff": false,
+     "gross": -42.25,
+     "max_loss": 4147.786086,
+     "needs_settlement": false,
+     "net": -873.91803,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-09-11",
+    "entry_day": "2023-09-12",
+    "exit_day": "2023-10-05",
+    "expiry": "2023-10-26"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 2.974007,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 336.196836,
+     "exit_outside_payoff": false,
+     "gross": -185.25,
+     "max_loss": 9709.922476,
+     "needs_settlement": false,
+     "net": -1041.446836,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 250.442964,
+     "exit_outside_payoff": false,
+     "gross": 861.25,
+     "max_loss": 7452.23386,
+     "needs_settlement": false,
+     "net": 90.807036,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 200.0
+    },
+    "SF": {
+     "charges": 320.166722,
+     "exit_outside_payoff": false,
+     "gross": 984.75,
+     "max_loss": 3849.190778,
+     "needs_settlement": false,
+     "net": 144.583278,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-10-16",
+    "entry_day": "2023-10-17",
+    "exit_day": "2023-11-09",
+    "expiry": "2023-11-30"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.222163,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 319.028767,
+     "exit_outside_payoff": false,
+     "gross": -81.25,
+     "max_loss": 9550.562036,
+     "needs_settlement": false,
+     "net": -920.278767,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 237.269299,
+     "exit_outside_payoff": false,
+     "gross": 2327.0,
+     "max_loss": 9913.907777,
+     "needs_settlement": false,
+     "net": 1569.730701,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 303.917358,
+     "exit_outside_payoff": false,
+     "gross": 1033.5,
+     "max_loss": 4329.998873,
+     "needs_settlement": false,
+     "net": 209.582642,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-11-13",
+    "entry_day": "2023-11-15",
+    "exit_day": "2023-12-07",
+    "expiry": "2023-12-28"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": -0.197356,
+    "F2_vix_above_250d_median": false,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 458.84152,
+     "exit_outside_payoff": false,
+     "gross": 295.75,
+     "max_loss": 9485.008614,
+     "needs_settlement": false,
+     "net": -683.09152,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 150.0
+    },
+    "SC": {
+     "charges": 350.272287,
+     "exit_outside_payoff": false,
+     "gross": -8066.5,
+     "max_loss": 9572.457835,
+     "needs_settlement": false,
+     "net": -8936.772287,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 250.0
+    },
+    "SF": {
+     "charges": 435.917852,
+     "exit_outside_payoff": false,
+     "gross": -3159.0,
+     "max_loss": 4417.117855,
+     "needs_settlement": false,
+     "net": -4114.917852,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  },
+  {
+   "cycle": {
+    "decision_day": "2023-12-11",
+    "entry_day": "2023-12-12",
+    "exit_day": "2024-01-04",
+    "expiry": "2024-01-25"
+   },
+   "features": {
+    "F1_atm_iv_minus_rv20": 1.044181,
+    "F2_vix_above_250d_median": true,
+    "F3_scheduled_event_in_window": false
+   },
+   "structures": {
+    "BF": {
+     "charges": 430.862184,
+     "exit_outside_payoff": false,
+     "gross": 110.5,
+     "max_loss": 7146.560631,
+     "needs_settlement": false,
+     "net": -840.362184,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 100.0
+    },
+    "SC": {
+     "charges": 306.98068,
+     "exit_outside_payoff": false,
+     "gross": -4108.0,
+     "max_loss": 9855.135946,
+     "needs_settlement": false,
+     "net": -4934.98068,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    },
+    "SF": {
+     "charges": 403.086232,
+     "exit_outside_payoff": false,
+     "gross": -1244.75,
+     "max_loss": 3250.082628,
+     "needs_settlement": false,
+     "net": -2167.836232,
+     "pads": 520.0,
+     "status": "traded",
+     "width": 300.0
+    }
+   }
+  }
+ ],
+ "overall": {
+  "passing_policies": [],
+  "status": "complete"
+ },
+ "period": {
+  "end": "2023-12-31",
+  "name": "challenge",
+  "start": "2019-01-01"
+ },
+ "policies": {
+  "P1": {
+   "actions": [
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -11345.833001,
+    "largest_modelled_max_loss": 9913.907777,
+    "longest_losing_run": 4,
+    "max_drawdown": 40607.171818,
+    "mean_net": -574.759428,
+    "net_by_year": {
+     "2019": -8133.463187,
+     "2020": 1257.741304,
+     "2021": -4217.606414,
+     "2022": -9649.161316,
+     "2023": -8808.095364,
+     "2024": -4934.98068
+    },
+    "no_settlement_total_net": -44394.886954,
+    "opportunities": 60,
+    "status_counts": {
+     "bad_prices": 1,
+     "traded": 58,
+     "unfillable": 1
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 5493.844897,
+      "tax": 1714.079608
+     },
+     "2019-20": {
+      "net": -6586.726798,
+      "tax": 0.0
+     },
+     "2020-21": {
+      "net": -9996.912043,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": -360.221761,
+      "tax": 0.0
+     },
+     "2022-23": {
+      "net": -1322.006763,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -21713.54319,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 1714.079608,
+    "total_net": -34485.565657,
+    "traded": 58,
+    "traded_mean_net": -594.578718,
+    "traded_total_net": -34485.565657,
+    "win_rate_traded": 0.5,
+    "worst_opportunity": -11345.833001
+   },
+   "verdict": {
+    "criteria": [
+     {
+      "name": "1_total_net",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -34485.565657
+     },
+     {
+      "name": "2_bootstrap_lower_bound",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -1783.144561
+     },
+     {
+      "name": "7_max_modelled_loss",
+      "passed": true,
+      "rule": "<=",
+      "threshold": 10000.0,
+      "value": 9913.907777
+     }
+    ],
+    "details": {
+     "lower_bound": -1783.144561,
+     "lower_bound_mc_error": 18.753858
+    },
+    "sensitivity": {
+     "year_block_lower_bound": -1100.568371
+    },
+    "verdict": "fail"
+   }
+  },
+  "P2": {
+   "actions": [
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 2,
+    "exits_outside_payoff_net": -15515.30733,
+    "largest_modelled_max_loss": 9571.25762,
+    "longest_losing_run": 8,
+    "max_drawdown": 60292.815677,
+    "mean_net": -970.309329,
+    "net_by_year": {
+     "2019": -20395.869061,
+     "2020": -13644.731038,
+     "2021": -7802.671957,
+     "2022": -7417.493191,
+     "2023": -6789.958232,
+     "2024": -2167.836232
+    },
+    "no_settlement_total_net": -57719.985838,
+    "opportunities": 60,
+    "status_counts": {
+     "traded": 56,
+     "unfillable": 4
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 2074.255966,
+      "tax": 647.167861
+     },
+     "2019-20": {
+      "net": -26908.034826,
+      "tax": 0.0
+     },
+     "2020-21": {
+      "net": -10941.015986,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": -5534.122652,
+      "tax": 0.0
+     },
+     "2022-23": {
+      "net": -5557.436534,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -11352.205679,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 647.167861,
+    "total_net": -58218.559711,
+    "traded": 56,
+    "traded_mean_net": -1039.617138,
+    "traded_total_net": -58218.559711,
+    "win_rate_traded": 0.303571,
+    "worst_opportunity": -13727.531678
+   },
+   "verdict": {
+    "criteria": [
+     {
+      "name": "1_total_net",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -58218.559711
+     },
+     {
+      "name": "2_bootstrap_lower_bound",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -1782.506508
+     },
+     {
+      "name": "7_max_modelled_loss",
+      "passed": true,
+      "rule": "<=",
+      "threshold": 10000.0,
+      "value": 9571.25762
+     }
+    ],
+    "details": {
+     "lower_bound": -1782.506508,
+     "lower_bound_mc_error": 15.175579
+    },
+    "sensitivity": {
+     "year_block_lower_bound": -1606.210253
+    },
+    "verdict": "fail"
+   }
+  },
+  "P3": {
+   "actions": [
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF"
+   ],
+   "summary": {
+    "best_year_share": 0.995639,
+    "exits_outside_payoff": 4,
+    "exits_outside_payoff_net": 26762.136081,
+    "largest_modelled_max_loss": 9951.688055,
+    "longest_losing_run": 21,
+    "max_drawdown": 36954.503378,
+    "mean_net": 401.994064,
+    "net_by_year": {
+     "2019": 24014.457765,
+     "2020": 23972.051317,
+     "2021": 8031.807589,
+     "2022": -20067.913935,
+     "2023": -10990.396736,
+     "2024": -840.362184
+    },
+    "no_settlement_total_net": -42640.891614,
+    "opportunities": 60,
+    "status_counts": {
+     "bad_prices": 5,
+     "traded": 50,
+     "unfillable": 5
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": -765.663171,
+      "tax": 0.0
+     },
+     "2019-20": {
+      "net": 37060.1881,
+      "tax": 11562.778687
+     },
+     "2020-21": {
+      "net": 11544.253857,
+      "tax": 3601.807203
+     },
+     "2021-22": {
+      "net": 1301.876412,
+      "tax": 406.18544
+     },
+     "2022-23": {
+      "net": -16594.321031,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -8426.69035,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 15570.771331,
+    "total_net": 24119.643816,
+    "traded": 50,
+    "traded_mean_net": 482.392876,
+    "traded_total_net": 24119.643816,
+    "win_rate_traded": 0.22,
+    "worst_opportunity": -4474.049147
+   },
+   "verdict": {
+    "criteria": [
+     {
+      "name": "1_total_net",
+      "passed": true,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": 24119.643816
+     },
+     {
+      "name": "2_bootstrap_lower_bound",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -612.771678
+     },
+     {
+      "name": "7_max_modelled_loss",
+      "passed": true,
+      "rule": "<=",
+      "threshold": 10000.0,
+      "value": 9951.688055
+     }
+    ],
+    "details": {
+     "lower_bound": -612.771678,
+     "lower_bound_mc_error": 11.955449
+    },
+    "sensitivity": {
+     "year_block_lower_bound": -1361.063893
+    },
+    "verdict": "fail"
+   }
+  },
+  "P4": {
+   "actions": [
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -11345.833001,
+    "largest_modelled_max_loss": 9913.907777,
+    "longest_losing_run": 2,
+    "max_drawdown": 31607.331454,
+    "mean_net": -486.493855,
+    "net_by_year": {
+     "2019": -8316.274125,
+     "2020": -9885.562507,
+     "2021": -5111.837888,
+     "2022": -3817.28191,
+     "2023": 2876.30578,
+     "2024": -4934.98068
+    },
+    "no_settlement_total_net": -20969.639355,
+    "opportunities": 60,
+    "status_counts": {
+     "bad_prices": 1,
+     "no_trade": 23,
+     "traded": 35,
+     "unfillable": 1
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 2417.700124,
+      "tax": 754.322439
+     },
+     "2019-20": {
+      "net": -9770.733396,
+      "tax": 0.0
+     },
+     "2020-21": {
+      "net": -16479.982574,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": 2093.960185,
+      "tax": 653.315578
+     },
+     "2022-23": {
+      "net": 2578.566377,
+      "tax": 804.51271
+     },
+     "2023-24": {
+      "net": -10029.142046,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 2212.150726,
+    "total_net": -29189.63133,
+    "traded": 35,
+    "traded_mean_net": -833.989467,
+    "traded_total_net": -29189.63133,
+    "win_rate_traded": 0.485714,
+    "worst_opportunity": -11345.833001
+   },
+   "verdict": {
+    "criteria": [
+     {
+      "name": "1_total_net",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -29189.63133
+     },
+     {
+      "name": "2_bootstrap_lower_bound",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -1398.973617
+     },
+     {
+      "name": "3_above_random_timing",
+      "passed": false,
+      "rule": ">",
+      "threshold": 1685.409227,
+      "value": -29189.63133
+     },
+     {
+      "name": "3_above_opposite",
+      "passed": false,
+      "rule": ">",
+      "threshold": -12422.358143,
+      "value": -29189.63133
+     },
+     {
+      "name": "4_above_P1",
+      "passed": true,
+      "rule": ">",
+      "threshold": -34485.565657,
+      "value": -29189.63133
+     },
+     {
+      "name": "7_max_modelled_loss",
+      "passed": true,
+      "rule": "<=",
+      "threshold": 10000.0,
+      "value": 9913.907777
+     }
+    ],
+    "details": {
+     "c1_threshold": 1685.409227,
+     "c2_total_net": -12422.358143,
+     "lower_bound": -1398.973617,
+     "lower_bound_mc_error": 12.374693
+    },
+    "sensitivity": {
+     "year_block_lower_bound": -1104.271234
+    },
+    "verdict": "fail"
+   }
+  },
+  "P4 opposite": {
+   "actions": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
+    "largest_modelled_max_loss": 9572.457835,
+    "longest_losing_run": 2,
+    "max_drawdown": 20670.779523,
+    "mean_net": -207.039302,
+    "net_by_year": {
+     "2019": 264.315292,
+     "2020": 3935.375643,
+     "2021": 894.231473,
+     "2022": -5831.879407,
+     "2023": -11684.401144,
+     "2024": 0.0
+    },
+    "no_settlement_total_net": -18534.135207,
+    "opportunities": 60,
+    "status_counts": {
+     "no_trade": 47,
+     "traded": 13
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 0.0,
+      "tax": 0.0
+     },
+     "2019-20": {
+      "net": 264.315292,
+      "tax": 82.466371
+     },
+     "2020-21": {
+      "net": 5352.482795,
+      "tax": 1669.974632
+     },
+     "2021-22": {
+      "net": -2454.181946,
+      "tax": 0.0
+     },
+     "2022-23": {
+      "net": -3900.57314,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -11684.401144,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 1752.441003,
+    "total_net": -12422.358143,
+    "traded": 13,
+    "traded_mean_net": -955.566011,
+    "traded_total_net": -12422.358143,
+    "win_rate_traded": 0.384615,
+    "worst_opportunity": -8936.772287
+   }
+  },
+  "P5": {
+   "actions": [
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    "BF",
+    "BF",
+    null,
+    "BF",
+    null,
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    "BF",
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "BF",
+    "BF",
+    "SC",
+    "BF",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "BF",
+    "SC",
+    "BF",
+    "BF",
+    "SC",
+    "SC",
+    "BF",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "BF",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "BF",
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 3,
+    "exits_outside_payoff_net": 4310.886653,
+    "largest_modelled_max_loss": 9913.907777,
+    "longest_losing_run": 4,
+    "max_drawdown": 17734.266755,
+    "mean_net": -13.426131,
+    "net_by_year": {
+     "2019": 13910.217293,
+     "2020": -9885.562507,
+     "2021": 7975.800224,
+     "2022": -9056.147653,
+     "2023": 1185.105443,
+     "2024": -4934.98068
+    },
+    "no_settlement_total_net": -28915.694708,
+    "opportunities": 60,
+    "status_counts": {
+     "bad_prices": 1,
+     "no_trade": 10,
+     "traded": 46,
+     "unfillable": 3
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 2417.700124,
+      "tax": 754.322439
+     },
+     "2019-20": {
+      "net": 12455.758022,
+      "tax": 3886.196503
+     },
+     "2020-21": {
+      "net": -16627.712871,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": 11532.748987,
+      "tax": 3598.217684
+     },
+     "2022-23": {
+      "net": 1136.280241,
+      "tax": 354.519435
+     },
+     "2023-24": {
+      "net": -11720.342383,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 8593.256061,
+    "total_net": -805.56788,
+    "traded": 46,
+    "traded_mean_net": -17.512345,
+    "traded_total_net": -805.56788,
+    "win_rate_traded": 0.434783,
+    "worst_opportunity": -11345.833001
+   },
+   "verdict": {
+    "criteria": [
+     {
+      "name": "1_total_net",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -805.56788
+     },
+     {
+      "name": "2_bootstrap_lower_bound",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -1206.427797
+     },
+     {
+      "name": "3_above_random_timing",
+      "passed": false,
+      "rule": ">",
+      "threshold": 13958.251406,
+      "value": -805.56788
+     },
+     {
+      "name": "3_above_opposite",
+      "passed": true,
+      "rule": ">",
+      "threshold": -45575.207153,
+      "value": -805.56788
+     },
+     {
+      "name": "4_above_P1",
+      "passed": true,
+      "rule": ">",
+      "threshold": -34485.565657,
+      "value": -805.56788
+     },
+     {
+      "name": "4_above_P4",
+      "passed": true,
+      "rule": ">",
+      "threshold": -29189.63133,
+      "value": -805.56788
+     },
+     {
+      "name": "5_bf_branch",
+      "passed": true,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": 28384.063449
+     },
+     {
+      "name": "7_max_modelled_loss",
+      "passed": true,
+      "rule": "<=",
+      "threshold": 10000.0,
+      "value": 9913.907777
+     }
+    ],
+    "details": {
+     "c1_threshold": 13958.251406,
+     "c2_total_net": -45575.207153,
+     "lower_bound": -1206.427797,
+     "lower_bound_mc_error": 20.401284
+    },
+    "sensitivity": {
+     "year_block_lower_bound": -971.655931
+    },
+    "verdict": "fail"
+   }
+  },
+  "P5 opposite": {
+   "actions": [
+    null,
+    "BF",
+    null,
+    "BF",
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "BF",
+    "BF",
+    null,
+    null,
+    "BF",
+    "SC",
+    null,
+    "BF",
+    "BF",
+    null,
+    "BF",
+    null,
+    "BF",
+    "BF",
+    "BF",
+    "SC",
+    "SC",
+    "BF",
+    "SC",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "SC",
+    "BF",
+    "SC",
+    "SC",
+    "BF",
+    "BF",
+    "SC",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "SC",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "BF",
+    "SC",
+    "BF"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -495.3968,
+    "largest_modelled_max_loss": 9951.688055,
+    "longest_losing_run": 22,
+    "max_drawdown": 50695.216821,
+    "mean_net": -759.586786,
+    "net_by_year": {
+     "2019": -219.169807,
+     "2020": 1290.44903,
+     "2021": -4161.599049,
+     "2022": -20660.927599,
+     "2023": -20983.597543,
+     "2024": -840.362184
+    },
+    "no_settlement_total_net": -52259.584359,
+    "opportunities": 60,
+    "status_counts": {
+     "bad_prices": 5,
+     "no_trade": 10,
+     "traded": 43,
+     "unfillable": 2
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 0.0,
+      "tax": 0.0
+     },
+     "2019-20": {
+      "net": 353.430334,
+      "tax": 110.270264
+     },
+     "2020-21": {
+      "net": 2134.956041,
+      "tax": 666.106285
+     },
+     "2021-22": {
+      "net": -10591.094335,
+      "tax": 0.0
+     },
+     "2022-23": {
+      "net": -19052.608035,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -18419.891157,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 776.376549,
+    "total_net": -45575.207153,
+    "traded": 43,
+    "traded_mean_net": -1059.888538,
+    "traded_total_net": -45575.207153,
+    "win_rate_traded": 0.139535,
+    "worst_opportunity": -8936.772287
+   }
+  },
+  "P6": {
+   "actions": [
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -11345.833001,
+    "largest_modelled_max_loss": 9913.907777,
+    "longest_losing_run": 2,
+    "max_drawdown": 23366.51046,
+    "mean_net": -307.804329,
+    "net_by_year": {
+     "2019": -8928.132877,
+     "2020": -2703.764815,
+     "2021": -6649.32182,
+     "2022": -1131.469241,
+     "2023": 5879.409688,
+     "2024": -4934.98068
+    },
+    "no_settlement_total_net": -10248.267771,
+    "opportunities": 60,
+    "status_counts": {
+     "no_trade": 35,
+     "traded": 24,
+     "unfillable": 1
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 2417.700124,
+      "tax": 754.322439
+     },
+     "2019-20": {
+      "net": -10382.592148,
+      "tax": 0.0
+     },
+     "2020-21": {
+      "net": -9298.184882,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": 556.476252,
+      "tax": 173.620591
+     },
+     "2022-23": {
+      "net": 5264.379045,
+      "tax": 1642.486262
+     },
+     "2023-24": {
+      "net": -7026.038139,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 2570.429292,
+    "total_net": -18468.259746,
+    "traded": 24,
+    "traded_mean_net": -769.510823,
+    "traded_total_net": -18468.259746,
+    "win_rate_traded": 0.541667,
+    "worst_opportunity": -11345.833001
+   },
+   "verdict": {
+    "criteria": [
+     {
+      "name": "1_total_net",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -18468.259746
+     },
+     {
+      "name": "2_bootstrap_lower_bound",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -1179.087327
+     },
+     {
+      "name": "3_above_random_timing",
+      "passed": false,
+      "rule": ">",
+      "threshold": 8449.483256,
+      "value": -18468.259746
+     },
+     {
+      "name": "3_above_opposite",
+      "passed": true,
+      "rule": ">",
+      "threshold": -23143.729726,
+      "value": -18468.259746
+     },
+     {
+      "name": "4_above_P1",
+      "passed": true,
+      "rule": ">",
+      "threshold": -34485.565657,
+      "value": -18468.259746
+     },
+     {
+      "name": "4_above_P4",
+      "passed": true,
+      "rule": ">",
+      "threshold": -29189.63133,
+      "value": -18468.259746
+     },
+     {
+      "name": "6_event_filter",
+      "passed": true,
+      "rule": "<",
+      "threshold": 0.0,
+      "value": -10721.371583
+     },
+     {
+      "name": "7_max_modelled_loss",
+      "passed": true,
+      "rule": "<=",
+      "threshold": 10000.0,
+      "value": 9913.907777
+     }
+    ],
+    "details": {
+     "c1_threshold": 8449.483256,
+     "c2_total_net": -23143.729726,
+     "lower_bound": -1179.087327,
+     "lower_bound_mc_error": 20.81396
+    },
+    "sensitivity": {
+     "year_block_lower_bound": -974.518909
+    },
+    "verdict": "fail"
+   }
+  },
+  "P6 opposite": {
+   "actions": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    "SC",
+    null
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
+    "largest_modelled_max_loss": 9601.359768,
+    "longest_losing_run": 3,
+    "max_drawdown": 27955.279413,
+    "mean_net": -385.728829,
+    "net_by_year": {
+     "2019": 876.174045,
+     "2020": -3246.42205,
+     "2021": 2431.715406,
+     "2022": -8517.692075,
+     "2023": -14687.505052,
+     "2024": 0.0
+    },
+    "no_settlement_total_net": -29255.50679,
+    "opportunities": 60,
+    "status_counts": {
+     "bad_prices": 1,
+     "no_trade": 35,
+     "traded": 24
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 0.0,
+      "tax": 0.0
+     },
+     "2019-20": {
+      "net": 876.174045,
+      "tax": 273.366302
+     },
+     "2020-21": {
+      "net": -1829.314898,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": -916.698013,
+      "tax": 0.0
+     },
+     "2022-23": {
+      "net": -6586.385808,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -14687.505052,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 273.366302,
+    "total_net": -23143.729726,
+    "traded": 24,
+    "traded_mean_net": -964.322072,
+    "traded_total_net": -23143.729726,
+    "win_rate_traded": 0.375,
+    "worst_opportunity": -8936.772287
+   }
+  },
+  "P7": {
+   "actions": [
+    "SC",
+    "SC",
+    null,
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -11345.833001,
+    "largest_modelled_max_loss": 9855.135946,
+    "longest_losing_run": 3,
+    "max_drawdown": 30774.699646,
+    "mean_net": -421.347579,
+    "net_by_year": {
+     "2019": -9637.398495,
+     "2020": -1273.679241,
+     "2021": 2083.405358,
+     "2022": -11518.20169,
+     "2023": 0.0,
+     "2024": -4934.98068
+    },
+    "no_settlement_total_net": -21943.526411,
+    "opportunities": 60,
+    "status_counts": {
+     "no_trade": 34,
+     "traded": 25,
+     "unfillable": 1
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 5493.844897,
+      "tax": 1714.079608
+     },
+     "2019-20": {
+      "net": -15131.243392,
+      "tax": 0.0
+     },
+     "2020-21": {
+      "net": 1048.021025,
+      "tax": 326.98256
+     },
+     "2021-22": {
+      "net": 573.238613,
+      "tax": 178.850447
+     },
+     "2022-23": {
+      "net": -12329.735211,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -4934.98068,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 2219.912615,
+    "total_net": -25280.854749,
+    "traded": 25,
+    "traded_mean_net": -1011.23419,
+    "traded_total_net": -25280.854749,
+    "win_rate_traded": 0.4,
+    "worst_opportunity": -11345.833001
+   },
+   "verdict": {
+    "criteria": [
+     {
+      "name": "1_total_net",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -25280.854749
+     },
+     {
+      "name": "2_bootstrap_lower_bound",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -1304.524019
+     },
+     {
+      "name": "3_above_random_timing",
+      "passed": false,
+      "rule": ">",
+      "threshold": 8002.356532,
+      "value": -25280.854749
+     },
+     {
+      "name": "3_above_opposite",
+      "passed": false,
+      "rule": ">",
+      "threshold": -9204.710908,
+      "value": -25280.854749
+     },
+     {
+      "name": "4_above_P1",
+      "passed": true,
+      "rule": ">",
+      "threshold": -34485.565657,
+      "value": -25280.854749
+     },
+     {
+      "name": "7_max_modelled_loss",
+      "passed": true,
+      "rule": "<=",
+      "threshold": 10000.0,
+      "value": 9855.135946
+     }
+    ],
+    "details": {
+     "c1_threshold": 8002.356532,
+     "c2_total_net": -9204.710908,
+     "lower_bound": -1304.524019,
+     "lower_bound_mc_error": 17.88888
+    },
+    "sensitivity": {
+     "year_block_lower_bound": -1103.305407
+    },
+    "verdict": "fail"
+   }
+  },
+  "P7 opposite": {
+   "actions": [
+    null,
+    null,
+    "SC",
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    null,
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SC",
+    "SC",
+    null,
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    "SC",
+    null
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 0,
+    "exits_outside_payoff_net": 0,
+    "largest_modelled_max_loss": 9913.907777,
+    "longest_losing_run": 4,
+    "max_drawdown": 17749.227503,
+    "mean_net": -153.411848,
+    "net_by_year": {
+     "2019": 1503.935308,
+     "2020": 2531.420546,
+     "2021": -6301.011772,
+     "2022": 1869.040374,
+     "2023": -8808.095364,
+     "2024": 0.0
+    },
+    "no_settlement_total_net": -22451.360543,
+    "opportunities": 60,
+    "status_counts": {
+     "bad_prices": 1,
+     "no_trade": 26,
+     "traded": 33
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 0.0,
+      "tax": 0.0
+     },
+     "2019-20": {
+      "net": 8544.516595,
+      "tax": 2665.889177
+     },
+     "2020-21": {
+      "net": -11044.933067,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": -933.460374,
+      "tax": 0.0
+     },
+     "2022-23": {
+      "net": 11007.728448,
+      "tax": 3434.411276
+     },
+     "2023-24": {
+      "net": -16778.56251,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 6100.300453,
+    "total_net": -9204.710908,
+    "traded": 33,
+    "traded_mean_net": -278.930634,
+    "traded_total_net": -9204.710908,
+    "win_rate_traded": 0.575758,
+    "worst_opportunity": -8936.772287
+   }
+  },
+  "P8": {
+   "actions": [
+    null,
+    "SF",
+    null,
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    "SF",
+    null,
+    null,
+    "SF",
+    null,
+    null,
+    "SF",
+    "SF",
+    null,
+    "SF",
+    null,
+    "SF",
+    "SF",
+    "SF",
+    null,
+    null,
+    "SF",
+    null,
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    null,
+    "SF",
+    null,
+    null,
+    "SF",
+    "SF",
+    null,
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    null,
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    "SF",
+    null,
+    "SF"
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -1787.775652,
+    "largest_modelled_max_loss": 5664.888527,
+    "longest_losing_run": 3,
+    "max_drawdown": 16738.466877,
+    "mean_net": -220.711718,
+    "net_by_year": {
+     "2019": 3019.181351,
+     "2020": -5152.623947,
+     "2021": -6364.876863,
+     "2022": -2271.207605,
+     "2023": -305.339806,
+     "2024": -2167.836232
+    },
+    "no_settlement_total_net": -18171.43989,
+    "opportunities": 60,
+    "status_counts": {
+     "no_trade": 23,
+     "traded": 36,
+     "unfillable": 1
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 2008.861078,
+      "tax": 626.764656
+     },
+     "2019-20": {
+      "net": 1486.902696,
+      "tax": 463.913641
+     },
+     "2020-21": {
+      "net": -6895.110003,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": -3016.760502,
+      "tax": 0.0
+     },
+     "2022-23": {
+      "net": -1959.009119,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -4867.587252,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 1090.678297,
+    "total_net": -13242.703103,
+    "traded": 36,
+    "traded_mean_net": -367.852864,
+    "traded_total_net": -13242.703103,
+    "win_rate_traded": 0.416667,
+    "worst_opportunity": -3302.116502
+   },
+   "verdict": {
+    "criteria": [
+     {
+      "name": "1_total_net",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -13242.703103
+     },
+     {
+      "name": "2_bootstrap_lower_bound",
+      "passed": false,
+      "rule": ">",
+      "threshold": 0.0,
+      "value": -615.451852
+     },
+     {
+      "name": "3_above_random_timing",
+      "passed": true,
+      "rule": ">",
+      "threshold": -21295.526969,
+      "value": -13242.703103
+     },
+     {
+      "name": "3_above_opposite",
+      "passed": true,
+      "rule": ">",
+      "threshold": -28959.86235,
+      "value": -13242.703103
+     },
+     {
+      "name": "4_above_P2",
+      "passed": true,
+      "rule": ">",
+      "threshold": -58218.559711,
+      "value": -13242.703103
+     },
+     {
+      "name": "7_max_modelled_loss",
+      "passed": true,
+      "rule": "<=",
+      "threshold": 10000.0,
+      "value": 5664.888527
+     }
+    ],
+    "details": {
+     "c1_threshold": -21295.526969,
+     "c2_total_net": -28959.86235,
+     "lower_bound": -615.451852,
+     "lower_bound_mc_error": 6.191886
+    },
+    "sensitivity": {
+     "year_block_lower_bound": -571.65854
+    },
+    "verdict": "fail"
+   }
+  },
+  "P8 opposite": {
+   "actions": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    "SF",
+    null,
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    "SF",
+    null,
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    null,
+    "SF",
+    "SF",
+    null,
+    null,
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    "SF",
+    null
+   ],
+   "summary": {
+    "best_year_share": null,
+    "exits_outside_payoff": 1,
+    "exits_outside_payoff_net": -13727.531678,
+    "largest_modelled_max_loss": 7411.498733,
+    "longest_losing_run": 2,
+    "max_drawdown": 28959.86235,
+    "mean_net": -482.664373,
+    "net_by_year": {
+     "2019": -15891.163245,
+     "2020": 0.0,
+     "2021": -1437.795094,
+     "2022": -5146.285586,
+     "2023": -6484.618426,
+     "2024": 0.0
+    },
+    "no_settlement_total_net": -28959.86235,
+    "opportunities": 60,
+    "status_counts": {
+     "no_trade": 47,
+     "traded": 11,
+     "unfillable": 2
+    },
+    "tax_by_financial_year": {
+     "2018-19": {
+      "net": 0.0,
+      "tax": 0.0
+     },
+     "2019-20": {
+      "net": -15891.163245,
+      "tax": 0.0
+     },
+     "2020-21": {
+      "net": -468.291114,
+      "tax": 0.0
+     },
+     "2021-22": {
+      "net": -2517.36215,
+      "tax": 0.0
+     },
+     "2022-23": {
+      "net": -3598.427415,
+      "tax": 0.0
+     },
+     "2023-24": {
+      "net": -6484.618426,
+      "tax": 0.0
+     }
+    },
+    "tax_total": 0.0,
+    "total_net": -28959.86235,
+    "traded": 11,
+    "traded_mean_net": -2632.714759,
+    "traded_total_net": -28959.86235,
+    "win_rate_traded": 0.090909,
+    "worst_opportunity": -13727.531678
+   }
+  }
+ }
+}
