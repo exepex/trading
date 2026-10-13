@@ -102,7 +102,7 @@ class Recorder(ManifestRecorder):
 def test_the_sweep_command_alerts_on_a_moved_write_and_on_no_answer(monkeypatch, capsys, tmp_path):
     archive, recorder = HeadersOnlyArchive({ParticipantOiSource.path_for(JAN_15): at(date(2025, 6, 2), 18)}), Recorder()
     sweep = LastWriteSweep(archive, ParticipantOiSource.path_for, tmp_path / "s.csv")
-    monkeypatch.setattr(fno.composition, "build_last_write_sweep", lambda revisions: sweep)
+    monkeypatch.setattr(fno.composition, "build_last_write_sweep", lambda revisions, log=None: sweep)
     monkeypatch.setattr(fno.composition, "participant_oi_last_writes", lambda: {JAN_15: at(JAN_15, 19)})
     monkeypatch.setattr(fno.storage.wiring, "build_revision_archive", NoRevisions)
     monkeypatch.setattr(fno.storage.wiring, "build_manifest_recorder", lambda: recorder)
@@ -113,7 +113,7 @@ def test_the_sweep_command_alerts_on_a_moved_write_and_on_no_answer(monkeypatch,
     monkeypatch.setattr(
         fno.composition,
         "build_last_write_sweep",
-        lambda revisions: LastWriteSweep(archive, ParticipantOiSource.path_for, tmp_path / "t.csv"),
+        lambda revisions, log=None: LastWriteSweep(archive, ParticipantOiSource.path_for, tmp_path / "t.csv"),
     )
     assert main(["participant-oi", "sweep"]) == 0
     assert recorder.commits == ["participant-oi sweep"] * 2  # the revision index rows, every run
