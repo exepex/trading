@@ -132,6 +132,12 @@ corporate-action lists are snapshot datasets with manifest rows: `research/data/
 - Real build of 12 Oct, KOTAKBANK as published: `{'p': 443.4, 'y1': 4.24, 'h': 453.2, 'l': 345.5, 'u': ['n500', 'fno']}`.
   The 1Y is +4.24%, not judge 42's +3%, because the contract's 1Y is "250 sessions back". On NSE's calendar that is a
   slightly earlier session, raw close 2,126.85, not 13 Oct 2025. The high 453.20 is the raw 2,266 divided by 5.
+- Demergers (judge 42's INDIAGLYCO and DCMSRIND; orchestrator rule: NSE's ex-date special pre-open price ÷ previous
+  close, never guessed). The named test is `test_judge_42s_demergers_on_nses_ex_date_open`, and it uses NSE's own bars:
+  - INDIAGLYCO, ex-date 2 Sep 2026: previous close 1,111.70, ex-date open 225.00. 1Y is +75.32%; unadjusted it would be −64.52%.
+  - DCMSRIND, ex-date 26 Dec 2025: previous close 172.16, ex-date open 51.00. 1Y is −20.05%; unadjusted it would be −76.31%.
+  Both figures are the ones the real build of 12 Oct published. Neither stock is on an example page; their rows are
+  among the 2,920 that equal the dashboard's data.json.
 - No "high > 3× price" heuristic. A one-session jump only chooses which symbols' own NSE lists to look up (ETFs NSE's
   range list leaves out); every adjustment comes from NSE's stated ratio or discovered price.
 
