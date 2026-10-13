@@ -29,7 +29,7 @@ for (const [set, files] of Object.entries(SVGS)) { mkdirSync(join(out, set), { r
 for (const [set, list] of Object.entries(SETS)) for (const [f, s, name] of list) await shoot(read(f).replace('width="64" height="64"', `width="${s}" height="${s}"`), join(out, set, name));
 for (const f of ["lockup-light.svg", "lockup-dark.svg", "lockup-mono-navy.svg", "lockup-mono-white.svg"]) {
   const w = Number(read(f).match(/ width="([\d.]+)"/)[1]);
-  for (const W of [600, 2048]) await shoot(read(f).replace(/ width="[\d.]+" height="44"/, ` width="${W}" height="${Math.round(44 * W / w)}"`), join(out, "lockup", f.replace(".svg", `-${W}.png`)));
+  for (const W of [600, 2048]) await shoot(read(f).replace(/ width="[\d.]+" height="44(?:\.0)?"/, ` width="${W}" height="${Math.round(44 * W / w)}"`), join(out, "lockup", f.replace(".svg", `-${W}.png`)));
 }
 for (const [f, W] of [["mark-gradient.svg", 1024], ["mark-white.svg", 1024], ["mark-navy.svg", 1024]]) await shoot(read(f).replace('width="64" height="64"', `width="${W}" height="${W}"`), join(out, "mark", f.replace(".svg", `-${W}.png`)));
 await browser.close();

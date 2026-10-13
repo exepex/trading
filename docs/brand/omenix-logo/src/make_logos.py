@@ -25,10 +25,21 @@ STROKE = 7.5
 
 
 def grad(gid: str = "g") -> str:
+    """One gradient across the whole 64-unit mark box (user space), so stroked paths share it; an
+    object-bounding-box gradient would give each path its own, and a gradient cannot be a `color` value."""
     return (
-        f'<linearGradient id="{gid}" x1="0" y1="1" x2="1" y2="0">'
+        f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="0" y1="{GRID}" x2="{GRID}" y2="0">'
         f'<stop offset="0" stop-color="{ACCENT_A}"/><stop offset="1" stop-color="{ACCENT_B}"/></linearGradient>'
     )
+
+
+def painted(inner: str, paint: str) -> str:
+    """Apply a paint (a colour or url(#g)) to the mark's currentColor strokes and fills."""
+    return inner.replace("currentColor", paint)
+
+
+def num(value: float) -> str:
+    return str(int(value)) if float(value).is_integer() else f"{value:.1f}"
 
 
 def pt(angle_deg: float, r: float, c: float = GRID / 2) -> tuple[float, float]:
@@ -83,7 +94,9 @@ MARKS = {"signal": mark_signal, "omen": mark_omen, "monogram": mark_monogram}
 
 
 # ---- wordmark ---------------------------------------------------------------------------------------------
-def wordmark_path(text: str = "Omenix", tracking_em: float = -0.015) -> tuple[str, float, float, float]:
+def wordmark_path(
+    text: str = "Omenix", tracking_em: float = -0.015
+) -> tuple[str, float, float, float]:
     """Return (path d, advance width, cap height, units per em) for the text in font units, y up."""
     font = TTFont(FONT)
     glyph_set = font.getGlyphSet()
@@ -106,16 +119,18 @@ def wordmark_path(text: str = "Omenix", tracking_em: float = -0.015) -> tuple[st
 # ---- svg assembly -----------------------------------------------------------------------------------------
 def svg(width: float, height: float, view: str, body: str, defs: str = "") -> str:
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="{view}">'
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{num(width)}" height="{num(height)}" viewBox="{view}">'
         f"<defs>{defs}</defs>{body}</svg>\n"
     )
 
 
 def mark_only(inner: str, color: str, defs: str = "") -> str:
-    return svg(GRID, GRID, f"0 0 {GRID} {GRID}", f'<g color="{color}">{inner}</g>', defs)
+    return svg(GRID, GRID, f"0 0 {GRID} {GRID}", painted(inner, color), defs)
 
 
-def tile(inner: str, bg: str, fg: str, radius: float, pad_scale: float = 0.72, defs: str = "") -> str:
+def tile(
+    inner: str, bg: str, fg: str, radius: float, pad_scale: float = 0.72, defs: str = ""
+) -> str:
     """A square tile (app rail, favicon, avatar): background with the mark scaled to pad_scale of it."""
     s = pad_scale
     off = GRID * (1 - s) / 2
@@ -124,7 +139,7 @@ def tile(inner: str, bg: str, fg: str, radius: float, pad_scale: float = 0.72, d
         GRID,
         f"0 0 {GRID} {GRID}",
         f'<rect width="{GRID}" height="{GRID}" rx="{radius}" fill="{bg}"/>'
-        f'<g transform="translate({off:.2f} {off:.2f}) scale({s})" color="{fg}">{inner}</g>',
+        f'<g transform="translate({off:.2f} {off:.2f}) scale({s})">{painted(inner, fg)}</g>',
         defs,
     )
 
@@ -142,8 +157,8 @@ def lockup(inner: str, mark_color: str, text_color: str, defs: str = "") -> str:
     return svg(
         round(width, 1),
         height,
-        f"0 0 {width:.1f} {height}",
-        f'<g transform="scale({mark_h / GRID:.4f})" color="{mark_color}">{inner}</g>'
+        f"0 0 {num(round(width, 1))} {num(height)}",
+        f'<g transform="scale({mark_h / GRID:.4f})">{painted(inner, mark_color)}</g>'
         f'<g transform="translate({mark_h + gap:.1f} {baseline:.1f}) scale({scale:.5f} -{scale:.5f})" '
         f'fill="{text_color}">{d}</g>',
         defs,

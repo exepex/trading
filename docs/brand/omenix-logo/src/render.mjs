@@ -23,8 +23,8 @@ function sheet() {
       <div class="circle white">${read(m, "avatar-white.svg").replace('width="64" height="64"', 'width="96" height="96"')}</div>
       <div class="big">${read(m, "mark-gradient.svg").replace('width="64" height="64"', 'width="140" height="140"')}</div>
     </div>
-    <div class="lock light">${read(m, "lockup-light.svg").replace(/height="44"/, 'height="56"').replace(/ width="[\d.]+"/, "")}</div>
-    <div class="lock dark">${read(m, "lockup-dark.svg").replace(/height="44"/, 'height="56"').replace(/ width="[\d.]+"/, "")}</div>
+    <div class="lock light">${read(m, "lockup-light.svg").replace(/height="44(?:\.0)?"/, 'height="56"').replace(/ width="[\d.]+"/, "")}</div>
+    <div class="lock dark">${read(m, "lockup-dark.svg").replace(/height="44(?:\.0)?"/, 'height="56"').replace(/ width="[\d.]+"/, "")}</div>
   </section>`;
   return `<!doctype html><meta charset="utf-8"><style>
   body{margin:0;padding:24px;background:${PAGE};font:14px Inter,sans-serif;color:#4b465c;width:1180px}
@@ -61,11 +61,10 @@ for (const m of MARKS) {
     await el.screenshot({ path: join(png, `${f.replace(".svg", "")}-${s}.png`), omitBackground: true });
   }
   for (const f of ["lockup-light.svg", "lockup-dark.svg"]) {
-    const svg = read(m, f).replace(/ width="([\d.]+)" height="44"/, (_, w) => ` width="${Math.round(w * 2048 / 44)}" height="2048"`.replace("2048\"", "2048\"")).replace(/height="2048"/, 'height="2048"');
     // scale so the lock-up is 2048 px wide
     const w = Number(read(m, f).match(/ width="([\d.]+)"/)[1]);
     const h = Math.round(44 * 2048 / w);
-    const svg2 = read(m, f).replace(/ width="[\d.]+" height="44"/, ` width="2048" height="${h}"`);
+    const svg2 = read(m, f).replace(/ width="[\d.]+" height="44(?:\.0)?"/, ` width="2048" height="${h}"`);
     await page.setContent(`<body style="margin:0;background:transparent">${svg2}</body>`);
     const el = await page.$("svg");
     await el.screenshot({ path: join(png, `${f.replace(".svg", "")}-2048.png`), omitBackground: true });
