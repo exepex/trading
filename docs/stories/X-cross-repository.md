@@ -475,3 +475,45 @@ honest empty states ("no approved strategy yet", "no hybrid strategy yet"); grou
 **Judge verifies:** compares screenshots with the mockup; checks the no-merge test with a planted cross-currency sum.
 
 **Depends:** W8 · **Size:** M · **Status:** later
+
+---
+
+## W10. API contract and data catalog for the frame and Home (small independent endpoints)
+
+**Repository:** dashboard
+
+**Description:** As the owner, I want the signed-off frame (30-shell) and Home (31-dashboard) turned into a fixed API
+contract made of many small endpoints, one per independent block, plus a data catalog naming where every field comes
+from, so that the screen loads its blocks in parallel and both backends know exactly what to publish.
+
+**Context and why:** Owner, 13 Oct 2026: "we don't need to build one single API ... multiple small APIs which could
+populate the screen in parallel instead of a big bulky API call. many blocks and sections are independent". The
+signed-off contracts are the two mockups' `notes.md` (frozen). The repository's `api/` already holds an OpenAPI 3.1
+contract with a per-page layout (`api/paths/<page>.yaml`, `api/schemas/<page>.yaml`, shared parts in `openapi.yaml`,
+`api/README.md`); the old Home payload (`api/paths/home.yaml`) predates the new design.
+
+**Scope.** In: one endpoint per independent block of the frame (for example search, market status, index strip,
+notifications, picks panel) and of Home (each section), each with its own schema, `ReadModelMeta` (as-of, source,
+freshness), error and empty states, cache and freshness rules; a data catalog (`api/catalog/home.md` or similar)
+mapping every field to its publisher (stock tool, F&O tool, dashboard), its read model or table, its unit, freshness
+and the story that will publish it; the old Home endpoint marked superseded. Out: implementing endpoints (W8, W9,
+W2, W6, P stories); changing the signed-off mockups.
+
+**Acceptance criteria:**
+1. Every element in the two signed-off `notes.md` contracts maps to exactly one endpoint field; a check lists any
+   element without an endpoint or any endpoint field without an element (zero both ways).
+2. Blocks that the screen shows independently have independent endpoints; no endpoint returns data for two
+   independent sections; each endpoint states which blocks it feeds.
+3. The bundled OpenAPI document validates, and every schema has an example taken from the mockups' data.
+4. The data catalog names, for every field, publisher, source read model or table, unit, freshness and the story
+   that publishes it; fields no backend publishes yet are marked `x-status: planned` with that story.
+5. The contract honours the screen rules: F&O fields absent for the US market (not null), no field sums across
+   accounts or currencies except the owner's per-group totals, as-of time on every price.
+6. The repository's checks pass (code size, typecheck, tests, build).
+
+**Test plan:** a mapping check script (elements versus endpoint fields), OpenAPI validation, example validation.
+
+**Judge verifies:** reviews the mockups, the contract and the catalog together: picks 10 random screen elements and
+traces each to its endpoint field and its publisher; checks the independence of endpoints against the screen layout.
+
+**Depends:** sign-off of 30-shell and 31-dashboard (13 Oct 2026) · **Size:** M · **Status:** next
