@@ -18,9 +18,9 @@ limits, compared with no trade, with the same trade taken every month, and with 
   December 2023 is a challenge opportunity although it exits in January 2024). A cycle's P&L is dated by its **exit
   day**: calendar year for "results by year" and the year-block bootstrap, Indian financial year (April-March) for the
   tax scenario.
-- What the challenge is: a **pre-registered historical holdout** of data not used to form these policies. It is
-  earlier in time than the discovery period, so it is not a forward test; anything that passes still needs forward
-  paper trading (owner's paper gate). All features use only data available at each historical decision day.
+- What the challenge is: a **pre-registered historical holdout** of data not used to form these policies, with
+  limited pre-freeze predictor exposure (section 10). It is earlier in time than the discovery period, so it is not
+  a forward test; anything that passes still needs forward paper trading (owner's paper gate). All features use only data available at each historical decision day.
 - What it is not: a test of the 15:00 desk. All prices are daily closes (**close-proxy**); a 15:00 version of any
   feature or fill is a different thing and needs its own forward evidence.
 
@@ -207,19 +207,29 @@ an assumption for comparison, not a verified tax liability.
   - ATM volume and open interest counts on 2019-2023 decision days (response 48 item 8, the F1 volume table); F2's
     defined-day count after story A10 (judge 34).
   - The 30 Mar 2021 index closes above (two index values).
-  - **The G1 forecast protocol's golden file** `research/forecasts/golden_iv30_rv20.csv` (added in commit `769fac7`,
-    13 Oct 2026 14:24 UTC; story G1, judge 47; G1's flag counts over 2019-2026 were first computed for commit
-    `f936156`, 12:56 UTC) holds, for every session 2019 to 12 Oct 2026, the 30-day ATM implied volatility, its
-    flag and the trailing 20-day realised volatility. Its `trailing_rv20_points` column is F1's realised-volatility
-    term for every challenge session, and its IV30 is computed by F1's own function (Black-76 ATM IV of monthly
-    expiries, interpolated to 30 days; F1 uses the cycle's 30-45 day expiry). So challenge-period values closely
-    related to F1 were **computed and committed**, though not as F1 itself and not with any P&L or outcome. While
-    writing version 2.2, Claude printed that file's first four rows (1 to 4 Jan 2019, none a decision day). Whether
-    anyone read other challenge rows is not recorded. This is stated so the owner and ChatGPT can judge it before the
-    freeze. Timing: the policies (P1-P8) and their thresholds were fixed in version 2.1 (12 Oct 2026) and the F1
-    10-contract floor by the owner in commit `ec2e9a5` (13 Oct 2026 12:43 UTC), all before these values were first
-    computed; the version 2.2 changes after that time are listing-date rules and conventions, not chosen from them.
-  - Otherwise no 2019-2023 option price, feature value (F1, F2, F3 as such) or P&L was computed or viewed.
+  - **G1's golden file (disclosure, ChatGPT review 29 section 1, accepted in response 63):** Before the Experiment-1
+    freeze, G1 generated `research/forecasts/golden_iv30_rv20.csv` over 2019-2026. It computed IV30 and trailing RV20
+    for challenge-period sessions. These are entry-known predictors and overlap with F1's components, but no
+    Experiment-1 F1 decision-day series, policy action, option outcome, trade P&L, control statistic or pass/fail
+    result was computed or viewed from this work. The golden was generated only after the Experiment-1 rules and
+    thresholds had been fixed.
+    - File: added in commit `769fac7` (13 Oct 2026 14:24 UTC), SHA-256
+      `dcb011864502dca2566ff168c6014187e17292d03a8f756a60c7fbab0f1355c5` (unchanged since).
+    - Order: the last rule-setting commit, the owner's F1 10-contract floor `ec2e9a5` (13 Oct 2026 12:43 UTC), came
+      before G1's first computation of these values for commit `f936156` (12:56 UTC) and before the file itself. The
+      policies P1-P8 and their thresholds were fixed in version 2.1 (12 Oct 2026). Later version 2.2 changes are
+      listing-date rules and conventions, not chosen from these values.
+    - Views: while writing version 2.2, Claude printed the file's first four rows (1 to 4 Jan 2019, none a decision
+      day).
+  - **Hard rule from now until the challenge run:** no Experiment-1 rule, F1 threshold, structure, policy, control or
+    pass criterion may be changed in response to any 2019-2023 golden value. A data or code correctness bug may be
+    fixed, but it must be disclosed and independently judged before the freeze. No one prints or analyses the golden
+    file's challenge-period values for Experiment 1 before the run; the committed file stays (deleting it would not
+    unsee it).
+  - **Label:** the final report describes 2019-2023 as a **historical holdout with limited pre-freeze predictor
+    exposure**, not a perfectly untouched or blinded holdout. A pass remains only a gate to forward paper trading.
+  - Otherwise no 2019-2023 option price, Experiment-1 feature value (F1, F2, F3 as such), option outcome or P&L was
+    computed or viewed.
 
 ## 11. Known limits (stated before results)
 - Daily closes, not 15:00 quotes; no bid-ask (the Rs 1 pad is an assumption until calibrated from A4 quotes).
@@ -241,3 +251,6 @@ an assumption for comparison, not a verified tax liability.
   least the width is `bad_prices`, exit-bound anomalies report only (section 4); the engine conventions judged in
   story B2 written in (strikes from the entry day, muhurat sessions, the no-trade status, worst-case exit charges,
   windows opened before the panel); the reader revision of 30 Mar 2021 and the access record since 2.1 (section 10).
+  Then, after ChatGPT review 29 section 1 (response 63): G1's golden-file disclosure in review 29's words, its
+  commit and SHA-256, the order against the rule-setting commits, the hard rule until the run, and the final-report
+  label (section 10).
