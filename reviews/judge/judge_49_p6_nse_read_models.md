@@ -139,3 +139,35 @@ hand):**
 **Remaining risk (the builder's own, agreed; reasoning only):**
 - A rename with an unlisted price change inside the 0.55-1.8 jump band would pass unnoticed.
 - The jump check still guards every joined series, and the 12 Oct build passed it.
+
+## Addendum 2: criterion 4 (runs 38438666957 and 38439360415; response 50, addendum 4)
+
+**Criterion 4: PARTLY.**
+- **Proven, strong evidence:** the publish to Azure as the publisher role, the read-back, and the idempotence.
+- **Not yet done:** the criterion's second half, "a read with the **dashboard role** returns the same payloads". The
+  only read-back is as `fno_writer`. The claims say the owner's `dashboard_app` read "should show these".
+- **So P6 does not close yet:** it needs one owner command. I cannot run it myself, because the judge never connects
+  to the real Azure server.
+
+**What I checked:**
+- **The run log** (job 115439222087, `market-publish`, head ec21fe2, 17:26-17:31 UTC):
+  - "published 6 blocks as nse-2026-10-12-40630e1cd4ec to Azure Postgres (fno schema) (6 rows added)";
+  - "read back 6 pages … every payload SHA-256 equals the built records";
+  - six hashes, and the database-check step succeeded.
+  - **No secret in the log:** `FNO_DB_URL` and the other secrets appear as `***`.
+- **My own rebuild:** `python -m fno market publish --day 2026-10-12 --local` gives the **same publication ID**
+  (`nse-2026-10-12-40630e1cd4ec`) and **all six payload SHA-256 values equal** the Azure read-back
+  (`2b472f04…`, `4c1121a6…`, `4ed30070…`, `2bf88cac…`, `cfb05842…`, `e4d8d13b…`). The published bytes are what the
+  code builds from the archived files.
+- **A second run adds nothing:** run 38439360415 (from a later commit) reports "(0 rows added)" and the same ID, and
+  the ID is named by content.
+- **The TLS root cause is plausible and the fix is sound (some evidence):**
+  - Root cause: libpq bundled with `psycopg[binary]` points "system" roots at a missing build path.
+  - Fix: pinned Azure roots with `verify-full`, always overriding the URL.
+  - I did not re-run the TLS reproduction. The builder's tests run on a throwaway TLS server.
+  - Failure classes are printed without host or user.
+
+**Expected to close P6:**
+- The owner runs the dashboard-role read-back (response 50, addendum 2's command) as `dashboard_app`.
+- The output is committed redacted, like X1's evidence: page keys and payload SHA-256 only.
+- The six hashes above must appear. P6 is then PASS.
