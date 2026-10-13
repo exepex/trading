@@ -5,6 +5,9 @@ Two rules behind one interface. Until release times are measured, the default ap
 from the next session's decision time. With enough measured days (`MeasuredReleaseRule`), the lag is counted in
 sessions, not hours (a weekend must not hide a late file): for each measured day, the first decision at or after the
 file was first seen plus a safety margin; the rule uses the largest lag seen, which can be stricter than the default.
+
+Either rule can be wrapped by `LastWriteBoundRule`: NSE rewrites some archive files after publishing them (105 of
+1,929 participant-OI files, judge 15), so the bytes held today are usable no earlier than their own recorded last write.
 """
 
 from __future__ import annotations
@@ -70,3 +73,28 @@ class MeasuredReleaseRule(AvailabilityRule):
 
     def describe(self) -> str:
         return f"measured: {self.lag} session(s) after the file's day at {self.decision_time:%H:%M} IST"
+
+
+class LastWriteBoundRule(AvailabilityRule):
+    """Wraps a rule for files the source rewrote after publishing: the bytes held today are usable no earlier than
+    the first decision at or after their recorded last write plus the margin, nor earlier than the wrapped rule
+    allows. A rewritten day's numbers may differ from what was public at the time, so they wait for their own write."""
+
+    def __init__(
+        self, rule: AvailabilityRule, calendar: SessionCalendar, decision_time: time, last_written: dict[date, datetime]
+    ):
+        self.rule, self.calendar, self.decision_time = rule, calendar, decision_time
+        self.last_written = last_written
+
+    def usable_from(self, day: date) -> datetime:
+        allowed = self.rule.usable_from(day)
+        written = self.last_written.get(day)
+        if written is None:
+            return allowed
+        lag = sessions_until_usable(self.calendar, day, written, self.decision_time)
+        return max(allowed, decision_at(self.calendar, day, lag, self.decision_time))
+
+    def describe(self) -> str:
+        return (
+            f"{self.rule.describe()}; no earlier than each file's recorded last write ({len(self.last_written)} days)"
+        )

@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
 
-from ..constants import RELEASE_UNREACHABLE
+from ..constants import RELEASE_REWRITTEN, RELEASE_UNREACHABLE
 from ..models import IST, now_ist
 
 DEFAULT_UNTIL, DEFAULT_EVERY_MINUTES = time(22, 0), 5
@@ -33,9 +33,13 @@ def cmd_participant_oi(args) -> int:
         return 0
     day = args.day or now_ist().date()
     until = datetime.combine(day, args.until, IST)
-    check = build_release_time_recorder().watch(day, until, timedelta(minutes=args.every))
+    recorder = build_release_time_recorder()
+    rewritten = [c for c in recorder.recheck_recent(day) if c.outcome == RELEASE_REWRITTEN]
+    for c in rewritten:
+        print(f"REWRITTEN {c.day}: NSE's file changed after it was first seen (now {c.sha256[:12]})")
+    check = recorder.watch(day, until, timedelta(minutes=args.every))
     if check is None:
         print(f"{day}: not a trading day; nothing checked")
-        return 0
-    print(f"{day}: {check.outcome} at {check.checked_at:%Y-%m-%d %H:%M} IST {check.sha256[:12]}".rstrip())
-    return 1 if check.outcome == RELEASE_UNREACHABLE else 0
+    else:
+        print(f"{day}: {check.outcome} at {check.checked_at:%Y-%m-%d %H:%M} IST {check.sha256[:12]}".rstrip())
+    return 1 if rewritten or (check is not None and check.outcome == RELEASE_UNREACHABLE) else 0

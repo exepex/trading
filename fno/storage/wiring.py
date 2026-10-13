@@ -92,9 +92,9 @@ QUOTES_FOLDER = (
 )  # repository: Drive is read-only here
 
 
-PARTICIPANT_OI_RELEASE_LOG = (
-    Path(__file__).resolve().parents[2] / "research" / "data" / "participant_oi" / "release_checks.csv"
-)  # repository: the committed evidence of NSE's release times (story A8)
+PARTICIPANT_OI_EVIDENCE = Path(__file__).resolve().parents[2] / "research" / "data" / "participant_oi"
+PARTICIPANT_OI_RELEASE_LOG = PARTICIPANT_OI_EVIDENCE / "release_checks.csv"  # NSE's release times, committed (A8)
+PARTICIPANT_OI_LAST_MODIFIED = PARTICIPANT_OI_EVIDENCE / "archive_last_modified_2026-10-13.csv"  # with the download
 
 
 def build_quote_store(folder: Path | None = None) -> RawFileStore:

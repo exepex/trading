@@ -57,6 +57,7 @@ OI_GROUPS = (
 )  # fmt: skip
 # Outcomes of one release-time check of a published file (fno/research_data/release_times.py)
 RELEASE_PRESENT, RELEASE_ABSENT, RELEASE_UNREACHABLE = "present", "absent", "unreachable"
+RELEASE_REWRITTEN = "rewritten"  # present, but with other bytes than the first ones seen for that day
 
 # NIFTY option-chain panel (story A3, fno/research_data/nifty_panel.py)
 PANEL_FORMAT_UDIFF, PANEL_FORMAT_LEGACY = "udiff", "legacy"  # source_format: which F&O file a day's rows came from
