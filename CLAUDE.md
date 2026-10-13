@@ -94,7 +94,8 @@ commit with `--no-verify`.
   `fno/storage/wiring.py` (raw data stores and sources), `fno/risk/wiring.py` (the risk manager, story C2),
   `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
   and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`), `fno/filings/wiring.py` (the
-  company filings archive, story A12) and `fno/pipeline/wiring.py` (fetch-and-trigger jobs, story O6).
+  company filings archive, story A12), `fno/pipeline/wiring.py` (fetch-and-trigger jobs, story O6) and
+  `fno/market_read_models/wiring.py` (the market read models and their publisher, stories P6-P9).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.

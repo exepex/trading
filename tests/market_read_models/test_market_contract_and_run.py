@@ -8,13 +8,14 @@ from datetime import date
 import pytest
 
 from fno.alerts.sender import AlertSender
-from fno.composition import CONTRACT_FOLDER, build_market_blocks
 from fno.market_read_models.blocks import SessionRows
 from fno.market_read_models.contract import ContractBroken, PinnedContract, PublishedContract, drift
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.market_run import MarketRun
 from fno.market_read_models.publication import PublicationBuilder
+from fno.market_read_models.run_status import LocalRunStatus
 from fno.market_read_models.session_rows import IncompleteSession
+from fno.market_read_models.wiring import CONTRACT_FOLDER, build_market_blocks
 from fno.research_data.calendar import CsvSessionCalendar
 
 DAY = date(2026, 10, 12)
@@ -132,8 +133,10 @@ class Rows:
 
 
 def run(tmp_path, rows, publications=None):
-    alerts, publisher = Alerts(), LocalFolderPublisher(tmp_path)
-    market = MarketRun(CALENDAR, CONTRACT, rows, publications or builder(), publisher, alerts)
+    alerts, publisher, ids = Alerts(), LocalFolderPublisher(tmp_path), iter(range(1, 100))
+    status = LocalRunStatus(tmp_path, "fno")
+    market = MarketRun(CALENDAR, CONTRACT, rows, publications or builder(), publisher, alerts, status,
+                       lambda: f"run-{next(ids)}")  # fmt: skip
     return market, alerts, publisher
 
 
