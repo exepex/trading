@@ -14,6 +14,7 @@ from .stock_rows import UNIVERSE_FNO, UNIVERSE_FOLLOWED, UNIVERSE_NIFTY_500
 
 if TYPE_CHECKING:
     from .chain_session import ChainSession
+    from .home_inputs import HomeInputs
 
 CLOSE_UTC = "T10:00:00Z"  # NSE closes at 15:30 IST
 CURRENCY = "INR"
@@ -33,6 +34,7 @@ class SessionRows:
     indices: list[dict]
     industries: list[dict]
     chain: ChainSession | None = None  # the NIFTY option chain (P9)
+    home: HomeInputs | None = None  # the F&O books and approvals for Home (P10)
 
 
 class BlockBuilder(ABC):

@@ -16,9 +16,9 @@ WORKFLOW = Path(__file__).parents[2] / ".github" / "workflows" / "market-publish
 def test_the_run_reads_back_every_page_and_prints_only_counts_and_hashes(tmp_path):
     market, alerts, _ = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and alerts.sent == [] and lines[0].endswith("(1277 rows added)")
-    assert lines[1].startswith("read back 1277 pages of nse-2026-10-12-") and lines[1].endswith("the built records")
-    assert len(lines) == 2 + 12  # one line per block
+    assert code == 0 and alerts.sent == [] and lines[0].endswith("(1279 rows added)")
+    assert lines[1].startswith("read back 1279 pages of nse-2026-10-12-") and lines[1].endswith("the built records")
+    assert len(lines) == 2 + 14  # one line per block
     assert any(line.startswith("    chain_rows 21 pages, SHA-256 of their hashes ") for line in lines)
     assert all(len(line.split()[-1]) == 64 for line in lines[2:])  # counts and hashes only
 

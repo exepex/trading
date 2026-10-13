@@ -14,7 +14,8 @@ create table if not exists fno.run_status (
     reason_code     text        check (reason_code is null or reason_code in (
                         'not_a_session', 'archive_incomplete', 'contract_changed', 'schema_invalid', 'publish_refused',
                         'read_back_mismatch', 'database_network', 'database_firewall', 'database_tls',
-                        'database_authentication', 'database_privilege', 'database_other', 'crashed')),
+                        'database_authentication', 'database_privilege', 'database_other', 'figures_not_computed',
+                        'crashed')),
     reason          text,
     publication_id  text,
     primary key (product, run_id),

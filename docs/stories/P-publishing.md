@@ -282,3 +282,36 @@ blocks (one pointer, one run, one status). Out: bid and ask, 3 pm quotes (not pu
 4. Size, lint, imports, tests pass.
 
 **Depends:** P6, P7, W13 · **Size:** M · **Status:** built; awaiting judge (claims: response 66, addendum P9)
+
+---
+
+## P10. Home's F&O read models
+
+**Repository:** trading
+
+**Description:** As the owner, I want Home to show the F&O tool's real state now (the three paper books' accounts and
+the F&O picks panel), so that Home stops showing examples for F&O while the stock data waits for its own API.
+
+**Context and why:** Owner request through the orchestrator, 13 Oct 2026. W10's contract (omenix-dashboard `api/`)
+assigns two Home blocks to publisher `fno`: `FnoBooks` (`/markets/india/fno/books`, feeds "Who trades") and `FnoPicks`
+(`/markets/india/fno/picks`, the picks panel). The truth today: every book holds its Rs 5 lakh opening balance with no
+fill, and Experiment 1 passed no policy (`research/2026-10-12-experiment-1/results_challenge.json`:
+`passing_policies: []`), so no book has an approved strategy and no pick exists.
+
+**Scope.** In: `FnoBooks` (value, profit or loss, approved strategies, risk used and its limit, per book, from the
+books' own accounts, E1, and C2's limit) and `FnoPicks` (the honest empty state: `approved` false, a note saying why,
+no rows), published in the same publication and run status as P6 and P9. **Out, stopped (contract):** the India market
+band (`getIndices`, `getSession`) and the coming-up events, including `fno_expiry` (`getEvents`): W10 marks all three
+`x-publisher: stock` for every market. Publishing them here would make two publishers for one block. **Not in the
+contract:** a reason code for the empty picks state (W10's `FnoPicks` has only `fno_state.note`).
+
+**Acceptance criteria:**
+1. `FnoBooks` shows each book's own account: value = its latest marked equity on or before the session (Rs 5 lakh
+   before it opened), `pnl` = value − Rs 5 lakh, `approved` = the policies the latest frozen experiment passed (none),
+   `limit_used` = 0 with no open trade, `limit_max` = C2's `max_stress_loss_rs`; never example values.
+2. `FnoPicks` is the empty state with a note naming the reason (Experiment 1 passed no policy).
+3. Both validate against the pinned W10 schemas and publish in the same transaction and run status as P6.
+4. A book with an open trade stops the run rather than publish a risk figure this story does not compute.
+5. Size, lint, imports, tests pass.
+
+**Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built; awaiting judge (claims: response 66, addendum P10)

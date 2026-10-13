@@ -5,6 +5,7 @@ figure is null, never computed over a shorter window, when a corporate action wi
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
+from fno.config import load_app_config
 from fno.market_read_models import wiring as market_wiring
 from fno.market_read_models.corporate_actions import adjusted, read_corporate_actions
 from fno.market_read_models.index_rows import index_rows
@@ -55,7 +56,7 @@ def test_the_sectors_come_from_nses_latest_version_of_the_index_file(tmp_path):
 def test_publishing_is_wired_to_the_latest_reader(monkeypatch):
     calls = []
     monkeypatch.setattr(market_wiring, "build_versioned_reader", lambda *args: calls.append(args) or "latest")
-    assert market_wiring.build_session_rows_builder({"risk_free_rate": 0.065}).store == "latest" and calls == [()]
+    assert market_wiring.build_session_rows_builder(load_app_config()).store == "latest" and calls == [()]
 
 
 def test_nses_symbol_change_file_is_read_with_its_padded_header():

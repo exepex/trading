@@ -13,6 +13,7 @@ from datetime import date
 from ..alerts.sender import AlertSender
 from ..research_data.calendar import SessionCalendar
 from .contract import ContractBroken, PinnedContract
+from .home_blocks import FiguresNotComputed
 from .publication import Publication, PublicationBuilder, hashes
 from .publisher import PublishFailed, ReadModelPublisher
 from .run_status import (
@@ -20,6 +21,7 @@ from .run_status import (
     CONTRACT_CHANGED,
     CRASHED,
     FAILED,
+    FIGURES_NOT_COMPUTED,
     NOT_A_SESSION,
     PUBLISHED,
     READ_BACK_MISMATCH,
@@ -108,6 +110,8 @@ class MarketRun:
             raise Stopped("archived files", ARCHIVE_INCOMPLETE, str(exc)) from exc
         except ContractBroken as exc:
             raise Stopped("W11 schema", SCHEMA_INVALID, str(exc)) from exc
+        except FiguresNotComputed as exc:
+            raise Stopped("F&O figures", FIGURES_NOT_COMPUTED, str(exc)) from exc
         try:
             added = self.publisher.publish(publication)
             stored = self.publisher.stored(publication.publication_id)

@@ -11,8 +11,9 @@ from pathlib import Path
 
 from ..composition import build_alert_sender
 from ..config import ROOT
-from ..constants import ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID
+from ..constants import BOOKS, ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID
 from ..research_engine.implied_vol import SpotBlackScholes
+from ..risk.settings import risk_settings
 from ..storage.wiring import build_session_calendar, build_versioned_reader
 from .blocks import (
     BlockBuilder,
@@ -37,6 +38,8 @@ from .db_check import DatabaseCheck, url_user
 from .db_connection import VerifiedConnection
 from .fno_rows import FnoRowBuilder
 from .followed import FollowedCompaniesFolder
+from .home_blocks import FnoBooksBlock, FnoPicksBlock
+from .home_inputs import BooksReader, FrozenExperimentApprovals, HomeInputsReader
 from .local_publisher import LocalFolderPublisher
 from .market_run import MarketRun
 from .postgres_publisher import PostgresPublisher
@@ -49,14 +52,18 @@ CONTRACT_FOLDER = ROOT / "contracts" / "omenix-dashboard"  # the pinned W11 cont
 AZURE_POSTGRES_ROOTS = ROOT / "db" / "fno" / "azure-postgres-roots.pem"  # the CAs the publisher trusts (P6)
 DASHBOARD_REPOSITORY = "exepex/omenix-dashboard"
 FOLLOWED_COMPANIES_FOLDER = ROOT / "research" / "data" / "followed-companies" / "india"  # W11 input (judge 40)
+LATEST_FROZEN_EXPERIMENT = (  # its decisive run's passing policies are the only approved strategies (P10)
+    ROOT / "research" / "2026-10-12-experiment-1" / "results_challenge.json",
+    "Experiment 1 (the 2019-2023 challenge)",
+)
 
 
 def build_market_blocks() -> list[BlockBuilder]:
-    """Stories P6 and P9: the India blocks the contract assigns to publisher fno (Screener and Markets; the NIFTY
-    option chain), in publication order, all in one publication."""
+    """Stories P6, P9 and P10: the India blocks the contract assigns to publisher fno (Screener and Markets; the NIFTY
+    option chain; Home's F&O books and picks), in publication order, all in one publication."""
     return [ScreenerSummaryBlock(), ScreenerStocksBlock(), FnoSummaryBlock(), FnoRowsBlock(), IndicesBlock(),
             SectorsBlock(), ChainUnderlyingBlock(), ChainExpiriesBlock(), ChainRowsBlock(), ChainHistoryBlock(),
-            ContractHistoryBlock(), ChainSourcesBlock()]  # fmt: skip
+            ContractHistoryBlock(), ChainSourcesBlock(), FnoBooksBlock(), FnoPicksBlock()]  # fmt: skip
 
 
 def build_pinned_contract() -> PinnedContract:
@@ -117,7 +124,9 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     fno_rows = FnoRowBuilder(SpotBlackScholes(), cfg["risk_free_rate"])
     followed = FollowedCompaniesFolder(FOLLOWED_COMPANIES_FOLDER)
     chain = ChainBuilder(cfg["risk_free_rate"])
-    return SessionRowsBuilder(build_versioned_reader(), build_session_calendar(), fno_rows, followed, chain)
+    home = HomeInputsReader(BooksReader(ROOT, BOOKS), FrozenExperimentApprovals(*LATEST_FROZEN_EXPERIMENT),
+                            risk_settings(cfg, ROOT).max_stress_loss_rs)  # fmt: skip
+    return SessionRowsBuilder(build_versioned_reader(), build_session_calendar(), fno_rows, followed, chain, home)
 
 
 def repository_commit() -> str:

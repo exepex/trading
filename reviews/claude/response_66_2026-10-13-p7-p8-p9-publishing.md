@@ -33,7 +33,8 @@ a run failed (judge 57's dependency gap).
   | `publish_refused` | the store refused the publication for a reason that is not a database error |
   | `read_back_mismatch` | the read-back hashes differ from the built ones |
   | `database_network` / `database_firewall` / `database_tls` / `database_authentication` / `database_privilege` / `database_other` | from the failure class (`db_errors.py`) |
-  | `crashed` | an unexpected error |
+  | `figures_not_computed` | a figure P10 does not compute yet (an open trade's risk used, an approved strategy's picks) |
+| `crashed` | an unexpected error |
 
 - **Wiring:** the market read models now have their own composition root, `fno/market_read_models/wiring.py`. `fno/composition.py` had reached 348 of its 350 lines; the code moved unchanged, and CLAUDE.md's list of composition roots now names it.
 
@@ -159,3 +160,49 @@ W13 defines no stored shape for the blocks asked for by a parameter (W11 2.4's `
 - **Fixed text (interim):** `chain_sources.books` is fixed text ("No F&O book holds a position…"). It is true today (no strategy has passed testing) but is not read from the books yet. When a book can hold a position, this must come from the books' state (C-stories). `quotes.status` is `not_published` until the 3 pm quotes are published.
 - **Not checked from here:** the dashboard's route for the chain (W13 follow-up) must map its parameters to the page keys above.
 - **Daily run:** the job (`market-publish.yml`, 07:10 IST) will publish the chain from its next run. Publish run time grows by about 30 s (the extra F&O files).
+
+## Addendum P10: Home's F&O read models (built for the fields W10 gives fno; two items stopped)
+
+**What W10 assigns to publisher `fno` for Home, checked against the contract** (omenix-dashboard `api/`, at 407ead2):
+
+| Owner's item | W10 | Done |
+|---|---|---|
+| F&O book accounts for "Who trades" (Book 1 Rules, Book 2 Hybrid, Book 3 AI team, `pnl` each) | `FnoBooks`, `/markets/india/fno/books`, `x-publisher: fno` | **built**: page `fno_books` |
+| F&O picks, empty with a reason | `FnoPicks`, `/markets/india/fno/picks`, `x-publisher: fno`; empty state is `fno_state.approved: false` plus `note` | **built**: page `fno_picks`; **no reason-code field exists** (only `note`) |
+| India market band (indices and session) | `getIndices`, `getSession`: `x-publisher: stock` for every market (`api/paths/blocks-frame.yaml`) | **stopped**: not an fno field |
+| Upcoming NIFTY expiries (`fno_expiry` events) | `Events`, `getEvents`: `x-publisher: stock`; the kind `fno_expiry` exists in its enum | **stopped**: not an fno field |
+
+**What is published, from the F&O tool's own records (no example values):**
+- **`fno_books`:** for each book (1 rule, 2 hybrid, 3 AI team), read from its own account (E1, `journal/<book>/account/`):
+  - `value`: the latest marked equity on or before the session; before a book opened, its Rs 5,00,000 opening balance;
+  - `pnl`: value − opening balance;
+  - `approved`: the passing policies of the latest frozen experiment (`research/2026-10-12-experiment-1/results_challenge.json`, `overall.passing_policies`: none). That is the only route by which a strategy becomes approved;
+  - `limit_used`: 0 with no open trade;
+  - `limit_max`: C2's `max_stress_loss_rs` from `config.yaml` (Rs 30,000);
+  - `as_of`: the session at 15:00 IST, when the books decide.
+
+  **Today's truth:** all three books are at Rs 5,00,000 with `pnl` 0, no approved strategy and no risk used.
+- **`fno_picks`:** `approved: false`, `rows: []`, `baskets: {}`, and the note "No F&O strategy has passed testing yet: Experiment 1 (the 2019-2023 challenge) passed no policy, so at 3 pm each F&O book records “no approved strategy”." The W10 example's note ("Experiment 1 has not run") is out of date; ours reads from the result file.
+- **Both pages** are in the same publication, transaction and run status as P6 and P9 (1,279 pages for 12 Oct), and validate against the pinned W10 schemas (`FnoBooksResponse`, `FnoPicksResponse`).
+
+**Figures this story does not compute stop the run** (new reason code `figures_not_computed`, added to migration 002 before the owner runs it):
+- a book with an open trade: its risk used is C2's stress of the open trades, not computed here;
+- an approved strategy: its picks are the books' decision records (D3).
+
+Either case publishes nothing rather than a wrong figure or an empty panel that is no longer true. Today neither can happen: no strategy is approved, so no book can open a trade.
+
+**Tests** (`test_home_blocks.py`, 6):
+- each book read only from its own account, as of the session, with the before-opening case;
+- the approvals read from the frozen result;
+- the live wiring reads the repository's books and C2's limit (Rs 30,000);
+- both payloads say the truth and validate;
+- each not-computed case stops the run with its code.
+
+All market tests pass (106).
+
+**Decisions needed (orchestrator or owner):**
+1. **India market band and `fno_expiry` events:** W10 gives them to the stock tool. Either the stock tool publishes them (it has the NSE session calendar and its events file), or W10 moves the India band and the India expiry events to publisher `fno`. In the second case, P6's index rows and the session calendar (A7) plus the listed expiries (A5) already hold the data, and a follow-up here builds them. **My lean (reasoning only):** split by market. The India band and India F&O expiries go to `fno`, because this repository already holds NSE's calendar, expiries and closes; the US stays with the stock tool. Not built here, by your rule.
+2. **Reason code for the empty picks state:** W10's `FnoPicks` has no field for it; only `note` (text). If the dashboard needs a machine-readable code, W10 must add one (for example `fno_state.reason_code`, with values such as `no_strategy_passed`). I did not add it.
+3. **Where `FnoBooks` is stored:** W10's `x-read-model` names P1's proposed pages `risk` and `scoreboard_b`. Those don't exist yet, so I store the block as one page, `fno_books`. The dashboard's route reads it by that key; please confirm, or W10 can change the read-model note.
+
+**End-to-end check (all of P7, P9 and P10 together):** `python -m fno market publish --day 2026-10-12 --local <folder>` through the real wiring (Drive files, the repository's books, `config.yaml`) published 1,279 pages, with read-back equal and exit 0. The six P6 page hashes equal those published to Azure in run 38438666957 (for example `screener_stocks cfb0584223818102…`, `overview_sectors 2bf88cacb2b01f53…`), so P7–P10 left P6's output byte-identical. Full suite: 1,618 tests pass; ruff, imports and the record scan are clean.

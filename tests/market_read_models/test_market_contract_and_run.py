@@ -10,6 +10,7 @@ import pytest
 from fno.alerts.sender import AlertSender
 from fno.market_read_models.blocks import BlockBuilder, SessionRows
 from fno.market_read_models.contract import ContractBroken, PinnedContract, PublishedContract, drift
+from fno.market_read_models.home_inputs import BookFigures, HomeInputs
 from fno.market_read_models.local_publisher import LocalFolderPublisher
 from fno.market_read_models.market_run import MarketRun
 from fno.market_read_models.publication import PublicationBuilder
@@ -23,6 +24,12 @@ from .chain_fixture import chain_of_12_october
 DAY = date(2026, 10, 12)
 CONTRACT = PinnedContract(CONTRACT_FOLDER)
 EXAMPLES = CONTRACT.examples()
+OPENING_BOOKS = HomeInputs(
+    [BookFigures(n, f, f"F&O Book {n}", 500000.0, 0.0, 0) for n, f in ((1, "rule"), (2, "hybrid"), (3, "ai"))],
+    [],
+    "No F&O strategy has passed testing yet (test).",
+    30000.0,
+)
 CALENDAR = CsvSessionCalendar(
     "date,kind,description,source_url\n2026-10-02,holiday,Gandhi Jayanti,https://nsearchives.nseindia.com/x.pdf\n"
 )
@@ -37,7 +44,7 @@ def example_rows() -> SessionRows:
         row["group"] = row["kind"]
     sectors = payload["getIndiaSectors_india"]["industries"]
     fno = payload["getFnoScreenerRows_india"]["rows"]
-    return SessionRows(DAY, stocks, fno, indices, sectors, chain_of_12_october())
+    return SessionRows(DAY, stocks, fno, indices, sectors, chain_of_12_october(), OPENING_BOOKS)
 
 
 def builder() -> PublicationBuilder:
@@ -100,7 +107,7 @@ def test_a_planted_extra_or_missing_field_fails_and_nothing_is_published(tmp_pat
 def example_rows_with_many_stocks() -> SessionRows:
     rows = example_rows()
     stocks = rows.stocks + [dict(r, s=f"{r['s']}{i}") for i in range(2) for r in rows.stocks]  # 75 rows
-    return SessionRows(rows.day, stocks, rows.fno, rows.indices, rows.industries, rows.chain)
+    return SessionRows(rows.day, stocks, rows.fno, rows.indices, rows.industries, rows.chain, rows.home)
 
 
 class Published(PublishedContract):
@@ -147,7 +154,7 @@ def run(tmp_path, rows, publications=None):
 def test_a_good_session_is_published_and_a_closed_day_publishes_nothing(tmp_path):
     market, alerts, publisher = run(tmp_path, Rows(example_rows()))
     code, lines = market.run(DAY)
-    assert code == 0 and lines[0].startswith("2026-10-12: published 1277 blocks") and alerts.sent == []
+    assert code == 0 and lines[0].startswith("2026-10-12: published 1279 blocks") and alerts.sent == []
     assert market.run(date(2026, 10, 11)) == (0, ["2026-10-11: not a trading day, nothing to publish"])
     assert set(publisher.current()) == {key for b in build_market_blocks() for key in b.pages(example_rows())}
 

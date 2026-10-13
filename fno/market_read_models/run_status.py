@@ -16,7 +16,7 @@ from .db_errors import AUTHENTICATION, FIREWALL, NETWORK, PRIVILEGE, TLS
 RUNNING, PUBLISHED, FAILED, SKIPPED = "running", "published", "failed", "skipped"
 NOT_A_SESSION, ARCHIVE_INCOMPLETE, CONTRACT_CHANGED = "not_a_session", "archive_incomplete", "contract_changed"
 SCHEMA_INVALID, PUBLISH_REFUSED, READ_BACK_MISMATCH = "schema_invalid", "publish_refused", "read_back_mismatch"
-CRASHED, DATABASE_OTHER = "crashed", "database_other"
+CRASHED, DATABASE_OTHER, FIGURES_NOT_COMPUTED = "crashed", "database_other", "figures_not_computed"
 DATABASE_CODES = {  # a database failure class (db_errors) -> its reason code
     NETWORK: "database_network", FIREWALL: "database_firewall", TLS: "database_tls",
     AUTHENTICATION: "database_authentication", PRIVILEGE: "database_privilege",
