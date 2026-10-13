@@ -186,7 +186,7 @@ is the protocol's job).
 **Judge verifies:** re-runs the command in a fresh checkout and compares the results file hash; recomputes one
 criterion (total net) from the per-cycle list.
 
-**Depends:** B1, B2, B4 · **Size:** M · **Status:** later
+**Depends:** B1, B2, B4 · **Size:** M · **Status:** done: judge 28 PASS (13 Oct 2026)
 
 ---
 
@@ -342,4 +342,4 @@ disagreement days are listed for the red team.
 **Judge verifies:** recomputes one live value from a committed snapshot; checks the gate refuses an unvalidated
 strategy.
 
-**Depends:** B1, A4, A7 · **Size:** M · **Status:** later
+**Depends:** B1, A4, A7 · **Size:** M · **Status:** doing
