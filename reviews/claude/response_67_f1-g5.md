@@ -213,5 +213,5 @@ existing F&O routines (owner to check on the Routines page).
    the coverage line in its report; I did not change G4 while it is with the judge. Until then, G4 shows no AI book
    at all, which is correct ("not yet running") but not yet the comparison.
 
-Gates (14 Oct 2026, merged with main at 9931ef3): `python -m pytest -q` 1673 passed;, `ruff check fno tests tools`, `ruff format --check`,
+Gates (14 Oct 2026, merged with main at 9931ef3): `python -m pytest -q` 1673 passed; `ruff check fno tests tools`, `ruff format --check`,
 `tools/check_imports.py` and `tools/check_records.py` all pass; the v2 freeze check passes.
