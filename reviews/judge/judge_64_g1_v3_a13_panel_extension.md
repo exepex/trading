@@ -149,3 +149,44 @@ about 21 sessions later with nobody told. Once scheduled, a missing record shoul
 by making `NotYetFrozen` an alerting failure in the scheduled run.
 
 Gates: the affected suites pass (214). The full suite was not re-run for this small change.
+
+## Addendum 3 (the v3 freeze as confirmed: protocol 904c036, record c1bf97f amended in f67065a; look-ahead test fix)
+
+**My own hash check at 8fa1d68:** I hashed every row of `FREEZE_v3.md` from the files themselves, independently of
+the code.
+- All byte-checked rows of both sections match: `panel-days` 6 files, `forecast-scores` 7 files.
+- The "recorded, not byte-checked" rows also match, except `manifest.json`, which the record itself says grows by
+  appends.
+- `require_section_frozen` passes for both sections at HEAD, with protocol commit 904c036.
+- `PROTOCOL_v3.md` is unchanged since 904c036.
+
+**The amendment f67065a changed exactly three things:**
+1. the `panel-days.yml` row's hash (`5a7ec8dd…` to `6971c687…`);
+2. a dated note saying so;
+3. the workflow itself: the archive steps' end day now comes from `last_complete_day(now_ist())` instead of today,
+   and the librarian-failure alert's multi-line `python -c` string, a SyntaxError that never sent, now passes the
+   message through `sys.argv`.
+
+No other row, no protocol text and no `forecast-scores` row changed. The workflow change keeps "commit the panel only
+on a clean append". This is a disclosed record edit before confirmation, approved by the orchestrator. Acceptable,
+because no scheduled append ran under the old hash.
+
+**My two should-fixes from addendum 2 are in:**
+- Re-planting the section swaps now fails tests: the panel job checking `forecast-scores` gives 3 failed, and
+  scoring checking `panel-days` gives 2 failed.
+- A missing freeze record is now an alerting failure
+  (`test_a_missing_freeze_record_is_an_alerting_failure_never_a_silent_stop`).
+
+**Look-ahead test fix (5c0b366, 716842d): MET, nothing loosened.**
+- `perturb_panel` now draws one number per call and gives each day its own stream (`Random(f"{trial}-{table}-{day}")`),
+  so appended days never change another day's changes.
+- `test_lookahead.py` passes 9 of 9 on HEAD and 9 of 9 on the panel at 3a03b90, just before the first append.
+- The test still bites: my plant, replacing the leaking live plant with a feature that does not leak, fails it.
+
+Note (reasoning only): the plant now reads the day's raw VIX close. The harness is still only probabilistic for a
+real **threshold** feature declared live by mistake: a scaled VIX may not cross the median. One deterministic trial
+that removes every after-cutoff value (all None) would make detection certain for any feature. This is a small
+harness improvement, not a defect today.
+
+**Still to do (my side):** compare the first two scheduled appends (from 14 Oct, 21:41 IST) with A3's build. The 13 Oct
+day came from the manual dispatch run 38474280810.

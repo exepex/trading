@@ -78,3 +78,10 @@ To be verified after today's scheduled run (about 01:40 UTC) through its run log
 ## Project rules
 
 New blocks behind the existing block interface; contract pinned; no example values; Slack only to #fno-desk.
+
+## Addendum 1 (flows window fix 5f6e0e0)
+
+Flows now read only copies filed on or before the published session (the 21:10 IST download of that day). Each
+publication records the copies behind each session's figures (dataset, session, filing day, SHA-256), so a re-run can
+be compared copy for copy. My plant, widening the window back to the next session, is now caught (1 failed, 137
+passed). The minor point from item 1 is closed. Item 4 (the real 07:10 IST publish) is still pending.
