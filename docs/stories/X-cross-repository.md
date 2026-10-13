@@ -120,7 +120,7 @@ page with a clear "incompatible data version" screen; F&O freshness from `fno.ru
 
 **Judge verifies:** runs the publishing/stale integration test.
 
-**Depends:** W1, X1, P3 · **Size:** M · **Status:** later
+**Depends:** W1, X1, P3 · **Size:** M · **Status:** done for the Screener and Markets blocks: judge 57 PASS (13 Oct 2026); live once the owner switches Vercel. Follow-up: P3/P6 publish `fno.run_status` so 'stale' can say why a run failed
 
 ---
 
