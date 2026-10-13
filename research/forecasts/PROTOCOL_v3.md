@@ -66,8 +66,9 @@ Rules:
    - the calendar SHA-256 it used.
 
    The append commit is the commit that adds the day to `manifest.json`.
-7. **Writes only under this freeze.** The job runs `require_version_frozen(ROOT, HEAD, PROTOCOL_v3.md, FREEZE_v3.md)`
-   (v2's check, unchanged) before it reads anything.
+7. **Writes only under this freeze.** Before it reads anything, the job checks its own section of the freeze record:
+   `require_section_frozen(ROOT, HEAD, "panel-days")` (`fno/freeze_sections.py`, v2's rules applied to one section;
+   section 5).
 
 ## 2. No look-ahead, and replay
 
@@ -114,22 +115,30 @@ at the forecast's cutoff.
 
 ## 5. The freeze (after the judge and the orchestrator only)
 
-`research/forecasts/FREEZE_v3.md` will name the commit that adds this text in its final form, and the SHA-256 of:
-- this file;
-- the A13 code: `fno/research_data/panel_append.py`, `fno/pipeline/panel_days.py` and A13's own composition root
-  `fno/pipeline/panel_wiring.py` (never O6's shared `fno/pipeline/wiring.py`);
-- the files that decide live question 5:
-  - `fno/forecast_scoring/q5_thresholds.py`: the per-mode thresholds and the pack's IV30;
-  - `resolution.py`;
-  - `score_sources.py`: it reads the receipt-verified pack;
-  - `scoring.py`: it routes each forecast to its mode's resolver;
-- the replay, `replay.py`.
+`research/forecasts/FREEZE_v3.md` will name the commit that adds this text in its final form. It holds one section per
+job that checks it, so a change fails only the job whose files it touches (orchestrator, after judge 64). Each section
+lists the SHA-256 of this file, of `fno/freeze_sections.py` (the check itself), and of its job's files:
+- **`panel-days`**, checked by the daily panel job before every run:
+  - `fno/research_data/panel_append.py`, `fno/pipeline/panel_days.py`;
+  - A13's own composition root `fno/pipeline/panel_wiring.py` (never O6's shared `fno/pipeline/wiring.py`);
+  - `.github/workflows/panel-days.yml`.
+- **`forecast-scores`**, checked by G4's `score_forecasts` whenever live records exist:
+  - the files that decide live question 5: `fno/forecast_scoring/q5_thresholds.py` (the per-mode thresholds and the
+    pack's IV30), `resolution.py`, `score_sources.py` (reads the receipt-verified pack) and `scoring.py` (routes each
+    forecast to its mode's resolver);
+  - the replay, `replay.py`.
 
-G4's composition root `fno/forecast_scoring/wiring.py` is not frozen; it is shared with G4's other stories.
-`tests/forecast_scoring/test_scoring_wiring_q5.py` runs it and fails if the live resolver is given the panel's IV30.
-- `.github/workflows/panel-days.yml`.
+The check is `fno.freeze_sections.require_section_frozen`: v2's rules, applied to the protocol file and one section's
+files. v2's `require_version_frozen` checks every row of a record and is byte-frozen by v2, so it is reused through
+its building blocks.
 
-The daily panel job checks it before every run.
+Behaviour:
+- Before `FREEZE_v3.md` exists, the panel job appends nothing and scoring proceeds as under v2.
+- After it exists, a changed file fails only its own section's job. `tests/test_freeze_sections.py` plants a question 5
+  change, which fails scoring but not panel-days, and the reverse.
+- A changed protocol fails both.
+- G4's composition root `fno/forecast_scoring/wiring.py` is not frozen. `tests/forecast_scoring/test_scoring_wiring_q5.py`
+  runs it and fails if the live resolver is given the panel's IV30.
 
 At the freeze, `panel-days.yml` gains its schedule: after `index-closes.yml`, about 21:41 IST, plus one morning retry
 before 14:00 IST. v1's and v2's freeze records stay as they are and keep being checked by their own users.

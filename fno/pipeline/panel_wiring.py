@@ -34,17 +34,16 @@ def drive_files(label: str, source: type[NseArchiveSource], store: RawFileStore)
     )  # fmt: skip
 
 
-PROTOCOL_V3 = "research/forecasts/PROTOCOL_v3.md"  # G1 v3: the panel extends daily (responses 68-69); not frozen yet
-FREEZE_V3 = "research/forecasts/FREEZE_v3.md"
 VERSIONED_SOURCES = {"fo": NseDailyFoSource, "index-close": NseIndexCloseSource}
 
 
 def require_v3_frozen() -> None:
+    """G1 v3's freeze, this job's section only (a change to G4's question-5 files never stops the panel job)."""
     from ..config import ROOT
-    from ..forecast.freeze_v2 import require_version_frozen
+    from ..freeze_sections import PANEL_DAYS, require_section_frozen
     from ..research_engine.ledger import Git
 
-    require_version_frozen(ROOT, Git(ROOT).head(), PROTOCOL_V3, FREEZE_V3)
+    require_section_frozen(ROOT, Git(ROOT).head(), PANEL_DAYS)
 
 
 def first_archived_inputs(drive: RawFileStore) -> tuple[list[DailyFiles], DailyFiles]:

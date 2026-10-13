@@ -223,3 +223,28 @@ your call.
 - Once panel-days is scheduled at about 21:41 IST, it archives the day's file itself. The morning retry, scheduled
   before 14:00, would also see what `market-publish` archived at 07:10.
 - Today `panel-days.yml` is manual only, so 13 Oct's file is not in Drive until either job runs for it.
+
+## Addendum 4: v3's freeze split by consumer (orchestrator, after judge 64)
+
+**Root cause:** one freeze check covered two separate jobs, so a G4 edit would have stopped the panel job.
+
+**Fix:** one `FREEZE_v3.md` with two named sections, `## Checked by \`panel-days\`` and
+`## Checked by \`forecast-scores\``.
+- The panel job checks only its section (A13's files).
+- G4's `score_forecasts` checks only its section (the live Q5 files and the replay), whenever live records exist.
+- Before v3 is frozen, scoring proceeds as under v2.
+- The check is `fno/freeze_sections.py` (`require_section_frozen`), and it is listed in both sections.
+
+**Why it is not a call to `require_version_frozen` with a subset:** that function checks every hash row of the record,
+and its file is byte-frozen by v2 (a change needs a new v2). So the new function reuses its building blocks:
+`read_version_freeze`, `changed_files` and `Git`. It repeats about eight lines of its checks for one section.
+
+**Tests:**
+- `tests/test_freeze_sections.py` (5):
+  - both sections hold after a freeze;
+  - a planted change to the Q5 file fails `forecast-scores` but not `panel-days`, and the reverse;
+  - a protocol change fails both;
+  - with no record, the result is "not yet frozen";
+  - a missing section is refused.
+- `test_scoring_refuses_when_its_own_v3_section_does_not_hold` runs `score_forecasts` and shows it refuses on its own
+  section.
