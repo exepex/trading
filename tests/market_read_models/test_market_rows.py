@@ -34,12 +34,15 @@ def zipped(name: str, text: str) -> bytes:
 
 def test_the_equity_file_keeps_eq_and_be_rows_and_a_wrong_file_is_refused():
     text = (
-        "TradDt,TckrSymb,SctySrs,ClsPric,HghPric,LwPric,TtlTradgVol\n"
-        "2026-10-12,ABC,EQ,10.5,11,10,1200\n2026-10-12,GOLD,GB,1,1,1,1\n2026-10-12,XYZ,BE,5,5,4,7.0\n"
+        "TradDt,TckrSymb,SctySrs,ClsPric,HghPric,LwPric,TtlTradgVol,OpnPric\n"
+        "2026-10-12,ABC,EQ,10.5,11,10,1200,10.2\n2026-10-12,GOLD,GB,1,1,1,1,1\n2026-10-12,XYZ,BE,5,5,4,7.0,4.5\n"
     )
     name = NseEquityBhavcopySource.filename_for(DAY)
     bars = read_equity_bhavcopy(zipped("x.csv", text), name)
-    assert bars == [EquityBar(DAY, "ABC", "EQ", 10.5, 11.0, 10.0, 1200), EquityBar(DAY, "XYZ", "BE", 5.0, 5.0, 4.0, 7)]
+    assert bars == [
+        EquityBar(DAY, "ABC", "EQ", 10.5, 11.0, 10.0, 1200, 10.2),
+        EquityBar(DAY, "XYZ", "BE", 5.0, 5.0, 4.0, 7, 4.5),
+    ]
     with pytest.raises(BadFile):
         read_equity_bhavcopy(zipped("x.csv", "a,b\n1,2\n"), name)
 

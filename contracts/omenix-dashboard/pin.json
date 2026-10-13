@@ -1,9 +1,9 @@
 {
  "repository": "exepex/omenix-dashboard",
- "commit": "c9f537cc5c3cd918e9fc5331b44b8e16572fed2a",
+ "commit": "e29953456fb70539ce32bd136f2ceb24fea81c83",
  "contract_version": "2.4.0",
  "files": {
-  "api/examples/blocks-33-34.json": "c11f784d3b9c615065a6abd610e86fcfc53a44bd8bdb06fac35a57465722de7e",
+  "api/examples/blocks-33-34.json": "a5b3de2c94df557d48198f0f456f60f1262117775a77cee5bd2fca4ce4a789cc",
   "api/openapi.yaml": "a53001f40e0bd14655015d41ce10fb6f56219c43bd22994201781bfe8b149c6b",
   "api/schemas/blocks-chain-history.yaml": "3f381293c4a0e050be7366dd0c35a3cc5d643c379a8a0692af7f46c669d0cf6c",
   "api/schemas/blocks-chain.yaml": "4fb4d1897a50c5aa5d94a1988fe02a85800cde00838e0cd6f02c18bf6d873de4",

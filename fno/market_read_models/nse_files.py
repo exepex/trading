@@ -12,7 +12,7 @@ from ..fo_bhavcopy import BadFile, csv_text
 
 EQUITY_SERIES = ("EQ", "BE")  # equity shares (rolling and trade-for-trade): the screener's stocks
 NO_FIGURE = ("", "-")  # NSE writes "-" where it has no figure
-EQUITY_COLUMNS = ("TradDt", "TckrSymb", "SctySrs", "ClsPric", "HghPric", "LwPric", "TtlTradgVol")
+EQUITY_COLUMNS = ("TradDt", "TckrSymb", "SctySrs", "ClsPric", "HghPric", "LwPric", "TtlTradgVol", "OpnPric")
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,7 @@ class EquityBar:
     high: float
     low: float
     volume: int
+    open: float | None = None  # a demerger's ex-date open is NSE's discovered price (corporate_actions.py)
 
 
 def read_equity_bhavcopy(data: bytes, filename: str) -> list[EquityBar]:
@@ -41,6 +42,7 @@ def read_equity_bhavcopy(data: bytes, filename: str) -> list[EquityBar]:
                 float(r["HghPric"]),
                 float(r["LwPric"]),
                 int(float(r["TtlTradgVol"])),
+                number(r["OpnPric"]),
             )  # fmt: skip
             for r in rows
             if r["SctySrs"] in EQUITY_SERIES
