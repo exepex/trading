@@ -30,7 +30,7 @@ python -m fno forecast capture --day 2026-10-13    # writes research/forecasts/l
 | # | Criterion | Code | Evidence |
 |---|---|---|---|
 | 1 | A look-ahead test (B1 harness) proves no baseline uses data after its cutoff | `fno/forecast/history.py` (an outcome is used only if the day it became known is before `d`), `baselines.py`, `models.py` | `tests/forecast/test_baselines_lookahead.py::test_no_baseline_or_book1_value_moves_when_later_data_changes`: B1's `assert_no_lookahead` on 2 random days (Sep 2025 to Sep 2026) of real 2023-2026 data. Every panel value after the day's close is changed or removed; all 15 baseline and Book 1 values stay equal (at least 14 are real values) |
-| 2 | Each baseline reproduces hand-computed values on fixture days | as above | `test_baselines.py`: lognormal Q1 0.4890 and Q2 0.588 written out (spread 0.05539, m -0.000767). Risk-neutral on the G1 fixture day: IV30 14.4937%, tau 28/365, carry ln(22050/22000)/(16/365) = 0.051788, Q1/Q2 from the protocol's formulas. Base rate: on day 40 the 4 most recent known outcomes are no, yes, no, yes = 0.5, and day 20's outcome, known on day 40 itself, is left out. `test_models.py`: OLS y = 1 + 2x with residuals (0.5, -1, 0.5) recovered exactly; residual shares 2/3 and 0 (strict) |
+| 2 | Each baseline reproduces hand-computed values on fixture days | as above | `test_baselines.py`: lognormal Q1 0.4890 and Q2 0.588 written out (spread 0.05539, m -0.001534; corrected after judge 54 minor 1, the asserts were already right). Risk-neutral on the G1 fixture day: IV30 14.4937%, tau 28/365, carry ln(22050/22000)/(16/365) = 0.051788, Q1/Q2 from the protocol's formulas. Base rate: on day 40 the 4 most recent known outcomes are no, yes, no, yes = 0.5, and day 20's outcome, known on day 40 itself, is left out. `test_models.py`: OLS y = 1 + 2x with residuals (0.5, -1, 0.5) recovered exactly; residual shares 2/3 and 0 (strict) |
 | 3 | The refit schedule of (c) is fixed; a refit uses only earlier data | `ModelBaseline.refit_day` (first trading day of the month), `_fit_on` (rows known before the refit day) | `test_models.py` (refit day; one fit serves the whole month). `test_baselines_lookahead.py::test_a_refit_uses_only_data_known_before_its_refit_day`: every panel value after the refit day's close is changed, and the coefficients and residuals serving 25 Mar 2026 are equal |
 | 4 | Every baseline value is labelled with its method name and version | `backfill.py` | `test_backfill.py`: every record's `method_or_version` is `<baseline>/v1/close-proxy/iv30:<state>` (Book 1: `book1/v1/sha256:<method hash>/close-proxy/iv30:<state>`); the risk-neutral label text is in `baselines.py` |
 
@@ -198,3 +198,12 @@ Checks run: full suite 1,519 passed, ruff clean, imports clean.
 6. **One history change.** `history.py` now takes its range to the panel's last day even when that day's close is
    missing, so a live day's spot stands in for it. Re-running `python -m fno forecast backfill --check` shows the
    back-fill unchanged.
+
+## Addendum: judge 54 minor 1 fixed
+
+Judge 54 is right. m = -σ²τ/2 = -0.04 × (28/365) / 2 = -0.001534, not -0.000767. Recomputed:
+- spread 0.055394 (the judge wrote 0.055386, a rounding difference);
+- Q1 = N(-0.0277) = 0.48895;
+- Q2 = 1 - N(0.5613) + N(-0.5222) = 0.58807.
+
+The test docstring and the table row above now carry these values. The asserts did not change.

@@ -24,7 +24,8 @@ def phi(x: float) -> float:
 
 def test_lognormal_probabilities_by_hand():
     """S0 100, 20% volatility, 28 days, no carry, from the protocol's formulas: spread = 0.2 x sqrt(28/365) = 0.05539,
-    m = -0.000767; Q2 = 1 - N(0.5475) + N(-0.5360) = 0.2920 + 0.2960 = 0.588."""
+    m = -0.2^2 x (28/365) / 2 = -0.001534; Q1 = N(-0.0277) = 0.4890;
+    Q2 = 1 - N(0.5613) + N(-0.5222) = 0.2873 + 0.3008 = 0.588 (judge 54 minor 1 corrected m)."""
     x = LognormalInputs(spot=100.0, sigma=0.2, tau=28 / 365, carry=0.0)
     spread, mean = 0.2 * math.sqrt(28 / 365), -0.2 * 0.2 * (28 / 365) / 2
     up, move = lognormal_probabilities(x)
