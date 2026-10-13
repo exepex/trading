@@ -40,3 +40,11 @@ contract names two pages for one block, so it is ambiguous. One side changes; th
 ## Project rules
 
 New behaviour in new classes; composition root wiring; no example values. Clean.
+
+## Addendum 1 (re-judge of 8cf2584): page keys now `today` and `risk`
+
+`home_blocks.py` now publishes FnoPicks as `today` (W10's `x-read-model`) and FnoBooks as `risk`, the keys the dashboard
+reads; the served schemas stay `FnoPicksResponse` and `FnoBooksResponse`, validated against the pinned W10 copy
+(`tests/market_read_models`: 116 passed, my run). The contract still says "risk and scoreboard_b" for books until its
+owner reduces it to `risk`, as the orchestrator says is in hand. Verdict: **PASS**, the key defect closed on this side.
+The end-to-end check (judge 63) waits for the next publish.

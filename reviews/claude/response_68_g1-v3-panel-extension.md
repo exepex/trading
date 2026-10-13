@@ -170,7 +170,7 @@ freeze checks still pass, and no file they list changed.
 | 4 | Start-of-run consistency, crash test, commit only on exit 0 | `PanelAppender.verify` (every file's SHA-256, content SHA-256 and rows; streaming, about 1 s on the real panel, which verifies). The run is all or nothing. In `panel-days.yml` the panel is committed only when the append succeeds; the A9 manifest rows are always committed. | `test_a_crash_between_the_year_file_and_the_manifest_is_refused_and_recovers`: a crash at the manifest swap is refused and named on the next run; restoring the committed files reads as before and appends cleanly |
 | 5 | Replay from the panel at the forecast's parent commit | `fno/forecast_scoring/replay.py` (`LiveReplay`), `recompute_live_day`, `forecast-scores replay --day` | `test_live_replay.py` (3). In a temporary git repo whose panel grows after the capture, the replay reads the parent commit's manifest and not HEAD's. A tampered pack is named. The real recompute reproduces golden case A's pack (only the calendar label differs). |
 | 6 | Experiment 1 freeze-hash test and reproduction command | `research/2026-10-12-experiment-1/README.md` | `tests/research/test_experiment_1_frozen.py`: all 45 FREEZE.md hashes hold at `0c1c957`, and `results_challenge.json` SHA-256 is `4826897e...` |
-| 7 | `PROTOCOL_v3.md` and live Q5 against the 15:00 pack | `research/forecasts/PROTOCOL_v3.md` (draft). G4: `resolution.py` `resolve(question, day, mode)`, `score_sources.py` `LiveForecasts.iv30` read from each receipt-verified pack, and the scorer's cache keyed by mode. | `test_scoring_live_q5.py` (3). Planted: next RV 4.62, the 15:00 pack 5.0 and the 15:30 panel 4.0. Live resolves yes (Brier 0.09) and history no (Brier 0.49). A flagged or missing pack IV30 is void. |
+| 7 | `PROTOCOL_v3.md` and live Q5 against the 15:00 pack | `research/forecasts/PROTOCOL_v3.md` (draft). The G4 change was built in parallel by the G4 session (f03cb63, judge 58): one resolver per mode, with the live one reading `LiveForecasts.pack_iv30` from each receipt-verified pack. On merging I dropped my own overlapping version (same rule, duplicate code) and kept theirs. | G4's `test_live_question_5_is_scored_against_the_pack_iv30_and_history_against_the_panel` (planted disagreement), passing |
 
 **Also done, as response 68 said:**
 - `tests/forecast/test_golden.py` now compares the golden file's own days.
@@ -178,9 +178,14 @@ freeze checks still pass, and no file they list changed.
   the back-fill's commit.
 - Both pass on today's panel, so CI stays green when the first append lands.
 
-**G4 coordination:** I changed G4's files (`fno/forecast_scoring/`) myself, so Q5 is not left half-done. The change is
-small: a `mode` argument with a back-fill default, and the live IV30 map. All 25 existing G4 tests pass unchanged.
-The B2/G4 session should know about it.
+**G4 coordination:**
+- The G4 session had already built live Q5 against the pack (f03cb63), so G4's scorer files are theirs, unchanged by
+  me.
+- I added only the replay (`fno/forecast_scoring/replay.py`, plus `recompute_live_day` and `build_live_replay` in its
+  wiring, and the `forecast-scores replay` command).
+- **Root-cause fix to `main`:** the merge 7f2c92e left `score_report.py` importing `ISOLATION` from
+  `fno/ai/record_writer.py`, which F1/G5 (d6d8c46) had moved to `fno/constants.py` as `ISOLATION_SEALED_SAME_DAY`
+  (same value, "sealed_same_day"). All G4 tests failed to import on `main`. That import now points at the constant.
 
 **Limits:**
 - The job has not run against the real Drive.

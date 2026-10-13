@@ -99,19 +99,20 @@ at the forecast's cutoff.
 - **Realised volatility** uses the official closes over the next 20 trading sessions, as before.
 - **Separate series.** Live and back-fill question 5 scores are never pooled or compared as one number. All books on
   a day share one pack, so the contest stays fair.
-- **Code and test:**
-  - `fno/forecast_scoring/resolution.py`: `resolve(question, day, mode)`;
-  - `score_sources.py`: `LiveForecasts.iv30` from each verified pack;
-  - `tests/forecast_scoring/test_scoring_live_q5.py` plants a disagreement. The next RV is 4.62 points; the 15:00 pack
-    says 5.0, so the outcome is yes; the 15:30 panel says 4.0, so it would be no. Live uses the pack and history uses
-    the panel.
+- **Code and test** (built by the G4 session, f03cb63, judge 58):
+  - `fno/forecast_scoring/wiring.py` holds one resolver per input mode. The live resolver takes question 5's IV30 from
+    `LiveForecasts.pack_iv30`, which `score_sources.py` reads from each receipt-verified pack.
+  - `tests/forecast_scoring/test_scoring_ai.py`
+    (`test_live_question_5_is_scored_against_the_pack_iv30_and_history_against_the_panel`) plants a disagreement
+    between the 15:00 pack and the panel.
 
 ## 5. The freeze (after the judge and the orchestrator only)
 
 `research/forecasts/FREEZE_v3.md` will name the commit that adds this text in its final form, and the SHA-256 of:
 - this file;
 - the A13 code: `fno/research_data/panel_append.py`, `fno/pipeline/panel_days.py`, `fno/pipeline/wiring.py`;
-- the live Q5 and replay code: `fno/forecast_scoring/resolution.py`, `score_sources.py`, `replay.py`;
+- the live Q5 and replay code: `fno/forecast_scoring/resolution.py`, `score_sources.py`, `scoring.py`, `replay.py`
+  (G4's other files change with G4's own stories and are not part of this freeze);
 - `.github/workflows/panel-days.yml`.
 
 The daily panel job checks it before every run.

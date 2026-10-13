@@ -22,7 +22,7 @@ class FiguresNotComputed(RuntimeError):
 
 
 class FnoBooksBlock(BlockBuilder):
-    page_key, served_schema = "fno_books", "FnoBooksResponse"
+    page_key, served_schema = "risk", "FnoBooksResponse"  # W10: "pages risk and scoreboard_b"; the dashboard reads risk
 
     def build(self, rows: SessionRows) -> dict:
         home = rows.home
@@ -39,7 +39,7 @@ class FnoBooksBlock(BlockBuilder):
 
 
 class FnoPicksBlock(BlockBuilder):
-    page_key, served_schema = "fno_picks", "FnoPicksResponse"
+    page_key, served_schema = "today", "FnoPicksResponse"  # W10: "fno.pages_history page today (P1)"
 
     def build(self, rows: SessionRows) -> dict:
         home = rows.home

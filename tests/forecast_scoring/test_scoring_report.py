@@ -19,7 +19,7 @@ from fno.forecast.iv30 import AtmIv30
 from fno.forecast.record_files import records_csv, records_csv_v2, records_gzip
 from fno.forecast.schema import ForecastRecord
 from fno.forecast.schema_v2 import ForecastRecordV2
-from fno.forecast_scoring.score_inputs import LIVE
+from fno.forecast_scoring.score_inputs import CLOSE_PROXY, LIVE
 from fno.forecast_scoring.score_report import STANDING, ReportContext, report_document, report_json, weekly_summary
 from fno.forecast_scoring.score_sources import Receipt, backfill_forecasts, live_forecasts
 from fno.forecast_scoring.scores import brier
@@ -33,7 +33,7 @@ AS_OF = date(2025, 6, 30)
 
 
 def scored(items, resolver=None):
-    (mode,) = ForecastScorer(resolver or outcomes(AS_OF)).score(items)
+    (mode,) = ForecastScorer({CLOSE_PROXY: resolver or outcomes(AS_OF)}).score(items)
     return mode
 
 
@@ -79,7 +79,8 @@ def test_risk_neutral_split_and_question_5_flagged_sensitivity():
 
 
 def test_confirmatory_claims_only_after_six_months_of_common_start_trading():
-    assert not confirmatory_allowed(date(2030, 1, 1))  # Books 2 and 3 do not exist: no common start
+    assert not confirmatory_allowed(date(2030, 1, 1), common_start=None)  # no common start: never
+    assert not confirmatory_allowed(date(2027, 4, 13)) and confirmatory_allowed(date(2027, 4, 14))  # from 14 Oct 2026
     assert not confirmatory_allowed(date(2027, 4, 14), common_start=date(2026, 10, 15))
     assert confirmatory_allowed(date(2027, 4, 15), common_start=date(2026, 10, 15))
 

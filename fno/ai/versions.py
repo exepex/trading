@@ -9,7 +9,7 @@ import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..constants import BOOK2_HYBRID, BOOK3_AI
+from ..constants import BOOK2_HYBRID, BOOK3_AI, ISOLATION_SEALED_SAME_DAY
 
 
 class VersionRefused(ValueError):
@@ -24,11 +24,13 @@ class BookVersion:
     prompt_sha256: str
     registered_model: str  # the routine's model; a different served model leaves the day unscored (D6)
     envelope_width: float | None  # Hybrid: how far outside the baselines' range it may go; None: no envelope
+    isolation: str = ISOLATION_SEALED_SAME_DAY  # how the routine is isolated: part of the version (D6)
 
     @property
     def label(self) -> str:
-        """`method_or_version` of every record (like Book 1's `book1/v1/sha256:<method hash>`)."""
-        return f"{self.book}/v{self.number}/sha256:{self.prompt_sha256}"
+        """`method_or_version` of every record (like Book 1's `book1/v1/sha256:<method hash>`), with the isolation
+        mode, so every record carries it (owner's condition 2, 14 Oct 2026)."""
+        return f"{self.book}/v{self.number}/sha256:{self.prompt_sha256}/isolation:{self.isolation}"
 
     def prompt_text(self, root: Path) -> str:
         data = (Path(root) / self.prompt_file).read_bytes()

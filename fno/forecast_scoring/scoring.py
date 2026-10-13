@@ -12,7 +12,7 @@ before the first scheduled review (design 12.8: six months of common-start tradi
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -56,14 +56,17 @@ class ModeScores:
 
 
 class ForecastScorer:
-    def __init__(self, resolver: OutcomeResolver):
-        self.resolver = resolver
-        self._resolved: dict[tuple[str, date, str], Resolution] = {}
+    """`resolvers`: input mode -> its outcome resolver (history scores question 5 against the panel's close IV30, live
+    against the forecast's own 15:00 pack IV30; response 69, item 7)."""
 
-    def resolution(self, question: str, day: date, mode: str) -> Resolution:
-        key = (question, day, mode)  # question 5's threshold depends on the mode (live: the 15:00 pack's IV30)
+    def __init__(self, resolvers: Mapping[str, OutcomeResolver]):
+        self.resolvers = resolvers
+        self._resolved: dict[tuple[str, str, date], Resolution] = {}
+
+    def resolution(self, mode: str, question: str, day: date) -> Resolution:
+        key = (mode, question, day)
         if key not in self._resolved:
-            self._resolved[key] = self.resolver.resolve(question, day, mode)
+            self._resolved[key] = self.resolvers[mode].resolve(question, day)
         return self._resolved[key]
 
     def score(self, forecasts: Iterable[ScoredForecast]) -> tuple[ModeScores, ...]:
@@ -93,7 +96,7 @@ class ForecastScorer:
             if f.probability is None:
                 out.counts[NO_FORECAST] += 1
                 continue
-            res = self.resolution(f.question, f.day, f.mode)
+            res = self.resolution(f.mode, f.question, f.day)
             out.counts[res.status] += 1
             if res.status == RESOLVED:
                 pairs.append((f.probability, res.outcome))
@@ -117,7 +120,7 @@ class ForecastScorer:
                 a, b = probability.get((c.first, c.question, day)), probability.get((c.second, c.question, day))
                 if a is None or b is None:
                     continue
-                res = self.resolution(c.question, day, mode)
+                res = self.resolution(mode, c.question, day)
                 if res.status == RESOLVED:
                     differences.append(brier(a, res.outcome) - brier(b, res.outcome))
             results.append(ComparisonResult(c, compare(differences, c.k)))

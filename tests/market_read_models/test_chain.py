@@ -76,3 +76,15 @@ def test_iv_only_within_1_and_200_percent_and_only_for_a_traded_leg():
     weekly = next(e for e in chain_of_12_october().expiries if e["expiry"] == "2026-10-13")
     untraded = next(r["CE"] for r in weekly["rows"] if r["CE"]["volume"] == 0)
     assert (untraded["iv"], untraded["greeks"], untraded["chance"]) == (None, None, None)
+
+
+def test_a_spot_exactly_between_two_strikes_takes_the_lower_as_atm():
+    """Judge 60's plant (a tie to the higher strike) must fail: W13's rule is "a tie to the lower"."""
+    from fno.market_read_models.chain_expiries import summary
+
+    def leg(close):
+        return {"close": close, "oi": 10, "oi_chg": 1, "iv": 15.0}
+
+    strikes = [{"strike": k, "CE": leg(100.0), "PE": leg(90.0)} for k in (22300.0, 22350.0, 22400.0, 22450.0)]
+    assert summary(strikes, 22375.0)["atm"] == 22350.0  # 25 points from both 22350 and 22400
+    assert summary(strikes, 22376.0)["atm"] == 22400.0  # no tie: the nearer one

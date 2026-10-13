@@ -1,7 +1,30 @@
 {
+ "ai_isolation": {
+  "book2_hybrid": [
+   "sealed_same_day"
+  ],
+  "book3_ai": [
+   "sealed_same_day"
+  ]
+ },
  "as_of": "2026-10-13",
+ "common_start": "2026-10-14",
  "confirmatory_allowed": false,
- "confirmatory_note": "Descriptive only: no comparison is called significant before the first scheduled review, six months of common-start trading of the compared books (design 12.8); Books 2 and 3 do not forecast yet.",
+ "confirmatory_note": "Descriptive only: no comparison is called significant before the first scheduled review, six months of common-start trading of the compared books (design 12.8).",
+ "coverage": {
+  "book1_rules": {
+   "counted_days": 0,
+   "pack_days": 0
+  },
+  "book2_hybrid": {
+   "counted_days": 0,
+   "pack_days": 0
+  },
+  "book3_ai": {
+   "counted_days": 0,
+   "pack_days": 0
+  }
+ },
  "inputs": {
   "backfill_commit": "5632bfcb86a2d37c551fee7196114090177f9f4c",
   "backfill_file": "research/forecasts/backfill/backfill_v1.csv.gz",
@@ -2924,5 +2947,6 @@
  ],
  "schema": "forecast_scores/v1",
  "standing": "Forecast scores are secondary to net profit: they only diagnose market reading and can never promote a book that does not make net money (design 12.7).",
+ "unscored_ai_days": [],
  "unverified_live_days": []
 }

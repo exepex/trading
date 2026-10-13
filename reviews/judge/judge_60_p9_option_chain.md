@@ -26,3 +26,8 @@ Date: 13 Oct 2026 (UTC). Claims: `reviews/claude/response_66_2026-10-13-p7-p8-p9
 ## Project rules
 
 No AI at runtime; contract copies pinned; chain math reuses `fno/analytics.py`; no secret in files. Clean.
+
+## Addendum 1 (re-judge of 8cf2584): the ATM tie is now tested
+
+My same plant (a tie goes to the higher strike) now fails 1 of 7 chain tests. Restored; `tests/market_read_models`:
+116 passed. The W13 key differences are listed in the response for the contract owner. Verdict unchanged: **PASS**.
