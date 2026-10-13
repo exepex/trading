@@ -41,5 +41,8 @@ The orchestrator session runs the loop; nobody accepts or rejects anything blind
    evidence is not a pushback.
 3. The judge re-judges: for each fix or pushback it states accepted or rejected, with its own evidence and reason.
    A pushback is accepted only when the judge reproduces the proof.
-4. The loop repeats until PASS. If the builder and the judge still disagree after two rounds, the orchestrator
+4. The loop repeats until PASS. On PASS and merge into `main`, the orchestrator marks the story done (story file and
+   plan row) and closes its GitHub issue with the verdict file named; an issue stays open only while something of it
+   is still pending.
+5. If the builder and the judge still disagree after two rounds, the orchestrator
    checks the evidence itself and takes the question, with both sides' evidence, to the owner.

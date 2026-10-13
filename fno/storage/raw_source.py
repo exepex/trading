@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from datetime import date
+from datetime import date, datetime
 
 import requests
 
@@ -114,3 +114,22 @@ class NseIndexCloseSource(NseArchiveSource):
     @classmethod
     def url_for(cls, path: str) -> str:
         return cls.BASE_URL + path.rsplit("/", 1)[-1]
+
+
+class ParticipantOiSource(NseArchiveSource):
+    """NSE's daily participant-wise open interest (client, DII, FII, pro: long and short contracts per instrument
+    group), e.g. fao_participant_oi_09102026.csv. Published after the close (story A8)."""
+
+    dataset = "nse/derivatives/participant-oi"
+    first_day = date(2019, 1, 1)
+    BASE_URL = "https://nsearchives.nseindia.com/content/nsccl/"
+    FILENAME = "fao_participant_oi_{day:%d%m%Y}.csv"
+    FILENAME_PATTERN = "fao_participant_oi_%d%m%Y.csv"  # the same name, for reading the day back
+
+    @classmethod
+    def url_for(cls, path: str) -> str:
+        return cls.BASE_URL + path.rsplit("/", 1)[-1]
+
+    @classmethod
+    def day_for(cls, filename: str) -> date:
+        return datetime.strptime(filename, cls.FILENAME_PATTERN).date()

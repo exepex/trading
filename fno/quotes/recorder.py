@@ -3,6 +3,10 @@
 Only time builds this history: daily NSE files have no bid or ask. Each run is an immutable *attempt* saved under its
 capture time; an incomplete attempt may be retried inside the window, and the day's canonical snapshot is the first
 complete attempt (or "none"). Quotes are not fills. Never places, modifies or cancels orders.
+
+Whether today is a session comes from NSE's session calendar (story A7), never from the weekday or from the quotes: a
+special weekend session is recorded, a weekday holiday is not, and a session day with no same-day trade is a failure
+to report (calendar says session, quotes say closed), not a quiet "not a trading day".
 """
 
 from __future__ import annotations
@@ -15,11 +19,15 @@ import time as clock
 from dataclasses import dataclass
 from datetime import date, datetime, time
 
+from ..constants import SESSION_MUHURAT, SESSION_REGULAR, SESSION_SPECIAL
 from ..models import IST, OptionChain, QuoteBook, now_ist
 from ..providers.base import Provider
+from ..research_data.calendar import SessionCalendar
+from ..research_data.expiries import MONTHLY_LISTING_DAYS
 from ..research_data.expiries import monthly_expiries as last_expiry_of_each_month
 from ..storage.raw_store import RawFileStore
-from .expiry_listing import ListedExpiries
+from .expiry_listing import ExpiryHistory, ListedExpiries
+from .monthly_contracts import PointInTimeMonthlies
 
 UNDERLYING = "NIFTY"
 DATASET = "groww/derivatives/quote-snapshots"
@@ -28,7 +36,13 @@ MAX_EARLY_WAIT_SECONDS = 20 * 60  # a run started up to 20 minutes early waits f
 RETRY_GAP_SECONDS = 60
 SPOT_BAND = 0.05  # strikes within 5% of spot
 MONTHLY_EXPIRIES = 2
-WEEKEND_START = 5
+WEEKEND_START = 5  # only when built without a calendar (the A4 tests): weekends closed, no same-day trade = holiday
+RECORDED_SESSION_KINDS = (SESSION_REGULAR, SESSION_SPECIAL)  # a muhurat session is one evening hour, not 14:55-15:10
+MUHURAT_ONLY = "muhurat session only: the market is closed from 14:55 to 15:10"
+NO_SAME_DAY_TRADES = "calendar says session, no same-day trades"
+VERIFIED, UNVERIFIED = "verified", "unverified"  # status of meta.json's monthly_check
+POINT_IN_TIME_RULE = f"listed more than {MONTHLY_LISTING_DAYS} days ahead by that day (A5 monthly_as_of)"
+FALLBACK_RULE = "last listed expiry of month"
 NONE_MARKER = "none"
 COLUMNS = (
     "snapshot_id", "request_sent_at", "response_received_at", "quote_time", "age_basis", "freshness_proxy",
@@ -39,7 +53,8 @@ COLUMNS = (
 
 
 def monthly_expiries(expiries: list[date], today: date, count: int = MONTHLY_EXPIRIES) -> list[date]:
-    """The nearest `count` monthly contracts: the last listed expiry of each calendar month, from today on."""
+    """The nearest `count` monthly contracts: the last listed expiry of each calendar month, from today on. Used only
+    by a recorder built without NSE's expiry history (the A4 tests); the app uses `PointInTimeMonthlies` (A5's rule)."""
     return sorted(last_expiry_of_each_month({e for e in expiries if e >= today}))[:count]
 
 
@@ -70,13 +85,20 @@ class RecordResult:
     snapshot_id: str = ""
     complete: bool = False
     rows: int = 0
+    reason: str = ""  # why a session day was skipped or failed the calendar cross-check
+    monthly_unverified: str = ""  # why the monthly contracts were chosen by the fallback rule (alerted, never hidden)
 
 
 class QuoteSnapshotRecorder:
     def __init__(self, provider: Provider, store: RawFileStore, clock_now=now_ist, sleep=clock.sleep,
-                 fallback: ListedExpiries | None = None):  # fmt: skip
+                 fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None,
+                 history: ExpiryHistory | None = None):  # fmt: skip
+        """The app always passes `calendar` and `history` (fno/composition.py). Without them (the A4 tests and
+        byte-identical baseline), A4's rules stay: weekends are closed, a day with no same-day trade is a holiday, and
+        the monthly is the last listed expiry of each month."""
         self.provider, self.store, self.now, self.sleep = provider, store, clock_now, sleep
-        self.fallback = fallback
+        self.fallback, self.calendar = fallback, calendar
+        self.monthly_check = PointInTimeMonthlies(history) if history else None
 
     @staticmethod
     def path(day: date, name: str) -> str:
@@ -88,11 +110,13 @@ class QuoteSnapshotRecorder:
 
     def record(self, outside_window: bool = False) -> RecordResult:
         """One day's recording: waits for the window if early, retries incomplete attempts until the window ends.
-        `outside_window` (testing only) makes one attempt now; such an attempt is never canonical."""
+        `outside_window` (testing only) makes one attempt now; such an attempt is never canonical.
+        Raises `CalendarError` for a day outside the calendar's years (never guesses)."""
         now = self.now()
         day = now.date()
-        if now.weekday() >= WEEKEND_START:
-            return RecordResult("not a trading day")
+        kind = self._session_kind(day)
+        if kind not in RECORDED_SESSION_KINDS:
+            return RecordResult("not a trading day", reason=MUHURAT_ONLY if kind == SESSION_MUHURAT else "")
         if self.canonical(day) is not None:
             return RecordResult("already recorded", self.canonical(day))
         if outside_window:
@@ -112,16 +136,40 @@ class QuoteSnapshotRecorder:
             self.store.put(self.path(day, f"nifty_{day:%Y%m%d}.canonical"), NONE_MARKER.encode())
         return result
 
+    def _session_kind(self, day: date) -> str | None:
+        """The calendar's answer; without a calendar (A4 tests), every weekday is a regular session."""
+        if self.calendar is None:
+            return SESSION_REGULAR if day.weekday() < WEEKEND_START else None
+        return self.calendar.session_kind(day)
+
+    def _nearest_monthlies(self, listed: list[date], day: date, check: dict) -> list[date]:
+        """The nearest monthly contracts by A5's point-in-time rule, with the NSE files that proved them in `check`.
+        If that history cannot be read, the last-of-month rule is used and `check` says so: a lost day of quotes can
+        never be recorded later, while a flagged contract choice can be verified later. Without a history (the A4
+        tests), the last-of-month rule is A4's own and nothing is flagged."""
+        if self.monthly_check is None:
+            return monthly_expiries(listed, day)
+        try:
+            monthly, used = self.monthly_check.monthlies(UNDERLYING, listed, day)
+        except Exception as exc:
+            check.update(status=UNVERIFIED, rule=FALLBACK_RULE, reason=f"{type(exc).__name__}: {exc}")
+            return monthly_expiries(listed, day)
+        if check.get("status") != UNVERIFIED:
+            check.update(status=VERIFIED, rule=POINT_IN_TIME_RULE)
+            files = check.setdefault("files", [])
+            files += [source for source in used if source not in files]
+        return sorted(monthly)[:MONTHLY_EXPIRIES]
+
     def _attempt(self, day: date, canonical_allowed: bool) -> RecordResult:
         started = self.now()
         snapshot_id = f"nifty_{started:%Y%m%d_%H%M%S}"
-        failures, rows, chains, expiry_source = [], [], [], {"source": self.provider.name}
+        failures, rows, chains, expiry_source, check = [], [], [], {"source": self.provider.name}, {}
         try:
-            months = monthly_expiries(self.provider.expiries(UNDERLYING), day)
+            months = self._nearest_monthlies(self.provider.expiries(UNDERLYING), day, check)
             if len(months) < MONTHLY_EXPIRIES and self.fallback:  # late December: Groww lists no next-year dates
                 try:
                     listed, expiry_source = self.fallback.listed(UNDERLYING, day)
-                    months = monthly_expiries(listed, day)
+                    months = self._nearest_monthlies(listed, day, check)
                 except Exception as exc:
                     failures.append(f"expiry fallback: {type(exc).__name__}: {exc}")
             if len(months) < MONTHLY_EXPIRIES:
@@ -141,7 +189,9 @@ class QuoteSnapshotRecorder:
                     continue
                 rows.append(self._row(snapshot_id, sent, self.now(), chain, strike, kind, book, day))
         if rows and not any(r["last_trade_time"].startswith(day.isoformat()) for r in rows):
-            return RecordResult("not a trading day", snapshot_id)  # no contract traded today: market closed
+            if self.calendar is None:
+                return RecordResult("not a trading day", snapshot_id)  # A4 inference: no contract traded, closed
+            failures.append(NO_SAME_DAY_TRADES)  # kept and retried; the day ends "none" if it persists to 15:10
         complete = bool(chains) and not failures and len(rows) == expected
         csv_bytes = self._csv(rows)
         meta = {
@@ -153,11 +203,15 @@ class QuoteSnapshotRecorder:
             "complete": complete, "in_window": canonical_allowed, "csv_sha256": hashlib.sha256(csv_bytes).hexdigest(),
             "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
         }  # fmt: skip
+        if self.monthly_check is not None:
+            meta["monthly_check"] = check  # verified with the NSE files that proved it, or unverified and why
         self.store.put(self.path(day, f"{snapshot_id}.csv"), csv_bytes)
         self.store.put(self.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:
             self.store.put(self.path(day, f"nifty_{day:%Y%m%d}.canonical"), snapshot_id.encode())
-        return RecordResult("recorded", snapshot_id, complete, len(rows))
+        reason = NO_SAME_DAY_TRADES if NO_SAME_DAY_TRADES in failures else ""
+        unverified = check["reason"] if check.get("status") == UNVERIFIED else ""
+        return RecordResult("recorded", snapshot_id, complete, len(rows), reason, unverified)
 
     @staticmethod
     def _contracts(chain: OptionChain) -> list[tuple[float, str]]:

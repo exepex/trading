@@ -2,7 +2,8 @@
 
 - F&O files in the current format, 1 Jan 2024 to today;
 - F&O files in the old format, 1 Jan 2019 to 5 Jul 2024 (NSE's last old-format day);
-- NSE's daily index closes (NIFTY 50, NIFTY Bank, India VIX and others), 1 Jan 2019 to today.
+- NSE's daily index closes (NIFTY 50, NIFTY Bank, India VIX and others), 1 Jan 2019 to today;
+- NSE's daily participant-wise open interest (client, DII, FII, pro), 1 Jan 2019 to today.
 
 Run it with no options:   python nse_raw_download.py
 It asks which folder to use (press Enter for the folder you are in). That's all. Files you already have are kept and
@@ -73,7 +74,12 @@ INDEX_CLOSE = Dataset(
     "index closes", NSE + "indices/{filename}", "ind_close_all_{day:%d%m%Y}.csv", "raw/nse/indices/index-close",
     date(2019, 1, 1),
 )  # fmt: skip
+PARTICIPANT_OI = Dataset(
+    "participant open interest", NSE + "nsccl/{filename}", "fao_participant_oi_{day:%d%m%Y}.csv",
+    "raw/nse/derivatives/participant-oi", date(2019, 1, 1),
+)  # fmt: skip
 FO_DATASETS = (CURRENT_FO, OLD_FO)
+MANIFESTS = {CURRENT_FO: "manifest.csv", PARTICIPANT_OI: "manifest_participant_oi.csv"}  # NSE files' SHA-256
 FIRST_DAY = date(2019, 1, 1)
 NO_FILE_LOG = "nse-days-without-files.txt"  # next to the raw folder, so a re-run does not ask NSE again
 GAP_SECONDS = 1.0
@@ -99,6 +105,20 @@ def load_manifest(path: Path) -> tuple[dict[str, str], set[str]]:
         rows = list(csv.DictReader(f))
     expected = {r["date"]: r["sha256"] for r in rows if r.get("status") == "200" and r.get("sha256")}
     return expected, {r["date"] for r in rows if r.get("status") == "404"}
+
+
+def file_tag(dataset: Dataset, day: str) -> str:
+    return f"{dataset.folder}|{day}"
+
+
+def load_manifests(paths: dict[Dataset, Path]) -> tuple[dict[str, str], set[str]]:
+    """file tag -> expected SHA-256, and the tags of files NSE never published, from each dataset's manifest."""
+    expected, no_file = {}, set()
+    for dataset, path in paths.items():
+        fingerprints, missing = load_manifest(path)
+        expected |= {file_tag(dataset, day): sha for day, sha in fingerprints.items()}
+        no_file |= {file_tag(dataset, day) for day in missing}
+    return expected, no_file
 
 
 def secure_context() -> ssl.SSLContext:
@@ -173,8 +193,8 @@ class Downloader:
     def get(self, dataset: Dataset, day: date) -> bool:
         """True when the file exists (saved now or before)."""
         target = self.dest / dataset.path_for(day)
-        tag = f"{dataset.folder}|{day.isoformat()}"
-        want = self.expected.get(day.isoformat()) if dataset is CURRENT_FO else None
+        tag = file_tag(dataset, day.isoformat())
+        want = self.expected.get(tag)
         if target.is_file():
             if want and hashlib.sha256(target.read_bytes()).hexdigest() != want:
                 print(f"MISMATCH {day} {dataset.label}: existing file differs from the recorded fingerprint; untouched")
@@ -208,12 +228,15 @@ class Downloader:
         return True
 
 
-def run(dest: Path, start: date = FIRST_DAY, end: date | None = None, manifest: Path | None = None) -> int:
+def run(
+    dest: Path, start: date = FIRST_DAY, end: date | None = None, manifests: dict[Dataset, Path] | None = None
+) -> int:
     end = end or date.today()
-    expected, holidays = load_manifest(manifest or Path(__file__).with_name("manifest.csv"))
+    expected, known_missing = load_manifests(
+        manifests or {d: Path(__file__).with_name(n) for d, n in MANIFESTS.items()}
+    )
     log = dest / NO_FILE_LOG
-    no_file = set(log.read_text().split()) if log.is_file() else set()
-    no_file |= {f"{CURRENT_FO.folder}|{d}" for d in holidays}
+    no_file = (set(log.read_text().split()) if log.is_file() else set()) | known_missing
     dest.mkdir(parents=True, exist_ok=True)
     loader = Downloader(dest, expected, no_file)
     print(f"Saving into {dest / 'raw'}  (about 1.5 hours the first time; stop with Ctrl+C and run again any time)")
@@ -223,6 +246,8 @@ def run(dest: Path, start: date = FIRST_DAY, end: date | None = None, manifest: 
             traded = [loader.get(d, day) for d in FO_DATASETS if d.covers(day)]
             if any(traded) and INDEX_CLOSE.covers(day):  # index closes only for trading days
                 loader.get(INDEX_CLOSE, day)
+            if PARTICIPANT_OI.covers(day):  # every day, not only F&O-file days: its manifest lists the days without one
+                loader.get(PARTICIPANT_OI, day)
             day += timedelta(days=1)
     except Stop as exc:
         print(exc)

@@ -48,6 +48,9 @@ many more. Look-ahead (using data not yet known) is the most common way backtest
 4. The look-ahead test also mutates same-day data dated after the decision cutoff (for the live 15:00 versions:
    anything after 15:00) and proves no change.
 5. Given an event announced after the decision day, then F3 ignores it.
+6. (Moved from A6 criterion 4 on 13 Oct 2026.) F3 reads events only through `fno.research_data.events.known_on` /
+   `in_window` (never its own filter): a test proves F3 ignores an unscheduled event (e.g. 22 May 2020) and sees a
+   moved meeting at the date known on the decision day (e.g. 9 Feb 2022 when deciding on 10 Jan 2022).
 
 **Test plan:** unit tests per feature with small hand-built panels; the look-ahead harness as a reusable test helper.
 
@@ -247,6 +250,8 @@ decisions; ledger updated.
 5. After A1 shows the 2019-2023 data complete, the challenge results are published with each criterion's numbers.
 6. The README states, per policy: paper trading or not, and why; anything that fails is not traded.
 7. ChatGPT reviews the results; disagreements are answered with data.
+8. (Moved from A6 criterion 5 on 13 Oct 2026.) The events file used (`research/data/events/events.csv`, by commit) is
+   committed before the challenge results commit; the results record that commit.
 
 **Test plan:** B1-B4 tests; the judge's re-run.
 

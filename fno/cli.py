@@ -10,6 +10,7 @@ from .books.cli import add_account_parser
 from .config import ROOT, load_app_config
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
+from .research_data.participant_oi_cli import add_participant_oi_parser
 
 
 def _cfg(args) -> dict:
@@ -31,7 +32,10 @@ def cmd_data_coverage(args) -> int:
     from .storage.wiring import COVERAGE_DATASETS, build_coverage_check
 
     check = build_coverage_check()
-    results = [check.run(dataset, args.start, args.end) for dataset in COVERAGE_DATASETS]
+    results = []
+    for dataset in COVERAGE_DATASETS:  # one progress line per dataset, so a long run shows where it is
+        results.append(check.run(dataset, args.start, args.end))
+        print(f"checked {results[-1].dataset}: {results[-1].expected} sessions", flush=True)
     print("\n".join(report_lines(results)))
     print(f"calendar sha256 {check.calendar.calendar_sha256()}")
     return 0 if all(r.ok for r in results) else 1
@@ -126,6 +130,7 @@ def main(argv: list[str] | None = None) -> int:
 
     add_quotes_parser(sub)
     add_account_parser(sub)
+    add_participant_oi_parser(sub)
 
     args = p.parse_args(argv)
     return args.func(args)

@@ -18,13 +18,20 @@ from ..constants import (
 )
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
-from ..research_data.calendar import load_session_calendar
+from ..research_data.calendar import SessionCalendar, load_session_calendar
 from ..research_data.nifty_panel import DailyFiles
 from ..research_data.panel_store import CsvGzPanelFolder, PanelSink
-from .coverage import CoverageCheck, CoverageDataset, read_exceptions
+from ..research_data.participant_oi import read_participant_oi
+from .coverage import CoverageCheck, CoverageDataset, FingerprintCheck, read_exceptions, read_fingerprints
 from .google_drive import GoogleDriveStore, service_account_token
 from .raw_library import RawFileLibrary
-from .raw_source import NseArchiveSource, NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource
+from .raw_source import (
+    NseArchiveSource,
+    NseDailyFoSource,
+    NseIndexCloseSource,
+    NseLegacyFoSource,
+    ParticipantOiSource,
+)
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
@@ -32,6 +39,8 @@ CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "c
 CALENDAR_FILE = CALENDAR_FOLDER / "nse_sessions.csv"  # NSE's sessions, from its circulars (SessionCalendar)
 COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
 REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
+LAPTOP_TOOL_FOLDER = Path(__file__).resolve().parents[2] / "tools" / "nse_raw_download"
+PARTICIPANT_OI_MANIFEST = LAPTOP_TOOL_FOLDER / "manifest_participant_oi.csv"  # SHA-256 of NSE's files (story A8)
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -40,7 +49,7 @@ def build_raw_stores(project_folder: Path | None = None, token_for=service_accou
     stores: list[RawFileStore] = [AreaStore(LocalFolderStore(project_folder), RAW_AREA)] if project_folder else []
     key, folder = os.environ.get(ENV_GDRIVE_SERVICE_ACCOUNT_JSON), os.environ.get(ENV_GDRIVE_FOLDER_ID)
     if key and folder:
-        stores.append(AreaStore(GoogleDriveStore(folder, token_for(key)), RAW_AREA))
+        stores.append(AreaStore(GoogleDriveStore(folder, lambda: token_for(key)), RAW_AREA))
     return stores
 
 
@@ -48,9 +57,14 @@ def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path 
     """One NSE dataset: from the stores if they have it, else from NSE (saved under the local project folder's `raw`
     area if given)."""
     archive = AreaStore(LocalFolderStore(project_folder), RAW_AREA) if project_folder else None
+    return RawFileLibrary(build_raw_stores(project_folder), build_nse_source(source_type), archive)
+
+
+def build_nse_source(source_type: type[NseArchiveSource]) -> NseArchiveSource:
+    """One NSE dataset straight from NSE's archive, through the shared polite session."""
     session = PacedSession()
     session.headers["User-Agent"] = RESEARCH_USER_AGENT  # NSE refuses the default python-requests identity
-    return RawFileLibrary(build_raw_stores(project_folder), source_type(session), archive)
+    return source_type(session)
 
 
 def build_nse_fo_library(project_folder: Path | None = None) -> RawFileLibrary:
@@ -68,9 +82,19 @@ def build_nse_index_close_library(project_folder: Path | None = None) -> RawFile
     return build_nse_library(NseIndexCloseSource, project_folder)
 
 
+def build_participant_oi_library(project_folder: Path | None = None) -> RawFileLibrary:
+    """NSE daily participant-wise open interest (story A8)."""
+    return build_nse_library(ParticipantOiSource, project_folder)
+
+
 QUOTES_FOLDER = (
     Path(__file__).resolve().parents[2] / "research" / "data" / "quotes"
 )  # repository: Drive is read-only here
+
+
+PARTICIPANT_OI_RELEASE_LOG = (
+    Path(__file__).resolve().parents[2] / "research" / "data" / "participant_oi" / "release_checks.csv"
+)  # repository: the committed evidence of NSE's release times (story A8)
 
 
 def build_quote_store(folder: Path | None = None) -> RawFileStore:
@@ -84,10 +108,17 @@ def validate_index_close(filename: str, data: bytes) -> None:
         raise BadFile(f"{filename}: no closing value for {missing}")
 
 
+def validate_participant_oi(filename: str, data: bytes) -> None:
+    read_participant_oi(data, filename, ParticipantOiSource.day_for(filename))
+
+
 COVERAGE_DATASETS = (
     CoverageDataset(NseLegacyFoSource, read_fo_file),
     CoverageDataset(NseDailyFoSource, read_fo_file),
     CoverageDataset(NseIndexCloseSource, validate_index_close),
+    CoverageDataset(
+        ParticipantOiSource, FingerprintCheck(validate_participant_oi, read_fingerprints(PARTICIPANT_OI_MANIFEST))
+    ),
 )
 
 
@@ -128,7 +159,8 @@ def build_panel_sink(folder: Path | None = None) -> PanelSink:
     return CsvGzPanelFolder(folder or PANEL_FOLDER)
 
 
-def build_session_calendar():
+def build_session_calendar() -> SessionCalendar:
+    """NSE's sessions from the repository's calendar file: the one answer to "is this day a session"."""
     return load_session_calendar(CALENDAR_FILE)
 
 

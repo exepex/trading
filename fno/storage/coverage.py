@@ -7,7 +7,9 @@ a file on a day the calendar calls closed is reported for review.
 from __future__ import annotations
 
 import csv
+import hashlib
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -45,6 +47,28 @@ class DatasetCoverage:
         return not (self.missing or self.damaged)
 
 
+def read_fingerprints(path: Path) -> dict[str, str]:
+    """NSE file name -> SHA-256, from a laptop tool manifest (`date,url,status,sha256,...`; rows with status 200)."""
+    if not path.is_file():
+        return {}
+    rows = csv.DictReader(path.read_text(encoding="utf-8").splitlines())
+    return {r["url"].rsplit("/", 1)[-1]: r["sha256"] for r in rows if r["status"] == "200" and r["sha256"]}
+
+
+@dataclass(frozen=True)
+class FingerprintCheck:
+    """A validator that also requires a file's SHA-256 to match the manifest, where the manifest has the file."""
+
+    validate: Validator
+    fingerprints: dict[str, str]
+
+    def __call__(self, filename: str, data: bytes) -> None:
+        want = self.fingerprints.get(filename)
+        if want and hashlib.sha256(data).hexdigest() != want:
+            raise ValueError(f"{filename}: SHA-256 differs from the manifest")
+        self.validate(filename, data)
+
+
 def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
     """(dataset, day) -> reason, for sessions NSE never published a file for; each row needs a source link."""
     if not path.is_file():
@@ -57,22 +81,32 @@ def read_exceptions(path: Path) -> dict[tuple[str, date], str]:
     return exceptions
 
 
+DEFAULT_WORKERS = 8  # files read at the same time (Drive allows far more requests per minute than this makes)
+
+
 class CoverageCheck:
-    def __init__(self, store: RawFileStore, calendar: SessionCalendar, exceptions: dict[tuple[str, date], str]):
-        self.store, self.calendar, self.exceptions = store, calendar, exceptions
+    def __init__(
+        self,
+        store: RawFileStore,
+        calendar: SessionCalendar,
+        exceptions: dict[tuple[str, date], str],
+        workers: int = DEFAULT_WORKERS,
+    ):
+        self.store, self.calendar, self.exceptions, self.workers = store, calendar, exceptions, workers
 
     def run(self, dataset: CoverageDataset, start: date, end: date) -> DatasetCoverage:
         source = dataset.source
         start = max(start, source.first_day or start)
         end = min(end, source.last_day or end)
         result = DatasetCoverage(source.dataset, start, end)
-        for offset in range((end - start).days + 1):
-            self._check_day(dataset, start + timedelta(offset), result)
+        days = [start + timedelta(offset) for offset in range((end - start).days + 1)]
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:  # reads in parallel, results in day order
+            for day, data in zip(days, pool.map(lambda d: self.store.get(source.path_for(d)), days)):
+                self._check_day(dataset, day, data, result)
         return result
 
-    def _check_day(self, dataset: CoverageDataset, day: date, result: DatasetCoverage) -> None:
+    def _check_day(self, dataset: CoverageDataset, day: date, data: bytes | None, result: DatasetCoverage) -> None:
         source = dataset.source
-        data = self.store.get(source.path_for(day))
         if not self.calendar.is_session(day):
             if data is not None:
                 result.unexpected.append(day)

@@ -40,6 +40,24 @@ JOURNAL_FOLDER = "journal"
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
 
+# Order sides, one definition for the accounting ledgers, the charges model and the paper-account fills
+SIDE_BUY, SIDE_SELL = "buy", "sell"
+SIDES = (SIDE_BUY, SIDE_SELL)
+
+# NSE participant-wise open interest (story A8, fno/research_data/participant_oi.py): who holds the contracts, and the
+# instrument groups NSE splits them into
+PARTICIPANT_CLIENT, PARTICIPANT_DII, PARTICIPANT_FII, PARTICIPANT_PRO = "Client", "DII", "FII", "Pro"
+PARTICIPANTS = (PARTICIPANT_CLIENT, PARTICIPANT_DII, PARTICIPANT_FII, PARTICIPANT_PRO)
+OI_FUTURE_INDEX, OI_FUTURE_STOCK = "future_index", "future_stock"
+OI_OPTION_INDEX_CALL, OI_OPTION_INDEX_PUT = "option_index_call", "option_index_put"
+OI_OPTION_STOCK_CALL, OI_OPTION_STOCK_PUT = "option_stock_call", "option_stock_put"
+OI_GROUPS = (
+    OI_FUTURE_INDEX, OI_FUTURE_STOCK, OI_OPTION_INDEX_CALL, OI_OPTION_INDEX_PUT, OI_OPTION_STOCK_CALL,
+    OI_OPTION_STOCK_PUT,
+)  # fmt: skip
+# Outcomes of one release-time check of a published file (fno/research_data/release_times.py)
+RELEASE_PRESENT, RELEASE_ABSENT, RELEASE_UNREACHABLE = "present", "absent", "unreachable"
+
 # NIFTY option-chain panel (story A3, fno/research_data/nifty_panel.py)
 PANEL_FORMAT_UDIFF, PANEL_FORMAT_LEGACY = "udiff", "legacy"  # source_format: which F&O file a day's rows came from
 PANEL_INDEX_CLOSE = "index-close"  # the index-close file of a day (underlying and India VIX)
