@@ -70,14 +70,16 @@ class ManifestFolder:
         temporary.replace(path)  # never a half-written manifest
 
     def record(self, source: type[NseArchiveSource], fingerprint: Fingerprint) -> None:
-        """Adds one file's row; the same row again changes nothing, a different SHA-256 for that day is refused."""
-        rows = {f.day: f for f in self.read(source)}
-        existing = rows.get(fingerprint.day)
+        """Adds one file's row (a file is its day and URL: one per day for a dated file or a daily copy, one per symbol
+        and day for a symbol's own list); the same row again changes nothing, a different SHA-256 is refused."""
+        rows = {(f.day, f.url): f for f in self.read(source)}
+        key = (fingerprint.day, fingerprint.url)
+        existing = rows.get(key)
         if existing == fingerprint:
             return
         if existing is not None:
             raise RawFileConflict(f"{fingerprint.filename}: the manifest already has a different SHA-256")
-        rows[fingerprint.day] = fingerprint
+        rows[key] = fingerprint
         self.write(source, rows.values())
 
 
@@ -85,7 +87,7 @@ def manifest_text(fingerprints: Iterable[Fingerprint]) -> str:
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(MANIFEST_FIELDS)
-    rows = sorted(fingerprints, key=lambda f: f.day)
+    rows = sorted(fingerprints, key=lambda f: (f.day, f.url))
     writer.writerows((f.day.isoformat(), f.url, PUBLISHED, f.sha256, f.size_bytes) for f in rows)
     return out.getvalue()
 

@@ -13,21 +13,16 @@ from ..constants import (
     ENV_GDRIVE_OAUTH_CLIENT_SECRET,
     ENV_GDRIVE_OAUTH_REFRESH_TOKEN,
     ENV_GDRIVE_SERVICE_ACCOUNT_JSON,
-    INDEX_INDIA_VIX,
-    INDEX_NIFTY_50,
     PANEL_FORMAT_LEGACY,
     PANEL_FORMAT_UDIFF,
     PANEL_INDEX_CLOSE,
     RESEARCH_USER_AGENT,
 )
-from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
-from ..market_read_models.corporate_actions import read_corporate_actions
-from ..market_read_models.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
 from ..research_data.calendar import SessionCalendar, load_session_calendar
 from ..research_data.nifty_panel import DailyFiles
 from ..research_data.panel_store import CsvGzPanelFolder, PanelSink
-from ..research_data.participant_oi import read_participant_oi
+from .content_checks import VALIDATORS
 from .coverage import CoverageCheck, CoverageDataset, read_exceptions
 from .google_drive import GoogleDriveStore, service_account_token
 from .google_drive_upload import GoogleDriveUploadStore
@@ -48,7 +43,12 @@ from .raw_source import (
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
 from .revision_source import RevisionCapturingSource
 from .revisions import RevisionArchive, RevisionIndex
-from .snapshot_source import CorporateActionsSource, EquityListSource, Nifty500ListSource
+from .snapshot_source import (
+    CorporateActionsBySymbolSource,
+    CorporateActionsSource,
+    EquityListSource,
+    Nifty500ListSource,
+)
 from .snapshot_taker import SnapshotTaker
 from .versioned_store import VersionedRawStore
 
@@ -57,7 +57,6 @@ REVISIONS_AREA = "revisions"  # later versions NSE published of raw files, under
 CALENDAR_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "calendar"
 CALENDAR_FILE = CALENDAR_FOLDER / "nse_sessions.csv"  # NSE's sessions, from its circulars (SessionCalendar)
 COVERAGE_EXCEPTIONS = CALENDAR_FOLDER / "exceptions.csv"
-REQUIRED_INDICES = (INDEX_NIFTY_50, INDEX_INDIA_VIX)
 REPOSITORY = Path(__file__).resolve().parents[2]
 MANIFEST_FOLDER = REPOSITORY / "research" / "data" / "manifests"  # SHA-256 per file (A10)
 REVISION_INDEX_FOLDER = MANIFEST_FOLDER / "revisions"  # one row per archived later version (A11)
@@ -73,6 +72,7 @@ SNAPSHOT_SOURCES = (
     EquityListSource,
     Nifty500ListSource,
     CorporateActionsSource,
+    CorporateActionsBySymbolSource,
 )  # reference lists, one copy per day fetched (P6)
 RAW_SOURCES = DATED_SOURCES + SNAPSHOT_SOURCES  # every dataset with a manifest
 
@@ -209,29 +209,6 @@ def build_quote_store(folder: Path | None = None) -> RawFileStore:
     return LocalFolderStore(folder or QUOTES_FOLDER)
 
 
-def validate_index_close(filename: str, data: bytes) -> None:
-    missing = [name for name in REQUIRED_INDICES if name not in read_index_closes(data, filename)]
-    if missing:
-        raise BadFile(f"{filename}: no closing value for {missing}")
-
-
-def validate_participant_oi(filename: str, data: bytes) -> None:
-    read_participant_oi(data, filename, ParticipantOiSource.day_for(filename))
-
-
-VALIDATORS = {
-    NseLegacyFoSource: read_fo_file,
-    NseDailyFoSource: read_fo_file,
-    NseIndexCloseSource: validate_index_close,
-    ParticipantOiSource: validate_participant_oi,
-    NseEquityBhavcopySource: lambda filename, data: read_equity_bhavcopy(data, filename),
-    NseDeliverySource: lambda filename, data: read_delivery(data, filename),
-    EquityListSource: lambda filename, data: read_equity_list(data, filename),
-    Nifty500ListSource: lambda filename, data: read_nifty500_list(data, filename),
-    CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
-}
-
-
 def coverage_datasets(manifests: ManifestFolder | None = None) -> tuple[CoverageDataset, ...]:
     """Every raw dataset with its content check and its manifest's fingerprints (read now, never cached)."""
     manifests = manifests or build_manifest_folder()
@@ -253,6 +230,15 @@ LIBRARIAN_DATASETS = {
 }
 SNAPSHOT_DATASETS = {dataset_name(s): s for s in SNAPSHOT_SOURCES}
 FINGERPRINT_SOURCES = {dataset_name(s): s for s in DATED_SOURCES}
+
+
+def build_own_list_taker() -> SnapshotTaker:
+    """A symbol's own NSE corporate-action list into the owner's Drive (symbols NSE's range list leaves out)."""
+    store = build_owner_drive_store()
+    if store is None:
+        raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
+    source = CorporateActionsBySymbolSource
+    return SnapshotTaker(store, build_nse_source(source), VALIDATORS[source])
 
 
 def build_snapshot_taker(name: str) -> SnapshotTaker:

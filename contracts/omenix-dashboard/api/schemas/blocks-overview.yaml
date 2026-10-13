@@ -8,7 +8,8 @@ OverviewQuote:
   additionalProperties: false
   description: >-
     One index, fund or instrument at its own last close, with its changes over each period and its daily closes
-    (oldest first, ending at `as_of`). NSE's index rows also carry NSE's own P/E, P/B and dividend yield; US sector funds
+    (oldest first, ending at `as_of`). Changes, the 52-week range and the closes are adjusted for splits and bonuses as of
+    `as_of` (PeriodChange). NSE's index rows also carry NSE's own P/E, P/B and dividend yield; US sector funds
     carry the stock tool's companies' sectors they stand for
   required: [name, kind, close, as_of, d1, w1, m1, m3, y1, hi52, lo52, closes]
   properties:
@@ -22,14 +23,14 @@ OverviewQuote:
     m1: {$ref: '#/components/schemas/PeriodChange', x-notes: ['h34.period:m1']}
     m3: {$ref: '#/components/schemas/PeriodChange', x-notes: ['h34.period:m3']}
     y1: {$ref: '#/components/schemas/PeriodChange', x-notes: ['h34.period:y1']}
-    hi52: {type: ['number', 'null'], x-unit: index points or price, x-price: true, x-notes: ['h34.main-card:hi52', 'h34.sectors:hi52', 'h34.vix:hi52'], x-catalog: {status: planned, source: 'computed: ours, from the daily closes'}}
-    lo52: {type: ['number', 'null'], x-unit: index points or price, x-price: true, x-notes: ['h34.main-card:lo52', 'h34.sectors:lo52', 'h34.vix:lo52'], x-catalog: {status: planned, source: 'computed: ours, from the daily closes'}}
+    hi52: {type: ['number', 'null'], x-unit: index points or price, x-price: true, x-notes: ['h34.main-card:hi52', 'h34.sectors:hi52', 'h34.vix:hi52'], x-catalog: {status: planned, source: 'computed: ours, from the daily closes adjusted for splits and bonuses as of the close'}}
+    lo52: {type: ['number', 'null'], x-unit: index points or price, x-price: true, x-notes: ['h34.main-card:lo52', 'h34.sectors:lo52', 'h34.vix:lo52'], x-catalog: {status: planned, source: 'computed: ours, from the daily closes adjusted for splits and bonuses as of the close'}}
     pe: {type: ['number', 'null'], x-unit: ratio, x-notes: ['h34.main-card:pe', 'h34.broad:pe', 'h34.sectors:pe'], description: "NSE's P/E (index rows only)"}
     pb: {type: ['number', 'null'], x-unit: ratio, x-notes: ['h34.main-card:pb']}
     dy: {type: ['number', 'null'], x-unit: percent, x-notes: ['h34.main-card:dy']}
     closes:
       type: array
-      description: Daily closes, oldest first, the last one being `close`
+      description: 'Daily closes, oldest first, the last one being `close`; adjusted for splits and bonuses as of `as_of` (index levels have none: an index is never split)'
       x-price: true
       items: {type: ['number', 'null'], x-unit: index points or price}
     sectors:

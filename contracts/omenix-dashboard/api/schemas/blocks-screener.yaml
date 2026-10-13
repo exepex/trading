@@ -71,6 +71,10 @@ ScreenerStocks:
 ScreenerStock:
   type: object
   additionalProperties: false
+  description: >-
+    One stock at the day's close. Every figure built on past closes (d1 to y1, the 52-week h and l, the RSI) uses closes
+    adjusted for the splits and bonuses up to the close, as the company contract's bars do (company.yaml); `p` and `v` are
+    the day's own close and volume, which no later action changes
   x-as-of-from: ScreenerStocks
   required: [s, n, g, p, d1, w1, m1, m3, y1, h, l, v, va, r, u]
   properties:
@@ -83,12 +87,12 @@ ScreenerStock:
     m1: {$ref: '#/components/schemas/PeriodChange', x-element: [h33.period, h33.screens, h33.table], x-notes: ['h33.period:m1', 'h33.screens:m1']}
     m3: {$ref: '#/components/schemas/PeriodChange', x-element: [h33.period, h33.table], x-notes: ['h33.period:m3']}
     y1: {$ref: '#/components/schemas/PeriodChange', x-element: [h33.period, h33.table], x-notes: ['h33.period:y1']}
-    h: {type: ['number', 'null'], x-unit: price (market currency), x-price: true, x-element: [h33.table, h33.screens], x-notes: ['h33.table:h', 'h33.screens:h'], description: 52-week high, x-catalog: {status: planned, source: 'computed: ours, from the daily closes'}}
-    l: {type: ['number', 'null'], x-unit: price (market currency), x-price: true, x-element: [h33.table, h33.screens], x-notes: ['h33.table:l', 'h33.screens:l'], description: 52-week low, x-catalog: {status: planned, source: 'computed: ours, from the daily closes'}}
+    h: {type: ['number', 'null'], x-unit: price (market currency), x-price: true, x-element: [h33.table, h33.screens], x-notes: ['h33.table:h', 'h33.screens:h'], description: 52-week high, x-catalog: {status: planned, source: 'computed: ours, from the daily closes adjusted for splits and bonuses as of the close'}}
+    l: {type: ['number', 'null'], x-unit: price (market currency), x-price: true, x-element: [h33.table, h33.screens], x-notes: ['h33.table:l', 'h33.screens:l'], description: 52-week low, x-catalog: {status: planned, source: 'computed: ours, from the daily closes adjusted for splits and bonuses as of the close'}}
     v: {type: integer, minimum: 0, x-unit: shares, x-element: [h33.table, h33.screens, h33.filters, h33.sort, h34.movers], x-notes: ['h33.table:v', 'h33.screens:v', 'h33.filters:v', 'h33.sort:v', 'h34.movers:v'], description: 'Volume of the day (value traded = p × v, the default sort)'}
     va: {type: ['number', 'null'], minimum: 0, x-unit: shares, x-element: [h33.table, h33.screens, h33.filters, h34.movers], x-notes: ['h33.table:va', 'h33.screens:va', 'h33.filters:va', 'h34.movers:va'], description: 20-day average volume, x-catalog: {status: planned, source: 'computed: ours, from the daily volumes'}}
     dl: {type: ['number', 'null'], minimum: 0, maximum: 100, x-unit: percent, x-element: [h33.table, h33.screens, h33.filters], x-notes: ['h33.table:dl', 'h33.screens:dl', 'h33.filters:dl'], x-market: india, description: 'Delivery % (NSE security-wise file; null when NSE gives none). India only: absent in the US'}
-    r: {type: ['number', 'null'], minimum: 0, maximum: 100, x-unit: index 0-100, x-element: [h33.table, h33.screens, h33.filters], x-notes: ['h33.table:r', 'h33.screens:r', 'h33.filters:r'], description: 'RSI 14 (Wilder, over the year''s closes; computed: ours)', x-catalog: {status: planned, source: 'computed: ours, from the daily closes'}}
+    r: {type: ['number', 'null'], minimum: 0, maximum: 100, x-unit: index 0-100, x-element: [h33.table, h33.screens, h33.filters], x-notes: ['h33.table:r', 'h33.screens:r', 'h33.filters:r'], description: 'RSI 14 (Wilder, over the year''s closes; computed: ours)', x-catalog: {status: planned, source: 'computed: ours, from the daily closes adjusted for splits and bonuses as of the close'}}
     u:
       type: array
       description: The universes the stock belongs to (the `u` query takes the same values)
@@ -97,9 +101,9 @@ ScreenerStock:
       items: {type: string, enum: [n500, fno, ours], x-unit: enum}
 PeriodChange:
   type: ['number', 'null']
-  description: '% change on the close 1, 5, 21, 63 or 250 sessions back; null when listed later'
+  description: '% change on the close 1, 5, 21, 63 or 250 sessions back, that past close adjusted for every split and bonus since (NSE''s corporate-actions file; the stock tool''s adjusted prices in the US), so a 5:1 split is not a −80 % year; null when listed later'
   x-unit: percent points
-  x-catalog: {status: planned, source: 'computed: ours, from the daily closes'}
+  x-catalog: {status: planned, source: 'computed: ours, from the daily closes adjusted for splits and bonuses as of the close'}
 
 ScreenerTools:
   type: object

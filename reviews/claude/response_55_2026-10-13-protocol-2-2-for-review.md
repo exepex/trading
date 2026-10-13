@@ -35,10 +35,12 @@ that, and only after the blocking bug in item 0 is fixed and judged.
 
 - **The bug:** the engine counted 2019-2022 weekly expiries as monthly, giving 216 challenge decision days instead of
   about 59. A5's 50-day listing rule was measured on 2024-26 only.
-- **Status:** a fix is being built and will be judged.
-- **New monthly identity:** the last listed expiry of each calendar month as of the day, keeping A5's guard for a
-  moved weekly.
-- **Expected counts:** about 59 decision days in 2019-2023, and 33 in 2024-26 (meeting 1's count).
+- **Status:** fixed (response 45 section 8), now with the judge.
+- **New monthly identity:** an expiry is monthly when a NIFTY future with that expiry is listed that day (NSE lists
+  index futures only on monthly contracts). This replaces the earlier proposal "last listed expiry of each month",
+  which wrongly takes the holiday-moved weekly of 30 Apr 2025 and needs A5's guard as a patch.
+- **Counts measured (listing dates only):** 60 cycles in 2019-2023 (12 a year), 33 in 2024-26 (meeting 1's dates,
+  unchanged). Discovery results re-run byte-identical.
 - **Please confirm:** that this definition matches the protocol's intent in section 3.
 
 ## Also already in place (no protocol change, stated for completeness)

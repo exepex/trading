@@ -20,12 +20,17 @@ class SnapshotTaker:
 
     def take(self, day: date) -> str:
         """One line saying what happened; ValueError when NSE's copy fails its check (nothing is saved)."""
-        path = self.source.path_for(day)
-        if self.store.get(path) is not None:
+        return self.take_path(self.source.path_for(day))
+
+    def take_path(self, path: str) -> str:
+        """The same for an explicit archive path of the source (a symbol's own list)."""
+        existing = self.store.get(path)
+        if existing is not None:
+            self.store.put(path, existing)  # the same bytes: the store keeps them; the archive's manifest gets its row
             return ALREADY.format(path=path)
         data = self.source.fetch(path)
         if data is None:
             return NOT_SERVED.format(path=path)
-        self.validate(self.source.FILENAME, data)
+        self.validate(path.rsplit("/", 1)[-1], data)
         self.store.put(path, data)
         return TAKEN.format(path=path, size=len(data))

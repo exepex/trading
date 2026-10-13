@@ -5,6 +5,7 @@ NSE replaces them in place, so each copy is archived under the day it was fetche
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+from urllib.parse import quote
 
 from .raw_source import NseArchiveSource
 
@@ -66,3 +67,28 @@ class CorporateActionsSource(SnapshotSource):
     def url_for(cls, path: str) -> str:
         day = cls.day_for_path(path)
         return cls.API.format(start=f"{day - cls.WINDOW:%d-%m-%Y}", end=f"{day:%d-%m-%Y}")
+
+
+class CorporateActionsBySymbolSource(CorporateActionsSource):
+    """One symbol's own corporate-action list from NSE's website, for symbols the range list leaves out (ETFs such as
+    BANKNIFTY1), filed as `<dataset>/<YYYY>/<MM>/<DD>/<SYMBOL>.json`. NSE answers these without a date range (with
+    one it answers [] for some symbols); the build applies only actions inside its window."""
+
+    dataset = "nse/equities/corporate-actions-by-symbol"
+    SYMBOL_API = "https://www.nseindia.com/api/corporates-corporateActions?index=equities&symbol={symbol}"
+    EXTENSION = ".json"
+
+    @classmethod
+    def path_for_symbol(cls, day: date, symbol: str) -> str:
+        return f"{cls.dataset}/{day:{SNAPSHOT_FOLDER}}/{symbol}{cls.EXTENSION}"
+
+    @classmethod
+    def day_for_path(cls, path: str) -> date:
+        *_, year, month, day, filename = path.split("/")
+        if not filename.endswith(cls.EXTENSION):
+            raise ValueError(f"{path}: not a symbol's corporate-action list")
+        return datetime.strptime(f"{year}/{month}/{day}", SNAPSHOT_FOLDER).date()
+
+    @classmethod
+    def url_for(cls, path: str) -> str:
+        return cls.SYMBOL_API.format(symbol=quote(path.rsplit("/", 1)[-1].removesuffix(cls.EXTENSION)))

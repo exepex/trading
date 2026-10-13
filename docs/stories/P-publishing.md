@@ -199,4 +199,4 @@ stock-tool fields, the paper books (P2).
 **Judge verifies:** rebuilds 12 Oct from the raw files and compares with the W11 examples; plants a schema break; reads
 the published rows with the dashboard role.
 
-**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** later
+**Depends:** W11 (PASS), A9, A10, X1 · **Size:** L · **Status:** built; awaiting judge (claims: reviews/claude/response_50_2026-10-13-p6-nse-read-models.md)
