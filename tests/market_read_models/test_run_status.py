@@ -125,7 +125,7 @@ def test_the_run_id_is_githubs_run_and_attempt_else_the_local_time():
 
 
 def as_role(postgres, role):
-    return postgres.url.replace("postgres@", f"{role}@", 1)
+    return postgres.as_role(role)
 
 
 def table(postgres):
@@ -158,7 +158,7 @@ def test_postgres_rows_written_by_the_publisher_role_and_read_by_the_dashboard(p
 
 
 def test_postgres_refuses_an_unknown_code_or_a_failure_without_one(postgres):
-    status = PostgresRunStatus(postgres.url, psycopg.connect, "fno")
+    status = PostgresRunStatus(as_role(postgres, "fno_writer"), psycopg.connect, "fno")
     status.start("gh-3-1", DAY)
     assert status.finish("gh-3-1", Outcome("failed", "made_up", "x")).startswith("run status NOT recorded (other")
     assert status.finish("gh-3-1", Outcome("failed")).startswith("run status NOT recorded")

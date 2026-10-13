@@ -58,7 +58,7 @@ class PanelAppender:
         manifest = self.manifest()
         for name, recorded in sorted(manifest["files"].items()):
             path = self.folder / name
-            found = _fingerprint(path) if path.is_file() else None
+            found = _fingerprint(path)
             wanted = (recorded["sha256"], recorded["csv_sha256"], recorded["rows"])
             if found != wanted:
                 raise AppendRefused(f"{name} does not match {MANIFEST_FILE} (an interrupted append?): {RESTORE}")
@@ -133,11 +133,15 @@ class PanelAppender:
         return TABLE_FILE.format(table=table, year=year)
 
 
-def _fingerprint(path: Path) -> tuple[str, str, int]:
-    """The file's SHA-256, its decompressed content's SHA-256 and its data rows (header excluded), read in chunks."""
+def _fingerprint(path: Path) -> tuple[str, str, int] | None:
+    """The file's SHA-256, its decompressed content's SHA-256 and its data rows (header excluded), read in chunks; None
+    when the file is missing or not a whole gzip stream (a damaged file is a mismatch, never a crash)."""
     content, lines = hashlib.sha256(), 0
-    with gzip.open(path, "rb") as stream:
-        while chunk := stream.read(CHUNK):
-            content.update(chunk)
-            lines += chunk.count(b"\n")
+    try:
+        with gzip.open(path, "rb") as stream:
+            while chunk := stream.read(CHUNK):
+                content.update(chunk)
+                lines += chunk.count(b"\n")
+    except (OSError, EOFError):  # missing, not gzip, or cut short
+        return None
     return file_sha256(path.read_bytes()), content.hexdigest(), lines - 1

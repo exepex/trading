@@ -87,7 +87,7 @@ def stored_rows(postgres) -> int:
 
 def test_postgres_publishes_all_blocks_in_one_transaction_and_reads_them_back(postgres):
     clean(postgres)
-    publisher = PostgresPublisher(postgres.url)
+    publisher = PostgresPublisher(postgres.as_role("fno_writer"))  # the runtime role, as on Azure
     assert publisher.current() == {}
     publisher.publish(FIRST)
     assert publisher.current() == FIRST.records
@@ -97,7 +97,7 @@ def test_postgres_publishes_all_blocks_in_one_transaction_and_reads_them_back(po
 
 def test_a_postgres_failure_in_any_block_leaves_the_previous_session_current_and_unchanged(postgres):
     clean(postgres)
-    publisher = PostgresPublisher(postgres.url)
+    publisher = PostgresPublisher(postgres.as_role("fno_writer"))  # the runtime role, as on Azure
     publisher.publish(FIRST)
     broken = publication(date(2026, 10, 12), 3)
     broken.records["overview_indices"]["payload_sha256"] = "not a sha"  # the third insert fails (check constraint)
@@ -114,7 +114,7 @@ def pointer_time(postgres):
 
 def test_postgres_publishing_the_same_session_twice_adds_no_rows(postgres):
     clean(postgres)
-    publisher = PostgresPublisher(postgres.url)
+    publisher = PostgresPublisher(postgres.as_role("fno_writer"))  # the runtime role, as on Azure
     assert publisher.publish(FIRST) == 3
     published_at = pointer_time(postgres)
     rerun = Publication(FIRST.day, FIRST.publication_id, {k: {**r, "built_at": f"{FIRST.day}T23:59:00Z"}

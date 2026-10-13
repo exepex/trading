@@ -292,3 +292,40 @@ Tests:
 - `test_the_pages_one_per_expiry_and_one_per_contract`: 7 rows pages, 1,246 contract pages, 89 stored strikes, and the route's near set of 21 around 22,350;
 - the equality test through the route;
 - the run and read-back tests (1,265 pages; read-back shows "chain_rows 7 pages").
+
+## Addendum: judge 59 addendum 1, the runtime role's rights fixed at the design level
+
+**Root cause (accepted; the judge's evidence matches X1's SQL):**
+- X1's step 40 (`platform/sql/40_default_privileges.sql`) gives `fno_writer` SELECT, INSERT, UPDATE and DELETE on **every** table `fno_owner` creates in schema `fno`. On Azure that includes 001's tables and would include 002's.
+- My fixture created the roles without step 40, so it never saw those rights.
+
+**Fixed in `002_run_status.sql`** (the owner has not run it, so the file itself changed, not a new migration):
+- **Rights narrowed to exactly what the publisher needs** (revoke, then grant, so it is idempotent):
+
+  | Table | `fno_writer` keeps | Revoked | Why |
+  |---|---|---|---|
+  | `pages_history` | INSERT, SELECT | UPDATE, DELETE, TRUNCATE | history is append-only (insert … on conflict do nothing, then read back) |
+  | `current_publication` | INSERT, UPDATE, SELECT | DELETE, TRUNCATE | a one-row pointer per product, upserted |
+  | `run_status` | INSERT, UPDATE, SELECT | DELETE, TRUNCATE | one row per run, inserted then finished once |
+
+  `dashboard_app` keeps SELECT only, on all three.
+- **No job needs DELETE as the runtime role:** the publisher, the read-back and the run status only insert, update the pointer, and finish a run. A future retention or rebuild job would run as `fno_owner`, never `fno_writer`.
+- **One guard trigger** (`fno.run_status_guard`, before insert or update) replaces the update-only one:
+  - a row must be **born `running`** (no `finished_at`, result, reason or publication at insert);
+  - a running row **keeps its product, run ID, session and start**;
+  - a **finished row never changes**.
+
+  It raises `restrict_violation`. On a server set up like Azure (functions executable by nobody but `fno_owner`), the trigger still fires for `fno_writer`, as the tests show.
+- **The test fixture now mirrors Azure:**
+  - `tests/market_read_models/x1_platform.sql` is a copy of X1 steps 00 (the 8 roles), 20 (schema `fno` owned by `fno_owner`), 30 (USAGE) and step 40's `fno_owner` default privileges, from omenix-dashboard at 407ead2;
+  - the migrations run **as `fno_owner`**;
+  - the publisher and run-status tests act **as `fno_writer`**.
+- **New tests** (`test_runtime_privileges.py`, 13), as `fno_writer` on the Azure-like server:
+  - delete and truncate refused on all three tables, and update refused on the history;
+  - a row born `published` is refused;
+  - changing a running row's identity is refused, and a finished row cannot be updated;
+  - `dashboard_app` reads but cannot delete;
+  - `fno_writer`'s exact grants per table.
+- **Mutation check:** with the revokes removed, 5 of these fail.
+
+All market tests pass (129). The owner's step is the same command as before (`psql … user=fno_owner … -f db/fno/migrations/002_run_status.sql`). It now also narrows `fno_writer`'s rights on 001's two live tables; nothing the publisher does needs what it removes.
