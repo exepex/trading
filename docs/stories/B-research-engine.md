@@ -342,4 +342,4 @@ disagreement days are listed for the red team.
 **Judge verifies:** recomputes one live value from a committed snapshot; checks the gate refuses an unvalidated
 strategy.
 
-**Depends:** B1, A4, A7 · **Size:** M · **Status:** doing
+**Depends:** B1, A4, A7 · **Size:** M · **Status:** done: judge 44 PASS round 2 (13 Oct 2026). Follow-up before D1 uses the gate: recompute per-day values from the committed A4 snapshots and the panel (or check snapshot hashes), since hand-edited per-day values pass today
