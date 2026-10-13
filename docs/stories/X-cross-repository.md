@@ -519,3 +519,70 @@ W2, W6, P stories); changing the signed-off mockups.
 traces each to its endpoint field and its publisher; checks the independence of endpoints against the screen layout.
 
 **Depends:** sign-off of 30-shell and 31-dashboard (13 Oct 2026) · **Size:** M · **Status:** next
+
+---
+
+## K4. Stock backend publishes one read model per Home and frame block
+
+**Repository:** agentic-stock-prediction (written there by the stock tool's own sessions; this repository never writes
+to it)
+
+**Description:** As the owner, I want the stock tool to publish one small read model per block of the signed-off frame
+and Home, matching the dashboard's W10 contract, so that each block loads on its own.
+
+**Context and why:** W10 (omenix-dashboard `api/`, commit 7aa81a3) fixed 23 small endpoints. Most of the stock-side
+fields are `x-status: planned` with this story as their publisher (`api/catalog/stories.yaml`, "K4-proposed"). Until
+it exists, the dashboard's stock routes project the same fields from today's rows (`x-read-model: interim`).
+
+**Acceptance criteria:**
+1. Every stock-published field of the W10 catalog is in a read model, with the contract's names, units and as-of time.
+2. The dashboard's contract check runs green against the published rows.
+3. The stock tool's new hybrid family and "AI team" (owner, 13 Oct 2026) appear under those names, never a model name.
+
+**Depends:** W10 · **Size:** L · **Status:** later (the owner gives it to the stock tool's sessions)
+
+---
+
+## P5. F&O read models for the frame: contracts, quotes, order rules and books
+
+**Repository:** trading
+
+**Description:** As the owner, I want the F&O tool to publish the frame's F&O blocks (contract search, contract
+details with quotes, order rules with charges and limits, books, picks), so that the order window and the Home F&O lines
+show real F&O data.
+
+**Context and why:** W10's contract puts these under `/api/v1/markets/india/fno/*` ("P1-extension-proposed"). P1's
+page list has none of them.
+
+**Acceptance criteria:**
+1. Each F&O endpoint of the W10 catalog has its read model, with the contract's fields, units and as-of time;
+   quotes come only from the 3 pm snapshot and are labelled as such.
+2. The dashboard's contract check runs green on the published payloads.
+3. US markets have no F&O payload at all.
+
+**Depends:** W10, P1, A4 · **Size:** M · **Status:** later
+
+---
+
+## MA1. The Manual paper account (the owner's own paper trades)
+
+**Repository:** dashboard (with an `app` table on Azure)
+
+**Description:** As the owner, I want my own paper account (India Rs 5 lakh, US $5,000) to accept my paper orders from
+the order window, fill them only from valid quotes, and keep cash, positions and history, so that my own trades sit
+beside the strategy books and are never part of their scoreboards.
+
+**Context and why:** PLATFORM_DESIGN.md's order window; W10 names this store "MA1-proposed"; W8 builds the order window
+as a preview only. Fills follow the honest rules: stocks at the stock tool's next price check, F&O at the next valid
+3 pm snapshot, refused where no executable quote exists, and every limit checked before confirming.
+
+**Acceptance criteria:**
+1. An order is accepted only while the market is open and every limit passes; otherwise it is refused with the
+   reason (tests).
+2. Fills use only the next valid quote named in the order window; an F&O order without an executable quote is
+   refused (tests).
+3. The account never mixes with strategy books or scoreboards, and INR and USD never sum (tests).
+4. Every write is idempotent and only the dashboard role can write the account's `app` tables (X1 role matrix
+   extended).
+
+**Depends:** W8, X1, W7 · **Size:** L · **Status:** later
