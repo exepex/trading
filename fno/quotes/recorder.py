@@ -32,6 +32,7 @@ from .monthly_contracts import PointInTimeMonthlies
 
 UNDERLYING = "NIFTY"
 DATASET = "groww/derivatives/quote-snapshots"
+NSE_DATASET = "nse/derivatives/quote-snapshots"  # story O6: NSE's public chain, never mixed with Groww's
 WINDOW_START, WINDOW_END = time(14, 55), time(15, 10)
 MAX_EARLY_WAIT_SECONDS = 20 * 60  # a run started up to 20 minutes early waits for the window
 RETRY_GAP_SECONDS = 60
@@ -60,7 +61,22 @@ def monthly_expiries(expiries: list[date], today: date, count: int = MONTHLY_EXP
 
 
 NO_QUOTE_TIME = "unknown: provider gives no quote timestamp"
+PAGE_TIME = "provider's snapshot timestamp (NSE page time, one for the whole chain)"
 FRESHNESS_PROXY = "same-day trade (market active; quote age unknown)"
+VOLUME_PROXY = "day volume above zero (NSE gives no last trade time)"
+GROWW_NOTE = "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today"
+NSE_NOTE = "quotes, not fills; NSE public option chain: quote_time is its page timestamp, traded today = day volume > 0"
+PROVIDER_NOTES = {"nse": NSE_NOTE}
+
+
+def traded_today(book: QuoteBook | None, today: date) -> bool:
+    """A trade in the contract today: its last trade time (Groww) or, when the provider gives none, its day volume
+    (NSE). Either proves the market was active in it today; neither proves the quote is seconds old."""
+    if book is None:
+        return False
+    if book.last_trade_time is not None:
+        return book.last_trade_time.date() == today
+    return bool(book.traded_today)
 
 
 def quote_validity(book: QuoteBook | None, today: date) -> str:
@@ -75,8 +91,10 @@ def quote_validity(book: QuoteBook | None, today: date) -> str:
         return "crossed (bid above ask)"
     if not book.bid_qty or not book.ask_qty:
         return "no size"
-    if book.last_trade_time is None or book.last_trade_time.date() != today:
+    if not traded_today(book, today):
         return "no trade today (quote age unknown, possibly stale)"
+    if book.quote_time is not None and book.quote_time.date() != today:
+        return "quote not from today"
     return ""
 
 
@@ -93,20 +111,24 @@ class RecordResult:
 class QuoteSnapshotRecorder:
     def __init__(self, provider: Provider, store: RawFileStore, clock_now=now_ist, sleep=clock.sleep,
                  fallback: ListedExpiries | None = None, calendar: SessionCalendar | None = None,
-                 history: ExpiryHistory | None = None, levels: LevelSource | None = None):  # fmt: skip
+                 history: ExpiryHistory | None = None, levels: LevelSource | None = None,
+                 dataset: str = DATASET):  # fmt: skip
         """The app always passes `calendar` and `history` (fno/composition.py). Without them (the A4 tests and
         byte-identical baseline), A4's rules stay: weekends are closed, a day with no same-day trade is a holiday, and
         the monthly is the last listed expiry of each month."""
         self.provider, self.store, self.now, self.sleep = provider, store, clock_now, sleep
-        self.fallback, self.calendar, self.levels = fallback, calendar, levels
+        self.fallback, self.calendar, self.levels, self.dataset = fallback, calendar, levels, dataset
         self.monthly_check = PointInTimeMonthlies(history) if history else None
 
     @staticmethod
-    def path(day: date, name: str) -> str:
-        return f"{DATASET}/{day:%Y}/{day:%m}/{name}"
+    def path(day: date, name: str, dataset: str = DATASET) -> str:
+        return f"{dataset}/{day:%Y}/{day:%m}/{name}"
+
+    def _path(self, day: date, name: str) -> str:
+        return self.path(day, name, self.dataset)
 
     def canonical(self, day: date) -> str | None:
-        data = self.store.get(self.path(day, f"nifty_{day:%Y%m%d}.canonical"))
+        data = self.store.get(self._path(day, f"nifty_{day:%Y%m%d}.canonical"))
         return data.decode().strip() if data else None
 
     def record(self, outside_window: bool = False) -> RecordResult:
@@ -134,7 +156,7 @@ class QuoteSnapshotRecorder:
                 return result
             self.sleep(RETRY_GAP_SECONDS)
         if self.canonical(day) is None:
-            self.store.put(self.path(day, f"nifty_{day:%Y%m%d}.canonical"), NONE_MARKER.encode())
+            self.store.put(self._path(day, f"nifty_{day:%Y%m%d}.canonical"), NONE_MARKER.encode())
         return result
 
     def _session_kind(self, day: date) -> str | None:
@@ -180,7 +202,7 @@ class QuoteSnapshotRecorder:
         except Exception as exc:  # recorded, never hidden: the attempt is incomplete
             failures.append(f"chain: {type(exc).__name__}: {exc}")
         levels = self.levels.levels(UNDERLYING) if self.levels else None  # inside the capture: before finished_at
-        expected = sum(len(self._contracts(c)) for c in chains)
+        expected, traded = sum(len(self._contracts(c)) for c in chains), False
         for chain in chains:
             for strike, kind in self._contracts(chain):
                 sent = self.now()
@@ -190,7 +212,8 @@ class QuoteSnapshotRecorder:
                     failures.append(f"{chain.expiry} {strike:g} {kind}: {type(exc).__name__}: {exc}")
                     continue
                 rows.append(self._row(snapshot_id, sent, self.now(), chain, strike, kind, book, day))
-        if rows and not any(r["last_trade_time"].startswith(day.isoformat()) for r in rows):
+                traded = traded or traded_today(book, day)
+        if rows and not traded:
             if self.calendar is None:
                 return RecordResult("not a trading day", snapshot_id)  # A4 inference: no contract traded, closed
             failures.append(NO_SAME_DAY_TRADES)  # kept and retried; the day ends "none" if it persists to 15:10
@@ -203,16 +226,16 @@ class QuoteSnapshotRecorder:
             "expiry_source": expiry_source,
             "expected_contracts": expected, "recorded_contracts": len(rows), "failures": failures,
             "complete": complete, "in_window": canonical_allowed, "csv_sha256": hashlib.sha256(csv_bytes).hexdigest(),
-            "note": "quotes, not fills; Groww gives no quote timestamp: quote age unknown, valid needs a trade today",
+            "note": PROVIDER_NOTES.get(self.provider.name, GROWW_NOTE),
         }  # fmt: skip
         if self.monthly_check is not None:
             meta["monthly_check"] = check  # verified with the NSE files that proved it, or unverified and why
         if levels is not None:
             meta.update(levels.meta(), levels_source=self.levels.name)  # India VIX and futures for live features
-        self.store.put(self.path(day, f"{snapshot_id}.csv"), csv_bytes)
-        self.store.put(self.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
+        self.store.put(self._path(day, f"{snapshot_id}.csv"), csv_bytes)
+        self.store.put(self._path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:
-            self.store.put(self.path(day, f"nifty_{day:%Y%m%d}.canonical"), snapshot_id.encode())
+            self.store.put(self._path(day, f"nifty_{day:%Y%m%d}.canonical"), snapshot_id.encode())
         reason = NO_SAME_DAY_TRADES if NO_SAME_DAY_TRADES in failures else ""
         unverified = check["reason"] if check.get("status") == UNVERIFIED else ""
         return RecordResult("recorded", snapshot_id, complete, len(rows), reason, unverified)
@@ -227,8 +250,10 @@ class QuoteSnapshotRecorder:
         leg = chain.get(strike, kind)
         return {
             "snapshot_id": snapshot_id, "request_sent_at": sent.isoformat(),
-            "response_received_at": received.isoformat(), "quote_time": "", "age_basis": NO_QUOTE_TIME,
-            "freshness_proxy": FRESHNESS_PROXY,
+            "response_received_at": received.isoformat(),
+            "quote_time": book.quote_time.isoformat() if book and book.quote_time else "",
+            "age_basis": PAGE_TIME if book and book.quote_time else NO_QUOTE_TIME,
+            "freshness_proxy": _freshness_proxy(book),
             "provider": self.provider.name,
             "last_trade_time": book.last_trade_time.isoformat() if book and book.last_trade_time else "",
             "contract_id": book.symbol if book else (leg.symbol if leg else ""), "expiry": chain.expiry.isoformat(),
@@ -246,6 +271,10 @@ class QuoteSnapshotRecorder:
         writer.writeheader()
         writer.writerows(rows)
         return out.getvalue().encode()
+
+
+def _freshness_proxy(book: QuoteBook | None) -> str:
+    return VOLUME_PROXY if book and book.last_trade_time is None and book.traded_today else FRESHNESS_PROXY
 
 
 def _num(value) -> str:

@@ -8,7 +8,7 @@ from functools import partial
 
 from ..alerts.sender import AlertSender
 from ..research_data.calendar import CalendarError
-from .recorder import NO_SAME_DAY_TRADES, QuoteSnapshotRecorder, RecordResult
+from .recorder import DATASET, NO_SAME_DAY_TRADES, QuoteSnapshotRecorder, RecordResult
 
 CALENDAR_STOP = "3 pm quote recorder stopped, nothing recorded: {error} ({file})"
 CROSS_CHECK_ALERT = (
@@ -19,6 +19,7 @@ MONTHLY_UNVERIFIED_ALERT = (
     "3 pm quote recorder: monthly contracts chosen by the last-listed-expiry rule, not verified against NSE's history "
     "({reason}; {snapshot_id}). Quotes were kept; check the contract choice later (meta.json monthly_check)."
 )
+CONFIGURED, NSE_SOURCE = "configured", "nse"
 GOOD_STATUSES = ("recorded", "already recorded", "not a trading day")
 
 
@@ -27,20 +28,33 @@ def add_quotes_parser(subparsers) -> None:
     actions = quotes.add_subparsers(dest="quotes_cmd", required=True)
     record = actions.add_parser("record", help="record today's snapshot in the 14:55-15:10 IST window")
     record.add_argument("--outside-window", action="store_true", help="testing only: one attempt now, never canonical")
+    record.add_argument(
+        "--source",
+        choices=(CONFIGURED, NSE_SOURCE),
+        default=CONFIGURED,
+        help="nse: NSE's public option chain into its own dataset (story O6); default: quotes.provider",
+    )
+    actions.add_parser("compare", help="Groww's and NSE's canonical snapshots side by side, day by day (story O6)")
     actions.add_parser("report", help="median and 90th-percentile half-spread by distance from the money")
     quotes.set_defaults(func=cmd_quotes)
 
 
 def cmd_quotes(args) -> int:
-    from ..composition import build_alert_sender, build_quote_recorder
+    from ..composition import build_alert_sender, build_nse_quote_recorder, build_quote_recorder
     from ..config import ROOT, load_app_config
     from ..storage.wiring import CALENDAR_FILE, QUOTES_FOLDER
     from .report import canonical_snapshots, spread_report
 
     if args.quotes_cmd == "report":
-        print(json.dumps(spread_report(canonical_snapshots(QUOTES_FOLDER)), indent=1))
+        print(json.dumps(spread_report(canonical_snapshots(QUOTES_FOLDER / DATASET)), indent=1))  # Groww's only
         return 0
-    build = partial(build_quote_recorder, load_app_config(args.config))
+    if args.quotes_cmd == "compare":
+        from .compare import compare_lines
+
+        print("\n".join(compare_lines(QUOTES_FOLDER)))
+        return 0
+    builder = build_nse_quote_recorder if args.source == NSE_SOURCE else build_quote_recorder
+    build = partial(builder, load_app_config(args.config))
     calendar_file = CALENDAR_FILE.relative_to(ROOT).as_posix()
     return record_today(build, build_alert_sender(), args.outside_window, calendar_file)
 

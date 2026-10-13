@@ -80,7 +80,7 @@ A republished file's pointer has the same `batch` and a `revisions/...` path wit
 |---|---|---|---|
 | participant-OI release times, 17:11 IST daily (`trig_01Gb78…`) | `participant-oi-release.yml`: 17:11 IST and 22:45 IST (a GitHub job stops at 6 h, the watch runs 17:11 to 23:30, so the second run covers the tail), same `participant-oi watch --until 23:30 --every 5` command; then `data-librarian participant-oi` for the day (the file into Drive with its manifest row) and `pipeline fire` (dry-run routine) | Actions writes its check log to `research/data/participant_oi/actions/` (new `--evidence-folder` option), so both never append to the same file; the rule reads only the routine's log until the owner switches | built |
 | participant-OI monthly sweep, 07:07 IST on the 1st (`trig_01XiPY…`) | `participant-oi-sweep.yml`: 05:37 IST on the 1st, same `participant-oi sweep`; then `pipeline fire` for republished files found | sweep log to the Actions folder; Drive revisions and the A11 index are idempotent (the same version again changes nothing). Runs first, so the routine's run is the second look | built |
-| 3 pm quote recorder, 14:48 IST daily (`trig_01M5iC…`) | not migrated | | **blocked: owner question below** |
+| 3 pm quote recorder, 14:48 IST daily (`trig_01M5iC…`) | `quote-recorder-nse.yml`: 14:20 IST, waits to 14:40, then `quotes record --source nse` (A4's command, NSE's public chain) | own dataset `nse/derivatives/quote-snapshots` beside `groww/...`; `quotes report` reads Groww's only | built after the owner chose (a); see section 5 |
 
 The routines are not edited or disabled (out of scope; owner decides after 5 clean sessions).
 
@@ -110,6 +110,9 @@ The routines are not edited or disabled (out of scope; owner decides after 5 cle
 
 No broker key was put in GitHub.
 
+**Owner's answer (relayed by the orchestrator, 13 Oct 2026): (a) NSE public data; no broker key in GitHub, ever.**
+Built the same day: section 5.
+
 ## 2. What was built
 
 - `fno/pipeline/` (9 modules, each under 110 lines): `pointer.py`, `trigger.py`, `records.py`, `batches.py`,
@@ -128,7 +131,8 @@ No broker key was put in GitHub.
    the owner's secrets). Built: the release check (17:11 and 22:45 IST) and the monthly sweep (05:37 IST on the 1st)
    run the routines' own commands; `participant-oi compare` gives the day-by-day verdict
    (`tests/research_data/test_release_compare.py`). The first scheduled run is 14 Oct 2026, 17:11 IST. The 3 pm
-   recorder is **not migrated**: blocked on the owner question in 1.5 (no broker key went into GitHub).
+   recorder now runs on NSE's public chain in Actions (owner's choice (a), section 5); its criterion is the
+   disagreement report over at least 3 sessions, since NSE and Groww are different feeds.
    Known difference: the Actions copy re-checks the last 5 files from its own log, so its `REWRITTEN` re-checks
    start empty and match the routine's after 5 sessions.
 2. **Exactly once per batch and version; nothing new fires nothing; a republished file fires again.** MET in tests
@@ -155,7 +159,7 @@ No broker key was put in GitHub.
    `fno/pipeline/wiring.py` (and the A8 builders in `fno/composition.py`); largest new file `fno/pipeline/wiring.py`
    (about 90 lines); `tests/test_code_size.py` passes.
 
-Gates (13 Oct 2026): `python -m pytest -q` 1387 passed; `ruff check` and `ruff format --check` clean; `check_imports` and `check_records` clean.
+Gates (13 Oct 2026, after section 5): `python -m pytest -q` 1406 passed; `ruff check` and `ruff format --check` clean; `check_imports` and `check_records` clean.
 
 ## 4. Doubts and limits
 
@@ -172,3 +176,33 @@ Gates (13 Oct 2026): `python -m pytest -q` 1387 passed; `ruff check` and `ruff f
   cover a model's handling of a hostile payload.
 - **The participant-OI file now goes into Drive daily** (A9 librarian in the release workflow). The routine never
   did that, so this is a new output, not a difference to compare.
+
+## 5. The 3 pm recorder on NSE's public data (owner's choice (a))
+
+Built after the owner chose (a). No broker key in GitHub; the workflow installs only `requirements.txt`.
+
+- `NseQuoteProvider` (`fno/providers/nse_quotes.py`): an `NSEProvider` that also answers `quote_book` from the
+  chain it fetched (one request per expiry, no per-contract calls). Best bid and ask with sizes (`buyPrice1`,
+  `buyQuantity1`, `sellPrice1`, `sellQuantity1`; NSE's 0 is "no quote"), last price, the page timestamp as
+  `quote_time`, and `traded_today` from the day's volume. `QuoteBook` gained the two optional fields (Groww's books
+  are unchanged).
+- A4's rule, extended (not replaced): "a trade in the contract today" is proven by the last trade time when the
+  provider gives one (Groww) and by day volume above zero when it does not (NSE). A quote whose page time is not today
+  is invalid. Each row says which proof it used (`freshness_proxy`) and the quote's time basis (`age_basis`).
+- Own dataset: `research/data/quotes/nse/derivatives/quote-snapshots/` (the recorder's new `dataset` argument;
+  Groww's default path and bytes unchanged, the A4 baseline tests pass). Found and fixed on the way: `quotes report`
+  scanned the whole quotes folder, so it would have mixed NSE into Groww's spread report; it now reads Groww's
+  dataset only (`test_the_spread_report_reads_groww_only`).
+- `python -m fno quotes record --source nse` (`build_nse_quote_recorder` in the composition root) and
+  `python -m fno quotes compare`: per day, capture times (and NSE's page time), contracts each side has, strikes only
+  one side has, and over contracts both quote validly the median |mid gap| and each side's median spread.
+- Workflow `.github/workflows/quote-recorder-nse.yml`: 14:20 IST daily, waits to 14:40, records 14:55-15:10, commits
+  its snapshot, posts one line to #fno-desk when the result is not good.
+- **Evidence:** tests `tests/quotes/test_nse_quote_book.py` (book fields, own dataset, volume proof, exact comparison
+  numbers, report separation). Live run from this cloud container, 13 Oct 2026 21:35 IST (outside the window, into a
+  scratch folder, not committed): 184 contracts near the money, 172 valid, 6 one-sided, 6 with no trade today, page
+  time 15:40:00 (NSE's post-close snapshot), complete=True.
+- **Not yet known (reported when the 3 sessions are in):** whether NSE answers the option-chain endpoint from
+  GitHub's runners (A12's probe proved other NSE JSON endpoints do), and how stale NSE's page time is at 15:00 (it
+  showed 15:40:00 after the close, so it does update during the day; its refresh interval during the session is not
+  measured yet). Nothing switches until the owner has seen `quotes compare` for at least 3 sessions.

@@ -133,10 +133,15 @@ class NSEProvider(Provider):
         return sorted(parse_nse_date(d) for d in data.get("expiryDates", []))
 
     def chain(self, underlying: str, expiry: date) -> OptionChain:
+        return parse_nse_chain(
+            self.chain_payload(underlying, expiry), underlying, expiry, self.fallback_lot_size(underlying)
+        )
+
+    def chain_payload(self, underlying: str, expiry: date) -> dict:
+        """NSE's option-chain JSON for one expiry, as it came."""
         params = {
             "type": "Indices" if is_index(underlying) else "Equity",
             "symbol": underlying.upper(),
             "expiry": expiry.strftime("%d-%b-%Y"),
         }
-        payload = self.client.nse_json("/api/option-chain-v3", params)
-        return parse_nse_chain(payload, underlying, expiry, self.fallback_lot_size(underlying))
+        return self.client.nse_json("/api/option-chain-v3", params)

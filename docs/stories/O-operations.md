@@ -231,4 +231,4 @@ or disabling any existing routine (the owner decides after the new path has run 
 **Judge verifies:** compares a migrated job's outputs with the routine's for the same day; plants a duplicate batch and
 a republished file; reads the Actions logs for secrets.
 
-**Depends:** A9, A11, A12 · **Size:** L · **Status:** awaiting judge (`reviews/claude/response_58_o6-fetch-and-trigger.md`; 3 pm recorder blocked on an owner question)
+**Depends:** A9, A11, A12 · **Size:** L · **Status:** awaiting judge (`reviews/claude/response_58_o6-fetch-and-trigger.md`; 3 pm recorder on NSE data per the owner's choice (a), side by side)
