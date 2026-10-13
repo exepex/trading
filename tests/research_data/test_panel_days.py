@@ -16,7 +16,7 @@ from fno.forecast.freeze import NotFrozen
 from fno.forecast.freeze_v2 import NotYetFrozen
 from fno.models import IST
 from fno.pipeline.panel_days import PanelDayJob
-from fno.pipeline.wiring import first_archived_inputs
+from fno.pipeline.panel_wiring import first_archived_inputs
 from fno.research_data.nifty_panel import NiftyPanelBuilder
 from fno.research_data.panel_append import PanelAppender
 from fno.research_data.panel_reader import read_nifty_panel
@@ -163,7 +163,17 @@ def test_a_crash_between_the_year_file_and_the_manifest_is_refused_and_recovers(
 
 
 def test_the_real_job_writes_nothing_until_v3_is_frozen():
-    from fno.pipeline.wiring import require_v3_frozen
+    from fno.pipeline.panel_wiring import require_v3_frozen
 
     with pytest.raises(NotYetFrozen):  # no research/forecasts/FREEZE_v3.md yet
         require_v3_frozen()
+
+
+@pytest.mark.parametrize("name", ["options_2020.csv.gz", "futures_2020.csv.gz"])
+def test_a_mismatch_in_a_file_the_append_would_not_touch_is_refused_at_the_start(setup, name):
+    """Only the start-of-run check sees this: the run would append 2024 days and never open the 2020 files."""
+    drive, panel = setup
+    (panel / name).write_bytes((panel / name).read_bytes() + b"planted")
+    alerts = RecordingAlerts()
+    assert _job(drive, panel, alerts).run(B) == 1
+    assert f"{name} does not match manifest.json" in alerts.lines[0] and _manifest(panel)["end"] == str(BASE)

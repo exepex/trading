@@ -15,9 +15,9 @@ from fno.forecast.schema import ForecastRecord
 from fno.forecast.schema_v2 import ForecastRecordV2
 from fno.forecast_scoring.ai_sources import ai_forecasts
 from fno.forecast_scoring.coverage import book_coverage
+from fno.forecast_scoring.q5_thresholds import pack_iv30
 from fno.forecast_scoring.score_inputs import CLOSE_PROXY, LIVE, ScoredForecast
 from fno.forecast_scoring.score_report import ReportContext, report_document, weekly_summary
-from fno.forecast_scoring.score_sources import pack_iv30
 from fno.forecast_scoring.scoring import ForecastScorer
 from fno.models import IST
 from tests.forecast_scoring.scoring_fixtures import FIRST, horizon_day, outcomes

@@ -191,3 +191,35 @@ freeze checks still pass, and no file they list changed.
 - The job has not run against the real Drive.
 - A9 does not record when it saved a file, so `inputs_read_at` is only an upper bound for the archive time.
 - The replay has no real live day to replay yet; it is proven on a temporary repository and on golden case A.
+
+## Addendum 3: judge 64's four fixes
+
+| # | Judge 64 | Fix | Test evidence (each mutation-checked) |
+|---|---|---|---|
+| 1 (d) | The replay was anchored on the records commit. The capture commits the pack first, pulls `main`, and commits the records later. | `replay.py` anchors on the commit that added `<d>_pack.json` and exports that commit's first parent. `PROTOCOL_v3.md` section 2 says the same. | `test_a_live_day_replays_from_the_checkout_its_pack_was_computed_from`, in the real order: pack commit, then another job's commit merged by the pull (the panel grows), then the records commit. The replay reads the checkout's manifest. With the old anchor the test fails (checked). |
+| 2 (c) | `verify()` had no test. | `test_a_mismatch_in_a_file_the_append_would_not_touch_is_refused_at_the_start` (2020 options and futures files that a 2024 append never opens) | Passes with `verify()`; both cases fail with it disabled (checked). **It found a real bug:** `verify()` crashed with `BadGzipFile` on a damaged file instead of refusing it by name. It now treats a missing, non-gzip or cut-short file as a mismatch. |
+| 3 (e) | Swapping the pack IV30 for the panel's in G4's wiring passed every test. | The per-mode resolvers and `pack_iv30` moved into `fno/forecast_scoring/q5_thresholds.py` (`mode_resolvers`). G4's wiring calls it. | `test_scoring_wiring_q5.py` runs the real `score_forecasts`; only the freeze checks, history, closes file and calendar are replaced. It fails both for the judge's swap inside `mode_resolvers` and for passing the panel's values into the live slot in `wiring.py` (both checked). All 40 G4 tests pass. |
+| 4 | v3 must not freeze O6's shared `fno/pipeline/wiring.py`. | A13 has its own composition root, `fno/pipeline/panel_wiring.py`, listed in `CLAUDE.md`. O6's wiring imports only `drive_files` from it. v3's freeze list names `panel_wiring.py`. | Pipeline and A13 tests pass. |
+
+**The v3 freeze list now** (`PROTOCOL_v3.md` section 5):
+- the protocol;
+- `panel_append.py`, `panel_days.py`, `panel_wiring.py`;
+- `q5_thresholds.py`, `resolution.py`, `score_sources.py`, `scoring.py` (the files that decide live Q5);
+- `replay.py`;
+- `panel-days.yml`.
+
+G4's composition root is not frozen.
+
+**One coupling to decide before the freeze (reasoning only).** The v3 freeze check runs inside the panel job. A later
+G4 change to one of the four Q5 files would therefore stop the daily panel appends with exit 1 and an alert, until a
+new version is frozen. The rule holds, but the signal reaches G4's owner through the wrong job. Proposal: G4's
+`score_forecasts` also runs the v3 check whenever live records exist, as it already does for v2. Not built; this is
+your call.
+
+**Is any scheduled job archiving `fo-bhavcopy` daily?** Yes and no:
+- `market-publish.yml` (07:10 IST) runs `market daily`, which archives the previous session's `fo-bhavcopy` and its A11
+  versions. But that step runs only after its database check passes, so a database outage also stops the archive.
+- `panel-days.yml`'s own librarian step (last 7 days) is the only path that does not depend on the database.
+- Once panel-days is scheduled at about 21:41 IST, it archives the day's file itself. The morning retry, scheduled
+  before 14:00, would also see what `market-publish` archived at 07:10.
+- Today `panel-days.yml` is manual only, so 13 Oct's file is not in Drive until either job runs for it.
