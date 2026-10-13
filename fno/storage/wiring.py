@@ -21,6 +21,7 @@ from ..constants import (
 )
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
+from ..market_read_models.corporate_actions import read_corporate_actions
 from ..market_read_models.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
 from ..research_data.calendar import SessionCalendar, load_session_calendar
 from ..research_data.nifty_panel import DailyFiles
@@ -44,7 +45,7 @@ from .raw_source import (
     ParticipantOiSource,
 )
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
-from .snapshot_source import EquityListSource, Nifty500ListSource
+from .snapshot_source import CorporateActionsSource, EquityListSource, Nifty500ListSource
 from .snapshot_taker import SnapshotTaker
 
 RAW_AREA = "raw"  # original downloads; other kinds of files get their own area next to it
@@ -62,7 +63,11 @@ DATED_SOURCES = (
     NseEquityBhavcopySource,
     NseDeliverySource,
 )  # one file per session: the coverage check's datasets
-SNAPSHOT_SOURCES = (EquityListSource, Nifty500ListSource)  # reference lists, one copy per day fetched (P6)
+SNAPSHOT_SOURCES = (
+    EquityListSource,
+    Nifty500ListSource,
+    CorporateActionsSource,
+)  # reference lists, one copy per day fetched (P6)
 RAW_SOURCES = DATED_SOURCES + SNAPSHOT_SOURCES  # every dataset with a manifest
 
 
@@ -175,6 +180,7 @@ VALIDATORS = {
     NseDeliverySource: lambda filename, data: read_delivery(data, filename),
     EquityListSource: lambda filename, data: read_equity_list(data, filename),
     Nifty500ListSource: lambda filename, data: read_nifty500_list(data, filename),
+    CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
 }
 
 

@@ -26,6 +26,7 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `nse/equities/security-delivery` | `NseDeliverySource` | security-wise file with delivery % (`sec_bhavdata_full_DDMMYYYY.csv`; P6) | 1 Oct 2025 onwards |
 | `nse/equities/equity-list` | `EquityListSource` | the list of listed companies (`EQUITY_L.csv`), one copy per day fetched (P6) | 13 Oct 2026 onwards |
 | `nse/indices/nifty500-list` | `Nifty500ListSource` | the Nifty 500's members and industries (`ind_nifty500list.csv`), per day fetched (P6) | 13 Oct 2026 onwards |
+| `nse/equities/corporate-actions` | `CorporateActionsSource` | NSE's equity corporate actions over the 400 days to the day fetched (website JSON, filed as `corporate-actions-equities.json`; P6) | 13 Oct 2026 onwards |
 
 NSE's reference lists have no date in their name and are replaced in place, so each copy is filed under the day it was
 fetched: `<dataset>/<YYYY>/<MM>/<DD>/<original name>` (`snapshot_source.py`; `python -m fno data-snapshot <name>`).

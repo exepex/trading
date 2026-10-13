@@ -21,7 +21,10 @@ on or before it (`followed.py`). Until the stock tool publishes the list (K5-pro
 How each figure is computed follows the contract's own examples (dashboard `design/mockups/33-screener/fetch_nse.py`,
 `_platform/screener_data.py`, `_platform/markets_data.py`): one year and a week of capital-market and index files, three
 months of F&O files, the same formulas (returns 1, 5, 21, 63, 250 sessions back; Wilder RSI 14; ATM IV by
-Black-Scholes on the spot with the B1 solver, rate `risk_free_rate`). Two deliberate differences: sessions come from
+Black-Scholes on the spot with the B1 solver, rate `risk_free_rate`). Past prices and volumes are put on today's share basis from NSE's corporate-actions list (`corporate_actions.py`,
+judge 42): a split or bonus divides earlier prices by NSE's stated ratio (KOTAKBANK 5:1 on 14 Jan 2026); a demerger or
+scheme (no ratio in NSE's list) keeps only the sessions from its ex-date, so figures needing older closes are null;
+dividends, buy-backs and rights change nothing (price returns). Other deliberate differences: sessions come from
 NSE's calendar, never weekdays (the examples once skipped the 1 Feb 2026 Sunday Budget session), and an index absent
 from a session's file carries its own last date in `as_of` instead of passing an older close off as the day's.
 
