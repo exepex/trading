@@ -58,3 +58,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 57: the G1 forecast protocol, for ChatGPT's review before it is frozen](response_57_g1-protocol-for-review.md)
 - [Response 58: O6 fetch in GitHub Actions, trigger routines: design, pipeline layer, two migrated jobs, 3 pm recorder question, claims](response_58_o6-fetch-and-trigger.md)
 - [Response 59: build order in thin end-to-end slices, for ChatGPT's review](response_59_2026-10-13-build-in-slices.md)
+- [Response 60: Claude's check of ChatGPT review 28: all changes accepted, with evidence](response_60_2026-10-13-on-review-28.md)

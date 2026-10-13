@@ -6,13 +6,16 @@ the engine runs, so how do UI and engine proceed without rework or misleading sc
 
 ## Rules
 
-1. **The contract is the meeting point.** Every screen block has a signed-off contract (fields, types, examples,
-   publisher): W10 (frame, Home), W11 (Screener, Markets), W13 (option chain), and the mockup's `notes.md`. The UI is
-   built against the contract; the engine publishes into it; every publication is validated against the schema (as P6
-   does). Neither side waits for the other, and neither changes a contract alone.
-2. **Three states per block, no more:** real data; empty with a reason and a date ("No forecast scored yet; first
-   score on 20 Oct"); labelled Example data **in mockups only**. The real app never shows example numbers (a test per
-   block: every figure traces to a published field, or the block is in its empty state).
+1. **The contract is the meeting point.** Every screen block has a signed-off contract: W10 (frame, Home), W11
+   (Screener, Markets), W13 (option chain), reusing P1's pattern. Each contract states: schema version and
+   compatibility rule; required vs nullable fields; units, currency and enums; `as_of`, cutoff, `built_at`, source and
+   commit; freshness rule; machine-readable empty and error reason codes; producer; point-in-time vs latest; the
+   breaking-change rule. Producer and consumer test against the same schema; CI fails if either side changes it alone.
+   A mockup never becomes the contract.
+2. **Runtime states:** real and fresh; real but stale or failed (last real data with `as_of` and the reason); empty
+   with a reason code and an expected date. **Example** data exists only in mockups: runtime schemas have no example
+   state, and the production build fails if a mockup fixture is imported. Every rendered number traces to a published
+   field and its source metadata (ChatGPT review 28, accepted in response 60).
 3. **Build in slices, not layers.** A slice is a thin path from data to a real screen. It is done only when real data
    shows on the real screen and the judge has checked it end to end, not when each layer passes alone.
 4. **Mockups follow the slices.** Design only what the next slice needs. Stock screens are paused with stock work.
@@ -23,7 +26,7 @@ the engine runs, so how do UI and engine proceed without rework or misleading sc
 
 | # | Slice | Stories, in order | First real thing on screen | State (13 Oct 2026) |
 |---|---|---|---|---|
-| 0 | Data foundation | A1-A12, O6 (fetch in Actions, reason in triggered routines) | none (feeds all) | A1-A11 done except A8 (waits 20 release days); A12 and O6 with the judge; filings backfill running |
+| 0 | Foundation (prerequisite, not an end-to-end slice) | A1-A12, O6 (fetch in Actions, reason in triggered routines) | none (feeds all) | A1-A11 done except A8 (waits 20 release days); A12 and O6 with the judge; filings backfill running |
 | 1 | Market data | P6 → W12 (Screener, Markets) | live market screens | P6 and W12 in re-judge |
 | 2 | Forecast contest, Book 1 | G1 → G2 baselines → G3 Book 1 capture → G4 scoring → P1/P2 read model → Forecast screen (new mockup) | Rule-based forecasts against yardsticks, scored daily | G1 in fix, then ChatGPT review; rest not started |
 | 2b | Forecast contest, Books 2 and 3 | F1 isolated AI book sessions → G5 AI books' capture (through O6 triggers) | Hybrid and AI team in the same screen | not started |
@@ -31,8 +34,10 @@ the engine runs, so how do UI and engine proceed without rework or misleading sc
 | 4 | Paper trading, Books 2 and 3 | D4/D5 envelopes → F2-F7 → S3 scoreboard A | three books trading and compared | not started |
 | 5 | Operations | O1 daily routine → O2 failures → P3/P4 Azure and Slack → O3/O4 | runs by itself, alerts | not started |
 
-Two slices are worked at once at most (owner's pace: at most 2 builders plus the judge). Slice 1 finishes first;
-slice 2 starts with G2 + G3 as soon as G1 passes.
+Slices are not serialized by dependency: forecasts (slice 2) start as early as G1 allows, and Book 1 paper trading
+(slice 3) starts as soon as B5, D, C and E prerequisites pass, without waiting for the AI books' forecasts. Three-book
+comparisons start only when all compared books are ready. The owner's pace (at most 2 builders plus the judge) limits
+how many are built at once.
 
 ## Screen blocks and what feeds them
 
@@ -61,6 +66,8 @@ work), **gap** (no story yet).
 
 1. Mockup: the Forecast contest screen (slice 2), against G1's protocol fields.
 2. G2 + G3 builder, after G1 passes the judge.
-3. Write the missing stories: option-chain read model (32 and 35's F&O block), FII/DII download, India VIX history
-   download, F&O news download.
+3. Write the missing stories: option-chain read model (32 and 35's F&O block); Manual paper account backend and
+   read model (Home); forecast read model for G4's report fields; FII/DII download (NSE's daily FII/DII cash-market
+   buy and sell values). India VIX history needs no story (the panel carries it). F&O news waits until its source,
+   point-in-time rule, revision behaviour and consumer are named.
 4. Keep the story status lines true: each PASS updates its line the same day.
