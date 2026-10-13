@@ -45,8 +45,8 @@ python tools/check_records.py [--staged | PATH] [--alert]  # public-record scan:
 
 - Market data: `nse` (free public NSE website), `groww` (Groww Trade API), `sample` (offline, tests only), `auto`
   (Groww when its credentials are set, else NSE). The recorder has its own setting `quotes.provider`.
-- Raw NSE files go through `fno/storage` (local folder, Google Drive read-only, then NSE itself); see
-  `fno/storage/README.md` and `tools/nse_raw_download/`.
+- Raw NSE files go through `fno/storage` (local folder, Google Drive, then NSE itself); reads use the service account,
+  uploads sign in as the owner (`python -m fno data-librarian`, story A9); see `fno/storage/README.md`.
 - Credentials (`GROWW_*`, `FNO_GDRIVE_*`, `FNO_SLACK_BOT_TOKEN`) live only in environment variables or
   `~/.trading.env`, never in files. F&O output goes only to Slack #fno-desk.
 - The repository is public: every committed file must pass `tools/check_records.py` (records, i.e. everything outside
