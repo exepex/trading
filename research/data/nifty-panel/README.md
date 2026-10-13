@@ -90,3 +90,16 @@ manifest. Checks: `research/2026-10-13-nifty-panel/`.
 | 2026 (to 12 Oct) | 192 | 340,704 | 4.3 MB | 576 | 10 KB |
 
 Not included: other underlyings, open/high/low, previous close, lot size.
+
+## Daily sessions after the build (story A13, waiting for G1 protocol v3)
+
+Built, not yet active. `python -m fno pipeline panel-days` (GitHub Actions `.github/workflows/panel-days.yml`) appends
+each new session's NIFTY option and future rows in place:
+- each day is built with A3's own builder from the F&O and index-close files in Drive, using the newest version held at
+  the run (A11);
+- the day's closes must equal O6's `warmup_closes.csv` row;
+- days are only appended after the manifest's `end`, never rewritten;
+- a touched year file gets one more gzip member, so its old bytes stay a prefix;
+- old manifest entries stay as they were, and new days carry `appended_at` and the calendar SHA-256 they used.
+
+It appends nothing until `research/forecasts/FREEZE_v3.md` exists. Proposal: `reviews/claude/response_68_g1-v3-panel-extension.md`.
