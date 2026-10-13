@@ -1,6 +1,6 @@
 # Response 50: P6 NSE market read models for the Screener and Markets (builder's claims)
 
-Status: **built; awaiting judge** (criterion 4 blocked on the owner: one environment setting, below). Story:
+Status: **built; awaiting judge** (criterion 4 blocked: this cloud container cannot open a connection to Postgres port 5432; see Addendum 2). Story:
 `docs/stories/P-publishing.md`, section P6. Commits on `main` (oldest first): the P6 build, the followed-companies
 decision (judge 40), the corporate-action adjustment (judge 42), per-symbol lookups and manifest keys, the A11 merge and
 content-check move, the demerger method (last: `7fa847b`), and this claims commit.
@@ -244,3 +244,45 @@ python tools/check_records.py           record scan: clean (629 files)
 largest P6 file: session_rows.py 174 lines
 ```
 Criterion 4 is still blocked on `FNO_DB_URL`; the owner steps are above, unchanged. `market daily` is not scheduled, as the orchestrator instructed.
+
+---
+
+## Addendum 2 (13 Oct 2026): criterion 4 attempt, blocked by the container's network
+
+The owner ran `001_read_models.sql` as `fno_owner` and set `FNO_DB_URL` (role `fno_writer`) in this environment.
+
+- `FNO_DB_URL` is set. Parsed by name only: an Azure Postgres host (`*.postgres.database.azure.com`), port 5432,
+  `sslmode=verify-full`, user `fno_writer`. Correct.
+- **The connection fails: `psycopg.errors.ConnectionTimeout`.** This is not TLS or auth. Those errors can only happen
+  after a TCP connection opens, and here none does.
+  - DNS resolves (1 address). The TCP connect to port 5432 times out after 10 s.
+- **Root cause (strong evidence): this cloud container cannot open a connection on any port except 443.**
+  - Direct TCP tests: `portquiz.net:5432` timed out, `github.com:22` timed out, `portquiz.net:443` and `1.1.1.1:443`
+    opened.
+  - The container's proxy README lists "raw-TCP databases" as not supported through the proxy.
+  - Azure Postgres listens on 5432 (6432 for PgBouncer), never on 443. So no setting in this repository can fix it.
+- Not known from here: whether the Azure server's firewall would also refuse this container. That is untested, because
+  the connection is blocked before it reaches Azure.
+- **Not done, as instructed:**
+  - privileges (`has_table_privilege`) and `current_user` were not read;
+  - `python -m fno market publish --day 2026-10-12` was not run against Azure. It would fail at connect and post a
+    false failure alert to #fno-desk.
+  - Nothing was written to Azure.
+- **Ways forward (owner's choice):**
+  1. Change the environment's **Network access** to a level that allows direct outbound TCP to the Azure host on 5432
+     (cloud environment menu → Edit; docs: https://code.claude.com/docs/en/cloud-environments#network-access). Then
+     allow this environment's outbound IP in the Azure server's firewall. *Doubt (reasoning only):* the docs describe
+     allowed **domains**, which go through the HTTPS proxy. Adding the host to that list may still not carry raw TCP on
+     5432. If it does not, this route is closed.
+  2. **Run criterion 4 from the owner's Mac** (or a GitHub Actions runner, which can reach port 5432; the Azure firewall
+     must allow it):
+     - `FNO_DB_URL` is set in the shell only.
+     - Run `python -m fno market publish --day 2026-10-12`, then run it again.
+     - Count the `fno.pages_history` rows before and after the second run.
+     - Read the pages back with the dashboard role (below).
+  3. A small HTTPS endpoint in front of the database, for example an Azure Function. That is a design change and
+     needs its own story; I do not recommend it for one acceptance check.
+- Dashboard-role read-back (owner's Mac; `psql` asks for the password at a hidden prompt):
+  `psql "host=<server>.postgres.database.azure.com port=5432 dbname=<db> user=dashboard_app sslmode=verify-full sslrootcert=system" -c "select h.page_key, h.payload_sha256 from fno.current_publication c join fno.pages_history h using (product, publication_id) order by h.page_key;"`
+  Expected: 6 rows, one per block. `sslrootcert=system` needs psql 16 or later; on older psql, point `sslrootcert` at
+  the server's CA file.
