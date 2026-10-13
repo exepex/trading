@@ -1,12 +1,15 @@
 """Story A8 criterion 3: a decision on day D never sees D's participant-OI file unless the measured release rule allows
 it; until 20 days are measured, the conservative default (the next session's decision time) applies."""
 
+import hashlib
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from fno.constants import RELEASE_ABSENT, RELEASE_PRESENT, RELEASE_UNREACHABLE
+import pytest
+
+from fno.constants import RELEASE_ABSENT, RELEASE_PRESENT, RELEASE_REWRITTEN, RELEASE_UNREACHABLE
 from fno.models import IST
-from fno.research_data.availability import MeasuredReleaseRule, NextSessionRule
+from fno.research_data.availability import LastWriteBoundRule, MeasuredReleaseRule, NextSessionRule
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.research_data.positioning import PointInTimeParticipantOi
 from fno.research_data.release_times import (
@@ -17,7 +20,7 @@ from fno.research_data.release_times import (
     choose_availability_rule,
     first_seen_times,
 )
-from fno.storage.raw_source import ParticipantOiSource, RawFileSource, RawSourceUnavailable
+from fno.storage.raw_source import ParticipantOiSource, PublishedFile, RawFileSource, RawSourceUnavailable
 
 NSE = Path(__file__).resolve().parents[1] / "fixtures" / "nse"
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/FAOP71777.pdf"
@@ -136,7 +139,7 @@ def test_the_recorder_logs_every_check_until_the_file_appears_and_never_asks_aga
     assert archive.asked == [ParticipantOiSource.path_for(FRIDAY)] * 3
     assert rec.watch(FRIDAY, at(FRIDAY, 22), timedelta(minutes=5)) == found and len(archive.asked) == 3
     assert first_seen_times(log.checks()) == {FRIDAY: at(FRIDAY, 19)}
-    assert log.path.read_text().splitlines()[0] == "day,checked_at,outcome,sha256"
+    assert log.path.read_text().splitlines()[0] == "day,checked_at,outcome,sha256,last_modified"
 
 
 def test_the_recorder_stops_at_the_cutoff_and_skips_closed_days(tmp_path):
@@ -153,4 +156,62 @@ def test_the_wired_rule_follows_the_committed_evidence_file():
 
     assert PARTICIPANT_OI_RELEASE_LOG.is_file()  # the evidence file exists before any use
     measured = len(first_seen_times(ReleaseLog(PARTICIPANT_OI_RELEASE_LOG).checks()))
-    assert isinstance(build_participant_oi_rule(), NextSessionRule) == (measured < MIN_MEASURED_DAYS)
+    rule = build_participant_oi_rule()
+    assert isinstance(rule, LastWriteBoundRule)  # every wired rule respects the recorded last writes (judge 15)
+    assert isinstance(rule.rule, NextSessionRule) == (measured < MIN_MEASURED_DAYS)
+
+
+def test_a_day_rewritten_later_is_not_used_before_its_own_last_write():
+    """Judge 15: Friday's bytes held today were written the following Wednesday evening (a rewrite), so no decision
+    before Thursday 15:00 may use them; it uses Thursday's file instead. Other days keep the next-session rule."""
+    rewritten = {FRIDAY: at(date(2026, 10, 14), 19, 0)}
+    rule = LastWriteBoundRule(NextSessionRule(CALENDAR, DECISION), CALENDAR, DECISION, rewritten)
+    assert rule.usable_from(FRIDAY) == at(date(2026, 10, 15), 15)
+    assert rule.usable_from(date(2026, 10, 8)) == at(FRIDAY, 15)  # not rewritten: unchanged
+    assert history(rule).as_of(at(MONDAY, 15)).day == date(2026, 10, 8)  # the default alone would give Friday
+    assert not rule.is_usable(FRIDAY, at(date(2026, 10, 15), 14, 59))
+    on_time = LastWriteBoundRule(NextSessionRule(CALENDAR, DECISION), CALENDAR, DECISION, {FRIDAY: at(FRIDAY, 19)})
+    assert on_time.usable_from(FRIDAY) == at(MONDAY, 15)  # written that evening: the base rule decides
+
+
+def test_the_wired_rule_holds_the_real_rewritten_day_back_until_its_rewrite():
+    """15 Jan 2024's file was last written on 15 Jan 2025 at 19:00 IST (judge 15 confirmed it live)."""
+    from fno.composition import build_participant_oi_rule
+
+    rule = build_participant_oi_rule()
+    assert rule.usable_from(date(2024, 1, 15)) == at(date(2025, 1, 16), 15)
+    assert rule.usable_from(date(2026, 10, 9)) == at(MONDAY, 15)  # an ordinary day: next session
+
+
+class PublishingArchive(RawFileSource):
+    def __init__(self, answers):
+        self.answers = list(answers)
+
+    def fetch(self, path):
+        raise AssertionError("the recorder asks for the file with its last-write time")
+
+    def fetch_published(self, path):
+        return self.answers.pop(0)
+
+
+def test_the_recorder_stores_the_last_write_and_flags_a_later_rewrite(tmp_path):
+    clock = FakeClock(at(MONDAY, 19))
+    log = ReleaseLog(tmp_path / "release_checks.csv")
+    first, later = at(FRIDAY, 18, 48), at(MONDAY, 18, 30)
+    archive = PublishingArchive([PublishedFile(b"v1", first), PublishedFile(b"v2", later), PublishedFile(b"v2", later)])
+    rec = ReleaseTimeRecorder(archive, ParticipantOiSource.path_for, CALENDAR, log, clock, clock.sleep)
+    assert rec.check(FRIDAY).last_modified == first
+    assert [c.outcome for c in rec.recheck_recent(MONDAY)] == [RELEASE_REWRITTEN]  # Friday's bytes changed
+    assert rec.check(FRIDAY).outcome == RELEASE_REWRITTEN  # still other bytes than first seen
+    assert [c.last_modified for c in log.checks()] == [first, later, later]  # kept through the CSV
+    assert (
+        rec.watch(FRIDAY, at(MONDAY, 22), timedelta(minutes=5)).sha256 == hashlib.sha256(b"v1").hexdigest()
+    )  # first sight stays
+
+
+def test_the_log_refuses_to_append_under_an_old_header(tmp_path):
+    path = tmp_path / "release_checks.csv"
+    path.write_text("day,checked_at,outcome,sha256\n")
+    with pytest.raises(ValueError, match="header"):
+        ReleaseLog(path).append(ReleaseCheck(FRIDAY, at(FRIDAY, 19), RELEASE_ABSENT))
+    assert path.read_text() == "day,checked_at,outcome,sha256\n"

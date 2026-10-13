@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timedelta
 
-from ..constants import RELEASE_UNREACHABLE
+from ..constants import RELEASE_REWRITTEN, RELEASE_UNREACHABLE
 from ..models import IST, now_ist
 
 DEFAULT_UNTIL, DEFAULT_EVERY_MINUTES = time(22, 0), 5
@@ -19,11 +19,15 @@ def add_participant_oi_parser(subparsers) -> None:
     watch.add_argument("--until", type=time.fromisoformat, default=DEFAULT_UNTIL, help="HH:MM IST (default 22:00)")
     watch.add_argument("--every", type=int, default=DEFAULT_EVERY_MINUTES, help="minutes between checks (default 5)")
     actions.add_parser("rule", help="print the availability rule in force and how many days are measured")
+    actions.add_parser("sweep", help="headers-only pass over every recorded file: flag any whose write time moved")
     oi.set_defaults(func=cmd_participant_oi)
 
 
 def cmd_participant_oi(args) -> int:
     from ..composition import build_participant_oi_rule, build_release_time_recorder
+
+    if args.oi_cmd == "sweep":
+        return _sweep()
     from ..storage.wiring import PARTICIPANT_OI_RELEASE_LOG
     from .release_times import MIN_MEASURED_DAYS, ReleaseLog, first_seen_times
 
@@ -33,9 +37,25 @@ def cmd_participant_oi(args) -> int:
         return 0
     day = args.day or now_ist().date()
     until = datetime.combine(day, args.until, IST)
-    check = build_release_time_recorder().watch(day, until, timedelta(minutes=args.every))
+    recorder = build_release_time_recorder()
+    rewritten = [c for c in recorder.recheck_recent(day) if c.outcome == RELEASE_REWRITTEN]
+    for c in rewritten:
+        print(f"REWRITTEN {c.day}: NSE's file changed after it was first seen (now {c.sha256[:12]})")
+    check = recorder.watch(day, until, timedelta(minutes=args.every))
     if check is None:
         print(f"{day}: not a trading day; nothing checked")
-        return 0
-    print(f"{day}: {check.outcome} at {check.checked_at:%Y-%m-%d %H:%M} IST {check.sha256[:12]}".rstrip())
-    return 1 if check.outcome == RELEASE_UNREACHABLE else 0
+    else:
+        print(f"{day}: {check.outcome} at {check.checked_at:%Y-%m-%d %H:%M} IST {check.sha256[:12]}".rstrip())
+    return 1 if rewritten or (check is not None and check.outcome == RELEASE_UNREACHABLE) else 0
+
+
+def _sweep() -> int:
+    from ..composition import build_last_write_sweep, participant_oi_last_writes
+
+    result = build_last_write_sweep().run(participant_oi_last_writes())
+    for day, recorded, newer in result.moved:
+        print(f"MOVED {day}: NSE rewrote the file at {newer:%Y-%m-%d %H:%M %Z} (recorded {recorded:%Y-%m-%d %H:%M %Z})")
+    for day in result.unanswered:
+        print(f"no answer {day}: unreachable or no Last-Modified; check again next sweep")
+    print(f"sweep: {result.checked} files checked, {len(result.moved)} moved, {len(result.unanswered)} unanswered")
+    return 1 if result.moved or result.unanswered else 0

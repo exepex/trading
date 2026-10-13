@@ -38,6 +38,11 @@ many more. Look-ahead (using data not yet known) is the most common way backtest
 - A feature returns `None` when its inputs are missing (never a guess); the runner treats `None` as "condition not
   met".
 
+**Note (13 Oct 2026, from the option-chain mockup's real-data check):** implied volatility from spot with a fixed
+6.5% rate split call and put IVs by about 2 points on 12 Oct 2026 (some evidence). Use Black-76 with the same-expiry
+NIFTY future from A3's futures file as the forward (and the risk-free rate only for discounting); a test shows call
+and put IVs at the same strike agreeing within 0.5 points on a real liquid day.
+
 **Acceptance criteria:**
 1. Given a panel, when each feature is computed for a decision day, then changing any panel value dated after that day
    leaves the result unchanged (automated look-ahead test over all three features and 20 random days).

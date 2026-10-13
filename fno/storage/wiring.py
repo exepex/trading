@@ -8,6 +8,9 @@ from pathlib import Path
 
 from ..constants import (
     ENV_GDRIVE_FOLDER_ID,
+    ENV_GDRIVE_OAUTH_CLIENT_ID,
+    ENV_GDRIVE_OAUTH_CLIENT_SECRET,
+    ENV_GDRIVE_OAUTH_REFRESH_TOKEN,
     ENV_GDRIVE_SERVICE_ACCOUNT_JSON,
     INDEX_INDIA_VIX,
     INDEX_NIFTY_50,
@@ -24,6 +27,9 @@ from ..research_data.panel_store import CsvGzPanelFolder, PanelSink
 from ..research_data.participant_oi import read_participant_oi
 from .coverage import CoverageCheck, CoverageDataset, FingerprintCheck, read_exceptions, read_fingerprints
 from .google_drive import GoogleDriveStore, service_account_token
+from .google_drive_upload import GoogleDriveUploadStore
+from .librarian import RawDataLibrarian
+from .owner_token import OwnerAccessToken
 from .raw_library import RawFileLibrary
 from .raw_source import (
     NseArchiveSource,
@@ -53,10 +59,30 @@ def build_raw_stores(project_folder: Path | None = None, token_for=service_accou
     return stores
 
 
+OWNER_UPLOAD_SETTINGS = (
+    ENV_GDRIVE_FOLDER_ID,
+    ENV_GDRIVE_OAUTH_CLIENT_ID,
+    ENV_GDRIVE_OAUTH_CLIENT_SECRET,
+    ENV_GDRIVE_OAUTH_REFRESH_TOKEN,
+)
+
+
+def build_owner_drive_store(env=os.environ, session=None) -> RawFileStore | None:
+    """The `raw` area of the Drive project folder, written as the owner (story A9); None unless all four settings
+    are set. Signs in at once, so an expired consent shows up here as DriveSignInRefused."""
+    folder, client_id, client_secret, refresh_token = (env.get(name) for name in OWNER_UPLOAD_SETTINGS)
+    if not (folder and client_id and client_secret and refresh_token):
+        return None
+    token = OwnerAccessToken(client_id, client_secret, refresh_token)
+    return AreaStore(GoogleDriveUploadStore(folder, token, session), RAW_AREA)
+
+
 def build_nse_library(source_type: type[NseArchiveSource], project_folder: Path | None = None) -> RawFileLibrary:
-    """One NSE dataset: from the stores if they have it, else from NSE (saved under the local project folder's `raw`
-    area if given)."""
-    archive = AreaStore(LocalFolderStore(project_folder), RAW_AREA) if project_folder else None
+    """One NSE dataset: from the stores if they have it, else from NSE. What it fetches is archived straight to the
+    owner's Drive when the upload settings exist, else under the local project folder's `raw` area if given."""
+    archive = build_owner_drive_store()
+    if archive is None and project_folder:
+        archive = AreaStore(LocalFolderStore(project_folder), RAW_AREA)
     return RawFileLibrary(build_raw_stores(project_folder), build_nse_source(source_type), archive)
 
 
@@ -92,9 +118,10 @@ QUOTES_FOLDER = (
 )  # repository: Drive is read-only here
 
 
-PARTICIPANT_OI_RELEASE_LOG = (
-    Path(__file__).resolve().parents[2] / "research" / "data" / "participant_oi" / "release_checks.csv"
-)  # repository: the committed evidence of NSE's release times (story A8)
+PARTICIPANT_OI_EVIDENCE = Path(__file__).resolve().parents[2] / "research" / "data" / "participant_oi"
+PARTICIPANT_OI_RELEASE_LOG = PARTICIPANT_OI_EVIDENCE / "release_checks.csv"  # NSE's release times, committed (A8)
+PARTICIPANT_OI_LAST_MODIFIED = PARTICIPANT_OI_EVIDENCE / "archive_last_modified_2026-10-13.csv"  # with the download
+PARTICIPANT_OI_SWEEPS = PARTICIPANT_OI_EVIDENCE / "last_modified_sweeps.csv"  # write times that moved later (judge 16)
 
 
 def build_quote_store(folder: Path | None = None) -> RawFileStore:
@@ -120,6 +147,20 @@ COVERAGE_DATASETS = (
         ParticipantOiSource, FingerprintCheck(validate_participant_oi, read_fingerprints(PARTICIPANT_OI_MANIFEST))
     ),
 )
+
+
+# Datasets the librarian may upload: each new one needs its own story (A9 scope); participant OI has a manifest.
+LIBRARIAN_DATASETS = {"participant-oi": COVERAGE_DATASETS[3]}
+
+
+def build_librarian(name: str, log=print) -> RawDataLibrarian:
+    """The librarian for one dataset (a key of LIBRARIAN_DATASETS): NSE's archive into the owner's Drive."""
+    store = build_owner_drive_store()
+    if store is None:
+        raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
+    dataset = LIBRARIAN_DATASETS[name]
+    source = build_nse_source(dataset.source)
+    return RawDataLibrarian(store, source, dataset.validate, build_session_calendar(), build_file_exceptions(), log)
 
 
 def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:

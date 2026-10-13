@@ -28,10 +28,19 @@ def repository_data_is_untouched():
 
 
 @pytest.fixture(autouse=True)
-def no_real_broker_credentials(monkeypatch):
-    """Tests never reach a real broker account or the network through credentials that happen to be set on the
-    machine; a test that needs them sets fake ones itself."""
-    from fno.constants import ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY, ENV_GROWW_API_SECRET, ENV_GROWW_TOTP_SECRET
+def no_real_credentials(monkeypatch):
+    """Tests never reach a real broker account, Google Drive or the network through credentials that happen to be set
+    on the machine; a test that needs them sets fake ones itself."""
+    from fno import constants as c
 
-    for name in (ENV_GROWW_ACCESS_TOKEN, ENV_GROWW_API_KEY, ENV_GROWW_API_SECRET, ENV_GROWW_TOTP_SECRET):
+    for name in (
+        c.ENV_GROWW_ACCESS_TOKEN,
+        c.ENV_GROWW_API_KEY,
+        c.ENV_GROWW_API_SECRET,
+        c.ENV_GROWW_TOTP_SECRET,
+        c.ENV_GDRIVE_SERVICE_ACCOUNT_JSON,
+        c.ENV_GDRIVE_OAUTH_CLIENT_ID,
+        c.ENV_GDRIVE_OAUTH_CLIENT_SECRET,
+        c.ENV_GDRIVE_OAUTH_REFRESH_TOKEN,
+    ):
         monkeypatch.delenv(name, raising=False)

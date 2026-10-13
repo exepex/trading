@@ -242,3 +242,70 @@ measured sessions take about four weeks.
   - Tests: `test_index_closes_are_fetched_on_a_trading_day_without_an_fo_file` (that exact day) and
     `test_index_closes_are_not_asked_on_a_day_without_any_derivatives_file`.
   - Owner effect: the next laptop run also fetches that one missing index-close file.
+
+## Judge 15 (FAIL, one should-fix): answers
+
+Verdict file: `reviews/judge/judge_15_a8_participant_oi.md`.
+
+**Finding 1 (should fix): rewritten files were used at the default time without a flag. ACCEPTED and fixed.**
+- **Why I accept it.** The judge's reasoning holds. Last-Modified is an upper bound on when today's bytes became
+  public. On the 105 days NSE wrote after the next session's 15:00, today's numbers may differ from what anyone had at
+  that decision. My claims listed this as a doubt; it is a look-ahead on content, and it belongs in A8 (the story's
+  "archive stability").
+- **Choice: bound, not refuse.**
+  - `available_from = max(rule time, first decision at or after the recorded Last-Modified + 30 minutes)`.
+  - Refusing the 105 days would lose data that becomes legitimately known later. The bound keeps the data, only never
+    before its current bytes existed. For 15 Jan 2024 that is 16 Jan 2025 at 15:00: a study in January 2024 falls back
+    to the previous usable file, within 5 sessions, or None.
+- **Margin of 30 minutes (reasoning only).**
+  - A server's write time is the moment its bytes exist, so any margin only covers clock or cache delay.
+  - In practice the margin is close to moot: decisions happen only at 15:00, so any write after 14:30 already pushes
+    use to the next session.
+  - It is the same `SAFETY_MARGIN` as the measured rule, so there is one constant.
+- **Code.**
+  - `LastWriteBoundRule` (`fno/research_data/availability.py`), a decorator over any `AvailabilityRule`.
+  - `fno/research_data/last_written.py` reads the Last-Modified table and merges records, the latest time per day
+    winning.
+  - Wiring is in `build_participant_oi_rule` (`fno/composition.py`), from
+    `research/data/participant_oi/archive_last_modified_2026-10-13.csv` (already committed in 510932d, 1,929 rows) plus
+    the recorder's log.
+- **Recorder.**
+  - Each check stores SHA-256 and NSE's Last-Modified (`ReleaseCheck.last_modified`). For this, sources gained
+    `fetch_published` with a default on `RawFileSource`; the NSE source reads the header, with the fetch logic in one
+    `_response` method.
+  - `recheck_recent` re-reads the last 5 seen files on every run and logs `rewritten` when the bytes differ from first
+    sight. `watch` prints `REWRITTEN <day>` and exits 1.
+  - The log gained a `last_modified` column. Its two existing rows were migrated by adding an empty column (values
+    unchanged). Appending under an old header is now refused.
+- **Proof.**
+  - Tests in `tests/research_data/test_participant_oi_availability.py`:
+    - `test_a_day_rewritten_later_is_not_used_before_its_own_last_write`: one rewritten day; `as_of` on Monday 15:00
+      returns Thursday's file, where the default alone gives Friday's;
+    - `test_the_wired_rule_holds_the_real_rewritten_day_back_until_its_rewrite`: the real 15 Jan 2024 gives 16 Jan 2025
+      15:00, and an ordinary day still gives the next session;
+    - `test_the_recorder_stores_the_last_write_and_flags_a_later_rewrite`;
+    - `test_the_log_refuses_to_append_under_an_old_header`.
+  - CLI test: `test_watch_reports_a_rewritten_file_and_fails_so_the_routine_notices`.
+  - Effect over all 1,929 real days: `days held back 105 of 1929`. That is exactly the rewritten days; the other 1,824
+    are unchanged.
+  - `python -m fno participant-oi rule` now prints `rule: next session at 15:00 IST (the default until release times
+    are measured); no earlier than each file's recorded last write (1929 days); measured days: 0 of 20`.
+- **One action for the orchestrator.** The routine's step 4 should also alert on a line starting `REWRITTEN` (the
+  command now exits 1 then).
+
+**Findings 2 and 3 (pending):** agreed, they are not builder defects. Drive coverage waits on the upload route; the
+measured rule waits on 20 bracketed days from the 17:11 routine.
+
+**Finding 4 (minor, 96753c5 without a trailer): acknowledged, not rewritten.** It is already on shared `main`, and
+rewriting shared history would break every other session's checkout. Every later merge commit carries the trailer
+(a9cc6c2, 95ba366, f66522e and this push).
+
+**Finding 5 (minor, 15:00 is assumed): agreed.**
+- It stays one constant (`DESK_DECISION_TIME`, `fno/composition.py`), which E3 must update.
+- The rule already names the decision time it assumes in every description it prints: `describe()` gives "next
+  session at 15:00 IST …".
+- Any later record that relies on the rule should store that `describe()` line; that is for E3 and the stories that
+  record decisions.
+
+Gates after this change: `python -m pytest -q` 534 passed; `ruff check` and `ruff format` clean; `check_imports` clean;
+`check_records` clean; every file under 350 lines.

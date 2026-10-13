@@ -68,7 +68,7 @@ check against Drive recorded in the conversation log with the command's output.
 folder (count of files per dataset and year); opens 10 random files and compares their SHA-256 with the laptop
 tool's manifest where one exists.
 
-**Depends:** - · **Size:** M · **Status:** doing (tool done; owner's upload complete 12 Oct 2026, sample-checked; calendar and coverage command next)
+**Depends:** - · **Size:** M · **Status:** done (judge passed, `reviews/judge/judge_18_a1_calendar_coverage.md`)
 
 ---
 
@@ -404,3 +404,59 @@ each of 20 days; the rule is then set from that evidence and committed).
 **Judge verifies:** re-reads one file by hand; confirms the release-time evidence file exists before any use.
 
 **Depends:** A1 · **Size:** M · **Status:** partly built; waiting on the owner's Drive upload and 20 measured release days (claims: `reviews/claude/response_40_2026-10-13-a8-participant-oi.md`)
+
+---
+
+## A9. Drive uploads as the owner, and the historical-data librarian
+
+**Repository:** trading
+
+**Description:** As the owner, I want the cloud to upload historical raw files to my Google Drive by itself, in a clear
+folder layout, so that no agent needs me at a laptop and no raw data goes into GitHub.
+
+**Context and why:** Owner decisions, 13 Oct 2026:
+- static, re-downloadable historical files are stored in Google Drive, never in GitHub;
+- agents must work autonomously.
+
+A service account cannot upload: it has no storage quota (tested 13 Oct 2026, HTTP 403 "Service Accounts do not have
+storage quota"). The owner therefore created an OAuth Desktop client and consented once (`tools/gdrive_oauth_setup.py`).
+The environment holds `FNO_GDRIVE_OAUTH_CLIENT_ID`, `FNO_GDRIVE_OAUTH_CLIENT_SECRET` and
+`FNO_GDRIVE_OAUTH_REFRESH_TOKEN` (names in `fno/constants.py`). The app may still be in Google's "Testing" status, in
+which case the refresh token expires after 7 days.
+
+The archive layout is `fno-research/raw/<publisher>/<market>/<dataset>/<YYYY>/<MM>/<original name>`
+(`fno/storage/README.md`).
+
+**Scope.** In:
+- a writable Drive store behind `RawFileStore`, which signs in as the owner from the three settings and refreshes the
+  access token; it keeps the archive rules: never overwrite different bytes (`RawFileConflict`), never a duplicate name,
+  and folders created as needed;
+- wiring, so `RawFileLibrary` archives fetched files straight to Drive;
+- a librarian command that fills a dataset's gaps in Drive from its source, politely paced, verifying every file
+  against its manifest where one exists, and resumable;
+- the first job: upload A8's participant-OI files (1,929 files, verified against
+  `tools/nse_raw_download/manifest_participant_oi.csv`);
+- an alert to #fno-desk when the token is refused (expired), naming the owner's one-minute fix.
+
+Out:
+- choosing new datasets (each needs a story);
+- deleting anything in Drive.
+
+**Acceptance criteria:**
+1. A real upload works. Write a probe file to `fno-research/_probe/`, read it back byte-identical, and record its
+   Drive ID. (A Drive delete is allowed only for that probe file.)
+2. Saving the same bytes again changes nothing. Different bytes at an existing path raise `RawFileConflict` and change
+   nothing (tests with a fake Drive; one real check).
+3. The participant-OI dataset is complete in Drive. `python -m fno data-coverage` reports participant OI 1,929 of
+   1,929 present with 0 damaged, and its SHA-256 values match the manifest.
+4. The librarian is resumable. A stopped run, when restarted, uploads only what is missing (test).
+5. An expired or refused token gives a clear error and an alert naming the fix, never a silent skip (test).
+6. No credential value appears in any file, log or message (the record scan stays clean; a test greps the output).
+
+**Test plan:** a fake Drive for create, read, conflict and resume; one real probe; the real participant-OI upload with
+coverage.
+
+**Judge verifies:** runs data-coverage for participant OI; opens 5 random files in Drive and compares their SHA-256
+with the manifest; plants a different file at an existing path and confirms it is refused.
+
+**Depends:** A1, A8 (manifest) · **Size:** M · **Status:** next

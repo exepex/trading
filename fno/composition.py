@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os
 from contextlib import contextmanager
-from datetime import time
+from datetime import date, datetime, time
 from pathlib import Path
 
 from .alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
@@ -18,12 +18,16 @@ from .quotes.expiry_listing import NseDailyFileExpiries
 from .quotes.recorder import QuoteSnapshotRecorder
 from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
 from .record_scan.scanner import RecordScanner
-from .research_data.availability import AvailabilityRule
+from .research_data.availability import AvailabilityRule, LastWriteBoundRule
+from .research_data.last_written import latest_writes, read_last_modified_table
 from .research_data.positioning import PointInTimeParticipantOi
-from .research_data.release_times import ReleaseLog, ReleaseTimeRecorder, choose_availability_rule
+from .research_data.release_times import ReleaseLog, ReleaseTimeRecorder, choose_availability_rule, last_written_times
+from .research_data.write_sweep import LastWriteSweep, read_sweeps
 from .storage.raw_source import ParticipantOiSource
 from .storage.wiring import (
+    PARTICIPANT_OI_LAST_MODIFIED,
     PARTICIPANT_OI_RELEASE_LOG,
+    PARTICIPANT_OI_SWEEPS,
     build_nse_fo_library,
     build_nse_source,
     build_participant_oi_library,
@@ -82,9 +86,23 @@ def build_release_time_recorder() -> ReleaseTimeRecorder:
 
 
 def build_participant_oi_rule() -> AvailabilityRule:
-    """When a decision may use a day's participant-OI file: set from the committed release-time evidence."""
+    """When a decision may use a day's participant-OI file: set from the committed release-time evidence, and never
+    before the bytes held were last written (judge 15: NSE rewrote 105 of 1,929 files after publishing them)."""
+    checks, calendar = ReleaseLog(PARTICIPANT_OI_RELEASE_LOG).checks(), build_session_calendar()
+    rule = choose_availability_rule(checks, calendar, DESK_DECISION_TIME)
+    return LastWriteBoundRule(rule, calendar, DESK_DECISION_TIME, participant_oi_last_writes())
+
+
+def participant_oi_last_writes() -> dict[date, datetime]:
+    """Day -> the latest write time NSE reported for its participant-OI file, from every committed record."""
     checks = ReleaseLog(PARTICIPANT_OI_RELEASE_LOG).checks()
-    return choose_availability_rule(checks, build_session_calendar(), DESK_DECISION_TIME)
+    table = read_last_modified_table(PARTICIPANT_OI_LAST_MODIFIED)
+    return latest_writes(table, last_written_times(checks), read_sweeps(PARTICIPANT_OI_SWEEPS))
+
+
+def build_last_write_sweep() -> LastWriteSweep:
+    """Judge 16: a headers-only pass over every recorded participant-OI file, straight to NSE (never Drive)."""
+    return LastWriteSweep(build_nse_source(ParticipantOiSource), ParticipantOiSource.path_for, PARTICIPANT_OI_SWEEPS)
 
 
 def build_point_in_time_participant_oi(project_folder: Path | None = None) -> PointInTimeParticipantOi:

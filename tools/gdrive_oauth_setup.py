@@ -2,7 +2,7 @@
 owner (service accounts cannot: they have no storage quota).
 
     pip install google-auth-oauthlib
-    python tools/gdrive_oauth_setup.py ~/Downloads/client_secret_<...>.json
+    python3 gdrive_oauth_setup.py client_secret_<...>.json     (from any folder; it needs nothing else)
 
 A browser opens; sign in with the Google account that owns the fno-research folder and allow access. The script
 prints three values to THIS terminal only. Copy each into the cloud environment's settings under the printed name.
@@ -15,16 +15,14 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # run from a checkout without installing
+# Standalone on purpose (the owner runs it from any folder, like tools/nse_raw_download): these must equal the names in
+# fno/constants.py, which tests/test_gdrive_oauth_setup.py checks.
+DRIVE_FULL_SCOPE = "https://www.googleapis.com/auth/drive"
+ENV_GDRIVE_OAUTH_CLIENT_ID = "FNO_GDRIVE_OAUTH_CLIENT_ID"
+ENV_GDRIVE_OAUTH_CLIENT_SECRET = "FNO_GDRIVE_OAUTH_CLIENT_SECRET"
+ENV_GDRIVE_OAUTH_REFRESH_TOKEN = "FNO_GDRIVE_OAUTH_REFRESH_TOKEN"
 
-from fno.constants import (  # noqa: E402
-    DRIVE_FULL_SCOPE,
-    ENV_GDRIVE_OAUTH_CLIENT_ID,
-    ENV_GDRIVE_OAUTH_CLIENT_SECRET,
-    ENV_GDRIVE_OAUTH_REFRESH_TOKEN,
-)
-
-USAGE = "usage: python tools/gdrive_oauth_setup.py <downloaded client_secret JSON>"
+USAGE = "usage: python3 gdrive_oauth_setup.py <downloaded client_secret JSON>"
 
 
 def settings_lines(client_id: str, client_secret: str, refresh_token: str) -> list[str]:
