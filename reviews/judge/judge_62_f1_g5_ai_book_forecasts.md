@@ -55,3 +55,39 @@ answer; a reveal must hash to it. A book whose commitment GitHub received after 
 
 New package `fno/ai/` with two composition roots; frozen v2 code untouched (the freeze test passes in the suite);
 no secret in files; prompts versioned by hash. Clean.
+
+## Addendum 1 (re-judge of d6d8c46 and G4 f03cb63): conditions now built on F1's side; G4 does not use them (must fix before the first AI outcome resolves)
+
+**Fire path for today's first live run (14 Oct, about 15:10 IST): nothing found that breaks it.**
+- On the real repository, `python -m fno ai audits-due` prints "audits due: 0" and exits 0.
+- `stop_reason` is empty for both books under their new labels.
+- `tests/ai`: 37 pass.
+- The new version label (`.../isolation:sealed_same_day`) has no single quote and stays well under the 2 KB fired-text limit.
+- The owner's pasted routine prompt names no version, so the label change needs no routine edit.
+
+| Owner condition | Now | Result |
+|---|---|---|
+| 2: label on every record and report | Every record's `method_or_version` ends `/isolation:sealed_same_day` (test passes); G4's report prints `ai_isolation` per AI book beside coverage | MET |
+| 1a: audits recorded | `transcript_audit.py`: one written-once file per audited book-day, auditor, time, named breach kinds; refused for a session never fired | MET |
+| 1b: which sessions | `audit_plan.py`: all sessions of the first 10 fired days, then 2 per finished ISO week; due count in the daily #fno-desk line | MET, with a weakness below |
+| 1c: breach makes the day unscored | `scoring_gate.scoring_status` does it (breach: unscored; selected but unaudited: pending). **But G4 never calls it.** `fno/forecast_scoring/ai_sources.py` (f03cb63) unscores only on a non-`on_time` status or `"unscored": true` inside the collection audit JSON. F1 records breaches in a separate `<d>_<book>_transcript_audit.json`, and the collection file is write-once. **My test:** collect both books, record a `read_other_records` breach for Hybrid. The gate says `unscored` (and `pending` before the audit), yet `ai_forecasts` scores both books with nothing unscored. The two sessions built two contracts that do not meet | **NOT MET end to end (must fix)** |
+| 1d: two breaches in 20 days stop the book | `stop_rule.py`, asked by the fire step before each book; test with two planted breaches stops Book 3 and fires Hybrid; a new version starts clean | MET |
+| 3: trading needs full F1 | Unchanged rule | MET |
+
+**G5 criterion 3 (coverage in G4's report): MET.** `fno/forecast_scoring/coverage.py` counts, per book, the days with
+scored-eligible probabilities out of v2 pack days since `COMMON_START = 14 Oct 2026`, and the report prints it. Because
+it counts what G4 scores, it inherits the gap above: a breached or unaudited day counts as covered.
+
+**Why it matters and when.** G4's daily report mixes AI forecasts into its scores as soon as their outcomes resolve.
+The first, question 4 (VIX in 10 sessions), resolves about 28 Oct. Fix before then: `ai_sources._unscored_reason`
+should call `fno.ai.scoring_gate.scoring_status` (one rule, as response 67 addendum 2 asks), score only `scored`,
+and list `pending` apart from `unscored`. Add a test with a planted transcript breach through G4's own reader.
+
+**Weakness in the audit draw (should fix, reasoning only).** The weekly seed is the ISO week label, public and known
+in advance. Each routine has the repository, and the fired sessions of a week are predictable (2 books, 5 days).
+A session can therefore compute whether it will be drawn before it acts, which removes the deterrent the random
+audit exists for. Drawing only after the week ends does not help when the seed is known. Fix: a seed nobody knows
+before the week ends, for example the SHA-256 of the first commit on `main` after the week closes, or of the last
+capture receipt of the week, recorded beside the draw. Anyone can still redraw it.
+
+**Verdict now:** the fire and collection side is ready for today. The scoring side is NOT MET until G4 reads the gate.

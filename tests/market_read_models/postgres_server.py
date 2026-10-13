@@ -13,12 +13,7 @@ import tempfile
 from pathlib import Path
 
 SUPERUSER = "postgres"
-PLATFORM = (  # on Azure, X1's platform SQL creates the schema and the roles, not the migrations
-    "create schema fno",
-    "create role fno_writer login",
-    "create role dashboard_app login",
-    "grant usage on schema fno to fno_writer, dashboard_app",
-)
+X1_PLATFORM = Path(__file__).with_name("x1_platform.sql")  # roles, schema and default privileges as on Azure
 MIGRATIONS = Path(__file__).resolve().parents[2] / "db" / "fno" / "migrations"
 
 
@@ -80,8 +75,12 @@ class PostgresServer:
     def migrate(self) -> None:
         import psycopg
 
-        with psycopg.connect(self.url, autocommit=True) as connection:
-            for statement in PLATFORM:
-                connection.execute(statement)
+        with psycopg.connect(self.url, autocommit=True) as admin:  # on Azure, X1's platform SQL (judge 59, addendum 1)
+            admin.execute(X1_PLATFORM.read_text(encoding="utf-8"))
+        with psycopg.connect(self.as_role("fno_owner"), autocommit=True) as owner:  # the migration role, as on Azure
             for migration in sorted(MIGRATIONS.glob("*.sql")):
-                connection.execute(migration.read_text(encoding="utf-8"))
+                owner.execute(migration.read_text(encoding="utf-8"))
+
+    def as_role(self, role: str) -> str:
+        """The URL of a login role (trust authentication on the throwaway server)."""
+        return self.url.replace(f"{SUPERUSER}@", f"{role}@", 1)
