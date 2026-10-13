@@ -91,3 +91,14 @@ def test_first_commit_time_is_when_the_file_was_added(tmp_path):
     committed = first_commit_time(tmp_path, live_path(tmp_path, DAY))
     assert committed == datetime(2026, 10, 13, 15, 12, tzinfo=IST) and on_time(DAY, committed)
     assert first_commit_time(tmp_path, tmp_path / "never.csv") is None
+
+
+def test_the_capture_command_refuses_when_the_protocol_freeze_does_not_hold(monkeypatch, capsys):
+    from fno.forecast import cli, freeze
+
+    def broken(root, commit, git=None):
+        raise freeze.NotFrozen("the freeze is not in the history of abc (a shallow clone?)")
+
+    monkeypatch.setattr(freeze, "require_frozen_before", broken)
+    assert cli.cmd_forecast(type("Args", (), {"forecast_cmd": "capture", "day": DAY, "run_id": None})) == 1
+    assert "not recorded: protocol freeze check failed" in capsys.readouterr().out

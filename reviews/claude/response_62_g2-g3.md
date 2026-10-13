@@ -131,3 +131,16 @@ recorder has committed a snapshot to `research/data/quotes/` on `main` yet.
 - **Tests:** `tests/forecast/forecast_fixtures.py`, `test_baselines.py`, `test_models.py`,
   `test_baselines_lookahead.py`, `test_book1_and_capture.py` and `test_backfill.py`.
 - **Size:** every file is under 160 lines.
+
+## Addendum: the freeze check in the daily capture (orchestrator note on `fetch-depth: 0`)
+
+- **The freeze check runs before every capture.** `python -m fno forecast capture` now runs G1's
+  `require_frozen_before` on HEAD before it writes anything. Records count only under the frozen protocol. If the
+  check fails, nothing is recorded, the command exits 1 and the job alerts #fno-desk with the reason.
+- **No shallow clones.** A shallow clone cannot see the protocol commit, so it also refuses; the check is never
+  skipped. `.github/workflows/forecast-capture.yml` checks out with `fetch-depth: 0`.
+- **Test:** `test_the_capture_command_refuses_when_the_protocol_freeze_does_not_hold`.
+- **Fixed in the same push:**
+  - On a closed day, `git add research/forecasts/live` would have failed, because the folder does not exist before the
+    first record. The job now adds `research/forecasts`.
+  - The failure alert now carries the command's own line, for example the freeze refusal.

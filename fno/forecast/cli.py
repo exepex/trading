@@ -27,11 +27,18 @@ def cmd_forecast(args) -> int:
 def _capture(args) -> int:
     from ..config import ROOT
     from ..models import now_ist
+    from ..research_engine.ledger import Git
     from ..storage.wiring import build_session_calendar
     from .baseline_wiring import save_capture_summary
     from .capture import capture_book1
+    from .freeze import NotFrozen, require_frozen_before
 
     started = now_ist()
+    try:  # records count only under the frozen protocol; a shallow clone cannot prove it, so it refuses too
+        require_frozen_before(ROOT, Git(ROOT).head())
+    except NotFrozen as problem:
+        print(f"Omenix F&O forecasts (GitHub Actions): Book 1 not recorded: protocol freeze check failed: {problem}")
+        return 1
     line = capture_book1(ROOT, args.day or started.date(), build_session_calendar())
     print(line)
     if args.run_id:
