@@ -3,8 +3,8 @@
 # two baselines (fno/forecast/book1_method.py), so nothing here needs reasoning. Never orders.
 # Inputs: the day's canonical A4 snapshot (committed by the 3 pm recorder), the official closes through the day before
 # (story O6's index-closes job appends them each evening) and the panel's past IV30. Each same-day field counts only if
-# observed by 15:00:00 IST. The job first checks the version 2 freeze (full history, fetch-depth 0): before version 2
-# is frozen it records nothing and says so; a failed freeze check fails the run.
+# observed by 15:00:00 IST. The job recomputes the v2 golden cases, then checks the version 2 freeze (full history,
+# fetch-depth 0): a difference or a failed freeze check fails the run before any forecast.
 # Timing: GitHub's schedule can start late, so it starts at about 14:00 IST, waits until 15:10 IST, pulls until the
 # day's canonical snapshot is in (at most until 15:13 IST), and generates the forecasts from the pack by 15:15 IST. The
 # receipt line (pack hash, records hash, generation time) is locked in this run's log and step summary; the Git push
@@ -48,6 +48,8 @@ jobs:
           git config core.hooksPath .githooks
           git config user.name "omenix-forecast-capture"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Recompute the v2 golden cases (shared libraries are recorded, not byte-checked; a difference stops here)
+        run: python tools/forecast_live_golden.py
       - name: Wait until 15:10 IST (after the 3 pm quote snapshots)
         run: |
           now=$(TZ=Asia/Kolkata date +%s); start=$(TZ=Asia/Kolkata date -d 'today 15:10' +%s)
