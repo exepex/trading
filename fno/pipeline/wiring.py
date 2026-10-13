@@ -12,16 +12,19 @@ from ..constants import (
     DERIVED_AREA,
     ENV_ROUTINE_DRY_RUN_TOKEN,
     ENV_ROUTINE_DRY_RUN_TRIGGER_ID,
+    PANEL_INDEX_CLOSE,
     PIPELINE_AREA,
     ROUTINE_DRY_RUN,
 )
 from ..models import now_ist
+from ..research_data.nifty_panel import DailyFiles
 from ..storage import wiring as storage
-from ..storage.raw_source import NseArchiveSource, ParticipantOiSource
+from ..storage.raw_source import NseArchiveSource, NseIndexCloseSource, ParticipantOiSource
 from ..storage.raw_store import AreaStore, RawFileStore
 from .batches import ManifestBatches
 from .dispatcher import BatchDispatcher
 from .dry_run import DryRunRoutine
+from .index_closes import IndexCloseAppender
 from .records import PipelineRecords
 from .run import PipelineRun
 from .run_summary import RunSummaryStore
@@ -73,3 +76,18 @@ def build_dry_run_routine(env=os.environ) -> DryRunRoutine:
     drive = _project_drive(env)
     records = PipelineRecords(AreaStore(drive, PIPELINE_AREA), now_ist)
     return DryRunRoutine(drive, AreaStore(drive, DERIVED_AREA), records, ROUTINE_DRY_RUN)
+
+
+def build_index_close_appender(env=os.environ) -> IndexCloseAppender:
+    """The daily index-close job: NSE's index-close files as archived in the owner's Drive (never fetched here, so a
+    row is the first archived version), appended to the panel folder's warm-up closes."""
+    raw = AreaStore(_project_drive(env), storage.RAW_AREA)
+    source = NseIndexCloseSource
+    files = DailyFiles(
+        PANEL_INDEX_CLOSE,
+        source.dataset,
+        source.first_day,
+        source.last_day,
+        lambda day: (source.filename_for(day), raw.get(source.path_for(day))),
+    )
+    return IndexCloseAppender(files, storage.build_session_calendar(), storage.PANEL_FOLDER, build_alert_sender())

@@ -58,3 +58,41 @@ def write_warmup_closes(folder: Path, rows: list[tuple]) -> Path:
         temporary.write(out.getvalue())
     Path(temporary.name).replace(path)  # never a half-written file
     return path
+
+
+class WarmupConflict(RuntimeError):
+    """A day already in the warm-up file came back with other values: rows are never rewritten."""
+
+
+def last_warmup_day(folder: Path) -> date | None:
+    path = Path(folder) / WARMUP_FILE
+    if not path.is_file():
+        return None
+    days = [r["date"] for r in csv.DictReader(path.read_text(encoding="utf-8").splitlines())]
+    return date.fromisoformat(days[-1]) if days else None
+
+
+def append_warmup_rows(folder: Path, rows: list[tuple]) -> int:
+    """Adds sessions after the file's last day (story O6: the daily job), in order, never touching an existing row: a
+    day already there with the same values is skipped, with other values raises WarmupConflict. Returns rows added."""
+    path = Path(folder) / WARMUP_FILE
+    existing = (
+        {r[0]: r for r in csv.reader(path.read_text(encoding="utf-8").splitlines()[1:])} if path.is_file() else {}
+    )
+    new = []
+    for row in rows:
+        text = [str(value) for value in row]
+        if row[0] in existing:
+            if existing[row[0]] != text:
+                raise WarmupConflict(
+                    f"{row[0]} is already in {WARMUP_FILE} with other values; rows are never rewritten"
+                )
+            continue
+        new.append(text)
+    last = last_warmup_day(folder)
+    if new and last is not None and date.fromisoformat(new[0][0]) <= last:
+        raise WarmupConflict(f"{new[0][0]} is not after the file's last day {last}; rows are only appended")
+    if new:
+        with path.open("a", encoding="utf-8", newline="") as out:
+            csv.writer(out, lineterminator="\n").writerows(new)
+    return len(new)

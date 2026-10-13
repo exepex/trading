@@ -71,8 +71,9 @@ class NiftyPanel:
 def read_nifty_panel(
     folder: Path, years: Iterable[int] | None = None, keep: Callable[[date, date], bool] | None = None
 ) -> NiftyPanel:
-    """The panel's sessions, closes and rows for `years` (default: every year of the manifest). `keep(day, expiry)`
-    limits the option rows held in memory (every year holds about 400,000 to 800,000); closes come from every row."""
+    """The panel's sessions, closes and rows for `years` (default: every year of the manifest), then any closes-only
+    sessions after its last day. `keep(day, expiry)` limits the option rows held in memory (every year holds about
+    400,000 to 800,000); closes come from every row."""
     manifest = json.loads((folder / MANIFEST_FILE).read_text(encoding="utf-8"))
     wanted = set(years) if years is not None else {int(day[:4]) for day in manifest["days"]}
     options: dict[date, list[OptionQuote]] = {}
@@ -94,7 +95,16 @@ def read_nifty_panel(
     )
     first = sessions[0].day if sessions else None
     warmup = tuple(s for day, s in index_closes.items() if first and day < first)
-    return NiftyPanel(warmup + sessions, _frozen(options), _frozen(futures))
+    return NiftyPanel(warmup + sessions + _after(sessions, manifest, index_closes), _frozen(options), _frozen(futures))
+
+
+def _after(sessions: tuple, manifest: dict, index_closes: dict[date, SessionClose]) -> tuple[SessionClose, ...]:
+    """Closes-only sessions after the panel's last day (story O6: the daily index-close job appends them), when the
+    read reaches that day: live features and base rates need closes through yesterday, not through the last build."""
+    last = max(manifest["days"]) if manifest["days"] else None
+    if not sessions or sessions[-1].day.isoformat() != last:
+        return ()
+    return tuple(s for day, s in index_closes.items() if day > sessions[-1].day)
 
 
 def _index_closes(folder: Path) -> dict[date, SessionClose]:
