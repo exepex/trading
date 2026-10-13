@@ -237,7 +237,7 @@ hides the run's own result.
 
 **Judge verifies:** runs the migration on a throwaway server, a successful and a failing run, and reads the rows.
 
-**Depends:** P6 · **Size:** S · **Status:** built; awaiting judge (claims: reviews/claude/response_66_2026-10-13-p7-p8-p9-publishing.md, addendum P7)
+**Depends:** P6 · **Size:** S · **Status:** done (judge 59 addendum 2 PASS; migration 002 run on Azure by the owner 14 Oct 2026, fno_writer grants read back as expected; claims: reviews/claude/response_66_2026-10-13-p7-p8-p9-publishing.md, addendum P7)
 
 ---
 
@@ -281,7 +281,7 @@ blocks (one pointer, one run, one status). Out: bid and ask, 3 pm quotes (not pu
 3. The chain pages publish in the same transaction as P6's, through the same publisher and run status.
 4. Size, lint, imports, tests pass.
 
-**Depends:** P6, P7, W13 · **Size:** M · **Status:** built; awaiting judge (claims: response 66, addendum P9)
+**Depends:** P6, P7, W13 · **Size:** M · **Status:** done (judge 60 and addendum 1 PASS; W13's page keys adopted, 409825f; claims: response 66, addendum P9)
 
 ---
 
@@ -314,4 +314,4 @@ contract:** a reason code for the empty picks state (W10's `FnoPicks` has only `
 4. A book with an open trade stops the run rather than publish a risk figure this story does not compute.
 5. Size, lint, imports, tests pass.
 
-**Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built; awaiting judge (claims: response 66, addendum P10; India band and expiries: addendum on contract 2.5)
+**Depends:** P6, P7, E1, C2 · **Size:** S · **Status:** built criteria PASS (judge 61 and addendum 1; page keys today and risk); contract 2.5 blocks (India band, expiries) awaiting judge (claims: response 66, addendum P10 and addendum on contract 2.5)

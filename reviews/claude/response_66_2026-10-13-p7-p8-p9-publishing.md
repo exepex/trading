@@ -385,3 +385,22 @@ Full suite and the real local publish: see the commit.
 **Checks:**
 - Full suite: 1,806 tests pass; ruff, imports and the record scan are clean.
 - **Real local publish of 12 Oct** through the full wiring (Drive files, the repository's books and calendar, `config.yaml`): 1,269 pages in 18 blocks, read-back equal, exit 0. It includes `session` `8d812166…`, `indices` `3ce82445…`, `fno_events` `28949db2…` and `flows` `7e3bf91b…`. The six P6 pages keep their hashes from the Azure run 38438666957, so P6 is unchanged.
+
+## Addendum: two design points before the judge (orchestrator, 14 Oct)
+
+**1. A session with unknown hours is a block-level state, not a run failure.** Accepted: stopping the whole run was too wide. From 7 Nov every page would have failed, because the session after Friday 6 Nov is the muhurat Sunday 8 Nov.
+- **Now:** when the next session is a muhurat session (its hours exist only in the calendar's free text), the `session` block **publishes no page**. Every other page publishes, and the route answers "page missing" for `session` alone.
+- **Contract gap (stop and list, not invented):** 2.5's `Session` has **no field for a reason**. Its properties are `exchange`, `zone`, `session_date`, `open_utc`, `close_utc`, `next_open_utc`, `regime`, `post_close_at` and `major_event_names`. Its only empty form, `open_utc` and `close_utc` null, means "non-trading day" (path x-empty), which would be false for a muhurat session.
+- **For the contract owner:** to publish a partial session with a machine-readable reason, `Session` needs a field such as `hours_status: known | not_issued` (or a reason code like `hours_not_issued`). I'll build to whatever is added.
+- **Test,** with the real calendar row 8 Nov 2026 ("muhurat … timings circular not yet issued"): the frame for 6 Nov points at 8 Nov muhurat, the session block has no page, and a full run publishes with exit 0 and no alert. Indices, events, flows, books, picks and the chain are all present; only `session` is absent.
+
+**2. Raw data never waits for the database** (G1 builder's point). Accepted: before, `market-publish.yml` archived inside the publish step, after the database check, so an outage would have left a gap in Drive, which A13's panel reads.
+- **Now, in order:**
+  1. **archive:** the new `python -m fno market archive [--day D]`. It needs no database and commits the manifest rows.
+  2. **database check:** runs even when the archive failed (`if: !cancelled()`).
+  3. **publish:** `market publish`, only when the check passed. It records `archive_incomplete` itself if files are missing.
+  4. **one alert on failure,** naming the archive or database cause.
+- `market publish --day` now defaults to the last session, like `market daily`. `market daily` (archive then publish in one step) stays for local use.
+- **Tests:**
+  - the workflow test checks archive < database check < publish, that the check runs after a failed archive, and that publish waits for the check;
+  - `test_the_archive_command_needs_no_database_and_says_what_is_missing` checks the command's exit code and lines with no `FNO_DB_URL` set.

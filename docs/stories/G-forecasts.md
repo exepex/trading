@@ -47,7 +47,7 @@ pack_sha256`.
 
 **Judge verifies:** recomputes one target and one IV value by hand; checks the freeze commit order.
 
-**Depends:** A1, A3, B1, B4 · **Size:** M · **Status:** v1 frozen; awaiting judge re-check (protocol v1 with review 28 changes; freeze record research/forecasts/FREEZE.md). v2 (`research/forecasts/PROTOCOL_v2.md`, review 29's eight changes): judge 47 addendum 3 PASS; frozen (protocol commit ab2e811, freeze record research/forecasts/FREEZE_v2.md, ledger trials 37-41)
+**Depends:** A1, A3, B1, B4 · **Size:** M · **Status:** v1 frozen; awaiting judge re-check (protocol v1 with review 28 changes; freeze record research/forecasts/FREEZE.md). v2 (`research/forecasts/PROTOCOL_v2.md`, review 29's eight changes): judge 47 addendum 3 PASS; frozen (protocol commit ab2e811, freeze record research/forecasts/FREEZE_v2.md, ledger trials 37-41). v3 (`PROTOCOL_v3.md`, the panel extends daily, A13; ChatGPT review 30, response 69): judge 64 addenda 1-2 PASS; freeze record `FREEZE_v3.md` (c1bf97f, two sections), awaiting the orchestrator's confirmation after the panel-days.yml fix
 
 ---
 
@@ -83,7 +83,7 @@ date with a fixed refit schedule), its specification frozen in the protocol.
 
 **Judge verifies:** recomputes one risk-neutral probability and one base rate by hand.
 
-**Depends:** G1, A3, A4 · **Size:** M · **Status:** awaiting judge (claims: response 62 and its v2 addendum; live values under protocol v2, frozen at ab2e811)
+**Depends:** G1, A3, A4 · **Size:** M · **Status:** done (judge 54 PASS; claims: response 62 and its v2 addendum; live values under protocol v2, frozen at ab2e811)
 
 ---
 
@@ -113,7 +113,7 @@ combined by a fixed rule written in the protocol); records validated by `fno/for
 
 **Judge verifies:** checks one week of Book-1 forecast files for completeness and commit order.
 
-**Depends:** G1, G2 · **Size:** S · **Status:** awaiting judge (claims: response 62 and its v2 addendum; the job runs protocol v2's live capture from Wed 14 Oct 2026; first live run pending)
+**Depends:** G1, G2 · **Size:** S · **Status:** done as built (judge 54 PASS; claims: response 62 and its v2 addendum; the job runs protocol v2's live capture from Wed 14 Oct 2026; first live run pending)
 
 ---
 

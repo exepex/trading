@@ -3,7 +3,9 @@
 market daily [--day D]          the routine: archive the session's NSE files (and any newer NSE version, A11) to
                                 Drive, then publish (default: the last session before today, IST; run at 07:30 IST,
                                 after NSE's late-evening rewrites)
-market publish --day D [--local FOLDER]   build, validate and publish one session from the archived files
+market archive [--day D]        archive the session's NSE files to Drive only (no database: GitHub Actions runs it
+                                before the database check, so an outage never leaves a gap in Drive)
+market publish [--day D] [--local FOLDER]   build, validate and publish one session from the archived files
 market compare --day D          compare the built blocks with the pinned W11 examples, field by field
 market contract-check           compare the pinned W11 contract with the dashboard's published one
 market look-up --day D          archive the own corporate-action lists of symbols with an unexplained jump
@@ -16,6 +18,10 @@ from datetime import date
 from pathlib import Path
 
 DAILY_DATASETS = ("fo-bhavcopy", "index-close", "cm-bhavcopy", "security-delivery")
+ARCHIVED = "{day}: the session's NSE files are archived in Drive"
+ARCHIVE_FAILED = (
+    "Omenix F&O market archive for {day}: NOT complete ({problem}); the publish step will say what it lacks"
+)
 DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "symbol-change", "corporate-actions", "fii-dii-cash", "fpi-daily")
 
 
@@ -24,8 +30,10 @@ def add_market_parser(subparsers) -> None:
     actions = market.add_subparsers(dest="market_cmd", required=True)
     daily = actions.add_parser("daily", help="archive the session's NSE files, then build, validate and publish")
     daily.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the last session before today)")
+    archive = actions.add_parser("archive", help="archive the session's NSE files to Drive (no database)")
+    archive.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the last session before today)")
     publish = actions.add_parser("publish", help="build, validate and publish one session from the archived files")
-    publish.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
+    publish.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the last session before today)")
     publish.add_argument("--local", type=Path, help="publish to this folder instead of Azure")
     compare = actions.add_parser("compare", help="compare the built blocks with the pinned W11 examples")
     compare.add_argument("--day", type=date.fromisoformat, default=date(2026, 10, 12), help="YYYY-MM-DD")
@@ -38,8 +46,8 @@ def add_market_parser(subparsers) -> None:
 
 def cmd_market(args) -> int:
     handlers = {
-        "daily": _daily, "publish": _publish, "compare": _compare, "contract-check": _contract_check,
-        "look-up": _look_up, "db-check": _db_check,
+        "daily": _daily, "archive": _archive, "publish": _publish, "compare": _compare,
+        "contract-check": _contract_check, "look-up": _look_up, "db-check": _db_check,
     }  # fmt: skip
     return handlers[args.market_cmd](args)
 
@@ -48,19 +56,31 @@ def _publish(args) -> int:
     from ..config import load_app_config
     from .wiring import build_market_run
 
-    code, lines = build_market_run(load_app_config(), args.local).run(args.day)
+    code, lines = build_market_run(load_app_config(), args.local).run(_day(args))
     print("\n".join(lines))
     return code
 
 
-def _daily(args) -> int:
-    from ..config import load_app_config
+def _archive(args) -> int:
+    day = _day(args)
+    problem = _archive_session(day)
+    print(ARCHIVE_FAILED.format(day=day, problem=problem) if problem else ARCHIVED.format(day=day))
+    return 1 if problem else 0
+
+
+def _day(args) -> date:
+    """The session asked for, else the last session before today (IST)."""
     from ..models import now_ist
     from ..storage.wiring import build_session_calendar
+
+    return args.day or build_session_calendar().previous_session(now_ist().date())
+
+
+def _daily(args) -> int:
+    from ..config import load_app_config
     from .wiring import build_market_run
 
-    day = args.day or build_session_calendar().previous_session(now_ist().date())
-    code, lines = build_market_run(load_app_config()).run(day, prepare=_archive_session)
+    code, lines = build_market_run(load_app_config()).run(_day(args), prepare=_archive_session)
     print("\n".join(lines))
     return code
 

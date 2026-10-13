@@ -17,8 +17,8 @@ OPEN_IST, CLOSE_IST = time(9, 15), time(15, 30)  # NSE's regular hours; its spec
 MARKET_RUN_IST = time(7, 10)  # the next morning's market run brings the close (market-publish.yml)
 MUHURAT = "muhurat"
 NO_MUHURAT_HOURS = (
-    "{day} is a muhurat session: its hours are not in the session calendar's fields, so the session block is not "
-    "published rather than guessed (add them when NSE's timings circular is issued)"
+    "{day} is a muhurat session: its hours are not in the session calendar's fields, and contract 2.5's Session has "
+    "no field to say so (its empty form means a non-trading day), so this page is left out of the publication"
 )
 INDEX_LEVELS = (  # (name in NSE's index file, id, symbol, name, role)
     ("Nifty 50", "NIFTY50", "NIFTY 50", "Index · NSE", "benchmark"),
@@ -35,7 +35,13 @@ def utc(day: date, at: time) -> str:
 
 
 class SessionIndiaBlock(BlockBuilder):
+    """A session whose hours are unknown (a muhurat session) is a block-level state, never a run failure: the page is
+    left out, so the route answers "page missing" while every other page publishes."""
+
     page_key, served_schema = "session", "SessionIndiaResponse"
+
+    def pages(self, rows: SessionRows) -> dict[str, dict]:
+        return {} if rows.frame.next_session_kind == MUHURAT else {self.page_key: self.build(rows)}
 
     def build(self, rows: SessionRows) -> dict:
         frame = rows.frame
