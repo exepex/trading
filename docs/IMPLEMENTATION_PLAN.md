@@ -76,7 +76,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 |---|---|---|---|---|---|
 | [A1](stories/A-data-foundation.md#a1-raw-nse-archive-complete-and-checked) | Raw NSE archive complete and checked | trading | - | M | doing |
 | [A2](stories/A-data-foundation.md#a2-one-reader-for-both-fo-formats) | One reader for both F&O formats | trading | - | M | done |
-| [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | trading | A1, A2 | M | next |
+| [A3](stories/A-data-foundation.md#a3-nifty-option-chain-panel) | NIFTY option-chain panel | trading | A1, A2 | M | built; awaiting judge |
 | [A4](stories/A-data-foundation.md#a4-daily-3-pm-quote-recorder) | Daily 3 pm quote recorder | trading | - | M | done (judge passed) |
 | [A5](stories/A-data-foundation.md#a5-monthly-expiry-identity-in-the-package) | Monthly-expiry identity in the package | trading | - | S | built; awaiting judge |
 | [A6](stories/A-data-foundation.md#a6-events-calendar) | Events calendar | trading | - | S | built; awaiting judge |

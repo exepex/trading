@@ -1,0 +1,50 @@
+{
+ "days_checked": 1928,
+ "per_year": {
+  "2019": {
+   "bytes": 7847437,
+   "rows": 773364,
+   "sessions": 245
+  },
+  "2020": {
+   "bytes": 7784181,
+   "rows": 736996,
+   "sessions": 252
+  },
+  "2021": {
+   "bytes": 5674148,
+   "rows": 510565,
+   "sessions": 247
+  },
+  "2022": {
+   "bytes": 6293798,
+   "rows": 562041,
+   "sessions": 248
+  },
+  "2023": {
+   "bytes": 4058232,
+   "rows": 340423,
+   "sessions": 246
+  },
+  "2024": {
+   "bytes": 4841225,
+   "rows": 398739,
+   "sessions": 249
+  },
+  "2025": {
+   "bytes": 4856221,
+   "rows": 395866,
+   "sessions": 249
+  },
+  "2026": {
+   "bytes": 4267262,
+   "rows": 340704,
+   "sessions": 192
+  }
+ },
+ "problems": [],
+ "statuses": {
+  "no file": 1,
+  "ok": 1928
+ }
+}

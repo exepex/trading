@@ -1,0 +1,16 @@
+{
+ "range": [
+  "2024-01-01",
+  "2026-10-09"
+ ],
+ "extract_contracts": 249958,
+ "found_in_panel": 249958,
+ "missing_from_panel": [],
+ "value_differences": 0,
+ "first_differences": [],
+ "days_with_a_file_in_extract_manifest": 689,
+ "days_in_panel": 689,
+ "days_only_in_extract": [],
+ "days_only_in_panel": [],
+ "panel_contracts_in_range": 1133421
+}

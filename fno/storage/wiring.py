@@ -11,11 +11,16 @@ from ..constants import (
     ENV_GDRIVE_SERVICE_ACCOUNT_JSON,
     INDEX_INDIA_VIX,
     INDEX_NIFTY_50,
+    PANEL_FORMAT_LEGACY,
+    PANEL_FORMAT_UDIFF,
+    PANEL_INDEX_CLOSE,
     RESEARCH_USER_AGENT,
 )
 from ..fo_bhavcopy import BadFile, read_fo_file, read_index_closes
 from ..http_pacing import PacedSession
 from ..research_data.calendar import load_session_calendar
+from ..research_data.nifty_panel import DailyFiles
+from ..research_data.panel_store import CsvGzPanelFolder, PanelSink
 from .coverage import CoverageCheck, CoverageDataset, read_exceptions
 from .google_drive import GoogleDriveStore, service_account_token
 from .raw_library import RawFileLibrary
@@ -93,4 +98,40 @@ def build_coverage_check(store: RawFileStore | None = None) -> CoverageCheck:
         if not stores:
             raise RuntimeError(f"set {ENV_GDRIVE_SERVICE_ACCOUNT_JSON} and {ENV_GDRIVE_FOLDER_ID} to check Drive")
         store = stores[-1]
-    return CoverageCheck(store, load_session_calendar(CALENDAR_FILE), read_exceptions(COVERAGE_EXCEPTIONS))
+    return CoverageCheck(store, build_session_calendar(), build_file_exceptions())
+
+
+PANEL_FOLDER = Path(__file__).resolve().parents[2] / "research" / "data" / "nifty-panel"  # story A3's output
+
+
+def daily_files(label: str, source_type: type[NseArchiveSource], library: RawFileLibrary) -> DailyFiles:
+    """A day's original file name and bytes from a raw-file library (stores first, then NSE; Drive is only read)."""
+    return DailyFiles(
+        label,
+        source_type.dataset,
+        source_type.first_day,
+        source_type.last_day,
+        lambda day: (source_type.filename_for(day), library.get(source_type.path_for(day)).data),
+    )
+
+
+def build_nifty_panel_files(project_folder: Path | None = None) -> tuple[list[DailyFiles], DailyFiles]:
+    """The NIFTY panel's inputs: F&O files in order of precedence (current format first), and index closes."""
+    fo_files = [
+        daily_files(PANEL_FORMAT_UDIFF, NseDailyFoSource, build_nse_fo_library(project_folder)),
+        daily_files(PANEL_FORMAT_LEGACY, NseLegacyFoSource, build_nse_legacy_fo_library(project_folder)),
+    ]
+    return fo_files, daily_files(PANEL_INDEX_CLOSE, NseIndexCloseSource, build_nse_index_close_library(project_folder))
+
+
+def build_panel_sink(folder: Path | None = None) -> PanelSink:
+    return CsvGzPanelFolder(folder or PANEL_FOLDER)
+
+
+def build_session_calendar():
+    return load_session_calendar(CALENDAR_FILE)
+
+
+def build_file_exceptions() -> dict:
+    """(dataset, day) -> reason, for sessions NSE never published a file for (sourced; A1)."""
+    return read_exceptions(COVERAGE_EXCEPTIONS)

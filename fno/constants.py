@@ -39,3 +39,10 @@ JOURNAL_FOLDER = "journal"
 # Kinds of row in a paper account's cash ledger (journal/<book>/account/cash_ledger.csv)
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
+
+# NIFTY option-chain panel (story A3, fno/research_data/nifty_panel.py)
+PANEL_FORMAT_UDIFF, PANEL_FORMAT_LEGACY = "udiff", "legacy"  # source_format: which F&O file a day's rows came from
+PANEL_INDEX_CLOSE = "index-close"  # the index-close file of a day (underlying and India VIX)
+PANEL_DAY_OK, PANEL_DAY_NO_FILE, PANEL_DAY_NO_INDEX = "ok", "no file", "no index close"  # a day's status (manifest)
+PANEL_DAY_FAILED = "failed"  # the day breaks the research-ready gate: the build fails, naming it
+NIFTY_SYMBOL, INDEX_OPTION = "NIFTY", "IDO"  # F&O symbol and instrument code (UDiFF) of NIFTY index options
