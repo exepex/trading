@@ -138,7 +138,10 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [W7](stories/X-cross-repository.md#w7-dashboard-writes-on-azure-inbox-assistant-and-control-state) | Dashboard writes on Azure (inbox, assistant and control state) | dashboard | W1, X1 | M | later |
 | [W8](stories/X-cross-repository.md#w8-the-signed-off-app-frame-in-the-real-app) | The signed-off app frame in the real app | dashboard | W1 | L | next |
 | [W9](stories/X-cross-repository.md#w9-the-signed-off-home-screen-in-the-real-app) | The signed-off Home screen in the real app | dashboard | W8 | M | later |
-| [W10](stories/X-cross-repository.md#w10-api-contract-and-data-catalog-for-the-frame-and-home-small-independent-endpoints) | API contract and data catalog for the frame and Home (small independent endpoints) | dashboard | 30, 31 sign-off | M | next |
+| [W10](stories/X-cross-repository.md#w10-api-contract-and-data-catalog-for-the-frame-and-home-small-independent-endpoints) | API contract and data catalog for the frame and Home (small independent endpoints) | dashboard | 30, 31 sign-off | M | built; awaiting judge |
+| [K4](stories/X-cross-repository.md#k4-stock-backend-publishes-one-read-model-per-home-and-frame-block) | Stock backend publishes one read model per Home and frame block | agentic-stock-prediction | W10 | L | later |
+| [P5](stories/X-cross-repository.md#p5-fo-read-models-for-the-frame-contracts-quotes-order-rules-and-books) | F&O read models for the frame: contracts, quotes, order rules and books | trading | W10, P1, A4 | M | later |
+| [MA1](stories/X-cross-repository.md#ma1-the-manual-paper-account-the-owners-own-paper-trades) | The Manual paper account (the owner's own paper trades) | dashboard | W8, X1, W7 | L | later |
 | [W5](stories/X-cross-repository.md#w5-cutover-and-rollback) | Cutover and rollback | dashboard | W1-W4, W6, W7, K1, K3 | S | later |
 | [K1](stories/X-cross-repository.md#k1-stock-backend-publishes-to-azure-dual-publication-and-parity) | Stock backend publishes to Azure (dual publication and parity) | agentic-stock-prediction | X1 | M | later |
 | [K2](stories/X-cross-repository.md#k2-retire-motherduck) | Retire MotherDuck | agentic-stock-prediction | W5, W7, K3 | S | later |
