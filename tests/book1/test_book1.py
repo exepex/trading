@@ -110,6 +110,9 @@ class Validator:
         check = {"check": "max_loss", "ok": self.ok, "reason": "" if self.ok else "Rs 1 off", "numbers": {}}
         return ValidityResult(self.ok, {"mode": "playbook", "ok": self.ok, "checks": [check]}, "" if self.ok else "x")
 
+    def log_failures(self, day, results):
+        pass
+
 
 @pytest.mark.parametrize("ok", [True, False])
 def test_orders_replay_with_c4_s_validator_and_never_order_a_c4_blocked_choice(tmp_path, ok):

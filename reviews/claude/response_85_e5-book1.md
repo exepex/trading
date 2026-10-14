@@ -196,6 +196,38 @@ The judge's chain was checked against the code and is right:
 
 Mutations (`python -B`, caches cleared): the 5 plants for C are caught, and the full E5 set still catches 31 of 31.
 
+## Addendum 4: judge 84 addendum 4, must-fix D (a same-day rerun dirties the failure log), fixed
+
+Accepted. Evidence: before the fix, `DecisionRun.decide` ran `validate_chosen`, and C4's validator appended its rows,
+before `store.write` raised `DuplicateRun`. I reproduced it with the new tests on the old code (the mutation that puts
+the log back before the write fails both of them).
+
+The fix (root cause: checking and logging were one step):
+1. **Checking writes nothing.** `BookTradeValidator.validate` returns its report inside `ValidityResult` (a new
+   `report` field, not part of equality) and no longer appends to the log. `validate_chosen` is unchanged and so has no
+   side effect, in a decision and in a replay.
+2. **The run logs after its write.** `TradeValidator` gains `log_failures(day, results)`. `DecisionRun.decide` calls
+   it only after `store.write` returns. A duplicate refused by the store therefore logs nothing. The order replay still
+   uses `log=False` and never calls it.
+3. **Tests.**
+   - `tests/book1/test_rerun_c4_log.py`: a real git checkout and origin, the real `BookTradeValidator` and
+     `ValidityFailureLog`, and Book 1 with the real `GitCommitter`. Deciding twice with the same inputs gives "already
+     decided" the second time; the CSV bytes are unchanged and `git status --porcelain` is empty after both runs.
+   - `tests/decisions/test_validity_link.py`: at D3 level, a `DuplicateRun` leaves the CSV unchanged.
+
+Known limit (not new): if the run's records are written and then the log append itself fails (for example, a full
+disk), the run stands without its CSV rows. The records still carry each failure in `validity.c4`, so nothing is
+lost from the audit. The exception leaves `Book1.decide` before its commit, so the run stays uncommitted until a rerun
+(refused as a duplicate) or a person commits it. This is the same as any write failure inside the run.
+
+Mutations (`python -B`, caches cleared):
+- the log moved back before the write is caught;
+- the call removed is caught;
+- logging inside `validate` again is caught.
+
+A fourth plant (logging passes too) survived, because `ValidityFailureLog.append` already ignores a passing report. So
+I removed that redundant `ok` filter rather than test it.
+
 ## 4. Gates
 
 Full suite, `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py` and the 350-line limit: the

@@ -1,12 +1,14 @@
 """C4 inside the decision run (story D3's `validity.c4`, story C4): every trade D2 chose for the book is checked by
 an independent validator before its record is written. A failure blocks the trade: its record keeps D2's outcome
 and says "no trade, blocked by C4", and the day's chosen list leaves it out. Shadow outcomes and unchosen candidates
-are not trades, so they are not checked. The same function runs in a replay, so the result is reproduced too."""
+are not trades, so they are not checked. The same function runs in a replay, so the result is reproduced too. Checking
+writes nothing: the run logs the failures only after its records are written (judge 84, must-fix D), so a rerun that
+the store refuses as a duplicate leaves the failure log untouched."""
 
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import TYPE_CHECKING, Protocol
 
@@ -25,6 +27,7 @@ class ValidityResult:
     ok: bool
     record: dict  # every check with its numbers
     reason: str  # the failed checks, empty when it passed
+    report: object = field(default=None, compare=False, repr=False)  # the validator's own report, for its failure log
 
 
 class TradeValidator(Protocol):
@@ -32,6 +35,9 @@ class TradeValidator(Protocol):
         self, day: date, outcome: Outcome, market: Market, playbook: Playbook, book: RiskBook,
         earlier: tuple[Outcome, ...],
     ) -> ValidityResult: ...  # fmt: skip
+
+    def log_failures(self, day: date, results: Mapping[str, ValidityResult]) -> None:
+        """Called once the run's records are written; a replay's validator writes nothing."""
 
 
 def validate_chosen(

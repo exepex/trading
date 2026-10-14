@@ -6,6 +6,8 @@ import csv
 import json
 from datetime import datetime, time, timedelta
 
+import pytest
+
 from fno.checks.validity import Sources, ValidityChecker
 from fno.checks.validity_adapter import BookTradeValidator
 from fno.checks.validity_evidence import EvidenceReader
@@ -16,7 +18,7 @@ from fno.checks.wiring import validity_modes
 from fno.composition import DESK_DECISION_TIME
 from fno.models import IST
 from fno.playbook.decision_run import DecisionRun, replay
-from fno.playbook.decision_store import DecisionStore
+from fno.playbook.decision_store import DecisionStore, DuplicateRun
 from fno.playbook.decision_validity import BLOCKED
 from fno.quotes.recorder import DATASET
 from tests.checks.builders import committed_record
@@ -112,3 +114,13 @@ def test_a_failed_trade_is_blocked_logged_and_replayed(tmp_path):
 
 def test_without_a_validator_the_c4_field_stays_empty(tmp_path):
     assert records(decide(tmp_path, None))[CHOSEN]["validity"]["c4"] is None
+
+
+def test_a_duplicate_run_refused_by_the_store_logs_nothing(tmp_path):
+    """Judge 84, D: C4 checks without writing; the failures are logged only after the run's records are written."""
+    decide(tmp_path, validator(tmp_path, committed=False))
+    failures = tmp_path / "journal" / "book1_rules" / "validity_failures.csv"
+    logged = failures.read_bytes()
+    with pytest.raises(DuplicateRun):
+        decide(tmp_path, validator(tmp_path, committed=False))
+    assert failures.read_bytes() == logged
