@@ -1,0 +1,86 @@
+"""Where decision records live (story D3): `journal/<book>/decisions/<date>/<run_id>/`, one folder per run holding the
+run's replay inputs (`inputs.json`), one record per opportunity and `records.sha256` (`sha256sum -c` form).
+
+- **Atomic:** the whole run is written into a hidden temporary folder and renamed into place, so a crash leaves the
+  complete run or nothing (criterion 3). Hidden folders are never read as runs.
+- **Written once:** an existing run is never written again; a correction is a new run whose record names the one it
+  corrects (criterion 4). `edited` finds any file changed after writing.
+- **Idempotent:** a run whose inputs equal an earlier run's of the same day is refused."""
+
+from __future__ import annotations
+
+import hashlib
+import os
+import shutil
+from collections.abc import Sequence
+from datetime import date
+from pathlib import Path
+
+from ..constants import JOURNAL_FOLDER
+from ..desk.pack_items import canonical_json
+from .decision_record import validate_record
+
+DECISIONS_FOLDER, INPUTS_FILE, SUMS_FILE = "decisions", "inputs.json", "records.sha256"
+
+
+class DuplicateRun(ValueError):
+    """The same inputs were already decided today."""
+
+
+def record_file(opportunity_id: str) -> str:
+    return opportunity_id.replace(":", "_") + ".json"
+
+
+class DecisionStore:
+    def __init__(self, root: Path, book: str):
+        self.folder = Path(root) / JOURNAL_FOLDER / book / DECISIONS_FOLDER
+
+    def day_folder(self, day: date) -> Path:
+        return self.folder / day.isoformat()
+
+    def runs(self, day: date) -> list[Path]:
+        folder = self.day_folder(day)
+        return (
+            sorted(p for p in folder.iterdir() if p.is_dir() and not p.name.startswith(".")) if folder.is_dir() else []
+        )
+
+    def next_run_id(self, day: date) -> str:
+        return f"{day.isoformat()}-r{len(self.runs(day)) + 1}"
+
+    def write(self, day: date, run_id: str, inputs: bytes | None, records: Sequence[dict]) -> Path:
+        for record in records:
+            validate_record(record)
+        target = self.day_folder(day) / run_id
+        if target.exists():
+            raise FileExistsError(f"{target} exists: decision records are never rewritten")
+        if inputs is not None:
+            self._refuse_duplicate(day, inputs)
+        files = {record_file(r["opportunity_id"]): canonical_json(r) for r in records}
+        if inputs is not None:
+            files[INPUTS_FILE] = inputs
+        temporary = target.with_name(f".{run_id}.tmp")
+        shutil.rmtree(temporary, ignore_errors=True)  # a crashed earlier attempt's leftovers
+        temporary.mkdir(parents=True)
+        for name, data in sorted(files.items()):
+            (temporary / name).write_bytes(data)
+        sums = "".join(f"{hashlib.sha256(data).hexdigest()}  {name}\n" for name, data in sorted(files.items()))
+        (temporary / SUMS_FILE).write_text(sums, encoding="utf-8")
+        os.rename(temporary, target)
+        return target
+
+    def _refuse_duplicate(self, day: date, inputs: bytes) -> None:
+        for run in self.runs(day):
+            earlier = run / INPUTS_FILE
+            if earlier.is_file() and earlier.read_bytes() == inputs:
+                raise DuplicateRun(f"{run.name} already decided these inputs for {day}: refused")
+
+    @staticmethod
+    def edited(run: Path) -> list[str]:
+        """The files of a run that differ from (or are missing against) its `records.sha256`."""
+        problems = []
+        for line in (run / SUMS_FILE).read_text(encoding="utf-8").splitlines():
+            digest, name = line.split("  ", 1)
+            path = run / name
+            if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                problems.append(name)
+        return problems

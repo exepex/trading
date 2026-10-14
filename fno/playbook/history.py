@@ -26,3 +26,16 @@ class PlaybookGit(Git):
         """The committed texts of `path`, oldest first."""
         texts = (self.committed_text(path, commit) for commit in self.commits_touching(path))
         return [text for text in texts if text is not None]
+
+    def added_at(self, path: str) -> str | None:
+        """The committer time (ISO, with offset) of the first commit that added `path`; None if it is not committed."""
+        found = self._run("log", "--diff-filter=A", "--format=%cI", "--reverse", "--", path).stdout.split()
+        return found[0] if found else None
+
+    def tree_matches(self, commit: str, paths: tuple[str, ...]) -> bool:
+        """True when `paths` in the working tree (uncommitted and untracked files included) equal them at `commit`."""
+        if not self.commit_exists(commit):
+            return False
+        changed = self._run("diff", "--quiet", commit, "--", *paths).returncode != 0
+        untracked = self._run("ls-files", "--others", "--exclude-standard", "--", *paths).stdout.strip()
+        return not changed and not untracked
