@@ -282,3 +282,57 @@ D3 record (addendum 1, fix B) removes both problems: no playbook parse is needed
 - add a wiring test that `build_book1_orders` holds C4's validator.
 
 **Verdict: FAIL** on C. A and B are met. Then merge `main` and resolve the fixture conflict.
+
+## Addendum 4 (round 4, branch c02104e = fix plus merges of main up to 09dc0b1): C met on the normal day; one rerun path left
+
+**Met:**
+- The replay validator has `log=False`, and a wiring test covers it. My earlier surviving plant (orders without C4's
+  validator) is now caught.
+- `Book1.decide` commits `validity_failures.csv` with its run.
+- `GitError` is now an `AccountWriteRefused`. The fill step catches it per order ("not filled: the account write was
+  refused", with an alert), so a refused write no longer crashes the run before exits.
+- The fixture conflict is resolved.
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,853 passed;
+- ruff, format (639 files) and imports (646): clean;
+- `git merge-tree` with current `main` (fb8c7d8): clean.
+
+**My plants (4): all caught.**
+
+| Plant | Result |
+|---|---|
+| The replay logs again | 1 failed |
+| The failure log not committed | 1 failed |
+| A refused write not caught | 1 failed |
+| `GitError` not an `AccountWriteRefused` | 1 failed |
+
+**My real-git probe, re-run** (`Book1` with `GitCommitter` on a real clone, a validator that fails and logs as
+`BookTradeValidator` does):
+- Day 1: Book 1 decides and commits the run and the CSV. `git status` is clean, and the exit sync is OK. **Fixed.**
+- **Same day, `desk book1` run again with the same inputs:**
+  - `DecisionRun.decide` calls `validate_chosen` (C4 appends its failure rows) **before** `store.write` raises
+    `DuplicateRun`.
+  - `Book1.decide` returns "already decided" without committing.
+  - `git status`: ` M journal/book1_rules/validity_failures.csv`. The next account write is **refused for Book 1 and
+    Book 2** ("uncommitted tracked edits").
+- Consequences:
+  - fills fail closed (alerted);
+  - **every book's exit review fails that day** (alerted, per book);
+  - the CSV holds duplicate failure rows;
+  - it heals only when the next Book 1 decision commits the file.
+- This is realistic. A rerun is the documented path ("a rerun with the same inputs decides nothing twice"), and the
+  claims recommend running the first real day by hand.
+
+### Must-fix D (small)
+
+C4's failure rows must be written only when the run is written. Any path that refuses or aborts the run must leave the
+log untouched.
+
+**Root fix (reasoning only):** `validate_chosen` returns the results without logging. `DecisionRun.decide` appends the
+failed reports to the log **after** `store.write` succeeds, and Book 1 commits both in one commit.
+
+**Test:** decide, then decide again with the same inputs. The CSV is unchanged (no duplicate rows), and `git status`
+is clean.
+
+**Verdict: FAIL on D only.** Everything else in judge 84 is met.
