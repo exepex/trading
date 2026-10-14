@@ -95,3 +95,48 @@ committed. That is fine for a planted stale snapshot, but the claims should not 
 
 - New package `fno/checks/` behind the `DataCheck`, `ExecutionSchedule` and `ShockFlags` interfaces.
 - Its composition root `fno/checks/wiring.py` is listed in CLAUDE.md.
+
+## Addendum 1 (round 2, branch 0cc22a2): PASS, with one check to make on the first real capture
+
+**Must-fix 1: met.**
+- Every spot in the pack is compared with the previous close, and they must all be within the 2% limit.
+- The spots must agree with each other within `SPOT_AGREEMENT = 0.2%` (about 50 points). A larger gap is refused by
+  name: it would mean a chain carried a wrong underlying, for example a future's price with its basis.
+- **0.2% is reasoning only;** no real A4 capture is committed yet.
+- If the real gap is larger, the check **refuses entries and alerts**. That is the safe direction, so it does not
+  block the merge.
+- **Follow-up I will make:** when today's first real capture is committed (the NSE recorder from 14:20 IST, the Groww
+  fallback around 15:13 IST), I measure the gap between its two chains' spots and report it.
+
+**Must-fix 2: met.** The spot check is new-trades-only (`prices_unverified = False`). The test with a +3% move shows
+the entry refused and the due exit filled at valid quotes.
+
+**Ruling 4, the alert names due exits: met.** With no readable snapshot, the gate's alert lists every open trade whose
+exit is due without a price: an exit already ordered, or the time rule (`ExitDesk.due_exits`).
+
+**Ruling 2, root fix: met.**
+- `SnapshotMatchesPack` is replaced by `SnapshotMatchesRecord`. It compares the snapshot read with a committed
+  `CaptureRecord` (ID, quote-file SHA-256, sidecar SHA-256) that the `ExecutionSchedule` supplies.
+- Until E3, the record is the common pack's provenance: the pack is written once and committed. E3 supplies its own
+  execution record without changing C3.
+- The sidecar hash now covers the capture times too.
+
+**My plants (`python -B`, caches cleared; `tests/checks` and `tests/desk`, 89 tests): all 14 caught.** That is 7 new
+ones plus 7 from round 1, whose earlier strings still apply. The new ones:
+
+| Plant | Result |
+|---|---|
+| The spot check marking prices unverified again | 3 failed |
+| The agreement check off | 1 failed |
+| Only the first spot compared | 1 failed |
+| The agreement at 2% | 1 failed |
+| The sidecar hash not compared | 1 failed |
+| A missing record passing | 1 failed |
+| The due exits not named | 1 failed |
+
+**Gates:**
+- full suite: 2,504 passed;
+- ruff and imports: clean;
+- `git merge-tree` with current `main`: clean.
+
+**Verdict: PASS for 0cc22a2.**
