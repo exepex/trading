@@ -83,3 +83,10 @@ criteria.
 - Full suite: 2,238 passed. Ruff and imports are clean.
 
 **After the merge** I check that `main` equals this tip plus a clean merge and that CI is green.
+
+## Addendum 2 (merge check, 662784f)
+
+**MET.** 662784f has parents 0d44276 (main) and 5acb188 (the passed tip). I recomputed the merge of the two:
+the only difference from 662784f is `reviews/claude/README.md`, the index conflict the builder resolved by hand. No
+code differs. CI `checks` on 662784f (run 38497390532) and on the next commit e1ec07e (run 38497427804) are green.
+My full suite on main at e1ec07e: 2,253 passed; ruff and imports are clean.

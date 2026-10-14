@@ -66,3 +66,18 @@ a stated C1 limit.
 ## Process
 
 Followed the rule: reviewed on the branch before the merge.
+
+## Addendum 1 (merge check, f655612; the trade-date test)
+
+**MET.** f655612 merges b2dfa90, which is the passed tip aa788df plus three changes, none in `fno/`:
+- `config.yaml`: the exercise STT comment now cites NSE circular NSE/FATAX/73524 (value unchanged at 0.15);
+- the claims file;
+- one new test, `test_rows_of_another_trade_date_under_the_expiry_day_s_name_are_refused`.
+
+**The minor gap is closed.** The test sets every row's TradDt to the day before and expects a refusal. My plant,
+removing the `TradDt != expiry` check from `fno/desk/settlement.py`, is now caught (1 failed, 9 passed).
+
+My recomputed merge of 7ed140e and b2dfa90 equals f655612 exactly. CI `checks` on f655612 (run 38496795370) is green.
+
+**No other code on main.** Main from a2fcb2e (my last merge check) to e1ec07e equals a2fcb2e plus the D2 and E7 tips,
+with no other change under `fno`, `tests`, `tools`, `db`, `.github`, `config.yaml` or the requirements files.
