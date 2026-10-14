@@ -91,6 +91,7 @@ def test_pilot_unscored_and_overridden_trades_stay_out_of_the_head_to_head(root)
         and board["protocol"] == "protocol v1, not frozen: figures provisional"
     )
     assert one["pilot"]["trades"]["ids"] == ["p1"] and one["head_to_head"]["trades"]["ids"] == ["h1"]
+    assert one["pilot"]["label"] == "pilot, not counted"
     assert one["overridden"]["trades"]["ids"] == ["o1"] and one["unscored"]["trades"]["ids"] == ["u1"]
     assert list(one["head_to_head"]["segments"]) == [f"{BOOK1_RULES}/{BOOK1_RULES}-v1"]
     assert one["overall"]["trades"]["ids"] == ["p1", "h1", "o1", "u1"]
@@ -105,6 +106,7 @@ def test_head_to_head_net_and_net_per_unit_of_risk_by_hand(root):
     assert h2h["risk"]["net_per_unit_of_risk"] == round(net(root, BOOK1_RULES, "h1") / (6000 * held), 6)
     assert h2h["risk"]["stress_usage_at_entry_max"] == 0.4 and h2h["risk"]["margin_days_rs"] == 9000 * held
     assert h2h["uncertainty"]["sample_met"] is False and h2h["ai_cost_allocated_rs"] == 0.0
+    assert h2h["uncertainty"]["figures"] == "S1 proposal, provisional: not decided by the owner"
 
 
 def test_an_open_trade_is_marked_and_operating_costs_and_unknown_ai_cost_are_stated(root):

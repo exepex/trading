@@ -10,7 +10,7 @@ from datetime import date
 from ..costs import CHARGE_NAMES
 from .book_trades import ScoredTrade
 from .series import DailySeries, held_at_close
-from .uncertainty import Uncertainty
+from .uncertainty import FIGURES_STATUS, Uncertainty
 
 AI_NOT_AVAILABLE = "not available: F8 (AI cost allocation) not built"
 MARGIN_AT_ENTRY = "stressed margin at entry x sessions held (not re-margined daily)"
@@ -73,6 +73,6 @@ def section(
         "uncertainty": None if uncertainty is None else {
             "lower_bound": None if uncertainty.lower_bound is None else round(uncertainty.lower_bound, 6),
             "sample_met": uncertainty.sample_met, "claim_allowed": uncertainty.claim_allowed,
-            "reason": uncertainty.reason},
+            "reason": uncertainty.reason, "figures": FIGURES_STATUS},
         "valuation": _valuation(trades),
     }  # fmt: skip

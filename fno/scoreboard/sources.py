@@ -1,4 +1,5 @@
-"""Scoreboard B's adapters (story S2): the book's operating-cost file in C1's columns, the AI cost until F8 exists,
+"""Scoreboard B's adapters (story S2): the book's operating-cost file in C1's columns, the owner's overrides as D3
+records them, the AI cost until F8 exists,
 each day's marks from the execution snapshot E3 recorded, and the SHA-256 of every file the board reads."""
 
 from __future__ import annotations
@@ -33,6 +34,13 @@ class FileOperatingCosts:
     def rows(self, book: str) -> list[dict]:
         path = self.path(book)
         return read_operating_costs(path.read_text(encoding="utf-8")) if path.is_file() else []
+
+
+class RecordedOwnerOverride:
+    """D3's `owner_override` field, which F4 fills; empty (no override) until F4 exists."""
+
+    def overridden(self, record: dict) -> bool:
+        return bool(record.get("owner_override"))
 
 
 class AiCostBeforeF8:

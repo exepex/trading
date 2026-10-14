@@ -11,11 +11,15 @@ from ..books.versions import Segment, Segments, Versions
 from ..playbook.decision_record import NO_TRADE_ID, decision_facts
 from .committed_runs import DayRun
 from .entry_facts import EntryFacts, entry_facts
+from .ports import OwnerOverrides
 
 
 class EntryDecisions:
-    def __init__(self, runs: Sequence[DayRun], records: Callable[[DayRun], list[dict]], versions: Versions):
-        self.runs = tuple(runs)
+    def __init__(
+        self, runs: Sequence[DayRun], records: Callable[[DayRun], list[dict]], versions: Versions,
+        overrides: OwnerOverrides,
+    ):  # fmt: skip
+        self.runs, self.overrides = tuple(runs), overrides
         self._records: dict[tuple[str, date, str], dict] = {}
         facts = []
         for run in self.runs:
@@ -31,7 +35,9 @@ class EntryDecisions:
     def entry(self, book: str, day: date, opportunity_id: str) -> EntryFacts | None:
         """The committed record that opened a trade on `day`; None when the desk used no such record."""
         record = self._records.get((book, day, opportunity_id))
-        return entry_facts(record, self.segment(book, day, opportunity_id)) if record else None
+        if record is None:
+            return None
+        return entry_facts(record, self.segment(book, day, opportunity_id), self.overrides.overridden(record))
 
     def common_start(self, books: Sequence[str]) -> date | None:
         """S1's rule: the first session on which every book has an on-time committed run made under a version

@@ -1,5 +1,6 @@
 """What scoreboard B reads besides the books' own records (story S2), each behind an interface so its source can change
-in one class: a book's operating costs (C1's columns), its allocated AI cost (F8) and the protocol's status (S1)."""
+in one class: a book's operating costs (C1's columns), the owner's overrides (F4), its allocated AI cost (F8) and the
+protocol's status (S1)."""
 
 from __future__ import annotations
 
@@ -11,6 +12,11 @@ from typing import Protocol
 class OperatingCosts(Protocol):
     def rows(self, book: str) -> list[dict]:
         """C1's operating-cost rows of the book (`month,item,category,amount_rs,source`); empty when none recorded."""
+
+
+class OwnerOverrides(Protocol):
+    def overridden(self, record: dict) -> bool:
+        """Whether the owner overrode the decision a committed D3 record holds (story F4's field)."""
 
 
 class AiCostAllocation(Protocol):

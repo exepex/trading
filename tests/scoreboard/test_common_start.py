@@ -9,7 +9,7 @@ from fno.constants import BOOK1_RULES, BOOK3_AI, BOOKS
 from fno.scoreboard.book_board import COMMON_START_NOT_REACHED
 from fno.scoreboard.committed_runs import CommittedRuns
 from fno.scoreboard.entry_decisions import EntryDecisions
-from fno.scoreboard.sources import SnapshotMarks
+from fno.scoreboard.sources import RecordedOwnerOverride, SnapshotMarks
 
 from .builders import SERVED, record, versions, write_log, write_run
 from .test_whole_system import build, history
@@ -28,7 +28,7 @@ def decide_all(root, day, committed="15:05:00", book3_served=SERVED):
 
 def common_start(root, rows=V1):
     found = CommittedRuns(root)
-    return EntryDecisions(found.runs(), found.records, versions(*rows)).common_start(BOOKS)
+    return EntryDecisions(found.runs(), found.records, versions(*rows), RecordedOwnerOverride()).common_start(BOOKS)
 
 
 def test_a_late_run_does_not_start_the_comparison(tmp_path):

@@ -16,7 +16,8 @@ from .sections import section
 from .series import costs_by_session, daily_series
 from .uncertainty import uncertainty
 
-COMMON_START_NOT_REACHED = "common start not reached: every figure is pilot evidence"
+PILOT = "pilot, not counted"
+COMMON_START_NOT_REACHED = "pilot, not counted: common start not reached, every figure is pilot evidence"
 
 
 @dataclass(frozen=True)
@@ -48,7 +49,7 @@ class BookBoard:
         pilot = [t for t in inputs.trades if t.opened_on < common_start]
         later = [t for t in inputs.trades if t.opened_on >= common_start]
         before = {m: v for m, v in monthly.items() if m < common_start.strftime("%Y-%m")}
-        board["pilot"] = self._section(inputs, pilot, inputs.first, inputs.on, before, False)
+        board["pilot"] = self._section(inputs, pilot, inputs.first, inputs.on, before, False) | {"label": PILOT}
         scored = [t for t in later if t.group not in (NO_RECORD, OVERRIDDEN)]
         after = {m: v for m, v in monthly.items() if m >= common_start.strftime("%Y-%m")}
         board["head_to_head"] = self._section(inputs, scored, common_start, inputs.on, after, True)

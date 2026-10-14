@@ -17,7 +17,7 @@ from .committed_runs import CommittedRuns
 from .daily_values import DayMarks
 from .entry_decisions import EntryDecisions
 from .ports import ProtocolStatus
-from .sources import AiCostBeforeF8, FileOperatingCosts, SnapshotMarks, input_hashes
+from .sources import AiCostBeforeF8, FileOperatingCosts, RecordedOwnerOverride, SnapshotMarks, input_hashes
 from .whole_system import WholeSystemBoard
 
 
@@ -28,7 +28,7 @@ def board_from(
     runs = CommittedRuns(root)
     return WholeSystemBoard(
         BOOKS, lambda book: DeskRecords(PaperAccount(root, book)),
-        lambda: EntryDecisions(runs.runs(), runs.records, versions), calendar.sessions, marks,
+        lambda: EntryDecisions(runs.runs(), runs.records, versions, RecordedOwnerOverride()), calendar.sessions, marks,
         FileOperatingCosts(root), BookBoard(calendar.sessions, AiCostBeforeF8()), charges, protocol,
         lambda: input_hashes(root, BOOKS, runs.runs()),
     )  # fmt: skip

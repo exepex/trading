@@ -1,7 +1,7 @@
 """S1's uncertainty criterion on scoreboard B (story S2): a one-sided lower bound of net per unit of risk from a moving-
 block bootstrap over the daily (net change, risk at stake) pairs, the ratio of means recomputed on every resample, and
-the sample a claim needs. The figures below are the protocol's (`uncertainty_criterion`, `paper_gate`); a test checks
-each against the protocol's text, and the protocol's freeze hashes this file."""
+the sample a claim needs. The figures below are S1's PROPOSALS (`uncertainty_criterion`, `paper_gate`), not yet
+decided by the owner: provisional, never frozen until S1's freeze. A test checks each against the protocol's text."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ LOWER_PERCENTILE = 5  # one-sided 95%, nearest rank
 MIN_DAYS_SINCE_START = 120  # trading days since the common start
 MIN_POSITIONS = 20  # completed positions (paper gate)
 MIN_MONTHS = 3  # full calendar months (paper gate)
+FIGURES_STATUS = "S1 proposal, provisional: not decided by the owner"
 
 
 @dataclass(frozen=True)

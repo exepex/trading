@@ -142,3 +142,32 @@ proposed answers. Package: `fno/scoreboard/`, 16 modules, the largest 81 lines. 
    filled is a C1 question for later.
 6. **The protocol is not frozen.** Every board says "not frozen: figures provisional" until S1's freeze record exists.
    Holm's correction across claims is a review step (S4), not S2.
+
+## Addendum 2: the orchestrator's answers, applied
+
+1. **F4 hook:** D3's `owner_override` is now read behind a port. `OwnerOverrides` is implemented by
+   `RecordedOwnerOverride` and wired in `wiring.py`. F4 itself is not built.
+2. **Pilot view:** the pilot section is labelled "pilot, not counted" in every board. Before the common start the
+   label adds "common start not reached".
+3. **Daily equity history:** it is its own story, **E3-equity-history** (E3 calls E1's `record_equity` each session).
+   It is not built in S2. S2 rebuilds daily values from the recorded snapshots and does not depend on it.
+4. **Uncertainty figures:** these are S1 proposals the owner has not decided. Each uncertainty block in the output
+   says `"figures": "S1 proposal, provisional: not decided by the owner"`, and the module docstring says the same. The
+   test against the protocol text only checks that the code and the draft agree; nothing claims they are frozen.
+
+**Scope check against "fewest moving parts".** Ports: the three named (operating costs, F4 overrides, F8 AI cost)
+plus `ProtocolStatus`. `ProtocolStatus` is a value read from S1's files, not a port to a missing service. The pieces
+beyond the four acceptance criteria, and why each stays:
+- **Stale and unvalued marks:** without these, an open trade on a day with no valid quote would need an invented
+  price.
+- **The SHA-256 of the inputs:** these let the judge rebuild the board from the same records (criterion 4).
+
+## Follow-ups (written down, not built)
+
+1. **E3-equity-history:** write `equity_history.csv` every session (orchestrator's story).
+2. **C1 pricing:** price each trade at the charges table in force when it filled. Today reconciliation fails if the
+   table changes later, which is shown, not hidden.
+3. **Daily stressed margin:** for margin-days, record it each session. Today it is the margin at entry, labelled.
+4. **Holm's correction across claims** belongs to the S4 review, not S2.
+5. **Quote snapshots in the input hashes:** the board hashes the run logs that name the snapshots, not the snapshot
+   files. Adding them would make the hash list self-contained.
