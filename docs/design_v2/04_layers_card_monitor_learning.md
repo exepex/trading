@@ -14,6 +14,7 @@ column is illustrative only: no such strategy is approved, and "x" marks digits 
 
 | Field | Example of content |
 |---|---|
+| Label | **PAPER ONLY**: every card is for paper trading; no card ever tells the owner to place a real order (ChatGPT review 97) |
 | What | NIFTY 24 Nov 2026 put spread: buy 1 lot 22,600 PE, sell 1 lot 22,450 PE |
 | Entry range | Net debit Rs 52-58 a unit; do not enter above Rs 58 (from 15:00 bid/ask; card valid until 15:25) |
 | Size | 1 lot (65 units); funds at entry from C2 and A14 (the debit plus the short leg's exposure margin, which a hedge does not reduce: about Rs 29,500 on 14 Oct, response 92) |

@@ -172,9 +172,12 @@ forecast scoring is frozen by protocol v4's own freeze (G6), not by S1. One addi
    calendar is still to be given (3.2, 6.5).
 6. **Decided 15 Oct 2026: AI share at most half of measured plan minutes; any new recurring cost needs a yes** (8.1).
 7. **Decided 15 Oct 2026:** the stop-rule review as in 8.2; on "undecided", option 1 if the projected date is within
-   2 years, otherwise option 2.
+   2 years, otherwise option 2. **Amended 15 Oct 2026:** zero eligible or resolved shadows gives Test B "undecided /
+   no_economic_test", never "no".
 8. **Decided 15 Oct 2026: the real-money gate and test accepted**; the exact account size (about Rs 2 lakh) and
-   per-trade cap (Rs 4,000-5,000) are confirmed before RM1 freezes (8.3, 8.4).
+   per-trade cap (Rs 4,000-5,000) are confirmed before RM1 freezes (8.3, 8.4). **Amended 15 Oct 2026:**
+   selection-adjusted evidence always (a second untouched forward period or Holm across the trial count), and the
+   real-money pass is a paired real-vs-paper test with a prediction interval.
 9. **Decided 15 Oct 2026: (b), card records in Google Drive only**; the public repositories hold no live strikes or
    entry ranges (8.5).
 10. **Decided 15 Oct 2026:** books 2-3 start trading at the first approved strategy or rung-2 idea (slice E).

@@ -35,14 +35,18 @@ trials). Fresh today: stock option chains around results (never used); 15:00 bid
 15-minute quotes (not yet recorded); participant OI history (A8, untested).
 
 **Multiple testing.** Within a registered batch, Holm's correction across the batch's primary tests. The Holm family of
-a judged shadow is **every shadow registered on that question or batch since its last judgement, whether running,
-stopped or retired** (judge 96 addendum 7: otherwise one could register 20 shadows, stop the 19 weak ones and judge the
-survivor in a family of 1). Stopping a shadow before its frozen sample is reached is recorded with its reason, and the
-shadow stays in the family. So watching many shadows and picking the best cannot pass unadjusted; and a shadow's records
-count only if its rule, sample and pass mark were frozen before collection. Looking at a shadow and then changing the
-idea makes a new idea and a new row. Across the factory, every report shows "trial k of K" and the number of false
-passes expected by chance at the pass level (for example 52 trials at 1% one-sided gives about 0.5 expected false
-passes). A single pass among many fails is treated as "needs a second, independent test" before paper.
+a judged shadow is **cumulative per registered research question: every shadow ever registered on it, whether active,
+stopped, retired, already judged or new** (judge 96 addenda 7 and 9; ChatGPT review 97). A family that reset at each
+judgement would give every new batch a fresh 5% chance; one limited to running shadows would let someone register 20,
+stop the 19 weak ones and judge the survivor alone. Holm is recomputed with the cumulative membership at every
+confirmatory decision; earlier verdicts stay recorded and are never relabelled. Stopping a shadow before its frozen
+sample is reached is recorded with its reason, and the shadow stays in the family. **One judgement per hypothesis, at
+its frozen sample** (its decision horizon): no interim re-judging of attractive early results, unless an alpha-spending
+rule was registered before collection. So watching many shadows and picking the best cannot pass unadjusted; and a
+shadow's records count only if its rule, sample and pass mark were frozen before collection. Looking at a shadow and
+then changing the idea makes a new idea and a new row. Across the factory, every report shows "trial k of K" and the
+number of false passes expected by chance at the pass level (for example 52 trials at 1% one-sided gives about 0.5
+expected false passes). A single pass among many fails is treated as "needs a second, independent test" before paper.
 
 **First ideas queue (labelled; none is a candidate yet).**
 

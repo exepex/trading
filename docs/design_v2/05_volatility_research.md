@@ -120,12 +120,14 @@ review 95, accepted).
 4. **Significance:** Holm's step-down across the family at 5% family-wise.
 5. **Minimum forecast effect, registered:** at least a 3% lower mean QLIKE than the primary baseline, or a Brier skill
    score of at least 0.02. Because the ranking loss `ln f + RV / f` has no natural zero, "3% lower" is defined exactly
-   as: the mean paired difference is at most -0.03 x the baseline's mean textbook QLIKE over the scored days with RV > 0
-   (G6 freezes that day set: the same scored, non-void days as the paired comparison, restricted to RV > 0, fixed before
-   any score) (where the textbook form is defined and equals the same paired differences). This keeps the owner's number
-   and only makes its unit exact (flagged to the owner in response 97) (reasoning only for both numbers; accepted by the
-   owner on 15 Oct 2026, also as the stop rule's futility margin). These are minimum **forecast** effects only, never
-   evidence of money. A significant but smaller gain is "real but too small to use".
+   as follows (ChatGPT review 97, accepted). The **minimum-effect gate** uses one population: the paired dates with RV >
+   0, where the textbook form is defined and gives the same paired differences. On those dates, the mean paired
+   difference must be at most -0.03 x the baseline's mean textbook QLIKE. The **primary significance test** keeps every
+   scored, non-void date, zeros included. Every report gives the number of zero-RV dates left out of the gate. G6
+   freezes both date sets before any score. This keeps the owner's number and only makes its unit exact (flagged to the
+   owner in response 97) (reasoning only for both numbers; accepted by the owner on 15 Oct 2026, also as the stop rule's
+   futility margin). These are minimum **forecast** effects only, never evidence of money. A significant but smaller
+   gain is "real but too small to use".
 6. **Stability:** the sign of the gain is the same in the first and second half of the scored period (descriptive).
 7. **Economic check:** skill counts for trading only through a mapping registered before scoring: each factory idea that
    rests on a forecast names how the forecast turns into a position, and its shadow net after costs (rung 2) is the

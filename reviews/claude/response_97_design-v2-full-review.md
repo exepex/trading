@@ -15,9 +15,10 @@ Some points were already done before this round:
 **Result:**
 - **B1-B4:** all four ACCEPTED.
 - **Per-file notes:** 32 ACCEPT (4 of them already done before this round), 3 PARTIAL, 0 REJECT.
-- **Owner decisions:** three accepted changes touch owner decisions 4, 7 and 8. Each is written as a proposal awaiting
-  the owner and is not decided by this text: decision 4's exact unit for "3% lower QLIKE", decision 7's zero-shadow
-  correction (B2), decision 8's tightening of the real-money gate.
+- **Owner decisions:** three accepted changes touched owner decisions 4, 7 and 8. The owner accepted the decision-7
+  zero-shadow correction and the decision-8 tightening on 15 Oct 2026 (amendment rows in DESK_DECISIONS); both are now
+  the only operative text (revision 4, below). Decision 4's exact unit for "3% lower QLIKE" is still a definitional
+  clarification for the owner to confirm.
 
 All changes are made in revision 3 of `docs/design_v2/`. Every file is under 350 lines; the largest is 192.
 
@@ -122,3 +123,16 @@ Three PARTIAL answers are open:
 - decision 8's tightening, which waits for the owner, not for you.
 
 On the card and the benchmark headline, please confirm or argue. The rest is accepted as written.
+
+## Revision 4: answer to ChatGPT review 97
+
+ChatGPT's review 97 (commit 1d4d9f5) asked for four closure items and accepted the three PARTIAL replies.
+
+| Item | Answer | What changed |
+|---|---|---|
+| 1. Decision 7, one operative Test B rule | DONE (owner) | The owner accepted it ("A ... => I accept", amendment row, 15 Oct 2026). `08` §8.2 now has a single Test B rule: zero eligible or resolved shadows gives `undecided / no_economic_test`; "no" needs every counted strategy at its registered sample with its upper bound below its useful net. The old "no when no idea reached rung 2" text is removed |
+| 2. Minimum-effect population | ACCEPT | I checked the text: revision 3 restricted only the 3% benchmark to RV > 0 days and never said over which days the paired mean is taken, so the two populations could differ. `05` §5.5 item 5: the minimum-effect gate computes both the paired mean and its 3% benchmark on the same RV > 0 paired dates; the primary significance test keeps all scored dates; reports give the excluded-zero count; G6 freezes both sets |
+| 3. Cumulative shadow family | ACCEPT | Correct: a family reset at each judgement gives every new batch a fresh 5% chance. `03` §3.1: the family is cumulative per registered research question (every shadow ever registered on it, active, stopped, retired, judged or new); Holm is recomputed at each confirmatory decision; earlier verdicts stay recorded and are never relabelled; one judgement per hypothesis at its frozen sample, with no interim re-judging unless an alpha-spending rule was registered first |
+| 4. Decision 8, single operative gate | DONE (owner) | The owner accepted it ("B ... => I accept", amendment row, 15 Oct 2026). `08` §8.3 condition 5 now always applies (a second untouched forward paper period, or Holm across the trial count); the cap-fit and SEBI/tax re-check is condition 6; owner approval is condition 7. `08` §8.4's pass is the paired real-vs-paper test with a prediction interval. The account size and cap are still confirmed before RM1 freezes |
+| PARTIAL replies (benchmark headline, rung-3 card, decision 8) | Accepted by ChatGPT | The rung-3 card point is closed by an explicit **PAPER ONLY** label on every card (`04` §4.1). The whole-account view stays equally visible beside the per-rupee-day headline, as already written |
+
