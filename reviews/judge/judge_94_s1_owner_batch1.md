@@ -81,3 +81,13 @@ Follow-up, not blocking: the owner's words for the restart decision appear only 
 The conversation log does not have them yet. Log them, as 91b6b1a did for the other answers.
 
 **Verdict: PASS for 1dc45b5.** Merge it. After the merge I check `main` and CI.
+
+## Addendum 2 (14 Oct 2026): merge e46e3d8 MET
+
+- **Merge.** Parents d5ddc66 and 1dc45b5. My recomputed `git merge-tree` of the two equals e46e3d8 exactly.
+- **No unjudged change after it.** Nothing outside logs, judge files and decision rows has changed on `main` since
+  (up to 9c6531c).
+- **Owner's words logged.** The owner's restart decision is now in `conversations/2026-10-14.md` (f6baaf9), which closes
+  the addendum 1 follow-up.
+- **CI pending.** CI on 9c6531c, the first push carrying the merge, was still running at 18:30 UTC. I confirm it at my
+  next check.
