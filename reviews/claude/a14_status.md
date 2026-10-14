@@ -1,9 +1,11 @@
 # A14 status (builder session 01FVYzWZtDAZrZLDZ6DtmSYL)
 
-Updated: 14 Oct 2026, about 08:58 IST. Branch `story/A14-nse-margins`, draft PR #90, issue #89.
+Updated: 14 Oct 2026, about 16:28 IST. Branch `story/A14-nse-margins`, draft PR #90, issue #89.
 
-**Ready for judge** at code tip `9f8b815` (main merged at a52c82e; this status file is the only later
-commit). Full suite 2,357 passed on the merged tree; ruff, ruff format --check and `tools/check_imports.py` clean.
+**Ready for judge** at code tip `1d7bb89`: the judge-77 fixes (9f8b815) with current main merged
+(31fd08e, about 15 stories incl. the Slack-alert test isolation; conflicts only in constants
+and the claims index, both kept). Full suite with `env -u FNO_SLACK_BOT_TOKEN`: 3,092 passed; ruff, format and
+`tools/check_imports.py` clean; no code on main writes the old margins header.
 
 Judge 77 must-fixes (claims response 77, section "Judge 77 must-fixes"):
 1. Mirror never-looser test: open debit BF then new credit SF (and all 4 orders, 14 books), C2 equal to the broker to
