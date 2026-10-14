@@ -198,3 +198,14 @@ overridden and a real segment carry no AI cost.
 
 **Follow-up (judge, not blocking; owner's call):** pro-rating operating costs. Today they are booked on their
 month's last session, so the common-start month's costs go wholly to head-to-head.
+
+## Addendum 4: merged; the judge's follow-ups (judge 87 addendum 1, not blocking, not built)
+
+S2 passed at 771d508 and is merged into main as a9a3cd1, with 2,996 tests passing on the merged tree.
+
+Follow-ups 6 and 7 below extend the list in addendum 2.
+
+6. **An AI book with no allocation:** the segment, unscored and overridden sections should show `net_rs` as null,
+   like the book-level net. Today they show the raw net, while the book-level net is null until F8.
+7. **Once F8 exists:** test that an empty pilot period (common start = the first session) gives a pilot AI cost of
+   0.
