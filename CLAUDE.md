@@ -108,8 +108,9 @@ commit with `--no-verify`.
   routine side, standard library only), `fno/playbook/wiring.py` (the playbook loader and status changes, story D1),
   `fno/desk/wiring.py` (the paper desk's fills and exits, story E4), `fno/desk/pack_wiring.py` (the daily common and
   private packs, story E2), `fno/scorecard/wiring.py` (strategy scorecards and pause rules, story E6),
-  `fno/checks/wiring.py` (the data checks before every decision and the hard-validity checks, stories C3 and C4) and
-  `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3).
+  `fno/checks/wiring.py` (the data checks before every decision and the hard-validity checks, stories C3 and C4),
+  `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3) and `fno/evaluation/wiring.py` (the
+  evaluation protocol's freeze and checks, story S1).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.
