@@ -40,13 +40,13 @@ check the file. No need to waste AI tokens."
 | index-closes | 14 Oct 02:11 | 07:30 | 5 h 19 m |
 | index-closes | 14 Oct 06:11 | 11:49 | 5 h 38 m |
 | participant-oi-release | 13 Oct 17:15 | 21:52 (03:22 IST next day) | 4 h 37 m, then cancelled |
-| participant-oi-release | 14 Oct 11:41 | not started at 13:50 | 2 h 9 m + |
-| forecast-capture | 14 Oct 08:30 | never run at all (0 runs at 13:50) | 5 h 20 m + |
+| participant-oi-release | 14 Oct 11:41 | not started at 14:05 | 2 h 24 m + |
+| forecast-capture | 14 Oct 08:30 | 13:56 (its first run ever) | 5 h 26 m |
 
 Corrected after judge 89. My first table listed two "dropped" slots on 13 Oct (index-closes 15:41, participant-oi-release
 11:41 UTC); both came before the workflow existed (first commits 17:28 and 14:58 UTC), so they say nothing about
-GitHub. I had not compared the slot times with the commit times. forecast-capture (added 13 Oct 16:30 UTC) has had no run
-at all, scheduled or manual.
+GitHub. I had not compared the slot times with the commit times. forecast-capture (added 13 Oct 16:30 UTC) had no run at
+all at 13:50 UTC, as the judge said; its 08:30 slot then started at 13:56, its first run ever, 5 h 26 m late.
 
 `workflow_dispatch` runs started within seconds (participant-oi-release runs 1-3, index-closes run 1).
 
