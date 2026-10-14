@@ -9,6 +9,11 @@
    legs bought back first, protection sold last. A leg without a valid quote is a pending exit with an alert, retried
    at the next scheduled snapshot. The position is closed only when every exit fill is recorded.
 
+When C3's data checks find the snapshot's prices unverified (stale, outside its window, not the pack's, a suspect
+spot), no price is judged or filled from it: protection is not marked, price rules do not fire, and a due exit (ordered
+or by the time rule) is a pending exit with an alert, filled at the next valid quotes. Expired legs still settle from
+NSE's own file, which is not a quote.
+
 Price rules are not judged at the snapshot that opened the position (its value there is only the spread just paid).
 """
 
@@ -19,6 +24,7 @@ from dataclasses import dataclass
 
 from ..alerts.sender import AlertSender
 from ..books.equity import trade_positions
+from ..checks.data_checks import CheckReport, DataChecks
 from ..constants import (
     FILL_CLOSE,
     NIFTY_SYMBOL,
@@ -60,19 +66,22 @@ class ExitDesk:
     def __init__(self, charges: Mapping[str, float], alerts: AlertSender, settlements: SettlementPrices, clock=now_ist):
         self.charges, self.alerts, self.settlements, self.clock = dict(charges), alerts, settlements, clock
 
-    def review(
-        self, book: str, snapshot: ExecutionSnapshot, journal: DeskJournal, rules: Mapping[str, Sequence[ExitRule]]
-    ) -> list[ExitResult]:
+    def review(self, book: str, snapshot: ExecutionSnapshot, journal: DeskJournal,
+               rules: Mapping[str, Sequence[ExitRule]], checks: CheckReport) -> list[ExitResult]:  # fmt: skip
+        """Every open position at this snapshot; `checks` is C3's report on it."""
         check_point_in_time(snapshot, self.clock())
+        DataChecks.require_for(checks, snapshot)
         positions = open_positions(journal.records)
-        return [self._review(book, p, snapshot, journal, rules.get(p.trade_id)) for p in positions]
+        return [self._review(book, p, snapshot, journal, rules.get(p.trade_id), checks) for p in positions]
 
-    def _review(self, book, position: OpenPosition, snapshot, journal, rules) -> ExitResult:
+    def _review(self, book, position: OpenPosition, snapshot, journal, rules, checks: CheckReport) -> ExitResult:
         check_point_in_time(snapshot, self.clock(), not_before=position.last_fill_at)
         decision = exit_decision_id(position.trade_id)
         maker = FillMaker(book, position.strategy, decision, position.trade_id, snapshot, self.charges)
         if any(leg.expiry < snapshot.day for leg, _ in position.holdings):
             return self._settle(book, position, snapshot, journal)
+        if checks.prices_unverified:
+            return self._wait_for_valid_quotes(book, position, snapshot, journal, rules, checks)
         unquotable = [
             leg.contract for leg, units in position.holdings
             if leg.protective and not price_leg(snapshot, leg, leg.side(opening=False), units).fills
@@ -87,14 +96,28 @@ class ExitDesk:
         if not reason and position.opened_by != snapshot.snapshot_id:
             if rules is None:
                 return self._alert(book, position.trade_id, HELD, NO_RULES)
-            context = ExitContext(snapshot.day, self._net_if_closed(position, snapshot, maker))
-            reason = next((r for r in (rule.reached(position, context) for rule in rules) if r), "")
+            reason = _reached(
+                rules, position, ExitContext(snapshot.day, self._net_if_closed(position, snapshot, maker))
+            )
         if not reason:
             return ExitResult(position.trade_id, HELD, "no exit rule reached")
         if not position.exit_reason:
             self._event(book, position, snapshot, journal, OUTCOME_EXIT_ORDERED, reason)
         result = self._close(book, position, snapshot, journal, maker)
         return ExitResult(result.trade_id, result.outcome, result.reason, alerts + result.alerts)
+
+    def _wait_for_valid_quotes(self, book, position: OpenPosition, snapshot, journal, rules, checks) -> ExitResult:
+        """Prices unverified (C3): nothing is priced; only an ordered exit or the time rule (no price) can make the
+        exit due, and a due exit is pending, with an alert, until the next valid quotes."""
+        if rules is None and not position.exit_reason:
+            return self._alert(book, position.trade_id, HELD, NO_RULES)
+        reason = position.exit_reason or _reached(rules, position, ExitContext(snapshot.day, None))
+        if not reason:
+            return ExitResult(position.trade_id, HELD, checks.price_reason())
+        if not position.exit_reason:
+            self._event(book, position, snapshot, journal, OUTCOME_EXIT_ORDERED, reason)
+        waiting = f"{checks.price_reason()} (retried at the next valid quotes)"
+        return self._event(book, position, snapshot, journal, OUTCOME_PENDING_EXIT, waiting, snapshot.snapshot_id)
 
     def _close(self, book, position: OpenPosition, snapshot, journal: DeskJournal, maker: FillMaker) -> ExitResult:
         closing, pending = closing_quotes(snapshot, position.holdings)
@@ -154,3 +177,8 @@ class ExitDesk:
     def _alert(self, book: str, trade_id: str, outcome: str, reason: str) -> ExitResult:
         sent = self.alerts.send(ALERT.format(book=book, trade_id=trade_id, outcome=outcome, reason=reason))
         return ExitResult(trade_id, outcome, reason, (sent,))
+
+
+def _reached(rules: Sequence[ExitRule], position: OpenPosition, context: ExitContext) -> str:
+    """The first exit rule reached now, or empty."""
+    return next((r for r in (rule.reached(position, context) for rule in rules) if r), "")

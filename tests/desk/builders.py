@@ -7,6 +7,7 @@ import json
 from datetime import date, datetime, time
 
 from fno.books.files import csv_text
+from fno.checks.data_checks import CheckReport
 from fno.config import ROOT, load_config
 from fno.constants import BOOK1_RULES, OPTION_CALL, OPTION_PUT, STRUCTURE_SHORT_IRON_FLY
 from fno.desk.entries import EntryOrder
@@ -98,11 +99,16 @@ def write_snapshot(store, snapshot_id, rows, started, finished, complete=True, d
     store.put(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta).encode())
 
 
-def enter(root, snapshots, desk, order, snapshot_id="exec", day=DAY):
-    """Fill one entry order against a recorded snapshot, under the book's lock."""
+def passed(snapshot, legs=()) -> CheckReport:
+    """C3's report when every data check passed on this snapshot (and these legs)."""
+    return CheckReport(snapshot.day, snapshot.snapshot_id, tuple(legs), ())
+
+
+def enter(root, snapshots, desk, order, snapshot_id="exec", day=DAY, checks=None):
+    """Fill one entry order against a recorded snapshot, under the book's lock; the data checks passed unless given."""
     snapshot = snapshots.snapshot(day, snapshot_id)
     with open_desk_journal(order.book, root) as journal:
-        return desk.enter(order, snapshot, journal)
+        return desk.enter(order, snapshot, journal, checks or passed(snapshot, order.contracts()))
 
 
 def approved(proposal: Proposal, book: str = BOOK1_RULES, day: date = DAY, entry_cash=None) -> RiskDecision:
