@@ -24,10 +24,12 @@ an interface, concrete classes wired only in a composition root), evaluation met
 
 **Hosting rule (finding, not a decision).** GitHub Actions schedules ran 4.5-5.5 hours late here (response 91, strong
 evidence for this repository), so they cannot run a 15-minute recorder. And a broker key never goes into GitHub
-(owner decision of 13 Oct 2026, "the 3 pm quote recorder moves to GitHub Actions on NSE's public data, never a broker key in GitHub"). The 15-minute recorder and the live monitor (layer 7) therefore need a host chosen by the
+(owner decision of 13 Oct 2026, "the 3 pm quote recorder moves to GitHub Actions on NSE's public data, never a broker
+key in GitHub"). The 15-minute recorder and the live monitor (layer 7) therefore need a host chosen by the
 owner; the options and their risks are in `06_risk_and_alerts.md` section 6.6.
 
-**Outputs.** Raw files in Drive (owner principle of 13 Oct 2026, "all scheduled data fetching runs as GitHub Actions and stores published data in Google Drive"); small derived daily tables in the
+**Outputs.** Raw files in Drive (owner principle of 13 Oct 2026, "all scheduled data fetching runs as GitHub Actions and
+stores published data in Google Drive"); small derived daily tables in the
 repository (realised volatility per day from 15-minute returns, the 15:00 chain summary, global cues as of 15:00).
 Every row carries `source`, `as_of`, `first_seen_at` and the raw file's SHA-256.
 
@@ -83,7 +85,8 @@ hash in every record; a change is a new version).
 
 **Purpose.** A calm, fast answer to "is today dangerous?": a survival signal, not a profit signal. Response 94 showed
 the v0 rule did **not** add money for any weekly structure and gave up premium on two (strong evidence). The owner
-kept "red means no new trade" as a survival rule (owner decision of 14 Oct 2026, "Trading principles for the research tool"). Design v2 keeps it and makes its price visible.
+kept "red means no new trade" as a survival rule (owner decision of 14 Oct 2026, "Trading principles for the research
+tool"). Design v2 keeps it and makes its price visible.
 
 **Design change: the weather becomes a scored forecast.** Instead of a fixed checklist only, the weather publishes:
 - `p_big_1d`: the probability that NIFTY's next-session absolute move is at least 2%;

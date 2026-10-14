@@ -19,7 +19,8 @@ show real skill, depending on how noisy it turns out to be (measured after 60 da
 trades, which is why forecasts come first and trades second.
 
 **Order of work.**
-1. **Next 3 weeks (targets; they depend on ChatGPT's review and your decisions):** volatility forecasts and scoring (protocol v4), market weather as a scored forecast, the daily card
+1. **Next 3 weeks (targets; they depend on ChatGPT's review and your decisions):** volatility forecasts and scoring
+   (protocol v4), market weather as a scored forecast, the daily card
    on your phone (at first mostly "no trade"), 15-minute quotes (you choose where they run), VIX history, global cues
    (US close, crude, rupee), a feasibility check of stock options around company results, risk limits for the Rs 20
    lakh account, the budget meter, the first weekly post-mortem.

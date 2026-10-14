@@ -73,7 +73,8 @@ reason and evidence in the next response.
 
 ## Revision 1 (judge 96, 15 Oct 2026): what changed
 
-Judge 96 failed d48bdfc on three must-fixes; the orchestrator and I checked and accepted all three, and the should-fixes:
+Judge 96 failed d48bdfc on three must-fixes; the orchestrator and I checked and accepted all three, and the
+should-fixes:
 1. **Power arithmetic.** My 155-620 outcomes used an unadjusted one-sided 5% test, but the test is Holm across about
    15 comparisons, whose first step is 0.05 / 15. Recomputed: n = (3.55 x r)^2, 316 at r = 5 and 1,264 at r = 10 (114
    at r = 3). "Skill in months" is dropped everywhere; section 5.5 has a table by horizon (`01` 1.3 and 1.7, `05` 5.5,

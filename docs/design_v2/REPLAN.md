@@ -144,7 +144,8 @@ when at least one strategy is approved to paper or an idea reaches rung 2, becau
 | Open: t-based lower bound beside the bootstrap | **Recommend adding it** (design v2 relies on honest intervals; 6 blocks under-cover, some evidence) |
 
 The five decided items (`uncertainty_criterion`, `catastrophic_loss_strategy`, `ai_cost_allocation`,
-`reporting_per_version`, `frozen_files`) are not reopened. Design v2 adds nothing to `frozen_files` by itself. G8's forecast scoring is frozen by protocol v4's own freeze (G6),
+`reporting_per_version`, `frozen_files`) are not reopened. Design v2 adds nothing to `frozen_files` by itself. G8's
+forecast scoring is frozen by protocol v4's own freeze (G6),
 not by S1. One addition is put to the owner as decision 12 (section 5).
 
 ## 5. Owner decisions this design needs (one line each; proposals in brackets)

@@ -56,7 +56,8 @@ expected-false-pass count. For an idea: its registered pass mark only.
 **Failure modes.** Forking paths (ten variants of one idea counted as one: each variant is a row); an optimistic cost
 model (pads come from measured half-spreads and are refreshed monthly); survivorship in stock studies (point-in-time
 F&O lists from NSE files, A12's past-member rule); spent data reused (G2); a "pass" built on impossible exits (the
-width-bound check, owner decision of 13 Oct 2026, "Simulator: a long structure whose debit is at least its width cannot win").
+width-bound check, owner decision of 13 Oct 2026, "Simulator: a long structure whose debit is at least its width cannot
+win").
 
 ## 3.2 Layer 5: paper desk
 

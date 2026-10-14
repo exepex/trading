@@ -86,7 +86,8 @@ strategy version may start the real-money test only when **all** hold:
 
 - The tool is for the owner only. Giving calls to others for money needs SEBI research-analyst registration (SEBI
   Research Analysts Regulations, 2014); this design never does that.
-- **Flag (reasoning only, not legal advice):** the repositories are public during development (owner decision of 12 Oct 2026 on the shared dashboard repository and Azure Postgres). Daily
+- **Flag (reasoning only, not legal advice):** the repositories are public during development (owner decision of 12 Oct
+  2026 on the shared dashboard repository and Azure Postgres). Daily
   trade cards with strikes and entry ranges committed to a public repository are publicly readable calls, even if
   unpaid. Recommendation: before layer 6 sends `TRADE` cards, either make the repositories private or keep the card
   records out of the public repository (Drive only, as raw data already is). Owner decides.
