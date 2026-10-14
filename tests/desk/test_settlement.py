@@ -44,6 +44,7 @@ from .builders import (
     enter,
     fly_order,
     fly_rows,
+    passed,
     write_snapshot,
 )
 
@@ -149,8 +150,9 @@ def test_the_real_file_shows_why_the_close_is_never_used():
 def review_after_expiry(root, store, snapshots, exit_desk, clock):
     write_snapshot(store, "after", fly_rows(), at(15, 15, day=AFTER), at(15, 15, 40, day=AFTER), day=AFTER)
     clock.set(at(15, 20, day=AFTER))
+    snapshot = snapshots.snapshot(AFTER, "after")
     with open_desk_journal(BOOK1_RULES, root) as journal:
-        return exit_desk.review(BOOK1_RULES, snapshots.snapshot(AFTER, "after"), journal, {})
+        return exit_desk.review(BOOK1_RULES, snapshot, journal, {}, passed(snapshot))
 
 
 @pytest.fixture

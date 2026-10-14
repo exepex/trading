@@ -5,9 +5,11 @@ refused if it names any book or any journal path."""
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time
+from pathlib import Path
 from typing import Protocol
 
 from ..constants import BOOKS, JOURNAL_FOLDER
@@ -40,6 +42,15 @@ class CommonPack:
     @property
     def sha256(self) -> str:
         return sha256_hex(self.data)
+
+    @classmethod
+    def read(cls, day: date, path: Path) -> CommonPack:
+        """A written pack, refused if its bytes are not the canonical form of its body (an edited file)."""
+        data = Path(path).read_bytes()
+        pack = cls(day, json.loads(data))
+        if pack.data != data:
+            raise PackError(f"{path} is not a pack as written: refused")
+        return pack
 
 
 def require_snapshot_on_session_day(day: date, body: dict) -> None:

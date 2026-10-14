@@ -27,6 +27,7 @@ class LiveQuote:
     bid: float | None
     ask: float | None
     valid: bool  # A4's validity: a same-day trade and a usable book
+    contract_id: str = ""  # the provider's symbol as recorded (what the paper account names the contract by)
 
     @property
     def mid(self) -> float | None:
@@ -74,6 +75,7 @@ def parse_snapshot(day: date, csv_bytes: bytes, meta_bytes: bytes) -> CutoffSnap
             _number(row["bid"]),
             _number(row["ask"]),
             row["valid"] == VALID,
+            row.get("contract_id", ""),
         )  # fmt: skip
         for row in csv.DictReader(io.StringIO(csv_bytes.decode()))
     )

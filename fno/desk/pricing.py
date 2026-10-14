@@ -54,12 +54,10 @@ def price_leg(snapshot: ExecutionSnapshot, leg: DeskLeg, side: str, units: int) 
     quote = snapshot.quote(leg.expiry, leg.leg.strike, leg.leg.kind)
     if quote is None:
         return LegQuote(leg, side, units, None, "no quote in the snapshot", None)
-    if not quote.valid:
-        return LegQuote(leg, side, units, None, f"quote not valid: {quote.invalid_reason or 'A4 rule'}", quote)
+    if quote.a4_problem:
+        return LegQuote(leg, side, units, None, f"quote not valid: {quote.a4_problem}", quote)
     price, size = quote.touch(side)
-    if not price or price <= 0:
-        return LegQuote(leg, side, units, None, f"no {'ask' if side == SIDE_BUY else 'bid'} price", quote)
-    if not size or size < units:
+    if size < units:
         return LegQuote(leg, side, units, None, f"size {size or 0:g} at the touch is below {units} units", quote)
     return LegQuote(leg, side, units, price, "", quote)
 

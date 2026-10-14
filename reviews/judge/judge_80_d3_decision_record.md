@@ -95,3 +95,40 @@ So the code compares them.
 - New modules in `fno/playbook/`, wired in `fno/playbook/wiring.py`.
 - Canonical JSON from E2's `pack_items` (DRY).
 - No orders, secrets or Slack.
+
+## Addendum 1 (round 2, branch 60ebd59 = fix 9658348 merged with main): PASS
+
+**Must-fix 1: met.** Editing `risk`, `validity`, `alternatives` or `decision` on a contested day now makes the replay
+name that field. A test pins `alternatives` to every other outcome, book and shadow. My three earlier plants are now
+caught: the replay skipping `alternatives`, the replay skipping `risk`, and alternatives dropping shadow outcomes.
+
+**Must-fix 2: met.**
+- `replay` asks a `CodeTree` whether the working tree's `fno/` and `config.yaml` equal `header.code_commit`, with
+  uncommitted and untracked files included (`git diff --quiet <commit> -- fno config.yaml` plus `ls-files --others`).
+- If they differ, it raises `ReplayRefused`, naming the commit and `git worktree add <dir> <commit>`.
+- `todays_code=True` runs anyway, with a first line "NOTE: compared with today's code ... not a reproduction".
+- On the real repository (my probe): `matches(HEAD)` is True; `matches(HEAD~1)` is False (`fno/` differs); with an
+  untracked `fno/zz_probe.py`, `matches(HEAD)` is False.
+
+**My plants (`python -B`, caches cleared; `tests/decisions`, 34 tests): all 11 caught.** That includes:
+- the code check off;
+- untracked files ignored;
+- uncommitted changes ignored;
+- the today's-code note dropped;
+- the seven from round 1.
+
+**Gates:**
+- full suite: 2,506 passed;
+- ruff and imports: clean;
+- `git merge-tree` with `main`: clean.
+
+**Follow-ups recorded by the builder, which I hold it to:**
+- (a) the approval and pause flows register a new D6 version, else Book 1 goes unscored;
+- (b) D1 freezes p10 and p90 from the test results **before the first approval to paper**.
+
+**Verdict: PASS for 60ebd59.**
+
+## Addendum 2 (merge check, f314254)
+
+**MET.** f314254 has parents on `main` and 60ebd59 (the passed tip). It equals my recomputed merge of the two, with no
+difference at all. CI `checks` is green on f314254 (run 38515859763).

@@ -4,11 +4,16 @@ closes, events), D2's opportunity code with the playbook, and the private pack's
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 from ..config import ROOT
+from ..constants import BOOK1_RULES
 from .common_pack import CommonPackBuilder
+from .packs import WrittenPacks
 from .private_pack import PrivatePackBuilder
+
+PACKED_BOOKS = (BOOK1_RULES,)  # books 2 and 3 get private packs when D4 and D5 exist
 
 
 def build_common_pack_builder(root: Path = ROOT) -> CommonPackBuilder:
@@ -39,3 +44,12 @@ def build_common_pack_builder(root: Path = ROOT) -> CommonPackBuilder:
 
 def build_private_pack_builder(root: Path = ROOT) -> PrivatePackBuilder:
     return PrivatePackBuilder(root)
+
+
+def build_packs(root: Path = ROOT, refresh: Callable[[], None] = lambda: None) -> WrittenPacks:
+    """The day's common pack and each packed book's private pack, written once under `journal/`."""
+    from ..composition import DESK_DECISION_TIME
+    from .pack_store import PackStore
+
+    return WrittenPacks(build_common_pack_builder(root), build_private_pack_builder(root), PackStore(root),
+                        DESK_DECISION_TIME, PACKED_BOOKS, refresh)  # fmt: skip
