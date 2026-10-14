@@ -103,6 +103,9 @@ calculation itself (an input: measured from NSE SPAN files or the broker's calcu
   at its current implied volatility scaled by the scenario, one calendar day of time decay (13 Oct 2026, judge 43:
   Black-Scholes on spot with Black-76 volatilities misprices an ATM leg by about Rs 1,000 a lot with no move); losses summed across all legs and trades (no netting
   assumptions beyond the legs themselves).
+- **Decision record (14 Oct 2026, judge 68):** a `RiskDecision` also carries the proposal it judged and its entry cash at the
+  modelled prices (`entry_cash_rs`, the same `TradeCosts` as the maximum-loss rule); the paper desk's entry limit (E4)
+  reads it from there only.
 - **Owner restart:** a row in `journal/<book>/owner_overrides.csv` (`date, action = restart_brake, reason, entered_by`)
   committed to the repository; the brake re-arms at that day's closing closed equity minus Rs 30,000.
 

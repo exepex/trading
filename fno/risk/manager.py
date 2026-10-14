@@ -3,7 +3,8 @@
 A trade may open only when every rule passes. Every rule runs, so a refusal shows all its reasons. An unusable input
 (a missing quote or margin, an open trade without terms, a malformed owner override) refuses the trade with the input's
 problem as the reason: the check fails closed, never open. The decision record carries the stressed-margin method in
-force and any stale marks, so the judge can reproduce it.
+force and any stale marks, so the judge can reproduce it. It also carries the proposal it judged and that proposal's
+entry cash at the modelled prices: the paper desk (E4) fills only that proposal, at an entry no worse than that cash.
 """
 
 from __future__ import annotations
@@ -12,6 +13,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from .inputs import Market, Proposal, RiskBook
+from .trade_costs import TradeCosts
 from .verdict import RiskRule, RiskVerdict
 
 INPUT_CHECK = "inputs"
@@ -25,6 +27,8 @@ class RiskDecision:
     verdicts: tuple[RiskVerdict, ...]
     stressed_margin: Mapping[str, str]
     stale_marks: tuple[str, ...]
+    entry_cash_rs: float | None = None  # the approved entry: premium at the modelled fills minus entry charges
+    proposal: Proposal | None = None  # the proposal this decision judged
 
     @property
     def ok(self) -> bool:
@@ -42,6 +46,7 @@ class RiskDecision:
             "ok": self.ok,
             "stressed_margin": dict(self.stressed_margin),
             "stale_marks": list(self.stale_marks),
+            "entry_cash_rs": self.entry_cash_rs,
             "verdicts": [
                 {"rule": v.rule, "ok": v.ok, "reason": v.reason, "numbers": dict(v.numbers)} for v in self.verdicts
             ],
@@ -61,12 +66,23 @@ def _checked(rule: RiskRule, proposal: Proposal, book: RiskBook, market: Market)
         return RiskVerdict(rule.name, False, f"refused, input not usable: {problem}")
 
 
+def _entry_cash(costs: TradeCosts | None, proposal: Proposal, market: Market) -> float | None:
+    """The proposal's entry cash at the modelled prices; None when it cannot be priced (the decision is refused)."""
+    if costs is None:
+        return None
+    try:
+        return costs.entry_cash_flow(proposal, market)
+    except ValueError:
+        return None
+
+
 class RiskManager:
-    def __init__(self, rules: Sequence[RiskRule], stressed_margin: Mapping[str, str]):
-        self.rules, self.stressed_margin = tuple(rules), dict(stressed_margin)
+    def __init__(self, rules: Sequence[RiskRule], stressed_margin: Mapping[str, str], costs: TradeCosts | None = None):
+        self.rules, self.stressed_margin, self.costs = tuple(rules), dict(stressed_margin), costs
 
     def evaluate(self, proposal: Proposal, book: RiskBook, market: Market) -> RiskDecision:
         verdicts = (_input_verdict(proposal, book), *(_checked(r, proposal, book, market) for r in self.rules))
         return RiskDecision(
-            book.name, proposal.trade_id, market.day.isoformat(), verdicts, self.stressed_margin, book.state.stale_marks
-        )
+            book.name, proposal.trade_id, market.day.isoformat(), verdicts, self.stressed_margin,
+            book.state.stale_marks, _entry_cash(self.costs, proposal, market), proposal,
+        )  # fmt: skip

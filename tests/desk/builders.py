@@ -104,8 +104,11 @@ def enter(root, snapshots, desk, order, snapshot_id="exec", day=DAY):
         return desk.enter(order, snapshot, journal)
 
 
-def approved(trade_id: str, book: str = BOOK1_RULES, day: date = DAY) -> RiskDecision:
-    return RiskDecision(book, trade_id, day.isoformat(), (RiskVerdict("inputs", True, "new"),), {}, ())
+def approved(proposal: Proposal, book: str = BOOK1_RULES, day: date = DAY, entry_cash=None) -> RiskDecision:
+    """An ok C2 decision on this proposal; its entry cash is C2's own computation unless a test plants one."""
+    cash = approved_entry(proposal) if entry_cash is None else entry_cash
+    verdicts = (RiskVerdict("inputs", True, "new"),)
+    return RiskDecision(book, proposal.trade_id, day.isoformat(), verdicts, {}, (), cash, proposal)
 
 
 def fly_proposal(trade_id: str = "t1", lots: int = 1, legs=FLY_LEGS) -> Proposal:
@@ -127,6 +130,5 @@ def approved_entry(proposal: Proposal, quotes=FLY_QUOTES) -> float:
 
 def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1, limit=None) -> EntryOrder:
     proposal = fly_proposal(trade_id, lots)
-    risk = risk or approved(trade_id, book, decided_at.date())
-    limit = approved_entry(proposal) if limit is None else limit
-    return EntryOrder(book, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk, limit)
+    risk = risk or approved(proposal, book, decided_at.date(), limit)
+    return EntryOrder(book, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk)

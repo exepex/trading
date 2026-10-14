@@ -6,8 +6,8 @@ E4's blocking code); judge first, nothing on `main`.
 
 **Verdict in one line:** a position still open at expiry now closes at NSE's cash settlement (intrinsic value against
 the index's final settlement price from the expiry day's file only), with exercise STT, so no book carries a dead
-contract at a stale mark. A missing file blocks the book's new risk with an alert. 49 desk tests; 29 of 29 planted
-defects caught (8 for E7).
+contract at a stale mark. A missing file blocks the book's new risk with an alert. 51 desk tests; 31 of 31 planted
+defects caught (8 for E7, 2 for judge 68's entry-limit condition).
 
 ## 1. A data finding that shapes the design (strong evidence: NSE's own file)
 
@@ -45,6 +45,28 @@ either: the 21300 CE closed at 19.70 while it settled at 52.60 in the money (the
 exercise STT; exercise STT charged to the short; settlement charged as a trade; settlement kind lost in the ledger;
 disagreeing rows accepted; the previous day's file read; expired legs never settled. The 21 E4 mutations are still
 caught (29 of 29).
+
+## 3a. Judge 68's condition, fixed at the root on this branch: the entry limit comes only from C2
+
+**Problem (judge 68 addendum 1, checked in the code):** `EntryOrder.approved_entry_rs` was a free field and
+`RiskDecision` carried no entry cash, so any caller could pass a looser number and widen the limit.
+
+**Fix:**
+- C2's `RiskManager` now computes the proposal's entry cash with the same `TradeCosts` its maximum-loss rule uses
+  (wired in `fno/risk/wiring.py`). It records that cash in `RiskDecision.entry_cash_rs` (and in `record()`), together
+  with the `proposal` it judged. An unpriceable proposal gets `None`, and its decision is refused anyway.
+- E4's `EntryOrder` no longer has a limit field. The limit is `order.risk.entry_cash_rs`, and E4 refuses any decision
+  whose proposal is not exactly the order's (the same lots, legs and terms) or that carries no entry cash.
+
+**Evidence:**
+- `test_entry_limit.py::test_the_limit_comes_only_from_c2_s_decision_on_this_exact_proposal`: the field is gone; a
+  1-lot decision used for a 2-lot order is refused; a decision without entry cash is refused.
+- `test_c2_records_the_approved_entry_cash_with_the_same_cost_model`: a real C2 decision carries exactly
+  `entry_cash_flow`, also in its record.
+- Mutations "decision on another proposal accepted" and "C2 records no entry cash" are both caught (31 of 31 overall).
+
+What stays possible: code that builds a `RiskDecision` by hand. Only C2 should create one; E3's C4 re-check is the
+independent second gate (reasoning only).
 
 ## 4. Honest limits (confidence labelled)
 

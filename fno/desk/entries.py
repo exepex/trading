@@ -8,10 +8,12 @@ every leg already filled is unwound at the same snapshot (short legs bought back
 legging cost is recorded and the trade does not open. An unwind leg without a valid quote stays open as an exit
 order, retried at the next snapshot.
 
-Entry limit (orchestrator, 14 Oct 2026): C2 checked the maximum loss on the entry it modelled (decision mids, B2's pad,
-entry charges). When every leg is quoted, the net entry at the touch (premium at ask/bid minus C1's charges) must be
-no worse than that approved entry, as a limit order would enforce; otherwise nothing fills and the shortfall is
-recorded. The limit scales with the lots (legs never fill in part). Exits are never limited.
+Entry limit (orchestrator, 14 Oct 2026; judge 68): C2 checked the maximum loss on the entry it modelled (decision mids,
+B2's pad, entry charges) and records that entry cash in its decision, with the proposal it judged; the limit is read
+from there only, never passed in, and a decision on any other proposal is refused. When every leg is quoted, the net
+entry at the touch (premium at ask/bid minus C1's charges) must be no worse than that approved entry, as a limit order
+would enforce; otherwise nothing fills and the shortfall is recorded. The limit scales with the lots (legs never
+fill in part). Exits are never limited.
 """
 
 from __future__ import annotations
@@ -54,8 +56,7 @@ class EntryOrder:
     decided_at: datetime  # when the decision was committed (time zone aware)
     proposal: Proposal  # C2's proposal: trade ID, terms, lot size, legs
     expiry: date
-    risk: RiskDecision  # C2's decision on this proposal for this book
-    approved_entry_rs: float  # the limit: C2's modelled entry cash (`TradeCosts.entry_cash_flow`), credit + / debit -
+    risk: RiskDecision  # C2's decision on this proposal for this book; its entry cash is the entry limit
 
     def legs(self) -> list[DeskLeg]:
         """Protective legs first, then short legs (design 8), each in the decision's order."""
@@ -75,7 +76,7 @@ class EntryResult:
 def entry_shortfall(order: EntryOrder, maker: FillMaker, quotes: list[LegQuote]) -> float:
     """Rupees by which the net entry at these quotes falls short of the approved entry (0 when no worse)."""
     actual = sum(maker.fill(q, FILL_OPEN).amount for q in quotes)
-    shortfall = order.approved_entry_rs - actual
+    shortfall = order.risk.entry_cash_rs - actual
     return shortfall if shortfall > LIMIT_TOLERANCE_RS else 0.0
 
 
@@ -86,6 +87,8 @@ def refusal(order: EntryOrder, snapshot: ExecutionSnapshot, blocked: list[str]) 
         return f"risk decision is for {risk.book} {risk.trade_id} on {risk.day}, not this trade today"
     if not risk.ok:
         return "risk manager refused: " + "; ".join(risk.reasons)
+    if risk.proposal != order.proposal or risk.entry_cash_rs is None:
+        return "risk decision does not carry this exact proposal and its approved entry cash"
     if order.decided_at >= snapshot.started_at:
         return f"decision committed at {order.decided_at}, not before the execution snapshot {snapshot.snapshot_id}"
     if not snapshot.complete:
@@ -112,8 +115,8 @@ class EntryDesk:
         maker = FillMaker(order.book, order.decision_id, trade_id, snapshot, self.charges)
         quotes = [price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units) for leg in order.legs()]
         if all(q.fills for q in quotes) and (shortfall := entry_shortfall(order, maker, quotes)):
-            actual = order.approved_entry_rs - shortfall
-            reason = WORSE_THAN_APPROVED.format(actual=actual, approved=order.approved_entry_rs, shortfall=shortfall)
+            approved = order.risk.entry_cash_rs
+            reason = WORSE_THAN_APPROVED.format(actual=approved - shortfall, approved=approved, shortfall=shortfall)
             return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, reason, shortfall=shortfall)
         opened: list[LegQuote] = []
         for quote in quotes:
