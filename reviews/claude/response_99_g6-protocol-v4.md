@@ -35,7 +35,22 @@ after the judge's PASS and ChatGPT's review. G1 v3 and its files are untouched. 
 | 16 | Protocol text and `terms.py` state the same names and numbers | `test_protocol_text.py` | strong evidence |
 | 17 | 13 planted mutations (inequality, +1s, block range, percentile rank, p = 1, gate set, RV floor, clock, V5 boundary, zero shadows, empty A, one-way switch, session set) each fail a test | run before the commit | strong evidence |
 
+## Judge 98 fixes (one commit)
+
+- **Must-fix 1, the premium-adjusted window's source.** Yes, a point-in-time EOD IV30 exists: G1 v1's frozen
+  `PanelAtmIv30` on the A3 panel's first-archived end-of-day chains. The panel has 685 regular sessions from 2 Jan 2024
+  to 14 Oct 2026 (strong evidence: manifest count). The window is now limited to 2024 onwards, labelled
+  `iv30_eod_close_proxy`, with the rule `eligibility.premium_ratio_window` (at least 500, at most 750, resolved before
+  the refit) and two tests. About 620-680 rows remain after the horizon's tail and flagged days (some evidence: G1's
+  published flag rates, not recomputed). It is point in time by content, not by archive time, said in the protocol.
+- **Must-fix 2.** Section 11 now lists A (Holm at 0.02 at the review: 134 outcomes against 114 at r = 3), B (no power
+  report means option 2) and C (the EOD proxy) "for the owner's confirmation before the freeze". Section 10 makes
+  that confirmation a freeze precondition.
+- **Follow-up.** `test_a_tiny_positive_rv_stays_in_the_gate_set` (1e-13 and 1e-300 stay in the gate set).
+
 ## Choices made in this draft (open to the judge and ChatGPT; protocol section 11)
+
+Items 2 and 6 below, and the EOD proxy, need the owner's confirmation before the freeze (protocol section 11, A-C).
 
 1. **Family of 15** (V1, V2, V6a, V6b, V7 x rules, hybrid, AI team). V3, V5 and V4 are tested the same way but never
    members, because 20-session questions cannot settle in useful time and would tighten every other claim. Reasoning

@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from datetime import date, timedelta
+
 import pytest
 
 from fno.constants import (
@@ -19,7 +21,7 @@ from fno.constants import (
     V6_BIG_MOVE_1S,
     V6_BIG_MOVE_5S,
 )
-from fno.forecast_v4.eligibility import primary_baseline
+from fno.forecast_v4.eligibility import premium_ratio_window, primary_baseline
 from fno.forecast_v4.power import power_report, required_outcomes
 from fno.forecast_v4.terms import (
     FAMILY_SIZE,
@@ -53,6 +55,27 @@ def test_v1_uses_daily_har_until_intraday_har_is_eligible_and_never_switches_bac
     )
     assert primary_baseline(V1_RV_1S, {V4_BASELINE_HAR_DAILY}, True) is None  # intraday went missing: no stand-in
     assert primary_baseline(V1_RV_1S, set(), False) is None
+
+
+def _days(start: date, count: int) -> list[date]:
+    return [start + timedelta(n) for n in range(count)]
+
+
+def test_premium_ratio_window_uses_only_2024_onwards_and_needs_500_resolved_rows():
+    refit = date(2026, 11, 2)
+    rows = [(t, t + timedelta(7)) for t in _days(date(2023, 6, 1), 200) + _days(date(2024, 1, 1), 499)]
+    assert premium_ratio_window(rows, refit) is None  # 499 from 2024: the 2023 rows never count
+    rows.append((date(2025, 6, 1), date(2025, 6, 8)))
+    window = premium_ratio_window(rows, refit)
+    assert window is not None and len(window) == 500 and min(window) >= date(2024, 1, 1)
+
+
+def test_premium_ratio_window_keeps_the_latest_750_resolved_before_the_refit():
+    refit = date(2027, 1, 4)
+    rows = [(t, t + timedelta(7)) for t in _days(date(2024, 1, 1), 1_000)]
+    window = premium_ratio_window(rows, refit)
+    resolved = [t for t, r in rows if r < refit]
+    assert window == resolved[-750:] and all(t + timedelta(7) < refit for t in window)
 
 
 @pytest.mark.parametrize(("r", "n"), [(3, 114), (5, 316), (10, 1_264)])

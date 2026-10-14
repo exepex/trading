@@ -120,7 +120,18 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   A16 sessions (all available up to 750).
 - **Raw implied:** `IV30(d)^2 x (calendar days from d to d+h) / 365`, IV30 from the 15:00 pack (G1 v2's estimator).
 - **Premium-adjusted implied:** raw implied times the median of `RV_h(t) / raw implied_h(t)` over the most recent 750
-  sessions resolved before the refit (at least 500), refit monthly as HAR.
+  sessions resolved before the refit (at least 500), refit monthly as HAR (`eligibility.premium_ratio_window`).
+  **Source of the window (judge 98 must-fix 1):** live 15:00 IV30 starts only on 13 Oct 2026, so on live data alone
+  V2's primary would not be eligible until about late 2028. The window's `raw implied_h(t)` therefore uses a labelled
+  proxy, `iv30_eod_close_proxy`: G1 v1's frozen estimator `PanelAtmIv30` (`fno/forecast/iv30.py`) on the A3 panel's
+  first-archived end-of-day chains (traded closes, volume > 0, Black-76 on the traded future), unflagged days only.
+  It is point in time by content (day t's chain is published on t's evening), not by archive time (2024-2026 files
+  were archived in Oct 2026). **Window from 1 Jan 2024 only:** UDiFF files, and outside G1's 2019-2023 holdout. The
+  panel has 685 regular sessions from 2 Jan 2024 to 14 Oct 2026 (strong evidence: manifest count); after the
+  horizon's unresolved tail and flagged days (G1 measured 11-23 a year from 2021), about 620-680 remain, so the 500
+  minimum holds at the freeze (some evidence). Live forecasts multiply the 15:00 raw implied by that ratio; the
+  mismatch between 15:00 and end-of-day IV30 enters the ratio's noise (reasoning only). Each live day's window point
+  keeps the same EOD proxy, so one estimator runs through the window.
 - **Option-implied probability (V5):** lognormal, `ln S_T ~ N(ln F - s^2 tau / 2, s^2 tau)`, `s` = the mean Black-76 IV of
   the K call and put, `tau = C_e / 365`, `F` = expiry `e`'s future in the 15:00 pack;
   `p = N(z(K + P)) - N(z(K - P))` with `z(x) = (ln(x / F) + s^2 tau / 2) / (s sqrt(tau))`.
@@ -275,8 +286,19 @@ locked by these tests): `fno/constants.py`, `fno/desk/settlement.py`, `fno/resea
 `fno/research_engine/implied_vol.py`. The ledger row (B4) is written with the freeze. A change after it is a new
 version, never an edit.
 
+**Preconditions of the freeze:** the judge's PASS; ChatGPT's review; G7 and G8's code exists; and the owner's written
+confirmation of section 11's items A-C.
+
 ## 11. Points for the judge and ChatGPT (decided in this draft, open to challenge)
 
+**For the owner's confirmation before the freeze** (judge 98; freeze precondition, section 10):
+- **A.** Test A "yes" at the stop review needs Holm at 0.02, not the design's 5%: at r = 3, 134 outcomes instead of
+  114 (5.8).
+- **B.** No power report at the review means option 2, code only (section 6).
+- **C.** The premium-adjusted baseline's ratio window uses the labelled EOD IV30 proxy from 1 Jan 2024 (3.1). Without
+  it, V2 has no eligible primary until about late 2028 and cannot be judged at the May 2027 review.
+
+Also open to challenge:
 1. The 15-member family without V3, V5 and V4 (5.6), and one forecaster per slot.
 2. The two looks at 0.02 and 0.03 (5.8): stricter at the stop review than design 5.5's single 5%.
 3. Special sessions excluded from the session set (section 2), unlike G1.

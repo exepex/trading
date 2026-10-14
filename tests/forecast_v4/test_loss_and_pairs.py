@@ -81,6 +81,12 @@ def test_scored_set_keeps_zero_rv_and_zero_differences_gate_set_leaves_zeros_out
     assert pairing.gate.baseline_losses[1] == pytest.approx(textbook_qlike(0.0001, 0.00015))
 
 
+def test_a_tiny_positive_rv_stays_in_the_gate_set():
+    rows = [DatedForecasts(_day(0), 0.0001, 0.0002, 1e-13), DatedForecasts(_day(1), 0.0001, 0.0002, 1e-300)]
+    pairing = pair_point(rows)
+    assert pairing.gate.days == (_day(0), _day(1)) and pairing.zero_rv_left_out_of_gate == 0
+
+
 def test_missing_void_and_unresolved_dates_are_dropped_and_counted_never_imputed():
     rows = [
         DatedForecasts(_day(4), 0.0001, 0.0001, 0.0001),
