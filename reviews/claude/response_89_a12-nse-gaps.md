@@ -74,6 +74,6 @@ N companies; the next run resumes".
 ## Judge 51: PASS, with one follow-up (recorded, not built)
 
 - The judge accepted the push-back on (b).
-- **Follow-up, accepted (my check of the code):** a truncation gap marks the company finished for its step, and `remaining()` skips finished companies. A daily run reads only filings since `today - DAILY_LOOKBACK` (`FilingsProgress.since`). So if NSE later replaces an older truncated filing with a fixed copy, nothing re-fetches it. The gap row stays in `gaps.csv` for good.
-- **Needed:** a periodic re-check of recorded truncation gaps. It would re-download each one and compare the bytes with the recorded SHA-256. A different, well-formed file is saved and the gap is cleared. The same bytes keep the gap.
+- **Follow-up, accepted in part (my check of the code):** a truncation gap marks the company finished for its step, and `remaining()` skips finished companies, so backfill steps never return to it. A daily run reads the lists for the last `DAILY_LOOKBACK` = 400 days (`FilingsProgress.since`). It downloads every filing in them that is not saved, the gapped one included, so a fixed copy within 400 days is saved by the next daily run. Only gaps on filings older than 400 days (from the backfill steps) are never looked at again, and their rows stay in `gaps.csv` for good.
+- **Needed:** a periodic re-check of recorded truncation gaps. It would re-download each such older gap and compare the bytes with the recorded SHA-256. A different, well-formed file is saved and the gap is cleared. The same bytes keep the gap.
 - Not built in this story, by the orchestrator's instruction; it is a new story to schedule.
