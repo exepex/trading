@@ -1,5 +1,5 @@
-"""Commands for participant open interest (story A8): `python -m fno participant-oi watch` (the release-time recorder)
-and `python -m fno participant-oi rule` (the availability rule in force and its evidence)."""
+"""Commands for participant open interest (story A8): `python -m fno participant-oi watch` (the release-time recorder),
+`check-once` (one check per scheduled job run) and `rule` (the availability rule in force and its evidence)."""
 
 from __future__ import annotations
 
@@ -22,6 +22,8 @@ def add_participant_oi_parser(subparsers) -> None:
     watch.add_argument("--until", type=time.fromisoformat, default=DEFAULT_UNTIL, help="HH:MM IST (default 22:00)")
     watch.add_argument("--every", type=int, default=DEFAULT_EVERY_MINUTES, help="minutes between checks (default 5)")
     watch.add_argument("--evidence-folder", type=Path, default=None, help=EVIDENCE_HELP)
+    once = actions.add_parser("check-once", help="one check of the day's file, for a job run every 15 minutes")
+    once.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today; before noon IST, yesterday)")
     actions.add_parser("rule", help="print the availability rule in force and how many days are measured")
     sweep = actions.add_parser(
         "sweep", help="read every recorded file: flag moved write times, keep new versions (A11)"
@@ -41,6 +43,10 @@ def cmd_participant_oi(args) -> int:
         return _compare(PARTICIPANT_OI_RELEASE_LOG, folder / PARTICIPANT_OI_RELEASE_LOG.name)
     if args.oi_cmd == "sweep":
         return _sweep(folder / PARTICIPANT_OI_SWEEPS.name if folder else None)
+    if args.oi_cmd == "check-once":
+        from .release_check_once import due_day
+
+        return _check_once(args.day or due_day(now_ist()))
     from .release_times import MIN_MEASURED_DAYS, ReleaseLog, first_seen_times
 
     if args.oi_cmd == "rule":
@@ -61,6 +67,18 @@ def cmd_participant_oi(args) -> int:
     else:
         print(f"{day}: {check.outcome} at {check.checked_at:%Y-%m-%d %H:%M} IST {check.sha256[:12]}".rstrip())
     return 1 if rewritten or (check is not None and check.outcome == RELEASE_UNREACHABLE) else 0
+
+
+def _check_once(day: date) -> int:
+    """Prints the check and posts each alert; fails (after alerting) when there was one, so the job shows it."""
+    from ..composition import build_alert_sender, build_release_check_once
+
+    result = build_release_check_once().run(day)
+    print("\n".join(result.lines + result.alerts))
+    sender = build_alert_sender() if result.alerts else None
+    for alert in result.alerts:
+        print(sender.send(alert))
+    return 1 if result.alerts else 0
 
 
 def _sweep(log: Path | None) -> int:

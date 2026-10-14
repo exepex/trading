@@ -36,7 +36,9 @@ from .research_data.last_written import latest_writes, read_last_modified_table
 from .research_data.panel_reader import NiftyPanel, read_nifty_panel
 from .research_data.positioning import PointInTimeParticipantOi
 from .research_data.quote_snapshots import RecordedSnapshots
+from .research_data.release_check_once import ReleaseCheckOnce
 from .research_data.release_times import ReleaseLog, ReleaseTimeRecorder, choose_availability_rule, last_written_times
+from .research_data.reread_log import RereadLog
 from .research_data.write_sweep import LastWriteSweep, read_sweeps
 from .research_engine.cycle_costs import CycleTerms
 from .research_engine.cycles import EXIT_MIN_DAYS, Cycle, TradingDays, cycle_rows, monthly_cycles
@@ -60,6 +62,7 @@ from .storage.wiring import (
     PANEL_FOLDER,
     PARTICIPANT_OI_LAST_MODIFIED,
     PARTICIPANT_OI_RELEASE_LOG,
+    PARTICIPANT_OI_REREADS,
     PARTICIPANT_OI_SWEEPS,
     build_nse_fo_library,
     build_nse_source,
@@ -140,6 +143,11 @@ def build_release_time_recorder(log: Path | None = None) -> ReleaseTimeRecorder:
         build_session_calendar(),
         ReleaseLog(log or PARTICIPANT_OI_RELEASE_LOG),
     )
+
+
+def build_release_check_once() -> ReleaseCheckOnce:
+    """Story A8 on GitHub Actions: one check per scheduled run, with the daily rewrite re-read recorded."""
+    return ReleaseCheckOnce(build_release_time_recorder(), RereadLog(PARTICIPANT_OI_REREADS))
 
 
 def build_participant_oi_rule() -> AvailabilityRule:
