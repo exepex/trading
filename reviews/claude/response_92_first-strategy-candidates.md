@@ -5,12 +5,16 @@ Every number below is reproduced by `research/2026-10-14-desk-meeting-2/analysis
 
 ## Verdict
 
-**Zero candidates with a credible edge after costs.** Under the given limits (NIFTY monthly expiry 30-45 days out, exit
-21 days before expiry, defined risk, Rs 10,000 maximum loss, 1 lot), the data shows no rule that should make money:
+**Main finding: no forward test can prove a monthly rule in useful time.** At 12 trades a year, showing a small edge at
+2 standard errors needs about 280-1,200 trades, i.e. decades. S1's 6-month claim rule sees about 6 trades. A shadow
+test can expose a disaster but never confirm an edge (strong evidence, arithmetic: statistician section below).
 
-- the option premium is real but smaller than the cost of trading it;
-- the one structure that cuts costs (a two-leg put spread) is still negative in a model built on today's real quotes;
-- no forward test of a monthly rule could prove a small edge within years.
+**And there is no candidate worth that wait: zero with a credible edge after costs.** Under the given limits (NIFTY
+monthly expiry 30-45 days out, exit 21 days before expiry, defined risk, Rs 10,000 maximum loss, 1 lot):
+
+- the option premium is real but smaller than the cost of trading it (Rs 810-940 per four-leg round trip);
+- the one structure that cuts costs (a two-leg put spread) is still negative in a model built on today's real quotes,
+  and it is **blocked on code**.
 
 I recommend registering **no strategy candidate**. One optional item is a **benchmark shadow**, the monthly short
 condor (P1), labelled as a measurement and not a candidate. Its aim is to measure the real premium and costs at 15:00
@@ -143,8 +147,35 @@ Rejected, with the reason:
    registered question?
 3. **The Rs 10,000 cap and 1 lot keep wings narrow** (at most 300 points), and costs dominate at that size. The cap is
    your survival rule, and I do not recommend loosening it to find an edge.
-4. **Option A needs code first** (a two-leg structure in D1, B2, C4 and A14) before it can even be shadow-tested. On
-   today's evidence I would not spend lane-1 time on it.
+4. **Option A needs code first.** It cannot even be shadow-tested until the code exists. See the next section for the
+   story's size and what it would buy.
+
+## The put-spread structure story (lane 1): rough size, and what the owner gets
+
+**Size (estimate from reading the code; medium):** about 8-10 files in `fno/` plus their tests, and one interface
+change. Roughly a day of building and one judge round.
+
+- **B2 simulator, `fno/research_engine/structures.py`:** the `Structure` interface builds exactly four legs (a body call
+  and put plus two wings). A two-leg vertical needs each structure to build its own legs. This is an interface change,
+  and every structure and its tests follow from it.
+- **C4, `fno/checks/validity_modes.py`:** the shape check refuses anything that is not four legs of SF, SC or BF. It
+  needs a rule for the new shape, and its independent maximum-loss check must cover one side only.
+- **D1, `fno/constants.py`, `fno/playbook/structure_spec.py` and `vocabulary.py`:** a new code (e.g. `SP`, short put
+  spread) and its strikes rule.
+- **D2 candidates, `fno/playbook/candidates.py`:** builds legs through the structures, so it should follow; check it.
+- **A14, `fno/nse_margins/`:** the calculator works on any legs, but the job produces rows for the known codes only. It
+  needs the new code's rows, with one short leg's exposure. The broker check (judge 77) covered four-leg rows only.
+
+**What the owner gets, given forward proof takes years anyway:**
+- Half the costs (about Rs 410 instead of Rs 820 a trade) and about half the margin (an estimated Rs 32,000-35,000
+  instead of Rs 71,000 stressed). This makes a small edge possible, but not proven.
+- The option of trading the put skew alone, without the call side, whose premium is thinner (13.1% at +3.3%).
+- **Not** a faster proof: it is still 12 trades a year.
+
+**My recommendation: not now.** The model is negative (-243 a trade), and the B0 benchmark records the condor's put
+half, which is itself a short put spread about 2% out. B0 therefore yields forward data on the put-spread premium at
+real 15:00 quotes **without new code**. Build the story only if, after about 6-12 cycles, B0's put half shows a gross
+above about Rs 410 a trade, the put spread's cost (reasoning only).
 
 ## Decisions proposed to the head of desk and the owner
 
