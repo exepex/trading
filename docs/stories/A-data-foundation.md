@@ -674,11 +674,12 @@ check (issue #85) has fresh inputs every day without the owner typing them in.
 (#85) don't need you every week." C2 refuses every paper trade while `research/data/margins/margins.csv` has no row
 younger than 7 days (`risk.margins.max_age_days`) and while the stressed-margin factor is unset.
 
-Facts checked on 14 Oct 2026 (builder, response 71):
+Facts checked on 14 Oct 2026 (builder, response 74):
 - NSE Clearing publishes six SPAN risk-parameter files a session at
   `https://nsearchives.nseindia.com/archives/nsccl/span/nsccl.<YYYYMMDD>.<i1..i5|s>.zip` (XML, SPAN 4.00, about 9.5 MB
-  zipped). The beginning-of-day file `i1` for day d is written about 21:28 IST on the session before d (its own
-  `<created>` stamp and NSE's Last-Modified agree: `nsccl.20261014.i1` created 2026-10-13 21:28); `i2` to `i5` follow
+  zipped). The beginning-of-day file `i1` for day d is written the evening before d (its own `<created>` stamp and
+  NSE's Last-Modified agree: `nsccl.20261014.i1` created 2026-10-13 21:28; 131 sampled files from 2020, 2024 and 2026
+  were written between 18:00 and 03:05 IST, 2026's between 20:00 and 24:00, none after 09:00 on d); `i2` to `i5` follow
   at about 11:03, 12:32, 14:03 and 15:32 IST on d, and the end-of-day `s` file at about 16:51. The archive goes back to
   at least 2 January 2020.
 - For NIFTY the file holds one scan tier, a short-option minimum rate of 0 and calendar-spread charges only between
@@ -700,8 +701,8 @@ Facts checked on 14 Oct 2026 (builder, response 71):
   window's near edge);
 - an append-only writer to `margins.csv` (`source` = `NSE SPAN <file name> sha256=<SHA-256>`, `as_of` = d) that never
   edits or reorders a past row; the same row again is a no-op, a different figure for the same key is a conflict;
-- a GitHub Actions job (no AI) with the A13 shape: librarian, revisions sweep, compute, commit; one #fno-desk line on
-  any failure;
+- a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (07:45 IST, retry 08:30):
+  librarian, revisions sweep, compute, commit; one #fno-desk line on any failure;
 - a proposal (not a change) for deriving C2's stressed-margin factor from archived files.
 
 Out: C2's frozen method and `config.yaml` `risk` values (owner decision first); broker-specific add-ons (Groww's own

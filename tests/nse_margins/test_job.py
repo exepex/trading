@@ -17,7 +17,7 @@ from fno.risk.margins import MarginTable
 from .span_builder import DAY, LOT, span_zip
 
 HEADER = "structure,width,margin_per_lot_rs,source,as_of\n"
-EVENING_BEFORE = datetime(2026, 10, 13, 22, 0, tzinfo=IST)
+MORNING = datetime(2026, 10, 14, 7, 45, tzinfo=IST)
 
 
 def weekday(day: date) -> bool:
@@ -39,7 +39,7 @@ def margins_file(tmp_path: Path, text: str = HEADER) -> Path:
     return path
 
 
-def make_job(path: Path, files: dict[date, bytes], now: datetime = EVENING_BEFORE, alerts: Alerts | None = None):
+def make_job(path: Path, files: dict[date, bytes], now: datetime = MORNING, alerts: Alerts | None = None):
     builder = MarginRowBuilder((ShortIronFly(), ShortCondor(), LongIronFly()), (100.0, 200.0),
                                SpanMarginCalculator(NseIndexOptionExposure(), LOT), 30)  # fmt: skip
     day_file = lambda day: (f"nsccl.{day:%Y%m%d}.i1.zip", files.get(day))  # noqa: E731
@@ -138,12 +138,11 @@ def test_a_file_without_a_final_newline_gets_one_before_the_new_rows(tmp_path):
 
 
 @pytest.mark.parametrize("now, due", [
-    (datetime(2026, 10, 13, 21, 44, tzinfo=IST), date(2026, 10, 13)),
-    (datetime(2026, 10, 13, 21, 45, tzinfo=IST), date(2026, 10, 14)),
-    (datetime(2026, 10, 16, 23, 0, tzinfo=IST), date(2026, 10, 19)),  # Friday evening: Monday's file
-    (datetime(2026, 10, 17, 9, 0, tzinfo=IST), date(2026, 10, 19)),
+    (datetime(2026, 10, 14, 7, 45, tzinfo=IST), date(2026, 10, 14)),
+    (datetime(2026, 10, 13, 23, 0, tzinfo=IST), date(2026, 10, 13)),  # an evening run never races NSE's file
+    (datetime(2026, 10, 17, 9, 0, tzinfo=IST), date(2026, 10, 19)),  # Saturday: Monday's file
 ])  # fmt: skip
-def test_the_due_session_is_the_latest_whose_file_is_out(now, due):
+def test_the_due_session_is_the_first_from_today_on(now, due):
     assert due_session(now, weekday) == due
 
 

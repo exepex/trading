@@ -1,14 +1,14 @@
 # Story A14: C2's margin inputs from NSE Clearing as a plain job (no AI session). Research data only; never trades.
 #   1. the A9 librarian archives the last week's beginning-of-day SPAN files (nsccl.<d>.i1.zip, span-bod) in Drive,
-#      up to the latest session whose file is out (written about 21:28 IST the evening before);
+#      up to today's session (its file is written the evening before: 20:00-24:00 IST in 2026, by 03:05 since 2020);
 #   2. the A11 sweep keeps any later NSE version beside the original;
 #   3. `margins nse-span` reads each pending session's FIRST archived file, refuses one written at or after 09:00 IST
 #      on its day, and appends SF, SC and BF margins per lot (SPAN + exposure) to research/data/margins/margins.csv,
 #      never editing a row; a missing or invalid file writes nothing for that day and posts one #fno-desk line;
 #   4. the manifest rows and the margins file are committed (only valid rows are ever written).
-# UNSCHEDULED until the independent check passes (story A14 criterion 1; claims response 71). Once it passes,
-# add the schedule:  - cron: "15 16 * * *" (21:45 IST, the next session's file) and - cron: "45 2 * * *" (08:15 IST
-# retry, before the 09:15 open).
+# UNSCHEDULED until the independent check passes (story A14 criterion 1; claims response 74). Once it passes,
+# add the schedule:  - cron: "15 2 * * *" (07:45 IST, today's session) and - cron: "0 3 * * *" (08:30 IST retry), both
+# before the 09:15 open.
 name: nse-margins
 
 on:

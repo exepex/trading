@@ -57,5 +57,5 @@ def build_nse_margin_job(cfg: dict, env=os.environ, day_file: DayFile | None = N
 
 
 def due_day() -> date:
-    """The latest session whose `i1` file is out now (the librarian's last day in the scheduled job)."""
+    """The first session from today on (the librarian's last day in the scheduled morning job)."""
     return due_session(now_ist(), build_trading_days())

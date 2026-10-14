@@ -16,7 +16,7 @@ from collections.abc import Callable
 from datetime import date, datetime, timedelta
 
 from ..alerts.sender import AlertSender
-from ..constants import MARGIN_SOURCE_NSE_SPAN, SPAN_BOD_CREATED_BEFORE, SPAN_BOD_DUE
+from ..constants import MARGIN_SOURCE_NSE_SPAN, SPAN_BOD_CREATED_BEFORE
 from ..fo_bhavcopy import BadFile
 from .calculator import MarginOutsideModel
 from .margin_log import MarginLog, MarginLogConflict
@@ -36,9 +36,10 @@ class MarginDayProblem(RuntimeError):
 
 
 def due_session(now: datetime, is_trading_day: Callable[[date], bool]) -> date:
-    """The latest session whose `i1` file is out at `now`: the first session after today once the evening file is due
-    (21:45 IST), else the first from today on (its file came out the evening before)."""
-    start = now.date() + timedelta(days=1) if now.time() >= SPAN_BOD_DUE else now.date()
+    """The first session from today on: the job runs in the morning, when its `i1` file is out (NSE wrote 131 sampled
+    files between 18:00 and 03:05 IST before their day; 2026's between 20:00 and 24:00). An evening run waits for the
+    next morning rather than racing NSE's evening file."""
+    start = now.date()
     for day in (start + timedelta(days=offset) for offset in range(MAX_GAP_DAYS)):
         if is_trading_day(day):
             return day

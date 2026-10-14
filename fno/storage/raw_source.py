@@ -189,9 +189,9 @@ class NseDeliverySource(NseArchiveSource):
 
 
 class NseSpanBodSource(NseArchiveSource):
-    """NSE Clearing's beginning-of-day SPAN risk-parameter file of a session, e.g. nsccl.20261014.i1.zip, written
-    about 21:28 IST on the session before (story A14: the margins C2 needs). Kept from the month A14 began; NSE's
-    archive goes back to 2020 for a history study."""
+    """NSE Clearing's beginning-of-day SPAN risk-parameter file of a session, e.g. nsccl.20261014.i1.zip, written the
+    evening before (18:00-03:05 IST in 131 sampled files; story A14: the margins C2 needs). Kept from the month A14
+    began; NSE's archive goes back to 2020 for a history study."""
 
     dataset = "nse/derivatives/span-bod"
     first_day = date(2026, 10, 1)
