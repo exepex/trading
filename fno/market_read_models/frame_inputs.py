@@ -15,6 +15,9 @@ from ..storage.snapshot_source import FiiDiiCashSource, NsdlFpiDailySource
 from .flows_block import DAYS_KEPT, FlowsCopy, FlowsInputs
 from .flows_files import CashFlows, read_fii_dii, read_nsdl_equity
 
+NO_CASH = "flows: no archived FII/DII cash copy covers the session {day} ({read} sessions read)"
+NO_NSDL = "flows: no archived NSDL FPI copy filed on or before {day}"
+
 
 @dataclass(frozen=True)
 class FrameInputs:
@@ -28,10 +31,15 @@ def frame_inputs(calendar: SessionCalendar, day: date) -> FrameInputs:
 
 
 class FlowsReader:
-    """A copy is filed under the IST day it was fetched, at any time of that day (flows-download at 21:10 IST, the
-    07:10 IST market run, a hand run). Session D is published at 07:10 IST the next morning, so only copies filed on or
-    before D are surely older than its publication; a copy filed the next day may be newer, and is never read for D.
-    The archive keeps one copy per day (a different one is refused), so a re-run of D reads exactly the same copies."""
+    """Where copies are filed: under the run's `--day` folder, not always the day they were fetched. flows-download
+    (21:10 IST) files under its own IST day; the publish run of session D (07:10 IST the next morning) files the copy it
+    takes under D, the session it publishes. So a folder dated D holds a copy taken no later than D's own publication;
+    a copy filed under a later day may be newer, and is never read for D (no look-ahead, judge 66). The session a copy
+    covers is read from the file itself, and the latest copy of each session wins. The archive keeps one copy per
+    folder (a different one is refused), so a re-run of D reads exactly the same copies.
+
+    Reading stops at nothing silent: `problems` names a published session without its FII/DII cash values, or a missing
+    NSDL series, once the archive has begun; the session build then fails (judge 66 item 4: never an empty page)."""
 
     def __init__(self, store: RawFileStore, calendar: SessionCalendar):
         self.store, self.calendar = store, calendar
@@ -44,6 +52,19 @@ class FlowsReader:
         return FlowsInputs(
             [cash[d][1] for d in sorted(cash)], [nsdl[d][1] for d in sorted(nsdl)], sessions, copies,
         )  # fmt: skip
+
+    @staticmethod
+    def problems(day: date, flows: FlowsInputs) -> list[str]:
+        """What the flows block lacks for session `day` (empty when complete); before the first archived copy the
+        history has not begun, so nothing is required."""
+        found = []
+        if day >= FiiDiiCashSource.first_day and day not in {c.day for c in flows.cash}:
+            found.append(
+                f"flows: no archived FII/DII cash copy covers the session {day} ({len(flows.cash)} sessions read)"
+            )
+        if day >= NsdlFpiDailySource.first_day and not flows.nsdl:
+            found.append(NO_NSDL.format(day=day))
+        return found
 
     def _latest(self, source, day: date, read: Callable[[bytes, str], tuple[date, object]]) -> dict[date, tuple]:
         """Session -> (the copy, its figures) of its latest copy filed on or before `day` (copies read oldest first)."""
