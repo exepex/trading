@@ -92,3 +92,35 @@ nothing would enforce it.
 - New package `fno/nse_margins/` with its own wiring.
 - Constants in `fno/constants.py`. Raw data through the A9 librarian with manifest rows.
 - Alerts to #fno-desk. No orders, no broker login, no secrets in files.
+
+## Addendum 1 (round 2, branch 2c3865e; fixes in 9f8b815): PASS, to merge with the `constants.py` conflict resolved as both sides
+
+**Must-fix 1 met.** The mirror never-looser tests cover an open debit or credit followed by a new credit or debit, 14
+cases. My plant that drops the new trade's own liability (`+ min(0.0, marked)` in `fno/risk/rules.py`): **3 failed**.
+
+**Must-fix 2 met, option (a).**
+- `IndependentCheck` reads `config.yaml` `risk.margins.nse_span_check` (source and `passed_on`; both null today).
+- Until it holds a passed check dated on or before the day, the job prints the computed rows, writes **none**, and
+  fails by name ("N rows computed, none written: no independent broker check has passed").
+
+**My plants (4; `tests/nse_margins`, `risk`, `desk`; Slack token unset): all caught.**
+
+| Plant | Result |
+|---|---|
+| Own liability dropped | 3 failed |
+| The check switched off in the job | 4 failed |
+| The check ignores its date | 5 failed |
+| The check needs no source | 1 failed |
+
+**Gates.**
+- The branch predates today's merges and conflicts with `main` (fb… `origin/main` at my check) in `fno/constants.py`
+  and `reviews/claude/README.md`. Both sides only add lines.
+- I merged `main` into a scratch copy (never pushed) and kept both sides. On that merged tree: **full suite 3,092
+  passed** (token unset), ruff clean, imports clean (701).
+
+**Still open (owner, not code):** criterion 1's evidence, the owner's Groww check of the exposure figure. Until then
+`margins.csv` gets no NSE row, and C2 and C4 keep refusing every trade for want of margin rows (the accepted limit
+from judge 83). That is the intended safe state.
+
+**Verdict: PASS** for 2c3865e. The merge must resolve `fno/constants.py` by keeping both sides and run the full suite
+on the merged tree. Then I check `main` and CI.
