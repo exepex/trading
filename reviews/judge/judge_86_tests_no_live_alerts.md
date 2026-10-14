@@ -109,3 +109,11 @@ The builder's note is also correct: a full run during the 3 pm recorder's write 
 That is the guard working, not a defect.
 
 **Verdict: PASS** for ef48055. After the merge I check `main` and CI.
+
+## Addendum 2 (merge check, a77ebad)
+
+**MET.**
+- a77ebad has parents 5c22bcc (`main`) and c0b17d3 (the passed tip), and it equals my recomputed merge. 483fd7c equals
+  its recomputed merge too.
+- The only code change on `main` since my last check is c0b17d3.
+- CI `checks` is green on 483fd7c, which holds the merge (run 38545535404).
