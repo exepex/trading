@@ -1,4 +1,4 @@
-# Response 93: weekly NIFTY options and a market-weather signal (desk study, 14 Oct 2026)
+# Response 94: weekly NIFTY options and a market-weather signal (desk study, 14 Oct 2026)
 
 Owner: YES to the combined study. The goal is evidence, not luck: defined-risk trades held for days, and a signal that
 says when to stay out.
@@ -37,19 +37,40 @@ The study is in `research/2026-10-14-weekly-weather/`:
 
 **Results** (1 lot of 65, held to expiry and settled on the index close, C1 charges; net Rs per trade, pre-tax):
 
-| Id | Structure | Trades | Per year | Mean net | SD | t | 2019-23 mean | 2024-26 mean | Mean gross | Mean costs | Worst | Pass |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| W1 | Bought call (1% out) | 378 | 48.6 | -489 | 7,307 | -1.30 | +67 | -1,491 | -452 | 37 | -8,861 | no |
-| W2 | Bought put (1% out) | 380 | 48.8 | -665 | 8,915 | -1.46 | -901 | -242 | -631 | 35 | -9,856 | no |
-| W3 | Bull call spread (ATM/+100) | 394 | 50.6 | -3 | 3,067 | -0.02 | +277 | -505 | +96 | 99 | -4,363 | no |
-| W4 | Bear put spread (ATM/-100) | 394 | 50.6 | -321 | 2,962 | -2.15 | -573 | +132 | -232 | 89 | -3,694 | no |
-| W5 | Short iron condor (1.5% out, 100 wings) | 393 | 50.5 | -224 | 2,604 | -1.71 | -223 | -226 | -100 | 124 | -6,348 | no |
+| Id | Structure | Trades | Per year | Mean net | SD | t | 99% upper bound | 2019-23 mean | 2024-26 mean | Gross before pads | Pads | Charges | Charges + pads | Worst | Pass |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| W1 | Bought call (1% out) | 378 | 48.6 | -489 | 7,307 | -1.30 | +387 | +67 | -1,491 | -387 | 65 | 37 | 102 | -8,861 | no |
+| W2 | Bought put (1% out) | 380 | 48.8 | -665 | 8,915 | -1.46 | +401 | -901 | -242 | -566 | 65 | 35 | 100 | -9,856 | no |
+| W3 | Bull call spread (ATM/+100) | 394 | 50.6 | -3 | 3,067 | -0.02 | +357 | +277 | -505 | +226 | 130 | 99 | 229 | -4,363 | no |
+| W4 | Bear put spread (ATM/-100) | 394 | 50.6 | -321 | 2,962 | -2.15 | +27 | -573 | +132 | -102 | 130 | 89 | 219 | -3,694 | no |
+| W5 | Short iron condor (1.5% out, 100 wings) | 393 | 50.5 | -224 | 2,604 | -1.71 | +82 | -223 | -226 | +160 | 260 | 124 | 384 | -6,348 | no |
+
+- **Column meanings.** `results.md` reports "gross" *after* the Rs 1 pads, because the pads sit inside the fills
+  (W1 -452, W2 -631, W3 +96, W4 -232, W5 -100), and "costs" as C1 charges only. Here I split them so costs compare
+  like-for-like with the monthly figures, which include Rs 520 of pads:
+  - gross before pads = results.md gross + pads;
+  - pads = Rs 1 x legs x 65;
+  - charges + pads is the full trading cost. My first draft called the charges alone "costs" (judge 95).
+- **The 99% one-sided upper bound** of the mean net per trade is mean + 2.33 x SD / sqrt(n). It is what the data still
+  allows.
 
 What each role reads:
-- **Mathematician (strong evidence).** Weekly options were priced close to fair. The mean gross per trade before costs
-  is between -631 and +96, so there is no premium to harvest in either direction.
-  - Holding to expiry makes costs small (Rs 35-124 a trade, with no exit pads), which is much better than the monthly
-    four-leg Rs 810-940. Costs are not the problem here; the absence of a gross edge is.
+- **Mathematician (strong evidence).** Weekly options were priced close to fair. The mean gross per trade before any
+  trading cost is between -566 and +226.
+  - Full trading costs (charges plus pads) are Rs 100-384 a trade, against Rs 810-940 for the monthly four-leg
+    structures. Holding to expiry saves the exit pads and orders.
+  - For the bought options and the bear put spread (W1, W2, W4) the gross is already negative, so costs are not what
+    stops them.
+  - For the bull call spread and the condor, a small premium does exist before costs (W3 +226, W5 +160). It is smaller
+    than their costs (229 and 384), so for these two, as with monthly options, **costs eat the premium**. My first
+    draft said "costs are not the problem here", which is wrong for W3 and W5 (judge 95).
+- **What the test could and could not detect (strong evidence; judge 95).** With about 380-394 trades, the 99% upper
+  bounds rule out an edge above Rs 27 a trade for W4, Rs 82 for W5, Rs 357 for W3, Rs 387 for W1 and Rs 401 for W2.
+  - So the protected condor and the bear put spread are ruled out at any useful size.
+  - A small bull call spread edge, up to about Rs 357 a trade, is not excluded, but nothing points to it: its mean is
+    -3 and its two periods have opposite signs (+277, -505).
+  - The outcomes also depend on NIFTY's index path from 2019 to 2026, which had already been seen, not only on the
+    fresh option prices. That exposure cuts toward false passes, so it does not weaken this fail.
 - **Volatility trader.** Selling protected weekly premium (W5) lost in both periods (-223, -226). Buying it lost more
   (W1, W2).
   - The variance premium that shows in monthly options (response 92) does not show as profit in weekly protected
@@ -122,6 +143,12 @@ What each role reads:
 - Close-proxy fills with a Rs 1 pad. Today's lot (65) and today's charges are applied to 2019-2023, as in experiment 1.
   P&L is pre-tax.
 - Before Feb 2020 the expiry settlement is approximated by the NIFTY close.
+- **The first trade is a two-week hold.** It runs from 1 to 14 Feb 2019, because 31 Jan 2019 was a monthly expiry and
+  weekly NIFTY options only began in February 2019. Every later trade runs from one weekly expiry to the next.
+- **Data window.** The protocol says "sessions to 9 Oct 2026", but the run includes expiries up to 13 Oct 2026: the A13
+  job had appended 12 and 13 Oct to the panel before the run (manifest end 2026-10-13). `study.py` has no end date, so
+  a rerun on a later panel gives different numbers. Reproducing this run means using the repository tree at `188ef58`
+  (judge 95).
 - `max_loss` counts entry costs only. Settlement charges on in-the-money legs can push a realised loss up to about
   Rs 60 above it; this is immaterial to every result.
 - "Gaps" are close-to-close moves; the data has no opening prices.
@@ -132,10 +159,12 @@ What each role reads:
 1. No weekly structure goes forward. Do not register W1-W5 in the playbook.
 2. Do not use this RED rule as a profit filter. If the owner wants it as a **survival** warning (fewer trades in
    unstable weeks for peace of mind), that is a risk preference, not an edge, and should be labelled so.
-3. This is the third independent "no edge" result on NIFTY options held for days or weeks:
-   - experiment 1 (monthly protected premium);
-   - response 92 (costs and proof horizon);
-   - now weekly, in both directions.
+3. This is the **second independent test**, after experiment 1, to find no edge in NIFTY options held for days or
+   weeks:
+   - experiment 1 tested monthly protected premium;
+   - this study tests weekly trades, in both directions.
+   Response 92 re-read experiment 1's data and added the cost and proof-horizon analysis; it was not a new test. My
+   first draft said "third" (judge 95).
    The honest reading (some evidence): **retail-sized, defined-risk NIFTY option trades with daily-close information
    have no edge we can find or prove.** The project's own rule says the tool shuts down if paper shows no net profit.
    The owner should weigh, now, whether to continue the strategy search at all, or to keep the tool as a risk and
