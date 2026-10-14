@@ -78,6 +78,22 @@ def test_premium_ratio_window_keeps_the_latest_750_resolved_before_the_refit():
     assert window == resolved[-750:] and all(t + timedelta(7) < refit for t in window)
 
 
+def test_premium_ratio_window_refit_day_boundary_resolved_on_the_refit_day_is_left_out():
+    refit = date(2026, 11, 2)
+    rows = [(t, t + timedelta(7)) for t in _days(date(2024, 1, 1), 499)]
+    on_refit, day_before = (date(2026, 10, 26), refit), (date(2026, 10, 25), refit - timedelta(1))
+    assert premium_ratio_window([*rows, on_refit], refit) is None  # resolved == refit day: not known at its cutoff
+    window = premium_ratio_window([*rows, day_before], refit)
+    assert window is not None and window[-1] == date(2026, 10, 25)
+
+
+def test_premium_ratio_window_first_day_is_1_jan_2024_inclusive():
+    refit = date(2026, 11, 2)
+    rows = [(t, t + timedelta(7)) for t in _days(date(2023, 12, 31), 501)]
+    window = premium_ratio_window(rows, refit)
+    assert window is not None and window[0] == date(2024, 1, 1) and len(window) == 500
+
+
 @pytest.mark.parametrize(("r", "n"), [(3, 114), (5, 316), (10, 1_264)])
 def test_design_table_is_reproduced_at_five_percent_over_fifteen(r, n):
     assert required_outcomes(r, 0.05, m=15) == n

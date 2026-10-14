@@ -47,7 +47,7 @@ PRIMARY_BASELINE = {
 
 RESAMPLES = 10_000
 BOOTSTRAP_SEED = 20261015  # comparison k seeds numpy's SeedSequence([BOOTSTRAP_SEED, k])
-FUTILITY_CONFIDENCE = 0.95  # one-sided upper bound of the improvement
+FUTILITY_CONFIDENCE = 0.975  # one-sided, at each of the two looks (Bonferroni 2 x 2.5%, ChatGPT review 99)
 
 QLIKE_MIN_EFFECT = 0.03  # mean paired difference <= -3% of the baseline's mean textbook QLIKE, on RV > 0 dates
 BRIER_MIN_EFFECT = 0.02  # Brier skill score against the primary baseline
@@ -62,6 +62,7 @@ REPORTED_ONLY = (V3_RV_20S, V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE)
 # At most two confirmatory looks; their family-wise rates add to 5% (Bonferroni over looks).
 LOOK_STOP_REVIEW, LOOK_SETTLE_DATE = "stop_rule_review", "projected_settle_date"
 LOOK_ERROR_RATE = {LOOK_STOP_REVIEW: 0.02, LOOK_SETTLE_DATE: 0.03}
+LOOK_NUMBER = {LOOK_STOP_REVIEW: 1, LOOK_SETTLE_DATE: 2}  # the futility bound's last seed word
 
 POWER_REPORT_AT = 60  # scored outcomes of a question before its noise ratio r is measured
 POWER = 0.80

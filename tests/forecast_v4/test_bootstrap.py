@@ -16,7 +16,7 @@ from fno.forecast_v4.bootstrap import (
     relative_improvement,
 )
 from fno.forecast_v4.pairs import PairedSet
-from fno.forecast_v4.terms import BOOTSTRAP_SEED
+from fno.forecast_v4.terms import BOOTSTRAP_SEED, LOOK_SETTLE_DATE, LOOK_STOP_REVIEW
 
 DIFFERENCES = [0.004 * math.sin(t) + 0.002 * (t % 3 - 1) - 0.0004 for t in range(60)]  # 60 paired dates, fixture
 BASELINE = [0.02 + 0.005 * math.cos(t) for t in range(60)]
@@ -26,7 +26,8 @@ COMMITTED = {
     "p_block5_k1": 0.28577142285771423,
     "hac_block10": 0.14204676552926243,
     "improvement": 0.013496327108828504,
-    "upper_block10_k4": 0.039369083201854164,
+    "upper_look1": 0.04298810947637088,
+    "upper_look2": 0.04261983907072845,
 }  # computed once at the protocol commit; any change to the rules changes them
 
 
@@ -98,8 +99,8 @@ def test_gate_is_three_percent_of_the_baseline_mean_textbook_loss_on_the_same_da
     exactly = PairedSet((), (-0.06,) * 4, base)
     short = PairedSet((), (-0.058,) * 4, base)
     assert relative_improvement(exactly) == pytest.approx(0.03)
-    assert effect_check(exactly, 0.03, 5, 1).meets_minimum_effect
-    assert not effect_check(short, 0.03, 5, 1).meets_minimum_effect
+    assert effect_check(exactly, 0.03, 5, 1, LOOK_STOP_REVIEW).meets_minimum_effect
+    assert not effect_check(short, 0.03, 5, 1, LOOK_STOP_REVIEW).meets_minimum_effect
 
 
 def test_brier_gate_equals_a_brier_skill_score_of_two_percent():
@@ -109,28 +110,34 @@ def test_brier_gate_equals_a_brier_skill_score_of_two_percent():
     assert relative_improvement(gate) == pytest.approx(skill)
 
 
-def test_futility_bound_is_the_nearest_rank_95th_percentile_of_resampled_ratios():
+@pytest.mark.parametrize(
+    ("look", "word", "key"), [(LOOK_STOP_REVIEW, 1, "upper_look1"), (LOOK_SETTLE_DATE, 2, "upper_look2")]
+)
+def test_futility_bound_is_the_nearest_rank_97_5th_percentile_at_each_look(look, word, key):
     gate = PairedSet(tuple(range(60)), tuple(DIFFERENCES), tuple(BASELINE))
-    check = effect_check(gate, 0.03, 10, 4)
+    check = effect_check(gate, 0.03, 10, 4, look)
     assert check.relative_improvement == pytest.approx(COMMITTED["improvement"], abs=1e-15)
-    assert check.upper_bound == pytest.approx(COMMITTED["upper_block10_k4"], abs=1e-15)
+    assert check.upper_bound == pytest.approx(COMMITTED[key], abs=1e-15)
     assert (check.meets_minimum_effect, check.futile) == (False, False)
-    index = block_indices(60, 10, [BOOTSTRAP_SEED, 4, 1])
+    index = block_indices(60, 10, [BOOTSTRAP_SEED, 4, 1, word])
     d, b = np.asarray(DIFFERENCES)[index], np.asarray(BASELINE)[index]
     ratios = sorted(-d.sum(axis=1) / b.sum(axis=1))
-    assert check.upper_bound == ratios[9_499]
+    assert check.upper_bound == ratios[9_749]  # 97.5%: Bonferroni 2 x 2.5% over the two looks
 
 
 def test_futile_when_improvement_is_surely_below_the_minimum_effect():
     tight = PairedSet(tuple(range(200)), tuple(-0.0002 + 0.0001 * math.sin(t) for t in range(200)), (0.05,) * 200)
-    check = effect_check(tight, 0.03, 5, 1)
+    check = effect_check(tight, 0.03, 5, 1, LOOK_SETTLE_DATE)
     assert check.relative_improvement == pytest.approx(0.004, abs=1e-3) and check.futile
 
 
 def test_futility_is_never_declared_without_two_blocks_or_without_data():
     few = PairedSet(tuple(range(9)), (0.0,) * 9, (1.0,) * 9)
-    assert effect_check(few, 0.03, 5, 1).futile is False and effect_check(few, 0.03, 5, 1).upper_bound is None
-    assert effect_check(PairedSet((), (), ()), 0.03, 5, 1).futile is False
+    assert (
+        effect_check(few, 0.03, 5, 1, LOOK_STOP_REVIEW).futile is False
+        and effect_check(few, 0.03, 5, 1, LOOK_STOP_REVIEW).upper_bound is None
+    )
+    assert effect_check(PairedSet((), (), ()), 0.03, 5, 1, LOOK_SETTLE_DATE).futile is False
 
 
 def test_hac_matches_a_hand_newey_west_and_is_none_when_undefined():

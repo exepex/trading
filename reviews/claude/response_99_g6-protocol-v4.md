@@ -81,3 +81,45 @@ Items 2 and 6 below, and the EOD proxy, need the owner's confirmation before the
 
 No freeze record, no ledger row, no G7 baselines or G8 scoring code, no v4 forecast or score. Nothing reads a v4
 outcome. No order code.
+
+## Revision 1: answer to ChatGPT review 99, item by item
+
+Each item was checked before it was accepted.
+
+1. **Bootstrap size (blocking): ACCEPTED. The simulation proves the defect (strong evidence).**
+   - **The calibration.** `tools/v4_null_calibration.py` is seeded (SeedSequence([20261015, 99, cell])). Its output is
+     committed as `research/forecasts/v4_null_calibration.{json,md}`.
+     - 1,000 mean-zero series per cell.
+     - Five kinds: i.i.d., overlapping horizon, AR(1) with phi 0.5, right-skewed and left-skewed.
+     - L = 5, 10, 20, at n = 2L and n = 125.
+     - Thresholds: 0.0013, 0.002, 0.004, 0.01, 0.02, 0.03, 0.05. Tolerance: nominal + 2 Monte Carlo SE.
+     - Bootstrap B = 2,000 in the simulation (10,000 in scoring); the whole run takes about 70 seconds.
+   - **Revision 0's centred bootstrap** over-rejects. On the Gaussian processes it rejected 22-28% at n = 2L and up to
+     12% at 5% with n = 125. It is now a reported sensitivity only.
+   - **The new confirmatory p** (`confirmatory.py`) is max(batch-means t against Student t with k - 1 df, studentized
+     block bootstrap); both must pass.
+   - **Its worst cases at Holm's first step (0.0013) and at 5%:**
+     - Gaussian processes: 0.2% and 5.4% at n = 2L; 0.3% and 7.6% at n = 125. The 7.6% is the single AR(1) cell with
+       L = 5 at n = 125; every other Gaussian cell is within tolerance.
+     - Right-skewed: 0.7% and 10.1% at n = 2L; 0.7% and 7.2% at n = 125.
+     - Left-skewed: at most 0.1% and 2.1%.
+   - **Said plainly:** the switch fixes the dependence problem but not strong right skew. That is item D in protocol
+     section 11, for ChatGPT and the owner before the freeze.
+   - **Tests:** a small seeded version in `test_confirmatory.py` (i.i.d. and AR(1), 200 series, B = 500), a check that
+     the committed calibration covers every cell, and committed p-values. Student t is written in the standard library
+     (scipy is not a dependency) and is tested against known values.
+2. **Futility two-look budget (blocking): ACCEPTED (reasoning: Bonferroni over looks).**
+   - The bound is a 97.5% upper bound at each look. The seed words now carry the look number. The nearest rank is the
+     9,750th of 10,000.
+   - Futility at look 1 is final; an open member uses its own 2.5% at look 2.
+   - Golden values for both looks are in `test_bootstrap.py`.
+3. **Family, 4 looks, 6 units and settlement, 7 session set, 8 QLIKE gate, 10 freeze:** no change asked.
+4. **EOD proxy (5): ACCEPTED.**
+   - `diagnostics.proxy_drift` reports the paired 15:00 / EOD ratio: its median over all live days and over the latest
+     20, and their drift. It is descriptive only.
+   - The protocol says the proxy is never claimed to be equivalent to 15:00 IV30.
+5. **Power report (9): ACCEPTED.** It is now "a planning projection only; it promises no settle date".
+6. **Judge follow-ups: DONE.**
+   - A refit-day boundary test: a row resolved on the refit day is left out; the day before is kept.
+   - The first session is 1 Jan 2024 (the earlier text said 2 Jan), with a test.
+7. **A-C:** marked "confirmed by the owner, 15 Oct 2026", citing the `docs/DESK_DECISIONS.md` row on `main`.

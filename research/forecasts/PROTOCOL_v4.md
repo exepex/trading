@@ -127,11 +127,13 @@ P(NIFTY settles inside `K +/- P` at the nearest monthly expiry `e` after `d`).
   first-archived end-of-day chains (traded closes, volume > 0, Black-76 on the traded future), unflagged days only.
   It is point in time by content (day t's chain is published on t's evening), not by archive time (2024-2026 files
   were archived in Oct 2026). **Window from 1 Jan 2024 only:** UDiFF files, and outside G1's 2019-2023 holdout. The
-  panel has 685 regular sessions from 2 Jan 2024 to 14 Oct 2026 (strong evidence: manifest count); after the
+  panel has 685 regular sessions from 1 Jan 2024 to 14 Oct 2026 (strong evidence: manifest count); after the
   horizon's unresolved tail and flagged days (G1 measured 11-23 a year from 2021), about 620-680 remain, so the 500
   minimum holds at the freeze (some evidence). Live forecasts multiply the 15:00 raw implied by that ratio; the
   mismatch between 15:00 and end-of-day IV30 enters the ratio's noise (reasoning only). Each live day's window point
-  keeps the same EOD proxy, so one estimator runs through the window.
+  keeps the same EOD proxy, so one estimator runs through the window. **Forward diagnostic (ChatGPT review 99):**
+  every report gives the paired 15:00 / EOD IV30 ratio, its median over all live days and the latest 20, and their
+  drift (`diagnostics.proxy_drift`); descriptive only, and the proxy is never claimed equivalent to 15:00 IV30.
 - **Option-implied probability (V5):** lognormal, `ln S_T ~ N(ln F - s^2 tau / 2, s^2 tau)`, `s` = the mean Black-76 IV of
   the K call and put, `tau = C_e / 365`, `F` = expiry `e`'s future in the 15:00 pack;
   `p = N(z(K + P)) - N(z(K - P))` with `z(x) = (ln(x / F) + s^2 tau / 2) / (s sqrt(tau))`.
@@ -174,28 +176,39 @@ missing; daily HAR never stands in again.
 - Both sets are fixed by these rules before any score. Revision 2's floor (1% of the trailing 250-session median) is
   dropped; it is reported only as a sensitivity (it would have changed 133 of 2,159 close-proxy one-day outcomes).
 
-## 5. What "beats the baseline" means (`bootstrap.py`, `family.py`, `terms.py`)
+## 5. What "beats the baseline" means (`confirmatory.py`, `bootstrap.py`, `family.py`, `terms.py`)
 
 1. **Statistic:** `d_t = loss(forecaster) - loss(baseline)` on the scored set; `D` = their mean; negative favours the
    forecaster; one-sided.
-2. **Null-centred moving-block bootstrap.** For n pairs and block length L (table 1.2): B = 10,000 resamples, each
-   drawing ceil(n / L) block starts uniformly from 0..n-L with replacement (`numpy.random.default_rng(SeedSequence([
-   20261015, k]))`, all starts in one draw of shape (B, ceil(n / L))), joined in draw order and cut to n; `D*_b` is the
-   mean. **p = (1 + #{b : D*_b - D <= D}) / (B + 1).** Fewer than 2L pairs: not tested, p = 1. k is the member's place in
-   the family (below); reported-only comparisons are numbered after 15. (G1 v3 keeps its two-sided form.)
-3. **HAC sensitivity:** Newey-West (Bartlett, lag L - 1) t of `D`, one-sided normal p; reported beside the bootstrap,
-   **never used to choose a result**. Not computed with fewer than 2L pairs or a zero long-run variance.
+2. **Resampling.** For n pairs and block length L (table 1.2): B = 10,000 resamples, each drawing ceil(n / L) block
+   starts uniformly from 0..n-L with replacement (`numpy.random.default_rng(SeedSequence(words))`, all starts in one
+   draw of shape (B, ceil(n / L))), joined in draw order and cut to n. k is the member's place in the family (below);
+   reported-only comparisons are numbered after 15.
+3. **Confirmatory test, revision 1 (ChatGPT review 99, finding 1).** Revision 0's centred bootstrap,
+   p = (1 + #{b : D*_b - D <= D}) / (B + 1), **over-rejected true nulls** in the pre-registered seeded simulation
+   (`tools/v4_null_calibration.py`; 1,000 mean-zero series per cell; i.i.d., overlapping-horizon, AR(1) 0.5 and
+   skewed; L = 5, 10, 20; n = 2L and 125; table in `research/forecasts/v4_null_calibration.md`): up to 28% at a
+   nominal 5% with n = 2L and up to 12% at n = 125 for the Gaussian processes (strong evidence). The member's p is now **the larger of** (a) the
+   batch-means t test (the latest floor(n / L) whole batches of L, t against Student t with batches - 1 degrees of
+   freedom) and (b) the studentized block bootstrap (seed words `[20261015, k, 2]`, se from the same batches);
+   both must pass. Fewer than 2L pairs or a zero SE: not tested, p = 1. **Measured size** (strong evidence for the
+   simulated processes): within nominal + 2 Monte Carlo SE in every i.i.d., overlapping and left-skewed cell, and in
+   AR(1) except L = 5 at n = 125 (7.6% at 5%, 0.5% at 0.002). **Still too liberal under strong right skew** (centred
+   lognormal): 0.3-0.7% at Holm's first step 0.0013 (about 2-5x), 6-10% at 5%. Disclosed, open item D (section 11).
+   The centred bootstrap and a Newey-West HAC t (Bartlett, lag L - 1, normal p) are reported as sensitivities only,
+   **never used to choose a result**.
 4. **Minimum effect, registered (owner's 3%, unit confirmed 15 Oct 2026):** on the gate set, the relative improvement
    `-mean(d) / mean(baseline loss)` must be **at least 0.03** for a point question, with the baseline's **textbook**
    QLIKE as the loss (so the gate reads "3% lower mean textbook QLIKE on the same RV > 0 dates"), and **at least 0.02**
    for a probability question with Brier (identical to a Brier skill score of 0.02). The primary test keeps every scored
    date, zeros included. These are forecast effects only, never evidence of money. Significant but smaller: "real but
    too small to use".
-5. **Futility:** on the gate set, the one-sided 95% upper bound of the relative improvement: the same block resampling
-   with seed words `[20261015, k, 1]`, pairs kept together, the ratio of means recomputed on each resample, the
-   nearest-rank 95th percentile (the 9,500th of 10,000 sorted). **Futile when the bound is below the minimum effect.**
-   Never declared with fewer than 2L gate pairs. No multiplicity adjustment: "every member futile" is an
-   intersection-union claim, valid at 5% per member (strong evidence: Berger 1982).
+5. **Futility, with its own two-look budget (ChatGPT review 99, finding 2):** on the gate set, a one-sided **97.5%**
+   upper bound of the relative improvement at each look (Bonferroni 2 x 2.5% = 5% per member over the two looks):
+   the same resampling with seed words `[20261015, k, 1, look]` (look 1 or 2), pairs kept together, the ratio of means
+   recomputed on each resample, the nearest-rank 97.5th percentile (the 9,750th of 10,000). **Futile when the bound is
+   below the minimum effect.** Futile at look 1 is final; an open member uses its own 2.5% at look 2. Never declared
+   with fewer than 2L gate pairs. Across members, "every member futile" is an intersection-union claim (Berger 1982).
 6. **The confirmatory family (15 members, fixed now).** Targets V1, V2, V6a, V6b, V7, each with three forecaster slots:
    `rules` (the registered code forecaster: G7's rule forecaster, or M1's weather model for V6), `hybrid` (Book 2) and
    `ai_team` (Book 3), numbered k = 1..15 in the order of `terms.FAMILY`. Each slot holds the first forecaster version
@@ -229,18 +242,19 @@ missing; daily HAR never stands in again.
   bound is below its registered minimum useful net. **Zero counted shadows: `undecided/no_economic_test`, never "no".**
   A strategy without a resolved trade has no bound and is undecided.
 - **Table:** B yes: continue. A no and B no: stop or pivot (owner chooses). A yes and B not yes: continue 6 months with
-  the AI budget halved. Anything else: option 1 (continue to the projected settle date) when the best-powered question's
+  the AI budget halved. Anything else: option 1 (continue to the projected settle date, a planning projection) when the best-powered question's
   projected settle date is at most 2 years after the review, else option 2 (code only). **No power report yet means no
   projected date: option 2** (reasoning only; flagged in section 11).
 
-## 7. The 60-outcome power report (`power.py`)
+## 7. The 60-outcome power report (`power.py`): a planning projection only
 
 After 60 scored outcomes of a member, the statistician measures `r = SD(d) / (margin x mean baseline loss on the gate
 set)` and publishes the needed independent outcomes `n = ceil(((z(1 - 0.03 / 15) + z(0.80)) x r)^2)` (look 2's first
 Holm step) and the years remaining, at 252 / horizon independent outcomes a year, counting the 60 overlapping outcomes
 as 60 / horizon. If that is beyond 2 years, the card and the owner are told plainly that the question cannot settle in
 useful time. **The report only states a date; it never changes a threshold, the family, a baseline, a block or a
-look's rate.** Arithmetic (strong evidence): r = 3 needs 114 outcomes at 0.05 / 15 (the design's table, reproduced),
+look's rate. It promises no settle date:** the n / horizon count is a rough heuristic, not the block-dependent
+sampling distribution (ChatGPT review 99). Arithmetic (strong evidence): r = 3 needs 114 outcomes at 0.05 / 15 (the design's table, reproduced),
 125 at look 2 and 134 at look 1; r = 5 needs 316 at 0.05 / 15.
 
 ## 8. Disclosure: what was seen before the freeze
@@ -265,15 +279,15 @@ look's rate.** Arithmetic (strong evidence): r = 3 needs 114 outcomes at 0.05 / 
 | QLIKE ranking loss at zero, near-zero and missing RV | `test_loss_and_pairs.py`: zero, 1e-300, refusals; unresolved counted |
 | Equal paired differences with the textbook form when RV > 0 | `test_paired_differences_are_equal_under_both_forms...` |
 | The frozen day sets behind the 3% effect, zero-RV count | `test_scored_set_keeps_zero_rv...`, `test_gate_is_three_percent...` |
-| Exact one-sided null-centred bootstrap (seed, blocks, missing pairs) | `test_bootstrap.py`: a plain-loop rebuild, committed values, seeds, under 2L |
+| One-sided test (seed, blocks, missing pairs), null-calibrated | `test_bootstrap.py`, `test_confirmatory.py`, the committed calibration |
 | HAC as a sensitivity | `test_hac_matches_a_hand_newey_west...` |
 | Holm across the family, p = 1 unjudged, membership and timestamp | `test_family_and_stop_rule.py` |
 | Baseline eligibility | `test_eligibility_and_power.py` |
 | V4's dimensionally checked golden example | `test_units_settlement_sessions.py` with `v4_golden.json` |
 | V5's outcome from the expiry's final settlement, source and timestamp | `test_v5_...` (wrong expiry, later file, early timestamp) |
-| Futility against the minimum effect | `test_futility_...`, `test_a_is_no_only_when...` |
+| Futility against the minimum effect, 97.5% at each look | `test_futility_...` (both looks), `test_a_is_no_only_when...` |
 | Stop rule A/B table with zero trials, missing and void outcomes | `test_the_review_table`, `test_a_with_zero...`, `test_b_...` |
-| 60-outcome power report | `test_power_report_...`, the design table reproduced |
+| 60-outcome power report (planning only) | `test_power_report_...`, the design table reproduced |
 | Session set and the disclosed base rates | `test_session_set_is_a7_regular...`, `test_disclosed_base_rates...` |
 
 ## 10. The freeze (after the judge's PASS and ChatGPT's review only)
@@ -287,22 +301,20 @@ locked by these tests): `fno/constants.py`, `fno/desk/settlement.py`, `fno/resea
 version, never an edit.
 
 **Preconditions of the freeze:** the judge's PASS; ChatGPT's review; G7 and G8's code exists; and the owner's written
-confirmation of section 11's items A-C.
+confirmation of section 11's items A-C (given, 15 Oct 2026) and of item D.
 
 ## 11. Points for the judge and ChatGPT (decided in this draft, open to challenge)
 
-**For the owner's confirmation before the freeze** (judge 98; freeze precondition, section 10):
+**Confirmed by the owner, 15 Oct 2026** (`docs/DESK_DECISIONS.md`, "G6 protocol v4 choices A, B, C confirmed"):
 - **A.** Test A "yes" at the stop review needs Holm at 0.02, not the design's 5%: at r = 3, 134 outcomes instead of
   114 (5.8).
 - **B.** No power report at the review means option 2, code only (section 6).
 - **C.** The premium-adjusted baseline's ratio window uses the labelled EOD IV30 proxy from 1 Jan 2024 (3.1). Without
   it, V2 has no eligible primary until about late 2028 and cannot be judged at the May 2027 review.
 
-Also open to challenge:
-1. The 15-member family without V3, V5 and V4 (5.6), and one forecaster per slot.
-2. The two looks at 0.02 and 0.03 (5.8): stricter at the stop review than design 5.5's single 5%.
-3. Special sessions excluded from the session set (section 2), unlike G1.
-4. V2 and V3 confirmatory on `close_proxy` for all of v4 (1.1).
-5. The 5% spread limit and the put-call-parity forward for weekly IV (1.4).
-6. "No power report yet" leads to option 2 (section 6).
-7. Strict "inside" for V5 at break-even (1.5).
+**For ChatGPT's re-review and the owner's confirmation before the freeze:**
+- **D.** The revision-1 confirmatory test (5.3) is within tolerance except under strong right skew and one AR(1) cell.
+  Accept with this disclosure, or require a stricter rule (for example p at most a quarter of Holm's step) for a claim.
+
+Also open to challenge: the 15-member family without V3, V5 and V4 (5.6); special sessions excluded (section 2); V2
+and V3 on `close_proxy` (1.1); the 5% spread limit and parity forward (1.4); strict "inside" for V5 (1.5).
