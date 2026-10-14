@@ -71,3 +71,41 @@ absent from the environment the sender reads), so the guard itself never posts.
 Tests only, small. The rule "a test that needs credentials sets fake ones itself" is kept.
 
 **Verdict: PASS** for c0b17d3. After the merge I check `main` and CI.
+
+## Addendum 1 (`story/o-tests-isolation` ef48055, the two should-fixes): PASS
+
+**Should-fix 1 met:**
+- The credential guard now reads every `ENV_*` name from `fno/constants.py`. Each must be in `LIVE_CREDENTIALS` or the
+  new `NOT_CREDENTIALS` (folder ID, run ID and attempt, the three routine trigger IDs). A new or dropped name fails.
+- The Slack guard checks `isinstance(build_alert_sender(), NoAlertSender)` and sends nothing.
+
+**Should-fix 2 met:**
+- Tests get an empty session `HOME` and `USERPROFILE`, so `python -m fno` cannot reload `~/.trading.env`.
+- `GIT_CONFIG_GLOBAL` keeps git's identity.
+- A test checks that `Path.home()` is the empty folder.
+
+I found no environment variable in `fno/` read by a literal name outside `fno/constants.py`, so the constants file is
+the complete list.
+
+**My plants (6, token unset): all caught.**
+
+| Plant | Result |
+|---|---|
+| `GITHUB_TOKEN` dropped | caught |
+| `MOTHERDUCK_TOKEN` dropped | caught |
+| `GROWW_API_KEY` dropped | caught |
+| The `HOME`/`USERPROFILE` override removed | caught |
+| A new unclassified `ENV_NEW_SECRET` constant | caught |
+| The delete loop removed | caught |
+
+Moving a name from one list to the other is a visible, reviewable change, which I accept.
+
+**Gates (my runs, `python -B`, caches cleared, token unset):**
+- full suite: 2,862 passed;
+- ruff, format (642 files) and imports (649): clean;
+- `git merge-tree` with current `main` (b3d7226): clean.
+
+The builder's note is also correct: a full run during the 3 pm recorder's write fails `repository_data_is_untouched`.
+That is the guard working, not a defect.
+
+**Verdict: PASS** for ef48055. After the merge I check `main` and CI.
