@@ -3,7 +3,11 @@
   first counted decision. A counted decision is a D3 run dated on or after the common start; earlier runs are pilot
   evidence.
 - **Version of a decision:** a decision is counted under the latest protocol version whose freeze record's commit is
-  a strict ancestor of the decision's own commit. With no such version it is not counted.
+  a strict ancestor of the decision's own commit. With no such version it is not counted. If the decision's commit
+  holds any of that version's targets changed (an edit to a frozen rule or file without a new version), it is refused
+  (judge 85). A changed protocol is a new version with its own freeze, never an edit of a frozen one.
+- **Verify:** the latest freeze's targets are unchanged in the working tree. A suite test runs it, so CI fails on any
+  edit to a frozen target.
 A run's commit is the one that added its `records.sha256` (D3)."""
 
 from __future__ import annotations
@@ -16,9 +20,13 @@ from pathlib import Path
 
 from ..constants import JOURNAL_FOLDER
 from ..playbook.decision_store import DECISIONS_FOLDER, SUMS_FILE
-from .freeze import freeze_path
+from .freeze import AtCommit, WorkingTree, changed_targets, freeze_path, read_record
 
 FREEZE_NAME = re.compile(r"^FREEZE_v([1-9][0-9]*)\.md$")
+
+
+class ChangedAfterFreeze(RuntimeError):
+    """A frozen target changed under the same protocol version: nothing is counted under it."""
 
 
 @dataclass(frozen=True)
@@ -70,10 +78,29 @@ def order_problems(git, version: int, firsts: Sequence[CountedDecision]) -> list
     ]
 
 
+def _record(root: Path, version: int):
+    return read_record((Path(root) / freeze_path(version)).read_text(encoding="utf-8"))
+
+
 def version_of(root: Path, git, decision_commit: str) -> int | None:
-    """The protocol version a decision is counted under; None when no freeze precedes it."""
+    """The protocol version a decision is counted under; None when no freeze precedes it. ChangedAfterFreeze when the
+    decision's commit holds that version's targets changed."""
     for version in reversed(frozen_versions(root)):
         frozen = freeze_commit(git, version)
         if frozen and _strictly_before(git, frozen, decision_commit):
+            changed = changed_targets(AtCommit(git, decision_commit), _record(root, version))
+            if changed:
+                raise ChangedAfterFreeze(
+                    f"{decision_commit[:10]} holds v{version}'s frozen {', '.join(changed)} changed: not counted"
+                )
             return version
     return None
+
+
+def verify(root: Path) -> list[str]:
+    """Why the latest frozen version's targets differ in the working tree; empty when none differ or none is frozen."""
+    versions = frozen_versions(root)
+    if not versions:
+        return []
+    changed = changed_targets(WorkingTree(root), _record(root, versions[-1]))
+    return [f"v{versions[-1]}: {target} changed after the freeze (a change is a new version)" for target in changed]

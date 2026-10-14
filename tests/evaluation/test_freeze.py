@@ -9,8 +9,10 @@ import pytest
 from fno.evaluation.freeze import (
     FreezeRefused,
     ProtocolFreezer,
+    WorkingTree,
     changed_targets,
     freeze_path,
+    frozen_targets,
     read_record,
     target_hash,
 )  # fmt: skip
@@ -80,27 +82,25 @@ def test_a_change_to_any_hashed_target_shows_and_an_unrelated_setting_does_not(t
     record = freezer(tmp_path).freeze(TODAY)
     config = tmp_path / "config.yaml"
     config.write_text(config.read_text().replace("channel_id: C0", "channel_id: C1"))
-    assert changed_targets(tmp_path, record) == []  # not a frozen section
+    assert changed_targets(WorkingTree(tmp_path), record) == []  # not a frozen section
     config.write_text(config.read_text().replace('decision_deadline: "15:12"', 'decision_deadline: "15:13"'))
     (tmp_path / "fno/scoring.py").write_text("SCORE = 2\n")
-    assert changed_targets(tmp_path, record) == ["config.yaml:desk.timetable", "fno/scoring.py"]
+    assert changed_targets(WorkingTree(tmp_path), record) == ["config.yaml:desk.timetable", "fno/scoring.py"]
 
 
 def test_a_config_section_hash_ignores_layout_but_not_values(tmp_path):
     protocol_repo(tmp_path)
-    before = target_hash(tmp_path, "config.yaml:scorecard_review")
+    before = target_hash(WorkingTree(tmp_path), "config.yaml:scorecard_review")
     config = tmp_path / "config.yaml"
     config.write_text(config.read_text().replace("  confidence: 0.95", "  confidence: 0.95   # a comment"))
-    assert target_hash(tmp_path, "config.yaml:scorecard_review") == before
+    assert target_hash(WorkingTree(tmp_path), "config.yaml:scorecard_review") == before
     config.write_text(config.read_text().replace("0.95", "0.9"))
-    assert target_hash(tmp_path, "config.yaml:scorecard_review") != before
+    assert target_hash(WorkingTree(tmp_path), "config.yaml:scorecard_review") != before
     with pytest.raises(FreezeRefused, match="no section 'desk.missing'"):
-        target_hash(tmp_path, "config.yaml:desk.missing")
+        target_hash(WorkingTree(tmp_path), "config.yaml:desk.missing")
 
 
 def test_the_real_drafts_targets_include_every_listed_file():
-    from fno.evaluation.freeze import frozen_targets
-
     targets = frozen_targets(DRAFT)
     assert {PROTOCOL_FILE, "fno/scorecard/review.py", "fno/desk/timetable.py", "config.yaml:desk.timetable",
             "config.yaml:scorecard_review", "config.yaml:risk", "config.yaml:charges"} <= set(targets)  # fmt: skip
@@ -112,3 +112,21 @@ def test_the_freeze_names_the_last_commit_that_changed_the_protocol(tmp_path):
     protocol.write_text(protocol.read_text().replace("## Freezing", "## Freezing (as decided)"))
     latest = commit_all(tmp_path, "protocol edited before the freeze")
     assert freezer(tmp_path).freeze(TODAY).protocol_commit == latest
+
+
+def test_the_protocol_is_always_a_target_even_when_not_listed():
+    unlisted = small_frozen_files(decided()).replace("`research/evaluation/PROTOCOL.md`, ", "")
+    assert "`research/evaluation/PROTOCOL.md`" not in unlisted[unlisted.index("### `frozen_files`") :]
+    assert PROTOCOL_FILE in frozen_targets(unlisted)
+
+
+@pytest.mark.parametrize(
+    ("path", "edit"),
+    [("fno/scoring.py", "SCORE = 2\n"), ("config.yaml", None)],
+)
+def test_a_listed_file_or_config_edited_since_head_refuses_the_freeze(tmp_path, path, edit):
+    protocol_repo(tmp_path)
+    target = tmp_path / path
+    target.write_text(edit if edit is not None else target.read_text().replace("15:12", "15:13"))
+    with pytest.raises(FreezeRefused, match=f"commit {path} first"):
+        freezer(tmp_path).freeze(TODAY)

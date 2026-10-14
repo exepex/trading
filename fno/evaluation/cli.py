@@ -2,6 +2,7 @@
 - `check` runs the completeness check; `--decided` also requires every item decided by the owner.
 - `freeze` writes the freeze record and registers the protocol in the ledger; commit both at once.
 - `order` checks that the freeze precedes each book's first counted decision.
+- `verify` checks that the latest freeze's files and settings are unchanged (a suite test runs it).
 None of them computes a result or places an order."""
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ def add_evaluation_parser(subparsers) -> None:
     check = actions.add_parser("check", help="completeness check of research/evaluation/PROTOCOL.md")
     check.add_argument("--decided", action="store_true", help="also require every item decided by the owner")
     actions.add_parser("freeze", help="freeze the decided protocol (commit the record and the ledger at once)")
+    actions.add_parser("verify", help="the latest freeze's files and settings are unchanged")
     order = actions.add_parser("order", help="the freeze precedes each book's first counted decision")
     order.add_argument("--version", type=int, default=1)
     order.add_argument("--common-start", type=date.fromisoformat, help="without it every decision counts")
@@ -72,9 +74,23 @@ def _order(version: int, common_start: date | None) -> int:
     return EXIT_FAILED if problems else 0
 
 
+def _verify() -> int:
+    from ..config import ROOT
+    from .order import verify
+
+    problems = verify(ROOT)
+    for problem in problems:
+        print(f"changed: {problem}")
+    if not problems:
+        print("the latest freeze's files and settings are unchanged (or nothing is frozen yet)")
+    return EXIT_FAILED if problems else 0
+
+
 def cmd_evaluation(args) -> int:
     if args.evaluation_cmd == "check":
         return _check(args.decided)
+    if args.evaluation_cmd == "verify":
+        return _verify()
     if args.evaluation_cmd == "freeze":
         return _freeze()
     return _order(args.version, args.common_start)

@@ -305,6 +305,29 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - Hashing settings by section means an unrelated config change does not break the freeze.
 - **Evidence:** reasoning only
 
+## Open questions for the owner (raised by judge 85)
+
+These two affect items above. Each lists the options. My recommendation is reasoning only.
+
+1. **A hashes-only version 2 and per-version reporting** (`frozen_files`, `reporting_per_version`).
+   - **The conflict:** version 1 would hash no scoring code, because S2, S3, F8 and F9 do not exist yet. That code
+     would then be written after some decisions are seen, and could be shaped by them.
+   - **Option A:** freeze version 1 only once the S2, S3, F8 and F9 code exists, so every scoring rule and its code
+     are hashed before the first counted decision. Counted trading waits for that code.
+   - **Option B:** keep the hashes-only version 2, and state that it covers every decision counted under version 1.
+     It must be frozen before any result is computed or seen. The code is then built to the frozen text, and the
+     judge checks it against that text.
+   - **Recommendation: A.** It closes the gap instead of managing it. If Book 1's counted start cannot wait, B with
+     its stated cover is acceptable, but only if no outcome is looked at before the version 2 freeze.
+2. **Too few blocks for the bootstrap** (`uncertainty_criterion`).
+   - **The problem:** 120 trading days at 20-day blocks is only about 6 blocks. A percentile bootstrap from 6 blocks
+     covers less than its stated 95%, so it would claim too often.
+   - **Option A:** require at least 12 blocks (240 trading days, about a year) before any claim.
+   - **Option B:** keep 120 days and also require a t-based lower bound above zero (the block means' mean minus the
+     one-sided 95% t quantile × their standard error). Both bounds must then be above zero.
+   - **Recommendation: A and B together.** At about one position per strategy per month, a year is the realistic
+     horizon anyway. The t check costs nothing and guards the bootstrap.
+
 ## Mapping of the provisional terms this protocol replaces
 
 | Provisional term (where) | Today | Protocol item | Proposal |

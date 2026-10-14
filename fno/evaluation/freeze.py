@@ -52,8 +52,30 @@ def frozen_targets(text: str) -> list[str]:
     return sorted({PROTOCOL_FILE, *(t for t in listed if "/" in t or t.startswith(CONFIG_PREFIX))})
 
 
-def _config_section(root: Path, dotted: str):
-    node = yaml.safe_load((root / "config.yaml").read_text(encoding="utf-8"))
+class WorkingTree:
+    """Targets as the files on disk hold them."""
+
+    def __init__(self, root: Path):
+        self.root = Path(root)
+
+    def read(self, path: str) -> bytes | None:
+        file = self.root / path
+        return file.read_bytes() if file.is_file() else None
+
+
+class AtCommit:
+    """Targets as one commit holds them: a decision is checked against the code it was made with."""
+
+    def __init__(self, git, commit: str):
+        self.git, self.commit = git, commit
+
+    def read(self, path: str) -> bytes | None:
+        return self.git.committed_bytes(path, self.commit)
+
+
+def _config_section(source, dotted: str):
+    data = source.read("config.yaml")
+    node = yaml.safe_load(data) if data is not None else None
     for part in dotted.split("."):
         if not isinstance(node, dict) or part not in node:
             raise FreezeRefused(f"config.yaml has no section {dotted!r}")
@@ -61,16 +83,16 @@ def _config_section(root: Path, dotted: str):
     return node
 
 
-def target_hash(root: Path, target: str) -> str:
+def target_hash(source, target: str) -> str:
     """A file's SHA-256, or a config section's: the SHA-256 of its canonical JSON (sorted keys, dates as text)."""
     if target.startswith(CONFIG_PREFIX):
-        section = _config_section(root, target.removeprefix(CONFIG_PREFIX))
+        section = _config_section(source, target.removeprefix(CONFIG_PREFIX))
         data = json.dumps(section, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
         return hashlib.sha256(data).hexdigest()
-    path = root / target
-    if not path.is_file():
+    data = source.read(target)
+    if data is None:
         raise FreezeRefused(f"{target} is listed in frozen_files but does not exist")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(data).hexdigest()
 
 
 def render(record: FreezeRecord) -> str:
@@ -92,12 +114,12 @@ def read_record(text: str) -> FreezeRecord:
     return FreezeRecord(int(version.group(1)), commit.group(1), hashes)
 
 
-def changed_targets(root: Path, record: FreezeRecord) -> list[str]:
-    """Targets whose bytes (or config section) differ from the freeze, or that are gone."""
+def changed_targets(source, record: FreezeRecord) -> list[str]:
+    """Targets whose bytes (or config section) in `source` differ from the freeze, or that are gone."""
     changed = []
     for target, sha in sorted(record.hashes.items()):
         try:
-            if target_hash(root, target) != sha:
+            if target_hash(source, target) != sha:
                 changed.append(target)
         except FreezeRefused:
             changed.append(target)
@@ -110,8 +132,6 @@ class ProtocolFreezer:
         self.ledger = ledger or Ledger(self.root, git)
 
     def _checked_text(self) -> tuple[int, str]:
-        if not self.git.unchanged_since("HEAD", PROTOCOL_FILE) or self.git.committed_text(PROTOCOL_FILE) is None:
-            raise FreezeRefused(f"commit {PROTOCOL_FILE} first: the freeze names the commit that holds it")
         text = (self.root / PROTOCOL_FILE).read_text(encoding="utf-8")
         protocol = parse_protocol(text)
         problems = completeness_problems(text, protocol)
@@ -126,11 +146,21 @@ class ProtocolFreezer:
         path = self.root / freeze_path(version)
         if path.exists():
             raise FreezeRefused(f"{freeze_path(version)} exists: a change is a new protocol version")
-        commit = self.git.commits_touching(PROTOCOL_FILE)[-1]
-        record = FreezeRecord(version, commit, {t: target_hash(self.root, t) for t in frozen_targets(text)})
+        targets = frozen_targets(text)
+        self._require_committed(targets)
+        commit, head = self.git.commits_touching(PROTOCOL_FILE)[-1], AtCommit(self.git, "HEAD")
+        record = FreezeRecord(version, commit, {t: target_hash(head, t) for t in targets})
         path.write_text(render(record), encoding="utf-8")
         self._register(record, today)
         return record
+
+    def _require_committed(self, targets: list[str]) -> None:
+        """Every target committed and unchanged since HEAD: the freeze hashes what git holds, never a local edit."""
+        paths = sorted({"config.yaml" if t.startswith(CONFIG_PREFIX) else t for t in targets})
+        for path in paths:
+            target_hash(WorkingTree(self.root), path)  # a listed file that does not exist is refused by name
+            if self.git.committed_bytes(path, "HEAD") is None or not self.git.unchanged_since("HEAD", path):
+                raise FreezeRefused(f"commit {path} first: the freeze hashes what git holds")
 
     def _register(self, record: FreezeRecord, today: date) -> None:
         """A ledger row for the protocol (B4): prospective, no hypothesis, naming the protocol and its commit."""

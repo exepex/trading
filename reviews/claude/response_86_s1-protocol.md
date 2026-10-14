@@ -110,3 +110,54 @@ On the tree merged with `main`:
 - `python tools/check_imports.py`.
 
 Every new file is under 350 lines (the largest is `fno/evaluation/freeze.py`, 145).
+
+## Addendum 1 (14 Oct 2026): judge 85, one must-fix, one should-fix, two owner questions
+
+**Must-fix (accepted after checking).** Criterion 3 was not enforced. `changed_targets` was called only by a test.
+The judge's probe passed unnoticed:
+1. freeze v1;
+2. change "one-sided 95%" to "80%" in the protocol and edit a frozen code file under the same version;
+3. decide.
+
+`version_of` said 1 and nothing failed. I confirmed it in the code.
+
+**Fix:**
+- `python -m fno evaluation verify` reports every target of the latest freeze that differs in the working tree.
+- `test_the_repository_holds_no_edit_to_a_frozen_target` runs it on the repository. Once a version is frozen, any
+  edit to its files or settings fails the suite, and so CI.
+- `version_of` reads that version's targets **as the decision's own commit holds them** (`AtCommit`). If any
+  differs, it raises `ChangedAfterFreeze`, and nothing is counted under that version.
+- Tests: `test_judge_85s_edit_under_the_same_version_is_never_counted` (the judge's exact sequence fails: verify
+  names both targets, and `version_of` raises). `test_the_same_edit_as_a_new_version_with_its_own_freeze_is_counted`
+  shows the same edit as v2 with its own freeze passes, and the earlier decision stays under v1.
+
+**Should-fix (accepted).** The freeze hashed the working tree.
+- Every target must now be committed and unchanged since HEAD; for config sections, `config.yaml` itself.
+- The freeze hashes the target as HEAD holds it.
+- That made the older protocol-only "commit it first" check redundant, so I removed it rather than keep duplicate
+  code.
+- Tests: `test_a_listed_file_or_config_edited_since_head_refuses_the_freeze` (a code file, and config).
+  `test_the_protocol_is_always_a_target_even_when_not_listed` covers the judge's surviving plant.
+- `PlaybookGit.committed_bytes` reads exact bytes at a commit.
+
+**Owner questions added to `PROTOCOL.md`** (section "Open questions for the owner"), with options and my
+recommendation (reasoning only):
+1. **A hashes-only v2 against per-version reporting.**
+   - Option A: freeze only once the S2, S3, F8 and F9 code exists.
+   - Option B: a hashes-only v2 that covers every v1 decision, frozen before any result is computed or seen.
+   - I recommend A.
+2. **About 6 blocks in 120 days under-covers.**
+   - Option A: at least 12 blocks (240 trading days).
+   - Option B: a t-based lower bound above zero as well.
+   - I recommend both.
+
+**Mutations: 32 of 32 caught** (python -B, caches cleared). That is the first round's 28, minus the redundant check's
+mutation, plus five:
+- `version_of` ignores changes;
+- `verify` never reports;
+- `verify` checks the oldest version;
+- the freeze accepts edited targets;
+- the protocol is not always a target.
+
+Said plainly: "the freeze hashes the working tree instead of HEAD" is an **equivalent mutant**. The freeze refuses
+unless the two are equal, so the result cannot differ. I hash at HEAD because that is what git holds.

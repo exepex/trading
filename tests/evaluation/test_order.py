@@ -4,8 +4,18 @@ the common start are pilot and do not count). A decision is counted under the la
 from datetime import date
 from pathlib import Path
 
+import pytest
+
+from fno.config import ROOT
 from fno.evaluation.freeze import ProtocolFreezer
-from fno.evaluation.order import first_counted_decision, frozen_versions, order_problems, version_of
+from fno.evaluation.order import (
+    ChangedAfterFreeze,
+    first_counted_decision,
+    frozen_versions,
+    order_problems,
+    verify,
+    version_of,
+)  # fmt: skip
 from fno.evaluation.protocol import PROTOCOL_FILE
 from fno.playbook.history import PlaybookGit
 from tests.evaluation.builders import protocol_repo
@@ -103,3 +113,42 @@ def test_a_decision_committed_with_the_freeze_is_not_after_it(tmp_path):
         f"book1_rules: first counted decision journal/book1_rules/decisions/2026-11-02/2026-11-02-r1 ({same[:10]}) "
         "is not after the v1 freeze"
     ]
+
+
+def judges_edit(root: Path) -> str:
+    """Judge 85's probe: the uncertainty level and a frozen code file edited under the same version, committed."""
+    protocol = root / PROTOCOL_FILE
+    protocol.write_text(protocol.read_text().replace("one-sided 95% lower bound", "one-sided 80% lower bound"))
+    (root / "fno/scoring.py").write_text("SCORE = 2\n")
+    return commit_all(root, "edit frozen rules in place")
+
+
+def test_judge_85s_edit_under_the_same_version_is_never_counted(tmp_path):
+    protocol_repo(tmp_path)
+    freeze(tmp_path)
+    judges_edit(tmp_path)
+    after = decide(tmp_path, "book1_rules", "2026-11-02")
+    assert verify(tmp_path) == [
+        "v1: fno/scoring.py changed after the freeze (a change is a new version)",
+        "v1: research/evaluation/PROTOCOL.md changed after the freeze (a change is a new version)",
+    ]
+    with pytest.raises(ChangedAfterFreeze, match="holds v1's frozen fno/scoring.py, research/evaluation/PROTOCOL.md"):
+        version_of(tmp_path, PlaybookGit(tmp_path), after)
+
+
+def test_the_same_edit_as_a_new_version_with_its_own_freeze_is_counted(tmp_path):
+    protocol_repo(tmp_path)
+    freeze(tmp_path)
+    under_v1 = decide(tmp_path, "book1_rules", "2026-11-02")
+    judges_edit(tmp_path)
+    new_version(tmp_path)
+    freeze(tmp_path)
+    under_v2 = decide(tmp_path, "book1_rules", "2026-11-03")
+    history = PlaybookGit(tmp_path)
+    assert verify(tmp_path) == []
+    assert [version_of(tmp_path, history, c) for c in (under_v1, under_v2)] == [1, 2]
+
+
+def test_the_repository_holds_no_edit_to_a_frozen_target():
+    """CI's guard: once a protocol version is frozen, any edit to its files or settings fails the suite."""
+    assert verify(ROOT) == []
