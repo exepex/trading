@@ -94,7 +94,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [C2](stories/C-code-roles.md#c2-risk-manager) | Risk manager | trading | B2 | L | later |
 | [C3](stories/C-code-roles.md#c3-data-checks-before-every-decision) | Data checks before every decision | trading | A3, A4, A7, E2 | S | later |
 | [C4](stories/C-code-roles.md#c4-hard-validity-checks-judge-part-1) | Hard-validity checks (judge part 1) | trading | C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) | M | later |
-| [D1](stories/D-playbook-decisions.md#d1-playbook-format) | Playbook format | trading | B5, B7 | M | later |
+| [D1](stories/D-playbook-decisions.md#d1-playbook-format) | Playbook format | trading | B5, B7 | M | built; awaiting judge |
 | [D2](stories/D-playbook-decisions.md#d2-rule-evaluation-and-allocation) | Rule evaluation and allocation | trading | D1, C2, B7 | M | later |
 | [D3](stories/D-playbook-decisions.md#d3-decision-record) | Decision record | trading | D2, E2 | M | later |
 | [D4](stories/D-playbook-decisions.md#d4-book-2s-authority-envelope) | Book 2's authority envelope | trading | D1 | S | later |
