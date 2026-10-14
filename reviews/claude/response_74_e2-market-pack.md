@@ -147,3 +147,14 @@ The judge's 14 plants found 9 gaps in my tests; the code was right in each place
   D4's claims should state it.
 - Events without `announced_on` are dropped before admission. The real file's three such rows all predate 13 Oct.
 - The Groww routine's 13 Oct result (no snapshot committed) is reported to the orchestrator as a separate problem.
+
+## Addendum 2 (14 Oct 2026): one rule for "approved at the start of the day"
+
+After D2's start-of-day change merged (a0a8eef), the opportunity set reads `Playbook.status_on(day)`, the same rule
+D2 uses. E2's own copy (`approved_on`) is removed.
+
+The common pack's playbook input is now D1's loader itself. `Playbook` carries the registry rows, so the
+`registry_rows()` interface and `LoadedPlaybook` adapter are gone.
+
+A version paused during the day stays in the common set, as judge 72 accepted; Book 1's gate drops it at once
+(judge 74). The status tests in `test_pack_contract.py` are unchanged and pass.

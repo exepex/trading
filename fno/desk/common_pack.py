@@ -13,7 +13,6 @@ from typing import Protocol
 from ..constants import BOOKS, JOURNAL_FOLDER
 from ..models import IST
 from ..playbook.loader import Playbook
-from ..playbook.registry import RegistryRow
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from .opportunity_set import OpportunitySet
 from .pack_inputs import CommonInput
@@ -27,8 +26,6 @@ FORBIDDEN = (*BOOKS, f"{JOURNAL_FOLDER}/")  # a book's name or journal path neve
 
 class PlaybookState(Protocol):
     def load(self) -> Playbook: ...
-
-    def registry_rows(self) -> Sequence[RegistryRow]: ...
 
 
 @dataclass(frozen=True)
@@ -81,7 +78,7 @@ class CommonPackBuilder:
             "provenance": {name: batch.provenance for name, batch in sorted(batches.items())},
             "items": [item.record() for item in items],
             "refused": list(refused),
-            "opportunities": self.opportunities.build(playbook.strategies, self.playbook.registry_rows(), day, monthly),
+            "opportunities": self.opportunities.build(playbook, day, monthly),
         }
         require_snapshot_on_session_day(day, body)
         pack = CommonPack(day, body)

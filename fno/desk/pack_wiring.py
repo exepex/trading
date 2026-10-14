@@ -4,35 +4,18 @@ closes, events), D2's opportunity code with the playbook, and the private pack's
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from pathlib import Path
 
 from ..config import ROOT
-from ..playbook.loader import Playbook
-from ..playbook.registry import RegistryRow
 from .common_pack import CommonPackBuilder
 from .private_pack import PrivatePackBuilder
-
-
-class LoadedPlaybook:
-    """The playbook as D1's loader reads it (every check), and its registry rows (approval dates)."""
-
-    def __init__(self, root: Path):
-        from ..playbook.wiring import build_playbook_loader
-
-        self.loader = build_playbook_loader(root)
-
-    def load(self) -> Playbook:
-        return self.loader.load()
-
-    def registry_rows(self) -> Sequence[RegistryRow]:
-        return self.loader.registry.rows()
 
 
 def build_common_pack_builder(root: Path = ROOT) -> CommonPackBuilder:
     from ..composition import build_session_calendar
     from ..forecast.closes_source import CommittedClosesFile
     from ..playbook.opportunities import OpportunityFinder
+    from ..playbook.wiring import build_playbook_loader
     from ..quotes.recorder import DATASET
     from ..research_data.events import read_events
     from ..research_engine.cycles import TradingDays
@@ -49,7 +32,9 @@ def build_common_pack_builder(root: Path = ROOT) -> CommonPackBuilder:
         ClosesInput(CommittedClosesFile(PANEL_FOLDER / "warmup_closes.csv")),
         EventsInput(events, EVENTS_FILE.relative_to(ROOT).as_posix()),
     )
-    return CommonPackBuilder(inputs, OpportunitySet(OpportunityFinder(TradingDays(calendar))), LoadedPlaybook(root))
+    return CommonPackBuilder(
+        inputs, OpportunitySet(OpportunityFinder(TradingDays(calendar))), build_playbook_loader(root)
+    )
 
 
 def build_private_pack_builder(root: Path = ROOT) -> PrivatePackBuilder:

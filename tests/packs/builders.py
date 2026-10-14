@@ -58,10 +58,7 @@ class FixedPlaybook:
         self.strategies, self.rows = tuple(strategies), tuple(rows)
 
     def load(self):
-        return Playbook(self.strategies, frozenset(r.key for r in self.rows))
-
-    def registry_rows(self):
-        return self.rows
+        return Playbook(self.strategies, self.rows)
 
 
 def approved(name: str, min_days: int = 30, max_days: int = 41, on: date = date(2026, 10, 1), **changes):
