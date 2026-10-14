@@ -159,3 +159,21 @@ names the input files.
   not changed.
 - Constants are in `fno/constants.py`. No orders, secrets or Slack.
 - Branch rule followed: nothing on `main` before this verdict.
+
+## Addendum 1 (where the 3 pm snapshots live; plants re-run without bytecode caching)
+
+**Snapshots live in git, not Drive.** The orchestrator reported that the A4 snapshots go to Drive. The code says
+otherwise:
+- `build_quote_store()` is `LocalFolderStore(research/data/quotes)` ("repository: Drive is read-only here",
+  `fno/storage/wiring.py`).
+- The recorder, E4's execution snapshots, E2's pack and the forecast's live capture (`baseline_wiring.py`) all read
+  that folder.
+- `quote-recorder-nse.yml` commits `research/data/quotes/nse`.
+- CLAUDE.md's routine step 3 commits `research/data/quotes/`.
+
+So `git log --all -- research/data/quotes` being empty means no 3 pm snapshot was ever recorded and committed, 13 Oct
+included. It does not mean they are elsewhere. Today's 14:20 IST NSE run and the Groww routine are the first real test.
+If either writes to Drive only, every reader above finds nothing.
+
+**Plants re-run with `python -B` and every `__pycache__` removed first:** all 14 gave the same results. The verdict
+stands.
