@@ -363,3 +363,32 @@ delivers at once. `forecast-capture.yml` gains an `on: push` trigger limited to 
 write-once capture stop a double run. Reasoning plus some evidence: today's push-triggered `checks` runs all started
 within seconds. One open point: pushes made with the workflow's own `GITHUB_TOKEN` do not trigger workflows, so if the
 NSE recorder in Actions makes the snapshot commit, that commit would not start the capture. Today it was the routine.
+
+## Addendum 6 (14 Oct 2026, evening IST): push-triggered capture, branch `story/f1-push-trigger` (for the judge)
+
+The orchestrator approved addendum 5's fix. Built on the branch. Not on `main` until the judge passes it.
+
+- **Trigger:** `forecast-capture.yml` now also starts `on: push` to `main` with
+  `paths: research/data/quotes/**/*.canonical`, so the 3 pm canonical snapshot's commit starts the run. The cron (14:00
+  IST) stays as the fallback, and `workflow_dispatch` stays.
+- **At most one capture a day:** a new `gate` job runs first. It checks out the newest `main` and runs
+  `python -m fno.pipeline.capture_gate --event <event>` (standard library only, no install). `capture` runs only when the
+  gate says `run=true`. The workflow's concurrency group (`cancel-in-progress: false`) runs a second run's gate only after
+  the first run has finished. The gate stops:
+  - any run when the day's v2 pack is already on `main`;
+  - a push-started run after 15:13 IST (protocol v2's last snapshot pull), which could only add late records. The cron
+    run remains the fallback that records a missed day, late and unscored.
+- **Unchanged:** the capture steps, the fire/collect path, the commit order (pack alone, then the records), and every
+  frozen file.
+- **Tests:** `tests/pipeline/test_capture_gate.py` checks:
+  - both triggers;
+  - the gate job, its `ref: main`, and the capture's `needs`/`if`;
+  - the concurrency group;
+  - a captured day is never captured again, for every event;
+  - a push run at 15:13 still goes ahead, at 15:14 it stops;
+  - a late cron still runs;
+  - the gate imports no installed library.
+- **Gates:** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` 3113 passed; ruff check and format clean;
+  `check_imports` clean.
+- **Limit (stated in the workflow):** a snapshot committed by an Actions run's own `GITHUB_TOKEN` starts nothing. Today
+  the routine or the orchestrator's session makes that commit, so the trigger fires; the cron covers the other case.
