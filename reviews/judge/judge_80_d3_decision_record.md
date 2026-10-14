@@ -127,3 +127,8 @@ caught: the replay skipping `alternatives`, the replay skipping `risk`, and alte
 - (b) D1 freezes p10 and p90 from the test results **before the first approval to paper**.
 
 **Verdict: PASS for 60ebd59.**
+
+## Addendum 2 (merge check, f314254)
+
+**MET.** f314254 has parents on `main` and 60ebd59 (the passed tip). It equals my recomputed merge of the two, with no
+difference at all. CI `checks` is green on f314254 (run 38515859763).
