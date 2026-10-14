@@ -54,6 +54,7 @@ evaluation_plan:
   pause_rules:
     - a single trade loses more than Rs 10,000 including charges (catastrophic-loss rule)
     - the book's drawdown brake (Rs 30,000 below its highest closed equity)
+  catastrophic_loss_rs: 10000
 evidence:
   test_results_path: null
   test_results_commit: null

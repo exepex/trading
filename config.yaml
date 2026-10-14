@@ -79,3 +79,13 @@ risk:
     source: null
     as_of: null
     max_age_days: 30
+
+# Story E6: the paper review rule's statistics, in one place. PROVISIONAL until S1 (the evaluation protocol) freezes the
+# real statistics; S1 replaces these values here, with no code change (orchestrator, 14 Oct 2026; reasoning only).
+# The paper gate (20 completed positions, 3 months) is design 6's, shared with D2 in fno/constants.py.
+# A review never promotes to real money by itself: that is always the owner's decision.
+scorecard_review:
+  status: provisional until S1
+  confidence: 0.95  # two-sided interval of the mean net per completed position
+  bootstrap_resamples: 10000
+  bootstrap_seed: 20261014

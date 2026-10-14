@@ -12,15 +12,14 @@ EXIT_REFUSED = 2
 PACKED_BOOKS = (BOOK1_RULES,)  # books 2 and 3 wait for D4 and D5
 
 
-def add_desk_parser(subparsers) -> None:
-    desk = subparsers.add_parser("desk", help="the paper desk's daily packs (never orders)")
-    actions = desk.add_subparsers(dest="desk_cmd", required=True)
+def add_pack_command(actions) -> None:
+    """`desk pack`, registered by the desk's one parser (`fno/desk/cli.py`)."""
     pack = actions.add_parser("pack", help="write the common market pack and Book 1's private pack for a day")
     pack.add_argument("--day", type=date.fromisoformat, help="the session day (default: today in IST)")
-    desk.set_defaults(func=cmd_desk)
+    pack.set_defaults(func=cmd_pack)
 
 
-def cmd_desk(args) -> int:
+def cmd_pack(args) -> int:
     from ..composition import DESK_DECISION_TIME
     from ..config import ROOT
     from ..models import now_ist

@@ -95,3 +95,11 @@ mismatch and pauses scoring.
 
 **Verdict: PASS for e239ba1.** D3 must fill `served` with every component of the version, with the model taken from
 the API's answer.
+
+## Addendum 2 (merge check, c12137e)
+
+**MET.** c12137e = 6f8c859 + e239ba1. It differs from a plain merge only in the conflict resolutions:
+- `fno/cli.py` keeps both the `desk` and `versions` parsers;
+- the README index.
+
+CI `checks` is green on 0f4e888 (run 38510606597), which contains it. My full suite on 0f4e888: 2,368 passed.

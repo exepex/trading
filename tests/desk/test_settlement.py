@@ -20,8 +20,8 @@ from fno.constants import (
     OPTION_CALL,
     OPTION_PUT,
     OUTCOME_CLOSED,
-    OUTCOME_NOT_OPENED,
     OUTCOME_OPENED,
+    OUTCOME_REFUSED,
     OUTCOME_SETTLEMENT_NEEDED,
 )
 from fno.desk.records import DeskRecords
@@ -208,7 +208,7 @@ def test_a_missing_settlement_file_blocks_new_risk_until_published(root, store, 
     assert result.outcome == OUTCOME_SETTLEMENT_NEEDED and "is not published yet" in result.reason
     assert len(alerts.sent) == 1 and settled(root) == {}
     blocked = enter(root, snapshots, entry_desk, fly_order("t2", decided_at=at(15, 5, day=AFTER)), "after", AFTER)
-    assert blocked.outcome == OUTCOME_NOT_OPENED and "(settlement_needed) blocks new risk" in blocked.reason
+    assert blocked.outcome == OUTCOME_REFUSED and "(settlement_needed) blocks new risk" in blocked.reason
     settlements.prices[EXPIRY] = 25000.0  # the file is published by the next review
     [result] = review_after_expiry(root, store, snapshots, exit_desk, clock)
     assert result.outcome == OUTCOME_CLOSED

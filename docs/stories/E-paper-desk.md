@@ -255,11 +255,24 @@ Rs 1 pad used in research. Pause rules fire automatically and are recorded as a 
 3. Execution costs measured from the record match a hand computation on fixture fills.
 4. On a review date, the scorecard states keep, pause or retire per the plan's own rules.
 
+**Built (14 Oct 2026; the orchestrator's defaults, `reviews/claude/response_75_e6-scorecard.md`):** desk records carry the
+version (`strategy`, `<name>-v<n>`) and the touch each fill met; a gate refusal is its own outcome (`refused`), apart
+from fills that failed. Each shadow version has its own account `journal/shadow/<name>-v<n>/account/`, scored in a
+separate section, and is D2's `ShadowBooks` (`fno/desk/shadow_books.py`). The machine-checked pause rule is the plan's
+`catastrophic_loss_rs`, never above C2's per-trade maximum loss. The review thresholds are provisional until S1 and live
+only in config.yaml `scorecard_review`. The review rule: only on a review date
+and past the gate; mean C1 net per completed position with a seeded bootstrap 95% interval; retire when the interval's
+upper end is below the expected low, pause when the mean is, else keep; promotable only when the interval's lower end
+and the whole net are above zero. A review's decision is stated, never applied: only the owner pauses for statistics
+or retires (D1). Judge 67: a paper version whose live feature drifts drops out of `approved()` and is paused by
+`hard_loss_rule`; the rest keeps loading.
+
 **Test plan:** tests with simulated paper histories.
 
 **Judge verifies:** recomputes one scorecard number from the records.
 
-**Depends:** C1, D1, E4 · **Size:** M · **Status:** later
+**Depends:** C1, D1, E4 · **Size:** M · **Status:** built; awaiting judge (branch `story/e6-scorecard`, claims
+`reviews/claude/response_75_e6-scorecard.md`)
 
 ---
 

@@ -22,6 +22,7 @@ from .live_values import ComputedLiveFeatures
 from .loader import PlaybookLoader, registry_path
 from .opportunities import OpportunityFinder
 from .registry import Registry, rewritten_history
+from .rule_checks import CatastrophicCapWithinRisk
 from .shadow import RealBooks
 
 
@@ -37,7 +38,17 @@ def build_playbook_loader(root: Path = ROOT, reports: LiveReports | None = None)
     folder = root / PLAYBOOK_FOLDER
     reports = reports or RecomputedLiveReports(CommittedLiveReports(LIVE_VALIDATION_FOLDER), _recompute_live_report)
     checks = (EvidenceFilled(), ExpectedNetSet(), EvidenceCommitted(PlaybookGit(root)), LiveFeaturesValidated(reports))
-    return PlaybookLoader(folder, Registry(registry_path(folder)), checks)
+    return PlaybookLoader(
+        folder, Registry(registry_path(folder)), checks, (CatastrophicCapWithinRisk(_risk_cap(root)),)
+    )
+
+
+def _risk_cap(root: Path) -> float:
+    """C2's per-trade maximum loss from config.yaml `risk` (the one place the owner's limit is set)."""
+    from ..config import load_app_config
+    from ..risk.settings import risk_settings
+
+    return risk_settings(load_app_config(), root).max_loss_per_trade_rs
 
 
 def build_status_changer(root: Path = ROOT, reports: LiveReports | None = None) -> StatusChanger:

@@ -10,7 +10,7 @@ from .ai.cli import add_ai_parser
 from .books.cli import add_account_parser
 from .books.versions_cli import add_versions_parser
 from .config import ROOT, load_app_config
-from .desk.pack_cli import add_desk_parser
+from .desk.cli import add_desk_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
