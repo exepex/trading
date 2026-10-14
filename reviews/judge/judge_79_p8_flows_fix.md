@@ -120,3 +120,9 @@ of the archive step. My note in this file understated it.
 **Condition:** run the full suite on the merged tree before pushing to `main`, as always.
 
 **Verdict: PASS.** The whole-publication rule for a missing flows copy is unchanged and waits for the owner.
+
+## Addendum 3 (merge check, 72a40b6)
+
+**MET.** 72a40b6 has parents 7d08b53 (main) and 19b8162 (the passed tip). It differs from a plain merge only in the
+`reviews/claude/README.md` index. No other code reached `main` since. CI `checks` is green on 72a40b6
+(run 38513093242).
