@@ -29,5 +29,7 @@ registered before any of their results; they run only after the protocol freeze 
 | 22-29 | 2026-10-12 | experiment 1 | Registered before results (protocol draft): P1-P8 (protected sell / buy / no trade by F1 volatility premium, F2 VIX level, F3 events), width rule for the Rs 10,000 cap | Pending | Discovery 2024-26 and challenge 2019-23 |
 | 30-31 | 2026-10-12 | experiment 1 | Controls C1 (random timing, frequency-matched) and C2 (opposite condition), per conditional policy; protocol v2 | Pending | Controls, not hypotheses (family = 8 policies) |
 | 32-36 | 2026-10-13 | forecasts v1 | Registered before any forecast exists (story G1): the five daily forecast questions, scored by the protocol's 10-test primary family, Book 2 and Book 3 against Book 1 (`research/forecasts/PROTOCOL.md`; review 28) | Pending | Diagnostic only: forecasts never promote a book |
+| 37-41 | 2026-10-13 | forecasts v2 | The five daily forecast questions on live 15:00 inputs, books vs baselines (`research/forecasts/PROTOCOL_v2.md`), as `research/ledger.csv` holds them | Pending | Diagnostic only: forecasts never promote a book |
+| 42 | 2026-10-14 | desk 2 | Put-spread pricing model: 14 Oct 15:00 prices replayed on the 93 holding-window NIFTY moves 2019-26, one more look at the 2019-23 windows (response 92) | Mean -Rs 243 a trade at the 21-day exit, -Rs 355 held to expiry | Not pursued (model, reasoning only) |
 
-Total trials so far: 36 (count every new variant, threshold or filter here before reading its result).
+Total trials so far: 42 (count every new variant, threshold or filter here before reading its result).
