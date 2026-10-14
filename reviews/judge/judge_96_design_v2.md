@@ -209,3 +209,23 @@ Should-fix:
 **Verdict: PASS for 7b449547628c920155c617ef4a02ab18d19b87d8.** All twelve decisions are written as recorded and no
 decided item is changed beyond decision 12. The two should-fixes are wording, to be done before or with the owner's
 approval of the whole design.
+
+## Addendum 5 (15 Oct 2026): 2b0da01cefede91f253f165dd01a6b6f9a79d248 (two documentation commits after 7b44954)
+
+- **Both addendum 4 should-fixes are done (0181d5b).**
+  - `OWNER_SUMMARY.md` now names the four fill rules in plain words, including "many may be missed": entry range or
+    "missed, price moved"; fast-reaction ideas judged at 60 minutes; the next session at 09:15 plus R; an earlier
+    decision time as the remedy.
+  - It also states the practical consequence: with a 15:08 card and R = 60, every new paper trade fills the next
+    morning after the overnight gap.
+- **The owner has now decided R = 60.** The owner's words are in `DESK_DECISIONS.md` on `main` (6f012cc, "Reaction
+  time => yes, I agree"): every E8 trade fills at 5, 30 and 60 minutes, all three are reported, and the verdict uses 60
+  minutes.
+- **The text matches that decision in all 5 places (2b0da01):** 03 §3.2, 04 §4.2, `OWNER_SUMMARY.md`, REPLAN §5 item
+  5, and the E8 story.
+- **Note on the decision log.** 6f012cc also edited the earlier 15 Oct reaction-time row in place, dropping its "R = 60
+  primary (orchestrator's proposal)" wording, rather than only appending the new row. The meaning stays correct,
+  because the new row supersedes it. But the decision log should stay append-only: next time, add a correction row as
+  was done for A8.
+
+**Verdict: PASS for 2b0da01cefede91f253f165dd01a6b6f9a79d248.** It waits only on the owner's "design approved".
