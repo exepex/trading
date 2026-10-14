@@ -3,6 +3,9 @@
 - **Catastrophic loss:** a completed or unwound trade of an approved version, in any **book**, closed on or after the
   version's latest change to paper, whose C1 net loss reaches the plan's `catastrophic_loss_rs` (judge 73: a loss
   before an owner's re-approval, or in the version's earlier shadow test, never pauses it).
+- **Cumulative loss (owner, 14 Oct 2026; protocol `catastrophic_loss_strategy`):** the version's realised C1 net over
+  the same counting trades reaches minus `CUMULATIVE_CAPS` times its `catastrophic_loss_rs` (Rs 30,000 at Rs 10,000),
+  so a run of losses each below the cap still pauses it. A shadow is alerted on a day one of its trades closes.
 - **Live-feature drift (judge 67):** an approved version whose live feature no longer passes its use rule.
 
 Either pauses that version at once (`paper -> paused`, approved by `hard_loss_rule`, through D1's status change, so no
@@ -25,6 +28,7 @@ from .strategy_record import StrategyRecord
 
 ALERT = "F&O paper desk: {version} {action} ({reason})"
 PAUSED_NOW, SHADOW_ONLY = "paused in every book", "shadow test, not paused: the owner decides"
+CUMULATIVE_CAPS = 3  # the owner's rule: realised net at or below -3 x catastrophic_loss_rs
 
 
 @dataclass(frozen=True)
@@ -67,6 +71,37 @@ def catastrophic_losses(
                 reason = f"trade {trade.trade_id} in {record.account} lost Rs {-trade.line.net:,.2f}, cap Rs {cap:,.2f}"
                 triggers.append(PauseTrigger(name, version, f"catastrophic loss: {reason}"))
     return triggers
+
+
+def cumulative_losses(
+    records: Iterable[StrategyRecord], playbook: Playbook, on: date, approved_on: Mapping[tuple[str, int], date]
+) -> list[PauseTrigger]:
+    """Every version whose counting trades' realised net reaches -CUMULATIVE_CAPS x its cap: an approved version's book
+    trades since its latest approval, in every book together; a shadow's own trades, when one closed on `on`."""
+    totals: dict[tuple[str, int], float] = {}
+    closed_today: set[tuple[str, int]] = set()
+    caps = {s.key: (s.evaluation_plan["catastrophic_loss_rs"], s.status) for s in playbook.strategies}
+    for record in records:
+        key = version_key(record.strategy)
+        if key not in caps:
+            continue
+        status, shadow = caps[key][1], record.account.startswith(SHADOW_PREFIX)
+        since = approved_on.get(key)
+        if status == PlaybookStatus.PAPER and not shadow and since is not None:
+            lines = [t.line for t in record.closed if t.line.closed_on >= since]
+        elif status == PlaybookStatus.RESEARCH and shadow:
+            lines = [t.line for t in record.closed]
+        else:
+            continue
+        totals[key] = totals.get(key, 0.0) + sum(line.net for line in lines)
+        closed_today |= {key} if any(line.closed_on == on for line in lines) else set()
+    return [
+        PauseTrigger(
+            *key, f"cumulative loss: realised Rs {-total:,.2f}, {CUMULATIVE_CAPS} x cap Rs {caps[key][0]:,.2f}"
+        )
+        for key, total in sorted(totals.items())
+        if total <= -CUMULATIVE_CAPS * caps[key][0] and (caps[key][1] == PlaybookStatus.PAPER or key in closed_today)
+    ]
 
 
 def drifts(playbook: Playbook) -> list[PauseTrigger]:
