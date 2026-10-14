@@ -8,6 +8,7 @@ import pytest
 
 from fno.checks.validity_account import AccountProblem
 from fno.checks.validity_limits import PRICED
+from fno.checks.validity_money import entry_cash_flow
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from tests.checks.builders import committed_record
 from tests.checks.validity_builders import (
@@ -30,6 +31,7 @@ from tests.checks.validity_sources import (
     limits,
     nse_file,
 )  # fmt: skip
+from tests.desk.builders import CHARGES
 
 
 def at_ist(hour: int, minute: int):
@@ -152,3 +154,23 @@ def test_an_open_trade_is_marked_and_stressed_from_the_snapshot():
     report = check(proposal(open_terms={"t1": ("SC", 100.0, 1)}), account=account)
     numbers = {r.name: r.numbers for r in report.results}
     assert report.ok and set(numbers["margin_room"]["stressed_margin_rs"]) == {"t1", "c4-sf-v1:2026-10-27"}
+
+
+def test_a_listing_older_than_a_week_is_not_used():
+    """NSE's file 8 days before the decision day is too old: the lookback is 7 days."""
+    assert failed(check(nse=NseFiles({date(2026, 10, 6): nse_file()}))) == {"listing"}
+    assert check(nse=NseFiles({date(2026, 10, 7): nse_file()})).ok
+
+
+def test_the_new_trades_own_liability_counts_against_an_open_debit_trade():
+    """Judge 77's never-looser case: an open debit trade (worth +D) and a new credit trade (worth -P). A broker leaves
+    cash + entry - P free, not more: the new trade's own liability counts."""
+    bought = {leg.contract: leg.leg.side * 65 for leg in proposal("BF").legs}
+    account = fresh_account(cash=494_000.0, positions=(held("t1", bought, -6_000.0),))
+    report = check(proposal(open_terms={"t1": ("BF", 100.0, 1)}), account=account)
+    numbers = {r.name: r.numbers for r in report.results}["margin_room"]
+    sold = proposal()
+    entry = entry_cash_flow([leg.leg for leg in sold.legs], 65, CHARGES)
+    own = sum(leg.leg.side * 65 * leg.leg.price for leg in sold.legs)
+    assert own < 0 < entry
+    assert numbers["available_after_entry_rs"] == round(494_000.0 + entry + own, 2)

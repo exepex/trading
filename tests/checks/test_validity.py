@@ -95,7 +95,15 @@ SEEDED = {
                               {"date"}),
     # 17. one leg on another expiry (the weekly, listed and priced at its own mid) than the opportunity's
     "a leg on another expiry": (lambda: check(proposal(legs=_weekly_wing())), {"expiry", "max_loss", "stress_loss"}),
+    # 18. judge 83 addendum 1: a leg named 25,100 CE whose strike is 25,000 (E4 would hold one contract, mark another)
+    "contract name mismatch": (lambda: check(proposal(legs=_misnamed())), {"leg 2026-10-27 25000 CE"}),
 }  # fmt: skip
+
+
+def _misnamed():
+    legs = list(proposal().legs)
+    legs[0] = replace(legs[0], contract="NIFTY26102725100CE")
+    return tuple(legs)
 
 
 def _three_open():

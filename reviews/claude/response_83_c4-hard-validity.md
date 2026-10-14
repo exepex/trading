@@ -269,3 +269,27 @@ leg's price check.
 4. **A replay reads committed files again:** the ledger (rows by the cutoff), the margins file and NSE's file. It
    reproduces the result while those stay append-only, as they are.
 5. **On an expiry day,** a leg is valued at its intrinsic value, as C2 values it.
+
+## Addendum 2 (14 Oct 2026): judge 83 addendum 1, a misnamed leg and three should-fixes
+
+**Must-fix (accepted after checking).** The judge's new wrong proposal is a correct SF whose first leg is named
+`NIFTY26102725100CE` while its strike is 25,000. It passed.
+- The leg check found the snapshot row by (expiry, strike, type) and never compared names.
+- I found it was worse than stated: the stress and margin checks price legs by name. So the misnamed leg was checked
+  at 25,000 and priced at 25,100.
+- E4 records and marks positions by name, so the book would have held one contract and marked another.
+
+**Fix.** Each leg's name must equal the snapshot's `contract_id` for its (expiry, strike, type), else that leg fails
+("named X, but the snapshot lists this leg as Y"). Seeded case 18, "contract name mismatch", fails exactly that leg.
+
+**Should-fixes (all done):**
+- `test_the_new_trades_own_liability_counts_against_an_open_debit_trade`: judge 77's mirror case.
+  - An open BF (debit, worth +D) and a new SF (credit, worth -P).
+  - Available after entry must equal cash + entry cash flow + the SF's own (negative) value, to the paisa.
+  - Dropping `+ min(0.0, own)` fails it.
+- `test_a_listing_older_than_a_week_is_not_used`: a file 8 days back is refused and one 7 days back is used, so
+  widening the lookback to 30 fails it.
+- Merged `main`: in CLAUDE.md, both composition roots are kept.
+
+**Mutations: 60 of 60 caught** (python -B, caches cleared). That is round 2's 57, plus: the name check off, the own
+liability dropped, and the lookback widened to 30.

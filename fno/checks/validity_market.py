@@ -1,5 +1,6 @@
 """C4's market checks (story C4): the snapshot is the decision day's and started by the cutoff; every leg is
-listed in it, quoted by the cutoff, at the price the proposal used. Against NSE's own listing (judge 83):
+listed in it under the contract name the trade records (E4 fills and marks by name: judge 83 addendum 1), quoted by
+the cutoff, at the price the proposal used. Against NSE's own listing (judge 83):
 - the expiry is a listed monthly one, every leg on it;
 - the lot size is NSE's for that expiry."""
 
@@ -36,6 +37,8 @@ def _leg_check(proposal: ValidityProposal, evidence: Evidence, leg: ValidityLeg)
     row = evidence.rows.get((leg.expiry, leg.leg.strike, leg.leg.kind))
     if row is None:
         return CheckResult(name, False, "not listed in the snapshot")
+    if row.contract != leg.contract:
+        return CheckResult(name, False, f"named {leg.contract}, but the snapshot lists this leg as {row.contract}")
     if row.received_at is None or row.received_at > proposal.cutoff:
         return CheckResult(name, False, f"quoted at {row.received_at}, not before the cutoff")
     numbers = {"price": leg.leg.price, "snapshot_mid": row.mid}
