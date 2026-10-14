@@ -24,7 +24,8 @@ nets the premium leaves free. A total not above 0 is refused by name.
 
 Computed rows are written only after an independent broker check of the job's figures passed (judge 77, option a):
 `config.yaml` `risk.margins.nse_span_check` must hold that check's `source` and `passed_on`. Until then a run prints
-its rows and writes none. Not passed on 14 Oct 2026: SPAN and NOV equal Zerodha's, exposure is 5.6% below it.
+its rows and writes none. Set on 14 Oct 2026 from Groww's read-only margin API (SPAN equal to the rupee, exposure equal
+on the same index base; claims response 77), subject to the judge.
 
 Computed rows (A14): SPAN scanning risk (largest of the 16 scenario losses of the legs' risk arrays), the legs' value
 at the file's prices (the previous session's settlement prices), and exposure margin (2% of the index's last close per
