@@ -261,3 +261,45 @@ E5.**
 
 Whatever the scope, the root rule stays: every writer commits what it writes (must-fix D). The check is a backstop,
 not the fix.
+
+## Addendum 7 (`story/e3-scoped-account-check` bf4863e, my addendum 6 built): PASS
+
+**What changed:**
+- An account write is refused only while something is unpushed, or while **this book's folder** holds uncommitted work.
+- The rejected-push reset is `git reset --keep`. If it would overwrite a local edit it refuses, stops and alerts.
+
+**The builder's deviation, ruled: accepted.** It also refuses **new untracked files** in the book's folder (ignored
+`.lock` and `*.tmp` files aside).
+- My ruling named only "dirty tracked files", but `commit_paths` runs `git add` on the whole folder. An untracked file
+  there would be swept into the account commit just as surely.
+- This is stricter in the right place, so it is a correct extension.
+
+**My real-git probe** (the two-checkout fixture, token unset):
+- Book 1's folder holds a tracked uncommitted edit (the D-case CSV), and `README` has an edit outside every folder.
+  - Book 1 is **refused**. **Book 2 writes OK**: before this change it was refused.
+  - The `README` edit survives.
+- An untracked file in Book 2's folder refuses Book 2.
+- The rejected-push reset path is covered by the builder's tests: my `--hard` plant fails 2.
+
+**My plants (5, `tests/timetable`, `desk`, `book1`): all caught.**
+
+| Plant | Result |
+|---|---|
+| `reset --hard` again | 2 failed |
+| Untracked files ignored | 1 failed |
+| Whole-checkout check again | 3 failed |
+| `--keep` failure not stopped | 1 failed |
+| The unpushed check dropped | 1 failed |
+
+**Gates (my runs, `python -B`, caches cleared, Slack token unset):**
+- full suite: 2,860 passed;
+- ruff, format (640 files) and imports (647): clean;
+- `git merge-tree` with current `main` (d053bb0): clean.
+
+**Remaining by design:**
+- A dirty file outside the folder that the pull itself would overwrite makes `git pull` fail, so that write is refused
+  (fail closed).
+- Book 1's own leftover still stops Book 1 until it is committed. The root rule stays: every writer commits what it
+  writes.
+
+**Verdict: PASS** for bf4863e. After the merge I check `main` and CI.
