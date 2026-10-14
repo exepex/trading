@@ -238,3 +238,37 @@ The run failed for two reasons, and the log says which.
      Keep the SHA-256 so a later fixed copy from NSE is noticed.
    - The 23 Oct 2025 LAURUSLABS filing's facts are missing from the archive until NSE fixes it. That is a real data
      gap, and it should show as one.
+
+## Addendum 6 (merge 09e51a7; `story/a12-nse-gaps` 0e54fdf: PASS; the exit-code follow-up withdrawn)
+
+**Merge: MET.**
+- 09e51a7 has parents 9a65921 (`main`) and 2c9be68 (the passed tip), and it equals my recomputed merge.
+- 6315d26 equals its recomputed merge.
+- CI `checks` is green on 6315d26 (run 38556637546).
+
+**The builder's push-back is correct; I withdraw my addendum 5 follow-up.** `problem_of` returns "" when the run
+stopped only at its deadline, so `_archive` exits 0 then. Run 38513350039 went red because of the LAURUSLABS failure
+alone. I had read "INCOMPLETE … deadline" as a cause; it was only the state line.
+
+**`story/a12-nse-gaps` 0e54fdf: PASS.**
+- **How a gap is decided:** a file that is not well-formed XML but carries the XBRL namespace in its first 4 KB
+  (`TruncatedXbrl`) is downloaded a second time.
+  - Identical bytes become a recorded **gap**: "NSE serves a truncated or malformed file … (size, SHA-256)".
+  - A differing or failed second download stays a failure.
+- **My probe on the real file** (the LAURUSLABS copy I downloaded from NSE): it is classed `TruncatedXbrl`.
+  - An HTML "Access Denied" page is plain `NotXbrl`.
+  - Truncated junk without the namespace is plain `NotXbrl`.
+- **My plants (3, token unset): all caught.**
+
+  | Plant | Result |
+  |---|---|
+  | No second download | 1 failed |
+  | Every parse error counted as truncated | 2 failed |
+  | A truncated file still a failure | 2 failed |
+- **Gates:**
+  - full suite: 3,009 passed;
+  - ruff, format (681 files) and imports (688): clean;
+  - `git merge-tree` with `main` (d6a82ba): conflict in `reviews/claude/README.md` only (text: keep both lines).
+- **Follow-up (not blocking).** A company is finished once its gap is recorded. If NSE later fixes the file, a
+  backfill step that has moved on may never fetch it again. "The next run saves a fixed copy" holds only while that
+  company is still revisited. A periodic re-check of truncation gaps would close it.

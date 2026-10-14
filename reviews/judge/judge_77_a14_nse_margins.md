@@ -124,3 +124,18 @@ from judge 83). That is the intended safe state.
 
 **Verdict: PASS** for 2c3865e. The merge must resolve `fno/constants.py` by keeping both sides and run the full suite
 on the merged tree. Then I check `main` and CI.
+
+## Addendum 2 (merge check, 6568315)
+
+**MET.**
+- 6568315 has parents c72a2a6 (`main`) and 2c3865e (the passed tip).
+- It differs from my recomputed merge only by the conflict resolution in `fno/constants.py` and `reviews/claude/README.md`.
+  Both sides are kept and the markers removed, as addendum 1 required.
+- The older branch merge 4f77c1f (inside the passed history) is a both-sides resolution too.
+- 70899dd equals its recomputed merge.
+- CI `checks` is green on 70899dd, which holds the merge (run 38555599309).
+
+The owner's Groww check is now recorded by the orchestrator. I judge it when the builder adds it to response 77. My
+pre-read:
+- Groww's SPAN 6,893.00 equals my judge-77 recomputation of scan − NOV for SF 100 (822.25 + 6,071.00 = 6,893.25).
+- Groww's exposure 58,819.02 = 2 legs × 2% × 65 × 22,622.7, NSE's rule on the live price.
