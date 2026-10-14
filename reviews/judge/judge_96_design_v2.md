@@ -167,3 +167,45 @@ the owner.
 
 **Verdict: PASS for d80652c0d55d21e6054eb83b119d05773d64905f.** It now waits only on the owner's approval and
 decisions.
+
+## Addendum 4 (15 Oct 2026): the owner's decisions written in, d80652c..7b449547628c920155c617ef4a02ab18d19b87d8
+
+Three commits (e338844, 0f351fc, 7b44954) change 9 files, all under `docs/design_v2/`. I checked each against the 15
+Oct rows of `docs/DESK_DECISIONS.md` on `main` (rows 104-115).
+
+| Decision | Row | Design text | Result |
+|---|---|---|---|
+| 1 Host: Claude routine | 104 ("1 - A") | 6.6 decided (a); Azure only if Groww offers a data-only key; the cost and research-preview status are stated | MET |
+| 2 Caps | 105 | 6.2 values accepted: bucket Rs 30,000; open maximum losses at most Rs 1.5 lakh (a cap, not a stop); Rs 50,000 new risk a day; brake Rs 1.2 lakh | MET |
+| 3 Weather thresholds | 108 | 2.3 as proposed, with the floors and the 15% maximum RED frequency | MET |
+| 4 Minimum effects | 109 | 5.5: 3% QLIKE or Brier skill 0.02, also used as the futility margin | MET |
+| 5 Reaction time 5/30/60 | 107 | 3.2: R = 60 primary, R = 30 and R = 5 as sensitivities; the next-session consequence is stated plainly | MET, with should-fix 1 |
+| 6 AI budget | 110 | 8.1 as proposed | MET |
+| 7 "Undecided" action | 112 | 8.2: option 1 if the projected date is within 2 years, otherwise option 2 | MET |
+| 8 Real-money gate | 113 | 8.3 and 8.4 accepted; the exact account size and cap must be confirmed in writing before RM1 freezes (now in RM1's acceptance criteria) | MET |
+| 9 Cards in Drive only | 111 | 8.5, 4.1 and T1: Drive only; the public repository holds only hashes and scores | MET |
+| 10 Books 2-3 | 114 | Slice E decided | MET |
+| 11 S1 changes and the t-check | 115 | REPLAN §4: all accepted; the t-based bound is added | MET |
+| 12 E8 in `frozen_files` | 106 | REPLAN §5 and the E8 story | MET |
+
+**Content beyond the decisions (should-fix 2).** These are new rules, sound and honest, but they are design additions,
+not owner decisions:
+- an E8 fill happens only inside the card's entry range, otherwise the trade is recorded as "missed, price moved";
+- an idea or exit rule that needs a reaction of 15 minutes or less is flagged at G0 and judged only at R = 60;
+- the remedy if R = 60 costs too much is an earlier decision time, never a shorter assumed R;
+- the next-session fill time moves from 09:30 + R to 09:15 + R.
+
+The "missed" rule is material: with a 15:08 card and R = 60, every entry fills the next morning after the overnight
+gap, so many entries may be missed. The owner should see it in `OWNER_SUMMARY.md` before approving the whole design.
+
+Should-fix:
+1. **Attribution of R = 60.** Row 107 records the owner's 5/30/60 minutes. "R = 60 as the primary fill" is
+   attributed there to the orchestrator's proposal, reasoning only. In 4.2, in the E8 story and in REPLAN §5 item 5 the
+   design says "owner decision of 15 Oct" for R = 60 primary. Write "the owner's 5/30/60 minutes (decided); R = 60 as
+   primary (proposal, reasoning only)", unless the owner confirms it.
+2. **Show the additions to the owner.** Name the four additions above in `OWNER_SUMMARY.md` as design choices for the
+   owner's approval of the whole design.
+
+**Verdict: PASS for 7b449547628c920155c617ef4a02ab18d19b87d8.** All twelve decisions are written as recorded and no
+decided item is changed beyond decision 12. The two should-fixes are wording, to be done before or with the owner's
+approval of the whole design.
