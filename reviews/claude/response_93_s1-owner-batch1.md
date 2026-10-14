@@ -97,3 +97,18 @@ the results are in the commit message and the message to the orchestrator.
 `research/data/margins/README.md` still says MarginRoom "leaves exactly what a broker that nets the premium leaves
 free". Since the funds-at-entry change (response 90), C2 also requires Groww's funds at entry. This is a one-line doc
 fix for lane 2.
+
+## Addendum 1: judge 94 (FAIL on one must-fix): should-fix 2 done, the must-fix waits for the owner
+
+- **Must-fix (the cumulative pause's window):** the judge is right that the window is implied, not decided. The code
+  counts trades since the version's latest approval, so an owner's re-approval restarts the count; the protocol text
+  does not say so. The orchestrator has put the question to the owner (restart the count, or a lifetime total).
+  **Not changed yet.** Once the owner answers, I write the window into `catastrophic_loss_strategy`'s value, or
+  change `cumulative_losses`.
+- **Should-fix 2 (done):** `config.yaml` now names the rule and the windows behind 1.45, so the 13 Nov renewal can
+  recompute it:
+  - the rule: the largest rise of a held position's NSE margin over its holding, any structure and width, on NSE
+    `i1` SPAN files, rounded up to the next 0.05;
+  - the windows: Jan-Apr 2020 COVID (1.265), May-Jun 2024 election (1.407 on BF 300 entered 5 Jun, the largest),
+    and Sep-Oct 2026 calm (1.127);
+  - where it is written: response 77, section "Stressed-margin factor". The `source` value names that section.

@@ -78,13 +78,16 @@ risk:
       source: "Groww margin API (read-only), orchestrator run"
       passed_on: 2026-10-14
   # One frozen stressed-margin method: multiplier (factor, source and as_of required; expires after max_age_days) or
-  # scenario_lookup (scenario_file: a margin per scenario above). Owner, 14 Oct 2026 (DESK_DECISIONS): 1.45 by hand,
-  # the largest held-position rise over three crisis windows (response 77). It is valid to as_of + 30 days (13 Nov
-  # 2026); from the next day every trade is refused until a new as_of is entered.
+  # scenario_lookup (scenario_file: a margin per scenario above). Owner, 14 Oct 2026 (DESK_DECISIONS): 1.45 by hand.
+  # Rule (response 77, section "Stressed-margin factor"): the largest rise of a held position's NSE margin over its
+  # holding, any structure and width, on NSE i1 SPAN files, rounded up to the next 0.05. Windows: Jan-Apr 2020 COVID
+  # (1.265), May-Jun 2024 election result 4 Jun (1.407, BF 300 entered 5 Jun: the largest), Sep-Oct 2026 calm (1.127).
+  # Valid to as_of + 30 days (13 Nov 2026); from the next day every trade is refused until it is recomputed by the same
+  # rule (the same windows, plus any later ones) and a new as_of is entered.
   stressed_margin:
     method: multiplier
     multiplier: 1.45
-    source: "reviews/claude/response_77_a14-nse-margins.md (largest held-position rise over three crisis windows)"
+    source: "response 77 Stressed-margin factor: max held-margin rise, 2020 COVID + 2024 election + 2026 windows, up to 0.05"
     as_of: 2026-10-14
     max_age_days: 30
 
