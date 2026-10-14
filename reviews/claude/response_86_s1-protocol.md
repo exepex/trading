@@ -161,3 +161,21 @@ mutation, plus five:
 
 Said plainly: "the freeze hashes the working tree instead of HEAD" is an **equivalent mutant**. The freeze refuses
 unless the two are equal, so the result cannot differ. I hash at HEAD because that is what git holds.
+
+## Addendum 2 (14 Oct 2026): judge 85 addendum 1 should-fix, a deleted or renamed frozen target (branch `story/s1-missing-target-test`)
+
+S1 passed at `b1a6092`. This small follow-up is on its own branch, from that commit.
+
+**Checked.** The code already treats a target it cannot read as changed:
+- `changed_targets` catches the "does not exist" refusal;
+- `AtCommit` returns nothing for a path a commit does not hold.
+
+But no test held it. A mutation that ignores a missing target passed all 38 S1 tests.
+
+**Tests** (`tests/evaluation/test_missing_target.py`):
+- a frozen code file deleted, and one renamed (`git mv`), after the freeze;
+- a frozen config section removed.
+
+In each case `verify` names the target, and `version_of` raises `ChangedAfterFreeze` for a decision made after it.
+
+**Mutation.** "A missing target is not a change" is now caught by exactly these 3 tests.
