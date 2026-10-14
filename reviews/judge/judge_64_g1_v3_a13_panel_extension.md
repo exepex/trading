@@ -205,3 +205,27 @@ day came from the manual dispatch run 38474280810.
 
 **Note (information):** a feature that crashes on a missing value would raise a TypeError instead of the look-ahead
 assertion. It still fails loudly, so no leak can pass silently.
+
+## Addendum 5 (14 Oct 2026, 17:05 UTC): the first real A13 append (13 Oct session) checked; the 14 Oct run has not started
+
+- **The 13 Oct append is exact.** Commit 9cba740 ("A13 Actions: NIFTY panel sessions 2026-10-14") comes from manual
+  run 1 at 21:56 UTC on 13 Oct (03:27 IST on 14 Oct). It appended the 13 Oct session from the first archived files:
+  `BhavCopy_NSE_FO_0_0_0_20261013_F_0000.csv.zip` and `ind_close_all_13102026.csv`, with their SHA-256 recorded in the
+  manifest, `inputs_version` "first archived (A11 original)", no later versions, and 1,900 option rows plus 3 futures
+  rows. I rebuilt 13 Oct from Drive's first archived files with A3's builder (`first_archived_inputs` and
+  `NiftyPanelBuilder`). Options 1,900 = 1,900 and futures 3 = 3: **equal row for row**. The commit title carries the
+  run date (IST), not the session date. That is confusing but harmless.
+- **The freeze gate ran.** The step "Append the new sessions ... only under the v3 freeze" succeeded in run 1 and in
+  run 3.
+- **Run 1 was red only because of the old alert step.** The append and commit steps succeeded. The red came from the
+  "One line to" step at c1bf97f, before its condition fix in f67065a. Scheduled run 3 (12:20 UTC on 14 Oct) skipped
+  that step and is green. It appended nothing new.
+- **The 14 Oct session is not in yet.** It is due from the 16:11 UTC (21:41 IST) slot. As of 17:00 UTC no panel-days
+  or index-closes run for it has started; GitHub's schedule is running hours late on this repository (judge 89). The
+  12:11 IST retry tomorrow covers it. My 15 Oct check-in (trig_01DHg1xXtCkmHnLgBfCgjQNs) will compare the 14 Oct rows
+  the same way.
+
+**Follow-up (cosmetic, not blocking).** Several workflows have unquoted step names containing ` #`, which YAML cuts at
+the `#`. These are `panel-days`, `forecast-capture`, `forecast-scores`, `filings-archive` and `flows-download`. Behaviour
+is unchanged, but the names shown in Actions are cut short ("One line to"), and a test that finds a step by its name
+breaks, as judge 89 found in A8. Quote them in the next lane-1 change to these files.
