@@ -26,10 +26,13 @@ def add_playbook_parser(subparsers) -> None:
 
 def cmd_playbook(args) -> int:
     from .fields import PlaybookError
-    from .wiring import build_playbook_loader, build_status_changer
+    from .wiring import build_playbook_loader, build_status_changer, registry_history_problems
 
     try:
         if args.playbook_cmd == "check":
+            problems = registry_history_problems()
+            if problems:
+                raise PlaybookError("registry.csv history", "; ".join(problems))
             return _print_playbook(build_playbook_loader().load())
         row = build_status_changer().change(
             args.name, args.version, PlaybookStatus(args.status), args.by, args.on, args.evidence_commit

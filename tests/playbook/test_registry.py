@@ -10,6 +10,7 @@ from fno.playbook.fields import PlaybookError
 from fno.playbook.history import PlaybookGit
 from fno.playbook.registry import Registry, RegistryRow, parse_rows, render, rewritten_history
 from fno.playbook.transitions import ALLOWED, check_transition
+from fno.playbook.wiring import registry_history_problems
 
 from .builders import commit_all, git
 
@@ -106,8 +107,16 @@ def test_the_history_check_reads_git(tmp_path):
 
 
 def test_the_repository_registry_was_only_ever_appended_to():
-    versions = PlaybookGit(ROOT).file_versions("playbook/registry.csv")
-    assert rewritten_history(versions) == []
-    current = (ROOT / "playbook" / "registry.csv").read_text()
-    assert not versions or current.startswith(versions[-1])  # uncommitted edits keep the committed rows too
-    parse_rows(current)
+    assert registry_history_problems(ROOT) == []  # committed versions and the working file
+    parse_rows((ROOT / "playbook" / "registry.csv").read_text())
+
+
+def test_the_history_check_includes_the_working_file(tmp_path):
+    git(tmp_path, "init", "-q")
+    registry = Registry(tmp_path / "playbook" / "registry.csv")
+    registry.path.parent.mkdir()
+    registry.append(row("paper"))
+    commit_all(tmp_path)
+    assert registry_history_problems(tmp_path) == []
+    registry.path.write_text(registry.path.read_text().replace("abcdef1", "abcdef2"))  # not committed
+    assert registry_history_problems(tmp_path)

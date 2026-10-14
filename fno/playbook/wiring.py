@@ -13,7 +13,7 @@ from .history import PlaybookGit
 from .lifecycle import StatusChanger
 from .live_reports import CommittedLiveReports, LiveReports, RecomputedLiveReports
 from .loader import PlaybookLoader, registry_path
-from .registry import Registry
+from .registry import Registry, rewritten_history
 
 
 def _recompute_live_report(live_feature: str) -> Mapping:
@@ -33,3 +33,11 @@ def build_playbook_loader(root: Path = ROOT, reports: LiveReports | None = None)
 
 def build_status_changer(root: Path = ROOT, reports: LiveReports | None = None) -> StatusChanger:
     return StatusChanger(build_playbook_loader(root, reports), PlaybookGit(root))
+
+
+def registry_history_problems(root: Path = ROOT) -> list[str]:
+    """Past registry rows edited in git history or in the working file (empty when append-only)."""
+    path = registry_path(root / PLAYBOOK_FOLDER)
+    versions = PlaybookGit(root).file_versions(path.relative_to(root).as_posix())
+    current = [path.read_text(encoding="utf-8")] if path.is_file() else []
+    return rewritten_history(versions + current)

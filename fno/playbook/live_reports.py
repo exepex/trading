@@ -1,6 +1,8 @@
 """Where the live-feature gate (B7) gets each live feature's validation report. The committed reports are written by
-`python -m fno research validate-live`; `RecomputedLiveReports` closes judge 44's follow-up: a committed report is used
-only if every per-day value in it equals the value recomputed from the recorded data, so a hand-edited report fails."""
+`python -m fno research validate-live`; `RecomputedLiveReports` closes judge 44's follow-up: the gate decides on a fresh
+recomputation over every recorded day, so neither an edited nor a removed day in a committed report can change the
+verdict (judge 67). The committed report must still exist and agree with the recomputation on every day it holds: it is
+the record the red team reads."""
 
 from __future__ import annotations
 
@@ -26,7 +28,9 @@ class CommittedLiveReports(LiveReports):
 
 
 class RecomputedLiveReports(LiveReports):
-    """The committed report, only when its per-day rows match a fresh recomputation of the same days."""
+    """The fresh recomputation (all recorded days), when a committed report exists and each of its rows matches it.
+    A strategy whose live feature stops agreeing on later days stops passing the gate: it no longer trades what was
+    tested."""
 
     def __init__(self, committed: LiveReports, recompute: Callable[[str], Mapping]):
         self.committed, self.recompute = committed, recompute
@@ -35,5 +39,6 @@ class RecomputedLiveReports(LiveReports):
         report = self.committed.report(live_feature)
         if report is None:
             return None
-        fresh = {row["day"]: row for row in self.recompute(live_feature)["comparisons"]}
-        return report if all(fresh.get(row["day"]) == row for row in report["comparisons"]) else None
+        recomputed = self.recompute(live_feature)
+        fresh = {row["day"]: row for row in recomputed["comparisons"]}
+        return recomputed if all(fresh.get(row["day"]) == row for row in report["comparisons"]) else None
