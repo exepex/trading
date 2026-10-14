@@ -9,7 +9,17 @@ from fno.nse_margins.rows import MarginRowBuilder, span_source
 from fno.nse_margins.span_file import read_span_file
 from fno.research_engine.structures import BOUGHT, SOLD, Leg, LongIronFly, ShortCondor, ShortIronFly
 
-from .span_builder import DAY, EXPIRY, LOT, SF_100_EXPOSURE, SF_100_SPAN, UNDERLYING, default_options, span_zip
+from .span_builder import (
+    DAY,
+    EXPIRY,
+    LOT,
+    SF_100_EXPOSURE,
+    SF_100_NOV,
+    SF_100_SPAN,
+    UNDERLYING,
+    default_options,
+    span_zip,
+)
 
 SF_100 = [Leg(20000.0, "CE", SOLD), Leg(20000.0, "PE", SOLD), Leg(20100.0, "CE", BOUGHT), Leg(19900.0, "PE", BOUGHT)]
 
@@ -26,7 +36,7 @@ def test_a_short_iron_fly_matches_the_hand_calculation():
     figure = calculator().per_lot(span(), EXPIRY, SF_100, DAY)
     assert figure.span == SF_100_SPAN == 1950  # largest scenario loss 30 per unit x 65
     assert figure.exposure == pytest.approx(SF_100_EXPOSURE) == pytest.approx(52000)  # 2 short legs x 2% x 20000 x 65
-    assert figure.total == pytest.approx(53950)
+    assert figure.nov == SF_100_NOV == -10_725  # sold 120 + 110, bought 35 + 30, x 65
 
 
 def test_a_structure_that_gains_in_every_scenario_has_no_span_margin():
@@ -73,7 +83,8 @@ def test_rows_use_the_first_monthly_expiry_30_days_out_and_name_the_file_and_its
     found = builder().rows(span(), "ab" * 32, DAY)
     sf = next(r for r in found.rows if r.structure == "SF")
     source = f"NSE SPAN nsccl.20261014.i1.zip sha256={'ab' * 32}"
-    assert sf.as_csv() == {"structure": "SF", "width": "100", "margin_per_lot_rs": "53950.00", "source": source,
+    assert sf.as_csv() == {"structure": "SF", "width": "100", "scan_per_lot_rs": "1950.00",
+                           "nov_per_lot_rs": "-10725.00", "exposure_per_lot_rs": "52000.00", "source": source,
                            "as_of": "2026-10-14"}  # fmt: skip
     assert span_source("f.zip", "00") == "NSE SPAN f.zip sha256=00"
     assert [r.structure for r in found.rows] == ["SF", "SC", "BF"] and found.skipped == []

@@ -1,9 +1,10 @@
-"""Initial margin of one lot of a one-expiry option structure (story A14): SPAN scanning risk plus exposure margin.
+"""Margin parts of one lot of a one-expiry option structure (story A14): SPAN scanning risk, net option value and
+exposure margin, kept apart (judge 75: C2 combines them).
 
 SPAN: the structure's loss in each of the file's 16 scenarios is the sum over its legs of the leg's side (bought +1,
 sold -1) times the option's risk array; the scanning risk is the largest loss, never below zero. For one expiry there
 is no calendar-spread charge and NIFTY's short-option minimum is zero (both checked by `read_span_file`), so the SPAN
-margin is the scanning risk.
+margin is the scanning risk. The net option value is the legs' value at the file's prices (bought legs plus).
 
 Exposure: NSE's extreme-loss margin on index options, charged on each short option's notional value (the index's last
 close times the quantity); long options carry none. NSE's rule changes by circular, so it sits behind `ExposureRule`.
@@ -34,12 +35,9 @@ class MarginOutsideModel(ValueError):
 
 @dataclass(frozen=True)
 class MarginFigure:
-    span: float  # rupees per lot
+    span: float  # SPAN scanning risk, rupees per lot
+    nov: float  # net option value at the file's prices, bought legs plus (a credit structure's is negative)
     exposure: float
-
-    @property
-    def total(self) -> float:
-        return self.span + self.exposure
 
 
 class ExposureRule(ABC):
@@ -84,5 +82,6 @@ class SpanMarginCalculator:
         if missing:
             raise MarginOutsideModel(f"{span.name}: {missing} not in the {expiry} series")
         losses = [sum(leg.side * options[leg.contract].risk[i] for leg in legs) for i in range(SCENARIOS)]
+        nov = sum(leg.side * options[leg.contract].price for leg in legs)
         exposure = self.exposure.per_unit(legs, span.underlying, expiry, day)
-        return MarginFigure(max(0.0, *losses) * self.lot_size, exposure * self.lot_size)
+        return MarginFigure(max(0.0, *losses) * self.lot_size, nov * self.lot_size, exposure * self.lot_size)

@@ -14,7 +14,7 @@ from datetime import date
 
 from ..constants import MARGIN_SOURCE_NSE_SPAN
 from ..research_engine.structures import Structure
-from .calculator import MarginOutsideModel, SpanMarginCalculator
+from .calculator import MarginFigure, MarginOutsideModel, SpanMarginCalculator
 from .span_file import SpanFile
 
 
@@ -22,13 +22,14 @@ from .span_file import SpanFile
 class MarginRow:
     structure: str
     width: float
-    margin_per_lot_rs: float
+    figure: MarginFigure  # per lot: scan, net option value and exposure, stored apart (judge 75)
     source: str
     as_of: date
 
     def as_csv(self) -> dict[str, str]:
-        return {"structure": self.structure, "width": f"{self.width:g}",
-                "margin_per_lot_rs": f"{self.margin_per_lot_rs:.2f}", "source": self.source,
+        f = self.figure
+        return {"structure": self.structure, "width": f"{self.width:g}", "scan_per_lot_rs": f"{f.span:.2f}",
+                "nov_per_lot_rs": f"{f.nov:.2f}", "exposure_per_lot_rs": f"{f.exposure:.2f}", "source": self.source,
                 "as_of": self.as_of.isoformat()}  # fmt: skip
 
 
@@ -71,5 +72,5 @@ class MarginRowBuilder:
                 except MarginOutsideModel as exc:
                     found.skipped.append(f"{what}: {exc}")
                     continue
-                found.rows.append(MarginRow(structure.code, width, round(figure.total, 2), source, day))
+                found.rows.append(MarginRow(structure.code, width, figure, source, day))
         return found

@@ -6,17 +6,17 @@ from pathlib import Path
 import pytest
 
 from fno.models import IST
-from fno.nse_margins.calculator import NseIndexOptionExposure, SpanMarginCalculator
+from fno.nse_margins.calculator import MarginFigure, NseIndexOptionExposure, SpanMarginCalculator
 from fno.nse_margins.job import NseMarginJob, due_session
 from fno.nse_margins.margin_log import MarginLog, MarginLogConflict
 from fno.nse_margins.rows import MarginRow, MarginRowBuilder
 from fno.research_engine.structures import LongIronFly, ShortCondor, ShortIronFly
 from fno.risk.inputs import RiskInputError, TradeTerms
-from fno.risk.margins import MarginTable
+from fno.risk.margins import MARGIN_COLUMNS, MarginParts, MarginTable
 
 from .span_builder import DAY, LOT, span_zip
 
-HEADER = "structure,width,margin_per_lot_rs,source,as_of\n"
+HEADER = ",".join(MARGIN_COLUMNS) + "\n"
 MORNING = datetime(2026, 10, 14, 7, 45, tzinfo=IST)
 
 
@@ -48,7 +48,7 @@ def make_job(path: Path, files: dict[date, bytes], now: datetime = MORNING, aler
 
 def done_before(day: date) -> str:
     """Rows for the week before `day`, so only `day` is pending."""
-    rows = [f"SF,100,1.00,NSE SPAN old sha256=00,{day - timedelta(days=n)}\n" for n in range(1, 8)]
+    rows = [f"SF,100,1.00,0,0,NSE SPAN old sha256=00,{day - timedelta(days=n)}\n" for n in range(1, 8)]
     return HEADER + "".join(rows)
 
 
@@ -59,7 +59,9 @@ def test_a_session_gets_one_row_per_structure_and_width_and_old_bytes_stay_a_pre
     after = path.read_bytes()
     assert after.startswith(before)
     new = after[len(before) :].decode().splitlines()
-    assert len(new) == 6 and new[0].startswith("SF,100,53950.00,NSE SPAN nsccl.20261014.i1.zip sha256=")
+    assert len(new) == 6 and new[0].startswith(
+        "SF,100,1950.00,-10725.00,52000.00,NSE SPAN nsccl.20261014.i1.zip sha256="
+    )
     assert all(line.endswith(",2026-10-14") for line in new)
 
 
@@ -117,7 +119,7 @@ def test_every_pending_day_is_tried_and_all_problems_go_in_one_alert(tmp_path):
 
 
 def test_a_different_figure_for_an_existing_row_is_refused_and_nothing_is_written(tmp_path):
-    clash = "SC,200,1.00,hand entry,2026-10-14\n"
+    clash = "SC,200,1.00,0,0,hand entry,2026-10-14\n"
     path, alerts = margins_file(tmp_path, done_before(DAY) + clash), Alerts()
     before = path.read_bytes()
     assert make_job(path, {DAY: span_zip()}, alerts=alerts).run() == 1
@@ -132,9 +134,10 @@ def test_the_log_refuses_a_wrong_header_or_a_missing_file(tmp_path):
 
 
 def test_a_file_without_a_final_newline_gets_one_before_the_new_rows(tmp_path):
-    path = margins_file(tmp_path, HEADER + "SF,100,1.00,x,2026-10-01")
-    MarginLog(path).append([MarginRow("SF", 100.0, 2.0, "y", DAY)])
-    assert path.read_text().splitlines()[-2:] == ["SF,100,1.00,x,2026-10-01", "SF,100,2.00,y,2026-10-14"]
+    path = margins_file(tmp_path, HEADER + "SF,100,1.00,0,0,x,2026-10-01")
+    MarginLog(path).append([MarginRow("SF", 100.0, MarginFigure(2.0, -1.0, 3.0), "y", DAY)])
+    lines = path.read_text().splitlines()[-2:]
+    assert lines == ["SF,100,1.00,0,0,x,2026-10-01", "SF,100,2.00,-1.00,3.00,y,2026-10-14"]
 
 
 @pytest.mark.parametrize("now, due", [
@@ -156,21 +159,15 @@ def test_a_calendar_without_sessions_is_an_alert_not_a_hang(tmp_path):
 def test_c2_uses_a_computed_row_from_its_day_on_and_never_before(tmp_path):
     path = margins_file(tmp_path, done_before(DAY))
     make_job(path, {DAY: span_zip()}).run()
-    table, terms = MarginTable(path, max_age_days=7), TradeTerms("SF", 200.0, lots=2)
-    assert table.margin(terms, DAY) == pytest.approx(2 * float(_row(path, "SF", "200", DAY)))
+    table, terms = MarginTable(path, max_age_days=7), TradeTerms("SF", 200.0, lots=2)  # width 200: no older row
+    # sold C20000 and P20000, bought C20200 and P19800 at 10: scan max(100 - 20, -15 + 90) = 80 a unit, NOV -210
+    assert table.parts(terms, DAY) == MarginParts(80 * 65.0, -210 * 65.0, 52000.0, "SF width 200")
+    assert table.margin(terms, DAY) == pytest.approx(2 * (5200 + 52000))  # a credit: scan + exposure (judge 75)
     with pytest.raises(RiskInputError, match="no margin recorded"):
         table.margin(terms, DAY - timedelta(days=1))  # the day before: the row is not visible yet
     assert table.margin(terms, DAY + timedelta(days=7)) > 0
     with pytest.raises(RiskInputError, match="older than 7 days"):
         table.margin(terms, DAY + timedelta(days=8))
-
-
-def _row(path: Path, structure: str, width: str, day: date) -> str:
-    for line in path.read_text().splitlines():
-        parts = line.split(",")
-        if parts[0] == structure and parts[1] == width and parts[-1] == day.isoformat():
-            return parts[2]
-    raise AssertionError("row not found")
 
 
 def test_the_created_cutoff_is_9_am_ist():

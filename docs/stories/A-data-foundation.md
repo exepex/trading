@@ -701,6 +701,10 @@ Facts checked on 14 Oct 2026 (builder, response 77):
   window's near edge);
 - an append-only writer to `margins.csv` (`source` = `NSE SPAN <file name> sha256=<SHA-256>`, `as_of` = d) that never
   edits or reorders a past row; the same row again is a no-op, a different figure for the same key is a conflict;
+- judge 75 (14 Oct 2026): the scanning risk, the net option value and the exposure are stored as separate columns; C2
+  counts `max(0, scan - NOV) + min(0, NOV) + exposure` and stresses only the scan (`max(0, k x scan - NOV) + min(0, NOV)
+  + exposure`, k from config); with an open losing trade C2 never leaves more free than a broker that nets the
+  premium (test);
 - a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (07:45 IST, retry 08:30):
   librarian, revisions sweep, compute, commit; one #fno-desk line on any failure;
 - a proposal (not a change) for deriving C2's stressed-margin factor from archived files.

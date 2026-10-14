@@ -21,8 +21,10 @@ Story: `docs/stories/A-data-foundation.md` A14; issue #89; branch `story/A14-nse
 | CLI | `python -m fno margins nse-span [--due-day]` | `fno/nse_margins/cli.py`, registered in `fno/cli.py` |
 | Workflow | `.github/workflows/nse-margins.yml` | librarian, revisions sweep, compute, commit; `workflow_dispatch` only (schedule written in its header) |
 
-Nothing in `fno/forecast/`, `fno/ai/`, the forecast capture or C2 (`fno/risk/`) changed. `margins.csv`'s columns and
-C2's `MarginTable` are unchanged, so E4's margin path is untouched. No file over 350 lines (largest new: 167).
+Nothing in `fno/forecast/`, `fno/ai/` or the forecast capture changed. C2 changed only as judge 75 and the
+orchestrator directed (`fno/risk/margins.py`: the three parts and the two formulas) plus one fix the ruling's test
+exposed (`fno/risk/rules.py` MarginRoom, finding 5); its interfaces are unchanged (finding 6). No file over 350 lines
+(largest new: 167).
 
 ## The method (strong evidence: NSE's own files, read and recomputed)
 
@@ -42,16 +44,24 @@ C2's `MarginTable` are unchanged, so E4's margin path is untouched. No file over
   exactly one tier. (My first version refused any file with two tiers; the real 13 Oct file showed that was wrong.)
 
 Real rows for 14 Oct 2026 (`nsccl.20261014.i1.zip`, SHA-256 `d85b883a...e8b5b`, equal to the manifest row; expiry
-23 Nov 2026, ATM 22,700, SC strikes 23,200/22,250):
+23 Nov 2026, ATM 22,700, SC strikes 23,200/22,250), per lot, with what C2 counts (judge 75) and the stressed figure at
+the proposed k = 1.45:
 
-| Width | SF | SC | BF |
-|---|---|---|---|
-| 100 | 59,899.32 | 61,727.77 | 59,908.42 |
-| 200 | 60,769.67 | 64,500.67 | 60,722.22 |
-| 300 | 62,679.37 | 67,594.67 | 60,834.67 |
+| Row | Scan | NOV | Exposure | C2 counts | Stressed, k 1.45 |
+|---|---|---|---|---|---|
+| SF 100 | 822.25 | -6,071.00 | 59,077.07 | 59,899.32 | 60,269.33 |
+| SF 200 | 1,692.60 | -12,350.00 | 59,077.07 | 60,769.67 | 61,531.34 |
+| SF 300 | 3,602.30 | -17,134.00 | 59,077.07 | 62,679.37 | 64,300.40 |
+| SC 100 | 2,650.70 | -3,786.25 | 59,077.07 | 61,727.77 | 62,920.58 |
+| SC 200 | 5,423.60 | -7,072.00 | 59,077.07 | 64,500.67 | 66,941.29 |
+| SC 300 | 8,517.60 | -10,153.00 | 59,077.07 | 67,594.67 | 71,427.59 |
+| BF 100 | 831.35 | 6,071.00 | 59,077.07 | 59,077.07 | 59,077.07 |
+| BF 200 | 1,645.15 | 12,350.00 | 59,077.07 | 59,077.07 | 59,077.07 |
+| BF 300 | 1,757.60 | 17,134.00 | 59,077.07 | 59,077.07 | 59,077.07 |
 
-Exposure is 59,077.07 of each (2 short legs x 2% x 22,721.95 x 65); SPAN is 822 to 8,518. **For these hedged
-structures the margin is almost all exposure margin**, which does not shrink with the hedge.
+Exposure is 59,077.07 of each (2 short legs x 2% x 22,721.95 x 65). **For these hedged structures the margin is almost
+all exposure margin**, which does not shrink with the hedge. NOV here is at the file's prices (the previous session's
+settlement prices); C2's MarginRoom marks the proposal at today's mids, so the two differ by a day's move (finding 5).
 
 ## Validation (acceptance criterion 1)
 
@@ -130,26 +140,14 @@ windows that gives **1.45**. This needs the `i1` archive from 2020 (about 1,700 
 can fill it with `--from 2020-01-01`). Until the owner chooses, a hand value of 1.45 with this file as its source is
 the evidence-based choice; the owner's answer is needed either way.
 
-## Findings to decide (not changed by me)
+## Findings
 
-1. **What the margin figure should mean for C2 (judge to rule; C2 not changed).** Two ways to state SPAN margin:
-   (A) scanning risk alone (what the job writes now), or (B) scanning risk minus net option value, floored at 0 (CME
-   style; `marginism`, and probably the broker's basket screen). For 14 Oct, per lot:
-
-   | Row | (A) scan | net option value | (B) | (A)+exposure | (B)+exposure |
-   |---|---|---|---|---|---|
-   | SF 100 | 822.25 | -6,071.00 | 6,893.25 | 59,899.32 | 65,970.32 |
-   | SF 300 | 3,602.30 | -17,134.00 | 20,736.30 | 62,679.37 | 79,813.37 |
-   | BF 100 | 831.35 | +6,071.00 | 0.00 | 59,908.42 | 59,077.07 |
-
-   C2's MarginRoom already moves cash and marked equity by the entry and uses min(cash, marked equity). Working it
-   through against what a broker leaves free (cash - (B) - exposure): for a credit structure (SF, SC) C2 is exact with
-   (A); with (B) it counts the premium twice (too strict by 6,071-17,134 a lot). For the debit BF, C2 is exact with (B)
-   and too strict with (A) by 831 a lot. The exact C2 input for every structure is **max(0, scan - NOV) + min(0, NOV)**
-   (= A for credits, = B for debits). The README defines the column as "as the calculator shows it", which would be
-   (B) if the broker nets the premium. Both errors are on the safe side (never too loose). My recommendation (reasoning
-   plus the arithmetic above): store the exact C2 input, and name the definition in the README; the broker check
-   tells us which figure the broker shows, so the validation compares like with like.
+1. **What C2 counts: ruled by judge 75 and built.** The parts are stored apart (`scan_per_lot_rs`, `nov_per_lot_rs`,
+   `exposure_per_lot_rs`; `fno/risk/margins.py` `MARGIN_COLUMNS`). C2 counts `max(0, scan - NOV) + min(0, NOV) +
+   exposure` (`MarginParts.initial`), the multiplier stresses the scan only (`MarginParts.stressed`: `max(0, k x scan
+   - NOV) + min(0, NOV) + exposure`; exposure not stressed, as the orchestrator set it; whether to stress it is the
+   owner's), and a total not above 0, or a negative scan or exposure, is refused by name. Tests:
+   `tests/risk/test_margin_formula.py`. Mutations: scan alone -> 6 tests fail; k x (the netted figure) -> 1 fails.
 2. **The margin is almost all exposure.** For every row, 59,077 of 59,899-67,595 is exposure on the two short legs,
    which a hedge does not reduce. Risk manager's view: a Rs 5 lakh book can hold about 6 such lots at stressed 1.45 x
    62,000 = 90,000 each, before cash for losses; C2's 3-trade cap binds first.
@@ -157,6 +155,27 @@ the evidence-based choice; the owner's answer is needed either way.
    midnight; the job runs in the morning (07:45, retry 08:30), never racing NSE.
 4. **The manifest guard asked for a year of rows** (250); a dataset that begins on 1 Oct cannot have them. I changed the
    test to require every session from the first day instead, for forward-only datasets only, and say so here.
+
+5. **C2's MarginRoom was looser than a broker in one case, found by judge 75's requested test; fixed (judge to
+   confirm, it goes beyond the ruling).** With an open credit trade (a short fly, Rs 6,071 received, marked at a loss)
+   and a new debit trade (BF, Rs 6,071 paid), `min(cash, marked equity)` left **Rs 6,071 more free than a broker**:
+   the min takes either the debit's payment or the credit's liability, a broker deducts both. Root cause: netting one
+   trade's value against another's liability. Fix in `fno/risk/rules.py`: the available cash after entry is also never
+   above `cash + entry cash flow + sum over trades of min(0, trade value)` (the proposal included). It is the lowest of
+   the old two figures and this one, so it can only be stricter than before. With the exact input and the same scan,
+   C2 now equals the broker to the paisa in all 8 cases (credit or debit proposal; loss 0, 3,929, 20,000 and 60,000);
+   removing the new term fails 4 of them. Limits (reasoning): it values open trades at today's mids, so it needs a
+   quote for every open leg (the stress rule already needs them); and C2 uses today's row for a structure and width,
+   not the held trade's own scan, so a held trade whose scan has grown is covered only by k.
+6. **E4's interface is unchanged, its test fixtures changed.** `MarginTable.margin(terms, day)` and
+   `StressedMargin.margin(terms, day)` keep their signatures; only the file's columns changed. On this branch I updated
+   the margins rows in `tests/desk/test_entries.py`, `tests/desk/test_entry_limit.py` and `tests/risk/test_manager.py`
+   (header from `MARGIN_COLUMNS`; the old 40,000 becomes scan 40,000, NOV 0, exposure 0, the same figure). The
+   stressed-margin record gains `"stresses": "scan risk only (judge 75)"`.
+7. **NOV basis.** The stored NOV uses the SPAN file's prices (previous settlement); the broker and MarginRoom use
+   today's. For C2's arithmetic this shifts the debit/credit netting by the day's change in the legs' value; on the
+   safe side for a credit (the scan term does not depend on NOV), not always for a debit (a BF whose value rose
+   overnight). The size is small next to exposure (BF 100's SPAN is 0 either way unless its value fell below 831).
 
 ## Groww as a margin source (orchestrator's (a)-(e); public docs only, read 14 Oct 2026, no login, no key)
 
@@ -190,5 +209,5 @@ by the owner by hand (the one-time check above), not from a job.
 
 47 new tests in `tests/nse_margins/`; `tests/test_librarian.py` names the new librarian dataset; the manifest guard in
 `tests/test_fingerprints.py` accepts a forward-only dataset when every session from its first day to 14 Oct has a row
-(it asked for 250 rows, a year of history, which a dataset begun on 1 Oct cannot have). Full suite 2,147 passed (47 A14 tests); ruff and
+(it asked for 250 rows, a year of history, which a dataset begun on 1 Oct cannot have). Full suite 2,336 passed on the branch merged with main at a999d78 (47 A14 tests and 13 in `tests/risk/test_margin_formula.py`); ruff and
 `tools/check_imports.py` clean.

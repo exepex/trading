@@ -29,6 +29,7 @@ from fno.desk.records import DeskRecords
 from fno.desk.snapshot import SnapshotError
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from fno.risk.book_view import load_risk_book
+from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.wiring import build_risk_manager
 
 from .builders import (
@@ -167,7 +168,7 @@ def test_an_unwind_leg_without_bid_size_stays_as_an_exit_order(root, store, snap
 def test_the_risk_manager_s_refusal_for_stale_margins_fills_nothing(root, store, snapshots, entry_desk, execution,
                                                                     margin_as_of, opens):  # fmt: skip
     margins = root / "margins.csv"
-    margins.write_text(f"structure,width,margin_per_lot_rs,source,as_of\nSF,200,40000,test calculator,{margin_as_of}\n")
+    margins.write_text(",".join(MARGIN_COLUMNS) + f"\nSF,200,40000,0,0,test calculator,{margin_as_of}\n")
     stressed = {"multiplier": 1.5, "source": "test factor", "as_of": "2026-10-13"}
     cfg = load_app_config(overrides={"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed}})
     market = decision_market()

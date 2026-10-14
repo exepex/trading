@@ -1,13 +1,19 @@
-"""Margins as inputs (story C2): the broker's or NSE SPAN's margin per structure and lot, recorded with source and date.
+"""Margins as inputs (story C2): a structure's margin parts per lot, recorded with source and date.
 
-`research/data/margins/margins.csv`: `structure, width, margin_per_lot_rs, source, as_of`. The margin of a trade is
-its initial margin (SPAN plus exposure) for its structure, width and lots, from the latest row dated on or before the
-decision day; a missing row, or one older than the configured age, fails closed. It is never the broker's live total,
-which includes the marked loss of a short structure: that loss is already in available cash (the lower of cash and
-marked equity), and would count twice.
+`research/data/margins/margins.csv`: `structure, width, scan_per_lot_rs, nov_per_lot_rs, exposure_per_lot_rs, source,
+as_of` (story A14, judge 75): SPAN's scanning risk, the position's net option value (its value at the prices used,
+bought legs plus, so a credit structure's is negative) and the exposure margin, stored apart and never one netted
+figure. The row used is the latest dated on or before the decision day; a missing row, or one older than the
+configured age, fails closed.
+
+The margin C2 counts is `max(0, scan - NOV) + min(0, NOV) + exposure` (judge 75): MarginRoom already moves cash and
+marked equity by the entry and takes the lower, so this leaves exactly what a broker that nets the premium into SPAN
+leaves free; scan alone counts a debit's premium twice, scan minus NOV a credit's. It must be above 0. It is never the
+broker's live total, whose marked loss available cash already deducts.
 
 Stressed margin, one frozen method (`risk.stressed_margin`):
-- `multiplier`: the margin times a predeclared factor, with its source and date; missing or older than its age fails
+- `multiplier`: the factor k stresses the scanning risk only (the premium paid or received does not grow):
+  `max(0, k x scan - NOV) + min(0, NOV) + exposure`, with its source and date; missing or older than its age fails
   closed;
 - `scenario_lookup`: a margin per stress scenario from SPAN parameter files (`structure, width, scenario,
   margin_per_lot_rs, source, as_of`); every configured scenario needs a fresh row, and the largest counts.
@@ -18,6 +24,7 @@ from __future__ import annotations
 import csv
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
@@ -25,7 +32,7 @@ from ..constants import STRESSED_MARGIN_MULTIPLIER, STRESSED_MARGIN_SCENARIO_LOO
 from .inputs import RiskInputError, TradeTerms
 from .settings import StressedMarginSettings
 
-MARGIN_COLUMNS = ("structure", "width", "margin_per_lot_rs", "source", "as_of")
+MARGIN_COLUMNS = ("structure", "width", "scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs", "source", "as_of")
 SCENARIO_MARGIN_COLUMNS = ("structure", "width", "scenario", "margin_per_lot_rs", "source", "as_of")
 
 
@@ -39,8 +46,8 @@ def _rows(path: Path, columns: tuple[str, ...]) -> list[dict[str, str]]:
         return list(reader)
 
 
-def _fresh_margin(rows: list[dict[str, str]], what: str, day: date, max_age_days: int) -> float:
-    """Per-lot margin of the latest row dated on or before `day`; refused when there is none or it is too old."""
+def _fresh_row(rows: list[dict[str, str]], what: str, day: date, max_age_days: int) -> dict[str, str]:
+    """The latest sourced row dated on or before `day`; refused when there is none or it is too old."""
     dated = [(date.fromisoformat(r["as_of"]), r) for r in rows if r["source"].strip()]
     usable = [(d, r) for d, r in dated if d <= day]
     if not usable:
@@ -48,10 +55,41 @@ def _fresh_margin(rows: list[dict[str, str]], what: str, day: date, max_age_days
     as_of, row = max(usable, key=lambda pair: pair[0])
     if (day - as_of).days > max_age_days:
         raise RiskInputError(f"margin for {what} is from {as_of}, older than {max_age_days} days on {day}")
-    margin = float(row["margin_per_lot_rs"])
+    return row
+
+
+def _positive(margin: float, what: str) -> float:
     if not margin > 0:
-        raise RiskInputError(f"margin for {what} must be positive, not {margin}")
+        raise RiskInputError(f"margin for {what} must be above 0, not {margin}")
     return margin
+
+
+@dataclass(frozen=True)
+class MarginParts:
+    """One lot's margin parts, rupees: SPAN scanning risk, net option value (bought legs plus) and exposure."""
+
+    scan: float
+    nov: float
+    exposure: float
+    what: str
+
+    def __post_init__(self):
+        if self.scan < 0 or self.exposure < 0:
+            raise RiskInputError(f"margin for {self.what}: scan and exposure cannot be negative ({self})")
+
+    def initial(self) -> float:
+        """What C2 counts: max(0, scan - NOV) + min(0, NOV) + exposure (judge 75); refused unless above 0."""
+        return self.stressed(1.0)
+
+    def stressed(self, factor: float) -> float:
+        """The scanning risk times `factor`; the premium paid or received does not grow under stress."""
+        margin = max(0.0, factor * self.scan - self.nov) + min(0.0, self.nov) + self.exposure
+        return _positive(margin, self.what)
+
+    @classmethod
+    def from_row(cls, row: dict[str, str], what: str) -> MarginParts:
+        names = ("scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs")
+        return cls(*(float(row[name]) for name in names), what)
 
 
 def _matches(row: dict[str, str], terms: TradeTerms) -> bool:
@@ -62,11 +100,15 @@ class MarginTable:
     def __init__(self, path: Path, max_age_days: int):
         self.path, self.max_age_days = path, max_age_days
 
-    def margin(self, terms: TradeTerms, day: date) -> float:
-        """Initial margin of a trade in rupees: per-lot margin x lots."""
+    def parts(self, terms: TradeTerms, day: date) -> MarginParts:
+        """One lot's margin parts from the latest fresh row for the trade's structure and width."""
         rows = [r for r in _rows(self.path, MARGIN_COLUMNS) if _matches(r, terms)]
         what = f"{terms.structure} width {terms.width:g}"
-        return _fresh_margin(rows, what, day, self.max_age_days) * terms.lots
+        return MarginParts.from_row(_fresh_row(rows, what, day, self.max_age_days), what)
+
+    def margin(self, terms: TradeTerms, day: date) -> float:
+        """Initial margin of a trade in rupees: the per-lot margin C2 counts x lots."""
+        return self.parts(terms, day).initial() * terms.lots
 
 
 class StressedMargin(ABC):
@@ -93,11 +135,12 @@ class MultiplierMargin(StressedMargin):
             raise RiskInputError("stressed margin multiplier is not set (factor, source and as_of are all required)")
         if s.as_of > day or (day - s.as_of).days > s.max_age_days:
             raise RiskInputError(f"stressed margin multiplier of {s.as_of} is not valid on {day}")
-        return self.table.margin(terms, day) * s.multiplier
+        return self.table.parts(terms, day).stressed(s.multiplier) * terms.lots
 
     def record(self) -> dict[str, str]:
         values = {"multiplier": self.settings.multiplier, "source": self.settings.source, "as_of": self.settings.as_of}
-        return {"method": self.method} | {k: "" if v is None else str(v) for k, v in values.items()}
+        stressed = {"method": self.method, "stresses": "scan risk only (judge 75)"}
+        return stressed | {k: "" if v is None else str(v) for k, v in values.items()}
 
 
 class ScenarioLookupMargin(StressedMargin):
@@ -110,13 +153,13 @@ class ScenarioLookupMargin(StressedMargin):
         if self.settings.scenario_file is None:
             raise RiskInputError("stressed margin scenario_lookup has no scenario_file")
         rows = [r for r in _rows(self.settings.scenario_file, SCENARIO_MARGIN_COLUMNS) if _matches(r, terms)]
-        per_lot = [
-            _fresh_margin(
-                [r for r in rows if r["scenario"] == name], f"{terms.structure} {name}", day, self.max_age_days
-            )
-            for name in self.scenarios
-        ]
+        per_lot = [self._scenario_margin(rows, terms, name, day) for name in self.scenarios]
         return max(per_lot) * terms.lots
+
+    def _scenario_margin(self, rows: list[dict[str, str]], terms: TradeTerms, name: str, day: date) -> float:
+        what = f"{terms.structure} {name}"
+        row = _fresh_row([r for r in rows if r["scenario"] == name], what, day, self.max_age_days)
+        return _positive(float(row["margin_per_lot_rs"]), what)
 
     def record(self) -> dict[str, str]:
         file = self.settings.scenario_file

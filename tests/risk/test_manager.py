@@ -7,6 +7,7 @@ import pytest
 
 from fno.config import load_app_config
 from fno.risk.manager import RiskManager
+from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.verdict import RiskRule
 from fno.risk.wiring import build_risk_manager
 
@@ -27,7 +28,7 @@ RULES = [
 
 def _manager(tmp_path, **risk) -> RiskManager:
     margins = tmp_path / "margins.csv"
-    margins.write_text("structure,width,margin_per_lot_rs,source,as_of\nSF,200,40000,test calculator,2026-10-12\n")
+    margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-12\n")
     stressed = {"multiplier": 1.5, "source": "test factor", "as_of": "2026-10-13"}
     overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed, **risk}}
     return build_risk_manager(load_app_config(overrides=overrides), tmp_path)
@@ -45,6 +46,7 @@ def test_inside_every_limit_the_trade_may_open_and_every_rule_reports(tmp_path):
     record = decision.record()
     assert record["stressed_margin"] == {
         "method": "multiplier",
+        "stresses": "scan risk only (judge 75)",
         "multiplier": "1.5",
         "source": "test factor",
         "as_of": "2026-10-13",

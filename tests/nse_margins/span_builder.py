@@ -21,6 +21,9 @@ SF_ARRAYS = {
 }
 SF_100_SPAN = 30 * LOT
 SF_100_EXPOSURE = 2 * 0.02 * UNDERLYING * LOT
+# The SF legs' prices: sold 120 + 110, bought 35 + 30, so its net option value is -(230 - 65) x 65 = -10,725 a lot
+SF_PRICES = {("C", 20000.0): 120.0, ("P", 20000.0): 110.0, ("C", 20100.0): 35.0, ("P", 19900.0): 30.0}
+SF_100_NOV = -(120 + 110 - 35 - 30) * LOT
 
 
 def risk(scenarios: dict[int, float]) -> tuple[float, ...]:
@@ -34,8 +37,8 @@ def default_options(strikes=range(18000, 22001, 100)) -> dict[tuple[str, float],
 
 
 def _option(kind: str, strike: float, values: tuple[float, ...]) -> str:
-    arrays = "".join(f"<a>{v:.2f}</a>" for v in values)
-    return f"<opt><o>{kind}</o><k>{strike:.2f}</k><p>10.00</p><ra><r>1</r>{arrays}<d>0.5</d></ra></opt>"
+    arrays, price = "".join(f"<a>{v:.2f}</a>" for v in values), SF_PRICES.get((kind, strike), 10.0)
+    return f"<opt><o>{kind}</o><k>{strike:.2f}</k><p>{price:.2f}</p><ra><r>1</r>{arrays}<d>0.5</d></ra></opt>"
 
 
 def _series(expiry: date, options, cvf: str, sc: str) -> str:
