@@ -343,3 +343,35 @@ judged ones included, with Holm's step taken at each judgement), or a batch is j
 **Verdict: PASS for 6367d7354e910b203851f2652a1adca958f5fb3e.** All must-fixes of addenda 6 and 7 are done. Design v2
 revision 3 still needs ChatGPT's approval of the whole revision and the owner's approval before it binds or merges
 (owner's order, 15 Oct log); after the merge I check that `main` carries exactly this SHA's `docs/design_v2/`.
+
+## Addendum 10 (15 Oct 2026): revision 4 at 658ab3a58402aa34a919e6910aacbdffb8aa3ddd (6367d73..658ab3a)
+
+Range: ChatGPT's review 97 (1d4d9f5, 9585391) and 658ab3a; docs and reviews only (checked with `git diff --name-only`);
+largest changed file 195 lines. Owner amendments read at their source: 9003162 appends two rows to `DESK_DECISIONS.md`
+(nothing edited in place) and logs the owner's words in `conversations/2026-10-15.md` ("A. Your decision 7 ... => I
+accept / B. Your decision 8 ... => I accept").
+
+| Item | Status | Evidence |
+|---|---|---|
+| Decision 7 amended, one operative Test B | MET | `08` §8.2 has one Test B: "no" only when every counted strategy reached its sample with its upper bound below its useful net; zero eligible or resolved shadows gives `undecided / no_economic_test`; the old wording is gone; matches the amendment row |
+| Decision 8 amended | MET | `08` §8.3 condition 5 always applies (second untouched forward period or Holm across the trial count, sample predeclared); §8.4's pass is a paired real-minus-paper test with a prediction interval for the mean of that many new trades; Rs 20,000 stop kept. Matches the amendment row. Note: condition 6 (fits the Rs 4,000-5,000 real cap; SEBI and tax rules re-checked) is not in the amendment row's words; it was in the proposal the owner accepted as "a stricter bar", so I accept it, and the owner sees it at final approval |
+| Review 97 fix 2: minimum-effect population | MET | `05` §5.5 item 5: the gate uses only paired dates with RV > 0, the 3% benchmark on the same dates; the primary test uses every scored non-void date; the zero-RV count is reported; G6 freezes both sets. Numerator and denominator now share one population |
+| Review 97 fix 3 and my addendum 9 follow-up: shadow family | MET | `03` §3.1: cumulative per research question (active, stopped, retired, judged or new), Holm recomputed at each confirmatory decision without relabelling earlier verdicts, one judgement at the frozen sample unless alpha-spending was registered before collection. Adversarial check: no reset point remains, early stops stay in, and interim peeking needs a pre-registered spending rule |
+| PAPER ONLY card label | MET | `04` card table, first row |
+| Decision 4's unit stated as unconfirmed | NOT MET | See must-fix 1 |
+
+**Must-fix 1: the design text does not say that decision 4's exact unit is unconfirmed.** Response 97 says it plainly
+("still a definitional clarification for the owner to confirm"). The design does not:
+- `05` §5.5 item 5 says only "flagged to the owner in response 97", next to "accepted by the owner on 15 Oct 2026";
+- REPLAN §5 item 4 says "Decided 15 Oct 2026: minimum effects 3% QLIKE";
+- `OWNER_SUMMARY.md` lists "what 'better than baseline' means" among the decisions made, with no word on the unit.
+Revision 4 also adds new definitional content (the gate excludes zero-RV dates while the significance test keeps
+them), which is exactly the part the owner has not seen. Without this, the owner's approval of the whole design would
+not knowingly cover it. Fix: in `05` item 5, "the number 3% is the owner's; its exact unit (this paragraph) awaits the
+owner's confirmation"; the same short note in REPLAN §5 item 4; and one line in `OWNER_SUMMARY.md` asking the owner to
+confirm it. Self-check: in addenda 6 and 9 I accepted "flagged" as enough. With the population split added in revision 4
+and the owner's whole-design approval coming next, it is no longer enough. That is a stricter reading than mine before,
+and I say so.
+
+**Verdict: FAIL for 658ab3a58402aa34a919e6910aacbdffb8aa3ddd**, on must-fix 1 only (wording in three places). Everything
+else in revision 4 passes, including both owner amendments and ChatGPT's fixes 2 and 3.
