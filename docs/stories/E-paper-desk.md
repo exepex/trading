@@ -225,7 +225,7 @@ it records "no approved strategy" each day (that is a result, not an error).
 
 **Judge verifies:** replays three Book-1 records.
 
-**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** later
+**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** built on `story/e5-book1`, judge pending; not live (no routine; until C4 merges and writes `validity.c4`, no Book 1 order can fill) (claims: reviews/claude/response_85_e5-book1.md)
 
 ---
 

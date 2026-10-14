@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from ..constants import PLAYBOOK_FOLDER
 from ..research_engine.live_gate import unvalidated
 from .documents import strategy_from_text
+from .exit_terms import unenforceable_exits
 from .fields import PlaybookError
 from .history import History
 from .live_reports import LiveReports
@@ -97,3 +98,15 @@ def run_checks(checks: tuple[ApprovalCheck, ...], strategy: Strategy, approval: 
             if approval is None:
                 raise PlaybookError("status", f"{strategy.status} without a registered change to paper")
             check.check(strategy, approval)
+
+
+class ExitsEnforceable(ApprovalCheck):
+    """Judge 84: a version may hold `paper` only if code can enforce every exit it states (today the time exit; any
+    other exit must read "none"), so no trade is ever opened under a stop nobody applies."""
+
+    statuses = frozenset({PAPER})
+
+    def check(self, strategy: Strategy, approval: RegistryRow) -> None:
+        problems = unenforceable_exits(strategy)
+        if problems:
+            raise PlaybookError("exits", f"code cannot enforce {'; '.join(problems)}: not approvable for paper")

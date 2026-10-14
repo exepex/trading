@@ -27,9 +27,9 @@ def committed_run(tmp_path, monkeypatch):
     reads are in the record, so D3's full schema check is skipped."""
     monkeypatch.setattr(decision_store, "validate_record", lambda r: None)
 
-    def write(c4, folder="a") -> CommittedDecision:
+    def write(c4, folder="a") -> tuple[CommittedDecision, object]:
         run = DecisionStore(tmp_path / folder, BOOK1_RULES).write(DAY, "2026-10-14-r1", None, [record(c4)])
         order = replace(fly_order("t1"), decision_id=OPPORTUNITY)
-        return CommittedDecision(BOOK1_RULES, run.name, "c1", at(15, 5), (order,), run)
+        return CommittedDecision(BOOK1_RULES, run.name, "c1", at(15, 5), run), order  # E5: orders built at the fill
 
     return write

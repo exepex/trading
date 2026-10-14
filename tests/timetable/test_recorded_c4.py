@@ -15,8 +15,9 @@ from tests.desk.builders import at
 from .c4_records import PASSED
 
 
-def problems(decision):
-    return RecordedC4Pass().problems(decision, decision.orders[0])
+def problems(decided):
+    decision, order = decided
+    return RecordedC4Pass().problems(decision, order)
 
 
 def test_a_recorded_completed_pass_lets_the_order_fill(committed_run):
@@ -34,15 +35,16 @@ def test_no_pass_a_failed_pass_or_a_malformed_one_never_fills(committed_run, c4,
 
 
 def test_a_record_edited_after_commit_or_missing_never_fills(committed_run):
-    decision = committed_run({**PASSED, "ok": False, "checks": [{"check": "leg_price", "ok": False}]})
+    decided = committed_run({**PASSED, "ok": False, "checks": [{"check": "leg_price", "ok": False}]})
+    decision, order = decided
     path = next(p for p in decision.run.glob("*.json"))
     body = json.loads(path.read_text())
     body["validity"]["c4"] = PASSED  # someone turns the failure into a pass by hand
     path.write_text(json.dumps(body))
-    assert "files changed after they were committed" in problems(decision)[0]
-    other = replace(decision.orders[0], decision_id="sc-b-v1:2026-11-24")
+    assert "files changed after they were committed" in problems(decided)[0]
+    other = replace(order, decision_id="sc-b-v1:2026-11-24")
     assert "no D3 record sc-b-v1_2026-11-24.json" in RecordedC4Pass().problems(decision, other)[0]
-    assert "names no D3 run folder" in problems(CommittedDecision(BOOK1_RULES, "r", "c", at(15, 5), decision.orders))[0]
+    assert "names no D3 run folder" in problems((CommittedDecision(BOOK1_RULES, "r", "c", at(15, 5)), order))[0]
 
 
 def test_c4_is_never_run_again_at_the_execution_capture():

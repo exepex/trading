@@ -12,7 +12,6 @@ from fno.config import ALLOWED_APP_KEYS, load_app_config
 from fno.constants import BOOK1_RULES
 from fno.desk.book_versions import NONE_YET, Book1Versions
 from fno.desk.committed_decisions import D3CommittedDecisions, RunNotRecorded
-from fno.desk.daily_ports import OrderBuilder
 from fno.desk.no_decision import write_no_decision
 from fno.desk.pack_items import PackError
 from fno.desk.timetable import TimetableError, timetable_from_config
@@ -102,18 +101,13 @@ class Commits_:
         return "origin-head"
 
 
-class NoOrders(OrderBuilder):
-    def orders(self, book, run):
-        return ()
-
-
 def test_d3_decisions_are_read_at_the_deadline_and_the_fills_reread_only_the_recorded_run(tmp_path):
     store, deadline = DecisionStore(tmp_path, BOOK1_RULES), at(15, 12)
     for n in (1, 2, 3):
         (store.day_folder(DAY) / f"2026-10-14-r{n}").mkdir(parents=True)
     path = lambda n: f"journal/{BOOK1_RULES}/decisions/{DAY}/2026-10-14-r{n}/{SUMS_FILE}"  # noqa: E731
     git = Commits_({path(n): (f"c{n}", f"2026-10-14T15:{m}:00+05:30") for n, m in ((1, "03"), (2, "07"), (3, "12"))})
-    source = D3CommittedDecisions(tmp_path, git, NoOrders())
+    source = D3CommittedDecisions(tmp_path, git)
     assert source.observe() == "origin-head"
     decision = source.committed(BOOK1_RULES, DAY, deadline)
     assert (decision.run_id, decision.commit, decision.committed_at) == ("2026-10-14-r2", "c2", at(15, 7))  # r3 late
@@ -122,7 +116,7 @@ def test_d3_decisions_are_read_at_the_deadline_and_the_fills_reread_only_the_rec
         source.recorded(BOOK1_RULES, DAY, "2026-10-14-r2", "c9")
     with pytest.raises(RunNotRecorded):
         source.recorded(BOOK1_RULES, DAY, "2026-10-14-r7", "c7")
-    assert D3CommittedDecisions(tmp_path, Commits_({}), NoOrders()).committed(BOOK1_RULES, DAY, deadline) is None
+    assert D3CommittedDecisions(tmp_path, Commits_({})).committed(BOOK1_RULES, DAY, deadline) is None
 
 
 def test_the_no_decision_record_is_written_once(tmp_path):

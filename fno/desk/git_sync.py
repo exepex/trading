@@ -18,15 +18,15 @@ from typing import TypeVar
 
 from ..alerts.sender import AlertSender
 from ..books.paths import book_folder
-from .daily_ports import AccountSync, Committer
+from .daily_ports import AccountSync, AccountWriteRefused, Committer
 from .records import DeskJournal
 
 T = TypeVar("T")
 PUSH_ATTEMPTS = 3
 
 
-class GitError(RuntimeError):
-    """A git step failed; the message names it."""
+class GitError(AccountWriteRefused):
+    """A git step failed; the message names it. For the daily run, any git failure refuses that account write."""
 
 
 class CheckoutNotDedicated(GitError):

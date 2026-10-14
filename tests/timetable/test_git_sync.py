@@ -128,3 +128,11 @@ def test_a_rejected_push_is_not_reset_when_more_than_this_write_is_ahead(checkou
     with pytest.raises(CheckoutNotDedicated, match="2 commit\\(s\\) ahead"):
         sync_for(b, alerts).write(BOOK2_HYBRID, fill_and_commit_more, "fills b1")
     assert (b / "other.json").is_file() and "NOT reset" in alerts.sent[0]
+
+
+def test_every_git_refusal_of_an_account_write_is_an_account_write_refused():
+    """The daily run catches the port's `AccountWriteRefused`: git's refusals must be one, never a crash (judge 84)."""
+    from fno.desk.daily_ports import AccountWriteRefused
+    from fno.desk.git_sync import GitError
+
+    assert issubclass(CheckoutNotDedicated, AccountWriteRefused) and issubclass(GitError, AccountWriteRefused)

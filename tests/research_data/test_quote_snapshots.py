@@ -15,7 +15,7 @@ def test_the_canonical_snapshot_is_read_with_capture_time_spot_and_quotes():
     assert snap.finished_at == datetime(2026, 10, 13, 14, 55, 28) and snap.spot == 22000.0
     assert snap.vix is None  # A4 records no India VIX
     assert snap.expiries == [date(2026, 10, 27), date(2026, 11, 24)] and len(snap.quotes) == 12
-    assert snap.quotes[0] == LiveQuote(date(2026, 10, 27), 21000.0, "CE", 10.0, 11.0, True)
+    assert snap.quotes[0] == LiveQuote(date(2026, 10, 27), 21000.0, "CE", 10.0, 11.0, True, "N21000CE")
 
 
 def test_a_none_day_has_no_snapshot():

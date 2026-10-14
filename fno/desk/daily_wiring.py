@@ -48,7 +48,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                                        committer)  # fmt: skip
     gate = DataGate(build_data_checks(build_raw_stores(), calendar), build_execution_snapshots(),
                     CommittedExecutionSchedule(root, timetable), alerts)  # fmt: skip
-    decisions = D3CommittedDecisions(root, history, orders)
-    steps = DeskSteps(root, books, timetable, versions, packs, decisions, capture, gate, RecordedC4Pass(), sync,
-                      build_entry_desk(cfg), build_exit_desk(cfg), exit_rules, now_ist)  # fmt: skip
+    decisions = D3CommittedDecisions(root, history)
+    steps = DeskSteps(root, books, timetable, versions, packs, decisions, orders, capture, gate, RecordedC4Pass(), sync,
+                      build_entry_desk(cfg), build_exit_desk(cfg), exit_rules, alerts, now_ist)  # fmt: skip
     return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist)

@@ -15,6 +15,7 @@ from fno.desk.daily_ports import (
     Committer,
     DecisionSource,
     ExitRules,
+    OrderBuilder,
     Packs,
     ValidityGate,
     VersionKeeper,
@@ -56,9 +57,12 @@ class Clock(Waiter):
 
 class Commits(Committer):
     def __init__(self, clock: Clock):
-        self.clock, self.made = clock, []
+        self.clock, self.made, self.crash_on = clock, [], ""
 
     def commit(self, paths, message):
+        if self.crash_on and self.crash_on in message:
+            self.crash_on = ""
+            raise RuntimeError("the run was killed after the fills")
         self.made.append((self.clock(), message))
         return f"c{len(self.made)}"
 
@@ -90,17 +94,22 @@ class FakePacks(Packs):
         return ()
 
 
-class Decisions(DecisionSource):
+class Decisions(DecisionSource, OrderBuilder):
     """Each book's decision with its commit time and the time its push became visible on origin; read like D3's
     working tree: what is visible is what has been pushed by now (any later pull sees later pushes)."""
 
     def __init__(self, clock: Clock | None = None):
-        self.clock, self.by_day, self.visible_at = clock, {}, {}
+        self.clock, self.by_day, self.visible_at, self.orders_of = clock, {}, {}, {}
         self.observed_at: datetime | None = None
 
-    def add(self, decision: CommittedDecision, day: date, visible_at: datetime | None = None) -> None:
+    def add(self, decision: CommittedDecision, orders, day: date, visible_at: datetime | None = None) -> None:
         self.by_day.setdefault((decision.book, day), []).append(decision)
         self.visible_at[decision.run_id + decision.book] = visible_at or decision.committed_at
+        self.orders_of[(decision.book, decision.run_id)] = tuple(orders)
+
+    def orders(self, book, run, decided_at):
+        """The fake's `OrderBuilder` side: the orders each run decided (by its folder name, the run ID)."""
+        return self.orders_of[(book, run.name)]
 
     def observe(self):
         self.observed_at = self.clock()
@@ -147,12 +156,9 @@ class C4(ValidityGate):
 
 class Rules(ExitRules):
     def __init__(self, rules=None):
-        self.by_trade, self.crash_once = dict(rules or {}), False
+        self.by_trade = dict(rules or {})
 
     def rules(self, book):
-        if self.crash_once:
-            self.crash_once = False
-            raise RuntimeError("the run was killed after the fills")
         return {trade: self.by_trade.get(trade, HOLD) for trade in ("t1", "t2", "t3", "t4", "b1", "b2")}
 
 
@@ -175,8 +181,8 @@ def daily_run(root, tmp_path, alerts, books, decisions, validity, rules, clock=N
     gate = DataGate(build_data_checks([nse_files(*CALENDAR.sessions(date(2026, 10, 1), date(2026, 10, 31)))],
                                       CALENDAR), RecordedExecutionSnapshots(quotes),
                     CommittedExecutionSchedule(root, TIMETABLE), alerts)  # fmt: skip
-    steps = DeskSteps(root, books, TIMETABLE, Versions(), FakePacks(), decisions,
+    steps = DeskSteps(root, books, TIMETABLE, Versions(), FakePacks(), decisions, decisions,
                       RecorderExecutionCapture(capture, quotes, tmp_path / "quotes", root, commits), gate, validity,
                       LocalSync(root), EntryDesk(CHARGES, clock), ExitDesk(CHARGES, alerts, FakeSettlements(), clock),
-                      rules, clock)  # fmt: skip
+                      rules, alerts, clock)  # fmt: skip
     return DailyRun(steps, CALENDAR, commits, clock, clock), clock, capture, commits

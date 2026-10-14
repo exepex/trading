@@ -64,7 +64,10 @@ class DecisionRun:
         run_id = self.store.next_run_id(day)
         validity = validate_chosen(evaluation, self.validator, market, playbook, book)
         records = RecordBuilder(book.name, run_id, run_context, validity).build(evaluation, file_hashes(snapshot))
-        return self.store.write(day, run_id, data, records)
+        run = self.store.write(day, run_id, data, records)
+        if self.validator is not None:  # only after the write: a refused duplicate run logs nothing (judge 84, D)
+            self.validator.log_failures(day, validity)
+        return run
 
 
 class ReplayRefused(ValueError):

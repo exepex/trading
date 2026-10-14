@@ -21,10 +21,10 @@ def report(*checks) -> dict:
 def test_c4_s_real_report_passes_the_gate_only_when_every_check_passed(committed_run):
     passed = report(CheckResult("max_loss", True, "", {"max_loss_rs": 5000.0}), CheckResult("leg_price", True, ""))
     failed = report(CheckResult("max_loss", True, ""), CheckResult("leg_price", False, "25000 CE 152.0 != 150.5"))
-    decision = committed_run(passed)
-    assert RecordedC4Pass().problems(decision, decision.orders[0]) == []
-    decision = committed_run(failed, "b")
-    assert RecordedC4Pass().problems(decision, decision.orders[0]) == [
+    decision, order = committed_run(passed)
+    assert RecordedC4Pass().problems(decision, order) == []
+    decision, order = committed_run(failed, "b")
+    assert RecordedC4Pass().problems(decision, order) == [
         "sc-a-v1_2026-11-24.json: C4 failed: leg_price"]  # fmt: skip
-    empty = committed_run(report(), "c")  # C4 ran no check: not a completed pass
-    assert "no completed C4 pass recorded" in RecordedC4Pass().problems(empty, empty.orders[0])[0]
+    empty, order = committed_run(report(), "c")  # C4 ran no check: not a completed pass
+    assert "no completed C4 pass recorded" in RecordedC4Pass().problems(empty, order)[0]

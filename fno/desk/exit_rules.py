@@ -71,3 +71,17 @@ class TimeExit(ExitRule):
         if context.day < exit_day:
             return ""
         return f"{self.name}: {context.day} is on or after {exit_day} ({self.days} days before expiry {expiry})"
+
+
+class ExitOnDay(ExitRule):
+    """Close on or after a fixed trading day: a playbook version's time exit as D2 computed it (story E5)."""
+
+    name = "time_exit"
+
+    def __init__(self, exit_day: date, why: str):
+        self.exit_day, self.why = exit_day, why
+
+    def reached(self, position: OpenPosition, context: ExitContext) -> str:
+        if context.day < self.exit_day:
+            return ""
+        return f"{self.name}: {context.day} is on or after {self.exit_day} ({self.why})"

@@ -1,10 +1,11 @@
-"""A book's C4 validator in the decision run (story C4): D2's chosen outcome turned into plain values, checked, and
-logged when it fails. It reads the trade as D2 recorded it (legs, terms, the version and its claimed maximum loss) and
-the prices D2 used (the decision market's mids); everything it then checks is recomputed in `validity*`, never taken
-from D2's code."""
+"""A book's C4 validator in the decision run (story C4): D2's chosen outcome turned into plain values and checked; the
+failures are logged only when the run asks, after its records are written. It reads the trade as D2 recorded it (legs,
+terms, the version and its claimed maximum loss) and the prices D2 used (the decision market's mids); everything it then
+checks is recomputed in `validity*`, never taken from D2's code."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Protocol
@@ -77,7 +78,12 @@ class BookTradeValidator:
         own = proposal_of(self.book, day, outcome, market, playbook, cutoff)
         proposal = replace(own, earlier=before, **account_inputs(book))
         report = self.checker.check(proposal, self.captures.record(day))
-        if self.log is not None:
-            self.log.append(day, report)
         reason = "; ".join(f"{r.name}: {r.reason}" for r in report.failures)
-        return ValidityResult(report.ok, report.record(), reason)
+        return ValidityResult(report.ok, report.record(), reason, report)
+
+    def log_failures(self, day: date, results: Mapping[str, ValidityResult]) -> None:
+        """Each report in the book's failure log (a pass writes nothing); the run calls it after writing its records."""
+        if self.log is None:
+            return
+        for result in results.values():
+            self.log.append(day, result.report)
