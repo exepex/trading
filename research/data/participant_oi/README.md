@@ -3,7 +3,8 @@
 `release_checks.csv` is the committed log of the release-time recorder (`fno/research_data/release_times.py`): the
 GitHub Actions job `participant-oi-watch` runs `python -m fno participant-oi check-once` every 15 minutes from 16:37 to
 23:22 IST, with no AI session (`participant-oi watch` keeps checking in one process). `.gitattributes` merges this file
-by union, so two writers' new rows never conflict. Each row is one check of NSE's archive for one session's file
+by union, so two writers' new rows never conflict. `release_rereads.csv` records, per due day, that the daily re-read
+of the last 5 seen files (rewrite detection) finished with every file answered. Each row is one check of NSE's archive for one session's file
 `fao_participant_oi_DDMMYYYY.csv`:
 
 | column | meaning |

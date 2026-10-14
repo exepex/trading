@@ -11,6 +11,7 @@ from fno.models import IST
 from fno.research_data.calendar import CsvSessionCalendar
 from fno.research_data.release_check_once import CheckOnceResult, ReleaseCheckOnce, due_day
 from fno.research_data.release_times import ReleaseLog, ReleaseTimeRecorder
+from fno.research_data.reread_log import RereadLog
 from fno.storage.raw_source import ParticipantOiSource, RawFileSource, RawSourceUnavailable
 
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/FAOP71777.pdf"
@@ -48,7 +49,7 @@ def build(tmp_path, answers: dict, now: datetime):
     archive, clock = Archive({ParticipantOiSource.path_for(d): a for d, a in answers.items()}), Clock(now)
     log = ReleaseLog(tmp_path / "release_checks.csv")
     recorder = ReleaseTimeRecorder(archive, ParticipantOiSource.path_for, CALENDAR, log, clock, lambda s: None)
-    return ReleaseCheckOnce(recorder), archive, clock, log
+    return ReleaseCheckOnce(recorder, RereadLog(tmp_path / "release_rereads.csv")), archive, clock, log
 
 
 def test_one_check_per_run_until_present_then_nothing(tmp_path):
@@ -117,6 +118,35 @@ def test_recent_files_are_re_read_once_a_day_and_a_rewrite_alerts(tmp_path):
     assert [c.outcome for c in log.checks()] == [RELEASE_PRESENT, RELEASE_REWRITTEN, RELEASE_ABSENT, RELEASE_ABSENT]
 
 
+def test_a_late_run_for_the_previous_day_does_not_stand_for_the_next_days_re_read(tmp_path):
+    """Judge 89's probe: Monday's file found at 00:30 Tuesday, Friday's file rewritten on Tuesday; Tuesday's evening
+    run must still re-read Friday's file and alert."""
+    tuesday = date(2026, 10, 13)
+    once, archive, clock, _ = build(tmp_path, {FRIDAY: b"v1", MONDAY: None, tuesday: None}, at(FRIDAY, 19))
+    once.run(FRIDAY)
+    clock.now = at(MONDAY, 17, 37)
+    assert once.run(MONDAY).alerts == []  # Monday's re-read: Friday unchanged; Monday's file absent
+    archive.answers[ParticipantOiSource.path_for(MONDAY)] = b"monday"
+    clock.now = at(tuesday, 0, 30)
+    assert once.run(due_day(clock.now)).alerts == []  # a late run: Monday's file present, no second Monday re-read
+    archive.answers[ParticipantOiSource.path_for(FRIDAY)] = b"v2"
+    clock.now = at(tuesday, 18)
+    alerts = once.run(due_day(clock.now)).alerts
+    assert [a.split(":")[1].strip() for a in alerts] == [f"REWRITTEN {FRIDAY}"]
+
+
+def test_a_re_read_that_could_not_reach_nse_is_tried_again(tmp_path):
+    once, archive, clock, _ = build(tmp_path, {FRIDAY: b"v1", MONDAY: None}, at(FRIDAY, 19))
+    once.run(FRIDAY)
+    archive.answers[ParticipantOiSource.path_for(FRIDAY)] = RawSourceUnavailable("down")
+    clock.now = at(MONDAY, 17, 37)
+    once.run(MONDAY)
+    archive.answers[ParticipantOiSource.path_for(FRIDAY)] = b"v2"
+    clock.now = at(MONDAY, 17, 52)
+    alerts = once.run(MONDAY).alerts
+    assert len(alerts) == 1 and f"REWRITTEN {FRIDAY}" in alerts[0]
+
+
 class FakeSender:
     def __init__(self):
         self.sent = []
@@ -130,35 +160,28 @@ class FakeOnce:
     alerts: list[str] = []
     days: list[date] = []
 
-    def __init__(self, recorder):
-        pass
-
     def run(self, day):
         self.days.append(day)
         return CheckOnceResult(["line"], list(self.alerts))
 
 
 def test_the_command_checks_the_due_day_by_default(monkeypatch):
-    from fno.research_data import participant_oi_cli, release_check_once
+    from fno.research_data import participant_oi_cli
 
     monkeypatch.setattr(FakeOnce, "alerts", [])
     monkeypatch.setattr(FakeOnce, "days", [])
     monkeypatch.setattr(participant_oi_cli, "now_ist", lambda: at(date(2026, 10, 13), 1, 30))
-    monkeypatch.setattr(fno.composition, "build_release_time_recorder", lambda log=None: object())
-    monkeypatch.setattr(release_check_once, "ReleaseCheckOnce", FakeOnce)
+    monkeypatch.setattr(fno.composition, "build_release_check_once", FakeOnce)
     assert main(["participant-oi", "check-once"]) == 0 and FakeOnce.days == [MONDAY]
 
 
 @pytest.mark.parametrize(("alerts", "code"), [([], 0), (["Omenix F&O participant OI: x"], 1)])
 def test_the_command_posts_each_alert_and_fails_only_then(monkeypatch, capsys, alerts, code):
-    from fno.research_data import release_check_once
-
     sender = FakeSender()
     monkeypatch.setattr(FakeOnce, "alerts", alerts)
     monkeypatch.setattr(FakeOnce, "days", [])
-    monkeypatch.setattr(fno.composition, "build_release_time_recorder", lambda log=None: object())
     monkeypatch.setattr(fno.composition, "build_alert_sender", lambda: sender)
-    monkeypatch.setattr(release_check_once, "ReleaseCheckOnce", FakeOnce)
+    monkeypatch.setattr(fno.composition, "build_release_check_once", FakeOnce)
     assert main(["participant-oi", "check-once", "--day", "2026-10-12"]) == code
     assert FakeOnce.days == [MONDAY] and sender.sent == alerts
     assert capsys.readouterr().out == "\n".join(["line", *alerts, *(["alert sent"] if alerts else [])]) + "\n"

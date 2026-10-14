@@ -10,8 +10,9 @@ check the file. No need to waste AI tokens."
    writes the same append-only log, `research/data/participant_oi/release_checks.csv`.
    - NSE's session calendar decides the day; a closed day checks nothing.
    - Once the day's file is recorded present, later runs check nothing and write no row.
-   - The re-read of the last 5 seen files (REWRITTEN detection) runs at most once a day. The log itself shows whether
-     a run already did it today (a check made today for an earlier day), so no extra state file is needed.
+   - The re-read of the last 5 seen files (REWRITTEN detection) runs once per due day. It is recorded explicitly in
+     `research/data/participant_oi/release_rereads.csv` (`RereadLog`), and only when every file answered: a re-read
+     that could not reach NSE is tried again at the next run. (Judge 89 must-fix 1, below.)
    - Alerts go to #fno-desk through `build_alert_sender` (`FNO_SLACK_BOT_TOKEN`), only for:
      - REWRITTEN;
      - unreachable;
@@ -36,12 +37,16 @@ check the file. No need to waste AI tokens."
 
 | workflow | scheduled (UTC) | started (UTC) | late |
 |---|---|---|---|
-| index-closes | 13 Oct 15:41 | never | dropped |
 | index-closes | 14 Oct 02:11 | 07:30 | 5 h 19 m |
 | index-closes | 14 Oct 06:11 | 11:49 | 5 h 38 m |
-| participant-oi-release | 13 Oct 11:41 | never | dropped |
 | participant-oi-release | 13 Oct 17:15 | 21:52 (03:22 IST next day) | 4 h 37 m, then cancelled |
-| participant-oi-release | 14 Oct 11:41 | not started at about 13:40 | 2 h + |
+| participant-oi-release | 14 Oct 11:41 | not started at 13:50 | 2 h 9 m + |
+| forecast-capture | 14 Oct 08:30 | never run at all (0 runs at 13:50) | 5 h 20 m + |
+
+Corrected after judge 89. My first table listed two "dropped" slots on 13 Oct (index-closes 15:41, participant-oi-release
+11:41 UTC); both came before the workflow existed (first commits 17:28 and 14:58 UTC), so they say nothing about
+GitHub. I had not compared the slot times with the commit times. forecast-capture (added 13 Oct 16:30 UTC) has had no run
+at all, scheduled or manual.
 
 `workflow_dispatch` runs started within seconds (participant-oi-release runs 1-3, index-closes run 1).
 
@@ -75,10 +80,9 @@ check the file. No need to waste AI tokens."
 2. **The reliable no-AI trigger is `workflow_dispatch` from an outside scheduler**, for example a cron service calling
    GitHub's dispatch API every 15 minutes. This needs a fine-grained GitHub token stored in that service, not in the
    repository. It is the owner's decision; I did not set it up.
-3. **Another option for the owner and the judge:** each present row already stores NSE's own `Last-Modified` time.
-   - It is when NSE wrote the file, whatever time we checked.
-   - Using it as the release-time evidence would make cron lateness irrelevant to measurement.
-   - It changes A8's rule (judge 15 used Last-Modified only for rewrites), so it is not built here.
+3. ~~Use NSE's `Last-Modified` as the release-time evidence.~~ **Rejected by judge 89, and I agree:** it is when NSE
+   wrote the bytes, not when the file could be downloaded; it moves when NSE rewrites a file; and taking it as the
+   release time risks look-ahead if NSE writes a file before serving it. Not built.
 4. **O6's `participant-oi-release.yml` still runs.** It holds a 6-hour watch to `actions/release_checks.csv`, then does
    the Drive upload (A9) and the pipeline fire.
    - This new job does neither, so it does not replace O6's downstream steps.
@@ -86,6 +90,23 @@ check the file. No need to waste AI tokens."
      is a separate change.
    - `participant-oi compare` assumes a 5-minute interval, so it does not fit this job's log. Both write the main log
      anyway.
+
+## Judge 89 (FAIL), each point checked before fixing
+
+- **Must-fix 1, the re-read skipped: correct.** `_rechecked_on(day)` treated any row for an earlier day, checked on
+  `day`'s date, as the re-read. A late run at 00:30 Tuesday checking Monday's file (the due-day path) writes exactly
+  such a row, so Tuesday's evening run skipped the re-read and missed Friday's rewrite. Root cause: the re-read was
+  inferred from rows that other paths also write. Fix: `RereadLog`, an explicit record per due day, written only when
+  every re-read file answered. Test `test_a_late_run_for_the_previous_day_does_not_stand_for_the_next_days_re_read` is
+  the judge's sequence; restoring the old inference fails it (mutation "old inference"). A second test: a re-read with
+  NSE unreachable is tried again.
+- **Must-fix 2, the lateness table: correct.** Fixed above, with forecast-capture added.
+- **Should-fix, `always()` not pinned: correct.** The check step continues on error, so a crash leaves the job green;
+  under `failure()` the alert step would never run. A test now pins `always()`. Writing that test also found a real
+  defect: the step name `One line to #fno-desk ...` was cut at ` #` (YAML reads it as a comment), so the name is now
+  quoted.
+- The workflow commits `release_rereads.csv` with the log; the file is committed with its header so `git add` never
+  fails on a missing path.
 
 ## Secret
 
@@ -95,7 +116,7 @@ reads "alert NOT sent" (`NoAlertSender`), and the run is still red. The job does
 
 ## Tests and checks
 
-- `tests/research_data/test_release_check_once.py` (10 tests):
+- `tests/research_data/test_release_check_once.py` (12 tests, including the two for judge 89):
   - one check per run, then nothing once present;
   - a closed day;
   - unreachable alerts;
@@ -103,11 +124,11 @@ reads "alert NOT sent" (`NoAlertSender`), and the run is still red. The job does
   - the due day;
   - the once-a-day re-read and the REWRITTEN alert;
   - the command posts each alert, fails only then, and checks the due day by default.
-- `tests/research_data/test_participant_oi_watch_workflow.py` (3 tests):
+- `tests/research_data/test_participant_oi_watch_workflow.py` (4 tests, including the `always()` pin):
   - the schedule is every 15 minutes, from 17:00 IST or earlier, with the last run between 23:15 and 23:30;
   - concurrency, no `--no-verify`, `git pull --no-rebase`, the hook, only the Slack secret;
   - a real git union merge of two appenders.
-- Mutations: 15 of 15 caught (each check, the due day, the late-alert rule, the CLI exit and send, union, cron,
-  concurrency).
+- Mutations: 20 of 20 caught (each check, the recorded re-read and the old inference, the due day, the late-alert rule,
+  the CLI exit and send, union, cron, concurrency, `always()`, the re-read file committed).
 - Full suite with `FNO_SLACK_BOT_TOKEN` unset, `ruff check`, `ruff format --check`, `python tools/check_imports.py`: the
   numbers are in the message to the orchestrator.

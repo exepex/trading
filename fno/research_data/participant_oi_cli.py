@@ -46,7 +46,7 @@ def cmd_participant_oi(args) -> int:
     if args.oi_cmd == "check-once":
         from .release_check_once import due_day
 
-        return _check_once(build_release_time_recorder(), args.day or due_day(now_ist()))
+        return _check_once(args.day or due_day(now_ist()))
     from .release_times import MIN_MEASURED_DAYS, ReleaseLog, first_seen_times
 
     if args.oi_cmd == "rule":
@@ -69,12 +69,11 @@ def cmd_participant_oi(args) -> int:
     return 1 if rewritten or (check is not None and check.outcome == RELEASE_UNREACHABLE) else 0
 
 
-def _check_once(recorder, day: date) -> int:
+def _check_once(day: date) -> int:
     """Prints the check and posts each alert; fails (after alerting) when there was one, so the job shows it."""
-    from ..composition import build_alert_sender
-    from .release_check_once import ReleaseCheckOnce
+    from ..composition import build_alert_sender, build_release_check_once
 
-    result = ReleaseCheckOnce(recorder).run(day)
+    result = build_release_check_once().run(day)
     print("\n".join(result.lines + result.alerts))
     sender = build_alert_sender() if result.alerts else None
     for alert in result.alerts:

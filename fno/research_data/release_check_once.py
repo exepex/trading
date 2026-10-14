@@ -3,8 +3,8 @@
 
 - NSE's session calendar decides the day; a closed day checks nothing.
 - Once the day's file is recorded present, later runs that day check nothing.
-- The last few seen files are re-read for rewrites at most once a day: the log itself shows whether a run today already
-  did (a check made today for an earlier day).
+- The last few seen files are re-read for rewrites once per due day, recorded in its own log (`RereadLog`) when every
+  file answered; a re-read with NSE unreachable is tried again at the next run.
 - It returns the alerts for the owner: a rewritten file, NSE unreachable, and the file still absent at the first check
   from `LATE_FROM` IST (the evening's last runs, or any later one), once a day.
 - GitHub starts scheduled runs late (14 Oct 2026: 4.5 to 5.5 hours, and some never), so a run may start after midnight:
@@ -18,6 +18,7 @@ from datetime import date, datetime, time, timedelta
 
 from ..constants import RELEASE_ABSENT, RELEASE_REWRITTEN, RELEASE_UNREACHABLE
 from .release_times import ReleaseCheck, ReleaseTimeRecorder
+from .reread_log import RereadLog
 
 LATE_FROM = time(23, 15)
 DUE_FROM = time(12, 0)  # NSE publishes in the evening: a morning run is a late run of the evening before
@@ -41,18 +42,16 @@ class CheckOnceResult:
 
 
 class ReleaseCheckOnce:
-    def __init__(self, recorder: ReleaseTimeRecorder, late_from: time = LATE_FROM):
-        self.recorder, self.late_from = recorder, late_from
+    def __init__(self, recorder: ReleaseTimeRecorder, rereads: RereadLog, late_from: time = LATE_FROM):
+        self.recorder, self.rereads, self.late_from = recorder, rereads, late_from
 
     def run(self, day: date) -> CheckOnceResult:
         result = CheckOnceResult()
         if not self.recorder.calendar.is_session(day):
             result.lines.append(NOT_SESSION.format(day=day))
             return result
-        if not self._rechecked_on(day):
-            for check in self.recorder.recheck_recent(day):
-                if check.outcome == RELEASE_REWRITTEN:
-                    result.alerts.append(REWRITTEN.format(day=check.day, sha=check.sha256[:12]))
+        if not self.rereads.done(day):
+            result.alerts += self._reread(day)
         seen = self.recorder.first_present(day)
         if seen:
             result.lines.append(ALREADY.format(day=day, at=seen.checked_at))
@@ -65,8 +64,11 @@ class ReleaseCheckOnce:
             result.alerts.append(STILL_ABSENT.format(day=day, at=check.checked_at, late=self.late_from))
         return result
 
-    def _rechecked_on(self, day: date) -> bool:
-        return any(c.day < day and c.checked_at.date() == day for c in self.recorder.log.checks())
+    def _reread(self, day: date) -> list[str]:
+        checks = self.recorder.recheck_recent(day)
+        if all(c.outcome != RELEASE_UNREACHABLE for c in checks):
+            self.rereads.record(day, self.recorder.clock())
+        return [REWRITTEN.format(day=c.day, sha=c.sha256[:12]) for c in checks if c.outcome == RELEASE_REWRITTEN]
 
     def _first_late_check(self, check: ReleaseCheck) -> bool:
         late_from = datetime.combine(check.day, self.late_from, check.checked_at.tzinfo)

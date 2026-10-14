@@ -27,6 +27,7 @@ jobs:
     env:
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
       LOG: research/data/participant_oi/release_checks.csv
+      REREADS: research/data/participant_oi/release_rereads.csv
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -49,10 +50,10 @@ jobs:
       - name: Commit the check rows
         id: commit
         run: |
-          git add "$LOG"
+          git add "$LOG" "$REREADS"
           git diff --cached --quiet || git commit -m "A8 Actions: participant-OI release check $(TZ=Asia/Kolkata date '+%F %H:%M')"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
-      - name: One line to #fno-desk when the check crashed or the rows were not committed (alerts are posted already)
+      - name: "One line to #fno-desk when the check crashed or the rows were not committed (alerts are posted already)"
         if: ${{ always() }}
         run: |
           problems=()

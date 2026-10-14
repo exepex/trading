@@ -76,3 +76,15 @@ def test_two_jobs_appending_to_the_log_merge_without_a_conflict(tmp_path):
     lines = (repo / LOG).read_text().splitlines(keepends=True)
     assert lines[0] == header and lines.count(header) == 1
     assert routine_row in lines and actions_row in lines and len(lines) == 4
+
+
+def test_the_alert_step_runs_whatever_happened_before_it_and_the_re_read_record_is_committed():
+    """Judge 89: the check step continues on error, so its crash leaves the job green; under `failure()` this step
+    would then never run, and the crash would neither post a line nor turn the run red."""
+    steps = workflow()["jobs"]["check"]["steps"]
+    alert = next(s for s in steps if s.get("name", "").startswith("One line to #fno-desk"))
+    assert alert["if"] == "${{ always() }}"
+    commit = next(s for s in steps if s.get("id") == "commit")
+    assert 'git add "$LOG" "$REREADS"' in commit["run"]
+    assert workflow()["jobs"]["check"]["env"]["REREADS"] == "research/data/participant_oi/release_rereads.csv"
+    assert (ROOT / workflow()["jobs"]["check"]["env"]["REREADS"]).is_file()  # committed, so `git add` never fails
