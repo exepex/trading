@@ -55,3 +55,30 @@ gate runs and answers.
 
 **Verdict: PASS** for 6af481d. Merge before 09:25 UTC on 15 Oct. After the merge I check `main` and CI. Tomorrow's 3
 pm push is the first live test: I will check that it started the capture.
+
+## Addendum 1 (14 Oct 2026): merge e3639f5 and story/f1-gate-stdlib-test d6d72df
+
+### Merge check: e3639f5 MET
+
+- Parents 82830e0 and 6af481d. My recomputed `git merge-tree` of the two parents equals e3639f5 exactly (empty diff).
+- Code changed on `main` since my last check (82830e0 to 875b3ff): only the three files of this story
+  (`forecast-capture.yml`, `capture_gate.py`, `test_capture_gate.py`). The later commits are logs and data. No unjudged
+  code on `main`.
+- CI on the merge: not yet read; I check it with the next merge.
+
+### d6d72df: should-fix "stdlib-only test for the gate"
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| The gate's real entry point runs with no installed library | MET | New test runs `main(['--event', 'schedule'])` under `python -S -I` with only the repository on `sys.path`; asserts exit 0 and a `run=` line. `main` only reads files and prints, so running it against the real checkout is safe. |
+| The check itself proves the libraries are really absent | MET | Second test: `requests`, `yaml`, `numpy`, `google`, `psycopg` and `jsonschema` must fail to import in that mode. Guards against a Python whose packages sit outside site-packages. |
+| Catches a third-party import anywhere in the gate's import graph | MET | My 4 plants, each caught (1 failed, 5 passed): `requests` in `capture_gate.py`; `psycopg` in `capture_gate.py`; `numpy` in `fno/models.py` (transitive); `jsonschema` in `fno/ai/paths.py` (transitive). All restored; worktree clean. |
+| Gates | MET | Trial merge with `main` 875b3ff: 3,122 passed (Slack token unset); ruff check and format clean; check_imports clean. Test file 71 lines. |
+| Scope | MET | One test file changed; no code, no frozen file. |
+
+Claims vs reality: the orchestrator's "two planted imports caught, 3,122 passed" matches my own run.
+
+Follow-up (minor, not blocking): the test imports `main` rather than running `python -m fno.pipeline.capture_gate` as
+the workflow does. The difference is only `runpy`, so the risk is small.
+
+**Verdict: PASS** for d6d72df. Merge it into `main`. After the merge I check `main` and CI.
