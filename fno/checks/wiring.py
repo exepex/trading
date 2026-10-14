@@ -1,5 +1,7 @@
 """Composition root of the data checks (story C3): the checks in the order they report, the quote store the snapshot
-is read from, the shock flag source, the NSE file stores and the alert sender. Swapping any changes this file only."""
+is read from, the shock flag source, the NSE file stores and the alert sender. Also of the hard-validity checks (story
+C4): the evidence store, the charge table and owner limits from config.yaml, each book's mode, the failure log. Swapping
+any changes this file only."""
 
 from __future__ import annotations
 
@@ -12,6 +14,15 @@ from .market_checks import PreviousSessionFile, SpotNearPreviousClose
 from .schedule import ExecutionSchedule, PackSnapshotSchedule
 from .shock import NoShockFlags
 from .snapshot_checks import SnapshotInWindow, SnapshotMatchesRecord, SnapshotReadable
+from .validity import Sources, ValidityChecker
+from .validity_account import LedgerAccounts
+from .validity_adapter import BookTradeValidator, CaptureSource
+from .validity_evidence import EvidenceReader
+from .validity_limits import LimitChecks
+from .validity_listing import NseListing
+from .validity_margin import MarginFile
+from .validity_modes import PlaybookMode, ValidityMode, WaitsFor
+from .validity_settings import limits_from_config
 
 
 def build_data_checks(stores, calendar, shocks=None) -> DataChecks:
@@ -38,3 +49,41 @@ def build_data_gate(quote_folder: Path | None = None, schedule: ExecutionSchedul
     checks = build_data_checks(build_raw_stores(), build_session_calendar())
     snapshots = build_execution_snapshots(quote_folder)
     return DataGate(checks, snapshots, schedule or PackSnapshotSchedule(), build_alert_sender())
+
+
+def validity_modes() -> dict[str, ValidityMode]:
+    """Book 1 checks against the playbook; books 2 and 3 fail closed until D4's envelope and D5's constitution exist."""
+    from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI
+
+    return {
+        BOOK1_RULES: PlaybookMode(),
+        BOOK2_HYBRID: WaitsFor("envelope", "D4"),
+        BOOK3_AI: WaitsFor("constitution", "D5"),
+    }
+
+
+def build_validity_checker(cfg: dict, root: Path, quotes, nse_library, accounts=None, margins=None) -> ValidityChecker:
+    """C4's checker: the A4 quote store, NSE's F&O files (A2's library), the books' ledgers and A14's margins file;
+    charges and limits read straight from config.yaml, never through C2 or B2."""
+    from ..quotes.recorder import DATASET
+
+    limits = limits_from_config(cfg, root)
+    sources = Sources(EvidenceReader(quotes, DATASET), NseListing(nse_library), accounts or LedgerAccounts(root))
+    checks = LimitChecks(limits, cfg["charges"], margins or MarginFile(limits.margins.file))
+    return ValidityChecker(sources, checks, validity_modes())
+
+
+def build_trade_validator(
+    cfg: dict, book: str, root: Path, captures: CaptureSource | None = None, log: bool = True,
+    quote_folder: Path | None = None,
+) -> BookTradeValidator:  # fmt: skip
+    """The validator D3's decision run calls for `book`; a replay passes `log=False` so it writes nothing."""
+    from ..composition import DESK_DECISION_TIME
+    from ..desk.pack_store import PackStore
+    from ..storage.wiring import build_nse_fo_library, build_quote_store
+    from .validity_capture import PackCaptures
+    from .validity_failures import ValidityFailureLog
+
+    checker = build_validity_checker(cfg, root, build_quote_store(quote_folder), build_nse_fo_library())
+    captures = captures or PackCaptures(PackStore(root), PackSnapshotSchedule())
+    return BookTradeValidator(book, checker, captures, DESK_DECISION_TIME, ValidityFailureLog(root) if log else None)

@@ -11,6 +11,7 @@ from datetime import date
 
 from ..books.versions import DecisionFacts
 from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, Decision
+from .decision_validity import BLOCKED, ValidityResult
 from .outcomes import DayEvaluation, Outcome
 
 SCHEMA_VERSION = 1
@@ -63,8 +64,22 @@ def _summary(outcome: Outcome) -> dict:
 class RecordBuilder:
     """Turns one evaluated day into its records; everything the run knows besides the outcomes comes in `context`."""
 
-    def __init__(self, book: str, run_id: str, context: Mapping[str, object]):
-        self.book, self.run_id, self.context = book, run_id, dict(context)
+    def __init__(
+        self, book: str, run_id: str, context: Mapping[str, object],
+        validity: Mapping[str, ValidityResult] | None = None,
+    ):  # fmt: skip
+        self.book, self.run_id, self.context, self.validity = book, run_id, dict(context), dict(validity or {})
+
+    def _blocked(self, outcome: Outcome) -> ValidityResult | None:
+        result = self.validity.get(outcome.opportunity.opportunity_id)
+        return result if result is not None and not result.ok else None
+
+    def _action(self, outcome: Outcome) -> str:
+        return "no trade" if self._blocked(outcome) else _action(outcome)
+
+    def _reason(self, outcome: Outcome) -> str:
+        blocked = self._blocked(outcome)
+        return f"{BLOCKED}: {blocked.reason}" if blocked else outcome.reason
 
     def build(self, evaluation: DayEvaluation, strategy_files: Mapping[str, str]) -> list[dict]:
         outcomes = evaluation.outcomes
@@ -81,22 +96,23 @@ class RecordBuilder:
         }  # fmt: skip
 
     def _opportunity(self, outcome: Outcome, outcomes: Sequence[Outcome], files: Mapping[str, str]) -> dict:
-        strategy = outcome.opportunity.strategy
-        record = outcome.record()
+        strategy, opportunity_id = outcome.opportunity.strategy, outcome.opportunity.opportunity_id
+        record, c4 = outcome.record(), self.validity.get(opportunity_id)
+        action, reason = self._action(outcome), self._reason(outcome)
+        candidate = "built" if outcome.candidate else outcome.reason
         base = self._base(outcome.opportunity.opportunity_id, outcome.opportunity.mode, files[strategy.file_name])
         return {
             **base, "features": record["features"],
             "rule_result": {"fired": not record["unmet_conditions"], "unmet_conditions": record["unmet_conditions"]},
             "structure": record["trade"], "expected": _expected(outcome), "risk": record["risk"],
-            "validity": {"c4": None, "candidate": "built" if outcome.candidate else outcome.reason},
-            "decision": {"action": _action(outcome), "outcome": record["decision"], "reason": outcome.reason},
+            "validity": {"c4": c4.record if c4 else None, "candidate": candidate},
+            "decision": {"action": action, "outcome": record["decision"], "reason": reason},
             "alternatives": [_summary(o) for o in outcomes if o is not outcome],
-            "rule_default": _action(outcome) if self.book != BOOK3_AI else None,
-            "chosen_action": _action(outcome), "reason": outcome.reason,
+            "rule_default": action if self.book != BOOK3_AI else None, "chosen_action": action, "reason": reason,
         }  # fmt: skip
 
     def _day(self, evaluation: DayEvaluation) -> dict:
-        chosen = [o.opportunity.opportunity_id for o in evaluation.chosen]
+        chosen = [o.opportunity.opportunity_id for o in evaluation.chosen if not self._blocked(o)]
         reason = f"chosen: {chosen}" if chosen else "no opportunity was chosen today"
         action = "trade" if chosen else "no trade"
         return {

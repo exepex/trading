@@ -20,12 +20,12 @@ from pathlib import Path
 from typing import Protocol
 
 from ..accounting.ledgers import Trade
+from ..constants import CASH_LEDGER_FILE
 from .equity import AccountState, Mark, account_state, trade_positions, unmarked_state
 from .files import append_durably, complete_lines, csv_text, drop_partial_line, write_atomic
 from .fills import FILL_KINDS, LEDGER_COLUMNS, Fill, opening_row, same_fill
 from .paths import account_folder, file_in_account
 
-CASH_LEDGER_FILE = "cash_ledger.csv"
 POSITIONS_FILE = "positions.json"
 EQUITY_HISTORY_FILE = "equity_history.csv"
 EQUITY_COLUMNS = ("date", "cash_rs", "closed_equity_rs", "marked_equity_rs", "open_trades", "stale_marks", "fills")

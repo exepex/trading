@@ -91,8 +91,12 @@ def build_live_feature_values(cfg: dict, data) -> ComputedLiveFeatures:
 
 
 def build_decision_run(cfg: dict, book: str, root: Path = ROOT) -> DecisionRun:
-    """Story D3: D2's evaluator for the app (every C2 limit) writing into `journal/<book>/decisions/`."""
-    return DecisionRun(build_rule_evaluator(cfg, root), DecisionStore(root, book))
+    """Story D3: D2's evaluator for the app (every C2 limit) writing into `journal/<book>/decisions/`; every chosen
+    trade passes C4's hard validity first (its failures logged in `journal/<book>/validity_failures.csv`)."""
+    from ..checks.wiring import build_trade_validator
+
+    validator = build_trade_validator(cfg, book, root)
+    return DecisionRun(build_rule_evaluator(cfg, root), DecisionStore(root, book), validator)
 
 
 def snapshot_playbook(root: Path = ROOT) -> PlaybookSnapshot:
