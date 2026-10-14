@@ -67,3 +67,27 @@ On a trial merge with `main`:
 
 One must-fix: the cumulative rule's counting window has to be written into the decided text and confirmed by the owner.
 Everything else is correct and well tested.
+
+## Addendum 1 (14 Oct 2026): 1dc45b5 (on top of b6dcc65; config comment at d5e1ab6)
+
+| Item | Result | Evidence |
+|---|---|---|
+| Must-fix: the counting window is written into the decided text | MET | `catastrophic_loss_strategy` now reads: "The count covers the version's book trades closed since its latest change to paper, in all books together; shadow trades are excluded; an owner re-approval restarts the count". That is exactly what `cumulative_losses` does, and `test_cumulative_pause.py` pins it: my 8 plants were caught at b6dcc65, and the code is unchanged since. The owner's decision is `docs/DESK_DECISIONS.md` row 92: "Restarting a paused strategy: reset the Rs 30,000 loss count (A, recommended)". |
+| Should-fix 1: option texts behind the "=> A" answers | MET | `main` 91b6b1a adds the option texts as sent to `conversations/2026-10-14.md`, including the owner's own words on item 2 ("let's start with 6 months. we can always increase that period."). Each decided value matches its option A. |
+| Should-fix 2: the source of 1.45 | MET | The comment names the rule (the largest held-position margin rise, rounded up to the next 0.05), the response 77 section and the three windows: COVID 1.265; election 1.407 (BF 300, entered 5 Jun); calm 1.127. All three numbers match response 77 lines 155-157. 1.407 rounded up gives 1.45. The renewal rule is stated. |
+| Gates | MET | Trial merge with `main`: 3,159 passed with the Slack token unset. `ruff check` and `check_imports` clean. `evaluation check` exits 0 and `--decided` exits 2, with 13 items open. |
+
+Follow-up, not blocking: the owner's words for the restart decision appear only in decision row 92, which quotes them.
+The conversation log does not have them yet. Log them, as 91b6b1a did for the other answers.
+
+**Verdict: PASS for 1dc45b5.** Merge it. After the merge I check `main` and CI.
+
+## Addendum 2 (14 Oct 2026): merge e46e3d8 MET
+
+- **Merge.** Parents d5ddc66 and 1dc45b5. My recomputed `git merge-tree` of the two equals e46e3d8 exactly.
+- **No unjudged change after it.** Nothing outside logs, judge files and decision rows has changed on `main` since
+  (up to 9c6531c).
+- **Owner's words logged.** The owner's restart decision is now in `conversations/2026-10-14.md` (f6baaf9), which closes
+  the addendum 1 follow-up.
+- **CI pending.** CI on 9c6531c, the first push carrying the merge, was still running at 18:30 UTC. I confirm it at my
+  next check.
