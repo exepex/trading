@@ -15,6 +15,7 @@ from ..constants import NO_DECISION_LATE
 from .common_pack import CommonPack
 from .daily_ports import (
     AccountSync,
+    AccountWriteRefused,
     CommittedDecision,
     DecisionSource,
     ExecutionCapture,
@@ -35,6 +36,7 @@ NOT_COMMITTED = "nothing visible at the deadline {deadline} (origin {origin})"
 COLLECTED_LATE = "collected at {started}, after the deadline {deadline}: no decision can be shown to be on time"
 COLLECTION_GRACE = timedelta(seconds=30)  # the step starts at the deadline; later means a restart: fail closed
 NO_SNAPSHOT = "no new risk: no valid execution snapshot after the common retry"
+NOT_WRITTEN = "not filled: the account write was refused ({reason})"
 NOT_ORDERED = "not filled: the committed decision gives no orders ({reason})"
 ALERT = "F&O paper desk {day} {book}: {what}"
 LATE_AT_SNAPSHOT = "late: committed {committed}, not before the execution snapshot started {started}"
@@ -136,7 +138,12 @@ class DeskSteps:
                 self.alerts.send(ALERT.format(day=day, book=book, what=result[book]["reason"]))
                 continue
             for order in orders:
-                result[order.proposal.trade_id] = self._fill_one(pack, decision, order, snapshot_valid)
+                try:
+                    result[order.proposal.trade_id] = self._fill_one(pack, decision, order, snapshot_valid)
+                except AccountWriteRefused as refused:  # never crashes the run before its exits (judge 84)
+                    reason = NOT_WRITTEN.format(reason=refused)
+                    result[order.proposal.trade_id] = {"outcome": "not filled", "reason": reason}
+                    self.alerts.send(ALERT.format(day=day, book=book, what=reason))
         return StepOutcome({"snapshot_valid": snapshot_valid, "decisions": collected}, result)
 
     def _fill_one(self, pack: CommonPack, decision: CommittedDecision, order, snapshot_valid: bool) -> dict:

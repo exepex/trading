@@ -114,6 +114,11 @@ class ExitRules(ABC):
         """Each open trade's exit rules, from its playbook version (by trade ID)."""
 
 
+class AccountWriteRefused(RuntimeError):
+    """An account write that could not be made durable (another container's work in the way, git refusing): that
+    write's entries fail closed for the day, with an alert; the run goes on to every exit review (judge 84)."""
+
+
 class AccountSync(ABC):
     @abstractmethod
     def write(self, book: str, apply: Callable[[DeskJournal], T], message: str) -> T:

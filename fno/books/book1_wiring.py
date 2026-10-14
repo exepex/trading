@@ -37,7 +37,7 @@ def build_book1_orders(cfg: dict, root: Path = ROOT) -> ReplayedOrders:
     from ..checks.wiring import build_trade_validator
     from ..playbook.wiring import build_code_tree, build_rule_evaluator
 
-    validator = build_trade_validator(cfg, BOOK1_RULES, root)
+    validator = build_trade_validator(cfg, BOOK1_RULES, root, log=False)  # a replay writes nothing (judge 84)
     return ReplayedOrders(build_rule_evaluator(cfg, root), build_code_tree(root), validator)
 
 

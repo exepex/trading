@@ -112,3 +112,16 @@ def test_the_time_exit_fires_on_its_day_and_not_before():
     rule = ExitOnDay(date(2026, 11, 3), "sc-a-v1 time exit")
     assert rule.reached(None, ExitContext(date(2026, 11, 2), None)) == ""
     assert rule.reached(None, ExitContext(date(2026, 11, 3), None)).startswith("time_exit: 2026-11-03 is on or after")
+
+
+def test_the_order_replay_holds_c4_s_validator_and_writes_no_failure_log(tmp_path):
+    """Judge 84 C: the orders replay with C4's validator (else every run differs), built with log=False so a replay
+    writes nothing; the decision run's own validator does log."""
+    from fno.books.book1_wiring import build_book1_orders
+    from fno.checks.validity_adapter import BookTradeValidator
+    from fno.config import load_app_config
+    from fno.playbook.wiring import build_decision_run
+
+    orders = build_book1_orders(load_app_config(), tmp_path)
+    assert isinstance(orders.validator, BookTradeValidator) and orders.validator.log is None
+    assert build_decision_run(load_app_config(), BOOK1_RULES, tmp_path).validator.log is not None

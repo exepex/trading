@@ -171,6 +171,31 @@ Mutations (`python -B`, caches cleared): **31 of 31 caught**. The new plants:
 - the C4 validator not replayed;
 - a C4-blocked choice ordered.
 
+## Addendum 3: judge 84 addendum 3, must-fix C (C4's failure log halts the desk), fixed
+
+The judge's chain was checked against the code and is right:
+- the replay built C4's validator with the default `log=True`;
+- `Book1.decide` committed neither C4's `validity_failures.csv` nor anything beyond the run;
+- the next day's uncommitted row then made every account write refuse;
+- the fill step did not catch that refusal, so the run crashed before its exits.
+
+1. **A replay writes nothing:** `build_book1_orders` passes `log=False` to `build_trade_validator`. A wiring test checks
+   the orders hold C4's validator with no log, while the decision run's validator does log. This test also catches the
+   judge's plant that removed the validator.
+2. **The failure log is committed with the run:** `Book1.decide` commits `journal/book1_rules/validity_failures.csv`
+   whenever it exists (C4 appends to it inside the run). Tested.
+3. **A refused account write never crashes the run.**
+   - The port now names the error, `AccountWriteRefused`. Every git failure of the account sync is one (`GitError`, and
+     with it `CheckoutNotDedicated`).
+   - The fill step catches it per order: "not filled: the account write was refused (...)" plus an alert.
+   - The exit review was already per book.
+   - Test: book 1's writes refused, so its order is not filled, book 2 fills, and the run reaches every book's exit
+     review.
+4. **Merged `main` (09dc0b1).** The `test_recorded_c4.py` fixture conflict had already been resolved in 402d406 (the
+   shared fixture in E5's shape).
+
+Mutations (`python -B`, caches cleared): the 5 plants for C are caught, and the full E5 set still catches 31 of 31.
+
 ## 4. Gates
 
 Full suite, `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py` and the 350-line limit: the

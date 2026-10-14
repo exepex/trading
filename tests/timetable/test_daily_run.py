@@ -17,7 +17,7 @@ from fno.desk.exit_rules import TimeExit
 from fno.desk.records import DeskRecords
 from tests.desk.builders import at, fly_order
 
-from .fakes import C4, Decisions, Rules, daily_run
+from .fakes import C4, Decisions, LocalSync, Rules, daily_run
 
 NORMAL, SLOW, FAILED, HOLIDAY, RESTART = (date(2026, 10, d) for d in (14, 15, 16, 20, 21))
 BOOKS = (BOOK1_RULES, BOOK2_HYBRID)
@@ -231,3 +231,33 @@ def test_one_book_s_failing_exit_review_never_stops_another_s_or_the_run(root, t
     assert exits[BOOK2_HYBRID] == {"reviewed": False, "error": f"ValueError: {BOOK2_HYBRID}: exit rules cannot be read"}
     assert exits[BOOK1_RULES]["reviewed"] is True and list(log.steps)[-1] == "exits"
     assert any("EXIT REVIEW FAILED" in sent and BOOK2_HYBRID in sent for sent in alerts.sent)
+
+
+class RefusingSync(LocalSync):
+    """An account sync whose writes for one book are refused (another container's work in the checkout)."""
+
+    def __init__(self, root, refused):
+        super().__init__(root)
+        self.refused = refused
+
+    def write(self, book, apply, message):
+        if book == self.refused:
+            from fno.desk.daily_ports import AccountWriteRefused
+
+            raise AccountWriteRefused(f"{book}: the checkout holds other work")
+        return super().write(book, apply, message)
+
+
+def test_a_refused_account_write_fails_entries_closed_and_never_crashes_the_run(root, tmp_path, alerts):
+    """Judge 84 C: a refused write is "not filled" with an alert for that order; the other book fills, and the run
+    reaches its exit review for every book."""
+    decisions = Decisions()
+    decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
+    decisions.add(*decided(BOOK2_HYBRID, "b1", NORMAL), NORMAL)
+    run, clock, *_ = daily_run(root, tmp_path, alerts, BOOKS, decisions, C4(), Rules())
+    run.steps.sync = RefusingSync(root, BOOK1_RULES)
+    log = run_day(run, clock, NORMAL)
+    assert log.result("fills")["t1"]["reason"].startswith("not filled: the account write was refused")
+    assert log.result("fills")["b1"]["outcome"] == OUTCOME_OPENED
+    assert list(log.steps)[-1] == "exits" and log.result("exits")[BOOK1_RULES]["reviewed"] is False
+    assert any("account write was refused" in sent for sent in alerts.sent)

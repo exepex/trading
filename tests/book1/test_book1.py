@@ -127,3 +127,18 @@ def test_orders_replay_with_c4_s_validator_and_never_order_a_c4_blocked_choice(t
     assert bool(with_c4) is ok  # a C4 failure leaves the record "no trade": nothing to order
     with pytest.raises(OrdersRefused, match="does not replay"):
         ReplayedOrders(priced_evaluator(), SAME_CODE).orders(BOOK1_RULES, run, FIFTEEN(DAYS[0]))
+
+
+def test_book1_commits_c4_s_failure_log_with_its_run(tmp_path):
+    """Judge 84 C: C4 appends journal/book1_rules/validity_failures.csv inside the decision run; an uncommitted row
+    would later refuse every account write, so the log is committed with the run."""
+    from fno.books.paths import book_folder
+    from fno.constants import VALIDITY_FAILURES_FILE
+
+    decider, commits = book1(tmp_path, snapshot(doc("sc-a")), clock_at(FIFTEEN(DAYS[0])), validator=Validator(False))
+    failures = book_folder(tmp_path, BOOK1_RULES) / VALIDITY_FAILURES_FILE
+    failures.parent.mkdir(parents=True, exist_ok=True)
+    failures.write_text("day,book\n2026-10-13,book1_rules\n")  # what C4's log leaves after a blocked trade
+    decider.decide(DAYS[0])
+    [(_, _, paths, _)] = commits.made
+    assert failures in paths

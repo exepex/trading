@@ -4,7 +4,8 @@ its approved (`paper`) playbook versions, with C2 on Book 1's own account, writt
 calls or imports a model.
 
 With no `paper` version on the day it also commits "no approved strategy": a result, not an error. D2 still runs, so
-registered research candidates are forward-tested in shadow and the day's record exists for replay."""
+registered research candidates are forward-tested in shadow and the day's record exists for replay. C4's failure log,
+which the run appends to, is committed with the run (judge 84: an uncommitted row would block every account write)."""
 
 from __future__ import annotations
 
@@ -15,7 +16,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from ..constants import BOOK1_RULES, NO_APPROVED_STRATEGY
+from ..books.paths import book_folder
+from ..constants import BOOK1_RULES, NO_APPROVED_STRATEGY, VALIDITY_FAILURES_FILE
 from ..desk.daily_ports import Committer
 from ..playbook.allocation import StrategyTradeCounts
 from ..playbook.decision_inputs import PlaybookSnapshot
@@ -67,6 +69,8 @@ class Book1:
                                   inputs.shadow, inputs.context)  # fmt: skip
         except DuplicateRun as already:
             return ALREADY.format(day=day, reason=already)
+        failures = book_folder(self.root, BOOK1_RULES) / VALIDITY_FAILURES_FILE  # C4 appends to it inside the run
+        paths += [failures] if failures.is_file() else []
         commit = self.committer.commit((run, *paths), f"Book 1 decision {day} ({run.name})")
         return DECIDED.format(day=day, run=run.name, commit=commit)
 
