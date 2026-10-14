@@ -1,0 +1,97 @@
+# Judge 81: story C3, data checks before every decision (branch, before merge)
+
+Date: 14 Oct 2026 (UTC). Branch `story/c3-data-checks` at 566e209 (from main 8c5bd5f). Claims:
+`reviews/claude/response_82_c3-data-checks.md`. Story: `docs/stories/C-code-roles.md` C3.
+
+## Verdict: FAIL, two must-fixes in the spot check (both small, both would bite on the first real day)
+
+The checks, the gate and the entry and exit wiring are well built, and every plant I made is caught. But the spot
+check:
+- treats two different spot values in the pack as a failure, which a real A4 snapshot will almost always have;
+- marks its failure as "prices unverified", which turns every due exit into a pending exit on any day that moves more
+  than 2%.
+
+Together they would stop entries every day and exits on exactly the days exits matter.
+
+## Gates (my runs, `python -B`, caches cleared)
+
+- Full suite: 2,498 passed. Ruff, format (553 files) and imports: clean.
+- `git merge-tree` with `main`: clean.
+
+## The story's own check: a deliberately stale snapshot
+
+`test_the_committed_stale_snapshot_is_refused_by_the_real_checks` passes. It runs the real checks on
+`tests/fixtures/c3_stale/`, a capture stamped 13:31:02-13:31:40 IST, outside the 14:55-15:10 window. It is refused as
+stale.
+
+**Information:** that fixture is synthetic. It is stamped 14 Oct 13:31 IST, which was still in the future when it was
+committed. That is fine for a planted stale snapshot, but the claims should not call it a real capture.
+
+## My plants (`tests/checks` and `tests/desk`, 83 tests): all 9 caught
+
+| Plant | Result |
+|---|---|
+| The window check off | 6 failed |
+| The capture's end time not checked | 1 failed |
+| The hash check off | 1 failed |
+| The leg check off | 8 failed |
+| The previous NSE file check off | 2 failed |
+| A crossed book allowed | 2 failed |
+| Entries ignoring the report | 8 failed |
+| No alert | 4 failed |
+| The spot limit at 3% | 2 failed |
+
+## Must-fix
+
+1. **One spot, not one per chain.**
+   - `SpotNearPreviousClose` fails when the pack's option items carry more than one spot value.
+   - The A4 recorder takes `MONTHLY_EXPIRIES = 2` chains, each by its own provider call (`provider.chain(...)`).
+   - Each row's `spot` is its chain's spot (`fno/quotes/recorder.py`). For Groww that is the `underlying_ltp` of that
+     call (`fno/providers/groww.py`).
+   - Two calls seconds apart on a live index almost always differ by a few points. So on a real day the pack holds
+     two spot values, and the check refuses every new trade. The builder's test asserts exactly that ("two values
+     fails").
+   - The golden fixture hid this: it has one spot for every row.
+   - **Evidence:** strong by code; the first real capture (the NSE recorder at 14:20 IST today) will confirm it.
+   - **Fix:**
+     - compare each distinct spot with the previous close (all must be within the limit); or use the snapshot's own
+       `meta.spot`;
+     - refuse only spots that disagree with each other by more than a small stated tolerance (for example 0.2%);
+     - add a test with two realistic spots a few points apart.
+2. **A big real move must not block exits.**
+   - The spot check has `prices_unverified = True`. On a day NIFTY moves more than 2% (a crash or budget day), the
+     snapshot's prices are declared unusable, and every due exit becomes a pending exit.
+   - That holds even when the snapshot is in its window and its hash matches the pack, which proves it is the day's
+     real data. Design 9: missing or stale data stops new trades, and **risk-reducing exits still run**.
+   - **Fix:** make the spot move a new-trades-only check (`prices_unverified = False`). Staleness and tampering are
+     already caught by the window and hash checks. One test: a 3% move with a good snapshot refuses the entry, and a
+     due exit fills at valid quotes.
+
+## The builder's open points: rulings
+
+1. **No shock flag source, so any move beyond 2% stops new trades: agreed.** It is strict for entries only, once
+   must-fix 2 lets exits run. A flag file is the owner's choice later; it is one class and one wiring line, as built.
+2. **The hash match for E3's 15:15 capture: a real design gap for E3, and it needs more than a note.**
+   - The common pack is built at the 15:00 cutoff, refuses items after it, and is written once. So it can never
+     record a 15:15 execution capture, and `SnapshotMatchesPack` would refuse every E3 execution.
+   - E3 needs its own hashed, committed execution record: the capture's ID, its times and its quote file SHA-256,
+     written before any fill. The check then compares against that record.
+   - Until E3, `PackSnapshotSchedule` (the pack's own A4 snapshot) is consistent.
+3. **The strict window: agreed.** A capture that starts inside the window but finishes after its end is refused, and
+   there is no trade that day. Point in time beats one more trade.
+4. **An unreadable snapshot gives no pending-exit row per open trade: accepted, with a condition.** A desk event needs
+   a snapshot ID, so one gate alert is the record. The alert must name every open trade whose exit is due that day,
+   so the owner sees what is waiting (should fix; one test).
+
+## The A4 rule moved into `ExecutionQuote.a4_problem`: E4's behaviour
+
+- Before, a quote passed when the recorder's `valid` flag was true and the touch had a price and size. Now it also
+  needs bid > 0, ask > 0, bid ≤ ask and both sizes above 0.
+- The recorder already sets `valid` only under A4's rule, so for real snapshots nothing changes. The difference is
+  defence against a `valid` flag on a crossed or one-sided book (test).
+- All 32 desk tests pass, and E4's plants are untouched. **No regression.**
+
+## Project rules
+
+- New package `fno/checks/` behind the `DataCheck`, `ExecutionSchedule` and `ShockFlags` interfaces.
+- Its composition root `fno/checks/wiring.py` is listed in CLAUDE.md.
