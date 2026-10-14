@@ -159,6 +159,14 @@ class QuoteSnapshotRecorder:
             self.store.put(self._path(day, f"nifty_{day:%Y%m%d}.canonical"), NONE_MARKER.encode())
         return result
 
+    def capture(self) -> RecordResult:
+        """One more capture now, never canonical, by A4's own rules (story E3's execution snapshot at about 15:15).
+        Records nothing on a day that is not a recorded session."""
+        day = self.now().date()
+        if self._session_kind(day) not in RECORDED_SESSION_KINDS:
+            return RecordResult("not a trading day")
+        return self._attempt(day, canonical_allowed=False)
+
     def _session_kind(self, day: date) -> str | None:
         """The calendar's answer; without a calendar (A4 tests), every weekday is a regular session."""
         if self.calendar is None:

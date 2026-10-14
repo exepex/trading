@@ -32,6 +32,20 @@ class PlaybookGit(Git):
         found = self._run("log", "--diff-filter=A", "--format=%cI", "--reverse", "--", path).stdout.split()
         return found[0] if found else None
 
+    def added_in(self, path: str) -> tuple[str, str] | None:
+        """(commit ID, committer time) of the first commit that added `path`; None if it is not committed."""
+        found = self._run("log", "--diff-filter=A", "--format=%H %cI", "--reverse", "--", path).stdout.splitlines()
+        if not found:
+            return None
+        commit, moment = found[0].split()
+        return commit, moment
+
+    def observed(self) -> str:
+        """Pulls the branch and returns the commit now checked out: what a reader at this moment can see."""
+        branch = self._run("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+        self._run("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
+        return self.head()
+
     def tree_matches(self, commit: str, paths: tuple[str, ...]) -> bool:
         """True when `paths` in the working tree (uncommitted and untracked files included) equal them at `commit`."""
         if not self.commit_exists(commit):

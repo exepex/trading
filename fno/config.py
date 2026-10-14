@@ -13,7 +13,18 @@ DEFAULT_CONFIG_PATH = ROOT / "config.yaml"
 
 # Top-level keys the app's config.yaml may hold. A story that adds a setting adds its key here, with a test.
 ALLOWED_APP_KEYS = frozenset(
-    {"provider", "quotes", "underlyings", "lot_sizes", "charges", "slack", "risk_free_rate", "risk", "scorecard_review"}
+    {
+        "provider",
+        "quotes",
+        "underlyings",
+        "lot_sizes",
+        "charges",
+        "slack",
+        "risk_free_rate",
+        "risk",
+        "scorecard_review",
+        "desk",
+    }  # fmt: skip
 )
 
 
