@@ -26,3 +26,8 @@ class PlaybookGit(Git):
         """The committed texts of `path`, oldest first."""
         texts = (self.committed_text(path, commit) for commit in self.commits_touching(path))
         return [text for text in texts if text is not None]
+
+    def added_at(self, path: str) -> str | None:
+        """The committer time (ISO, with offset) of the first commit that added `path`; None if it is not committed."""
+        found = self._run("log", "--diff-filter=A", "--format=%cI", "--reverse", "--", path).stdout.split()
+        return found[0] if found else None

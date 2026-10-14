@@ -128,7 +128,7 @@ a written override, F4), `forecasts` (G3 link). Records live under `journal/<boo
 
 **Judge verifies:** replays three random records.
 
-**Depends:** D2, E2 · **Size:** M · **Status:** later
+**Depends:** D2, E2 · **Size:** M · **Status:** built on branch `story/d3-decision-record`; awaiting judge (claims: `reviews/claude/response_81_d3-decision-record.md`)
 
 ---
 
