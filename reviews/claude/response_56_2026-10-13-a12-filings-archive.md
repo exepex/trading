@@ -313,6 +313,17 @@ again change nothing), no half-written file is left, and the next run writes the
 from NSE once more (the cost of a kill), day-list files are not (their Drive copy is verified and its row rewritten;
 the shared librarian now does that for any file found without a row). Tests: `tests/filings/test_filings_killed_runs.py`.
 
+**Throughput question (14 Oct 2026, branch `story/a12-throughput`, for the judge before `main`).** Cause (strong
+evidence, run 38479538255's log): not NSE, not backoff, not the budget, not re-checks. One Drive upload got a 60 s read
+timeout from `www.googleapis.com` at 00:44 UTC; `DriveSession` retried dropped connections but not timeouts, so the
+exception escaped the librarian and crashed the job after 74 minutes. The archive command commits rows and saves
+progress only after the librarian returns, so that run's work (about 50 companies) was not recorded: the count stayed
+at 213 although the files are in Drive. Fix: (1) Drive read timeouts are retried like dropped connections (a create
+retried under its reserved ID answers 409 and is checked, never duplicated; test); (2) a Drive failure that outlasts
+the retries stops the run cleanly, so rows so far are committed and progress saved (test); (3) each day list gets its
+own share of the 50 minutes (board meetings were starved by the announcements' backlog; test). The next run re-fetches
+the unrecorded companies once (NSE again; Drive keeps one copy of each file).
+
 ## Desk view (short)
 
 - Statistician: the table is point-in-time by `filed_at` (later of NSE's two times), but the archive's history of

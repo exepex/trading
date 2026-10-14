@@ -88,3 +88,49 @@ def test_an_xbrl_run_killed_before_its_commit_fetches_again_without_duplicates(t
     assert len(FilingManifest(tmp_path / "manifests").rows(FILING_RESULTS)) == 2
     assert sorted(p.name for p in (tmp_path / "drive").rglob("*.xml")) == ["A.xml", "B.xml"]
     assert not list((tmp_path / "drive").rglob(".*.part"))  # no half-written file left behind
+
+
+class FailingDrive:
+    """A store whose third save times out for good (Drive's own retries exhausted)."""
+
+    def __init__(self, store):
+        self.store, self.saves = store, 0
+
+    def get(self, path):
+        return self.store.get(path)
+
+    def put(self, path, data):
+        self.saves += 1
+        if self.saves == 3:
+            import requests
+
+            raise requests.ReadTimeout("www.googleapis.com: read timed out")
+        self.store.put(path, data)
+
+
+def test_a_drive_failure_stops_the_run_cleanly_and_keeps_the_rows_saved_so_far(tmp_path):
+    """Run 38479538255 (14 Oct 2026): one Drive read timeout crashed the job and lost 74 minutes of rows."""
+    from fno.filings.archive import FilingArchive
+    from fno.storage.raw_store import LocalFolderStore
+
+    index = FakeIndex({s: [filing(s, f"{s}.xml", at(9))] for s in ("A", "B", "C", "D")})
+    host = FakeXbrlHost({f"{s}.xml": results_xbrl() for s in ("A", "B", "C", "D")})
+    clock = StepClock()
+    store = FailingDrive(LocalFolderStore(tmp_path / "drive"))
+    archive_ = FilingArchive(store, FilingManifest(tmp_path / "manifests"), clock)
+    report = FilingsLibrarian([index], host, archive_, clock, log=lambda line: None).run(
+        ["A", "B", "C", "D"], SINCE, clock.now + timedelta(days=1)
+    )
+    assert report.stopped.startswith("the archive store stopped answering at C")
+    assert report.checked == ["A", "B"] and report.saved == 2  # returned normally: the caller commits and saves
+    assert len(FilingManifest(tmp_path / "manifests").rows(FILING_RESULTS)) == 2
+
+
+def test_each_day_list_gets_its_share_of_the_budget():
+    from fno.filings.runs_cli import list_deadlines
+
+    start = datetime(2026, 10, 14, 3, tzinfo=IST)
+    assert list_deadlines(["announcements", "board-meetings"], start, 50) == [
+        ("announcements", start + timedelta(minutes=25)),
+        ("board-meetings", start + timedelta(minutes=50)),
+    ]

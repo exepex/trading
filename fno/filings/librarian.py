@@ -18,7 +18,7 @@ import requests
 
 from ..http_pacing import SourceCoolingOff
 from ..storage.raw_source import NseArchiveSource, RawSourceUnavailable
-from ..storage.raw_store import RawFileConflict
+from ..storage.raw_store import RawFileConflict, StoredCopyDamaged
 from .archive import FilingArchive
 from .filing import Filing, FilingGap
 from .index import FilingIndex
@@ -27,6 +27,7 @@ NO_FILINGS = "NSE lists no {kind} filing made public since {since}"
 NO_FILE = "NSE lists {count} filing(s) with no XBRL file (periods {first} to {last})"
 NOT_SERVED = "NSE's link for the {period} filing answers 'not found': {url}"
 UNEXPECTED_LINK = "NSE's link for the {period} filing is outside its XBRL folder: {url}"
+STORE_STOPPED = "the archive store stopped answering at {symbol}: {error}; rows so far are kept, the next run resumes"
 LIST_ERRORS = (requests.RequestException, RuntimeError, ValueError, KeyError, TypeError)
 
 
@@ -73,6 +74,9 @@ class FilingsLibrarian:
                 self._company(symbol, since, deadline, report)
             except (SourceCoolingOff, RawSourceUnavailable) as exc:
                 report.stopped = f"NSE stopped answering at {symbol}: {exc}"
+                break
+            except requests.RequestException as exc:  # the store (Drive) failed after its own retries
+                report.stopped = STORE_STOPPED.format(symbol=symbol, error=exc)
                 break
             self.log(f"{done}/{len(companies)} {symbol}: saved {report.saved}, already there {report.present}")
         return report
@@ -123,7 +127,7 @@ class FilingsLibrarian:
             return
         try:
             self.archive.save(filing, data)
-        except (ValueError, RawFileConflict) as exc:  # not XBRL, or a different file already at that path
+        except (ValueError, RawFileConflict, StoredCopyDamaged) as exc:  # not XBRL, another file there, bad copy
             report.failures.append(f"{filing.symbol} {filing.filename}: not saved: {exc}")
             report.failed.add(filing.symbol)
             return

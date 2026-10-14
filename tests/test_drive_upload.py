@@ -204,3 +204,24 @@ def test_googles_403_rate_limit_is_retried_but_a_real_403_is_raised_at_once():
 def test_a_drive_error_names_googles_reason():
     with pytest.raises(requests.HTTPError, match="Google: insufficientFilePermissions"):
         DriveSession(lambda: "t", Uploads([RateLimited("insufficientFilePermissions")])).post("u")
+
+
+def test_a_read_timeout_is_retried_like_a_dropped_connection():
+    """Run 38479538255: a Drive upload's 60-second read timeout was not retried and crashed the job. A retried
+    create reuses its reserved ID, so a create that did get through answers 409 and is checked, never duplicated."""
+
+    class SlowOnceDrive(InMemoryDrive):
+        def __init__(self):
+            super().__init__()
+            self.slow = True
+
+        def post(self, url, json=None, files=None, params=None, timeout=None):
+            if self.slow and url == DRIVE_UPLOAD_URL:
+                self.slow = False
+                raise requests.ReadTimeout("read timed out")
+            return super().post(url, json=json, files=files, params=params, timeout=timeout)
+
+    drive = SlowOnceDrive()
+    store = store_on(drive)
+    store.put(PATH, b"bytes")
+    assert store.get(PATH) == b"bytes" and drive.creates.count(PATH.rsplit("/", 1)[-1]) == 1
