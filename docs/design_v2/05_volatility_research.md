@@ -124,10 +124,10 @@ review 95, accepted).
    0, where the textbook form is defined and gives the same paired differences. On those dates, the mean paired
    difference must be at most -0.03 x the baseline's mean textbook QLIKE. The **primary significance test** keeps every
    scored, non-void date, zeros included. Every report gives the number of zero-RV dates left out of the gate. G6
-   freezes both date sets before any score. This keeps the owner's number and only makes its unit exact (flagged to the
-   owner in response 97) (reasoning only for both numbers; accepted by the owner on 15 Oct 2026, also as the stop rule's
-   futility margin). These are minimum **forecast** effects only, never evidence of money. A significant but smaller
-   gain is "real but too small to use".
+   freezes both date sets before any score. This keeps the owner's number and only makes its unit exact (exact unit
+   confirmed by the owner, 15 Oct 2026) (reasoning only for both numbers; accepted by the owner on 15 Oct 2026, also as
+   the stop rule's futility margin). These are minimum **forecast** effects only, never evidence of money. A significant
+   but smaller gain is "real but too small to use".
 6. **Stability:** the sign of the gain is the same in the first and second half of the scored period (descriptive).
 7. **Economic check:** skill counts for trading only through a mapping registered before scoring: each factory idea that
    rests on a forecast names how the forecast turns into a position, and its shadow net after costs (rung 2) is the

@@ -68,10 +68,11 @@ measure it). Safety from a crash faster than 15 minutes (your protection is the 
 The most likely honest outcome, given the evidence so far, is a well-measured "no edge found" plus a good risk and
 learning aid; a real edge, if found, is likely small and narrow.
 
-**Your decisions (all 12 made on 15 Oct 2026, details in `REPLAN.md` section 5):** the 15-minute jobs run as a
-Claude routine; the Rs 20 lakh risk caps; weather thresholds; what "better than baseline" means; your reaction time
-(paper fills assume 60 minutes); the monthly AI share; the stop rule and its "undecided" action (amended: zero tested
-strategies means "undecided", not "no"); the real-money pass mark and test (amended: always a second untouched forward
-period or a correction for the number of ideas tried, and real trades compared one by one with their paper twins;
-exact account size and cap confirmed before it freezes); cards in Google Drive only; AI books trade
-only after a strategy passes; S1's changes; E8 frozen with S1. Still to give: your availability calendar.
+**Your decisions (all 12 made on 15 Oct 2026, details in `REPLAN.md` section 5):** the 15-minute jobs run as a Claude
+routine; the Rs 20 lakh risk caps; weather thresholds; what "better than baseline" means (exact unit confirmed by the
+owner, 15 Oct 2026: on days NIFTY moved, at least 3% better than the baseline, no-move days counted separately); your
+reaction time (paper fills assume 60 minutes); the monthly AI share; the stop rule and its "undecided" action (amended:
+zero tested strategies means "undecided", not "no"); the real-money pass mark and test (amended: always a second
+untouched forward period or a correction for the number of ideas tried, and real trades compared one by one with their
+paper twins; exact account size and cap confirmed before it freezes); cards in Google Drive only; AI books trade only
+after a strategy passes; S1's changes; E8 frozen with S1. Still to give: your availability calendar.

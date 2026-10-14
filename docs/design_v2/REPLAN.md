@@ -166,7 +166,9 @@ forecast scoring is frozen by protocol v4's own freeze (G6), not by S1. One addi
    Rs 50,000 a day; brake Rs 1.2 lakh) (6.2).
 3. **Decided 15 Oct 2026: weather thresholds as proposed** (relative and absolute levels, maximum RED frequency 15%)
    (2.3).
-4. **Decided 15 Oct 2026: minimum effects 3% QLIKE or Brier skill 0.02**, also the stop rule's futility margin (5.5).
+4. **Decided 15 Oct 2026: minimum effects 3% QLIKE or Brier skill 0.02**, also the stop rule's futility margin; exact
+   unit confirmed by the owner, 15 Oct 2026 (on RV > 0 paired dates, at least 3% of the baseline's mean textbook QLIKE;
+   zero-RV dates counted separately) (5.5).
 5. **Decided 15 Oct 2026: 5 minutes when available, 30 on average, at most 1 hour**; every E8 paper trade fills at 5, 30
    and 60 minutes, all reported, and the verdict uses 60 minutes (owner, 15 Oct 2026); the availability
    calendar is still to be given (3.2, 6.5).

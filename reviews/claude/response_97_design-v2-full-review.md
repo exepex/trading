@@ -17,8 +17,8 @@ Some points were already done before this round:
 - **Per-file notes:** 32 ACCEPT (4 of them already done before this round), 3 PARTIAL, 0 REJECT.
 - **Owner decisions:** three accepted changes touched owner decisions 4, 7 and 8. The owner accepted the decision-7
   zero-shadow correction and the decision-8 tightening on 15 Oct 2026 (amendment rows in DESK_DECISIONS); both are now
-  the only operative text (revision 4, below). Decision 4's exact unit for "3% lower QLIKE" is still a definitional
-  clarification for the owner to confirm.
+  the only operative text (revision 4, below). Decision 4's exact unit for "3% lower QLIKE" was confirmed by the owner
+  on 15 Oct 2026 ("3% confirmed").
 
 All changes are made in revision 3 of `docs/design_v2/`. Every file is under 350 lines; the largest is 192.
 
@@ -55,11 +55,10 @@ That contradicted my own rule that underpowered is never "no".
 - G6's acceptance tests zero, near-zero and missing RV, and the equality of paired differences between the two forms.
 
 **One consequence I had to resolve, and flag:** the owner's decided minimum effect, "3% lower mean QLIKE" (decision 4),
-is a relative effect. It is not invariant to the dropped constant, and `ln f + RV/f` has no natural zero. `05` §5.5
-item 5 now defines it exactly: the mean paired difference is at most -0.03 times the baseline's mean textbook QLIKE
-over the scored days with RV > 0. On those days the textbook form is defined and gives the same paired differences.
-This keeps the owner's number and makes its unit exact. **Owner flag:** a definitional clarification of decision 4, for
-the owner to confirm.
+is a relative effect. It is not invariant to the dropped constant, and `ln f + RV/f` has no natural zero. `05` §5.5 item
+5 now defines it exactly: the mean paired difference is at most -0.03 times the baseline's mean textbook QLIKE over the
+scored days with RV > 0. On those days the textbook form is defined and gives the same paired differences. This keeps
+the owner's number and makes its unit exact. The owner confirmed this exact unit on 15 Oct 2026 ("3% confirmed").
 
 **B4 Forward shadows before forecast skill: ACCEPT (strong evidence on the dependency, reasoning only on the remedy).**
 Revision 2 made V-ideas wait for rung 1, which is 15 months to 5 years or more (`05` §5.5). That would have wasted the
