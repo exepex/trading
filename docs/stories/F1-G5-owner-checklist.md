@@ -84,6 +84,7 @@ Secrets are never written to a file or sent in chat; you add them in GitHub's se
 |---|---|---|
 | `not fired: HTTP 401/403` | a token expired or was revoked | generate a new token, update its secret |
 | `not_fired: ... not configured` | a secret is missing | step 5 |
+| `not_fired: ... late start` | GitHub started the job after 15:13 IST, so no AI book was fired (no session exists) | nothing; that day has no AI forecast |
 | `no_submission` | the routine ran but never sealed (failure, usage limit, push refused) | open the routine's session (link in the audit file's `fire.session`) |
 | `late` | sealed after 15:15:00 by GitHub's clock | none that day (never rescued); tell Claude if it repeats |
 | `model_mismatch` | the routine ran on another model | set the routine's model back to Opus 5.5 |
