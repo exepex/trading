@@ -1,10 +1,11 @@
 1. Experiment 1 per structure (traded, impossible exits removed), Rs per trade
-  discovery SC n=33 gross    978 costs  824 net    153 sd  2667 worst  -6298 trades for 2 SE    1212
-  discovery SF n=32 gross    479 costs  924 net   -446 sd  1160 worst  -3755 trades for 2 SE      27
-  discovery BF n=27 gross   -312 costs  939 net  -1251 sd   750 worst  -4634 trades for 2 SE       1
-  challenge SC n=57 gross    408 costs  814 net   -406 sd  3403 worst  -8937 trades for 2 SE     281
-  challenge SF n=54 gross     85 costs  875 net   -791 sd  1629 worst  -4115 trades for 2 SE      17
-  challenge BF n=46 gross    837 costs  894 net    -57 sd  3123 worst  -4474 trades for 2 SE   11819
+  discovery SC n=33 gross    978 costs  824 net    153 sd  2667 worst  -6298 trades to prove this edge at 2 SE   1212
+  discovery SF n=32 gross    479 costs  924 net   -446 sd  1160 worst  -3755 no edge to prove
+  discovery BF n=27 gross   -312 costs  939 net  -1251 sd   750 worst  -4634 no edge to prove
+  challenge SC n=57 gross    408 costs  814 net   -406 sd  3403 worst  -8937 no edge to prove
+  challenge SF n=54 gross     85 costs  875 net   -791 sd  1629 worst  -4115 no edge to prove
+  challenge BF n=46 gross    837 costs  894 net    -57 sd  3123 worst  -4474 no edge to prove
+  a +153 edge with SD 3403 needs 1979 trades at 2 SE
 2. F1 = ATM implied vol minus past 20-day realised, at entry (points)
   discovery n 33 mean 1.15 median 2.09 above 0 82%
   challenge n 50 mean 1.21 median 1.94 above 0 74%
@@ -37,3 +38,8 @@
   exit at 21 days: mean -243 sd 1808 worst -6547 win 57%
   exit at 21 days, +3 vol points in falls over 2%: mean -250 sd 1786 worst -6138 win 57%
   held to expiry: mean -355 worst -8221 win 80%
+7. Per lot, 14 Oct: C2 stressed margin = max(0, k x scan - NOV) + min(0, NOV) + exposure;
+   funds at entry = max(0, k x scan - NOV) + exposure + bought premium + entry charges
+  SC 300: stressed margin 71428; funds 100784 (bought 19045, fees 158)
+  put spread 22000/21850, scan 2651: stressed margin 33382; funds 44453
+  put spread 22000/21850, scan 5424: stressed margin 37403; funds 48473

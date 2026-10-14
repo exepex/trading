@@ -13,6 +13,7 @@ import gzip
 import json
 import math
 import statistics as st
+import sys
 from pathlib import Path
 from statistics import NormalDist
 
@@ -26,6 +27,15 @@ NOV_EXPIRY, NOV_FUTURE, DAYS_TO_EXPIRY, EXIT_DAYS = "2026-11-23", 22760.0, 39.6,
 PUT_SPREAD = {22000: (169.43, 0.1535), 21850: (141.60, 0.1550)}  # strike: (15:00 mid, implied vol), section 4
 TWO_LEG_COST = 260 + 150  # pads Rs 1 x 2 legs x 2 sides x 65; charges about half a 4-leg SC's (experiment 1: ~235)
 NORMAL = NormalDist().cdf
+STRESS = 1.45  # risk.stressed_margin.multiplier (owner, 14 Oct)
+EXPOSURE_PER_SHORT_LEG = 59077.07 / 2  # response 77: 2% x 22,721.95 x 65 per short leg (14 Oct NSE SPAN file)
+SC300 = {
+    "scan": 8517.60,
+    "nov": -10153.00,
+    "sold": [(23200, "CE"), (22250, "PE")],
+    "bought": [(23500, "CE"), (21950, "PE")],
+}
+PUT_SPREAD_SCAN = (2650.70, 5423.60)  # no NSE row: bounded by the SC 100 and SC 200 rows' scan (one side's worst)
 
 
 def opportunities(period: str) -> list[dict]:
@@ -40,11 +50,14 @@ def structure_stats() -> None:
             clean = [r for r in rows if r["status"] == "traded" and not r["exit_outside_payoff"]]
             net = [r["net"] for r in clean]
             mean, sd = st.mean(net), st.stdev(net)
+            proof = f"trades to prove this edge at 2 SE {(2 * sd / mean) ** 2:6.0f}" if mean > 0 else "no edge to prove"
             print(
                 f"  {period:9} {code} n={len(net):2} gross {st.mean(r['gross'] for r in clean):6.0f} "
                 f"costs {st.mean(r['charges'] + r['pads'] for r in clean):4.0f} net {mean:6.0f} sd {sd:5.0f} "
-                f"worst {min(net):6.0f} trades for 2 SE {(2 * sd / mean) ** 2 if mean else math.inf:7.0f}"
+                f"worst {min(net):6.0f} {proof}"
             )
+    edge, widest_sd = 153.0, 3403.0  # the 2024-26 condor's edge with the 2019-23 condor's spread
+    print(f"  a +{edge:.0f} edge with SD {widest_sd:.0f} needs {(2 * widest_sd / edge) ** 2:.0f} trades at 2 SE")
 
 
 def premium_feature() -> None:
@@ -146,6 +159,44 @@ def put_spread_model(closes: dict[str, float]) -> None:
     print(f"  held to expiry: mean {st.mean(expiry_nets):.0f} worst {min(expiry_nets):.0f} win {wins:.0f}%")
 
 
+def funds_at_entry() -> None:
+    """C2's stressed margin and funds at entry (fno/risk/margins.py; judge 77 addendum 3): the broker credits no sold
+    premium at entry and takes the bought premium at once."""
+    sys.path.insert(0, str(ROOT))
+    import yaml
+
+    from fno.costs import order_charges
+
+    charges = yaml.safe_load((ROOT / "config.yaml").read_text())["charges"]
+    quotes = {(float(r["strike"]), r["type"]): r for r in november_quotes()}
+
+    def entry(sold, bought):
+        paid = sum(float(quotes[leg]["ask"]) * LOT for leg in bought)
+        received = sum(float(quotes[leg]["bid"]) * LOT for leg in sold)
+        fees = sum(order_charges(float(quotes[leg]["ask"]), LOT, "buy", charges) for leg in bought)
+        fees += sum(order_charges(float(quotes[leg]["bid"]), LOT, "sell", charges) for leg in sold)
+        return paid, received, fees
+
+    print("7. Per lot, 14 Oct: C2 stressed margin = max(0, k x scan - NOV) + min(0, NOV) + exposure;")
+    print("   funds at entry = max(0, k x scan - NOV) + exposure + bought premium + entry charges")
+    paid, received, fees = entry(SC300["sold"], SC300["bought"])
+    no_credit = max(0.0, STRESS * SC300["scan"] - SC300["nov"]) + 2 * EXPOSURE_PER_SHORT_LEG
+    margin = no_credit + min(0.0, SC300["nov"])
+    print(
+        f"  SC 300: stressed margin {margin:.0f}; funds {no_credit + paid + fees:.0f}"
+        f" (bought {paid:.0f}, fees {fees:.0f})"
+    )
+    paid, received, fees = entry([(22000, "PE")], [(21850, "PE")])
+    nov = paid - received  # the legs' value at today's fills (NSE's file uses settlement prices)
+    for scan in PUT_SPREAD_SCAN:
+        no_credit = max(0.0, STRESS * scan - nov) + EXPOSURE_PER_SHORT_LEG
+        margin = no_credit + min(0.0, nov)
+        print(
+            f"  put spread 22000/21850, scan {scan:.0f}: stressed margin {margin:.0f};"
+            f" funds {no_credit + paid + fees:.0f}"
+        )
+
+
 if __name__ == "__main__":
     structure_stats()
     premium_feature()
@@ -153,3 +204,4 @@ if __name__ == "__main__":
     closes = underlying_by_day()
     market_moves(holding_moves(closes))
     put_spread_model(closes)
+    funds_at_entry()

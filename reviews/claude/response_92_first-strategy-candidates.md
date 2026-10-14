@@ -6,7 +6,7 @@ Every number below is reproduced by `research/2026-10-14-desk-meeting-2/analysis
 ## Verdict
 
 **Main finding: no forward test can prove a monthly rule in useful time.** At 12 trades a year, showing a small edge at
-2 standard errors needs about 280-1,200 trades, i.e. decades. S1's 6-month claim rule sees about 6 trades. A shadow
+2 standard errors needs about 1,200-2,000 trades, i.e. about 100-165 years. S1's 6-month claim rule sees about 6 trades. A shadow
 test can expose a disaster but never confirm an edge (strong evidence, arithmetic: statistician section below).
 
 **And there is no candidate worth that wait: zero with a credible edge after costs.** Under the given limits (NIFTY
@@ -78,19 +78,29 @@ In-the-money legs are wide (Rs 3-180) and must never be used.
 
 **Statistician: a monthly rule cannot be proven forward in a useful time (strong evidence, arithmetic).**
 - To show a mean above zero at 2 standard errors needs n = (2 x SD / mean)^2. That is 1,212 trades for the 2024-26
-  condor (+153, SD 2,667) and about 100 years at 12 trades a year.
+  condor (+153, SD 2,667), and 1,979 if that edge comes with the 2019-23 condor's SD of 3,403: about 100-165 years
+  at 12 trades a year. (My first draft said "280-1,200". The 280 came from the 2019-23 condor's negative mean, so it
+  counted trades to prove a loss, not an edge: judge 93.)
 - S1's "claim after 120 trading days" gives about **6 monthly trades**. With an SD of about Rs 2,700-3,400, the
   standard error of the mean is about Rs 1,100-1,400 a trade, which is 3-9 times larger than any plausible edge here.
 - A forward shadow of a monthly rule can therefore only expose a disaster; it can never confirm an edge. **The owner
   should know this before choosing S1's 6-month rule for monthly strategies.**
 
 **Risk manager: what one lot costs and what kills it (strong evidence for margins).**
-- Margin on 14 Oct (NSE SPAN plus exposure, response 77) for a 300-wide condor: Rs 67,595 initial, **Rs 71,428**
+- Margin on 14 Oct (NSE SPAN plus exposure, response 77) for a 300-wide condor: Rs 67,595 initial, Rs 71,428
   stressed at 1.45. A 300-wide short fly: Rs 62,679 initial, Rs 64,300 stressed.
+- **Funds at entry are more than the margin.** C2's formula (`fno/risk/margins.py`, judge 77 addendum 3) is
+  `max(0, k x scan - NOV) + exposure + bought premium + charges`: at entry the broker credits nothing for the sold
+  premium and takes the bought premium at once. For the SC 300 lot on 14 Oct's 15:00 quotes (sold legs at the bid,
+  bought at the ask) that is 81,581 + 19,045 bought wings + 158 charges = **Rs 1,00,784** (script section 7). My first
+  draft listed the stressed margin as the funds (judge 93).
 - Rs 59,077 of every row is exposure margin on the two short legs, and a hedge does not reduce it. So Rs 60,000-71,000
-  is held for at most Rs 10,000 of risk and Rs 400-1,000 of gross premium a month.
-- A put spread has one short leg, so its exposure margin is about Rs 29,500. With scan risk, I estimate it at
-  Rs 32,000-35,000 (reasoning: half the condor's exposure; no NSE row exists for it).
+  of margin (and about Rs 1,00,000 of funds at entry for a condor) is tied up for at most Rs 10,000 of risk and
+  Rs 400-1,000 of gross premium a month.
+- A put spread has one short leg, so its exposure margin is about Rs 29,500. No NSE row exists for it, so I bound its
+  scan risk between the SC 100 and SC 200 rows' (Rs 2,651-5,424). Its stressed margin is then about
+  **Rs 33,400-37,400**, and its **funds at entry about Rs 44,500-48,500**, including the bought 21850 put (about Rs 9,200
+  at the ask) and charges (estimate).
 - NIFTY fell 3% or more in 10 of 93 holding windows and 5% or more in 3 (worst -6.9%). Those are the months a short put
   spread loses most of its Rs 8,351 cap.
 - The cap failed twice in 2019 on stale closes (-11,346, -13,728): live exits must use quotes.
@@ -126,7 +136,8 @@ None can back a rule today (reasoning only).
 | Evidence | Strong: gross positive in both periods (+978, +408) but net -406 in 2019-23 (holdout used up: experiment 1) and +153 in 2024-26 (discovery, seen) | Some: costs measured on one day; skew on 14 Oct. Reasoning: the model is negative (-243 at the 21-day exit, -355 to expiry). No untouched history is left |
 | Trades per year | 12 (fewer when a cycle is unfillable: 1 of 60 in 2019-23) | 12 |
 | Worst historical loss per lot | -8,937 (2019-23, clean); -11,346 on a stale close (cap broken: exit on quotes) | Structural maximum 8,351 (credit 1,809 on 14 Oct); model worst -6,547 at the 21-day exit. Not run on historical option prices (a new trial on spent data) |
-| Funds at entry per lot (stressed 1.45) | Rs 71,428 (SC 300, 14 Oct NSE SPAN plus exposure); Rs 67,595 initial | About Rs 32,000-35,000 (estimate: one short leg's exposure about Rs 29,500 plus scan); no NSE row yet |
+| Stressed margin per lot (C2, k 1.45) | Rs 71,428 (SC 300, 14 Oct NSE SPAN plus exposure; Rs 67,595 initial) | About Rs 33,400-37,400 (estimate: one short leg's exposure about Rs 29,500, scan bounded by SC 100-200); no NSE row yet |
+| Funds at entry per lot (C2: no credit for the sold premium, bought premium and charges paid) | **Rs 1,00,784** (81,581 + 19,045 bought wings + 158 charges, 14 Oct quotes) | About **Rs 44,500-48,500** (includes the bought put, about Rs 9,200) |
 | What proves it wrong | Not a candidate: it informs the cost and premium estimates. Stop it if a single loss exceeds Rs 10,000 (catastrophic-loss rule) | A forward mean net per trade below 0 after 12 trades, or gross per trade below Rs 410 (its costs) |
 | Blocker | None: SC exists in D1, B2, C4 and A14 | **Code**: D1 `STRUCTURE_CODES`, the B2 simulator, D2 candidates, C4 and A14 margin rows know only SF, SC and BF (lane 1, flagged to the orchestrator) |
 
@@ -167,8 +178,9 @@ change. Roughly a day of building and one judge round.
   needs the new code's rows, with one short leg's exposure. The broker check (judge 77) covered four-leg rows only.
 
 **What the owner gets, given forward proof takes years anyway:**
-- Half the costs (about Rs 410 instead of Rs 820 a trade) and about half the margin (an estimated Rs 32,000-35,000
-  instead of Rs 71,000 stressed). This makes a small edge possible, but not proven.
+- Half the costs (about Rs 410 instead of Rs 820 a trade), about half the stressed margin (an estimated Rs 33,400-37,400
+  instead of Rs 71,428) and less than half the funds at entry (about Rs 44,500-48,500 instead of Rs 1,00,784). This
+  makes a small edge possible, but not proven.
 - The option of trading the put skew alone, without the call side, whose premium is thinner (13.1% at +3.3%).
 - **Not** a faster proof: it is still 12 trades a year.
 
