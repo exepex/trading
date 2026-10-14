@@ -30,6 +30,7 @@ from ..constants import (
     OUTCOME_NOT_OPENED,
     OUTCOME_OPENED,
     OUTCOME_PARTIAL_FILL,
+    OUTCOME_REFUSED,
 )
 from ..models import now_ist
 from ..risk.inputs import Proposal
@@ -52,6 +53,7 @@ WORSE_THAN_APPROVED = (
 @dataclass(frozen=True)
 class EntryOrder:
     book: str
+    strategy: str  # the playbook version decided on ("<name>-v<n>", from the decision record)
     decision_id: str
     decided_at: datetime  # when the decision was committed (time zone aware)
     proposal: Proposal  # C2's proposal: trade ID, terms, lot size, legs
@@ -111,8 +113,8 @@ class EntryDesk:
             return _result(done[0])
         reason = refusal(order, snapshot, blocking_trades(journal.records))
         if reason:
-            return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, reason)
-        maker = FillMaker(order.book, order.decision_id, trade_id, snapshot, self.charges)
+            return self._event(journal, order, snapshot, OUTCOME_REFUSED, reason)
+        maker = FillMaker(order.book, order.strategy, order.decision_id, trade_id, snapshot, self.charges)
         quotes = [price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units) for leg in order.legs()]
         if all(q.fills for q in quotes) and (shortfall := entry_shortfall(order, maker, quotes)):
             approved = order.risk.entry_cash_rs
@@ -145,8 +147,8 @@ class EntryDesk:
     def _event(journal, order: EntryOrder, snapshot, outcome: str, reason: str, cost=None, shortfall=None):
         trade_id = order.proposal.trade_id
         event = DeskEvent(
-            f"{trade_id}:{outcome}", snapshot.day, order.book, trade_id, order.decision_id, snapshot.snapshot_id,
-            snapshot.sha256, outcome, reason, cost, shortfall,
+            f"{trade_id}:{outcome}", snapshot.day, order.book, order.strategy, trade_id, order.decision_id,
+            snapshot.snapshot_id, snapshot.sha256, outcome, reason, cost, shortfall,
         )  # fmt: skip
         journal.record_event(event)
         return EntryResult(trade_id, outcome, reason, cost, shortfall)

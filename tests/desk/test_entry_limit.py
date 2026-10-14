@@ -8,7 +8,14 @@ import pytest
 
 from fno.books.account import PaperAccount
 from fno.config import load_app_config
-from fno.constants import BOOK1_RULES, ENTRY_WORSE_THAN_APPROVED, OUTCOME_NOT_OPENED, OUTCOME_OPENED, SIDE_BUY
+from fno.constants import (
+    BOOK1_RULES,
+    ENTRY_WORSE_THAN_APPROVED,
+    OUTCOME_NOT_OPENED,
+    OUTCOME_OPENED,
+    OUTCOME_REFUSED,
+    SIDE_BUY,
+)
 from fno.costs import order_charges
 from fno.desk.entries import EntryOrder
 from fno.desk.records import DeskRecords
@@ -109,7 +116,7 @@ def test_the_limit_comes_only_from_c2_s_decision_on_this_exact_proposal(root, st
     for order in (fly_order("t1", lots=2, risk=one_lot),
                   fly_order("t1", risk=replace(approved(fly_proposal("t1")), entry_cash_rs=None))):  # fmt: skip
         result = enter(root, snapshots, entry_desk, order)
-        assert result.outcome == OUTCOME_NOT_OPENED and "exact proposal" in result.reason
+        assert result.outcome == OUTCOME_REFUSED and "exact proposal" in result.reason
         DeskRecords(PaperAccount(root, BOOK1_RULES)).events.path.unlink()  # a fresh attempt for the next case
     assert PaperAccount(root, BOOK1_RULES).fills() == []
 

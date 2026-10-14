@@ -1,6 +1,8 @@
 """The playbook loader (story D1): every `playbook/<name>-v<n>.yaml`, checked against the registry and the approval
-checks. Any refusal stops the whole load: the desk never trades from a playbook with one bad file in it. An empty
-playbook is valid and approves nothing, so Book 1 then trades nothing."""
+checks. Any refusal stops the whole load: the desk never trades from a playbook with one bad file in it. One exception
+(judge 67, story E6): a version on paper whose live feature has drifted is not approved, and is listed as drifted for
+its automatic pause; the other versions keep loading. An empty playbook is valid and approves nothing, so Book 1 then
+trades nothing."""
 
 from __future__ import annotations
 
@@ -9,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..constants import PLAYBOOK_REGISTRY_FILE
-from .approval_checks import ApprovalCheck, run_checks
+from .approval_checks import ApprovalCheck, LiveFeatureDrift, run_checks
 from .documents import strategy_from_text
 from .fields import PlaybookError
 from .registry import Registry, RegistryRow
@@ -20,12 +22,20 @@ FILE_PATTERN = "*.yaml"
 
 
 @dataclass(frozen=True)
+class Drift:
+    strategy: Strategy
+    reason: str
+
+
+@dataclass(frozen=True)
 class Playbook:
     strategies: tuple[Strategy, ...]
+    drifted: tuple[Drift, ...] = ()  # paper versions whose live feature drifted: not approved, to be paused
 
     def approved(self) -> tuple[Strategy, ...]:
-        """The versions Book 1 may trade today (status `paper`); empty when nothing is approved."""
-        return tuple(s for s in self.strategies if s.status == PAPER)
+        """The versions Book 1 may trade today (status `paper`, live features still valid); empty when none."""
+        drifted = {d.strategy.key for d in self.drifted}
+        return tuple(s for s in self.strategies if s.status == PAPER and s.key not in drifted)
 
     def get(self, name: str, version: int) -> Strategy:
         found = [s for s in self.strategies if s.key == (name, version)]
@@ -40,12 +50,17 @@ class PlaybookLoader:
 
     def load(self) -> Playbook:
         strategies = self._read_files()
-        rows = self.registry.rows()
+        rows, drifted = self.registry.rows(), []
         for strategy in strategies:
             history = [row for row in rows if row.key == strategy.key]
-            self.check_against_history(strategy, history)
+            try:
+                self.check_against_history(strategy, history)
+            except LiveFeatureDrift as drift:
+                if strategy.status != PAPER:
+                    raise
+                drifted.append(Drift(strategy, str(drift)))
         self._require_files_for(rows, {s.key for s in strategies})
-        return Playbook(tuple(strategies))
+        return Playbook(tuple(strategies), tuple(drifted))
 
     def check_against_history(self, strategy: Strategy, history: Sequence[RegistryRow]) -> None:
         """The file matches its registered fingerprint and latest status, and passes the checks for that status."""
@@ -62,7 +77,7 @@ class PlaybookLoader:
         try:
             run_checks(self.checks, strategy, approval)
         except PlaybookError as refused:
-            raise PlaybookError(f"{where}: {refused.field}", refused.reason) from None
+            raise type(refused)(f"{where}: {refused.field}", refused.reason) from None
 
     def _read_files(self) -> list[Strategy]:
         paths = sorted(self.folder.glob(FILE_PATTERN)) if self.folder.is_dir() else []

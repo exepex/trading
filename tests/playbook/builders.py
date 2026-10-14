@@ -33,6 +33,7 @@ DOCUMENT = {
     "evaluation_plan": {
         "expected_range": {"low": -500, "high": 800}, "unit": "Rs per opportunity",
         "review_dates": [date(2027, 1, 14)], "pause_rules": ["one trade loses over Rs 10,000"],
+        "catastrophic_loss_rs": 10000,
     },
     "evidence": dict.fromkeys(
         ("test_results_path", "test_results_commit", "red_team_note", "judge_verdict", "freeze_record",

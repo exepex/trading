@@ -19,6 +19,7 @@ from .providers import get_provider
 from .quotes.cli import add_quotes_parser
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
+from .scorecard.cli import add_desk_parser
 from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
 from .storage.revisions_cli import add_revisions_parser
@@ -193,6 +194,7 @@ def main(argv: list[str] | None = None) -> int:
     add_filings_parser(sub)
     add_pipeline_parser(sub)
     add_playbook_parser(sub)
+    add_desk_parser(sub)
     add_ai_parser(sub)
     add_forecast_parser(sub)
     add_forecast_scores_parser(sub)

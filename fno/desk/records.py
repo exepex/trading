@@ -23,20 +23,21 @@ from .pricing import DeskLeg
 FILLS_FILE, EVENTS_FILE = "desk_fills.csv", "desk_events.csv"
 OPENING_SIDE = {BOUGHT: "bought", SOLD: "sold"}
 FILL_COLUMNS = (
-    ("fill_id", "book", "decision_id", "trade_id", "action", "filled_at", "snapshot_id", "snapshot_sha256")
+    ("fill_id", "book", "strategy", "decision_id", "trade_id", "action", "filled_at", "snapshot_id", "snapshot_sha256")
     + ("contract", "quote_contract_id", "expiry", "strike", "type", "opening_side", "side", "price", "units")
     + tuple(CHARGE_NAMES)
-    + ("charges_rs", "quote_age_unknown")
+    + ("charges_rs", "quote_age_unknown", "quote_bid", "quote_ask")
 )
 EVENT_COLUMNS = (
-    "event_id", "day", "book", "trade_id", "decision_id", "snapshot_id", "snapshot_sha256", "outcome", "reason",
-    "legging_cost_rs", "shortfall_rs",
+    "event_id", "day", "book", "strategy", "trade_id", "decision_id", "snapshot_id", "snapshot_sha256", "outcome",
+    "reason", "legging_cost_rs", "shortfall_rs",
 )  # fmt: skip
 
 
 @dataclass(frozen=True)
 class FillRecord:
     book: str
+    strategy: str  # the playbook version the trade belongs to ("<name>-v<n>"; story E6 scores by it)
     decision_id: str
     action: str  # FILL_OPEN, FILL_UNWIND or FILL_CLOSE
     snapshot_id: str
@@ -45,19 +46,22 @@ class FillRecord:
     quote_contract_id: str
     quote_age_unknown: bool
     fill: Fill  # E1's fill: trade, time, contract, order (side, price, units, pad) and C1's charges
+    quote_bid: float | None = None  # the touch it filled against (E6 measures the half-spread paid); none at settlement
+    quote_ask: float | None = None
 
     def row(self) -> dict[str, str]:
         fill, leg = self.fill, self.leg
         row = {
-            "fill_id": fill.fill_id, "book": self.book, "decision_id": self.decision_id, "trade_id": fill.trade_id,
-            "action": self.action, "filled_at": fill.filled_at.isoformat(), "snapshot_id": self.snapshot_id,
-            "snapshot_sha256": self.snapshot_sha256, "contract": fill.contract,
+            "fill_id": fill.fill_id, "book": self.book, "strategy": self.strategy, "decision_id": self.decision_id,
+            "trade_id": fill.trade_id, "action": self.action, "filled_at": fill.filled_at.isoformat(),
+            "snapshot_id": self.snapshot_id, "snapshot_sha256": self.snapshot_sha256, "contract": fill.contract,
             "quote_contract_id": self.quote_contract_id, "expiry": leg.expiry.isoformat(),
             "strike": repr(float(leg.leg.strike)), "type": leg.leg.kind, "opening_side": OPENING_SIDE[leg.leg.side],
             "side": fill.order.side, "price": repr(float(fill.order.fill_price)), "units": str(int(fill.order.units)),
         }  # fmt: skip
         row |= {name: repr(float(fill.charges[name])) for name in CHARGE_NAMES}
         row |= {"charges_rs": repr(float(sum(fill.charges.values()))), "quote_age_unknown": str(self.quote_age_unknown)}
+        row |= {"quote_bid": _amount(self.quote_bid), "quote_ask": _amount(self.quote_ask)}
         return row
 
 
@@ -66,6 +70,7 @@ class DeskEvent:
     event_id: str
     day: date
     book: str
+    strategy: str
     trade_id: str
     decision_id: str
     snapshot_id: str
@@ -77,8 +82,8 @@ class DeskEvent:
 
     def row(self) -> dict[str, str]:
         cost, shortfall = (_amount(v) for v in (self.legging_cost_rs, self.shortfall_rs))
-        values = (self.event_id, self.day.isoformat(), self.book, self.trade_id, self.decision_id, self.snapshot_id,
-                  self.snapshot_sha256, self.outcome, self.reason, cost, shortfall)  # fmt: skip
+        values = (self.event_id, self.day.isoformat(), self.book, self.strategy, self.trade_id, self.decision_id,
+                  self.snapshot_id, self.snapshot_sha256, self.outcome, self.reason, cost, shortfall)  # fmt: skip
         return dict(zip(EVENT_COLUMNS, values, strict=True))
 
 

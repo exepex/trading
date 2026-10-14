@@ -70,7 +70,7 @@ def test_a_full_day_of_fills_and_exits_never_touches_a_provider(root, tmp_path, 
 def test_desk_writes_need_the_book_s_lock_held(root):
     with open_desk_journal(BOOK1_RULES, root) as journal:
         pass  # the lock is released on exit
-    event = DeskEvent("e1", DAY, BOOK1_RULES, "t1", "d1", "exec", "0" * 64, OUTCOME_OPENED, "test")
+    event = DeskEvent("e1", DAY, BOOK1_RULES, "fixture-fly-v1", "t1", "d1", "exec", "0" * 64, OUTCOME_OPENED, "test")
     with pytest.raises(AccountError, match="single-writer lock"):
         journal.record_event(event)
     assert DeskRecords(PaperAccount(root, BOOK1_RULES)).event_rows() == []

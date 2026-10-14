@@ -26,7 +26,7 @@ CONDITION = ("feature", "operator", "threshold")
 USE_RULE = ("min_days", "min_agreement", "min_available")
 FUNDING = ("margin_per_lot", "source", "date")
 EXITS = ("time", "profit", "loss", "event")
-PLAN = ("expected_range", "unit", "review_dates", "pause_rules")
+PLAN = ("expected_range", "unit", "review_dates", "pause_rules", "catastrophic_loss_rs")
 RANGE = ("low", "high")
 EVIDENCE = (
     "test_results_path", "test_results_commit", "red_team_note", "judge_verdict", "freeze_record",
@@ -179,6 +179,9 @@ def _plan(fields: Fields) -> dict:
     return {
         "expected_range": (low, high), "unit": fields.text("unit"), "review_dates": fields.days("review_dates"),
         "pause_rules": fields.texts("pause_rules"),
+        # the machine-checked pause rule (story E6): one closed trade's net loss (C1) at or beyond this pauses the
+        # version at once in every book; the owner's per-trade cap is Rs 10,000
+        "catastrophic_loss_rs": fields.number("catastrophic_loss_rs", positive=True),
     }  # fmt: skip
 
 
