@@ -87,3 +87,5 @@ Merge it before 09:25 UTC on 15 Oct. After the merge I check `main` and CI.
 | Gates | MET | Trial merge with `main`, with `__pycache__` cleared after the plant: 3,149 passed with the token unset. `ruff check`, `ruff format --check` and `check_imports` are clean. |
 
 **Verdict: PASS** for 1eb005c. Merge it. After the merge I check `main` and CI.
+
+CI on the cc5efff merge (addendum 1): green on cc5efff, fb8bbdb, 89910c5, 70ccd44 and d111ea6.
