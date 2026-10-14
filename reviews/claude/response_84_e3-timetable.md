@@ -112,6 +112,52 @@ the same data at the snapshot, each fill and each book's exits.
   - The first run left 4 survivors, each a missing test: a muhurat day, the retry's capture, a step recorded twice,
     and a plant aimed at the wrong line of the recorder. Tests were added and the plant re-aimed.
 
+## Addendum 1: judge 82 (FAIL), fixed
+
+Both must-fixes were checked against the code and are right:
+- the fill step asked the decision source again at fill time;
+- `GitAccountSync` reset with no look at what else the checkout held.
+
+1. **A late book no longer fills.**
+   - **On time is what the collector observes:** the decisions step pulls once at the deadline and records the origin
+     commit it saw. For each book it records the visible run's ID, its holding commit and its committer time.
+   - The committer time before the deadline stays as the second check, and D3's rule against the actual snapshot start
+     as the third, at the fill.
+   - **Fills read only those records:** `DecisionSource.recorded(book, day, run_id, commit)`, refused if that run is not
+     held by that commit. A book recorded late is never filled.
+   - **Restart after the deadline:** if the decisions step starts more than 30 s after the deadline, it fails closed and
+     every book is late.
+   - Tests:
+     - judge 82's probe: committed 15:11:50, visible from 15:13, so late and never filled;
+     - a newer run pushed after the deadline never replaces the recorded one;
+     - a restart at 15:14 is all late, with no fills and the exits still run.
+2. **A reset never destroys other work.** "Dedicated checkout" is now a check:
+   - Every account write is refused, with an alert, unless the tracked worktree is clean and nothing is unpushed (after
+     a fetch).
+   - Before a reset it confirms that exactly one commit, this write's own, is ahead of the commit it pulled. Otherwise
+     it stops and alerts (`CheckoutNotDedicated`).
+   - Tests on real git:
+     - an unpushed decision commit is kept, and so is an uncommitted tracked edit;
+     - other work committed during the write stops the reset;
+     - the clean case still resets and applies again.
+3. **Rulings applied:**
+   - automatic `Book1Versions` registration is kept as built;
+   - the story status now says "built, not live" (no `desk run` command, no routine, no E5, no C4 yet).
+
+Mutations (`python -B`, caches cleared): **31 of 31 caught**. The new plants:
+- fills asking the source again;
+- a late book filled;
+- a restart not failing closed;
+- no observation;
+- the recorded commit not checked;
+- a dirty checkout allowed;
+- a reset over other commits;
+- tracked edits ignored.
+
+The first run left the "fills ask again" plant alive. My fake had frozen visibility at the observation, while a real
+checkout sees later pushes. The fake was made realistic and a test added for the case where it matters: a book whose
+newer run lands after the deadline.
+
 ## 6. Gates
 
 Full suite, `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py` and the 350-line limit: the

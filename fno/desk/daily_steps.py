@@ -4,9 +4,9 @@ its result and the files to commit."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from ..checks.gate import DataGate
@@ -28,7 +28,9 @@ from .no_decision import write_no_decision
 from .pack_items import PackError
 from .timetable import Timetable
 
-NOT_COMMITTED = "nothing committed before the deadline {deadline}"
+NOT_COMMITTED = "nothing visible at the deadline {deadline} (origin {origin})"
+COLLECTED_LATE = "collected at {started}, after the deadline {deadline}: no decision can be shown to be on time"
+COLLECTION_GRACE = timedelta(seconds=30)  # the step starts at the deadline; later means a restart: fail closed
 NO_SNAPSHOT = "no new risk: no valid execution snapshot after the common retry"
 LATE_AT_SNAPSHOT = "late: committed {committed}, not before the execution snapshot started {started}"
 NOT_VALIDATED = "not filled: no completed C4 pass ({problems})"
@@ -61,6 +63,7 @@ class DeskSteps:
     entry_desk: EntryDesk
     exit_desk: ExitDesk
     exit_rules: ExitRules
+    clock: Callable[[], datetime]
 
     def keep_versions(self, day: date) -> StepOutcome:
         return StepOutcome({}, {"line": self.versions.keep(day)})
@@ -73,17 +76,29 @@ class DeskSteps:
         return StepOutcome({}, {"built": True, "sha256": pack.sha256}, self.packs.files(day))
 
     def collect_decisions(self, day: date) -> StepOutcome:
-        deadline, result, paths = self.timetable.at(day, self.timetable.decision_deadline), {}, []
+        """What the collector observes at the deadline decides who is on time (judge 82): it pulls once and records,
+        per book, the run ID and its holding commit, with the origin commit seen. Started after the deadline (a
+        restart), it fails closed: every book is late."""
+        deadline, started = self.timetable.at(day, self.timetable.decision_deadline), self.clock()
+        if started > deadline + COLLECTION_GRACE:
+            why = COLLECTED_LATE.format(started=started.isoformat(), deadline=deadline.isoformat())
+            return self._all_late(day, deadline, why, {"deadline": deadline.isoformat(), "origin": None})
+        origin, result, paths = self.decisions.observe(), {}, []
         for book in self.books:
             decision = self.decisions.committed(book, day, deadline)
             if decision is None:
-                why = NOT_COMMITTED.format(deadline=deadline.isoformat())
+                why = NOT_COMMITTED.format(deadline=deadline.isoformat(), origin=origin)
                 paths.append(write_no_decision(self.root, book, day, deadline, why))
                 result[book] = {"decision": NO_DECISION_LATE, "reason": why}
             else:
-                result[book] = {"run_id": decision.run_id, "committed_at": decision.committed_at.isoformat(),
+                result[book] = {"run_id": decision.run_id, "commit": decision.commit,
+                                "committed_at": decision.committed_at.isoformat(),
                                 "orders": [o.proposal.trade_id for o in decision.orders]}  # fmt: skip
-        return StepOutcome({"deadline": deadline.isoformat()}, result, tuple(paths))
+        return StepOutcome({"deadline": deadline.isoformat(), "origin": origin}, result, tuple(paths))
+
+    def _all_late(self, day: date, deadline: datetime, why: str, inputs: dict) -> StepOutcome:
+        paths = tuple(write_no_decision(self.root, book, day, deadline, why) for book in self.books)
+        return StepOutcome(inputs, {book: {"decision": NO_DECISION_LATE, "reason": why} for book in self.books}, paths)
 
     def take_snapshot(self, day: date) -> StepOutcome:
         """One capture for every book; if it is not valid, one common retry for all of them together."""
@@ -100,16 +115,17 @@ class DeskSteps:
     def pack(self, day: date) -> CommonPack:
         return self.packs.stored(day) or no_pack(day)
 
-    def decision(self, book: str, day: date) -> CommittedDecision | None:
-        return self.decisions.committed(book, day, self.timetable.at(day, self.timetable.decision_deadline))
-
-    def fill(self, day: date, snapshot_valid: bool) -> StepOutcome:
+    def fill(self, day: date, snapshot_valid: bool, collected: dict) -> StepOutcome:
+        """Only the runs the decisions step recorded are filled; a book recorded late never fills (judge 82)."""
         pack, result = self.pack(day), {}
         for book in self.books:
-            decision = self.decision(book, day)
-            for order in decision.orders if decision else ():
+            entry = collected.get(book, {})
+            if "run_id" not in entry:
+                continue
+            decision = self.decisions.recorded(book, day, entry["run_id"], entry["commit"])
+            for order in decision.orders:
                 result[order.proposal.trade_id] = self._fill_one(pack, decision, order, snapshot_valid)
-        return StepOutcome({"snapshot_valid": snapshot_valid}, result)
+        return StepOutcome({"snapshot_valid": snapshot_valid, "decisions": collected}, result)
 
     def _fill_one(self, pack: CommonPack, decision: CommittedDecision, order, snapshot_valid: bool) -> dict:
         if not snapshot_valid:

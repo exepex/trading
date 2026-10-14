@@ -38,14 +38,16 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, validity: ValidityGate, exi
 
     timetable, calendar, git = timetable_from_config(cfg), build_session_calendar(), Git(root)
     committer, history = GitCommitter(git), PlaybookGit(root)
-    sync = GitAccountSync(git, lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds))
+    alerts = build_alert_sender()
+    sync = GitAccountSync(git, lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds), alerts)
     packs = build_packs(root, refresh=lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.branch()))
     versions = Book1Versions(build_playbook_loader(root), VersionRegistry(root / VERSIONS_FILE), history,
                              history.head, committer)  # fmt: skip
     capture = RecorderExecutionCapture(build_quote_recorder(cfg).capture, build_quote_store(), QUOTES_FOLDER, root,
                                        committer)  # fmt: skip
     gate = DataGate(build_data_checks(build_raw_stores(), calendar), build_execution_snapshots(),
-                    CommittedExecutionSchedule(root, timetable), build_alert_sender())  # fmt: skip
-    steps = DeskSteps(root, books, timetable, versions, packs, D3CommittedDecisions(root, history, orders), capture,
-                      gate, validity, sync, build_entry_desk(cfg), build_exit_desk(cfg), exit_rules)  # fmt: skip
+                    CommittedExecutionSchedule(root, timetable), alerts)  # fmt: skip
+    decisions = D3CommittedDecisions(root, history, orders)
+    steps = DeskSteps(root, books, timetable, versions, packs, decisions, capture, gate, validity, sync,
+                      build_entry_desk(cfg), build_exit_desk(cfg), exit_rules, now_ist)  # fmt: skip
     return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist)

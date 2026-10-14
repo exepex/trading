@@ -91,17 +91,31 @@ class FakePacks(Packs):
 
 
 class Decisions(DecisionSource):
-    """Each book's decision with its commit time; read like D3's: the latest committed before the deadline."""
+    """Each book's decision with its commit time and the time its push became visible on origin; read like D3's
+    working tree: what is visible is what has been pushed by now (any later pull sees later pushes)."""
 
-    def __init__(self):
-        self.by_day: dict[tuple[str, date], list[CommittedDecision]] = {}
+    def __init__(self, clock: Clock | None = None):
+        self.clock, self.by_day, self.visible_at = clock, {}, {}
+        self.observed_at: datetime | None = None
 
-    def add(self, decision: CommittedDecision, day: date) -> None:
+    def add(self, decision: CommittedDecision, day: date, visible_at: datetime | None = None) -> None:
         self.by_day.setdefault((decision.book, day), []).append(decision)
+        self.visible_at[decision.run_id + decision.book] = visible_at or decision.committed_at
+
+    def observe(self):
+        self.observed_at = self.clock()
+        return f"origin@{self.observed_at:%H%M%S}"
+
+    def _visible(self, decision):
+        return self.visible_at[decision.run_id + decision.book] <= self.clock()
 
     def committed(self, book, day, deadline):
-        timely = [d for d in self.by_day.get((book, day), []) if d.committed_at < deadline]
+        timely = [d for d in self.by_day.get((book, day), []) if self._visible(d) and d.committed_at < deadline]
         return timely[-1] if timely else None
+
+    def recorded(self, book, day, run_id, commit):
+        [decision] = [d for d in self.by_day[(book, day)] if (d.run_id, d.commit) == (run_id, commit)]
+        return decision
 
 
 class Capture:
@@ -153,7 +167,8 @@ class LocalSync(AccountSync):
 
 
 def daily_run(root, tmp_path, alerts, books, decisions, validity, rules, clock=None):
-    clock = clock or Clock()
+    clock = clock or decisions.clock or Clock()
+    decisions.clock = clock
     quotes = LocalFolderStore(tmp_path / "quotes")
     capture = Capture(clock, quotes)
     commits = Commits(clock)
@@ -163,5 +178,5 @@ def daily_run(root, tmp_path, alerts, books, decisions, validity, rules, clock=N
     steps = DeskSteps(root, books, TIMETABLE, Versions(), FakePacks(), decisions,
                       RecorderExecutionCapture(capture, quotes, tmp_path / "quotes", root, commits), gate, validity,
                       LocalSync(root), EntryDesk(CHARGES, clock), ExitDesk(CHARGES, alerts, FakeSettlements(), clock),
-                      rules)  # fmt: skip
+                      rules, clock)  # fmt: skip
     return DailyRun(steps, CALENDAR, commits, clock, clock), clock, capture, commits

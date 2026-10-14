@@ -10,7 +10,7 @@ import pytest
 
 from fno.books.paths import book_folder
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID
-from fno.desk.git_sync import Git, GitAccountSync, GitCommitter
+from fno.desk.git_sync import CheckoutNotDedicated, Git, GitAccountSync, GitCommitter
 
 
 def git(cwd: Path, *args: str) -> str:
@@ -48,12 +48,21 @@ class Journal:
         (self.folder / f"{fill_id}.txt").write_text(fill_id)
 
 
-def sync_for(clone: Path) -> GitAccountSync:
+class Alerts:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, text):
+        self.sent.append(text)
+        return "sent"
+
+
+def sync_for(clone: Path, alerts=None) -> GitAccountSync:
     @contextmanager
     def open_journal(book):
         yield Journal(book_folder(clone, book) / "account")
 
-    return GitAccountSync(Git(clone), open_journal)
+    return GitAccountSync(Git(clone), open_journal, alerts or Alerts())
 
 
 def test_a_rejected_push_resets_and_applies_the_same_fills_again(checkouts):
@@ -83,3 +92,39 @@ def test_the_committer_pulls_commits_and_pushes(checkouts):
     git(b, "pull", "-q", "origin", "main")
     assert (b / "journal" / "run.json").is_file() and git(b, "rev-parse", "HEAD").strip() == commit
     assert GitCommitter(Git(a)).commit([a / "journal" / "run.json"], "nothing new") == commit  # nothing to commit
+
+
+@pytest.mark.parametrize("other", ["unpushed commit", "tracked edit"])
+def test_an_account_write_is_refused_in_a_checkout_holding_other_work(checkouts, other):
+    """Judge 82's probe: an unpushed decision commit or an uncommitted tracked edit must never be reset over."""
+    _, b = checkouts
+    if other == "unpushed commit":
+        (b / "decision.json").write_text("{}")
+        git(b, "add", "decision.json")
+        git(b, "commit", "-q", "-m", "a decision run, not pushed yet")
+    else:
+        (b / "README").write_text("edited, not committed\n")
+    alerts, applied = Alerts(), []
+    with pytest.raises(CheckoutNotDedicated, match="holds other work"):
+        sync_for(b, alerts).write(BOOK2_HYBRID, lambda j: applied.append(j), "fills b1")
+    assert applied == [] and len(alerts.sent) == 1
+    kept = (b / "decision.json").is_file() if other == "unpushed commit" else "edited" in (b / "README").read_text()
+    assert kept
+
+
+def test_a_rejected_push_is_not_reset_when_more_than_this_write_is_ahead(checkouts):
+    """Other work committed during the write (here by the apply itself) would be lost by a reset: stop and alert."""
+    a, b = checkouts
+    alerts = Alerts()
+
+    def fill_and_commit_more(journal):
+        git(a, "commit", "-q", "--allow-empty", "-m", "another container")
+        git(a, "push", "-q", "origin", "main")
+        (b / "other.json").write_text("{}")
+        git(b, "add", "other.json")
+        git(b, "commit", "-q", "-m", "other work in this checkout")
+        journal.fill("b1-open")
+
+    with pytest.raises(CheckoutNotDedicated, match="2 commit\\(s\\) ahead"):
+        sync_for(b, alerts).write(BOOK2_HYBRID, fill_and_commit_more, "fills b1")
+    assert (b / "other.json").is_file() and "NOT reset" in alerts.sent[0]

@@ -4,10 +4,13 @@
 2. `versions`: Book 1's D6 version is kept current before any decision (judge 80).
 3. `pack` (from about 14:58): E2's common pack, built only once the 3 pm canonical snapshot is committed (judge 72),
    retried until the recorder's window ends.
-4. `decisions` (at the deadline): each book's decision committed by then; a book without one gets a committed
-   "no decision (late)" and cannot join later. A slow book delays nothing: decisions are read, not awaited.
+4. `decisions` (at the deadline): the collector pulls once; each book's run visible then is recorded (run ID, holding
+   commit, the origin commit seen); a book without one gets a committed "no decision (late)" and cannot join later.
+   A slow book delays nothing: decisions are read, not awaited. Collected after the deadline (a restart), every book is
+   late (fail closed).
 5. `snapshot` (at the execution time): one capture for every book, with one common retry if it is not valid.
-6. `fills`: every timely decision with a completed C4 pass fills against that one snapshot; none if it is invalid.
+6. `fills`: only the runs recorded at the deadline, each with a completed C4 pass, fill against that one snapshot;
+   none if it is invalid.
 7. `exits`: every book's exit review, whatever happened before (risk-reducing exits always run).
 
 Each step's start, end, inputs and result go to `journal/runs/<date>.json`, committed after the step; a restarted run
@@ -48,7 +51,11 @@ class DailyRun:
             ("pack", times.pack, lambda: self._pack(day)),
             ("decisions", times.decision_deadline, lambda: steps.collect_decisions(day)),
             ("snapshot", times.execution_snapshot, lambda: steps.take_snapshot(day)),
-            ("fills", times.execution_snapshot, lambda: steps.fill(day, log.result("snapshot")["valid"])),
+            (
+                "fills",
+                times.execution_snapshot,
+                lambda: steps.fill(day, log.result("snapshot")["valid"], log.result("decisions")),
+            ),  # fmt: skip
             ("exits", times.execution_snapshot, lambda: steps.review_exits(day)),
         )
         for name, moment, action in plan:

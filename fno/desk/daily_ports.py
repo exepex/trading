@@ -26,7 +26,8 @@ class CommittedDecision:
 
     book: str
     run_id: str
-    committed_at: datetime  # time zone aware
+    commit: str  # the commit that holds the run
+    committed_at: datetime  # its committer time (time zone aware)
     orders: tuple[EntryOrder, ...]  # empty for a "no trade" decision
 
 
@@ -63,9 +64,19 @@ class VersionKeeper(ABC):
 
 
 class DecisionSource(ABC):
+    """On time is what the collector observes at the deadline (judge 82): the origin commit it pulled then."""
+
+    @abstractmethod
+    def observe(self) -> str:
+        """Pulls now and returns the commit seen: the runs visible from it are the only ones collected."""
+
     @abstractmethod
     def committed(self, book: str, day: date, deadline: datetime) -> CommittedDecision | None:
-        """The book's latest decision run committed before `deadline`; None when there is none."""
+        """The book's latest run visible after `observe`, also committed (committer time) before `deadline`."""
+
+    @abstractmethod
+    def recorded(self, book: str, day: date, run_id: str, commit: str) -> CommittedDecision:
+        """The run the decisions step recorded, read again for the fills; refused if it is not held by `commit`."""
 
 
 class OrderBuilder(ABC):
