@@ -1,0 +1,11 @@
+{
+ "audited_at": "2026-10-14T19:45:05.911801+05:30",
+ "auditor": "Claude (F1/G5 builder session)",
+ "book": "book3_ai",
+ "breaches": [],
+ "day": "2026-10-14",
+ "evidence": "Session record and full event log read 14 Oct 14:20 UTC: the session failed at its environment's setup script (pip: requirements.txt not found) before Claude Code started; 0 model turns, 0 tool calls, no file read, no network use, no push.",
+ "result": "clean",
+ "session": "https://claude.ai/code/cse_015U1QA1DHnhXtz7XvJozzba",
+ "version": "book3_ai/v1/sha256:6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a/isolation:sealed_same_day"
+}

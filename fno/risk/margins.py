@@ -11,6 +11,10 @@ marked equity by the entry and takes the lower, so this leaves exactly what a br
 leaves free; scan alone counts a debit's premium twice, scan minus NOV a credit's. It must be above 0. It is never the
 broker's live total, whose marked loss available cash already deducts.
 
+At entry a broker such as Groww credits nothing for the sold premium (it arrives after settlement) and takes the bought
+premium at once, so MarginRoom also checks the funds at entry (judge 77 addendum 3): the margin without the premium
+credit, `max(0, k x scan - NOV) + exposure`, plus the bought premium and charges, against the free cash before entry.
+
 Stressed margin, one frozen method (`risk.stressed_margin`):
 - `multiplier`: the factor k stresses the scanning risk only (the premium paid or received does not grow):
   `max(0, k x scan - NOV) + min(0, NOV) + exposure`, with its source and date; missing or older than its age fails
@@ -86,6 +90,10 @@ class MarginParts:
         margin = max(0.0, factor * self.scan - self.nov) + min(0.0, self.nov) + self.exposure
         return _positive(margin, self.what)
 
+    def at_entry(self, factor: float) -> float:
+        """The margin blocked at entry when the sold premium is not credited: no `min(0, NOV)` term."""
+        return _positive(max(0.0, factor * self.scan - self.nov) + self.exposure, self.what)
+
     @classmethod
     def from_row(cls, row: dict[str, str], what: str) -> MarginParts:
         names = ("scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs")
@@ -119,6 +127,10 @@ class StressedMargin(ABC):
         """The trade's margin under stress, in rupees."""
 
     @abstractmethod
+    def margin_at_entry(self, terms: TradeTerms, day: date) -> float:
+        """The trade's margin under stress at entry, with no credit for the sold premium, in rupees."""
+
+    @abstractmethod
     def record(self) -> dict[str, str]:
         """The method in force, for every decision record, so the judge can reproduce it."""
 
@@ -130,12 +142,18 @@ class MultiplierMargin(StressedMargin):
         self.table, self.settings = table, settings
 
     def margin(self, terms: TradeTerms, day: date) -> float:
+        return self.table.parts(terms, day).stressed(self._factor(day)) * terms.lots
+
+    def margin_at_entry(self, terms: TradeTerms, day: date) -> float:
+        return self.table.parts(terms, day).at_entry(self._factor(day)) * terms.lots
+
+    def _factor(self, day: date) -> float:
         s = self.settings
         if s.multiplier is None or not s.source or s.as_of is None:
             raise RiskInputError("stressed margin multiplier is not set (factor, source and as_of are all required)")
         if s.as_of > day or (day - s.as_of).days > s.max_age_days:
             raise RiskInputError(f"stressed margin multiplier of {s.as_of} is not valid on {day}")
-        return self.table.parts(terms, day).stressed(s.multiplier) * terms.lots
+        return s.multiplier
 
     def record(self) -> dict[str, str]:
         values = {"multiplier": self.settings.multiplier, "source": self.settings.source, "as_of": self.settings.as_of}
@@ -155,6 +173,11 @@ class ScenarioLookupMargin(StressedMargin):
         rows = [r for r in _rows(self.settings.scenario_file, SCENARIO_MARGIN_COLUMNS) if _matches(r, terms)]
         per_lot = [self._scenario_margin(rows, terms, name, day) for name in self.scenarios]
         return max(per_lot) * terms.lots
+
+    def margin_at_entry(self, terms: TradeTerms, day: date) -> float:
+        """A scenario row is one netted figure with no NOV, so the margin without the premium credit is unknown: fail
+        closed rather than be looser than the broker."""
+        raise RiskInputError("scenario_lookup rows carry no NOV: the funds at entry cannot be checked")
 
     def _scenario_margin(self, rows: list[dict[str, str]], terms: TradeTerms, name: str, day: date) -> float:
         what = f"{terms.structure} {name}"

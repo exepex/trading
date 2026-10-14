@@ -13,11 +13,18 @@
 # its pointer; the books seal their answers on main by 15:15:00 IST (GitHub's push time) and reveal them after it. Book
 # 1's and the baselines' records are committed only after the collection (after 15:15), so no AI book can read them in
 # the repository before its own answer is sealed.
+# Start (response 67 addendum 5): GitHub's schedule ran hours late on 14 Oct and the day was lost, so the run also starts
+# on the push that lands the 3 pm canonical snapshot on main (a push event starts within seconds; a push made with an
+# Actions run's own token starts nothing, so this covers the routine's commit). The cron stays as the fallback. The gate
+# job, serialised by the concurrency group, lets at most one run capture a day.
 name: forecast-capture
 
 on:
+  push:
+    branches: [main]
+    paths: ["research/data/quotes/**/*.canonical"]
   schedule:
-    - cron: "30 8 * * *" # 14:00 IST every day: the session calendar decides (a closed day records nothing)
+    - cron: "30 8 * * *" # 14:00 IST every day: the fallback; the session calendar decides (a closed day records nothing)
   workflow_dispatch:
 
 permissions:
@@ -28,7 +35,24 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main # the newest main: an earlier run's pack shows here, whatever commit started this run
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: At most one capture a day; a late push run stops (standard library only, no install)
+        id: gate
+        run: python -m fno.pipeline.capture_gate --event "${{ github.event_name }}" | tee -a "$GITHUB_OUTPUT"
   capture:
+    needs: gate
+    if: ${{ needs.gate.outputs.run == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:

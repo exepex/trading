@@ -15,8 +15,10 @@ Secrets are never written to a file or sent in chat; you add them in GitHub's se
    - Network access: **Limited**, no extra domains, *Allow package managers* ticked (for `pip`). GitHub pushes go
      through the session's own Git connection (to be confirmed by the first run; if a push is refused, widen it and
      tell Claude).
-   - Setup script: `python -m pip install -q -r requirements.txt` (saves the routines about 30-60 s before 15:15;
-     the commit's record scan needs these libraries).
+   - Setup script: **leave it empty.** (Corrected 14 Oct 2026. The earlier advice was
+     `python -m pip install -q -r requirements.txt`, but the setup script does not run in the repository folder. Both
+     routines failed with "Could not open requirements file" before Claude started. The routine prompt's step 1 already
+     installs the libraries in the background.)
 
 2. [ ] **Create routine 1** (claude.ai/code → *Routines* → *New routine*):
    - Name: `Omenix F&O: Book 2 Hybrid forecast (triggered)`.

@@ -363,3 +363,95 @@ delivers at once. `forecast-capture.yml` gains an `on: push` trigger limited to 
 write-once capture stop a double run. Reasoning plus some evidence: today's push-triggered `checks` runs all started
 within seconds. One open point: pushes made with the workflow's own `GITHUB_TOKEN` do not trigger workflows, so if the
 NSE recorder in Actions makes the snapshot commit, that commit would not start the capture. Today it was the routine.
+
+## Addendum 6 (14 Oct 2026, evening IST): push-triggered capture, branch `story/f1-push-trigger` (for the judge)
+
+The orchestrator approved addendum 5's fix. Built on the branch. Not on `main` until the judge passes it.
+
+- **Trigger:** `forecast-capture.yml` now also starts `on: push` to `main` with
+  `paths: research/data/quotes/**/*.canonical`, so the 3 pm canonical snapshot's commit starts the run. The cron (14:00
+  IST) stays as the fallback, and `workflow_dispatch` stays.
+- **At most one capture a day:** a new `gate` job runs first. It checks out the newest `main` and runs
+  `python -m fno.pipeline.capture_gate --event <event>` (standard library only, no install). `capture` runs only when the
+  gate says `run=true`. The workflow's concurrency group (`cancel-in-progress: false`) runs a second run's gate only after
+  the first run has finished. The gate stops:
+  - any run when the day's v2 pack is already on `main`;
+  - a push-started run after 15:13 IST (protocol v2's last snapshot pull), which could only add late records. The cron
+    run remains the fallback that records a missed day, late and unscored.
+- **Unchanged:** the capture steps, the fire/collect path, the commit order (pack alone, then the records), and every
+  frozen file.
+- **Tests:** `tests/pipeline/test_capture_gate.py` checks:
+  - both triggers;
+  - the gate job, its `ref: main`, and the capture's `needs`/`if`;
+  - the concurrency group;
+  - a captured day is never captured again, for every event;
+  - a push run at 15:13 still goes ahead, at 15:14 it stops;
+  - a late cron still runs;
+  - the gate imports no installed library.
+- **Gates:** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` 3113 passed; ruff check and format clean;
+  `check_imports` clean.
+- **Limit (stated in the workflow):** a snapshot committed by an Actions run's own `GITHUB_TOKEN` starts nothing. Today
+  the routine or the orchestrator's session makes that commit, so the trigger fires; the cron covers the other case.
+
+**Re-check, 19:00 IST (13:30 UTC):** `forecast-capture.yml` still has no run; 14 Oct's schedule never started at all.
+14 Oct has no records for any book and no AI session to audit. The push trigger (addendum 6) is on `main` from
+`e3639f5` (judge 88 PASS).
+
+**Judge 88 addendum 1 (14 Oct 2026):** `story/f1-gate-stdlib-test` d6d72df PASS, merged into `main` as 3534fe2 (3122
+passed with the token unset; ruff and `check_imports` clean). Minor follow-up recorded, not built: the test imports and
+calls `main()` instead of running `python -m fno.pipeline.capture_gate` as the workflow does, so a problem only in the
+module's `__main__` entry would not show. A later small story can run the module by `-m` under `-S -I`.
+
+## Addendum 7 (14 Oct 2026, 19:50 IST): the late run, and a setup-script fault that blocks every AI session
+
+**The late run (Actions run 38576145173, strong evidence: GitHub's job steps).** GitHub started the 08:30 UTC schedule
+at 13:56 UTC, 5 h 26 min late, after my 13:30 UTC check.
+- The gate let it through (cron run, no pack yet).
+- The capture built the pack and Book 1's and the baselines' records with `generated_at` 19:27:39 IST, after 15:15, so
+  scoring ignores them.
+- The job then fired both routines at 19:27:47 and 19:27:49.
+- The reveal wait ended at once (it stops at 15:30). `collect` ran 3 s later and found no commitment, so both AI books
+  are `no_submission`, with five empty records each.
+- Nothing was imputed, and nothing from 14 Oct is scored.
+
+**Both routine sessions failed before Claude started** (session records and full event logs:
+session_01KArozSaT7wCoYmLbni7XUY and session_015U1QA1DHnhXtz7XvJozzba). The environment's setup script failed:
+`ERROR: Could not open requirements file: [Errno 2] No such file or directory: 'requirements.txt'`. It ran 0 model
+turns, cost USD 0, and pushed nothing.
+- **Root cause:** my checklist told the owner to put `python -m pip install -q -r requirements.txt` in the
+  environment's setup script, but setup scripts do not run in the repository folder. It is my error.
+- **Fix:** leave the setup script empty. The routine prompt's step 1 already installs in the background. The checklist
+  is corrected.
+- **Must happen before 15:00 IST on 15 Oct,** or every AI session fails the same way and records `no_submission`.
+  Only the owner can edit the environment.
+
+**Transcript audits (first-10-days rule): both recorded `clean`.** Neither session ran a model turn, read a file, used the
+network or pushed. Files: `research/forecasts/ai_v1/2026/2026-10-14_<book>_transcript_audit.json`; `audits-due` now
+shows 0.
+
+**One more point for the judge (reasoning only).** On a late cron run, the AI books are still fired even though the
+collection is certain to record them `no_submission` within seconds. That wastes two routine runs. A sound fix is for
+`fire` to skip when it is already past 15:13 IST, the same rule as the push gate. It touches the fire path, so it waits
+for the orchestrator.
+
+## Addendum 8 (14 Oct 2026, evening IST): no AI fire on a late start, branch `story/f1-no-late-fire` (for the judge)
+
+Approved by the orchestrator from addendum 7.
+- `fire` checks the clock once. After 15:13 IST (`fno/ai/timing.py` `LATEST_START`, the capture's last snapshot pull
+  under protocol v2 section 5), it fires no book.
+- Each book's fire-log entry then reads `fired: false, late_start: true` with the reason, and #fno-desk gets one line.
+- `collect` records such a book as `no_submission` (as if it never answered), with "late start" in its notes, and five
+  empty records.
+- `capture_gate` now reads the same constant, so the 15:13 limit has one source.
+- At 15:13:00 exactly, the books are still fired.
+
+**Tests** (`tests/ai/test_late_start.py`):
+- a 19:27 start fires nothing, writes the log and sends one alert;
+- the collection gives `no_submission` with the reason and empty records;
+- 15:13:00 still fires.
+
+Two mutations were caught:
+- with the clock check disabled, 2 tests fail;
+- with `not_fired` in place of `no_submission`, 1 test fails.
+
+**Gates:** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` 3126 passed; ruff and `check_imports` clean.

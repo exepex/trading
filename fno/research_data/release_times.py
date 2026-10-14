@@ -138,11 +138,11 @@ class ReleaseTimeRecorder:
         if found is None:
             return ReleaseCheck(day, checked_at, RELEASE_ABSENT)
         sha = hashlib.sha256(found.data).hexdigest()
-        first = self._first_present(day)
+        first = self.first_present(day)
         outcome = RELEASE_REWRITTEN if first and first.sha256 != sha else RELEASE_PRESENT
         return ReleaseCheck(day, checked_at, outcome, sha, found.last_modified)
 
-    def _first_present(self, day: date) -> ReleaseCheck | None:
+    def first_present(self, day: date) -> ReleaseCheck | None:
         seen = [c for c in self.log.checks() if c.day == day and c.outcome == RELEASE_PRESENT]
         return min(seen, key=lambda c: c.checked_at) if seen else None
 
@@ -151,7 +151,7 @@ class ReleaseTimeRecorder:
         day, checks = today, []
         for _ in range(RECHECK_SESSIONS):
             day = self.calendar.previous_session(day)
-            if self._first_present(day):
+            if self.first_present(day):
                 checks.append(self.check(day))
         return checks
 
@@ -160,7 +160,7 @@ class ReleaseTimeRecorder:
         already seen is not asked again."""
         if not self.calendar.is_session(day):
             return None
-        seen = self._first_present(day)
+        seen = self.first_present(day)
         if seen:
             return seen
         while True:
