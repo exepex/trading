@@ -260,3 +260,57 @@ Rs 1 pad used in research. Pause rules fire automatically and are recorded as a 
 **Judge verifies:** recomputes one scorecard number from the records.
 
 **Depends:** C1, D1, E4 · **Size:** M · **Status:** later
+
+---
+
+## E7. Expiry settlement
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want a paper position still open at expiry closed at NSE's cash settlement,
+with its real charges, so that no book's result carries a dead contract at a stale price and no book keeps trading
+while one is unsettled.
+
+**Context and why:** Judge 68 on E4: a leg still open after expiry was never priced, E1 kept marking it at its last
+pre-expiry mid (an in-the-money short showed its old value), and the book could keep opening trades. NIFTY options
+are cash-settled: each contract closes at its intrinsic value against the index's final settlement price. Orchestrator
+and owner condition (14 Oct 2026): no strategy version is approved to paper until E7 passes.
+
+**Scope.** In: the final settlement price (point in time), the settlement close of each expired leg, exercise STT in
+C1, blocking new risk while a settlement price is missing. Out: physical settlement (stock options; NIFTY is cash
+settled), choosing exits (E4's rules and the playbook).
+
+**Expected design:**
+- `fno/desk/settlement.py`: interface `SettlementPrices.final_settlement(underlying, expiry)`; `NseFinalSettlement`
+  reads **only the expiry day's** UDiFF F&O file through A2's library (`build_nse_fo_library`). In that file every row
+  of the expiring contracts (future and options) carries the index's final settlement price in `SttlmPric` (an option
+  row's `SttlmPric` is not the option's value; its `ClsPric` is not its settlement value: NSE 25 Jan 2024, 21300 CE
+  closed at 19.70 and settled at 52.60). The price is used only when every expiring row agrees; otherwise refused.
+  Not yet published: no price.
+- The exit review (E4) settles every expired leg at `max(settlement - strike, 0)` (call) or `max(strike -
+  settlement, 0)` (put), short legs bought back and long legs sold at that value, recorded as `settlement` rows in E1's
+  ledger and `settle` rows in the desk fills (the file's SHA-256 in place of a snapshot hash), dated the expiry day at
+  15:30 IST.
+- C1 (`fno/costs.py`): `settlement_charges_breakdown`: an in-the-money long pays STT at `charges.stt_exercise_pct`
+  (0.15% of intrinsic value from 1 Apr 2026, Budget 2026; it was 0.125%) on its intrinsic value; brokerage plus GST on
+  every in-the-money leg (conservative); no exchange, SEBI, IPFT or stamp charge (no premium traded); nothing on a leg
+  that expires worthless. One dispatch, `Order.charges(table)`, serves E1's fills and C1's three ledgers.
+- While the expiry day's file is not published (or gives no clear price), the trade is `settlement_needed`: one
+  alert to #fno-desk per day, and it blocks the book's new risk exactly like `protection_unverified`.
+
+**Acceptance criteria:**
+1. An in-the-money short at expiry closes at its intrinsic value against the final settlement price, never the stale
+   pre-expiry mid or the option's close (hand computation).
+2. An out-of-the-money leg settles at 0 with no charges.
+3. An in-the-money long pays exercise STT on its intrinsic value; a short does not.
+4. Only the expiry day's file is read; a file whose expiring rows disagree on the price is refused, never guessed.
+5. A missing settlement file gives `settlement_needed`, an alert, and no new risk for that book until it is settled.
+6. After settlement C2 no longer sees the position (no marks or terms needed), and C1's trade ledger equals the
+   account's net to the paisa.
+
+**Test plan:** unit tests with a cut of NSE's real 25 Jan 2024 file and fixture positions; mutations of each rule.
+
+**Judge verifies:** recomputes one settlement by hand from an expiry day's NSE file.
+
+**Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** built; awaiting judge (branch `story/e7-expiry-settlement`,
+claims `reviews/claude/response_73_e7-expiry-settlement.md`)

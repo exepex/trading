@@ -20,10 +20,9 @@ from pathlib import Path
 from typing import Protocol
 
 from ..accounting.ledgers import Trade
-from ..constants import LEDGER_FILL
 from .equity import AccountState, Mark, account_state, trade_positions, unmarked_state
 from .files import append_durably, complete_lines, csv_text, drop_partial_line, write_atomic
-from .fills import LEDGER_COLUMNS, Fill, opening_row, same_fill
+from .fills import FILL_KINDS, LEDGER_COLUMNS, Fill, opening_row, same_fill
 from .paths import account_folder, file_in_account
 
 CASH_LEDGER_FILE = "cash_ledger.csv"
@@ -89,7 +88,7 @@ class PaperAccount:
         return float(rows[0]["amount_rs"])
 
     def fills(self) -> list[Fill]:
-        return [Fill.from_row(row) for row in self.ledger_rows() if row["kind"] == LEDGER_FILL]
+        return [Fill.from_row(row) for row in self.ledger_rows() if row["kind"] in FILL_KINDS]
 
     def state(self, marks: dict[str, Mark], margin_blocked: float = 0.0, premium_reserved: float = 0.0) -> AccountState:
         return account_state(self.starting_cash(), self.fills(), marks, margin_blocked, premium_reserved)

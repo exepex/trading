@@ -42,6 +42,7 @@ JOURNAL_FOLDER = "journal"
 # Kinds of row in a paper account's cash ledger (journal/<book>/account/cash_ledger.csv)
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
+LEDGER_SETTLEMENT = "settlement"  # an option closed by NSE's cash settlement at expiry (story E7), not a trade
 
 # Order sides, one definition for the accounting ledgers, the charges model and the paper-account fills
 SIDE_BUY, SIDE_SELL = "buy", "sell"
@@ -185,7 +186,7 @@ OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_AT_MOST, OPERATOR_IS
 NUMBER_OPERATORS = (OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_AT_MOST)
 
 # Story E4: the paper fill model. What each desk fill did, and how an entry or exit attempt ended (desk_events.csv)
-FILL_OPEN, FILL_UNWIND, FILL_CLOSE = "open", "unwind", "close"
+FILL_OPEN, FILL_UNWIND, FILL_CLOSE, FILL_SETTLE = "open", "unwind", "close", "settle"
 OUTCOME_OPENED = "opened"
 OUTCOME_NOT_OPENED = "not_opened"  # refused before any leg filled, or a protective leg did not fill
 OUTCOME_PARTIAL_FILL = "not_opened_partial_fill"  # a leg failed after others filled; the filled legs were unwound

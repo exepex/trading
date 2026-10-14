@@ -1,6 +1,7 @@
-"""Composition root of the paper desk's fills and exits (story E4): the only place that picks the quote store the
-execution snapshots are read from, the charges model's table, the alert sender and the account writer. Swapping any of
-them changes this file only. Nothing here can place an order: the desk reads recorded quotes, never a broker."""
+"""Composition root of the paper desk's fills, exits and settlements (stories E4 and E7): the only place that picks
+the quote store the execution snapshots are read from, the charges model's table, the alert sender, NSE's final
+settlement prices and the account writer. Swapping any of them changes this file only. Nothing here can place an
+order: the desk reads recorded quotes and published NSE files, never a broker."""
 
 from __future__ import annotations
 
@@ -11,10 +12,11 @@ from pathlib import Path
 from ..books.lock import DEFAULT_LEASE_SECONDS
 from ..composition import build_alert_sender, open_account_writer
 from ..config import ROOT
-from ..storage.wiring import build_quote_store
+from ..storage.wiring import build_nse_fo_library, build_quote_store
 from .entries import EntryDesk
 from .exits import ExitDesk
 from .records import DeskJournal
+from .settlement import NseFinalSettlement
 from .snapshot import ExecutionSnapshotSource, RecordedExecutionSnapshots
 
 
@@ -28,7 +30,8 @@ def build_entry_desk(cfg: dict) -> EntryDesk:
 
 
 def build_exit_desk(cfg: dict) -> ExitDesk:
-    return ExitDesk(cfg["charges"], build_alert_sender())
+    """Exits at the execution snapshot's quotes; expired legs settled from NSE's daily F&O files (A2's library)."""
+    return ExitDesk(cfg["charges"], build_alert_sender(), NseFinalSettlement(build_nse_fo_library()))
 
 
 @contextmanager

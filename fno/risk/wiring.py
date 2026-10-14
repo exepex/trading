@@ -40,4 +40,4 @@ def build_risk_manager(cfg: dict, root: Path = ROOT) -> RiskManager:
         ExposureLimit(engine, settings.exposure),
         MarginRoom(stressed, costs),
     )
-    return RiskManager(rules, stressed.record())
+    return RiskManager(rules, stressed.record(), costs)  # the same cost model prices the approved entry
