@@ -34,7 +34,10 @@ NIFTY weekly options daily closes Feb 2019 - Oct 2026 (response 94); NIFTY and V
 trials). Fresh today: stock option chains around results (never used); 15:00 bid/ask quotes from 13 Oct 2026 (forward);
 15-minute quotes (not yet recorded); participant OI history (A8, untested).
 
-**Multiple testing.** Within a registered batch, Holm's correction across the batch's primary tests. Across the
+**Multiple testing.** Within a registered batch, Holm's correction across the batch's primary tests. Every
+`exploratory_shadow` running when an idea is judged belongs to that idea's family, so watching many shadows and picking
+the best cannot pass unadjusted; and a shadow's records count only if its rule, sample and pass mark were frozen before
+collection. Looking at a shadow and then changing the idea makes a new idea and a new row. Across the
 factory, every report shows "trial k of K" and the number of false passes expected by chance at the pass level (for
 example 52 trials at 1% one-sided gives about 0.5 expected false passes). A single pass among many fails is treated as
 "needs a second, independent test" before paper.
@@ -101,10 +104,12 @@ D6), packs (E2), timetable (E3), Book 1 (E5), scorecard and pause rules (E6).
    - **Do nothing:** a NIFTY 50 index fund (NIFTY 50 total return index, minus a 0.05% a year expense ratio; long-term
      capital gains tax at 12.5% above Rs 1.25 lakh a year on sale);
    - **Cash:** a liquid-fund rate (proposal: the RBI repo rate as a proxy, taxed at slab).
-   Two views, both reported: **(a) the whole account**, Rs 20 lakh including idle cash, against the index fund and cash
-   on the whole Rs 20 lakh over the same dates, after their own fees and taxes; and **(b) per rupee of capital tied up**
-   (funds at entry, C2). View (a) is the honest headline: idle cash is part of the result. Reasoning only for the
-   proxies.
+   Two views, both reported over the same dates, after fees and taxes. **(a) Per rupee of capital tied up** (funds at
+   entry, C2) against the index fund per rupee: the headline for whether a strategy earns its capital, because the
+   Rs 20 lakh is a paper device for running strategies in parallel, not the owner's real allocation. **(b) The whole
+   account**, with idle cash credited at the cash rate (never counted as earning zero), against the index fund and cash
+   on the whole Rs 20 lakh: it answers "better than doing nothing with this money?" and shows the cost of idle capital.
+   Reasoning only for the proxies.
 5. **The owner never overrides on paper.** A paper trade cannot be skipped, resized or closed by hand. The owner's own
    ideas go to the Manual paper account (MA1), which is never part of any scoreboard. The only owner action on the
    books is a safety stop (S1 `immediate_pauses`), which is recorded and counted against the book.

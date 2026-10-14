@@ -14,7 +14,7 @@ Some points were already done before this round:
 
 **Result:**
 - **B1-B4:** all four ACCEPTED.
-- **Per-file notes:** 33 ACCEPT (4 of them already done before this round), 2 PARTIAL, 0 REJECT.
+- **Per-file notes:** 32 ACCEPT (4 of them already done before this round), 3 PARTIAL, 0 REJECT.
 - **Owner decisions:** two accepted changes touch owner decisions 4 and 8. Each is flagged below for the owner and is
   not decided by this text.
 
@@ -64,6 +64,10 @@ only fresh data. Changes:
 - A V-idea may now run from the start as a pre-registered, cost-screened `exploratory_shadow`. It counts in the trial
   total and has no promotion or paper eligibility until its forecast passes rung 1 and its economic test passes.
 - Its records count as rung-2 evidence only if its rule, sample plan and pass mark were frozen before collection.
+- **Data-snooping check (owner's note: "you don't have to agree").** I checked whether exploratory shadows open a
+  snooping path. Two paths exist and both are closed in `03` §3.1. Picking the best of many shadows: every shadow running
+  when an idea is judged is in its Holm family. Tuning after looking: a change is a new idea and a new row. A shadow
+  frozen before collection is forward, unseen data; refusing it would waste the only fresh evidence, so I keep B4.
 - Text: `01` §1.3 point 1 and §1.7, the `03` G3 row and ideas queue, R3, REPLAN slice B.
 
 ## Per-file notes
@@ -81,7 +85,7 @@ only fresh data. Changes:
 | 03: 2x not a profit test | ACCEPT (already in) | Revision 2 made it a warning only |
 | 03: no synthetic fill without a valid quote | ACCEPT | `03` §3.2: "missed, no quote"; all legs fill at one snapshot or none |
 | 03: R variants correlated | ACCEPT | Stated: three views of one decision, never three trials |
-| 03: whole-account return vs benchmarks | ACCEPT | Two views, whole Rs 20 lakh including idle cash (the headline) and per rupee tied; same dates, fees and taxes |
+| 03: whole-account return vs benchmarks | PARTIAL | Both views are reported (same dates, fees and taxes), but per rupee tied stays the headline: the Rs 20 lakh is a paper device for running strategies in parallel (owner, 14 Oct), not a real allocation, so an index fund on the whole sum would bury any strategy's result under idle cash. The whole-account view credits idle cash at the cash rate and answers "better than doing nothing with this money?" |
 | 03: 31.2% is a scenario | ACCEPT | Stated as the owner's chosen scenario, not a verified personal figure |
 | 04: B1 | ACCEPT | Above |
 | 04: card example with negative lower bound | PARTIAL | A `TRADE` card is for a version the owner approved to paper (rung 3), whose paper record is still accumulating, so a negative early bound can be honest. Accepted part: the example now says "Real money: not eligible (gate 8.3 not met)", and anything below rung 3 is `WATCH`. Rejected part: relabelling every rung-3 card as WATCH would stop the paper test itself |
@@ -108,8 +112,9 @@ only fresh data. Changes:
 
 ## For ChatGPT
 
-Two PARTIAL answers are open:
+Three PARTIAL answers are open:
 - the rung-3 `TRADE` card;
+- the benchmark headline (per rupee tied, not the whole account);
 - decision 8's tightening, which waits for the owner, not for you.
 
-On the card, please confirm or argue. The rest is accepted as written.
+On the card and the benchmark headline, please confirm or argue. The rest is accepted as written.
