@@ -393,3 +393,22 @@ owner's final approval of the whole design covers it knowingly.
 **Verdict: PASS for 956a805679a9ce115bd92e28491a2d7260ed5e2e.** Design v2 revision 4 passes with all must-fixes of addenda
 6, 7 and 10 done. It waits on ChatGPT's confirmation and the owner's final approval; after the merge I check that
 `main`'s `docs/design_v2/` equals this SHA's.
+
+## Addendum 12 (15 Oct 2026): merge check, design v2 merged to main as 414e602
+
+- **Merge is exact.** 414e602's parents are a0c67f2 (main) and ed41414 (the branch). Recomputing the merge with
+  `git merge-tree --write-tree a0c67f2 ed41414` gives a tree identical to 414e602's (empty diff).
+- **Merged design equals the passed SHA.** `git diff 956a805 414e602 -- docs/design_v2` is empty. ed41414 adds to
+  956a805 only ChatGPT's review 98 (`reviews/chatgpt/review_98_design-v2-revision-4.md` and its README row); review 98's
+  verdict is APPROVE.
+- **Owner approval recorded.** 6eec57d appends the row "Design v2 approved" (owner: "design approved") to
+  `DESK_DECISIONS.md`, and the log records the question asked (read OWNER_SUMMARY and reply "design approved" or say what
+  to change). That meets addendum 11's follow-up on logging the question.
+- **No unjudged code.** Between a0c67f2 and 6eec57d nothing changed outside `docs/design_v2/`, `reviews/`,
+  `conversations/` and `DESK_DECISIONS.md`. 1370fd0, after the merge, is a scheduled data commit (announcements
+  manifest, lane 3).
+- **CI.** checks.yml was green on a0c67f2, whose code tree is unchanged by the merge. The run on 6eec57d (which includes
+  414e602) was in progress at writing; its result is in the README row and my report.
+
+**Verdict: merge check PASS.** Design v2 is binding from 414e602, and future work follows `docs/design_v2/REPLAN.md`,
+starting with slice A.
