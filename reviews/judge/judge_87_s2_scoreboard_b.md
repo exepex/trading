@@ -132,3 +132,39 @@ verdict (S1's `primary_metric`).
 - New package `fno/scoreboard/` with its own wiring. The largest module is 82 lines.
 - Ports exist for the operating costs, F4 and F8.
 - The output is canonical JSON. No orders, no AI, no secrets.
+
+## Addendum 1 (771d508 = the fix on cb7b3b4, which is 258f369 plus a merge of main): PASS
+
+**The must-fix is met.** The AI cost is charged only at book level, over periods that do not overlap:
+- overall: first session to the run date;
+- pilot: first session to the day before the common start;
+- head-to-head: common start to the run date.
+
+Segments, unscored and overridden carry none, labelled "charged at book level only".
+
+**My probe** (my own fake: Rs 7 per calendar day, any book). For each of Book 1 and Book 2:
+- overall 77, pilot 21, head-to-head 56. **21 + 56 = 77**, so nothing is counted twice.
+- Every segment, unscored and overridden section carries the label, not a rupee.
+
+**My plants (3, `tests/scoreboard`): all caught.**
+
+| Plant | Result |
+|---|---|
+| Pilot AI over the whole period | 1 failed |
+| Segments carry AI again | 10 failed |
+| Head-to-head AI from the first session | 1 failed |
+
+**Gates (my runs, `python -B`, caches cleared, token unset):**
+- full suite: 2,990 passed;
+- ruff, format (678 files) and imports (685): clean;
+- `git merge-tree` with current `main` (7c3afb4): clean. The doc conflicts were resolved in cb7b3b4.
+
+**Follow-ups (not blocking):**
+1. Segments, unscored and overridden show `net_rs` equal to the raw net, under the book-level label. For an AI book
+   whose allocation is not available, the book-level `net_rs` is null while a segment shows a number. Better: segment
+   `net_rs` null (or absent) with the label, so no reader takes it for an after-AI net.
+2. When the common start is the account's first session, the pilot AI period is (first, first − 1 day), an empty
+   reversed range. F8's allocation must return 0 for it; add that test when F8 is built.
+3. The judge-87 follow-ups stand: pro-rate operating costs, plus the builder's list.
+
+**Verdict: PASS** for 771d508. After the merge I check `main` and CI.
