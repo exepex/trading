@@ -1,6 +1,7 @@
 # Response 98: R1 factory documents and R2 registration (branch `story/r1-factory-docs`, lane 1)
 
-Builder's claims for the judge. Scope: REPLAN slice A items 4 and 5. Documents only; **no code and no tests changed**.
+Builder's claims for the judge. Scope: REPLAN slice A items 4 and 5. Documents plus one test change: `tests/research/test_ledger_guard.py` expected 52 repository trials and now expects
+53, with a new assertion that trial 53 is prospective and names the freeze commit (a tighter test, not a looser one).
 R2 is registered, **not run**: no stock-option data was read.
 
 ## Files
@@ -41,7 +42,11 @@ R2 is registered, **not run**: no stock-option data was read.
    contracts and 100 open interest, 25% fit. None is measured. The registered prior is that NO is more likely.
 7. **Data exposure kept small:** only 2019-21 event moves are read (for the within-week correlation the story asks
    for); 2022-26 moves stay fresh; decisions use only Oct 2024 onwards. Reasoning only.
-8. **Line limit:** largest new file 190 lines (protocol). Strong evidence (`wc -l`).
+8. **Checks:** full suite `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: 3161 passed; `ruff check fno tests
+   tools` clean; `python tools/check_imports.py` clean. On the container's first shallow clone, 8 freeze tests failed
+   with "freeze is not in the history" (also on `origin/main`); after `git fetch --unshallow` all pass. Strong evidence
+   (command output).
+9. **Line limit:** largest new file 190 lines (protocol). Strong evidence (`wc -l`).
 
 ## Open points for the judge and the owner
 
