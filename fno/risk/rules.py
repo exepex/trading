@@ -117,9 +117,18 @@ class ExposureLimit(RiskRule):
         )
 
 
+def _value(units, market: Market) -> float:
+    """A position's value at today's mids, bought units plus."""
+    return sum(n * market.quote(contract).mid for contract, n in units.items())
+
+
 class MarginRoom(RiskRule):
     """Stressed margin of every open trade plus the proposal at most the available cash after the proposal's entry:
-    min(cash, marked equity) - premium reserved, each moved by the entry (its cash flow, and its marked value)."""
+    min(cash, marked equity) - premium reserved, each moved by the entry (its cash flow, and its marked value), and
+    never more than cash + the entry's cash flow + each trade's own liability (the value of every trade worth less than
+    zero, the proposal's included). A broker does not net one trade's value against another's liability: with an open
+    credit trade and a new debit trade, min(cash, marked equity) alone left the debit's premium free a second time
+    (A14, judge 75's test)."""
 
     name = "margin_room"
 
@@ -132,7 +141,11 @@ class MarginRoom(RiskRule):
         cash_flow = self.costs.entry_cash_flow(proposal, market)
         marked = sum(units * market.quote(c).mid for c, units in proposal.signed_units().items())
         state = book.state
-        after = min(state.cash + cash_flow, state.marked_equity + cash_flow + marked) - state.premium_reserved
+        liabilities = sum(min(0.0, _value(t.units, market)) for t in book.open_trades) + min(0.0, marked)
+        lower = min(
+            state.cash + cash_flow, state.marked_equity + cash_flow + marked, state.cash + cash_flow + liabilities
+        )
+        after = lower - state.premium_reserved
         needed = sum(margins.values())
         ok = needed <= after
         relation = "within" if ok else "above"

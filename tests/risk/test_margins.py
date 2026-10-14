@@ -11,7 +11,7 @@ from fno.risk.settings import StressedMarginSettings
 from .builders import DAY, FLY
 
 TERMS = TradeTerms(FLY, 200, 2)
-HEADER = "structure,width,margin_per_lot_rs,source,as_of\n"
+HEADER = "structure,width,scan_per_lot_rs,nov_per_lot_rs,exposure_per_lot_rs,source,as_of\n"
 
 
 def _table(tmp_path, rows: str, max_age: int = 7) -> MarginTable:
@@ -26,14 +26,15 @@ def _multiplier(table, factor=1.5, source="broker calculator, stressed case", as
 
 def test_margin_is_the_latest_row_on_or_before_the_day_times_lots(tmp_path):
     table = _table(
-        tmp_path, "SF,200,40000,calc,2026-10-08\nSF,200,42000,calc,2026-10-12\nSF,200,99000,calc,2026-10-14\n"
+        tmp_path,
+        "SF,200,40000,0,0,calc,2026-10-08\nSF,200,42000,0,0,calc,2026-10-12\nSF,200,99000,0,0,calc,2026-10-14\n",
     )
     assert table.margin(TERMS, DAY) == 84_000.0  # the 14 Oct row is in the future: never used
 
 
 @pytest.mark.parametrize(("as_of", "ok"), [(DAY - timedelta(days=7), True), (DAY - timedelta(days=8), False)])
 def test_a_margin_older_than_7_days_fails_closed(tmp_path, as_of, ok):
-    table = _table(tmp_path, f"SF,200,40000,calc,{as_of}\n")
+    table = _table(tmp_path, f"SF,200,40000,0,0,calc,{as_of}\n")
     if ok:
         assert table.margin(TERMS, DAY) == 80_000.0
     else:
@@ -45,10 +46,10 @@ def test_a_margin_older_than_7_days_fails_closed(tmp_path, as_of, ok):
     "rows",
     [
         "",
-        "SC,200,40000,calc,2026-10-12\n",
-        "SF,150,40000,calc,2026-10-12\n",
-        "SF,200,40000,,2026-10-12\n",
-        "SF,200,0,calc,2026-10-12\n",
+        "SC,200,40000,0,0,calc,2026-10-12\n",
+        "SF,150,40000,0,0,calc,2026-10-12\n",
+        "SF,200,40000,0,0,,2026-10-12\n",
+        "SF,200,0,0,0,calc,2026-10-12\n",
     ],
 )
 def test_a_missing_unsourced_or_zero_margin_fails_closed(tmp_path, rows):
@@ -62,7 +63,7 @@ def test_a_missing_margin_file_fails_closed(tmp_path):
 
 
 def test_multiplier_margin_and_its_record(tmp_path):
-    stressed = _multiplier(_table(tmp_path, "SF,200,40000,calc,2026-10-12\n"))
+    stressed = _multiplier(_table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n"))
     assert stressed.margin(TERMS, DAY) == 120_000.0
     record = stressed.record()
     assert record["method"] == "multiplier" and record["multiplier"] == "1.5" and record["as_of"] == "2026-10-13"
@@ -80,13 +81,13 @@ def test_multiplier_margin_and_its_record(tmp_path):
     ],
 )
 def test_an_unset_expired_or_future_multiplier_fails_closed(tmp_path, factor, source, as_of):
-    stressed = _multiplier(_table(tmp_path, "SF,200,40000,calc,2026-10-12\n"), factor, source, as_of)
+    stressed = _multiplier(_table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n"), factor, source, as_of)
     with pytest.raises(RiskInputError, match="multiplier"):
         stressed.margin(TERMS, DAY)
 
 
 def test_a_multiplier_exactly_30_days_old_is_still_valid(tmp_path):
-    stressed = _multiplier(_table(tmp_path, "SF,200,40000,calc,2026-10-12\n"), as_of=DAY - timedelta(days=30))
+    stressed = _multiplier(_table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n"), as_of=DAY - timedelta(days=30))
     assert stressed.margin(TERMS, DAY) == 120_000.0
 
 

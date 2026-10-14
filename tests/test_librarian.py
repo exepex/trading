@@ -197,12 +197,13 @@ def test_the_library_archives_fetched_files_straight_to_drive_when_uploads_are_s
     library = wiring.build_participant_oi_library(tmp_path)
     drive = library.archive.store  # FingerprintingStore -> AreaStore -> the upload store
     assert isinstance(drive.store, wiring.GoogleDriveUploadStore) and drive.area == wiring.RAW_AREA
-    assert set(wiring.LIBRARIAN_DATASETS) == {  # each added by its own story (A9, A10, P6)
+    assert set(wiring.LIBRARIAN_DATASETS) == {  # each added by its own story (A9, A10, P6, A14)
         "participant-oi",
         "index-close",
         "cm-bhavcopy",
         "security-delivery",
         "fo-bhavcopy",
+        "span-bod",
     }
     with pytest.raises(RuntimeError, match="FNO_GDRIVE_OAUTH_REFRESH_TOKEN"):
         monkeypatch.delenv("FNO_GDRIVE_OAUTH_REFRESH_TOKEN")
