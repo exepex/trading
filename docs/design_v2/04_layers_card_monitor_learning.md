@@ -24,17 +24,26 @@ column is illustrative only: no such strategy is approved, and "x" marks digits 
 | Weather | AMBER: VIX up 14% in 5 sessions |
 | Devil's advocate | Three strongest objections, and its verdict: "no hard-rule breach" |
 | Costs and tax | Charges and pads Rs 2xx; net breakeven after costs Rs 6x; tax at 31.2% on the year's net profit |
-| Evidence | Rung and label, e.g. "rung 3, paper; some evidence: lower bound -0.02 per rupee risked after 38 trades" |
+| Evidence | Rung and label, e.g. "rung 3: approved to paper by the owner, paper record still accumulating; some evidence: lower bound -0.02 per rupee risked after 38 trades. Real money: not eligible (gate 8.3 not met)". A `TRADE` card is only ever for a version approved to paper (rung 3); anything earlier is `WATCH` |
 | Proves it wrong | The strategy's registered pause and retire rules |
 
 **Scoring the card.** A `TRADE` card is scored by its paper trade's net result and by the forecast it quoted; a
 `NO TRADE` card by the shadow results of what was skipped (the price of staying out, section 2.3).
 
 **Delivery.** Slack #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_BOT_TOKEN` only; the owner turns on Slack's phone push for
-the channel. Plain text first; images optional. Target: card on the phone by 15:08 IST (decision cutoff 15:00, plus
-devil's advocate). A failed post is retried and logged "alert NOT sent"; the next card says so.
-**Storage (owner decision of 15 Oct 2026):** card records are kept in Google Drive only; the public repository holds
-only their hashes and scores, never live strikes or entry ranges.
+the channel. Plain text first; images optional. A failed post is retried and logged "alert NOT sent"; the next card
+says so.
+
+**Timing contract (three times, in this order; ChatGPT's full review 95, B1, accepted):**
+1. `market_data_cutoff` = 15:00 IST: the market pack is frozen and hashed; no later market data enters the card.
+2. `decision_finalized_at` (target 15:06): from that immutable pack the desk builds the proposed decision, the code
+   checks run, and the devil's advocate writes its objections on the same pack. If the advocate has not answered by its
+   deadline (target 15:05), the record says `advocate_unavailable` and the card goes out with the code checks only;
+   no objection is ever invented.
+3. `card_sent_at` (target 15:08): the finalised card is posted. The exact slots go into S1's `timetable` item from
+   measured run times; tests cover the order, the timeout and a late pack. **Storage (owner decision of 15 Oct 2026):**
+   card records are kept in Google Drive only; the public repository holds only their hashes and scores, never live
+   strikes or entry ranges.
 
 **Interfaces.** `TradeCard` (data), `CardBuilder` (from decision, risk, forecast, weather and advocate records),
 `CardRenderer` (Slack today, dashboard later: one class each), existing `AlertSender`, new `DevilsAdvocate`
@@ -94,17 +103,17 @@ baselines; weather record and its misses; every card and its outcome; open posit
 
 **Why-it-was-wrong review of every loss** (and of every confident forecast miss: stated probability at least 0.8 or at
 most 0.2 and wrong; and every GREEN day followed by a 2% move). Each is classified, by computation first:
-1. **Within its stated odds** (luck): the event had a stated probability that makes it unsurprising (for example, a 30%
-   outcome happened). Recorded as luck; no fix. Over many cases this class is checked by calibration: if "luck" happens
-   more often than the stated odds allow, it was not luck but miscalibration.
+1. **Compatible with its stated odds:** the event had a stated probability that makes it unsurprising (for example, a
+   30% outcome happened). No fix. A single case is never proven luck; only calibration over many cases tells: if this
+   class happens more often than the stated odds allow, it was miscalibration, not chance.
 2. **Model error:** the forecast or rule was miscalibrated or missed a known driver.
 3. **Data error:** an input was wrong, late or missing.
 4. **Execution error:** fills, costs, margins or expiry handled wrongly.
 5. **Rule break:** a decision outside the registered rules (should be impossible; C4 and the judge check).
 6. **Unknown or regime change:** recorded as such; watched by drift detection.
 
-This is how "no place for luck" is made true in the only honest way: luck cannot be removed, but it is **measured and
-labelled**, and it never gets credit for a win either. A win inside its stated odds is counted the same way.
+This is how "no place for luck" is made true in the only honest way: chance cannot be removed, but it is **measured over
+many cases**, and it never gets credit for a win either. A win compatible with its stated odds is counted the same way.
 
 **Fixes become new versions, never silent edits.** A fix to a forecaster, weather model, strategy or rule is a new
 version in D6's registry, registered in the ledger, tested forward from its registration. The old version's record is
@@ -120,8 +129,8 @@ statistics retire or promote anything (S1 `review_dates`).
 **Interfaces.** `PostMortemBuilder`, `LossReview` (classifier; one class per class test), `DriftDetector` (strategy:
 CUSUM now), existing version registry (D6). Wiring: a new `fno/learning/wiring.py`.
 
-**Evaluation metric.** Share of losses reviewed within a week; share classified as luck vs error, compared with the
-calibration test; repeat errors of the same class; time from error found to new version registered.
+**Evaluation metric.** Share of losses reviewed within a week; share classified as compatible with stated odds vs error,
+compared with the calibration test; repeat errors of the same class; time from error found to new version registered.
 
 **Failure modes.** Storytelling after the fact (the classification is computed from stated probabilities first; an AI
 narrative cannot change the class); fixing on noise (a fix is a new version tested forward, never applied to past

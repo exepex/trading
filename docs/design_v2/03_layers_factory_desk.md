@@ -13,9 +13,9 @@ The G1 screen is a cheap feasibility observation, not an outcome test; the outco
 | Gate | What is checked | Who | Output |
 |---|---|---|---|
 | G0 Idea card | Who pays and why; the forecast it rests on (if any); structure; entry, exit, size; worst loss in Rs; expected gross per trade with its source; whether it needs a reaction faster than 60 minutes (then flagged "needs fast reaction" and judged at R = 60, section 6.5) | any role or AI | `research/ideas/<id>.md` |
-| G1 Feasibility screen (cost wall) | A documented gross-payoff distribution per trade, or a conservative bound, with its source; full round-trip cost (C1 charges plus pads from measured half-spreads, A4 and A16 data); **expected net after costs and tail losses above zero on the conservative bound**; for volatility ideas, the implied-volatility-point edge per vega per lot needed to clear costs. The ratio "gross at least 2 x cost" is shown as a labelled warning ("thin margin"), never a pass mark | code (CostWall) | pass, or ledger status `screened_out` with the numbers; a pre-registered counterexample study may still test it |
+| G1 Feasibility screen (cost wall) | A documented gross-payoff distribution per trade, or a conservative bound, with its source and its tail assumption stated (the probability and size of a maximum loss; the screen uses the worse of the card's figure and the measured maximum-loss rate of the structure's family where one exists, e.g. response 94's W5 27% in RED weeks); full round-trip cost (C1 charges plus pads from measured half-spreads, A4 and A16 data); **expected net after costs and tail losses above zero on the conservative bound**; for volatility ideas, the implied-volatility-point edge per vega per lot needed to clear costs. The ratio "gross at least 2 x cost" is shown as a labelled warning ("thin margin"), never a pass mark | code (CostWall) | pass, or ledger status `screened_out` with the numbers; a pre-registered counterexample study may still test it |
 | G2 Data spend | The data the test would use has not been spent by an earlier trial (data-spend register, below); if spent, the test is labelled exploratory and cannot pass | code | fresh or exploratory |
-| G3 Sample plan | n needed = (z x SD / expected net)^2 from the idea's own SD estimate; the time that takes at the idea's frequency | statistician | registered n and date; above 3 years only if the idea rests on a forecast that already beat its baseline (rung 1) |
+| G3 Sample plan | n needed = (z x SD / expected net)^2 from the idea's own SD estimate; the time that takes at the idea's frequency | statistician | registered n and date. Above 3 years, the idea may still run as an `exploratory_shadow` (forward, costed, counted in the trial total), but it is promoted only if it rests on a forecast that has beaten its baseline (rung 1) |
 | G4 Registration | Protocol text, code hash, ledger row committed before any result | B4 ledger guard | ledger row |
 | G5 Test | Historical (fresh data only) or forward shadow (experiment 2 model: decisions recorded, never in a book) | code | result, once; no retuning |
 | G6 Verdict | Pass mark from the registration; a fail is final for that version; a variant is a new idea and a new row | judge | verdict in the ledger |
@@ -43,8 +43,8 @@ example 52 trials at 1% one-sided gives about 0.5 expected false passes). A sing
 
 | Idea | Rests on | Data | Status and label |
 |---|---|---|---|
-| V1 Sell protected premium only when the volatility forecast is well below implied | v4 forecast skill (rung 1) | 15:00 quotes, forward | waits for rung 1; reasoning only |
-| V2 Buy protected movement (debit spreads, straddles within the cap) when forecast is well above implied | v4 forecast skill | same | waits for rung 1; reasoning only |
+| V1 Sell protected premium only when the volatility forecast is well below implied | v4 forecast skill (rung 1) | 15:00 quotes, forward | `exploratory_shadow` now; promotion waits for rung 1; reasoning only |
+| V2 Buy protected movement (debit spreads, straddles within the cap) when forecast is well above implied | v4 forecast skill | same | `exploratory_shadow` now (within the cap); promotion waits for rung 1; reasoning only |
 | R2 Stock options around results: implied move vs realised move | stock chains + results dates | fresh history (2019-26) | feasibility first (costs, liquidity, lot values vs the Rs 10,000 cap); some evidence that event premia exist abroad, none here |
 | E3 Event premium (RBI policy, Budget): implied before vs after | NSE chains, events calendar | NIFTY history is spent: forward only | cost wall first; reasoning only |
 | P1 Put spread on the skew (response 92 option A) | skew, drift | forward only | model negative (-243 a trade); not now |
@@ -81,7 +81,10 @@ D6), packs (E2), timetable (E3), Book 1 (E5), scorecard and pause rules (E6).
    all three are reported; **the verdict uses 60 minutes (owner, 15 Oct 2026)**, because a fast reaction cannot be
    promised. A card sent at time T fills at the first quote snapshot at or after T + R, at the bid for sells and the ask
    for buys, plus the pad, and only if that price is inside the card's entry range; outside it, the trade is recorded as
-   "missed, price moved" and never filled at another price. Exits from the monitor follow the same rule. If T + R is
+   "missed, price moved" and never filled at another price. With no valid quote at that snapshot (missing, stale or no
+   bid or ask for any leg), the trade is "missed, no quote": never a synthetic fill. All legs fill at the same snapshot
+   or none do. The three fills (R = 5, 30, 60) are three views of the same decision, highly correlated, never three
+   independent trials. Exits from the monitor follow the same rule. If T + R is
    after 15:25 IST, or the availability calendar says "away", the fill is at the first snapshot at or after the next
    session's 09:15 plus R. **Consequence, said plainly:** with a 15:08 card and R = 60, the verdict's fill of every
    daily-card entry lands on the next session at about 10:15, after the overnight gap, and the card's 15:00 entry range
@@ -93,12 +96,15 @@ D6), packs (E2), timetable (E3), Book 1 (E5), scorecard and pause rules (E6).
    and A14 to one- and two-leg shapes). Never a naked short leg: C4 refuses any position whose maximum loss is not
    fixed at entry.
 4. **Tax and benchmarks.** Every result is shown before tax, after C1 costs, and after 31.2% tax on the year's net F&O
-   profit. Beside it, two benchmarks on the same capital (story S2 change):
+   profit (31.2% is the owner's chosen scenario, the 30% slab plus cess, not a verified personal tax figure). Beside it,
+   two benchmarks on the same capital (story S2 change):
    - **Do nothing:** a NIFTY 50 index fund (NIFTY 50 total return index, minus a 0.05% a year expense ratio; long-term
      capital gains tax at 12.5% above Rs 1.25 lakh a year on sale);
    - **Cash:** a liquid-fund rate (proposal: the RBI repo rate as a proxy, taxed at slab).
-   An F&O result is reported per rupee of capital tied up (funds at entry, C2), so the comparison with an index fund on
-   the same capital is fair. Reasoning only for the proxies; owner decides.
+   Two views, both reported: **(a) the whole account**, Rs 20 lakh including idle cash, against the index fund and cash
+   on the whole Rs 20 lakh over the same dates, after their own fees and taxes; and **(b) per rupee of capital tied up**
+   (funds at entry, C2). View (a) is the honest headline: idle cash is part of the result. Reasoning only for the
+   proxies.
 5. **The owner never overrides on paper.** A paper trade cannot be skipped, resized or closed by hand. The owner's own
    ideas go to the Manual paper account (MA1), which is never part of any scoreboard. The only owner action on the
    books is a safety stop (S1 `immediate_pauses`), which is recorded and counted against the book.

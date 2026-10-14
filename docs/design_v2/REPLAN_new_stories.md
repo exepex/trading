@@ -15,7 +15,9 @@ the day. Layer and section references are to the design v2 files.
   timings only). Then the recorder: 26 snapshots a session, raw files to Drive, derived per-session realised variance in
   the repository, gaps recorded never filled. Host chosen by the owner (6.6). No order code, read-only key use.
   Acceptance includes section 4.4's contracts: Groww's terms checked first (raw quotes in Drive only), the clock
-  contract and skew check. Depends: A7, A9, the owner's host decision. M. Slice A.
+  contract and skew check; plus operational gates: the key only in the routine's secrets (never in a file, log or
+  message), missed or stale snapshots recorded as gaps with an alert after two in a row, and host failure caught by the
+  heartbeat. Depends: A7, A9, the owner's host decision (decided 15 Oct 2026: a Claude routine). M. Slice A.
 - **A17 Global cues.** Previous US close (S&P 500, Nasdaq 100), Brent, USD/INR and the US 10-year yield, each behind
   `GlobalCueSource`, with `first_seen_at`; official or primary sources first (NSE currency and MCX files, FRED). Why:
   overnight gap risk and the weather's drivers. Depends: A9, O6. M. Slice A.
@@ -26,12 +28,15 @@ the day. Layer and section references are to the design v2 files.
 ## Forecasts (layer 2)
 
 - **G6 Forecast protocol v4.** The volatility question set V1-V7, baselines, scoring and the registered family of
-  section 5; minimum effects; power-check rule. Acceptance includes: V5's outcome uses the correct expiry's final
-  settlement or reference level, with its source and timestamp frozen, never a later daily close; the freeze record
-  discloses the 2017-26 base rates measured before it, on regular sessions only (judge 96 addendum 2). Freeze after
-  the judge and ChatGPT agree (orchestrator decision of 13
-  Oct 2026: G-protocols freeze only after ChatGPT review). G1 v3 keeps running beside it. Depends: G1, G2, G4. M
-  (document). Slice A.
+  section 5; minimum effects; power-check rule. Acceptance includes tests, all passing before the freeze, for: the QLIKE
+  ranking loss at zero, near-zero and missing RV, and its equality with the textbook form's paired differences when RV >
+  0; V4's units, with a dimensionally checked golden example (annualised volatility vs integrated variance, calendar vs
+  session time); V5's outcome from the correct expiry's final settlement or reference level, with its source and
+  timestamp frozen, never a later daily close; the exact one-sided null-centred bootstrap (seed, blocks, missing pairs);
+  baseline eligibility; the futility rule; the stop rule's A/B table with zero trials, missing and void outcomes. The
+  freeze record discloses the 2017-26 base rates measured before it, on regular sessions only (judge 96 addendum 2).
+  Freeze after the judge and ChatGPT agree (orchestrator decision of 13 Oct 2026: G-protocols freeze only after ChatGPT
+  review). G1 v3 keeps running beside it. Depends: G1, G2, G4. M (document). Slice A.
 - **G7 v4 baselines and rule forecasters.** Trailing, EWMA, HAR (daily, later intraday), implied and implied-ratio
   baselines; back-fill on close proxies, labelled; live capture beside G3. Wiring in `fno/forecast/baseline_wiring.py`
   (G1's freeze pins `wiring.py`). Depends: G6. M. Phase 1 (V6, V1) slice A; phase 2 (V2-V5, V7) slice B.
@@ -67,7 +72,9 @@ the day. Layer and section references are to the design v2 files.
   P&L on outcomes in this study (it only decides whether a P&L study is worth registering). Depends: A1, A12. M.
   Slice A.
 - **R3 First forward shadows.** The first ideas that pass the cost wall, registered as research candidates and recorded
-  daily as shadows (experiment 2 model). V-ideas only after their forecast passes rung 1. Depends: R1, STR1. M. Slice B.
+  daily as shadows (experiment 2 model). V-ideas run as pre-registered, cost-screened `exploratory_shadow` from the
+  start, with no promotion or paper eligibility until their forecast passes rung 1 and their economic test passes.
+  Depends: R1, STR1. M. Slice B.
 - **STR1 One- and two-leg structures.** B2's `Structure` builds any number of legs; C4's shape and independent max-loss
   checks, D1's codes, D2's candidates and A14's margin rows accept bought options and vertical spreads. Never a naked
   short leg. Response 92 sized it at about 8-10 files. Depends: B2, C4, D1, D2, A14. M. Slice B.
@@ -98,10 +105,9 @@ the day. Layer and section references are to the design v2 files.
 ## Live monitor (layer 7)
 
 - **LM1 Position monitor, alert only.** `PositionMonitor` and one `MonitorCheck` class per check of 4.2, heartbeat and
-  "monitor silent" checker, weekly replay for missed alerts. No entry code path. Acceptance includes section 4.4's
-  clock contract and owner-unavailable fallback, and alerts written for up to 1 hour of owner delay (6.5). Starts only
-  when the first paper or shadow position is open.
-  Depends: A16, E1, T1, host. M. Slice B.
+  "monitor silent" checker, weekly replay for missed alerts. No entry code path. Acceptance includes section 4.4's clock
+  contract and owner-unavailable fallback, and alerts written for up to 1 hour of owner delay (6.5). Starts only when
+  the first paper or shadow position is open. Depends: A16, E1, T1, host. M. Slice B.
 - **LM2 Intraday exits mode.** `intraday_exits` per strategy version, with the same version shadowed in the other mode
   as a registered comparison. Depends: LM1, E8. M. Slice C.
 
@@ -110,7 +116,7 @@ the day. Layer and section references are to the design v2 files.
 - **LR1 Weekly post-mortem.** Code builds the numbers; an AI writer may cite only them; the devil's advocate reviews.
   Depends: G4, T1. S. Slice A.
 - **LR2 Why-it-was-wrong reviews.** The six classes of 4.3, the computed "within its stated odds" test first, and the
-  calibration check of the luck class. Depends: LR1, D3, E4. M. Slice B.
+  calibration check of the "compatible with stated odds" class. Depends: LR1, D3, E4. M. Slice B.
 - **LR3 Drift detection.** The CUSUM rules of 5.8 for forecasters and strategies; strategy alarms pause new entries.
   Depends: G8, E6. S. Slice B.
 

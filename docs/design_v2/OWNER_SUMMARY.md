@@ -5,18 +5,22 @@ weather (green, amber or red), the tool's forecasts of how much NIFTY will move 
 and either a trade (what, strike, entry range, maximum loss in rupees, exit plan, the devil's advocate's objections,
 evidence label) or **"no trade" with the reason**. During market hours a monitor watches open paper trades every 15
 minutes and alerts you on danger. Every Saturday a one-page post-mortem shows what was right, what was wrong, and
-whether each miss was bad luck (inside the stated odds) or a real error. Every forecast, card and alert is scored
-later, forever. Fixes become new versions; nothing is quietly edited.
+whether each miss was compatible with the stated odds or a real error (one miss never proves luck; calibration over many
+shows it). Every forecast, card and alert is scored later, forever. Fixes become new versions; nothing is quietly
+edited.
 
-**Why "movement size" first.** How much NIFTY moves is partly predictable; which way it moves is close to a coin toss.
-Option prices are bets on movement, so that is where an edge, if any, would be.
+**Why "movement size" first.** How much NIFTY moves is partly predictable; which way it moves has been close to a coin
+toss in our data. Option prices are bets on movement, so that is where an edge, if any, would be.
 
-**What the evidence says today (strong evidence).** Two independent tests found no edge in NIFTY option trades held for
-days or weeks: the premium exists, but costs (Rs 810-940 a four-leg monthly trade) eat it. And trade profits prove
-things slowly: a small edge on monthly trades would take over 100 years of trades to prove. Forecasts are scored every
-day, so they settle faster, but not fast: a daily forecast question needs roughly 15 months to 5 years of scoring to
-show real skill, depending on how noisy it turns out to be (measured after 60 days). That is still far faster than
-trades, which is why forecasts come first and trades second.
+**The honest headline first: proving forecasting skill can take years, and skill may still not make money after
+costs.** Most likely, the tool ends with a well-measured "no edge found" plus a good risk and learning aid.
+
+**What the evidence says today (strong evidence).** Two different studies on related historical data found no edge in
+NIFTY option trades held for days or weeks: the premium exists, but costs (Rs 810-940 a four-leg monthly trade) eat it.
+And trade profits prove things slowly: a small edge on monthly trades would take over 100 years of trades to prove.
+Forecasts are scored every day, so they settle faster, but not fast: a daily forecast question needs roughly 15 months
+to 5 years of scoring to show real skill, depending on how noisy it turns out to be (measured after 60 days). That is
+still far faster than trades, which is why forecasts come first and trades second.
 
 **Order of work.**
 1. **First release (about 3-6 weeks; depends on ChatGPT's review and your decisions):** trustworthy data (15-minute
@@ -50,9 +54,10 @@ every new paper trade fills the next morning, after the overnight gap, and many 
 really get, so the record shows it.
 
 **Rough cost.** Your existing Claude plan (the books' share is measured and capped; proposal: at most half of measured
-usage), the existing Azure database, free GitHub Actions and Drive. New cash cost: likely Rs 0-1,000 a month for
-hosting the 15-minute jobs (reasoning only), plus whatever Groww charges for API access, if anything. Any new recurring
-cost needs your yes. Building: about two builders and the judge, roughly 3-4 months for the first three steps.
+usage), the existing Azure database, free GitHub Actions and Drive. New cash cost: likely Rs 0-1,000 a month for hosting
+the 15-minute jobs (reasoning only), plus whatever Groww charges for API access, if anything. Any new recurring cost
+needs your yes. Building: about two builders and the judge, roughly 3-4 months for the first three steps (a target, not
+a promise: it depends on the hosting, Groww's data terms and the v4 protocol's review and freeze).
 
 **What it can promise.** Honest, scored forecasts with their real track records; a "no trade" when nothing is proven;
 your maximum loss in rupees before every trade; results after all costs and 31.2% tax, next to simply holding a NIFTY

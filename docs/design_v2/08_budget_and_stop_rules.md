@@ -20,7 +20,7 @@ new recurring cash cost needs the owner's written yes; alert at 80%; AI roles st
 **Cap rule:** any new recurring cash cost needs the owner's written yes; at 80% of a cap a SYSTEM alert; at 100% AI
 roles stop in the order of `07_ai_team.md` section 7.6, and code jobs keep running.
 
-## 8.2 The whole-project stop rule (proposal)
+## 8.2 The whole-project stop rule (decided by the owner on 15 Oct 2026; Test B's zero-shadow correction flagged)
 
 The owner's idea: "no forecaster beats baselines after 6 months of daily scoring: stop or pivot". Made exact:
 
@@ -47,8 +47,12 @@ The owner's idea: "no forecaster beats baselines after 6 months of daily scoring
     itself). Failing to reject zero is never enough;
   - **undecided:** anything else. **Underpowered never counts as "no".**
 - **Test B, money.** Also three results: **yes** when a counted shadow strategy's one-sided 95% lower bound of net per
-  trade after costs is above zero; **no** when no idea reached rung 2, or every counted strategy's one-sided 95% upper
-  bound is below its registered minimum useful net; **undecided** otherwise.
+  trade after costs is above zero; **no** only when every counted strategy reached its registered sample and its
+  one-sided 95% upper bound is below its registered minimum useful net; **undecided** otherwise. **Zero eligible
+  shadows gives `undecided / no_economic_test`, never "no"**: with no observations there is no bound (ChatGPT's full
+  review 95, B2, accepted; revision 2 wrongly said "no" here, against its own "underpowered is never no").
+- **Stopping for cost is a separate, non-statistical decision.** If no idea ever reaches a test, the owner may still
+  stop or cut the project for cost or product reasons; that is recorded as such, never as a statistical "no edge".
 - **Outcomes (both tests must say "no" to stop or pivot):**
   - A no and B no: **stop or pivot** (owner chooses). Stop means: keep only the cheap code jobs (data collection,
     weather as a risk aid, baselines), switch off AI roles. Pivot means one named new direction (for example, stock
@@ -81,6 +85,13 @@ strategy version may start the real-money test only when **all** hold:
 5. It passed the factory's second independent test if it was one pass among many (section 3.1).
 6. The owner approves in writing.
 
+**Proposed tightening, awaiting the owner (ChatGPT's full review 95; owner decision 8 is not changed until the owner
+says so).** A one-sided 95% bound after dozens of screened ideas is not selection-adjusted evidence. Proposal: condition
+5 applies always, not only "if it was one pass among many": the strategy needs either a second, untouched forward
+period with the same pass mark, or a multiplicity adjustment (Holm) across every idea in the trial count at the time,
+with the sample predeclared. Also checked before the test starts: the chosen structure fits the smaller real cap
+(Rs 4,000-5,000), and current SEBI and tax rules are re-verified.
+
 ## 8.4 The small real-money test (accepted by the owner on 15 Oct 2026)
 
 - 1 lot, a real account the owner funds (about Rs 2 lakh), with a per-trade cap of about Rs 4,000-5,000 (2-2.5%). The
@@ -90,6 +101,11 @@ strategy version may start the real-money test only when **all** hold:
 - Duration: its registered number of trades or 6 months, whichever is later.
 - **Pass:** real net per trade inside paper's 95% interval, and real slippage per unit no worse than the paper pad plus
   Rs 0.50. **Stop:** real losses reach Rs 20,000, or slippage twice the paper pad over 5 trades.
+- **Proposed clarification, awaiting the owner (same review; decision 8 not changed until then):** "inside paper's 95%
+  interval" becomes an exact, predeclared test. Real and paper trades come from the same cards, so the test is paired:
+  the mean real-minus-paper net per trade, and real-minus-paper slippage, each with its interval, plus a drawdown stop.
+  "Inside the interval" means a prediction interval for the mean of the real trades given paper's mean and spread,
+  never the (narrower) confidence interval of paper's own mean.
 - Scaling beyond 1 lot only after a pass and the owner's decision. Groww API automation only later, as the owner's
   explicit decision after checking SEBI's retail algorithmic trading rules (SEBI circular of February 2025 on retail
   algo participation; its effective dates were extended, as far as known here: must be re-checked then).

@@ -14,7 +14,8 @@
   results after costs (rung 2 and above).
 - **Intraday data measures volatility far better than daily closes** (strong evidence: Andersen, Bollerslev, Diebold
   and Labys 2003). This is why 15-minute quotes (A16) come first in layer 1.
-- **Daily direction is close to a coin toss** (strong evidence: our Q1 base rates and desk 1's trend trials at 50-52%).
+- **Daily NIFTY direction has been close to a coin toss in our data** (strong evidence for what was measured: Q1 base
+  rates and desk 1's trend trials at 50-52%; not a law for every regime).
   Direction stays forecast and scored (G1 Q1); no trade may rest on it until it beats its baseline.
 
 **What it can give us (reasoning only):** knowing when the premium is unusually large or small relative to a good
@@ -23,9 +24,13 @@ days in a way that pays after costs, unless the gap is large and the structure i
 
 ## 5.2 Targets: protocol v4 (new version; G1 v3 stays frozen and keeps running)
 
-Realised variance of a session `RV_s` = squared overnight log return (previous close to 09:15) plus the sum of squared
-15-minute log returns 09:15-15:30 (A16). Before A16 has history, the close-to-close squared return stands in, labelled
-`close_proxy` (far noisier).
+Realised variance of a session `RV_s` = squared overnight log return (previous session's 15:30 snapshot to this
+session's 09:15 snapshot) plus the sum of the squared log returns over the **25 intervals** between the 26 snapshots
+09:15-15:30 (A16). Each snapshot is the NIFTY index level with its source time; a snapshot whose source time is more
+than 2 minutes old is stale. A session with any missing or stale snapshot has no intraday `RV_s` (void, never
+interpolated); if more than 5% of sessions are void, a new version is proposed. This is labelled a quote-snapshot
+realised variance, not a traded-price measure. Before A16 has history, the close-to-close squared return stands in,
+labelled `close_proxy` (far noisier).
 
 | Id | Question | Type | Independent outcomes a year | Starts |
 |---|---|---|---|---|
@@ -78,19 +83,22 @@ options around results get their own protocol (R2).
 Why premium-adjusted implied is primary for V2 and V3: it is the predeclared physical-variance benchmark because raw
 implied includes a risk premium (strong evidence, 5.1); superiority is not assumed (the trailing ratio adds its own
 estimation noise), and both are scored. Choosing between them on 2019-26 outcomes would expose v4's targets before its
-freeze (ChatGPT review 96, wording accepted). V5's baseline is a
-probability scored by Brier, never IV squared (ChatGPT review 95, accepted).
+freeze (ChatGPT review 96, wording accepted). V5's baseline is a probability scored by Brier, never IV squared (ChatGPT
+review 95, accepted).
 
 ## 5.4 Scoring
 
-- **Point variance forecasts:** QLIKE loss, `RV / f - ln(RV / f) - 1`, primary (strong evidence that it ranks forecasts
-  correctly with a noisy realised measure: Patton 2011); mean squared error on variance secondary; the Mincer-Zarnowitz
-  regression `RV = a + b f` reported for bias.
-- **QLIKE floor (frozen in G6).** Forecasts must be strictly positive. Realised variance is floored at 1% of the
-  trailing 250-session median of the same measure: `RV' = max(RV, floor)`. Measured on NIFTY closes 2017-2026 (2,424
-  returns): 2 exact zero-return days (31 Mar 2017, 8 May 2024), and the floor binds on 6.1% of close-proxy one-day
-  outcomes (132 of 2,174). That is why close-proxy V1 is a diagnostic only and V1 proper uses intraday variance; 5-day
-  sums never reached zero (smallest 4.6e-6).
+- **Point variance forecasts: the QLIKE ranking loss `L(f, RV) = ln f + RV / f`, primary** (ChatGPT's full review 95,
+  B3, accepted). It differs from the textbook QLIKE `RV / f - ln(RV / f) - 1` only by `-ln RV - 1`, which does not
+  depend on the forecast, so every paired difference between two forecasters is identical (strong evidence: algebra;
+  QLIKE ranks forecasts correctly with a noisy realised measure, Patton 2011). Unlike the textbook form it is defined
+  at RV = 0, so **the observed RV is never floored or changed**. Forecasts must be strictly positive. Mean squared error
+  on variance is secondary; the Mincer-Zarnowitz regression `RV = a + b f` is reported for bias.
+- **Zero and near-zero outcomes.** On NIFTY regular-session closes 2017-2026 there are 2 exact zero-return days (31 Mar
+  2017, 8 May 2024); the loss handles them as they are. Revision 2's floor (1% of the trailing 250-session median) would
+  have changed 6.2% of close-proxy one-day outcomes (133 of 2,159); it is dropped, and kept only as a reported
+  sensitivity. G6's tests cover zero, near-zero and missing RV and check that the two loss forms give the same paired
+  differences when RV > 0. The formulation is frozen before any score is seen.
 - **Probabilities:** Brier primary (as G1), log score, the 10-bin reliability table, the calibration slope and
   intercept, and the Brier skill score against the base rate.
 - Missing forecasts are counted, never imputed; void rules as G1 section 2.
@@ -111,9 +119,12 @@ probability scored by Brier, never IV squared (ChatGPT review 95, accepted).
    independent evidence.
 4. **Significance:** Holm's step-down across the family at 5% family-wise.
 5. **Minimum forecast effect, registered:** at least a 3% lower mean QLIKE than the primary baseline, or a Brier skill
-   score of at least 0.02 (reasoning only for both numbers; accepted by the owner on 15 Oct 2026, also as the stop
-   rule's futility margin). These are minimum **forecast** effects only, never evidence of money. A significant but
-   smaller gain is "real but too small to use".
+   score of at least 0.02. Because the ranking loss `ln f + RV / f` has no natural zero, "3% lower" is defined exactly
+   as: the mean paired difference is at most -0.03 x the baseline's mean textbook QLIKE over the scored days with RV > 0
+   (where the textbook form is defined and equals the same paired differences). This keeps the owner's number and only
+   makes its unit exact (flagged to the owner in response 97) (reasoning only for both numbers; accepted by the owner on
+   15 Oct 2026, also as the stop rule's futility margin). These are minimum **forecast** effects only, never evidence of
+   money. A significant but smaller gain is "real but too small to use".
 6. **Stability:** the sign of the gain is the same in the first and second half of the scored period (descriptive).
 7. **Economic check:** skill counts for trading only through a mapping registered before scoring: each factory idea that
    rests on a forecast names how the forecast turns into a position, and its shadow net after costs (rung 2) is the
@@ -122,7 +133,9 @@ probability scored by Brier, never IV squared (ChatGPT review 95, accepted).
 **How long it takes (arithmetic, strong evidence).** The test uses Holm across the family. Planning must use Holm's
 first and strictest step, alpha / m, because a first claim has to pass it. With m of about 15 primary comparisons (G6
 fixes m), that is one-sided 0.05 / 15 = 0.0033 (z = 2.71); with 80% power (z = 0.84), n = (3.55 x r)^2 independent
-outcomes, where r is the SD of `d_t` divided by the registered effect.
+outcomes, where r is the SD of `d_t` divided by the registered effect. This assumes the loss differences are roughly
+independent once blocked; overlapping or clustered outcomes need more. A 60-outcome projection only reports a date; it
+can never change a threshold, a family or a baseline.
 
 | r | n | Daily question (V1, V6 one-day: about 250 a year) | 5-day question (about 50 a year) | 20-day question (about 12 a year) |
 |---|---|---|---|---|

@@ -5,6 +5,11 @@ frozen protocol, a built story or an owner decision. Where design v2 needs a cha
 the change goes through its own lane-1 story, freeze or owner decision. Written by the design-v2 session on branch
 `story/x-design-v2`. The review request is `reviews/claude/response_95_design-v2.md`.
 
+**Conditions before this design is binding:** ChatGPT's full review 95 raised four blocking contradictions (B1 timing of
+the advocate and the card, B2 the stop rule with zero shadows, B3 the QLIKE zero case, B4 forward shadows before
+forecast skill). Revision 3 resolves them (`reviews/claude/response_97_design-v2-full-review.md`); the design is binding
+only after the judge checks that revision and the owner approves it.
+
 The owner's decisions that bind this design are the 14 Oct 2026 rows of `docs/DESK_DECISIONS.md` (eight layers,
 volatility focus, Rs 20 lakh paper account with a Rs 10,000 per-trade cap, the ten differentiators, the eight missing
 pieces, the trading principles, "future slices follow design v2"). They are not reopened here.

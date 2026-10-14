@@ -98,7 +98,8 @@ owner's host decision for A16 and Groww's terms (section 4.4 of the design).
 6. **A15** VIX full history; **A17** global cues (daily).
 7. **G7 phase 1:** baselines and rule forecasters for V6 (now, daily closes) and V1 (once A16 has 20 sessions).
 8. **M1** weather as a scored forecaster (V6; the v0 checklist as its baseline).
-9. **G8** v4 scoring (QLIKE with its floor, Brier, calibration, the null-centred bootstrap and the HAC sensitivity).
+9. **G8** v4 scoring (the QLIKE ranking loss `ln f + RV / f`, no floor; Brier, calibration, the null-centred bootstrap
+   and the HAC sensitivity).
 10. **T1** daily card v1 to Slack: `NO TRADE` with reason, weather, house forecasts (baselines until something passes)
     with their records, and the issuance hashes. **First real thing on the owner's phone.**
 11. **A16** recorder live, once the host and terms allow.
@@ -112,12 +113,13 @@ the card and LR1, never a failure.
 ### Slice B (after slice A): the factory runs forward, the record becomes countable
 
 G7 phase 2 (V2-V5, V7), STR1 (one- and two-leg structures), R1 code, first forward shadow ideas registered (screened
-ideas kept in the trial count; V-ideas wait for rung 1), C5 risk buckets and the Rs 20 lakh settings (owner's
-numbers), E8 owner-timing fills, T2 advocate rule checks, RM1 (real-money gate frozen before any counted paper
-decision), S2 change, S3 and F9 scoring code (so S1 v1 can freeze under the owner's option A; this code must not
-produce a scored Book-3 trading comparison before the common start, which S1's pilot rule already forbids), S1 freeze,
-LR2 loss reviews, LR3 drift, T3 advocate objections, O1 and O2 changes. **LM1** monitor, `alert_only`, starts only when
-the first paper or shadow position is open: a monitor with nothing to watch adds nothing.
+ideas kept in the trial count; V-ideas may run as `exploratory_shadow` from the start, with promotion waiting for rung
+1), C5 risk buckets and the Rs 20 lakh settings (owner's numbers), E8 owner-timing fills, T2 advocate rule checks, RM1
+(real-money gate frozen before any counted paper decision), S2 change, S3 and F9 scoring code (so S1 v1 can freeze under
+the owner's option A; this code must not produce a scored Book-3 trading comparison before the common start, which S1's
+pilot rule already forbids), S1 freeze, LR2 loss reviews, LR3 drift, T3 advocate objections, O1 and O2 changes. **LM1**
+monitor, `alert_only`, starts only when the first paper or shadow position is open: a monitor with nothing to watch adds
+nothing.
 
 ### Slice C (December 2026 - January 2027): surfaces and depth
 

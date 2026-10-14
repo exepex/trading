@@ -6,11 +6,28 @@
   parallel, not bigger bets.
 - **Worst loss fixed at entry**: bought options or spreads with bought protection; never unprotected selling; no
   stop-loss order relied on (owner decision of 14 Oct 2026, "Trading principles for the research tool"). So the
-  account's worst case on any day is the sum of the open positions' maximum losses, whatever the gap.
+  account's worst **terminal-payoff** case on any day is the sum of the open positions' maximum losses, whatever the
+  gap; section 6.1a says what that number does not cover.
 - **Stressed margin multiplier 1.45** (decided 14 Oct) on NSE SPAN plus exposure from A14; funds at entry by C2's rule
   (no credit for sold premium; bought premium and charges paid at once).
 - **Strategy pauses (decided):** a single trade's loss reaching the plan's catastrophic loss, or a strategy's cumulative
   realised loss reaching Rs 30,000; an owner re-approval restarts the count.
+
+## 6.1a Four kinds of loss (ChatGPT's full review 95, accepted)
+
+The Rs 10,000 cap is a cap on one of four losses, and the design names all four:
+1. **Maximum terminal-payoff loss:** the structure's worst value at expiry plus charges. Fixed at entry; this is what
+   the cap and C4 check.
+2. **Legging and execution loss:** fills worse than modelled, or one leg filled without the other. On paper all legs
+   fill at one snapshot or none (section 3.2). In real money legging can push a loss past the cap; the real-money test
+   (8.4) measures it.
+3. **Stressed mark loss:** the position's value under the stress scenarios before expiry (section 6.2's stress line).
+4. **Realised loss:** what was actually lost at exit, including any of the above, and settlement (physical settlement of
+   stock options, E7's expiry rules).
+
+When protection cannot be verified (a missing leg, a stale quote, unknown margin), the desk blocks new risk, alerts,
+and never fabricates a close. Fail-closed rules for C5: margin data older than one session, an unmapped bucket, or a
+missing margin row means no new entry; bucket mapping and concentration limits are frozen with C5.
 
 ## 6.2 Many strategies, one market: risk buckets (accepted by the owner on 15 Oct 2026)
 
@@ -69,6 +86,10 @@ minutes. Each alert is a record (condition, snapshot time, sent time), so latenc
 owner acts 60 minutes later, and no alert's value may depend on a faster reaction. Any strategy idea or exit rule that
 only works with a reaction of 15 minutes or less is flagged at its idea card (G0) as "needs fast reaction" and cannot be
 approved to paper on that basis: its registered result is the one at R = 60.
+
+**When the monitor is silent.** If the heartbeat stops while positions are open, a WARNING goes out; new entries are
+blocked only for strategies whose exit plan relies on the monitor (`intraday_exits`); `alert_only` strategies continue.
+No rule assumes the owner answers the phone within any guaranteed time.
 
 **What the alerts cannot do.** A 15-minute check cannot catch a crash inside 15 minutes, and the owner cannot act faster
 than their reaction time. Because every position's loss is capped at entry, a late alert costs at most that cap; this

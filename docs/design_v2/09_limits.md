@@ -3,10 +3,11 @@
 Each limit says what it is, why, and the label. None of them is a reason to stop; all of them are reasons not to
 expect what a broker's research promises.
 
-1. **Useful daily direction calls.** NIFTY's next-day and next-month direction are close to a coin toss (strong
-   evidence: our base rates, desk 1's trend trials at 50-52%, the published efficient-market literature). The tool will
-   forecast direction and score it; it will not promise it.
-2. **Proving a small edge on monthly NIFTY trades in useful time.** A +Rs 153 edge with an SD of Rs 2,700-3,400 needs
+1. **Useful daily direction calls.** NIFTY's next-day and next-month direction have been close to a coin toss in what we
+   measured (strong evidence for that data, not a law: our base rates, desk 1's trend trials at 50-52%, the published
+   efficient-market literature). The tool will forecast direction and score it; it will not promise it.
+2. **Proving a small edge on monthly NIFTY trades in useful time** (illustrative arithmetic: it assumes a fixed SD and
+   independent trades). A +Rs 153 edge with an SD of Rs 2,700-3,400 needs
    1,200-2,000 trades: 100-165 years at 12 a year (strong evidence, arithmetic). Weekly trades are 4 times faster and
    still need decades for a Rs 100 edge (response 94). Only a large edge or many independent events can be shown.
 3. **Removing luck.** "No place for luck" cannot mean luck is gone: markets are noisy. It can mean luck is measured
@@ -32,14 +33,17 @@ expect what a broker's research promises.
 11. **Paper equals real.** Paper cannot model the owner's emotions, a broker outage, a rejected order or a liquidity
    hole in a crash. The small real-money test exists because of this (reasoning only).
 12. **Alerts fast enough to save a trade inside 15 minutes.** The monitor checks every 15 minutes and the owner needs
-   time to act; protection comes from the loss cap fixed at entry, not from speed.
+   time to act (up to an hour, by the owner's own figure); protection comes from the loss cap fixed at entry, not from
+   speed. Even that cap covers the terminal payoff only: a 15-minute monitor cannot protect from gaps, legging or
+   physical settlement (section 6.1a).
 13. **AI judgement as an edge, by assumption.** There is no evidence yet that the AI books beat the baselines; each AI
    role must prove its value on the record or be dropped.
 14. **Rule stability.** SEBI and NSE change lot sizes, expiries and margins (2024-25 changes); a rule that worked may
    stop working for regulatory reasons alone. Drift detection reacts slowly for monthly strategies.
 15. **Giving the owner a sure income.** SEBI's studies: 89% of individual F&O traders lost in FY22 (January 2023 study),
    93% over FY22-FY24 (September 2024 study), about 91% in FY25 (July 2025 study) and 87.7% in FY26 (August 2026
-   study). Strong evidence for the direction; the figures come from press and broker summaries of the SEBI studies,
-   whose PDFs were not read directly (`reports/Retail FnO losses and safeguards.md`).
+   study). Some evidence for the exact percentages (they come from press and broker summaries of the SEBI studies,
+   whose PDFs were not read directly; read the primary studies before quoting them as strong evidence); strong evidence
+   only that most individual F&O traders lose (`reports/Retail FnO losses and safeguards.md`).
    This tool's most likely honest outcome, given the evidence so far, is a well-measured "no edge found" plus a useful
    risk and learning aid. A real edge, if found, is likely small and narrow.

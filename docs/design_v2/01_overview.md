@@ -17,12 +17,13 @@ trade card, a "no trade" and an alert each leave a permanent record that is late
 | Experiment 1 (frozen, judge 56) | Monthly protected NIFTY premium (condor, iron flies), 2019-23 holdout | Nothing passed; condor gross +408 a trade vs about 814 costs | strong evidence |
 | Response 92 (re-read of experiment 1 data) | Costs and proof horizon | Condor gross +978 (2024-26, seen) / +408 (2019-23) vs costs Rs 810-940 a four-leg trade | strong evidence (costs) |
 | Response 94 (frozen weekly study) | 5 weekly defined-risk structures, about 390 trades each, and a RED weather filter | All negative after costs (mean -665 to -3); RED did not separate bad weeks; RED weeks were better for the condor and bull call spread | strong evidence for "no edge shown" |
-| Response 92, statistician | Trades needed to prove a +153 edge at SD 2,700-3,400 | n = (2 x SD / mean)^2 = 1,200-2,000 trades, 100-165 years at 12 a year | strong evidence (arithmetic) |
+| Response 92, statistician | Trades needed to prove a +153 edge at SD 2,700-3,400 | n = (2 x SD / mean)^2 = 1,200-2,000 trades, 100-165 years at 12 a year | strong evidence for the arithmetic; illustrative, since it assumes a fixed SD and independent trades |
 
 Three plain conclusions:
 1. **The variance premium exists gross, and costs eat it** at one lot with a Rs 10,000 cap (strong evidence).
-2. **Retail-sized, defined-risk NIFTY option trades on daily-close information have shown no edge** in two independent
-   tests (some evidence that none exists; strong evidence that none was shown).
+2. **Retail-sized, defined-risk NIFTY option trades on daily-close information have shown no edge** in two different
+   studies on related historical data (monthly and weekly options, the same NIFTY path and the same close-price and
+   cost assumptions; some evidence that none exists; strong evidence that none was shown in what was tested).
 3. **Trade P&L is a slow judge.** At 12 or even 50 trades a year a small edge cannot be told from luck in any useful
    time (strong evidence, arithmetic).
 
@@ -33,12 +34,14 @@ Three plain conclusions:
    comparisons, 80% power) a daily question needs about 316 outcomes if the noise-to-effect ratio r is 5 and 1,264 if
    it is 10: about 15 months or 5 years of daily scoring (section 5.5). A monthly trade rule needs over 100 years
    (response 92). No question is known to settle in months: that would need r of about 3 or less, which is measured
-   after 60 outcomes, not assumed. So the tool's first product is scored forecasts, and a trade idea is only funded
-   when it rests on a forecast that has already beaten its baseline (reasoning only for the ordering; strong evidence,
-   arithmetic, for the sample sizes).
-2. **Movement size before direction** (owner decision). Volatility clusters and is forecastable; daily direction is
-   close to a coin toss (strong evidence: published studies and our own Q1 base rates). Direction is still forecast and
-   scored, and nobody expects much from it.
+   after 60 outcomes, not assumed. So the tool's first product is scored forecasts. A trade idea that rests on a
+   forecast may still collect costed forward evidence from the start, as a pre-registered, cost-screened
+   `exploratory_shadow`, but it cannot be promoted or approved to paper until its forecast has beaten the baseline and
+   its own economic test has passed (ChatGPT's full review 95, B4, accepted; reasoning only for the ordering; strong
+   evidence, arithmetic, for the sample sizes). Waiting years to start collecting would waste the only fresh data.
+2. **Movement size before direction** (owner decision). Volatility clusters and is forecastable; daily NIFTY direction
+   has been close to a coin toss in our data and in the published literature (strong evidence for what was measured, not
+   a law). Direction is still forecast and scored, and nobody expects much from it.
 3. **The cost wall is the first gate.** A cheap feasibility screen: an idea whose expected net per trade, after full
    round-trip costs (charges plus pads, C1) and tail losses, is not above zero on a conservative bound is not tested;
    it is still registered and counted. Section 5.6 and `03_layers_factory_desk.md`.
@@ -119,10 +122,11 @@ Three plain conclusions:
 |---|---|---|
 | 0 Idea | Who pays and why; passes the cost wall; registered with its test before data is read | days |
 | 1 Forecast skill | The forecast it rests on beats its baseline on the frozen test (section 5.5) | about 15 months to 5 years for a daily question; longer for 5- and 20-day questions |
-| 2 Shadow | Recorded daily decisions at real 15:00 quotes, never in a book; no disaster | runs in parallel with rung 1 |
+| 2 Shadow | Recorded daily decisions at real 15:00 quotes, never in a book; no disaster. An `exploratory_shadow` may start collecting before rung 1 passes; it counts as rung-2 evidence only if its rule, sample plan and pass mark were frozen before collection | runs in parallel with rung 1 |
 | 3 Paper | Owner approves; S1's uncertainty criterion on paper (lower bound above zero) | 6+ months, often years |
 | 4 Real, 1 lot | The written real-money test (section 8.4) | 3-6 months |
 | 5 Scale | Real results inside paper's interval; owner decides | owner |
 
-An idea may skip rung 1 only if it needs no forecast (for example, a pure cost or structure effect), and then it needs
+Promotion to paper needs rungs 1 and 2 both passed (for an idea resting on a forecast). An idea may skip rung 1 only if
+it needs no forecast (for example, a pure cost or structure effect), and then it needs
 a pre-registered sample size from its expected edge and SD (section 5.5) before any claim.

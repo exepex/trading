@@ -49,14 +49,16 @@ every promotion proposal, every weekly post-mortem.
    no longer test the strategy.
 
 **The advocate is scored too.**
-- Each objection is an immutable record committed, with its independent issuance time (section 4.1), **before the
-  decision cutoff**; an objection written after the outcome could be seen is invalid for scoring.
+- Each objection is written on the frozen 15:00 pack and recorded, with its independent issuance time (section 4.4),
+  **before `decision_finalized_at`** (section 4.1's timing contract); on timeout the record says `advocate_unavailable`.
+  An objection written after the outcome could be seen is invalid for scoring.
 - An adjudication record says what the card did with it: shown only (always, today), or, in a later registered version,
   acted on.
 - Scoring is paired and counterfactual: for each objection, the trade's result is compared with the matched shadow of
   not taking it, so both hits and false alarms count. A registered comparison then asks whether trades with an
   objection did worse than those without. If they did (section 5.5's rules), a new strategy version may use the
-  advocate as a filter, tested forward like any idea; if not, its objections stay informational and its cost is weighed
+  advocate as a filter, tested forward like any idea (a correlation between objections and losses is not causal proof
+  that a veto would help; only that forward test is); if not, its objections stay informational and its cost is weighed
   by F9.
 
 ## 7.4 Forecasters weighted by proven record: the house forecast

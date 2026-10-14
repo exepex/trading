@@ -31,7 +31,9 @@ owner; the options and their risks are in `06_risk_and_alerts.md` section 6.6.
 **Outputs.** Raw files in Drive (owner principle of 13 Oct 2026, "all scheduled data fetching runs as GitHub Actions and
 stores published data in Google Drive"); small derived daily tables in the repository (realised volatility per day from
 15-minute returns, the 15:00 chain summary, global cues as of 15:00). Every row carries `source`, `as_of`,
-`first_seen_at` and the raw file's SHA-256.
+`first_seen_at` and the raw file's SHA-256. For global cues the source's own date (for example a US close), our
+`first_seen_at` and any later revision by the publisher (FRED revises) are kept apart, under A11's rule; a forecast
+uses only the value first seen before its cutoff.
 
 **Interfaces.** Existing: `Provider` (Groww, NSE), `RawFileStore`, `RawFileSource`, `DailyClosesSource`, `DataCheck`
 (C3). New: `IntradayQuoteSource` (one adapter per source: Groww today), `GlobalCueSource` (one adapter per series),
