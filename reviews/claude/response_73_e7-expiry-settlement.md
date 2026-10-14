@@ -6,8 +6,8 @@ E4's blocking code); judge first, nothing on `main`.
 
 **Verdict in one line:** a position still open at expiry now closes at NSE's cash settlement (intrinsic value against
 the index's final settlement price from the expiry day's file only), with exercise STT, so no book carries a dead
-contract at a stale mark. A missing file blocks the book's new risk with an alert. 51 desk tests; 31 of 31 planted
-defects caught (8 for E7, 2 for judge 68's entry-limit condition).
+contract at a stale mark. A missing file blocks the book's new risk with an alert. 52 desk tests; 32 of 32 planted
+defects caught (9 for E7, including judge 71's TradDt plant; 2 for judge 68's entry-limit condition).
 
 ## 1. A data finding that shapes the design (strong evidence: NSE's own file)
 
@@ -41,7 +41,8 @@ either: the 21300 CE closed at 19.70 while it settled at 52.60 in the money (the
 | 5 | Missing file: `settlement_needed`, alert, no new risk until settled | Met. One alert; Book 1's next entry refused "(settlement_needed) blocks new risk"; once the file exists the next review settles and closes. | `test_a_missing_settlement_file_blocks_new_risk_until_published` |
 | 6 | C2 no longer sees it; C1 equals the account | Met. Before: `account.state({})` raises `MissingMark` (dead contracts still need marks). After: `load_risk_book` has no open trades; `trade_line(trade).net` equals the account's net to 1e-9; 4 ledger rows of kind `settlement`. | `test_settlement_releases_c2_s_view_and_c1_s_ledger_agrees_with_the_account` |
 
-**Mutations (each must fail a test), 8 for E7, all caught:** settle at the index price instead of intrinsic; no
+**Mutations (each must fail a test), 9 for E7, all caught** (the 9th, added after judge 71, removes the `TradDt`
+check: `test_rows_of_another_trade_date_under_the_expiry_day_s_name_are_refused` fails): settle at the index price instead of intrinsic; no
 exercise STT; exercise STT charged to the short; settlement charged as a trade; settlement kind lost in the ledger;
 disagreeing rows accepted; the previous day's file read; expired legs never settled. The 21 E4 mutations are still
 caught (29 of 29).
@@ -70,25 +71,17 @@ independent second gate (reasoning only).
 
 ## 4. Honest limits (confidence labelled)
 
-1. **Exercise STT rate 0.15% (strong evidence for the rate; enactment from secondary sources).**
-   - **Primary text read:** the Finance Bill, 2026 (Gazette text), notes on clauses, clause 143, which amends section
-     98 of the Finance (No. 2) Act, 2004. It says the STT on sale of "an option in securities when such option is
-     exercised is 0.125 per cent. of the intrinsic price" and proposes "an option in securities, where option is
-     exercised to 0.15 per cent. of the intrinsic price". It also raises STT on option premium from 0.1 to 0.15 per
-     cent. I read it with `pdftotext` from a third-party copy of the Gazette extract
-     ([PDF](https://d23z1tp9il9etb.cloudfront.net/download/pdf26/Relevant%20Extract%20of%20The%20Finance%20Bill,%202026.pdf)),
-     not from a government host.
-   - **Enactment and effective date (secondary):** the Finance Act, 2026 received assent on 30 Mar 2026, and the
-     rates apply to trades from 1 Apr 2026 ([Business Standard](https://www.business-standard.com/amp/economy/news/new-i-t-law-higher-securities-transaction-tax-on-f-o-trade-to-kick-in-from-april-1-126033100344_1.html);
-     broker notices of the NSE circular: [Fyers](https://fyers.in/notice-board/revision-in-securities-transaction-tax-stt-effective-april-01-2026/),
-     [Arihant](https://www.arihantplus.com/market-insights/bulletin/revision-in-securities-transaction-tax-stt-rates-effective-april-1-2026)).
-     The purchaser (the long holder) pays it on the intrinsic value.
-   - **Not read myself:** NSE's STT page
-     ([nseindia.com](https://www.nseindia.com/static/products-services/equity-derivatives-securities-transaction-tax))
-     and the Income Tax Department's section 98 page
-     ([incometaxindia.gov.in](https://www.incometaxindia.gov.in/w/section-98-55)) both refuse automated reads (HTTP
-     403). I did not find the NSE circular itself or a CBDT notification. The owner can open those two pages in a
-     browser to confirm the enacted table.
+1. **Exercise STT rate 0.15% (strong evidence: primary source read).**
+   - **NSE circular NSE/FATAX/73524 (Circular Ref. No. 02/2026, 31 Mar 2026)**, read by me with `pdftotext` from
+     NSE's archive (`https://nsearchives.nseindia.com/content/circulars/FATAX73524.pdf`), says: "(b) Sale of an
+     option in securities, where option is exercised, has been revised to 0.15% (upto March 31, 2026 – 0.125%)". It
+     applies to transactions from 1 Apr 2026. Its rate table row 4(b) says the purchaser pays (no change).
+   - **The law behind it:** the Finance Bill, 2026, notes on clauses, clause 143, amending s.98 of the Finance (No. 2)
+     Act, 2004 ("0.125 per cent. of the intrinsic price" to "0.15 per cent."), read from a third-party copy of the
+     Gazette extract. The Finance Act, 2026 received assent on 30 Mar 2026 (the circular follows it).
+   - C1's base for this STT is the intrinsic value (settlement price minus strike for a call, the reverse for a put),
+     as `Leg.intrinsic` computes it; the circular gives the rate, not the valuation (reasoning only, from s.98's
+     long-standing wording).
 2. **Brokerage on settlement (reasoning only).** Charged on every in-the-money leg, long or short, as if an order.
    Groww's exact charge for an expiry exercise or assignment is not verified; this is the conservative side. No
    exchange, SEBI, IPFT or stamp charge is applied because no premium is traded (reasoning only).

@@ -123,6 +123,19 @@ def test_a_file_without_one_clear_price_is_refused_never_guessed(tmp_path):
         reader.final_settlement("NIFTY", date(2024, 1, 25))
 
 
+def test_rows_of_another_trade_date_under_the_expiry_day_s_name_are_refused(tmp_path):
+    """Point in time (judge 71): the price must come from the expiry day's own rows; a file stored under that day's
+    name whose rows were traded on another day (say the day before, with that day's settlement price) is refused."""
+
+    def day_before(rows):
+        for row in rows:
+            row["TradDt"] = row["BizDt"] = "2024-01-24"
+
+    reader, _ = nse(tampered(tmp_path, day_before))
+    with pytest.raises(SettlementError, match="traded on the expiry day"):
+        reader.final_settlement("NIFTY", date(2024, 1, 25))
+
+
 def test_the_real_file_shows_why_the_close_is_never_used():
     """NSE's 25 Jan 2024 file: the 21300 CE closed at 19.70 while it settled 52.60 in the money."""
     path = NseDailyFoSource.path_for(date(2024, 1, 25))
