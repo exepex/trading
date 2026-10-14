@@ -96,5 +96,4 @@ CI on the cc5efff merge (addendum 1): green on cc5efff, fb8bbdb, 89910c5, 70ccd4
   parents equals 5226514 exactly (empty diff).
 - **No unjudged code reached `main`.** From 5226514 to `main` at a8c71af, nothing changed in code paths. The only other
   commit, 6c2badd, adds filings manifests: 3 data CSVs.
-- **CI is pending.** CI on a8c71af, the first push carrying the merge, was still running at 15:24 UTC. I will confirm it
-  at my next check.
+- **CI is green** on a8c71af, the first push carrying the merge, and on 886f572.
