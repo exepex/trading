@@ -272,3 +272,20 @@ alone. I had read "INCOMPLETE … deadline" as a cause; it was only the state li
 - **Follow-up (not blocking).** A company is finished once its gap is recorded. If NSE later fixes the file, a
   backfill step that has moved on may never fetch it again. "The next run saves a fixed copy" holds only while that
   company is still revisited. A periodic re-check of truncation gaps would close it.
+
+## Addendum 7 (merge 510b5c6; my addendum 6 follow-up corrected)
+
+**Merge: MET (merge).**
+- 510b5c6 has parents 754569e (`main`) and 0e54fdf (the passed tip).
+- It differs from my recomputed merge only by the `reviews/claude/README.md` resolution (both lines kept).
+- The commits after it are docs only (response 89).
+- CI on ae6137c (run 38558615813) was in progress when I wrote this; I confirm it at my next check.
+
+**Follow-up corrected: the builder is right, with one addition.**
+- A daily run (no backfill step left) reads filings made public in the last 400 days (`DAILY_LOOKBACK`). It
+  re-downloads any file without a manifest row, and a gapped file has none.
+- So a fixed NSE copy of a filing less than 400 days old is picked up by itself. The LAURUSLABS 23 Oct 2025 filing
+  qualifies until about 27 Nov 2026.
+- Only two cases are never re-checked: truncation gaps on filings older than 400 days found during the backfill, and
+  any filing during the backfill itself, since daily runs start only once every step is finished.
+- The re-check I suggested is needed only for those older gaps (low priority).
