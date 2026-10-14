@@ -3,7 +3,8 @@ asks each B7 live feature for the decision context it is given."""
 
 from datetime import date
 
-from fno.config import load_app_config
+from fno.config import ROOT, load_app_config
+from fno.constants import BOOKS
 from fno.playbook.live_values import ComputedLiveFeatures
 from fno.playbook.wiring import build_rule_evaluator
 from fno.research_engine.features import DecisionContext, Feature
@@ -21,6 +22,7 @@ def test_the_app_evaluator_uses_every_owner_limit():
         "margin_room",
     }
     assert evaluator.builder.cap == 10_000 and evaluator.builder.lot_size == 65
+    assert evaluator.real.folders == tuple((ROOT / "journal" / name).resolve() for name in BOOKS)
 
 
 class Echo(Feature):

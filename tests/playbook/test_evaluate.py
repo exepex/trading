@@ -3,15 +3,29 @@ per rupee of risk wins and the other is "not chosen: slot" (2); a negative expec
 unproven version with an open trade gets no second one (4). Plus: research candidates are evaluated in shadow, never
 in Book 1; nothing approved allocates nothing; the same inputs give the same record."""
 
+from dataclasses import replace
+from datetime import timedelta
+
 import pytest
 
 from fno.constants import Decision
+from fno.playbook.candidates import Candidate
 from fno.risk.inputs import Proposal, TradeTerms
 from fno.risk.rules import MaxLossPerTrade
 from tests.risk.builders import book
 
 from .builders import DOCUMENT
-from .evaluation_builders import COSTS, LIVE_TRUE, Counts, OwnShadowBooks, book_with_open, chain_market, run, strategy
+from .evaluation_builders import (
+    COSTS,
+    LIVE_TRUE,
+    Counts,
+    OwnShadowBooks,
+    book_with_open,
+    chain_market,
+    price,
+    run,
+    strategy,
+)
 
 
 def outcome(evaluation, name):
@@ -116,12 +130,36 @@ def test_paused_and_retired_versions_are_not_evaluated():
     assert run([strategy("sc-a", status="paused"), strategy("sc-b", status="retired")]).outcomes == ()
 
 
-def test_impossible_prices_are_a_validity_failure_not_a_trade():
-    prices = {
-        (k, kind): (500.0 if k in (25_500, 24_500) else 1.0) for k in range(24_000, 26_050, 50) for kind in ("CE", "PE")
-    }
+def chain_prices(**overrides):
+    """The fixture chain, with (strike, type) prices overridden: `c25500=500.0` sets the 25,500 call."""
+    prices = {(k, kind): price(k, kind) for k in range(24_000, 26_050, 50) for kind in ("CE", "PE")}
+    for key, value in overrides.items():
+        prices[(int(key[1:]), "CE" if key[0] == "c" else "PE")] = value
+    return prices
+
+
+def test_a_width_that_cannot_lose_is_skipped_as_bad_prices():
+    """Judge 69: research's convention. A credit at least the width cannot lose; every width here is such a trade."""
+    result = outcome(run([strategy("sc-a")], prices=chain_prices(c25500=500.0, p24500=500.0)), "sc-a")
+    assert result.decision == Decision.NO_TRADE and result.reason.count("bad prices") == 3
+
+
+def test_a_width_that_cannot_win_is_skipped_as_bad_prices():
+    """A short condor for a debit (credit at most 0) cannot win: refused even though its maximum loss is small."""
+    cheap_body = chain_prices(
+        c25500=1.0, p24500=1.0, c25600=50.0, p24400=50.0, c25700=50.0, p24300=50.0, c25800=50.0, p24200=50.0
+    )
+    result = outcome(run([strategy("sc-a")], prices=cheap_body), "sc-a")
+    assert result.decision == Decision.NO_TRADE and result.reason.count("bad prices") == 3
+
+
+def test_after_a_bad_wide_width_the_narrower_tradable_width_trades():
+    """Body sold at 160 a side: the 300 and 200 wings (almost free) make a credit at least the width (cannot lose),
+    the 100 wings at 115 leave a credit of 90 (between 0 and 100): that width trades, as in the research."""
+    prices = chain_prices(c25500=160.0, p24500=160.0, c25600=115.0, p24400=115.0, c25700=0.05, p24300=0.05,
+                          c25800=0.05, p24200=0.05)  # fmt: skip
     result = outcome(run([strategy("sc-a")], prices=prices), "sc-a")
-    assert result.decision == Decision.NO_TRADE and result.reason.startswith("validity:")
+    assert result.decision == Decision.CHOSEN and result.record()["trade"]["width"] == 100
 
 
 def test_no_width_within_the_cap_is_no_trade():
@@ -177,3 +215,16 @@ def test_c2_refuses_the_same_oversized_trade_on_its_own():
     three = Proposal(one_lot.trade_id, TradeTerms("SC", 100, 3), one_lot.lot_size, one_lot.legs)
     verdict = MaxLossPerTrade(COSTS, 10_000).check(three, book(), chain_market())
     assert not verdict.ok
+
+
+def test_equal_scores_go_to_the_lower_maximum_loss_before_the_earlier_expiry():
+    """Judge 69: score 0.1 for both; the one with the larger loss has the earlier expiry, so ranking expiry before loss
+    would pick it. The story's order (loss, then expiry) picks the smaller loss."""
+    base = outcome(run([strategy("sc-a")]), "sc-a").candidate
+    context = base.opportunity.context
+    early = replace(base.opportunity, context=replace(context, expiry=context.expiry - timedelta(days=7)))
+    larger_loss_earlier = replace(base, opportunity=early, max_loss=4_000.0, expected_net=400.0)
+    smaller_loss_later = replace(base, max_loss=2_000.0, expected_net=200.0)
+    assert larger_loss_earlier.score == smaller_loss_later.score
+    ranked = sorted([larger_loss_earlier, smaller_loss_later], key=Candidate.rank_key)
+    assert ranked[0] is smaller_loss_later

@@ -19,6 +19,7 @@ from .live_values import ComputedLiveFeatures
 from .loader import PlaybookLoader, registry_path
 from .opportunities import OpportunityFinder
 from .registry import Registry, rewritten_history
+from .shadow import RealBooks
 
 
 def _recompute_live_report(live_feature: str) -> Mapping:
@@ -51,8 +52,9 @@ def registry_history_problems(root: Path = ROOT) -> list[str]:
 def build_rule_evaluator(cfg: dict, root: Path = ROOT) -> RuleEvaluator:
     """Story D2: the opportunity finder on NSE's session calendar, the structures and cost model of the research (B2),
     and the risk manager with every owner limit (C2), all from config.yaml."""
+    from ..books.paths import book_folder
     from ..composition import build_session_calendar, build_structures
-    from ..constants import NIFTY_SYMBOL
+    from ..constants import BOOKS, NIFTY_SYMBOL
     from ..research_engine.cycles import TradingDays
     from ..risk.settings import risk_settings
     from ..risk.trade_costs import SimulatorTradeCosts
@@ -62,7 +64,8 @@ def build_rule_evaluator(cfg: dict, root: Path = ROOT) -> RuleEvaluator:
     structures = {structure.code: structure for structure in build_structures()}
     builder = CandidateBuilder(structures, costs, cap, cfg["lot_sizes"][NIFTY_SYMBOL])
     finder = OpportunityFinder(TradingDays(build_session_calendar()))
-    return RuleEvaluator(finder, builder, Allocator(build_risk_manager(cfg, root), costs))
+    real = RealBooks(BOOKS, [book_folder(root, book) for book in BOOKS])
+    return RuleEvaluator(finder, builder, Allocator(build_risk_manager(cfg, root), costs), real)
 
 
 def build_live_feature_values(cfg: dict, data) -> ComputedLiveFeatures:

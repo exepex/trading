@@ -1,7 +1,10 @@
 """A fired opportunity's trade built on the day's live quotes (story D2): the structure code fixes the body strikes,
 each width of the version is tried widest first, and the widest whose maximum loss (every charge and pad, C2's cost
-model) is within the per-trade cap is kept. Its score is the version's frozen expected net per opportunity divided by
-that maximum loss. Prices come only from valid quotes in the market given; nothing is invented."""
+model) is within the per-trade cap is kept. A width whose prices put the position at or beyond its payoff bounds (a
+trade that cannot lose or cannot win) is skipped like an unlisted one, exactly as the research did (experiment 1
+protocol "Impossible prices", `simulator._entry_trial`; judge 69), so the desk trades what was tested. The score is the
+version's frozen expected net per opportunity divided by that maximum loss. Prices come only from valid quotes in the
+market given; nothing is invented."""
 
 from __future__ import annotations
 
@@ -9,7 +12,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 
-from ..research_engine.structures import Chain, Structure
+from ..research_engine.structures import Chain, Structure, payoff_bounds, position_value
 from ..risk.inputs import Market, Proposal, ProposedLeg, RiskInputError, TradeTerms
 from ..risk.trade_costs import TradeCosts
 from .opportunities import Opportunity
@@ -66,12 +69,15 @@ class CandidateBuilder:
             proposed = tuple(ProposedLeg(contracts[leg.contract], leg) for leg in legs)
             proposal = Proposal(trade_id, TradeTerms(spec.code, width, spec.lots), self.lot_size, proposed)
             try:
+                prices = proposal.entry_prices(market)
                 max_loss = self.costs.max_loss(proposal, market)
             except RiskInputError as problem:
                 tried.append(f"{width:g}: {problem}")
                 continue
-            if max_loss <= 0:
-                raise NotBuilt(f"validity: width {width:g} has maximum loss {max_loss:.2f}, not positive")
+            lowest, highest = payoff_bounds(legs)
+            if not lowest < position_value(legs, prices) < highest:
+                tried.append(f"{width:g}: bad prices (the position cannot lose or cannot win at expiry)")
+                continue
             if max_loss <= self.cap:
                 expected = opportunity.strategy.evaluation_plan["expected_net_per_opportunity"]
                 return Candidate(opportunity, proposal, max_loss, expected)

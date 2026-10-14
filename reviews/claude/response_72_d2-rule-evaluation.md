@@ -107,3 +107,37 @@ Further claims:
   the candidate's own: the `ShadowBooks` implementation (E-side) owns that.
 - **Ranking without an estimate** (shadow only) puts such candidates last; it matters only if one candidate had two
   opportunities the same day, which the monthly window rules out.
+
+## Addendum 1 (14 Oct 2026): judge 69's findings, all accepted and fixed
+
+1. **Must-fix: impossible prices follow the research exactly. Accepted.**
+   - What the research does: experiment 1's protocol ("Impossible prices") and `simulator._entry_trial` skip a width
+     whose entry prices lie at or beyond the position's payoff bounds, then try the next width.
+   - What D2 did instead: it caught only "maximum loss at most 0" (the cannot-lose half), and it stopped the whole
+     opportunity there.
+   - The fix: `candidates.py` now uses the research's own `payoff_bounds` and `position_value`. A width that cannot
+     lose or cannot win is recorded as "bad prices" and skipped. The old "validity" stop is gone.
+   - Story line amended, with the orchestrator's sign-off.
+   - Tests: `test_a_width_that_cannot_lose_is_skipped_as_bad_prices`, `test_a_width_that_cannot_win_is_skipped_as_bad_prices`
+     (a debit condor, whose small maximum loss would otherwise pass the cap) and
+     `test_after_a_bad_wide_width_the_narrower_tradable_width_trades` (300 and 200 cannot lose; 100 trades). All three
+     fail on the old stop-the-opportunity code.
+2. **Should-fix: tie order. Accepted.**
+   - Test: `test_equal_scores_go_to_the_lower_maximum_loss_before_the_earlier_expiry`. Both candidates score exactly
+     0.1, and the larger-loss one has the earlier expiry.
+   - The judge's plant (expiry before loss) now fails it.
+3. **Shadow separation proven when built. Accepted.**
+   - `ShadowBooks.account()` now returns a `ShadowAccount` with the folder it is stored in (`fno/playbook/shadow.py`).
+   - `RealBooks` (wired with `journal/<book>` for the three books) refuses a shadow account in any of these cases:
+     - it is named like a real book or like Book 1's book;
+     - it is stored in a real book's folder;
+     - it is stored inside a real book's folder;
+     - it is stored above a real book's folder (e.g. `journal/`);
+     - it reaches any of those through `..`.
+   - Tests: `tests/playbook/test_shadow.py`, including Book 1's records being unchanged when a misplaced shadow is
+     refused.
+4. **Number:** response 72 stays D2's.
+
+Checks on the tree merged with `main`: full suite 2238 passed (`tests/playbook` 244), ruff and check_imports clean; 19 of 19 mutations
+caught, run with bytecode caching off. An earlier run on the same container showed wrong "first failing test" labels
+from stale `.pyc` files; the kills themselves held, and the labels above are from the clean run.

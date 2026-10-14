@@ -5,14 +5,17 @@ from __future__ import annotations
 
 import math
 from datetime import date, timedelta
+from pathlib import Path
 
 from fno.composition import build_session_calendar, build_structures
+from fno.constants import BOOKS
 from fno.playbook.allocation import Allocator
 from fno.playbook.candidates import CandidateBuilder
-from fno.playbook.evaluate import LiveFeatureValues, RuleEvaluator, ShadowBooks
+from fno.playbook.evaluate import LiveFeatureValues, RuleEvaluator
 from fno.playbook.loader import Playbook
 from fno.playbook.opportunities import OpportunityFinder
 from fno.playbook.schema import parse_strategy
+from fno.playbook.shadow import RealBooks, ShadowAccount, ShadowBooks
 from fno.research_engine.cycles import TradingDays
 from fno.risk.manager import RiskManager
 from fno.risk.rules import MaxLossPerTrade, MaxOpenTrades
@@ -69,20 +72,28 @@ class Counts:
         return self.held
 
 
-class OwnShadowBooks(ShadowBooks):
-    def __init__(self, books=None, counts=None):
-        self.books, self.counts, self.asked = dict(books or {}), counts or Counts(completed=0), []
+REPO = Path("/repo")  # resolve() works on paths that do not exist: no files are touched
+REAL = RealBooks(BOOKS, [REPO / "journal" / name for name in BOOKS])
 
-    def book(self, strategy):
+
+class OwnShadowBooks(ShadowBooks):
+    def __init__(self, books=None, counts=None, storage=None):
+        self.books, self.counts, self.asked = dict(books or {}), counts or Counts(completed=0), []
+        self.storage = storage
+
+    def account(self, strategy):
         self.asked.append(strategy.key)
-        return self.books.get(strategy.name, book(name=f"shadow-{strategy.name}")), self.counts
+        the_book = self.books.get(strategy.name, book(name=f"shadow-{strategy.name}"))
+        return ShadowAccount(the_book, self.counts, self.storage or REPO / "journal" / "shadow" / strategy.name)
 
 
 def evaluator(max_open: int = 3) -> RuleEvaluator:
     risk = RiskManager((MaxLossPerTrade(COSTS, 10_000), MaxOpenTrades(max_open)), {})
     structures = {s.code: s for s in build_structures()}
     builder = CandidateBuilder(structures, COSTS, 10_000, LOT)
-    return RuleEvaluator(OpportunityFinder(TradingDays(build_session_calendar())), builder, Allocator(risk, COSTS))
+    return RuleEvaluator(
+        OpportunityFinder(TradingDays(build_session_calendar())), builder, Allocator(risk, COSTS), REAL
+    )
 
 
 def book_with_open(count: int, name: str = "book1_rules"):
