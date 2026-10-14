@@ -211,3 +211,5 @@ deleted, a frozen file renamed, and a frozen config section removed. In each cas
   equals its recomputed merge too.
 - The only code change since my last check is `tests/evaluation/test_missing_target.py`.
 - CI on 898f1af (run 38549236262) was in progress when I wrote this; I confirm it at my next check.
+
+**Confirmed:** CI is green on 898f1af (run 38549236262).

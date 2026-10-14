@@ -168,3 +168,11 @@ Segments, unscored and overridden carry none, labelled "charged at book level on
 3. The judge-87 follow-ups stand: pro-rate operating costs, plus the builder's list.
 
 **Verdict: PASS** for 771d508. After the merge I check `main` and CI.
+
+## Addendum 2 (merge check, a9a3cd1)
+
+**MET (merge).**
+- a9a3cd1 has parents 78411bb (`main`) and 771d508 (the passed tip), and it equals my recomputed merge.
+- The only code since my last check is S2's own.
+- b34b74e adds only the builder's response (the two follow-ups recorded, not built).
+- CI on a9a3cd1 (run 38551046960) was in progress when I wrote this; I confirm it at my next check.
