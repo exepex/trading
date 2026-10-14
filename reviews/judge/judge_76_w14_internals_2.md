@@ -127,3 +127,16 @@ bracket a threshold, as the variant letters already allow. That follows from sho
 it.
 
 **Verdict: PASS** for a603b53.
+
+## Addendum 2 (dashboard merge check 46a70da; and `story/w9-fno-e2e-verify` 5b1b425)
+
+**Merge: MET.**
+- 46a70da has parents 11ca4a3 (dashboard `main`) and a603b53 (the passed tip).
+- `main` was an ancestor of the tip, so the merged tree is exactly the tree I tested: `npm test` 465/465, build,
+  size check, harness 24/24.
+- 617c4b3 adds docs only.
+- The dashboard's CI is not readable from here.
+
+**`story/w9-fno-e2e-verify` 5b1b425: no code.** Against dashboard `main` it changes only
+`conversations/2026-10-14.md` (+13) and `reviews/claude/response_29_w9-fno.md` (+27). It can merge without a code
+review.

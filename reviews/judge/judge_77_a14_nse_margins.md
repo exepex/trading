@@ -139,3 +139,50 @@ The owner's Groww check is now recorded by the orchestrator. I judge it when the
 pre-read:
 - Groww's SPAN 6,893.00 equals my judge-77 recomputation of scan − NOV for SF 100 (822.25 + 6,071.00 = 6,893.25).
 - Groww's exposure 58,819.02 = 2 legs × 2% × 65 × 22,622.7, NSE's rule on the live price.
+
+## Addendum 3 (`story/a14-groww-check` ee7f35b; code commit 6f0501a): criterion 1 MET; switch set; PASS, with two C2 must-fixes before any trade can rely on the margin room
+
+**The recorded check, against the orchestrator's raw Groww answers** (SF width 100, NIFTY 23 Nov, 1 lot, 10:52 UTC,
+read-only margin API, no order):
+
+| Figure | Groww | The job's NSE row | Check |
+|---|---|---|---|
+| SPAN (netted, the basket) | 6,893.00 | scan − NOV = 822.25 + 6,071.00 = 6,893.25 (`i1`; my own judge-77 recomputation) | equal to the rupee |
+| Exposure | 58,819.02 | 2 × 2% × 65 × index. On the 15:32 file's index 22,622.70 = 58,819.02 (my arithmetic); on the row's base, the previous close 22,721.95 = 59,077.07 | equal to the paisa on the same base |
+| Total | 113,312.64 | = 6,893 + 58,819.02 + bought premium 47,450 + charges 150.62 | arithmetic checked |
+
+The single-leg SPAN 149,043.75 matches the builder's figure for the `i1` short call. I did not recompute that leg
+myself.
+
+**Tolerances accepted:** SPAN within Rs 1 (Groww rounds to the rupee; same file, same arrays), and exposure exact on
+the same base. **Criterion 1 is MET.** Zerodha's earlier 5.6% gap was Zerodha's own base, not NSE's rule.
+
+**Gates:**
+- full suite (token unset): 3,092 passed;
+- ruff and imports: clean;
+- `git merge-tree` with `main`: clean;
+- my plant setting `passed_on` back to null: 1 failed.
+
+**Two C2 issues the builder found, both real.** They are outside A14's code, but they matter as soon as the margin
+room can pass a trade. Today it cannot, because `stressed_margin` is not set and every trade is refused.
+
+1. **The exposure base (risk manager; reasoning plus the builder's arithmetic).**
+   - The row's exposure uses the previous close. On a day NIFTY rises, the broker's live-price exposure is higher:
+     about Rs 590 a lot per 1% rise (2 legs × 2% × 65 per index point = Rs 2.60 a point).
+   - The stressed factor multiplies scan only, so nothing covers this.
+   - It is small (under 1% of the basket's margin for a 1% move), but it is in the loose direction.
+   - **Fix in C2 (follow-up story):** rescale the stored exposure by (index at decision / index in the file). Both are
+     known at decision time.
+2. **Funding at entry. This one is large, and a C2 must-fix before `stressed_margin` is set.**
+   - Groww needs 113,313 free for this basket: SPAN + exposure + the **bought premium paid up front**. It gives **no
+     credit for the sold premium** at entry; it arrives after settlement.
+   - C2's `MarginRoom` credits the entry's net cash flow (sold minus bought, +6,025 here) and counts margin about
+     59,899.
+   - So C2 would let the paper desk open a trade the broker refuses, short by about the sold premium (53,475.50 here).
+     A paper fill the owner could not have made breaks the comparison.
+   - **Fix:** `MarginRoom` adds a "funds at entry" term (bought premium + charges, no credit for sold premium until
+     settlement), with a test on this basket's Groww numbers. This must be built and judged before
+     `risk.stressed_margin` is set.
+
+**Verdict: PASS** for ee7f35b (the switch and the recorded check). The C2 must-fix (2) is a new story that blocks
+setting `stressed_margin`. Follow-up (1) is a separate C2 story.
