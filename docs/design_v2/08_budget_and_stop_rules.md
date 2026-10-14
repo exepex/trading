@@ -64,12 +64,12 @@ The owner's idea: "no forecaster beats baselines after 6 months of daily scoring
     2. **Code only:** switch off every AI role, keep the code forecasters and baselines running at no AI cost until the
        projected date, then re-run the test. The AI books' question stays unanswered.
     3. **Stop now**, accepting that the forecasting question was not answered.
-    **Recommendation (reasoning only):** option 1 when the projected date is within 2 years; option 2 when it is
-    later, because an answer more than 2 years away does not justify the AI cost of waiting for it.
+    **Decided (owner, 15 Oct 2026, before any v4 score):** option 1 when the projected date is within 2 years;
+    option 2 when it is later, because an answer more than 2 years away does not justify the AI cost of waiting.
 - **The owner's original rule stays as the last gate:** if paper trading shows no net profit, no real money is used
   and the tool is shut down (AGENTS.md).
 
-## 8.3 The pass mark for real money (to be written and frozen before any paper result)
+## 8.3 The pass mark for real money (accepted by the owner on 15 Oct 2026; frozen by RM1 before any paper result)
 
 Story RM1 writes `research/evaluation/REAL_MONEY_GATE.md` and freezes it before the first counted paper decision. A
 strategy version may start the real-money test only when **all** hold:
@@ -81,10 +81,10 @@ strategy version may start the real-money test only when **all** hold:
 5. It passed the factory's second independent test if it was one pass among many (section 3.1).
 6. The owner approves in writing.
 
-## 8.4 The small real-money test
+## 8.4 The small real-money test (accepted by the owner on 15 Oct 2026)
 
-- 1 lot, a real account the owner funds (about Rs 2 lakh was mentioned on 12 Oct), with a per-trade cap set before the
-  start (proposal Rs 4,000-5,000, about 2-2.5%).
+- 1 lot, a real account the owner funds (about Rs 2 lakh), with a per-trade cap of about Rs 4,000-5,000 (2-2.5%). The
+  exact account size and cap are confirmed by the owner in writing before RM1 freezes (owner decision of 15 Oct 2026).
 - The owner places every order by hand; the tool only records the card, the owner's actual fill and whether the card
   was followed (the discipline record).
 - Duration: its registered number of trades or 6 months, whichever is later.

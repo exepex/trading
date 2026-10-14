@@ -119,6 +119,8 @@ the day. Layer and section references are to the design v2 files.
 - **BG1 Budget meter and stop-rule tracker.** Monthly costs by item (8.1), caps and alerts, the stop-rule review date
   and its two tests computed ahead of time. Depends: F8. S. Slice A.
 - **RM1 Real-money gate.** `research/evaluation/REAL_MONEY_GATE.md` with the conditions of 8.3, frozen and hashed
-  before the first counted paper decision. Document plus a freeze record. Depends: S1. S. Slice B.
+  before the first counted paper decision. Acceptance requires the owner's written confirmation of the exact real
+  account size (about Rs 2 lakh) and per-trade cap (Rs 4,000-5,000) before the freeze (owner decision of 15 Oct 2026).
+  Document plus a freeze record. Depends: S1. S. Slice B.
 - **RM2 Real-money test record.** Records the owner's real fills against the card, the discipline record, and the pass
   and stop rules of 8.4. Never places an order. Depends: RM1, an approved strategy. M. When a strategy passes.

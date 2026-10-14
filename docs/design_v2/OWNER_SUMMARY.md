@@ -31,9 +31,9 @@ trades, which is why forecasts come first and trades second.
 3. **After that:** dashboard screens, intraday exits test, stock-option data if the check passes.
 4. **About end of May 2027 (a target): the stop-rule review.** If the data clearly says no forecaster beats the simple
    baselines and no idea survives costs, you choose: stop (keep only cheap data and the weather) or pivot. The most
-   likely answer on that date is **"undecided"** (too few days to tell). For that case you choose now, before the first
-   v4 forecast is scored: continue to a projected date (at most 2 years away, with AI cut to the forecasters at half
-   budget), keep only the free code forecasters, or stop. "Not yet known" is never treated as "no".
+   likely answer on that date is **"undecided"** (too few days to tell). For that case you chose on 15 Oct, before the
+   first v4 forecast is scored: continue to a projected date (at most 2 years away, with AI cut to the forecasters at
+   half budget), keep only the free code forecasters, or stop. "Not yet known" is never treated as "no".
 5. **The AI books (Hybrid and AI team) start trading** only once there is at least one strategy worth trading
    (proposal; your decision). Until then they keep forecasting, which is already running.
 
@@ -51,7 +51,8 @@ measure it). Safety from a crash faster than 15 minutes (your protection is the 
 The most likely honest outcome, given the evidence so far, is a well-measured "no edge found" plus a good risk and
 learning aid; a real edge, if found, is likely small and narrow.
 
-**Decisions you will be asked for (short list, details in `REPLAN.md` section 5):** where the 15-minute jobs run (this
-places a broker key); risk caps for Rs 20 lakh; weather thresholds; what "better than baseline" must mean; your reaction
-time; the monthly AI share; the stop rule; the real-money pass mark; whether daily cards stay out of the public
-repositories (recommended: yes); when the AI books start trading.
+**Your decisions (all 12 made on 15 Oct 2026, details in `REPLAN.md` section 5):** the 15-minute jobs run as a
+Claude routine; the Rs 20 lakh risk caps; weather thresholds; what "better than baseline" means; your reaction time
+(paper fills assume 60 minutes); the monthly AI share; the stop rule and its "undecided" action; the real-money pass
+mark and test (exact account size and cap confirmed before it freezes); cards in Google Drive only; AI books trade
+only after a strategy passes; S1's changes; E8 frozen with S1. Still to give: your availability calendar.

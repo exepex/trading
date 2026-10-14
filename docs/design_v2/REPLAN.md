@@ -130,11 +130,11 @@ Section 8.2's review. Its outcome decides whether slice E starts, the budget hal
 
 ### Slice E (when there is something to trade): the AI books trade
 
-D4, D5, F1 trading part, F2, F4 (changed), F5, F6, F7, S3 reporting. **Proposal (reasoning only; owner decides):** start
+D4, D5, F1 trading part, F2, F4 (changed), F5, F6, F7, S3 reporting. **Decided (owner, 15 Oct 2026):** start
 when at least one strategy is approved to paper or an idea reaches rung 2, because before that books 2-3 would record
 "no trade" every day at AI cost and teach nothing about judgement.
 
-## 4. S1 protocol items design v2 changes (13 open items plus the open t-check)
+## 4. S1 protocol items design v2 changes (13 open items plus the t-check; all accepted by the owner on 15 Oct 2026)
 
 | Item | Effect of design v2 |
 |---|---|
@@ -150,14 +150,14 @@ when at least one strategy is approved to paper or an idea reaches rung 2, becau
 | `immediate_pauses` | **Changes:** the drift pause is a named exception (owner accepted drift detection on 14 Oct) |
 | `review_dates` | **Changes:** adds the weekly post-mortem (descriptive) and the project stop-rule review (section 8.2) |
 | `role_value_schedule`, `role_value_minimum_sample` | Unchanged; deferred to slice E |
-| Open: t-based lower bound beside the bootstrap | **Recommend adding it** (design v2 relies on honest intervals; 6 blocks under-cover, some evidence) |
+| t-based lower bound beside the bootstrap | **Added** (owner, 15 Oct 2026; design v2 relies on honest intervals; 6 blocks under-cover, some evidence) |
 
 The five decided items (`uncertainty_criterion`, `catastrophic_loss_strategy`, `ai_cost_allocation`,
 `reporting_per_version`, `frozen_files`) are not reopened. Design v2 adds nothing to `frozen_files` by itself. G8's
 forecast scoring is frozen by protocol v4's own freeze (G6), not by S1. One addition is put to the owner as decision 12
 (section 5).
 
-## 5. Owner decisions this design needs (one line each; proposals in brackets)
+## 5. Owner decisions this design needed (all 12 decided on 15 Oct 2026; still open: the availability calendar)
 
 1. **Decided 15 Oct 2026: (a), a Claude routine** (6.6).
 2. **Decided 15 Oct 2026: accepted as proposed** (bucket Rs 30,000; open maximum losses at most Rs 1.5 lakh; new risk
@@ -168,12 +168,14 @@ forecast scoring is frozen by protocol v4's own freeze (G6), not by S1. One addi
 5. **Decided 15 Oct 2026: 5 minutes when available, 30 on average, at most 1 hour**; E8's primary fill uses 60
    minutes, with 30 and 5 as sensitivities; the availability calendar is still to be given (3.2, 6.5).
 6. **Decided 15 Oct 2026: AI share at most half of measured plan minutes; any new recurring cost needs a yes** (8.1).
-7. The stop-rule review and its outcomes (8.2).
-8. The real-money gate and test numbers (8.3, 8.4).
+7. **Decided 15 Oct 2026:** the stop-rule review as in 8.2; on "undecided", option 1 if the projected date is within
+   2 years, otherwise option 2.
+8. **Decided 15 Oct 2026: the real-money gate and test accepted**; the exact account size (about Rs 2 lakh) and
+   per-trade cap (Rs 4,000-5,000) are confirmed before RM1 freezes (8.3, 8.4).
 9. **Decided 15 Oct 2026: (b), card records in Google Drive only**; the public repositories hold no live strikes or
    entry ranges (8.5).
-10. When books 2-3 start trading [at the first approved strategy or rung-2 idea] (slice E).
-11. S1 item changes (section 4).
+10. **Decided 15 Oct 2026:** books 2-3 start trading at the first approved strategy or rung-2 idea (slice E).
+11. **Decided 15 Oct 2026:** all S1 changes of section 4 accepted, plus the t-based check.
 12. **Decided 15 Oct 2026: (a), E8's code joins S1's `frozen_files`.** The question was: add E8's owner-timing fill code
    to S1's `frozen_files`? [(a) yes; ChatGPT review 95 also recommends it; or (b)
    S1 binds E8's exact version and hash in a separate freeze record] Reason: E8 decides the fill price of every counted
