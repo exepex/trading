@@ -233,3 +233,31 @@ CI `checks` is green on 9811203, which holds this merge (run 38532877389). The r
 in progress when I wrote this; I confirm it at my next check-in.
 
 **Confirmed:** CI is green on 81c9c86, which holds both merges (run 38533124620). My full suite there gives 2,792 passed.
+
+## Addendum 6 (ruling on the orchestrator's question: scope the clean-checkout check?)
+
+**Question:** today any dirty tracked file anywhere refuses every book's account write. Would "nothing unpushed, and
+no dirty file under `journal/` or the account folders" keep judge 82's safety?
+
+**Ruling: yes in part, as a follow-up, and only together with a change to the reset. Reasoning only, not blocking
+E5.**
+
+1. **Why the check is repo-wide today.** The rejected-push path runs `git reset --hard origin/<branch>`. That destroys
+   **every** uncommitted tracked edit in the checkout, not only the account's. Narrowing the check while keeping
+   `--hard` would bring back judge 82's defect: a reset that silently wipes someone's edit outside `journal/`.
+2. **What makes narrowing safe.** Use `git reset --keep origin/<branch>`. Git then keeps local edits to files the reset
+   does not touch, and refuses (fails closed) if it would overwrite one. With that, the check can become:
+   - nothing unpushed besides this write's own commit (unchanged);
+   - no dirty tracked file under **this book's** folder (`journal/<book>/`), because `commit_paths` adds the whole
+     folder and must not sweep in another writer's partial work.
+3. **It would not have prevented D.** D's dirty file was `journal/book1_rules/validity_failures.csv`, inside Book 1's
+   own folder, so Book 1's writes are still refused. What scoping per book does change is the blast radius: **Book 2's
+   and Book 3's writes would go through** instead of every book stopping. That is worth having.
+4. **Tests on real git** (the two-checkout fixture):
+   - a dirty file outside the book's folder survives a rejected push and its reset, and the fill is applied;
+   - a dirty file inside the book's folder refuses;
+   - another book's dirty folder does not refuse this book;
+   - an unpushed foreign commit still refuses.
+
+Whatever the scope, the root rule stays: every writer commits what it writes (must-fix D). The check is a backstop,
+not the fix.
