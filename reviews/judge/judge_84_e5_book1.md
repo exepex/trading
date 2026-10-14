@@ -376,3 +376,11 @@ run stays uncommitted. It fails loudly, and it was true before.
 
 After the merge I check `main` against e3e0346 and CI. The orchestrator's rule of no `fno/` merges between 14:55 and
 15:20 IST (09:25-09:50 UTC) applies to this merge.
+
+## Addendum 6 (merge check, 58f5781)
+
+**MET.** 58f5781 has parents 89699d4 (`main`) and e3e0346 (the passed tip), and it equals my recomputed merge.
+69f346d and 400699a also equal their recomputed merges. The only other change on `main` is 4869896, a scheduled
+filings-manifest data commit (no code).
+
+CI `checks` is green on 69f346d, which holds the merge (run 38539566068).

@@ -129,3 +129,61 @@ Two points the owner should see before deciding:
 - New package `fno/evaluation/` with its own wiring, and a CLI entry.
 - Files are within 350 lines. The ledger row goes through B4's `Ledger`.
 - No orders and no secrets.
+
+## Addendum 1 (round 2, b1a609243cd55f961ce104b427d8ebf3e2ae3c68 = fix 04bbff2 plus a merge of main): PASS
+
+**The must-fix is met.** Criterion 3 is now enforced three ways:
+- `python -m fno evaluation verify` reports every target of the latest freeze that differs in the working tree.
+- A suite test (`test_the_repository_holds_no_edit_to_a_frozen_target`) runs it on the repository, so CI fails on any
+  edit to a frozen target.
+- `version_of` reads the version's targets **as the decision's own commit holds them**, and raises
+  `ChangedAfterFreeze` if any differ.
+
+My exact probe sequence is now a test, and it fails as it should. The same edit as v2 with its own freeze is counted.
+
+**Should-fixes met:**
+- the freeze requires every target committed and unchanged since HEAD, and hashes it as HEAD holds it;
+- a test that the protocol is always a target.
+
+I accept the builder's equivalent-mutant note: with the committed-and-unchanged refusal, hashing the working tree or
+HEAD gives the same bytes.
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,849 passed;
+- ruff, format (633 files) and imports (640): clean;
+- `fno evaluation verify`: "unchanged (or nothing is frozen yet)";
+- `check`: complete.
+- **`git merge-tree` with current `main` (400699a): CONFLICT in `CLAUDE.md` only** (E5 merged meanwhile). The merge
+  must keep both composition-root lines and change nothing else.
+
+**My plants on the freeze guard (8, `tests/evaluation`):**
+
+| Plant | Result |
+|---|---|
+| `version_of` ignores changes | caught |
+| `version_of` checks the working tree instead of the decision's commit | caught (2) |
+| `verify` checks the oldest version | caught |
+| `verify` never reports | caught |
+| The freeze accepts an uncommitted target | caught (3) |
+| Strict ancestor relaxed | caught |
+| The protocol not always a target | caught |
+| **A deleted (or renamed) frozen target not counted as changed** | **not caught** |
+
+**Should-fix (test only, not blocking).** The code is right today: `changed_targets` counts a missing target as
+changed, by my reading. But no test covers it. A refactor that moves a frozen file is likely, because the 350-line
+rule splits files. Without a test, a later edit could let a moved and changed scoring file pass `verify`. Add one test:
+a frozen file deleted, then `verify` and `version_of` both refuse.
+
+**Process note (reasoning only).** Once v1 is frozen, a v2 **draft** of `PROTOCOL.md` committed to `main` turns the
+suite red: the guard sees v1's target changed. Decisions committed while that draft stands are refused by
+`version_of`.
+- So draft and freeze v2 on a branch, and merge them together as one merge.
+- Every decision then sits either before the draft or after the v2 freeze.
+- That fits the owner's branch rule. It is worth one line in the protocol's `reporting_per_version`.
+
+**The draft:** the two owner questions from judge 85 (the hash-only v2, and about 6 bootstrap blocks) are now in
+`PROTOCOL.md` with options. The builder recommends "freeze once the code exists", and both "≥12 blocks" and "a t-based
+bound". These are the owner's to decide.
+
+**Verdict: PASS** for b1a609243cd55f961ce104b427d8ebf3e2ae3c68, merged outside 09:25-09:50 UTC, with the `CLAUDE.md`
+conflict resolved as text only. After the merge I check `main` against it and CI.
