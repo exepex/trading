@@ -241,3 +241,21 @@ no less safe, as the builder says. D3's records stay the truth for past days.
 on the merged tree. I check that merge.
 
 **Verdict: PASS for be69a08.**
+
+## Addendum 3 (merge check, 374ad67 with the `desk` parser fold)
+
+**MET.** 374ad67 = 6f8c859 (main with E2) + be69a08. Beyond a plain merge, it differs only in the fold:
+- `fno/cli.py` imports the one parser from `fno/desk/cli.py` and registers it once;
+- `fno/desk/cli.py` has `COMMANDS = (add_pack_command, add_scorecard_command)`;
+- E2's `pack_cli.py` now adds only its command (`add_pack_command`, handler `cmd_pack`);
+- a new test covers one `desk` parser holding `pack` and `scorecard`;
+- CLAUDE.md's composition-root list resolves the conflict by listing both `fno/desk/pack_wiring.py` (E2) and
+  `fno/scorecard/wiring.py` (E6). That is correct.
+
+**Checks on `main` e72677e (my runs):**
+- `fno desk pack --day 2026-10-13` dispatches to the pack handler: refused, exit 2, nothing written;
+- `fno desk scorecard --report-only` dispatches to the scorecard: "automatic pauses: none", exit 0;
+- full suite: 2,448 passed;
+- CI `checks` is green on 8c5bd5f (run 38511118329) and c0c40b0 (run 38511399834).
+
+`main`'s code now equals the passed tips of P8, E2, D6 and E6 plus this fold. No unjudged code.

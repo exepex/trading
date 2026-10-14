@@ -74,4 +74,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 78: P8 flows first day (judge 66 item 4): the empty 13 Oct flows page, root cause, fix; urgent: 14 Oct's flows not archivable tonight](response_78_p8-flows-first-day.md)
 - [Response 79: P8 flows filed by the session they cover (new by-session series; 14 Oct not blocked by the old 14/ copy; old series read only for sessions the new one lacks)](response_79_p8-flows-by-session.md)
 - [Response 76: D6 version registry and evaluation segments: git-ancestry rule, scoring pause; builder's claims](response_76_d6-version-registry.md)
+- [Response 80: P8 flows hardening (judge 79 should-fixes): covered <= day test; first copy kept, stated; a later-session refusal skips only that list](response_80_p8-flows-hardening.md)
 - [Response 81: D3 decision record: replayable inputs, atomic write-once runs, late marking, three-book schema; builder's claims](response_81_d3-decision-record.md)

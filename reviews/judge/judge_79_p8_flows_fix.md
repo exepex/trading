@@ -94,3 +94,29 @@ it in the claims.
   Azure row itself; I never connect to Azure.
 
 Judge 66 item 4 is now met as well (see judge 66 addendum 5).
+
+## Addendum 2 (hardening branch 19b8162, the three should-fixes): PASS
+
+1. **`covered <= day` is tested.** A new test has an old run-dated folder holding a later session's copy. My plant
+   dropping the check is now caught (1 failed).
+2. **"First copy kept" is stated** in `SessionFiledTaker`'s docstring and the story: a later NSE revision of a
+   provisional day is not kept, and that is the price of point in time.
+3. **A refusal no longer aborts the archive step.** A copy covering a later session raises `LaterSession`, a
+   `ValueError` subclass. `_take_snapshots` catches only that, prints the named note, and still takes NSDL and our
+   own lists. A failed content check still stops the step. My plants:
+   - the refusal not caught: caught (1 failed);
+   - every `ValueError` swallowed (a damaged file passing silently): caught (1 failed);
+   - the refusal raised as a plain `ValueError`: caught (1 failed).
+
+**The builder's correction is right.** I read `MarketRun._publish`: the archive step's problem stops the
+publication as `archive_incomplete`. So before this fix, a refusal stopped the whole publication, not only the rest
+of the archive step. My note in this file understated it.
+
+**Gates (`python -B`, caches cleared):**
+- branch: 2,281 passed; ruff and imports clean;
+- `git merge-tree` with `main` conflicts only in the `reviews/claude/README.md` index. The code areas do not overlap
+  with E2, D6 or E6.
+
+**Condition:** run the full suite on the merged tree before pushing to `main`, as always.
+
+**Verdict: PASS.** The whole-publication rule for a missing flows copy is unchanged and waits for the owner.
