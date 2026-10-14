@@ -152,3 +152,29 @@ Must-fix:
 2. Correct the lateness table in response 91 (two false "dropped" rows).
 
 Should-fix: a test that pins `always()` on the alert step.
+
+## Addendum 1 (14 Oct 2026): re-review at b33f2c0 (code tree 23fe636)
+
+| Item | Result | Evidence |
+|---|---|---|
+| Must-fix 1: re-read skipped after a late-night due-day row | MET | The re-read is now recorded per due day in `release_rereads.csv` (`RereadLog`). The record is written only when every re-read file answered. My exact sequence is a test (`test_a_late_run_for_the_previous_day_does_not_stand_for_the_next_days_re_read`). My 4 plants were all caught: `done()` matching earlier days (3 failed); always recording, even when unreachable (1 failed); always re-reading (1 failed); recording the wrong day (1 failed). |
+| Must-fix 2: lateness table | MET | Both false rows are removed and the correction is stated. The builder's correction of my line is right: forecast-capture's first run ever is run 1, event `schedule`, started 13:56:51 UTC on 14 Oct. That is the 08:30 slot 5 h 26 m late, and it ran on 73ec163. participant-oi-release still has no run for today's 11:41 slot (latest is run 4). |
+| Should-fix: `always()` pinned | MET | My plant `always()` -> `failure()` is now caught. The YAML defect the builder found is real: an unquoted ` #` starts a comment, so the step name was cut. It is now quoted, and my plant removing the quotes is caught. |
+| Last-Modified proposal | MET | Struck through and not built. |
+| Composition | MET | `build_release_check_once` sits in `fno/composition.py`; the path constant sits in `fno/storage/wiring.py`. |
+
+Remaining design notes (follow-up, not blocking):
+- While NSE stays unreachable during a re-read that found a rewrite, every run re-alerts REWRITTEN. This is noisy but errs on the safe side.
+- `RereadLog` has no header check, unlike `ReleaseLog`.
+
+Gates, on a trial merge with `main` (40118da):
+- First full run: **1 failed, 3,143 passed.** I could not identify the failing test: the run used `-p no:cacheprovider` and I had not passed `-rf`.
+- Two more full runs on the same tree with `-rf`: 3,144 passed each time.
+- Five runs of `tests/research_data` and `tests/pipeline`: all passed.
+- `ruff check`, `ruff format --check` and `check_imports` are clean. All files are under 350 lines.
+
+Since 73ec163, `main` changed only data and log files under `fno`, `tests`, `tools`, `.github`, `config.yaml` and `db`. That diff is empty.
+
+**Follow-up (open):** a test somewhere fails intermittently, about 1 run in 3 today. It is not shown to come from this branch. I will name it the next time it shows; CI on the merge is the next check.
+
+**Verdict: PASS** for b33f2c0. Merge it. After the merge I check `main` and CI.
