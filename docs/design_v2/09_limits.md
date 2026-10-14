@@ -4,9 +4,8 @@ Each limit says what it is, why, and the label. None of them is a reason to stop
 expect what a broker's research promises.
 
 1. **Useful daily direction calls.** NIFTY's next-day and next-month direction are close to a coin toss (strong
-   evidence:
-   our base rates, desk 1's trend trials at 50-52%, the published efficient-market literature). The tool will forecast
-   direction and score it; it will not promise it.
+   evidence: our base rates, desk 1's trend trials at 50-52%, the published efficient-market literature). The tool will
+   forecast direction and score it; it will not promise it.
 2. **Proving a small edge on monthly NIFTY trades in useful time.** A +Rs 153 edge with an SD of Rs 2,700-3,400 needs
    1,200-2,000 trades: 100-165 years at 12 a year (strong evidence, arithmetic). Weekly trades are 4 times faster and
    still need decades for a Rs 100 edge (response 94). Only a large edge or many independent events can be shown.
@@ -14,8 +13,7 @@ expect what a broker's research promises.
    (intervals, calibration, the why-it-was-wrong class "within its stated odds") and never credited (strong evidence:
    basic statistics).
 4. **Beating high-frequency firms, expiry-day trading or scalping.** Excluded by design; the owner agrees (owner
-   decision of
-   14 Oct 2026, "Trading principles for the research tool").
+   decision of 14 Oct 2026, "Trading principles for the research tool").
 5. **Real bid/ask history before 13 Oct 2026.** We have only daily closes before A4 started; all historical tests use
    close proxies plus a pad (strong evidence that this is a limit; some evidence the Rs 1 pad is realistic, one day of
    quotes, response 92).

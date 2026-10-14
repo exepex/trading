@@ -29,9 +29,9 @@ key in GitHub"). The 15-minute recorder and the live monitor (layer 7) therefore
 owner; the options and their risks are in `06_risk_and_alerts.md` section 6.6.
 
 **Outputs.** Raw files in Drive (owner principle of 13 Oct 2026, "all scheduled data fetching runs as GitHub Actions and
-stores published data in Google Drive"); small derived daily tables in the
-repository (realised volatility per day from 15-minute returns, the 15:00 chain summary, global cues as of 15:00).
-Every row carries `source`, `as_of`, `first_seen_at` and the raw file's SHA-256.
+stores published data in Google Drive"); small derived daily tables in the repository (realised volatility per day from
+15-minute returns, the 15:00 chain summary, global cues as of 15:00). Every row carries `source`, `as_of`,
+`first_seen_at` and the raw file's SHA-256.
 
 **Interfaces.** Existing: `Provider` (Groww, NSE), `RawFileStore`, `RawFileSource`, `DailyClosesSource`, `DataCheck`
 (C3). New: `IntradayQuoteSource` (one adapter per source: Groww today), `GlobalCueSource` (one adapter per series),
@@ -91,8 +91,15 @@ tool"). Design v2 keeps it and makes its price visible.
 **Design change: the weather becomes a scored forecast.** Instead of a fixed checklist only, the weather publishes:
 - `p_big_1d`: the probability that NIFTY's next-session absolute move is at least 2%;
 - `p_big_5d`: the probability that the largest absolute close-to-close move over the next 5 sessions is at least 2%;
-- a colour from fixed thresholds on those probabilities, registered before use (proposal: RED when either probability
-  is at least 2.5 times its 750-day base rate, AMBER at 1.5 times; reasoning only, owner decides);
+- a colour from fixed thresholds on those probabilities, registered before use. Proposal (reasoning only; owner
+  decides): **RED** when `p_big_1d` is at least both 10% and 2.5 times its 750-session base rate, or `p_big_5d` at
+  least both 35% and 2.5 times; **AMBER** at both 6% and 1.5 times (one day) or 20% and 1.5 times (5 days). The
+  absolute floors keep a colour meaningful when the base event is rare. Measured base rates on NIFTY closes 2017-2026:
+  a 2% day on 4.1% of sessions (0% in 2017, 16.7% in 2020, 0.4% in 2023), and at least one in the next 5 sessions
+  13.7% of the time; so 2.5 times is about 10% and 34%, and the floors bind mainly in calm years;
+- a **maximum RED frequency**, frozen with the thresholds: if RED covers more than 15% of the last 250 sessions, the
+  weather is marked "over-alarming" in the post-mortem and a new version must be proposed (never retuned in place;
+  RED still blocks entries until the owner approves the new version);
 - the drivers that moved it (VIX level and change, recent large moves, realised volatility, overnight US move,
   scheduled events), so the card can say why.
 
@@ -108,9 +115,10 @@ and `AlertSender` for Slack. Wiring: a new `fno/weather/wiring.py` composition r
 **Evaluation metric.**
 - Forecast skill: Brier and log score of `p_big_1d` and `p_big_5d` against the base rate (strong expectation of some
   skill: volatility clustering is well documented; reasoning only for our thresholds).
-- **Price of calm:** each month, the shadow net result of the trades the RED rule blocked (from the factory's shadow
-  decisions), shown beside the losses it avoided. The owner sees exactly what the survival rule costs.
-- Red frequency: share of sessions RED. Above about 25% the rule keeps the owner out too often (v0 was 26% of weeks).
+- **Price of calm:** each month, the blocked opportunities, the risk avoided (their maximum losses) and the foregone or
+  avoided net, from matched shadow fills of the trades the RED rule blocked. Until that is measured, the design never
+  claims the weather "protects" anything; the owner keeps RED as a survival rule by choice.
+- Red frequency: share of sessions RED, against the 15% maximum (v0 was RED on 26% of weeks).
 
 **Failure modes.** False calm before an overnight shock (a gap after a GREEN day: inevitable sometimes; every gap day
 with GREEN gets a why-it-was-wrong review); crying wolf (too many REDs: the owner stops reading it); thresholds tuned

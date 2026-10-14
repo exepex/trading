@@ -19,19 +19,21 @@ show real skill, depending on how noisy it turns out to be (measured after 60 da
 trades, which is why forecasts come first and trades second.
 
 **Order of work.**
-1. **Next 3 weeks (targets; they depend on ChatGPT's review and your decisions):** volatility forecasts and scoring
-   (protocol v4), market weather as a scored forecast, the daily card
-   on your phone (at first mostly "no trade"), 15-minute quotes (you choose where they run), VIX history, global cues
-   (US close, crude, rupee), a feasibility check of stock options around company results, risk limits for the Rs 20
-   lakh account, the budget meter, the first weekly post-mortem.
-2. **November:** the strategy factory testing ideas forward (each once, cost check first), one- and two-leg spreads,
-   the real-money pass mark written down before any result, the live monitor, loss reviews, drift detection.
-3. **December-January:** dashboard screens, intraday exits test, stock-option data if the check passes.
-4. **About end of May 2027 (a target): the stop-rule review.** If the data clearly says no forecaster beats the
-   simple baselines and no idea survives costs, you choose: stop (keep only cheap data and the weather) or pivot. The
-   most likely answer on that date is **"undecided"** (too few days to tell). Then you choose in advance: continue to a
-   projected date (at most 2 years away, with AI cut to the forecasters at half budget), keep only the free code
-   forecasters, or stop. "Not yet known" is never treated as "no".
+1. **First release (about 3-6 weeks; depends on ChatGPT's review and your decisions):** trustworthy data (15-minute
+   quotes once you choose where they run and Groww's terms allow it, VIX history, global cues: US close, crude,
+   rupee), scored forecasts of large moves and of the next session's movement (protocol v4), market weather as a
+   scored forecast, the daily card on your phone (at first "no trade"), the budget meter, a weekly post-mortem, and a
+   feasibility check of stock options around company results.
+2. **Next:** the strategy factory testing ideas forward (each once, cost check first, every idea counted), one- and
+   two-leg spreads, risk limits for the Rs 20 lakh account, fills at your reaction time, the real-money pass mark
+   written down before any result, loss reviews, drift detection, and the live monitor once there is a paper position
+   to watch.
+3. **After that:** dashboard screens, intraday exits test, stock-option data if the check passes.
+4. **About end of May 2027 (a target): the stop-rule review.** If the data clearly says no forecaster beats the simple
+   baselines and no idea survives costs, you choose: stop (keep only cheap data and the weather) or pivot. The most
+   likely answer on that date is **"undecided"** (too few days to tell). For that case you choose now, before the first
+   v4 forecast is scored: continue to a projected date (at most 2 years away, with AI cut to the forecasters at half
+   budget), keep only the free code forecasters, or stop. "Not yet known" is never treated as "no".
 5. **The AI books (Hybrid and AI team) start trading** only once there is at least one strategy worth trading
    (proposal; your decision). Until then they keep forecasting, which is already running.
 

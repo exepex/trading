@@ -6,8 +6,7 @@
   parallel, not bigger bets.
 - **Worst loss fixed at entry**: bought options or spreads with bought protection; never unprotected selling; no
   stop-loss order relied on (owner decision of 14 Oct 2026, "Trading principles for the research tool"). So the
-  account's worst case on any day is the sum of the open positions'
-  maximum losses, whatever the gap.
+  account's worst case on any day is the sum of the open positions' maximum losses, whatever the gap.
 - **Stressed margin multiplier 1.45** (decided 14 Oct) on NSE SPAN plus exposure from A14; funds at entry by C2's rule
   (no credit for sold premium; bought premium and charges paid at once).
 - **Strategy pauses (decided):** a single trade's loss reaching the plan's catastrophic loss, or a strategy's cumulative
@@ -47,8 +46,8 @@ the number that matters for evidence (section 1.3).
 ## 6.4 Real-money risk (later; see `08_budget_and_stop_rules.md`)
 
 On a real account of about Rs 2 lakh, Rs 10,000 is 5% a trade: too high (owner decision of 12 Oct 2026, "Paper account:
-Rs 5 lakh"). The real-money test sets
-its own per-trade cap before it starts (proposal: Rs 4,000-5,000, 2-2.5% of the real account; owner decides).
+Rs 5 lakh"). The real-money test sets its own per-trade cap before it starts (proposal: Rs 4,000-5,000, 2-2.5% of the
+real account; owner decides).
 
 ## 6.5 Alerts: classes, content and limits
 

@@ -13,8 +13,9 @@ the day. Layer and section references are to the design v2 files.
 - **A16 15-minute quote recorder.** Step 0: a one-session feasibility check of Groww's historical candles and of a
   15-minute snapshot of NIFTY spot, near future and the weekly and monthly chains within about 6% of spot (counts and
   timings only). Then the recorder: 26 snapshots a session, raw files to Drive, derived per-session realised variance in
-  the repository, gaps recorded never filled. Host chosen by the owner (6.6). No order code, read-only key use. Depends:
-  A7, A9, the owner's host decision. M. Slice A.
+  the repository, gaps recorded never filled. Host chosen by the owner (6.6). No order code, read-only key use.
+  Acceptance includes section 4.4's contracts: Groww's terms checked first (raw quotes in Drive only), the clock
+  contract and skew check. Depends: A7, A9, the owner's host decision. M. Slice A.
 - **A17 Global cues.** Previous US close (S&P 500, Nasdaq 100), Brent, USD/INR and the US 10-year yield, each behind
   `GlobalCueSource`, with `first_seen_at`; official or primary sources first (NSE currency and MCX files, FRED). Why:
   overnight gap risk and the weather's drivers. Depends: A9, O6. M. Slice A.
@@ -26,11 +27,11 @@ the day. Layer and section references are to the design v2 files.
 
 - **G6 Forecast protocol v4.** The volatility question set V1-V7, baselines, scoring and the registered family of
   section 5; minimum effects; power-check rule; freeze after the judge and ChatGPT agree (orchestrator decision of 13
-  Oct 2026: G-protocols
-  freeze only after ChatGPT review). G1 v3 keeps running beside it. Depends: G1, G2, G4. M (document). Slice A.
+  Oct 2026: G-protocols freeze only after ChatGPT review). G1 v3 keeps running beside it. Depends: G1, G2, G4. M
+  (document). Slice A.
 - **G7 v4 baselines and rule forecasters.** Trailing, EWMA, HAR (daily, later intraday), implied and implied-ratio
   baselines; back-fill on close proxies, labelled; live capture beside G3. Wiring in `fno/forecast/baseline_wiring.py`
-  (G1's freeze pins `wiring.py`). Depends: G6. M. Slice A.
+  (G1's freeze pins `wiring.py`). Depends: G6. M. Phase 1 (V6, V1) slice A; phase 2 (V2-V5, V7) slice B.
 - **G8 v4 scoring.** QLIKE, squared error on variance, Mincer-Zarnowitz, calibration slope and intercept, Brier skill
   score; the block-bootstrap comparisons and Holm of section 5.5; the 60-outcome power report. In
   `fno/forecast_scoring/`. Depends: G6, G4. M. Slice A.
@@ -49,13 +50,19 @@ the day. Layer and section references are to the design v2 files.
 
 ## Factory (layer 4) and structures
 
-- **R1 Strategy factory.** Idea cards, `CostWall` (2x full cost), `DataSpendRegister` (`research/DATA_SPEND.md`),
-  `SamplePlan`, the trial count and expected false passes on every report, and the path from idea to forward shadow
-  through B4 and D1's research status. Documents in week 1, code in slice B. Depends: B4, C1, D1, A4. M.
+- **R1 Strategy factory.** Idea cards with a ledger row at G0, `CostWall` (feasibility screen: expected net after costs
+  and tail losses on a conservative bound; 2x shown only as a warning), `screened_out` ideas kept in the trial count,
+  `DataSpendRegister` (`research/DATA_SPEND.md`), `SamplePlan`, the trial count and expected false passes on every
+  report, and the path from idea to forward shadow through B4 and D1's research status. Documents in slice A, code in
+  slice B. Depends: B4, C1, D1, A4. M.
 - **R2 Stock options around results: feasibility study.** A registered study (ledger rows first): for F&O stocks with
   results in 2019-26, volume and open interest of near strikes, lot values, the cheapest defined-risk structures that
-  fit Rs 10,000, and one live Groww snapshot of their bid/ask. Output: fits or does not fit, with numbers. No P&L on
-  outcomes in this study (it only decides whether a P&L study is worth registering). Depends: A1, A12. M. Slice A.
+  fit Rs 10,000, and one live Groww snapshot of their bid/ask. It also reports the point-in-time F&O eligibility of
+  each stock, physical-settlement obligations, bid/ask depth, and the **effective number of independent clusters**
+  (events grouped by sector and results week, with the within-week correlation of event moves), not only raw events.
+  Output: fits or does not fit, with numbers; it fails early if the Rs 10,000 cap makes most structures uneconomic. No
+  P&L on outcomes in this study (it only decides whether a P&L study is worth registering). Depends: A1, A12. M.
+  Slice A.
 - **R3 First forward shadows.** The first ideas that pass the cost wall, registered as research candidates and recorded
   daily as shadows (experiment 2 model). V-ideas only after their forecast passes rung 1. Depends: R1, STR1. M. Slice B.
 - **STR1 One- and two-leg structures.** B2's `Structure` builds any number of legs; C4's shape and independent max-loss
@@ -66,26 +73,28 @@ the day. Layer and section references are to the design v2 files.
 
 - **C5 Risk buckets and the Rs 20 lakh account.** Bucket, account and new-risk-per-day caps, the account drawdown brake
   and the daily stress line of section 6.2, in C2 with config through `fno/config.py`. Depends: C2, the owner's numbers.
-  M. Slice A.
+  M. Slice B.
 - **E8 Owner-timing fills.** `OwnerTiming`: fill at the first snapshot at or after card time plus the owner's reaction
   time, or the next session when away; both E4's and E8's fills reported, so the cost of human delay is visible.
-  Depends: E4, A16 (falls back to A4 snapshots until A16 runs). M. Slice A.
+  Depends: E4, A16 (falls back to A4 snapshots until A16 runs). M. Slice B.
 
 ## Cards and alerts (layer 6)
 
 - **T1 Daily trade card.** One card every session (`TRADE`, `NO TRADE`, `WATCH`) built only from committed records,
-  with record hashes in the footer; Slack #fno-desk; alert classes and limits of 6.5. Replaces P4. Depends: D3, E2, G3,
+  with record hashes in the footer; Slack #fno-desk; alert classes and limits of 6.5. Replaces P4. Acceptance includes
+  section 4.4: the footer's issuance hashes, the clock contract and the owner-unavailable line. Depends: D3, E2, G3,
   M1. M. Slice A (v1: `NO TRADE` and forecasts), slice B (trade fields).
 - **T2 Devil's advocate rule checks.** The code checks of 7.3, able to turn a card into `NO TRADE` with the reason.
-  Depends: T1, C4, R1. S. Slice A.
+  Depends: T1, C4, R1. S. Slice B.
 - **T3 Devil's advocate objections.** A sealed AI session per card returning three scored objections; never a veto.
   Depends: T1, F1's session pattern, F8. M. Slice B.
 
 ## Live monitor (layer 7)
 
 - **LM1 Position monitor, alert only.** `PositionMonitor` and one `MonitorCheck` class per check of 4.2, heartbeat and
-  "monitor silent" checker, weekly replay for missed alerts. No entry code path. Depends: A16, E1, T1, host. M.
-  Slice B.
+  "monitor silent" checker, weekly replay for missed alerts. No entry code path. Acceptance includes section 4.4's
+  clock contract and owner-unavailable fallback. Starts only when the first paper or shadow position is open.
+  Depends: A16, E1, T1, host. M. Slice B.
 - **LM2 Intraday exits mode.** `intraday_exits` per strategy version, with the same version shadowed in the other mode
   as a registered comparison. Depends: LM1, E8. M. Slice C.
 

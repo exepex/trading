@@ -29,26 +29,35 @@ The owner's idea: "no forecaster beats baselines after 6 months of daily scoring
 - **Honest expectation:** 6 months give about 125 daily outcomes. Under section 5.5's arithmetic that settles a daily
   question only if its noise-to-effect ratio r is about 3 or less. The most likely result of Test A on this date is
   therefore "undecided", and the rule is written for that.
+- **Decision unit (frozen with G6, before any v4 score).**
+  - Test A counts only the primary comparisons of protocol v4's registered family (section 5.5) on the judgeable
+    questions, one per forecaster and question. G1 v3's family is reported beside it, not counted. Void outcomes and
+    missing forecasts are excluded from the statistic and counted in the report.
+  - Test B counts only shadow strategies registered in the ledger before the review, each with its registered pass mark
+    and minimum useful net per trade. A no-trade day is not a trade; screened-out ideas (section 3.1) count in the trial
+    total, not in Test B.
 - **Test A, forecasting.** Three results, never two:
   - **yes:** a forecaster (rules, hybrid, AI team) beats its primary baseline on a judgeable question under section 5.5
     (Holm, minimum effect);
-  - **no:** for every judgeable question, the 60-outcome power report projects a settle date on or before the review
-    date and no forecaster passed; or every forecaster's interval already rules out the minimum effect;
-  - **undecided:** anything else, in particular a projected settle date after the review date. **Underpowered never
-    counts as "no".**
-- **Test B, money.** Also three results: **yes** when an idea at rung 2 or higher has a shadow net whose one-sided 95%
-  lower bound after costs is above zero; **no** when no idea reached rung 2, or every rung-2 idea's upper bound is
-  below zero; **undecided** otherwise.
-- **Outcomes:**
+  - **no (futility):** for every counted comparison, the one-sided 95% upper bound of the forecaster's improvement is
+    below the registered minimum effect (3% QLIKE or Brier skill 0.02; the futility margin is the minimum effect
+    itself). Failing to reject zero is never enough;
+  - **undecided:** anything else. **Underpowered never counts as "no".**
+- **Test B, money.** Also three results: **yes** when a counted shadow strategy's one-sided 95% lower bound of net per
+  trade after costs is above zero; **no** when no idea reached rung 2, or every counted strategy's one-sided 95% upper
+  bound is below its registered minimum useful net; **undecided** otherwise.
+- **Outcomes (both tests must say "no" to stop or pivot):**
   - A no and B no: **stop or pivot** (owner chooses). Stop means: keep only the cheap code jobs (data collection,
     weather as a risk aid, baselines), switch off AI roles. Pivot means one named new direction (for example, stock
     options around results only) with its own registered test and its own stop date.
   - A yes and B not yes: continue 6 more months with the AI budget halved, then the same test.
   - B yes: continue; the idea follows the evidence ladder.
-  - **A undecided (and B not yes):** the owner chooses one, written before the review date:
-    1. **Continue to the projected settle date** of the best-powered question, if it is at most 2 years after the
-       review, with AI roles cut to the forecasters at half the AI budget; the test is re-run on that date, where
-       "undecided" is no longer allowed: it counts as "no".
+  - **Any other combination ("undecided"):** the owner's choice among the options below is **recorded in
+    `docs/DESK_DECISIONS.md` before the first v4 outcome is scored**, so it cannot be shaped by results:
+    1. **Continue to the projected settle date** of the best-powered question (section 5.5's 60-outcome report), if it
+       is at most 2 years after the review, with AI roles cut to the forecasters at half the AI budget. If the re-run on
+       that date is still undecided, the AI forecasters stop and the question is closed as "not shown, not disproven";
+       the code forecasters may continue at no AI cost.
     2. **Code only:** switch off every AI role, keep the code forecasters and baselines running at no AI cost until the
        projected date, then re-run the test. The AI books' question stays unanswered.
     3. **Stop now**, accepting that the forecasting question was not answered.
@@ -87,8 +96,8 @@ strategy version may start the real-money test only when **all** hold:
 - The tool is for the owner only. Giving calls to others for money needs SEBI research-analyst registration (SEBI
   Research Analysts Regulations, 2014); this design never does that.
 - **Flag (reasoning only, not legal advice):** the repositories are public during development (owner decision of 12 Oct
-  2026 on the shared dashboard repository and Azure Postgres). Daily
-  trade cards with strikes and entry ranges committed to a public repository are publicly readable calls, even if
-  unpaid. Recommendation: before layer 6 sends `TRADE` cards, either make the repositories private or keep the card
-  records out of the public repository (Drive only, as raw data already is). Owner decides.
+  2026 on the shared dashboard repository and Azure Postgres). Daily trade cards with strikes and entry ranges committed
+  to a public repository are publicly readable calls, even if unpaid. Recommendation: before layer 6 sends `TRADE`
+  cards, either make the repositories private or keep the card records out of the public repository (Drive only, as raw
+  data already is). Owner decides.
 - Nothing in the tool places real orders; the hard lines stay.

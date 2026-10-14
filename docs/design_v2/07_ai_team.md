@@ -2,11 +2,10 @@
 
 ## 7.1 What stays (owner decisions)
 
-The three approaches stay as decided on 13 Oct: **Rules** (Book 1, no AI), **Hybrid** (Book 2: the AI team works
-inside rule limits) and **AI team** (Book 3: autonomous roles). Screens never name an AI model, nor "Claude". AI runs
-as cloud routines fired from GitHub Actions on the owner's subscription (owner decision of 13 Oct 2026, "Architecture:
-fetch and reason are separate"). The sealed-same-day forecast
-rule and its audit conditions (14 Oct) stay.
+The three approaches stay as decided on 13 Oct: **Rules** (Book 1, no AI), **Hybrid** (Book 2: the AI team works inside
+rule limits) and **AI team** (Book 3: autonomous roles). Screens never name an AI model, nor "Claude". AI runs as cloud
+routines fired from GitHub Actions on the owner's subscription (owner decision of 13 Oct 2026, "Architecture: fetch and
+reason are separate"). The sealed-same-day forecast rule and its audit conditions (14 Oct) stay.
 
 **Honest starting point:** there is no evidence yet that the AI books forecast better than the baselines; their live
 forecasts began on 14 Oct 2026 (G5). Published comparisons of language-model forecasts of market moves are mixed
@@ -44,21 +43,38 @@ every promotion proposal, every weekly post-mortem.
    being a variant of a failed one (ledger search). A failure turns the card into `NO TRADE` with the reason.
 2. **Objections (AI, cannot block).** In its own sealed session with its own prompt, it reads the card, the strategy's
    registration, the forecaster's calibration in this probability range, the weather and recent results, and returns
-   the three strongest objections, each with the effect it predicts ("likely loss larger than modelled because ...").
-   They are printed on the card. The paper trade still follows the registered rules: if the advocate could veto, it
-   would be an unregistered filter, and the record would no longer test the strategy.
+   **up to three** objections, each with the effect it predicts ("likely loss larger than modelled because ...").
+   There is no quota: "no material objection" is a valid answer. They are printed on the card. The paper trade still
+   follows the registered rules: if the advocate could veto, it would be an unregistered filter, and the record would
+   no longer test the strategy.
 
-**The advocate is scored too.** Each objection is a record. After enough trades, a registered comparison asks whether
-trades with a "strong" objection did worse than the rest. If they did (passing section 5.5's rules), a new strategy
-version may use the advocate as a filter, tested forward like any idea. If not, its objections stay informational and
-its cost is weighed by F9.
+**The advocate is scored too.**
+- Each objection is an immutable record committed, with its independent issuance time (section 4.1), **before the
+  decision cutoff**; an objection written after the outcome could be seen is invalid for scoring.
+- An adjudication record says what the card did with it: shown only (always, today), or, in a later registered version,
+  acted on.
+- Scoring is paired and counterfactual: for each objection, the trade's result is compared with the matched shadow of
+  not taking it, so both hits and false alarms count. A registered comparison then asks whether trades with an
+  objection did worse than those without. If they did (section 5.5's rules), a new strategy version may use the
+  advocate as a filter, tested forward like any idea; if not, its objections stay informational and its cost is weighed
+  by F9.
 
 ## 7.4 Forecasters weighted by proven record: the house forecast
 
-- **Rule (proposal; reasoning plus strong evidence for the principle):** per question, the house forecast is the
-  primary baseline (section 5.3) until a forecaster beats it under section 5.5 at a scheduled review. From then on it is
-  that forecaster, or the equal-weight average of all forecasters that passed.
-- **Weights change only at scheduled reviews** (quarterly), never day to day.
+- **Rule, deterministic and frozen before the first house forecast** (proposal; reasoning plus strong evidence for the
+  principle). Per question, at each quarterly review:
+  1. The passing set is every registered forecaster version whose primary comparison passed section 5.5 (Holm, minimum
+     effect, its own minimum sample) on the scored sample up to that review.
+  2. Empty set: the house forecast is the primary baseline (5.3). One member: that forecaster. Several: the
+     equal-weight mean of their probabilities (for variance questions, of their variance forecasts). Ties need no rule,
+     since every member gets the same weight.
+  3. On a day a member gives no forecast, the mean of the members that did; none did: the primary baseline.
+  4. A member that changes version leaves the set; the new version re-enters only after it passes on its own forward
+     record.
+  5. The set and the weights hold until the next review; outside a review nothing changes.
+- **A review is a change window, not a retune.** After a change, the house forecast's own score is judged on a new
+  forward segment that starts at that review, never on the sample that chose it.
+- If nothing ever passes, the card shows the baseline and says so.
 - **Why not continuously estimated weights:** with small samples, estimated combination weights chase noise, and a
   simple average usually forecasts as well or better (strong evidence: the "forecast combination puzzle", Clemen 1989;
   Smith and Wallis 2009). Estimated weights may be proposed later as a registered version once samples are large.

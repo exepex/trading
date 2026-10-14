@@ -42,7 +42,7 @@ v2 changes to them come later as separate stories, never by reopening a passed c
 | F5 Book 2 decisions | keep, defer to slice E | Three approaches stay (owner, 13 Oct) |
 | F6 Book 3 and its pilot | keep, defer to slice E | Same |
 | F7 Matched shadow decisions | keep, defer to slice E | Scoreboard A needs all three books |
-| F8 AI usage and cost | keep, **move earlier** (slice A, week 3) | The budget cap (BG1) needs it, and S1's freeze needs its code |
+| F8 AI usage and cost | keep, **move earlier** (slice A) | The budget cap (BG1) needs it, and S1's freeze needs its code |
 | F9 Role-value evaluation | keep; **code earlier** (slice B), use in slice E | S1 v1 cannot freeze until F9's code exists (owner's option A); building it early unblocks counting |
 | S2 Scoreboard B | keep, **change** (slice B) | Adds the do-nothing index fund and cash benchmarks, after-tax results, net per rupee of capital tied, and the count of independent bucket-weeks |
 | S3 Scoreboard A | keep; **code earlier** (slice B) | Same reason as F9: S1 v1's freeze needs its code; it reports only once books 2-3 trade |
@@ -72,43 +72,48 @@ The milestones M2-M7 of `docs/IMPLEMENTATION_PLAN.md` and slices 3-5 of `docs/BU
 work, by the slices below. Each slice is done only when its real output reaches the owner (BUILD_MAP rule 3). At most
 two builders plus the judge at a time (owner's pace).
 
-### Slice A (target 15 Oct - 4 Nov 2026): volatility forecasts and an honest daily card
+### Slice A (planning range: about 3-6 weeks from 15 Oct 2026): the first release
 
-All dates in this slice are **targets, not commitments**. They depend on ChatGPT's review of G6 (v4 cannot freeze
-before it), the owner's host decision for A16 and the monitor, and the owner's C5 numbers.
+**Scope, revised after ChatGPT review 95 (section 11, accepted in part):** trustworthy inputs, frozen and scored V6 and
+V1 forecasts, the daily `NO TRADE` card and a measured budget. Everything that only matters once paper trades exist
+(risk buckets, owner-timing fills, the advocate's rule checks, the monitor) moves to slice B. Two cheap items stay
+here although ChatGPT's minimal list omits them: the R2 feasibility study (a few days of research, no build, and it
+decides whether a whole branch of the plan exists) and the weekly post-mortem (the only place the owner sees the
+scores weekly).
 
-**Target week 1 (15-21 Oct)**
-1. Judge rounds of the built queue (section 1). No new scope on them.
-2. **G6** forecast protocol v4 written (section 5 of the design): judge, then ChatGPT; freeze after agreement.
-3. **R1 (documents only):** `research/DATA_SPEND.md` filled in, the idea-card template, the cost-wall rule text.
-4. **A16 step 0:** one-session feasibility check of Groww's historical candles and live 15-minute snapshots (read-only;
-   counts, no outcomes); the owner decides the host (section 6.6).
+The order below is a sequence, not a calendar. It depends on ChatGPT's review of G6 (v4 cannot freeze before it), the
+owner's host decision for A16 and Groww's terms (section 4.4 of the design).
+
+1. Judge rounds of anything still open in section 1. No new scope on them.
+2. **G6** forecast protocol v4 written (section 5 of the design): judge, then ChatGPT; **frozen before any counted v4
+   forecast**. G7 and G8 may be built and back-filled before the freeze (labelled exploratory); only forecasts after
+   the freeze count. G1 v3 keeps running unchanged.
+3. **A16 step 0:** Groww's terms on storing and publishing quotes (owner), then a one-session feasibility check of
+   historical candles and live 15-minute snapshots (read-only; counts, no outcomes); the owner decides the host (6.6).
+4. **R1 documents:** `research/DATA_SPEND.md`, the idea-card template, the feasibility-screen rule text.
 5. **R2 feasibility study**, registered before running: stock options around results, from the NSE archive (volume,
    open interest, lot values against the Rs 10,000 cap) and one Groww snapshot of their bid/ask. Answer: can any
-   defined-risk stock-option structure fit the cap with costs below half its plausible gross? Yes or no, with numbers.
-
-**Target week 2 (22-28 Oct)**
-6. **G7** v4 baselines and rule forecasters on close proxies (V2, V3, V5, V6, V7), back-filled and labelled.
-7. **M1** weather as a scored forecaster (v0 checklist as its baseline).
-8. **T1** daily card v1 to Slack: `NO TRADE` with reason, weather, house forecasts with their records. **First real
-   thing on the owner's phone.**
-9. **A15** VIX full history; **A17** global cues (daily).
-10. **A16** recorder live, if the host is decided.
-
-**Target week 3 (29 Oct - 4 Nov)**
-11. **G8** v4 scoring (QLIKE, calibration slope) in `fno/forecast_scoring/`.
+   defined-risk stock-option structure fit the cap with a positive expected net on a conservative bound, and how many
+   effective independent clusters (sector and results week) are there a year? Yes or no, with numbers.
+6. **A15** VIX full history; **A17** global cues (daily).
+7. **G7 phase 1:** baselines and rule forecasters for V6 (now, daily closes) and V1 (once A16 has 20 sessions).
+8. **M1** weather as a scored forecaster (V6; the v0 checklist as its baseline).
+9. **G8** v4 scoring (QLIKE with its floor, Brier, calibration, the null-centred bootstrap and the HAC sensitivity).
+10. **T1** daily card v1 to Slack: `NO TRADE` with reason, weather, house forecasts (baselines until something passes)
+    with their records, and the issuance hashes. **First real thing on the owner's phone.**
+11. **A16** recorder live, once the host and terms allow.
 12. **F8** (minimal) and **BG1** budget meter with the stop-rule dates.
-13. **C5** risk buckets and the Rs 20 lakh account settings (owner's numbers).
-14. **E8** owner-timing fills.
-15. **T2** devil's advocate rule checks on the card.
-16. **LR1** first weekly post-mortem (Saturday 31 Oct): forecasts, weather, data health only.
+13. **LR1** weekly post-mortem: forecasts, weather, data health only.
 
-### Slice B (November 2026): the factory runs forward, the record becomes countable
+### Slice B (after slice A): the factory runs forward, the record becomes countable
 
-STR1 (one- and two-leg structures), R1 code, first forward shadow ideas registered (only those passing the cost wall;
-V-ideas wait for rung 1), RM1 (real-money gate frozen before any counted paper decision), S2 change, S3 and F9 scoring
-code (so S1 v1 can freeze under the owner's option A), S1 freeze, LR2 loss reviews, LR3 drift, T3 advocate objections,
-LM1 monitor in `alert_only` mode (needs A16 and its host), O1 and O2 changes.
+G7 phase 2 (V2-V5, V7), STR1 (one- and two-leg structures), R1 code, first forward shadow ideas registered (screened
+ideas kept in the trial count; V-ideas wait for rung 1), C5 risk buckets and the Rs 20 lakh settings (owner's
+numbers), E8 owner-timing fills, T2 advocate rule checks, RM1 (real-money gate frozen before any counted paper
+decision), S2 change, S3 and F9 scoring code (so S1 v1 can freeze under the owner's option A; this code must not
+produce a scored Book-3 trading comparison before the common start, which S1's pilot rule already forbids), S1 freeze,
+LR2 loss reviews, LR3 drift, T3 advocate objections, O1 and O2 changes. **LM1** monitor, `alert_only`, starts only when
+the first paper or shadow position is open: a monitor with nothing to watch adds nothing.
 
 ### Slice C (December 2026 - January 2027): surfaces and depth
 
@@ -145,8 +150,8 @@ when at least one strategy is approved to paper or an idea reaches rung 2, becau
 
 The five decided items (`uncertainty_criterion`, `catastrophic_loss_strategy`, `ai_cost_allocation`,
 `reporting_per_version`, `frozen_files`) are not reopened. Design v2 adds nothing to `frozen_files` by itself. G8's
-forecast scoring is frozen by protocol v4's own freeze (G6),
-not by S1. One addition is put to the owner as decision 12 (section 5).
+forecast scoring is frozen by protocol v4's own freeze (G6), not by S1. One addition is put to the owner as decision 12
+(section 5).
 
 ## 5. Owner decisions this design needs (one line each; proposals in brackets)
 
@@ -161,8 +166,9 @@ not by S1. One addition is put to the owner as decision 12 (section 5).
 9. Trade cards in public repositories [make private, or keep cards in Drive] (8.5).
 10. When books 2-3 start trading [at the first approved strategy or rung-2 idea] (slice E).
 11. S1 item changes (section 4).
-12. **Add E8's owner-timing fill code to S1's `frozen_files`?** [yes] Reason: E8 decides the fill price of every counted
+12. **Add E8's owner-timing fill code to S1's `frozen_files`?** [(a) yes; ChatGPT review 95 also recommends it; or (b)
+   S1 binds E8's exact version and hash in a separate freeze record] Reason: E8 decides the fill price of every counted
    paper trade; unhashed, the fill rule could be changed after results are seen and alter counted results. Cost of
-   doing it: S1 v1 cannot freeze before E8 exists (planned for slice A, week 3, so little delay beyond S3 and F9).
+   doing it: S1 v1 cannot freeze before E8 exists (planned for slice B, alongside S3 and F9, so little extra delay).
    Cost of not doing it: counted results rest on a fill rule that is not frozen with them. This would change the
    owner's decided `frozen_files` item, so it is the owner's call, not this design's.

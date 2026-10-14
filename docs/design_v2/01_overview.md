@@ -39,12 +39,15 @@ Three plain conclusions:
 2. **Movement size before direction** (owner decision). Volatility clusters and is forecastable; daily direction is
    close to a coin toss (strong evidence: published studies and our own Q1 base rates). Direction is still forecast and
    scored, and nobody expects much from it.
-3. **The cost wall is the first gate.** An idea whose plausible gross per trade is below twice its full round-trip cost
-   (charges plus pads, C1) is not tested at all. Section 5.6 and `03_layers_factory_desk.md`.
+3. **The cost wall is the first gate.** A cheap feasibility screen: an idea whose expected net per trade, after full
+   round-trip costs (charges plus pads, C1) and tail losses, is not above zero on a conservative bound is not tested;
+   it is still registered and counted. Section 5.6 and `03_layers_factory_desk.md`.
 4. **Independent events, not parallel copies.** Ten NIFTY strategies open in the same week are one bet on NIFTY's
-   movement, not ten. Evidence grows with independent events: different weeks, and different underlyings such as stock
-   options around company results (about 4 results a year for each of about 200 F&O stocks). Rs 20 lakh buys
-   parallelism; only independence buys evidence (reasoning only; checked by the correlation buckets in section 6).
+   movement, not ten. Evidence grows with independent events: different weeks, and possibly stock options around
+   company results. Those are not independent one by one either: results cluster by sector, by week and by market
+   regime, so R2 counts **effective clusters** (stock, sector and results week), not the raw count of about 4 results a
+   year for each F&O stock. Rs 20 lakh buys parallelism; only independence buys evidence (strong evidence on
+   dependence; reasoning only on how much stock options add; checked by the correlation buckets in section 6).
 5. **"No trade" is the expected output for a long time.** Until something passes, the daily card says "no trade" with
    the reason. That is a result, not a failure.
 6. **New information, not new filters on old prices.** The 2019-26 daily NIFTY option prices are spent (36+ trials,

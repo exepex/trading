@@ -122,3 +122,22 @@ calibration test; repeat errors of the same class; time from error found to new 
 **Failure modes.** Storytelling after the fact (the classification is computed from stated probabilities first; an AI
 narrative cannot change the class); fixing on noise (a fix is a new version tested forward, never applied to past
 results); review fatigue (the post-mortem is one page; details link to records).
+
+## 4.4 Contracts every layer keeps (ChatGPT review 95, "Missing"; acceptance criteria of A16, T1 and LM1)
+
+- **Issuance time independent of git.** Committer time is never evidence. The daily card's Slack post carries, in its
+  footer, the SHA-256 of every forecast, weather record and objection it shows; Slack's server timestamp of that post
+  is their issuance time, and GitHub's server-side push receipt is a second witness. A record with neither before its
+  deadline is unscored.
+- **Data rights, retention and security.** Before A16 records anything, the owner checks Groww's API terms on storing
+  and publishing quotes. Raw quotes stay in Drive (private); the public repository holds only derived figures
+  (per-session realised variance, counts, gaps) unless the terms allow more. Raw files are kept under A11's revision
+  rule unless the terms require deletion. Key handling follows section 6.6. Card records follow section 8.5.
+- **Clock contract.** Every time is stored in UTC with its offset and shown in IST. Each row keeps the source's own
+  time (Groww quote time, NSE file time, the US close's date) apart from `first_seen_at` (our host's clock). The host
+  clock is checked against Slack's and GitHub's server times each run; a skew above 5 seconds is a WARNING. Which day
+  is a session comes only from the NSE session calendar (A7); a US close belongs to the IST date on which it is known.
+- **Owner unavailable.** The owner's availability calendar (E8) is part of the owner profile. DANGER alerts are still
+  sent and logged while the owner is away; the paper record assumes action at the next available time (E8), and a
+  summary is sent when the owner is back. Every card and alert says: "if you cannot act by HH:MM, the paper record
+  assumes ...".

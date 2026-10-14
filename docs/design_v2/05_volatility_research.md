@@ -8,8 +8,10 @@
   Carr and Wu 2009, Bollerslev, Tauchen and Zhou 2009; ours: ATM implied above trailing 20-day realised on 74% of
   2019-23 and 82% of 2024-26 monthly entries, median about 2 points, response 92).
 - **Implied volatility is a strong forecast in its own right** (strong evidence: Christensen and Prabhala 1998; the
-  Poon and Granger 2003 review finds it often the best single forecast). So beating the market's own number is hard;
-  beating a random walk is easy and worth nothing for trading.
+  Poon and Granger 2003 review finds it often the best single forecast). So beating the market's number is hard,
+  and beating a random walk alone says little. Neither is the same as making money: a good physical-variance forecast
+  can fail to trade profitably, and the reverse (ChatGPT review 95, accepted). Money is judged only by shadow and paper
+  results after costs (rung 2 and above).
 - **Intraday data measures volatility far better than daily closes** (strong evidence: Andersen, Bollerslev, Diebold
   and Labys 2003). This is why 15-minute quotes (A16) come first in layer 1.
 - **Daily direction is close to a coin toss** (strong evidence: our Q1 base rates and desk 1's trend trials at 50-52%).
@@ -30,13 +32,25 @@ Realised variance of a session `RV_s` = squared overnight log return (previous c
 | V1 | NIFTY realised variance of the next session | point forecast | about 250 | when A16 has 20 sessions |
 | V2 | NIFTY realised variance over the next 5 sessions | point forecast | about 50 | now (close proxy), then intraday |
 | V3 | NIFTY realised variance over the next 20 sessions | point forecast | about 12 | now (matches Q3, Q5) |
-| V4 | P(next-5-session realised volatility < 15:00 ATM implied volatility of the nearest weekly expiry at least 5 sessions out) | probability | about 50 | when A16 records weekly ATM quotes |
-| V5 | P(NIFTY at the nearest monthly expiry ends inside today's ATM straddle price) | probability | about 12 | now (A4 quotes) |
+| V4 | P(next-5-session realised volatility < 15:00 ATM implied volatility of the nearest weekly expiry at least 5 sessions out) | probability (diagnostic) | about 50 | when A16 records weekly ATM quotes |
+| V5 | P(NIFTY's close at the nearest monthly expiry lies inside K +/- P, with K and P fixed at 15:00 on d) | probability (terminal intrinsic proxy) | about 12 | now (A4 quotes) |
 | V6 | P(next-session absolute move at least 2%), P(largest absolute move over 5 sessions at least 2%) | probability | about 250 / 50 | now (the weather, section 2.3) |
 | V7 | P(India VIX higher in 5 sessions) | probability | about 50 | now |
 
-V5 is the one most directly tied to money: it asks whether the straddle buyer loses. V1 and V6 carry most of the
-statistical power because their outcomes do not overlap. Stock options around results get their own protocol (R2).
+**V4, exact terms (frozen in G6).** Realised volatility over the 5 sessions includes the overnight returns (section
+5.2's `RV_s`), annualised on 252 sessions. The implied side is converted to the same clock: implied variance x
+(calendar days to expiry / 365) / (sessions to expiry / 252). ATM is the listed strike nearest the 15:00 spot (a tie
+goes to the lower strike, as G1); both legs need a live bid and ask at 15:00 with a spread no wider than a frozen
+limit, priced at mid; otherwise the day is void. V4 is a **probabilistic diagnostic**: the variance risk premium is a
+difference of expected variances, and `P(RV < IV)` does not estimate it.
+
+**V5, exact terms.** K is the listed strike nearest the 15:00 spot; P is the 15:00 mid of the K call plus the K put of
+the nearest monthly expiry; both frozen at 15:00 on d. V5 is a **terminal intrinsic-payoff proxy**: "inside K +/- P"
+means a buyer who held to expiry lost before costs, but "outside" does not mean the buyer won (charges, pads and the
+actual fill decide that), and holding to expiry is outside the owner's preferred 2-3 week horizon. **V5 is not evidence
+of money.** A straddle is also above the Rs 10,000 cap (5.6), so its cost-adjusted shadow result is a measurement
+only, reported apart. V1 and V6 carry most of the statistical power because their outcomes do not overlap. Stock
+options around results get their own protocol (R2).
 
 ## 5.3 Baselines (frozen with v4, built like G2)
 
@@ -44,19 +58,38 @@ statistical power because their outcomes do not overlap. Stock options around re
 - **HAR:** G2's HAR-type model on daily, then on intraday realised variance. A forward-only intraday history is short:
   HAR on intraday data needs at least 250 sessions before it forecasts (G2 uses 500-750 on daily data), so it starts
   about a year after A16 goes live. Said plainly: the best intraday model arrives late.
-- **Implied:** IV30 squared, scaled to the horizon; and the same times a fixed ratio (median realised over implied
-  over the trailing 750 days), which removes the average premium.
+- **Raw implied:** IV30 squared, scaled to the horizon.
+- **Premium-adjusted implied:** raw implied times a fixed ratio (median realised over implied over the trailing 750
+  sessions, point in time, refitted monthly like G2), which removes the average premium.
+- **Option-implied probability (for V5):** the probability of ending inside K +/- P under a lognormal with the expiry's
+  own ATM implied volatility and carry, computed as G1's baseline (a); labelled "risk-neutral, not a real-world
+  probability".
 - **Base rate:** for every probability question, as G2 (b).
 
-**The primary comparison for each question is against the strongest economically relevant baseline:** the implied
-baseline for V2, V3 and V5, HAR for V1, base rate for V4, V6 and V7. Beating only the trailing baseline is reported but
-never counts as skill.
+**Primary baselines, declared now, before any v4 score:**
+
+| Question | Primary baseline | Also reported |
+|---|---|---|
+| V1 | HAR (daily, then intraday once it forecasts) | trailing, EWMA, premium-adjusted implied |
+| V2, V3 | premium-adjusted implied | raw implied, HAR, trailing, EWMA |
+| V4, V6, V7 | base rate | none |
+| V5 | option-implied probability (Brier) | base rate |
+
+Why premium-adjusted implied is primary for V2 and V3 without testing which is stronger first: raw implied is biased
+upward by the premium (strong evidence, 5.1), so it is the weaker forecast of physical variance by construction; and
+choosing on 2019-26 outcomes would expose v4's targets before its freeze (reasoning only). V5's baseline is a
+probability scored by Brier, never IV squared (ChatGPT review 95, accepted).
 
 ## 5.4 Scoring
 
 - **Point variance forecasts:** QLIKE loss, `RV / f - ln(RV / f) - 1`, primary (strong evidence that it ranks forecasts
   correctly with a noisy realised measure: Patton 2011); mean squared error on variance secondary; the Mincer-Zarnowitz
   regression `RV = a + b f` reported for bias.
+- **QLIKE floor (frozen in G6).** Forecasts must be strictly positive. Realised variance is floored at 1% of the
+  trailing 250-session median of the same measure: `RV' = max(RV, floor)`. Measured on NIFTY closes 2017-2026 (2,424
+  returns): 2 exact zero-return days (31 Mar 2017, 8 May 2024), and the floor binds on 6.1% of close-proxy one-day
+  outcomes (132 of 2,174). That is why close-proxy V1 is a diagnostic only and V1 proper uses intraday variance; 5-day
+  sums never reached zero (smallest 4.6e-6).
 - **Probabilities:** Brier primary (as G1), log score, the 10-bin reliability table, the calibration slope and
   intercept, and the Brier skill score against the base rate.
 - Missing forecasts are counted, never imputed; void rules as G1 section 2.
@@ -64,17 +97,25 @@ never counts as skill.
 ## 5.5 What "beats the baseline" means, statistically
 
 1. **Pre-registered family** per protocol version: each question's primary comparison for each registered forecaster.
-2. **Statistic:** the mean paired loss difference `d_t = loss(forecaster) - loss(baseline)` on dates both forecast and
-   the outcome resolved (a Diebold-Mariano comparison); negative favours the forecaster. One-sided.
-3. **Uncertainty:** moving-block bootstrap as G1 (10,000 resamples, seeded per comparison), block length at least the
-   horizon and never below 5 sessions (V1: 5, V2: 10, V3 and V5: 20).
+2. **Statistic:** the mean paired loss difference `D`, from `d_t = loss(forecaster) - loss(baseline)` on dates both
+   forecast and the outcome resolved and not void, in date order (a Diebold-Mariano comparison); negative favours the
+   forecaster. One-sided. Missing pairs are dropped and counted; a zero difference stays in.
+3. **Uncertainty: null-centred moving-block bootstrap.** Block length L at least the horizon and never below 5
+   sessions (V1 and V6: 5; V2, V4, V7: 10; V3, V5: 20). For n pairs, draw ceil(n / L) block starts uniformly from 0 to
+   n - L with replacement, join in draw order, cut to n, take the mean `D*_b`; B = 10,000, seeded per comparison as G1.
+   One-sided p = (1 + #{b : D*_b - D <= D}) / (B + 1), the resampled means centred on the observed mean (the null).
+   Fewer than 2L pairs: not tested, p = 1. (G1 v3's frozen code is the two-sided version of the same centring,
+   `|D*_b - D| >= |D|`; v3 is not changed.) A HAC t-test (Newey-West, lag L - 1) is reported beside it as a
+   predeclared sensitivity and never used to choose a result. For the 20-day questions neither method creates
+   independent evidence.
 4. **Significance:** Holm's step-down across the family at 5% family-wise.
-5. **Minimum effect, registered:** at least a 3% lower mean QLIKE than the primary baseline, or a Brier skill score of
-   at least 0.02 (reasoning only for both numbers; owner decides). A significant but smaller gain is "real but too
-   small to trade".
+5. **Minimum forecast effect, registered:** at least a 3% lower mean QLIKE than the primary baseline, or a Brier skill
+   score of at least 0.02 (reasoning only for both numbers; owner decides). These are minimum **forecast** effects
+   only, never evidence of money. A significant but smaller gain is "real but too small to use".
 6. **Stability:** the sign of the gain is the same in the first and second half of the scored period (descriptive).
-7. **Economic check:** skill counts for trading only when its shadow strategy (factory ideas V1, V2) shows the gain
-   survives costs: rung 2 of the evidence ladder.
+7. **Economic check:** skill counts for trading only through a mapping registered before scoring: each factory idea that
+   rests on a forecast names how the forecast turns into a position, and its shadow net after costs (rung 2) is the
+   only evidence of money.
 
 **How long it takes (arithmetic, strong evidence).** The test uses Holm across the family. Planning must use Holm's
 first and strictest step, alpha / m, because a first claim has to pass it. With m of about 15 primary comparisons (G6

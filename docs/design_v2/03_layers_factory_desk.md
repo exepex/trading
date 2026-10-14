@@ -6,12 +6,14 @@
 cheaply. The factory is honest bookkeeping for search: every attempt, pass or fail, is a row in `research/ledger.csv`
 (52 rows on 15 Oct 2026), so the owner always knows how many tries stand behind any "winner".
 
-**The pipeline (each gate is a recorded step; an idea stops at the first gate it fails).**
+**The pipeline (each gate is a recorded step; an idea stops at the first gate it fails).** Every idea gets a ledger row
+at G0, with status `idea`, so ideas stopped by the screen still count in the trial total (ChatGPT review 95, accepted).
+The G1 screen is a cheap feasibility observation, not an outcome test; the outcome test is G5, registered at G4.
 
 | Gate | What is checked | Who | Output |
 |---|---|---|---|
 | G0 Idea card | Who pays and why; the forecast it rests on (if any); structure; entry, exit, size; worst loss in Rs; expected gross per trade with its source | any role or AI | `research/ideas/<id>.md` |
-| G1 Cost wall | Full round-trip cost (C1 charges plus pads from measured half-spreads, A4 and A16 data) vs expected gross. **Rule: expected gross at least 2 x full cost**, else the idea is not tested | code (CostWall) | pass or "stopped at cost wall" with the numbers |
+| G1 Feasibility screen (cost wall) | A documented gross-payoff distribution per trade, or a conservative bound, with its source; full round-trip cost (C1 charges plus pads from measured half-spreads, A4 and A16 data); **expected net after costs and tail losses above zero on the conservative bound**; for volatility ideas, the implied-volatility-point edge per vega per lot needed to clear costs. The ratio "gross at least 2 x cost" is shown as a labelled warning ("thin margin"), never a pass mark | code (CostWall) | pass, or ledger status `screened_out` with the numbers; a pre-registered counterexample study may still test it |
 | G2 Data spend | The data the test would use has not been spent by an earlier trial (data-spend register, below); if spent, the test is labelled exploratory and cannot pass | code | fresh or exploratory |
 | G3 Sample plan | n needed = (z x SD / expected net)^2 from the idea's own SD estimate; the time that takes at the idea's frequency | statistician | registered n and date; above 3 years only if the idea rests on a forecast that already beat its baseline (rung 1) |
 | G4 Registration | Protocol text, code hash, ledger row committed before any result | B4 ledger guard | ledger row |
@@ -20,9 +22,11 @@ cheaply. The factory is honest bookkeeping for search: every attempt, pass or fa
 
 **The cost wall in numbers (strong evidence, our data).** Four-leg monthly NIFTY trade: Rs 810-940 a round trip;
 weekly held to expiry: Rs 100-384; two-leg spread: about Rs 410 (response 92). The condor's best measured gross was
-+978 (seen data) and +408 (holdout): with today's measured costs, the 2x rule (about Rs 1,640 needed) stops the monthly
-condor at G1. Before experiment 1 the costs were not yet measured this precisely, so this is hindsight, but it shows
-what the gate is for (reasoning only for the 2x factor: it leaves room for the gross estimate to be half wrong).
++978 (seen data) and +408 (holdout), so its expected net after costs was +153 and -406. On the conservative bound (the
+holdout) the screen stops the monthly condor; the 2x warning would also have flagged both periods (about Rs 1,640
+needed). This is hindsight, since the costs were not measured this precisely before experiment 1, but it shows what
+the screen is for. Expected net includes the tail: an idea whose average gross is twice its cost can still lose on
+average once rare maximum losses are counted, which is why the ratio alone is not a pass mark.
 
 **Data-spend register (new, `research/DATA_SPEND.md`).** One row per data set (instrument, period, price type) with
 the trials that used it. Spent today: NIFTY monthly options daily closes 2019-26 (experiment 1 and desk meetings);
