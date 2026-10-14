@@ -112,3 +112,18 @@ fix for lane 2.
   - the windows: Jan-Apr 2020 COVID (1.265), May-Jun 2024 election (1.407 on BF 300 entered 5 Jun, the largest),
     and Sep-Oct 2026 calm (1.127);
   - where it is written: response 77, section "Stressed-margin factor". The `source` value names that section.
+
+## Addendum 2: judge 94's must-fix, decided by the owner (option A) and written down
+
+The owner chose **option A**: restarting a paused strategy resets the Rs 30,000 loss count. `cumulative_losses`
+already does this, so the code is unchanged. `catastrophic_loss_strategy`'s value now states the window: the
+version's book trades closed since its latest change to paper, in all books together; shadow trades excluded; an
+owner re-approval restarts the count (owner, 14 Oct 2026).
+
+The tests already pin this behaviour (`tests/scorecard/test_cumulative_pause.py`):
+- losses before the latest approval do not count;
+- an approved version's shadow trades never count;
+- the count sums across books.
+
+The protocol tests pin which items are decided, not their wording, so no wording pin is added.
+`python -m fno evaluation check` passes.

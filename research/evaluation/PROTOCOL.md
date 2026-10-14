@@ -177,7 +177,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - one completed position's C1 net loss reaches its plan's `catastrophic_loss_rs` (at most C2's Rs 10,000 per-trade
     maximum loss); or
   - the version's cumulative realised C1 net reaches minus 3 times its `catastrophic_loss_rs` (Rs 30,000 at Rs
-    10,000).
+    10,000). The count covers the version's book trades closed since its latest change to paper, in all books
+    together; shadow trades are excluded; an owner re-approval restarts the count (owner, 14 Oct 2026).
 - **Status:** decided by the owner on 2026-10-14
 - **Reason:**
   - The first rule is E6's, already built.
