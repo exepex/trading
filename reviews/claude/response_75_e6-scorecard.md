@@ -138,3 +138,7 @@ message to the orchestrator.
   - A drifted version is not approved on the day, even before any pause row exists.
 - **Mutations** (`python -B`, caches cleared): **3 of 3 caught**: drift not excluded; the same-day pause ignored; "through
   the day" read as the start of the day.
+- **Judge 73 addendum 1, item 4:** `test_a_book_loss_closed_on_the_approval_day_itself_pauses` covers a version that is
+  approved, opened and lost on 14 Oct and is paused that day. The `>` instead of `>=` plant in `pauses.py` is now caught.
+- **Item 3, "chooses nothing":** the evaluator test asserts that the version has no Book 1 outcome at all, which is
+  stricter than "not chosen". A version without an outcome cannot be chosen.

@@ -115,3 +115,10 @@ def test_a_book_loss_closed_before_the_latest_approval_never_pauses(root, make_r
           debit=210)  # fmt: skip
     make_run().run(DAY, {})
     assert statuses(root)["fly-a"] == "paper" and alerts.sent == []
+
+
+def test_a_book_loss_closed_on_the_approval_day_itself_pauses(root, make_run, alerts):
+    """Judge 73 addendum 1: a loss closed ON the day of the latest approval counts (closed on or after it)."""
+    trade(root, BOOK1_RULES, "fly-a-v1", "t1", START, START, credit=50, debit=210)  # approved, opened, lost: 14 Oct
+    make_run().run(START, {})
+    assert statuses(root)["fly-a"] == "paused" and len(alerts.sent) == 1
