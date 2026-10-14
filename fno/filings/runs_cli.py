@@ -39,8 +39,31 @@ def add_archive_parsers(actions) -> None:
 
 
 def cmd_filings_archive(args) -> int:
-    from ..composition import build_alert_sender
     from ..storage.wiring import build_manifest_recorder
+
+    recorder = CommitOnce(build_manifest_recorder())
+    try:
+        return _archive(args, recorder)
+    finally:  # any stop, an error included, keeps the rows of the files already saved (as run_librarian does)
+        if recorder.outcome is None:
+            print(recorder.commit("filings archive (stopped early)"))
+
+
+class CommitOnce:
+    """The run's one manifest commit: made where the run decides, or by the `finally` if the run never got there;
+    the second call returns the first outcome."""
+
+    def __init__(self, recorder):
+        self.recorder, self.outcome = recorder, None
+
+    def commit(self, what: str) -> str:
+        if self.outcome is None:
+            self.outcome = self.recorder.commit(what)
+        return self.outcome
+
+
+def _archive(args, recorder: CommitOnce) -> int:
+    from ..composition import build_alert_sender
     from .wiring import build_companies, build_filings_librarian, build_gap_log, build_progress, write_symbol_map
 
     started, alerts = now_ist(), build_alert_sender()
@@ -63,7 +86,7 @@ def cmd_filings_archive(args) -> int:
         print(alerts.send(message))
         return 1
     build_gap_log().replace(report.checked, report.gaps)
-    committed = build_manifest_recorder().commit("filings archive")
+    committed = recorder.commit("filings archive")
     print(committed)
     if committed.startswith(KEPT):  # a company counts as finished only once its manifest rows are kept
         progress.finish_companies(step, report.finished)
