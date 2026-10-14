@@ -99,3 +99,8 @@ choose nothing, and the day before is unchanged. A same-day resumption waits.
    dropped from `approved_on` (judge 73 must-fix 4). That is E6's condition, not this branch's.
 
 **Verdict: PASS.** After the merge I check `main` against 93efd01 and CI.
+
+## Addendum 2 (merge check, a0a8eef)
+
+**MET.** a0a8eef has parents d88d2c7 (main) and 93efd01 (the passed tip), and it equals my recomputed merge of the
+two. CI `checks` is green on a0a8eef (run 38504327736).
