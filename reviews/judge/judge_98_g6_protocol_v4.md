@@ -136,3 +136,88 @@ hashes.
 **On merging the unfrozen draft:** I have no objection; nothing counts under v4 before its freeze, and the file says
 DRAFT. But ChatGPT's review may change it, and any change after this PASS needs a judge re-check. Waiting avoids a
 second merge round.
+
+## Addendum 2 (15 Oct 2026): revision 1 at dbba5744ea675b6bc4ba50ec63cf2071ce1b6e34 (3aa7818..dbba574)
+
+Range: ChatGPT's review 99 (89d7419, 5d18cbc) and dbba574, which adds `confirmatory.py`, `student_t.py`,
+`diagnostics.py`, the calibration tool and its committed results, two-look futility, and protocol and test changes.
+
+**First, my own miss.** In judge 98 I rebuilt the centred bootstrap's p to every digit and checked its direction, but I
+never checked its **size** under a true null. ChatGPT's review 99 did, and the builder's simulation confirms it: the
+test rejected 13-32% at a nominal 5% with n = 2L. "The code matches the formula" is not "the test is valid". From now
+on, I check the null size of any new confirmatory test myself.
+
+## Gates
+
+Trial merge with `origin/main`: **3308 passed**. As before, the trial merge conflicts in `reviews/claude/README.md`;
+keep both rows. Ruff, format (728 files) and `check_imports` are clean. Largest files: the protocol at 320 lines and
+the tool at 107.
+
+## What I verified
+
+| Item | Result |
+|---|---|
+| Simulation code and seeds | Read in full. Every cell is seeded by `SeedSequence([20261015, 99, cell])`, and the null series have mean zero: centred lognormal `exp(Z) - e^0.5`, AR(1) with a 200-step burn-in, moving-sum overlap. I re-ran the cell skew_right, L = 5, n = 125 (cell 19). Its rates match the committed JSON **exactly**, and it took 9 s |
+| max(t, studentized) | It is a valid conservative combination: rejecting needs both p <= alpha, so its size is at most the smaller of the two sizes, and it is valid whenever either part is. It cannot repair a case where **both** parts over-reject, which is the right-skew case |
+| Futility, 97.5% per look | Correct Bonferroni over two looks for the futility "no". The seed has a look word, there are golden tests for both looks, and a futile verdict at look 1 is final |
+| `proxy_drift` | Descriptive only and never feeds the ratio, as review 99 asked |
+| Refit-day test, 1 Jan 2024, A-C marked confirmed | Done. My earlier surviving mutation (`<=` refit day) is now covered |
+
+## The question asked: does "p at most a quarter of the Holm step" fix right skew? No, not fully.
+
+The committed calibration cannot answer this: its bootstrap uses B = 2,000, so p cannot fall below 1/2,001 = 0.0005,
+and 0.0013/4 = 0.00033 is below that. So I simulated it myself.
+- Same centred-lognormal null as the tool.
+- **100,000 series per cell**, production **B = 10,000**, the repository's own `batch_means_p` and
+  `studentized_bootstrap_p`.
+- The bootstrap runs only where the t-test already rejects at the loosest threshold. The max rule needs both, so this
+  is exact, not an approximation.
+
+Max-rule rejection rates. "Real step" is Holm's first step at that look: 0.00133 at look 1, 0.002 at look 2.
+
+| L, n | Look 1, at the step | Look 1, quarter rule (0.00033), vs the real step | Look 2, at the step | Look 2, quarter rule (0.0005), vs the real step |
+|---|---|---|---|---|
+| 5, 125 | 0.00539 (4.0x) | 0.00221 (**1.7x** the real step) | 0.00718 (3.6x) | 0.00297 (**1.5x**) |
+| 10, 125 | 0.00512 (3.8x) | 0.00190 (**1.4x**) | 0.00680 (3.4x) | 0.00255 (**1.3x**) |
+| 20, 125 | 0.00354 (2.7x) | 0.00102 (0.8x) | 0.00529 (2.6x) | 0.00161 (0.8x) |
+| 5, 10 | 0.00298 (2.2x) | 0.00078 (0.6x) | 0.00455 (2.3x) | 0.00118 (0.6x) |
+
+Each rate rests on 102-718 rejections out of 100,000, so the Monte Carlo SE is 0.0001-0.0003.
+
+The quarter rule brings L = 20 and n = 2L inside the real step. It does **not** fix L = 5 or 10 at n = 125 (V1, V6a:
+L = 5; V2, V6b, V7: L = 10). Those are 13 of the 15 members, about 125 outcomes is what the stop review will have,
+and they stay 1.3-1.7x over the real Holm step. For reference, the batch-means t on its own (200,000+ series) is
+4-10x over at n = 125. The bootstrap half is what helps.
+
+## Must-fix
+
+**1. Item D offers a remedy the numbers do not support.** Section 11 D puts "for example p at most a quarter of
+Holm's step" to ChatGPT and the owner as the stricter option. As measured above, it still over-rejects for the members
+with L = 5 and 10 at about the review's sample size. Fix:
+- Item D must state the measured size of every option it offers, with enough simulations to resolve it (the
+  conditional method above is cheap: about 40 s a cell at 100,000 series and B = 10,000).
+- It must offer at least one option that is measured within tolerance at the real Holm steps for every member's L at
+  n = 125. Candidates, all reasoning only until measured: a stricter divisor (1/8 or a per-L calibrated critical
+  value); a skew-corrected statistic (Hall's or Johnson's modified t); a minimum number of batches or outcomes before
+  a claim.
+- It must say how the simulated skew (centred lognormal, sigma 1, skewness about 6) relates to real QLIKE differences.
+  Measuring the skewness of a **baseline-vs-baseline** difference on already exposed close-proxy data (2024-26) would
+  show whether D matters in practice; that disclosure belongs in the protocol. I have not done this myself, to avoid
+  new data analysis on the judge's side.
+
+**2. The calibration overstates its own resolution.** Section 5.3 says the measured size is "within nominal + 2 Monte
+Carlo SE" in almost every cell (strong evidence). At 1,000 series and Holm's first step (0.00133), that tolerance is
+0.0036, which is **2.7x nominal**. A test 2.5x over size passes it. The same holds at 0.002 and 0.004. Fix: either
+re-run the small thresholds with enough series (at least about 50,000 per cell; the conditional method keeps this
+cheap) and B = 10,000, or label the claim "some evidence" for thresholds below 0.01 and say why.
+
+## Follow-ups (not blocking)
+
+- The AR(1) L = 5, n = 125 cell (7.6% at 5%) is disclosed. The large re-run of must-fix 2 should include it.
+- The calibration's B = 2,000 differs from the scoring B = 10,000. State that the size claims hold for B = 10,000, or
+  run them at B = 10,000 (cheap with the conditional method).
+
+**Verdict: FAIL for dbba5744ea675b6bc4ba50ec63cf2071ce1b6e34**, on must-fixes 1 and 2. Both are about measuring and
+stating the size honestly; the code changes are sound. Replacing the centred bootstrap was the right call, and the
+two-look futility is right. A re-check needs section 5.3, section 11 D, the calibration files and any new test. If the
+chosen remedy changes `confirmatory.py`, I re-run my 100,000-series check on it.
