@@ -79,3 +79,16 @@ three tests added above.
 
 Full suite (token unset), `ruff check fno tests tools`, `ruff format --check` and `python tools/check_imports.py`:
 the results are in the commit message and the message to the orchestrator.
+
+## Addendum 1: merged; follow-ups recorded (judge 77 addendum 4, not built)
+
+The judge passed this at 90dfcd3, and it is merged into main as 6647511. The suite passed on the merged tree: 3,113
+tests.
+
+Follow-ups, to be built later as their own stories:
+1. **C4 `validity_margin.py`** gets the same at-entry term:
+   - the margin with no sold-premium credit, `max(0, k x scan - NOV) + exposure`;
+   - plus the bought premium and charges;
+   - against the free cash before entry.
+2. **E1 holds back a sold premium received the same day until T+1,** so a second entry the same day cannot count it
+   as free cash, as Groww does not.
