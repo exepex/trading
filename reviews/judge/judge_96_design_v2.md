@@ -301,3 +301,21 @@ credited at the cash rate). Otherwise a strategy tied up for a few days is compa
 
 **Verdict: FAIL for a0ac7522ae56f18657af3c9c49694a9e342c1226**, on must-fix 1 (still open from addendum 6) and must-fix
 2 (family membership). Both are wording fixes; a re-check needs only `08` §8.2, response 97's summary and `03` §3.1.
+
+## Addendum 8 (15 Oct 2026): dd4e1a83df290784243f0c45518eb369bb1123c0 (a0ac752..dd4e1a8)
+
+dd4e1a8 changes `05`, `08`, `REPLAN_new_stories.md` and response 97 (docs only, checked by `git diff --stat`).
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 6 must-fix 1 (decision 7) | MET | `08` §8.2 keeps decision 7's Test B word for word (compared with 2b0da01 lines 49-51) and adds the zero-shadow rule under "Proposed correction, awaiting the owner; decision 7 is not changed until the owner says so", with its effect stated; the heading says "one proposed correction awaits the owner"; response 97's summary names decisions 4, 7 and 8 |
+| Addendum 6 follow-up 1 (3% day set) | MET | `05` item 5 and G6's acceptance: scored, non-void days with RV > 0, the same days as the paired comparison, fixed before any score |
+| Addendum 7 must-fix 2 (Holm family) | NOT MET | `03` §3.1 at dd4e1a8 still reads "Every `exploratory_shadow` running when an idea is judged belongs to that idea's family"; response 97 repeats "every shadow running when an idea is judged" |
+
+Must-fix 2 stands as written in addendum 7: stopping weak shadows before judgement shrinks the family to the survivor.
+The family must be every shadow registered on that question or batch since its last judgement, running, stopped or
+retired, and an early stop is recorded with its reason. The orchestrator's request (sent 21:27 UTC) predates my
+addendum 7 message, which explains the gap.
+
+**Verdict: FAIL for dd4e1a83df290784243f0c45518eb369bb1123c0**, on addendum 7's must-fix 2 only. A re-check needs only
+`03` §3.1 and response 97's B4 paragraph.
