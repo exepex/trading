@@ -21,6 +21,7 @@ from fno.desk.entries import EntryOrder
 from fno.desk.records import DeskRecords
 from fno.research_engine.structures import BOUGHT
 from fno.risk.book_view import load_risk_book
+from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.wiring import build_risk_manager
 
 from .builders import (
@@ -123,7 +124,7 @@ def test_the_limit_comes_only_from_c2_s_decision_on_this_exact_proposal(root, st
 
 def test_c2_records_the_approved_entry_cash_with_the_same_cost_model(root, tmp_path):
     margins = tmp_path / "margins.csv"
-    margins.write_text("structure,width,margin_per_lot_rs,source,as_of\nSF,200,40000,test calculator,2026-10-13\n")
+    margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-13\n")
     stressed = {"multiplier": 1.5, "source": "test factor", "as_of": "2026-10-13"}
     cfg = load_app_config(overrides={"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed}})
     proposal = fly_proposal()

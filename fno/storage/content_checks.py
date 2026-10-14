@@ -10,6 +10,7 @@ from ..market_read_models.corporate_actions import read_corporate_actions
 from ..market_read_models.flows_files import read_fii_dii, read_nsdl_equity
 from ..market_read_models.nse_files import read_delivery, read_equity_bhavcopy, read_equity_list, read_nifty500_list
 from ..market_read_models.symbol_changes import read_symbol_changes
+from ..nse_margins.span_file import read_span_file
 from ..research_data.participant_oi import read_participant_oi
 from .raw_source import (
     NseDailyFoSource,
@@ -17,6 +18,7 @@ from .raw_source import (
     NseEquityBhavcopySource,
     NseIndexCloseSource,
     NseLegacyFoSource,
+    NseSpanBodSource,
     ParticipantOiSource,
 )
 from .snapshot_source import (
@@ -60,6 +62,7 @@ VALIDATORS = {
     NsdlFpiDailyBySessionSource: lambda filename, data: read_nsdl_equity(data, filename),
     CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
     CorporateActionsBySymbolSource: lambda filename, data: read_corporate_actions(data, filename),
+    NseSpanBodSource: lambda filename, data: read_span_file(data, filename),
 }
 
 # The session a flows copy covers, read from the copy itself: where the by-session series files it (judge 66, P8)

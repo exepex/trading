@@ -131,7 +131,8 @@ def test_margin_room_counts_every_open_trade_and_the_proposal_against_cash_after
     Rs 1,000 net and is marked at -Rs 1,300 (pads and charges), so available after entry = min(101,000, 89,700)."""
     held = open_trade("open", FLY, 200, short_fly(25000, 200), EXPIRY, 0.0)
     the_book = book([held], cash=100_000.0, marked=90_000.0)
-    the_market = market(25000, {(25000, "CE"): 20.0}, EXPIRY)
+    held_marks = {(25000, "PE"): 10_000 / 65 - 20.0, (25200, "CE"): 0.0, (24800, "PE"): 0.0}  # held: -10,000
+    the_market = market(25000, {(25000, "CE"): 20.0} | held_marks, EXPIRY)
     new = proposal("new", CONDOR, 100, [(25000, OPTION_CALL, SOLD)], EXPIRY)  # marked at 20 x -65 = -1,300
     costs = FixedCosts(0.0, cash_flow=1000.0)
     inside = MarginRoom(FixedStressedMargin(44_850.0), costs).check(new, the_book, the_market)
