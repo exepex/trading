@@ -41,6 +41,8 @@ def _leg_check(proposal: ValidityProposal, evidence: Evidence, leg: ValidityLeg)
         return CheckResult(name, False, f"named {leg.contract}, but the snapshot lists this leg as {row.contract}")
     if row.received_at is None or row.received_at > proposal.cutoff:
         return CheckResult(name, False, f"quoted at {row.received_at}, not before the cutoff")
+    if row.a4_problem:
+        return CheckResult(name, False, f"quote not usable by A4's rule: {row.a4_problem}")
     numbers = {"price": leg.leg.price, "snapshot_mid": row.mid}
     if row.mid is None or abs(row.mid - leg.leg.price) > PRICE_TOLERANCE:
         return CheckResult(name, False, "price differs from the snapshot mid", numbers)

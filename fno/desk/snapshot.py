@@ -82,7 +82,8 @@ def _number(text: str) -> float | None:
     return float(text) if text else None
 
 
-def _quote(row: dict[str, str]) -> ExecutionQuote:
+def quote_from_row(row: dict[str, str]) -> ExecutionQuote:
+    """One recorded A4 row as a quote; C4 reads its rows through this too (one A4 validity rule)."""
     return ExecutionQuote(
         row["contract_id"],
         date.fromisoformat(row["expiry"]),
@@ -115,7 +116,7 @@ def parse_execution_snapshot(day: date, snapshot_id: str, csv_bytes: bytes, meta
         raise SnapshotError(f"{snapshot_id}: captured on {started.date()}, not {day}")
     quotes = {}
     for row in csv.DictReader(io.StringIO(csv_bytes.decode())):
-        quote = _quote(row)
+        quote = quote_from_row(row)
         key = (quote.expiry, quote.strike, quote.kind)
         if key in quotes:
             raise SnapshotError(f"{snapshot_id}: {key} recorded twice")
