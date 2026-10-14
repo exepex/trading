@@ -65,6 +65,12 @@ only: never places, modifies or cancels orders.
 
 ## Branch
 
+**Temporary owner rule (14 Oct 2026, `docs/DESK_DECISIONS.md`), in force until the owner lifts it: no code reaches `main`
+without a judge PASS.** Push code to a branch `story/<id>-<short>`, tell the orchestrator, and merge into `main` only after
+the judge passes that branch (pull, full suite on the merged tree, then push). Not affected: judge files, conversation logs,
+decision and status rows, and data commits by scheduled jobs. A checkout on a detached HEAD pushes with
+`git push origin HEAD:<branch>`.
+
 Work on `main` (`git pull --no-rebase origin main` before every push: ChatGPT also pushes to `main`).
 Every session commits with the public-record scan on (story O5): `.claude/settings.json` runs
 `git config core.hooksPath .githooks` at session start; run it yourself if `git config core.hooksPath` is empty. Never
