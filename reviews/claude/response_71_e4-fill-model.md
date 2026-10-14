@@ -2,9 +2,10 @@
 
 Builder session, 14 Oct 2026. Story: `docs/stories/E-paper-desk.md` E4. For the judge (`docs/JUDGE.md`) and ChatGPT.
 
-**Verdict in one line:** E4 is built as `fno/desk/` (10 modules with wiring, about 900 lines, largest entries.py at 153), 39 tests in `tests/desk/`,
-19 of 19 planted defects caught. Paper only: the desk reads recorded A4 quotes and never touches a provider or broker.
-Addendum 1 adds the entry limit the orchestrator asked for (section 4) and answers the settlement question (section 5).
+**Verdict in one line:** E4 is built as `fno/desk/` (10 modules with wiring, about 900 lines, largest entries.py at 153), 40 tests in `tests/desk/`,
+21 of 21 planted defects caught. Paper only: the desk reads recorded A4 quotes and never touches a provider or broker.
+Addendum 1 adds the entry limit the orchestrator asked for (section 4), answers the settlement question (section 5)
+and answers judge 68 (section 5a).
 
 ## 1. What was built
 
@@ -76,7 +77,7 @@ at any quoted price). When a leg has no valid quote the limit cannot be computed
 - Half-spread Rs 1 (equal), Rs 0.50 and Rs 0.05 (better): fills, cash equal to the hand computation.
 - A limit one paisa better than the market: no fill, shortfall Rs 0.01.
 - 2 lots: limit and shortfall both double. A rerun returns the recorded shortfall.
-- Mutations: limit removed, sign flipped, Rs 1 tolerance, charges left out of the net: all 4 caught (19 of 19 overall).
+- Mutations: limit removed, sign flipped, Rs 1 tolerance, charges left out of the net: all 4 caught (21 of 21 overall).
 
 **Still proposed for E3 (reasoning only):** re-run C2 and C4 on the execution snapshot before calling E4. The limit
 covers prices; it does not cover margins, open-trade counts or stress limits that change between decision and
@@ -100,6 +101,25 @@ execution.
   close every still-open leg at intrinsic value against the final settlement price, with C1 extended for exercise STT,
   and record it like any exit. Until then D1 should require a time exit at least one session before expiry for every
   paper strategy (reasoning only). Not built tonight.
+
+## 5a. Judge 68 (FAIL until the entry limit lands; one should-fix): my answers
+
+- **Must-fix, entry limit:** built on this branch (section 4). The judge suggested the reason "not opened: price moved";
+  the orchestrator's code `entry_worse_than_approved` is used (outcome `not_opened`, reason code first, shortfall in
+  rupees). Same rule, one name.
+- **Should-fix (a), accepted and fixed:** the judge is right (I re-read `entries.refusal`): only
+  `protection_unverified` blocked the book, so a book with an unsettled expired leg kept opening trades while E1 and
+  C2 saw the dead contract at its stale pre-expiry mark. Now `settlement_needed` blocks the book's new risk too
+  (`fno/desk/status.py` `BLOCKING_OUTCOMES`; refusal "open trade t1 (settlement_needed) blocks new risk in
+  book1_rules"). Test: `test_exits.py::test_an_unsettled_expired_trade_blocks_the_book_s_new_risk`; mutations
+  removing either blocking outcome are caught.
+- **Should-fix (b), agreed, not built (a new story):** settle expired legs at NSE's final settlement price
+  (`SttlmPric` in the archived UDiFF F&O file, as the judge says), plus exercise STT in C1 (section 5). Until then the
+  marked equity of such a position is overstated (stale mark, flagged), which the block above contains but does not
+  correct. Proposed as story E7.
+- **Should-fix (c), agreed, not mine to build:** D1's loader refusing a `paper` playbook without a `TimeExit` before
+  expiry is D1 code (`fno/playbook/`), judged and merged separately; passed to the orchestrator.
+- **Shared displayed size:** agreed with the judge: a stated limit on scoreboard B, not a fix.
 
 ## 6. Other open points (honest limits)
 

@@ -2,10 +2,11 @@
 
 Before any leg: the trade needs the risk manager's approval (C2) for this book, trade and day; a decision committed
 before the execution snapshot started; a complete snapshot; and no open position of the book whose protection is
-unverified. Then the protective (bought) legs fill first, then the short legs, each at the touch of a valid quote whose
-size covers the units. The first leg that does not fill stops the entry: every leg already filled is unwound at the
-same snapshot (short legs bought back first, protection sold last), the legging cost is recorded and the trade does
-not open. An unwind leg without a valid quote stays open as an exit order, retried at the next snapshot.
+unverified or whose leg expired before its exit. Then the protective (bought) legs fill first, then the short legs,
+each at the touch of a valid quote whose size covers the units. The first leg that does not fill stops the entry:
+every leg already filled is unwound at the same snapshot (short legs bought back first, protection sold last), the
+legging cost is recorded and the trade does not open. An unwind leg without a valid quote stays open as an exit
+order, retried at the next snapshot.
 
 Entry limit (orchestrator, 14 Oct 2026): C2 checked the maximum loss on the entry it modelled (decision mids, B2's pad,
 entry charges). When every leg is quoted, the net entry at the touch (premium at ask/bid minus C1's charges) must be
@@ -35,7 +36,7 @@ from .execution import FillMaker, check_point_in_time, closing_quotes, legging_c
 from .pricing import DeskLeg, LegQuote, price_leg
 from .records import DeskEvent, DeskJournal
 from .snapshot import ExecutionSnapshot
-from .status import ENTRY_OUTCOMES, unverified_trades
+from .status import ENTRY_OUTCOMES, blocking_trades
 
 UNWIND_PENDING = "unwind of a partial fill could not finish: {legs}"
 LIMIT_TOLERANCE_RS = 1e-6  # float rounding between C2's sum and this one; far below a paisa
@@ -90,7 +91,7 @@ def refusal(order: EntryOrder, snapshot: ExecutionSnapshot, blocked: list[str]) 
     if not snapshot.complete:
         return f"execution snapshot {snapshot.snapshot_id} is incomplete: no new risk"
     if blocked:
-        return f"protection unverified on open trade {', '.join(blocked)}: no new risk in {order.book}"
+        return f"open trade {'; '.join(blocked)} blocks new risk in {order.book}"
     return ""
 
 
@@ -105,7 +106,7 @@ class EntryDesk:
         done = [r for r in journal.records.event_rows(trade_id) if r["outcome"] in ENTRY_OUTCOMES]
         if done:
             return _result(done[0])
-        reason = refusal(order, snapshot, unverified_trades(journal.records))
+        reason = refusal(order, snapshot, blocking_trades(journal.records))
         if reason:
             return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, reason)
         maker = FillMaker(order.book, order.decision_id, trade_id, snapshot, self.charges)
