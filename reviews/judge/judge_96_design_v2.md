@@ -147,3 +147,23 @@ Should-fix (for G6's freeze record, not this design):
 
 **Verdict: PASS for af604ed056d0308ab1478a1d2a504808476323ab.** It returns to ChatGPT for the PARTIALs, then goes to
 the owner.
+
+## Addendum 3 (15 Oct 2026): d80652c0d55d21e6054eb83b119d05773d64905f
+
+- **What changed.** Two commits after af604ed: d373139, which is ChatGPT's review 96 (its own file), and d80652c (4
+  files, +15 −6, documents only).
+- **The baseline wording is corrected.** Premium-adjusted implied is now "the predeclared physical-variance
+  benchmark". The text no longer says "superiority is assumed", and both versions are scored. That is more accurate
+  than revision 2's "weaker by construction": the trailing ratio adds its own estimation noise.
+- **G6 gains two acceptance criteria.**
+  - V5's outcome uses the correct expiry's final settlement or reference level, with its source and timestamp frozen,
+    never a later daily close.
+  - The freeze record discloses the 2017-26 base rates measured before the freeze, on regular sessions only.
+  - Together these cover both should-fixes of my addendum 2: the exposure disclosure, and the session set for base
+    rates.
+- **A slice A fallback is added.** If A16 is delayed, V6, the NO TRADE card and the budget ship. V1 stays pending and
+  shows "not enough data yet", never a failure. This is sound and removes the host and terms from the critical path.
+- **Nothing else changed.** No owner decision or decided S1 item is touched.
+
+**Verdict: PASS for d80652c0d55d21e6054eb83b119d05773d64905f.** It now waits only on the owner's approval and
+decisions.
