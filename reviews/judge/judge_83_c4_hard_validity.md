@@ -241,3 +241,10 @@ after real captures show how often it happens. I will count it on the first week
 trades with `valid = false`.
 
 **Verdict: PASS.** After the merge I check `main` against e01a939 and CI.
+
+## Addendum 5 (merge check, b03c4ef)
+
+**MET.** b03c4ef has parents 2602bda (`main`) and e01a939 (the passed tip), and it equals my recomputed merge.
+81c9c86 joins it with 9811203 (E3's gate tests) and equals its recomputed merge too.
+
+CI on 81c9c86 (run 38533124620) was in progress when I wrote this; I confirm it at my next check-in.
