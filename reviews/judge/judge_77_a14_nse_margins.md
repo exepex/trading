@@ -113,7 +113,7 @@ cases. My plant that drops the new trade's own liability (`+ min(0.0, marked)` i
 | The check needs no source | 1 failed |
 
 **Gates.**
-- The branch predates today's merges and conflicts with `main` (fb… `origin/main` at my check) in `fno/constants.py`
+- The branch predates today's merges and conflicts with `main` (as of 10:50 UTC) in `fno/constants.py`
   and `reviews/claude/README.md`. Both sides only add lines.
 - I merged `main` into a scratch copy (never pushed) and kept both sides. On that merged tree: **full suite 3,092
   passed** (token unset), ruff clean, imports clean (701).
