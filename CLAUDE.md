@@ -73,8 +73,8 @@ what it can damage, not by its size; when unsure, lane 1. Lane 1 is decided by t
   files, secrets or outside services (Slack, Groww, Drive, NSE), schedules and workflows, or the dashboard's privacy
   rule. Push to a branch `story/<id>-<short>`, tell the orchestrator, merge only after the PASS (pull, full suite on the
   merged tree, then push).
-- **Lane 2, orchestrator check before `main`, judge audit after:** added tests and explanatory docs only (every file
-  under `fno/` or `tools/` is lane 1). The orchestrator re-runs the checks and compares
+- **Lane 2, orchestrator check before `main`, judge audit after:** only new tests and docs outside the rule documents
+  (list in `docs/JUDGE.md`). Everything not in lane 2 or 3 is lane 1. The orchestrator re-runs the checks and compares
   the builder's claim with the diff before merging; the judge audits each day's lane-2 merges once, and a FAIL is
   fixed first.
 - **Lane 3, no judge:** judge files, conversation logs, decision and status rows, and data commits by scheduled jobs.
