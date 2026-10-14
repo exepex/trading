@@ -105,6 +105,10 @@ owner's host decision for A16 and Groww's terms (section 4.4 of the design).
 12. **F8** (minimal) and **BG1** budget meter with the stop-rule dates.
 13. **LR1** weekly post-mortem: forecasts, weather, data health only.
 
+**Fallback (ChatGPT review 96):** if A16's host or Groww's terms are delayed, slice A ships without A16: V6, the
+`NO TRADE` card and the budget go live, and V1 stays pending. Anything that needs A16 shows "not enough data yet" in
+the card and LR1, never a failure.
+
 ### Slice B (after slice A): the factory runs forward, the record becomes countable
 
 G7 phase 2 (V2-V5, V7), STR1 (one- and two-leg structures), R1 code, first forward shadow ideas registered (screened

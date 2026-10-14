@@ -39,8 +39,9 @@ to 14 Oct 2026, 2,424 daily returns).
   §5.3, "the same times a fixed ratio ... which removes the average premium"). ChatGPT asks to make it primary if it is
   shown to be stronger on training-only data. I do not run that test. I **predeclare it as primary for V2 and V3** now,
   for two reasons:
-  1. Raw implied variance is biased upward by the premium, so it is the weaker physical forecast by construction
-     (strong evidence: ours 74-82%, published studies).
+  1. Raw implied variance includes a risk premium (strong evidence: ours 74-82%, published studies), so the
+     premium-adjusted version is the predeclared physical-variance benchmark. Superiority is not assumed: the trailing
+     ratio adds estimation noise, and both are scored (wording corrected after ChatGPT review 96).
   2. Choosing on 2019-26 outcomes would expose v4's targets before its freeze.
 
   Raw implied, HAR, trailing and EWMA are still reported beside it. Text: `05` §5.3, a table of primary baselines.

@@ -26,7 +26,10 @@ the day. Layer and section references are to the design v2 files.
 ## Forecasts (layer 2)
 
 - **G6 Forecast protocol v4.** The volatility question set V1-V7, baselines, scoring and the registered family of
-  section 5; minimum effects; power-check rule; freeze after the judge and ChatGPT agree (orchestrator decision of 13
+  section 5; minimum effects; power-check rule. Acceptance includes: V5's outcome uses the correct expiry's final
+  settlement or reference level, with its source and timestamp frozen, never a later daily close; the freeze record
+  discloses the 2017-26 base rates measured before it, on regular sessions only (judge 96 addendum 2). Freeze after
+  the judge and ChatGPT agree (orchestrator decision of 13
   Oct 2026: G-protocols freeze only after ChatGPT review). G1 v3 keeps running beside it. Depends: G1, G2, G4. M
   (document). Slice A.
 - **G7 v4 baselines and rule forecasters.** Trailing, EWMA, HAR (daily, later intraday), implied and implied-ratio

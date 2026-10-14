@@ -75,9 +75,10 @@ options around results get their own protocol (R2).
 | V4, V6, V7 | base rate | none |
 | V5 | option-implied probability (Brier) | base rate |
 
-Why premium-adjusted implied is primary for V2 and V3 without testing which is stronger first: raw implied is biased
-upward by the premium (strong evidence, 5.1), so it is the weaker forecast of physical variance by construction; and
-choosing on 2019-26 outcomes would expose v4's targets before its freeze (reasoning only). V5's baseline is a
+Why premium-adjusted implied is primary for V2 and V3: it is the predeclared physical-variance benchmark because raw
+implied includes a risk premium (strong evidence, 5.1); superiority is not assumed (the trailing ratio adds its own
+estimation noise), and both are scored. Choosing between them on 2019-26 outcomes would expose v4's targets before its
+freeze (ChatGPT review 96, wording accepted). V5's baseline is a
 probability scored by Brier, never IV squared (ChatGPT review 95, accepted).
 
 ## 5.4 Scoring
