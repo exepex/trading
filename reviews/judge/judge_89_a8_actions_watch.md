@@ -178,3 +178,15 @@ Since 73ec163, `main` changed only data and log files under `fno`, `tests`, `too
 **Follow-up (open):** a test somewhere fails intermittently, about 1 run in 3 today. It is not shown to come from this branch. I will name it the next time it shows; CI on the merge is the next check.
 
 **Verdict: PASS** for b33f2c0. Merge it. After the merge I check `main` and CI.
+
+## Addendum 2 (14 Oct 2026): merge 66cb98d MET
+
+- **Merge matches the recomputation.** Parents are 4639a9b and b33f2c0. My recomputed `git merge-tree` of the two
+  parents equals 66cb98d exactly (empty diff).
+- **No unjudged code on `main`.** From 66cb98d to `main` 467b74f, nothing changed under `fno`, `tests`, `tools`,
+  `.github`, `config.yaml`, `db` or `.gitattributes`. The later commits are logs and judge files.
+- **CI is green** on ea6fe1d (the first push that carried the merge), on 14105e8 and on f0ab8a8.
+- **The 3,145-pass claim matches.** 3,144 tests at b33f2c0, plus `main`'s new test, makes the builder's count of
+  3,145 consistent.
+- **The flaky-test follow-up was very likely my own plant harness, not a project flake** (judge 90). A stale `.pyc` was
+  left behind when a file was restored within the same second at the same size. The builder's hunt may find nothing.
