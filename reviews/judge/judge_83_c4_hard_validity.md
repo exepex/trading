@@ -156,3 +156,49 @@ The independence guard is extended. My plants:
 - ruff and imports: clean.
 
 One small round for the contract-name check and its test.
+
+## Addendum 2 (round 3, branch bf0d4af = fix 3764572 plus a merge of main): PASS
+
+**The must-fix is met.** Each leg's name must now equal the snapshot's `contract_id` for its (expiry, strike, type).
+Seeded case 18 is my wrong proposal (`NIFTY26102725100CE` on the 25,000 CE leg). It fails exactly that leg: the test
+asserts the failure set equals `{"leg 2026-10-27 25000 CE"}`.
+
+The builder's extra finding is correct and serious: the misnamed leg was checked at 25,000 but priced by name at
+25,100 in stress and margin. Requiring the names to match closes both.
+
+**Should-fixes met:**
+- the own-liability mirror test (open BF, new SF);
+- the lookback bound (8 days refused, 7 used);
+- CLAUDE.md keeps both composition-root lines (`fno/checks/wiring.py` for C3 and C4, `fno/desk/daily_wiring.py` for
+  E3).
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,778 passed;
+- ruff, format (618 files) and imports (625): clean;
+- `git merge-tree` with current `main` (e41d988): clean.
+
+**My plants (9, `tests/checks` and `tests/decisions`): all caught.**
+
+| Plant | Result |
+|---|---|
+| Name check off | 1 failed |
+| Name compared on its first 5 characters only | 1 failed |
+| Own liability dropped from the margin term | 1 failed |
+| Lookback widened to 30 days | 1 failed |
+| Regression from round 2: stress multiplier on NOV too | 2 failed |
+| Regression: liabilities term dropped | 1 failed |
+| Regression: drawdown `<` to `<=` | 1 failed |
+| Regression: stress ignores held trades | 1 failed |
+| Regression: restart guard off | 1 failed |
+
+**One should-fix for a later round (reasoning only, not blocking).**
+- `Evidence.mids()` takes every two-sided quote. It ignores A4's validity (no same-day trade, a crossed book, a zero
+  bid). `parity_forward` then takes the forward from the single strike whose call and put mids are closest.
+- One bad quote at that strike moves every stress figure on that expiry, in either direction.
+- At-the-money quotes at 3 pm are almost always valid, and C3's per-leg rule still gates the fill. So the risk is
+  small, but a looser stress could pass a trade.
+- Read `valid` and use only A4-valid quotes for the forward. Book 1's market (E5) already does.
+
+**Accepted limit (unchanged):** `margin_room` blocks every trade until A14's rows exist.
+
+**Verdict: PASS.** After the merge I check `main` against bf0d4af and CI.
