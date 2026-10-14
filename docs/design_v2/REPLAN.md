@@ -165,8 +165,8 @@ forecast scoring is frozen by protocol v4's own freeze (G6), not by S1. One addi
 3. **Decided 15 Oct 2026: weather thresholds as proposed** (relative and absolute levels, maximum RED frequency 15%)
    (2.3).
 4. **Decided 15 Oct 2026: minimum effects 3% QLIKE or Brier skill 0.02**, also the stop rule's futility margin (5.5).
-5. **Decided 15 Oct 2026: 5 minutes when available, 30 on average, at most 1 hour**; E8's primary fill at 60 minutes,
-   with 30 and 5 as sensitivities, is the orchestrator's proposal (reasoning only), owner to confirm; the availability
+5. **Decided 15 Oct 2026: 5 minutes when available, 30 on average, at most 1 hour**; every E8 paper trade fills at 5, 30
+   and 60 minutes, all reported, and the verdict uses 60 minutes (owner, 15 Oct 2026); the availability
    calendar is still to be given (3.2, 6.5).
 6. **Decided 15 Oct 2026: AI share at most half of measured plan minutes; any new recurring cost needs a yes** (8.1).
 7. **Decided 15 Oct 2026:** the stop-rule review as in 8.2; on "undecided", option 1 if the projected date is within

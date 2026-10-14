@@ -37,9 +37,9 @@ trades, which is why forecasts come first and trades second.
 5. **The AI books (Hybrid and AI team) start trading** only once there is at least one strategy worth trading
    (proposal; your decision). Until then they keep forecasting, which is already running.
 
-**How paper trades are filled (your reaction time: 5 minutes when available, 30 on average, at most 1 hour).** The
-proposal, waiting for your confirmation, is that the headline paper result assumes the worst case, 60 minutes, with
-30 and 5 minutes shown beside it. Four rules come with it:
+**How paper trades are filled (your reaction time: 5 minutes when available, 30 on average, at most 1 hour).** Every
+paper trade is filled at 5, 30 and 60 minutes and all three are shown; the pass or fail verdict uses 60 minutes, because
+a fast reaction cannot be promised (your decision, 15 Oct). Four rules come with it:
 - a paper trade fills only if the price is still inside the card's entry range; otherwise it is recorded as "missed,
   price moved";
 - an idea that only works if you react within 15 minutes is flagged and judged at 60 minutes;

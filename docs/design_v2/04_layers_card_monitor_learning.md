@@ -56,11 +56,11 @@ owner decision of 12 Oct 2026, "Decisions once a day, around 3:00 pm", option C)
 **Two modes, declared per strategy version.**
 - `alert_only` (default): the monitor alerts; exits still happen only at the daily decision time.
 - `intraday_exits`: the registered exit rules are evaluated on each 15-minute snapshot and paper exits fill at the
-  owner's action time (E8), assuming up to 1 hour of owner delay (the owner's maximum, owner decision of 15 Oct 2026;
-  R = 60 as the primary fill is the orchestrator's proposal, reasoning only, owner to confirm); an
-  exit rule that only helps with a faster reaction is flagged and judged at R = 60. Whether intraday exits help is
-  itself a registered comparison (the same version is shadowed in the other mode); the 12 Oct decision ("all-day
-  watching later only if data shows it helps") is met by that test, not assumed.
+  owner's action time (E8), assuming up to 1 hour of owner delay (the owner's maximum; the verdict uses 60 minutes, with
+  5 and 30 reported beside it: owner, 15 Oct 2026); an exit rule that only helps with a faster reaction is flagged and
+  judged at R = 60. Whether intraday exits help is itself a registered comparison (the same version is shadowed in the
+  other mode); the 12 Oct decision ("all-day watching later only if data shows it helps") is met by that test, not
+  assumed.
 
 **Checks on each snapshot.** Loss used reaches 50% and 80% of the position's maximum loss; NIFTY within 0.5% of a short
 strike; an exit rule hit; NIFTY moved at least 1.5% from the previous close; VIX up at least 10% in the session; the

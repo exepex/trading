@@ -77,19 +77,18 @@ D6), packs (E2), timetable (E3), Book 1 (E5), scorecard and pause rules (E6).
    lane-1 change to C2's settings. The open-trade limit and drawdown brake are rescaled by risk bucket
    (`06_risk_and_alerts.md`), owner decides the numbers.
 2. **Fills at the owner's action time** (story E8). The owner's reaction time (owner decision of 15 Oct 2026): 5 minutes
-   when available, 30 minutes on average, at most 1 hour. **The primary paper fill uses R = 60 minutes, the worst
-   case**; fills at R = 30 and R = 5 minutes are reported beside it as sensitivities (reasoning only: the worst case is
-   the honest headline; orchestrator's proposal, owner to confirm). A card sent at time T fills at the first quote
-   snapshot at or after T + R, at the bid for sells and the ask for buys, plus the pad, and only if that price is inside
-   the card's entry range; outside it, the trade is recorded as "missed, price moved" and never filled at another price.
-   Exits from the monitor follow the same rule. If T + R is after 15:25 IST, or the availability calendar says "away",
-   the fill is at the first snapshot at or after the next session's 09:15 plus R. **Consequence, said plainly:** with a
-   15:08 card and R = 60, the primary fill of every daily-card entry lands on the next session at about 10:15, after the
-   overnight gap, and the card's 15:00 entry range may no longer hold. That is what the owner would really get. If it
-   costs too much, the remedy is an earlier decision time (an S1 `timetable` change: for example, decide at 14:00 so
-   that 60 minutes fits before the close), never a shorter assumed R; the owner decides after the first weeks of E8's
-   three-way report. Today's E4 fills at the execution snapshot (15:15) stay reported too, so the cost of human delay is
-   measured.
+   when available, 30 minutes on average, at most 1 hour. Every E8 paper trade is filled at R = 5, 30 and 60 minutes and
+   all three are reported; **the verdict uses 60 minutes (owner, 15 Oct 2026)**, because a fast reaction cannot be
+   promised. A card sent at time T fills at the first quote snapshot at or after T + R, at the bid for sells and the ask
+   for buys, plus the pad, and only if that price is inside the card's entry range; outside it, the trade is recorded as
+   "missed, price moved" and never filled at another price. Exits from the monitor follow the same rule. If T + R is
+   after 15:25 IST, or the availability calendar says "away", the fill is at the first snapshot at or after the next
+   session's 09:15 plus R. **Consequence, said plainly:** with a 15:08 card and R = 60, the verdict's fill of every
+   daily-card entry lands on the next session at about 10:15, after the overnight gap, and the card's 15:00 entry range
+   may no longer hold. That is what the owner would really get. If it costs too much, the remedy is an earlier decision
+   time (an S1 `timetable` change: for example, decide at 14:00 so that 60 minutes fits before the close), never a
+   shorter assumed R; the owner decides after the first weeks of E8's three-way report. Today's E4 fills at the
+   execution snapshot (15:15) stay reported too, so the cost of human delay is measured.
 3. **Structures.** Bought options, vertical spreads, and protected four-leg structures (story STR1 opens B2, C4, D1, D2
    and A14 to one- and two-leg shapes). Never a naked short leg: C4 refuses any position whose maximum loss is not
    fixed at entry.
