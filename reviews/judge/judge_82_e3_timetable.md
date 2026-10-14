@@ -185,3 +185,12 @@ That is one small round. I will check only that.
 **Verdict: PASS for 8502dd1.**
 - E3 stays "built, not live" until E5's orders, C4, a `desk run` command and its routine exist.
 - After the merge I check `main` against 8502dd1 and CI.
+
+## Addendum 3 (merge check, 79c8fac)
+
+**MET.**
+- 79c8fac has parents 510858c (main) and 8502dd1 (the passed tip). It equals my recomputed merge of the two, with no
+  difference.
+- No other code has reached `main` since.
+- My full suite at 79c8fac: 2,628 passed.
+- CI `checks` is green on 79c8fac (run 38523328037).
