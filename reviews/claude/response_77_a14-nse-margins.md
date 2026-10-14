@@ -219,6 +219,56 @@ the evidence-based choice; the owner's answer is needed either way.
    **Criterion 1 stays NOT MET** until the owner's Groww check; option (b) (a broker-observed exposure floor) only if
    Groww also shows the higher base.
 
+## Broker check 2: Groww, the owner's broker (14 Oct 2026, criterion 1)
+
+Run by the orchestrator through Groww's read-only margin API (`POST /margins/detail/orders`, segment FNO, SDK
+`get_order_margin_details`; no order placed or attempted), at 10:52:41 UTC (16:22 IST, after the close). Basket: SELL
+NIFTY26NOV 22700 CE and PE, BUY 22800 CE and 22600 PE, 65 each, NRML, limit prices 440.05, 382.65, 388.35, 342.55.
+
+Raw answers:
+- basket `{"exposure_required": 58819.02, "span_required": 6893.0, "option_buy_premium": 47450.0,
+  "brokerage_and_charges": 150.62, "total_requirement": 113312.64}`
+- short 22700 CE `{"exposure_required": 29409.51, "span_required": 149043.75, "total_requirement": 178493.29}`
+- short 22700 PE `{"exposure_required": 29409.51, "span_required": 122454.5, "total_requirement": 151901.4}`
+
+My figures for the same legs from each of NSE's 14 Oct files (`fno/nse_margins`, 23 Nov expiry):
+
+| NSE file (written, IST) | Index in file | Scan | NOV | max(0, scan - NOV) | Exposure |
+|---|---|---|---|---|---|
+| `i1` (13 Oct 21:28) | 22,721.95 | 822.25 | -6,071.00 | **6,893.25** | 59,077.07 |
+| `i2` (11:02) | 22,744.75 | 765.70 | -5,300.75 | 6,066.45 | 59,136.35 |
+| `i3` (12:32) | 22,725.95 | 925.60 | -5,898.75 | 6,824.35 | 59,087.47 |
+| `i4` (14:03) | 22,657.20 | 555.10 | -6,470.75 | 7,025.85 | 58,908.72 |
+| `i5` (15:32) | 22,622.70 | 268.45 | -6,353.75 | 6,622.20 | **58,819.02** |
+
+- **SPAN: equal to the rupee.** Groww's 6,893 is my `i1` figure, 6,893.25 (Groww rounds; the single legs too: 149,043.75
+  is the `i1` short call). So Groww uses the day's beginning-of-day file for SPAN, the file the job uses.
+- **Exposure: equal to the paisa on the same base.** Groww's 58,819.02 = 2 x 2% x 22,622.70 x 65, the index in NSE's
+  15:32 file (Groww's per-leg 29,409.51 / 0.02 / 65 = 22,622.70). Groww applies NSE's 2% rule on the latest index
+  price; the job's row uses the previous close (22,721.95), which NSE's margins page names and which is the only base
+  known before the session. Zerodha's 23,997.35 base is not Groww's; that gap was Zerodha's.
+- **Tolerance and why:** SPAN within Rs 1 (Groww rounds to the rupee; same file, same arrays); exposure within Rs 1
+  on the same base (pure arithmetic). Both met. **The base difference is not a tolerance but a known, bounded
+  difference:** the row's exposure differs from Groww's at decision time by 2 legs x 2% x 65 = Rs 2.60 per index point
+  that NIFTY moves between the previous close and the decision. Today NIFTY fell 99 points, so the row was Rs 258
+  above Groww's (safe). On a day NIFTY rises, the row is **below** Groww's: about Rs 590 a lot per 1% rise (1% of
+  59,077). That is the one way the row can be looser than the owner's broker; the stressed factor, which multiplies
+  scan only, does not cover it. Proposal for the judge (reasoning only): C2 rescales the stored exposure by
+  (decision-time index / file's index), both known at decision time; or the owner accepts the gap as small next to the
+  Rs 30,000 stress limit. I have not changed C2.
+
+**Switch set (judge to confirm criterion 1):** `config.yaml` `risk.margins.nse_span_check` = source "Groww margin API
+(read-only), orchestrator run", passed_on 2026-10-14.
+
+**Funding at entry (orchestrator's note; for the judge, C2 not changed).** Groww's total 113,312.64 = SPAN 6,893 +
+exposure 58,819.02 + the bought legs' premium 47,450 + charges 150.62: it asks for the bought premium up front and does
+not count the sold premium (53,475.50 at these limits) toward the entry. C2's MarginRoom credits the entry's net cash
+flow (sold minus bought, +6,025 here) to available cash. At the moment of entry C2 is therefore looser than Groww's
+funds check by about the sold premium plus the bought premium net of the netted SPAN: for this basket Groww needs
+113,313 free; C2 counts margin 59,899 (scan + exposure) and nets the premiums. If the paper desk is to refuse what the
+broker would refuse, MarginRoom needs a "funds at entry" term: the bought premium + charges, with no credit for the sold
+premium until settlement. This is outside A14; I flag it rather than change C2.
+
 ## Groww as a margin source (orchestrator's (a)-(e); public docs only, read 14 Oct 2026, no login, no key)
 
 Pages: https://groww.in/trade-api/docs, .../python-sdk, .../python-sdk/margin, .../curl, .../curl/margin,

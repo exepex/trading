@@ -198,11 +198,12 @@ def test_without_a_passed_broker_check_rows_are_printed_and_none_written(tmp_pat
     assert "risk.margins.nse_span_check" in alerts.sent[0]
 
 
-def test_the_repository_config_has_not_passed_the_broker_check():
+def test_the_repository_config_records_the_groww_check_and_not_before_its_day():
     from fno.config import load_app_config
 
     check = IndependentCheck.from_margins_block(load_app_config()["risk"]["margins"])
-    assert not check.passed_by(date(2026, 10, 14))  # judge 77: criterion 1 NOT MET until the owner's Groww check
+    assert check.source == "Groww margin API (read-only), orchestrator run"  # claims response 77, broker check 2
+    assert check.passed_by(date(2026, 10, 14)) and not check.passed_by(date(2026, 10, 13))
     assert IndependentCheck.from_margins_block(
         {"nse_span_check": {"source": "x", "passed_on": "2026-10-14"}}
     ).passed_by(DAY)
