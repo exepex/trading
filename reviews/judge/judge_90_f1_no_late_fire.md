@@ -1,0 +1,66 @@
+# Judge 90: F1, no AI fire on a late start: `story/f1-no-late-fire` at 101c449 (response 67 addendum 8)
+
+Standard: `docs/JUDGE.md`. What I checked:
+- the full diff (fire, collect, timing, capture_gate, one new test file);
+- 5 probes and 5 mutation plants of my own;
+- the freeze lists;
+- the full gates on a trial merge with `main`.
+
+## Gates
+
+On a trial merge with `main` (80ae31a):
+- **3,126 passed**, with `FNO_SLACK_BOT_TOKEN` unset;
+- `ruff check` and `ruff format --check` clean;
+- `check_imports` clean.
+
+My first full run had 1 failure, `test_capture_gate` at 15:14. I traced it to my own plant method, not the branch:
+- My plant changed `LATEST_START` to 15:14 and then restored the file within the same second, at the same size.
+- Meanwhile the gate's stdlib test runs `python -S -I` without `-B`, and that subprocess wrote a `.pyc` holding 15:14.
+- Python accepted that stale `.pyc`: same size and same mtime second.
+- After clearing `__pycache__`, the same tree passes all 3,126.
+
+This is very likely also the single unnamed failure in judge 89 addendum 1, which came right after plants. That is
+reasoning, not proven. I narrow that follow-up accordingly: it was a judge-harness artefact, not a project flake. I now
+clear `__pycache__` after planting.
+
+## Criteria
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| After 15:13 IST, `fire` fires no book, writes `fired:false, late_start:true` with a reason, and sends one #fno-desk line | MET | Code; builder tests. My plants were caught: alert removed (2 failed); `late_start` set to false (3 failed). |
+| (a) Boundary and timezone | MET | Probes: 15:12:59 fires both books; 15:13:00 fires (builder test); 15:13:00 plus 1 microsecond fires none. A UTC-aware clock at 09:43:00 fires and at 09:43:01 does not: the comparison is between timezone-aware instants. A run after midnight for the previous day is late and fires none. Production clock is `now_ist` (`fno/ai/wiring.py`). My plant `>` -> `>=` was caught; so was `LATEST_START` moved to 15:14. |
+| A late run never overwrites an earlier on-time fire | MET | Probe: fire at 14:00, then a run at 19:27 says "already fired"; the log is byte-identical and nothing is fired twice. |
+| (b) A late start can never produce a scored record | MET (from code) | The late path fires nothing, so no commitment can come from it. The collector gives `no_submission` with probabilities all None (builder test). `scoring_gate` scores only `on_time` audits (`scoring_gate.py:40`). The only route to a scored record would be a commitment that reached the repository by 15:15:00 from outside this path, for example a manual fire. That would be a real on-time answer, checked by `receipt_deadline` as on any day. |
+| (c) Moving the constant changes nothing frozen | MET | None of `fno/ai/timing.py`, `fire.py`, `collect.py` or `capture_gate.py` is listed in `research/forecasts/FREEZE*.md` or in `PROTOCOL.md` `frozen_files`. The value is unchanged (15:13, the same `>` comparison). My plant `>` -> `>=` in `capture_gate` was caught. |
+| One source for 15:13 | MET | `capture_gate` imports `LATEST_START`; the old `PUSH_LATEST` is gone. The gate's stdlib-only test still passes: `fno/ai/timing.py` imports only the standard library and `fno.models`. |
+
+## Claims vs reality
+
+- Builder: 3 tests, 2 mutations caught, 3,126 passed. All match my run.
+- Addendum 7's account of the 14 Oct late run matches the Actions API: forecast-capture run 1 is a `schedule` run started
+  at 13:56:51 UTC.
+
+## Findings
+
+**Should-fix (docs):** the label `no_submission` for a late start contradicts the owner checklist.
+- `docs/stories/F1-G5-owner-checklist.md` defines `no_submission` as "the routine ran but never sealed" and sends the
+  owner to the session link. A late start has no session.
+- Scoring is unaffected: both `no_submission` and `not_fired` are unscored.
+- My view (reasoning only): `not_fired` with the reason "late start" is the truer label. It would also remove the special
+  case in `collect.py`.
+- If `no_submission` stays, add a checklist row for "late start" so the owner does not hunt for a session that does not
+  exist.
+
+**Follow-up:** the gate's stdlib test subprocess writes `__pycache__` into the working tree. That is harmless in CI, but
+it is how the stale cache above arose.
+
+## Project rules
+
+- No orders placed; no secrets in files.
+- The constant is at the module top.
+- Files are under 350 lines.
+- Composition is unchanged.
+
+## Verdict: PASS for 101c449
+
+Merge it before 09:25 UTC on 15 Oct. After the merge I check `main` and CI.
