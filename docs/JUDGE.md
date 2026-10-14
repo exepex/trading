@@ -55,8 +55,31 @@ unsure, the change is lane 1.
 | Lane | Covers | Review |
 |---|---|---|
 | 1 | Every new story. Any change, of any size, touching money or risk (margins, funds at entry, limits), fills, exits or anything that decides a trade, scoring or forecast and evaluation records, frozen files, secrets or outside services (Slack, Groww, Drive, NSE), schedules and GitHub workflows, or the dashboard's privacy rule (strategy internals stay private) | Judge PASS on the branch before merge, as in the loop above |
-| 2 | Any other small change: tests only, docs, refactors with no behaviour change, small fixes outside lane 1 | The orchestrator re-runs the full checks and compares the builder's claim with the diff, then merges. The judge audits that day's lane-2 merges once, at a fixed time; a FAIL is fixed first, before new work |
+| 2 | Only new tests (added files or cases) and docs outside the rule documents (`README.md`, `reports/`, `research_notes/`, `docs/` outside the rule documents) | The orchestrator re-runs the full checks and compares the builder's claim with the diff, then merges. The judge audits that day's lane-2 merges once, at a fixed time; a FAIL is fixed first, before new work |
 | 3 | Judge files, conversation logs, decision and status rows, data commits by scheduled jobs | None |
+
+### Refinements (judge 91, accepted by the orchestrator under the owner's lanes decision, 14 Oct 2026)
+
+1. **Lanes 2 and 3 are listed; everything else is lane 1 (judges 92 and 92 addendum 1), whatever a change's
+   description.** So the list cannot miss a folder.
+   - **Lane 2** is only new tests (added files or cases) and docs outside the rule documents: `README.md`,
+     `reports/`, `research_notes/`, and `docs/` outside the rule documents.
+   - **Lane 3** is as in the table.
+   - **Everything else is lane 1**, for example all of `fno/` and `tools/`, `agents/`, `playbook/`, `journal/`,
+     `accounting/`, `contracts/`, `.claude/`, `.github/`, `.githooks/`, `.gitattributes`, `ruff.toml`, `config.yaml`,
+     `db/`, `requirements*.txt`, any hand edit under `research/`, any weakened test, and the rule documents
+     (`docs/JUDGE.md`, `CLAUDE.md`, `AGENTS.md`, acceptance criteria in `docs/stories/`, protocol and freeze
+     documents, owner checklists).
+2. **Tests:** only adding tests is lane 2. Deleting, skipping or loosening a test in a lane-1 area is lane 1.
+3. **Lane 3 data** is only a scheduled job's own output paths. Data edited by hand (calendar rows, golden values,
+   margin tables, manifests) is not lane 3. A decision row is lane 3 only when it quotes the owner.
+4. **Findable and gap-free:** a lane-2 merge's commit message starts "Lane 2:" and names the branch tip, the
+   builder's claim and the orchestrator's test count. The audit runs daily at 17:30 UTC and covers every commit on
+   `main` since the last audited commit, with mutations planted as on lane 1; the range and verdict go in the judge
+   README.
+5. **A lane-2 correctness FAIL is reverted at once** with `git revert` (never a history rewrite), then fixed on a
+   branch. Docs and test-only FAILs are fixed in place, first.
+6. **The dashboard** has its own lane-1 paths, listed in its `CLAUDE.md`.
 
 - The judge may move any kind of change into lane 1 when its daily audit finds problems there.
 - What lane 2 gives up: the claim check is done by the orchestrator, which assigned the work and plants no mutations,

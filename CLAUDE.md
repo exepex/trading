@@ -66,14 +66,15 @@ only: never places, modifies or cancels orders.
 ## Branch
 
 **Judge lanes (owner, 14 Oct 2026, `docs/DESK_DECISIONS.md`; details in `docs/JUDGE.md`).** A change's lane is set by
-what it can damage, not by its size; when unsure, lane 1.
+what it can damage, not by its size; when unsure, lane 1. Lane 1 is decided by the path list in `docs/JUDGE.md`
+(judge 91 refinements), whatever a change's description.
 - **Lane 1, judge PASS before `main`:** every new story, and any change of any size touching money or risk (margins,
   funds, limits), fills, exits or anything that decides a trade, scoring or forecast and evaluation records, frozen
   files, secrets or outside services (Slack, Groww, Drive, NSE), schedules and workflows, or the dashboard's privacy
   rule. Push to a branch `story/<id>-<short>`, tell the orchestrator, merge only after the PASS (pull, full suite on the
   merged tree, then push).
-- **Lane 2, orchestrator check before `main`, judge audit after:** any other small change (tests only, docs,
-  refactors with no behaviour change, small fixes outside lane 1). The orchestrator re-runs the checks and compares
+- **Lane 2, orchestrator check before `main`, judge audit after:** only new tests and docs outside the rule documents
+  (list in `docs/JUDGE.md`). Everything not in lane 2 or 3 is lane 1. The orchestrator re-runs the checks and compares
   the builder's claim with the diff before merging; the judge audits each day's lane-2 merges once, and a FAIL is
   fixed first.
 - **Lane 3, no judge:** judge files, conversation logs, decision and status rows, and data commits by scheduled jobs.
