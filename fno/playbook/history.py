@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from typing import Protocol
 
 from ..research_engine.ledger import Git
@@ -26,6 +27,11 @@ class PlaybookGit(Git):
         """The committed texts of `path`, oldest first."""
         texts = (self.committed_text(path, commit) for commit in self.commits_touching(path))
         return [text for text in texts if text is not None]
+
+    def committed_bytes(self, path: str, commit: str) -> bytes | None:
+        """The file's exact bytes at `commit` (None if not committed there)."""
+        result = subprocess.run(["git", "show", f"{commit}:{path}"], cwd=self.root, capture_output=True)
+        return result.stdout if result.returncode == 0 else None
 
     def added_at(self, path: str) -> str | None:
         """The committer time (ISO, with offset) of the first commit that added `path`; None if it is not committed."""

@@ -81,3 +81,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 80: P8 flows hardening (judge 79 should-fixes): covered <= day test; first copy kept, stated; a later-session refusal skips only that list](response_80_p8-flows-hardening.md)
 - [Response 81: D3 decision record: replayable inputs, atomic write-once runs, late marking, three-book schema; builder's claims](response_81_d3-decision-record.md)
 - [Response 83: story C4, hard-validity checks: independent max loss and evidence re-check, Book 1 playbook mode, Books 2 and 3 fail closed until D4/D5; builder's claims](response_83_c4-hard-validity.md)
+- [Response 86: story S1, the evaluation protocol: completeness check, freeze tool with ledger registration, freeze-order and per-version lookup; the protocol is a DRAFT of proposals for the owner, not frozen](response_86_s1-protocol.md)
