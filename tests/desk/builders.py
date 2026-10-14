@@ -129,7 +129,8 @@ def approved_entry(proposal: Proposal, quotes=FLY_QUOTES) -> float:
     return SimulatorTradeCosts(CHARGES).entry_cash_flow(proposal, decision_market(quotes))
 
 
-def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1, limit=None) -> EntryOrder:
+def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1, limit=None,
+              strategy=STRATEGY) -> EntryOrder:  # fmt: skip
     proposal = fly_proposal(trade_id, lots)
     risk = risk or approved(proposal, book, decided_at.date(), limit)
-    return EntryOrder(book, STRATEGY, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk)
+    return EntryOrder(book, strategy, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk)

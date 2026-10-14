@@ -258,7 +258,9 @@ Rs 1 pad used in research. Pause rules fire automatically and are recorded as a 
 **Built (14 Oct 2026; the orchestrator's defaults, `reviews/claude/response_75_e6-scorecard.md`):** desk records carry the
 version (`strategy`, `<name>-v<n>`) and the touch each fill met; a gate refusal is its own outcome (`refused`), apart
 from fills that failed. Each shadow version has its own account `journal/shadow/<name>-v<n>/account/`, scored in a
-separate section. The machine-checked pause rule is the plan's `catastrophic_loss_rs`. The review rule: only on a review date
+separate section, and is D2's `ShadowBooks` (`fno/desk/shadow_books.py`). The machine-checked pause rule is the plan's
+`catastrophic_loss_rs`, never above C2's per-trade maximum loss. The review thresholds are provisional until S1 and live
+only in config.yaml `scorecard_review`. The review rule: only on a review date
 and past the gate; mean C1 net per completed position with a seeded bootstrap 95% interval; retire when the interval's
 upper end is below the expected low, pause when the mean is, else keep; promotable only when the interval's lower end
 and the whole net are above zero. A review's decision is stated, never applied: only the owner pauses for statistics

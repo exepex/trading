@@ -48,8 +48,8 @@ def card_lines(card: Scorecard) -> list[str]:
         )
     if rev is not None:
         interval = NONE if rev.interval_rs is None else f"{_rs(rev.interval_rs[0])} to {_rs(rev.interval_rs[1])}"
-        lines.append(f"  review {rev.on}: {rev.positions} positions, {rev.months} months, mean {_rs(rev.mean_rs)}, "
-                     f"95% interval {interval}")  # fmt: skip
+        lines.append(f"  review {rev.on} (rule {rev.terms_status}): {rev.positions} positions, {rev.months} months, "
+                     f"mean {_rs(rev.mean_rs)}, interval {interval}")  # fmt: skip
         lines.append(f"  -> {rev.reason}")
     return lines
 

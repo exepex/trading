@@ -9,6 +9,7 @@ from playbook.builders import DOCUMENT, document, write
 from fno.books.account import PaperAccount
 from fno.books.paths import shadow_account
 from fno.composition import open_account_writer
+from fno.config import ROOT, load_config
 from fno.constants import BOOKS, PlaybookStatus
 from fno.desk.records import DeskRecords
 from fno.playbook.lifecycle import StatusChanger
@@ -16,9 +17,12 @@ from fno.playbook.loader import PlaybookLoader, registry_path
 from fno.playbook.registry import Registry, RegistryRow
 from fno.playbook.schema import parse_strategy
 from fno.scorecard.pauses import AutoPauser
+from fno.scorecard.review import review_terms
 from fno.scorecard.run import ScorecardRun
 
 from .history import CHARGES
+
+TERMS = review_terms(load_config(ROOT / "config.yaml"))  # the repository's provisional terms (until S1)
 
 START = date(2026, 10, 14)
 REVIEW = date(2027, 1, 20)
@@ -82,6 +86,6 @@ def make_run(root, alerts):
     def make(checks=()):
         pauser = AutoPauser(StatusChanger(loader(root, checks), NoGit()), alerts)
         records = lambda name: DeskRecords(PaperAccount(root, name))  # noqa: E731
-        return ScorecardRun(lambda: ACCOUNTS, records, loader(root, checks), pauser, CHARGES)
+        return ScorecardRun(lambda: ACCOUNTS, records, loader(root, checks), pauser, CHARGES, TERMS)
 
     return make

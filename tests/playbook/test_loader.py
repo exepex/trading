@@ -204,3 +204,15 @@ def test_a_research_version_may_have_no_estimate(tmp_path):
     write(tmp_path / "playbook", document(evaluation_plan=plan))
     strategy = loader(tmp_path).load().get("sc-test", 1)
     assert strategy.evaluation_plan["expected_net_per_opportunity"] is None
+
+
+def test_a_catastrophic_cap_above_c2s_per_trade_limit_is_refused_even_for_research(tmp_path):
+    """Story E6: such a cap could never fire on a trade C2 let open (limit from config.yaml `risk`, Rs 10,000)."""
+    folder = tmp_path / "playbook"
+    write(folder, document(evaluation_plan={**DOCUMENT["evaluation_plan"], "catastrophic_loss_rs": 10_000}))
+    assert build_playbook_loader(tmp_path).load().strategies[0].evaluation_plan["catastrophic_loss_rs"] == 10_000
+    write(folder, document(evaluation_plan={**DOCUMENT["evaluation_plan"], "catastrophic_loss_rs": 10_000.01}))
+    with pytest.raises(PlaybookError) as refusal:  # a research candidate: the check holds whatever the status
+        build_playbook_loader(tmp_path).load()
+    assert refusal.value.field == "sc-test-v1.yaml: evaluation_plan.catastrophic_loss_rs"
+    assert "could never fire" in str(refusal.value)

@@ -15,7 +15,7 @@ from ..accounting.ledgers import Ledgers, TradeLine
 from ..desk.snapshot import ContractKey, ExecutionSnapshot
 from ..playbook.schema import Strategy
 from .execution_costs import ExecutionCosts, execution_costs
-from .review import Review, review
+from .review import Review, ReviewTerms, review
 from .strategy_record import OpenTrade, StrategyRecord
 
 NO_VERSION = "not in the playbook: no plan to judge against"
@@ -63,13 +63,14 @@ def _mark(trade: OpenTrade, marks: Mapping[ContractKey, float]) -> OpenMark:
 
 
 def build_scorecard(
-    record: StrategyRecord, strategy: Strategy | None, on: date, marks: Mapping[ContractKey, float]
+    record: StrategyRecord, strategy: Strategy | None, on: date, marks: Mapping[ContractKey, float], terms: ReviewTerms
 ) -> Scorecard:
     lines = tuple(t.line for t in record.closed)
     ledgers = Ledgers(list(lines), [], {})
     total = sum(line.net for line in lines)
     plan = strategy.evaluation_plan if strategy else None
-    judged = review([t.line.net for t in record.positions], total, record.first_entry, plan, on) if plan else None
+    nets = [t.line.net for t in record.positions]
+    judged = review(nets, total, record.first_entry, plan, on, terms) if plan else None
     return Scorecard(
         record.account, record.strategy, str(strategy.status) if strategy else NO_VERSION,
         plan["expected_range"] if plan else None, plan["unit"] if plan else "", lines, ledgers.by_month(),

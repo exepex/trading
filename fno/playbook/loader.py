@@ -15,6 +15,7 @@ from .approval_checks import ApprovalCheck, LiveFeatureDrift, run_checks
 from .documents import strategy_from_text
 from .fields import PlaybookError
 from .registry import Registry, RegistryRow
+from .rule_checks import RuleCheck
 from .schema import Strategy
 from .transitions import PAPER, RESEARCH
 
@@ -51,8 +52,9 @@ class Playbook:
 
 
 class PlaybookLoader:
-    def __init__(self, folder: Path, registry: Registry, checks: Sequence[ApprovalCheck]):
-        self.folder, self.registry, self.checks = folder, registry, tuple(checks)
+    def __init__(self, folder: Path, registry: Registry, checks: Sequence[ApprovalCheck],
+                 rule_checks: Sequence[RuleCheck] = ()):  # fmt: skip
+        self.folder, self.registry, self.checks, self.rule_checks = folder, registry, tuple(checks), tuple(rule_checks)
 
     def load(self) -> Playbook:
         strategies = self._read_files()
@@ -81,6 +83,8 @@ class PlaybookLoader:
             raise PlaybookError(f"{where}: status", f"is {strategy.status} but the registry says {registered}")
         approval = next((row for row in reversed(history) if row.status == PAPER), None)
         try:
+            for rule_check in self.rule_checks:
+                rule_check.check(strategy)
             run_checks(self.checks, strategy, approval)
         except PlaybookError as refused:
             raise type(refused)(f"{where}: {refused.field}", refused.reason) from None

@@ -17,6 +17,7 @@ from datetime import date
 
 from ..alerts.sender import AlertSender
 from ..constants import APPROVER_HARD_LOSS_RULE, PlaybookStatus
+from ..desk.trade_counts import version_key
 from ..playbook.lifecycle import StatusChanger
 from ..playbook.loader import Playbook
 from .strategy_record import StrategyRecord
@@ -34,12 +35,6 @@ class PauseTrigger:
     @property
     def label(self) -> str:
         return f"{self.name}-v{self.version}"
-
-
-def version_key(strategy: str) -> tuple[str, int]:
-    """`<name>-v<n>` -> (name, n)."""
-    name, _, number = strategy.rpartition("-v")
-    return name, int(number)
 
 
 def catastrophic_losses(records: Iterable[StrategyRecord], playbook: Playbook, on: date) -> list[PauseTrigger]:
