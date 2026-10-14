@@ -43,7 +43,7 @@ and commit, red-team note, judge verdict, owner approval date)`.
 
 **Judge verifies:** edits a parameter in a committed version and confirms the loader refuses it.
 
-**Depends:** B5, B7 · **Size:** M · **Status:** built; awaiting judge (builder's claims: `reviews/claude/response_70_d1-playbook-format.md`)
+**Depends:** B5, B7 · **Size:** M · **Status:** done (judge 67 with addenda 1-2 PASS; claims `reviews/claude/response_70_d1-playbook-format.md`). Follow-up for E6: auto-pause only a drifting approved version (paper → paused, one #fno-desk line) instead of refusing the whole playbook load
 
 ---
 
