@@ -35,7 +35,10 @@ SC300 = {
     "sold": [(23200, "CE"), (22250, "PE")],
     "bought": [(23500, "CE"), (21950, "PE")],
 }
-PUT_SPREAD_SCAN = (2650.70, 5423.60)  # no NSE row: bounded by the SC 100 and SC 200 rows' scan (one side's worst)
+PUT_SPREAD_SCAN = (
+    2650.70,
+    5423.60,
+)  # no NSE row: the SC 100 and SC 200 rows' scan; the third case is the spread's full loss
 
 
 def opportunities(period: str) -> list[dict]:
@@ -188,7 +191,8 @@ def funds_at_entry() -> None:
     )
     paid, received, fees = entry([(22000, "PE")], [(21850, "PE")])
     nov = paid - received  # the legs' value at today's fills (NSE's file uses settlement prices)
-    for scan in PUT_SPREAD_SCAN:
+    full_loss = (22000 - 21850) * LOT + nov  # no SPAN scenario can lose more than this (width x lot - credit)
+    for scan in (*PUT_SPREAD_SCAN, full_loss):
         no_credit = max(0.0, STRESS * scan - nov) + EXPOSURE_PER_SHORT_LEG
         margin = no_credit + min(0.0, nov)
         print(

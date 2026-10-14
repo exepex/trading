@@ -97,10 +97,13 @@ In-the-money legs are wide (Rs 3-180) and must never be used.
 - Rs 59,077 of every row is exposure margin on the two short legs, and a hedge does not reduce it. So Rs 60,000-71,000
   of margin (and about Rs 1,00,000 of funds at entry for a condor) is tied up for at most Rs 10,000 of risk and
   Rs 400-1,000 of gross premium a month.
-- A put spread has one short leg, so its exposure margin is about Rs 29,500. No NSE row exists for it, so I bound its
-  scan risk between the SC 100 and SC 200 rows' (Rs 2,651-5,424). Its stressed margin is then about
-  **Rs 33,400-37,400**, and its **funds at entry about Rs 44,500-48,500**, including the bought 21850 put (about Rs 9,200
-  at the ask) and charges (estimate).
+- A put spread has one short leg, so its exposure margin is Rs 29,538.54. No NSE row exists for its scan risk, so I
+  give a range (**estimate**). The low end takes the SC 100 row's scan (Rs 2,651). The high end takes the spread's full
+  loss (Rs 7,988 at bid/ask fills), which no SPAN scenario can exceed.
+  - **Stressed margin: about Rs 33,400-41,100.**
+  - **Funds at entry: about Rs 44,500-52,200**, including the bought 21850 put (Rs 9,236 at the ask) and charges.
+  - Judge 93's figures (35-40k and 45-50k) fall inside this range.
+  - A14's NSE calculator would give the exact figure once the structure exists.
 - NIFTY fell 3% or more in 10 of 93 holding windows and 5% or more in 3 (worst -6.9%). Those are the months a short put
   spread loses most of its Rs 8,351 cap.
 - The cap failed twice in 2019 on stale closes (-11,346, -13,728): live exits must use quotes.
@@ -136,8 +139,8 @@ None can back a rule today (reasoning only).
 | Evidence | Strong: gross positive in both periods (+978, +408) but net -406 in 2019-23 (holdout used up: experiment 1) and +153 in 2024-26 (discovery, seen) | Some: costs measured on one day; skew on 14 Oct. Reasoning: the model is negative (-243 at the 21-day exit, -355 to expiry). No untouched history is left |
 | Trades per year | 12 (fewer when a cycle is unfillable: 1 of 60 in 2019-23) | 12 |
 | Worst historical loss per lot | -8,937 (2019-23, clean); -11,346 on a stale close (cap broken: exit on quotes) | Structural maximum 8,351 (credit 1,809 on 14 Oct); model worst -6,547 at the 21-day exit. Not run on historical option prices (a new trial on spent data) |
-| Stressed margin per lot (C2, k 1.45) | Rs 71,428 (SC 300, 14 Oct NSE SPAN plus exposure; Rs 67,595 initial) | About Rs 33,400-37,400 (estimate: one short leg's exposure about Rs 29,500, scan bounded by SC 100-200); no NSE row yet |
-| Funds at entry per lot (C2: no credit for the sold premium, bought premium and charges paid) | **Rs 1,00,784** (81,581 + 19,045 bought wings + 158 charges, 14 Oct quotes) | About **Rs 44,500-48,500** (includes the bought put, about Rs 9,200) |
+| Stressed margin per lot (C2, k 1.45) | Rs 71,428 (SC 300, 14 Oct NSE SPAN plus exposure; Rs 67,595 initial) | About Rs 33,400-41,100 (estimate: one short leg's exposure Rs 29,538.54 plus scan between the SC 100 row's and the spread's full loss, x 1.45); no NSE row yet |
+| Funds at entry per lot (C2: no credit for the sold premium, bought premium and charges paid) | **Rs 1,00,784** (81,581 + 19,045 bought wings + 158 charges, 14 Oct quotes) | About **Rs 44,500-52,200** (estimate; includes the bought put, Rs 9,236 at the ask) |
 | What proves it wrong | Not a candidate: it informs the cost and premium estimates. Stop it if a single loss exceeds Rs 10,000 (catastrophic-loss rule) | A forward mean net per trade below 0 after 12 trades, or gross per trade below Rs 410 (its costs) |
 | Blocker | None: SC exists in D1, B2, C4 and A14 | **Code**: D1 `STRUCTURE_CODES`, the B2 simulator, D2 candidates, C4 and A14 margin rows know only SF, SC and BF (lane 1, flagged to the orchestrator) |
 
@@ -178,22 +181,30 @@ change. Roughly a day of building and one judge round.
   needs the new code's rows, with one short leg's exposure. The broker check (judge 77) covered four-leg rows only.
 
 **What the owner gets, given forward proof takes years anyway:**
-- Half the costs (about Rs 410 instead of Rs 820 a trade), about half the stressed margin (an estimated Rs 33,400-37,400
-  instead of Rs 71,428) and less than half the funds at entry (about Rs 44,500-48,500 instead of Rs 1,00,784). This
+- Half the costs (about Rs 410 instead of Rs 820 a trade), about half the stressed margin (an estimated Rs 33,400-41,100
+  instead of Rs 71,428) and about half the funds at entry (about Rs 44,500-52,200 instead of Rs 1,00,784). This
   makes a small edge possible, but not proven.
 - The option of trading the put skew alone, without the call side, whose premium is thinner (13.1% at +3.3%).
 - **Not** a faster proof: it is still 12 trades a year.
 
-**My recommendation: not now.** The model is negative (-243 a trade), and the B0 benchmark records the condor's put
-half, which is itself a short put spread about 2% out. B0 therefore yields forward data on the put-spread premium at
-real 15:00 quotes **without new code**. Build the story only if, after about 6-12 cycles, B0's put half shows a gross
-above about Rs 410 a trade, the put spread's cost (reasoning only).
+**My recommendation: not now.** The model is negative (-243 a trade). The B0 benchmark's put half is itself a short
+put spread, so B0 gives some forward data on put-side premium at real 15:00 quotes **without new code**.
+
+That data is **an indication only, not a test** (judge 93 addendum 1):
+- B0's put half is about 2% out and up to 300 wide; the candidate is about 3% out and 150 wide.
+- 6-12 trades cannot separate a Rs 410 gross from zero, since the SD per trade is in the thousands.
+- B0 must record **per-leg fills** (each leg's 15:00 entry and exit price and charges), or its put half cannot be read
+  apart from the call half.
+
+If B0's put half shows a gross clearly above about Rs 410 a trade (the put spread's cost), the owner may take that as a
+reason to fund the code story, not as evidence of an edge (reasoning only).
 
 ## Decisions proposed to the head of desk and the owner
 
 - Register **no** strategy candidate from this meeting.
 - Optional: register **B0** as a benchmark shadow named as such (status `research`, `payer` saying "measurement only").
-  It records the real premium and costs at 15:00 quotes, the only untouched data we will get. Owner's choice.
+  It records the real premium and costs at 15:00 quotes, the only untouched data we will get, with per-leg fills so
+  its put half can be read apart. Owner's choice.
 - Keep recording 15:00 quotes daily (A4). After about 6 months they allow the first test on real bid/ask exits (a new,
   registered experiment).
 - Do not tune filters on 2019-26 again.

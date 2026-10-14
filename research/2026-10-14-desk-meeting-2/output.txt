@@ -43,3 +43,4 @@
   SC 300: stressed margin 71428; funds 100784 (bought 19045, fees 158)
   put spread 22000/21850, scan 2651: stressed margin 33382; funds 44453
   put spread 22000/21850, scan 5424: stressed margin 37403; funds 48473
+  put spread 22000/21850, scan 7988: stressed margin 41122; funds 52192
