@@ -139,3 +139,57 @@ behind it. I will look at the next commit of `research/data/manifests/filings/` 
 | 6 | **NOT MET YET** | Companies with a results file per half-year among the 209 done: Sep 2023 182, Mar 2024 187, Sep 2024 195, Mar 2025 199, Sep 2025 204, Mar 2026 208. The test is 90% of about 500, so at least 450 per half-year. It cannot be judged until about 500 companies are in. Sep 2023 is already the weakest (182 of 209, 87%) |
 
 I will re-judge 2 and 6 when the coverage reaches the full list.
+
+## Addendum 3 (throughput fix, branch `story/a12-throughput` b15406b, before merge): PASS
+
+**Cause, confirmed in the log of run 38479538255.** At 00:44 UTC, `www.googleapis.com` gave a 60 s read timeout
+(`requests.exceptions.ReadTimeout`). `DriveSession` retried only dropped connections, so the exception ended the job,
+and the archive command commits rows only after the librarian returns. The builder's account matches the log.
+
+**Gates (my runs, `python -B`):**
+- branch: 2,157 passed; ruff, format and imports clean;
+- my trial merge with `main` 1ab9dd2 (no conflict): 2,256 passed.
+
+**The orchestrator's three checks:**
+
+1. **A retried upload cannot duplicate: MET.** Every create carries an ID reserved beforehand (`generateIds`).
+   - The builder's test times out *before* Drive makes the file.
+   - I added the harder case in a probe: Drive makes the file, then the answer is lost as a `ReadTimeout`. The retry
+     gets 409 and reads the copy back. The result was one create and identical bytes.
+   - The only other write is `replace_contents` (index files, a PATCH with the same bytes), which is safe to repeat.
+2. **A crash in the middle: MET for the observed cause.** A Drive failure that outlasts the retries (any
+   `RequestException`, including a non-transient HTTP error) now ends the run normally at that company. Rows so far are
+   committed, and progress is saved only for finished companies.
+3. **The next run picks up unrecorded files without re-uploading: MET (existing test).**
+   `test_an_xbrl_run_killed_before_its_commit_fetches_again_without_duplicates`: the file already in Drive with the
+   same bytes is kept and its row written. The cost is one more NSE fetch per unrecorded company (about 50 here).
+
+**Budget share:** each day list gets an equal share of the 50 minutes, cumulatively, so time left unused passes on.
+The test passes.
+
+**My plants (`python -B`, caches cleared; filings, Drive upload and librarian tests, 74):**
+
+| Plant | Result |
+|---|---|
+| Timeouts not retried | caught (1 failed) |
+| Store failure not caught | caught (1 failed) |
+| Budget not shared | caught (1 failed) |
+| `StoredCopyDamaged` not caught in the XBRL save | **not caught** |
+
+**Should fix (not blocking):**
+- **The root cause of lost rows remains for any other crash.** `cmd_filings_archive` commits only on normal return. A
+  bug (a `KeyError` from Drive's answer, an untested exception class such as the last plant) would again lose the
+  run's rows. The day-list path already commits in a `finally` (`run_librarian`); the archive path should do the same.
+  The loss is time only (the next run fetches again), which is why this is not blocking.
+- Turn my probe (timeout after the create) into a test; it is the case that actually happened.
+- A test for `StoredCopyDamaged` in the XBRL save.
+
+**Verdict: PASS.** It may merge before the 06:17 UTC run. After the merge I check `main` against b15406b and CI.
+Criteria 2 and 6 of A12 are still re-judged when the backfill completes.
+
+## Addendum 4 (merge check, 4a7fe9e)
+
+**MET.** 4a7fe9e has parents ede76ff (main) and b15406b (the passed tip), and it equals my recomputed merge of the
+two. CI `checks` is green on 16bfdd8 (run 38501702626), which contains it, and on later commits. No other code reached
+`main` since my last check: `main` equals 51aa2e7 plus b15406b under `fno`, `tests`, `tools`, `db`, `.github` and
+config.

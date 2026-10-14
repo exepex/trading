@@ -119,3 +119,22 @@ run ("short legs first" was still compiled in). Every mutation run was repeated 
 
 Full suite, `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py`: in the commit message and the
 message to the orchestrator.
+
+## 6. Addendum: merged with D2 (a0a8eef), same-day pause through D2's evaluator
+
+- **The conflict:** both sides changed `Playbook` in `fno/playbook/loader.py`.
+  - The merge keeps D2's registry-dated `approved_on`, `shadow_on`, `status_on` and `status_through`.
+  - It keeps E6's `drifted` and drops E6's unused `shadow()` and `registered`.
+- **One design choice:** `approved_on(day)` also excludes a drifted version.
+  - Without that, E6's relaxed load (a drift no longer refuses the whole playbook) would let D2's evaluator trade a
+    drifted version until its pause row is written.
+  - Before E6, a drift refused the whole load, so this is no less safe and no less repeatable on a rebuild.
+  - Strength: reasoning only.
+- **Tests:** `tests/scorecard/test_same_day_pause.py`, run through D2's real evaluator on 21 Oct 2026 (20 Oct is a NSE
+  holiday, Dussehra).
+  - Before the pause, both paper versions are evaluated for Book 1.
+  - The scorecard run writes the hard-loss pause dated that day. The same day's evaluation then considers only fly-b.
+  - A rebuild of the day before is unchanged.
+  - A drifted version is not approved on the day, even before any pause row exists.
+- **Mutations** (`python -B`, caches cleared): **3 of 3 caught**: drift not excluded; the same-day pause ignored; "through
+  the day" read as the start of the day.

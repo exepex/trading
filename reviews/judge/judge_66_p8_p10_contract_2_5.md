@@ -112,3 +112,42 @@ agree.
 
 Note: trading's pin is still c6b4dc7, from before this example change. Re-pin when convenient, so the pinned
 examples equal the contract.
+
+## Addendum 4 (item 4: the first real publish, run 38501152610)
+
+**The run.** GitHub skipped today's 01:40 UTC cron (no scheduled run exists; the workflow file is a day old). The
+orchestrator dispatched the run by hand at 02:27 UTC with `day=2026-10-13`, at code ede76ff. All steps succeeded.
+- **Archive:** fo-bhavcopy and index-close were already there. cm-bhavcopy and security-delivery were uploaded. The
+  index-close revision NSE made at 23:20 IST was kept as a version. Both flows copies were archived, and 5 manifest
+  files were committed.
+- **Database check:** TLS verify-full with pinned roots; the publisher's rights as expected.
+- **Publish:** 1,110 blocks published as `nse-2026-10-13-41a81b0efcff`. Read-back: "every payload SHA-256 equals
+  the built records". It lists `session`, `indices`, `fno_events`, `flows`, `risk`, `today`, every `chain_*` page
+  (1,088 contract pages, 6 row pages), the screener and the overview pages.
+
+**Item 4: PARTLY. The pipeline works end to end, but the flows page went out empty.**
+- `research/data/publications/publication-inputs.csv` was not written: the log has no "publication inputs" line.
+  The cause is that the flows block read **no copies**.
+- I ran the branch's own `FlowsReader` on 13 Oct, reading Drive only. It returns 0 cash days, 0 NSDL days and 0
+  copies.
+- The copies exist in Drive: `nse/flows/fii-dii-cash/2026/10/13/` and `/14/`, and the same for NSDL. Both cover the
+  13 Oct session.
+- But `FiiDiiCashSource.first_day` and `NsdlFpiDailySource.first_day` are **2026-10-14**
+  (`fno/storage/snapshot_source.py`). The reader starts at `first_day` and stops at the published day, so for 13 Oct
+  it reads nothing.
+- So the live flows page for 13 Oct has no days and no NSDL value, and nothing alerted. The block publishes an empty
+  page as valid.
+
+**Must-fix (P8 follow-up):**
+- set `first_day` to the first copy really archived (13 Oct), or derive it from the archive;
+- make an empty flows page on a session that has archived copies a failure with a reason, never a silent empty page;
+- re-publish 13 Oct once fixed (same ID rules).
+
+**Also (information, reasoning only):** the archive files a flows copy under the session it was run for (`--day`),
+not the IST day it was fetched. The 13/ copies were fetched at about 08:00 IST on 14 Oct. `FlowsReader`'s docstring
+says copies are filed under the day fetched. Because the archive runs just before the publish, no copy is newer than
+its publication, so there is no look-ahead today. But the docstring is wrong, and the "filed on" field does not mean
+what it says.
+
+Run status (P7): the log prints no "NOT recorded" line, which is consistent with rows being written. I did not
+connect to Azure to read them.

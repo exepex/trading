@@ -177,3 +177,31 @@ If either writes to Drive only, every reader above finds nothing.
 
 **Plants re-run with `python -B` and every `__pycache__` removed first:** all 14 gave the same results. The verdict
 stands.
+
+## Addendum 2 (round 2, branch be9bc5e): PASS
+
+**All three must-fixes are met, and so are the five should-fixes.** I re-ran my 14 plants (`python -B`, every
+`__pycache__` removed first): **all 14 are now caught.** They include:
+- the approval-status filter (P14, P6);
+- the response time (P3), the untimed VIX (P4) and the exact 15:00:00 boundary (P1);
+- the leak guard's `journal/` (P10) and the provenance hash (P13).
+
+**Empty pack: met.** On the real repository, `desk pack --day 2026-10-13` now prints "refused: no canonical A4
+snapshot for 2026-10-13 (regular session): nothing written", exits 2 and writes no file. A closed day (11 Oct, a
+Sunday) still writes its session-only pack.
+- **Run order:** this fixes the order: pack only after the 3 pm snapshot is committed. E3 must schedule it that way.
+- **A retry capture after 15:00:** if the canonical snapshot is such a capture, every quote is refused as after the
+  cutoff. The pack is then written with no quotes. That is the honest point-in-time state, not a defect.
+
+**Gates:**
+- branch: 2,316 passed; ruff, format and imports clean;
+- my trial merge with `main` (which now has D2 start-of-day): 2,324 passed. `tests/packs` and `tests/playbook`: 286.
+
+**Note for the follow-up:**
+- `tests/packs/builders.py` still builds `Playbook(strategies, frozenset(keys))`. Since D2 merged, `Playbook`'s second
+  field is the registry rows. E2 never reads it, so nothing fails, but it is the wrong type.
+- When E2 switches to `Playbook.approved_on`/`status_on` (one rule, as agreed), pass the rows.
+- E2's common set keeps a version stopped on the day; Book 1 drops it at once. That is accepted (judge 74).
+
+**Verdict: PASS.** After the merge I check `main` against be9bc5e and CI. The `desk` parser must be folded into E6's
+one `desk` parser by whichever of E2 and E6 merges second (judge 73), with the full suite on the merged tree.

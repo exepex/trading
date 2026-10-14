@@ -145,3 +145,58 @@ Then I summed the cash flows from `desk_fills.csv` myself: price times units, si
   CLAUDE.md.
 - Constants in `fno/constants.py`; Slack only to #fno-desk through the alert sender. No orders.
 - Branch rule followed.
+
+## Addendum 1 (round 2, branch 26a6244): must-fixes 1-3 and the should-fixes MET; not yet PASS (must-fix 4 and the merge with D2)
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,328 passed;
+- ruff, format (512 files) and imports: clean.
+
+**Must-fix 1 and 2: met.** My probes from round 1, re-run on this head:
+- after a catastrophic pause and the owner's re-approval, the next run leaves the version on `paper`, with no second
+  alert;
+- a shadow-test loss followed by an approval leaves the version on `paper`.
+
+The rule: only a **book** account's trade, closed on or after the version's latest change to paper, pauses it.
+
+**Must-fix 3: met.** `CatastrophicCapWithinRisk` (a loader check, wired in `fno/playbook/wiring.py`) refuses a cap
+above `risk.max_loss_per_trade_rs`. `parse_strategy` alone still accepts 50,000 (it is a schema check); the loader is
+the gate, and its test uses 10,000.01.
+
+**Should-fixes: met.**
+- The interval is pinned. My plants on `config.yaml`'s `scorecard_review` (seed 7: 1 failed; confidence 0.90:
+  2 failed) are caught.
+- Every review line says "rule provisional until S1".
+- The gate uses D2's `UNPROVEN_BELOW_COMPLETED_TRADES` and a new `PAPER_GATE_MONTHS`.
+- There is one `desk` parser (`fno/desk/cli.py`).
+
+**Real `ShadowBooks`: met.** `JournalShadowBooks` keeps each candidate's account in
+`journal/shadow/<name>-v<n>/account/` and refuses an unstarted one. My plant moving the shadow folder under
+`journal/book1_rules/` is caught (3 failed), including the containment test that hashes the tree before and after a
+real E4 entry.
+
+**My plants (`python -B`, caches cleared; scorecard, playbook, books and desk tests):**
+
+| Plant | Result |
+|---|---|
+| A shadow account's loss counts for a paper version | caught (1 failed) |
+| A loss from before the approval counts | caught (2 failed) |
+| Cap check off | caught (1 failed) |
+| Exactly at the cap does not pause | caught (1 failed) |
+| Drifted version still approved | caught (3 failed) |
+| Shadow loss re-alerted daily | caught (1 failed) |
+| A loss **on** the approval day excluded (`>` instead of `>=`) | **not caught** (should fix: one test, since the builder chose "errs toward pausing") |
+
+**Still open: must-fix 4, and the branch does not merge.** D2 start-of-day is now on `main` (a0a8eef). `git
+merge-tree` of `main` and 26a6244 reports a **conflict in `fno/playbook/loader.py`**. That is the exact place where
+E6's `drifted` exclusion (inside `approved()`) meets D2's new `approved_on(day)` (which D2's evaluator now calls).
+Resolved naively, a drifted version would trade again through D2.
+
+**For the PASS, one short round:**
+1. merge `main`;
+2. make `approved_on(day)` also drop the versions in `drifted`;
+3. add the test through D2's evaluator: a pause dated the day (scorecard run before 15:00) and a drifted version
+   each make that day's evaluation choose nothing for that version;
+4. run the full suite on the merged tree.
+
+I will check only that merge commit and the test. The rest of this round stands.

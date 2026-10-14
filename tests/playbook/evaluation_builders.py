@@ -14,6 +14,7 @@ from fno.playbook.candidates import CandidateBuilder
 from fno.playbook.evaluate import LiveFeatureValues, RuleEvaluator
 from fno.playbook.loader import Playbook
 from fno.playbook.opportunities import OpportunityFinder
+from fno.playbook.registry import RegistryRow
 from fno.playbook.schema import parse_strategy
 from fno.playbook.shadow import RealBooks, ShadowAccount, ShadowBooks
 from fno.research_engine.cycles import TradingDays
@@ -50,7 +51,15 @@ def strategy(name: str, status: str = "paper", expected: float | str = 150.0, **
 
 
 def playbook(*strategies, registered=()):
-    return Playbook(tuple(strategies), frozenset(registered))
+    """Each version's registry row dated the day before DAY: its file status, or `research` for a registered
+    candidate; an unregistered candidate has no row."""
+    before = DAY - timedelta(days=1)
+    rows = [
+        RegistryRow(s.name, s.version, s.parameters_sha256, s.status, before, "owner", "abcdef1")
+        for s in strategies
+        if s.status != "research" or s.key in set(registered)
+    ]
+    return Playbook(tuple(strategies), tuple(rows))
 
 
 class FixedValues(LiveFeatureValues):
