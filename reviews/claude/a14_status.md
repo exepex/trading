@@ -22,4 +22,11 @@ For E4: `MarginTable` and `StressedMargin` signatures unchanged; the margins fil
 I updated E4's fixtures in `tests/desk/test_entries.py` and `tests/desk/test_entry_limit.py` (same figures). MarginRoom
 now needs a quote for every open trade's legs (the stress rule already does).
 
-Still open: the 09:25 IST broker check (Zerodha's public calculator; script ready). Not merged into main.
+Broker check done early (Zerodha answered from 08:05 IST; claims "Validation"):
+- SPAN: PASS. Zerodha's SPAN = max(0, my scan - NOV) within Rs 0.70 on all 9 rows; its NOV equals mine to the paisa.
+  The broker displays the netted figure (B).
+- Exposure: FAIL by 5.6%. Zerodha charges 2% (3% deep OTM) on a base of 23,997.35, not NSE's 22,721.95 close;
+  unexplained from public data. Mine is Rs 3,316 a lot lower. The workflow stays manual. Needed: the owner's one-time
+  Groww check (claims) to see which base Groww uses; or the orchestrator's 09:25 re-run may show a different base.
+
+Not merged into main.

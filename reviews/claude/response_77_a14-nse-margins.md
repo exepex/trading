@@ -65,12 +65,41 @@ settlement prices); C2's MarginRoom marks the proposal at today's mids, so the t
 
 ## Validation (acceptance criterion 1)
 
-**Pending: the broker check at market hours.** Zerodha's public SPAN calculator (`POST
-https://zerodha.com/margin-calculator/SPAN`) returned empty answers at 05:41 and 06:22 IST (its backend serves only in
-market hours, I believe; not proven). The orchestrator schedules a 09:25 IST check. NSE's own calculator
-(`www.nseindia.com`) answers HTTP 403 from this environment. The job stays manual until a check passes.
+**Result (14 Oct 2026, 08:05-08:10 IST, Zerodha's public SPAN calculator, `POST
+https://zerodha.com/margin-calculator/SPAN`, no login): SPAN and NOV pass exactly; exposure FAILS by 5.6%. Not
+passed: the job stays manual.** (It answered from about 08:05 IST; empty at 05:41 and 06:22.) Same legs (NIFTY26NOV,
+65 each), my figures from `nsccl.20261014.i1`:
 
-What is already checked (not yet the independent figure the story asks for):
+| Row | My scan | My NOV | max(0, scan - NOV) | Zerodha SPAN | Zerodha NOV | My exposure | Zerodha exposure |
+|---|---|---|---|---|---|---|---|
+| SF 100 | 822.25 | -6,071.00 | 6,893.25 | 6,893 | 6,071 | 59,077.07 | 62,393.11 |
+| SF 200 | 1,692.60 | -12,350.00 | 14,042.60 | 14,043 | 12,350 | 59,077.07 | 62,393.11 |
+| SF 300 | 3,602.30 | -17,134.00 | 20,736.30 | 20,736 | 17,134 | 59,077.07 | 62,393.11 |
+| SC 100 | 2,650.70 | -3,786.25 | 6,436.95 | 6,437.25 | 3,786.25 | 59,077.07 | 62,393.11 |
+| SC 200 | 5,423.60 | -7,072.00 | 12,495.60 | 12,496 | 7,072 | 59,077.07 | 62,393.11 |
+| SC 300 | 8,517.60 | -10,153.00 | 18,670.60 | 18,671 | 10,153 | 59,077.07 | 62,393.11 |
+| BF 100 | 831.35 | 6,071.00 | 0 | 0 | 0 | 59,077.07 | 62,393.11 |
+| BF 200 | 1,645.15 | 12,350.00 | 0 | 0 | 0 | 59,077.07 | 62,393.11 |
+| BF 300 | 1,757.60 | 17,134.00 | 0 | 0 | 0 | 59,077.07 | 62,393.11 |
+
+- **SPAN: pass (strong evidence).** Zerodha's SPAN line is the netted figure (B), `max(0, scan - NOV)`, and equals
+  mine within Rs 0.70 on all 9 rows (it rounds to the rupee); its net option value equals mine to the paisa (it shows
+  a short's as positive). So the risk arrays, signs, scenarios and prices are read right, and judge 75's question is
+  answered: the broker displays (B).
+- **Exposure: fail.** Zerodha charges Rs 31,196.555 per short leg, the same for the 22,700 and 24,000 calls and for the
+  October series, and 1.5 times that (46,794.83) for a 20,000 put more than 10% out of the money. So it applies NSE's
+  2% and 3% rule, but on a base of **23,997.35** (31,196.555 / 0.02 / 65), not the 22,721.95 close in NSE's file and
+  on `ind_close_all_13102026.csv`. 23,997.35 is no NIFTY close from 1 Sep to 13 Oct 2026 (checked) nor a futures
+  price in the file. I cannot explain it from public data: a broker buffer, a stale price in Zerodha's tool, or a rule
+  I have missed. Until it is explained, **my exposure is Rs 3,316 a lot (5.6%) below this broker's**, which would make
+  C2 looser than Zerodha by that much per trade. Fail closed: the workflow stays `workflow_dispatch` only.
+- Zerodha is not the owner's broker. The figure that matters is Groww's; the one-time Groww check below now has a
+  sharp question: does Groww's exposure for this basket show 59,077 (NSE's close) or more?
+- Raw answers (single legs, 08:10 IST): short 22700 CE Nov `{"span":149043.75,"exposure":31196.555,
+  "netoptionvalue":35174.75}`; short 24000 CE `{"span":77610.5,"exposure":31196.555,"netoptionvalue":4348.5}`; short
+  20000 PE `{"span":32403.5,"exposure":46794.8325,"netoptionvalue":383.5}`; futures queries returned `{}`.
+
+Also checked:
 - **Second implementation, same file.** `marginism` 0.1.1 (PyPI, an open-source SPAN calculator for NSE files whose
   output mimics a broker basket) on `nsccl.20261014.i1`: **exposure equal to the paisa** for all 15 rows (59,077.07),
   same scenario losses; SPAN differs by exactly the position's premium (SF 100: 6,071.00; SF 300: 17,134.00), because
@@ -78,13 +107,12 @@ What is already checked (not yet the independent figure the story asks for):
 - **Public anecdotes fit the exposure rule** (some evidence): a NIFTY iron condor at about Rs 30,000 a lot in 2024
   (lot 25: 2 x 2% x ~22,000 x 25 = 22,000 exposure plus SPAN); an Angel One NIFTY put spread at about Rs 56,000 for 75.
 
-Planned check and tolerance: the same legs in the broker calculator against my figure from the newest NSE file the
-broker can be using at that time (the `i2` 11:03 file or later; I compute with that file, not `i1`, so prices match).
+Tolerance used: before 11:03 IST the newest NSE file is the day's `i1`, so the 08:05 comparison is like for like.
 Tolerance **Rs 50 a lot or 0.1%, whichever is larger**: same file and rule leave only rounding (risk values have 2
 decimals, x 65 units x 4 legs = at most Rs 1.30) and the broker's choice of the notional's price; anything larger means
 a method difference and the job stays manual.
 
-**One-time check for the owner (Groww), if the automatic one fails:** in the Groww app or web, F&O, NIFTY, expiry
+**One-time check for the owner (Groww), now needed (the exposure question):** in the Groww app or web, F&O, NIFTY, expiry
 23 Nov 2026 (or the first monthly 30+ days out that day), build a basket: SELL 22700 CE, SELL 22700 PE, BUY 22800 CE,
 BUY 22600 PE, 1 lot each (65), as a NRML order; open "margin required" (do not place it). Note SPAN, exposure and
 total with the time, and send them with the day's ATM if it moved. I compare them with that day's row (SF, width 100)
