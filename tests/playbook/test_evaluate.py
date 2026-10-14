@@ -6,8 +6,12 @@ in Book 1; nothing approved allocates nothing; the same inputs give the same rec
 import pytest
 
 from fno.constants import Decision
+from fno.risk.inputs import Proposal, TradeTerms
+from fno.risk.rules import MaxLossPerTrade
+from tests.risk.builders import book
 
-from .evaluation_builders import LIVE_TRUE, Counts, OwnShadowBooks, book_with_open, run, strategy
+from .builders import DOCUMENT
+from .evaluation_builders import COSTS, LIVE_TRUE, Counts, OwnShadowBooks, book_with_open, chain_market, run, strategy
 
 
 def outcome(evaluation, name):
@@ -89,7 +93,7 @@ def test_a_registered_research_candidate_is_evaluated_in_shadow_only():
 
 def test_shadow_and_book_never_share_slots():
     candidate = strategy("sc-new", status="research")
-    full_shadow = OwnShadowBooks(books={"sc-new": book_with_open(3)})
+    full_shadow = OwnShadowBooks(books={"sc-new": book_with_open(3, name="shadow-sc-new")})
     evaluation = run([strategy("sc-a"), candidate], shadow=full_shadow, registered=[candidate.key])
     assert outcome(evaluation, "sc-a").decision == Decision.CHOSEN  # Book 1's empty book has room
     shadow = outcome(evaluation, "sc-new")
@@ -131,6 +135,45 @@ def test_the_same_inputs_give_the_same_record():
 
 
 def _structure():
-    from .builders import DOCUMENT
-
     return dict(DOCUMENT["structure"])
+
+
+@pytest.mark.parametrize("wrong", ["book1_rules", "book2_hybrid", "book3_ai"])
+def test_a_misconfigured_shadow_book_never_draws_on_a_real_account(wrong):
+    """Orchestrator, 14 Oct 2026: a shadow version can never use Book 1's (or any book's) account."""
+    candidate = strategy("sc-new", status="research")
+    misconfigured = OwnShadowBooks(books={"sc-new": book(name=wrong)})
+    with_shadow = run([strategy("sc-a"), candidate], shadow=misconfigured, registered=[candidate.key])
+    result = outcome(with_shadow, "sc-new")
+    assert result.decision == Decision.SHADOW_NO_TRADE and result.risk is None and "real book" in result.reason
+    alone = run([strategy("sc-a")])
+    assert outcome(with_shadow, "sc-a").record() == outcome(alone, "sc-a").record()
+
+
+def test_a_shadow_version_without_an_estimate_still_records_what_the_rule_would_do():
+    candidate = strategy("sc-new", status="research", expected="none")
+    result = outcome(run([candidate], registered=[candidate.key]), "sc-new")
+    assert result.decision == Decision.SHADOW_TRADE and result.record()["trade"]["score"] is None
+
+
+def test_the_no_trade_threshold_binds_paper_only_not_the_shadow():
+    candidate = strategy("sc-new", status="research", expected=-50.0)
+    assert outcome(run([candidate], registered=[candidate.key]), "sc-new").decision == Decision.SHADOW_TRADE
+    assert outcome(run([strategy("sc-a", expected=-50.0)]), "sc-a").decision == Decision.NO_TRADE
+
+
+def test_lots_whose_max_loss_breaks_the_cap_are_refused_never_trimmed():
+    """Orchestrator, 14 Oct 2026: 3 lots of the 100-wide condor lose ~Rs 14,550 at most, above Rs 10,000."""
+    heavy = strategy("sc-a", structure={**_structure(), "lots": 3})
+    result = outcome(run([heavy]), "sc-a")
+    assert result.decision == Decision.NO_TRADE and result.candidate is None
+    assert "100: maximum loss" in result.reason and "above the cap 10000" in result.reason
+    assert outcome(run([strategy("sc-a")]), "sc-a").record()["trade"]["lots"] == 1  # 1 lot of the same trade passes
+
+
+def test_c2_refuses_the_same_oversized_trade_on_its_own():
+    """The desk's width choice and C2's per-trade rule agree: C2 alone refuses the 3-lot trade too."""
+    one_lot = outcome(run([strategy("sc-a")]), "sc-a").candidate.proposal
+    three = Proposal(one_lot.trade_id, TradeTerms("SC", 100, 3), one_lot.lot_size, one_lot.legs)
+    verdict = MaxLossPerTrade(COSTS, 10_000).check(three, book(), chain_market())
+    assert not verdict.ok

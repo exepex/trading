@@ -12,7 +12,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from ..constants import NUMBER_OPERATORS, OPERATOR_IS, PlaybookStatus
+from ..constants import NO_ESTIMATE, NUMBER_OPERATORS, OPERATOR_IS, PlaybookStatus
 from ..research_engine.live_validation import MIN_AGREEMENT, MIN_AVAILABLE, MIN_DAYS, LiveUseRule
 from .fields import Fields, PlaybookError
 from .structure_spec import STRUCTURE, StructureSpec, parse_structure
@@ -26,7 +26,9 @@ CONDITION = ("feature", "operator", "threshold")
 USE_RULE = ("min_days", "min_agreement", "min_available")
 FUNDING = ("margin_per_lot", "source", "date")
 EXITS = ("time", "profit", "loss", "event")
-PLAN = ("expected_range", "expected_net_per_opportunity", "unit", "review_dates", "pause_rules")
+PLAN = (
+    "expected_range", "expected_net_per_opportunity", "expected_net_source", "unit", "review_dates", "pause_rules",
+)  # fmt: skip
 RANGE = ("low", "high")
 EVIDENCE = (
     "test_results_path", "test_results_commit", "red_team_note", "judge_verdict", "freeze_record",
@@ -172,10 +174,21 @@ def _plan(fields: Fields) -> dict:
     if low > high:
         raise span.refuse("low", "must not be above high")
     return {
-        "expected_range": (low, high), "expected_net_per_opportunity": fields.number("expected_net_per_opportunity"),
+        "expected_range": (low, high), "expected_net_per_opportunity": _expected_net(fields),
+        "expected_net_source": fields.text("expected_net_source"),
         "unit": fields.text("unit"), "review_dates": fields.days("review_dates"),
         "pause_rules": fields.texts("pause_rules"),
     }  # fmt: skip
+
+
+def _expected_net(fields: Fields) -> float | None:
+    """The frozen estimate D2 ranks by, or None when a research version has no honest one (`none`); a new estimate is a
+    new version, never an update from shadow results."""
+    return (
+        None
+        if fields.raw("expected_net_per_opportunity") == NO_ESTIMATE
+        else fields.number("expected_net_per_opportunity")
+    )
 
 
 def _evidence(fields: Fields) -> Evidence:

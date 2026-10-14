@@ -20,17 +20,24 @@ class Candidate:
     opportunity: Opportunity
     proposal: Proposal
     max_loss: float
-    expected_net: float
+    expected_net: float | None  # None: a research version without an honest estimate (shadow only)
 
     @property
-    def score(self) -> float:
-        """Expected net per rupee of maximum loss (D2's ranking)."""
-        return self.expected_net / self.max_loss
+    def score(self) -> float | None:
+        """Expected net per rupee of maximum loss (D2's ranking); None without an estimate."""
+        return None if self.expected_net is None else self.expected_net / self.max_loss
 
     def rank_key(self) -> tuple:
-        """Higher score first; ties: lower maximum loss, earlier expiry, then the strategy's name and version."""
-        strategy = self.opportunity.strategy
-        return -self.score, self.max_loss, self.opportunity.context.expiry, strategy.name, strategy.version
+        """Higher score first (no estimate last); ties: lower maximum loss, earlier expiry, then name and version."""
+        strategy, score = self.opportunity.strategy, self.score
+        return (
+            score is None,
+            -(score or 0.0),
+            self.max_loss,
+            self.opportunity.context.expiry,
+            strategy.name,
+            strategy.version,
+        )
 
 
 class NotBuilt(ValueError):

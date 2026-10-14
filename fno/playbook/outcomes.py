@@ -57,7 +57,7 @@ def _trade(candidate: Candidate | None) -> dict | None:
         ],
         "max_loss_rs": round(candidate.max_loss, 2),
         "expected_net_rs": candidate.expected_net,
-        "score": round(candidate.score, 6),
+        "score": None if candidate.score is None else round(candidate.score, 6),
     }
 
 

@@ -9,7 +9,7 @@ from ..config import ROOT
 from ..constants import PLAYBOOK_FOLDER
 from ..storage.wiring import LIVE_VALIDATION_FOLDER
 from .allocation import Allocator
-from .approval_checks import EvidenceCommitted, EvidenceFilled, LiveFeaturesValidated
+from .approval_checks import EvidenceCommitted, EvidenceFilled, ExpectedNetSet, LiveFeaturesValidated
 from .candidates import CandidateBuilder
 from .evaluate import RuleEvaluator
 from .history import PlaybookGit
@@ -32,7 +32,7 @@ def _recompute_live_report(live_feature: str) -> Mapping:
 def build_playbook_loader(root: Path = ROOT, reports: LiveReports | None = None) -> PlaybookLoader:
     folder = root / PLAYBOOK_FOLDER
     reports = reports or RecomputedLiveReports(CommittedLiveReports(LIVE_VALIDATION_FOLDER), _recompute_live_report)
-    checks = (EvidenceFilled(), EvidenceCommitted(PlaybookGit(root)), LiveFeaturesValidated(reports))
+    checks = (EvidenceFilled(), ExpectedNetSet(), EvidenceCommitted(PlaybookGit(root)), LiveFeaturesValidated(reports))
     return PlaybookLoader(folder, Registry(registry_path(folder)), checks)
 
 

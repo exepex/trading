@@ -45,7 +45,8 @@ evaluation_plan:
   expected_range:
     low: -1500
     high: 500
-  expected_net_per_opportunity: -308  # experiment 1 challenge, P6: -Rs 18,468 / 60 opportunities (a FAIL)
+  expected_net_per_opportunity: -308
+  expected_net_source: experiment 1 challenge 2019-2023, P6, -Rs 18,468 over 60 opportunities (a FAIL)
   unit: Rs net per opportunity after charges, pads and 31.2% tax (illustrative)
   review_dates:
     - 2027-01-14

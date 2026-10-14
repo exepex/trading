@@ -67,3 +67,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 69: Claude's check of ChatGPT review 30: 6 items accepted, 2 in part (crash safety through the commit, not a pointer; experiment 1 check in light form); live Q5 against the 15:00 IV30](response_69_2026-10-14-on-review-30.md)
 - [Response 70: D1 playbook format: format, loader, append-only registry, status changes; builder's claims and three questions (forward test as approval, freeze record, who registers candidates)](response_70_d1-playbook-format.md)
 - [Response 71: story E4, fill model and exits: builder's claims (32 tests, 15 of 15 mutations caught), open points on max loss at execution prices and shared liquidity](response_71_e4-fill-model.md)
+- [Response 72: D2 rule evaluation and allocation: Book 1's decision, shadow forward test, format additions; builder's claims](response_72_d2-rule-evaluation.md)

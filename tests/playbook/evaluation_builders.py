@@ -40,9 +40,9 @@ def chain_market(prices=None, day: date = DAY):
     return market(SPOT, prices, EXPIRY, day=day)
 
 
-def strategy(name: str, status: str = "paper", expected: float = 150.0, **changes):
+def strategy(name: str, status: str = "paper", expected: float | str = 150.0, **changes):
     doc = document(name=name, status=status, **changes)
-    doc["evaluation_plan"]["expected_net_per_opportunity"] = expected
+    doc["evaluation_plan"]["expected_net_per_opportunity"] = expected  # a number, or "none" (research only)
     return parse_strategy(doc)
 
 
@@ -85,11 +85,11 @@ def evaluator(max_open: int = 3) -> RuleEvaluator:
     return RuleEvaluator(OpportunityFinder(TradingDays(build_session_calendar())), builder, Allocator(risk, COSTS))
 
 
-def book_with_open(count: int):
+def book_with_open(count: int, name: str = "book1_rules"):
     trades = [
         open_trade(f"old-{n}", CONDOR, 100, short_condor(25_500, 24_500, 100), EXPIRY, 1_000.0) for n in range(count)
     ]
-    return book(open_trades=trades)
+    return book(open_trades=trades, name=name)
 
 
 def run(strategies, values=None, the_book=None, counts=None, shadow=None, registered=(), prices=None):

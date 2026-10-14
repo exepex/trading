@@ -13,7 +13,14 @@ NESTED = {
     "live_use_rule": ("min_days", "min_agreement", "min_available"),
     "funding": ("margin_per_lot", "source", "date"),
     "exits": ("time", "profit", "loss", "event"),
-    "evaluation_plan": ("expected_range", "expected_net_per_opportunity", "unit", "review_dates", "pause_rules"),
+    "evaluation_plan": (
+        "expected_range",
+        "expected_net_per_opportunity",
+        "expected_net_source",
+        "unit",
+        "review_dates",
+        "pause_rules",
+    ),
     "evidence": EVIDENCE,
 }
 EVERY_FIELD = [(key, None) for key in TOP] + [(section, key) for section, keys in NESTED.items() for key in keys]

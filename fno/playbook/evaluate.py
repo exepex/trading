@@ -10,7 +10,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from datetime import date
 
-from ..constants import Decision
+from ..constants import BOOKS, Decision
 from ..research_engine.features import DecisionContext, FeatureValue
 from ..risk.inputs import Market, RiskBook
 from .allocation import Allocator, StrategyTradeCounts
@@ -56,10 +56,15 @@ class RuleEvaluator:
         for strategy in playbook.shadow():  # each research candidate alone, in its own shadow book
             shadow_book, shadow_counts = shadow_books.book(strategy)
             found = self.finder.find(strategy, day, monthly, SHADOW)
-            outcomes += self._allocate(day, found, market, features, shadow_book, shadow_counts)
+            if shadow_book.name in BOOKS or shadow_book.name == book.name:  # misconfigured: never a real account
+                outcomes += [
+                    _no_trade(o, {}, f"refused: shadow book {shadow_book.name!r} is a real book") for o in found
+                ]
+                continue
+            outcomes += self._allocate(day, found, market, features, shadow_book, shadow_counts, threshold=False)
         return DayEvaluation(day.isoformat(), book.name, tuple(sorted(outcomes, key=_order)))
 
-    def _allocate(self, day, found, market, features, book, counts) -> list[Outcome]:
+    def _allocate(self, day, found, market, features, book, counts, threshold: bool = True) -> list[Outcome]:
         outcomes, candidates, seen = [], [], {}
         for opportunity in found:
             seen[opportunity.opportunity_id] = values = dict(features.values(day, opportunity.context))
@@ -71,7 +76,7 @@ class RuleEvaluator:
                 candidates.append(self.builder.build(opportunity, market, _trade_id(day, opportunity)))
             except NotBuilt as reason:
                 outcomes.append(_no_trade(opportunity, values, str(reason)))
-        for candidate, decision, reason, risk in self.allocator.allocate(candidates, book, market, counts):
+        for candidate, decision, reason, risk in self.allocator.allocate(candidates, book, market, counts, threshold):
             opportunity = candidate.opportunity
             if opportunity.mode == SHADOW:
                 decision = SHADOW_DECISIONS.get(decision, Decision.SHADOW_NO_TRADE)

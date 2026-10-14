@@ -34,13 +34,20 @@ class Allocator:
         self.risk, self.costs = risk, costs
 
     def allocate(
-        self, candidates: Sequence[Candidate], book: RiskBook, market: Market, counts: StrategyTradeCounts
+        self,
+        candidates: Sequence[Candidate],
+        book: RiskBook,
+        market: Market,
+        counts: StrategyTradeCounts,
+        threshold: bool = True,
     ) -> list[Placed]:
+        """`threshold` False is the shadow forward test: the no-trade threshold binds paper allocation only, so the
+        shadow records what the rule itself would do (orchestrator, 14 Oct 2026)."""
         placed: list[Placed] = []
         chosen_today: dict[tuple[str, int], int] = {}
         for rank, candidate in enumerate(sorted(candidates, key=Candidate.rank_key), start=1):
             key = candidate.opportunity.strategy.key
-            refusal = self._before_risk(candidate, counts, chosen_today.get(key, 0))
+            refusal = self._before_risk(candidate, counts, chosen_today.get(key, 0), threshold)
             if refusal:
                 placed.append((candidate, Decision.NOT_CHOSEN if refusal[0] else Decision.NO_TRADE, refusal[1], None))
                 continue
@@ -48,17 +55,20 @@ class Allocator:
             if not verdict.ok:
                 placed.append((candidate, Decision.NOT_CHOSEN, _risk_reason(verdict), verdict))
                 continue
-            placed.append((candidate, Decision.CHOSEN, f"rank {rank}: score {candidate.score:.6f}", verdict))
+            placed.append((candidate, Decision.CHOSEN, f"rank {rank}: score {candidate.score}", verdict))
             book = book_after_entry(book, candidate.proposal, market, self.costs)
             chosen_today[key] = chosen_today.get(key, 0) + 1
         return placed
 
     @staticmethod
-    def _before_risk(candidate: Candidate, counts: StrategyTradeCounts, chosen: int) -> tuple[bool, str] | None:
+    def _before_risk(
+        candidate: Candidate, counts: StrategyTradeCounts, chosen: int, threshold: bool
+    ) -> tuple[bool, str] | None:
         """(a valid candidate lost out, reason), or None when it may go to the risk check."""
-        if candidate.expected_net <= NO_TRADE_THRESHOLD_RS:
+        expected = candidate.expected_net
+        if threshold and (expected is None or expected <= NO_TRADE_THRESHOLD_RS):
             return False, (
-                f"expected net {candidate.expected_net:g} per opportunity is not above the no-trade threshold "
+                f"expected net {expected} per opportunity is not above the no-trade threshold "
                 f"{NO_TRADE_THRESHOLD_RS:g} after costs"
             )
         name, version = candidate.opportunity.strategy.key
