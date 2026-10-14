@@ -65,3 +65,33 @@ decision.
 - New modules behind a `GitHistory` protocol, wired in `fno/composition.py`; `journal/versions.csv` starts with its
   header only.
 - No orders, secrets or Slack.
+
+## Addendum 1 (round 2, branch e239ba1): PASS
+
+**Both must-fixes are met.** I re-ran my two probes on a temporary git repository:
+- a version row committed in the same commit as the decision: now `unscored`;
+- a decision with `served = {}`: `unscored`. One reporting only the prompt: `unscored`.
+
+The code requires both the row's commit and `registered_in_commit` to be ancestors **and** different from the
+decision's commit. It compares the union of the version's and the decision's keys, so a missing component is a
+mismatch and pauses scoring.
+
+**My plants (`tests/versions`, 18 tests): all 7 caught.**
+
+| Plant | Result |
+|---|---|
+| The same commit allowed again | 1 failed |
+| Only the served keys compared | 2 failed |
+| `registered_in_commit` ignored | 1 failed |
+| A mismatch never pauses | 3 failed |
+| `starts_on < day` | 3 failed |
+| The order check off | 2 failed |
+| Decisions not sorted | 2 failed |
+
+**Gates:**
+- full suite: 2,289 passed;
+- ruff, format (496 files) and imports: clean;
+- `git merge-tree` with current `main`: clean.
+
+**Verdict: PASS for e239ba1.** D3 must fill `served` with every component of the version, with the model taken from
+the API's answer.
