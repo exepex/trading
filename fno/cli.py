@@ -11,6 +11,7 @@ from .books.cli import add_account_parser
 from .books.versions_cli import add_versions_parser
 from .config import ROOT, load_app_config
 from .desk.cli import add_desk_parser
+from .evaluation.cli import add_evaluation_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
@@ -188,6 +189,7 @@ def main(argv: list[str] | None = None) -> int:
     add_account_parser(sub)
     add_desk_parser(sub)
     add_versions_parser(sub)
+    add_evaluation_parser(sub)
     add_participant_oi_parser(sub)
     add_librarian_parser(sub)
     add_fingerprints_parser(sub)
