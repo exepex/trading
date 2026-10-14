@@ -13,9 +13,11 @@ from fno.desk.entries import EntryOrder
 from fno.desk.wiring import open_desk_journal
 from fno.models import IST
 from fno.quotes.recorder import COLUMNS, QuoteSnapshotRecorder
+from fno.research_data.panel_reader import FutureQuote
 from fno.research_engine.structures import BOUGHT, SOLD, Leg
-from fno.risk.inputs import Proposal, ProposedLeg, TradeTerms
+from fno.risk.inputs import ContractQuote, Market, Proposal, ProposedLeg, TradeTerms
 from fno.risk.manager import RiskDecision
+from fno.risk.trade_costs import SimulatorTradeCosts
 from fno.risk.verdict import RiskVerdict
 from fno.storage.raw_store import RawFileStore
 
@@ -111,7 +113,20 @@ def fly_proposal(trade_id: str = "t1", lots: int = 1, legs=FLY_LEGS) -> Proposal
     return Proposal(trade_id, TradeTerms(STRUCTURE_SHORT_IRON_FLY, 200, lots), LOT, proposed)
 
 
-def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1) -> EntryOrder:
+def decision_market(quotes=FLY_QUOTES, day=DAY) -> Market:
+    """C2's market at the decision: the mids of these (bid, ask) quotes, one implied volatility, the future at spot."""
+    mids = {(k, kind): (bid + ask) / 2 for (k, kind), (bid, ask) in quotes.items()}
+    prices = {contract(k, kind): ContractQuote(k, kind, EXPIRY, mid, 0.15) for (k, kind), mid in mids.items()}
+    return Market(day, 25000.0, 0.065, prices, {EXPIRY: FutureQuote(EXPIRY, 25000.0, 25000.0, 1, 1)})
+
+
+def approved_entry(proposal: Proposal, quotes=FLY_QUOTES) -> float:
+    """The entry C2 modelled and approved: B2's cost model (mid +- Rs 1 pad, entry charges) at the decision mids."""
+    return SimulatorTradeCosts(CHARGES).entry_cash_flow(proposal, decision_market(quotes))
+
+
+def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1, limit=None) -> EntryOrder:
     proposal = fly_proposal(trade_id, lots)
     risk = risk or approved(trade_id, book, decided_at.date())
-    return EntryOrder(book, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk)
+    limit = approved_entry(proposal) if limit is None else limit
+    return EntryOrder(book, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk, limit)
