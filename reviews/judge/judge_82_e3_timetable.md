@@ -303,3 +303,10 @@ not the fix.
   writes.
 
 **Verdict: PASS** for bf4863e. After the merge I check `main` and CI.
+
+## Addendum 8 (merge check, e6484cc)
+
+**MET.**
+- e6484cc has parents 7712e80 (`main`) and bf4863e (the passed tip), and it equals my recomputed merge.
+- The only other code on `main` since my last check is the S1 merge (judge 85 addendum 2).
+- CI on e6484cc (run 38547211119) was in progress when I wrote this; I confirm it at my next check.

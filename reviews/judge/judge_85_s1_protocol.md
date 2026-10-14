@@ -187,3 +187,19 @@ bound". These are the owner's to decide.
 
 **Verdict: PASS** for b1a609243cd55f961ce104b427d8ebf3e2ae3c68, merged outside 09:25-09:50 UTC, with the `CLAUDE.md`
 conflict resolved as text only. After the merge I check `main` against it and CI.
+
+## Addendum 2 (merge check bdd46ff, and `story/s1-missing-target-test` 9e21d87)
+
+**Merge: MET.**
+- bdd46ff has parents 483fd7c (`main`) and b1a6092 (the passed SHA).
+- It differs from my recomputed merge only in `CLAUDE.md`. That is the expected conflict resolution as text: it keeps
+  the E5 root and adds `fno/evaluation/wiring.py`.
+- d7d3418 equals its recomputed merge.
+- CI `checks` is green on d7d3418 (run 38546425533).
+
+**`story/s1-missing-target-test` 9e21d87: PASS** (tests only; my addendum 1 should-fix). Three tests: a frozen file
+deleted, a frozen file renamed, and a frozen config section removed. In each case `verify` names the target and
+`version_of` raises `ChangedAfterFreeze`.
+- My plant (a missing target not counted as changed): **3 failed**.
+- Full suite (token unset): 2,853 passed. Ruff, format (634 files) and imports (641): clean.
+- `git merge-tree` with current `main`: clean.
