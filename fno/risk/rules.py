@@ -128,7 +128,11 @@ class MarginRoom(RiskRule):
     never more than cash + the entry's cash flow + each trade's own liability (the value of every trade worth less than
     zero, the proposal's included). A broker does not net one trade's value against another's liability: with an open
     credit trade and a new debit trade, min(cash, marked equity) alone left the debit's premium free a second time
-    (A14, judge 75's test)."""
+    (A14, judge 75's test).
+
+    And the funds at entry (judge 77 addendum 3): Groww takes the margin without any credit for the sold premium, plus
+    the bought premium and charges, from the free cash before the entry (the open trades' margins still blocked). The
+    trade passes only when both hold, so C2 is never looser than that broker."""
 
     name = "margin_room"
 
@@ -141,15 +145,23 @@ class MarginRoom(RiskRule):
         cash_flow = self.costs.entry_cash_flow(proposal, market)
         marked = sum(units * market.quote(c).mid for c, units in proposal.signed_units().items())
         state = book.state
-        liabilities = sum(min(0.0, _value(t.units, market)) for t in book.open_trades) + min(0.0, marked)
+        held_liabilities = sum(min(0.0, _value(t.units, market)) for t in book.open_trades)
+        liabilities = held_liabilities + min(0.0, marked)
         lower = min(
             state.cash + cash_flow, state.marked_equity + cash_flow + marked, state.cash + cash_flow + liabilities
         )
         after = lower - state.premium_reserved
         needed = sum(margins.values())
-        ok = needed <= after
-        relation = "within" if ok else "above"
-        reason = f"stressed margin {rupees(needed)} is {relation} available cash {rupees(after)} after entry"
+        funds = self.costs.entry_funds(proposal, market)
+        at_entry = sum(margins.values()) - margins[proposal.trade_id] + funds
+        at_entry += self.stressed.margin_at_entry(proposal.terms, market.day)
+        free = min(state.cash, state.marked_equity, state.cash + held_liabilities) - state.premium_reserved
+        ok = needed <= after and at_entry <= free
+        reason = (
+            f"stressed margin {rupees(needed)} is {_relation(needed, after)} available cash {rupees(after)} after "
+            f"entry; at entry {rupees(at_entry)} (margin with no sold-premium credit + bought premium and charges "
+            f"{rupees(funds)}) is {_relation(at_entry, free)} free cash {rupees(free)} before entry"
+        )
         return self.verdict(
             ok,
             reason,
@@ -157,5 +169,12 @@ class MarginRoom(RiskRule):
             needed_rs=needed,
             available_after_entry_rs=after,
             available_before_rs=state.available_cash,
+            funds_at_entry_rs=funds,
+            needed_at_entry_rs=at_entry,
+            free_before_entry_rs=free,
             **self.stressed.record(),
         )
+
+
+def _relation(needed: float, available: float) -> str:
+    return "within" if needed <= available else "above"

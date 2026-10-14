@@ -22,14 +22,17 @@ FLY_PRICES = {(25000, "CE"): 180.0, (25000, "PE"): 170.0, (25200, "CE"): 95.0, (
 class FixedCosts:
     """A trade-cost model with a given maximum loss, to test the rule's threshold exactly."""
 
-    def __init__(self, max_loss: float, cash_flow: float = 0.0):
-        self._max_loss, self._cash_flow = max_loss, cash_flow
+    def __init__(self, max_loss: float, cash_flow: float = 0.0, funds: float = 0.0):
+        self._max_loss, self._cash_flow, self._funds = max_loss, cash_flow, funds
 
     def max_loss(self, proposal, market):
         return self._max_loss
 
     def entry_cash_flow(self, proposal, market):
         return self._cash_flow
+
+    def entry_funds(self, proposal, market):
+        return self._funds
 
 
 def _fly_proposal(lots: int = 1):
@@ -64,6 +67,17 @@ def test_entry_cash_flow_counts_pads_and_charges():
     legs, prices = [p.leg for p in the_proposal.legs], the_proposal.entry_prices(the_market)
     charges = PositionCosts(CycleTerms(lot=LOT, charges=CHARGES)).charges(legs, prices, True)
     assert with_costs == pytest.approx((165 - 4) * LOT - charges)  # 4 legs each Rs 1 worse
+
+
+def test_entry_funds_are_the_bought_legs_at_their_fills_plus_charges_with_no_sold_credit():
+    """Judge 77 addendum 3: the bought wings 95 + 90, each filled Rs 1 worse, plus every entry charge; the sold
+    premium (180 + 170) is not counted."""
+    the_proposal, the_market = _fly_proposal(), market(25000, FLY_PRICES, EXPIRY)
+    legs, prices = [p.leg for p in the_proposal.legs], the_proposal.entry_prices(the_market)
+    charges = PositionCosts(CycleTerms(lot=LOT, charges=CHARGES)).charges(legs, prices, True)
+    assert SimulatorTradeCosts(CHARGES).entry_funds(the_proposal, the_market) == pytest.approx(
+        (95 + 1 + 90 + 1) * LOT + charges
+    )
 
 
 @pytest.mark.parametrize(("open_now", "ok"), [(2, True), (3, False)])
@@ -120,6 +134,9 @@ class FixedStressedMargin:
         self.per_trade = per_trade
 
     def margin(self, terms, day):
+        return self.per_trade * terms.lots
+
+    def margin_at_entry(self, terms, day):
         return self.per_trade * terms.lots
 
     def record(self):
