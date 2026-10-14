@@ -201,3 +201,21 @@ stopping every trade in the book.
 
 **Verdict: not yet PASS.** After both fixes and the merge with `main`, I re-run my probes, the plants above and the
 gates.
+
+## Addendum 2 (8423594, one commit on 3f61f0b): both new must-fixes still open
+
+The commit catches `PlaybookError` from `playbook.get` per trade, so a **missing** version no longer stops the other
+trades. My two probes from addendum 1, re-run on 8423594 unchanged:
+
+- **A:** `loss: "none until day 10, then stop at 2x credit"` still **opens** the trade (4 legs). The prefix rule is
+  unchanged.
+- **B:** one unrelated draft file that is not valid YAML still gives `reviewed: False` for all of Book 1 on all three
+  days. The failure is in `snapshot_playbook(root).playbook()`, which parses every file **before** the per-trade
+  loop. The new `try` never sees it.
+
+The new behaviour has its own gap. A trade whose version cannot be read "gets no rule", so it is **held with no exit
+at all**. It has an alert, but its time exit is never applied. Reading each open trade's exit day from its committed
+D3 record (addendum 1, fix B) removes both problems: no playbook parse is needed to close a trade.
+
+**Verdict: still not PASS.** Must-fixes A and B of addendum 1 stand, and so does the `CLAUDE.md` conflict with
+`main`.
