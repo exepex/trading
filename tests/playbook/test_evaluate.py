@@ -10,6 +10,8 @@ import pytest
 
 from fno.constants import Decision
 from fno.playbook.candidates import Candidate
+from fno.playbook.loader import Playbook
+from fno.playbook.registry import RegistryRow
 from fno.risk.inputs import Proposal, TradeTerms
 from fno.risk.rules import MaxLossPerTrade
 from tests.risk.builders import book
@@ -17,11 +19,14 @@ from tests.risk.builders import book
 from .builders import DOCUMENT
 from .evaluation_builders import (
     COSTS,
+    DAY,
     LIVE_TRUE,
     Counts,
+    FixedValues,
     OwnShadowBooks,
     book_with_open,
     chain_market,
+    evaluator,
     price,
     run,
     strategy,
@@ -228,3 +233,31 @@ def test_equal_scores_go_to_the_lower_maximum_loss_before_the_earlier_expiry():
     assert larger_loss_earlier.score == smaller_loss_later.score
     ranked = sorted([larger_loss_earlier, smaller_loss_later], key=Candidate.rank_key)
     assert ranked[0] is smaller_loss_later
+
+
+def test_an_approval_made_on_the_day_trades_from_the_next_session_only():
+    """Orchestrator, 14 Oct 2026: D2 reads the playbook as of the start of the decision day. A candidate registered
+    before the day and approved on the day is still the shadow candidate today; Book 1 gets it from tomorrow."""
+    version = strategy("sc-a")  # its file now says paper
+    rows = (
+        RegistryRow("sc-a", 1, version.parameters_sha256, "research", DAY - timedelta(days=3), "desk", ""),
+        RegistryRow("sc-a", 1, version.parameters_sha256, "paper", DAY, "owner", "abcdef1"),
+    )
+    book_of_the_day = Playbook((version,), rows)
+    assert book_of_the_day.approved_on(DAY) == () and book_of_the_day.shadow_on(DAY) == (version,)
+    assert book_of_the_day.approved_on(DAY + timedelta(days=1)) == (version,)
+    evaluation = evaluator().evaluate(
+        DAY, book_of_the_day, chain_market(), FixedValues(), book(), Counts(), OwnShadowBooks()
+    )
+    [result] = evaluation.outcomes
+    assert result.opportunity.mode == "shadow" and evaluation.chosen == ()
+
+
+def test_a_pause_on_the_day_takes_effect_from_the_next_session():
+    version = strategy("sc-a", status="paused")
+    rows = (
+        RegistryRow("sc-a", 1, version.parameters_sha256, "paper", DAY - timedelta(days=5), "owner", "abcdef1"),
+        RegistryRow("sc-a", 1, version.parameters_sha256, "paused", DAY, "hard_loss_rule", ""),
+    )
+    assert Playbook((version,), rows).approved_on(DAY) == (version,)
+    assert Playbook((version,), rows).approved_on(DAY + timedelta(days=1)) == ()

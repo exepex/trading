@@ -141,3 +141,23 @@ Further claims:
 Checks on the tree merged with `main`: full suite 2238 passed (`tests/playbook` 244), ruff and check_imports clean; 19 of 19 mutations
 caught, run with bytecode caching off. An earlier run on the same container showed wrong "first failing test" labels
 from stale `.pyc` files; the kills themselves held, and the labels above are from the clean run.
+
+## Addendum 2 (14 Oct 2026): the playbook as of the start of the decision day (branch `story/d2-start-of-day`)
+
+Orchestrator's decision, from E2's response 74 §4.1: an approval counts from the next session's start, everywhere.
+
+- `Playbook` now carries the registry rows; `status_on(day)` is each version's latest change dated before the day.
+- `approved_on(day)` and `shadow_on(day)` replace the old current-status reads in `RuleEvaluator`.
+- `approved()` (the status now) stays for `playbook check`. The old `registered` field and `shadow()` are gone.
+- Tests:
+  - `test_an_approval_made_on_the_day_trades_from_the_next_session_only`: a candidate registered before the day and
+    approved on it is still evaluated in shadow that day; Book 1 chooses nothing, and it is approved from the next day.
+  - `test_a_pause_on_the_day_takes_effect_from_the_next_session`.
+- Mutations, both caught by the first test:
+  - `changed_on <= day`;
+  - the evaluator reading `approved()`.
+- Consequence, said plainly: a hard-loss pause made during a session also takes effect from the next session. The
+  same day had only one decision at about 15:00, so no new trade is lost. E6 must still stop new entries at once if it
+  pauses before that day's decision; that is E6's design point.
+- When E2 merges, its `opportunity_set.approved_on` should call `Playbook.approved_on` (one rule, not two). I will
+  make that one-line change in E2's next round or after both merge.
