@@ -14,6 +14,7 @@ from pathlib import Path
 from ..desk.pack_items import canonical_json, sha256_hex
 from ..risk.inputs import Market, RiskBook
 from .allocation import StrategyTradeCounts
+from .code_tree import CodeTree
 from .decision_codec import book_to_json, market_to_json
 from .decision_inputs import DayInputs, PlaybookSnapshot, RecordingCounts, RecordingFeatures, RecordingShadowBooks
 from .decision_record import NO_TRADE_ID, RecordBuilder, run_context_of
@@ -64,12 +65,26 @@ class DecisionRun:
         return self.store.write(day, run_id, data, records)
 
 
-def replay(run: Path, evaluator: RuleEvaluator) -> list[str]:
-    """Every difference between the stored records and a fresh D2 evaluation of the stored inputs; empty if equal."""
+class ReplayRefused(ValueError):
+    """The running code is not the code the run was decided with: a replay here would prove nothing."""
+
+
+def replay(run: Path, evaluator: RuleEvaluator, code: CodeTree, todays_code: bool = False) -> list[str]:
+    """Every difference between the stored records and a fresh D2 evaluation of the stored inputs; empty if equal.
+    Refused unless the running code is the record's `code_commit`; `todays_code` runs anyway and says so first."""
     data = (run / INPUTS_FILE).read_bytes()
     day_record = json.loads((run / record_file(NO_TRADE_ID)).read_text(encoding="utf-8"))
+    commit = day_record["header"]["code_commit"]
+    note = []
+    if not code.matches(commit):
+        if not todays_code:
+            raise ReplayRefused(
+                f"{run.name} was decided with code {commit}; the running fno/ and config.yaml differ. Replay in a "
+                f"worktree of that commit (git worktree add <dir> {commit})"
+            )
+        note = [f"NOTE: compared with today's code, not the recorded commit {commit}: not a reproduction"]
     if day_record["header"]["inputs_sha256"] != sha256_hex(data):
-        return [f"{INPUTS_FILE}: its SHA-256 differs from the one the records name"]
+        return [*note, f"{INPUTS_FILE}: its SHA-256 differs from the one the records name"]
     inputs = DayInputs.from_json(json.loads(data))
     evaluation = evaluator.evaluate(*inputs.replay_arguments())
     context = run_context_of(day_record)
@@ -84,4 +99,4 @@ def replay(run: Path, evaluator: RuleEvaluator) -> list[str]:
         differences += [
             f"{name}: {key} differs" for key in sorted(stored[name]) if stored[name][key] != fresh[name].get(key)
         ]
-    return differences
+    return note + differences

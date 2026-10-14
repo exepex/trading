@@ -12,7 +12,7 @@ from fno.playbook.decision_run import replay
 from fno.playbook.decision_store import DecisionStore, DuplicateRun
 from tests.playbook.evaluation_builders import DAY, Counts, book_with_open, evaluator, price
 
-from .builders import doc, run_day, snapshot
+from .builders import SAME_CODE, doc, run_day, snapshot
 
 
 def records(run):
@@ -60,7 +60,7 @@ def test_a_replay_through_d2_reproduces_every_record(tmp_path, case, seen):
     run = run_day(tmp_path, playbook, **kwargs)
     said = " ".join(f"{r['decision']['outcome']} {r['decision']['reason']}" for r in records(run).values())
     assert seen in said  # the case really produced that D2 outcome and reason
-    assert replay(run, evaluator()) == []
+    assert replay(run, evaluator(), SAME_CODE) == []
 
 
 def test_a_replay_finds_an_edited_reason_and_edited_inputs(tmp_path):
@@ -69,9 +69,9 @@ def test_a_replay_finds_an_edited_reason_and_edited_inputs(tmp_path):
     record = json.loads(loser.read_text())
     assert record["decision"]["outcome"] == Decision.NOT_CHOSEN and record["risk"]["verdicts"]
     loser.write_text(loser.read_text().replace("slot:", "cash:"))
-    assert any("sc-a-v1_2026-11-27.json" in d for d in replay(run, evaluator()))
+    assert any("sc-a-v1_2026-11-27.json" in d for d in replay(run, evaluator(), SAME_CODE))
     (run / "inputs.json").write_text((run / "inputs.json").read_text().replace('"spot":25000.0', '"spot":25001.0'))
-    assert replay(run, evaluator()) == ["inputs.json: its SHA-256 differs from the one the records name"]
+    assert replay(run, evaluator(), SAME_CODE) == ["inputs.json: its SHA-256 differs from the one the records name"]
 
 
 def test_the_same_inputs_twice_are_refused_new_inputs_make_a_new_run(tmp_path):

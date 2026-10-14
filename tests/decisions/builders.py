@@ -57,3 +57,13 @@ def run_day(root: Path, playbook: PlaybookSnapshot, the_book=None, prices=None, 
         DAY, playbook, chain_market(prices), FixedValues(values), the_book or book(), counts or Counts(),
         OwnShadowBooks(), CONTEXT,
     )  # fmt: skip
+
+
+class SameCode:
+    """The running code is the recorded commit (the real check, GitCodeTree, is tested in test_replay_guard.py)."""
+
+    def matches(self, commit: str) -> bool:
+        return True
+
+
+SAME_CODE = SameCode()

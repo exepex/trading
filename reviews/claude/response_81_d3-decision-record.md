@@ -86,3 +86,32 @@ D6 link: `test_a_record_with_every_component_is_scored_and_one_missing_is_not`,
 - **Replay uses the current code and `config.yaml`.** The record names `code_commit` and `config_sha256`; a replay at
   a different commit or config may differ, and the record says which commit and config it was made with.
 - **Committing and the order against the execution snapshot are E3's**; D3 provides `require_on_time` and its test.
+
+## Addendum 1 (14 Oct 2026): judge 80's two must-fixes, accepted and fixed
+
+1. **Every part of criterion 2 is held by a test.** The judge's plants ("replay skips risk", "replay skips
+   alternatives", "alternatives drop shadow outcomes") passed all 27 tests: the replays were right, but nothing
+   pinned each part. New tests in `tests/decisions/test_replay_guard.py`:
+   - `test_an_edit_to_any_part_of_a_record_is_found_by_the_replay`: on a contested day (a slot refusal with C2
+     verdicts, plus a shadow candidate), editing `risk`, `validity`, `alternatives` or `decision` in the losing record
+     makes the replay report exactly that field.
+   - `test_alternatives_are_all_the_other_outcomes_shadow_included`: every record's alternatives are all the other
+     outcomes, book and shadow; the day record lists all of them.
+2. **A replay under different code is refused.**
+   - `replay(run, evaluator, code)` first checks that the running `fno/` and `config.yaml` equal the record's
+     `code_commit`, uncommitted and untracked files included (`GitCodeTree`, `PlaybookGit.tree_matches`; wired as
+     `build_code_tree`).
+   - If they differ, it raises `ReplayRefused`, naming the commit and the worktree command
+     (`git worktree add <dir> <commit>`).
+   - `todays_code=True` runs anyway, and its output starts with "NOTE: compared with today's code, not the recorded
+     commit ...: not a reproduction".
+   - Tests: `test_the_code_tree_matches_only_the_same_committed_code` (same commit; an uncommitted edit; an untracked
+     file; a file outside `fno/`) and `test_a_replay_under_other_code_is_refused_and_a_todays_code_comparison_says_so`.
+3. **Mutations** (`python -B`, caches cleared): the judge's three plants, plus "replay skips validity", "code check
+   off", "today's-code note dropped" and "untracked files ignored": 7 of 7 caught. The earlier 12 still caught. So 19
+   of 19.
+
+Follow-ups recorded by the orchestrator, not on this branch:
+- (a) every approval, pause or retirement changes Book 1's served digest, so E3/D6 must register a new D6 version
+  with each, or Book 1 goes unscored;
+- (b) D1 must add frozen p10/p90 from the test results before the first approval.

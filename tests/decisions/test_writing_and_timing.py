@@ -17,7 +17,7 @@ from fno.playbook.history import PlaybookGit
 from tests.playbook.builders import git
 from tests.playbook.evaluation_builders import DAY, evaluator
 
-from .builders import doc, run_day, snapshot
+from .builders import SAME_CODE, doc, run_day, snapshot
 
 KILL_ON_THIRD_FILE = """
 import os, pathlib, sys
@@ -42,7 +42,7 @@ def test_a_writer_killed_mid_way_leaves_no_run_and_the_next_run_is_whole(tmp_pat
     assert store.runs(DAY) == []  # only a hidden temporary folder may remain, never a partial run
     assert [p.name for p in store.day_folder(DAY).iterdir()] == [".2026-10-13-r1.tmp"]
     run = run_day(tmp_path, snapshot(doc("sc-a"), doc("sc-b")))
-    assert run.name == "2026-10-13-r1" and store.edited(run) == [] and replay(run, evaluator()) == []
+    assert run.name == "2026-10-13-r1" and store.edited(run) == [] and replay(run, evaluator(), SAME_CODE) == []
     assert not (store.day_folder(DAY) / ".2026-10-13-r1.tmp").exists()
 
 

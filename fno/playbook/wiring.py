@@ -11,6 +11,7 @@ from ..storage.wiring import LIVE_VALIDATION_FOLDER
 from .allocation import Allocator
 from .approval_checks import EvidenceCommitted, EvidenceFilled, ExpectedNetSet, LiveFeaturesValidated
 from .candidates import CandidateBuilder
+from .code_tree import GitCodeTree
 from .decision_inputs import PlaybookSnapshot
 from .decision_run import DecisionRun
 from .decision_store import DecisionStore
@@ -101,3 +102,8 @@ def snapshot_playbook(root: Path = ROOT) -> PlaybookSnapshot:
     registry = registry_path(folder)
     text = registry.read_text(encoding="utf-8") if registry.is_file() else ""
     return PlaybookSnapshot(files, text, PlaybookGit(root).head())
+
+
+def build_code_tree(root: Path = ROOT) -> GitCodeTree:
+    """Story D3, judge 80: the running fno/ and config.yaml, compared with a record's code commit before any replay."""
+    return GitCodeTree(PlaybookGit(root))
