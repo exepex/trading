@@ -132,3 +132,26 @@ shallow history, unrelated to D1); after `git fetch --unshallow` it passes.
   nothing written; owner then approves) and `test_the_desk_cannot_approve_an_unregistered_candidate_either`; the
   table test now covers 4 approvers (`owner`, `desk`, `hard_loss_rule`, an unknown one).
 - **Q1** (forward test as the approval) is with the owner.
+
+## Addendum 2 (14 Oct 2026): judge 67's must-fix, accepted and fixed
+
+**Accepted, with evidence.** Judge 67 is right: `RecomputedLiveReports` checked only the rows a committed report
+contained, and B7's gate then counted those rows, so removing disagreeing days (or the latest stretch) raised the
+agreement. Reproduced before the fix: `test_removing_bad_days_from_the_committed_report_does_not_pass_the_gate` fails
+on the old code (mutation back to `return report`: 3 tests fail).
+
+**Fix (the judge's first option):** the gate now decides on the fresh recomputation over every recorded day
+(`fno/playbook/live_reports.py`). The committed report must still exist and match the recomputation on each day it
+holds, because it is the red team's record. Tests: 25 recorded days with 5 disagreeing (80%), the committed report
+without those 5 rows (100%, passes the old gate), for both cherry-picked middle days and a truncated end. The gate
+fails in both cases and reads the full 25 days.
+
+**Consequence, said plainly:** an approved strategy whose live feature stops agreeing on later days fails the gate at
+the next load. A failed check refuses the whole playbook, so Book 1 trades nothing until the owner pauses or retires
+that version. That is fail-safe: the strategy would no longer trade what was tested. But it stops every strategy, not
+only the one affected. E6's pause rules are the place to turn this into an automatic pause of that version alone
+(reasoning only).
+
+**Minor point taken too:** `python -m fno playbook check` now runs the append-only check itself, on git history plus
+the working file (`wiring.registry_history_problems`), so an edited row is caught before CI.
+`test_the_history_check_includes_the_working_file` covers an uncommitted edit.
