@@ -28,6 +28,7 @@ FUNDING = ("margin_per_lot", "source", "date")
 EXITS = ("time", "profit", "loss", "event")
 PLAN = (
     "expected_range", "expected_net_per_opportunity", "expected_net_source", "unit", "review_dates", "pause_rules",
+    "catastrophic_loss_rs",
 )  # fmt: skip
 RANGE = ("low", "high")
 EVIDENCE = (
@@ -178,6 +179,9 @@ def _plan(fields: Fields) -> dict:
         "expected_net_source": fields.text("expected_net_source"),
         "unit": fields.text("unit"), "review_dates": fields.days("review_dates"),
         "pause_rules": fields.texts("pause_rules"),
+        # the machine-checked pause rule (story E6): one closed trade's net loss (C1) at or beyond this pauses the
+        # version at once in every book; the owner's per-trade cap is Rs 10,000
+        "catastrophic_loss_rs": fields.number("catastrophic_loss_rs", positive=True),
     }  # fmt: skip
 
 

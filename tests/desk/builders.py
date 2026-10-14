@@ -25,6 +25,7 @@ DAY = date(2026, 10, 14)
 EXPIRY = date(2026, 10, 27)
 LOT = 65
 CHARGES = load_config(ROOT / "config.yaml")["charges"]
+STRATEGY = "fixture-fly-v1"
 DECIDED_AT = datetime(2026, 10, 14, 15, 5, tzinfo=IST)
 # The short iron fly every test trades: bid, ask for (strike, type)
 FLY_QUOTES = {
@@ -128,7 +129,8 @@ def approved_entry(proposal: Proposal, quotes=FLY_QUOTES) -> float:
     return SimulatorTradeCosts(CHARGES).entry_cash_flow(proposal, decision_market(quotes))
 
 
-def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1, limit=None) -> EntryOrder:
+def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1, limit=None,
+              strategy=STRATEGY) -> EntryOrder:  # fmt: skip
     proposal = fly_proposal(trade_id, lots)
     risk = risk or approved(proposal, book, decided_at.date(), limit)
-    return EntryOrder(book, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk)
+    return EntryOrder(book, strategy, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk)

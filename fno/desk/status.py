@@ -17,18 +17,20 @@ from ..constants import (
     OUTCOME_OPENED,
     OUTCOME_PARTIAL_FILL,
     OUTCOME_PROTECTION_UNVERIFIED,
+    OUTCOME_REFUSED,
     OUTCOME_SETTLEMENT_NEEDED,
 )
 from .execution import Holding
 from .records import DeskRecords
 
-ENTRY_OUTCOMES = (OUTCOME_OPENED, OUTCOME_NOT_OPENED, OUTCOME_PARTIAL_FILL)
+ENTRY_OUTCOMES = (OUTCOME_OPENED, OUTCOME_REFUSED, OUTCOME_NOT_OPENED, OUTCOME_PARTIAL_FILL)
 BLOCKING_OUTCOMES = (OUTCOME_PROTECTION_UNVERIFIED, OUTCOME_SETTLEMENT_NEEDED)
 
 
 @dataclass(frozen=True)
 class OpenPosition:
     trade_id: str
+    strategy: str
     decision_id: str
     holdings: tuple[Holding, ...]  # legs still held, with their units
     cash_flow: float  # E1: premium received minus paid, minus charges, so far
@@ -55,6 +57,7 @@ def open_positions(records: DeskRecords) -> list[OpenPosition]:
         positions.append(
             OpenPosition(
                 trade.trade_id,
+                fills[0]["strategy"],
                 fills[0]["decision_id"],
                 _holdings(trade, records),
                 trade.cash_flow,

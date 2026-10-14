@@ -69,7 +69,8 @@ class ExitDesk:
 
     def _review(self, book, position: OpenPosition, snapshot, journal, rules) -> ExitResult:
         check_point_in_time(snapshot, self.clock(), not_before=position.last_fill_at)
-        maker = FillMaker(book, exit_decision_id(position.trade_id), position.trade_id, snapshot, self.charges)
+        decision = exit_decision_id(position.trade_id)
+        maker = FillMaker(book, position.strategy, decision, position.trade_id, snapshot, self.charges)
         if any(leg.expiry < snapshot.day for leg, _ in position.holdings):
             return self._settle(book, position, snapshot, journal)
         unquotable = [
@@ -119,7 +120,8 @@ class ExitDesk:
                 return self._event(book, position, snapshot, journal, OUTCOME_SETTLEMENT_NEEDED, reason, snapshot.day)
             decision, trade_id = exit_decision_id(position.trade_id), position.trade_id
             for leg, units in (h for h in position.holdings if h[0].expiry == expiry):
-                journal.record_fill(settlement_record(book, decision, trade_id, leg, units, final, self.charges))
+                journal.record_fill(settlement_record(book, position.strategy, decision, trade_id, leg, units, final,
+                                                      self.charges))  # fmt: skip
             how = f"settled at NSE's final settlement price {final.price:,.2f} ({final.source})"
         if trade_positions(journal.records.account.fills())[position.trade_id].is_open:
             return ExitResult(position.trade_id, HELD, how + "; legs of later expiries stay open")
@@ -141,8 +143,9 @@ class ExitDesk:
         """Record the event once (per snapshot or day when `once_per` is given); a new pending, unverified or settlement
         event is also sent as an alert."""
         event_id = ":".join(filter(None, (position.trade_id, outcome, str(once_per))))
-        event = DeskEvent(event_id, snapshot.day, book, position.trade_id, exit_decision_id(position.trade_id),
-                          snapshot.snapshot_id, snapshot.sha256, outcome, reason, cost)  # fmt: skip
+        event = DeskEvent(event_id, snapshot.day, book, position.strategy, position.trade_id,
+                          exit_decision_id(position.trade_id), snapshot.snapshot_id, snapshot.sha256, outcome, reason,
+                          cost)  # fmt: skip
         new = journal.record_event(event)
         if new and outcome in (OUTCOME_PENDING_EXIT, OUTCOME_PROTECTION_UNVERIFIED, OUTCOME_SETTLEMENT_NEEDED):
             return self._alert(book, position.trade_id, outcome, reason)

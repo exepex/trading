@@ -5,18 +5,22 @@ order: the desk reads recorded quotes and published NSE files, never a broker.""
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from contextlib import contextmanager
+from datetime import date
 from pathlib import Path
 
 from ..books.lock import DEFAULT_LEASE_SECONDS
 from ..composition import build_alert_sender, open_account_writer
 from ..config import ROOT
+from ..playbook.schema import Strategy
+from ..risk.inputs import Market, TradeTerms
 from ..storage.wiring import build_nse_fo_library, build_quote_store
 from .entries import EntryDesk
 from .exits import ExitDesk
 from .records import DeskJournal
 from .settlement import NseFinalSettlement
+from .shadow_books import JournalShadowBooks, start_shadow_accounts
 from .snapshot import ExecutionSnapshotSource, RecordedExecutionSnapshots
 
 
@@ -32,6 +36,16 @@ def build_entry_desk(cfg: dict) -> EntryDesk:
 def build_exit_desk(cfg: dict) -> ExitDesk:
     """Exits at the execution snapshot's quotes; expired legs settled from NSE's daily F&O files (A2's library)."""
     return ExitDesk(cfg["charges"], build_alert_sender(), NseFinalSettlement(build_nse_fo_library()))
+
+
+def build_shadow_books(market: Market, terms: Mapping[str, TradeTerms], root: Path = ROOT) -> JournalShadowBooks:
+    """D2's `ShadowBooks` for one day: each research candidate's own account under `journal/shadow/`."""
+    return JournalShadowBooks(root, market, terms)
+
+
+def start_shadow_books(strategies: Iterable[Strategy], day: date, root: Path = ROOT) -> list[str]:
+    """Open every candidate's shadow account once; run before the day's evaluation (E3)."""
+    return start_shadow_accounts(strategies, day, lambda name: open_account_writer(name, root))
 
 
 @contextmanager

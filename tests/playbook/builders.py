@@ -37,6 +37,7 @@ DOCUMENT = {
         "expected_net_source": "discovery results",
         "unit": "Rs per opportunity",
         "review_dates": [date(2027, 1, 14)], "pause_rules": ["one trade loses over Rs 10,000"],
+        "catastrophic_loss_rs": 10000,
     },
     "evidence": dict.fromkeys(
         ("test_results_path", "test_results_commit", "red_team_note", "judge_verdict", "freeze_record",

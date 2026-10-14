@@ -39,6 +39,9 @@ BOOK2_HYBRID = "book2_hybrid"  # AI inside the authority envelope
 BOOK3_AI = "book3_ai"  # fully AI under the constitution
 BOOKS = (BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI)
 JOURNAL_FOLDER = "journal"
+# Shadow versions (owner, 14 Oct 2026, experiment 2 option a): a research candidate's forward paper test runs in its own
+# account `journal/shadow/<name>-v<n>/account/`, named `shadow:<name>-v<n>`, never in a book's account
+SHADOW_FOLDER, SHADOW_PREFIX = "shadow", "shadow:"
 # Kinds of row in a paper account's cash ledger (journal/<book>/account/cash_ledger.csv)
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
@@ -186,6 +189,7 @@ PLAYBOOK_REGISTRY_FILE = "registry.csv"
 # Entry-condition operators: numbers compare with a number, flags with `is` and true or false
 # Story D2: a strategy version with fewer completed paper trades than this is unproven and holds at most one open trade
 UNPROVEN_BELOW_COMPLETED_TRADES, UNPROVEN_MAX_OPEN_TRADES = 20, 1
+PAPER_GATE_MONTHS = 3  # design 6: with UNPROVEN_BELOW_COMPLETED_TRADES completed trades, the paper gate (E6 reviews)
 NO_TRADE_THRESHOLD_RS = 0.0  # a candidate needs expected net per opportunity above this, after costs
 NO_ESTIMATE = "none"  # a research version with no honest expected-net estimate (paper needs a number)
 
@@ -207,7 +211,8 @@ NUMBER_OPERATORS = (OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_
 # Story E4: the paper fill model. What each desk fill did, and how an entry or exit attempt ended (desk_events.csv)
 FILL_OPEN, FILL_UNWIND, FILL_CLOSE, FILL_SETTLE = "open", "unwind", "close", "settle"
 OUTCOME_OPENED = "opened"
-OUTCOME_NOT_OPENED = "not_opened"  # refused before any leg filled, or a protective leg did not fill
+OUTCOME_REFUSED = "refused"  # a gate stopped it before any leg was priced (C2, timing, snapshot, a blocked book)
+OUTCOME_NOT_OPENED = "not_opened"  # a leg did not fill (or the entry was worse than approved): nothing opened
 OUTCOME_PARTIAL_FILL = "not_opened_partial_fill"  # a leg failed after others filled; the filled legs were unwound
 OUTCOME_EXIT_ORDERED = "exit_ordered"  # an exit rule was reached (or an unwind could not finish): close at valid quotes
 OUTCOME_PENDING_EXIT = "pending_exit"  # an exit leg had no valid quote: retried at the next scheduled snapshot
@@ -216,3 +221,6 @@ OUTCOME_PROTECTION_UNVERIFIED = "protection_unverified"  # a protective leg is u
 OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit filled: NSE's settlement price needed
 # Entry limit: the net entry at the execution snapshot's touch is worse than the entry C2 approved (its modelled cash)
 ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"
+
+# Story E6: what a review date decides for a strategy version (per its evaluation plan)
+REVIEW_KEEP, REVIEW_PAUSE, REVIEW_RETIRE = "keep", "pause", "retire"

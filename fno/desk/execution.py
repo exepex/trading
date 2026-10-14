@@ -40,6 +40,7 @@ class FillMaker:
     """Fills of one trade at one snapshot, priced by the one charges model (C1 through E1's `Fill.priced`)."""
 
     book: str
+    strategy: str
     decision_id: str
     trade_id: str
     snapshot: ExecutionSnapshot
@@ -55,9 +56,10 @@ class FillMaker:
         )  # fmt: skip
 
     def record(self, quote: LegQuote, action: str) -> FillRecord:
+        touch = quote.quote
         return FillRecord(
-            self.book, self.decision_id, action, self.snapshot.snapshot_id, self.snapshot.sha256, quote.leg,
-            quote.quote.contract_id, quote.quote.quote_age_unknown, self.fill(quote, action),
+            self.book, self.strategy, self.decision_id, action, self.snapshot.snapshot_id, self.snapshot.sha256,
+            quote.leg, touch.contract_id, touch.quote_age_unknown, self.fill(quote, action), touch.bid, touch.ask,
         )  # fmt: skip
 
 

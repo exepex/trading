@@ -21,7 +21,7 @@ and the owner).
 **Expected design:** `playbook/<name>-v<n>.yaml`; `fno/playbook/schema.py` and `loader.py`. Fields: `name, version,
 status (research | paper | paused | retired), payer, edge_family, structure (code, strikes rule, width rule),
 entry_conditions (feature, operator, threshold), size_rule, funding (margin per lot, source, date), exits (time,
-profit, loss, event), evaluation_plan (expected range, unit, review dates, pause rules), evidence (test results path
+profit, loss, event), evaluation_plan (expected range, unit, review dates, pause rules, and since E6 the machine-checked `catastrophic_loss_rs`), evidence (test results path
 and commit, red-team note, judge verdict, owner approval date)`.
 
 **Acceptance criteria:**

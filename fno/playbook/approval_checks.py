@@ -17,6 +17,11 @@ from .schema import Strategy, require_evidence
 from .transitions import PAPER, PAUSED
 
 
+class LiveFeatureDrift(PlaybookError):
+    """A live feature no longer passes its use rule. For a version already on paper this pauses that version only
+    (judge 67, story E6); it never refuses the rest of the playbook. A change to paper is still refused."""
+
+
 class ApprovalCheck(ABC):
     statuses: frozenset  # the statuses this check guards
 
@@ -80,7 +85,7 @@ class LiveFeaturesValidated(ApprovalCheck):
         found = {name: report for name in strategy.live_features if (report := self.reports.report(name))}
         missing = unvalidated(strategy.live_features, found, strategy.live_use_rule)
         if missing:
-            raise PlaybookError(
+            raise LiveFeatureDrift(
                 "entry_conditions",
                 f"live features not validated under the use rule {strategy.live_use_rule}: {missing}",
             )

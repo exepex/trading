@@ -73,11 +73,11 @@ class NseFinalSettlement(SettlementPrices):
         return FinalSettlement(underlying, expiry, prices.pop(), path, hashlib.sha256(found.data).hexdigest())
 
 
-def settlement_record(book: str, decision_id: str, trade_id: str, leg: DeskLeg, units: int,
+def settlement_record(book: str, strategy: str, decision_id: str, trade_id: str, leg: DeskLeg, units: int,
                       final: FinalSettlement, charges: dict) -> FillRecord:  # fmt: skip
     """The leg closed at its intrinsic value against the final settlement price, with C1's settlement charges."""
     order = Order(leg.side(opening=False), leg.leg.intrinsic(final.price), units, 0.0, settlement=True)
     settled_at = datetime.combine(final.expiry, SETTLEMENT_TIME, IST)
     fill = Fill.priced(fill_id(trade_id, FILL_SETTLE, leg.contract), trade_id, settled_at, leg.contract, order, charges)
     snapshot = SETTLEMENT_SNAPSHOT.format(expiry=final.expiry.isoformat())
-    return FillRecord(book, decision_id, FILL_SETTLE, snapshot, final.sha256, leg, "", False, fill)
+    return FillRecord(book, strategy, decision_id, FILL_SETTLE, snapshot, final.sha256, leg, "", False, fill)
