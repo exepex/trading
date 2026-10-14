@@ -6,10 +6,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from ..constants import BOOK1_RULES
-
 EXIT_REFUSED = 2
-PACKED_BOOKS = (BOOK1_RULES,)  # books 2 and 3 wait for D4 and D5
 
 
 def add_pack_command(actions) -> None:
@@ -20,24 +17,18 @@ def add_pack_command(actions) -> None:
 
 
 def cmd_pack(args) -> int:
-    from ..composition import DESK_DECISION_TIME
     from ..config import ROOT
     from ..models import now_ist
     from .pack_items import PackError
-    from .pack_store import PackStore
-    from .pack_wiring import build_common_pack_builder, build_private_pack_builder
+    from .pack_wiring import build_packs
 
-    day, store = args.day or now_ist().date(), PackStore(ROOT)
+    day, packs = args.day or now_ist().date(), build_packs()
     try:
-        common = build_common_pack_builder().build(day, DESK_DECISION_TIME)
-        written = [(store.write_common(common), common.sha256)]
-        for book in PACKED_BOOKS:
-            private = build_private_pack_builder().build(book, day)
-            written.append((store.write_private(private), private.sha256))
+        common = packs.build(day)
     except PackError as refused:
         print(f"refused: {refused}")
         return EXIT_REFUSED
-    for path, sha256 in written:
+    for path, sha256 in packs.written(day):
         print(f"wrote {path.relative_to(ROOT)} sha256 {sha256}")
     print(f"refused items (after the cutoff or untimed): {len(common.body['refused'])}")
     return 0

@@ -21,6 +21,7 @@ class DataGate:
         self, checks: DataChecks, snapshots: ExecutionSnapshotSource, schedule: ExecutionSchedule, alerts: AlertSender
     ):
         self.checks, self.snapshots, self.schedule, self.alerts = checks, snapshots, schedule, alerts
+        self.sent: set[str] = set()  # one alert per distinct text: the daily run checks the same data several times
 
     def check(self, pack: CommonPack, legs: Sequence[ContractKey] = (),
               due_exits: Sequence[str] = ()) -> tuple[ExecutionSnapshot | None, CheckReport]:  # fmt: skip
@@ -38,5 +39,8 @@ class DataGate:
         if not report.ok:
             name = capture.snapshot_id if capture else "no capture"
             waiting = WAITING_EXITS.format(trades=", ".join(due_exits)) if snapshot is None and due_exits else ""
-            self.alerts.send(ALERT.format(day=pack.day, snapshot=name, reason=report.reason()) + waiting)
+            text = ALERT.format(day=pack.day, snapshot=name, reason=report.reason()) + waiting
+            if text not in self.sent:
+                self.sent.add(text)
+                self.alerts.send(text)
         return snapshot, report

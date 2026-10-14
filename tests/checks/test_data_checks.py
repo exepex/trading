@@ -140,3 +140,13 @@ def test_a_valid_flag_on_a_crossed_book_is_not_trusted(store, snapshots, alerts)
     """The rule is checked from the quote's own numbers, not only the recorder's `valid` column."""
     _, report = checked(store, snapshots, alerts, rows=fly_rows({(25000, PE): {"bid": 142.0, "valid": True}}))
     assert "25000 PE: crossed (bid above ask)" in report.reason()
+
+
+def test_the_same_failure_is_alerted_once_however_often_it_is_checked(store, snapshots, alerts):
+    """Story E3 checks the day's data at the snapshot, each fill and each book's exits: one alert per distinct text."""
+    write_snapshot(store, "exec", fly_rows(), at(14, 30), at(14, 30, 40))
+    the_gate, pack = gate(snapshots, alerts, DAY), pack_of(store, DAY)
+    for _ in range(3):
+        the_gate.check(pack, LEGS)
+    the_gate.check(pack)  # a different check (no legs) with the same failures: still the same text
+    assert len(alerts.sent) == 1

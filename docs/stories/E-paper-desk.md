@@ -144,7 +144,7 @@ restart after fills.
 **Judge verifies:** reads one week of run files and checks the order of commits (decisions before the snapshot, the
 snapshot before fills).
 
-**Depends:** A4, A7, C3, C4, D3, E1, E2, E4 · **Size:** L · **Status:** later
+**Depends:** A4, A7, C3, C4, D3, E1, E2, E4 · **Size:** L · **Status:** built on `story/e3-timetable`, judge pending; live once E5 supplies orders and exit rules and C4 merges (claims: reviews/claude/response_84_e3-timetable.md)
 
 ---
 
