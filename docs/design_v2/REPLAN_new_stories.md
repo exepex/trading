@@ -79,7 +79,8 @@ the day. Layer and section references are to the design v2 files.
   M. Slice B.
 - **E8 Owner-timing fills.** `OwnerTiming`: fill at the first snapshot at or after card time plus the owner's reaction
   time, inside the card's entry range or recorded as missed; the next session when away or after 15:25. Primary
-  R = 60 minutes, with R = 30 and R = 5 as sensitivities (owner decision of 15 Oct 2026); E4's fills reported too, so
+  R = 60 minutes, with R = 30 and R = 5 as sensitivities (reaction times: owner decision of 15 Oct 2026; R = 60 as
+  primary: orchestrator's proposal, reasoning only, owner to confirm); E4's fills reported too, so
   the cost of human delay is visible. Its code joins S1's `frozen_files` (owner decision of 15 Oct 2026).
   Depends: E4, A16 (falls back to A4 snapshots until A16 runs). M. Slice B.
 

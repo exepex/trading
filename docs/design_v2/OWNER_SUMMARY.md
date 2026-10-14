@@ -37,6 +37,18 @@ trades, which is why forecasts come first and trades second.
 5. **The AI books (Hybrid and AI team) start trading** only once there is at least one strategy worth trading
    (proposal; your decision). Until then they keep forecasting, which is already running.
 
+**How paper trades are filled (your reaction time: 5 minutes when available, 30 on average, at most 1 hour).** The
+proposal, waiting for your confirmation, is that the headline paper result assumes the worst case, 60 minutes, with
+30 and 5 minutes shown beside it. Four rules come with it:
+- a paper trade fills only if the price is still inside the card's entry range; otherwise it is recorded as "missed,
+  price moved";
+- an idea that only works if you react within 15 minutes is flagged and judged at 60 minutes;
+- if a card cannot be acted on before the close, the paper fill is the next session at 09:15 plus your reaction time;
+- if late fills cost too much, the fix is an earlier decision time (for example 14:00), never assuming you react faster.
+**What this means in practice:** the card reaches you at about 15:08 and the market closes at 15:30, so with 60 minutes
+every new paper trade fills the next morning, after the overnight gap, and many may be "missed". That is what you would
+really get, so the record shows it.
+
 **Rough cost.** Your existing Claude plan (the books' share is measured and capped; proposal: at most half of measured
 usage), the existing Azure database, free GitHub Actions and Drive. New cash cost: likely Rs 0-1,000 a month for
 hosting the 15-minute jobs (reasoning only), plus whatever Groww charges for API access, if anything. Any new recurring
