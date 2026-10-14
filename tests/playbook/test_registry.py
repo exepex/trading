@@ -16,7 +16,7 @@ from .builders import commit_all, git
 SHA = "a" * 64
 STATUSES = (None, *PlaybookStatus)
 EXPECTED = {
-    (None, "research"): {"owner"}, (None, "paper"): {"owner"}, (None, "retired"): {"owner"},
+    (None, "research"): {"owner", "desk"}, (None, "paper"): {"owner"}, (None, "retired"): {"owner"},
     ("research", "paper"): {"owner"}, ("research", "retired"): {"owner"},
     ("paper", "paused"): {"owner", "hard_loss_rule"}, ("paper", "retired"): {"owner"},
     ("paused", "paper"): {"owner"}, ("paused", "retired"): {"owner"},
@@ -29,7 +29,7 @@ def row(status, by="owner", on=date(2026, 10, 21), sha=SHA, evidence="abcdef1", 
 
 @pytest.mark.parametrize("before", STATUSES)
 @pytest.mark.parametrize("after", list(PlaybookStatus))
-@pytest.mark.parametrize("by", ["owner", "hard_loss_rule", "claude"])
+@pytest.mark.parametrize("by", ["owner", "desk", "hard_loss_rule", "claude"])
 def test_only_the_story_s_changes_are_allowed_and_only_by_their_approver(before, after, by):
     allowed = by in EXPECTED.get((before, after), set())
     if allowed:

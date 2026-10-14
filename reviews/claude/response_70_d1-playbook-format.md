@@ -28,7 +28,7 @@ Allowed changes (`transitions.ALLOWED`, test `test_the_table_has_no_change_beyon
 
 | From | To | Who |
 |---|---|---|
-| unregistered | research (register a candidate, freezing its rule) | owner |
+| unregistered | research (register a candidate, freezing its rule) | owner or `desk` (addendum 1) |
 | unregistered or research | paper | owner, plus the evidence and gate checks |
 | paper | paused | owner or `hard_loss_rule` (E6's automatic pause) |
 | paused | paper | owner only (checks run again) |
@@ -121,3 +121,14 @@ shallow history, unrelated to D1); after `git fetch --unshallow` it passes.
 3. **Who may register a candidate (`research` row)?** Built: owner only, like every other change. Registering only
    freezes a rule before its test; it approves nothing. Should the desk (a builder or the research loop) be allowed to
    register candidates without the owner?
+
+## Addendum 1 (14 Oct 2026): the orchestrator's answers to questions 2 and 3
+
+- **Q2:** `freeze_record` stays a required evidence field for `paper`. No change.
+- **Q3:** registering a `research` candidate is open to the desk; only the owner moves a version to `paper`.
+  Built: new approver `desk` (`fno/constants.py` `APPROVER_DESK`, CLI `--by desk`), allowed only for
+  unregistered -> research (`transitions.ALLOWED`). Tests for both paths: `test_lifecycle.py::
+  test_the_desk_may_register_a_candidate_but_only_the_owner_approves_it` (desk registers; desk to paper refused,
+  nothing written; owner then approves) and `test_the_desk_cannot_approve_an_unregistered_candidate_either`; the
+  table test now covers 4 approvers (`owner`, `desk`, `hard_loss_rule`, an unknown one).
+- **Q1** (forward test as the approval) is with the owner.

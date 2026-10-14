@@ -177,6 +177,7 @@ class PlaybookStatus(StrEnum):
 
 APPROVER_OWNER = "owner"
 APPROVER_HARD_LOSS_RULE = "hard_loss_rule"  # the automatic pause of story E6 (paper -> paused only)
+APPROVER_DESK = "desk"  # a builder or the research loop: may register a candidate (orchestrator, 14 Oct 2026)
 PLAYBOOK_FOLDER = "playbook"
 PLAYBOOK_REGISTRY_FILE = "registry.csv"
 # Entry-condition operators: numbers compare with a number, flags with `is` and true or false

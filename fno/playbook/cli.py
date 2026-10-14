@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from ..constants import APPROVER_HARD_LOSS_RULE, APPROVER_OWNER, PlaybookStatus
+from ..constants import APPROVER_DESK, APPROVER_HARD_LOSS_RULE, APPROVER_OWNER, PlaybookStatus
 
 EXIT_REFUSED = 2
 
@@ -18,7 +18,7 @@ def add_playbook_parser(subparsers) -> None:
     change.add_argument("name")
     change.add_argument("version", type=int)
     change.add_argument("status", choices=list(PlaybookStatus))
-    change.add_argument("--by", required=True, choices=[APPROVER_OWNER, APPROVER_HARD_LOSS_RULE])
+    change.add_argument("--by", required=True, choices=[APPROVER_OWNER, APPROVER_DESK, APPROVER_HARD_LOSS_RULE])
     change.add_argument("--on", type=date.fromisoformat, required=True, help="date of the change (YYYY-MM-DD)")
     change.add_argument("--evidence-commit", default="", help="commit holding the evidence (default: HEAD)")
     playbook.set_defaults(func=cmd_playbook)

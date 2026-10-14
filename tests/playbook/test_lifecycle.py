@@ -75,3 +75,22 @@ def test_a_version_never_registered_cannot_be_changed(tmp_path):
     with pytest.raises(PlaybookError) as refused:
         changer(tmp_path).change("nothing", 1, "paper", "owner", DAY)
     assert refused.value.field == "nothing v1"
+
+
+def test_the_desk_may_register_a_candidate_but_only_the_owner_approves_it(tmp_path):
+    path, _ = candidate(tmp_path)
+    changer(tmp_path).change("sc-test", 1, "research", "desk", DAY)
+    assert loader(tmp_path).registry.rows()[0].approved_by == "desk"
+    before = snapshot(tmp_path, path)
+    with pytest.raises(PlaybookError) as refused:
+        changer(tmp_path).change("sc-test", 1, "paper", "desk", DAY)
+    assert refused.value.field == "approved_by" and snapshot(tmp_path, path) == before
+    changer(tmp_path).change("sc-test", 1, "paper", "owner", DAY)
+    assert loader(tmp_path).load().approved()[0].key == ("sc-test", 1)
+
+
+def test_the_desk_cannot_approve_an_unregistered_candidate_either(tmp_path):
+    path, _ = candidate(tmp_path)
+    with pytest.raises(PlaybookError) as refused:
+        changer(tmp_path).change("sc-test", 1, "paper", "desk", DAY)
+    assert refused.value.field == "approved_by" and not (tmp_path / "playbook" / "registry.csv").exists()

@@ -51,3 +51,19 @@ last days.
 
 New package with its own composition root (`fno/playbook/wiring.py`, listed in CLAUDE.md); B7's frozen files imported,
 not changed; no order capability; files small. Clean.
+
+## Addendum 1 (a43c935, on `main` without a PASS: post-hoc review)
+
+**Process:** a43c935 (00:28:00 UTC) changed code on `main` 13 seconds after the owner's rule b030c9e (00:27:47 UTC):
+no code on `main` without a judge PASS. It reached `main` without my review. I reported this to the orchestrator at
+once.
+
+**Content (reviewed after the fact):** it adds `APPROVER_DESK`. The desk (a builder or the research loop) may now
+register a candidate, `unregistered -> research`. No other transition changed: every change to `paper` still allows
+the owner only, with the evidence and B7 checks. `tests/playbook`: 180 passed.
+
+Registering a candidate freezes its rule before a test and approves nothing. The story does not limit who may register,
+so I find no defect. One benefit (reasoning only): every variant the desk tries leaves a registry row, which makes the
+number of rules tried visible for multiple-testing purposes.
+
+**Verdict on the change:** acceptable. The judge 67 must-fix (the B7 gate accepting removed days) is still open.
