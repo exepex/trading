@@ -88,3 +88,15 @@ The gates of judge 97 stand: the change touches no code, test or ledger file.
 
 **Verdict: PASS for bec0e33d1932b8af50748f7728aceb783e7581ac.** Merge it as a merge commit so that 93a19c3 stays in
 `main`'s history. After the merge I check the recomputed merge, the ledger guard and CI.
+
+## Addendum 2 (15 Oct 2026): merge check, R1/R2 merged to main as 3856f90
+
+- **Merge is exact.** 3856f90's parents are 78e9723 (main) and bec0e33 (the passed tip). Recomputing the merge with
+  `git merge-tree --write-tree 78e9723 bec0e33` gives a tree identical to 3856f90's (empty diff).
+- **Branch files arrived unchanged.** `git diff bec0e33 3856f90` is empty on every file the branch touched.
+- **The freeze holds.** 93a19c3 is an ancestor of 3856f90, so it is in history. `PROTOCOL.md` hashes to
+  `89947b4c...e40a6b` on `main`. `tests/research` (the ledger guard included) passes on `main`: 22 passed.
+- **No unjudged change since.** Nothing was pushed to `main` after 3856f90 at the time of checking.
+- **CI.** The parent 78e9723 is green. The run on 3856f90 was in progress; its result is in my report.
+
+**Verdict: merge check PASS.**
