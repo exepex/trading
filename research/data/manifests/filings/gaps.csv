@@ -25,8 +25,20 @@ FIVESTAR,shareholding-xbrl,NSE lists 1 filing(s) with no XBRL file (periods 2026
 GRANULES,shareholding-xbrl,NSE's link for the 2025-06-30 filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/SHP_1477166_04072025115317_WEB.xml
 JSWENERGY,results-xbrl,NSE's link for the 2026-03-31 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1665717_11052026083337_WEB.xml
 KARURVYSYA,results-xbrl,NSE's link for the 2023-09-30 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/BANKING_97597_954431_16102023064741.xml
+LAURUSLABS,results-xbrl,"NSE serves a truncated or malformed file for the 2025-09-30 standalone filing, the same twice (65258 bytes, SHA-256 8e4444ebe320fc7ed01ebb30f6098fe3e2045f179e5953ea84a445ea85dfb93c): not XML: unclosed token: line 1, column 65227"
 LT,results-xbrl,NSE's link for the 2025-03-31 consolidated filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1477033_03072025073621_WEB.xml
 LT,results-xbrl,NSE's link for the 2025-03-31 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1477042_03072025074238_WEB.xml
 MCX,results-xbrl,NSE lists no results-xbrl filing made public since 2023-10-01
 MCX,shareholding-xbrl,NSE lists no shareholding-xbrl filing made public since 2023-10-01
+SHYAMMETL,shareholding-xbrl,NSE's link for the 2025-06-30 filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/SHP_1477302_04072025034734_WEB.xml
 SUNPHARMA,results-xbrl,NSE lists 1 filing(s) with no XBRL file (periods 2024-06-30 to 2024-06-30)
+TIINDIA,shareholding-xbrl,NSE lists 1 filing(s) with no XBRL file (periods 2026-06-30 to 2026-06-30)
+UPL,results-xbrl,NSE's link for the 2025-03-31 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1442647_19052025120108_WEB.xml
+UPL,results-xbrl,NSE's link for the 2025-09-30 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1567145_06112025062650_WEB.xml
+UPL,results-xbrl,NSE's link for the 2026-03-31 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1665495_11052026041028_WEB.xml
+UPL,results-xbrl,NSE's link for the 2026-03-31 standalone filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/INTEGRATED_FILING_INDAS_1694775_17072026103528_WEB.xml
+UPL,shareholding-xbrl,NSE lists 3 filing(s) with no XBRL file (periods 2017-06-30 to 2017-12-31)
+UPL,shareholding-xbrl,NSE's link for the 2021-12-31 filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/SHP_165109_592958_19012022121004_WEB.xml
+VMM,shareholding-xbrl,NSE's link for the 2025-06-30 filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/SHP_1477351_04072025043711_WEB.xml
+VOLTAS,shareholding-xbrl,NSE's link for the 2025-06-30 filing answers 'not found': https://nsearchives.nseindia.com/corporate/xbrl/SHP_201231_13920_23072025084147_WEB.xml
+ZENSARTECH,shareholding-xbrl,NSE lists 1 filing(s) with no XBRL file (periods 2025-12-31 to 2025-12-31)
