@@ -58,6 +58,28 @@ unsure, the change is lane 1.
 | 2 | Any other small change: tests only, docs, refactors with no behaviour change, small fixes outside lane 1 | The orchestrator re-runs the full checks and compares the builder's claim with the diff, then merges. The judge audits that day's lane-2 merges once, at a fixed time; a FAIL is fixed first, before new work |
 | 3 | Judge files, conversation logs, decision and status rows, data commits by scheduled jobs | None |
 
+### Refinements (judge 91, accepted by the orchestrator under the owner's lanes decision, 14 Oct 2026)
+
+1. **Lane 1 is decided by path, whatever the change's description.** Any diff touching one of these is lane 1:
+   - `.github/`, `.githooks/`, `.gitattributes`, `config.yaml`, `db/`, `requirements*.txt`;
+   - `fno/constants.py` and every composition root listed in `CLAUDE.md`;
+   - `fno/risk`, `fno/desk`, `fno/books`, `fno/checks`, `fno/scorecard`, `fno/scoreboard`, `fno/evaluation`,
+     `fno/forecast*`, `fno/ai`, `fno/quotes`, `fno/pipeline`, `fno/storage`, `fno/playbook`;
+   - the gates: `tools/check_imports.py`, `tools/check_records.py`, `tests/test_code_size.py`;
+   - every file a freeze lists, and `research/data/calendar/`;
+   - rule documents: `docs/JUDGE.md`, `CLAUDE.md`, `AGENTS.md`, acceptance criteria in `docs/stories/`, protocol and
+     freeze documents, owner checklists.
+2. **Tests:** only adding tests is lane 2. Deleting, skipping or loosening a test in a lane-1 area is lane 1.
+3. **Lane 3 data** is only a scheduled job's own output paths. Data edited by hand (calendar rows, golden values,
+   margin tables, manifests) is not lane 3. A decision row is lane 3 only when it quotes the owner.
+4. **Findable and gap-free:** a lane-2 merge's commit message starts "Lane 2:" and names the branch tip, the
+   builder's claim and the orchestrator's test count. The audit runs daily at 17:30 UTC and covers every commit on
+   `main` since the last audited commit, with mutations planted as on lane 1; the range and verdict go in the judge
+   README.
+5. **A lane-2 correctness FAIL is reverted at once** with `git revert` (never a history rewrite), then fixed on a
+   branch. Docs and test-only FAILs are fixed in place, first.
+6. **The dashboard** has its own lane-1 paths, listed in its `CLAUDE.md`.
+
 - The judge may move any kind of change into lane 1 when its daily audit finds problems there.
 - What lane 2 gives up: the claim check is done by the orchestrator, which assigned the work and plants no mutations,
   so a wrong claim can sit on `main` until that day's audit. Lane 1 keeps everything that touches money, trades or
