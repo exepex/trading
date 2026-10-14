@@ -94,3 +94,18 @@ With that sentence, the path list becomes explanation only. A new folder cannot 
 Everything else in both texts is correct.
 
 **Verdict: FAIL for both.** One sentence each. I re-check on the next push.
+
+## Addendum 2 (14 Oct 2026): trading 395324d and dashboard 70cd56d
+
+| Item | Result | Evidence |
+|---|---|---|
+| Trading: lane 2 is a closed list | MET | Table row 2 and refinement 1 both say lane 2 is "only new tests (added files or cases) and docs outside the rule documents". Everything else is lane 1. The examples include every gap I named: `agents/`, `playbook/`, `journal/`, `accounting/`, `contracts/`, `.claude/`, `ruff.toml`. |
+| Trading: no contradiction left | MET | The table, the refinements and the `CLAUDE.md` lane-2 bullet now say the same thing. |
+| Dashboard: lane 2 is a closed list | MET | Lane 2 is only `web/styles` and CSS, `design/` and new tests. Lane 3 is judge files and logs. Lane 1 is "everything else", with `.npmrc`, `tsconfig` and `public/` named. |
+| Scope | MET | Only `CLAUDE.md` and `docs/JUDGE.md` (trading) and `CLAUDE.md` (dashboard) change. No code changes. |
+
+Follow-up (wording, not blocking): the trading `CLAUDE.md` sentence "Lane 1 is decided by the path list in
+`docs/JUDGE.md`" now reads better as "lanes 2 and 3 are listed in `docs/JUDGE.md`; everything else is lane 1". Its
+next bullet already says this.
+
+**Verdict: PASS for both.** Merge them. After the merge I check `main`.
