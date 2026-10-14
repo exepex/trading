@@ -59,3 +59,13 @@ do not block its merge, but they need their own story now:
 ## Process
 
 The fourth breach. The branch, by contrast, followed the rule.
+
+## Addendum 1 (merge check, omenix-dashboard 11ca4a3)
+
+**MET.** 11ca4a3 has parents d05b467 (main) and dc68754 (the passed tip). My recomputed merge of the two equals
+11ca4a3 exactly. At 11ca4a3 (my runs):
+- `npm test`: 452 passed, 0 failed;
+- `tools/check_code_size.mjs`: passes.
+
+I cannot read omenix-dashboard's GitHub Actions from this session (the repository is outside this session's GitHub
+scope), so CI there is not checked by me. My local gates are the evidence.
