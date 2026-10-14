@@ -69,3 +69,39 @@ NIFTY sizes, the effect is small. Record it as a stated limit on scoreboard B ra
 
 New package `fno/desk/` with its own composition root (in CLAUDE.md); C1 charges reused, not re-implemented; files
 under 130 lines; no order capability. Process: a third push to `main` without a PASS.
+
+## Addendum 1 (branch `story/e4-entry-limit` 0f0e49c, reviewed before merge): PASS, one condition for E3
+
+**Checks at the branch tip, in a separate worktree:**
+- `tests/desk`: 40 passed.
+- Full suite: 2,151 passed. Ruff and imports are clean.
+
+My plants, each caught:
+
+| Plant | Result |
+|---|---|
+| The entry-limit check switched off | 3 failed |
+| The shortfall sign reversed | 10 failed, 12 errors |
+| The touch net without C1's charges | 3 failed |
+| `settlement_needed` removed from the blocking outcomes | 1 failed |
+
+**What it does:** with every leg quoted, the net entry at the touch, including C1's charges, must be no worse than
+C2's modelled entry cash (`TradeCosts.entry_cash_flow`: decision mids, B2's pad, entry charges). Otherwise nothing
+fills, and "not opened: entry_worse_than_approved" is recorded with `shortfall_rs`. The limit scales with lots, and
+exits are never limited. The must-fix is closed.
+
+**Should-fix (a) is done:** `settlement_needed` now blocks the book's new risk, alongside `protection_unverified`.
+
+**Condition for E3 (must hold when E3 wires the desk):** `approved_entry_rs` is a separate field of `EntryOrder`, not
+read from C2's `RiskDecision`, which carries no entry cash today. The tests build it from the same `entry_cash_flow`
+C2 uses, but production code could pass any number and loosen the limit. E3 must take it from C2's own computation
+for that decision: ideally C2 records the entry cash in its `RiskDecision`, and E4 refuses an order whose limit
+differs. Reasoning only; it matters once E3 exists.
+
+**Expiry settlement split into E7: accepted.** The story text names no settlement, so the builder is right that it is a
+new story: intrinsic value against NSE's `SttlmPric`, plus exercise STT in C1, which C1 lacks. The orchestrator's
+condition, no version approved to `paper` until E7 passes, replaces my D1 guard (c). It is safe today, since nothing is
+approved, and no path can hold to expiry without the owner's approval. It is a recorded rule, not a code guard.
+Before the first `paper` approval, either E7 passes or a loader check is added.
+
+**PASS: the builder may merge.** I will then check that `main` equals this tip plus a clean merge and that CI is green.
