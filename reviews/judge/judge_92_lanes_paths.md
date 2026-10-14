@@ -109,3 +109,12 @@ Follow-up (wording, not blocking): the trading `CLAUDE.md` sentence "Lane 1 is d
 next bullet already says this.
 
 **Verdict: PASS for both.** Merge them. After the merge I check `main`.
+
+## Addendum 3 (14 Oct 2026): merges trading da1509f and dashboard 5a6a2a1 MET
+
+- **Trading da1509f.** Parents are 72a1897 and 395324d. It equals my recomputed `git merge-tree` exactly. Against its
+  first parent it changes only `CLAUDE.md` and `docs/JUDGE.md`. No code is on `main` after it.
+- **Dashboard 5a6a2a1.** Parents are f74ff60 and 70cd56d. It equals my recomputed merge exactly and changes only
+  `CLAUDE.md`. Nothing has landed after it.
+- **Skipped full suite.** The orchestrator skipped the full suite for this docs-only diff. That is acceptable: no code
+  changed, and checks CI runs on the push anyway.
