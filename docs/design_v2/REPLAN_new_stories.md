@@ -78,7 +78,9 @@ the day. Layer and section references are to the design v2 files.
   and the daily stress line of section 6.2, in C2 with config through `fno/config.py`. Depends: C2, the owner's numbers.
   M. Slice B.
 - **E8 Owner-timing fills.** `OwnerTiming`: fill at the first snapshot at or after card time plus the owner's reaction
-  time, or the next session when away; both E4's and E8's fills reported, so the cost of human delay is visible.
+  time, inside the card's entry range or recorded as missed; the next session when away or after 15:25. Primary
+  R = 60 minutes, with R = 30 and R = 5 as sensitivities (owner decision of 15 Oct 2026); E4's fills reported too, so
+  the cost of human delay is visible. Its code joins S1's `frozen_files` (owner decision of 15 Oct 2026).
   Depends: E4, A16 (falls back to A4 snapshots until A16 runs). M. Slice B.
 
 ## Cards and alerts (layer 6)
@@ -96,7 +98,8 @@ the day. Layer and section references are to the design v2 files.
 
 - **LM1 Position monitor, alert only.** `PositionMonitor` and one `MonitorCheck` class per check of 4.2, heartbeat and
   "monitor silent" checker, weekly replay for missed alerts. No entry code path. Acceptance includes section 4.4's
-  clock contract and owner-unavailable fallback. Starts only when the first paper or shadow position is open.
+  clock contract and owner-unavailable fallback, and alerts written for up to 1 hour of owner delay (6.5). Starts only
+  when the first paper or shadow position is open.
   Depends: A16, E1, T1, host. M. Slice B.
 - **LM2 Intraday exits mode.** `intraday_exits` per strategy version, with the same version shadowed in the other mode
   as a registered comparison. Depends: LM1, E8. M. Slice C.

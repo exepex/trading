@@ -12,13 +12,13 @@
 - **Strategy pauses (decided):** a single trade's loss reaching the plan's catastrophic loss, or a strategy's cumulative
   realised loss reaching Rs 30,000; an owner re-approval restarts the count.
 
-## 6.2 Many strategies, one market: risk buckets (proposal; owner decides the numbers)
+## 6.2 Many strategies, one market: risk buckets (accepted by the owner on 15 Oct 2026)
 
 With Rs 20 lakh, about 15-20 protected NIFTY structures could be funded at once (a condor needs about Rs 1 lakh of funds
 at entry, response 92). They would all lose in the same crash. So limits apply to **correlated groups**, not only to
 trades.
 
-| Limit | Proposal | Reason (reasoning only) |
+| Limit | Value (accepted 15 Oct 2026) | Reason (reasoning only) |
 |---|---|---|
 | Risk bucket | Positions sharing an underlying group (NIFTY, BANKNIFTY, one stock, or "stock results this week") and a side of exposure (short volatility, long volatility, bullish, bearish) | One crash or one squeeze hits the whole bucket |
 | Bucket cap | Sum of maximum losses at most Rs 30,000 (3 trades' worth) | The owner's original 3-trade limit, applied to each correlated group |
@@ -65,11 +65,16 @@ alert says what to do, or "information, no action".
 Limits: one alert per condition per position per hour; after 10 DANGER alerts in a session, one summary every 30
 minutes. Each alert is a record (condition, snapshot time, sent time), so latency and misses are measured (layer 7).
 
+**Owner delay up to 1 hour (owner decision of 15 Oct 2026).** Every alert says what the paper record assumes if the
+owner acts 60 minutes later, and no alert's value may depend on a faster reaction. Any strategy idea or exit rule that
+only works with a reaction of 15 minutes or less is flagged at its idea card (G0) as "needs fast reaction" and cannot be
+approved to paper on that basis: its registered result is the one at R = 60.
+
 **What the alerts cannot do.** A 15-minute check cannot catch a crash inside 15 minutes, and the owner cannot act faster
 than their reaction time. Because every position's loss is capped at entry, a late alert costs at most that cap; this
 is why defined risk, not speed, is the protection (reasoning only, consistent with the owner's "speed is not the goal").
 
-## 6.6 Where the 15-minute recorder and the monitor run (owner decides)
+## 6.6 Where the 15-minute recorder and the monitor run (decided: option a)
 
 GitHub Actions ran hours late here (response 91), and no broker key may go into GitHub (owner decision of 13 Oct 2026 on
 the 3 pm recorder, option a). Options:
@@ -81,6 +86,8 @@ the 3 pm recorder, option a). Options:
 | (c) Owner's own always-on computer | A small script | Key stays at home | Depends on the owner's machine and internet |
 | (d) NSE public quotes, no key | Scrape NSE's site | No broker key at all | NSE often blocks cloud addresses; fragile; terms of use unclear |
 
-**Recommendation (reasoning only):** (b), if Groww offers a data-only key or the owner accepts the key risk with the
-controls named; otherwise (a) for the first months, measured for cost by F8. This is the owner's decision because it
-places a broker key.
+**Decided (owner, 15 Oct 2026: "1 - A"): option (a), a Claude routine,** in the same place as the 3 pm Groww recorder,
+so no new place holds the key. Its cost is measured by F8; Azure (b) is revisited only if Groww offers a data-only key.
+My earlier recommendation was (b) with conditions; the owner's choice avoids a second place for the key, at the price
+of about 26 routine sessions a session-day and the routines' research-preview status, which the monitor's heartbeat
+(4.2) watches.

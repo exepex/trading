@@ -12,7 +12,7 @@ The G1 screen is a cheap feasibility observation, not an outcome test; the outco
 
 | Gate | What is checked | Who | Output |
 |---|---|---|---|
-| G0 Idea card | Who pays and why; the forecast it rests on (if any); structure; entry, exit, size; worst loss in Rs; expected gross per trade with its source | any role or AI | `research/ideas/<id>.md` |
+| G0 Idea card | Who pays and why; the forecast it rests on (if any); structure; entry, exit, size; worst loss in Rs; expected gross per trade with its source; whether it needs a reaction faster than 60 minutes (then flagged "needs fast reaction" and judged at R = 60, section 6.5) | any role or AI | `research/ideas/<id>.md` |
 | G1 Feasibility screen (cost wall) | A documented gross-payoff distribution per trade, or a conservative bound, with its source; full round-trip cost (C1 charges plus pads from measured half-spreads, A4 and A16 data); **expected net after costs and tail losses above zero on the conservative bound**; for volatility ideas, the implied-volatility-point edge per vega per lot needed to clear costs. The ratio "gross at least 2 x cost" is shown as a labelled warning ("thin margin"), never a pass mark | code (CostWall) | pass, or ledger status `screened_out` with the numbers; a pre-registered counterexample study may still test it |
 | G2 Data spend | The data the test would use has not been spent by an earlier trial (data-spend register, below); if spent, the test is labelled exploratory and cannot pass | code | fresh or exploratory |
 | G3 Sample plan | n needed = (z x SD / expected net)^2 from the idea's own SD estimate; the time that takes at the idea's frequency | statistician | registered n and date; above 3 years only if the idea rests on a forecast that already beat its baseline (rung 1) |
@@ -76,12 +76,20 @@ D6), packs (E2), timetable (E3), Book 1 (E5), scorecard and pause rules (E6).
 1. **Account Rs 20 lakh, Rs 10,000 maximum loss per trade** (owner, 14 Oct). Config `profiles.paper` changes through a
    lane-1 change to C2's settings. The open-trade limit and drawdown brake are rescaled by risk bucket
    (`06_risk_and_alerts.md`), owner decides the numbers.
-2. **Fills at the owner's action time** (story E8). A card sent at time T fills at the first quote snapshot at or after
-   T + R, where R is the owner's declared reaction time (proposal: 15 minutes in market hours; reasoning only), at the
-   bid for sells and the ask for buys, plus the pad. If T + R is after 15:25 IST, or the owner's availability calendar
-   says "away", the fill is at the next session's first snapshot after 09:30 plus R. Exits from the monitor follow
-   the same rule. Today's E4 fills at the execution snapshot (15:15); E8 adds the owner-timing rule beside it, and the
-   scoreboards show both, so the cost of human delay is measured.
+2. **Fills at the owner's action time** (story E8). The owner's reaction time (owner decision of 15 Oct 2026): 5 minutes
+   when available, 30 minutes on average, at most 1 hour. **The primary paper fill uses R = 60 minutes, the worst
+   case**; fills at R = 30 and R = 5 minutes are reported beside it as sensitivities (reasoning only: the worst case is
+   the honest headline). A card sent at time T fills at the first quote snapshot at or after T + R, at the bid for
+   sells and the ask for buys, plus the pad, and only if that price is inside the card's entry range; outside it, the
+   trade is recorded as "missed, price moved" and never filled at another price. Exits from the monitor follow the same
+   rule. If T + R is after 15:25 IST, or the availability calendar says "away", the fill is at the first snapshot at or
+   after the next session's 09:15 plus R.
+   **Consequence, said plainly:** with a 15:08 card and R = 60, the primary fill of every daily-card entry lands on the
+   next session at about 10:15, after the overnight gap, and the card's 15:00 entry range may no longer hold. That is
+   what the owner would really get. If it costs too much, the remedy is an earlier decision time (an S1 `timetable`
+   change: for example, decide at 14:00 so that 60 minutes fits before the close), never a shorter assumed R; the
+   owner decides after the first weeks of E8's three-way report. Today's E4 fills at the execution snapshot (15:15)
+   stay reported too, so the cost of human delay is measured.
 3. **Structures.** Bought options, vertical spreads, and protected four-leg structures (story STR1 opens B2, C4, D1, D2
    and A14 to one- and two-leg shapes). Never a naked short leg: C4 refuses any position whose maximum loss is not
    fixed at entry.
