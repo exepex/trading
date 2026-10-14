@@ -1,7 +1,7 @@
 """Story C2 end to end: the risk manager as the app wires it (config.yaml `risk`, B2's cost model), its decision record,
 and failing closed on unusable inputs."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 
@@ -67,10 +67,33 @@ def test_borderline_the_limit_equal_to_the_maximum_loss_passes_and_a_paisa_less_
     assert not _evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss - 0.01)).verdicts[1].ok
 
 
-def test_the_repository_settings_refuse_every_trade_until_margins_and_the_factor_are_entered():
+def test_the_repository_settings_refuse_every_trade_until_margin_rows_are_entered():
     decision = _evaluate(build_risk_manager(load_app_config()))
     margin = next(v for v in decision.verdicts if v.rule == "margin_room")
     assert not decision.ok and not margin.ok and "input not usable" in margin.reason
+
+
+def _repository_factor_on(tmp_path, day):
+    """The repository's own stressed-margin settings (owner, 14 Oct 2026: 1.45, as_of 14 Oct, 30 days), with a fresh
+    margin row for `day` (A14's job writes these daily)."""
+    margins = tmp_path / "margins.csv"
+    margins.write_text(",".join(MARGIN_COLUMNS) + f"\nSF,200,40000,0,0,test calculator,{day}\n")
+    manager = build_risk_manager(load_app_config(overrides={"risk": {"margins": {"file": str(margins)}}}), tmp_path)
+    new = proposal("new", FLY, 200, short_fly(25000, 200), day + timedelta(days=14))
+    decision = manager.evaluate(new, book(), market(25000, PRICES, day + timedelta(days=14), day=day))
+    return decision, next(v for v in decision.verdicts if v.rule == "margin_room")
+
+
+@pytest.mark.parametrize("day", [date(2026, 10, 14), date(2026, 11, 13)])
+def test_the_owner_s_factor_lets_a_valid_trade_open_through_its_30th_day(tmp_path, day):
+    decision, margin = _repository_factor_on(tmp_path, day)
+    assert decision.ok, decision.reasons
+    assert margin.numbers["multiplier"] == "1.45" and margin.numbers["as_of"] == "2026-10-14"
+
+
+def test_from_the_31st_day_every_trade_is_refused_until_the_factor_is_renewed(tmp_path):
+    decision, margin = _repository_factor_on(tmp_path, date(2026, 11, 14))
+    assert not decision.ok and "stressed margin multiplier of 2026-10-14 is not valid on 2026-11-14" in margin.reason
 
 
 def test_a_missing_quote_fails_closed_in_every_rule_that_needs_it(tmp_path):

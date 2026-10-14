@@ -12,11 +12,18 @@ def problems(text: str) -> list[str]:
     return completeness_problems(text, parse_protocol(text))
 
 
-def test_the_committed_draft_is_complete_and_every_item_awaits_the_owner():
+# The owner's decisions of 14 Oct 2026 (docs/DESK_DECISIONS.md); every other item still awaits the owner
+DECIDED_BY_OWNER = (
+    "uncertainty_criterion", "catastrophic_loss_strategy", "ai_cost_allocation", "reporting_per_version",
+    "frozen_files",
+)  # fmt: skip
+
+
+def test_the_committed_draft_is_complete_and_only_the_owner_s_decided_items_are_decided():
     protocol = parse_protocol(DRAFT)
     assert problems(DRAFT) == [] and protocol.version == 1
     assert set(protocol.items) == set(REQUIRED_ITEMS)
-    assert undecided_items(protocol) == list(REQUIRED_ITEMS)  # a draft: nothing is decided
+    assert undecided_items(protocol) == [key for key in REQUIRED_ITEMS if key not in DECIDED_BY_OWNER]
 
 
 def test_a_decided_protocol_has_nothing_left_for_the_owner():
@@ -79,4 +86,4 @@ def test_the_check_command_passes_the_draft_and_refuses_it_as_decided(capsys):
     assert _check(decided=False) == 0
     assert "complete" in capsys.readouterr().out
     assert _check(decided=True) == EXIT_FAILED
-    assert "not decided by the owner (18)" in capsys.readouterr().out
+    assert f"not decided by the owner ({len(REQUIRED_ITEMS) - len(DECIDED_BY_OWNER)})" in capsys.readouterr().out

@@ -79,6 +79,7 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 87: story E3 follow-up, the account check scoped per book (judge 82 addendum 6): `reset --keep`, refuse only on unpushed commits or uncommitted work in the book's own folder](response_87_e3-scoped-account-check.md)
 - [Response 88: story S2, scoreboard B, design proposal before building: sources that exist and those that do not (F4, F8, the daily equity history), the daily series rebuilt from snapshots, rules and questions](response_88_s2-scoreboard-b-design.md)
 - [Response 90: story C2 funds at entry (judge 77 addendum 3): Groww takes the margin with no sold-premium credit plus the bought premium and charges; never looser than the broker, on Groww's own basket; C4's same gap flagged](response_90_c2-funds-at-entry.md)
+- [Response 93: S1 owner batch 1: five protocol items decided (option A, 120 days, AI usage share, cumulative pause), the cumulative strategy pause built in E6, stressed margin 1.45 valid to 13 Nov 2026](response_93_s1-owner-batch1.md)
 - [Response 76: D6 version registry and evaluation segments: git-ancestry rule, scoring pause; builder's claims](response_76_d6-version-registry.md)
 - [Response 80: P8 flows hardening (judge 79 should-fixes): covered <= day test; first copy kept, stated; a later-session refusal skips only that list](response_80_p8-flows-hardening.md)
 - [Response 81: D3 decision record: replayable inputs, atomic write-once runs, late marking, three-book schema; builder's claims](response_81_d3-decision-record.md)

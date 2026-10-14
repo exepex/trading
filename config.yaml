@@ -78,12 +78,14 @@ risk:
       source: "Groww margin API (read-only), orchestrator run"
       passed_on: 2026-10-14
   # One frozen stressed-margin method: multiplier (factor, source and as_of required; expires after max_age_days) or
-  # scenario_lookup (scenario_file: a margin per scenario above). Not set yet: every trade is refused until it is.
+  # scenario_lookup (scenario_file: a margin per scenario above). Owner, 14 Oct 2026 (DESK_DECISIONS): 1.45 by hand,
+  # the largest held-position rise over three crisis windows (response 77). It is valid to as_of + 30 days (13 Nov
+  # 2026); from the next day every trade is refused until a new as_of is entered.
   stressed_margin:
     method: multiplier
-    multiplier: null
-    source: null
-    as_of: null
+    multiplier: 1.45
+    source: "reviews/claude/response_77_a14-nse-margins.md (largest held-position rise over three crisis windows)"
+    as_of: 2026-10-14
     max_age_days: 30
 
 # Story E6: the paper review rule's statistics, in one place. PROVISIONAL until S1 (the evaluation protocol) freezes the

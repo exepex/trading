@@ -12,7 +12,7 @@ from ..desk.records import DeskRecords
 from ..desk.snapshot import ContractKey
 from ..desk.trade_counts import version_key
 from ..playbook.loader import Playbook, PlaybookLoader
-from .pauses import AutoPauser, catastrophic_losses, drifts
+from .pauses import AutoPauser, catastrophic_losses, cumulative_losses, drifts
 from .review import ReviewTerms
 from .scorecard import Scorecard, build_scorecard
 from .strategy_record import StrategyRecord, strategy_records
@@ -34,6 +34,7 @@ class ScorecardRun:
         if pause:
             approved_on = {r.key: r.changed_on for r in self.loader.registry.rows() if r.status == PlaybookStatus.PAPER}
             triggers = drifts(playbook) + catastrophic_losses(records, playbook, on, approved_on)
+            triggers += cumulative_losses(records, playbook, on, approved_on)
             actions = self.pauser.apply(triggers, playbook, on)
             playbook = self.loader.load() if actions else playbook
         shown = [r for r in records if account in (None, r.account) and strategy in (None, r.strategy)]
