@@ -336,3 +336,43 @@ failed reports to the log **after** `store.write` succeeds, and Book 1 commits b
 is clean.
 
 **Verdict: FAIL on D only.** Everything else in judge 84 is met.
+
+## Addendum 5 (round 5, branch e3e0346): PASS
+
+**Must-fix D is met.** Checking and logging are split:
+- `BookTradeValidator.validate` writes nothing and returns its report.
+- `DecisionRun.decide` calls `log_failures` only after `store.write` returns, so a run refused as a duplicate logs
+  nothing.
+- Replay never logs.
+
+**My real-git probe, re-run** (a validator that fails and logs through `log_failures`; `Book1` with `GitCommitter` on
+a real clone):
+- Day 1: the run and the CSV are committed, `git status` is clean, and Book 1's exit sync is OK.
+- **Same-day rerun with the same inputs:** "already decided", and `git status` is **clean**. Book 1's next account
+  write is OK. Before this fix it was refused.
+- The Book 2 line in my probe fails only because my test repo has no `journal/book2_hybrid` folder (a pathspec error,
+  not a dirty checkout). In real use the folder exists.
+
+**My plants (3):**
+
+| Plant | Result |
+|---|---|
+| Log before the write | caught (2) |
+| Log never called | caught (3) |
+| The `log is None` guard removed | not caught. Unreachable in production: replay never calls `log_failures`, and only the decision run's validator (with a log) is called. Information |
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,856 passed;
+- ruff, format (640 files) and imports (647): clean;
+- `git merge-tree` with current `main` (7308746): clean.
+
+**Accepted stated limit:** if the log append itself fails after the run is written (for example, a full disk), the
+run stays uncommitted. It fails loudly, and it was true before.
+
+**Verdict: PASS.** Judge 84's must-fixes 1, 2, A, B, C and D are all met. Still true and to watch:
+- Book 1 has not run on real data;
+- no order can fill until A14's margin rows exist (C4's `margin_room`);
+- the worktree replay is a separate story.
+
+After the merge I check `main` against e3e0346 and CI. The orchestrator's rule of no `fno/` merges between 14:55 and
+15:20 IST (09:25-09:50 UTC) applies to this merge.
