@@ -229,3 +229,45 @@ approval of the whole design.
   was done for A8.
 
 **Verdict: PASS for 2b0da01cefede91f253f165dd01a6b6f9a79d248.** It waits only on the owner's "design approved".
+
+## Addendum 6 (15 Oct 2026): revision 3 at 01575a155b44f10b3f397f126986f9ca092ae78c (2b0da01..01575a1)
+
+Scope: all 16 changed files read in full diff (`git diff -w 2b0da01 01575a1`), the 15 Oct owner rows of
+`DESK_DECISIONS.md`, and the regular-session closes in `research/data/nifty-panel/warmup_closes.csv`.
+
+| Claim | Status | Evidence |
+|---|---|---|
+| B1 timing contract | MET | 04 §4.1: data cutoff 15:00, decision final 15:06, card sent 15:08; an advocate timeout gives `advocate_unavailable`, never a delay; matches 07 §7.3 |
+| B2 zero shadows give `undecided / no_economic_test` | MET in substance, PARTLY in process | Statistically right (no observations, no bound). But it changes the outcome of owner decision 7 and the text states it as decided; see must-fix 1 |
+| B3 primary loss `ln f + RV/f`, no floor | MET | Algebra checked: textbook QLIKE = (ln f + RV/f) - ln RV - 1, so paired differences are equal whenever RV > 0, and the ranking loss is defined at RV = 0. Regular sessions re-counted: 2,409 returns, the old floor would bind 133/2,159; zero-return days 31 Mar 2017 and 8 May 2024 |
+| B4 `exploratory_shadow` | MET | Counts only if frozen before collection; promotion and paper eligibility need rung 1 and the economic test (R3, REPLAN slice B). No path found that lets a result shape its own registration |
+| 33 ACCEPT, 2 PARTIAL | MET | The remaining edits (6.1a four kinds of loss, monitor-silent rule, 09 limits relabelled, SEBI figures down to "some evidence", A16 operational gates, G6 test list, A11 cue timing in 02) match what response 97 says |
+| Owner flag 1, decision 4 ("3%") | MET | Redefined on the ranking loss; equivalent to "3% lower mean textbook QLIKE" on RV > 0 days and flagged. Nuance: on RV = 0 days the textbook form is undefined, so the day set behind the 3% must be frozen in G6 (follow-up) |
+| Owner flag 2, decision 8 tightening | MET | 08 says "Proposed tightening, awaiting the owner ... decision 8 is not changed" |
+| Owner flag 3, decision 7 zero shadows | NOT MET | See must-fix 1 |
+
+**Must-fix 1: the decision-7 change is written as decided.** Decision 7 (owner, 15 Oct) is "stop or pivot only when
+both tests say no". Under revision 2, which the owner read, no shadow reaching rung 2 made Test B "no"; revision 3 makes
+it "undecided", so a review with A "no" and no shadows now goes to the continue / code-only options instead of stop or
+pivot. That is a change to what decision 7 does. Yet:
+- 08 §8.2's heading still reads "decided by the owner on 15 Oct 2026", and the body states the new rule flatly ("Zero
+  eligible shadows gives `undecided / no_economic_test`, never 'no'"), with only "correction flagged" in the heading;
+- response 97's summary (line 18) says "two accepted changes touch owner decisions 4 and 8", leaving decision 7 out,
+  although its own B2 section (line 43) flags it.
+The orchestrator's request was that the text decides none of the three. For decision 8 it does not; for decision 7 it
+does. Fix: write it like decision 8 ("Proposed correction, awaiting the owner: ... decision 7 is not changed until the
+owner says so"), and make response 97's summary name decisions 4, 7 and 8. I expect the owner to accept it: it is
+statistically correct, and my addendum-2 PASS missed that revision 2 contradicted its own "underpowered is never no".
+That miss is mine.
+
+**Follow-up (not blocking):**
+1. G6 freezes the day set for the 3% QLIKE effect (RV > 0 days, or all days on the ranking loss) so numerator and
+   denominator use the same days.
+2. Process: ChatGPT's 6392951 replaced `reviews/chatgpt/review_95_design-v2.md` instead of appending (the old text is at
+   d373139). Review files should be append-only, like the decision log.
+
+Project rules: every file under 350 lines (largest design file 192, response 97 115); no code, tests or frozen files
+touched; no secrets, emails or model names found in the diff.
+
+**Verdict: FAIL for 01575a155b44f10b3f397f126986f9ca092ae78c**, on must-fix 1 only (wording, two places). Everything
+else in revision 3 passes; a re-check needs only 08 §8.2 and response 97's summary.
