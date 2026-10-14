@@ -1,0 +1,123 @@
+# 5. The forecasting and volatility research programme
+
+## 5.1 Why movement size, and what that can and cannot give
+
+- **Volatility clusters and is forecastable** (strong evidence: Engle 1982, Bollerslev 1986, Corsi 2009's HAR model,
+  and decades of replications; our own G2 HAR baseline uses it).
+- **Implied volatility is usually above later realised volatility** (the variance risk premium; strong evidence:
+  Carr and Wu 2009, Bollerslev, Tauchen and Zhou 2009; ours: ATM implied above trailing 20-day realised on 74% of
+  2019-23 and 82% of 2024-26 monthly entries, median about 2 points, response 92).
+- **Implied volatility is a strong forecast in its own right** (strong evidence: Christensen and Prabhala 1998; the
+  Poon and Granger 2003 review finds it often the best single forecast). So beating the market's own number is hard;
+  beating a random walk is easy and worth nothing for trading.
+- **Intraday data measures volatility far better than daily closes** (strong evidence: Andersen, Bollerslev, Diebold
+  and Labys 2003). This is why 15-minute quotes (A16) come first in layer 1.
+- **Daily direction is close to a coin toss** (strong evidence: our Q1 base rates and desk 1's trend trials at 50-52%).
+  Direction stays forecast and scored (G1 Q1); no trade may rest on it until it beats its baseline.
+
+**What it can give us (reasoning only):** knowing when the premium is unusually large or small relative to a good
+forecast, and only acting when the gap is larger than the costs. **What it cannot give:** a forecast that is right most
+days in a way that pays after costs, unless the gap is large and the structure is cheap to trade.
+
+## 5.2 Targets: protocol v4 (new version; G1 v3 stays frozen and keeps running)
+
+Realised variance of a session `RV_s` = squared overnight log return (previous close to 09:15) plus the sum of squared
+15-minute log returns 09:15-15:30 (A16). Before A16 has history, the close-to-close squared return stands in, labelled
+`close_proxy` (far noisier).
+
+| Id | Question | Type | Independent outcomes a year | Starts |
+|---|---|---|---|---|
+| V1 | NIFTY realised variance of the next session | point forecast | about 250 | when A16 has 20 sessions |
+| V2 | NIFTY realised variance over the next 5 sessions | point forecast | about 50 | now (close proxy), then intraday |
+| V3 | NIFTY realised variance over the next 20 sessions | point forecast | about 12 | now (matches Q3, Q5) |
+| V4 | P(next-5-session realised volatility < 15:00 ATM implied volatility of the nearest weekly expiry at least 5 sessions out) | probability | about 50 | when A16 records weekly ATM quotes |
+| V5 | P(NIFTY at the nearest monthly expiry ends inside today's ATM straddle price) | probability | about 12 | now (A4 quotes) |
+| V6 | P(next-session absolute move at least 2%), P(largest absolute move over 5 sessions at least 2%) | probability | about 250 / 50 | now (the weather, section 2.3) |
+| V7 | P(India VIX higher in 5 sessions) | probability | about 50 | now |
+
+V5 is the one most directly tied to money: it asks whether the straddle buyer loses. V1 and V6 carry most of the
+statistical power because their outcomes do not overlap. Stock options around results get their own protocol (R2).
+
+## 5.3 Baselines (frozen with v4, built like G2)
+
+- **Trailing:** the matching past window's realised variance (random walk), and RiskMetrics EWMA (lambda 0.94).
+- **HAR:** G2's HAR-type model on daily, then on intraday realised variance. A forward-only intraday history is short:
+  HAR on intraday data needs at least 250 sessions before it forecasts (G2 uses 500-750 on daily data), so it starts
+  about a year after A16 goes live. Said plainly: the best intraday model arrives late.
+- **Implied:** IV30 squared, scaled to the horizon; and the same times a fixed ratio (median realised over implied
+  over the trailing 750 days), which removes the average premium.
+- **Base rate:** for every probability question, as G2 (b).
+
+**The primary comparison for each question is against the strongest economically relevant baseline:** the implied
+baseline for V2, V3 and V5, HAR for V1, base rate for V4, V6 and V7. Beating only the trailing baseline is reported but
+never counts as skill.
+
+## 5.4 Scoring
+
+- **Point variance forecasts:** QLIKE loss, `RV / f - ln(RV / f) - 1`, primary (strong evidence that it ranks forecasts
+  correctly with a noisy realised measure: Patton 2011); mean squared error on variance secondary; the Mincer-Zarnowitz
+  regression `RV = a + b f` reported for bias.
+- **Probabilities:** Brier primary (as G1), log score, the 10-bin reliability table, the calibration slope and
+  intercept, and the Brier skill score against the base rate.
+- Missing forecasts are counted, never imputed; void rules as G1 section 2.
+
+## 5.5 What "beats the baseline" means, statistically
+
+1. **Pre-registered family** per protocol version: each question's primary comparison for each registered forecaster.
+2. **Statistic:** the mean paired loss difference `d_t = loss(forecaster) - loss(baseline)` on dates both forecast and
+   the outcome resolved (a Diebold-Mariano comparison); negative favours the forecaster. One-sided.
+3. **Uncertainty:** moving-block bootstrap as G1 (10,000 resamples, seeded per comparison), block length at least the
+   horizon and never below 5 sessions (V1: 5, V2: 10, V3 and V5: 20).
+4. **Significance:** Holm's step-down across the family at 5% family-wise.
+5. **Minimum effect, registered:** at least a 3% lower mean QLIKE than the primary baseline, or a Brier skill score of
+   at least 0.02 (reasoning only for both numbers; owner decides). A significant but smaller gain is "real but too
+   small to trade".
+6. **Stability:** the sign of the gain is the same in the first and second half of the scored period (descriptive).
+7. **Economic check:** skill counts for trading only when its shadow strategy (factory ideas V1, V2) shows the gain
+   survives costs: rung 2 of the evidence ladder.
+
+**How long it takes (arithmetic).** For a one-sided 5% test with 80% power, n = (2.49 x r)^2 independent outcomes,
+where r is the SD of `d_t` divided by the effect. At r = 5, n = 155; at r = 10, n = 620. For V1 (250 a year) that is
+about 8 months or 2.5 years; for V3 (12 a year) 13 or 52 years. **Rule:** after 60 scored outcomes of a question,
+the statistician measures r and publishes the projected date; if it is beyond 2 years, the card and the owner are told
+plainly that this question cannot be settled in useful time.
+
+## 5.6 How the Rs 10,000 cap shapes what a volatility view can trade (arithmetic, Black-Scholes approximation)
+
+At NIFTY 25,000, implied volatility 13.8% and lot 65:
+- A 30-day ATM straddle costs about 0.8 x 25,000 x 0.138 x sqrt(30/365) = about Rs 790 a unit, **Rs 51,000 a lot**.
+- A weekly (5-day) ATM straddle costs about Rs 320 a unit, **Rs 21,000 a lot**.
+Both exceed the Rs 10,000 maximum loss. So a "buy movement" view can only be expressed with debit spreads,
+butterflies or far strangles, and a "sell movement" view only with protected structures (as tested). These have small
+vega, so the volatility edge needed to cover costs is larger than for a straddle. Every V-idea's card must show its
+vega per lot and the edge in volatility points needed to cover full costs, computed by the cost wall.
+
+## 5.7 Anti-overfitting rules (all binding on every forecaster and idea)
+
+1. Registered before read: protocol hash and ledger row before any outcome is computed (B4 enforces).
+2. One test per version; a fail is final; a variant is a new row.
+3. Spent data (`research/DATA_SPEND.md`) gives exploratory results only, never a pass.
+4. Forward is the default test; history only where it is fresh.
+5. Simple first: a rule forecaster fits at most 5 parameters, only on rolling past windows that end before the cutoff;
+   anything larger must beat the simple model by the registered margin and name its economic reason.
+6. Point in time: inputs only from rows with `first_seen_at` before the cutoff.
+7. Holm within a family; the factory's trial count and expected false passes on every report.
+8. Minimum effect sizes registered, not only p-values.
+9. Crash replays (2020, 2024) are stress tests of the worst case, never evidence of an edge: that history is seen.
+10. Every number with its interval; no point estimate alone.
+11. No stopping on results: tests run to their registered sample or date (safety stops excepted).
+12. AI forecasters stay sealed from outcomes and from each other (F1, owner's 14 Oct conditions); prompts versioned.
+13. The judge checks every freeze and every result (lane 1).
+
+## 5.8 Drift detection (proposal; owner decides the numbers)
+
+- **Forecasters:** a one-sided CUSUM on `z_t = d_t / s`, where `s` is the SD of `d_t` over the forecaster's first 60
+  scored non-overlapping outcomes: `S_t = max(0, S_(t-1) + z_t - 0.5)`, alarm at `S_t > 5` (about 900 outcomes between
+  false alarms for independent normal data; fewer with dependence). Used on V1 and V6 daily and on every 5th day of V2.
+- **Strategies:** the same on per-trade net standardised by the registered SD around the registered expected net,
+  alarm at 4 (about 340 trades between false alarms). It pauses new entries until the owner reviews.
+- **Honest limit:** a monthly strategy gives 12 trades a year, so drift detection reacts in years. The decided
+  catastrophic-loss rules (S1, Rs 10,000 per trade and Rs 30,000 cumulative) act much faster and stay the first line.
+- **Conflict to settle:** S1's draft `immediate_pauses` allows no statistical pause before a scheduled review. The drift
+  pause is one, accepted by the owner as a missing piece on 14 Oct. S1 must list it as a named exception (`REPLAN.md`
+  section 4).
