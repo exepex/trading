@@ -43,7 +43,7 @@ and commit, red-team note, judge verdict, owner approval date)`.
 
 **Judge verifies:** edits a parameter in a committed version and confirms the loader refuses it.
 
-**Depends:** B5, B7 · **Size:** M · **Status:** built; awaiting judge (builder's claims: `reviews/claude/response_70_d1-playbook-format.md`)
+**Depends:** B5, B7 · **Size:** M · **Status:** done (judge 67 with addenda 1-2 PASS; claims `reviews/claude/response_70_d1-playbook-format.md`). Follow-up for E6: auto-pause only a drifting approved version (paper → paused, one #fno-desk line) instead of refusing the whole playbook load
 
 ---
 
@@ -64,7 +64,7 @@ and **Book 2's rule default** (12.2: every Book-2 record holds the rule's defaul
 validated live versions of B7, never the close-only research features) on today's snapshot; fire when all conditions hold;
 build the structure on live quotes; run C2 checks; rank surviving candidates by score = (frozen expected net per
 opportunity from the strategy's challenge results, recorded in its playbook file) / (maximum loss including costs);
-maximum loss is always positive for these structures (a zero or negative value is a validity failure). A candidate
+maximum loss is always positive for these structures (amended 14 Oct 2026, judge 69, orchestrator's sign-off: a width whose entry prices put the position at or beyond its payoff bounds, a trade that cannot lose or cannot win, is skipped as bad prices and the next width is tried, exactly as the research did). A candidate
 needs expected net above a no-trade threshold of Rs 0 after costs. Ties: lower maximum loss first, then earlier
 expiry, then strategy name. Candidates compete for slots and cash/margin in rank order; each takes its margin from
 available cash before the next is considered. The unproven limit is **per strategy**: a strategy with fewer than 20
@@ -81,7 +81,7 @@ completed paper trades may hold at most 1 open trade; the 3-slot limit is shared
 
 **Judge verifies:** re-runs one day's evaluation from its decision record and gets the same choice.
 
-**Depends:** D1, C2, B7 · **Size:** M · **Status:** later
+**Depends:** D1, C2, B7 · **Size:** M · **Status:** done (judge 69 with addendum 1 PASS; merged 662784f; claims `reviews/claude/response_72_d2-rule-evaluation.md`)
 
 ---
 

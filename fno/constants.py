@@ -42,6 +42,7 @@ JOURNAL_FOLDER = "journal"
 # Kinds of row in a paper account's cash ledger (journal/<book>/account/cash_ledger.csv)
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
+LEDGER_SETTLEMENT = "settlement"  # an option closed by NSE's cash settlement at expiry (story E7), not a trade
 
 # Order sides, one definition for the accounting ledgers, the charges model and the paper-account fills
 SIDE_BUY, SIDE_SELL = "buy", "sell"
@@ -181,8 +182,38 @@ APPROVER_DESK = "desk"  # a builder or the research loop: may register a candida
 PLAYBOOK_FOLDER = "playbook"
 PLAYBOOK_REGISTRY_FILE = "registry.csv"
 # Entry-condition operators: numbers compare with a number, flags with `is` and true or false
+# Story D2: a strategy version with fewer completed paper trades than this is unproven and holds at most one open trade
+UNPROVEN_BELOW_COMPLETED_TRADES, UNPROVEN_MAX_OPEN_TRADES = 20, 1
+NO_TRADE_THRESHOLD_RS = 0.0  # a candidate needs expected net per opportunity above this, after costs
+NO_ESTIMATE = "none"  # a research version with no honest expected-net estimate (paper needs a number)
+
+
+class Decision(StrEnum):
+    """What story D2 decided for one opportunity."""
+
+    CHOSEN = "chosen"  # allocated: the book opens this trade
+    NOT_CHOSEN = "not chosen"  # a valid candidate that lost its slot, cash or risk check to the ranking
+    NO_TRADE = "no trade"  # the rule did not fire, or no valid trade could be built
+    SHADOW_TRADE = "shadow: would trade"  # a research candidate's forward test: recorded, never in the book
+    SHADOW_NO_TRADE = "shadow: no trade"
+
+
+EXPIRY_MONTHLY = "monthly"  # the only expiry kind a playbook names today (story D2)
 OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_AT_MOST, OPERATOR_IS = ">", ">=", "<", "<=", "is"
 NUMBER_OPERATORS = (OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_AT_MOST)
+
+# Story E4: the paper fill model. What each desk fill did, and how an entry or exit attempt ended (desk_events.csv)
+FILL_OPEN, FILL_UNWIND, FILL_CLOSE, FILL_SETTLE = "open", "unwind", "close", "settle"
+OUTCOME_OPENED = "opened"
+OUTCOME_NOT_OPENED = "not_opened"  # refused before any leg filled, or a protective leg did not fill
+OUTCOME_PARTIAL_FILL = "not_opened_partial_fill"  # a leg failed after others filled; the filled legs were unwound
+OUTCOME_EXIT_ORDERED = "exit_ordered"  # an exit rule was reached (or an unwind could not finish): close at valid quotes
+OUTCOME_PENDING_EXIT = "pending_exit"  # an exit leg had no valid quote: retried at the next scheduled snapshot
+OUTCOME_CLOSED = "closed"
+OUTCOME_PROTECTION_UNVERIFIED = "protection_unverified"  # a protective leg is unquotable: no new risk in the book
+OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit filled: NSE's settlement price needed
+# Entry limit: the net entry at the execution snapshot's touch is worse than the entry C2 approved (its modelled cash)
+ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"
 
 # NSE margins (story A14, fno/nse_margins/): NSE Clearing's exposure (extreme-loss) margin on index options, from its
 # equity-derivatives margins page (its daily `ael_DDMMYYYY.csv` lists stocks only), and when a day's

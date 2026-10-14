@@ -67,3 +67,53 @@ so I find no defect. One benefit (reasoning only): every variant the desk tries 
 number of rules tried visible for multiple-testing purposes.
 
 **Verdict on the change:** acceptable. The judge 67 must-fix (the B7 gate accepting removed days) is still open.
+
+## Addendum 2 (the must-fix, 1844bc2 on `main`, the same tree as branch `story/d1-playbook` d54187f; after-the-fact review)
+
+**Process:** this reached `main` without a PASS, the second breach of the owner's rule. The builder reported it.
+The branch tip and 1844bc2 differ only by my own judge file.
+
+**Verdict: PASS. Criterion 6 is now MET, so all six criteria are MET.**
+- `RecomputedLiveReports` now returns the **recomputation over every recorded day**, provided the committed report
+  exists and each of its rows matches. The gate decides on the recomputed days, not on the committed subset.
+- **My cases** (25 recorded days, 5 disagreeing): the report with the 5 bad days removed, cut to the first 20 days, or
+  with one middle day removed is accepted as a record, but **fails the gate** in all three cases.
+- My plant, returning the committed report instead of the recomputation, fails 3 tests. `tests/playbook`: 182 passed.
+- **`playbook check` now runs the append-only check:** I edited a committed past registry row in a scratch clone and
+  got "refused: registry.csv history: version 2 does not keep version 1's rows unchanged".
+
+**The builder's note: one drifting approved version refuses the whole playbook load.** Because the gate now uses every
+recorded day, a `paper` strategy whose live feature later drops below its rule fails the loader. Today that stops
+**all** of Book 1, not just that strategy. It fails closed, which is safe, and nothing is `paper` today. But once
+several strategies are approved, one drifting feature would halt trading of all of them.
+
+Better (reasoning only, a follow-up for E6): treat the drift as that strategy's automatic `paper -> paused` (the
+`hard_loss_rule` path exists) with one #fno-desk line, and keep the rest loading. Not blocking now.
+
+## Addendum 3 (branch `story/d1-playbook` 618b2fd, reviewed before merge): PASS
+
+**Change:** the committed report must now be exactly the **leading rows** of the recomputation: the same days, in
+order, with no gap and equal values. The gate still decides on the full recomputation.
+
+**Checks at the branch tip, in a separate worktree:**
+- `tests/playbook`: 185 passed.
+- Full suite: 2,083 passed. Ruff and imports are clean.
+- My plant, putting back the previous "each committed row matches some recomputed day" rule: 3 tests fail, so the new
+  order and gap tests really bite.
+
+**"No gap at the end" not enforced: the builder's reasoning is correct.** The verdict comes only from the
+recomputation over every recorded day. A committed report that stops early cannot change it. It is simply the record
+as of an earlier day, and anything after it is still judged.
+
+The only thing a short report weakens is the red team's written record, not the gate. The same holds for an empty
+committed report, which passes the prefix check, yet the gate still decides on every recomputed day. A minimum length
+for the record could be added later (reasoning only, not needed for safety).
+
+**PASS: the builder may merge.** After the merge I will check that `main` equals this tip plus a clean merge and that
+CI is green.
+
+## Addendum 4 (merge check): `main` equals the passed tip plus a clean merge; CI green
+
+Merge 742551c has parents 55c6690 (main) and 618b2fd (my passed tip). `fno/playbook` and `tests/playbook` at 742551c
+are identical to 618b2fd. The first-parent diff is exactly the branch's 3 files. Pushed tip 1b6cb11 adds one
+`DESK_DECISIONS` line. CI `checks` run 38492882994 on 1b6cb11: success.

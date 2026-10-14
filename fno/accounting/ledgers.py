@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from ..constants import SIDE_BUY, SIDE_SELL
-from ..costs import CHARGE_NAMES, order_charges_breakdown
+from ..costs import CHARGE_NAMES, order_charges_breakdown, settlement_charges_breakdown
 
 DEFAULT_TAX_RATE_PCT = 31.2  # owner decision: 30% slab + 4% cess, on the year's net F&O profit
 TAX_LABEL = "assumed scenario (30% slab + 4% cess on yearly net F&O profit), not a verified tax liability"
@@ -34,10 +34,17 @@ class Order:
     quoted_price: float  # the price the market showed
     units: int  # lots x lot size
     pad: float = 0.0  # rupees per unit worse than quoted (assumed slippage)
+    settlement: bool = False  # True: closed by NSE's cash settlement at expiry, at intrinsic value (story E7)
 
     @property
     def fill_price(self) -> float:
         return self.quoted_price + self.pad if self.side == SIDE_BUY else max(self.quoted_price - self.pad, 0.0)
+
+    def charges(self, table: dict) -> dict[str, float]:
+        """Each charge on this order by component, from the one charges model (`fno.costs`): a traded order's charges
+        on its fill price, or a cash settlement's charges on its intrinsic value."""
+        breakdown = settlement_charges_breakdown if self.settlement else order_charges_breakdown
+        return breakdown(self.fill_price, self.units, self.side, table)
 
 
 @dataclass(frozen=True)
@@ -66,7 +73,7 @@ def trade_line(trade: Trade, charges_table: dict) -> TradeLine:
     fills = sum(sign[o.side] * o.fill_price * o.units for o in trade.orders)
     charges = dict.fromkeys(CHARGE_NAMES, 0.0)
     for order in trade.orders:
-        for name, value in order_charges_breakdown(order.fill_price, order.units, order.side, charges_table).items():
+        for name, value in order.charges(charges_table).items():
             charges[name] += value
     return TradeLine(trade.trade_id, trade.closed_on, gross, gross - fills, charges)
 

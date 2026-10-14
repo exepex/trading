@@ -65,6 +65,12 @@ only: never places, modifies or cancels orders.
 
 ## Branch
 
+**Temporary owner rule (14 Oct 2026, `docs/DESK_DECISIONS.md`), in force until the owner lifts it: no code reaches `main`
+without a judge PASS.** Push code to a branch `story/<id>-<short>`, tell the orchestrator, and merge into `main` only after
+the judge passes that branch (pull, full suite on the merged tree, then push). Not affected: judge files, conversation logs,
+decision and status rows, and data commits by scheduled jobs. A checkout on a detached HEAD pushes with
+`git push origin HEAD:<branch>`.
+
 Work on `main` (`git pull --no-rebase origin main` before every push: ChatGPT also pushes to `main`).
 Every session commits with the public-record scan on (story O5): `.claude/settings.json` runs
 `git config core.hooksPath .githooks` at session start; run it yourself if `git config core.hooksPath` is empty. Never
@@ -99,7 +105,8 @@ commit with `--no-verify`.
   `fno/market_read_models/wiring.py` (the market read models and their publisher, stories P6-P9),
   `fno/forecast_scoring/wiring.py` (forecast scoring and reports, story G4; outside the frozen `fno/forecast/`),
   `fno/ai/wiring.py` (the AI books' forecasts: fire and collect, F1 and G5), `fno/ai/book_wiring.py` (the AI books'
-  routine side, standard library only) and `fno/playbook/wiring.py` (the playbook loader and status changes, story D1).
+  routine side, standard library only), `fno/playbook/wiring.py` (the playbook loader and status changes, story D1)
+  and `fno/desk/wiring.py` (the paper desk's fills and exits, story E4).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.
