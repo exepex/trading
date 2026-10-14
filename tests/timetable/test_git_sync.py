@@ -94,22 +94,69 @@ def test_the_committer_pulls_commits_and_pushes(checkouts):
     assert GitCommitter(Git(a)).commit([a / "journal" / "run.json"], "nothing new") == commit  # nothing to commit
 
 
-@pytest.mark.parametrize("other", ["unpushed commit", "tracked edit"])
-def test_an_account_write_is_refused_in_a_checkout_holding_other_work(checkouts, other):
-    """Judge 82's probe: an unpushed decision commit or an uncommitted tracked edit must never be reset over."""
+@pytest.mark.parametrize("other", ["unpushed commit", "tracked edit in the folder", "new file in the folder"])
+def test_an_account_write_is_refused_while_other_work_is_in_its_way(checkouts, other):
+    """Judge 82's probe, scoped by addendum 6: an unpushed commit anywhere, or uncommitted work in this book's own
+    folder (the commit adds the whole folder), refuses the write and is kept."""
     _, b = checkouts
+    sync_for(b).write(BOOK2_HYBRID, lambda j: j.fill("b0-open"), "fills b0")
+    folder = book_folder(b, BOOK2_HYBRID)
+    kept = {"unpushed commit": b / "decision.json", "tracked edit in the folder": folder / "account" / "b0-open.txt",
+            "new file in the folder": folder / "validity_failures.csv"}[other]  # fmt: skip
+    kept.write_text("other work\n")
     if other == "unpushed commit":
-        (b / "decision.json").write_text("{}")
         git(b, "add", "decision.json")
         git(b, "commit", "-q", "-m", "a decision run, not pushed yet")
-    else:
-        (b / "README").write_text("edited, not committed\n")
     alerts, applied = Alerts(), []
     with pytest.raises(CheckoutNotDedicated, match="holds other work"):
         sync_for(b, alerts).write(BOOK2_HYBRID, lambda j: applied.append(j), "fills b1")
-    assert applied == [] and len(alerts.sent) == 1
-    kept = (b / "decision.json").is_file() if other == "unpushed commit" else "edited" in (b / "README").read_text()
-    assert kept
+    assert applied == [] and len(alerts.sent) == 1 and kept.read_text() == "other work\n"
+
+
+def test_another_book_s_uncommitted_work_does_not_refuse_this_book(checkouts):
+    """Addendum 6: one book's leftover no longer stops every book; the leftover is neither committed nor lost."""
+    _, b = checkouts
+    leftover = book_folder(b, BOOK1_RULES) / "validity_failures.csv"
+    leftover.parent.mkdir(parents=True)
+    leftover.write_text("day,book\n")
+    sync_for(b).write(BOOK2_HYBRID, lambda j: j.fill("b1-open"), "fills b1")
+    assert git(b, "status", "--porcelain").strip() == f"?? {leftover.relative_to(b).parent.as_posix()}/"
+    assert git(b, "ls-tree", "-r", "--name-only", "origin/main").count("b1-open.txt") == 1
+
+
+def test_an_edit_outside_the_folder_survives_a_rejected_push_and_its_reset(checkouts):
+    """`reset --keep` drops only the rejected account commit: the edit to README stays and the fill is applied."""
+    a, b = checkouts
+    (b / "README").write_text("edited, not committed\n")
+    applied = []
+
+    def fill_b(journal):
+        applied.append(1)
+        if len(applied) == 1:  # another container pushes first: B's push is rejected
+            git(a, "commit", "-q", "--allow-empty", "-m", "another container")
+            git(a, "push", "-q", "origin", "main")
+        journal.fill("b1-open")
+
+    sync_for(b).write(BOOK2_HYBRID, fill_b, "fills b1")
+    assert len(applied) == 2 and (b / "README").read_text() == "edited, not committed\n"
+    assert git(b, "rev-list", "origin/main..HEAD").strip() == ""  # the fill is pushed, nothing left behind
+
+
+def test_a_reset_that_would_overwrite_a_local_edit_stops_and_keeps_it(checkouts):
+    """The other container changed the very file edited here: `--keep` refuses, so the run stops and alerts."""
+    a, b = checkouts
+    (b / "README").write_text("edited, not committed\n")
+    alerts = Alerts()
+
+    def fill_b(journal):
+        (a / "README").write_text("changed by another container\n")
+        git(a, "commit", "-q", "-am", "another container")
+        git(a, "push", "-q", "origin", "main")
+        journal.fill("b1-open")
+
+    with pytest.raises(CheckoutNotDedicated, match="would overwrite a local edit"):
+        sync_for(b, alerts).write(BOOK2_HYBRID, fill_b, "fills b1")
+    assert (b / "README").read_text() == "edited, not committed\n" and "NOT reset" in alerts.sent[0]
 
 
 def test_a_rejected_push_is_not_reset_when_more_than_this_write_is_ahead(checkouts):
