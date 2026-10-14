@@ -31,5 +31,6 @@ registered before any of their results; they run only after the protocol freeze 
 | 32-36 | 2026-10-13 | forecasts v1 | Registered before any forecast exists (story G1): the five daily forecast questions, scored by the protocol's 10-test primary family, Book 2 and Book 3 against Book 1 (`research/forecasts/PROTOCOL.md`; review 28) | Pending | Diagnostic only: forecasts never promote a book |
 | 37-41 | 2026-10-13 | forecasts v2 | The five daily forecast questions on live 15:00 inputs, books vs baselines (`research/forecasts/PROTOCOL_v2.md`), as `research/ledger.csv` holds them | Pending | Diagnostic only: forecasts never promote a book |
 | 42 | 2026-10-14 | desk 2 | Put-spread pricing model: 14 Oct 15:00 prices replayed on the 93 holding-window NIFTY moves 2019-26, one more look at the 2019-23 windows (response 92) | Mean -Rs 243 a trade at the 21-day exit, -Rs 355 held to expiry | Not pursued (model, reasoning only) |
+| 43-52 | 2026-10-14 | weekly-weather | Registered before results (frozen `650dd8f397db2676f8df54bc0ab383bde2722a95`): W1-W5 weekly defined-risk structures, edge test (43-47); RED-weather filter per structure (48-52) (`research/2026-10-14-weekly-weather/PROTOCOL.md`) | Pending | Weekly prices never used before; predictors exposed |
 
-Total trials so far: 42 (count every new variant, threshold or filter here before reading its result).
+Total trials so far: 52 (count every new variant, threshold or filter here before reading its result).

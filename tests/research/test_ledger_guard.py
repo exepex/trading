@@ -100,7 +100,7 @@ def test_duplicates_and_bad_rows_are_refused(repo):
 
 def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospective():
     rows = read_ledger(REPO_LEDGER.read_text())
-    assert [r["trial_id"] for r in rows] == [str(i) for i in range(1, 43)] and tuple(rows[0]) == COLUMNS
+    assert [r["trial_id"] for r in rows] == [str(i) for i in range(1, 53)] and tuple(rows[0]) == COLUMNS
     assert all(r["kind"] == "retrospective" for r in rows[:21])
     ledger = Ledger(REPO_LEDGER.parents[1])
     assert ledger.count("experiment-1") == {
@@ -110,6 +110,7 @@ def test_the_repository_ledger_counts_experiment_1_and_keeps_history_retrospecti
     assert ledger.count("forecasts-v1") == {"registered_rows": 5, "hypotheses": 0}  # G1: diagnostics, not hypotheses
     assert ledger.count("forecasts-v2") == {"registered_rows": 5, "hypotheses": 0}  # G1 v2: live 15:00 inputs
     assert rows[41]["kind"] == "retrospective"  # desk meeting 2's put-spread model: a look at seen data (judge 93)
+    assert ledger.count("weekly-weather-2026-10-14") == {"registered_rows": 10, "hypotheses": 10}  # W1-W5, filters
 
 
 def test_an_uncommitted_edit_to_a_registered_row_is_refused(repo):
