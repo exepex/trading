@@ -62,28 +62,37 @@ def _broker_margin(parts: MarginParts, nov_now: float) -> float:
     return max(0.0, parts.scan - nov_now) + parts.exposure  # a broker netting the premium, at the current value
 
 
-@pytest.mark.parametrize("loss", [0.0, 3_929.0, 20_000.0, 60_000.0])
+def _held(side: int, loss: float):
+    """A fly at 22,300 opened for Rs 6,071 (a short fly received it, a long fly paid it), now marked `loss` worse: the
+    trade, its entry cash flow, its value now and the parts C2 reads for it."""
+    value = -(6071.0 + loss) if side == SOLD else 6071.0 - loss
+    spec = short_fly(22300, 100) if side == SOLD else [(k, kind, -s) for k, kind, s in short_fly(22300, 100)]
+    marks = {(22300.0, "CE"): abs(value) / 65, (22300.0, "PE"): 0.0, (22400.0, "CE"): 0.0, (22200.0, "PE"): 0.0}
+    parts = SF_100 if side == SOLD else BF_100
+    trade = open_trade("open", parts.what.split()[0], 100, spec, EXPIRY, cash_flow=-parts.nov)
+    return trade, -parts.nov, value, marks, parts
+
+
+BOOKS = [(SOLD, loss) for loss in (0.0, 3_929.0, 20_000.0, 60_000.0)] + [
+    (BOUGHT, loss) for loss in (0.0, 3_000.0, 5_000.0)
+]
+
+
+@pytest.mark.parametrize(
+    ("held_side", "loss"), BOOKS, ids=[f"held_{'credit' if s == SOLD else 'debit'}_{l:g}" for s, l in BOOKS]
+)
 @pytest.mark.parametrize("new_side", [SOLD, BOUGHT], ids=["new_credit", "new_debit"])
-def test_with_an_open_losing_trade_c2_never_leaves_more_free_than_the_broker(tmp_path, loss, new_side):
-    """A short fly opened for Rs 6,071 and now marked at a loss, then a new SF (credit) or BF (debit) at the 14 Oct
-    parts. The broker blocks max(0, scan - NOV) + exposure per trade at today's values and holds the cash."""
-    held_spec = short_fly(22300, 100)
-    held_marks = {
-        (22300.0, "CE"): (6071.0 + loss) / 65,
-        (22300.0, "PE"): 0.0,
-        (22400.0, "CE"): 0.0,
-        (22200.0, "PE"): 0.0,
-    }
-    held = open_trade("open", "SF", 100, held_spec, EXPIRY, cash_flow=6071.0)
-    nov_open = -(6071.0 + loss)
-    the_book = book([held], cash=START + 6071.0, marked=START + 6071.0 + nov_open)
-    spec = (
-        [(k, kind, -side) for k, kind, side in short_fly(22700, 100)] if new_side == BOUGHT else short_fly(22700, 100)
-    )
+def test_with_an_open_losing_trade_c2_never_leaves_more_free_than_the_broker(tmp_path, held_side, loss, new_side):
+    """An open fly marked at a loss (a credit SF, or a debit BF: judge 77's mirror case), then a new SF (credit) or BF
+    (debit) at the 14 Oct parts. The broker blocks max(0, scan - NOV) + exposure per trade at today's values and holds
+    the cash; C2 must leave exactly that free (the debit's loss is kept above its scan, where the row's parts hold)."""
+    held, held_cash, held_value, held_marks, held_parts = _held(held_side, loss)
+    the_book = book([held], cash=START + held_cash, marked=START + held_cash + held_value)
+    spec = short_fly(22700, 100) if new_side == SOLD else [(k, kind, -s) for k, kind, s in short_fly(22700, 100)]
     new_parts = SF_100 if new_side == SOLD else BF_100
     new = proposal("new", new_parts.what.split()[0], 100, spec, EXPIRY)
     verdict = _room(tmp_path).check(new, the_book, market(22721.95, MIDS | held_marks, EXPIRY, day=DAY))
     c2_free = verdict.numbers["available_after_entry_rs"] - verdict.numbers["needed_rs"]
-    broker_cash = START + 6071.0 - new_parts.nov  # the entry pays or receives the new trade's value
-    broker_free = broker_cash - _broker_margin(SF_100, nov_open) - _broker_margin(new_parts, new_parts.nov)
+    broker_cash = START + held_cash - new_parts.nov  # the entry pays or receives the new trade's value
+    broker_free = broker_cash - _broker_margin(held_parts, held_value) - _broker_margin(new_parts, new_parts.nov)
     assert c2_free == pytest.approx(broker_free, abs=0.01)  # exact: never looser, and not stricter either

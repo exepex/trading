@@ -22,6 +22,10 @@ The three parts are stored apart, never one netted figure (judge 75). C2 counts
 premium paid plus exposure for a debit one, which with MarginRoom's cash arithmetic leaves exactly what a broker that
 nets the premium leaves free. A total not above 0 is refused by name.
 
+Computed rows are written only after an independent broker check of the job's figures passed (judge 77, option a):
+`config.yaml` `risk.margins.nse_span_check` must hold that check's `source` and `passed_on`. Until then a run prints
+its rows and writes none. Not passed on 14 Oct 2026: SPAN and NOV equal Zerodha's, exposure is 5.6% below it.
+
 Computed rows (A14): SPAN scanning risk (largest of the 16 scenario losses of the legs' risk arrays), the legs' value
 at the file's prices (the previous session's settlement prices), and exposure margin (2% of the index's last close per
 short option; 3% when more than 10% out of the money), per lot of

@@ -205,6 +205,20 @@ the evidence-based choice; the owner's answer is needed either way.
    safe side for a credit (the scan term does not depend on NOV), not always for a debit (a BF whose value rose
    overnight). The size is small next to exposure (BF 100's SPAN is 0 either way unless its value fell below 831).
 
+## Judge 77 must-fixes (built)
+
+1. **Mirror never-looser case.** `tests/risk/test_margin_formula.py` now runs both orders: an open credit SF (losses 0,
+   3,929, 20,000, 60,000) and an open debit BF (losses 0, 3,000, 5,000, kept above its scan, where the stored parts
+   hold), each with a new credit SF and a new debit BF: 14 books, C2 equal to the broker to the paisa in each. The
+   judge's plant (dropping the proposal's own liability, `+ min(0.0, marked)`) now fails 3 of them.
+2. **Exposure gap: option (a).** `fno/nse_margins/independent_check.py` `IndependentCheck`, read from `config.yaml`
+   `risk.margins.nse_span_check` (`source`, `passed_on`; both null now). Until both are set and `passed_on` is on or
+   before the day, the job prints the day's rows and writes none, refused by name ("N rows computed, none written: no
+   independent broker check has passed ...") in its one #fno-desk line, exit 1. Tests: unset, no date, no source and a
+   date after the day each write nothing; the repository config is not passed; a planted switch-off fails 4 tests.
+   **Criterion 1 stays NOT MET** until the owner's Groww check; option (b) (a broker-observed exposure floor) only if
+   Groww also shows the higher base.
+
 ## Groww as a margin source (orchestrator's (a)-(e); public docs only, read 14 Oct 2026, no login, no key)
 
 Pages: https://groww.in/trade-api/docs, .../python-sdk, .../python-sdk/margin, .../curl, .../curl/margin,

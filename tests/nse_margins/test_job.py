@@ -7,6 +7,7 @@ import pytest
 
 from fno.models import IST
 from fno.nse_margins.calculator import MarginFigure, NseIndexOptionExposure, SpanMarginCalculator
+from fno.nse_margins.independent_check import IndependentCheck
 from fno.nse_margins.job import NseMarginJob, due_session
 from fno.nse_margins.margin_log import MarginLog, MarginLogConflict
 from fno.nse_margins.rows import MarginRow, MarginRowBuilder
@@ -39,11 +40,16 @@ def margins_file(tmp_path: Path, text: str = HEADER) -> Path:
     return path
 
 
-def make_job(path: Path, files: dict[date, bytes], now: datetime = MORNING, alerts: Alerts | None = None):
+PASSED = IndependentCheck("test: broker check", date(2026, 10, 1))
+
+
+def make_job(path: Path, files: dict[date, bytes], now: datetime = MORNING, alerts: Alerts | None = None,
+             check: IndependentCheck = PASSED, printed: list | None = None):  # fmt: skip
     builder = MarginRowBuilder((ShortIronFly(), ShortCondor(), LongIronFly()), (100.0, 200.0),
                                SpanMarginCalculator(NseIndexOptionExposure(), LOT), 30)  # fmt: skip
     day_file = lambda day: (f"nsccl.{day:%Y%m%d}.i1.zip", files.get(day))  # noqa: E731
-    return NseMarginJob(day_file, builder, MarginLog(path), weekday, alerts or Alerts(), lambda: now, lambda _: None)
+    out = printed.append if printed is not None else (lambda _: None)
+    return NseMarginJob(day_file, builder, MarginLog(path), weekday, check, alerts or Alerts(), lambda: now, out)
 
 
 def done_before(day: date) -> str:
@@ -174,3 +180,29 @@ def test_the_created_cutoff_is_9_am_ist():
     from fno.constants import SPAN_BOD_CREATED_BEFORE
 
     assert time(9, 0) == SPAN_BOD_CREATED_BEFORE
+
+
+@pytest.mark.parametrize(
+    "check",
+    [IndependentCheck(None, None), IndependentCheck("check", None), IndependentCheck(None, date(2026, 10, 1)),
+     IndependentCheck("check", date(2026, 10, 15))],
+    ids=["unset", "no_date", "no_source", "after_the_day"],
+)  # fmt: skip
+def test_without_a_passed_broker_check_rows_are_printed_and_none_written(tmp_path, check):
+    path, alerts, printed = margins_file(tmp_path, done_before(DAY)), Alerts(), []
+    before = path.read_bytes()
+    assert make_job(path, {DAY: span_zip()}, alerts=alerts, check=check, printed=printed).run() == 1
+    assert path.read_bytes() == before
+    assert any(line.startswith("SF,100,1950.00,-10725.00,52000.00,NSE SPAN") for line in printed)
+    assert len(alerts.sent) == 1 and "6 rows computed, none written" in alerts.sent[0]
+    assert "risk.margins.nse_span_check" in alerts.sent[0]
+
+
+def test_the_repository_config_has_not_passed_the_broker_check():
+    from fno.config import load_app_config
+
+    check = IndependentCheck.from_margins_block(load_app_config()["risk"]["margins"])
+    assert not check.passed_by(date(2026, 10, 14))  # judge 77: criterion 1 NOT MET until the owner's Groww check
+    assert IndependentCheck.from_margins_block(
+        {"nse_span_check": {"source": "x", "passed_on": "2026-10-14"}}
+    ).passed_by(DAY)

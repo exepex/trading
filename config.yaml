@@ -71,6 +71,11 @@ risk:
   margins:
     file: research/data/margins/margins.csv
     max_age_days: 7
+    # Story A14 criterion 1 (judge 77): NSE SPAN rows are written only after an independent broker check of the job's
+    # figures passed. Not passed on 14 Oct 2026 (exposure 5.6% below Zerodha's; the owner's Groww check is due).
+    nse_span_check:
+      source: null
+      passed_on: null
   # One frozen stressed-margin method: multiplier (factor, source and as_of required; expires after max_age_days) or
   # scenario_lookup (scenario_file: a margin per scenario above). Not set yet: every trade is refused until it is.
   stressed_margin:

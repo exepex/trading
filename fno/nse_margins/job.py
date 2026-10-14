@@ -1,6 +1,8 @@
 """The daily NSE margin job (story A14): each session's margin rows from its beginning-of-day SPAN file in Drive.
 
-For every session from a week before the due day up to it that has no NSE row yet, the job reads the day's `i1` file
+Rows are written only once an independent broker check has passed (`IndependentCheck`, judge 77); until then each
+day's rows are printed and refused by name. For every session from a week before the due day up to it that has no NSE
+row yet, the job reads the day's `i1` file
 as first archived (A9; A11 keeps later versions apart), checks it was written before 09:00 IST on that day
 (point in time: a decision on d never sees a later file), computes the rows and appends them to `margins.csv`.
 
@@ -19,6 +21,7 @@ from ..alerts.sender import AlertSender
 from ..constants import MARGIN_SOURCE_NSE_SPAN, SPAN_BOD_CREATED_BEFORE
 from ..fo_bhavcopy import BadFile
 from .calculator import MarginOutsideModel
+from .independent_check import NOT_PASSED, IndependentCheck
 from .margin_log import MarginLog, MarginLogConflict
 from .rows import MarginRowBuilder
 from .span_file import read_span_file
@@ -48,10 +51,10 @@ def due_session(now: datetime, is_trading_day: Callable[[date], bool]) -> date:
 
 class NseMarginJob:
     def __init__(self, day_file: DayFile, builder: MarginRowBuilder, log: MarginLog,
-                 is_trading_day: Callable[[date], bool], alerts: AlertSender, now: Callable[[], datetime],
-                 print_line=print):  # fmt: skip
+                 is_trading_day: Callable[[date], bool], check: IndependentCheck, alerts: AlertSender,
+                 now: Callable[[], datetime], print_line=print):  # fmt: skip
         self.day_file, self.builder, self.log, self.is_trading_day = day_file, builder, log, is_trading_day
-        self.alerts, self.now, self.print_line = alerts, now, print_line
+        self.check, self.alerts, self.now, self.print_line = check, alerts, now, print_line
 
     def pending_days(self, due: date) -> list[date]:
         done = self.log.days_from(MARGIN_SOURCE_NSE_SPAN)
@@ -95,6 +98,10 @@ class NseMarginJob:
             found = self.builder.rows(span, hashlib.sha256(data).hexdigest(), day)
         except MarginOutsideModel as exc:
             raise MarginDayProblem(str(exc)) from exc
+        if not self.check.passed_by(day):
+            for row in found.rows:
+                self.print_line(",".join(row.as_csv().values()))
+            raise MarginDayProblem(NOT_PASSED.format(rows=len(found.rows)))
         added = self.log.append(found.rows)
         self.print_line(ADDED.format(day=day, rows=added, file=filename))
         return [f"{day}: {reason}" for reason in found.skipped]
