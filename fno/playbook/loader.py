@@ -30,15 +30,21 @@ class Playbook:
         return tuple(s for s in self.strategies if s.status == PAPER)
 
     def status_on(self, day: date) -> dict[tuple[str, int], str]:
-        """Each registered version's status at the start of `day`: its latest change dated before the day. A change
-        counts from the next session's start (orchestrator, 14 Oct 2026), so a day is decided on one fixed playbook
-        and a rebuild of that day gives the same answer."""
+        """Each registered version's status at the start of `day`: its latest change dated before the day (E2's common
+        opportunity set and the shadow test use this; a rebuild of the day gives the same answer)."""
         return {row.key: row.status for row in self.rows if row.changed_on < day}
 
+    def status_through(self, day: date) -> dict[tuple[str, int], str]:
+        """Each registered version's status after every change dated on or before `day`."""
+        return {row.key: row.status for row in self.rows if row.changed_on <= day}
+
     def approved_on(self, day: date) -> tuple[Strategy, ...]:
-        """The versions Book 1 may trade on `day`: `paper` at the start of the day."""
-        status = self.status_on(day)
-        return tuple(s for s in self.strategies if status.get(s.key) == PAPER)
+        """The versions Book 1 may trade on `day`: `paper` at the start of the day AND still `paper` after every change
+        dated that day (judge 74, risk manager's rule). An approval waits for the next session; a pause or retirement
+        stops new entries at once. Both read the registry's dates only, so a rebuild of the day gives the same set;
+        on the live day no later row exists, so "through the day" is "now"."""
+        start, through = self.status_on(day), self.status_through(day)
+        return tuple(s for s in self.strategies if start.get(s.key) == PAPER and through.get(s.key) == PAPER)
 
     def shadow_on(self, day: date) -> tuple[Strategy, ...]:
         """Research candidates registered (frozen) before `day`: forward-tested in shadow (owner, 14 Oct 2026), never

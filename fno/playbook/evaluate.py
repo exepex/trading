@@ -1,9 +1,10 @@
 """Story D2: the day's rule evaluation and allocation, Book 1's decision. For each version approved (`paper`) at the
-start of the day (a same-day approval trades from the next session), every opportunity today is evaluated on the live
-15:00 feature values; a fired rule builds its trade on live quotes, and the fixed allocation rule chooses among the
-valid candidates for the book's account. Each research candidate registered before the day is evaluated the same way
-against its own shadow book (owner, 14 Oct 2026: forward shadow test), never Book 1's. A day with nothing approved
-allocates nothing; every opportunity, traded or not, gets an outcome."""
+start of the day and not stopped since (a same-day approval trades from the next session; a pause or retirement stops
+new entries at once), every opportunity today is evaluated on the live 15:00 feature values; a fired rule builds its
+trade on live quotes, and the fixed allocation rule chooses among the valid candidates for the book's account. Each
+research candidate registered before the day is evaluated the same way against its own shadow book (owner, 14 Oct
+2026: forward shadow test), never Book 1's. A day with nothing approved allocates nothing; every opportunity, traded
+or not, gets an outcome."""
 
 from __future__ import annotations
 

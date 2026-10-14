@@ -60,7 +60,7 @@ rule first; an unproven strategy holds at most 1 of 3 slots.
 **Scope.** In: firing rules, ranking, slot limits, the no-trade option; the same evaluation is **Book 1's decision**
 and **Book 2's rule default** (12.2: every Book-2 record holds the rule's default action). Out: AI selection (F5).
 
-**Expected design:** `fno/playbook/evaluate.py`: for each strategy `paper` at the start of the decision day (amended 14 Oct 2026, orchestrator: a status change counts from the next session, as in E2's common opportunity set), compute its **15:00 live features** (the
+**Expected design:** `fno/playbook/evaluate.py`: for each strategy `paper` at the start of the decision day and not stopped since (amended 14 Oct 2026, orchestrator and judge 74: an approval counts from the next session, as in E2's common opportunity set; a pause or retirement stops new entries at once), compute its **15:00 live features** (the
 validated live versions of B7, never the close-only research features) on today's snapshot; fire when all conditions hold;
 build the structure on live quotes; run C2 checks; rank surviving candidates by score = (frozen expected net per
 opportunity from the strategy's challenge results, recorded in its playbook file) / (maximum loss including costs);

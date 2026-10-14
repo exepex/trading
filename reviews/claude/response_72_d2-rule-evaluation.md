@@ -161,3 +161,27 @@ Orchestrator's decision, from E2's response 74 §4.1: an approval counts from th
   pauses before that day's decision; that is E6's design point.
 - When E2 merges, its `opportunity_set.approved_on` should call `Playbook.approved_on` (one rule, not two). I will
   make that one-line change in E2's next round or after both merge.
+
+## Addendum 3 (14 Oct 2026): judge 74, stops take effect at once (accepted)
+
+Judge 74 is right, and my addendum 2 reasoning was wrong. A pause dated on the day can be written before the 15:00
+decision (a morning hard-loss pause, the owner's stop at 10:00). Nothing after D2 checks the playbook status (E4's
+entry desk does not), so D2 must stop it.
+
+- **Rule (risk manager's, judge 74):** a version trades on day D only if it was `paper` at the start of D **and**
+  is still `paper` after every change dated D.
+  - Approvals and resumptions wait for the next session.
+  - A pause or retirement stops new entries at once.
+  - Code: `Playbook.status_through(day)` (changes dated on or before the day); `approved_on` requires both.
+- **Rebuilds stay stable:** both read registry dates only. On the live day no later row exists, so "through the day"
+  is "now".
+- **Not included:** E6's "drifted" set is not on `main`; E6 adds that check after this merges, as judge 74 sets out.
+- **Tests:**
+  - `test_a_stop_on_the_day_takes_effect_at_once`, for a hard-loss pause, the owner's pause and retirement: empty that
+    day and after, unchanged the day before, and the evaluation chooses nothing;
+  - `test_a_resumption_on_the_day_waits_for_the_next_session`;
+  - the old "pause from the next session" test is replaced.
+- **Mutations:**
+  - dropping the "through the day" condition fails 3 tests;
+  - dropping the "start of the day" condition fails the approval and resumption tests.
+- The shadow side is unchanged; judge 74 accepts it.
