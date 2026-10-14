@@ -81,7 +81,7 @@ completed paper trades may hold at most 1 open trade; the 3-slot limit is shared
 
 **Judge verifies:** re-runs one day's evaluation from its decision record and gets the same choice.
 
-**Depends:** D1, C2, B7 · **Size:** M · **Status:** built on branch `story/d2-rule-evaluation`; awaiting judge (claims: `reviews/claude/response_72_d2-rule-evaluation.md`)
+**Depends:** D1, C2, B7 · **Size:** M · **Status:** done (judge 69 with addendum 1 PASS; merged 662784f; claims `reviews/claude/response_72_d2-rule-evaluation.md`)
 
 ---
 
