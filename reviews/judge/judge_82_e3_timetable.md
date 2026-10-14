@@ -222,3 +222,12 @@ The builder's merge-order note is right. E5 removes `CommittedDecision.orders`, 
 Whichever merges second must update the fixture and run the full suite on the merged tree.
 
 **Verdict: PASS.** After the merge I check `main` against ec9be1c and CI.
+
+## Addendum 5 (merge check, 85c570a)
+
+**MET.** 85c570a has parents f6e4b9d (`main`) and ec9be1c (the passed tip), and it equals my recomputed merge. The
+later `main` merges 9811203 and 81c9c86 also equal their recomputed merges. The only code changes on `main` since my
+last check are the two passed branches (e3-gate-tests and c4-a4-valid-quotes).
+
+CI `checks` is green on 9811203, which holds this merge (run 38532877389). The run on 81c9c86 (both merges) was still
+in progress when I wrote this; I confirm it at my next check-in.
