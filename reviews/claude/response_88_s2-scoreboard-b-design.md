@@ -171,3 +171,30 @@ beyond the four acceptance criteria, and why each stays:
 4. **Holm's correction across claims** belongs to the S4 review, not S2.
 5. **Quote snapshots in the input hashes:** the board hashes the run logs that name the snapshots, not the snapshot
    files. Adding them would make the hash list self-contained.
+
+## Addendum 3: judge 87's must-fix (the AI cost counted in every section), fixed
+
+**Accepted.** I checked it against the code. `BookBoard._section` called `ai.allocated(book, first, last)` for every
+section, and the pilot period (first to the run date) overlaps the head-to-head period (common start to the run
+date). Segments, unscored and overridden sections each charged it again. With F8 built, an AI book's net would have
+been wrong in every section; today it was hidden because F8 returns no figure.
+
+**Fix** (`book_board.py`, minimal): the AI cost is charged only at book level, over periods that do not overlap:
+
+| Section | AI cost charged |
+|---|---|
+| Overall | first to the run date |
+| Pilot | first to the day before the common start |
+| Head-to-head | common start to the run date |
+| Segments, unscored, overridden | none; they say "charged at book level only", and their net is the raw net |
+
+**Test:** a fake allocation of Rs 10 a day. Pilot (Rs 30) + head-to-head (Rs 80) = overall (Rs 110). Unscored,
+overridden and a real segment carry no AI cost.
+
+**Mutations:** 3 of 3 caught:
+- the pilot charged to the run date;
+- every section charged;
+- each section charged over its own trade period.
+
+**Follow-up (judge, not blocking; owner's call):** pro-rating operating costs. Today they are booked on their
+month's last session, so the common-start month's costs go wholly to head-to-head.

@@ -166,3 +166,23 @@ def test_net_takes_the_allocated_ai_cost_off_the_raw_account_net():
 
     series = DailySeries((ON,), (1000.0,), (0.0,))
     assert section([], series, 0.0, 150.0, None, ON, ON)["net_rs"] == 850.0
+
+
+class TenRupeesADay:
+    def allocated(self, book, first, last):
+        return 10.0 * ((last - first).days + 1)
+
+
+def test_the_allocated_ai_cost_is_charged_once_pilot_plus_head_to_head_is_overall(root):
+    """Judge 87: the AI cost is the book's, over periods that never overlap; segments, unscored and overridden trades
+    carry none of it."""
+    from fno.scoreboard.book_board import AI_AT_BOOK_LEVEL, BookBoard, BookInputs
+
+    board = BookBoard(build_session_calendar().sessions, TenRupeesADay()).build(
+        BookInputs(BOOK1_RULES, (), (), date(2026, 10, 13), ON), START
+    )
+    pilot, h2h = board["pilot"]["ai_cost_allocated_rs"], board["head_to_head"]["ai_cost_allocated_rs"]
+    assert pilot + h2h == board["overall"]["ai_cost_allocated_rs"] == 110.0 and pilot == 30.0
+    assert board["unscored"]["ai_cost_allocated_rs"] == board["overridden"]["ai_cost_allocated_rs"] == AI_AT_BOOK_LEVEL
+    [segment] = build(root)["books"][BOOK1_RULES]["head_to_head"]["segments"].values()
+    assert segment["ai_cost_allocated_rs"] == AI_AT_BOOK_LEVEL and segment["net_rs"] == segment["raw_account_net_rs"]
