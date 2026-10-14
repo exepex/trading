@@ -46,7 +46,8 @@ historical research trades are charged today's rates (STT 0.15% of sell-side opt
 2026; before that 0.1% from Oct 2024 and lower earlier). That is conservative while today's rates are higher and is
 the right test for trading from now on ("would it work at today's costs"); every research report states it. The STT
 rate is confirmed by broker and press summaries of the Budget (ICICI Direct, Groww, Outlook Money); the Finance Act
-text itself is still to be cited.
+text itself is still to be cited. E7 (14 Oct 2026) adds `stt_exercise_pct` (0.15% of an exercised option's intrinsic value, raised
+from 0.125% by the same Budget) and `Order.charges`, one charges dispatch for traded orders and expiry settlements.
 
 **Depends:** - · **Size:** S · **Status:** done (judge passed in round 2, `reviews/judge/judge_10_c1_three_ledgers_rejudge.md`)
 

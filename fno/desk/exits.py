@@ -1,7 +1,8 @@
 """The exit review at each scheduled execution snapshot (story E4, design 8 and 9), for every open position of a book:
 
-1. A leg that expired before its exit filled needs NSE's final settlement price, which the desk does not model: the
-   position is reported (alert), never priced from a last or stale price.
+1. A leg that expired before its exit filled is cash-settled at its intrinsic value against NSE's final settlement
+   price (story E7), with C1's settlement charges. Until the expiry day's file is published the position is
+   `settlement_needed` (alert): it blocks the book's new risk and is never priced from a last or stale price.
 2. A protective leg without a valid quote marks the position `protection_unverified` (the book opens no new risk while
    it is open) and orders its exit.
 3. An exit already ordered, or an exit rule reached now, closes the position at this snapshot's valid quotes: short
@@ -20,6 +21,7 @@ from ..alerts.sender import AlertSender
 from ..books.equity import trade_positions
 from ..constants import (
     FILL_CLOSE,
+    NIFTY_SYMBOL,
     OUTCOME_CLOSED,
     OUTCOME_EXIT_ORDERED,
     OUTCOME_PARTIAL_FILL,
@@ -32,6 +34,7 @@ from .execution import FillMaker, check_point_in_time, closing_quotes
 from .exit_rules import ExitContext, ExitRule
 from .pricing import price_leg
 from .records import DeskEvent, DeskJournal
+from .settlement import SettlementError, SettlementPrices, settlement_record
 from .snapshot import ExecutionSnapshot
 from .status import OpenPosition, open_positions
 
@@ -54,8 +57,8 @@ class ExitResult:
 
 
 class ExitDesk:
-    def __init__(self, charges: Mapping[str, float], alerts: AlertSender, clock=now_ist):
-        self.charges, self.alerts, self.clock = dict(charges), alerts, clock
+    def __init__(self, charges: Mapping[str, float], alerts: AlertSender, settlements: SettlementPrices, clock=now_ist):
+        self.charges, self.alerts, self.settlements, self.clock = dict(charges), alerts, settlements, clock
 
     def review(
         self, book: str, snapshot: ExecutionSnapshot, journal: DeskJournal, rules: Mapping[str, Sequence[ExitRule]]
@@ -67,10 +70,8 @@ class ExitDesk:
     def _review(self, book, position: OpenPosition, snapshot, journal, rules) -> ExitResult:
         check_point_in_time(snapshot, self.clock(), not_before=position.last_fill_at)
         maker = FillMaker(book, exit_decision_id(position.trade_id), position.trade_id, snapshot, self.charges)
-        expired = [leg.contract for leg, _ in position.holdings if leg.expiry < snapshot.day]
-        if expired:
-            reason = f"{', '.join(expired)} expired before the exit filled: NSE's final settlement price is needed"
-            return self._event(book, position, snapshot, journal, OUTCOME_SETTLEMENT_NEEDED, reason, snapshot.day)
+        if any(leg.expiry < snapshot.day for leg, _ in position.holdings):
+            return self._settle(book, position, snapshot, journal)
         unquotable = [
             leg.contract for leg, units in position.holdings
             if leg.protective and not price_leg(snapshot, leg, leg.side(opening=False), units).fills
@@ -101,9 +102,33 @@ class ExitDesk:
         if pending:
             reason = "; ".join(f"{q.leg.contract}: {q.reason}" for q in pending) + " (retried at the next snapshot)"
             return self._event(book, position, snapshot, journal, OUTCOME_PENDING_EXIT, reason, snapshot.snapshot_id)
+        return self._closed(book, position, snapshot, journal, "every leg closed")
+
+    def _settle(self, book, position: OpenPosition, snapshot, journal: DeskJournal) -> ExitResult:
+        """Expired legs close at NSE's final settlement (E7), one expiry at a time; a missing or unclear settlement
+        price leaves the trade `settlement_needed`."""
+        for expiry in sorted({leg.expiry for leg, _ in position.holdings if leg.expiry < snapshot.day}):
+            try:
+                final = self.settlements.final_settlement(NIFTY_SYMBOL, expiry)
+                missing = f"NSE's F&O file of {expiry} (the final settlement price) is not published yet"
+            except SettlementError as problem:
+                final, missing = None, str(problem)
+            if final is None:
+                legs = ", ".join(leg.contract for leg, _ in position.holdings if leg.expiry == expiry)
+                reason = f"{legs} expired on {expiry} before the exit filled: {missing}"
+                return self._event(book, position, snapshot, journal, OUTCOME_SETTLEMENT_NEEDED, reason, snapshot.day)
+            decision, trade_id = exit_decision_id(position.trade_id), position.trade_id
+            for leg, units in (h for h in position.holdings if h[0].expiry == expiry):
+                journal.record_fill(settlement_record(book, decision, trade_id, leg, units, final, self.charges))
+            how = f"settled at NSE's final settlement price {final.price:,.2f} ({final.source})"
+        if trade_positions(journal.records.account.fills())[position.trade_id].is_open:
+            return ExitResult(position.trade_id, HELD, how + "; legs of later expiries stay open")
+        return self._closed(book, position, snapshot, journal, f"every leg closed, {how}")
+
+    def _closed(self, book, position: OpenPosition, snapshot, journal: DeskJournal, how: str) -> ExitResult:
         net = trade_positions(journal.records.account.fills())[position.trade_id].cash_flow
         partial = any(e["outcome"] == OUTCOME_PARTIAL_FILL for e in journal.records.event_rows(position.trade_id))
-        reason = f"every leg closed; net Rs {net:,.2f}"
+        reason = f"{how}; net Rs {net:,.2f}"
         return self._event(book, position, snapshot, journal, OUTCOME_CLOSED, reason, cost=-net if partial else None)
 
     def _net_if_closed(self, position: OpenPosition, snapshot, maker: FillMaker) -> float | None:

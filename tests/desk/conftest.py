@@ -6,9 +6,25 @@ from fno.composition import open_account_writer
 from fno.constants import BOOKS
 from fno.desk.entries import EntryDesk
 from fno.desk.exits import ExitDesk
+from fno.desk.settlement import FinalSettlement
 from fno.desk.snapshot import RecordedExecutionSnapshots
 
 from .builders import CHARGES, DAY, DictStore, at
+
+
+class FakeSettlements:
+    """Final settlement prices by expiry; an expiry not set has no published file yet (None)."""
+
+    def __init__(self):
+        self.prices: dict = {}
+        self.asked: list = []
+
+    def final_settlement(self, underlying, expiry):
+        self.asked.append((underlying, expiry))
+        price = self.prices.get(expiry)
+        if price is None:
+            return None
+        return FinalSettlement(underlying, expiry, price, f"fixture/{expiry}.csv.zip", "a" * 64)
 
 
 class RecordingAlerts:
@@ -64,5 +80,10 @@ def entry_desk(clock):
 
 
 @pytest.fixture
-def exit_desk(clock, alerts):
-    return ExitDesk(CHARGES, alerts, clock)
+def settlements():
+    return FakeSettlements()
+
+
+@pytest.fixture
+def exit_desk(clock, alerts, settlements):
+    return ExitDesk(CHARGES, alerts, settlements, clock)

@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from ..accounting.ledgers import Order
-from ..constants import LEDGER_FILL, LEDGER_OPENING, SIDE_BUY, SIDES
-from ..costs import CHARGE_NAMES, order_charges_breakdown
+from ..constants import LEDGER_FILL, LEDGER_OPENING, LEDGER_SETTLEMENT, SIDE_BUY, SIDES
+from ..costs import CHARGE_NAMES
 
 LEDGER_COLUMNS = (
     ("entry_id", "kind", "trade_id", "filled_at", "contract", "side", "units", "quoted_price", "pad", "fill_price")
@@ -57,9 +57,9 @@ class Fill:
 
     @classmethod
     def priced(cls, fill_id: str, trade_id: str, filled_at: datetime, contract: str, order: Order, table: dict) -> Fill:
-        """A fill with its charges from the one charges model (`fno.costs`), on the fill price as C1 prices them."""
-        charges = order_charges_breakdown(order.fill_price, order.units, order.side, table)
-        return cls(fill_id, trade_id, filled_at, contract, order, charges)
+        """A fill with its charges from the one charges model (`fno.costs`), as C1 prices them (a cash settlement at
+        expiry is charged as one, story E7)."""
+        return cls(fill_id, trade_id, filled_at, contract, order, order.charges(table))
 
     @property
     def signed_units(self) -> int:
@@ -73,7 +73,7 @@ class Fill:
     def ledger_row(self, cash_before: float) -> dict[str, str]:
         row = {
             "entry_id": self.fill_id,
-            "kind": LEDGER_FILL,
+            "kind": LEDGER_SETTLEMENT if self.order.settlement else LEDGER_FILL,
             "trade_id": self.trade_id,
             "filled_at": self.filled_at.isoformat(),
             "contract": self.contract,
@@ -91,10 +91,14 @@ class Fill:
 
     @classmethod
     def from_row(cls, row: dict[str, str]) -> Fill:
-        order = Order(row["side"], float(row["quoted_price"]), int(row["units"]), float(row["pad"]))
+        settled = row["kind"] == LEDGER_SETTLEMENT
+        order = Order(row["side"], float(row["quoted_price"]), int(row["units"]), float(row["pad"]), settled)
         charges = {name: float(row[name]) for name in CHARGE_NAMES}
         return cls(row["entry_id"], row["trade_id"], datetime.fromisoformat(row["filled_at"]), row["contract"], order,
                    charges)  # fmt: skip
+
+
+FILL_KINDS = (LEDGER_FILL, LEDGER_SETTLEMENT)  # ledger rows that move a position
 
 
 def opening_row(entry_id: str, day: str, amount: float) -> dict[str, str]:
