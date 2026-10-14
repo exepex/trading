@@ -31,7 +31,7 @@ from fno.desk.records import DeskRecords
 from fno.desk.snapshot import SnapshotError
 from fno.desk.wiring import open_desk_journal
 
-from .builders import CHARGES, DAY, LOT, at, contract, enter, fly_order, fly_rows, write_snapshot
+from .builders import CHARGES, DAY, LOT, at, contract, enter, fly_order, fly_rows, passed, write_snapshot
 
 CE, PE = OPTION_CALL, OPTION_PUT
 NEXT = DAY + timedelta(days=1)
@@ -42,7 +42,7 @@ HOLD = {"t1": [StopLoss(1e9)]}  # a rule that never fires
 def review(root, snapshots, desk, day, snapshot_id, rules, book=BOOK1_RULES):
     snapshot = snapshots.snapshot(day, snapshot_id)
     with open_desk_journal(book, root) as journal:
-        return desk.review(book, snapshot, journal, rules)
+        return desk.review(book, snapshot, journal, rules, passed(snapshot))
 
 
 def snapshot_on(store, clock, day, snapshot_id, rows):

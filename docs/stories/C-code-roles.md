@@ -165,7 +165,7 @@ present (session per the A1 calendar).
 
 **Judge verifies:** runs the checks on a deliberately stale snapshot and confirms the refusal.
 
-**Depends:** A3, A4, A7, E2 · **Size:** S · **Status:** later
+**Depends:** A3, A4, A7, E2 · **Size:** S · **Status:** built on `story/c3-data-checks`, judge pending (claims: reviews/claude/response_82_c3-data-checks.md)
 
 ---
 

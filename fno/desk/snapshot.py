@@ -44,6 +44,20 @@ class ExecutionQuote:
     invalid_reason: str
     quote_age_unknown: bool  # the provider gave no quote timestamp (Groww)
 
+    @property
+    def a4_problem(self) -> str:
+        """Why this quote is not usable by A4's rule, or empty: bid > 0, ask > 0, bid <= ask, both sizes > 0, and a
+        trade in the contract today (the recorder's `valid`, which holds that evidence). Its age is never claimed."""
+        if not self.bid or self.bid <= 0 or not self.ask or self.ask <= 0:
+            return "one-sided or empty book"
+        if self.bid > self.ask:
+            return "crossed (bid above ask)"
+        if not self.bid_qty or self.bid_qty <= 0 or not self.ask_qty or self.ask_qty <= 0:
+            return "no size"
+        if not self.valid:
+            return self.invalid_reason or "not valid by A4's rule (no trade today)"
+        return ""
+
     def touch(self, side: str) -> tuple[float | None, float | None]:
         """Price and size a market order of this side meets: the ask for a buy, the bid for a sell."""
         return (self.ask, self.ask_qty) if side == SIDE_BUY else (self.bid, self.bid_qty)
@@ -54,6 +68,7 @@ class ExecutionSnapshot:
     day: date
     snapshot_id: str
     sha256: str  # of the quote file, as the recorder wrote it
+    meta_sha256: str  # of its sidecar (capture times, completeness), as read
     started_at: datetime  # time zone aware
     finished_at: datetime  # time zone aware: when the last quote of the capture arrived
     complete: bool  # A4: every expected contract recorded, no failure
@@ -105,7 +120,8 @@ def parse_execution_snapshot(day: date, snapshot_id: str, csv_bytes: bytes, meta
         if key in quotes:
             raise SnapshotError(f"{snapshot_id}: {key} recorded twice")
         quotes[key] = quote
-    return ExecutionSnapshot(day, snapshot_id, digest, started, finished, bool(meta.get("complete")), quotes)
+    sidecar = hashlib.sha256(meta_bytes).hexdigest()
+    return ExecutionSnapshot(day, snapshot_id, digest, sidecar, started, finished, bool(meta.get("complete")), quotes)
 
 
 class ExecutionSnapshotSource(ABC):

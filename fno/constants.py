@@ -221,6 +221,7 @@ OUTCOME_PROTECTION_UNVERIFIED = "protection_unverified"  # a protective leg is u
 OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit filled: NSE's settlement price needed
 # Entry limit: the net entry at the execution snapshot's touch is worse than the entry C2 approved (its modelled cash)
 ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"
+DATA_UNVERIFIED = "no new trade: stale or unverified data"  # story C3: a data check failed before the decision
 
 # Story E6: what a review date decides for a strategy version (per its evaluation plan)
 REVIEW_KEEP, REVIEW_PAUSE, REVIEW_RETIRE = "keep", "pause", "retire"

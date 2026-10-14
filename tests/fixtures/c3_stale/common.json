@@ -1,0 +1,55 @@
+{
+ "day": "2026-10-14",
+ "items": [
+  {
+   "available_at": "2026-10-14T13:31:10+05:30",
+   "name": "option:2026-10-27:25000:CE",
+   "source": "fixture",
+   "value": {
+    "spot": 25000.0
+   }
+  },
+  {
+   "available_at": "2026-10-14T13:31:10+05:30",
+   "name": "option:2026-10-27:25000:PE",
+   "source": "fixture",
+   "value": {
+    "spot": 25000.0
+   }
+  },
+  {
+   "available_at": "2026-10-14T13:31:10+05:30",
+   "name": "option:2026-10-27:25200:CE",
+   "source": "fixture",
+   "value": {
+    "spot": 25000.0
+   }
+  },
+  {
+   "available_at": "2026-10-14T13:31:10+05:30",
+   "name": "option:2026-10-27:24800:PE",
+   "source": "fixture",
+   "value": {
+    "spot": 25000.0
+   }
+  },
+  {
+   "available_at": "2026-10-13T15:30:00+05:30",
+   "name": "close:2026-10-13",
+   "source": "fixture",
+   "value": {
+    "nifty": 24900.0,
+    "vix": 12.0
+   }
+  }
+ ],
+ "kind": "common_market_pack",
+ "note": "story C3 fixture: a deliberately stale A4 snapshot (captured 13:31 IST, before the 14:55-15:10 window)",
+ "provenance": {
+  "a4_snapshot": {
+   "csv_sha256": "f6efa642bdf9d48d7133e8ed92df99beb86f41b2447b299d1a8ea2fc49f27e68",
+   "meta_sha256": "70ee243a5dedf11f026728e4550e69c37c16db8717b96e17a4ff5ba3578f511a",
+   "snapshot_id": "nifty_20261014_133102"
+  }
+ }
+}
