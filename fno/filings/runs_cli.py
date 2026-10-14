@@ -130,13 +130,20 @@ def cmd_filings_day_lists(args) -> int:
     step = build_progress().step()
     first = step.day_lists_since if step else QUEUE[-1].day_lists_since
     end = args.end or date.today() - timedelta(days=1)
-    deadline = now_ist() + timedelta(minutes=args.max_minutes)
+    names = [args.name] if args.name else sorted(DAY_LISTS)
     worst = 0
-    for name in [args.name] if args.name else sorted(DAY_LISTS):
+    for name, deadline in list_deadlines(names, now_ist(), args.max_minutes):
         start = first_unarchived_day(DAY_LISTS[name], end, build_manifest_folder(), first)
         build = partial(_budgeted_day_list, name, deadline)
         worst = max(worst, run_librarian(build, build_alert_sender(), build_manifest_recorder(), name, start, end))
     return worst
+
+
+def list_deadlines(names: list[str], started, minutes: int) -> list[tuple]:
+    """Each day list gets an equal share of the budget, so one list's backlog never starves the next (13 Oct 2026:
+    announcements used all 50 minutes, board meetings got none); time a list leaves unused passes to the next."""
+    share = timedelta(minutes=minutes) / len(names)
+    return [(name, started + share * position) for position, name in enumerate(names, start=1)]
 
 
 def _budgeted_day_list(name: str, deadline):

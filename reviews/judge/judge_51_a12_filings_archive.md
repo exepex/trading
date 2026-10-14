@@ -186,3 +186,10 @@ The test passes.
 
 **Verdict: PASS.** It may merge before the 06:17 UTC run. After the merge I check `main` against b15406b and CI.
 Criteria 2 and 6 of A12 are still re-judged when the backfill completes.
+
+## Addendum 4 (merge check, 4a7fe9e)
+
+**MET.** 4a7fe9e has parents ede76ff (main) and b15406b (the passed tip), and it equals my recomputed merge of the
+two. CI `checks` is green on 16bfdd8 (run 38501702626), which contains it, and on later commits. No other code reached
+`main` since my last check: `main` equals 51aa2e7 plus b15406b under `fno`, `tests`, `tools`, `db`, `.github` and
+config.

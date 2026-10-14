@@ -141,3 +141,47 @@ Further claims:
 Checks on the tree merged with `main`: full suite 2238 passed (`tests/playbook` 244), ruff and check_imports clean; 19 of 19 mutations
 caught, run with bytecode caching off. An earlier run on the same container showed wrong "first failing test" labels
 from stale `.pyc` files; the kills themselves held, and the labels above are from the clean run.
+
+## Addendum 2 (14 Oct 2026): the playbook as of the start of the decision day (branch `story/d2-start-of-day`)
+
+Orchestrator's decision, from E2's response 74 §4.1: an approval counts from the next session's start, everywhere.
+
+- `Playbook` now carries the registry rows; `status_on(day)` is each version's latest change dated before the day.
+- `approved_on(day)` and `shadow_on(day)` replace the old current-status reads in `RuleEvaluator`.
+- `approved()` (the status now) stays for `playbook check`. The old `registered` field and `shadow()` are gone.
+- Tests:
+  - `test_an_approval_made_on_the_day_trades_from_the_next_session_only`: a candidate registered before the day and
+    approved on it is still evaluated in shadow that day; Book 1 chooses nothing, and it is approved from the next day.
+  - `test_a_pause_on_the_day_takes_effect_from_the_next_session`.
+- Mutations, both caught by the first test:
+  - `changed_on <= day`;
+  - the evaluator reading `approved()`.
+- Consequence, said plainly: a hard-loss pause made during a session also takes effect from the next session. The
+  same day had only one decision at about 15:00, so no new trade is lost. E6 must still stop new entries at once if it
+  pauses before that day's decision; that is E6's design point.
+- When E2 merges, its `opportunity_set.approved_on` should call `Playbook.approved_on` (one rule, not two). I will
+  make that one-line change in E2's next round or after both merge.
+
+## Addendum 3 (14 Oct 2026): judge 74, stops take effect at once (accepted)
+
+Judge 74 is right, and my addendum 2 reasoning was wrong. A pause dated on the day can be written before the 15:00
+decision (a morning hard-loss pause, the owner's stop at 10:00). Nothing after D2 checks the playbook status (E4's
+entry desk does not), so D2 must stop it.
+
+- **Rule (risk manager's, judge 74):** a version trades on day D only if it was `paper` at the start of D **and**
+  is still `paper` after every change dated D.
+  - Approvals and resumptions wait for the next session.
+  - A pause or retirement stops new entries at once.
+  - Code: `Playbook.status_through(day)` (changes dated on or before the day); `approved_on` requires both.
+- **Rebuilds stay stable:** both read registry dates only. On the live day no later row exists, so "through the day"
+  is "now".
+- **Not included:** E6's "drifted" set is not on `main`; E6 adds that check after this merges, as judge 74 sets out.
+- **Tests:**
+  - `test_a_stop_on_the_day_takes_effect_at_once`, for a hard-loss pause, the owner's pause and retirement: empty that
+    day and after, unchanged the day before, and the evaluation chooses nothing;
+  - `test_a_resumption_on_the_day_waits_for_the_next_session`;
+  - the old "pause from the next session" test is replaced.
+- **Mutations:**
+  - dropping the "through the day" condition fails 3 tests;
+  - dropping the "start of the day" condition fails the approval and resumption tests.
+- The shadow side is unchanged; judge 74 accepts it.
