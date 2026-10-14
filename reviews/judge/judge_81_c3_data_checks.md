@@ -149,3 +149,35 @@ merge, with no difference. No other code is on `main` since.
 - CI `checks` is green on e3506ec (run 38516503171).
 
 The spot-gap measurement on the first real capture is still owed by me (addendum 1).
+
+## Addendum 3 (the promised real-capture measurement for `SPOT_AGREEMENT` 0.2%)
+
+Source: today's first real 3 pm capture, `nifty_20261014_145500` (commit 5c22bcc; 184 contracts, complete,
+`in_window`). The routine's first push failed with a 403, and the data reached `main` at 09:35 UTC.
+
+| Chain | Quotes received | Spot |
+|---|---|---|
+| 27 Oct 2026 | 14:55:25 to 14:56:36 IST | 22,620.00 |
+| 23 Nov 2026 | 14:56:37 to 14:57:45 IST | 22,621.15 |
+
+- **Gap: 1.15 points = 0.0051%.** That is about 40 times inside the 0.2% limit. So C3's spot check would not have
+  refused today's entries.
+- **Evidence: some evidence (one day).** The two chains are fetched about 70 seconds apart. A fast market, such as an
+  event day or a 1% move in a minute, can open a larger gap. Keep measuring over the first weeks.
+- **Other checks on the same capture:**
+  - all 184 quotes are A4-valid, with prices on 0.05 ticks and sizes in multiples of the 65 lot;
+  - the meta's `spot` is the first chain's;
+  - VIX is 14.74 (NSE, 14:54).
+- **The futures are consistent with the options** (put-call parity on mid prices, my own script, rate 6.5% assumed):
+
+  | Expiry | Parity forward (median of the 5 strikes nearest at-the-money) | Future's last price | Difference |
+  |---|---|---|---|
+  | 27 Oct | 22,644.63 | 22,650.00 | 5.37 points (0.024%) |
+  | 23 Nov | 22,759.49 | 22,760.00 | 0.51 points |
+
+  All three futures last prices are round tens (22,650, 22,760 and 22,910). The code does not round them
+  (`parse_index_futures` takes NSE's `lastPrice` as given), and parity agrees with them closely, so I take them as real
+  prints. The raw NSE futures response is not archived, so this cannot be re-checked byte by byte later. Storing it
+  is a small A4 should-fix, reasoning only.
+
+**Ruling unchanged:** `SPOT_AGREEMENT` 0.2% stands. Today's data supports it.

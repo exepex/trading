@@ -4,9 +4,12 @@ push. If the push is rejected (another container pushed first), the unpushed loc
 checkout is reset to the new `origin/<branch>` and the same fills are applied again: E1 makes them idempotent by fill
 ID, so nothing is counted twice, and a plain pull would merge-conflict on `cash_ledger.csv` (judge 1).
 
-A reset must never destroy other work (judge 82), so "a dedicated checkout" is checked, not assumed: an account write
-is refused unless the tracked worktree is clean and nothing is unpushed, and before any reset it confirms that the only
-commit ahead of the pulled origin is this write's own; otherwise it stops and alerts #fno-desk.
+A reset must never destroy other work (judge 82), so "a dedicated book folder" is checked, not assumed (judge 82
+addendum 6): an account write is refused while anything is unpushed or this book's folder holds uncommitted work
+(tracked edits or new files: the commit adds the whole folder and must not sweep in another writer's partial work).
+Edits elsewhere in the checkout do not refuse it, so one book's leftover never stops the others. Before any reset it
+confirms that the only commit ahead of the pulled origin is this write's own, and the reset is `--keep`: git keeps the
+edits it does not touch and refuses rather than overwrite one; any refusal stops and alerts #fno-desk.
 Commits run the repository's hooks (the public-record scan, O5): never `--no-verify`."""
 
 from __future__ import annotations
@@ -30,11 +33,13 @@ class GitError(AccountWriteRefused):
 
 
 class CheckoutNotDedicated(GitError):
-    """The checkout holds other work (uncommitted tracked edits or unpushed commits): no account write, no reset."""
+    """Other work is in the way (unpushed commits, uncommitted work in the book's folder, or an edit a reset would
+    overwrite): no account write, no reset."""
 
 
 DIRTY = "{book}: account write refused: the checkout holds other work ({what}); it is never reset over"
 UNEXPECTED = "{book}: rejected push NOT reset: {count} commit(s) ahead, not only this write's; resolve by hand"
+NOT_KEPT = "{book}: rejected push NOT reset: the reset would overwrite a local edit ({error}); resolve by hand"
 
 
 class Git:
@@ -52,8 +57,7 @@ class Git:
 
     def commit_paths(self, paths: Sequence[Path], message: str) -> bool:
         """Adds and commits these paths; False when nothing changed."""
-        relative = [Path(p).resolve().relative_to(self.root.resolve()).as_posix() for p in paths]
-        self("add", "--", *relative)
+        self("add", "--", *(self.relative(p) for p in paths))
         if self("diff", "--cached", "--quiet", check=False).returncode == 0:
             return False
         self("commit", "-q", "-m", message)
@@ -62,10 +66,14 @@ class Git:
     def push(self) -> bool:
         return self("push", "-q", "origin", f"HEAD:{self.branch()}", check=False).returncode == 0
 
-    def other_work(self) -> str:
-        """What a reset would destroy here, besides nothing: uncommitted tracked edits, or commits not on origin."""
-        if self("status", "--porcelain", "--untracked-files=no").stdout.strip():
-            return "uncommitted tracked edits"
+    def relative(self, path: Path) -> str:
+        return Path(path).resolve().relative_to(self.root.resolve()).as_posix()
+
+    def other_work(self, folder: Path) -> str:
+        """What an account write in `folder` could sweep in or lose: uncommitted work in the folder (ignored files
+        aside), or commits not on origin; empty when there is none."""
+        if self("status", "--porcelain", "--untracked-files=all", "--", self.relative(folder)).stdout.strip():
+            return f"uncommitted work in {self.relative(folder)}"
         self("fetch", "-q", "origin", self.branch())
         ahead = self("rev-list", f"origin/{self.branch()}..HEAD").stdout.split()
         return f"{len(ahead)} unpushed commit(s)" if ahead else ""
@@ -95,26 +103,31 @@ class GitAccountSync(AccountSync):
         self.git, self.open_journal, self.alerts = git, open_journal, alerts  # open_journal(book): under its lock
 
     def write(self, book: str, apply: Callable[[DeskJournal], T], message: str) -> T:
-        branch = self.git.branch()
+        branch, folder = self.git.branch(), book_folder(self.git.root, book)
         for _ in range(PUSH_ATTEMPTS):
-            self._require_dedicated(book)
+            self._require_dedicated(book, folder)
             self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
             pulled = self.git("rev-parse", "HEAD").stdout.strip()
             with self.open_journal(book) as journal:
                 result = apply(journal)
-            if not self.git.commit_paths([book_folder(self.git.root, book)], message) or self.git.push():
+            if not self.git.commit_paths([folder], message) or self.git.push():
                 return result
             ahead = self.git.ahead_of(pulled)
             if len(ahead) != 1:  # only this write's commit may be dropped
                 self._stop(UNEXPECTED.format(book=book, count=len(ahead)))
             self.git("fetch", "-q", "origin", branch)
-            self.git("reset", "-q", "--hard", f"origin/{branch}")  # drop the rejected account commit, apply again
+            self._reset_keeping_edits(book, f"origin/{branch}")  # drop the rejected account commit, apply again
         raise GitError(f"{book}: account push rejected {PUSH_ATTEMPTS} times; the fills are applied again next run")
 
-    def _require_dedicated(self, book: str) -> None:
-        other = self.git.other_work()
+    def _require_dedicated(self, book: str, folder: Path) -> None:
+        other = self.git.other_work(folder)
         if other:
             self._stop(DIRTY.format(book=book, what=other))
+
+    def _reset_keeping_edits(self, book: str, target: str) -> None:
+        done = self.git("reset", "-q", "--keep", target, check=False)
+        if done.returncode != 0:
+            self._stop(NOT_KEPT.format(book=book, error=(done.stderr or done.stdout).strip()[-200:]))
 
     def _stop(self, text: str) -> None:
         self.alerts.send(text)

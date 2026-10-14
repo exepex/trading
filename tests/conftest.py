@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from tests.live_credentials import LIVE_CREDENTIALS
+
 ROOT = Path(__file__).resolve().parent.parent
 # Recorded research data and paper-desk records: tests must never write here.
 PROTECTED = [ROOT / "research" / "data", ROOT / "journal"]
@@ -29,18 +31,7 @@ def repository_data_is_untouched():
 
 @pytest.fixture(autouse=True)
 def no_real_credentials(monkeypatch):
-    """Tests never reach a real broker account, Google Drive or the network through credentials that happen to be set
-    on the machine; a test that needs them sets fake ones itself."""
-    from fno import constants as c
-
-    for name in (
-        c.ENV_GROWW_ACCESS_TOKEN,
-        c.ENV_GROWW_API_KEY,
-        c.ENV_GROWW_API_SECRET,
-        c.ENV_GROWW_TOTP_SECRET,
-        c.ENV_GDRIVE_SERVICE_ACCOUNT_JSON,
-        c.ENV_GDRIVE_OAUTH_CLIENT_ID,
-        c.ENV_GDRIVE_OAUTH_CLIENT_SECRET,
-        c.ENV_GDRIVE_OAUTH_REFRESH_TOKEN,
-    ):
+    """Tests never reach a real broker account, Google Drive, #fno-desk, a database, a routine or GitHub through
+    credentials that happen to be set on the machine; a test that needs them sets fake ones itself."""
+    for name in LIVE_CREDENTIALS:
         monkeypatch.delenv(name, raising=False)
