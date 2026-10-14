@@ -183,3 +183,13 @@ PLAYBOOK_REGISTRY_FILE = "registry.csv"
 # Entry-condition operators: numbers compare with a number, flags with `is` and true or false
 OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_AT_MOST, OPERATOR_IS = ">", ">=", "<", "<=", "is"
 NUMBER_OPERATORS = (OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_AT_MOST)
+
+# NSE margins (story A14, fno/nse_margins/): NSE Clearing's exposure (extreme-loss) margin on index options, from its
+# equity-derivatives margins page (its daily `ael_DDMMYYYY.csv` lists stocks only), and when a day's
+# beginning-of-day SPAN file must exist
+INDEX_OPTION_EXPOSURE_RATE = 0.02  # of notional (underlying's last close x quantity), per short index option
+DEEP_OTM_EXPOSURE_RATE, DEEP_OTM_DISTANCE = 0.03, 0.10  # a short option more than 10% out of the money
+EXPOSURE_MODEL_MAX_MONTHS = 9  # beyond 9 months (5%) and on expiry day (+2%) NSE's rule differs: not modelled
+SPAN_BOD_CREATED_BEFORE = time(9, 0)  # IST: a day's `i1` file must be written before this (point in time)
+SPAN_BOD_DUE = time(21, 45)  # IST: the next session's `i1` file is out by then (written about 21:28)
+MARGIN_SOURCE_NSE_SPAN = "NSE SPAN"  # margins.csv `source` prefix of a computed row: "NSE SPAN <file> sha256=<hex>"

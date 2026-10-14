@@ -7,11 +7,18 @@ from datetime import date
 import pytest
 
 from fno.research_data.calendar import CsvSessionCalendar
+from fno.storage.coverage import days_between
 from fno.storage.fingerprints import compare_with_source, fingerprint_store
 from fno.storage.manifest_folder import Fingerprint, FingerprintingStore, ManifestFolder
-from fno.storage.raw_source import NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource, ParticipantOiSource
+from fno.storage.raw_source import (
+    NseDailyFoSource,
+    NseIndexCloseSource,
+    NseLegacyFoSource,
+    NseSpanBodSource,
+    ParticipantOiSource,
+)
 from fno.storage.raw_store import LocalFolderStore, RawFileConflict
-from fno.storage.wiring import RAW_SOURCES, build_manifest_folder, coverage_datasets
+from fno.storage.wiring import RAW_SOURCES, build_manifest_folder, build_session_calendar, coverage_datasets
 
 SOURCE_URL = "https://nsearchives.nseindia.com/content/circulars/example.pdf"
 CALENDAR = CsvSessionCalendar(f"date,kind,description,source_url\n2026-10-02,holiday,Gandhi Jayanti,{SOURCE_URL}\n")
@@ -97,12 +104,21 @@ def test_a_live_file_that_differs_is_reported_as_an_nse_rewrite_and_the_archive_
     assert lines[0].endswith("identical") and "NSE REWRITE" in lines[1] and "no longer serves it" in lines[2]
 
 
+# Datasets kept only from a recent first day (no year of history to fingerprint): every session from that day to the
+# day the manifest was written must have its row instead. A14: NSE's SPAN files, from 1 Oct 2026.
+FORWARD_ONLY = {NseSpanBodSource: date(2026, 10, 14)}
+
+
 def test_every_raw_dataset_has_a_committed_manifest_in_one_folder():
-    manifests = build_manifest_folder()
+    manifests, calendar = build_manifest_folder(), build_session_calendar()
     for dataset in coverage_datasets():
-        assert manifests.path_for(dataset.source).is_file() and len(dataset.fingerprints) >= 250, (
-            dataset.source
-        )  # a year+
+        assert manifests.path_for(dataset.source).is_file(), dataset.source
+        if dataset.source in FORWARD_ONLY:
+            days = days_between(dataset.source.first_day, FORWARD_ONLY[dataset.source])
+            sessions = {dataset.source.filename_for(d) for d in days if calendar.is_session(d)}
+            assert sessions <= set(dataset.fingerprints), dataset.source
+        else:
+            assert len(dataset.fingerprints) >= 250, dataset.source  # a year+
     assert all(f.url.startswith("https://nsearchives.nseindia.com/") for f in manifests.read(NseDailyFoSource))
 
 

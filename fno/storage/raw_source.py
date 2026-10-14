@@ -186,3 +186,14 @@ class NseDeliverySource(NseArchiveSource):
     first_day = date(2025, 10, 1)
     BASE_URL = "https://nsearchives.nseindia.com/products/content/"
     FILENAME = "sec_bhavdata_full_{day:%d%m%Y}.csv"
+
+
+class NseSpanBodSource(NseArchiveSource):
+    """NSE Clearing's beginning-of-day SPAN risk-parameter file of a session, e.g. nsccl.20261014.i1.zip, written
+    about 21:28 IST on the session before (story A14: the margins C2 needs). Kept from the month A14 began; NSE's
+    archive goes back to 2020 for a history study."""
+
+    dataset = "nse/derivatives/span-bod"
+    first_day = date(2026, 10, 1)
+    BASE_URL = "https://nsearchives.nseindia.com/archives/nsccl/span/"
+    FILENAME = "nsccl.{day:%Y%m%d}.i1.zip"
