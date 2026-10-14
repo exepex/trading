@@ -271,3 +271,33 @@ touched; no secrets, emails or model names found in the diff.
 
 **Verdict: FAIL for 01575a155b44f10b3f397f126986f9ca092ae78c**, on must-fix 1 only (wording, two places). Everything
 else in revision 3 passes; a re-check needs only 08 §8.2 and response 97's summary.
+
+## Addendum 7 (15 Oct 2026): a0ac7522ae56f18657af3c9c49694a9e342c1226 (01575a1..a0ac752)
+
+The orchestrator replaced the target SHA. a0ac752 changes only `03` §3.1 and §3.4 point 4 and response 97 (checked:
+`git diff --stat 01575a1 a0ac752`, two files, docs only).
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 6 must-fix 1 (decision 7 written as decided) | NOT MET | `08` is unchanged between 01575a1 and a0ac752; response 97 line 18 still names only decisions 4 and 8 |
+| B4 snooping path "best of many shadows" | PARTLY | See must-fix 2 |
+| B4 snooping path "tune after looking" | MET | Any change after looking is a new idea and a new row, and records count only from a freeze made before collection; the frozen sample also closes "judge when the numbers look best" |
+| Benchmark PARTIAL (per rupee tied as headline, whole account with idle cash at the cash rate) | MET | Consistent with the owner's rows of 14 Oct ("more strategies in parallel, not bigger bets"; Rs 20 lakh "many strategies in parallel"); the whole-account view is still reported, and crediting idle cash at the cash rate is fairer than zero |
+| Tally 32 / 3 / 0 | MET | Matches the per-file table |
+
+**Must-fix 2: the Holm family counts only shadows that are still running.** The new text says every
+`exploratory_shadow` "running when an idea is judged" belongs to that idea's family. Adversarial path: register 20
+shadows on one question, stop the 19 that look poor (stopping a shadow is not forbidden anywhere), then judge the survivor
+in a family of 1. That is exactly the "watch many, pick the best" path the paragraph claims to close. The factory-wide
+"trial k of K" line is only reported; the pass decision uses the Holm family. Fix: the family is every shadow registered
+on that question (or batch) since its last judgement, whether running, stopped or retired; and stopping a shadow before
+its frozen sample is recorded with its reason and keeps it in the family. With that wording the builder's argument holds:
+the rules are mechanical and the forward data is unseen at freeze time, so I agree that exploratory shadows may feed
+promotion.
+
+**Follow-up (not blocking):** "per rupee of capital tied up" needs one frozen definition before S2 or the scoreboard uses
+it: return per rupee-day of funds at entry, with the index fund measured over the same rupee-days (or the untied days
+credited at the cash rate). Otherwise a strategy tied up for a few days is compared with an index held all year.
+
+**Verdict: FAIL for a0ac7522ae56f18657af3c9c49694a9e342c1226**, on must-fix 1 (still open from addendum 6) and must-fix
+2 (family membership). Both are wording fixes; a re-check needs only `08` §8.2, response 97's summary and `03` §3.1.
