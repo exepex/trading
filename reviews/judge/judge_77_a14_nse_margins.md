@@ -186,3 +186,51 @@ room can pass a trade. Today it cannot, because `stressed_margin` is not set and
 
 **Verdict: PASS** for ee7f35b (the switch and the recorded check). The C2 must-fix (2) is a new story that blocks
 setting `stressed_margin`. Follow-up (1) is a separate C2 story.
+
+## Addendum 4 (`story/c2-funds-at-entry` 90dfcd3, my addendum 3 must-fix 2): PASS
+
+**The builder corrected my brief, and the correction is right.** "Bought premium + charges" added to C2's **netted**
+margin gives 822.25 + 58,819.02 + 47,450 + 150.62 = 107,241.89. That is still about |NOV| = 6,071 looser than Groww.
+
+At entry the broker credits neither the sold premium nor NOV, so the margin is `max(0, k × scan − NOV) + exposure`:
+- 6,893.25 + 58,819.02 + 47,450 + 150.62 = **113,312.89**, my own arithmetic;
+- that is Re 0.25 above Groww's 113,312.64 (Groww rounds SPAN to the rupee). Never looser.
+
+**What changed:** `MarginRoom` keeps its netted after-entry check and adds the at-entry check, and both must hold. The
+at-entry check is:
+- the open trades' margins;
+- plus the proposal's margin with no sold-premium credit;
+- plus the bought premium and charges (`entry_funds`);
+- against free cash before entry, `min(cash, marked equity, cash + held losses) − premium reserved`.
+
+`scenario_lookup` (rows without NOV) fails closed.
+
+**Tests on the Groww basket's real numbers:** needed = 113,312.89, and 1 paisa less is refused. One test shows the
+netted room alone left more than Rs 50,000 that the broker would not. The mirror debit and the held-losses cases are
+tested too.
+
+**My plants (6; `tests/risk`, `desk`, `checks`, `decisions`; token unset): all caught.**
+
+| Plant | Result |
+|---|---|
+| At-entry check ignored | 3 failed |
+| Sold premium credited at entry | 3 failed |
+| Funds without charges | 1 failed |
+| Free cash ignores held losses | 1 failed |
+| Open trades' margins not blocked | 14 failed |
+| Scenario lookup lets entry through | 1 failed |
+
+**Gates:**
+- full suite: 3,113 passed;
+- ruff, format (697 files) and imports (704): clean;
+- `git merge-tree` with `main`: clean.
+
+**The builder's two flags (follow-ups):**
+1. **C4's `validity_margin.py` keeps the netted formula.** C2, which decides first, is now the stricter of the two,
+   so nothing passes that should not. But C4 can no longer catch a C2 regression in funds at entry. Port the same
+   at-entry term to C4 so it stays an independent check (a C4 story).
+2. **Sold premium received earlier the same day still counts as free cash in E1.** With one decision a day this
+   matters only after a same-day entry and exit. It is real, and E1's cash should hold it back until settlement (T+1).
+
+**Verdict: PASS** for 90dfcd3. This must-fix no longer blocks setting `risk.stressed_margin`, which stays the
+owner's choice. Follow-up (b) of addendum 3 (exposure rescaled to the decision-time index) is still open.
