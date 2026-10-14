@@ -1,6 +1,9 @@
 """C4's evidence (story C4): the raw A4 quote snapshot a decision was made on, read again from the store and accepted
 only if it is the committed capture (C3's `CaptureRecord`: both files' SHA-256 equal), of the decision's day, started
-before the decision cutoff. Rows are parsed here from the raw CSV, not through the desk's own snapshot reader."""
+before the decision cutoff. Rows are parsed here from the raw CSV, not through the desk's own snapshot reader. A quote
+counts only if A4's rule finds it usable (`ExecutionQuote.a4_problem`, the one rule Book 1 prices by: two-sided, not
+crossed, sizes on both sides, a trade today). An invalid quote has no mid for pricing (judge 83 addendum 2), so a bad
+at-the-money quote cannot move the parity forward or any stress figure."""
 
 from __future__ import annotations
 
@@ -11,6 +14,7 @@ import json
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from ..desk.snapshot import quote_from_row
 from ..quotes.recorder import QuoteSnapshotRecorder
 from ..storage.raw_store import RawFileStore
 from .data_checks import CaptureRecord
@@ -24,10 +28,13 @@ class QuoteRow:
     bid: float | None
     ask: float | None
     received_at: datetime | None
+    a4_problem: str = ""  # why A4's rule finds the quote unusable; empty when it is usable
 
     @property
     def mid(self) -> float | None:
-        return None if self.bid is None or self.ask is None else (self.bid + self.ask) / 2
+        if self.a4_problem or self.bid is None or self.ask is None:
+            return None
+        return (self.bid + self.ask) / 2
 
 
 @dataclass(frozen=True)
@@ -37,7 +44,7 @@ class Evidence:
     rows: dict[Key, QuoteRow]
 
     def mids(self) -> dict[str, tuple[Key, float]]:
-        """Each contract with a two-sided quote: its key and mid."""
+        """Each contract with an A4-usable quote: its key and mid."""
         return {row.contract: (key, row.mid) for key, row in self.rows.items() if row.mid is not None}
 
 
@@ -62,7 +69,10 @@ def _key(row: dict) -> Key:
 
 
 def _row(row: dict) -> QuoteRow:
-    return QuoteRow(row["contract_id"], _number(row["bid"]), _number(row["ask"]), _time(row["response_received_at"]))
+    problem = quote_from_row(row).a4_problem
+    return QuoteRow(
+        row["contract_id"], _number(row["bid"]), _number(row["ask"]), _time(row["response_received_at"]), problem
+    )
 
 
 class EvidenceReader:

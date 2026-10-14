@@ -293,3 +293,38 @@ leg's price check.
 
 **Mutations: 60 of 60 caught** (python -B, caches cleared). That is round 2's 57, plus: the name check off, the own
 liability dropped, and the lookback widened to 30.
+
+## Addendum 3 (14 Oct 2026): A4-valid quotes only (branch `story/c4-a4-valid-quotes`, judge 83 addendum 2 should-fix)
+
+C4 is merged (`dafbebe`, exactly `bf0d4af`). This follow-up is on its own branch.
+
+**The claim (judge 84 via judge 83 addendum 2) checked, and correct:**
+- `Evidence.mids` took any two-sided quote: crossed, sizeless, or invalid by A4's rule (no trade today).
+- The parity forward picks the strike whose call and put mids are closest. So one bad quote near the money could
+  move the forward, and every stress and exposure figure with it.
+- Book 1 prices only A4-valid mids.
+
+**Fix, with one rule in one place.**
+- E4's row parser is now public as `fno.desk.snapshot.quote_from_row`, and C4 reads each row through it.
+- `QuoteRow` carries `ExecutionQuote.a4_problem`, the same rule Book 1 prices by.
+- A quote with a problem has no mid. So it is never in `Evidence.mids`, never in the parity forward, and never used to
+  mark or stress a position.
+- A leg priced on such a quote fails its leg check: "quote not usable by A4's rule: <why>".
+
+**Tests** (`tests/checks/test_validity_quotes.py`):
+- Each kind of bad quote (crossed, not valid, no size, one-sided) has no mid.
+- `test_a_bad_at_the_money_quote_does_not_move_the_forward_or_the_stress`:
+  - an invalid 25,100 call priced like the put would make parity pick 25,100 and move the forward by 100 points;
+  - it is not counted: the forward stays 25,000 and every stress, exposure and margin figure equals the clean
+    snapshot's.
+- A leg on each kind of bad quote fails that leg and the priced checks.
+
+**Mutations: 63 of 63 caught.** That is the previous 60, plus: invalid quotes keep a mid, a leg on an invalid quote
+passes, and the A4 rule is not read.
+
+**A consequence, said plainly.** An open position whose leg has no A4-valid quote at 15:00 cannot be marked or stressed
+by C4. Its stress, exposure and margin checks then fail, so no new trade enters that day.
+- Exits are not affected: C4 checks entries only.
+- This can happen on a deep out-of-the-money wing with no trade that day.
+- If it proves frequent, the fix I would propose is the previous session's NSE settlement price as that leg's mark.
+  It is independent and committed (reasoning only).
