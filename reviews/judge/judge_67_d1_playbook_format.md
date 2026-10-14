@@ -111,3 +111,9 @@ for the record could be added later (reasoning only, not needed for safety).
 
 **PASS: the builder may merge.** After the merge I will check that `main` equals this tip plus a clean merge and that
 CI is green.
+
+## Addendum 4 (merge check): `main` equals the passed tip plus a clean merge; CI green
+
+Merge 742551c has parents 55c6690 (main) and 618b2fd (my passed tip). `fno/playbook` and `tests/playbook` at 742551c
+are identical to 618b2fd. The first-parent diff is exactly the branch's 3 files. Pushed tip 1b6cb11 adds one
+`DESK_DECISIONS` line. CI `checks` run 38492882994 on 1b6cb11: success.

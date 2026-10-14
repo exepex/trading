@@ -105,3 +105,9 @@ approved, and no path can hold to expiry without the owner's approval. It is a r
 Before the first `paper` approval, either E7 passes or a loader check is added.
 
 **PASS: the builder may merge.** I will then check that `main` equals this tip plus a clean merge and that CI is green.
+
+## Addendum 2 (merge check): `main` equals the passed tip plus a clean merge; CI green
+
+Merge 129e4a4 has parents 0ea6944 (main) and 0f0e49c (my passed tip). `fno/desk`, `tests/desk` and
+`fno/constants.py` at 129e4a4 are identical to 0f0e49c. Pushed tip 24cf251 adds only the conversation log. CI
+`checks` run 38494200013 on 24cf251: success.
