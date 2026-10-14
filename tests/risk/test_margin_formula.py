@@ -52,10 +52,13 @@ def _room(tmp_path) -> MarginRoom:
 
 
 class CostsAtMid:
-    """Entry at mid with no charges: the cash flow is minus the position's value."""
+    """Entry at mid with no charges: the cash flow is minus the position's value; the funds are the bought legs."""
 
     def entry_cash_flow(self, prop, the_market):
         return -sum(units * the_market.quote(c).mid for c, units in prop.signed_units().items())
+
+    def entry_funds(self, prop, the_market):
+        return sum(units * the_market.quote(c).mid for c, units in prop.signed_units().items() if units > 0)
 
 
 def _broker_margin(parts: MarginParts, nov_now: float) -> float:
@@ -96,3 +99,8 @@ def test_with_an_open_losing_trade_c2_never_leaves_more_free_than_the_broker(tmp
     broker_cash = START + held_cash - new_parts.nov  # the entry pays or receives the new trade's value
     broker_free = broker_cash - _broker_margin(held_parts, held_value) - _broker_margin(new_parts, new_parts.nov)
     assert c2_free == pytest.approx(broker_free, abs=0.01)  # exact: never looser, and not stricter either
+    # Groww at entry (judge 77 addendum 3): no sold-premium credit, the bought legs paid, the held margin still blocked
+    bought = sum(units * MIDS[(k, kind)] for (k, kind, s) in spec for units in (65,) if s == BOUGHT)
+    groww_free = START + held_cash - _broker_margin(held_parts, held_value) - new_parts.at_entry(1.0) - bought
+    at_entry_free = verdict.numbers["free_before_entry_rs"] - verdict.numbers["needed_at_entry_rs"]
+    assert at_entry_free == pytest.approx(groww_free, abs=0.01)
