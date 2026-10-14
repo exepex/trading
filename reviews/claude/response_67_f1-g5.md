@@ -433,3 +433,25 @@ shows 0.
 collection is certain to record them `no_submission` within seconds. That wastes two routine runs. A sound fix is for
 `fire` to skip when it is already past 15:13 IST, the same rule as the push gate. It touches the fire path, so it waits
 for the orchestrator.
+
+## Addendum 8 (14 Oct 2026, evening IST): no AI fire on a late start, branch `story/f1-no-late-fire` (for the judge)
+
+Approved by the orchestrator from addendum 7.
+- `fire` checks the clock once. After 15:13 IST (`fno/ai/timing.py` `LATEST_START`, the capture's last snapshot pull
+  under protocol v2 section 5), it fires no book.
+- Each book's fire-log entry then reads `fired: false, late_start: true` with the reason, and #fno-desk gets one line.
+- `collect` records such a book as `no_submission` (as if it never answered), with "late start" in its notes, and five
+  empty records.
+- `capture_gate` now reads the same constant, so the 15:13 limit has one source.
+- At 15:13:00 exactly, the books are still fired.
+
+**Tests** (`tests/ai/test_late_start.py`):
+- a 19:27 start fires nothing, writes the log and sends one alert;
+- the collection gives `no_submission` with the reason and empty records;
+- 15:13:00 still fires.
+
+Two mutations were caught:
+- with the clock check disabled, 2 tests fail;
+- with `not_fired` in place of `no_submission`, 1 test fails.
+
+**Gates:** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` 3126 passed; ruff and `check_imports` clean.

@@ -2,7 +2,8 @@
 the day's v2 pack: one pointer per book to its own routine (O6's `/fire` trigger), Hybrid's with the rules' numbers,
 the AI team's without. The fire log (`<d>_fired.json`, committed with the records after 15:15) keeps each routine's
 session link for the audit. Fired once per day; every failure posts one #fno-desk line and is recorded, never retried
-with more time. A book stopped by two transcript breaches (`stop_rule.py`) is not fired."""
+with more time. A book stopped by two transcript breaches (`stop_rule.py`) is not fired, nor is any book on a run
+that starts after 15:13 IST (its answer could only be late)."""
 
 from __future__ import annotations
 
@@ -20,9 +21,11 @@ from .paths import fired_path, pack_path
 from .pointer import BookPointer
 from .rules import RulesMissing, rules_of_day
 from .stop_rule import stop_reason
+from .timing import LATEST_START, latest_start
 from .versions import current_version
 
 LINE = "Omenix F&O AI forecasts (GitHub Actions): {day}: {result}"
+LATE_START = "late start: the run began after {latest:%H:%M} IST, so no AI book was fired (no forecast today)"
 
 
 @dataclass
@@ -39,11 +42,19 @@ class AiBookFirer:
         if log_file.is_file():
             return [LINE.format(day=day, result="already fired (fired once per day)")]
         pack_sha = hashlib.sha256(pack_file.read_bytes()).hexdigest()
-        log = {book: self._fire_one(day, book, pack_sha) for book in AI_BOOKS}
+        late = self.clock() > latest_start(day)
+        log = {book: self._late_start(day, book) if late else self._fire_one(day, book, pack_sha) for book in AI_BOOKS}
+        if late:
+            self.alerts.send(LINE.format(day=day, result=LATE_START.format(latest=LATEST_START)))
         log_file.parent.mkdir(parents=True, exist_ok=True)
         log_file.write_text(json.dumps(log, sort_keys=True, indent=1) + "\n", encoding="utf-8")
         fired = [book for book, entry in log.items() if entry["fired"]]
         return [LINE.format(day=day, result=f"fired {', '.join(fired) or 'none'} of {', '.join(AI_BOOKS)}")]
+
+    def _late_start(self, day: date, book: str) -> dict:
+        """Not fired: its answer could only be late (the collection records `no_submission`, reason late start)."""
+        entry = {"version": current_version(book).label, "fired_at": self.clock().isoformat()}
+        return entry | {"fired": False, "late_start": True, "reason": LATE_START.format(latest=LATEST_START)}
 
     def _fire_one(self, day: date, book: str, pack_sha: str) -> dict:
         version = current_version(book).label

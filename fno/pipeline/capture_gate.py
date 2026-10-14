@@ -14,14 +14,14 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, time
+from datetime import datetime
 from pathlib import Path
 
 from ..ai.paths import pack_path
+from ..ai.timing import LATEST_START
 from ..models import now_ist
 
 PUSH_EVENT = "push"
-PUSH_LATEST = time(15, 13)  # protocol v2 section 5: the capture pulls for the snapshot until 15:13 IST at most
 LATE_PUSH = "{day}: push after {latest:%H:%M} IST: only late records could follow (the cron run covers a missed day)"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
@@ -31,8 +31,8 @@ def skip_reason(root: Path, now: datetime, event: str) -> str:
     day = now.date()
     if (Path(root) / pack_path(day)).is_file():
         return f"{day}: the day's pack is already on main (captured by an earlier run)"
-    if event == PUSH_EVENT and now.time() > PUSH_LATEST:
-        return LATE_PUSH.format(day=day, latest=PUSH_LATEST)
+    if event == PUSH_EVENT and now.time() > LATEST_START:
+        return LATE_PUSH.format(day=day, latest=LATEST_START)
     return ""
 
 

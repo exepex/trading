@@ -69,7 +69,8 @@ class AiForecastCollector:
             return outcome
         outcome = judge(book, day, submission, labels, envelope_of(pointer), version)
         if outcome.status == NO_SUBMISSION and fired and not fired.get("fired"):
-            outcome.withdraw(NOT_FIRED, f"the routine was not fired: {fired.get('reason', '')}")
+            status = NO_SUBMISSION if fired.get("late_start") else NOT_FIRED  # late start: as if it never answered
+            outcome.withdraw(status, f"the routine was not fired: {fired.get('reason', '')}")
         return outcome
 
     def _fired(self, day: date) -> dict:
