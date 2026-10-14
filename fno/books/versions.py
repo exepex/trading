@@ -1,10 +1,11 @@
 """Evaluation segments (story D6, design 12.5-12.6, 13.5): which registered version each decision belongs to, and when
 scoring is paused. A decision is scored in the segment of its book's active version: the latest registered for that
-book that starts on or before the decision's day and whose registry row was committed before the decision (git
-ancestry; `registered_in_commit` must be in that history too). A decision whose served components (the model actually
-served, prompt versions, playbook hashes and so on) differ from the active version's is `unscored`, and so is every
-later decision of that book until a new version is registered. Labels are computed from the registry and the
-decisions alone, in a fixed order, so the same inputs always give the same segments (S2 and S3 group by them)."""
+book that starts on or before the decision's day and whose registry row, and `registered_in_commit`, were committed
+strictly before the decision (git ancestry, not the decision's own commit). A decision whose served components (the
+model actually served, prompt versions, playbook hashes and so on) are not exactly the active version's, a missing
+component included, is `unscored`, and so is every later decision of that book until a new version is registered.
+Labels are computed from the registry and the decisions alone, in a fixed order, so the same inputs always give the
+same segments (S2 and S3 group by them)."""
 
 from __future__ import annotations
 
@@ -67,11 +68,11 @@ class Versions:
         return found[-1] if found else None
 
     def _registered_before(self, row: VersionRow, decision_commit: str) -> bool:
+        """Strictly before (design 13.5): a row or components committed in the decision's own commit do not count."""
         row_commit = self._row_commits[_key(row)]
-        return (
-            row_commit is not None
-            and self.history.is_ancestor(row_commit, decision_commit)
-            and self.history.is_ancestor(row.registered_in_commit, decision_commit)
+        return row_commit is not None and all(
+            commit != decision_commit and self.history.is_ancestor(commit, decision_commit)
+            for commit in (row_commit, row.registered_in_commit)
         )
 
 
@@ -100,7 +101,8 @@ class Segments:
         paused = [(v, since) for b, v, since in self._pauses if b == decision.book]
         if paused and paused[-1][0] == active.version_id:
             return Segment(decision.book, None, f"scoring paused since {paused[-1][1]}: no new version registered yet")
-        differing = sorted(k for k, v in decision.served.items() if active.components.get(k) != v)
+        keys = set(active.components) | set(decision.served)  # a component the decision does not report is a mismatch
+        differing = sorted(k for k in keys if active.components.get(k) != decision.served.get(k))
         if differing:
             self._pauses.append((decision.book, active.version_id, decision.day))
             return Segment(decision.book, None, f"served components differ from {active.version_id}: {differing}")

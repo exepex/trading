@@ -3,9 +3,11 @@ until a new version (2), deterministic segments (3)."""
 
 from datetime import date
 
+import pytest
+
 from fno.books.version_registry import VersionRow
 from fno.books.versions import Segments
-from tests.playbook.builders import commit_all
+from tests.playbook.builders import commit_all, git
 
 from .builders import BOOK, MODEL_A, MODEL_B, Repo
 
@@ -88,3 +90,25 @@ def test_components_frozen_outside_the_decisions_history_do_not_count(tmp_path):
     commit_all(tmp_path, "register v1 against an unknown commit")
     decision = repo.decision(D2)
     assert not Segments(repo.versions(), [decision]).segment_of(decision.decision_id).scored
+
+
+def test_a_version_committed_with_the_decision_is_not_its_version(tmp_path):
+    """Judge 78: "before" is strict. A row added in the decision's own commit does not count for it."""
+    repo = Repo(tmp_path)
+    head = git(tmp_path, "rev-parse", "HEAD")
+    repo.registry.append(VersionRow(BOOK, "v1", D1, head, MODEL_A, "test"))  # not committed yet
+    together = repo.decision(D2)  # the row and the decision record go into one commit
+    assert not Segments(repo.versions(), [together]).segment_of(together.decision_id).scored
+
+
+@pytest.mark.parametrize("served", [{}, {"prompt": "v1"}])
+def test_a_decision_missing_a_component_is_unscored_and_pauses(tmp_path, served):
+    """Judge 78: every registered component must be reported and equal; an empty or partial report proves nothing."""
+    repo = Repo(tmp_path)
+    repo.register("v1", starts_on=D1)
+    partial = repo.decision(D2, served=served)
+    later = repo.decision(D3)
+    segments = Segments(repo.versions(), [partial, later])
+    assert segments.segment_of(partial.decision_id).label == "unscored"
+    assert "model" in segments.segment_of(partial.decision_id).reason
+    assert segments.segment_of(later.decision_id).label == "unscored" and segments.scoring_paused(BOOK, D3)

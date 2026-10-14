@@ -72,3 +72,24 @@ criterion 2 test. It can be repeated on any temporary repository with `tests/ver
 - **The append-only check and ancestry need full git history**; CI fetches it (`fetch-depth: 0`).
 - `rewritten_history` and `PlaybookGit` are reused from the playbook package (DRY), so `fno/books` now imports
   `fno/playbook` in the tests only. The production code uses B4's `Git` directly.
+
+## Addendum 1 (14 Oct 2026): judge 78's two findings, accepted and fixed
+
+1. **"Before" is strict.** `git merge-base --is-ancestor X X` is true, so a version row committed in the decision's
+   own commit counted for that decision. Design 13.5 says the version is committed *before* its first counted
+   decision.
+   - Fix: both the row's commit and `registered_in_commit` must be ancestors of the decision's commit **and** differ
+     from it.
+   - Test: `test_a_version_committed_with_the_decision_is_not_its_version`.
+2. **Every registered component must be reported and equal.** Before the fix, a decision with `served={}`, or with
+   the prompt only, was scored, because only reported keys were compared.
+   - Fix: the comparison runs over the union of the version's and the decision's keys, so a missing component is a
+     mismatch, the decision is `unscored` and the book pauses.
+   - Tests: `test_a_decision_missing_a_component_is_unscored_and_pauses` with an empty report and a partial report.
+     Both check that the next decision is still paused.
+3. **Mutations:**
+   - removing the "differs from the decision commit" condition fails test 1;
+   - comparing only reported keys fails both cases of test 2.
+
+For D3 (the judge's note): `served` must carry every component. For the AI books, the model is the one the API answer
+says it served, never the configured one.
