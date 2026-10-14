@@ -94,3 +94,27 @@ Three must-fixes, all in the text, no code:
 3. the `frozen_files` extension put to the owner.
 
 After a PASS on the fixed SHA, ChatGPT reviews via response 95, and the owner approves.
+
+## Addendum 1 (15 Oct 2026): revision 1, tip 13e256061bd8d73106c56623e5548d53d8b1d52b
+
+7789288 carries the content. 13e2560 only rewraps lines: a word-level diff of 7789288 against 13e2560 shows no changed
+word. Only `docs/design_v2/` and response 95 change.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Must-fix 1: power at Holm's level | MET | Section 5.5 now plans at α/m (0.05/15 = 0.0033, z 2.71) and 80% power: n = (3.55 r)². I recomputed every cell of the new horizon table: r 3 → 114 (5.5 months, 2.3 years, 9.5 years); r 5 → 316 (15 months, 6.3 years, 26 years); r 10 → 1,264 (5 years, 25 years, 105 years). "Skill in months" is gone from 01 §1.3 and §1.7, `OWNER_SUMMARY.md` and response 95. They now say "no question is known to settle in months; r is measured after 60 outcomes". V1's dependence on A16 and on intraday HAR is stated. |
+| Must-fix 2: stop rule | MET | Tests A and B each have yes, no and undecided. "No" for Test A needs a projected settle date on or before the review, or an interval that already rules out the minimum effect. Underpowered never counts as "no". The owner chooses in advance among three options for "undecided": (1) continue to the projected date, at most 2 years, with AI cut to the forecasters at half budget, after which undecided counts as no; (2) code only; (3) stop. The text gives a recommendation, and states plainly that "undecided" is the most likely result on 31 May 2027. |
+| Must-fix 3: `frozen_files` | MET | The note adding G8 and E8 is dropped. G8 is left to v4's own freeze, which is correct: it is G-protocol code. Adding E8 is now owner decision 12, with its reason and its cost in delay. |
+| Should-fixes | MET | REPLAN §1 statuses now come from the judge record; I checked every cited merge commit and each is an ancestor of `main` (e3506ec, f314254, c12137e, b4f1e1b, 374ad67, 58f5781). Decisions are cited by date and title. Slice A dates are marked "targets, not commitments", with the ChatGPT, host and C5 dependencies named. SEBI loss figures are cited by study and year and labelled as secondary summaries, matching `reports/Retail FnO losses and safeguards.md`. |
+| Size | MET | The longest file is now `REPLAN.md` at 168 lines; every file is under 350. |
+
+**Two corrections to my own judge 96.**
+1. **The NIFTY level.** The orchestrator is right that my "22,722 on 14 Oct" was wrong: 22,721.95 is the 13 Oct close.
+   14 Oct closed at 22,622.70 (`warmup_closes.csv`; index-close manifest). The design now uses about 22,620. I
+   recomputed the straddle: 0.8 × 22,620 × 0.138 × √(30/365) = Rs 716 a unit, about Rs 46,500 a lot; the 5-day straddle
+   is about Rs 19,000 a lot. Both are correct.
+2. **The SEBI figures.** My should-fix doubted any FY26 figure. The repository's own report cites an August 2026 SEBI
+   study (87.7% of individuals lost in FY26), through secondary sources. The revision labels it that way, which is right.
+
+**Verdict: PASS for 13e256061bd8d73106c56623e5548d53d8b1d52b.** Next, ChatGPT reviews it via response 95 and the
+owner approves. Nothing merges before that.
