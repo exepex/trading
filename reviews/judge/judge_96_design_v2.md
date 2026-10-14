@@ -319,3 +319,27 @@ addendum 7 message, which explains the gap.
 
 **Verdict: FAIL for dd4e1a83df290784243f0c45518eb369bb1123c0**, on addendum 7's must-fix 2 only. A re-check needs only
 `03` §3.1 and response 97's B4 paragraph.
+
+## Addendum 9 (15 Oct 2026): 6367d7354e910b203851f2652a1adca958f5fb3e (dd4e1a8..6367d73; whole range 2b0da01..6367d73)
+
+6367d73 changes `03` §3.1 and §3.2 item 4, REPLAN's S2 row and response 97. The whole range 2b0da01..6367d73 touches
+only `docs/design_v2/` and `reviews/` (checked: no other path in `git diff --name-only`); the chain is linear
+(6367d73's parent is dd4e1a8, and 01575a1 is an ancestor).
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 6 must-fix 1 (decision 7) | MET | Addendum 8; unchanged since |
+| Addendum 7 must-fix 2 (Holm family) | MET | `03` §3.1: the family is every shadow registered on the question or batch since its last judgement, running, stopped or retired; an early stop is recorded with its reason and stays in the family; the attack is named. Response 97's B4 paragraph says the same |
+| Addendum 7 follow-up (per rupee tied) | MET | `03` §3.2 item 4 and REPLAN's S2 row: one definition frozen before use, return per rupee-day of funds at entry, the index over the same rupee-days |
+| Project rules | MET | Largest changed file 193 lines; docs only; no secrets, emails or model names in the diff |
+
+**Follow-up (not blocking; for R1 and G6 to freeze):** "since its last judgement" leaves staggered judgements open.
+Shadows on one question reach their frozen samples at different times; when the first is judged, the family resets, so a
+shadow registered earlier but judged later could be judged in a smaller family than the one it was registered into.
+Freeze one rule before the first judgement: either the family is every shadow registered on the question (cumulative,
+judged ones included, with Holm's step taken at each judgement), or a batch is judged only together. The factory-wide
+"trial k of K" line already shows the whole count, so this is a precision point, not an open snooping path.
+
+**Verdict: PASS for 6367d7354e910b203851f2652a1adca958f5fb3e.** All must-fixes of addenda 6 and 7 are done. Design v2
+revision 3 still needs ChatGPT's approval of the whole revision and the owner's approval before it binds or merges
+(owner's order, 15 Oct log); after the merge I check that `main` carries exactly this SHA's `docs/design_v2/`.
