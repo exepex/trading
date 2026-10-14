@@ -1,5 +1,7 @@
 # Routines and schedules audit (15 Oct 2026, about 01:00 IST)
 
+**Status (04:00 IST):** superseded in part. The owner kept every routine (no pauses, no model changes). All scheduled work that woke a long-lived session now runs through one Auto dispatcher that starts a fresh session per run with its repository attached; every old duplicate was deleted. Sections 1-4 below remain the cost and timing evidence.
+
 Owner's question: do we need all ~30 routines, and can they become free GitHub Actions?
 Sources: `list_triggers` (all 33), the run sessions' own cost records (`get_session`, `list_sessions`), the run
 transcripts of four market-brief runs, `.github/workflows/`, `docs/DESK_DECISIONS.md` and the 13-14 Oct logs.
