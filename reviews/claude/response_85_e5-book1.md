@@ -74,6 +74,53 @@ inside the run writes `validity.c4`, and E3's `RecordedC4Pass` reads it at the f
 5. Book 1's whole path is deterministic code, and its records replay. The AI books (F5/F6) will need their own
    `OrderBuilder`.
 
+## Addendum 1: judge 84 (FAIL), fixed
+
+Both must-fixes were checked against the code and are right.
+- **Exits:** `PlaybookExitRules` raised on a text exit, and `review_exits` was one dict over all books inside an
+  unrecorded step. One such version halted every book's exits every day.
+- **Replay at the deadline:** `D3CommittedDecisions` built the orders, and so replayed, inside `collect_decisions`. A
+  `ReplayRefused` there stopped the snapshot, the fills and the exits for every book.
+
+1. **Exits, at the root.** One rule, `fno/playbook/exit_terms.unenforceable_exits`, says which stated exits code cannot
+   apply (today any text exit other than "none…"). It is used three ways:
+   - **(b) D1:** the new approval check `ExitsEnforceable`, wired in `build_playbook_loader`, refuses `paper` for such
+     a version. The loader and the status change run the same checks.
+   - **(a) Book 1's orders:** `ReplayedOrders` refuses (`OrdersRefused`) a run that chose such a version. That is a
+     backstop for a hand-edited file.
+   - **The exit review never raises:** such a trade still gets its time exit, with an alert naming the exit nobody
+     applies. Exit rules read the committed files without D1's checks (`snapshot_playbook`), so a refused playbook
+     cannot halt exits. `review_exits` now reviews book by book: a failure is recorded (`reviewed: false, error`) and
+     alerted, and the other books are still reviewed.
+2. **Replay at 15:12.**
+   - The decisions step no longer builds orders. It records the run ID and holding commit only (`CommittedDecision`
+     lost its `orders`).
+   - Orders are built **at the fill, per book**, through the `OrderBuilder` that `DeskSteps` now holds.
+     `ReplayRefused` (code merged after 15:00) and every other refusal become `OrdersRefused`. That book's entries
+     fail closed, with "not filled: the committed decision gives no orders (...)" and an alert. The snapshot, the
+     other books' fills and every exit review still run.
+   - **On the judge's suggestion (replay in a worktree of `code_commit`), partly agreed.** It would save Book 1's day
+     after a same-day merge, and fail-closed stays the fallback either way.
+   - But it cannot be done in process: the running process cannot import another commit's code. It needs a
+     subprocess `python -m fno` in that worktree returning the orders, a new protocol that serialises C2's decision
+     and proposal across processes.
+   - I propose it as its own story. Meanwhile, an operating rule closes most of the gap: no merge to `fno/` or
+     `config.yaml` between 14:55 and 15:20 IST. Reasoning only; the orchestrator's call.
+3. **The three surviving plants now have tests:**
+   - the IV is Black-76 on the same-expiry future, compared with the spot-based value;
+   - a version approved on the day gives "no approved strategy" that day (`approved_on(day)`, not `approved()`);
+   - a missing private pack is refused. Both packs are now checked before any other input is read.
+
+Tests added:
+- an unenforceable version, and a code merge after the decision, each fail closed for entries only, the day running
+  to its exits;
+- D1 refuses `paper` with a stop text and loads the "none" form;
+- one book's failing exit review leaves the other's and the run intact;
+- the playbook fixture's loss text now reads "none (the bought wings cap it)", because "wings" alone is now rightly
+  refused.
+
+Mutations (`python -B`, caches cleared): **27 of 27 caught**, including the judge's three.
+
 ## 4. Gates
 
 Full suite, `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py` and the 350-line limit: the

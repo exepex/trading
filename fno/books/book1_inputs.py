@@ -39,10 +39,10 @@ class LiveBook1Inputs(Book1Inputs):
         common = packs.common_path(day)
         if not common.is_file():
             raise InputsRefused(f"no common pack for {day}: Book 1 reads the packs (E2)")
+        hashes = {"common_pack_sha256": _sha(common), "private_pack_sha256": _sha(packs.private_path(BOOK1_RULES, day))}
         snapshot = self._snapshot(day, CommonPack.read(day, common))
         market = market_from_snapshot(day, snapshot, self.rate, self.model)
         book, counts, shadow = self.parts(market)
-        hashes = {"common_pack_sha256": _sha(common), "private_pack_sha256": _sha(packs.private_path(BOOK1_RULES, day))}
         return Book1Day(market, self.features(day, snapshot), book, counts, shadow, self.context(day, hashes))
 
     def _snapshot(self, day: date, pack: CommonPack) -> CutoffSnapshot:

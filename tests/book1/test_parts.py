@@ -1,12 +1,13 @@
 """Story E5's parts: Book 1's market from the canonical snapshot, its inputs refused unless the snapshot is the one the
 common pack records, the trade terms read back from its records, and its exit rules from the playbook version."""
 
+import hashlib
 import json
 from datetime import date, datetime
 
 import pytest
 
-from fno.books.book1_exits import ExitNotApplicable, PlaybookExitRules, time_exit_only
+from fno.books.book1_exits import PlaybookExitRules
 from fno.books.book1_inputs import InputsRefused, LiveBook1Inputs
 from fno.books.book1_market import NoMarket, market_from_snapshot
 from fno.books.book1_orders import recorded_terms
@@ -15,13 +16,14 @@ from fno.desk.common_pack import SNAPSHOT_INPUT, CommonPack
 from fno.desk.pack_store import PackStore
 from fno.desk.private_pack import PrivatePack
 from fno.playbook.decision_store import DecisionStore
+from fno.playbook.exit_terms import unenforceable_exits
 from fno.playbook.opportunities import OpportunityFinder
 from fno.playbook.schema import parse_strategy
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from fno.research_data.panel_reader import FutureQuote
 from fno.research_data.quote_snapshots import CutoffSnapshot, LiveQuote
 from fno.research_engine.cycles import TradingDays
-from fno.research_engine.implied_vol import Black76
+from fno.research_engine.implied_vol import Black76, OptionPricing
 from fno.risk.inputs import TradeTerms
 from fno.storage.raw_store import LocalFolderStore
 from tests.checks.builders import CALENDAR
@@ -46,16 +48,21 @@ def test_the_market_holds_only_valid_named_quotes_at_their_mid_with_a_black76_iv
     market = market_from_snapshot(DAY, cutoff(quotes), 0.065, Black76())
     assert list(market.quotes) == ["N25000CE"] and market.quotes["N25000CE"].mid == 301.0
     assert 0.05 < market.quotes["N25000CE"].iv < 0.5 and market.spot == 25_000.0 and EXPIRY in market.futures
+    years = (EXPIRY - DAY).days / 365
+    on_future = Black76().implied_vol(OptionPricing(301.0, 25_080.0, 25_000, "CE", years, 0.065))
+    on_spot = Black76().implied_vol(OptionPricing(301.0, 25_000.0, 25_000, "CE", years, 0.065))
+    assert market.quotes["N25000CE"].iv == on_future != on_spot  # Black-76 on the same-expiry future, not spot
     with pytest.raises(NoMarket):
         market_from_snapshot(DAY, cutoff(quotes, spot=None), 0.065, Black76())
 
 
-def write_packs(root, day, snapshot_id, csv_sha):
+def write_packs(root, day, snapshot_id, csv_sha, private=True):
     store = PackStore(root)
     body = {"day": day.isoformat(), "provenance": {SNAPSHOT_INPUT: {"snapshot_id": snapshot_id, "csv_sha256": csv_sha}},
             "items": []}  # fmt: skip
     store.write_common(CommonPack(day, body))
-    store.write_private(PrivatePack(BOOK1_RULES, day, {"day": day.isoformat(), "book": BOOK1_RULES}))
+    if private:
+        store.write_private(PrivatePack(BOOK1_RULES, day, {"day": day.isoformat(), "book": BOOK1_RULES}))
 
 
 def test_inputs_are_refused_unless_the_snapshot_is_the_one_the_pack_records(tmp_path):
@@ -66,8 +73,14 @@ def test_inputs_are_refused_unless_the_snapshot_is_the_one_the_pack_records(tmp_
                              lambda d, h: dict(h))  # fmt: skip
     with pytest.raises(InputsRefused, match="no common pack"):
         inputs.day(DAY)
-    write_packs(tmp_path, DAY, "canon", "0" * 64)  # the pack froze another file
+    write_packs(tmp_path / "other", DAY, "canon", "0" * 64)  # the pack froze another file
+    inputs.root = tmp_path / "other"
     with pytest.raises(InputsRefused, match="not the one its common pack records"):
+        inputs.day(DAY)
+    sha = hashlib.sha256(quotes.get(QuoteSnapshotRecorder.path(DAY, "canon.csv"))).hexdigest()
+    write_packs(tmp_path, DAY, "canon", sha, private=False)  # the right snapshot, but no private pack
+    inputs.root = tmp_path
+    with pytest.raises(InputsRefused, match="private.json of 2026-10-13 is missing"):
         inputs.day(DAY)
 
 
@@ -86,8 +99,8 @@ def test_the_exit_is_the_version_s_time_exit_as_d2_computed_it():
     exit_day = finder.exit_day(strategy, EXPIRY)
     assert exit_day == date(2026, 11, 3)  # the last session on or before 24 Nov - 21 days (3 Nov, a Tuesday)
     assert finder.exit_day(strategy, date(2026, 11, 10)) == date(2026, 10, 19)  # 20 Oct is a holiday (Dussehra)
-    with pytest.raises(ExitNotApplicable, match="loss: stop at 2x credit"):
-        time_exit_only(parse_strategy(doc("sc-b", exits={**EXITS, "loss": "stop at 2x credit"})))
+    assert unenforceable_exits(parse_strategy(doc("sc-b", exits={**EXITS, "loss": "stop at 2x credit"}))) == [
+        "loss: stop at 2x credit"]  # fmt: skip
 
 
 def test_the_time_exit_fires_on_its_day_and_not_before():
@@ -118,9 +131,19 @@ def test_book1_s_exit_rules_use_d2_s_exit_day_and_refuse_text_exits(monkeypatch)
         def load(self):
             return Playbook(tuple(parse_strategy(d) for d in self.docs))
 
-    [rule] = PlaybookExitRules(Loader(book1_doc()), finder, lambda book: None).rules(BOOK1_RULES)["t1"]
+    [rule] = PlaybookExitRules(Loader(book1_doc()).load, finder, lambda book: None, Alerts()).rules(BOOK1_RULES)["t1"]
     assert rule.exit_day == finder.exit_day(parse_strategy(book1_doc()), EXPIRY) == date(2026, 11, 3)
     assert rule.reached(position, ExitContext(date(2026, 11, 3), None))
-    texted = doc("sc-a", exits={**EXITS, "profit": "take 50% of the credit"})
-    with pytest.raises(ExitNotApplicable, match="profit: take 50% of the credit"):
-        PlaybookExitRules(Loader(texted), finder, lambda book: None).rules(BOOK1_RULES)
+    texted, alerts = doc("sc-a", exits={**EXITS, "profit": "take 50% of the credit"}), Alerts()
+    [kept] = PlaybookExitRules(Loader(texted).load, finder, lambda book: None, alerts).rules(BOOK1_RULES)["t1"]
+    assert kept.exit_day == rule.exit_day  # judge 84: the time exit still runs, never an exception for the run
+    assert len(alerts.sent) == 1 and "profit: take 50% of the credit" in alerts.sent[0]
+
+
+class Alerts:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, text):
+        self.sent.append(text)
+        return "sent"

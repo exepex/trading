@@ -30,13 +30,13 @@ from fno.quotes.recorder import RecordResult
 from fno.research_engine.cycles import TradingDays
 from fno.storage.raw_store import LocalFolderStore
 from tests.checks.builders import CALENDAR, nse_files
-from tests.decisions.builders import SAME_CODE, snapshot
+from tests.decisions.builders import SAME_CODE, doc, snapshot
 from tests.desk.builders import CHARGES, row, write_snapshot
 from tests.desk.conftest import FakeSettlements
 from tests.playbook.evaluation_builders import EXPIRY, price
 from tests.timetable.fakes import TIMETABLE, Clock, Commits, FakePacks, LocalSync, Versions
 
-from .builders import DAYS, book1, book1_doc, clock_at, priced_evaluator
+from .builders import DAYS, EXITS, book1, book1_doc, clock_at, priced_evaluator
 
 PASSED = {"mode": "playbook", "ok": True, "checks": [{"check": "max_loss", "ok": True, "reason": "", "numbers": {}}]}
 FAILED = {"mode": "playbook", "ok": False, "checks": [{"check": "leg_price", "ok": False, "reason": "", "numbers": {}}]}
@@ -74,7 +74,7 @@ def root(tmp_path):
     return tmp_path
 
 
-def run_days(root, tmp_path, alerts, c4, monkeypatch):
+def run_days(root, tmp_path, alerts, c4, monkeypatch, version=None, code=SAME_CODE):
     original = decision_record.RecordBuilder._opportunity  # C4 writes validity.c4 inside the run once it merges
 
     def with_c4(self, outcome, outcomes, files):
@@ -83,20 +83,20 @@ def run_days(root, tmp_path, alerts, c4, monkeypatch):
         return record
 
     monkeypatch.setattr(decision_record.RecordBuilder, "_opportunity", with_c4)
-    playbook = snapshot(book1_doc())
+    playbook = snapshot(version or book1_doc())
     clock, quotes = Clock(), LocalFolderStore(tmp_path / "quotes")
     decider, git = book1(root, playbook, clock_at(datetime.combine(DAYS[0], time(15), IST)))
     gate = DataGate(build_data_checks([nse_files(*CALENDAR.sessions(date(2026, 10, 1), date(2026, 10, 31)))],
                                       CALENDAR), RecordedExecutionSnapshots(quotes),
                     CommittedExecutionSchedule(root, TIMETABLE), alerts)  # fmt: skip
-    exits = PlaybookExitRules(Loader(playbook.playbook()), OpportunityFinder(TradingDays(CALENDAR)),
-                              lambda book: DeskRecords(PaperAccount(root, book)))  # fmt: skip
+    exits = PlaybookExitRules(playbook.playbook, OpportunityFinder(TradingDays(CALENDAR)),
+                              lambda book: DeskRecords(PaperAccount(root, book)), alerts)  # fmt: skip
     steps = DeskSteps(root, (BOOK1_RULES,), TIMETABLE, Versions(), FakePacks(),
-                      D3CommittedDecisions(root, git, ReplayedOrders(priced_evaluator(), SAME_CODE)),
+                      D3CommittedDecisions(root, git), ReplayedOrders(priced_evaluator(), code),
                       RecorderExecutionCapture(ChainCapture(clock, quotes), quotes, tmp_path / "quotes", root,
                                                Commits(clock)),
                       gate, RecordedC4Pass(), LocalSync(root), EntryDesk(CHARGES, clock),
-                      ExitDesk(CHARGES, alerts, FakeSettlements(), clock), exits, clock)  # fmt: skip
+                      ExitDesk(CHARGES, alerts, FakeSettlements(), clock), exits, alerts, clock)  # fmt: skip
     run, logs = DailyRun(steps, CALENDAR, Commits(clock), clock, clock), []
     for day in DAYS:
         git.clock.set(datetime.combine(day, time(15), IST))
@@ -124,3 +124,28 @@ def test_a_book1_decision_without_a_c4_pass_never_becomes_a_fill(root, tmp_path,
     results = [r for log in logs for r in log.result("fills").values()]
     assert results and all(r["reason"].startswith("not filled: no completed C4 pass") for r in results)
     assert DeskRecords(PaperAccount(root, BOOK1_RULES)).fill_rows() == []
+
+
+class OtherCode:
+    """The running code is not the record's commit (a merge to fno/ after Book 1's 15:00 commit)."""
+
+    def matches(self, commit):
+        return False
+
+
+@pytest.mark.parametrize("cause", ["code merged after the decision", "a stop nobody enforces"])
+def test_a_refused_order_build_fails_closed_for_entries_only_and_the_day_goes_on(root, tmp_path, alerts, monkeypatch,
+                                                                                cause):  # fmt: skip
+    """Judge 84: a ReplayRefused (code merged after 15:00) or an unenforceable exit gives "not filled" and an alert
+    for that book's entries; the snapshot, the fills step and every exit review still run."""
+    if cause == "code merged after the decision":
+        logs = run_days(root, tmp_path, alerts, PASSED, monkeypatch, code=OtherCode())
+    else:
+        stop = doc("sc-a", exits={**EXITS, "loss": "stop at 2x credit"})
+        logs = run_days(root, tmp_path, alerts, PASSED, monkeypatch, version=stop)
+    first = logs[0]
+    assert list(first.steps) == ["versions", "pack", "decisions", "snapshot", "fills", "exits"]
+    refused = first.result("fills")[BOOK1_RULES]
+    assert refused["outcome"] == "not filled" and "gives no orders" in refused["reason"]
+    assert any(BOOK1_RULES in sent and "gives no orders" in sent for sent in alerts.sent)
+    assert DeskRecords(PaperAccount(root, BOOK1_RULES)).fill_rows() == [] and "exits" in logs[-1].steps

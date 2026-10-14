@@ -12,21 +12,19 @@ from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
-from ..desk.daily_ports import OrderBuilder
+from ..desk.daily_ports import OrderBuilder, OrdersRefused
 from ..desk.entries import EntryOrder
 from ..desk.trade_counts import version_tag
 from ..playbook.code_tree import CodeTree
 from ..playbook.decision_inputs import DayInputs
-from ..playbook.decision_run import replay
+from ..playbook.decision_run import ReplayRefused, replay
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
 from ..playbook.evaluate import RuleEvaluator
+from ..playbook.exit_terms import unenforceable_exits
 from ..risk.inputs import TradeTerms
 
 NOT_REPLAYED = "{run}: the stored decision does not replay ({differences}); nothing is ordered"
-
-
-class OrdersRefused(ValueError):
-    """The committed run does not reproduce: no order may come from it."""
+NOT_ENFORCEABLE = "{run}: {version} states exits code cannot enforce ({what}); nothing is ordered"
 
 
 class ReplayedOrders(OrderBuilder):
@@ -34,11 +32,19 @@ class ReplayedOrders(OrderBuilder):
         self.evaluator, self.code = evaluator, code
 
     def orders(self, book: str, run: Path, decided_at: datetime) -> Sequence[EntryOrder]:
-        differences = replay(run, self.evaluator, self.code)
+        try:
+            differences = replay(run, self.evaluator, self.code)
+        except ReplayRefused as refused:  # e.g. code merged after the decision: entries fail closed (judge 84)
+            raise OrdersRefused(str(refused)) from refused
         if differences:
             raise OrdersRefused(NOT_REPLAYED.format(run=run.name, differences="; ".join(differences[:3])))
         inputs = DayInputs.from_json(json.loads((run / INPUTS_FILE).read_bytes()))
         evaluation = self.evaluator.evaluate(*inputs.replay_arguments())
+        for outcome in evaluation.chosen:
+            unenforced = unenforceable_exits(outcome.opportunity.strategy)
+            if unenforced:
+                version = version_tag(outcome.opportunity.strategy.name, outcome.opportunity.strategy.version)
+                raise OrdersRefused(NOT_ENFORCEABLE.format(run=run.name, version=version, what="; ".join(unenforced)))
         return [
             EntryOrder(book, version_tag(o.opportunity.strategy.name, o.opportunity.strategy.version),
                        o.opportunity.opportunity_id, decided_at, o.risk.proposal, o.opportunity.context.expiry, o.risk)

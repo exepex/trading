@@ -9,7 +9,13 @@ from ..config import ROOT
 from ..constants import PLAYBOOK_FOLDER
 from ..storage.wiring import LIVE_VALIDATION_FOLDER
 from .allocation import Allocator
-from .approval_checks import EvidenceCommitted, EvidenceFilled, ExpectedNetSet, LiveFeaturesValidated
+from .approval_checks import (
+    EvidenceCommitted,
+    EvidenceFilled,
+    ExitsEnforceable,
+    ExpectedNetSet,
+    LiveFeaturesValidated,
+)
 from .candidates import CandidateBuilder
 from .code_tree import GitCodeTree
 from .decision_inputs import PlaybookSnapshot
@@ -38,7 +44,8 @@ def _recompute_live_report(live_feature: str) -> Mapping:
 def build_playbook_loader(root: Path = ROOT, reports: LiveReports | None = None) -> PlaybookLoader:
     folder = root / PLAYBOOK_FOLDER
     reports = reports or RecomputedLiveReports(CommittedLiveReports(LIVE_VALIDATION_FOLDER), _recompute_live_report)
-    checks = (EvidenceFilled(), ExpectedNetSet(), EvidenceCommitted(PlaybookGit(root)), LiveFeaturesValidated(reports))
+    checks = (EvidenceFilled(), ExpectedNetSet(), EvidenceCommitted(PlaybookGit(root)), LiveFeaturesValidated(reports),
+              ExitsEnforceable())  # fmt: skip
     return PlaybookLoader(
         folder, Registry(registry_path(folder)), checks, (CatastrophicCapWithinRisk(_risk_cap(root)),)
     )

@@ -38,15 +38,17 @@ def build_book1_orders(cfg: dict, root: Path = ROOT) -> ReplayedOrders:
 
 
 def build_book1_exit_rules(root: Path = ROOT) -> PlaybookExitRules:
+    """The playbook files as committed, without D1's approval checks: a refused playbook never halts exits."""
     from ..books.account import PaperAccount
-    from ..composition import build_session_calendar
+    from ..composition import build_alert_sender, build_session_calendar
     from ..desk.records import DeskRecords
     from ..playbook.opportunities import OpportunityFinder
-    from ..playbook.wiring import build_playbook_loader
+    from ..playbook.wiring import snapshot_playbook
     from ..research_engine.cycles import TradingDays
 
     finder = OpportunityFinder(TradingDays(build_session_calendar()))
-    return PlaybookExitRules(build_playbook_loader(root), finder, lambda book: DeskRecords(PaperAccount(root, book)))
+    return PlaybookExitRules(lambda: snapshot_playbook(root).playbook(), finder,
+                             lambda book: DeskRecords(PaperAccount(root, book)), build_alert_sender())  # fmt: skip
 
 
 def _features(cfg: dict, day: date, snapshot):

@@ -28,8 +28,7 @@ class CommittedDecision:
     run_id: str
     commit: str  # the commit that holds the run
     committed_at: datetime  # its committer time (time zone aware)
-    orders: tuple[EntryOrder, ...]  # empty for a "no trade" decision
-    run: Path | None = None  # the run's folder (D3), where C4's recorded pass is read
+    run: Path | None = None  # the run's folder (D3): its orders are built from it at the fill, C4's pass read there
 
 
 class Waiter(ABC):
@@ -80,12 +79,18 @@ class DecisionSource(ABC):
         """The run the decisions step recorded, read again for the fills; refused if it is not held by `commit`."""
 
 
+class OrdersRefused(ValueError):
+    """A committed run gives no orders (it does not replay under today's code, or decided a version whose exits code
+    cannot enforce): that book's entries fail closed for the day; exits are unaffected (judge 84)."""
+
+
 class OrderBuilder(ABC):
-    """A committed decision run's entry orders (E5 for Book 1; F5 and F6 for the AI books)."""
+    """A committed decision run's entry orders (E5 for Book 1; F5 and F6 for the AI books), built at the fill."""
 
     @abstractmethod
     def orders(self, book: str, run: Path, decided_at: datetime) -> Sequence[EntryOrder]:
-        """The orders the run decided (empty for "no trade"); `decided_at` is when the run was committed."""
+        """The orders the run decided (empty for "no trade"); `decided_at` is when the run was committed.
+        `OrdersRefused` when it may give none."""
 
 
 class ExecutionCapture(ABC):

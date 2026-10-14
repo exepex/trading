@@ -79,3 +79,20 @@ def test_only_the_d2_chosen_book_trades_of_a_run_that_replays_become_orders(tmp_
     inputs.write_bytes(inputs.read_bytes().replace(b'"spot":25000.0', b'"spot":25100.0'))  # edited after commit
     with pytest.raises(OrdersRefused, match="does not replay"):
         ReplayedOrders(priced_evaluator(), SAME_CODE).orders(BOOK1_RULES, run, FIFTEEN(DAYS[0]))
+
+
+def test_a_version_approved_today_trades_from_the_next_session_so_today_has_no_approved_strategy(tmp_path):
+    """Judge 84 should-fix: Book 1 reads approved_on(day), not the file's status now (an approval waits a session)."""
+    from fno.playbook.decision_inputs import PlaybookSnapshot
+    from fno.playbook.registry import RegistryRow, render
+    from fno.playbook.schema import parse_strategy
+
+    paper = doc("sc-a")
+    sha = parse_strategy(paper).parameters_sha256
+    rows = [RegistryRow("sc-a", 1, sha, "research", date(2026, 10, 6), "desk", ""),
+            RegistryRow("sc-a", 1, sha, "paper", DAYS[0], "owner", "abcdef1")]  # approved on the day  # fmt: skip
+    today = PlaybookSnapshot(snapshot(paper).files, render(rows), "c" * 40)
+    assert today.playbook().approved() and not today.playbook().approved_on(DAYS[0])
+    decider, _ = book1(tmp_path, today, clock_at(FIFTEEN(DAYS[0])))
+    decider.decide(DAYS[0])
+    assert (DecisionStore(tmp_path, BOOK1_RULES).day_folder(DAYS[0]) / "no_approved_strategy.json").is_file()

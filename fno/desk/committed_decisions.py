@@ -3,7 +3,7 @@ observes at the deadline: it pulls, and only runs visible in that commit count, 
 run committed at 15:11:50 but pushed at 15:13 is late). The committer time before the deadline is the second check,
 and D3's rule (committed before the execution snapshot started) the third, at the fill. The fills read only the runs
 the decisions step recorded, by run ID and holding commit. Turning a run into entry orders is each book's part (E5, F5,
-F6), behind `OrderBuilder`."""
+F6), behind `OrderBuilder`, done at the fill, never here (judge 84: a refusal there must not stop the day)."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Protocol
 
 from ..playbook.decision_store import SUMS_FILE, DecisionStore
-from .daily_ports import CommittedDecision, DecisionSource, OrderBuilder
+from .daily_ports import CommittedDecision, DecisionSource
 from .pack_items import available_time
 
 
@@ -27,8 +27,8 @@ class RunNotRecorded(ValueError):
 
 
 class D3CommittedDecisions(DecisionSource):
-    def __init__(self, root: Path, git: RunCommits, orders: OrderBuilder):
-        self.root, self.git, self.orders = Path(root), git, orders
+    def __init__(self, root: Path, git: RunCommits):
+        self.root, self.git = Path(root), git
 
     def observe(self) -> str:
         return self.git.observed()
@@ -52,4 +52,4 @@ class D3CommittedDecisions(DecisionSource):
         moment = available_time(added[1]) if added else None
         if moment is None:
             return None
-        return CommittedDecision(book, run.name, added[0], moment, tuple(self.orders.orders(book, run, moment)), run)
+        return CommittedDecision(book, run.name, added[0], moment, run)

@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from ..alerts.sender import AlertSender
 from ..checks.gate import DataGate
 from ..constants import NO_DECISION_LATE
 from .common_pack import CommonPack
@@ -18,6 +19,8 @@ from .daily_ports import (
     DecisionSource,
     ExecutionCapture,
     ExitRules,
+    OrderBuilder,
+    OrdersRefused,
     Packs,
     ValidityGate,
     VersionKeeper,
@@ -32,6 +35,8 @@ NOT_COMMITTED = "nothing visible at the deadline {deadline} (origin {origin})"
 COLLECTED_LATE = "collected at {started}, after the deadline {deadline}: no decision can be shown to be on time"
 COLLECTION_GRACE = timedelta(seconds=30)  # the step starts at the deadline; later means a restart: fail closed
 NO_SNAPSHOT = "no new risk: no valid execution snapshot after the common retry"
+NOT_ORDERED = "not filled: the committed decision gives no orders ({reason})"
+ALERT = "F&O paper desk {day} {book}: {what}"
 LATE_AT_SNAPSHOT = "late: committed {committed}, not before the execution snapshot started {started}"
 NOT_VALIDATED = "not filled: no completed C4 pass ({problems})"
 
@@ -56,6 +61,7 @@ class DeskSteps:
     versions: VersionKeeper
     packs: Packs
     decisions: DecisionSource
+    orders: OrderBuilder
     capture: ExecutionCapture
     gate: DataGate
     validity: ValidityGate
@@ -63,6 +69,7 @@ class DeskSteps:
     entry_desk: EntryDesk
     exit_desk: ExitDesk
     exit_rules: ExitRules
+    alerts: AlertSender
     clock: Callable[[], datetime]
 
     def keep_versions(self, day: date) -> StepOutcome:
@@ -92,8 +99,7 @@ class DeskSteps:
                 result[book] = {"decision": NO_DECISION_LATE, "reason": why}
             else:
                 result[book] = {"run_id": decision.run_id, "commit": decision.commit,
-                                "committed_at": decision.committed_at.isoformat(),
-                                "orders": [o.proposal.trade_id for o in decision.orders]}  # fmt: skip
+                                "committed_at": decision.committed_at.isoformat()}  # fmt: skip
         return StepOutcome({"deadline": deadline.isoformat(), "origin": origin}, result, tuple(paths))
 
     def _all_late(self, day: date, deadline: datetime, why: str, inputs: dict) -> StepOutcome:
@@ -123,7 +129,13 @@ class DeskSteps:
             if "run_id" not in entry:
                 continue
             decision = self.decisions.recorded(book, day, entry["run_id"], entry["commit"])
-            for order in decision.orders:
+            try:
+                orders = self.orders.orders(book, decision.run, decision.committed_at)
+            except OrdersRefused as refused:  # that book's entries fail closed; the run and every exit go on
+                result[book] = {"outcome": "not filled", "reason": NOT_ORDERED.format(reason=refused)}
+                self.alerts.send(ALERT.format(day=day, book=book, what=result[book]["reason"]))
+                continue
+            for order in orders:
                 result[order.proposal.trade_id] = self._fill_one(pack, decision, order, snapshot_valid)
         return StepOutcome({"snapshot_valid": snapshot_valid, "decisions": collected}, result)
 
@@ -145,9 +157,16 @@ class DeskSteps:
                 "sha256": snapshot.sha256}  # fmt: skip
 
     def review_exits(self, day: date) -> StepOutcome:
-        """Risk-reducing exits run whatever happened to the decisions or the snapshot (design 9)."""
-        pack = self.pack(day)
-        return StepOutcome({}, {book: self._review_book(pack, book, day) for book in self.books})
+        """Risk-reducing exits run whatever happened to the decisions or the snapshot (design 9), book by book: one
+        book's failure is recorded and alerted, and never stops another book's review (judge 84)."""
+        pack, result = self.pack(day), {}
+        for book in self.books:
+            try:
+                result[book] = self._review_book(pack, book, day)
+            except Exception as failure:  # noqa: BLE001 - any failure of one book must not halt the others' exits
+                result[book] = {"reviewed": False, "error": f"{type(failure).__name__}: {failure}"}
+                self.alerts.send(ALERT.format(day=day, book=book, what=f"EXIT REVIEW FAILED: {result[book]['error']}"))
+        return StepOutcome({}, result)
 
     def _review_book(self, pack: CommonPack, book: str, day: date) -> dict:
         rules = self.exit_rules.rules(book)
