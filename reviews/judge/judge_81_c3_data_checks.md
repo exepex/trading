@@ -140,3 +140,12 @@ ones plus 7 from round 1, whose earlier strings still apply. The new ones:
 - `git merge-tree` with current `main`: clean.
 
 **Verdict: PASS for 0cc22a2.**
+
+## Addendum 2 (merge check, e3506ec)
+
+**MET.** e3506ec merges 0cc22a2 (the passed tip) onto `main` with D3 f314254 underneath. It equals my recomputed
+merge, with no difference. No other code is on `main` since.
+- My full suite at e3506ec: 2,562 passed.
+- CI `checks` is green on e3506ec (run 38516503171).
+
+The spot-gap measurement on the first real capture is still owed by me (addendum 1).
