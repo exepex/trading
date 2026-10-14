@@ -180,6 +180,8 @@ APPROVER_OWNER = "owner"
 APPROVER_HARD_LOSS_RULE = "hard_loss_rule"  # the automatic pause of story E6 (paper -> paused only)
 APPROVER_DESK = "desk"  # a builder or the research loop: may register a candidate (orchestrator, 14 Oct 2026)
 PLAYBOOK_FOLDER = "playbook"
+BOOK3_FOLDER = "book3"  # Book 3's constitution and strategy registry (story D5)
+PACKS_FOLDER = "packs"  # journal/packs/<date>/common.json and journal/<book>/packs/<date>/private.json (story E2)
 PLAYBOOK_REGISTRY_FILE = "registry.csv"
 # Entry-condition operators: numbers compare with a number, flags with `is` and true or false
 # Story D2: a strategy version with fewer completed paper trades than this is unproven and holds at most one open trade
