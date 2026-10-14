@@ -111,3 +111,10 @@ figure here, and the response says so.
   ran in the full suite.
 
 **Verdict: PASS for c3a2569.** Merge exactly that. After the merge I check `main`.
+
+## Addendum 4 (14 Oct 2026): merge 7258fa2 MET
+
+- **The merge is exact.** Its parents are d8dfb3b and c3a2569, and it equals my recomputed `git merge-tree` exactly.
+- **No unjudged change on `main` since.** Nothing under `fno`, `tests`, `tools`, `.github`, `config.yaml`, `db`,
+  `research`, `agents` or `playbook` changed after it; the later commits are logs and judge files.
+- **CI is pending.** I confirm it with the 17:35 UTC audit.
