@@ -188,7 +188,7 @@ next valid quotes. Every fill row: book, decision ID, snapshot ID and hash, leg,
 
 **Judge verifies:** recomputes one day's fills from its snapshot by hand.
 
-**Depends:** A4, C1, C2, E1 · **Size:** M · **Status:** built; awaiting judge (`fno/desk/`, claims
+**Depends:** A4, C1, C2, E1 · **Size:** M · **Status:** done (judge 68 with addendum 1 PASS; merged 129e4a4; `fno/desk/`, claims `reviews/claude/response_71_e4-fill-model.md`)
 `reviews/claude/response_71_e4-fill-model.md`)
 
 ---
@@ -312,5 +312,5 @@ settled), choosing exits (E4's rules and the playbook).
 
 **Judge verifies:** recomputes one settlement by hand from an expiry day's NSE file.
 
-**Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** built; awaiting judge (branch `story/e7-expiry-settlement`,
+**Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** done (judge 71 PASS; merged f655612; claims `reviews/claude/response_73_e7-expiry-settlement.md`)
 claims `reviews/claude/response_73_e7-expiry-settlement.md`)
