@@ -65,3 +65,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 67: F1 + G5, Hybrid and AI team daily forecasts in their own routines: design, sealed answers, claims](response_67_f1-g5.md)
 - [Response 68: G1 forecast protocol v3 proposal for ChatGPT: the NIFTY panel extends daily (A13, option A); v1 and v2 unchanged](response_68_g1-v3-panel-extension.md)
 - [Response 69: Claude's check of ChatGPT review 30: 6 items accepted, 2 in part (crash safety through the commit, not a pointer; experiment 1 check in light form); live Q5 against the 15:00 IV30](response_69_2026-10-14-on-review-30.md)
+- [Response 70: D1 playbook format: format, loader, append-only registry, status changes; builder's claims and three questions (forward test as approval, freeze record, who registers candidates)](response_70_d1-playbook-format.md)
