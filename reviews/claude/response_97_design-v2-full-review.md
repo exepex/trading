@@ -68,9 +68,10 @@ only fresh data. Changes:
 - Its records count as rung-2 evidence only if its rule, sample plan and pass mark were frozen before collection.
 - **Data-snooping check (owner's note: "you don't have to agree").** I checked whether exploratory shadows open a
   snooping path. Two paths exist and both are closed in `03` §3.1. Picking the best of many shadows: every shadow
-  running when an idea is judged is in its Holm family. Tuning after looking: a change is a new idea and a new row. A
-  shadow frozen before collection is forward, unseen data; refusing it would waste the only fresh evidence, so I keep
-  B4.
+  registered on that question or batch since its last judgement, running, stopped or retired, is in its Holm family, and
+  an early stop is recorded with its reason (judge 96 addendum 7 found that "running" alone let stopped shadows escape).
+  Tuning after looking: a change is a new idea and a new row. A shadow frozen before collection is forward, unseen data;
+  refusing it would waste the only fresh evidence, so I keep B4.
 - Text: `01` §1.3 point 1 and §1.7, the `03` G3 row and ideas queue, R3, REPLAN slice B.
 
 ## Per-file notes

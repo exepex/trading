@@ -44,7 +44,7 @@ v2 changes to them come later as separate stories, never by reopening a passed c
 | F7 Matched shadow decisions | keep, defer to slice E | Scoreboard A needs all three books |
 | F8 AI usage and cost | keep, **move earlier** (slice A) | The budget cap (BG1) needs it, and S1's freeze needs its code |
 | F9 Role-value evaluation | keep; **code earlier** (slice B), use in slice E | S1 v1 cannot freeze until F9's code exists (owner's option A); building it early unblocks counting |
-| S2 Scoreboard B | keep, **change** (slice B) | Adds the do-nothing index fund and cash benchmarks, after-tax results, net per rupee of capital tied, and the count of independent bucket-weeks |
+| S2 Scoreboard B | keep, **change** (slice B) | Adds the do-nothing index fund and cash benchmarks, after-tax results, net per rupee of capital tied (one definition frozen before use: return per rupee-day of funds at entry, the index over the same rupee-days), and the count of independent bucket-weeks |
 | S3 Scoreboard A | keep; **code earlier** (slice B) | Same reason as F9: S1 v1's freeze needs its code; it reports only once books 2-3 trade |
 | S4 Monthly report and reviews | **change** | Split: weekly post-mortem (LR1, slice A) and monthly report plus quarterly reviews (S4, slice C) |
 | S5 Research feedback loop | **change: becomes LR2 and LR3** | Why-it-was-wrong reviews and drift detection, feeding new versions |
