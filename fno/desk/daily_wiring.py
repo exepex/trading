@@ -1,7 +1,7 @@
 """Composition root of the paper desk's daily run (story E3): the timetable from config.yaml, the A7 calendar, git for
 commits and account writes across containers, the packs, Book 1's D6 version keeper, the recorder's execution capture
-and its committed records, C3's data gate on them, and E4's desks. Each book's orders and exit rules (E5, F5, F6) and
-C4's validity gate are passed in: C4 is one line here once it merges."""
+and its committed records, C3's data gate on them, C4's pass as recorded in the committed D3 record (judge 83), and
+E4's desks. Each book's orders and exit rules (E5, F5, F6) are passed in."""
 
 from __future__ import annotations
 
@@ -10,13 +10,13 @@ from pathlib import Path
 
 from ..config import ROOT
 from ..constants import BOOK1_RULES
-from .daily_ports import ExitRules, OrderBuilder, ValidityGate, Waiter
+from .daily_ports import ExitRules, OrderBuilder, Waiter
 from .daily_run import DailyRun
 from .daily_steps import DeskSteps
 from .timetable import timetable_from_config
 
 
-def build_daily_run(cfg: dict, orders: OrderBuilder, validity: ValidityGate, exit_rules: ExitRules,
+def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                     books: Sequence[str] = (BOOK1_RULES,), root: Path = ROOT,
                     waiter: Waiter | None = None) -> DailyRun:  # fmt: skip
     from ..books.version_registry import VersionRegistry
@@ -33,6 +33,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, validity: ValidityGate, exi
     from .execution_capture import CommittedExecutionSchedule, RecorderExecutionCapture
     from .git_sync import Git, GitAccountSync, GitCommitter
     from .pack_wiring import build_packs
+    from .recorded_c4 import RecordedC4Pass
     from .sleeper import SleepingWaiter
     from .wiring import build_entry_desk, build_execution_snapshots, build_exit_desk, open_desk_journal
 
@@ -48,6 +49,6 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, validity: ValidityGate, exi
     gate = DataGate(build_data_checks(build_raw_stores(), calendar), build_execution_snapshots(),
                     CommittedExecutionSchedule(root, timetable), alerts)  # fmt: skip
     decisions = D3CommittedDecisions(root, history, orders)
-    steps = DeskSteps(root, books, timetable, versions, packs, decisions, capture, gate, validity, sync,
+    steps = DeskSteps(root, books, timetable, versions, packs, decisions, capture, gate, RecordedC4Pass(), sync,
                       build_entry_desk(cfg), build_exit_desk(cfg), exit_rules, now_ist)  # fmt: skip
     return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist)

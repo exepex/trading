@@ -29,6 +29,7 @@ class CommittedDecision:
     commit: str  # the commit that holds the run
     committed_at: datetime  # its committer time (time zone aware)
     orders: tuple[EntryOrder, ...]  # empty for a "no trade" decision
+    run: Path | None = None  # the run's folder (D3), where C4's recorded pass is read
 
 
 class Waiter(ABC):

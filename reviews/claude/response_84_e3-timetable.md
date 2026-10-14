@@ -158,6 +158,28 @@ The first run left the "fills ask again" plant alive. My fake had frozen visibil
 checkout sees later pushes. The fake was made realistic and a test added for the case where it matters: a book whose
 newer run lands after the deadline.
 
+## Addendum 2: judge 83 ruling (C4 at the fill)
+
+- The fill's `ValidityGate` is now `RecordedC4Pass` (`fno/desk/recorded_c4.py`), wired in `daily_wiring.py`, so C4 is
+  no longer a seam passed in.
+- It reads the committed D3 record's `validity.c4`, in C4's own format (`{"mode", "ok", "checks": [...]}`), from the run
+  the decisions step recorded (`CommittedDecision.run`).
+- An order fills only if all of these hold:
+  - its record exists (by the order's `decision_id` = the record's opportunity ID);
+  - the run's files still match their committed `records.sha256`;
+  - the C4 report has `ok: true` and at least one check.
+- It takes no market, snapshot or validator, so C4 can never be re-run at the 15:15 capture. Those quotes differ from
+  the decision's and would fail every leg's price check.
+- **Requirement on E5 (and F5/F6):** each `EntryOrder.decision_id` must be its D3 record's opportunity ID. This is
+  stated in the module.
+- Tests (`tests/timetable/test_recorded_c4.py`, 7 cases):
+  - a recorded pass fills;
+  - none of these fill: null `c4`, empty checks, `ok: false`, a non-boolean `ok`, a record hand-edited from fail to
+    pass, a missing record, or no run folder;
+  - the gate's signature takes nothing but the decision and the order.
+- Plants caught: 4 of 4 (failed pass ignored, edit check off, empty checks accepted, missing record ignored).
+- Written into story E3, criterion 7.
+
 ## 6. Gates
 
 Full suite, `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py` and the 350-line limit: the

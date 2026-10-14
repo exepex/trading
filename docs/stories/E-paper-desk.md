@@ -137,6 +137,10 @@ separate checkouts. Every account write therefore runs as: pull, write under `Ac
 5. Restarting the run the same day after any step repeats nothing already done (test kills it after the fills).
 6. Every step's start and end time, inputs and result are written to `journal/runs/<date>.json` and committed.
 7. A decision without a completed C4 pass is never filled, for any book (test per book).
+   **C4 at the fill (judge 83 ruling):** the fill reads the committed D3 record's completed C4 pass
+   (`validity.c4`, written by C4 inside the decision run against the decision's own capture); it never runs C4 again
+   against the 15:15 execution capture, whose quotes differ and would fail every leg's price check. A missing, empty,
+   failed or edited record is never filled (`fno/desk/recorded_c4.py`).
 
 **Test plan:** an end-to-end test over 5 simulated days with fakes: normal day, slow book, failed snapshot, holiday,
 restart after fills.
