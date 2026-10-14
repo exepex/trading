@@ -52,4 +52,4 @@ class D3CommittedDecisions(DecisionSource):
         moment = available_time(added[1]) if added else None
         if moment is None:
             return None
-        return CommittedDecision(book, run.name, added[0], moment, tuple(self.orders.orders(book, run)), run)
+        return CommittedDecision(book, run.name, added[0], moment, tuple(self.orders.orders(book, run, moment)), run)

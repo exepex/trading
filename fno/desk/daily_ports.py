@@ -84,8 +84,8 @@ class OrderBuilder(ABC):
     """A committed decision run's entry orders (E5 for Book 1; F5 and F6 for the AI books)."""
 
     @abstractmethod
-    def orders(self, book: str, run: Path) -> Sequence[EntryOrder]:
-        """The orders the run decided (empty for "no trade")."""
+    def orders(self, book: str, run: Path, decided_at: datetime) -> Sequence[EntryOrder]:
+        """The orders the run decided (empty for "no trade"); `decided_at` is when the run was committed."""
 
 
 class ExecutionCapture(ABC):

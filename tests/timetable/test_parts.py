@@ -103,7 +103,7 @@ class Commits_:
 
 
 class NoOrders(OrderBuilder):
-    def orders(self, book, run):
+    def orders(self, book, run, decided_at):
         return ()
 
 

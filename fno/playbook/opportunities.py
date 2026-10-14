@@ -37,9 +37,13 @@ class OpportunityFinder:
         found = []
         for expiry in sorted(set(monthly_expiries)):
             if self._first_day_in_window(day, expiry, rule.min_days, rule.max_days):
-                exit_day = self.days.last_on_or_before(expiry - timedelta(days=rule.exit_days_before_expiry))
-                found.append(Opportunity(strategy, DecisionContext(expiry, day, exit_day), mode))
+                found.append(Opportunity(strategy, DecisionContext(expiry, day, self.exit_day(strategy, expiry)), mode))
         return found
+
+    def exit_day(self, strategy: Strategy, expiry: date) -> date:
+        """The version's time exit for this expiry: the last trading day at least `exit_days_before_expiry` days
+        before it (also what Book 1's exit review applies to an open trade, story E5)."""
+        return self.days.last_on_or_before(expiry - timedelta(days=strategy.structure.expiry.exit_days_before_expiry))
 
     def _first_day_in_window(self, day: date, expiry: date, low: int, high: int) -> bool:
         if not low <= (expiry - day).days <= high:

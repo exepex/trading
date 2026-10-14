@@ -223,6 +223,7 @@ OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit
 ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"
 DATA_UNVERIFIED = "no new trade: stale or unverified data"  # story C3: a data check failed before the decision
 NO_DECISION_LATE = "no decision (late)"  # story E3: nothing committed by the decision deadline
+NO_APPROVED_STRATEGY = "no approved strategy"  # story E5: Book 1 has no `paper` version on the day
 
 # Story E6: what a review date decides for a strategy version (per its evaluation plan)
 REVIEW_KEEP, REVIEW_PAUSE, REVIEW_RETIRE = "keep", "pause", "retire"
