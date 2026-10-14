@@ -64,3 +64,14 @@ it is how the stale cache above arose.
 ## Verdict: PASS for 101c449
 
 Merge it before 09:25 UTC on 15 Oct. After the merge I check `main` and CI.
+
+## Addendum 1 (14 Oct 2026): merge cc5efff MET
+
+- **Merge matches the recomputation.** Parents are 3a24de1 and 101c449. My recomputed `git merge-tree` of the two
+  parents equals cc5efff exactly (empty diff).
+- **No unjudged code on `main`.** From cc5efff to `main` 89910c5, nothing changed under `fno`, `tests`, `tools`,
+  `.github`, `config.yaml`, `db` or `.gitattributes`. The later commits are logs.
+- **CI is pending.** CI on cc5efff, fb8bbdb and 89910c5 was still running at 14:57 UTC. I confirm it at my next check.
+- **The flaky-test hunt is closed.** Builder A saw no failure in 7 full runs on 14105e8. They also gave the mechanism:
+  `python -I` ignores `PYTHONDONTWRITEBYTECODE`, so the gate test's `-S -I` subprocess writes `.pyc` files. That fits
+  my diagnosis. My harness now clears `__pycache__` after every restore.
