@@ -22,6 +22,14 @@ class NotXbrl(ValueError):
     """The bytes are not an XBRL instance (an error page, a cut-off download)."""
 
 
+class TruncatedXbrl(NotXbrl):
+    """The bytes begin as an XBRL instance (its namespace near the start) but are not well-formed XML: a cut-off file.
+    An error page never carries the XBRL namespace, so a refusal is never mistaken for one."""
+
+
+XBRL_HEAD_BYTES = 4096  # the root element and its namespace declarations sit in a file's first bytes
+
+
 @dataclass(frozen=True)
 class Period:
     start: date | None  # None for a balance on one day (an instant)
@@ -48,7 +56,8 @@ def read_facts(data: bytes) -> list[Fact]:
     try:
         root = ET.fromstring(data)
     except ET.ParseError as exc:
-        raise NotXbrl(f"not XML: {exc}") from exc
+        cut_off = XBRLI.strip("{}").encode("ascii") in data[:XBRL_HEAD_BYTES]
+        raise (TruncatedXbrl if cut_off else NotXbrl)(f"not XML: {exc}") from exc
     if root.tag != f"{XBRLI}xbrl":
         raise NotXbrl(f"root element is {local_name(root.tag)!r}, not xbrl")
     periods = _plain_periods(root)

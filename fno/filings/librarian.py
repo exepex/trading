@@ -3,13 +3,15 @@ XBRL file the manifest does not have yet. A stopped run is resumed by running it
 only files without a manifest row are fetched.
 
 It stops by itself at its deadline (a scheduled run has a time limit), and at once when the exchange refuses us
-(cooling off): the rest waits for the next run. What cannot be archived is recorded as a gap with its reason;
-failures (a list or file the exchange did not answer, a file that is not XBRL) leave the run incomplete. Knows only the
+(cooling off): the rest waits for the next run. What cannot be archived is recorded as a gap with its reason, a file
+NSE itself serves cut off included (the same bytes on two downloads); failures (a list or file the exchange did not
+answer, a file that is not XBRL) leave the run incomplete. Knows only the
 interfaces, never a concrete store, index or source.
 """
 
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
@@ -22,10 +24,15 @@ from ..storage.raw_store import RawFileConflict, StoredCopyDamaged
 from .archive import FilingArchive
 from .filing import Filing, FilingGap
 from .index import FilingIndex
+from .xbrl import TruncatedXbrl
 
 NO_FILINGS = "NSE lists no {kind} filing made public since {since}"
 NO_FILE = "NSE lists {count} filing(s) with no XBRL file (periods {first} to {last})"
 NOT_SERVED = "NSE's link for the {period} filing answers 'not found': {url}"
+TRUNCATED = (
+    "NSE serves a truncated or malformed file for the {period} filing, the same twice ({size} bytes, SHA-256 {sha256}):"
+    " {error}"
+)
 UNEXPECTED_LINK = "NSE's link for the {period} filing is outside its XBRL folder: {url}"
 STORE_STOPPED = "the archive store stopped answering at {symbol}: {error}; rows so far are kept, the next run resumes"
 LIST_ERRORS = (requests.RequestException, RuntimeError, ValueError, KeyError, TypeError)
@@ -119,20 +126,41 @@ class FilingsLibrarian:
         try:
             data = self.source.fetch(filing.path)
         except requests.HTTPError as exc:
-            report.failures.append(f"{filing.symbol} {filing.filename}: NSE answered {exc}")
-            report.failed.add(filing.symbol)
+            self._fail(filing, f"NSE answered {exc}", report)
             return
         if data is None:
             report.gaps.append(FilingGap(filing.symbol, filing.kind, NOT_SERVED.format(period=period, url=filing.url)))
             return
         try:
             self.archive.save(filing, data)
+        except TruncatedXbrl as exc:
+            self._truncated(filing, period, data, exc, report)
+            return
         except (ValueError, RawFileConflict, StoredCopyDamaged) as exc:  # not XBRL, another file there, bad copy
-            report.failures.append(f"{filing.symbol} {filing.filename}: not saved: {exc}")
-            report.failed.add(filing.symbol)
+            self._fail(filing, f"not saved: {exc}", report)
             return
         report.saved += 1
         report.bytes_saved += len(data)
+
+    def _truncated(self, filing: Filing, period: str, data: bytes, error: Exception, report: FilingsReport) -> None:
+        """NSE's own copy is cut off when a second download gives the same bytes: a gap with its size and SHA-256 (a
+        later fixed copy is fetched and saved by the next run, since no row exists). A differing or failed second
+        download is a failure, retried next run. The file is never saved either way."""
+        try:
+            again = self.source.fetch(filing.path)
+        except requests.HTTPError as exc:
+            self._fail(filing, f"not saved: {error}; the second download failed: {exc}", report)
+            return
+        if again != data:
+            self._fail(filing, f"not saved: {error}; a second download differed", report)
+            return
+        reason = TRUNCATED.format(period=period, size=len(data), sha256=hashlib.sha256(data).hexdigest(), error=error)
+        report.gaps.append(FilingGap(filing.symbol, filing.kind, reason))
+
+    @staticmethod
+    def _fail(filing: Filing, why: str, report: FilingsReport) -> None:
+        report.failures.append(f"{filing.symbol} {filing.filename}: {why}")
+        report.failed.add(filing.symbol)
 
     def _gap(self, filing: Filing, period: str) -> str:
         if self.source.url_for(filing.path) != filing.url:

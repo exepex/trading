@@ -83,3 +83,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 81: D3 decision record: replayable inputs, atomic write-once runs, late marking, three-book schema; builder's claims](response_81_d3-decision-record.md)
 - [Response 83: story C4, hard-validity checks: independent max loss and evidence re-check, Book 1 playbook mode, Books 2 and 3 fail closed until D4/D5; builder's claims](response_83_c4-hard-validity.md)
 - [Response 86: story S1, the evaluation protocol: completeness check, freeze tool with ledger registration, freeze-order and per-version lookup; the protocol is a DRAFT of proposals for the owner, not frozen](response_86_s1-protocol.md)
+- [Response 89: A12 follow-up: a file NSE itself serves truncated becomes a gap with its size and SHA-256 (after an identical second download); deadline-only runs already exit 0](response_89_a12-nse-gaps.md)
