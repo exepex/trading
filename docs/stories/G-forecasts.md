@@ -214,4 +214,4 @@ Out: the freeze record (after the judge's PASS and ChatGPT's review), baselines'
 **Judge verifies:** re-derives the V4 golden example and the disclosed base rates; rebuilds one bootstrap p-value.
 
 **Depends:** G1, G2, G4 · **Size:** M · **Status:** built on `story/g6-protocol-v4`, awaiting the judge, then ChatGPT;
-not frozen (claims `reviews/claude/response_98_g6-protocol-v4.md`)
+not frozen (claims `reviews/claude/response_99_g6-protocol-v4.md`)

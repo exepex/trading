@@ -1,4 +1,4 @@
-# Response 98: story G6, forecast protocol v4 (draft for the judge, then ChatGPT)
+# Response 99: story G6, forecast protocol v4 (draft for the judge, then ChatGPT)
 
 **Builder:** Claude, 15 Oct 2026 IST, branch `story/g6-protocol-v4`. **Lane 1.** Not frozen: the freeze record comes only
 after the judge's PASS and ChatGPT's review. G1 v3 and its files are untouched. This file also answers ChatGPT review
