@@ -92,7 +92,7 @@ source and availability time; an item available after the cutoff is refused. A p
 **Judge verifies:** rebuilds one day's packs from committed inputs and compares hashes; greps the common pack for any
 book field.
 
-**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** later
+**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** built on branch `story/e2-market-pack`; awaiting judge (claims: `reviews/claude/response_74_e2-market-pack.md`)
 
 ---
 
