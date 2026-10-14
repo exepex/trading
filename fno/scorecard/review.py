@@ -2,8 +2,9 @@
 its evaluation plan, and only once the paper gate is met (enough completed positions and months since the first entry:
 a minimum, not proof). Open positions are never counted.
 
-The rule is **provisional until S1** (the evaluation protocol): its thresholds live in one place, config.yaml
-`scorecard_review`, which S1 replaces without a code change (orchestrator, 14 Oct 2026; reasoning only):
+The rule is **provisional until S1** (the evaluation protocol): its statistics live in one place, config.yaml
+`scorecard_review`, which S1 replaces without a code change (orchestrator, 14 Oct 2026; reasoning only); the gate is
+design 6's, the same constant D2's allocation uses (`UNPROVEN_BELOW_COMPLETED_TRADES`, `PAPER_GATE_MONTHS`):
 - sample: the C1 net of each completed position; its mean with a two-sided interval from experiment 1's seeded
   bootstrap of the mean (`resampled_means`, nearest-rank tails);
 - **retire** when the interval's upper end is below the plan's expected low (worse than planned, beyond doubt);
@@ -20,7 +21,13 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
-from ..constants import REVIEW_KEEP, REVIEW_PAUSE, REVIEW_RETIRE
+from ..constants import (
+    PAPER_GATE_MONTHS,
+    REVIEW_KEEP,
+    REVIEW_PAUSE,
+    REVIEW_RETIRE,
+    UNPROVEN_BELOW_COMPLETED_TRADES,
+)
 from ..research_engine.statistics import resampled_means
 
 OWNER_DECIDES = "the owner may discuss real money (never automatic)"
@@ -39,8 +46,8 @@ class ReviewTerms:
 def review_terms(cfg: Mapping) -> ReviewTerms:
     block = cfg["scorecard_review"]
     return ReviewTerms(
-        str(block["status"]), int(block["min_completed_positions"]), int(block["min_months"]),
-        float(block["confidence"]), int(block["bootstrap_resamples"]), int(block["bootstrap_seed"]),
+        str(block["status"]), UNPROVEN_BELOW_COMPLETED_TRADES, PAPER_GATE_MONTHS, float(block["confidence"]),
+        int(block["bootstrap_resamples"]), int(block["bootstrap_seed"]),
     )  # fmt: skip
 
 

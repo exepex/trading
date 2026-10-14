@@ -1,7 +1,8 @@
 """Story E6 criterion 1 and judge 67: a catastrophic loss or a live-feature drift pauses that version at once in every
 book (paper -> paused by hard_loss_rule, one alert); the other versions keep trading; a shadow is only alerted."""
 
-from datetime import date
+from dataclasses import replace
+from datetime import date, timedelta
 
 from playbook.builders import LIVE_FEATURES, FixedReports, report
 
@@ -77,3 +78,40 @@ def test_report_only_fires_no_pause(root, make_run, alerts):
     trade(root, BOOK1_RULES, "fly-a-v1", "t1", START, DAY, credit=50, debit=210)
     _, actions = make_run().run(DAY, {}, pause=False)
     assert actions == [] and alerts.sent == [] and statuses(root)["fly-a"] == "paper"
+
+
+def reapprove(root, name, day):
+    """The owner's paused -> paper (a registry row and the file's status line, as D1's status change writes them)."""
+    rows = loader(root).registry.rows()
+    last = [r for r in rows if r.name == name][-1]
+    row = replace(last, status=PlaybookStatus.PAPER, changed_on=day, approved_by="owner", evidence_commit="abcdef1")
+    loader(root).registry.append(row)
+    path = root / "playbook" / f"{name}-v1.yaml"
+    path.write_text(path.read_text().replace("status: paused", "status: paper"))
+
+
+def test_an_owner_re_approval_after_a_pause_sticks(root, make_run, alerts):
+    """Judge 73: the old loss that caused the pause must not pause the version again after the owner re-approves."""
+    trade(root, BOOK1_RULES, "fly-a-v1", "t1", START, DAY, credit=50, debit=210)
+    make_run().run(DAY, {})
+    assert statuses(root)["fly-a"] == "paused"
+    reapprove(root, "fly-a", DAY + timedelta(days=1))
+    make_run().run(DAY + timedelta(days=2), {})
+    assert statuses(root)["fly-a"] == "paper" and len(alerts.sent) == 1
+    trade(root, BOOK1_RULES, "fly-a-v1", "t2", DAY + timedelta(days=2), DAY + timedelta(days=3), credit=50, debit=210)
+    make_run().run(DAY + timedelta(days=3), {})
+    assert statuses(root)["fly-a"] == "paused" and len(alerts.sent) == 2  # a new loss after re-approval does pause
+
+
+def test_a_shadow_loss_never_pauses_an_approved_version(root, make_run, alerts):
+    """Judge 73: the version's earlier shadow test (or any shadow account) is evidence, never a book's loss."""
+    trade(root, SHADOW, "fly-a-v1", "s1", START, DAY, credit=50, debit=210)
+    make_run().run(DAY, {})
+    assert statuses(root)["fly-a"] == "paper" and alerts.sent == []
+
+
+def test_a_book_loss_closed_before_the_latest_approval_never_pauses(root, make_run, alerts):
+    trade(root, BOOK1_RULES, "fly-a-v1", "t0", START - timedelta(days=3), START - timedelta(days=1), credit=50,
+          debit=210)  # fmt: skip
+    make_run().run(DAY, {})
+    assert statuses(root)["fly-a"] == "paper" and alerts.sent == []

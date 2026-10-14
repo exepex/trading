@@ -1,7 +1,8 @@
 """Automatic pauses (story E6, criterion 1; design 12.8): the only switch-offs allowed before a review date.
 
-- **Catastrophic loss:** a completed or unwound trade of an approved version whose C1 net loss reaches the plan's
-  `catastrophic_loss_rs`, in any book.
+- **Catastrophic loss:** a completed or unwound trade of an approved version, in any **book**, closed on or after the
+  version's latest change to paper, whose C1 net loss reaches the plan's `catastrophic_loss_rs` (judge 73: a loss
+  before an owner's re-approval, or in the version's earlier shadow test, never pauses it).
 - **Live-feature drift (judge 67):** an approved version whose live feature no longer passes its use rule.
 
 Either pauses that version at once (`paper -> paused`, approved by `hard_loss_rule`, through D1's status change, so no
@@ -11,12 +12,12 @@ paused, and its result is evidence for the owner, who decides. Commit the regist
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import date
 
 from ..alerts.sender import AlertSender
-from ..constants import APPROVER_HARD_LOSS_RULE, PlaybookStatus
+from ..constants import APPROVER_HARD_LOSS_RULE, SHADOW_PREFIX, PlaybookStatus
 from ..desk.trade_counts import version_key
 from ..playbook.lifecycle import StatusChanger
 from ..playbook.loader import Playbook
@@ -37,18 +38,32 @@ class PauseTrigger:
         return f"{self.name}-v{self.version}"
 
 
-def catastrophic_losses(records: Iterable[StrategyRecord], playbook: Playbook, on: date) -> list[PauseTrigger]:
-    """Every loss at or beyond the cap; a shadow version's only on the day the trade closed (it is never paused, so
-    an older loss would alert again on every run)."""
+def _counts(
+    record: StrategyRecord, status: PlaybookStatus, approved_on: date | None, closed_on: date, on: date
+) -> bool:
+    """Whether a trade closed on `closed_on` in this record can trigger: an approved version only on its book trades
+    since its latest approval; a research version (shadow) only on the day the trade closed (it is never paused, so an
+    older loss would alert again on every run)."""
+    shadow_account = record.account.startswith(SHADOW_PREFIX)
+    if status == PlaybookStatus.PAPER:
+        return not shadow_account and approved_on is not None and closed_on >= approved_on
+    return status == PlaybookStatus.RESEARCH and closed_on == on
+
+
+def catastrophic_losses(
+    records: Iterable[StrategyRecord], playbook: Playbook, on: date, approved_on: Mapping[tuple[str, int], date]
+) -> list[PauseTrigger]:
+    """Every counting loss at or beyond its version's cap. `approved_on`: each version's latest change to paper."""
     triggers = []
     for record in records:
         name, version = version_key(record.strategy)
         found = [s for s in playbook.strategies if s.key == (name, version)]
         if not found:
             continue
-        cap, shadow = found[0].evaluation_plan["catastrophic_loss_rs"], found[0].status == PlaybookStatus.RESEARCH
+        cap, status = found[0].evaluation_plan["catastrophic_loss_rs"], found[0].status
         for trade in record.closed:
-            if trade.line.net <= -cap and not (shadow and trade.line.closed_on != on):
+            counts = _counts(record, status, approved_on.get((name, version)), trade.line.closed_on, on)
+            if trade.line.net <= -cap and counts:
                 reason = f"trade {trade.trade_id} in {record.account} lost Rs {-trade.line.net:,.2f}, cap Rs {cap:,.2f}"
                 triggers.append(PauseTrigger(name, version, f"catastrophic loss: {reason}"))
     return triggers

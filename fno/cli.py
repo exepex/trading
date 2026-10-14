@@ -9,6 +9,7 @@ from pathlib import Path
 from .ai.cli import add_ai_parser
 from .books.cli import add_account_parser
 from .config import ROOT, load_app_config
+from .desk.cli import add_desk_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
@@ -19,7 +20,6 @@ from .providers import get_provider
 from .quotes.cli import add_quotes_parser
 from .research_data.participant_oi_cli import add_participant_oi_parser
 from .research_engine.research_cli import add_research_parser
-from .scorecard.cli import add_desk_parser
 from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
 from .storage.revisions_cli import add_revisions_parser

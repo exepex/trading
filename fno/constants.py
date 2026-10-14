@@ -187,6 +187,7 @@ PLAYBOOK_REGISTRY_FILE = "registry.csv"
 # Entry-condition operators: numbers compare with a number, flags with `is` and true or false
 # Story D2: a strategy version with fewer completed paper trades than this is unproven and holds at most one open trade
 UNPROVEN_BELOW_COMPLETED_TRADES, UNPROVEN_MAX_OPEN_TRADES = 20, 1
+PAPER_GATE_MONTHS = 3  # design 6: with UNPROVEN_BELOW_COMPLETED_TRADES completed trades, the paper gate (E6 reviews)
 NO_TRADE_THRESHOLD_RS = 0.0  # a candidate needs expected net per opportunity above this, after costs
 NO_ESTIMATE = "none"  # a research version with no honest expected-net estimate (paper needs a number)
 

@@ -8,19 +8,18 @@ from datetime import date
 EXIT_REFUSED = 2
 
 
-def add_desk_parser(subparsers) -> None:
-    desk = subparsers.add_parser("desk", help="the paper desk's strategy scorecards and pause rules (never orders)")
-    actions = desk.add_subparsers(dest="desk_cmd", required=True)
+def add_scorecard_command(actions) -> None:
+    """`desk scorecard`, registered by the desk's one parser (`fno/desk/cli.py`)."""
     card = actions.add_parser("scorecard", help="scorecards per version and account; fires the automatic pauses")
     card.add_argument("--book", help="only this account (a book, or shadow:<name>-v<n>)")
     card.add_argument("--strategy", help="only this version, <name>-v<n>")
     card.add_argument("--on", type=date.fromisoformat, help="the day judged (default today, IST)")
     card.add_argument("--snapshot", help="marks for open positions: YYYY-MM-DD/<snapshot id> of a recorded capture")
     card.add_argument("--report-only", action="store_true", help="show the scorecards without firing any pause")
-    desk.set_defaults(func=cmd_desk)
+    card.set_defaults(func=cmd_scorecard)
 
 
-def cmd_desk(args) -> int:
+def cmd_scorecard(args) -> int:
     from ..config import load_app_config
     from ..desk.wiring import build_execution_snapshots
     from ..models import now_ist

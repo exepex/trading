@@ -6,7 +6,7 @@ shadow versions (owner's choice a), kept apart from Book 1's.
 
 **Verdict in one line:** `python -m fno desk scorecard` scores every version in every account against its plan, from
 the records only, after the automatic pause rules have run. A catastrophic loss or a live-feature drift pauses that
-version alone. 21 scorecard tests, 10 shadow-account and shadow-book tests, 5 changed or new loader tests. 23 of 23
+version alone. 21 scorecard tests, 10 shadow-account and shadow-book tests, 5 changed or new loader tests. 28 of 28
 planted defects caught; the 32 desk plants are still caught.
 
 ## 1. Design decisions (the defaults I sent the orchestrator; no change was asked)
@@ -39,6 +39,21 @@ planted defects caught; the 32 desk plants are still caught.
   with no code change, and every review shows the rule's status.
 - **Never automatic promotion:** the field is `profit_shown`, worded "net profit shown: the owner may discuss real
   money (never automatic)". Nothing in the code promotes.
+
+## 1b. Judge 73 (FAIL on c264ccd): my answers, on head after b5c957f
+
+| # | Finding | Answer and evidence |
+|---|---|---|
+| 1+2 | An old loss re-pauses after the owner's re-approval; a shadow loss pauses the version once approved | **Accepted, root fix.** An approved version is paused only by a trade in a **book** account (never `shadow:...`) closed **on or after its latest change to paper** (registry). Tests: `test_an_owner_re_approval_after_a_pause_sticks` (and a new loss after re-approval pauses again), `test_a_shadow_loss_never_pauses_an_approved_version`, `test_a_book_loss_closed_before_the_latest_approval_never_pauses`. Plants "a shadow loss pauses an approved version" and "a loss before the latest approval pauses" are caught. Day granularity: a loss on the very day of a re-approval counts (the registry has dates, not times), which errs on pausing. |
+| 3 | The cap check is missing (50,000 parses) | Already fixed in b5c957f, after the commit judged: `CatastrophicCapWithinRisk` reads `risk.max_loss_per_trade_rs` from config.yaml and refuses any cap above it, for every file. Rs 10,000 loads; Rs 10,000.01 is refused. |
+| 4 | Same-day pause | **Waits for D2's start-of-day fix**, as the judge says. After it merges I add the test through D2's evaluator: a pause written before 15:00 stops that day's trade. |
+| should | Pin the bootstrap interval | Accepted: `interval(range(-10, 10))` is pinned to (-3.0, 2.05); another seed or 90% (-2.6, 1.6) fails it. Both plants caught. |
+| should | Label "provisional until S1" in the report | Already in b5c957f: every review line shows `rule provisional until S1`. |
+| should | One shared constant for the 20-position gate | Accepted. The gate is design 6's paper gate, the same number D2 uses, so it is now `UNPROVEN_BELOW_COMPLETED_TRADES` (with a new `PAPER_GATE_MONTHS = 3`) in `fno/constants.py`. The statistics S1 will freeze (confidence, resamples, seed, status) stay in config.yaml `scorecard_review`. That way both the judge's "one constant" and the orchestrator's "S1 replaces without code" hold. |
+| should | One `desk` parser | Accepted: `fno/desk/cli.py` owns the one `desk` parser; each story adds a command to its `COMMANDS` tuple and sets its own handler (E6: `add_scorecard_command`). I proposed this to E2's builder (its branch adds `pack` in `fno/desk/pack_cli.py`); whoever merges second folds into the first. |
+| owed | The ShadowBooks write-containment test | Already in b5c957f: `tests/desk/test_shadow_books.py::test_trading_in_the_shadow_account_writes_only_inside_its_declared_folder`. |
+
+Mutation checks run as the judge asks (`python -B`, caches cleared): E6 **28 of 28**, desk (E4, E7) **32 of 32**.
 
 ## 2. Acceptance criteria, claims and evidence
 

@@ -2,11 +2,10 @@
 positions and 3 months); keep, pause or retire by the plan's expected low; net profit shown only beyond chance, never
 a promotion by itself; open positions never counted. Simulated paper histories through the real records."""
 
+from dataclasses import replace
 from datetime import date, timedelta
 
-import pytest
-
-from fno.constants import BOOK1_RULES, REVIEW_KEEP, REVIEW_PAUSE, REVIEW_RETIRE
+from fno.constants import BOOK1_RULES, REVIEW_KEEP, REVIEW_PAUSE, REVIEW_RETIRE, UNPROVEN_BELOW_COMPLETED_TRADES
 from fno.scorecard.review import decide, full_months, interval
 
 from .conftest import REVIEW, START, TERMS
@@ -82,16 +81,17 @@ def test_the_decision_rule_by_hand():
     assert full_months(date(2026, 10, 14), date(2027, 1, 14)) == 3
 
 
-def test_the_interval_is_the_seeded_bootstrap_of_the_mean():
-    values = [float(v) for v in range(-10, 10)]
-    low, high = interval(values, TERMS)
-    assert low < sum(values) / len(values) < high and interval(values, TERMS) == (low, high)  # fixed seed: reproducible
-    assert low == pytest.approx(-3.1, abs=0.5) and high == pytest.approx(2.1, abs=0.5)  # about mean +- 1.96 s/sqrt(n)
+def test_the_interval_is_pinned_to_the_seeded_bootstrap_of_the_mean():
+    """Pinned (judge 73): another seed or a 90% interval gives other bounds, so either change fails here."""
+    values = [float(v) for v in range(-10, 10)]  # mean -0.5
+    assert interval(values, TERMS) == (-3.0, 2.05)
+    assert interval(values, replace(TERMS, seed=TERMS.seed + 1)) != (-3.0, 2.05)
+    assert interval(values, replace(TERMS, confidence=0.90)) == (-2.6, 1.6)
 
 
 def test_the_rule_is_labelled_provisional_and_read_from_one_place(root, make_run):
-    """Orchestrator, 14 Oct 2026: S1 replaces the thresholds in config.yaml `scorecard_review` without a code change."""
+    """S1 replaces the statistics in config.yaml `scorecard_review` without a code change; the gate is D2's constant."""
     assert TERMS.status == "provisional until S1"
-    assert (TERMS.min_positions, TERMS.min_months, TERMS.confidence) == (20, 3, 0.95)
+    assert (TERMS.min_positions, TERMS.min_months, TERMS.confidence) == (UNPROVEN_BELOW_COMPLETED_TRADES, 3, 0.95)
     history(root, [10] * 20)
     assert judged(make_run).terms_status == "provisional until S1"
