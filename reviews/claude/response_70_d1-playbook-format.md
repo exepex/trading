@@ -155,3 +155,31 @@ only the one affected. E6's pause rules are the place to turn this into an autom
 **Minor point taken too:** `python -m fno playbook check` now runs the append-only check itself, on git history plus
 the working file (`wiring.registry_history_problems`), so an edited row is caught before CI.
 `test_the_history_check_includes_the_working_file` covers an uncommitted edit.
+
+## Addendum 3 (14 Oct 2026): the committed report must match day for day; question 1 settled
+
+**Question 1, owner's answer: option (a), a shadow forward test** (DESK_DECISIONS, 14 Oct). A candidate stays
+`research`, frozen in the registry. Its daily decisions are recorded and its paper results computed (E4, C1), never
+in Book 1's account. After passing S1, the owner approves it to `paper`. D1 needs no change: option (b) (a
+`forward_test` status) is not built and is dropped.
+
+**Stricter cross-check (orchestrator's follow-up to judge 67).** `RecomputedLiveReports` now uses the recomputation
+only when the committed report's rows are exactly its first rows: same days, in order, no gap, every value equal.
+A report with a missing first or middle day is refused outright (no report, so no gate pass), so the red team's
+record cannot hide a day.
+
+**One part not built as asked, and why.** "No gaps through the last recorded day before approval" would also refuse a
+report that ends before the last recorded day. The reports interface does not know the approval date, and a shorter
+report is simply one written earlier. It changes nothing, because the gate reads every recorded day from the
+recomputation. So a missing **end** is allowed; a missing first or middle day is refused.
+
+Tests:
+- `test_the_full_honest_report_passes`;
+- `test_a_committed_report_with_a_missing_day_is_refused_as_the_red_teams_record` (first and middle day);
+- `test_removing_bad_days_from_the_committed_report_does_not_pass_the_gate` (a cherry-picked report is refused; a
+  truncated one fails the gate on all 25 days);
+- `test_a_hand_edited_value_fails`.
+
+Mutations, both caught:
+- back to the subset check: 3 tests fail;
+- the gate reading the committed rows: 2 tests fail.
