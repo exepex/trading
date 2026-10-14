@@ -98,8 +98,8 @@ commit with `--no-verify`.
   `fno/pipeline/panel_wiring.py` (the daily NIFTY panel job, story A13; apart so G1 v3 can freeze it without O6),
   `fno/market_read_models/wiring.py` (the market read models and their publisher, stories P6-P9),
   `fno/forecast_scoring/wiring.py` (forecast scoring and reports, story G4; outside the frozen `fno/forecast/`),
-  `fno/ai/wiring.py` (the AI books' forecasts: fire and collect, F1 and G5) and `fno/ai/book_wiring.py` (the AI books'
-  routine side, standard library only).
+  `fno/ai/wiring.py` (the AI books' forecasts: fire and collect, F1 and G5), `fno/ai/book_wiring.py` (the AI books'
+  routine side, standard library only) and `fno/desk/wiring.py` (the paper desk's fills and exits, story E4).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.

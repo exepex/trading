@@ -188,7 +188,8 @@ next valid quotes. Every fill row: book, decision ID, snapshot ID and hash, leg,
 
 **Judge verifies:** recomputes one day's fills from its snapshot by hand.
 
-**Depends:** A4, C1, C2, E1 · **Size:** M · **Status:** later
+**Depends:** A4, C1, C2, E1 · **Size:** M · **Status:** built; awaiting judge (`fno/desk/`, claims
+`reviews/claude/response_70_e4-fill-model.md`)
 
 ---
 

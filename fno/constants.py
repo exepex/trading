@@ -162,3 +162,14 @@ ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"
 ENV_ROUTINE_BOOK3_TOKEN = "FNO_ROUTINE_BOOK3_AI_TOKEN"
 ENV_GITHUB_TOKEN = "GITHUB_TOKEN"  # the Actions run's own token: reads the repository's push log (receipt times)
 GITHUB_REPOSITORY_VARIABLE = "GITHUB_REPOSITORY"  # owner/name, set by GitHub Actions (not a secret, so no ENV_ name)
+
+# Story E4: the paper fill model. What each desk fill did, and how an entry or exit attempt ended (desk_events.csv)
+FILL_OPEN, FILL_UNWIND, FILL_CLOSE = "open", "unwind", "close"
+OUTCOME_OPENED = "opened"
+OUTCOME_NOT_OPENED = "not_opened"  # refused before any leg filled, or a protective leg did not fill
+OUTCOME_PARTIAL_FILL = "not_opened_partial_fill"  # a leg failed after others filled; the filled legs were unwound
+OUTCOME_EXIT_ORDERED = "exit_ordered"  # an exit rule was reached (or an unwind could not finish): close at valid quotes
+OUTCOME_PENDING_EXIT = "pending_exit"  # an exit leg had no valid quote: retried at the next scheduled snapshot
+OUTCOME_CLOSED = "closed"
+OUTCOME_PROTECTION_UNVERIFIED = "protection_unverified"  # a protective leg is unquotable: no new risk in the book
+OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit filled: NSE's settlement price needed

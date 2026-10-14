@@ -15,7 +15,6 @@ from __future__ import annotations
 import csv
 import io
 import json
-import os
 from datetime import date
 from pathlib import Path
 from typing import Protocol
@@ -23,6 +22,7 @@ from typing import Protocol
 from ..accounting.ledgers import Trade
 from ..constants import LEDGER_FILL
 from .equity import AccountState, Mark, account_state, trade_positions, unmarked_state
+from .files import append_durably, complete_lines, csv_text, drop_partial_line, write_atomic
 from .fills import LEDGER_COLUMNS, Fill, opening_row, same_fill
 from .paths import account_folder, file_in_account
 
@@ -46,20 +46,6 @@ class WriterLock(Protocol):
 
     @property
     def held(self) -> bool: ...
-
-
-def _csv_text(columns: tuple[str, ...], rows: list[dict], header: bool) -> str:
-    out = io.StringIO()
-    writer = csv.DictWriter(out, fieldnames=columns, lineterminator="\n")
-    if header:
-        writer.writeheader()
-    writer.writerows(rows)
-    return out.getvalue()
-
-
-def _complete_lines(text: str) -> str:
-    """The text up to its last newline: a line without one is a write cut short by a crash."""
-    return text[: text.rfind("\n") + 1]
 
 
 def _equity_row(day: date, state: AccountState, fills: int) -> dict[str, str]:
@@ -91,7 +77,7 @@ class PaperAccount:
     def ledger_rows(self) -> list[dict[str, str]]:
         if not self.started:
             return []
-        reader = csv.DictReader(io.StringIO(_complete_lines(self.file(CASH_LEDGER_FILE).read_text(encoding="utf-8"))))
+        reader = csv.DictReader(io.StringIO(complete_lines(self.file(CASH_LEDGER_FILE).read_text(encoding="utf-8"))))
         if tuple(reader.fieldnames or ()) != LEDGER_COLUMNS:
             raise AccountError(f"{self.book}: cash ledger columns must be {LEDGER_COLUMNS}")
         return list(reader)
@@ -130,26 +116,26 @@ class AccountWriter:
     def __init__(self, account: PaperAccount, lock: WriterLock):
         self.account = account
         self._lock = lock
-        self._check_lock()
+        self.require_lock()
         if account.started:
             self._recover()
 
     def start(self, day: date) -> bool:
         """Open the account with Rs 5 lakh and no positions. Done once; False (and nothing written) if it exists."""
-        self._check_lock()
+        self.require_lock()
         if self.account.started:
             return False
         opening = opening_row(OPENING_ENTRY_ID, day.isoformat(), STARTING_CASH_RS)
         first = _equity_row(day, account_state(STARTING_CASH_RS, [], {}), fills=0)
-        self._write_atomic(EQUITY_HISTORY_FILE, _csv_text(EQUITY_COLUMNS, [first], header=True))
-        self._write_atomic(CASH_LEDGER_FILE, _csv_text(LEDGER_COLUMNS, [opening], header=True))  # marks "started"
+        self._write_atomic(EQUITY_HISTORY_FILE, csv_text(EQUITY_COLUMNS, [first], header=True))
+        self._write_atomic(CASH_LEDGER_FILE, csv_text(LEDGER_COLUMNS, [opening], header=True))  # marks "started"
         self._write_positions()
         return True
 
     def apply_fill(self, fill: Fill) -> bool:
         """Record a fill once. False when this exact fill is already recorded (a retry); an error when its ID was used
         for a different fill or its trade is already closed."""
-        self._check_lock()
+        self.require_lock()
         rows = self.account.ledger_rows()
         if not rows:
             raise AccountError(f"{self.account.book}: the account has not been started")
@@ -167,15 +153,15 @@ class AccountWriter:
 
     def record_equity(self, day: date, marks: dict[str, Mark]) -> AccountState:
         """Write the day's row of the equity history (replacing an earlier row for the same day)."""
-        self._check_lock()
+        self.require_lock()
         state = self.account.state(marks)
         row = _equity_row(day, state, len(self.account.fills()))
         rows = [r for r in self.account.equity_history() if r["date"] != row["date"]] + [row]
-        self._write_atomic(EQUITY_HISTORY_FILE, _csv_text(EQUITY_COLUMNS, sorted(rows, key=lambda r: r["date"]), True))
+        self._write_atomic(EQUITY_HISTORY_FILE, csv_text(EQUITY_COLUMNS, sorted(rows, key=lambda r: r["date"]), True))
         self._write_positions()
         return state
 
-    def _check_lock(self) -> None:
+    def require_lock(self) -> None:
         lock = self._lock
         if not (
             lock.held and lock.book == self.account.book and lock.path.parent.resolve() == self.account.folder.resolve()
@@ -184,28 +170,14 @@ class AccountWriter:
 
     def _recover(self) -> None:
         """After a crash: drop a half-written last ledger line, then rebuild the view from the ledger."""
-        path = self.account.file(CASH_LEDGER_FILE)
-        text = path.read_text(encoding="utf-8")
-        complete = _complete_lines(text)
-        if complete != text:
-            with open(path, "r+b") as fh:
-                fh.truncate(len(complete.encode("utf-8")))
-                os.fsync(fh.fileno())
+        drop_partial_line(self.account.file(CASH_LEDGER_FILE))
         self._write_positions()
 
     def _append_ledger_row(self, row: dict[str, str]) -> None:
-        with open(self.account.file(CASH_LEDGER_FILE), "a", encoding="utf-8", newline="") as fh:
-            fh.write(_csv_text(LEDGER_COLUMNS, [row], header=False))
-            fh.flush()
-            os.fsync(fh.fileno())
+        append_durably(self.account.file(CASH_LEDGER_FILE), csv_text(LEDGER_COLUMNS, [row], header=False))
 
     def _write_positions(self) -> None:
         self._write_atomic(POSITIONS_FILE, json.dumps(self.account.summary(), indent=1, sort_keys=True) + "\n")
 
     def _write_atomic(self, name: str, text: str) -> None:
-        target, temporary = self.account.file(name), self.account.file(name + ".tmp")
-        with open(temporary, "w", encoding="utf-8", newline="") as fh:
-            fh.write(text)
-            fh.flush()
-            os.fsync(fh.fileno())
-        os.replace(temporary, target)
+        write_atomic(self.account.file(name), self.account.file(name + ".tmp"), text)
