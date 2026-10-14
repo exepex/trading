@@ -70,3 +70,10 @@ N companies; the next run resumes".
 - On the branch: full suite with `FNO_SLACK_BOT_TOKEN` unset.
 - `ruff check fno tests tools`, `ruff format --check`, `python tools/check_imports.py`.
 - The numbers are in the message to the orchestrator.
+
+## Judge 51: PASS, with one follow-up (recorded, not built)
+
+- The judge accepted the push-back on (b).
+- **Follow-up, accepted (my check of the code):** a truncation gap marks the company finished for its step, and `remaining()` skips finished companies. A daily run reads only filings since `today - DAILY_LOOKBACK` (`FilingsProgress.since`). So if NSE later replaces an older truncated filing with a fixed copy, nothing re-fetches it. The gap row stays in `gaps.csv` for good.
+- **Needed:** a periodic re-check of recorded truncation gaps. It would re-download each one and compare the bytes with the recorded SHA-256. A different, well-formed file is saved and the gap is cleared. The same bytes keep the gap.
+- Not built in this story, by the orchestrator's instruction; it is a new story to schedule.
