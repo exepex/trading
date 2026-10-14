@@ -48,6 +48,7 @@
  "provenance": {
   "a4_snapshot": {
    "csv_sha256": "f6efa642bdf9d48d7133e8ed92df99beb86f41b2447b299d1a8ea2fc49f27e68",
+   "meta_sha256": "70ee243a5dedf11f026728e4550e69c37c16db8717b96e17a4ff5ba3578f511a",
    "snapshot_id": "nifty_20261014_133102"
   }
  }

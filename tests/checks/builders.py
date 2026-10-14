@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 from datetime import date, datetime, time
 
-from fno.checks.data_checks import ScheduledCapture
+from fno.checks.data_checks import CaptureRecord, ScheduledCapture
 from fno.checks.gate import DataGate
 from fno.checks.schedule import ExecutionSchedule
 from fno.checks.wiring import build_data_checks
@@ -20,30 +20,43 @@ CALENDAR = build_session_calendar()
 SPOT, CLOSE = 25_000.0, 24_900.0  # +0.40%
 
 
-class ExecutionWindow(ExecutionSchedule):
-    """E3's role: the execution capture `snapshot_id`, taken 15:10-15:20 IST (E4's fixtures capture at 15:15)."""
+def file_hash(store, day: date, name: str) -> str:
+    return hashlib.sha256(store.get(QuoteSnapshotRecorder.path(day, name))).hexdigest()
 
-    def __init__(self, snapshot_id: str = "exec", start: time = time(15, 10), end: time = time(15, 20)):
-        self.snapshot_id, self.start, self.end = snapshot_id, start, end
+
+def committed_record(store, day: date, snapshot_id: str) -> CaptureRecord:
+    """E3's role: the committed record of its execution capture, as the files stood when it was committed."""
+    record = {
+        "snapshot_id": snapshot_id,
+        "csv_sha256": file_hash(store, day, f"{snapshot_id}.csv"),
+        "meta_sha256": file_hash(store, day, f"{snapshot_id}.meta.json"),
+        "source": "E3 record (test)",
+    }
+    return CaptureRecord(**record)
+
+
+class ExecutionWindow(ExecutionSchedule):
+    """E3's role: the execution capture `snapshot_id`, taken 15:10-15:20 IST (E4's fixtures capture at 15:15), with its
+    committed capture record read from `store` (or the given record, or none)."""
+
+    def __init__(self, snapshot_id="exec", store=None, record=None, start=time(15, 10), end=time(15, 20)):
+        self.snapshot_id, self.store, self.record, self.start, self.end = snapshot_id, store, record, start, end
 
     def capture(self, pack: CommonPack) -> ScheduledCapture:
         start, end = (datetime.combine(pack.day, t, IST) for t in (self.start, self.end))
-        return ScheduledCapture(self.snapshot_id, start, end)
+        record = self.record or (committed_record(self.store, pack.day, self.snapshot_id) if self.store else None)
+        return ScheduledCapture(self.snapshot_id, start, end, record)
 
 
-def quote_hash(store, day: date, snapshot_id: str) -> str:
-    return hashlib.sha256(store.get(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.csv"))).hexdigest()
-
-
-def pack_of(store, day: date, snapshot_id: str = "exec", spots=(SPOT,), close: float | None = CLOSE, sha=None,
-            named: str | None = None) -> CommonPack:  # fmt: skip
-    """E2's pack shape: the A4 snapshot's provenance (its quote file hash), option items carrying the spot, and the
-    previous session's official close."""
+def pack_of(store, day: date, snapshot_id: str = "exec", spots=(SPOT,), close: float | None = CLOSE) -> CommonPack:
+    """E2's pack shape: the A4 snapshot's provenance (its file and sidecar hashes), option items carrying each chain's
+    spot, and the previous session's official close."""
     previous = CALENDAR.previous_session(day)
     items = [{"name": f"option:{EXPIRY}:{25000 + 100 * n:g}:CE", "value": {"spot": s}} for n, s in enumerate(spots)]
     if close is not None:
         items.append({"name": f"close:{previous}", "value": {"nifty": close, "vix": 12.0}})
-    provenance = {"snapshot_id": named or snapshot_id, "csv_sha256": sha or quote_hash(store, day, snapshot_id)}
+    provenance = {"snapshot_id": snapshot_id, "csv_sha256": file_hash(store, day, f"{snapshot_id}.csv"),
+                  "meta_sha256": file_hash(store, day, f"{snapshot_id}.meta.json")}  # fmt: skip
     return CommonPack(day, {"day": day.isoformat(), "provenance": {SNAPSHOT_INPUT: provenance}, "items": items})
 
 
@@ -56,6 +69,7 @@ def nse_files(*days: date) -> DictStore:
 
 
 def gate(snapshots, alerts, day: date, schedule=None, shocks=None, nse=None) -> DataGate:
+    """The real checks; the schedule defaults to E3's role for capture "exec" with its record read from the store."""
     nse = nse_files(CALENDAR.previous_session(day)) if nse is None else nse
     checks = build_data_checks([nse], CALENDAR, shocks)
-    return DataGate(checks, snapshots, schedule or ExecutionWindow(), alerts)
+    return DataGate(checks, snapshots, schedule or ExecutionWindow(store=snapshots.store), alerts)

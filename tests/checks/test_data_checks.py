@@ -1,8 +1,10 @@
 """Story C3: each data check on fake snapshots and packs. Criterion 1: a snapshot outside its window, or whose hash
 differs from the pack, means "no new trade: stale or unverified data" with an alert. Criterion 2: a trade needing a leg
 without a valid A4 quote is not opened, before any leg is priced. Spot within 2% of the previous close unless a shock is
-flagged; the previous session's NSE file present (A7 calendar)."""
+flagged, every chain's spot compared (judge 81); the previous session's NSE file present (A7 calendar). The snapshot
+must be the one its committed capture record names (judge 81 ruling 2)."""
 
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -11,7 +13,7 @@ from fno.checks.shock import NO_SOURCE, ShockFlags
 from fno.constants import DATA_UNVERIFIED, OPTION_CALL, OPTION_PUT, OUTCOME_REFUSED
 from tests.desk.builders import DAY, EXPIRY, at, enter, fly_order, fly_rows, write_snapshot
 
-from .builders import CALENDAR, ExecutionWindow, gate, nse_files, pack_of
+from .builders import CALENDAR, ExecutionWindow, committed_record, gate, nse_files, pack_of
 
 CE, PE = OPTION_CALL, OPTION_PUT
 LEGS = tuple(fly_order().contracts())
@@ -42,16 +44,26 @@ def test_a_snapshot_exactly_at_its_window_edges_passes(store, snapshots, alerts)
     assert checked(store, snapshots, alerts, started=(15, 10), finished=(15, 20))[1].ok
 
 
-def test_a_hash_differing_from_the_pack_or_a_snapshot_the_pack_does_not_record_fails(store, snapshots, alerts):
-    _, report = checked(store, snapshots, alerts, sha="0" * 64)
-    assert "differs from the pack's 0000" in report.reason() and report.prices_unverified
-    _, report = checked(store, snapshots, alerts, named="other")
-    assert "does not record snapshot exec" in report.reason()
+def test_a_snapshot_differing_from_its_committed_capture_record_fails(store, snapshots, alerts):
+    write_snapshot(store, "exec", fly_rows(), at(15, 15), at(15, 15, 40))
+    pack, record = pack_of(store, DAY), committed_record(store, DAY, "exec")
+    write_snapshot(store, "exec", fly_rows(bid_qty=999.0), at(15, 15), at(15, 15, 40))  # quotes rewritten afterwards
+    _, report = gate(snapshots, alerts, DAY, ExecutionWindow(record=record)).check(pack, LEGS)
+    assert "exec: quote file hash" in report.reason() and "differs from the record's" in report.reason()
+    assert "E3 record (test)" in report.reason() and report.prices_unverified
+    write_snapshot(store, "exec", fly_rows(), at(15, 15), at(15, 15, 41))  # same quotes, later capture times
+    _, report = gate(snapshots, alerts, DAY, ExecutionWindow(record=record)).check(pack, LEGS)
+    assert "sidecar hash" in report.reason() and "quote file hash" not in report.reason()
+    other = replace(record, snapshot_id="other")
+    assert "snapshot exec differs from the record's other" in gate(
+        snapshots, alerts, DAY, ExecutionWindow(record=other)).check(pack, LEGS)[1].reason()  # fmt: skip
+    _, report = gate(snapshots, alerts, DAY, ExecutionWindow()).check(pack, LEGS)  # nothing records the capture
+    assert "no committed capture record names exec" in report.reason()
 
 
 def test_an_unreadable_or_unnamed_snapshot_fails(store, snapshots, alerts):
     write_snapshot(store, "exec", fly_rows(), at(15, 15), at(15, 15, 40), sha="f" * 64)  # file and sidecar disagree
-    pack = pack_of(store, DAY, sha="f" * 64)
+    pack = pack_of(store, DAY)
     snapshot, report = gate(snapshots, alerts, DAY).check(pack, LEGS)
     assert snapshot is None and "does not match its meta" in report.reason() and report.prices_unverified
 
@@ -76,17 +88,28 @@ def test_spot_must_be_within_2_percent_of_the_previous_close(store, snapshots, a
     _, report = checked(store, snapshots, alerts, spots=(spot,))
     assert report.ok is ok
     if not ok:
-        assert "beyond 2%" in report.reason() and NO_SOURCE in report.reason() and report.prices_unverified
+        assert "beyond 2%" in report.reason() and NO_SOURCE in report.reason()
+        assert not report.prices_unverified  # new trades only: freshness is the window's and record's job (judge 81)
 
 
 def test_a_flagged_shock_allows_a_larger_move(store, snapshots, alerts):
     assert checked(store, snapshots, alerts, spots=(26_000.0,), shocks=Flagged())[1].ok
 
 
-def test_spot_without_a_previous_close_or_with_two_values_fails(store, snapshots, alerts):
+def test_spot_without_a_previous_close_fails(store, snapshots, alerts):
     assert "no official close of the previous session 2026-10-13" in checked(
         store, snapshots, alerts, close=None)[1].reason()  # fmt: skip
-    assert "2 different spot values" in checked(store, snapshots, alerts, spots=(25_000.0, 25_010.0))[1].reason()
+
+
+@pytest.mark.parametrize(("spots", "problem"), [
+    ((25_000.0, 25_012.35), ""),  # two chains' readings seconds apart (+0.05%): a real A4 snapshot (judge 81)
+    ((25_000.0, 25_050.0), ""),  # exactly 0.2%
+    ((25_000.0, 25_100.0), "disagree by more than 0.2%"),  # one chain carries another price (a future's basis)
+    ((25_390.0, 25_420.0), "beyond 2%"),  # they agree (0.12%), but the farther one is +2.09% from 24,900
+])  # fmt: skip
+def test_each_chain_s_spot_is_checked_and_they_must_agree(store, snapshots, alerts, spots, problem):
+    _, report = checked(store, snapshots, alerts, spots=spots)
+    assert report.ok if not problem else problem in report.reason()
 
 
 def test_the_previous_session_s_nse_file_must_be_present_by_the_a7_calendar(store, snapshots, alerts):

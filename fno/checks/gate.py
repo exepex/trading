@@ -13,6 +13,7 @@ from .data_checks import CheckReport, CheckSubject, DataChecks
 from .schedule import ExecutionSchedule
 
 ALERT = "F&O paper desk {day} ({snapshot}): {reason}"
+WAITING_EXITS = "; exits due, waiting for a readable snapshot: {trades}"
 
 
 class DataGate:
@@ -21,8 +22,11 @@ class DataGate:
     ):
         self.checks, self.snapshots, self.schedule, self.alerts = checks, snapshots, schedule, alerts
 
-    def check(self, pack: CommonPack, legs: Sequence[ContractKey] = ()) -> tuple[ExecutionSnapshot | None, CheckReport]:
-        """The day's execution snapshot (None when it cannot be read) and the checks' report on it, for these legs."""
+    def check(self, pack: CommonPack, legs: Sequence[ContractKey] = (),
+              due_exits: Sequence[str] = ()) -> tuple[ExecutionSnapshot | None, CheckReport]:  # fmt: skip
+        """The day's execution snapshot (None when it cannot be read) and the checks' report on it, for these legs.
+        `due_exits` (the exit desk's `due_exits`) are named in the alert when no snapshot can be read: those exits
+        cannot be recorded as pending without one, so the alert is where they show."""
         capture = self.schedule.capture(pack)
         snapshot, unreadable = None, ""
         if capture is not None:
@@ -33,5 +37,6 @@ class DataGate:
         report = self.checks.run(CheckSubject(pack, capture, snapshot, unreadable, tuple(legs)))
         if not report.ok:
             name = capture.snapshot_id if capture else "no capture"
-            self.alerts.send(ALERT.format(day=pack.day, snapshot=name, reason=report.reason()))
+            waiting = WAITING_EXITS.format(trades=", ".join(due_exits)) if snapshot is None and due_exits else ""
+            self.alerts.send(ALERT.format(day=pack.day, snapshot=name, reason=report.reason()) + waiting)
         return snapshot, report

@@ -20,12 +20,25 @@ FAILED = "{check}: {reason}"
 
 
 @dataclass(frozen=True)
+class CaptureRecord:
+    """A committed, hashed record of one quote capture: its ID, the SHA-256 of its quote file and of its sidecar (which
+    holds the capture times), and where the record is committed. The snapshot read for a decision must be this one."""
+
+    snapshot_id: str
+    csv_sha256: str
+    meta_sha256: str
+    source: str
+
+
+@dataclass(frozen=True)
 class ScheduledCapture:
-    """The quote capture a decision executes at, and the window it must be taken in (times IST-aware)."""
+    """The quote capture a decision executes at, the window it must be taken in (times IST-aware), and its committed
+    capture record (None when nothing records it)."""
 
     snapshot_id: str
     start: datetime
     end: datetime
+    record: CaptureRecord | None
 
 
 @dataclass(frozen=True)

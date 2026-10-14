@@ -1,7 +1,8 @@
 """Story C3 criterion 3: with failed data checks, an open trade due to exit is a pending exit with an alert, filled at
 the next valid quotes through E4's exit path; no fill is ever made from stale prices, price rules do not fire on them
-and protection is not judged from them. A missing NSE file stops new trades only: exits still run. Plus the judge's
-check: the committed, deliberately stale snapshot is refused by the real checks."""
+and protection is not judged from them. A missing NSE file, or a big move with no shock flag, stops new trades only:
+exits still run (judge 81). An unreadable snapshot's alert names the exits it holds up. Plus the judge's check: the
+committed, deliberately stale snapshot is refused by the real checks."""
 
 import json
 from datetime import date, timedelta
@@ -42,10 +43,12 @@ def opened(root, store, snapshots, entry_desk):
     assert enter(root, snapshots, entry_desk, fly_order()).outcome == OUTCOME_OPENED
 
 
-def review_at(root, store, snapshots, alerts, exit_desk, clock, day, sid, started, rules, rows=None, nse=None):
+def review_at(root, store, snapshots, alerts, exit_desk, clock, day, sid, started, rules, rows=None, nse=None,
+              spots=None):  # fmt: skip
     write_snapshot(store, sid, rows or fly_rows(), at(*started, day=day), at(*started[:2], 40, day=day), day=day)
     clock.set(at(15, 25, day=day))
-    snapshot, report = gate(snapshots, alerts, day, ExecutionWindow(sid), nse=nse).check(pack_of(store, day, sid))
+    pack = pack_of(store, day, sid, **({"spots": spots} if spots else {}))
+    snapshot, report = gate(snapshots, alerts, day, ExecutionWindow(sid, store), nse=nse).check(pack)
     with open_desk_journal(BOOK1_RULES, root) as journal:
         return exit_desk.review(BOOK1_RULES, snapshot, journal, rules, report), report
 
@@ -82,10 +85,38 @@ def test_a_missing_nse_file_stops_new_trades_but_exits_still_run(root, store, sn
                                  nse=nse_files())  # fmt: skip
     assert not report.ok and not report.prices_unverified and result.outcome == OUTCOME_CLOSED
     order = fly_order("t2", decided_at=at(15, 5, day=NEXT))
-    the_gate = gate(snapshots, alerts, NEXT, ExecutionWindow("next"), nse=nse_files())
+    the_gate = gate(snapshots, alerts, NEXT, ExecutionWindow("next", store), nse=nse_files())
     _, report = the_gate.check(pack_of(store, NEXT, "next"), order.contracts())
     refused = enter(root, snapshots, entry_desk, order, "next", NEXT, checks=report)
     assert refused.outcome == OUTCOME_REFUSED and "previous session 2026-10-14 is not archived" in refused.reason
+
+
+def test_a_3_percent_move_refuses_the_entry_but_the_due_exit_fills(root, store, snapshots, alerts, exit_desk, clock,
+                                                                    entry_desk, opened):  # fmt: skip
+    """Judge 81: a crash or budget day is exactly when exits must run; the spot check stops new trades only."""
+    spots = (24_900 * 1.03,)
+    [result], report = review_at(root, store, snapshots, alerts, exit_desk, clock, NEXT, "next", (15, 15), DUE,
+                                 spots=spots)  # fmt: skip
+    assert "+3.00% from the previous close" in report.reason() and not report.prices_unverified
+    assert result.outcome == OUTCOME_CLOSED and len(closing_fills(root)) == 4
+    order = fly_order("t2", decided_at=at(15, 5, day=NEXT))
+    pack = pack_of(store, NEXT, "next", spots=spots)
+    _, report = gate(snapshots, alerts, NEXT, ExecutionWindow("next", store)).check(pack, order.contracts())
+    refused = enter(root, snapshots, entry_desk, order, "next", NEXT, checks=report)
+    assert refused.outcome == OUTCOME_REFUSED and "beyond 2%" in refused.reason
+
+
+def test_an_unreadable_snapshot_s_alert_names_every_due_exit(root, store, snapshots, alerts, exit_desk, clock, opened):
+    """No desk event can be written without a readable snapshot, so the gate's alert is where held-up exits show."""
+    write_snapshot(store, "next", fly_rows(), at(15, 15, day=NEXT), at(15, 15, 40, day=NEXT), day=NEXT, sha="e" * 64)
+    with open_desk_journal(BOOK1_RULES, root) as journal:
+        due = exit_desk.due_exits(journal, NEXT, DUE)
+        assert exit_desk.due_exits(journal, NEXT, {"t1": [StopLoss(0.0)]}) == []  # a price rule cannot be judged
+    pack = pack_of(store, NEXT, "next")
+    snapshot, report = gate(snapshots, alerts, NEXT, ExecutionWindow("next")).check(pack, due_exits=due)
+    assert snapshot is None and due == ["t1 (time_exit: 2026-10-15 is on or after 2026-10-14 (13 days before expiry "
+                                        "2026-10-27))"]  # fmt: skip
+    assert alerts.sent[-1].endswith(f"exits due, waiting for a readable snapshot: {due[0]}")
 
 
 def test_the_desk_refuses_a_report_on_another_snapshot_or_missing_a_leg(root, store, snapshots, entry_desk,

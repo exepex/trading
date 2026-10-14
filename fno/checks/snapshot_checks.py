@@ -1,10 +1,9 @@
 """The checks on the execution snapshot itself (story C3): it can be read (present, the day's, its file matching the
-hash in its own sidecar), it was captured inside its scheduled window (the capture times in its sidecar), and the pack
-records this very snapshot with the same hash. A failure of any of them makes the snapshot's prices unusable."""
+hash in its own sidecar), it was captured inside its scheduled window (the capture times in its sidecar), and it is
+the capture its committed capture record names (judge 81 ruling 2). A failure of any makes its prices unusable."""
 
 from __future__ import annotations
 
-from ..desk.common_pack import CommonPack
 from .data_checks import CheckSubject, DataCheck
 
 TIME = "%H:%M:%S"
@@ -36,22 +35,26 @@ class SnapshotInWindow(DataCheck):
         ]
 
 
-def pack_hash(pack: CommonPack, snapshot_id: str) -> str | None:
-    """The quote file hash the pack records for this snapshot, or None when the pack names no such snapshot."""
-    found = [p for p in pack.body["provenance"].values() if p.get("snapshot_id") == snapshot_id]
-    return found[0].get("csv_sha256") if found else None
+class SnapshotMatchesRecord(DataCheck):
+    """The snapshot read is the one its committed capture record names: same ID, quote file and sidecar (so the same
+    capture times). A file swapped or rewritten after the record was committed is refused."""
 
-
-class SnapshotMatchesPack(DataCheck):
-    name, prices_unverified = "snapshot hash", True
+    name, prices_unverified = "capture record", True
 
     def problems(self, subject: CheckSubject) -> list[str]:
-        snapshot = subject.snapshot
-        if snapshot is None:
+        snapshot, capture = subject.snapshot, subject.capture
+        if snapshot is None or capture is None:
             return []
-        recorded = pack_hash(subject.pack, snapshot.snapshot_id)
-        if recorded is None:
-            return [f"the common pack of {subject.day} does not record snapshot {snapshot.snapshot_id}"]
-        if recorded != snapshot.sha256:
-            return [f"{snapshot.snapshot_id}: quote file hash {snapshot.sha256} differs from the pack's {recorded}"]
-        return []
+        record = capture.record
+        if record is None:
+            return [f"no committed capture record names {snapshot.snapshot_id}"]
+        found = [
+            f"{what} {mine} differs from the record's {theirs} ({record.source})"
+            for what, mine, theirs in (
+                ("snapshot", snapshot.snapshot_id, record.snapshot_id),
+                ("quote file hash", snapshot.sha256, record.csv_sha256),
+                ("sidecar hash", snapshot.meta_sha256, record.meta_sha256),
+            )
+            if mine != theirs
+        ]
+        return [f"{snapshot.snapshot_id}: " + "; ".join(found)] if found else []

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from ..alerts.sender import AlertSender
 from ..books.equity import trade_positions
@@ -111,13 +112,22 @@ class ExitDesk:
         exit due, and a due exit is pending, with an alert, until the next valid quotes."""
         if rules is None and not position.exit_reason:
             return self._alert(book, position.trade_id, HELD, NO_RULES)
-        reason = position.exit_reason or _reached(rules, position, ExitContext(snapshot.day, None))
+        reason = _due_without_prices(position, snapshot.day, rules)
         if not reason:
             return ExitResult(position.trade_id, HELD, checks.price_reason())
         if not position.exit_reason:
             self._event(book, position, snapshot, journal, OUTCOME_EXIT_ORDERED, reason)
         waiting = f"{checks.price_reason()} (retried at the next valid quotes)"
         return self._event(book, position, snapshot, journal, OUTCOME_PENDING_EXIT, waiting, snapshot.snapshot_id)
+
+    @staticmethod
+    def due_exits(journal: DeskJournal, day: date, rules: Mapping[str, Sequence[ExitRule]]) -> list[str]:
+        """Open trades whose exit is due on `day` without any price (ordered, or the time rule), each with why: what
+        the data gate names when no snapshot can be read (C3)."""
+        due = [
+            (p.trade_id, _due_without_prices(p, day, rules.get(p.trade_id))) for p in open_positions(journal.records)
+        ]
+        return [f"{trade_id} ({reason})" for trade_id, reason in due if reason]
 
     def _close(self, book, position: OpenPosition, snapshot, journal: DeskJournal, maker: FillMaker) -> ExitResult:
         closing, pending = closing_quotes(snapshot, position.holdings)
@@ -182,3 +192,8 @@ class ExitDesk:
 def _reached(rules: Sequence[ExitRule], position: OpenPosition, context: ExitContext) -> str:
     """The first exit rule reached now, or empty."""
     return next((r for r in (rule.reached(position, context) for rule in rules) if r), "")
+
+
+def _due_without_prices(position: OpenPosition, day: date, rules: Sequence[ExitRule] | None) -> str:
+    """Why the exit is due with no price known: an exit already ordered, or a rule needing no price (the time rule)."""
+    return position.exit_reason or _reached(rules or (), position, ExitContext(day, None))

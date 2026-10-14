@@ -11,7 +11,7 @@ from .leg_checks import LegQuotesValid
 from .market_checks import PreviousSessionFile, SpotNearPreviousClose
 from .schedule import ExecutionSchedule, PackSnapshotSchedule
 from .shock import NoShockFlags
-from .snapshot_checks import SnapshotInWindow, SnapshotMatchesPack, SnapshotReadable
+from .snapshot_checks import SnapshotInWindow, SnapshotMatchesRecord, SnapshotReadable
 
 
 def build_data_checks(stores, calendar, shocks=None) -> DataChecks:
@@ -21,7 +21,7 @@ def build_data_checks(stores, calendar, shocks=None) -> DataChecks:
         (
             SnapshotReadable(),
             SnapshotInWindow(),
-            SnapshotMatchesPack(),
+            SnapshotMatchesRecord(),
             SpotNearPreviousClose(calendar, shocks or NoShockFlags()),
             LegQuotesValid(),
             PreviousSessionFile(stores, NseDailyFoSource, calendar),

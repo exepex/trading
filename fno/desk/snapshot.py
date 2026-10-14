@@ -68,6 +68,7 @@ class ExecutionSnapshot:
     day: date
     snapshot_id: str
     sha256: str  # of the quote file, as the recorder wrote it
+    meta_sha256: str  # of its sidecar (capture times, completeness), as read
     started_at: datetime  # time zone aware
     finished_at: datetime  # time zone aware: when the last quote of the capture arrived
     complete: bool  # A4: every expected contract recorded, no failure
@@ -119,7 +120,8 @@ def parse_execution_snapshot(day: date, snapshot_id: str, csv_bytes: bytes, meta
         if key in quotes:
             raise SnapshotError(f"{snapshot_id}: {key} recorded twice")
         quotes[key] = quote
-    return ExecutionSnapshot(day, snapshot_id, digest, started, finished, bool(meta.get("complete")), quotes)
+    sidecar = hashlib.sha256(meta_bytes).hexdigest()
+    return ExecutionSnapshot(day, snapshot_id, digest, sidecar, started, finished, bool(meta.get("complete")), quotes)
 
 
 class ExecutionSnapshotSource(ABC):
