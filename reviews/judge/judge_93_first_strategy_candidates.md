@@ -96,3 +96,18 @@ Still open, inherited from response 77: the 5.6% exposure gap against Zerodha. I
 figure here, and the response says so.
 
 **Verdict: PASS for 8737596.** Merge it. After the merge I check `main` and CI.
+
+## Addendum 3 (14 Oct 2026): c3a2569, the tip to merge (docs and script only, on top of 8737596)
+
+- **Scan ceiling.** The put spread's scan ceiling is now its full loss: width 150 x 65 + NOV (−1,761.50) = 7,988.50.
+  That is correct. A defined-risk vertical cannot lose more than its width minus its current value, so no SPAN scenario
+  exceeds it. At k 1.45 the stressed margin is 41,122 and the funds at entry are 52,192. The ranges are now about
+  33,400-41,100 and 44,500-52,200, labelled as estimates, with the exact figure deferred to A14's calculator.
+- **B0's put half.** It is now labelled "an indication only, not a test". The text gives both reasons: the strikes and
+  width differ from the candidate, and 6-12 trades cannot tell Rs 410 from zero. It requires per-leg fills. This
+  matches addendum 1.
+- **Reproduction.** `analysis.py` output is byte-identical to `output.txt`, and `ruff check` and `ruff format --check`
+  are clean. Nothing outside the research script, its output and response 92 changed after 8737596, which addendum 2
+  ran in the full suite.
+
+**Verdict: PASS for c3a2569.** Merge exactly that. After the merge I check `main`.
