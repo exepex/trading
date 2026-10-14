@@ -194,3 +194,31 @@ That is one small round. I will check only that.
 - No other code has reached `main` since.
 - My full suite at 79c8fac: 2,628 passed.
 - CI `checks` is green on 79c8fac (run 38523328037).
+
+## Addendum 4 (should-fixes, branch `story/e3-gate-tests` ec9be1c, tests only): PASS
+
+Both judge 82 addendum 2 should-fixes are met. No `fno/` file changes. The shared fixture moved to
+`tests/timetable/c4_records.py`.
+- **Wiring test:** `build_daily_run` must hold `RecordedC4Pass`.
+- **C4's real format:** `ValidityReport.record()` is written through D3's own store and read by the gate.
+  - The app writes exactly that object: `decision_record.py` stores `c4.record`, which `validity_adapter.py` builds
+    from `report.record()`.
+  - A passed report fills, a failed one names its failed check, and an empty report is not a completed pass.
+
+**My plants (3), against the two new tests only:**
+
+| Plant | Result |
+|---|---|
+| An always-pass gate wired in `daily_wiring.py` | caught |
+| `c4["ok"]` ignored | caught |
+| An empty `checks` list accepted | caught |
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,782 passed;
+- ruff, format (620 files) and imports (627): clean;
+- `git merge-tree` with current `main` (d3668fc): clean.
+
+The builder's merge-order note is right. E5 removes `CommittedDecision.orders`, which this fixture still passes.
+Whichever merges second must update the fixture and run the full suite on the merged tree.
+
+**Verdict: PASS.** After the merge I check `main` against ec9be1c and CI.
