@@ -142,6 +142,29 @@ BASELINE_RISK_NEUTRAL, BASELINE_BASE_RATE, BASELINE_MODEL = (
 )
 FORECASTERS = BOOKS + (BASELINE_RISK_NEUTRAL, BASELINE_BASE_RATE, BASELINE_MODEL)
 
+# Forecast protocol v4 (story G6, research/forecasts/PROTOCOL_v4.md): the movement-size questions, their forecaster
+# slots and baselines. V6 is two targets (one session, five sessions).
+V1_RV_1S, V2_RV_5S, V3_RV_20S = "v1_rv_next_session", "v2_rv_next_5_sessions", "v3_rv_next_20_sessions"
+V4_RV_BELOW_WEEKLY_IV = "v4_rv5_below_weekly_atm_iv"  # probabilistic diagnostic
+V5_INSIDE_STRADDLE = "v5_close_inside_k_plus_minus_p"  # terminal intrinsic-payoff proxy
+V6_BIG_MOVE_1S, V6_BIG_MOVE_5S = "v6_abs_move_2pct_next_session", "v6_abs_move_2pct_within_5_sessions"
+V7_VIX_UP_5S = "v7_vix_higher_in_5_sessions"
+V4_QUESTIONS = (
+    V1_RV_1S, V2_RV_5S, V3_RV_20S, V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S,
+    V7_VIX_UP_5S,
+)  # fmt: skip
+V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI = "rules", "hybrid", "ai_team"  # one registered forecaster per slot
+V4_SLOTS = (V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI)
+V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY = "har_daily", "har_intraday"
+V4_BASELINE_TRAILING, V4_BASELINE_EWMA = "trailing", "ewma_094"
+V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED = "raw_implied", "premium_adjusted_implied"
+V4_BASELINE_OPTION_IMPLIED_PROB, V4_BASELINE_BASE_RATE = "option_implied_probability", "base_rate"
+V4_CLAIM, V4_TOO_SMALL, V4_FUTILE, V4_OPEN = "claim", "real_but_too_small", "futile", "open"  # a member's verdict
+STOP_YES, STOP_NO, STOP_UNDECIDED = "yes", "no", "undecided"  # design v2 section 8.2, tests A and B
+STOP_NO_ECONOMIC_TEST = "undecided/no_economic_test"  # Test B with zero counted shadows
+STOP_OR_PIVOT, CONTINUE_HALF_AI_BUDGET, CONTINUE = "stop_or_pivot", "continue_6_months_half_ai_budget", "continue"
+UNDECIDED_OPTION_1, UNDECIDED_OPTION_2 = "option_1_continue_to_settle_date", "option_2_code_only"
+
 # Company filings archive (story A12, fno/filings/): the filing types archived, and where NSE serves their files
 FILING_RESULTS, FILING_SHAREHOLDING = "results-xbrl", "shareholding-xbrl"  # one XBRL file per filing
 FILING_ANNOUNCEMENTS, FILING_BOARD_MEETINGS = "announcements", "board-meetings"  # one all-company list per day

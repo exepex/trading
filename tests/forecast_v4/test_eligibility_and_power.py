@@ -1,0 +1,80 @@
+"""Story G6: baseline eligibility (the predeclared primaries, V1's one-way HAR switch, never a stand-in) and the
+60-outcome power report against design v2 section 5.5's arithmetic."""
+
+from __future__ import annotations
+
+import pytest
+
+from fno.constants import (
+    V1_RV_1S,
+    V2_RV_5S,
+    V3_RV_20S,
+    V4_BASELINE_BASE_RATE,
+    V4_BASELINE_HAR_DAILY,
+    V4_BASELINE_HAR_INTRADAY,
+    V4_BASELINE_OPTION_IMPLIED_PROB,
+    V4_BASELINE_PREMIUM_ADJUSTED,
+    V4_BASELINE_RAW_IMPLIED,
+    V5_INSIDE_STRADDLE,
+    V6_BIG_MOVE_1S,
+    V6_BIG_MOVE_5S,
+)
+from fno.forecast_v4.eligibility import primary_baseline
+from fno.forecast_v4.power import power_report, required_outcomes
+from fno.forecast_v4.terms import (
+    FAMILY_SIZE,
+    LOOK_ERROR_RATE,
+    LOOK_SETTLE_DATE,
+    LOOK_STOP_REVIEW,
+    PRIMARY_BASELINE,
+)
+
+ALL = {
+    V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY, V4_BASELINE_PREMIUM_ADJUSTED, V4_BASELINE_RAW_IMPLIED,
+    V4_BASELINE_OPTION_IMPLIED_PROB, V4_BASELINE_BASE_RATE,
+}  # fmt: skip
+
+
+def test_primary_baselines_are_the_predeclared_ones():
+    assert PRIMARY_BASELINE[V2_RV_5S] == PRIMARY_BASELINE[V3_RV_20S] == V4_BASELINE_PREMIUM_ADJUSTED
+    assert PRIMARY_BASELINE[V5_INSIDE_STRADDLE] == V4_BASELINE_OPTION_IMPLIED_PROB
+    assert primary_baseline(V2_RV_5S, ALL, False) == V4_BASELINE_PREMIUM_ADJUSTED
+
+
+def test_an_ineligible_primary_leaves_the_pair_missing_never_filled_by_another_baseline():
+    assert primary_baseline(V2_RV_5S, ALL - {V4_BASELINE_PREMIUM_ADJUSTED}, False) is None
+    assert primary_baseline(V5_INSIDE_STRADDLE, {V4_BASELINE_BASE_RATE}, False) is None
+
+
+def test_v1_uses_daily_har_until_intraday_har_is_eligible_and_never_switches_back():
+    assert primary_baseline(V1_RV_1S, {V4_BASELINE_HAR_DAILY}, False) == V4_BASELINE_HAR_DAILY
+    assert primary_baseline(V1_RV_1S, {V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY}, False) == (
+        V4_BASELINE_HAR_INTRADAY
+    )
+    assert primary_baseline(V1_RV_1S, {V4_BASELINE_HAR_DAILY}, True) is None  # intraday went missing: no stand-in
+    assert primary_baseline(V1_RV_1S, set(), False) is None
+
+
+@pytest.mark.parametrize(("r", "n"), [(3, 114), (5, 316), (10, 1_264)])
+def test_design_table_is_reproduced_at_five_percent_over_fifteen(r, n):
+    assert required_outcomes(r, 0.05, m=15) == n
+
+
+@pytest.mark.parametrize(("look", "r", "n"), [(LOOK_STOP_REVIEW, 3, 134), (LOOK_SETTLE_DATE, 3, 125)])
+def test_registered_looks_need_more_outcomes_than_a_single_five_percent_look(look, r, n):
+    assert FAMILY_SIZE == 15
+    assert required_outcomes(r, LOOK_ERROR_RATE[look]) == n
+
+
+def test_the_power_report_waits_for_sixty_outcomes():
+    with pytest.raises(ValueError, match="60 scored outcomes"):
+        power_report(V6_BIG_MOVE_1S, [0.01, -0.01] * 29, 0.04, 0.02)
+
+
+def test_power_report_measures_r_and_projects_the_remaining_years_honestly():
+    differences = [0.0024, -0.0024] * 30  # SD 0.0024203; effect 0.02 x 0.04 = 0.0008: r = 3.0253
+    daily = power_report(V6_BIG_MOVE_1S, differences, 0.04, 0.02)
+    assert daily.r == pytest.approx(3.0253, abs=1e-4) and daily.n_required == 127
+    assert daily.years_remaining == pytest.approx((127 - 60) / 252) and daily.useful
+    five = power_report(V6_BIG_MOVE_5S, differences, 0.04, 0.02)
+    assert five.years_remaining == pytest.approx((127 - 12) / 50.4) and not five.useful  # 60 overlapping = 12
