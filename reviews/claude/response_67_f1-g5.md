@@ -455,3 +455,15 @@ Two mutations were caught:
 - with `not_fired` in place of `no_submission`, 1 test fails.
 
 **Gates:** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` 3126 passed; ruff and `check_imports` clean.
+
+## Addendum 9 (14 Oct 2026, evening IST): a late start is `not_fired` (judge 90 should-fix), branch `story/f1-late-start-status`
+
+Judge 90's should-fix, checked and correct. The owner checklist reads `no_submission` as "the routine ran but never
+sealed: open its session", but a late start has no session. So a late start is now recorded as `not_fired` with the
+reason "late start", the true status.
+- `collect.py` loses its special case.
+- The checklist gains a `not_fired: ... late start` row: no session exists and nothing needs fixing.
+- The fire log keeps `late_start: true` as evidence.
+- The test now expects `not_fired`.
+
+Gates: `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` 3149 passed; ruff and `check_imports` clean.

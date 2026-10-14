@@ -52,7 +52,7 @@ class AiBookFirer:
         return [LINE.format(day=day, result=f"fired {', '.join(fired) or 'none'} of {', '.join(AI_BOOKS)}")]
 
     def _late_start(self, day: date, book: str) -> dict:
-        """Not fired: its answer could only be late (the collection records `no_submission`, reason late start)."""
+        """Not fired: its answer could only be late (the collection records `not_fired`, reason late start)."""
         entry = {"version": current_version(book).label, "fired_at": self.clock().isoformat()}
         return entry | {"fired": False, "late_start": True, "reason": LATE_START.format(latest=LATEST_START)}
 
