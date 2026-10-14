@@ -38,8 +38,8 @@ funding:
   date: 2026-10-14
 exits:
   time: the last trading day with 21 or more calendar days to expiry, at 15:00
-  profit: none (held to the time exit)
-  loss: none beyond the bought wings (maximum loss capped at entry)
+  profit: none  # held to the time exit
+  loss: none  # nothing beyond the bought wings: the maximum loss is capped at entry
   event: none
 evaluation_plan:
   expected_range:

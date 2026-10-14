@@ -7,10 +7,9 @@ from datetime import date, datetime
 
 import pytest
 
-from fno.books.book1_exits import PlaybookExitRules
 from fno.books.book1_inputs import InputsRefused, LiveBook1Inputs
 from fno.books.book1_market import NoMarket, market_from_snapshot
-from fno.books.book1_orders import recorded_terms
+from fno.books.book1_records import recorded_terms
 from fno.constants import BOOK1_RULES
 from fno.desk.common_pack import SNAPSHOT_INPUT, CommonPack
 from fno.desk.pack_store import PackStore
@@ -88,8 +87,12 @@ def test_the_trade_terms_of_book1_s_trades_come_from_its_committed_records(tmp_p
     run = DecisionStore(tmp_path, BOOK1_RULES).day_folder(DAY) / "2026-10-13-r1"
     run.mkdir(parents=True)
     trade = {"trade_id": "t1", "structure": "SC", "width": 200, "lots": 1}
-    (run / "a.json").write_text(json.dumps({"chosen_action": "trade", "structure": trade}))
-    (run / "b.json").write_text(json.dumps({"chosen_action": "no trade", "structure": {**trade, "trade_id": "t2"}}))
+    opportunity = "sc-a-v1:2026-11-24"
+    (run / "a.json").write_text(
+        json.dumps({"chosen_action": "trade", "structure": trade, "opportunity_id": opportunity})
+    )
+    no_trade = {"chosen_action": "no trade", "structure": {**trade, "trade_id": "t2"}, "opportunity_id": opportunity}
+    (run / "b.json").write_text(json.dumps(no_trade))
     assert recorded_terms(tmp_path, BOOK1_RULES) == {"t1": TradeTerms("SC", 200, 1)}
 
 
@@ -109,62 +112,3 @@ def test_the_time_exit_fires_on_its_day_and_not_before():
     rule = ExitOnDay(date(2026, 11, 3), "sc-a-v1 time exit")
     assert rule.reached(None, ExitContext(date(2026, 11, 2), None)) == ""
     assert rule.reached(None, ExitContext(date(2026, 11, 3), None)).startswith("time_exit: 2026-11-03 is on or after")
-
-
-def test_book1_s_exit_rules_use_d2_s_exit_day_and_refuse_text_exits(monkeypatch):
-    from fno.books import book1_exits
-    from fno.desk.exit_rules import ExitContext
-    from fno.desk.pricing import DeskLeg
-    from fno.desk.status import OpenPosition
-    from fno.playbook.loader import Playbook
-    from fno.research_engine.structures import BOUGHT, Leg
-
-    position = OpenPosition("t1", "sc-a-v1", "d1", ((DeskLeg("N", EXPIRY, Leg(25_000, "CE", BOUGHT)), 65),), 0.0,
-                            datetime(2026, 10, 13, 15, 15), "exec", "", ())  # fmt: skip
-    monkeypatch.setattr(book1_exits, "open_positions", lambda records: [position])
-    finder = OpportunityFinder(TradingDays(CALENDAR))
-
-    class Loader:
-        def __init__(self, *docs):
-            self.docs = docs
-
-        def load(self):
-            return Playbook(tuple(parse_strategy(d) for d in self.docs))
-
-    [rule] = PlaybookExitRules(Loader(book1_doc()).load, finder, lambda book: None, Alerts()).rules(BOOK1_RULES)["t1"]
-    assert rule.exit_day == finder.exit_day(parse_strategy(book1_doc()), EXPIRY) == date(2026, 11, 3)
-    assert rule.reached(position, ExitContext(date(2026, 11, 3), None))
-    texted, alerts = doc("sc-a", exits={**EXITS, "profit": "take 50% of the credit"}), Alerts()
-    [kept] = PlaybookExitRules(Loader(texted).load, finder, lambda book: None, alerts).rules(BOOK1_RULES)["t1"]
-    assert kept.exit_day == rule.exit_day  # judge 84: the time exit still runs, never an exception for the run
-    assert len(alerts.sent) == 1 and "profit: take 50% of the credit" in alerts.sent[0]
-
-
-class Alerts:
-    def __init__(self):
-        self.sent = []
-
-    def send(self, text):
-        self.sent.append(text)
-        return "sent"
-
-
-def test_one_trade_s_unreadable_version_never_costs_another_trade_its_exit(monkeypatch):
-    """Judge 84 ruling (1): per trade, not per book."""
-    from fno.books import book1_exits
-    from fno.desk.pricing import DeskLeg
-    from fno.desk.status import OpenPosition
-    from fno.playbook.loader import Playbook
-    from fno.research_engine.structures import BOUGHT, Leg
-
-    def position(trade, version):
-        legs = ((DeskLeg("N", EXPIRY, Leg(25_000, "CE", BOUGHT)), 65),)
-        return OpenPosition(trade, version, "d", legs, 0.0, datetime(2026, 10, 13, 15, 15), "exec", "", ())
-
-    monkeypatch.setattr(book1_exits, "open_positions", lambda r: [position("t1", "gone-v1"), position("t2", "sc-a-v1")])
-    alerts = Alerts()
-    finder = OpportunityFinder(TradingDays(CALENDAR))
-    rules = PlaybookExitRules(lambda: Playbook((parse_strategy(book1_doc()),)), finder, lambda b: None, alerts)
-    found = rules.rules(BOOK1_RULES)
-    assert list(found) == ["t2"] and found["t2"][0].exit_day == date(2026, 11, 3)
-    assert len(alerts.sent) == 1 and "t1: its playbook version cannot be read" in alerts.sent[0]

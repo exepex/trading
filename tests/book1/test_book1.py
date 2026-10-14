@@ -96,3 +96,34 @@ def test_a_version_approved_today_trades_from_the_next_session_so_today_has_no_a
     decider, _ = book1(tmp_path, today, clock_at(FIFTEEN(DAYS[0])))
     decider.decide(DAYS[0])
     assert (DecisionStore(tmp_path, BOOK1_RULES).day_folder(DAYS[0]) / "no_approved_strategy.json").is_file()
+
+
+class Validator:
+    """C4's place in the decision run (D3's `validate_chosen`): a fixed pass or fail with its checks."""
+
+    def __init__(self, ok):
+        self.ok = ok
+
+    def validate(self, day, outcome, market, playbook, book, passed):
+        from fno.playbook.decision_validity import ValidityResult
+
+        check = {"check": "max_loss", "ok": self.ok, "reason": "" if self.ok else "Rs 1 off", "numbers": {}}
+        return ValidityResult(self.ok, {"mode": "playbook", "ok": self.ok, "checks": [check]}, "" if self.ok else "x")
+
+
+@pytest.mark.parametrize("ok", [True, False])
+def test_orders_replay_with_c4_s_validator_and_never_order_a_c4_blocked_choice(tmp_path, ok):
+    """With C4 merged, each record carries its C4 result: the order replay must run the same validator (else every
+    run differs and nothing is ordered), and a choice C4 blocked ("no trade") is never ordered."""
+    from fno.books.book1_orders import ReplayedOrders
+    from fno.desk.daily_ports import OrdersRefused
+
+    from .builders import priced_evaluator
+
+    decider, _ = book1(tmp_path, snapshot(doc("sc-a")), clock_at(FIFTEEN(DAYS[0])), validator=Validator(ok))
+    decider.decide(DAYS[0])
+    [run] = DecisionStore(tmp_path, BOOK1_RULES).runs(DAYS[0])
+    with_c4 = ReplayedOrders(priced_evaluator(), SAME_CODE, Validator(ok)).orders(BOOK1_RULES, run, FIFTEEN(DAYS[0]))
+    assert bool(with_c4) is ok  # a C4 failure leaves the record "no trade": nothing to order
+    with pytest.raises(OrdersRefused, match="does not replay"):
+        ReplayedOrders(priced_evaluator(), SAME_CODE).orders(BOOK1_RULES, run, FIFTEEN(DAYS[0]))

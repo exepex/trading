@@ -13,7 +13,8 @@ from ..config import ROOT
 from ..constants import BOOK1_RULES
 from .book1 import Book1
 from .book1_exits import PlaybookExitRules
-from .book1_orders import ReplayedOrders, recorded_terms
+from .book1_orders import ReplayedOrders
+from .book1_records import recorded_terms
 
 
 def build_book1(cfg: dict, root: Path = ROOT) -> Book1:
@@ -32,22 +33,31 @@ def build_book1(cfg: dict, root: Path = ROOT) -> Book1:
 
 
 def build_book1_orders(cfg: dict, root: Path = ROOT) -> ReplayedOrders:
+    """D2's evaluator and C4's validator as Book 1's decision run used them, so the replay reproduces every record."""
+    from ..checks.wiring import build_trade_validator
     from ..playbook.wiring import build_code_tree, build_rule_evaluator
 
-    return ReplayedOrders(build_rule_evaluator(cfg, root), build_code_tree(root))
+    validator = build_trade_validator(cfg, BOOK1_RULES, root)
+    return ReplayedOrders(build_rule_evaluator(cfg, root), build_code_tree(root), validator)
 
 
 def build_book1_exit_rules(root: Path = ROOT) -> PlaybookExitRules:
-    """The playbook files as committed, without D1's approval checks: a refused playbook never halts exits."""
+    """Exits fixed at each decision (the committed runs); today's version files only feed the alerts."""
     from ..books.account import PaperAccount
     from ..composition import build_alert_sender, build_session_calendar
+    from ..constants import PLAYBOOK_FOLDER
     from ..desk.records import DeskRecords
     from ..playbook.opportunities import OpportunityFinder
-    from ..playbook.wiring import snapshot_playbook
     from ..research_engine.cycles import TradingDays
+    from .book1_records import decided_exit_days
 
     finder = OpportunityFinder(TradingDays(build_session_calendar()))
-    return PlaybookExitRules(lambda: snapshot_playbook(root).playbook(), finder,
+
+    def version_text(version: str) -> str | None:
+        path = root / PLAYBOOK_FOLDER / f"{version}.yaml"
+        return path.read_text(encoding="utf-8") if path.is_file() else None
+
+    return PlaybookExitRules(lambda book: decided_exit_days(root, book, finder), version_text,
                              lambda book: DeskRecords(PaperAccount(root, book)), build_alert_sender())  # fmt: skip
 
 

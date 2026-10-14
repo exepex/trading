@@ -10,6 +10,7 @@ import pytest
 from fno.books.account import PaperAccount
 from fno.books.book1_exits import PlaybookExitRules
 from fno.books.book1_orders import ReplayedOrders
+from fno.books.book1_records import decided_exit_days
 from fno.checks.gate import DataGate
 from fno.checks.wiring import build_data_checks
 from fno.composition import open_account_writer
@@ -89,7 +90,9 @@ def run_days(root, tmp_path, alerts, c4, monkeypatch, version=None, code=SAME_CO
     gate = DataGate(build_data_checks([nse_files(*CALENDAR.sessions(date(2026, 10, 1), date(2026, 10, 31)))],
                                       CALENDAR), RecordedExecutionSnapshots(quotes),
                     CommittedExecutionSchedule(root, TIMETABLE), alerts)  # fmt: skip
-    exits = PlaybookExitRules(playbook.playbook, OpportunityFinder(TradingDays(CALENDAR)),
+    finder = OpportunityFinder(TradingDays(CALENDAR))
+    exits = PlaybookExitRules(lambda book: decided_exit_days(root, book, finder),
+                              lambda version: playbook.files.get(f"{version}.yaml"),
                               lambda book: DeskRecords(PaperAccount(root, book)), alerts)  # fmt: skip
     steps = DeskSteps(root, (BOOK1_RULES,), TIMETABLE, Versions(), FakePacks(),
                       D3CommittedDecisions(root, git), ReplayedOrders(priced_evaluator(), code),

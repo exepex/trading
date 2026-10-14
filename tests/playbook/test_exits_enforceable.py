@@ -27,3 +27,19 @@ def test_only_the_text_exits_that_say_none_are_enforceable():
     texts = {**STOP, "profit": "take 50%", "event": "exit before the RBI policy"}
     assert unenforceable_exits(parse_strategy(document(exits=texts))) == [
         "profit: take 50%", "loss: stop at 2x credit", "event: exit before the RBI policy"]  # fmt: skip
+
+
+def test_none_is_the_whole_value_never_a_prefix():
+    """Judge 84: each of these states a stop that nobody would enforce."""
+    for text in ("none until day 10, then stop at 2x credit", "none; stop at 2x credit", "None (but stop at 2x)"):
+        assert unenforceable_exits(parse_strategy(document(exits={**STOP, "loss": text}))) == [f"loss: {text}"]
+    for text in ("none", " None ", "NONE"):
+        assert unenforceable_exits(parse_strategy(document(exits={**STOP, "loss": text}))) == []
+
+
+def test_the_repository_s_example_version_states_only_enforceable_exits():
+    from fno.config import ROOT
+    from fno.playbook.documents import strategy_from_text
+
+    path = ROOT / "playbook" / "example-sc-iv-rich-no-event-v1.yaml"
+    assert unenforceable_exits(strategy_from_text(path.read_text(encoding="utf-8"), path.name)) == []

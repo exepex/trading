@@ -127,6 +127,50 @@ Mutations (`python -B`, caches cleared): **27 of 27 caught**, including the judg
   exits that day.
 - Test added; its plant is caught.
 
+## Addendum 2: judge 84 addenda 1 and 2, fixed (replaces 8423594's per-trade approach)
+
+Both must-fixes were checked against the code and are right:
+- `startswith("none")` let "none until day 10, then stop at 2x credit" through;
+- exits re-read today's playbook files, so a broken unrelated draft halted them all, and 8423594 left an unreadable
+  version's trade with no exit at all.
+
+- **A) "none" is the whole value.** `unenforceable_exits` now accepts only exactly "none" (trimmed, any case).
+  - The repository's example version now reads `none` with the notes as YAML comments. Comments do not change the
+    fingerprint, and the file is unregistered.
+  - The fixtures say "none".
+  - Tests: "none until…", "none; stop at…" and "None (but stop at 2x)" are each refused; "none", " None " and "NONE"
+    pass; the example version passes.
+- **B) The time exit is fixed at the decision** (`fno/books/book1_records.py`).
+  - Each chosen trade's exit day is computed from its committed run: the version file as the run read it
+    (`inputs.json`), and the expiry from the opportunity ID, through D2's `OpportunityFinder.exit_day`.
+  - `PlaybookExitRules` takes its rule only from there. Today's version file (that one file only) is read just for the
+    per-trade alert, when it is unreadable or states an unenforceable exit. A trade with no committed record is left to
+    E4's hold, with an alert.
+  - Tests:
+    - the exit is the decided one;
+    - an unreadable, empty or deleted version file, and an edit that would move the exit, leave it unchanged and alert;
+    - today's file stating a stop alerts while the decided exit runs;
+    - through the real wiring, an unrelated broken draft leaves the exit applied;
+    - no record means no rule and an alert.
+- **Found while merging C4 (not in the judge's list): the order replay now runs C4's validator.**
+  - With C4 merged, every record holds its C4 result, so `ReplayedOrders` without the validator would find every run
+    "does not replay". In the real wiring, no Book 1 order could ever have filled.
+  - `build_book1_orders` now passes `build_trade_validator(cfg, book1_rules, root)`, the same one D3's decision run
+    uses.
+  - Orders are made only for opportunities whose committed record says "trade", so a choice C4 blocked is never
+    ordered.
+  - Tests: with C4 passing, orders are made; with C4 failing, none; without the validator, the run is refused.
+- **Merged `main` (dafbebe, C4) into the branch.** In `CLAUDE.md`, both roots are kept.
+
+Mutations (`python -B`, caches cleared): **31 of 31 caught**. The new plants:
+- "none" as a prefix;
+- the exit taken at expiry instead of the decided day;
+- untraded records counted;
+- no alert from today's file;
+- no alert without a record;
+- the C4 validator not replayed;
+- a C4-blocked choice ordered.
+
 ## 4. Gates
 
 Full suite, `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py` and the 350-line limit: the

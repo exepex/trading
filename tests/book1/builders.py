@@ -63,9 +63,9 @@ class Commits(Committer):
         return f"origin-{len(self.made)}"
 
 
-def book1(root, playbook, clock, inputs=None) -> tuple[Book1, Commits]:
+def book1(root, playbook, clock, inputs=None, validator=None) -> tuple[Book1, Commits]:
     commits = Commits(clock)
-    run = DecisionRun(priced_evaluator(), DecisionStore(root, BOOK1_RULES))
+    run = DecisionRun(priced_evaluator(), DecisionStore(root, BOOK1_RULES), validator)
     return Book1(root, CALENDAR, lambda: playbook, inputs or FixedInputs(), run, commits), commits
 
 
@@ -79,11 +79,11 @@ def clock_at(moment: datetime):
     return clock
 
 
-EXITS = {"time": "21 days to expiry", "profit": "none", "loss": "none beyond the bought wings", "event": "none"}
+EXITS = {"time": "21 days to expiry", "profit": "none", "loss": "none", "event": "none"}
 
 
 def book1_doc(name: str = "sc-a", **changes) -> dict:
     """A paper version whose exits code can apply: the time exit only (the others "none")."""
     from tests.decisions.builders import doc
 
-    return doc(name, exits=EXITS, **changes)
+    return doc(name, **{"exits": EXITS, **changes})
