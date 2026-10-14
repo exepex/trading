@@ -1,0 +1,3 @@
+publication_id,page_key,dataset,copies,newest_filed_on,copies_sha256
+nse-2026-10-13-c3b50f940a73,flows,nsdl/fpi/fpi-daily-by-session,1,2026-10-13,3840ccca25f96228fe38fd2ccdf0daeb1394537e4bac78798b37f3bcb56dfe89
+nse-2026-10-13-c3b50f940a73,flows,nse/flows/fii-dii-cash-by-session,1,2026-10-13,c253e74fa4002768dc44bb806b41752f879af4a0439de020ca7777b6bf5c2536
