@@ -103,3 +103,47 @@ Wiring on the real repository: `test_pack_wiring.py`. `tests/packs`: 26 tests.
 6. **Judge's note on the real `ShadowBooks`** (D2): it is not built in E2. Whoever builds it (E5) must prove the shadow
    account writes only inside its declared folder. I have noted this for that story.
 7. Not a pack field: closes use `fno/forecast/closes_source.py` (frozen G1 code, imported, not changed).
+
+## Addendum 1 (14 Oct 2026): judge 72's findings, all accepted and fixed
+
+The judge's 14 plants found 9 gaps in my tests; the code was right in each place, the tests did not guard it.
+
+1. **Must-fix 1, opportunity-set status (criterion 5).**
+   `test_only_versions_paper_at_the_start_of_the_day_are_offered` has four versions:
+   - a registered research version;
+   - a version approved and then paused before the day;
+   - a version approved on the day;
+   - a version approved before the day.
+   Only the last is offered, plus `no_trade`. Plants P6 (earliest row wins) and P14 (status ignored) now fail it.
+2. **Must-fix 2, point in time (criterion 4).**
+   - `test_a_quote_received_after_15_00_and_an_untimed_vix_are_refused`: a request sent at 14:59:59 whose response
+     arrived at 15:00:01 is "after the cutoff" (P3). VIX with no NSE time, or an unreadable one, is "no availability
+     time" (P4).
+   - `test_an_item_at_exactly_the_cutoff_is_kept` (P1).
+3. **Must-fix 3, never freeze an empty pack.**
+   - A recorded session day (regular or special) with no canonical A4 snapshot is refused: "no canonical A4 snapshot
+     for <day> (<session> session): nothing written". `desk pack` exits 2 and writes nothing.
+   - A closed day, or a muhurat-only evening the recorder never records, still gets its session-only pack.
+   - Test: `test_a_session_day_without_its_snapshot_is_refused_and_a_closed_day_is_packed`.
+   - On the real repository, 13 Oct is now refused (`test_the_app_refuses_a_session_day_without_its_snapshot`), and
+     the wiring test builds a Saturday.
+   - **Run order this implies for E3/O1:** pack only after the canonical A4 snapshot is committed. A failed recorder
+     means no pack, so no book decides on an empty market.
+4. **Should-fix, one test each:**
+   - P2: `test_two_items_with_one_name_are_refused`;
+   - P7: `test_past_events_are_not_offered`;
+   - P9: `test_the_last_260_closes_before_the_day_are_kept`;
+   - P10: `test_a_journal_path_alone_is_refused`;
+   - P13: `test_the_provenance_names_the_snapshot_files_by_hash`.
+
+**Checks:**
+- All 11 of the judge's plants that the tests missed, plus my "empty pack frozen" mutation, are caught now: each
+  re-applied, `tests/packs` run, then reverted.
+- `tests/packs`: 37 tests.
+- Full suite on the tree merged with `main`: 2316 passed.
+
+**Answers to the judge's information points:**
+- Book 1's pack will hold Book 2's envelope files once D4 adds them to `playbook/`; they are frozen rules, not state.
+  D4's claims should state it.
+- Events without `announced_on` are dropped before admission. The real file's three such rows all predate 13 Oct.
+- The Groww routine's 13 Oct result (no snapshot committed) is reported to the orchestrator as a separate problem.

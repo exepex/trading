@@ -14,12 +14,14 @@ from ..constants import BOOKS, JOURNAL_FOLDER
 from ..models import IST
 from ..playbook.loader import Playbook
 from ..playbook.registry import RegistryRow
+from ..quotes.recorder import RECORDED_SESSION_KINDS
 from .opportunity_set import OpportunitySet
 from .pack_inputs import CommonInput
 from .pack_items import PackError, admit, canonical_json, sha256_hex
 
 SCHEMA_VERSION = 1
 FUTURE_PREFIX = "future:"
+SESSION_ITEM, SNAPSHOT_INPUT = "session", "a4_snapshot"  # SessionInput's item and SnapshotInput's provenance key
 FORBIDDEN = (*BOOKS, f"{JOURNAL_FOLDER}/")  # a book's name or journal path never appears in the common pack
 
 
@@ -41,6 +43,15 @@ class CommonPack:
     @property
     def sha256(self) -> str:
         return sha256_hex(self.data)
+
+
+def require_snapshot_on_session_day(day: date, body: dict) -> None:
+    """A recorded session day without its canonical A4 snapshot is refused, not packed: the store is write-once, so an
+    empty pack would freeze the day with no quotes even after the recorder commits (judge 72). A closed day, or a
+    muhurat-only evening the recorder never records, still gets its session-only pack."""
+    session = next((item["value"] for item in body["items"] if item["name"] == SESSION_ITEM), None)
+    if session in RECORDED_SESSION_KINDS and body["provenance"].get(SNAPSHOT_INPUT, {}).get("snapshot_id") is None:
+        raise PackError(f"no canonical A4 snapshot for {day.isoformat()} ({session} session): nothing written")
 
 
 def require_market_only(data: bytes) -> None:
@@ -72,6 +83,7 @@ class CommonPackBuilder:
             "refused": list(refused),
             "opportunities": self.opportunities.build(playbook.strategies, self.playbook.registry_rows(), day, monthly),
         }
+        require_snapshot_on_session_day(day, body)
         pack = CommonPack(day, body)
         require_market_only(pack.data)
         return pack
