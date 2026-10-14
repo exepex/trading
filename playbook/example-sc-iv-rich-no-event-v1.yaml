@@ -13,6 +13,13 @@ structure:
   code: SC
   strikes_rule: sell the call nearest spot x 1.02 and the put nearest spot x 0.98 (entry day's chain), buy each W further out
   width_rule: largest W of 300, 250, 200, 150, 100 points whose modelled maximum loss incl. charges and pads is at most Rs 10,000
+  widths: [300, 250, 200, 150, 100]
+  lots: 1
+  expiry:
+    kind: monthly
+    min_days: 30
+    max_days: 45
+    exit_days_before_expiry: 21
 entry_conditions:
   - feature: F1_atm_iv_minus_rv20
     operator: ">"
@@ -38,6 +45,7 @@ evaluation_plan:
   expected_range:
     low: -1500
     high: 500
+  expected_net_per_opportunity: -308  # experiment 1 challenge, P6: -Rs 18,468 / 60 opportunities (a FAIL)
   unit: Rs net per opportunity after charges, pads and 31.2% tax (illustrative)
   review_dates:
     - 2027-01-14
