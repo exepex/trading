@@ -60,15 +60,16 @@ unsure, the change is lane 1.
 
 ### Refinements (judge 91, accepted by the orchestrator under the owner's lanes decision, 14 Oct 2026)
 
-1. **Lane 1 is decided by path, whatever the change's description.** Any diff touching one of these is lane 1:
+1. **Lane 1 is decided by path, whatever the change's description (judge 92: the list is inverted so it cannot miss a
+   package or go stale).** Lane 1 is every diff touching:
+   - any file under `fno/` or `tools/`;
    - `.github/`, `.githooks/`, `.gitattributes`, `config.yaml`, `db/`, `requirements*.txt`;
-   - `fno/constants.py` and every composition root listed in `CLAUDE.md`;
-   - `fno/risk`, `fno/desk`, `fno/books`, `fno/checks`, `fno/scorecard`, `fno/scoreboard`, `fno/evaluation`,
-     `fno/forecast*`, `fno/ai`, `fno/quotes`, `fno/pipeline`, `fno/storage`, `fno/playbook`;
-   - the gates: `tools/check_imports.py`, `tools/check_records.py`, `tests/test_code_size.py`;
-   - every file a freeze lists, and `research/data/calendar/`;
+   - any hand edit under `research/` (calendar rows, golden values, margin tables, manifests, forecasts, evaluation);
+   - deleting, skipping or loosening any test;
    - rule documents: `docs/JUDGE.md`, `CLAUDE.md`, `AGENTS.md`, acceptance criteria in `docs/stories/`, protocol and
      freeze documents, owner checklists.
+
+   Lane 2 is only added tests and explanatory docs.
 2. **Tests:** only adding tests is lane 2. Deleting, skipping or loosening a test in a lane-1 area is lane 1.
 3. **Lane 3 data** is only a scheduled job's own output paths. Data edited by hand (calendar rows, golden values,
    margin tables, manifests) is not lane 3. A decision row is lane 3 only when it quotes the owner.
