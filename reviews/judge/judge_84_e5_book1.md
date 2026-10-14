@@ -219,3 +219,66 @@ D3 record (addendum 1, fix B) removes both problems: no playbook parse is needed
 
 **Verdict: still not PASS.** Must-fixes A and B of addendum 1 stand, and so does the `CLAUDE.md` conflict with
 `main`.
+
+## Addendum 3 (round 3, branch 90ea938 = fixes plus a merge of main dafbebe): A and B met; FAIL on a new must-fix shown by probe
+
+**Met:**
+- **A, exact "none".** My probe is re-run with three wordings: "none until day 10, then stop at 2x credit", "None (but
+  stop at 2x)" and "none" followed by a new line and "stop at 2x". Each gives **not filled**, 0 legs. The example
+  version is plain `none`, with notes in comments.
+- **B, exits fixed at the decision.** `decided_exit_days` takes each trade's exit from its committed run: the version
+  file as the run read it (`inputs.json`) and the expiry from the opportunity ID. Today's file feeds only the
+  per-trade alert, and any failure there is caught. The builder's test runs an unrelated broken draft through the real
+  wiring.
+- **The builder's C4-replay finding is correct.** `build_decision_run` validates with C4, so a replay without the
+  validator differs on `validity.c4` and refuses every run. Ordering only records saying "trade" is right.
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,835 passed;
+- ruff, format (636 files) and imports (643): clean;
+- **`git merge-tree` with current `main` (e1c3ad1): CONFLICT in `tests/timetable/test_recorded_c4.py`**. This is the
+  merge-order fixture note from judge 82 addendum 4.
+
+**My plants (7):**
+
+| Plant | Result |
+|---|---|
+| "none" as a prefix again | 2 failed |
+| Exit day read from today's file | 1 failed, 5 errors |
+| Alert exceptions not caught | 3 failed |
+| Stored-action filter off | 1 failed |
+| No alert for a trade without a record | 1 failed |
+| Shadow records counted as Book 1's | 1 failed |
+| **`build_book1_orders` without C4's validator** | **not caught** (should-fix: one wiring test, as for E3) |
+
+### New must-fix C: C4's failure log is written but never committed, and that halts every book's account writes
+
+1. **Book 1's replay writes the failure log.**
+   - `build_trade_validator` documents "a replay passes `log=False` so it writes nothing", and
+     `BookTradeValidator` says the same ("`log` is None in a replay, which must not write anything").
+   - `build_book1_orders` calls it with the default `log=True`. My probe of the app's wiring:
+     `build_book1_orders(cfg).validator.log` is a `ValidityFailureLog`.
+   - So every fill-time replay of a run whose choice C4 failed appends that failure **again** to
+     `journal/book1_rules/validity_failures.csv`.
+2. **The decision's own failure rows are not committed.** `DecisionRun.decide` appends them through the same log, but
+   `Book1.decide` commits only the run folder and the no-approved file.
+3. **Consequence, by probe on real git** (E3's `GitAccountSync`, two checkouts of one origin, the test suite's own
+   fixture):
+   - Day 1: a failure row is appended. That day's exit sync commits the whole book folder, so the CSV becomes
+     **tracked**.
+   - Day 2: a new failure row is appended and not committed. The next account write is **refused for both Book 1 and
+     Book 2**: "the checkout holds other work (uncommitted tracked edits)".
+   - Nothing then commits the file, so every later fill and exit of **every book** is refused in that checkout, day
+     after day.
+   - The fill step does not catch `CheckoutNotDedicated`, so a day with an order crashes the run before exits.
+   - This assumes `desk book1` runs in the desk run's checkout. In a separate checkout, the dirty tracked file instead
+     breaks that checkout's next pull or commit.
+4. **This is not rare.** C4's `margin_room` refuses every trade until A14's rows exist (accepted limit, judge 83). So
+   C4 fails **every** Book 1 choice. This happens from the second day Book 1 chooses a trade.
+
+**Fix:**
+- `build_book1_orders` passes `log=False` (the documented contract), with a test that a replay writes nothing;
+- `Book1.decide` commits the failure log in the same commit as its run (the file `DecisionRun` wrote);
+- add a wiring test that `build_book1_orders` holds C4's validator.
+
+**Verdict: FAIL** on C. A and B are met. Then merge `main` and resolve the fixture conflict.
