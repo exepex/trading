@@ -151,3 +151,37 @@ unpushed commits (a decision, a capture record, a run log) are destroyed, and no
 - one test with a passing record and one with `c4: null`.
 
 That is one small round. I will check only that.
+
+## Addendum 2 (8502dd1, judge 83's gate): PASS
+
+**The gate:**
+- `RecordedC4Pass` (`fno/desk/recorded_c4.py`) is E3's own `ValidityGate`, and `build_daily_run` wires it itself (no
+  gate taken from the caller).
+- It reads the committed D3 record of the order's opportunity, from the run folder the `decisions` step recorded.
+- It passes only when that record exists, the run's files match their committed `records.sha256`, and `validity.c4`
+  has `ok: true` with checks.
+- It takes no market or snapshot input, so it cannot re-run C4 against the 15:15 capture.
+
+**My plants (`tests/timetable`, 30 tests):**
+
+| Plant | Result |
+|---|---|
+| The edited-files check off | caught |
+| `ok` not required | caught |
+| Empty checks allowed | caught |
+| A missing record passing | caught |
+| **`build_daily_run` wiring an always-passing gate instead** | **not caught** |
+
+**Should fix (not blocking):**
+- One test that `build_daily_run` uses `RecordedC4Pass`, so a later edit cannot swap in a permissive gate unseen.
+- Once C4 merges, one test building the record with C4's real `ValidityReport.record()` rather than a hand-made
+  dictionary, so a C4 format change breaks E3's test and is not missed. C4 is still in its fix round (judge 83).
+
+**Gates:**
+- full suite: 2,628 passed;
+- ruff and imports: clean;
+- `git merge-tree` with current `main`: clean.
+
+**Verdict: PASS for 8502dd1.**
+- E3 stays "built, not live" until E5's orders, C4, a `desk run` command and its routine exist.
+- After the merge I check `main` against 8502dd1 and CI.
