@@ -57,3 +57,40 @@ exist in the tree.
 ## Verdict
 
 **FAIL for both.** These are small text fixes. When both lists are corrected, I re-check them against the trees.
+
+## Addendum 1 (14 Oct 2026): re-judge, trading 1290fea and dashboard 03569e7
+
+Both lists are now inverted as asked. I checked them against every top-level entry of both trees. They still leave gaps,
+and the cause is the same one as before: lane 2 is defined as "what is left", but some of what is left is not lane 2.
+
+### Trading 1290fea: FAIL (two small must-fixes)
+
+1. **The lanes table in `docs/JUDGE.md` contradicts the refinement.** Row 2 still reads "tests only, docs, refactors
+   with no behaviour change, small fixes outside lane 1". `CLAUDE.md` was fixed in 1290fea; this row was not.
+2. **Top-level paths that carry lane-1 subjects are still unlisted:**
+   - `agents/forecast/*.md`: the AI books' prompts. Changing one changes Book 2 or Book 3's forecasts (records).
+   - `playbook/`: the strategy registry and its YAML (trade decisions).
+   - `journal/`: paper-account ledgers and positions (money). Job output is lane 3; a hand edit is lane 1.
+   - `accounting/`: operating costs (money).
+   - `contracts/`: the dashboard API contract (privacy).
+   - `.claude/`: the session hooks that switch on the record scan (secrets).
+   - `ruff.toml`: a gate's configuration.
+
+Must-fix:
+- Replace "Lane 2 is only added tests and explanatory docs" with a closed rule: **lane 2 is only new tests (added
+  files or added test cases), and docs outside the rule documents (`README.md`, `reports/`, `research_notes/`, and
+  `docs/` outside the rule documents). Lane 3 is as listed. Everything else is lane 1.**
+- Fix table row 2 to match.
+
+With that sentence, the path list becomes explanation only. A new folder cannot fall to lane 2 by being forgotten.
+
+### Dashboard 03569e7: FAIL (one small must-fix)
+
+- `web/.npmrc` (the package registry setting: supply chain), `web/tsconfig.json` (compile settings) and `web/public/`
+  (served files) are in neither lane.
+- Same fix: **lane 2 is only `web/styles`/CSS, `design/` and new tests. Lane 3 is judge files and logs. Everything else
+  is lane 1.**
+
+Everything else in both texts is correct.
+
+**Verdict: FAIL for both.** One sentence each. I re-check on the next push.
