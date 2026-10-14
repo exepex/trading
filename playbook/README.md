@@ -6,7 +6,7 @@ One file per strategy version: `playbook/<name>-v<n>.yaml`. The paper desk trade
 - **Format:** `fno/playbook/schema.py`. Every field is required; an unknown field, feature or structure code is
   refused with the field named. `evidence` stays `null` until approval.
 - **Lifecycle:** `research` (candidate) -> `paper` (approved) -> `paused` -> `paper` ... -> `retired`. Allowed changes
-  and who may make them: `fno/playbook/transitions.py` (research -> paper and paused -> paper: owner only; paper ->
+  and who may make them: `fno/playbook/transitions.py` (registering a candidate: the desk or the owner; research -> paper and paused -> paper: owner only; paper ->
   paused: owner or the automatic hard-loss rule; any -> retired: owner).
 - **Registry:** `registry.csv`, append-only, one row per registration or status change with the version's rule
   fingerprint (SHA-256 of every field except `status` and `evidence`). A changed rule in a registered version is

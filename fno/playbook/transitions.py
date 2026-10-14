@@ -3,7 +3,7 @@ unregistered candidate (`research`); its first row either registers it as a cand
 
 from __future__ import annotations
 
-from ..constants import APPROVER_HARD_LOSS_RULE, APPROVER_OWNER, PlaybookStatus
+from ..constants import APPROVER_DESK, APPROVER_HARD_LOSS_RULE, APPROVER_OWNER, PlaybookStatus
 from .fields import PlaybookError
 
 RESEARCH, PAPER, PAUSED, RETIRED = (
@@ -11,7 +11,8 @@ RESEARCH, PAPER, PAUSED, RETIRED = (
 )  # fmt: skip
 OWNER_ONLY = frozenset({APPROVER_OWNER})
 ALLOWED = {
-    (None, RESEARCH): OWNER_ONLY,  # register a candidate (freezes its rule before a test)
+    # register a candidate: freezes its rule before a test and approves nothing, so the desk may do it too
+    (None, RESEARCH): frozenset({APPROVER_OWNER, APPROVER_DESK}),
     (None, PAPER): OWNER_ONLY,  # research -> paper for a candidate registered at its approval
     (RESEARCH, PAPER): OWNER_ONLY,  # needs the evidence and the live-feature gate too (loader checks)
     (PAPER, PAUSED): frozenset({APPROVER_OWNER, APPROVER_HARD_LOSS_RULE}),
