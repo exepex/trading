@@ -5,6 +5,9 @@ decided, each is frozen like a protocol item and only changed as a new version, 
 
 ## 8.1 Monthly budget cap
 
+**Decided (owner, 15 Oct 2026): accepted as proposed below** (half of measured plan minutes for books and roles; any
+new recurring cash cost needs the owner's written yes; alert at 80%; AI roles stop at 100%).
+
 | Item | Today | Proposal |
 |---|---|---|
 | Claude subscription | The owner's existing plan; cost recorded monthly by the owner for F8 | Books' and roles' allocated share shown monthly; **AI routine usage for books and roles capped at a share of the plan the owner sets** (proposal: half of the plan's measured session minutes, leaving the rest for development) |
@@ -95,9 +98,9 @@ strategy version may start the real-money test only when **all** hold:
 
 - The tool is for the owner only. Giving calls to others for money needs SEBI research-analyst registration (SEBI
   Research Analysts Regulations, 2014); this design never does that.
-- **Flag (reasoning only, not legal advice):** the repositories are public during development (owner decision of 12 Oct
-  2026 on the shared dashboard repository and Azure Postgres). Daily trade cards with strikes and entry ranges committed
-  to a public repository are publicly readable calls, even if unpaid. Recommendation: before layer 6 sends `TRADE`
-  cards, either make the repositories private or keep the card records out of the public repository (Drive only, as raw
-  data already is). Owner decides.
+- **Decided (owner, 15 Oct 2026, option b): card records are kept in Google Drive only.** The repositories are public
+  during development (owner decision of 12 Oct 2026 on the shared dashboard repository and Azure Postgres), and daily
+  trade cards with strikes and entry ranges in a public repository would be publicly readable calls, even if unpaid
+  (reasoning only, not legal advice). So before the first `TRADE` card, card records go to Drive, delivery stays Slack
+  #fno-desk, and the public repositories hold no live strikes or entry ranges; only scores and hashes are committed.
 - Nothing in the tool places real orders; the hard lines stay.

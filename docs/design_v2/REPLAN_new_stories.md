@@ -85,10 +85,11 @@ the day. Layer and section references are to the design v2 files.
 
 ## Cards and alerts (layer 6)
 
-- **T1 Daily trade card.** One card every session (`TRADE`, `NO TRADE`, `WATCH`) built only from committed records,
-  with record hashes in the footer; Slack #fno-desk; alert classes and limits of 6.5. Replaces P4. Acceptance includes
-  section 4.4: the footer's issuance hashes, the clock contract and the owner-unavailable line. Depends: D3, E2, G3,
-  M1. M. Slice A (v1: `NO TRADE` and forecasts), slice B (trade fields).
+- **T1 Daily trade card.** One card every session (`TRADE`, `NO TRADE`, `WATCH`) built only from committed records, with
+  record hashes in the footer; Slack #fno-desk; alert classes and limits of 6.5. Replaces P4. Acceptance includes
+  section 4.4: the footer's issuance hashes, the clock contract and the owner-unavailable line; card records go to
+  Google Drive only, and the public repository holds no live strikes or entry ranges (owner decision of 15 Oct 2026).
+  Depends: D3, E2, G3, M1. M. Slice A (v1: `NO TRADE` and forecasts), slice B (trade fields).
 - **T2 Devil's advocate rule checks.** The code checks of 7.3, able to turn a card into `NO TRADE` with the reason.
   Depends: T1, C4, R1. S. Slice B.
 - **T3 Devil's advocate objections.** A sealed AI session per card returning three scored objections; never a veto.

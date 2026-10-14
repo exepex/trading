@@ -162,14 +162,16 @@ forecast scoring is frozen by protocol v4's own freeze (G6), not by S1. One addi
 1. **Decided 15 Oct 2026: (a), a Claude routine** (6.6).
 2. **Decided 15 Oct 2026: accepted as proposed** (bucket Rs 30,000; open maximum losses at most Rs 1.5 lakh; new risk
    Rs 50,000 a day; brake Rs 1.2 lakh) (6.2).
-3. Weather thresholds [RED at 2.5x the base rate of a 2% move, AMBER 1.5x] (2.3).
-4. Minimum effects for "beats baseline" [3% QLIKE, Brier skill 0.02] (5.5).
+3. **Decided 15 Oct 2026: weather thresholds as proposed** (relative and absolute levels, maximum RED frequency 15%)
+   (2.3).
+4. **Decided 15 Oct 2026: minimum effects 3% QLIKE or Brier skill 0.02**, also the stop rule's futility margin (5.5).
 5. **Decided 15 Oct 2026: 5 minutes when available, 30 on average, at most 1 hour**; E8's primary fill uses 60
    minutes, with 30 and 5 as sensitivities; the availability calendar is still to be given (3.2, 6.5).
-6. Monthly AI share and cash cap [half of measured plan minutes; any new recurring cost needs a yes] (8.1).
+6. **Decided 15 Oct 2026: AI share at most half of measured plan minutes; any new recurring cost needs a yes** (8.1).
 7. The stop-rule review and its outcomes (8.2).
 8. The real-money gate and test numbers (8.3, 8.4).
-9. Trade cards in public repositories [make private, or keep cards in Drive] (8.5).
+9. **Decided 15 Oct 2026: (b), card records in Google Drive only**; the public repositories hold no live strikes or
+   entry ranges (8.5).
 10. When books 2-3 start trading [at the first approved strategy or rung-2 idea] (slice E).
 11. S1 item changes (section 4).
 12. **Decided 15 Oct 2026: (a), E8's code joins S1's `frozen_files`.** The question was: add E8's owner-timing fill code

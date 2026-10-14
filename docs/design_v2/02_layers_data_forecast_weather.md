@@ -91,12 +91,13 @@ tool"). Design v2 keeps it and makes its price visible.
 **Design change: the weather becomes a scored forecast.** Instead of a fixed checklist only, the weather publishes:
 - `p_big_1d`: the probability that NIFTY's next-session absolute move is at least 2%;
 - `p_big_5d`: the probability that the largest absolute close-to-close move over the next 5 sessions is at least 2%;
-- a colour from fixed thresholds on those probabilities, registered before use. Proposal (reasoning only; owner
-  decides): **RED** when `p_big_1d` is at least both 10% and 2.5 times its 750-session base rate, or `p_big_5d` at
-  least both 35% and 2.5 times; **AMBER** at both 6% and 1.5 times (one day) or 20% and 1.5 times (5 days). The
-  absolute floors keep a colour meaningful when the base event is rare. Measured base rates on NIFTY closes 2017-2026:
-  a 2% day on 4.1% of sessions (0% in 2017, 16.7% in 2020, 0.4% in 2023), and at least one in the next 5 sessions
-  13.7% of the time; so 2.5 times is about 10% and 34%, and the floors bind mainly in calm years;
+- a colour from fixed thresholds on those probabilities, registered before use. Accepted by the owner on 15 Oct 2026
+  (the numbers themselves are reasoning only): **RED** when `p_big_1d` is at least both 10% and 2.5 times its
+  750-session base rate, or `p_big_5d` at least both 35% and 2.5 times; **AMBER** at both 6% and 1.5 times (one day) or
+  20% and 1.5 times (5 days). The absolute floors keep a colour meaningful when the base event is rare. Measured base
+  rates on NIFTY closes 2017-2026: a 2% day on 4.1% of sessions (0% in 2017, 16.7% in 2020, 0.4% in 2023), and at least
+  one in the next 5 sessions 13.7% of the time; so 2.5 times is about 10% and 34%, and the floors bind mainly in calm
+  years;
 - a **maximum RED frequency**, frozen with the thresholds: if RED covers more than 15% of the last 250 sessions, the
   weather is marked "over-alarming" in the post-mortem and a new version must be proposed (never retuned in place;
   RED still blocks entries until the owner approves the new version);

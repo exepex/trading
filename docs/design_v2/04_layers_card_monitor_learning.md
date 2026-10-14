@@ -33,6 +33,8 @@ column is illustrative only: no such strategy is approved, and "x" marks digits 
 **Delivery.** Slack #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_BOT_TOKEN` only; the owner turns on Slack's phone push for
 the channel. Plain text first; images optional. Target: card on the phone by 15:08 IST (decision cutoff 15:00, plus
 devil's advocate). A failed post is retried and logged "alert NOT sent"; the next card says so.
+**Storage (owner decision of 15 Oct 2026):** card records are kept in Google Drive only; the public repository holds
+only their hashes and scores, never live strikes or entry ranges.
 
 **Interfaces.** `TradeCard` (data), `CardBuilder` (from decision, risk, forecast, weather and advocate records),
 `CardRenderer` (Slack today, dashboard later: one class each), existing `AlertSender`, new `DevilsAdvocate`
