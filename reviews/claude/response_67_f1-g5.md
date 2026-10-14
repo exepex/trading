@@ -396,3 +396,8 @@ The orchestrator approved addendum 5's fix. Built on the branch. Not on `main` u
 **Re-check, 19:00 IST (13:30 UTC):** `forecast-capture.yml` still has no run; 14 Oct's schedule never started at all.
 14 Oct has no records for any book and no AI session to audit. The push trigger (addendum 6) is on `main` from
 `e3639f5` (judge 88 PASS).
+
+**Judge 88 addendum 1 (14 Oct 2026):** `story/f1-gate-stdlib-test` d6d72df PASS, merged into `main` as 3534fe2 (3122
+passed with the token unset; ruff and `check_imports` clean). Minor follow-up recorded, not built: the test imports and
+calls `main()` instead of running `python -m fno.pipeline.capture_gate` as the workflow does, so a problem only in the
+module's `__main__` entry would not show. A later small story can run the module by `-m` under `-S -I`.
