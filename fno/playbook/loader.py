@@ -30,7 +30,13 @@ class Drift:
 @dataclass(frozen=True)
 class Playbook:
     strategies: tuple[Strategy, ...]
+    registered: frozenset[tuple[str, int]] = frozenset()  # versions with a registry row (their rule is frozen)
     drifted: tuple[Drift, ...] = ()  # paper versions whose live feature drifted: not approved, to be paused
+
+    def shadow(self) -> tuple[Strategy, ...]:
+        """Registered research candidates: forward-tested in shadow (owner, 14 Oct 2026), never in a book's account.
+        An unregistered candidate is not frozen, so it is not tested."""
+        return tuple(s for s in self.strategies if s.status == RESEARCH and s.key in self.registered)
 
     def approved(self) -> tuple[Strategy, ...]:
         """The versions Book 1 may trade today (status `paper`, live features still valid); empty when none."""
@@ -60,7 +66,7 @@ class PlaybookLoader:
                     raise
                 drifted.append(Drift(strategy, str(drift)))
         self._require_files_for(rows, {s.key for s in strategies})
-        return Playbook(tuple(strategies), tuple(drifted))
+        return Playbook(tuple(strategies), frozenset(row.key for row in rows), tuple(drifted))
 
     def check_against_history(self, strategy: Strategy, history: Sequence[RegistryRow]) -> None:
         """The file matches its registered fingerprint and latest status, and passes the checks for that status."""

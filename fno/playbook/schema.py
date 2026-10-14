@@ -12,21 +12,24 @@ import re
 from dataclasses import dataclass
 from datetime import date
 
-from ..constants import NUMBER_OPERATORS, OPERATOR_IS, PlaybookStatus
+from ..constants import NO_ESTIMATE, NUMBER_OPERATORS, OPERATOR_IS, PlaybookStatus
 from ..research_engine.live_validation import MIN_AGREEMENT, MIN_AVAILABLE, MIN_DAYS, LiveUseRule
 from .fields import Fields, PlaybookError
-from .vocabulary import FEATURES, FLAG, STRUCTURE_CODES
+from .structure_spec import STRUCTURE, StructureSpec, parse_structure
+from .vocabulary import FEATURES, FLAG
 
 TOP = (
     "name", "version", "status", "payer", "edge_family", "structure", "entry_conditions", "live_use_rule",
     "size_rule", "funding", "exits", "evaluation_plan", "evidence",
 )  # fmt: skip
-STRUCTURE = ("code", "strikes_rule", "width_rule")
 CONDITION = ("feature", "operator", "threshold")
 USE_RULE = ("min_days", "min_agreement", "min_available")
 FUNDING = ("margin_per_lot", "source", "date")
 EXITS = ("time", "profit", "loss", "event")
-PLAN = ("expected_range", "unit", "review_dates", "pause_rules", "catastrophic_loss_rs")
+PLAN = (
+    "expected_range", "expected_net_per_opportunity", "expected_net_source", "unit", "review_dates", "pause_rules",
+    "catastrophic_loss_rs",
+)  # fmt: skip
 RANGE = ("low", "high")
 EVIDENCE = (
     "test_results_path", "test_results_commit", "red_team_note", "judge_verdict", "freeze_record",
@@ -75,7 +78,7 @@ class Strategy:
     status: PlaybookStatus
     payer: str
     edge_family: str
-    structure: dict
+    structure: StructureSpec
     entry_conditions: tuple[EntryCondition, ...]
     live_use_rule: LiveUseRule
     size_rule: str
@@ -121,7 +124,7 @@ def parse_strategy(document: object) -> Strategy:
         status=PlaybookStatus(top.choice("status", list(PlaybookStatus))),
         payer=top.text("payer"),
         edge_family=top.text("edge_family"),
-        structure=_structure(top),
+        structure=parse_structure(top.section("structure", STRUCTURE)),
         entry_conditions=tuple(_condition(c) for c in top.items("entry_conditions", CONDITION)),
         live_use_rule=_use_rule(top.section("live_use_rule", USE_RULE)),
         size_rule=top.text("size_rule"),
@@ -131,11 +134,6 @@ def parse_strategy(document: object) -> Strategy:
         evidence=_evidence(top.section("evidence", EVIDENCE)),
         parameters_sha256=parameters_sha256(document),
     )
-
-
-def _structure(top: Fields) -> dict:
-    fields = top.section("structure", STRUCTURE)
-    return {"code": fields.choice("code", STRUCTURE_CODES), **_texts(fields, ("strikes_rule", "width_rule"))}
 
 
 def _condition(fields: Fields) -> EntryCondition:
@@ -177,12 +175,24 @@ def _plan(fields: Fields) -> dict:
     if low > high:
         raise span.refuse("low", "must not be above high")
     return {
-        "expected_range": (low, high), "unit": fields.text("unit"), "review_dates": fields.days("review_dates"),
+        "expected_range": (low, high), "expected_net_per_opportunity": _expected_net(fields),
+        "expected_net_source": fields.text("expected_net_source"),
+        "unit": fields.text("unit"), "review_dates": fields.days("review_dates"),
         "pause_rules": fields.texts("pause_rules"),
         # the machine-checked pause rule (story E6): one closed trade's net loss (C1) at or beyond this pauses the
         # version at once in every book; the owner's per-trade cap is Rs 10,000
         "catastrophic_loss_rs": fields.number("catastrophic_loss_rs", positive=True),
     }  # fmt: skip
+
+
+def _expected_net(fields: Fields) -> float | None:
+    """The frozen estimate D2 ranks by, or None when a research version has no honest one (`none`); a new estimate is a
+    new version, never an update from shadow results."""
+    return (
+        None
+        if fields.raw("expected_net_per_opportunity") == NO_ESTIMATE
+        else fields.number("expected_net_per_opportunity")
+    )
 
 
 def _evidence(fields: Fields) -> Evidence:

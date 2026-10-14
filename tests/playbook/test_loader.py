@@ -191,3 +191,16 @@ def test_the_repository_playbook_loads_and_approves_nothing():
     example = playbook.get("example-sc-iv-rich-no-event", 1)
     assert example.status == "research" and example.evidence.missing  # criterion 5: never a passed strategy
     assert "NOT A PASSED STRATEGY" in (ROOT / "playbook" / example.file_name).read_text()
+
+
+def test_paper_needs_a_number_for_expected_net(tmp_path):
+    plan = {**document()["evaluation_plan"], "expected_net_per_opportunity": "none"}
+    approved_repository(tmp_path, evaluation_plan=plan)
+    assert refused(tmp_path).field == "sc-test-v1.yaml: evaluation_plan.expected_net_per_opportunity"
+
+
+def test_a_research_version_may_have_no_estimate(tmp_path):
+    plan = {**document()["evaluation_plan"], "expected_net_per_opportunity": "none"}
+    write(tmp_path / "playbook", document(evaluation_plan=plan))
+    strategy = loader(tmp_path).load().get("sc-test", 1)
+    assert strategy.evaluation_plan["expected_net_per_opportunity"] is None

@@ -23,7 +23,8 @@ from .history import CHARGES
 START = date(2026, 10, 14)
 REVIEW = date(2027, 1, 20)
 PLAN = {
-    "expected_range": {"low": -500, "high": 800}, "unit": "Rs net per completed position",
+    "expected_range": {"low": -500, "high": 800}, "expected_net_per_opportunity": 150,
+    "expected_net_source": "fixture", "unit": "Rs net per completed position",
     "review_dates": [REVIEW], "pause_rules": ["one trade loses Rs 10,000"], "catastrophic_loss_rs": 10000,
 }  # fmt: skip
 SHADOW = shadow_account("cand-c-v1")

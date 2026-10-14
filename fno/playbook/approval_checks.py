@@ -63,6 +63,16 @@ class EvidenceCommitted(ApprovalCheck):
             raise PlaybookError("evidence", f"differs from the evidence committed in {commit[:10]}")
 
 
+class ExpectedNetSet(ApprovalCheck):
+    """Story D2: an approved version needs its frozen expected net per opportunity, the number allocation ranks by."""
+
+    statuses = frozenset({PAPER})
+
+    def check(self, strategy: Strategy, approval: RegistryRow) -> None:
+        if strategy.evaluation_plan["expected_net_per_opportunity"] is None:
+            raise PlaybookError("evaluation_plan.expected_net_per_opportunity", "must be a number for status paper")
+
+
 class LiveFeaturesValidated(ApprovalCheck):
     """Criterion 6 (B7's gate): every live feature the conditions use passes the strategy's own frozen use rule."""
 
