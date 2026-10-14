@@ -203,3 +203,11 @@ deleted, a frozen file renamed, and a frozen config section removed. In each cas
 - My plant (a missing target not counted as changed): **3 failed**.
 - Full suite (token unset): 2,853 passed. Ruff, format (634 files) and imports (641): clean.
 - `git merge-tree` with current `main`: clean.
+
+## Addendum 3 (merge check, 35f6f46: `s1-missing-target-test`)
+
+**MET.**
+- 35f6f46 has parents c8ab4f3 (`main`) and 9e21d87 (the passed tip), and it equals my recomputed merge. 898f1af
+  equals its recomputed merge too.
+- The only code change since my last check is `tests/evaluation/test_missing_target.py`.
+- CI on 898f1af (run 38549236262) was in progress when I wrote this; I confirm it at my next check.

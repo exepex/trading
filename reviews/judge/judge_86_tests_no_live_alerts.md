@@ -126,3 +126,5 @@ That is the guard working, not a defect.
 - 471493e differs from its recomputed merge only in `conversations/2026-10-14.md` (a log conflict resolved as text).
 - The only code change on `main` since my last check is ef48055.
 - CI on c8ab4f3 (run 38548325472) was in progress when I wrote this; I confirm it at my next check.
+
+**Confirmed:** CI is green on c8ab4f3 (run 38548325472).
