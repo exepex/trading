@@ -66,3 +66,79 @@ All of this is rebuilt from committed records, so a rebuild gives the same bytes
    something before books 2 and 3 exist? I propose yes, since the pilot section is exactly that.
 3. Should S2 also start writing `equity_history.csv` daily (an E3 change), or leave that file to a separate story?
    I propose a separate story: S2 should read records, not change the desk.
+
+## Addendum 1: S2 built (builder's claims)
+
+Built as proposed above. The orchestrator had not answered the three questions when I built, so I followed my
+proposed answers. Package: `fno/scoreboard/`, 16 modules, the largest 81 lines. Composition root:
+`fno/scoreboard/wiring.py`. Command: `python -m fno scoreboard b [--on YYYY-MM-DD]`, which writes
+`research/scoreboards/B/<date>.json`.
+
+### The modules
+
+| Module | Job |
+|---|---|
+| `daily_values.py` | each trade's value per session: cash moved plus legs at mid; stale and unvalued days flagged, never invented |
+| `committed_runs.py` | the runs E3 collected (run ID and commit), on time when committed before the snapshot started; each day's valid snapshot ID |
+| `entry_facts.py`, `entry_decisions.py` | from the committed D3 record of each trade: max loss, stressed margin and stress usage at entry, `owner_override`, the D6 segment (computed once over all records); the common-start rule |
+| `book_trades.py` | E1 fills and C1 trade lines, E4 version and decision, D3 entry facts, daily values; groups: segment, `unscored`, `overridden` |
+| `series.py` | daily (net change, risk at stake) pairs; costs on their month's last session; net per unit of risk = total net / risk-days |
+| `uncertainty.py` | S1's block bootstrap and sample rule, its figures as named constants |
+| `sections.py` | every design 12.5 number for one group and period |
+| `book_board.py` | overall, pilot, head-to-head (overall and per segment), unscored, overridden |
+| `reconcile.py` | criterion 2 |
+| `whole_system.py`, `sources.py`, `ports.py`, `protocol_status.py`, `cli.py` | assembly, adapters, interfaces, output |
+
+### Evidence (`tests/scoreboard/`, 24 tests)
+
+- **Fixture histories for three books** (E1 and E4 records written by the real account writer; D3 records and E3
+  run logs in the desk's format). Book 1 has four trades:
+  - p1, pilot;
+  - h1, head-to-head;
+  - o1, overridden;
+  - u1, no committed record.
+
+  Book 2 has one open trade and Rs 500 of October data costs. Book 3 is started with no trades.
+- **Criterion 1:** every section of every book has every key of design 12.5's list. The risk block has max loss, risk-days,
+  mean daily risk, net per unit of risk, margin-days and stress usage.
+- **Criterion 2:** all three accounts reconcile. A charges table changed after the fills fails the trade-ledger check
+  while the cash ledger still agrees, so reconciliation is a real check, not a formality.
+- **Criterion 3:**
+  - p1 appears only in the pilot section; o1 only in overridden; u1 only in unscored. Head-to-head holds h1 alone.
+  - Without the common start, there is no head-to-head section and every trade is pilot.
+  - The common-start rule: a late run does not start the comparison. An unscored run keeps its book paused until a
+    new version is registered. A book with no registered version never starts it.
+- **Criterion 4:** writing twice gives the same bytes, and the bytes equal the canonical JSON. The inputs' SHA-256
+  values are listed in the file.
+- **Known answers by hand:**
+  - daily values;
+  - the sum of a closed trade's daily changes equals C1's net;
+  - h1's net per unit of risk equals net / (Rs 6,000 × sessions held). The 20 Oct 2026 holiday is correctly not a held
+    session;
+  - an open trade at its marks, minus operating costs;
+  - costs in the common-start month count head-to-head, not pilot;
+  - the bootstrap bound equals an oracle written separately in the test.
+- **Mutations** (`python -B`, caches cleared): 23 of 23 caught. They cover stale marks, risk days, cost booking and
+  sign, ratio of means, the pilot split, the overridden filter, the on-time and scored rules, late detection,
+  reconciliation, the sample rule, the percentile, `owner_override`, AI cost, margin-days, closed-after-the-report-day
+  and Book 1's zero AI cost. Two first-round survivors needed new tests (the percentile, net minus AI cost); two more
+  needed new tests too (a trade closed after the report day, costs of the common-start month). One survivor was dead
+  code (two months cannot share a last session), and I removed it.
+- **Smoke run on the real repository records:** three started accounts, no trades. Common start not reached; every
+  account reconciles.
+
+### What the owner and judge should know (doubts, plainly)
+
+1. **There are no real figures yet.** Book 1 has no approved strategy and books 2 and 3 are not built, so today's
+   board is all zeros and "common start not reached". The code is tested only on fixtures.
+2. **Margin-days use the margin at entry,** not a daily re-margin (that is not recorded anywhere). It is labelled in
+   the output.
+3. **Stress usage** is the book's worst stress loss with the new trade, as a share of the limit, at entry (C2's own
+   number). It is not a per-trade stress figure, because C2 does not separate one.
+4. **An entry unwound the same day adds its cost and no risk-days.** That is correct under "risk held at the day's
+   close". It means a book that only ever unwinds shows a cost with no risk.
+5. **Reconciliation recomputes C1 from today's charges table.** If the table changes after fills, the board fails
+   reconciliation instead of hiding the drift. Whether C1 should instead price each trade at the table in force when it
+   filled is a C1 question for later.
+6. **The protocol is not frozen.** Every board says "not frozen: figures provisional" until S1's freeze record exists.
+   Holm's correction across claims is a review step (S4), not S2.
