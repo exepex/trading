@@ -59,3 +59,27 @@ There is no real-day run. C2's `Market` from the A4 snapshot and the trade count
 ## Project rules
 
 New modules behind interfaces; constants in `fno/constants.py`; files under 110 lines. Clean.
+
+## Addendum 1 (re-judge of branch 5acb188, fix 2852655): PASS. The builder may merge
+
+**Must-fix closed.** `candidates.py` now uses the research's own `payoff_bounds` and `position_value`. A width whose
+entry prices put the position at or beyond its payoff bounds (cannot lose or cannot win) is **skipped** and the next
+width tried, as in experiment 1. The story line was amended. My plants, each caught:
+
+| Plant | Result |
+|---|---|
+| Only the lower bound checked (cannot-win allowed) | 1 failed |
+| A bad width stops the opportunity instead of being skipped | 2 failed |
+| Tie order swapped (expiry before maximum loss), my earlier gap | now 1 failed |
+| The "shadow folder above a real book's folder" check removed | 1 failed |
+
+**Shadow storage guard:** `RealBooks.overlap` refuses a shadow account named like a real book, or stored in, inside or
+above a real book's folder. Paths are resolved, so `..` and symlinks are handled. The folder is declared by the
+`ShadowBooks` implementation, so that implementation (E side) must write only there. Note it in that story's
+criteria.
+
+**Gates at the branch tip, in a separate worktree:**
+- `tests/playbook`: 244 passed.
+- Full suite: 2,238 passed. Ruff and imports are clean.
+
+**After the merge** I check that `main` equals this tip plus a clean merge and that CI is green.
