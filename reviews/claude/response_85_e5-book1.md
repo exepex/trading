@@ -121,6 +121,12 @@ Tests added:
 
 Mutations (`python -B`, caches cleared): **27 of 27 caught**, including the judge's three.
 
+**Ruling (1) per trade (commit after 3f61f0b):**
+- A trade whose playbook version cannot be read gets no rule: E4 holds it and alerts, and the alert names it.
+- Every other trade of the book keeps its time exit. Before this change, one unreadable version cost the whole book its
+  exits that day.
+- Test added; its plant is caught.
+
 ## 4. Gates
 
 Full suite, `ruff check fno tests tools`, `ruff format`, `python tools/check_imports.py` and the 350-line limit: the

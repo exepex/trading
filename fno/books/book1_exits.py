@@ -4,7 +4,8 @@ unverified, E4 records the due exit as pending until valid quotes.
 
 They never stop the exit review (judge 84). The versions are read from the playbook files without D1's approval
 checks (a refused playbook must not halt exits), and a version stating an exit code cannot enforce (D1 now refuses it
-`paper`, so only an older file can) still gets its time exit, with an alert naming the exit nobody applies."""
+`paper`, so only an older file can) still gets its time exit, with an alert naming the exit nobody applies. A trade
+whose version cannot be read gets no rule (E4 then holds it and alerts) and never costs another trade its exit."""
 
 from __future__ import annotations
 
@@ -17,9 +18,11 @@ from ..desk.records import DeskRecords
 from ..desk.status import open_positions
 from ..desk.trade_counts import version_key
 from ..playbook.exit_terms import unenforceable_exits
+from ..playbook.fields import PlaybookError
 from ..playbook.loader import Playbook
 from ..playbook.opportunities import OpportunityFinder
 
+UNREADABLE = "F&O paper desk {book} {trade}: its playbook version cannot be read ({problem}); E4 holds it with no rule"
 NOT_ENFORCED = (
     "F&O paper desk {book} {trade}: {version} states exits code cannot apply ({what}); only its time exit runs"
 )
@@ -33,7 +36,11 @@ class PlaybookExitRules(ExitRules):
     def rules(self, book: str) -> Mapping[str, Sequence[ExitRule]]:
         playbook, rules = self.playbook(), {}
         for position in open_positions(self.records(book)):
-            strategy = playbook.get(*version_key(position.strategy))
+            try:
+                strategy = playbook.get(*version_key(position.strategy))
+            except PlaybookError as missing:  # one trade's version unreadable: E4 holds and alerts it, others go on
+                self.alerts.send(UNREADABLE.format(book=book, trade=position.trade_id, problem=missing))
+                continue
             unenforced = unenforceable_exits(strategy)
             if unenforced:
                 what = "; ".join(unenforced)

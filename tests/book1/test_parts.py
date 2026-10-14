@@ -147,3 +147,24 @@ class Alerts:
     def send(self, text):
         self.sent.append(text)
         return "sent"
+
+
+def test_one_trade_s_unreadable_version_never_costs_another_trade_its_exit(monkeypatch):
+    """Judge 84 ruling (1): per trade, not per book."""
+    from fno.books import book1_exits
+    from fno.desk.pricing import DeskLeg
+    from fno.desk.status import OpenPosition
+    from fno.playbook.loader import Playbook
+    from fno.research_engine.structures import BOUGHT, Leg
+
+    def position(trade, version):
+        legs = ((DeskLeg("N", EXPIRY, Leg(25_000, "CE", BOUGHT)), 65),)
+        return OpenPosition(trade, version, "d", legs, 0.0, datetime(2026, 10, 13, 15, 15), "exec", "", ())
+
+    monkeypatch.setattr(book1_exits, "open_positions", lambda r: [position("t1", "gone-v1"), position("t2", "sc-a-v1")])
+    alerts = Alerts()
+    finder = OpportunityFinder(TradingDays(CALENDAR))
+    rules = PlaybookExitRules(lambda: Playbook((parse_strategy(book1_doc()),)), finder, lambda b: None, alerts)
+    found = rules.rules(BOOK1_RULES)
+    assert list(found) == ["t2"] and found["t2"][0].exit_day == date(2026, 11, 3)
+    assert len(alerts.sent) == 1 and "t1: its playbook version cannot be read" in alerts.sent[0]
