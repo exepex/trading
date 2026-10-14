@@ -28,9 +28,9 @@ class CommittedLiveReports(LiveReports):
 
 
 class RecomputedLiveReports(LiveReports):
-    """The fresh recomputation (all recorded days), when a committed report exists and each of its rows matches it.
-    A strategy whose live feature stops agreeing on later days stops passing the gate: it no longer trades what was
-    tested."""
+    """The fresh recomputation (all recorded days), when a committed report exists and is exactly its first rows: the
+    same days in order, no gap, every value equal; only days recorded after the report may follow. A strategy whose live
+    feature stops agreeing on later days stops passing the gate: it no longer trades what was tested."""
 
     def __init__(self, committed: LiveReports, recompute: Callable[[str], Mapping]):
         self.committed, self.recompute = committed, recompute
@@ -40,5 +40,5 @@ class RecomputedLiveReports(LiveReports):
         if report is None:
             return None
         recomputed = self.recompute(live_feature)
-        fresh = {row["day"]: row for row in recomputed["comparisons"]}
-        return recomputed if all(fresh.get(row["day"]) == row for row in report["comparisons"]) else None
+        rows = list(report["comparisons"])
+        return recomputed if rows == list(recomputed["comparisons"])[: len(rows)] else None
