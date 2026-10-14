@@ -2,8 +2,10 @@
 
 Protocol version: 1
 
-**Status: DRAFT, not frozen.** Every value below is a proposal for the owner. Nothing is counted under this protocol
-until the owner decides each item, the protocol is frozen (`python -m fno evaluation freeze`), and the freeze record
+**Status: DRAFT, not frozen.** The owner decided five items on 14 Oct 2026 (`uncertainty_criterion`,
+`catastrophic_loss_strategy`, `ai_cost_allocation`, `reporting_per_version`, `frozen_files`;
+`docs/DESK_DECISIONS.md`). Every other value is still a proposal. Nothing is counted under this protocol until the
+owner decides each item, the protocol is frozen (`python -m fno evaluation freeze`), and the freeze record
 is committed before the first counted decision of every book. Builder: Claude, 14 Oct 2026, branch
 `story/s1-protocol`.
 
@@ -127,8 +129,12 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   3. **Whole period:** the whole period's net is above zero.
 
   When several claims are made at one review, Holm's correction across them sets each claim's one-sided level.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-14
 - **Reason:**
+  - **The owner's decision (14 Oct 2026):** 120 trading days (about 6 months), against the orchestrator's
+    recommendation of a year plus a t-based check. The known weakness stays: 120 days at 20-day blocks is about 6
+    blocks, and a percentile bootstrap from 6 blocks covers less than its stated 95%, so it claims too often (some
+    evidence). Whether to add the t-based check alongside is with the owner; it is not part of this rule.
   - The block covers one holding period (about 7-17 trading days), so overlapping positions are not counted as
     independent. 20 days also matches the forecast protocol's block.
   - The seed is E6's, so one seed serves all reviews.
@@ -171,8 +177,9 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - one completed position's C1 net loss reaches its plan's `catastrophic_loss_rs` (at most C2's Rs 10,000 per-trade
     maximum loss); or
   - the version's cumulative realised C1 net reaches minus 3 times its `catastrophic_loss_rs` (Rs 30,000 at Rs
-    10,000).
-- **Status:** proposal, owner decides
+    10,000). The count covers the version's book trades closed since its latest change to paper, in all books
+    together; shadow trades are excluded; an owner re-approval restarts the count (owner, 14 Oct 2026).
+- **Status:** decided by the owner on 2026-10-14
 - **Reason:**
   - The first rule is E6's, already built.
   - The second is new: a run of losses each below the per-trade limit would otherwise never pause the strategy. At
@@ -229,7 +236,7 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - **Missing cost:** a month with no recorded plan cost shows "unknown", never zero.
   - **Tokens:** not used, because most sessions do not report them.
   - **Label:** "allocated, not a bill". Actual cash spend is shown apart.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-14
 - **Reason:** Design 13.6.
   - Usage share is the simplest formula that sums exactly.
   - **The owner's choice here is real.** Counting development in the denominator lowers the books' cost, and while
@@ -276,6 +283,9 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 
 ### `reporting_per_version` Results per protocol version
 - **Value:**
+  - **When counting starts (the owner's option A, 14 Oct 2026):** version 1 is frozen only once the scoring code of
+    S2, S3, F8 and F9 exists, so every scoring rule and its code are hashed before the first counted decision. Every
+    decision before that freeze is pilot evidence.
   - **Labelling:** every reported figure carries its protocol version.
   - **Which version:** a decision is counted under the latest protocol version whose freeze record's commit is a
     strict git ancestor of the decision's commit. A decision with no such freeze is not counted, only shown.
@@ -283,7 +293,7 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     under a later one.
   - **Changes:** a change after a freeze is a new version with its own freeze and its own ledger row, and starts its
     own section of every report.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-14
 - **Reason:** Story S1, criterion 3: no result can be reinterpreted under rules written after it was seen.
 - **Evidence:** reasoning only
 
@@ -293,40 +303,26 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     `fno/scorecard/review.py`, `fno/research_engine/statistics.py`, `fno/desk/timetable.py`.
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
-  - **Code not built yet:** the scoring code of S2 and S3 and the code of F8 and F9 is added to this list before the
-    freeze if it exists then. If it does not, it is built to the frozen text and hashed by a version 2. Version 2
-    adds hashes only, changes no rule, and is frozen before any result is reported.
+  - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2 and S3 and the code of F8 and F9
+    is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
+    version 2.
   - **Refusal:** the freeze tool refuses a listed file that does not exist.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-14
 - **Reason:**
-  - The scoring and allocation methods are frozen as text here, which is what S1 needs (story S1: "it needs their
-    story text, not their code").
-  - Their code can only be hashed once it exists.
+  - The owner chose option A: code written after decisions are seen could be shaped by them, so the code is hashed
+    with its rules before anything is counted.
   - Hashing settings by section means an unrelated config change does not break the freeze.
 - **Evidence:** reasoning only
 
 ## Open questions for the owner (raised by judge 85)
 
-These two affect items above. Each lists the options. My recommendation is reasoning only.
-
-1. **A hashes-only version 2 and per-version reporting** (`frozen_files`, `reporting_per_version`).
-   - **The conflict:** version 1 would hash no scoring code, because S2, S3, F8 and F9 do not exist yet. That code
-     would then be written after some decisions are seen, and could be shaped by them.
-   - **Option A:** freeze version 1 only once the S2, S3, F8 and F9 code exists, so every scoring rule and its code
-     are hashed before the first counted decision. Counted trading waits for that code.
-   - **Option B:** keep the hashes-only version 2, and state that it covers every decision counted under version 1.
-     It must be frozen before any result is computed or seen. The code is then built to the frozen text, and the
-     judge checks it against that text.
-   - **Recommendation: A.** It closes the gap instead of managing it. If Book 1's counted start cannot wait, B with
-     its stated cover is acceptable, but only if no outcome is looked at before the version 2 freeze.
-2. **Too few blocks for the bootstrap** (`uncertainty_criterion`).
-   - **The problem:** 120 trading days at 20-day blocks is only about 6 blocks. A percentile bootstrap from 6 blocks
-     covers less than its stated 95%, so it would claim too often.
-   - **Option A:** require at least 12 blocks (240 trading days, about a year) before any claim.
-   - **Option B:** keep 120 days and also require a t-based lower bound above zero (the block means' mean minus the
-     one-sided 95% t quantile × their standard error). Both bounds must then be above zero.
-   - **Recommendation: A and B together.** At about one position per strategy per month, a year is the realistic
-     horizon anyway. The t check costs nothing and guards the bootstrap.
+1. **A hashes-only version 2** (`frozen_files`, `reporting_per_version`). **Decided by the owner on 14 Oct 2026:
+   option A.** Version 1 is frozen only once the S2, S3, F8 and F9 code exists. Book 1 may paper-trade before
+   that; those trades are pilot evidence.
+2. **Too few blocks for the bootstrap** (`uncertainty_criterion`). **Decided by the owner on 14 Oct 2026: keep 120
+   trading days.** That goes against the recommendation of a year plus a t-based check. **Still open:** whether to
+   add the t-based lower bound alongside (the block means' mean minus the one-sided 95% t quantile × their standard
+   error). The orchestrator has asked the owner.
 
 ## Mapping of the provisional terms this protocol replaces
 

@@ -80,3 +80,41 @@ Must-fix:
 2. Correct the lead's trade range to about 1,200-2,000.
 
 Should-fixes 1 and 2 from judge 93 remain open.
+
+## Addendum 2 (14 Oct 2026): 8737596
+
+| Item | Result | Evidence |
+|---|---|---|
+| Must-fix: funds at entry separate from margin, by C2's formula | MET | Script section 7 implements C2's formulas (`fno/risk/margins.py`; judge 77 addendum 3). Its output: SC 300 stressed margin 71,428; funds at entry **1,00,784** = 81,581 + 19,045 bought wings at the ask + 158 entry charges (`fno.costs.order_charges` with `config.yaml` charges). That agrees with my estimate of about 1,00,600 plus charges. Put spread 22000/21850: NOV is −1,761.50 at today's fills (bought at ask 142.10, sold at bid 169.20). With scan bounded by the SC 100 and SC 200 rows (2,650.70 and 5,423.60), stressed margin is 33,382 to 37,403 and funds are 44,453 to 48,473; I recomputed both bounds by hand. The scan bound is labelled an estimate (no NSE row exists), which is honest. The table now has separate rows for stressed margin and funds at entry. |
+| Must-fix: the trade range in the lead | MET | The lead says "about 1,200-2,000 trades, i.e. about 100-165 years". The response discloses that the earlier 280 figure proved a loss, not an edge. The script prints 1,212 and 1,979. |
+| Should-fix: ledger row for the put-spread model | MET | Row 42 is `retrospective`, `hypothesis` no, with no protocol. That is correct: the model's result was seen before the row was written. `LEDGER.md` adds the missing 37-41 line and row 42, and the total trial count is now 42. |
+| Should-fix: the 2 SE column | MET | The column is printed only where the mean is positive ("no edge to prove" elsewhere), plus the 1,979 line. |
+| `tests/research/test_ledger_guard.py` | MET: an honest update, not loosened | The pinned id list grows from 1-41 to 1-42 (`range(1, 43)`), so the test still requires every row and no gaps. It adds an assertion that row 42 is `retrospective`. No assertion was removed or weakened. Under the merged lanes rule this test edit adds a check, so it is not a weakened test. |
+| Reproduction and gates | MET | `analysis.py` output is byte-identical to `output.txt`. On a trial merge with `main`, 3,150 tests passed with the Slack token unset; `ruff check` and `ruff format --check` are clean, including the research script; `check_imports` is clean. |
+
+Still open, inherited from response 77: the 5.6% exposure gap against Zerodha. It applies to every margin and funds
+figure here, and the response says so.
+
+**Verdict: PASS for 8737596.** Merge it. After the merge I check `main` and CI.
+
+## Addendum 3 (14 Oct 2026): c3a2569, the tip to merge (docs and script only, on top of 8737596)
+
+- **Scan ceiling.** The put spread's scan ceiling is now its full loss: width 150 x 65 + NOV (−1,761.50) = 7,988.50.
+  That is correct. A defined-risk vertical cannot lose more than its width minus its current value, so no SPAN scenario
+  exceeds it. At k 1.45 the stressed margin is 41,122 and the funds at entry are 52,192. The ranges are now about
+  33,400-41,100 and 44,500-52,200, labelled as estimates, with the exact figure deferred to A14's calculator.
+- **B0's put half.** It is now labelled "an indication only, not a test". The text gives both reasons: the strikes and
+  width differ from the candidate, and 6-12 trades cannot tell Rs 410 from zero. It requires per-leg fills. This
+  matches addendum 1.
+- **Reproduction.** `analysis.py` output is byte-identical to `output.txt`, and `ruff check` and `ruff format --check`
+  are clean. Nothing outside the research script, its output and response 92 changed after 8737596, which addendum 2
+  ran in the full suite.
+
+**Verdict: PASS for c3a2569.** Merge exactly that. After the merge I check `main`.
+
+## Addendum 4 (14 Oct 2026): merge 7258fa2 MET
+
+- **The merge is exact.** Its parents are d8dfb3b and c3a2569, and it equals my recomputed `git merge-tree` exactly.
+- **No unjudged change on `main` since.** Nothing under `fno`, `tests`, `tools`, `.github`, `config.yaml`, `db`,
+  `research`, `agents` or `playbook` changed after it; the later commits are logs and judge files.
+- **CI is pending.** I confirm it with the 17:35 UTC audit.
