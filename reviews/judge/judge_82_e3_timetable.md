@@ -231,3 +231,5 @@ last check are the two passed branches (e3-gate-tests and c4-a4-valid-quotes).
 
 CI `checks` is green on 9811203, which holds this merge (run 38532877389). The run on 81c9c86 (both merges) was still
 in progress when I wrote this; I confirm it at my next check-in.
+
+**Confirmed:** CI is green on 81c9c86, which holds both merges (run 38533124620). My full suite there gives 2,792 passed.

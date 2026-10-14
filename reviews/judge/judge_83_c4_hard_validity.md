@@ -248,3 +248,5 @@ trades with `valid = false`.
 81c9c86 joins it with 9811203 (E3's gate tests) and equals its recomputed merge too.
 
 CI on 81c9c86 (run 38533124620) was in progress when I wrote this; I confirm it at my next check-in.
+
+**Confirmed (addendum 5 follow-up):** CI is green on 81c9c86 (run 38533124620). My own full-suite run on 81c9c86 gives 2,792 passed.
