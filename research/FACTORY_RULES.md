@@ -60,6 +60,16 @@ result as a labelled warning, `thin margin` when it fails. It is never a pass ma
 an idea with gross twice its cost can still lose on average once rare maximum losses are counted, and an idea with a
 ratio below 2 can pass if its expected net is positive on the conservative bound.
 
+**Cost-hurdle feasibility study (a separate case, judge 97).** When the gross edge is unknown (no source, or
+published studies disagree on its sign), the least favourable edge is at most zero, so the idea itself cannot pass G1.
+A registered study may still ask "would an assumed edge survive costs?" under these rules:
+- the assumed edge is called an **assumed hurdle**, labelled reasoning only, never a "conservative bound" (where a
+  frozen protocol written before this rule uses that phrase for such an edge, it means the assumed hurdle);
+- the results report prints the break-even edge e\* = cost / price per structure beside the hurdle, and uses the name
+  "assumed hurdle" for the assumed edge;
+- a YES only says that a later study is worth registering. It **never counts as a G1 pass for any later idea**: a later
+  idea passes G1 only on its own stated source of gross edge, under the rule above.
+
 **What happens to a screened-out idea.**
 - It **stays in the ledger and in the trial count**, with status `screened_out` and its numbers; it is never deleted
   or renumbered.
