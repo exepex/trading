@@ -19,6 +19,7 @@ from .decision_codec import book_to_json, market_to_json
 from .decision_inputs import DayInputs, PlaybookSnapshot, RecordingCounts, RecordingFeatures, RecordingShadowBooks
 from .decision_record import NO_TRADE_ID, RecordBuilder, run_context_of
 from .decision_store import INPUTS_FILE, DecisionStore, record_file
+from .decision_validity import TradeValidator, validate_chosen
 from .evaluate import LiveFeatureValues, RuleEvaluator
 from .loader import Playbook
 from .shadow import ShadowBooks
@@ -39,8 +40,8 @@ def file_hashes(snapshot: PlaybookSnapshot) -> dict[str, str]:
 
 
 class DecisionRun:
-    def __init__(self, evaluator: RuleEvaluator, store: DecisionStore):
-        self.evaluator, self.store = evaluator, store
+    def __init__(self, evaluator: RuleEvaluator, store: DecisionStore, validator: TradeValidator | None = None):
+        self.evaluator, self.store, self.validator = evaluator, store, validator
 
     def decide(
         self, day: date, snapshot: PlaybookSnapshot, market: Market, features: LiveFeatureValues, book: RiskBook,
@@ -61,7 +62,8 @@ class DecisionRun:
         run_context = {**{k: context.get(k) for k in RUN_CONTEXT}, "inputs_sha256": sha256_hex(data),
                        "registry_commit": snapshot.commit, "served": served}  # fmt: skip
         run_id = self.store.next_run_id(day)
-        records = RecordBuilder(book.name, run_id, run_context).build(evaluation, file_hashes(snapshot))
+        validity = validate_chosen(evaluation, self.validator, market, playbook, book)
+        records = RecordBuilder(book.name, run_id, run_context, validity).build(evaluation, file_hashes(snapshot))
         return self.store.write(day, run_id, data, records)
 
 
@@ -69,9 +71,13 @@ class ReplayRefused(ValueError):
     """The running code is not the code the run was decided with: a replay here would prove nothing."""
 
 
-def replay(run: Path, evaluator: RuleEvaluator, code: CodeTree, todays_code: bool = False) -> list[str]:
-    """Every difference between the stored records and a fresh D2 evaluation of the stored inputs; empty if equal.
-    Refused unless the running code is the record's `code_commit`; `todays_code` runs anyway and says so first."""
+def replay(
+    run: Path, evaluator: RuleEvaluator, code: CodeTree, todays_code: bool = False,
+    validator: TradeValidator | None = None,
+) -> list[str]:  # fmt: skip
+    """Every difference between the stored records and a fresh D2 evaluation (and C4 check, with `validator`) of the
+    stored inputs; empty if equal. Refused unless the running code is the record's `code_commit`; `todays_code` runs
+    anyway and says so first."""
     data = (run / INPUTS_FILE).read_bytes()
     day_record = json.loads((run / record_file(NO_TRADE_ID)).read_text(encoding="utf-8"))
     commit = day_record["header"]["code_commit"]
@@ -86,9 +92,12 @@ def replay(run: Path, evaluator: RuleEvaluator, code: CodeTree, todays_code: boo
     if day_record["header"]["inputs_sha256"] != sha256_hex(data):
         return [*note, f"{INPUTS_FILE}: its SHA-256 differs from the one the records name"]
     inputs = DayInputs.from_json(json.loads(data))
-    evaluation = evaluator.evaluate(*inputs.replay_arguments())
+    arguments = inputs.replay_arguments()
+    evaluation = evaluator.evaluate(*arguments)
+    _, playbook, market, _, book = arguments[:5]
+    validity = validate_chosen(evaluation, validator, market, playbook, book)
     context = run_context_of(day_record)
-    rebuilt = RecordBuilder(day_record["book"], day_record["run_id"], context).build(
+    rebuilt = RecordBuilder(day_record["book"], day_record["run_id"], context, validity).build(
         evaluation, file_hashes(inputs.playbook)
     )
     stored = {p.name: json.loads(p.read_text(encoding="utf-8")) for p in run.glob("*.json") if p.name != INPUTS_FILE}

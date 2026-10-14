@@ -99,3 +99,113 @@ the builder's fresh-interpreter check). My plants on the charge formula are caug
 - New modules in `fno/checks/`, wired in `fno/checks/wiring.py` (listed in CLAUDE.md).
 - D3's `validity.c4` is filled.
 - No orders and no secrets.
+
+## Addendum 1 (round 2, branch b446d09): the three must-fixes MET; not yet PASS (one new wrong proposal of mine passes)
+
+**Must-fix 1, lot size: met.**
+- The lot size and the monthly expiries now come from NSE's own F&O file of the previous session (`NewBrdLotQty` per
+  expiry; the newest file within 7 days, else the check fails closed). The proposer's settings and A4's chain choice
+  play no part.
+- **My round-1 probe re-run:** the lot-75 case now fails `lot_size`, and the correct trade passes.
+- The monthly-expiry should-fix is done by the same file.
+
+**Must-fix 2, sidecar: met.** A sidecar whose `started_at` is rewritten after the commit fails on its SHA-256 (test).
+
+**Must-fix 3, every owner limit recomputed: met.** Each is computed from raw inputs:
+- **drawdown brake:** from the E1 ledger and overrides, with C4's own high-water mark; an owner restart when the brake
+  was not in force fails closed;
+- **stress and exposure:** with C4's own Black-76 on the committed snapshot;
+- **margin room:** on A14's three-part file, with the dated multiplier applied to the scan only (judge 75).
+
+The independence guard is extended. My plants:
+
+| Plant | Result |
+|---|---|
+| The multiplier applied to the netted figure | caught (2 failed) |
+| Drawdown `<` relaxed to `<=` | caught |
+| Stress ignoring the held trades | caught |
+| The restart guard off | caught |
+| **The margin room's own-liability term dropped** (judge 77's "never looser" case) | **not caught** |
+| The listing lookback widened to 30 days | not caught (minor) |
+
+**Stated limits, accepted:**
+- **Stress disagreeing with C2 near a limit:** C4's stress can disagree with C2's there, and then C4 blocks. That is
+  the safe direction.
+- **Every trade blocked on margin until A14 merges:** `main`'s `margins.csv` still has the pre-A14 header and no
+  multiplier, so `margin_room` blocks every trade until A14 merges. That fails closed, but **no Book 1 trade can pass
+  C4 until A14 does.** A14 is still FAIL (judge 77).
+- **Open trades' terms from the D2 book:** these terms decide each trade's margin row, and C4 does not re-derive them.
+
+**My new wrong proposal for this round: not caught (must-fix).**
+- A correct SF whose first leg carries the contract name `NIFTY26102725100CE` while its strike is 25,000 passes C4.
+- C4 looks quotes up by (expiry, strike, type) and never checks that the contract name the desk fills and marks by is
+  that contract.
+- E4 prices by strike but records and later marks by the contract name, so the book would hold one contract and mark
+  another.
+- **Fix:** each leg's contract name must match its expiry, strike and type, checked against the snapshot's own
+  contract identifier or NSE's symbol format. One seeded case.
+
+**Should fix:**
+- one test that drops the margin room's own-liability term (it must fail);
+- the lookback bound;
+- the merge with `main` now conflicts in CLAUDE.md, because E3 changed the same composition-root line. Resolve it at
+  the merge.
+
+**Gates:**
+- full suite: 2,709 passed;
+- ruff and imports: clean.
+
+One small round for the contract-name check and its test.
+
+## Addendum 2 (round 3, branch bf0d4af = fix 3764572 plus a merge of main): PASS
+
+**The must-fix is met.** Each leg's name must now equal the snapshot's `contract_id` for its (expiry, strike, type).
+Seeded case 18 is my wrong proposal (`NIFTY26102725100CE` on the 25,000 CE leg). It fails exactly that leg: the test
+asserts the failure set equals `{"leg 2026-10-27 25000 CE"}`.
+
+The builder's extra finding is correct and serious: the misnamed leg was checked at 25,000 but priced by name at
+25,100 in stress and margin. Requiring the names to match closes both.
+
+**Should-fixes met:**
+- the own-liability mirror test (open BF, new SF);
+- the lookback bound (8 days refused, 7 used);
+- CLAUDE.md keeps both composition-root lines (`fno/checks/wiring.py` for C3 and C4, `fno/desk/daily_wiring.py` for
+  E3).
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,778 passed;
+- ruff, format (618 files) and imports (625): clean;
+- `git merge-tree` with current `main` (e41d988): clean.
+
+**My plants (9, `tests/checks` and `tests/decisions`): all caught.**
+
+| Plant | Result |
+|---|---|
+| Name check off | 1 failed |
+| Name compared on its first 5 characters only | 1 failed |
+| Own liability dropped from the margin term | 1 failed |
+| Lookback widened to 30 days | 1 failed |
+| Regression from round 2: stress multiplier on NOV too | 2 failed |
+| Regression: liabilities term dropped | 1 failed |
+| Regression: drawdown `<` to `<=` | 1 failed |
+| Regression: stress ignores held trades | 1 failed |
+| Regression: restart guard off | 1 failed |
+
+**One should-fix for a later round (reasoning only, not blocking).**
+- `Evidence.mids()` takes every two-sided quote. It ignores A4's validity (no same-day trade, a crossed book, a zero
+  bid). `parity_forward` then takes the forward from the single strike whose call and put mids are closest.
+- One bad quote at that strike moves every stress figure on that expiry, in either direction.
+- At-the-money quotes at 3 pm are almost always valid, and C3's per-leg rule still gates the fill. So the risk is
+  small, but a looser stress could pass a trade.
+- Read `valid` and use only A4-valid quotes for the forward. Book 1's market (E5) already does.
+
+**Accepted limit (unchanged):** `margin_room` blocks every trade until A14's rows exist.
+
+**Verdict: PASS.** After the merge I check `main` against bf0d4af and CI.
+
+## Addendum 3 (merge check, dafbebe)
+
+**MET.**
+- dafbebe has parents f67c090 (`main`) and bf0d4af (the passed tip).
+- It equals my recomputed merge of the two (`git diff` empty).
+- CI `checks` is green on dafbebe (run 38529262438).
