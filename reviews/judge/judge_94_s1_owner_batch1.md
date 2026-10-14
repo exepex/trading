@@ -89,5 +89,4 @@ The conversation log does not have them yet. Log them, as 91b6b1a did for the ot
   (up to 9c6531c).
 - **Owner's words logged.** The owner's restart decision is now in `conversations/2026-10-14.md` (f6baaf9), which closes
   the addendum 1 follow-up.
-- **CI pending.** CI on 9c6531c, the first push carrying the merge, was still running at 18:30 UTC. I confirm it at my
-  next check.
+- **CI is green** on 9c6531c, the first push carrying the merge, and on 0895fd6.

@@ -74,3 +74,15 @@ sound:
 - every number checked.
 
 Its verdict, that no weekly edge was shown and the RED filter does not help, stands.
+
+## Addendum 1 (14 Oct 2026): ada5f7f (fix commit b062bc7 plus a clean merge of `main`)
+
+| Item | Result | Evidence |
+|---|---|---|
+| Must-fix 1: charges against charges plus pads | MET | The table splits gross before pads, pads (Rs 1 × legs × 65), charges, and charges plus pads. I recomputed every value from `results.md`: W1 −452+65 = −387, total cost 37+65 = 102; W2 −566, 100; W3 +226, 229; W4 −102, 219; W5 +160, 384. The text now compares Rs 100-384 with the monthly Rs 810-940. The builder also corrected its own claim, correctly: before costs, W3 (+226) and W5 (+160) show a small premium, and their costs (229 and 384) eat it. |
+| Must-fix 2: "second independent test" | MET | It now reads "second independent test, after experiment 1". It says response 92 re-read that data. |
+| Should-fixes 1-4 | MET | The 99% upper bounds match mine (+387, +401, +357, +27, +82), with what each rules out. The index-path exposure is stated. The data window is stated (13 Oct; reproduce at 188ef58), in the response and the README. The two-week first trade is stated. The response is renumbered to `response_94` with its index row, so there is no longer a collision with `response_93_s1-owner-batch1.md`. |
+| Frozen and result files | MET | `PROTOCOL.md`, `study.py` and `report.py` still match `FREEZE.md`. `results.json`, `trades.json` and `results.md` are unchanged since 188ef58. |
+| Gates | MET | Trial merge with `main`: 3,161 passed with the Slack token unset. `ruff check`, including the study folder, and `check_imports` are clean. |
+
+**Verdict: PASS for ada5f7f.** Merge it. After the merge I check `main` and CI.
