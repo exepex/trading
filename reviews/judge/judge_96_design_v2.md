@@ -118,3 +118,32 @@ word. Only `docs/design_v2/` and response 95 change.
 
 **Verdict: PASS for 13e256061bd8d73106c56623e5548d53d8b1d52b.** Next, ChatGPT reviews it via response 95 and the
 owner approves. Nothing merges before that.
+
+## Addendum 2 (15 Oct 2026): revision 2, tip af604ed056d0308ab1478a1d2a504808476323ab (answer to ChatGPT review 95)
+
+One commit after 65d07af, which is ChatGPT's review 95. It changes `docs/design_v2/`, response 96 and the README. The
+largest file is response 96 at 204 lines.
+
+| Claim | Result | Evidence |
+|---|---|---|
+| (a) G1 v3 uses a two-sided, null-centred test; v4 states the one-sided form; HAC is a sensitivity only | MET | `fno/forecast_scoring/block_bootstrap.compare` counts `abs(means - observed) >= abs(observed)`: two-sided and null-centred, as stated. v4's p = (1 + #{D*−D ≤ D})/(B+1) is the matching one-sided form; negative D favours the forecaster, so the direction is right. The block scheme (ceil(n/L) starts from 0..n−L, cut to n) and "fewer than 2L pairs: not tested" are well defined. The Newey-West HAC t-test, at lag L−1, is predeclared as a sensitivity check and never used to choose. v3 is untouched. |
+| (b) 2 exact zero-return days; the QLIKE floor binds on 132 of 2,174 days | MET (reproduced) | From `warmup_closes.csv`: 2,425 closes give 2,424 log returns. The zero returns fall on 2017-03-31 and 2024-05-08. With a floor of 1% of the trailing-250 median of squared returns, 2,174 days are evaluable and the floor binds on 132 (6.1%). The smallest 5-day sum is 4.55e−6, never zero. |
+| (c) Base rates and weather floors | MET (reproduced) | A 2% day: 4.13% of sessions; 16.7% in 2020, 0.0% in 2017, 0.4% in 2023. At least one in the next 5 sessions: 13.7%. 2.5× gives about 10.3% and 34%, consistent with the RED floors of 10% and 35%. The 15% maximum RED frequency is frozen with the thresholds, and breaching it means a new version, never an in-place retune. |
+| (d) Primary baselines declared now; V5 relabelled; P&L target rejected | MET | The table declares premium-adjusted implied as primary for V2 and V3, with the reason: raw implied is biased upward, and choosing on 2019-26 outcomes would expose the targets. V5 is now a terminal intrinsic proxy against an option-implied probability scored by Brier, labelled "risk-neutral" and "not evidence of money". V4 is marked diagnostic, and the text notes that P(RV<IV) is not the variance premium. The one rejection gives a reason, and the decision is ChatGPT's to contest. |
+| (e) Stop rule | MET | There is a decision unit: v4's registered primary comparisons only, and Test B counts only registered shadows. "No" needs futility: the one-sided 95% upper bound of improvement is below the minimum effect, so failing to reject zero is never enough. Both tests must say "no" to stop. The owner's "undecided" choice is recorded in `DESK_DECISIONS.md` before the first v4 score. |
+| (f) E8 | MET | It is still owner decision 12, with two options, (a) frozen_files or (b) a separate freeze record, and it is not decided in the text. |
+| (g) Slice A reduced | MET | Slice A is now a sequence, not a calendar. C5, E8, T2 and G7 phase 2 move to slice B. LM1 starts only when the first position is open. R2 and LR1 stay, with stated reasons. |
+| (h) 04 §4.4 contracts | MET | Issuance time comes from Slack's server time, with GitHub's push receipt as a second witness; committer time is never evidence. A Groww terms gate comes before A16, with raw quotes private in Drive. A UTC clock contract with a 5-second skew warning. Owner-unavailable handling. |
+| Decided items untouched | MET | REPLAN §4 still changes only open S1 items. The five decided items are listed as not reopened, and E8 is left to the owner. No owner decision is restated differently. |
+
+Should-fix (for G6's freeze record, not this design):
+1. **Disclose what was seen.** Revision 2 measured V6-type outcomes on 2017-2026 NIFTY closes (base rates, floors) to
+   set the weather floors and the QLIKE floor before v4's freeze. That is acceptable, because only forecasts after the
+   freeze count. But G6's freeze record must disclose this exposure, as experiment 1's did. The same applies to any
+   G7/G8 back-fill run before the freeze.
+2. **Define the session set.** The 2,424 returns include muhurat and special sessions (`session` column), where a
+   one-hour session's return is not a normal day's. G6 should define which sessions count, for outcomes and base rates
+   alike.
+
+**Verdict: PASS for af604ed056d0308ab1478a1d2a504808476323ab.** It returns to ChatGPT for the PARTIALs, then goes to
+the owner.
