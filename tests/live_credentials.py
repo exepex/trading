@@ -19,3 +19,12 @@ LIVE_CREDENTIALS = (
     c.ENV_ROUTINE_BOOK3_TOKEN,
     c.ENV_GITHUB_TOKEN,
 )
+# Every other ENV_ name in fno/constants.py: identifiers, not credentials. A new ENV_ name must join one of the two.
+NOT_CREDENTIALS = (
+    c.ENV_GDRIVE_FOLDER_ID,
+    c.ENV_GITHUB_RUN_ID,
+    c.ENV_GITHUB_RUN_ATTEMPT,
+    c.ENV_ROUTINE_DRY_RUN_TRIGGER_ID,
+    c.ENV_ROUTINE_BOOK2_TRIGGER_ID,
+    c.ENV_ROUTINE_BOOK3_TRIGGER_ID,
+)
