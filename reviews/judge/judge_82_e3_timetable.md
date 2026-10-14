@@ -110,3 +110,44 @@ unpushed commits (a decision, a capture record, a run log) are destroyed, and no
 
 - New modules behind ports (`daily_ports.py`). Composition root `fno/desk/daily_wiring.py`.
 - The timetable is in `config.yaml` with order checks. No orders and no secrets.
+
+## Addendum 1 (round 2, branch 38d1bdb): both must-fixes MET; not yet PASS (one item carried from judge 83)
+
+**Must-fix 1 (a late book filled): met.**
+- The `decisions` step pulls once at the deadline and records the origin it saw. Per book it records the run ID, its
+  holding commit and the committer time.
+- `fill` reads only those recorded runs, through `DecisionSource.recorded`, which refuses a run not held by the
+  recorded commit.
+- A collection more than 30 s after the deadline (a restart) marks every book late.
+- **My round-1 probe re-run:** the run committed at 15:11:50 but visible at 15:13 is now "no decision (late)", with
+  no fills and no account rows.
+
+**Must-fix 2 (the reset destroying other work): met.**
+- An account write is refused (`CheckoutNotDedicated`, with an alert) unless the tracked worktree is clean and
+  nothing is unpushed.
+- Before a reset, exactly one commit (this write's) may be ahead of the pulled origin.
+- **My round-1 probe re-run:** with an unpushed decision commit in checkout B, the write is refused ("1 unpushed
+  commit(s)") and the decision file is kept.
+
+**"Built, not live"** is in the story status.
+
+**My plants (`python -B`, caches cleared; `tests/timetable` and `tests/checks`, 57 tests): all 11 caught.**
+- 4 new ones: the collection grace off, the dedicated-checkout check off, the "only one commit ahead" check off, and
+  the recorded commit not compared.
+- The 7 from round 1.
+
+**Gates:**
+- full suite: 2,618 passed;
+- ruff and imports: clean;
+- `git merge-tree` with current `main`: clean.
+
+**Still open, so not yet PASS:** judge 83's ruling arrived after this round began, and it is not in 38d1bdb. The only
+`ValidityGate` is the port; the run takes one from its caller. E3 must supply the gate itself:
+- `ValidityGate` passes an order only when the **committed D3 record** of that opportunity holds a completed C4 pass
+  (`validity.c4` with `ok: true`);
+- a null or failed `validity.c4` means "not filled";
+- it never re-runs C4 against the 15:15 execution capture, whose mids differ from the decision's;
+- `build_daily_run` wires this gate itself, not taking any gate from its caller;
+- one test with a passing record and one with `c4: null`.
+
+That is one small round. I will check only that.
