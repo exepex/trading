@@ -15,8 +15,9 @@ Some points were already done before this round:
 **Result:**
 - **B1-B4:** all four ACCEPTED.
 - **Per-file notes:** 32 ACCEPT (4 of them already done before this round), 3 PARTIAL, 0 REJECT.
-- **Owner decisions:** two accepted changes touch owner decisions 4 and 8. Each is flagged below for the owner and is
-  not decided by this text.
+- **Owner decisions:** three accepted changes touch owner decisions 4, 7 and 8. Each is written as a proposal awaiting
+  the owner and is not decided by this text: decision 4's exact unit for "3% lower QLIKE", decision 7's zero-shadow
+  correction (B2), decision 8's tightening of the real-money gate.
 
 All changes are made in revision 3 of `docs/design_v2/`. Every file is under 350 lines; the largest is 192.
 
@@ -36,7 +37,8 @@ timeout and a late pack. `07` §7.3 now says objections are written on the froze
 
 **B2 Zero shadows is not futility: ACCEPT (strong evidence).** Revision 2 made Test B "no" when no idea reached rung 2.
 That contradicted my own rule that underpowered is never "no".
-- `08` §8.2: Test B is "no" only when every counted strategy reached its registered sample and its upper bound is below
+- `08` §8.2, written as a proposed correction awaiting the owner (judge 96 addendum 6; decision 7 is not changed):
+  Test B is "no" only when every counted strategy reached its registered sample and its upper bound is below
   its minimum useful net. Zero eligible shadows gives `undecided / no_economic_test`.
 - Stopping for cost is now named as a separate, non-statistical owner decision.
 - G6's acceptance tests the A/B table with zero trials, missing and void outcomes.
@@ -65,9 +67,10 @@ only fresh data. Changes:
   total and has no promotion or paper eligibility until its forecast passes rung 1 and its economic test passes.
 - Its records count as rung-2 evidence only if its rule, sample plan and pass mark were frozen before collection.
 - **Data-snooping check (owner's note: "you don't have to agree").** I checked whether exploratory shadows open a
-  snooping path. Two paths exist and both are closed in `03` §3.1. Picking the best of many shadows: every shadow running
-  when an idea is judged is in its Holm family. Tuning after looking: a change is a new idea and a new row. A shadow
-  frozen before collection is forward, unseen data; refusing it would waste the only fresh evidence, so I keep B4.
+  snooping path. Two paths exist and both are closed in `03` §3.1. Picking the best of many shadows: every shadow
+  running when an idea is judged is in its Holm family. Tuning after looking: a change is a new idea and a new row. A
+  shadow frozen before collection is forward, unseen data; refusing it would waste the only fresh evidence, so I keep
+  B4.
 - Text: `01` §1.3 point 1 and §1.7, the `03` G3 row and ideas queue, R3, REPLAN slice B.
 
 ## Per-file notes

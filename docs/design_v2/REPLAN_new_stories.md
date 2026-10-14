@@ -33,10 +33,11 @@ the day. Layer and section references are to the design v2 files.
   0; V4's units, with a dimensionally checked golden example (annualised volatility vs integrated variance, calendar vs
   session time); V5's outcome from the correct expiry's final settlement or reference level, with its source and
   timestamp frozen, never a later daily close; the exact one-sided null-centred bootstrap (seed, blocks, missing pairs);
-  baseline eligibility; the futility rule; the stop rule's A/B table with zero trials, missing and void outcomes. The
-  freeze record discloses the 2017-26 base rates measured before it, on regular sessions only (judge 96 addendum 2).
-  Freeze after the judge and ChatGPT agree (orchestrator decision of 13 Oct 2026: G-protocols freeze only after ChatGPT
-  review). G1 v3 keeps running beside it. Depends: G1, G2, G4. M (document). Slice A.
+  baseline eligibility; the futility rule; the frozen day set behind the 3% QLIKE effect (scored, non-void days with RV
+  > 0); the stop rule's A/B table with zero trials, missing and void outcomes. The freeze record discloses the 2017-26
+  base rates measured before it, on regular sessions only (judge 96 addendum 2). Freeze after the judge and ChatGPT
+  agree (orchestrator decision of 13 Oct 2026: G-protocols freeze only after ChatGPT review). G1 v3 keeps running beside
+  it. Depends: G1, G2, G4. M (document). Slice A.
 - **G7 v4 baselines and rule forecasters.** Trailing, EWMA, HAR (daily, later intraday), implied and implied-ratio
   baselines; back-fill on close proxies, labelled; live capture beside G3. Wiring in `fno/forecast/baseline_wiring.py`
   (G1's freeze pins `wiring.py`). Depends: G6. M. Phase 1 (V6, V1) slice A; phase 2 (V2-V5, V7) slice B.

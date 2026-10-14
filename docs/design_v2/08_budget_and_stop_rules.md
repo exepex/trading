@@ -20,7 +20,7 @@ new recurring cash cost needs the owner's written yes; alert at 80%; AI roles st
 **Cap rule:** any new recurring cash cost needs the owner's written yes; at 80% of a cap a SYSTEM alert; at 100% AI
 roles stop in the order of `07_ai_team.md` section 7.6, and code jobs keep running.
 
-## 8.2 The whole-project stop rule (decided by the owner on 15 Oct 2026; Test B's zero-shadow correction flagged)
+## 8.2 The whole-project stop rule (decided by the owner on 15 Oct 2026; one proposed correction awaits the owner)
 
 The owner's idea: "no forecaster beats baselines after 6 months of daily scoring: stop or pivot". Made exact:
 
@@ -46,11 +46,16 @@ The owner's idea: "no forecaster beats baselines after 6 months of daily scoring
     below the registered minimum effect (3% QLIKE or Brier skill 0.02; the futility margin is the minimum effect
     itself). Failing to reject zero is never enough;
   - **undecided:** anything else. **Underpowered never counts as "no".**
-- **Test B, money.** Also three results: **yes** when a counted shadow strategy's one-sided 95% lower bound of net per
-  trade after costs is above zero; **no** only when every counted strategy reached its registered sample and its
-  one-sided 95% upper bound is below its registered minimum useful net; **undecided** otherwise. **Zero eligible
-  shadows gives `undecided / no_economic_test`, never "no"**: with no observations there is no bound (ChatGPT's full
-  review 95, B2, accepted; revision 2 wrongly said "no" here, against its own "underpowered is never no").
+- **Test B, money, as decided (owner decision 7, 15 Oct 2026).** Three results: **yes** when a counted shadow
+  strategy's one-sided 95% lower bound of net per trade after costs is above zero; **no** when no idea reached rung 2,
+  or every counted strategy's one-sided 95% upper bound is below its registered minimum useful net; **undecided**
+  otherwise.
+- **Proposed correction, awaiting the owner; decision 7 is not changed until the owner says so** (ChatGPT's full review
+  95, B2, which I accept): Test B is "no" only when every counted strategy reached its registered sample and its upper
+  bound is below its minimum useful net, and **zero eligible shadows gives `undecided / no_economic_test`, never "no"**,
+  because with no observations there is no bound. The decided text contradicts its own "underpowered is never no".
+  Effect if accepted: a review with A "no" and zero shadows leads to the "undecided" options below instead of stop or
+  pivot.
 - **Stopping for cost is a separate, non-statistical decision.** If no idea ever reaches a test, the owner may still
   stop or cut the project for cost or product reasons; that is recorded as such, never as a statistical "no edge".
 - **Outcomes (both tests must say "no" to stop or pivot):**
