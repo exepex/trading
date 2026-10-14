@@ -392,3 +392,7 @@ The orchestrator approved addendum 5's fix. Built on the branch. Not on `main` u
   `check_imports` clean.
 - **Limit (stated in the workflow):** a snapshot committed by an Actions run's own `GITHUB_TOKEN` starts nothing. Today
   the routine or the orchestrator's session makes that commit, so the trigger fires; the cron covers the other case.
+
+**Re-check, 19:00 IST (13:30 UTC):** `forecast-capture.yml` still has no run; 14 Oct's schedule never started at all.
+14 Oct has no records for any book and no AI session to audit. The push trigger (addendum 6) is on `main` from
+`e3639f5` (judge 88 PASS).
