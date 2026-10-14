@@ -75,3 +75,15 @@ Merge it before 09:25 UTC on 15 Oct. After the merge I check `main` and CI.
 - **The flaky-test hunt is closed.** Builder A saw no failure in 7 full runs on 14105e8. They also gave the mechanism:
   `python -I` ignores `PYTHONDONTWRITEBYTECODE`, so the gate test's `-S -I` subprocess writes `.pyc` files. That fits
   my diagnosis. My harness now clears `__pycache__` after every restore.
+
+## Addendum 2 (14 Oct 2026): `story/f1-late-start-status` 1eb005c (the should-fix)
+
+| Item | Result | Evidence |
+|---|---|---|
+| A late start is recorded `not_fired` with reason "late start"; the special case in `collect.py` is gone | MET | `collect.py` is back to blob fe92c58, the version before 101c449: one rule for every unfired book. The note reads "the routine was not fired: late start: ...". My plant (`NOT_FIRED` -> `NO_SUBMISSION`) was caught: 2 failed. |
+| Checklist row | MET | The row `not_fired: ... late start` says no session exists and nothing needs fixing. The `no_submission` row again means only "ran but never sealed". |
+| Scoring still ignores the late path | MET | `scoring_gate` scores only `on_time` audits, and `not_fired` gives all-None probabilities (test). |
+| No frozen file touched | MET | Neither file, nor the checklist, is listed in `research/forecasts/FREEZE*.md` or in `PROTOCOL.md` `frozen_files`. |
+| Gates | MET | Trial merge with `main`, with `__pycache__` cleared after the plant: 3,149 passed with the token unset. `ruff check`, `ruff format --check` and `check_imports` are clean. |
+
+**Verdict: PASS** for 1eb005c. Merge it. After the merge I check `main` and CI.
