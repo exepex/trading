@@ -209,3 +209,35 @@ The builder's extra finding is correct and serious: the misnamed leg was checked
 - dafbebe has parents f67c090 (`main`) and bf0d4af (the passed tip).
 - It equals my recomputed merge of the two (`git diff` empty).
 - CI `checks` is green on dafbebe (run 38529262438).
+
+## Addendum 4 (should-fix, branch `story/c4-a4-valid-quotes` e01a939): PASS
+
+My addendum 2 should-fix is met, with one rule in one place.
+- C4 reads every quote row through E4's `quote_from_row`. Its `a4_problem` is A4's rule: two-sided, not crossed,
+  sizes on both sides, and the recorder's `valid` (a trade today).
+- An unusable quote has no mid. So it never feeds the parity forward, marks or stress, and a proposed leg on it fails
+  ("quote not usable by A4's rule").
+- I read the rule: it is consistent with Book 1's market (E5 also requires `valid`, `bid > 0` and `ask >= bid`).
+
+**My plants (4, `tests/checks`, `desk`, `decisions`): all caught.**
+
+| Plant | Result |
+|---|---|
+| The mid ignores `a4_problem` | 6 failed |
+| The leg's A4 check off | 4 failed |
+| `a4_problem` not read from the row | 7 failed |
+| The recorder's `valid` ignored in A4's rule | 8 failed |
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,788 passed;
+- ruff, format (619 files) and imports (626): clean;
+- `git merge-tree` with current `main` (f6e4b9d): clean.
+
+**Consequence (agreed, risk manager, reasoning only).** If an open trade's leg has no A4-usable quote at 15:00, C4
+cannot mark the book, so there is no new entry that day. Exits are unaffected. Failing closed is the right default.
+
+The builder's fallback (the previous session's NSE settlement as the mark) is reasonable but unmeasured. Decide it only
+after real captures show how often it happens. I will count it on the first weeks of real 3 pm captures: legs of open
+trades with `valid = false`.
+
+**Verdict: PASS.** After the merge I check `main` against e01a939 and CI.
