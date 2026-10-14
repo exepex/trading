@@ -84,6 +84,8 @@ class SessionRowsBuilder:
         if followed is None:
             missing.append(f"the stock tool's followed-companies list on or before {day}")
         actions += self._own_lists(day, unexplained(series, actions), missing)
+        flows = self.flows.on(day)
+        missing[:0] = self.flows.problems(day, flows)  # named reasons first: the alert shows the first few items
         if missing:
             raise IncompleteSession(day, missing)
         names = read_equity_list(names, EquityListSource.FILENAME)
@@ -106,7 +108,7 @@ class SessionRowsBuilder:
         fno = self.fno.rows(history, day, names)
         return SessionRows(
             day, stocks, fno, index_rows(figures), industries(nifty_500), chain, self.home.on(day),
-            frame_inputs(self.calendar, day), self.flows.on(day),
+            frame_inputs(self.calendar, day), flows,
         )  # fmt: skip
 
     def symbols_to_look_up(self, day: date) -> list[str]:

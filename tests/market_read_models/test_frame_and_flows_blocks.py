@@ -91,12 +91,10 @@ def copies(tmp_path, by_fetch_day: dict[date, tuple[bytes, bytes]]) -> FlowsRead
     return FlowsReader(store, CALENDAR)
 
 
-def test_flows_read_only_copies_filed_by_the_session_itself_never_a_later_one(tmp_path, monkeypatch):
+def test_flows_read_only_copies_filed_by_the_session_itself_never_a_later_one(tmp_path):
     """Judge 66: session D publishes at 07:10 IST the next morning, so a copy filed the next day (here NSE's revised
     13 Oct values, filed 14 Oct) may be newer than the publication and is never read for D: widening the window by
     one session (or one day) breaks this test. Read for 14 Oct, the revision is the latest copy of 13 Oct and wins."""
-    for source in (FiiDiiCashSource, NsdlFpiDailySource):
-        monkeypatch.setattr(source, "first_day", date(2026, 10, 13))
     cash, nsdl = (
         (FIXTURES / "fii-dii-cash_13102026.json").read_bytes(),
         (FIXTURES / "fpi-daily-latest_13102026.html").read_bytes(),
