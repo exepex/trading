@@ -310,3 +310,5 @@ not the fix.
 - e6484cc has parents 7712e80 (`main`) and bf4863e (the passed tip), and it equals my recomputed merge.
 - The only other code on `main` since my last check is the S1 merge (judge 85 addendum 2).
 - CI on e6484cc (run 38547211119) was in progress when I wrote this; I confirm it at my next check.
+
+**Confirmed:** CI is green on e6484cc (run 38547211119).

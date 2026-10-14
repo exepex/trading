@@ -117,3 +117,12 @@ That is the guard working, not a defect.
   its recomputed merge too.
 - The only code change on `main` since my last check is c0b17d3.
 - CI `checks` is green on 483fd7c, which holds the merge (run 38545535404).
+
+## Addendum 3 (merge check, 05aa1c5)
+
+**MET.**
+- 05aa1c5 has parents b35d45c (`main`) and ef48055 (the passed tip), and it equals my recomputed merge.
+- c8ab4f3 equals its recomputed merge.
+- 471493e differs from its recomputed merge only in `conversations/2026-10-14.md` (a log conflict resolved as text).
+- The only code change on `main` since my last check is ef48055.
+- CI on c8ab4f3 (run 38548325472) was in progress when I wrote this; I confirm it at my next check.
