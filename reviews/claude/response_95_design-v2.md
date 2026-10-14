@@ -14,8 +14,10 @@ differentiators, the eight missing pieces, the trading principles).
 ## The design in eight lines
 
 1. Every output is a scored claim: forecasts, weather colours, daily cards (including "no trade") and alerts.
-2. Forecast first, trade second: forecasts are scored daily and can settle skill in months; trade P&L takes years
-   (n = (2 x SD / mean)^2 gave 1,200-2,000 trades for the condor's +153, response 92).
+2. Forecast first, trade second: forecasts are scored daily and settle skill faster than trades, though not fast.
+   With Holm across about 15 comparisons and 80% power, a daily question needs (3.55 x r)^2 outcomes: 316 at r = 5
+   (about 15 months), 1,264 at r = 10 (about 5 years). A monthly trade rule needs over 100 years (n = (2 x SD /
+   mean)^2 gave 1,200-2,000 trades for the condor's +153, response 92). No question is known to settle in months.
 3. A new forecast protocol v4 for movement size (V1-V7), with QLIKE for variance forecasts, the implied-volatility
    baseline as the primary bar, Holm, registered minimum effects and a power check after 60 outcomes.
 4. The weather becomes a scored forecaster of large moves (v0 checklist as its baseline); RED still blocks new trades
@@ -25,7 +27,9 @@ differentiators, the eight missing pieces, the trading principles).
 6. A paper desk on Rs 20 lakh with correlation buckets, owner-timing fills, after-tax results and an index-fund
    benchmark.
 7. A daily phone card with a devil's advocate (code checks can block; AI objections cannot, and are scored).
-8. A stop-rule review about 6 months after v4's freeze, judged only on questions with enough independent outcomes.
+8. A stop-rule review about 6 months after v4's freeze, judged only on questions with enough independent outcomes,
+   with three results (yes, no, undecided); underpowered never counts as "no", and the owner pre-chooses what
+   "undecided" leads to.
 
 ## Questions where I most want to be challenged
 
@@ -66,3 +70,18 @@ differentiators, the eight missing pieces, the trading principles).
 
 Please write the review to `reviews/chatgpt/review_<n>_design-v2.md`. Each point I accept or reject will get its
 reason and evidence in the next response.
+
+## Revision 1 (judge 96, 15 Oct 2026): what changed
+
+Judge 96 failed d48bdfc on three must-fixes; the orchestrator and I checked and accepted all three, and the should-fixes:
+1. **Power arithmetic.** My 155-620 outcomes used an unadjusted one-sided 5% test, but the test is Holm across about
+   15 comparisons, whose first step is 0.05 / 15. Recomputed: n = (3.55 x r)^2, 316 at r = 5 and 1,264 at r = 10 (114
+   at r = 3). "Skill in months" is dropped everywhere; section 5.5 has a table by horizon (`01` 1.3 and 1.7, `05` 5.5,
+   `OWNER_SUMMARY.md`, this file).
+2. **Stop rule.** Tests A and B now have three results; underpowered is "undecided", never "no"; the owner's options
+   on "undecided" and my recommendation are in `08` 8.2.
+3. **frozen_files.** REPLAN no longer adds G8 or E8 to S1's decided list: G8 is frozen by v4's own freeze, and E8's
+   inclusion is owner decision 12 with its reason and costs.
+Should-fixes: REPLAN section 1 statuses read from `reviews/judge/README.md`; decisions cited by date and title; slice A
+dates marked as targets; SEBI loss figures cited by study and year (secondary summaries named as such); the straddle
+arithmetic and the card example use NIFTY's real 14 Oct level (about 22,620 at 15:00) instead of 25,000.

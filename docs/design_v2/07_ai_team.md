@@ -4,7 +4,7 @@
 
 The three approaches stay as decided on 13 Oct: **Rules** (Book 1, no AI), **Hybrid** (Book 2: the AI team works
 inside rule limits) and **AI team** (Book 3: autonomous roles). Screens never name an AI model, nor "Claude". AI runs
-as cloud routines fired from GitHub Actions on the owner's subscription (decision 56). The sealed-same-day forecast
+as cloud routines fired from GitHub Actions on the owner's subscription (owner decision of 13 Oct 2026, "Architecture: fetch and reason are separate"). The sealed-same-day forecast
 rule and its audit conditions (14 Oct) stay.
 
 **Honest starting point:** there is no evidence yet that the AI books forecast better than the baselines; their live

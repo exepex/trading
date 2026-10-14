@@ -4,30 +4,30 @@ Owner, 14 Oct 2026: "I want to include further development as per new design"; n
 design v2 passes the judge and ChatGPT. **Built work stays.** Statuses are read from `docs/stories/*` on 15 Oct 2026.
 New story texts (one paragraph each, full story text written when the slice starts) are in `REPLAN_new_stories.md`.
 
-## 1. Built or in flight: keep, finish the judge round, no new scope now
+## 1. Built or in flight: keep, no new scope now
 
-These are built (or partly built) and stay. Each finishes its current judge round as it stands; design v2 changes to
-them come later as separate stories, never by reopening a passed criterion.
+These are built (or partly built) and stay. Statuses are from `reviews/judge/README.md` on `main` (15 Oct 2026). Design
+v2 changes to them come later as separate stories, never by reopening a passed criterion.
 
 | Story | Status today | Decision | Reason and any later change |
 |---|---|---|---|
-| A8 Participant OI | partly built, measuring release days | keep | Positioning data is new information (section 1.3); idea O1 waits for its 20 days |
-| A12 Filings archive | built, awaiting judge | keep | Results dates and numbers for R2 (stock options around results) |
-| A14 NSE margins | in progress | keep | Funds and margins for every card; later rows for one- and two-leg shapes (STR1) |
-| C3 Data checks | built, judge pending | keep | Every decision; the monitor adds its own staleness check (LM1) |
-| C4 Hard validity | re-judge pending | keep | The last gate; later STR1 shapes and C5 bucket caps |
-| D3 Decision record | built, awaiting judge | keep | Every card is built from it |
-| D6 Version registry | built, awaiting judge | keep | "Fixes become new versions" (layer 8) rests on it |
-| E2 Market packs | built, awaiting judge | keep | Later a new pack version with v4 inputs (intraday RV, global cues) |
-| E3 Timetable | built, not live | keep | Later: owner-timing fills (E8), many strategies a day, the card hook (T1) |
-| E5 Book 1 | built, judge pending | keep | Rules book unchanged |
-| E6 Scorecard and pauses | built, awaiting judge | keep | Later: drift CUSUM (LR3) |
-| F1 AI sessions | forecast part built | keep | Trading part deferred to slice E |
-| G1 Forecast protocol | v1-v3 frozen | keep | The plan's "later" line is stale; v3 keeps running; v4 is new (G6) |
-| G5 AI books' capture | built, live from 14 Oct | keep | Later a v4 prompt version (G10) |
-| S1 Evaluation protocol | draft built, judge pending | keep, change items | Section 4 lists the items design v2 changes |
-| O6 Fetch and trigger | awaiting judge | keep | The pattern every new data job follows |
-| P8, P10 | built; read-back items pending | keep | India market blocks |
+| A8 Participant OI | merged (judge 89 and 95 addenda); measuring 20 release days | keep | Positioning data is new information (section 1.3); idea O1 waits for its 20 days |
+| A12 Filings archive | merged in parts (judge 51 addenda 4-7); backfill running | keep | Results dates and numbers for R2 (stock options around results) |
+| A14 NSE margins | PASS, merged (judge 77 addenda 4-5) | keep | Funds and margins for every card; later rows for one- and two-leg shapes (STR1) |
+| C3 Data checks | PASS, merged as e3506ec (judge 81) | keep | Every decision; the monitor adds its own staleness check (LM1) |
+| C4 Hard validity | PASS, merged (judge 83 addenda 3-5) | keep | The last gate; later STR1 shapes and C5 bucket caps |
+| D3 Decision record | PASS, merged as f314254 (judge 80) | keep | Every card is built from it |
+| D6 Version registry | PASS, merged as c12137e (judge 78) | keep | "Fixes become new versions" (layer 8) rests on it |
+| E2 Market packs | PASS, merged as b4f1e1b (judge 72) | keep | Later a new pack version with v4 inputs (intraday RV, global cues) |
+| E3 Timetable | PASS, merged (judge 82 addenda); not live (no routine yet) | keep | Later: owner-timing fills (E8), many strategies a day, the card hook (T1) |
+| E5 Book 1 | PASS, merged as 58f5781 (judge 84) | keep | Rules book unchanged |
+| E6 Scorecard and pauses | PASS, merged as 374ad67 (judge 73) | keep | Later: drift CUSUM (LR3) |
+| F1 AI sessions | forecast part PASS (judges 62, 88, 90) | keep | Trading part deferred to slice E |
+| G1 Forecast protocol | v1-v3 frozen (v3 confirmed, judge 64) | keep | The plan's "later" line is stale; v3 keeps running; v4 is new (G6) |
+| G5 AI books' capture | PASS (judge 62), live from 14 Oct | keep | Later a v4 prompt version (G10) |
+| S1 Evaluation protocol | tooling and draft merged (judges 85, 94); protocol still a draft, not frozen | keep, change items | Section 4 lists the items design v2 changes |
+| O6 Fetch and trigger | judge 52: "FAIL for now, no defect" (side-by-side sessions and the owner's steps pending) | keep | The pattern every new data job follows |
+| P8, P10 | PASS (judges 66, 79); read-back items pending | keep | India market blocks |
 
 ## 2. Planned, not built: keep, change or drop
 
@@ -57,7 +57,7 @@ them come later as separate stories, never by reopening a passed criterion.
 | W1 Shared dashboard repository | keep | Done in practice (W8's note); its status line should be corrected by the orchestrator |
 | W3 F&O screens | keep, change, slice C | Screens for the card, forecast lab (37), strategy lab (38) and weather |
 | W4 Access and freshness tests | keep, slice C | With W3 |
-| W5, W6, W7, K1, K2, K3, K4 | keep, unchanged | Stock side and cutover: paused with stock work (decision 52); design v2 does not touch them |
+| W5, W6, W7, K1, K2, K3, K4 | keep, unchanged | Stock side and cutover: paused with stock work (owner decision of 13 Oct 2026, "Priority: build Omenix F&O end to end first"); design v2 does not touch them |
 | O1 Daily desk routine | **change**, slice B | One daily run: data checks, forecasts, weather, desk, card; fired from Actions as O6 does |
 | O2 Failure handling | keep, change, slice B | Adds the monitor heartbeat and "alert NOT sent" paths |
 | O3 Cross-repository tests | keep, slice C | With P1-P3 and W3 |
@@ -72,9 +72,12 @@ The milestones M2-M7 of `docs/IMPLEMENTATION_PLAN.md` and slices 3-5 of `docs/BU
 work, by the slices below. Each slice is done only when its real output reaches the owner (BUILD_MAP rule 3). At most
 two builders plus the judge at a time (owner's pace).
 
-### Slice A (15 Oct - 4 Nov 2026): volatility forecasts and an honest daily card
+### Slice A (target 15 Oct - 4 Nov 2026): volatility forecasts and an honest daily card
 
-**Week 1 (15-21 Oct)**
+All dates in this slice are **targets, not commitments**. They depend on ChatGPT's review of G6 (v4 cannot freeze
+before it), the owner's host decision for A16 and the monitor, and the owner's C5 numbers.
+
+**Target week 1 (15-21 Oct)**
 1. Judge rounds of the built queue (section 1). No new scope on them.
 2. **G6** forecast protocol v4 written (section 5 of the design): judge, then ChatGPT; freeze after agreement.
 3. **R1 (documents only):** `research/DATA_SPEND.md` filled in, the idea-card template, the cost-wall rule text.
@@ -84,7 +87,7 @@ two builders plus the judge at a time (owner's pace).
    open interest, lot values against the Rs 10,000 cap) and one Groww snapshot of their bid/ask. Answer: can any
    defined-risk stock-option structure fit the cap with costs below half its plausible gross? Yes or no, with numbers.
 
-**Week 2 (22-28 Oct)**
+**Target week 2 (22-28 Oct)**
 6. **G7** v4 baselines and rule forecasters on close proxies (V2, V3, V5, V6, V7), back-filled and labelled.
 7. **M1** weather as a scored forecaster (v0 checklist as its baseline).
 8. **T1** daily card v1 to Slack: `NO TRADE` with reason, weather, house forecasts with their records. **First real
@@ -92,7 +95,7 @@ two builders plus the judge at a time (owner's pace).
 9. **A15** VIX full history; **A17** global cues (daily).
 10. **A16** recorder live, if the host is decided.
 
-**Week 3 (29 Oct - 4 Nov)**
+**Target week 3 (29 Oct - 4 Nov)**
 11. **G8** v4 scoring (QLIKE, calibration slope) in `fno/forecast_scoring/`.
 12. **F8** (minimal) and **BG1** budget meter with the stop-rule dates.
 13. **C5** risk buckets and the Rs 20 lakh account settings (owner's numbers).
@@ -141,8 +144,8 @@ when at least one strategy is approved to paper or an idea reaches rung 2, becau
 | Open: t-based lower bound beside the bootstrap | **Recommend adding it** (design v2 relies on honest intervals; 6 blocks under-cover, some evidence) |
 
 The five decided items (`uncertainty_criterion`, `catastrophic_loss_strategy`, `ai_cost_allocation`,
-`reporting_per_version`, `frozen_files`) are not reopened. Note on `frozen_files`: the new scoring code (S2's change,
-G8, E8) joins the hashed list before the freeze.
+`reporting_per_version`, `frozen_files`) are not reopened. Design v2 adds nothing to `frozen_files` by itself. G8's forecast scoring is frozen by protocol v4's own freeze (G6),
+not by S1. One addition is put to the owner as decision 12 (section 5).
 
 ## 5. Owner decisions this design needs (one line each; proposals in brackets)
 
@@ -157,3 +160,8 @@ G8, E8) joins the hashed list before the freeze.
 9. Trade cards in public repositories [make private, or keep cards in Drive] (8.5).
 10. When books 2-3 start trading [at the first approved strategy or rung-2 idea] (slice E).
 11. S1 item changes (section 4).
+12. **Add E8's owner-timing fill code to S1's `frozen_files`?** [yes] Reason: E8 decides the fill price of every counted
+   paper trade; unhashed, the fill rule could be changed after results are seen and alter counted results. Cost of
+   doing it: S1 v1 cannot freeze before E8 exists (planned for slice A, week 3, so little delay beyond S3 and F9).
+   Cost of not doing it: counted results rest on a fill rule that is not frozen with them. This would change the
+   owner's decided `frozen_files` item, so it is the owner's call, not this design's.

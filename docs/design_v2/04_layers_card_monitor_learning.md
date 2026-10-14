@@ -14,12 +14,12 @@ column is illustrative only: no such strategy is approved, and "x" marks digits 
 
 | Field | Example of content |
 |---|---|
-| What | NIFTY 24 Nov 2026 put spread: buy 1 lot 25,000 PE, sell 1 lot 24,850 PE |
+| What | NIFTY 24 Nov 2026 put spread: buy 1 lot 22,600 PE, sell 1 lot 22,450 PE |
 | Entry range | Net debit Rs 52-58 a unit; do not enter above Rs 58 (from 15:00 bid/ask; card valid until 15:25) |
 | Size | 1 lot (65 units); funds at entry from C2 and A14 (the debit plus the short leg's exposure margin, which a hedge does not reduce: about Rs 29,500 on 14 Oct, response 92) |
 | Maximum loss | Rs 3,9xx including charges: fixed at entry; no stop-loss order needed or relied on |
 | Worst case shown | The same structure through the worst 5 sessions of Mar 2020 and the 4 Jun 2024 week: loss capped at Rs 3,9xx |
-| Exit plan | Take profit at Rs 120 a unit; exit at 15:00 seven sessions before expiry; exit if NIFTY closes above 25,400 |
+| Exit plan | Take profit at Rs 120 a unit; exit at 15:00 seven sessions before expiry; exit if NIFTY closes above 23,000 |
 | Forecast | House forecast: P(NIFTY realised volatility next 5 days above today's implied) = 0.62; that forecaster's record: "said 0.6-0.7 on 140 days, happened on 64%" |
 | Weather | AMBER: VIX up 14% in 5 sessions |
 | Devil's advocate | Three strongest objections, and its verdict: "no hard-rule breach" |
@@ -49,7 +49,7 @@ with their hashes in the card footer); a stale card acted on late (valid-until t
 
 **Purpose.** During market hours, watch every open paper position and the market every 15 minutes, apply the exit
 plans exactly as registered, and alert the owner fast on danger. It never opens a trade (decisions stay once a day,
-owner decision 12 Oct option C).
+owner decision of 12 Oct 2026, "Decisions once a day, around 3:00 pm", option C).
 
 **Two modes, declared per strategy version.**
 - `alert_only` (default): the monitor alerts; exits still happen only at the daily decision time.

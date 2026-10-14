@@ -28,10 +28,14 @@ Three plain conclusions:
 
 ## 1.3 What design v2 does about it (the six consequences)
 
-1. **Forecast first, trade second.** A forecast is scored every trading day; a trade settles once a month. Skill at
-   forecasting movement size can be shown or refuted in months; trade P&L takes years. So the tool's first product is
-   scored forecasts, and a trade idea is only funded when it rests on a forecast that has already beaten its baseline
-   (reasoning only for the ordering; strong evidence for the arithmetic behind it).
+1. **Forecast first, trade second.** A forecast is scored every trading day; a trade settles once a month. Settling
+   forecast skill is still slow, but much faster than trade P&L. With the registered tests (Holm across about 15
+   comparisons, 80% power) a daily question needs about 316 outcomes if the noise-to-effect ratio r is 5 and 1,264 if
+   it is 10: about 15 months or 5 years of daily scoring (section 5.5). A monthly trade rule needs over 100 years
+   (response 92). No question is known to settle in months: that would need r of about 3 or less, which is measured
+   after 60 outcomes, not assumed. So the tool's first product is scored forecasts, and a trade idea is only funded
+   when it rests on a forecast that has already beaten its baseline (reasoning only for the ordering; strong evidence,
+   arithmetic, for the sample sizes).
 2. **Movement size before direction** (owner decision). Volatility clusters and is forecastable; daily direction is
    close to a coin toss (strong evidence: published studies and our own Q1 base rates). Direction is still forecast and
    scored, and nobody expects much from it.
@@ -111,7 +115,7 @@ Three plain conclusions:
 | Rung | What must be shown | Typical time |
 |---|---|---|
 | 0 Idea | Who pays and why; passes the cost wall; registered with its test before data is read | days |
-| 1 Forecast skill | The forecast it rests on beats its baseline on the frozen test (section 5.5) | 3-12 months |
+| 1 Forecast skill | The forecast it rests on beats its baseline on the frozen test (section 5.5) | about 15 months to 5 years for a daily question; longer for 5- and 20-day questions |
 | 2 Shadow | Recorded daily decisions at real 15:00 quotes, never in a book; no disaster | runs in parallel with rung 1 |
 | 3 Paper | Owner approves; S1's uncertainty criterion on paper (lower bound above zero) | 6+ months, often years |
 | 4 Real, 1 lot | The written real-money test (section 8.4) | 3-6 months |

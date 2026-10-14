@@ -23,19 +23,37 @@ The owner's idea: "no forecaster beats baselines after 6 months of daily scoring
 
 - **Review date:** the last session of the sixth full calendar month after protocol v4's freeze (if v4 freezes in early
   November 2026, about 31 May 2027). It moves only by a written owner decision recorded before the date.
-- **Questions that can be judged by then:** only those with enough independent outcomes: V1 (if A16 has run 6 months),
-  V6, V2. The 20-day questions (Q1-Q5, V3, V5) will have about 6 independent outcomes and **cannot** settle; they are
-  reported, not judged (section 5.5).
-- **Test A, forecasting:** did any forecaster (rules, hybrid, AI team) beat its primary baseline on any judgeable
-  question under section 5.5 (Holm, minimum effect)?
-- **Test B, money:** does any factory idea at rung 2 or higher show a shadow net above zero after costs, with its
-  interval?
+- **Questions that can be judged by then:** only those with enough independent outcomes: V6 (one day, from daily
+  closes), V1 (only if A16 has run long enough), V2. The 20-day questions (Q1-Q5, V3, V5) will have about 6 independent
+  outcomes and **cannot** settle; they are reported, not judged (section 5.5).
+- **Honest expectation:** 6 months give about 125 daily outcomes. Under section 5.5's arithmetic that settles a daily
+  question only if its noise-to-effect ratio r is about 3 or less. The most likely result of Test A on this date is
+  therefore "undecided", and the rule is written for that.
+- **Test A, forecasting.** Three results, never two:
+  - **yes:** a forecaster (rules, hybrid, AI team) beats its primary baseline on a judgeable question under section 5.5
+    (Holm, minimum effect);
+  - **no:** for every judgeable question, the 60-outcome power report projects a settle date on or before the review
+    date and no forecaster passed; or every forecaster's interval already rules out the minimum effect;
+  - **undecided:** anything else, in particular a projected settle date after the review date. **Underpowered never
+    counts as "no".**
+- **Test B, money.** Also three results: **yes** when an idea at rung 2 or higher has a shadow net whose one-sided 95%
+  lower bound after costs is above zero; **no** when no idea reached rung 2, or every rung-2 idea's upper bound is
+  below zero; **undecided** otherwise.
 - **Outcomes:**
-  - A and B both no: **stop or pivot** (owner chooses). Stop means: keep only the cheap code jobs (data collection,
+  - A no and B no: **stop or pivot** (owner chooses). Stop means: keep only the cheap code jobs (data collection,
     weather as a risk aid, baselines), switch off AI roles. Pivot means one named new direction (for example, stock
     options around results only) with its own registered test and its own stop date.
-  - A yes, B no: continue 6 more months with the AI budget halved, then the same test.
+  - A yes and B not yes: continue 6 more months with the AI budget halved, then the same test.
   - B yes: continue; the idea follows the evidence ladder.
+  - **A undecided (and B not yes):** the owner chooses one, written before the review date:
+    1. **Continue to the projected settle date** of the best-powered question, if it is at most 2 years after the
+       review, with AI roles cut to the forecasters at half the AI budget; the test is re-run on that date, where
+       "undecided" is no longer allowed: it counts as "no".
+    2. **Code only:** switch off every AI role, keep the code forecasters and baselines running at no AI cost until the
+       projected date, then re-run the test. The AI books' question stays unanswered.
+    3. **Stop now**, accepting that the forecasting question was not answered.
+    **Recommendation (reasoning only):** option 1 when the projected date is within 2 years; option 2 when it is
+    later, because an answer more than 2 years away does not justify the AI cost of waiting for it.
 - **The owner's original rule stays as the last gate:** if paper trading shows no net profit, no real money is used
   and the tool is shut down (AGENTS.md).
 
@@ -68,7 +86,7 @@ strategy version may start the real-money test only when **all** hold:
 
 - The tool is for the owner only. Giving calls to others for money needs SEBI research-analyst registration (SEBI
   Research Analysts Regulations, 2014); this design never does that.
-- **Flag (reasoning only, not legal advice):** the repositories are public during development (decision 12 Oct). Daily
+- **Flag (reasoning only, not legal advice):** the repositories are public during development (owner decision of 12 Oct 2026 on the shared dashboard repository and Azure Postgres). Daily
   trade cards with strikes and entry ranges committed to a public repository are publicly readable calls, even if
   unpaid. Recommendation: before layer 6 sends `TRADE` cards, either make the repositories private or keep the card
   records out of the public repository (Drive only, as raw data already is). Owner decides.

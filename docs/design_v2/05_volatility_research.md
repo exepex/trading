@@ -76,17 +76,30 @@ never counts as skill.
 7. **Economic check:** skill counts for trading only when its shadow strategy (factory ideas V1, V2) shows the gain
    survives costs: rung 2 of the evidence ladder.
 
-**How long it takes (arithmetic).** For a one-sided 5% test with 80% power, n = (2.49 x r)^2 independent outcomes,
-where r is the SD of `d_t` divided by the effect. At r = 5, n = 155; at r = 10, n = 620. For V1 (250 a year) that is
-about 8 months or 2.5 years; for V3 (12 a year) 13 or 52 years. **Rule:** after 60 scored outcomes of a question,
-the statistician measures r and publishes the projected date; if it is beyond 2 years, the card and the owner are told
-plainly that this question cannot be settled in useful time.
+**How long it takes (arithmetic, strong evidence).** The test uses Holm across the family. Planning must use Holm's
+first and strictest step, alpha / m, because a first claim has to pass it. With m of about 15 primary comparisons (G6
+fixes m), that is one-sided 0.05 / 15 = 0.0033 (z = 2.71); with 80% power (z = 0.84), n = (3.55 x r)^2 independent
+outcomes, where r is the SD of `d_t` divided by the registered effect.
+
+| r | n | Daily question (V1, V6 one-day: about 250 a year) | 5-day question (about 50 a year) | 20-day question (about 12 a year) |
+|---|---|---|---|---|
+| 3 | 114 | about 5.5 months | about 2.3 years | about 9 years |
+| 5 | 316 | about 15 months | about 6.3 years | about 26 years |
+| 10 | 1,264 | about 5 years | about 25 years | about 105 years |
+
+r is unknown until measured: no question is known to settle in months. V1 also waits for A16 and its host, and its
+best model (HAR on intraday data) for about 250 sessions of A16 history; V6's one-day question can start now on daily
+closes. **Rule:** after 60 scored outcomes of a question, the statistician measures r and publishes the projected
+settle date; if it is beyond 2 years, the card and the owner are told plainly that this question cannot be settled in
+useful time. The same projection decides the stop rule's "undecided" result (section 8.2).
 
 ## 5.6 How the Rs 10,000 cap shapes what a volatility view can trade (arithmetic, Black-Scholes approximation)
 
-At NIFTY 25,000, implied volatility 13.8% and lot 65:
-- A 30-day ATM straddle costs about 0.8 x 25,000 x 0.138 x sqrt(30/365) = about Rs 790 a unit, **Rs 51,000 a lot**.
-- A weekly (5-day) ATM straddle costs about Rs 320 a unit, **Rs 21,000 a lot**.
+At NIFTY's real 15:00 level on 14 Oct 2026 (about 22,620, C3's first capture), ATM implied volatility 13.8%
+(response 92) and lot 65:
+- A 30-day ATM straddle costs about 0.8 x 22,620 x 0.138 x sqrt(30/365) = about Rs 716 a unit, **about Rs 46,500 a
+  lot**.
+- A weekly (5-day) ATM straddle costs about Rs 292 a unit, **about Rs 19,000 a lot**.
 Both exceed the Rs 10,000 maximum loss. So a "buy movement" view can only be expressed with debit spreads,
 butterflies or far strangles, and a "sell movement" view only with protected structures (as tested). These have small
 vega, so the volatility edge needed to cover costs is larger than for a straddle. Every V-idea's card must show its

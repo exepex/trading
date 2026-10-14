@@ -12,8 +12,8 @@ expect what a broker's research promises.
 3. **Removing luck.** "No place for luck" cannot mean luck is gone: markets are noisy. It can mean luck is measured
    (intervals, calibration, the why-it-was-wrong class "within its stated odds") and never credited (strong evidence:
    basic statistics).
-4. **Beating high-frequency firms, expiry-day trading or scalping.** Excluded by design; the owner agrees (decision 14
-   Oct).
+4. **Beating high-frequency firms, expiry-day trading or scalping.** Excluded by design; the owner agrees (owner decision of
+   14 Oct 2026, "Trading principles for the research tool").
 5. **Real bid/ask history before 13 Oct 2026.** We have only daily closes before A4 started; all historical tests use
    close proxies plus a pad (strong evidence that this is a limit; some evidence the Rs 1 pad is realistic, one day of
    quotes, response 92).
@@ -21,8 +21,8 @@ expect what a broker's research promises.
    Any new NIFTY idea is tested forward, which is slow (strong evidence: the ledger).
 7. **Independent evidence from parallel NIFTY strategies.** Many strategies on one index in the same weeks are one bet
    (reasoning only, but basic). The Rs 20 lakh account adds parallelism, not proof.
-8. **Long ATM option positions within the Rs 10,000 cap.** A monthly ATM straddle costs about Rs 51,000 a lot and a
-   weekly about Rs 21,000 (arithmetic, section 5.6). "Buy movement" views must use spreads or far strikes.
+8. **Long ATM option positions within the Rs 10,000 cap.** A monthly ATM straddle costs about Rs 46,500 a lot and a
+   weekly about Rs 19,000 at 14 Oct's levels (arithmetic, section 5.6). "Buy movement" views must use spreads or far strikes.
 9. **A volatility forecast better than the market's implied volatility, reliably.** Implied volatility is a strong
    forecast (strong evidence). Beating it by enough to pay costs may not happen; the stop rule (section 8.2) exists for
    that case.
@@ -36,6 +36,8 @@ expect what a broker's research promises.
    role must prove its value on the record or be dropped.
 14. **Rule stability.** SEBI and NSE change lot sizes, expiries and margins (2024-25 changes); a rule that worked may
    stop working for regulatory reasons alone. Drift detection reacts slowly for monthly strategies.
-15. **Giving the owner a sure income.** About 88-93% of individual F&O traders lost money each year FY22-FY26 (SEBI,
-   strong evidence). This tool's most likely honest outcome, given the evidence so far, is a well-measured "no edge
-   found" plus a useful risk and learning aid. A real edge, if found, is likely small and narrow.
+15. **Giving the owner a sure income.** SEBI's studies: 89% of individual F&O traders lost in FY22 (January 2023 study),
+   93% over FY22-FY24 (September 2024 study), about 91% in FY25 (July 2025 study) and 87.7% in FY26 (August 2026
+   study). Strong evidence for the direction; the figures come from press and broker summaries of the SEBI studies,
+   whose PDFs were not read directly (`reports/Retail FnO losses and safeguards.md`).
+   This tool's most likely honest outcome, given the evidence so far, is a well-measured "no edge found" plus a useful risk and learning aid. A real edge, if found, is likely small and narrow.

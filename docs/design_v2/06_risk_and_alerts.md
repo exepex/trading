@@ -5,7 +5,7 @@
 - **Paper account Rs 20 lakh; maximum loss Rs 10,000 per trade, charges included** (owner, 14 Oct). More strategies in
   parallel, not bigger bets.
 - **Worst loss fixed at entry**: bought options or spreads with bought protection; never unprotected selling; no
-  stop-loss order relied on (decision 94). So the account's worst case on any day is the sum of the open positions'
+  stop-loss order relied on (owner decision of 14 Oct 2026, "Trading principles for the research tool"). So the account's worst case on any day is the sum of the open positions'
   maximum losses, whatever the gap.
 - **Stressed margin multiplier 1.45** (decided 14 Oct) on NSE SPAN plus exposure from A14; funds at entry by C2's rule
   (no credit for sold premium; bought premium and charges paid at once).
@@ -25,7 +25,7 @@ trades.
 | Account cap | Sum of maximum losses of all open positions at most Rs 1,50,000 (7.5%) | Worst day stays survivable even if every bucket fails together |
 | New risk per day | At most Rs 50,000 of new maximum loss a session | Limits a single day's decisions, often made on one weather reading |
 | Drawdown brake | Closed equity Rs 1,20,000 (6%) below its high: no new trades until the owner restarts in writing | Same 6% as the owner's Rs 30,000 on Rs 5 lakh (12 Oct); open trades run to their own exits |
-| Weather | RED: no new trades (decision 94) | Survival rule; its price is reported (section 2.3) |
+| Weather | RED: no new trades (owner, 14 Oct 2026, "Trading principles") | Survival rule; its price is reported (section 2.3) |
 
 **Daily stress line.** Every card shows, for all open positions, the loss under fixed scenarios: NIFTY -5% and -10%
 overnight with VIX +50% and +100%, and +5%. Because all positions are defined-risk, the -10% line can never exceed the
@@ -45,13 +45,13 @@ the number that matters for evidence (section 1.3).
 
 ## 6.4 Real-money risk (later; see `08_budget_and_stop_rules.md`)
 
-On a real account of about Rs 2 lakh, Rs 10,000 is 5% a trade: too high (decision 12 Oct). The real-money test sets
+On a real account of about Rs 2 lakh, Rs 10,000 is 5% a trade: too high (owner decision of 12 Oct 2026, "Paper account: Rs 5 lakh"). The real-money test sets
 its own per-trade cap before it starts (proposal: Rs 4,000-5,000, 2-2.5% of the real account; owner decides).
 
 ## 6.5 Alerts: classes, content and limits
 
 All F&O alerts go to Slack #fno-desk (`C0C89E8QCCD`) with `FNO_SLACK_BOT_TOKEN`; infrastructure and database alerts stay
-in #db-alerts (decision 13 Oct). The first line of every alert says what to do, or "information, no action".
+in #db-alerts (owner decision of 13 Oct 2026, "Database-check alerts go to Slack #db-alerts"). The first line of every alert says what to do, or "information, no action".
 
 | Class | Triggers | Timing |
 |---|---|---|
@@ -69,7 +69,7 @@ is why defined risk, not speed, is the protection (reasoning only, consistent wi
 
 ## 6.6 Where the 15-minute recorder and the monitor run (owner decides)
 
-GitHub Actions ran hours late here (response 91), and no broker key may go into GitHub (decision 60). Options:
+GitHub Actions ran hours late here (response 91), and no broker key may go into GitHub (owner decision of 13 Oct 2026 on the 3 pm recorder, option a). Options:
 
 | Option | How | For | Against |
 |---|---|---|---|
