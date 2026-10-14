@@ -1,0 +1,37 @@
+"""The gate's reports (B7 follow-up of judge 44): a committed report counts only if its per-day values equal a fresh
+recomputation, so hand-edited values cannot pass the gate."""
+
+import copy
+
+from fno.playbook.live_reports import CommittedLiveReports, RecomputedLiveReports
+from fno.research_engine.results_file import results_json
+
+from .builders import FixedReports, report
+
+F1 = "F1_live_atm_iv_minus_rv20"
+
+
+def test_committed_reports_are_read_from_the_folder(tmp_path):
+    (tmp_path / f"{F1}.json").write_text(results_json(report(F1, 20)))
+    assert CommittedLiveReports(tmp_path).report(F1)["comparisons"][0]["day"] == "2026-11-01"
+    assert CommittedLiveReports(tmp_path / "missing").report(F1) is None
+
+
+def test_a_report_matching_the_recomputation_is_used_even_with_later_days():
+    later = report(F1, 20, days=25)  # the recomputation runs on more recorded days than the committed report
+    reports = RecomputedLiveReports(FixedReports({F1: report(F1, 20)}), lambda name: later)
+    assert reports.report(F1) == report(F1, 20)
+
+
+def test_a_hand_edited_value_fails():
+    edited = copy.deepcopy(report(F1, 17))
+    edited["comparisons"][-1].update(close=1.0, agrees=True)  # turns a disagreement day into agreement
+    reports = RecomputedLiveReports(FixedReports({F1: edited}), lambda name: report(F1, 17))
+    assert reports.report(F1) is None
+
+
+def test_no_committed_report_means_none_without_recomputing():
+    def never(name):
+        raise AssertionError("recomputed without a committed report")
+
+    assert RecomputedLiveReports(FixedReports({}), never).report(F1) is None

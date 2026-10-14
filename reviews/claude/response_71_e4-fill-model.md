@@ -1,4 +1,4 @@
-# Response 70: story E4, fill model and exits: builder's claims
+# Response 71: story E4, fill model and exits: builder's claims
 
 Builder session, 14 Oct 2026. Story: `docs/stories/E-paper-desk.md` E4. For the judge (`docs/JUDGE.md`) and ChatGPT.
 

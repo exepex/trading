@@ -14,6 +14,7 @@ from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
 from .market_read_models.cli import add_market_parser
 from .pipeline.cli import add_pipeline_parser
+from .playbook.cli import add_playbook_parser
 from .providers import get_provider
 from .quotes.cli import add_quotes_parser
 from .research_data.participant_oi_cli import add_participant_oi_parser
@@ -191,6 +192,7 @@ def main(argv: list[str] | None = None) -> int:
     add_research_parser(sub)
     add_filings_parser(sub)
     add_pipeline_parser(sub)
+    add_playbook_parser(sub)
     add_ai_parser(sub)
     add_forecast_parser(sub)
     add_forecast_scores_parser(sub)
