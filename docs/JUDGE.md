@@ -46,3 +46,20 @@ The orchestrator session runs the loop; nobody accepts or rejects anything blind
    is still pending.
 5. If the builder and the judge still disagree after two rounds, the orchestrator
    checks the evidence itself and takes the question, with both sides' evidence, to the owner.
+
+## Judge lanes (owner decision, 14 Oct 2026)
+
+Which change needs which review is set by what it can damage, not by its size. When the builder or the orchestrator is
+unsure, the change is lane 1.
+
+| Lane | Covers | Review |
+|---|---|---|
+| 1 | Every new story. Any change, of any size, touching money or risk (margins, funds at entry, limits), fills, exits or anything that decides a trade, scoring or forecast and evaluation records, frozen files, secrets or outside services (Slack, Groww, Drive, NSE), schedules and GitHub workflows, or the dashboard's privacy rule (strategy internals stay private) | Judge PASS on the branch before merge, as in the loop above |
+| 2 | Any other small change: tests only, docs, refactors with no behaviour change, small fixes outside lane 1 | The orchestrator re-runs the full checks and compares the builder's claim with the diff, then merges. The judge audits that day's lane-2 merges once, at a fixed time; a FAIL is fixed first, before new work |
+| 3 | Judge files, conversation logs, decision and status rows, data commits by scheduled jobs | None |
+
+- The judge may move any kind of change into lane 1 when its daily audit finds problems there.
+- What lane 2 gives up: the claim check is done by the orchestrator, which assigned the work and plants no mutations,
+  so a wrong claim can sit on `main` until that day's audit. Lane 1 keeps everything that touches money, trades or
+  permanent records out of that risk.
+
