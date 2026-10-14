@@ -100,3 +100,39 @@ draft. No secrets, emails or model names.
 loss, the date sets, the bootstrap, the futility bound, the family, the look split, V4's units, V5's source, the
 session set and the base rates all check out. A re-check needs only protocol sections 3.1, 3.2, 6 and 11 and
 response 99. The code stays unless must-fix 1's choice needs an eligibility rule in `eligibility.py`.
+
+## Addendum 1 (15 Oct 2026): 3aa781848c456a6db5151438f1a3b88b7c06bd70 (51334da..3aa7818)
+
+One commit (parent 51334da). It changes the protocol, `eligibility.py`, `constants.py`, two test files and response 99.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Must-fix 1: the premium-ratio history | MET | Protocol 3.1 names the source: `iv30_eod_close_proxy` is G1 v1's frozen `PanelAtmIv30` on A3's first-archived end-of-day chains, unflagged days only. The window runs from 1 Jan 2024 only (outside the 2019-2023 holdout). It is labelled point in time by content, not by archive time (said plainly), and the 15:00-vs-EOD mismatch is named as noise. `eligibility.premium_ratio_window` keeps t >= 1 Jan 2024 with the outcome resolved before the refit day, the latest 750, and None below 500. My count: **685 regular sessions** from 1 Jan 2024 to 14 Oct 2026 in `warmup_closes.csv`, as the protocol says. (It names "2 Jan 2024" as the first; the first is 1 Jan 2024. The count is right.) |
+| Must-fix 2: owner flags | MET | Section 11 lists A (0.02 at the review), B (no power report, so option 2) and C (the EOD proxy, and that without it V2 waits until about late 2028), each "for the owner's confirmation before the freeze". Section 10 makes the owner's written confirmation of A-C a freeze precondition |
+| Follow-up 1: near-zero RV in the gate | MET | My earlier surviving mutation (gate drops RV <= 1e-12) now fails a test |
+
+**Checks on 3aa7818:**
+- `tests/forecast_v4`: 94 passed. A trial merge with `origin/main` gives **3285 passed**; ruff, format (723 files) and
+  `check_imports` are clean.
+- **Merge note:** the trial merge conflicts in `reviews/claude/README.md` (both sides added rows). It is resolved by
+  keeping both rows. The merger must do the same.
+- **New mutations:**
+  - Dropping the 2024 start: caught.
+  - The 500 minimum written as > 500: caught.
+  - Allowing outcomes resolved **on** the refit day (`<=` for `<`): **survived**. The code is right (`<`), but the
+    boundary has no test. See follow-up A.
+
+## Follow-ups (not blocking)
+
+- **A.** Add a test that an outcome resolving on the refit day itself is not in that refit's window (point in time).
+- **B.** In section 3.1, write "1 Jan 2024" instead of "2 Jan 2024" as the first session.
+- **C.** Judge 98's remaining follow-ups stand: count dates whose "next session" spans a special session, and G7's
+  weekly spread report before the freeze.
+
+**Verdict: PASS for 3aa781848c456a6db5151438f1a3b88b7c06bd70** (the draft, not frozen). The freeze still needs
+ChatGPT's review, G7 and G8's code, the owner's written A-C, and then my check of the freeze record against these
+hashes.
+
+**On merging the unfrozen draft:** I have no objection; nothing counts under v4 before its freeze, and the file says
+DRAFT. But ChatGPT's review may change it, and any change after this PASS needs a judge re-check. Waiting avoids a
+second merge round.
