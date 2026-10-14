@@ -22,6 +22,7 @@ ARCHIVED = "{day}: the session's NSE files are archived in Drive"
 ARCHIVE_FAILED = (
     "Omenix F&O market archive for {day}: NOT complete ({problem}); the publish step will say what it lacks"
 )
+SNAPSHOT_REFUSED = "{name}: not archived ({reason}); the other lists go on"
 DAILY_SNAPSHOTS = (
     "equity-list", "nifty500-list", "symbol-change", "corporate-actions", "fii-dii-cash-by-session",
     "fpi-daily-by-session",
@@ -90,7 +91,7 @@ def _daily(args) -> int:
 
 def _archive_session(day: date) -> str | None:
     """Archives the session's files (with their manifest rows, committed); the first problem, or None."""
-    from ..storage.wiring import build_librarian, build_manifest_recorder, build_snapshot_taker
+    from ..storage.wiring import build_librarian, build_manifest_recorder
 
     recorder = build_manifest_recorder()
     try:
@@ -100,14 +101,27 @@ def _archive_session(day: date) -> str | None:
                 gaps = len(report.not_published), len(report.damaged), len(report.rejected)
                 return f"{name}: {gaps[0]} not published yet, {gaps[1]} damaged, {gaps[2]} rejected"
         _archive_revisions(day)
-        for name in DAILY_SNAPSHOTS:
-            print(build_snapshot_taker(name).take(day))
+        _take_snapshots(day)
         _archive_own_lists(day)
         return None
     except (RuntimeError, ValueError) as exc:
         return f"{type(exc).__name__}: {exc}"
     finally:
         print(recorder.commit(f"market daily {day}"))
+
+
+def _take_snapshots(day: date) -> None:
+    """Today's copy of each latest-day list. A flows copy refused as covering a later session (a re-run of an old day
+    after NSE moved on) is named and skipped; the other lists are still taken, and the publish step's own check says
+    whether the session's flows are archived."""
+    from ..storage.session_filed_taker import LaterSession
+    from ..storage.wiring import build_snapshot_taker
+
+    for name in DAILY_SNAPSHOTS:
+        try:
+            print(build_snapshot_taker(name).take(day))
+        except LaterSession as refused:
+            print(SNAPSHOT_REFUSED.format(name=name, reason=refused))
 
 
 def _archive_revisions(day: date) -> None:

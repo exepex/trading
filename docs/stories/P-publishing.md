@@ -257,6 +257,13 @@ block stays with the stock tool and only a raw archive here is wanted (research 
 
 **Status:** done for the built data and page: judge 66 items 1-3 and addenda 1-2 PASS (contract 2.5 page `flows`, filed-by-session window); live publish read-back at 07:10 IST 14 Oct pending (judge 66 item 4)
 
+**Filing (judge 66 item 4, judge 79):** from 13 Oct each flows copy is archived in its own series
+(`nse/flows/fii-dii-cash-by-session`, `nsdl/fpi/fpi-daily-by-session`) under the session it covers, read from the copy.
+A session keeps its **first** copy: a later NSE revision of a provisional day is not kept (the price of point in time).
+A copy covering a session after the run's day is refused by name; in the publish run's archive step that refusal skips
+only that list. The run-dated series (`fii-dii-cash`, `fpi-daily`) is kept and read only for sessions the new series
+lacks.
+
 ---
 
 ## P9. NIFTY option chain read models for screen 32

@@ -12,7 +12,7 @@ from fno.storage import wiring
 from fno.storage.content_checks import COVERED_SESSION, VALIDATORS
 from fno.storage.manifest_folder import FingerprintingStore, ManifestFolder
 from fno.storage.raw_store import LocalFolderStore
-from fno.storage.session_filed_taker import SessionFiledTaker
+from fno.storage.session_filed_taker import LaterSession, SessionFiledTaker
 from fno.storage.snapshot_source import (
     FiiDiiCashBySessionSource,
     FiiDiiCashSource,
@@ -66,7 +66,7 @@ def test_a_copy_is_filed_under_the_session_it_covers_even_when_taken_the_next_da
 
 def test_a_copy_of_a_later_session_than_the_run_day_is_refused(tmp_path):
     store = LocalFolderStore(tmp_path)
-    with pytest.raises(ValueError, match="after the run's day 2026-10-13; refused"):
+    with pytest.raises(LaterSession, match="after the run's day 2026-10-13; refused"):
         taker(store, CASH_14).take(D13)
     assert store.get(FiiDiiCashBySessionSource.path_for(D14)) is None
 
