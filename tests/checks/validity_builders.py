@@ -8,8 +8,10 @@ import math
 from dataclasses import replace
 from datetime import date, datetime, time
 
-from fno.checks.validity import Limits, ValidityChecker
+from fno.checks.validity import Sources, ValidityChecker
 from fno.checks.validity_evidence import EvidenceReader
+from fno.checks.validity_limits import LimitChecks
+from fno.checks.validity_listing import NseListing
 from fno.checks.validity_money import ProposedLeg
 from fno.checks.validity_proposal import ValidityLeg, ValidityProposal
 from fno.checks.wiring import validity_modes
@@ -25,12 +27,13 @@ from tests.playbook.builders import document
 from tests.risk.builders import market as risk_market
 from tests.risk.builders import proposal as risk_proposal
 
+from .validity_sources import Accounts, Margins, NseFiles, limits
+
 DAY, EXPIRY, WEEKLY = date(2026, 10, 14), date(2026, 10, 27), date(2026, 10, 20)
 SPOT = 25_000.0
 CUTOFF = datetime.combine(DAY, time(15, 0), IST)
 STARTED, RECEIVED = datetime.combine(DAY, time(14, 55), IST), datetime.combine(DAY, time(14, 55, 10), IST)
 STRIKES = range(24_400, 25_650, 50)
-LIMITS = Limits(10_000.0, 3)
 
 
 def mid(strike: float, kind: str) -> float:
@@ -58,10 +61,11 @@ def strategy(code: str):
     return parse_strategy(doc)
 
 
-def proposer_max_loss(code: str, spec, width: float, lots: int = 1) -> float:
+def proposer_max_loss(code: str, spec, width: float, lots: int = 1, lot_size: int = LOT) -> float:
     prices = {(k, kind): mid(k, kind) for k in STRIKES for kind in ("CE", "PE")}
     market = risk_market(SPOT, prices, EXPIRY, day=DAY)
-    return SimulatorTradeCosts(CHARGES).max_loss(risk_proposal("t", code, width, spec, EXPIRY, lots), market)
+    trade = replace(risk_proposal("t", code, width, spec, EXPIRY, lots), lot_size=lot_size)
+    return SimulatorTradeCosts(CHARGES).max_loss(trade, market)
 
 
 def legs_of(spec, expiry: date = EXPIRY) -> tuple[ValidityLeg, ...]:
@@ -77,7 +81,7 @@ def proposal(code: str = "SF", **changes) -> ValidityProposal:
     version = strategy(code)
     correct = ValidityProposal(
         BOOK1_RULES, f"{version.name}-v1:{EXPIRY}", DAY, CUTOFF, EXPIRY.isoformat(), code, width, 1, LOT,
-        legs_of(spec), proposer_max_loss(code, spec, width), True, 0, version.parameters_sha256, version,
+        legs_of(spec), proposer_max_loss(code, spec, width), True, version.parameters_sha256, version,
         frozenset({version.key}),
     )  # fmt: skip
     return replace(correct, **changes)
@@ -98,15 +102,19 @@ def committed_store(rows=None, started: datetime = STARTED) -> DictStore:
     return store
 
 
-def checker(store) -> ValidityChecker:
-    return ValidityChecker(EvidenceReader(store, DATASET), CHARGES, LIMITS, validity_modes())
+def checker(store, nse=None, account=None, margins=None, owner_limits=None, accounts=None) -> ValidityChecker:
+    """The app's checker over these sources: by default a fresh Rs 5 lakh account, NSE's file of 13 Oct with lot 65,
+    A14 margin rows of 13 Oct and config.yaml's limits with a stressed-margin factor set."""
+    sources = Sources(EvidenceReader(store, DATASET), NseListing(nse or NseFiles()), accounts or Accounts(account))
+    checks = LimitChecks(owner_limits or limits(), CHARGES, margins or Margins())
+    return ValidityChecker(sources, checks, validity_modes())
 
 
-def check(the_proposal: ValidityProposal | None = None, store=None, record="committed"):
+def check(the_proposal: ValidityProposal | None = None, store=None, record="committed", **sources):
     """C4's report on the proposal (correct SF by default) against the committed capture."""
     store = store or committed_store()
     capture = committed_record(store, DAY, "exec") if record == "committed" else record
-    return checker(store).check(the_proposal or proposal(), capture)
+    return checker(store, **sources).check(the_proposal or proposal(), capture)
 
 
 def failed(report) -> set[str]:

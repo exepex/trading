@@ -20,6 +20,7 @@ Key = tuple[str, float, str]  # (expiry ISO, strike, "CE" or "PE")
 
 @dataclass(frozen=True)
 class QuoteRow:
+    contract: str
     bid: float | None
     ask: float | None
     received_at: datetime | None
@@ -33,8 +34,11 @@ class QuoteRow:
 class Evidence:
     snapshot_id: str
     started_at: datetime
-    monthly_expiries: tuple[str, ...]  # the latest listed expiry of each calendar month in the snapshot
     rows: dict[Key, QuoteRow]
+
+    def mids(self) -> dict[str, tuple[Key, float]]:
+        """Each contract with a two-sided quote: its key and mid."""
+        return {row.contract: (key, row.mid) for key, row in self.rows.items() if row.mid is not None}
 
 
 def _time(text: str) -> datetime | None:
@@ -57,16 +61,8 @@ def _key(row: dict) -> Key:
     return row["expiry"], float(row["strike"]), row["type"]
 
 
-def monthly_expiries(expiries) -> tuple[str, ...]:
-    """NIFTY's monthly expiry is the last of its month: the latest listed expiry in each calendar month."""
-    latest: dict[str, str] = {}
-    for expiry in expiries:
-        latest[expiry[:7]] = max(latest.get(expiry[:7], expiry), expiry)
-    return tuple(sorted(latest.values()))
-
-
 def _row(row: dict) -> QuoteRow:
-    return QuoteRow(_number(row["bid"]), _number(row["ask"]), _time(row["response_received_at"]))
+    return QuoteRow(row["contract_id"], _number(row["bid"]), _number(row["ask"]), _time(row["response_received_at"]))
 
 
 class EvidenceReader:
@@ -89,5 +85,4 @@ class EvidenceReader:
             return None, problems
         meta = json.loads(meta_bytes)
         rows = {_key(r): _row(r) for r in csv.DictReader(io.StringIO(csv_bytes.decode("utf-8")))}
-        expiries = monthly_expiries(key[0] for key in rows)
-        return Evidence(record.snapshot_id, datetime.fromisoformat(meta["started_at"]), expiries, rows), []
+        return Evidence(record.snapshot_id, datetime.fromisoformat(meta["started_at"]), rows), []

@@ -97,3 +97,9 @@ def max_loss(legs: Sequence[ProposedLeg], units: int, table: Mapping[str, float]
     loss, closing, level = worst
     entry, pads = entry_charges(legs, units, table), 2 * len(legs) * PAD * units
     return MaxLoss(loss * units + entry + pads + closing, loss, level, entry, closing, pads)
+
+
+def entry_cash_flow(legs: Sequence[ProposedLeg], units: int, table: Mapping[str, float]) -> float:
+    """Cash the entry moves: premium in for sold legs, out for bought ones, at the padded price, less charges."""
+    paid = sum(-leg.side * _fill(leg.price, leg.side > 0) * units for leg in legs)
+    return paid - entry_charges(legs, units, table)

@@ -6,6 +6,7 @@ import csv
 from fno.checks.schedule import PackSnapshotSchedule
 from fno.checks.validity_capture import PackCaptures
 from fno.checks.validity_failures import COLUMNS, ValidityFailureLog
+from fno.checks.validity_limits import PRICED
 from fno.desk.pack_store import PackStore
 from tests.checks.builders import committed_record, pack_of
 from tests.checks.validity_builders import DAY, check, committed_store, proposal
@@ -15,16 +16,16 @@ def test_each_failed_check_is_one_row_and_a_pass_writes_nothing(tmp_path):
     log = ValidityFailureLog(tmp_path)
     log.append(DAY, check())
     assert not log.path("book1_rules").exists()
-    log.append(DAY, check(proposal(open_before=3, risk_verdicts_ok=False)))
+    log.append(DAY, check(proposal(claimed_max_loss=0.0, risk_verdicts_ok=False)))
     log.append(DAY, check(record=None))
     path = tmp_path / "journal" / "book1_rules" / "validity_failures.csv"
     assert log.path("book1_rules") == path
     lines = path.read_text(encoding="utf-8").splitlines()
     assert lines[0] == ",".join(COLUMNS) and sum(line.startswith("day,") for line in lines) == 1
     rows = list(csv.DictReader(lines))
-    assert [r["check"] for r in rows] == ["open_trades", "risk_verdicts", "evidence"]
+    assert [r["check"] for r in rows] == ["max_loss", "risk_verdicts", "evidence", *PRICED]
     assert rows[0]["day"] == "2026-10-14" and rows[0]["opportunity_id"] == "c4-sf-v1:2026-10-27"
-    assert "3 open before, limit 3" in rows[0]["reason"]
+    assert '"claimed": 0.0' in rows[0]["numbers"]
 
 
 def test_the_capture_is_the_one_the_committed_pack_names(tmp_path):

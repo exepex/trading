@@ -14,9 +14,15 @@ from .market_checks import PreviousSessionFile, SpotNearPreviousClose
 from .schedule import ExecutionSchedule, PackSnapshotSchedule
 from .shock import NoShockFlags
 from .snapshot_checks import SnapshotInWindow, SnapshotMatchesRecord, SnapshotReadable
-from .validity import Limits, ValidityChecker
+from .validity import Sources, ValidityChecker
+from .validity_account import LedgerAccounts
 from .validity_adapter import BookTradeValidator, CaptureSource
+from .validity_evidence import EvidenceReader
+from .validity_limits import LimitChecks
+from .validity_listing import NseListing
+from .validity_margin import MarginFile
 from .validity_modes import PlaybookMode, ValidityMode, WaitsFor
+from .validity_settings import limits_from_config
 
 
 def build_data_checks(stores, calendar, shocks=None) -> DataChecks:
@@ -56,14 +62,15 @@ def validity_modes() -> dict[str, ValidityMode]:
     }
 
 
-def build_validity_checker(cfg: dict, store, dataset: str | None = None) -> ValidityChecker:
-    """C4's checker over a raw quote store: charges and limits read straight from config.yaml, not via C2 or B2."""
+def build_validity_checker(cfg: dict, root: Path, quotes, nse_library, accounts=None, margins=None) -> ValidityChecker:
+    """C4's checker: the A4 quote store, NSE's F&O files (A2's library), the books' ledgers and A14's margins file;
+    charges and limits read straight from config.yaml, never through C2 or B2."""
     from ..quotes.recorder import DATASET
-    from .validity_evidence import EvidenceReader
 
-    risk = cfg["risk"]
-    limits = Limits(float(risk["max_loss_per_trade_rs"]), int(risk["max_open_trades"]))
-    return ValidityChecker(EvidenceReader(store, dataset or DATASET), cfg["charges"], limits, validity_modes())
+    limits = limits_from_config(cfg, root)
+    sources = Sources(EvidenceReader(quotes, DATASET), NseListing(nse_library), accounts or LedgerAccounts(root))
+    checks = LimitChecks(limits, cfg["charges"], margins or MarginFile(limits.margins.file))
+    return ValidityChecker(sources, checks, validity_modes())
 
 
 def build_trade_validator(
@@ -73,10 +80,10 @@ def build_trade_validator(
     """The validator D3's decision run calls for `book`; a replay passes `log=False` so it writes nothing."""
     from ..composition import DESK_DECISION_TIME
     from ..desk.pack_store import PackStore
-    from ..storage.wiring import build_quote_store
+    from ..storage.wiring import build_nse_fo_library, build_quote_store
     from .validity_capture import PackCaptures
     from .validity_failures import ValidityFailureLog
 
-    checker = build_validity_checker(cfg, build_quote_store(quote_folder))
+    checker = build_validity_checker(cfg, root, build_quote_store(quote_folder), build_nse_fo_library())
     captures = captures or PackCaptures(PackStore(root), PackSnapshotSchedule())
     return BookTradeValidator(book, checker, captures, DESK_DECISION_TIME, ValidityFailureLog(root) if log else None)

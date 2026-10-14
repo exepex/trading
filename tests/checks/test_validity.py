@@ -7,6 +7,7 @@ from datetime import datetime, time, timedelta
 import pytest
 
 from fno.checks.validity import HardValidityError, override
+from fno.checks.validity_limits import PRICED
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
 from fno.models import IST
 from fno.quotes.recorder import QuoteSnapshotRecorder
@@ -28,6 +29,7 @@ from tests.checks.validity_builders import (
     proposer_max_loss,
     snapshot_rows,
 )  # fmt: skip
+from tests.checks.validity_sources import fresh_account, held
 
 
 @pytest.mark.parametrize("code", ["SF", "SC", "BF"])
@@ -54,10 +56,10 @@ SEEDED = {
     # 2. wrong expiry: the legs are on the weekly expiry, listed but not monthly
     "weekly expiry": (lambda: check(proposal(legs=legs_of(SHAPES["SF"][0], WEEKLY), expiry=WEEKLY.isoformat())),
                       {"expiry", "leg 2026-10-20 25000 CE", "leg 2026-10-20 25000 PE", "leg 2026-10-20 25200 CE",
-                       "leg 2026-10-20 24800 PE"}),
+                       "leg 2026-10-20 24800 PE", "stress_loss", "exposure_limit"}),
     # 3. a strike not listed in the snapshot
     "strike not listed": (lambda: check(store=committed_store(_rows_without(25200.0, "CE"))),
-                          {"leg 2026-10-27 25200 CE"}),
+                          {"leg 2026-10-27 25200 CE", *PRICED}),
     # 4. the price used is not the snapshot's mid (5 paise off); the loss claimed at the true mid no longer fits it
     "price mismatch": (lambda: check(proposal(legs=_moved_leg("SF", 0, price=proposal().legs[0].leg.price + 0.05))),
                        {"leg 2026-10-27 25000 CE", "max_loss"}),
@@ -69,18 +71,18 @@ SEEDED = {
                                                    claimed_max_loss=proposer_max_loss("BF", _wide_fly(), 200.0))),
                             {"loss_limit"}),
     # 7. a fourth open trade
-    "open trades": (lambda: check(proposal(open_before=3)), {"open_trades"}),
+    "open trades": (lambda: _three_open(), {"open_trades"}),
     # 8. the snapshot was changed after its record was committed
-    "tampered hash": (lambda: _tampered_check(), {"evidence"}),
+    "tampered hash": (lambda: _tampered_check(), {"evidence", *PRICED}),
     # 9. no committed record names the snapshot
-    "missing snapshot": (lambda: check(record=None), {"evidence"}),
+    "missing snapshot": (lambda: check(record=None), {"evidence", *PRICED}),
     # 10. two lots where the version trades one
     "wrong lots": (lambda: check(proposal(lots=2, claimed_max_loss=proposer_max_loss("SF", SHAPES["SF"][0], 200, 2))),
                    {"lots"}),
     # 11. the version is not approved on the day
     "version not permitted": (lambda: check(proposal(approved=frozenset())), {"permitted"}),
     # 12. a condor's legs labelled a short fly
-    "wrong structure": (lambda: check(proposal("SC", structure="SF")), {"structure", "shape"}),
+    "wrong structure": (lambda: check(proposal("SC", structure="SF")), {"structure", "shape", "margin_room"}),
     # 13. the rule fingerprint differs from the version's file
     "changed rule": (lambda: check(proposal(rule_sha256="0" * 64)), {"version"}),
     # 14. a C2 verdict failed
@@ -92,8 +94,15 @@ SEEDED = {
     "snapshot after cutoff": (lambda: check(store=committed_store(started=datetime.combine(DAY, time(15, 1), IST))),
                               {"date"}),
     # 17. one leg on another expiry (the weekly, listed and priced at its own mid) than the opportunity's
-    "a leg on another expiry": (lambda: check(proposal(legs=_weekly_wing())), {"expiry", "max_loss"}),
+    "a leg on another expiry": (lambda: check(proposal(legs=_weekly_wing())), {"expiry", "max_loss", "stress_loss"}),
 }  # fmt: skip
+
+
+def _three_open():
+    """Three trades already open (flat legs, so only the count changes), each with its recorded terms."""
+    positions = tuple(held(f"t{n}", {}) for n in range(3))
+    terms = {f"t{n}": ("SF", 200.0, 1) for n in range(3)}
+    return check(proposal(open_terms=terms), account=fresh_account(positions=positions))
 
 
 def _weekly_wing():
@@ -136,7 +145,7 @@ def test_a_claimed_loss_off_by_under_a_rupee_passes_by_a_rupee_fails():
 
 @pytest.mark.parametrize("by", ["owner", "desk", "judge"])
 def test_nobody_overrides_a_failure(by):
-    report = check(proposal(open_before=3))
+    report = check(proposal(risk_verdicts_ok=False))
     with pytest.raises(HardValidityError, match="cannot override hard validity"):
         override(report, by, "I accept the risk")
     with pytest.raises(FrozenInstanceError):

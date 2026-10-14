@@ -30,14 +30,20 @@ class ValidityProposal:
     legs: tuple[ValidityLeg, ...]
     claimed_max_loss: float
     risk_verdicts_ok: bool  # every C2 verdict recorded for the trade passed
-    open_before: int  # the book's open trades before this one, counting trades chosen earlier the same day
     rule_sha256: str  # the version fingerprint the decision used
     strategy: object | None = None  # the playbook version (playbook mode)
     approved: frozenset[tuple[str, int]] = field(default_factory=frozenset)  # versions tradable on the day
+    earlier: tuple[ValidityProposal, ...] = ()  # the book's trades chosen earlier the same day that passed C4
+    open_terms: Mapping[str, tuple[str, float, int]] = field(default_factory=dict)  # open trade -> recorded terms
+    premium_reserved: float = 0.0  # premium held for pending orders (E4)
 
     @property
     def units(self) -> int:
         return self.lots * self.lot_size
+
+    @property
+    def terms(self) -> tuple[str, float, int]:
+        return self.structure, self.width, self.lots
 
 
 @dataclass(frozen=True)

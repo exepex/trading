@@ -119,6 +119,7 @@ ENV_FNO_DB_URL = "FNO_DB_URL"  # the fno schema's runtime publisher role (storie
 
 # Risk manager (story C2, fno/risk/): the owner's restart entry for a book's drawdown brake, and the two frozen ways
 # to stress a margin
+CASH_LEDGER_FILE = "cash_ledger.csv"  # journal/<book>/account/cash_ledger.csv: E1's append-only ledger
 OWNER_OVERRIDES_FILE = "owner_overrides.csv"  # journal/<book>/owner_overrides.csv, written by the owner only
 OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"

@@ -146,3 +146,126 @@ On the tree merged with `main`:
 - every file under 350 lines (the largest new file is `validity.py` at 115).
 
 The numbers are in the message to the orchestrator.
+
+## Addendum 1 (14 Oct 2026): judge 83's three must-fixes and the should-fix
+
+I checked each finding against the code before accepting it. **All three are correct, and all are fixed.** Sections 3
+and 4 above are superseded where this addendum differs: the mutation count, limits 1 and 5.
+
+### Must-fix 1: a wrong lot size passed (accepted)
+
+**Check.** C4 took `lot_size` from the proposal and recomputed the loss with the same units. I reproduced the judge's
+number: the proposer's model, priced for 75 units, gives **Rs 4,056.23**, and C4 passed it.
+
+**Fix.** `fno/checks/validity_listing.py` reads **NSE's own daily F&O file** of the previous session (the newest one
+in the 7 days before the decision day, never the day's own). Every NIFTY option row carries `NewBrdLotQty`.
+- The new `lot_size` check requires NSE's lot sizes for the expiry to be exactly the proposal's.
+- No file in the week before means `listing` fails, so nothing trades.
+- Neither the proposer's `config.yaml` `lot_sizes` nor A4 is consulted.
+
+**Tests.**
+- `test_the_judges_lot_of_75_with_a_consistent_claim_is_blocked` (claim 4,056.23; only `lot_size` fails).
+- `test_a_lot_size_nse_revised_is_blocked`.
+- `test_no_nse_file_in_the_week_before_fails_closed`.
+- `test_nse_listing_reads_the_newest_file_before_the_day_never_the_days_own`.
+
+### Should-fix: the monthly expiry from NSE's listing (done)
+
+The monthly expiry is now the last listed NIFTY expiry of its month in that same NSE file, not in the snapshot.
+- `test_the_monthly_expiry_is_nses_not_the_snapshots`: NSE lists 28 Oct as October's last, so the snapshot's
+  27 Oct chain fails `expiry`.
+- The fixture also holds a BANKNIFTY option on a later October expiry and a stock option. Both must be ignored, and
+  the mutation that drops the NIFTY filter is caught.
+
+### Must-fix 2: the sidecar was untested (accepted)
+
+**Check.** The judge is right: no test tampered with the meta file.
+
+**Test.** `test_a_rewritten_sidecar_fails_with_the_quote_file_intact`:
+- a capture started at 15:05 has its sidecar's `started_at` rewritten to 14:55 after the record was committed;
+- the quote file is unchanged;
+- it fails `evidence` ("meta file SHA-256 … differs") and nothing is priced.
+
+Mutation "meta hash check off" is caught.
+
+### Must-fix 3: the trusted limits (accepted, for all of them)
+
+**Check.** C4 took drawdown, stress, exposure and margin from C2's boolean, so a C2 bug would pass C4 too.
+
+**Fix.** Each limit is recomputed from raw inputs with C4's own code. C2's verdicts are still required to pass
+(`risk_verdicts`), but only as an extra block, never as evidence.
+
+| Limit | C4's inputs | C4's arithmetic (file) |
+|---|---|---|
+| Open trades | the ledger's open trades plus the trades chosen earlier that day that passed C4 | count + 1 ≤ 3 (`validity_limits.py`) |
+| Drawdown brake | the committed E1 cash ledger, read directly (rows filled by the 15:00 cutoff), and `owner_overrides.csv` | closed equity at each day's close; high-water mark; a restart re-arms only if the brake was in force, else it fails closed (`validity_account.py`, `validity_drawdown.py`) |
+| Stress | the snapshot's mids | its own Black-76: forward by put-call parity, each leg's volatility implied from its own mid; open trades from marks plus the proposal from its entry (pads and charges), in every `config.yaml` scenario (`validity_pricing.py`, `validity_chain.py`, `validity_stress.py`) |
+| Exposure (C2's `exposure_limit`; not named by the judge, recomputed too) | same | ±2% move and +5 volatility points, every position from marks |
+| Margin room | **A14's three-part file** (scan, NOV, exposure, source, date) and the account | per lot max(0, k·scan − NOV) + min(0, NOV) + exposure, with k the owner's dated, sourced multiplier. Available cash after entry is the least of cash, marked equity and cash plus liabilities, less reserved premium (`validity_margin.py`) |
+
+The trades chosen earlier that day count as entered in every limit, as D2's `book_after_entry` counts them, but only
+those that passed C4. C4 then passes `book` and the earlier trades instead of a count.
+
+**Seeded breaches, one per limit** (`tests/checks/test_validity_limits.py`):
+- drawdown exactly at Rs 30,000;
+- a restart dated when the brake had not fired;
+- stress over the limit;
+- exposure over the limit;
+- margin room too small (needed 78,050 = 1.45 × 9,000 + 65,000);
+- four ways the margin fails closed: no row, a stale row, an unsourced row, no multiplier;
+- a fourth trade counting one chosen earlier that day;
+- an open trade with no recorded terms;
+- an unreadable account.
+
+**Cross-checks.**
+- `test_c4_reads_the_ledger_as_e1_and_c2_do`: a real E1-written ledger gives C4 the same closed-equity series as
+  C2's `closed_equity_series`, and the same cash as E1. A fill at 15:15 is correctly left out at the 15:00 cutoff.
+- Black-76 equals Hull's textbook value (1.1166).
+- The implied volatility and the parity forward round-trip.
+- A shock's move, volatility scaling and days passing are pinned in a test.
+
+**Independence.** The guard's list now also covers C2's `drawdown`, `overrides`, `book_view`, `settings`, B1's
+`implied_vol`, E1's `account`, `equity` and `fills`, and D2's `book_effects`. A fresh interpreter loads none of them.
+To keep it so, the ledger's file name moved from `fno/books/account.py` to `fno/constants.py`.
+
+### E3 fit (the judge's ruling, written into story C4)
+
+C4 runs once, inside D3's decision run, on the common pack's A4 snapshot. Its pass is stored in `validity.c4`. **E3's
+`ValidityGate` reads that committed pass and never re-runs C4 on the 15:15 execution capture**, which would fail every
+leg's price check.
+
+### Gates and mutations (bytecode off, caches cleared)
+
+- Full suite on the branch: **2,707 passed** before the four new tests. The final numbers on the tree merged with
+  main are in the orchestrator message.
+- `ruff`: clean. `check_imports`: clean. Largest new file: `tests/checks/test_validity.py` (160 lines).
+- **Mutations: 57 of 57 caught.** The first run left four survivors:
+  - the NIFTY filter;
+  - days passing in a shock;
+  - the volatility shock;
+  - which strike sets the forward.
+
+  One more mutation ("risk verdicts") had a bad pattern and never ran. I added the four missing tests, then re-ran
+  all five; each is now caught.
+
+### Limits, said plainly
+
+1. **C4's stress numbers differ slightly from C2's.**
+   - C4 uses a parity forward and its own implied volatilities. C2 uses the traded future's close and B1's
+     volatilities.
+   - On the fixture's SF the worst stress loss is Rs 3,152, under its Rs 3,541 maximum loss, as a defined-risk trade
+     must be.
+   - Near a limit the two can disagree. C4 blocks whenever its own number is over (reasoning only: the safe
+     direction).
+2. **Margin needs A14 and the owner's factor; until both exist, every trade is blocked.**
+   - `main`'s `margins.csv` still has the old one-column header, and the stressed multiplier is unset. So C4's
+     `margin_room` fails every trade, exactly as C2's does today.
+   - When A14 merges, its header equals C4's, and the tests need no change because they use A14-format rows. I will
+     then add a wiring test that reads the real file.
+   - Only the `multiplier` method is checked. `scenario_lookup` fails closed, by name.
+3. **Two account inputs are still taken as recorded, not recomputed.** Each open trade's terms (structure, width,
+   lots, recorded when it was decided) and the premium reserved for pending orders (E4) come from the D2 book. A
+   ledger trade with no recorded terms fails the margin.
+4. **A replay reads committed files again:** the ledger (rows by the cutoff), the margins file and NSE's file. It
+   reproduces the result while those stay append-only, as they are.
+5. **On an expiry day,** a leg is valued at its intrinsic value, as C2 values it.

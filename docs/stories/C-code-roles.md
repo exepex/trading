@@ -197,6 +197,19 @@ constraints, the `strategy_id` registered before its first trade, defined-risk o
 options only).
 Output: pass or fail with each check's numbers; failures written to `journal/<book>/validity_failures.csv`.
 
+**Where C4 runs, and what E3 reads (judge 83 ruling, 14 Oct 2026):**
+- C4 runs once, inside D3's decision run, on the A4 snapshot the common pack names (the mids D2 priced with). Its
+  verdict is stored in the decision record's `validity.c4`.
+- E3's `ValidityGate` reads the committed decision record's completed C4 pass. It never re-runs C4 on the 15:15
+  execution capture: those mids differ, so every leg's "price equals the mid" check would fail.
+
+**What C4 recomputes itself (judge 83):**
+- the lot size and the monthly expiry, from NSE's own daily F&O file of the previous session;
+- every owner limit, from raw inputs:
+  - the drawdown brake, from the book's committed ledger;
+  - stress and exposure, by its own Black-76 on the snapshot's mids;
+  - margin room, from A14's three-part margins file and the account.
+
 **Acceptance criteria:**
 1. Seeded wrong proposals are all blocked: stale date, wrong expiry, strike not listed, price not matching the
    snapshot, maximum loss miscomputed by Rs 1 or more, a limit breach.
@@ -215,4 +228,4 @@ Output: pass or fail with each check's numbers; failures written to `journal/<bo
 
 **Judge verifies:** adds a new wrong proposal of its own and confirms it is caught.
 
-**Depends:** C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) · **Size:** M · **Status:** built on `story/c4-hard-validity`, judge pending (claims: reviews/claude/response_83_c4-hard-validity.md); criteria 1-5 built (playbook mode for Book 1 in full); criterion 6 waits for D5 and criterion 7 for D4 (both books fail closed until then)
+**Depends:** C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) · **Size:** M · **Status:** judge 83 FAIL (3 must-fixes) fixed on `story/c4-hard-validity`, re-judge pending (claims: reviews/claude/response_83_c4-hard-validity.md, addendum 1); criteria 1-5 built (playbook mode for Book 1 in full); criterion 6 waits for D5 and criterion 7 for D4 (both books fail closed until then)

@@ -4,12 +4,14 @@ logged in `journal/<book>/validity_failures.csv`; a replay with the same validat
 
 import csv
 import json
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 
-from fno.checks.validity import Limits, ValidityChecker
+from fno.checks.validity import Sources, ValidityChecker
 from fno.checks.validity_adapter import BookTradeValidator
 from fno.checks.validity_evidence import EvidenceReader
 from fno.checks.validity_failures import ValidityFailureLog
+from fno.checks.validity_limits import PRICED, LimitChecks
+from fno.checks.validity_listing import NseListing
 from fno.checks.wiring import validity_modes
 from fno.composition import DESK_DECISION_TIME
 from fno.models import IST
@@ -18,6 +20,7 @@ from fno.playbook.decision_store import DecisionStore
 from fno.playbook.decision_validity import BLOCKED
 from fno.quotes.recorder import DATASET
 from tests.checks.builders import committed_record
+from tests.checks.validity_sources import MARGIN_ROWS, Accounts, Margins, NseFiles, limits, nse_file
 from tests.desk.builders import DictStore, row, write_snapshot
 from tests.playbook.evaluation_builders import (
     DAY,
@@ -33,7 +36,10 @@ from tests.risk.builders import ZERO_CHARGES, book
 
 from .builders import CONTEXT, SAME_CODE, doc, snapshot
 
-CHOSEN = "sc-a-v1_2026-11-27"
+CHOSEN, CHOSEN_ID = "sc-a-v1_2026-11-27", "sc-a-v1:2026-11-27"
+FILE_DAY = DAY - timedelta(days=1)  # NSE's file of the session before
+NSE = NseFiles({FILE_DAY: nse_file(expiries=("2026-11-20", EXPIRY.isoformat()), strikes=range(24_000, 26_050, 50))})
+MARGINS = Margins([MARGIN_ROWS[1] | {"width": f"{w}", "as_of": FILE_DAY.isoformat()} for w in (300, 200, 100)])
 
 
 class Captures:
@@ -56,10 +62,12 @@ def quote_store() -> DictStore:
     return store
 
 
-def validator(root, committed=True, log=True) -> BookTradeValidator:
-    """D2's test evaluator models no charges, so C4 reads the same (zero) charge table."""
+def validator(root, committed=True, log=True, account=None, owner_limits=None) -> BookTradeValidator:
+    """D2's test evaluator models no charges, so C4 reads the same (zero) charge table; a fresh account by default."""
     store = quote_store()
-    checker = ValidityChecker(EvidenceReader(store, DATASET), ZERO_CHARGES, Limits(10_000, 3), validity_modes())
+    sources = Sources(EvidenceReader(store, DATASET), NseListing(NSE), Accounts(account))
+    checks = LimitChecks(owner_limits or limits(), ZERO_CHARGES, MARGINS)
+    checker = ValidityChecker(sources, checks, validity_modes())
     record = committed_record(store, DAY, "exec") if committed else None
     log_to = ValidityFailureLog(root) if log else None
     return BookTradeValidator("book1_rules", checker, Captures(record), DESK_DECISION_TIME, log_to)
@@ -97,7 +105,7 @@ def test_a_failed_trade_is_blocked_logged_and_replayed(tmp_path):
     assert stored["no_trade"]["decision"]["action"] == "no trade"
     with open(tmp_path / "journal" / "book1_rules" / "validity_failures.csv", encoding="utf-8") as fh:
         rows = list(csv.DictReader(fh))
-    assert [(r["opportunity_id"], r["check"]) for r in rows] == [("sc-a-v1:2026-11-27", "evidence")]
+    assert [r["check"] for r in rows] == ["evidence", *PRICED] and {r["opportunity_id"] for r in rows} == {CHOSEN_ID}
     assert replay(run, evaluator(), SAME_CODE, validator=validator(tmp_path, committed=False, log=False)) == []
     assert any("validity differs" in d for d in replay(run, evaluator(), SAME_CODE, validator=validator(tmp_path)))
 

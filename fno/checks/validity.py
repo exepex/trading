@@ -1,7 +1,12 @@
-"""Hard-validity checks (story C4, design 7 and 12.4): every proposed trade re-checked by code independent of the code
-that proposed it. Common checks: evidence (the committed snapshot, its hashes, day and cutoff), the expiry, every leg
-listed and quoted before the cutoff at the price used, the maximum loss recomputed, and the owner's limits. The
-book's mode adds its own checks. A failure is final: no path, the owner's included, turns it into a pass."""
+"""Hard-validity checks (story C4, design 7 and 12.4): every proposed trade is re-checked by code independent of the
+code that proposed it. Common checks:
+- evidence: the committed snapshot and its hashes, its day and cutoff;
+- NSE's listing: a monthly expiry, the lot size;
+- every leg listed, and quoted before the cutoff at the price used;
+- the maximum loss, recomputed;
+- every owner limit, recomputed from the ledger, the snapshot and the margins file.
+
+The book's mode adds its own checks. A failure is final: no path, the owner's included, turns it into a pass."""
 
 from __future__ import annotations
 
@@ -9,12 +14,16 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from .data_checks import CaptureRecord
-from .validity_evidence import Evidence, EvidenceReader
+from .validity_account import AccountProblem
+from .validity_evidence import EvidenceReader
+from .validity_limits import LimitChecks
+from .validity_listing import NseListing
+from .validity_market import listing_checks, snapshot_checks
 from .validity_modes import ValidityMode
 from .validity_money import max_loss
 from .validity_proposal import CheckResult, ValidityProposal
 
-PRICE_TOLERANCE, LOSS_TOLERANCE = 1e-6, 1.0  # rupees per unit; rupees (criterion 1: wrong by Rs 1 or more)
+LOSS_TOLERANCE = 1.0  # rupees (criterion 1: a maximum loss wrong by Rs 1 or more fails)
 
 
 class HardValidityError(ValueError):
@@ -49,67 +58,52 @@ def override(report: ValidityReport, by: str, reason: str) -> ValidityReport:
 
 
 @dataclass(frozen=True)
-class Limits:
-    max_loss_per_trade: float
-    max_open_trades: int
+class Sources:
+    """Where C4 reads its raw inputs: the snapshot store, NSE's listing and the books' ledgers."""
+
+    snapshots: EvidenceReader
+    listing: NseListing
+    accounts: object  # `facts(book, cutoff) -> AccountFacts` (raises AccountProblem)
 
 
 class ValidityChecker:
-    def __init__(
-        self, reader: EvidenceReader, charges: Mapping[str, float], limits: Limits, modes: Mapping[str, ValidityMode]
-    ):
-        self.reader, self.charges, self.limits, self.modes = reader, dict(charges), limits, dict(modes)
+    def __init__(self, sources: Sources, limits: LimitChecks, modes: Mapping[str, ValidityMode]):
+        self.sources, self.limits, self.modes = sources, limits, dict(modes)
 
     def check(self, proposal: ValidityProposal, capture: CaptureRecord | None) -> ValidityReport:
         mode = self.modes[proposal.book]
-        evidence, problems = self.reader.read(proposal.day, capture)
+        evidence, problems = self.sources.snapshots.read(proposal.day, capture)
         results = [CheckResult("evidence", not problems, "; ".join(problems) or "committed snapshot, hashes equal")]
         if evidence is not None:
-            results += _market_checks(proposal, evidence)
-        results += self._money_checks(proposal)
+            results += snapshot_checks(proposal, evidence)
+        results += self._listing(proposal) + self._money(proposal) + self._limits(proposal, evidence)
+        verdicts = proposal.risk_verdicts_ok
+        results.append(
+            CheckResult("risk_verdicts", verdicts, f"C2's own verdicts {'passed' if verdicts else 'failed'}")
+        )
         results += mode.checks(proposal)
         return ValidityReport(proposal.book, proposal.opportunity_id, mode.name, tuple(results))
 
-    def _money_checks(self, proposal: ValidityProposal) -> list[CheckResult]:
-        loss = max_loss([leg.leg for leg in proposal.legs], proposal.units, self.charges)
-        off = abs(loss.total - proposal.claimed_max_loss)
+    def _listing(self, proposal: ValidityProposal) -> list[CheckResult]:
+        listing, missing = self.sources.listing.read(proposal.day)
+        if listing is None:
+            return [CheckResult("listing", False, "; ".join(missing))]
+        return [CheckResult("listing", True, "NSE's F&O file read", listing.provenance())] + listing_checks(
+            proposal, listing
+        )
+
+    def _limits(self, proposal: ValidityProposal, evidence) -> list[CheckResult]:
+        try:
+            account = self.sources.accounts.facts(proposal.book, proposal.cutoff)
+        except AccountProblem as problem:
+            return [CheckResult("account", False, str(problem))]
+        return self.limits.checks(proposal, account, evidence)
+
+    def _money(self, proposal: ValidityProposal) -> list[CheckResult]:
+        loss = max_loss([leg.leg for leg in proposal.legs], proposal.units, self.limits.charges)
+        off, limit = abs(loss.total - proposal.claimed_max_loss), self.limits.limits.max_loss_per_trade
         numbers = {**loss.numbers(), "claimed": round(proposal.claimed_max_loss, 2), "difference": round(off, 2)}
-        limits, risk_ok = self.limits, proposal.risk_verdicts_ok
         return [
             CheckResult("max_loss", off < LOSS_TOLERANCE, f"recomputed {loss.total:.2f}", numbers),
-            CheckResult("loss_limit", loss.total <= limits.max_loss_per_trade, f"limit {limits.max_loss_per_trade:g}"),
-            CheckResult(
-                "open_trades", proposal.open_before + 1 <= limits.max_open_trades,
-                f"{proposal.open_before} open before, limit {limits.max_open_trades}",
-            ),
-            CheckResult("risk_verdicts", risk_ok, "every C2 verdict passed" if risk_ok else "a C2 verdict failed"),
-        ]  # fmt: skip
-
-
-def _market_checks(proposal: ValidityProposal, evidence: Evidence) -> list[CheckResult]:
-    started = evidence.started_at
-    same_day = started.date() == proposal.day and started <= proposal.cutoff
-    day_reason = f"snapshot started {started.isoformat()}; day {proposal.day}, cutoff {proposal.cutoff.isoformat()}"
-    expiry_reason = f"opportunity {proposal.expiry}; monthly {list(evidence.monthly_expiries)}"
-    results = [
-        CheckResult("date", same_day, day_reason),
-        CheckResult("expiry", _expiry_ok(proposal, evidence), expiry_reason),
-    ]
-    return results + [_leg_check(proposal, evidence, leg) for leg in proposal.legs]
-
-
-def _expiry_ok(proposal: ValidityProposal, evidence: Evidence) -> bool:
-    return proposal.expiry in evidence.monthly_expiries and all(leg.expiry == proposal.expiry for leg in proposal.legs)
-
-
-def _leg_check(proposal: ValidityProposal, evidence: Evidence, leg) -> CheckResult:
-    name = f"leg {leg.expiry} {leg.leg.strike:g} {leg.leg.kind}"
-    row = evidence.rows.get((leg.expiry, leg.leg.strike, leg.leg.kind))
-    if row is None:
-        return CheckResult(name, False, "not listed in the snapshot")
-    if row.received_at is None or row.received_at > proposal.cutoff:
-        return CheckResult(name, False, f"quoted at {row.received_at}, not before the cutoff")
-    numbers = {"price": leg.leg.price, "snapshot_mid": row.mid}
-    if row.mid is None or abs(row.mid - leg.leg.price) > PRICE_TOLERANCE:
-        return CheckResult(name, False, "price differs from the snapshot mid", numbers)
-    return CheckResult(name, True, "listed, quoted before the cutoff, price equals the snapshot mid", numbers)
+            CheckResult("loss_limit", loss.total <= limit, f"recomputed {loss.total:.2f}, limit {limit:g}"),
+        ]

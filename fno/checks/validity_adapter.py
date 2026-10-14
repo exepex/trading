@@ -5,6 +5,7 @@ from D2's code."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime, time
 from typing import TYPE_CHECKING, Protocol
 
@@ -19,7 +20,7 @@ from .validity_proposal import ValidityLeg, ValidityProposal
 if TYPE_CHECKING:
     from ..playbook.loader import Playbook
     from ..playbook.outcomes import Outcome
-    from ..risk.inputs import Market
+    from ..risk.inputs import Market, RiskBook
 
 
 class CaptureSource(Protocol):
@@ -36,7 +37,7 @@ def _legs(outcome: Outcome, market: Market) -> tuple[ValidityLeg, ...]:
 
 
 def proposal_of(
-    book: str, day: date, outcome: Outcome, market: Market, playbook: Playbook, open_before: int, cutoff: datetime
+    book: str, day: date, outcome: Outcome, market: Market, playbook: Playbook, cutoff: datetime
 ) -> ValidityProposal:
     """The chosen trade as C4 checks it. The version is the playbook's own file found by name and version, and the
     versions permitted are those the playbook approves on the day, not what the outcome says about itself."""
@@ -46,9 +47,16 @@ def proposal_of(
     return ValidityProposal(
         book, opportunity.opportunity_id, day, cutoff, opportunity.context.expiry.isoformat(),
         terms.structure, terms.width, terms.lots, candidate.proposal.lot_size, _legs(outcome, market),
-        candidate.max_loss, bool(outcome.risk and outcome.risk.ok), open_before, named.parameters_sha256, strategy,
+        candidate.max_loss, bool(outcome.risk and outcome.risk.ok), named.parameters_sha256, strategy,
         frozenset(s.key for s in playbook.approved_on(day)),
     )  # fmt: skip
+
+
+def account_inputs(book: RiskBook) -> dict:
+    """What C4 takes from the book as recorded inputs, not computations: each open trade's terms (recorded when it was
+    decided) and the premium reserved for pending orders (E4)."""
+    terms = {t.trade_id: (t.terms.structure, t.terms.width, t.terms.lots) for t in book.open_trades}
+    return {"open_terms": terms, "premium_reserved": book.state.premium_reserved}
 
 
 class BookTradeValidator:
@@ -61,10 +69,13 @@ class BookTradeValidator:
         self.book, self.checker, self.captures, self.cutoff, self.log = book, checker, captures, cutoff, log
 
     def validate(
-        self, day: date, outcome: Outcome, market: Market, playbook: Playbook, open_before: int
-    ) -> ValidityResult:
+        self, day: date, outcome: Outcome, market: Market, playbook: Playbook, book: RiskBook,
+        earlier: tuple[Outcome, ...],
+    ) -> ValidityResult:  # fmt: skip
         cutoff = datetime.combine(day, self.cutoff, IST)
-        proposal = proposal_of(self.book, day, outcome, market, playbook, open_before, cutoff)
+        before = tuple(proposal_of(self.book, day, o, market, playbook, cutoff) for o in earlier)
+        own = proposal_of(self.book, day, outcome, market, playbook, cutoff)
+        proposal = replace(own, earlier=before, **account_inputs(book))
         report = self.checker.check(proposal, self.captures.record(day))
         if self.log is not None:
             self.log.append(day, report)

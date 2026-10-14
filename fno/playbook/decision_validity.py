@@ -29,22 +29,26 @@ class ValidityResult:
 
 class TradeValidator(Protocol):
     def validate(
-        self, day: date, outcome: Outcome, market: Market, playbook: Playbook, open_before: int
-    ) -> ValidityResult: ...
+        self, day: date, outcome: Outcome, market: Market, playbook: Playbook, book: RiskBook,
+        earlier: tuple[Outcome, ...],
+    ) -> ValidityResult: ...  # fmt: skip
 
 
 def validate_chosen(
     evaluation: DayEvaluation, validator: TradeValidator | None, market: Market, playbook: Playbook, book: RiskBook
 ) -> Mapping[str, ValidityResult]:
-    """Each chosen book trade's C4 result by opportunity ID (empty without a validator). The day is the evaluation's
-    own, never the market's: a stale market is then checked against the day's capture and fails."""
+    """Each chosen book trade's C4 result by opportunity ID (empty without a validator), in opportunity-ID order. The
+    trades chosen before it that passed count as entered, as D2 counts them. The day is the evaluation's own, never the
+    market's: a stale market is then checked against the day's capture and fails."""
     if validator is None:
         return {}
     chosen = sorted(
         (o for o in evaluation.outcomes if o.decision == Decision.CHOSEN), key=lambda o: o.opportunity.opportunity_id
     )
-    day, opened = date.fromisoformat(evaluation.day), len(book.open_trades)
-    return {
-        o.opportunity.opportunity_id: validator.validate(day, o, market, playbook, opened + n)
-        for n, o in enumerate(chosen)
-    }
+    day, results, passed = date.fromisoformat(evaluation.day), {}, []
+    for outcome in chosen:
+        result = validator.validate(day, outcome, market, playbook, book, tuple(passed))
+        results[outcome.opportunity.opportunity_id] = result
+        if result.ok:
+            passed.append(outcome)
+    return results
