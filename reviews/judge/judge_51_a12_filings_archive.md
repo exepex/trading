@@ -193,3 +193,48 @@ Criteria 2 and 6 of A12 are still re-judged when the backfill completes.
 two. CI `checks` is green on 16bfdd8 (run 38501702626), which contains it, and on later commits. No other code reached
 `main` since my last check: `main` equals 51aa2e7 plus b15406b under `fno`, `tests`, `tools`, `db`, `.github` and
 config.
+
+## Addendum 5 (`story/a12-commit-finally` 2c9be68, my addendum 3 should-fixes): PASS; and today's LAURUSLABS failure, ruled
+
+**The branch.**
+- `cmd_filings_archive` wraps the run in a `finally` that commits the manifest rows of files already saved when the
+  run stops early (any error included).
+- `CommitOnce` makes sure there is only one commit.
+- New tests: a create whose answer is lost, and a damaged stored copy (`StoredCopyDamaged` caught per file).
+
+**My plants (3, Slack token unset): all caught.**
+
+| Plant | Result |
+|---|---|
+| No commit in the `finally` | 1 failed |
+| Commit twice | 1 failed |
+| `StoredCopyDamaged` not caught | 1 failed |
+
+**Gates.** The branch merges cleanly with current `main`. On a scratch merge with `main` (never pushed): full suite
+3,001 passed; ruff, format (680 files) and imports (687): clean.
+
+**Verdict: PASS** for 2c9be68. The merge must run the full suite on the merged tree.
+
+### Today's A12 run (38513350039): expected or a defect?
+
+The run failed for two reasons, and the log says which.
+
+1. **"INCOMPLETE: deadline reached after 171 companies; the next run resumes"** (171 of 288 checked, 5,997 files
+   saved). **Expected behaviour**: the backfill is time-budgeted and resumes.
+   - **Follow-up (reasoning only):** while the backfill runs, every daily run ends with exit 1, a red run and the
+     "run failed" alert. A run that only hit its budget is not a failure.
+   - Suggest: exit 0 with an "incomplete, resumes" line when the only problem is the deadline, and exit 1 for real
+     failures. Today it hides real failures among daily reds.
+2. **"FAILED LAURUSLABS INTEGRATED_FILING_INDAS_1555947_23102025113639_WEB.xml: not saved: not XML: unclosed token:
+   line 1, column 65227".** I downloaded the file from NSE myself, twice. Both copies were **identical**: 65,258
+   bytes, SHA-256 `8e4444eb…dfb93c`, both cut off mid-tag (`…</in-capmkt:RelatedPartyTransac`). **NSE's own file is
+   truncated.** It is not a download fault, and retrying will not fix it.
+   - **Refusing to store it is right** (never store a broken file as XBRL).
+   - **Treating it as a retryable failure is a defect.** LAURUSLABS is marked failed and never finished, so it is
+     fetched and fails again on every run. Its company never completes, so the backfill step can never finish, and
+     every run stays "incomplete".
+   - **Fix (small):** a file NSE serves that is not well-formed XML becomes a recorded **gap**, the way "answers 'not
+     found'" already is: "NSE serves a truncated or malformed file (size, SHA-256)". The company is then finished.
+     Keep the SHA-256 so a later fixed copy from NSE is noticed.
+   - The 23 Oct 2025 LAURUSLABS filing's facts are missing from the archive until NSE fixes it. That is a real data
+     gap, and it should show as one.
