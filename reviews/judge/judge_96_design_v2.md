@@ -375,3 +375,21 @@ and I say so.
 
 **Verdict: FAIL for 658ab3a58402aa34a919e6910aacbdffb8aa3ddd**, on must-fix 1 only (wording in three places). Everything
 else in revision 4 passes, including both owner amendments and ChatGPT's fixes 2 and 3.
+
+## Addendum 11 (15 Oct 2026): 956a805679a9ce115bd92e28491a2d7260ed5e2e (658ab3a..956a805)
+
+956a805 (parent 658ab3a) changes `05`, `OWNER_SUMMARY.md`, `REPLAN.md` and response 97; docs only.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 10 must-fix 1 (decision 4's unit) | MET | Owner row appended in a1ed514 (merged on main in 01f6b82): "Decision 4's exact unit confirmed" (owner: "3% confirmed"), stating the RV > 0 paired-date gate, zero-RV dates reported, all dates in the significance test; the log quotes the owner. `05` item 5, REPLAN §5 item 4 and `OWNER_SUMMARY.md` now say "exact unit confirmed by the owner, 15 Oct 2026", and the summary states it in plain words; response 97's "to confirm" lines are updated |
+| Nothing else changed | MET | `git diff 658ab3a 956a805`: only those four files and those lines |
+
+**Follow-up (process, not blocking):** the owner's words "3% confirmed" alone do not show whether the owner confirmed
+the number or the unit; the log records the orchestrator's reading, not the question the owner answered. Log the
+question with the answer next time. The backstop here: `OWNER_SUMMARY.md` now states the unit in plain words, so the
+owner's final approval of the whole design covers it knowingly.
+
+**Verdict: PASS for 956a805679a9ce115bd92e28491a2d7260ed5e2e.** Design v2 revision 4 passes with all must-fixes of addenda
+6, 7 and 10 done. It waits on ChatGPT's confirmation and the owner's final approval; after the merge I check that
+`main`'s `docs/design_v2/` equals this SHA's.
