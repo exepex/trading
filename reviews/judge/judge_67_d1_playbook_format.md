@@ -67,3 +67,25 @@ so I find no defect. One benefit (reasoning only): every variant the desk tries 
 number of rules tried visible for multiple-testing purposes.
 
 **Verdict on the change:** acceptable. The judge 67 must-fix (the B7 gate accepting removed days) is still open.
+
+## Addendum 2 (the must-fix, 1844bc2 on `main`, the same tree as branch `story/d1-playbook` d54187f; after-the-fact review)
+
+**Process:** this reached `main` without a PASS, the second breach of the owner's rule. The builder reported it.
+The branch tip and 1844bc2 differ only by my own judge file.
+
+**Verdict: PASS. Criterion 6 is now MET, so all six criteria are MET.**
+- `RecomputedLiveReports` now returns the **recomputation over every recorded day**, provided the committed report
+  exists and each of its rows matches. The gate decides on the recomputed days, not on the committed subset.
+- **My cases** (25 recorded days, 5 disagreeing): the report with the 5 bad days removed, cut to the first 20 days, or
+  with one middle day removed is accepted as a record, but **fails the gate** in all three cases.
+- My plant, returning the committed report instead of the recomputation, fails 3 tests. `tests/playbook`: 182 passed.
+- **`playbook check` now runs the append-only check:** I edited a committed past registry row in a scratch clone and
+  got "refused: registry.csv history: version 2 does not keep version 1's rows unchanged".
+
+**The builder's note: one drifting approved version refuses the whole playbook load.** Because the gate now uses every
+recorded day, a `paper` strategy whose live feature later drops below its rule fails the loader. Today that stops
+**all** of Book 1, not just that strategy. It fails closed, which is safe, and nothing is `paper` today. But once
+several strategies are approved, one drifting feature would halt trading of all of them.
+
+Better (reasoning only, a follow-up for E6): treat the drift as that strategy's automatic `paper -> paused` (the
+`hard_loss_rule` path exists) with one #fno-desk line, and keep the rest loading. Not blocking now.
