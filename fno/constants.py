@@ -186,6 +186,7 @@ PLAYBOOK_FOLDER = "playbook"
 BOOK3_FOLDER = "book3"  # Book 3's constitution and strategy registry (story D5)
 PACKS_FOLDER = "packs"  # journal/packs/<date>/common.json and journal/<book>/packs/<date>/private.json (story E2)
 PLAYBOOK_REGISTRY_FILE = "registry.csv"
+VALIDITY_FAILURES_FILE = "validity_failures.csv"  # journal/<book>/validity_failures.csv: C4's blocked trades
 # Entry-condition operators: numbers compare with a number, flags with `is` and true or false
 # Story D2: a strategy version with fewer completed paper trades than this is unproven and holds at most one open trade
 UNPROVEN_BELOW_COMPLETED_TRADES, UNPROVEN_MAX_OPEN_TRADES = 20, 1
