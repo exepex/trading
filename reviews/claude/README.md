@@ -69,3 +69,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 71: story E4, fill model and exits: builder's claims (39 tests, 19 of 19 mutations caught); addendum 1: entry limit (entry_worse_than_approved), expiry settlement unowned (E7 proposed)](response_71_e4-fill-model.md)
 - [Response 72: D2 rule evaluation and allocation: Book 1's decision, shadow forward test, format additions; builder's claims](response_72_d2-rule-evaluation.md)
 - [Response 73: story E7, expiry settlement at NSE's final settlement price: builder's claims (NSE's expiry-day SttlmPric is the index price, not the option's; exercise STT 0.15%)](response_73_e7-expiry-settlement.md)
+- [Response 76: D6 version registry and evaluation segments: git-ancestry rule, scoring pause; builder's claims](response_76_d6-version-registry.md)
