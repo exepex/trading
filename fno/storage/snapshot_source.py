@@ -100,6 +100,23 @@ class NsdlFpiDailySource(SnapshotSource):
         return cls.BASE_URL + cls.PAGE
 
 
+class FiiDiiCashBySessionSource(FiiDiiCashSource):
+    """The same NSE values, each copy filed under the session it COVERS (read from the copy), not the run's day: a run
+    whose day already holds an older session's copy can no longer block the new session's copy (judge 66; 14 Oct's
+    values were otherwise unarchivable). A new series: the run-dated copies stay where they are, never moved or
+    deleted, and readers take a session from this series first."""
+
+    dataset = "nse/flows/fii-dii-cash-by-session"
+    first_day = date(2026, 10, 13)  # the first session the flows history covers
+
+
+class NsdlFpiDailyBySessionSource(NsdlFpiDailySource):
+    """NSDL's daily FPI report, filed under the reporting day it covers, as above."""
+
+    dataset = "nsdl/fpi/fpi-daily-by-session"
+    first_day = date(2026, 10, 13)
+
+
 class CorporateActionsSource(SnapshotSource):
     """NSE's list of equity corporate actions (splits, bonuses, demergers, dividends...) over the year to the day it is
     fetched, from NSE's website (JSON; its own name has no file, so the list is filed under a fixed name)."""

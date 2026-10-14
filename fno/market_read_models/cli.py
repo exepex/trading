@@ -22,7 +22,10 @@ ARCHIVED = "{day}: the session's NSE files are archived in Drive"
 ARCHIVE_FAILED = (
     "Omenix F&O market archive for {day}: NOT complete ({problem}); the publish step will say what it lacks"
 )
-DAILY_SNAPSHOTS = ("equity-list", "nifty500-list", "symbol-change", "corporate-actions", "fii-dii-cash", "fpi-daily")
+DAILY_SNAPSHOTS = (
+    "equity-list", "nifty500-list", "symbol-change", "corporate-actions", "fii-dii-cash-by-session",
+    "fpi-daily-by-session",
+)  # fmt: skip
 
 
 def add_market_parser(subparsers) -> None:

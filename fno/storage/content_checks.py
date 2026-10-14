@@ -23,8 +23,10 @@ from .snapshot_source import (
     CorporateActionsBySymbolSource,
     CorporateActionsSource,
     EquityListSource,
+    FiiDiiCashBySessionSource,
     FiiDiiCashSource,
     Nifty500ListSource,
+    NsdlFpiDailyBySessionSource,
     NsdlFpiDailySource,
     SymbolChangeSource,
 )
@@ -54,6 +56,14 @@ VALIDATORS = {
     SymbolChangeSource: lambda filename, data: read_symbol_changes(data, filename),
     FiiDiiCashSource: lambda filename, data: read_fii_dii(data, filename),
     NsdlFpiDailySource: lambda filename, data: read_nsdl_equity(data, filename),
+    FiiDiiCashBySessionSource: lambda filename, data: read_fii_dii(data, filename),
+    NsdlFpiDailyBySessionSource: lambda filename, data: read_nsdl_equity(data, filename),
     CorporateActionsSource: lambda filename, data: read_corporate_actions(data, filename),
     CorporateActionsBySymbolSource: lambda filename, data: read_corporate_actions(data, filename),
+}
+
+# The session a flows copy covers, read from the copy itself: where the by-session series files it (judge 66, P8)
+COVERED_SESSION = {
+    FiiDiiCashBySessionSource: lambda filename, data: read_fii_dii(data, filename).day,
+    NsdlFpiDailyBySessionSource: lambda filename, data: read_nsdl_equity(data, filename)[0],
 }

@@ -1,8 +1,8 @@
 # Story P8: the big investors' daily flows, downloaded as a plain scheduled job (no AI session: O6). NSE's provisional
 # FII/FPI and DII cash-market values and NSDL's daily FPI report serve only their latest day, so each run archives that
-# day's copy to the owner's Drive (with its SHA-256 manifest row, committed); history builds from the first copy, and a
-# later version of the same day is kept as the next copy, never over the first (the 07:10 IST publish run takes one
-# too). Research data only; it never trades. Secrets: the Drive and Slack ones the other jobs use; none is printed.
+# copy to the owner's Drive under the session it covers (with its SHA-256 manifest row, committed); history builds from
+# the first copy, and a session keeps its first copy (the 07:10 IST publish run takes one too; judge 66). Research
+# data only; it never trades. Secrets: the Drive and Slack ones the other jobs use; none is printed.
 name: flows-download
 
 on:
@@ -42,8 +42,8 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: NSE FII/DII cash values and NSDL's daily FPI report
         run: |
-          python -m fno data-snapshot fii-dii-cash
-          python -m fno data-snapshot fpi-daily
+          python -m fno data-snapshot fii-dii-cash-by-session
+          python -m fno data-snapshot fpi-daily-by-session
       - name: Alert #fno-desk when the job failed
         if: ${{ failure() }}
         run: |

@@ -11,7 +11,7 @@ from fno.market_read_models.session_rows import IncompleteSession, SessionRowsBu
 from fno.storage.manifest_folder import ManifestFolder
 from fno.storage.raw_store import LocalFolderStore
 from fno.storage.snapshot_source import FiiDiiCashSource, NsdlFpiDailySource
-from fno.storage.wiring import MANIFEST_FOLDER, SNAPSHOT_SOURCES, build_session_calendar
+from fno.storage.wiring import MANIFEST_FOLDER, RUN_DATED_FLOWS, SNAPSHOT_SOURCES, build_session_calendar
 
 from .test_market_contract_and_run import run
 
@@ -33,7 +33,7 @@ def archive(tmp_path, filed: dict[date, tuple[bytes, bytes]]) -> LocalFolderStor
 
 def test_first_day_is_never_after_the_first_archived_copy_in_the_committed_manifest():
     manifests = ManifestFolder(MANIFEST_FOLDER)
-    for source in SNAPSHOT_SOURCES:
+    for source in SNAPSHOT_SOURCES + RUN_DATED_FLOWS:
         days = [f.day for f in manifests.read(source)]
         assert not days or source.first_day <= min(days), source.__name__
     for source in FLOWS:  # the flows sources start exactly at their first copy: 13/ (judge 66 item 4)

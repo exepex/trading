@@ -70,3 +70,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 72: D2 rule evaluation and allocation: Book 1's decision, shadow forward test, format additions; builder's claims](response_72_d2-rule-evaluation.md)
 - [Response 73: story E7, expiry settlement at NSE's final settlement price: builder's claims (NSE's expiry-day SttlmPric is the index price, not the option's; exercise STT 0.15%)](response_73_e7-expiry-settlement.md)
 - [Response 78: P8 flows first day (judge 66 item 4): the empty 13 Oct flows page, root cause, fix; urgent: 14 Oct's flows not archivable tonight](response_78_p8-flows-first-day.md)
+- [Response 79: P8 flows filed by the session they cover (new by-session series; 14 Oct not blocked by the old 14/ copy; old series read only for sessions the new one lacks)](response_79_p8-flows-by-session.md)
