@@ -92,7 +92,7 @@ Its verdict, that no weekly edge was shown and the RED filter does not help, sta
 - **Merge matches the recomputation.** Parents are 944468c and ada5f7f. It equals my recomputed `git merge-tree`
   exactly.
 - **No unjudged change after it.** The only non-log change is e6c6558, the A8 Action's own data rows. That is lane 3.
-- **CI is pending.** CI on 2541825 (the first push carrying the merge) was still running at 18:56 UTC.
+- **CI is green** on 2541825 (the first push carrying the merge) and on every commit after it, up to d822189.
 - **Observation for A8 (judge 89).** e6c6558 is the first participant-OI row written by the GitHub Action.
   - 14 Oct now counts as a measured day: there are 17 absent checks, the last at 18:28 IST, then present at 00:20 IST on
     15 Oct.
@@ -101,3 +101,9 @@ Its verdict, that no weekly edge was shown and the RED filter does not help, sta
     18:28 IST, and the Action ran late.
   - This errs on the safe side (still next session), as judge 89 said. But it shows that the measured times will
     overstate the release time while the schedule runs late.
+- **Follow-up (A8, not this story).** Decision row d822189 says "14 Oct is excluded from the measured release days".
+  Nothing in the code excludes it: `first_seen_times` still counts 14 Oct as measured, because it has absent rows and
+  then a present row at 00:20 IST.
+  - The error is on the safe side: the lag is still the next session, so the rule is unchanged today.
+  - But the text and the code disagree. Either the exclusion is built (lane 1: a dated exclusion list read by
+    `first_seen_times`, with a test) or the row should say "counted, with a late first-seen".
