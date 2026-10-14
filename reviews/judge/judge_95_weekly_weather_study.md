@@ -86,3 +86,18 @@ Its verdict, that no weekly edge was shown and the RED filter does not help, sta
 | Gates | MET | Trial merge with `main`: 3,161 passed with the Slack token unset. `ruff check`, including the study folder, and `check_imports` are clean. |
 
 **Verdict: PASS for ada5f7f.** Merge it. After the merge I check `main` and CI.
+
+## Addendum 2 (14 Oct 2026): merge e4b0e4c MET
+
+- **Merge matches the recomputation.** Parents are 944468c and ada5f7f. It equals my recomputed `git merge-tree`
+  exactly.
+- **No unjudged change after it.** The only non-log change is e6c6558, the A8 Action's own data rows. That is lane 3.
+- **CI is pending.** CI on 2541825 (the first push carrying the merge) was still running at 18:56 UTC.
+- **Observation for A8 (judge 89).** e6c6558 is the first participant-OI row written by the GitHub Action.
+  - 14 Oct now counts as a measured day: there are 17 absent checks, the last at 18:28 IST, then present at 00:20 IST on
+    15 Oct.
+  - NSE wrote the file at 18:52 IST (Last-Modified 13:22 UTC).
+  - So the first-seen time is about 5.5 hours after the write. Two things caused that: the routine's checks stopped at
+    18:28 IST, and the Action ran late.
+  - This errs on the safe side (still next session), as judge 89 said. But it shows that the measured times will
+    overstate the release time while the schedule runs late.
