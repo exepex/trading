@@ -38,8 +38,8 @@ funding:
   date: 2026-10-14
 exits:
   time: the last trading day with 21 or more calendar days to expiry, at 15:00
-  profit: none (held to the time exit)
-  loss: none beyond the bought wings (maximum loss capped at entry)
+  profit: none  # held to the time exit
+  loss: none  # nothing beyond the bought wings: the maximum loss is capped at entry
   event: none
 evaluation_plan:
   expected_range:
@@ -54,6 +54,7 @@ evaluation_plan:
   pause_rules:
     - a single trade loses more than Rs 10,000 including charges (catastrophic-loss rule)
     - the book's drawdown brake (Rs 30,000 below its highest closed equity)
+  catastrophic_loss_rs: 10000
 evidence:
   test_results_path: null
   test_results_commit: null

@@ -15,10 +15,10 @@ from fno.constants import (
     OPTION_PUT,
     OUTCOME_CLOSED,
     OUTCOME_EXIT_ORDERED,
-    OUTCOME_NOT_OPENED,
     OUTCOME_OPENED,
     OUTCOME_PENDING_EXIT,
     OUTCOME_PROTECTION_UNVERIFIED,
+    OUTCOME_REFUSED,
     OUTCOME_SETTLEMENT_NEEDED,
     SIDE_BUY,
     SIDE_SELL,
@@ -31,7 +31,7 @@ from fno.desk.records import DeskRecords
 from fno.desk.snapshot import SnapshotError
 from fno.desk.wiring import open_desk_journal
 
-from .builders import CHARGES, DAY, LOT, at, contract, enter, fly_order, fly_rows, write_snapshot
+from .builders import CHARGES, DAY, LOT, at, contract, enter, fly_order, fly_rows, passed, write_snapshot
 
 CE, PE = OPTION_CALL, OPTION_PUT
 NEXT = DAY + timedelta(days=1)
@@ -42,7 +42,7 @@ HOLD = {"t1": [StopLoss(1e9)]}  # a rule that never fires
 def review(root, snapshots, desk, day, snapshot_id, rules, book=BOOK1_RULES):
     snapshot = snapshots.snapshot(day, snapshot_id)
     with open_desk_journal(book, root) as journal:
-        return desk.review(book, snapshot, journal, rules)
+        return desk.review(book, snapshot, journal, rules, passed(snapshot))
 
 
 def snapshot_on(store, clock, day, snapshot_id, rows):
@@ -97,7 +97,7 @@ def test_unquotable_protection_marks_the_position_blocks_new_risk_and_exits_at_t
     assert [c for c, *_ in close_rows(root)] == [contract(25000, CE), contract(25000, PE), contract(24800, PE)]
     assert is_open(root)  # not closed while an exit fill is missing
     refused = enter(root, snapshots, entry_desk, fly_order("t2", decided_at=at(15, 5, day=NEXT)), "next", NEXT)
-    assert refused.outcome == OUTCOME_NOT_OPENED
+    assert refused.outcome == OUTCOME_REFUSED
     assert "open trade t1 (protection_unverified) blocks new risk" in refused.reason
     other = enter(root, snapshots, entry_desk, fly_order("t2", book=BOOK2_HYBRID, decided_at=at(15, 5, day=NEXT)),
                   "next", NEXT)  # fmt: skip
@@ -174,7 +174,7 @@ def test_an_unsettled_expired_trade_blocks_the_book_s_new_risk(root, store, snap
     snapshot_on(store, clock, after, "after", fly_rows())
     review(root, snapshots, exit_desk, after, "after", HOLD)
     refused = enter(root, snapshots, entry_desk, fly_order("t2", decided_at=at(15, 5, day=after)), "after", after)
-    assert refused.outcome == OUTCOME_NOT_OPENED  # judge 68: its stale mark must not let the book keep trading
+    assert refused.outcome == OUTCOME_REFUSED  # judge 68: its stale mark must not let the book keep trading
     assert "open trade t1 (settlement_needed) blocks new risk in book1_rules" in refused.reason
 
 

@@ -47,6 +47,10 @@ def cmd_playbook(args) -> int:
 def _print_playbook(playbook) -> int:
     for strategy in playbook.strategies:
         print(f"{strategy.file_name}: {strategy.status} (rule sha256 {strategy.parameters_sha256[:12]})")
+    for drift in playbook.drifted:
+        print(
+            f"{drift.strategy.file_name}: NOT approved, live feature drift (desk scorecard pauses it): {drift.reason}"
+        )
     approved = [s.file_name for s in playbook.approved()]
     print(f"approved for paper: {', '.join(approved) if approved else 'none (Book 1 trades nothing)'}")
     return 0

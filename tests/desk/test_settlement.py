@@ -20,8 +20,8 @@ from fno.constants import (
     OPTION_CALL,
     OPTION_PUT,
     OUTCOME_CLOSED,
-    OUTCOME_NOT_OPENED,
     OUTCOME_OPENED,
+    OUTCOME_REFUSED,
     OUTCOME_SETTLEMENT_NEEDED,
 )
 from fno.desk.records import DeskRecords
@@ -44,6 +44,7 @@ from .builders import (
     enter,
     fly_order,
     fly_rows,
+    passed,
     write_snapshot,
 )
 
@@ -149,8 +150,9 @@ def test_the_real_file_shows_why_the_close_is_never_used():
 def review_after_expiry(root, store, snapshots, exit_desk, clock):
     write_snapshot(store, "after", fly_rows(), at(15, 15, day=AFTER), at(15, 15, 40, day=AFTER), day=AFTER)
     clock.set(at(15, 20, day=AFTER))
+    snapshot = snapshots.snapshot(AFTER, "after")
     with open_desk_journal(BOOK1_RULES, root) as journal:
-        return exit_desk.review(BOOK1_RULES, snapshots.snapshot(AFTER, "after"), journal, {})
+        return exit_desk.review(BOOK1_RULES, snapshot, journal, {}, passed(snapshot))
 
 
 @pytest.fixture
@@ -208,7 +210,7 @@ def test_a_missing_settlement_file_blocks_new_risk_until_published(root, store, 
     assert result.outcome == OUTCOME_SETTLEMENT_NEEDED and "is not published yet" in result.reason
     assert len(alerts.sent) == 1 and settled(root) == {}
     blocked = enter(root, snapshots, entry_desk, fly_order("t2", decided_at=at(15, 5, day=AFTER)), "after", AFTER)
-    assert blocked.outcome == OUTCOME_NOT_OPENED and "(settlement_needed) blocks new risk" in blocked.reason
+    assert blocked.outcome == OUTCOME_REFUSED and "(settlement_needed) blocks new risk" in blocked.reason
     settlements.prices[EXPIRY] = 25000.0  # the file is published by the next review
     [result] = review_after_expiry(root, store, snapshots, exit_desk, clock)
     assert result.outcome == OUTCOME_CLOSED

@@ -84,3 +84,27 @@ risk:
     source: null
     as_of: null
     max_age_days: 30
+
+# Story E6: the paper review rule's statistics, in one place. PROVISIONAL until S1 (the evaluation protocol) freezes the
+# real statistics; S1 replaces these values here, with no code change (orchestrator, 14 Oct 2026; reasoning only).
+# The paper gate (20 completed positions, 3 months) is design 6's, shared with D2 in fno/constants.py.
+# A review never promotes to real money by itself: that is always the owner's decision.
+scorecard_review:
+  status: provisional until S1
+  confidence: 0.95  # two-sided interval of the mean net per completed position
+  bootstrap_resamples: 10000
+  bootstrap_seed: 20261014
+
+# Story E3: the paper desk's daily timetable (IST). PROPOSED, not frozen: S1 calibrates the times from measured run
+# times and freezes them in the evaluation protocol. The pack waits for the 3 pm canonical snapshot (14:55-15:10, judge
+# 72); decisions are collected at the deadline; the execution snapshot is a second recorder capture; fills and exits
+# finish by `fills_by`. The account lock lease covers one book's write inside the fills window, not E1's 600 seconds.
+desk:
+  timetable:
+    status: proposed until S1
+    pack: "14:58"  # first try; retried until `pack_wait_until` while the canonical snapshot is not committed yet
+    pack_wait_until: "15:10"  # the recorder's window end: no canonical snapshot by then means no pack today
+    decision_deadline: "15:12"
+    execution_snapshot: "15:15"
+    fills_by: "15:20"
+    lock_lease_seconds: 60

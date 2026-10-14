@@ -92,7 +92,7 @@ source and availability time; an item available after the cutoff is refused. A p
 **Judge verifies:** rebuilds one day's packs from committed inputs and compares hashes; greps the common pack for any
 book field.
 
-**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** later
+**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** built on branch `story/e2-market-pack`; awaiting judge (claims: `reviews/claude/response_74_e2-market-pack.md`)
 
 ---
 
@@ -137,6 +137,10 @@ separate checkouts. Every account write therefore runs as: pull, write under `Ac
 5. Restarting the run the same day after any step repeats nothing already done (test kills it after the fills).
 6. Every step's start and end time, inputs and result are written to `journal/runs/<date>.json` and committed.
 7. A decision without a completed C4 pass is never filled, for any book (test per book).
+   **C4 at the fill (judge 83 ruling):** the fill reads the committed D3 record's completed C4 pass
+   (`validity.c4`, written by C4 inside the decision run against the decision's own capture); it never runs C4 again
+   against the 15:15 execution capture, whose quotes differ and would fail every leg's price check. A missing, empty,
+   failed or edited record is never filled (`fno/desk/recorded_c4.py`).
 
 **Test plan:** an end-to-end test over 5 simulated days with fakes: normal day, slow book, failed snapshot, holiday,
 restart after fills.
@@ -144,7 +148,7 @@ restart after fills.
 **Judge verifies:** reads one week of run files and checks the order of commits (decisions before the snapshot, the
 snapshot before fills).
 
-**Depends:** A4, A7, C3, C4, D3, E1, E2, E4 · **Size:** L · **Status:** later
+**Depends:** A4, A7, C3, C4, D3, E1, E2, E4 · **Size:** L · **Status:** built, not live (judge 82): no `desk run` command, no routine, no E5 orders or exit rules and no C4 yet; branch `story/e3-timetable` (claims: reviews/claude/response_84_e3-timetable.md)
 
 ---
 
@@ -221,7 +225,7 @@ it records "no approved strategy" each day (that is a result, not an error).
 
 **Judge verifies:** replays three Book-1 records.
 
-**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** later
+**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** built on `story/e5-book1`, judge pending; not live (no routine; until C4 merges and writes `validity.c4`, no Book 1 order can fill) (claims: reviews/claude/response_85_e5-book1.md)
 
 ---
 
@@ -255,11 +259,24 @@ Rs 1 pad used in research. Pause rules fire automatically and are recorded as a 
 3. Execution costs measured from the record match a hand computation on fixture fills.
 4. On a review date, the scorecard states keep, pause or retire per the plan's own rules.
 
+**Built (14 Oct 2026; the orchestrator's defaults, `reviews/claude/response_75_e6-scorecard.md`):** desk records carry the
+version (`strategy`, `<name>-v<n>`) and the touch each fill met; a gate refusal is its own outcome (`refused`), apart
+from fills that failed. Each shadow version has its own account `journal/shadow/<name>-v<n>/account/`, scored in a
+separate section, and is D2's `ShadowBooks` (`fno/desk/shadow_books.py`). The machine-checked pause rule is the plan's
+`catastrophic_loss_rs`, never above C2's per-trade maximum loss. The review thresholds are provisional until S1 and live
+only in config.yaml `scorecard_review`. The review rule: only on a review date
+and past the gate; mean C1 net per completed position with a seeded bootstrap 95% interval; retire when the interval's
+upper end is below the expected low, pause when the mean is, else keep; promotable only when the interval's lower end
+and the whole net are above zero. A review's decision is stated, never applied: only the owner pauses for statistics
+or retires (D1). Judge 67: a paper version whose live feature drifts drops out of `approved()` and is paused by
+`hard_loss_rule`; the rest keeps loading.
+
 **Test plan:** tests with simulated paper histories.
 
 **Judge verifies:** recomputes one scorecard number from the records.
 
-**Depends:** C1, D1, E4 · **Size:** M · **Status:** later
+**Depends:** C1, D1, E4 · **Size:** M · **Status:** built; awaiting judge (branch `story/e6-scorecard`, claims
+`reviews/claude/response_75_e6-scorecard.md`)
 
 ---
 

@@ -20,7 +20,7 @@ from fno.desk.snapshot import parse_execution_snapshot
 from fno.desk.wiring import build_entry_desk, build_execution_snapshots, build_exit_desk, open_desk_journal
 from fno.quotes.recorder import QuoteSnapshotRecorder
 
-from .builders import DAY, DictStore, at, enter, fly_order, fly_rows, write_snapshot
+from .builders import DAY, DictStore, at, enter, fly_order, fly_rows, passed, write_snapshot
 
 DESK = ROOT / "fno" / "desk"
 ORDER_CALLS = ("place_order", "modify_order", "cancel_order", "order")
@@ -62,15 +62,16 @@ def test_a_full_day_of_fills_and_exits_never_touches_a_provider(root, tmp_path, 
     next_day = DAY.replace(day=DAY.day + 1)
     write_snapshot(store, "next", fly_rows(), at(15, 15, day=next_day), at(15, 15, 40, day=next_day), day=next_day)
     clock.set(at(15, 20, day=next_day))
+    snapshot = snapshots.snapshot(next_day, "next")
     with open_desk_journal(BOOK1_RULES, root) as journal:
-        [result] = exit_.review(BOOK1_RULES, snapshots.snapshot(next_day, "next"), journal, {"t1": [TimeExit(13)]})
+        [result] = exit_.review(BOOK1_RULES, snapshot, journal, {"t1": [TimeExit(13)]}, passed(snapshot))
     assert result.outcome == OUTCOME_CLOSED and Trap.calls == []
 
 
 def test_desk_writes_need_the_book_s_lock_held(root):
     with open_desk_journal(BOOK1_RULES, root) as journal:
         pass  # the lock is released on exit
-    event = DeskEvent("e1", DAY, BOOK1_RULES, "t1", "d1", "exec", "0" * 64, OUTCOME_OPENED, "test")
+    event = DeskEvent("e1", DAY, BOOK1_RULES, "fixture-fly-v1", "t1", "d1", "exec", "0" * 64, OUTCOME_OPENED, "test")
     with pytest.raises(AccountError, match="single-writer lock"):
         journal.record_event(event)
     assert DeskRecords(PaperAccount(root, BOOK1_RULES)).event_rows() == []

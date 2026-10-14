@@ -7,6 +7,7 @@ import json
 from datetime import date, datetime, time
 
 from fno.books.files import csv_text
+from fno.checks.data_checks import CheckReport
 from fno.config import ROOT, load_config
 from fno.constants import BOOK1_RULES, OPTION_CALL, OPTION_PUT, STRUCTURE_SHORT_IRON_FLY
 from fno.desk.entries import EntryOrder
@@ -25,6 +26,7 @@ DAY = date(2026, 10, 14)
 EXPIRY = date(2026, 10, 27)
 LOT = 65
 CHARGES = load_config(ROOT / "config.yaml")["charges"]
+STRATEGY = "fixture-fly-v1"
 DECIDED_AT = datetime(2026, 10, 14, 15, 5, tzinfo=IST)
 # The short iron fly every test trades: bid, ask for (strike, type)
 FLY_QUOTES = {
@@ -97,11 +99,16 @@ def write_snapshot(store, snapshot_id, rows, started, finished, complete=True, d
     store.put(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta).encode())
 
 
-def enter(root, snapshots, desk, order, snapshot_id="exec", day=DAY):
-    """Fill one entry order against a recorded snapshot, under the book's lock."""
+def passed(snapshot, legs=()) -> CheckReport:
+    """C3's report when every data check passed on this snapshot (and these legs)."""
+    return CheckReport(snapshot.day, snapshot.snapshot_id, tuple(legs), ())
+
+
+def enter(root, snapshots, desk, order, snapshot_id="exec", day=DAY, checks=None):
+    """Fill one entry order against a recorded snapshot, under the book's lock; the data checks passed unless given."""
     snapshot = snapshots.snapshot(day, snapshot_id)
     with open_desk_journal(order.book, root) as journal:
-        return desk.enter(order, snapshot, journal)
+        return desk.enter(order, snapshot, journal, checks or passed(snapshot, order.contracts()))
 
 
 def approved(proposal: Proposal, book: str = BOOK1_RULES, day: date = DAY, entry_cash=None) -> RiskDecision:
@@ -128,7 +135,8 @@ def approved_entry(proposal: Proposal, quotes=FLY_QUOTES) -> float:
     return SimulatorTradeCosts(CHARGES).entry_cash_flow(proposal, decision_market(quotes))
 
 
-def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1, limit=None) -> EntryOrder:
+def fly_order(trade_id="t1", book=BOOK1_RULES, risk=None, decided_at=DECIDED_AT, lots=1, limit=None,
+              strategy=STRATEGY) -> EntryOrder:  # fmt: skip
     proposal = fly_proposal(trade_id, lots)
     risk = risk or approved(proposal, book, decided_at.date(), limit)
-    return EntryOrder(book, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk)
+    return EntryOrder(book, strategy, f"d-{trade_id}", decided_at, proposal, EXPIRY, risk)

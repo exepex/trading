@@ -20,6 +20,7 @@ NESTED = {
         "unit",
         "review_dates",
         "pause_rules",
+        "catastrophic_loss_rs",
     ),
     "evidence": EVIDENCE,
 }

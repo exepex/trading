@@ -11,8 +11,8 @@ import yaml
 from fno.fo_bhavcopy import BadFile
 from fno.market_read_models.flows_files import FlowSide, read_fii_dii, read_nsdl_equity
 from fno.storage.content_checks import VALIDATORS
-from fno.storage.snapshot_source import FiiDiiCashSource, NsdlFpiDailySource
-from fno.storage.wiring import SNAPSHOT_DATASETS
+from fno.storage.snapshot_source import FiiDiiCashBySessionSource, FiiDiiCashSource, NsdlFpiDailyBySessionSource
+from fno.storage.wiring import RAW_SOURCES, RUN_DATED_FLOWS, SNAPSHOT_DATASETS
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "flows"
 NSE_FILE = (FIXTURES / "fii-dii-cash_13102026.json").read_bytes()  # NSE, fetched 14 Oct 2026 02:17 IST
@@ -48,21 +48,27 @@ def test_a_file_that_is_not_the_report_is_refused(reader, data):
         reader(data, "x")
 
 
-def test_each_copy_is_filed_under_the_day_fetched_and_checked_on_the_way_in():
+def test_new_copies_go_to_the_by_session_series_and_are_checked_on_the_way_in():
+    """Judge 66: the first copies were filed by run day (kept, never taken again); every new copy is filed under the
+    session it covers, in its own series."""
     assert FiiDiiCashSource.path_for(date(2026, 10, 14)) == "nse/flows/fii-dii-cash/2026/10/14/fii-dii-cash.json"
-    assert FiiDiiCashSource.url_for(FiiDiiCashSource.path_for(date(2026, 10, 14))) == FiiDiiCashSource.API
-    assert NsdlFpiDailySource.url_for(NsdlFpiDailySource.path_for(date(2026, 10, 14))).endswith("/Reports/Latest.aspx")
-    assert (
-        SNAPSHOT_DATASETS["fii-dii-cash"] is FiiDiiCashSource and SNAPSHOT_DATASETS["fpi-daily"] is NsdlFpiDailySource
+    by_session = FiiDiiCashBySessionSource.path_for(date(2026, 10, 14))
+    assert by_session == "nse/flows/fii-dii-cash-by-session/2026/10/14/fii-dii-cash.json"
+    assert FiiDiiCashBySessionSource.url_for(by_session) == FiiDiiCashSource.API
+    assert NsdlFpiDailyBySessionSource.url_for(NsdlFpiDailyBySessionSource.path_for(date(2026, 10, 14))).endswith(
+        "/Reports/Latest.aspx"
     )
-    VALIDATORS[FiiDiiCashSource]("fii-dii-cash.json", NSE_FILE)
+    assert SNAPSHOT_DATASETS["fii-dii-cash-by-session"] is FiiDiiCashBySessionSource
+    assert SNAPSHOT_DATASETS["fpi-daily-by-session"] is NsdlFpiDailyBySessionSource
+    assert "fii-dii-cash" not in SNAPSHOT_DATASETS and set(RUN_DATED_FLOWS) <= set(RAW_SOURCES)  # kept, not taken
+    VALIDATORS[FiiDiiCashBySessionSource]("fii-dii-cash.json", NSE_FILE)
     with pytest.raises(BadFile):
-        VALIDATORS[NsdlFpiDailySource]("fpi-daily-latest.html", b"<html></html>")
+        VALIDATORS[NsdlFpiDailyBySessionSource]("fpi-daily-latest.html", b"<html></html>")
 
 
 def test_the_daily_download_runs_in_the_evening_and_alerts_on_failure():
     flow = yaml.safe_load(WORKFLOW.read_text())
     assert flow[True]["schedule"] == [{"cron": "40 15 * * *"}]  # 21:10 IST
     steps = " ".join(str(s.get("run", "")) for s in flow["jobs"]["download"]["steps"])
-    assert "data-snapshot fii-dii-cash" in steps and "data-snapshot fpi-daily" in steps
+    assert "data-snapshot fii-dii-cash-by-session" in steps and "data-snapshot fpi-daily-by-session" in steps
     assert any("failure()" in str(s.get("if", "")) for s in flow["jobs"]["download"]["steps"])

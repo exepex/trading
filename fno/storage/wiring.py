@@ -22,7 +22,7 @@ from ..http_pacing import PacedSession
 from ..research_data.calendar import SessionCalendar, load_session_calendar
 from ..research_data.nifty_panel import DailyFiles
 from ..research_data.panel_store import CsvGzPanelFolder, PanelSink
-from .content_checks import VALIDATORS
+from .content_checks import COVERED_SESSION, VALIDATORS
 from .coverage import CoverageCheck, CoverageDataset, read_exceptions
 from .google_drive import GoogleDriveStore, service_account_token
 from .google_drive_upload import GoogleDriveUploadStore
@@ -44,12 +44,15 @@ from .raw_source import (
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
 from .revision_source import RevisionCapturingSource
 from .revisions import RevisionArchive, RevisionIndex
+from .session_filed_taker import SessionFiledTaker
 from .snapshot_source import (
     CorporateActionsBySymbolSource,
     CorporateActionsSource,
     EquityListSource,
+    FiiDiiCashBySessionSource,
     FiiDiiCashSource,
     Nifty500ListSource,
+    NsdlFpiDailyBySessionSource,
     NsdlFpiDailySource,
     SymbolChangeSource,
 )
@@ -79,10 +82,11 @@ SNAPSHOT_SOURCES = (
     SymbolChangeSource,
     CorporateActionsSource,
     CorporateActionsBySymbolSource,
-    FiiDiiCashSource,
-    NsdlFpiDailySource,
-)  # reference lists and latest-day reports, one copy per day fetched (P6)
-RAW_SOURCES = DATED_SOURCES + SNAPSHOT_SOURCES  # every dataset with a manifest
+    FiiDiiCashBySessionSource,
+    NsdlFpiDailyBySessionSource,
+)  # reference lists, one copy per day fetched (P6); the flows reports, one copy per session covered (P8)
+RUN_DATED_FLOWS = (FiiDiiCashSource, NsdlFpiDailySource)  # P8's first copies, filed by run day: kept, never taken again
+RAW_SOURCES = DATED_SOURCES + SNAPSHOT_SOURCES + RUN_DATED_FLOWS  # every dataset with a manifest
 
 
 def build_raw_stores(project_folder: Path | None = None, token_for=service_account_token) -> list[RawFileStore]:
@@ -259,12 +263,16 @@ def build_own_list_taker() -> SnapshotTaker:
     return SnapshotTaker(store, build_nse_source(source), VALIDATORS[source])
 
 
-def build_snapshot_taker(name: str) -> SnapshotTaker:
-    """Today's copy of one reference list (a key of SNAPSHOT_DATASETS) into the owner's Drive, with its manifest row."""
+def build_snapshot_taker(name: str) -> SnapshotTaker | SessionFiledTaker:
+    """Today's copy of one reference list or flows report (a key of SNAPSHOT_DATASETS) into the owner's Drive, with
+    its manifest row."""
     store = build_owner_drive_store()
     if store is None:
         raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to upload to Drive")
     source_type = SNAPSHOT_DATASETS[name]
+    if source_type in COVERED_SESSION:  # a latest-day report: filed under the session it covers
+        covered = COVERED_SESSION[source_type]
+        return SessionFiledTaker(store, build_nse_source(source_type), VALIDATORS[source_type], covered)
     return SnapshotTaker(store, build_nse_source(source_type), VALIDATORS[source_type])
 
 

@@ -105,7 +105,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [E3](stories/E-paper-desk.md#e3-daily-timetable-deadline-execution-snapshot-and-exits) | Daily timetable: deadline, execution snapshot and exits | trading | A4, A7, C3, C4, D3, E1, E2, E4 | L | later |
 | [E4](stories/E-paper-desk.md#e4-fill-model-and-exits) | Fill model and exits | trading | A4, C1, C2, E1 | M | built; awaiting judge |
 | [E5](stories/E-paper-desk.md#e5-book-1-pure-rules) | Book 1: pure rules | trading | C4, D2, D3, E2, E3 | S | later |
-| [E6](stories/E-paper-desk.md#e6-strategy-paper-scorecard-and-pause-rules) | Strategy paper scorecard and pause rules | trading | C1, D1, E4 | M | later |
+| [E6](stories/E-paper-desk.md#e6-strategy-paper-scorecard-and-pause-rules) | Strategy paper scorecard and pause rules | trading | C1, D1, E4 | M | built; awaiting judge |
 | [E7](stories/E-paper-desk.md#e7-expiry-settlement) | Expiry settlement | trading | A2, C1, C2, E1, E4 | S | built; awaiting judge |
 | [F1](stories/F-ai-layer.md#f1-isolated-ai-book-sessions) | Isolated AI book sessions | trading | D3, D6, E2, E3 | L | forecast part awaiting judge |
 | [F2](stories/F-ai-layer.md#f2-role-agents-and-finding-cards) | Role agents and finding cards | trading | F1 | L | later |

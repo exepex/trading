@@ -21,7 +21,7 @@ and the owner).
 **Expected design:** `playbook/<name>-v<n>.yaml`; `fno/playbook/schema.py` and `loader.py`. Fields: `name, version,
 status (research | paper | paused | retired), payer, edge_family, structure (code, strikes rule, width rule),
 entry_conditions (feature, operator, threshold), size_rule, funding (margin per lot, source, date), exits (time,
-profit, loss, event), evaluation_plan (expected range, unit, review dates, pause rules), evidence (test results path
+profit, loss, event), evaluation_plan (expected range, unit, review dates, pause rules, and since E6 the machine-checked `catastrophic_loss_rs`), evidence (test results path
 and commit, red-team note, judge verdict, owner approval date)`.
 
 **Acceptance criteria:**
@@ -128,7 +128,7 @@ a written override, F4), `forecasts` (G3 link). Records live under `journal/<boo
 
 **Judge verifies:** replays three random records.
 
-**Depends:** D2, E2 · **Size:** M · **Status:** later
+**Depends:** D2, E2 · **Size:** M · **Status:** built on branch `story/d3-decision-record`; awaiting judge (claims: `reviews/claude/response_81_d3-decision-record.md`)
 
 ---
 
@@ -243,4 +243,4 @@ marked `unscored` and pauses scoring for that book until a new version row is co
 
 **Judge verifies:** inserts a fallback decision and confirms it is unscored and scoring pauses.
 
-**Depends:** D3 · **Size:** S · **Status:** later
+**Depends:** D3 · **Size:** S · **Status:** built on branch `story/d6-version-registry` (D3's record supplies `DecisionFacts`); awaiting judge (claims: `reviews/claude/response_76_d6-version-registry.md`)

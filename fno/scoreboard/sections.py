@@ -1,0 +1,78 @@
+"""One section of scoreboard B (story S2, design 12.5): every number the design lists for a group of a book's trades
+over a period. Raw account net is the daily series' total (trades' realised and marked changes minus operating costs);
+net also takes the allocated AI cost (F8, "allocated, not a bill") when it is known, and says so when it is not."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+from datetime import date
+
+from ..costs import CHARGE_NAMES
+from .book_trades import ScoredTrade
+from .series import DailySeries, held_at_close
+from .uncertainty import FIGURES_STATUS, Uncertainty
+
+AI_NOT_AVAILABLE = "not available: F8 (AI cost allocation) not built"
+MARGIN_AT_ENTRY = "stressed margin at entry x sessions held (not re-margined daily)"
+
+
+def rupees(value: float | None) -> float | None:
+    return None if value is None else float(round(value, 2))
+
+
+def _money(trades: Sequence[ScoredTrade]) -> dict:
+    lines = [t.line for t in trades if t.line]
+    charges = {name: sum(line.charges[name] for line in lines) for name in CHARGE_NAMES}
+    pads = sum(line.pads for line in lines)
+    return {
+        "closed_trades": len(lines), "gross_rs": rupees(sum(line.gross for line in lines)), "pads_rs": rupees(pads),
+        "charges_rs": {name: rupees(value) for name, value in charges.items()},
+        "execution_costs_rs": rupees(pads + sum(charges.values())),
+        "closed_net_rs": rupees(sum(line.net for line in lines)),
+    }  # fmt: skip
+
+
+def _risk(trades: Sequence[ScoredTrade], series: DailySeries) -> dict:
+    held = {t.trade_id: sum(held_at_close(t, d) for d in series.days) for t in trades}
+    margins = [t.entry.stressed_margin * held[t.trade_id] for t in trades if t.entry and t.entry.stressed_margin]
+    usage = [t.entry.stress_usage for t in trades if t.entry and t.entry.stress_usage is not None]
+    return {
+        "max_loss_at_entry_rs": rupees(sum(t.entry.max_loss for t in trades if t.entry)),
+        "risk_days_rs": rupees(series.risk_days),
+        "mean_daily_risk_rs": rupees(series.risk_days / len(series.days)) if series.days else None,
+        "net_per_unit_of_risk": None if series.net_per_risk is None else round(series.net_per_risk, 6),
+        "margin_days_rs": rupees(sum(margins)), "margin_days_method": MARGIN_AT_ENTRY,
+        "stress_usage_at_entry_max": round(max(usage), 6) if usage else None,
+        "no_max_loss": sorted(t.trade_id for t in trades if t.entry is None),
+    }  # fmt: skip
+
+
+def _valuation(trades: Sequence[ScoredTrade]) -> dict:
+    stale = sorted({(d.day.isoformat(), c) for t in trades for d in t.days for c in d.stale})
+    unvalued = sorted({(t.trade_id, d.day.isoformat()) for t in trades for d in t.days if d.value is None})
+    return {"stale_marks": [list(s) for s in stale], "unvalued_days": [list(u) for u in unvalued]}
+
+
+def section(
+    trades: Sequence[ScoredTrade], series: DailySeries, operating_costs: float, ai_cost: float | None,
+    uncertainty: Uncertainty | None, first: date | None, last: date | None,
+) -> dict:  # fmt: skip
+    raw = series.total_net
+    return {
+        "period": {"first": first.isoformat() if first else None, "last": last.isoformat() if last else None,
+                   "sessions": len(series.days)},
+        "trades": {"positions": sum(t.completed and t.line is not None for t in trades),
+                   "open": sum(t.closed_on is None for t in trades),
+                   "unwound_entries": sum(not t.completed for t in trades), "ids": [t.trade_id for t in trades]},
+        **_money(trades),
+        "operating_costs_rs": rupees(operating_costs),
+        "ai_cost_allocated_rs": rupees(ai_cost) if ai_cost is not None else AI_NOT_AVAILABLE,
+        "raw_account_net_rs": rupees(raw),
+        "net_rs": rupees(raw - ai_cost) if ai_cost is not None else None,
+        "risk": _risk(trades, series),
+        "uncertainty": None if uncertainty is None else {
+            "lower_bound": None if uncertainty.lower_bound is None else round(uncertainty.lower_bound, 6),
+            "sample_met": uncertainty.sample_met, "claim_allowed": uncertainty.claim_allowed,
+            "reason": uncertainty.reason, "figures": FIGURES_STATUS},
+        "valuation": _valuation(trades),
+    }  # fmt: skip

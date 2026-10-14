@@ -1,6 +1,7 @@
 """Entry fills (story E4, design 8): a decided trade opens at the execution snapshot, protection first.
 
-Before any leg: the trade needs the risk manager's approval (C2) for this book, trade and day; a decision committed
+Before any leg: C3's data checks on this snapshot and every leg of the order must pass (else "no new trade: stale or
+unverified data"); the trade needs the risk manager's approval (C2) for this book, trade and day; a decision committed
 before the execution snapshot started; a complete snapshot; and no open position of the book whose protection is
 unverified or whose leg expired before its exit. Then the protective (bought) legs fill first, then the short legs,
 each at the touch of a valid quote whose size covers the units. The first leg that does not fill stops the entry:
@@ -22,6 +23,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from ..checks.data_checks import CheckReport, DataChecks
 from ..constants import (
     ENTRY_WORSE_THAN_APPROVED,
     FILL_OPEN,
@@ -30,6 +32,7 @@ from ..constants import (
     OUTCOME_NOT_OPENED,
     OUTCOME_OPENED,
     OUTCOME_PARTIAL_FILL,
+    OUTCOME_REFUSED,
 )
 from ..models import now_ist
 from ..risk.inputs import Proposal
@@ -37,7 +40,7 @@ from ..risk.manager import RiskDecision
 from .execution import FillMaker, check_point_in_time, closing_quotes, legging_cost
 from .pricing import DeskLeg, LegQuote, price_leg
 from .records import DeskEvent, DeskJournal
-from .snapshot import ExecutionSnapshot
+from .snapshot import ContractKey, ExecutionSnapshot
 from .status import ENTRY_OUTCOMES, blocking_trades
 
 UNWIND_PENDING = "unwind of a partial fill could not finish: {legs}"
@@ -52,11 +55,16 @@ WORSE_THAN_APPROVED = (
 @dataclass(frozen=True)
 class EntryOrder:
     book: str
+    strategy: str  # the playbook version decided on ("<name>-v<n>", from the decision record)
     decision_id: str
     decided_at: datetime  # when the decision was committed (time zone aware)
     proposal: Proposal  # C2's proposal: trade ID, terms, lot size, legs
     expiry: date
     risk: RiskDecision  # C2's decision on this proposal for this book; its entry cash is the entry limit
+
+    def contracts(self) -> list[ContractKey]:
+        """Each leg's (expiry, strike, type): what C3's data checks must have checked."""
+        return [(leg.expiry, float(leg.leg.strike), leg.leg.kind) for leg in self.legs()]
 
     def legs(self) -> list[DeskLeg]:
         """Protective legs first, then short legs (design 8), each in the decision's order."""
@@ -102,17 +110,21 @@ class EntryDesk:
     def __init__(self, charges: Mapping[str, float], clock=now_ist):
         self.charges, self.clock = dict(charges), clock
 
-    def enter(self, order: EntryOrder, snapshot: ExecutionSnapshot, journal: DeskJournal) -> EntryResult:
-        """Open the trade or record why not. A rerun repeats nothing: it returns the recorded outcome."""
+    def enter(
+        self, order: EntryOrder, snapshot: ExecutionSnapshot, journal: DeskJournal, checks: CheckReport
+    ) -> EntryResult:
+        """Open the trade or record why not; `checks` is C3's report on this snapshot and the order's legs, and any
+        failure refuses the trade before a leg is priced. A rerun repeats nothing: it returns the recorded outcome."""
         check_point_in_time(snapshot, self.clock())
+        DataChecks.require_for(checks, snapshot, order.contracts())
         trade_id = order.proposal.trade_id
         done = [r for r in journal.records.event_rows(trade_id) if r["outcome"] in ENTRY_OUTCOMES]
         if done:
             return _result(done[0])
-        reason = refusal(order, snapshot, blocking_trades(journal.records))
+        reason = checks.reason() if not checks.ok else refusal(order, snapshot, blocking_trades(journal.records))
         if reason:
-            return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, reason)
-        maker = FillMaker(order.book, order.decision_id, trade_id, snapshot, self.charges)
+            return self._event(journal, order, snapshot, OUTCOME_REFUSED, reason)
+        maker = FillMaker(order.book, order.strategy, order.decision_id, trade_id, snapshot, self.charges)
         quotes = [price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units) for leg in order.legs()]
         if all(q.fills for q in quotes) and (shortfall := entry_shortfall(order, maker, quotes)):
             approved = order.risk.entry_cash_rs
@@ -145,8 +157,8 @@ class EntryDesk:
     def _event(journal, order: EntryOrder, snapshot, outcome: str, reason: str, cost=None, shortfall=None):
         trade_id = order.proposal.trade_id
         event = DeskEvent(
-            f"{trade_id}:{outcome}", snapshot.day, order.book, trade_id, order.decision_id, snapshot.snapshot_id,
-            snapshot.sha256, outcome, reason, cost, shortfall,
+            f"{trade_id}:{outcome}", snapshot.day, order.book, order.strategy, trade_id, order.decision_id,
+            snapshot.snapshot_id, snapshot.sha256, outcome, reason, cost, shortfall,
         )  # fmt: skip
         journal.record_event(event)
         return EntryResult(trade_id, outcome, reason, cost, shortfall)

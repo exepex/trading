@@ -15,6 +15,8 @@ import numpy
 from .alerts.sender import AlertSender, NoAlertSender, SlackChannelAlerts
 from .books.account import AccountWriter, PaperAccount
 from .books.lock import DEFAULT_LEASE_SECONDS, AccountLock
+from .books.version_registry import VersionRegistry
+from .books.versions import VERSIONS_FILE, Versions
 from .config import ROOT
 from .constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID, NIFTY_SYMBOL
 from .providers import AUTO_PROVIDER, get_provider
@@ -42,7 +44,7 @@ from .research_engine.event_features import ScheduledEventInWindow
 from .research_engine.experiments import Period
 from .research_engine.features import DecisionContext, Feature, ResearchData
 from .research_engine.implied_vol import Black76
-from .research_engine.ledger import Ledger
+from .research_engine.ledger import Git, Ledger
 from .research_engine.live_features import LiveAtmIvMinusRealised, LiveScheduledEventInWindow, LiveVixAboveMedian
 from .research_engine.live_validation import ValidationReport, validate
 from .research_engine.runner import ExperimentRunner
@@ -111,6 +113,16 @@ def open_account_writer(book: str, root: Path = ROOT, lease_seconds: float = DEF
 def build_paper_account(book: str, root: Path = ROOT) -> PaperAccount:
     """Read-only view of a book's paper account."""
     return PaperAccount(root, book)
+
+
+def build_version_registry(root: Path = ROOT) -> VersionRegistry:
+    """Story D6: the books' append-only version registry, `journal/versions.csv`."""
+    return VersionRegistry(root / VERSIONS_FILE)
+
+
+def build_versions(root: Path = ROOT) -> Versions:
+    """Story D6: the registered versions, with git deciding when each row was committed."""
+    return Versions(build_version_registry(root).rows(), Git(root))
 
 
 def build_alert_sender() -> AlertSender:

@@ -9,8 +9,18 @@ from ..config import ROOT
 from ..constants import PLAYBOOK_FOLDER
 from ..storage.wiring import LIVE_VALIDATION_FOLDER
 from .allocation import Allocator
-from .approval_checks import EvidenceCommitted, EvidenceFilled, ExpectedNetSet, LiveFeaturesValidated
+from .approval_checks import (
+    EvidenceCommitted,
+    EvidenceFilled,
+    ExitsEnforceable,
+    ExpectedNetSet,
+    LiveFeaturesValidated,
+)
 from .candidates import CandidateBuilder
+from .code_tree import GitCodeTree
+from .decision_inputs import PlaybookSnapshot
+from .decision_run import DecisionRun
+from .decision_store import DecisionStore
 from .evaluate import RuleEvaluator
 from .history import PlaybookGit
 from .lifecycle import StatusChanger
@@ -19,6 +29,7 @@ from .live_values import ComputedLiveFeatures
 from .loader import PlaybookLoader, registry_path
 from .opportunities import OpportunityFinder
 from .registry import Registry, rewritten_history
+from .rule_checks import CatastrophicCapWithinRisk
 from .shadow import RealBooks
 
 
@@ -33,8 +44,19 @@ def _recompute_live_report(live_feature: str) -> Mapping:
 def build_playbook_loader(root: Path = ROOT, reports: LiveReports | None = None) -> PlaybookLoader:
     folder = root / PLAYBOOK_FOLDER
     reports = reports or RecomputedLiveReports(CommittedLiveReports(LIVE_VALIDATION_FOLDER), _recompute_live_report)
-    checks = (EvidenceFilled(), ExpectedNetSet(), EvidenceCommitted(PlaybookGit(root)), LiveFeaturesValidated(reports))
-    return PlaybookLoader(folder, Registry(registry_path(folder)), checks)
+    checks = (EvidenceFilled(), ExpectedNetSet(), EvidenceCommitted(PlaybookGit(root)), LiveFeaturesValidated(reports),
+              ExitsEnforceable())  # fmt: skip
+    return PlaybookLoader(
+        folder, Registry(registry_path(folder)), checks, (CatastrophicCapWithinRisk(_risk_cap(root)),)
+    )
+
+
+def _risk_cap(root: Path) -> float:
+    """C2's per-trade maximum loss from config.yaml `risk` (the one place the owner's limit is set)."""
+    from ..config import load_app_config
+    from ..risk.settings import risk_settings
+
+    return risk_settings(load_app_config(), root).max_loss_per_trade_rs
 
 
 def build_status_changer(root: Path = ROOT, reports: LiveReports | None = None) -> StatusChanger:
@@ -73,3 +95,26 @@ def build_live_feature_values(cfg: dict, data) -> ComputedLiveFeatures:
     from ..composition import build_live_features
 
     return ComputedLiveFeatures(build_live_features(cfg), data)
+
+
+def build_decision_run(cfg: dict, book: str, root: Path = ROOT) -> DecisionRun:
+    """Story D3: D2's evaluator for the app (every C2 limit) writing into `journal/<book>/decisions/`; every chosen
+    trade passes C4's hard validity first (its failures logged in `journal/<book>/validity_failures.csv`)."""
+    from ..checks.wiring import build_trade_validator
+
+    validator = build_trade_validator(cfg, book, root)
+    return DecisionRun(build_rule_evaluator(cfg, root), DecisionStore(root, book), validator)
+
+
+def snapshot_playbook(root: Path = ROOT) -> PlaybookSnapshot:
+    """The playbook as it stands now: every version file, the registry and the commit they were read at."""
+    folder = root / PLAYBOOK_FOLDER
+    files = {path.name: path.read_text(encoding="utf-8") for path in sorted(folder.glob("*.yaml"))}
+    registry = registry_path(folder)
+    text = registry.read_text(encoding="utf-8") if registry.is_file() else ""
+    return PlaybookSnapshot(files, text, PlaybookGit(root).head())
+
+
+def build_code_tree(root: Path = ROOT) -> GitCodeTree:
+    """Story D3, judge 80: the running fno/ and config.yaml, compared with a record's code commit before any replay."""
+    return GitCodeTree(PlaybookGit(root))

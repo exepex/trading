@@ -41,7 +41,7 @@ the role-value schedule and minimum sample (F9).
 
 **Judge verifies:** runs the completeness check; confirms the commit order.
 
-**Depends:** B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) · **Size:** S · **Status:** later
+**Depends:** B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) · **Size:** S · **Status:** tools and DRAFT protocol built on `story/s1-protocol`, judge pending (claims: reviews/claude/response_86_s1-protocol.md); the protocol is NOT frozen: every value awaits the owner's decision
 
 ---
 

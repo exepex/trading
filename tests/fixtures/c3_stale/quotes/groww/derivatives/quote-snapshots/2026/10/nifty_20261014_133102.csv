@@ -1,0 +1,5 @@
+snapshot_id,request_sent_at,response_received_at,quote_time,age_basis,freshness_proxy,last_trade_time,provider,contract_id,expiry,strike,type,bid,ask,last,bid_qty,ask_qty,spot,book_source,valid,invalid_reason,raw_sha256
+nifty_20261014_133102,,,,,,,,NIFTY26102725000CE,2026-10-27,25000,CE,150,151,999,1000,1000,25000.00,,true,,
+nifty_20261014_133102,,,,,,,,NIFTY26102725000PE,2026-10-27,25000,PE,140,141.5,999,1000,1000,25000.00,,true,,
+nifty_20261014_133102,,,,,,,,NIFTY26102725200CE,2026-10-27,25200,CE,70,71,999,1000,1000,25000.00,,true,,
+nifty_20261014_133102,,,,,,,,NIFTY26102724800PE,2026-10-27,24800,PE,60,60.5,999,1000,1000,25000.00,,true,,

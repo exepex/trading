@@ -9,12 +9,18 @@ from abc import ABC, abstractmethod
 from ..constants import PLAYBOOK_FOLDER
 from ..research_engine.live_gate import unvalidated
 from .documents import strategy_from_text
+from .exit_terms import unenforceable_exits
 from .fields import PlaybookError
 from .history import History
 from .live_reports import LiveReports
 from .registry import RegistryRow
 from .schema import Strategy, require_evidence
 from .transitions import PAPER, PAUSED
+
+
+class LiveFeatureDrift(PlaybookError):
+    """A live feature no longer passes its use rule. For a version already on paper this pauses that version only
+    (judge 67, story E6); it never refuses the rest of the playbook. A change to paper is still refused."""
 
 
 class ApprovalCheck(ABC):
@@ -80,7 +86,7 @@ class LiveFeaturesValidated(ApprovalCheck):
         found = {name: report for name in strategy.live_features if (report := self.reports.report(name))}
         missing = unvalidated(strategy.live_features, found, strategy.live_use_rule)
         if missing:
-            raise PlaybookError(
+            raise LiveFeatureDrift(
                 "entry_conditions",
                 f"live features not validated under the use rule {strategy.live_use_rule}: {missing}",
             )
@@ -92,3 +98,15 @@ def run_checks(checks: tuple[ApprovalCheck, ...], strategy: Strategy, approval: 
             if approval is None:
                 raise PlaybookError("status", f"{strategy.status} without a registered change to paper")
             check.check(strategy, approval)
+
+
+class ExitsEnforceable(ApprovalCheck):
+    """Judge 84: a version may hold `paper` only if code can enforce every exit it states (today the time exit; any
+    other exit must read "none"), so no trade is ever opened under a stop nobody applies."""
+
+    statuses = frozenset({PAPER})
+
+    def check(self, strategy: Strategy, approval: RegistryRow) -> None:
+        problems = unenforceable_exits(strategy)
+        if problems:
+            raise PlaybookError("exits", f"code cannot enforce {'; '.join(problems)}: not approvable for paper")

@@ -21,6 +21,7 @@ from fno.constants import (
     OUTCOME_NOT_OPENED,
     OUTCOME_OPENED,
     OUTCOME_PARTIAL_FILL,
+    OUTCOME_REFUSED,
     SIDE_BUY,
     SIDE_SELL,
 )
@@ -36,6 +37,7 @@ from .builders import (
     CHARGES,
     DAY,
     LOT,
+    STRATEGY,
     at,
     contract,
     decision_market,
@@ -75,6 +77,9 @@ def test_each_fill_is_at_the_snapshot_ask_or_bid_with_its_hash_and_protection_fi
         ("exec", digest, FILL_OPEN, "d-t1")
     }
     assert all(r["units"] == "65" and r["quote_age_unknown"] == "True" and r["book"] == BOOK1_RULES for r in rows)
+    assert {r["strategy"] for r in rows} == {STRATEGY}  # E6 scores each version by this tag
+    touch = [(float(r["quote_bid"]), float(r["quote_ask"])) for r in rows]
+    assert touch == [(70.0, 71.0), (60.0, 60.5), (150.0, 151.0), (140.0, 141.5)]  # the touch each leg filled against
     # The money (E1's ledger): hand computation, premium at the touch minus C1's charges on each fill price.
     premium = (150.0 + 140.0 - 71.0 - 60.5) * LOT  # Rs 10,302.50 received
     cost = charges(71.0, SIDE_BUY) + charges(60.5, SIDE_BUY) + charges(150.0, SIDE_SELL) + charges(140.0, SIDE_SELL)
@@ -191,9 +196,11 @@ def test_entries_refused_before_any_leg(root, store, snapshots, entry_desk, exec
     ]
     for order, snapshot_id, reason in cases:
         result = enter(root, snapshots, entry_desk, order, snapshot_id)
-        assert result.outcome == OUTCOME_NOT_OPENED and reason in result.reason
+        assert result.outcome == OUTCOME_REFUSED and reason in result.reason
     assert PaperAccount(root, BOOK1_RULES).fills() == []
-    assert [e["outcome"] for e in records(root).event_rows()] == [OUTCOME_NOT_OPENED] * 3  # counted as attempts (E6)
+    assert [e["outcome"] for e in records(root).event_rows()] == [
+        OUTCOME_REFUSED
+    ] * 3  # refusals, apart from fill failures (E6)
 
 
 def test_a_rerun_repeats_nothing(root, snapshots, entry_desk, execution):

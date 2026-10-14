@@ -334,3 +334,32 @@ What changed:
   the needed weeks are checked; draws are recorded once with their seed inputs.
 
 Gates: `python -m pytest -q` 1863 passed; ruff and `check_imports` clean. The fire path is unchanged.
+
+## Addendum 5 (14 Oct 2026, 15:45 IST): the first live day did not run (GitHub's schedule)
+
+**What happened (strong evidence: GitHub's run list, read at 10:12 UTC):**
+- `forecast-capture.yml` has **never run**. Its 14:00 IST (08:30 UTC) schedule has not started 1 h 42 min later.
+- The NSE recorder (`quote-recorder-nse.yml`, 14:20 IST) has never run either.
+- So there is no v2 pack for 14 Oct, no Book 1 forecast, and the AI books were never fired. No routine session ran,
+  so there was no transcript to audit.
+- The Groww 3 pm snapshot exists only because the Claude routine recorded it (5c22bcc).
+
+**Root cause:** GitHub's scheduled events were hours late today, across the repository:
+- `market-publish` (01:40 UTC) started at 06:41 UTC, 5 h late;
+- `index-closes` (06:11 UTC) started at 07:30 UTC; its 02:11 UTC run does not appear at all.
+
+GitHub documents that scheduled runs can be delayed or dropped under load. A job that must act between 15:00 and 15:15
+cannot depend on `schedule` alone. This is a design gap in the capture's trigger, not in F1/G5's code. It hits Book 1
+the same way.
+
+**If the delayed run starts later today:** the capture writes Book 1's records with a `generated_at` after 15:15. Scoring
+ignores them. It then fires both routines, and their commitments arrive after 15:15, so both are recorded `late`. Nothing
+is imputed, and today counts as missing for every book. The two late sessions would still be audited (first 10 days).
+
+**Proposed fix (needs the judge; the fire path is not touched without the orchestrator):** start the capture from an
+event, not the clock. The 3 pm snapshot's commit to `main` (by the routine, about 15:00) is a `push` that GitHub
+delivers at once. `forecast-capture.yml` gains an `on: push` trigger limited to the canonical snapshot path
+(`research/data/quotes/**/nifty_*.canonical`) and keeps its cron as a fallback. The concurrency group plus the
+write-once capture stop a double run. Reasoning plus some evidence: today's push-triggered `checks` runs all started
+within seconds. One open point: pushes made with the workflow's own `GITHUB_TOKEN` do not trigger workflows, so if the
+NSE recorder in Actions makes the snapshot commit, that commit would not start the capture. Today it was the routine.

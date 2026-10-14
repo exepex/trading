@@ -105,8 +105,13 @@ commit with `--no-verify`.
   `fno/market_read_models/wiring.py` (the market read models and their publisher, stories P6-P9),
   `fno/forecast_scoring/wiring.py` (forecast scoring and reports, story G4; outside the frozen `fno/forecast/`),
   `fno/ai/wiring.py` (the AI books' forecasts: fire and collect, F1 and G5), `fno/ai/book_wiring.py` (the AI books'
-  routine side, standard library only), `fno/playbook/wiring.py` (the playbook loader and status changes, story D1)
-  and `fno/desk/wiring.py` (the paper desk's fills and exits, story E4).
+  routine side, standard library only), `fno/playbook/wiring.py` (the playbook loader and status changes, story D1),
+  `fno/desk/wiring.py` (the paper desk's fills and exits, story E4), `fno/desk/pack_wiring.py` (the daily common and
+  private packs, story E2), `fno/scorecard/wiring.py` (strategy scorecards and pause rules, story E6),
+  `fno/checks/wiring.py` (the data checks before every decision and the hard-validity checks, stories C3 and C4),
+  `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3), `fno/books/book1_wiring.py` (Book 1,
+  pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
+  freeze and checks, story S1) and `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.

@@ -205,3 +205,38 @@ Sunday) still writes its session-only pack.
 
 **Verdict: PASS.** After the merge I check `main` against be9bc5e and CI. The `desk` parser must be folded into E6's
 one `desk` parser by whichever of E2 and E6 merges second (judge 73), with the full suite on the merged tree.
+
+## Addendum 3 (the delta be9bc5e..b2749a6): PASS
+
+**The change:**
+- E2's own `approved_on` copy is gone. The opportunity set now reads `Playbook.status_on(day)` (D2's start-of-day
+  rule; one rule, DRY), and the builder passes the loaded `Playbook`.
+- `LoadedPlaybook` and `registry_rows` are gone.
+- `tests/packs/builders.py` now builds `Playbook(strategies, rows)`, so my frozenset note is closed.
+- A version stopped on the day stays in the common set. Book 1's own gate (`approved_on`) drops it, as accepted in
+  judges 72 and 74.
+
+The rest of the diff is `main` merged in (D2, A12), which is already judged.
+
+**Checks (my runs, `python -B`, caches cleared):**
+- my 14 plants, adapted to the new code: all 14 caught. That includes reading the playbook "through the day" instead
+  of at its start (2 failed) and ignoring the status (1 failed);
+- full suite: 2,324 passed;
+- ruff, format and imports: clean;
+- `git merge-tree` with current `main`: clean;
+- 13 Oct on the real repository is still refused, with exit 2 and nothing written.
+
+**Verdict: PASS for b2749a6.** After the merge I check `main` against b2749a6 and CI. The `desk` parser fold with E6
+remains for whichever branch merges second.
+
+## Addendum 4 (merge check, b4f1e1b)
+
+**MET.** b4f1e1b = 11b6cda + b2749a6, equal to my recomputed merge. `main` now equals the passed tips of E2, P8 and
+D6 merged, plus resolutions of the `reviews/claude/README.md` and `fno/cli.py` conflicts:
+- the `fno/cli.py` resolution keeps both `add_desk_parser` (E2's `pack`) and D6's `add_versions_parser`;
+- `fno desk pack` and `fno versions` both work on `main`.
+
+My full suite on `main` 0f4e888: 2,368 passed. CI `checks` is green on 6f8c859 and 0f4e888 (run 38510606597).
+
+**For E6:** `main` has E2's `desk` parser (`fno/desk/pack_cli.py`). E6's merge must fold `pack` into its single
+`fno/desk/cli.py` parser; I check that merge commit.

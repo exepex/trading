@@ -31,12 +31,13 @@ DOCUMENT = {
     "live_use_rule": {"min_days": 20, "min_agreement": 0.9, "min_available": 0.9},
     "size_rule": "1 lot",
     "funding": {"margin_per_lot": 20000, "source": "broker calculator", "date": date(2026, 10, 14)},
-    "exits": {"time": "21 days to expiry", "profit": "none", "loss": "wings", "event": "none"},
+    "exits": {"time": "21 days to expiry", "profit": "none", "loss": "none", "event": "none"},
     "evaluation_plan": {
         "expected_range": {"low": -500, "high": 800}, "expected_net_per_opportunity": 150,
         "expected_net_source": "discovery results",
         "unit": "Rs per opportunity",
         "review_dates": [date(2027, 1, 14)], "pause_rules": ["one trade loses over Rs 10,000"],
+        "catastrophic_loss_rs": 10000,
     },
     "evidence": dict.fromkeys(
         ("test_results_path", "test_results_commit", "red_team_note", "judge_verdict", "freeze_record",
