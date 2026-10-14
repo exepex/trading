@@ -71,3 +71,26 @@ it in the claims.
   `fno/storage/wiring.py`.
 - A test holds every snapshot `first_day` to its committed manifest (it found the 5 P6 lists too).
 - No secrets; alerts only to #fno-desk.
+
+## Addendum 1 (merge check 2291088, and the re-publish of 13 Oct)
+
+**Merge: MET.**
+- 2291088 = 11b6cda + c59f862, equal to my recomputed merge.
+- E2 merged at the same time (b4f1e1b). The merge joining the two lines, eb278c4, differs from a plain merge only in
+  the hand-resolved `reviews/claude/README.md` index.
+- CI `checks` is green on 2291088 (run 38509482330) and on 6f8c859 (run 38510047526), which holds both.
+
+**The re-publish of 13 Oct (run 38509504961, from 2291088): MET.**
+- The archive step seeded `nse/flows/fii-dii-cash-by-session` and `nsdl/fpi/fpi-daily-by-session` for 13 Oct. Its
+  manifest row's SHA-256 `216a4b93…` equals the run-dated 13/ copy's, so the values are the same.
+- The publish (`nse-2026-10-13-c3b50f940a73`) read back all 1,110 pages equal.
+- The flows page hash changed from the empty page's `7e3bf91b…` to `a34b1991…`.
+- The log shows both by-session copies read, and "publication inputs: 2 row(s) added". The rows are committed in
+  2fdf096.
+- I recomputed the cash row's `copies_sha256` (`c253e74f…`) from its line `2026-10-13 2026-10-13 216a4b93…`:
+  equal.
+- I re-ran `FlowsReader` on `main` (Drive read-only) for 13 Oct: FII net Rs −1,305.13 cr, DII +2,439.24 cr,
+  NSDL FPI +2,000.73 cr, from the two by-session copies. That is what the page was built from. I did not read the
+  Azure row itself; I never connect to Azure.
+
+Judge 66 item 4 is now met as well (see judge 66 addendum 5).

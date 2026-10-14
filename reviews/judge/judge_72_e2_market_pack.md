@@ -228,3 +228,15 @@ The rest of the diff is `main` merged in (D2, A12), which is already judged.
 
 **Verdict: PASS for b2749a6.** After the merge I check `main` against b2749a6 and CI. The `desk` parser fold with E6
 remains for whichever branch merges second.
+
+## Addendum 4 (merge check, b4f1e1b)
+
+**MET.** b4f1e1b = 11b6cda + b2749a6, equal to my recomputed merge. `main` now equals the passed tips of E2, P8 and
+D6 merged, plus resolutions of the `reviews/claude/README.md` and `fno/cli.py` conflicts:
+- the `fno/cli.py` resolution keeps both `add_desk_parser` (E2's `pack`) and D6's `add_versions_parser`;
+- `fno desk pack` and `fno versions` both work on `main`.
+
+My full suite on `main` 0f4e888: 2,368 passed. CI `checks` is green on 6f8c859 and 0f4e888 (run 38510606597).
+
+**For E6:** `main` has E2's `desk` parser (`fno/desk/pack_cli.py`). E6's merge must fold `pack` into its single
+`fno/desk/cli.py` parser; I check that merge commit.

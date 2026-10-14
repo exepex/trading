@@ -151,3 +151,12 @@ what it says.
 
 Run status (P7): the log prints no "NOT recorded" line, which is consistent with rows being written. I did not
 connect to Azure to read them.
+
+## Addendum 5 (item 4 closed)
+
+After the P8 fix (judge 79), the hand-dispatched re-publish of 13 Oct (run 38509504961) published a non-empty flows
+page (FII −1,305.13 cr, DII +2,439.24 cr, NSDL +2,000.73 cr), wrote its `publication-inputs.csv` rows and read back
+all 1,110 pages equal.
+- **Item 4: MET.**
+- **Still open:** the scheduled 01:40 UTC cron has not yet fired even once. Tomorrow's run is the test of the
+  schedule.
