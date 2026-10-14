@@ -1,6 +1,6 @@
 """A run that starts after 15:13 IST (GitHub's schedule was 5 h late on 14 Oct) fires no AI book: its answer could
-only be late, and the collection, seconds later, could only record nothing. Both books are recorded `no_submission`
-with the reason "late start", as if they had never answered, and #fno-desk gets one line."""
+only be late, and the collection, seconds later, could only record nothing. Both books are recorded `not_fired`
+with the reason "late start" (no session exists to open), and #fno-desk gets one line."""
 
 import json
 
@@ -27,14 +27,14 @@ def test_a_run_starting_after_1513_fires_no_book_and_says_so_once(tmp_path):
     assert len(desk.alerts.lines) == 1 and "late start" in desk.alerts.lines[0]
 
 
-def test_a_late_start_is_recorded_no_submission_with_its_reason(tmp_path):
+def test_a_late_start_is_recorded_not_fired_with_its_reason(tmp_path):
     desk = Desk(tmp_path)
     fire_at(desk, 19, 27)
     AiForecastCollector(desk.root, RepoHistory(desk.root), desk.receipts, AiRecordWriter(desk.root),
                         Clock(at(19, 28))).collect(DAY)  # fmt: skip
     for book in (BOOK2_HYBRID, BOOK3_AI):
         audit = desk.audit(book)
-        assert audit["status"] == "no_submission" and any("late start" in n for n in audit["notes"])
+        assert audit["status"] == "not_fired" and any("late start" in n for n in audit["notes"])
         assert all(r.record.probability is None for r in desk.records(book).values())
 
 
