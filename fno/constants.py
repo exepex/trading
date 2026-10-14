@@ -194,3 +194,5 @@ OUTCOME_PENDING_EXIT = "pending_exit"  # an exit leg had no valid quote: retried
 OUTCOME_CLOSED = "closed"
 OUTCOME_PROTECTION_UNVERIFIED = "protection_unverified"  # a protective leg is unquotable: no new risk in the book
 OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit filled: NSE's settlement price needed
+# Entry limit: the net entry at the execution snapshot's touch is worse than the entry C2 approved (its modelled cash)
+ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"

@@ -6,6 +6,11 @@ unverified. Then the protective (bought) legs fill first, then the short legs, e
 size covers the units. The first leg that does not fill stops the entry: every leg already filled is unwound at the
 same snapshot (short legs bought back first, protection sold last), the legging cost is recorded and the trade does
 not open. An unwind leg without a valid quote stays open as an exit order, retried at the next snapshot.
+
+Entry limit (orchestrator, 14 Oct 2026): C2 checked the maximum loss on the entry it modelled (decision mids, B2's pad,
+entry charges). When every leg is quoted, the net entry at the touch (premium at ask/bid minus C1's charges) must be
+no worse than that approved entry, as a limit order would enforce; otherwise nothing fills and the shortfall is
+recorded. The limit scales with the lots (legs never fill in part). Exits are never limited.
 """
 
 from __future__ import annotations
@@ -15,6 +20,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from ..constants import (
+    ENTRY_WORSE_THAN_APPROVED,
     FILL_OPEN,
     FILL_UNWIND,
     OUTCOME_EXIT_ORDERED,
@@ -32,6 +38,12 @@ from .snapshot import ExecutionSnapshot
 from .status import ENTRY_OUTCOMES, unverified_trades
 
 UNWIND_PENDING = "unwind of a partial fill could not finish: {legs}"
+LIMIT_TOLERANCE_RS = 1e-6  # float rounding between C2's sum and this one; far below a paisa
+WORSE_THAN_APPROVED = (
+    ENTRY_WORSE_THAN_APPROVED
+    + ": net entry Rs {actual:,.2f} at the touch is worse than the approved Rs {approved:,.2f}"
+    " by Rs {shortfall:,.2f}"
+)
 
 
 @dataclass(frozen=True)
@@ -42,6 +54,7 @@ class EntryOrder:
     proposal: Proposal  # C2's proposal: trade ID, terms, lot size, legs
     expiry: date
     risk: RiskDecision  # C2's decision on this proposal for this book
+    approved_entry_rs: float  # the limit: C2's modelled entry cash (`TradeCosts.entry_cash_flow`), credit + / debit -
 
     def legs(self) -> list[DeskLeg]:
         """Protective legs first, then short legs (design 8), each in the decision's order."""
@@ -55,6 +68,14 @@ class EntryResult:
     outcome: str
     reason: str
     legging_cost_rs: float | None = None
+    shortfall_rs: float | None = None
+
+
+def entry_shortfall(order: EntryOrder, maker: FillMaker, quotes: list[LegQuote]) -> float:
+    """Rupees by which the net entry at these quotes falls short of the approved entry (0 when no worse)."""
+    actual = sum(maker.fill(q, FILL_OPEN).amount for q in quotes)
+    shortfall = order.approved_entry_rs - actual
+    return shortfall if shortfall > LIMIT_TOLERANCE_RS else 0.0
 
 
 def refusal(order: EntryOrder, snapshot: ExecutionSnapshot, blocked: list[str]) -> str:
@@ -88,9 +109,13 @@ class EntryDesk:
         if reason:
             return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, reason)
         maker = FillMaker(order.book, order.decision_id, trade_id, snapshot, self.charges)
+        quotes = [price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units) for leg in order.legs()]
+        if all(q.fills for q in quotes) and (shortfall := entry_shortfall(order, maker, quotes)):
+            actual = order.approved_entry_rs - shortfall
+            reason = WORSE_THAN_APPROVED.format(actual=actual, approved=order.approved_entry_rs, shortfall=shortfall)
+            return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, reason, shortfall=shortfall)
         opened: list[LegQuote] = []
-        for leg in order.legs():
-            quote = price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units)
+        for quote in quotes:
             if not quote.fills:
                 return self._unwind(journal, order, snapshot, maker, opened, quote)
             journal.record_fill(maker.record(quote, FILL_OPEN))
@@ -113,16 +138,16 @@ class EntryDesk:
         return self._event(journal, order, snapshot, OUTCOME_PARTIAL_FILL, reason, legging_cost(fills))
 
     @staticmethod
-    def _event(journal, order: EntryOrder, snapshot, outcome: str, reason: str, cost: float | None = None):
+    def _event(journal, order: EntryOrder, snapshot, outcome: str, reason: str, cost=None, shortfall=None):
         trade_id = order.proposal.trade_id
         event = DeskEvent(
             f"{trade_id}:{outcome}", snapshot.day, order.book, trade_id, order.decision_id, snapshot.snapshot_id,
-            snapshot.sha256, outcome, reason, cost,
+            snapshot.sha256, outcome, reason, cost, shortfall,
         )  # fmt: skip
         journal.record_event(event)
-        return EntryResult(trade_id, outcome, reason, cost)
+        return EntryResult(trade_id, outcome, reason, cost, shortfall)
 
 
 def _result(row: dict[str, str]) -> EntryResult:
-    cost = float(row["legging_cost_rs"]) if row["legging_cost_rs"] else None
-    return EntryResult(row["trade_id"], row["outcome"], row["reason"], cost)
+    cost, shortfall = (float(row[k]) if row[k] else None for k in ("legging_cost_rs", "shortfall_rs"))
+    return EntryResult(row["trade_id"], row["outcome"], row["reason"], cost, shortfall)
