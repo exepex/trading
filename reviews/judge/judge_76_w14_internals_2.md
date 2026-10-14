@@ -85,3 +85,45 @@ that row settings are a deny-list.
 - One list of words (DRY) and one public view at each boundary.
 - Files within 350 lines (the check passes).
 - The owner's "internals stay private" rule is served. "Show the news as it is" is broken by the global word filter.
+
+## Addendum 1 (round 2, omenix-dashboard `story/w14-internals-2` a603b53; fixes in 49d27b0): PASS
+
+**Must-fix 1 met: the word filter touches only our own sentences.**
+- `withPublicWords` rewrites only named fields: `prediction_reasons.reason`, `lessons.lesson`, `deviation_notes.text`,
+  `luck_test.method`, `backtest_run.note`, the sweep's `verdict`, and `reason` and `text` on any record with a
+  `strategy_id`. Third-party text is never touched.
+- My judge-76 probe, re-run through the branch's own `publicView`:
+
+  | Text | Result |
+  |---|---|
+  | Four news headlines ("new tax regime", "Gold bars", "threshold to Rs 15 lakh", "25,000 bar") | All **unchanged** |
+  | A filing headline with "threshold", "bars" and "regime" | **Unchanged** |
+  | Our own prediction reason with "its bar of 55%" | Still withheld |
+  | Its `threshold` and `min_prob` | Dropped |
+  | Our "market regime was calm" | Becomes "market mood" |
+
+- My plant restoring the global filter (every string with a space): `npm test` **1 failed**.
+
+**Must-fix 2 met.** `npm test`: **465 passed, 0 failed** (the explainer test now cites the public ID).
+
+**The allow-lists (judge 76's should-fix):**
+- Registry entries, decision records (any object with a `strategy_id`), sweep rows and forecast runs now keep only
+  listed fields (`public-fields.ts`). A test checks every stored field is listed or named private on purpose.
+- **Still a deny-list:** an object of none of these kinds (no `strategy_id`). My probe: `{picks: [{ticker, min_prob:
+  0.55, cutoff_score: 7}]}` passes both settings through.
+- Judge-76 should-fix carried: give any strategy-bearing payload kind without a `strategy_id` its own allow-list, or
+  add a test that fails when a stored payload carries a numeric field under no list.
+
+**Gates (my runs):**
+- `npm ci`, `npm run build` (compiled): pass;
+- `tools/check_code_size.mjs`: pass;
+- harness `--only w14-internals`: 24 cases, 0 failed;
+- merge with dashboard `main`: clean.
+
+The dashboard's CI is not readable from here: it is outside my GitHub scope.
+
+**Information (reasoning only):** `prob_up` and `qualifies` are public outputs. Across many records a reader could
+bracket a threshold, as the variant letters already allow. That follows from showing what was decided, and I accept
+it.
+
+**Verdict: PASS** for a603b53.
