@@ -38,6 +38,7 @@ from .raw_source import (
     NseEquityBhavcopySource,
     NseIndexCloseSource,
     NseLegacyFoSource,
+    NseSpanBodSource,
     ParticipantOiSource,
 )
 from .raw_store import AreaStore, LocalFolderStore, RawFileStore
@@ -73,6 +74,7 @@ DATED_SOURCES = (
     ParticipantOiSource,
     NseEquityBhavcopySource,
     NseDeliverySource,
+    NseSpanBodSource,
 )  # one file per session: the coverage check's datasets
 SNAPSHOT_SOURCES = (
     EquityListSource,
@@ -235,10 +237,18 @@ def dataset_name(source: type[NseArchiveSource]) -> str:
 
 
 # Datasets the librarian may upload: each new one needs its own story (A9: participant OI; A10: index closes; P6: the
-# equity, delivery and current-format F&O files the market read models need each day, and the reference lists).
+# equity, delivery and current-format F&O files the market read models need each day, and the reference lists; A14:
+# the beginning-of-day SPAN files).
 LIBRARIAN_DATASETS = {
     dataset_name(s): s
-    for s in (ParticipantOiSource, NseIndexCloseSource, NseEquityBhavcopySource, NseDeliverySource, NseDailyFoSource)
+    for s in (
+        ParticipantOiSource,
+        NseIndexCloseSource,
+        NseEquityBhavcopySource,
+        NseDeliverySource,
+        NseDailyFoSource,
+        NseSpanBodSource,
+    )
 }
 SNAPSHOT_DATASETS = {dataset_name(s): s for s in SNAPSHOT_SOURCES}
 FINGERPRINT_SOURCES = {dataset_name(s): s for s in DATED_SOURCES}

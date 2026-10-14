@@ -659,3 +659,92 @@ file. The owner must choose:
 frozen file's hash is unchanged.
 
 **Depends:** A3, A9, A11, O6 · **Size:** M · **Status:** done: judge 64 PASS with addenda 1-4 (G1 v3 frozen 14 Oct 2026, protocol 904c036); scheduled 21:41 and 12:11 IST; first append 13 Oct (9cba740). Judge compares the first two scheduled appends with A3's build on 14-15 Oct
+
+---
+
+## A14. Margins from NSE automatically
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want each session's initial margin per lot for SF, SC and BF computed from NSE
+Clearing's own SPAN file and exposure-margin rule, recorded with the file's name and SHA-256, so that C2's margin
+check (issue #85) has fresh inputs every day without the owner typing them in.
+
+**Context and why:** Owner, 14 Oct 2026: "let's build it to fetch margins from NSE automatically, so the margin inputs
+(#85) don't need you every week." C2 refuses every paper trade while `research/data/margins/margins.csv` has no row
+younger than 7 days (`risk.margins.max_age_days`) and while the stressed-margin factor is unset.
+
+Facts checked on 14 Oct 2026 (builder, response 77):
+- NSE Clearing publishes six SPAN risk-parameter files a session at
+  `https://nsearchives.nseindia.com/archives/nsccl/span/nsccl.<YYYYMMDD>.<i1..i5|s>.zip` (XML, SPAN 4.00, about 9.5 MB
+  zipped). The beginning-of-day file `i1` for day d is written the evening before d (its own `<created>` stamp and
+  NSE's Last-Modified agree: `nsccl.20261014.i1` created 2026-10-13 21:28; 131 sampled files from 2020, 2024 and 2026
+  were written between 18:00 and 03:05 IST, 2026's between 20:00 and 24:00, none after 09:00 on d); `i2` to `i5` follow
+  at about 11:03, 12:32, 14:03 and 15:32 IST on d, and the end-of-day `s` file at about 16:51. The archive goes back to
+  at least 2 January 2020.
+- For NIFTY the file holds one scan tier, a short-option minimum rate of 0 and calendar-spread charges only between
+  different expiries, so a one-expiry four-leg structure's SPAN margin is its scanning risk: the largest of the 16
+  scenario losses of the summed risk arrays, times the lot.
+- NSE's daily exposure-margin file (`archives/exp_lim/ael_DDMMYYYY.csv`) lists stocks only. For index options the
+  exposure (extreme-loss) margin is NSE's published rule: 2% of the notional value of each short option (underlying's
+  last close times quantity), 3% for a short option more than 10% out of the money, 5% beyond 9 months to expiry, plus
+  2% on its expiry day; long options carry none.
+
+**Scope.** In:
+- a dated raw dataset `nse/derivatives/span-bod` (the `i1` file of each session), archived in Drive by the A9
+  librarian with its manifest row, later NSE versions kept by A11's sweep;
+- a reader of the SPAN file's NIFTY parts (index close, futures expiries, option risk arrays, the scan-tier,
+  short-option-minimum and spread definitions) that refuses any file whose NIFTY method differs from the one modelled;
+- a calculator: initial margin per lot = SPAN scanning risk + exposure margin, for SF, SC and BF at each of the
+  research widths (300, 250, 200, 150, 100), with the legs built by B2's `Structure` classes on the file's own listed
+  strikes and index close, on the first monthly (futures) expiry at least 30 calendar days after d (the A5/B2 entry
+  window's near edge);
+- an append-only writer to `margins.csv` (`source` = `NSE SPAN <file name> sha256=<SHA-256>`, `as_of` = d) that never
+  edits or reorders a past row; the same row again is a no-op, a different figure for the same key is a conflict;
+- judge 75 (14 Oct 2026): the scanning risk, the net option value and the exposure are stored as separate columns; C2
+  counts `max(0, scan - NOV) + min(0, NOV) + exposure` and stresses only the scan (`max(0, k x scan - NOV) + min(0, NOV)
+  + exposure`, k from config); with an open losing trade C2 never leaves more free than a broker that nets the
+  premium (test);
+- a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (07:45 IST, retry 08:30):
+  librarian, revisions sweep, compute, commit; one #fno-desk line on any failure;
+- a proposal (not a change) for deriving C2's stressed-margin factor from archived files.
+
+Out: C2's frozen method and `config.yaml` `risk` values (owner decision first); broker-specific add-ons (Groww's own
+extra margin, if any) which only the broker's calculator shows; placing or sizing any order.
+
+**Point in time:** a row dated d comes only from `nsccl.<d>.i1`, whose `<created>` stamp must be before 09:00 IST on d
+(checked; a later stamp writes nothing). C2 uses the latest row dated on or before the decision day, so a decision
+on d never sees a file published after its decision time.
+
+**Fail closed:** a missing file, a file that is not valid SPAN XML, a NIFTY method outside the model (more than one
+scan tier, a non-zero short-option minimum, a missing series or contract, a non-unit contract value factor), an
+expiry-day or beyond-9-months leg, or a structure whose legs are not all listed writes no row for what it affects, so
+C2 keeps refusing. One #fno-desk line names the cause.
+
+**Acceptance criteria:**
+1. On real files the computed figures equal an independent figure: NSE's SPAN calculator or a broker's calculator, on
+   the same contracts and day, within a stated and justified tolerance. Until that check passes the job stays
+   unscheduled (manual `workflow_dispatch` only) and the exact one-time check for the owner is written down.
+2. Hand computation: for a small planted SPAN file the SPAN, exposure and total per lot equal a hand calculation to the
+   rupee (test).
+3. Point in time: a planted file whose `<created>` stamp is at or after 09:00 IST on its day writes no row (test); a
+   decision on d reads no row dated after d (C2's rule, test with a row dated d+1).
+4. Fail closed: a missing file, a damaged zip, XML without NIFTY, a non-zero short-option minimum, two scan tiers and a
+   structure with an unlisted leg each write no row and produce one alert naming the cause (tests); a mutation that
+   writes a row from an invalid file fails a test.
+5. Append-only: existing bytes of `margins.csv` are a prefix of the new file; a second run is a no-op; a different
+   figure for an existing (structure, width, as_of) is refused and alerted (tests).
+6. Provenance: each row's source names the exact file and its SHA-256, which equals the archived file's manifest row.
+7. Stressed margin: a written proposal derives the factor from archived history with a stated window and rule; C2's
+   method and config are unchanged until the owner answers.
+8. Code size, lint, imports and the full suite pass; nothing touches `fno/forecast/`, `fno/ai/` or the forecast
+   capture.
+
+**Test plan:** a small synthetic SPAN XML built in the tests (two expiries, a handful of strikes, known arrays) for the
+hand calculation and every refusal; the real `nsccl.20261014.i1` file for the validation numbers (kept out of git,
+re-downloadable; its SHA-256 recorded in the claims).
+
+**Judge verifies:** recomputes two rows by hand from the real file; plants a late-created file and a damaged one;
+re-runs the job twice and checks the CSV is unchanged; checks the validation evidence and tolerance.
+
+**Depends:** A9, A11, C2, O6 · **Size:** M · **Status:** in progress (builder session 01FVYzWZtDAZrZLDZ6DtmSYL)
