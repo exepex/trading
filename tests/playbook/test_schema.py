@@ -9,11 +9,18 @@ from fno.playbook.schema import EVIDENCE, TOP, parameters_sha256, parse_strategy
 from .builders import DOCUMENT, document
 
 NESTED = {
-    "structure": ("code", "strikes_rule", "width_rule"),
+    "structure": ("code", "strikes_rule", "width_rule", "widths", "lots", "expiry"),
     "live_use_rule": ("min_days", "min_agreement", "min_available"),
     "funding": ("margin_per_lot", "source", "date"),
     "exits": ("time", "profit", "loss", "event"),
-    "evaluation_plan": ("expected_range", "unit", "review_dates", "pause_rules"),
+    "evaluation_plan": (
+        "expected_range",
+        "expected_net_per_opportunity",
+        "expected_net_source",
+        "unit",
+        "review_dates",
+        "pause_rules",
+    ),
     "evidence": EVIDENCE,
 }
 EVERY_FIELD = [(key, None) for key in TOP] + [(section, key) for section, keys in NESTED.items() for key in keys]
@@ -130,3 +137,42 @@ def test_the_fingerprint_covers_the_rule_but_not_status_or_evidence():
     changed["entry_conditions"][0]["threshold"] = 0.5
     assert parameters_sha256(changed) != base
     assert parameters_sha256(document(size_rule="2 lots")) != base
+
+
+def test_a_missing_expiry_field_is_named():
+    doc = document()
+    del doc["structure"]["expiry"]["exit_days_before_expiry"]
+    assert refusal(doc).field == "structure.expiry.exit_days_before_expiry"
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("structure", "widths"), [100, 200]),  # not widest first
+        (("structure", "widths"), [300, 300]),
+        (("structure", "widths"), []),
+        (("structure", "widths"), [300, 0]),
+        (("structure", "lots"), 0),
+        (("structure", "expiry", "kind"), "weekly"),
+        (("structure", "expiry", "max_days"), 20),  # below min_days
+        (("structure", "expiry", "exit_days_before_expiry"), 30),  # the exit would come before the entry
+        (("evaluation_plan", "expected_net_per_opportunity"), "plenty"),
+    ],
+)
+def test_the_machine_readable_trade_is_checked(path, value):
+    doc = document()
+    target = doc
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    assert refusal(doc).field == ".".join(path)
+
+
+def test_the_machine_readable_trade_is_parsed():
+    structure = parse_strategy(document()).structure
+    assert (structure.code, structure.widths, structure.lots) == ("SC", (300.0, 200.0, 100.0), 1)
+    assert (structure.expiry.min_days, structure.expiry.max_days, structure.expiry.exit_days_before_expiry) == (
+        30,
+        45,
+        21,
+    )

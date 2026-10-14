@@ -11,17 +11,19 @@ from pathlib import Path
 
 import yaml
 
-from fno.playbook.approval_checks import EvidenceCommitted, EvidenceFilled, LiveFeaturesValidated
-from fno.playbook.history import PlaybookGit
 from fno.playbook.lifecycle import StatusChanger
 from fno.playbook.live_reports import LiveReports
-from fno.playbook.loader import PlaybookLoader, registry_path
-from fno.playbook.registry import Registry
+from fno.playbook.loader import PlaybookLoader
+from fno.playbook.wiring import build_playbook_loader, build_status_changer
 
 EVIDENCE_FILES = ("research/x/results.json", "reviews/red_team.md", "reviews/judge.md", "research/x/FREEZE.md")
 DOCUMENT = {
     "name": "sc-test", "version": 1, "status": "research", "payer": "option buyers", "edge_family": "short premium",
-    "structure": {"code": "SC", "strikes_rule": "spot x 1.02 / 0.98", "width_rule": "widest under the cap"},
+    "structure": {
+        "code": "SC", "strikes_rule": "spot x 1.02 / 0.98", "width_rule": "widest under the cap",
+        "widths": [300, 200, 100], "lots": 1,
+        "expiry": {"kind": "monthly", "min_days": 30, "max_days": 45, "exit_days_before_expiry": 21},
+    },
     "entry_conditions": [
         {"feature": "F1_atm_iv_minus_rv20", "operator": ">", "threshold": 0},
         {"feature": "F3_scheduled_event_in_window", "operator": "is", "threshold": False},
@@ -31,7 +33,9 @@ DOCUMENT = {
     "funding": {"margin_per_lot": 20000, "source": "broker calculator", "date": date(2026, 10, 14)},
     "exits": {"time": "21 days to expiry", "profit": "none", "loss": "wings", "event": "none"},
     "evaluation_plan": {
-        "expected_range": {"low": -500, "high": 800}, "unit": "Rs per opportunity",
+        "expected_range": {"low": -500, "high": 800}, "expected_net_per_opportunity": 150,
+        "expected_net_source": "discovery results",
+        "unit": "Rs per opportunity",
         "review_dates": [date(2027, 1, 14)], "pause_rules": ["one trade loses over Rs 10,000"],
     },
     "evidence": dict.fromkeys(
@@ -101,14 +105,9 @@ def filled_evidence(results_commit: str) -> dict:
 
 
 def loader(root: Path, reports: LiveReports | None = None) -> PlaybookLoader:
-    folder = root / "playbook"
-    checks = (
-        EvidenceFilled(),
-        EvidenceCommitted(PlaybookGit(root)),
-        LiveFeaturesValidated(reports or validated_reports()),
-    )
-    return PlaybookLoader(folder, Registry(registry_path(folder)), checks)
+    """The app's own loader and checks (wiring), on a test repository and stand-in live reports."""
+    return build_playbook_loader(root, reports or validated_reports())
 
 
 def changer(root: Path, reports: LiveReports | None = None) -> StatusChanger:
-    return StatusChanger(loader(root, reports), PlaybookGit(root))
+    return build_status_changer(root, reports or validated_reports())

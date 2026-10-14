@@ -182,6 +182,23 @@ APPROVER_DESK = "desk"  # a builder or the research loop: may register a candida
 PLAYBOOK_FOLDER = "playbook"
 PLAYBOOK_REGISTRY_FILE = "registry.csv"
 # Entry-condition operators: numbers compare with a number, flags with `is` and true or false
+# Story D2: a strategy version with fewer completed paper trades than this is unproven and holds at most one open trade
+UNPROVEN_BELOW_COMPLETED_TRADES, UNPROVEN_MAX_OPEN_TRADES = 20, 1
+NO_TRADE_THRESHOLD_RS = 0.0  # a candidate needs expected net per opportunity above this, after costs
+NO_ESTIMATE = "none"  # a research version with no honest expected-net estimate (paper needs a number)
+
+
+class Decision(StrEnum):
+    """What story D2 decided for one opportunity."""
+
+    CHOSEN = "chosen"  # allocated: the book opens this trade
+    NOT_CHOSEN = "not chosen"  # a valid candidate that lost its slot, cash or risk check to the ranking
+    NO_TRADE = "no trade"  # the rule did not fire, or no valid trade could be built
+    SHADOW_TRADE = "shadow: would trade"  # a research candidate's forward test: recorded, never in the book
+    SHADOW_NO_TRADE = "shadow: no trade"
+
+
+EXPIRY_MONTHLY = "monthly"  # the only expiry kind a playbook names today (story D2)
 OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_AT_MOST, OPERATOR_IS = ">", ">=", "<", "<=", "is"
 NUMBER_OPERATORS = (OPERATOR_ABOVE, OPERATOR_AT_LEAST, OPERATOR_BELOW, OPERATOR_AT_MOST)
 
