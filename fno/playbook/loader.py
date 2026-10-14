@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 from ..constants import PLAYBOOK_REGISTRY_FILE
@@ -22,16 +23,34 @@ FILE_PATTERN = "*.yaml"
 @dataclass(frozen=True)
 class Playbook:
     strategies: tuple[Strategy, ...]
-    registered: frozenset[tuple[str, int]] = frozenset()  # versions with a registry row (their rule is frozen)
-
-    def shadow(self) -> tuple[Strategy, ...]:
-        """Registered research candidates: forward-tested in shadow (owner, 14 Oct 2026), never in a book's account.
-        An unregistered candidate is not frozen, so it is not tested."""
-        return tuple(s for s in self.strategies if s.status == RESEARCH and s.key in self.registered)
+    rows: tuple[RegistryRow, ...] = ()  # the registry: every registration and status change, oldest first
 
     def approved(self) -> tuple[Strategy, ...]:
-        """The versions Book 1 may trade today (status `paper`); empty when nothing is approved."""
+        """The versions whose file and registry say `paper` now; empty when nothing is approved."""
         return tuple(s for s in self.strategies if s.status == PAPER)
+
+    def status_on(self, day: date) -> dict[tuple[str, int], str]:
+        """Each registered version's status at the start of `day`: its latest change dated before the day (E2's common
+        opportunity set and the shadow test use this; a rebuild of the day gives the same answer)."""
+        return {row.key: row.status for row in self.rows if row.changed_on < day}
+
+    def status_through(self, day: date) -> dict[tuple[str, int], str]:
+        """Each registered version's status after every change dated on or before `day`."""
+        return {row.key: row.status for row in self.rows if row.changed_on <= day}
+
+    def approved_on(self, day: date) -> tuple[Strategy, ...]:
+        """The versions Book 1 may trade on `day`: `paper` at the start of the day AND still `paper` after every change
+        dated that day (judge 74, risk manager's rule). An approval waits for the next session; a pause or retirement
+        stops new entries at once. Both read the registry's dates only, so a rebuild of the day gives the same set;
+        on the live day no later row exists, so "through the day" is "now"."""
+        start, through = self.status_on(day), self.status_through(day)
+        return tuple(s for s in self.strategies if start.get(s.key) == PAPER and through.get(s.key) == PAPER)
+
+    def shadow_on(self, day: date) -> tuple[Strategy, ...]:
+        """Research candidates registered (frozen) before `day`: forward-tested in shadow (owner, 14 Oct 2026), never
+        in a book's account. An unregistered candidate is not frozen, so it is not tested."""
+        status = self.status_on(day)
+        return tuple(s for s in self.strategies if status.get(s.key) == RESEARCH)
 
     def get(self, name: str, version: int) -> Strategy:
         found = [s for s in self.strategies if s.key == (name, version)]
@@ -51,7 +70,7 @@ class PlaybookLoader:
             history = [row for row in rows if row.key == strategy.key]
             self.check_against_history(strategy, history)
         self._require_files_for(rows, {s.key for s in strategies})
-        return Playbook(tuple(strategies), frozenset(row.key for row in rows))
+        return Playbook(tuple(strategies), tuple(rows))
 
     def check_against_history(self, strategy: Strategy, history: Sequence[RegistryRow]) -> None:
         """The file matches its registered fingerprint and latest status, and passes the checks for that status."""

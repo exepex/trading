@@ -64,3 +64,43 @@ is at most one more forward-test entry. I accept that as built.
 ## Project rules
 
 Small change in place. The story text is amended with the date and source. No new composition root.
+
+## Addendum 1 (round 2, branch 93efd01 = fix e23a92c plus a merge of main with no code): PASS
+
+**The must-fix is met.** `approved_on(day)` now requires `paper` at the start of the day (latest row dated before it)
+**and** `paper` after every row dated on or before it (`status_through`). So:
+- an approval or resumption on the day waits for the next session;
+- a pause or retirement on the day stops new entries at once.
+
+The tests cover a hard-loss pause, an owner pause and a retirement on the day. Each makes the evaluation on that day
+choose nothing, and the day before is unchanged. A same-day resumption waits.
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,258 passed;
+- ruff, format (489 files) and imports: clean;
+- `git merge-tree` with current `main`: clean.
+
+**My plants (5, `tests/playbook`): all caught.**
+
+| Plant | Result |
+|---|---|
+| The start-of-day half dropped | 2 failed |
+| The "through the day" half dropped | 3 failed |
+| "Through" reading `<` instead of `<=` | 3 failed |
+| The evaluator reading `approved()` again | 1 failed |
+| The shadow test reading "through the day" | 1 failed |
+
+**Two notes (information, reasoning only; not blocking):**
+1. **A rebuild can disagree with the live day.** "A rebuild of the day gives the same set" holds unless a stop is
+   written later on that same day: after the 15:00 decision, but dated the day. The live run traded, and a later
+   rebuild of the day says "stopped". The recorded decision (D3) is the truth for that day. Audits that replay a day
+   should know that a same-day stop after 15:00 shows as a difference. Only a time on registry rows would remove it.
+2. **The drift exclusion is not here yet**, as the builder says. After E6 merges, a drifted version must also be
+   dropped from `approved_on` (judge 73 must-fix 4). That is E6's condition, not this branch's.
+
+**Verdict: PASS.** After the merge I check `main` against 93efd01 and CI.
+
+## Addendum 2 (merge check, a0a8eef)
+
+**MET.** a0a8eef has parents d88d2c7 (main) and 93efd01 (the passed tip), and it equals my recomputed merge of the
+two. CI `checks` is green on a0a8eef (run 38504327736).

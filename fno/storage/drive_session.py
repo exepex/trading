@@ -41,7 +41,7 @@ class DriveSession:
         for wait in (*RETRY_WAITS, None):
             try:
                 response = send(url, timeout=TIMEOUT_SECONDS, **kwargs)
-            except requests.ConnectionError:
+            except (requests.ConnectionError, requests.Timeout):  # a create retried under its reserved ID is safe
                 if wait is None:
                     raise
                 self.sleep(wait)
