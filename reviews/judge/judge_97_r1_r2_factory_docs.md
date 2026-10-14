@@ -72,3 +72,19 @@ under 350 lines. Labels on every threshold.
 **Verdict: FAIL for 2ea0dedf5471e9ee3b256d8b2d8bb4431505f7b1**, on must-fix 1 only. Everything else passes; a re-check
 needs only `FACTORY_RULES.md` §2 and `research/ideas/R2.md`. The protocol must not change (its hash stays
 `89947b4c...e40a6b`), and the merge must be a merge commit.
+
+## Addendum 1 (15 Oct 2026): bec0e33d1932b8af50748f7728aceb783e7581ac (2ea0ded..bec0e33)
+
+One commit (parent 2ea0ded), three research documents, nothing else.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Must-fix 1 | MET | `FACTORY_RULES.md` §2 now has the cost-hurdle feasibility case. An unknown edge's least favourable value is at most zero, so the idea itself cannot pass G1. The assumed edge is an **assumed hurdle** (reasoning only, never a conservative bound), and an earlier frozen protocol's phrase is read that way. e\* is printed. A YES never counts as a G1 pass for a later idea. `ideas/R2.md` uses "assumed hurdle" in its edge, screen and sample-plan rows |
+| Protocol unchanged, no new trial | MET | `PROTOCOL.md` SHA-256 is still `89947b4c...e40a6b`; `ledger.csv` is unchanged |
+| Follow-up 4 (section number) | MET | `DATA_SPEND.md` now cites section 7 |
+| Follow-up 2 (annualisation) | Open, as agreed | Waits for `study.py`; I check it when its hash goes into `FREEZE.md` |
+
+The gates of judge 97 stand: the change touches no code, test or ledger file.
+
+**Verdict: PASS for bec0e33d1932b8af50748f7728aceb783e7581ac.** Merge it as a merge commit so that 93a19c3 stays in
+`main`'s history. After the merge I check the recomputed merge, the ledger guard and CI.
