@@ -271,3 +271,125 @@ touched; no secrets, emails or model names found in the diff.
 
 **Verdict: FAIL for 01575a155b44f10b3f397f126986f9ca092ae78c**, on must-fix 1 only (wording, two places). Everything
 else in revision 3 passes; a re-check needs only 08 §8.2 and response 97's summary.
+
+## Addendum 7 (15 Oct 2026): a0ac7522ae56f18657af3c9c49694a9e342c1226 (01575a1..a0ac752)
+
+The orchestrator replaced the target SHA. a0ac752 changes only `03` §3.1 and §3.4 point 4 and response 97 (checked:
+`git diff --stat 01575a1 a0ac752`, two files, docs only).
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 6 must-fix 1 (decision 7 written as decided) | NOT MET | `08` is unchanged between 01575a1 and a0ac752; response 97 line 18 still names only decisions 4 and 8 |
+| B4 snooping path "best of many shadows" | PARTLY | See must-fix 2 |
+| B4 snooping path "tune after looking" | MET | Any change after looking is a new idea and a new row, and records count only from a freeze made before collection; the frozen sample also closes "judge when the numbers look best" |
+| Benchmark PARTIAL (per rupee tied as headline, whole account with idle cash at the cash rate) | MET | Consistent with the owner's rows of 14 Oct ("more strategies in parallel, not bigger bets"; Rs 20 lakh "many strategies in parallel"); the whole-account view is still reported, and crediting idle cash at the cash rate is fairer than zero |
+| Tally 32 / 3 / 0 | MET | Matches the per-file table |
+
+**Must-fix 2: the Holm family counts only shadows that are still running.** The new text says every
+`exploratory_shadow` "running when an idea is judged" belongs to that idea's family. Adversarial path: register 20
+shadows on one question, stop the 19 that look poor (stopping a shadow is not forbidden anywhere), then judge the survivor
+in a family of 1. That is exactly the "watch many, pick the best" path the paragraph claims to close. The factory-wide
+"trial k of K" line is only reported; the pass decision uses the Holm family. Fix: the family is every shadow registered
+on that question (or batch) since its last judgement, whether running, stopped or retired; and stopping a shadow before
+its frozen sample is recorded with its reason and keeps it in the family. With that wording the builder's argument holds:
+the rules are mechanical and the forward data is unseen at freeze time, so I agree that exploratory shadows may feed
+promotion.
+
+**Follow-up (not blocking):** "per rupee of capital tied up" needs one frozen definition before S2 or the scoreboard uses
+it: return per rupee-day of funds at entry, with the index fund measured over the same rupee-days (or the untied days
+credited at the cash rate). Otherwise a strategy tied up for a few days is compared with an index held all year.
+
+**Verdict: FAIL for a0ac7522ae56f18657af3c9c49694a9e342c1226**, on must-fix 1 (still open from addendum 6) and must-fix
+2 (family membership). Both are wording fixes; a re-check needs only `08` §8.2, response 97's summary and `03` §3.1.
+
+## Addendum 8 (15 Oct 2026): dd4e1a83df290784243f0c45518eb369bb1123c0 (a0ac752..dd4e1a8)
+
+dd4e1a8 changes `05`, `08`, `REPLAN_new_stories.md` and response 97 (docs only, checked by `git diff --stat`).
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 6 must-fix 1 (decision 7) | MET | `08` §8.2 keeps decision 7's Test B word for word (compared with 2b0da01 lines 49-51) and adds the zero-shadow rule under "Proposed correction, awaiting the owner; decision 7 is not changed until the owner says so", with its effect stated; the heading says "one proposed correction awaits the owner"; response 97's summary names decisions 4, 7 and 8 |
+| Addendum 6 follow-up 1 (3% day set) | MET | `05` item 5 and G6's acceptance: scored, non-void days with RV > 0, the same days as the paired comparison, fixed before any score |
+| Addendum 7 must-fix 2 (Holm family) | NOT MET | `03` §3.1 at dd4e1a8 still reads "Every `exploratory_shadow` running when an idea is judged belongs to that idea's family"; response 97 repeats "every shadow running when an idea is judged" |
+
+Must-fix 2 stands as written in addendum 7: stopping weak shadows before judgement shrinks the family to the survivor.
+The family must be every shadow registered on that question or batch since its last judgement, running, stopped or
+retired, and an early stop is recorded with its reason. The orchestrator's request (sent 21:27 UTC) predates my
+addendum 7 message, which explains the gap.
+
+**Verdict: FAIL for dd4e1a83df290784243f0c45518eb369bb1123c0**, on addendum 7's must-fix 2 only. A re-check needs only
+`03` §3.1 and response 97's B4 paragraph.
+
+## Addendum 9 (15 Oct 2026): 6367d7354e910b203851f2652a1adca958f5fb3e (dd4e1a8..6367d73; whole range 2b0da01..6367d73)
+
+6367d73 changes `03` §3.1 and §3.2 item 4, REPLAN's S2 row and response 97. The whole range 2b0da01..6367d73 touches
+only `docs/design_v2/` and `reviews/` (checked: no other path in `git diff --name-only`); the chain is linear
+(6367d73's parent is dd4e1a8, and 01575a1 is an ancestor).
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 6 must-fix 1 (decision 7) | MET | Addendum 8; unchanged since |
+| Addendum 7 must-fix 2 (Holm family) | MET | `03` §3.1: the family is every shadow registered on the question or batch since its last judgement, running, stopped or retired; an early stop is recorded with its reason and stays in the family; the attack is named. Response 97's B4 paragraph says the same |
+| Addendum 7 follow-up (per rupee tied) | MET | `03` §3.2 item 4 and REPLAN's S2 row: one definition frozen before use, return per rupee-day of funds at entry, the index over the same rupee-days |
+| Project rules | MET | Largest changed file 193 lines; docs only; no secrets, emails or model names in the diff |
+
+**Follow-up (not blocking; for R1 and G6 to freeze):** "since its last judgement" leaves staggered judgements open.
+Shadows on one question reach their frozen samples at different times; when the first is judged, the family resets, so a
+shadow registered earlier but judged later could be judged in a smaller family than the one it was registered into.
+Freeze one rule before the first judgement: either the family is every shadow registered on the question (cumulative,
+judged ones included, with Holm's step taken at each judgement), or a batch is judged only together. The factory-wide
+"trial k of K" line already shows the whole count, so this is a precision point, not an open snooping path.
+
+**Verdict: PASS for 6367d7354e910b203851f2652a1adca958f5fb3e.** All must-fixes of addenda 6 and 7 are done. Design v2
+revision 3 still needs ChatGPT's approval of the whole revision and the owner's approval before it binds or merges
+(owner's order, 15 Oct log); after the merge I check that `main` carries exactly this SHA's `docs/design_v2/`.
+
+## Addendum 10 (15 Oct 2026): revision 4 at 658ab3a58402aa34a919e6910aacbdffb8aa3ddd (6367d73..658ab3a)
+
+Range: ChatGPT's review 97 (1d4d9f5, 9585391) and 658ab3a; docs and reviews only (checked with `git diff --name-only`);
+largest changed file 195 lines. Owner amendments read at their source: 9003162 appends two rows to `DESK_DECISIONS.md`
+(nothing edited in place) and logs the owner's words in `conversations/2026-10-15.md` ("A. Your decision 7 ... => I
+accept / B. Your decision 8 ... => I accept").
+
+| Item | Status | Evidence |
+|---|---|---|
+| Decision 7 amended, one operative Test B | MET | `08` §8.2 has one Test B: "no" only when every counted strategy reached its sample with its upper bound below its useful net; zero eligible or resolved shadows gives `undecided / no_economic_test`; the old wording is gone; matches the amendment row |
+| Decision 8 amended | MET | `08` §8.3 condition 5 always applies (second untouched forward period or Holm across the trial count, sample predeclared); §8.4's pass is a paired real-minus-paper test with a prediction interval for the mean of that many new trades; Rs 20,000 stop kept. Matches the amendment row. Note: condition 6 (fits the Rs 4,000-5,000 real cap; SEBI and tax rules re-checked) is not in the amendment row's words; it was in the proposal the owner accepted as "a stricter bar", so I accept it, and the owner sees it at final approval |
+| Review 97 fix 2: minimum-effect population | MET | `05` §5.5 item 5: the gate uses only paired dates with RV > 0, the 3% benchmark on the same dates; the primary test uses every scored non-void date; the zero-RV count is reported; G6 freezes both sets. Numerator and denominator now share one population |
+| Review 97 fix 3 and my addendum 9 follow-up: shadow family | MET | `03` §3.1: cumulative per research question (active, stopped, retired, judged or new), Holm recomputed at each confirmatory decision without relabelling earlier verdicts, one judgement at the frozen sample unless alpha-spending was registered before collection. Adversarial check: no reset point remains, early stops stay in, and interim peeking needs a pre-registered spending rule |
+| PAPER ONLY card label | MET | `04` card table, first row |
+| Decision 4's unit stated as unconfirmed | NOT MET | See must-fix 1 |
+
+**Must-fix 1: the design text does not say that decision 4's exact unit is unconfirmed.** Response 97 says it plainly
+("still a definitional clarification for the owner to confirm"). The design does not:
+- `05` §5.5 item 5 says only "flagged to the owner in response 97", next to "accepted by the owner on 15 Oct 2026";
+- REPLAN §5 item 4 says "Decided 15 Oct 2026: minimum effects 3% QLIKE";
+- `OWNER_SUMMARY.md` lists "what 'better than baseline' means" among the decisions made, with no word on the unit.
+Revision 4 also adds new definitional content (the gate excludes zero-RV dates while the significance test keeps
+them), which is exactly the part the owner has not seen. Without this, the owner's approval of the whole design would
+not knowingly cover it. Fix: in `05` item 5, "the number 3% is the owner's; its exact unit (this paragraph) awaits the
+owner's confirmation"; the same short note in REPLAN §5 item 4; and one line in `OWNER_SUMMARY.md` asking the owner to
+confirm it. Self-check: in addenda 6 and 9 I accepted "flagged" as enough. With the population split added in revision 4
+and the owner's whole-design approval coming next, it is no longer enough. That is a stricter reading than mine before,
+and I say so.
+
+**Verdict: FAIL for 658ab3a58402aa34a919e6910aacbdffb8aa3ddd**, on must-fix 1 only (wording in three places). Everything
+else in revision 4 passes, including both owner amendments and ChatGPT's fixes 2 and 3.
+
+## Addendum 11 (15 Oct 2026): 956a805679a9ce115bd92e28491a2d7260ed5e2e (658ab3a..956a805)
+
+956a805 (parent 658ab3a) changes `05`, `OWNER_SUMMARY.md`, `REPLAN.md` and response 97; docs only.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 10 must-fix 1 (decision 4's unit) | MET | Owner row appended in a1ed514 (merged on main in 01f6b82): "Decision 4's exact unit confirmed" (owner: "3% confirmed"), stating the RV > 0 paired-date gate, zero-RV dates reported, all dates in the significance test; the log quotes the owner. `05` item 5, REPLAN §5 item 4 and `OWNER_SUMMARY.md` now say "exact unit confirmed by the owner, 15 Oct 2026", and the summary states it in plain words; response 97's "to confirm" lines are updated |
+| Nothing else changed | MET | `git diff 658ab3a 956a805`: only those four files and those lines |
+
+**Follow-up (process, not blocking):** the owner's words "3% confirmed" alone do not show whether the owner confirmed
+the number or the unit; the log records the orchestrator's reading, not the question the owner answered. Log the
+question with the answer next time. The backstop here: `OWNER_SUMMARY.md` now states the unit in plain words, so the
+owner's final approval of the whole design covers it knowingly.
+
+**Verdict: PASS for 956a805679a9ce115bd92e28491a2d7260ed5e2e.** Design v2 revision 4 passes with all must-fixes of addenda
+6, 7 and 10 done. It waits on ChatGPT's confirmation and the owner's final approval; after the merge I check that
+`main`'s `docs/design_v2/` equals this SHA's.
