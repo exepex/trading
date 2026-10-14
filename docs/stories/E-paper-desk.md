@@ -313,4 +313,4 @@ settled), choosing exits (E4's rules and the playbook).
 **Judge verifies:** recomputes one settlement by hand from an expiry day's NSE file.
 
 **Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** built; awaiting judge (branch `story/e7-expiry-settlement`,
-claims `reviews/claude/response_72_e7-expiry-settlement.md`)
+claims `reviews/claude/response_73_e7-expiry-settlement.md`)

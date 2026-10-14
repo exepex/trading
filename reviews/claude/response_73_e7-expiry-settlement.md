@@ -1,4 +1,4 @@
-# Response 72: story E7, expiry settlement: builder's claims
+# Response 73: story E7, expiry settlement: builder's claims
 
 Builder session, 14 Oct 2026. Story: `docs/stories/E-paper-desk.md` E7 (written in this branch, from the
 orchestrator's scope after judge 68). Branch `story/e7-expiry-settlement`, built on `story/e4-entry-limit` (it needs
@@ -70,11 +70,25 @@ independent second gate (reasoning only).
 
 ## 4. Honest limits (confidence labelled)
 
-1. **Exercise STT rate 0.15% (some evidence).** Broker and press summaries of Budget 2026 agree: 0.125% to 0.15% of
-   intrinsic value from 1 Apr 2026 ([Upstox](https://upstox.com/news/personal-finance/tax/explained-how-the-stt-hike-on-equity-futures-and-options-affects-traders-and-investors/article-189260/),
-   [Finnovate](https://www.finnovate.in/learn/blog/budget-2026-stt-hike-fno-trades-explained),
-   [Patron Accounting](https://www.patronaccounting.com/blog/stt-hike-2026-securities-transaction-tax-fo-traders)).
-   The Finance Act text is not yet cited, as with C1's sell-side STT row.
+1. **Exercise STT rate 0.15% (strong evidence for the rate; enactment from secondary sources).**
+   - **Primary text read:** the Finance Bill, 2026 (Gazette text), notes on clauses, clause 143, which amends section
+     98 of the Finance (No. 2) Act, 2004. It says the STT on sale of "an option in securities when such option is
+     exercised is 0.125 per cent. of the intrinsic price" and proposes "an option in securities, where option is
+     exercised to 0.15 per cent. of the intrinsic price". It also raises STT on option premium from 0.1 to 0.15 per
+     cent. I read it with `pdftotext` from a third-party copy of the Gazette extract
+     ([PDF](https://d23z1tp9il9etb.cloudfront.net/download/pdf26/Relevant%20Extract%20of%20The%20Finance%20Bill,%202026.pdf)),
+     not from a government host.
+   - **Enactment and effective date (secondary):** the Finance Act, 2026 received assent on 30 Mar 2026, and the
+     rates apply to trades from 1 Apr 2026 ([Business Standard](https://www.business-standard.com/amp/economy/news/new-i-t-law-higher-securities-transaction-tax-on-f-o-trade-to-kick-in-from-april-1-126033100344_1.html);
+     broker notices of the NSE circular: [Fyers](https://fyers.in/notice-board/revision-in-securities-transaction-tax-stt-effective-april-01-2026/),
+     [Arihant](https://www.arihantplus.com/market-insights/bulletin/revision-in-securities-transaction-tax-stt-rates-effective-april-1-2026)).
+     The purchaser (the long holder) pays it on the intrinsic value.
+   - **Not read myself:** NSE's STT page
+     ([nseindia.com](https://www.nseindia.com/static/products-services/equity-derivatives-securities-transaction-tax))
+     and the Income Tax Department's section 98 page
+     ([incometaxindia.gov.in](https://www.incometaxindia.gov.in/w/section-98-55)) both refuse automated reads (HTTP
+     403). I did not find the NSE circular itself or a CBDT notification. The owner can open those two pages in a
+     browser to confirm the enacted table.
 2. **Brokerage on settlement (reasoning only).** Charged on every in-the-money leg, long or short, as if an order.
    Groww's exact charge for an expiry exercise or assignment is not verified; this is the conservative side. No
    exchange, SEBI, IPFT or stamp charge is applied because no premium is traded (reasoning only).
