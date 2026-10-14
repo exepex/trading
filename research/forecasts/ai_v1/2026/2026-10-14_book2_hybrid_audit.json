@@ -1,0 +1,29 @@
+{
+ "attempted": {},
+ "book": "book2_hybrid",
+ "commitment_received_at": null,
+ "counted": {
+  "q1_nifty_up_20d": null,
+  "q2_nifty_move_3pct_20d": null,
+  "q3_rv20_above_trailing": null,
+  "q4_vix_up_10d": null,
+  "q5_rv20_below_atm_iv30": null
+ },
+ "day": "2026-10-14",
+ "fire": {
+  "fired": true,
+  "fired_at": "2026-10-14T19:27:47.965584+05:30",
+  "session": "https://claude.ai/code/cse_01KArozSaT7wCoYmLbni7XUY",
+  "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+ },
+ "isolation": "sealed_same_day",
+ "model_check": "",
+ "model_reported": "",
+ "notes": [
+  "no commitment in the repository (the AI was unavailable)"
+ ],
+ "problems": {},
+ "reveal_received_at": null,
+ "status": "no_submission",
+ "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+}
