@@ -121,3 +121,83 @@ acceptable; losing the exits is not.
 - Constants are in `fno/constants.py`. Files are within 350 lines. No orders, no AI, no secrets.
 - The `OrderBuilder` port change is small and justified.
 - The `desk` CLI is extended in its single parser.
+
+## Addendum 1 (round 2, branch 3f61f0b): both must-fixes met as asked, NOT yet PASS: two new gaps shown by probe
+
+**What is met:**
+- **Must-fix 1 (exits).** One rule (`exit_terms.unenforceable_exits`) is used three ways:
+  - D1's `ExitsEnforceable` refuses `paper`;
+  - `ReplayedOrders` refuses with `OrdersRefused`;
+  - the exit review alerts and keeps the time exit.
+  `review_exits` now runs book by book: a failure is recorded and alerted, and the other books still run.
+- **Must-fix 2 (replay at 15:12).** Orders are built at the fill, per book. `ReplayRefused` and every other refusal
+  become "not filled" plus an alert, and the snapshot, other books and exits run.
+- **My three should-fixes now have tests.**
+- **Accepted:** the worktree replay as its own story, with the orchestrator's interim rule of no `fno/` or
+  `config.yaml` merges between 14:55 and 15:20 IST. That rule is the owner's to confirm. Fail-closed remains the
+  fallback.
+- **Accepted:** the fixture text change ("none (the bought wings cap it)"). "Wings" alone is rightly refused.
+
+**Gates (my runs, `python -B`, caches cleared):**
+- full suite: 2,674 passed;
+- ruff, format (604 files) and imports (612): clean;
+- **`git merge-tree` with current `main` (dafbebe, C4 merged): CONFLICT in `CLAUDE.md`.** Keep both composition-root
+  lines.
+
+**My plants (10): all caught.**
+
+| Plant | Result |
+|---|---|
+| My 3 round-1 survivors (forward = spot, `approved()`, private pack) | 1 failed each |
+| D1's `ExitsEnforceable` not wired | 1 failed |
+| Orders skip the exit check | 1 failed |
+| Exit review not per book | 1 failed |
+| `OrdersRefused` not caught at the fill | 2 failed |
+| `ReplayRefused` not wrapped | 1 failed |
+| Exit alert dropped | 1 failed |
+| Fill alert dropped | 2 failed |
+
+### New must-fix A: "none" is matched as a prefix, so a stop hides behind it
+
+`unenforceable_exits` accepts any text that **starts with** "none".
+
+**My probe:** the E5 end-to-end run with `loss: "none until day 10, then stop at 2x credit"` and C4 passed.
+- The order **opens** (4 legs), with no refusal and no alert.
+- D1's check uses the same rule, so this version can also be approved to `paper`.
+
+This is the root guarantee of the fix ("no trade is ever opened under a stop nobody applies"), and one word defeats it.
+
+**Fix (reasoning only):**
+- a text exit counts as "none" only when it is exactly `none` (trimmed, any case);
+- notes go in another field;
+- update the example version (`loss: none beyond the bought wings (…)`) and the fixtures;
+- add tests: "none until …", "none; stop at …" and "None" with trailing text are refused.
+
+### New must-fix B: one broken playbook file halts all of Book 1's exits, every day
+
+`build_book1_exit_rules` reads `snapshot_playbook(root).playbook()`, which parses **every** version file.
+
+**My probe:** the end-to-end run with one extra draft file `zz-draft-v1.yaml` that is not valid YAML.
+- Day 1 fills 4 legs.
+- Then Book 1's exit review is `reviewed: False, PlaybookError: zz-draft-v1.yaml: not valid YAML` on **all three
+  days**.
+- The failure is recorded and alerted, but no Book 1 trade exits while an unrelated draft (a research candidate
+  someone is editing) stays broken.
+
+Judge 84 asked that one bad version leave the others' exits running. Per book is not enough: this is one bad file
+stopping every trade in the book.
+
+**Root fix (risk manager, reasoning only).** A trade's time exit is fixed when it is decided.
+- D2's record already stores it: `exit_day` in the opportunity's context, written by `outcomes.py`.
+- Read each open trade's exit day from its committed D3 record, the same way `recorded_terms` reads its terms. Then no
+  playbook parse is needed to close a trade.
+- Read the version file only for the unenforced-exit alert, and only per trade: a failure there is alerted and never
+  removes the exit.
+- This also stops a later edit of a version file from moving an open trade's exit.
+
+**Tests:**
+- a broken unrelated file leaves every exit applied;
+- an open trade's exit day comes from its record, even if its version file changes.
+
+**Verdict: not yet PASS.** After both fixes and the merge with `main`, I re-run my probes, the plants above and the
+gates.

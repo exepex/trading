@@ -202,3 +202,10 @@ The builder's extra finding is correct and serious: the misnamed leg was checked
 **Accepted limit (unchanged):** `margin_room` blocks every trade until A14's rows exist.
 
 **Verdict: PASS.** After the merge I check `main` against bf0d4af and CI.
+
+## Addendum 3 (merge check, dafbebe)
+
+**MET.**
+- dafbebe has parents f67c090 (`main`) and bf0d4af (the passed tip).
+- It equals my recomputed merge of the two (`git diff` empty).
+- CI `checks` is green on dafbebe (run 38529262438).
