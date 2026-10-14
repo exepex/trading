@@ -97,7 +97,8 @@ def test_unquotable_protection_marks_the_position_blocks_new_risk_and_exits_at_t
     assert [c for c, *_ in close_rows(root)] == [contract(25000, CE), contract(25000, PE), contract(24800, PE)]
     assert is_open(root)  # not closed while an exit fill is missing
     refused = enter(root, snapshots, entry_desk, fly_order("t2", decided_at=at(15, 5, day=NEXT)), "next", NEXT)
-    assert refused.outcome == OUTCOME_NOT_OPENED and "protection unverified on open trade t1" in refused.reason
+    assert refused.outcome == OUTCOME_NOT_OPENED
+    assert "open trade t1 (protection_unverified) blocks new risk" in refused.reason
     other = enter(root, snapshots, entry_desk, fly_order("t2", book=BOOK2_HYBRID, decided_at=at(15, 5, day=NEXT)),
                   "next", NEXT)  # fmt: skip
     assert other.reason.startswith(contract(25200, CE))  # another book is not blocked: only the bad quote stops it
@@ -165,6 +166,16 @@ def test_a_leg_that_expired_before_its_exit_needs_settlement_and_is_never_priced
         [result] = review(root, snapshots, exit_desk, after, "after", HOLD)
         assert result.outcome == OUTCOME_SETTLEMENT_NEEDED and "final settlement price" in result.reason
     assert close_rows(root) == [] and len(alerts.sent) == 1 and is_open(root)
+
+
+def test_an_unsettled_expired_trade_blocks_the_book_s_new_risk(root, store, snapshots, entry_desk, exit_desk, clock,
+                                                               opened):  # fmt: skip
+    after = date(2026, 10, 28)
+    snapshot_on(store, clock, after, "after", fly_rows())
+    review(root, snapshots, exit_desk, after, "after", HOLD)
+    refused = enter(root, snapshots, entry_desk, fly_order("t2", decided_at=at(15, 5, day=after)), "after", after)
+    assert refused.outcome == OUTCOME_NOT_OPENED  # judge 68: its stale mark must not let the book keep trading
+    assert "open trade t1 (settlement_needed) blocks new risk in book1_rules" in refused.reason
 
 
 def test_a_snapshot_older_than_the_last_fill_or_later_than_the_clock_is_refused(root, store, snapshots, exit_desk,

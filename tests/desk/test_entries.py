@@ -28,19 +28,16 @@ from fno.costs import order_charges
 from fno.desk.records import DeskRecords
 from fno.desk.snapshot import SnapshotError
 from fno.quotes.recorder import QuoteSnapshotRecorder
-from fno.research_data.panel_reader import FutureQuote
 from fno.risk.book_view import load_risk_book
-from fno.risk.inputs import ContractQuote, Market
 from fno.risk.wiring import build_risk_manager
 
 from .builders import (
     CHARGES,
     DAY,
-    EXPIRY,
-    FLY_QUOTES,
     LOT,
     at,
     contract,
+    decision_market,
     enter,
     fly_order,
     fly_proposal,
@@ -166,13 +163,6 @@ def test_an_unwind_leg_without_bid_size_stays_as_an_exit_order(root, store, snap
     }
 
 
-def _market(day=DAY):
-    """C2's market at the decision: the fly's mids, one implied volatility, the same-expiry future at spot."""
-    mids = {(k, kind): (bid + ask) / 2 for (k, kind), (bid, ask) in FLY_QUOTES.items()}
-    quotes = {contract(k, kind): ContractQuote(k, kind, EXPIRY, mid, 0.15) for (k, kind), mid in mids.items()}
-    return Market(day, 25000.0, 0.065, quotes, {EXPIRY: FutureQuote(EXPIRY, 25000.0, 25000.0, 1, 1)})
-
-
 @pytest.mark.parametrize("margin_as_of, opens", [("2026-09-01", False), ("2026-10-13", True)])
 def test_the_risk_manager_s_refusal_for_stale_margins_fills_nothing(root, store, snapshots, entry_desk, execution,
                                                                     margin_as_of, opens):  # fmt: skip
@@ -180,7 +170,7 @@ def test_the_risk_manager_s_refusal_for_stale_margins_fills_nothing(root, store,
     margins.write_text(f"structure,width,margin_per_lot_rs,source,as_of\nSF,200,40000,test calculator,{margin_as_of}\n")
     stressed = {"multiplier": 1.5, "source": "test factor", "as_of": "2026-10-13"}
     cfg = load_app_config(overrides={"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed}})
-    market = _market()
+    market = decision_market()
     decision = build_risk_manager(cfg, root).evaluate(fly_proposal(), load_risk_book(root, BOOK1_RULES, market, {}),
                                                       market)  # fmt: skip
     assert decision.ok == opens, decision.reasons

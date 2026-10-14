@@ -1,6 +1,8 @@
 """A book's open positions as the desk sees them (story E4), derived from the two append-only records and never kept
 as separate state: E1's cash ledger says which trades are still open and what they hold; the desk events say which of
-them must be exited and which have unverified protection. A trade stops blocking the book once its last leg is closed.
+them must be exited, and which block the book's new risk: unverified protection, or a leg expired before its exit
+(settlement needed, judge 68: its stale mark would otherwise let the book keep trading). A trade stops blocking the
+book once its last leg is closed.
 """
 
 from __future__ import annotations
@@ -15,11 +17,13 @@ from ..constants import (
     OUTCOME_OPENED,
     OUTCOME_PARTIAL_FILL,
     OUTCOME_PROTECTION_UNVERIFIED,
+    OUTCOME_SETTLEMENT_NEEDED,
 )
 from .execution import Holding
 from .records import DeskRecords
 
 ENTRY_OUTCOMES = (OUTCOME_OPENED, OUTCOME_NOT_OPENED, OUTCOME_PARTIAL_FILL)
+BLOCKING_OUTCOMES = (OUTCOME_PROTECTION_UNVERIFIED, OUTCOME_SETTLEMENT_NEEDED)
 
 
 @dataclass(frozen=True)
@@ -31,7 +35,7 @@ class OpenPosition:
     last_fill_at: datetime
     opened_by: str  # snapshot ID of the trade's opening fills
     exit_reason: str  # why it must be exited (empty when no exit is ordered)
-    protection_unverified: bool
+    blocks: tuple[str, ...]  # the blocking outcomes recorded for it (BLOCKING_OUTCOMES), in the order first seen
 
 
 def _holdings(trade: TradePosition, records: DeskRecords) -> tuple[Holding, ...]:
@@ -47,7 +51,7 @@ def open_positions(records: DeskRecords) -> list[OpenPosition]:
     for trade in (t for t in trade_positions(records.account.fills()).values() if t.is_open):
         events, fills = records.event_rows(trade.trade_id), records.fill_rows(trade.trade_id)
         ordered = [e["reason"] for e in events if e["outcome"] == OUTCOME_EXIT_ORDERED]
-        unverified = any(e["outcome"] == OUTCOME_PROTECTION_UNVERIFIED for e in events)
+        blocks = tuple(dict.fromkeys(e["outcome"] for e in events if e["outcome"] in BLOCKING_OUTCOMES))
         positions.append(
             OpenPosition(
                 trade.trade_id,
@@ -57,12 +61,12 @@ def open_positions(records: DeskRecords) -> list[OpenPosition]:
                 max(f.filled_at for f in trade.fills),
                 fills[0]["snapshot_id"],
                 ordered[0] if ordered else "",
-                unverified,
+                blocks,
             )  # fmt: skip
         )
     return positions
 
 
-def unverified_trades(records: DeskRecords) -> list[str]:
-    """Open trades of the book whose protection is unverified: while any is open, the book opens no new risk."""
-    return [p.trade_id for p in open_positions(records) if p.protection_unverified]
+def blocking_trades(records: DeskRecords) -> list[str]:
+    """Open trades that block the book's new risk, each with why: while any is open, the book opens nothing new."""
+    return [f"{p.trade_id} ({', '.join(p.blocks)})" for p in open_positions(records) if p.blocks]
