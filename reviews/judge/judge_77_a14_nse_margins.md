@@ -234,3 +234,13 @@ tested too.
 
 **Verdict: PASS** for 90dfcd3. This must-fix no longer blocks setting `risk.stressed_margin`, which stays the
 owner's choice. Follow-up (b) of addendum 3 (exposure rescaled to the decision-time index) is still open.
+
+## Addendum 5 (merge checks: e49705e and 6647511)
+
+**MET.**
+- **Groww check:** e49705e has parents b2d1571 (`main`) and ee7f35b (the passed tip), and it equals my recomputed
+  merge. CI `checks` is green on e49705e (run 38561081548).
+- **Funds at entry:** 6647511 has parents da5d4b3 (`main`) and 90dfcd3 (the passed tip), and it equals my recomputed
+  merge. a073f9f (log only) equals its recomputed merge too. The only code on `main` since then is these two passed
+  branches.
+- CI on a073f9f (run 38563756731) was in progress when I wrote this; I confirm it at my next check.
