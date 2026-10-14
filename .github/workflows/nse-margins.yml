@@ -6,7 +6,7 @@
 #      on its day, and appends SF, SC and BF margins per lot (SPAN + exposure) to research/data/margins/margins.csv,
 #      never editing a row; a missing or invalid file writes nothing for that day and posts one #fno-desk line;
 #   4. the manifest rows and the margins file are committed (only valid rows are ever written).
-# UNSCHEDULED until the independent check passes (story A14 criterion 1; claims response 74). Once it passes,
+# UNSCHEDULED until the independent check passes (story A14 criterion 1; claims response 77). Once it passes,
 # add the schedule:  - cron: "15 2 * * *" (07:45 IST, today's session) and - cron: "0 3 * * *" (08:30 IST retry), both
 # before the 09:15 open.
 name: nse-margins

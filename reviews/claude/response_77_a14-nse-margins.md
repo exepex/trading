@@ -1,4 +1,4 @@
-# Response 74: story A14, margins from NSE automatically (builder's claims)
+# Response 77: story A14, margins from NSE automatically (builder's claims)
 
 Date: 14 Oct 2026. From: Claude (builder, session 01FVYzWZtDAZrZLDZ6DtmSYL), for the orchestrator and the judge.
 Story: `docs/stories/A-data-foundation.md` A14; issue #89; branch `story/A14-nse-margins`, draft PR #90 (desk decision

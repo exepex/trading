@@ -674,7 +674,7 @@ check (issue #85) has fresh inputs every day without the owner typing them in.
 (#85) don't need you every week." C2 refuses every paper trade while `research/data/margins/margins.csv` has no row
 younger than 7 days (`risk.margins.max_age_days`) and while the stressed-margin factor is unset.
 
-Facts checked on 14 Oct 2026 (builder, response 74):
+Facts checked on 14 Oct 2026 (builder, response 77):
 - NSE Clearing publishes six SPAN risk-parameter files a session at
   `https://nsearchives.nseindia.com/archives/nsccl/span/nsccl.<YYYYMMDD>.<i1..i5|s>.zip` (XML, SPAN 4.00, about 9.5 MB
   zipped). The beginning-of-day file `i1` for day d is written the evening before d (its own `<created>` stamp and
