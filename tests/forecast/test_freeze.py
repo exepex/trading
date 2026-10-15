@@ -81,6 +81,7 @@ def test_no_freeze_file_means_not_frozen(tmp_path):
         require_frozen_before(tmp_path, head, Git(tmp_path))
 
 
+@pytest.mark.usefixtures("full_history")
 def test_the_repository_protocol_is_frozen_before_this_commit_and_unchanged():
     """Every later commit must keep this passing: a change to a frozen file needs a new protocol version."""
     head = Git(ROOT).head()
