@@ -729,7 +729,8 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
    `research/forecasts/v4_audits/open_audits.csv` (header `day,forecaster,question`; one row per AI forecast whose
    audit is open; the row enters in the same commit as the book's collected submission (its sealed commitment and
    reveal), so an open audit is never missing from the file, and leaves when the audit settles, in the same commit as
-   its v4 record row). The look's
+   its v4 record row). From the books' first live day the file always exists, header-only when no audit is open,
+   so a deleted file is never read as "nothing open". The look's
    refusal is built by the A16/G8 builder in `fno/forecast_scoring/v4/` before the freeze (their register row and a
    freeze-checklist line; built on `story/g8-look-audits` at 4b8912fc, constant `wiring.py` `OPEN_AUDITS_FILE`): a look on date L refuses while any row has `day <= L`, naming the count and the earliest
    open day; a missing file means no open audit; a bad header or date stops the look. G8 reads the file, never G11's
