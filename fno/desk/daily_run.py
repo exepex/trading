@@ -44,6 +44,10 @@ PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
 DOWNLOAD = "the download of the private paper records"
 PACK_RETRY = timedelta(seconds=30)
+NO_LOG = "the run of {day} stopped before any step"
+BEFORE_EXITS = "the run of {day} stopped before its exits"
+NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
+HELD_UP = "due exits held up: {exits}"
 
 
 class RunStopped(Exception):
@@ -79,7 +83,7 @@ class DailyRun:
                     day,
                     log.result("snapshot")["valid"],
                     log.result(RUN_LOG_DECISIONS_STEP),
-                    self._stopped_before_exits(day),
+                    self._unreviewed(day),
                 ),
             ),  # fmt: skip
             ("exits", times.execution_snapshot, lambda: steps.review_exits(day)),
@@ -90,16 +94,26 @@ class DailyRun:
                 self._step(log, name, action)
         return log
 
-    def _stopped_before_exits(self, day: date) -> date | None:
-        """The last session, when its run stopped before its exits (review 105 point 3): today opens nothing new. The
-        routine starts in a fresh container, so the committed run log is the only place the stop can be seen. A stop
-        before any step (the recovery or the download, judge 159) leaves no log: a missing log blocks too, once the
-        desk has run before (an earlier log exists)."""
+    def _unreviewed(self, day: date) -> dict[str, str]:
+        """Each book whose exits the last session did not review, with why (review 105 point 3, judge 159, review
+        115): today it opens nothing new. The routine starts in a fresh container, so the committed run log is the only
+        place this can be seen.
+        - No log while an earlier one exists: a stop before any step (the recovery or the download). Every book.
+        - A log without its exits step: a stop before the exits. Every book.
+        - An exits step where a book's review failed (`error`) or exits were due but held up (`waiting`): that book.
+          A day without a snapshot and nothing due leaves no exit unreviewed, so it blocks nothing."""
         last = self.calendar.previous_session(day)
-        steps = RunLog.open(self.steps.root, last).steps
-        if not steps:
-            return last if any(d < last for d in RunLog.days(self.steps.root)) else None
-        return last if "exits" not in steps and SKIPPED not in steps else None
+        log = RunLog.open(self.steps.root, last)
+        if not log.steps:
+            stopped = any(d < last for d in RunLog.days(self.steps.root))
+            return dict.fromkeys(self.steps.books, NO_LOG.format(day=last)) if stopped else {}
+        if SKIPPED in log.steps:
+            return {}
+        if "exits" not in log.steps:
+            return dict.fromkeys(self.steps.books, BEFORE_EXITS.format(day=last))
+        unreviewed = {book: r.get("error") or HELD_UP.format(exits="; ".join(r["waiting"]))
+                      for book, r in log.result("exits").items() if r.get("error") or r.get("waiting")}  # fmt: skip
+        return {book: NOT_REVIEWED.format(day=last, why=why) for book, why in unreviewed.items()}
 
     def _pack(self, day: date) -> StepOutcome:
         """Retries while the canonical snapshot is not committed yet, until the recorder's window ends."""

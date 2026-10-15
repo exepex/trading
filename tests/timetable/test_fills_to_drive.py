@@ -9,12 +9,15 @@ from datetime import date
 import pytest
 
 from fno.books.account import EQUITY_HISTORY_FILE, POSITIONS_FILE, PaperAccount
+from fno.books.daily_totals import daily_totals
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, CASH_LEDGER_FILE, OUTCOME_CLOSED, OUTCOME_OPENED
+from fno.desk.daily_ports import CommitFailed
 from fno.desk.daily_run import RunStopped
 from fno.desk.exit_rules import TimeExit
 from fno.desk.records import EVENTS_FILE, FILLS_FILE, DeskRecords
 from fno.desk.run_log import RunLog
 from fno.desk.status import open_positions
+from fno.quotes.recorder import RecordResult
 from fno.storage.index_store import LocalIndexStore
 from tests.desk.builders import FLY_QUOTES, at
 
@@ -22,7 +25,8 @@ from .drive_day import drive_run, fresh_container
 from .fakes import C4, Decisions, Rules
 from .test_daily_run import BOOKS, NORMAL, decided, run_day
 
-CLOSE_DAY = date(2026, 10, 16)  # t1's time exit is due from 16 Oct (27 Oct expiry)
+CLOSE_DAY = date(2026, 10, 16)
+MONDAY = date(2026, 10, 19)  # the session after 16 Oct  # t1's time exit is due from 16 Oct (27 Oct expiry)
 NUMBER = re.compile(r"(?<![\w.])-?\d+\.\d+(?![\w.])")  # decimals only: counts, strikes and times are integers
 
 
@@ -144,7 +148,9 @@ def test_a_stop_at_the_download_blocks_the_next_session_s_entries(root, tmp_path
     store.failing = False
     alerts.sent.clear()
     log = run_day(run, clock, NORMAL)
-    assert "blocked" in log.result("fills") and "2026-10-13" in log.result("fills")["blocked"]
+    for book, trade in ((BOOK1_RULES, "t1"), (BOOK2_HYBRID, "b1")):
+        assert "the run of 2026-10-13 stopped before any step" in log.result("fills")[book]["reason"]
+        assert trade not in log.result("fills")
     assert len(alerts.sent) == 1 and list(log.steps)[-1] == "exits"
 
 
@@ -163,11 +169,83 @@ def test_a_last_session_stopped_before_its_exits_blocks_today_s_entries_only(roo
     log = run_day(run, clock, NORMAL)
     assert list(log.steps)[-1] == "exits" and BOOK1_RULES in log.result("exits")
     if stopped:
-        assert log.result("fills") == {"blocked": f"no new entry: the run of {previous} stopped before its exits "
-                                                  "(they run today; the next session opens as usual)"}  # fmt: skip
+        reason = f"no new entry: the run of {previous} stopped before its exits (today's exits run; the next session "
+        assert log.result("fills") == {book: {"outcome": "not filled", "reason": reason + "opens as usual)"}
+                                       for book in BOOKS}  # fmt: skip
         assert len(alerts.sent) == 1 and str(previous) in alerts.sent[0]
     else:
         assert log.result("fills")["t1"]["outcome"] == OUTCOME_OPENED and alerts.sent == []
+
+
+def test_one_book_s_failed_exit_review_blocks_that_book_only(root, tmp_path, alerts):
+    """Review 115: 13 Oct's exits step completes, but Book 1's review failed on a Drive 503 (`reviewed: False`, with an
+    error). On 14 Oct Book 1 opens nothing, Book 2 opens b1, one alert names Book 1, and the exits still run."""
+    store = FailingWrites(tmp_path / "drive")
+    run, clock, *_ = opening_week(root, tmp_path, alerts, store)
+    store.name = CASH_LEDGER_FILE
+    yesterday = run_day(run, clock, date(2026, 10, 13))
+    assert yesterday.result("exits")[BOOK1_RULES]["reviewed"] is False and "503" in alerts.sent[0]
+    alerts.sent.clear()
+    fresh_container(root)
+    log = run_day(run, clock, NORMAL)
+    assert (
+        "the exits of 2026-10-13 were not reviewed (PrivateFilesUnavailable"
+        in log.result("fills")[BOOK1_RULES]["reason"]
+    )
+    assert "t1" not in log.result("fills") and log.result("fills")["b1"]["outcome"] == OUTCOME_OPENED
+    assert len(alerts.sent) == 1 and BOOK1_RULES in alerts.sent[0] and BOOK2_HYBRID not in alerts.sent[0]
+    assert list(log.steps)[-1] == "exits" and log.result("exits")[BOOK1_RULES]["reviewed"] is True
+
+
+def test_no_snapshot_blocks_only_a_book_whose_due_exits_were_held_up(root, tmp_path, alerts):
+    """Review 115, the orchestrator's refinement: 16 Oct has no valid snapshot. Book 1's t1 is due (time exit) and held
+    up, so on 19 Oct Book 1 opens nothing; Book 2, with nothing due (`waiting` empty), opens as usual."""
+    run, clock, *_ = opening_week(root, tmp_path, alerts)
+    run_day(run, clock, NORMAL)
+    run.steps.decisions.add(*decided(BOOK1_RULES, "t5", MONDAY), MONDAY)
+    run.steps.decisions.add(*decided(BOOK2_HYBRID, "b5", MONDAY), MONDAY)
+    take = run.steps.capture.take
+    run.steps.capture.take = lambda: RecordResult("stopped, nothing recorded", "", False, 0)  # no snapshot at all
+    held = run_day(run, clock, CLOSE_DAY).result("exits")
+    run.steps.capture.take = take
+    assert held[BOOK1_RULES]["waiting"] and held[BOOK2_HYBRID]["waiting"] == []
+    alerts.sent.clear()
+    log = run_day(run, clock, MONDAY)
+    assert "due exits held up: t1" in log.result("fills")[BOOK1_RULES]["reason"] and "t5" not in log.result("fills")
+    assert BOOK2_HYBRID not in log.result("fills") and log.result("fills")["b5"]["outcome"] == OUTCOME_OPENED
+
+
+def test_drive_written_but_the_totals_push_rejected_reconciles_on_a_fresh_container_rerun(root, tmp_path, alerts):
+    """Review 115's non-blocking item: Book 1's fill reached Drive, then the commit of its daily totals was rejected.
+    The new container has neither the unpushed totals nor the pending marker; the rerun fills nothing twice and commits
+    totals that match the Drive account."""
+    run, clock, _, commits, files = opening_week(root, tmp_path, alerts)
+    commit = commits.commit
+
+    def rejected(paths, message, own_unpushed=None):
+        if message == f"desk fills {BOOK1_RULES} t1":
+            raise CommitFailed(f"push of '{message}' rejected 3 times")
+        return commit(paths, message, own_unpushed)
+
+    commits.commit = rejected
+    with pytest.raises(RunStopped):
+        run_day(run, clock, NORMAL)
+    commits.commit = commit
+    fresh_container(root)
+    for unpushed in (root / "journal" / BOOK1_RULES / "daily_totals.csv", root / "journal/runs/.pending_commit.json"):
+        unpushed.unlink()
+    run.run(NORMAL)  # later the same day
+    files.download()
+    assert len(PaperAccount(root, BOOK1_RULES).fills()) == 4
+    assert public_totals(root, BOOK1_RULES) == daily_totals(PaperAccount(root, BOOK1_RULES))
+    assert f"desk fills {BOOK1_RULES} t1" in [m for _, m in commits.made]  # the totals are committed this time
+    assert public_totals(root, BOOK1_RULES)[-1] == {
+        "date": "2026-10-14",
+        "closed_equity_rs": "2000000.00",
+        "open_trades": "1",
+        "closed_trades": "0",
+        "fills": "4",
+    }
 
 
 def _numbers(text: str) -> set[float]:

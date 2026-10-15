@@ -125,3 +125,49 @@ Built from the PASSed text (c62ef47, judge 148 add. 1), rebased onto current `ma
 | Note 3: `market publish --local` needs Drive | accepted | Added to Known limits |
 | Deviation 1: the Drive path | accepted by the judge | The Scope line now says `paper/journal/<book>/account/` |
 | Merge-step additions (a) nine lines, (b) nothing else tracked | noted | For the orchestrator at merge |
+
+## ChatGPT review 115 (PARTIAL, one required fix; the orchestrator's brief)
+
+**Checked in the code first (strong evidence):** `daily_steps.review_exits` catches one book's failure, including a
+Drive 503 (`PrivateFilesUnavailable`), logs `{reviewed: False, error}` and still completes the step. The old guard only
+checked that `exits` was in the log. The finding is real.
+
+**What changed:**
+- `DailyRun._unreviewed(day)` returns each book whose exits the last session did not review, with why:
+  - no log while an earlier one exists: every book;
+  - a log without `exits`: every book;
+  - an `exits` step: each book with an `error` or a non-empty `waiting`.
+- `DeskSteps.fill` takes that map. A blocked book records "not filled" with the reason, one alert names every
+  blocked book, and the other books fill.
+
+**Per book, not the whole desk:** the run log keeps each book's exit result, and the fill step already works book by
+book. Books never share money or positions (E1 firewall), so one book's unreviewed exits say nothing about another
+book's risk. A stop before the exits step, or before any step, still blocks every book, because then no book's
+exits were reviewed.
+
+**The orchestrator's refinement (`waiting == []` blocks nothing):** I checked it against `ExitDesk.due_exits` and
+`_review_book` and agree with it. The doubt I found, reasoning only: with no snapshot, an open trade's price-based
+exits (stop, profit) are not checked that day, and `waiting` lists only exits due without prices (time rules or
+ordered exits). I still keep the rule:
+- the next session's fills need a valid snapshot (`NO_SNAPSHOT`), and its exits review that same snapshot in the same
+  run;
+- blocking on every no-snapshot day with any open trade would stop entries on every data gap, a cost with no
+  matching risk once the next snapshot is valid.
+
+If the owner wants price exits re-checked before any new entry, that is an order change in E3 (exits before fills),
+a design decision and not part of this fix.
+
+**Tests** (`tests/timetable/test_fills_to_drive.py`):
+- Book 1's exit review fails on a Drive 503 on 13 Oct. On 14 Oct Book 1 opens nothing and Book 2 opens b1. One
+  alert names Book 1 only. The exits run, and Book 1 is reviewed again.
+- 16 Oct has no snapshot. Book 1's t1 time exit is due and held up, so on 19 Oct Book 1 opens nothing (t5 not filled)
+  while Book 2 (`waiting == []`) opens b5.
+- Review 115's non-blocking item, added because it is small: Book 1's fill reaches Drive and the commit of its
+  totals is rejected. A fresh container (no unpushed totals, no marker) reruns, fills nothing twice, commits the
+  totals, and they equal `daily_totals` of the Drive account.
+- Plants:
+  - an error ignored (1 test fails);
+  - a held-up exit ignored (1 fails);
+  - any `reviewed: False` blocking (1 fails: the no-snapshot day with nothing due);
+  - a whole-desk block (2 fail).
+- Kept: the first-session exception. No distributed lock: a single routine is a known limit.
