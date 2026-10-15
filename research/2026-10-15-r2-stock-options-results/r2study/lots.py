@@ -1,4 +1,6 @@
-"""Lot sizes (PROTOCOL.md section 3): the current format's column, or the legacy derivation with its validation."""
+"""Lot sizes (PROTOCOL.md section 3; amendment 1 D4, revision 1): the lot of the contract traded. Current format: the
+chosen expiry's own option rows. Legacy format: the derivation on the stock future of the same expiry, used only if it
+matched the current format's column on the overlap."""
 
 from __future__ import annotations
 
@@ -6,22 +8,17 @@ from collections import Counter
 from collections.abc import Callable
 from datetime import date
 
-from .bhav import DaySummary
+from .bhav import Chain, DaySummary
 from .rules import LOT_AGREEING_SESSIONS, LOT_VALIDATION_MIN_SHARE, LOT_WINDOW_SESSIONS
 from .sessions import Sessions
 
 
-def derived_lot(summary: DaySummary, symbol: str) -> int | None:
-    """round(turnover / (contracts x settlement price)) of the near-month future; None without trades."""
-    future = summary.near_future(symbol)
+def derived_lot(summary: DaySummary, symbol: str, expiry: date) -> int | None:
+    """round(turnover / (contracts x settlement price)) of the same-expiry future; None without trades."""
+    future = summary.future(symbol, expiry)
     if future is None or future.contracts <= 0 or future.settle <= 0:
         return None
     return round(future.turnover / (future.contracts * future.settle))
-
-
-def column_lot(summary: DaySummary, symbol: str) -> int | None:
-    future = summary.near_future(symbol)
-    return future.lot if future is not None else None
 
 
 def agreed_lot(values: list[int | None]) -> int | None:
@@ -33,30 +30,25 @@ def agreed_lot(values: list[int | None]) -> int | None:
     return value if seen >= LOT_AGREEING_SESSIONS else None
 
 
-class LotSizes:
-    """Lot size of a stock on a session. `current(day)` and `legacy(day)` give that session's summary in each format
-    (None where the format has no file)."""
+def chain_lot(chain: Chain, k0: float) -> int | None:
+    """The lot column of the expiry's K0 call, else its K0 put (current format only)."""
+    for kind in ("CE", "PE"):
+        leg = chain.get((k0, kind))
+        if leg is not None and leg.lot:
+            return leg.lot
+    return None
 
-    def __init__(
-        self,
-        sessions: Sessions,
-        current: Callable[[date], DaySummary | None],
-        legacy: Callable[[date], DaySummary | None],
-        legacy_valid: bool,
-    ):
-        self.sessions, self.current, self.legacy, self.legacy_valid = sessions, current, legacy, legacy_valid
 
-    def derived(self, symbol: str, day: date) -> int | None:
-        """The legacy rule: the agreed derived value over the LOT_WINDOW_SESSIONS sessions ending at `day`."""
+class LegacyLots:
+    """The protocol's legacy rule on the same-expiry future: the agreed derived value over the LOT_WINDOW_SESSIONS
+    sessions ending at a session. `legacy(day)` is that session's legacy-format summary (None if none)."""
+
+    def __init__(self, sessions: Sessions, legacy: Callable[[date], DaySummary | None]):
+        self.sessions, self.legacy = sessions, legacy
+
+    def derived(self, symbol: str, day: date, expiry: date) -> int | None:
         window = self.sessions.window_ending(day, LOT_WINDOW_SESSIONS)
-        return agreed_lot([derived_lot(s, symbol) if (s := self.legacy(d)) else None for d in window])
-
-    def lot(self, symbol: str, day: date) -> int | None:
-        """The current format's column where the session has that file; else the legacy rule if it validated."""
-        summary = self.current(day)
-        if summary is not None:
-            return column_lot(summary, symbol)
-        return self.derived(symbol, day) if self.legacy_valid else None
+        return agreed_lot([derived_lot(s, symbol, expiry) if (s := self.legacy(d)) else None for d in window])
 
 
 def validate_derivation(
@@ -65,19 +57,20 @@ def validate_derivation(
     current: Callable[[date], DaySummary | None],
     legacy: Callable[[date], DaySummary | None],
 ) -> dict:
-    """Share of stock-sessions on the overlap where the legacy rule gives exactly the current format's column."""
-    rule = LotSizes(sessions, current, legacy, legacy_valid=True)
+    """Share of stock-sessions on the overlap where the legacy rule, on the near-month future, gives exactly that
+    future's lot column in the current format."""
+    rule = LegacyLots(sessions, legacy)
     matches = total = 0
     for day in overlap:
         summary = current(day)
         if summary is None or legacy(day) is None:
             continue
         for symbol in summary.futures:
-            truth = column_lot(summary, symbol)
-            if truth is None or not summary.is_fo_stock(symbol):
+            future = summary.near_future(symbol)
+            if future is None or future.lot is None or not summary.is_fo_stock(symbol):
                 continue
             total += 1
-            matches += rule.derived(symbol, day) == truth
+            matches += rule.derived(symbol, day, future.expiry) == future.lot
     share = matches / total if total else 0.0
     return {
         "stock_sessions": total,

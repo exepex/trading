@@ -124,3 +124,8 @@ def test_condor_tail_term_is_two_percent_of_its_maximum_loss():
 def test_a_leg_in_an_untradable_bucket_is_not_liquid_at_stage_3():
     outcome = evaluate(BY_NAME["S1"], market(), NO_CHARGES, spread_model(two_sided=False))
     assert outcome.bucket_untradable and not outcome.stage3 and outcome.expected_net is None
+
+
+def test_condor_credit_at_or_above_the_wider_wing_is_untradable():
+    prices = {(1020.0, "CE"): 30.0, (1040.0, "CE"): 5.0, (980.0, "PE"): 0.5, (960.0, "PE"): 5.5}  # credit 20 = wing
+    assert price_structure(BY_NAME["S7"], chain_of(prices), STRIKES).untradable == st.DEBIT_AT_WIDTH

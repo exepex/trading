@@ -45,14 +45,16 @@ def _fmt(value, pattern: str = "{:,.0f}") -> str:
 def structure_rows(structures: list[dict]) -> list[str]:
     rows = [
         "| Structure | Events | Fit cap, no pads | Fit + liquid | Fit + liquid, pads | Median EN (Rs) | Mean EN (Rs) |"
-        " Median e* | Clusters/yr | Kish (passing) | First failed |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        " Median e* | Gross/cost | Clusters/yr | By 12-month part | Kish (passing) | First failed |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for s in structures:
         rows.append(
             f"| {s['name']} | {s['events']} | {s['stage1_share']:.1%} | {s['stage2_share']:.1%} | "
             f"{_fmt(s['stage3_share'], '{:.1%}')} | {_fmt(s['median_net'])} | {_fmt(s['mean_net'])} | "
-            f"{_fmt(s['median_break_even'], '{:.1%}')} | {_fmt(s['clusters_a_year'], '{:.1f}')} | "
+            f"{_fmt(s['median_break_even'], '{:.1%}')} | {_fmt(s['median_gross_to_cost'], '{:.2f}')}"
+            f"{' thin margin' if s['thin_margin'] else ''} | {_fmt(s['clusters_a_year'], '{:.1f}')} | "
+            f"{json.dumps(s['clusters_by_part']) if s['clusters_by_part'] else 'n/a'} | "
             f"{_fmt(s['kish_passing'], '{:.1f}')} | {s['first_failed'] or 'none'} |"
         )
     return rows
@@ -95,7 +97,8 @@ def results_markdown(out: dict) -> str:
         "",
         f"- {corr['events']} events in {corr['clusters']} clusters; ICC of m: {_fmt(corr['rho_move'], '{:.3f}')} "
         f"(90% {corr['rho_move_interval']}); ICC of |m|: {_fmt(corr['rho_abs'], '{:.3f}')} "
-        f"(90% {corr['rho_abs_interval']}); Kish effective count {corr['kish']:.1f}.",
+        f"(90% {corr['rho_abs_interval']}); Kish effective count {corr['kish']:.1f}. Left out: "
+        f"{json.dumps(out['correlation_left_out'])}.",
         f"- Decision-window events analysed: {json.dumps(out['decision_kish_all'])}",
         "",
         "## Descriptive",

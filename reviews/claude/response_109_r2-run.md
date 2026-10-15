@@ -6,21 +6,56 @@ Labels: **strong evidence**, **some evidence**, **reasoning only**.
 
 ## Order of commits (the freeze holds only if this order holds)
 
-1. `291760c` **Amendment 1** pushed alone, before any code and before any data: judge 97's follow-ups 1-3 and 5 and
-   the data details the protocol leaves open. Its hash is in `FREEZE.md`.
-2. **Script commit**: `study.py`, `snapshot.py`, `r2study/` (16 modules), amendment 2, tests, the script hashes in
-   `FREEZE.md`. Tested on synthetic data only. The judge checks it before the run.
-3. **Run commit** (after the judge's PASS): `results.json`, `results.md`, `inputs.csv`, `DATA_SPEND.md` rows, this
-   file's results section.
+1. `291760c` amendment 1, pushed alone before any code or data. **Judge 109: FAIL** (should-fix 1: the study must not
+   be its own NSE downloader; should-fix 2: the lot must be the traded contract's; two minors). All four accepted
+   after checking them (the owner's 13 Oct one-downloader rule is real; NSE revises lots by contract month).
+2. `9bfa0ad` work-in-progress script (pushed only because the session's stop hook requires pushed work; marked not
+   frozen, not for judging).
+3. `425b693` amendment 1 revision 1: D1 through A12's own day-list librarian (judge's option b), D3/D4 the chosen
+   expiry's own lot and adjustment test, legacy rows read no R price, D5 calendar sessions after the archive, D10
+   filed_at share; `DATA_SPEND.md` results-dates row names the real source.
+4. **Script commit** (this one): code, amendment 2, tests, script hashes in `FREEZE.md`. The judge checks it.
+5. After both pass: A12's board-meeting fill (archiving), the snapshot (14:00-15:00 IST), the one run.
 
 ## What was read before the run (said plainly)
 
-- Manifests and file lists (dates, URLs, hashes, row counts). Strong evidence that A12's board-meeting archive covers
-  only 2005-2007 (`board-meetings.csv`), so amendment 1 D1 reads NSE's list by month.
+- Manifests and file lists (dates, URLs, hashes, row counts).
 - The column names of one January 2025 board-meeting answer, and the last 300 characters of NSE's event-calendar answer
   (two November 2026 meetings) while testing that NSE answers from this container.
-- The raw F&O and index-close files were **copied** from Drive to a local cache (4,009 files) and each SHA-256 checked
-  against its manifest row; none was parsed. Some evidence (my statement; the commands are in this session).
+- The raw F&O and index-close files were **copied** from Drive to a local cache (4,009 files), each SHA-256 checked
+  against its manifest row; none parsed by the study.
+- `snapshot.py --ready` (a readiness check of the snapshot's own inputs) parsed the 14 Oct 2026 F&O file and NSE's
+  event calendar and printed one line: "72 F&O stocks with results in the next 10 sessions". No price, volume, lot,
+  spread or move was printed. The 14 Oct file is the snapshot's registered input (section 6.2: previous session's
+  contracts); it is also the decision window's last session. Some evidence (my statement; the command is in this
+  session).
+
+## Self-review (quality rule 3): two independent review agents, and what I did
+
+| Finding | Severity (theirs) | Done |
+|---|---|---|
+| Missing cached file silently becomes a wrong exclusion reason | blocking | `MissingFile` stops the run; `--run` refuses if any raw file is not cached |
+| Lot from the near-month future, not the chosen expiry (also judge 109) | should-fix | the chosen expiry's own lot; adjustment test on that contract |
+| Sessions after the archive's last file not counted for the expiry rule | should-fix | calendar sessions after the last file (amendment 1 D5); this also exposed a calendar-end crash in `snapshot.py` (120 days ahead passes 31 Dec 2026), fixed to 60 days capped at the calendar end |
+| 12-month part counts missing | should-fix | `clusters_by_part` per structure, in the report |
+| "Lot unknown on R" counted as corporate action | should-fix | its own reason |
+| Missing previous-session rows silently 0 | should-fix | counted (history: a note; snapshot: >20% stops the capture's use) |
+| Snapshot stocks and error legs vanish; one Groww error loses the capture | should-fix | per-stock and per-leg errors counted, never one-sided; capture continues |
+| NSE answers checked only for JSON | should-fix | board meetings via A12's `check_day_list`; event calendar must be rows with symbol and date; no candidates exits 1 |
+| Missing Drive copy does not stop the run | should-fix | snapshot refuses without the owner's Drive; meetings only from A12's archive |
+| Run commit can hide uncommitted code | should-fix | `--run` refuses unless every script hash is in `FREEZE.md` and the folder is clean |
+| Correlation drops uncounted | should-fix | counted by reason, reported |
+| Filing of an older quarter can set `filed_at` | nit | period end at most 120 days before D (amendment 2 item 4a) |
+| Lot "0" crashes; crossed quotes give negative spreads; quote answered after 15:00 kept; `results.md` unprotected; condor credit at the wing; thin margin not printed; stage-0 reasons; unknown sector over all years; reschedule chaining | nits | all fixed (chaining stated in amendment 1 D1) |
+| Legacy lot on R reads R prices | nit (also judge 109 minor 1) | legacy rows use the K0 test and the corporate-actions file only |
+
+## Broken-code proof (quality rule 4)
+
+57 planted bugs, one per criterion's code line, each run against its named test: **57 of 57 caught**. The first
+mutation run showed 7 misses: a stale-bytecode flaw in my mutation script (fixed: no bytecode, only exit code 1
+counts), and real gaps fixed since (a middle-tercile merge test; a quote answered at 15:00; the period filter; the
+calendar sessions; a stronger lot-formula mutation) plus **one code bug the mutation exposed**: the 20% one-sided
+boundary computed as `1 - 8/10` = 0.1999..., so exactly 20% could never be tested; now computed as a count ratio.
 
 ## Gap list (REPLAN item 5, the protocol, judge 97's follow-ups)
 

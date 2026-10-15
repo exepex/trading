@@ -10,7 +10,7 @@ from r2study.bhav import DaySummary, Future
 from r2study.inputs import DatasetFiles, HashMismatch, InputCache
 from r2study.sessions import Sessions
 from r2study.snapshot_capture import Candidate, OutsideWindow, candidates, capture, check_window, snapshot_strikes
-from r2study.sources import CorporateActions, SymbolNames, months, read_filing_times, read_meetings
+from r2study.sources import CorporateActions, SymbolNames, read_filing_times, read_meetings
 
 from fno.market_read_models.corporate_actions import CorporateAction
 from fno.market_read_models.symbol_changes import SymbolChange
@@ -20,7 +20,8 @@ TODAY = date(2026, 10, 15)
 PREVIOUS = DaySummary(
     date(2026, 10, 14),
     {
-        "ABC": [Future(date(2026, 10, 27), 1000.0, 1000.0, 10, 1, 1, 100)],
+        "ABC": [Future(date(2026, 10, 27), 1000.0, 1000.0, 10, 1, 1, 100),
+                Future(date(2026, 11, 24), 1000.0, 1000.0, 10, 1, 1, 125)],
         "FUT": [Future(date(2026, 10, 27), 1, 1, 1, 1, 1, 5)],
     },
     frozenset({"ABC"}),
@@ -78,9 +79,32 @@ def test_capture_quotes_14_legs_on_the_rule_expiry_and_stops_at_15_00():
     raw, legs = capture(source, found, SESSIONS, PREVIOUS, {}, clock_from(datetime(2026, 10, 15, 14, 0), 1))
     stock = raw["stocks"][0]
     assert stock["expiry"] == "2026-11-24" and stock["pushed"] is True
-    assert len(legs) == 14 and raw["not_quoted"] == 0 and legs[0].lot == 100
+    assert len(legs) == 14 and legs[0].lot == 125  # the chosen (November) expiry's own lot, not October's 100
+    assert (raw["after_window"], raw["errors"], raw["stocks_skipped"], raw["no_previous_row"]) == (0, 0, 0, 14)
     late = capture(FakeGroww(), found, SESSIONS, PREVIOUS, {}, clock_from(datetime(2026, 10, 15, 14, 59, 50), 1))
-    assert late[0]["not_quoted"] > 0 and len(late[1]) + late[0]["not_quoted"] == 14
+    assert late[0]["after_window"] > 0 and len(late[1]) + late[0]["after_window"] == 14
+
+
+def test_a_quote_that_comes_back_at_15_00_is_dropped_and_errors_are_counted_not_one_sided():
+    found = [Candidate("ABC", date(2026, 10, 20))]
+    source = FakeGroww()
+    raw, legs = capture(source, found, SESSIONS, PREVIOUS, {}, clock_from(datetime(2026, 10, 15, 14, 59, 58), 1))
+    assert legs == [] and raw["after_window"] == 14  # asked at 14:59:59, answered at 15:00:00: dropped
+    assert source.calls == 1  # nothing is asked once 15:00 has passed
+
+    class Failing(FakeGroww):
+        def quote(self, trading_symbol):
+            raise ConnectionError("down")
+
+    raw, legs = capture(Failing(), found, SESSIONS, PREVIOUS, {}, clock_from(datetime(2026, 10, 15, 14, 0), 1))
+    assert legs == [] and raw["errors"] == 14
+
+    class NoChain(FakeGroww):
+        def expiries(self, symbol):
+            raise RuntimeError("token refused")
+
+    raw, _ = capture(NoChain(), found, SESSIONS, PREVIOUS, {}, clock_from(datetime(2026, 10, 15, 14, 0), 1))
+    assert raw["stocks_skipped"] == 1 and raw["stocks"][0]["skipped"] == "error RuntimeError"
 
 
 def test_snapshot_window_is_14_to_15_ist_on_a_session():
@@ -90,21 +114,22 @@ def test_snapshot_window_is_14_to_15_ist_on_a_session():
             check_window(moment, SESSIONS)
 
 
-def test_board_meeting_list_months_and_rows():
-    assert months(date(2024, 11, 15), date(2025, 1, 10)) == [
-        (date(2024, 11, 1), date(2024, 11, 30)), (date(2024, 12, 1), date(2024, 12, 31)),
-        (date(2025, 1, 1), date(2025, 1, 10)),
-    ]  # fmt: skip
+def test_board_meeting_rows_and_skipped_rows_are_counted():
     data = json.dumps([{"bm_symbol": "ABC", "bm_date": "22-Oct-2024", "bm_purpose": "Financial Results"},
                        {"bm_symbol": "", "bm_date": "22-Oct-2024"}]).encode()  # fmt: skip
-    (meeting,) = read_meetings(data)
+    (meeting,), skipped = read_meetings(data)
+    assert skipped == 1 and read_meetings(b"[]") == ([], 0)
     assert (meeting.symbol, meeting.day) == ("ABC", date(2024, 10, 22)) and "Financial Results" in meeting.text
 
 
 def test_filing_times_are_ist_without_timezone(tmp_path):
     manifest = tmp_path / "results-xbrl.csv"
-    manifest.write_text("symbol,filed_at\nABC,2024-10-22T17:05:00+05:30\nABC,2024-10-22T11:35:00+00:00\nXYZ,\n")
-    assert read_filing_times(manifest) == {"ABC": [datetime(2024, 10, 22, 17, 5), datetime(2024, 10, 22, 17, 5)]}
+    manifest.write_text(
+        "symbol,period_end,filed_at\nABC,2024-09-30,2024-10-22T17:05:00+05:30\nABC,2024-09-30,2024-10-22T11:35:00+00:00\n"
+        "XYZ,2024-09-30,\n"
+    )
+    moment = datetime(2024, 10, 22, 17, 5)
+    assert read_filing_times(manifest) == {"ABC": [(moment, date(2024, 9, 30)), (moment, date(2024, 9, 30))]}
 
 
 def test_renamed_symbols_and_corporate_actions_join_on_the_latest_name():

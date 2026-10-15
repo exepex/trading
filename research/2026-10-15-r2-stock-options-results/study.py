@@ -2,6 +2,7 @@
 
     python study.py --check  [--cache DIR]                 file counts and schemas only (no stage numbers)
     python study.py --fetch  [--cache DIR]                 copy the raw files to the cache, hashes checked
+    python study.py --fill-results-dates                   A12's board-meeting day lists into Drive (A12's classes)
     python study.py --run    [--cache DIR] [--snapshot F]  the one run: writes results.json and results.md
 
 Research only: read-only on market data, no order code. Runs once (PROTOCOL.md section 11).
@@ -25,9 +26,13 @@ from r2study.wiring import (  # noqa: E402
     LEGACY,
     UDIFF,
     build_inputs,
+    check_frozen,
+    fill_results_dates,
     sessions_from_manifests,
     trials_total,
 )
+
+OUTPUTS = ("results.json", "results.md")
 
 DEFAULT_CACHE = HERE / ".cache"  # ignored by git: raw copies never enter the repository
 
@@ -60,7 +65,20 @@ def fetch(cache_folder: Path) -> None:
         cache.fetch(dataset)
 
 
+def uncached(cache_folder: Path) -> list[str]:
+    """Manifest days of the F&O and index-close datasets with no checked local copy."""
+    from r2study.inputs import InputCache, cached_file
+
+    cache = InputCache(cache_folder, lambda path: None)
+    return [f"{d.name} {day}" for d in (UDIFF, LEGACY, INDEX_CLOSE) for day in cache.days(d)
+            if not cached_file(cache_folder, d, day).exists()]  # fmt: skip
+
+
 def run_once(cache_folder: Path, snapshot: Path | None, workers: int) -> None:
+    check_frozen()
+    missing = uncached(cache_folder)
+    if missing:
+        raise RuntimeError(f"{len(missing)} raw files not cached (run --fetch first): {missing[:3]}")
     sessions = sessions_from_manifests()
     inputs = build_inputs(cache_folder, snapshot, workers, sessions.last)
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
@@ -75,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--check", action="store_true")
     mode.add_argument("--fetch", action="store_true")
+    mode.add_argument("--fill-results-dates", action="store_true")
     mode.add_argument("--run", action="store_true")
     parser.add_argument("--cache", type=Path, default=DEFAULT_CACHE)
     parser.add_argument("--snapshot", type=Path, help="the snapshot's derived legs file (snapshot.py)")
@@ -84,9 +103,11 @@ def main(argv: list[str] | None = None) -> int:
         check(args.cache)
     elif args.fetch:
         fetch(args.cache)
+    elif args.fill_results_dates:
+        return 0 if fill_results_dates(sessions_from_manifests().last).complete else 1
     else:
-        if (HERE / "results.json").exists():
-            print("results.json exists: the study runs once (PROTOCOL.md section 11)")
+        if any((HERE / name).exists() for name in OUTPUTS):
+            print("results exist: the study runs once (PROTOCOL.md section 11)")
             return 1
         run_once(args.cache, args.snapshot, args.workers)
     return 0

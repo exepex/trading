@@ -31,6 +31,7 @@ class Leg:
     close: float
     contracts: float
     open_interest: float  # shares
+    lot: int | None = None  # the current format's lot column of this contract; None in the legacy format
 
 
 @dataclass
@@ -44,6 +45,10 @@ class DaySummary:
         floor = on_or_after or self.day
         return next((f for f in self.futures.get(symbol, []) if f.expiry >= floor), None)
 
+    def future(self, symbol: str, expiry: date) -> Future | None:
+        """The stock future of one expiry."""
+        return next((f for f in self.futures.get(symbol, []) if f.expiry == expiry), None)
+
     def is_fo_stock(self, symbol: str) -> bool:
         """Point-in-time F&O eligibility: both stock futures and stock options listed on the session."""
         return symbol in self.futures and symbol in self.option_symbols
@@ -56,6 +61,12 @@ def number(text: str) -> float:
     return float(text) if text not in ("", "-") else 0.0
 
 
+def lot_column(text: str) -> int | None:
+    """A lot of 0 or an empty column is unknown, never a lot."""
+    value = int(float(text)) if text not in ("", "-") else 0
+    return value if value > 0 else None
+
+
 def summarise(day: date, filename: str, data: bytes, symbol_of=lambda s, d: s) -> DaySummary:
     """Every stock future and the stocks with options; `symbol_of(symbol, day)` maps a session's symbol to the
     study's one name for the company (symbol changes)."""
@@ -66,7 +77,6 @@ def summarise(day: date, filename: str, data: bytes, symbol_of=lambda s, d: s) -
         if kind == STOCK_OPTION:
             with_options.add(symbol_of(r["TckrSymb"], day))
         elif kind == STOCK_FUTURE:
-            lot = r["NewBrdLotQty"]
             futures[symbol_of(r["TckrSymb"], day)].append(
                 Future(
                     expiry=date.fromisoformat(r["XpryDt"]),
@@ -75,7 +85,7 @@ def summarise(day: date, filename: str, data: bytes, symbol_of=lambda s, d: s) -
                     contracts=number(r["TtlTradgVol"]),
                     turnover=number(r["TtlTrfVal"]),
                     open_interest=number(r["OpnIntrst"]),
-                    lot=int(float(lot)) if lot else None,
+                    lot=lot_column(r["NewBrdLotQty"]),
                 )
             )
     ordered = {s: sorted(fs, key=lambda f: f.expiry) for s, fs in futures.items()}
@@ -93,6 +103,6 @@ def option_legs(
         symbol = symbol_of(r["TckrSymb"], day)
         if symbol not in symbols:
             continue
-        leg = Leg(number(r["ClsPric"]), number(r["TtlTradgVol"]), number(r["OpnIntrst"]))
+        leg = Leg(number(r["ClsPric"]), number(r["TtlTradgVol"]), number(r["OpnIntrst"]), lot_column(r["NewBrdLotQty"]))
         out[symbol][date.fromisoformat(r["XpryDt"])][(float(r["StrkPric"]), r["OptnTp"])] = leg
     return {s: dict(chains) for s, chains in out.items()}

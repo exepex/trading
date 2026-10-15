@@ -11,11 +11,13 @@ OPEN, CLOSE = time(*MARKET_OPEN), time(*MARKET_CLOSE)
 
 
 class Sessions:
-    """The sorted list of NSE sessions (days with an F&O bhavcopy)."""
+    """The sorted list of NSE sessions with an F&O file (`days`); `later` adds the calendar's sessions after the last
+    file, used only to count sessions up to an expiry (amendment 1 D5)."""
 
-    def __init__(self, days):
+    def __init__(self, days, later=()):
         self.days = sorted(set(days))
         self._position = {day: i for i, day in enumerate(self.days)}
+        self._counted = sorted(set(self.days) | {d for d in later if not self.days or d > self.days[-1]})
 
     def __contains__(self, day: date) -> bool:
         return day in self._position
@@ -45,7 +47,7 @@ class Sessions:
 
     def between(self, start: date, end: date) -> int:
         """Sessions strictly after `start` up to and including `end`."""
-        return bisect_right(self.days, end) - bisect_right(self.days, start)
+        return bisect_right(self._counted, end) - bisect_right(self._counted, start)
 
     def ahead(self, day: date, count: int) -> list[date]:
         """The next `count` sessions strictly after a day."""

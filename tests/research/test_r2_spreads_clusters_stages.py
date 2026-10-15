@@ -18,6 +18,7 @@ def test_thin_terciles_merge_toward_the_more_liquid_neighbour():
     assert merged_groups([10, 10, 10]) == [(0, 1, 2)]
     assert merged_groups([30, 30, 30]) == [(0,), (1,), (2,)]  # at 30: no merge
     assert merged_groups([29, 30, 30]) == [(0, 1), (2,)]  # just under: merged
+    assert merged_groups([40, 10, 40]) == [(0,), (1, 2)]  # a thin middle merges up, toward more liquidity
     assert merged_groups([0, 0, 0]) == [(0, 1, 2)]
 
 
@@ -119,3 +120,21 @@ def test_yes_below_the_80_percent_power_need_is_labelled_and_first_failures_are_
     structures = [result("A", s1=0.1), result("B", med=-1.0)]
     decide(structures, True)
     assert [s.first_failed for s in structures] == ["cap", "cost wall"]
+
+
+def test_a_crossed_quote_counts_as_one_sided():
+    crossed = quoted(0, 10)
+    crossed = type(crossed)(**{**crossed.__dict__, "bid": 10.5, "ask": 10.0})
+    bucket = make_bucket("K0", (0,), [quoted(0, 10)] * 3 + [crossed])
+    assert bucket.two_sided == 3 and bucket.untradable  # 25% one-sided
+
+
+def test_passing_clusters_are_split_into_october_to_september_parts():
+    from r2study.evaluate import Outcome
+    from r2study.stages import Scored, clusters_by_part, part_of
+
+    assert part_of(date(2025, 9, 30)) == "Oct 2024 - Sep 2025" and part_of(date(2025, 10, 1)) == "Oct 2025 - Sep 2026"
+    passing = Outcome("S1", fits_without_pads=True, liquid=True, fits_with_pads=True, expected_net=1.0)
+    rows = [Scored(passing, date(2024, 10, 16), "IT"), Scored(passing, date(2024, 10, 17), "IT"),
+            Scored(passing, date(2025, 10, 16), "IT")]  # fmt: skip
+    assert clusters_by_part(rows) == {"Oct 2024 - Sep 2025": 1, "Oct 2025 - Sep 2026": 1}

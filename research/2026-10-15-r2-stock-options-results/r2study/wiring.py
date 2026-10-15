@@ -1,7 +1,7 @@
-"""Composition root of the study: Drive, NSE, the cache and the repository's files become `analysis.Inputs`.
+"""Composition root of the study: Drive, A12's archive, the cache and the repository's files become `analysis.Inputs`.
 
-Read-only everywhere except two writes: NSE's board-meeting lists (raw, to Drive's `raw` area and the local cache)
-and the study's own outputs. No order code, no Groww call (the snapshot is `snapshot.py`).
+Reads only Drive and the repository (the owner's one-downloader rule). Its only writes are A12's own board-meeting
+fill (`fill_results_dates`, through A12's librarian) and the study's outputs. No order code, no Groww call.
 """
 
 from __future__ import annotations
@@ -9,30 +9,24 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
-from datetime import date
+import subprocess
+from datetime import date, timedelta
 from pathlib import Path
 
-import requests
-
 from fno.config import load_config
-from fno.constants import RESEARCH_USER_AGENT
+from fno.constants import FILING_BOARD_MEETINGS
+from fno.filings.sources import NseBoardMeetingsSource
+from fno.filings.wiring import build_day_list_librarian
 from fno.fo_bhavcopy import read_index_closes
+from fno.storage.librarian import FillReport, fill_report_lines
 from fno.storage.raw_source import NseDailyFoSource, NseIndexCloseSource, NseLegacyFoSource
-from fno.storage.raw_store import AreaStore
-from fno.storage.wiring import RAW_AREA, build_drive_reader, build_owner_drive, build_session_calendar
+from fno.storage.wiring import build_drive_reader, build_session_calendar
 
 from .analysis import Inputs
+from .events import Meeting
 from .inputs import REPOSITORY, DatasetFiles, InputCache, checked, manifest_rows
 from .sessions import Sessions
-from .sources import (
-    BOARD_MEETINGS_API,
-    corporate_actions,
-    months,
-    read_filing_times,
-    read_meetings,
-    read_sectors,
-    symbol_names,
-)
+from .sources import corporate_actions, read_filing_times, read_meetings, read_sectors, symbol_names
 from .spreads import QuotedLeg
 
 FOLDER = Path(__file__).resolve().parents[1]
@@ -53,11 +47,15 @@ SNAPSHOTS = {  # Drive raw path, manifest name, day
         date(2026, 10, 13),
     ),
 }
-MEETINGS_DATASET = "nse/equities/filings/board-meetings-by-month"
+MEETINGS = DatasetFiles(
+    FILING_BOARD_MEETINGS, NseBoardMeetingsSource.path_for, NseBoardMeetingsSource.filename_for, date(2018, 12, 1)
+)
 MEETINGS_FIRST = date(2018, 12, 1)  # the entry session of a 2 Jan 2019 reaction is in late December 2018
-INPUTS_FILE = FOLDER / "inputs.csv"
 FILINGS_MANIFEST = REPOSITORY / "research" / "data" / "manifests" / "filings" / "results-xbrl.csv"
 LEDGER = REPOSITORY / "research" / "ledger.csv"
+LATER_DAYS = 60  # calendar sessions after the last F&O file, to count sessions up to an expiry (amendment 1 D5)
+CALENDAR_END = date(2026, 12, 31)  # research/data/calendar/nse_sessions.csv covers NSE's circulars up to here
+FROZEN = ("study.py", "snapshot.py", "AMENDMENT_2.md")  # with every r2study/*.py: hashed in FREEZE.md
 
 
 def sessions_from_manifests(log=print) -> Sessions:
@@ -67,7 +65,9 @@ def sessions_from_manifests(log=print) -> Sessions:
     calendar = build_session_calendar()
     stray = sorted(d for d in days if not calendar.is_session(d))
     log(f"sessions: {len(days)} days with an F&O file; {len(stray)} not regular sessions in the calendar: {stray}")
-    return Sessions(days)
+    last = max(days)
+    later = calendar.sessions(last + timedelta(days=1), min(last + timedelta(days=LATER_DAYS), CALENDAR_END))
+    return Sessions(days, later)
 
 
 def snapshot_bytes(drive, name: str) -> bytes:
@@ -75,41 +75,35 @@ def snapshot_bytes(drive, name: str) -> bytes:
     return checked(drive.get(path), manifest_rows(manifest)[day], path)
 
 
-def meetings_path(start: date, end: date) -> str:
-    return f"{MEETINGS_DATASET}/{start:%Y/%m}/board-meetings_{start:%Y%m%d}_{end:%Y%m%d}.json"
+def fill_results_dates(last: date, log=print) -> FillReport:
+    """A12's board-meeting day lists from 1 Dec 2018 to `last`, through A12's own librarian (one day per request, its
+    names, layout, content check and manifest rows; amendment 1 D1). Archiving only: nothing is parsed here."""
+    report = build_day_list_librarian(FILING_BOARD_MEETINGS, log=log).fill(MEETINGS_FIRST, last)
+    for line in fill_report_lines(report):
+        log(line)
+    return report
 
 
-def fetch_meetings(cache: Path, last: date, log=print) -> list[tuple[str, bytes]]:
-    """NSE's board-meeting list, one request per calendar month; kept in the cache and, once, in Drive's raw area."""
-    session = requests.Session()
-    session.headers.update({"User-Agent": RESEARCH_USER_AGENT, "Referer": "https://www.nseindia.com/"})
-    owner = build_owner_drive()
-    store = AreaStore(owner, RAW_AREA) if owner is not None else None
-    out = []
-    for start, end in months(MEETINGS_FIRST, last):
-        path = meetings_path(start, end)
-        local = cache / path
-        if not local.exists():
-            response = session.get(BOARD_MEETINGS_API.format(start=start, end=end), timeout=60)
-            response.raise_for_status()
-            if not isinstance(json.loads(response.content), list):
-                raise ValueError(f"{path}: NSE did not answer with a list of meetings")
-            local.parent.mkdir(parents=True, exist_ok=True)
-            local.write_bytes(response.content)
-            if store is not None:
-                store.put(path, response.content)
-        out.append((path, local.read_bytes()))
-    kept = "Drive copy kept" if store else "NOT kept in Drive: no owner sign-in"
-    log(f"board meetings: {len(out)} monthly lists ({kept})")
-    return out
+class MissingResultsDates(RuntimeError):
+    """A calendar day of the study's range has no archived board-meeting list: the run cannot answer (stage 0)."""
 
 
-def write_inputs_record(files: list[tuple[str, bytes]]) -> None:
-    with INPUTS_FILE.open("w", newline="") as handle:
-        writer = csv.writer(handle, lineterminator="\n")
-        writer.writerow(["path", "sha256", "size_bytes"])
-        for path, data in files:
-            writer.writerow([path, hashlib.sha256(data).hexdigest(), len(data)])
+def meetings_from_archive(cache: InputCache, last: date, log=print) -> list[Meeting]:
+    """Every results-date row from A12's archived day lists, each file checked against its manifest row; refuses to
+    go on if any calendar day of the range is missing (amendment 1 D1's completeness proof)."""
+    rows = manifest_rows(MEETINGS.name)
+    days = [MEETINGS_FIRST + timedelta(days=i) for i in range((last - MEETINGS_FIRST).days + 1)]
+    missing = [d for d in days if d not in rows]
+    if missing:
+        raise MissingResultsDates(f"{len(missing)} days without an archived board-meeting list, first {missing[:3]}")
+    cache.fetch(MEETINGS, log=log)
+    meetings, skipped = [], 0
+    for day in days:
+        found, rows_skipped = read_meetings(cache.read(MEETINGS, day)[1])
+        meetings += found
+        skipped += rows_skipped
+    log(f"board meetings: {len(days)} day lists, {len(meetings)} rows, {skipped} rows without a symbol or date")
+    return meetings
 
 
 def read_snapshot_legs(path: Path) -> list[QuotedLeg]:
@@ -123,8 +117,7 @@ def build_inputs(cache_folder: Path, snapshot: Path | None, workers: int, last: 
     sessions = sessions_from_manifests()
     udiff_days, legacy_days = set(cache.days(UDIFF)), set(cache.days(LEGACY))
     names = symbol_names(snapshot_bytes(drive, "names"))
-    meeting_files = fetch_meetings(cache_folder, last)
-    write_inputs_record(meeting_files)
+    meetings = meetings_from_archive(cache, last)
     closes: dict[date, float | None] = {}
 
     def nifty(day: date) -> float | None:
@@ -138,7 +131,7 @@ def build_inputs(cache_folder: Path, snapshot: Path | None, workers: int, last: 
         current=lambda d: cache.read(UDIFF, d) if d in udiff_days else None,
         legacy=lambda d: cache.read(LEGACY, d) if d in legacy_days else None,
         nifty=nifty,
-        meetings=[m for _, data in meeting_files for m in read_meetings(data)],
+        meetings=meetings,
         filing_times=read_filing_times(FILINGS_MANIFEST),
         sectors=read_sectors(snapshot_bytes(drive, "sectors")),
         names=names,
@@ -147,6 +140,21 @@ def build_inputs(cache_folder: Path, snapshot: Path | None, workers: int, last: 
         snapshot=read_snapshot_legs(snapshot) if snapshot else None,
         workers=workers,
     )
+
+
+class NotFrozen(RuntimeError):
+    """The code about to run is not the code whose hashes FREEZE.md records, or the folder has uncommitted changes."""
+
+
+def check_frozen() -> None:
+    """Refuses the run unless every script file's SHA-256 is in FREEZE.md and git sees no change in the folder."""
+    freeze = (FOLDER / "FREEZE.md").read_text()
+    files = [FOLDER / name for name in FROZEN] + sorted((FOLDER / "r2study").glob("*.py"))
+    unfrozen = [f.name for f in files if hashlib.sha256(f.read_bytes()).hexdigest() not in freeze]
+    status = subprocess.run(["git", "status", "--porcelain", "--", str(FOLDER)], capture_output=True, text=True)
+    dirty = [line for line in status.stdout.splitlines() if not line.endswith(("results.json", "results.md"))]
+    if unfrozen or dirty or status.returncode:
+        raise NotFrozen(f"not frozen: {unfrozen}; uncommitted: {dirty}")
 
 
 def trials_total() -> int:

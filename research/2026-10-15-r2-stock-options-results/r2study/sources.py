@@ -7,7 +7,7 @@ import csv
 import io
 import json
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime
 from pathlib import Path
 
 from fno.market_read_models.corporate_actions import CorporateAction, read_corporate_actions
@@ -16,43 +16,36 @@ from fno.models import IST
 
 from .events import Meeting
 
-BOARD_MEETINGS_API = "https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date={start:%d-%m-%Y}&to_date={end:%d-%m-%Y}"
 MEETING_DATE_FORMAT = "%d-%b-%Y"
 RIGHTS = "rights"
 CORPORATE_ACTIONS_FROM = date(2025, 9, 8)  # the 13 Oct 2026 list covers the 400 days before it (manifest URL)
 CORPORATE_ACTIONS_TO = date(2026, 10, 13)
 
 
-def months(first: date, last: date) -> list[tuple[date, date]]:
-    """Calendar months from `first` to `last`, the last one cut at `last`."""
-    out, start = [], first.replace(day=1)
-    while start <= last:
-        following = (start + timedelta(days=32)).replace(day=1)
-        out.append((start, min(following - timedelta(days=1), last)))
-        start = following
-    return out
-
-
-def read_meetings(data: bytes) -> list[Meeting]:
-    """NSE's board-meeting list (JSON array) as meetings; rows without a symbol or date are skipped."""
-    out = []
+def read_meetings(data: bytes) -> tuple[list[Meeting], int]:
+    """NSE's board-meeting list (JSON array) as meetings, and the number of rows skipped for lacking a symbol or a
+    date (reported, never silent)."""
+    out, skipped = [], 0
     for row in json.loads(data.decode("utf-8")):
         symbol, day = (row.get("bm_symbol") or "").strip(), (row.get("bm_date") or "").strip()
-        if symbol and day:
-            text = f"{row.get('bm_purpose') or ''} | {row.get('bm_desc') or ''}"
-            out.append(Meeting(symbol, datetime.strptime(day, MEETING_DATE_FORMAT).date(), text))
-    return out
+        if not (symbol and day):
+            skipped += 1
+            continue
+        text = f"{row.get('bm_purpose') or ''} | {row.get('bm_desc') or ''}"
+        out.append(Meeting(symbol, datetime.strptime(day, MEETING_DATE_FORMAT).date(), text))
+    return out, skipped
 
 
-def read_filing_times(manifest: Path) -> dict[str, list[datetime]]:
-    """A12's results filings: symbol -> filing times, in IST without a timezone."""
-    times: dict[str, list[datetime]] = defaultdict(list)
+def read_filing_times(manifest: Path) -> dict[str, list[tuple[datetime, date]]]:
+    """A12's results filings: symbol -> (filing time in IST without a timezone, period end)."""
+    times: dict[str, list[tuple[datetime, date]]] = defaultdict(list)
     with manifest.open(newline="") as handle:
         for row in csv.DictReader(handle):
             if row.get("filed_at"):
                 moment = datetime.fromisoformat(row["filed_at"])
                 moment = moment.astimezone(IST) if moment.tzinfo else moment
-                times[row["symbol"].strip()].append(moment.replace(tzinfo=None))
+                period = date.fromisoformat(row["period_end"]) if row.get("period_end") else date.min
+                times[row["symbol"].strip()].append((moment.replace(tzinfo=None), period))
     return dict(times)
 
 

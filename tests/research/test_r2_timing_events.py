@@ -10,6 +10,7 @@ from r2study.events import Filings, Meeting, build_events, one_per_reschedule
 from r2study.rules import clusters_a_year, clusters_a_year_needed, units_needed, window_years
 from r2study.sessions import Sessions, choose_expiry, filed_before_entry_close, reaction_session
 
+QUARTER = date(2024, 9, 30)
 S = Sessions(weekdays(date(2024, 10, 1), date(2025, 1, 31)))
 
 
@@ -83,7 +84,7 @@ def fo_everything(symbol, day):
 
 
 def test_events_take_the_entry_before_d_and_r_from_the_filing():
-    filings = Filings({"A": [datetime(2024, 10, 15, 16, 5)]})
+    filings = Filings({"A": [(datetime(2024, 10, 15, 16, 5), QUARTER)]})
     events, counts = build_events([meeting("A", date(2024, 10, 15))], filings, S, fo_everything)
     (event,) = events
     assert (event.entry, event.results_day, event.reaction) == (
@@ -102,17 +103,17 @@ def test_events_left_out_are_counted_by_reason():
         meeting("FIRST", date(2024, 10, 1)),  # no session before it in the list
         meeting("LAST", date(2025, 1, 31)),  # no session after it
     ]
-    filings = Filings({"EARLY": [datetime(2024, 10, 14, 12, 0)]})
+    filings = Filings({"EARLY": [(datetime(2024, 10, 14, 12, 0), QUARTER)]})
     events, counts = build_events(meetings, filings, S, lambda symbol, day: symbol != "NOTFO")
     assert events == []
     assert counts == Counter({ev.FILED_BEFORE_ENTRY: 1, ev.NOT_FO: 1, ev.NO_ENTRY: 1, ev.NO_REACTION: 1})
 
 
 def test_a_filing_later_than_d_plus_3_days_is_not_matched():
-    filings = Filings({"A": [datetime(2024, 10, 19, 10, 0)]})
+    filings = Filings({"A": [(datetime(2024, 10, 19, 10, 0), QUARTER)]})
     (event,), _ = build_events([meeting("A", date(2024, 10, 15))], filings, S, fo_everything)
     assert event.filed_at is None and event.reaction == date(2024, 10, 16)
-    filings = Filings({"A": [datetime(2024, 10, 18, 10, 0)]})
+    filings = Filings({"A": [(datetime(2024, 10, 18, 10, 0), QUARTER)]})
     (event,), _ = build_events([meeting("A", date(2024, 10, 15))], filings, S, fo_everything)
     assert event.reaction == date(2024, 10, 18)
 
@@ -120,3 +121,22 @@ def test_a_filing_later_than_d_plus_3_days_is_not_matched():
 def test_results_purpose_is_matched_in_any_case_in_purpose_or_description():
     assert ev.is_results_meeting(meeting("A", date(2024, 10, 1), "Board | to consider FINANCIAL RESULTS"))
     assert not ev.is_results_meeting(meeting("A", date(2024, 10, 1), "Dividend | "))
+
+
+def test_a_filing_for_a_period_older_than_120_days_before_d_is_not_this_events():
+    old = Filings({"A": [(datetime(2024, 10, 15, 17, 0), date(2024, 6, 16))]})  # 121 days before D
+    (event,), _ = build_events([meeting("A", date(2024, 10, 15))], old, S, fo_everything)
+    assert event.filed_at is None
+    edge = Filings({"A": [(datetime(2024, 10, 15, 17, 0), date(2024, 6, 17))]})  # exactly 120 days: counts
+    (event,), _ = build_events([meeting("A", date(2024, 10, 15))], edge, S, fo_everything)
+    assert event.filed_at == datetime(2024, 10, 15, 17, 0)
+
+
+def test_sessions_after_the_archive_are_counted_from_the_calendar_for_the_expiry_rule():
+    archive = Sessions(
+        weekdays(date(2026, 10, 1), date(2026, 10, 14)), weekdays(date(2026, 10, 15), date(2026, 11, 30))
+    )
+    assert archive.last == date(2026, 10, 14) and date(2026, 10, 15) not in archive
+    assert choose_expiry(archive, [date(2026, 10, 27)], date(2026, 10, 13)) == (date(2026, 10, 27), False)
+    bare = Sessions(weekdays(date(2026, 10, 1), date(2026, 10, 14)))
+    assert choose_expiry(bare, [date(2026, 10, 27)], date(2026, 10, 13)) == (None, True)

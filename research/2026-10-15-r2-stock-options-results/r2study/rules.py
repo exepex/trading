@@ -59,6 +59,7 @@ MAX_LOT_UNKNOWN_SHARE = 0.10
 
 # amendment 1, section D
 DUPLICATE_MEETING_DAYS = 30  # results meetings of one stock fewer than this many days apart are one event
+FILING_PERIOD_DAYS = 120  # a filing counts for a meeting only if its period ended at most this long before D
 FILING_SEARCH_DAYS = 3  # a results filing is looked for from the entry session's date to D + 3 days
 RESULTS_PURPOSE = "financial result"
 DAYS_A_YEAR = 365.25

@@ -13,7 +13,7 @@ CALL, PUT = "CE", "PE"
 NO_STRIKE, UNPRICED, DEBIT_AT_WIDTH, NOT_POSITIVE = (
     "no listed strike",
     "leg with close 0 or no contracts",
-    "debit at least the width",
+    "price at least the width (debit spread) or the wider wing (condor credit)",
     "price not positive",
 )
 
@@ -98,7 +98,7 @@ def price_structure(structure: Structure, chain: Chain, strikes: Strikes) -> Pri
     width = _width(structure, legs)
     if price <= 0:
         return Priced(structure, tuple(legs), price, width, NOT_POSITIVE)
-    if structure.spread_width and price >= width:
+    if (structure.spread_width or structure.credit) and price >= width:
         return Priced(structure, tuple(legs), price, width, DEBIT_AT_WIDTH)
     return Priced(structure, tuple(legs), price, width)
 

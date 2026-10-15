@@ -65,7 +65,8 @@ def merged_groups(sizes: list[int]) -> list[tuple[int, ...]]:
 
 
 def two_sided(leg: QuotedLeg) -> bool:
-    return bool(leg.bid and leg.ask and leg.bid > 0 and leg.ask > 0)
+    """Both sides quoted and not crossed (a crossed book is treated as one-sided)."""
+    return bool(leg.bid and leg.ask and 0 < leg.bid <= leg.ask)
 
 
 def half_spread(leg: QuotedLeg) -> float:
@@ -91,7 +92,7 @@ def depth(legs: list[QuotedLeg]) -> dict:
 def make_bucket(name: str, terciles: tuple[int, ...], legs: list[QuotedLeg]) -> Bucket:
     quoted = [leg for leg in legs if two_sided(leg)]
     spreads = [half_spread(leg) for leg in quoted]
-    one_sided_share = 1 - len(quoted) / len(legs) if legs else 1.0
+    one_sided_share = (len(legs) - len(quoted)) / len(legs) if legs else 1.0  # exact at 20%, no 1 - x rounding
     return Bucket(
         moneyness=name,
         terciles=terciles,

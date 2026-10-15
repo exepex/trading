@@ -7,7 +7,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
-from .rules import DUPLICATE_MEETING_DAYS, FILING_SEARCH_DAYS, RESULTS_PURPOSE
+from .rules import DUPLICATE_MEETING_DAYS, FILING_PERIOD_DAYS, FILING_SEARCH_DAYS, RESULTS_PURPOSE
 from .sessions import Sessions, filed_before_entry_close, reaction_session
 
 DUPLICATE, FILED_BEFORE_ENTRY, NOT_FO = "duplicate meeting", "filing before entry", "not F&O on the entry session"
@@ -35,16 +35,23 @@ def is_results_meeting(meeting: Meeting) -> bool:
 
 
 class Filings:
-    """Results filing times per stock (IST, timezone-naive), sorted."""
+    """Results filings per stock: (time in IST without a timezone, period end), sorted by time."""
 
-    def __init__(self, times: dict[str, list[datetime]]):
+    def __init__(self, times: dict[str, list[tuple[datetime, date]]]):
         self.times = {s: sorted(ts) for s, ts in times.items()}
 
-    def first(self, symbol: str, start: date, end: date) -> datetime | None:
-        """The earliest filing of a stock on a day from `start` to `end`, both included."""
+    def first(self, symbol: str, start: date, end: date, results_day: date) -> datetime | None:
+        """The earliest filing of a stock on a day from `start` to `end`, both included, for a period that ended at
+        most FILING_PERIOD_DAYS before the results day (a late filing of an older quarter is not this event's)."""
+        oldest = results_day - timedelta(days=FILING_PERIOD_DAYS)
         times = self.times.get(symbol, [])
-        i = bisect_left(times, datetime.combine(start, datetime.min.time()))
-        return times[i] if i < len(times) and times[i].date() <= end else None
+        i = bisect_left(times, (datetime.combine(start, datetime.min.time()), date.min))
+        for moment, period in times[i:]:
+            if moment.date() > end:
+                return None
+            if period >= oldest:
+                return moment
+        return None
 
 
 def search_end(meeting: Meeting) -> date:
@@ -82,7 +89,7 @@ def build_events(meetings: list[Meeting], filings: Filings, sessions: Sessions, 
 
         def has_filing(m: Meeting, symbol=symbol) -> bool:
             entry = sessions.before(m.day)
-            return entry is not None and filings.first(symbol, entry, search_end(m)) is not None
+            return entry is not None and filings.first(symbol, entry, search_end(m), m.day) is not None
 
         kept, dropped = one_per_reschedule(own, has_filing)
         counts[DUPLICATE] += dropped
@@ -101,7 +108,7 @@ def _event(meeting: Meeting, filings: Filings, sessions: Sessions, is_fo, counts
     if not is_fo(meeting.symbol, entry):
         counts[NOT_FO] += 1
         return None
-    filed_at = filings.first(meeting.symbol, entry, search_end(meeting))
+    filed_at = filings.first(meeting.symbol, entry, search_end(meeting), meeting.day)
     if filed_before_entry_close(filed_at, entry):
         counts[FILED_BEFORE_ENTRY] += 1
         return None

@@ -76,7 +76,8 @@ def option_row(day, symbol, expiry, strike, kind, close, contracts=500.0, oi=Non
     row = dict.fromkeys(COLUMNS, "")
     row.update(TradDt=day.isoformat(), FinInstrmTp="STO", TckrSymb=symbol, XpryDt=expiry.isoformat(),
                StrkPric=f"{strike:.2f}", OptnTp=kind, ClsPric=close, SttlmPric=close, TtlTradgVol=contracts,
-               TtlTrfVal=contracts * lot * close, OpnIntrst=oi if oi is not None else lot * 1000)  # fmt: skip
+               TtlTrfVal=contracts * lot * close, OpnIntrst=oi if oi is not None else lot * 1000,
+               NewBrdLotQty=lot)  # fmt: skip
     return row
 
 

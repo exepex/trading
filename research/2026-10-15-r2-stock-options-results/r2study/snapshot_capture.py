@@ -74,6 +74,9 @@ def snapshot_strikes(chain_strikes: list[float], spot: float) -> list[tuple[int,
     return out
 
 
+COUNTS = ("stocks_skipped", "not_listed", "after_window", "errors", "no_previous_row")
+
+
 def capture(
     source: QuoteSource,
     found: list[Candidate],
@@ -82,42 +85,70 @@ def capture(
     previous_chains: dict[str, dict[date, Chain]],
     clock,
 ) -> tuple[dict, list[QuotedLeg]]:
-    """Quotes every candidate's legs; stops at 15:00 IST (legs left are counted as not quoted)."""
-    raw = {"started": clock().isoformat(), "stocks": [], "not_quoted": 0}
+    """Quotes every candidate's legs and counts every leg or stock not quoted, by reason. A quote that comes back at
+    or after 15:00 IST is dropped (counted), and nothing is requested after it."""
+    raw = {"started": clock().isoformat(), "stocks": [], **dict.fromkeys(COUNTS, 0)}
     legs: list[QuotedLeg] = []
     for candidate in found:
-        record = _stock(source, candidate, sessions, previous, previous_chains, clock, legs)
-        raw["stocks"].append(record)
-        raw["not_quoted"] += record.get("not_quoted", 0)
+        raw["stocks"].append(_stock(source, candidate, sessions, previous, previous_chains, clock, legs, raw))
     raw["finished"] = clock().isoformat()
     return raw, legs
 
 
-def _stock(source, candidate, sessions, previous, previous_chains, clock, legs) -> dict:
+def contract_lot(previous: DaySummary, chain: Chain, symbol: str, expiry: date) -> int | None:
+    """The chosen expiry's own lot on the previous session: its future's lot column, else any of its option rows'."""
+    future = previous.future(symbol, expiry)
+    if future is not None and future.lot:
+        return future.lot
+    return next((leg.lot for leg in chain.values() if leg.lot), None)
+
+
+def _stock(source, candidate, sessions, previous, previous_chains, clock, legs, counts) -> dict:
     record = {"symbol": candidate.symbol, "results_day": candidate.results_day.isoformat()}
-    reaction = sessions.after(candidate.results_day)
-    future = previous.near_future(candidate.symbol)
-    expiry, pushed = choose_expiry(sessions, source.expiries(candidate.symbol), reaction) if reaction else (None, False)
-    if expiry is None or future is None or not future.lot:
-        return {**record, "skipped": "no expiry or no lot"}
-    spot, symbols = source.chain_symbols(candidate.symbol, expiry)
+    try:
+        reaction = sessions.after(candidate.results_day)
+        expiry, pushed = choose_expiry(sessions, source.expiries(candidate.symbol), reaction)
+        old_chain = previous_chains.get(candidate.symbol, {}).get(expiry, {}) if expiry else {}
+        lot = contract_lot(previous, old_chain, candidate.symbol, expiry) if expiry else None
+        spot, symbols = source.chain_symbols(candidate.symbol, expiry) if lot else (0.0, {})
+    except Exception as exc:  # noqa: BLE001 - one stock's failure is counted, never the end of the capture
+        counts["stocks_skipped"] += 1
+        return {**record, "skipped": f"error {type(exc).__name__}"}
     strikes = snapshot_strikes(sorted({k for k, _ in symbols}), spot)
-    record.update(expiry=expiry.isoformat(), pushed=pushed, spot=spot, lot=future.lot, quotes=[], not_quoted=0)
-    old_chain = previous_chains.get(candidate.symbol, {}).get(expiry, {})
+    if not strikes:
+        counts["stocks_skipped"] += 1
+        return {**record, "skipped": "no expiry, no lot or no listed strikes"}
+    record.update(expiry=expiry.isoformat(), pushed=pushed, spot=spot, lot=lot, quotes=[])
     for steps, strike in strikes:
         for kind in (CALL, PUT):
-            trading_symbol = symbols.get((strike, kind))
-            if trading_symbol is None or clock().time() >= WINDOW[1]:
-                record["not_quoted"] += 1
+            reason = _quote_leg(source, symbols.get((strike, kind)), steps, strike, kind, clock, record)
+            if reason:
+                counts[reason] += 1
                 continue
-            payload = source.quote(trading_symbol)
-            book = parse_groww_quote_book(trading_symbol, payload)
-            record["quotes"].append({"steps": steps, "strike": strike, "kind": kind, "at": clock().isoformat(),
-                                     "trading_symbol": trading_symbol, "payload": payload})  # fmt: skip
+            book = parse_groww_quote_book(record["quotes"][-1]["trading_symbol"], record["quotes"][-1]["payload"])
             old = old_chain.get((strike, kind))
+            counts["no_previous_row"] += old is None
             legs.append(QuotedLeg(abs(steps), old.contracts if old else 0.0, book.bid, book.ask, book.bid_qty,
-                                  book.ask_qty, future.lot))  # fmt: skip
+                                  book.ask_qty, lot))  # fmt: skip
     return record
+
+
+def _quote_leg(source, trading_symbol, steps, strike, kind, clock, record) -> str:
+    """'' when quoted (appended to the record), else the reason it was not."""
+    if trading_symbol is None:
+        return "not_listed"
+    if clock().time() >= WINDOW[1]:
+        return "after_window"
+    try:
+        payload = source.quote(trading_symbol)
+    except Exception:  # noqa: BLE001 - a failed quote is counted as an error leg, never a one-sided quote
+        return "errors"
+    at = clock()
+    if at.time() >= WINDOW[1]:
+        return "after_window"
+    record["quotes"].append({"steps": steps, "strike": strike, "kind": kind, "at": at.isoformat(),
+                             "trading_symbol": trading_symbol, "payload": payload})  # fmt: skip
+    return ""
 
 
 def check_window(moment: datetime, sessions: Sessions) -> None:

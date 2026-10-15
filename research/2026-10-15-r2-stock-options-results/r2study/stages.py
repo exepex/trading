@@ -38,6 +38,7 @@ class StructureResult:
     clusters: int | None = None
     clusters_a_year: float | None = None
     kish_passing: float | None = None
+    clusters_by_part: dict = field(default_factory=dict)  # 12-month parts of the window (amendment 1 A), not deciding
     untradable: dict = field(default_factory=dict)
     first_failed: str = ""
 
@@ -87,7 +88,21 @@ def score_structure(
         result.clusters = len(set(keys))
         result.clusters_a_year = clusters_a_year(result.clusters, *window)
         result.kish_passing = kish_count(cluster_sizes(keys), rho_abs)
+        result.clusters_by_part = clusters_by_part(passing)
     return result
+
+
+def part_of(day: date) -> str:
+    """The 12-month part (October to September) a reaction session falls in, e.g. "Oct 2024 - Sep 2025"."""
+    start = day.year if day.month >= 10 else day.year - 1
+    return f"Oct {start} - Sep {start + 1}"
+
+
+def clusters_by_part(passing: list[Scored]) -> dict[str, int]:
+    keys: dict[str, set] = {}
+    for s in passing:
+        keys.setdefault(part_of(s.reaction), set()).add(cluster_key(s.sector, s.reaction))
+    return {part: len(found) for part, found in sorted(keys.items())}
 
 
 def _cost_numbers(result: StructureResult, outcomes: list[Outcome]) -> None:
