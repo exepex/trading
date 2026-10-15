@@ -5,7 +5,7 @@ of forecasting skill within months, not years, that is "not because of luck". It
 bets across NSE's F&O underlyings, scored against a baseline chosen before the data is seen, with every error rate
 checked on real history. Design and evidence: `reviews/claude/response_154_breadth-track.md` (revision 1; judge 165
 addendum 1 PASS) and `research/2026-10-15-breadth-sizing/`. Second review: ChatGPT review 116 (PARTIAL), answered in
-`reviews/claude/response_177_chatgpt-review-116-answer.md`. Owner: "Go, with ChatGPT's two fixes" (DESK_DECISIONS,
+`reviews/claude/response_176_chatgpt-review-116-answer.md` (the orchestrator's answer, on main). BR1a's claims: `reviews/claude/response_177_br1a-protocol.md`. Owner: "Go, with ChatGPT's two fixes" (DESK_DECISIONS,
 16 Oct 2026). Story template and definition of done: `docs/IMPLEMENTATION_PLAN.md`.
 
 The epic's stories:
