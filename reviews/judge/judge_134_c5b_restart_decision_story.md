@@ -57,3 +57,20 @@
 - **Why they matter:** both are real-data defects. Built literally, one would refuse the committed file, and the other
   would refuse the owner's real restart.
 - **A re-check needs only the C5b section.**
+
+## Addendum 1 (15 Oct 2026): revision 2 at 8a7f185c4cb4bc3c3377eb667e89340d58d2c1b9 (text only; claims renumbered to response 135)
+
+| Judge 134 finding | Status | Check |
+|---|---|---|
+| Should-fix 1: the citable title, and criterion 3 | MET | The title is the first `**...**` span of the Decision cell. A row with no bold span is not citable. A title repeated in the file is refused. Criterion 3 now counts rows, untitled rows and repeated titles against the committed file |
+| Should-fix 2: "names the book" | MET | `BOOK_DISPLAY_NAMES` in `fno/constants.py` (`book1_rules` → "Book 1" and so on), matched as a whole word, so "Book 1" is not "Book 10". C4 reads the map from constants, not from C2's code, which keeps C4 independent. Criterion 2 adds the test "Book 1 lifts `book1_rules`, not `book2_hybrid`" |
+| Note: the standard form | MET | The restart decision is written as `**title** (owner: "...")`, and the test fixtures use that form |
+
+**One slip in the context line, a note only.** It says the title "approved" "appears twice". On today's file, using the
+story's own rule (the first bold span of the Decision cell), "approved" is the title of **4** rows (152 dated rows).
+Criterion 3's test counts against the committed file, so the built test will carry the true number. Correct the text
+when next touched.
+
+### Verdict: PASS for 8a7f185c4cb4bc3c3377eb667e89340d58d2c1b9 (story text)
+
+Both should-fix items are met. Code may start.
