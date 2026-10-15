@@ -89,3 +89,13 @@ The Rs 30,000 brake conflict goes to S1's text owner (orchestrator).
 | SF2: a `shadow-only` action has no reader on scoreboard A | Confirmed: S3's `action_of` reads only `record["decision"]` (`fno/scoreboard/matched_actions.py`), which is the account's rule default. | Stated plainly: unscored until S3 reads the shadow `chosen_action`. That reading change is in Depends and in the gap list, routed to S3's builder at slice E. Criterion 3 now says it is listed, never scored. |
 | m1: `proposed_on` from the clock | Correct: a proposer-written date is a small hole beside the commit check. | `register()` sets it on the registration day (IST). Criterion 1 tests that a spec's own date is ignored. |
 | m2: C4 owner agreement in Depends | Correct. | Both stories' Depends name the `ValidityProposal` fields and C4's owner's agreement. |
+
+## ChatGPT review 130 (PARTIAL) and the orchestrator's response 212: all five accepted, checked
+
+| Point | My check | Text change |
+|---|---|---|
+| 1. Envelope v1 mostly measures vetoes and widths | Correct: at one lot with one strategy, `reduce_lots` and `choose_strategy` do nothing. | D4 Known limits: the estimand label, the veto rate and width changes reported against the rule default; zero difference is "inconclusive". |
+| 2. Many near-identical Book 3 strategies | Correct. Registration on an earlier session stops same-day invention, not selection among many. The G0-G6 factory's cumulative trial family exists (design v2 `03_layers_factory_desk.md:10, 38-41`). | D5: every registered strategy enters the trial ledger and its question family; only a frozen selection policy, registered as a version, can make a confirmatory claim; no cap and no waiting period. Criterion 8. |
+| 3. The traded version's envelope and `choose_strategy` | Correct: B's permission is only safe if B was eligible that day and its envelope was frozen. | D4 criterion 9: C4 checks eligibility, the hash against D6 and `served`, and the action; slice-E fixture. |
+| 4. Monthly and 21 days limit what can be claimed | Correct. | D5 Known limits: the results label; a wider universe is a new constitution version. |
+| 5. The `owner_override` refusal | Already decided; now ordered. | D4 gap list: built before any Book 2 or 3 paper decision. |

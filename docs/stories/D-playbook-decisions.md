@@ -318,6 +318,10 @@ component and a D3 `served` key. Out: the AI that chooses (F5); new playbook for
    forbids it; B allows `choose_strategy`), choosing B with A's width set is refused, and choosing B at its own width
    passes: the traded version's envelope governs (test). Each version's envelope is checked against its own
    `trade_envelope:<name>-v<n>` component.
+9. C4 verifies, independently of the decider, that the chosen version was in that day's eligible set (D2), that its
+   envelope's hash matches its D6 component and the record's `served` key, and that the action is allowed (review
+   130, point 3). Slice-E fixture: A forbids `choose_strategy`, B allows it; B can be chosen only when it is eligible
+   that day and registered; an ineligible or unregistered B is refused (test).
 
 **Test plan:** table-driven tests over every action and status; C4 tests with constructed proposals; a temporary git
 repository for the hash check.
@@ -339,12 +343,17 @@ repository for the hash check.
 | Fixed before paper, versioned with the playbook (12.2) | criterion 4 (a `trade_envelope:<name>-v<n>` D6 component per version) | |
 | A shadow-only action is scored on scoreboard A (12.2) | recorded (criterion 3) | Scoring: out of D4. It needs S3 to read the shadow `chosen_action`, routed to S3's builder at slice E; unscored until then |
 | C4 blocks independently (12.4) | criterion 5 | |
-| The owner never overrides on paper; only S1's safety stop (design v2 03) | no owner action in the enum | D3 refuses any non-empty `owner_override` for every book (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all five"): a D3 code item at slice E, its builder settled then |
+| The owner never overrides on paper; only S1's safety stop (design v2 03) | no owner action in the enum | D3 refuses any non-empty `owner_override` for every book (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all five"): a D3 code item at slice E, its builder settled then, **built before any Book 2 or Book 3 paper decision** (review 130, point 5) |
 
 **Known limits (owner's simplicity rule, 15 Oct 2026):**
 - Envelope v1 is narrow (no strike, exit or delay actions) because the playbook format cannot express them yet. Each
   later action is a new envelope version, so its record starts fresh.
 - With `lots: 1` (the example version), `reduce_lots` has no effect; it matters only for versions with more lots.
+- **What Book 2 measures (ChatGPT review 130, point 1):** with one approved strategy at one lot, the AI's only real
+  interventions are vetoes and width choices. Results are labelled **"AI veto and width selection within the same
+  registered playbook"**, never "AI judgement adds value" in general. Reports show the veto rate and the width
+  changes, with the rule default as the paired control (scoreboard A). A zero difference is "inconclusive", not proof
+  that the AI adds nothing.
 
 **Depends:** D1, D2, D3, D6, C4 (with C4's owner's agreement to the `ValidityProposal` fields `action` and
 `rule_default`), S3's reading of the shadow `chosen_action` (for scoring shadow-only actions) · **Size:** S · **Status:** story text for the judge (response 204), the owner's five answers in; code waits
@@ -401,6 +410,11 @@ Book 3 mode. Out: the AI that invents and decides (F6); matched shadows (F7).
   constitution's structure, expiry and holding checks, and the playbook mode's structure, width, lots and shape checks
   against the registered spec. C2's risk limits apply unchanged (Book 3 uses `risk.profiles.books`, as Books 1-2).
 - A material change (any field in `parameters_sha256`) is a new `strategy_id` with `supersedes` naming the old one.
+- **Many near-identical strategies (ChatGPT review 130, point 2):** every registered strategy also enters the strategy
+  factory's G0-G6 trial ledger and its research-question family (design v2 3.1: membership is cumulative, so a
+  variant stopped later still counts). Book 3 may choose among its registered strategies for paper, but **a
+  confirmatory claim belongs only to a frozen selection policy registered as a version**, never to the survivor of
+  many variants. There is no registration cap and no waiting period: both would be easy to game.
 
 **Acceptance criteria:**
 1. A decision with a `strategy_id` registered in a commit that is not a strict ancestor of the decision commit, or
@@ -415,6 +429,9 @@ Book 3 mode. Out: the AI that invents and decides (F6); matched shadows (F7).
 6. A constitution with a key outside the allowed list, or with a risk or scoring number in place of the reference, is
    refused at load (test).
 7. Red-team and judge objections never block a Book 3 trade; C2 and C4 do (test with a fake objection).
+8. Slice-E test: two variants registered on an earlier session, one chosen after the day's market data, never yield a
+   single-trial confirmatory pass: both count in the question's trial family, and only a registered selection policy
+   can make the claim (review 130, point 2).
 
 **Test plan:** registry tests on a temporary git repository; spec and constitution validation tests; C4 tests with
 constructed proposals.
@@ -443,6 +460,9 @@ trades it the same session, and confirms that is refused.
 - Monthly NIFTY expiries only, because nothing else is recorded or priced; weekly options come with a new
   constitution version once A4/E4 record and price them.
 - Exits are the playbook format's time exit only (as D4), so every Book 3 strategy holds to its planned exit.
+- **What Book 3's results cover (review 130, point 4):** labelled **"monthly NIFTY defined-risk strategies with planned
+  time exits of at most 21 days"**. Weekly expiries, faster reactions, stops and other underlyings are untested; a
+  wider universe is a new constitution version, with its data.
 
 **Depends:** D1, D3, D6, C2, C4 (with C4's owner's agreement to the `ValidityProposal` field `strategy_id`), B4/D6 (git
 ancestry) · **Size:** M · **Status:** story text for the judge (response
