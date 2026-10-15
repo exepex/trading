@@ -46,8 +46,36 @@ accepted C2c unchanged (response 169). **Lane 1** (money and risk). C2d's code i
    | `test_capital`: CCS/PCS 100 and 300 at entry | capped SPAN + exposure | capped SPAN + 1.45 x exposure | cap unchanged |
    | `test_capital`: CCS 100 by hand | 6,893.25 + 29,538.53 | 6,893.25 + 42,830.87 = 49,724.12 | |
    | `test_capital`: SF/SC/BF, 15 real rows | `+ exposure` | `+ K x exposure` | renamed "uncapped" (no longer "unchanged") |
+   | `test_capital`: the stress reserve (new test) | LC, LP 0; CDS, PDS 0 (STR1b) | LC, LP 0; CDS 200, PDS 300, CCS 100 13,292.34 | 0.45 x 29,538.53, the exposure's stress outside the cap |
    | `test_manager`: record label | "scan risk only (judge 75)" | "scan and exposure (owner, 15 Oct 2026; story C2c)" | |
 7. **Gates:** see "Gates" below.
+
+## Builder self-review (quality rule 3)
+
+One independent review agent, run on 16 Oct 2026 after judge 181. It was given only the diff (`b4276375..01d39e4d`),
+the passed text and these claims, not my reasoning. It found:
+
+1. **Correctness: none found.** It traced all four places that compute a margin from the rows (`stressed`,
+   `at_entry`, `broker_margin` = `at_entry(1.0)`, C4's `stressed_per_lot`) and found no other consumer. It recomputed
+   CCS 300 (52,260.42 and 63,567.17) and C4's 107,300 and 105,125 by hand. It also checked that "between initial and
+   k x initial" holds for CCS and PCS by algebra, not only on the fixture.
+2. **Should-fix, accepted after checking:** `capital_at_entry`'s `stress_reserve` (margin at entry minus the
+   broker's) now includes `(k - 1) x exposure`. That contradicts STR1b's written reserve: "LC, LP, CDS and PDS have
+   stress_reserve 0", and CCS/PCS "at most width - credit". My recompute: CDS 200 42,830.87 - 29,538.53 = 13,292.34,
+   the same for PDS 300 and CCS 100; LC and LP 0. My test rename ("... on its premium") hid the change instead of
+   stating it. **Fixed:** a new test pins each reserve
+   (`test_the_stress_reserve_is_the_capped_span_extra_plus_the_exposure_s_stress`); CDS and PDS's at-entry figure is
+   pinned as a number (42,830.87), not only as an identity; STR1b's text gets a "since C2c" note on the reserve and on
+   its criterion 1 (no criterion rewritten); and this file states the effect:
+   - **The recorded reserve:** `capital_rs.stress_reserve` and scoreboard B's `stress_reserve_days_rs` grow by
+     `(k - 1) x exposure` for every code with exposure (all but LC and LP).
+   - **What does not change:** `capital_tied` (broker margin plus premium), so scoreboard B's denominator is unchanged.
+3. **Tests loosened: none found.** It recomputed every changed figure and planted the same six mutations, all caught.
+4. **Stale text, minor, fixed:** a one-line "superseded by C2c" note in C2's story (judge 75 paragraph), A14's story
+   (judge 75 bullet) and STR1b's reserve text; the `test_margin_formula.py` docstring re-wrapped.
+5. **Code standards: none found.** `fno/constants.py` is at 344 of 350 lines, so the next constant needs a split.
+6. **Design note (no fix):** stressing a debit spread's exposure reserves cash the position cannot lose. It models
+   the broker blocking more margin in a crisis, which is the owner's "whole margin" decision. I agree.
 
 ## What the owner should know (reasoning, from the story)
 
@@ -56,6 +84,6 @@ Groww's own margin is unchanged; this is C2's crash buffer, now working as it wa
 
 ## Gates
 
-On the final tree: `python -m pytest -q` 6,153 passed (12 min 50 s); `ruff check fno tests tools` clean; `ruff format
---check` clean; `python tools/check_imports.py` clean; `python tools/check_records.py` clean (6,014 files). The branch
-holds main up to `b4276375`'s merge.
+On the final tree after the self-review fixes: `python -m pytest -q` 6,158 passed (12 min 36 s); `ruff check fno
+tests tools` and `ruff format --check` clean; `python tools/check_imports.py` clean; `python tools/check_records.py`
+clean (6,016 files). The first round (01d39e4d) gave 6,153 passed; the 5 new tests are the reserve test's cases.

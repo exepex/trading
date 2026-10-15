@@ -95,10 +95,11 @@ calculation itself (an input: measured from NSE SPAN files or the broker's calcu
   proposal is evaluated: `scenario_lookup` (margin per stress scenario from SPAN parameter files, when available for
   the structure) or `multiplier` (current margin x a predeclared conservative factor, with its source and date). The
   method in force is recorded in every decision record so the judge reproduces it; a missing or expired multiplier
-  (older than 30 days) fails closed. Judge 75 (14 Oct 2026, story A14): the file holds a structure's scanning risk,
-  net option value (NOV) and exposure apart; C2 counts `max(0, scan - NOV) + min(0, NOV) + exposure`, the multiplier
-  stresses the scan only, and MarginRoom also never leaves more than cash + the entry's cash flow + each trade's own
-  liability, so a debit trade's premium is not counted free against an open credit trade's liability.
+  (older than 30 days) fails closed. Judge 75 (14 Oct 2026, story A14): the file holds a structure's scanning risk, net
+  option value (NOV) and exposure apart; C2 counts `max(0, scan - NOV) + min(0, NOV) + exposure`, the multiplier
+  stresses the scan only (superseded by story C2c, 15 Oct 2026: the scan and the exposure), and MarginRoom also never
+  leaves more than cash + the entry's cash flow + each trade's own liability, so a debit trade's premium is not counted
+  free against an open credit trade's liability.
 - **Two different Rs 30,000 limits:** the drawdown brake uses closed equity against its high-water mark; the stress
   limit uses the combined stress loss of open trades plus the proposal from current marks. They are separate rules
   with separate tests.

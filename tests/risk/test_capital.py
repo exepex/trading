@@ -54,7 +54,8 @@ def test_a_bought_option_or_debit_spread_carries_no_stress_reserve_on_its_premiu
     """Before STR1b: 0.45 x premium (Rs 15,828.64 on the ATM call) or 0.45 x debit (Rs 3,572.89 on CDS 200). Story
     C2c: the exposure (CDS, PDS: 29,538.53; LC, LP: 0) is stressed by k, the premium never is."""
     exposure = row(code, width)["exposure"]
-    assert at_entry(code, width) == pytest.approx(K * exposure)  # CDS 200: 42,830.87 (was 29,538.53)
+    assert at_entry(code, width) == pytest.approx(K * exposure)
+    assert at_entry(code, width) == pytest.approx({"LC": 0.0, "LP": 0.0}.get(code, 42_830.8685))  # was 29,538.53
     assert MARGIN.broker_margin(TradeTerms(code, width, 1), DAY) == pytest.approx(exposure)
     assert before + (K - 1) * exposure - at_entry(code, width) == pytest.approx(0.45 * row(code, width)["nov"])
 
@@ -116,3 +117,20 @@ def test_margin_room_records_an_lc_s_capital_as_its_premium_plus_charges(tmp_pat
     capital = verdict.numbers["capital_rs"]["lc"]
     assert verdict.ok and capital["broker_margin"] == 0.0 and capital["stress_reserve"] == 0.0
     assert capital["capital_tied"] == capital["total_funds"] == pytest.approx(premium + charges)
+
+
+RESERVES = [
+    ("LC", 0, 0.0),
+    ("LP", 300, 0.0),
+    ("CDS", 200, 13_292.3385),
+    ("PDS", 300, 13_292.3385),
+    ("CCS", 100, 13_292.3385),
+]
+
+
+@pytest.mark.parametrize(("code", "width", "reserve"), RESERVES)
+def test_the_stress_reserve_is_the_capped_span_extra_plus_the_exposure_s_stress(code, width, reserve):
+    """Story C2c changes STR1b's reserve: LC and LP keep 0 (no exposure); CDS, PDS and CCS 100 (whose SPAN extra is
+    capped to 0 on these rows) carry 0.45 x 29,538.53 = 13,292.34, the exposure's stress, outside the cap."""
+    terms = TradeTerms(code, width, 1)
+    assert at_entry(code, width) - MARGIN.broker_margin(terms, DAY) == pytest.approx(reserve)

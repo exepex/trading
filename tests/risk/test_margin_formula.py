@@ -1,6 +1,6 @@
 """Judge 75 (story A14): C2 counts max(0, scan - NOV) + min(0, NOV) + exposure, stresses the scan and the exposure,
-never the premium (story C2c), refuses a
-margin not above 0, and with an open losing trade never leaves more free than a broker that nets the premium."""
+never the premium (story C2c), refuses a margin not above 0, and with an open losing trade never leaves more free than
+a broker that nets the premium."""
 
 from datetime import date, timedelta
 
