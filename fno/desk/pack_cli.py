@@ -26,7 +26,7 @@ def cmd_pack(args) -> int:
     files = build_private_files()
     day, packs = args.day or now_ist().date(), build_packs(files=files)
     try:
-        files.pull_accounts()  # story E2c: the private packs hold each account's text, read from Drive first
+        files.download()  # story E2c: the private packs hold each account's text, read from Drive first
         common = packs.build(day)
     except PackError as refused:
         print(f"refused: {refused}")

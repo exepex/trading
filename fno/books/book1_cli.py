@@ -21,10 +21,13 @@ def add_run_command(actions) -> None:
 
 def cmd_book1(args) -> int:
     from ..config import load_app_config
+    from ..desk.wiring import download_private_records
     from ..models import now_ist
     from .book1_wiring import build_book1
 
-    print(build_book1(load_app_config()).decide(args.day or now_ist().date()))
+    day = args.day or now_ist().date()
+    download_private_records(day)  # story E2c: C2's view, the trade counts and the private pack come from Drive
+    print(build_book1(load_app_config()).decide(day))
     return 0
 
 

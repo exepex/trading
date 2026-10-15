@@ -6,6 +6,7 @@ is committed: the public record keeps per-book daily totals only (owner, 15 Oct 
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from datetime import date
 from pathlib import Path
 
 from ..books.account import EQUITY_HISTORY_FILE, POSITIONS_FILE
@@ -13,10 +14,12 @@ from ..books.paths import account_folder, shadow_account
 from ..constants import BOOKS, CASH_LEDGER_FILE, JOURNAL_FOLDER, SHADOW_FOLDER
 from ..storage.index_store import IndexFileStore
 from .daily_ports import CommitFailed
+from .pack_store import PackStore
 from .records import EVENTS_FILE, FILLS_FILE
 
 ACCOUNT_FILES = (CASH_LEDGER_FILE, EQUITY_HISTORY_FILE, POSITIONS_FILE, FILLS_FILE, EVENTS_FILE)
 UNAVAILABLE = "the private paper records in Drive could not be {what} ({path}: {why})"
+UPLOADED, ALREADY, DIFFERENT = "uploaded", "already in Drive, same bytes", "REFUSED: Drive holds different bytes"
 
 
 class PrivateFilesUnavailable(CommitFailed):
@@ -40,9 +43,12 @@ class PrivateFiles:
     def __init__(self, store: Callable[[], IndexFileStore], root: Path):
         self._store, self._opened, self.root = store, None, Path(root)  # opened at the first pull or push
 
-    def pull_accounts(self) -> None:
-        """The one shared download at the start of a run or command that reads accounts (story E2c)."""
+    def download(self, day: date | None = None) -> None:
+        """The one shared download at the start of a run or command that reads accounts (story E2c); with `day`, each
+        book's private pack of that day too."""
         self.pull(p for account in paper_accounts(self.root) for p in account_paths(self.root, account))
+        if day is not None:
+            self.pull(PackStore(self.root).private_path(book, day) for book in BOOKS)
 
     def pull_account(self, account: str) -> None:
         self.pull(account_paths(self.root, account))
@@ -67,6 +73,19 @@ class PrivateFiles:
                 data = path.read_bytes()
                 self._call("written", path, lambda name, data=data: self.store().replace(name, data))
 
+    def move_accounts(self) -> dict[str, str]:
+        """Once, at E2c's merge: every committed account file uploaded to Drive, before the `git rm`. A file Drive
+        already holds with other bytes is never overwritten (`DIFFERENT`): the owner decides which copy is right."""
+        moved = {}
+        for path in (p for a in paper_accounts(self.root) for p in account_paths(self.root, a) if p.is_file()):
+            held, data = self._call("read", path, lambda name: self.store().get(name)), path.read_bytes()
+            if held is None:
+                self.push([path])
+            moved[path.relative_to(self.root).as_posix()] = (
+                UPLOADED if held is None else ALREADY if held == data else DIFFERENT
+            )
+        return moved
+
     def store(self) -> IndexFileStore:
         if self._opened is None:
             self._opened = self._store()
@@ -76,5 +95,7 @@ class PrivateFiles:
         name = Path(path).relative_to(self.root).as_posix()
         try:
             return action(name)
+        except PrivateFilesUnavailable:  # already named (Drive's settings missing)
+            raise
         except Exception as problem:  # noqa: BLE001 - any Drive failure stops the step that needed it, named
             raise PrivateFilesUnavailable(UNAVAILABLE.format(what=what, path=name, why=problem)) from problem

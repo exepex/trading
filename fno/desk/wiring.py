@@ -76,3 +76,11 @@ def build_private_files(root: Path = ROOT) -> PrivateFiles:
         return DriveIndexStore(drive, PAPER_AREA)
 
     return PrivateFiles(store, root)
+
+
+def download_private_records(day: date | None = None, root: Path = ROOT) -> PrivateFiles:
+    """Story E2c: the one shared download before a command reads the paper accounts (and, with `day`, the books'
+    private packs of that day). `PrivateFilesUnavailable` when Drive cannot be read: the command stops, named."""
+    files = build_private_files(root)
+    files.download(day)
+    return files

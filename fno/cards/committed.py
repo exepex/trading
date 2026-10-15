@@ -41,3 +41,19 @@ class GitHeadRecords(CommittedRecords):
 
     def code_commit(self) -> str:
         return self._git("rev-parse", self.commit).stdout.decode("utf-8").strip() or "unknown"
+
+
+class DownloadedRecords(CommittedRecords):
+    """Story E2c: the paper accounts as the shared download wrote them from Drive (git-ignored, never committed): the
+    card's one read outside `HEAD`, since the accounts are no longer in the public record."""
+
+    def __init__(self, root: Path):
+        self.root = Path(root)
+
+    def read(self, path: str) -> bytes | None:
+        file = self.root / path
+        return file.read_bytes() if file.is_file() else None
+
+    def names(self, folder: str) -> list[str]:
+        found = self.root / folder
+        return sorted(p.name for p in found.iterdir()) if found.is_dir() else []

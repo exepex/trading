@@ -59,7 +59,7 @@ class DailyRun:
     def run(self, day: date) -> RunLog:
         self._guarded(day, RECOVERY, self.committer.recover)
         if self.files is not None:
-            self._guarded(day, DOWNLOAD, self.files.pull_accounts)
+            self._guarded(day, DOWNLOAD, self.files.download)
         log = RunLog.open(self.steps.root, day)
         kind = self.calendar.session_kind(day)
         if kind not in RECORDED_SESSION_KINDS:
