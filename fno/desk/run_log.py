@@ -27,6 +27,13 @@ class RunLog:
         steps = json.loads(path.read_text(encoding="utf-8"))["steps"] if path.is_file() else {}
         return cls(day, path, steps)
 
+    @staticmethod
+    def days(root: Path) -> list[date]:
+        """Every day with a run log (hidden files, such as the pending-commit marker, are not logs)."""
+        folder = Path(root) / JOURNAL_FOLDER / RUNS_FOLDER
+        names = (p.stem for p in folder.glob("*.json") if not p.name.startswith(".")) if folder.is_dir() else ()
+        return sorted(date.fromisoformat(name) for name in names)
+
     def done(self, step: str) -> bool:
         return step in self.steps
 
