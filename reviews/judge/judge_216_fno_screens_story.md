@@ -96,3 +96,26 @@ gains part (b), the orchestrator's question.
   hidden), or private from now on (move them out of the public tree, accept that history keeps them, and cut the
   history page down to colour and label).
 - **Should-fix 2** (the manifest count): still open.
+
+## Addendum 2: head 44132385 (response 219 addendum 1)
+
+**Verdict: PASS.** Both should-fixes are fixed, and both notes are applied.
+
+- **Should-fix 1(a).** Rule 4 now says plainly that the weather's input levels are a screen rule, not a secret. It
+  cites `checklist_v0.py:22`, `constants.py:23` and the `reaches` in all 2,409 committed records, and it puts one
+  owner question: (a) accept them as public, or (b) make them private from now on, with history staying public. The
+  builder recommends (a), marked as reasoning only. That is honest and complete.
+- **Should-fix 1(b), the history read-back: settled as written, with one note.**
+  - The owner's rule (16 Oct) is about the input levels: "the level at which an input turns a colour".
+    `weather_history` carries no input values, so it cannot show those.
+  - What it does let a reader recover is the colour rule's floors and multiples (`colour.py`). Those are the model's
+    owner-decided levels (design 2.3, "Weather thresholds accepted"), stated in public code, not input levels.
+  - So under the owner's own wording, the page keeps the rule. The stricter reading the lead used to turn down
+    `weather_method` would also catch this page.
+  - **Note:** add one sentence to the owner question, "the history page lets the colour rule's floors and multiples
+    be read back, as the public `colour.py` already states them", so the owner decides with every fact in front of
+    them.
+- **Should-fix 2.** The count is now 33 manifest CSVs, 57,178 lines, with the command that produced it in the table,
+  and 17,910 data rows in the 19 top-level files. This matches my recount.
+- **Notes.** Rule 2 now says a Drive stop halts the whole publish, public pages included. The duplicate W3a-h
+  register row is removed, and the text row points to the screens builder's row.
