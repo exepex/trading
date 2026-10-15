@@ -6,10 +6,12 @@ from pathlib import Path
 
 import requests
 
+from fno.global_cues.archived_copies import COPY_TIME
 from fno.global_cues.row_log import CsvRowLog
 from fno.global_cues.source import CueRequest, CueValue, GlobalCueSource, checked, positive
 from fno.global_cues.table import CueTable
 from fno.models import IST
+from fno.storage.creation_times import CreationTimes
 
 
 class FakeSource(GlobalCueSource):
@@ -37,6 +39,17 @@ class FakeSource(GlobalCueSource):
             raise ValueError("not the fake publisher's file")
         rows = [line.split(",") for line in data.decode().splitlines()[1:]]
         return checked([CueValue(date.fromisoformat(d), positive(v, d)) for d, v in rows], self.cue)
+
+
+class FakeCreationTimes(CreationTimes):
+    """A store's creation time: `after` the time in the copy's own path (an upload seconds after its fetch)."""
+
+    def __init__(self, after: timedelta = timedelta(seconds=9)):
+        self.after = after
+
+    def created_at(self, path: str) -> datetime | None:
+        stamp = "/".join(path.split("/")[-4:])[:17]
+        return datetime.strptime(stamp, COPY_TIME).replace(tzinfo=IST) + self.after
 
 
 def fake_file(*rows: tuple[str, float]) -> bytes:
