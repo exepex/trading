@@ -18,7 +18,7 @@ from .capture_coverage import not_captured
 from .items import month_items, plan_cost, unapproved_costs, unknown_items
 from .plan_cost import DecidedPlanCost, month_plan_cost
 from .report import MonthMeter
-from .routine_coverage import routine_gap
+from .routine_coverage import DataRoutine, routine_gap
 from .self_timed import SelfTimedUsageReader
 from .session_roster import SessionRoster, development_coverage
 from .stop_rule_tracker import ReviewDate, review_date
@@ -42,6 +42,10 @@ def build_session_roster(root: Path = ROOT) -> SessionRoster:
     return SessionRoster(root)
 
 
+def build_data_routine_names(config: dict | None = None) -> list[str]:
+    return [r.name for r in DataRoutine.from_config((config or load_app_config())["budget"].get("data_routines"))]
+
+
 def build_budget_alert_sender() -> AlertSender:
     return DryRunAlertSender()
 
@@ -52,7 +56,7 @@ def build_month_meter(month: str, today: date, root: Path = ROOT, config: dict |
     usage = [row for row in UsageLedger(root).rows() if row["date"].startswith(month)]
     missing = not_captured(root, month, usage, today.isoformat())
     development = development_coverage(SessionRoster(root).rows(), usage, month, today)
-    routines = routine_gap(budget.get("data_routines") or [], usage, month, today, build_session_calendar())
+    routines = routine_gap(DataRoutine.from_config(budget.get("data_routines")), usage, month, today)
     coverage = Coverage(len(missing), development.reason, routines)
     plan = month_plan_cost(
         plan_cost(costs, month), DecidedPlanCost.from_config(budget.get("plan_cost"), decisions), month

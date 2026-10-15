@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from ..constants import AI_BOOKS, USAGE_PURPOSES
+from ..constants import AI_BOOKS, PURPOSE_DATA_ROUTINES, USAGE_PURPOSES
 
 
 def add_budget_parser(subparsers) -> None:
@@ -103,9 +103,11 @@ def _stop_rule(args, today: date) -> int:
 
 def _record_usage(args, today: date) -> int:
     from .usage_ledger import Attribution
-    from .wiring import build_usage_ledger, build_usage_reader
+    from .wiring import build_data_routine_names, build_usage_ledger, build_usage_reader
 
     reader = build_usage_reader(_outside_repository(args.export), args.self_timed)
+    if args.purpose == PURPOSE_DATA_ROUTINES and args.role not in (names := build_data_routine_names()):
+        raise ValueError(f"--role {args.role!r} is not a data routine of budget.data_routines {names}")
     who = Attribution(args.purpose, args.book, args.role)
     print("\n".join(build_usage_ledger().record(reader.days(), who, reader.complete_before(today))))
     return 0

@@ -85,8 +85,9 @@ and labelled, until NSE's 2027 circular rows are added.
    with each missing input and its story, and gives the "stop-rule date reached" alert from the date on (tests).
 7. A level is given only when it is known. On the measured basis, development must be fully captured (a fresh roster,
    and every development session active in the month read after its last activity), and every expected data-routine
-   run recorded (each routine named in `budget.data_routines` once per NSE session day before today, by its own
-   timing record; judge 104 addendum 1); otherwise `unknown`, naming why. The owner's-figure basis needs neither.
+   run recorded (each routine in `budget.data_routines` on its named schedule before today, by its own timing record;
+   the 3 pm recorder is `daily`, as it is started every calendar day; an unknown schedule is refused; a
+   `data_routines` row must name a configured routine; judge 104 addenda 1-2); otherwise `unknown`, naming why. The owner's-figure basis needs neither.
    Missing book sessions can only raise the books' share, so they turn `ok` into `unknown` and mark `alert` or `stop`
    "at least this level". The allocation warns "book shares overstated" or "understated" accordingly (tests).
 

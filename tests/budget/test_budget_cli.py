@@ -62,3 +62,18 @@ def test_a_missing_or_malformed_export_is_refused_in_one_line(tmp_path):
     (tmp_path / "list.json").write_text("[]", encoding="utf-8")
     listed = run("record-usage", "--export", str(tmp_path / "list.json"), "--purpose", "development", "--role", "x")
     assert listed.returncode == 1 and "the export is not a JSON object" in listed.stdout
+
+
+def test_a_data_routine_role_must_be_a_configured_routine(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(wiring, "build_usage_ledger", lambda: UsageLedger(tmp_path))
+    monkeypatch.setattr(models, "now_ist", lambda: datetime(2026, 10, 16, 9, 0, tzinfo=models.IST))
+    path = tmp_path / "run.json"
+    run_record = {"session_id": "session_01R", "model": "m", "started_at": "2026-10-14T09:20:00Z",
+                  "ended_at": "2026-10-14T09:30:00Z"}  # fmt: skip
+    path.write_text(json.dumps(run_record), encoding="utf-8")
+    args = SimpleNamespace(budget_cmd="record-usage", export=path, self_timed=True, purpose="data_routines", book="",
+                           role="3pm")  # fmt: skip
+    assert cli.cmd_budget(args) == 1 and UsageLedger(tmp_path).rows() == []
+    assert "--role '3pm' is not a data routine of budget.data_routines" in capsys.readouterr().out
+    assert cli.cmd_budget(SimpleNamespace(**{**vars(args), "role": "3 pm quote recorder"})) == 0
+    assert [r["role_or_bundle"] for r in UsageLedger(tmp_path).rows()] == ["3 pm quote recorder"]

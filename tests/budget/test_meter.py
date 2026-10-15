@@ -125,33 +125,54 @@ def test_tokens_are_not_available_when_any_row_lacks_them(tmp_path):
     assert "measured books_and_roles: 3.00 minutes, 1 session(s), output tokens not available" in text
 
 
+RECORDER = [{"name": "3 pm quote recorder", "schedule": "daily"}]
+
+
 def test_missing_data_routine_runs_make_the_measured_level_unknown(tmp_path):
     """Judge 104 addendum 1: uncaptured data-routine minutes would raise the books' share, so the level is unknown
-    until every expected run (one per NSE session day before today) is recorded."""
+    until every expected run is recorded. Addendum 2: the 3 pm recorder is started every calendar day (CLAUDE.md), so
+    1-15 Oct expects 15 runs, weekends and the 2 Oct holiday included."""
     root = repo(tmp_path)
-    meter = build_month_meter("2026-10", TODAY, root, config(data_routines=["3 pm quote recorder"]))
+    meter = build_month_meter("2026-10", TODAY, root, config(data_routines=RECORDER))
     text = "\n".join(meter_lines(meter))
-    assert meter.cap.level == "unknown" and "0 of 10 expected run(s) recorded (3 pm quote recorder)" in text
-    owner = build_month_meter("2026-10", TODAY, root, config(data_routines=["3 pm quote recorder"],
-                                                             plan_minutes_per_month=600))  # fmt: skip
+    assert meter.cap.level == "unknown" and "0 of 15 expected run(s) recorded (3 pm quote recorder (daily))" in text
+    owner = build_month_meter("2026-10", TODAY, root, config(data_routines=RECORDER, plan_minutes_per_month=600))
     # the owner's figure does not depend on the measured denominator: only the missed book session is named
     assert owner.cap.note.startswith("unknown: 1 fired AI book session(s)") and "data routines" not in owner.cap.note
 
 
-def test_recorded_data_routine_runs_complete_the_coverage(tmp_path):
-    from fno.budget.routine_coverage import routine_gap
-    from fno.storage.wiring import build_session_calendar
+def test_recorded_daily_runs_complete_the_coverage_and_only_the_routines_own_rows_count():
+    from datetime import timedelta
 
-    sessions = build_session_calendar().sessions(date(2026, 10, 1), date(2026, 10, 15))
-    rows = [
-        {"purpose": "data_routines", "role_or_bundle": "3 pm quote recorder", "date": d.isoformat()} for d in sessions
-    ]
-    calendar = build_session_calendar()
-    assert routine_gap(["3 pm quote recorder"], rows, "2026-10", TODAY, calendar) == ""
-    assert "9 of 10" in routine_gap(["3 pm quote recorder"], rows[1:], "2026-10", TODAY, calendar)
-    assert routine_gap([], [], "2026-10", TODAY, calendar) == ""
-    other = [row | {"purpose": "development"} for row in rows]  # only the routine's own purpose counts as its run
-    assert "0 of 10" in routine_gap(["3 pm quote recorder"], other, "2026-10", TODAY, calendar)
+    from fno.budget.routine_coverage import DataRoutine, routine_gap
+
+    recorder = DataRoutine.from_config(RECORDER)
+    days = [date(2026, 10, 1) + timedelta(days=n) for n in range(15)]
+    rows = [{"purpose": "data_routines", "role_or_bundle": "3 pm quote recorder", "date": d.isoformat()} for d in days]
+    assert routine_gap(recorder, rows, "2026-10", TODAY) == ""
+    assert "14 of 15" in routine_gap(recorder, rows[1:], "2026-10", TODAY)  # 1 Oct, a session day, missing
+    weekend = [row for row in rows if row["date"] != "2026-10-04"]  # a Sunday: the routine still runs
+    assert "14 of 15" in routine_gap(recorder, weekend, "2026-10", TODAY)
+    other = [row | {"purpose": "development"} for row in rows]
+    assert "0 of 15" in routine_gap(recorder, other, "2026-10", TODAY)
+    assert routine_gap([], [], "2026-10", TODAY) == ""
+
+
+def test_a_month_outside_the_session_calendar_is_still_checked_and_fails_closed():
+    """Addendum 2 SF2: no calendar lookup is left in this check (the schedule is daily), so a 2027 month cannot slip
+    through as "complete"; with no runs recorded it reads as a gap."""
+    from fno.budget.routine_coverage import DataRoutine, routine_gap
+
+    gap = routine_gap(DataRoutine.from_config(RECORDER), [], "2027-01", date(2027, 2, 1))
+    assert gap.startswith("data routines not fully captured: 0 of 31 expected run(s)")
+
+
+@pytest.mark.parametrize("entry", ["3 pm quote recorder", {"name": "x", "schedule": "weekdays"}, {"schedule": "daily"}])
+def test_a_routine_without_a_known_schedule_is_refused(entry):
+    from fno.budget.routine_coverage import DataRoutine
+
+    with pytest.raises(ValueError, match="needs a name and a schedule from"):
+        DataRoutine.from_config([entry])
 
 
 def test_the_decided_plan_cost_applies_to_every_month_from_october(tmp_path):

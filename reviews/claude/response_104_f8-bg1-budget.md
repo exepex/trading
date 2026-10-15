@@ -9,6 +9,26 @@ Slack, no order code is touched.
 owner's answers of 15 Oct ("5 A", INR 20,000, "7 A"), and fixes a third independent review. Revision 2 (`8a3e562`)
 was never sent to the judge.
 
+## Revision 5: answer to judge 104 addendum 2 (FAIL on `790bad9`, two should-fixes)
+
+| Item | Done | Where (code; tests) |
+|---|---|---|
+| **SF1** Expected runs must come from each routine's real schedule | **Accepted, checked against the source.** CLAUDE.md says the 3 pm recorder is "started by a scheduled session at about 14:50 IST every day", and on a closed day it prints "not a trading day", so it runs and uses minutes every calendar day. `budget.data_routines` now names each routine's schedule (`{name: "3 pm quote recorder", schedule: daily}`). Only `daily` is implemented, because it is the only one in use; any other schedule, or an entry without a name, is refused rather than guessed. Docstring fixed. 1-15 Oct now expects 15 runs; the real meter today expects 14 | `routine_coverage.py`; `config.yaml`; `test_meter.py` (`test_missing_data_routine_runs_...`: 15 expected; a Sunday counts; refusal of unknown schedules) |
+| **SF2** Test the fail-closed path for a month outside the calendar | **Answered by the SF1 design:** the check no longer reads the NSE calendar, so its `CalendarError` path is gone, together with the "complete" mutation that survived on it. The test pins that a 2027 month (outside the calendar) is still checked and reads as a gap: "0 of 31 expected run(s)" | `test_meter.py` (`test_a_month_outside_the_session_calendar_is_still_checked_and_fails_closed`) |
+| **Minor** Validate `--role` for `--purpose data_routines` | **Fixed:** the role must be a routine named in `budget.data_routines`, otherwise the command refuses and writes nothing | `cli.py` `_record_usage`; `wiring.py` `build_data_routine_names`; `test_budget_cli.py` (the wrong role is refused with an empty ledger, the right one is recorded) |
+| Merge `main` | Done: T1's conflicts in `CLAUDE.md`, `fno/cli.py` and `fno/constants.py` were all additions on both sides, and both were kept (`6ecdeaa`) | — |
+
+**Mutations for revision 5:** 7 more, all caught:
+- weekdays only;
+- schedule unchecked;
+- today counted as expected;
+- coverage always complete;
+- rows of any purpose counted;
+- role unchecked;
+- the routine gap not wired.
+
+All earlier mutations still fail their tests.
+
 ## Revision 4: answer to judge 104 addendum 1 (FAIL on `553ab47`, data routines only)
 
 | Item | Done | Where (code; tests) |

@@ -136,10 +136,12 @@ budget:
     rs_per_month: 20000
     from_month: "2026-10"
     decision: "DESK_DECISIONS 15 Oct 2026: Claude plan cost: INR 20,000 a month"
-  # Data routines run by a Claude routine once on every NSE session day; each run's self-timed record is needed before
-  # the measured level is known (judge 104 addendum 1). Writing that record is a change to the routine's prompt: the
-  # owner's step, not done by this story.
-  data_routines: ["3 pm quote recorder"]
+  # Data routines run by a Claude routine, each with its real schedule; each run's self-timed record is needed before the
+  # measured level is known (judge 104 addenda 1-2). The 3 pm recorder is started every calendar day at about 14:50
+  # IST (CLAUDE.md), closed days included. Writing that record is a change to the routine's prompt: the owner's step.
+  data_routines:
+    - name: "3 pm quote recorder"
+      schedule: daily
   stop_rule:
     v4_freeze_date: null
     projected_v4_freeze_month: "2026-11"  # design v2 section 8.2: "if v4 freezes in early November 2026"
