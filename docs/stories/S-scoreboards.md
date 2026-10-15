@@ -226,8 +226,10 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
      second fails (0.030 ≥ 0.025), and the third is not tested;
    - p-value and bound agree: on one series, p < 0.05 exactly when `lower_bound` > 0;
    - a pair with no common observed day gives null with "no common day";
-   - an action open on the report day is cut from both sums: a day with one closed +1,000 take and one open take
-     scores 1,000 over the closed take's maximum loss only.
+   - an action open on the report day ends the series before its day (design 3, series days): with a closed +1,000
+     take on day 1, an open take on day 2 and a closed take on day 3, the series holds day 1 only; days 2-3 count once
+     day 2's take closes. (Code revision: the text first said the day stays with the open take cut from its sums, which
+     contradicted design 3 and would favour short holds.)
 9. A rebuild from the same records gives byte-identical output.
 
 **Gap list:**

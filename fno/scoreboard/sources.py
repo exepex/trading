@@ -14,7 +14,7 @@ from ..books.paths import account_folder, book_folder
 from ..books.versions import VERSIONS_FILE
 from ..constants import BOOK1_RULES, JOURNAL_FOLDER
 from ..desk.run_log import RUNS_FOLDER
-from ..desk.snapshot import ContractKey, ExecutionSnapshotSource
+from ..desk.snapshot import ContractKey, ExecutionSnapshot, ExecutionSnapshotSource
 from ..playbook.decision_store import DecisionStore
 from ..scorecard.scorecard import snapshot_marks
 from .committed_runs import DayRun
@@ -80,3 +80,27 @@ def input_hashes(root: Path, books: Sequence[str], runs: Sequence[DayRun]) -> di
     paths += [root / VERSIONS_FILE, *(book_folder(root, b) / OPERATING_COSTS_FILE for b in books)]
     kept = sorted({p for p in paths if p.is_file() and not p.name.startswith(".") and not p.name.endswith(".tmp")})
     return {p.relative_to(root).as_posix(): _sha256(p) for p in kept}
+
+
+class NoMatchedShadowYet:
+    """F7 is not built: Book 3 has no matched shadow decisions, so every Book 3 day on scoreboard A is "F7 not
+    built"."""
+
+    def records(self, day: date) -> list[dict] | None:
+        return None
+
+
+class DaySnapshots:
+    """Each day's valid execution snapshot, the one E3's run log names (story S3); None on a day without one. A named
+    capture that cannot be read raises: the board never values a unit on a guessed price."""
+
+    def __init__(self, snapshots: ExecutionSnapshotSource, ids: Mapping[date, str]):
+        self.snapshots, self.ids = snapshots, dict(ids)
+        self._read: dict[date, ExecutionSnapshot] = {}
+
+    def __call__(self, day: date) -> ExecutionSnapshot | None:
+        if day not in self.ids:
+            return None
+        if day not in self._read:
+            self._read[day] = self.snapshots.snapshot(day, self.ids[day])
+        return self._read[day]
