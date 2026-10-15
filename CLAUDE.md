@@ -117,6 +117,7 @@ commit with `--no-verify`.
   `fno/pipeline/panel_wiring.py` (the daily NIFTY panel job, story A13; apart so G1 v3 can freeze it without O6),
   `fno/market_read_models/wiring.py` (the market read models and their publisher, stories P6-P9),
   `fno/forecast_scoring/wiring.py` (forecast scoring and reports, story G4; outside the frozen `fno/forecast/`),
+  `fno/forecast_scoring/v4/wiring.py` (protocol v4 scores, comparisons and the two looks, story G8),
   `fno/ai/wiring.py` (the AI books' forecasts: fire and collect, F1 and G5), `fno/ai/book_wiring.py` (the AI books'
   routine side, standard library only), `fno/playbook/wiring.py` (the playbook loader and status changes, story D1),
   `fno/desk/wiring.py` (the paper desk's fills and exits, story E4), `fno/desk/pack_wiring.py` (the daily common and

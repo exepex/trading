@@ -344,3 +344,132 @@ until A16 runs; the back-fill uses spent 2017-26 data and is exploratory only (p
 
 **Depends:** G6 (merged, not frozen), O6 (closes), A16 (V1) · **Size:** M · **Status:** story text, awaiting the
 judge (rule 1)
+
+---
+
+## G8. Protocol v4 scoring, comparisons and the two looks
+
+**Repository:** trading
+
+**Description:** As the statistician, I want every v4 forecast scored against its outcome and its primary baseline
+exactly as protocol v4 says, with the two confirmatory looks run by the frozen rules, so that the stop-rule review
+reads a verdict nobody tuned, and every verdict states the market regime it was measured in.
+
+**Context and why:** REPLAN slice A item 9; `REPLAN_new_stories.md` (G8); `research/forecasts/PROTOCOL_v4.md`
+sections 4-7 and `PROTOCOL_v4_calibration.md`; G6 merged at 597487f (not frozen). The owner's G6 item E decision
+(15 Oct 2026, `docs/DESK_DECISIONS.md`): option 2, windows with more than 10% 2% days give no verdict. Owner's rule
+"Keep the design simple" (15 Oct 2026): real cases only. **Does this change a trade or stop decision?** Yes: Test A of
+the stop rule (protocol section 6) reads G8's look. Everything else G8 prints is descriptive.
+
+**Scope.** In: outcome resolution for V1, V2, V3, V6a, V6b and V7; per-forecaster scores; each comparison with its
+primary baseline (scored set, gate set, effect, reported sensitivities, regime, power report); the look command (the
+family decision and Test A); the report files. Out: producing forecasts and baselines (G7, M1, the books); V4 and V5
+outcomes (they need A16's weekly ATM quotes and the expiry settlement wiring: printed "not started" until a story
+adds them; the protocol already says they start later); the freeze record (after the judge's freeze check); the
+proxy-drift diagnostic (`diagnostics.proxy_drift`) until G7 phase 2 supplies V2's IV30 pairs; Test B (shadow
+strategies, slice B).
+
+**Uses exactly, never re-implements** (`fno/forecast_v4/`): `pairs.pair_point` / `pair_probability` (the two date
+sets), `loss` (QLIKE ranking and textbook, Brier), `confirmatory.calibrated_p`, `futility_p`, `judgeable`,
+`event_band`, `batch_means_p`, `studentized_bootstrap_p`, `bootstrap.one_sided_test` (the null-centred bootstrap,
+reported), `bootstrap.effect_check` (the minimum effect), `bootstrap.hac_one_sided_p` (HAC, reported),
+`family.judge_family` and `FamilyDecision.lines()`, `regime.window_regime`, `stop_rule.forecasting_test`,
+`power.power_report`, `sessions.py`, and every number in `terms.py`. **Thresholds at a look come from the frozen
+tools, called with the member's actual n:** V1 and V2 claim `tools/v4_claim_thresholds.claim_threshold(question, n,
+look rate)` (the tool divides by 15 itself) and futility `tools/v4_futility_study.futility_threshold(question, n)`;
+V6a and V6b `tools/v4_brier_bands.operative_thresholds(question, n, band)` (claim per look and futility, for the
+window's band). Measured on this container: 17 s, 7 s and 56 s per call at n = 125 (some evidence: one run), so a look
+takes a few minutes.
+
+**The crash-share cut (owner, item E option 2).** A member's window is **crash-dominated** when its 2% days are more
+than 10% of its scored outcomes (`big_days / n > 0.10`, strict). A crash-dominated window is not judgeable at that
+look, exactly like a window with fewer than 5 2% days: p = 1 for claims and futility, verdict open, never "no".
+Both gates apply to every member at every look. **Said plainly:** at n = 125 the cut caps a judgeable window at
+12 2% days (13 / 125 = 10.4%), so V6's 13+ band is unused until n >= 130; at n = 250 the cap is 25. **The rule is
+`crash_dominated(big_days, n)` in `fno/forecast_v4/confirmatory.py`, beside `judgeable`** (orchestrator decision 69),
+so it is frozen with the protocol; it is added in this story's branch. The protocol line stating option 2 as decided
+(section 11 E) is written by the G6 session in the freeze commit (G6 judge note 1), not by G8: **a dependency of the
+freeze**.
+
+**Expected design** (new package `fno/forecast_scoring/v4/`, each file well under 350 lines; composition root
+`fno/forecast_scoring/v4/wiring.py`, added to CLAUDE.md's list):
+- `V4ForecastSource` (interface) and its adapter for **G7's agreed layout**: `research/forecasts/v4/<forecaster>/
+  <question>.csv`, one row per day, first four columns `day,value,status,label` (value a variance for V1-V3 or a
+  probability, empty unless status is `ok`; status `ok`, `missing`, `not_eligible` or `not_started`; label `live` or
+  `backfill_exploratory`); G7's audit columns after them are ignored. Folder names are forecaster ids; question names
+  the constants in `fno/constants.py`. Any status but `ok` is "no forecast that day". The primary baseline is read the
+  same way under its id (`terms.PRIMARY_BASELINE`: `base_rate`, `har_daily`, `har_intraday`; V1's switch to intraday
+  HAR by `eligibility.py`).
+- `V4Outcomes`: **imports G7's pure rules in `fno/forecast_v4_rules/series.py`** (one place per rule; G7 builds
+  first): the regular-session closes and VIX closes of `warmup_closes.csv`, the close-proxy `RV_s`, the V6a and V6b
+  outcome per day with its resolution session, and the A16 live `rv/` reader (live provenance only; A16b's
+  `rv-candle` never, decision 56). From those G8 forms V2 and V3 (sums of `RV_s` over the horizon's regular
+  sessions), V7 (`VIX(d+5) > VIX(d)`, strict) and V1 (an `ok` A16 row; a `void` row is a void outcome). A horizon
+  whose last session is not yet in the data is unresolved. The regime inputs of each outcome: the closing VIX and the
+  log return of its first session (`regime.py`'s definition).
+- `scores.py`: per forecaster and question. Point: count, mean ranking QLIKE, mean textbook QLIKE on RV > 0, mean
+  squared error on variance, Mincer-Zarnowitz `RV = a + b f` (OLS). Probability: mean Brier, mean log score (clipped
+  to [0.01, 0.99]), the 10-bin reliability table (G4's bins, reused), calibration slope and intercept (the same OLS,
+  outcome on probability), the Brier skill score against the base rate.
+- `comparison.py`: each forecaster against its question's primary baseline: the pairing counts (unresolved, void,
+  forecaster missing, baseline missing, zero RV left out of the gate), D, the relative improvement and the minimum
+  effect, and the reported sensitivities: batch-means t p, studentized bootstrap p, null-centred bootstrap p, HAC p,
+  the sign of D in each half (stability). Seed word k: the member's place in `terms.FAMILY`; any other comparison
+  `16 + crc32("question/forecaster") mod 2^31`, stable and never used to choose a result. The scored window's regime
+  line. The power report once 60 scored outcomes exist (`power_report`; planning only).
+- `look.py`: at a named look (`terms.LOOK_STOP_REVIEW` or `LOOK_SETTLE_DATE`) with its timestamp (time zone
+  required): for each member with a registered forecaster, the scored set and its 2%-day count; not judged unless
+  `judgeable` and not crash-dominated; else its thresholds (above), `calibrated_p` on the scored set (step = look rate
+  / 15), the minimum effect from `effect_check` on the gate set, futile when `futility_p` on the gate set (its own n)
+  is at most 0.025. A member closed at look 1 (claim or futile) is not judged at look 2 (read from look 1's record).
+  Then `judge_family`, Test A by `forecasting_test`, and the output: `FamilyDecision.lines()`, each member's regime
+  line under its verdict, Test A with every counted member's regime.
+- `report.py` and the CLI `python -m fno forecast-v4-scores report` (descriptive, any day) and `python -m fno forecast-v4-scores look
+  --look <name>`: Markdown and JSON under `research/forecasts/v4_scores/`. **Before `research/forecasts/FREEZE_v4.md`
+  exists every output says "EXPLORATORY: protocol v4 not frozen; nothing here counts"**, and `look` prints its result
+  without writing a record. After the freeze, a look's record is written once and never overwritten; the report
+  states which forecasts are back-fill (exploratory) and counts only live ones made after the freeze.
+- Registration of slots (which forecaster holds `rules`, `hybrid`, `ai_team` per question): read from the ledger row
+  the freeze writes (protocol 5.6); before it, none is registered, so Test A is "undecided" (zero counted members),
+  and the report says so.
+
+**Acceptance criteria** (real NIFTY data as fixtures where a real case exists):
+1. **Outcomes:** V2, V3, V6a, V6b and V7 on real 2024 sessions from `warmup_closes.csv` match a hand rebuild
+   (including horizons across a holiday, the 1 Nov 2024 muhurat session and the 20 Jan 2024 special session, both
+   skipped: a return runs from one regular close to the next); the last sessions' horizons are
+   unresolved, never scored; V1 from A16 `rv` rows, a void row giving a void outcome.
+2. **Scores:** QLIKE (ranking and textbook), squared error, Mincer-Zarnowitz, Brier, log score, reliability bins,
+   calibration slope and intercept and the Brier skill score match hand values on a small fixture; a zero-RV date stays
+   in the scored set and out of the gate set, and is counted.
+3. **A comparison** on a real 2024-25 V6b window (a base-rate forecaster against an EWMA-style forecaster built in
+   the test from the closes): every count, D, the effect and the four reported p-values equal direct calls of the
+   `fno/forecast_v4` functions; the regime line equals `window_regime` on the window's first-session VIX and returns.
+4. **Gates at a look, boundaries:** 4 2% days not judged, 5 judged; at n = 125, 12 2% days judged and 13 not
+   (crash-dominated); at n = 250, 25 judged and 26 not. A not-judged member enters with p = 1 and verdict open.
+5. **Thresholds:** the look calls the frozen tool functions with the member's n (claim on the scored set's n,
+   futility on the gate set's n) and the look's rate; a look-2 member closed at look 1 is not judged.
+6. **The family output** lists all 15 members, judged or not, with the look, its rate and the timestamp; every
+   judged or not-judged member prints its regime line; V7 stays at p = 1.
+7. **Test A:** no registered slot gives "undecided"; with registrations it equals `forecasting_test` on the decision.
+8. **Labels:** before `FREEZE_v4.md` exists, every report and look output carries the EXPLORATORY line and `look`
+   writes nothing; after it (a test fixture), a look record is written once and a second write is refused.
+9. **Empty and not started:** a question without forecasts, and V4 and V5, print "not enough data yet" / "not
+   started"; nothing fails.
+10. Broken-code proof: for criteria 1, 2, 4, 5 and 8, a planted change (an off-by-one horizon, a dropped zero-RV date,
+    `>=` for the cut, the scored n for futility, a look record overwritten) makes a test fail.
+11. Gates: pytest, ruff, imports, code size; the G7 and G8 files are kept stable for the freeze hash.
+
+**Known limits:**
+- Every claim threshold measured so far is far below anything a real window reaches (V1 at n = 125: 1.1e-12, this
+  session's run), so V1, V2 and V6a will almost surely stay open; G8 reports it, it does not change it (protocol 11 D).
+- Thresholds are computed from exposed 2019-26 data by the frozen tools; G8 adds no calibration of its own.
+
+**Test plan:** known-answer and hand-rebuild tests in `tests/forecast_scoring_v4/`; real-data fixtures; the
+boundary tests above; planted changes for criterion 10.
+
+**Judge verifies:** rebuilds one V6b comparison by hand from the closes; runs one look on a fixture and checks every
+gate and threshold call.
+
+**Depends:** G6 (merged), G7 (its `series.py` and forecast files; built first), A7, A16 (V1 only); the freeze also
+needs the G6 session's section 11 E line · **Size:** M · **Status:** text PASSED (judge 128); built on
+`story/g8-scoring`, for the judge (claims `reviews/claude/response_126_g8-scoring.md`)
