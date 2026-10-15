@@ -292,6 +292,7 @@ ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"
 PROTECTION_NOT_BUYABLE = "protection_not_buyable"
 PROTECTION_NOT_SELLABLE = "protection_not_sellable"
 SHORT_LEG_NOT_SELLABLE = "short_leg_not_sellable"
+SIZE_SHARED_IN_BOOK = "size_shared_in_book"  # story E4d: the size covers this entry alone, not with the book's others
 DATA_UNVERIFIED = "no new trade: stale or unverified data"  # story C3: a data check failed before the decision
 NO_DECISION_LATE = "no decision (late)"  # story E3: nothing committed by the decision deadline
 NO_APPROVED_STRATEGY = "no approved strategy"  # story E5: Book 1 has no `paper` version on the day

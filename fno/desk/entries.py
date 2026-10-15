@@ -39,7 +39,7 @@ from ..constants import (
 from ..models import now_ist
 from ..risk.inputs import Proposal
 from ..risk.manager import RiskDecision
-from .entry_check import entry_problems
+from .entry_check import entry_problems, taken_units
 from .execution import FillMaker, check_point_in_time, closing_quotes, legging_cost
 from .pricing import DeskLeg, LegQuote, price_leg
 from .records import DeskEvent, DeskJournal
@@ -122,7 +122,10 @@ class EntryDesk:
         reason = checks.reason() if not checks.ok else refusal(order, snapshot, blocking_trades(journal.records))
         if reason:
             return self._event(journal, order, snapshot, OUTCOME_REFUSED, reason)
-        problems = entry_problems(snapshot, order.legs(), order.proposal.units)
+        taken = taken_units(
+            journal.records.fill_rows(), snapshot, trade_id
+        )  # story E4d: the book's size at this snapshot
+        problems = entry_problems(snapshot, order.legs(), order.proposal.units, taken)
         if problems:  # story E4c: nothing is bought unless every leg fills and the protection can be sold back
             return replace(
                 self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, problems[0]), refused_by_check=True
