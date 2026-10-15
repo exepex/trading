@@ -93,3 +93,72 @@ rates from the same windows. This is my approximation of the rule, not the built
   are sound, and "4 A" is consistent with T1's card.
 - **The three notes** are one-line text additions.
 - **Next:** ChatGPT's rule-9 review. The code waits for G7's merge.
+
+## Addendum 1 (15 Oct 2026): M1 code at a47e529b43ed3cbb0266fb785bfb1acf313a8172 (code 4a317be plus main; claims `response_137_m1-weather.md`)
+
+**Gates, run myself on the exact SHA:**
+- `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: **5504 passed**;
+- `tests/weather`: 67 passed;
+- `ruff check fno tests tools`, `ruff format --check fno tests tools` and `python tools/check_imports.py`: clean.
+
+**Merge with origin/main 22c4bb0.** `git merge-tree` finds one conflict, in `reviews/claude/README.md`, the index rows.
+Keep both; no code conflicts.
+
+### Real-path checks I ran myself
+
+1. **The probabilities, recomputed independently.** I wrote my own implementation from the story's rule: regular
+   sessions only, `s_t` = VIX of the previous regular session, a 750-session window resolved before the cutoff, and
+   2%. I ran it on the committed `warmup_closes.csv` and compared every figure with the built `WeatherDays`.
+
+   | Day | p1 | p5 | b1 | b5 | Colour (model / v0) |
+   |---|---|---|---|---|---|
+   | 15 Oct 2026 (today) | 0.022667 | 0.096 | 0.026667 | 0.104 | GREEN / AMBER |
+   | 14 Oct 2026 | 0.02 | 0.088 | 0.026667 | 0.104 | GREEN / AMBER |
+   | 4 Jun 2024 (election result) | 0.068 | 0.294667 | 0.029333 | 0.112 | AMBER / RED |
+   | 23 Mar 2020 (crash) | 0.554667 | 0.985333 | 0.033333 | 0.096 | RED / RED |
+
+   - **All 16 figures are equal** to six decimals.
+   - **The colour by hand, 4 Jun 2024.** It is not RED: `p1` 0.068 < max(0.10, 2.5 × 0.0293) = 0.10, and `p5` 0.2947
+     < max(0.35, 0.28). It is AMBER: 0.068 ≥ max(0.06, 0.044).
+   - **The claims' "today GREEN, p1 0.0227, v0 AMBER" reproduces.**
+2. **Look-ahead.** I rebuilt `WeatherDays` with every close × 1.07 and every VIX × 2 from 1 Oct 2026 on:
+   - the forecasts and colours for 30 Sep and **1 Oct** are unchanged (1 Oct uses closes up to 30 Sep);
+   - 2 Oct changes, as it should.
+3. **v0's 396 days.** `test_as_of_close_reproduces_all_396_colours_of_response_94` runs in the suite and passes. My own
+   run of `study.py` gave 396 of 396 (the text round).
+4. **Privacy.**
+   - The private document is `{"day", "us_move"}`, written only through `store.put` to the Drive derived area.
+   - The public record's driver is `"us_move": "private"`.
+   - `capture_weather`'s printed lines are the colour line, the row count and "private part (NOT) saved". A Drive error
+     is named by type only.
+   - The CLI never prints the flag.
+   - The branch commits no weather record.
+
+### The orchestrator's six choices
+
+| Choice | Ruling | Why |
+|---|---|---|
+| Stale closes → refused, so missing, so trades blocked | **Right** | If O6's closes do not end at the previous regular session, the model would use an older VIX for "today". Refusing is the owner's "4 A" fail-closed rule, and the line names both dates. Real path: a late O6 run; it blocks until the next capture |
+| The event window counting a Sunday Budget | **Right** | `d < event ≤ 5th regular session after d` takes 1 Feb 2026's Sunday budget session (A7 lists it as a special session). A budget lands on the next regular session's prices, which is why it is a v0 event |
+| 1e-12 in the colour comparison only | **Right** | `1.5 × 0.20 = 0.30000000000000004` is real floating-point error. Shares move in steps of 1/750 ≈ 1.3e-3, so 1e-12 cannot lift a share that is truly under. It is confined to `colour.py` |
+| `made_at` in UTC | **Right** | The story says "UTC with offset". `astimezone(UTC).isoformat()` gives `+00:00` |
+| `method_sha256` over G7's `series.py`, `baselines.py`, G6's `terms.py` and five weather files | **Right, with one gap (note 1)** | It covers the arithmetic. Two inputs of v0's colour are outside it: `forecast_v4/sessions.py` (`next_scored_sessions`, the event horizon) and `weather/wiring.py` (`HORIZON = 5` and the scheduled-event filter). An edit there would move v0's probabilities without a new method hash |
+| A 6-line copy of G7's `_prefix_hashes` | **Accept** | Moving it would change G7's hashed `capture.py`, and with it G7's method identity, for 6 lines. That costs more than the duplicate. It is audit hashing only, never a probability |
+
+### Notes (one line each; none changes a probability, colour or block)
+
+1. Add `forecast_v4/sessions.py` and `weather/wiring.py` to `METHOD_FILES`, or move `HORIZON` and the event filter into a
+   hashed file, so the method hash covers every input of v0's colour.
+2. `capture_weather` computes the day's values twice (`colours(d)` for the RED share, then `day()`). That is a
+   performance point only.
+
+### Verdict: PASS for a47e529b43ed3cbb0266fb785bfb1acf313a8172
+
+- **What holds:**
+  - the probabilities are reproduced independently on four real days (16 of 16);
+  - look-ahead is clean;
+  - v0 reproduces 396 of 396;
+  - the US flag is Drive-only and never printed;
+  - all six choices are sound.
+- **Two notes only.** ChatGPT's rule-9 review was made on the text (review 106).
+- **Merge:** keep both README rows.
