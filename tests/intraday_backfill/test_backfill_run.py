@@ -1,6 +1,7 @@
 """Story A16b, criteria 1, 3, 5 and 6 (runs): raw first, calendar order, transient failures defer, permanent absences
 write void rows, a failed window resumes cleanly, three Groww failures stop the run. Fake Groww, Drive and NSE."""
 
+import math
 from datetime import date
 
 import pytest
@@ -40,6 +41,8 @@ def test_a_normal_run_writes_every_session_back_filled_after_archiving_its_copie
     assert report.complete and len(report.written) == 5 and report.held == 0
     assert statuses(backfill, WEEK)[0] == ("void", "no_previous_close")  # the series' first session
     assert statuses(backfill, [*WEEK[1:], AFTER]) == [("ok", "")] * 4
+    overnight = math.log(levels(WEEK[1])[0] / levels(WEEK[0])[-1]) ** 2  # from the previous 15:30 candle's close
+    assert backfill.table.row(WEEK[1])["rv_overnight"] == f"{overnight:.10f}"
     rows = backfill.table.rows()
     assert {r["provenance"] for r in rows} == {"backfilled"} and {r["measure"] for r in rows} == {"candle_close"}
     manifest = backfill.archive.rows()
@@ -88,6 +91,8 @@ def test_a_received_1_minute_answer_missing_a_minute_is_a_void_row(tmp_path):
     short = minute_rows(WEEK[1], values, values[0] - 3.0, skip=("11:44",))
     backfill, report, _ = run(tmp_path, WEEK, WEEK[3], overrides={("1m", WEEK[1]): short})
     assert statuses(backfill, [WEEK[1]]) == [("void", "no_1m_check:1")] and report.complete
+    held = backfill.table.row(WEEK[1])
+    assert held["rv_session"] == held["rv_intraday"] == held["rv_overnight"] == held["vol_pct"] == ""  # untrusted
     assert backfill.table.row(WEEK[2])["void_reason"] == "no_previous_close"  # its levels are untrusted
 
 

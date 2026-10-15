@@ -1,13 +1,17 @@
 """Story A16b, criteria 2 and 5 (pure parts): the 26 levels from 15-minute candles, the per-session 1-minute check and
 the check against NSE's official range. Every level is fake."""
 
+import hashlib
 from datetime import date
 
 import pytest
 
 from fno.intraday.candle_levels import CandleParse, parse_candles, session_candles
-from fno.intraday.minute_check import check_minutes
+from fno.intraday.minute_check import beyond, check_minutes
+from fno.intraday.nse_days import NseIndexDays, NseReadFailed, NseReading
 from fno.intraday.nse_range import NseDay, check_range, read_nse_day
+from fno.storage.raw_library import RawFile
+from fno.storage.raw_source import RawSourceUnavailable
 from tests.intraday_backfill.fakes import fifteen_minute_rows, levels, minute_rows, nse_day
 
 DAY = date(2026, 10, 14)
@@ -58,6 +62,12 @@ def test_the_minute_check_passes_at_005_and_voids_at_006():
     assert check_minutes(DAY, tuple(opened), minutes).mismatched == ("09:15",)  # the open against the 09:15 open
 
 
+def test_one_tick_apart_in_float_arithmetic_is_not_beyond():
+    assert 18000.15 - 18000.10 > 0.05  # float noise: 0.0500000000029
+    assert not beyond(18000.15 - 18000.10) and not beyond(18000.10 - 18000.15)
+    assert beyond(18000.16 - 18000.10) and beyond(-0.051)
+
+
 def test_the_minute_check_names_missing_minutes_and_reads_the_last_pre_open_close():
     minutes = parse_candles(minute_rows(DAY, VALUES, 19990.0, skip=("10:29", "09:15")))
     found = check_minutes(DAY, tuple(VALUES), minutes)
@@ -98,3 +108,25 @@ def test_nse_s_file_gives_nifty_50_and_a_file_without_it_is_refused():
     assert read_nse_day(text.encode()) == NseDay(1.0, 3.0, 0.5)
     with pytest.raises(ValueError):
         read_nse_day(b"Index Name,Open Index Value\nNifty Bank,1\n")
+
+
+class _Library:
+    def __init__(self, found):
+        self.found = found
+
+    def get(self, path):
+        if isinstance(self.found, Exception):
+            raise self.found
+        return RawFile(self.found, "drive")
+
+
+@pytest.mark.parametrize("error", [RawSourceUnavailable("503"), OSError("drive"), b"Index Name\nNifty Bank\n"])
+def test_a_failed_or_unreadable_nse_read_is_transient(error):
+    with pytest.raises(NseReadFailed, match=r"^NSE index-close 2026-10-14: (RawSourceUnavailable|OSError|ValueError)$"):
+        NseIndexDays(_Library(error)).read(DAY)
+
+
+def test_only_no_drive_copy_and_nse_s_404_is_absent():
+    assert NseIndexDays(_Library(None)).read(DAY) == NseReading(None, "")
+    text = b"Index Name,Open Index Value,High Index Value,Low Index Value\nNifty 50,1,3,0.5\n"
+    assert NseIndexDays(_Library(text)).read(DAY) == NseReading(NseDay(1.0, 3.0, 0.5), hashlib.sha256(text).hexdigest())

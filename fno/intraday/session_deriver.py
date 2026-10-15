@@ -83,7 +83,7 @@ class SessionDeriver:
         shas = [c.sha256 for c in copies] + [given.nse.sha256]
         figures = (result.session, result.intraday, result.overnight) if result else (None, None, None)
         return {
-            "session": given.session.isoformat(), "status": OK if figures[0] is not None and not reasons else VOID,
+            "session": given.session.isoformat(), "status": VOID if reasons else OK,
             "rv_session": figure(figures[0]), "rv_intraday": figure(figures[1]), "rv_overnight": figure(figures[2]),
             "vol_pct": "" if not result or result.vol_pct is None else f"{result.vol_pct:.4f}",
             "void_reason": "; ".join(reasons), "good_slots": sum(v is not None for v in found.levels),
