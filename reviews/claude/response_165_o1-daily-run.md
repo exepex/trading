@@ -14,17 +14,18 @@ Slack). Code waits for the text PASS, E2c's merge and the orchestrator's go.
    line 618.
 4. Weather and v4 capture must run before their cutoff (15:00; 14:30 after G10), so they cannot wait for the
    canonical's push. **Strong evidence:** `fno/forecast_v4_rules/capture.py` `cutoff`, `fno/weather/capture.py`.
-5. Option A (the existing 3 pm Claude routine runs `python -m fno daily run`) is safer on timing than option B
-   (Actions). **Some evidence** (two days); that a routine stays on time later is **reasoning only**.
+5. Start: the existing 3 pm Claude routine runs `python -m fno daily run` (decided by the orchestrator on the owner's
+   15 Oct words and `docs/DESK_DECISIONS.md` "O6 scope: timed jobs stay on Claude routines", eeac1897). That it is on
+   time: **some evidence** (two days); that it stays on time later: **reasoning only**.
 6. `daily.live_from` keeps a first live weather record from ending M1's back-fill before the owner or the G6 freeze
    decides. **Strong evidence:** `fno/weather/capture.py` docstring.
 7. O1 changes no step's own code; G10's times reach O1 through their owners. **Reasoning only** until the code round.
 
-## Open points (sent to the orchestrator)
+## Settled with the orchestrator (15 Oct)
 
-- A or B (REPLAN line 61 versus the owner's 15 Oct words). Recommendation: A.
-- Overlap: the handover session (01Mt6dcBU5kp2htdPN2KmiZH) owns the 3 pm routine prompt and CLAUDE.md section, A4c
-  (NF 8a) and G10 change the same routine. Proposal: O1 owns the prompt text; the others change only the command they
-  own (`quotes record`, its window).
-- The run-log contract with O8 (session 012eM7Ti8ZaSVowgyMkgoGmM): agreed 15 Oct with its three conditions (one tuple the run loops over; status rules; constants size), now in the story text.
-- E3's snapshot moving to A16's 15:15 mark (G10's "E3 / S1 desk" row) has no named builder yet.
+- Start: option A (claim 5).
+- O1 owns the routine prompt text and the CLAUDE.md section; A4c, G10 and the handover session send their lines
+  through the orchestrator.
+- E3's snapshot moving to A16's 15:15 mark: a dependency, assigned by the orchestrator after G10 merges.
+- The run-log contract with O8 (session 012eM7Ti8ZaSVowgyMkgoGmM): agreed with its three conditions (one tuple the run
+  loops over; status rules; constants size).

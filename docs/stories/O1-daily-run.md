@@ -25,30 +25,30 @@ is seen, never silently skipped, and never stops the exits.
 - **The owner, 15 Oct** (`conversations/2026-10-15.md` line 628): "let's move the logic from github action to claude
   routine because timing matters here ... change them to claude routines for which timing is critical". The handover's
   agreed rule (O8 text): time-critical work runs on Claude routines; GitHub cron is a fallback or runs evening jobs.
-- **The conflict, said plainly:** REPLAN line 61 says "fired from Actions as O6 does"; the owner's later words say the
-  opposite for time-critical work, and the desk day is the most time-critical job (15:10 deadline, 15:15 snapshot).
-  This text proposes **option A** below and needs the orchestrator's (and, through it, the owner's) choice before the
-  judge's check. Recommendation: A (strong evidence for the cron's lateness; reasoning only that a Claude routine stays
-  on time beyond the two days seen).
+- **Decided: option A** (orchestrator, 15 Oct, on the owner's two decisions): the owner's words above, and
+  `docs/DESK_DECISIONS.md` row "O6 scope: timed jobs stay on Claude routines" (owner: "Timed jobs on routines
+  (Recommended)", commit eeac1897; GitHub's timer starts this repository's runs 4-5 hours late and skips most slots,
+  judge 52 add. 1). REPLAN line 61's "fired from Actions" is superseded for this time-critical job (strong evidence:
+  both decisions are later than and narrower than REPLAN's line).
 - **G10's timeline** (branch `story/g10-v4-timeline`): routine at 14:05, pack captured 14:30-14:40, one 15:10 deadline,
   the 15:15 common snapshot (A16's 15:15 mark). O1 takes its times from their owners (`desk.timetable`, the recorder's
   window, `terms`), never types them again, so G10's go-live changes nothing in O1's code.
 
 ## How it starts
 
-**Option A (recommended): the owner's existing 3 pm Claude routine runs the day.** Its stored prompt becomes: (1)
+**Option A (decided): the owner's existing 3 pm Claude routine runs the day.** Its stored prompt becomes: (1)
 `sh tools/routine_setup.sh --groww`; (2) `python -m fno daily run`; (3) if the command printed "alert NOT sent", post
 its lines with the Slack connector; note any result other than "day done" in `conversations/<date>.md`, commit and push.
 The routine is **updated, not created** (O1 never creates a scheduled task; the owner pastes the prompt). Groww, Drive
 and Slack settings are already in that routine's environment, so no broker key goes into GitHub (O6's rule). One
 schedule means no two schedules race (the old O1's reason).
 
-**Option B: a GitHub Actions workflow as O6 does.** Started by the push of the day's canonical (seconds, as
-`forecast-capture.yml` does), the cron as fallback. Costs, all strong evidence from the files: weather and v4 capture
-must run **before** the canonical exists (cutoff 15:00, 14:30 after G10), so they would depend on the cron (lost on
-14 and 15 Oct); the 15:15 snapshot needs Groww in GitHub or A16's mark in Drive (A16 is not live: work register).
+**Ownership of the prompt (orchestrator, 15 Oct):** O1 owns the routine's prompt text and the CLAUDE.md section.
+A4c (other indices), G10 (14:05 start, 14:30-14:40 window) and the handover session change only the command they own
+and send their prompt lines to O1 through the orchestrator; no second copy of the prompt is written anywhere.
 
-The rest of this text is the same for A and B; only the routine prompt and the workflow file differ.
+**Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
+canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
 
 ## Scope
 
@@ -86,11 +86,11 @@ In:
   - a closed day keeps E3's single `skipped` step.
 - **The prompt text lives once:** CLAUDE.md section "Daily desk routine" replaces the "3 pm quote recorder" section
   (steps 1-4 keep their rules: never edit a recorded attempt, never `--no-verify`, alert paths). A test checks that the
-  section holds the command lines (option A) or the workflow does (option B).
+  section holds the command lines.
 - The command ends on one line: `day done` or `day done with problems: <steps>` or E3's `RunStopped` line.
 
 Out: any change to the steps' own code (E3, A4, A4c, M1, G7, T1, G10); the routine's schedule time (the owner's, 14:05
-at G10's go-live); E3's snapshot source moving to A16's 15:15 mark (G10's row "E3 / S1 desk"); the health check (O8);
+at G10's go-live); E3's snapshot source moving to A16's 15:15 mark (a dependency, not O1's: see Depends); the health check (O8);
 O2's end-to-end failure suite.
 
 ## Acceptance criteria
@@ -110,7 +110,7 @@ O2's end-to-end failure suite.
    exactly the tuple, in its order; renaming one step in the tuple renames it in the log). Whichever of O1 and O8 merges
    second makes O8 import the tuple, deletes `DESK_RUN_STEPS` and its source-parsing test, and adds a test that O8's
    desk check reads the tuple.
-8. **One prompt.** The CLAUDE.md section (A) or the workflow (B) is the only place the start is written; a test checks
+8. **One prompt.** The CLAUDE.md section is the only place the start is written; a test checks
    it names `python -m fno daily run` and `routine_setup.sh`; after the owner pastes it, the stored prompt is read back
    and matched once (conversation log).
 9. **Real day.** One live day before S1 counts any day: every step recorded, every record committed, the card in
@@ -124,7 +124,7 @@ O2's end-to-end failure suite.
 | Requirement (source) | Criterion or reason out |
 |---|---|
 | One daily run: data checks, forecasts, weather, desk, card (REPLAN 61) | 1 (data checks = E3's gate) |
-| Fired from Actions as O6 does (REPLAN 61) | option B; A recommended (owner, 15 Oct; cron lost 14-15 Oct) |
+| Fired from Actions as O6 does (REPLAN 61) | superseded: timed jobs stay on Claude routines (owner, DESK_DECISIONS 15 Oct) |
 | Failure alerts and exits still run (old O1 criterion 3, design 9) | 2 |
 | Same quote format as A4 (old O1 criterion 2) | 4 |
 | Stored prompt matches CLAUDE.md (old O1 criterion 4) | 8 |
@@ -145,8 +145,9 @@ O2's end-to-end failure suite.
 `tests/daily/` with a fake calendar, fake steps, fake committer and fake alert sender, never the network; one test per
 criterion with good, failing and empty cases; every criterion broken once on purpose.
 
-**Judge verifies:** reads the run order and one planted failure per step; reads the routine prompt (or workflow) for
+**Judge verifies:** reads the run order and one planted failure per step; reads the routine prompt for
 secrets and order-placing; checks the real day's log and commits.
 
-**Depends:** E3 (merged), E2c (accounts to Drive, not merged), T1, M1, G7, A4/A7; G10 for the go-live times ·
-**Status:** story text, waits for the orchestrator's A/B choice, then the judge (`reviews/claude/response_165_o1-daily-run.md`)
+**Depends:** E3 (merged), E2c (accounts to Drive, not merged), T1, M1, G7, A4/A7; G10 for the go-live times; E3's
+snapshot moving to A16's 15:15 mark (assigned by the orchestrator after G10 merges) ·
+**Status:** story text for judge D (`reviews/claude/response_165_o1-daily-run.md`)
