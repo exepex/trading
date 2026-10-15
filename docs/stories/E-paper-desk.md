@@ -390,11 +390,12 @@ the hash-checked store. The guard and the derived pack work the same with either
    (tests).
 3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the two stated exceptions (an unwound
    entry, only through E4c's guard; two accounts on opposite sides of one contract at one snapshot; the third,
-   protection unverified at the opening snapshot, was removed by E4c), no committed desk fill row lets a filled leg's other quote side be worked out: tests build E4's outcomes
-   (opened, closed at a later snapshot, pending exit, a time rule at the opening snapshot, partial fill) and find that
-   within one account only the unwound legs give both sides, that unverified protection at the opening snapshot does
-   (pinned until the E4 story removes it), and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old figure on the
-   same fixtures; a fill whose snapshot is missing or whose hash differs counts as "touch unknown" (excluded from the
+   protection unverified at the opening snapshot, was removed by E4c), no committed desk fill row lets a filled
+   leg's other quote side be worked out: tests build E4's outcomes (opened, closed at a later snapshot, pending exit,
+   a time rule at the opening snapshot, partial fill) and find that within one account only the unwound legs give
+   both sides (since E4c, only through its guard), that unverified protection at the opening snapshot is never bought
+   (E4c), and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old
+   figure on the same fixtures; a fill whose snapshot is missing or whose hash differs counts as "touch unknown" (excluded from the
    average, never zero), and the scorecard report prints how many fills were "touch unknown"; a settlement row (no
    quote) is excluded as before (tests). **Depends on A4b:** E6 reads the 15:15 quote file from Drive through A4b's
    hash-checked store, so E2b merges only after A4b.

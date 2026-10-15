@@ -2,6 +2,7 @@
 protective legs 25200 CE and 24800 PE (bought), short legs 25000 CE and 25000 PE (sold)."""
 
 import csv
+import re
 
 import pytest
 
@@ -127,17 +128,36 @@ def test_the_refusals_before_the_entry_check_come_first_and_a_rerun_returns_the_
     assert entered(root, store, snapshots, entry_desk, {WING: {"bid_qty": 1}}, other_day).outcome == OUTCOME_REFUSED
     first = entered(root, store, snapshots, entry_desk, {WING: {"bid_qty": 1}}, fly_order("t2"))
     again = enter(root, snapshots, entry_desk, fly_order("t2"))
-    assert first == again and first.reason == refused_with(PROTECTION_NOT_SELLABLE, WING)
+    assert first.reason == again.reason == refused_with(PROTECTION_NOT_SELLABLE, WING)
+    assert first.refused_by_check and not again.refused_by_check  # a replay is never a new refusal: no second alert
 
 
 def test_the_event_row_holds_no_quote_figure(root, store, snapshots, entry_desk):
-    """Criterion 5: the committed row names the contract and the units, never a bid, ask or size of the snapshot."""
+    """Criterion 5: no column of the committed row holds a bid, ask or size of the snapshot (the contract's own digits
+    and the units aside)."""
     entered(root, store, snapshots, entry_desk, {WING: {"bid_qty": 64}})
     (events,) = root.rglob("desk_events.csv")
     (row,) = csv.DictReader(events.open())
-    figures = {f"{v:g}" for quote in FLY_QUOTES.values() for v in quote} | {"64", "1000"}
     assert row["reason"] == refused_with(PROTECTION_NOT_SELLABLE, WING)
-    assert not [f for f in figures if f in row["reason"].replace(contract(*WING), "").replace("65 units", "")]
+    figures = {float(v) for quote in FLY_QUOTES.values() for v in quote} | {64.0, 1000.0}
+    text = " ".join(v for k, v in row.items() if k != "snapshot_sha256").replace(contract(*WING), "")
+    assert not {float(n) for n in re.findall(r"\d+(?:\.\d+)?", text)} & figures
+
+
+def test_the_entry_check_is_recorded_before_the_entry_limit(root, store, snapshots, entry_desk):
+    """Criterion 4: a wing that cannot be sold back and an entry worse than the approved limit: the check's reason."""
+    worse = fly_order(limit=10_000_000.0)  # an approved entry no touch can match
+    assert entered(root, store, snapshots, entry_desk, {}, worse, "limit").reason.startswith(
+        "entry_worse_than_approved"
+    )
+    result = entered(root, store, snapshots, entry_desk, {WING: {"bid_qty": 64}}, fly_order("t2", limit=10_000_000.0))
+    assert result.reason == refused_with(PROTECTION_NOT_SELLABLE, WING) and result.refused_by_check
+
+
+def test_a_short_leg_s_ask_size_is_not_checked(root, store, snapshots, entry_desk):
+    """Story Out, open question 2: a short leg's buy-back depth at entry is not an E4c rule."""
+    result = entered(root, store, snapshots, entry_desk, {SHORT: {"size": 64, "bid_qty": 1000}})
+    assert result.outcome == OUTCOME_OPENED
 
 
 def str1_order(code, width, legs, trade_id="t1"):

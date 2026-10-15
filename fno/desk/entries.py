@@ -22,7 +22,7 @@ limit scales with the lots (legs never fill in part). Exits are never limited.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 
 from ..checks.data_checks import CheckReport, DataChecks
@@ -77,6 +77,7 @@ class EntryResult:
     outcome: str
     reason: str
     legging_cost_rs: float | None = None
+    refused_by_check: bool = False  # story E4c: this call's entry check refused it (never true for a recorded replay)
 
 
 def worse_than_approved(order: EntryOrder, maker: FillMaker, quotes: list[LegQuote]) -> bool:
@@ -123,7 +124,9 @@ class EntryDesk:
             return self._event(journal, order, snapshot, OUTCOME_REFUSED, reason)
         problems = entry_problems(snapshot, order.legs(), order.proposal.units)
         if problems:  # story E4c: nothing is bought unless every leg fills and the protection can be sold back
-            return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, problems[0])
+            return replace(
+                self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, problems[0]), refused_by_check=True
+            )
         maker = FillMaker(order.book, order.strategy, order.decision_id, trade_id, snapshot, self.charges)
         quotes = [price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units) for leg in order.legs()]
         if all(q.fills for q in quotes) and worse_than_approved(order, maker, quotes):

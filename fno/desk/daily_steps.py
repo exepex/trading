@@ -11,7 +11,7 @@ from pathlib import Path
 
 from ..alerts.sender import SENT, AlertSender
 from ..checks.gate import DataGate
-from ..constants import NO_DECISION_LATE, PROTECTION_NOT_BUYABLE, PROTECTION_NOT_SELLABLE, SHORT_LEG_NOT_SELLABLE
+from ..constants import NO_DECISION_LATE
 from .common_pack import CommonPack
 from .daily_ports import (
     AccountSync,
@@ -43,7 +43,6 @@ LATE_AT_SNAPSHOT = "late: committed {committed}, not before the execution snapsh
 DOUBLE = "{count} original runs ({runs}): only {taken} counts; check why the decision ran twice"
 BLOCKED = "no new entry: {why} (today's exits run; the next session opens as usual)"
 ENTRY_REFUSED = "trade {trade} not opened: {reason}: information, no action"
-ENTRY_CHECK_CODES = (PROTECTION_NOT_BUYABLE, PROTECTION_NOT_SELLABLE, SHORT_LEG_NOT_SELLABLE)
 NOT_VALIDATED = "not filled: no completed C4 pass ({problems})"
 
 
@@ -187,7 +186,7 @@ class DeskSteps:
             return {"outcome": "not filled", "reason": late}
         message = f"desk fills {order.book} {order.proposal.trade_id}"
         entered = self.sync.write(order.book, lambda j: self.entry_desk.enter(order, snapshot, j, report), message)
-        if entered.reason.startswith(ENTRY_CHECK_CODES):  # story E4c: refused before any fill, for information
+        if entered.refused_by_check:  # story E4c: refused before any fill, for information; once, never on a replay
             what = ENTRY_REFUSED.format(trade=entered.trade_id, reason=entered.reason)
             outcome = self.alerts.send(ALERT.format(day=snapshot.day, book=order.book, what=what))
             if outcome != SENT:  # "alert NOT sent: <reason>" (no token): said on the run's output, and the run goes on

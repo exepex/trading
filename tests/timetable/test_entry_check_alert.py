@@ -1,6 +1,8 @@
 """Story E4c criterion 7: one #fno-desk line per entry the check refuses, ending "information, no action", with no
 quote figure; without the token "alert NOT sent: <reason>" is printed and the run goes on to its exits."""
 
+from dataclasses import replace
+
 import pytest
 
 from fno.alerts.sender import NoAlertSender
@@ -45,3 +47,22 @@ def test_without_the_token_it_prints_alert_not_sent_and_the_run_reaches_its_exit
     log = run_day(run, clock, NORMAL)
     assert "alert NOT sent: FNO_SLACK_BOT_TOKEN is not set" in capsys.readouterr().out.splitlines()
     assert list(log.steps)[-1] == "exits"
+
+
+def test_a_replayed_fills_step_sends_no_second_alert(root, tmp_path, alerts, thin_wing):
+    """A fills step repeated after a stop (`enter` returns the recorded outcome) is never a new refusal."""
+    run, clock = refused_day(root, tmp_path, alerts)
+    log = run_day(run, clock, NORMAL)
+    run.steps.fill(NORMAL, True, log.result("decisions"))
+    assert len([a for a in alerts.sent if "not opened" in a]) == 1
+
+
+def test_an_entry_refused_by_the_entry_limit_sends_no_e4c_alert(root, tmp_path, alerts):
+    """Only the entry check's refusals alert: E4's entry limit records its reason and stays silent, as before."""
+    decisions = Decisions()
+    decision, (order,) = decided(BOOK1_RULES, "t1", NORMAL)
+    decisions.add(decision, (replace(order, risk=replace(order.risk, entry_cash_rs=10_000_000.0)),), NORMAL)
+    run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
+    log = run_day(run, clock, NORMAL)
+    assert log.result("fills")["t1"]["reason"].startswith("entry_worse_than_approved")
+    assert not [a for a in alerts.sent if "not opened" in a]
