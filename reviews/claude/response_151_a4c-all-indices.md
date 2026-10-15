@@ -46,7 +46,7 @@ Each mutation planted in a scratch worktree, `tests/quotes` run, file restored (
 |---|---|---|---|
 | 1 | Each index recorded; Drive-only quotes; universe in the sidecar; refused or unlisted index → "none", others complete | each-index, refused-index, unlisted-index (one attempt, provider never asked), unreadable NSE file | universe dropped, unlisted skipped silently, unlisted retried, day not closed, rows out of order → all CAUGHT |
 | 2 | NIFTY unchanged | A4's byte-for-byte baseline (4 scenarios), every existing quotes test, `tools/forecast_live_golden.py` "unchanged" | NIFTY stem changed → CAUGHT |
-| 3 | Window and pace | waits for 15:01; nothing starts after 15:13 (started 15:12:50); started at 15:13 asks nothing, "none"; a request at exactly 15:13:00 allowed, 15:13:01 refused; pacer waited before every request; slot 3 workers, 2.5 a second | stop removed, no wait, pacer skipped, pace changed → all CAUGHT |
+| 3 | Window and pace | waits for 15:01; an index whose turn comes after 15:13 asked nothing; nothing starts after 15:13 (started 15:12:50); started at 15:13 asks nothing, "none"; a request at exactly 15:13:00 allowed, 15:13:01 refused; pacer waited before every request; slot 3 workers, 2.5 a second | stop removed, no wait, pacer skipped, pace changed → all CAUGHT |
 | 4 | Quiet index: complete, invalid rows, no alert | quiet-index test | cross-check applied to indices → CAUGHT |
 | 5 | Closed day; no NSE file | closed day at the routine's 14:35 start: nothing asked, nothing written, no wait, exit 0; no NSE file: one sidecar per index with the reason, one alert, exit 1 | session check removed → CAUGHT (with the 14:35 start) |
 | 6 | Each part stages only its own files; `CLAUDE.md` gives those paths | `git add --dry-run` in a temp repo with all parts' files (NIFTY, NSE, indices; Groww CSVs ignored); `CLAUDE.md` holds the same pathspecs | (path test) |
@@ -82,7 +82,18 @@ GATES_PLACEHOLDER
 
 ## Self-review
 
-SELF_REVIEW_PLACEHOLDER
+One independent review agent (correctness and silent failures) read the diff at a11f21fc:
+- **Accepted, fixed:** a rerun after 15:13 on a day already recorded reported all three indices "window closed",
+  alerted and exited 1 (NIFTY's `record` checks its marker first). Now each index with a marker is "already recorded"
+  before the window check. Test: a rerun at 15:20 asks Groww nothing, alerts nothing, exits 0. Broken-code proof:
+  putting back the old start fails it.
+- **Accepted, fixed:** the end time was checked once per retry round, so a later index's expiry and chain calls could
+  start just after 15:13 (criterion 3). Now it is checked before each index's attempt. Test: an index whose turn comes
+  after 15:13 is asked nothing. Broken-code proof: removing the check fails it.
+- **Already a known limit:** a bad NIFTY day (retries to 15:10) leaves the indices little time; they may end "none".
+- Checked by the agent, no finding: NIFTY's clock calls, names and keys unchanged; `pool.map` keeps row order and
+  per-row times; the pacer's lock; Groww's client made in the main thread before the workers; round-robin retries;
+  one alert; no test weakened.
 
 ## For the owner and the orchestrator
 
