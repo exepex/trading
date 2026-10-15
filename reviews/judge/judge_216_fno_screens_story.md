@@ -66,3 +66,33 @@ before the first private page is right, and criterion 3 tests it.
   into one row.
 - **Ownership check.** P2 (BR1 builder), W3 (E4c/E4d builder) and the contract and mockups (01XFXpbk) each have one
   owner, and the old P2 text is replaced, not duplicated. No second publisher, reader or adapter is planned.
+
+## Addendum 1: heads a939fd23 and 1799b120 (weather_history page, contract 2.8.0, gateway entry points)
+
+**Verdict: FAIL stands.** Should-fix 1 and 2 are not addressed yet; these commits predate the verdict. Should-fix 1
+gains part (b), the orchestrator's question.
+
+- **The gateway entry points (rule 5), accepted.** Naming every route the gateway serves under `MB_GATEWAY=1` and
+  proving the import-graph test with a planted import is a real check. It is closer than "a test".
+- **Contract 2.8.0, additions only, and `weather_history`'s shape:** fine as text.
+- **The orchestrator's question: can the thresholds be read back from `weather_history`? Yes, the colour levels
+  can.**
+  - Each row carries the colour and the four figures it is computed from: p1, p5 and their base rates b1, b5.
+  - `fno/weather/colour.py` makes the colour a pure function of those four: RED when
+    `p1 >= max(10%, 2.5·b1)` or `p5 >= max(35%, 2.5·b5)`, AMBER at 6% / 20% and 1.5 times.
+  - With about 2,400 labelled rows, the RED and AMBER floors and multiples fall out of where the colours change. The
+    149 AMBER and 121 RED days bracket them.
+  - The per-input checklist limits (`RED_LIMITS`) cannot be read back from this page, since it carries no input
+    values.
+  - So if the lead's reading of the owner's rule covers the colour levels (it turned down the `weather_method` page
+    that would show them), the history page breaks that reading. It must either drop the base rates, or the
+    probabilities, or say so.
+- **Should-fix 1, now in two parts:**
+  - (a) everything in question is already public in this public repository, which is addendum 0's point: the rule in
+    `colour.py`'s docstring and constants, `RED_LIMITS`, and `reaches` in 2,409 committed files;
+  - (b) the new history page would show the colour levels again by read-back.
+
+  The owner should decide this once, with these facts: the levels are public (show them, or stop pretending they are
+  hidden), or private from now on (move them out of the public tree, accept that history keeps them, and cut the
+  history page down to colour and label).
+- **Should-fix 2** (the manifest count): still open.
