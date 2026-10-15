@@ -49,3 +49,38 @@ it.
 
 **Verdict: FAIL for 079461ed on blocking 1.** The reconciliation itself is correct. A re-check needs only the gate
 removal (or G11's written reversal) and the tests.
+
+## Addendum 1 (15 Oct 2026): db1a0e93
+
+**Blocking 1 is MET: the open-audits gate is removed deliberately and completely.**
+- Removed: `audits.py` (`OpenAudits`, `OpenAuditFile`, `has_kind`, `require_settled`, `AuditFileError`),
+  `V4_KIND_AI`, `OPEN_AUDITS_FILE` and `build_open_audits`, and `test_look_audits.py` (its 8 tests). This explains
+  6,813 against 6,820.
+- A grep of `fno/` and `tests/` finds no remaining reference.
+- `_look` takes only `slot_days`. `LookBlocked` moves into `reconcile.py`. `sessions_not_late(is_session, days)` is
+  now a testable function.
+
+**No gap left by the removal.** Each case the old gate guarded, and those it could not see, has a named test in
+`test_look_reconcile.py`:
+
+| Case | Test |
+|---|---|
+| An open audit (a day without a row) | `test_an_open_audit_refuses_the_look` |
+| Sealed but never collected | `test_a_sealed_answer_never_collected_refuses_the_look_and_a_written_miss_settles_its_day` |
+| Collect never ran (3 sessions) | `test_a_collect_that_never_ran_refuses_the_look` |
+| `system_late` never required | `test_a_system_late_day_is_never_required` (the weekend skipped too) |
+| Before `effective_start`, and the freeze floor | `test_a_day_before_effective_start_is_never_required` |
+| A complete record runs and is recorded, with a `not_fired` miss | `test_a_complete_record_lets_the_look_run_with_its_definitive_misses` |
+| The orchestrator's case: AI rows, no `open_audits.csv`, complete record, so the look runs | The same test: no such file exists anywhere now, and the look returns (0, recorded) |
+| A blocked look exits 1 and writes nothing | `test_an_unsettled_slot_day_stops_a_recorded_look_and_records_nothing` |
+
+**My plants:**
+- the `effective_start` bound dropped (freeze floor only) fails 1 test;
+- the `system_late` filter dropped fails 1 test.
+
+The builder's plants (the AI-slot filter, the freeze floor, the skipped check) were caught earlier.
+
+**Gates.** `-n auto`: **6,813 passed, 0 failed**. Ruff and imports are clean.
+
+**PASS for db1a0e93.** Merge it before the freeze. Response 157 is updated (36f87bbe) to drop the gate from the
+checklist.
