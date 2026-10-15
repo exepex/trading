@@ -88,42 +88,42 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [B2](stories/B-research-engine.md#b2-cycle-simulator) | Cycle simulator | trading | A3, A5 | M | built; awaiting judge |
 | [B3](stories/B-research-engine.md#b3-policy-runner-and-verdict) | Policy runner and verdict | trading | B1, B2, B4 | M | later |
 | [B4](stories/B-research-engine.md#b4-ledger-guard) | Ledger guard | trading | - | S | done (judge passed) |
-| [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | trading | B1-B4, A1, A3, A5, A6, C1 | M | doing |
+| [B5](stories/B-research-engine.md#b5-experiment-1) | Experiment 1 | trading | B1-B4, A1, A3, A5, A6, C1 | M | done: no policy passed (judge 56) |
 | [B6](stories/B-research-engine.md#b6-candidate-scan) | Candidate scan | trading | B3 | L | later |
 | [B7](stories/B-research-engine.md#b7-live-3-pm-feature-versions-and-their-validation) | Live 3 pm feature versions and their validation | trading | B1, A4, A7 | M | later |
 | [C1](stories/C-code-roles.md#c1-cost-and-tax-accountant-three-ledgers) | Cost and tax accountant: three ledgers | trading | - | S | done (judge passed) |
-| [C2](stories/C-code-roles.md#c2-risk-manager) | Risk manager | trading | B2 | L | later |
-| [C3](stories/C-code-roles.md#c3-data-checks-before-every-decision) | Data checks before every decision | trading | A3, A4, A7, E2 | S | later |
-| [C4](stories/C-code-roles.md#c4-hard-validity-checks-judge-part-1) | Hard-validity checks (judge part 1) | trading | C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) | M | later |
-| [D1](stories/D-playbook-decisions.md#d1-playbook-format) | Playbook format | trading | B5, B7 | M | built; awaiting judge |
-| [D2](stories/D-playbook-decisions.md#d2-rule-evaluation-and-allocation) | Rule evaluation and allocation | trading | D1, C2, B7 | M | later |
-| [D3](stories/D-playbook-decisions.md#d3-decision-record) | Decision record | trading | D2, E2 | M | later |
+| [C2](stories/C-code-roles.md#c2-risk-manager) | Risk manager | trading | B2 | L | done (judge 43) |
+| [C3](stories/C-code-roles.md#c3-data-checks-before-every-decision) | Data checks before every decision | trading | A3, A4, A7, E2 | S | done (judge 81, merged e3506ec) |
+| [C4](stories/C-code-roles.md#c4-hard-validity-checks-judge-part-1) | Hard-validity checks (judge part 1) | trading | C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) | M | done for Book 1 (judge 83, merged dafbebe, b03c4ef); criteria 6-7 wait for D5/D4 |
+| [D1](stories/D-playbook-decisions.md#d1-playbook-format) | Playbook format | trading | B5, B7 | M | done (judge 67) |
+| [D2](stories/D-playbook-decisions.md#d2-rule-evaluation-and-allocation) | Rule evaluation and allocation | trading | D1, C2, B7 | M | done (judges 69 and 74, merged 662784f, a0a8eef) |
+| [D3](stories/D-playbook-decisions.md#d3-decision-record) | Decision record | trading | D2, E2 | M | done (judge 80, merged f314254) |
 | [D4](stories/D-playbook-decisions.md#d4-book-2s-authority-envelope) | Book 2's authority envelope | trading | D1 | S | later |
 | [D5](stories/D-playbook-decisions.md#d5-book-3s-constitution-and-strategy-registry) | Book 3's constitution and strategy registry | trading | B4 (git-ancestry pattern), C2 | M | later |
-| [D6](stories/D-playbook-decisions.md#d6-version-registry-and-evaluation-segments) | Version registry and evaluation segments | trading | D3 | S | later |
+| [D6](stories/D-playbook-decisions.md#d6-version-registry-and-evaluation-segments) | Version registry and evaluation segments | trading | D3 | S | done (judge 78, merged c12137e) |
 | [E1](stories/E-paper-desk.md#e1-paper-accounts-per-book-with-a-single-writer-lock) | Paper accounts per book, with a single-writer lock | trading | C1 | M | done (judge passed) |
-| [E2](stories/E-paper-desk.md#e2-common-market-pack-and-book-private-packs) | Common market pack and book-private packs | trading | A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) | M | later |
-| [E3](stories/E-paper-desk.md#e3-daily-timetable-deadline-execution-snapshot-and-exits) | Daily timetable: deadline, execution snapshot and exits | trading | A4, A7, C3, C4, D3, E1, E2, E4 | L | later |
-| [E4](stories/E-paper-desk.md#e4-fill-model-and-exits) | Fill model and exits | trading | A4, C1, C2, E1 | M | built; awaiting judge |
-| [E5](stories/E-paper-desk.md#e5-book-1-pure-rules) | Book 1: pure rules | trading | C4, D2, D3, E2, E3 | S | later |
-| [E6](stories/E-paper-desk.md#e6-strategy-paper-scorecard-and-pause-rules) | Strategy paper scorecard and pause rules | trading | C1, D1, E4 | M | built; awaiting judge |
-| [E7](stories/E-paper-desk.md#e7-expiry-settlement) | Expiry settlement | trading | A2, C1, C2, E1, E4 | S | built; awaiting judge |
-| [F1](stories/F-ai-layer.md#f1-isolated-ai-book-sessions) | Isolated AI book sessions | trading | D3, D6, E2, E3 | L | forecast part awaiting judge |
+| [E2](stories/E-paper-desk.md#e2-common-market-pack-and-book-private-packs) | Common market pack and book-private packs | trading | A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) | M | done (judge 72, merged b4f1e1b) |
+| [E3](stories/E-paper-desk.md#e3-daily-timetable-deadline-execution-snapshot-and-exits) | Daily timetable: deadline, execution snapshot and exits | trading | A4, A7, C3, C4, D3, E1, E2, E4 | L | done (judge 82); not live (no routine yet) |
+| [E4](stories/E-paper-desk.md#e4-fill-model-and-exits) | Fill model and exits | trading | A4, C1, C2, E1 | M | done (judge 68) |
+| [E5](stories/E-paper-desk.md#e5-book-1-pure-rules) | Book 1: pure rules | trading | C4, D2, D3, E2, E3 | S | done (judge 84, merged 58f5781); not live |
+| [E6](stories/E-paper-desk.md#e6-strategy-paper-scorecard-and-pause-rules) | Strategy paper scorecard and pause rules | trading | C1, D1, E4 | M | done (judge 73, merged 374ad67) |
+| [E7](stories/E-paper-desk.md#e7-expiry-settlement) | Expiry settlement | trading | A2, C1, C2, E1, E4 | S | done (judge 71, merged f655612) |
+| [F1](stories/F-ai-layer.md#f1-isolated-ai-book-sessions) | Isolated AI book sessions | trading | D3, D6, E2, E3 | L | forecast part done (judges 62, 88, 90); trading part later |
 | [F2](stories/F-ai-layer.md#f2-role-agents-and-finding-cards) | Role agents and finding cards | trading | F1 | L | later |
 | [F3](stories/F-ai-layer.md#f3-red-team) | Red team | trading | F1, F2 | M | later |
 | [F4](stories/F-ai-layer.md#f4-ai-judge-parts-2-and-3-owner-overrides-and-the-monthly-audit) | AI judge (parts 2 and 3), owner overrides and the monthly audit | trading | C4, F1, F2 | M | later |
 | [F5](stories/F-ai-layer.md#f5-book-2-ai-decisions-inside-the-envelope) | Book 2: AI decisions inside the envelope | trading | C4, D2, D4, F1, F2, F3, F4 | M | later |
 | [F6](stories/F-ai-layer.md#f6-book-3-the-fully-ai-system-and-its-pilot) | Book 3: the fully AI system and its pilot | trading | C2, C4, D5, D6, F1, F2, F3, F4, G1 | L | later |
 | [F7](stories/F-ai-layer.md#f7-matched-shadow-decisions-for-scoreboard-a) | Matched shadow decisions for scoreboard A | trading | E2, F6 | S | later |
-| [F8](stories/F-ai-layer.md#f8-ai-usage-and-cost-attribution) | AI usage and cost attribution | trading | C1, F1 | S | later |
+| [F8](stories/F-ai-layer.md#f8-ai-usage-and-cost-attribution) | AI usage and cost attribution | trading | C1, F1 | S | minimal part done (judge 104, merged 757c20d); part 2 later |
 | [F9](stories/F-ai-layer.md#f9-role-value-evaluation-does-each-ai-role-earn-its-cost) | Role-value evaluation (does each AI role earn its cost?) | trading | F1, F2, F8, S1, E4 | M | later |
-| [G1](stories/G-forecasts.md#g1-forecast-protocol-and-the-30-day-atm-implied-volatility-estimator) | Forecast protocol and the 30-day ATM implied-volatility estimator | trading | A1, A3, B1, B4 | M | later |
-| [G2](stories/G-forecasts.md#g2-frozen-baselines) | Frozen baselines | trading | G1, A3, A4 | M | later |
-| [G3](stories/G-forecasts.md#g3-book-1-forecast-capture) | Book 1 forecast capture | trading | G1, G2 | S | later |
+| [G1](stories/G-forecasts.md#g1-forecast-protocol-and-the-30-day-atm-implied-volatility-estimator) | Forecast protocol and the 30-day ATM implied-volatility estimator | trading | A1, A3, B1, B4 | M | done: v1-v3 frozen (judges 47, 64); v4 is G6 |
+| [G2](stories/G-forecasts.md#g2-frozen-baselines) | Frozen baselines | trading | G1, A3, A4 | M | done (judge 54) |
+| [G3](stories/G-forecasts.md#g3-book-1-forecast-capture) | Book 1 forecast capture | trading | G1, G2 | S | done (judge 54); live since 14 Oct |
 | [G4](stories/G-forecasts.md#g4-forecast-scoring-and-reports) | Forecast scoring and reports | trading | G1, G3 (G5 for books 2 and 3) | M | done (judge 58 passed) |
-| [G5](stories/G-forecasts.md#g5-ai-books-forecast-capture) | AI books' forecast capture | trading | G1, G3, F1 | S | awaiting judge |
-| [S1](stories/S-scoreboards.md#s1-evaluation-protocol) | Evaluation protocol | trading | B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) | S | later |
-| [S2](stories/S-scoreboards.md#s2-scoreboard-b-whole-systems) | Scoreboard B: whole systems | trading | C1, D6, E1, E4, S1 (F8 for the AI books' allocated cost) | M | later |
+| [G5](stories/G-forecasts.md#g5-ai-books-forecast-capture) | AI books' forecast capture | trading | G1, G3, F1 | S | done (judge 62); live since 14 Oct |
+| [S1](stories/S-scoreboards.md#s1-evaluation-protocol) | Evaluation protocol | trading | B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) | S | Draft, not frozen. Tooling merged (judge 85); owner batch 1 FAILed (judge 94); the freeze waits for S3, F9 and E8 code (owner option A, REPLAN) |
+| [S2](stories/S-scoreboards.md#s2-scoreboard-b-whole-systems) | Scoreboard B: whole systems | trading | C1, D6, E1, E4, S1 (F8 for the AI books' allocated cost) | M | done (judge 87, merged a9a3cd1) |
 | [S3](stories/S-scoreboards.md#s3-scoreboard-a-matched-decisions) | Scoreboard A: matched decisions | trading | E2, E4, F7, D6, S1 | M | later |
 | [S4](stories/S-scoreboards.md#s4-monthly-report-and-scheduled-reviews) | Monthly report and scheduled reviews | trading | S2, S3, G4, F4, F8, F9 | M | later |
 | [S5](stories/S-scoreboards.md#s5-research-feedback-loop) | Research feedback loop | trading | S4, D1, D4, D5, D6 | S | later |

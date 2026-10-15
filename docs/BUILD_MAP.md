@@ -24,13 +24,13 @@ the engine runs, so how do UI and engine proceed without rework or misleading sc
 
 ## Slices
 
-| # | Slice | Stories, in order | First real thing on screen | State (13 Oct 2026) |
+| # | Slice | Stories, in order | First real thing on screen | State (15 Oct 2026) |
 |---|---|---|---|---|
 | 0 | Foundation (prerequisite, not an end-to-end slice) | A1-A12, O6 (fetch in Actions, reason in triggered routines) | none (feeds all) | A1-A11 done except A8 (waits 20 release days); A12 and O6 with the judge; filings backfill running |
 | 1 | Market data | P6 → W12 (Screener, Markets) | live market screens | P6 and W12 in re-judge |
-| 2 | Forecast contest, Book 1 | G1 → G2 baselines → G3 Book 1 capture → G4 scoring → P1/P2 read model → Forecast lab (37, deep dive) and the prediction section of the Strategy lab (38) | Rule-based forecasts against yardsticks, scored daily | G1 v1 and v2 frozen or freezing; G2, G3 built; live capture from 14 Oct |
-| 2b | Forecast contest, Books 2 and 3 | F1 isolated AI book sessions → G5 AI books' capture (through O6 triggers) | Hybrid and AI team in the same screen | F1 (forecast part) and G5 built, awaiting judge and the owner's two routines (response 67) |
-| 3 | Paper trading, Book 1 | B5 experiment 1 (freeze after ChatGPT agrees, response 55) → D1-D3 playbook and decision record → C3/C4 checks → E2-E6 paper desk → S1/S2 scoreboard B → Strategy lab (38): which family makes net profit on paper | Book 1 paper trades with costs | experiment 1 done: no policy passed (judge 56); D1 and E4 building from 14 Oct 2026; build waves in DESK_DECISIONS 14 Oct |
+| 2 | Forecast contest, Book 1 | G1 → G2 baselines → G3 Book 1 capture → G4 scoring → P1/P2 read model → Forecast lab (37, deep dive) and the prediction section of the Strategy lab (38) | Rule-based forecasts against yardsticks, scored daily | G1 v1-v3 frozen (judge 64); G2, G3 done (judge 54); G4 done (judge 58); live capture since 14 Oct |
+| 2b | Forecast contest, Books 2 and 3 | F1 isolated AI book sessions → G5 AI books' capture (through O6 triggers) | Hybrid and AI team in the same screen | F1 (forecast part) and G5 done (judges 62, 88, 90); G5 live since 14 Oct |
+| 3 | Paper trading, Book 1 | B5 experiment 1 (freeze after ChatGPT agrees, response 55) → D1-D3 playbook and decision record → C3/C4 checks → E2-E6 paper desk → S1/S2 scoreboard B → Strategy lab (38): which family makes net profit on paper | Book 1 paper trades with costs | experiment 1 done: no policy passed (judge 56); D1-D3, D6, C2-C5, E2, E4-E7, S2 passed and merged; E3 and E5 not live (no routine yet) |
 | 4 | Paper trading, Books 2 and 3 | D4/D5 envelopes → F2-F7 → S3 scoreboard A | three books trading and compared | not started |
 | 5 | Operations | O1 daily routine → O2 failures → P3/P4 Azure and Slack → O3/O4 | runs by itself, alerts | not started |
 

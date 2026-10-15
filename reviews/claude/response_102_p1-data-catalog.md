@@ -438,3 +438,9 @@ byte-identical.
   `fno.composition.paper_account_rs()`, the same source the books open with, so it follows config instead of a copy.
 - **Merge conflict:** `reviews/claude/README.md` had index lines on both sides; both are kept.
 - Decision 68 holds: nothing else changes in P1 (no trim without the owner's approval in this session).
+
+## Addendum 7: trim (owner, 15 Oct 2026)
+
+"Planted breaks: 28 of 28" above no longer holds: with the owner's approval and the 15 Oct simplicity rule,
+dashboard f617139 (judge 166 PASS) removed `tools/api/fno_planted.py`, the id-keyed AI isolation rules and their two
+probes; the family rule and 10 rule probes stay. The pin moved to f617139; only `fno-forecast-lab.yaml` changed.

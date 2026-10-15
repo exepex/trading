@@ -41,7 +41,7 @@ the role-value schedule and minimum sample (F9).
 
 **Judge verifies:** runs the completeness check; confirms the commit order.
 
-**Depends:** B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) · **Size:** S · **Status:** tools and DRAFT protocol built on `story/s1-protocol`, judge pending (claims: reviews/claude/response_86_s1-protocol.md); the protocol is NOT frozen: every value awaits the owner's decision
+**Depends:** B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) · **Size:** S · **Status:** Draft, not frozen. Tooling merged (judge 85); owner batch 1 FAILed (judge 94); the freeze waits for S3, F9 and E8 code (owner option A, REPLAN) (claims: reviews/claude/response_86_s1-protocol.md)
 
 ---
 
@@ -72,7 +72,7 @@ pilot evidence apart; cash held after the common start counts as an outcome; ove
 
 **Judge verifies:** recomputes one book's monthly net and net per unit of risk from the records.
 
-**Depends:** C1, D6, E1, E4, S1 (F8 for the AI books' allocated cost) · **Size:** M · **Status:** later
+**Depends:** C1, D6, E1, E4, S1 (F8 for the AI books' allocated cost) · **Size:** M · **Status:** done: judge 87 PASS (771d508), merged a9a3cd1
 
 ---
 
