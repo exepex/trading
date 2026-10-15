@@ -117,7 +117,7 @@ def test_bounded_loss_is_checked_from_the_legs_whatever_the_code_and_shape_rules
     assert not bounded.ok and "CE" in bounded.reason
 
 
-SETTINGS = MarginSettings(Path("margins.csv"), 7, "multiplier", 1.45, "test", FILE_DAY, 30)
+SETTINGS = MarginSettings(Path("margins.csv"), 7, None, "multiplier", 1.45, "test", FILE_DAY, 30)  # 7 days (Manual)
 
 
 def zero_row(code: str, width: float, exposure: float = 0.0) -> dict:

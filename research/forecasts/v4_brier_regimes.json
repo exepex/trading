@@ -1,0 +1,1205 @@
+{
+ "series": 100000,
+ "rows": [
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "gate": 0,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 1.4193317722861698e-23,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.00012,
+     "full flipped": 0.00103,
+     "calm 125 flipped": 0.0169,
+     "calm 250 flipped": 0.00305,
+     "gaussian": 0.0
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 4.6962592200238474e-21,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.00019,
+     "full flipped": 0.00165,
+     "calm 125 flipped": 0.0186,
+     "calm 250 flipped": 0.00463,
+     "gaussian": 0.0
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 1.15281560712441e-09,
+   "false_futility": {
+    "full as measured": 0.02423,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0268,
+    "full flipped": 0.0,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.00029
+   },
+   "judgeable": {
+    "full as measured": 1.0,
+    "calm 125 as measured": 1.0,
+    "calm 250 as measured": 1.0,
+    "full flipped": 1.0,
+    "calm 125 flipped": 1.0,
+    "calm 250 flipped": 1.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "gate": 5,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 2.4949984172538337e-12,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00093,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 1.7716141827459408e-11,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00158,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 1.963881706833129e-06,
+   "false_futility": {
+    "full as measured": 0.02502,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.0,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.52944,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.53395,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "gate": 10,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 9.58146582126431e-06,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00087,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 6e-05
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 3.7923041488841255e-05,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.0014,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00026
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.051252126275968486,
+   "false_futility": {
+    "full as measured": 0.01503,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02433,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.18227,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.18462,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "gate": 15,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.00030015499316782105,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 3e-05,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00151
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.0004800581489732035,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 4e-05,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00221
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.05125927968700087,
+   "false_futility": {
+    "full as measured": 0.00036,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02433,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.07817,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.08002,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "gate": 20,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.00030015499316782105,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.0,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00151
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.0004800581489732035,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.0,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00221
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.07917332864275134,
+   "false_futility": {
+    "full as measured": 0.0,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02418,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.02903,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.03047,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "gate": 0,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 4.191982196635356e-23,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00104,
+     "calm 125 flipped": 0.00123,
+     "calm 250 flipped": 0.00146,
+     "gaussian": 0.0
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 8.16914070458386e-22,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00159,
+     "calm 125 flipped": 0.00124,
+     "calm 250 flipped": 0.0023,
+     "gaussian": 0.0
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 2.6988587839125764e-12,
+   "false_futility": {
+    "full as measured": 0.02345,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.01602,
+    "full flipped": 0.0,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 1.0,
+    "calm 125 as measured": 1.0,
+    "calm 250 as measured": 1.0,
+    "full flipped": 1.0,
+    "calm 125 flipped": 1.0,
+    "calm 250 flipped": 1.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "gate": 5,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 1.0509317209123585e-19,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00115,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 5.818224563124812e-19,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00157,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 3.1192276659371994e-11,
+   "false_futility": {
+    "full as measured": 0.02423,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.0,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.90091,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.90136,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "gate": 10,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 1.5575983300460362e-14,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00128,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 6.200681955641258e-14,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00184,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 5.0265615284857837e-08,
+   "false_futility": {
+    "full as measured": 0.02595,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.0,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.58008,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.57777,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "gate": 15,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 5.39804497899248e-09,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00109,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 5.056544895822634e-08,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00179,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.00962757968753592,
+   "false_futility": {
+    "full as measured": 0.02356,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.00242,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.30712,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.30284,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "gate": 20,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.00023915189417869572,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00042,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00126
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.0004186993853618021,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00049,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00182
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.04655468388037833,
+   "false_futility": {
+    "full as measured": 0.00369,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02441,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.157,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.15535,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "gate": 0,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.00011282378914489198,
+    "claim_size": {
+     "full as measured": 6e-05,
+     "calm 125 as measured": 0.07275,
+     "calm 250 as measured": 0.61686,
+     "full flipped": 0.00122,
+     "calm 125 flipped": 0.00035,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00025
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.00017447931452811417,
+    "claim_size": {
+     "full as measured": 0.00011,
+     "calm 125 as measured": 0.07417,
+     "calm 250 as measured": 0.67728,
+     "full flipped": 0.0019,
+     "calm 125 flipped": 0.0006,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00035
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.0038929939245412244,
+   "false_futility": {
+    "full as measured": 0.0242,
+    "calm 125 as measured": 0.01174,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.00161,
+    "calm 125 flipped": 0.09893,
+    "calm 250 flipped": 0.92667
+   },
+   "judgeable": {
+    "full as measured": 1.0,
+    "calm 125 as measured": 1.0,
+    "calm 250 as measured": 1.0,
+    "full flipped": 1.0,
+    "calm 125 flipped": 1.0,
+    "calm 250 flipped": 1.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "gate": 5,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.000588616395357301,
+    "claim_size": {
+     "full as measured": 3e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00123,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00143
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.000889602997696053,
+    "claim_size": {
+     "full as measured": 8e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00191,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00198
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.015345788258984866,
+   "false_futility": {
+    "full as measured": 0.02351,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.00708,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.53701,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.53358,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "gate": 10,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.0006260876782946058,
+    "claim_size": {
+     "full as measured": 2e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 3e-05,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00151
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.0009660718408717037,
+    "claim_size": {
+     "full as measured": 7e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 6e-05,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0021
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.042680962881442304,
+   "false_futility": {
+    "full as measured": 0.00234,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02497,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.18663,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.18677,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "gate": 15,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.0006260876782946058,
+    "claim_size": {
+     "full as measured": 2e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.0,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00151
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.0009660718408717037,
+    "claim_size": {
+     "full as measured": 7e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.0,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0021
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.057271549754628094,
+   "false_futility": {
+    "full as measured": 2e-05,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02514,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.0797,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.08021,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "gate": 20,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.0006260876782946058,
+    "claim_size": {
+     "full as measured": 2e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.0,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00151
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.0009660718408717037,
+    "claim_size": {
+     "full as measured": 6e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.0,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0021
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.14038466881000006,
+   "false_futility": {
+    "full as measured": 0.0,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02459,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.02992,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.03012,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "gate": 0,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 9.771914014027645e-05,
+    "claim_size": {
+     "full as measured": 1e-05,
+     "calm 125 as measured": 0.0177,
+     "calm 250 as measured": 0.98506,
+     "full flipped": 0.00123,
+     "calm 125 flipped": 0.00025,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00027
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.0001555879453295975,
+    "claim_size": {
+     "full as measured": 1e-05,
+     "calm 125 as measured": 0.01889,
+     "calm 250 as measured": 0.99027,
+     "full flipped": 0.00197,
+     "calm 125 flipped": 0.00045,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00036
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.0031593681678370286,
+   "false_futility": {
+    "full as measured": 0.02412,
+    "calm 125 as measured": 0.01006,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.00035,
+    "calm 125 flipped": 0.02848,
+    "calm 250 flipped": 0.99904
+   },
+   "judgeable": {
+    "full as measured": 1.0,
+    "calm 125 as measured": 1.0,
+    "calm 250 as measured": 1.0,
+    "full flipped": 1.0,
+    "calm 125 flipped": 1.0,
+    "calm 250 flipped": 1.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "gate": 5,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.00011699003672507901,
+    "claim_size": {
+     "full as measured": 1e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00117,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.0003
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.00018846843254503648,
+    "claim_size": {
+     "full as measured": 1e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00193,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00044
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.0037641104958427243,
+   "false_futility": {
+    "full as measured": 0.02378,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.00043,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.90242,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.90291,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "gate": 10,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.000508821631422032,
+    "claim_size": {
+     "full as measured": 0.0,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00124,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00115
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.0007732715057005051,
+    "claim_size": {
+     "full as measured": 2e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.0017,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00167
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.01694960552726899,
+   "false_futility": {
+    "full as measured": 0.0244,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.00612,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.58301,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.5823,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "gate": 15,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.000562814463167137,
+    "claim_size": {
+     "full as measured": 1e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00015,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00127
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.000876384631556096,
+    "claim_size": {
+     "full as measured": 2e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 0.00025,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00184
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.04165843825985462,
+   "false_futility": {
+    "full as measured": 0.00501,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02425,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.30641,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.30807,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "gate": 20,
+   "stretches": {
+    "calm 125": [
+     "2021-04-13",
+     "2021-10-12",
+     0
+    ],
+    "calm 250": [
+     "2022-10-06",
+     "2023-10-10",
+     0
+    ]
+   },
+   "look 1": {
+    "claim_threshold": 0.000562814463167137,
+    "claim_size": {
+     "full as measured": 1e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 1e-05,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00127
+    },
+    "nominal": 0.0013333333333333333
+   },
+   "look 2": {
+    "claim_threshold": 0.000876384631556096,
+    "claim_size": {
+     "full as measured": 2e-05,
+     "calm 125 as measured": 0.0,
+     "calm 250 as measured": 0.0,
+     "full flipped": 1e-05,
+     "calm 125 flipped": 0.0,
+     "calm 250 flipped": 0.0,
+     "gaussian": 0.00184
+    },
+    "nominal": 0.002
+   },
+   "futility_threshold": 0.046081690532412255,
+   "false_futility": {
+    "full as measured": 0.00033,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.02468,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   },
+   "judgeable": {
+    "full as measured": 0.15779,
+    "calm 125 as measured": 0.0,
+    "calm 250 as measured": 0.0,
+    "full flipped": 0.15797,
+    "calm 125 flipped": 0.0,
+    "calm 250 flipped": 0.0
+   }
+  }
+ ]
+}

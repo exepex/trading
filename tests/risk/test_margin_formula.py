@@ -7,6 +7,7 @@ import pytest
 
 from fno.research_engine.structures import BOUGHT, SOLD
 from fno.risk.inputs import RiskInputError
+from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginParts, MarginTable, MultiplierMargin
 from fno.risk.rules import MarginRoom
 from fno.risk.settings import StressedMarginSettings
@@ -48,7 +49,7 @@ def _room(tmp_path) -> MarginRoom:
     rows = [f"{p.what.split()[0]},100,{p.scan},{p.nov},{p.exposure},NSE SPAN test,{DAY}\n" for p in (SF_100, BF_100)]
     (tmp_path / "margins.csv").write_text(HEADER + "".join(rows))
     settings = StressedMarginSettings("multiplier", 1.0, "exact input", DAY, 30, None)
-    return MarginRoom(MultiplierMargin(MarginTable(tmp_path / "margins.csv", 7), settings), CostsAtMid())
+    return MarginRoom(MultiplierMargin(MarginTable(tmp_path / "margins.csv", DaysOld(7)), settings), CostsAtMid())
 
 
 class CostsAtMid:

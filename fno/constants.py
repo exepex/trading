@@ -33,7 +33,8 @@ SESSION_HOLIDAY, SESSION_SPECIAL, SESSION_MUHURAT, SESSION_REGULAR = "holiday", 
 # Index names in NSE's daily index-close file that every file must carry (the research needs both)
 INDEX_NIFTY_50, INDEX_INDIA_VIX = "Nifty 50", "India VIX"
 
-# The three paper books (design 12.1, story E1): each has its own Rs 5 lakh paper account under journal/<book>/account/
+# The three paper books (design 12.1, story E1): each has its own paper account under journal/<book>/account/,
+# opened with config.yaml risk.paper_account_rs (story C5)
 BOOK1_RULES = "book1_rules"  # pure rules
 BOOK2_HYBRID = "book2_hybrid"  # AI inside the authority envelope
 BOOK3_AI = "book3_ai"  # fully AI under the constitution
@@ -133,6 +134,16 @@ OWNER_OVERRIDES_FILE = "owner_overrides.csv"  # journal/<book>/owner_overrides.c
 OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
+# Risk buckets (story C5, design 6.2): an underlying group and a side of exposure. Only the index groups 6.2 names are
+# mapped; a stock (its own group, or "stock results this week") is unmapped until the events calendar is wired in.
+BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH = (
+    "short_volatility", "long_volatility", "bullish", "bearish",
+)  # fmt: skip
+BUCKET_SIDES = (BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH)
+BUCKET_INDEX_GROUPS = ("NIFTY", "BANKNIFTY")
+# Risk profiles (story C5, config.yaml risk.profiles): the three paper books on the Rs 20 lakh account, and the Manual
+# paper account on its 13 Oct 2026 limits (DESK_DECISIONS, 15 Oct 2026: "1 A", "2 A")
+RISK_PROFILE_BOOKS, RISK_PROFILE_MANUAL = "books", "manual"
 
 # Daily forecasts (epic G, research/forecasts/PROTOCOL.md): the five frozen questions and who answers them
 FORECAST_Q1_UP_20D = "q1_nifty_up_20d"  # P(NIFTY close in 20 trading days > today's close)
@@ -150,6 +161,30 @@ BASELINE_RISK_NEUTRAL, BASELINE_BASE_RATE, BASELINE_MODEL = (
     "baseline_c_model",
 )
 FORECASTERS = BOOKS + (BASELINE_RISK_NEUTRAL, BASELINE_BASE_RATE, BASELINE_MODEL)
+
+# Forecast protocol v4 (story G6, research/forecasts/PROTOCOL_v4.md): the movement-size questions, their forecaster
+# slots and baselines. V6 is two targets (one session, five sessions).
+V1_RV_1S, V2_RV_5S, V3_RV_20S = "v1_rv_next_session", "v2_rv_next_5_sessions", "v3_rv_next_20_sessions"
+V4_RV_BELOW_WEEKLY_IV = "v4_rv5_below_weekly_atm_iv"  # probabilistic diagnostic
+V5_INSIDE_STRADDLE = "v5_close_inside_k_plus_minus_p"  # terminal intrinsic-payoff proxy
+V6_BIG_MOVE_1S, V6_BIG_MOVE_5S = "v6_abs_move_2pct_next_session", "v6_abs_move_2pct_within_5_sessions"
+V7_VIX_UP_5S = "v7_vix_higher_in_5_sessions"
+V4_QUESTIONS = (
+    V1_RV_1S, V2_RV_5S, V3_RV_20S, V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S,
+    V7_VIX_UP_5S,
+)  # fmt: skip
+V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI = "rules", "hybrid", "ai_team"  # one registered forecaster per slot
+V4_SLOTS = (V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI)
+V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY = "har_daily", "har_intraday"
+V4_BASELINE_TRAILING, V4_BASELINE_EWMA = "trailing", "ewma_094"
+V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED = "raw_implied", "premium_adjusted_implied"
+V4_BASELINE_OPTION_IMPLIED_PROB, V4_BASELINE_BASE_RATE = "option_implied_probability", "base_rate"
+V4_IV30_EOD_PROXY = "iv30_eod_close_proxy"  # G1 v1's estimator on the panel's end-of-day chains (premium ratio window)
+V4_CLAIM, V4_TOO_SMALL, V4_FUTILE, V4_OPEN = "claim", "real_but_too_small", "futile", "open"  # a member's verdict
+STOP_YES, STOP_NO, STOP_UNDECIDED = "yes", "no", "undecided"  # design v2 section 8.2, tests A and B
+STOP_NO_ECONOMIC_TEST = "undecided/no_economic_test"  # Test B with zero counted shadows
+STOP_OR_PIVOT, CONTINUE_HALF_AI_BUDGET, CONTINUE = "stop_or_pivot", "continue_6_months_half_ai_budget", "continue"
+UNDECIDED_OPTION_1, UNDECIDED_OPTION_2 = "option_1_continue_to_settle_date", "option_2_code_only"
 
 # Company filings archive (story A12, fno/filings/): the filing types archived, and where NSE serves their files
 FILING_RESULTS, FILING_SHAREHOLDING = "results-xbrl", "shareholding-xbrl"  # one XBRL file per filing
@@ -176,6 +211,7 @@ ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"
 ENV_ROUTINE_BOOK3_TOKEN = "FNO_ROUTINE_BOOK3_AI_TOKEN"
 ENV_GITHUB_TOKEN = "GITHUB_TOKEN"  # the Actions run's own token: reads the repository's push log (receipt times)
 GITHUB_REPOSITORY_VARIABLE = "GITHUB_REPOSITORY"  # owner/name, set by GitHub Actions (not a secret, so no ENV_ name)
+DEFAULT_REPOSITORY = "exepex/trading"  # outside GitHub Actions, where GITHUB_REPOSITORY is not set
 
 
 # Playbook (story D1, fno/playbook/): a strategy version's lifecycle, who may change it, and its files
@@ -247,6 +283,26 @@ DEEP_OTM_EXPOSURE_RATE, DEEP_OTM_DISTANCE = 0.03, 0.10  # a short option more th
 EXPOSURE_MODEL_MAX_MONTHS = 9  # beyond 9 months (5%) and on expiry day (+2%) NSE's rule differs: not modelled
 SPAN_BOD_CREATED_BEFORE = time(9, 0)  # IST: a day's `i1` file must be written before this (point in time)
 MARGIN_SOURCE_NSE_SPAN = "NSE SPAN"  # margins.csv `source` prefix of a computed row: "NSE SPAN <file> sha256=<hex>"
+
+# Stories F8 (minimal) and BG1 (fno/budget/): what an AI session's minutes were for, design v2 section 8.1's cost
+# items, and the order AI roles stop in at 100% of the AI cap (section 7.6); code jobs keep running
+PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT = "books_and_roles", "development"  # only the first counts against the cap
+PURPOSE_DATA_ROUTINES = (
+    "data_routines"  # code jobs run by a Claude routine (3 pm and 15-minute recorders): keep running
+)
+USAGE_PURPOSES = (PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT, PURPOSE_DATA_ROUTINES)
+ITEM_CLAUDE_PLAN = "Claude subscription"
+ITEM_GITHUB_DRIVE = "GitHub Actions and Drive"
+ITEM_AZURE_POSTGRES = "Azure Database for PostgreSQL"
+ITEM_GROWW_API = "Groww API"
+ITEM_RECORDER_HOSTING = "Recorder and monitor hosting"
+ITEM_PAID_DATA = "Paid data"
+BUDGET_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_GITHUB_DRIVE, ITEM_AZURE_POSTGRES, ITEM_GROWW_API, ITEM_RECORDER_HOSTING,
+                ITEM_PAID_DATA)  # fmt: skip
+EXISTING_COST_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_AZURE_POSTGRES)  # running before 15 Oct 2026; others need a written yes
+BUDGET_OK, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN = "ok", "alert", "stop", "unknown"
+AI_ROLE_STOP_ORDER = ("analysts", "idea generator", "post-mortem writer", "devil's advocate objections",
+                      "AI forecasters")  # fmt: skip
 
 
 # The daily trade card (story T1, fno/cards/): its status, the reason codes of a `NO TRADE` card (design 04, 4.1),

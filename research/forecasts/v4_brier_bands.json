@@ -1,0 +1,929 @@
+{
+ "series": 200000,
+ "rows": [
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "band": [
+    5,
+    7
+   ],
+   "judgeable_share_all": 0.5329875,
+   "band_share": 0.24839499999999998,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 2.5679176213416243e-14,
+    "claim": {
+     "full as measured": [
+      0.0,
+      49698
+     ],
+     "full flipped": [
+      0.0011679420056383406,
+      49660
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 631,
+    "outcomes_r5": 1752
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 6.754771945525188e-14,
+    "claim": {
+     "full as measured": [
+      0.0,
+      49698
+     ],
+     "full flipped": [
+      0.0015102698348771646,
+      49660
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 612,
+    "outcomes_r5": 1699
+   },
+   "futility_threshold": 6.297101635984427e-08,
+   "futility": {
+    "full as measured": [
+     0.02449454895898167,
+     49807
+    ],
+    "full flipped": [
+     0.0,
+     49791
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "band": [
+    8,
+    12
+   ],
+   "judgeable_share_all": 0.5329875,
+   "band_share": 0.175645,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 4.1808366348001096e-11,
+    "claim": {
+     "full as measured": [
+      0.0,
+      35285
+     ],
+     "full flipped": [
+      0.0003431218368455666,
+      34973
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 485,
+    "outcomes_r5": 1346
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 2.259049148443004e-10,
+    "claim": {
+     "full as measured": [
+      0.0,
+      35285
+     ],
+     "full flipped": [
+      0.0009149915649215109,
+      34973
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 451,
+    "outcomes_r5": 1252
+   },
+   "futility_threshold": 2.565485984025287e-06,
+   "futility": {
+    "full as measured": [
+     0.022417153996101363,
+     34884
+    ],
+    "full flipped": [
+     0.0,
+     34984
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "band": [
+    13,
+    null
+   ],
+   "judgeable_share_all": 0.5329875,
+   "band_share": 0.1089475,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 2.0097712676394628e-05,
+    "claim": {
+     "full as measured": [
+      0.0,
+      21817
+     ],
+     "full flipped": [
+      0.0005514199062586159,
+      21762
+     ],
+     "gaussian 0": [
+      6e-05,
+      200000
+     ],
+     "gaussian 1": [
+      0.000115,
+      200000
+     ],
+     "gaussian 2": [
+      3.5e-05,
+      200000
+     ]
+    },
+    "outcomes_r3": 221,
+    "outcomes_r5": 613
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 0.0001242437737299967,
+    "claim": {
+     "full as measured": [
+      0.0,
+      21817
+     ],
+     "full flipped": [
+      0.001470453083356309,
+      21762
+     ],
+     "gaussian 0": [
+      0.000195,
+      200000
+     ],
+     "gaussian 1": [
+      0.000685,
+      200000
+     ],
+     "gaussian 2": [
+      0.0002,
+      200000
+     ]
+    },
+    "outcomes_r3": 183,
+    "outcomes_r5": 508
+   },
+   "futility_threshold": 0.020675118079586205,
+   "futility": {
+    "full as measured": [
+     0.011398630325872133,
+     21757
+    ],
+    "full flipped": [
+     0.021770279639473075,
+     21635
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "band": [
+    5,
+    7
+   ],
+   "judgeable_share_all": 0.9015500000000001,
+   "band_share": 0.1832425,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 1.3737714413009834e-23,
+    "claim": {
+     "full as measured": [
+      0.0,
+      36680
+     ],
+     "full flipped": [
+      0.0012289373788131196,
+      36617
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 1047,
+    "outcomes_r5": 2907
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 2.1249272642109125e-22,
+    "claim": {
+     "full as measured": [
+      0.0,
+      36680
+     ],
+     "full flipped": [
+      0.0016385831717508261,
+      36617
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 994,
+    "outcomes_r5": 2760
+   },
+   "futility_threshold": 1.4512911527615965e-13,
+   "futility": {
+    "full as measured": [
+     0.021412695831300482,
+     36894
+    ],
+    "full flipped": [
+     0.0,
+     36444
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "band": [
+    8,
+    12
+   ],
+   "judgeable_share_all": 0.9015500000000001,
+   "band_share": 0.31923250000000003,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 4.118115160801704e-19,
+    "claim": {
+     "full as measured": [
+      0.0,
+      63749
+     ],
+     "full flipped": [
+      0.0009539597147504066,
+      63944
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 847,
+    "outcomes_r5": 2352
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 2.693339140745581e-18,
+    "claim": {
+     "full as measured": [
+      0.0,
+      63749
+     ],
+     "full flipped": [
+      0.0015795070686850995,
+      63944
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 810,
+    "outcomes_r5": 2250
+   },
+   "futility_threshold": 1.8119429911985703e-11,
+   "futility": {
+    "full as measured": [
+     0.023875013752888107,
+     63623
+    ],
+    "full flipped": [
+     0.0,
+     64327
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "band": [
+    13,
+    null
+   ],
+   "judgeable_share_all": 0.9015500000000001,
+   "band_share": 0.399075,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 2.5631489065488356e-13,
+    "claim": {
+     "full as measured": [
+      0.0,
+      79764
+     ],
+     "full flipped": [
+      0.0008889890566699221,
+      79866
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 586,
+    "outcomes_r5": 1626
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 1.2617410558028542e-12,
+    "claim": {
+     "full as measured": [
+      0.0,
+      79764
+     ],
+     "full flipped": [
+      0.001427390879723537,
+      79866
+     ],
+     "gaussian 0": [
+      0.0,
+      200000
+     ],
+     "gaussian 1": [
+      0.0,
+      200000
+     ],
+     "gaussian 2": [
+      0.0,
+      200000
+     ]
+    },
+    "outcomes_r3": 554,
+    "outcomes_r5": 1539
+   },
+   "futility_threshold": 3.637292154280533e-07,
+   "futility": {
+    "full as measured": [
+     0.023908576011227506,
+     79804
+    ],
+    "full flipped": [
+     0.0,
+     79397
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "band": [
+    5,
+    7
+   ],
+   "judgeable_share_all": 0.53573,
+   "band_share": 0.24829,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 0.00013898220894549532,
+    "claim": {
+     "full as measured": [
+      0.0,
+      49644
+     ],
+     "full flipped": [
+      0.0011273957158962795,
+      49672
+     ],
+     "gaussian 0": [
+      0.0002,
+      200000
+     ],
+     "gaussian 1": [
+      0.000255,
+      200000
+     ],
+     "gaussian 2": [
+      0.000395,
+      200000
+     ]
+    },
+    "outcomes_r3": 181,
+    "outcomes_r5": 502
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 0.00021836361298669773,
+    "claim": {
+     "full as measured": [
+      0.0,
+      49644
+     ],
+     "full flipped": [
+      0.001852150104686745,
+      49672
+     ],
+     "gaussian 0": [
+      0.00026,
+      200000
+     ],
+     "gaussian 1": [
+      0.000395,
+      200000
+     ],
+     "gaussian 2": [
+      0.00051,
+      200000
+     ]
+    },
+    "outcomes_r3": 171,
+    "outcomes_r5": 475
+   },
+   "futility_threshold": 0.003916535983385707,
+   "futility": {
+    "full as measured": [
+     0.025182452482155747,
+     49876
+    ],
+    "full flipped": [
+     0.00018007563176534146,
+     49979
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "band": [
+    8,
+    12
+   ],
+   "judgeable_share_all": 0.53573,
+   "band_share": 0.177585,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 0.0006475737649326223,
+    "claim": {
+     "full as measured": [
+      0.0,
+      35457
+     ],
+     "full flipped": [
+      0.0012086460353599236,
+      35577
+     ],
+     "gaussian 0": [
+      0.000645,
+      200000
+     ],
+     "gaussian 1": [
+      0.001085,
+      200000
+     ],
+     "gaussian 2": [
+      0.001295,
+      200000
+     ]
+    },
+    "outcomes_r3": 149,
+    "outcomes_r5": 412
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 0.0010072091274149458,
+    "claim": {
+     "full as measured": [
+      2.8203175677581295e-05,
+      35457
+     ],
+     "full flipped": [
+      0.001630266745369199,
+      35577
+     ],
+     "gaussian 0": [
+      0.00094,
+      200000
+     ],
+     "gaussian 1": [
+      0.00162,
+      200000
+     ],
+     "gaussian 2": [
+      0.001885,
+      200000
+     ]
+    },
+    "outcomes_r3": 139,
+    "outcomes_r5": 387
+   },
+   "futility_threshold": 0.015377891457528305,
+   "futility": {
+    "full as measured": [
+     0.02351799526215144,
+     35037
+    ],
+    "full flipped": [
+     0.005353989861593666,
+     35114
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "band": [
+    13,
+    null
+   ],
+   "judgeable_share_all": 0.53573,
+   "band_share": 0.10985500000000001,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 0.0006475737649326223,
+    "claim": {
+     "full as measured": [
+      0.000595401667124668,
+      21834
+     ],
+     "full flipped": [
+      0.0,
+      22108
+     ],
+     "gaussian 0": [
+      0.000645,
+      200000
+     ],
+     "gaussian 1": [
+      0.001085,
+      200000
+     ],
+     "gaussian 2": [
+      0.001295,
+      200000
+     ]
+    },
+    "outcomes_r3": 149,
+    "outcomes_r5": 412
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 0.0010072091274149458,
+    "claim": {
+     "full as measured": [
+      0.0008702024365668223,
+      21834
+     ],
+     "full flipped": [
+      0.0,
+      22108
+     ],
+     "gaussian 0": [
+      0.00094,
+      200000
+     ],
+     "gaussian 1": [
+      0.00162,
+      200000
+     ],
+     "gaussian 2": [
+      0.001885,
+      200000
+     ]
+    },
+    "outcomes_r3": 139,
+    "outcomes_r5": 387
+   },
+   "futility_threshold": 0.009323007075635695,
+   "futility": {
+    "full as measured": [
+     0.00022822713164140953,
+     21908
+    ],
+    "full flipped": [
+     0.024494485294117647,
+     21760
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "band": [
+    5,
+    7
+   ],
+   "judgeable_share_all": 0.9035675,
+   "band_share": 0.1818175,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 4.190244085526e-05,
+    "claim": {
+     "full as measured": [
+      0.0,
+      36433
+     ],
+     "full flipped": [
+      0.0011847688323138811,
+      36294
+     ],
+     "gaussian 0": [
+      6e-05,
+      200000
+     ],
+     "gaussian 1": [
+      0.0001,
+      200000
+     ],
+     "gaussian 2": [
+      0.000135,
+      200000
+     ]
+    },
+    "outcomes_r3": 206,
+    "outcomes_r5": 570
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 6.016480536163499e-05,
+    "claim": {
+     "full as measured": [
+      0.0,
+      36433
+     ],
+     "full flipped": [
+      0.0016807185760731801,
+      36294
+     ],
+     "gaussian 0": [
+      7.5e-05,
+      200000
+     ],
+     "gaussian 1": [
+      0.000155,
+      200000
+     ],
+     "gaussian 2": [
+      0.000165,
+      200000
+     ]
+    },
+    "outcomes_r3": 198,
+    "outcomes_r5": 550
+   },
+   "futility_threshold": 0.0013635773287035272,
+   "futility": {
+    "full as measured": [
+     0.020895439991167053,
+     36228
+    ],
+    "full flipped": [
+     0.0,
+     36779
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "band": [
+    8,
+    12
+   ],
+   "judgeable_share_all": 0.9035675,
+   "band_share": 0.32045500000000005,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 8.205020284334672e-05,
+    "claim": {
+     "full as measured": [
+      0.0,
+      63897
+     ],
+     "full flipped": [
+      0.0012911254569495216,
+      64285
+     ],
+     "gaussian 0": [
+      8.5e-05,
+      200000
+     ],
+     "gaussian 1": [
+      0.00022,
+      200000
+     ],
+     "gaussian 2": [
+      0.00021,
+      200000
+     ]
+    },
+    "outcomes_r3": 192,
+    "outcomes_r5": 532
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 0.00012720622885399865,
+    "claim": {
+     "full as measured": [
+      0.0,
+      63897
+     ],
+     "full flipped": [
+      0.001897798864431827,
+      64285
+     ],
+     "gaussian 0": [
+      0.000135,
+      200000
+     ],
+     "gaussian 1": [
+      0.000285,
+      200000
+     ],
+     "gaussian 2": [
+      0.000325,
+      200000
+     ]
+    },
+    "outcomes_r3": 183,
+    "outcomes_r5": 507
+   },
+   "futility_threshold": 0.002391783332142743,
+   "futility": {
+    "full as measured": [
+     0.025709578139086642,
+     64334
+    ],
+    "full flipped": [
+     1.562085071152975e-05,
+     64017
+    ]
+   }
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "band": [
+    13,
+    null
+   ],
+   "judgeable_share_all": 0.9035675,
+   "band_share": 0.40129499999999996,
+   "look 1": {
+    "nominal": 0.0013333333333333333,
+    "claim_threshold": 0.0005776949064176853,
+    "claim": {
+     "full as measured": [
+      4.974258213743876e-05,
+      80414
+     ],
+     "full flipped": [
+      0.0007615100369519624,
+      80104
+     ],
+     "gaussian 0": [
+      0.00052,
+      200000
+     ],
+     "gaussian 1": [
+      0.001155,
+      200000
+     ],
+     "gaussian 2": [
+      0.001295,
+      200000
+     ]
+    },
+    "outcomes_r3": 151,
+    "outcomes_r5": 419
+   },
+   "look 2": {
+    "nominal": 0.002,
+    "claim_threshold": 0.0009005181582365074,
+    "claim": {
+     "full as measured": [
+      9.948516427487751e-05,
+      80414
+     ],
+     "full flipped": [
+      0.001123539398781584,
+      80104
+     ],
+     "gaussian 0": [
+      0.00082,
+      200000
+     ],
+     "gaussian 1": [
+      0.00174,
+      200000
+     ],
+     "gaussian 2": [
+      0.001915,
+      200000
+     ]
+    },
+    "outcomes_r3": 142,
+    "outcomes_r5": 393
+   },
+   "futility_threshold": 0.023411225572751423,
+   "futility": {
+    "full as measured": [
+     0.021171824226366046,
+     80012
+    ],
+    "full flipped": [
+     0.024955993058763313,
+     80101
+    ]
+   }
+  }
+ ]
+}

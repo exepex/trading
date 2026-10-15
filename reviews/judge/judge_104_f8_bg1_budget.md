@@ -284,3 +284,57 @@ tests.
 
 **Verdict: FAIL for 790bad9b3e3cc30b8ef351b266c607fa236e279e** on should-fixes 1 and 2 (small). Everything else in
 judge 104 and addendum 1 is met.
+
+## Addendum 3 (15 Oct 2026): revision 5 at 4fcea001a04e2f3a51e8f4689e7591a9f674e16c
+
+The tip is 7c98a0d (the fix) plus a merge of `origin/main`. `git merge-tree` against today's `origin/main` is clean, so
+the tip's tree is the merged tree.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Addendum 2 should-fix 1: each routine's real schedule | **MET** | `budget.data_routines` entries are `{name, schedule}`. `daily` expects every calendar day, closed days included (my probe: 1-4 Nov expects 4 runs). An entry with schedule "weekdays", with no name, or written as a bare string is refused. My "weekdays only" mutation is caught |
+| Addendum 2 should-fix 2: the calendar path | **MET, by removal** | The coverage no longer depends on the calendar, so January 2027 checks and fails closed ("0 of 31"). There is no untested branch left |
+| Minor: `--role` validated | **MET** | `--role 3pm` gives "refused: ... not a data routine of budget.data_routines" (exit 1). Mutation caught |
+| Gates | **MET** | 3,820 passed; `ruff check`, `ruff format --check` (818 files) and `check_imports` clean. My 4 new mutations are all caught (weekdays only, unknown schedule accepted, role check off, today counted) |
+
+Every finding of judge 104 and addenda 1-2 is now met:
+- MF1-MF5;
+- SF1-SF3;
+- the minors;
+- the data-routine and plan-cost follow-ups.
+
+**Still open, for the owner and the orchestrator:**
+- The books' and the 3 pm recorder's self-timing need prompt changes. Each is a new registered version or routine
+  change, not part of this story. Until then, on the measured basis the level is honestly `unknown`.
+- "Two months = Nov and Dec 2026" is the orchestrator's decision (response 113); the owner may change it.
+
+**Verdict: PASS for 4fcea001a04e2f3a51e8f4689e7591a9f674e16c.**
+- Merge it.
+- After the merge, quality rule 8 applies: the merger runs `python -m fno budget meter` and `stop-rule` on `main` (dry
+  run, nothing posted) and records the result.
+- My merge check then compares the merge with this tree.
+
+## Addendum 4 (15 Oct 2026): merge check, F8/BG1 merged as 757c20d
+
+- **The merge is exact.**
+  - 757c20d's parents are 69ceaeb (`main`) and 4fcea00, the passed tip.
+  - `git merge-tree --write-tree 69ceaeb 4fcea00` gives a tree identical to 757c20d's (empty diff).
+- **No unjudged code since.** Between 757c20d and `origin/main` (3605384), nothing changed under `fno/`, `tests/`,
+  `tools/`, `config.yaml`, `accounting/` or `.github/`. The later commits are a pull merge, logs and judge files.
+  `CLAUDE.md` lists `fno/budget/wiring.py` among the composition roots.
+- **Quality rule 8 is verified.** I re-ran both commands myself on today's `main` as a dry run; nothing was posted and
+  the tree stayed clean.
+  - `budget meter --month 2026-10` prints:
+    - the Claude plan, Rs 20,000.00, "not allocated yet (no measured usage this month)";
+    - every usage purpose as "no rows recorded (unknown, not zero)";
+    - the AI cap level `unknown`, with 2 fired book sessions not captured, development not checked, and data routines
+      not fully captured.
+  - `stop-rule` prints 31 May 2027, projected, 228 days, with the 2027 weekday-fallback note.
+  - Both agree with the orchestrator's record, including "data routines 0 of 14" (1-14 Oct).
+- **CI.** checks.yml was green on 69ceaeb, the merge's first parent. The run on c8aef7b, the first push carrying 757c20d
+  (run 802), was in progress when I checked; its result goes in my report.
+
+**Verdict: merge check PASS.** F8 (minimal) and BG1 are done on `main`. The owner's open steps are:
+- the self-timing prompt changes;
+- the confirmation of "two months = Nov and Dec 2026";
+- the fixed plan-minutes figure from January 2027.

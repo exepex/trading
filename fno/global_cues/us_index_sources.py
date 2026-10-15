@@ -36,6 +36,7 @@ def _json(data: bytes, what: str):
 
 class UsIndexSource(GlobalCueSource):
     unit, date_zone, private, once_a_day, may_hold_unfinished = "index points", US_EASTERN, True, True, True
+    max_age_days = 4  # Thursday's close on Monday (Good Friday), Friday's on Tuesday (a US Monday holiday)
 
     def available_at(self, value_date: date) -> datetime:
         return at_local(value_date, US_CLOSE, US_EASTERN)
@@ -53,13 +54,14 @@ class CboeSp500Source(UsIndexSource):
         rows = document.get("data") if isinstance(document, dict) else None
         if not isinstance(rows, list):
             raise ValueError(f'{self.cue}: no "data" list')
-        values = [CueValue(date.fromisoformat(r["date"]), positive(r["close"], r["date"])) for r in rows]
+        values = [CueValue(date.fromisoformat(r["date"]), positive(r["close"], r["date"], self.private)) for r in rows]
         return checked(values, self.cue)
 
 
 class NasdaqNdxSource(UsIndexSource):
     cue, dataset = "nasdaq100", "nasdaq/indices/ndx-history"
     publisher = "Nasdaq, Inc. (owner of the Nasdaq-100 index), nasdaq.com quote API"
+    holiday_rows = True  # 83 dates since 2007 that NYSE was closed, 82 repeating the previous close
 
     def requests(self, start: date, end: date) -> list[CueRequest]:
         url = NASDAQ_NDX.format(start=start.isoformat(), end=end.isoformat(), limit=NASDAQ_LIMIT)
@@ -75,6 +77,7 @@ class NasdaqNdxSource(UsIndexSource):
         if total != len(rows):
             raise ValueError(f"{self.cue}: {len(rows)} rows of {total}: the answer was cut")
         values = [
-            CueValue(datetime.strptime(r["date"], "%m/%d/%Y").date(), positive(r["close"], r["date"])) for r in rows
+            CueValue(datetime.strptime(r["date"], "%m/%d/%Y").date(), positive(r["close"], r["date"], self.private))
+            for r in rows
         ]
         return checked(values, self.cue)
