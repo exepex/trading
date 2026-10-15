@@ -1,10 +1,11 @@
-"""The confirmatory family of protocol v4 (PROTOCOL_v4.md section 5): cumulative Holm over the 15 registered members at
-each of at most two looks, with p = 1 for every member not judged at that look (ChatGPT review 98's caveat).
+"""The confirmatory family of protocol v4 (PROTOCOL_v4.md section 5): Bonferroni at Holm's first step (rate / 15) over
+the 15 registered members at each of at most two looks, with p = 1 for every member not judged at that look (ChatGPT
+review 98's caveat). Revision 2 (rule E+D) calibrated only the first step's critical values, so the later Holm steps
+are not used; a member's p is its calibrated p (`confirmatory.calibrated_p`).
 
 A member is judged at a look only when its slot has a registered forecaster, it has at least 2L scored pairs and it was
 not closed earlier (a claim or a futility "no" at look 1 is final). Every decision states the look, its family-wise
-rate, its timestamp and all 15 members, judged or not. Holm is written here, not imported from G4's unfrozen module,
-so v4's freeze covers every line its decisions depend on.
+rate, its timestamp and all 15 members, judged or not.
 """
 
 from __future__ import annotations
@@ -21,8 +22,8 @@ NOT_JUDGED_P = 1.0
 
 @dataclass(frozen=True)
 class MemberResult:
-    """One member's statistics at a look. `p_value` None: not judged at this look (no registered forecaster, fewer
-    than 2L pairs, or closed at an earlier look)."""
+    """One member's statistics at a look. `p_value` is its calibrated p; None: not judged at this look (no registered
+    forecaster, fewer than 12 batches, or closed at an earlier look)."""
 
     p_value: float | None
     meets_minimum_effect: bool
@@ -34,8 +35,8 @@ class MemberVerdict:
     question: str
     slot: str
     judged: bool
-    p_used: float  # the p-value Holm saw: NOT_JUDGED_P when not judged
-    holm_significant: bool
+    p_used: float  # the calibrated p the family saw: NOT_JUDGED_P when not judged
+    significant: bool  # calibrated p at or below rate / 15
     futile: bool  # judged, and the upper bound of its improvement is below the minimum effect
     verdict: str  # V4_CLAIM, V4_TOO_SMALL (significant, below the effect), V4_FUTILE or V4_OPEN
 
@@ -64,15 +65,9 @@ class FamilyDecision:
         return [self.header(), *rows]
 
 
-def holm(p_values: Sequence[float], rate: float) -> list[bool]:
-    """Holm's step-down: sorted ascending, the i-th (1-based) is significant while p <= rate / (m - i + 1)."""
-    m = len(p_values)
-    significant = [False] * m
-    for rank, i in enumerate(sorted(range(m), key=lambda j: p_values[j]), start=1):
-        if p_values[i] > rate / (m - rank + 1):
-            break
-        significant[i] = True
-    return significant
+def bonferroni(p_values: Sequence[float], rate: float) -> list[bool]:
+    """Each p against rate / m: the union bound holds the family-wise rate whatever the dependence between members."""
+    return [p <= rate / len(p_values) for p in p_values]
 
 
 def judge_family(look: str, decided_at: datetime, results: Mapping[tuple[str, str], MemberResult]) -> FamilyDecision:
@@ -85,7 +80,7 @@ def judge_family(look: str, decided_at: datetime, results: Mapping[tuple[str, st
     rate = LOOK_ERROR_RATE[look]
     stats = [results.get(member) for member in FAMILY]
     p_used = [s.p_value if s is not None and s.p_value is not None else NOT_JUDGED_P for s in stats]
-    significant = holm(p_used, rate)
+    significant = bonferroni(p_used, rate)
     members = tuple(
         _verdict(member, stat, p, sig) for member, stat, p, sig in zip(FAMILY, stats, p_used, significant, strict=True)
     )

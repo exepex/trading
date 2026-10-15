@@ -184,19 +184,28 @@ missing; daily HAR never stands in again.
    starts uniformly from 0..n-L with replacement (`numpy.random.default_rng(SeedSequence(words))`, all starts in one
    draw of shape (B, ceil(n / L))), joined in draw order and cut to n. k is the member's place in the family (below);
    reported-only comparisons are numbered after 15.
-3. **Confirmatory test, revision 1 (ChatGPT review 99, finding 1).** Revision 0's centred bootstrap,
-   p = (1 + #{b : D*_b - D <= D}) / (B + 1), **over-rejected true nulls** in the pre-registered seeded simulation
-   (`tools/v4_null_calibration.py`; 1,000 mean-zero series per cell; i.i.d., overlapping-horizon, AR(1) 0.5 and
-   skewed; L = 5, 10, 20; n = 2L and 125; table in `research/forecasts/v4_null_calibration.md`): up to 28% at a
-   nominal 5% with n = 2L and up to 12% at n = 125 for the Gaussian processes (strong evidence). The member's p is now **the larger of** (a) the
-   batch-means t test (the latest floor(n / L) whole batches of L, t against Student t with batches - 1 degrees of
-   freedom) and (b) the studentized block bootstrap (seed words `[20261015, k, 2]`, se from the same batches);
-   both must pass. Fewer than 2L pairs or a zero SE: not tested, p = 1. **Measured size** (strong evidence for the
-   simulated processes): within nominal + 2 Monte Carlo SE in every i.i.d., overlapping and left-skewed cell, and in
-   AR(1) except L = 5 at n = 125 (7.6% at 5%, 0.5% at 0.002). **Still too liberal under strong right skew** (centred
-   lognormal): 0.3-0.7% at Holm's first step 0.0013 (about 2-5x), 6-10% at 5%. Disclosed, open item D (section 11).
-   The centred bootstrap and a Newey-West HAC t (Bartlett, lag L - 1, normal p) are reported as sensitivities only,
-   **never used to choose a result**.
+3. **Confirmatory claim rule, revision 2: rule E+D** (owner decision "3 B", 15 Oct 2026; judge 98 addendum 2;
+   `confirmatory.calibrated_p`, `tools/v4_claim_thresholds.py`). A member claims at a look only with **at least 12
+   whole batches** and a **batch-means t** p-value (the latest floor(n / L) batches of L, Student t with batches - 1
+   df) **at or below its worst-case calibrated threshold**. The threshold is computed at the look for the member's
+   actual n by the frozen tool: the smallest, over the member's null group, of the p-quantile at rate / 15 (taken at
+   its 95% lower confidence rank) from 100,000 seeded mean-zero series. Each group is Gaussian i.i.d., AR(1) 0.5 and
+   overlapping nulls plus an **empirical null from exposed 2024-26 NIFTY data** (circular 20-session blocks of centred
+   baseline-vs-baseline differences, right-skewed orientation). V1 and V2 use QLIKE nulls (trailing 5 vs 20 sessions),
+   V6a and V6b Brier nulls (EWMA-normal vs base rate), and V7 borrows V6b's (no VIX null measured, reasoning only).
+   **Why:** QLIKE differences on real data have a raw skew of -17 to +15 and a batch-mean skew of up to 7.5, against
+   2.8 for the lognormal case (some evidence: exposed data, a few baseline pairs). Rare crash days dominate the mean,
+   so most windows without one favour the forecaster that under-forecasts. On those nulls, revision 1's
+   max(batch t, studentized bootstrap) rejected **6-18% at Holm's first step 0.0013** at n = 125 for L = 5 and 10,
+   still 7.5-10% at n = 250. A divisor of 10 still gave 2-13%; Hall's skew correction did not help. The bootstrap's
+   1 / 10,001 resolution cannot reach the thresholds needed, so it is dropped from the rule. **Measured size of E+D**
+   (held-out seeds, 100,000 series): within nominal + 2 Monte Carlo SE in all 30 cells (5 questions, n = 2L, 125
+   and 250, both looks); fewer than 12 batches gives no claim at all. Strong evidence for the measured null
+   processes, some evidence that they represent future data. Tables: `research/forecasts/v4_size_study.md` (every
+   option) and `v4_claim_thresholds.md`. Revision 1's 1,000-series calibration
+   (`v4_null_calibration.md`) is superseded; its rates below 0.01 are some evidence only. The studentized bootstrap,
+   revision 0's centred bootstrap and a Newey-West HAC t are reported sensitivities, **never used to choose a
+   result**.
 4. **Minimum effect, registered (owner's 3%, unit confirmed 15 Oct 2026):** on the gate set, the relative improvement
    `-mean(d) / mean(baseline loss)` must be **at least 0.03** for a point question, with the baseline's **textbook**
    QLIKE as the loss (so the gate reads "3% lower mean textbook QLIKE on the same RV > 0 dates"), and **at least 0.02**
@@ -217,16 +226,18 @@ missing; daily HAR never stands in again.
    never members**: at about 12 independent outcomes a year they cannot settle in useful time (section 7), and as
    members they would make every other claim stricter (0.05 / 21 instead of 0.05 / 15). Reasoning only; this fixes the
    design's "m of about 15".
-7. **Cumulative Holm with p = 1 for every member not judged (ChatGPT review 98).** At each look, Holm's step-down runs
-   over all 15 members; a member not judged at that look (no registered forecaster, fewer than 2L pairs, or closed
-   earlier) enters with p = 1. **Every report states the look, its family-wise rate, the decision timestamp (with time
-   zone) and all 15 members, judged or not** (`FamilyDecision.lines()`).
+7. **The family decision: Bonferroni at rate / 15, with p = 1 for every member not judged (ChatGPT review 98).**
+   Rule E+D calibrated only Holm's first step, so each member's calibrated p is compared with rate / 15; Holm's later
+   steps are not used (a small power loss when several members claim at once). A member not judged at that look (no
+   registered forecaster, fewer than 12 batches, or closed earlier) enters with p = 1. **Every report states the
+   look, its family-wise rate, the decision timestamp (with time zone) and all 15 members, judged or not**
+   (`FamilyDecision.lines()`).
 8. **Two looks at most, alpha split (Bonferroni over looks, strong evidence for the bound):** look 1, the stop-rule
    review (design 8.2), at family-wise **0.02**; look 2, the re-run on the projected settle date (8.2 option 1), at
    **0.03**. Total at most 0.05 however the looks correlate. A claim or a futility "no" at look 1 is final (closed, p = 1
    at look 2). There is no other confirmatory look; monthly reports are descriptive. **This is new in G6** (design 5.5
    says Holm at 5% without naming looks); it is the "explicit sequential error-control contract" review 98 asks for.
-9. A member **claims** only when Holm-significant at its look **and** it meets the minimum effect.
+9. A member **claims** only when significant under rule E+D at its look **and** it meets the minimum effect.
 10. **Stability** (descriptive): the sign of `D` in the first and second half of the scored period. **Economic check:**
     a forecast counts for trading only through a factory idea's registered mapping and its shadow net after costs.
 
@@ -281,7 +292,8 @@ sampling distribution (ChatGPT review 99). Arithmetic (strong evidence): r = 3 n
 | The frozen day sets behind the 3% effect, zero-RV count | `test_scored_set_keeps_zero_rv...`, `test_gate_is_three_percent...` |
 | One-sided test (seed, blocks, missing pairs), null-calibrated | `test_bootstrap.py`, `test_confirmatory.py`, the committed calibration |
 | HAC as a sensitivity | `test_hac_matches_a_hand_newey_west...` |
-| Holm across the family, p = 1 unjudged, membership and timestamp | `test_family_and_stop_rule.py` |
+| Family rule (Bonferroni at rate / 15), p = 1 unjudged, membership and timestamp | `test_family_and_stop_rule.py` |
+| Rule E+D, its thresholds, size study and real-data skew | `test_claim_rule.py`, the committed tables |
 | Baseline eligibility | `test_eligibility_and_power.py` |
 | V4's dimensionally checked golden example | `test_units_settlement_sessions.py` with `v4_golden.json` |
 | V5's outcome from the expiry's final settlement, source and timestamp | `test_v5_...` (wrong expiry, later file, early timestamp) |
@@ -312,9 +324,14 @@ confirmation of section 11's items A-C (given, 15 Oct 2026) and of item D.
 - **C.** The premium-adjusted baseline's ratio window uses the labelled EOD IV30 proxy from 1 Jan 2024 (3.1). Without
   it, V2 has no eligible primary until about late 2028 and cannot be judged at the May 2027 review.
 
-**For ChatGPT's re-review and the owner's confirmation before the freeze:**
-- **D.** The revision-1 confirmatory test (5.3) is within tolerance except under strong right skew and one AR(1) cell.
-  Accept with this disclosure, or require a stricter rule (for example p at most a quarter of Holm's step) for a claim.
+- **D. Owner chose a stricter rule (3 B, 15 Oct 2026); the exact rule is chosen by measured size:** rule E+D (5.3),
+  the only measured option within tolerance in every cell. Its power cost, by normal approximation (planning only,
+  optimistic under heavy tails), in independent outcomes at r = 3 / r = 5 with the n = 125 thresholds (at least this,
+  since thresholds fall as n grows). The plain first step needs 134
+  / 316. Under E+D: V1 426 / 1,183 (about 1.7 / 4.7 years); V2 396 / 1,099 (about 8 / 22 years); V6a 180 / 499
+  (about 0.7 / 2 years); V6b and V7 151 / 419 (about 3 / 8 years). **Said plainly: the QLIKE questions V1 and V2
+  cannot be claimed in useful time on realistic data**; the Brier questions can, slowly. The other options' sizes
+  stay disclosed in `v4_size_study.md`. Untested: futility's percentile bound under the same nulls.
 
 Also open to challenge: the 15-member family without V3, V5 and V4 (5.6); special sessions excluded (section 2); V2
 and V3 on `close_proxy` (1.1); the 5% spread limit and parity forward (1.4); strict "inside" for V5 (1.5).

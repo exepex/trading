@@ -25,6 +25,7 @@ from .student_t import t_cdf
 from .terms import BOOTSTRAP_SEED, RESAMPLES
 
 STUDENTIZED_SEED_WORD = 2
+MIN_CLAIM_BATCHES = 12  # rule E+D: fewer batches cannot claim (revision 2, judge 98 addendum 2)
 
 
 def batch_layout(n: int, block: int) -> tuple[int, int]:
@@ -75,3 +76,20 @@ def confirmatory_test(differences: Sequence[float], block: int, k: int, resample
         return OneSidedTest(n, mean, 1.0, False)
     p = max(batch_means_p(differences, block), studentized_bootstrap_p(differences, block, k, resamples))
     return OneSidedTest(n, mean, p, True)
+
+
+def hall_t(t: float, skew: float, batches: int) -> float:
+    """Hall's (1992) monotone skewness correction of a t statistic computed from `batches` values whose sample
+    skewness is `skew`: t + skew (1 + 2 t^2) / (6 sqrt k) + skew^2 t^3 / (27 k)."""
+    root = math.sqrt(batches)
+    return t + skew * (1 + 2 * t * t) / (6 * root) + skew * skew * t**3 / (27 * batches)
+
+
+def calibrated_p(differences: Sequence[float], block: int, threshold: float, step: float) -> float:
+    """Rule E+D (revision 2, the operative claim rule): the member's p for the family, `step x p_t / threshold`
+    capped at 1, so it is at or below the family's first step (rate / 15) exactly when the batch-means t p-value p_t
+    is at or below the member's worst-case calibrated threshold (`tools/v4_claim_thresholds.py`, at the look's n).
+    Fewer than 12 whole batches, or no threshold: 1."""
+    if len(differences) // block < MIN_CLAIM_BATCHES or threshold <= 0:
+        return 1.0
+    return min(1.0, step * batch_means_p(differences, block) / threshold)

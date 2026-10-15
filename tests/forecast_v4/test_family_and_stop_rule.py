@@ -29,7 +29,7 @@ from fno.constants import (
     V4_TOO_SMALL,
     V6_BIG_MOVE_1S,
 )
-from fno.forecast_v4.family import MemberResult, holm, judge_family
+from fno.forecast_v4.family import MemberResult, bonferroni, judge_family
 from fno.forecast_v4.stop_rule import ShadowResult, forecasting_test, money_test, review_outcome
 from fno.forecast_v4.terms import FAMILY, FAMILY_SIZE, LOOK_SETTLE_DATE, LOOK_STOP_REVIEW, family_seed_word
 from fno.models import IST
@@ -44,17 +44,15 @@ def test_the_family_is_fixed_at_fifteen_members_in_a_numbered_order():
     assert not any(q == V3_RV_20S for q, _ in FAMILY)  # 20-session questions are reported, never members
 
 
-def test_holm_step_down_matches_hand_thresholds():
-    assert holm([0.01, 0.04, 0.03, 0.005], 0.05) == [True, False, False, True]  # 0.005<=.0125, .01<=.0167, .03>.025
-    assert holm([0.01, 0.02, 0.03, 0.04], 0.04) == [True, False, False, False]  # 0.02 > 0.04 / 3
-    assert holm([0.01, 0.02, 0.03, 0.04], 0.16) == [True, True, True, True]
+def test_bonferroni_compares_every_p_with_rate_over_m():
+    assert bonferroni([0.01, 0.0125, 0.013, 1.0], 0.05) == [True, True, False, False]
 
 
-def test_unjudged_members_enter_holm_at_p_one_so_the_first_step_is_rate_over_fifteen():
+def test_unjudged_members_enter_the_family_at_p_one_and_the_bar_is_rate_over_fifteen():
     # Alone, p = 0.002 would pass; in the family of 15 at look 1 (0.02 / 15 = 0.00133) it does not.
     decision = judge_family(LOOK_STOP_REVIEW, AT, {V6_RULES: MemberResult(0.002, True, False)})
     v6 = next(m for m in decision.members if (m.question, m.slot) == V6_RULES)
-    assert not v6.holm_significant and v6.verdict == V4_OPEN
+    assert not v6.significant and v6.verdict == V4_OPEN
     assert sum(m.judged for m in decision.members) == 1
     assert all(m.p_used == 1.0 for m in decision.members if not m.judged)
     passed = judge_family(LOOK_STOP_REVIEW, AT, {V6_RULES: MemberResult(0.0013, True, False)})

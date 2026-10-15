@@ -86,3 +86,16 @@ def test_proxy_drift_reports_paired_ratios_and_never_pairs_a_missing_value():
     assert drift.pairs == 50 and drift.median_ratio == pytest.approx(1.0)
     assert drift.recent_median_ratio == pytest.approx(1.1) and drift.drift == pytest.approx(0.1)
     assert proxy_drift([]).pairs == 0 and proxy_drift([]).drift is None
+
+
+def test_hall_t_is_the_identity_at_zero_skew_and_monotone_and_lifts_the_lower_tail_under_right_skew():
+    from fno.forecast_v4.confirmatory import hall_t
+
+    assert hall_t(-2.5, 0.0, 12) == -2.5
+    grid = [x / 10 for x in range(-80, 81)]
+    for skew in (-6.0, -1.0, 1.0, 6.0):
+        values = [hall_t(t, skew, 12) for t in grid]
+        assert all(b >= a for a, b in zip(values, values[1:]))
+    t, skew, k = -3.0, 2.0, 25
+    assert hall_t(t, skew, k) == pytest.approx(t + skew * (1 + 2 * t * t) / (6 * 5) + skew * skew * t**3 / (27 * k))
+    assert hall_t(-3.0, 2.0, 25) > -3.0  # right skew: a lower-tail t is pulled towards zero

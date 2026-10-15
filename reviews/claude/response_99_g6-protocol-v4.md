@@ -123,3 +123,45 @@ Each item was checked before it was accepted.
    - A refit-day boundary test: a row resolved on the refit day is left out; the day before is kept.
    - The first session is 1 Jan 2024 (the earlier text said 2 Jan), with a test.
 7. **A-C:** marked "confirmed by the owner, 15 Oct 2026", citing the `docs/DESK_DECISIONS.md` row on `main`.
+
+## Revision 2: answer to judge 98 addendum 2 (owner decision "3 B")
+
+1. **Must-fix 1, a measured option within tolerance for every L, n and look: DONE.**
+   - **The study.** `tools/v4_size_study.py` uses 100,000 series per cell below 0.01 and 10,000 above, B = 10,000,
+     with the judge's conditional bootstrap.
+     - Processes: i.i.d., AR(1) 0.5, overlapping, lognormal, two QLIKE empirical nulls and two Brier empirical nulls.
+     - Sizes: L = 5, 10, 20 at n = 2L and n = 125, plus n = 250 for the skewed processes.
+     - Options measured: A (revision 1), B/2, B/4, B/10, C (Hall's skew-corrected t), D (at least 12 batches) and E
+       (worst-case calibrated thresholds).
+   - **Real skew, measured on exposed 2024-26 close-proxy data.** QLIKE differences of baseline pairs have a raw skew
+     of -17 to +15. Their batch means have a skew of up to 7.5 at L = 5, 4.9 at L = 10 and 3.5 at L = 20; the
+     lognormal case has 2.8, 2.0 and 1.4. **The lognormal case understates reality**, so the calibration targets the
+     empirical nulls (some evidence: exposed data, a few pairs).
+   - **Results at Holm's first step (0.0013), on the real nulls at n = 125:**
+     - A: 6-18% at L = 5 and 10; still 7.5-10% at n = 250.
+     - B/10: 2-13%.
+     - C (Hall's correction) is no better than A.
+     - The Brier V6a null fails A at n = 125 (0.8%) and badly at n = 10 (17%).
+   - **The operative rule is E+D:** at least 12 batches, and a batch t p-value at or below the worst-case calibrated
+     threshold for the member's question, n and look. The threshold is computed at the look by
+     `tools/v4_claim_thresholds.py`, taken at the 95% lower confidence rank of the quantile.
+   - **Held-out sizes** (fresh seeds, 100,000 series) are within nominal + 2 SE in all 30 cells (strong evidence for
+     the measured processes).
+   - **Power cost** (normal approximation, planning only), in outcomes at r = 3 / r = 5, against 134 / 316 for the
+     plain first step:
+     - V1: 426 / 1,183.
+     - V2: 396 / 1,099.
+     - V6a: 180 / 499.
+     - V6b and V7: 151 / 419.
+   - **Consequence, said plainly:** V1 and V2 (QLIKE) cannot be claimed in useful time.
+   - **Code:**
+     - `confirmatory.calibrated_p` and `MIN_CLAIM_BATCHES`.
+     - `family.py` now uses Bonferroni at rate / 15, because only the first step is calibrated (Holm's later steps
+       are dropped).
+     - `hall_t` was measured and is kept as a reported option.
+     - Tests: `test_claim_rule.py`, a `hall_t` test, and the family tests.
+2. **Must-fix 2, thresholds below 0.01 at 50,000 or more series with B = 10,000: DONE.**
+   - The thresholds below 0.01 now use 100,000 series.
+   - Revision 1's 1,000-series figures are relabelled "superseded; some evidence only".
+3. **Not tested:** futility's percentile bound under the same heavy-tailed nulls. It may give a false "no" too; this
+   is disclosed in protocol section 11.
