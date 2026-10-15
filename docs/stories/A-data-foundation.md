@@ -1175,8 +1175,8 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
 5. Output: the CSV and Markdown name every file's SHA-256, the rule, the windows and the run day; a second run on the
    same files writes byte-identical output; nothing writes `config.yaml` (test).
 6. Owner questions 1 and 2 are recorded in DESK_DECISIONS (answered 15 Oct, commit d68b1a9c: "Crash buffer applies to
-   the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 2020"); 3 and 4 are recorded there
-   before the first automatic row; C2c and C2d are merged before it, so the value is applied as it was measured.
+   the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 2020"); 3 and 4 with the hold-every-fall
+   rule at da0f769d; C2c and C2d are merged before it, so the value is applied as it was measured.
 7. Guardrails (tests on planted runs): a rise is `applied`; any fall, 0.01 included, is `held` with the old factor kept
    and one alert asking the owner; a result below 1.0 and an archive covering fewer sessions than the last run's are
    refused with no row; an owner-approved fall is `applied` only when its DESK_DECISIONS row is cited; a mutation that
