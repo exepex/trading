@@ -18,6 +18,9 @@ Secrets are never written to a file or sent in chat; you add them in GitHub's se
    - Environment: `Omenix AI books` (the AI books' environment: no credentials at all).
    - Model: the same as the AI books' routines.
    - Connectors: **none**. No schedule: it runs only when fired. Add an **API trigger** and copy its id and token.
+   - **Timing:** it is fired at about 10:42 IST and must push both files **before 11:41 IST** (the publish run). A late
+     push is not read: that week posts "no summary received" and "advocate not run: no objections received" (judge 167
+     addendum 3).
    - Prompt (copy exactly):
 
      ```text
@@ -41,7 +44,8 @@ Secrets are never written to a file or sent in chat; you add them in GitHub's se
         then run `python -m fno budget record-usage --export <that file> --self-timed --purpose books_and_roles
         --role "weekly post-mortem: writer and devil's advocate"`.
      6. Commit the two files and accounting/ai_usage.csv, `git pull --no-rebase origin main`, then push to main.
-        Never use --no-verify.
+        Never use --no-verify. Push before 11:41 IST: the job posts at 11:41, and anything pushed later is not
+        read that week.
      ```
 
 2. [ ] **Add two repository secrets** (GitHub → `exepex/trading` → Settings → Secrets and variables → Actions):
