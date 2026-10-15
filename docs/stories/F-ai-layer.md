@@ -333,7 +333,7 @@ cash spend separately.
 
 **Judge verifies:** recomputes one month's allocation.
 
-**Depends:** C1, F1 · **Size:** S · **Status:** split (design v2, 15 Oct 2026): the minimal part below is built; **F8 part
+**Depends:** C1, F1 · **Size:** S · **Status:** split (design v2, 15 Oct 2026): the minimal part below is done (judge 104, merged 757c20d); **F8 part
 2, later**, keeps the per-book lines in C1's account ledger, the scoreboards' and dashboard's separate fields (criterion 2)
 and filling S2's `AiCostAllocation` port (judge 87: "latent until F8 fills the port"), once books 2 and 3 trade
 
@@ -411,8 +411,8 @@ allocation (uneven, tie, no cost, no usage), the coverage, and the CLI refusals.
 **Judge verifies:** recomputes one month's allocation by hand from the two CSV files; feeds a real export, one with a
 missing middle page and one taken mid-day; checks no text field reaches a ledger.
 
-**Depends:** C1, F1, S1 (`ai_cost_allocation`) · **Size:** S · **Status:** built on `story/f8-bg1-budget`, revised
-after judge 104 (response 104)
+**Depends:** C1, F1, S1 (`ai_cost_allocation`) · **Size:** S · **Status:** done: judge 104 addendum 3 PASS
+(4fcea00), merged 757c20d (addendum 4)
 
 ---
 

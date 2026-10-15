@@ -87,9 +87,10 @@ of the Strategy lab.
 7. Gates: dashboard code size, typecheck, tests and build, its api-contract checks; here pytest, ruff, ruff format and
    the import check; no file or class over 350 lines.
 
-**Test plan:** the dashboard check with its planted breaks and the generated-table currency check; the backend test file
-(every example, every named record field, fixtures from the trial ledger, a fresh paper account and the 14 Oct 2026 live
-forecasts, a renamed field); page checks of every mockup state.
+**Test plan:** the dashboard check with its rule probes (its 28 planted breaks were removed on 15 Oct 2026 under the
+owner's simplicity rule, dashboard f617139) and the generated-table currency check; the backend test file (every example,
+every named record field, fixtures from the trial ledger, a fresh paper account and the 14 Oct 2026 live forecasts, a
+renamed field); page checks of every mockup state.
 
 **Judge verifies:** reads the five schemas against design v2 (4.1, 2.3, 5, 3.1-3.2) for missing or wrong fields; plants a
 field rename in a backend record and sees the test fail; checks that no public example carries a strategy threshold or a

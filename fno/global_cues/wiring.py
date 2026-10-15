@@ -1,8 +1,8 @@
-"""Composition root of story A17, the global cues: the only place that picks the concrete sources (Cboe, Nasdaq,
-US Treasury, EIA, RBI, FBIL), the shared polite HTTP session, the owner's Drive raw area, the snapshot logs, the tables
-in the repository (public cues) or Drive's derived area (private cues: the S&P 500 and Nasdaq 100, owner decision
-a927390), NSE's session calendar for the `live` rule, and each cue's calendar for its readings (story A17b). Swapping
-a source is one line in SOURCES."""
+"""Composition root of story A17, the global cues: the only place that picks the concrete sources (Cboe, Nasdaq, US
+Treasury, EIA, RBI, FBIL), the shared polite HTTP session, the owner's Drive raw area, the snapshot logs, the tables in
+the repository (public cues) or Drive's derived area (private cues: the S&P 500 and Nasdaq 100, owner decision a927390;
+FBIL's USD/INR rate, story A17d), NSE's session calendar for the `live` rule, and each cue's calendar for its readings
+(story A17b). Swapping a source is one line in SOURCES."""
 
 from __future__ import annotations
 

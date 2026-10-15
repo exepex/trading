@@ -218,6 +218,9 @@ ENV_ROUTINE_BOOK2_TRIGGER_ID = "FNO_ROUTINE_BOOK2_HYBRID_TRIGGER_ID"
 ENV_ROUTINE_BOOK2_TOKEN = "FNO_ROUTINE_BOOK2_HYBRID_TOKEN"
 ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"
 ENV_ROUTINE_BOOK3_TOKEN = "FNO_ROUTINE_BOOK3_AI_TOKEN"
+# Story LR1: the weekly post-mortem's one routine (AI summary, then objections), fired by its weekly job
+ENV_ROUTINE_POSTMORTEM_TRIGGER_ID = "FNO_ROUTINE_POSTMORTEM_TRIGGER_ID"
+ENV_ROUTINE_POSTMORTEM_TOKEN = "FNO_ROUTINE_POSTMORTEM_TOKEN"
 ENV_GITHUB_TOKEN = "GITHUB_TOKEN"  # the Actions run's own token: reads the repository's push log (receipt times)
 GITHUB_REPOSITORY_VARIABLE = "GITHUB_REPOSITORY"  # owner/name, set by GitHub Actions (not a secret, so no ENV_ name)
 DEFAULT_REPOSITORY = "exepex/trading"  # outside GitHub Actions, where GITHUB_REPOSITORY is not set
@@ -335,3 +338,9 @@ WEATHER_RED_FLOORS, WEATHER_AMBER_FLOORS = (0.10, 0.35), (0.06, 0.20)  # (next s
 WEATHER_RED_MULTIPLE, WEATHER_AMBER_MULTIPLE = 2.5, 1.5  # times the 750-session base rate
 WEATHER_RED_MAX_SHARE, WEATHER_RED_SHARE_RECORDS = 0.15, 250  # over it: "over_alarming" (never retuned in place)
 WEATHER_US_CUES = ("sp500", "nasdaq100")  # private cues (owner a927390): the US-move flag is kept in Drive only
+
+# The daily health check (story O8, fno/health/): its statuses and its own run record
+HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", "unknown"
+HEALTH_NOT_DUE, HEALTH_NOT_EXPECTED = "not due", "not expected"
+HEALTH_PROBLEMS = (HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN)
+HEALTH_RUNS_FILE = "research/ops/health_runs.csv"
