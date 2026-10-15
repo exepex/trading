@@ -163,6 +163,8 @@ Out:
 - books 2-3's per-contract trading inputs: F5, F6 (decided when they trade);
 - paper fills showing live strikes in the public journal: put to the owner by the orchestrator (outside E2b);
 - the fill price itself, which is one side of one quote by design (E4 criterion 1): kept;
+- a failed commit in `fno desk book1` (Book 1's decision, `fno/books/book1.py:74`) still ends in a traceback with no
+  alert, as before E2b: that command is not the daily run; a follow-up for the orchestrator;
 - **three stated exceptions**, put to the owner together with the open question of whether paper fills should move to
   Drive at all:
   1. *an unwound entry* (judge 118 SF1; orchestrator for the owner, response 113): when an entry fails after some legs
@@ -259,8 +261,14 @@ the hash-checked store. The guard and the derived pack work the same with either
    and the exits go on) and the journal is untouched (tests: refused, allowed, mixed list, empty list, `.CSV`, `../`,
    symlink, folder, earlier-staged file, account write before apply, the daily run's fill and exit steps). The guard
    is path-based on purpose: the desk's writers never copy or rename a raw file, so the only way a raw quote reaches a
-   desk commit is the quote folder itself; a staged deletion there is refused too, which is safe because A4b's removal
-   of the old raw file is its own commit and never goes through the desk's `Git`.
+   desk commit is the quote folder itself; a staged deletion there is refused too (test), which is safe because A4b's
+   removal of the old raw file is its own commit and never goes through the desk's `Git`. Any failure of the daily
+   run's committer (this refusal, a failed pull, a push rejected three times) is raised as `CommitFailed` and handled
+   at one place, the run's step (judge 118 addendum 3; decision 44): one alert naming why (the refused file named),
+   no later step, nothing committed (a push rejected three times leaves its one commit local and unpushed, which
+   refuses every later account write until it is resolved by hand), and `fno desk run` ends on that line with exit
+   code 1, never a traceback (tests with the real `GitCommitter` in a run: staged raw file, unreachable origin,
+   rejected push; a commit failing inside a step; the command).
 6. E2's own criteria still hold on schema 2: no book data, byte-identical rebuilds, cutoff refusals named, the
    opportunity set unchanged (existing tests, updated only where they name option items).
 7. No reader of the committed pack uses per-contract quote figures (a test lists every `option:` lookup in `fno/` and

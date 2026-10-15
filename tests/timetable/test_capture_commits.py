@@ -8,7 +8,7 @@ from datetime import datetime
 import pytest
 
 from fno.desk.commit_guard import RawQuoteCommitRefused, RawQuoteGuard
-from fno.desk.daily_ports import Committer
+from fno.desk.daily_ports import CommitFailed, Committer
 from fno.desk.execution_capture import RecorderExecutionCapture
 from fno.desk.git_sync import Git, GitCommitter
 from fno.models import IST
@@ -88,7 +88,7 @@ def test_the_committer_refuses_before_git_runs(tmp_path):
             calls.append(args)
             return super().__call__(*args, **kwargs)
 
-    with pytest.raises(RawQuoteCommitRefused):
+    with pytest.raises(CommitFailed, match="would publish raw Groww quotes"):
         GitCommitter(SpyGit(tmp_path)).commit([tmp_path / QUOTE], "Execution capture")
     assert calls == []  # not even the pull
 
@@ -133,3 +133,14 @@ def test_a_sidecar_alone_is_committed(tmp_path):
     git = git_repo(tmp_path)
     assert git.commit_paths([git.root / QUOTE.replace(".csv", ".meta.json")], "sidecar only")
     assert committed(git) == [QUOTE.replace(".csv", ".meta.json")]
+
+
+def test_a_staged_deletion_of_a_quote_file_is_refused(tmp_path):
+    """Judge 118 addendum 3 minor 1 (plant N4): removing a committed quote file is a change to the public record too."""
+    git = git_repo(tmp_path)
+    git("add", "--", QUOTE)
+    git("commit", "-q", "-m", "a quote file committed before the guard")
+    git("rm", "-q", "--cached", "--", QUOTE)
+    with pytest.raises(RawQuoteCommitRefused, match="nifty_20261014_151500.csv"):
+        git.commit_paths([git.root / QUOTE.replace(".csv", ".meta.json")], "sidecar only")
+    assert committed(git) == [QUOTE]  # the deletion was not committed

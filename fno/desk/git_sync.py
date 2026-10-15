@@ -24,7 +24,7 @@ from ..books.paths import book_folder
 from ..config import ROOT
 from ..storage.wiring import QUOTES_FOLDER
 from .commit_guard import RawQuoteCommitRefused, RawQuoteGuard
-from .daily_ports import AccountSync, AccountWriteRefused, Committer
+from .daily_ports import AccountSync, AccountWriteRefused, CommitFailed, Committer
 from .records import DeskJournal
 
 T = TypeVar("T")
@@ -104,12 +104,18 @@ class Git:
 
 class GitCommitter(Committer):
     """Every commit passes `RawQuoteGuard` (story E2b): first on the given paths, before git runs (not even the pull),
-    then on everything staged (`Git.commit_paths`)."""
+    then on everything staged (`Git.commit_paths`). Any refusal or git failure is raised as `CommitFailed`."""
 
     def __init__(self, git: Git):
         self.git = git
 
     def commit(self, paths: Sequence[Path], message: str) -> str:
+        try:
+            return self._commit(paths, message)
+        except (RawQuoteCommitRefused, GitError) as failure:
+            raise CommitFailed(str(failure)) from failure
+
+    def _commit(self, paths: Sequence[Path], message: str) -> str:
         self.git.guard.check(paths)
         self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", self.git.branch())
         if self.git.commit_paths(paths, message):
@@ -118,7 +124,7 @@ class GitCommitter(Committer):
                     break
                 self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", self.git.branch())
             else:
-                raise GitError(f"push of '{message}' rejected {PUSH_ATTEMPTS} times")
+                raise GitError(f"push of '{message}' rejected {PUSH_ATTEMPTS} times; the commit stays local, unpushed")
         return self.git("rev-parse", "HEAD").stdout.strip()
 
 

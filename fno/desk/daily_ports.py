@@ -37,10 +37,15 @@ class Waiter(ABC):
         """Returns at `moment` (at once when it has passed)."""
 
 
+class CommitFailed(Exception):
+    """The committer could not commit and push (a refused file, a failed pull, a push rejected every time); the message
+    names why. The daily run stops at that step with one alert (decision 44)."""
+
+
 class Committer(ABC):
     @abstractmethod
     def commit(self, paths: Sequence[Path], message: str) -> str:
-        """Pulls, commits these paths and pushes; the commit ID. Raises when it cannot."""
+        """Pulls, commits these paths and pushes; the commit ID. Raises `CommitFailed` when it cannot."""
 
 
 class Packs(ABC):

@@ -141,3 +141,16 @@ That is 7 items in place of the 184 per-contract quote items before, and nothing
 | Test: the reason and the committed `desk_events.csv` row carry no size (size 64 against 65 units) | `tests/desk/test_entries.py:118-122` | strong: putting `size {size}` back fails it ("'64' is contained here") |
 | Pending-exit reasons reuse the same leg reason, so they lose the size too | `fno/desk/exits.py:137` | strong (same text) |
 | Found in this round, not changed: a refused entry's net-at-the-touch reason and `shortfall_rs` | `fno/desk/entries.py:48-51` | reasoning only: a sum over at least two legs; owner question with the others |
+
+## Answer to judge 118 addendum 3 (decision 44)
+
+| Item | Accepted? | Fix | Tests | Evidence |
+|---|---|---|---|---|
+| New should-fix 1: the run's log commit hit the staged raw file first, with no alert | **accepted**. Reproduced with the real `GitCommitter` in a run: with the new catch removed (M1), the refusal escapes `DailyRun.run`. My earlier test used a fake committer, so it missed this | The committer port now raises one error, `CommitFailed` (`fno/desk/daily_ports.py`). `GitCommitter` turns any refusal or git failure into it (`fno/desk/git_sync.py:112-116`). `DailyRun._step` is the one place it is handled, whether it comes from the step's own commit or from a commit inside the step (`fno/desk/daily_run.py:83-94`): one alert through the same sender `_stop` uses (`steps.alerts`, the same object in the wiring), no later step, then `RunStopped`. `fno desk run` prints that line and returns 1 (`fno/books/book1_cli.py:39-43`) | `tests/timetable/test_commit_failure_run.py`, all with the real `GitCommitter` in a run unless noted: a staged raw file (one alert naming it; HEAD and origin unchanged; the run's own add undone); an unreachable origin; a push rejected three times (a pre-receive hook); a commit failing inside the snapshot step (fake committer); the command's exit code 1 and output line | strong. Plants caught: catch removed (M1); committer not wrapping (M2); no alert (M3); CLI not catching (M5); only the step's own commit caught (M6) |
+| The judge's older case: a push rejected three times ends unalerted | covered at the same catch point | Its alert says "the commit stays local, unpushed". That commit then refuses every later account write until it is fixed by hand (fail closed, unchanged) | the rejected-push test above | strong |
+| Minor 1, N4: `staged()` ignoring deletions survived | **accepted** | no code change; the claim now has its test | `tests/timetable/test_capture_commits.py:138` | strong: the N4 plant (`--diff-filter=d`) fails it |
+| Decision 42 (the touch size in E4's reason) | done | commit 290a8a0, in this push | see "Decision 42" above | strong |
+
+**Out, stated:** `fno desk book1`, Book 1's decision command, still ends in a traceback with no alert when its own
+commit fails (`fno/books/book1.py:74`), as it did before E2b. That command is not the daily run, so it is listed as a
+follow-up in the story's Out list.

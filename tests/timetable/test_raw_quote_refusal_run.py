@@ -1,6 +1,8 @@
 """Judge 118 addendum 2, should-fix 1, at the daily run: a raw quote file staged earlier refuses the account write
 before anything is applied, with the real `GitAccountSync` check. The fill step records "not filled" with an alert,
-the journal is untouched, the other book fills and the run still reaches its exit review."""
+the journal is untouched, the other book fills and the run still reaches its exit review. The committer is a fake here,
+so this is a file staged after the run's last commit (by another writer); one staged before a commit stops the run
+(`test_commit_failure_run.py`)."""
 
 import subprocess
 
