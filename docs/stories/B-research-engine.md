@@ -466,8 +466,7 @@ exits and settlement are tested.
     (Rs 15,828.64 on judge 106's real ATM call) and 0.45 x debit to a debit spread (Rs 3,572.89 on the real CDS 200
     row), although that money is already counted as premium paid. S2 would report it as capital tied.
   - **One `passed_on` date covers every code**, while broker checks will arrive one code at a time.
-  - **E3's recorded C4 pass does not name the margin row it used.** A14 appends between the 15:00 decision and the
-    fill, which is real, so the check is "the row C4 used is still there", not whole-file equality.
+  - **C4's record does not name the margin row it used**, so an audit cannot tie a fill to its margin.
   - **Nothing in code stops a version from using a new code** once the owner's broker check lists it, although E5's
     exit review and E7's settlement are untested with one or two legs and E8 is not built.
 
@@ -504,10 +503,9 @@ This story adds no strategy, no new code and no trading decision.
    - `config.yaml` is migrated with exactly the recorded SF, SC and BF check (same source, 14 Oct 2026), and no new code
      gets a date;
    - whichever of C5 and STR1b-1 merges second resolves `config.yaml` with both sides.
-3. **The margin row C4 used is still there at the fill** (review 100 point 1, its margin-row part):
-   - C4's record names the row it used (structure, width, `as_of`, source and its three figures);
-   - E3's `RecordedC4Pass` refuses an order whose bound row is no longer among the rows of `margins.csv` at fill time;
-   - rows A14 appends in between are allowed.
+3. **C4 names the margin row it used** (review 100 point 1, its margin-row part; judge 126 note 1): C4's record names
+   the row (structure, width, `as_of`, source and its three figures), for audit. Rows A14 appends between the decision
+   and the fill change nothing.
 4. **A code-enforced activation gate** (judge 115 should-fix 2; orchestrator's shadow decision):
    - `STR1_ACTIVATION_PENDING` in `fno/constants.py` maps each open gate to the uses it blocks:
      `{"STR1b-2": ("shadow", "paper"), "E8": ("paper",)}`;
@@ -546,7 +544,7 @@ Out:
 |---|---|
 | Capital split; no premium or debit counted twice; not S2's denominator (review 100 pt 2, minor 1, judge 115 sf 3) | 1, 2 |
 | Per-code broker approval dates (pt 4.4, minor 2) | 3 |
-| Recorded C4 pass names the margin row; the row must still be there at the fill (pt 1, its margin-row part) | 4 |
+| Recorded C4 pass names the margin row (pt 1, its margin-row part) | 4 |
 | Code-enforced activation gate; shadows scoped; E8 strict xfail (judge 115 sf 1-2, pt 4.3) | 5, 10 |
 | `composition.py` must not grow (minor 5) | 6 |
 | E5, E7, E4 per new code (pt 4.1-4.3, minor 6) | 7, 8, 9 |
@@ -566,10 +564,7 @@ Out:
    - adding a code moves no other code's date;
    - the old shape, an unknown code, a missing date and a missing source are each refused;
    - `config.yaml` holds SF, SC and BF with the recorded check only.
-4. Margin row:
-   - C4's record names its row;
-   - E3 refuses an order whose bound row is gone from `margins.csv`;
-   - E3 fills after an A14 append.
+4. Margin row: C4's record names its row, and an order still fills after an A14 append.
 5. Activation gate:
    - with the constant as shipped, D1's loader and status changer refuse an STR1-code version at `paper` and at
      research registration, and D2's shadow path refuses it, each naming the open gates;
@@ -596,6 +591,10 @@ a committed C4 pass, and C4 independently refuses a mislabelled shape. Nothing i
   fill (review 100 point 1's bypass test; judge 115 should-fix 6).
 - `AccountWriter.apply_fill` does not refuse a close or settle that adds risk: E4 and E7 only close holdings they read
   from the account (judge 115 addendum 1, should-fix 8).
+- E3 does not refuse a fill whose bound margin row has gone from `margins.csv`: A14 only appends (`margin_log.py` opens
+  the file with "a"), so only a hand edit removes a row (judge 126 note 1).
+- An order path outside D1 (for example Book 3's D5 registry, not built) must check `STR1_ACTIVATION_PENDING` in its own
+  story (judge 126 note 2).
 
 **Test plan:**
 - `tests/risk/test_capital.py` and `tests/checks/test_validity_capital.py` (1);
@@ -607,16 +606,18 @@ a committed C4 pass, and C4 independently refuses a mislabelled shape. Nothing i
   `test_e8_pending.py` (7-10);
 - the full suite;
 - per quality rules 3-6: two review agents, one mutation per criterion (real cases only), and a real output sample (the
-  capital split of the 14 Oct rows and a refused STR1 version).
+  capital split of the 14 Oct rows and a refused STR1 version);
+- ChatGPT reviews the trim (`reviews/claude/response_115_str1b-activation-gates.md`) before STR1b-1 is merged; any point
+  it upholds is restored from 6b62348 (judge 126 note 3).
 
 **Judge verifies:**
 - recomputes the CDS 200 and a CCS capital split by hand;
 - checks SF/SC/BF are unchanged on the real rows;
 - adds a code to the approvals map;
-- removes a bound margin row between decision and fill;
+- checks C4 names its margin row and an A14 append still fills;
 - tries to approve an STR1 version;
 - runs one E7 settlement of a vertical by hand.
 
 **Depends:** STR1, C2, C4, C5 (merge order), D1, D2, E3, E4, E5, E7, A14, S2 · **Size:** STR1b-1 S-M (about 6-8 files
-with tests), STR1b-2 S-M (tests) · **Status:** text trimmed under the owner's 15 Oct rule (decision 65), for re-check;
+with tests), STR1b-2 S-M (tests) · **Status:** text trimmed under the owner's 15 Oct rule (decision 65); judge 126 PASS (5e20bbc) with three notes folded in;
 code after the pass, STR1b-1 after C5 merges. Claims: `reviews/claude/response_115_str1b-activation-gates.md`.
