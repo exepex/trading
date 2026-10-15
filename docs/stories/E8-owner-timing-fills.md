@@ -23,9 +23,10 @@ the owner could really have got, and the cost of human delay is measured, not as
 - **Still open, from the owner:** the availability calendar (REPLAN section 5, decision 5). This story gives its format
   and a default until the owner supplies it (rule 8).
 - **What E8a measured** (`research/2026-10-16-fill-timing/results.md`, ledger trial 54, exploratory, candle last trades
-  2024-26, not bid or ask). A 15:00 decision with a card at 15:08 fills at 15:15 for R = 5, and at the next session's
-  09:45 for R = 30 and 10:15 for R = 60. A 14:00 decision fills at 14:15, 14:45 and 15:15. The entry moves C between
-  the decision and the R = 60 fill:
+  2024-26, not bid or ask). E8a assumed a card at 15:08 (or 14:08), which O1 does not give (see "Card time" below), so
+  only its R = 60 cells at 15:00 (next session's 10:15) and at 14:00 (15:15, the same prices as the `e4_1515` view)
+  describe E8's real fills. E8a has no 09:30 cell, so the R = 5 view has no historical figure. The entry moves C
+  between the decision and the R = 60 fill:
 
   | Family | Mean \|C\| at 15:00, R = 60 (overnight) | Mean \|C\| at 14:00, R = 60 (= the 15:15 snapshot) | Days C is above 10% of the trade's risk (15:00, R = 60) |
   |---|---|---|---|
@@ -48,6 +49,18 @@ the owner could really have got, and the cost of human delay is measured, not as
   - The card's delivery record holds Slack's `ts` and the clock checks (`fno/cards/deliveries.py`).
   - The card has no trade fields yet (`fno/cards/card.py:76-78`).
 
+## Card time (judge 193 should-fix 1)
+
+O1's daily run posts the card only after `quotes_done`, which comes after `exits`, so the card is "always after
+`decisions` (final at 15:12) and `snapshot` (C3 final at 15:15), so a card never posts before what it shows is final"
+(`docs/stories/O1-daily-run.md:88` on `story/o1-daily-run`). So T is 15:15 or later on a normal day, and E8's exit
+alerts go out in the same run, after `exits`. Under rule 2, every owner-timing view then fills the next session:
+- R = 5: T + 5 is 15:20 or later, so the first mark is 15:30, which is after 15:25. The fill moves to the next
+  session's 09:15 + 5, the **09:30 mark**.
+- R = 30: the next session's **09:45** mark. R = 60: the next session's **10:15** mark.
+
+Only the `e4_1515` view fills the same day.
+
 ## What changes for the owner, said plainly
 
 1. **The book's own account is filled at R = 60.** With today's 15:00 decision, almost every entry fills at about 10:15
@@ -55,13 +68,16 @@ the owner could really have got, and the cost of human delay is measured, not as
 2. **Three more views of the same decisions** are kept beside it: R = 5, R = 30 and E4's 15:15 fill. The gap between
    the verdict and the 15:15 view is the measured cost of human delay. The four views are four looks at one decision,
    highly correlated, never four independent trials.
-3. **Until A16's routine runs, no verdict fill can happen.** For a 15:00 decision, R = 30 and R = 60 need A16's 09:45
-   and 10:15 snapshots, and nothing else records them, so every such entry is "missed, no quote". A16's routine waits
+3. **Until A16's routine runs, no owner-timing fill can happen.** R = 5, 30 and 60 need A16's 09:30, 09:45 and 10:15
+   snapshots, and nothing else records them, so every such entry is "missed, no quote". Only `e4_1515` fills. A16's routine waits
    for the owner (`docs/stories/A16-owner-checklist.md`). E8's code can merge first, but its verdict starts only with
    A16.
-4. **If the delay costs too much, the remedy is an earlier decision time, never a shorter R.** For example, a 14:00
-   decision puts R = 60 at 15:15 the same day. This is an S1 `timetable` choice. The owner makes it from E8a's
-   numbers now, and from E8's live report later.
+4. **If the delay costs too much, the remedy is an earlier decision and an earlier card, never a shorter R.** An
+   earlier decision alone moves nothing: the card still waits for the 15:15 snapshot, so R = 60 stays at 10:15 the next
+   session. A 14:00 decision puts R = 60 at 15:15 only if its card goes out at about 14:08. That needs an O1 and T1
+   change, with a cost: a card posted before that day's 15:15 data checks are final, or a second, earlier run with its
+   own data checks. E8a's 14:00 figures show what it would buy (long call: mean |C| about 25 points against 55). It is an
+   S1 `timetable` choice for the owner, from E8a now and E8's live report later.
 
 ## Rules
 
@@ -77,8 +93,8 @@ the owner could really have got, and the cost of human delay is measured, not as
      open plus R, then to the first mark at or after that.
    - "Next session" comes from A7's calendar: a normal or special session, never a muhurat-only day (it has no 09:15
      mark).
-   - With a 15:08 card: R = 5 gives 15:15; R = 30 gives the next session's 09:45; R = 60 gives 10:15. With a 14:08 card:
-     14:15, 14:45 and 15:15.
+   - With O1's card at 15:15 or later: R = 5, 30 and 60 give the next session's 09:30, 09:45 and 10:15. Only if the card
+     moved to 14:08 (point 4 above): 14:15, 14:45 and 15:15.
 3. **Snapshot at the due mark.** The snapshot is A16's snapshot of that mark, the copy its ledger row names (hash
    checked).
    - A missing or failed A16 mark may be replaced only by a recorded A4 capture that started within the mark's 2-minute
@@ -233,18 +249,19 @@ The entry range's shape. With only the approved limit (rule 6), a bought option 
 remain are mostly the days the market moved against the idea: a long call is cheaper when NIFTY fell. That is real
 (an owner with a limit order gets exactly this), so it is not a measurement error, but it biases bought options toward
 bad fills. The other choice is the limit plus a NIFTY band: enter only if NIFTY is within ±0.5% of its decision level.
-That band would have dropped about 17% of overnight entries in 2024-26 (E8a's gap figures, some evidence), and its
+That band would have dropped about 32% of overnight entries in 2024-26: E8a's gap band at 15:00, R = 60, is exactly
+this test, and 204 of 645 days (SF) and 210 of 660 (LC) moved 0.5% or more (judge 193 should-fix 3, rechecked against
+`results.md` lines 200 and 216; some evidence). The earlier 17% was the 09:15 open's gap, not the 10:15 fill's. The
 width is reasoning only. Recommendation: the approved limit only for now, with the report splitting fills and misses by
 NIFTY's move. A band can then be added per strategy, from data.
 
 ## Acceptance criteria
 
 1. **Clock.**
-   - A 15:08 card maps to 15:15, the next session's 09:45 and 10:15.
-   - A 14:08 card maps to 14:15, 14:45 and 15:15.
-   - A Friday 15:08 card's R = 60 fill falls at Monday's 10:15, or at the next A7 session's open plus 60 minutes.
+   - A 15:16 card maps to the next session's 09:30, 09:45 and 10:15 (R = 5's 15:21 needs the 15:30 mark, after 15:25).
+   - A 14:08 card (only if the card moved earlier) maps to 14:15, 14:45 and 15:15.
+   - A Friday 15:16 card's R = 60 fill falls at Monday's 10:15, or at the next A7 session's open plus 60 minutes.
    - A muhurat-only day is skipped.
-   - A card at 15:21 with R = 5 moves to the next session, because 15:30 is after 15:25.
 2. **Delivery.** T is read from the delivery record. An undelivered card gives "missed, card not delivered". An
    undelivered exit alert is sent again and fills from its first delivery.
 3. **Snapshot.**
@@ -270,7 +287,8 @@ NIFTY's move. A band can then be added per strategy, from data.
    - Only the verdict account changes C2's view.
    - The `e4_1515` view equals today's E4 result on the same fixture, bit for bit.
 10. **Daily step.**
-    - The step runs first and catches up after a missed run, oldest first.
+    - The step runs right after `quotes` and catches up after a missed run, oldest first.
+    - A planted step failure gives no new entry in any book or view that day, and `exits` still runs.
     - Running it twice changes nothing.
     - A fill's row carries the snapshot hash, the due mark, R, the view and T.
 11. **Report.** It gives every figure listed under `TimingReport`, the NIFTY-move split included (a fixture with one
