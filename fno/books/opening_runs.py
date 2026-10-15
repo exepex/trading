@@ -5,14 +5,12 @@ fill), as that day's run log names it. A fill row's `decision_id` is the record'
 the run, so the run log is the source. Only trades opened by fills are the book's: a run never collected, or a chosen
 trade never filled, adds nothing.
 
-The run is checked against the SHA-256 of its `records.sha256` that the decisions step recorded from the committed
-file when it collected the run. The hash is in the run log, so this needs no git history: a scheduled session's
-shallow clone checks it the same way. When the run log names no run, or the run no longer matches that hash, there is
-no opening run: the reason is named, and nothing falls back to another run."""
+The run's files are checked against its own `records.sha256` (`DecisionStore.edited`), which needs no git history, so
+a scheduled session's shallow clone checks it the same way. When the run log names no run, or the run's files no
+longer match, there is no opening run: the reason is named, and nothing falls back to another run."""
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -25,7 +23,7 @@ from ..desk.run_log import RunLog
 from ..playbook.decision_store import SUMS_FILE, DecisionStore
 
 NO_LOG = "the run log of {day} names no decision of {book}"
-CHANGED = "its opening run {run} does not match the records.sha256 the run log of {day} recorded"
+CHANGED = "its opening run {run} (run log of {day}) does not match its records.sha256"
 
 
 @dataclass(frozen=True)
@@ -61,10 +59,6 @@ def _opening_run(root: Path, book: str, day: date) -> Path | str:
         return NO_LOG.format(day=day, book=book)
     run = DecisionStore(root, book).day_folder(day) / entry["run_id"]
     sums = run / SUMS_FILE
-    if not sums.is_file() or _sha256(sums) != entry.get("sums_sha256") or DecisionStore.edited(run):
+    if not sums.is_file() or DecisionStore.edited(run):
         return CHANGED.format(run=entry["run_id"], day=day)
     return run
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()

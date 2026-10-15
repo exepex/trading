@@ -3,7 +3,6 @@ collected, so `opening_trades` finds each trade's opening run as the desk would 
 
 from __future__ import annotations
 
-import hashlib
 import json
 from datetime import date, datetime, time
 
@@ -12,7 +11,7 @@ from fno.constants import FILL_OPEN
 from fno.desk.records import FILL_COLUMNS, DeskRecords
 from fno.desk.run_log import RunLog
 from fno.models import IST
-from fno.playbook.decision_store import SUMS_FILE, DecisionStore
+from fno.playbook.decision_store import DecisionStore
 
 
 def chosen_trade_ids(run) -> list[str]:
@@ -26,9 +25,7 @@ def open_trades(root, book: str, day: date, run_id: str, commit: str, trade_ids=
     trade_ids = chosen_trade_ids(run) if trade_ids is None else trade_ids
     log = RunLog.open(root, day)
     moment = datetime.combine(day, time(15, 1), IST)
-    sums = run / SUMS_FILE
     entry = {"run_id": run_id, "commit": commit, "committed_at": moment.isoformat()}
-    entry |= {"sums_sha256": hashlib.sha256(sums.read_bytes()).hexdigest()} if sums.is_file() else {}
     log.record("decisions", moment, moment, {}, {book: entry})
     fills = DeskRecords(PaperAccount(root, book)).fills
     fills.path.parent.mkdir(parents=True, exist_ok=True)

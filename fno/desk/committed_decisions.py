@@ -11,7 +11,6 @@ day is listed for the run log, a correction with what it corrects and why, and i
 
 from __future__ import annotations
 
-import hashlib
 from datetime import date, datetime
 from pathlib import Path
 from typing import Protocol
@@ -25,8 +24,6 @@ from .pack_items import available_time
 
 class RunCommits(OrderCommits, Protocol):
     def observed(self) -> str: ...
-
-    def committed_bytes(self, path: str, commit: str) -> bytes | None: ...
 
 
 class RunNotRecorded(ValueError):
@@ -48,9 +45,7 @@ class D3CommittedDecisions(DecisionSource):
                 continue
             if run.committed_at >= deadline:
                 return None
-            sums = self.git.committed_bytes((run.path / SUMS_FILE).relative_to(self.root).as_posix(), run.commit)
-            digest = hashlib.sha256(sums).hexdigest() if sums is not None else None
-            return CommittedDecision(book, run.run_id, run.commit, run.committed_at, run.path, digest)
+            return CommittedDecision(book, run.run_id, run.commit, run.committed_at, run.path)
         return None
 
     def others(self, book: str, day: date, taken: str | None) -> list[dict]:

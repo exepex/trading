@@ -102,7 +102,6 @@ class DeskSteps:
             else:
                 result[book] = {"run_id": decision.run_id, "commit": decision.commit,
                                 "committed_at": decision.committed_at.isoformat()}  # fmt: skip
-                result[book] |= {"sums_sha256": decision.sums_sha256} if decision.sums_sha256 else {}
             others = self.decisions.others(book, day, decision.run_id if decision else None)
             result[book] |= {"others": others} if others else {}
         return StepOutcome({"deadline": deadline.isoformat(), "origin": origin}, result, tuple(paths))

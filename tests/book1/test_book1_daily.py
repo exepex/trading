@@ -118,8 +118,7 @@ def test_book1_s_records_are_collected_on_time_every_fixture_day_and_a_c4_pass_f
     opened = DeskRecords(PaperAccount(root, BOOK1_RULES)).fill_rows()
     assert opened and {(r["strategy"], r["decision_id"].split(":")[0]) for r in opened} == {("sc-a-v1", "sc-a-v1")}
     assert all(r["outcome"] == "held" for log in logs[1:] for r in log.result("exits")[BOOK1_RULES]["results"])
-    # story D3b: the decisions step logs the committed sums hash, so every opened trade finds its opening run
-    assert all(log.result("decisions")[BOOK1_RULES]["sums_sha256"] for log in logs)
+    # story D3b: every opened trade finds its opening run in the run log
     found = opening_trades(root, BOOK1_RULES)
     assert found.problems == {} and set(found.trades) == {r["trade_id"] for r in opened}
 

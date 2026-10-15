@@ -29,7 +29,6 @@ class CommittedDecision:
     commit: str  # the commit that holds the run
     committed_at: datetime  # its committer time (time zone aware)
     run: Path | None = None  # the run's folder (D3): its orders are built from it at the fill, C4's pass read there
-    sums_sha256: str | None = None  # SHA-256 of its records.sha256 as committed: later readers need no git history
 
 
 class Waiter(ABC):

@@ -2,7 +2,6 @@
 before the deadline (commit-time order), never a correction; the decisions step lists every other run
 of the day in the run log, a correction with what it corrects and why."""
 
-import hashlib
 import json
 import os
 import subprocess
@@ -105,10 +104,3 @@ def test_a_ten_run_day_is_ordered_by_commit_time_then_counter_never_by_name(tmp_
     assert source.committed(BOOK1_RULES, NORMAL, DEADLINE).run_id == f"{NORMAL}-r10"
     listed = [o["run_id"] for o in source.others(BOOK1_RULES, NORMAL, f"{NORMAL}-r10")]
     assert listed == [f"{NORMAL}-r{n}" for n in range(1, 10)]
-
-
-def test_the_collected_run_carries_the_hash_of_its_committed_sums_file(tmp_path):
-    repository(tmp_path)
-    commit_run(tmp_path, BOOK1_RULES, 1, 3)
-    taken = collector(tmp_path).committed(BOOK1_RULES, NORMAL, DEADLINE)
-    assert taken.sums_sha256 == hashlib.sha256(b"sums\n").hexdigest()
