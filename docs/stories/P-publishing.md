@@ -142,6 +142,9 @@ evidence, health) returns with P2 and W3 where design v2 still needs it.
 
 ## P2. Read-model builder
 
+**Superseded (16 Oct 2026):** the owner's decision "F&O screens start now ... through the existing Azure path" replaces
+this text with `docs/stories/W3-fno-screens.md`, part 1 (pages in the existing daily publish). The text below is history.
+
 **Repository:** trading
 
 **Description:** As the owner, I want the F&O pages built by code only from committed records, so that every number on
