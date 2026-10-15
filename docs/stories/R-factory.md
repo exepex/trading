@@ -109,8 +109,8 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
     A defined-risk condor cannot lose more than its maximum loss, except through a settlement or data error;
   - **if it happens anyway:** E6 alerts #fno-desk on the day the trade closes (a research shadow is alerted, never
     paused: `fno/scorecard/pauses.py`). Retiring B0 is the owner's action (`playbook set-status ... retired`; only
-    the owner may retire, `fno/playbook/transitions.py`). So stopping after the fact needs the owner, against judge
-    208's note that it needs none: code cannot pause a research version, by design 12.8.
+    the owner may retire, `fno/playbook/transitions.py`). Judge 208 asked who stops it: the owner, on E6's alert.
+    Code cannot pause a research version (design 12.8).
 
 Out (each with where it goes):
 - **V1 and V2 shadows:** later R3 work, when their blockers clear: A16's 20 sessions and G10 part 2 for V1; G7 phase 2
