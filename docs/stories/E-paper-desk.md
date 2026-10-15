@@ -310,22 +310,18 @@ Out:
 - the fill price itself, which is one side of one quote by design (E4 criterion 1): kept;
 - a failed commit in `fno desk book1` (Book 1's decision, `fno/books/book1.py:74`) still ends in a traceback with no
   alert, as before E2b: that command is not the daily run; a follow-up for the orchestrator;
-- **three stated exceptions**, put to the owner together with the open question of whether paper fills should move to
-  Drive at all:
+- **two stated exceptions** (three until story E4c removed the third), put to the owner together with the open
+  question of whether paper fills should move to Drive at all (since answered: story E2c keeps the fill rows in Drive):
   1. *an unwound entry* (judge 118 SF1; orchestrator for the owner, response 113): when an entry fails after some legs
      filled (E4 criterion 2), each filled leg is traded back at the same snapshot (a protection bought at the ask and
      sold at the bid; a short already sold at the bid bought back at the ask), and `legging_cost_rs` in
-     `desk_events.csv` is the spreads paid. Those rows publish both sides of each unwound contract. Rare: a failed
-     entry only, after 15:15;
+     `desk_events.csv` is the spreads paid. Those rows publish both sides of each unwound contract. Since story E4c it
+     is reached only through E4's guard (a fill failing after E4c's entry check passed: a defect, not a market case);
   2. *two accounts on opposite sides* (judge 118 addendum 1, confirmed by a test): E4 fills each account on its own,
      so when one account buys a contract and another sells it at the same execution snapshot (one closing while the
      other opens, or a book and a shadow), their rows together publish both sides of that contract;
-  3. *protection unverified at the opening snapshot* (builder's review 2, confirmed by a test; orchestrator for the
-     owner, response 113): when a protective leg's bid size cannot cover its units at the snapshot that opened the
-     trade, E4 marks it `protection_unverified` and closes the trade at that same snapshot (`fno/desk/exits.py:90-106`),
-     so its rows show both sides of each leg closed there. It is also a pointless loss (the spread paid in and out at
-     once): a separate small E4 story will refuse such an entry (a protection-exit size check before opening), which
-     removes this exception;
+  3. *(removed by story E4c)* protection unverified at the opening snapshot: such an entry is now refused before any
+     leg fills (`protection_not_sellable`), so nothing is bought and closed at once;
 - **known channels outside the fill rows (stated, not changed here; one owner question with the fills-to-Drive
   question):** scoreboard B (`research/scoreboards/B/<date>.json`, `fno/scoreboard/whole_system.py:60`) commits
   `raw_account_net_rs`, which marks open legs at the mid of the same 15:15 execution snapshot the fills used
@@ -392,9 +388,9 @@ the hash-checked store. The guard and the derived pack work the same with either
    has none). A chain whose rows carry no spot, or that has no rows at all, keeps its `spot:` item with no value, and
    a refused `spot:` item counts as missing; C3 names the chain and fails, so the 0.2% agreement is never skipped
    (tests).
-3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the three stated exceptions (an unwound
-   entry; two accounts on opposite sides of one contract at one snapshot; protection unverified at the opening
-   snapshot), no committed desk fill row lets a filled leg's other quote side be worked out: tests build E4's outcomes
+3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the two stated exceptions (an unwound
+   entry, only through E4c's guard; two accounts on opposite sides of one contract at one snapshot; the third,
+   protection unverified at the opening snapshot, was removed by E4c), no committed desk fill row lets a filled leg's other quote side be worked out: tests build E4's outcomes
    (opened, closed at a later snapshot, pending exit, a time rule at the opening snapshot, partial fill) and find that
    within one account only the unwound legs give both sides, that unverified protection at the opening snapshot does
    (pinned until the E4 story removes it), and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old figure on the
@@ -804,8 +800,8 @@ refusal sample from a dry run on a fixture snapshot (no live strikes).
 
 **Depends:** E4 (merged), A4, **E2b (its code must merge first: E4c changes E2b's pinned test and its story's
 exceptions)**, C5 (criterion 10's test), STR1 (criterion 2's codes; the fly covers the rest if STR1 has not merged) ·
-**Size:** S · **Status:** story text, revised after judge 120 (decision 43), for the judge's re-check (quality rule
-1); code waits for that check and for E2b's merge.
+**Size:** S · **Status:** code on `story/e4c-protective-leg-refusal`, for the judge (text PASS judge 120 add. 1;
+ChatGPT review 104 accepted the text; claims in `reviews/claude/response_177_e4c-entry-check.md`).
 
 **Open questions for the owner (reasoning only, no change in E4c):**
 1. Should a maximum entry spread exist (for example, a ratio of the spread to the premium)? E4c sets none. The
@@ -1171,5 +1167,6 @@ No network, no Slack.
 - Every command that reads the accounts needs Drive's four `FNO_GDRIVE_*` settings, `market publish --local`
   included; without them it stops with one line rather than read a stale copy.
 
-**Depends:** A4b (the Drive store), E2b, E3, E4 · **Size:** M · **Status:** code on `story/e2c-fills-to-drive`
-(response 150, first numbered 148; story text PASS judge 148 add. 1; code judge 159 FAIL, fixes for the re-check)
+**Depends:** A4b (the Drive store), E2b, E3, E4 · **Size:** M · **Status:** done: merged df136912 (response 150, first
+numbered 148; story text PASS judge 148 add. 1; code PASS judge 159 add. 2; ChatGPT review 115); accounts moved to
+Drive at the merge (3f5a4473, d9f67c4)

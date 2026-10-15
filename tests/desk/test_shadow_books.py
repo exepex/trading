@@ -56,7 +56,8 @@ def test_trading_in_the_shadow_account_writes_only_inside_its_declared_folder(st
     assert not any(path.startswith(f"journal/{book}/") for path in changed for book in BOOKS)
 
 
-def test_trade_counts_come_from_the_shadow_accounts_own_records(started, store, snapshots, entry_desk):
+def test_trade_counts_come_from_the_shadow_accounts_own_records(started, store, snapshots, entry_desk, check_passed):
+    """The unwound entry comes through E4c's guard (a fill failing after the entry check)."""
     write_snapshot(store, "exec", fly_rows({(25000, OPTION_PUT): {"valid": False}}), at(15, 15), at(15, 15, 40))
     assert enter(started, snapshots, entry_desk, shadow_order("t1")).outcome == OUTCOME_PARTIAL_FILL
     counts = JournalShadowBooks(started, decision_market(), {}).account(CANDIDATE).counts
