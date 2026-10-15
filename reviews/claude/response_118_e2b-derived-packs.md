@@ -115,7 +115,9 @@ That is 7 items in place of the 184 per-contract quote items before, and nothing
    - two accounts on opposite sides of one contract at one snapshot;
    - protection unverified at the opening snapshot.
 
-   **Known channels:** scoreboard B and `equity_history`. All of these go to the owner with the question of moving
+   **Known channels:** scoreboard B and `equity_history`; a refused entry's net-at-the-touch reason and
+   `shortfall_rs` (a sum over at least two legs, not one contract). The touch size in E4's no-fill reason is removed
+   (decision 42, below). All of these go to the owner with the question of moving
    paper fills, marks and scoreboard B to Drive.
 2. Before A4b merges, the 15:15 quote CSV is not committed and lives only in the run's local folder, so E6 shows
    "touch unknown" on a fresh checkout. E2b merges after A4b for this reason.
@@ -130,3 +132,12 @@ That is 7 items in place of the 184 per-contract quote items before, and nothing
 - Recompute one half-spread from a snapshot by hand.
 - Exception 3's test, and whether any other outcome reveals both sides.
 - C3 with a blank chain, and with a spot refused at the cutoff.
+
+## Decision 42: no touch size in the public reason
+
+| What | Where | Evidence |
+|---|---|---|
+| E4's no-fill reason no longer carries the size shown at the touch: "not enough size at the touch for M units" | `fno/desk/pricing.py:19`, `:63` | strong |
+| Test: the reason and the committed `desk_events.csv` row carry no size (size 64 against 65 units) | `tests/desk/test_entries.py:118-122` | strong: putting `size {size}` back fails it ("'64' is contained here") |
+| Pending-exit reasons reuse the same leg reason, so they lose the size too | `fno/desk/exits.py:137` | strong (same text) |
+| Found in this round, not changed: a refused entry's net-at-the-touch reason and `shortfall_rs` | `fno/desk/entries.py:48-51` | reasoning only: a sum over at least two legs; owner question with the others |

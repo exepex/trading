@@ -186,6 +186,13 @@ Out:
   units and bid = 2 mid - ask (recovered exactly in review 2). `journal/<book>/account/equity_history.csv`
   (`marked_equity_rs - cash_rs`, `fno/books/account.py:153`) would leak the same way once anything calls it. Nothing
   is live, so nothing has leaked;
+- **removed here (orchestrator decision 42):** the size shown at the touch in E4's no-fill reason ("size N at the
+  touch is below M units"), written to `desk_events.csv` and used again in pending-exit reasons; it now reads "not
+  enough size at the touch for M units" (`fno/desk/pricing.py:19`);
+- **stated, not changed (found in the decision 42 round):** a refused entry's "net entry Rs X at the touch is worse
+  than the approved Rs Y" reason and `shortfall_rs` (`fno/desk/entries.py:48-51`) publish the net of every leg at
+  the touch for an entry that never opened. It is a sum over the legs (each playbook structure is defined risk, so at
+  least two legs), not one contract's figure; a single-leg structure would publish its touch price;
 - **kept, by decision (orchestrator for the owner, response 113):** the per-contract mids and implied volatilities of
   the 14:55 canonical snapshot in Book 1's D3 decision inputs (`fno/playbook/decision_codec.py:15-27`) and C4's
   `snapshot_mid` per leg (`fno/checks/validity_market.py:46`): derived figures the letter of "8 A" allows, which alone

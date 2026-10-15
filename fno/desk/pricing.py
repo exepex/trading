@@ -15,6 +15,8 @@ from ..research_engine.structures import Leg
 from .snapshot import ExecutionQuote, ExecutionSnapshot
 
 FILL_PAD_RS = 0.0
+# Public reason (desk_events.csv): never the size shown, a per-contract quote figure (owner 6 A, decision 42).
+NOT_ENOUGH_SIZE = "not enough size at the touch for {units} units"
 
 
 @dataclass(frozen=True)
@@ -58,7 +60,7 @@ def price_leg(snapshot: ExecutionSnapshot, leg: DeskLeg, side: str, units: int) 
         return LegQuote(leg, side, units, None, f"quote not valid: {quote.a4_problem}", quote)
     price, size = quote.touch(side)
     if size < units:
-        return LegQuote(leg, side, units, None, f"size {size or 0:g} at the touch is below {units} units", quote)
+        return LegQuote(leg, side, units, None, NOT_ENOUGH_SIZE.format(units=units), quote)
     return LegQuote(leg, side, units, price, "", quote)
 
 

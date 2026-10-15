@@ -2,6 +2,7 @@
 invalid quote, partial fills unwound with their legging cost (criterion 2), the risk manager's refusal (C2, issue #85)
 and the point-in-time rule (never a later quote)."""
 
+import csv
 import hashlib
 from datetime import timedelta
 
@@ -114,7 +115,11 @@ def test_a_leg_fills_only_when_the_size_at_the_touch_covers_its_units(root, stor
     result = enter(root, snapshots, entry_desk, fly_order())
     assert result.outcome == outcome
     if outcome == OUTCOME_NOT_OPENED:
-        assert "size 64 at the touch is below 65 units" in result.reason
+        assert "not enough size at the touch for 65 units" in result.reason
+        assert "64" not in result.reason  # the size shown is a quote figure: never in the public reason
+        (events,) = root.rglob("desk_events.csv")
+        (row,) = csv.DictReader(events.open())
+        assert row["reason"] == result.reason  # the committed row carries the same reason, no size
         assert PaperAccount(root, BOOK1_RULES).fills() == []
 
 
