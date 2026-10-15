@@ -44,8 +44,15 @@ class GitManifestRecorder(ManifestRecorder):
     def _git(self, *args: str) -> subprocess.CompletedProcess:
         return self.run(["git", *args], cwd=self.repository, capture_output=True, text=True)
 
+    def _paths(self) -> list[str]:
+        """The pathspecs this committer adds and commits (a commit with pathspecs takes only those: `--only`)."""
+        return [self.folder]
+
     def pending(self) -> list[str]:
-        status = self._git("status", "--porcelain", "--untracked-files=all", "--", self.folder)
+        paths = self._paths()
+        if not paths:  # no pathspec at all would mean the whole repository
+            return []
+        status = self._git("status", "--porcelain", "--untracked-files=all", "--", *paths)
         return sorted(line[3:] for line in status.stdout.splitlines() if line.strip())
 
     def commit(self, what: str) -> str:
@@ -54,9 +61,10 @@ class GitManifestRecorder(ManifestRecorder):
             return NOTHING_AS.format(label=self.label)
         if not self._git("config", "core.hooksPath").stdout.strip():
             return self._not_committed("hooks", NO_HOOKS)  # the scan is never skipped, so neither is it bypassed
+        paths = self._paths()
         for step, args in (
-            ("add", ("add", "--", self.folder)),
-            ("commit", ("commit", "-m", self.message.format(what=what), "--", self.folder)),
+            ("add", ("add", "--", *paths)),
+            ("commit", ("commit", "-m", self.message.format(what=what), "--", *paths)),
         ):
             result = self._git(*args)
             if result.returncode != 0:
