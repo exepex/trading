@@ -22,7 +22,7 @@ from ..server_clock import GITHUB_TIME_URL, HttpDateClock
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from .card import CardBuilder
-from .committed import GitHeadRecords
+from .committed import DownloadedRecords, GitHeadRecords
 from .daily import DailyCard
 from .deliveries import RepoDeliveryFiles
 from .forecasts import LiveCaptureForecasts
@@ -49,7 +49,8 @@ def _host_now() -> datetime:
 
 def build_daily_card(root: Path = ROOT) -> DailyCard:
     records = GitHeadRecords(root)
-    builder = CardBuilder(RegistryStatus(records), PendingWeather(), LiveCaptureForecasts(records))
+    status = RegistryStatus(records, DownloadedRecords(root))
+    builder = CardBuilder(status, PendingWeather(), LiveCaptureForecasts(records))
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
 
 

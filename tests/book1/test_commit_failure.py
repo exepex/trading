@@ -11,6 +11,7 @@ from fno.books import book1_cli
 from fno.books.book1 import Book1Day
 from fno.constants import BOOK1_RULES
 from fno.desk.pending_commit import PendingCommitter
+from fno.desk.private_files import PrivateFilesUnavailable
 from fno.playbook.decision_run import DecisionRun
 from fno.playbook.decision_store import DecisionStore
 from tests.decisions.builders import CONTEXT, doc, snapshot
@@ -49,6 +50,8 @@ class Desk:
         self.root, self.run, self.alerts, self.inputs, self.capsys = root, CountedRun(root), Alerts(), None, capsys
         monkeypatch.setattr("fno.books.book1_wiring.build_book1", lambda cfg: self.book1())
         monkeypatch.setattr("fno.composition.build_alert_sender", lambda: self.alerts)
+        self.downloads = []  # story E2c's shared download: Drive is not tested here, only that it is asked for
+        monkeypatch.setattr("fno.desk.wiring.download_private_records", lambda day=None: self.downloads.append(day))
 
     def book1(self):
         return git_book1(self.root, snapshot(doc("sc-a")), self.run, self.alerts, self.inputs)
@@ -232,3 +235,24 @@ def test_a_successful_decision_prints_the_same_line_and_exits_0(desk):
     code, out = desk()
     head = git(desk.root, "rev-parse", "HEAD").strip()
     assert (code, out) == (0, f"Book 1 {DAY}: decided ({DAY}-r1), committed {head}\n") and desk.alerts.sent == []
+
+
+def test_drive_unreadable_decides_nothing_with_its_own_alert(desk, monkeypatch):
+    """Judge 163 note a (E2c with E5b): a failed download is "nothing decided", never "decision NOT committed"."""
+
+    def unreadable(day=None):
+        raise PrivateFilesUnavailable("Drive answered 503")
+
+    monkeypatch.setattr("fno.desk.wiring.download_private_records", unreadable)
+    code, out = desk()
+    assert code == 1 and desk.alerts.sent == [out.rstrip("\n")] and desk.runs() == [] and desk.run.decisions == 0
+    assert out.startswith(f"F&O Book 1 {DAY}: nothing decided: Drive could not be read (Drive answered 503)")
+
+
+def test_commit_run_works_with_drive_down_and_deciding_downloads_first(desk, monkeypatch):
+    """Judge 163 note b: `--commit-run` reads no private record, so it never downloads; deciding downloads first."""
+    on_disk_only(desk)
+    assert desk.downloads == [DAY]  # the decide that failed had downloaded first
+    monkeypatch.setattr("fno.desk.wiring.download_private_records", lambda day=None: pytest.fail("Drive was read"))
+    code, out = desk(commit_run=f"{DAY}-r1")
+    assert code == 0 and "committed as recorded" in out and desk.origin_runs() == {f"{DAY}-r1"}

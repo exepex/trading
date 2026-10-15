@@ -41,6 +41,7 @@ NOT_ORDERED = "not filled: the committed decision gives no orders ({reason})"
 ALERT = "F&O paper desk {day} {book}: {what}"
 LATE_AT_SNAPSHOT = "late: committed {committed}, not before the execution snapshot started {started}"
 DOUBLE = "{count} original runs ({runs}): only {taken} counts; check why the decision ran twice"
+BLOCKED = "no new entry: the run of {day} stopped before its exits (they run today; the next session opens as usual)"
 NOT_VALIDATED = "not filled: no completed C4 pass ({problems})"
 
 
@@ -136,8 +137,14 @@ class DeskSteps:
     def pack(self, day: date) -> CommonPack:
         return self.packs.stored(day) or no_pack(day)
 
-    def fill(self, day: date, snapshot_valid: bool, collected: dict) -> StepOutcome:
-        """Only the runs the decisions step recorded are filled; a book recorded late never fills (judge 82)."""
+    def fill(self, day: date, snapshot_valid: bool, collected: dict, stopped_on: date | None = None) -> StepOutcome:
+        """Only the runs the decisions step recorded are filled; a book recorded late never fills (judge 82). When
+        the last session's run stopped before its exits (`stopped_on`, story E2c), nothing new opens, with one alert."""
+        inputs = {"snapshot_valid": snapshot_valid, "decisions": collected}
+        if stopped_on is not None:
+            reason = BLOCKED.format(day=stopped_on)
+            self.alerts.send(ALERT.format(day=day, book="all books", what=reason))
+            return StepOutcome(inputs | {"stopped_on": stopped_on.isoformat()}, {"blocked": reason})
         pack, result = self.pack(day), {}
         for book in self.books:
             entry = collected.get(book, {})
@@ -157,7 +164,7 @@ class DeskSteps:
                     reason = NOT_WRITTEN.format(reason=refused)
                     result[order.proposal.trade_id] = {"outcome": "not filled", "reason": reason}
                     self.alerts.send(ALERT.format(day=day, book=book, what=reason))
-        return StepOutcome({"snapshot_valid": snapshot_valid, "decisions": collected}, result)
+        return StepOutcome(inputs, result)
 
     def _fill_one(self, pack: CommonPack, decision: CommittedDecision, order, snapshot_valid: bool) -> dict:
         if not snapshot_valid:
