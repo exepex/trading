@@ -308,6 +308,7 @@ class CardStatus(StrEnum):
 CARD_NO_APPROVED_STRATEGY = "no_approved_strategy"  # no playbook version is at `paper`
 CARD_TRADE_FIELDS_NOT_BUILT = "trade_fields_not_built"  # a version is at `paper`; card v1 has no trade fields (slice B)
 CARD_DATA_CHECK_FAILED = "data_check_failed"  # a record the status needs could not be read
+CARD_HARD_RULE_BREACH = "hard_rule_breach"  # T2: C4 refused a book's proposed trade today (its committed rows)
 CARDS_AREA = "cards"  # Drive area of the card records (beside raw/ and pipeline/); never the public repository
 CARD_DELIVERIES_FOLDER = "research/cards/deliveries"  # non-sensitive delivery metadata only (no card text)
 CARD_VALID_UNTIL = time(15, 25)  # IST: design 04 4.1, a card is valid until 15:25

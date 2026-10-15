@@ -52,3 +52,33 @@ I checked each point against the code on `main`. All five are accepted, and one 
    - window: from the day after the card to the trade's exit (time exit, else expiry), from the trade fields;
    - criterion 12. Built with T1's trade fields: only a TRADE or WATCH card has a window.
 5. **Should-fix 5: ACCEPT.** "No run log: not yet decided" is criterion 5.
+
+## Code round: T2 only (text PASS, judge 180 addendum 1; orchestrator's go)
+
+New: `fno/cards/rule_checks.py` (156 lines) and `fno/cards/ruled_status.py` (59 lines). Changed: `fno/cards/wiring.py`
+(`build_status`), and one reason code `CARD_HARD_RULE_BREACH` in `fno/constants.py` (now 347 lines, near the 350
+limit). Tests: `tests/cards/test_rule_checks.py`, 7 tests.
+
+How it meets the text:
+- **Final means recorded.** An outcome is final once the desk's run log has its step (`decisions`, `snapshot`).
+  Before that the card shows "not yet decided (final at HH:MM IST)", with the time from the desk's `Timetable`
+  (criteria 1 and 4; one test runs the same records under today's and G10's times).
+  - Choice made in coding: final is decided by the step being recorded, not by the clock. A restarted or late desk
+    then shows "not yet decided" until its step really exists, instead of "no breach" at 15:13 (strong: `RunLog`
+    writes a step only when it ends).
+- **No run log:** "not yet decided: the desk has not run today" (criterion 5).
+- **C4 rows:** only rows dated that day count; the books named late or not committed come from the decisions step
+  (criterion 2).
+- **C3:** a `snapshot` result with `valid: false` gives `data_check_failed`; the last session's verdict is shown
+  while today's is pending (criteria 3 and 4).
+- **Unreadable records:** an unreadable run log or failures file gives `data_check_failed` naming the file
+  (criterion 6).
+- **Reason order:** `data_check_failed`, then `hard_rule_breach`, then T1's own reason. The card stays `NO TRADE`
+  (v1).
+- **AST test:** `rule_checks.py` imports nothing from `checks` or `playbook` and calls no write (criteria 7 and 8).
+  T1's `RegistryStatus` is wrapped, unchanged.
+- **Footer:** every file read goes into the card's records-used footer.
+
+Live dry run, `python -m fno card daily --on 2026-10-15`: "Rule checks: not complete", both rules "not yet decided:
+the desk has not run today". This is true today: no `journal/runs/` file exists on `main`, because the desk's daily
+run is not scheduled yet (O1).

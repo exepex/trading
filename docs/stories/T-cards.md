@@ -326,4 +326,5 @@ Out (each with where it goes):
 
 **Depends:** T1, C3, C4, D1, E3 (run log and `Timetable`), A6 (events, for T2b), LR1 (`fno/advocate`), F1 (routine
 pattern), F8, BG1 · **Size:** T2 S, T3 M ·
-**Status:** revision 1 for judge E (judge 180 FAIL answered); owner's decisions A, A, A recorded
+**Status:** text PASS (judge 180 add. 1); T2 code on `story/t2-t3-advocate`, with judge E; T3 and T2b wait for T1's
+trade fields and O1; owner's decisions A, A, A recorded
