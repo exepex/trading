@@ -45,7 +45,7 @@ def board_from(
         BOOKS, lambda book: DeskRecords(PaperAccount(root, book)),
         lambda: EntryDecisions(runs.runs(), runs.records, versions, RecordedOwnerOverride()), calendar.sessions, marks,
         FileOperatingCosts(root), BookBoard(calendar.sessions, AiCostBeforeF8(), brake_rs), charges, protocol,
-        lambda: input_hashes(root, BOOKS, runs.runs()), runs.uncollected,
+        lambda: input_hashes(root, BOOKS, runs.runs()), runs.uncollected, runs.missed_runs,
     )  # fmt: skip
 
 
