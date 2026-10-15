@@ -4,7 +4,8 @@ Prepared by the A16/G8 builder, who owns the freeze now (the G6 session no longe
 Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet.
 
 ## Order
-1. ChatGPT review 113 of G10 (response 155) answered; G10 built and merged: protocol section 1.6, the 14:30/14:40/15:10
+1. G10's text is merged (55726493: judge 161 addendum 3 PASS; ChatGPT review 113 answered in response 159, its fixes
+   checked by the judge). Still to do: G10 built and merged: protocol section 1.6, the 14:30/14:40/15:10
    times in `terms.py`, G7's and M1's capture check at 14:30, G8's day labels, and **X's number** (computed from A16b's
    checked closes; it needs A16b's Drive archive).
 2. **One protocol commit** with the text edits below (lane 1, judge).
