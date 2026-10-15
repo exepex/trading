@@ -23,6 +23,7 @@ from .validity_listing import NseListing
 from .validity_margin import MarginFile
 from .validity_modes import PlaybookMode, ValidityMode, WaitsFor
 from .validity_settings import limits_from_config
+from .validity_shapes import BOUGHT, CALL, PUT, SOLD, BodyWithWings, OneBoughtOption, Shape, Vertical
 
 
 def build_data_checks(stores, calendar, shocks=None) -> DataChecks:
@@ -51,12 +52,29 @@ def build_data_gate(quote_folder: Path | None = None, schedule: ExecutionSchedul
     return DataGate(checks, snapshots, schedule or PackSnapshotSchedule(), build_alert_sender())
 
 
+def validity_shapes() -> dict[str, Shape]:
+    """C4's own shape rule for every structure code D1 accepts (B2's four-leg codes and STR1's six)."""
+    from .. import constants as c
+
+    return {
+        c.STRUCTURE_SHORT_IRON_FLY: BodyWithWings(SOLD, one_body_strike=True),
+        c.STRUCTURE_SHORT_CONDOR: BodyWithWings(SOLD, one_body_strike=False),
+        c.STRUCTURE_LONG_IRON_FLY: BodyWithWings(BOUGHT, one_body_strike=True),
+        c.STRUCTURE_LONG_CALL: OneBoughtOption(CALL),
+        c.STRUCTURE_LONG_PUT: OneBoughtOption(PUT),
+        c.STRUCTURE_CALL_DEBIT_SPREAD: Vertical(CALL, BOUGHT),
+        c.STRUCTURE_CALL_CREDIT_SPREAD: Vertical(CALL, SOLD),
+        c.STRUCTURE_PUT_DEBIT_SPREAD: Vertical(PUT, BOUGHT),
+        c.STRUCTURE_PUT_CREDIT_SPREAD: Vertical(PUT, SOLD),
+    }
+
+
 def validity_modes() -> dict[str, ValidityMode]:
     """Book 1 checks against the playbook; books 2 and 3 fail closed until D4's envelope and D5's constitution exist."""
     from ..constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI
 
     return {
-        BOOK1_RULES: PlaybookMode(),
+        BOOK1_RULES: PlaybookMode(validity_shapes()),
         BOOK2_HYBRID: WaitsFor("envelope", "D4"),
         BOOK3_AI: WaitsFor("constitution", "D5"),
     }

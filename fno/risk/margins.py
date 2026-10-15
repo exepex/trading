@@ -8,8 +8,9 @@ profile's margin age (`margin_age.py`), fails closed.
 
 The margin C2 counts is `max(0, scan - NOV) + min(0, NOV) + exposure` (judge 75): MarginRoom already moves cash and
 marked equity by the entry and takes the lower, so this leaves exactly what a broker that nets the premium into SPAN
-leaves free; scan alone counts a debit's premium twice, scan minus NOV a credit's. It must be above 0. It is never the
-broker's live total, whose marked loss available cash already deducts.
+leaves free; scan alone counts a debit's premium twice, scan minus NOV a credit's. It must be above 0 (0 or more for a
+bought-only structure, LC or LP: story STR1). It is never the broker's live total, whose marked loss available
+cash already deducts.
 
 At entry a broker such as Groww credits nothing for the sold premium (it arrives after settlement) and takes the bought
 premium at once, so MarginRoom also checks the funds at entry (judge 77 addendum 3): the margin without the premium
@@ -63,9 +64,11 @@ def _fresh_row(rows: list[dict[str, str]], what: str, day: date, age: MarginAge)
     return row
 
 
-def _positive(margin: float, what: str) -> float:
-    if not margin > 0:
-        raise RiskInputError(f"margin for {what} must be above 0, not {margin}")
+def _positive(margin: float, what: str, bought_only: bool) -> float:
+    """Above 0, or 0 or more for a bought-only structure (NSE blocks no margin on a paid-up long option, story STR1)."""
+    if not (margin >= 0 if bought_only else margin > 0):
+        least = "0 or more" if bought_only else "above 0"
+        raise RiskInputError(f"margin for {what} must be {least}, not {margin}")
     return margin
 
 
@@ -77,28 +80,29 @@ class MarginParts:
     nov: float
     exposure: float
     what: str
+    bought_only: bool = False  # no sold leg (LC, LP): a margin of 0 is right, not a missing row
 
     def __post_init__(self):
         if self.scan < 0 or self.exposure < 0:
             raise RiskInputError(f"margin for {self.what}: scan and exposure cannot be negative ({self})")
 
     def initial(self) -> float:
-        """What C2 counts: max(0, scan - NOV) + min(0, NOV) + exposure (judge 75); refused unless above 0."""
+        """What C2 counts: max(0, scan - NOV) + min(0, NOV) + exposure (judge 75); refused by `_positive`."""
         return self.stressed(1.0)
 
     def stressed(self, factor: float) -> float:
         """The scanning risk times `factor`; the premium paid or received does not grow under stress."""
         margin = max(0.0, factor * self.scan - self.nov) + min(0.0, self.nov) + self.exposure
-        return _positive(margin, self.what)
+        return _positive(margin, self.what, self.bought_only)
 
     def at_entry(self, factor: float) -> float:
         """The margin blocked at entry when the sold premium is not credited: no `min(0, NOV)` term."""
-        return _positive(max(0.0, factor * self.scan - self.nov) + self.exposure, self.what)
+        return _positive(max(0.0, factor * self.scan - self.nov) + self.exposure, self.what, self.bought_only)
 
     @classmethod
-    def from_row(cls, row: dict[str, str], what: str) -> MarginParts:
+    def from_row(cls, row: dict[str, str], what: str, bought_only: bool = False) -> MarginParts:
         names = ("scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs")
-        return cls(*(float(row[name]) for name in names), what)
+        return cls(*(float(row[name]) for name in names), what, bought_only)
 
 
 def _matches(row: dict[str, str], terms: TradeTerms) -> bool:
@@ -113,7 +117,7 @@ class MarginTable:
         """One lot's margin parts from the latest fresh row for the trade's structure and width."""
         rows = [r for r in _rows(self.path, MARGIN_COLUMNS) if _matches(r, terms)]
         what = f"{terms.structure} width {terms.width:g}"
-        return MarginParts.from_row(_fresh_row(rows, what, day, self.age), what)
+        return MarginParts.from_row(_fresh_row(rows, what, day, self.age), what, terms.bought_only)
 
     def margin(self, terms: TradeTerms, day: date) -> float:
         """Initial margin of a trade in rupees: the per-lot margin C2 counts x lots."""
@@ -183,7 +187,7 @@ class ScenarioLookupMargin(StressedMargin):
     def _scenario_margin(self, rows: list[dict[str, str]], terms: TradeTerms, name: str, day: date) -> float:
         what = f"{terms.structure} {name}"
         row = _fresh_row([r for r in rows if r["scenario"] == name], what, day, self.age)
-        return _positive(float(row["margin_per_lot_rs"]), what)
+        return _positive(float(row["margin_per_lot_rs"]), what, terms.bought_only)
 
     def record(self) -> dict[str, str]:
         file = self.settings.scenario_file

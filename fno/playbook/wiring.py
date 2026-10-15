@@ -76,7 +76,7 @@ def build_rule_evaluator(cfg: dict, root: Path = ROOT) -> RuleEvaluator:
     """Story D2: the opportunity finder on NSE's session calendar, the structures and cost model of the research (B2),
     and the risk manager with every owner limit (C2), all from config.yaml."""
     from ..books.paths import book_folder
-    from ..composition import build_session_calendar, build_structures
+    from ..composition import build_session_calendar, build_tradable_structures
     from ..constants import BOOKS, NIFTY_SYMBOL, RISK_PROFILE_BOOKS
     from ..research_engine.cycles import TradingDays
     from ..risk.profile_settings import profile_settings
@@ -84,7 +84,7 @@ def build_rule_evaluator(cfg: dict, root: Path = ROOT) -> RuleEvaluator:
     from ..risk.wiring import build_risk_manager
 
     costs, cap = SimulatorTradeCosts(cfg["charges"]), profile_settings(cfg, RISK_PROFILE_BOOKS).max_loss_per_trade_rs
-    structures = {structure.code: structure for structure in build_structures()}
+    structures = {structure.code: structure for structure in build_tradable_structures()}
     builder = CandidateBuilder(structures, costs, cap, cfg["lot_sizes"][NIFTY_SYMBOL])
     finder = OpportunityFinder(TradingDays(build_session_calendar()))
     real = RealBooks(BOOKS, [book_folder(root, book) for book in BOOKS])

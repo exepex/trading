@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from ..books.equity import AccountState, Mark
-from ..constants import OPTION_CALL, OPTION_PUT
+from ..constants import OPTION_CALL, OPTION_PUT, STRUCTURES_BOUGHT_ONLY
 from ..research_data.panel_reader import FutureQuote
 from ..research_engine.structures import Leg
 
@@ -63,15 +63,21 @@ class Market:
 
 @dataclass(frozen=True)
 class TradeTerms:
-    """What a margin row is looked up by: the structure's code (SF, SC, BF), wing width and number of lots."""
+    """What a margin row is looked up by: the structure's code (SF, SC, BF or a STR1 code), width in points out of the
+    money and number of lots. Width 0 (the ATM strike) is only for a bought-only structure (LC, LP)."""
 
     structure: str
     width: float
     lots: int
 
     def __post_init__(self):
-        if self.lots <= 0 or self.width <= 0:
-            raise RiskInputError(f"lots and width must be positive: {self}")
+        if self.lots <= 0 or self.width < 0 or (self.width == 0 and not self.bought_only):
+            raise RiskInputError(f"lots and width must be positive (width 0 only for LC and LP): {self}")
+
+    @property
+    def bought_only(self) -> bool:
+        """No sold leg: NSE blocks no margin for it (the premium is paid in full at entry)."""
+        return self.structure in STRUCTURES_BOUGHT_ONLY
 
 
 @dataclass(frozen=True)

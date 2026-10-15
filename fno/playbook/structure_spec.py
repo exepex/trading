@@ -4,9 +4,10 @@ widths to try, how many lots, and which expiry is an opportunity on which day. T
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
-from ..constants import EXPIRY_MONTHLY
+from ..constants import EXPIRY_MONTHLY, STRUCTURES_BOUGHT_ONLY
 from .fields import Fields
 from .vocabulary import STRUCTURE_CODES
 
@@ -28,31 +29,38 @@ class ExpiryRule:
 
 @dataclass(frozen=True)
 class StructureSpec:
-    code: str  # SF, SC or BF: the code fixes the body strikes (research_engine/structures.py)
+    code: str  # SF, SC, BF or a STR1 code: the code fixes the strikes (research_engine/structures.py, one_side.py)
     strikes_rule: str
     width_rule: str
-    widths: tuple[float, ...]  # wing widths in points, widest first; the desk keeps the widest within the loss cap
+    widths: tuple[float, ...]  # points out of the money, widest first; the desk keeps the widest within the loss cap
     lots: int
     expiry: ExpiryRule
 
 
 def parse_structure(fields: Fields) -> StructureSpec:
+    code = fields.choice("code", STRUCTURE_CODES)
     return StructureSpec(
-        code=fields.choice("code", STRUCTURE_CODES),
+        code=code,
         strikes_rule=fields.text("strikes_rule"),
         width_rule=fields.text("width_rule"),
-        widths=_widths(fields),
+        widths=_widths(fields, code),
         lots=fields.whole("lots", 1),
         expiry=_expiry(fields.section("expiry", EXPIRY)),
     )
 
 
-def _widths(fields: Fields) -> tuple[float, ...]:
+def _widths(fields: Fields, code: str) -> tuple[float, ...]:
+    """Widest first, no repeats, above 0; a bought-only structure (LC, LP) may also take 0 (the ATM strike)."""
     values = fields.raw("widths")
-    numbers = isinstance(values, list) and all(isinstance(v, int | float) and not isinstance(v, bool) for v in values)
-    if not numbers or not values or list(values) != sorted(set(values), reverse=True) or min(values) <= 0:
-        raise fields.refuse("widths", "must be positive point widths, widest first, no repeats")
-    return tuple(float(v) for v in values)
+    numbers = isinstance(values, list) and all(
+        isinstance(v, int | float) and not isinstance(v, bool) and math.isfinite(v) for v in values
+    )
+    bought_only = code in STRUCTURES_BOUGHT_ONLY
+    too_small = numbers and values and (min(values) < 0 if bought_only else min(values) <= 0)
+    if not numbers or not values or list(values) != sorted(set(values), reverse=True) or too_small:
+        least = "0 or more" if bought_only else "positive"
+        raise fields.refuse("widths", f"must be {least} point widths, widest first, no repeats")
+    return tuple(float(v) + 0.0 for v in values)  # + 0.0 turns -0.0 into 0.0
 
 
 def _expiry(fields: Fields) -> ExpiryRule:
