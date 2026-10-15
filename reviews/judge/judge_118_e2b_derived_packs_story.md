@@ -274,3 +274,19 @@ and imports clean. Decision 45's commit was not pushed yet; I check it with the 
 
 **Verdict: FAIL for af31238713e4bd076524ce6832a77e5bdf76a2fe** on should-fix 1. A re-check needs the rerun behaviour
 and its test, the alert text, and decision 45's commit.
+
+## Addendum 5 (15 Oct 2026): a31ea116dfc46bc89b59ffb8df6d3879281d575c
+
+a31ea11 is af31238 plus decision 45. Gates: 3,936 passed (the builder's figure); ruff, format and imports clean.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Decision 45 | MET | The reason is the fixed text `entry_worse_than_approved: entry price at the touch worse than the approved limit`; `shortfall_rs` is gone from `EVENT_COLUMNS`, `DeskEvent` and `EntryResult`; `worse_than_approved()` returns a bool. Tests cover the iron fly and a single-leg LC, with the exact columns and no digit outside the ID fields |
+| Readers of the dropped column | none | `grep -rn shortfall` over the tree finds only `entries.py`, `records.py` (comments), the test, the story and an old conversation log. No hit in `fno/scorecard`, `fno/market_read_models`, `fno/scoreboard`, the pack code, `tools/` or `contracts/omenix-dashboard/` (pin and `paper-portfolios.yaml`). No `desk_events.csv` is committed, so no stored file changes shape |
+| The digit test and a future field | acceptable | The test checks only a refused entry's row, and `IDS` lists the fields allowed digits. A future non-quote field such as `lots` makes the test fail until it is named there. That is a deliberate review point, not a lock-out: one line. Calling it `NON_QUOTE_FIELDS` would read better (nit) |
+| Addendum 4 should-fix 1, rerun after a stop | **NOT MET** | a31ea11 does not change `daily_run.py` or `run_log.py`. `_step` still records the step before committing, so a rerun after a stop skips the failed step and never commits its files |
+| Addendum 4 minor 1, alert wording | open | unchanged |
+
+**Verdict: FAIL for a31ea116dfc46bc89b59ffb8df6d3879281d575c** on addendum 4 should-fix 1 alone. Decision 45 is met
+and needs no further check. The next re-check needs only the rerun fix and its real-committer test, and the alert
+text.
