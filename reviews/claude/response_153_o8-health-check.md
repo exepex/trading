@@ -53,3 +53,136 @@ story text only (noise-and-fairness step 6, 15 Oct 2026). No code is written yet
 | Minor 4: "closed day" | **True.** Closed days never enter a window of sessions. | `not expected` is only muhurat, before `live_from`, or the desk's `skipped` step. The closed-day column is dropped. |
 | Minor 5: A16 has no deadline | **True.** | It says A16's own per-mark status is final and is reported as counts. |
 | Note: F1's 10-page cap | Accepted. | Added to Known limits. |
+
+## Addendum 2: the code (the text passed judge 164 addendum 1 at bf2e2820)
+
+The code is on branch `story/o8-health-check`, lane 1. It adds a new workflow. The schedule exists only on this branch;
+nothing was scheduled or changed on `main`.
+
+### What was built
+- **`fno/health/`** (12 files, at most 80 lines each):
+  - `model.py`: `Deadline`, `CheckResult`, the `SessionCheck` interface, and `judged`/`absent`.
+  - `evidence.py`: the repository files and GitHub push times. It uses F1's `PushReceipts`, plus `HealthHistory`
+    (git's pickaxe for a row, with `--since`).
+  - The checks, one class per evidence kind: `quote_checks.py`, `forecast_checks.py`, `desk_checks.py`,
+    `data_checks.py`.
+  - `expectations.py`: the one table.
+  - `window.py`: the window, defined once.
+  - `checker.py`, `report.py`, `run_record.py`, `cli.py`, and `wiring.py` (the composition root, now listed in
+    CLAUDE.md).
+- **`.github/workflows/health-check.yml`**: cron `21 12 * * *` (17:51 IST), plus a manual run, and a full-history
+  checkout. The tokens are given to the check step only, and the job commits only `research/ops/health_runs.csv`.
+- **Settings and constants:** `config.yaml` has `health.window_days: 6`, an allowed key in `fno/config.py`.
+  `fno/constants.py` has the status names and `HEALTH_RUNS_FILE`.
+- **The CLI:** `python -m fno health check [--at] [--dry-run]`.
+
+### Criteria, code and tests (strong evidence: each test run, and each criterion broken on purpose)
+
+| # | Code | Tests (`tests/health/`) |
+|---|---|---|
+| 1 | `window.py`; `checker.py` `run`; `Expectation.expected_on` | `test_window.py`: D is in the window at 17:51, 23:40, D+1 03:10 and D+6 23:59, and out at D+7. Over every run of 2025 with the real calendar, the oldest needed push is more than 6 days and less than 7 days old. Closed days never appear; muhurat days do. `test_checker_and_report.py`: muhurat days and `live_from` |
+| 2 | the four `*_checks.py` files | `test_quote_and_forecast_checks.py` and `test_desk_and_data_checks.py`. Every row has ok, late (1 s past the deadline), exactly-at-deadline ok, each miss case, not due, and unknown. A not-fired book shows its reason |
+| 3 | `expectations.py` | Row count 20, and 24 with an added question. `LATEST_START` and `GENERATION_DEADLINE` are the owners' objects. The desk deadline follows `config.yaml`. A test greps that the four health-owned deadlines are the only `time(` literals in `fno/health/` |
+| 4 | `evidence.py`, `quote_checks.py` | A commit made at 14:56 and pushed at 16:00 is late. A grep finds no commit-date format or field in `fno/health/` |
+| 5 | `report.py`, `cli.py` | All ok is one line. A problem takes one line per check, with same-reason sessions grouped. A broken check posts FAILED and exits 1. A dry run posts nothing. With no token, it says so. A Slack refusal exits 1 |
+| 6 | `run_record.py`, `cli.py` | One row per run, a failed run included. Missing days are reported only inside the window and after the first row. A same-day re-run adds nothing new |
+| 7 | the workflow | The cron, dispatch, permissions, `fetch-depth: 0`, that the job commits only the run record, and the step-scoped secrets |
+| 8 | the real sample below | |
+| 9 | the `SessionCheck` interface and `wiring.py` | `tests/test_code_size.py` |
+
+### One deviation from the passed text, with evidence: FII/DII's deadline is 12:00 the next day, not 23:59
+Times are from the commits that first added each session's row (`git log -S`, commit time in IST; push time is about
+the same):
+- participant OI: 13 Oct at 21:50, 14 Oct at 21:28, 15 Oct at 21:14;
+- index closes: 13 Oct at 22:59, 14 Oct at 01:11 the next day;
+- panel: 13 Oct at 03:27 the next day, 14 Oct at 01:40 the next day;
+- **flows: 13 Oct at 09:37 the next day (the market publish), 14 Oct at 01:11 the next day.**
+
+With 23:59, flows would be "late" every day in normal running: that is GitHub's measured lateness, not a stopped job. So
+`FLOWS_BY` is 12:00 the next day, the same as the closes. The story's table states this. The other three deadlines are
+met on all the measured days.
+
+### Deliberate breaks (quality rule 4): 31 of 31 caught
+Each break was run with `PYTHONDONTWRITEBYTECODE=1`, `__pycache__` cleared, and the file restored afterwards. The script
+is `breaks_o8.py` in the session scratchpad. Each break was caught by a failing test:
+- **Criterion 1:** window one day short; muhurat expected for the 3 pm jobs; `live_from` ignored.
+- **Criterion 2:**
+  - deadline exclusive instead of inclusive;
+  - `none` canonical accepted; incomplete sidecar accepted;
+  - an absent file always missed (never "not due");
+  - row count not checked; duplicate rows accepted;
+  - fire-log reason dropped; reveal not checked;
+  - desk's missing steps ignored; skipped run counted;
+  - late marks counted as missed;
+  - panel status ignored;
+  - unknown turned into ok;
+  - a malformed file crashing the run.
+- **Criterion 3:** forecast count hard-coded to 20; 15:13 typed again.
+- **Criterion 4:** push time replaced by an in-file time.
+- **Criterion 5:** one line per session; FAILED not posted; dry run posts; a Slack refusal stays green; an `--at`
+  without offset not read as IST.
+- **Criterion 6:** the watcher ignores the first row; no run row appended; a failed run not recorded.
+- **Criterion 7:** shallow clone; `git add -A`; tokens visible to every step.
+
+The first run had one invalid break ("FAILED not posted" left an empty `if` block, a syntax error). It was redone as a
+real change, and that version is caught.
+
+### Review agent (quality rule 3)
+The agent found no blocking issue. It confirmed by running them that the window edges, the deadline boundary, the
+pickaxe on the real rows of 14 Oct, the receipt lookup and the commit step are correct. Its 8 findings:
+1. **A failed run wrote no row, so later runs reported "did not run": real, fixed.** A failed run now appends a
+   `health check FAILED: <type>` row. There is a test and a break.
+2. **A failed Slack post still exited 0: real, fixed.** The run now exits 1 unless the post was sent, so a revoked
+   token turns the job red. There is a test and a break.
+3. **`--at` without an offset crashed: fixed.** It is read as IST. Test and break.
+4. **A malformed file crashed the whole run: partly accepted, fixed in the checker.** A wrong-shaped value
+   (`ValueError`, `TypeError`, `KeyError`, `AttributeError`) inside one check becomes that check's `unknown`, so it
+   never hides the other checks. Any other error still posts FAILED. The run record's own bad date is not handled: it
+   is our own file, so that case is not realistic.
+5. **Duplicate forecast rows passed: fixed.** The check counts distinct (forecaster, question) pairs. Test and break.
+6. **From 1 Jan 2027 without 2027 calendar rows, every run posts "FAILED: CalendarError": accepted as a known limit.**
+   It is loud, not silent, and the 3 pm recorder alerts on the same missing year.
+7. **Push race and token scope: partly fixed.**
+   - The push race is a known limit. It is the same single pull-then-push as every other job; a lost row shows up the
+     next day as "did not run".
+   - Token scope is fixed: the tokens go to the check step only. Test and break.
+8. **Small points:**
+   - The late detail now shows the deadline's date ("due 15 Oct 15:13").
+   - Criterion 5's "all ok is one line" holds when nothing is pending. At 17:51 the evening jobs add the "not due yet"
+     line, which is the story's own format. My reading only, no evidence.
+   - A missing forecast file is `not due` until 15:30, the collection end. This is harmless at 17:51.
+
+### Real output sample (quality rule 6)
+How it was made:
+- `python -m fno health check --dry-run --at 2026-10-15T23:30:00`, on the real repository at this branch, with
+  `FNO_SLACK_BOT_TOKEN` and `GITHUB_TOKEN` unset.
+- The dry run posted nothing and recorded nothing.
+- With no token, GitHub's activity log answers HTTP 403, so every push-receipt check is `unknown`. The workflow passes
+  the run's own `GITHUB_TOKEN`, as F1's capture does.
+
+```
+health 15 Oct: 9 problems (9 checks, sessions 9 Oct to 15 Oct)
+- 3 pm Groww recorder: unknown (push time unknown: access refused: HTTP 403 from GitHub's activity log) 14 Oct, 15 Oct
+- NSE recorder: missed (none) 14 Oct, 15 Oct
+- Forecast v2 records: late (last generated 14 Oct 19:27:39, due 14 Oct 15:15; 5 of 20 blank) 14 Oct
+- Book 2 sealed forecast: unknown (push time unknown: access refused: HTTP 403 from GitHub's activity log) 15 Oct
+- Book 3 sealed forecast: unknown (push time unknown: access refused: HTTP 403 from GitHub's activity log) 15 Oct
+- A8 participant OI: unknown (push time unknown: access refused: HTTP 403 from GitHub's activity log) 13 Oct, 14 Oct, 15 Oct
+- Index closes: unknown (push time unknown: access refused: HTTP 403 from GitHub's activity log) 13 Oct, 14 Oct
+- NIFTY panel day: unknown (push time unknown: access refused: HTTP 403 from GitHub's activity log) 13 Oct, 14 Oct
+- FII/DII flows: unknown (push time unknown: access refused: HTTP 403 from GitHub's activity log) 13 Oct, 14 Oct
+not due yet: Index closes 15 Oct, NIFTY panel day 15 Oct, FII/DII flows 15 Oct
+```
+
+The two real findings are correct against the files:
+- **NSE canonicals:** both 14 and 15 Oct hold `none`.
+- **14 Oct's forecast records:** last generated at 19:27:39, the capture that ran 4 h late (decision row "The owner
+  moves the live forecast capture", 15 Oct).
+
+15 Oct's records show `ok` in the table: last generated at 15:10:09, with 10 of 20 probabilities blank. The desk run and
+A16's marks are silent, because they are not live yet.
+
+### Known limits (added to the story's)
+- The push race, as in every job.
+- The 2027 calendar rows (a loud FAILED until they are added).
+- The first real run's push-receipt lines can only be verified in Actions, because this session has no GitHub token.

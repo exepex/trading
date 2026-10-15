@@ -40,7 +40,7 @@ a routine that never started, ran late or wrote "nothing" is seen the same day i
 | A8 participant OI | row for the session in `research/data/manifests/participant-oi.csv` | present | push receipt of the commit adding the row | 23:30, `A8_RELEASE_BY` (health-owned; the 22:45 cron's window, `participant-oi-release.yml:13`) |
 | Index closes (A13) | row in `research/data/nifty-panel/warmup_closes.csv` | present | push receipt | 12:00 next day, `INDEX_CLOSE_BY` (health-owned; after the 11:41 retry, `index-closes.yml:18`) |
 | Panel days (A13) | `nifty-panel/manifest.json` `end` on or after the session | present | push receipt | 13:00 next day, `PANEL_DAY_BY` (health-owned; after the 12:11 retry, `panel-days.yml:19`) |
-| FII/DII flows | row in `research/data/manifests/fii-dii-cash-by-session.csv` | present | push receipt | 23:59, `FLOWS_BY` (health-owned; after the 21:10 cron, `flows-download.yml:10`) |
+| FII/DII flows | row in `research/data/manifests/fii-dii-cash-by-session.csv` | present | push receipt | 12:00 next day, `FLOWS_BY` (health-owned; code round: the row arrives after the 21:10 job, 4 h late on 14 Oct, or with the next morning's 07:10 market publish, so 23:59 would be late every day; response 153 addendum 2) |
 
 The four health-owned deadlines (`A8_RELEASE_BY`, `INDEX_CLOSE_BY`, `PANEL_DAY_BY`, `FLOWS_BY`) exist nowhere else in
 `fno/` (judge 164 grep). They live in `fno/health/expectations.py`, each with its cron source in a comment, and are
@@ -199,6 +199,9 @@ Out:
   main), so those checks start at their `live_from` dates, set when each goes live (orchestrator, 15 Oct).
 - The check proves that files and push times are present, not that the data inside them is right; that is the data
   checks' job (C3).
+- From 1 January of a year the NSE calendar does not cover yet, every run posts "FAILED: CalendarError" until its
+  rows are added (loud, as the 3 pm recorder's own alert).
+- One pull then one push, as every job: a push that loses a race shows the next day as "did not run".
 
 **Test plan:**
 - `tests/health/` uses planted repository trees, a fake calendar, a fake `PushReceipts` and a fake alert sender; it
@@ -211,5 +214,5 @@ Out:
 plants a late push, a `none` canonical and a skipped health run; reads the workflow for secrets and permissions.
 
 **Depends:** A4/A4b and A7 (calendar), F1 (`PushReceipts`), G2 (forecast v2), E3 (run log), A16, A8, A13 ·
-**Status:** story text revision 2 (judge 164: should-fix 1-5, minors 1-5) for the judge's check before code
+**Status:** text passed (judge 164 addendum 1); code built on `story/o8-health-check` for the judge
 (claims: `reviews/claude/response_153_o8-health-check.md`)
