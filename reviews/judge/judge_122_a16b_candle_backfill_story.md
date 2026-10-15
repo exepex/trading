@@ -229,3 +229,26 @@ I made no live Groww or NSE read. Step 0's figures are the builder's, and I labe
 - **One new should-fix:** separating transient from permanent outcomes. It was caused by combining the new 1-minute
   check with the new Order rule, and it would stop the back-fill at the first permanent 1-minute hole.
 - **A re-check needs only the story file.**
+
+## Addendum 3 (15 Oct 2026): final SHA 3e8e6c90222f60c59de2ec83304284ee3c858d08 (d789444..3e8e6c9: two commits, story file only)
+
+**What changed:**
+- **A16d's wording, "the last pre-open 1-minute candle's close",** in step 0, the NSE check and criterion 5. The
+  pre-open check now reads from the session's 1-minute answer, not the 09:00 15-minute candle. That is consistent with
+  step 0, which compared the 1-minute pre-open close: 40 of 40 and 74 of 74.
+- **Decision 56 cited in the gap list.** It is on `main`, `response_113` line 67: "rows with provenance backfilled never
+  count as live forecast inputs, and G6's text must carry this". Minor 3 is now verified, not only stated.
+
+**New minor 2.** Sessions void before the 1-minute check (fewer than 25 candles) have no 1-minute answer, so their
+`nse_open_gap` cannot be computed. Say that it is blank there, and that the "pre-open gap above 0.05" count is over
+the checked sessions only.
+
+**Not changed:** addendum 2's new should-fix 1, transient against permanent outcomes. The text still says:
+- a 1-minute answer lacking a needed minute is "not written ... exit 1", which with the Order rule defers every later
+  session;
+- "NSE's file missing or unreadable" gives a write-once `nse_unchecked` void.
+
+### Verdict: FAIL for 3e8e6c90222f60c59de2ec83304284ee3c858d08 (story text)
+
+- Same single should-fix as addendum 2.
+- Minors: addendum 2's minor 1 (`next_open`'s home) and minor 2 above.
