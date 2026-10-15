@@ -113,3 +113,12 @@ It is a Known limit now, and I am telling S1's text owner.
   scheduled-review rule of S1's current item: the last session of the sixth full month after the common start, then
   every 3 months on the month's last session. REPLAN section 4's weekly post-mortem and stop-rule review are not
   coded here. RM1 also adds `fno/evaluation/gate.py`. There is no file overlap, and both are in the register.
+
+## Owner and orchestrator answers to questions 7-10 (15 Oct 2026)
+
+- **7:** keep two one-sided claims per unit in Holm. It is only stricter, and the direction is not known in advance.
+- **8:** `fno/evaluation/review_dates.py` (above).
+- **9 (owner):** "money only, risk shown". The verdict uses profit. Beside it the report prints the worst month of
+  paired differences and the mean one-lot maximum-loss difference (scoreboard A's maximum loss, from S3's code); neither
+  ever decides. A "drop proposed" is a proposal the owner can overrule. New criterion 12.
+- **10:** `wiring.py` is hashed.

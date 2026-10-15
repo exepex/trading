@@ -68,6 +68,10 @@ development, so any session with internet access could read another book's recor
 6. The session receives no secret and no credential; the export and prompt are scanned (O5).
 7. Both pack hashes in the collected decision match the committed packs.
 
+12. The report prints each unit's worst month of paired differences and its mean one-lot maximum-loss difference, by
+    hand on the constructed example. Changing only those figures (same nets) leaves every verdict and p-value unchanged
+    (test). A `drop proposed` is printed as a proposal for the owner, never acted on.
+
 **Test plan:** unit tests with a fake session API (event logs, served model, receipt times); the real-session
 isolation test of criterion 1 on a non-counted day, recorded in the conversation log.
 
@@ -484,10 +488,16 @@ questions.
   claims of the book's m entering units go into S3's Holm step-down at 0.05/(m' − i + 1) over the 2m claims, as one
   plain list. At most one claim per unit can pass. For a single unit this is about as strict as a two-sided 5% test,
   stricter than S1's "one-sided 95%" (response 166, question 7).
-- **Verdict** (S1 `role_value_minimum_sample`): `drop proposed` (its drop claim passes Holm), `earns its cost` (its
+- **Verdict** (S1 `role_value_minimum_sample`; profit only): `drop proposed` (its drop claim passes Holm; a proposal the
+  owner can overrule), `earns its cost` (its
   earns claim passes) or `inconclusive, stays`. It is produced only with `--review` on a review date and with at least
   30 changed opportunities. Otherwise `no verdict: <reason>` (not a review date, `<m> of 30 changed opportunities`, cost
   unknown).
+- **Risk shown, never deciding** (owner, 15 Oct 2026: "money only, risk shown"). Beside each unit's verdict the report
+  prints two risk effects: the worst calendar month of the paired differences (the lowest monthly sum, with the unit
+  minus without it), and the mean difference in one-lot maximum loss at entry over changed opportunities (the same
+  maximum loss scoreboard A computes from the one-lot entry fills, taken from S3's code, imported, not copied). Neither
+  enters Holm or the verdict. A risk-adjusted rule could only come as a new S1 item before the freeze.
 - **Review dates.** S1's `review_dates` rule has no code today. F9a adds one pure function, `review_dates(common_start,
   calendar, through)`: the last NSE session of the sixth full calendar month after the common start, then every 3
   calendar months on that month's last session. The NSE calendar is `fno/research_data/calendar.py`'s
@@ -512,7 +522,7 @@ questions.
 | Abstentions and rejected trades count (3.1) | criterion 9: a no-trade is valued 0 and counts as a change | |
 | Only opportunities where the role applies (3.1) | `consulted`, criterion 3 | |
 | Joint tests where roles interact (3.1) | declared bundles only, criterion 2 | Pairwise ablations of two separate roles: out. They need a second shadow a day (twice the extra usage) and a sample already years long. Roles expected to interact are declared as one bundle in the version (F2's matrix) |
-| Lower risk can justify lower profit (3.1) | | Out of the verdict: S1's frozen metric is net value. A risk-adjusted rule is a new S1 item for the owner (response 166, question 9) |
+| Lower risk can justify lower profit (3.1) | criterion 12: risk effects printed beside the verdict | Out of the verdict (owner, 15 Oct 2026: "money only, risk shown"); a risk-adjusted rule only as a new S1 item before the freeze |
 | Roles added one at a time (design 10; DESK_DESIGN step 4) | | Out: a rollout order for slice E (F2, F5, F6), not scoring. Each added role is a new version (D6) with its own rotation and record |
 | Inseparable roles as a bundle (13.6) | criterion 2 | |
 | Keep or drop only at predeclared review dates; owner decides (13.6) | criterion 4 | Automatic removal: out (owner decides) |
