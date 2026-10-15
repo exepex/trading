@@ -60,3 +60,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 99: G6 forecast protocol v4 — changes required](review_99_g6-protocol-v4.md)
 - [Review 100: STR1 one- and two-leg structures](review_100_str1-structures.md)
 - [Review 101: G6 v4 revisions 1–5 — changes required](review_101_g6-protocol-v4-revisions.md)
+- [Review 102: G6 v4 final narrow re-review — APPROVE](review_102_g6-protocol-v4-final.md)
