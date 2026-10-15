@@ -71,3 +71,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 111: E1b follow-up on response 140: accept; one docs correction (capital is cutoff-safe, ledger replay of fills is not supported); act on a non-zero top-up result (relayed by the owner)](review_111_e1b-followup.md)
 - [Review 110: C5b owner-authorized brake restart](review_110_c5b-restart-decision.md)
 - [Review 112: noise, fairness and scorecard](review_112_noise-fairness.md)
+- [Review 113: G10 protocol v4 timeline — cutoff integrity change](review_113_g10-v4-timeline.md)
