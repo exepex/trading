@@ -515,7 +515,17 @@ own idea card, cost wall and registration (R1).
    - The gate returns a `VerifiedPass` carrying `proposal_sha256`. The opening-fill primitive refuses a fill without
      one, or with a pass for another proposal: that primitive is `DeskRecords.record_fill` with `FILL_OPEN` or
      `FILL_UNWIND`, which calls `AccountWriter.apply_fill`. An unwind needs the pass of the order it unwinds.
-     `FILL_CLOSE` and `FILL_SETTLE` are risk-reducing exits and need none.
+   - `FILL_CLOSE` and `FILL_SETTLE` need no pass, but only because they can only reduce risk (judge 115 addendum 1,
+     should-fix 8). The same primitive refuses a close or settle that does not reduce an existing open holding of the
+     same trade and contract, in absolute units, by at most what is held. It is never accepted on:
+     - a new trade ID;
+     - a contract the trade does not hold;
+     - more units than held (a flip);
+     - a fill that adds to the holding;
+     - and for a settle, a leg that has not expired by the settlement day.
+
+     Today `AccountWriter.apply_fill` accepts any of these (`fno/books/account.py:134-151`): the check goes there, so
+     no caller can go round it.
    - **Shadows** (orchestrator's decision, 15 Oct, logged): shadow and paper entry fills take the same bound-C4 path,
      with the playbook mode's checks run against the shadow's own account. Until STR1b-2 passes, the activation gate
      (scope 6) refuses STR1 codes for shadows anyway.
@@ -641,9 +651,19 @@ Out:
 4. Bypass:
    - `record_fill` with `FILL_OPEN` or `FILL_UNWIND` refuses no pass, and a pass for another proposal, in a real book
      and in a shadow account;
-   - a static test lists every call site that records `FILL_OPEN` or `FILL_UNWIND` (today two, both in
-     `fno/desk/entries.py`) and fails when one is added or moved;
-   - `FILL_CLOSE` and `FILL_SETTLE` still record with no pass.
+   - `FILL_CLOSE` and `FILL_SETTLE` record with no pass only when they reduce a holding. The account refuses six
+     planted cases:
+     - a close on a new trade ID;
+     - a close of a contract not held;
+     - a close of one unit more than held (a flip);
+     - a close that adds to a short;
+     - a settle of a leg not yet expired;
+     - a settle of more units than held.
+
+     A close of exactly the units held, and a partial close, are both accepted;
+   - a static test lists every call site that records `FILL_OPEN`, `FILL_UNWIND`, `FILL_CLOSE` or `FILL_SETTLE`, by
+     action. Today these are entries.py (open, unwind) and exits.py (close, settle). It fails when a call site is added
+     or moved.
 5. Capital, by hand:
    - on NSE's real 14 Oct `i1` rows (judge 77's and judge 106's file, SHA-256 `d85b883a…0e8b5b`) and on fixtures;
    - LC/LP, CDS and PDS have `stress_reserve` 0;
@@ -681,7 +701,7 @@ Out:
 **Test plan:**
 - `tests/risk/test_shape_rule.py`, with the spy (1, 2);
 - `tests/checks/test_validity_binding.py` and `tests/desk/test_recorded_c4_binding.py` (3);
-- `tests/desk/test_fill_bypass.py`, including the static call-site test (4);
+- `tests/desk/test_fill_bypass.py` and `tests/books/test_reducing_fills.py`, including the static call-site test (4);
 - `tests/risk/test_capital.py` and `tests/checks/test_validity_capital.py` on the real 14 Oct rows and fixtures (5);
 - `tests/scoreboard/test_capital_figure.py` (6);
 - `tests/nse_margins/test_broker_approvals.py` (7);
@@ -704,5 +724,5 @@ Out:
 - checks SF/SC/BF margin results are unchanged on the real rows.
 
 **Depends:** STR1, C2, C4, C5 (merge order), D1, D2, E3, E4, E5, E7, A14, S2 · **Size:** STR1b-1 M (about 10-12 files
-with tests), STR1b-2 S-M (tests) · **Status:** story text revised after judge 115 (FAIL, 7 should-fix), for its re-check;
+with tests), STR1b-2 S-M (tests) · **Status:** story text revised after judge 115 (FAIL, 7 should-fix) and its addendum 1 (should-fix 8), for re-check;
 code starts after the pass, STR1b-1 after C5 merges. Claims: `reviews/claude/response_115_str1b-activation-gates.md`.
