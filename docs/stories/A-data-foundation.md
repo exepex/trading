@@ -1066,7 +1066,7 @@ re-downloadable; its SHA-256 recorded in the claims).
 **Judge verifies:** recomputes two rows by hand from the real file; plants a late-created file and a damaged one;
 re-runs the job twice and checks the CSV is unchanged; checks the validation evidence and tolerance.
 
-**Depends:** A9, A11, C2, O6 · **Size:** M · **Status:** in progress (builder session 01FVYzWZtDAZrZLDZ6DtmSYL)
+**Depends:** A9, A11, C2, O6 · **Size:** M · **Status:** done: judge 77 PASS (round 2 2c3865e, merged 6568315; Groww check ee7f35b, merged e49705e; funds at entry 90dfcd3, merged 6647511); schedule on `story/a14-schedule`, awaiting the judge
 
 ---
 
@@ -1150,8 +1150,8 @@ outputs and failure modes.**
 check` (committed checks unchanged); probes NSE for a window before 19 Jul 2010; plants a changed row and a rewrite of
 an old row; checks 2 Mar 2024 and the zero-open days against NSE; confirms no frozen file changed.
 
-**Depends:** A9, A10, A11 · **Size:** S · **Status:** judge 100 FAIL (3 should-fix) fixed; awaiting re-judge (claims:
-`reviews/claude/response_100_a15-vix-history.md`, addendum 1)
+**Depends:** A9, A10, A11 · **Size:** S · **Status:** done: judge 100 addendum 1 PASS (b377af2), merged
+176a1a1 (addendum 2; claims: `reviews/claude/response_100_a15-vix-history.md`)
 
 ## A17. Global cues, daily
 

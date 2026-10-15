@@ -168,7 +168,7 @@ present (session per the A1 calendar).
 
 **Judge verifies:** runs the checks on a deliberately stale snapshot and confirms the refusal.
 
-**Depends:** A3, A4, A7, E2 · **Size:** S · **Status:** built on `story/c3-data-checks`, judge pending (claims: reviews/claude/response_82_c3-data-checks.md)
+**Depends:** A3, A4, A7, E2 · **Size:** S · **Status:** done: judge 81 PASS (round 2 0cc22a2), merged e3506ec; first real capture 14 Oct (addendum 3) (claims: reviews/claude/response_82_c3-data-checks.md)
 
 ---
 
@@ -231,7 +231,7 @@ Output: pass or fail with each check's numbers; failures written to `journal/<bo
 
 **Judge verifies:** adds a new wrong proposal of its own and confirms it is caught.
 
-**Depends:** C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) · **Size:** M · **Status:** judge 83 FAIL (3 must-fixes) fixed on `story/c4-hard-validity`, re-judge pending (claims: reviews/claude/response_83_c4-hard-validity.md, addendum 1); criteria 1-5 built (playbook mode for Book 1 in full); criterion 6 waits for D5 and criterion 7 for D4 (both books fail closed until then)
+**Depends:** C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) · **Size:** M · **Status:** done for criteria 1-5: judge 83 PASS (round 3 bf0d4af, merged dafbebe; A4-valid quotes e01a939, merged b03c4ef) (claims: reviews/claude/response_83_c4-hard-validity.md); criteria 1-5 built (playbook mode for Book 1 in full); criterion 6 waits for D5 and criterion 7 for D4 (both books fail closed until then)
 
 ---
 
@@ -352,8 +352,8 @@ options A18); showing the stress line on the card (T1); a Manual account ledger 
 checks a held trade's maximum loss by hand; plants an unsigned restart row; breaks the Manual profile; feeds C4 a
 breach C2 passed.
 
-**Depends:** C2, C4, A7, A14, B2, E1, D2, D3, the owner's decisions of 14-15 Oct 2026 · **Size:** M · **Status:** built
-on `story/c5-risk-buckets`, judge pending (claims: reviews/claude/response_105_c5-risk-buckets.md)
+**Depends:** C2, C4, A7, A14, B2, E1, D2, D3, the owner's decisions of 14-15 Oct 2026 · **Size:** M · **Status:** done:
+judge 105 addendum 2 PASS (b929743), merged a8379e6; inactive infrastructure (claims: reviews/claude/response_105_c5-risk-buckets.md)
 
 ---
 
