@@ -265,6 +265,10 @@ Out (with reasons):
   and scoring code, the hybrid rule set, the AI subset), and the freezer refuses a missing listed file. BR1a's
   studies and protocol can be judged and decided earlier; the freeze itself waits (judge 186 note).
 
+**Build notes (judge 186 addendum 1):**
+- One δ definition everywhere: 0.02 x study 1's primary mean Brier, in the loop's look counts and in false futility.
+- Futility's mirrored sign: for -d, the +δ shift is added to -d, so it is -d's own improvement of δ.
+
 **Depends:** the Drive raw archive (read only), S1's protocol format and freezer, G8's `confirmatory_test` and
 `futility_p` (`fno/forecast_v4/confirmatory.py`).
 
