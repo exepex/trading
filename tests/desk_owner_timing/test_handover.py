@@ -16,6 +16,7 @@ from fno.desk.exit_rules import ExitRule
 from fno.desk.exits import ExitDesk
 from fno.desk.owner_timing.exit_alerts import AlertThenWait
 from fno.desk.owner_timing.live_switch import LiveFromEntries, LiveFromExits
+from fno.desk.owner_timing.order_record import KeptOrders, order_data
 from fno.desk.owner_timing.order_times import DeliveredCards
 from fno.desk.owner_timing.pending import pending_entries, pending_exits
 from fno.desk.owner_timing.pending_entries import HANDED_OVER, PendingEntries
@@ -65,30 +66,34 @@ def records(root):
     return DeskRecords(PaperAccount(root, BOOK))
 
 
-def test_a_handed_over_entry_waits_for_its_fill_and_fills_nothing(root, snapshots, entry_desk, execution):
-    desk = LiveFromEntries(DAY, entry_desk, PendingEntries(60))
+def test_a_handed_over_entry_waits_for_its_fill_and_fills_nothing(root, store, snapshots, entry_desk, execution):
+    desk = LiveFromEntries(DAY, entry_desk, PendingEntries(60, KeptOrders(store, store)))
     result = enter(root, snapshots, desk, fly_order())
     assert (result.outcome, result.reason) == (OUTCOME_ENTRY_PENDING, HANDED_OVER.format(minutes=60))
     assert not records(root).fill_rows() and pending_entries(BOOK, records(root))[0].trade_id == "t1"
     assert enter(root, snapshots, desk, fly_order()).outcome == OUTCOME_ENTRY_PENDING  # a rerun repeats nothing
     assert len(records(root).event_rows("t1")) == 1
+    assert store.get("book1_rules/orders/t1.json") == order_data(fly_order())  # the order as decided, kept first
 
 
-def test_e4s_own_refusal_still_refuses_the_hand_over(root, snapshots, entry_desk, execution):
+def test_e4s_own_refusal_still_refuses_the_hand_over(root, store, snapshots, entry_desk, execution):
     late = fly_order(decided_at=at(15, 16))
-    result = enter(root, snapshots, PendingEntries(60), late)
+    result = enter(root, snapshots, PendingEntries(60, KeptOrders(store, store)), late)
     assert result.outcome == OUTCOME_REFUSED and "not before the execution snapshot" in result.reason
-    assert not pending_entries(BOOK, records(root))
+    assert not pending_entries(BOOK, records(root)) and store.get("book1_rules/orders/t1.json") is None
 
 
 def test_an_incomplete_execution_capture_still_hands_over(root, store, snapshots):
     write_snapshot(store, "partial", fly_rows(), at(15, 15), at(15, 15, 40), complete=False)
-    assert enter(root, snapshots, PendingEntries(60), fly_order(), "partial").outcome == OUTCOME_ENTRY_PENDING
+    assert (
+        enter(root, snapshots, PendingEntries(60, KeptOrders(store, store)), fly_order(), "partial").outcome
+        == OUTCOME_ENTRY_PENDING
+    )
 
 
 @pytest.mark.parametrize("live_from", [None, DAY + timedelta(days=1)], ids=["no date", "later date"])
-def test_before_the_live_date_e4_fills_as_before(root, snapshots, entry_desk, execution, live_from):
-    desk = LiveFromEntries(live_from, entry_desk, PendingEntries(60))
+def test_before_the_live_date_e4_fills_as_before(root, store, snapshots, entry_desk, execution, live_from):
+    desk = LiveFromEntries(live_from, entry_desk, PendingEntries(60, KeptOrders(store, store)))
     assert enter(root, snapshots, desk, fly_order()).outcome == OUTCOME_OPENED
 
 

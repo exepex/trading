@@ -15,7 +15,7 @@ from collections.abc import Callable, Sequence
 from datetime import UTC, date, datetime
 from pathlib import Path
 
-from ...constants import STEP_FAILED, STEP_OK, STEP_REFUSED
+from ...constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
 from ..daily_ports import DayStep
 from ..daily_steps import StepOutcome
 from ..records import DeskJournal, DeskRecords
@@ -32,6 +32,8 @@ from .timing_log import TimingLog
 APPLIED = "{done} applied, {waiting} waiting for their due mark"
 EARLIEST = datetime.min.replace(tzinfo=UTC)  # an entry without an order time is decided (missed) first
 FAILURES = (StepTimedOut, OrderMissing, SnapshotError)
+SEALED_ONLY = "not live yet: availability sealed, no fills"
+SEAL_FAILED = "not live; sealing failed: {problem} (blocks nothing until the live date)"
 
 
 class OwnerTimingStep(DayStep):
@@ -56,6 +58,17 @@ class OwnerTimingStep(DayStep):
         done = [r for r in results if r["outcome"] is not None]
         reason = APPLIED.format(done=len(done), waiting=len(results) - len(done))
         return self._outcome(sealed, {"status": STEP_OK, "reason": reason, "items": results})
+
+    def seal_only(self, day: date) -> StepOutcome:
+        """Before E8's live date (judge 203 early view 5): only the availability seal, so its history exists at
+        go-live. Nothing is pending then; a failed seal blocks nothing, and is marked so the switch alerts it."""
+        self.deadline.restart()
+        try:
+            sealed = self.sealer.seal(self.clock())
+        except Exception as problem:  # noqa: BLE001 - before go-live nothing may block entries (Drive down included)
+            failed = {"status": STEP_NOT_LIVE, "reason": SEAL_FAILED.format(problem=problem), "seal_failed": True}
+            return self._outcome(None, failed)
+        return self._outcome(sealed, {"status": STEP_NOT_LIVE, "reason": SEALED_ONLY})
 
     def _outcome(self, sealed, result: dict) -> StepOutcome:
         """What was written before any failure is committed with the step's entry: the new seal, the totals."""

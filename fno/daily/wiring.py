@@ -75,8 +75,8 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     }
     cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules(root, alerts)
     entry_desk, exit_timing = build_owner_timing_desks(cfg, live[OWNER_TIMING_STEP], build_entry_desk(cfg))
-    fills = build_owner_timing_step(cfg, cfg_orders, alerts, exit_timing, root=root)
-    steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, LiveFrom(fills, live[OWNER_TIMING_STEP]), alerts)  # E8
+    fills = build_owner_timing_step(cfg, alerts, exit_timing, live[OWNER_TIMING_STEP], root=root)
+    steps[OWNER_TIMING_STEP] = Alerted(OWNER_TIMING_STEP, fills, alerts)  # E8: seals only before its live date
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts, entry_desk=entry_desk, exit_timing=exit_timing)  # fmt: skip
     return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))

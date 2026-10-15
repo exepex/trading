@@ -1,6 +1,7 @@
 """E8 rule 11 and judge 203 condition 4: the step seals the availability file, then applies every waiting entry and
 exit of the verdict accounts oldest order time first (an entry without a delivered card first of all); a refused file
-or a failure ends it refused or failed, and the seal and the rewritten totals are committed with its entry."""
+or a failure ends it refused or failed, and the seal and the rewritten totals are committed with its entry. Before the
+live date it only seals, and nothing it meets then blocks an entry (judge 203 early view 5)."""
 
 from __future__ import annotations
 
@@ -9,9 +10,10 @@ from pathlib import Path
 
 from fno.books.account import PaperAccount
 from fno.books.daily_totals import write_daily_totals
-from fno.constants import OUTCOME_ENTRY_PENDING, OUTCOME_EXIT_ORDERED, STEP_FAILED, STEP_OK, STEP_REFUSED
+from fno.constants import OUTCOME_ENTRY_PENDING, OUTCOME_EXIT_ORDERED, STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
 from fno.desk.owner_timing.account_writes import StepAccountWrites
 from fno.desk.owner_timing.availability import AvailabilityRefused, Seal
+from fno.desk.owner_timing.live_switch import LiveFromStep
 from fno.desk.owner_timing.order_times import CardTimes
 from fno.desk.owner_timing.pending import OrderMissing, OrderSource
 from fno.desk.owner_timing.step import OwnerTimingStep
@@ -122,3 +124,25 @@ def test_an_order_that_cannot_be_rebuilt_fails_the_step_and_keeps_the_seal(root)
     outcome = built.run(date(2026, 10, 15))
     assert outcome.result["status"] == STEP_FAILED and outcome.result["reason"].startswith("OrderMissing")
     assert outcome.paths == (root / SEALS,) and outcome.inputs == {"sealed": True}
+
+
+class Raising(Sealer):
+    def seal(self, now):
+        raise RuntimeError("Drive settings missing")
+
+
+def test_before_the_live_date_it_only_seals_and_blocks_nothing(root, alerts):
+    handed_over(root, "t1", MON)
+    built, seen = step(root, sealer=Sealer(Seal(3, "ab" * 32)))
+    outcome = LiveFromStep(date(2026, 11, 2), built, alerts).run(date(2026, 10, 15))
+    assert outcome.result["status"] == STEP_NOT_LIVE and outcome.paths == (root / SEALS,) and not seen
+    assert not alerts.sent
+    assert LiveFromStep(date(2026, 10, 15), built, alerts).run(date(2026, 10, 15)).result["status"] == STEP_OK
+
+
+def test_a_failed_seal_while_off_is_alerted_once_and_blocks_nothing(root, tmp_path, alerts):
+    failed = LiveFromStep(None, step(root, sealer=Raising())[0], alerts).run(date(2026, 10, 15))
+    assert (
+        failed.result["status"] == STEP_NOT_LIVE and "sealing failed: Drive settings missing" in failed.result["reason"]
+    )
+    assert len(alerts.sent) == 1 and "sealing failed" in alerts.sent[0]

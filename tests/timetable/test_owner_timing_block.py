@@ -7,7 +7,15 @@ from datetime import date
 import pytest
 
 from fno.books.account import PaperAccount
-from fno.constants import BOOK1_RULES, OUTCOME_OPENED, OWNER_TIMING_STEP, STEP_FAILED, STEP_OK, STEP_REFUSED
+from fno.constants import (
+    BOOK1_RULES,
+    OUTCOME_OPENED,
+    OWNER_TIMING_STEP,
+    STEP_FAILED,
+    STEP_NOT_LIVE,
+    STEP_OK,
+    STEP_REFUSED,
+)
 from fno.desk.daily_ports import DayStep
 from fno.desk.daily_steps import StepOutcome
 from fno.desk.exit_rules import TimeExit
@@ -50,6 +58,6 @@ def test_failed_or_refused_fills_block_every_books_new_entries(root, tmp_path, a
     assert log.done("exits") and not fills(root)
 
 
-@pytest.mark.parametrize("status", [STEP_OK, None], ids=["ran", "not run"])
+@pytest.mark.parametrize("status", [STEP_OK, STEP_NOT_LIVE, None], ids=["ran", "not live", "not run"])
 def test_fills_that_ran_or_did_not_run_block_nothing(root, tmp_path, alerts, status):
     assert run_with(root, tmp_path, alerts, status).result("fills")["t1"]["outcome"] == OUTCOME_OPENED

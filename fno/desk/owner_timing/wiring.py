@@ -14,12 +14,13 @@ from ...alerts.sender import AlertSender
 from ...config import ROOT
 from ...constants import BOOK1_RULES, PAPER_AREA, VERDICT_REACTION_MINUTES, VIEW_VERDICT
 from ...storage.raw_store import AreaStore, RawFileStore
-from ..daily_ports import OrderBuilder
+from ..daily_ports import DayStep
 from ..entries import EntryFiller
 from ..exit_timing import ExitTiming
 from .availability import AvailabilitySealer, SealedDriveAvailability
 from .first_use import OpenedOnFirstUse
-from .live_switch import LiveFromEntries, LiveFromExits
+from .live_switch import LiveFromEntries, LiveFromExits, LiveFromStep
+from .order_record import KeptOrders
 from .seal_log import GitSealLog
 from .step import OwnerTimingStep
 from .timed_reads import StepDeadline, TimedIndexStore, TimedStore
@@ -53,26 +54,23 @@ def build_owner_timing_desks(cfg: dict, live_from: date | None, base: EntryFille
 
     store = _timing_store()
     poster = build_card_poster()  # T1's poster: Slack's own server time is the exit's order time
-    entries = LiveFromEntries(live_from, base, PendingEntries(VERDICT_REACTION_MINUTES))
+    entries = LiveFromEntries(live_from, base, PendingEntries(VERDICT_REACTION_MINUTES, KeptOrders(store, store)))
     return entries, LiveFromExits(live_from, AlertThenWait(poster, StoreTimingLog(store, store)))
 
 
-def build_owner_timing_step(cfg: dict, orders: OrderBuilder, alerts: AlertSender, exit_timing: ExitTiming,
-                            books: Sequence[str] = (BOOK1_RULES,), root: Path = ROOT) -> OwnerTimingStep:  # fmt: skip
+def build_owner_timing_step(cfg: dict, alerts: AlertSender, exit_timing: ExitTiming, live_from: date | None,
+                            books: Sequence[str] = (BOOK1_RULES,), root: Path = ROOT) -> DayStep:  # fmt: skip
     """Rule 11's step for the verdict accounts. Its account writes are E2c's (lock, pull, push); their public totals
     are committed by the daily run with the step's entry."""
     from ...books.account import PaperAccount
     from ...cards.committed import GitHeadRecords
     from ...cards.deliveries import RepoDeliveryFiles
     from ...models import now_ist
-    from ...playbook.history import PlaybookGit
-    from ..committed_decisions import D3CommittedDecisions
     from ..records import DeskRecords
     from ..timetable import timetable_from_config
     from ..wiring import build_private_files, open_desk_journal
     from .account_writes import StepAccountWrites
     from .order_times import DeliveredCards
-    from .pending import RunLogOrders
 
     deadline, timing = StepDeadline(), _timing_store()
     paper, log = (
@@ -85,12 +83,12 @@ def build_owner_timing_step(cfg: dict, orders: OrderBuilder, alerts: AlertSender
     writes = StepAccountWrites(lambda book: open_desk_journal(book, root, lease, files), root)
     availability = SealedDriveAvailability(paper, AVAILABILITY_FILE, seals)
     entries, exits = _fills(cfg, root, availability, deadline, log, alerts, exit_timing)
-    return OwnerTimingStep(
+    return LiveFromStep(live_from, OwnerTimingStep(
         books, AvailabilitySealer(paper, AVAILABILITY_FILE, seals), root / SEALS_FILE, writes,
         lambda book: DeskRecords(PaperAccount(root, book)),
-        RunLogOrders(root, D3CommittedDecisions(root, PlaybookGit(root)), orders),
+        KeptOrders(TimedStore(timing, deadline), timing),
         DeliveredCards(RepoDeliveryFiles(root, GitHeadRecords(root))), log, entries, exits, deadline, now_ist,
-    )  # fmt: skip
+    ), alerts)  # fmt: skip
 
 
 def _fills(cfg: dict, root: Path, availability, deadline: StepDeadline, log: StoreTimingLog, alerts: AlertSender,

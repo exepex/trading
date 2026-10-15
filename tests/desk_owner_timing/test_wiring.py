@@ -11,14 +11,16 @@ from fno.desk.exit_timing import ImmediateExits
 from fno.desk.owner_timing.entry_range import ApprovedLimit
 from fno.desk.owner_timing.exit_alerts import AlertThenWait
 from fno.desk.owner_timing.fill_risk import FillDayRisk
-from fno.desk.owner_timing.live_switch import LiveFromEntries, LiveFromExits
+from fno.desk.owner_timing.live_switch import LiveFromEntries, LiveFromExits, LiveFromStep
 from fno.desk.owner_timing.pending_entries import PendingEntries
 from fno.desk.owner_timing.wiring import build_owner_timing_desks, build_owner_timing_step
 from fno.desk.wiring import build_entry_desk
 
 
 def test_the_step_fills_by_the_owners_price_cap_in_the_verdict_view():
-    step = build_owner_timing_step(load_app_config(), None, None, ImmediateExits())
+    switch = build_owner_timing_step(load_app_config(), None, ImmediateExits(), date(2026, 11, 2))
+    assert isinstance(switch, LiveFromStep) and switch.live_from == date(2026, 11, 2)
+    step = switch.step
     entries = step.entries
     assert isinstance(entries.due_fill.entry_range, ApprovedLimit) and isinstance(entries.risk, FillDayRisk)
     assert (entries.view, entries.reaction, step.exits.view, step.exits.reaction) == (

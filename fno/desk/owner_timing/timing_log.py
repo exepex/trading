@@ -51,7 +51,7 @@ class TimingRecord:
         return (json.dumps(fields, indent=1, sort_keys=True) + "\n").encode()
 
 
-def _folder(account: str) -> str:
+def account_folder(account: str) -> str:
     return account.replace(":", "/")  # `shadow:<version>` becomes its own folder
 
 
@@ -74,16 +74,18 @@ class StoreTimingLog(TimingLog):
         self.reader, self.writer = reader, writer
 
     def alert_time(self, account: str, trade_id: str) -> datetime | None:
-        data = self.reader.get(ALERT_PATH.format(account=_folder(account), trade_id=trade_id))
+        data = self.reader.get(ALERT_PATH.format(account=account_folder(account), trade_id=trade_id))
         return datetime.fromisoformat(json.loads(data)["delivered_at"]) if data else None
 
     def alerted(self, account: str, trade_id: str, delivered_at: datetime) -> None:
         body = {"account": account, "trade_id": trade_id, "delivered_at": delivered_at.isoformat()}
-        path = ALERT_PATH.format(account=_folder(account), trade_id=trade_id)
+        path = ALERT_PATH.format(account=account_folder(account), trade_id=trade_id)
         self.writer.put(path, (json.dumps(body, indent=1, sort_keys=True) + "\n").encode())
 
     def record(self, record: TimingRecord) -> None:
         moment = record.fill_mark or record.due_mark
         mark = f"{moment:%Y%m%dT%H%M}" if moment else NO_MARK
-        path = FILL_PATH.format(account=_folder(record.account), trade_id=record.trade_id, kind=record.kind, mark=mark)
+        path = FILL_PATH.format(
+            account=account_folder(record.account), trade_id=record.trade_id, kind=record.kind, mark=mark
+        )
         self.writer.put(path, record.data())

@@ -1,23 +1,20 @@
-"""E8 rules 11 and 12: E8's own records are write-once files per account (a shadow version in its own folder), and a
-handed-over entry's order is rebuilt from the decision run the run log recorded, never guessed."""
+"""E8 rules 11 and 12, judge 203 early view 1: E8's own records are write-once files per account (a shadow version in
+its own folder), and a handed-over entry fills the order kept at its hand-over, never one rebuilt the next day."""
 
 from __future__ import annotations
 
 from datetime import date
-from pathlib import Path
 
 import pytest
 
-from fno.constants import BOOK1_RULES, RUN_LOG_DECISIONS_STEP
-from fno.desk.daily_ports import CommittedDecision
+from fno.constants import BOOK1_RULES
+from fno.desk.owner_timing.order_record import KeptOrders
 from fno.desk.owner_timing.outcomes import ENTRY
-from fno.desk.owner_timing.pending import OrderMissing, PendingEntry, RunLogOrders
+from fno.desk.owner_timing.pending import OrderMissing, PendingEntry
 from fno.desk.owner_timing.timing_log import StoreTimingLog, TimingRecord
-from fno.desk.run_log import RunLog
 from fno.storage.raw_store import LocalFolderStore, RawFileConflict
-from tests.desk.builders import DAY, at, fly_order
+from tests.desk.builders import DAY, DictStore, fly_order
 from tests.desk_owner_timing.fakes import ist
-from tests.timetable.fakes import Decisions
 
 DUE = ist(date(2026, 10, 15), 10, 15)
 
@@ -44,28 +41,17 @@ def test_records_and_alerts_are_kept_once_per_account_and_mark(tmp_path):
         log.record(record(reason="something else"))
 
 
-def logged(root, entry: dict) -> None:
-    RunLog.open(root, DAY).record(RUN_LOG_DECISIONS_STEP, at(15, 12), at(15, 12), {}, {BOOK1_RULES: entry})
+def test_the_kept_order_is_exactly_the_decided_one():
+    store = DictStore()
+    orders = KeptOrders(store, store)
+    order = fly_order("t2")
+    orders.keep(order)
+    orders.keep(order)  # a rerun keeps the same bytes
+    assert list(store.files) == ["book1_rules/orders/t2.json"]
+    kept = orders.order(PendingEntry(BOOK1_RULES, "t2", DAY))
+    assert kept == order and kept.risk.entry_cash_rs == order.risk.entry_cash_rs
 
 
-def decisions() -> Decisions:
-    found = Decisions()
-    run = CommittedDecision(BOOK1_RULES, "r1", "c1", at(15, 5), Path("r1"))
-    found.add(run, (fly_order("t1"), fly_order("t2")), DAY)
-    return found
-
-
-def test_the_order_is_rebuilt_from_the_logged_decision_run(root):
-    logged(root, {"run_id": "r1", "commit": "c1"})
-    source = decisions()
-    order = RunLogOrders(root, source, source).order(PendingEntry(BOOK1_RULES, "t2", DAY))
-    assert order.proposal.trade_id == "t2"
-
-
-@pytest.mark.parametrize(("entry", "trade_id"), [({}, "t1"), ({"run_id": "r1", "commit": "c1"}, "t9")],
-                         ids=["no decision run logged", "trade not in the run"])  # fmt: skip
-def test_an_order_that_cannot_be_rebuilt_is_refused(root, entry, trade_id):
-    logged(root, entry)
-    source = decisions()
+def test_an_entry_without_a_kept_order_is_refused():
     with pytest.raises(OrderMissing):
-        RunLogOrders(root, source, source).order(PendingEntry(BOOK1_RULES, trade_id, DAY))
+        KeptOrders(DictStore(), DictStore()).order(PendingEntry(BOOK1_RULES, "t1", DAY))

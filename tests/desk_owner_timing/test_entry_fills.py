@@ -151,3 +151,14 @@ def test_a_rerun_whose_copy_no_longer_prices_fails_the_step(root, parts, marks):
     marks.store.files.clear()
     with pytest.raises(SnapshotError):
         apply(root, entries)
+
+
+def test_a_300_point_move_never_changes_the_filled_legs(root, parts, marks):
+    """Judge 203 early view 1: the kept order fills as decided; the fill day's market only checks it."""
+    entries, _, _, _ = parts
+    marks.spot = 25300.0
+    marks.put(DUE, fly_rows())
+    apply(root, entries)
+    filled = [(r["contract"], r["units"]) for r in account(root).fill_rows("t1")]
+    order = fly_order()
+    assert filled == [(leg.contract, str(order.proposal.lot_size * order.proposal.terms.lots)) for leg in order.legs()]
