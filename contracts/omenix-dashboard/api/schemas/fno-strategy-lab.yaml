@@ -71,12 +71,13 @@ FnoStrategyLab:
       items:
         type: object
         additionalProperties: false
-        required: [family, approved, trading, why_not]
+        required: [family, approved, trading, why_not, ai_and_data_costs]
         properties:
           family: {$ref: '#/components/schemas/FnoFamily', description: The book's family}
           approved: {type: array, description: "Display names of its strategy versions approved to paper (rung 3)", items: {type: string, minLength: 1, x-unit: text, description: A display name}}
           trading: {type: boolean, x-unit: yes/no, description: 'True once it trades on paper (Books 2 and 3 start only after a strategy has passed, owner 15 Oct 2026)'}
           why_not: {type: ['string', 'null'], x-unit: text, description: 'Why it does not trade yet; null when trading'}
+          ai_and_data_costs: {type: ['number', 'null'], minimum: 0, x-unit: INR (Paper), x-catalog: {source: "S2's book board (fno/scoreboard/book_board.py: ai_cost_allocated_rs and the book's operating costs; allocated, not a bill)", story: S2}, description: 'The book''s AI and data costs so far, at book level only (allocated, not a bill); null until S2 publishes them'}
     results:
       type: array
       description: Each strategy version on paper (rung 3 and above), per book; never added across books
@@ -116,7 +117,7 @@ FnoStrategyResult:
     won: {type: integer, minimum: 0, x-unit: count, description: Of them won after costs}
     lost: {type: integer, minimum: 0, x-unit: count, description: Of them lost after costs}
     gross: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'trade_line:gross', description: 'Sum of its closed trades at quoted prices, before costs (one strategy''s own trades)'}
-    costs: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Charges, pads, and its allocated AI and data costs (labelled allocated, not a bill)'}
+    costs: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Its trades'' charges and pads only. AI and data costs are the book''s, never a version''s (S2: "so no rupee is counted twice"); they are on the book line'}
     net: {type: number, x-unit: INR (Paper), description: gross minus costs}
     net_after_tax: {type: number, x-unit: INR (Paper), description: "net after the owner's chosen 31.2% tax scenario on a positive year"}
     net_per_risk:

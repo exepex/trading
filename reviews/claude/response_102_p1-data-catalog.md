@@ -7,8 +7,7 @@ dashboard's `api/` is the single master contract, and exepex/trading keeps the p
 
 Branches are `story/p1-data-catalog` in both repositories; nothing is merged.
 - **Dashboard head:** 3cf4baa (pushed).
-- **Trading:** the head commit holds the pin at 3cf4baa. It is committed locally, but **the push was refused**: this
-  session has no push access to exepex/trading. See the orchestrator message.
+- **Trading:** pushed once this session got push access (orchestrator, 15 Oct); the heads are named in each addendum.
 
 Evidence labels:
 - **strong evidence:** a check or test that runs and fails on a planted break;
@@ -169,8 +168,8 @@ Forecast lab (43 fields; 10 fillable today):
 - **Account size:** the paper account is Rs 5 lakh a book in code (STARTING_CASH_RS); design v2 plans Rs 20 lakh (C5).
 - **Late forecasts:** the 14 Oct live forecasts were generated at 19:27 IST, after protocol v2's 15:15 deadline
   (`ForecastRecordV2.on_time` would not count them). This is not P1's scope.
-- **Push access:** exepex/trading is not in this session's authorised repositories, so the push was refused (403 from
-  the git proxy).
+- **Push access:** the first push was refused (403) until the repository was attached with push access; it was then
+  pushed (fixed, judge 102 minor 5).
 
 ## Known limits
 
@@ -226,3 +225,157 @@ byte-identical):
 - Dashboard: `check_fno_screens` every rule holds, 21 of 21 planted; `check_contract` pass; size pass; 465 of 465 web
   tests; check_text 0 findings; 5 card states clean at 1280 and 390 px.
 - Here: `tests/market_read_models` 180 passed, 1 xfailed (pending T1); ruff, format and imports clean.
+
+## Addendum 2: judge 102 (FAIL on 3cf4baa / c083b4b), item by item
+
+Heads after the fixes:
+- Dashboard: 1b40e38.
+- Trading: on top of 8142710, with origin/main merged in (db8260b). The pin is at 1b40e38, and all 33 files are
+  byte-identical.
+
+I accepted every finding after checking each against its source. For every source I read the cited text myself: the
+14 Oct sealed_same_day row; design 6.2 line 47; G6 `PROTOCOL_v4.md` at dbba574, section 5; `book_board.py:5`.
+
+### Must-fix
+
+1. **Isolation label, per-forecast status and coverage (accepted; the owner's 14 Oct condition 2 is explicit).**
+   - Each `forecasters[]` entry now has:
+     - `isolation` (code, sealed_same_day or full_f1);
+     - `isolation_label`, which the schema forces to "sealed same day (not full F1)" when the isolation is
+       sealed_same_day (named record `scoring_status:isolation`, G5's ScoringStatus);
+     - `coverage`: pack_days and counted_days (named records `book_coverage:*`), plus missing, late and unscored days.
+   - `today.values[].status` takes one of: counted, pending, late, breach, model_mismatch.
+   - `per_forecaster[].n_missing` counts the days with no forecast.
+   - The 14 Oct fixture now sets the status from `ForecastRecordV2.on_time`, and the test asserts that every value is
+     `late` (`test_a_forecast_lab_fixture_from_the_live_forecasts_of_14_october_shows_them_late`).
+   - Planted break: a probe that gives an AI forecaster another label must be refused. It is refused.
+2. **The daily stress line (accepted; design 6.2: "Every card shows ...").**
+   - New `stress` block: open_positions, max_loss_sum and one line per scenario (nifty_move_pct, vix_move_pct, loss),
+     marked owner only.
+   - The check fails if any line exceeds max_loss_sum (planted break).
+   - The examples use −5% with VIX +50%, −10% with VIX +100%, and +5% with no VIX change.
+   - **Ambiguity for the owner:** 6.2's wording can also be read as four crossed scenarios. The schema allows any list,
+     so either reading fits. Reasoning only.
+   - Source: C2's stressed marks; the line itself is not built (story C5).
+3. **Gap list rebuilt from the cited design sections (below).**
+
+### Should-fix
+
+1. **Shared v4 fields (accepted).**
+   - Corrected to G6 revision 1 and marked `x-provisional`:
+     - `p_value`: the larger of the batch-means t test and the studentized block bootstrap;
+     - `interval`: v3 only, so v4 gives null;
+     - `verdict`: gains `futile`;
+     - the new `futility_upper_bound`: the 97.5% bound, two looks;
+     - `n_needed`.
+   - The examples follow suit: no v4 interval; the AI team's V2 is `futile`.
+2. **No made-up values (accepted).**
+   - `closed[].fills` is null before E8.
+   - `open[].monitor` and `alerts_today` are null before LM1.
+   - The losing example shows a pre-E8 trade with null fills and an open position with null monitor fields.
+3. **Owner-only paths pinned (accepted).**
+   - `fno_rules.OWNER_PATHS`: the card's trade, objections and stress; the open legs.
+   - Planted breaks: making the trade or the objections public fails the check, with no regenerated table involved.
+4. **Strategy-lab costs (accepted).**
+   - `results[].costs` is charges and pads only.
+   - The book's AI and data costs sit on `books[].ai_and_data_costs`, null until S2 publishes them (book_board.py: "so
+     no rupee is counted twice").
+5. **Surviving plants (accepted, fixed by design rather than one by one).**
+   - The examples alone cannot catch a deleted rule. So `fno_rules.PROBES` validates seven invalid pages the schema
+     must refuse:
+     - a card above the Rs 10,000 cap;
+     - a TRADE card in RED;
+     - a settle date under 60 outcomes;
+     - a wrong AI label;
+     - RED weather not blocking;
+     - a missing weather not blocking;
+     - real money eligible.
+   - Raising the cap to 50,000 or deleting the settle rule now fails the check (both planted).
+   - Planted breaks: **26 of 26**.
+
+### Minors
+
+1. Fictional `MOCKNIFTY26DEC10600PE`-style contracts at strikes near 10,600, far from any real level.
+2. The family translation is named in the field table (book1_rules is rule, book2_hybrid is hybrid, book3_ai is ai).
+3. Mockup 40:
+   - "No colour" instead of "None";
+   - "No sessions yet" when no session was counted;
+   - the missing state says "No new paper trade today: a missing weather blocks new trades";
+   - the weather is scored against both yardsticks.
+4. TRADE at exactly rung 3: noted for RM1 (no change while `real_money_eligible` is const false).
+5. Push line fixed.
+
+### Gap list against the cited design sections (must-fix 3)
+
+| Section | Requirement | Where it is |
+|---|---|---|
+| 4.1 | PAPER ONLY label | `FnoCard.label` const |
+| 4.1 | status TRADE / NO TRADE / WATCH; reason codes | `status`, `reason` |
+| 4.1 | what, entry range, size, max loss | `trade.*` (owner) |
+| 4.1 | worst case shown | `trade.worst_cases` |
+| 4.1 | exit plan | `trade.exit_plan` |
+| 4.1 | forecast with its record | `forecast`, `forecasts_on_record` (live and back-fill apart) |
+| 4.1 | weather | `weather` |
+| 4.1 | devil's advocate | `advocate` |
+| 4.1 | costs and tax | `trade.costs` |
+| 4.1 | evidence | `evidence` |
+| 4.1 | proves it wrong | `trade.proves_wrong` |
+| 4.1 | rung 3 only for TRADE | schema rule plus a probe |
+| 4.1 | NO TRADE scored by the price of staying out | `price_of_staying_out` |
+| 4.1 | timing contract | `timing` |
+| 4.1 | advocate_unavailable | `advocate.status` |
+| 4.1 | Drive only | `x-visibility: owner` |
+| 4.1 | delivery and "alert NOT sent" | `timing.delivery`, `previous_misses` |
+| 4.4 | issuance hashes | `footer.record_hashes` {path, sha256} |
+| 4.4 | clock contract (UTC stored, IST shown) | every time is UTC date-time |
+| 4.4 | owner unavailable ("if you cannot act by ...") | `if_you_cannot_act` |
+| 4.4 | data rights | covered by visibility; Groww terms are A16's |
+| 2.3 | p_big_1d, p_big_5d; colour from fixed thresholds | `p_big_*`, `colour`, `model_version` |
+| 2.3 | maximum RED frequency and over-alarming | `red_share` |
+| 2.3 | drivers | `drivers` |
+| 2.3 | intraday upgrades AMBER to RED only | `intraday`, enforced |
+| 2.3 | v0 checklist baseline | `scores[].baseline = v0_checklist` |
+| 2.3 | price of calm | `price_of_calm` |
+| 2.3 | Brier against the base rate | `scores` |
+| 2.3 | missing weather blocks (owner "4 A") | schema rule plus a probe |
+| 5.2 | V1-V7 questions | `questions[]`, ids and `kind` |
+| 5.2 | void sessions counted | `n_void` |
+| 5.2 | close_proxy label | **out:** the Forecast lab shows live forecasts only; the card shows back-fill apart |
+| 5.3 | primary baselines | `primary_baseline` |
+| 5.4 | QLIKE ranking loss, Brier, calibration | `metric`, `mean_loss`; calibration bins on the card (`FnoTrackRecord`). **Out:** a full reliability table on the lab (W3 screen detail; G4 publishes it) |
+| 5.4 | missing forecasts counted, never imputed | `n_missing`, `coverage.missing_days` |
+| 5.5 | paired difference, p, Holm, minimum effect, futility | `comparisons[]` (provisional, G6 revision 1) |
+| 5.5 | stability | **out:** descriptive and reported by G8; a G8 report field, not on the screen yet |
+| 5.5 | 60-outcome settle projection | `settle`, enforced |
+| 5.8 | drift alarms | **out:** LR3 is not designed into a screen yet; strategy pauses show in `results[].status` and `pause_reason` |
+| 3.1 | ledger rows and trial count | `factory.trials_total`, `trial` |
+| 3.1 | statuses including exploratory_shadow and screened_out | `by_status`, `ideas[].status` |
+| 3.1 | expected false passes | `expected_false_passes` |
+| 3.1 | gates G0-G6 | `ideas[].gate` |
+| 3.1 | cost-wall numbers per idea | **out:** idea-card internals (structure, gross distribution) are strategy internals by the 13 Oct rule |
+| 3.2 | after costs, after tax, index fund and cash | `results[]` |
+| 3.2 | net per unit of risk | `net_per_risk` |
+| 3.2 | fill error | `fill_error_per_unit` |
+| 3.2 | fills at 5/30/60, the verdict at 60, missed fills | `closed[].fills` (null before E8) |
+| 3.2 | the owner never overrides on paper | no override field exists; `exit = safety_stop` is S1's stop |
+| 3.2 | Rs 20 lakh account | `opening_value` from the record |
+| 6.2 | the daily stress line | `stress` |
+| 6.2 | effective sample (buckets and weeks) | **out:** a scoreboard field for S2's change and W3's scoreboard screen, not one of P1's five screens |
+| 8.3 | the real-money gate's checks; never eligible today | `real_money` (const false) |
+| Owner 14 Oct | sealed_same_day label | `isolation_label`, enforced |
+| Owner 14 Oct | breach makes a day unscored | `values[].status = breach`, `coverage.unscored_days` |
+| Owner 13 Oct | internals private | `x-never-sent` plus the name scan |
+| Owner 15 Oct | contract A | story text |
+| Owner 15 Oct | cards in Drive | `x-visibility` plus `OWNER_PATHS` |
+| Owner 15 Oct | "4 A" | weather rule plus a probe |
+
+**Gates:**
+- Dashboard at 1b40e38:
+  - `check_fno_screens`: every rule holds; 289 leaves, 56 built; 26 of 26 planted;
+  - `check_contract`, `check_mapping`, `render_catalog --check`, `examples --check`, `render_fno_catalog --check` and
+    `check_code_size`: all pass;
+  - web tests: 465 of 465;
+  - check_text: 0 findings on both pages;
+  - 8 states clean at 1280 and 390 px.
+- Trading: see the orchestrator message for the full-suite count; `tests/market_read_models` 180 passed, 1 xfailed
+  (pending T1); ruff and imports clean.

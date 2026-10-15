@@ -26,12 +26,14 @@ import pytest
 import yaml
 
 from fno.accounting.ledgers import TradeLine
+from fno.ai.scoring_gate import ScoringStatus
 from fno.books.account import EQUITY_COLUMNS, STARTING_CASH_RS, PaperAccount
 from fno.books.equity import AccountState, account_state
 from fno.checks.data_checks import CheckReport
 from fno.desk.records import DeskEvent
 from fno.forecast.schema_v2 import RECORD_COLUMNS_V2, ForecastRecordV2
 from fno.forecast_scoring.block_bootstrap import BootstrapResult
+from fno.forecast_scoring.coverage import book_coverage
 from fno.forecast_scoring.scores import CalibrationBin, ScoreSummary
 from fno.market_read_models.contract import ContractBroken, PinnedContract
 from fno.market_read_models.publication import canonical
@@ -78,6 +80,10 @@ RECORD_FIELDS = {  # the records the catalog may name (tools/api/check_fno_scree
     "calibration_bin": lambda: fields_of(CalibrationBin),
     "bootstrap_result": lambda: fields_of(BootstrapResult),
     "check_report": lambda: fields_of(CheckReport),
+    "scoring_status": lambda: fields_of(ScoringStatus),
+    "book_coverage": lambda: set(
+        next(iter(book_coverage([date(2026, 1, 1)], [], date(2026, 1, 1), date(2026, 1, 2)).values()))
+    ),
     "paper_account": lambda: set(inspect.signature(PaperAccount.__init__).parameters) - {"self"},
     "account_state": lambda: fields_of(AccountState),
     "equity_history": lambda: set(EQUITY_COLUMNS),
@@ -91,6 +97,7 @@ TYPED_RECORDS = {  # the records with Python types: the schema's type must match
     "calibration_bin": CalibrationBin,
     "bootstrap_result": BootstrapResult,
     "check_report": CheckReport,
+    "scoring_status": ScoringStatus,
     "account_state": AccountState,
     "trade_line": TradeLine,
     "desk_event": DeskEvent,
@@ -203,19 +210,33 @@ def test_a_paper_trades_fixture_from_a_fresh_account_validates():
     validated("getFnoPaperTrades", value)
 
 
-def test_a_forecast_lab_fixture_from_the_live_forecasts_of_14_october_validates():
+def forecast_status(record: ForecastRecordV2) -> str:
+    """A live forecast generated after its deadline is late and never counted (judge 102 must-fix 1)."""
+    return "counted" if record.on_time else "late"
+
+
+def test_a_forecast_lab_fixture_from_the_live_forecasts_of_14_october_shows_them_late():
     with LIVE_FORECASTS.open(encoding="utf-8") as handle:
-        records = [ForecastRecordV2.from_row(row).record for row in csv.DictReader(handle)]
-    q1 = [r for r in records if r.question.startswith("q1_") and r.probability is not None]
+        records = [ForecastRecordV2.from_row(row) for row in csv.DictReader(handle)]
+    q1 = [r for r in records if r.record.question.startswith("q1_") and r.record.probability is not None]
     value = payload_of("getFnoForecastLab_india_waiting")
     question = value["payload"]["questions"][0]
     assert question["id"] == "Q1" and q1
     question["today"] = {
-        "made_on": q1[0].date.isoformat(),
+        "made_on": q1[0].record.date.isoformat(),
         "answer_on": "2026-11-11",
-        "values": [{"forecaster": r.book, "probability": r.probability, "variance": None} for r in q1],
+        "values": [
+            {
+                "forecaster": r.record.book,
+                "probability": r.record.probability,
+                "variance": None,
+                "status": forecast_status(r),
+            }
+            for r in q1
+        ],
     }
     validated("getFnoForecastLab", value)
+    assert {v["status"] for v in question["today"]["values"]} == {"late"}  # generated at 19:27 IST, after 15:15
 
 
 def test_a_renamed_field_fails_validation():

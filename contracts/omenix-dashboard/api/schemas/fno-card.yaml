@@ -16,7 +16,7 @@ FnoCard:
     - "the AI team's and the devil's advocate's prompts and model settings"
     - "the strategy's parameters and any fitted value"
   additionalProperties: false
-  required: [label, test_post, session, session_note, status, reason, reason_text, timing, valid_until, trade, paper_trades_so_far, weather, forecast, forecasts_on_record, advocate, data_checks, missing, previous_misses, evidence, price_of_staying_out, if_you_cannot_act, footer]
+  required: [label, test_post, session, session_note, status, reason, reason_text, timing, valid_until, trade, stress, paper_trades_so_far, weather, forecast, forecasts_on_record, advocate, data_checks, missing, previous_misses, evidence, price_of_staying_out, if_you_cannot_act, footer]
   properties:
     label: {type: string, const: PAPER ONLY, x-unit: text, description: 'Every card is for paper trading; no card ever tells the owner to place a real order'}
     test_post: {type: boolean, x-unit: yes/no, x-catalog: {source: "T1's delivery record (research/cards/deliveries/, card_delivery/v1: test)"}, description: 'True for a one-off check of live delivery, not the day''s card (the post says TEST)'}
@@ -40,6 +40,28 @@ FnoCard:
         card_sent_at: {type: ['string', 'null'], format: date-time, x-unit: UTC time, description: 'Slack''s server time of the post (the issuance time); null while not sent'}
         delivery: {type: string, enum: [sent, retrying, not_sent], x-unit: enum, description: 'Slack delivery; not_sent is shown as "alert NOT sent" and the next card says so'}
     valid_until: {type: string, format: date-time, x-unit: UTC time, x-catalog: {source: "T1's CARD_VALID_UNTIL (15:25 IST)"}, description: 'After this time the card is stale (15:25 IST)'}
+    stress:
+      type: object
+      description: "The daily stress line (design 6.2): the loss of all open paper positions together under fixed overnight scenarios, information only (the scenario assumptions accepted by the owner, \"4 A\"). All positions are defined-risk, so no line can exceed the sum of their maximum losses; the line shows how close the book is to it"
+      x-visibility: owner
+      x-catalog: {source: "the risk manager's stress of the open positions (C2's stressed marks; the design 6.2 line is added with the risk buckets)", story: C5}
+      additionalProperties: false
+      required: [open_positions, max_loss_sum, scenarios]
+      properties:
+        open_positions: {type: integer, minimum: 0, x-unit: count, description: Open paper positions across the books}
+        max_loss_sum: {type: number, minimum: 0, x-unit: INR (Paper), description: 'The ceiling: the sum of their maximum losses'}
+        scenarios:
+          type: array
+          minItems: 1
+          description: One line per fixed scenario
+          items:
+            type: object
+            additionalProperties: false
+            required: [nifty_move_pct, vix_move_pct, loss]
+            properties:
+              nifty_move_pct: {type: number, x-unit: percent points, description: 'The overnight NIFTY move, e.g. -5 or -10, or +5'}
+              vix_move_pct: {type: ['number', 'null'], x-unit: percent points, description: 'The India VIX move with it, e.g. +50 or +100; null when the scenario names none'}
+              loss: {type: number, minimum: 0, x-unit: INR (Paper), description: 'The loss of all open positions together in that scenario (0 with none open); never above max_loss_sum'}
     paper_trades_so_far:
       type: object
       description: How many paper trades each book has made so far (a book that cannot be read is named in missing)

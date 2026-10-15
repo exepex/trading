@@ -11,7 +11,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "62a706816486e0c8a49e56d4b21ef5e0c1431b42c6c5a3377eef0b99c8c0cccf",
+   "payload_sha256": "e78e8542504a1f8cf6c0ca408c39957f4041adfa778c8416316c5e7ce7ba0ba8",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -115,22 +115,22 @@
     "trade": {
      "family": "rule",
      "strategy": "Put spread A, version 1",
-     "what": "NIFTY 29 Dec 2026 put spread: buy 1 lot 22,600 PE, sell 1 lot 22,450 PE",
+     "what": "MOCK NIFTY 29 Dec 2026 put spread at fictional strikes: buy 1 lot 10,600 PE, sell 1 lot 10,450 PE",
      "legs": [
       {
-       "contract": "NIFTY26DEC22600PE",
+       "contract": "MOCKNIFTY26DEC10600PE",
        "side": "buy",
        "lots": 1,
        "option_type": "PE",
-       "strike": 22600,
+       "strike": 10600,
        "expiry": "2026-12-29"
       },
       {
-       "contract": "NIFTY26DEC22450PE",
+       "contract": "MOCKNIFTY26DEC10450PE",
        "side": "sell",
        "lots": 1,
        "option_type": "PE",
-       "strike": 22450,
+       "strike": 10450,
        "expiry": "2026-12-29"
       }
      ],
@@ -194,6 +194,27 @@
       "happened_share": 0.44,
       "mean_brier": 0.251
      }
+    },
+    "stress": {
+     "open_positions": 1,
+     "max_loss_sum": 3984,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 1210
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 3984
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": null,
+       "loss": 0
+      }
+     ]
     },
     "advocate": {
      "status": "answered",
@@ -265,7 +286,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "762c85737c8b81153d4279a6ff5ef17fe2f307dc5d18bf39975431b406e1db19",
+   "payload_sha256": "c5bd2c4c632d0050f21e4a8108588fe37ab668263a1a214f0c2ccb399e4a7c88",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -369,22 +390,22 @@
     "trade": {
      "family": "hybrid",
      "strategy": "Buy protected movement, shadow 2",
-     "what": "Shadow only, never traded: NIFTY 29 Dec 2026 call spread, buy 1 lot 22,800 CE, sell 1 lot 23,000 CE",
+     "what": "Shadow only, never traded: MOCK NIFTY 29 Dec 2026 call spread at fictional strikes, buy 1 lot 10,800 CE, sell 1 lot 11,000 CE",
      "legs": [
       {
-       "contract": "NIFTY26DEC22800CE",
+       "contract": "MOCKNIFTY26DEC10800CE",
        "side": "buy",
        "lots": 1,
        "option_type": "CE",
-       "strike": 22800,
+       "strike": 10800,
        "expiry": "2026-12-29"
       },
       {
-       "contract": "NIFTY26DEC23000CE",
+       "contract": "MOCKNIFTY26DEC11000CE",
        "side": "sell",
        "lots": 1,
        "option_type": "CE",
-       "strike": 23000,
+       "strike": 11000,
        "expiry": "2026-12-29"
       }
      ],
@@ -446,6 +467,27 @@
       "mean_brier": null
      }
     },
+    "stress": {
+     "open_positions": 1,
+     "max_loss_sum": 3984,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 1210
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 3984
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": null,
+       "loss": 0
+      }
+     ]
+    },
     "advocate": {
      "status": "advocate_unavailable",
      "objections": [],
@@ -504,7 +546,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "73e620c2b922a784fe05eb3584a407031182f98efbcc0f02077f2b8c439d4661",
+   "payload_sha256": "75972bc1bad1d8e86b30f01615d8f41f3cf5dae3596f7dd53a9b2b753d298069",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -630,6 +672,27 @@
       "mean_brier": 0.036
      }
     },
+    "stress": {
+     "open_positions": 2,
+     "max_loss_sum": 7968,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 5320
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 7968
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": null,
+       "loss": 640
+      }
+     ]
+    },
     "advocate": {
      "status": "not_needed",
      "objections": [],
@@ -687,7 +750,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "1ba3c351d63da406f3cae1904f9bb0ab0b06db4a752f37032fc1839fb56107f9",
+   "payload_sha256": "7f6f90804cdcf891a16325f330494051df0fd4e6f5a460cff14d78abb3b51051",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -772,6 +835,27 @@
     "reason": "data_check_failed",
     "trade": null,
     "forecast": null,
+    "stress": {
+     "open_positions": 1,
+     "max_loss_sum": 3984,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 1210
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 3984
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": null,
+       "loss": 0
+      }
+     ]
+    },
     "advocate": {
      "status": "not_needed",
      "objections": [],
@@ -836,7 +920,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "9ff39efa3d00bc15a09b3d1e7fdb684db588a8b59be4e90b1b1de8302f815cc1",
+   "payload_sha256": "6ac6b9533a43e274b25fa54ad5d4af5ed62cec4b3e9580b7fa90049ea9936a45",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -964,6 +1048,27 @@
       "mean_brier": null
      }
     },
+    "stress": {
+     "open_positions": 0,
+     "max_loss_sum": 0,
+     "scenarios": [
+      {
+       "nifty_move_pct": -5,
+       "vix_move_pct": 50,
+       "loss": 0
+      },
+      {
+       "nifty_move_pct": -10,
+       "vix_move_pct": 100,
+       "loss": 0
+      },
+      {
+       "nifty_move_pct": 5,
+       "vix_move_pct": null,
+       "loss": 0
+      }
+     ]
+    },
     "advocate": {
      "status": "not_needed",
      "objections": [],
@@ -1025,7 +1130,7 @@
    "built_at": "2026-11-16T09:31:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "a9401b3e5dc488d3fe0a41fed6c555505ad80c108239585056122dc3ab68ca3f",
+   "payload_sha256": "9e69894be1fe82381127bedfa7ac991a5642bc2fc1d0bb47605b2ad7d5d0299f",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1125,22 +1230,46 @@
     "scores": [
      {
       "question": "V6_1d",
+      "baseline": "base_rate",
       "status": "scoring",
       "n_scored": 140,
       "n_needed": 10,
       "brier": 0.036,
-      "brier_base_rate": 0.039,
+      "brier_baseline": 0.039,
       "skill": 0.077,
       "verdict": "better"
      },
      {
       "question": "V6_5d",
+      "baseline": "base_rate",
       "status": "scoring",
       "n_scored": 28,
       "n_needed": 10,
       "brier": 0.101,
-      "brier_base_rate": 0.118,
+      "brier_baseline": 0.118,
       "skill": 0.144,
+      "verdict": "no_difference"
+     },
+     {
+      "question": "V6_1d",
+      "baseline": "v0_checklist",
+      "status": "scoring",
+      "n_scored": 140,
+      "n_needed": 10,
+      "brier": 0.036,
+      "brier_baseline": 0.037,
+      "skill": 0.027,
+      "verdict": "no_difference"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "v0_checklist",
+      "status": "scoring",
+      "n_scored": 28,
+      "n_needed": 10,
+      "brier": 0.101,
+      "brier_baseline": 0.104,
+      "skill": 0.029,
       "verdict": "no_difference"
      }
     ],
@@ -1166,7 +1295,7 @@
    "built_at": "2026-11-16T09:31:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "092e1c5c14db85a461c64f551ea4c4fd84448c74d478c6244f4cf5528c249244",
+   "payload_sha256": "60ba5a2f9135f7bd2c2adfc6de1b72b8c256890d869a25e3e2931b631f5b1ddf",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1273,22 +1402,46 @@
     "scores": [
      {
       "question": "V6_1d",
+      "baseline": "base_rate",
       "status": "scoring",
       "n_scored": 150,
       "n_needed": 10,
       "brier": 0.045,
-      "brier_base_rate": 0.039,
+      "brier_baseline": 0.039,
       "skill": -0.154,
       "verdict": "worse"
      },
      {
       "question": "V6_5d",
+      "baseline": "base_rate",
       "status": "scoring",
       "n_scored": 30,
       "n_needed": 10,
       "brier": 0.131,
-      "brier_base_rate": 0.118,
+      "brier_baseline": 0.118,
       "skill": -0.11,
+      "verdict": "no_difference"
+     },
+     {
+      "question": "V6_1d",
+      "baseline": "v0_checklist",
+      "status": "scoring",
+      "n_scored": 150,
+      "n_needed": 10,
+      "brier": 0.045,
+      "brier_baseline": 0.041,
+      "skill": -0.098,
+      "verdict": "worse"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "v0_checklist",
+      "status": "scoring",
+      "n_scored": 30,
+      "n_needed": 10,
+      "brier": 0.131,
+      "brier_baseline": 0.122,
+      "skill": -0.074,
       "verdict": "no_difference"
      }
     ],
@@ -1314,7 +1467,7 @@
    "built_at": "2026-11-16T09:31:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "c4ca75d915ed62c8b967c9aaeaa1fc82d81bda02aa56dabc6b92f0a5d7ead59b",
+   "payload_sha256": "b825f60f3ab3410b4932061fef08d2417c46fa21f6a9f4594df8e2e9949e8895",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1364,21 +1517,45 @@
     "scores": [
      {
       "question": "V6_1d",
+      "baseline": "base_rate",
       "status": "not_enough_data",
       "n_scored": 0,
       "n_needed": 10,
       "brier": null,
-      "brier_base_rate": null,
+      "brier_baseline": null,
       "skill": null,
       "verdict": "not_tested"
      },
      {
       "question": "V6_5d",
+      "baseline": "base_rate",
       "status": "not_enough_data",
       "n_scored": 0,
       "n_needed": 10,
       "brier": null,
-      "brier_base_rate": null,
+      "brier_baseline": null,
+      "skill": null,
+      "verdict": "not_tested"
+     },
+     {
+      "question": "V6_1d",
+      "baseline": "v0_checklist",
+      "status": "not_enough_data",
+      "n_scored": 0,
+      "n_needed": 10,
+      "brier": null,
+      "brier_baseline": null,
+      "skill": null,
+      "verdict": "not_tested"
+     },
+     {
+      "question": "V6_5d",
+      "baseline": "v0_checklist",
+      "status": "not_enough_data",
+      "n_scored": 0,
+      "n_needed": 10,
+      "brier": null,
+      "brier_baseline": null,
       "skill": null,
       "verdict": "not_tested"
      }
@@ -1405,7 +1582,7 @@
    "built_at": "2026-11-16T12:10:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "21ac645f078ea6712725b896614e26d308e74d31810b98d2497a4114ffb1e534",
+   "payload_sha256": "8bef9c9f89347a87e3da19c73e7256f443b81d9201507f390402c69941842397",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1454,49 +1631,112 @@
       "name": "Rule-based",
       "kind": "family",
       "family": "rule",
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 158,
+       "missing_days": 2,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      },
      {
       "id": "book2_hybrid",
       "name": "Hybrid",
       "kind": "family",
       "family": "hybrid",
-      "status": "running"
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 151,
+       "missing_days": 3,
+       "late_days": 4,
+       "unscored_days": 2
+      }
      },
      {
       "id": "book3_ai",
       "name": "AI team",
       "kind": "family",
       "family": "ai",
-      "status": "running"
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 149,
+       "missing_days": 2,
+       "late_days": 6,
+       "unscored_days": 3
+      }
      },
      {
       "id": "baseline_b_base_rate",
       "name": "How often it happened",
       "kind": "baseline",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      },
      {
       "id": "baseline_premium_adjusted_implied",
       "name": "Option prices, premium removed",
       "kind": "baseline",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 157,
+       "missing_days": 3,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      },
      {
       "id": "baseline_har",
       "name": "Recent movement",
       "kind": "baseline",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      },
      {
       "id": "weather",
       "name": "Weather",
       "kind": "weather",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      }
     ],
     "questions": [
@@ -1517,22 +1757,26 @@
         {
          "forecaster": "book1_rules",
          "probability": 0.52,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         },
         {
          "forecaster": "book2_hybrid",
          "probability": 0.61,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         },
         {
          "forecaster": "book3_ai",
          "probability": 0.58,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         },
         {
          "forecaster": "baseline_b_base_rate",
          "probability": 0.55,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         }
        ]
       },
@@ -1544,21 +1788,25 @@
         {
          "forecaster": "book1_rules",
          "n": 160,
+         "n_missing": 0,
          "mean_loss": 0.248
         },
         {
          "forecaster": "book2_hybrid",
-         "n": 160,
+         "n": 155,
+         "n_missing": 3,
          "mean_loss": 0.236
         },
         {
          "forecaster": "book3_ai",
-         "n": 158,
+         "n": 152,
+         "n_missing": 2,
          "mean_loss": 0.251
         },
         {
          "forecaster": "baseline_b_base_rate",
          "n": 160,
+         "n_missing": 0,
          "mean_loss": 0.248
         }
        ],
@@ -1574,7 +1822,8 @@
          ],
          "p_value": 0.004,
          "verdict": "better",
-         "min_effect_met": null
+         "min_effect_met": null,
+         "futility_upper_bound": null
         },
         {
          "forecaster": "book1_rules",
@@ -1587,7 +1836,8 @@
          ],
          "p_value": 0.97,
          "verdict": "no_difference",
-         "min_effect_met": null
+         "min_effect_met": null,
+         "futility_upper_bound": null
         }
        ]
       },
@@ -1614,17 +1864,20 @@
         {
          "forecaster": "weather",
          "probability": 0.03,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         },
         {
          "forecaster": "book2_hybrid",
          "probability": 0.035,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         },
         {
          "forecaster": "baseline_b_base_rate",
          "probability": 0.041,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         }
        ]
       },
@@ -1636,16 +1889,19 @@
         {
          "forecaster": "weather",
          "n": 140,
+         "n_missing": 0,
          "mean_loss": 0.036
         },
         {
          "forecaster": "book2_hybrid",
          "n": 140,
+         "n_missing": 0,
          "mean_loss": 0.038
         },
         {
          "forecaster": "baseline_b_base_rate",
          "n": 140,
+         "n_missing": 0,
          "mean_loss": 0.039
         }
        ],
@@ -1655,26 +1911,22 @@
          "baseline": "baseline_b_base_rate",
          "n_pairs": 140,
          "mean_diff": -0.003,
-         "interval": [
-          -0.005,
-          -0.001
-         ],
+         "interval": null,
          "p_value": 0.003,
          "verdict": "better",
-         "min_effect_met": true
+         "min_effect_met": true,
+         "futility_upper_bound": 0.11
         },
         {
          "forecaster": "book2_hybrid",
          "baseline": "baseline_b_base_rate",
          "n_pairs": 140,
          "mean_diff": -0.001,
-         "interval": [
-          -0.003,
-          0.001
-         ],
+         "interval": null,
          "p_value": 0.21,
          "verdict": "no_difference",
-         "min_effect_met": true
+         "min_effect_met": true,
+         "futility_upper_bound": 0.07
         }
        ]
       },
@@ -1701,17 +1953,20 @@
         {
          "forecaster": "book2_hybrid",
          "probability": null,
-         "variance": 0.0172
+         "variance": 0.0172,
+         "status": "counted"
         },
         {
          "forecaster": "baseline_premium_adjusted_implied",
          "probability": null,
-         "variance": 0.0158
+         "variance": 0.0158,
+         "status": "counted"
         },
         {
          "forecaster": "baseline_har",
          "probability": null,
-         "variance": 0.0149
+         "variance": 0.0149,
+         "status": "counted"
         }
        ]
       },
@@ -1723,16 +1978,19 @@
         {
          "forecaster": "book2_hybrid",
          "n": 26,
+         "n_missing": 0,
          "mean_loss": -3.41
         },
         {
          "forecaster": "baseline_premium_adjusted_implied",
          "n": 26,
+         "n_missing": 0,
          "mean_loss": -3.31
         },
         {
          "forecaster": "baseline_har",
          "n": 26,
+         "n_missing": 0,
          "mean_loss": -3.33
         }
        ],
@@ -1742,13 +2000,11 @@
          "baseline": "baseline_premium_adjusted_implied",
          "n_pairs": 26,
          "mean_diff": -0.1,
-         "interval": [
-          -0.17,
-          -0.03
-         ],
+         "interval": null,
          "p_value": 0.002,
          "verdict": "better",
-         "min_effect_met": true
+         "min_effect_met": true,
+         "futility_upper_bound": 0.09
         }
        ]
       },
@@ -1764,7 +2020,7 @@
  },
  "getFnoForecastLab_india_losing": {
   "summary": "Mock (india): forecasters losing to their yardsticks",
-  "description": "AI team worse on Q4 (too sure when wrong) and on V2, which cannot be settled in useful time; V3 has 6 of the 40 days its test needs",
+  "description": "AI team worse on Q4 (too sure when wrong); today its Q4 forecast was late and Hybrid's day was a transcript breach, so neither counts; on V2 the AI team is futile (its improvement cannot reach the 3% minimum); V3 has 6 of the 40 days its test needs",
   "x-case": "negative",
   "value": {
    "market": "india",
@@ -1774,7 +2030,7 @@
    "built_at": "2026-11-16T12:10:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "aac36d714497bde4adc6ef9a144fccaccaeb55ab0227ea3aa8089a1b22cab082",
+   "payload_sha256": "7fc7b4dc1f9dd02af45cf49fa94c25ed451cb9fe20edfff4f49efb49fd9ba3af",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1823,49 +2079,112 @@
       "name": "Rule-based",
       "kind": "family",
       "family": "rule",
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 158,
+       "missing_days": 2,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      },
      {
       "id": "book2_hybrid",
       "name": "Hybrid",
       "kind": "family",
       "family": "hybrid",
-      "status": "running"
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 151,
+       "missing_days": 3,
+       "late_days": 4,
+       "unscored_days": 2
+      }
      },
      {
       "id": "book3_ai",
       "name": "AI team",
       "kind": "family",
       "family": "ai",
-      "status": "running"
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 149,
+       "missing_days": 2,
+       "late_days": 6,
+       "unscored_days": 3
+      }
      },
      {
       "id": "baseline_b_base_rate",
       "name": "How often it happened",
       "kind": "baseline",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      },
      {
       "id": "baseline_premium_adjusted_implied",
       "name": "Option prices, premium removed",
       "kind": "baseline",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 157,
+       "missing_days": 3,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      },
      {
       "id": "baseline_har",
       "name": "Recent movement",
       "kind": "baseline",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      },
      {
       "id": "weather",
       "name": "Weather",
       "kind": "weather",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": {
+       "pack_days": 160,
+       "counted_days": 160,
+       "missing_days": 0,
+       "late_days": 0,
+       "unscored_days": 0
+      }
      }
     ],
     "questions": [
@@ -1886,12 +2205,20 @@
         {
          "forecaster": "book3_ai",
          "probability": 0.91,
-         "variance": null
+         "variance": null,
+         "status": "late"
+        },
+        {
+         "forecaster": "book2_hybrid",
+         "probability": 0.52,
+         "variance": null,
+         "status": "breach"
         },
         {
          "forecaster": "baseline_b_base_rate",
          "probability": 0.47,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         }
        ]
       },
@@ -1903,11 +2230,13 @@
         {
          "forecaster": "book3_ai",
          "n": 150,
+         "n_missing": 0,
          "mean_loss": 0.301
         },
         {
          "forecaster": "baseline_b_base_rate",
          "n": 150,
+         "n_missing": 0,
          "mean_loss": 0.249
         }
        ],
@@ -1923,7 +2252,8 @@
          ],
          "p_value": 0.001,
          "verdict": "worse",
-         "min_effect_met": null
+         "min_effect_met": null,
+         "futility_upper_bound": null
         }
        ]
       },
@@ -1950,12 +2280,14 @@
         {
          "forecaster": "book3_ai",
          "probability": null,
-         "variance": 0.0251
+         "variance": 0.0251,
+         "status": "counted"
         },
         {
          "forecaster": "baseline_premium_adjusted_implied",
          "probability": null,
-         "variance": 0.0158
+         "variance": 0.0158,
+         "status": "counted"
         }
        ]
       },
@@ -1967,11 +2299,13 @@
         {
          "forecaster": "book3_ai",
          "n": 64,
+         "n_missing": 0,
          "mean_loss": -3.12
         },
         {
          "forecaster": "baseline_premium_adjusted_implied",
          "n": 64,
+         "n_missing": 0,
          "mean_loss": -3.31
         }
        ],
@@ -1981,13 +2315,11 @@
          "baseline": "baseline_premium_adjusted_implied",
          "n_pairs": 64,
          "mean_diff": 0.19,
-         "interval": [
-          0.08,
-          0.3
-         ],
+         "interval": null,
          "p_value": 0.99,
-         "verdict": "worse",
-         "min_effect_met": false
+         "verdict": "futile",
+         "min_effect_met": false,
+         "futility_upper_bound": -0.02
         }
        ]
       },
@@ -2014,12 +2346,14 @@
         {
          "forecaster": "book1_rules",
          "probability": null,
-         "variance": 0.0161
+         "variance": 0.0161,
+         "status": "counted"
         },
         {
          "forecaster": "baseline_premium_adjusted_implied",
          "probability": null,
-         "variance": 0.0158
+         "variance": 0.0158,
+         "status": "counted"
         }
        ]
       },
@@ -2031,11 +2365,13 @@
         {
          "forecaster": "book1_rules",
          "n": 6,
+         "n_missing": 0,
          "mean_loss": -3.29
         },
         {
          "forecaster": "baseline_premium_adjusted_implied",
          "n": 6,
+         "n_missing": 0,
          "mean_loss": -3.3
         }
        ],
@@ -2048,7 +2384,8 @@
          "interval": null,
          "p_value": null,
          "verdict": "not_tested",
-         "min_effect_met": null
+         "min_effect_met": null,
+         "futility_upper_bound": null
         }
        ]
       },
@@ -2064,7 +2401,7 @@
  },
  "getFnoForecastLab_india_waiting": {
   "summary": "Mock (india): not enough data yet",
-  "description": "Q1 has 12 of the 40 days its test needs; V1 waits for the 15-minute quotes (A16); protocol v4 is still a draft",
+  "description": "Q1 has 12 of the 40 days its test needs; the AI team's forecast today was generated after 15:15 IST, so it is late and not counted; no common start yet, so no coverage; V1 waits for the 15-minute quotes (A16); protocol v4 is still a draft",
   "x-case": "empty",
   "value": {
    "market": "india",
@@ -2074,7 +2411,7 @@
    "built_at": "2026-11-16T12:10:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "79bf6daa1b2ea32b1a5b99ad95255ac8a8f9ce344511c67986539f07ddbe7a38",
+   "payload_sha256": "1ecddc6a940bcffeda9d1ed676ee6fcb708127bd69861d992b5b7270f01e9f61",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2123,28 +2460,30 @@
       "name": "Rule-based",
       "kind": "family",
       "family": "rule",
-      "status": "running"
-     },
-     {
-      "id": "book2_hybrid",
-      "name": "Hybrid",
-      "kind": "family",
-      "family": "hybrid",
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": null
      },
      {
       "id": "book3_ai",
       "name": "AI team",
       "kind": "family",
       "family": "ai",
-      "status": "running"
+      "status": "running",
+      "isolation": "sealed_same_day",
+      "isolation_label": "sealed same day (not full F1)",
+      "coverage": null
      },
      {
       "id": "baseline_b_base_rate",
       "name": "How often it happened",
       "kind": "baseline",
       "family": null,
-      "status": "running"
+      "status": "running",
+      "isolation": "code",
+      "isolation_label": null,
+      "coverage": null
      }
     ],
     "questions": [
@@ -2165,12 +2504,20 @@
         {
          "forecaster": "book1_rules",
          "probability": 0.53,
-         "variance": null
+         "variance": null,
+         "status": "counted"
+        },
+        {
+         "forecaster": "book3_ai",
+         "probability": 0.61,
+         "variance": null,
+         "status": "late"
         },
         {
          "forecaster": "baseline_b_base_rate",
          "probability": 0.55,
-         "variance": null
+         "variance": null,
+         "status": "counted"
         }
        ]
       },
@@ -2182,11 +2529,13 @@
         {
          "forecaster": "book1_rules",
          "n": 12,
+         "n_missing": 0,
          "mean_loss": 0.244
         },
         {
          "forecaster": "baseline_b_base_rate",
          "n": 12,
+         "n_missing": 0,
          "mean_loss": 0.246
         }
        ],
@@ -2199,7 +2548,8 @@
          "interval": null,
          "p_value": null,
          "verdict": "not_tested",
-         "min_effect_met": null
+         "min_effect_met": null,
+         "futility_upper_bound": null
         }
        ]
       },
@@ -2279,7 +2629,7 @@
    "built_at": "2026-11-16T12:12:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "7b8b88db80370a46fe9e89c4faf6f86c826a8c6e680d07fe6f9931c60b963d87",
+   "payload_sha256": "0e4fb9078c583c74055984adef4b5e4d285d62b67316e482263381148d69c9cd",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2347,19 +2697,22 @@
        "Put spread A, version 1"
       ],
       "trading": true,
-      "why_not": null
+      "why_not": null,
+      "ai_and_data_costs": 1850
      },
      {
       "family": "hybrid",
       "approved": [],
       "trading": false,
-      "why_not": "Its candidate is still a shadow"
+      "why_not": "Its candidate is still a shadow",
+      "ai_and_data_costs": 6420
      },
      {
       "family": "ai",
       "approved": [],
       "trading": false,
-      "why_not": "No strategy of its own has passed yet"
+      "why_not": "No strategy of its own has passed yet",
+      "ai_and_data_costs": null
      }
     ],
     "results": [
@@ -2373,9 +2726,9 @@
       "won": 24,
       "lost": 14,
       "gross": 21480,
-      "costs": 9860,
-      "net": 11620,
-      "net_after_tax": 7995,
+      "costs": 8132,
+      "net": 13348,
+      "net_after_tax": 9183,
       "net_per_risk": {
        "value": 0.077,
        "lower_bound": 0.01
@@ -2442,7 +2795,7 @@
    "built_at": "2026-11-16T12:12:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "379e9e492cc55f7bea0954bb5a1947cd59abc41b4e6a4d7a7ba0760b5e794b64",
+   "payload_sha256": "94df81430986c11ff4de60049c9179f741babeb1c1582cf13d2b08853c2e2262",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2501,19 +2854,22 @@
        "Put spread A, version 1"
       ],
       "trading": true,
-      "why_not": null
+      "why_not": null,
+      "ai_and_data_costs": null
      },
      {
       "family": "hybrid",
       "approved": [],
       "trading": false,
-      "why_not": "No strategy of its own has passed yet"
+      "why_not": "No strategy of its own has passed yet",
+      "ai_and_data_costs": null
      },
      {
       "family": "ai",
       "approved": [],
       "trading": false,
-      "why_not": "No strategy of its own has passed yet"
+      "why_not": "No strategy of its own has passed yet",
+      "ai_and_data_costs": null
      }
     ],
     "results": [
@@ -2526,8 +2882,8 @@
       "trades": 22,
       "won": 9,
       "lost": 13,
-      "gross": -18340,
-      "costs": 12500,
+      "gross": -26132,
+      "costs": 4708,
       "net": -30840,
       "net_after_tax": -30840,
       "net_per_risk": {
@@ -2596,7 +2952,7 @@
    "built_at": "2026-11-16T12:12:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "ae0ddb7c8df0b77601993f71e60229dff897dccd0b90380efb018ea2459da774",
+   "payload_sha256": "eca9c9a225cbaba21b961a0a585f0dd058fd376c3233e30a0f6c438bf1ffdf3d",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2653,19 +3009,22 @@
       "family": "rule",
       "approved": [],
       "trading": false,
-      "why_not": "No strategy approved to paper yet: Experiment 1 passed none"
+      "why_not": "No strategy approved to paper yet: Experiment 1 passed none",
+      "ai_and_data_costs": null
      },
      {
       "family": "hybrid",
       "approved": [],
       "trading": false,
-      "why_not": "Books 2 and 3 trade on paper only after a strategy has passed (owner, 15 Oct 2026); until then they forecast and are scored"
+      "why_not": "Books 2 and 3 trade on paper only after a strategy has passed (owner, 15 Oct 2026); until then they forecast and are scored",
+      "ai_and_data_costs": null
      },
      {
       "family": "ai",
       "approved": [],
       "trading": false,
-      "why_not": "Books 2 and 3 trade on paper only after a strategy has passed (owner, 15 Oct 2026); until then they forecast and are scored"
+      "why_not": "Books 2 and 3 trade on paper only after a strategy has passed (owner, 15 Oct 2026); until then they forecast and are scored",
+      "ai_and_data_costs": null
      }
     ],
     "results": [],
@@ -2724,7 +3083,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "e43e233f042181bc1a07af2d4c4e2d5dd55df2501104ec38eb5fba823c3b89ec",
+   "payload_sha256": "b5f4864a62622709e71c36a3e087d22a866d3008a81612802db4c16baea22866",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2774,19 +3133,19 @@
       "structure": "put spread",
       "legs": [
        {
-        "contract": "NIFTY26DEC22600PE",
+        "contract": "MOCKNIFTY26DEC10600PE",
         "side": "buy",
         "lots": 1,
         "option_type": "PE",
-        "strike": 22600,
+        "strike": 10600,
         "expiry": "2026-12-29"
        },
        {
-        "contract": "NIFTY26DEC22450PE",
+        "contract": "MOCKNIFTY26DEC10450PE",
         "side": "sell",
         "lots": 1,
         "option_type": "PE",
-        "strike": 22450,
+        "strike": 10450,
         "expiry": "2026-12-29"
        }
       ],
@@ -2795,8 +3154,8 @@
       "mark_value": 3640,
       "unrealised": -42,
       "days_to_expiry": 29,
-      "monitor": "alert_only",
-      "alerts_today": 0
+      "monitor": null,
+      "alerts_today": null
      }
     ],
     "closed": [
@@ -2836,7 +3195,7 @@
  },
  "getFnoPaperTrades_india_lost": {
   "summary": "Mock (india): two losing trades, with missed fills",
-  "description": "A maximum-loss exit and a time exit; at 60 minutes one entry was missed because the price had moved, at 30 minutes one had no quote",
+  "description": "A maximum-loss exit (at 60 minutes its entry would have been missed: the price had moved) and a time exit made before E8 existed, so its owner-timing fills are null, never invented; the monitor is not running yet (LM1), so its fields are null",
   "x-case": "negative",
   "value": {
    "market": "india",
@@ -2846,7 +3205,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "9a66d004b67c56b7e40810ac2fc9738c029a300cd639520fd9d3635399ca2471",
+   "payload_sha256": "acad6829fd7e174435876a271a0298205a69b0834f49683677483a6722c79319",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2932,23 +3291,7 @@
       "net": -3124,
       "result": "lost",
       "exit": "time_exit",
-      "fills": [
-       {
-        "minutes": 5,
-        "outcome": "filled",
-        "net": -3124
-       },
-       {
-        "minutes": 30,
-        "outcome": "missed_no_quote",
-        "net": null
-       },
-       {
-        "minutes": 60,
-        "outcome": "filled",
-        "net": -3301
-       }
-      ]
+      "fills": null
      }
     ]
    }

@@ -75,7 +75,7 @@ FnoWeather:
         over_alarming: {type: boolean, x-unit: yes/no, description: Share above the maximum}
     scores:
       type: array
-      description: "The weather's record as a forecast, per question (V6 one day and 5 days), against the base rate"
+      description: "The weather's record as a forecast, per question (V6 one day and 5 days) and per yardstick: the base rate and the v0 checklist (design 2.3: any new weather model must beat both to replace v0)"
       x-catalog: {source: "G8's v4 score report for V6", story: G8}
       items: {$ref: '#/components/schemas/FnoWeatherScore'}
     price_of_calm:
@@ -100,15 +100,16 @@ FnoWeather:
 FnoWeatherScore:
   type: object
   x-provisional: 'protocol v4 (G6) is not frozen or merged yet: this shape may change when G6 freezes'
-  description: One weather question's score against the base rate
+  description: One weather question's score against one yardstick
   additionalProperties: false
-  required: [question, status, n_scored, n_needed, brier, brier_base_rate, skill, verdict]
+  required: [question, baseline, status, n_scored, n_needed, brier, brier_baseline, skill, verdict]
   properties:
     question: {type: string, enum: [V6_1d, V6_5d], x-unit: id, description: 'V6_1d = a 2% move next session; V6_5d = within 5 sessions'}
+    baseline: {type: string, enum: [base_rate, v0_checklist], x-unit: enum, description: 'The yardstick: base_rate = how often it happened over 750 sessions; v0_checklist = the frozen v0 weather rule (response 94), scored on the same questions'}
     status: {type: string, enum: [scoring, not_enough_data], x-unit: enum, description: 'not_enough_data = fewer scored days than the test needs'}
     n_scored: {type: integer, minimum: 0, x-unit: count, description: Days scored so far}
     n_needed: {type: integer, minimum: 1, x-unit: count, description: 'Days the test needs: twice the block length (5 sessions for V6), so 10'}
     brier: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: Brier score (0 perfect), description: "The weather's miss score; null before any score"}
-    brier_base_rate: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: Brier score (0 perfect), description: "The base rate's miss score on the same days"}
-    skill: {type: ['number', 'null'], maximum: 1, x-unit: Brier skill score, description: '1 - brier / brier_base_rate: above 0 beats the usual chance; at least 0.02 is the useful minimum (owner, 15 Oct 2026)'}
+    brier_baseline: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: Brier score (0 perfect), description: "The yardstick's miss score on the same days"}
+    skill: {type: ['number', 'null'], maximum: 1, x-unit: Brier skill score, description: '1 - brier / brier_baseline: above 0 beats the yardstick; at least 0.02 is the useful minimum (owner, 15 Oct 2026)'}
     verdict: {type: string, enum: [better, worse, no_difference, not_tested], x-unit: enum, description: "The backend's verdict under the frozen test (Holm across the family); the screen only draws it"}
