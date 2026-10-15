@@ -78,7 +78,7 @@ not committed.
   check found 2 of 6 equal: "differs on 40 of 40" held for the random sample, not for every session.)
 - **A finding for A16, which this story does not change:** A16's condition "compare the 09:15 `candle_1m_open` with
   NSE's official open and report every difference above 0.05" will report most sessions (67 of 74 recently) for a
-  reason that is no error. The comparable value is the last pre-open close. This is reported to the orchestrator for
+  reason that is no error. The comparable value is the last pre-open 1-minute candle's close. This is reported to the orchestrator for
   A16's owner and judge.
 - High and low: 26-28 of 40 agree within 0.05 points.
   - Most of the rest are small, with Groww's range inside NSE's: from 0.05 to 6.25 points. Reasoning only: Groww's
@@ -161,7 +161,8 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
   - **void `outside_nse_range`** when any of the 26 levels, **or any of the 25 used candles' high or low** (judge 122
     should-fix 2), is below NSE's low minus 0.05 or above NSE's high plus 0.05. A value NSE says never happened means
     the feed was wrong that session, even if the closes look fine (23 Mar 2020: closes inside, one high 196.30 above);
-  - **reported, not void:** the pre-open check (`|close of the 09:00 candle - NSE open| > 0.05`, expected equal) and
+  - **reported, not void:** the pre-open check (`|the last pre-open 1-minute candle's close - NSE open| > 0.05`, read
+    from the session's 1-minute answer; expected equal, step 0) and
     the range gap (`NSE high - max candle high`, `min candle low - NSE low`), in points. These stay in the row
     (`nse_open_gap`, `nse_high_gap`, `nse_low_gap`): differences of NSE's figures, never a level;
   - NSE's file missing or unreadable: `nse_check = unchecked`, named, and the session is **void** (`nse_unchecked`).
@@ -256,7 +257,8 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
      one candle high 196.30 above it voids** (the 23 Mar 2020 shape).
    - A missing NSE file voids it (`nse_unchecked`).
    - The open, high and low gaps are in the row.
-   - The run prints how many sessions have a pre-open gap above 0.05, and every such session by date.
+   - The run prints how many sessions have a pre-open gap (the last pre-open 1-minute candle's close against NSE's
+     open) above 0.05, and every such session by date.
    - **The 1-minute check (Definitions):** a session with any of its 26 marks more than 0.05 from the 1-minute value
      voids (`candle_mismatch`, marks named); a session without a usable 1-minute answer is not written and counted
      (`no_1m_check`, exit 1). Tests at 0.05 and 0.06; an empty 1-minute answer; a 1-minute answer missing one needed
