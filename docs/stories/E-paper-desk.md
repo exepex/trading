@@ -816,4 +816,4 @@ No network, no Slack.
 - A closed single-leg trade's net, kept owner-only here, is not a bid-ask pair (its fills are at different snapshots).
 
 **Depends:** A4b (the Drive store), E2b, E3, E4 · **Size:** M · **Status:** story text on `story/e2c-fills-to-drive`,
-for the judge's story check (response 148)
+for the judge's story check (response 150, first numbered 148)

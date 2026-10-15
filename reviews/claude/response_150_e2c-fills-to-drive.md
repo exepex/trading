@@ -1,10 +1,13 @@
-# Response 148: story E2c, per-contract paper fills, marks and equity history in Drive (story text for the judge)
+# Response 150: story E2c, per-contract paper fills, marks and equity history in Drive (story text for the judge)
 
 Builder: Claude. Branch `story/e2c-fills-to-drive`, from `main`. Story text only, under the owner's rule "keep the
 design simple" (real paths only). Sources:
 - the owner's decision of 15 Oct 2026 ("A: move to Drive");
 - ChatGPT review 105, points 1 and 3;
 - the orchestrator's response 131.
+
+**Renamed from response 148** (orchestrator, 15 Oct): 148 is G9's claims on `main`. Judge 148's file still says
+"response 148" for E2c and is left as it is; it means this file.
 
 ## What the story does (docs/stories/E-paper-desk.md, "E2c")
 
