@@ -46,6 +46,7 @@ def test_the_dry_run_wiring_uses_local_folders_no_alert_and_no_commit(tmp_path, 
     assert isinstance(recorder.sync, NoSync) and recorder.sync.commit("x") == recorder.sync.pull() == NOT_PUBLISHED
     assert recorder.ledger.folder == tmp_path and recorder.heartbeat.file == tmp_path / "heartbeat.json"
     assert [s.name for s in recorder.clock_check.servers] == ["github", "slack"]
+    assert recorder.session_rv.cutoff is wiring.v4_cutoff_flag  # G10: the 15:30 row carries v4's flag (judge 195)
 
 
 def test_the_live_wiring_needs_the_owners_drive_settings(monkeypatch):
