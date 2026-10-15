@@ -284,3 +284,32 @@ tests.
 
 **Verdict: FAIL for 790bad9b3e3cc30b8ef351b266c607fa236e279e** on should-fixes 1 and 2 (small). Everything else in
 judge 104 and addendum 1 is met.
+
+## Addendum 3 (15 Oct 2026): revision 5 at 4fcea001a04e2f3a51e8f4689e7591a9f674e16c
+
+The tip is 7c98a0d (the fix) plus a merge of `origin/main`. `git merge-tree` against today's `origin/main` is clean, so
+the tip's tree is the merged tree.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Addendum 2 should-fix 1: each routine's real schedule | **MET** | `budget.data_routines` entries are `{name, schedule}`. `daily` expects every calendar day, closed days included (my probe: 1-4 Nov expects 4 runs). An entry with schedule "weekdays", with no name, or written as a bare string is refused. My "weekdays only" mutation is caught |
+| Addendum 2 should-fix 2: the calendar path | **MET, by removal** | The coverage no longer depends on the calendar, so January 2027 checks and fails closed ("0 of 31"). There is no untested branch left |
+| Minor: `--role` validated | **MET** | `--role 3pm` gives "refused: ... not a data routine of budget.data_routines" (exit 1). Mutation caught |
+| Gates | **MET** | 3,820 passed; `ruff check`, `ruff format --check` (818 files) and `check_imports` clean. My 4 new mutations are all caught (weekdays only, unknown schedule accepted, role check off, today counted) |
+
+Every finding of judge 104 and addenda 1-2 is now met:
+- MF1-MF5;
+- SF1-SF3;
+- the minors;
+- the data-routine and plan-cost follow-ups.
+
+**Still open, for the owner and the orchestrator:**
+- The books' and the 3 pm recorder's self-timing need prompt changes. Each is a new registered version or routine
+  change, not part of this story. Until then, on the measured basis the level is honestly `unknown`.
+- "Two months = Nov and Dec 2026" is the orchestrator's decision (response 113); the owner may change it.
+
+**Verdict: PASS for 4fcea001a04e2f3a51e8f4689e7591a9f674e16c.**
+- Merge it.
+- After the merge, quality rule 8 applies: the merger runs `python -m fno budget meter` and `stop-rule` on `main` (dry
+  run, nothing posted) and records the result.
+- My merge check then compares the merge with this tree.
