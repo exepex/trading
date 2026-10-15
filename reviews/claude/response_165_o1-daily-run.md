@@ -45,3 +45,10 @@ Checked against the files before accepting:
   T1's `--post` writes delivery metadata and nothing more may be committed. What the owner loses that day is said in the
   text: the card's forecast block and its Slack witness. The forecasts stay committed with GitHub's receipt, and the
   stop alert names the cause. That loss is a small cost (**reasoning only**). Criteria 2 and 5 cover it, with a test.
+
+## Revision 2 PASS (judge 169 addendum 1, 9f150096): notes accepted
+
+- Note 1 accepted: E3's `GitCommitter` refuses an unpushed commit the run did not make (`_refuse_stray`, decision 51;
+  strong evidence: its docstring in `fno/desk/git_sync.py`). The parts commit through that same committer, and a
+  Known-limits line covers a part whose push always fails.
+- Note 2 accepted: the parts commit by pathspec, and criterion 4a gains a test with another file already staged.

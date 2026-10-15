@@ -83,7 +83,9 @@ In:
 - **One git at a time:** every git command of the run (the parts' commits, E3's commits and its pack's pull) goes
   through one lock, and a commit (pull, add, commit, push) holds it whole, so two commits never interleave in the one
   checkout (reasoning only that git's own `index.lock` would otherwise fail one of them at random; the test below
-  proves the order). Why not leave the parts to the routine's prompt, as today: the routine's git commands and the run's
+  proves the order). The parts' commits go through E3's own `GitCommitter` (its record-scan guard, pull and push
+  attempts), never a second git path, and each commits by pathspec (`git commit -- <paths>`), so files staged by a
+  refused E3 commit are never swept into a part's commit (judge 169 addendum 1, notes 1-2). Why not leave the parts to the routine's prompt, as today: the routine's git commands and the run's
   own commits would then share the checkout with no common lock, and a collision inside E3 stops the desk (decision 44).
 
 - **A step that fails never stops the next** (design 9): an exception or refusal in `weather`, `forecasts_v4`, a quote
@@ -143,7 +145,8 @@ O2's end-to-end failure suite.
    part that runs to 15:13 does not move `decisions` or `snapshot`); a planted NIFTY failure leaves NSE, the indices'
    skip and E3's "no pack" path as their own stories decide.
 4a. **One git at a time.** Two commits asked for at the same moment (a part's and an E3 step's) run one after the other,
-    never interleaved (fake git records each command with its holder).
+    never interleaved (fake git records each command with its holder); a part's commit with another file already
+    staged commits only the part's paths.
 5. **The card is T1's.** It runs after `quotes_done`, posts once, and still posts naming any earlier O1 step or quote
    part that failed; it never runs after E3's stop (criterion 2).
 6. **Not live.** A step before its `live_from` is `not_live` and calls nothing (fake proves no call).
@@ -184,6 +187,8 @@ O2's end-to-end failure suite.
 - A GitHub push delay near 15:10 counts as late (G10's rule).
 - The indices part and E3's 15:15 snapshot share Groww's key; A4c's window ends at 15:13, so they do not overlap (some
   evidence: the two windows; G10 moves both).
+- A part whose push fails every time leaves an unpushed commit, so E3's `GitCommitter` refuses the desk's next commit
+  (decision 51) and the desk stops with E3's alert; the hand fix is the alert's.
 - After E3's stop the owner gets no card that day (the stop alert stands alone; the forecasts stay committed).
 
 ## Test plan
@@ -196,4 +201,4 @@ secrets and order-placing; checks the real day's log and commits.
 
 **Depends:** E3 (merged), E2c (accounts to Drive, not merged), A4c (code PASS, judge 160), T1, M1, G7, A4/A7; G10
 for the go-live times; E3's snapshot moving to A16's 15:15 mark (assigned by the orchestrator after G10 merges) ·
-**Status:** story text revision 2 (judge 169: should-fix 1 and 2) for judge D (`reviews/claude/response_165_o1-daily-run.md`)
+**Status:** story text PASS (judge 169 addendum 1, 9f150096; its notes 1-2 added); code waits for E2c and the go (`reviews/claude/response_165_o1-daily-run.md`)
