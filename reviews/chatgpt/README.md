@@ -57,3 +57,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 30: G1 v3 append-only panel extension](review_30_2026-10-14-g1-v3-panel-extension.md)
 - [Review 97: design v2 revision 3 — changes required](review_97_design-v2-revision-3.md)
 - [Review 98: design v2 revision 4 — APPROVE](review_98_design-v2-revision-4.md)
+- [Review 100: STR1 one- and two-leg structures](review_100_str1-structures.md)
