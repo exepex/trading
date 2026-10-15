@@ -1,0 +1,115 @@
+# Story P1: the market weather (exepex/trading design v2 section 2.3; thresholds accepted by the owner on 15 Oct 2026).
+# A survival signal, not a profit signal: RED blocks new entries. The weather is itself a scored forecast (question V6).
+
+FnoWeather:
+  type: object
+  description: >-
+    Is today dangerous? The session's weather colour from two probabilities of a big NIFTY move, the drivers that moved
+    it, its record and the price of the RED rule. Empty state: status not_published with the missing input named
+  x-catalog: {publisher: fno, source: "the session's weather record (M1's WeatherModel, scored as V6 by G8)", freshness: 'once a session day at 15:00 IST; intraday upgrades (amber to red only) from the live monitor every 15 minutes', story: M1, status: planned}
+  x-visibility: public
+  x-fill: not_built
+  x-never-sent:
+    - "the weather model's fitted coefficients and inputs beyond the named drivers"
+  additionalProperties: false
+  required: [session, status, missing_inputs, model_version, colour, blocks_new_entries, p_big_1d, p_big_5d, base_rate_1d, base_rate_5d, times_usual_1d, times_usual_5d, drivers, intraday, recent, red_share, scores, price_of_calm]
+  properties:
+    session: {type: string, format: date, x-unit: date (IST), description: The NSE session the weather is for}
+    status: {type: string, enum: [published, not_published], x-unit: enum, description: 'not_published = no weather today; the card then cannot say the weather and missing_inputs says why'}
+    missing_inputs: {type: array, description: 'What was missing (not_published only; empty otherwise)', items: {$ref: '#/components/schemas/FnoMissingInput'}}
+    model_version: {type: string, minLength: 1, x-unit: id, description: 'The frozen weather version (its colour rule is in exepex/trading design 2.3 and never changes inside a version; a new rule is a new version)'}
+    colour: {type: ['string', 'null'], enum: [GREEN, AMBER, RED, null], x-unit: enum, description: 'GREEN = calm, AMBER = take care, RED = a big move is much more likely than usual: no new trade today; null when not published'}
+    blocks_new_entries: {type: boolean, x-unit: yes/no, description: 'True when RED, and when no weather was published (fail closed): the desk opens no new paper trade (owner''s survival rule, 14 Oct 2026)'}
+    p_big_1d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, description: "Chance that NIFTY's next-session move is at least 2% either way"}
+    p_big_5d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, description: 'Chance that the largest move over the next 5 sessions is at least 2% either way'}
+    base_rate_1d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, description: 'How often a 2% day happened over the last 750 sessions (the usual chance)'}
+    base_rate_5d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, description: 'How often a 5-session window held a 2% move over the last 750 sessions'}
+    times_usual_1d: {type: ['number', 'null'], minimum: 0, x-unit: ratio, description: 'p_big_1d divided by base_rate_1d ("2.7 times the usual chance")'}
+    times_usual_5d: {type: ['number', 'null'], minimum: 0, x-unit: ratio, description: 'p_big_5d divided by base_rate_5d'}
+    drivers:
+      type: array
+      description: What moved the weather today, strongest first (so the card can say why)
+      items:
+        type: object
+        additionalProperties: false
+        required: [driver, text, push]
+        properties:
+          driver: {type: string, enum: [vix_level, vix_change, recent_big_moves, realised_volatility, us_overnight, scheduled_event], x-unit: enum, description: Which driver}
+          text: {type: string, minLength: 1, x-unit: text, description: 'In plain words, e.g. "India VIX up 14% in 5 sessions"'}
+          push: {type: string, enum: [calmer, riskier], x-unit: enum, description: Which way it pushed the weather}
+    intraday:
+      type: array
+      description: "Upgrades during the session from the live monitor (AMBER to RED only, never RED to GREEN inside a session)"
+      x-catalog: {source: "the live monitor's alert records (LM1)", story: LM1}
+      items:
+        type: object
+        additionalProperties: false
+        required: [at, from, to, why]
+        properties:
+          at: {type: string, format: date-time, x-unit: UTC time, description: The snapshot time of the upgrade}
+          from: {type: string, const: AMBER, x-unit: enum, description: 'Colour before (always AMBER: design 2.3 allows only AMBER to RED inside a session)'}
+          to: {type: string, const: RED, x-unit: enum, description: Colour after (always RED)}
+          why: {type: string, minLength: 1, x-unit: text, description: The driver in plain words}
+    recent:
+      type: array
+      maxItems: 10
+      description: The last sessions' colours and whether a 2% move came (a picture of the record; newest last)
+      items:
+        type: object
+        additionalProperties: false
+        required: [session, colour, big_move]
+        properties:
+          session: {type: string, format: date, x-unit: date (IST), description: The session}
+          colour: {type: ['string', 'null'], enum: [GREEN, AMBER, RED, null], x-unit: enum, description: 'Its colour; null when none was published'}
+          big_move: {type: ['boolean', 'null'], x-unit: yes/no, description: 'A 2% move came next session; null while not known yet'}
+    red_share:
+      type: object
+      description: 'How often it is RED: more than 15% of the last 250 sessions marks the weather "over-alarming" (a new version must be proposed; never retuned in place)'
+      additionalProperties: false
+      required: [sessions, red_sessions, share, max_share, over_alarming]
+      properties:
+        sessions: {type: integer, minimum: 0, maximum: 250, x-unit: count, description: Sessions counted (up to the last 250)}
+        red_sessions: {type: integer, minimum: 0, x-unit: count, description: Of them RED}
+        share: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, description: 'red_sessions / sessions; null with no session'}
+        max_share: {type: number, const: 0.15, x-unit: share 0-1, description: 'The frozen maximum (owner, 15 Oct 2026)'}
+        over_alarming: {type: boolean, x-unit: yes/no, description: Share above the maximum}
+    scores:
+      type: array
+      description: "The weather's record as a forecast, per question (V6 one day and 5 days) and per yardstick: the base rate and the v0 checklist (design 2.3: any new weather model must beat both to replace v0)"
+      x-catalog: {source: "G8's v4 score report for V6", story: G8}
+      items: {$ref: '#/components/schemas/FnoWeatherScore'}
+    price_of_calm:
+      type: object
+      description: "This month's price of the RED rule: what the blocked trades would have done (the design never claims the weather protects anything until this is measured)"
+      x-catalog: {source: 'the matched shadow fills of the trades RED blocked (design 2.3)', story: E8}
+      additionalProperties: false
+      required: [month, status, blocked_trades, risk_avoided, shadow_net]
+      properties:
+        month: {type: string, pattern: '^[0-9]{4}-[0-9]{2}$', x-unit: month (YYYY-MM), description: The month}
+        status: {type: string, enum: [not_measured_yet, measured, nothing_blocked], x-unit: enum, description: 'not_measured_yet until shadow fills exist'}
+        blocked_trades: {type: ['integer', 'null'], minimum: 0, x-unit: count, description: Trades RED blocked this month}
+        risk_avoided: {type: ['number', 'null'], minimum: 0, x-unit: INR (Paper), description: Sum of the blocked trades' maximum losses}
+        shadow_net: {type: ['number', 'null'], x-unit: INR (Paper), description: 'What the blocked trades would have made after costs (positive = RED cost money; negative = RED saved money)'}
+  allOf:
+    - if: {properties: {status: {const: not_published}}}
+      then: {properties: {colour: {type: 'null'}, missing_inputs: {minItems: 1}, blocks_new_entries: {const: true}}}
+      else: {properties: {colour: {type: string}, missing_inputs: {maxItems: 0}, p_big_1d: {type: number}, p_big_5d: {type: number}}}
+    - if: {properties: {colour: {enum: [GREEN, AMBER]}}, required: [colour]}
+      then: {properties: {blocks_new_entries: {const: false}}}
+      else: {properties: {blocks_new_entries: {const: true}}}
+FnoWeatherScore:
+  type: object
+  x-provisional: 'protocol v4 (G6) is not frozen or merged yet: this shape may change when G6 freezes'
+  description: One weather question's score against one yardstick
+  additionalProperties: false
+  required: [question, baseline, status, n_scored, n_needed, brier, brier_baseline, skill, verdict]
+  properties:
+    question: {type: string, enum: [V6_1d, V6_5d], x-unit: id, description: 'V6_1d = a 2% move next session; V6_5d = within 5 sessions'}
+    baseline: {type: string, enum: [base_rate, v0_checklist], x-unit: enum, description: 'The yardstick: base_rate = how often it happened over 750 sessions; v0_checklist = the frozen v0 weather rule (response 94), scored on the same questions'}
+    status: {type: string, enum: [scoring, not_enough_data], x-unit: enum, description: 'not_enough_data = fewer scored days than the test needs'}
+    n_scored: {type: integer, minimum: 0, x-unit: count, description: Days scored so far}
+    n_needed: {type: integer, minimum: 1, x-unit: count, description: 'Days the test needs: twice the block length (5 sessions for V6), so 10'}
+    brier: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: Brier score (0 perfect), description: "The weather's miss score; null before any score"}
+    brier_baseline: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: Brier score (0 perfect), description: "The yardstick's miss score on the same days"}
+    skill: {type: ['number', 'null'], maximum: 1, x-unit: Brier skill score, description: '1 - brier / brier_baseline: above 0 beats the yardstick; at least 0.02 is the useful minimum (owner, 15 Oct 2026)'}
+    verdict: {type: string, enum: [better, worse, no_difference, not_tested], x-unit: enum, description: "The backend's verdict under the frozen test (Holm across the family); the screen only draws it"}

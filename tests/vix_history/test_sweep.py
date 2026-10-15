@@ -5,11 +5,9 @@ import hashlib
 from argparse import Namespace
 from datetime import date, datetime
 
-import requests
-
 from fno.models import IST
 from fno.storage.manifest_folder import ManifestFolder
-from fno.storage.raw_source import PublishedFile, RawSourceUnavailable
+from fno.storage.raw_source import PublishedFile, RawFileRefused, RawSourceUnavailable
 from fno.storage.raw_store import LocalFolderStore
 from fno.storage.revisions import RevisionArchive, RevisionIndex
 from fno.vix_history import wiring
@@ -60,9 +58,10 @@ def test_an_error_page_is_listed_and_never_kept_as_a_version(tmp_path):
 
 
 def test_no_answer_is_listed(tmp_path):
-    for source in (FakeNseVix({}), Unreachable({})):
+    for source, why in ((FakeNseVix({}), "not served (HTTP 404)"), (Unreachable({}), "NSE: connection reset")):
         job, _, _ = sweep(tmp_path, source)
-        assert job.sweep([JULY]).unanswered == [JULY]
+        report = job.sweep([JULY])
+        assert report.unanswered == {JULY: why} and f"no answer 2010-07: {why}" in report.lines()
 
 
 def test_a_last_modified_time_is_the_versions_time(tmp_path):
@@ -87,17 +86,17 @@ def test_a_revision_against_a_damaged_original_is_kept_and_named_and_the_sweep_g
     job, raw, index = sweep(tmp_path, FakeNseVix({PATH: july_2010(close_on_20th=20.4)}))
     (tmp_path / "raw" / PATH).write_bytes(b"<html>damaged</html>")
     report = job.sweep([JULY, date(2010, 8, 1)])
-    assert report.checked == 2 and report.unanswered == [date(2010, 8, 1)]
+    assert report.checked == 2 and list(report.unanswered) == [date(2010, 8, 1)]
     assert report.revised[0][0] == JULY and "the original fails the check" in report.revised[0][1][0]
 
 
-def test_an_http_refusal_is_no_answer_not_a_crash(tmp_path):
+def test_an_http_refusal_is_no_answer_with_its_reason_not_a_crash(tmp_path):
     class Refused(FakeNseVix):
         def fetch_published(self, path):
-            raise requests.HTTPError("403 Forbidden")
+            raise RawFileRefused(f"NSE archive: {path}: HTTP 403 after 1 try", 403, 1)
 
     job, _, _ = sweep(tmp_path, Refused({}))
-    assert job.sweep([JULY]).unanswered == [JULY]
+    assert job.sweep([JULY]).unanswered == {JULY: f"NSE archive: {PATH}: HTTP 403 after 1 try"}
 
 
 def test_the_sweep_command_exits_1_when_an_original_is_missing(tmp_path, monkeypatch, capsys):

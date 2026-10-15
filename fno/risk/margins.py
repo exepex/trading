@@ -4,7 +4,7 @@
 as_of` (story A14, judge 75): SPAN's scanning risk, the position's net option value (its value at the prices used,
 bought legs plus, so a credit structure's is negative) and the exposure margin, stored apart and never one netted
 figure. The row used is the latest dated on or before the decision day; a missing row, or one older than the
-configured age, fails closed.
+profile's margin age (`margin_age.py`), fails closed.
 
 The margin C2 counts is `max(0, scan - NOV) + min(0, NOV) + exposure` (judge 75): MarginRoom already moves cash and
 marked equity by the entry and takes the lower, so this leaves exactly what a broker that nets the premium into SPAN
@@ -29,12 +29,14 @@ from __future__ import annotations
 import csv
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 
 from ..constants import STRESSED_MARGIN_MULTIPLIER, STRESSED_MARGIN_SCENARIO_LOOKUP
+from .capital import stress_cap_per_lot
 from .inputs import RiskInputError, TradeTerms
+from .margin_age import MarginAge
 from .settings import StressedMarginSettings
 
 MARGIN_COLUMNS = ("structure", "width", "scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs", "source", "as_of")
@@ -51,15 +53,15 @@ def _rows(path: Path, columns: tuple[str, ...]) -> list[dict[str, str]]:
         return list(reader)
 
 
-def _fresh_row(rows: list[dict[str, str]], what: str, day: date, max_age_days: int) -> dict[str, str]:
+def _fresh_row(rows: list[dict[str, str]], what: str, day: date, age: MarginAge) -> dict[str, str]:
     """The latest sourced row dated on or before `day`; refused when there is none or it is too old."""
     dated = [(date.fromisoformat(r["as_of"]), r) for r in rows if r["source"].strip()]
     usable = [(d, r) for d, r in dated if d <= day]
     if not usable:
         raise RiskInputError(f"no margin recorded for {what} on or before {day}")
     as_of, row = max(usable, key=lambda pair: pair[0])
-    if (day - as_of).days > max_age_days:
-        raise RiskInputError(f"margin for {what} is from {as_of}, older than {max_age_days} days on {day}")
+    if not age.fresh(as_of, day):
+        raise RiskInputError(f"margin for {what} is from {as_of}, {age.limit()} on {day}")
     return row
 
 
@@ -80,6 +82,7 @@ class MarginParts:
     exposure: float
     what: str
     bought_only: bool = False  # no sold leg (LC, LP): a margin of 0 is right, not a missing row
+    span_cap: float | None = None  # STR1 codes: the stressed SPAN figure's cap per lot (capital.py); None: uncapped
 
     def __post_init__(self):
         if self.scan < 0 or self.exposure < 0:
@@ -91,12 +94,17 @@ class MarginParts:
 
     def stressed(self, factor: float) -> float:
         """The scanning risk times `factor`; the premium paid or received does not grow under stress."""
-        margin = max(0.0, factor * self.scan - self.nov) + min(0.0, self.nov) + self.exposure
-        return _positive(margin, self.what, self.bought_only)
+        return _positive(self._span(factor) + min(0.0, self.nov) + self.exposure, self.what, self.bought_only)
 
     def at_entry(self, factor: float) -> float:
         """The margin blocked at entry when the sold premium is not credited: no `min(0, NOV)` term."""
-        return _positive(max(0.0, factor * self.scan - self.nov) + self.exposure, self.what, self.bought_only)
+        return _positive(self._span(factor) + self.exposure, self.what, self.bought_only)
+
+    def _span(self, factor: float) -> float:
+        """The SPAN figure at `factor`; with a cap (STR1 codes) the stress extra is capped, never the broker's own
+        unstressed figure (C2 is never looser than the broker at entry, judge 77 addendum 3)."""
+        span, broker = max(0.0, factor * self.scan - self.nov), max(0.0, self.scan - self.nov)
+        return span if self.span_cap is None else max(broker, min(span, self.span_cap))
 
     @classmethod
     def from_row(cls, row: dict[str, str], what: str, bought_only: bool = False) -> MarginParts:
@@ -109,14 +117,16 @@ def _matches(row: dict[str, str], terms: TradeTerms) -> bool:
 
 
 class MarginTable:
-    def __init__(self, path: Path, max_age_days: int):
-        self.path, self.max_age_days = path, max_age_days
+    def __init__(self, path: Path, age: MarginAge, lot_size: int):
+        self.path, self.age, self.lot_size = path, age, lot_size
 
     def parts(self, terms: TradeTerms, day: date) -> MarginParts:
         """One lot's margin parts from the latest fresh row for the trade's structure and width."""
         rows = [r for r in _rows(self.path, MARGIN_COLUMNS) if _matches(r, terms)]
         what = f"{terms.structure} width {terms.width:g}"
-        return MarginParts.from_row(_fresh_row(rows, what, day, self.max_age_days), what, terms.bought_only)
+        parts = MarginParts.from_row(_fresh_row(rows, what, day, self.age), what, terms.bought_only)
+        cap = stress_cap_per_lot(terms.structure, terms.width, parts.nov, self.lot_size)
+        return replace(parts, span_cap=cap)
 
     def margin(self, terms: TradeTerms, day: date) -> float:
         """Initial margin of a trade in rupees: the per-lot margin C2 counts x lots."""
@@ -135,6 +145,10 @@ class StressedMargin(ABC):
         """The trade's margin under stress at entry, with no credit for the sold premium, in rupees."""
 
     @abstractmethod
+    def broker_margin(self, terms: TradeTerms, day: date) -> float:
+        """What a broker blocks at entry beyond the premium paid, unstressed (factor 1), in rupees (story STR1b)."""
+
+    @abstractmethod
     def record(self) -> dict[str, str]:
         """The method in force, for every decision record, so the judge can reproduce it."""
 
@@ -150,6 +164,9 @@ class MultiplierMargin(StressedMargin):
 
     def margin_at_entry(self, terms: TradeTerms, day: date) -> float:
         return self.table.parts(terms, day).at_entry(self._factor(day)) * terms.lots
+
+    def broker_margin(self, terms: TradeTerms, day: date) -> float:
+        return self.table.parts(terms, day).at_entry(1.0) * terms.lots
 
     def _factor(self, day: date) -> float:
         s = self.settings
@@ -168,8 +185,8 @@ class MultiplierMargin(StressedMargin):
 class ScenarioLookupMargin(StressedMargin):
     method = STRESSED_MARGIN_SCENARIO_LOOKUP
 
-    def __init__(self, settings: StressedMarginSettings, scenarios: Sequence[str], max_age_days: int):
-        self.settings, self.scenarios, self.max_age_days = settings, tuple(scenarios), max_age_days
+    def __init__(self, settings: StressedMarginSettings, scenarios: Sequence[str], age: MarginAge):
+        self.settings, self.scenarios, self.age = settings, tuple(scenarios), age
 
     def margin(self, terms: TradeTerms, day: date) -> float:
         if self.settings.scenario_file is None:
@@ -183,9 +200,12 @@ class ScenarioLookupMargin(StressedMargin):
         closed rather than be looser than the broker."""
         raise RiskInputError("scenario_lookup rows carry no NOV: the funds at entry cannot be checked")
 
+    def broker_margin(self, terms: TradeTerms, day: date) -> float:
+        raise RiskInputError("scenario_lookup rows carry no NOV: the broker margin cannot be split out")
+
     def _scenario_margin(self, rows: list[dict[str, str]], terms: TradeTerms, name: str, day: date) -> float:
         what = f"{terms.structure} {name}"
-        row = _fresh_row([r for r in rows if r["scenario"] == name], what, day, self.max_age_days)
+        row = _fresh_row([r for r in rows if r["scenario"] == name], what, day, self.age)
         return _positive(float(row["margin_per_lot_rs"]), what, terms.bought_only)
 
     def record(self) -> dict[str, str]:

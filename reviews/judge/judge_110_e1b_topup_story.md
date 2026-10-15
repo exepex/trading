@@ -108,3 +108,48 @@ So the operator matters little, provided the merged code is what runs. The condi
 - C2 and C4 then pass `paper_account` for the three books.
 
 **Verdict: PASS for d6b313c26cae77a5374a9d26660d35e970036480** (story text). Code on `main` after C5 merges.
+
+## Addendum 2 (15 Oct 2026): E1b code at ddcefcc8f969f42cb82e7ef706173d68234183c3
+
+Code 725b249 plus `main` (C5 included). Judged on the real paths, under the owner's "keep the design simple" rule.
+- Gates: 5,142 passed (the builder's figure); ruff, format and imports clean.
+- `merge-tree` with `origin/main`: no conflict. With STR1b-1 (918c5ef): no conflict.
+
+## Verdict: PASS (code)
+
+| Real path | Status | Evidence |
+|---|---|---|
+| A top-up restores capital, not equity | MET | `AccountWriter.top_up` amount = target − `capital()` (opening plus earlier top-ups), so realised P&L stays. One `capital_top_up` row at the IST write instant, with an offset (`top_up_row` refuses a naive time) |
+| A 17:00 top-up does not count at that day's 15:00, and counts at T+1 | MET | My probe on a real ledger (opening Rs 5 lakh on 14 Oct, a Rs 15 lakh top-up at 17:00 IST on 15 Oct). C2's `capital(at)`: Rs 5,00,000 at 15:00 and 16:59, Rs 20,00,000 at 17:00 and at 16 Oct 15:00. C4's `account_facts`: Rs 5,00,000 at the 15 Oct cutoff, Rs 20,00,000 at the 16 Oct cutoff. C2 takes the cutoff `DESK_DECISION_TIME` on the decision day (`book_view.py`), and C4 compares the row's instant |
+| The brake is unchanged by a top-up | MET | The capital is the same at every point of the closed-equity series in C2 (`closed_equity_series`) and C4 (`equity = capital`), so the drawdown is P&L only, and the Rs 1.2 lakh boundary sits where it did before |
+| A refusal writes nothing | MET | Not started, above the target or an open position each raise before any write. The lock is required first, and `AccountBusy` from the writer is caught. One line per book, exit 1 |
+| Readers | MET | P10 `home_inputs` takes P&L as marked equity minus the capital in force that day; S2 `reconcile` subtracts `capital()`; C4's `paper_account` check uses the capital at the cutoff. `positions.json`'s key is renamed to `capital_rs`, and no other reader uses `starting_cash` (grep) |
+
+The real-journal top-up keeps addendum 1's three conditions:
+1. a clean `main` at or after the merge;
+2. only the 3 files per book written;
+3. outside 14:50-15:30 IST.
+
+My merge check verifies them.
+
+**Verdict: PASS for ddcefcc8f969f42cb82e7ef706173d68234183c3** (code). Rule 9: ChatGPT next.
+
+## Addendum 3 (15 Oct 2026): dashboard contract change for E1b, `exepex/omenix-dashboard` at a046f00d64d894e8e1bc2104098a95743bd0ef3b
+
+Branch `story/e1b-contract-capital`, parent dashboard `main` b9c41ec. I read it through a read-only git clone; I wrote
+nothing to that repository.
+
+**The change:**
+- `api/schemas/fno-paper-trades.yaml:30`: `opening_value`'s `x-record` goes from `account_state:starting_cash` to
+  `account_state:capital`. The description becomes "Opening balance plus top-ups in force, Rs 20 lakh a book".
+- `api/catalog/fno-screens.md:378` is regenerated to match.
+- The type, minimum, examples and version (2.7.0) are unchanged.
+
+| Check | Status | Evidence |
+|---|---|---|
+| Semantics | MET | E1b (judge 110 addendum 2) renames `AccountState.starting_cash` to `capital` = the opening plus top-ups in force. After the real top-up that is Rs 20,00,000 a book, matching the description and the examples' `2000000`. Before the top-up it is the Rs 5 lakh actually held, which is correct, and the description's "Rs 20 lakh a book" becomes true when the top-up runs |
+| Other readers of the field | none | `grep -rn` for `opening_value`, `openingValue` and `account_state:` over the whole dashboard repo finds only the schema, the catalog and `api/examples/fno-screens.json`. No `web/` code reads it |
+| Gates | MET | `tools/api/check_contract.py`: "OpenAPI 3.1 valid; examples valid and current; catalog complete; screen rules hold; every planted break caught". `check_fno_screens.py`: "every rule holds", 28 of 28 planted breaks. `check_code_size.mjs`: ok. The web typecheck, tests and build were not rerun: no `web/` file changed, so the builder's 465/465 stands for them |
+
+**Verdict: PASS for omenix-dashboard a046f00d64d894e8e1bc2104098a95743bd0ef3b.** It merges together with E1b in
+trading, whose contract pin must name this commit's merged SHA.

@@ -1,5 +1,5 @@
 """The shadow forward test's accounts behind D2's `ShadowBooks` (owner, 14 Oct 2026, experiment 2 option a; story E6
-owns this implementation): each registered research candidate has its own Rs 5 lakh paper account
+owns this implementation): each registered research candidate has its own paper account (`risk.paper_account_rs`)
 `journal/shadow/<name>-v<n>/account/` (E1's format, firewall and lock), never a book's. Its risk view (C2) and its
 trade counts are read from that account only, and its storage is that account folder, which D2's `RealBooks` checks
 lies outside every real book's folder."""
@@ -41,7 +41,7 @@ class JournalShadowBooks(ShadowBooks):
 
 
 def start_shadow_accounts(strategies: Iterable[Strategy], day: date, open_writer) -> list[str]:
-    """Open each candidate's shadow account once (Rs 5 lakh, no positions); returns the ones opened now.
+    """Open each candidate's shadow account once (the paper account's cash, no positions); returns the ones opened now.
     `open_writer(name)` is the composition root's `open_account_writer` for this repository."""
     started = []
     for strategy in strategies:

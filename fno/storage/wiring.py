@@ -209,7 +209,7 @@ def build_participant_oi_library(project_folder: Path | None = None) -> RawFileL
 
 QUOTES_FOLDER = (
     Path(__file__).resolve().parents[2] / "research" / "data" / "quotes"
-)  # repository: Drive is read-only here
+)  # repository: sidecars and canonical markers; Groww's raw quote files are in Drive only (A4b)
 
 
 PARTICIPANT_OI_EVIDENCE = Path(__file__).resolve().parents[2] / "research" / "data" / "participant_oi"
@@ -220,8 +220,11 @@ PARTICIPANT_OI_SWEEPS = PARTICIPANT_OI_EVIDENCE / "last_modified_sweeps.csv"  # 
 
 
 def build_quote_store(folder: Path | None = None) -> RawFileStore:
-    """Where the 3 pm quote snapshots are written: a folder in the repository (committed daily)."""
-    return LocalFolderStore(folder or QUOTES_FOLDER)
+    """Where the 3 pm quote snapshots are written and read: Groww's raw quote files in Drive only, everything else in a
+    repository folder, committed daily (story A4b; wired in quote_wiring.py, as this file is at its size limit)."""
+    from .quote_wiring import build_drive_only_quote_store
+
+    return build_drive_only_quote_store(folder or QUOTES_FOLDER)
 
 
 def coverage_datasets(manifests: ManifestFolder | None = None) -> tuple[CoverageDataset, ...]:

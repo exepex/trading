@@ -71,11 +71,13 @@ def test_nse_snapshots_go_to_their_own_dataset_with_the_volume_proof(tmp_path):
 
 
 def test_the_comparison_reports_both_sources_and_names_a_missing_side(tmp_path):
-    assert compare_lines(tmp_path) == ["no day has a snapshot from either source yet"]
+    assert compare_lines(tmp_path, LocalFolderStore(tmp_path)) == ["no day has a snapshot from either source yet"]
     _record(tmp_path, NseQuoteProvider({}, FakeNse()), NSE_DATASET)
-    assert compare_lines(tmp_path) == ["2026-10-13: groww none; nse recorded (no comparison)"]
+    assert compare_lines(tmp_path, LocalFolderStore(tmp_path)) == [
+        "2026-10-13: groww none; nse recorded (no comparison)"
+    ]
     _record(tmp_path, NseQuoteProvider({}, FakeNse(bid=100.5)), DATASET)  # stands in for Groww: a tighter book
-    assert compare_lines(tmp_path)[0].endswith(
+    assert compare_lines(tmp_path, LocalFolderStore(tmp_path))[0].endswith(
         "contracts groww 12, nse 12; only groww 0, only nse 0; both valid 8: median |mid gap| 0.25, "
         "median spread groww 1.00, nse 1.50"
     )

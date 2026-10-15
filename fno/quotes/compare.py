@@ -11,6 +11,7 @@ from datetime import date, datetime
 from pathlib import Path
 from statistics import median
 
+from ..storage.raw_store import RawFileStore
 from .recorder import DATASET, NONE_MARKER, NSE_DATASET, QuoteSnapshotRecorder
 
 DAY_LINE = (
@@ -30,15 +31,16 @@ def _canonical_days(folder: Path) -> list[date]:
     return sorted(days)
 
 
-def _snapshot(folder: Path, dataset: str, day: date) -> tuple[dict, dict] | None:
+def _snapshot(store: RawFileStore, dataset: str, day: date) -> tuple[dict, dict] | None:
     """(meta, rows keyed by expiry, strike and type) of the day's canonical snapshot, or None."""
-    marker = folder / QuoteSnapshotRecorder.path(day, f"nifty_{day:%Y%m%d}.canonical", dataset)
-    snapshot_id = marker.read_text().strip() if marker.is_file() else NONE_MARKER
+    marker = store.get(QuoteSnapshotRecorder.path(day, f"nifty_{day:%Y%m%d}.canonical", dataset))
+    snapshot_id = marker.decode().strip() if marker else NONE_MARKER
     if snapshot_id == NONE_MARKER:
         return None
-    base = folder / QuoteSnapshotRecorder.path(day, snapshot_id, dataset)
-    meta = json.loads(base.with_name(f"{snapshot_id}.meta.json").read_text())
-    rows = csv.DictReader(base.with_name(f"{snapshot_id}.csv").read_text().splitlines())
+    meta = json.loads(store.get(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.meta.json", dataset)))
+    rows = csv.DictReader(
+        store.get(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.csv", dataset)).decode().splitlines()
+    )
     return meta, {(r["expiry"], r["strike"], r["type"]): r for r in rows}
 
 
@@ -68,10 +70,12 @@ def day_line(day: date, groww: tuple[dict, dict], nse: tuple[dict, dict]) -> str
     )  # fmt: skip
 
 
-def compare_lines(folder: Path) -> list[str]:
+def compare_lines(folder: Path, store: RawFileStore) -> list[str]:
+    """`folder` is the repository's quote folder (the days come from its canonical markers); the snapshots are read
+    through `store`, which holds Groww's quote files in Drive (A4b)."""
     lines = []
     for day in _canonical_days(folder):
-        groww, nse = _snapshot(folder, DATASET, day), _snapshot(folder, NSE_DATASET, day)
+        groww, nse = _snapshot(store, DATASET, day), _snapshot(store, NSE_DATASET, day)
         if groww and nse:
             lines.append(day_line(day, groww, nse))
         else:

@@ -15,28 +15,34 @@ from .builders import DAY, FLY, book, market, open_trade, proposal, short_fly
 
 EXPIRY = DAY + timedelta(days=14)
 PRICES = {(25000, "CE"): 150.0, (25000, "PE"): 140.0, (25200, "CE"): 70.0, (24800, "PE"): 60.0}
-RULES = [
+RULES = [  # the books' profile, in config.yaml order
     "inputs",
+    "paper_account",
     "max_loss_per_trade",
-    "max_open_trades",
+    "bucket_cap",
+    "open_risk_cap",
+    "new_risk_per_day",
     "drawdown_brake",
-    "stress_loss",
-    "exposure_limit",
     "margin_room",
 ]
 
 
-def _manager(tmp_path, **risk) -> RiskManager:
+def _manager(tmp_path, **books) -> RiskManager:
     margins = tmp_path / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-12\n")
     stressed = {"multiplier": 1.5, "source": "test factor", "as_of": "2026-10-13"}
-    overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed, **risk}}
+    profiles = {"books": books}
+    overrides = {"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed, "profiles": profiles}}
     return build_risk_manager(load_app_config(overrides=overrides), tmp_path)
 
 
 def _evaluate(manager, lots=1, the_book=None):
     new = proposal("new", FLY, 200, short_fly(25000, 200), EXPIRY, lots=lots)
     return manager.evaluate(new, the_book or book(), market(25000, PRICES, EXPIRY))
+
+
+def _verdict(decision, rule):
+    return next(v for v in decision.verdicts if v.rule == rule)
 
 
 def test_inside_every_limit_the_trade_may_open_and_every_rule_reports(tmp_path):
@@ -62,9 +68,9 @@ def test_outside_the_per_trade_limit_the_trade_is_refused_with_reason_and_number
 
 
 def test_borderline_the_limit_equal_to_the_maximum_loss_passes_and_a_paisa_less_refuses(tmp_path):
-    loss = _evaluate(_manager(tmp_path)).verdicts[1].numbers["max_loss_rs"]
-    assert _evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss)).verdicts[1].ok
-    assert not _evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss - 0.01)).verdicts[1].ok
+    loss = _verdict(_evaluate(_manager(tmp_path)), "max_loss_per_trade").numbers["max_loss_rs"]
+    assert _verdict(_evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss)), "max_loss_per_trade").ok
+    assert not _verdict(_evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss - 0.01)), "max_loss_per_trade").ok
 
 
 def test_the_repository_settings_refuse_every_trade_until_margin_rows_are_entered():
@@ -96,19 +102,26 @@ def test_from_the_31st_day_every_trade_is_refused_until_the_factor_is_renewed(tm
     assert not decision.ok and "stressed margin multiplier of 2026-10-14 is not valid on 2026-11-14" in margin.reason
 
 
-def test_a_missing_quote_fails_closed_in_every_rule_that_needs_it(tmp_path):
+@pytest.mark.parametrize(
+    ("profile", "priced"),
+    [("books", {"bucket_cap", "open_risk_cap"}), ("manual", {"stress_loss", "exposure_limit"})],
+)
+def test_a_missing_quote_fails_closed_in_every_rule_that_needs_it(tmp_path, profile, priced):
     held = open_trade("held", FLY, 200, short_fly(24000, 200), EXPIRY, 0.0)  # no quotes for its contracts
-    decision = _evaluate(_manager(tmp_path), the_book=book([held]))
+    manager = _manager(tmp_path)
+    if profile == "manual":
+        manager = build_risk_manager(load_app_config(), tmp_path, profile)
+    decision = _evaluate(manager, the_book=book([held]))
     refused = {v.rule for v in decision.verdicts if not v.ok}
-    assert {"stress_loss", "exposure_limit"} <= refused and not decision.ok  # margin room needs no quote of it
-    assert all("no quote" in v.reason for v in decision.verdicts if v.rule == "stress_loss")
+    assert priced <= refused and not decision.ok  # margin room needs no quote of it
+    assert all("no quote" in v.reason for v in decision.verdicts if v.rule in priced)
 
 
 def test_a_stale_mark_cannot_price_a_new_trade(tmp_path):
     new = proposal("new", FLY, 200, short_fly(25000, 200), EXPIRY)
     stale = market(25000, PRICES, EXPIRY, stale=frozenset({(25000, "CE")}))
     decision = _manager(tmp_path).evaluate(new, book(), stale)
-    assert not decision.ok and "stale" in decision.verdicts[1].reason
+    assert not decision.ok and "stale" in _verdict(decision, "max_loss_per_trade").reason
 
 
 def test_a_proposal_reusing_an_open_trade_id_is_refused(tmp_path):

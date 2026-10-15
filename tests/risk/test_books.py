@@ -16,7 +16,7 @@ from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.overrides import brake_restarts, overrides_file
 from fno.risk.stress import Shock, StressEngine, stress_positions
 
-from .builders import CHARGES, DAY, FLY, LOT, MODEL, contract, market, proposal, short_fly
+from .builders import CHARGES, DAY, FLY, LOT, MODEL, contract, market, owner_decision, proposal, short_fly
 
 START_DAY = date(2026, 9, 1)
 EXPIRY = DAY + timedelta(days=14)
@@ -31,13 +31,14 @@ def _fill(fill_id: str, trade_id: str, name: str, side: str, price: float, day: 
 
 @pytest.fixture
 def root(tmp_path):
-    """Book 1 lost Rs 32,500 plus charges on a closed trade (brake hit); book 2 holds an open short fly."""
+    """Book 1 lost Rs 1,23,500 plus charges on a closed trade (the Rs 1.2 lakh brake hit); book 2 holds an open short
+    fly."""
     for book in BOOKS:
         with open_account_writer(book, tmp_path) as writer:
             writer.start(START_DAY)
     with open_account_writer(BOOK1_RULES, tmp_path) as writer:
         writer.apply_fill(_fill("f1", "loser", LOSER, SIDE_SELL, 100.0, date(2026, 9, 10)))
-        writer.apply_fill(_fill("f2", "loser", LOSER, SIDE_BUY, 600.0, date(2026, 9, 20)))
+        writer.apply_fill(_fill("f2", "loser", LOSER, SIDE_BUY, 2000.0, date(2026, 9, 20)))
     with open_account_writer(BOOK2_HYBRID, tmp_path) as writer:
         for i, (strike, kind, side) in enumerate(short_fly(25000, 200)):
             price = PRICES[(strike, kind)]
@@ -66,9 +67,9 @@ def test_a_brake_hit_in_one_book_blocks_only_that_book(root):
     book1 = _book(root, BOOK1_RULES)
     book2 = _book(root, BOOK2_HYBRID, {"fly": TradeTerms(FLY, 200, 1)})
     the_market = market(25000, PRICES, EXPIRY)
-    assert book1.state.closed_equity < 500_000 - 32_500
-    assert not DrawdownBrake(30000).check(_new(), book1, the_market).ok
-    assert DrawdownBrake(30000).check(_new(), book2, the_market).ok
+    assert book1.state.closed_equity < 2_000_000 - 123_500
+    assert not DrawdownBrake(120000).check(_new(), book1, the_market).ok
+    assert DrawdownBrake(120000).check(_new(), book2, the_market).ok
 
 
 def test_a_stress_test_of_one_book_never_includes_another_books_positions(root):
@@ -90,7 +91,10 @@ def test_an_open_trade_without_recorded_terms_is_an_input_error(root):
 
 def test_the_owners_restart_row_reopens_only_its_own_book(root):
     path = overrides_file(root, BOOK1_RULES)
-    path.write_text("date,action,reason,entered_by\n2026-10-12,restart_brake,reviewed the loss,owner\n")
+    owner_decision(root, "Restart the brake")
+    path.write_text(
+        "date,action,reason,entered_by,decision\n2026-10-12,restart_brake,reviewed,owner,Restart the brake\n"
+    )
     book1 = _book(root, BOOK1_RULES)
     verdict = DrawdownBrake(30000).check(_new(), book1, market(25000, PRICES, EXPIRY))
     assert verdict.ok and verdict.numbers["restarted_on"] == "2026-10-12"
@@ -99,7 +103,10 @@ def test_the_owners_restart_row_reopens_only_its_own_book(root):
 
 
 def test_a_restart_dated_after_the_decision_day_is_not_yet_in_force(root):
-    overrides_file(root, BOOK1_RULES).write_text("date,action,reason,entered_by\n2026-10-14,restart_brake,r,owner\n")
+    owner_decision(root, "Restart the brake")
+    overrides_file(root, BOOK1_RULES).write_text(
+        "date,action,reason,entered_by,decision\n2026-10-14,restart_brake,r,owner,Restart the brake\n"
+    )
     assert brake_restarts(root, BOOK1_RULES, DAY) == ()
 
 
@@ -107,12 +114,15 @@ def test_a_restart_dated_after_the_decision_day_is_not_yet_in_force(root):
     "text",
     [
         "date,action,reason\n2026-10-12,restart_brake,r\n",
-        "date,action,reason,entered_by\n2026-10-12,reset,r,owner\n",
-        "date,action,reason,entered_by\n2026-10-12,restart_brake,,owner\n",
-        "date,action,reason,entered_by\n12/10/2026,restart_brake,r,owner\n",
+        "date,action,reason,entered_by\n2026-10-12,restart_brake,r,owner\n",  # no decision column (before C5b)
+        "date,action,reason,entered_by,decision\n2026-10-12,reset,r,owner,Restart the brake\n",
+        "date,action,reason,entered_by,decision\n2026-10-12,restart_brake,,owner,Restart the brake\n",
+        "date,action,reason,entered_by,decision\n12/10/2026,restart_brake,r,owner,Restart the brake\n",
+        "date,action,reason,entered_by,decision\n2026-10-12,restart_brake,r,owner\n",  # the decision field missing
     ],
 )
 def test_a_malformed_override_row_is_an_input_error(root, text):
+    owner_decision(root, "Restart the brake")
     overrides_file(root, BOOK1_RULES).write_text(text)
     with pytest.raises(RiskInputError):
         brake_restarts(root, BOOK1_RULES, DAY)

@@ -5,6 +5,7 @@ from datetime import timedelta
 import pytest
 
 from fno.risk.inputs import RiskInputError, TradeTerms
+from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin, ScenarioLookupMargin
 from fno.risk.settings import StressedMarginSettings
 
@@ -17,7 +18,7 @@ HEADER = "structure,width,scan_per_lot_rs,nov_per_lot_rs,exposure_per_lot_rs,sou
 def _table(tmp_path, rows: str, max_age: int = 7) -> MarginTable:
     path = tmp_path / "margins.csv"
     path.write_text(HEADER + rows)
-    return MarginTable(path, max_age)
+    return MarginTable(path, DaysOld(max_age), 65)
 
 
 def _multiplier(table, factor=1.5, source="broker calculator, stressed case", as_of=DAY, max_age=30):
@@ -59,7 +60,7 @@ def test_a_missing_unsourced_or_zero_margin_fails_closed(tmp_path, rows):
 
 def test_a_missing_margin_file_fails_closed(tmp_path):
     with pytest.raises(RiskInputError, match="missing"):
-        MarginTable(tmp_path / "none.csv", 7).margin(TERMS, DAY)
+        MarginTable(tmp_path / "none.csv", DaysOld(7), 65).margin(TERMS, DAY)
 
 
 def test_multiplier_margin_and_its_record(tmp_path):
@@ -95,7 +96,7 @@ def _lookup(tmp_path, rows: str) -> ScenarioLookupMargin:
     path = tmp_path / "stressed.csv"
     path.write_text("structure,width,scenario,margin_per_lot_rs,source,as_of\n" + rows)
     settings = StressedMarginSettings("scenario_lookup", None, None, None, 30, path)
-    return ScenarioLookupMargin(settings, ["down", "up"], 7)
+    return ScenarioLookupMargin(settings, ["down", "up"], DaysOld(7))
 
 
 def test_scenario_lookup_takes_the_largest_scenario_margin(tmp_path):

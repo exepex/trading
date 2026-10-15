@@ -7,7 +7,7 @@ import hashlib
 import json
 import os
 from contextlib import contextmanager
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import numpy
@@ -19,6 +19,7 @@ from .books.version_registry import VersionRegistry
 from .books.versions import VERSIONS_FILE, Versions
 from .config import ROOT
 from .constants import (
+    DESK_DECISION_TIME,
     ENV_FNO_SLACK_BOT_TOKEN,
     FNO_DESK_CHANNEL_ID,
     NIFTY_SYMBOL,
@@ -41,6 +42,7 @@ from .quotes.recorder import DATASET as GROWW_QUOTE_DATASET
 from .quotes.recorder import NSE_DATASET as NSE_QUOTE_DATASET
 from .quotes.recorder import QuoteSnapshotRecorder
 from .record_scan.catalogue import ALLOWED_VALUES, credential_patterns, record_patterns
+from .record_scan.forbidden_files import RAW_GROWW_QUOTES
 from .record_scan.scanner import RecordScanner
 from .research_data.availability import AvailabilityRule, LastWriteBoundRule
 from .research_data.events import read_events
@@ -85,8 +87,6 @@ from .storage.wiring import (
     build_session_calendar,
 )
 
-DESK_DECISION_TIME = time(15, 0)  # design 13.5: books decide at about 15:00 IST; story E3 freezes the exact timetable
-
 
 def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
     """The 3 pm quote recorder (story A4): its own `quotes.provider` setting (`auto`: Groww when its credentials are
@@ -114,8 +114,8 @@ def _quote_recorder(provider: Provider, dataset: str) -> QuoteSnapshotRecorder:
 
 def build_record_scanner() -> RecordScanner:
     """The public-record scan (story O5): every pattern of the catalogue for records, credential shapes for code, with
-    the #fno-desk channel ID allowed."""
-    return RecordScanner(record_patterns(), ALLOWED_VALUES, credential_patterns())
+    the #fno-desk channel ID allowed; raw Groww quote files are refused by path (story A4b)."""
+    return RecordScanner(record_patterns(), ALLOWED_VALUES, credential_patterns(), (RAW_GROWW_QUOTES,))
 
 
 @contextmanager
@@ -123,7 +123,16 @@ def open_account_writer(book: str, root: Path = ROOT, lease_seconds: float = DEF
     """The one way to write a book's paper account (story E1): takes the book's single-writer lock without waiting
     (`AccountBusy` if another writer holds it) and yields the account's writer; the lock is released on exit."""
     with AccountLock(root, book, lease_seconds) as lock:
-        yield AccountWriter(PaperAccount(root, book), lock)
+        yield AccountWriter(PaperAccount(root, book), lock, paper_account_rs())
+
+
+def paper_account_rs() -> float:
+    """Story C5: the books' paper account size, `config.yaml` `risk.profiles.books.paper_account_rs`."""
+    from .config import load_app_config
+    from .constants import RISK_PROFILE_BOOKS
+    from .risk.profile_settings import profile_settings
+
+    return profile_settings(load_app_config(), RISK_PROFILE_BOOKS).paper_account_rs
 
 
 def build_paper_account(book: str, root: Path = ROOT) -> PaperAccount:

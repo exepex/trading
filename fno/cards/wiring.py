@@ -12,15 +12,16 @@ from ..ai.receipts import GitHubActivityReceipts
 from ..config import ROOT
 from ..constants import (
     CARDS_AREA,
+    DEFAULT_REPOSITORY,
     ENV_FNO_SLACK_BOT_TOKEN,
     ENV_GITHUB_TOKEN,
     FNO_DESK_CHANNEL_ID,
     GITHUB_REPOSITORY_VARIABLE,
 )
+from ..server_clock import GITHUB_TIME_URL, HttpDateClock
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from .card import CardBuilder
-from .clock import HttpDateClock
 from .committed import GitHeadRecords
 from .daily import DailyCard
 from .deliveries import RepoDeliveryFiles
@@ -36,8 +37,6 @@ from .witness import IssuanceWitness
 
 # Its `Date` header is GitHub's server time (no sign-in needed). A repository path, not the API root: the cloud
 # sessions' GitHub proxy answers the root itself (HTTP 400, no Date header), found on the live test post of 15 Oct
-GITHUB_TIME_URL = "https://api.github.com/repos/{repository}"
-DEFAULT_REPOSITORY = "exepex/trading"  # outside GitHub Actions, where GITHUB_REPOSITORY is not set
 
 
 def _repository(env) -> str:

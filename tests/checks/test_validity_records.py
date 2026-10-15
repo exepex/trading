@@ -6,10 +6,10 @@ import csv
 from fno.checks.schedule import PackSnapshotSchedule
 from fno.checks.validity_capture import PackCaptures
 from fno.checks.validity_failures import COLUMNS, ValidityFailureLog
-from fno.checks.validity_limits import PRICED
 from fno.desk.pack_store import PackStore
 from tests.checks.builders import committed_record, pack_of
 from tests.checks.validity_builders import DAY, check, committed_store, proposal
+from tests.checks.validity_sources import PRICED
 
 
 def test_each_failed_check_is_one_row_and_a_pass_writes_nothing(tmp_path):

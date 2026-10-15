@@ -48,6 +48,12 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `nse/indices/india-vix-history` | `NseVixHistorySource` (`fno/vix_history/`) | India VIX daily open, high, low, close, one NSE website JSON answer per ended calendar month (`india-vix_<YYYYMM>.json`; story A15); manifest rows at save time, revisions by `vix-history sweep`; derived table `research/data/vix/` | 19 Jul 2010 (NSE's first served day) onwards |
 | `cboe/indices/spx-history`, `nasdaq/indices/ndx-history` (private: values in Drive only, owner decision a927390), `us-treasury/rates/par-yield-curve`, `eia/petroleum/brent-spot-daily`, `rbi/currency/reference-rate`, `fbil/currency/reference-rate` | `fno/global_cues/` sources (story A17) | the publishers' files, one copy per fetch filed as `<dataset>/<YYYY>/<MM>/<DD>/<HHMMSS>_<name>` (IST fetch time; the publishers rewrite them in place); logged in `research/data/manifests/global-cues/<cue>.csv`; tables in `research/data/global-cues/`, or for the private cues in Drive's `derived/global-cues/<cue>/` | 15 Oct 2026 onwards (values from 2007) |
 
+Groww's 15-minute snapshots (story A16, `fno/intraday/`): `groww/derivatives/intraday-snapshots/<YYYY>/<MM>/<DD>/
+nifty_<YYYYMMDD>_<HHMM>_<SHA-256 first 16>.json.gz`, one content-addressed copy per run and mark of a session
+(09:15-15:30 IST), raw quotes in Drive only; two runs never write one name, and a mark's copy is the one its ledger
+row names. The repository holds only the derived records, one file each: a row per mark
+(`research/data/intraday/slots/<YYYY>/<MM>/<DD>/`), the realised variance per session (`rv/<YYYY>/`) and the heartbeat.
+
 Filing files are grouped by category, company and the year of the period reported (owner, 13 Oct 2026); later
 categories (annual reports, insider trades, pledges, credit ratings, corporate actions) take the same shape. The
 announcement and board-meeting lists stay one all-company file per day (one request a day instead of 500; the raw file
@@ -87,6 +93,15 @@ Rules:
 - While the owner's Google Cloud app is in "Testing", the refresh token expires after 7 days. The librarian then stops
   with `DriveSignInRefused` and alerts #fno-desk with the fix (rerun the setup tool, or publish the app).
 
+## Groww's 3 pm quote files (story A4b)
+
+Raw Groww quote files (`raw/groww/derivatives/quote-snapshots/<YYYY>/<MM>/<snapshot_id>.csv`) are written by the 3 pm
+recorder to Drive only, signed in as the owner (owner decision, 15 Oct 2026, "6 A"). Each attempt's sidecar
+(`.meta.json`, with the file's SHA-256) and the day's `.canonical` marker are in the repository
+(`research/data/quotes/`). `DriveOnlyQuoteStore` (wired in `quote_wiring.py`) returns a quote file only when its bytes
+hash to the committed sidecar's `csv_sha256`; NSE's public chain (`nse/derivatives/quote-snapshots`) stays in the
+repository.
+
 ## The librarian
 
 `python -m fno data-librarian <participant-oi|index-close> [--from YYYY-MM-DD] [--to YYYY-MM-DD]` fills the dataset's
@@ -114,6 +129,10 @@ once committed: every `data-librarian` run, finished or stopped, commits and pus
 printed, not bypassed), and `data-coverage` lists any manifest file still uncommitted and exits 1. The laptop tool's manifests in
 `tools/nse_raw_download/` serve that tool only; the code no longer reads them (the regenerated ones agree with them on
 every file both have).
+
+`owned_paths_commit.py` (story A16e) is the same committer limited to the paths one writer owns inside a shared folder
+(A16's `slots/`, `rv/` and `heartbeat.json`; only those that exist or are tracked), and it names anything else staged
+in the checkout so its writer can refuse to pull or commit.
 
 Adding a store (S3, Dropbox) or a source (another exchange) means one new class behind `RawFileStore` or
 `RawFileSource`, and one line in `wiring.py`.

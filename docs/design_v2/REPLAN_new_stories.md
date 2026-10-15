@@ -43,7 +43,9 @@ the day. Layer and section references are to the design v2 files.
   (G1's freeze pins `wiring.py`). Depends: G6. M. Phase 1 (V6, V1) slice A; phase 2 (V2-V5, V7) slice B.
 - **G8 v4 scoring.** QLIKE, squared error on variance, Mincer-Zarnowitz, calibration slope and intercept, Brier skill
   score; the block-bootstrap comparisons and Holm of section 5.5; the 60-outcome power report. In
-  `fno/forecast_scoring/`. Depends: G6, G4. M. Slice A.
+  `fno/forecast_scoring/`. Acceptance (G6 revision 7, judge 98 addendum 6): every verdict, claim, "no" and Test A
+  result prints its scored window's regime (mean India VIX, 2%-day count and judgeable band) from
+  `fno/forecast_v4/regime.py`. Depends: G6, G4. M. Slice A.
 - **G9 House forecast.** The combination rule of 7.4 as a versioned strategy, its calibration lines for the card, and
   its change only at quarterly reviews. Depends: G8, a first review. S. Slice C.
 - **G10 AI books on the v4 questions.** A new prompt version for books 2 and 3 under the sealed-same-day rule and its

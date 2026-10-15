@@ -1,0 +1,74 @@
+{
+ "colour": "GREEN",
+ "day": "2020-01-28",
+ "drivers": {
+  "events_next_5_sessions": [
+   {
+    "date": "2020-02-01",
+    "type": "budget"
+   }
+  ],
+  "us_move": "private",
+  "v0_inputs": {
+   "move5": {
+    "reaches": "GREEN",
+    "value": 0.010552527912150667
+   },
+   "rv10": {
+    "reaches": "GREEN",
+    "value": 0.09332838344175269
+   },
+   "vix_change5": {
+    "reaches": "AMBER",
+    "value": 0.11486048020765738
+   },
+   "vix_ratio": {
+    "reaches": "GREEN",
+    "value": 1.0835698517817722
+   }
+  }
+ },
+ "inputs_sha256": "cd3e22fc5a04db2ce7f168c606e3fd7997392662ad3d122ee3955b6ea37daa23",
+ "label": "backfill_exploratory",
+ "made_at": "",
+ "method_sha256": "2495d512b89da4d64f5a62b03d5d1dc60325896c3d4132b7f70a2a736ab9e21e",
+ "model_colour": "GREEN",
+ "operative": "weather_vix_v1",
+ "over_alarming": "not counted (back-fill)",
+ "probabilities": {
+  "base_rate": {
+   "v6_abs_move_2pct_next_session": {
+    "status": "ok",
+    "value": 0.016
+   },
+   "v6_abs_move_2pct_within_5_sessions": {
+    "status": "ok",
+    "value": 0.06266666666666666
+   }
+  },
+  "weather_checklist_v0": {
+   "v6_abs_move_2pct_next_session": {
+    "status": "ok",
+    "value": 0.020618556701030927
+   },
+   "v6_abs_move_2pct_within_5_sessions": {
+    "status": "ok",
+    "value": 0.08376963350785341
+   }
+  },
+  "weather_vix_v1": {
+   "v6_abs_move_2pct_next_session": {
+    "status": "ok",
+    "value": 0.025333333333333333
+   },
+   "v6_abs_move_2pct_within_5_sessions": {
+    "status": "ok",
+    "value": 0.11214953271028037
+   }
+  }
+ },
+ "proof": "not yet proven: G8 has not scored it against v0 and the base rate",
+ "red_share": "not counted (back-fill)",
+ "status": "scored",
+ "v0_colour": "AMBER"
+}

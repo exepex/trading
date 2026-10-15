@@ -37,8 +37,17 @@ class RecorderExecutionCapture(ExecutionCapture):
         result = self.take()
         if not result.snapshot_id:
             return None
-        names = [QuoteSnapshotRecorder.path(day, f"{result.snapshot_id}{suffix}") for suffix in (".csv", ".meta.json")]
-        csv_bytes, meta_bytes = (self.quotes.get(name) for name in names)
+        csv_name, meta_name = (
+            QuoteSnapshotRecorder.path(day, f"{result.snapshot_id}{suffix}") for suffix in (".csv", ".meta.json")
+        )
+        sidecar = self.quotes_folder / meta_name  # the quote file itself is in Drive only (A4b): never committed
+        try:
+            csv_bytes, meta_bytes = self.quotes.get(csv_name), self.quotes.get(meta_name)
+        except Exception:  # not readable back from Drive: like an unsaved file, no record (the gate then alerts)
+            csv_bytes = None
+        if csv_bytes is None:  # not saved: the sidecar says why; no record, so nothing is checked or filled from it
+            self.committer.commit((sidecar,), f"Execution capture {day}: quote file not saved")
+            return None
         meta = json.loads(meta_bytes)
         body = {"snapshot_id": result.snapshot_id, "started_at": meta["started_at"], "finished_at": meta["finished_at"],
                 "complete": result.complete, "csv_sha256": hashlib.sha256(csv_bytes).hexdigest(),
@@ -46,9 +55,6 @@ class RecorderExecutionCapture(ExecutionCapture):
         path = records_folder(self.root, day) / f"{result.snapshot_id}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(body, sort_keys=True, indent=1) + "\n", encoding="utf-8")
-        sidecar = (
-            self.quotes_folder / names[1]
-        )  # the quote file itself is never committed (story E2b; A4b keeps it in Drive)
         commit = self.committer.commit((path, sidecar), f"Execution capture {day}")
         return _record(body, f"{path.relative_to(self.root).as_posix()} in commit {commit}")
 

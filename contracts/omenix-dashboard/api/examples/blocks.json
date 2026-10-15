@@ -3201,7 +3201,7 @@
    "built_at": "2026-10-07T12:00:00Z",
    "schema_version": "2.1.0",
    "source_commit": "e8cd360",
-   "payload_sha256": "aeddbf90924a5c2c8fd3f810c19ffb9ac257a283292e75ac2fa0ed3e64b322c7",
+   "payload_sha256": "4a141edc38f8f386c40e71a78338059a4fa7945855a358b9f78563a42d24fb97",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -3220,33 +3220,33 @@
       "book": 1,
       "family": "rule",
       "name": "F&O Book 1",
-      "value": 500000.0,
+      "value": 2000000.0,
       "pnl": 0.0,
       "approved": [],
       "limit_used": 0.0,
-      "limit_max": 30000.0,
+      "limit_max": 150000.0,
       "as_of": "2026-10-07T09:30:00Z"
      },
      {
       "book": 2,
       "family": "hybrid",
       "name": "F&O Book 2",
-      "value": 500000.0,
+      "value": 2000000.0,
       "pnl": 0.0,
       "approved": [],
       "limit_used": 0.0,
-      "limit_max": 30000.0,
+      "limit_max": 150000.0,
       "as_of": "2026-10-07T09:30:00Z"
      },
      {
       "book": 3,
       "family": "ai",
       "name": "F&O Book 3",
-      "value": 500000.0,
+      "value": 2000000.0,
       "pnl": 0.0,
       "approved": [],
       "limit_used": 0.0,
-      "limit_max": 30000.0,
+      "limit_max": 150000.0,
       "as_of": "2026-10-07T09:30:00Z"
      }
     ]

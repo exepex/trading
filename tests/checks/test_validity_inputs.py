@@ -51,9 +51,9 @@ def test_c4_reads_the_ledger_as_e1_and_c2_do(ledger):
     account = PaperAccount(ledger, BOOK1_RULES)
     fills = [f for f in account.fills() if f.fill_id != "7"]  # E4's 15:15 fill comes after the 15:00 cutoff
     trades = list(trade_positions(fills).values())
-    assert facts.closed_equity == closed_equity_series(date(2026, 10, 1), 500_000.0, trades)
+    assert facts.closed_equity == closed_equity_series(date(2026, 10, 1), 2_000_000.0, trades)
     marks = {c: Mark(1.0) for c in ("X1PE", "X2PE")}
-    state = account_state(500_000.0, fills, marks)
+    state = account_state(2_000_000.0, fills, marks)
     assert facts.cash == pytest.approx(state.cash, abs=1e-9)
     (position,) = facts.positions
     assert position.trade_id == "b" and position.units == {"X1PE": -65, "X2PE": 65}
@@ -65,11 +65,13 @@ def test_a_ledger_that_was_never_started_fails_closed(tmp_path):
 
 
 def test_restarts_dated_after_the_day_wait_and_a_bad_row_fails_closed():
-    rows = [{"date": "2026-10-10", "action": "restart_brake", "reason": "owner", "entered_by": "owner"},
-            {"date": "2026-10-20", "action": "restart_brake", "reason": "owner", "entered_by": "owner"}]  # fmt: skip
-    assert restart_days(rows, date(2026, 10, 14)) == (date(2026, 10, 10),)
+    decisions = [(date(2026, 10, 9), "First", '| x | **First** (owner: "go") Book 1 |'),
+                 (date(2026, 10, 9), "Second", '| x | **Second** (owner: "go") Book 1 |')]  # fmt: skip
+    signed = {"action": "restart_brake", "reason": "owner", "entered_by": "owner"}
+    rows = [signed | {"date": "2026-10-10", "decision": "First"}, signed | {"date": "2026-10-20", "decision": "Second"}]
+    assert restart_days(rows, date(2026, 10, 14), BOOK1_RULES, decisions) == (date(2026, 10, 10),)
     with pytest.raises(AccountProblem):
-        restart_days([rows[0] | {"action": "loosen"}], date(2026, 10, 14))
+        restart_days([rows[0] | {"action": "loosen"}], date(2026, 10, 14), BOOK1_RULES, decisions)
 
 
 def test_nse_listing_gives_lots_and_monthly_expiries():
@@ -115,3 +117,14 @@ def test_a_shock_moves_the_forward_scales_the_volatility_and_lets_days_pass():
     shocked = leg.value(day, 0.065, move_pct=-8, sigma_factor=2.0, sigma_add=0.05, days=1)
     assert shocked == pytest.approx(black76("CE", 23_000.0, 25_200.0, 29 / 365, 0.065, 0.35))
     assert leg.value(day, 0.065, days=30) == 0.0  # at expiry: intrinsic value, out of the money
+
+
+def test_c4_reads_the_sessions_trades_from_the_ledger(ledger):
+    """Story C5: the trades first filled on the decision day, with their state after each fill time; trade a was
+    first filled on 6 Oct, so on 8 Oct (when it closes) it is not new risk."""
+    on_9 = LedgerAccounts(ledger).facts(BOOK1_RULES, datetime(2026, 10, 9, 16, 0, tzinfo=IST))
+    assert [trade for trade, _ in on_9.session] == ["b"]
+    (states,) = [states for trade, states in on_9.session if trade == "b"]
+    assert states[-1][0] == {"X1PE": -65, "X2PE": 65}
+    on_8 = LedgerAccounts(ledger).facts(BOOK1_RULES, datetime(2026, 10, 8, 16, 0, tzinfo=IST))
+    assert on_8.session == ()

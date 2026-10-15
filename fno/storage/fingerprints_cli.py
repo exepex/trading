@@ -35,7 +35,7 @@ def add_fingerprints_parser(subparsers) -> None:
 
 def cmd_data_fingerprints(args) -> int:
     from . import wiring
-    from .fingerprints import compare_with_source, fingerprint_store
+    from .fingerprints import NO_ANSWER, compare_with_source, fingerprint_store
 
     source_type, manifests = wiring.FINGERPRINT_SOURCES[args.dataset], wiring.build_manifest_folder()
     manifest = manifests.path_for(source_type)
@@ -51,4 +51,4 @@ def cmd_data_fingerprints(args) -> int:
     sample = sorted(random.Random(SPOT_CHECK_SEED).sample(found, min(args.spot_check, len(found))), key=lambda f: f.day)
     lines = compare_with_source(wiring.build_nse_source(source_type), sample)
     print("\n".join(lines))
-    return 1 if any("REWRITE" in line for line in lines) else 0
+    return 1 if any("REWRITE" in line or NO_ANSWER in line for line in lines) else 0

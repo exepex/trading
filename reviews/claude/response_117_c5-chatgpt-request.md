@@ -34,5 +34,5 @@ breaks and the judge's own plants are caught.
 4. "Signed" brake restart means a non-empty `entered_by` field protected only by the review lanes. Is that enough for
    a paper account, or must a stronger guard come before any counted paper decision?
 
-**Write your answer as a new file** `reviews/chatgpt/review_101_c5-risk-buckets.md` and add its line to
+**Write your answer as a new file** `reviews/chatgpt/review_103_c5-risk-buckets.md` and add its line to
 `reviews/chatgpt/README.md`. Never overwrite an existing review file.

@@ -1,8 +1,9 @@
 """The owner's written restarts of a book's drawdown brake: `journal/<book>/owner_overrides.csv` (story C2, design 8).
 
-Columns `date, action, reason, entered_by`; the only action is `restart_brake`. The owner commits the row; the code only
-reads it. A malformed row is an error (the brake then fails closed), and a row dated after the decision day is not
-yet in force.
+Columns `date, action, reason, entered_by, decision`; the only action is `restart_brake`. `decision` cites the owner's
+row in `docs/DESK_DECISIONS.md` by its title (story C5b, `decision_rows.py`). The owner commits the row; the code only
+reads it. A malformed row or a citation that fails a rule is an error (the brake then fails closed), and a row dated
+after the decision day is not yet in force.
 """
 
 from __future__ import annotations
@@ -12,10 +13,11 @@ from datetime import date
 from pathlib import Path
 
 from ..books.paths import book_folder, file_in_account
-from ..constants import OVERRIDE_RESTART_BRAKE, OWNER_OVERRIDES_FILE
+from ..constants import DESK_DECISIONS_FILE, OVERRIDE_RESTART_BRAKE, OWNER_OVERRIDES_FILE
+from .decision_rows import RestartDecisions, read_decision_rows
 from .inputs import RiskInputError
 
-OVERRIDE_COLUMNS = ("date", "action", "reason", "entered_by")
+OVERRIDE_COLUMNS = ("date", "action", "reason", "entered_by", "decision")
 
 
 def overrides_file(root: Path, book: str) -> Path:
@@ -43,5 +45,8 @@ def brake_restarts(root: Path, book: str, day: date) -> tuple[date, ...]:
         reader = csv.DictReader(fh)
         if tuple(reader.fieldnames or ()) != OVERRIDE_COLUMNS:
             raise RiskInputError(f"{path}: columns must be {', '.join(OVERRIDE_COLUMNS)}")
-        days = [_restart_day(row, line) for line, row in enumerate(reader, start=2)]
-    return tuple(sorted(d for d in days if d <= day))
+        restarts = [
+            (_restart_day(row, line), (row["decision"] or "").strip()) for line, row in enumerate(reader, start=2)
+        ]
+    RestartDecisions(read_decision_rows(root / DESK_DECISIONS_FILE)).check(book, restarts)
+    return tuple(sorted(d for d, _ in restarts if d <= day))

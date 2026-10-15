@@ -27,6 +27,7 @@ from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from ..constants import RUN_LOG_DECISIONS_STEP
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
 from .daily_ports import CommitFailed, Waiter
@@ -64,12 +65,12 @@ class DailyRun:
         plan = (
             ("versions", times.pack, lambda: steps.keep_versions(day)),
             ("pack", times.pack, lambda: self._pack(day)),
-            ("decisions", times.decision_deadline, lambda: steps.collect_decisions(day)),
+            (RUN_LOG_DECISIONS_STEP, times.decision_deadline, lambda: steps.collect_decisions(day)),
             ("snapshot", times.execution_snapshot, lambda: steps.take_snapshot(day)),
             (
                 "fills",
                 times.execution_snapshot,
-                lambda: steps.fill(day, log.result("snapshot")["valid"], log.result("decisions")),
+                lambda: steps.fill(day, log.result("snapshot")["valid"], log.result(RUN_LOG_DECISIONS_STEP)),
             ),  # fmt: skip
             ("exits", times.execution_snapshot, lambda: steps.review_exits(day)),
         )

@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from ..constants import (
+from .constants import (
     BUDGET_ITEMS,
     EXISTING_COST_ITEMS,
     ITEM_AZURE_POSTGRES,

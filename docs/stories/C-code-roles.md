@@ -232,3 +232,220 @@ Output: pass or fail with each check's numbers; failures written to `journal/<bo
 **Judge verifies:** adds a new wrong proposal of its own and confirms it is caught.
 
 **Depends:** C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) · **Size:** M · **Status:** judge 83 FAIL (3 must-fixes) fixed on `story/c4-hard-validity`, re-judge pending (claims: reviews/claude/response_83_c4-hard-validity.md, addendum 1); criteria 1-5 built (playbook mode for Book 1 in full); criterion 6 waits for D5 and criterion 7 for D4 (both books fail closed until then)
+
+---
+
+## C5. Risk buckets and the Rs 20 lakh paper account
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want every trade proposed for a paper book checked against the caps of the
+owner's Rs 20 lakh account (one bucket of correlated positions, all open positions, the new risk of one session, and
+the drawdown brake), C4 recomputing the same caps on its own, and the book's daily stress line computed, so that many
+strategies can run in parallel without one crash taking the account.
+
+**Context and why:** Design v2 section 6 (`docs/design_v2/06_risk_and_alerts.md` 6.1, 6.1a, 6.2, 6.3) and the owner's
+decisions (`docs/DESK_DECISIONS.md`):
+- 14 Oct 2026: "Paper account Rs 20 lakh, Rs 10,000 maximum loss per trade" (owner: "=> YES").
+- 15 Oct 2026: "Risk buckets and caps accepted": Rs 30,000 a bucket; new risk Rs 50,000 a day; open positions' maximum
+  losses at most Rs 1.5 lakh (a cap on open risk, not a stop); brake when closed equity is Rs 1.2 lakh below its high,
+  until the owner restarts in writing.
+- 15 Oct 2026, "1 A": "Books drop the flat '3 open trades' limit; the bucket and account caps replace it ... Paper books
+  only (Rs 20 lakh); the Manual paper account keeps its 13 Oct limits, including 3 open trades".
+- 15 Oct 2026, "2 A": "Books drop C2's old Rs 30,000 stress and Rs 15,000 exposure limits; the new caps replace them ...
+  the daily stress line stays as information on the card; the Manual account is unchanged".
+- 13 Oct 2026 (Manual account, unchanged): Rs 5 lakh, Rs 10,000 a trade, 3 open trades, Rs 30,000 brake.
+- 15 Oct 2026, C5's questions: "1 B": "A position that is directional and short (or long) volatility counts in both
+  of its risk buckets" (a credit vertical in its direction bucket and short volatility, a debit vertical in its
+  direction bucket and long volatility, the full maximum loss in each); "2 B": the books move to Rs 20 lakh by a dated
+  Rs 15 lakh top-up entry (a separate story, `story/e1-topup`); "3 A": "A trade opened and closed in the same session
+  counts toward the Rs 50,000 new-risk-per-session cap"; "4 A": the stress-line assumptions are accepted (information
+  only); "5 A": "Stock-option risk buckets wait for A18".
+
+C2 was built for a Rs 5 lakh account. With Rs 20 lakh, 15-20 protected NIFTY structures could be funded at once and
+would all lose in the same crash, so limits apply to correlated groups (6.2). Design 6.1a: margin data older than one
+session, an unmapped bucket or a missing margin row means no new entry. C4 recomputes every C2 limit with its own
+arithmetic (judge 83 must-fix 3), so it changes in step.
+
+**Scope.** In:
+- risk profiles in `config.yaml` `risk.profiles`: `books` and `manual`, each listing the rules it runs and exactly
+  their settings; every profile checked at start-up;
+- the books' account size (`paper_account_rs`), used by E1 to open every new book and shadow account; a book opened
+  with any other amount trades nothing until the owner decides how it is reopened;
+- bucket, open-risk and new-risk-per-day caps as C2 rules on B2's maximum loss; bucket assignment as 6.2 defines it,
+  failing closed on anything it does not map;
+- the brake at Rs 1.2 lakh for the books (C2's rule and written restart record);
+- margin freshness for the books: a row older than one NSE session refuses the entry (the Manual account keeps 7
+  calendar days);
+- C4: the same profile's rules, recomputed with C4's own arithmetic (bucket, held maximum loss, first-fill day, margin
+  age); C4 drops the 3-open, stress and exposure checks for the books and keeps them for the Manual account;
+- the daily stress line of 6.2 as a computed record.
+
+Out: the Rs 15 lakh top-up that moves the three committed books to Rs 20 lakh (owner "2 B": story `e1-topup`, whose
+criteria must make `PaperAccountSize` read the opening row plus top-ups and keep a top-up out of the brake's
+high-water mark: it is capital, never a closed-equity gain; judge 105 minor 4); the
+structure codes of directional spreads (STR1 adds them with two sides each, per "1 B"); stock buckets and "stock results this week" (events calendar A6/A12, stock
+options A18); showing the stress line on the card (T1); a Manual account ledger and its desk (MA1); S1's protocol text
+(`catastrophic_loss_book`, a draft the owner decides).
+
+**Design:**
+- `fno/risk/profile_settings.py`: `ProfileSettings` per profile; `RULE_SETTINGS` names each rule's settings; an
+  unknown rule, a missing setting, a setting no listed rule uses, or not exactly one margin age is an error; four rules
+  in every profile (paper account, per-trade loss, brake, margin room). `all_profiles` checks every profile.
+- `fno/risk/settings.py`: what profiles share (scenarios, stress line, margins file, stressed margin).
+- `fno/risk/buckets.py`: `BucketMap` interface, `StructureBuckets`: group from the contracts' underlying (NIFTY or
+  BANKNIFTY), sides from the structure code through `bucket_sides`: one side (SF, SC short volatility; BF long
+  volatility) or a list (a directional spread: its direction and a volatility side, "1 B").
+- `fno/risk/open_risk.py`: `HeldMaxLoss` (B2's maximum loss of a held position from its ledger cash flow; a net short
+  tail is refused; a locked-in position counts 0) and `PositionRisks`.
+- `fno/risk/caps.py`: `MaxLossCap` with `BucketCap`, `OpenRiskCap`, `NewRiskPerDay`; `PaperAccountSize`.
+- `fno/risk/margin_age.py`: `MarginAge` strategy: `DaysOld` (Manual), `SessionsOld` on NSE's calendar (books).
+- `RiskBook.session_trades`: every trade first filled on the decision day, open or closed ("3 A"), with its held units
+  and cash after each fill time (from E1's ledger; a trade chosen earlier the same session is added by D2; kept in
+  D3's codec); its new risk is the largest maximum loss it carried; unknown (an old record) means refused.
+- `fno/risk/stress_line.py`: `DailyStressLine` on C2's `StressEngine`.
+- C4: `fno/checks/validity_caps.py` (own bucket, own held maximum loss on C4's one-point grid, caps, paper account),
+  `validity_settings.py` (profile read raw from config.yaml, its own required-settings check), `validity_limits.py`
+  (runs exactly the profile's rules), `validity_account.py` (the session's trades and their states, from the ledger).
+- Wiring only in `fno/risk/wiring.py` (`RULES` table by rule name), `fno/checks/wiring.py`, `fno/composition.py`.
+
+**Acceptance criteria:**
+1. Bucket cap: at exactly Rs 30,000 passes, Rs 0.01 more refused (`bucket_cap`, the bucket, the numbers); other
+   buckets not counted. A position with two sides counts its full maximum loss in each of its buckets, and a two-sided
+   proposal must fit every one of its buckets ("1 B").
+2. Open-risk cap: the same at Rs 1,50,000 across all buckets (`open_risk_cap`).
+3. New risk per day: the same at Rs 50,000 for every trade first filled this session, open or already closed ("3 A"),
+   at the largest maximum loss it carried; same-session choices count; trades first filled earlier do not, even if
+   traded today; unknown session trades are refused.
+4. A cap only refuses: the decision judges the very proposal it was given, lots unchanged.
+5. Buckets as 6.2: SF/SC NIFTY short volatility, BF NIFTY long volatility; STR1's verticals in two buckets each ("1 B"):
+   PCS bullish and short volatility, CCS bearish and short volatility, CDS bullish and long volatility, PDS bearish
+   and long volatility; LC bullish and long volatility, LP bearish and long volatility (orchestrator decision while
+   the owner was away, 15 Oct 2026, owner to confirm: a bought option is a directional bet that gains when movement
+   grows, so it follows "1 B");
+   BANKNIFTY its own group; an unlisted structure, a stock ("5 A": waits for A18), another index or mixed underlyings
+   refused as "unmapped bucket".
+6. A held trade's maximum loss equals B2's for the same entry; a not-defined-risk held position is refused.
+7. New books open with Rs 20,00,000; a book opened with any other amount is refused (`paper_account`).
+8. Books' brake at Rs 1,20,000 (Rs 0.01 less passes, at and beyond refuses); only a signed `restart_brake` row lifts it,
+   in C2 and in C4. "Signed" means a non-empty `entered_by` (and reason): a typed name, protected by process only
+   (`journal/` is lane 1 by path); a CI guard tying each row to an owner decision would be a later story. The brake and
+   every cap apply per book, each book on its own Rs 20 lakh (orchestrator's reading of the owner's "2 B", owner to
+   confirm on return).
+9. Daily stress line: the five 6.2 scenarios, loss from entry and from marks, below the sum of maximum losses
+   (assumptions accepted, information only: "4 A").
+10. Profiles: the books run exactly paper account, per-trade loss, the three caps, brake and margin room; any setting
+    problem in any profile, or a stray key under `risk`, stops start-up; C4 checks its own settings and their types.
+11. The Manual profile keeps its 13 Oct limits unchanged (Rs 5 lakh, Rs 10,000, 3 open, Rs 30,000 brake, stress and
+    exposure, 7-day margins) and its risk manager runs exactly those rules.
+12. Books' margin rows older than one trading day refuse the entry, counted as A14 writes rows (`TradingDays`: regular
+    and special sessions, never a muhurat-only session); a weekend, holiday or muhurat Sunday never ages a row.
+13. C4 in step: for the books C4 recomputes paper account and the three caps itself, does not run 3-open, stress or
+    exposure; a bucket breach C2 allowed is refused by C4; four open trades pass C4 for the books and fail for the
+    Manual account; C4's held maximum loss equals C2's; C4 refuses to start on a missing setting.
+
+**Test plan:** `tests/risk/test_caps.py`, `test_buckets.py`, `test_c5_account.py`, `test_margin_age.py`,
+`tests/checks/test_validity_caps.py`; C2, C4, D2, E1, E4 and P10 tests updated. Every criterion broken on purpose once
+(mutation table in the claims file).
+
+**Judge verifies:** re-runs each cap at its number and one paisa over; plants an unmapped structure and a stock leg;
+checks a held trade's maximum loss by hand; plants an unsigned restart row; breaks the Manual profile; feeds C4 a
+breach C2 passed.
+
+**Depends:** C2, C4, A7, A14, B2, E1, D2, D3, the owner's decisions of 14-15 Oct 2026 · **Size:** M · **Status:** built
+on `story/c5-risk-buckets`, judge pending (claims: reviews/claude/response_105_c5-risk-buckets.md)
+
+---
+
+## C5b. A brake restart cites the owner's decision row
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want a drawdown-brake restart to be valid only when it cites the
+`docs/DESK_DECISIONS.md` row that holds the owner's own words for that brake episode, with the judge's audit checking
+it, so that the only thing that lifts a book's brake is a written owner decision, never a typed name alone.
+
+**Context and why:**
+- Owner, 15 Oct 2026 (caps accepted): "brake: closed equity Rs 1.2 lakh below its high stops new trades until the owner
+  restarts in writing".
+- Judge 105 minor 3: "signed" today means a non-empty `entered_by`. Any session can commit a `restart_brake` row with
+  `entered_by: owner`. A guard tying each row to an owner decision would be a separate story.
+- Orchestrator, 15 Oct 2026: this story, before the first counted paper decision; the judge's audit checks it; no
+  cryptography (owner's simplicity rule, "Keep the design simple").
+- `docs/DESK_DECISIONS.md` is where the owner's decisions are recorded, each row dated, in the standard form
+  `**title** (owner: "...")` in its Decision cell. Measured on main (judge 134): 152 rows; 17 have no bold title, and
+  one title ("approved") is the title of 4 rows. The owner names the books "Book 1", "Book 2" and "Book 3" (14
+  times), never by their IDs.
+- Today no book has an `owner_overrides.csv` (no brake has ever fired), so the file format can change without
+  migrating any record.
+
+**Scope.** In:
+- a fifth column, `decision`, in `journal/<book>/owner_overrides.csv`: the cited row's title, which is the **first**
+  `**...**` span of its Decision cell. A row with no bold span cannot be cited. The owner's restart decision is written
+  in the standard form `**title** (owner: "...")`;
+- a restart row is valid only if the cited row:
+  - has that title exactly once in the file (a repeated title such as "approved" is refused);
+  - quotes the owner (`(owner: "`);
+  - names the restarted book by its display name as a whole word ("Book 1" for `book1_rules`, "Book 2" for
+    `book2_hybrid`, "Book 3" for `book3_ai`: one map in `fno/constants.py`), so "Book 1" never matches "Book 10";
+  - is dated on or before the restart date;
+  - is cited by no other restart row of that book;
+- the check in C2 (`fno/risk/overrides.py`) and, with its own code, in C4 (`fno/checks/validity_account.py`): an
+  invalid row fails closed (the book cannot be read, so it trades nothing), exactly as a malformed row does today;
+- the judge's audit of every new restart row: the owner's words really restart that book's brake for that episode.
+
+Out:
+- cryptographic signatures, and a CI guard on commits (owner's simplicity rule);
+- deciding the episode by code (the judge's audit does it);
+- the Manual account (no ledger yet).
+
+**Design:**
+- `fno/risk/overrides.py`: `OVERRIDE_COLUMNS` gains `decision`. A small `DecisionRows` reader parses the table rows of
+  `docs/DESK_DECISIONS.md`: date, title (the first bold span of the Decision cell, or none) and full text.
+  `brake_restarts` validates each row against it with the five rules above, as a `RiskInputError` with the reason.
+- `fno/checks/validity_account.py`: C4's own parse of the same file (no `fno.risk` import), the same five rules,
+  `AccountProblem` on failure.
+- In `fno/constants.py`: the decisions file path (`DESK_DECISIONS_FILE`) and each book's display name
+  (`BOOK_DISPLAY_NAMES`: `book1_rules` → "Book 1", `book2_hybrid` → "Book 2", `book3_ai` → "Book 3"), used by C2 and,
+  read from constants (not from C2's code), by C4.
+- No other change: the brake's arithmetic and the restart's re-arm level are C2's, unchanged.
+
+**Acceptance criteria:**
+1. A restart row citing a real owner row that names the book, dated on or before the restart, lifts the brake in C2
+   and in C4 (tests with a planted decisions file).
+2. Each of these fails closed in C2 and C4, with a reason naming the problem, and the book stays braked: a missing
+   `decision`; a title not in the file; a title appearing twice; a row without `(owner: "`; a row not naming the book
+   (a row naming "Book 1" lifts `book1_rules` and not `book2_hybrid`); a row dated after the restart; the same row
+   cited by two restarts of one book.
+3. The real `docs/DESK_DECISIONS.md` parses: every table row yields its date, and its title when its Decision cell has
+   a bold span (none otherwise: not citable). The count of rows, of rows without a title, and of repeated titles
+   matches the file (test on the committed file).
+4. The judge's audit step is written into `docs/JUDGE.md`'s lane-1 checks for `journal/<book>/owner_overrides.csv`:
+   read the cited row and confirm the owner's words restart that book's brake for that episode.
+
+**Gap list:**
+
+| Requirement (source) | Criterion or reason out |
+|---|---|
+| A restart only by the owner's written decision (owner 15 Oct caps row) | 1, 2 |
+| The row holds the owner's own words (orchestrator) | 2 (`(owner: "`), 4 (audit reads the words) |
+| For that brake episode (orchestrator) | 2 (dated on or before the restart, not reused), 4 (the audit judges the episode) |
+| The judge's audit checks it (orchestrator) | 4 |
+| No cryptography (owner's simplicity rule) | out |
+| C2 and C4 in step (judge 83, C5) | 1, 2 |
+| Before the first counted paper decision (orchestrator) | status: built before S1's freeze |
+
+**Known limits (one line each):** the decisions file is plain text in the repository; anyone who can commit could add a
+row. The protection is the judge's audit of every lane-1 change to it and to `owner_overrides.csv`.
+A deleted `docs/DESK_DECISIONS.md` fails closed by an error, not a reason. A shadow book's brake cannot be restarted
+(it is not named in the owner's decisions; its restart is refused).
+
+**Test plan:** `tests/risk/test_restart_decision.py` (C2: criteria 1-3), `tests/checks/test_validity_restart.py`
+(C4: 1-2), with planted decisions files in the standard `**title** (owner: "...")` form. Every criterion broken on
+purpose once.
+
+**Judge verifies:** plants a restart row citing a real row, a row without the owner's words, a row for another book and
+a reused row; checks C2 and C4 refuse the bad ones; reads the JUDGE.md step.
+
+**Depends:** C2, C4, C5 · **Size:** S · **Status:** text passed (judge 134 addendum 1); code built on
+`story/c5b-restart-decision` for the judge (claims: `reviews/claude/response_135_c5b-restart-decision.md`, addendum 2)

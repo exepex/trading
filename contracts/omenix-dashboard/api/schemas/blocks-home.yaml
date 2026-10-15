@@ -65,7 +65,7 @@ StrategyResult:
 FnoBooks:
   type: object
   description: >-
-    The three F&O paper books (India only), each its own Rs 5 lakh account: Book 1 rule-based, Book 2 hybrid,
+    The three F&O paper books (India only), each its own Rs 20 lakh account (story C5): Book 1 rule-based, Book 2 hybrid,
     Book 3 AI team. Feeds the "F&O: total profit / loss" line of each group card (never added to the stock total) and
     the order window's account list (books are listed, never tradable by hand)
   x-catalog: {publisher: fno, source: "fno.pages_history page 'risk' (published by P10) over E1's paper accounts (scoreboard_b belongs to S2, not built: it gets its own field or block by a contract change)", freshness: '3 pm run and the post-close marks (NSE session calendar)', story: P10, status: planned}
@@ -91,8 +91,8 @@ FnoBook:
       type: array
       description: The book's approved strategies; empty means "no approved strategy yet"
       items: {type: string, x-unit: text}
-    limit_used: {type: number, minimum: 0, x-unit: INR, description: "At risk now (C2's max_at_risk used)", x-catalog: {source: "fno.pages_history page 'risk'", story: C2}}
-    limit_max: {type: number, minimum: 0, x-unit: INR}
+    limit_used: {type: number, minimum: 0, x-unit: INR, description: "Open risk now: the sum of the book's open positions' maximum losses", x-catalog: {source: "fno.pages_history page 'risk'", story: C5}}
+    limit_max: {type: number, minimum: 0, x-unit: INR, description: "The books' open-risk cap: open positions' maximum losses may sum to at most Rs 1,50,000 (owner, 15 Oct 2026, \"2 A\"; the books have no Rs 30,000 stress limit)", x-catalog: {story: C5}}
     as_of: {type: string, format: date-time, x-unit: UTC time}
 
 StrategyTrades:

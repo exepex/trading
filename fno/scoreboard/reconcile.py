@@ -27,7 +27,7 @@ def reconciliation(account: PaperAccount, trades: Sequence[ScoredTrade], operati
     trade_net = sum(line.net for line in lines)
     costs = sum(float(row["amount_rs"]) for row in operating_costs)
     rows = account.ledger_rows()
-    balance = float(rows[-1]["cash_after_rs"]) - account.starting_cash()
+    balance = float(rows[-1]["cash_after_rs"]) - account.capital()  # capital is never part of the trades (E1b)
     checks = {
         "trade_ledger": abs(account_net - trade_net) < RUPEE,
         "account_ledger": abs(sum(m["account_result"] for m in months.values()) - (account_net - costs)) < RUPEE,

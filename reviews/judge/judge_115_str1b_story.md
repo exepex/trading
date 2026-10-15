@@ -222,3 +222,43 @@ Only scope 2 and criterion 4 changed, plus the test-plan line and status (`git d
 - Judge 115's seven should-fixes, three minors and should-fix 8 are all met.
 - STR1b-1 code may start after C5 merges.
 - I judge the code against criteria 1-9 and the two points above.
+
+## Addendum 3 (15 Oct 2026): STR1b-1 code at 918c5ef8c9b9d64afeffae7bd2b91356640394c1
+
+The capital split, per-code broker approvals, C4's margin row and the activation gate (story text as trimmed in judge
+126). Judged on the real paths, under the owner's "keep the design simple" rule.
+- Gates: 5,261 passed; ruff, format and imports clean.
+- `merge-tree` with `origin/main`: only `reviews/claude/README.md` (index rows). With E1b (ddcefcc): no conflict.
+
+## Verdict: PASS (code)
+
+### The builder's correction to scope 1: ACCEPTED, with the evidence below
+
+- **As passed,** the cap would replace the stressed SPAN figure with "the worst loss beyond the premium". On a credit
+  spread that is below the broker's own unstressed figure. CCS 100 on 14 Oct: broker `scan − NOV` Rs 6,893.25 against
+  a cap of Rs 2,564.25. C2 would then check less money at entry than Groww blocks, which breaks the standing rule that
+  C2 is never looser than the broker at entry (judge 77 addendum 3).
+- **The correction,** `max(broker, min(stressed, cap))`, keeps the broker floor and caps only the stress extra. That is
+  the right reading of the story's purpose: no stress reserve on money that cannot be lost twice.
+- **My recomputation on all 31 real STR1 rows** of `tests/risk/fixtures/margins_2026-10-14.csv` (lot 65), using its own
+  scan and NOV:
+  - LC, LP, CDS and PDS (debit rows): cap 0, so the SPAN figure used is the broker's (0). Judge 106 minor 1's 0.45 ×
+    premium reserve on long options is gone (LC ATM: Rs 15,828.64 uncapped stress, now 0).
+  - CCS and PCS: the broker figure is above the cap on every width, so the figure used is the broker's (CCS 100: Rs
+    6,893.25; PCS 100: Rs 5,698.55).
+  - On every row: broker ≤ used ≤ uncapped stress.
+- **For the owner, in plain words:** on today's real data the 1.45 stress adds nothing for the six STR1 codes. C2 checks
+  what Groww blocks, plus the premium for bought legs. For a defined-risk spread that is already at least its worst
+  loss. SF, SC and BF keep the 1.45 unchanged.
+
+### Real paths
+
+| Real path | Status | Evidence |
+|---|---|---|
+| C4 equals C2 on the margin | MET | `validity_margin.span_cap` and `stressed_per_lot` are C4's own arithmetic with the same broker floor (no `fno.risk` import), and the builder's 47 real rows match |
+| Capital split recorded | MET | `capital_at_entry` writes the broker margin, premium paid, stress reserve, total and `capital_tied` (broker plus premium) into C2's record. Scoreboard B counts `capital_tied`, never the reserve |
+| Per-code broker approvals | MET | `BrokerApprovals` holds one approval per code. `config.yaml` is migrated to SF, SC and BF on 14 Oct (the codes that check compared). STR1 codes have none yet, so no STR1 row is written and C2 refuses such trades (fail closed) until a check passes for each |
+| Activation gate | MET | The loader refuses a registered or paper/paused version of an STR1 code while `STR1_ACTIVATION_PENDING` lists a gate for that use. An unregistered research draft still loads |
+
+**Verdict: PASS for 918c5ef8c9b9d64afeffae7bd2b91356640394c1** (code), including the scope 1 correction. Rule 9:
+ChatGPT next.

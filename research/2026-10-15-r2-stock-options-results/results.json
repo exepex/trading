@@ -1,0 +1,677 @@
+{
+ "answer": {
+  "answer": "NO",
+  "stage": "stopped at stage 3 (cost wall)",
+  "reason": ""
+ },
+ "stage0": {
+  "coverage": {
+   "stock_quarters": 1626,
+   "covered": 1617,
+   "share": 0.994465,
+   "passes": true
+  },
+  "lot_unknown_share": 0.0,
+  "passes": true,
+  "reasons": [],
+  "lot_validation": {
+   "stock_sessions": 23333,
+   "exact_matches": 3034,
+   "share": 0.13003,
+   "valid": false
+  }
+ },
+ "events": {
+  "events_2019_on": 5593,
+  "decision_window_events": 1677,
+  "decision_window_analysed": 1664,
+  "decision_window_with_filed_at": 0.987478,
+  "left_out_before_events": {
+   "duplicate meeting": 32858,
+   "filing before entry": 1,
+   "no entry session in the archive": 13,
+   "no reaction session in the archive yet": 2,
+   "not F&O on the entry session": 53588,
+   "reaction session before 1 Jan 2019": 0
+  },
+  "left_out_all_years": {
+   "corporate action": 8,
+   "lot unknown": 3371,
+   "no expiry at least 5 sessions after R": 14
+  },
+  "left_out_decision_window": {
+   "corporate action": 4,
+   "no expiry at least 5 sessions after R": 9
+  },
+  "notes": {}
+ },
+ "structures": [
+  {
+   "name": "S1 bought call",
+   "events": 1664,
+   "stage1_share": 0.009014,
+   "stage2_share": 0.009014,
+   "stage3_share": 0.003005,
+   "median_net": -698.021571,
+   "mean_net": -683.467115,
+   "median_break_even": 0.138567,
+   "median_gross_to_cost": 0.360835,
+   "thin_margin": true,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "no listed strike": 3,
+    "leg with close 0 or no contracts": 85
+   },
+   "first_failed": "cap"
+  },
+  {
+   "name": "S2 bought put",
+   "events": 1664,
+   "stage1_share": 0.010216,
+   "stage2_share": 0.007812,
+   "stage3_share": 0.002404,
+   "median_net": -662.306382,
+   "mean_net": -635.98243,
+   "median_break_even": 0.138925,
+   "median_gross_to_cost": 0.359906,
+   "thin_margin": true,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 119,
+    "no listed strike": 2
+   },
+   "first_failed": "cap"
+  },
+  {
+   "name": "S3 long straddle",
+   "events": 1664,
+   "stage1_share": 0.0,
+   "stage2_share": 0.0,
+   "stage3_share": 0.0,
+   "median_net": null,
+   "mean_net": null,
+   "median_break_even": null,
+   "median_gross_to_cost": null,
+   "thin_margin": null,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "no listed strike": 5,
+    "leg with close 0 or no contracts": 142
+   },
+   "first_failed": "cap"
+  },
+  {
+   "name": "S4 long strangle",
+   "events": 1664,
+   "stage1_share": 0.001803,
+   "stage2_share": 0.000601,
+   "stage3_share": 0.0,
+   "median_net": null,
+   "mean_net": null,
+   "median_break_even": null,
+   "median_gross_to_cost": null,
+   "thin_margin": null,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 163,
+    "no listed strike": 9
+   },
+   "first_failed": "cap"
+  },
+  {
+   "name": "S5 bull call spread",
+   "events": 1664,
+   "stage1_share": 0.893029,
+   "stage2_share": 0.634014,
+   "stage3_share": 0.507812,
+   "median_net": -3177.381377,
+   "mean_net": -3288.806711,
+   "median_break_even": 1.012106,
+   "median_gross_to_cost": 0.049402,
+   "thin_margin": true,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "no listed strike": 9,
+    "leg with close 0 or no contracts": 141,
+    "price not positive": 7,
+    "price at least the width (debit spread) or the wider wing (condor credit)": 4
+   },
+   "first_failed": "cost wall"
+  },
+  {
+   "name": "S6 bear put spread",
+   "events": 1664,
+   "stage1_share": 0.863582,
+   "stage2_share": 0.552284,
+   "stage3_share": 0.442909,
+   "median_net": -3077.276583,
+   "mean_net": -3174.214126,
+   "median_break_even": 0.963829,
+   "median_gross_to_cost": 0.051876,
+   "thin_margin": true,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 199,
+    "price not positive": 6,
+    "price at least the width (debit spread) or the wider wing (condor credit)": 4,
+    "no listed strike": 4
+   },
+   "first_failed": "cost wall"
+  },
+  {
+   "name": "S7 short iron condor",
+   "events": 1664,
+   "stage1_share": 0.792668,
+   "stage2_share": 0.496995,
+   "stage3_share": 0.483173,
+   "median_net": -2724.812539,
+   "mean_net": -2999.156111,
+   "median_break_even": 0.493259,
+   "median_gross_to_cost": 0.101367,
+   "thin_margin": true,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "no listed strike": 27,
+    "leg with close 0 or no contracts": 259,
+    "price at least the width (debit spread) or the wider wing (condor credit)": 42,
+    "price not positive": 1
+   },
+   "first_failed": "cost wall"
+  }
+ ],
+ "structures_2019_sep_2024": [
+  {
+   "name": "S1 bought call",
+   "events": 536,
+   "stage1_share": 0.003731,
+   "stage2_share": 0.001866,
+   "stage3_share": 0.0,
+   "median_net": null,
+   "mean_net": null,
+   "median_break_even": null,
+   "median_gross_to_cost": null,
+   "thin_margin": null,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 61
+   },
+   "first_failed": ""
+  },
+  {
+   "name": "S2 bought put",
+   "events": 536,
+   "stage1_share": 0.001866,
+   "stage2_share": 0.0,
+   "stage3_share": 0.0,
+   "median_net": null,
+   "mean_net": null,
+   "median_break_even": null,
+   "median_gross_to_cost": null,
+   "thin_margin": null,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 85,
+    "no listed strike": 1
+   },
+   "first_failed": ""
+  },
+  {
+   "name": "S3 long straddle",
+   "events": 536,
+   "stage1_share": 0.0,
+   "stage2_share": 0.0,
+   "stage3_share": 0.0,
+   "median_net": null,
+   "mean_net": null,
+   "median_break_even": null,
+   "median_gross_to_cost": null,
+   "thin_margin": null,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 100,
+    "no listed strike": 1
+   },
+   "first_failed": ""
+  },
+  {
+   "name": "S4 long strangle",
+   "events": 536,
+   "stage1_share": 0.001866,
+   "stage2_share": 0.0,
+   "stage3_share": 0.0,
+   "median_net": null,
+   "mean_net": null,
+   "median_break_even": null,
+   "median_gross_to_cost": null,
+   "thin_margin": null,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 97
+   },
+   "first_failed": ""
+  },
+  {
+   "name": "S5 bull call spread",
+   "events": 536,
+   "stage1_share": 0.794776,
+   "stage2_share": 0.404851,
+   "stage3_share": 0.248134,
+   "median_net": -4039.606759,
+   "mean_net": -4056.47923,
+   "median_break_even": 1.309732,
+   "median_gross_to_cost": 0.038176,
+   "thin_margin": true,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 88,
+    "price not positive": 8,
+    "price at least the width (debit spread) or the wider wing (condor credit)": 6
+   },
+   "first_failed": ""
+  },
+  {
+   "name": "S6 bear put spread",
+   "events": 536,
+   "stage1_share": 0.710821,
+   "stage2_share": 0.285448,
+   "stage3_share": 0.179104,
+   "median_net": -3613.671777,
+   "mean_net": -3686.383356,
+   "median_break_even": 1.168747,
+   "median_gross_to_cost": 0.042781,
+   "thin_margin": true,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 130,
+    "price at least the width (debit spread) or the wider wing (condor credit)": 4,
+    "price not positive": 4,
+    "no listed strike": 1
+   },
+   "first_failed": ""
+  },
+  {
+   "name": "S7 short iron condor",
+   "events": 536,
+   "stage1_share": 0.636194,
+   "stage2_share": 0.272388,
+   "stage3_share": 0.246269,
+   "median_net": -3789.664243,
+   "mean_net": -4030.971748,
+   "median_break_even": 0.579455,
+   "median_gross_to_cost": 0.086289,
+   "thin_margin": true,
+   "clusters": 0,
+   "clusters_a_year": 0.0,
+   "kish_passing": 0,
+   "clusters_by_part": {},
+   "untradable": {
+    "leg with close 0 or no contracts": 148,
+    "price at least the width (debit spread) or the wider wing (condor credit)": 32,
+    "no listed strike": 10,
+    "price not positive": 1
+   },
+   "first_failed": ""
+  }
+ ],
+ "correlation": {
+  "events": 1870,
+  "clusters": 849,
+  "rho_move": 0.030189,
+  "rho_move_interval": [
+   -0.076673,
+   0.152056
+  ],
+  "rho_abs": 0.081793,
+  "rho_abs_interval": [
+   -0.07697,
+   0.259338
+  ],
+  "kish": 1569.553983
+ },
+ "correlation_left_out": {
+  "derived lot changed from entry to R": 6,
+  "no same-expiry future close or no NIFTY close": 3
+ },
+ "spreads": {
+  "tercile_bounds": [
+   0.0,
+   10.666666666666629
+  ],
+  "buckets": [
+   {
+    "moneyness": "K0",
+    "terciles": [
+     0
+    ],
+    "legs": 64,
+    "two_sided": 62,
+    "half_spread_p75": 0.193307,
+    "untradable": false,
+    "depth": {
+     "bid_lots_median": 1.0,
+     "bid_lots_p25": 1.0,
+     "ask_lots_median": 1.0,
+     "ask_lots_p25": 1.0,
+     "share_one_lot_both_sides": 0.96875
+    }
+   },
+   {
+    "moneyness": "K0",
+    "terciles": [
+     1,
+     2
+    ],
+    "legs": 80,
+    "two_sided": 80,
+    "half_spread_p75": 0.065104,
+    "untradable": false,
+    "depth": {
+     "bid_lots_median": 1.5,
+     "bid_lots_p25": 1.0,
+     "ask_lots_median": 1.0,
+     "ask_lots_p25": 1.0,
+     "share_one_lot_both_sides": 1.0
+    }
+   },
+   {
+    "moneyness": "1 step",
+    "terciles": [
+     0
+    ],
+    "legs": 139,
+    "two_sided": 131,
+    "half_spread_p75": 0.191776,
+    "untradable": false,
+    "depth": {
+     "bid_lots_median": 1.0,
+     "bid_lots_p25": 1.0,
+     "ask_lots_median": 1.0,
+     "ask_lots_p25": 1.0,
+     "share_one_lot_both_sides": 0.942446
+    }
+   },
+   {
+    "moneyness": "1 step",
+    "terciles": [
+     1
+    ],
+    "legs": 34,
+    "two_sided": 34,
+    "half_spread_p75": 0.169421,
+    "untradable": false,
+    "depth": {
+     "bid_lots_median": 1.0,
+     "bid_lots_p25": 1.0,
+     "ask_lots_median": 2.0,
+     "ask_lots_p25": 1.0,
+     "share_one_lot_both_sides": 1.0
+    }
+   },
+   {
+    "moneyness": "1 step",
+    "terciles": [
+     2
+    ],
+    "legs": 113,
+    "two_sided": 113,
+    "half_spread_p75": 0.022735,
+    "untradable": false,
+    "depth": {
+     "bid_lots_median": 1.0,
+     "bid_lots_p25": 1.0,
+     "ask_lots_median": 2.0,
+     "ask_lots_p25": 1.0,
+     "share_one_lot_both_sides": 1.0
+    }
+   },
+   {
+    "moneyness": "2-3 steps",
+    "terciles": [
+     0
+    ],
+    "legs": 319,
+    "two_sided": 303,
+    "half_spread_p75": 0.202929,
+    "untradable": false,
+    "depth": {
+     "bid_lots_median": 1.0,
+     "bid_lots_p25": 1.0,
+     "ask_lots_median": 1.0,
+     "ask_lots_p25": 1.0,
+     "share_one_lot_both_sides": 0.949843
+    }
+   },
+   {
+    "moneyness": "2-3 steps",
+    "terciles": [
+     1
+    ],
+    "legs": 82,
+    "two_sided": 82,
+    "half_spread_p75": 0.16122,
+    "untradable": false,
+    "depth": {
+     "bid_lots_median": 1.0,
+     "bid_lots_p25": 1.0,
+     "ask_lots_median": 1.0,
+     "ask_lots_p25": 1.0,
+     "share_one_lot_both_sides": 1.0
+    }
+   },
+   {
+    "moneyness": "2-3 steps",
+    "terciles": [
+     2
+    ],
+    "legs": 170,
+    "two_sided": 170,
+    "half_spread_p75": 0.023972,
+    "untradable": false,
+    "depth": {
+     "bid_lots_median": 2.0,
+     "bid_lots_p25": 1.0,
+     "ask_lots_median": 2.0,
+     "ask_lots_p25": 1.0,
+     "share_one_lot_both_sides": 1.0
+    }
+   }
+  ]
+ },
+ "snapshot": {
+  "drive_path": "groww/derivatives/stock-option-quotes/2026/10/15/r2-snapshot_20261015_140024.json",
+  "sha256": "b83836e32d8bdfadd5c45f0b001587c9b1086f7e95f7c6d6b794afed42bb6c3f",
+  "taken": "2026-10-15T14:00:31.264434+05:30",
+  "stocks": 72,
+  "stocks_skipped": 1,
+  "legs": 1001,
+  "legs_without_previous_row": 2,
+  "no_row_share": 0.001998,
+  "used": true
+ },
+ "descriptive": {
+  "lot_value_rs_by_year": {
+   "2024": {
+    "n": 176,
+    "p25": 596567.5,
+    "median": 744562.78,
+    "p75": 877225.3125
+   },
+   "2025": {
+    "n": 863,
+    "p25": 523215.0,
+    "median": 618135.75,
+    "p75": 736812.5
+   },
+   "2026": {
+    "n": 628,
+    "p25": 554413.75,
+    "median": 655214.625,
+    "p75": 791058.75
+   }
+  },
+  "strike_step_pct_by_year": {
+   "2024": {
+    "n": 176,
+    "p25": 1.040962,
+    "median": 1.274154,
+    "p75": 1.590002
+   },
+   "2025": {
+    "n": 863,
+    "p25": 1.032034,
+    "median": 1.339585,
+    "p75": 1.677177
+   },
+   "2026": {
+    "n": 628,
+    "p25": 0.85677,
+    "median": 1.096223,
+    "p75": 1.406643
+   }
+  },
+  "pushed_share_by_year": {
+   "2024": 0.318182,
+   "2025": 0.214368,
+   "2026": 0.264331
+  },
+  "unknown_sector_events": 13,
+  "unknown_sector_label": "unknown",
+  "all_years": {
+   "lot_value_rs_by_year": {
+    "2024": {
+     "n": 716,
+     "p25": 644215.625,
+     "median": 768225.0,
+     "p75": 929304.375
+    },
+    "2025": {
+     "n": 863,
+     "p25": 523215.0,
+     "median": 618135.75,
+     "p75": 736812.5
+    },
+    "2026": {
+     "n": 628,
+     "p25": 554413.75,
+     "median": 655214.625,
+     "p75": 791058.75
+    }
+   },
+   "strike_step_pct_by_year": {
+    "2024": {
+     "n": 716,
+     "p25": 0.829005,
+     "median": 1.099584,
+     "p75": 1.407957
+    },
+    "2025": {
+     "n": 863,
+     "p25": 1.032034,
+     "median": 1.339585,
+     "p75": 1.677177
+    },
+    "2026": {
+     "n": 628,
+     "p25": 0.85677,
+     "median": 1.096223,
+     "p75": 1.406643
+    }
+   },
+   "pushed_share_by_year": {
+    "2024": 0.251397,
+    "2025": 0.214368,
+    "2026": 0.264331
+   },
+   "unknown_sector_events": 32,
+   "unknown_sector_label": "unknown"
+  },
+  "eligible_stocks_by_year": {
+   "2019": {
+    "median_daily": 162,
+    "distinct": 200
+   },
+   "2020": {
+    "median_daily": 140.0,
+    "distinct": 150
+   },
+   "2021": {
+    "median_daily": 160,
+    "distinct": 197
+   },
+   "2022": {
+    "median_daily": 196.0,
+    "distinct": 199
+   },
+   "2023": {
+    "median_daily": 186.0,
+    "distinct": 191
+   },
+   "2024": {
+    "median_daily": 182,
+    "distinct": 228
+   },
+   "2025": {
+    "median_daily": 216,
+    "distinct": 256
+   },
+   "2026": {
+    "median_daily": 209.0,
+    "distinct": 224
+   }
+  }
+ },
+ "window": [
+  "2024-10-01",
+  "2026-10-14"
+ ],
+ "decision_kish_all": {
+  "clusters": 602,
+  "kish": 1289.696754
+ },
+ "trial": "trial 53 of 53",
+ "run_commit": "f296e25484860650b253a5143e7ad85530bd1617",
+ "assumed_hurdle": 0.05,
+ "clusters_a_year_rule": {
+  "registered": 130,
+  "power_80": 297
+ }
+}

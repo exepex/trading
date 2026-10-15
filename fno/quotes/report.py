@@ -8,16 +8,22 @@ import io
 import statistics as st
 from pathlib import Path
 
+from ..storage.raw_store import RawFileStore
+from .recorder import DATASET, NONE_MARKER
+
 BANDS = ((0.00, 0.01, "0-1%"), (0.01, 0.02, "1-2%"), (0.02, 0.03, "2-3%"), (0.03, 0.0501, "3-5%"))
 
 
-def canonical_snapshots(folder: Path) -> list[str]:
-    """CSV texts of every day's canonical snapshot under a quote-snapshot folder (days marked "none" are skipped)."""
+def canonical_snapshots(folder: Path, store: RawFileStore, dataset: str = DATASET) -> list[str]:
+    """CSV texts of every day's canonical snapshot of a dataset (days marked "none" are skipped). The days come from
+    the canonical markers in the repository's quote `folder`; the quote files are read through `store`, which holds
+    Groww's in Drive (A4b)."""
     texts = []
-    for marker in sorted(folder.rglob("nifty_*.canonical")):
+    for marker in sorted((folder / dataset).rglob("nifty_*.canonical")):
         name = marker.read_text().strip()
-        if name and name != "none":
-            texts.append((marker.parent / f"{name}.csv").read_text())
+        if name and name != NONE_MARKER:
+            path = marker.with_name(f"{name}.csv").relative_to(folder).as_posix()
+            texts.append(store.get(path).decode())
     return texts
 
 

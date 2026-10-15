@@ -13,7 +13,7 @@ from .series import DailySeries, held_at_close
 from .uncertainty import FIGURES_STATUS, Uncertainty
 
 AI_NOT_AVAILABLE = "not available: F8 (AI cost allocation) not built"
-MARGIN_AT_ENTRY = "stressed margin at entry x sessions held (not re-margined daily)"
+MARGIN_AT_ENTRY = "capital tied at entry (broker margin + premium paid) x sessions held (not re-margined daily)"
 
 
 def rupees(value: float | None) -> float | None:
@@ -34,7 +34,8 @@ def _money(trades: Sequence[ScoredTrade]) -> dict:
 
 def _risk(trades: Sequence[ScoredTrade], series: DailySeries) -> dict:
     held = {t.trade_id: sum(held_at_close(t, d) for d in series.days) for t in trades}
-    margins = [t.entry.stressed_margin * held[t.trade_id] for t in trades if t.entry and t.entry.stressed_margin]
+    margins = [t.entry.capital_tied * held[t.trade_id] for t in trades if t.entry and t.entry.capital_tied]
+    reserves = [t.entry.stress_reserve * held[t.trade_id] for t in trades if t.entry and t.entry.stress_reserve]
     usage = [t.entry.stress_usage for t in trades if t.entry and t.entry.stress_usage is not None]
     return {
         "max_loss_at_entry_rs": rupees(sum(t.entry.max_loss for t in trades if t.entry)),
@@ -42,8 +43,10 @@ def _risk(trades: Sequence[ScoredTrade], series: DailySeries) -> dict:
         "mean_daily_risk_rs": rupees(series.risk_days / len(series.days)) if series.days else None,
         "net_per_unit_of_risk": None if series.net_per_risk is None else round(series.net_per_risk, 6),
         "margin_days_rs": rupees(sum(margins)), "margin_days_method": MARGIN_AT_ENTRY,
+        "stress_reserve_days_rs": rupees(sum(reserves)),
         "stress_usage_at_entry_max": round(max(usage), 6) if usage else None,
         "no_max_loss": sorted(t.trade_id for t in trades if t.entry is None),
+        "no_capital": sorted(t.trade_id for t in trades if t.entry and t.entry.capital_tied is None),
     }  # fmt: skip
 
 

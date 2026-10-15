@@ -17,7 +17,10 @@ from .evaluation.cli import add_evaluation_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
+from .forecast_scoring.v4.cli import add_forecast_v4_scores_parser
+from .forecast_v4_rules.cli import add_forecast_v4_parser
 from .global_cues.cli import add_global_cues_parser
+from .intraday.cli import add_intraday_parser
 from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
@@ -31,6 +34,7 @@ from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
 from .storage.revisions_cli import add_revisions_parser
 from .vix_history.cli import add_vix_history_parser
+from .weather.cli import add_weather_parser
 
 
 def _cfg(args) -> dict:
@@ -192,6 +196,7 @@ def main(argv: list[str] | None = None) -> int:
     c.set_defaults(func=cmd_chain)
 
     add_quotes_parser(sub)
+    add_intraday_parser(sub)
     add_account_parser(sub)
     add_desk_parser(sub)
     add_versions_parser(sub)
@@ -210,9 +215,12 @@ def main(argv: list[str] | None = None) -> int:
     add_ai_parser(sub)
     add_budget_parser(sub)
     add_forecast_parser(sub)
+    add_forecast_v4_parser(sub)
     add_forecast_scores_parser(sub)
+    add_forecast_v4_scores_parser(sub)
     add_vix_history_parser(sub)
     add_card_parser(sub)
+    add_weather_parser(sub)
     add_global_cues_parser(sub)
 
     args = p.parse_args(argv)

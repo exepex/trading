@@ -13,7 +13,7 @@ from fno.risk.inputs import ContractQuote, Market, OpenTrade, Proposal, Proposed
 
 DAY = date(2026, 10, 13)
 LOT = 65  # NIFTY units per lot (config.yaml lot_sizes)
-START = 500_000.0
+START = 2_000_000.0  # the owner's paper account (14 Oct 2026)
 MODEL = Black76()  # the app's model (fno/risk/wiring.py)
 ZERO_CHARGES = dict.fromkeys(
     (
@@ -104,14 +104,27 @@ def book(
     marked=START,
     name="book1_rules",
     premium_reserved=0.0,
+    session_trades=(),
 ) -> RiskBook:
     """A book with its account state given directly: closed equity is the last value of `closed`."""
     closed_equity = closed[-1][1]
     state = AccountState(
         START, cash, closed_equity, marked - closed_equity, marked, 0.0, premium_reserved, len(open_trades), ()
     )
-    return RiskBook(name, state, tuple(open_trades), tuple(closed), tuple(restarts))
+    return RiskBook(name, state, tuple(open_trades), tuple(closed), tuple(restarts), tuple(session_trades))
 
 
 FLY = STRUCTURE_SHORT_IRON_FLY
 CONDOR = STRUCTURE_SHORT_CONDOR
+
+
+DECISIONS_HEADER = "# Desk decisions (owner)\n\n| Date | Decision | Detail |\n|---|---|---|\n"
+
+
+def owner_decision(root, title: str, book: str = "Book 1", day: str = "12 Oct 2026", words: str = "restart it") -> str:
+    """Story C5b: writes `docs/DESK_DECISIONS.md` under `root` with one owner row in the standard form; returns the
+    restart row's `decision` cell (the title)."""
+    path = root / "docs" / "DESK_DECISIONS.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(DECISIONS_HEADER + f'| {day} | **{title}** (owner: "{words}") | {book} brake restarted |\n')
+    return title

@@ -91,8 +91,10 @@ def _sweep(log: Path | None) -> int:
         result = build_last_write_sweep(archive, log).run(participant_oi_last_writes())
         for day, recorded, newer in result.moved:
             print(MOVED.format(day=day, newer=newer, recorded=recorded))
-        for day in result.unanswered:
-            print(f"no answer {day}: unreachable or no Last-Modified; check again next sweep")
+        for day, why in result.unanswered.items():
+            print(f"no answer {day}: {why}; check again next sweep")
+        if result.stopped:
+            print(f"STOPPED: {result.stopped}")
         print("\n".join(revision_lines(archive)))
         moved, unanswered = len(result.moved), len(result.unanswered)
         print(
@@ -101,7 +103,7 @@ def _sweep(log: Path | None) -> int:
         )
     finally:
         print(recorder.commit("participant-oi sweep"))  # the revision index rows
-    return 1 if result.moved or result.unanswered or archive.stored else 0
+    return 1 if result.moved or result.unanswered or result.stopped or archive.stored else 0
 
 
 def _compare(routine_log: Path, actions_log: Path) -> int:

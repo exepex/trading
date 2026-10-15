@@ -23,7 +23,7 @@ from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
-from ..constants import STRESSED_MARGIN_MULTIPLIER, STRUCTURES_BOUGHT_ONLY
+from ..constants import STRESSED_MARGIN_MULTIPLIER, STRUCTURES_BOUGHT_ONLY, STRUCTURES_ONE_SIDE
 from .validity_account import Position
 from .validity_chain import PricedChain
 from .validity_proposal import CheckResult
@@ -62,7 +62,8 @@ def multiplier(settings: MarginSettings, day: date) -> float:
     return settings.multiplier
 
 
-def stressed_per_lot(rows, terms: tuple[str, float, int], day: date, settings: MarginSettings) -> float:
+def margin_row(rows, terms: tuple[str, float, int], day: date, settings: MarginSettings) -> dict:
+    """The latest sourced, fresh row for the structure and width on or before `day`."""
     structure, width, _ = terms
     usable = [
         r for r in rows
@@ -72,10 +73,26 @@ def stressed_per_lot(rows, terms: tuple[str, float, int], day: date, settings: M
     if not usable:
         raise MarginProblem(f"no margin row for {structure} {width:g} on or before {day}")
     row = max(usable, key=lambda r: r["as_of"])
-    if (day - date.fromisoformat(row["as_of"])).days > settings.max_age_days:
+    if not settings.fresh(date.fromisoformat(row["as_of"]), day):
         raise MarginProblem(f"margin for {structure} {width:g} is from {row['as_of']}, too old on {day}")
+    return row
+
+
+def span_cap(structure: str, width: float, nov: float, lot_size: int) -> float | None:
+    """C4's own cap on the stressed SPAN figure of an STR1 code (story STR1b): 0 for a debit row (the premium is all the
+    position can lose), the width less the credit for a credit spread; None (uncapped) for SF, SC and BF."""
+    if structure not in STRUCTURES_ONE_SIDE:
+        return None
+    return max(0.0, width * lot_size + nov) if nov < 0 else 0.0
+
+
+def stressed_per_lot(rows, terms: tuple[str, float, int], day: date, settings: MarginSettings, lot_size: int) -> float:
+    structure, width, _ = terms
+    row = margin_row(rows, terms, day, settings)
     scan, nov, exposure = (float(row[k]) for k in ("scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs"))
-    per_lot = max(0.0, multiplier(settings, day) * scan - nov) + min(0.0, nov) + exposure
+    span, cap = max(0.0, multiplier(settings, day) * scan - nov), span_cap(structure, width, nov, lot_size)
+    capped = span if cap is None else max(max(0.0, scan - nov), min(span, cap))  # never below the broker's own figure
+    per_lot = capped + min(0.0, nov) + exposure
     if per_lot < 0 or (per_lot == 0 and structure not in STRUCTURES_BOUGHT_ONLY):
         raise MarginProblem(f"margin for {structure} {width:g} on {row['as_of']} is not above 0")
     return per_lot
@@ -89,10 +106,12 @@ def _terms(position: Position) -> tuple[str, float, int]:
 
 def margin_check(
     held: Sequence[Position], proposal: Position, cash: float, premium_reserved: float, chain: PricedChain,
-    rows, settings: MarginSettings, day: date,
+    rows, settings: MarginSettings, day: date, lot_size: int,
 ) -> CheckResult:  # fmt: skip
     """`held`: the open trades and the trades chosen earlier the same day; `cash` already holds their entries."""
-    needed = {p.trade_id: stressed_per_lot(rows, _terms(p), day, settings) * _terms(p)[2] for p in (*held, proposal)}
+    needed = {
+        p.trade_id: stressed_per_lot(rows, _terms(p), day, settings, lot_size) * _terms(p)[2] for p in (*held, proposal)
+    }
     values = [marked(p, chain) for p in held]
     own = marked(proposal, chain)
     entry = cash + proposal.cash_flow
@@ -100,6 +119,7 @@ def margin_check(
     after = min(entry, entry + sum(values) + own, entry + liabilities) - premium_reserved
     total = sum(needed.values())
     numbers = {"stressed_margin_rs": {k: round(v, 2) for k, v in needed.items()}, "needed_rs": round(total, 2),
-               "available_after_entry_rs": round(after, 2)}  # fmt: skip
+               "available_after_entry_rs": round(after, 2),
+               "margin_row": margin_row(rows, _terms(proposal), day, settings)}  # fmt: skip
     reason = f"stressed margin Rs {total:,.2f} against Rs {after:,.2f} available after entry"
     return CheckResult(NAME, total <= after, reason, numbers)
