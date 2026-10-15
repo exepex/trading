@@ -188,3 +188,63 @@ should-fixes 1-5 above. They stay open. This addendum judges only the T1 card fi
 **Verdict for the addendum's own content: MET.** **P1 overall stays FAIL** until judge 102's must-fixes 1-3 (Forecast
 lab isolation label and counted status, the card's stress line, the gap list against the design sections) and
 should-fixes 1-5 are fixed and re-judged.
+
+## Addendum 2 (15 Oct 2026): all judge 102 findings, dashboard 02664369f05a21c6642e2336b40a54fc7e2d29be and trading e4bade7ebaaec34caeadc2d4a7f2967eaf5d9476
+
+**Scope:**
+- Dashboard d3f8093..0266436: four commits (judge 102 fixes, the family mapping, the three-pair stress line, and
+  Home's `limit_max`).
+- Trading: the branch's own diff from its merge base with `main`, which is the re-pin, the tests, the story text,
+  REPLAN and claims addenda 2-3.
+
+### Gates
+
+- **Trading at e4bade7:** 3,568 passed, **0 xfailed**; ruff, format (764 files) and imports clean.
+- **Trading, trial merge with `origin/main` (6aa3a45):** clean; 3,569 passed; same checks clean.
+- **Dashboard at 0266436:**
+  - `npm ci`, typecheck clean, `npm test` 465/465, `npm run build` compiles;
+  - `check_mapping`, `check_contract`, `render_catalog --check`, `check_fno_screens` (289 leaves, 56 built, 26/26
+    planted), `render_fno_catalog --check`, `examples --check` and code size: all exit 0;
+  - mockups 31, 39 and 40 rebuild with no byte change.
+- **Pin:** all 33 files byte-equal to the dashboard at 0266436 and to `pin.json`.
+
+### Judge 102 items
+
+| Item | Result | Evidence |
+|---|---|---|
+| MF1 isolation label, status, coverage | **MET, one hole** | `isolation_label` is forced to "sealed same day (not full F1)" when `isolation` is `sealed_same_day`; my plant removing that rule is caught. Per-value status: counted, pending, late, breach or model_mismatch. Coverage counts per forecaster, plus `n_missing`. The 14 Oct fixture now asserts every value `late`. **Hole:** an AI book can be declared `isolation: code` with a null label and the page validates (my probe on `book2_hybrid`); see should-fix 1 |
+| MF2 stress line | **MET** | The `stress` block is owner-only and pinned in `OWNER_PATHS`. Exactly three paired scenarios are enforced by `prefixItems` and `const`; my plant dropping the third pair's VIX const is caught. The examples are checked so that no line exceeds `max_loss_sum`. The pairing (−5/+50, −10/+100, +5/0) is the orchestrator's reading of design 6.2's list (response 113 #4) and is labelled so |
+| MF3 gap list | **MET** | Rebuilt against 4.1, 4.4, 2.3, 5.2-5.8, 3.1-3.2, 6.2, 8.3 and the owner rows. Each item is covered, or out of scope with a reason: close-proxy label, full reliability table, stability, drift screen, cost-wall internals, effective sample |
+| SF1 v4 fields | **MET** | `p_value`, `interval` (v3 only), `verdict` (+`futile`), `futility_upper_bound` and `n_needed` are rewritten to G6 revision 1 and marked `x-provisional`. Dropping a provisional mark is not caught (minor 1) |
+| SF2 made-up values | **MET** | `closed[].fills`, `open[].monitor` and `alerts_today` are nullable before E8 and LM1, with an example of each |
+| SF3 visibility | **MET** | `OWNER_PATHS`: my plant that makes the card's `trade` public now fails `check_fno_screens` itself |
+| SF4 per-version AI cost | **MET** | `results[].costs` is charges and pads only; `books[].ai_and_data_costs` is book-level, null until S2 |
+| SF5 surviving plants | **MET** | Nine schema probes. My `max_loss` 50,000 plant and the settle-rule plant are now caught |
+| Minors 1-5 | **MET** | `MOCKNIFTY26DEC10600PE`-style contracts far from any real level; family mapping named; mockup 40 says "No colour" and "No new paper trade today: a missing weather blocks new trades"; push line fixed |
+| T1 follow-up | **MET** | Imports `CARD_DELIVERIES_FOLDER` and `CARD_VALID_UNTIL` from `fno.constants`; reads T1's real record on `main`; asserts that at least one record exists; fixture copy removed |
+
+**Home `limit_max` (Rs 1,50,000, owner "2 A").**
+- The change is consistent with judge 105's should-fix 4, and the schema does not constrain the number.
+- Until C5 merges, though, `main` publishes 30,000 while the contract text says 1,50,000.
+- `docs/stories/P-publishing.md:413` (P10) still says "`limit_max` = C2's `max_stress_loss_rs`". That is judge C's
+  item for C5.
+- Merge this dashboard change no earlier than C5, or note the gap in the merge message.
+- Mockup 31 is a signed-off screen, and its `changes.md` has no row for the new number (minor 2).
+
+### Should-fix
+
+1. **Tie the AI books to a non-code isolation.** Owner condition 2 (14 Oct) puts the label on every AI record.
+   - Add a rule: `kind: family` with `family` hybrid or ai requires `isolation` to be `sealed_same_day` or `full_f1`.
+     Then the label rule applies.
+   - Add a probe that declares `book2_hybrid` as `code` with a null label.
+
+### Minor
+
+1. `x-provisional` marks are not guarded: my plant renaming the one on `p_value` passes. A check that every v4 field
+   listed in the gap list keeps its mark would do.
+2. Add a `changes.md` row to mockup 31 for `limit_max` 30,000 → 1,50,000 (owner "2 A").
+3. **My mutations:** 5 dashboard plants, 4 caught (the 5th is minor 1), plus the isolation probe above.
+
+**Verdict: FAIL** for dashboard 02664369f05a21c6642e2336b40a54fc7e2d29be and trading
+e4bade7ebaaec34caeadc2d4a7f2967eaf5d9476, on should-fix 1 only. It is one schema rule and one probe. Everything else in
+judge 102 and addendum 1 is met.
