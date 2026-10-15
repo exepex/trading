@@ -204,3 +204,15 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   default unchanged), so the desk's alerts, the quote parts' commit alerts and O1's step alerts all go through it.
 - **Tests:** `test_an_alert_slack_did_not_take_is_printed_for_the_connector_one_it_took_is_not` and
   `test_the_desk_and_o1_share_that_one_sender`.
+
+### Judge 178 addendum 6, should-fix 9: accepted and fixed
+
+- **Accepted, checked.** Every child writes to a temporary file, and the run kept only its last 10 lines. So a
+  child's own "alert NOT sent" line never reached the routine: the recorder's alerts, E5b's "NOT committed", the
+  card's outcome, and later the margin check, weather and v4 steps. CLAUDE.md steps 3-4 rely on that line.
+  **Strong evidence:** `fno/daily/processes.py` before the fix.
+- **Fix:** `ChildProcess` reads a child's whole output once, when it ends or is stopped, and prints every line
+  containing "alert NOT sent" as written (`UNSENT`, from the sender's own `NOT_SENT`). The run log still keeps the
+  last 10 lines.
+- **Tests:** a real child printing the line among 14, and a stopped child.
+- **Faults planted:** removing the report loop failed 2 tests; skipping the read on stop failed 1.

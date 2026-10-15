@@ -10,9 +10,12 @@ import subprocess
 import sys
 import tempfile
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from ..alerts.sender import NOT_SENT
+
+UNSENT = NOT_SENT.split(":")[0]  # "alert NOT sent": a child's own unsent alert, printed for the routine's connector
 KEPT_LINES = 10  # the run log keeps the last lines a command printed (result lines; never a secret, O5's scan)
 
 
@@ -37,8 +40,11 @@ class Processes(ABC):
 
 
 class ChildProcess(Process):
-    def __init__(self, popen: subprocess.Popen, output):
-        self.popen, self.output = popen, output
+    """Its whole output is read once when it ends or is stopped: every unsent-alert line in it is printed as written
+    (judge 178 addendum 6: CLAUDE.md's 3 pm rules have the routine post those lines), the last lines are kept."""
+
+    def __init__(self, popen: subprocess.Popen, output, report: Callable[[str], None] = print):
+        self.popen, self.output, self.report, self.printed = popen, output, report, None
 
     def poll(self) -> int | None:
         return self.popen.poll()
@@ -49,24 +55,32 @@ class ChildProcess(Process):
         with contextlib.suppress(ProcessLookupError):  # it ended on its own meanwhile
             os.killpg(self.popen.pid, signal.SIGKILL)
         self.popen.wait()
+        self._read()
 
     def lines(self) -> list[str]:
-        self.output.seek(0)
-        printed = self.output.read()
-        self.output.close()
-        return [line.rstrip() for line in printed.splitlines() if line.strip()][-KEPT_LINES:]
+        return self._read()[-KEPT_LINES:]
+
+    def _read(self) -> list[str]:
+        if self.printed is None:
+            self.output.seek(0)
+            self.printed = [line.rstrip() for line in self.output.read().splitlines() if line.strip()]
+            self.output.close()
+            for line in self.printed:
+                if UNSENT in line:
+                    self.report(line)
+        return self.printed
 
 
 class ChildProcesses(Processes):
     """The commands run with this Python and the routine's environment (its settings, never printed)."""
 
-    def __init__(self, root: Path):
-        self.root = Path(root)
+    def __init__(self, root: Path, report: Callable[[str], None] = print):
+        self.root, self.report = Path(root), report
 
     def start(self, arguments: Sequence[str]) -> Process:
-        output = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115 - open for the child's run, closed by lines()
+        output = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115 - open for the child's run, closed once read
         command = [sys.executable, "-m", "fno", *arguments]
         # its own process group, so `stop` ends everything it started
         popen = subprocess.Popen(command, cwd=self.root, stdout=output, stderr=subprocess.STDOUT, text=True,
                                  start_new_session=True)  # fmt: skip
-        return ChildProcess(popen, output)
+        return ChildProcess(popen, output, self.report)
