@@ -143,6 +143,12 @@ OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
 STRESSED_MARGIN_STRESSES = "scan and exposure (owner, 15 Oct 2026; story C2c)"  # every decision record's label
+# Story C2d: the stress factor k as A14c's weekly job appends it (append-only), read by C2 and by C4 with its own reader
+STRESS_FACTOR_COLUMNS = (
+    "as_of", "factor", "computed", "unrounded", "status", "peak", "coverage_through", "evidence_sha256",
+)  # fmt: skip
+STRESS_FACTOR_STATUSES = ("applied", "held")  # held: a lower result waits for the owner; the old factor stays in force
+STRESS_FACTOR_DATE = "%Y-%m-%d"  # the only date form accepted in the factor file
 # Risk buckets (story C5, design 6.2): an underlying group and a side of exposure. Only the index groups 6.2 names are
 # mapped; a stock (its own group, or "stock results this week") is unmapped until the events calendar is wired in.
 BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH = (
@@ -184,6 +190,7 @@ V4_QUESTIONS = (
 )  # fmt: skip
 V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI = "rules", "hybrid", "ai_team"  # one registered forecaster per slot
 V4_SLOTS = (V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI)
+V4_DAY_A, V4_DAY_A2, V4_DAY_SYSTEM_LATE = "A", "A2", "system_late"  # G10: a day's quality label (protocol 1.6)
 V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY = "har_daily", "har_intraday"
 V4_BASELINE_TRAILING, V4_BASELINE_EWMA = "trailing", "ewma_094"
 V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED = "raw_implied", "premium_adjusted_implied"
@@ -309,6 +316,7 @@ class CardStatus(StrEnum):
 CARD_NO_APPROVED_STRATEGY = "no_approved_strategy"  # no playbook version is at `paper`
 CARD_TRADE_FIELDS_NOT_BUILT = "trade_fields_not_built"  # a version is at `paper`; card v1 has no trade fields (slice B)
 CARD_DATA_CHECK_FAILED = "data_check_failed"  # a record the status needs could not be read
+CARD_HARD_RULE_BREACH = "hard_rule_breach"  # T2: C4 refused a book's proposed trade today (its committed rows)
 CARDS_AREA = "cards"  # Drive area of the card records (beside raw/ and pipeline/); never the public repository
 PAPER_AREA = "paper"  # Drive area of the private paper records: accounts, desk records, private packs (story E2c)
 DAILY_TOTALS_FILE = "daily_totals.csv"  # journal/<book>/daily_totals.csv: the public per-book daily totals (story E2c)
@@ -322,25 +330,6 @@ CARD_SESSION_KINDS = (
 
 # Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
 RUN_LOG_DECISIONS_STEP = "decisions"
-
-# The market weather (story M1, fno/weather/; design 2.3): its forecasters, colours and the owner's thresholds
-# (15 Oct 2026, "Weather thresholds accepted"), scored on protocol v4's V6a and V6b
-WEATHER_MODEL_VIX, WEATHER_BASELINE_V0 = "weather_vix_v1", "weather_checklist_v0"
-WEATHER_OPERATIVE_MODEL = WEATHER_MODEL_VIX  # decision 71: back to v0 only by a recorded decision
-WEATHER_OPERATIVE_PROVEN = False  # "not yet proven" until G8 scores it against v0 and the base rate
-
-
-class WeatherColour(StrEnum):
-    GREEN = "GREEN"
-    AMBER = "AMBER"
-    RED = "RED"
-    NOT_SCORED = "not scored"  # a probability or base rate missing: blocks new trades like RED (owner "4 A")
-
-
-WEATHER_RED_FLOORS, WEATHER_AMBER_FLOORS = (0.10, 0.35), (0.06, 0.20)  # (next session, within 5 sessions)
-WEATHER_RED_MULTIPLE, WEATHER_AMBER_MULTIPLE = 2.5, 1.5  # times the 750-session base rate
-WEATHER_RED_MAX_SHARE, WEATHER_RED_SHARE_RECORDS = 0.15, 250  # over it: "over_alarming" (never retuned in place)
-WEATHER_US_CUES = ("sp500", "nasdaq100")  # private cues (owner a927390): the US-move flag is kept in Drive only
 
 # The daily health check (story O8, fno/health/): its statuses and its own run record
 HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", "unknown"

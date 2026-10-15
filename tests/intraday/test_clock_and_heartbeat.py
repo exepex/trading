@@ -61,12 +61,12 @@ def test_the_5_second_limit_a_partial_check_and_the_unchecked_case(offsets, stat
     assert bool(reading.warning()) == (status != CLOCK_OK)  # a skew or an unchecked server is always said
 
 
-def test_the_wiring_asks_github_at_the_repository_and_slack(monkeypatch):
+def test_the_wiring_asks_github_at_the_repository_and_slack(tmp_path, monkeypatch):
     from fno.intraday import wiring
     from tests.intraday.groww_fakes import FakeGrowwProvider
 
     monkeypatch.setattr(wiring, "GrowwProvider", lambda cfg: FakeGrowwProvider())
-    servers = wiring.build_intraday_recorder({}, Path("/tmp/a16-dry")).clock_check.servers
+    servers = wiring.build_intraday_recorder({}, tmp_path / "dry").clock_check.servers
     assert [(s.name, s.url) for s in servers] == [
         ("github", "https://api.github.com/repos/exepex/trading"), ("slack", "https://slack.com/api/api.test")
     ]  # fmt: skip

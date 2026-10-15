@@ -73,3 +73,31 @@ first day from 14 to 15 Oct for the same reason. Every assertion is still exact.
    `manager.py:66`). C4 only catches `MarginProblem`, so C4's check would stop with an error rather than a named
    refusal. That is the same as C4's existing margin-row parsing, so it is not new here, and only a broken writer
    would produce it.
+
+## Addendum 1: re-judge at `793e03c415a32e23e84555b216532f1038ae0ecd` (judge G)
+
+**Verdict: PASS.** The fix reached me from the builder. I re-judged it as part of the judge and builder loop and report
+the verdict to the orchestrator.
+
+- **Should-fix 1 (rule 3 self-review) is accepted.** The claims (`response_178`) carry the section. As with C2c, the
+  review found something the mutations missed: an unreadable row (an empty factor, a bad date, a short row) raised a
+  raw `ValueError` or `TypeError`. In C4 that escaped the check, which is my note 3. It is now refused by name:
+  "stress_factor.csv row N is unreadable".
+- **Note 1 is fixed.** A stable sort on the parsed date makes the later same-date row in the file win, in both readers.
+- **Also fixed:** NaN and infinite factors are refused, only YYYY-MM-DD dates are accepted, and the record nests the
+  row under `stress_factor_row` with the story's field names.
+- **My checks on the fix tree:**
+  - ruff, format and imports are clean;
+  - `tests/risk tests/checks tests/test_code_size.py` gives 1,936 passed;
+  - `fno/constants.py` is exactly 350 lines, which is allowed ("no file over 350") and passes the size test.
+- **My new mutations (each alone, then reverted).** All 7 were caught; the clean tree gives 794 passed:
+  - `max` restored instead of the stable sort, in C2 and in C4;
+  - `isfinite` removed, in C2 and in C4;
+  - the bad-row guard narrowed to `KeyError`, in C2 and in C4;
+  - `date.fromisoformat` back in C2.
+- **Behaviour now:** one unreadable row anywhere in the file refuses every trade until it is corrected. That is
+  stricter than before. It is the right side to err on for an append-only file that a job writes unattended, and A14c
+  alerts on its own failures.
+- **Owner-visible fact (stated in the claims):** a decision dated 14 Oct has no factor, because the seed is dated
+  14 Oct and only rows strictly before the day count. There is no record for that day, and the merge comes later.
+- `constants.py` has no room left: the next constant must go into a split module.

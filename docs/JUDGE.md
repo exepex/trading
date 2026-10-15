@@ -135,6 +135,18 @@ gaps." These rules add to the loop above; none of them replaces the judge's own 
    checked with evidence (accept, partial or reject), never accepted blindly. Any change made after the judge's PASS
    because of that review returns to the judge before the merge.
 
+**Merge procedure: when the gates run (owner, 16 Oct 2026; story X fast checks).**
+- The gates (`python -m pytest -q -n auto`, `ruff check fno tests tools`, `python tools/check_imports.py`) run once,
+  on the final merged tree, before the merge is pushed.
+- A `git pull --no-rebase` just before the push that brings only lane-3 files (`reviews/`, `conversations/`,
+  `docs/DESK_DECISIONS.md`, `docs/WORK_REGISTER.md`: the paths `tools/ci_scope.sh` names) needs no rerun: no gate reads
+  them. A pull that brings anything else means the gates run again on the new tree.
+- A merge that moves data (a table moved out of the repository, rows adopted into Drive, a migration) also needs one
+  run of the moved data's own command in a fresh clone of the merged `main`, with the Drive settings (as A17d's rule-8
+  fill).
+- CI (`checks.yml`) mirrors this: a push of lane-3 files only skips pytest, ruff and the import check; the record scan
+  runs on every push.
+
 **Several judges (owner decision, 15 Oct 2026).** Several judge sessions may run at once, each with a dedicated, limited
 set of stories named by the orchestrator, so no judge's load grows too large. Each follows this file in full. By the
 orchestrator's convention (not an owner rule), the verdict number equals the story's response number; a change with no

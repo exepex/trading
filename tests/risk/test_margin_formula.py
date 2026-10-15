@@ -2,7 +2,7 @@
 never the premium (story C2c), refuses a margin not above 0, and with an open losing trade never leaves more free than
 a broker that nets the premium."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -12,6 +12,7 @@ from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginParts, MarginTable, MultiplierMargin
 from fno.risk.rules import MarginRoom
 from fno.risk.settings import StressedMarginSettings
+from tests.stress_factor_files import factor_file
 
 from .builders import DAY, START, book, market, open_trade, proposal, short_fly
 
@@ -49,7 +50,7 @@ def test_a_margin_not_above_0_or_a_negative_part_is_refused_by_name(parts, reaso
 def _room(tmp_path) -> MarginRoom:
     rows = [f"{p.what.split()[0]},100,{p.scan},{p.nov},{p.exposure},NSE SPAN test,{DAY}\n" for p in (SF_100, BF_100)]
     (tmp_path / "margins.csv").write_text(HEADER + "".join(rows))
-    settings = StressedMarginSettings("multiplier", 1.0, "exact input", DAY, 30, None)
+    settings = StressedMarginSettings("multiplier", factor_file(1.0, DAY - timedelta(days=1)), 30, None)
     return MarginRoom(MultiplierMargin(MarginTable(tmp_path / "margins.csv", DaysOld(7), 65), settings), CostsAtMid())
 
 

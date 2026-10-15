@@ -3,9 +3,10 @@
 - the SHA-256 of every file and every config section the protocol's `frozen_files` item lists.
 
 The freezer refuses unless the protocol is committed unchanged, complete, and decided item by item by the owner. It
-also refuses when a listed file is missing, or when this version is already frozen. It then registers the protocol in
-the research ledger (B4). A later change to any hashed target is a new protocol version, never an edit of a frozen
-one."""
+also refuses when a listed file is missing, or when this version is already frozen, and unless the real-money gate
+(story RM1) is listed and is complete and decided too, so the gate is frozen before any counted paper decision.
+It then registers the protocol in the research ledger (B4). A later change to any hashed target is a new protocol
+version, never an edit of a frozen one."""
 
 from __future__ import annotations
 
@@ -20,6 +21,7 @@ import yaml
 
 from ..research_engine.ledger import Ledger, read_ledger, write_ledger
 from .completeness import completeness_problems, undecided_items
+from .gate import GATE_FILE, gate_problems
 from .protocol import PROTOCOL_FILE, parse_protocol
 
 FREEZE_TEMPLATE = "research/evaluation/FREEZE_v{version}.md"
@@ -147,12 +149,24 @@ class ProtocolFreezer:
         if path.exists():
             raise FreezeRefused(f"{freeze_path(version)} exists: a change is a new protocol version")
         targets = frozen_targets(text)
+        self._require_gate(targets)
         self._require_committed(targets)
         commit, head = self.git.commits_touching(PROTOCOL_FILE)[-1], AtCommit(self.git, "HEAD")
         record = FreezeRecord(version, commit, {t: target_hash(head, t) for t in targets})
         path.write_text(render(record), encoding="utf-8")
         self._register(record, today)
         return record
+
+    def _require_gate(self, targets: list[str]) -> None:
+        """The real-money gate is frozen with the protocol, never after it (story RM1)."""
+        if GATE_FILE not in targets:
+            raise FreezeRefused(f"{GATE_FILE} (the real-money gate, story RM1) must be listed in frozen_files")
+        data = WorkingTree(self.root).read(GATE_FILE)
+        if data is None:
+            raise FreezeRefused(f"{GATE_FILE} is listed in frozen_files but does not exist")
+        problems = gate_problems(data.decode("utf-8"), decided=True)
+        if problems:
+            raise FreezeRefused("the real-money gate is not ready to freeze: " + "; ".join(problems))
 
     def _require_committed(self, targets: list[str]) -> None:
         """Every target committed and unchanged since HEAD: the freeze hashes what git holds, never a local edit."""

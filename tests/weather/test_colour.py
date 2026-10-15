@@ -2,9 +2,9 @@
 
 import pytest
 
-from fno.constants import WeatherColour
 from fno.weather import day as weather_day
 from fno.weather.colour import weather_colour
+from fno.weather.constants import WeatherColour
 
 from .fakes import ok, rows_from, weather_days
 

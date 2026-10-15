@@ -3,7 +3,7 @@
 names the margin row it used."""
 
 import csv
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -18,12 +18,13 @@ from tests.checks.test_validity_shapes import ONE_SIDE, ROWS
 from tests.checks.validity_builders import SPOT, check, committed_store
 from tests.checks.validity_proposal_builder import one_side_proposal
 from tests.checks.validity_sources import Margins
+from tests.stress_factor_files import factor_file
 
 REAL_ROWS = Path(__file__).parents[1] / "risk" / "fixtures" / "margins_2026-10-14.csv"
 DAY, LOT, K = date(2026, 10, 14), 65, 1.45
-C4 = MarginSettings(REAL_ROWS, 7, None, "multiplier", K, "owner", DAY, 30)
-C2 = MultiplierMargin(MarginTable(REAL_ROWS, DaysOld(7), LOT), StressedMarginSettings("multiplier", K, "owner", DAY, 30,
-                                                                                      None))  # fmt: skip
+K_FILE = factor_file(K, DAY - timedelta(days=1))
+C4 = MarginSettings(REAL_ROWS, 7, None, "multiplier", K_FILE, 30)
+C2 = MultiplierMargin(MarginTable(REAL_ROWS, DaysOld(7), LOT), StressedMarginSettings("multiplier", K_FILE, 30, None))
 REAL = list(csv.DictReader(REAL_ROWS.open(encoding="utf-8")))
 
 

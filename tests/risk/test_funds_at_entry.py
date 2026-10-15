@@ -8,7 +8,7 @@ would open a trade Groww refuses. The funds-at-entry check closes that: margin w
 plus the bought premium and charges, against the free cash before entry. The mirror (a long iron fly, a debit) pays
 the dearer legs and is not credited the cheaper ones."""
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -16,6 +16,7 @@ from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginParts, MarginTable, MultiplierMargin
 from fno.risk.rules import MarginRoom
 from fno.risk.settings import StressedMarginSettings
+from tests.stress_factor_files import factor_file
 
 from .builders import DAY, START, book, market, open_trade, proposal, short_fly
 
@@ -46,7 +47,7 @@ class GrowwCosts:
 def room(tmp_path, costs) -> MarginRoom:
     rows = [f"{p.what.split()[0]},100,{p.scan},{p.nov},{p.exposure},NSE SPAN i1,{DAY}\n" for p in (SF, BF)]
     (tmp_path / "margins.csv").write_text(HEADER + "".join(rows))
-    settings = StressedMarginSettings("multiplier", 1.0, "exact input", DAY, 30, None)
+    settings = StressedMarginSettings("multiplier", factor_file(1.0, DAY - timedelta(days=1)), 30, None)
     return MarginRoom(MultiplierMargin(MarginTable(tmp_path / "margins.csv", DaysOld(7), 65), settings), costs)
 
 
