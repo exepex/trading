@@ -10,7 +10,7 @@ from datetime import date, datetime
 from ..alerts.sender import AlertSender
 from ..storage.raw_store import RawFileStore
 from .document import SnapshotDocument, snapshot_path, utc_text
-from .ledger import SlotLedger, missed_row, taken_row
+from .ledger import SlotLedger, failed_row, missed_row, taken_row
 from .slots import marks, window_end
 from .status import verdict
 from .streak import streak_alert_text
@@ -25,9 +25,9 @@ class Settlement:
     def path(self, day: date, mark: datetime) -> str:
         return snapshot_path(self.source, day, mark)
 
-    def settle(self, day: date, now: datetime, taken=None) -> tuple[list[dict], str]:
-        """The rows written now, and the alert line ("" when no alert was due). `taken`: (document, bytes, clock
-        reading) of the snapshot just taken, or None."""
+    def settle(self, day: date, now: datetime, taken=None, failed=None) -> tuple[list[dict], str]:
+        """The rows written now, and the alert lines ("" when none was due). `taken`: (document, bytes, clock
+        reading) of the snapshot just taken; `failed`: (mark, failure name) of a mark whose snapshot failed."""
         existing = self.ledger.rows(day)
         have = {row["mark"] for row in existing}
         new = []
@@ -36,6 +36,8 @@ class Settlement:
                 continue
             if taken is not None and taken[0].mark == mark:
                 new.append(self._row(day, mark, *taken))
+            elif failed is not None and failed[0] == mark:
+                new.append(failed_row(day, mark, self.source, failed[1], now))
             elif window_end(mark) < now:
                 data = self.store.get(self.path(day, mark))
                 document = SnapshotDocument.from_bytes(data) if data else None
@@ -58,10 +60,10 @@ class Settlement:
         return SnapshotDocument.from_bytes(data).index_level if data else None
 
     def _alert(self, rows: list[dict], now: datetime) -> str:
-        """The streak alert as of the newest row, kept in that row (rows are settled in mark order, so a streak
-        followed by a good mark in the same settlement is still alerted)."""
+        """The streak alert due as of the newest row, kept in that row with its time (rows are settled in mark
+        order, so a streak followed by a good mark in the same settlement is still alerted)."""
         text = streak_alert_text(rows, now)
         if not text:
             return ""
-        rows[-1]["alert"] = ALERT_LINE.format(text=text, outcome=self.alerts.send(text))
+        rows[-1].update(alert=ALERT_LINE.format(text=text, outcome=self.alerts.send(text)), alert_at=utc_text(now))
         return rows[-1]["alert"]

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta
 
-from fno.alerts.sender import AlertSender
+from fno.alerts.sender import NOT_SENT, SENT, AlertSender
 from fno.intraday.clock import ClockCheck, ServerClock
 from fno.intraday.document import CallRecord, SnapshotDocument
 from fno.intraday.first_version_store import FirstVersionStore
@@ -81,10 +81,11 @@ class FakeSource(IntradayQuoteSource):
         source_time = received - timedelta(seconds=121 if plan == "old" else 1)
         quotes = [CallRecord(f"quote {i}", received, received, {"bid_price": 1, "offer_price": 2}, "", {})
                   for i in range(self.contracts - (1 if plan == "partial" else 0))]  # fmt: skip
-        chain = CallRecord("chain", received, received, {"strikes": {}}, "", {})
+        chains = [CallRecord(f"chain {n}", received, received, {"strikes": {}}, "", {"contracts": self.contracts // 2})
+                  for n in (1, 2)]  # fmt: skip
         doc = SnapshotDocument(
             self.name, "NIFTY", session, mark, index, None if plan == "fail" else level,
-            None if plan == "fail" else source_time, chains=[chain], quotes=quotes, expected_contracts=self.contracts,
+            None if plan == "fail" else source_time, chains=chains, quotes=quotes, expected_contracts=self.contracts,
             two_sided_contracts=len(quotes), failures=["index"] if plan == "fail" else [],
         )  # fmt: skip
         doc.finished_at = self.clock.now()
@@ -92,12 +93,15 @@ class FakeSource(IntradayQuoteSource):
 
 
 class FakeAlerts(AlertSender):
-    def __init__(self):
+    """Records every text; answers "sent" unless `failing` (then as with no Slack token)."""
+
+    def __init__(self, failing: bool = False):
         self.sent: list[str] = []
+        self.failing = failing
 
     def send(self, text: str) -> str:
         self.sent.append(text)
-        return "alert NOT sent: test"
+        return NOT_SENT.format(reason="test") if self.failing else SENT
 
 
 class FakePublisher(ManifestRecorder):

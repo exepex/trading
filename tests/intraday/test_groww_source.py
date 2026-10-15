@@ -69,7 +69,8 @@ def test_a_refused_sign_in_fails_every_call_by_name_and_never_raises():
     adapter.prepare(DAY)
     found = adapter.take(DAY, ist(DAY, 10, 0))
     assert found.index.failure == "RuntimeError" and found.index_level is None
-    assert found.failures[0] == "sign_in: RuntimeError" and found.expected_contracts == 0
+    assert found.notes == ["prepare sign_in: RuntimeError"] and found.expected_contracts == 0
+    assert found.failures[0] == "index" and "chain 2026-10-19" in found.failures
 
 
 def test_no_order_position_margin_or_funds_call_is_made_in_a_whole_session(tmp_path):
@@ -99,3 +100,31 @@ def test_no_credential_reaches_a_document_the_ledger_an_alert_or_the_output(tmp_
     texts = [gzip.decompress(p.read_bytes()) for p in tmp_path.rglob("*.gz")]
     assert alerts.sent and PLANTED.encode() not in written and all(PLANTED.encode() not in t for t in texts)
     assert PLANTED not in capsys.readouterr().out and all(PLANTED not in a for a in alerts.sent)
+
+
+@pytest.mark.parametrize("bad_time", ["2026-10-15T09:15:00", "not a time", [1]])
+def test_an_unexpected_index_time_is_a_named_failure_never_a_crash(bad_time):
+    api = FakeGrowwApi()
+    api.get_quote = lambda trading_symbol, exchange, segment, timeout=None: (
+        {"payload": {"last_price": 25000.0, "last_trade_time": bad_time}} if segment == "CASH" else
+        {"payload": {"bid_price": 1, "offer_price": 2, "last_trade_time": 10**13}})  # fmt: skip
+    found = source(api).take(DAY, ist(DAY, 10, 0))
+    assert found.index_level is None and found.failures[0].startswith("index_parse: ")
+    assert found.two_sided_contracts == 0 and found.recorded_contracts == found.expected_contracts  # unreadable books
+
+
+def test_an_unreadable_chain_is_a_named_failure():
+    api = FakeGrowwApi()
+    api.get_option_chain = lambda **kwargs: {"payload": {"strikes": {"not a strike": {"CE": {"ltp": 1}}}}}
+    found = source(api).take(DAY, ist(DAY, 10, 0))
+    assert "chain_parse 2026-10-19: ValueError" in found.failures and found.expected_contracts == 0
+
+
+def test_every_call_carries_a_timeout():
+    seen = []
+    api = FakeGrowwApi()
+    quote, chain = api.get_quote, api.get_option_chain
+    api.get_quote = lambda **kw: seen.append(kw["timeout"]) or quote(**kw)
+    api.get_option_chain = lambda **kw: seen.append(kw["timeout"]) or chain(**kw)
+    source(api).take(DAY, ist(DAY, 10, 0))
+    assert set(seen) == {10} and len(seen) == 2 + 2 + 244

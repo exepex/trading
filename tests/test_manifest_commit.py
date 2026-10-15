@@ -128,3 +128,35 @@ def test_a_committer_given_its_own_message_uses_it_and_the_default_is_unchanged(
     assert recorder.commit("2026-10-15 09:15") == COMMITTED.format(count=1)
     assert git(origin, "log", "-1", "--format=%s", "main").strip() == "Data: intraday slots (2026-10-15 09:15)"
     assert GitManifestRecorder(clone, folder).message.startswith("Manifests: SHA-256 rows")
+
+
+def test_without_hooks_nothing_is_committed_so_the_record_scan_is_never_skipped(tmp_path, repository):
+    clone, origin, manifests = repository
+    git(clone, "config", "--unset", "core.hooksPath")
+    save_one_file(tmp_path, manifests)
+    outcome = GitManifestRecorder(clone, manifests).commit("test run")
+    assert outcome.startswith("manifest rows NOT committed: hooks failed: core.hooksPath is not set")
+    assert "participant-oi.csv" not in git(clone, "log", "--name-only", "--format=")
+
+
+def test_a_failed_pull_aborts_its_merge_and_names_the_folder(tmp_path, repository):
+    clone, origin, _ = repository
+    folder = clone / "research" / "data" / "intraday"
+    other = tmp_path / "other"
+    git(tmp_path, "clone", "-q", str(origin), str(other))
+    for key, value in (("user.name", "o"), ("user.email", "o@example.invalid")):
+        git(other, "config", key, value)
+    (other / "research" / "data" / "intraday").mkdir(parents=True)
+    (other / "research" / "data" / "intraday" / "heartbeat.json").write_text('{"host": "other"}\n')
+    git(other, "add", ".")
+    git(other, "commit", "-q", "-m", "other host")
+    git(other, "push", "-q", "origin", "HEAD:main")
+    folder.mkdir(parents=True)
+    (folder / "heartbeat.json").write_text('{"host": "this"}\n')
+    recorder = GitManifestRecorder(clone, folder, message="Data: intraday slots ({what})", label="intraday files")
+    outcome = recorder.commit("x")
+    assert (
+        outcome.startswith("intraday files NOT committed: pull failed") and "research/data/intraday/ by hand" in outcome
+    )
+    assert git(clone, "status", "--porcelain") == "" or "UU" not in git(clone, "status", "--porcelain")
+    assert not (clone / ".git" / "MERGE_HEAD").exists()

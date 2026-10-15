@@ -1,10 +1,16 @@
-"""The alert after two bad snapshots in a row (story A16): a SYSTEM alert (design 6.5), first line saying what to do,
-one per streak of bad marks and at most one an hour. Its outcome line is kept in the ledger row that raised it."""
+"""The alert after two bad snapshots in a row (story A16): a SYSTEM alert (design 6.5), first line saying what to do.
+
+- One per streak: a streak (two or more bad marks in a row) is covered once an alert was SENT during or after it.
+- At most one an hour: a streak found less than 60 minutes after the last sent alert is held, and sent at the first
+  settlement after the hour, even if the streak has ended by then.
+- A failed send (no Slack token, Slack down) does not count: it is retried at the next settlement.
+The outcome line and its time are kept in the newest ledger row written with it."""
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from ..alerts.sender import SENT
 from .document import parse_time
 from .status import GOOD
 
@@ -17,21 +23,37 @@ STREAK_ALERT = (
 
 
 def streak_alert_text(rows: list[dict], now: datetime) -> str:
-    """The alert to send now for the ledger's rows in mark order (the newest last), or empty when none is due."""
-    streak = _trailing_bad(rows)
-    if len(streak) < STREAK_LENGTH or any(row["alert"] for row in streak):
+    """The alert due now for the ledger's rows in mark order, or empty when none is due."""
+    sent = [row for row in rows if SENT in row["alert"]]
+    if sent and now - parse_time(sent[-1]["alert_at"]) < ALERT_GAP:
         return ""
-    recent = [r for r in rows if r["alert"] and now - parse_time(r["first_seen_at"]) < ALERT_GAP]
-    if recent:
+    covered_to = sent[-1]["mark"] if sent else ""
+    open_streaks = [s for s in _streaks(rows) if s[-1]["mark"] > covered_to and s[0]["mark"] > _start_of(rows, sent)]
+    if not open_streaks:
         return ""
+    streak = open_streaks[-1]
     marks = ", ".join(f"{r['mark_ist']} {r['status']} ({r['failures']})" for r in streak)
-    return STREAK_ALERT.format(count=len(streak), day=rows[-1]["session"], marks=marks)
+    return STREAK_ALERT.format(count=len(streak), day=streak[-1]["session"], marks=marks)
 
 
-def _trailing_bad(rows: list[dict]) -> list[dict]:
-    streak: list[dict] = []
-    for row in reversed(rows):
-        if row["status"] == GOOD:
-            break
-        streak.insert(0, row)
-    return streak
+def _streaks(rows: list[dict]) -> list[list[dict]]:
+    """Every run of at least two bad rows in a row."""
+    found, current = [], []
+    for row in rows + [{"status": GOOD}]:
+        if row["status"] != GOOD:
+            current.append(row)
+            continue
+        if len(current) >= STREAK_LENGTH:
+            found.append(current)
+        current = []
+    return found
+
+
+def _start_of(rows: list[dict], sent: list[dict]) -> str:
+    """The first mark of the streak the last sent alert was raised in: that streak is covered as it goes on."""
+    if not sent:
+        return ""
+    position = rows.index(sent[-1])
+    while position > 0 and rows[position - 1]["status"] != GOOD:
+        position -= 1
+    return rows[position]["mark"]

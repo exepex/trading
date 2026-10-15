@@ -24,7 +24,6 @@ class FirstVersionStore(RawFileStore):
                  clock: Callable[[], datetime] = now_ist):  # fmt: skip
         self.raw, self.revisions, self.index_file, self.clock = raw, revisions, Path(index_file), clock
         self.name = raw.name
-        self.revised: list[str] = []  # revision paths saved by this store since it was made
 
     def get(self, path: str) -> bytes | None:
         return self.raw.get(path)
@@ -43,7 +42,6 @@ class FirstVersionStore(RawFileStore):
         revision_path = f"{path}/{REVISION_NAME.format(at=found_at, sha256=sha256, suffix=suffix)}"
         self.revisions.put(revision_path, data)  # bytes first: an index row always has its file
         self._append([path, sha256, len(data), utc_text(found_at), revision_path])
-        self.revised.append(revision_path)
 
     def rows(self) -> list[dict]:
         if not self.index_file.is_file():

@@ -12,13 +12,13 @@ from pathlib import Path
 from .clock import ClockReading
 from .document import SnapshotDocument, utc_text
 from .slots import label
-from .status import MISSED, SlotVerdict
+from .status import FAILED, MISSED, SlotVerdict
 
 FIELDS = (
     "session", "mark", "mark_ist", "status", "failures", "request_sent_at", "response_received_at",
     "index_source_time", "lateness_seconds", "index_age_seconds", "expected_contracts", "recorded_contracts",
     "two_sided_contracts", "clock_status", "clock_skew_seconds", "raw_path", "raw_sha256", "source", "first_seen_at",
-    "alert",
+    "alert", "alert_at",
 )  # fmt: skip
 NOT_TAKEN = "not_taken"
 FILE_NAME = "slots/{day:%Y}/{day:%m}/nifty_{day:%Y%m%d}.csv"
@@ -34,6 +34,14 @@ class SlotLedger:
     def rows(self, day: date) -> list[dict]:
         file = self.path(day)
         return list(csv.DictReader(io.StringIO(file.read_text(encoding="utf-8")))) if file.is_file() else []
+
+    def sessions_before(self, day: date) -> list[date]:
+        """Sessions before `day` that have a ledger file."""
+        found = (date.fromisoformat(f"{p.stem[6:10]}-{p.stem[10:12]}-{p.stem[12:14]}") for p in self._files())
+        return sorted(d for d in found if d < day)
+
+    def _files(self) -> list[Path]:
+        return sorted((self.folder / "slots").glob("*/*/nifty_*.csv"))
 
     def append(self, day: date, rows: list[dict]) -> None:
         """Adds rows for marks that have none; a second row for a mark is refused (rows are never rewritten)."""
@@ -64,7 +72,7 @@ def taken_row(doc: SnapshotDocument, verdict: SlotVerdict, raw_path: str, raw_sh
         "expected_contracts": doc.expected_contracts, "recorded_contracts": doc.recorded_contracts,
         "two_sided_contracts": doc.two_sided_contracts, "clock_status": clock.status if clock else "",
         "clock_skew_seconds": _number(clock.worst if clock else None), "raw_path": raw_path, "raw_sha256": raw_sha256,
-        "first_seen_at": utc_text(doc.finished_at), "alert": "",
+        "first_seen_at": utc_text(doc.finished_at), "alert": "", "alert_at": "",
     }  # fmt: skip
 
 
@@ -72,6 +80,13 @@ def missed_row(day: date, mark: datetime, source: str, noticed_at: datetime) -> 
     """The row of a mark whose window passed with no snapshot stored."""
     row = dict.fromkeys(FIELDS, "")
     row.update(_mark_fields(day, mark, source), status=MISSED, failures=NOT_TAKEN, first_seen_at=utc_text(noticed_at))
+    return row
+
+
+def failed_row(day: date, mark: datetime, source: str, failure: str, noticed_at: datetime) -> dict:
+    """The row of a mark whose snapshot could not be taken or stored (nothing is in Drive for it)."""
+    row = dict.fromkeys(FIELDS, "")
+    row.update(_mark_fields(day, mark, source), status=FAILED, failures=failure, first_seen_at=utc_text(noticed_at))
     return row
 
 

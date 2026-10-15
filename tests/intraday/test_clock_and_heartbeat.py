@@ -1,6 +1,8 @@
 """Story A16 criteria 8 (host clock vs GitHub's and Slack's server times) and 9 (heartbeat and the silence check)."""
 
+import subprocess
 from datetime import date, datetime
+from pathlib import Path
 
 import pytest
 import requests
@@ -8,7 +10,7 @@ import requests
 from fno.intraday.cli import heartbeat_check
 from fno.intraday.clock import CLOCK_OK, CLOCK_SKEW, CLOCK_UNCHECKED, ClockCheck, HttpDateClock
 from fno.intraday.document import utc_text
-from fno.intraday.heartbeat import NOT_WATCHED, OK, SILENT, Heartbeat, heartbeat_state
+from fno.intraday.heartbeat import NOT_WATCHED, OK, SILENT, Heartbeat, PublishedHeartbeat, heartbeat_state
 from fno.models import IST
 from tests.intraday.fakes import DAY, FakeAlerts, FixedServer, calendar, ist
 
@@ -77,7 +79,7 @@ def test_the_check_alerts_a_warning_with_what_to_do_and_exits_1(tmp_path, capsys
     heartbeat.write(beat(ist(DAY, 10, 0)))
     assert heartbeat_check(heartbeat, calendar(), alerts, ist(DAY, 11, 0)) == 1
     assert alerts.sent[0].startswith("Action: check the 15-minute recorder's routine") and "WARNING" in alerts.sent[0]
-    assert "alert NOT sent: test" in capsys.readouterr().out
+    assert "alert sent to #fno-desk" in capsys.readouterr().out
 
 
 def test_the_check_is_quiet_when_fresh_or_on_a_holiday(tmp_path):
@@ -96,3 +98,30 @@ def test_the_check_stops_loudly_outside_the_calendar(tmp_path, capsys):
 
 def test_times_compare_across_offsets():
     assert heartbeat_state(beat(ist(DAY, 10, 0)), ist(DAY, 10, 10).astimezone(IST), True).status == OK
+
+
+class Git:
+    def __init__(self, fetch=0, show=0, text='{"run_finished_at": "2026-10-15T04:30:00+00:00"}'):
+        self.codes, self.text, self.calls = {"fetch": fetch, "show": show}, text, []
+
+    def __call__(self, args, cwd, capture_output, text):
+        self.calls.append(args[1])
+        return subprocess.CompletedProcess(args, self.codes[args[1]], self.text, "")
+
+
+def test_githubs_copy_is_fetched_and_read():
+    git = Git()
+    beat = PublishedHeartbeat(Path("."), "research/data/intraday/heartbeat.json", run=git).read()
+    assert beat == {"run_finished_at": "2026-10-15T04:30:00+00:00"} and git.calls == ["fetch", "show"]
+
+
+@pytest.mark.parametrize("git", [Git(fetch=1), Git(show=128), Git(text="{not json"), Git(text="[1, 2]")])
+def test_an_unreachable_or_unreadable_copy_is_none_and_reads_as_silent(git):
+    beat = PublishedHeartbeat(Path("."), "x.json", run=git).read()
+    assert beat is None and heartbeat_state(beat, ist(DAY, 11, 0), True).status == SILENT
+
+
+def test_a_corrupt_local_heartbeat_or_time_reads_as_silent(tmp_path):
+    (tmp_path / "heartbeat.json").write_text("{broken")
+    assert Heartbeat(tmp_path).read() is None
+    assert heartbeat_state({"run_finished_at": "garbage"}, ist(DAY, 11, 0), True).status == SILENT

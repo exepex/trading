@@ -80,4 +80,4 @@ def test_different_bytes_go_to_the_revisions_area_and_the_raw_file_never_changes
     assert row["path"] == path and row["size_bytes"] == "6" and row["found_at"] == "2026-10-15T03:46:05+00:00"
     assert row["revision_path"].startswith(f"{path}/20261015T091605+0530_")  # A11's name: when found, then SHA-256
     assert row["revision_path"].endswith(".json.gz")
-    assert drive.get(f"revisions/{row['revision_path']}") == b"second" and store.revised == [row["revision_path"]]
+    assert drive.get(f"revisions/{row['revision_path']}") == b"second"

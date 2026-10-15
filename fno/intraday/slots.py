@@ -17,11 +17,6 @@ def marks(day: date) -> list[datetime]:
     return [first + k * MARK_STEP for k in range(MARKS_PER_SESSION)]
 
 
-def due_marks(day: date, now: datetime) -> list[datetime]:
-    """Marks whose time to be taken has passed (mark + 120 s before `now`): each is taken, or missed for good."""
-    return [m for m in marks(day) if window_end(m) < now]
-
-
 def window_end(mark: datetime) -> datetime:
     return mark + timedelta(seconds=ON_TIME_SECONDS)
 

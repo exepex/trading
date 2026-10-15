@@ -8,7 +8,7 @@ import hashlib
 from collections.abc import Callable
 from datetime import date, datetime
 
-from ..models import IST, now_ist
+from ..models import now_ist
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
 from ..storage.raw_store import RawFileStore
@@ -39,6 +39,9 @@ class SessionRv:
         outcome = self.table.write_once(row)
         figure = f"RV {row['rv_session']} (vol {row['vol_pct']}%)" if row["status"] == OK else row["void_reason"]
         return f"{day} realised variance {outcome}: {row['status']}, {figure}"
+
+    def has_row(self, day: date) -> bool:
+        return any(row["session"] == day.isoformat() for row in self.table.rows())
 
     def void_share_line(self) -> str:
         rows = self.table.rows()
@@ -72,9 +75,9 @@ class SessionRv:
             "rv_session": _figure(result.session), "rv_intraday": _figure(result.intraday),
             "rv_overnight": _figure(result.overnight),
             "vol_pct": "" if result.vol_pct is None else f"{result.vol_pct:.4f}", "void_reason": "; ".join(reasons),
-            "good_marks": len(session_marks) - len(unusable), "due_marks": len(session_marks),
+            "good_slots": len(session_marks) - len(unusable), "due_slots": len(session_marks),
             "measure": self.strategy.measure, "method": self.strategy.method, "source": self.source,
-            "as_of": session_marks[-1].astimezone(IST).isoformat(), "first_seen_at": utc_text(self.now()),
+            "as_of": utc_text(session_marks[-1]), "first_seen_at": utc_text(self.now()),
             "inputs_sha256": hashlib.sha256("\n".join(hashes).encode()).hexdigest(),
         }  # fmt: skip
 

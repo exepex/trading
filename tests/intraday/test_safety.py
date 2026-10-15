@@ -4,6 +4,7 @@ files hold no price; the concrete classes are wired only in the composition root
 import ast
 import csv
 import io
+import json
 import re
 from datetime import date, time
 from pathlib import Path
@@ -41,16 +42,32 @@ def test_concrete_classes_are_built_only_in_the_composition_root():
         assert not calls & set(CONCRETE) - {"RatePacer"}, path.name
 
 
+def _values(path: Path) -> list[str]:
+    """Every value a repository file holds: CSV cells, JSON leaf values."""
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".csv":
+        return [cell for row in csv.reader(io.StringIO(text)) for cell in row]
+    found, stack = [], [json.loads(text)]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, dict):
+            stack += list(item.values())
+        else:
+            found.append(str(item))
+    return found
+
+
 def test_the_repository_files_hold_no_price(tmp_path):
     clock = FakeClock(ist(date(2026, 10, 14), 9, 10))
     recorder, *_ = build(tmp_path, clock)
     recorder.run(time(15, 35))
-    levels = {f"{level_at(m):g}" for m in marks(date(2026, 10, 14))}
+    levels = {level_at(m) for m in marks(date(2026, 10, 14))}
     repository_files = [p for p in tmp_path.rglob("*") if p.is_file() and "drive" not in p.parts]
     assert {p.suffix for p in repository_files} == {".csv", ".json"}
     for path in repository_files:
-        text = path.read_text(encoding="utf-8")
-        assert not any(level in text for level in levels), path.name
+        numbers = [float(v) for v in _values(path) if re.fullmatch(r"-?\d+(\.\d+)?", v)]
+        assert not levels & set(numbers), path.name  # no index level (the fake's quotes are levels too)
+        assert not [n for n in numbers if n > 1000], path.name  # nothing price-sized: counts, seconds and RV only
         if path.suffix == ".csv":
-            header = next(csv.reader(io.StringIO(text)))
+            header = next(csv.reader(io.StringIO(path.read_text(encoding="utf-8"))))
             assert not {"bid", "ask", "last", "level", "spot", "price", "index_level"} & set(header), path.name

@@ -9,10 +9,14 @@ from pathlib import Path
 
 from ..models import IST, now_ist
 from ..research_data.calendar import CalendarError
-from .recorder import GOOD_OUTCOMES, SlotOutcome
+from .recorder import GOOD_OUTCOMES, SettleRefused, SlotOutcome
 
 DEFAULT_UNTIL = "15:35"
 CALENDAR_STOP = "15-minute recorder stopped, nothing recorded: {error} ({file})"
+STOPPED = (
+    "Action: check the 15-minute recorder (story A16): it stopped with {reason} before or while taking a mark; "
+    "missed marks stay gaps"
+)
 INSIDE_REPOSITORY = "a dry-run folder must be outside the repository (raw quotes never go into it): {folder}"
 
 
@@ -25,16 +29,17 @@ def add_intraday_parser(subparsers) -> None:
     for action in (snapshot, run):
         action.add_argument("--dry-run", metavar="FOLDER", type=Path, help="live reads; files only under FOLDER")
     rv = actions.add_parser("rv", help="settle a finished session: missed rows and its realised variance")
-    rv.add_argument("--day", type=date.fromisoformat, required=True, help="YYYY-MM-DD")
+    rv.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the latest finished session)")
     actions.add_parser("heartbeat-check", help="alert when the recorder has been silent for 30 minutes")
     intraday.set_defaults(func=cmd_intraday)
 
 
 def cmd_intraday(args) -> int:
+    from ..alerts.sender import NoAlertSender
     from ..composition import build_alert_sender
     from ..config import load_app_config
     from ..storage.wiring import build_session_calendar
-    from .wiring import build_heartbeat, build_intraday_recorder
+    from .wiring import DRY_RUN_ALERTS, build_heartbeat, build_intraday_recorder
 
     if args.intraday_cmd == "heartbeat-check":
         return heartbeat_check(build_heartbeat(), build_session_calendar(), build_alert_sender(), now_ist())
@@ -42,6 +47,7 @@ def cmd_intraday(args) -> int:
     if folder is not None and _inside_repository(folder):
         print(INSIDE_REPOSITORY.format(folder=folder))
         return 1
+    alerts = NoAlertSender(DRY_RUN_ALERTS) if folder is not None else build_alert_sender()
     try:
         recorder = build_intraday_recorder(load_app_config(args.config), folder)
         if args.intraday_cmd == "rv":
@@ -49,7 +55,15 @@ def cmd_intraday(args) -> int:
             return 0
         outcomes = [recorder.snapshot()] if args.intraday_cmd == "snapshot" else recorder.run(args.until)
     except CalendarError as error:
-        return _calendar_stop(error, build_alert_sender())
+        return _calendar_stop(error, alerts)
+    except SettleRefused as error:
+        print(f"rv refused: {error}")
+        return 1
+    except Exception as error:  # the class name only: an exception's text could carry a credential
+        message = STOPPED.format(reason=type(error).__name__)
+        print(message)
+        print(alerts.send(message))
+        return 1
     return report(outcomes)
 
 

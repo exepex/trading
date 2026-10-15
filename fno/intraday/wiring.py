@@ -15,14 +15,17 @@ from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
 from ..quotes.monthly_contracts import PointInTimeMonthlies
 from ..storage.manifest_commit import GitManifestRecorder, ManifestRecorder
+from ..storage.raw_library import RawFileLibrary
+from ..storage.raw_source import NseDailyFoSource
 from ..storage.raw_store import AreaStore, LocalFolderStore, RawFileStore
 from ..storage.wiring import (
     OWNER_UPLOAD_SETTINGS,
     RAW_AREA,
     REPOSITORY,
     REVISIONS_AREA,
-    build_nse_fo_library,
+    build_nse_source,
     build_owner_drive,
+    build_raw_stores,
     build_session_calendar,
 )
 from .clock import GITHUB_TIME_URL, SLACK_TIME_URL, ClockCheck, HttpDateClock
@@ -30,7 +33,7 @@ from .dry_run import NoPublish
 from .expiry_plan import UNDERLYING, ExpiryPlan
 from .first_version_store import FirstVersionStore
 from .groww_source import GrowwIntradaySource
-from .heartbeat import Heartbeat
+from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
 from .ledger import SlotLedger
 from .realised_vol import QuoteSnapshotRv15m
 from .recorder import IntradayRecorder
@@ -58,8 +61,9 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     )  # fmt: skip
 
 
-def build_heartbeat() -> Heartbeat:
-    return Heartbeat(INTRADAY_FOLDER)
+def build_heartbeat() -> PublishedHeartbeat:
+    """What the silence check reads: GitHub's copy on `main`, never this host's own working tree."""
+    return PublishedHeartbeat(REPOSITORY, (INTRADAY_FOLDER / FILE_NAME).relative_to(REPOSITORY).as_posix())
 
 
 def _snapshot_store(folder: Path, dry_run: bool) -> RawFileStore:
@@ -72,8 +76,10 @@ def _snapshot_store(folder: Path, dry_run: bool) -> RawFileStore:
 
 
 def _expiry_plan(provider: GrowwProvider) -> ExpiryPlan:
-    """Groww's list first; NSE's daily files for what Groww cannot list and to prove the monthly (as A4)."""
-    nse = NseDailyFileExpiries(build_nse_fo_library())
+    """Groww's list first; NSE's daily files for what Groww cannot list and to prove the monthly (as A4). Read only:
+    a file not yet in Drive is fetched from NSE but never archived here (the 3 pm recorder's library does that), so
+    no run, dry or live, writes to Drive or the repository's manifests through this path."""
+    nse = NseDailyFileExpiries(RawFileLibrary(build_raw_stores(), build_nse_source(NseDailyFoSource)))  # read only
     return ExpiryPlan(lambda: provider.expiries(UNDERLYING), nse, PointInTimeMonthlies(nse))
 
 

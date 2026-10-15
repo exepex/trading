@@ -68,11 +68,11 @@ def test_the_session_row_matches_a_hand_computation_from_the_stored_levels(tmp_p
     previous = level_at(ist(date(2026, 10, 14), 15, 30))
     intraday = sum(math.log(levels[k] / levels[k - 1]) ** 2 for k in range(1, 26))
     overnight = math.log(levels[0] / previous) ** 2
-    assert row["status"] == "ok" and row["void_reason"] == "" and row["good_marks"] == "26"
+    assert row["status"] == "ok" and row["void_reason"] == "" and row["good_slots"] == "26"
     assert float(row["rv_intraday"]) == pytest.approx(intraday, abs=1e-10)
     assert float(row["rv_overnight"]) == pytest.approx(overnight, abs=1e-10)
     assert float(row["rv_session"]) == pytest.approx(intraday + overnight, abs=1e-10)
-    assert row["as_of"] == "2026-10-15T15:30:00+05:30" and row["method"] == "rv-quote-15m-v1"
+    assert row["as_of"] == "2026-10-15T10:00:00+00:00" and row["method"] == "rv-quote-15m-v1"
     assert row["measure"] == "quote_snapshot" and len(row["inputs_sha256"]) == 64
     assert rows["2026-10-14"]["status"] == "void"  # its previous session (13 Oct) was never recorded
     assert "previous session" in rows["2026-10-14"]["void_reason"]

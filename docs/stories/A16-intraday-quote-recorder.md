@@ -107,9 +107,11 @@ as a proposal.
   index, rule fixed by the in-session check) is at most **120 s** older than the response time (design 5.2: "more than
   2 minutes old is stale"), and it is not identical to the previous slot's level (a repeated value is treated as stale,
   C3's failure mode "a stale quote repeated").
-- **Good slot:** taken on time, fresh index level, every call answered, at least one contract in the band and every
-  expected contract quoted (an empty chain is never good: it would hide an API change). Any other slot is **bad**,
-  with a named status (below).
+- **Good slot:** taken on time, fresh index level, every call answered, both chains answered with at least one
+  contract in the band each (counted per chain, so an empty chain is never hidden by the other one and never good: it
+  would hide an API change), and every expected contract quoted. Any other slot is **bad**, with a named status
+  (below). What failed before the mark but was retried (sign-in, the expiry plan) is kept as a note and changes no
+  status.
 - **Realised variance (protocol v4's `RV_s`, design 5.2), units:** with `S_k` the index level of slot `k` of session
   `d` and `S_prev` the 15:30 level of the previous recorded (regular or special) session (a muhurat evening hour is
   skipped: it has no 15:30 mark, and its move falls inside the next overnight return),
@@ -154,8 +156,10 @@ New package `fno/intraday/` (each file under 350 lines):
 
 **Slot statuses:** `good`; `missed` (no snapshot by mark + 120 s: host absent or started late); `late` (taken, but
 the index answer came more than 120 s after the mark); `stale` (index level older than 120 s, no source time, or
-repeated); `failed` (a call failed, including sign-in; the failure names say which, as exception
-class names only); `incomplete` (index fine, but a chain or contract quote missing). **Clock failures** (recorded on the
+repeated); `failed` (the index call failed or could not be read, or the snapshot could not be taken or stored at all:
+then the mark has a row and no file, and is never retaken; failure names are exception class names only);
+`incomplete` (index fine, but a chain empty, failed or missing, or a contract quote missing; failed contract quotes
+are counted as `quotes_failed:N` in the row, the document keeps every name). **Clock failures** (recorded on the
 row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_unchecked` (no server answered),
 `source_ahead_of_host` (Groww's time more than 5 s after our receive time).
 
@@ -181,20 +185,26 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
    `first_seen_at`, `method`, and `inputs_sha256` (SHA-256 of the input files' SHA-256s in slot order); values equal a
    hand computation; any missing or stale index level voids the part that needs it; `rv` prints the share of void
    sessions and flags it above 5% (design 5.2). The row is written once per session (a rerun with the same inputs
-   changes nothing; different inputs are refused).
-7. **Alert after two bad slots in a row.** When the newest two due slots are both bad, one SYSTEM alert goes through
+   changes nothing; different inputs are refused, reported and alerted, and never stop the heartbeat or the commit).
+   `rv` refuses a day that is not a recorded session or whose 15:30 window has not closed; without `--day` it settles
+   the latest finished session. Once the recorder has a history, each session's first run also settles a previous
+   session left unfinished (missed rows and its RV), so a host that died mid-session never leaves a day open.
+7. **Alert after two bad slots in a row.** When two due slots in a row are bad, one SYSTEM alert goes through
    `AlertSender`, its first line saying what to do; one alert per streak (sent when the streak reaches two, also when
-   several marks are settled at once) and at most one an hour (a new streak exactly 60 minutes after the last alert
-   is alerted, one under is held until the hour has passed); the outcome line
+   several marks are settled at once) and at most one an hour (a new streak exactly 60 minutes after the last sent
+   alert is alerted; one under is held and sent at the first settlement after the hour, even if the streak has ended);
+   only a sent alert counts: a failed send ("alert NOT sent") is retried at the next settlement; the outcome line
    ("alert sent" / "alert NOT sent: ...") is printed and kept in the ledger. Dry run: nothing sent.
 8. **Clock contract (design 4.4).** Every stored time is UTC with its offset (ISO 8601) and printed in IST; Groww's
    source time is kept apart from our `request_sent_at`, `response_received_at` and `first_seen_at`; the host clock is
    checked against GitHub's and Slack's server times on each run; skew above 5 s is recorded as `clock_skew` and printed
    as a WARNING; no answer is `clock_unchecked`; a source time more than 5 s after our receive time is
    `source_ahead_of_host`.
-9. **Heartbeat.** Each run writes `heartbeat.json` (last run start and finish, last slot, its status, skew); the
-   `heartbeat-check` command, during a recorded session from 09:45 to 15:45 IST, reports "silent" with exit 1 and a
-   WARNING alert when the last finish is more than 30 minutes old (design 4.2), and "ok" otherwise.
+9. **Heartbeat.** Each run writes `heartbeat.json` (last run start and finish; the last slot, its status and skew,
+   kept as they were by a run that took nothing); the `heartbeat-check` command reads GitHub's copy (`git fetch`, then
+   `origin/main`), never the host's own working tree, so a host whose pushes fail does not look alive; during a
+   recorded session from 09:45 to 15:45 IST it reports "silent" with exit 1 and a WARNING alert when the last finish is
+   more than 30 minutes old or the copy cannot be read (design 4.2), and "ok" otherwise.
 10. **Read-only and secret-safe.** No code in `fno/intraday/` names any order, position, margin or funds call (test over
     the source and with a fake API whose order methods fail); credentials only from the environment, never written to a
     file, the ledger, a log line or an alert (test plants fake secret values and greps every output).
@@ -202,9 +212,13 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
     statuses, SHA-256 values and the realised variance (test over the written files).
 12. **Interfaces and wiring.** Source, store, clock, realised variance and alerts are behind interfaces, wired only in
     `fno/intraday/wiring.py`; swapping the source is one class plus one line there.
-13. **CLI.** `python -m fno intraday snapshot [--dry-run]`, `run [--until HH:MM] [--dry-run]`, `rv [--day YYYY-MM-DD]`,
-    `heartbeat-check`; exit 0 for good, already recorded or not a trading day; 1 otherwise. `--dry-run` reads Groww live
-    but writes raw files to a local folder outside the repository and sends no alert.
+13. **CLI.** `python -m fno intraday snapshot [--dry-run FOLDER]`, `run [--until HH:MM] [--dry-run FOLDER]`,
+    `rv [--day YYYY-MM-DD]`, `heartbeat-check`; exit 0 for good, already recorded, no mark now or not a trading day;
+    1 otherwise. Any unexpected error stops the command with its class name only, an alert and exit 1. `--dry-run`
+    reads Groww live but writes every file under a folder outside the repository (refused inside it), sends no alert
+    (not even a calendar stop) and commits nothing. The NSE listing used for expiries is read only in every run (never
+    archived to Drive or the repository's manifests from here). The commit refuses to run without `core.hooksPath`
+    (the record scan is never skipped) and aborts a failed pull's merge.
 14. **Gates:** pytest, ruff, imports, code size; no file or class over 350 lines.
 
 ## Gap list (design requirement -> criterion, or out of scope)

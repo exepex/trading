@@ -13,6 +13,7 @@ from ..quotes.monthly_contracts import PointInTimeMonthlies
 from ..quotes.recorder import FALLBACK_RULE, POINT_IN_TIME_RULE, UNVERIFIED, VERIFIED, monthly_expiries
 
 UNDERLYING = "NIFTY"
+CHAINS = 2
 
 
 class ExpiryPlanError(RuntimeError):
@@ -37,17 +38,25 @@ class ExpiryPlan:
         self.listed, self.fallback, self.monthlies = listed, fallback, monthlies
 
     def plan(self, day: date) -> Expiries:
-        listed = sorted(e for e in self.listed() if e >= day)
+        """Groww's list first; NSE's listing is merged in when Groww's list fails, has no monthly, or has no second
+        expiry (late December: Groww refuses next year's dates for a week before the last December expiry)."""
+        listed, note = self._broker_list(day)
         monthly, check = self._nearest_monthly(listed, day)
-        if monthly is None and self.fallback is not None:  # late December: the broker lists no next-year dates
-            listed = sorted(e for e in self.fallback.listed(UNDERLYING, day)[0] if e >= day)
+        if (monthly is None or len(listed) < CHAINS) and self.fallback is not None:
+            listed = sorted(set(listed) | {e for e in self.fallback.listed(UNDERLYING, day)[0] if e >= day})
             monthly, check = self._nearest_monthly(listed, day)
         if monthly is None:
             raise ExpiryPlanError(f"no monthly expiry listed on or after {day}")
         later = [e for e in listed if e != listed[0]]
         second = monthly if monthly != listed[0] else (later[0] if later else None)
         chains = (listed[0],) if second is None else (listed[0], second)
-        return Expiries(listed[0], monthly, chains, check)
+        return Expiries(listed[0], monthly, chains, {**check, **note})
+
+    def _broker_list(self, day: date) -> tuple[list[date], dict]:
+        try:
+            return sorted(e for e in self.listed() if e >= day), {}
+        except Exception as exc:  # recorded in the plan; NSE's listing stands in
+            return [], {"broker_list": f"failed: {type(exc).__name__}"}
 
     def _nearest_monthly(self, listed: list[date], day: date) -> tuple[date | None, dict]:
         if not listed:

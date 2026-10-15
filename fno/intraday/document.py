@@ -77,6 +77,7 @@ class SnapshotDocument:
     expected_contracts: int = 0
     two_sided_contracts: int = 0
     failures: list[str] = field(default_factory=list)  # every failed step, by name
+    notes: list[str] = field(default_factory=list)  # what went wrong before the mark but was retried (no status)
     finished_at: datetime | None = None  # our clock when the document was complete: its first_seen_at
 
     @property
@@ -92,7 +93,7 @@ class SnapshotDocument:
             "chains": [c.to_json() for c in self.chains], "quotes": [q.to_json() for q in self.quotes],
             "expiries": self.expiries, "expected_contracts": self.expected_contracts,
             "recorded_contracts": self.recorded_contracts, "two_sided_contracts": self.two_sided_contracts,
-            "failures": self.failures, "finished_at": utc_text(self.finished_at),
+            "failures": self.failures, "notes": self.notes, "finished_at": utc_text(self.finished_at),
         }  # fmt: skip
         text = json.dumps(body, sort_keys=True, default=str, separators=(",", ":")).encode()
         return gzip.compress(text, mtime=0)  # no time in the gzip header: equal documents, equal bytes
@@ -108,5 +109,5 @@ class SnapshotDocument:
             CallRecord.from_json(body["index"]), body["index_level"], parse_time(body["index_source_time"]),
             CallRecord.from_json(future) if future else None, [CallRecord.from_json(c) for c in body["chains"]],
             [CallRecord.from_json(q) for q in body["quotes"]], body["expiries"], body["expected_contracts"],
-            body["two_sided_contracts"], body["failures"], parse_time(body["finished_at"]),
+            body["two_sided_contracts"], body["failures"], body["notes"], parse_time(body["finished_at"]),
         )  # fmt: skip

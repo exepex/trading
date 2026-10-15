@@ -64,3 +64,18 @@ def test_only_one_listed_expiry_records_one_chain():
 def test_no_listed_expiry_is_refused(fallback):
     with pytest.raises(ExpiryPlanError):
         ExpiryPlan(lambda: [], fallback).plan(DAY)
+
+
+def test_late_december_merges_nse_listing_for_the_second_chain():
+    plan = ExpiryPlan(lambda: [date(2026, 12, 29)], Listing([date(2027, 1, 5), date(2027, 1, 26)]))
+    found = plan.plan(date(2026, 12, 23))
+    assert found.chains == (date(2026, 12, 29), date(2027, 1, 5))
+
+
+def test_a_failed_broker_list_falls_back_to_nse_and_says_so():
+    def refused():
+        raise RuntimeError("Year cannot be in the future")
+
+    found = ExpiryPlan(refused, Listing([date(2026, 10, 19), date(2026, 10, 27)])).plan(DAY)
+    assert found.chains == (date(2026, 10, 19), date(2026, 10, 27))
+    assert found.check["broker_list"] == "failed: RuntimeError"

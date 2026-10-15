@@ -21,6 +21,9 @@ INDEX_TIME_OLD = "index_time_old"
 INDEX_REPEATED = "index_repeated"
 SOURCE_AHEAD_OF_HOST = "source_ahead_of_host"
 CONTRACTS_MISSING = "contracts_missing"
+CHAIN_EMPTY = "chain_empty"
+CHAINS_EXPECTED = 2  # the nearest listed expiry and the nearest monthly (or the next listed)
+QUOTE_PREFIX, QUOTES_FAILED = "quote ", "quotes_failed:{count}"
 AHEAD_TOLERANCE_SECONDS = 5  # the source's time after our receive time by more than this: one clock is wrong
 INDEX_STATUS = {
     INDEX_FAILED: FAILED, INDEX_LATE: LATE, INDEX_TIME_MISSING: STALE, INDEX_TIME_OLD: STALE, INDEX_REPEATED: STALE,
@@ -56,19 +59,27 @@ def index_check(doc: SnapshotDocument, previous_level: float | None) -> IndexChe
 
 
 def verdict(doc: SnapshotDocument, previous_level: float | None) -> SlotVerdict:
-    """The slot's status and every named reason behind it."""
+    """The slot's status and every named reason behind it. Failed contract quotes are counted, not listed one by one,
+    so a ledger row and an alert stay readable; the document keeps every name."""
     check = index_check(doc, previous_level)
     notes = [check.problem] if check.problem else []
-    if not doc.chains or not doc.expected_contracts or doc.recorded_contracts < doc.expected_contracts:
+    if _chain_empty(doc):
+        notes.append(CHAIN_EMPTY)
+    if doc.recorded_contracts < doc.expected_contracts:
         notes.append(CONTRACTS_MISSING)
-    notes += [f for f in doc.failures if f not in notes]
-    if _source_ahead(doc):
-        notes.append(SOURCE_AHEAD_OF_HOST)
-    if check.problem:
-        status = INDEX_STATUS[check.problem]
-    else:
-        status = INCOMPLETE if (CONTRACTS_MISSING in notes or doc.failures) else GOOD
-    return SlotVerdict(status, tuple(notes))
+    named = [f for f in doc.failures if not f.startswith(QUOTE_PREFIX)]
+    quotes_failed = len(doc.failures) - len(named)
+    notes += [f for f in named if f not in notes]
+    notes += [QUOTES_FAILED.format(count=quotes_failed)] if quotes_failed else []
+    status = INDEX_STATUS[check.problem] if check.problem else (INCOMPLETE if notes else GOOD)
+    clock = [SOURCE_AHEAD_OF_HOST] if _source_ahead(doc) else []  # a clock note: recorded, not a status
+    return SlotVerdict(status, tuple(notes + clock + doc.notes))
+
+
+def _chain_empty(doc: SnapshotDocument) -> bool:
+    """Fewer chains than planned, or a chain that failed or had no contract in the band: never good."""
+    answered = [c for c in doc.chains if not c.failure and c.meta.get("contracts", 0) > 0]
+    return len(answered) < CHAINS_EXPECTED
 
 
 def _source_ahead(doc: SnapshotDocument) -> bool:

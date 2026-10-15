@@ -8,8 +8,8 @@ import io
 from pathlib import Path
 
 FIELDS = (
-    "session", "status", "rv_session", "rv_intraday", "rv_overnight", "vol_pct", "void_reason", "good_marks",
-    "due_marks", "measure", "method", "source", "as_of", "first_seen_at", "inputs_sha256",
+    "session", "status", "rv_session", "rv_intraday", "rv_overnight", "vol_pct", "void_reason", "good_slots",
+    "due_slots", "measure", "method", "source", "as_of", "first_seen_at", "inputs_sha256",
 )  # fmt: skip
 FILE_NAME = "rv/nifty_rv.csv"
 SAME_INPUTS = ("method", "inputs_sha256")

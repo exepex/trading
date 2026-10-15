@@ -116,7 +116,7 @@ def test_two_bad_marks_in_a_row_alert_once_per_streak_and_at_most_once_an_hour(t
     assert [rows[m]["status"] for m in ("09:15", "09:30", "09:45", "10:00", "10:15", "10:30", "10:45", "11:00")] == [
         "good", "stale", "failed", "good", "stale", "late", "incomplete", "good"
     ]  # fmt: skip
-    assert rows["09:45"]["alert"].endswith("alert NOT sent: test")  # the streak reached two: the alert's outcome
+    assert rows["09:45"]["alert"].endswith("alert sent to #fno-desk") and rows["09:45"]["alert_at"]  # reached two
     assert alerts.sent[0].startswith("Action: check the 15-minute recorder")
     assert "09:30 stale (index_time_old)" in alerts.sent[0] and "09:45 failed (index_failed" in alerts.sent[0]
     assert rows["10:15"]["failures"] == "index_repeated" and rows["10:30"]["failures"] == "index_late"
@@ -189,3 +189,27 @@ def test_a_snapshot_stored_but_never_written_to_the_ledger_gets_its_row_later(tm
     recorder.snapshot()
     assert [(r["mark_ist"], r["status"]) for r in recorder.ledger.rows(DAY)] == [("09:15", "good"), ("09:30", "good")]
     assert timedelta(0) <= clock.moment - ist(DAY, 9, 30)
+
+
+def test_a_failed_send_does_not_count_and_is_retried_at_the_next_mark(tmp_path):
+    clock = FakeClock(ist(DAY, 9, 10))
+    recorder, _, alerts, *_ = build(tmp_path, clock, {"09:30": "old", "09:45": "old"})
+    recorder.alerts.failing = alerts.failing = True
+    recorder.run(time(9, 50))
+    alerts.failing = False
+    recorder.run(time(10, 5))
+    rows = {r["mark_ist"]: r for r in recorder.ledger.rows(DAY)}
+    assert len(alerts.sent) == 2 and "alert NOT sent: test" in rows["09:45"]["alert"]
+    assert rows["10:00"]["alert"].endswith("alert sent to #fno-desk")  # the 09:30-09:45 streak, retried
+
+
+def test_a_held_alert_is_sent_after_the_hour_even_when_its_streak_has_ended(tmp_path):
+    clock = FakeClock(ist(DAY, 9, 10))
+    plans = {"09:15": "old", "09:30": "old", "10:00": "old", "10:15": "old"}
+    recorder, _, alerts, *_ = build(tmp_path, clock, plans)
+    recorder.run(time(10, 20))
+    assert len(alerts.sent) == 1  # 10:00-10:15 held: 45 minutes after the 09:30 alert
+    recorder.run(time(10, 50))
+    rows = {r["mark_ist"]: r for r in recorder.ledger.rows(DAY)}
+    assert len(alerts.sent) == 2 and "10:00 stale" in alerts.sent[1] and rows["10:30"]["status"] == "good"
+    assert rows["10:30"]["alert"] and rows["10:45"]["alert"] == ""

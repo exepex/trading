@@ -5,6 +5,7 @@ more than 30 minutes old during a recorded session's watched hours."""
 from __future__ import annotations
 
 import json
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta
 from pathlib import Path
@@ -37,7 +38,31 @@ class Heartbeat:
         self.file.write_text(json.dumps(beat, indent=1, sort_keys=True) + "\n", encoding="utf-8")
 
     def read(self) -> dict | None:
-        return json.loads(self.file.read_text(encoding="utf-8")) if self.file.is_file() else None
+        return _parse(self.file.read_text(encoding="utf-8")) if self.file.is_file() else None
+
+
+class PublishedHeartbeat:
+    """GitHub's copy of the heartbeat (`origin/<branch>`), read by the silence check: a host whose pushes fail must
+    not look alive from its own working tree. None when it cannot be fetched or read (the check then says silent)."""
+
+    def __init__(self, repository: Path, path: str, branch: str = "main", run=subprocess.run):
+        self.repository, self.path, self.branch, self.run = Path(repository), path, branch, run
+
+    def read(self) -> dict | None:
+        fetched = self._git("fetch", "-q", "origin", self.branch)
+        shown = self._git("show", f"origin/{self.branch}:{self.path}") if fetched.returncode == 0 else fetched
+        return _parse(shown.stdout) if shown.returncode == 0 else None
+
+    def _git(self, *args: str) -> subprocess.CompletedProcess:
+        return self.run(["git", *args], cwd=self.repository, capture_output=True, text=True)
+
+
+def _parse(text: str) -> dict | None:
+    try:
+        beat = json.loads(text)
+    except ValueError:
+        return None
+    return beat if isinstance(beat, dict) else None
 
 
 def heartbeat_state(beat: dict | None, now: datetime, recorded_session: bool) -> HeartbeatState:
@@ -45,11 +70,18 @@ def heartbeat_state(beat: dict | None, now: datetime, recorded_session: bool) ->
     local = now.astimezone(IST)
     if not recorded_session or not WATCH_FROM <= local.time() <= WATCH_TO:
         return HeartbeatState(NOT_WATCHED, f"{NOT_WATCHED}: not a recorded session's watched hours")
-    finished = parse_time(beat.get("run_finished_at", "")) if beat else None
+    finished = _finished(beat)
     if finished is None:
-        return HeartbeatState(SILENT, f"{SILENT}: no heartbeat recorded")
+        return HeartbeatState(SILENT, f"{SILENT}: no readable heartbeat")
     age = now - finished
     status = SILENT if age > SILENT_AFTER else OK
     minutes = age.total_seconds() / 60
     return HeartbeatState(status, f"{status}: last run finished {finished.astimezone(IST):%Y-%m-%d %H:%M} IST, "
                                   f"{minutes:.0f} minutes ago")  # fmt: skip
+
+
+def _finished(beat: dict | None) -> datetime | None:
+    try:
+        return parse_time(str(beat.get("run_finished_at", ""))) if beat else None
+    except ValueError:
+        return None
