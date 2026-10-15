@@ -51,5 +51,5 @@ def drawdown(series: DailySeries, brake_rs: float | None, label: str = MARKED) -
         "drawdown_from": deepest_at[0].isoformat() if deepest_at[0] else None,
         "drawdown_to": deepest_at[1].isoformat() if deepest_at[1] else None,
         "worst_day_rs": rupees(series.net[worst]), "worst_day": series.days[worst].isoformat(),
-        "worst_day_share_of_brake": share(max(-series.net[worst], 0.0)),
+        "worst_day_share_of_brake": share(max(0.0, -series.net[worst])),  # never -0.0
     }  # fmt: skip

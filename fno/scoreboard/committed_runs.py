@@ -16,6 +16,8 @@ from ..desk.run_log import RUNS_FOLDER
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
 
 DECISIONS_STEP, SNAPSHOT_STEP, EXITS_STEP = RUN_LOG_DECISIONS_STEP, "snapshot", RUN_LOG_EXITS_STEP
+NO_EXITS_STEP, NOT_REVIEWED = "no exit review ran", "exit review not recorded as done"
+NOT_CHECKED, REVIEW_FAILED = "not checked against prices: {reason}", "exit review failed: {error}"
 
 
 @dataclass(frozen=True)
@@ -82,14 +84,21 @@ class CommittedRuns:
                 continue  # the report day before its run: not run yet, not missed
             steps = logs.get(day, {})
             collected = "run_id" in steps.get(DECISIONS_STEP, {}).get("result", {}).get(book, {})
-            exits_missed = not _reviewed(steps, book) and i > 0 and held(sessions[i - 1])
-            if not collected or exits_missed:
+            why = _unreviewed(steps, book) if i > 0 and held(sessions[i - 1]) else ""
+            if not collected or why:
                 found.append({"day": day.isoformat(), "missed_decision": not collected,
-                              "missed_exit_review": exits_missed})  # fmt: skip
+                              "missed_exit_review": bool(why), "exit_review": why})  # fmt: skip
         return found
 
 
-def _reviewed(steps: dict, book: str) -> bool:
+def _unreviewed(steps: dict, book: str) -> str:
+    """Why the book's exits were not reviewed that day, or "" when they were. E3 writes `reviewed` on every outcome:
+    `waiting` means no valid snapshot, so the held trades were not checked against prices (orchestrator, 16 Oct)."""
     if EXITS_STEP not in steps:
-        return False
-    return steps[EXITS_STEP].get("result", {}).get(book, {}).get("reviewed") is True  # E3 writes it on every outcome
+        return NO_EXITS_STEP
+    outcome = steps[EXITS_STEP].get("result", {}).get(book, {})
+    if outcome.get("reviewed") is True:
+        return ""
+    if "waiting" in outcome:
+        return NOT_CHECKED.format(reason=outcome.get("reason") or "no valid snapshot")
+    return REVIEW_FAILED.format(error=outcome["error"]) if outcome.get("error") else NOT_REVIEWED

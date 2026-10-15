@@ -45,6 +45,8 @@ def test_drawdown_and_worst_day_with_their_dates_and_share_of_the_brake():
     assert (d["worst_day_rs"], d["worst_day"]) == (-3000.0, "2026-01-02")
     assert d["max_drawdown_share_of_brake"] == pytest.approx(4500 / 120000) and d["worst_day_share_of_brake"] == 0.025
     assert drawdown(series([-100.0]), None)["max_drawdown_rs"] == 100.0  # the running high starts at 0
+    flat = drawdown(series([0.0, 0.0]), 120000.0)["worst_day_share_of_brake"]
+    assert flat == 0.0 and math.copysign(1.0, flat) == 1.0  # a flat day is 0, never -0.0 (rule-8 dry run, 16 Oct)
 
 
 def blocks(nets, risks):
