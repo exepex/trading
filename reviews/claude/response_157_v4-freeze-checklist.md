@@ -84,3 +84,27 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
 3. **Register:** the "G6 freeze" row now names this session as owner, with its status.
 Notes: later registrations are appended ledger rows read in full; the golden fixture's hash is in the freeze test;
 each owner quote carries its `DESK_DECISIONS.md` row and date.
+
+## Revision 2: ChatGPT review 119 (CHANGE, 2 points), accepted by the orchestrator
+
+1. **IV30 and Black-76 are not in v4's live path today (traced; strong evidence).** Importing all 48 modules of
+   `fno/forecast_v4/`, `fno/forecast_v4_rules/`, `fno/forecast_scoring/v4/` and `fno/weather/` never loads
+   `fno/forecast/iv30.py`. It loads `fno/research_engine/implied_vol.py` only as an import side effect:
+   `forecast_v4_rules/wiring.py` and `weather/wiring.py` import `INTRADAY_FOLDER` from `fno/intraday/wiring.py`, whose
+   alert sender comes from `fno/composition.py`, which imports `Black76`. No v4 function calls it; a grep finds no
+   use outside `forecast_v4/units.py`'s own arithmetic.
+   - **Proof in the freeze code:** a test runs one real day of G7's capture, M1's weather and G8's report with
+     `Black76` and `PanelAtmIv30` replaced by objects that raise if called; the outputs equal the unpatched run.
+   - **Said plainly:** the questions that would need IV30 or Black-76 (V2 and V3's premium-adjusted and raw implied
+     baselines, V4, V5) have no code yet (G7 phase 2). Under this freeze only V6a and V6b count (and V1 once A16 has
+     20 sessions). V2-V5 start counting only under a later freeze record that byte-checks their code, then including
+     `iv30.py` and `implied_vol.py`. Constants and the calendar are not frozen in bulk (unchanged).
+2. **Prospective start for a registered slot (accepted).** Each slot registration names an `effective_start`, a
+   session on or after the freeze and before the slot's first eligible session. From that day every
+   baseline-observable day counts as observed or missed, even before the slot's first forecast, so a registered
+   family cannot avoid misses by delaying its first submission. A slot not yet registered stays `not_started`. This
+   replaces G9's "from the first live forecast" for registered slots (a G8 change in `scoring._miss_start`, built with
+   the freeze code; the protocol's section 4 line says it). Test: a registered AI slot with `effective_start` day 1
+   misses days 1-3 and submits on day 4, giving 3 misses.
+3. **V1's method filter is not built yet** (confirmed). Its test uses the same dates with an `rv-quote-15m-v1` row and
+   a row of a new method: only the v1 row is read. It is built and judged with its test before the freeze commit.

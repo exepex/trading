@@ -158,3 +158,68 @@ RM1 no longer edits `PROTOCOL.md` itself. That is one builder per file, with no 
 supersedes it, but ChatGPT reads §1 first.
 
 **Verdict: PASS.** Next come ChatGPT (rule 9), then the owner's Q1-Q10, then the code round.
+
+## Addendum 2: delta re-check at 2945dbd8 (ChatGPT review 118 revision): FAIL (2 should-fix)
+
+Asked by the builder directly, with the orchestrator copied, and reported to the orchestrator. The delta
+f8cbbc6c..2945dbd8 touches the gate, the story's criterion 6 and status, and response 163 §3 (Q11-Q13) and §6.
+
+**Sound:**
+- **"Valid quote" and "execution slippage"** (the real fill minus the valid quote at the owner's order time) separate
+  execution from the market's move. E8's fill at about 10:15 next session is confirmed in `G-forecasts.md` (G10 table).
+  Unknown never counts as zero.
+- **Paired net now binding** (`real_test_pass` 1): mean − t(0.95, n−1) × SD(d) / √n ≥ the Q11 margin. That is the
+  paired test 8.4 names; the prediction bound stays as a floor and is labelled model-based.
+- **`real_cap_fit`** uses the last 20 issued cards, re-priced with their own contracts, lot size, quotes and charges,
+  plus the next proposed trade.
+- **Numbers checked:**
+  - 5,000/65 = 76.9 points and 4,000/65 = 61.5 points, before charges;
+  - the credit vertical: 65 × (100 − 30) + 200 = Rs 4,750 and 65 × (200 − 30) + 200 = Rs 11,250;
+  - **Q11:** t(0.95, 19) = 1.7291, and 1.7291 × 1,000 / √20 = **Rs 386.6**, so the builder's "about Rs 387" (Q11's
+    "about 390") is correct; with a −Rs 500 margin, real must average within about Rs 113 of paper (Q11 says "about
+    Rs 110", correct).
+- **The Bonferroni wording** (one fixed family, one look) and the daily-settlement proxy label are correct.
+- **Format:** `parse_protocol` on the gate at 2945dbd8 finds 12 items, no duplicates, every status exactly "proposal,
+  owner decides", bare labels and no undecided words (my script).
+
+**SF1. The unknown-leg rule in `real_test_pass` 3 has no exact rule at or under the 1-in-10 limit.**
+- **Evidence:** the text says "a leg with unknown slippage counts against the test (not met if more than one in ten
+  legs is unknown)". At 10% or fewer unknown legs it does not say what the mean uses. "Counts against" can mean the leg
+  is left out, given the worst observed slippage, or given some other penalty. `real_test_stops` (b) says "left out of
+  the mean and listed".
+- **Path in normal running:** the owner misses the Groww screenshot on 3 of 40 legs, and A16 is older than 5 minutes.
+  The pass on execution then depends on how the builder reads "counts against".
+- **On the 10% number (asked):** it is reasonable. At 20 two-leg trades it allows 4 of 40 legs unknown. It sits
+  inside Q12 for the owner, labelled reasoning only. The only fault is the missing rule beneath it.
+- **Fix (text):** state the rule, for example "unknown legs are left out of the mean and listed; more than 1 in 10
+  unknown is not met", the same as stop (b).
+
+**SF2. Q13 is not neutral: it hides that its recommended option drops the owner-accepted test in 8.3 condition 4,
+and it omits that test as an option.**
+- **Evidence:**
+  - 8.3 condition 4 (owner-accepted, decision 8) says "the mean gap between paper fill and the next real snapshot is
+    within the pad".
+  - The new `fill_honesty` (a) checks the fill against its own snapshot, which the builder rightly calls circular.
+    (b) needs a second recorder at fill time.
+  - Q13 offers (a) validity alone, (b) strict, which "blocks every version", and (c) a second recorder later.
+  - Under (a), condition 4 has no independent comparison at all, and the question does not say that an accepted
+    condition is relaxed.
+  - The owner-accepted test is feasible: E8 fills from A16 at about 10:15, so the next A16 snapshot (about 10:30) is
+    the "next real snapshot" of 8.3. ChatGPT's point, that a later move is no proof, makes it noisy, not impossible.
+- **Path:** the owner picks the recommended (a) without being told it removes 8.3 condition 4's only independent
+  check. That decides when real money can be put to the owner (coordination rule: a contradiction of an
+  owner-accepted row must reach the owner as one).
+- **Fix (text):** add option "(d) keep 8.3 as written: the mean gap to the next A16 snapshot (about 15 minutes later)
+  within the pad, its noise stated". Say plainly in Q13 that (a) relaxes the owner-accepted condition 4.
+
+**Notes (one line each, no fix asked):**
+- `real_test_pass` Reason: "with n = m = 20 and SD Rs 5,000 the prediction floor sits about Rs 2,160 below paper's
+  mean". By the gate's own formula it is 1.7291 × 5,000 × √(1/20 + 1/20) = **Rs 2,734**. Correct the number; "a weak
+  filter" stands.
+- Q11's SD near Rs 1,000 is an assumption. d includes the timing gap when the owner fills at a different time from
+  E8's 10:15 model, so SD(d) may be much larger. Q11 says the real SD is unknown, rightly.
+- The branch conflicts with main in `reviews/claude/README.md` (rows only). Keep both sides.
+
+**Gates at 2945dbd8 (docs-only delta; the trial merge conflicts on index rows only):** pytest 5878 passed; `ruff check` clean; `ruff format --check` 1074 files formatted; `check_imports` clean.
+
+**A re-check needs only:** `real_test_pass` 3's unknown-leg rule, Q13's options and wording, and the Rs 2,734 figure.
