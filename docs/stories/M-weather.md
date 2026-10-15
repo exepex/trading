@@ -307,7 +307,7 @@ knowing its price.
     RED on two sessions in a row alerts once, on the first. Never on a back-fill record.
   - **`not scored`** (a probability or base rate is missing; it blocks new trades like RED, owner "4 A"): never a
     DANGER, so a data failure is never shown as a market warning. Instead one SYSTEM-class line (design 6.5: SYSTEM is
-    for data and job problems): "SYSTEM (paper only): weather not scored for <d>: <the record's missing item>. Owner
+    for data and job problems): "SYSTEM (paper only): weather not scored for <d>: missing <each probability entry whose `status` is not `ok`>. Owner
     rule: no new paper entry until the weather is scored." It is sent once per day, with the same alert record and
     exit codes as DANGER (M1 builder's view, accepted: reasoning only).
   - The message, PAPER ONLY, first line saying what it means (design 6.5): "DANGER (paper only): weather turned RED for
