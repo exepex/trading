@@ -79,7 +79,8 @@ outside the repository>`; no Drive, no Slack, no commit):
   candle forms), basis `candle_1m_open`. In practice this applies only at 09:15; at every later mark the close of the
   candle ending at the mark is used as before. The 09:15 level is the first value of continuous trading, at or after
   09:15:00. **It is not NSE's official open** (amendment 3, below): the official open is the pre-open call auction's
-  result, which Groww shows as the 09:14 pre-open 1-minute candle's close. So the overnight part runs from the
+  result, which Groww shows as the close of the last pre-open 1-minute candle (09:14 on recent sessions, 09:07 on
+  older ones). So the overnight part runs from the
   previous session's last close before 15:30 to the first continuous-trading value at 09:15, and it includes the
   auction-to-first-trade move.
 - **One snapshot, measured (09:30 mark):** 2 chains (19 and 27 Oct), 220 contracts within 6%, 220 recorded, 220
@@ -89,21 +90,27 @@ outside the repository>`; no Drive, no Slack, no commit):
   the same morning found GitHub (repository path) and Slack both within 0.0 s. At 09:15: 216 of 216 recorded, 204
   two-sided, 57 s.
 - **Condition on the source (judge 108 addendum 3; corrected by amendment 3, orchestrator decision 53):** in the
-  criterion 15 trial and in every weekly post-mortem, each session's **09:14 pre-open 1-minute close** (Groww's
-  candle, read-only) is compared with NSE's official NIFTY 50 open (the "Open Index Value" of A1's archived
-  index-close file for that day), and every difference above 0.05 points is reported. A systematic difference means
+  criterion 15 trial and in every weekly post-mortem, each session's **close of the last pre-open 1-minute candle**
+  (the last Groww index candle starting before 09:15; 09:14 on recent sessions, 09:07 on older ones; read-only) is
+  compared with NSE's official NIFTY 50 open (the "Open Index Value" of A1's archived index-close file for that day),
+  and every difference above 0.05 points is reported. **A session with no pre-open candle at all is reported as "no
+  pre-open value"**, never filled from the 09:15 open or any other value. A systematic difference means
   a new version (design 5.2), not a silent adjustment. This checks that Groww's index candles carry NSE's own figures;
   the 09:15 level is not compared with the official open, because it is a different number by design.
-- **Amendment 3 (15 Oct 2026, why the comparison moved to 09:14).** The first condition compared the 09:15
+- **Amendment 3 (15 Oct 2026, why the comparison moved to the last pre-open candle).** The first condition compared the 09:15
   `candle_1m_open` with NSE's official open. NSE's official open is the pre-open call auction's result (09:00-09:08),
   and the 09:15 open is the first value of continuous trading, so the two differ on many sessions by design and the
-  check would report them every time. Evidence: the A16b builder's live read-only check of 40 random sessions
-  (orchestrator decision 53): the 09:14 pre-open close equalled the official open on 40 of 40, the 09:15 open differed
-  on 40 of 40 by up to 51.65 points. **My own read-only check of 6 random regular sessions (2 Jul-5 Oct 2026):** the
-  09:14 close minus the official open was 0.00 on 6 of 6 (strong evidence); the 09:15 open minus the official open
-  was -8.30 to +10.65 points on 4 of 6 but **0.00 on 2 of 6**, so "differs on every session" did not hold in my sample.
-  Either way, comparing the 09:15 open with the official open cannot tell a bad source from the normal
-  auction-to-first-trade move; comparing the 09:14 close can. No code changes: the recorder never computed this
+  check would flag most sessions. Evidence (strong, two independent read-only checks):
+  - The A16b builder's recount (its 0adc455, orchestrator decision 53): the close of the last pre-open 1-minute
+    candle equalled NSE's official open on **114 of 114** sessions (40 random 2020-2026 sessions plus every session
+    from 1 Jul to 14 Oct 2026); only 8 of the 40 random sessions have a 09:14 candle at all (older sessions end the
+    pre-open at 09:07). On recent days the 09:15 open differed from the official open on **67 of 74** sessions and was
+    within 0.05 on 7.
+  - My own check: 6 random regular sessions 2 Jul-5 Oct 2026 (last pre-open candle 09:14) and 6 random sessions
+    2021-2023 (the only pre-open candle 09:07): the last pre-open close minus the official open was 0.00 on 12 of 12;
+    the 09:15 open differed on 10 of 12 (by -8.30 to +10.65 points) and was equal on 2 of 12, consistent with 67 of 74.
+  So a fixed 09:14 would find no value on older sessions, and the 09:15 open cannot tell a bad source from the normal
+  auction-to-first-trade move; the last pre-open close can. No code changes: the recorder never computed this
   comparison (the trial and the post-mortem compute it).
 
 ## Scope

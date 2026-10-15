@@ -308,3 +308,12 @@ library with no archive, so nothing was written):** 6 random regular sessions, 2
 amendment, that the 09:15 level is the first continuous-trading value and NOT NSE's official open, and that the
 overnight part therefore includes the auction-to-first-trade move (the "usual open-to-close split" wording was wrong
 and is gone). The 09:15 rule itself is unchanged.
+
+### Part 5, correction: the last pre-open candle, not a fixed 09:14 (A16b builder's recount, its 0adc455)
+
+Checked before changing: 6 random sessions 2021-2023 (read-only, same method). Each has a single pre-open 1-minute
+candle at **09:07**, none at 09:14; its close minus NSE's official open is 0.00 on 6 of 6; the 09:15 open differs on 6
+of 6 (+3.65 to +9.00). With the 6 recent sessions above: 12 of 12 exact for the last pre-open close. So the condition
+now reads "the close of the last pre-open 1-minute candle (before 09:15)", a session without one is reported as "no
+pre-open value" (never filled from 09:15), and the text carries the recount's 114 of 114 and 67 of 74. My earlier
+"4 of 6 differ, 2 of 6 equal" stands for its sample and is consistent with 67 of 74.
