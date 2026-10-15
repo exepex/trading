@@ -1,6 +1,6 @@
 """The v4 report's text and JSON (story G8). Every comparison prints its counts, D, the relative improvement against
-the minimum effect, the reported p-values (never a verdict) and its scored window's regime; before the freeze the first
-line says EXPLORATORY."""
+the minimum effect, the reported p-values (never a verdict), its scored window's regime and its missed days; before
+the freeze the first line says EXPLORATORY."""
 
 from __future__ import annotations
 
@@ -40,6 +40,7 @@ def comparison_lines(c: Comparison) -> list[str]:
         f"p batch-means {c.batch_means_p:.4f}, studentized {c.studentized_p:.4f}, centred bootstrap "
         f"{c.centred_bootstrap_p:.4f}, HAC {hac} (reported only); halves {c.half_signs}",
         f"    {c.regime.line() if c.regime else 'no scored window'}",
+        f"    {c.misses.line()}",
     ]
     if c.power is None:
         return lines + [f"    power report after {POWER_REPORT_AT} gate-set outcomes"]
@@ -72,7 +73,7 @@ def _comparison_json(c: Comparison) -> dict:
         "relative_improvement": c.relative_improvement, "batch_means_p": c.batch_means_p,
         "studentized_p": c.studentized_p, "centred_bootstrap_p": c.centred_bootstrap_p, "hac_p": c.hac_p,
         "half_signs": c.half_signs, "regime": c.regime.line() if c.regime else None,
-        "power": asdict(c.power) if c.power else None,
+        "power": asdict(c.power) if c.power else None, "misses": asdict(c.misses),
     }  # fmt: skip
 
 
