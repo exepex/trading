@@ -158,3 +158,98 @@ Tests run: `tests/risk`, `checks`, `playbook`, `books`, `desk`, `decisions`, `ma
 
 **Verdict: FAIL for f4f2e35258a2fe647b1222f2a858f3c10e41bb12** on should-fixes 1-4. Everything else on C2's side is
 correct and well tested. I re-judge on the addendum SHA, which also carries the owner's 1 B, 3 A, 4 A and 5 A.
+
+## Addendum 1 (15 Oct 2026): 56bc6edddbb5681b6a2a52b45ca2a4ed72a0f3aa (code bf9312e, owner's 1 B and 3 A)
+
+**Timing.** 56bc6ed (01:49 UTC) was pushed 10 minutes before this verdict (01:59 UTC), so it does not answer
+should-fixes 1-4. I re-checked each. All four are still open (below).
+
+### The owner's answers, as built
+
+- **1 B, two buckets.**
+  - C2 and C4 now map a structure to one side or a list of sides.
+  - A two-sided position counts its full maximum loss in each bucket, and every one of the proposal's buckets must be
+    within the cap. Open risk counts each position once.
+- **3 A, closed trades count.**
+  - New risk is every trade first filled on the decision day, open or closed, at the largest maximum loss it carried
+    after any fill time that day.
+  - `opened_on` is replaced by `session_trades` (C2: ledger, D2's same-session choices, D3's codec; C4: its own ledger
+    read).
+  - An old record without session trades is refused, never guessed.
+- **4 A, 5 A, 2 B:** text only, or another story (E1-topup).
+
+**My plants on the new code: 9 of 9 caught.** Each is restored afterwards; run on my scratch merge with `main` (below).
+
+| Plant | Result |
+|---|---|
+| A1 C2 checks only the proposal's first bucket | caught |
+| A2 C4 checks only the first bucket | caught |
+| A3 C2 new risk counts only a session trade's last state, so a same-session round trip counts 0 | caught |
+| A4 the same in C4 | caught |
+| A5 C2 treats unknown session trades as none | caught |
+| A6 C2 counts a trade first filled earlier and traded today | caught |
+| A7 the same in C4 | caught |
+| A8 D2's same-session choice not added | caught |
+| A9 unknown side names accepted in `bucket_sides` | caught |
+
+**With STR1's real codes.** On the merged tree I mapped the verticals by the owner's row through a config override:
+- PCS [bullish, short volatility], CCS [bearish, short volatility], CDS [bullish, long volatility] and PDS [bearish,
+  long volatility].
+- A real PCS 100 proposed against held SF 200 and CDS 100 counts in NIFTY/bullish with the CDS (Rs 7,250.13) and in
+  NIFTY/short_volatility with the SF (Rs 7,632.21), each at its full maximum loss (Rs 4,277.67).
+- With the cap at exactly the binding total (7,632.21) it passes; 0.01 less refuses.
+
+**With the real `config.yaml`, PCS is refused:** "unmapped bucket: structure 'PCS' has no side". The config comment
+says "STR1 adds them", but STR1 is merged without them (new should-fix 6).
+
+### Trial merge with `main` (STR1 merged): it does not merge or pass as is (new should-fix 5)
+
+- **Two code conflicts.** `git merge origin/main` conflicts in two files:
+  - `fno/risk/margins.py`: C5's `self.age` against STR1's `terms.bought_only`, in both `MarginTable.parts` and
+    `_scenario_margin`;
+  - `fno/playbook/wiring.py`: C5's books profile against STR1's `build_tradable_structures`.
+
+  Both sides must be kept.
+- **Two silent breaks.** With those resolved by keeping both sides (my scratch copy, never pushed), two STR1 tests
+  break on C5's new signatures:
+  - `tests/checks/test_validity_shapes.py:120` builds C4's `MarginSettings` without the new `max_age_sessions` field
+    (collection error in 2 files);
+  - `tests/risk/test_bought_only.py` builds `MarginTable(path, 7)`, where C5 now needs a `MarginAge`.
+- **Result.** With those two test lines adapted, the merged tree gives **3,468 passed**. Ruff, format (785 files) and
+  imports (740) are clean.
+
+### Status of judge 105's should-fixes at 56bc6ed
+
+| # | Should-fix | Status |
+|---|---|---|
+| 1 | Margin age counts muhurat | **Open**: `margin_age.py` and C4's `fresh` unchanged |
+| 2 | C4 accepts an unsigned restart | **Open**: `restart_days` unchanged |
+| 3 | C4 cap tests | **Open**: re-run on the merged tree, N1, N2, N5, N17 and N19 all still survive |
+| 4 | P10's criterion names the stress limit | **Open**: `docs/stories/P-publishing.md` unchanged |
+
+### New should-fixes
+
+5. **Merge `main` into the branch.**
+   - Resolve `fno/risk/margins.py` and `fno/playbook/wiring.py` by keeping both sides: the profile's margin age with
+     `terms.bought_only`, and the books profile with `build_tradable_structures()`.
+   - Adapt STR1's two tests to the new signatures without loosening them.
+   - Run the full suite on the merged tree.
+6. **Write the owner's 1 B mapping for STR1's four verticals into `config.yaml` `bucket_sides`.**
+   - The decision row names C5 for it ("C5: a vertical credit spread counts in its direction bucket and in short
+     volatility, a debit spread in its direction bucket and long volatility").
+   - Add tests with the real STR1 codes through C2 and C4.
+   - LC and LP (a bought option: a direction and long volatility by analogy) are not in the owner's words. Leave them
+     unmapped (refused) and put the question to the owner.
+
+### Note
+
+- A trade first filled on an earlier day and traded again today is not new risk.
+- That is right for an exit. But an exit that leaves a larger maximum loss (known limit 4: a short fly with only its
+  short call bought back holds Rs 12,350 against Rs 2,600 at entry) adds risk that day and is not counted.
+- E4 closes all legs at one snapshot, so this needs a partial exit (a pending leg). Rare; the bucket and open-risk caps
+  still count it. Information.
+
+**Verdict: FAIL for 56bc6edddbb5681b6a2a52b45ca2a4ed72a0f3aa.**
+- The owner's 1 B and 3 A are built correctly and well tested: 9 of 9 plants caught, and two-bucket counting is
+  correct on real STR1 structures.
+- Open: should-fixes 1-4 of judge 105, plus 5 (merge with `main`) and 6 (the verticals' mapping).
