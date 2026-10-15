@@ -1,0 +1,422 @@
+[
+ {
+  "file": "rules.py",
+  "old": "return math.ceil(((z_alpha + z_beta) * sd / net) ** 2)",
+  "new": "return math.ceil((z_alpha * sd / net) ** 2)",
+  "test": "test_r2_timing_events.py::test_registered_count_is_130_and_80_percent_power_needs_297"
+ },
+ {
+  "file": "rules.py",
+  "old": "return ((last - first).days + 1) / DAYS_A_YEAR",
+  "new": "return (last - first).days / DAYS_A_YEAR",
+  "test": "test_r2_timing_events.py::test_annualisation_divides_by_the_window_length_in_years_both_ends_included"
+ },
+ {
+  "file": "sessions.py",
+  "old": "if day in sessions and OPEN <= moment <= CLOSE:",
+  "new": "if day in sessions and OPEN <= moment < CLOSE:",
+  "test": "test_r2_timing_events.py::test_reaction_session_follows_the_filing_time"
+ },
+ {
+  "file": "sessions.py",
+  "old": "if sessions.between(reaction, expiry) >= MIN_SESSIONS_AFTER_R:",
+  "new": "if sessions.between(reaction, expiry) > MIN_SESSIONS_AFTER_R:",
+  "test": "test_r2_timing_events.py::test_expiry_needs_five_sessions_after_r_and_reports_a_push"
+ },
+ {
+  "file": "sessions.py",
+  "old": "<= (entry, CLOSE)",
+  "new": "< (entry, CLOSE)",
+  "test": "test_r2_timing_events.py::test_filing_at_or_before_the_entry_close_is_flagged_and_after_it_is_not"
+ },
+ {
+  "file": "events.py",
+  "old": "(meeting.day - group[-1].day).days >= DUPLICATE_MEETING_DAYS",
+  "new": "(meeting.day - group[-1].day).days > DUPLICATE_MEETING_DAYS",
+  "test": "test_r2_timing_events.py::test_reschedules_fewer_than_30_days_apart_are_one_event_keeping_the_filed_one"
+ },
+ {
+  "file": "rules.py",
+  "old": "FILING_SEARCH_DAYS = 3",
+  "new": "FILING_SEARCH_DAYS = 2",
+  "test": "test_r2_timing_events.py::test_a_filing_later_than_d_plus_3_days_is_not_matched"
+ },
+ {
+  "file": "events.py",
+  "old": "if filed_before_entry_close(filed_at, entry):",
+  "new": "if False:",
+  "test": "test_r2_timing_events.py::test_events_left_out_are_counted_by_reason"
+ },
+ {
+  "file": "structures.py",
+  "old": "key=lambda k: (abs(k - underlying), -k)",
+  "new": "key=lambda k: (abs(k - underlying), k)",
+  "test": "test_r2_structures.py::test_k0_is_the_nearest_listed_strike_with_ties_to_the_higher_and_steps_to_its_neighbours"
+ },
+ {
+  "file": "structures.py",
+  "old": "if (structure.spread_width or structure.credit) and price >= width:",
+  "new": "if (structure.spread_width or structure.credit) and price > width:",
+  "test": "test_r2_structures.py::test_debit_spread_at_or_above_its_width_is_untradable_and_just_below_is_fine"
+ },
+ {
+  "file": "structures.py",
+  "old": "loss_per_unit = priced.width - priced.price if priced.structure.credit else priced.price",
+  "new": "loss_per_unit = priced.width if priced.structure.credit else priced.price",
+  "test": "test_r2_structures.py::test_iron_condor_credit_width_and_maximum_loss"
+ },
+ {
+  "file": "structures.py",
+  "old": "total += order_charges(leg.close, lot, opening, charges) + order_charges(leg.close, lot, closing, charges)",
+  "new": "total += order_charges(leg.close, lot, opening, charges)",
+  "test": "test_r2_structures.py::test_round_trip_charges_are_c1_on_entry_and_exit_at_the_entry_price"
+ },
+ {
+  "file": "evaluate.py",
+  "old": "and exit_leg.contracts >= MIN_CONTRACTS_TRADED",
+  "new": "and True",
+  "test": "test_r2_structures.py::test_every_leg_needs_50_contracts_on_entry_and_exit_and_100_open_interest"
+ },
+ {
+  "file": "evaluate.py",
+  "old": "entry.open_interest / market.lot >= MIN_OPEN_INTEREST_CONTRACTS",
+  "new": "entry.open_interest >= MIN_OPEN_INTEREST_CONTRACTS",
+  "test": "test_r2_structures.py::test_every_leg_needs_50_contracts_on_entry_and_exit_and_100_open_interest"
+ },
+ {
+  "file": "evaluate.py",
+  "old": "fits_without_pads=maximum_loss(priced, lot, charges) <= MAX_LOSS_CAP_RS",
+  "new": "fits_without_pads=maximum_loss(priced, lot, charges) < MAX_LOSS_CAP_RS",
+  "test": "test_r2_structures.py::test_cap_boundary_is_at_most_rs_10000"
+ },
+ {
+  "file": "rules.py",
+  "old": "S7_TAIL_SHARE = 0.02",
+  "new": "S7_TAIL_SHARE = 0.0",
+  "test": "test_r2_structures.py::test_condor_tail_term_is_two_percent_of_its_maximum_loss"
+ },
+ {
+  "file": "evaluate.py",
+  "old": "bucket_untradable = any(b.untradable for b in buckets)",
+  "new": "bucket_untradable = False",
+  "test": "test_r2_structures.py::test_a_leg_in_an_untradable_bucket_is_not_liquid_at_stage_3"
+ },
+ {
+  "file": "structures.py",
+  "old": "return sum(2 * h * leg.close * lot",
+  "new": "return sum(h * leg.close * lot",
+  "test": "test_r2_structures.py::test_expected_net_is_hurdle_times_notional_less_charges_and_pads_with_break_even_edge"
+ },
+ {
+  "file": "spreads.py",
+  "old": "if count(g) < BUCKET_MIN_LEGS",
+  "new": "if count(g) <= BUCKET_MIN_LEGS",
+  "test": "test_r2_spreads_clusters_stages.py::test_thin_terciles_merge_toward_the_more_liquid_neighbour"
+ },
+ {
+  "file": "spreads.py",
+  "old": "other = thin + 1 if thin + 1 < len(groups) else thin - 1",
+  "new": "other = thin - 1 if thin > 0 else thin + 1",
+  "test": "test_r2_spreads_clusters_stages.py::test_thin_terciles_merge_toward_the_more_liquid_neighbour"
+ },
+ {
+  "file": "spreads.py",
+  "old": "one_sided_share > BUCKET_MAX_ONE_SIDED_SHARE",
+  "new": "one_sided_share >= BUCKET_MAX_ONE_SIDED_SHARE",
+  "test": "test_r2_spreads_clusters_stages.py::test_bucket_with_more_than_20_percent_one_sided_legs_is_untradable"
+ },
+ {
+  "file": "rules.py",
+  "old": "PAD_PERCENTILE = 75",
+  "new": "PAD_PERCENTILE = 50",
+  "test": "test_r2_spreads_clusters_stages.py::test_bucket_pad_is_the_75th_percentile_half_spread_and_depth_is_in_lots"
+ },
+ {
+  "file": "clusters.py",
+  "old": "n0 = (n - sum(len(g) ** 2 for g in groups) / n) / (k - 1)",
+  "new": "n0 = n",
+  "test": "test_r2_spreads_clusters_stages.py::test_icc_of_identical_within_cluster_values_is_one_and_of_identical_means_is_minus_one"
+ },
+ {
+  "file": "clusters.py",
+  "old": "r = max(rho or 0.0, 0.0)",
+  "new": "r = rho or 0.0",
+  "test": "test_r2_spreads_clusters_stages.py::test_kish_count_and_bootstrap_are_deterministic"
+ },
+ {
+  "file": "clusters.py",
+  "old": "return (sector or UNKNOWN_SECTOR, iso.year, iso.week)",
+  "new": "return (sector or UNKNOWN_SECTOR, reaction.year, iso.week)",
+  "test": "test_r2_spreads_clusters_stages.py::test_cluster_is_sector_by_iso_week_with_unknown_for_missing_sectors"
+ },
+ {
+  "file": "moves.py",
+  "old": "if event.reaction.year not in CORRELATION_YEARS:",
+  "new": "if False:",
+  "test": "test_r2_spreads_clusters_stages.py::test_event_move_is_read_only_for_2019_to_2021"
+ },
+ {
+  "file": "stages.py",
+  "old": "return self.stage1_share >= MIN_FIT_SHARE",
+  "new": "return self.stage1_share > MIN_FIT_SHARE",
+  "test": "test_r2_spreads_clusters_stages.py::test_decision_stops_at_the_first_stage_no_structure_passes"
+ },
+ {
+  "file": "stages.py",
+  "old": "return (self.clusters_a_year or 0) >= MIN_CLUSTERS_A_YEAR",
+  "new": "return (self.clusters_a_year or 0) > MIN_CLUSTERS_A_YEAR",
+  "test": "test_r2_spreads_clusters_stages.py::test_decision_stops_at_the_first_stage_no_structure_passes"
+ },
+ {
+  "file": "stages.py",
+  "old": "                and (self.mean_net or 0) > 0\n",
+  "new": "",
+  "test": "test_r2_spreads_clusters_stages.py::test_decision_stops_at_the_first_stage_no_structure_passes"
+ },
+ {
+  "file": "stages.py",
+  "old": "if stage == 3 and not spreads_available:",
+  "new": "if False:",
+  "test": "test_r2_spreads_clusters_stages.py::test_decision_stops_at_the_first_stage_no_structure_passes"
+ },
+ {
+  "file": "stages.py",
+  "old": "note = \"YES under the registered rule; below the 80%-power need\" if len(weak) == len(alive) else \"\"",
+  "new": "note = \"\"",
+  "test": "test_r2_spreads_clusters_stages.py::test_yes_below_the_80_percent_power_need_is_labelled_and_first_failures_are_named"
+ },
+ {
+  "file": "descriptive.py",
+  "old": "\"passes\": share >= MIN_RESULTS_DATE_COVERAGE}",
+  "new": "\"passes\": True}",
+  "test": "test_r2_end_to_end.py::test_too_few_results_dates_cannot_answer_at_stage_0"
+ },
+ {
+  "file": "analysis.py",
+  "old": "events = [e for e in built if PERIOD_START <= e.reaction <= s.last]",
+  "new": "events = built",
+  "test": "test_r2_end_to_end.py::test_events_before_the_period_are_counted_not_analysed"
+ },
+ {
+  "file": "stages.py",
+  "old": "result.clusters = len(set(keys))",
+  "new": "result.clusters = len(keys) + 1",
+  "test": "test_r2_end_to_end.py::test_a_fitting_liquid_cheap_event_still_fails_on_clusters_a_year"
+ },
+ {
+  "file": "lots.py",
+  "old": "return value if seen >= LOT_AGREEING_SESSIONS else None",
+  "new": "return value if seen >= 2 else None",
+  "test": "test_r2_end_to_end.py::test_agreed_lot_needs_the_same_value_on_three_of_five_sessions"
+ },
+ {
+  "file": "lots.py",
+  "old": "\"valid\": total > 0 and share >= LOT_VALIDATION_MIN_SHARE,",
+  "new": "\"valid\": total > 0,",
+  "test": "test_r2_end_to_end.py::test_legacy_lot_derivation_validates_only_on_exact_matches"
+ },
+ {
+  "file": "lots.py",
+  "old": "return round(future.turnover / (future.contracts * future.settle))",
+  "new": "return round(future.turnover / future.contracts)",
+  "test": "test_r2_end_to_end.py::test_legacy_lot_derivation_validates_only_on_exact_matches"
+ },
+ {
+  "file": "snapshot_capture.py",
+  "old": "not WINDOW[0] <= moment.time() < WINDOW[1]",
+  "new": "not WINDOW[0] <= moment.time() <= WINDOW[1]",
+  "test": "test_r2_snapshot_sources.py::test_snapshot_window_is_14_to_15_ist_on_a_session"
+ },
+ {
+  "file": "snapshot_capture.py",
+  "old": "    if clock().time() >= WINDOW[1]:\n        return \"after_window\"",
+  "new": "    if False:\n        return \"after_window\"",
+  "test": "test_r2_snapshot_sources.py::test_a_quote_that_comes_back_at_15_00_is_dropped_and_errors_are_counted_not_one_sided"
+ },
+ {
+  "file": "snapshot_capture.py",
+  "old": "if today < day <= ahead[-1]:",
+  "new": "if today < day < ahead[-1]:",
+  "test": "test_r2_snapshot_sources.py::test_candidates_are_fo_stocks_with_results_in_the_next_10_sessions"
+ },
+ {
+  "file": "inputs.py",
+  "old": "    if hashlib.sha256(data).hexdigest() != expected:\n",
+  "new": "    if False:\n",
+  "test": "test_r2_snapshot_sources.py::test_input_cache_refuses_a_file_whose_hash_differs_from_its_manifest"
+ },
+ {
+  "file": "sources.py",
+  "old": "if action.changes_shares or RIGHTS in action.subject.lower():",
+  "new": "if action.changes_shares:",
+  "test": "test_r2_snapshot_sources.py::test_renamed_symbols_and_corporate_actions_join_on_the_latest_name"
+ },
+ {
+  "file": "sources.py",
+  "old": "later = [c for c in self.changes.get(symbol, []) if c.effective > day]",
+  "new": "later = []",
+  "test": "test_r2_snapshot_sources.py::test_renamed_symbols_and_corporate_actions_join_on_the_latest_name"
+ },
+ {
+  "file": "sources.py",
+  "old": "moment = moment.astimezone(IST) if moment.tzinfo else moment",
+  "new": "pass",
+  "test": "test_r2_snapshot_sources.py::test_filing_times_are_ist_without_timezone"
+ },
+ {
+  "file": "markets.py",
+  "old": "if actions.covers(event.entry, event.reaction) and actions.between(event.symbol, event.entry, event.reaction):",
+  "new": "if False:",
+  "test": "test_r2_markets.py::test_a_listed_action_in_entry_to_r_is_excluded_and_on_the_entry_day_is_not"
+ },
+ {
+  "file": "markets.py",
+  "old": "if not any(strike == plan.strikes.k0 for strike, _ in exit_chain):",
+  "new": "if not exit_chain:",
+  "test": "test_r2_markets.py::test_market_checks_k0_and_the_contracts_lot_on_r"
+ },
+ {
+  "file": "markets.py",
+  "old": "        if on_r != plan.lot:\n",
+  "new": "        if False:\n",
+  "test": "test_r2_markets.py::test_market_checks_k0_and_the_contracts_lot_on_r"
+ },
+ {
+  "file": "markets.py",
+  "old": "lot = chain_lot(chains[expiry], strikes.k0)",
+  "new": "lot = summary.near_future(event.symbol).lot",
+  "test": "test_r2_end_to_end.py::test_the_lot_is_the_chosen_expirys_own_not_the_near_months"
+ },
+ {
+  "file": "wiring.py",
+  "old": "    return Sessions(days, later, stray)",
+  "new": "    return Sessions(days, irregular=stray)",
+  "test": "test_r2_end_to_end.py::test_the_studys_sessions_count_calendar_sessions_after_the_last_file"
+ },
+ {
+  "file": "sessions.py",
+  "old": "return bisect_right(self._counted, end) - bisect_right(self._counted, start)",
+  "new": "return bisect_right(self.days, end) - bisect_right(self.days, start)",
+  "test": "test_r2_timing_events.py::test_sessions_after_the_archive_are_counted_from_the_calendar_for_the_expiry_rule"
+ },
+ {
+  "file": "events.py",
+  "old": "            if period >= oldest:",
+  "new": "            if True:",
+  "test": "test_r2_timing_events.py::test_a_filing_for_a_period_older_than_120_days_before_d_is_not_this_events"
+ },
+ {
+  "file": "analysis.py",
+  "old": "    if missing:\n        raise MissingFile",
+  "new": "    if False:\n        raise MissingFile",
+  "test": "test_r2_end_to_end.py::test_a_session_without_its_file_stops_the_run"
+ },
+ {
+  "file": "snapshot_capture.py",
+  "old": "    if at.time() >= WINDOW[1]:",
+  "new": "    if False:",
+  "test": "test_r2_snapshot_sources.py::test_a_quote_that_comes_back_at_15_00_is_dropped_and_errors_are_counted_not_one_sided"
+ },
+ {
+  "file": "snapshot_capture.py",
+  "old": "    future = previous.future(symbol, expiry)",
+  "new": "    future = previous.near_future(symbol)",
+  "test": "test_r2_snapshot_sources.py::test_capture_quotes_14_legs_on_the_rule_expiry_and_stops_at_15_00"
+ },
+ {
+  "file": "spreads.py",
+  "old": "return bool(leg.bid and leg.ask and 0 < leg.bid <= leg.ask)",
+  "new": "return bool(leg.bid and leg.ask)",
+  "test": "test_r2_spreads_clusters_stages.py::test_a_crossed_quote_counts_as_one_sided"
+ },
+ {
+  "file": "stages.py",
+  "old": "    return f\"Oct {start} - Sep {start + 1}\"",
+  "new": "    return f\"Oct {day.year} - Sep {day.year + 1}\"",
+  "test": "test_r2_spreads_clusters_stages.py::test_passing_clusters_are_split_into_october_to_september_parts"
+ },
+ {
+  "file": "analysis.py",
+  "old": "\"decision_window_with_filed_at\": _share([e.filed_at is not None for e in decision_events]),",
+  "new": "\"decision_window_with_filed_at\": 1.0,",
+  "test": "test_r2_end_to_end.py::test_a_fitting_liquid_cheap_event_still_fails_on_clusters_a_year"
+ },
+ {
+  "file": "stages.py",
+  "old": "        passing = [s for s in scored if s.outcome.counts_for_clusters]",
+  "new": "        passing = [s for s in scored if s.outcome.stage3]",
+  "test": "test_r2_spreads_clusters_stages.py::test_a_fitting_liquid_event_with_expected_net_at_or_below_zero_adds_no_cluster"
+ },
+ {
+  "file": "analysis.py",
+  "old": "[x for x in v if x.reaction >= DECISION_START], window",
+  "new": "v, window",
+  "test": "test_r2_end_to_end.py::test_events_before_the_decision_window_never_decide"
+ },
+ {
+  "file": "structures.py",
+  "old": "return max(calls[-1] - calls[0], puts[-1] - puts[0])",
+  "new": "return min(calls[-1] - calls[0], puts[-1] - puts[0])",
+  "test": "test_r2_structures.py::test_condor_maximum_loss_uses_the_wider_wing_when_steps_differ"
+ },
+ {
+  "file": "evaluate.py",
+  "old": "fits_with_pads=loss <= MAX_LOSS_CAP_RS",
+  "new": "fits_with_pads=loss < MAX_LOSS_CAP_RS",
+  "test": "test_r2_structures.py::test_cap_with_pads_is_at_most_rs_10000"
+ },
+ {
+  "file": "descriptive.py",
+  "old": "if lot_share > MAX_LOT_UNKNOWN_SHARE:",
+  "new": "if lot_share >= MAX_LOT_UNKNOWN_SHARE:",
+  "test": "test_r2_spreads_clusters_stages.py::test_stage_0_passes_at_exactly_80_percent_coverage_and_10_percent_lot_unknown"
+ },
+ {
+  "file": "descriptive.py",
+  "old": "\"passes\": share >= MIN_RESULTS_DATE_COVERAGE}",
+  "new": "\"passes\": share > MIN_RESULTS_DATE_COVERAGE}",
+  "test": "test_r2_spreads_clusters_stages.py::test_stage_0_passes_at_exactly_80_percent_coverage_and_10_percent_lot_unknown"
+ },
+ {
+  "file": "evaluate.py",
+  "old": "tail = S7_TAIL_SHARE * loss if structure.credit else 0.0",
+  "new": "tail = S7_TAIL_SHARE * (loss - cost) if structure.credit else 0.0",
+  "test": "test_r2_structures.py::test_condor_tail_is_two_percent_of_the_maximum_loss_including_costs"
+ },
+ {
+  "file": "moves.py",
+  "old": "kish=kish_count([len(g) for g in signed], rho_abs),",
+  "new": "kish=kish_count([len(g) for g in signed], icc_anova(signed)),",
+  "test": "test_r2_spreads_clusters_stages.py::test_kish_uses_the_icc_of_absolute_moves_not_signed_moves"
+ },
+ {
+  "file": "snapshot_legs.py",
+  "old": "return bool(self.legs) and self.no_row_share <= MAX_NO_PREVIOUS_ROW_SHARE",
+  "new": "return bool(self.legs)",
+  "test": "test_r2_end_to_end.py::test_a_snapshot_above_20_percent_without_previous_rows_is_not_used"
+ },
+ {
+  "file": "snapshot_legs.py",
+  "old": "    if sha != expected_sha256:",
+  "new": "    if False:",
+  "test": "test_r2_snapshot_sources.py::test_the_run_rebuilds_snapshot_legs_from_the_raw_file_and_counts_missing_previous_rows"
+ },
+ {
+  "file": "sessions.py",
+  "old": "    if day in sessions.irregular:\n        return sessions.after(day)\n",
+  "new": "",
+  "test": "test_r2_timing_events.py::test_a_market_hours_filing_on_a_muhurat_day_is_after_hours"
+ },
+ {
+  "file": "snapshot_legs.py",
+  "old": "return bool(self.legs) and self.no_row_share <= MAX_NO_PREVIOUS_ROW_SHARE",
+  "new": "return bool(self.legs) and self.no_row_share < MAX_NO_PREVIOUS_ROW_SHARE",
+  "test": "test_r2_snapshot_sources.py::test_no_previous_row_rule_uses_exactly_20_percent_and_refuses_just_over"
+ },
+ {
+  "file": "wiring.py",
+  "old": "    \"PROTOCOL.md\",\n",
+  "new": "",
+  "test": "test_r2_snapshot_sources.py::test_check_frozen_refuses_a_changed_protocol_or_amendment"
+ }
+]

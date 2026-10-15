@@ -26,6 +26,8 @@ it red. The judge's own planted breaks are in the table below: T12 (read the ind
 | Minor 2: source message in the public file | Correct | `fno/cards/card.py`: a failed source is named by error type only | `test_a_source_that_raises_never_loses_the_card` asserts no message text. Break: caught |
 | Minor 3: ConnectionError double post | Correct: a plain `ConnectionError` includes a connection dropped after sending | No idempotency check: that would need `conversations.history`, a new Slack scope, so it is not cheap. Instead a plain `ConnectionError` is now "may have posted": not retried, with "check #fno-desk". Only `ConnectTimeout` (never connected), `ratelimited` and `service_unavailable` are retried | `test_a_failure_that_may_have_posted_or_is_a_refusal_is_never_retried`, `test_a_connect_timeout_then_success_posts_once_more`. My first break for this was equivalent (not caught, because the may-have-posted check runs first); the replacement break then exposed that the case was missing from the test. Added: caught |
 | Minor 4: test post's old clock entries | Agree | left as is (append-only) | none |
+| Minor (judge A, after 101): weather must say it blocks new trades (owner "4 A") | Correct | `fno/cards/weather.py`: "No new trades while the weather reading is missing (owner rule)." right under the weather line; criterion 3 updated | `test_missing_weather_says_it_blocks_new_trades_owner_rule`. Removing the line: caught (checked in a throwaway worktree) |
+| Judge A addendum minors (after 101) | Correct: the WARNING line in `misses()` and "ConnectionError is never retried" had no test that a mutation could not survive | none needed in code; the muhurat note now says "the one-hour Diwali session" (21 Oct 2025 ran 13:45-14:45), not "evening" | `test_the_next_card_names_a_clock_warning`; `test_a_connection_error_is_never_retried_even_when_a_retry_would_succeed` (a success is queued behind the error, so a retry would post). Both mutations (WARNING line removed; ConnectionError moved to the retried set): caught |
 | Design note: muhurat | Agree (owner "3 A") | `docs/stories/T-cards.md`: "a card every session with a 15:00 market" in the description and a design note | `test_a_muhurat_session_gets_no_card_and_is_skipped_as_the_previous_session` |
 
 **`fno/ai/receipts.py` (changed in 9f540e9) is in no frozen list.** It is not in G1 v1-v3 (`research/forecasts/FREEZE*.md`),
@@ -52,6 +54,7 @@ If you cannot act by 15:25 IST, the paper record assumes: no action (nothing is 
 Previous card: no card on record for 2026-10-14
 
 Weather: not yet scored (M1 pending)
+No new trades while the weather reading is missing (owner rule).
 No weather model is built yet; the card shows no colour until M1 scores one.
 
 Forecasts on record: live capture of 2026-10-14 (not today's: the latest committed capture); track records from the score report of 2026-10-13
@@ -297,7 +300,7 @@ used by both `SlackChannelAlerts` and `SlackCardPoster`; the existing alert test
 ## Gates (this commit)
 
 `git config core.hooksPath .githooks`; not shallow; `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`; `ruff check fno
-tests tools`; `ruff format` (no changes); `python tools/check_imports.py` (clean). Full suite on the final commit: 3265 passed; `tests/cards`: 60.
+tests tools`; `ruff format` (no changes); `python tools/check_imports.py` (clean). Full suite on the final commit (main merged in): 3541 passed; `tests/cards`: 63.
 Note: `pip install -r requirements-groww.txt` fails in this container (two old dependencies of `growwapi` do not build);
 no T1 code needs it.
 

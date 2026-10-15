@@ -83,7 +83,15 @@ def test_bad_cost_rows_are_refused():
 def test_the_repository_cost_files_load():
     costs = read_operating_costs((ROOT / "accounting/operating_costs.csv").read_text())
     categories = read_cost_categories((ROOT / "accounting/deductible_categories.csv").read_text())
-    assert costs == [] and categories == {"ai": True, "data": True, "compute": True, "other": False}
+    plan = {
+        "month": "2026-10",
+        "item": "Claude subscription",
+        "category": "ai",
+        "amount_rs": "20000",
+        "source": "DESK_DECISIONS 15 Oct 2026: Claude plan cost: INR 20,000 a month",
+    }  # owner, 15 Oct (story F8)
+    assert costs == [plan] and categories == {"ai": True, "data": True, "compute": True, "other": False}
+    assert Ledgers([], costs, categories).reconciles()
 
 
 CATEGORIES = {"ai": True, "other": False}

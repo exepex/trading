@@ -1,0 +1,27 @@
+{
+  "about": "Protocol v4 section 1.4: V4's golden example, computed by hand with 30-digit decimals (not by fno code). Session variances are squared log returns summed over a session, overnight included (dimensionless). Implied volatility is annualised on the calendar clock (365 days); both sides are compared as annualised volatility per 252 sessions.",
+  "session_variances": [0.00006, 0.00008, 0.00007, 0.00009, 0.00007],
+  "integrated_realised_variance": 0.00037,
+  "realised_vol_252": 0.136557680120892504857,
+  "implied_vol_calendar": 0.138,
+  "cases": [
+    {
+      "name": "weekend inside the window: 7 calendar days, 5 sessions",
+      "calendar_days": 7,
+      "sessions": 5,
+      "integrated_implied_variance": 0.000365227397260273972603,
+      "implied_vol_252": 0.135674097829754549723,
+      "outcome": false,
+      "wrong_clock_outcome": true
+    },
+    {
+      "name": "weekend and a holiday: 9 calendar days, 5 sessions",
+      "calendar_days": 9,
+      "sessions": 5,
+      "integrated_implied_variance": 0.000469578082191780821918,
+      "implied_vol_252": 0.153839966661676553500,
+      "outcome": true,
+      "wrong_clock_outcome": true
+    }
+  ]
+}

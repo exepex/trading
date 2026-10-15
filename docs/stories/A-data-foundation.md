@@ -833,3 +833,402 @@ an old row; checks 2 Mar 2024 and the zero-open days against NSE; confirms no fr
 
 **Depends:** A9, A10, A11 · **Size:** S · **Status:** judge 100 FAIL (3 should-fix) fixed; awaiting re-judge (claims:
 `reviews/claude/response_100_a15-vix-history.md`, addendum 1)
+
+## A17. Global cues, daily
+
+**Repository:** trading
+
+**Description:** As the risk manager and the macro economist, I want the overnight global cues (previous US closes of
+the S&P 500 and Nasdaq 100, the US 10-year yield, Brent and USD/INR) as they were known before each NSE open, from
+official or primary sources, so that the weather and gap-risk work use real cues and never a value published after
+the decision.
+
+**Context and why:** design v2 section 2.1 (data table) and the weather's drivers (2.3); `REPLAN_new_stories.md` A17.
+Facts checked on 15 Oct 2026 (builder, response 103):
+- FRED's site is refused by this environment's network policy, and S&P Dow Jones Indices answers 403. Nasdaq's and
+  Cboe's sites are reachable, but their terms forbid automated capture (Nasdaq) and storing index values (Cboe).
+  Owner decision a927390 (15 Oct 2026): use them anyway for personal, non-commercial research, with raw files and
+  values in Drive only, at most one download a day, and no display until the owner approves one.
+- The US Treasury (yearly par-yield CSV), EIA (Brent, released weekly), RBI (reference rate archive; none from
+  25 Jul 2018 to 11 Apr 2022) and FBIL (reference rates from 10 Jul 2018; public site about a week late) are
+  reachable.
+
+**Scope.** In:
+- one `GlobalCueSource` per cue and publisher, wired only in `fno/global_cues/wiring.py`;
+- raw copies archived in the owner's Drive through `RawFileStore` (A9), one per fetch, never overwritten, each logged
+  with its URL, SHA-256 and fetch time; a later copy that changes a held value is logged as a revision and the table
+  keeps the first value (A11's rule);
+- a derived table per cue in `research/data/global-cues/` with a README (source, URL, time zone, publication lag,
+  terms with evidence labels), `first_seen_at` and `provenance` (`live` or `backfilled`) on every row;
+- the as-of rule for an India date across time zones and holidays, at an explicit cutoff (09:15 or 15:00 IST), with
+  a live-only mode;
+- the private cues (S&P 500 from Cboe, Nasdaq 100 from Nasdaq): tables in Drive only, the four copies already there
+  adopted as the history start, at most one download a day;
+- commands `python -m fno global-cues fill|check|verify|adopt`.
+
+Out: a schedule; any display of the private cues (open owner item); any change to a frozen file, a forecast input
+or the weather.
+
+**Acceptance criteria:**
+1. Each cue names its publisher, URL, the time zone of its dates, when a value is published and the terms that apply,
+   each terms statement with an evidence label; a source whose terms restrict this use is named with its terms quoted
+   and is used only under a recorded owner decision; a source the network refuses is named and another is proposed.
+2. Every value carries `first_seen_at`; back-filled history is marked `backfilled` and only a value first seen before
+   09:15 IST on the first NSE session after its date is `live` (test on the committed tables recomputes the label).
+3. The as-of rule at an explicit cutoff (09:15 or 15:00 IST): a value is usable when its source says it was published
+   before the cutoff (US close 16:00 US Eastern with daylight saving; reference rate 13:30 IST; assumptions named);
+   a US Monday holiday gives Tuesday the Friday value; the same day's USD/INR counts at 15:00 and not at 09:15; live
+   use also needs `first_seen_at` before the cutoff (tests, including the exact publication time).
+4. Raw copies in Drive through `RawFileStore`, never overwritten, each logged; a later change to a held value is
+   logged as a revision and never rewrites the table; a late value is logged, never inserted; tables are append-only
+   (tests).
+5. Gaps recorded, never filled (weekdays without a value, repeated values); RBI and FBIL compared on every date both
+   publish, differences listed, the number compared printed (tests; committed check files reproduce); a cue whose
+   newest value is older than its source allows is named STALE.
+6. A failed download, a file that is not the publisher's, an empty answer, or a copy Drive refuses writes nothing to
+   that cue's table and is named; a Drive or setup failure stops the command with one line and exit 1 (tests).
+7. Derived rows equal the archived copies: `verify` recomputes every row's value from its copy, checks
+   `first_seen_at` is not before the copy was fetched and recomputes `provenance`, names a date held twice, rows out of
+   order and an empty cue table; tests plant each.
+8. Behind interfaces with one composition root (added to CLAUDE.md); no frozen file changes; code size, lint, imports
+   and the full suite pass.
+9. Private cues (owner decision a927390): their rows, revisions and gaps are written to Drive only, as write-once
+   parts; the repository holds only their copy logs (paths, URLs, hashes, sizes) and code; tests use made-up values
+   labelled fake; a second download on the same IST date is refused; the kept copies are adopted at their own fetch
+   times (tests; a test checks no private table or value is in the repository).
+
+**Gap list (quality rule 2): every requirement of REPLAN's A17 paragraph, design 2.1's data row, outputs and failure
+modes, and the orchestrator's brief.**
+
+| Requirement | Where |
+|---|---|
+| previous US close, S&P 500 and Nasdaq 100 | criterion 9 (Cboe, Nasdaq; Drive only, owner decision a927390), criterion 1 (their terms and FRED's notices quoted in the README) |
+| owner's conditions: Drive only, one download a day, no display until approved | criterion 9; display **out**, an open owner item |
+| Brent | criterion 1 (EIA; weekly release, every row `backfilled`) |
+| USD/INR | criterion 1 (RBI, and FBIL for RBI's 2018-2022 hole) |
+| US 10-year yield | criterion 1 (US Treasury) |
+| each behind `GlobalCueSource`, one composition root | criterion 8 |
+| `first_seen_at` on every value; back-fill marked as such | criterion 2 |
+| official or primary sources first; source, publication lag and time zone named | criterion 1 |
+| NSE currency and MCX files (design 2.1's suggestion) | **out**: NSE's currency-derivative file paths tried answered 404 and MCX answered 403 from this session; RBI and FBIL are the official reference rate, and NSE's USD/INR futures are a different quantity (a futures price) |
+| FRED for US closes (design 2.1) | **out**: refused by the network policy, and carries the same owners' restrictions (quoted in the README) |
+| "previous US close known before 09:15 IST": the date mapping across time zones and US holidays | criterion 3 |
+| known before 09:15 IST (REPLAN) and "global cues as of 15:00" (2.1 outputs) | criterion 3: both cutoffs, chosen explicitly |
+| raw files in Drive (A9) with A11's revision rule | criterion 4 |
+| derived daily table with a README | criteria 1, 2, 5 |
+| gaps recorded, never filled | criterion 5 |
+| a failed download writes nothing and is named | criterion 6 |
+| a publisher revising history kept apart (2.1; FRED revises) | criterion 4 |
+| look-ahead failure mode (2.1) | criterion 3 (`live_only`) |
+| licence and terms of each source, honestly labelled | criterion 1 |
+| no scheduling; O6 fetch-and-trigger | **out** (orchestrator: no schedules) |
+| no frozen files | criterion 8 |
+
+**Judge verifies:** runs `global-cues verify`; reads each source's terms itself; checks two US-holiday India dates
+with `value_for`; plants a revised value and a late value; confirms no S&P 500 or Nasdaq 100 data is in the repository.
+
+**Depends:** A7, A9, A11 · **Size:** M · **Status:** built, with the US closes in Drive only (owner decision
+a927390); awaiting judge (claims: `reviews/claude/response_103_a17-global-cues.md`, addendum 1)
+
+---
+
+## A17b. Guards before any consumer reads a global cue
+
+**Repository:** trading
+
+**Description:** As the risk manager and the statistician, I want every global-cue reading to say how old it is and
+whether it is the session it should be, so that the weather, M1 and the forecasts never use a stale or missing US close
+as if it were last night's.
+
+**Context and why:** judge 103 (A17 PASS, 15 Oct 2026) minors 1, 3, 4 and 5, and judge 100 (A15) minors; orchestrator,
+15 Oct 2026. Judge 103 found that `value_for` returns sp500's 14 Oct value for 27 Nov 2026, six weeks old, and that on
+15 Oct at 09:15 nasdaq100's "previous close" is 13 Oct, because Nasdaq lacked 14 Oct. Only the run says STALE. No code
+reads a cue yet, so this must be done before the first consumer. Judge 103 minor 2 (FBIL in a public repository) is
+the orchestrator's decision: the table stays public for now, as an open owner item.
+
+**Scope.** In:
+1. **Readings with an age and an expected date.** A `CueReading` returns the row, its age in calendar days from the
+   India date, the date the source *should* have given (its expected value date), and a status. Statuses, decided in
+   this order:
+   - `none`: nothing usable;
+   - `current`: the value is the expected date's, **whatever its age** (after Hurricane Sandy, 26 Oct 2012's close is
+     the expected one on 31 Oct and is `current`);
+   - `ahead`: newer than the expected date (the calendar did not expect a value that day but the source published one,
+     e.g. RBI on an NSE holiday). Usable like `current`, and flagged so the calendar mismatch is seen;
+   - `behind`: older than the expected date, age within the source's `max_age_days`;
+   - `stale`: older than the expected date **and** age over `max_age_days`.
+   For a cue without an expected date (Brent) only `behind` (age within `max_age_days`), `stale` and `none` are
+   possible.
+   `value_for` stays for research and gains no silent behaviour. Callers use `reading_for` and must refuse `stale` and
+   `none`. A caller using `behind` must state it in its own rules.
+2. **A US stock-market session calendar** (behind a new `UsSessionCalendar` interface) gives the expected date for the
+   S&P 500 and the Nasdaq 100: the last NYSE trading date whose close is published before the cutoff. It is built
+   from:
+   - NYSE's holiday rules, computed: weekend observance, Good Friday from Easter, Juneteenth from 2022;
+   - a sourced list of unscheduled NYSE closures since 2007, each row with an https source:
+     - 2 Jan 2007, national day of mourning for President Ford;
+     - 29-30 Oct 2012, Hurricane Sandy;
+     - 5 Dec 2018, President G. H. W. Bush;
+     - 9 Jan 2025, President Carter.
+   Reasoning only: the computed rules are not NYSE's own published list for each year. The test (criterion 2) checks
+   them against a **dates-only list of US trading days** committed as
+   `research/data/global-cues/us_trading_dates.csv`. It is derived from the Drive-only S&P 500 table, with a column
+   saying whether the Nasdaq 100 table has the date too. Orchestrator's decision (owner away, logged): trading dates
+   are exchange-calendar facts, not index values, so the Drive-only rule for values still holds. The list is
+   rewritten by `global-cues check` when the Drive settings are present. Nasdaq's extra holiday rows (repeated values)
+   show as Nasdaq-only dates and are listed, not counted as sessions.
+
+   **The US 10-year is not on the NYSE calendar** (judge 116: `us10y.csv` has no value on Columbus Day 2025 or
+   Veterans Day 2024, when NYSE was open, and has values on Good Friday 2015, 2021 and 2023, and on 2 Jan 2007,
+   29 Oct 2012 and 9 Jan 2025, when NYSE was closed). It follows the bond-market (SIFMA) calendar. Simplification,
+   like USD/INR's: its expected date is the previous Monday-to-Friday weekday before the cutoff. A bond-market holiday
+   then shows as `behind`, never wrongly as `current`; a sourced SIFMA calendar is **out** for now.
+
+   For the USD/INR cues the expected date is the previous **NSE session** (the A7 calendar's `regular` or `special`
+   sessions, not plain Monday to Friday) or, at 15:00, the same day when it is one. This is a simplification: RBI's and
+   FBIL's holidays are not NSE's. A mismatch shows as `behind` or `ahead`, never wrongly as `current`. **FBIL will
+   almost always read `behind`**: its public site trails by about a week. For Brent there is no expected date; age
+   only.
+3. **`max_age_days` per cue for readings:**
+   - US index closes and the US 10-year: 4 days. Thursday's close on Monday covers a Good Friday, and Friday's close on
+     Tuesday covers a US Monday holiday.
+   - USD/INR (RBI): 5 days.
+   - FBIL: 14 days (its public site trails a week).
+   - Brent: 16 days (weekly release).
+   These are the run's STALE limits made per reading. The US numbers are newly tightened from 7 days, to the
+   calendar's worst normal case.
+4. **The `live` label skips muhurat sessions.** The first NSE open after a value date is the first `regular` or
+   `special` session; a muhurat session has no 09:15 open. Committed labels are unchanged, because every affected row
+   is already `backfilled`; a test recomputes them all.
+5. **`adopt` checks Drive's own creation time.** The copy's `createdTime` in Drive must fall within 10 minutes after
+   the time in its path; otherwise adopt refuses and names both times. This needs a new read of Drive metadata behind
+   the store interface; stores without it refuse adopt.
+6. **The once-a-day rule also caps failed attempts.** Every download attempt of a once-a-day cue is logged (time and
+   outcome, no value) in `research/data/manifests/global-cues/attempts/<cue>.csv`. A third attempt on one IST date
+   is the last: after 3 attempts, or after 1 saved copy, nothing is downloaded that day, and the run says so.
+7. **Judge 100's A15 minors:**
+   - a test of `vix-history sweep`'s exit code when the original is missing;
+   - the README's muhurat wording: one-hour sessions, in the evening until 2024 and 13:45-14:45 IST in 2025, per the
+     calendar's circulars;
+   - the `lambda` and `noqa` in `fno/vix_history/wiring.py` replaced by a named function.
+8. **FBIL:** the data README records the orchestrator's decision (the table stays public, non-commercial use of a
+   published benchmark) as an open owner item.
+
+Out: any consumer (M1, the weather, forecasts); any display of the private cues; changing past table rows.
+
+**Acceptance criteria:**
+1. `reading_for` gives row, age, expected date and status, decided in the stated order. Tests cover each status, with
+   good, bad, boundary and empty cases:
+   - 15 Oct 2026, 09:15, nasdaq100 last value 13 Oct: `behind` (expected 14 Oct);
+   - 27 Nov 2026 with nothing after 14 Oct: `stale`. The expected date is 25 Nov: Thanksgiving is 26 Nov 2026, from the
+     computed 2026 US calendar;
+   - 31 Oct 2012 at 09:15, sp500 last value 26 Oct: `current` (Sandy closed NYSE on 29-30 Oct), although 5 days old;
+   - usdinr_rbi with a value for a date that is an NSE holiday but an RBI business day: `ahead`;
+   - us10y with a value for Good Friday read on the following Monday: `current`. Under the Monday-to-Friday rule
+     Good Friday is the expected date; that rule never makes us10y `ahead`;
+   - an age exactly at `max_age_days` is `behind`, one day more is `stale`;
+   - Brent: only `behind`, `stale` or `none`;
+   - no rows: `none`.
+2. The US stock-market calendar's expected date is right on:
+   - a US Monday holiday (MLK, 20 Jan 2026 gives 16 Jan);
+   - Good Friday (Monday gives Thursday);
+   - Thanksgiving week;
+   - Juneteenth before and after 2022;
+   - a weekend-observed holiday;
+   - each listed closure;
+   - US summer and winter time at 09:15 and 15:00.
+   A CI test checks the committed `us_trading_dates.csv` (dates only) against the calendar: every weekday since 2007
+   without an S&P 500 date is a holiday or a listed closure, and every S&P 500 date is a computed session; any
+   mismatch is named. A second CI test checks us10y's own dates against the Monday-to-Friday rule: every missing
+   weekday is listed as a bond-market holiday or gap, never treated as a session.
+3. The `live` label never uses a muhurat session as an open (test with a value dated the day before a muhurat
+   session); every committed label still recomputes.
+4. `adopt` refuses a copy whose Drive creation time is before its path time or more than 10 minutes after it, and a
+   store that cannot give the time (tests with a fake store; one real check on the four adopted copies).
+5. Attempts are logged and capped: a third failed attempt is the last that day, and a saved copy ends the day's
+   downloads; the attempt log holds times and outcomes only (tests).
+6. Judge 100's minors are done (tests for the sweep's exit code; README text; no `noqa` left in the vix wiring).
+7. The FBIL decision is in the data README as an open owner item.
+8. Quality rules:
+   - a gap list;
+   - a self-review by independent agents;
+   - a broken-code proof per criterion;
+   - real output in dates, ages and statuses only, never a private value.
+   Code size, lint, imports and the full suite pass; no frozen file changes.
+
+**Gap list (quality rule 2):**
+
+| Requirement (source) | Where |
+|---|---|
+| `value_for` refuses or marks a value older than `max_age_days` (judge 103 minor 1; orchestrator (1)) | scope 1 and 3, criterion 1 |
+| readers check the previous US session before using a US close (judge 103 minor 1; orchestrator (1)) | scope 2, criteria 1-2 |
+| the US 10-year's own calendar (judge 116 a) | scope 2: the Monday-to-Friday simplification; a sourced SIFMA calendar **out** |
+| status precedence; a value newer than expected; Brent's statuses (judge 116 b) | scope 1, criterion 1 |
+| the archived-table test in CI without Drive (judge 116 c) | scope 2: the dates-only `us_trading_dates.csv` (orchestrator's decision), criterion 2 |
+| muhurat is not an NSE open in the labels (judge 103 minor 3; orchestrator (3)) | scope 4, criterion 3 |
+| `adopt` cross-checks Drive's creation time (judge 103 minor 4; orchestrator (4)) | scope 5, criterion 4 |
+| failed attempts capped (judge 103 minor 5; orchestrator (5)) | scope 6, criterion 5 |
+| FBIL in a public repository (judge 103 minor 2) | scope 8, criterion 7: an owner item, the table stays |
+| A15 sweep exit code, muhurat wording, `lambda` + `noqa` (judge 100 minors) | scope 7, criterion 6 |
+| no consumer reads a cue before this story (judge 103) | out of scope: consumers come later and must use `reading_for` |
+| RBI's own holiday calendar for USD/INR | **out**: the simplification is stated in scope 2; it can only make a reading `behind`, never wrongly `current` |
+
+**Judge verifies:** runs `reading_for` on real tables for 15 Oct 2026 and 27 Nov 2026 (statuses and dates only); checks
+the US calendar against the archived trading dates; plants a muhurat case, a mis-timed adopt and a fourth attempt.
+
+**Depends:** A17 · **Size:** S · **Status:** story text for the judge's check (quality rule 1); no code yet
+
+---
+
+## A9b. NSE downloads: one retry policy, and a named failure everywhere
+
+**Repository:** trading
+
+**Description:** As the data owner, I want every NSE download to retry what is worth retrying, stop politely on a
+refusal, and end in a failure each command names, so that no dataset crashes with a traceback, waits into a longer
+block, or skips a file silently.
+
+**Context and why:** judge 100 (A15), open item: `fno/storage/raw_source.py:123` lets NSE's 403, 429 and 5xx out as
+`requests.HTTPError` on the first answer, never retried and not as `RawSourceUnavailable`, the error
+`RawFileSource.fetch` promises. `NseArchiveSource._response` is shared by A1, A8, A10, A11, A12, A14, A15, P6 and P8
+(22 source classes, one of them on NSDL's host through the same code). Inventory of 15 Oct 2026 (builder, read-only):
+- a 403/429/5xx is a traceback in `data-librarian`, `data-snapshot`, `data-revisions sweep`, `data-fingerprints
+  --spot-check`, `market archive`, `market daily` (CRASHED), `market look-up`, `participant-oi watch` and
+  `participant-oi sweep`;
+- `participant-oi check-once` crashes before its UNREACHABLE alert is built, so #fno-desk hears nothing;
+- `SourceCoolingOff` (the pacer's 15-minute pause after two refusals, `fno/http_pacing.py`) is a
+  `RequestException`, so `_response` sleeps 5 + 15 + 45 s into a host that is cooling off, then gives up;
+- `market`'s `_archive_revisions` (`fno/market_read_models/cli.py:137`) drops the sweep's unanswered paths: a silent
+  skip;
+- the VIX sweep's and the revision sweep's "no answer" lines do not say why (404, refusal or no connection);
+- `research/data/participant_oi/README.md:54` says the sweep asks for headers only; the wired sweep
+  (`RevisionCapturingSource`) reads every file in full.
+No raw file is ever written partially today (bytes are complete and checked before any `put`); this stays so.
+
+**Scope.** In:
+1. **One retry policy in `NseArchiveSource._response`** (GET and HEAD alike), as named constants:
+
+   | Answer | What the source does |
+   |---|---|
+   | 2xx | returns it: **unchanged**, one request, no wait |
+   | 404 | `None` (not published): **unchanged** |
+   | no connection, timeout, cut answer (a `RequestException` other than `SourceCoolingOff`) | retried |
+   | 429, and every 5xx (500-599) | retried |
+   | 403, and every other 4xx | **not retried**: raises `RawFileRefused` at once (retrying a refusal invites a longer block; the pacer already pauses a host after two refusals in a row) |
+   | `SourceCoolingOff` from the session | **not retried**: raises `RawSourceUnavailable` at once, naming the cool-off |
+
+   - At most 4 tries: waits of 5, 15 and 45 s before tries 2-4 (today's waits, kept).
+   - `Retry-After` (seconds or an HTTP date) on a retried answer: the wait is the larger of the scheduled wait and
+     `Retry-After`. Above `MAX_RETRY_AFTER_SECONDS` (120) the source stops at once with `RawSourceUnavailable` naming
+     it, rather than block a run; the next scheduled run tries again. A malformed or past `Retry-After` is ignored.
+     Why 120 (reasoning only; judge 119 minor 2): past two minutes NSE is blocking, not hiccuping; the pacer pauses
+     the host for 15 minutes and the next scheduled run is the right retry.
+   - With the pacer: a 429 counts as a refusal, so a second 429 in a row pauses the host and the next try stops at
+     once as cooling off. A 429 therefore gets one retry in practice; a 5xx up to three.
+   - Worst case per file: 65 s of waits, or 3 x 120 s with long `Retry-After` values, plus up to 4 request timeouts
+     of 60 s. A12's `filings archive --max-minutes` checks its deadline before each file, so only the file in flight
+     runs over (twice that for a truncated file's second download).
+2. **One failure contract.** `fetch`, `fetch_published` and `last_written` of an NSE source return the bytes (or the
+   time), `None` for 404, or raise `RawSourceUnavailable`; never `requests.HTTPError` or `SourceCoolingOff`.
+   - New `RawFileRefused(RawSourceUnavailable)`: this one file was refused (403 or another 4xx). A subclass, so every
+     caller that handles `RawSourceUnavailable` handles it too; a caller that can go on to the next file catches it
+     first.
+   - Both carry the HTTP status (or none) and the number of tries, and their message names the source, the path, the
+     status or error, and the tries: e.g. `NSE archive: nse/indices/index-close/2026/10/ind_close_all_14102026.csv:
+     HTTP 503 after 4 tries`.
+3. **Every caller names a final failure** (table below): a named line and a non-zero exit, a recorded failure, or an
+   alert; never a traceback, never a silent skip, never a partial or empty raw file.
+
+   | Command or caller | On `RawSourceUnavailable` (incl. `RawFileRefused`) |
+   |---|---|
+   | `data-librarian <ds>` | `stopped: ...` line, exit 1, manifest rows committed (today's path, now reached) |
+   | `data-snapshot <ds>` | `NOT archived: ...`, exit 1 (today's path) |
+   | `data-revisions sweep` | each path listed `no answer` **with its reason**, exit 1 |
+   | `data-fingerprints --spot-check` | **new**: one named line, exit 1, the manifest already written stays |
+   | `market archive`, `market daily` | the problem line (`ARCHIVE_FAILED`, or `Stopped` with its alert), not CRASHED |
+   | `market`'s revision step | **new**: every unanswered path is a problem line (today dropped); like any archive problem it stops that day's publication, since NSE's latest version cannot be confirmed (judge 49) |
+   | `market look-up` | **new**: one named line, exit 1 |
+   | `participant-oi watch`, `check-once`, `sweep` | the `unreachable` row and #fno-desk alert / `no answer` line (today's path, now reached for HTTP errors too) |
+   | `vix-history fill`, `sweep` | `STOPPED (...)` line / `no answer` **with its reason**; the stale "not retried" comments go |
+   | `filings archive` (A12) | `RawFileRefused`: a failure for that company, the run goes on (as an `HTTPError` is today); any other `RawSourceUnavailable`: the run stops naming the company (as today); the truncated-file second download alike |
+   | `filings day-lists` | each list stops with its own named line; the next list still runs |
+   | library consumers (quotes recorder, expiry and validity listings, settlement, panel daily files, participant-OI point in time, the capacity script) | receive `RawSourceUnavailable` instead of `HTTPError`; no caller anywhere catches `requests.HTTPError` from an NSE source after this story (a test checks the code) |
+4. **Docs:** `docs/DATA_SOURCES.md` "Politeness" states the policy; `research/data/participant_oi/README.md:54`
+   corrected (the sweep reads files in full through `RevisionCapturingSource`).
+
+Out:
+- `PublicData` (`fno/providers/public.py`: the option chain and the A12 filing indexes on www.nseindia.com/api) keeps
+  its own three-attempt loop with cookie warm-up; it is not an `NseArchiveSource`. Bringing it under this policy is its
+  own change (it needs the warm-up kept). Safe today (judge 119 minor 3) because its callers catch everything it
+  raises: `NseLevelSource` records any failure, and A12's indexes make a list failure that company's failure and a
+  cool-off a stop. A new caller must do the same until `PublicData` comes under this policy;
+- `tools/nse_raw_download/nse_raw_download.py` (a one-off script, stops at the first 403/429 by design);
+- the pacer's numbers (1 request a second a host, a 15-minute pause after two refusals: owner decision,
+  `docs/DESK_DECISIONS.md:44`);
+- non-NSE sources (the global cues have their own rules).
+
+**Acceptance criteria:**
+1. The policy, for every NSE source class (a test over all 22 `NseArchiveSource` subclasses, with a fake session; GET
+   and HEAD):
+   - 200 at once: the same bytes, one request, no sleep (unchanged);
+   - 404: `None`, one request;
+   - 503, 503, 200: the bytes, waits [5, 15]; 4 x 503: `RawSourceUnavailable` with status 503 and 4 tries, waits
+     [5, 15, 45]; the same for 500, 502, 504 and a dropped connection;
+   - 429 then 200: the bytes; 429 twice through the real pacer: the third try stops at once as cooling off;
+   - 403 and 400: `RawFileRefused` after one request, no wait;
+   - `SourceCoolingOff`: `RawSourceUnavailable` at once, no wait;
+   - `Retry-After`: 30 waits 30 (over the scheduled 5); 3 waits 5; exactly 120 waits 120; 121 stops at once; an HTTP
+     date; a malformed value and a past date use the scheduled wait.
+2. No `requests.HTTPError` or `SourceCoolingOff` leaves an NSE source (tests above), and no code in `fno/` or
+   `research/` catches `requests.HTTPError` around an NSE source's `fetch`, `fetch_published` or `last_written` (a
+   test reads the code).
+3. Every row of the caller table, tested end to end with a fake NSE answering 503 four times and with 403: the named
+   line or recorded failure, the exit code, nothing saved for that file, and work done before it kept (manifest rows
+   committed). `participant-oi check-once` sends its UNREACHABLE alert on a 503. `market`'s revision step names an
+   unanswered path. `filings archive` goes on after a 403 on one company and stops on a cool-off. `filings day-lists`
+   runs the second list after the first stops.
+4. Successful downloads are unchanged: for every source, a 200 makes one request and returns the same bytes and
+   `Last-Modified` time as before (the tests above); one real download through the new code matches its manifest
+   SHA-256.
+5. Docs: the policy in `docs/DATA_SOURCES.md`; the participant-OI README line corrected.
+6. Quality rules 1-9:
+   - rule 1: this text first, code after the judge's check;
+   - rule 2: the gap list below;
+   - rule 3: self-review by independent agents (correctness, silent failures);
+   - rule 4: a broken-code proof per criterion;
+   - rule 5: good, bad, boundary and empty cases (the boundaries are `Retry-After` 120/121, the fourth try, the second
+     429; the empty case is an empty 200 body, which stays the dataset check's job and is never retried);
+   - rule 6: real output: one real successful download, and each command's failure line from the end-to-end tests
+     (labelled as test output: NSE cannot be made to fail on purpose);
+   - rule 7: the orchestrator's check;
+   - rule 8: after the merge, one real `data-librarian` run on a recent day;
+   - rule 9: no money path, so no ChatGPT review (stated, not skipped).
+   Code size, lint, imports and the full suite pass.
+
+**Gap list (quality rule 2):**
+
+| Requirement (source) | Where |
+|---|---|
+| 403/429/5xx raised as `HTTPError`, not `RawSourceUnavailable` (judge 100, `raw_source.py:123`) | scope 2, criteria 1-2 |
+| no retry of 429/5xx (judge 100) | scope 1, criterion 1 |
+| which statuses, how many tries, backoff, `Retry-After` (orchestrator, 15 Oct 2026) | scope 1, criterion 1 |
+| what each caller does on a final failure: named, never silent, never a partial file (orchestrator) | scope 3, criterion 3 |
+| cross-dataset tests (judge 100; orchestrator) | criterion 1 (all 22 classes), criterion 3 (every command) |
+| no behaviour change for successful downloads (orchestrator) | criterion 4 |
+| polite: one a second a host, pause after two refusals (owner, `docs/DESK_DECISIONS.md:44`) | kept (out: the pacer's numbers); scope 1: 403 not retried, a cool-off never waited into |
+| `SourceCoolingOff` retried into a paused host (inventory) | scope 1-2, criterion 1 |
+| `check-once` alert lost on an HTTP error (inventory) | scope 3, criterion 3 |
+| `market` revision step drops unanswered paths (inventory) | scope 3, criterion 3 |
+| "no answer" without a reason in the sweeps (inventory) | scope 3, criterion 3 |
+| stale HEAD-only line in the participant-OI README (inventory) | scope 4, criterion 5 |
+| `PublicData`'s own retry loop (inventory) | **out**: not an `NseArchiveSource`; needs its cookie warm-up |
+| the download tool script (inventory) | **out**: one-off, stops on refusal by design |
+| A8's release time is the answer's, with the check's start beside it (orchestrator's decision 37) | code round: `checked_at` is the answer time; `started_at` goes to the side log `release_check_starts.csv` |
+| the A8 Claude routine commits `release_checks.csv` by path (judge 119 addendum 1; orchestrator's decision 49) | code round: the check log keeps its name and header, so the routine's rows are never lost; only its start times would be, since it does not commit the side log. **Owner item**: update the routine's prompt to commit `research/data/participant_oi/`, or retire it |
+
+**Judge verifies:** plants 503s, a 403, a 429 with `Retry-After` and a cool-off against two datasets of its choice and
+reads each command's line and exit code; checks no `HTTPError` escapes; confirms a successful download is byte- and
+request-identical.
+
+**Depends:** A1, A9, A11, A12, A15, P8 · **Size:** M · **Status:** story text passed (judge 119); code round for the
+judge (response 119)

@@ -12,15 +12,18 @@ from dataclasses import replace
 from datetime import date
 
 from fno.checks.validity_account import AccountFacts, Position
+from fno.checks.validity_limits import priced
 from fno.checks.validity_settings import limits_from_config
 from fno.config import ROOT, load_config
+from fno.constants import RISK_PROFILE_MANUAL
 from fno.fo_bhavcopy import COLUMNS
 from fno.storage.raw_library import RawFile
 from fno.storage.raw_source import NseDailyFoSource
+from fno.storage.wiring import build_session_calendar
 
 FILE_DAY = date(2026, 10, 13)  # the session before the decision day, 14 Oct 2026
 EXPIRIES = ("2026-10-20", "2026-10-27", "2026-11-03", "2026-11-24")  # two weeklies; October's and November's monthly
-START = 500_000.0
+START = 500_000.0  # the Manual profile's account, the default these fixtures check against
 
 
 def nse_file(lot: int = 65, expiries=EXPIRIES, strikes=range(24_400, 25_650, 50)) -> bytes:
@@ -88,13 +91,18 @@ class Margins:
         return self.given
 
 
-def limits(**risk_changes):
-    """config.yaml's limits with a stressed-margin factor of 1.45 set (dated, sourced) and these `risk` changes."""
+def limits(profile: str = RISK_PROFILE_MANUAL, stressed_margin=None, **profile_changes):
+    """config.yaml's limits of risk `profile` (by default the Manual account, which keeps C2's original checks on
+    Rs 5 lakh) with a stressed-margin factor of 1.45 set (dated, sourced) and these profile changes."""
     cfg = copy.deepcopy(load_config(ROOT / "config.yaml"))
     cfg["risk"]["stressed_margin"] |= {"multiplier": 1.45, "source": "test fixture", "as_of": FILE_DAY.isoformat()}
-    cfg["risk"] |= risk_changes
-    return limits_from_config(cfg, ROOT)
+    cfg["risk"]["stressed_margin"] |= stressed_margin or {}
+    cfg["risk"]["profiles"][profile] |= profile_changes
+    return limits_from_config(cfg, ROOT, profile, build_session_calendar().session_kind)
 
 
 def held(trade_id: str, units: dict[str, int], cash_flow: float = 0.0) -> Position:
     return Position(trade_id, units, cash_flow)
+
+
+PRICED = priced(limits().rules)  # the Manual profile's priced checks: stress, exposure and margin room

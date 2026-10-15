@@ -2,3 +2,5 @@
 # sides' new rows instead of stopping on a conflict at the end of the file.
 research/data/participant_oi/release_checks.csv merge=union
 research/data/participant_oi/actions/release_checks.csv merge=union
+research/data/participant_oi/release_check_starts.csv merge=union
+research/data/participant_oi/actions/release_check_starts.csv merge=union

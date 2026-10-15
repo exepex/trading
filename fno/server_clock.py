@@ -1,7 +1,9 @@
-"""The clock contract of design 04 section 4.4 (story T1 criterion 7): times are stored in UTC with their offset and
-shown in IST, and the host clock is checked against Slack's and GitHub's server times on every posting run. A server
-time outside the host's before-and-after window by more than 5 seconds (plus the server clock's resolution) is a
-WARNING. `ServerClock` is the interface; `HttpDateClock` reads a server's HTTP `Date` header (one-second resolution)."""
+"""The host clock checked against independent servers (design 04 section 4.4's clock contract), shared by every
+story that keeps one (T1's daily card, A16's 15-minute recorder): times are stored in UTC with their offset and shown
+in IST, and the host clock is checked against a server's HTTP `Date` header (one-second resolution). Only a 2xx or 3xx
+answer's time is trusted (an error answer may be a proxy's, with the proxy's own clock; judge 101). A server time
+outside the host's before-and-after window by more than 5 seconds (plus the resolution) is a WARNING. `ServerClock` is
+the interface; `HttpDateClock` reads a server's `Date` header. Moved here unchanged from `fno/cards/clock.py`."""
 
 from __future__ import annotations
 
@@ -13,9 +15,11 @@ from email.utils import parsedate_to_datetime
 
 import requests
 
-from ..constants import CLOCK_SKEW_WARNING_SECONDS
+from .constants import CLOCK_SKEW_WARNING_SECONDS
 
 TIMEOUT_SECONDS = 15
+GITHUB_TIME_URL = "https://api.github.com/repos/{repository}"  # a repository path: the API root answers 400 here
+SLACK_TIME_URL = "https://slack.com/api/api.test"  # answers without a token; nothing is posted
 OK_LINE = "clock: host vs {server} within {skew:.1f} s"
 WARNING_LINE = "clock WARNING: host vs {server} off by {skew:.1f} s (limit {limit:.0f} s)"
 UNCHECKED_LINE = "clock NOT CHECKED: host vs {server} ({why})"

@@ -27,9 +27,10 @@ import yaml
 
 from fno.accounting.ledgers import TradeLine
 from fno.ai.scoring_gate import ScoringStatus
-from fno.books.account import EQUITY_COLUMNS, STARTING_CASH_RS, PaperAccount
+from fno.books.account import EQUITY_COLUMNS, PaperAccount
 from fno.books.equity import AccountState, account_state
 from fno.checks.data_checks import CheckReport
+from fno.composition import paper_account_rs
 from fno.desk.records import DeskEvent
 from fno.forecast.schema_v2 import RECORD_COLUMNS_V2, ForecastRecordV2
 from fno.forecast_scoring.block_bootstrap import BootstrapResult
@@ -198,7 +199,7 @@ def test_a_strategy_lab_fixture_from_the_real_ledger_validates():
 
 
 def test_a_paper_trades_fixture_from_a_fresh_account_validates():
-    state = account_state(STARTING_CASH_RS, [], {})
+    state = account_state(paper_account_rs(), [], {})  # C5: the books' profile size, Rs 20 lakh
     value = payload_of("getFnoPaperTrades_india_none")
     for account in value["payload"]["accounts"]:
         account |= {

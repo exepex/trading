@@ -424,3 +424,17 @@ The dashboard head is 13e76b4; the pin moved there and all files are byte-identi
 - **New probes:** the judge's two, a null family and a kind of baseline, are both refused.
 - **Planted break widened:** "AI isolation rules deleted" now removes every AI rule at once. The id rules alone
   would catch a single deletion, which is the point of defence in depth. Planted breaks: 28 of 28.
+
+## Addendum 6: C5 merged (trading a8379e6); P1 brought in line
+
+Trading main is merged into the branch. The dashboard head is ff1ec22; the pin moved there and all files are
+byte-identical.
+
+- **Paper account size:** C5 opens every book at `risk.profiles.books.paper_account_rs`, Rs 20 lakh. The paper-trades
+  Mock examples said Rs 5 lakh. They now open at Rs 20 lakh; the positive and negative cases keep the same gains and
+  losses (+3,054 and -7,108). The schema shape is unchanged; only the opening_value description, the values and their
+  hashes moved. Strong evidence: check_fno_screens and check_contract pass on ff1ec22.
+- **Test import:** C5 removed `fno.books.account.STARTING_CASH_RS`. The fresh-account test now reads the size from
+  `fno.composition.paper_account_rs()`, the same source the books open with, so it follows config instead of a copy.
+- **Merge conflict:** `reviews/claude/README.md` had index lines on both sides; both are kept.
+- Decision 68 holds: nothing else changes in P1 (no trim without the owner's approval in this session).

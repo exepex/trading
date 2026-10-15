@@ -19,7 +19,7 @@ from datetime import date, datetime
 import requests
 
 from ..http_pacing import SourceCoolingOff
-from ..storage.raw_source import NseArchiveSource, RawSourceUnavailable
+from ..storage.raw_source import NseArchiveSource, RawFileRefused, RawSourceUnavailable
 from ..storage.raw_store import RawFileConflict, StoredCopyDamaged
 from .archive import FilingArchive
 from .filing import Filing, FilingGap
@@ -125,8 +125,8 @@ class FilingsLibrarian:
             return
         try:
             data = self.source.fetch(filing.path)
-        except requests.HTTPError as exc:
-            self._fail(filing, f"NSE answered {exc}", report)
+        except RawFileRefused as exc:  # this file only; NSE unavailable stops the run in `run` (A9b)
+            self._fail(filing, f"NSE refused it: {exc}", report)
             return
         if data is None:
             report.gaps.append(FilingGap(filing.symbol, filing.kind, NOT_SERVED.format(period=period, url=filing.url)))
@@ -148,7 +148,7 @@ class FilingsLibrarian:
         download is a failure, retried next run. The file is never saved either way."""
         try:
             again = self.source.fetch(filing.path)
-        except requests.HTTPError as exc:
+        except RawFileRefused as exc:
             self._fail(filing, f"not saved: {error}; the second download failed: {exc}", report)
             return
         if again != data:

@@ -10,8 +10,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from ..server_clock import ServerClock, SkewCheck, check_server, skew_check, unchecked, utc_text
 from .card import TradeCard
-from .clock import ServerClock, SkewCheck, check_server, skew_check, unchecked, utc_text
 from .deliveries import DeliveryLog
 from .posting import CardPoster, PostReceipt
 from .record_store import CardRecordStore

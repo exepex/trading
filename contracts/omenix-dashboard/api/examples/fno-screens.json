@@ -3083,7 +3083,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "b5f4864a62622709e71c36a3e087d22a866d3008a81612802db4c16baea22866",
+   "payload_sha256": "87d5b63a3db975fa3e3557345496bd13198b6dbee31203591b53f8c874613feb",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -3100,27 +3100,27 @@
      {
       "family": "rule",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 503054,
-      "cash": 499414,
+      "opening_value": 2000000,
+      "value": 2003054,
+      "cash": 1999414,
       "open_trades": 1,
       "open_max_loss": 3984
      },
      {
       "family": "hybrid",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 500000,
-      "cash": 500000,
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0
      },
      {
       "family": "ai",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 500000,
-      "cash": 500000,
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0
      }
@@ -3205,7 +3205,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "acad6829fd7e174435876a271a0298205a69b0834f49683677483a6722c79319",
+   "payload_sha256": "244ffe6e945932f913fd2a99b35fad5ad6a3a723d981afb2938eb0dae7b96e15",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -3222,27 +3222,27 @@
      {
       "family": "rule",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 492892,
-      "cash": 492892,
+      "opening_value": 2000000,
+      "value": 1992892,
+      "cash": 1992892,
       "open_trades": 0,
       "open_max_loss": 0
      },
      {
       "family": "hybrid",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 500000,
-      "cash": 500000,
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0
      },
      {
       "family": "ai",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 500000,
-      "cash": 500000,
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0
      }
@@ -3299,7 +3299,7 @@
  },
  "getFnoPaperTrades_india_none": {
   "summary": "Mock (india): no paper trade yet",
-  "description": "Every book at its opening Rs 5 lakh; nothing open, nothing closed",
+  "description": "Every book at its opening Rs 20 lakh; nothing open, nothing closed",
   "x-case": "empty",
   "value": {
    "market": "india",
@@ -3309,7 +3309,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "0408ebeeb2894bfbbcf63f368f217270d0aafbbf1ddc0a5d139a0de3a6151e5c",
+   "payload_sha256": "9d36ef18b2920efef22b049381af910b32e5ce3b5f458b7ec54de3560a352840",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -3326,27 +3326,27 @@
      {
       "family": "rule",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 500000,
-      "cash": 500000,
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0
      },
      {
       "family": "hybrid",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 500000,
-      "cash": 500000,
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0
      },
      {
       "family": "ai",
       "as_of": "2026-11-16",
-      "opening_value": 500000,
-      "value": 500000,
-      "cash": 500000,
+      "opening_value": 2000000,
+      "value": 2000000,
+      "cash": 2000000,
       "open_trades": 0,
       "open_max_loss": 0
      }

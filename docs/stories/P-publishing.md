@@ -408,9 +408,12 @@ band (`getIndices`, `getSession`) and the coming-up events, including `fno_expir
 contract:** a reason code for the empty picks state (W10's `FnoPicks` has only `fno_state.note`).
 
 **Acceptance criteria:**
-1. `FnoBooks` shows each book's own account: value = its latest marked equity on or before the session (Rs 5 lakh
-   before it opened), `pnl` = value − Rs 5 lakh, `approved` = the policies the latest frozen experiment passed (none),
-   `limit_used` = 0 with no open trade, `limit_max` = C2's `max_stress_loss_rs`; never example values.
+1. `FnoBooks` shows each book's own account: value = its latest marked equity on or before the session (the books'
+   `paper_account_rs` before it opened), `pnl` = value − the account's opening cash, `approved` = the policies the
+   latest frozen experiment passed (none), `limit_used` = 0 with no open trade, `limit_max` = the books'
+   `open_risk_cap_rs` (Rs 1,50,000; owner, 15 Oct 2026, "2 A": the books have no stress limit, story C5); never example
+   values. Once P10 publishes open trades, `limit_used` is the sum of the open positions' maximum losses (C5). The
+   dashboard owns the contract wording of `limit_used` and its examples (owner, "contract A"), changed there.
 2. `FnoPicks` is the empty state with a note naming the reason (Experiment 1 passed no policy).
 3. Both validate against the pinned W10 schemas and publish in the same transaction and run status as P6.
 4. A book with an open trade stops the run rather than publish a risk figure this story does not compute.

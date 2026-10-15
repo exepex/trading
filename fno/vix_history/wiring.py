@@ -60,9 +60,13 @@ def build_vix_table() -> VixDailyTable:
 
 
 def build_vix_table_builder(raw: RawFileStore) -> VixTableBuilder:
-    manifest = lambda: _fingerprints(storage.build_manifest_folder())  # noqa: E731 - read when the extension starts
     path_for, reader = NseVixHistorySource.path_for, NseVixJsonReader()
-    return VixTableBuilder(raw, path_for, reader, build_vix_table(), now_ist, manifest)
+    return VixTableBuilder(raw, path_for, reader, build_vix_table(), now_ist, _committed_fingerprints)
+
+
+def _committed_fingerprints() -> dict:
+    """The manifest rows as committed when the extension starts (after the fill has added its own)."""
+    return _fingerprints(storage.build_manifest_folder())
 
 
 def build_vix_checks(folder: Path = CHECKS_FOLDER) -> VixCheckFiles:

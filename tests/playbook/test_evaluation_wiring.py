@@ -13,12 +13,13 @@ from fno.research_engine.features import DecisionContext, Feature
 def test_the_app_evaluator_uses_every_owner_limit():
     evaluator = build_rule_evaluator(load_app_config())
     rules = {rule.name for rule in evaluator.allocator.risk.rules}
-    assert rules == {
+    assert rules == {  # the books' profile (owner, 15 Oct 2026: "1 A", "2 A")
+        "paper_account",
         "max_loss_per_trade",
-        "max_open_trades",
+        "bucket_cap",
+        "open_risk_cap",
+        "new_risk_per_day",
         "drawdown_brake",
-        "stress_loss",
-        "exposure_limit",
         "margin_room",
     }
     assert evaluator.builder.cap == 10_000 and evaluator.builder.lot_size == 65

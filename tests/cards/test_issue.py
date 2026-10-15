@@ -245,3 +245,25 @@ def test_the_next_card_names_an_unchecked_github_clock_even_without_any_warning(
     committed.files[path.relative_to(tmp_path).as_posix()] = path.read_bytes()
     _, next_text = daily_card(committed, tmp_path).prepare(date(2026, 10, 16))
     assert "Previous card: the 2026-10-15 card's clock NOT CHECKED: host vs GitHub (ConnectionError)" in next_text
+
+
+def test_the_next_card_names_a_clock_warning(tmp_path):
+    """Judge A addendum: the WARNING line in misses() had no test of its own (its mutation survived)."""
+    issue(tmp_path, SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, FakeSlack(slack_ok())), NoCardRecords(),
+          [FixedClock("GitHub", HOST + timedelta(seconds=10))])  # fmt: skip
+    path, _ = written(tmp_path)
+    committed = FakeRecords()
+    committed.files[path.relative_to(tmp_path).as_posix()] = path.read_bytes()
+    _, next_text = daily_card(committed, tmp_path).prepare(date(2026, 10, 16))
+    assert "Previous card: the 2026-10-15 card's clock check gave a WARNING (GitHub)" in next_text
+
+
+def test_a_connection_error_is_never_retried_even_when_a_retry_would_succeed():
+    """Judge A addendum: with a success queued behind it, a retry would post; it must not (may have posted already)."""
+    slack = FakeSlack(requests.ConnectionError("dropped after sending"), slack_ok())
+    receipt = SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack, sleep=lambda s: None).post("card")
+    assert len(slack.calls) == 1 and not receipt.sent
+    assert (
+        receipt.outcome
+        == "alert NOT sent: ConnectionError; Slack may still have posted it (check #fno-desk); not retried"
+    )

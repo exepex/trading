@@ -6,10 +6,10 @@ import pytest
 
 from fno.checks.validity_chain import PricedChain
 from fno.checks.validity_evidence import EvidenceReader
-from fno.checks.validity_limits import PRICED
 from fno.quotes.recorder import DATASET
 from tests.checks.builders import committed_record
 from tests.checks.validity_builders import DAY, check, committed_store, failed, mid, snapshot_rows
+from tests.checks.validity_sources import PRICED
 
 BAD = {
     "crossed": {"bid": "260", "ask": "250"},

@@ -27,7 +27,7 @@ FnoPaperTrades:
         properties:
           family: {$ref: '#/components/schemas/FnoFamily', x-fill: built, x-record: 'paper_account:book', description: 'The book, translated from its account''s book id: book1_rules is rule, book2_hybrid is hybrid, book3_ai is ai'}
           as_of: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'equity_history:date', description: The session of the marks}
-          opening_value: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:starting_cash', description: 'The account''s opening balance (Rs 5 lakh a book today; design v2 proposes a Rs 20 lakh account through C5)'}
+          opening_value: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:starting_cash', description: 'The account''s opening balance (Rs 20 lakh a book, config.yaml risk.profiles.books.paper_account_rs, story C5)'}
           value: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:marked_equity', description: 'Marked value: cash plus open positions at their marks'}
           cash: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:cash', description: Cash}
           open_trades: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'account_state:open_trades', description: Open positions}

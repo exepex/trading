@@ -55,8 +55,9 @@ house-forecast rule (design 07 section 7.4, frozen separately); weather scoring 
 merged: they plug in as a new `ForecastSource`); the dashboard renderer.
 
 **Design note (judge 101, owner "3 A", 15 Oct 2026):** design 04's "a card exists every trading day" is read as "a
-card every session with a 15:00 market": regular and special sessions. A muhurat-only session (one evening hour) has
-no 15:00 market and no forecast capture (`fno/forecast/capture.py` skips it), so it gets no card, as in A4.
+card every session with a 15:00 market": regular and special sessions. A muhurat-only session (the one-hour Diwali
+session; 21 Oct 2025 ran 13:45-14:45) has no 15:00 market and no forecast capture (`fno/forecast/capture.py` skips it),
+so it gets no card, as in A4.
 
 **Design:**
 - Package `fno/cards/`, composition root `fno/cards/wiring.py` (design 04 section 4.1 names `fno/cards/wiring.py`).
@@ -82,7 +83,8 @@ no 15:00 market and no forecast capture (`fno/forecast/capture.py` skips it), so
 2. Status is `NO TRADE` with a reason code and a plain reason; with an empty registry the reason is
    `no_approved_strategy` and the card states the paper trade count (0); with a version at `paper` the card is still
    `NO TRADE` (`trade_fields_not_built`); an unreadable registry or paper account gives `data_check_failed`. No trade is ever invented.
-3. Weather: "Weather: not yet scored (M1 pending)" and no colour word (GREEN, AMBER, RED) anywhere on a v1 card.
+3. Weather: "Weather: not yet scored (M1 pending)", followed by "No new trades while the weather reading is missing
+   (owner rule)." (owner "4 A", 15 Oct 2026), and no colour word (GREEN, AMBER, RED) anywhere on a v1 card.
 4. Forecasts: for each question of the latest committed live capture on or before the day, only the house forecast
    (past average, labelled as the fallback), plus one line counting the other forecasters, each line with its
    back-fill record (calibration bin, count, observed share, Brier) labelled "back-fill, not live", and "live: not enough
@@ -116,7 +118,7 @@ no 15:00 market and no forecast capture (`fno/forecast/capture.py` skips it), so
     is refused for any day but today (IST), so today's records are never issued as another day's card.
 13. Secrets never in files or logs: the token is never printed, stored or put in a record; outputs name only the
     variable.
-14. Non-session days (NSE calendar) and muhurat-only sessions (one evening hour, as A4) print "not a trading day: no
+14. Non-session days (NSE calendar) and muhurat-only sessions (the one-hour Diwali session, as A4) print "not a trading day: no
     card" and do nothing; the previous-session check skips muhurat sessions; an unreadable earlier delivery record or
     a failed metadata write is named, never a lost card or lost result; a day the calendar cannot answer
     still gets a card that names the missing calendar.

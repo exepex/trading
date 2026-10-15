@@ -1,4 +1,4 @@
-"""Story E6 (D2's `ShadowBooks`, owned by E6): a research candidate's shadow account is its own Rs 5 lakh account under
+"""Story E6 (D2's `ShadowBooks`, owned by E6): a research candidate's shadow account is its own paper account under
 `journal/shadow/<name>-v<n>/account/`; trading in it writes only inside that declared folder, never a book's, and D2's
 `RealBooks` finds no overlap. Trade counts come from that account's desk records only."""
 
@@ -42,7 +42,7 @@ def test_the_shadow_account_is_its_own_folder_and_no_real_book_overlaps_it(start
     assert NAME == "shadow:cand-c-v1" and account.book.name == NAME
     assert account.storage == started / "journal" / "shadow" / "cand-c-v1" / "account"
     real = RealBooks(BOOKS, [started / "journal" / book for book in BOOKS])
-    assert real.overlap(account) is None and account.book.state.cash == 500_000.0
+    assert real.overlap(account) is None and account.book.state.cash == 2_000_000.0
 
 
 def test_trading_in_the_shadow_account_writes_only_inside_its_declared_folder(started, store, snapshots, entry_desk):

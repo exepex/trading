@@ -175,3 +175,43 @@ committed with the decision before the promotion deadline.
 **Judge verifies:** checks one week of AI-book forecast files.
 
 **Depends:** G1, G3, F1 · **Size:** S · **Status:** built: criterion 3 (coverage in G4's report) MET (judge 62 addendum 1); G4's scoring gate PASS (judge 62 addendum 2); first live run 14 Oct 2026 ~15:10 IST
+
+---
+
+## G6. Forecast protocol v4 (movement size, questions V1-V7)
+
+**Repository:** trading
+
+**Description:** As the statistician, I want the volatility questions V1-V7, their baselines, scores, registered family,
+minimum effects and power rule written and tested before any v4 score, so that no result can shape its own rules.
+
+**Context and why:** Design v2 section 5 and the stop rule of 8.2 (owner decisions of 15 Oct 2026); judge 96 and its
+addenda; ChatGPT reviews 95-98 (review 98's caveat: cumulative Holm with p = 1 for hypotheses not yet judged, and every
+report stating family membership and the decision timestamp). G1 v3 stays frozen and keeps running.
+
+**Scope.** In: `research/forecasts/PROTOCOL_v4.md`, its executable rules in `fno/forecast_v4/`, tests and fixtures.
+Out: the freeze record (after the judge's PASS and ChatGPT's review), baselines' code (G7), scoring and reports (G8).
+
+**Acceptance criteria** (REPLAN_new_stories.md, plus the orchestrator's list of 15 Oct 2026), each with a passing test:
+1. The QLIKE ranking loss `ln f + RV / f` at zero, near-zero and missing RV, with no floor; its paired differences equal
+   the textbook form's when RV > 0.
+2. The frozen day sets: the primary test on every scored non-void date (zeros in); the 3% minimum-effect gate on the
+   same paired dates with RV > 0; the excluded-zero count on every report.
+3. The exact one-sided null-centred block bootstrap, p = (1 + #{D* - D <= D}) / (B + 1) (seed, blocks, missing pairs);
+   HAC as a sensitivity only.
+4. Holm across the registered family; p = 1 for members not judged; family membership and decision timestamp stated.
+5. Baseline eligibility: premium-adjusted implied primary for V2 and V3; V5's Brier-scored option-implied probability.
+6. V4's units with a dimensionally checked golden example (calendar IV against session RV).
+7. V5's outcome from the expiry's final settlement, with its source and timestamp frozen, never a later daily close.
+8. The session set: A7 regular sessions, muhurat excluded.
+9. The stop rule's decision unit and A/B table with zero trials, missing and void outcomes; futility against the
+   minimum effect.
+10. The 60-outcome power report.
+11. Disclosure of the 2017-26 base rates measured before the freeze, on regular sessions only.
+
+**Test plan:** known-answer and hand-rebuild tests in `tests/forecast_v4/`; planted mutations.
+
+**Judge verifies:** re-derives the V4 golden example and the disclosed base rates; rebuilds one bootstrap p-value.
+
+**Depends:** G1, G2, G4 · **Size:** M · **Status:** built on `story/g6-protocol-v4`, awaiting the judge, then ChatGPT;
+not frozen (claims `reviews/claude/response_99_g6-protocol-v4.md`)
