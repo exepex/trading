@@ -2,7 +2,6 @@
 run counter as a number), never the folder name; an uncommitted run is never first counted; on runs r1 to r9 the
 result is the same as S1's old name order (main holds no committed decision run yet, so this fixture stands in)."""
 
-import subprocess
 from datetime import date
 
 from fno.evaluation.order import CountedDecision, first_counted_decision
@@ -10,6 +9,7 @@ from fno.playbook.decision_store import SUMS_FILE
 from fno.playbook.history import PlaybookGit
 from tests.evaluation.builders import protocol_repo
 from tests.playbook.builders import commit_all
+from tests.playbook.builders import git as run_git
 
 BOOK = "book1_rules"
 
@@ -64,7 +64,9 @@ def test_an_uncommitted_run_is_never_first_counted(tmp_path):
     protocol_repo(tmp_path)
     run(tmp_path, "2026-11-02", 1)  # on disk only
     run(tmp_path, "2026-11-03", 1)
-    subprocess.run(["git", "-C", str(tmp_path), "add", "journal/book1_rules/decisions/2026-11-03"], check=True)
-    subprocess.run(["git", "-C", str(tmp_path), "commit", "-q", "-m", "11-03"], check=True)
+    run_git(tmp_path, "add", "journal/book1_rules/decisions/2026-11-03")
+    run_git(
+        tmp_path, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "11-03"
+    )  # CI has no git identity
     found = first_counted_decision(tmp_path, PlaybookGit(tmp_path), BOOK, None)
     assert found.run.endswith("2026-11-03/2026-11-03-r1")
