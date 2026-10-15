@@ -94,8 +94,7 @@ data-revisions sweep: STOPPED: NSE archive: <path>: nsearchives.nseindia.com ref
 - **Rule 7:** the orchestrator's check is next.
 - **Rule 8:** after the merge, one real `data-librarian index-close` run on a recent day.
 - **Rule 9:** no money path, so no ChatGPT review (stated in the story).
-- **Gates:** `python -m pytest -q` (4,354 passed before the last tests were added; the final count is in the report to
-  the orchestrator); `ruff check` and `ruff format --check`; `tools/check_imports.py`. The largest changed file is
+- **Gates:** `python -m pytest -q` (4,355 passed on the merged tree); `ruff check` and `ruff format --check`; `tools/check_imports.py`. The largest changed file is
   `raw_source.py` at 255 lines. No frozen file is changed.
 
 ## Self-review: findings and decisions
