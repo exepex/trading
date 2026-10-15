@@ -74,6 +74,9 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
      crash in between stays visible. If Drive is down (`PrivateFilesUnavailable`), the alert is still sent (the owner's
      warning matters more than its record; reasoning only) and the public mark row says `alert_record_failed`. A
      failed send is printed by `ReportedAlerts`, retried at the next mark, and its record keeps the first try.
+   - one handling per mark: the public mark row (below) is the marker. A mark whose row already exists (any status,
+     `sent` or `alert_record_failed` included) is never handled again, so overlapping recorder fires, or a rerun after
+     Drive recovers, never send the same mark's alerts twice (E2c builder, 16 Oct).
    - the public repository gets only one row per mark handled (below), with times, counts and status, never a position
      or a price.
 5. **No duplicate of the daily run's alerts:**
@@ -136,7 +139,8 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
 5. The same condition on the same position alerts once per hour; the 11th DANGER in a session starts the 30-minute
    summary.
 6. Every alert's first line is an action or "information, no action", and it states the 60-minute assumption.
-7. Every alert is recorded in the private store; a failed send prints "alert NOT sent", is retried at the next mark
+7. A second fire for a mark that already has its public row sends nothing, with Drive up or down, and after Drive
+   recovers. Every alert is recorded in the private store; a failed send prints "alert NOT sent", is retried at the next mark
    and keeps its first record; no committed file names a position, a contract or a price (a test scans the public
    rows).
 8. An intraday exit rule reached gives one information alert and never an E8 exit alert or T; after the execution
