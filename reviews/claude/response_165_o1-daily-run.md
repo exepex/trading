@@ -29,3 +29,19 @@ Slack). Code waits for the text PASS, E2c's merge and the orchestrator's go.
 - E3's snapshot moving to A16's 15:15 mark: a dependency, assigned by the orchestrator after G10 merges.
 - The run-log contract with O8 (session 012eM7Ti8ZaSVowgyMkgoGmM): agreed with its three conditions (one tuple the run
   loops over; status rules; constants size).
+
+## Revision 2 (judge 169 FAIL, 4d86a8c1): both should-fixes accepted
+
+Checked against the files before accepting:
+- **Should-fix 1, accepted.** A4c's passed CLAUDE.md steps 2-3b (`story/a4c-all-indices`; judge 151 addendum 2 text,
+  judge 160 code) run NIFTY and NSE in parallel, the indices after NIFTY's push, and commit per-part paths. My
+  revision 1 committed the whole folder, which A4c forbids (strong evidence: the diff of A4c's CLAUDE.md). Fix: the
+  `quotes` step starts A4c's three commands as child processes beside E3's steps, each part commits only A4c's paths
+  (word for word; A4c's own test checks CLAUDE.md), NIFTY first; `quotes_done` collects them after `exits`.
+  I added one design point of my own: every git command of the run goes through one lock. Without it a part's commit
+  and an E3 commit in one checkout can collide, and a failed E3 commit stops the desk (decision 44). That a collision
+  would happen is **reasoning only**; criterion 4a tests the order.
+- **Should-fix 2, accepted with the orchestrator's option.** After E3's `RunStopped` the card does not run, because
+  T1's `--post` writes delivery metadata and nothing more may be committed. What the owner loses that day is said in the
+  text: the card's forecast block and its Slack witness. The forecasts stay committed with GitHub's receipt, and the
+  stop alert names the cause. That loss is a small cost (**reasoning only**). Criteria 2 and 5 cover it, with a test.

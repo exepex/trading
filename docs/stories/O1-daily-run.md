@@ -60,14 +60,44 @@ In:
   |---|---|---|
   | `weather` | at once | M1's `capture_weather` (refused after the cutoff or on stale closes: recorded, never retried) |
   | `forecasts_v4` | at once | G7's capture (same rules) |
-  | `quotes` | the recorder's own window | A4's `record_today` (with A4c and the NSE recorder when those land), then commits `research/data/quotes/` at once, so E3's pack and `forecast-capture.yml`'s push trigger see the canonical |
-  | `versions` ... `exits` | E3's timetable | E3's `DailyRun` steps, untouched |
-  | `card` | after `exits` | T1's `card daily --post` |
+  | `quotes` | starts the three quote parts in the background (below), records that they started, and goes on | A4c's routine steps 2-3b, unchanged |
+  | `versions` ... `exits` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
+  | `quotes_done` | after `exits`: waits for the parts still running, records each part's result line and commit | |
+  | `card` | after `quotes_done`, only if E3 did not stop | T1's `card daily --post` |
 
-- **A step that fails never stops the next** (design 9): an exception or refusal in `weather`, `forecasts_v4`, `quotes`
-  or `card` is recorded with `status` and `reason`, alerted once to #fno-desk, and the run goes on. E3's own rule is kept:
-  a failed **commit** stops the run with one alert naming the missed exits (decision 44, judged in E3; O1 does not
-  reopen it).
+- **The quote parts are A4c's passed steps 2-3b** (judge 151 addendum 2 text, judge 160 code; branch
+  `story/a4c-all-indices` until it merges after judge D's 16 Oct check), run by O1 as child processes beside E3's
+  steps so that neither waits for the other:
+  - `nifty`: `python -m fno quotes record` (Groww) and `nse`: `python -m fno quotes record --source nse` start together
+    at the run's start; each keeps its own window (14:55-15:10 today, 14:30-14:40 after G10);
+  - `indices`: `python -m fno quotes record-indices` starts right after NIFTY's push, in its own window (15:01-15:13
+    today, 14:41-14:58 after G10), beside NSE if NSE is still running;
+  - each part commits and pushes only its own files, NIFTY first, as soon as its result line is printed, with A4c's
+    paths and never `research/data/quotes/` as a whole: NIFTY `':(glob)research/data/quotes/groww/**/nifty_*'`; NSE
+    `research/data/quotes/nse/`; the indices `':(glob)research/data/quotes/groww/**/banknifty_*'`
+    `':(glob)research/data/quotes/groww/**/finnifty_*'` `':(glob)research/data/quotes/groww/**/midcpnifty_*'`. The
+    paths are one constant in code; A4c's test (`tests/quotes/test_routine_commit_paths.py`) checks that CLAUDE.md
+    gives the same ones;
+  - E3's `pack` already waits for NIFTY's committed canonical (it retries until `pack_wait_until`), so NIFTY's push
+    inside the run is what releases it; `forecast-capture.yml`'s push trigger still starts on that push.
+- **One git at a time:** every git command of the run (the parts' commits, E3's commits and its pack's pull) goes
+  through one lock, and a commit (pull, add, commit, push) holds it whole, so two commits never interleave in the one
+  checkout (reasoning only that git's own `index.lock` would otherwise fail one of them at random; the test below
+  proves the order). Why not leave the parts to the routine's prompt, as today: the routine's git commands and the run's
+  own commits would then share the checkout with no common lock, and a collision inside E3 stops the desk (decision 44).
+
+- **A step that fails never stops the next** (design 9): an exception or refusal in `weather`, `forecasts_v4`, a quote
+  part or `card` is recorded with `status` and `reason`, alerted once to #fno-desk, and the run goes on. A quote part's
+  own alerts (the recorder's three, the record scan's) are its own, as A4c says; O1 adds none for them.
+- **After E3's commit-failure stop** (decision 44, judged in E3; O1 does not reopen it): E3's one alert stands alone.
+  The `card` does **not** run, because nothing more may be committed after the stop and T1's `--post` writes delivery
+  metadata. The quote parts already running are waited for and keep A4c's own commit rule for their own paths (they are
+  the recorder's data, not the desk's records; a commit they cannot make is alerted by them). `quotes_done` and `card`
+  are then not recorded (the run log's commit is the desk's, and it stopped), so O8 shows them missed, beside E3's
+  alert. A rerun after the fix records them (criterion 3). The command ends on E3's `RunStopped` line plus "no card
+  today". **What the owner loses that day (said plainly):** the card's forecast block
+  and its Slack issuance witness; the forecasts themselves stay committed by their own job with GitHub's push receipt,
+  and the stop alert names the cause and the hand fix.
 - **Not live yet:** `config.yaml` `daily.live_from` per O1 step (`weather`, `forecasts_v4`, `card`); before its date the
   step is recorded `not_live` and does nothing. Reason: a first live weather record ends M1's back-fill and v4 rows
   before the G6 freeze would mix with the freeze (strong evidence: `fno/weather/capture.py` docstring "before the first
@@ -84,10 +114,12 @@ In:
     step as missed (as now);
   - lateness stays O8's rule: `decisions.finished_at` against `desk.timetable.decision_deadline`;
   - a closed day keeps E3's single `skipped` step.
-- **The prompt text lives once:** CLAUDE.md section "Daily desk routine" replaces the "3 pm quote recorder" section
-  (steps 1-4 keep their rules: never edit a recorded attempt, never `--no-verify`, alert paths). A test checks that the
-  section holds the command lines.
-- The command ends on one line: `day done` or `day done with problems: <steps>` or E3's `RunStopped` line.
+- **The prompt text lives once:** CLAUDE.md section "Daily desk routine" replaces the "3 pm quote recorder" section.
+  It keeps A4c's steps 2-4 word for word as what the run does for each part, including the per-part `git add` lines,
+  which are also the hand fix if a part's commit failed, and its rules: never edit a recorded attempt, never
+  `--no-verify`, the alert paths. A test checks that the section holds the command lines.
+- The command ends on one line: `day done`, `day done with problems: <steps>`, or E3's `RunStopped` line plus "no card
+  today".
 
 Out: any change to the steps' own code (E3, A4, A4c, M1, G7, T1, G10); the routine's schedule time (the owner's, 14:05
 at G10's go-live); E3's snapshot source moving to A16's 15:15 mark (a dependency, not O1's: see Depends); the health check (O8);
@@ -97,14 +129,23 @@ O2's end-to-end failure suite.
 
 1. **Order and days.** With fakes: on a regular session every step runs once, in the table's order; a closed day and a
    muhurat-only day record only `skipped`; a special session runs as A4 and E3 already decide.
-2. **A failure never stops the next step.** For each O1 step a planted exception and a planted refusal give that step
-   `failed` / `refused` with its reason, one alert, and every later step still runs, `exits` and `card` included. A
-   planted failed commit in an E3 step keeps E3's stop and its one alert (unchanged test still passes).
+2. **A failure never stops the next step.** For each O1 step and each quote part a planted exception and a planted
+   refusal give it `failed` / `refused` with its reason, one alert (none of O1's for a quote part), and every later step
+   still runs, `exits` and `card` included. A planted failed commit in an E3 step keeps E3's stop and its one alert
+   (unchanged test still passes) **and the card does not run** (fake card proves no call, no post, no write); the quote
+   parts still running are waited for and commit their own paths; the last line names "no card today".
 3. **Restart.** A rerun the same day skips every recorded step (E3's rule, now for O1's steps too); a `weather` step
    refused at 14:31 is not retried; a rerun after the deadline leaves E3's late rule as it is.
-4. **The quotes step is A4's.** Its files are identical to `fno quotes record`'s on the same fixture (A4's baseline
-   tests pass); the canonical is committed and pushed inside the step, before `pack` waits for it.
-5. **The card is T1's.** It runs after `exits`, posts once, and still posts naming any earlier step that failed.
+4. **The quote parts are A4c's.** Each part runs its own command unchanged (A4's and A4c's tests pass). With fake parts
+   and a fake git: NIFTY and NSE start together at the run's start; the indices start only after NIFTY's push; each
+   commit stages exactly that part's paths (the files planted by A4c's test fixture: NIFTY's commit holds no NSE or
+   index file, never a Groww quote file), NIFTY's commit is the first; E3's steps run while a part is still running (a
+   part that runs to 15:13 does not move `decisions` or `snapshot`); a planted NIFTY failure leaves NSE, the indices'
+   skip and E3's "no pack" path as their own stories decide.
+4a. **One git at a time.** Two commits asked for at the same moment (a part's and an E3 step's) run one after the other,
+    never interleaved (fake git records each command with its holder).
+5. **The card is T1's.** It runs after `quotes_done`, posts once, and still posts naming any earlier O1 step or quote
+   part that failed; it never runs after E3's stop (criterion 2).
 6. **Not live.** A step before its `live_from` is `not_live` and calls nothing (fake proves no call).
 7. **O8's contract.** The run's plan is built from `DAILY_RUN_STEPS` (a test: the steps a full fake day writes are
    exactly the tuple, in its order; renaming one step in the tuple renames it in the log). Whichever of O1 and O8 merges
@@ -126,7 +167,9 @@ O2's end-to-end failure suite.
 | One daily run: data checks, forecasts, weather, desk, card (REPLAN 61) | 1 (data checks = E3's gate) |
 | Fired from Actions as O6 does (REPLAN 61) | superseded: timed jobs stay on Claude routines (owner, DESK_DECISIONS 15 Oct) |
 | Failure alerts and exits still run (old O1 criterion 3, design 9) | 2 |
-| Same quote format as A4 (old O1 criterion 2) | 4 |
+| Same quote format as A4 (old O1 criterion 2) | 4 (the parts' own commands, unchanged) |
+| A4c's passed routine: NIFTY and NSE in parallel, indices after NIFTY's push, per-part paths (judge 169) | 4, 4a and the CLAUDE.md section |
+| The card after E3's stop (judge 169) | 2, 5: it does not run |
 | Stored prompt matches CLAUDE.md (old O1 criterion 4) | 8 |
 | Dry run commits every record (old O1 criterion 1) | 9 |
 | Across containers: pull, lock, commit, push (old O1, E1) | E3's `GitAccountSync`; E2c moves accounts to Drive (code waits for it) |
@@ -139,6 +182,9 @@ O2's end-to-end failure suite.
 - Weather and v4 capture refuse when the previous close came late (`index-closes.yml`, 11:41 retry): seen on the card.
 - A Claude routine's start time is measured on two days only (some evidence).
 - A GitHub push delay near 15:10 counts as late (G10's rule).
+- The indices part and E3's 15:15 snapshot share Groww's key; A4c's window ends at 15:13, so they do not overlap (some
+  evidence: the two windows; G10 moves both).
+- After E3's stop the owner gets no card that day (the stop alert stands alone; the forecasts stay committed).
 
 ## Test plan
 
@@ -148,6 +194,6 @@ criterion with good, failing and empty cases; every criterion broken once on pur
 **Judge verifies:** reads the run order and one planted failure per step; reads the routine prompt for
 secrets and order-placing; checks the real day's log and commits.
 
-**Depends:** E3 (merged), E2c (accounts to Drive, not merged), T1, M1, G7, A4/A7; G10 for the go-live times; E3's
-snapshot moving to A16's 15:15 mark (assigned by the orchestrator after G10 merges) ·
-**Status:** story text for judge D (`reviews/claude/response_165_o1-daily-run.md`)
+**Depends:** E3 (merged), E2c (accounts to Drive, not merged), A4c (code PASS, judge 160), T1, M1, G7, A4/A7; G10
+for the go-live times; E3's snapshot moving to A16's 15:15 mark (assigned by the orchestrator after G10 merges) ·
+**Status:** story text revision 2 (judge 169: should-fix 1 and 2) for judge D (`reviews/claude/response_165_o1-daily-run.md`)
