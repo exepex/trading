@@ -164,3 +164,9 @@ def test_a_missing_reveal_is_not_due_before_1530_and_missed_after(repo):
 def test_no_fire_log_means_the_ai_run_never_started(repo):
     result = AiBookCheck(repo.evidence, BOOK2_HYBRID).check(DAY, EVENING)
     assert result.status == HEALTH_MISSED and "never ran" in result.detail
+
+
+def test_an_absent_canonical_exactly_at_1513_is_missed_and_one_second_before_is_not_due(repo):
+    """Judge 170 minor 3: a push at the deadline instant is on time, so a file still absent then is a miss."""
+    assert _canonical(repo).check(DAY, ist(DAY, 15, 13)).status == HEALTH_MISSED
+    assert _canonical(repo).check(DAY, ist(DAY, 15, 12, 59)).status == HEALTH_NOT_DUE

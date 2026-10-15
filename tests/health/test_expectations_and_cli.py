@@ -175,3 +175,16 @@ def test_the_workflow_gives_its_secrets_only_to_the_check_step(workflow):
                                   "GITHUB_TOKEN": "${{ github.token }}"}  # fmt: skip
     runs = " ".join(s.get("run", "") for s in workflow["jobs"]["check"]["steps"])
     assert "TOKEN" not in runs and "echo" not in runs
+
+
+def test_exactly_these_checks_are_live_from_these_sessions():
+    """Judge 170 minor 2: a check silently dropped (its `live_from` set to None) must fail a test."""
+    live = {name: e.live_from for name, e in _table().items()}
+    assert live == {
+        "3 pm Groww recorder": expectations.FIRST_RECORDED, "NSE recorder": expectations.FIRST_RECORDED,
+        "Forecast v2 records": expectations.FIRST_RECORDED, "Book 2 sealed forecast": expectations.FIRST_SEALED,
+        "Book 3 sealed forecast": expectations.FIRST_SEALED, "Desk daily run": None, "A16 15-minute marks": None,
+        "A8 participant OI": expectations.DATA_JOBS_FROM, "Index closes": expectations.DATA_JOBS_FROM,
+        "NIFTY panel day": expectations.DATA_JOBS_FROM, "FII/DII flows": expectations.DATA_JOBS_FROM,
+    }  # fmt: skip
+    assert expectations.FIRST_RECORDED < expectations.FIRST_SEALED  # both dates fixed in the table, before 16 Oct
