@@ -29,8 +29,9 @@ data". So until `budget.measured_basis_until` (2026-12: November and December as
 owner to confirm) the cap is 50% of **all measured session minutes in the month** (books and roles, development and
 data routines, from `accounting/ai_usage.csv`); after it, 50% of the owner's figure (`plan_minutes_per_month`), which
 no builder sets. Limits, printed on every meter: the measured basis moves with development (quiet development raises
-the books' share); missed development sessions lower the share and missed book sessions raise it, so a level is given
-only when it is known (criterion 7); data-routine sessions have no roster and are not checked.
+the books' share); missed development or data-routine sessions make the share look higher and missed book sessions
+make it look lower, so a level is given only when it is known (criterion 7). The data routines' timing records need a
+change to each routine's prompt: the owner's step, described here, not done by this story.
 
 **Scope.** In:
 - the meter, per month, one line per item of 8.1: Claude subscription (cash spend = the owner's recorded fee, INR
@@ -83,7 +84,9 @@ and labelled, until NSE's 2027 circular rows are added.
    January 2027 freeze) while the calendar lacks the year, gives days left, reports both tests "not computable yet"
    with each missing input and its story, and gives the "stop-rule date reached" alert from the date on (tests).
 7. A level is given only when it is known. On the measured basis, development must be fully captured (a fresh roster,
-   and every development session active in the month read after its last activity); otherwise `unknown`, naming why.
+   and every development session active in the month read after its last activity), and every expected data-routine
+   run recorded (each routine named in `budget.data_routines` once per NSE session day before today, by its own
+   timing record; judge 104 addendum 1); otherwise `unknown`, naming why. The owner's-figure basis needs neither.
    Missing book sessions can only raise the books' share, so they turn `ok` into `unknown` and mark `alert` or `stop`
    "at least this level". The allocation warns "book shares overstated" or "understated" accordingly (tests).
 
@@ -98,7 +101,9 @@ code path posts to Slack.
 1. "5 A": the routine records its own usage at the end of each run, tested on the next run; the owner's monthly note
    only if that fails. Built as `SelfTimedUsageReader` (a routine cannot read its own run's events at its end); the
    books' prompt change that writes the timing record is a new registered book version, left to the orchestrator.
-2. "6 INR 20000 per month": recorded for October 2026 in `accounting/operating_costs.csv`, citing its row.
+2. "6 INR 20000 per month": recorded for October 2026 in `accounting/operating_costs.csv`, citing its row, and held as
+   one config value (`budget.plan_cost`, citing the same row) that the meter applies to every month from October 2026
+   until a newer decision changes it; a recorded payment that differs is flagged (judge 104 addendum 1).
 3. "7 A": the measured basis for two months, then a fixed figure (`measured_basis_until`, `plan_minutes_per_month`).
 
 **Depends:** F8 (minimal), C1, A7 · **Size:** S · **Status:** built on `story/f8-bg1-budget`, revised after judge 104

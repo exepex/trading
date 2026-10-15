@@ -9,6 +9,30 @@ Slack, no order code is touched.
 owner's answers of 15 Oct ("5 A", INR 20,000, "7 A"), and fixes a third independent review. Revision 2 (`8a3e562`)
 was never sent to the judge.
 
+## Revision 4: answer to judge 104 addendum 1 (FAIL on `553ab47`, data routines only)
+
+| Item | Done | Where (code; tests) |
+|---|---|---|
+| **MF3, data routines.** Uncaptured data-routine minutes sit in the measured denominator, so 200 missing minutes turned a true 30% `ok` into a 90% `alert` | **Accepted, fixed** with the orchestrator's option (a), response 113. On the measured basis the level is `unknown`, naming the reason, until every expected run is recorded. "Expected" means each routine named in `budget.data_routines` (today: the 3 pm quote recorder) once on every NSE session day of the month before today (`SessionCalendar`, A7). A run counts only as a `data_routines` row for that routine on that day: its own self-timed record, through `record-usage --self-timed --purpose data_routines --role "3 pm quote recorder"`. The owner's-figure basis is unaffected. The allocation also warns "book shares overstated". **Not done, the owner's step:** adding the timing record to the recorder's prompt (same lines as the books' proposal below). Until then October reads "0 of 10 expected run(s) recorded" and the level stays `unknown` | `routine_coverage.py`; `cap.py` `_gaps`; `wiring.py`; `test_items_and_cap.py` (the judge's 45/55/200 probe: `unknown`, then the truth of 30% `ok` once captured, and the owner basis stays `ok`); `test_meter.py` (missing runs, recorded runs complete, other purposes don't count) |
+| **Minor: who adds the plan cost each month** | **Fixed:** one config value, `budget.plan_cost` (Rs 20,000 from 2026-10), cites the owner's row, and that row must exist. The meter applies it to every month from October until a newer decision changes the value; nobody adds rows by hand. A recorded payment row is that month's cash spend, and a payment that differs from the decided figure is flagged. October's recorded row stays. Months before October: unknown | `plan_cost.py`; `wiring.py`; `test_plan_cost.py`; `test_meter.py` (November shows "Rs 20,000.00 (decided monthly fee ...)" and allocates it; September is unknown) |
+| "Two months = Nov and Dec" | The config comment now says it is the orchestrator's decision (response 113), which the owner may change | `config.yaml` |
+
+**Mutations for revision 4:** 15 more planted, all caught:
+- the routine gap ignored, or wrongly applied to the owner's figure;
+- coverage always reading complete;
+- today counted as an expected run;
+- rows of any purpose counted as runs (the one survivor, now caught by a new test);
+- the routine gap not wired;
+- the decided cost applied before its month, or its citation not checked;
+- a payment difference not flagged;
+- the recorded payment ignored;
+- the decided cost not allocated;
+- each warning dropped;
+- the development gap ignored;
+- the owner basis.
+
+In total: 72 effective mutations, 71 caught. The 72nd is the equivalent anchored-citation mutation.
+
 ## Answer to judge 104, item by item
 
 | Judge 104 item | Done | Where (code; tests) |
@@ -111,7 +135,7 @@ the docstring.
 | 8.1 GitHub Actions and Drive: no cap | covered: BG1.1 |
 | 8.1 Drive storage reported monthly | **out, stated on the meter**: no Drive size source is wired (later; needs a Drive size call) |
 | 8.1 Azure, Groww API, paid data: owner records | covered: BG1.1, BG1.5 |
-| 8.1 Recorder hosting: a Claude routine, "cost measured by F8" (owner, 15 Oct) | covered: purpose `data_routines`. Its capture has no roster: stated limit |
+| 8.1 Recorder hosting: a Claude routine, "cost measured by F8" (owner, 15 Oct) | covered: purpose `data_routines`, and its coverage is checked against the NSE calendar (revision 4). The routine's timing record is the owner's prompt step |
 | 8.1 A new recurring cash cost needs a written yes | covered: BG1.5 (the cited row must exist) |
 | 8.1 / 6.5 SYSTEM alert at 80% and 100% | covered as data plus a dry run; the Slack sending is wired by a later routine |
 | 6.5 SYSTEM alert "a stop-rule date reached" | covered: `review_reached`, dry run, from the date on |
@@ -191,7 +215,9 @@ own.
 
 1. The books' usage is not captured until their routine writes a timing record (owner "5 A"). That needs a new book
    version, which is the orchestrator's call. Until then, the books' level reads `unknown`.
-2. Data-routine sessions have no roster and are not checked. A missed one would make the share look higher than it is.
+2. The data routines' timing record is not in their prompts yet (the owner's step). Until it is, the measured level stays
+   `unknown`. Only routines that run once per NSE session are modelled; the coming 15-minute recorder needs its own
+   expected-run rule when it is built.
 3. The measured basis moves with development work; after 2026-12 a fixed figure from the owner is required.
 4. Python cannot call the session tools. A Claude session must save the exports and run the commands; nothing is
    scheduled.

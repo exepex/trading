@@ -28,12 +28,15 @@ class MonthMeter:
     unknown_items: list[str]
     allocation_warnings: list[str]
     development_gap: str  # empty when every development session is captured
+    routine_gap: str  # empty when every expected data-routine run is captured
+    plan_cash: str  # the plan's cash line: a recorded payment, the decided monthly fee, or "not recorded"
 
 
 def meter_lines(meter: MonthMeter) -> list[str]:
     lines = [f"Omenix F&O budget meter {meter.month} (design v2 section 8.1)"]
     for item in meter.items:
         cash = NOT_RECORDED if item.cash_rs is None else f"Rs {item.cash_rs:,.2f}"
+        cash = meter.plan_cash if item.item == ITEM_CLAUDE_PLAN else cash
         lines.append(f"  {item.item}: cash spend {cash}; cap: {item.cap}")
         if item.item == ITEM_CLAUDE_PLAN:
             lines += _allocation_lines(meter.allocation)
@@ -81,7 +84,8 @@ def _cap_lines(meter: MonthMeter) -> list[str]:
         lines.append(f"    {MEASURED_LIMIT}")
     if cap.note:
         lines.append(f"    {cap.note}")
-    lines.append(f"    development capture: {meter.development_gap or 'complete'}")
+    lines.append(f"    {meter.development_gap or 'development capture: complete'}")
+    lines.append(f"    {meter.routine_gap or 'data-routine capture: complete'}")
     return lines
 
 

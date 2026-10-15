@@ -86,7 +86,10 @@ def test_a_session_is_covered_only_by_a_reading_complete_past_its_last_active_da
 def test_a_roster_read_before_the_last_complete_day_ended_is_stale():
     coverage = development_coverage(ROSTER, [usage("session_01", "2026-10-17")], "2026-10",
                                     date(2026, 10, 17))  # fmt: skip
-    assert not coverage.complete and coverage.reason == "no session roster read since 2026-10-17T00:00:00+05:30"
+    assert (
+        not coverage.complete
+        and coverage.reason == "development not checked: no session roster read since 2026-10-17T00:00:00+05:30"
+    )
     assert not development_coverage([], [], "2026-10", date(2026, 10, 16)).complete
 
 

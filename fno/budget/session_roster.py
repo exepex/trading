@@ -25,7 +25,7 @@ MAX_LIMIT = 100  # list_sessions' largest page; the export's own limit cannot be
 COLUMNS = ("session_id", "created_at", "updated_at", "captured_at")
 BROKEN = "roster page {n} was not read with the previous page's last_id: a page is missing, so nothing is recorded"
 NOT_THE_END = "the roster's last page is full ({n} of {limit}): more sessions may follow, so nothing is recorded"
-STALE = "no session roster read since {since}"
+STALE = "development not checked: no session roster read since {since}"
 UNCAPTURED = "{n} development session(s) not fully captured"
 
 

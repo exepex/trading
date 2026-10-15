@@ -135,3 +135,14 @@ def test_the_recorded_plan_cost_cites_the_owner_row_that_exists():
     decisions = (ROOT / "docs/DESK_DECISIONS.md").read_text(encoding="utf-8")
     assert plan_cost(costs, "2026-10") == 20000.0 and unapproved_costs(costs, "2026-10", decisions) == []
     assert costs[0]["source"] == "DESK_DECISIONS 15 Oct 2026: Claude plan cost: INR 20,000 a month"
+
+
+def test_a_data_routine_gap_makes_the_measured_level_unknown_not_a_false_alert():
+    """Judge 104 addendum 1: books 45 and development 55 with uncaptured data-routine minutes read 90% "alert"; the
+    truth with 200 routine minutes is 30%. So the measured level is unknown until the runs are captured."""
+    rows = [minutes("books_and_roles", 45), minutes("development", 55)]
+    gap = Coverage(0, "", "data routines not fully captured: 0 of 9 expected run(s) recorded (3 pm quote recorder)")
+    measured = reading(rows, coverage=gap)
+    assert measured.level == "unknown" and "data routines not fully captured" in measured.note
+    assert reading(rows + [minutes("data_routines", 200)]).level == "ok"  # the truth once captured: 30%
+    assert reading(rows, CapSettings(50, 80, 100, 600), coverage=gap).level == "ok"  # the owner's figure is unaffected

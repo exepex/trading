@@ -13,7 +13,7 @@ from fno.budget.stop_rule_tracker import review_date
 from fno.budget.usage_export import ExportFileUsageReader
 from fno.budget.usage_ledger import Attribution, UsageLedger, session_key
 from fno.budget.wiring import build_month_meter
-from fno.config import load_app_config
+from fno.config import ROOT, load_app_config
 from fno.research_data.calendar import CsvSessionCalendar
 from tests.budget.exports import SESSION_ID, TWO_DAYS, export, result_event, write_export
 
@@ -21,6 +21,16 @@ COSTS = "month,item,category,amount_rs,source\n2026-10,Claude subscription,ai,17
 
 
 TODAY = date(2026, 10, 16)
+
+
+def config(**budget):
+    """The app's settings with the decided plan cost and the data routines off, unless a test turns them on: each has
+    its own tests below."""
+    settings = load_app_config()
+    settings["budget"] |= {"plan_cost": None, "data_routines": []} | budget
+    return settings
+
+
 DEV_IN_ROSTER = {"session_id": "session_01DEVabc", "created_at": "2026-10-14T09:00:00+05:30",
                  "updated_at": "2026-10-14T12:00:00+05:30", "captured_at": "2026-10-16T08:00:00+05:30"}  # fmt: skip
 FIRED_LINK = f"https://claude.ai/code/cse_{SESSION_ID.split('_', 1)[1]}"  # the same session as the export
@@ -44,7 +54,7 @@ def repo(tmp_path, costs=COSTS, fired_session=FIRED_LINK):
 
 
 def test_the_meter_keeps_cash_spend_and_allocated_cost_apart(tmp_path):
-    lines = meter_lines(build_month_meter("2026-10", TODAY, repo(tmp_path), load_app_config()))
+    lines = meter_lines(build_month_meter("2026-10", TODAY, repo(tmp_path), config()))
     text = "\n".join(lines)
     assert "Claude subscription: cash spend Rs 1,700.00" in text
     assert "allocated, not a bill (minutes_share_v1)" in text and "books_and_roles book2_hybrid: Rs 850.00" in text
@@ -58,13 +68,13 @@ def test_the_meter_keeps_cash_spend_and_allocated_cost_apart(tmp_path):
 
 def test_a_month_without_the_plan_cost_shows_unknown(tmp_path):
     text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, repo(tmp_path, COSTS.splitlines()[0] + "\n"),
-                                                   load_app_config())))  # fmt: skip
+                                                   config())))  # fmt: skip
     assert "no Claude plan cost recorded; allocation unknown" in text and "Rs 0.00" not in text
 
 
 def test_fired_sessions_without_a_usage_row_are_counted_and_the_level_says_lower_bound(tmp_path):
     root = repo(tmp_path)
-    meter = build_month_meter("2026-10", TODAY, root, load_app_config())
+    meter = build_month_meter("2026-10", TODAY, root, config())
     assert [m[1] for m in meter.missing_captures] == ["book3_ai"]  # book2's session matched; book3 had no link
     assert "at least this level: 1 fired AI book session(s) not captured" in "\n".join(meter_lines(meter))
     assert len(not_captured(root, "2026-10", [], "2026-10-16")) == 2
@@ -93,23 +103,67 @@ def test_the_stop_rule_lines_say_projected_days_left_and_missing_inputs(tmp_path
 
 
 def test_a_purpose_without_rows_says_no_rows_not_zero(tmp_path):
-    meter = build_month_meter("2026-11", TODAY, repo(tmp_path), load_app_config())
+    meter = build_month_meter("2026-11", TODAY, repo(tmp_path), config())
     assert "measured development: no rows recorded (unknown, not zero)" in "\n".join(meter_lines(meter))
 
 
 def test_without_a_fresh_roster_the_level_is_unknown_and_book_shares_are_overstated(tmp_path):
     root = repo(tmp_path)
     (root / "accounting/ai_session_roster.csv").unlink()
-    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, load_app_config())))
+    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, config())))
     assert "level unknown" in text and "no session roster read since 2026-10-16T00:00:00+05:30" in text
-    assert "development not fully captured (no session roster read since" in text and "book shares overstated" in text
+    assert "development not checked: no session roster read since" in text and "book shares overstated" in text
 
 
 def test_tokens_are_not_available_when_any_row_lacks_them(tmp_path):
     root = repo(tmp_path)
-    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, load_app_config())))
+    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, config())))
     assert "measured books_and_roles: 3.00 minutes, 1 session(s), output tokens 300" in text
     path = root / "accounting/ai_usage.csv"
     path.write_text(path.read_text(encoding="utf-8").replace(",100,", ",,", 1), encoding="utf-8")
-    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, load_app_config())))
+    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, config())))
     assert "measured books_and_roles: 3.00 minutes, 1 session(s), output tokens not available" in text
+
+
+def test_missing_data_routine_runs_make_the_measured_level_unknown(tmp_path):
+    """Judge 104 addendum 1: uncaptured data-routine minutes would raise the books' share, so the level is unknown
+    until every expected run (one per NSE session day before today) is recorded."""
+    root = repo(tmp_path)
+    meter = build_month_meter("2026-10", TODAY, root, config(data_routines=["3 pm quote recorder"]))
+    text = "\n".join(meter_lines(meter))
+    assert meter.cap.level == "unknown" and "0 of 10 expected run(s) recorded (3 pm quote recorder)" in text
+    owner = build_month_meter("2026-10", TODAY, root, config(data_routines=["3 pm quote recorder"],
+                                                             plan_minutes_per_month=600))  # fmt: skip
+    # the owner's figure does not depend on the measured denominator: only the missed book session is named
+    assert owner.cap.note.startswith("unknown: 1 fired AI book session(s)") and "data routines" not in owner.cap.note
+
+
+def test_recorded_data_routine_runs_complete_the_coverage(tmp_path):
+    from fno.budget.routine_coverage import routine_gap
+    from fno.storage.wiring import build_session_calendar
+
+    sessions = build_session_calendar().sessions(date(2026, 10, 1), date(2026, 10, 15))
+    rows = [
+        {"purpose": "data_routines", "role_or_bundle": "3 pm quote recorder", "date": d.isoformat()} for d in sessions
+    ]
+    calendar = build_session_calendar()
+    assert routine_gap(["3 pm quote recorder"], rows, "2026-10", TODAY, calendar) == ""
+    assert "9 of 10" in routine_gap(["3 pm quote recorder"], rows[1:], "2026-10", TODAY, calendar)
+    assert routine_gap([], [], "2026-10", TODAY, calendar) == ""
+    other = [row | {"purpose": "development"} for row in rows]  # only the routine's own purpose counts as its run
+    assert "0 of 10" in routine_gap(["3 pm quote recorder"], other, "2026-10", TODAY, calendar)
+
+
+def test_the_decided_plan_cost_applies_to_every_month_from_october(tmp_path):
+    """Judge 104 addendum 1 minor: the owner's INR 20,000 a month, from one config value citing its row."""
+    root = repo(tmp_path, costs=COSTS.splitlines()[0] + "\n")
+    (root / "docs").mkdir()
+    (root / "docs/DESK_DECISIONS.md").write_text((ROOT / "docs/DESK_DECISIONS.md").read_text("utf-8"), "utf-8")
+    decided = config(plan_cost=load_app_config()["budget"]["plan_cost"])
+    november = "\n".join(meter_lines(build_month_meter("2026-11", TODAY, root, decided)))
+    assert "cash spend Rs 20,000.00 (decided monthly fee (DESK_DECISIONS 15 Oct 2026: Claude plan cost" in november
+    assert "not allocated yet (no measured usage this month): Rs 20,000.00" in november
+    october = build_month_meter("2026-10", TODAY, root, decided)
+    assert sum(october.allocation.allocated_rs.values()) == 20000.0
+    september = "\n".join(meter_lines(build_month_meter("2026-09", TODAY, root, decided)))
+    assert "cash spend not recorded" in september and "no Claude plan cost recorded" in september

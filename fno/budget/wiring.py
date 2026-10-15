@@ -16,7 +16,9 @@ from .allocation import allocate, coverage_warnings
 from .cap import CapSettings, Coverage, cap_reading
 from .capture_coverage import not_captured
 from .items import month_items, plan_cost, unapproved_costs, unknown_items
+from .plan_cost import DecidedPlanCost, month_plan_cost
 from .report import MonthMeter
+from .routine_coverage import routine_gap
 from .self_timed import SelfTimedUsageReader
 from .session_roster import SessionRoster, development_coverage
 from .stop_rule_tracker import ReviewDate, review_date
@@ -45,23 +47,29 @@ def build_budget_alert_sender() -> AlertSender:
 
 
 def build_month_meter(month: str, today: date, root: Path = ROOT, config: dict | None = None) -> MonthMeter:
-    budget = (config or load_app_config())["budget"]
+    budget, decisions = (config or load_app_config())["budget"], _text(root / DECISIONS_FILE)
     costs = read_operating_costs(_text(root / COSTS_FILE)) if (root / COSTS_FILE).is_file() else []
     usage = [row for row in UsageLedger(root).rows() if row["date"].startswith(month)]
     missing = not_captured(root, month, usage, today.isoformat())
     development = development_coverage(SessionRoster(root).rows(), usage, month, today)
-    coverage = Coverage(len(missing), development.reason)
+    routines = routine_gap(budget.get("data_routines") or [], usage, month, today, build_session_calendar())
+    coverage = Coverage(len(missing), development.reason, routines)
+    plan = month_plan_cost(
+        plan_cost(costs, month), DecidedPlanCost.from_config(budget.get("plan_cost"), decisions), month
+    )
     return MonthMeter(
         month=month,
         items=month_items(costs, month),
-        allocation=allocate(month, plan_cost(costs, month), usage),
+        allocation=allocate(month, plan.allocated_from_rs, usage),
         cap=cap_reading(usage, CapSettings.from_config(budget), month, coverage),
         usage_rows=usage,
         missing_captures=missing,
-        needs_owner_yes=unapproved_costs(costs, month, _text(root / DECISIONS_FILE)),
+        needs_owner_yes=unapproved_costs(costs, month, decisions) + ([plan.warning] if plan.warning else []),
         unknown_items=unknown_items(costs, month),
-        allocation_warnings=coverage_warnings(len(missing), development.reason),
+        allocation_warnings=coverage_warnings(len(missing), development.reason, routines),
         development_gap=development.reason,
+        routine_gap=routines,
+        plan_cash=plan.cash_line,
     )
 
 

@@ -15,7 +15,7 @@ FORMULA = "minutes_share_v1"
 ALLOCATED_LABEL = "allocated, not a bill"
 DEVELOPMENT_LABEL = "development, not a book cost"
 BOOKS_UNDERSTATED = "{n} fired AI book session(s) not captured: book shares understated"
-BOOKS_OVERSTATED = "development not fully captured ({reason}): book shares overstated"
+BOOKS_OVERSTATED = "{reason}: book shares overstated"
 UNMEASURED = ("unmeasured", "", "no measured usage")  # where the cost goes in a month with no measured minutes
 
 Share = tuple[str, str, str]  # (purpose, book, role_or_bundle)
@@ -62,7 +62,7 @@ def _split(paise: int, minutes: dict[Share, Decimal], total: Decimal) -> dict[Sh
     return {share: part / 100 for share, part in parts.items()}
 
 
-def coverage_warnings(book_missing: int, development_gap: str) -> list[str]:
+def coverage_warnings(book_missing: int, *gaps: str) -> list[str]:
     """Which way the book shares are off when sessions are missing from the minutes."""
     warnings = [BOOKS_UNDERSTATED.format(n=book_missing)] if book_missing else []
-    return warnings + ([BOOKS_OVERSTATED.format(reason=development_gap)] if development_gap else [])
+    return warnings + [BOOKS_OVERSTATED.format(reason=gap) for gap in gaps if gap]

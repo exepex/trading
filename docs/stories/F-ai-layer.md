@@ -378,7 +378,8 @@ slice A, built together with BG1 (`docs/stories/BG-budget.md`). Revised after ju
   `accounting/operating_costs.csv` (item `Claude subscription`) x minutes / all minutes, to the paisa, the remainder to
   the largest share (ties: first in name order); development shown as "development, not a book cost"; "allocated,
   not a bill"; a warning when book shares are over- or understated by missing sessions;
-- the owner's plan cost, INR 20,000 a month (owner, 15 Oct 2026), recorded for October 2026 citing its row;
+- the owner's plan cost, INR 20,000 a month (owner, 15 Oct 2026): recorded for October 2026 citing its row, and held as
+  one config value citing it (`budget.plan_cost`), applied to every month from October 2026 (`plan_cost.py`);
 - `python -m fno budget record-usage [--self-timed] | record-roster`, refusing an export inside the repository.
 Out: reading sessions itself (Python cannot call the session tools), changing the books' routine prompt to write the
 timing record (a new registered book version, F1/G5: the orchestrator's call), and F8 part 2 (above).

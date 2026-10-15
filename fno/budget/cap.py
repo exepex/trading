@@ -1,10 +1,10 @@
 """The AI minutes cap for books and roles (story BG1; owner decisions of 15 Oct 2026: half of the plan's measured
 session minutes, alert at 80%, AI roles stop at 100%; "7 A": the measured basis for two months, then a fixed figure).
 The plan publishes no minutes allowance, so until `basis_until` the basis is all measured session minutes of the month;
-after it, only the owner's own monthly figure. Compared in decimals, so an exact 80% or 100% is never read as just
-below it. A level is given only when it is known: on the measured basis it needs every development session captured
-(missing ones would lower the books' share); missing book sessions can only raise it, so then `ok` is unknown and
-`alert` or `stop` is "at least"."""
+after it, only the owner's own monthly figure. Compared in decimals, so an exact 80% or 100% is never read as just below
+it. A level is given only when it is known: on the measured basis it needs every development session captured and every
+expected data-routine run captured (missing ones would lower the books' share); missing book sessions can only raise it,
+so then `ok` is unknown and `alert` or `stop` is "at least"."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ NOT_CAPTURED = "unknown: {n} fired AI book session(s) not captured, so the true 
 LOWER_BOUND = "at least this level: {n} fired AI book session(s) not captured would only raise the share"
 MEASURED_LIMIT = (
     "limit: the plan's real capacity is not measurable (its rate-limit data gives no minutes), so this basis moves "
-    "with development; data-routine sessions are not checked for capture (a missed one would lower the share)"
+    "with development"
 )
 BAD_SETTINGS = "budget settings must have 0 < books_and_roles_share_pct <= 100 and 0 < alert_pct <= stop_pct"
 
@@ -55,6 +55,7 @@ class Coverage:
 
     book_missing: int = 0
     development_gap: str = ""  # why development is not fully captured; empty when it is
+    routine_gap: str = ""  # why the data routines' runs are not all captured; empty when they are
 
 
 @dataclass(frozen=True)
@@ -87,8 +88,9 @@ def _gaps(level: str, owner: bool, settings: CapSettings, month: str, coverage: 
     if level == BUDGET_UNKNOWN:
         missing = f"; {coverage.book_missing} fired AI book session(s) not captured" if coverage.book_missing else ""
         return level, NOTHING_MEASURED + missing
-    if not owner and coverage.development_gap:
-        return BUDGET_UNKNOWN, DEVELOPMENT_GAP.format(reason=coverage.development_gap)
+    if not owner and (coverage.development_gap or coverage.routine_gap):
+        reasons = "; ".join(r for r in (coverage.development_gap, coverage.routine_gap) if r)
+        return BUDGET_UNKNOWN, DEVELOPMENT_GAP.format(reason=reasons)
     if coverage.book_missing and level == BUDGET_OK:
         return BUDGET_UNKNOWN, NOT_CAPTURED.format(n=coverage.book_missing)
     return level, LOWER_BOUND.format(n=coverage.book_missing) if coverage.book_missing else ""
