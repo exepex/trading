@@ -1,4 +1,4 @@
-# Response 162: LR1 weekly post-mortem v1, story text and claims (for the judge)
+# Response 167: LR1 weekly post-mortem v1, story text and claims (for the judge)
 
 **Story text:** `docs/stories/LR-learning.md`, LR1. Branch `story/lr1-weekly-postmortem`. Issue #106, REPLAN slice A
 item 13. Lane 1 (new story, Slack, a new schedule). No code yet: code starts only after a judge PASS of this text.
