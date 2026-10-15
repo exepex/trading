@@ -50,14 +50,14 @@ family:
 
 | Family | The day's injected failure | What must happen (from the code that owns it) |
 |---|---|---|
-| Drive outage | (a) at the run's download; (b) at an account write during fills; (c) the recorder's raw quote file not saved | (a) the run stops with E3's one alert, no step runs, and the next session blocks new entries for every book while its exits run; (b) that write's entries fail closed with an alert, while other books and every exit go on; (c) the canonical is `none`, so there is no pack, no new trade and the exits are held with C3's alert |
+| Drive outage | (a) at the run's download; (b) at an account write during fills; (c) the recorder's raw quote file not saved | (a) the run stops before any step with E3's one alert, so the day's 3 pm quote parts (NSE included) never start and that day records no quotes; the next session blocks new entries for every book (`NO_LOG`) while its exits run; (b) `PrivateFilesUnavailable` is a `CommitFailed` (E2c, `fno/desk/drive_sync.py`), so the run stops at `fills`: no exits that day, E3's stop alert naming "exits not reviewed today", and the next session blocks new entries for every book (`BEFORE_EXITS`). Only `AccountWriteRefused` and `OrdersRefused` fail one book closed and let the run go on; that case is tested in the book family below. A change to this rule belongs to E2c, not O2; (c) the canonical is `none`, so there is no pack, no new trade and the exits are held with C3's alert |
 | Slack outage | the sender refuses every post (token missing, HTTP error) | nothing changes in the records. Every alert of the day (the run's own and each child's) is printed once as "alert NOT sent ... \| text", and their count equals the alerts the same day sends with Slack up |
 | Groww or NSE failure | the NIFTY part exits 1; NSE exits 1; the 15:15 capture fails twice | NIFTY: no pack, every book "no decision (late)", exits held with an alert. NSE: the desk is unchanged (NSE is recorded only). Capture: "no valid execution snapshot", no fills, exits held with an alert |
-| Routine never starts | session D has no run log | O8's desk check gives D `missed (never ran)`; the run on D+1 blocks new entries for every book (`NO_LOG`), runs its exits, and alerts |
-| Partial run and rerun | the process is killed after each step k in turn (every step of `DAILY_RUN_STEPS`, 13 today), then rerun at the same clock | the final run log, the committed files and the private records are byte-identical (SHA-256) to an uninterrupted day. A rerun after the 15:12 deadline follows E3's late rule (every book late) and nothing else |
+| Routine never starts | session D has no run log | O8's desk check gives D `missed (never ran)`; the run on D+1 blocks new entries for every book (`NO_LOG`, whose wording "stopped before any step" also covers a run that never began), runs its exits, and alerts |
+| Partial run and rerun | the process is killed after each step k in turn (every step of `DAILY_RUN_STEPS`, the count read from the tuple), and also between a step's record and its commit; then rerun at the same clock | no step runs twice. Kills from `quotes` up to `exits`: the rerun records `quotes_done` failed (`NOT_IN_THIS_RUN`) and the dead run's part files stay uncommitted (O1's decision, judge 178 note 4); everything else is byte-identical (SHA-256) to an uninterrupted day. Kills after `quotes_done`: byte-identical. A kill between record and commit: the rerun commits that step's files as recorded (E2b's `PendingCommitter`, or the next commit carries the log) and repeats nothing. A rerun after the 15:12 deadline follows E3's late rule (every book late) and nothing else |
 | Data and limits (design 9) | a stale snapshot; an order over a C4 limit; the drawdown brake hit | no new trade for that order or book, stale prices never used as a fill, the alert names the check, and open trades go on under their own exits |
 | Broken protection (E4c) | at the entry snapshot: a protective leg cannot be bought; a protective leg can be bought but not sold back; a short leg cannot be sold | nothing fills and the trade is `not_opened` with E4c's reason code (`protection_not_buyable`, `protection_not_sellable`, `short_leg_not_sellable`), one desk event, no fill or ledger row, the account unchanged, and E4c's one alert ("... not opened: <reason code> (<contract>, <units> units): information, no action"). The position is never half-hedged. Neither the record nor the alert holds a quote figure |
-| One book's failure | Book 2's orders refused; its account write refused; its exit review raising | Book 1's decision, fills, exits and private records are byte-identical to a no-failure day |
+| One book's failure | a test-only second book `book_test` (the one exception to criterion 6): its orders refused (`OrdersRefused`); its account write refused (`AccountWriteRefused`); its exit review raising | `book_test`'s entries fail closed with one alert each and the run goes on; Book 1's decision, fills, exits and private records are byte-identical to the same day with `book_test` failure-free |
 
 Every case also checks: each alert is named and sent once (or printed once when unsent); every due exit is reviewed
 or held with an alert, never silently skipped; and the run ends on its one line (`day done with problems: ...`, or
@@ -79,11 +79,14 @@ Out:
    blocks new entries for that book.
 3. **No alert is lost.** In every case run twice, once with Slack up and once down, the multiset of alert texts is
    the same, and every unsent one is printed exactly once.
-4. **A rerun repeats nothing.** Kill after each step, then rerun: the final state is byte-identical to an uninterrupted
-   day (one case per step), or follows E3's documented late rule.
+4. **A rerun repeats nothing.** Kill after each step (and once between a record and its commit), then rerun: no step
+   runs twice; the final state is byte-identical to an uninterrupted day except the named `quotes_done` outcome for
+   kills from `quotes` to `exits`, or follows E3's documented late rule.
 5. **Books are isolated.** Book 1's records hash the same with and without each Book 2 failure.
 6. **Fakes only at the edges.** The suite builds the run through `fno/daily/wiring.py`, replacing only the outside
-   services: a test fails if any other part is replaced.
+   services: a test fails if any other part is replaced. The one exception: a test-only second book `book_test`, passed
+   through `build_daily_run`'s existing `books` parameter (the real run has only Book 1), so book isolation can be
+   tested before the AI books trade.
 7. **Real failure, real fix.** Every gap the suite finds is reported in the claims, with its file and line and the
    story that owns the fix. None is hidden by a test that expects the wrong outcome.
 8. **Engineering.** No file over 350 lines. The suite runs under `-n auto`, never touches the network, and finishes
@@ -109,6 +112,10 @@ Out:
 - Design 6.5's first-line rule ("says what to do, or 'information, no action'") is not met by today's run alerts; a
   separate small story fixes it after O1 merges (orchestrator, 16 Oct), and O2's suite then checks it.
 - The fakes cannot reproduce a real Groww or Drive error message; the cases use each adapter's documented exception.
+- A dead run's quote part files stay uncommitted on its rerun (O1's decision); the suite names it, never hides it.
+- Known before the code (judge 204 note B): E4c's refusal path prints its own unsent outcome (`fno/desk/daily_steps.py`
+  191-193), so under O1's `ReportedAlerts` an unsent refusal prints twice. Criterion 3 will catch it; the fix belongs
+  to E4c's owner (sent through the orchestrator).
 
 ## Test plan
 
@@ -119,5 +126,5 @@ twin, and each family's key assertion is broken once on purpose.
 kill after `fills` and rerun); plants one regression (for example, exits skipped after a stop) and sees a test fail.
 
 **Depends:** O1 (merge), E2c, E4c, C3, C4, E3, O8 (merged); LM1 for its case · **Status:** story text
-revision 2 (orchestrator, 16 Oct: E4c in scope; the first-line rule a separate story) for judge D
+revision 3 (judge 204: should-fix 1-3, notes A-D) for judge D
 (`reviews/claude/response_203_o2-failure-handling.md`)
