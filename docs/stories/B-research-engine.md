@@ -376,9 +376,10 @@ opens the shapes only: no new strategy, no new trading decision.
 - B2: `Structure` builds any number of legs (template method); every structure's legs pass one coverage rule, so no
   structure can return a naked short leg; `payoff_bounds` covers the whole index range (0 to unbounded);
 - B2's cost model (`PositionCosts.max_loss`) refuses uncovered legs, so C2 cannot price a naked short leg either;
-- C4: a shape rule per code (its own table, independent of B2), and a new `bounded_loss` check from the legs alone
-  (every sold call covered by a bought call, every sold put by a bought put); its independent maximum loss is
-  unchanged and stays correct for every covered shape;
+- C4: a shape rule per code (its own table, independent of B2); for the six new codes the shape also checks the ATM
+  anchor, which C4 re-derives from the committed snapshot's spot and its A4-usable strikes (no spot: the trade fails);
+  a new `bounded_loss` check from the legs alone (every sold call covered by a bought call, every sold put by a bought
+  put); its independent maximum loss is unchanged and stays correct for every covered shape;
 - D1: the six codes in the vocabulary; `widths` may hold 0 for the bought-only codes (LC, LP), and must be above 0 for
   the others;
 - D2: candidates for the new codes through the structures, unchanged rules (widest width within the cap first);
@@ -387,9 +388,17 @@ opens the shapes only: no new strategy, no new trading decision.
   `TradeTerms` accepts width 0 for bought-only codes only;
 - A14: the job computes rows for every code; rows of a code the independent broker check has not covered are printed
   and not written (fail closed, no alert); the 14 Oct 2026 check covered SF, SC and BF (judge 77), and
-  `risk.margins.nse_span_check.structures` can list more once the owner's broker check of them passes.
+  `risk.margins.nse_span_check.structures` can list more once the owner's broker check of them passes (anything but a
+  non-empty list of known codes is refused).
 
-Out: any strategy or playbook version using the new codes; strike rules away from ATM (response 92's "3% below spot" put
+**Frozen files (first judge item):** this story changes files listed in experiment 1's `FREEZE.md`:
+`fno/research_engine/structures.py` and `fno/research_engine/cycle_costs.py` (and `fno/constants.py`,
+`fno/composition.py`, which had already changed on `main`). Experiment 1's reproducibility rests on `RUN_COMMIT`
+`0c1c957` (`tests/research/test_experiment_1_frozen.py`); the orchestrator approved the change on 15 Oct 2026 on
+condition that SF, SC and BF stay byte-for-byte equal, proven by a regression test.
+
+Out: an anchor check for SF, SC and BF (C4 still checks their leg relations only, as before STR1: a separate C4
+change); any strategy or playbook version using the new codes; strike rules away from ATM (response 92's "3% below spot" put
 spread would be a new code, as SC is SF's 2% variant); ratio spreads, straddles, strangles, calendars; any change to
 experiment 1's results; E4 fills and exits (already leg-generic); a broker check of the new rows (owner).
 
@@ -415,12 +424,17 @@ family) and `bounded_loss` in `validity_money.py`, importing nothing from B2 or 
 7. D2 builds a candidate for each new code from a fixture market, widest width within the cap first.
 8. A14 computes a row for each code and width; rows of a code outside the broker check are printed, not written; C2
    and C4 accept a 0 margin for LC and LP only.
-9. Existing four-leg results are identical: experiment 1's real-data cycle tests and every existing test pass
-   unchanged.
+9. Existing four-leg results are identical: STR1's engine files laid over a worktree of `0c1c957` reproduce both
+   published result hashes (discovery `814a79a5`, challenge `4826897e`); in the suite, the frozen and current B2 give
+   the same legs, bounds and maximum loss on every cycle of 2019-26, and the 99 discovery results equal
+   `results_discovery.json`; every existing test passes unchanged.
+10. C4 refuses a new-code trade not anchored at the snapshot's ATM strike, or when the snapshot has no spot.
 
 **Test plan:** `tests/research_engine/test_one_side.py`, `tests/checks/test_validity_shapes.py`,
-`tests/playbook/test_one_side_codes.py`, `tests/nse_margins/test_one_side_rows.py`, `tests/risk/test_bought_only.py`;
-the existing suites as the regression.
+`tests/checks/test_validity_anchor.py`, `tests/playbook/test_one_side_codes.py`, `tests/nse_margins/test_one_side_rows.py`,
+`tests/risk/test_bought_only.py`, `tests/research_engine/test_four_leg_regression.py`,
+`tests/research_engine/test_structures_match_frozen.py`; the existing suites as the regression; the overlay run of
+response 106.
 
 **Judge verifies:** builds each code by hand on a chain and compares; plants naked shorts at B2, C2 and C4; recomputes
 one vertical's maximum loss and margin by hand; checks four-leg results are unchanged (experiment 1 cycle tests,

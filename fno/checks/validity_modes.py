@@ -9,6 +9,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 
+from .validity_evidence import Evidence
 from .validity_proposal import CheckResult, ValidityProposal
 from .validity_shapes import Shape, shape_problem
 
@@ -17,8 +18,8 @@ class ValidityMode(ABC):
     name: str
 
     @abstractmethod
-    def checks(self, proposal: ValidityProposal) -> list[CheckResult]:
-        """The mode's own checks, each with its result."""
+    def checks(self, proposal: ValidityProposal, evidence: Evidence | None) -> list[CheckResult]:
+        """The mode's own checks, each with its result; `evidence` is the committed snapshot (None if untrusted)."""
 
 
 class PlaybookMode(ValidityMode):
@@ -27,13 +28,15 @@ class PlaybookMode(ValidityMode):
     def __init__(self, shapes: Mapping[str, Shape]):
         self.shapes = dict(shapes)  # structure code -> its shape rule (validity_shapes.py)
 
-    def checks(self, proposal: ValidityProposal) -> list[CheckResult]:
+    def checks(self, proposal: ValidityProposal, evidence: Evidence | None) -> list[CheckResult]:
         strategy = proposal.strategy
         if strategy is None:
             return [CheckResult("version", False, "no playbook version named for the trade")]
         spec, key = strategy.structure, (strategy.name, strategy.version)
         fingerprint = strategy.parameters_sha256 == proposal.rule_sha256
-        shape = shape_problem(self.shapes, proposal.structure, [leg.leg for leg in proposal.legs], proposal.width)
+        atm = evidence.atm_strike(proposal.expiry) if evidence is not None else None
+        legs = [leg.leg for leg in proposal.legs]
+        shape = shape_problem(self.shapes, proposal.structure, legs, proposal.width, atm)
         version = f"rule {proposal.rule_sha256[:12]} vs the version's {strategy.parameters_sha256[:12]}"
         return [
             CheckResult("version", fingerprint, version),
@@ -53,5 +56,5 @@ class WaitsFor(ValidityMode):
     def __init__(self, name: str, story: str):
         self.name, self.story = name, story
 
-    def checks(self, proposal: ValidityProposal) -> list[CheckResult]:
+    def checks(self, proposal: ValidityProposal, evidence: Evidence | None) -> list[CheckResult]:
         return [CheckResult(self.name, False, f"waits for story {self.story}: not checkable yet, so the trade fails")]

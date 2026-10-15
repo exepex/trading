@@ -4,6 +4,7 @@ widths to try, how many lots, and which expiry is an opportunity on which day. T
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 from ..constants import EXPIRY_MONTHLY, STRUCTURES_BOUGHT_ONLY
@@ -51,13 +52,15 @@ def parse_structure(fields: Fields) -> StructureSpec:
 def _widths(fields: Fields, code: str) -> tuple[float, ...]:
     """Widest first, no repeats, above 0; a bought-only structure (LC, LP) may also take 0 (the ATM strike)."""
     values = fields.raw("widths")
-    numbers = isinstance(values, list) and all(isinstance(v, int | float) and not isinstance(v, bool) for v in values)
+    numbers = isinstance(values, list) and all(
+        isinstance(v, int | float) and not isinstance(v, bool) and math.isfinite(v) for v in values
+    )
     bought_only = code in STRUCTURES_BOUGHT_ONLY
     too_small = numbers and values and (min(values) < 0 if bought_only else min(values) <= 0)
     if not numbers or not values or list(values) != sorted(set(values), reverse=True) or too_small:
         least = "0 or more" if bought_only else "positive"
         raise fields.refuse("widths", f"must be {least} point widths, widest first, no repeats")
-    return tuple(float(v) for v in values)
+    return tuple(float(v) + 0.0 for v in values)  # + 0.0 turns -0.0 into 0.0
 
 
 def _expiry(fields: Fields) -> ExpiryRule:

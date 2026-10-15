@@ -86,3 +86,10 @@ def test_rows_of_uncovered_codes_are_printed_not_written_and_the_job_does_not_fa
     held = next(line for line in printed if "not written" in line)
     assert "8 rows" in held and "CCS, CDS, LC, LP, PCS, PDS" in held
     assert sum(line.split(",")[0] in ("LC", "LP", "CDS", "CCS", "PDS", "PCS") for line in printed) == 8
+
+
+@pytest.mark.parametrize("listed", ["LC", [], ["LC", "XX"], [None]])
+def test_a_structures_list_that_is_not_a_list_of_known_codes_is_refused(listed):
+    block = {"nse_span_check": {"source": "x", "passed_on": "2026-10-14", "structures": listed}}
+    with pytest.raises(ValueError, match="non-empty list of codes"):
+        IndependentCheck.from_margins_block(block)

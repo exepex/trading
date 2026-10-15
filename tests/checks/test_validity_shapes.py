@@ -13,7 +13,17 @@ from fno.checks.validity_shapes import shape_problem
 from fno.checks.wiring import validity_shapes
 from fno.constants import BOOK1_RULES
 from fno.research_engine.structures import BOUGHT, SOLD
-from tests.checks.validity_builders import CUTOFF, DAY, LOT, check, failed, legs_of, proposer_max_loss
+from tests.checks.validity_builders import (
+    CUTOFF,
+    DAY,
+    LOT,
+    SPOT,
+    check,
+    committed_store,
+    failed,
+    legs_of,
+    proposer_max_loss,
+)
 from tests.checks.validity_proposal_builder import one_side_proposal
 from tests.checks.validity_sources import FILE_DAY, MARGIN_ROWS, Margins
 
@@ -42,7 +52,7 @@ def legs(spec):
 @pytest.mark.parametrize("code", sorted(ONE_SIDE))
 def test_a_correct_trade_of_each_one_side_structure_passes_c4(code):
     spec, width = ONE_SIDE[code]
-    report = check(one_side_proposal(code, spec, width), margins=Margins(ROWS))
+    report = check(one_side_proposal(code, spec, width), store=committed_store(spot=SPOT), margins=Margins(ROWS))
     assert report.ok, [(r.name, r.reason) for r in report.failures]
     loss = next(r for r in report.results if r.name == "max_loss").numbers
     assert loss["difference"] < 0.01  # C4's independent grid equals B2's strike-only model to the paisa
@@ -51,9 +61,9 @@ def test_a_correct_trade_of_each_one_side_structure_passes_c4(code):
 @pytest.mark.parametrize("code", sorted(ONE_SIDE))
 def test_each_shape_rule_accepts_its_own_legs_only(code):
     spec, width = ONE_SIDE[code]
-    assert shape_problem(SHAPES, code, legs(spec), width) == ""
+    assert shape_problem(SHAPES, code, legs(spec), width, SPOT) == ""
     others = [other for other in ONE_SIDE if other != code]
-    assert all(shape_problem(SHAPES, other, legs(spec), width) for other in others)
+    assert all(shape_problem(SHAPES, other, legs(spec), width, SPOT) for other in others)
 
 
 WRONG = {
@@ -72,7 +82,7 @@ WRONG = {
 @pytest.mark.parametrize("name", sorted(WRONG))
 def test_wrong_legs_fail_the_shape(name):
     code, spec, width = WRONG[name]
-    assert shape_problem(SHAPES, code, legs(spec), width)
+    assert shape_problem(SHAPES, code, legs(spec), width, SPOT)
 
 
 NAKED = {
@@ -90,7 +100,7 @@ NAKED = {
 def test_c4_refuses_every_planted_naked_short_leg(name):
     code, spec, width = NAKED[name]
     trade = one_side_proposal(code, spec, width, claimed_max_loss=1.0)
-    report = check(trade, margins=Margins(ROWS))
+    report = check(trade, store=committed_store(spot=SPOT), margins=Margins(ROWS))
     assert {"bounded_loss", "shape"} <= failed(report)
     assert not report.ok
 
@@ -98,7 +108,11 @@ def test_c4_refuses_every_planted_naked_short_leg(name):
 def test_bounded_loss_is_checked_from_the_legs_whatever_the_code_and_shape_rules():
     """Even with no shape rule at all (an empty table), the naked short fails `bounded_loss` on its own."""
     code, spec, width = NAKED["a short call called LC"]
-    report = check(one_side_proposal(code, spec, width, claimed_max_loss=1.0), margins=Margins(ROWS))
+    report = check(
+        one_side_proposal(code, spec, width, claimed_max_loss=1.0),
+        store=committed_store(spot=SPOT),
+        margins=Margins(ROWS),
+    )
     bounded = next(r for r in report.results if r.name == "bounded_loss")
     assert not bounded.ok and "CE" in bounded.reason
 

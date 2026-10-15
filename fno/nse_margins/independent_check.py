@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from ..constants import STRUCTURES
+from ..constants import STRUCTURES, STRUCTURES_ONE_SIDE
 
 CHECK_KEY = "nse_span_check"
 NOT_PASSED = (
@@ -41,5 +41,12 @@ class IndependentCheck:
         passed_on = block.get("passed_on")
         if isinstance(passed_on, str):
             passed_on = date.fromisoformat(passed_on)
-        structures = block.get("structures")
-        return cls(block.get("source"), passed_on, frozenset(structures or STRUCTURES))
+        return cls(block.get("source"), passed_on, _covered(block.get("structures", list(STRUCTURES))))
+
+
+def _covered(structures: Any) -> frozenset[str]:
+    """The listed codes; anything but a non-empty list of known codes is refused, never read as covering nothing."""
+    known = (*STRUCTURES, *STRUCTURES_ONE_SIDE)
+    if not isinstance(structures, list) or not structures or any(code not in known for code in structures):
+        raise ValueError(f"{CHECK_KEY}.structures must be a non-empty list of codes from {known}, not {structures!r}")
+    return frozenset(structures)

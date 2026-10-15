@@ -80,3 +80,25 @@ def test_d2_skips_widths_over_the_cap_and_names_each_when_none_fits():
     assert build("LC", [300, 0], cap=10_000).proposal.terms.width == 300.0
     with pytest.raises(NotBuilt, match="0: maximum loss .* above the cap 5000"):
         build("LC", [0], cap=5_000)
+
+
+def test_d1_c4_d2_and_a14_know_the_same_nine_codes():
+    """A code D1 accepts but D2 cannot build would crash the evaluation (KeyError), and one C4 has no shape for would
+    fail every trade: the four lists must stay equal."""
+    from fno.checks.wiring import validity_shapes
+    from fno.config import load_app_config
+    from fno.nse_margins.wiring import build_row_builder
+    from fno.playbook.vocabulary import STRUCTURE_CODES
+
+    margins = {s.code for s in build_row_builder(load_app_config()).structures}
+    assert set(STRUCTURE_CODES) == set(validity_shapes()) == set(STRUCTURES) == margins and len(margins) == 9
+
+
+@pytest.mark.parametrize("widths", [[float("nan")], [float("inf"), 100], [100, True]])
+def test_widths_that_are_not_finite_numbers_are_refused(widths):
+    with pytest.raises(PlaybookError, match="point widths"):
+        version("LC", widths)
+
+
+def test_minus_zero_is_read_as_the_atm_width_0():
+    assert str(version("LC", [-0.0]).structure.widths[0]) == "0.0"

@@ -81,7 +81,7 @@ class ValidityChecker:
         results.append(
             CheckResult("risk_verdicts", verdicts, f"C2's own verdicts {'passed' if verdicts else 'failed'}")
         )
-        results += mode.checks(proposal)
+        results += mode.checks(proposal, evidence)
         return ValidityReport(proposal.book, proposal.opportunity_id, mode.name, tuple(results))
 
     def _listing(self, proposal: ValidityProposal) -> list[CheckResult]:
