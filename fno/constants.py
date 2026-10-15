@@ -147,6 +147,12 @@ OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
 STRESSED_MARGIN_STRESSES = "scan and exposure (owner, 15 Oct 2026; story C2c)"  # every decision record's label
+# Story C2d: the stress factor k as A14c's weekly job appends it (append-only), read by C2 and by C4 with its own reader
+STRESS_FACTOR_COLUMNS = (
+    "as_of", "factor", "computed", "unrounded", "status", "peak", "coverage_through", "evidence_sha256",
+)  # fmt: skip
+STRESS_FACTOR_STATUSES = ("applied", "held")  # held: a lower result waits for the owner; the old factor stays in force
+STRESS_FACTOR_DATE = "%Y-%m-%d"  # the only date form accepted in the factor file
 # Risk buckets (story C5, design 6.2): an underlying group and a side of exposure. Only the index groups 6.2 names are
 # mapped; a stock (its own group, or "stock results this week") is unmapped until the events calendar is wired in.
 BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH = (
@@ -314,6 +320,7 @@ class CardStatus(StrEnum):
 CARD_NO_APPROVED_STRATEGY = "no_approved_strategy"  # no playbook version is at `paper`
 CARD_TRADE_FIELDS_NOT_BUILT = "trade_fields_not_built"  # a version is at `paper`; card v1 has no trade fields (slice B)
 CARD_DATA_CHECK_FAILED = "data_check_failed"  # a record the status needs could not be read
+CARD_HARD_RULE_BREACH = "hard_rule_breach"  # T2: C4 refused a book's proposed trade today (its committed rows)
 CARDS_AREA = "cards"  # Drive area of the card records (beside raw/ and pipeline/); never the public repository
 PAPER_AREA = "paper"  # Drive area of the private paper records: accounts, desk records, private packs (story E2c)
 DAILY_TOTALS_FILE = "daily_totals.csv"  # journal/<book>/daily_totals.csv: the public per-book daily totals (story E2c)

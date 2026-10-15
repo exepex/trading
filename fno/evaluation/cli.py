@@ -1,5 +1,6 @@
 """`python -m fno evaluation check|freeze|order` (story S1).
-- `check` runs the completeness check; `--decided` also requires every item decided by the owner.
+- `check` runs the completeness check of the protocol and of the real-money gate (RM1); `--decided` also requires
+  every item of both decided by the owner.
 - `freeze` writes the freeze record and registers the protocol in the ledger; commit both at once.
 - `order` checks that the freeze precedes each book's first counted decision.
 - `verify` checks that the latest freeze's files and settings are unchanged (a suite test runs it).
@@ -17,7 +18,7 @@ EXIT_FAILED = 2
 def add_evaluation_parser(subparsers) -> None:
     evaluation = subparsers.add_parser("evaluation", help="the evaluation protocol of the three books (story S1)")
     actions = evaluation.add_subparsers(dest="evaluation_cmd", required=True)
-    check = actions.add_parser("check", help="completeness check of research/evaluation/PROTOCOL.md")
+    check = actions.add_parser("check", help="completeness check of the protocol and the real-money gate")
     check.add_argument("--decided", action="store_true", help="also require every item decided by the owner")
     actions.add_parser("freeze", help="freeze the decided protocol (commit the record and the ledger at once)")
     actions.add_parser("verify", help="the latest freeze's files and settings are unchanged")
@@ -40,10 +41,23 @@ def _check(decided: bool) -> int:
         print(f"incomplete: {problem}")
     if undecided:
         print(f"not decided by the owner ({len(undecided)}): {', '.join(undecided)}")
-    if problems or undecided:
-        return EXIT_FAILED
-    print(f"{PROTOCOL_FILE} version {protocol.version}: complete" + (" and decided" if decided else ""))
-    return 0
+    if not (problems or undecided):
+        print(f"{PROTOCOL_FILE} version {protocol.version}: complete" + (" and decided" if decided else ""))
+    gate_failed = _check_gate(ROOT, decided)
+    return EXIT_FAILED if problems or undecided or gate_failed else 0
+
+
+def _check_gate(root, decided: bool) -> bool:
+    """Prints the real-money gate's problems, or that it is ready; True when it failed (story RM1)."""
+    from .gate import GATE_FILE, gate_problems
+
+    file = root / GATE_FILE
+    problems = gate_problems(file.read_text(encoding="utf-8"), decided) if file.is_file() else ["missing"]
+    for problem in problems:
+        print(f"gate: {problem}")
+    if not problems:
+        print(f"{GATE_FILE}: complete" + (" and decided" if decided else ""))
+    return bool(problems)
 
 
 def _freeze() -> int:
