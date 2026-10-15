@@ -105,3 +105,46 @@ with a reason (B). Everything the orchestrator asked about checks out:
 - (g) one case to add.
 
 A re-check needs only the E4c section. Rule 9's ChatGPT review follows my PASS.
+
+## Addendum 1 (15 Oct 2026): revision 1 at 8e53630c738645b8fab5ab1ee3630ff1b9ce3689 (7e33fc9..8e53630, text only)
+
+| Judge 120 finding | Status | Check |
+|---|---|---|
+| Should-fix 1: "all legs or none" for protective legs only | **MET (option A, decision 43)** | Before any fill, the entry check covers every leg's opening side and each protective leg's closing side. Any failure gives `not_opened` with nothing bought, under one of three codes (`protection_not_buyable`, `protection_not_sellable`, `short_leg_not_sellable`). The change to E4's passed criterion 2 is recorded in the story with its reasons: the unwind becomes a guard, criterion 8. The gap list maps 3.2 to criteria 1, 3, 4 and 8, and the short-leg cases (64/65/66 and A4-invalid) are in the table |
+| Minor 1: ask-size case | MET | "Protective ask size short", 64 units: `protection_not_buyable` by size |
+| Minor 2: no quote figure in the alert | MET | Criterion 7: "a test checks the sent text against the snapshot's figures" |
+| Minor 3: where the touch-size finding went | MET | Decision 42, E2b's fix round |
+
+**The orchestrator's two questions:**
+
+1. **E6's legging cost stays 0 unless the guard fires: TRUE.** `fno/scorecard/execution_costs.py:85` sums
+   `legging_cost_rs` over E4's events. Only `_unwind` writes that field: the partial-fill event, or the exit that
+   finishes a pending unwind. With the entry check first, no normal path reaches `_unwind`. Stated in the story, rightly
+   as a known effect on E6's report, not a change to E6.
+   - Design 6.1a still expects legging loss to be measured in the real-money test (8.4), so nothing is hidden: paper
+     simply has none.
+2. **Does the guard's test double exercise a real post-check fill failure? Not yet pinned in the text. This is a
+   condition for the code round.**
+   - On `main`, `EntryDesk.enter` prices every leg once (`quotes = [price_leg(...)]`, `entries.py:128`) and fills from
+     that same list. If the entry check reads the same quotes, `quote.fills` is always true after the check passes, and
+     the unwind branch cannot be reached from the snapshot at all.
+   - So the guard test is meaningful only if the double is **injected at the fill step** while the **real** entry check
+     runs on the **real** fixture snapshot. Two acceptable doubles:
+     - a pricing function, given to `EntryDesk`, that returns a non-filling quote for the n-th leg on the fill pass
+       only;
+     - a journal whose `record_fill` raises on the n-th fill.
+   - Not acceptable: a double that replaces the entry check (returning "no problem") or the whole `enter` path. That
+     tests the unwind, not the guard behind a passing check.
+   - **In the code round I will plant two mutations:**
+     - removing the entry-check call must fail the normal-path tests;
+     - removing the unwind call must fail the guard test.
+
+   Both must be caught. If the guard is unreachable without a double, its code must say why it stays (a defect guard),
+   so it is not dead code under the engineering rules.
+
+**Tests changed on purpose (5):** all five named tests are stated, with "no assertion dropped (the unwind assertions
+move to the guard tests)". Four are on `main`: `test_entries.py:112`, `:130`, `:140` and `:158`. The fifth is E2b's.
+I check in the code round that each moved assertion still runs, now through the guard.
+
+**Verdict: PASS for 8e53630c738645b8fab5ab1ee3630ff1b9ce3689** (story text), with the guard-double condition above
+for the code round. Rule 9: ChatGPT's review comes next, before the merge.
