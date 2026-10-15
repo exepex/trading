@@ -38,3 +38,20 @@ If a routine runs `global-cues fill`, hold it until the comparison passes.
 
 **Verdict: PASS for 1c6700f4140afed0333bae355726aebf1cd0bc4d** (story text). Code may start. Rule 9 does not apply:
 there is no money path.
+
+## Addendum 1 (15 Oct 2026): the changed migration order (orchestrator)
+
+**New order:** adopt FBIL's Drive copies and run the comparison from the branch before the merge, and put the removal
+commit on the branch. The orchestrator agreed it, because two A17 tests would fail on `main` between the merge and the
+removal.
+
+**Accepted.** The adopt writes only to `derived/global-cues/usdinr_fbil/`, which nothing on `main` reads. The merge then
+carries the flag, the removal and the real adopt and comparison output together, and CI stays green.
+
+**One condition for my code review and the merge:** the comparison must be against the repository file as it is on
+`main` at merge time, not only at adopt time.
+- Any FBIL row that a run on `main` adds between the adopt and the merge would be in neither place after the removal.
+- So before merging, show that `research/data/global-cues/usdinr_fbil.csv` on `origin/main` is unchanged since the
+  commit the comparison read (`git log` on that path). If it changed, adopt the newer copy and compare again.
+
+**The earlier note still holds:** no FBIL fill between the adopt and the merge.
