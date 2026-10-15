@@ -163,9 +163,13 @@ prices by design):
 
 | mark_ist | status | failures | index_basis | lateness_seconds | index_age_seconds | expected / recorded / two-sided | clock | snapshot finished |
 |---|---|---|---|---|---|---|---|---|
-| 09:15 | stale | index_time_missing | (none) | 0.8 | (none) | 216 / 216 / 204 | clock_ok, -0.5 s | 03:45:57 UTC (57 s) |
-| 09:30 | good | (none) | candle_1m_close | 0.7 | 0.7 | 220 / 220 / 220 | clock_ok, 0.0 s | 04:00:53 UTC (53 s) |
-| 09:45 | good | (none) | candle_1m_close | 0.7 | 0.7 | 220 / 220 / 220 | clock_ok, -0.1 s | 04:15:51 UTC (52 s) |
+| 09:15 | stale | index_time_missing | (none) | 0.8 | (none) | 216 / 216 / 204 | clock_ok*, -0.5 s | 03:45:57 UTC (57 s) |
+| 09:30 | good | (none) | candle_1m_close | 0.7 | 0.7 | 220 / 220 / 220 | clock_ok*, 0.0 s | 04:00:53 UTC (53 s) |
+| 09:45 | good | (none) | candle_1m_close | 0.7 | 0.7 | 220 / 220 / 220 | clock_ok*, -0.1 s | 04:15:51 UTC (52 s) |
+
+\* Corrected after judge 108 addendum 3: in this run `clock_ok` rested on **Slack alone**. GitHub was never checked
+(the old code asked the API root, which answers 400 with no `Date` here, and treated "no answer" as nothing to
+report). The figure above is the skew against Slack. Fixed in part 3.
 
 The raw 09:15 document in the dry-run folder is 71,275 bytes (gzip). The 09:15 row is the evidence for amendment 1;
 with the change, the same answer (the forming 09:15 candle, held at 09:15:01.5) gives `candle_1m_open` and `good`
@@ -197,3 +201,56 @@ Minor, seen in this output and not fixed in this push: an empty failures list pr
    history before it.
 3. The routine itself is the owner's to set up; no schedule was created.
 4. Whether Groww will ever fill the index `last_trade_time` is unknown; both branches are built and tested.
+
+## Part 3: answer to judge 108 addendum 3 (FAIL on a471f44, 2 should-fix): both accepted, as the orchestrator decided
+
+Checked before accepting:
+- **Should-fix 1 (two writers, one Drive name):** read `GoogleDriveStore._child` and `GoogleDriveUploadStore.put`:
+  `put` looks the name up, then creates; two creates of one name leave two items, and `_child` then raises
+  `RawFileConflict` on every read of that name. Real, and my local-folder tests could not show it.
+- **Should-fix 2 (clock):** reproduced live: `HttpDateClock("github", "https://api.github.com")` gives
+  `clock NOT CHECKED: host vs github (HTTP 400 from github, no Date header ...)` here; the repository path answers.
+  My old code also trusted a `Date` on any status. Real.
+
+**Fix 1, orchestrator decision 39 (run-unique names).** Every copy is saved as
+`nifty_<day>_<HHMM>_<SHA-256 first 16>.json.gz`: a name unique to its bytes, so two runs never share one, without a run
+id to thread through. `SnapshotFiles` (`fno/intraday/snapshot_files.py`) saves copies and resolves reads: a mark's copy
+is the one its ledger row names; the next mark's settlement and the realised variance read only through the row. Rule
+for a second run at the same mark: each run's row names its own copy; the row first pushed to GitHub is kept (the
+committer's same-file rule); the other copy stays in Drive unused. A due mark with copies and no row gets the copy with
+the smallest name (fixed). The first-version store and the revisions index are gone (nothing can be written over).
+Tests: an `InterleavingDrive` fake with Drive's own look-up-then-create behaviour, where the second run's whole put
+lands between the first run's look-up and create: both copies stored under two names, both rows readable, the next
+mark's settlement works. **With one shared name (the a471f44 naming, planted as a mutation) that test fails**; the
+two-clone test now also checks Drive holds both copies and the kept row names one.
+
+**Fix 2, one shared clock.** `fno/cards/clock.py` moved unchanged to `fno/server_clock.py` (git rename); T1 imports it
+under its old name (`fno/cards/clock.py` re-exports the names), so **T1's 63 tests are unchanged and pass**; the GitHub
+URL template moved there too, and `DEFAULT_REPOSITORY` to `fno/constants.py` (same value). A16's `ClockCheck` uses
+`check_server` (2xx/3xx only), asks GitHub at `api.github.com/repos/<owner>/<name>`, and adds `clock_partial` when one
+server answers and the other does not, with the reason printed. Tests: an error answer (400, 404, 500) carrying a
+`Date` is ignored; GitHub is asked at the repository path; the wiring's two URLs. **Live, read-only, 15 Oct 2026:**
+GitHub (repository path) and Slack both answered, host within 0.0 s of each; the API root still answers 400.
+
+**Minors:**
+1. One alert send attempt per settlement (several bad marks settled at once): done, tested, mutation caught.
+2. Tests for I18 (equal documents give equal bytes even when the clock moves between them; gzip's own time patched)
+   and I22 (a row file is never rewritten; the ledger refuses a second row): done, both mutations caught.
+3. `fno/storage/manifest_commit.py` is shared by every manifest job and now refuses to commit without
+   `core.hooksPath`. Checked myself: 13 workflows, 12 commit and all 12 set it; `checks.yml` runs tests and commits
+   nothing; routines set it per `CLAUDE.md`. Stated here as a change outside A16's own folder.
+4. The 09:15 rule's condition is in the story text: in the trial and every weekly post-mortem, each 09:15
+   `candle_1m_open` against NSE's official NIFTY 50 open (A1's index-close file), every difference over 0.05 points
+   reported, a systematic one is a new version.
+5. Cosmetic "failures: " line: left as it is in this push (the orchestrator asked for it only if findings came; they
+   did, but it is unrelated to them; it rides the next code change).
+
+**Proofs and gates at this push:** mutations **46 of 46 caught** (run with `python -B`; two stale patterns re-run
+after updating them; the "failed mark never retaken" one is caught as a hang). One honest slip while proving: a
+`git checkout` I used to undo a hand mutation restored the committed `document.py` and wiped this round's edits to it;
+I re-applied them, and the intraday suite (180) and the full gates below ran after that. Full suite on the tree merged
+with `main`: **4126 passed**; `ruff check`, `ruff format --check`, `check_imports` clean; largest new file 209 lines.
+
+Open items, unchanged: the `requirements-groww.txt` fix (its own change), the owner's routine, the criterion-15 trial
+(with the NSE-open comparison), the cosmetic line above, and the remote `wip/a16-groww-15min-code` branch, which this
+session cannot delete (the git proxy refuses the delete).
