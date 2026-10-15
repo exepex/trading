@@ -121,3 +121,157 @@ study. It is archiving only, and the lists hold event dates, not outcomes. Three
 
 **Verdict: PASS for 425b69336676083ddb06643820fb9cf2d93c1f50** (amendment 1, revision 1). The study may not read study
 data until the `study.py` and snapshot-script commit passes, with its hash in `FREEZE.md`.
+
+## Addendum 2 (15 Oct 2026): the script commit at adccf53f335c361fbace52dfa6b6a22fc99fce66 (425b693..adccf53)
+
+Range: 1643f32 (code, `AMENDMENT_2.md`, tests, response 109) and adccf53 (script hashes in `FREEZE.md`). 9bfa0ad, the
+work-in-progress commit, is inside this range's history; I judge the files as they stand at adccf53.
+
+**What I did:**
+- read all 22 `r2study/*.py` files, `study.py`, `snapshot.py`, `AMENDMENT_2.md` and response 109 in full, against
+  `PROTOCOL.md` and amendment 1;
+- checked every hash in `FREEZE.md`;
+- ran the gates;
+- planted 30 mutations of my own, one at a time, against `tests/research`, without bytecode.
+
+I read no study data.
+
+## Gates
+
+- `FREEZE.md`: all 27 hashes match the files at adccf53. The protocol is still `89947b4c...`, amendment 1 still
+  `3b84ecae...`.
+- Full suite at adccf53: **3,272 passed** (Slack token unset). `ruff check` and `ruff format --check` are clean,
+  including the study folder. `check_imports` is clean.
+- `git merge-tree origin/main adccf53` merges cleanly. The full suite on the trial merge is in my report.
+- Largest file: `snapshot_capture.py`, 165 lines.
+
+## No order path, secrets, raw quotes
+
+- **Groww calls.** Every Groww call is a read: `GrowwProvider.expiries` (`get_expiries`), `.chain`
+  (`get_option_chain`), `snapshot.py:58-60` `get_quote`, and the sign-in. A grep of the folder finds no other API use.
+- **Secrets.** Credentials come only from the environment, through `GrowwProvider`. Nothing prints or stores them.
+- **Raw data stays out of the repository.** The raw snapshot goes to Drive's `raw/groww/derivatives/stock-option-quotes/`
+  and to a local `.cache/`, which the folder's `.gitignore` excludes. The repository gets only `results.json` and
+  `results.md`, which hold bucket statistics, counts and the study's numbers.
+- **Exit-session reads.** Only contracts traded, listed strikes and the current-format lot column of R are read
+  (`markets.py`, `evaluate.py`). Moves are read only for 2019-2021 (`moves.py` refuses other years; the builder's test
+  and my M15 plant both bite).
+
+## The code against the protocol (read line by line)
+
+Correct as written:
+- **Strikes and prices.** K0 is the nearest listed strike to the near-month future's close, ties to the higher, steps
+  to the listed neighbours, ±2 steps as 2 x step (amendment 1 D6).
+- **Untradable legs and prices:** close 0 or no trades; a debit at least its width; a condor credit at least its wider
+  wing; a price not positive.
+- **Maximum loss:** the debit, or the wider wing less the credit, plus costs.
+- **Costs:** C1 charges on entry and exit at the entry price; a pad per leg per side of h x entry price x lot; EN =
+  0.05 x P x lot - C - T, with T = 2% of the condor's maximum loss.
+- **Liquidity:** 50 contracts on entry and on exit, and 100 contracts of open interest (OI in shares divided by the
+  lot).
+- **Buckets:** terciles from the quoted legs' previous-session contracts; the merge toward the more liquid neighbour;
+  more than 20% one-sided (crossed counted as one-sided, an exact count ratio) makes a bucket untradable, and its
+  history legs are not liquid; the 75th-percentile half-spread.
+- **Timing:** R from the filing time (09:15-15:30 inclusive, before 09:15 the same session, otherwise the next; no
+  `filed_at` gives the session after D); a filing at or before the entry close is excluded; the expiry is at least 5
+  sessions after R, counted with calendar sessions after the archive (D5).
+- **Reschedules:** a chain is one group, keeping the latest meeting with a filing.
+- **Stages:** stages 1-4, and the decision rule with criterion 2 on the fitting events, are as the protocol and
+  amendment 1 say.
+- **Clusters:** clusters per event with fit, liquidity and EN > 0, divided by window days / 365.25.
+- **The YES label** below the 80%-power need of 297.
+- **Stage 0's two thresholds.**
+- **Statistics:** the ICC by one-way ANOVA with n0 as in D9; a seeded cluster bootstrap; Kish on the ICC of |m|.
+- **The once-only guard:** `check_frozen` plus "results exist" refuses.
+
+**`AMENDMENT_2.md` (new, not judged before): ACCEPTED.**
+- Items 1-12 resolve open details blind.
+- None changes a threshold.
+- Where they touch the share's denominator (items 2-4), untradable structures stay in it as not fitting. That is the
+  conservative choice, and the new exclusions (no future close, no expiry, options or K0 not listed on R, lot missing on
+  R) do not look at prices or moves.
+- Kish on |m| (item 9) is the protocol's own section 7.
+
+**Disclosure ruling: harmless (some evidence; it rests on the builder's statement).**
+- `snapshot.py --ready` parsed the 14 Oct file into futures and option-symbol sets in memory, and NSE's event calendar.
+  It printed only "72 F&O stocks with results in the next 10 sessions".
+- That number is a count of scheduled meetings, public calendar information. No price, volume, lot, spread or move was
+  shown.
+- Every rule was frozen before it, and the snapshot's stock list is mechanical, so the count can steer nothing. 14 Oct
+  being the decision window's last session does not change that: no outcome of any event was shown.
+- Note: `AMENDMENT_2.md`'s opening line ("written before any data of this study was parsed") should mention this one
+  parse, or `FREEZE.md` should. See minor 4.
+
+## My mutations: 22 of 30 caught, 8 survived
+
+| Plant | Result | What it would break |
+|---|---|---|
+| M3: clusters count events with EN <= 0 (per-event EN > 0 dropped) | **SURVIVED** | Amendment 1 A, the rule criterion 3 rests on: more clusters, a looser YES |
+| M30: decision-window filter removed (2019 - Sep 2024 events decide) | **SURVIVED** | Protocol §3: earlier events "never decide" |
+| M17: condor width = narrower wing | **SURVIVED** | §5: maximum loss from the wider wing. Steps differ above and below K0 at strike-grid changes, so the loss would be understated and the fit overstated |
+| M18: cap with pads `<` instead of `<=` | **SURVIVED** | §5 "at most Rs 10,000" on the criterion-1 path (the no-pads boundary is tested; the with-pads one is not) |
+| M23: stage 0 lot-unknown `>=` 10% | **SURVIVED** | §9 "more than 10%" |
+| M24: stage 0 coverage `>` 80% | **SURVIVED** | §9 "fewer than 80%" |
+| M10: condor tail on the loss without costs | **SURVIVED** | §6.1 T = 2% of the maximum loss (costs included), so EN on S7 |
+| M16: Kish on the signed ICC | survived (descriptive) | §7 Kish uses `rho_abs` |
+| Caught | M1, M2, M4-M9, M11-M15, M19-M22, M25-M29 | window +1 day, mean EN, exit contracts, OI per lot, the 5-session expiry, the 15:30 filing, the entry-close exclusion, the reschedule pick, two pad sides, the merge direction, the 20% boundary, the K0 tie, the 2022 refusal, the traded contract's lot, the lot change on R, the K0-on-R test, the 120-day filing period, the no-filing R, the 15:00 snapshot cut, crossed quotes, debit = width, p75 |
+
+The code is right on all eight; I read each line. But the run happens once and cannot be repeated (protocol §11), and
+quality rule 5 asks for every boundary. So untested decisive rules are should-fixes. The builder's "57 of 57" is true
+for its own plants, not for these.
+
+## Should-fix
+
+**1. Tests for the seven decision-relevant survivors: M3, M30, M17, M18, M23, M24 and M10.**
+- M3: an end-to-end case where an event fits and is liquid but has EN <= 0 and adds no cluster.
+- M30: a pre-window event that would flip the decision if counted.
+- M17: a condor with unequal steps.
+- M18: the with-pads cap at exactly Rs 10,000.00 and 10,000.01.
+- M23/M24: lot-unknown share at exactly 10% and coverage at exactly 80%.
+- M10: the S7 tail on the costed loss.
+- Tests are not frozen, so adding them changes no hash. If code changes too (should-fixes 2-3), its new hashes go
+  into `FREEZE.md` in the fix commit.
+
+**2. The snapshot's 20% "no previous-session row" rule is not enforced by the run, and cannot be.**
+- Amendment 2 item 10 says the capture "is not used" above 20%. `snapshot.py` prints STOP and exits 2, but it has
+  already written the legs file and uploaded the raw file. `study.py --run --snapshot <legs>` uses any legs file.
+- Each leg's `previous_contracts` is 0.0 both for "no row" and for "a row with 0 contracts"
+  (`snapshot_capture.py`: `old.contracts if old else 0.0`). So the run cannot tell them apart.
+- Fix (study side; `snapshot.py` can stay as frozen): the run rebuilds the legs from the raw Drive file (every payload,
+  strike, kind, expiry and lot is in it) and the previous session's F&O file. It applies the 20% rule itself, and above
+  it treats the snapshot as absent ("cannot answer yet: no spread evidence").
+
+**3. The results do not say which snapshot they used.** Nothing ties `results.json` to the snapshot: no legs-file
+SHA-256, no raw Drive path or SHA-256. A legs file could be replaced or edited unseen. Fix: with should-fix 2, the run
+reads the raw file by its Drive path, checks it against the SHA-256 that `snapshot.py` printed (recorded in the
+conversation log or a small committed record of counts, path and hash, with no quotes), and writes the path and hash
+into `results.json`.
+
+## Minor
+
+1. `check_frozen` checks the hashes of the script files only. `PROTOCOL.md` and the amendments are covered only by
+   "the folder is clean". Add their hashes to the check, as `FREEZE.md`'s `sha256sum -c` line intends.
+2. A filing in market hours on a muhurat day (the session list keeps muhurat days, amendment 2 item 7) sets R to that
+   day, although the market was not open at that hour. This is rare. Count such events, or treat a muhurat day as
+   after-hours for R.
+3. The default cache is inside the checkout (`.cache/`, ignored by git) and holds the raw snapshot. A default outside
+   the repository, or the A4b record-scan rule extended to it, would remove the risk of a `git add -f`.
+4. Note the `--ready` parse in `AMENDMENT_2.md` or `FREEZE.md` (see the disclosure ruling).
+
+## The snapshot today
+
+I found nothing in `snapshot.py` or `snapshot_capture.py` that must change:
+- read-only calls;
+- window 14:00-15:00, with nothing asked or kept at or after 15:00;
+- the stock list, expiry, lot, K0 and ±3 strikes per amendments 1-2;
+- per-leg and per-stock failures counted;
+- the raw file to Drive with every payload.
+
+Should-fixes 2-3 are fixed in the study, from that raw file. So the snapshot may be taken today with exactly adccf53's
+`snapshot.py` and `r2study/` files: check them with the `FREEZE.md` hashes before running, and record the printed raw
+SHA-256 and Drive path. Taking it reads no outcome. If a later fix had to change the snapshot itself, protocol §9 lets
+it be retaken next season under the same protocol.
+
+**Verdict: FAIL for adccf53f335c361fbace52dfa6b6a22fc99fce66** (the analysis run), on should-fixes 1-3. The code
+matches the protocol everywhere I read it. `AMENDMENT_2.md` is accepted, and the disclosure is harmless. The
+snapshot may be taken today as stated above. `study.py --run` may not run before a PASS on the fix commit.

@@ -197,3 +197,28 @@ equally be checked as reducing only. Keeping the pass is acceptable and stricter
 
 **Verdict: FAIL for 0462f71bcacd01989b89f190e8704da2d7fa52cf** on should-fix 8 only (text). Judge 115's seven
 should-fixes and three minors are all met. A re-check needs only scope 2's exit sentence and criterion 4.
+
+## Addendum 2 (15 Oct 2026): 6b62348baaaa28a773eca71a5ee7c9835a23ebd0
+
+Only scope 2 and criterion 4 changed, plus the test-plan line and status (`git diff 0462f71 6b62348`: one file).
+
+**Should-fix 8: MET.**
+- **The rule's place.** The reduce-only rule for `FILL_CLOSE` and `FILL_SETTLE` now lives in `AccountWriter.apply_fill`,
+  the primitive that writes the ledger. Callers cannot go round it.
+- **What it refuses:** a new trade ID, a contract not held, more units than held (a flip), an addition to the holding,
+  and a settle of an unexpired leg.
+- **Criterion 4's cases:** my six refused cases plus two accepted ones (an exact full close and a partial close).
+- **The static test** lists the call sites of all four actions.
+
+**Two points for the code (minor; I check them when I judge STR1b-1):**
+1. `apply_fill` does not know a fill's action today (E1's `Fill` has none; `DeskRecords.record_fill` holds it). So
+   the action, or an opening/reducing intent, must reach `apply_fill` with the fill.
+2. **Where the pass check lives.** The `VerifiedPass` check sits in `record_fill`, one level above `apply_fill`. Today
+   `record_fill` is `apply_fill`'s only caller in `fno/`, `tools/` and `research/` (my grep), but a new direct caller
+   would skip the pass. The static test must therefore also list every call site of `AccountWriter.apply_fill`, or the
+   pass check must move down into `apply_fill`.
+
+**Verdict: PASS for 6b62348baaaa28a773eca71a5ee7c9835a23ebd0** (story text, quality rule 1).
+- Judge 115's seven should-fixes, three minors and should-fix 8 are all met.
+- STR1b-1 code may start after C5 merges.
+- I judge the code against criteria 1-9 and the two points above.
