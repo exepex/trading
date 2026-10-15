@@ -94,7 +94,7 @@ rates from the same windows. This is my approximation of the rule, not the built
 - **The three notes** are one-line text additions.
 - **Next:** ChatGPT's rule-9 review. The code waits for G7's merge.
 
-## Addendum 1 (15 Oct 2026): M1 code at a47e529b43ed3cbb0266fb785bfb1acf313a8172 (code 4a317be plus main; claims `response_137_m1-weather.md`)
+## Addendum 1 (15 Oct 2026): M1 code at a47e529b43ed3cbb0266fb785bfb1acf313a8172 (code 4a317be plus main; claims `response_139_m1-weather.md`, renumbered from 137)
 
 **Gates, run myself on the exact SHA:**
 - `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: **5504 passed**;
@@ -162,3 +162,27 @@ Keep both; no code conflicts.
   - all six choices are sound.
 - **Two notes only.** ChatGPT's rule-9 review was made on the text (review 106).
 - **Merge:** keep both README rows.
+
+## Addendum 2 (15 Oct 2026): merge check, b29ac33a8e334aac40dfff00948aa6548a19e78b (`--no-ff` of 223de56 onto c16ca37)
+
+| Check | Result |
+|---|---|
+| Branch since my PASS (a47e529..223de56) | Note 1 is applied: `METHOD_FILES` adds `weather/wiring.py` and `forecast_v4/sessions.py`, with a test in `test_privacy_and_point_in_time.py`. The response file is renumbered. Everything else is main merged in. Accepted: it is exactly note 1 |
+| Recomputed merge equals the merge commit | **MET, with a stated resolution.** `git merge-tree --write-tree c16ca37 223de56` gives ea224fb… with one conflict (`reviews/claude/README.md`). The merge's tree 8b05f8a… differs from it only in that README's resolution and the rename `response_138_m1-weather.md` → `response_139` (138 was taken). Both are lane 3 |
+| Branch files identical | **MET.** `fno/weather/`, `tests/weather/`, `fno/cli.py`, `fno/constants.py` and `docs/stories/M-weather.md` are identical in 223de56 and b29ac33 |
+| CI on `main` | **NOT MET, and not caused by M1.** Every `checks` run on `main` since **72ffc31 (09:11 UTC, the R2 merge)** fails at collection: `research/2026-10-15-r2-stock-options-results/r2study/reading.py:9` has `from itertools import batched`, which exists only from Python 3.12, and CI runs Python 3.11 (`.github/workflows/checks.yml:23`). Locally (3.13) it passes, which is why the gates of every story since looked green. Run 38731620537 (f97a901) shows the error |
+
+**For the orchestrator:**
+- **The root cause:** R2's `reading.py` uses a 3.12-only standard-library function, while CI and the declared Python are
+  3.11.
+- **The fix,** one of:
+  - replace `batched` with a 3-line generator in `reading.py`;
+  - or decide the project's Python version and change CI to it.
+
+  Either way, re-run CI on `main`. Every merge since 72ffc31 has gone in on red CI, and that has to be visible.
+- **Rule 8** (`weather capture` after the cutoff writes nothing, as designed) is accepted. My independent recompute in
+  addendum 1 is the real-data record.
+
+### Merge check: MET for M1's own parts; main's CI is red for an R2 cause, reported above
+
+M1 is done once main's CI is green again on a tree containing b29ac33. I will confirm that when the R2 fix lands.
