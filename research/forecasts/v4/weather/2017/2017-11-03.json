@@ -1,0 +1,52 @@
+{
+ "colour": "not scored",
+ "day": "2017-11-03",
+ "drivers": {
+  "events_next_5_sessions": [],
+  "us_move": "private",
+  "v0_inputs": "not available"
+ },
+ "inputs_sha256": "a2da8aad3db0de6dcf6ccc06223a9307a82053a2f132aa2d343af1f82daa6e1f",
+ "label": "backfill_exploratory",
+ "made_at": "",
+ "method_sha256": "2495d512b89da4d64f5a62b03d5d1dc60325896c3d4132b7f70a2a736ab9e21e",
+ "model_colour": "not scored",
+ "operative": "weather_vix_v1",
+ "over_alarming": "not counted (back-fill)",
+ "probabilities": {
+  "base_rate": {
+   "v6_abs_move_2pct_next_session": {
+    "status": "not_eligible",
+    "value": null
+   },
+   "v6_abs_move_2pct_within_5_sessions": {
+    "status": "not_eligible",
+    "value": null
+   }
+  },
+  "weather_checklist_v0": {
+   "v6_abs_move_2pct_next_session": {
+    "status": "not_eligible",
+    "value": null
+   },
+   "v6_abs_move_2pct_within_5_sessions": {
+    "status": "not_eligible",
+    "value": null
+   }
+  },
+  "weather_vix_v1": {
+   "v6_abs_move_2pct_next_session": {
+    "status": "not_eligible",
+    "value": null
+   },
+   "v6_abs_move_2pct_within_5_sessions": {
+    "status": "not_eligible",
+    "value": null
+   }
+  }
+ },
+ "proof": "not yet proven: G8 has not scored it against v0 and the base rate",
+ "red_share": "not counted (back-fill)",
+ "status": "not scored: v6_abs_move_2pct_next_session p not_eligible, v6_abs_move_2pct_within_5_sessions p not_eligible, v6_abs_move_2pct_next_session base rate not_eligible, v6_abs_move_2pct_within_5_sessions base rate not_eligible",
+ "v0_colour": "not scored"
+}
