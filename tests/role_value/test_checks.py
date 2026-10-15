@@ -10,11 +10,12 @@ from fno.role_value.role_set import RoleSet, RoleSetError
 from tests.role_value.builders import BOOK, ROLES, row
 
 D1, D2, D3, D4 = date(2026, 12, 2), date(2026, 12, 3), date(2026, 12, 7), date(2026, 12, 8)
-LOG = {d: f"snap-{d.isoformat()}" for d in (D1, D2, D3, D4)}
+PILOT_DAY = date(2026, 12, 1)
+LOG = {d: f"snap-{d.isoformat()}" for d in (PILOT_DAY, D1, D2, D3, D4)}
 
 
 def check(rows):
-    return checked(rows, lambda version: ROLES, LOG)
+    return checked(rows, lambda version: ROLES, LOG, D1)
 
 
 def test_the_units_are_in_identifier_order_and_the_rotation_follows_rows_not_calendar_days():
@@ -62,3 +63,8 @@ def test_control_roles_are_never_units():
 def test_a_role_in_two_units_is_refused():
     with pytest.raises(RoleSetError, match="exactly one unit"):
         RoleSet.of(BOOK, "1", {"a": ["macro_economist"], "b": ["macro_economist", "x"]})
+
+
+def test_pilot_rows_before_the_common_start_never_move_the_cycle():
+    rows = [row(PILOT_DAY, "vol"), row(D1, "macro"), row(D2, "positioning")]  # the cycle starts at D1 with macro
+    assert len(check(rows)) == 3

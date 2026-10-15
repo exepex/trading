@@ -169,3 +169,15 @@ Files: `fno/role_value/` (`role_set.py`, `role_set_file.py`, `rows.py`, `checks.
 
 Not done here (as the text says): firing shadows (F9b); any change to S3's files; S1's text (pending edits with its
 owner). `fno/scoreboard/` is imported only, never edited.
+
+## Judge 194's two minors (code PASS at f04076dd), both accepted
+
+1. **Equal nets, different decisions.** Accepted: "changed" sets the 30 minimum, and unfilled entries happen in normal
+   running. Added `test_an_unfilled_take_against_a_skip_is_a_change_worth_zero` (0 against 0, changed). The code
+   already compared decisions, not nets (`valuation.py`, `choices`), so this is a test only.
+2. **The rotation counted from the version's first row.** Accepted, fixed in code rather than in wording, because F9b
+   may write pilot rows. `check_rotation` counts only rows on or after the common start. The report lists earlier
+   rows as "pilot, before the common start" and never scores them (S1 `pilot_evidence`). Tests: a pilot row never
+   moves the cycle; a pilot row is excluded.
+
+The ChatGPT request is response 185.

@@ -37,8 +37,8 @@ def journal(root, rows):
     log.write_text(C4_LOG)
 
 
-def period(review=False):
-    return Period(BOOK, date(2026, 11, 1), date(2026, 11, 30), date(2026, 12, 2), review)
+def period(review=False, start=date(2026, 11, 2)):
+    return Period(BOOK, date(2026, 11, 1), date(2026, 11, 30), start, review)
 
 
 def test_one_pair_reproduces_the_hand_computation(tmp_path):
@@ -80,3 +80,10 @@ def test_a_day_the_ablated_unit_s_card_was_not_consulted_does_not_apply(tmp_path
     result = report(tmp_path).build(period())
     assert result.excluded == {"card not consulted (not applicable)": 1}
     assert {s.unit: s.cost for s in result.scores}["positioning"] == 1500.0  # Rs 3,000 over the two consulted
+
+
+def test_rows_before_the_common_start_are_pilot_never_scored(tmp_path):
+    journal(tmp_path, [row(DAY, "macro")])
+    result = report(tmp_path).build(period(start=date(2026, 11, 3)))
+    assert result.excluded == {"pilot, before the common start": 1}
+    assert {s.unit: s.applicable for s in result.scores} == {}

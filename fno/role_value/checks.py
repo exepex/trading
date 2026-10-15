@@ -2,8 +2,9 @@
 and unit, when the two decisions used different packs or snapshots, or a snapshot that is not the day's execution
 snapshot in E3's run log (both checked on scored rows); when the unit is not the one the rotation schedules; or when
 it names a role that only exists inside a bundle. The rotation (S1 `role_value_schedule`): the k-th row of a book
-version (k from 0) ablates unit k mod n, in identifier order. Every row is a day the book committed a real decision,
-a no-trade included, so every row advances the cycle and a day without a row does not."""
+version from the common start (k from 0) ablates unit k mod n, in identifier order; rows before the common start are
+pilot rows and never move the cycle. Every row is a day the book committed a real decision, a no-trade included, so
+every row advances the cycle and a day without a row does not."""
 
 from __future__ import annotations
 
@@ -41,9 +42,9 @@ def check_hashes(row: PairedRow, run_log_snapshots: Mapping[date, str]) -> None:
         raise _refuse(row, f"snapshot {row.real_snapshot_id!r} is not the run log's execution snapshot ({logged})")
 
 
-def check_rotation(rows: Sequence[PairedRow], role_set_of: Callable[[str], RoleSet]) -> None:
+def check_rotation(rows: Sequence[PairedRow], role_set_of: Callable[[str], RoleSet], common_start: date) -> None:
     position: dict[str, int] = {}
-    for row in rows:
+    for row in (r for r in rows if r.day >= common_start):
         units = role_set_of(row.version).unit_ids
         k = position.get(row.version, 0)
         if row.unit != units[k % len(units)]:
@@ -54,11 +55,11 @@ def check_rotation(rows: Sequence[PairedRow], role_set_of: Callable[[str], RoleS
 
 
 def checked(rows: Sequence[PairedRow], role_set_of: Callable[[str], RoleSet],
-            run_log_snapshots: Mapping[date, str]) -> list[PairedRow]:  # fmt: skip
+            run_log_snapshots: Mapping[date, str], common_start: date) -> list[PairedRow]:  # fmt: skip
     """The book's rows, all checked; the first refusal stops the report (a damaged record is never scored)."""
     for row in rows:
         check_unit(row, role_set_of(row.version))
         if row.status == SCORED:  # an unavailable or unscored shadow has no pack or snapshot to compare
             check_hashes(row, run_log_snapshots)
-    check_rotation(rows, role_set_of)
+    check_rotation(rows, role_set_of, common_start)
     return list(rows)

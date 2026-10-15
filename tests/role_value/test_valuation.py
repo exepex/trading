@@ -68,3 +68,12 @@ def test_the_unit_is_called_for_each_take(tmp_path):
 
     value_pair([record("o1", pack=pack)], [record("o1", pack=pack, **SKIP)], common(tmp_path), DAY, Spy(), EXIT)
     assert len(calls) == 1 and calls[0][1:] == (DAY, date(2026, 11, 3), EXIT)
+
+
+def test_an_unfilled_take_against_a_skip_is_a_change_worth_zero(tmp_path):
+    """Judge 194 minor 1: "changed" follows the decisions, never the nets (both are 0 here)."""
+    pack = setup(tmp_path)
+    no_entry_quote = {DAY: [], EXIT: QUOTES[EXIT]}
+    pair = value_pair([record("o1", pack=pack)], [record("o1", pack=pack, **SKIP)], common(tmp_path), DAY,
+                      unit(tmp_path, no_entry_quote), EXIT)  # fmt: skip
+    assert (pair.status, pair.difference, pair.changed) == (SCORED, 0.0, True)

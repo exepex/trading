@@ -158,3 +158,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 166: story F9a, role-value scoring code so S1 v1 can freeze (F9b, the shadow firing, stays in slice E); story text for the judge, six owner questions](response_166_f9-role-value.md)
 - [Response 167: LR1 weekly post-mortem v1: story text (revisions 1-2, judge 167 PASS) and code-round claims (forecasts, weather, data health; AI summary with the exact number check; objections behind the advocate port)](response_167_lr1-weekly-postmortem.md)
 - [Response 177: story S3 code, scoreboard A (claims for judge G): standard unit shared with F9, take/skip/not observed, Holm on p-values, miss cap, 20 mutations caught](response_177_s3-code.md)
+- [Response 185: review request to ChatGPT for F9a (role-value scoring code) after judge 194's PASS, quality rule 9](response_185_f9a-chatgpt-request.md)

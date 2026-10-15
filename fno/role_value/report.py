@@ -21,6 +21,8 @@ from .valuation import SCORED as PAIR_SCORED
 from .valuation import WAITING, value_pair
 from .verdict import verdicts
 
+PILOT = "pilot, before the common start"
+
 
 @dataclass(frozen=True)
 class Period:
@@ -65,9 +67,14 @@ class RoleValueReport:
 
     def build(self, period: Period) -> RoleValueResult:
         book = period.book
-        rows = checked(self.i.source.rows(book), lambda v: self.i.role_set_of(book, v), self.i.run_log_snapshots)
+        rows = checked(self.i.source.rows(book), lambda v: self.i.role_set_of(book, v), self.i.run_log_snapshots,
+                       period.common_start)  # fmt: skip
         rows = [r for r in rows if period.first <= r.day <= period.last]
         result = RoleValueResult(period, self.i.protocol, rows=len(rows))
+        pilot = [r for r in rows if r.day < period.common_start]  # pilot evidence, never scored (S1)
+        if pilot:
+            result.excluded[PILOT] = len(pilot)
+        rows = [r for r in rows if r.day >= period.common_start]
         found: dict[str, list[Opportunity]] = {}
         for row in rows:
             self._pair(row, period.last, result, found)
