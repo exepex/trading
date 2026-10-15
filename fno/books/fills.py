@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 
 from ..accounting.ledgers import Order
-from ..constants import LEDGER_FILL, LEDGER_OPENING, LEDGER_SETTLEMENT, SIDE_BUY, SIDES
+from ..constants import LEDGER_FILL, LEDGER_OPENING, LEDGER_SETTLEMENT, LEDGER_TOP_UP, SIDE_BUY, SIDES
 from ..costs import CHARGE_NAMES
 
 LEDGER_COLUMNS = (
@@ -99,6 +99,7 @@ class Fill:
 
 
 FILL_KINDS = (LEDGER_FILL, LEDGER_SETTLEMENT)  # ledger rows that move a position
+CAPITAL_KINDS = (LEDGER_OPENING, LEDGER_TOP_UP)  # ledger rows that add capital: never a trade, never profit
 
 
 def opening_row(entry_id: str, day: str, amount: float) -> dict[str, str]:
@@ -107,6 +108,15 @@ def opening_row(entry_id: str, day: str, amount: float) -> dict[str, str]:
     row |= {"entry_id": entry_id, "kind": LEDGER_OPENING, "filled_at": day}
     row |= {"amount_rs": repr(float(amount)), "cash_after_rs": repr(float(amount))}
     return row
+
+
+def top_up_row(entry_id: str, written_at: datetime, amount: float, cash_before: float) -> dict[str, str]:
+    """A capital top-up at its write instant (story E1b): time-zone aware, so it counts only from that instant."""
+    if written_at.tzinfo is None:
+        raise FillError("a top-up's write instant must carry its time zone")
+    row = dict.fromkeys(LEDGER_COLUMNS, "")
+    row |= {"entry_id": entry_id, "kind": LEDGER_TOP_UP, "filled_at": written_at.isoformat()}
+    return row | {"amount_rs": repr(float(amount)), "cash_after_rs": repr(float(cash_before + amount))}
 
 
 def same_fill(row: dict[str, str], fill: Fill) -> bool:

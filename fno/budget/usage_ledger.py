@@ -16,7 +16,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from ..constants import AI_BOOKS, PURPOSE_BOOKS_AND_ROLES, USAGE_PURPOSES
+from ..constants import AI_BOOKS
+from .constants import PURPOSE_BOOKS_AND_ROLES, USAGE_PURPOSES
 from .usage_export import TOKEN_FIELDS
 from .usage_reader import DayUsage
 

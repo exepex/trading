@@ -41,7 +41,7 @@ def test_the_committed_starting_state_is_the_13_oct_rs_5_lakh_opening_and_no_pos
     assert BOOKS == ("book1_rules", "book2_hybrid", "book3_ai")  # the names the stories use (epic E)
     for book in BOOKS:
         account = build_paper_account(book)  # the repository's own journal/<book>/account/
-        assert account.started and account.starting_cash() == 500_000.0 != paper_account_rs()
+        assert account.started and account.capital() == 500_000.0 != paper_account_rs()
         assert account.fills() == [] and len(account.ledger_rows()) == 1
         summary = json.loads(account.file("positions.json").read_text())
         assert summary["open_trades"] == [] and summary["cash_rs"] == 500_000.0 == summary["closed_equity_rs"]
@@ -55,7 +55,7 @@ def test_a_new_account_opens_with_the_owners_paper_account_of_rs_20_lakh(root):
     assert paper_account_rs() == 2_000_000.0
     for book in BOOKS:
         account = build_paper_account(book, root)
-        assert account.starting_cash() == 2_000_000.0 == account.state({}).cash
+        assert account.capital() == 2_000_000.0 == account.state({}).cash
         assert account.ledger_rows()[0]["amount_rs"] == "2000000.0"
 
 

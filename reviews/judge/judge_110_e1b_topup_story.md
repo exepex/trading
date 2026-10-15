@@ -133,3 +133,23 @@ The real-journal top-up keeps addendum 1's three conditions:
 My merge check verifies them.
 
 **Verdict: PASS for ddcefcc8f969f42cb82e7ef706173d68234183c3** (code). Rule 9: ChatGPT next.
+
+## Addendum 3 (15 Oct 2026): dashboard contract change for E1b, `exepex/omenix-dashboard` at a046f00d64d894e8e1bc2104098a95743bd0ef3b
+
+Branch `story/e1b-contract-capital`, parent dashboard `main` b9c41ec. I read it through a read-only git clone; I wrote
+nothing to that repository.
+
+**The change:**
+- `api/schemas/fno-paper-trades.yaml:30`: `opening_value`'s `x-record` goes from `account_state:starting_cash` to
+  `account_state:capital`. The description becomes "Opening balance plus top-ups in force, Rs 20 lakh a book".
+- `api/catalog/fno-screens.md:378` is regenerated to match.
+- The type, minimum, examples and version (2.7.0) are unchanged.
+
+| Check | Status | Evidence |
+|---|---|---|
+| Semantics | MET | E1b (judge 110 addendum 2) renames `AccountState.starting_cash` to `capital` = the opening plus top-ups in force. After the real top-up that is Rs 20,00,000 a book, matching the description and the examples' `2000000`. Before the top-up it is the Rs 5 lakh actually held, which is correct, and the description's "Rs 20 lakh a book" becomes true when the top-up runs |
+| Other readers of the field | none | `grep -rn` for `opening_value`, `openingValue` and `account_state:` over the whole dashboard repo finds only the schema, the catalog and `api/examples/fno-screens.json`. No `web/` code reads it |
+| Gates | MET | `tools/api/check_contract.py`: "OpenAPI 3.1 valid; examples valid and current; catalog complete; screen rules hold; every planted break caught". `check_fno_screens.py`: "every rule holds", 28 of 28 planted breaks. `check_code_size.mjs`: ok. The web typecheck, tests and build were not rerun: no `web/` file changed, so the builder's 465/465 stands for them |
+
+**Verdict: PASS for omenix-dashboard a046f00d64d894e8e1bc2104098a95743bd0ef3b.** It merges together with E1b in
+trading, whose contract pin must name this commit's merged SHA.

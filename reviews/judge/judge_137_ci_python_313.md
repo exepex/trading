@@ -57,3 +57,20 @@ job's own green runs are the check, and the next real test is the first `checks`
 - The full suite passes on a clean 3.13 install.
 - **Merge check:** the first `checks` run on `main` after the merge must be green. That also completes M1's merge check
   (judge 129 addendum 2).
+
+## Addendum 1 (15 Oct 2026): merge check, 7d98370505e03f212913be433d365dce96245794
+
+| Check | Result |
+|---|---|
+| Recomputed merge equals the merge commit | **MET.** `git merge-tree --write-tree 7bedcfb 6b37b0e` gives 35ee3d5…, which equals 7d98370's tree. 6b37b0e contains 1b53a43 |
+| Branch files identical | **MET.** `.github/workflows/` at 7d98370, and still at c791051, equals 1b53a43 byte for byte |
+| CI on `main` | **MET.** `checks` run 38743169675 on c791051 succeeded, a full run of about 9 minutes; 38743349971 (8aca45d) and 38743424608 (73b488a) also succeeded. Every tree contains 7d98370 |
+
+**Note: green CI needed one more lane-2 change after this merge** (c791051, `story/ci-green-tests`). On 3.13 in CI, two
+tests failed that pass locally:
+- the D3b test, which needs a git identity in CI;
+- the A16b verifier test, which read real back-fill rows instead of a temporary folder.
+
+These are test-environment fixes, not code. They are recorded for the day's lane-2 audit.
+
+**Story done.**

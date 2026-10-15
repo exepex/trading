@@ -141,8 +141,8 @@ def test_every_rule_name_a_profile_may_list_is_built_by_the_composition_root():
 def test_no_rs_5_lakh_account_size_or_old_brake_is_left_in_the_code():
     """The account size comes only from `risk.paper_account_rs`: the writer has no default, and no module holds the
     old Rs 5 lakh or the old Rs 30,000 brake as a number."""
-    assert "starting_cash" in inspect.signature(AccountWriter).parameters
-    assert inspect.signature(AccountWriter).parameters["starting_cash"].default is inspect.Parameter.empty
+    assert "opening_cash" in inspect.signature(AccountWriter).parameters
+    assert inspect.signature(AccountWriter).parameters["opening_cash"].default is inspect.Parameter.empty
     old = re.compile(r"\b(500_?000|5,00,000)\b|Rs 5 lakh paper account|STARTING_CASH_RS")
     hits = [
         f"{path.relative_to(ROOT)}:{n}"
@@ -159,7 +159,7 @@ def test_the_repository_books_opened_on_rs_5_lakh_are_refused_by_the_wired_manag
     stressed = {"multiplier": 1.5, "source": "test factor", "as_of": "2026-10-13"}
     cfg = load_app_config(overrides={"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed}})
     the_book = book()
-    the_book = replace(the_book, state=replace(the_book.state, starting_cash=500_000.0))
+    the_book = replace(the_book, state=replace(the_book.state, capital=500_000.0))
     decision = build_risk_manager(cfg, tmp_path).evaluate(NEW, the_book, market(25000, PRICES, EXPIRY))
     assert [r.split(":")[0] for r in decision.reasons] == ["paper_account"]
 

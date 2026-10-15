@@ -1,7 +1,8 @@
 """A book's paper account (story E1, design 12.6), stored under `journal/<book>/account/`; it opens with
 `config.yaml` `risk.paper_account_rs` (story C5):
 
-- `cash_ledger.csv`: append-only, one row per fill (plus the opening balance). The source of truth.
+- `cash_ledger.csv`: append-only, one row per fill, plus the opening balance and any capital top-up (story E1b: dated
+  by its write instant, counted as capital only from then). The source of truth.
 - `positions.json`: a view rebuilt from the ledger after every write (open legs, cash, closed equity, closed trades).
 - `equity_history.csv`: one row per day (cash, closed and marked equity), rewritten for a repeated day.
 
@@ -16,21 +17,35 @@ from __future__ import annotations
 import csv
 import io
 import json
-from datetime import date
+from dataclasses import dataclass
+from datetime import date, datetime, time
 from pathlib import Path
 from typing import Protocol
 
 from ..accounting.ledgers import Trade
-from ..constants import CASH_LEDGER_FILE
+from ..constants import CASH_LEDGER_FILE, LEDGER_TOP_UP
+from ..models import IST
 from .equity import AccountState, Mark, account_state, trade_positions, unmarked_state
 from .files import append_durably, complete_lines, csv_text, drop_partial_line, write_atomic
-from .fills import FILL_KINDS, LEDGER_COLUMNS, Fill, opening_row, same_fill
+from .fills import CAPITAL_KINDS, FILL_KINDS, LEDGER_COLUMNS, Fill, opening_row, same_fill, top_up_row
 from .paths import account_folder, file_in_account
 
 POSITIONS_FILE = "positions.json"
 EQUITY_HISTORY_FILE = "equity_history.csv"
 EQUITY_COLUMNS = ("date", "cash_rs", "closed_equity_rs", "marked_equity_rs", "open_trades", "stale_marks", "fills")
 OPENING_ENTRY_ID = "opening"
+
+
+@dataclass(frozen=True)
+class TopUp:
+    amount: float  # rupees added; 0 when the book was already at the target
+    further: bool  # a top-up was already recorded before this one (a raised target: an owner decision, lane 1)
+
+
+def _instant(filled_at: str) -> datetime:
+    """A row's instant; the opening row, dated by day only, counts from the start of its day (IST)."""
+    when = datetime.fromisoformat(filled_at)
+    return when if when.tzinfo else datetime.combine(when.date(), time.min, IST)
 
 
 class AccountError(RuntimeError):
@@ -81,23 +96,33 @@ class PaperAccount:
             raise AccountError(f"{self.book}: cash ledger columns must be {LEDGER_COLUMNS}")
         return list(reader)
 
-    def starting_cash(self) -> float:
+    def capital(self, at: datetime | None = None) -> float:
+        """The opening plus every top-up written at or before `at` (all when None). Capital is never profit, never a
+        trade and never a closed-equity gain (story E1b)."""
         rows = self.ledger_rows()
         if not rows:
             raise AccountError(f"{self.book}: the account has not been started")
-        return float(rows[0]["amount_rs"])
+        return sum(
+            float(row["amount_rs"])
+            for row in rows
+            if row["kind"] in CAPITAL_KINDS and (at is None or _instant(row["filled_at"]) <= at)
+        )
 
     def fills(self) -> list[Fill]:
         return [Fill.from_row(row) for row in self.ledger_rows() if row["kind"] in FILL_KINDS]
 
-    def state(self, marks: dict[str, Mark], margin_blocked: float = 0.0, premium_reserved: float = 0.0) -> AccountState:
-        return account_state(self.starting_cash(), self.fills(), marks, margin_blocked, premium_reserved)
+    def state(
+        self, marks: dict[str, Mark], margin_blocked: float = 0.0, premium_reserved: float = 0.0,
+        at: datetime | None = None,
+    ) -> AccountState:  # fmt: skip
+        """`at`: the decision cutoff, so a top-up written after it never counts for that decision (story E1b)."""
+        return account_state(self.capital(at), self.fills(), marks, margin_blocked, premium_reserved)
 
     def summary(self) -> dict:
         """Everything that needs no marks: the content of `positions.json`."""
         rows = self.ledger_rows()
-        return {"book": self.book, "ledger_rows": len(rows), "starting_cash_rs": self.starting_cash()} | unmarked_state(
-            self.starting_cash(), self.fills()
+        return {"book": self.book, "ledger_rows": len(rows), "capital_rs": self.capital()} | unmarked_state(
+            self.capital(), self.fills()
         )
 
     def closed_trades(self) -> list[Trade]:
@@ -112,10 +137,10 @@ class PaperAccount:
 class AccountWriter:
     """The only way to change an account. Each write first checks that this book's lock is held."""
 
-    def __init__(self, account: PaperAccount, lock: WriterLock, starting_cash: float):
+    def __init__(self, account: PaperAccount, lock: WriterLock, opening_cash: float):
         self.account = account
         self._lock = lock
-        self.starting_cash = starting_cash  # the owner's paper account size, given by the composition root
+        self.opening_cash = opening_cash  # the owner's paper account size, given by the composition root
         self.require_lock()
         if account.started:
             self._recover()
@@ -126,8 +151,8 @@ class AccountWriter:
         self.require_lock()
         if self.account.started:
             return False
-        opening = opening_row(OPENING_ENTRY_ID, day.isoformat(), self.starting_cash)
-        first = _equity_row(day, account_state(self.starting_cash, [], {}), fills=0)
+        opening = opening_row(OPENING_ENTRY_ID, day.isoformat(), self.opening_cash)
+        first = _equity_row(day, account_state(self.opening_cash, [], {}), fills=0)
         self._write_atomic(EQUITY_HISTORY_FILE, csv_text(EQUITY_COLUMNS, [first], header=True))
         self._write_atomic(CASH_LEDGER_FILE, csv_text(LEDGER_COLUMNS, [opening], header=True))  # marks "started"
         self._write_positions()
@@ -152,15 +177,40 @@ class AccountWriter:
         self._write_positions()
         return True
 
+    def top_up(self, written_at: datetime, target: float) -> TopUp:
+        """Story E1b: restore capital (not equity) to `target` with one row at its write instant; nothing written when
+        already at `target`. Refused, with nothing written, for a book not started, above `target`, or holding an open
+        position (its marked equity would need marks)."""
+        self.require_lock()
+        rows = self.account.ledger_rows()
+        if not rows:
+            raise AccountError(f"{self.account.book}: the account has not been started")
+        capital = self.account.capital()
+        if capital > target:
+            raise AccountError(f"{self.account.book}: capital Rs {capital:,.2f} is above Rs {target:,.2f}")
+        if any(t.is_open for t in trade_positions(self.account.fills()).values()):
+            raise AccountError(f"{self.account.book}: an open position: top up a flat book")
+        if capital == target:
+            return TopUp(0.0, False)
+        further = any(row["kind"] == LEDGER_TOP_UP for row in rows)
+        amount = target - capital
+        entry_id = f"top_up_{written_at.date().isoformat()}"
+        self._append_ledger_row(top_up_row(entry_id, written_at, amount, float(rows[-1]["cash_after_rs"])))
+        self._replace_equity_row(_equity_row(written_at.date(), self.account.state({}), len(self.account.fills())))
+        self._write_positions()
+        return TopUp(amount, further)
+
     def record_equity(self, day: date, marks: dict[str, Mark]) -> AccountState:
         """Write the day's row of the equity history (replacing an earlier row for the same day)."""
         self.require_lock()
         state = self.account.state(marks)
-        row = _equity_row(day, state, len(self.account.fills()))
-        rows = [r for r in self.account.equity_history() if r["date"] != row["date"]] + [row]
-        self._write_atomic(EQUITY_HISTORY_FILE, csv_text(EQUITY_COLUMNS, sorted(rows, key=lambda r: r["date"]), True))
+        self._replace_equity_row(_equity_row(day, state, len(self.account.fills())))
         self._write_positions()
         return state
+
+    def _replace_equity_row(self, row: dict[str, str]) -> None:
+        rows = [r for r in self.account.equity_history() if r["date"] != row["date"]] + [row]
+        self._write_atomic(EQUITY_HISTORY_FILE, csv_text(EQUITY_COLUMNS, sorted(rows, key=lambda r: r["date"]), True))
 
     def require_lock(self) -> None:
         lock = self._lock

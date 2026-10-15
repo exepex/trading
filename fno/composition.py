@@ -7,7 +7,7 @@ import hashlib
 import json
 import os
 from contextlib import contextmanager
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import numpy
@@ -19,6 +19,7 @@ from .books.version_registry import VersionRegistry
 from .books.versions import VERSIONS_FILE, Versions
 from .config import ROOT
 from .constants import (
+    DESK_DECISION_TIME,
     ENV_FNO_SLACK_BOT_TOKEN,
     FNO_DESK_CHANNEL_ID,
     NIFTY_SYMBOL,
@@ -84,8 +85,6 @@ from .storage.wiring import (
     build_revision_capturing_source,
     build_session_calendar,
 )
-
-DESK_DECISION_TIME = time(15, 0)  # design 13.5: books decide at about 15:00 IST; story E3 freezes the exact timetable
 
 
 def build_quote_recorder(cfg: dict) -> QuoteSnapshotRecorder:
