@@ -17,7 +17,7 @@ channel. Orchestrator of the stories below marked (O): session_01VG1RqxLFUVdvvPu
 | Story | What it builds | Owner session | Branch | Main files or areas | State |
 |---|---|---|---|---|---|
 | Status refresh (O) | Stale status lines in docs/stories, IMPLEMENTATION_PLAN, BUILD_MAP set from judge PASS and merge evidence; no rule text | 01Vm1WnH8i9waM8EJG8zwWqg | story/status-refresh | docs/stories/*.md status lines, docs/IMPLEMENTATION_PLAN.md, docs/BUILD_MAP.md | done (merged 293974e2, lane 3) |
-| A14 schedule (O) | nse-margins.yml cron 07:45 + 08:30 IST; days before the first broker check are not pending (no false alert) | 01Vm1WnH8i9waM8EJG8zwWqg | story/a14-schedule | .github/workflows/nse-margins.yml, fno/nse_margins/ | built, awaiting judge |
+| A14 schedule (O) | nse-margins.yml cron 07:45 + 08:30 IST; days before the first broker check are not pending (no false alert) | 01Vm1WnH8i9waM8EJG8zwWqg | story/a14-schedule | .github/workflows/nse-margins.yml, fno/nse_margins/ | done (judge 175 PASS, merged 09b846a0) |
 | E2c (O) | Paper fills, marks, equity history and private packs to Drive; one shared download per run; public daily totals only | 0134MoC6f7aAJVcHRBiyATo6 | story/e2c-fills-to-drive | fno/desk/, fno/books/account*, journal/ | text PASS (judge 148 add. 1); code started |
 | E5b (O) | Book 1 commit-failure handling; one Book 1 decision a day | 0134MoC6f7aAJVcHRBiyATo6 | story/e5b-book1-commit-failure | fno/books/book1* | after E2c |
 | E4c (O) | Entry refused if a protective leg cannot fill; every leg checked before any fill | 0134MoC6f7aAJVcHRBiyATo6 (moved from 013xqaNTCbSBytKgqpfaYFqZ, 15 Oct) | story/e4c-protective-leg-refusal | fno/desk/entries* | after E2c |
