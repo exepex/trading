@@ -67,3 +67,72 @@ Left out on purpose: win rate alone, Sharpe on short samples, more forecast meas
 7. Define the random strategy (same structures and sizes, random direction and strike, 1,000 seeded runs) and the
    do-nothing benchmark (per rupee of capital tied) in S1 before its freeze.
 8. Add S1's t-based check: 120 days is about 6 bootstrap blocks, which over-claims.
+
+## Second red team (three independent reviewers, each finding checked against the code by Claude)
+
+### Decisions that need the owner again
+- **D2 base-rate scoring has a futility flaw (strong, code + simulation).** An imputed day gives d = 0, but the
+  futility test adds margin x b_t > 0 for it (`fno/forecast_v4/confirmatory.py:110-122`), so a slot that never ran
+  becomes "futile" (all-zero differences, n = 130: p = 8e-8), and futility at look 1 is final; a false "no" rises
+  from 0.4% to 2.4% at 40% misses. Imputed days also count toward the 5-day gate and the crash cut
+  (`fno/forecast_scoring/v4/comparison.py:92-95`, `look.py:62-65`). Proposed fix: claims, futility and gates on observed
+  days only; misses reported beside them; a slot above a fixed miss share is "undecided, operational", never futile;
+  misses start counting only from the slot's first counted forecast; apply per question (a null answer is a miss:
+  `fno/forecast_scoring/scoring.py:96-98`).
+- **D3 "everything now" cannot fit 14:55-15:10 (strong, measured).** NSE's 14 Oct F&O file: 219 option underlyings
+  (213 stocks, 6 indices incl. NIFTYFPI), about 8,000 contracts in a 5% band, one Groww `get_quote` each (the chain has
+  no bid/ask, A16 story lines 54-58): about 30 minutes at the safe 5 a second, about 2 hours at today's sequential
+  pace. Proposed: time slots (NIFTY 14:55-15:00 and pushed at once; other indices next; stocks after), each with its
+  own `started_at`.
+
+### Recording all F&O (strong unless marked)
+1. Stock chains always fail today: expiry history keeps only index options (`INDEX_OPTION = "IDO"`,
+   `fno/quotes/expiry_listing.py:18,62`); stocks are "STO".
+2. One commit at the end of the routine would miss forecast-capture's 15:13 latest start
+   (`fno/pipeline/capture_gate.py:30-33`): NIFTY must commit and push alone first.
+3. Illiquid chains (NIFTYFPI 0 of 120 traded on 14 Oct) trigger `CROSS_CHECK_ALERT` (`fno/quotes/cli.py:14-17`), which
+   tells the reader to mark the day closed in the calendar: cross-check on NIFTY only.
+4. No point-in-time universe: build it from the previous day's NSE file, store its SHA-256 (entrants, leavers,
+   survivorship).
+5. An attempt has no end time (`recorder.py:153` checks only before an attempt): rows after 15:30 must be invalid.
+6. Expiry file re-parsed per call (0.81 s each, about 440 calls): parse once per day.
+7. A16 and E3 share the Groww key at 15:00 and 15:15; the A4 provider has no pacer: one shared rate budget, NIFTY first
+   (some evidence).
+8. Scope: NIFTY weeklies, BSE SENSEX, futures per underlying and lot sizes are not recorded (owner's choice).
+9. About 2.9 MB per attempt: never under `research/data/quotes/`; A4b (Drive only) first.
+
+### Timing and fairness (strong unless marked)
+10. Waiting past 15:00 adds nothing: the pack keeps only rows by 15:00:00 (`fno/forecast/live_pack.py:33`); 15 Oct's
+    pack had `fields: []`. Release at the earlier of a pre-15:00 canonical or about 15:01.
+11. Event release makes the Groww/NSE fallback depend on arrival order (`fno/forecast/capture.py:36,44-54`): choose
+    the source by rule, NSE only after Groww's day is final.
+12. The AI prompt runs `reveal` with a 600000 ms timeout (`agents/forecast/book3_ai_v1.md:67`); sealing at 15:02
+    means a 13-minute wait, so the reveal may be killed and the day lost: new prompt version with E2 (some evidence).
+13. The pack commit has no retry (`forecast-capture.yml:101-107`); a rejected push loses only the AI books' day.
+14. The NSE job's push uses the Actions token and starts nothing: if the Groww routine fails, the release waits on
+    cron. Let the NSE job dispatch the capture.
+15. E3/E4 as written: desk deadline 15:12 vs forecast lock 15:15 on different clocks; the timetable refuses equal
+    times (`fno/desk/timetable.py:40-41`); E8 now judges fills at T+60. Use GitHub push time as the one lock clock,
+    lock before snapshot, E4 = the same E8 fill rule.
+16. Two packs exist (forecast v2 pack and the desk's common pack): E1 must name which each record cites; rename the
+    rules EQ1-EQ5 (story E2 already exists).
+17. Special sessions that closed F&O at 12:30 (2 Mar and 18 May 2024 in the calendar) would record stale quotes as
+    complete: add session close times to the calendar.
+18. Health check: wrong day if cron is hours late, "none" canonicals look committed, 20 of 20 is not the normal
+    count, push times must come from GitHub, nothing watches the watcher (some evidence).
+19. A missed desk run is not "flat": exits run only inside it (`fno/desk/daily_run.py:59-63`).
+20. More places hold times: `config.yaml` desk.timetable, `fno/composition.py:88`, `LATEST_START`,
+    `quote-recorder-nse.yml`, `CARD_VALID_UNTIL`, the hashed prompts, S1 `timetable`.
+
+### Scoring and statistics (strong unless marked)
+21. "Missed decision = NO TRADE" contradicts S3 criterion 3 (`docs/stories/S-scoreboards.md:101-102`) and is not
+    neutral on scoreboard A: use NO TRADE on scoreboard B only.
+22. The headline is net per rupee-day of risk (`fno/scoreboard/series.py:31-32`): it penalises longer holds; label it
+    and add net per rupee of entry max loss.
+23. "X beats Y" on raw rupee differences is not risk-normalised (`research/evaluation/PROTOCOL.md:123-124`).
+24. The do-nothing benchmark is a real-money gate (`docs/design_v2/08_budget_and_stop_rules.md:83`), a point
+    comparison with no uncertainty; fix one tax treatment per instrument.
+25. S1 says the book brake is Rs 30,000 (`PROTOCOL.md:191`); the books' config says Rs 1,20,000 (`config.yaml:57`).
+26. The random strategy controls selection luck, not window luck; freeze its design; descriptive, not in Holm.
+27. A zero-risk resample scores 0.0 (`fno/scoreboard/uncertainty.py:45`), biasing the bound toward 0.
+28. Largest-loss share is unstable near zero gains: use largest loss over the entry max-loss cap.
