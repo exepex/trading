@@ -72,3 +72,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 110: C5b owner-authorized brake restart](review_110_c5b-restart-decision.md)
 - [Review 112: noise, fairness and scorecard](review_112_noise-fairness.md)
 - [Review 113: G10 protocol v4 timeline — cutoff integrity change](review_113_g10-v4-timeline.md)
+- [Review 114: E5b Book 1 commit failure and recovery — ACCEPT](review_114_e5b-book1-commit.md)
