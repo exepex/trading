@@ -43,12 +43,12 @@ API keys or tokens.
 
 ## 3 pm quote recorder (daily routine, stories A4 and A7)
 
-Started by a scheduled session at about 14:50 IST every day; the NSE session calendar (A7) decides whether it is a
-trading day, so special weekend sessions are recorded and closed days print "not a trading day". Research data
-only: never places, modifies or cancels orders.
-1. `pip install -q --use-pep517 -r requirements.txt -r requirements-groww.txt` (the flag is needed: see
-   `requirements-groww.txt`) and `git config core.hooksPath .githooks` (turns on
-   the public-record scan, story O5, for every commit).
+Started by a scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55); the NSE
+session calendar (A7) decides whether it is a trading day, so special weekend sessions are recorded and closed days
+print "not a trading day". Research data only: never places, modifies or cancels orders.
+1. `sh tools/routine_setup.sh --groww` (story O7: installs into every Python the routine and the commit hook can call,
+   checks each imports the packages, turns on the public-record scan, story O5, and prints "routine setup ok").
+   Every scheduled routine sets up this way, never with bare `pip` (it may fill another Python).
 2. `python -m fno quotes record` (waits for 14:55 IST, records NIFTY monthly quotes, retries until 15:10 if a capture is
    incomplete). NSE's session calendar (`research/data/calendar/nse_sessions.csv`, story A7) decides the day: a
    holiday, weekend or muhurat-only day records nothing ("not a trading day"); a special weekend session is recorded.
