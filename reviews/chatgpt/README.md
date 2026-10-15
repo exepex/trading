@@ -61,3 +61,7 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 100: STR1 one- and two-leg structures](review_100_str1-structures.md)
 - [Review 101: G6 v4 revisions 1–5 — changes required](review_101_g6-protocol-v4-revisions.md)
 - [Review 102: G6 v4 final narrow re-review — APPROVE](review_102_g6-protocol-v4-final.md)
+- [Review 103: C5 risk buckets](review_103_c5-risk-buckets.md)
+- [Review 104: E4c entry refusal](review_104_e4c-entry-refusal.md)
+- [Review 105: E2b derived packs](review_105_e2b-derived-packs.md)
+- [Review 106: M1 weather](review_106_m1-weather.md)
