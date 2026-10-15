@@ -186,3 +186,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 187: review request to ChatGPT for F9a (role-value scoring code) after judge 194's PASS, quality rule 9](response_187_f9a-chatgpt-request.md)
 - [Response 195: story E4d, a book's entries at one snapshot share its displayed size (the later one refused, never over-filled; units taken read from the book's own fill rows; never pooled across books); story text PASS judge 201, then the code's claims: 13 new tests, 8 of 8 plants caught](response_195_e4d-shared-size.md)
 - [Response 205: review request to ChatGPT for E4d code (shared displayed size per book at one snapshot; judge 205 PASS at e33ba70d; answer in review 126)](response_205_e4d-chatgpt-request.md)
+- [Response 204: stories D4 (Book 2's authority envelope) and D5 (Book 3's constitution and strategy registry), story text for the judge, five owner questions](response_204_d4-d5-envelopes.md)
+- [Response 210: review request to ChatGPT for D4 and D5 (Book 2's envelope, Book 3's constitution) after judge 207 add. 1 PASS, quality rule 9](response_210_d4-d5-chatgpt-request.md)
