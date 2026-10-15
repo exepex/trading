@@ -95,7 +95,9 @@ def test_capture_writes_only_before_the_cutoff_and_only_on_a_session(tmp_path):
     with pytest.raises(CaptureRefused):
         capture_day(f, TODAY, datetime(2026, 10, 15, 15, 0, tzinfo=IST), write)
     with pytest.raises(CaptureRefused):
-        capture_day(f, date(2026, 10, 17), before_cutoff, write)  # a Saturday
+        capture_day(f, date(2026, 10, 17), datetime(2026, 10, 17, 11, 0, tzinfo=IST), write)  # a Saturday
+    with pytest.raises(CaptureRefused):
+        capture_day(forecasts(extra_session=date(2026, 10, 16)), date(2026, 10, 16), before_cutoff, write)  # not today
     assert records.first_live_day(tmp_path) == TODAY
 
 
