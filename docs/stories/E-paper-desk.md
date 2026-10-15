@@ -96,6 +96,132 @@ book field.
 
 ---
 
+## E2b. Derived quote figures only in the committed packs and desk records
+
+**Repository:** trading · **Lane:** 1 (the paper desk's committed records, the fill records E6 scores, a commit rule)
+· **Branch:** `story/e2b-derived-packs` · **Claims:** `reviews/claude/response_118_e2b-derived-packs.md`
+
+**Description:** As the owner, I want the paper desk's committed files (the daily common pack, the 15:15 capture
+record and the paper fill rows) to hold no raw Groww quote values beyond the one price each paper fill must name, so
+that the public repository never republishes Groww's bid, ask or quantities, while every book still decides and fills
+on exactly the same, hash-proven quotes kept in Drive.
+
+**Context and why:**
+- Owner, 15 Oct 2026 (`docs/DESK_DECISIONS.md`, "8 A"): "The daily packs keep only derived quote figures; raw bid/ask
+  stays in Drive, before the paper desk goes live". Changes E2's common pack (`fno/desk/snapshot_inputs.py`) and what
+  E3 commits, through a lane-1 story before E3 goes live. Owner "6 A" (same day): raw Groww quotes go to Drive only
+  (story A4b, branch `story/a4b-quotes-drive-only`, not merged).
+- **Finding that shaped this story (builder, 15 Oct; strong evidence, tested):** the owner's example figures, the mid
+  price and the bid-ask spread in %, give the raw quotes back exactly: mid = (b+a)/2 and s = (a-b)/mid, so
+  a = mid(1+s/2) and b = mid(1-s/2). Option prices sit on 0.05 ticks, so even with s rounded to 2 decimals bid and ask
+  were recovered exactly in 648 of 648 synthetic cases. Committing them per contract would meet "8 A" in form only.
+- **Decision (orchestrator for the owner, who was away; response 113, 15 Oct 2026): option B.** The committed common
+  pack holds no per-contract quote figure; it keeps the snapshot's identity and hashes, counts, the NIFTY spot, India
+  VIX and NSE's futures levels. Readers keep reading the raw rows through the hash-checked quote store, as Book 1
+  already does; books 2-3's per-contract inputs are decided when they trade (F5, F6). Fills: drop `quote_bid` and
+  `quote_ask`; E6 reads the touch from the hash-checked execution snapshot; the fill price stays, and nothing beside it
+  may reveal the other side. Add a commit guard.
+- **Today (main at c428867):** `SnapshotInput` copies every option row's `bid`, `ask`, `bid_qty`, `ask_qty`, `valid`,
+  `invalid_reason`, `spot` into `journal/packs/<day>/common.json` (`fno/desk/snapshot_inputs.py:20`, `:61-68`), which
+  the daily run commits (`fno/desk/daily_steps.py:80-85`, `daily_run.py:76-81`); E3's 15:15 capture commits the raw
+  quote CSV with its sidecar (`fno/desk/execution_capture.py:49`); E4 writes `quote_bid` and `quote_ask` into
+  `journal/<book>/account/desk_fills.csv` (`fno/desk/records.py:29`, `:64`). No pack has been committed yet (no
+  `journal/packs/`); the desk is not live (E3, judge 82).
+
+**Readers of what changes (each must keep working):**
+
+| Reader | Reads today | After E2b |
+|---|---|---|
+| C3 spot check, `fno/checks/market_checks.py:38-47` | each option item's `value["spot"]` (one spot per monthly chain; the two must agree within 0.2%) | the new `spot:<expiry>` items, one per chain, same values and rule |
+| C3 schedule and capture checks, `fno/checks/schedule.py:27-33`, `validity_capture.py:21-31` | provenance `snapshot_id`, `csv_sha256`, `meta_sha256` | unchanged |
+| Book 1, `fno/books/book1_inputs.py:37-57` | provenance hashes, then the raw CSV through the store | unchanged |
+| AI books (F1, G5), `fno/ai/` | the forecast v2 pack `research/forecasts/live_v2/`, not the desk pack | unchanged (that pack is already derived: spot, VIX, futures, ATM IVs) |
+| E4 fills, C4 evidence, scorecard marks, scoreboard | the raw snapshot by ID through the store | unchanged |
+| E6 half-spread, `fno/scorecard/execution_costs.py:61-63` | `desk_fills.csv` `quote_bid`, `quote_ask` | the touch from the execution snapshot named in the fill row (`snapshot_id`, `quote_contract_id`), read through the store and hash-checked against the row's `snapshot_sha256` |
+
+**Scope.** In:
+- the common pack (schema version 2): no `option:` items. In their place, from the same canonical snapshot:
+  - `spot:<expiry>`: the chain's NIFTY level (an index level; every row of a chain carries the same value: the 14 Oct
+    capture has 22,620.00 on all October rows and 22,621.15 on all November rows). A chain whose rows carry more than
+    one spot is refused, naming the expiry, never averaged;
+  - `quote_counts`: `expected_contracts`, `recorded_contracts`, `valid_contracts`, `complete` (counts only);
+  - unchanged: `india_vix`, `future:<expiry>` (`last`, `volume`: NSE's public levels, A4b's split), `session`,
+    `close:<date>`, `event:...`, the opportunity set and the provenance with both hashes;
+- C3's spot check reads the `spot:` items;
+- `desk_fills.csv` without `quote_bid` and `quote_ask`; E6's half-spread reads the touch from the execution snapshot;
+  a fill whose snapshot cannot be read or whose hash differs is reported as "touch unknown" and left out of the
+  average, never counted as zero;
+- E3's 15:15 capture commits its capture record and the sidecar only, never the quote CSV;
+- a commit guard in the desk's committer (`GitCommitter`, used by the daily run and the capture): any path that is a
+  Groww quote file (`<quotes folder>/groww/derivatives/quote-snapshots/**/*.csv`) is refused with the path named, and
+  nothing is committed;
+- tests that a committed common pack and a fill row hold no field named `bid`, `ask`, `bid_qty`, `ask_qty`,
+  `quote_bid` or `quote_ask`, and that no value in the pack equals a row's bid or ask by construction (fixture with
+  distinct prices).
+Out:
+- moving the raw quote files to Drive and the store's hash check: A4b;
+- books 2-3's per-contract trading inputs: F5, F6 (decided when they trade);
+- paper fills showing live strikes in the public journal: put to the owner by the orchestrator (outside E2b);
+- the fill price itself, which is one side of one quote by design (E4 criterion 1): kept;
+- NSE's public chain (`research/data/quotes/nse/`): public NSE data;
+- the forecast v2 pack and its frozen code (G1 v2): already derived, not touched.
+
+**How it fits with A4b:** both stories change `fno/desk/execution_capture.py` the same way (commit only what the
+repository holds); whichever merges second keeps one version. Before A4b merges, the 15:15 quote CSV stays only in the
+run's local quote folder (not committed), so a capture made before A4b cannot be replayed from the repository; the
+desk is not live, so no counted day depends on it. After A4b, the CSV is in Drive and every reader gets it through
+the hash-checked store. The guard and the derived pack work the same with either store.
+
+**Requirements map (quality rule 2):**
+
+| Requirement (source) | Where |
+|---|---|
+| Packs keep only derived quote figures; raw bid/ask stays in Drive ("8 A") | criteria 1, 2; per-contract figures left out by decision B |
+| ... and what E3 commits ("8 A") | criteria 4, 5 |
+| The AI books read the derived pack ("8 A" row) | criterion 7 (they read the derived forecast v2 pack; the desk pack holds nothing per contract) |
+| Before the paper desk goes live ("8 A") | criterion 5: the guard stops a live run from committing a raw quote file |
+| Raw quotes to Drive only ("6 A") | out: A4b |
+| E2 criteria 1-5 (no book data, determinism, cutoff refusals, opportunity set) | criterion 6 (E2's tests still pass on schema 2) |
+| E4 criterion 1 (fill price = the snapshot's ask or bid, snapshot hash in the row) | kept; criterion 3 |
+| E6's half-spread paid (criterion 3 of E6) | criterion 3 |
+| C3's spot rules (2% from the previous close, 0.2% chain agreement) | criterion 2 |
+
+**Acceptance criteria:**
+1. A common pack built from a canonical snapshot holds no `option:` item and no field named `bid`, `ask`, `bid_qty` or
+   `ask_qty`; with a fixture whose bids and asks are all distinct from every spot, count and level, no value anywhere
+   in the pack equals any row's bid or ask (test). It holds `spot:<expiry>` per chain, `quote_counts`, `india_vix`,
+   `future:<expiry>`, and the provenance's snapshot ID and both hashes; `schema_version` is 2. A day without a canonical
+   snapshot is refused on a session day exactly as before (E2, judge 72). A chain with two different spots is refused
+   with its expiry (test).
+2. C3's spot check gives the same results from the `spot:` items as before from the option items: the 2% limit at,
+   just under and just over; the 0.2% agreement at, under and over; no spot; one chain only (tests).
+3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column and no other column from which a filled leg's other quote
+   side follows; E6's half-spread from the execution snapshot equals the old figure on the same fixtures; a fill whose
+   snapshot is missing or whose hash differs counts as "touch unknown" (reported, excluded from the average, never
+   zero); a settlement row (no quote) is excluded as before (tests).
+4. E3's 15:15 capture commits its record and the sidecar, never the quote CSV; the record still holds both hashes, so
+   the fill can prove which quotes it used (test).
+5. The committer refuses, before running git, any commit whose paths include a Groww quote file, naming the path; the
+   sidecar `.meta.json` and the `.canonical` marker are allowed; a path outside the quotes folder with a `.csv` name
+   is allowed (tests: refused, allowed, mixed list, empty list).
+6. E2's own criteria still hold on schema 2: no book data, byte-identical rebuilds, cutoff refusals named, the
+   opportunity set unchanged (existing tests, updated only where they name option items).
+7. No reader of the committed pack uses per-contract quote figures (a test lists every `option:` lookup in `fno/` and
+   finds none); the AI books' pack reader is unchanged.
+
+**Test plan:** unit tests per criterion with positive, negative, boundary and empty cases (quality rule 5); a fixture
+snapshot with distinct prices for the "no raw value" scan; the existing E2, E3, E4, C3 and E6 suites; mutations per
+criterion (quality rule 4); a real-output sample of a schema-2 pack built from the committed 14 Oct sidecar and its
+quote file (quality rule 6; the sample shows the pack's derived items only).
+
+**Judge verifies:** rebuilds a pack from a fixture and scans it for raw values; recomputes one half-spread from the
+snapshot by hand; plants a raw quote path in a commit; checks that the 15:15 capture commits no CSV.
+
+**Depends:** E2, E3, E4, E6, C3 (A4b for the Drive side) · **Size:** S · **Status:** story text for the judge's check
+(quality rule 1); no code yet
+
+---
+
 ## E3. Daily timetable: deadline, execution snapshot and exits
 
 **Repository:** trading
