@@ -20,3 +20,16 @@ revision 2 in `docs/stories/E-paper-desk.md` (E8a).
 | Minor: duplicated line at E-paper-desk.md:709 | True (E7's status line) | Fixed |
 | Minor: owner row appears twice | Not found: `git show origin/main:docs/DESK_DECISIONS.md` has one "Fill-timing study: history" row | Push back; no change |
 | Judge's disagreements (consecutive windows do not overlap; the 14:00 path is E8's own remedy) | Agree | Kept |
+
+## Revision 3: answer to judge 152 (FAIL 0/3/5)
+
+| Finding | Check | Decision |
+|---|---|---|
+| N1 flip share: expiry is the unit; bad vs good flips; costs; zero P&L; leak | True: entries into one expiry share one settlement | Accept. Interval resamples whole expiries; bad flips over wins and good flips over losses, printed apart; net of C1 charges (equal at both fills); zero counts as not a win; the report shows only the two shares (criterion 9) |
+| N2 the time part fits no path and needs a forward | True: Black-76 needs the future, and nights differ by path | Accept. Only time moves, decision to fill; the forward is the same-expiry future's 15-minute close, fetched read-only; calendar minutes / (365 x 1440); hand-value test (criterion 8) |
+| N3 LC/LP "width" is not risk | True | Accept. Risk scale = decision debit for LC and LP, width for the rest; thresholds and the live tolerance use it |
+| Minor: data-spend steps, settlement source, 2019-23 fresh | True | Accept: registered then spent; NSE final settlement price; 2019-23 stays fresh |
+| Minor: unanswered month dropped unseen | True | Accept: investigated first, cause written in the protocol |
+| Minor: "bad side" undefined; tiny cells | True | Accept: bad side means C > 0; fewer than 30 days prints "too few days" |
+| Minor: E4 baseline duplicates R fills | True | Accept: labelled on those rows, not computed apart |
+| Minor: splits and time part untested | True | Accept: criterion 8 |

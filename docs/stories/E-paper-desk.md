@@ -745,7 +745,8 @@ said on the report.
 - a frozen, registered history study, 2 Jan 2024 to 30 Sep 2026, of NIFTY monthly options, for the families SF, SC,
   BF and the STR1 codes (LC, LP, CDS, CCS, PDS, PCS);
 - the two decision times with all three E8 reaction times;
-- E4's 15:15 execution snapshot as the baseline E8 compares with;
+- E4's 15:15 execution snapshot (it is the same price as the 15:00 decision's R = 5 fill and the 14:00 decision's
+  R = 60 fill, so it is labelled on those rows, not computed apart);
 - the flip share;
 - the raw candles archived;
 - one results file.
@@ -767,8 +768,9 @@ Out, each with its reason (gap list, judge 151 B3):
   are frozen before the full fetch (`research/FACTORY_RULES.md` G4).
 - **Coverage probe before the freeze:** one read-only call per month of the window (nearest-ATM call of that month's
   monthly expiry, symbol built from the panel's listed expiry date) records only whether Groww answers and its candle
-  count, never a price. The probe's counts go into the protocol. The answered months become the study window; a month
-  that does not answer is listed and left out.
+  count, never a price. A month that does not answer is first investigated (symbol format, the Tuesday-expiry dates
+  from Sep 2025, a second strike) and its cause written in the protocol; only a month still unanswered is left out and
+  listed. The probe's counts and causes go into the protocol before the freeze.
 - **Sessions:** every regular session (A7) whose next session exists. Special and muhurat sessions are left out and
   counted.
 - **Expiry:** the nearest monthly expiry more than 7 sessions away. Figures are split by sessions to expiry (8-15,
@@ -781,23 +783,32 @@ Out, each with its reason (gap list, judge 151 B3):
   - A 15:00 decision (card about 15:08) fills at 15:15 (R = 5), next session 09:45 (R = 30) and next session 10:15
     (R = 60).
   - A 14:00 decision (card about 14:08) fills at 14:15, 14:45 and 15:15.
-  - E4's baseline is 15:15 for both decision times.
 - **Measure:** `C = signed(price_fill - price_decision)` in index points per unit, positive when worse for the trader
-  (a seller gets less credit, a buyer pays more). It is shown also as a share of the structure's width (never of a
-  small credit) and in rupees at today's NIFTY lot size (stated once; points carry the result).
+  (a seller gets less credit, a buyer pays more); **bad side** means `C > 0`. It is shown also as a share of the
+  structure's risk scale: the width for SF, SC, BF and the four spreads, the decision debit for LC and LP (their
+  "width" is a distance out of the money, not a risk), never a share of a small credit; and in rupees at today's NIFTY
+  lot size (stated once; points carry the result).
 - **Per family, decision time and R:**
   - n; the 10th, 50th and 90th percentiles of `C`; the mean of `|C|` and its 95% block-bootstrap interval;
-  - the share of days with bad-side `C` above 5%, 10% and 20% of width (entry-range stand-ins, reasoning only);
-  - the theta part (one night's decay from the decision-day close to the fill's open, per Black-76 at the decision
-    IV, `fno/research_engine/implied_vol.py`), shown beside the mean of `C`;
+  - the share of days with bad-side `C` above 5%, 10% and 20% of the risk scale (entry-range stand-ins, reasoning
+    only);
+  - the time part: the Black-76 value change from the decision time to the fill time with only time moving (forward
+    and IV held at the decision; forward = the same-expiry NIFTY future's 15-minute close at the decision time,
+    fetched read-only with the legs; IV per leg from that forward and the leg's decision price,
+    `fno/research_engine/implied_vol.py`; time in calendar minutes / (365 x 1440)), shown beside the mean of `C`;
   - splits: 1-night vs 3-or-more-night gaps; gap band from the same 15:00-to-fill window (below 0.5%, 0.5-1%, 1% and
-    more); India VIX at the decision day's open (known at decision time; below 13, 13-18, above 18).
+    more); India VIX at the decision day's open (known at decision time; below 13, 13-18, above 18). A cell with fewer
+    than 30 days prints "too few days", never a number.
 - **The owner's choice, paired:** per session and family, the difference between the 15:00 decision's R = 60 bad-side
   `|C|` and the 14:00 decision's R = 60 bad-side `|C|`, with its block-bootstrap interval. What the 14:00 path gives up
   (the last hour's information) is stated as not measured.
-- **Flip share ("win at both", owner row):** for each structure, held to expiry (settled at intrinsic value against the
-  final settlement price, E7), the share of trades whose sign of P&L differs between a fill at the decision price and
-  a fill at E8's R = 60 price. Exploratory: it reads option P&L of spent data (below), never an edge.
+- **Flip share ("win at both", owner row):** for each structure, held to expiry (settled at intrinsic value against
+  NSE's final settlement price, E7), net of C1 charges (the same at both fills), with a P&L of exactly zero counted as
+  not a win. Printed per family and decision time at R = 60: **bad flips** (wins at the decision price that lose at
+  E8's price) as a share of those wins, and **good flips** (losses that become wins) as a share of those losses. The
+  report prints only these two shares, never a win rate or a mean P&L, so no strategy result leaks out. All entries
+  into one expiry share one settlement price, so the independent unit is the **expiry** (about 33): the interval
+  resamples whole expiries (B = 10,000, the protocol's seed). Exploratory: it reads option P&L of spent data.
 - **Bootstrap:** stationary blocks of 5 sessions (10 and 20 as checks), B = 10,000, one fixed seed in the protocol.
 - **Stale and missing legs:** a leg whose candle has zero volume is stale. The structure is left out of that time's
   figures and counted; no other price stands in. Per family and path, more than 10% of sessions stale or missing makes
@@ -809,13 +820,15 @@ Out, each with its reason (gap list, judge 151 B3):
   SHA-256 in `research/data/manifests/`, in A16b's pattern. Nothing raw goes in the repository. Groww is reached only
   through A16's `ReadOnlyGroww` behind a paced candle-source interface, at most 2 calls a second, outside market hours.
   Estimate: about 2,000-3,000 calls, 20-40 minutes (reasoning only; the dry run measures it).
-- **Data spend:** Groww's historical option candles go from fresh to **spent** for the 14:00-to-next-10:15 windows of
-  the sampled contracts, because `C` is the P&L of "sell at the decision, buy back at the fill". The flip share reads
-  the already-spent 2024-26 monthly closes. Both rows are written in `research/DATA_SPEND.md` with the ledger row.
+- **Data spend:** Groww's historical 2024-26 option and future candles become `registered` with the ledger row and
+  `spent` after the run, for the 14:00-to-next-10:15 windows of the sampled contracts, because `C` is the P&L of
+  "sell at the decision, buy back at the fill". Their 2019-23 candles stay `fresh`. The flip share reads NSE's final
+  settlement prices of 2024-26 expiries (already seen through the spent monthly data). The rows are written in
+  `research/DATA_SPEND.md` with the ledger row.
 - **Live rule, for the follow-up:** after 20 sessions of A16 snapshots, `C` from mid-quotes and from bid/ask (sells at
   bid, buys at ask) is compared, paired by session and family, with the candle-close `C` of the same sessions. The
   report gives the paired difference and its interval, and says the history figures are "not confirmed" when that
-  interval excludes zero or its median passes 2% of width.
+  interval excludes zero or its median passes 2% of the risk scale.
 
 **Acceptance criteria:**
 1. The coverage probe, protocol, idea card, ledger row 54 (prospective, hypothesis no), the DATA_SPEND rows and the
@@ -831,11 +844,17 @@ Out, each with its reason (gap list, judge 151 B3):
 5. Exclusions: a stale leg removes that structure at that time and is counted; an entry 7 or fewer sessions before
    expiry, a special or muhurat session, and a month the probe did not answer are excluded and counted. A cell over
    10% stale or missing prints "insufficient data".
-6. The bootstrap uses the protocol's seed, B and block lengths. The same run twice gives the same intervals.
+6. The bootstrap uses the protocol's seed, B and block lengths; the flip-share interval resamples whole expiries. The
+   same run twice gives the same intervals.
 7. The report prints, per family, decision time and R, every figure listed in the design, the paired 14:00-vs-15:00
    difference, the flip share, the theta part, the splits, the exclusion counts, the spread caveat and the window,
    each labelled exploratory measurement, and the "not measured" lines (signal decay, fill-time spread).
-8. Read-only: the study's import closure reaches no order, position, margin or funds call (A16b's test pattern). No
+8. The time part equals a hand Black-76 value for one fixture leg (forward, strike, IV, minutes to fill given); the
+   gap, VIX, nights and sessions-to-expiry splits put fixture days in the right cells; a cell under 30 days prints
+   "too few days".
+9. The report prints only the two flip shares from option P&L, never a win rate or mean P&L (a test reads the
+   report's fields).
+10. Read-only: the study's import closure reaches no order, position, margin or funds call (A16b's test pattern). No
    credential and no raw candle appears in the repository or the output.
 
 **Test plan:**
@@ -850,7 +869,7 @@ Out, each with its reason (gap list, judge 151 B3):
 - Checks that the probe and the freeze precede the full fetch and that the probe holds no price.
 
 **Depends:** A7, A15, A16 (`ReadOnlyGroww`), A16b (candle pattern), B2 and STR1 (structures), C1, E7 (settlement for
-the flip share) · **Size:** M · **Status:** proposed (story text revision 2, answering judge 151)
+the flip share) · **Size:** M · **Status:** proposed (story text revision 3, answering judges 151 and 152)
 
 **Evidence labels:**
 - The overnight-gap figures are some evidence.
