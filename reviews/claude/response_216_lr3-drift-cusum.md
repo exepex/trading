@@ -66,3 +66,14 @@ All four were accepted as recommended and are now written into the text as decid
 2. forecasters use 20-outcome blocks with the back-fill's SD and h = 4;
 3. the strategy pause works as designed;
 4. `expected_sd_per_opportunity` is required for `paper`, as a D1 format change through the orchestrator.
+
+## Judge 214 (FAIL, 4 should-fix, 2 minor): all accepted, each checked
+
+| Point | Check | Change |
+|---|---|---|
+| SF1: nothing runs the monitor | Confirmed: nothing schedules E6's pauses or any drift step. | The check runs every session in O1's E6 scorecard-and-pause step after the exits, as `DriftCheck.run(day)`: idempotent per day, and a failure raises into the step's SYSTEM alert. The interface is proposed to O1's builder (session_014zYLf18PgCzR7YoHs1X5Dp). No version reaches `paper` until the step is live. Criterion 9. |
+| SF2: the D1 change is larger | Confirmed. `PLAN` (`schema.py:28`) has no `trades_per_year`; `transitions.py:18` lets only `owner` and `hard_loss_rule` move `paper -> paused`; `AutoPauser` hard-codes `hard_loss_rule`. | A new "Changes owned elsewhere" section lists them: three plan fields (`expected_sd_per_opportunity`, `trades_per_year`, `drift_h`), the `drift_rule` transition, the pauser's approver and O1's step. They are also in Depends. I kept a distinct `drift_rule` so the record shows which rule paused a version. |
+| SF3: forecaster h = 4 has evidence only for V6a Brier | Correct: only V6a was checked. | V6 monitored; V1-V3 show "drift not monitored until calibrated". Criterion 11. |
+| SF4: alert wording | Correct: design 6.5 requires the first line and the 60-minute line. | Wording for the strategy and forecaster alerts, PAPER ONLY, WARNING class. Criterion 10. |
+| m1: "8-12" | Correct: BF at the floor of 4 flags in 6. | "6-12". |
+| m2: the back-fill result is in-sample | Correct: `s` comes from the same 95 blocks. | Labelled in-sample. |

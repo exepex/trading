@@ -328,21 +328,29 @@ copy is built here:
 - **The rule** (`drift_cusum.py`, pure): a one-sided CUSUM `S_t = max(0, S_(t-1) + z_t - k)`, alarm when
   `S_t > h`, then `S` restarts at 0. `z_t` is positive when worse. `k = 0.5` everywhere: the design's "detect a
   1 SD collapse" (some evidence: the computed run lengths).
+- **Trigger (judge 214):** the drift check runs **every session in O1's daily run**, in the E6 scorecard-and-pause
+  step after the exits, which the orchestrator asked O1's builder (session_014zYLf18PgCzR7YoHs1X5Dp) to add. E6's
+  catastrophic-loss pauses run first, then `DriftCheck.run(day) -> list[DriftAlarm]` from `drift_wiring.py`. It is
+  idempotent per day (a rerun pauses and sends nothing twice), and a failure raises into the step's own SYSTEM alert.
+  The interface is proposed to O1's builder. **No version reaches `paper` until that step is live**, because a pause
+  that no job runs protects nothing.
 - **Strategies** (`drift_strategies.py`):
   - **Data:** for each `paper` version, the C1 net of each completed position in close order (E6's strategy record).
   - **Standardising:** `z = (mu0 - net) / sigma`, where `mu0` is the plan's `expected_net_per_opportunity` and
-    `sigma` its registered SD. The SD is a new plan field, `expected_sd_per_opportunity`, from the same research test,
-    **required for `paper`** (decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all four"); a D1 format change through the orchestrator; R1's sample plan needs it
-    too).
-  - **Threshold** (decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all four")): `h` is set **per version at registration**. It is `max(4, h*)`, where `h*` is the smallest h in
-    steps of 0.5 whose in-control median run length is at least ten years of that version's trades
-    (`trades_per_year` from its plan). The run length comes from resampling the version's research-test per-trade
-    nets: 10,000 runs, seed 20261014. The floor of 4 is design 5.8's value: a research sample of 30-60 trades
-    under-represents the tails. The value is frozen in the plan. On experiment 1's six samples this gives h = 4.0
-    to 5.5, and a 1 SD collapse is flagged in a median of 8-12 trades. A version without a registered SD or `h` is shown "drift not monitored", never a silent pass.
-  - **Alarm** (the pause as designed, decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all four")):
+    `sigma` its registered SD, a new plan field `expected_sd_per_opportunity` from the same research test. It is
+    **required for `paper`**, with two more plan fields, `trades_per_year` and the frozen `drift_h` (decided by the
+    owner on 16 Oct 2026, `docs/DESK_DECISIONS.md` "Accept all four"; D1 changes, see "Changes owned elsewhere"; R1's
+    sample plan needs the SD too).
+  - **Threshold** (decided by the owner on 16 Oct 2026): `h` is set **per version at registration**. It is
+    `max(4, h*)`, where `h*` is the smallest h in steps of 0.5 whose in-control median run length is at least ten
+    years of that version's trades (`trades_per_year`). The run length comes from resampling the version's
+    research-test per-trade nets: 10,000 runs, seed 20261014. The floor of 4 is design 5.8's value: a research sample
+    of 30-60 trades under-represents the tails. The value is frozen in the plan as `drift_h`. On experiment 1's six
+    samples this gives h = 4.0 to 5.5, and a 1 SD collapse is flagged in a median of 6-12 trades. A version without
+    a registered SD or `drift_h` is shown "drift not monitored", never a silent pass.
+  - **Alarm** (the pause as designed, decided by the owner on 16 Oct 2026):
     - new entries in every book pause at once through E6's pause path (`paper -> paused`, approver `drift_rule`,
-      D1's status change);
+      D1's status change), so the record shows which rule paused the version;
     - one #fno-desk line, and a line in LR1's post-mortem;
     - open positions run to their registered exits (no owner action on paper);
     - the version resumes only by the owner's restart row after a review, like C2's brake;
@@ -354,13 +362,35 @@ copy is built here:
   - **Standardising:** `z = block mean / s`, where `s` is the SD of the block means over the forecaster's exploratory
     back-fill before the v4 freeze. A forecaster without a back-fill (the AI books) takes `s` from its first 12 live
     blocks, and has no alarm before those blocks are complete.
-  - **Threshold:** `h = 4`, fixed for every forecaster (back-fill: 0 alarms in 95 blocks). The block rule is decided
-    (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all four").
+  - **Which forecasters (judge 214):** only the V6 questions (Brier), the only ones with the back-fill evidence.
+    V1-V3 (QLIKE and others, heavier-tailed, no back-fill checked here) show "drift not monitored until calibrated";
+    each joins once the same block check is run on its own back-fill, as a new registered setting.
+  - **Threshold:** `h = 4` for the V6 forecasters (back-fill: 0 alarms in 95 blocks, **in-sample**: `s` is the SD of
+    the same blocks, so 0 alarms is partly by construction). The block rule was decided by the
+    owner on 16 Oct 2026.
   - **Alarm:** one #fno-desk line and a post-mortem line. It is an input to the next scheduled review, where the
     house forecast (G9) may lower that forecaster's weight. It never stops a forecast and never changes a score: v4's
     scoring is frozen.
+- **Alert wording (design 6.5: the first line says what to do, plus the owner-delay line; WARNING class, PAPER
+  ONLY):**
+  - Strategy: `PAPER ONLY. Review <version> at the next review or restart it: new entries paused in every book
+    (drift alarm, S <S> over h <h> after <n> trades).` Then: `If you act 60 minutes later: nothing changes; the pause
+    is already in the paper record and open positions run to their registered exits.`
+  - Forecaster: `PAPER ONLY. Information, no action: <forecaster> on <question> drift alarm (S <S> over h 4 after <n>
+    blocks); input to the next scheduled review.` Then: `If you act 60 minutes later: nothing changes; no forecast,
+    score or position is affected.`
+  - One alert per alarm (the CUSUM restarts at 0 after it), under design 6.5's limits.
 - **Report:** `python -m fno drift report` lists each monitored version or forecaster: `S`, `h`, observations since
   the last restart, the last alarm, and "not monitored" with its reason.
+
+**Changes owned elsewhere (through the orchestrator; judge 214):**
+- **D1, the playbook format** (`fno/playbook/schema.py` `PLAN`): three plan fields, `expected_sd_per_opportunity`,
+  `trades_per_year` and `drift_h`, the last frozen at registration; `paper` approval requires all three (owner, 16 Oct).
+- **D1, the status transitions** (`fno/playbook/transitions.py:18`): `paper -> paused` also accepts the approver
+  `drift_rule` (today only `owner` and `hard_loss_rule`).
+- **E6, the pauser** (`fno/scorecard/pauses.py`): `AutoPauser` takes the approver from the pause's reason instead of
+  the hard-coded `hard_loss_rule`.
+- **O1, the daily run:** the E6 scorecard-and-pause step after the exits, which runs `DriftCheck.run(day)`.
 
 **Acceptance criteria:**
 1. On a constructed series the CUSUM's `S` and alarm days match a hand computation, including the restart after an
@@ -380,6 +410,10 @@ copy is built here:
 7. A forecaster alarm changes no score, record or forecast; it is only alerted and reported (test).
 8. The constants (k = 0.5, block 20, h = 4 for forecasters, the ten-year target, 10,000 runs, the seed) match S1's text
    once S1 states them (test, as F9a criterion 11).
+9. `DriftCheck.run(day)` run twice on the same day pauses and sends nothing the second time; a failure raises (tests).
+10. Each alert's first line and owner-delay line match the wording above, marked PAPER ONLY (tests for the strategy
+    and the forecaster alert).
+11. A V1-V3 forecaster shows "drift not monitored until calibrated" and never alarms (test).
 
 **Test plan:** unit tests with constructed series; calibration tests with resampled constructed samples; the
 back-fill check on the committed v4 files; E6 pause tests with a temporary playbook registry.
@@ -400,6 +434,8 @@ alarm count.
 | A forecaster alarm lowers its house weight at the next review (4.3) | review input, criterion 7 | The weight change is G9's (slice C) |
 | S1's `immediate_pauses` names the drift pause (REPLAN 4) | | S1's text, through its text owner |
 | Drift alarms in the weekly post-mortem (4.3) | `drift_alarms(period)` | LR1's builder adds the call |
+| Something must run the check (judge 214) | O1's daily E6 step, criterion 9 | The step itself is O1's |
+| Alerts say what to do and what a 60-minute delay means (6.5) | alert wording, criterion 10 | |
 | Monthly strategies react in years; the catastrophic-loss rules are the first line (5.8) | Known limits | |
 
 **Known limits (owner's simplicity rule, 15 Oct 2026):**
@@ -411,6 +447,8 @@ alarm count.
   trades. Paper trades that differ from it widen the real false-alarm rate. It is re-calibrated only as a new version.
 - An AI forecaster's `s` comes from its first year of live blocks, which may be a calm or a busy year.
 
-**Depends:** E6 (strategy records and pause path), D1 (the SD field, through the orchestrator), G8 (scores and loss
-functions), S1 (text owner: the drift pause exception and the constants), LR1 (reads the alarms) · **Size:** M ·
+**Depends:** E6 (strategy records; the pauser's approver change), D1 (three plan fields and the `drift_rule`
+transition), O1 (the daily E6 scorecard-and-pause step), G8 (scores and loss functions), S1 (text owner: the drift
+pause exception and the constants), LR1 (reads the alarms); all changes outside LR3 go through the orchestrator ·
+**Size:** M ·
 **Status:** story text for the judge (response 216), the owner's four answers in; code after the PASS
