@@ -84,7 +84,8 @@ the owner could really have got, and the cost of human delay is measured, not as
    - A missing or failed A16 mark may be replaced only by a recorded A4 capture that started within the mark's 2-minute
      window (A16's on-time rule), for example E3's 15:15 execution capture. This is the "falls back to A4 snapshots"
      of `REPLAN_new_stories.md:94`.
-   - A fill never uses a later or earlier mark.
+   - A fill never uses a later or earlier mark. A mark that exists but is invalid for a leg (stale, one-sided, too
+     little size) is treated like a missing one: an entry is missed (rule 7) and an exit waits for the next mark.
 4. **Price.** E4's rule, unchanged: a valid quote by A4's rule (two-sided, not crossed, sizes on both sides, a trade
    in the contract that session), the ask for buys and the bid for sells, the size at the touch covering all units,
    pad 0, C1's charges. For an A16 quote, "a trade that session" is read from its `last_trade_time`.
@@ -126,13 +127,23 @@ the owner could really have got, and the cost of human delay is measured, not as
     - Each view takes the same committed decisions, fills them by its own clock, and runs E4's exit rules on its own
       positions at each daily run.
     - C2's risk view and the book's limits read the verdict account only.
-11. **When fills are applied.** This follows the proposal to O1, pending its answer.
-    - A new first step of the daily run, `owner_timing_fills`, comes before `pack`. It applies every pending entry and
-      exit whose due mark has passed, oldest first.
+11. **When fills are applied** (agreed with O1, 15 Oct 2026, against `story/o1-daily-run` at 71b00878).
+    - A daily-run step `owner_timing_fills` runs right after `quotes` and before every other step (`quotes` only
+      starts the 3 pm parts and returns at once). The run starts at 14:33 today and 14:05 once G10 goes live, so the
+      09:45 and 10:15 marks have always passed: nothing new is scheduled.
+    - It applies every pending entry and exit whose due mark has passed, oldest first, and catches up after a missed
+      run.
     - It prices only from that mark's recorded snapshot, so a late run gives the same fill.
-    - It is idempotent: E4's fill IDs, with the view added.
-    - New decisions are taken only after it has run, so C2 sees the fills of the day before as open positions.
-    - The step name joins `constants.DAILY_RUN_STEPS` (O1), so O8's health check expects it.
+    - It is idempotent: E4's fill IDs, with the view added. A rerun of the daily run skips a recorded step (O1's rule).
+    - Shape: one `DayStep` class (`run(day) -> StepOutcome`, interface in `fno/desk/daily_ports.py`) in E8's package,
+      listed with one line in O1's `fno/daily/wiring.py`. Its outcome carries `status` (ok, failed, refused, not_live)
+      and `reason`, which O8 reads, and its account files go through E3's committer, in the run's one thread.
+    - The step name joins `DAILY_RUN_STEPS` (`fno/constants_operations.py`, re-exported by `fno/constants`), so O8's
+      health check expects it.
+    - **A failed step fails closed for new risk.** If the step fails or is refused (Drive down, a hash mismatch), C2
+      would see yesterday's positions without today's fills and understate open risk. So that day no book opens a
+      new entry, through E2c's per-book `_unreviewed` block, while exits still run. O1's `Alerted` wrapper sends one
+      alert and the run goes on.
 12. **Point in time.**
     - The decision must be committed before its card's T.
     - T must come from a delivery record.
@@ -191,12 +202,25 @@ All new code lives in one package, `fno/desk/owner_timing/`. Every file except `
 - changing R (owner decision 5);
 - a NIFTY band or any other entry condition beyond the approved limit, unless the owner picks one.
 
-## S1 items (sent to S1's text owner, session 0185gR5D, 15 Oct 2026; answer pending)
+## S1 items (agreed with S1's text owner, session 0185gR5D, 15 Oct 2026)
 
-1. `frozen_files` gains `fno/desk/owner_timing/*.py` except `cli.py`.
-2. `timetable` gains rules 1-3, 8 and 11 in one line each.
-3. The decision time itself (15:00, or 14:00) waits for the owner. This matches G10's open note 3 (judge 161 addendum
-   3).
+1. **`frozen_files`.** S1's freezer takes every backticked path as one file and refuses a glob, so the rule is stated
+   in prose, in the sentence that already names S2, S3, S6, F8 and F9: "... the code of F8, F9 and E8's owner-timing
+   package, except its cli.py". The explicit paths go in at the freeze; `wiring.py` is in.
+2. **`timetable`.** These lines go in, with status "proposal, owner decides" except where an owner row is cited:
+   - a paper order's time T is its delivery time to #fno-desk (the card for entries, E8's exit alert for exits);
+   - the fill is at the first 15-minute mark at or after T + R, from that mark's recorded snapshot only (an A4
+     capture inside the mark's 2-minute window stands in for a missing mark); a mark after 15:25, or an away session,
+     moves the fill to the next session's open plus R;
+   - every paper trade is filled at R = 5, 30 and 60 minutes and at the 15:15 execution snapshot, all reported; the
+     verdict uses R = 60 (`docs/DESK_DECISIONS.md:181`, owner, 15 Oct 2026), the 15:15 snapshot is the common
+     yardstick;
+   - an availability-calendar row counts only if committed before the card it applies to; later rows are ignored and
+     listed;
+   - E8's fills are applied by the daily run's first step after `quotes`; when it fails, no new entry opens that day
+     and exits still run.
+3. **The decision time** (15:00, or 14:00) waits for the owner. This matches G10's open note 3 (judge 161 addendum 3).
+4. These land in `PROTOCOL.md` with S1's next edit, by its text owner.
 
 ## Open question for the owner (one card, sent with this story)
 
