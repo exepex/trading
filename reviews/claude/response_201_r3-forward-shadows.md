@@ -17,3 +17,4 @@ Text only. Number 201 assigned by the orchestrator.
 | 8 | E8's scope already covers shadow candidates, but it defines no order time for a shadow. | Strong: `docs/stories/E8-owner-timing-fills.md` (scope line on shadow candidates; T is the card's delivery time). |
 | 9 | Test B of the stop rule waits for R3's closed-trades path. | Strong: `fno/budget/stop_rule_tracker.py` (`path=None`, producing story R3); S3/S6 builder, 16 Oct. |
 | 10 | Exercising the whole shadow path with B0 before the V-ideas is worth its one trial. | Reasoning only (question 1). |
+| 11 | E8 fills every pending order whatever its account; R3 writes shadow orders in Book 1's format, fills E8's per-account terms lookup and opens the accounts. | Strong for the split (E8 builder, 16 Oct); reasoning only for the interface names until E8's part 1b. |

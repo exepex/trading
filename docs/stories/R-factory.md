@@ -61,8 +61,17 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
     price cap, and the funds re-check;
   - no card delivered: "missed, card not delivered", as for the books;
   - costs from C1 (`config.yaml` `charges`), the same as the books;
-  - until E8's code is merged, nothing fills a shadow (no second, earlier fill rule is built). Ownership is agreed with
-    the E8 builder (below).
+  - **the contract with E8 (agreed, below):**
+    - R3 writes each "shadow: would trade" decision as a pending order in the day's journal, in exactly the order
+      format Book 1's orders use, with the account id `shadow:<name>-v<n>`;
+    - E8 fills every pending order whatever its account, through the same code as a book's, so no separate shadow
+      fill step exists;
+    - R3 fills E8's one terms lookup (funds, limits, charges), keyed by account, for each shadow, as Book 1's wiring
+      does for Book 1. The fill-day funds and risk re-check runs on the shadow's own terms. It is a check only,
+      never a decision counted by E6, S1 or S2;
+    - E8 never creates an account. A pending order for an account that does not exist fails loudly, so R3's opening
+      step must run first;
+  - until E8's part 1b is merged, nothing fills a shadow (no second, earlier fill rule is built).
 - **The registration procedure** (written in this story; R1's code, `CostWall` and `IdeaCard`, is not built):
   1. an idea card from `research/ideas/TEMPLATE.md` with its G0 and G1 sections, the cost wall worked by hand under
      `FACTORY_RULES.md` (expected net after costs and tail losses above zero on the conservative bound), or the label
@@ -92,7 +101,10 @@ Out (each with where it goes):
 - **Promotion to paper:** the owner (rung 3, S1).
 
 **Design:**
-- No new fill or exit code: E8's fill path gains shadow accounts as targets (E8 builder's code).
+- No new fill or exit code: E8 fills pending orders of any account (E8 builder's code, part 1b). R3 adds only:
+  - the shadow orders, written by Book 1's existing order writer for the shadow outcomes;
+  - the per-account terms entries for E8's lookup (its interface name comes with E8's part 1b; reasoning only until
+    then).
 - The account-opening call and the per-shadow terms: one change each in Book 1's run wiring (`fno/books/book1_wiring.py`,
   E5's root; agreed with its owner at code time).
 - The Test B path: one constant.
@@ -103,9 +115,12 @@ Out (each with where it goes):
    1's run never raises for an unopened shadow. A second run opens nothing.
 2. Each shadow's book holds only its own trades' terms; Book 1's terms never reach a shadow (a test with one open
    trade in each).
-3. A "shadow: would trade" decision is filled into its own shadow account by E8's rule (T = the day's card delivery
-   time, R = 60 verdict, price cap, funds re-check), never into a book; "no trade" fills nothing. No card: "missed,
-   card not delivered".
+3. A "shadow: would trade" decision becomes one pending order with account `shadow:<name>-v<n>`, in Book 1's order
+   format. E8 fills it into that shadow account only, by E8's rule: T = the day's card delivery time from the card
+   record, the R = 60 verdict with r5, r30 and e4_1515 beside it, the price cap, and the funds re-check on the
+   shadow's own terms. "No trade" writes no order. No card gives "missed, card not delivered".
+3b. Each shadow's entry in E8's terms lookup is the shadow's own; a test plants different book and shadow terms and
+   checks that neither reaches the other.
 4. A shadow's exits run by the same exit rules as a book's, and its costs come from C1.
 5. Nothing fills a shadow before E8's code is merged (no other fill rule exists).
 6. The stop-rule tracker's Test B path points at the shadow accounts' closed trades; zero shadows still give
@@ -132,8 +147,13 @@ Out (each with where it goes):
 - **A16/G8/G10 builder, session 01VK88LxJvV1Gi7Wbr3D4fzp:** the V-idea blockers above are confirmed. A future v4
   feature reads through `V4ForecastSource`, wrapped in `LateDaysOut`, and R3 builds it behind `FeatureEntry`. They
   will warn R3 before changing that interface.
-- **E8 builder, session 01H1CmuWzBtbtjzoQNJUz2Dz:** asked whether T = the day's card time for shadows, and whether
-  E8 owns shadow fills. Reply pending.
+- **E8 builder, session 01H1CmuWzBtbtjzoQNJUz2Dz: agreed, 16 Oct 2026.**
+  - A shadow's T is the day's card delivery time, taken from the card record; the verdict is R = 60, with r5, r30
+    and e4_1515 reported.
+  - E8 owns all fills through one path: it fills pending orders of any account.
+  - R3 writes the shadow orders in Book 1's format, fills E8's per-account terms lookup, and opens the accounts. E8
+    never creates one, and an order for a missing account fails loudly.
+  - The interface names are reasoning only until E8's part 1b (which waits for O1's merge). E8 notes cite R3.
 
 **Questions for the owner (via the orchestrator):**
 1. **Register B0 now?** (A) Yes: the monthly short condor, P1, labelled `measurement: never promoted`. It is the only
