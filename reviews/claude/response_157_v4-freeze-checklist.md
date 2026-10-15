@@ -36,7 +36,10 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
   V1 arithmetic and void rule `fno/intraday/realised_vol.py`, `session_rv.py`, `status.py` and `slots.py` (judge 177),
   and M1's own `METHOD_FILES` (`fno/weather/wiring.py:28-32`: `checklist_v0.py`, `v0_live.py`,
   `vix_scaled.py`, `colour.py`, `day.py`, `wiring.py`; the files M1's `method_sha256` covers, V6's rules slot,
-  decision 70; orchestrator, 15 Oct).
+  decision 70; orchestrator, 15 Oct), plus `fno/weather/constants.py` once `story/x-weather-constants` merges (the E2c
+  builder moves M1's weather constants out of `fno/constants.py` into it; orchestrator, 16 Oct). **The freeze commit
+  comes after that move.** If M1's `METHOD_FILES` does not list the new file, its `method_sha256` stops covering those
+  values: the move should add it there too (checked when the freeze is prepared).
 - **Recorded, not byte-checked:** `fno/constants.py`, `fno/desk/settlement.py`, `fno/research_data/calendar.py`,
   `fno/research_engine/implied_vol.py` (section 10), plus `fno/intraday/rv_table.py` (V1's outcomes) and
   `fno/forecast/iv30.py` (frozen under v1-v3 already), and the rest of `fno/weather/` (the US flag and the card stay
@@ -61,7 +64,9 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
   `v1_close_blend` (G7) once V1 starts; V2 `rules`: none yet (phase 2); every `hybrid` and `ai_team` slot: none until
   G11 registers the AI books' v4 versions. An empty slot stays at p = 1. **Later registrations** (V1 rules when V1
   starts, the G11 AI slots) are appended ledger rows, each before its slot's first counted forecast (protocol section
-  6); G8's adapter reads every row, not only the freeze's.
+  6); G8's adapter reads every row, not only the freeze's. **The ledger adapter refuses a row whose `effective_start`
+  is after its slot's first eligible session (judge 184's note):** a later start would hide misses, and nothing checks
+  that yet. It is built with the freeze's ledger adapter, with a test.
 
 ## Code in the freeze commit (step 3)
 - A freeze check test like `tests/forecast/test_freeze_v2.py`: every byte-checked file still has its hash (the golden
