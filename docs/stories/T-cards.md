@@ -267,7 +267,7 @@ Out (each with where it goes):
 - The subject is public lines only, so the objections cannot see the strikes (privacy rule). A private subject would
   be one new adapter behind `Advocate` (Drive), and only if the owner wants it.
 
-**Questions for the owner (via the orchestrator):**
+**Owner's decisions (15 Oct 2026, `docs/DESK_DECISIONS.md` af2019c8: A, A, A).** The three questions as asked:
 1. **When T3 runs:** (A) only on `TRADE` and `WATCH` cards, so no AI minutes on `NO TRADE` days (none today); (B)
    every card day. **Recommendation: A** (reasoning only: an objection to "no strategy has passed" teaches little and
    costs about 250 runs a year).
@@ -278,5 +278,13 @@ Out (each with where it goes):
 3. **Build order:** (A) T2 now (small: sharper `NO TRADE` reasons on today's cards), and T3's code after T1's trade
    fields and O1; (B) both now. **Recommendation: A** (reasoning only: T3 built now would run against nothing).
 
+**What the decisions mean for the build:**
+- T2's three rule outcomes are built now.
+- T3 runs only on `TRADE` and `WATCH` cards, and its code comes after T1's trade fields and O1.
+- The "event in window" warning (decision 2) needs a trade's holding window: from the card day to its exit (the
+  version's time exit, or expiry). Only a `TRADE` or `WATCH` card has one, so the warning is built with T1's trade
+  fields, beside T3, not now. It reads A6's `events.csv` scheduled rows in that window, shows one warning line, and
+  blocks nothing.
+
 **Depends:** T1, C3, C4, D1, E3 (run log), LR1 (`fno/advocate`), F1 (routine pattern), F8, BG1 · **Size:** T2 S, T3 M ·
-**Status:** story text, waiting for the judge
+**Status:** story text with judge E; owner's decisions A, A, A recorded
