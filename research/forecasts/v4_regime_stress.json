@@ -1,0 +1,2725 @@
+{
+ "series": 100000,
+ "rows": [
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.099690613529102,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00042,
+   "judged": 1.0,
+   "local_improvement": 4.8780459049108487e-17,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.099690613529102,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -4.8780459049108487e-17,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.099690613529102,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.030000000000000058,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.099690613529102,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.01492,
+   "judged": 1.0,
+   "local_improvement": 0.029999999999999943,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.099690613529102,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00047,
+   "judged": 1.0,
+   "local_improvement": 4.8780459049108487e-17,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.099690613529102,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -4.8780459049108487e-17,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.099690613529102,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.030000000000000058,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.099690613529102,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.02246,
+   "judged": 1.0,
+   "local_improvement": 0.029999999999999943,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.2082514399372137,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.2082514399372137,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.23454395644493636,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 8e-05,
+   "judged": 1.0,
+   "local_improvement": -0.18195892342949097,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.2082514399372137,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.2082514399372137,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.23454395644493636,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00458,
+   "judged": 1.0,
+   "local_improvement": -0.18195892342949097,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00851,
+   "judged": 1.0,
+   "local_improvement": -0.17541987835830122,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.17541987835830122,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.1431187960996439,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.06814,
+   "judged": 1.0,
+   "local_improvement": 0.20772096061695852,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00665,
+   "judged": 1.0,
+   "local_improvement": -0.17541987835830122,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.17541987835830122,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.1431187960996439,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.02932,
+   "judged": 1.0,
+   "local_improvement": 0.20772096061695852,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.12681862167658745,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.12681862167658745,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.15457855730529635,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00052,
+   "judged": 1.0,
+   "local_improvement": -0.09905868604787851,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.12681862167658745,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.12681862167658745,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.15457855730529635,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00214,
+   "judged": 1.0,
+   "local_improvement": -0.09905868604787851,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00186,
+   "judged": 1.0,
+   "local_improvement": 0.17035819396724003,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.17035819396724003,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.2065831668044288,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.04509,
+   "judged": 1.0,
+   "local_improvement": -0.13413322113005133,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00471,
+   "judged": 1.0,
+   "local_improvement": 0.17035819396724003,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.17035819396724003,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.2065831668044288,
+   "margin": 0.03
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.11437,
+   "judged": 1.0,
+   "local_improvement": -0.13413322113005133,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.104942226890756,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00015,
+   "judged": 1.0,
+   "local_improvement": 3.1110759353508736e-17,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.104942226890756,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -3.1110759353508736e-17,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.104942226890756,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.030000000000000002,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.104942226890756,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00779,
+   "judged": 1.0,
+   "local_improvement": 0.02999999999999999,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.104942226890756,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00016,
+   "judged": 1.0,
+   "local_improvement": 3.1110759353508736e-17,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.104942226890756,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -3.1110759353508736e-17,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.104942226890756,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.030000000000000002,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.104942226890756,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00491,
+   "judged": 1.0,
+   "local_improvement": 0.02999999999999999,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 3e-05,
+   "judged": 1.0,
+   "local_improvement": 0.5143457060210634,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.5143457060210634,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.5284581043913738,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00074,
+   "judged": 1.0,
+   "local_improvement": -0.5002333076507531,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.5143457060210634,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.5143457060210634,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.5284581043913738,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00013,
+   "judged": 1.0,
+   "local_improvement": -0.5002333076507531,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00018,
+   "judged": 1.0,
+   "local_improvement": -1.2142010319821166,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 1.2142010319821166,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -1.166946476192451,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.01955,
+   "judged": 1.0,
+   "local_improvement": 1.261455587771783,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00048,
+   "judged": 1.0,
+   "local_improvement": -1.2142010319821166,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 1.2142010319821166,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -1.166946476192451,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00646,
+   "judged": 1.0,
+   "local_improvement": 1.261455587771783,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 6e-05,
+   "judged": 1.0,
+   "local_improvement": 0.4337853875997901,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.4337853875997901,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.4532516826852631,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00096,
+   "judged": 1.0,
+   "local_improvement": -0.414319092514317,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.4337853875997901,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.4337853875997901,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.4532516826852631,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 4e-05,
+   "judged": 1.0,
+   "local_improvement": -0.414319092514317,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00705,
+   "judged": 1.0,
+   "local_improvement": 1.3324484538758639,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -1.3324484538758639,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 1.3931463493660567,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.13705,
+   "judged": 1.0,
+   "local_improvement": -1.2717505583856712,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.06608,
+   "judged": 1.0,
+   "local_improvement": 1.3324484538758639,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -1.3324484538758639,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 1.3931463493660567,
+   "margin": 0.03
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.41418,
+   "judged": 1.0,
+   "local_improvement": -1.2717505583856712,
+   "margin": 0.03
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.09968029350105,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.53003,
+   "local_improvement": -0.0,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.09968029350105,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.00048,
+   "judged": 0.53163,
+   "local_improvement": -0.0,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.09968029350105,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.01123,
+   "judged": 0.53205,
+   "local_improvement": 0.020000000000000007,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.09968029350105,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0023,
+   "judged": 0.52961,
+   "local_improvement": 0.019999999999999993,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.09968029350105,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.90186,
+   "local_improvement": -0.0,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.09968029350105,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.00081,
+   "judged": 0.901,
+   "local_improvement": -0.0,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.09968029350105,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.02159,
+   "judged": 0.90227,
+   "local_improvement": 0.020000000000000007,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-15",
+    "2026-10-14"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.09968029350105,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.9012,
+   "local_improvement": 0.019999999999999993,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.00211,
+   "judged": 0.99983,
+   "local_improvement": 0.33679312788248816,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.00069,
+   "judged": 0.99986,
+   "local_improvement": -0.33679312788248816,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.00209,
+   "judged": 0.99984,
+   "local_improvement": 0.34034934303055103,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.35965,
+   "judged": 0.99983,
+   "local_improvement": -0.33323691273442524,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.33679312788248816,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.33679312788248816,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 2e-05,
+   "judged": 1.0,
+   "local_improvement": 0.34034934303055103,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00165,
+   "judged": 1.0,
+   "local_improvement": -0.33323691273442524,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.5553860788699728,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.5553860788699728,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.4071114132670966,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.7036607444728489,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.5553860788699728,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.5553860788699728,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.4071114132670966,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.7036607444728489,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0001,
+   "judged": 0.98517,
+   "local_improvement": 0.23055037717539972,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.001,
+   "judged": 0.98485,
+   "local_improvement": -0.23055037717539972,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.02685,
+   "judged": 0.98508,
+   "local_improvement": 0.23633939294755998,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.10266,
+   "judged": 0.98465,
+   "local_improvement": -0.22476136140323957,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.99993,
+   "local_improvement": 0.23055037717539972,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 5e-05,
+   "judged": 0.99998,
+   "local_improvement": -0.23055037717539972,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.00463,
+   "judged": 0.99997,
+   "local_improvement": 0.23633939294755998,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 2e-05,
+   "judged": 0.99998,
+   "local_improvement": -0.22476136140323957,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.39876303128423124,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.39876303128423124,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.21126661543867623,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.5862594471297861,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.39876303128423124,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.39876303128423124,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.21126661543867623,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.5862594471297861,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-21",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.106994736842104,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 7e-05,
+   "judged": 0.5341,
+   "local_improvement": -0.0,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-21",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.106994736842104,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.00054,
+   "judged": 0.53024,
+   "local_improvement": -0.0,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-21",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.106994736842104,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.01014,
+   "judged": 0.53436,
+   "local_improvement": 0.020000000000000025,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "full",
+   "days": [
+    "2019-01-21",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.106994736842104,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.00333,
+   "judged": 0.53425,
+   "local_improvement": 0.019999999999999966,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-21",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.106994736842104,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 1e-05,
+   "judged": 0.90324,
+   "local_improvement": -0.0,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-21",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.106994736842104,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0009,
+   "judged": 0.90274,
+   "local_improvement": -0.0,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-21",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.106994736842104,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.02004,
+   "judged": 0.90252,
+   "local_improvement": 0.020000000000000025,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "full",
+   "days": [
+    "2019-01-21",
+    "2026-10-08"
+   ],
+   "big_days": 94,
+   "mean_vix": 17.106994736842104,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.01019,
+   "judged": 0.90162,
+   "local_improvement": 0.019999999999999966,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.43213,
+   "judged": 0.9999,
+   "local_improvement": 0.6434144126550323,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 5e-05,
+   "judged": 0.99985,
+   "local_improvement": -0.6434144126550323,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.00026,
+   "judged": 0.99987,
+   "local_improvement": 0.6489429656684085,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.84858,
+   "judged": 0.99989,
+   "local_improvement": -0.637885859641656,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.90815,
+   "judged": 1.0,
+   "local_improvement": 0.6434144126550323,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": -0.6434144126550323,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 1.0,
+   "local_improvement": 0.6489429656684085,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "busy 125",
+   "days": [
+    "2019-12-16",
+    "2020-06-18"
+   ],
+   "big_days": 36,
+   "mean_vix": 30.57056,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.99884,
+   "judged": 1.0,
+   "local_improvement": -0.637885859641656,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.20905889845495457,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.20905889845495457,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.15675479884246832,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.2613629980674409,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.20905889845495457,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.20905889845495457,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.15675479884246832,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "calm 125",
+   "days": [
+    "2021-04-13",
+    "2021-10-12"
+   ],
+   "big_days": 0,
+   "mean_vix": 16.01688,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.2613629980674409,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.01819,
+   "judged": 0.98526,
+   "local_improvement": 0.29703986551877865,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0043,
+   "judged": 0.9851,
+   "local_improvement": -0.29703986551877865,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.03425,
+   "judged": 0.98507,
+   "local_improvement": 0.30532648883561264,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.12647,
+   "judged": 0.98504,
+   "local_improvement": -0.28875324220194476,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.03143,
+   "judged": 0.99996,
+   "local_improvement": 0.29703986551877865,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.00203,
+   "judged": 0.99996,
+   "local_improvement": -0.29703986551877865,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0117,
+   "judged": 0.99996,
+   "local_improvement": 0.30532648883561264,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "busy 250",
+   "days": [
+    "2020-01-31",
+    "2021-02-02"
+   ],
+   "big_days": 44,
+   "mean_vix": 27.493079999999996,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.31634,
+   "judged": 0.99994,
+   "local_improvement": -0.28875324220194476,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.5749986489423458,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.5749986489423458,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.6284852874796221,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.5215120104050693,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.5749986489423458,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "claim",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.5749986489423458,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "as measured",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": 0.6284852874796221,
+   "margin": 0.02
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "stretch": "calm 250",
+   "days": [
+    "2022-10-06",
+    "2023-10-10"
+   ],
+   "big_days": 0,
+   "mean_vix": 13.226719999999998,
+   "kind": "futility",
+   "orientation": "flipped",
+   "rate": 0.0,
+   "judged": 0.0,
+   "local_improvement": -0.5215120104050693,
+   "margin": 0.02
+  }
+ ]
+}

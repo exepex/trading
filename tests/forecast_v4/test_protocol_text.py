@@ -55,3 +55,17 @@ def test_the_calibration_part_is_referenced_draft_and_frozen_with_the_protocol()
     assert "**DRAFT, not\nfrozen**" in calibration or "DRAFT, not frozen" in calibration.replace("\n", " ")
     assert "`PROTOCOL_v4_calibration.md`" in TEXT and "PROTOCOL_v4_calibration.md` (part of this protocol" in TEXT
     assert "V7 is descriptive-only" in TEXT and "## 3. V7's own VIX null" in calibration
+
+
+def test_revision_7_states_the_regime_caveat_for_every_member_and_test_a():
+    calibration = (Path(__file__).resolve().parents[2] / "research/forecasts/PROTOCOL_v4_calibration.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**every member's claims and futility, and so the whole of Test A**" in TEXT
+    assert (
+        "for every member's claims AND futility" in calibration
+        and "## 4. Every member inside one regime" in calibration
+    )
+    assert "`regime.py`" in TEXT and "`regime.window_regime`" in TEXT
+    for option in ("1. **Accept**", "2. **Exclude crash windows**", "3. **V6b descriptive**"):
+        assert option in TEXT

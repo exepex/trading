@@ -281,3 +281,45 @@ Each item was checked before it was accepted.
    which is part of the protocol and frozen with it. References and tests are updated; the main file is now 325 lines.
 4. **Items 1-5, 7 and 8:** no change asked. The product warning in item 7 stands. The protocol already lists which
    members are eligible and why (item D), and an unjudgeable member is never evidence of no skill.
+
+## Revision 7: answer to judge 98 addendum 6 (FAIL on e32f89d)
+
+1. **The judge's key finding, that V6b's crash-window "failures" are regime-local truth: ACCEPTED, checked.** Every
+   stress row now prints the true relative improvement inside the stretch ("local"). V6b's revision 6 rates (44-91%
+   claims, 86-99.9% "no") sit where local is +0.64 / -0.64, against a 0.02 minimum effect: the forecaster really is
+   better or worse there. Most large rates are regime truth.
+2. **Must-fix (a), the regime check for V1, V2 and V6a: DONE** (`tools/v4_regime_stress.py`, `v4_regime_stress.md`;
+   calibration section 4). 100,000 series per cell; busy and calm stretches of 125 and 250 sessions; both
+   orientations; n = 125 and 250; operative thresholds unchanged. **It found genuine errors the judge did not name, so
+   the caveat is more than wording:**
+   - **V1 in calm 2021 (forecaster locally 21% better): false "no" 6.81% (n = 125) and 2.93% (n = 250), against 2.5%.
+     False claims 0.85% / 0.66% where it is locally 18% worse, against 0.133%.** Three V1 slots could reach about 2.6%
+     by the union bound, against look 1's 2% (reasoning: slots are correlated).
+   - V6b in the 2020-21 crash year: false "no" 3.43% (n = 125); false claims 0.43% / 0.20%.
+   - V6a there: false "no" 2.69% (tolerance 2.60%).
+   - V2: no genuine error. Full 2019-26: every member within, which also checks that V1 and V2's 2024-26 thresholds
+     hold on 2019-26.
+   - Test A "no" (every counted member futile): Brier members are never judgeable in calm stretches, and V1 and V2 say
+     "no" at most 0.46% in busy ones. So in these stretches a false Test A "no" is at most the smallest counted
+     member's rate (reasoning on measured marginal rates; the joint rate is not measured).
+3. **Must-fix (b), the caveat covers every member's claims AND futility and the whole of Test A: STATED** in protocol
+   section 11 E and calibration section 4 (tested in `test_protocol_text.py`).
+4. **Item E's options, as the judge framed them: WRITTEN** (section 11 E). Option 2 is measured
+   (`tools/v4_crash_cut.py`, `v4_crash_cut.md`). Two cuts, outcome-side only and frozen as written: mean VIX above 25,
+   or more than 10% 2% days.
+   - Cost: 7.6-8.9% and 12.6-15.7% of real 2019-26 windows. V6b's judgeable share falls from 50% to 43% / 37%
+     (n = 125) and from 78% to 69% / 63% (n = 250).
+   - Effect: **worse, not better.** Inside the crash year V6b's false "no" rises from 3.43% to 10.41% / 16.00%, its
+     false claims from 0.43% to 1.31% / 2.10%, and V6a's false "no" from 2.69% to 7.57%.
+   - Why: the cut keeps the calmer part of the crash year, where the measured improvement is itself mostly below the
+     effect. So the dependence moves to the next regime. No crash cut touches V1's calm-window error.
+   - My recommendation is option 1 (some evidence). Option 3 leaves no claimable member, so Test A could never say
+     "yes". The choice is the owner's; it is a freeze precondition.
+5. **G8 acceptance criterion: ADDED** (`docs/design_v2/REPLAN_new_stories.md`, G8). Every verdict, claim, "no" and Test
+   A result prints its window's mean India VIX, its 2%-day count and its band. It does this from the new
+   `fno/forecast_v4/regime.py` (`window_regime(...).line()`), so G8 never re-implements it. Tests are in
+   `test_regime.py`.
+6. **Not changed, said plainly:** no threshold was recalibrated. V1's calm-window error stands, disclosed. A
+   regime-robust QLIKE rule would be a new calibration (for example, nulls conditioned on the window's VIX level, as
+   the bands condition on 2% days). I have not built one because the judge did not ask and V7's attempt (R2) failed.
+   If the owner or judge wants it, it is the next item.

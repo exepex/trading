@@ -12,7 +12,7 @@ freeze. v4 and v3 results are never pooled. Where v4 differs from v1-v3 on a sha
 
 **Reference code.** The rules below are executable in `fno/forecast_v4/` (pure functions, no I/O): `terms.py` (every
 number), `loss.py`, `pairs.py`, `bootstrap.py`, `family.py`, `eligibility.py`, `units.py`, `settlement.py`,
-`sessions.py`, `stop_rule.py`, `power.py`. G7 (baselines) and G8 (scoring) call them and never re-implement them.
+`sessions.py`, `stop_rule.py`, `power.py`, `regime.py`. G7 (baselines) and G8 (scoring) call them and never re-implement them.
 Question and slot names are in `fno/constants.py`. Tests: `tests/forecast_v4/` (section 9).
 
 Evidence labels as the project uses them: **strong evidence**, **some evidence**, **reasoning only**.
@@ -219,7 +219,8 @@ missing; daily HAR never stands in again.
    steps are not used (a small power loss when several members claim at once). A member not judged at that look (no
    registered forecaster, fewer than 12 batches, or closed earlier) enters with p = 1. **Every report states the
    look, its family-wise rate, the decision timestamp (with time zone) and all 15 members, judged or not**
-   (`FamilyDecision.lines()`).
+   (`FamilyDecision.lines()`), and every verdict
+   prints its scored window's regime (`regime.window_regime`: mean India VIX, 2% days, band; revision 7).
 8. **Two looks at most, alpha split (Bonferroni over looks, strong evidence for the bound):** look 1, the stop-rule
    review (design 8.2), at family-wise **0.02**; look 2, the re-run on the projected settle date (8.2 option 1), at
    **0.03**. Total at most 0.05 however the looks correlate. A claim or a futility "no" at look 1 is final (closed, p = 1
@@ -316,10 +317,18 @@ confirmation of section 11's items A-C (given, 15 Oct 2026), D and E.
   will almost surely never be claimed.** V6b: 149-206 (about 3-4 years), only in windows with 5 or more 2%
   days. **Said plainly: only V6b can be claimed, slowly, and see E.** V7 is descriptive-only (5.3; its own VIX null
   is measured in `PROTOCOL_v4_calibration.md` section 3). Other options: `v4_size_study.md`; futility as 5.5.
-- **E. Regime dependence of V6b (revision 6, for the judge, ChatGPT and the owner):** V6b's banded thresholds hold on
-  2019-26 and in calm stretches, but inside the busiest stretch (the 2020 crash) they claim falsely up to 44% (n =
-  125) and 91% (n = 250) and say a false "no" up to 86-99.9% (calibration section 4). The rule is unchanged here;
-  whether a crash-only window should be judgeable (or V6b should also be descriptive) is the owner's decision.
+- **E. Regime dependence (revisions 6-7, judge 98 addendum 6; calibration section 4), for the owner.** The regime
+  caveat covers **every member's claims and futility, and so the whole of Test A**: a "yes" or "no" from a
+  crash-dominated or calm-dominated window measures that regime, not general skill. Measured: every rule holds over
+  2019-26; inside one regime most large rates are that regime's truth, and the genuine errors are V1 in calm 2021
+  (false "no" 6.81%, false claims 0.85%), V6b in the 2020-21 crash year (3.43%, 0.43%) and V6a there (2.69%, tolerance 2.60%). The owner's options,
+  as the judge framed them:
+  1. **Accept**, with every verdict worded "beat the baseline over the scored window" and the window's regime printed
+     (mean VIX, 2% days, band). Recommended (some evidence: option 2 measured worse; option 3 ends every claim).
+  2. **Exclude crash windows**, cut frozen now on outcome-side data only. Measured (mean VIX above 25, or more than 10%
+     2% days): removes 8-16% of windows and, inside the crash year, raises V6b's false "no" from 3.43% to 10-16%, as
+     the kept calmer windows form the next regime. It does not fix the problem.
+  3. **V6b descriptive** like V7: no claimable member is left in v4, so Test A could never say "yes".
 
 Also open to challenge: the family without V3-V5 (5.6), special sessions out (2), V2-V3 on `close_proxy` (1.1), the
 5% spread limit and parity forward (1.4), strict "inside" for V5 (1.5).
