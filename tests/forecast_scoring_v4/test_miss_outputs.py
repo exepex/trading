@@ -97,3 +97,24 @@ def test_after_the_freeze_misses_count_from_the_day_after_it_and_earlier_days_ne
     member = scoring.member_comparisons(counted_after=DAYS[1])[(V6_BIG_MOVE_5S, "rules")]
     assert member.misses == MissReport(observable=8, missed=3, big_observable=2, big_missed=0, input_failures=0)
     assert member.misses.operations_undecided
+
+
+class StartsAfterFreeze(BrokenAfterFreeze):
+    """No row at all before 6 Jan, four days after a 2 Jan freeze; live every day from then on."""
+
+    def values(self, question, forecaster):
+        if forecaster == "base_rate":
+            return super().values(question, forecaster)
+        return values({d: 0.3 for d in DAYS[5:]}, live=True)
+
+
+def test_a_member_that_starts_after_the_freeze_counts_misses_only_from_its_first_forecast():
+    scoring = V4Scoring(StartsAfterFreeze(), Outcomes(), Registered())
+    member = scoring.member_comparisons(counted_after=DAYS[1])[(V6_BIG_MOVE_5S, "rules")]
+    assert member.misses == MissReport(observable=5, missed=0, big_observable=2, big_missed=0, input_failures=0)
+
+
+def test_a_void_day_neither_file_holds_is_not_an_input_failure():
+    outcomes = OUTCOMES | {ABSENT: Outcome(True, True, 15.0, 0.001)}  # resolved, but void
+    found = compare(V6_BIG_MOVE_5S, "weather_m1", "base_rate", paired_rows(OWN, BASE, outcomes), outcomes, 4)
+    assert found.misses == MissReport(observable=9, missed=1, big_observable=2, big_missed=1, input_failures=0)
