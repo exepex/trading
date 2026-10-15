@@ -49,3 +49,23 @@ guarantee.
 
 **Verdict: FAIL for f1ac398d99694676f2b523426b6c35cb25c07708**, on must-fix 1 only (a one-line test). The script
 itself is sound and does what the story claims; I verified it by running it.
+
+## Addendum 1 (15 Oct 2026): 0eea4f53847b4f1f6e29f3565dd84abfdc494fa8 (f1ac398..0eea4f5)
+
+| Item | Status | Evidence |
+|---|---|---|
+| Must-fix 1 | MET | `test_the_3pm_routine_and_readme_name_the_script` checks that CLAUDE.md's "## 3 pm quote recorder" section and README.md contain `sh tools/routine_setup.sh --groww`. The old guarantee is back, in its new form. It passes on the trial merge, where CLAUDE.md auto-merged with main's newer copy |
+| Follow-up: virtual environments | Done | The script now installs through each name's own `sys.executable` and uses the real path only to skip duplicates. My run with a fresh venv first on PATH: `routine setup ok: .../venv2/bin/python3 (15s)`. A plain run: `routine setup ok: /usr/bin/python3 (5s)` |
+| Follow-up: probe failure | Done | It prints one line: "'<name>' (<path>) does not run", then exits 1 |
+| Follow-up: root warning | Done | `--root-user-action=ignore` |
+
+**Gates:** trial merge with current `origin/main` (clean; CLAUDE.md auto-merged): **5203 passed**; ruff and
+`check_imports` are clean.
+
+**Remaining edge (not blocking):** de-duplicating by real path treats a venv's `python3` and a base `python` as one
+interpreter. If PATH mixes the two, only the first gets the packages, and the import check then fails loudly for
+the other. So the edge is safe, never silent. Paths with spaces would also split wrongly. Neither occurs in the
+routines' containers.
+
+**Verdict: PASS for 0eea4f53847b4f1f6e29f3565dd84abfdc494fa8.** After the merge: every routine's prompt must call
+the script. I will check the next 3 pm recorder run's log for the "routine setup ok" line and its time.
