@@ -254,3 +254,37 @@ def test_c4_checks_its_own_value_types(key, value):
 
     with pytest.raises(ValidityLimitsError):
         limits(RISK_PROFILE_BOOKS, **{key: value})
+
+
+@pytest.mark.parametrize(
+    ("code", "sides"),
+    [("PCS", {"bullish", "short_volatility"}), ("CCS", {"bearish", "short_volatility"}),
+     ("CDS", {"bullish", "long_volatility"}), ("PDS", {"bearish", "long_volatility"})],
+)  # fmt: skip
+def test_c4_puts_each_real_vertical_in_its_two_owner_buckets(code, sides):
+    """Owner "1 B" with STR1's real codes and legs, the repository's bucket_sides; a held short fly is counted only
+    in the short-volatility bucket, at its full maximum loss."""
+    from tests.checks.test_validity_shapes import ONE_SIDE, ROWS
+    from tests.checks.validity_proposal_builder import one_side_proposal
+
+    spec, width = ONE_SIDE[code]
+    held = (_held("fly"),)
+    report = check(
+        one_side_proposal(code, spec, width, open_terms=_terms(*held)), margins=Margins(ROWS), **_books(*held)
+    )
+    numbers = next(r for r in report.results if r.name == "bucket_cap").numbers
+    assert {g.removeprefix("bucket NIFTY/") for g in numbers if g != "limit_rs"} == sides
+    for group, counted in numbers.items():
+        if group != "limit_rs":
+            assert ("fly" in counted["counted_rs"]) is (group == "bucket NIFTY/short_volatility")
+
+
+@pytest.mark.parametrize("code", ["LC", "LP"])
+def test_c4_refuses_a_bought_option_until_the_owner_maps_it(code):
+    from tests.checks.test_validity_shapes import ONE_SIDE, ROWS
+    from tests.checks.validity_proposal_builder import one_side_proposal
+
+    spec, width = ONE_SIDE[code]
+    report = check(one_side_proposal(code, spec, width), margins=Margins(ROWS), **_books())
+    caps = [r for r in report.failures if r.name in ("bucket_cap", "open_risk_cap", "new_risk_per_day")]
+    assert len(caps) == 3 and all("unmapped" in r.reason for r in caps)

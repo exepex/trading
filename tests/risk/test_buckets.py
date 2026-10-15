@@ -121,3 +121,42 @@ def test_a_flat_or_locked_in_position_counts_zero_never_negative():
     held = open_trade("t", FLY, 200, puts, EXPIRY, cash_flow=50_000.0)  # far more cash in than it can lose
     assert HeldMaxLoss(CHARGES).max_loss(held.units, held.cash_flow, the_market) == 0.0
     assert HeldMaxLoss(CHARGES).max_loss({}, 0.0, the_market) == 0.0
+
+
+@pytest.mark.parametrize(
+    ("code", "sides"),
+    [("PCS", (BUCKET_BULLISH, BUCKET_SHORT_VOL)), ("CCS", ("bearish", BUCKET_SHORT_VOL)),
+     ("CDS", (BUCKET_BULLISH, BUCKET_LONG_VOL)), ("PDS", ("bearish", BUCKET_LONG_VOL))],
+)  # fmt: skip
+def test_the_repository_maps_str1s_verticals_to_the_owners_two_buckets(code, sides):
+    """Owner, 15 Oct 2026, "1 B", with STR1's real codes in config.yaml."""
+    assert BUCKETS.buckets_of(code, ["NIFTY26OCT24800PE"]) == tuple(Bucket("NIFTY", s) for s in sides)
+
+
+@pytest.mark.parametrize("code", ["LC", "LP"])
+def test_a_bought_option_stays_unmapped_until_the_owner_decides(code):
+    with pytest.raises(RiskInputError, match=f"structure '{code}'"):
+        BUCKETS.buckets_of(code, ["NIFTY26OCT25300CE"])
+
+
+def test_a_real_bull_put_spread_counts_with_a_held_fly_and_a_held_call_debit_spread(tmp_path):
+    """Through the app's wired caps: a PCS 100 counts in bullish with a held CDS and in short volatility with a held
+    SF, its full maximum loss in each; each bucket binds at exactly its total."""
+    from fno.risk.caps import BucketCap
+    from fno.risk.wiring import build_position_risks
+
+    prices = PRICES | {(24700, "PE"): 45.0, (25100, "CE"): 110.0}
+    the_market = market(25000, prices, EXPIRY)
+    risks = build_position_risks(load_app_config(), profile_settings(load_app_config(), RISK_PROFILE_BOOKS))
+    pcs = proposal("new", "PCS", 100, [(24800, OPTION_PUT, SOLD), (24700, OPTION_PUT, BOUGHT)], EXPIRY)
+    fly = open_trade("fly", FLY, 200, short_fly(25000, 200), EXPIRY, 10_000.0)
+    cds = open_trade("cds", "CDS", 100, [(25000, OPTION_CALL, BOUGHT), (25100, OPTION_CALL, SOLD)], EXPIRY, -3_000.0)
+    the_book = book([fly, cds])
+    groups = BucketCap(risks, 1e9).check(pcs, the_book, the_market).numbers["groups"]
+    own = risks.of_proposal(pcs, the_market).max_loss_rs
+    assert set(groups["bucket NIFTY/bullish"]["counted_max_loss_rs"]) == {"cds", "new"}
+    assert set(groups["bucket NIFTY/short_volatility"]["counted_max_loss_rs"]) == {"fly", "new"}
+    assert all(g["counted_max_loss_rs"]["new"] == own for g in groups.values())
+    binding = max(g["total_rs"] for g in groups.values())
+    assert BucketCap(risks, binding).check(pcs, the_book, the_market).ok
+    assert not BucketCap(risks, binding - 0.01).check(pcs, the_book, the_market).ok
