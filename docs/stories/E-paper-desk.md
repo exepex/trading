@@ -54,6 +54,126 @@ through `with AccountLock(book):`.
 
 ---
 
+## E1b. Capital top-up: the three books move to the Rs 20 lakh account
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want each book's paper account to receive a dated capital top-up entry that
+brings it to the owner's account size, with every reader treating it as capital (never as profit and never as a
+closed-equity gain), so that the three books opened at Rs 5 lakh on 13 Oct 2026 can trade on the Rs 20 lakh account
+without rewriting their history.
+
+**Context and why:**
+- Owner, 14 Oct 2026: "Paper account Rs 20 lakh, Rs 10,000 maximum loss per trade" (`docs/DESK_DECISIONS.md`).
+- Owner, 15 Oct 2026, "2 B": "The three paper books move to Rs 20 lakh by a dated Rs 15 lakh top-up entry"; "A new E1
+  entry kind; the 13 Oct opening rows stay as written" ("History is never rewritten").
+- Story C5 (risk buckets, branch `story/c5-risk-buckets`) refuses every trade of a book whose capital differs from its
+  profile's `paper_account_rs` (rule `paper_account`). The three committed books opened with Rs 5,00,000 on 13 Oct, so
+  every book trade is refused until this story runs.
+- Judge 105 minor 4: the paper-account rule must read the opening plus top-ups, and a top-up must never raise the
+  drawdown brake's high-water mark (it is capital, not a gain).
+- Brake scope (orchestrator, owner away, 15 Oct 2026, owner to confirm): the brake and caps apply per book, each book on
+  its own Rs 20 lakh. So each book is topped up separately.
+
+**Scope.** In:
+- a new cash-ledger entry kind `capital_top_up` (constant in `fno/constants.py`), appended once per book by E1's writer
+  under the book's lock, dated, with its amount and the cash after it; never edits or removes an earlier row;
+- the account's **capital**: the opening row plus every top-up dated on or before a day; the account's cash, closed
+  equity and marked equity include it;
+- every reader of the opening cash moved to capital:
+  - E1's state and `positions.json`;
+  - C2's risk view (closed-equity series, paper-account rule);
+  - C4's own ledger read (its capital, cash, closed-equity series and paper-account check);
+  - P10's Home figures (profit and loss against capital as of each day);
+  - S2's reconciliation (cash change against capital);
+- a command `python -m fno account top-up [--book ...]` that tops each book up to its profile's `paper_account_rs`.
+  The amount is computed, never typed. It is refused when the book is already at size, above it, or not started, or
+  when the book has open positions (its marked equity would need marks). The equity history gets that day's row.
+- run once per book after the judge's PASS and the merge, by the orchestrator or the owner, and the data committed
+  (lane 1: `journal/`). Never run by the builder on the real journal.
+
+Out:
+- withdrawals and any capital decrease;
+- top-ups of the Manual account (none exists; MA1);
+- S2's benchmark returns per rupee of capital (S2 change; noted: a capital flow must not count as return);
+- any change to a frozen file.
+
+**Design:**
+- `fno/books/fills.py`: `top_up_row(entry_id, day, amount, cash_before)`; `CAPITAL_KINDS = (opening, top-up)`; fills
+  stay `FILL_KINDS` only, so no position or trade ever includes a top-up.
+- `fno/books/account.py`:
+  - `PaperAccount.capital(on: date | None = None)`: the opening plus top-ups dated on or before `on` (all when None).
+    It replaces `starting_cash()`.
+  - `AccountWriter.top_up(day, target)`: appends `top_up_<day>` for `target − capital`, refused as in Scope. Idempotent:
+    the same day's entry already recorded returns False. Writes the day's equity row from the unmarked state (exact,
+    as the book is flat).
+- `fno/books/equity.py`: `account_state(capital, ...)`; the state's field renamed from `starting_cash` to `capital`,
+  every reader updated.
+- C2 `fno/risk/book_view.py`: the closed-equity series is the account's capital (as of the decision day) plus the
+  cumulative closed profit and loss. The capital is constant across the series, so a top-up shifts the whole series
+  and never creates a new high; the brake measures drawdown of profit and loss only. `PaperAccountSize` compares
+  capital.
+- C4 `fno/checks/validity_account.py` (its own read, no E1 code): capital rows are the opening and top-up rows filled
+  by the cutoff. They count in cash and capital, never in trades. The closed-equity series uses the capital as of the
+  cutoff throughout, and the paper-account check compares that capital.
+- P10 `fno/market_read_models/home_inputs.py`: `pnl = marked equity − capital(day)`.
+- S2 `fno/scoreboard/reconcile.py`: the cash change is measured against capital.
+- Wiring: the command in `fno/books/cli.py`, the target from `fno/composition.py` (`paper_account_rs`).
+
+**Acceptance criteria:**
+1. A top-up appends exactly one `capital_top_up` row to a started, flat book whose capital is below the books' size:
+   amount = Rs 20,00,000 − capital (Rs 15,00,000 for a Rs 5 lakh book), `cash_after` = cash before + amount; every
+   earlier row is byte-for-byte unchanged (test reads the file before and after).
+2. Refusals, each with a named reason and nothing written: a book already at Rs 20 lakh (a second run: "already at
+   size", idempotent), a book above it, a book not started, a book with an open position, a write without the book's
+   lock.
+3. Capital is the opening plus top-ups dated on or before a day: for the 13 Oct book topped up on day T, capital is
+   Rs 5,00,000 on T − 1 and Rs 20,00,000 on T. Cash and closed equity include it; no trade, fill, position or C1
+   ledger line contains it (tests on E1's state, `positions.json`, `trade_positions` and C1's three ledgers).
+4. C2 after the top-up: `paper_account` passes for a topped-up book and still refuses a Rs 5 lakh book; the drawdown
+   brake is unchanged by a top-up:
+   - a book Rs 1,30,000 below its high stays braked after a Rs 15 lakh top-up;
+   - a book at its high does not get a higher high-water mark from it;
+   - closed equity minus the high-water mark is identical before and after the top-up (tests at, under and over the
+     Rs 1,20,000 brake).
+5. C4 reads the same ledger independently and agrees with C2 on capital, cash, the brake and the paper-account check
+   (test on one ledger; C4's independence test still passes).
+6. P10 Home: on days before the top-up the book's `pnl` is 0 against Rs 5 lakh; on and after it, 0 against Rs 20 lakh;
+   never −Rs 15 lakh (test over a date range).
+7. S2's reconciliation still holds to the rupee with a top-up in the ledger (test).
+8. The command tops up all three books (or `--book`), prints one line per book (topped up by Rs X / already at size /
+   refused: reason), and exits non-zero if any book was refused.
+9. No code path edits or deletes an earlier ledger row; a top-up never moves a position or touches another book's
+   account (book firewall test).
+
+**Gap list:**
+
+| Requirement (source) | Criterion or reason out |
+|---|---|
+| Books move to Rs 20 lakh (owner 14 Oct; "2 B") | 1, 8 |
+| A dated top-up entry, a new E1 entry kind ("2 B") | 1 |
+| The 13 Oct opening rows stay as written; history never rewritten ("2 B") | 1, 9 |
+| Rs 15 lakh per book ("2 B") | 1 (computed as size − capital, which is Rs 15 lakh for each committed book) |
+| Paper-account rule reads opening plus top-ups (judge 105 minor 4) | 4, 5 |
+| Top-up never raises the brake's high-water mark (judge 105 minor 4) | 4, 5 |
+| Brake and caps per book (orchestrator, owner to confirm) | 1 (each book topped up separately), 4 |
+| Single-writer lock and book firewall (E1) | 2, 9 |
+| Point in time (C4 reads rows by its cutoff) | 3, 5 |
+| Capital flows are not returns (S2 benchmarks, design 03 change 4) | out: S2's change; recorded here so S2 inherits it |
+| Withdrawals | out: no owner decision |
+
+**Test plan:** `tests/books/test_top_up.py` (criteria 1-3, 8, 9); C2's `tests/risk/test_top_up_brake.py` (4); C4's
+`tests/checks/test_validity_top_up.py` (5); P10 and S2 tests extended (6, 7). Every criterion broken on purpose once
+(`PYTHONDONTWRITEBYTECODE=1`).
+
+**Judge verifies:** tops up a copy of the three committed books and diffs the ledgers; plants a brake case (a book
+Rs 1.3 lakh down) and checks that the top-up leaves it braked in C2 and C4; runs Home over the top-up day.
+
+**Depends:** E1, C1, C2, C4, C5 (the `paper_account` rule and the books profile), P10, S2 · **Size:** S · **Status:**
+story text for the judge's check before code (claims: `reviews/claude/response_110_e1-topup.md`)
+
+---
+
 ## E2. Common market pack and book-private packs
 
 **Repository:** trading
