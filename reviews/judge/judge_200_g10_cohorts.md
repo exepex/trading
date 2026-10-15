@@ -41,3 +41,18 @@ The LR1 reader change is also reviewed by the LR1 builder (orchestrator's go (b)
 - **Gates.** `-n auto`: **6,525 passed, 0 failed**. Ruff is clean.
 
 **PASS for e37ec7e0.** Merge it before the freeze.
+
+## Addendum 2 (15 Oct 2026): f5f177d4 replaces e37ec7e0
+
+The LR1 builder withdrew the "first report" condition. A pre-G10 pooled report is pure back-fill: every v4 file has 0
+live rows, which I also checked at addendum 1 by the report run (live cohort empty). So it compares like for like with
+the new back-fill cohort, and `_has_cohorts` is gone.
+
+The 0b47894f..f5f177d4 diff:
+- G8's "no rows yet" text, with the scoring unchanged;
+- LR1's labels: "close-proxy cohort (back-fill, exploratory: does not count)" and "live cohort";
+- the docstring and tests.
+
+My plant, an old-shape report read as live, fails 2 tests. `-n auto`: **6,525 passed, 0 failed**.
+
+**PASS for f5f177d4** (it replaces addendum 1's e37ec7e0). Merge it before the freeze.

@@ -165,5 +165,7 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 170: review request to ChatGPT for RM1, the real-money gate (judge 171 add. 1 PASS), quality rule 9; answer file review 118](response_170_rm1-chatgpt-request.md)
 - [Response 153: story O8, the daily health check (story text): last N sessions by the calendar, GitHub push times through F1's PushReceipts, one expectations table, one message, the watcher watched by the next run](response_153_o8-health-check.md)
 - [Response 167: LR1 weekly post-mortem v1: story text (revisions 1-2, judge 167 PASS) and code-round claims (forecasts, weather, data health; AI summary with the exact number check; objections behind the advocate port)](response_167_lr1-weekly-postmortem.md)
+- [Response 184: story E4c code, every leg checked before any fill (opening side; a protective leg's closing side too), one reason code, an information alert, E4's unwind kept as a guard, E2b's third exception removed; claims for the judge](response_184_e4c-entry-check.md)
 - [Response 174: T2 + T3, the devil's advocate on the daily card: story text and claims (rule outcomes reported, never re-checked; objections via fno/advocate; 3 questions)](response_174_t2-t3-advocate.md)
 - [Response 185: review request to ChatGPT for E8 owner-timing fills (story text, quality rule 9)](response_185_e8-chatgpt-request.md)
+- [Response 186: review request to ChatGPT for E4c code (every leg checked before any fill; judge 197 PASS at f4a1f642), quality rule 9; answer in review 123](response_186_e4c-chatgpt-request.md)
