@@ -60,8 +60,10 @@ nothing beyond what is below). Pre-market run 07:01-07:07 IST; in-session run: s
   So the safe pace is about 5 requests a second: **a full snapshot (index, future, 2 chains, 216 quotes) takes about
   45-50 s** at 4 workers. Some evidence (one morning, pre-market).
 
-**In-session check:** to be added from a run after 09:15 IST on 15 Oct 2026 (index `last_trade_time` during the
-session, two-sided books share, snapshot duration at the chosen pace).
+**In-session check:** to be added as an amendment from a run after 09:15 IST on 15 Oct 2026 (index `last_trade_time`
+during the session, which source-time rule applies, two-sided books share, snapshot duration at the chosen pace). The
+source-time rule itself is fixed below (Definitions) with its fallback, so the amendment only confirms which branch
+applies.
 
 ## Scope
 
@@ -103,13 +105,31 @@ as a proposal.
   same expiry, the next listed expiry is the second chain), and one quote (bid, ask, depth, last trade time) per contract
   of those chains with a strike within 6% of the index level, each with Groww's raw answer, its SHA-256, our request
   and response times, and the failure name of any call that failed.
-- **Fresh index level:** the snapshot's index level is fresh when its source time (Groww's own timestamp for the
-  index, rule fixed by the in-session check) is at most **120 s** older than the response time (design 5.2: "more than
-  2 minutes old is stale"), and it is not identical to the previous slot's level (a repeated value is treated as stale,
-  C3's failure mode "a stale quote repeated").
-- **Good slot:** taken on time, fresh index level, every call answered, at least one contract in the band and every
-  expected contract quoted (an empty chain is never good: it would hide an API change). Any other slot is **bad**,
-  with a named status (below).
+- **Index source time (judge 108, should-fix 1).** The index level's source time is Groww's own time for it, never
+  our clock, chosen in this order:
+  1. **Primary:** the index quote's `last_trade_time` (epoch seconds, or milliseconds when above 10^11), when present.
+  2. **Fallback, when Groww leaves it empty for the index:** one more read-only call right after the index quote,
+     `get_historical_candles(NSE-NIFTY, CASH, 1minute)` over the 5 minutes up to the response; the source time is the
+     **end** of the latest 1-minute candle (its start time plus 60 s). That is minute resolution: at the 09:30 mark the
+     latest finished candle is 09:29-09:30, so its end is the mark itself and the measured age is about the call's
+     latency. The `index_time_basis` field of the document and the ledger says which rule gave the time
+     (`last_trade_time` or `candle_1m_end`).
+  3. **Neither:** no source time; the level is stale (`index_time_missing`), never assumed fresh.
+  Pre-market on 15 Oct the index `last_trade_time` was empty; the in-session check (amendment below) says which rule
+  applies in the session. Both rules are built and tested, so the recorder does not depend on the answer.
+- **Fresh index level:** fresh when its source time is at most **120 s** older than our response time (design 5.2:
+  "more than 2 minutes old is stale"), and stale otherwise (`index_time_old`). An unreadable time is `index_parse`
+  (failed, by name).
+- **A repeated level is a flag, not staleness (judge 108, should-fix 2).** NIFTY ticks in 0.05 steps and calm
+  15-minute intervals exist (reasoning only: about 2% of sessions could have one), so equality with the previous
+  mark's level is recorded as the flag `index_repeated` on the row and voids nothing; only an old or missing source
+  time makes a level stale. Voiding calm intervals would bias the kept RV upward and spend the 5% void budget on calm
+  days.
+- **Good slot:** taken on time, fresh index level, every call answered, both chains answered with at least one
+  contract in the band each (counted per chain, so an empty chain is never hidden by the other one and never good: it
+  would hide an API change), and every expected contract quoted. Any other slot is **bad**, with a named status
+  (below). What failed before the mark but was retried (sign-in, the expiry plan) is kept as a note and changes no
+  status.
 - **Realised variance (protocol v4's `RV_s`, design 5.2), units:** with `S_k` the index level of slot `k` of session
   `d` and `S_prev` the 15:30 level of the previous recorded (regular or special) session (a muhurat evening hour is
   skipped: it has no 15:30 mark, and its move falls inside the next overnight return),
@@ -130,6 +150,8 @@ New package `fno/intraday/` (each file under 350 lines):
 - `IntradayQuoteSource` (interface, design 2.1): `take(day, slot) -> SnapshotDocument`; one adapter
   `GrowwIntradaySource` (read-only SDK calls `get_quote`, `get_option_chain` plus the existing `GrowwProvider` sign-in
   and expiries; parallel quotes at most 4 workers, about 5 a second).
+- `ReadOnlyGroww` (allow-list wrapper, criterion 10): the only Groww object the source holds. The index source time
+  uses the quote's `last_trade_time`, else the end of the latest 1-minute index candle (Definitions).
 - `ExpiryPlan`: which two expiries (nearest listed; nearest monthly by `PointInTimeMonthlies` with A4's NSE-file
   fallback, flagged when unverified).
 - `IntradayRecorder`: slot timing, session decision, store, ledger, alerts, heartbeat; never knows Groww.
@@ -153,9 +175,13 @@ New package `fno/intraday/` (each file under 350 lines):
   `fno/constants.py`).
 
 **Slot statuses:** `good`; `missed` (no snapshot by mark + 120 s: host absent or started late); `late` (taken, but
-the index answer came more than 120 s after the mark); `stale` (index level older than 120 s, no source time, or
-repeated); `failed` (a call failed, including sign-in; the failure names say which, as exception
-class names only); `incomplete` (index fine, but a chain or contract quote missing). **Clock failures** (recorded on the
+the index answer came more than 120 s after the mark); `stale` (index source time more than 120 s old, or none);
+`failed` (the index call failed or could not be read, or the snapshot could not be taken, or the Drive write failed:
+`drive_write: <error type>`, judge 108 should-fix 5; then the mark has a row and no file, the raw document is dropped,
+never written to the repository and never spooled anywhere in the checkout, and the mark is never retaken; it counts
+as bad for criterion 7's streak alert; failure names are exception class names only);
+`incomplete` (index fine, but a chain empty, failed or missing, or a contract quote missing; failed contract quotes
+are counted as `quotes_failed:N` in the row, the document keeps every name). **Clock failures** (recorded on the
 row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_unchecked` (no server answered),
 `source_ahead_of_host` (Groww's time more than 5 s after our receive time).
 
@@ -164,12 +190,18 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
 0. **Step 0 is recorded** in this file (above) with the in-session check, counts and timings only.
 1. **26 marks.** Given a recorded session, the session loop takes exactly the slots 09:15, 09:30, ..., 15:30 IST and no
    others; `snapshot` takes the next mark (waiting at most 15 minutes) and records "already recorded" for a slot that
-   has a file.
+   has a file or a ledger row. Two overlapping runs (the trigger design) give each mark exactly one ledger row, keep
+   the first stored version, and put the other's different bytes under `revisions/` (test with two recorders on one
+   store and ledger).
 2. **Calendar.** Regular and special sessions are recorded; a muhurat-only day, a holiday and a weekend record nothing
    and print "not a trading day"; a day outside the calendar stops with exit 1 and an alert (A7's message).
-3. **Raw to Drive, never overwritten.** Each good, stale, failed or incomplete snapshot is one JSON file at the path
-   above in the owner's Drive `raw` area; the same bytes again change nothing; different bytes at the same path are
-   saved under `revisions/` with an index row and the raw file is unchanged (A11).
+3. **Raw to Drive, never overwritten.** Each snapshot taken is one JSON file at the path above in the owner's Drive
+   `raw` area; the same bytes again change nothing; different bytes at the same path (two overlapping runs taking one
+   mark) are saved under `revisions/` with an index row and the raw file is unchanged (A11); the ledger row describes
+   the first version stored, which is what readers and the RV use. **Drive write failure (judge 108, should-fix 5):**
+   the mark is `failed` with `drive_write: <error type>`, the document is dropped (never written to the repository or
+   spooled in the checkout), the loop goes on to the next mark, and the streak rule alerts (test with a store that
+   raises).
 4. **Content.** A snapshot holds the index quote, the near future's quote, two chains (nearest listed and nearest
    monthly; the next listed if they coincide) and one quote per contract within 6% of the index level, each with raw
    SHA-256, request and response times; the expected and recorded contract counts are in the document and the ledger.
@@ -181,31 +213,52 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
    `first_seen_at`, `method`, and `inputs_sha256` (SHA-256 of the input files' SHA-256s in slot order); values equal a
    hand computation; any missing or stale index level voids the part that needs it; `rv` prints the share of void
    sessions and flags it above 5% (design 5.2). The row is written once per session (a rerun with the same inputs
-   changes nothing; different inputs are refused).
-7. **Alert after two bad slots in a row.** When the newest two due slots are both bad, one SYSTEM alert goes through
+   changes nothing; different inputs are refused, reported and alerted, and never stop the heartbeat or the commit).
+   `rv` refuses a day that is not a recorded session or whose 15:30 window has not closed; without `--day` it settles
+   the latest finished session. Once the recorder has a history, each session's first run also settles a previous
+   session left unfinished (missed rows and its RV), so a host that died mid-session never leaves a day open.
+7. **Alert after two bad slots in a row.** When two due slots in a row are bad, one SYSTEM alert goes through
    `AlertSender`, its first line saying what to do; one alert per streak (sent when the streak reaches two, also when
-   several marks are settled at once) and at most one an hour (a new streak exactly 60 minutes after the last alert
-   is alerted, one under is held until the hour has passed); the outcome line
+   several marks are settled at once) and at most one an hour (a new streak exactly 60 minutes after the last sent
+   alert is alerted; one under is held and sent at the first settlement after the hour, even if the streak has ended);
+   only a sent alert counts: a failed send ("alert NOT sent") is retried at the next settlement; the outcome line
    ("alert sent" / "alert NOT sent: ...") is printed and kept in the ledger. Dry run: nothing sent.
 8. **Clock contract (design 4.4).** Every stored time is UTC with its offset (ISO 8601) and printed in IST; Groww's
    source time is kept apart from our `request_sent_at`, `response_received_at` and `first_seen_at`; the host clock is
    checked against GitHub's and Slack's server times on each run; skew above 5 s is recorded as `clock_skew` and printed
    as a WARNING; no answer is `clock_unchecked`; a source time more than 5 s after our receive time is
    `source_ahead_of_host`.
-9. **Heartbeat.** Each run writes `heartbeat.json` (last run start and finish, last slot, its status, skew); the
-   `heartbeat-check` command, during a recorded session from 09:45 to 15:45 IST, reports "silent" with exit 1 and a
-   WARNING alert when the last finish is more than 30 minutes old (design 4.2), and "ok" otherwise.
-10. **Read-only and secret-safe.** No code in `fno/intraday/` names any order, position, margin or funds call (test over
-    the source and with a fake API whose order methods fail); credentials only from the environment, never written to a
-    file, the ledger, a log line or an alert (test plants fake secret values and greps every output).
+9. **Heartbeat.** Each run writes `heartbeat.json` (last run start and finish; the last slot, its status and skew,
+   kept as they were by a run that took nothing); the `heartbeat-check` command reads GitHub's copy (`git fetch`, then
+   `origin/main`), never the host's own working tree, so a host whose pushes fail does not look alive; during a
+   recorded session from 09:45 to 15:45 IST it reports "silent" with exit 1 and a WARNING alert when the last finish is
+   more than 30 minutes old or the copy cannot be read (design 4.2), and "ok" otherwise.
+10. **Read-only and secret-safe (judge 108, should-fix 4).** The Groww client the SDK returns can trade (design 6.6),
+    so the intraday source never holds it: it gets a `ReadOnlyGroww` allow-list wrapper that exposes only `get_quote`,
+    `get_option_chain`, `get_expiries`, `get_contracts`, `get_historical_candles` and the SDK's exchange, segment and
+    interval constants; any other attribute (every order, position, holdings, margin, funds or socket call) raises
+    `ReadOnlyViolation` before reaching the SDK. Sign-in stays in `GrowwProvider`, which builds the client; the wrapper
+    is built around it in the composition root only. Tests: (a) the wrapper refuses every other attribute of the real
+    SDK class's public names (read from `growwapi` when installed, else from a fixed list of its 1.5.0 names) and lets
+    the allowed ones through; (b) the source's only path to the client is the wrapper (a fake whose order methods fail
+    the test, run through a whole session); (c) a grep over the **whole import closure** of `fno/intraday/` (every
+    `fno` module it imports, directly or not) finds no order, modify, cancel, position, holdings or margin call name.
+    Credentials only from the environment, never written to a file, the ledger, a log line or an alert (test plants
+    fake secret values and greps every output).
 11. **No raw quotes in the repository.** The repository files hold no price, bid, ask or level: only times, counts,
     statuses, SHA-256 values and the realised variance (test over the written files).
 12. **Interfaces and wiring.** Source, store, clock, realised variance and alerts are behind interfaces, wired only in
     `fno/intraday/wiring.py`; swapping the source is one class plus one line there.
-13. **CLI.** `python -m fno intraday snapshot [--dry-run]`, `run [--until HH:MM] [--dry-run]`, `rv [--day YYYY-MM-DD]`,
-    `heartbeat-check`; exit 0 for good, already recorded or not a trading day; 1 otherwise. `--dry-run` reads Groww live
-    but writes raw files to a local folder outside the repository and sends no alert.
+13. **CLI.** `python -m fno intraday snapshot [--dry-run FOLDER]`, `run [--until HH:MM] [--dry-run FOLDER]`,
+    `rv [--day YYYY-MM-DD]`, `heartbeat-check`; exit 0 for good, already recorded, no mark now or not a trading day;
+    1 otherwise. Any unexpected error stops the command with its class name only, an alert and exit 1. `--dry-run`
+    reads Groww live but writes every file under a folder outside the repository (refused inside it), sends no alert
+    (not even a calendar stop) and commits nothing. The NSE listing used for expiries is read only in every run (never
+    archived to Drive or the repository's manifests from here). The commit refuses to run without `core.hooksPath`
+    (the record scan is never skipped) and aborts a failed pull's merge.
 14. **Gates:** pytest, ruff, imports, code size; no file or class over 350 lines.
+15. **Trial before live.** No session counts as recorded history until the 5-session trial of the trigger design
+    (below) is reported, with the void share and the consequence above 5% stated.
 
 ## Gap list (design requirement -> criterion, or out of scope)
 
@@ -218,7 +271,7 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
 | Raw kept under A11's revision rule (4.4) | 3 |
 | Bid/ask in the chain snapshot (2.1 table) | 4 |
 | Gaps recorded, never filled (A16; 2.1 failure "host down") | 5 |
-| Stale quote repeated (2.1 failure modes) | Definitions (fresh), 5 |
+| Stale quote repeated (2.1 failure modes) | Definitions (source time decides staleness; a repeat is flagged `index_repeated`, judge 108), 5 |
 | Derived per-session RV in the repository; definition of 5.2 incl. overnight, 25 intervals, 2-minute staleness, void, 5% rule | 6 |
 | Every row: `source`, `as_of`, `first_seen_at`, raw SHA-256 (2.1 Outputs); look-ahead guard by `first_seen_at` (2.1) | 5, 6 |
 | Completeness and lateness per session (2.1 metric) | 5, 6 (published weekly: out, layer 8) |
@@ -236,6 +289,9 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
 | Host: Claude routine (6.6) | Out of scope (scheduling); routine prompt proposed below |
 | Historical candle back-fill (2.1 table) | Step 0 done; back-fill out of scope (A16b proposed) |
 | Cost of the routine (6.6) | Out of scope (F8) |
+| Trigger reliable enough for the 5% void ceiling (judge 108, should-fix 3; 5.2) | Trigger design (overlap), 1, 15 |
+| Read-only guard on a client that can trade (judge 108, should-fix 4; 6.6) | 10 |
+| Drive write failure (judge 108, should-fix 5) | 3 |
 | V4 needs weekly ATM quotes (5.2 table) | Partly: nearest weekly recorded; V4's own expiry out of scope (above) |
 
 ## Test plan
@@ -252,28 +308,67 @@ fail, repository files scanned for prices. One dry run on live Groww data with c
 rule, the streak count, the path conflict); runs one dry-run snapshot in session hours if the owner allows a live
 Groww read in the judge's session (else says so); recomputes one session's RV by hand from a fixture.
 
-## Routine prompt (proposal, owner sets it up; reasoning only, untested as a routine)
+## Trigger design (judge 108, should-fix 3; the owner sets the routine up, no builder creates a schedule)
 
-Scheduled tasks have a minimum interval of about one hour in this setup (the tool's own note: "Minimum interval is
-normally hourly"), so a single 15-minute routine may be refused. Proposal: one routine per hour on recorded-session
-weekdays at 09:10, 10:10, ..., 15:10 IST (seven fires), each running the session loop for its hour. Prompt:
+**Facts and limits.** Scheduled tasks here have a minimum interval of about one hour (the scheduling tool's own note:
+"Minimum interval is normally hourly"), so 26 separate 15-minute fires are not the design. The maximum length of one
+routine session is **not documented** anywhere this builder could read (the environment's session-resources page
+says nothing about it): unknown, so the trial below measures it before anything counts.
+
+**Design: seven overlapping hourly fires.** One routine fires on recorded-session weekdays at **09:00, 10:00, ...,
+15:00 IST** and runs `python -m fno intraday run --until <HH+1>:05` (the 15:00 fire runs to 15:35). Each fire covers
+the four marks of its hour **plus** the next hour's first mark (the 09:00 fire takes 09:15, 09:30, 09:45 and 10:00;
+the 10:00 fire takes 10:00, 10:15, 10:30, 10:45 and 11:00), so every hour boundary is covered by two runs and one
+late, slow or failed fire loses at most the marks only it covered, not the boundary. A run that finds a mark already
+stored or already in the ledger skips it ("already recorded") and waits for the next one; two runs racing for one mark
+both store, the second's different bytes go to `revisions/`, and the ledger keeps one row (criterion 1 tests this).
+A run that starts late or dies leaves its marks to the next fire or, once their windows close, to `missed` rows
+(never filled); two bad marks in a row alert (criterion 7).
+
+**Arithmetic (reasoning only).** Without overlap, a fire failing loses 4 marks and voids the session: design 5.2's
+5% ceiling would need each of 7 fires to fail under about 0.7% of the time. With overlap, only a fire's three middle
+marks are covered once; the trial measures what share of sessions are still void.
+
+**Install line (tested in this container on 15 Oct 2026; `pip install -r requirements-groww.txt` fails here because
+the SDK's old dependencies `clint` and `args` do not build):**
+`pip install -q -r requirements.txt && pip install -q --no-deps growwapi==1.5.0 && pip install -q aiohttp colorama
+"google>=3,<4" nats-py "nkeys<0.3" pandas "protobuf>=5.29,<6" pydantic pynacl "pyotp>=2.9"`. Fixing
+`requirements-groww.txt` itself is its own lane-1 change (open item, not in A16).
+
+**Prerequisites in the routine's environment:** `GROWW_API_KEY` and `GROWW_TOTP_SECRET` (secrets only, never in a
+file); `FNO_GDRIVE_FOLDER_ID`, `FNO_GDRIVE_OAUTH_CLIENT_ID`, `FNO_GDRIVE_OAUTH_CLIENT_SECRET`,
+`FNO_GDRIVE_OAUTH_REFRESH_TOKEN` (the owner's Drive, A9; without them the command stops before the first mark, names
+the missing settings and alerts, criterion 13); `FNO_SLACK_BOT_TOKEN` for alerts; push access to
+`main`.
+
+**Prompt (proposal):**
 
 > Omenix F&O intraday recorder (story A16). Research data only: never place, modify or cancel orders; never print
-> or store a secret. In `exepex/trading` on `main`: `pip install -q -r requirements.txt -r requirements-groww.txt`;
-> `git config core.hooksPath .githooks`; `git pull --no-rebase origin main`; run
-> `python -m fno intraday run --until <HH+1>:05` (it waits for each mark, records the marks of this hour, and after
-> each mark writes the ledger and heartbeat and commits and pushes `research/data/intraday/` itself; at the 15:30 mark
-> it also writes the session's realised variance; on a non-session day it prints "not a trading day"). If a commit
-> line says "NOT committed", commit and push that folder by hand (`git pull --no-rebase` first). Never bypass the
-> record scan. If the command exits 1, post its lines to #fno-desk only if it printed "alert NOT sent". Note any
-> failure in `conversations/<date>.md`.
+> or store a secret. In `exepex/trading` on `main`: run the install line from story A16; `git config core.hooksPath
+> .githooks`; `git pull --no-rebase origin main`; then run `python -m fno intraday run --until <HH+1>:05` in the
+> background and wait for it (it waits for each mark, records the marks up to that time, and after each mark writes
+> the ledger and heartbeat and commits and pushes `research/data/intraday/` itself; at the 15:30 mark it also writes
+> the session's realised variance; on a non-session day it prints "not a trading day"). If a commit line says "NOT
+> committed", commit and push that folder by hand (`git pull --no-rebase` first). Never bypass the record scan. If the
+> command exits 1, post its lines to #fno-desk only if it printed "alert NOT sent". Note any failure in
+> `conversations/<date>.md`.
+
+**Trial before live (criterion 15).** The recorder counts as live only after a measured trial of at least **5
+consecutive sessions** through the routine as set up: per session, marks good / missed / late / stale / failed /
+incomplete, the void share, each fire's start delay and run length, and any fire that did not run. The result goes in
+a claims addendum. **Consequence:** if the void share over the trial (and later over any 20 sessions) is above 5%,
+design 5.2's "new version" rule applies (a new sampling rule or trigger) and the host question goes back to the owner;
+design 6.6 allows Azure (b) only "if Groww offers a data-only key", so the alternatives are stated for the owner, not
+chosen here: GitHub Actions cron is out (runs 4.5-5.5 hours late here, response 91, and no broker key in GitHub, owner
+13 Oct), the owner's own computer (c), or accepting a higher void share.
 
 The heartbeat-silence check (`python -m fno intraday heartbeat-check`) needs a second, independent runner (design
 4.2). Proposal: the 3 pm recorder routine runs it once (a separate routine), and each hourly run runs it first for the
 previous hour. Said plainly: both are Claude routines, so an outage of the routine platform itself silences the
-checker too; the only off-platform witness is GitHub's push receipt of the heartbeat, which the owner or the dashboard
-can read. A truly independent checker (another host) is a later decision, not in A16. Cost: seven routine sessions a
+checker too; the only off-platform witness is GitHub's push receipt of each `heartbeat.json` commit (judge 108,
+minor 2), which the post-mortem (layer 8) reads to report the day's uptime, and which the owner or the dashboard can
+read. A truly independent checker (another host) is a later decision, not in A16. Cost: seven routine sessions a
 session-day of about 55 minutes each (F8 measures).
 
-**Depends:** A7, A9, A11, owner's host and terms decisions (15 Oct 2026) · **Size:** M · **Status:** story text for
-the judge's check (quality rule 1)
+**Depends:** A7, A9, A11, owner's host and terms decisions (15 Oct 2026) · **Size:** M · **Status:** story text
+revised after judge 108 (FAIL, 5 should-fix, all accepted: response 108 part 1b), for the judge's re-check
