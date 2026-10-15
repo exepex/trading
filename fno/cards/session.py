@@ -1,8 +1,7 @@
 """Which days get a card (story T1 criterion 14): only the NSE session calendar (A7) decides, read as committed. Regular
-and special sessions get one; a muhurat session (one evening hour, no 15:00 market) does not, as in the 3 pm recorder
-(A4). A day
-the calendar cannot answer (a year not yet in it) still gets a card that names the gap: a card on a holiday costs
-nothing, a missing card on a session breaks the card's contract."""
+and special sessions get one; a muhurat session (the one-hour Diwali session, no 15:00 market) does not, as in the
+3 pm recorder (A4). A day the calendar cannot answer (a year not yet in it) still gets a card that names the gap: a
+card on a holiday costs nothing, a missing card on a session breaks the card's contract."""
 
 from __future__ import annotations
 
