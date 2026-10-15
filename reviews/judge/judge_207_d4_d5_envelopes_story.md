@@ -85,3 +85,22 @@ register), C4 plugging in at one line each and D1's format for Book 3's specs ar
   the text quotes it.
 - D3's refusal of `owner_override` is recorded as a slice E code item: consistent with "never override on paper".
 - Risk and scoring stay C2 and S1 references.
+
+## Addendum 2: after ChatGPT review 130 (a7b3a0d2)
+
+**Verdict: PASS (text).**
+- **Text only:** `git diff origin/main...a7b3a0d2` changes 7 files, all docs and reviews (the D section, response
+  204, responses 210 and 212's request, review 130, the READMEs and the register row). The `fno/` changes seen
+  against e40a5d7d come from main's merge, not this branch.
+- **Matches response 212's five points:**
+  1. **Estimand:** "AI veto and width selection within the same registered playbook"; veto rate and width changes
+     shown; a zero difference reads "inconclusive". In D4.
+  2. **Trial family:** every registered Book 3 strategy enters the G0-G6 trial ledger and family; confirmatory
+     claims belong only to a frozen selection policy; no cap and no wait. D5 criterion 8 tests two prior-session
+     variants.
+  3. **C4's check:** D4 criterion 9 checks the eligible set, the trade_envelope hash against D6 and `served`, and
+     the action, with the A-forbids/B-allows fixture. As 212 states, there is no "default must also permit" rule.
+  4. **Universe label:** "monthly NIFTY defined-risk strategies with planned time exits of at most 21 days". In D5.
+  5. **Order of D3's refusal:** D3's `owner_override` refusal is built before any Book 2 or 3 paper decision (D4's
+     gap-list row).
+- Nothing else changed in the stories. Addendum 1's PASS stands.
