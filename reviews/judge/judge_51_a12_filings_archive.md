@@ -350,3 +350,27 @@ reasons can stay "Known limits" lines.
   members only (a survivorship bias for any backtest).
 
 **Verdict: FAIL** on one should-fix (criterion 6's report); criteria 1-5 are now MET.
+
+---
+
+## Addendum 9 (judge E, 15 Oct 2026, 19:35 UTC): the coverage fix (`story/a12-coverage-listing` 93f44bf3): PASS
+
+**Criterion 6: MET.** Story A12 now passes on every criterion.
+
+| Check | Status | Evidence (mine) |
+|---|---|---|
+| The rule | MET | `listed_by`: a company counts in a half-year once NSE's list shows it listed by the period end. A company absent from the list counts in every half-year. One that filed the statements anyway (an IPO's last quarter) is added to the count. `half_year_misses` gives "listed after the period end (NSE list)", else the two old reasons |
+| It reproduces my table | MET | I ran the committed functions on the committed manifest, the Nifty 500 list and NSE's `EQUITY_L.csv` (downloaded today): 93.2%, 94.7%, 96.3%, 96.6%, 96.9% and 97.2% for Sep 2023 to Mar 2026. That is identical to my addendum 8 table. Every half-year is at least 90%; Sep 2023 has 63 "listed after", 16 "no results file" and 14 "without statements". Strong |
+| The wiring fix | MET | `_archived_list` now checks the copy against its own day's manifest row. The old code used the latest row, which happened to be right for the Nifty 500 list (13 and 14 Oct share a SHA-256) but would refuse the 13 Oct `EQUITY_L.csv` (bf199940...), whose 14 Oct row differs (951c5d37...). A real bug, fixed |
+| The new live input | MET (some evidence) | Drive holds the 13 Oct `EQUITY_L.csv` at 184,050 bytes, the manifest row's size (Drive search). Its SHA-256 is checked at read time |
+| My plants (5, reverted) | 4 caught, 1 equivalent | `<=` changed to `<`: 1 failed. The "filed anyway" union dropped: 1 failed. Absent companies counted in no half-year (`date.max`): 1 failed. The "listed after" reason dropped: 1 failed. The wiring check back on the latest row: 1 failed. A first `date.min` plant was equivalent to the code, my error, so I replaced it with `date.max` |
+| Tests not weakened | MET | Three tests added and none removed. `tests/filings` 66 passed |
+| Gates on 93f44bf3 | MET | Full suite (full history): 5,883 passed. Ruff clean; format clean (1,075 files); `check_imports` clean. `coverage.py` 166 lines, `wiring.py` 144 |
+
+**End-to-end run: not needed.**
+- The CLI's slow part, the per-company Drive listing, is unchanged.
+- I reproduced the new numbers on real data through the committed functions, and the one new Drive input is present at
+  the right size.
+- The next scheduled run that prints the report will show it; the orchestrator should paste that output into the log.
+
+**Verdict: PASS for 93f44bf3.** Merge with the full suite on the merged tree. A12 stands at PASS on all six criteria.
