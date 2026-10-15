@@ -68,3 +68,12 @@ def test_a_day_with_an_open_take_ends_the_series():
                ("book1_rules", d2, "O"): StandardResult(CLOSED, 300.0, 2000.0)}  # fmt: skip
     scores = scored_days([book_day(d, TAKE) for d in (d0, d1, d2)], results)
     assert series_of(scores) == DailySeries((d0,), (1000.0,), (5000.0,))  # open cut, never 0; later days wait
+
+
+def test_a_resample_exactly_at_zero_counts_against_the_claim():
+    """The p-value counts resampled ratios at or below zero: on a series whose every resample is exactly 0, p = 1, which
+    agrees with a lower bound of 0 (not above zero). Counting only those below zero would give p = 0 and a claim."""
+    flat = series([0.0] * 20)
+    assert lower_bound(flat) == 0.0 and p_value(flat) == 1.0
+    tied = series([0.0] * 19 + [1.0])  # some resamples hold the one positive day, the rest are exactly 0
+    assert (p_value(tied, resamples=2000) < 0.05) == (lower_bound(tied, resamples=2000) > 0)
