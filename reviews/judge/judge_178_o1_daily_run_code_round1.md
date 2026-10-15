@@ -195,3 +195,33 @@ Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the 
   For E8's and M2's judges, one point, reasoning only: E8's step is planned as its own `DayStep`, not a
   `CommandStep`, so it does not get O1's 10-minute limit. Whoever judges E8 should check it cannot hang the day
   before the exits.
+
+## Addendum 6: O1 at ea008836 (unsent alerts are printed)
+
+**Verdict: FAIL, one should-fix.** The new `ReportedAlerts` is right as far as it goes. But checking it showed a gap
+of the same kind that I missed in addenda 0-5, so I own that miss here.
+
+- **What is right.** Every alert the run sends itself (O1's step alerts, the quote parts' "NOT committed", and E3's
+  desk alerts through the new `alerts` parameter) prints "alert NOT sent: <reason> | <text>" when Slack does not take
+  it. The default for `build_daily_run` is unchanged for E3. Two tests cover this. Gates on a trial merge with
+  origin/main: `-n auto` gives 6584 passed in 2 min 49 s; `ruff check` and `check_imports` are clean.
+- **Should-fix 9: child commands' own "alert NOT sent" lines never reach the routine.**
+  - **Path:** every O1 child (the three quote parts, `book1`, `card`, and later `margin_check`, `weather`,
+    `forecasts_v4`) prints into a temporary file (`ChildProcesses.start`, `stdout=output`). The run keeps only the
+    last 10 lines, inside the run log's `result.lines`, and never prints them.
+  - **What is lost:** the recorder sends its own three alerts ("calendar says session, no same-day trades", "stopped,
+    nothing recorded", "raw quote file NOT saved to Drive"; CLAUDE.md step 4). E5b's `cmd_book1` sends its own
+    "NOT committed" alert, and the card prints its post outcome. When Slack is down or the token is missing or
+    expired, each of these prints "alert NOT sent: ...". Today the routine sees that line and posts it with the Slack
+    connector (CLAUDE.md steps 3-4). Under O1 the line goes only into a temp file. It may fall outside the 10 kept
+    lines, and the routine is never shown it. So a "raw quote file NOT saved to Drive" day, on a day Slack also fails,
+    reaches no one.
+  - **Evidence:** the code (`processes.py` stdout to a temp file; `runner.py` prints one line; `KEPT_LINES = 10`).
+    The alert texts come from CLAUDE.md and `fno/quotes/cli.py`.
+  - **Expected fix (small):** when a child ends (or is stopped), the run prints, as they are, every line of its output
+    that contains `alert NOT sent`. Read the whole output, not just the kept 10, before the temp file closes. Add one
+    test: a fake child that prints an unsent alert line among more than 10 lines, and that line appears on the run's
+    output. Criterion 8's routine line ("if the command printed 'alert NOT sent', post its lines") then covers child
+    alerts too.
+
+Everything else stays as in addendum 5.
