@@ -65,13 +65,20 @@ not committed.
 - Some evidence: 3 days, equality is checked again in the run (criterion 5).
 
 **Against NSE's official open, high and low** (A1/A10 index-close files; 40 random regular sessions 2020-2026):
-- **NSE's official open equals the close of Groww's last pre-open 1-minute candle (09:14) on 40 of 40 sessions**, to
-  0.00 points.
-- The 09:15 candle's open differs from NSE's open on 40 of 40, by up to 51.65 points. NSE's open is the pre-open
-  auction's result; the 09:15 open is the first trade after it. Both are correct for what they are.
+- **NSE's official open equals the close of Groww's last pre-open 1-minute candle** (the last candle before 09:15;
+  09:14 on recent days, earlier on some older ones) on **40 of 40** random sessions and on **74 of 74** regular
+  sessions from 1 Jul to 14 Oct 2026, every one exactly (difference under 0.005 points).
+- The 09:15 candle's open against NSE's open, "differs" meaning an absolute difference above 0.05 points (unrounded
+  values):
+  - the 40 random sessions: differs on 40, by up to 51.65 points;
+  - the 74 sessions of 1 Jul-14 Oct 2026: differs on 67, within 0.05 on 7 (5 of them exact).
+  NSE's open is the pre-open auction's result; the 09:15 open is the first trade after it. They coincide only when
+  that trade happens at the auction price. Both are correct for what they are. (Corrected after the A16 builder's
+  check found 2 of 6 equal: "differs on 40 of 40" held for the random sample, not for every session.)
 - **A finding for A16, which this story does not change:** A16's condition "compare the 09:15 `candle_1m_open` with
-  NSE's official open and report every difference above 0.05" will report every session by construction. The
-  comparable value is the pre-open close. This is reported to the orchestrator for A16's owner and judge.
+  NSE's official open and report every difference above 0.05" will report most sessions (67 of 74 recently) for a
+  reason that is no error. The comparable value is the last pre-open close. This is reported to the orchestrator for
+  A16's owner and judge.
 - High and low: 26-28 of 40 agree within 0.05 points.
   - Most of the rest are small, with Groww's range inside NSE's: from 0.05 to 6.25 points. Reasoning only: Groww's
     candles sample the index less often than NSE's own computation.
