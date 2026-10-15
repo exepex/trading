@@ -1,0 +1,33 @@
+{
+ "answer": {
+  "book": "book2_hybrid",
+  "day": "2026-10-15",
+  "export_sha256": "bde78e772b1ca1195356ef20ad17b565fe5cf29510af5e138edd20eb1650cbef",
+  "forecasts": {
+   "q1_nifty_up_20d": {
+    "probability": 0.5893,
+    "reason": "Pack has no 15:00 spot, VIX or futures and IV30 is null; risk-neutral and model baselines missing, so no concrete reason to move off Book 1 base rate 0.589."
+   },
+   "q2_nifty_move_3pct_20d": {
+    "probability": 0.38,
+    "reason": "Book 1 0.352. VIX closed 14.63 on 14 Oct, up from ~11 in early Sept, and recent daily moves of 1-1.6% (NIFTY 23447 to 22232 in 3 weeks) show a higher-vol regime than the base-rate average; small move up inside envelope."
+   },
+   "q3_rv20_above_trailing": {
+    "probability": 0.4893,
+    "reason": "No 15:00 spot so trailing RV20 with today is missing; trailing RV20 from closes is already elevated, mean reversion vs persistence roughly balance; stay at Book 1 0.489."
+   },
+   "q4_vix_up_10d": {
+    "probability": 0.45,
+    "reason": "Today's VIX missing by 15:00 (not substituted). VIX at 14.63 on 14 Oct is near the top of its 3-month range (10.35-15.28); mean reversion argues slightly below Book 1 0.469."
+   },
+   "q5_rv20_below_atm_iv30": {
+    "probability": 0.6907,
+    "reason": "IV30 null in pack; envelope given so keep Book 1 base rate 0.691, no input to move it."
+   }
+  },
+  "model_reported": "unknown",
+  "pack_sha256": "d0dbe696728ceaba767c9bff0537f5a3e11358528c1830ab2b1cfbb10e40d2fe",
+  "version": "book2_hybrid/v1/sha256:8f860d90e2d623763198f4764b1e6ff04fdd7ec7c2fd374c66892542c65505af/isolation:sealed_same_day"
+ },
+ "salt": "608674fb8a9fae60e21f150245d49527"
+}
