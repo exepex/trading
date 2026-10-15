@@ -99,7 +99,8 @@ and false-futility rates are known on real Indian data.
    - `minimum_effect`: a 2% lower mean Brier than the primary's. This is a planning value, not evidence of a
      reachable skill.
    - `looks`: two, at fixed session counts after the freeze. Look 2 is the count giving 80% power for the minimum
-     effect at the **worst** year's SD and lag-1 (study 2). Look 1 is half of it.
+     effect at the **worst** year's SD and lag-1 (study 2), at the per-look rate study 3 selects. Look 1 is half of
+     it. The rate and the look counts are set together by study 3's single loop, never separately.
    - `futility`: at look 1 only. A member is futile when the plain batch-means p_e for "the true improvement is
      below the minimum effect" is at most 0.025. That is `futility_p` with a threshold of 0.025, or the check's
      fixed replacement.
@@ -120,13 +121,15 @@ and false-futility rates are known on real Indian data.
    - **Study 1: the spot proxy and the primary baseline.**
      - On the 128 sessions where both formats exist (2024-01-01 to 2024-07-05), compare Y from `UndrlygPric` with Y
        from the near-month future close, name by name.
-     - Report the agreement rate. If it is below 97%, the 2019-2023 years are reported as descriptive only, and the
-       primary baseline and the regime gate use 2024-2025 alone.
+     - Report the agreement rate. If it is below 97%, the 2019-2023 years are reported as descriptive only. The
+       primary baseline (study 1), the regime gate and its worst year (study 2) and study 3's null series and worst
+       year then all use 2024-2025 alone (judge 186 SF3).
      - Then apply `primary_baseline_rule` and record the three baselines' mean Brier with 95% intervals.
    - **Study 2: the regime gate.**
      - By calendar year, 2019-2025: the SD and lag-1 of the daily mean d for each pair of registered baselines and
        for the planning pair (`cal60` vs `cal60` x 1.15), plus the outcome correlation.
-     - The worst year sets the look counts (item `looks`) with the AR(1) inflation (1 + lag1) / (1 - lag1).
+     - The worst year's SD and lag-1, with the AR(1) inflation (1 + lag1) / (1 - lag1), are the inputs of the look
+       counts. The counts themselves are computed inside study 3's loop, at each candidate rate.
      - March-April 2020 is reported on its own.
    - **Study 3: the null and size check** (ChatGPT review 116, Q4).
      - **Null series:** each registered baseline pair's daily d over 2019-2025, centred to mean zero, and separately
@@ -136,18 +139,31 @@ and false-futility rates are known on real Indian data.
          than the test's 5, so dependence beyond the test's block is kept.
        - The real rolling windows, one start every 21 sessions, are reported beside them.
      - **The procedure, as frozen:** run on each path, with K = 3 members taken as the three pairs' paths drawn
-       together (their cross-correlation kept), both looks, Holm at the rate under test, and both signs of d.
-     - **False claim:** the share of paths with any claim at either look. Limit: at most 0.025 per look and 0.045
-       over both looks, overall and in the worst year.
-     - **False futility:** the same paths shifted to a true improvement of exactly the minimum effect. The share
-       declared futile at look 1 must be at most 0.035.
-     - **Fallback, fixed now:**
-       - If a false-claim limit fails, the per-look rate is lowered to the first value in (0.015, 0.01, 0.005)
-         that passes on the same paths. If none passes, claims are postponed and BR1 reports descriptively until a
-         new version.
-       - If the futility limit fails, the futility threshold is lowered in the same steps, or futility is dropped.
-       - The chosen values are written into `PROTOCOL.md` before the freeze. Nothing is ever tuned on post-freeze
-         data.
+       together (their cross-correlation kept), both looks, and Holm at the rate under test.
+     - **Seed:** the bootstrap uses seed 20261016. The judge re-runs it with another seed and the rates must agree
+       within 2 standard errors.
+     - **The single loop** (judge 186 SF2). It sets the rate and the look counts together. For each candidate per-look
+       rate in (0.02, 0.015, 0.01, 0.005), in that order:
+       1. compute the look counts by `sizing.py`'s formula at that rate: one-sided, z at 1 - rate/3, 80% power,
+          the worst year's SD and lag-1 with the AR(1) inflation, and δ = 0.02 x the primary's mean Brier from
+          study 1. Look 2 is that count, rounded up to whole sessions; look 1 is half of it;
+       2. run the procedure on every path at those looks;
+       3. **false claim, computed for each sign separately** (d as it is, and -d; judge 186 SF1): the share of paths
+          with any claim at look 1, at look 2, and at either. For each sign, overall and in the worst year: at most
+          0.025 at each look and 0.045 at either;
+       4. if every false-claim limit holds for both signs, this rate and its look counts are selected. Otherwise go
+          to the next rate.
+
+       If no rate passes, claims are postponed and BR1 reports descriptively until a new version.
+     - **False futility, at the selected rate's look 1:**
+       - The paths are shifted to a true improvement of exactly the minimum effect, in Brier units: δ = 0.02 x the
+         primary's mean Brier on that path's series, added to every day of d.
+       - The share declared futile at look 1 must be at most 0.035, for each sign and in the worst year.
+       - If it fails, the futility threshold is lowered through (0.015, 0.01, 0.005) at the same looks, stopping at
+         the first that passes. If none passes, futility is dropped (look 2 decides alone). This never changes the
+         selected rate or looks.
+     - **Recorded:** the selected rate, the look counts and the futility threshold are written into `PROTOCOL.md`
+       before the freeze. Nothing is ever tuned on post-freeze data.
      - No crash-day gate is added unless study 3 shows a failure that one would fix.
 
 3. **The freezer for a second protocol.**
@@ -219,8 +235,11 @@ Out (with reasons):
 6. Study 3 on a hand-made null with known dependence (an AR(1) of lag 0.3, Gaussian): the false-claim rate is
    within 2 standard errors of the procedure's rate. On a hand-made true effect at the minimum effect, false
    futility is within 2 SE of its target.
-7. Study 3 on real data writes the false-claim rates (per look, both looks, both signs, overall and worst year), the
-   false-futility rate, and the fallback decision by the rule above, with no free choice.
+7. Study 3 on real data writes, for each candidate rate it tried: the look counts, and the false-claim rates per
+   look and at either look, for each sign separately, overall and in the worst year. It then writes the selected
+   rate, or "postponed"; the false-futility rates per sign at the selected look 1; and the futility threshold
+   chosen. Every step follows the single loop, with no free choice, and a fixture test checks the order: a rate
+   that fails only for -d is not selected.
 8. `python -m fno evaluation freeze --protocol breadth` refuses an undecided protocol and freezes a decided one.
    `--protocol evaluation` behaves exactly as before.
 9. The wording of scope item 4 appears in `PROTOCOL.md` and in the README of `research/breadth/`.
@@ -240,6 +259,9 @@ Out (with reasons):
   report will show it.
 - A bootstrap from history cannot create crashes that history does not contain.
 - With seven years, the primary baseline rule rests on 1,736 sessions of history.
+- **BR1 freezes only after BR1b-BR1e exist.** `frozen_files` lists their code and outputs (the panel, the baseline
+  and scoring code, the hybrid rule set, the AI subset), and the freezer refuses a missing listed file. BR1a's
+  studies and protocol can be judged and decided earlier; the freeze itself waits (judge 186 note).
 
 **Depends:** the Drive raw archive (read only), S1's protocol format and freezer, G8's `confirmatory_test` and
 `futility_p` (`fno/forecast_v4/confirmatory.py`).
