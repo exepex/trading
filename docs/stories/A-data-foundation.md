@@ -1133,8 +1133,8 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
 - one #fno-desk line per run: the factor in force, the change, `applied` or `held`, and the peak's window;
 - the broker check of owner question 4, one step in the daily Claude routine that already holds Groww's read-only
   access (never in GitHub Actions, which holds no broker key); the routine's prompt is story O1's, so this story adds
-  the command and O1 adds its one line (judge 173 addendum 3, note 1): after each `applied` row, one read-only Groww margin request
-  for the SF 100 basket on that day's A14 row, compared with the row.
+  the command and O1 adds its one line (judge 173 addendum 3, note 1): after each `applied` row, one read-only Groww
+  margin request for the SF 100 basket on that day's A14 row, compared with the row.
 
 Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing `config.yaml`; any order.
 
