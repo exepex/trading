@@ -69,7 +69,7 @@ whether the weather forecasts danger better than the base rate before it is trus
      tails come from the data, not from an assumed distribution, and the 5-session clustering from real windows.
      Reasoning only on whether it beats the base rate: VIX is forward-looking and prices scheduled events; that is
      what the forward score will tell. It differs from G7's `v6_ewma_t4` (past returns, assumed t tails).
-2. **The colour.** The operative colour is `VixScaledWeather`'s (orchestrator decision 71, for the owner to confirm):
+2. **The colour.** The operative colour is `VixScaledWeather`'s (decision 71, owner confirmed, 15 Oct 2026 (docs/DESK_DECISIONS.md)):
    - The record labels it "not yet proven" until G8 has scored the model against v0 and the base rate.
    - If G8 shows that the model does not beat both, the colour falls back to v0. That change is a recorded decision
      in `docs/DESK_DECISIONS.md`, applied through one constant (`WEATHER_OPERATIVE_MODEL`); it is never automatic.
@@ -250,8 +250,8 @@ merge.
 
 **Decisions taken (orchestrator, 15 Oct 2026, response 113):**
 1. **Decision 71:** the model's colour is operative, labelled "not yet proven" until G8 scores it against v0 and the
-   base rate; it falls back to v0 if G8 shows that it does not beat both, as a recorded decision. **For the owner to
-   confirm.**
+   base rate; it falls back to v0 if G8 shows that it does not beat both, as a recorded decision. **Owner confirmed, 15 Oct
+   2026 (docs/DESK_DECISIONS.md).**
 2. **Decision 72:** the US-move flag stays in Drive with the private cue tables; the public record says "US move:
    private".
 3. Quality rule 9 applies: a ChatGPT review after the judge's PASS.
