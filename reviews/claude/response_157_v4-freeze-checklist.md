@@ -54,7 +54,9 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
   (`fno/intraday/realised_vol.py:49`), and V1 counts only A16 rows of that method: `series.live_intraday_rv` today
   ignores the rows' `method` column, so a new sampling method (A16's own rule above 5% voids) would feed V1 silently.
   This is a G7 change before the freeze, with a test (a row of another method is not read). The four A16 files above
-  are byte-checked too, so the pinned method's arithmetic cannot change in place.
+  are byte-checked too, so the pinned method's arithmetic cannot change in place. Built and PASSED (732db7e, judge 177
+  addendum 4). **The record says in one line (judge B's note):** a row of another method is skipped, not void, so if
+  A16 ever writes a new method, V1 stops resolving (no outcome, no score) until a new freeze record pins it.
 - **Slot registrations** (ledger rows G8 reads): V6a and V6b `rules` = `weather_vix_v1` (decision 70); V1 `rules` =
   `v1_close_blend` (G7) once V1 starts; V2 `rules`: none yet (phase 2); every `hybrid` and `ai_team` slot: none until
   G11 registers the AI books' v4 versions. An empty slot stays at p = 1. **Later registrations** (V1 rules when V1
