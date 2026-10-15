@@ -28,8 +28,8 @@ is seen, never silently skipped, and never stops the exits.
 - **Decided: option A** (orchestrator, 15 Oct, on the owner's two decisions): the owner's words above, and
   `docs/DESK_DECISIONS.md` row "O6 scope: timed jobs stay on Claude routines" (owner: "Timed jobs on routines
   (Recommended)", commit eeac1897; GitHub's timer starts this repository's runs 4-5 hours late and skips most slots,
-  judge 52 add. 1). REPLAN line 61's "fired from Actions" is superseded for this time-critical job (strong evidence:
-  both decisions are later than and narrower than REPLAN's line).
+  judge 52 add. 1). REPLAN line 61's "fired from Actions" is superseded for this time-critical job (the orchestrator's
+  ruling; both are the owner's own words of 15 Oct and name timed jobs specifically).
 - **G10's timeline** (branch `story/g10-v4-timeline`): routine at 14:05, pack captured 14:30-14:40, one 15:10 deadline,
   the 15:15 common snapshot (A16's 15:15 mark). O1 takes its times from their owners (`desk.timetable`, the recorder's
   window, `terms`), never types them again, so G10's go-live changes nothing in O1's code.
