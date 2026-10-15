@@ -144,3 +144,44 @@ I did not re-run the full suite on this SHA (it fails on the open should-fix any
   - The log line should name V6b, or quote V6a's numbers.
 - **The back-fill commit f891d9b.** It is exploratory forecast data, all `backfill_exploratory`. Protocol 8 requires
   it to be disclosed in the freeze record. Adding that is the G6 freeze commit's job.
+
+## Addendum 5 (15 Oct 2026): V6b power, the conflict between protocol 11 D (r = 3) and response 133 (r = 60-87)
+
+The orchestrator asked, for the owner's re-decision: which r is right, how many years V6b needs, and whether any v4
+member can be claimed within 2 years.
+
+1. **Both use the same formula. The difference is the value of r.**
+   - Section 7 defines `r = SD(d) / (margin x mean baseline loss)`.
+   - 11 D's "149-206 at r = 3" uses an **assumed** r = 3, the design's generic example for point questions. It was
+     never measured for a Brier question.
+   - Response 133's r is **measured** on the committed 2017-26 back-fill (`v6_ewma_t4` against the base rate). The
+     G8 report on main and my own rebuild agree: V6b r = 61.53 (mean base-rate Brier 0.1424, so the minimum effect is
+     0.02 x 0.1424 = 0.0028 Brier units); V6a r = 86.55 (base Brier 0.0475).
+   - Why r is that large: one day's Brier difference on a 0/1 outcome swings by up to about 0.3, while 2% of a 0.05-0.14
+     Brier is 0.001-0.003. That ratio comes from the outcome being binary and rare, not from this forecaster. So no
+     realistic forecaster brings r near 3 (reasoning, backed by the measured SD).
+   - **The right r for V6b is about 60** (strong evidence for this forecaster and window; some evidence for future
+     forecasters). 11 D's 149-206 does not describe V6b's minimum-effect test.
+2. **Years for V6b,** using section 7's formula `n = 13.84 r^2` (plain first step at 0.03/15, normal approximation,
+   optimistic) and 252/5 = 50.4 independent outcomes a year:
+   - (a) at the protocol's minimum effect: n of about 52,400, **about 1,040 years**;
+   - (b) at the skill the forecaster shows on V6b (relative improvement 0.171; the 14.5% is V6a's): r_obs = 7.19, n of
+     about 716, **about 14 years**. Under rule E+D's thresholds (11 D's ratio 149-206 / 134), about 16-22 years.
+   - For V6a at its own observed 14.5%: n of about 1,975, about 8 years at the plain rate. Under E+D's thresholds
+     (2.6e-14 to 2e-5) it is effectively unreachable, as 11 D says.
+   - Cross-check with real numbers (exploratory, spent data): nine years of back-fill (1,900 scored days) give V6b a
+     batch-means p of 0.0064 and V6a 0.0070. Look 1's plain level is 0.02 / 15 = 0.0013, and the calibrated levels are
+     lower still.
+3. **No v4 member can realistically be claimed within 2 years** (some evidence plus reasoning).
+   - V1: thresholds effectively unreachable (11 D; 1.1e-12 at n = 125), and no live data yet.
+   - V2: 8-22 years even at r = 3-5.
+   - V6a: unreachable under E+D.
+   - V6b: about 14-22 years even if its full observed skill is real.
+   - V7: descriptive only.
+   - So Test A "yes" is out of reach at the May 2027 review. Test A will almost surely read "undecided". Per section
+     6, the table then goes to option 1 or 2 by the power report, and with every report beyond 2 years, to option 2
+     (code only).
+   - 11 D's sentence "only V6b can be claimed, slowly" rests on r = 3 and should not guide the owner's choice.
+
+Labels: the measured r values and the p-values are strong evidence (computed twice, from committed files). Years are
+planning approximations (section 7: "a rough heuristic"). That r stays near 60 for any forecaster is reasoning.
