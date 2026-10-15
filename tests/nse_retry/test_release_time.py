@@ -67,3 +67,12 @@ def test_a_legacy_log_with_another_header_is_refused(tmp_path):
     (tmp_path / LEGACY_LOG_NAME).write_text("day,when\n2026-10-08,x\n")
     with pytest.raises(ValueError, match="its header is not"):
         ReleaseLog(tmp_path / "release_checks_v2.csv").checks()
+
+
+def test_an_empty_log_file_gets_its_header_and_the_legacy_name_is_never_a_log_to_write(tmp_path):
+    (tmp_path / "release_checks_v2.csv").write_text("")
+    rec, log = recorder(tmp_path, answer(200, b"file"))
+    rec.check(FRIDAY)
+    assert log.path.read_text().splitlines()[0] == "day,checked_at,outcome,sha256,last_modified,started_at"
+    with pytest.raises(ValueError, match="read only, never written"):
+        ReleaseLog(tmp_path / LEGACY_LOG_NAME)
