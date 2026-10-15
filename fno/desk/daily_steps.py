@@ -40,6 +40,7 @@ NOT_WRITTEN = "not filled: the account write was refused ({reason})"
 NOT_ORDERED = "not filled: the committed decision gives no orders ({reason})"
 ALERT = "F&O paper desk {day} {book}: {what}"
 LATE_AT_SNAPSHOT = "late: committed {committed}, not before the execution snapshot started {started}"
+DOUBLE = "{count} original runs ({runs}): only {taken} counts; check why the decision ran twice"
 NOT_VALIDATED = "not filled: no completed C4 pass ({problems})"
 
 
@@ -104,7 +105,17 @@ class DeskSteps:
                                 "committed_at": decision.committed_at.isoformat()}  # fmt: skip
             others = self.decisions.others(book, day, decision.run_id if decision else None)
             result[book] |= {"others": others} if others else {}
+            self._alert_double(day, book, decision, others)
         return StepOutcome({"deadline": deadline.isoformat(), "origin": origin}, result, tuple(paths))
+
+    def _alert_double(self, day: date, book: str, decision: CommittedDecision | None, others: list[dict]) -> None:
+        """ChatGPT review 107: more than one original run of a book on a day (a session fired twice) is one alert; only
+        the first counts (D3b), the rest are listed in the run log."""
+        originals = [o["run_id"] for o in others if "corrections" not in o] + ([decision.run_id] if decision else [])
+        if len(originals) > 1:
+            taken = decision.run_id if decision else "none (late)"
+            what = DOUBLE.format(count=len(originals), runs=", ".join(sorted(originals)), taken=taken)
+            self.alerts.send(ALERT.format(day=day, book=book, what=what))
 
     def _all_late(self, day: date, deadline: datetime, why: str, inputs: dict) -> StepOutcome:
         paths = tuple(write_no_decision(self.root, book, day, deadline, why) for book in self.books)
