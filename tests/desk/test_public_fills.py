@@ -101,3 +101,20 @@ def at_close():
     from tests.desk.test_entries import at
 
     return at(15, 20)
+
+
+def test_e6_half_spread_from_the_real_snapshot_equals_the_old_figure_from_the_touch(root, snapshots, opened):
+    """Criterion 3: the fill rows written by E4 itself, read back through the real `RecordedExecutionSnapshots`, give
+    the same half-spread as the old formula on the touch each leg filled against (FLY_QUOTES)."""
+    from fno.scorecard.touches import half_spread
+    from tests.desk.builders import FLY_QUOTES
+
+    fills = rows(root)
+    old_paid = sum(
+        (float(r["price"]) - sum(FLY_QUOTES[(float(r["strike"]), r["type"])]) / 2) * int(r["units"])
+        * (1 if r["side"] == SIDE_BUY else -1)
+        for r in fills
+    )  # fmt: skip
+    spread = half_spread(fills, snapshots)
+    assert spread.touch_unknown == 0 and spread.units == sum(int(r["units"]) for r in fills)
+    assert spread.per_unit == pytest.approx(old_paid / spread.units)

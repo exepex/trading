@@ -14,6 +14,7 @@ from ..constants import BOOKS, JOURNAL_FOLDER, SHADOW_FOLDER
 from ..desk.records import DeskRecords
 from ..desk.wiring import build_execution_snapshots
 from ..playbook.wiring import build_playbook_loader, build_status_changer
+from ..storage.wiring import QUOTES_FOLDER
 from .pauses import AutoPauser
 from .review import review_terms
 from .run import ScorecardRun
@@ -29,5 +30,5 @@ def build_scorecard_run(cfg: dict, root: Path = ROOT) -> ScorecardRun:
     pauser = AutoPauser(build_status_changer(root), build_alert_sender())
     return ScorecardRun(
         lambda: accounts(root), lambda name: DeskRecords(PaperAccount(root, name)), build_playbook_loader(root),
-        pauser, cfg["charges"], review_terms(cfg), build_execution_snapshots(),
+        pauser, cfg["charges"], review_terms(cfg), build_execution_snapshots(root / QUOTES_FOLDER.relative_to(ROOT)),
     )  # fmt: skip

@@ -10,11 +10,10 @@ import pytest
 from fno.desk.commit_guard import RawQuoteCommitRefused, RawQuoteGuard
 from fno.desk.daily_ports import Committer
 from fno.desk.execution_capture import RecorderExecutionCapture
-from fno.desk.git_sync import QUOTES_FOLDER_IN_REPOSITORY, Git, GitCommitter
+from fno.desk.git_sync import Git, GitCommitter
 from fno.models import IST
 from fno.quotes.recorder import DATASET
 from fno.storage.raw_store import LocalFolderStore
-from fno.storage.wiring import QUOTES_FOLDER
 from tests.timetable.fakes import Capture, Clock
 
 DAY_TIME = datetime(2026, 10, 14, 15, 15, tzinfo=IST)
@@ -93,5 +92,41 @@ def test_the_committer_refuses_before_git_runs(tmp_path):
     assert calls == []  # not even the pull
 
 
-def test_the_committers_quote_folder_is_the_app_s():
-    assert QUOTES_FOLDER.relative_to(QUOTES_FOLDER.parents[2]) == QUOTES_FOLDER_IN_REPOSITORY
+def git_repo(tmp_path):
+    origin, work = tmp_path / "origin.git", tmp_path / "work"
+    subprocess.run(["git", "init", "-q", "--bare", str(origin)], check=True)
+    subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True, capture_output=True)
+    for key, value in (("user.email", "t@example.org"), ("user.name", "t"), ("core.hooksPath", "/dev/null")):
+        subprocess.run(["git", "-C", str(work), "config", key, value], check=True)
+    (work / QUOTE).parent.mkdir(parents=True)
+    (work / QUOTE).write_text("contract_id,bid,ask\n", encoding="utf-8")
+    (work / QUOTE.replace(".csv", ".meta.json")).write_text("{}\n", encoding="utf-8")
+    return Git(work)
+
+
+def committed(git):
+    return git("ls-files").stdout.split()
+
+
+@pytest.mark.parametrize("given", ["research/data/quotes", "research/data/quotes/", "research"])
+def test_a_folder_or_pathspec_holding_a_quote_file_is_refused_after_the_add(tmp_path, given):
+    """Review B1: the guard checks what the add staged, not only the given names."""
+    git = git_repo(tmp_path)
+    with pytest.raises(RawQuoteCommitRefused):
+        git.commit_paths([git.root / given], "a folder holding a quote file")
+    assert committed(git) == [] and git("diff", "--cached", "--name-only").stdout == ""
+
+
+def test_a_quote_file_staged_earlier_is_never_swept_into_a_desk_commit(tmp_path):
+    """Review B2: `git commit` takes the whole index, so an earlier staged quote file is caught too."""
+    git = git_repo(tmp_path)
+    git("add", "--", QUOTE)
+    with pytest.raises(RawQuoteCommitRefused, match="nifty_20261014_151500.csv"):
+        git.commit_paths([git.root / QUOTE.replace(".csv", ".meta.json")], "sidecar only")
+    assert committed(git) == []
+
+
+def test_a_sidecar_alone_is_committed(tmp_path):
+    git = git_repo(tmp_path)
+    assert git.commit_paths([git.root / QUOTE.replace(".csv", ".meta.json")], "sidecar only")
+    assert committed(git) == [QUOTE.replace(".csv", ".meta.json")]

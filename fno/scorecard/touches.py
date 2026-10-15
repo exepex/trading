@@ -55,6 +55,6 @@ def _snapshot(day: date, snapshot_id: str, snapshots: ExecutionSnapshotSource, c
     if key not in cache:
         try:
             cache[key] = snapshots.snapshot(day, snapshot_id)
-        except SnapshotError:
+        except (SnapshotError, ValueError, KeyError, OSError):  # one bad snapshot is one "touch unknown", never a crash
             cache[key] = None
     return cache[key]

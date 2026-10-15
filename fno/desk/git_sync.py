@@ -21,13 +21,14 @@ from typing import TypeVar
 
 from ..alerts.sender import AlertSender
 from ..books.paths import book_folder
-from .commit_guard import RawQuoteGuard
+from ..config import ROOT
+from ..storage.wiring import QUOTES_FOLDER
+from .commit_guard import RawQuoteCommitRefused, RawQuoteGuard
 from .daily_ports import AccountSync, AccountWriteRefused, Committer
 from .records import DeskJournal
 
 T = TypeVar("T")
 PUSH_ATTEMPTS = 3
-QUOTES_FOLDER_IN_REPOSITORY = Path("research/data/quotes")  # fno/storage/wiring.py QUOTES_FOLDER, relative to the root
 
 
 class GitError(AccountWriteRefused):
@@ -45,8 +46,9 @@ NOT_KEPT = "{book}: rejected push NOT reset: the reset would overwrite a local e
 
 
 class Git:
-    def __init__(self, root: Path, run=subprocess.run):
+    def __init__(self, root: Path, run=subprocess.run, guard: RawQuoteGuard | None = None):
         self.root, self.run = Path(root), run
+        self.guard = guard or RawQuoteGuard(self.root, self.root / QUOTES_FOLDER.relative_to(ROOT))
 
     def __call__(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
         done = self.run(["git", *args], cwd=self.root, capture_output=True, text=True)
@@ -58,8 +60,18 @@ class Git:
         return self("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
 
     def commit_paths(self, paths: Sequence[Path], message: str) -> bool:
-        """Adds and commits these paths; False when nothing changed."""
-        self("add", "--", *(self.relative(p) for p in paths))
+        """Adds and commits these paths; False when nothing changed. What would be committed is the whole index, so
+        the raw-quote guard checks every staged file after the add (a folder or a pathspec expands there, and a file
+        staged earlier by anything else is seen too); on a refusal the add is undone and nothing is committed."""
+        self.guard.check(paths)
+        added = [self.relative(p) for p in paths]
+        self("add", "--", *added)
+        staged = self("diff", "--cached", "--name-only", "-z").stdout.split("\0")
+        try:
+            self.guard.check([self.root / name for name in staged if name])
+        except RawQuoteCommitRefused:
+            self("reset", "-q", "--", *added, *(n for n in staged if n), check=False)
+            raise
         if self("diff", "--cached", "--quiet", check=False).returncode == 0:
             return False
         self("commit", "-q", "-m", message)
@@ -85,13 +97,14 @@ class Git:
 
 
 class GitCommitter(Committer):
-    """Every commit first passes `RawQuoteGuard` (story E2b): a raw Groww quote file is refused before git runs."""
+    """Every commit passes `RawQuoteGuard` (story E2b): first on the given paths, before git runs (not even the pull),
+    then on everything staged (`Git.commit_paths`)."""
 
-    def __init__(self, git: Git, guard: RawQuoteGuard | None = None):
-        self.git, self.guard = git, guard or RawQuoteGuard(git.root, git.root / QUOTES_FOLDER_IN_REPOSITORY)
+    def __init__(self, git: Git):
+        self.git = git
 
     def commit(self, paths: Sequence[Path], message: str) -> str:
-        self.guard.check(paths)
+        self.git.guard.check(paths)
         self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", self.git.branch())
         if self.git.commit_paths(paths, message):
             for _ in range(PUSH_ATTEMPTS):
