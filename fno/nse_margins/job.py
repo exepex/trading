@@ -1,7 +1,8 @@
 """The daily NSE margin job (story A14): each session's margin rows from its beginning-of-day SPAN file in Drive.
 
 A structure's rows are written only from the day its independent broker check passed (`BrokerApprovals`, judge 77;
-story STR1b); other rows are printed, not written, and a day with no approved structure is refused by name. For every
+story STR1b); other rows are printed, not written. Days before the first approval are never pending (no row can ever be
+written for them); with no approval at all, every day is refused by name. For every
 session from a week before the due day up to it that has no NSE row yet, the job reads the day's `i1` file as first
 archived (A9; A11 keeps later versions apart), checks it was written before 09:00 IST on that day (point in time: a
 decision on d never sees a later file), computes the rows and appends them to `margins.csv`.
@@ -58,9 +59,9 @@ class NseMarginJob:
         self.check, self.alerts, self.now, self.print_line = check, alerts, now, print_line
 
     def pending_days(self, due: date) -> list[date]:
-        done = self.log.days_from(MARGIN_SOURCE_NSE_SPAN)
+        done, first = self.log.days_from(MARGIN_SOURCE_NSE_SPAN), self.check.first_day()
         days = (due - timedelta(days=offset) for offset in range(LOOKBACK_DAYS, -1, -1))
-        return [d for d in days if self.is_trading_day(d) and d not in done]
+        return [d for d in days if self.is_trading_day(d) and d not in done and (first is None or d >= first)]
 
     def run(self) -> int:
         due, days, problems = None, [], []

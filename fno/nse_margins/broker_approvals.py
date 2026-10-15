@@ -1,9 +1,10 @@
 """Story A14 criterion 1, per structure (judge 77, option a; story STR1b, review 100 point 4.4): the job writes a
 structure's rows, which C2 trusts, only from the day an independent broker check of that structure's figures passed.
 `config.yaml` `risk.margins.nse_span_check` maps each approved code to its check's `source` and `passed_on`. A code
-without an approval, or a day before its `passed_on`, is printed and never written; with no code approved on a day, the
-run writes nothing and is refused by name. Broker checks arrive one code at a time, so adding a code never moves
-another's date."""
+without an approval, or a day before its `passed_on`, is printed and never written. A day before the first approval can
+never get a row, so the job does not count it as pending (it would alert on every run for a week); with no approval at
+all, the run writes nothing and is refused by name. Broker checks arrive one code at a time, so adding a code never
+moves another's date."""
 
 from __future__ import annotations
 
@@ -38,6 +39,10 @@ class BrokerApprovals:
 
     def any_by(self, day: date) -> bool:
         return any(approval.passed_on <= day for approval in self.by_code.values())
+
+    def first_day(self) -> date | None:
+        """The first day any structure may be written; None when nothing is approved."""
+        return min((approval.passed_on for approval in self.by_code.values()), default=None)
 
     @classmethod
     def from_margins_block(cls, margins: Mapping[str, Any]) -> BrokerApprovals:
