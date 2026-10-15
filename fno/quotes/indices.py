@@ -1,0 +1,65 @@
+"""The other traded index options at 3 pm (story A4c; owner, 15 Oct 2026): BANKNIFTY, FINNIFTY and MIDCPNIFTY, recorded
+right after NIFTY's push, inside 15:01-15:13 IST (after A16's 15:00 snapshot, before the 15:13 forecast cut-off and the
+15:15 snapshots that share the Groww key), paced. One attempt per index in turn; an incomplete one is retried while the
+window lasts (A4's rule), and an index still incomplete at its end is "none" for the day. Never places orders."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Mapping
+from datetime import datetime, time
+
+from ..models import IST
+from .recorder import (
+    MAX_EARLY_WAIT_SECONDS,
+    NOT_LISTED,
+    RETRY_GAP_SECONDS,
+    UNIVERSE,
+    QuoteSnapshotRecorder,
+    RecordResult,
+)
+from .slot import Slot
+
+INDEX_WINDOW_START, INDEX_WINDOW_END = time(15, 1), time(15, 13)
+INDEX_WORKERS, INDEX_PER_SECOND = 3, 2.5  # with A16's 5 a second, under the about 10 where Groww began failing
+NOT_STARTED = RecordResult("window closed")
+DONE_WITHOUT_ATTEMPT = ("not a trading day", "already recorded", "too early")
+
+
+def index_slot(underlying: str) -> Slot:
+    return Slot(underlying, cross_check=False, stop_requests_at=INDEX_WINDOW_END, workers=INDEX_WORKERS,
+                per_second=INDEX_PER_SECOND, check_listed=True)  # fmt: skip
+
+
+class IndexRecording:
+    def __init__(self, recorders: Mapping[str, QuoteSnapshotRecorder], now: Callable[[], datetime],
+                 sleep: Callable[[float], None]):  # fmt: skip
+        self.recorders, self.now, self.sleep = dict(recorders), now, sleep
+
+    def run(self) -> dict[str, RecordResult]:
+        now = self.now()
+        day = now.date()
+        if not next(iter(self.recorders.values())).is_session(day):
+            return dict.fromkeys(self.recorders, RecordResult("not a trading day"))
+        start, end = (datetime.combine(day, moment, IST) for moment in (INDEX_WINDOW_START, INDEX_WINDOW_END))
+        if now < start:
+            if (start - now).total_seconds() > MAX_EARLY_WAIT_SECONDS:
+                return dict.fromkeys(self.recorders, RecordResult("too early"))
+            self.sleep((start - now).total_seconds())
+        results = dict.fromkeys(self.recorders, NOT_STARTED)
+        pending = list(self.recorders)
+        while pending and self.now() <= end:
+            for underlying in list(pending):
+                results[underlying] = result = self.recorders[underlying].attempt_now()
+                if result.complete or result.status != "recorded" or _final(result.reason):
+                    pending.remove(underlying)
+            if pending:
+                self.sleep(RETRY_GAP_SECONDS)
+        for underlying, result in results.items():
+            if not result.complete and result.status not in DONE_WITHOUT_ATTEMPT:
+                self.recorders[underlying].close_day(day)
+        return results
+
+
+def _final(reason: str) -> bool:
+    """A retry cannot help: the previous session's NSE file does not list the index, or cannot be read."""
+    return reason == NOT_LISTED or reason.startswith(f"{UNIVERSE}:")
