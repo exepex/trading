@@ -7,30 +7,32 @@ outside the repository, sends no alert and commits nothing."""
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from ..alerts.sender import AlertSender, NoAlertSender
 from ..composition import build_alert_sender
+from ..constants import DEFAULT_REPOSITORY, GITHUB_REPOSITORY_VARIABLE
+from ..models import now_ist
 from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
 from ..quotes.monthly_contracts import PointInTimeMonthlies
+from ..server_clock import GITHUB_TIME_URL, SLACK_TIME_URL, HttpDateClock
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.raw_library import RawFileLibrary
 from ..storage.raw_source import NseDailyFoSource
-from ..storage.raw_store import AreaStore, LocalFolderStore
+from ..storage.raw_store import AreaStore, LocalFolderStore, RawFileStore
 from ..storage.wiring import (
     OWNER_UPLOAD_SETTINGS,
     RAW_AREA,
     REPOSITORY,
-    REVISIONS_AREA,
     build_nse_source,
     build_owner_drive,
     build_raw_stores,
     build_session_calendar,
 )
-from .clock import GITHUB_TIME_URL, SLACK_TIME_URL, ClockCheck, HttpDateClock
+from .clock import ClockCheck
 from .expiry_plan import UNDERLYING, ExpiryPlan
-from .first_version_store import FirstVersionStore
 from .groww_source import GrowwIntradaySource, groww_listed_expiries
 from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
 from .ledger import SlotLedger
@@ -39,10 +41,10 @@ from .realised_vol import QuoteSnapshotRv15m
 from .recorder import IntradayRecorder
 from .rv_table import RvTable
 from .session_rv import SessionRv
+from .snapshot_files import SnapshotFiles
 from .sync import GitLedgerSync, LedgerSync, NoSync
 
 INTRADAY_FOLDER = REPOSITORY / "research" / "data" / "intraday"  # derived files only: no prices
-REVISION_INDEX = "revisions"  # A11's index of later versions of a snapshot path: one file each, beside the ledger
 DRY_RUN_DRIVE = "drive"  # inside a dry-run folder: stands in for the Drive project folder
 COMMIT_MESSAGE, COMMIT_LABEL = "Data: intraday slots ({what})", "intraday files"
 DRY_RUN_ALERTS = "dry run"
@@ -50,16 +52,19 @@ DRY_RUN_ALERTS = "dry run"
 
 def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> IntradayRecorder:
     folder = Path(dry_run_folder) if dry_run_folder else INTRADAY_FOLDER
-    store = _snapshot_store(folder, dry_run_folder is not None)
+    ledger = SlotLedger(folder)
+    files = SnapshotFiles(GrowwIntradaySource.name, _snapshot_store(folder, dry_run_folder is not None), ledger)
     provider = GrowwProvider(cfg)
     client = ReadOnlyGroww(lambda: provider.api)  # the only Groww object the source holds (criterion 10)
     plan = _expiry_plan(groww_listed_expiries(client))
     source = GrowwIntradaySource(client, plan, provider.fallback_lot_size(UNDERLYING))
     calendar = build_session_calendar()
-    session_rv = SessionRv(store, source.name, calendar, RvTable(folder), QuoteSnapshotRv15m())
-    clock = ClockCheck([HttpDateClock("github", GITHUB_TIME_URL), HttpDateClock("slack", SLACK_TIME_URL)])
+    session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m())
+    github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
+                                                             or DEFAULT_REPOSITORY))  # fmt: skip
+    clock = ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
     return IntradayRecorder(
-        source, store, SlotLedger(folder), Heartbeat(folder), calendar, _alerts(dry_run_folder), clock, session_rv,
+        source, files, ledger, Heartbeat(folder), calendar, _alerts(dry_run_folder), clock, session_rv,
         _sync(dry_run_folder),
     )  # fmt: skip
 
@@ -69,13 +74,13 @@ def build_heartbeat() -> PublishedHeartbeat:
     return PublishedHeartbeat(REPOSITORY, (INTRADAY_FOLDER / FILE_NAME).relative_to(REPOSITORY).as_posix())
 
 
-def _snapshot_store(folder: Path, dry_run: bool) -> FirstVersionStore:
-    """The owner's Drive (A9), raw area plus A11's revisions area; in a dry run, a local folder of the same shape."""
+def _snapshot_store(folder: Path, dry_run: bool) -> RawFileStore:
+    """The owner's Drive `raw` area (A9); in a dry run, a local folder of the same shape. Copies are content-addressed
+    (`SnapshotFiles`), so nothing is ever written over and no revisions area is needed."""
     drive = LocalFolderStore(folder / DRY_RUN_DRIVE) if dry_run else build_owner_drive()
     if drive is None:
         raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to store snapshots in Drive")
-    raw, revisions = AreaStore(drive, RAW_AREA), AreaStore(drive, REVISIONS_AREA)
-    return FirstVersionStore(raw, revisions, folder / REVISION_INDEX)
+    return AreaStore(drive, RAW_AREA)
 
 
 def _expiry_plan(listed) -> ExpiryPlan:

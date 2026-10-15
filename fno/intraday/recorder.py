@@ -20,12 +20,12 @@ from ..quotes.recorder import MUHURAT_ONLY, RECORDED_SESSION_KINDS
 from ..research_data.calendar import CalendarError, SessionCalendar
 from .clock import ClockCheck
 from .document import SnapshotDocument, utc_text
-from .first_version_store import FirstVersionStore
 from .heartbeat import Heartbeat
 from .ledger import SlotLedger
 from .session_rv import SessionRv, previous_recorded_session
 from .settle import Settlement
 from .slots import label, marks, takeable_marks, window_end
+from .snapshot_files import SnapshotFiles
 from .source import IntradayQuoteSource
 from .status import FAILED
 from .sync import LedgerSync
@@ -39,7 +39,6 @@ TAKEN_DETAIL = (
 )
 
 TAKE_FAILED, DRIVE_WRITE = "take", "drive_write"
-SECOND_COPY = "another run stored this mark first; this run's copy is kept as a revision and writes no row"
 STARTED_AFTER = "started after --until {until:%H:%M}: nothing to take"
 ALREADY_PAUSE_SECONDS = 60
 HEARTBEAT_NAME = "story A16 intraday recorder"
@@ -68,13 +67,13 @@ class SlotOutcome:
 
 
 class IntradayRecorder:
-    def __init__(self, source: IntradayQuoteSource, store: FirstVersionStore, ledger: SlotLedger, heartbeat: Heartbeat,
+    def __init__(self, source: IntradayQuoteSource, files: SnapshotFiles, ledger: SlotLedger, heartbeat: Heartbeat,
                  calendar: SessionCalendar, alerts: AlertSender, clock_check: ClockCheck, session_rv: SessionRv,
                  sync: LedgerSync, now: Callable[[], datetime] = now_ist, sleep=clock.sleep):  # fmt: skip
-        self.source, self.store, self.ledger, self.heartbeat = source, store, ledger, heartbeat
+        self.source, self.files, self.ledger, self.heartbeat = source, files, ledger, heartbeat
         self.calendar, self.alerts, self.clock_check, self.session_rv = calendar, alerts, clock_check, session_rv
         self.sync, self.now, self.sleep = sync, now, sleep
-        self.settlement = Settlement(source.name, store, ledger, alerts)
+        self.settlement = Settlement(files, ledger, alerts)
 
     def snapshot(self, until: time | None = None) -> SlotOutcome:
         """Takes the next open or coming mark (waiting at most 15 minutes), unless it is after `until`. Never stops
@@ -86,8 +85,8 @@ class IntradayRecorder:
             return SlotOutcome(NOT_TRADING_DAY, detail=MUHURAT_ONLY if kind == SESSION_MUHURAT else "")
         lines = [self.sync.pull()] + self._settle_previous(day)  # see what an overlapping run already pushed
         open_marks = [m for m in takeable_marks(day, started) if until is None or m.time() <= until]
-        settled = {row["mark"] for row in self.ledger.rows(day)}  # a failed mark has a row but no file: never retaken
-        mark = next((m for m in open_marks if utc_text(m) not in settled and not self._stored(day, m)), None)
+        settled = {row["mark"] for row in self.ledger.rows(day)}  # after the pull: also the other run's rows
+        mark = next((m for m in open_marks if utc_text(m) not in settled), None)
         if mark is None:
             status, detail = (ALREADY, "") if open_marks else (NO_MARK, NO_MARK_DETAIL)
             outcome = SlotOutcome(status, label(open_marks[0]) if open_marks else "", detail, lines)
@@ -99,8 +98,6 @@ class IntradayRecorder:
         if self.now() > window_end(mark):
             return self._close(day, started, SlotOutcome(MISSED_NOW, label(mark), LATE_START, lines))
         taken = self._take(day, mark)
-        if taken is None:  # another run stored this mark first: it writes the row; ours is a revision
-            return self._close(day, started, SlotOutcome(ALREADY, label(mark), SECOND_COPY, lines))
         if isinstance(taken, str):
             return self._close(day, started, SlotOutcome(FAILED, label(mark), taken, lines), failed=(mark, taken))
         warning = taken[2].warning()
@@ -160,22 +157,19 @@ class IntradayRecorder:
         now = self.now()
         return any(m > now and m.time() <= until for m in marks(now.astimezone(IST).date()))
 
-    def _stored(self, day: date, mark: datetime) -> bool:
-        return self.store.get(self.settlement.path(day, mark)) is not None
-
     def _take(self, day: date, mark: datetime):
-        """(document, bytes, clock reading) when this run's bytes became the mark's first version in Drive; None when
-        another run's were there first (ours went to the revisions area); else the failure's name. A failed Drive
-        write drops the document: it is never written to the repository or spooled in the checkout."""
+        """(document, bytes, clock reading, Drive path) of this run's copy, saved under its own name; else the
+        failure's name. A failed Drive write drops the document: it is never written to the repository or spooled in
+        the checkout."""
         try:
             data = self.source.take(day, mark).to_bytes()
         except Exception as exc:  # the class name only: an exception's text could carry a credential
             return f"{TAKE_FAILED}: {type(exc).__name__}"
         try:
-            first = self.store.put_first(self.settlement.path(day, mark), data)
+            path = self.files.save(day, mark, data)
         except Exception as exc:
             return f"{DRIVE_WRITE}: {type(exc).__name__}"
-        return (SnapshotDocument.from_bytes(data), data, self.clock_check.check()) if first else None
+        return SnapshotDocument.from_bytes(data), data, self.clock_check.check(), path
 
     def _close(self, day: date, started: datetime, outcome: SlotOutcome, taken=None, failed=None) -> SlotOutcome:
         """Settles the ledger and alerts, writes the heartbeat, the realised variance once the session is complete,

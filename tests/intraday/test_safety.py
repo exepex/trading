@@ -15,7 +15,7 @@ from tests.intraday.fakes import FakeClock, build, ist, level_at
 from tests.intraday.groww_fakes import FORBIDDEN
 
 PACKAGE = Path(wiring.__file__).parent
-CONCRETE = ("GrowwIntradaySource", "FirstVersionStore", "HttpDateClock", "QuoteSnapshotRv15m", "GitManifestRecorder",
+CONCRETE = ("GrowwIntradaySource", "SnapshotFiles", "HttpDateClock", "QuoteSnapshotRv15m", "GitManifestRecorder",
             "SlackChannelAlerts", "GrowwProvider")  # fmt: skip
 
 

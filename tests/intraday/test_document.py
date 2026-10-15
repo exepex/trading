@@ -2,14 +2,14 @@
 first-version store (A11's revision rule)."""
 
 import gzip
+import hashlib
 import json
+import time
 from datetime import timedelta
 
 import pytest
 
 from fno.intraday.document import CallRecord, SnapshotDocument, snapshot_path, utc_text
-from fno.intraday.first_version_store import FirstVersionStore
-from fno.storage.raw_store import AreaStore, LocalFolderStore
 from tests.intraday.fakes import DAY, ist
 
 MARK = ist(DAY, 9, 15)
@@ -23,10 +23,19 @@ def document(level=25000.5) -> SnapshotDocument:
                             expected_contracts=1, failures=["quote NIFTY"], finished_at=finished)  # fmt: skip
 
 
-def test_the_archive_path_follows_the_layout():
-    assert snapshot_path("groww", DAY, MARK) == (
-        "groww/derivatives/intraday-snapshots/2026/10/15/nifty_20261015_0915.json.gz"
+def test_the_archive_path_follows_the_layout_and_names_the_copy_by_its_sha256():
+    data = document().to_bytes()
+    assert snapshot_path("groww", DAY, MARK, data) == (
+        f"groww/derivatives/intraday-snapshots/2026/10/15/nifty_20261015_0915_{hashlib.sha256(data).hexdigest()[:16]}"
+        ".json.gz"
     )
+
+
+def test_equal_documents_give_equal_bytes_even_seconds_apart(monkeypatch):
+    """Judge 108 addendum 3, mutation I18: gzip writes the time into its header unless told not to."""
+    first = document().to_bytes()
+    monkeypatch.setattr(time, "time", lambda: 1_900_000_000.0)  # gzip reads the clock through time.time
+    assert document().to_bytes() == first
 
 
 def test_a_document_round_trips_and_the_same_document_gives_the_same_bytes():
@@ -53,31 +62,3 @@ def test_a_failed_call_keeps_only_its_exception_class_name():
 def test_another_format_is_refused():
     with pytest.raises(ValueError):
         SnapshotDocument.from_bytes(gzip.compress(b'{"format": "other"}'))
-
-
-def _store(tmp_path, clock=lambda: MARK):
-    drive = LocalFolderStore(tmp_path / "drive")
-    raw, revisions = AreaStore(drive, "raw"), AreaStore(drive, "revisions")
-    return FirstVersionStore(raw, revisions, tmp_path / "revisions.csv", clock), drive
-
-
-def test_saving_the_same_bytes_again_changes_nothing(tmp_path):
-    store, drive = _store(tmp_path)
-    path = snapshot_path("groww", DAY, MARK)
-    store.put(path, b"first")
-    store.put(path, b"first")
-    assert store.get(path) == b"first" and store.rows() == [] and not (tmp_path / "drive" / "revisions").exists()
-
-
-def test_different_bytes_go_to_the_revisions_area_and_the_raw_file_never_changes(tmp_path):
-    store, drive = _store(tmp_path, clock=lambda: ist(DAY, 9, 16, 5))
-    path = snapshot_path("groww", DAY, MARK)
-    store.put(path, b"first")
-    store.put(path, b"second")
-    store.put(path, b"second")  # the same later version again: no second row
-    assert store.get(path) == b"first"
-    [row] = store.rows()
-    assert row["path"] == path and row["size_bytes"] == "6" and row["found_at"] == "2026-10-15T03:46:05+00:00"
-    assert row["revision_path"].startswith(f"{path}/20261015T091605+0530_")  # A11's name: when found, then SHA-256
-    assert row["revision_path"].endswith(".json.gz")
-    assert drive.get(f"revisions/{row['revision_path']}") == b"second"

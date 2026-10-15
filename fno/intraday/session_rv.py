@@ -1,6 +1,7 @@
-"""Computes a finished session's realised variance from the snapshots stored in Drive (story A16): each mark's index
-level is judged by the same rule as when it was taken (`status.index_check`), the strategy computes the figure, and the
-row is written once. Also reports the share of void sessions (design 5.2: above 5%, a new version is proposed)."""
+"""Computes a finished session's realised variance from the snapshots stored in Drive (story A16): each mark's copy is
+the one its ledger row names, its index level is judged by the same rule as when it was taken
+(`status.index_check`), the strategy computes the figure, and the row is written once. Also reports the share of void
+sessions (design 5.2: above 5%, a new version is proposed)."""
 
 from __future__ import annotations
 
@@ -12,11 +13,11 @@ from datetime import date, datetime
 from ..models import now_ist
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
-from ..storage.raw_store import RawFileStore
-from .document import SnapshotDocument, snapshot_path, utc_text
+from .document import SnapshotDocument, utc_text
 from .realised_vol import IntradayRealisedVol, RvResult
 from .rv_table import RvTable
 from .slots import label, marks
+from .snapshot_files import SnapshotFiles
 from .status import index_check
 
 VOID_SHARE_LIMIT = 0.05
@@ -26,9 +27,9 @@ VOID_SHARE_FLAG = " - above 5%: propose a new version (design 5.2)"
 
 
 class SessionRv:
-    def __init__(self, store: RawFileStore, source: str, calendar: SessionCalendar, table: RvTable,
+    def __init__(self, files: SnapshotFiles, calendar: SessionCalendar, table: RvTable,
                  strategy: IntradayRealisedVol, now: Callable[[], datetime] = now_ist):  # fmt: skip
-        self.store, self.source, self.calendar, self.table = store, source, calendar, table
+        self.files, self.source, self.calendar, self.table = files, files.source, calendar, table
         self.strategy, self.now = strategy, now
 
     def compute(self, day: date) -> str:
@@ -54,10 +55,10 @@ class SessionRv:
 
     def _readings(self, day: date, wanted: list[datetime]) -> list[tuple[float | None, str, str]]:
         """Per wanted mark: its usable level (None where missing or unusable), the basis of that level, and the stored
-        file's SHA-256 ("" when there is none)."""
+        file's SHA-256 ("" when there is none). Each mark's copy is the one its ledger row names."""
         found = []
         for mark in wanted:
-            data = self.store.get(snapshot_path(self.source, day, mark))
+            data = self.files.read(self.files.used(day, mark))
             doc = SnapshotDocument.from_bytes(data) if data else None
             level = index_check(doc).level if doc else None
             found.append((level, doc.index_basis if level is not None else "", _sha256(data)))

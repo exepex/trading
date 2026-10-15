@@ -6,13 +6,13 @@ import subprocess
 from datetime import time
 
 from fno.intraday.clock import ClockCheck
-from fno.intraday.first_version_store import FirstVersionStore
 from fno.intraday.heartbeat import Heartbeat
 from fno.intraday.ledger import SlotLedger
 from fno.intraday.realised_vol import QuoteSnapshotRv15m
 from fno.intraday.recorder import IntradayRecorder
 from fno.intraday.rv_table import RvTable
 from fno.intraday.session_rv import SessionRv
+from fno.intraday.snapshot_files import SnapshotFiles
 from fno.intraday.sync import GitLedgerSync
 from fno.storage.manifest_commit import GitManifestRecorder
 from fno.storage.raw_store import AreaStore, LocalFolderStore
@@ -35,14 +35,14 @@ def clone(tmp_path, origin, name):
 
 def recorder(checkout, drive, clock, latency=1.0):
     ledger_folder = checkout / FOLDER
-    store = FirstVersionStore(AreaStore(drive, "raw"), AreaStore(drive, "revisions"), ledger_folder / "revisions",
-                              clock.now)  # fmt: skip
     source = FakeSource(clock, latency=latency)  # two real runs never get byte-identical answers
+    ledger = SlotLedger(ledger_folder)
+    files = SnapshotFiles(source.name, AreaStore(drive, "raw"), ledger)
     committer = GitManifestRecorder(checkout, ledger_folder, message="Data: intraday slots ({what})",
                                     label="intraday files", keep_remote_on_conflict=True)  # fmt: skip
-    rv = SessionRv(store, source.name, calendar(), RvTable(ledger_folder), QuoteSnapshotRv15m(), clock.now)
-    clocks = ClockCheck([FixedServer("github", 0.2)])
-    return IntradayRecorder(source, store, SlotLedger(ledger_folder), Heartbeat(ledger_folder), calendar(),
+    rv = SessionRv(files, calendar(), RvTable(ledger_folder), QuoteSnapshotRv15m(), clock.now)
+    clocks = ClockCheck([FixedServer("github", 0.2, clock.now)], clock.now)
+    return IntradayRecorder(source, files, ledger, Heartbeat(ledger_folder), calendar(),
                             FakeAlerts(), clocks, rv, GitLedgerSync(committer), clock.now, clock.sleep)  # fmt: skip
 
 
@@ -59,24 +59,25 @@ def test_two_overlapping_runs_in_two_clones_leave_one_row_per_mark_and_both_push
     first = recorder(first_checkout, drive, FakeClock(ist(DAY, 9, 44)))
     second = recorder(second_checkout, drive, FakeClock(ist(DAY, 9, 44, 30)), latency=2.0)
 
-    outcome_first = first.snapshot()  # settles 09:15 and 09:30 as missed, takes 09:45 first, pushes
+    outcome_first = first.snapshot()  # settles 09:15 and 09:30 as missed, takes 09:45, pushes first
     second.sync.pull = lambda: "pull happened just before the first run's push"  # the race the overlap allows
-    second._stored = lambda day, mark: False  # and it looked at Drive just before the first run's copy landed
-    outcome_second = second.snapshot()  # writes the same missed rows; its 09:45 copy is second
+    outcome_second = second.snapshot()  # writes the same missed rows and its own 09:45 copy and row
 
-    assert outcome_first.status == "good" and outcome_second.status == "already recorded"
+    assert outcome_first.status == outcome_second.status == "good"
     assert all(o.lines[-1].startswith("intraday files committed and pushed") for o in (outcome_first, outcome_second))
-    assert "kept as a revision" in outcome_second.detail
     git(seed, "pull", "-q", "origin", "main")
-    rows = sorted((seed / FOLDER / "slots").rglob("*.csv"))
+    day_folder = seed / FOLDER / "slots" / "2026" / "10" / "15"
+    rows = sorted(day_folder.glob("*.csv"))
     assert [p.name for p in rows] == ["nifty_20261015_0915.csv", "nifty_20261015_0930.csv", "nifty_20261015_0945.csv"]
     for path in rows:
         text = path.read_text()
         assert text.count("\n") == 2 and "<<<<<<<" not in text and ">>>>>>>" not in text  # header and one row
-        assert ",run-a," not in text  # rows carry no checkout name; the first push's copy is kept
-    kept = (seed / FOLDER / "slots" / "2026" / "10" / "15" / "nifty_20261015_0915.csv").read_text()
-    assert kept == (first_checkout / FOLDER / "slots" / "2026" / "10" / "15" / "nifty_20261015_0915.csv").read_text()
-    assert len(list((seed / FOLDER / "revisions").glob("*.csv"))) == 1  # the second copy of 09:45, indexed once
+        first_copy = (first_checkout / FOLDER / "slots" / "2026" / "10" / "15" / path.name).read_text()
+        assert text == first_copy  # the row first pushed to GitHub is the one kept (the stated rule)
+    copies = sorted(p.name for p in (tmp_path / "drive" / "raw").rglob("nifty_20261015_0945_*.json.gz"))
+    assert len(copies) == 2  # both runs' copies are in Drive under their own names; neither was written over
+    kept = rows[-1].read_text()
+    assert sum(name in kept for name in copies) == 1  # the 09:45 row names exactly one of them
     assert "<<<<<<<" not in (seed / FOLDER / "heartbeat.json").read_text()
     assert git(second_checkout, "status", "--porcelain") == ""  # nothing left half-merged
 

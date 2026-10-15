@@ -5,19 +5,20 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 
 from fno.alerts.sender import NOT_SENT, SENT, AlertSender
-from fno.intraday.clock import ClockCheck, ServerClock
+from fno.intraday.clock import ClockCheck
 from fno.intraday.document import CallRecord, SnapshotDocument
-from fno.intraday.first_version_store import FirstVersionStore
 from fno.intraday.heartbeat import Heartbeat
 from fno.intraday.ledger import SlotLedger
 from fno.intraday.realised_vol import QuoteSnapshotRv15m
 from fno.intraday.recorder import IntradayRecorder
 from fno.intraday.rv_table import RvTable
 from fno.intraday.session_rv import SessionRv
+from fno.intraday.snapshot_files import SnapshotFiles
 from fno.intraday.source import IntradayQuoteSource
 from fno.intraday.sync import LedgerSync
 from fno.models import IST
 from fno.research_data.calendar import CsvSessionCalendar
+from fno.server_clock import ServerClock, ServerTimeUnknown
 from fno.storage.raw_store import AreaStore, LocalFolderStore
 
 SOURCE_LINK = "https://example.org/circular.pdf"
@@ -120,25 +121,29 @@ class FakePublisher(LedgerSync):
 
 
 class FixedServer(ServerClock):
-    def __init__(self, name: str, skew: float | None):
-        self.name, self.skew = name, skew
+    """A server whose clock is `offset` seconds ahead of the host's (None: it gives no trusted time)."""
 
-    def skew_seconds(self) -> float | None:
-        return self.skew
+    def __init__(self, name: str, offset: float | None, host_now):
+        self.name, self.offset, self.host_now = name, offset, host_now
+
+    def now(self) -> datetime:
+        if self.offset is None:
+            raise ServerTimeUnknown(f"HTTP 400 from {self.name}, a Date header: an error answer's time is not trusted")
+        return self.host_now() + timedelta(seconds=self.offset)
 
 
 def calendar() -> CsvSessionCalendar:
     return CsvSessionCalendar(CALENDAR)
 
 
-def build(tmp_path, clock: FakeClock, plans: dict | None = None, skew: float | None = 0.4):
-    """A recorder on local folders with every fake; returns (recorder, source, alerts, publisher, store)."""
-    drive = LocalFolderStore(tmp_path / "drive")
-    store = FirstVersionStore(AreaStore(drive, "raw"), AreaStore(drive, "revisions"), tmp_path / "revisions",
-                              clock.now)  # fmt: skip
+def build(tmp_path, clock: FakeClock, plans: dict | None = None, skew: float | None = 0.4, drive=None):
+    """A recorder on local folders with every fake; returns (recorder, source, alerts, publisher, files)."""
+    store = AreaStore(drive or LocalFolderStore(tmp_path / "drive"), "raw")
     source, alerts, publisher = FakeSource(clock, plans), FakeAlerts(), FakePublisher()
-    session_rv = SessionRv(store, source.name, calendar(), RvTable(tmp_path), QuoteSnapshotRv15m(), clock.now)
-    clocks = ClockCheck([FixedServer("github", skew), FixedServer("slack", skew)])
-    recorder = IntradayRecorder(source, store, SlotLedger(tmp_path), Heartbeat(tmp_path), calendar(), alerts, clocks,
-                                session_rv, publisher, clock.now, clock.sleep)  # fmt: skip
-    return recorder, source, alerts, publisher, store
+    ledger = SlotLedger(tmp_path)
+    files = SnapshotFiles(source.name, store, ledger)
+    session_rv = SessionRv(files, calendar(), RvTable(tmp_path), QuoteSnapshotRv15m(), clock.now)
+    clocks = ClockCheck([FixedServer("github", skew, clock.now), FixedServer("slack", skew, clock.now)], clock.now)
+    recorder = IntradayRecorder(source, files, ledger, Heartbeat(tmp_path), calendar(), alerts, clocks, session_rv,
+                                publisher, clock.now, clock.sleep)  # fmt: skip
+    return recorder, source, alerts, publisher, files

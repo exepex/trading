@@ -1,75 +1,48 @@
-"""The host clock checked against independent servers on every run (design 4.4's clock contract): GitHub's and
-Slack's HTTP `Date` headers. A skew above 5 s is a WARNING; no answer at all is recorded as unchecked, never ignored.
-The `Date` header has one-second resolution, so a measured skew is good to about one second."""
+"""The host clock checked against GitHub and Slack on every mark (design 4.4's clock contract), through the shared
+server-clock module (`fno/server_clock.py`, also T1's): only a 2xx or 3xx answer's `Date` is trusted, GitHub is asked
+at a repository path (its API root answers an error through this environment's proxy), and a host time outside a
+server's time by more than 5 s (plus its one-second resolution) is a WARNING. A server that gives no trusted time is
+named on the reading, never silently skipped."""
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta
-from email.utils import parsedate_to_datetime
+from datetime import datetime
 
-import requests
+from ..server_clock import ServerClock, SkewCheck, check_server
 
-from ..models import now_ist
-
-GITHUB_TIME_URL = "https://api.github.com"
-SLACK_TIME_URL = "https://slack.com/api/api.test"  # answers without a token; nothing is posted
-TIME_REQUEST_TIMEOUT_SECONDS = 5
-SKEW_LIMIT_SECONDS = 5
-CLOCK_OK, CLOCK_SKEW, CLOCK_UNCHECKED = "clock_ok", "clock_skew", "clock_unchecked"
-WARNING_LINE = "WARNING: host clock differs from {server} by {skew:+.1f} s (limit {limit} s)"
-
-
-class ServerClock(ABC):
-    name: str
-
-    @abstractmethod
-    def skew_seconds(self) -> float | None:
-        """Host clock minus the server's clock, in seconds; None when the server gave no time."""
-
-
-class HttpDateClock(ServerClock):
-    def __init__(self, name: str, url: str, now: Callable[[], datetime] = now_ist, session=None):
-        self.name, self.url, self.now = name, url, now
-        self.session = session or requests.Session()
-
-    def skew_seconds(self) -> float | None:
-        sent = self.now()
-        try:
-            response = self.session.head(self.url, timeout=TIME_REQUEST_TIMEOUT_SECONDS)
-            server = parsedate_to_datetime(response.headers["Date"])
-        except (requests.RequestException, KeyError, TypeError, ValueError):
-            return None
-        middle = sent + (self.now() - sent) / 2
-        return (middle - (server + timedelta(seconds=0.5))).total_seconds()  # the header drops the fraction
+CLOCK_OK, CLOCK_SKEW, CLOCK_PARTIAL, CLOCK_UNCHECKED = "clock_ok", "clock_skew", "clock_partial", "clock_unchecked"
 
 
 @dataclass(frozen=True)
 class ClockReading:
     status: str
-    skews: dict[str, float]  # server name -> host minus server, seconds (servers that answered)
+    checks: tuple[SkewCheck, ...]
+
+    @property
+    def skews(self) -> dict[str, float]:
+        """Server name -> how far the host clock fell outside its time, in seconds (servers that answered)."""
+        return {c.server: c.skew_seconds for c in self.checks if c.skew_seconds is not None}
 
     @property
     def worst(self) -> float | None:
-        return max(self.skews.values(), key=abs) if self.skews else None
+        return max(self.skews.values()) if self.skews else None
 
     def warning(self) -> str:
-        """The WARNING line to print, or empty."""
-        if self.status != CLOCK_SKEW:
-            return ""
-        server = max(self.skews, key=lambda name: abs(self.skews[name]))
-        return WARNING_LINE.format(server=server, skew=self.skews[server], limit=SKEW_LIMIT_SECONDS)
+        """The lines to print when something is wrong (a skew, or a server not checked), else empty."""
+        return "; ".join(c.line for c in self.checks if c.warning or c.skew_seconds is None)
 
 
 class ClockCheck:
-    def __init__(self, servers: list[ServerClock]):
-        self.servers = servers
+    def __init__(self, servers: list[ServerClock], host_now: Callable[[], datetime]):
+        self.servers, self.host_now = servers, host_now
 
     def check(self) -> ClockReading:
-        skews = {s.name: skew for s in self.servers if (skew := s.skew_seconds()) is not None}
-        if not skews:
-            return ClockReading(CLOCK_UNCHECKED, {})
-        too_far = any(abs(skew) > SKEW_LIMIT_SECONDS for skew in skews.values())
-        return ClockReading(CLOCK_SKEW if too_far else CLOCK_OK, skews)
+        checks = tuple(check_server(server, self.host_now) for server in self.servers)
+        answered = [c for c in checks if c.skew_seconds is not None]
+        if not answered:
+            return ClockReading(CLOCK_UNCHECKED, checks)
+        if any(c.warning for c in answered):
+            return ClockReading(CLOCK_SKEW, checks)
+        return ClockReading(CLOCK_OK if len(answered) == len(checks) else CLOCK_PARTIAL, checks)

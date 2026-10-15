@@ -10,14 +10,28 @@ import json
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 
+from ..models import IST as _IST
+
 FORMAT = "omenix-intraday-snapshot-v1"
 DATASET = "{source}/derivatives/intraday-snapshots"
-FILE_NAME = "nifty_{day:%Y%m%d}_{mark:%H%M}.json.gz"
+FILE_NAME = "nifty_{day:%Y%m%d}_{mark:%H%M}_{sha256:.16}.json.gz"
+MARK_PREFIX = "nifty_{day:%Y%m%d}_{mark:%H%M}_"
 
 
-def snapshot_path(source: str, day: date, mark: datetime) -> str:
-    """Archive path of a mark's snapshot: `<publisher>/derivatives/intraday-snapshots/<YYYY>/<MM>/<DD>/<file>`."""
-    return f"{DATASET.format(source=source)}/{day:%Y}/{day:%m}/{day:%d}/{FILE_NAME.format(day=day, mark=mark)}"
+def snapshot_folder(source: str, day: date) -> str:
+    """The Drive folder of a session's snapshots: `<publisher>/derivatives/intraday-snapshots/<YYYY>/<MM>/<DD>`."""
+    return f"{DATASET.format(source=source)}/{day:%Y}/{day:%m}/{day:%d}"
+
+
+def snapshot_path(source: str, day: date, mark: datetime, data: bytes) -> str:
+    """A copy's archive path. The name carries the copy's SHA-256 (first 16 hex digits), so two runs taking one mark
+    write two different names and can never make two Drive files of one name (judge 108 addendum 3)."""
+    name = FILE_NAME.format(day=day, mark=mark.astimezone(_IST), sha256=hashlib.sha256(data).hexdigest())
+    return f"{snapshot_folder(source, day)}/{name}"
+
+
+def mark_prefix(day: date, mark: datetime) -> str:
+    return MARK_PREFIX.format(day=day, mark=mark.astimezone(_IST))
 
 
 def utc_text(moment: datetime | None) -> str:

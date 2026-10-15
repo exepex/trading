@@ -80,8 +80,15 @@ outside the repository>`; no Drive, no Slack, no commit):
   candle ending at the mark is used as before. The overnight return is then the session's opening index level against
   the previous session's last close before 15:30, the usual open-to-close split.
 - **One snapshot, measured (09:30 mark):** 2 chains (19 and 27 Oct), 220 contracts within 6%, 220 recorded, 220
-  two-sided; the whole snapshot took 53 s at the 5-a-second pace; the gzip document is about 71 kB (09:15 mark); host
-  clock against GitHub and Slack within 0.5 s. At 09:15: 216 of 216 recorded, 204 two-sided, 57 s.
+  two-sided; the whole snapshot took 53 s at the 5-a-second pace; the gzip document is about 71 kB (09:15 mark).
+  Host clock: within 0.5 s of **Slack only**; GitHub was never checked in that run (its API root answers 400 with no
+  `Date` through this environment's proxy; judge 108 addendum 3). With the shared clock (amendment 2), a live check
+  the same morning found GitHub (repository path) and Slack both within 0.0 s. At 09:15: 216 of 216 recorded, 204
+  two-sided, 57 s.
+- **Condition on the 09:15 rule (judge 108 addendum 3, accepted by the orchestrator):** in the criterion 15 trial and
+  in every weekly post-mortem, each session's 09:15 `candle_1m_open` is compared with NSE's official NIFTY 50 open
+  (the open value of A1's archived index-close file for that day), and every difference above 0.05 points is
+  reported. A systematic difference means a new version of the rule (design 5.2), not a silent adjustment.
 
 ## Scope
 
@@ -184,36 +191,39 @@ New package `fno/intraday/` (each file under 350 lines):
 - `ExpiryPlan`: which two expiries (nearest listed; nearest monthly by `PointInTimeMonthlies` with A4's NSE-file
   fallback, flagged when unverified).
 - `IntradayRecorder`: slot timing, session decision, store, ledger, alerts, heartbeat; never knows Groww.
-- Store: the owner's Drive `raw` area (`build_owner_drive`, A9) under
-  `groww/derivatives/intraday-snapshots/<YYYY>/<MM>/<DD>/nifty_<YYYYMMDD>_<HHMM>.json.gz` (gzip with no time in its
-  header, so the same document always gives the same bytes; step 0's sizes: about 216 quotes and two chains a mark),
-  wrapped by `FirstVersionStore`: different bytes at an existing path (two runs taking one mark) are never written
-  over (A9/A11); they go to the `revisions` area at A11's path (`<raw path>/<found_at>_<sha256>.json.gz`) with an
-  index row in its own file `research/data/intraday/revisions/<YYYYMMDD>_<HHMM>_<sha256 first 16>.csv` (one file per
-  revision, so two runs never write the same index file); readers use the first version (point in time). Its `put`
-  says whether this run's bytes became the first version or went to revisions; the ledger rule below depends on it.
+- Store (amendment 2, judge 108 addendum 3 should-fix 1, orchestrator decision 39): the owner's Drive `raw` area
+  (`build_owner_drive`, A9) under
+  `groww/derivatives/intraday-snapshots/<YYYY>/<MM>/<DD>/nifty_<YYYYMMDD>_<HHMM>_<SHA-256 first 16>.json.gz` (gzip
+  with no time in its header, so the same document always gives the same bytes). **Every copy has its own,
+  content-addressed name**, so two runs taking one mark never write one name: Drive's look-up-then-create can never
+  race into two files of one name (which would make every later read of that name fail), and nothing is ever
+  written over (A9/A11). `SnapshotFiles` saves copies and resolves reads: **a mark's copy is the one its ledger row
+  names**; readers (the next mark's settlement, the realised variance) never read a bare name. The first-version
+  store and the revisions index of the earlier text are dropped: with unique names there is no overwrite to divert.
 - `IntradayRealisedVol` (strategy, design 2.1) with `QuoteSnapshotRv15m` (`rv-quote-15m-v1`), computed from the
   stored snapshots.
 - `ServerClock` (interface) with GitHub's and Slack's HTTP `Date` headers; `ClockCheck`.
 - `AlertSender` (existing) for alerts; `NoAlertSender` in dry runs and tests.
 - Repository files under `research/data/intraday/` (derived only, no prices), **one file per record** so two runs in
   two checkouts never append to the same file: `slots/<YYYY>/<MM>/<DD>/nifty_<YYYYMMDD>_<HHMM>.csv` (header plus the
-  one row of that mark), `rv/<YYYY>/nifty_rv_<YYYYMMDD>.csv` (header plus the session's one row), `revisions/...`
-  (above), `heartbeat.json`. After every mark the recorder commits and pushes this folder itself (the existing
+  one row of that mark), `rv/<YYYY>/nifty_rv_<YYYYMMDD>.csv` (header plus the session's one row), `heartbeat.json`. After every mark the recorder commits and pushes this folder itself (the existing
   `GitManifestRecorder`, given its own commit message; hooks run, never bypassed), so GitHub's copy of the heartbeat
   is at most about 15 minutes old.
 - **Two checkouts, one ledger (judge 108 addendum 1, should-fix B).** Each fire is its own container with its own
   clone, and at every hour boundary two runs are live. The rules:
-  1. A taken mark's row is written only by the run whose Drive write created the first version; a run whose bytes
-     went to `revisions/` writes no row for that mark (it records the revision's index file only).
+  1. A run that took a mark writes a row naming its own copy. If two runs both took it, both rows are the same path
+     in the two checkouts, and rule 3 keeps **the row first pushed to GitHub**; the other run's copy stays in Drive
+     under its own name, unused and harmless. A due mark with no row but copies in Drive (a run saved its copy, then
+     died before its row) gets a row naming **the copy with the smallest name**, a fixed rule so every settlement picks
+     the same one; a store that cannot list a folder leaves that mark `missed`.
   2. Before it settles marks, a run pulls `main` (`git pull --no-rebase`), so it sees the rows the other run pushed and
      does not write a second `missed` row for a mark that already has one.
   3. Two runs can still settle the same due mark at the same moment (both write its `missed` row, or both write the
      heartbeat). Those are the same path in both checkouts, so the commit's pull merges with the copy already on
      GitHub winning a conflict (`git pull --no-rebase -X theirs`, only in this committer, which commits only this
      folder): the first-pushed row is kept, exactly one row per mark, and the push is never blocked by its own data.
-  4. Rows, RV files and revision index files are written once and never edited; the merge rule only chooses between
-     two first versions of the same file.
+  4. Rows and RV files are written once and never edited (a second write of a row file is refused); the merge rule
+     only chooses between two first versions of the same file.
 - Composition root `fno/intraday/wiring.py` (added to CLAUDE.md's list); CLI `python -m fno intraday ...`.
 - Named constants for every status and failure name (`fno/intraday/` module constants; env names stay in
   `fno/constants.py`).
@@ -226,7 +236,8 @@ never written to the repository and never spooled anywhere in the checkout, and 
 as bad for criterion 7's streak alert; failure names are exception class names only);
 `incomplete` (index fine, but a chain empty, failed or missing, or a contract quote missing; failed contract quotes
 are counted as `quotes_failed:N` in the row, the document keeps every name). **Clock failures** (recorded on the
-row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_unchecked` (no server answered),
+row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_partial` (one server not checked),
+`clock_unchecked` (no server answered),
 `source_ahead_of_host` (Groww's time more than 5 s after our receive time).
 
 ## Acceptance criteria
@@ -234,17 +245,18 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
 0. **Step 0 is recorded** in this file (above) with the in-session check, counts and timings only.
 1. **26 marks.** Given a recorded session, the session loop takes exactly the slots 09:15, 09:30, ..., 15:30 IST and no
    others; `snapshot` takes the next mark (waiting at most 15 minutes) and records "already recorded" for a slot that
-   has a file or a ledger row. Two overlapping runs (the trigger design) give each mark exactly one ledger row on
-   GitHub, keep the first stored version, and put the other's different bytes under `revisions/`. Test with **two git
-   clones of one bare repository** and one shared Drive fake, two recorders overlapping at a boundary mark and both
-   settling the same missed mark: after both push, `origin/main` has exactly one row per mark (the first pushed), no
-   conflict markers, and both commit lines say committed.
+   has a ledger row. Two overlapping runs (the trigger design) give each mark exactly one ledger row on GitHub (the
+   first pushed), each copy under its own name. Tests: **two git clones of one bare repository** and one shared Drive,
+   two recorders overlapping at a boundary mark and both settling the same missed mark (after both push, `origin/main`
+   has exactly one row per mark, the first pushed, no conflict markers, both commit lines say committed, Drive holds
+   both copies and the row names one); and **a fake Drive that interleaves two runs' look-up and create calls** at one
+   mark (both copies stored under different names, every later read of the mark works; with one shared name, the
+   reads fail, as on a471f44).
 2. **Calendar.** Regular and special sessions are recorded; a muhurat-only day, a holiday and a weekend record nothing
    and print "not a trading day"; a day outside the calendar stops with exit 1 and an alert (A7's message).
-3. **Raw to Drive, never overwritten.** Each snapshot taken is one JSON file at the path above in the owner's Drive
-   `raw` area; the same bytes again change nothing; different bytes at the same path (two overlapping runs taking one
-   mark) are saved under `revisions/` with an index row and the raw file is unchanged (A11); the ledger row describes
-   the first version stored, which is what readers and the RV use. **Drive write failure (judge 108, should-fix 5):**
+3. **Raw to Drive, never overwritten.** Each snapshot taken is one JSON file in the owner's Drive `raw` area under its
+   own content-addressed name; the same bytes again change nothing, and two copies of one mark never share a name; the
+   ledger row names the copy readers and the RV use. **Drive write failure (judge 108, should-fix 5):**
    the mark is `failed` with `drive_write: <error type>`, the document is dropped (never written to the repository or
    spooled in the checkout), the loop goes on to the next mark, and the streak rule alerts (test with a store that
    raises).
@@ -269,13 +281,19 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
    `AlertSender`, its first line saying what to do; one alert per streak (sent when the streak reaches two, also when
    several marks are settled at once) and at most one an hour (a new streak exactly 60 minutes after the last sent
    alert is alerted; one under is held and sent at the first settlement after the hour, even if the streak has ended);
-   only a sent alert counts: a failed send ("alert NOT sent") is retried at the next settlement; the outcome line
+   only a sent alert counts: a failed send ("alert NOT sent") is retried at the next settlement, with at most one send
+   attempt per settlement (judge 108 addendum 3, minor 1); the outcome line
    ("alert sent" / "alert NOT sent: ...") is printed and kept in the ledger. Dry run: nothing sent.
 8. **Clock contract (design 4.4).** Every stored time is UTC with its offset (ISO 8601) and printed in IST; Groww's
    source time is kept apart from our `request_sent_at`, `response_received_at` and `first_seen_at`; the host clock is
-   checked against GitHub's and Slack's server times on each run; skew above 5 s is recorded as `clock_skew` and printed
-   as a WARNING; no answer is `clock_unchecked`; a source time more than 5 s after our receive time is
-   `source_ahead_of_host`.
+   checked against GitHub's and Slack's server times on each run through **one clock module shared with T1**
+   (`fno/server_clock.py`, moved there unchanged from T1's fixed `fno/cards/clock.py`; amendment 2, judge 108 addendum
+   3 should-fix 2): only a 2xx or 3xx answer's `Date` is trusted (an error answer may be a proxy's), and GitHub is asked
+   at the repository path (`api.github.com/repos/<owner>/<name>`; the API root answers 400 here). Skew above 5 s (plus
+   the one-second resolution) is `clock_skew` and printed as a WARNING; one server answering and the other not is
+   `clock_partial`, with the unchecked server's reason printed; no answer is `clock_unchecked`; a source time more than
+   5 s after our receive time is `source_ahead_of_host`. Tests: an error answer carrying a `Date` is ignored, and
+   GitHub is asked at the repository path.
 9. **Heartbeat.** Each run writes `heartbeat.json` (last run start and finish; the last slot, its status and skew,
    kept as they were by a run that took nothing); the `heartbeat-check` command reads GitHub's copy (`git fetch`, then
    `origin/main`), never the host's own working tree, so a host whose pushes fail does not look alive; during a
@@ -369,8 +387,8 @@ the four marks of its hour **plus** the next hour's first mark (the 09:00 fire t
 the 10:00 fire takes 10:00, 10:15, 10:30, 10:45 and 11:00), so every hour boundary is covered by two runs and one
 late, slow or failed fire loses at most the marks only it covered, not the boundary. A run that finds a mark already
 stored or already in the ledger skips it ("already recorded") and waits for the next one; two runs racing for one mark
-both store, the second's different bytes go to `revisions/`, only the first-version run writes the mark's row, and a
-same-row race between the two checkouts is settled by the first push (criterion 1 tests this with two clones).
+both store, each under its own name, and the row first pushed to GitHub names the copy the mark uses (criterion 1
+tests this with two clones and with an interleaving Drive).
 A run that starts late or dies leaves its marks to the next fire or, once their windows close, to `missed` rows
 (never filled); two bad marks in a row alert (criterion 7).
 
@@ -422,4 +440,5 @@ session-day of about 55 minutes each (F8 measures).
 **Depends:** A7, A9, A11, owner's host and terms decisions (15 Oct 2026) · **Size:** M · **Status:** story text
 revised after judge 108 (FAIL, 5 should-fix, all accepted: response 108 part 1b) and its addendum 1 (FAIL, A and
 B accepted: part 1c); text PASSED (judge 108 addendum 2, 27f7b55). Amendment 1 (in-session check and the 09:15 open
-rule) and the code: for the judge
+rule, accepted with its NSE-open condition: judge 108 addendum 3) and amendment 2 (content-addressed copies, the shared
+clock): for the judge

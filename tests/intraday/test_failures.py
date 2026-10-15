@@ -2,7 +2,6 @@
 raises, `rv` on a day that is not finished, a realised-variance conflict, a previous session left unfinished, the
 heartbeat on runs that take nothing, and a run started after --until."""
 
-import hashlib
 from datetime import date, time
 
 import pytest
@@ -31,14 +30,14 @@ def test_a_source_that_raises_gives_a_failed_row_the_streak_alert_and_a_heartbea
 def test_a_store_that_raises_gives_a_failed_row_and_the_loop_goes_on(tmp_path):
     clock = FakeClock(ist(DAY, 9, 10))
     recorder, source, *_ = build(tmp_path, clock)
-    put = recorder.store.put_first
+    put = recorder.files.store.put
 
     def drive_down_at_0915(path, data):
-        if "_0915." in path:
+        if "_0915_" in path:
             raise StoredCopyDamaged(path)
         return put(path, data)
 
-    recorder.store.put_first = drive_down_at_0915
+    recorder.files.store.put = drive_down_at_0915
     recorder.run(time(9, 35))
     assert [(r["mark_ist"], r["status"], r["failures"]) for r in recorder.ledger.rows(DAY)] == [
         ("09:15", "failed", "drive_write: StoredCopyDamaged"), ("09:30", "good", "")
@@ -122,31 +121,6 @@ def test_marks_another_host_already_took_do_not_end_the_loop(tmp_path):
     clock.moment = ist(DAY, 9, 31)
     recorder.run(time(10, 5))
     assert source.taken == [ist(DAY, 10, 0)]
-
-
-def test_a_run_whose_copy_came_second_writes_no_row_and_the_first_versions_row_is_settled_later(tmp_path):
-    clock = FakeClock(ist(DAY, 9, 14))
-    recorder, source, *_ = build(tmp_path, clock)
-    path = recorder.settlement.path(DAY, ist(DAY, 9, 15))
-    first = {}
-    real_put = recorder.store.put_first
-
-    def other_run_first(p, data):
-        if not first:  # an overlapping run in another checkout stores its copy a moment earlier
-            other = source.take(DAY, ist(DAY, 9, 15))
-            other.two_sided_contracts = 1
-            first["data"] = other.to_bytes()
-            assert real_put(p, first["data"])
-        return real_put(p, data)
-
-    recorder.store.put_first = other_run_first
-    outcome = recorder.snapshot()
-    assert outcome.status == "already recorded" and "kept as a revision" in outcome.detail
-    assert recorder.ledger.rows(DAY) == [] and recorder.store.rows()[0]["path"] == path  # ours: a revision only
-    clock.moment = ist(DAY, 9, 29)  # the other run died before writing its row: the next settlement writes it
-    recorder.snapshot()
-    row = recorder.ledger.rows(DAY)[0]
-    assert row["raw_sha256"] == hashlib.sha256(first["data"]).hexdigest() and row["two_sided_contracts"] == "1"
 
 
 def test_a_run_pulls_before_settling_so_a_row_the_other_run_pushed_is_never_duplicated(tmp_path):

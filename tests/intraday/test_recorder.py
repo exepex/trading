@@ -176,7 +176,7 @@ def test_the_heartbeat_holds_utc_times_and_the_clock_reading(tmp_path):
     outcome = recorder.snapshot()
     beat = recorder.heartbeat.read()
     assert beat["run_started_at"] == "2026-10-15T03:44:00+00:00" and beat["clock_status"] == "clock_skew"
-    assert any(line.startswith("WARNING: host clock differs") for line in outcome.lines)
+    assert any("clock WARNING: host vs github off by 6.0 s" in line for line in outcome.lines)
     assert recorder.ledger.rows(DAY)[0]["clock_status"] == "clock_skew"
 
 

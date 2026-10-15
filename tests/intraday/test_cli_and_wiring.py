@@ -9,11 +9,12 @@ import pytest
 from fno.alerts.sender import NoAlertSender
 from fno.intraday import wiring
 from fno.intraday.cli import cmd_intraday, report
-from fno.intraday.first_version_store import FirstVersionStore
 from fno.intraday.read_only import ReadOnlyGroww
 from fno.intraday.recorder import ALREADY, NO_MARK, NOT_TRADING_DAY, SlotOutcome
+from fno.intraday.snapshot_files import SnapshotFiles
 from fno.intraday.sync import NOT_PUBLISHED, GitLedgerSync, NoSync
 from fno.storage.manifest_commit import GitManifestRecorder
+from fno.storage.raw_store import AreaStore
 from fno.storage.wiring import REPOSITORY
 from tests.intraday.groww_fakes import FakeGrowwProvider
 
@@ -39,7 +40,9 @@ def test_a_dry_run_folder_inside_the_repository_is_refused(capsys):
 def test_the_dry_run_wiring_uses_local_folders_no_alert_and_no_commit(tmp_path, monkeypatch):
     monkeypatch.setattr(wiring, "GrowwProvider", lambda cfg: FakeGrowwProvider())
     recorder = wiring.build_intraday_recorder({}, tmp_path)
-    assert isinstance(recorder.store, FirstVersionStore) and recorder.store.raw.store.folder == tmp_path / "drive"
+    files = recorder.files
+    assert isinstance(files, SnapshotFiles) and isinstance(files.store, AreaStore) and files.store.area == "raw"
+    assert files.store.store.folder == tmp_path / "drive" and files.ledger is recorder.ledger
     assert isinstance(recorder.alerts, NoAlertSender) and recorder.alerts.send("x") == "alert NOT sent: dry run"
     assert isinstance(recorder.sync, NoSync) and recorder.sync.commit("x") == recorder.sync.pull() == NOT_PUBLISHED
     assert recorder.ledger.folder == tmp_path and recorder.heartbeat.file == tmp_path / "heartbeat.json"
@@ -61,7 +64,7 @@ def test_the_live_wiring_writes_to_the_repository_folder_and_commits_it(monkeypa
     assert isinstance(recorder.sync, GitLedgerSync) and isinstance(committer, GitManifestRecorder)
     assert committer.folder == "research/data/intraday" and committer.merge_option == ("-X", "theirs")
     assert committer.message.format(what="x") == "Data: intraday slots (x)" and committer.label == "intraday files"
-    assert Path(recorder.store.index_folder) == wiring.INTRADAY_FOLDER / "revisions"
+    assert recorder.files.store.area == "raw" and recorder.files.store.store.folder == tmp_path
 
 
 def test_a_failure_while_building_or_running_is_named_alerted_and_exits_1_and_a_dry_run_sends_nothing(

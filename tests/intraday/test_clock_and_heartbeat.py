@@ -5,49 +5,71 @@ from datetime import date, datetime
 from pathlib import Path
 
 import pytest
-import requests
 
 from fno.intraday.cli import heartbeat_check
-from fno.intraday.clock import CLOCK_OK, CLOCK_SKEW, CLOCK_UNCHECKED, ClockCheck, HttpDateClock
+from fno.intraday.clock import CLOCK_OK, CLOCK_PARTIAL, CLOCK_SKEW, CLOCK_UNCHECKED, ClockCheck
 from fno.intraday.document import utc_text
 from fno.intraday.heartbeat import NOT_WATCHED, OK, SILENT, Heartbeat, PublishedHeartbeat, heartbeat_state
 from fno.models import IST
+from fno.server_clock import GITHUB_TIME_URL, HttpDateClock
 from tests.intraday.fakes import DAY, FakeAlerts, FixedServer, calendar, ist
 
 
-class DateSession:
-    def __init__(self, date_header: str | None = None, error: Exception | None = None):
-        self.date_header, self.error = date_header, error
-
-    def head(self, url, timeout):
-        if self.error:
-            raise self.error
-        response = requests.Response()
-        if self.date_header:
-            response.headers["Date"] = self.date_header
-        return response
+class Answer:
+    def __init__(self, status: int, date_header: str | None):
+        self.status_code, self.headers = status, ({"Date": date_header} if date_header else {})
 
 
-def test_the_skew_is_host_minus_server_allowing_for_the_dropped_fraction():
-    host = ist(DAY, 9, 30, 10)  # 04:00:10 UTC
-    clock = HttpDateClock("github", "https://x", lambda: host, DateSession("Thu, 15 Oct 2026 04:00:03 GMT"))
-    assert clock.skew_seconds() == pytest.approx(6.5)
+HOST = ist(DAY, 9, 30, 10)  # 04:00:10 UTC
 
 
-@pytest.mark.parametrize("session", [DateSession(None), DateSession(error=requests.ConnectionError())])
-def test_no_time_from_a_server_is_none(session):
-    assert HttpDateClock("slack", "https://x", lambda: ist(DAY, 9, 30), session).skew_seconds() is None
+def http_clock(status: int, date_header: str | None, seen: list | None = None) -> HttpDateClock:
+    def head(url, timeout):
+        (seen if seen is not None else []).append(url)
+        return Answer(status, date_header)
+
+    return HttpDateClock("github", GITHUB_TIME_URL.format(repository="exepex/trading"), head)
+
+
+def test_a_2xx_answer_with_a_date_is_read_and_the_skew_counts_the_one_second_resolution():
+    reading = ClockCheck([http_clock(200, "Thu, 15 Oct 2026 04:00:03 GMT")], lambda: HOST).check()
+    assert reading.status == CLOCK_SKEW and reading.worst == pytest.approx(6.0)  # 7 s outside, less 1 s resolution
+
+
+@pytest.mark.parametrize("status", [400, 404, 500])
+def test_an_error_answer_carrying_a_date_is_ignored(status):
+    """Judge 108 addendum 3 should-fix 2 (judge 101's T1 finding): a proxy's error answer has the proxy's time."""
+    reading = ClockCheck([http_clock(status, "Thu, 15 Oct 2026 04:00:10 GMT")], lambda: HOST).check()
+    assert reading.status == CLOCK_UNCHECKED and "not trusted" in reading.warning()
+
+
+def test_github_is_asked_at_the_repository_path_never_the_api_root():
+    seen = []
+    ClockCheck([http_clock(200, "Thu, 15 Oct 2026 04:00:10 GMT", seen)], lambda: HOST).check()
+    assert seen == ["https://api.github.com/repos/exepex/trading"]
 
 
 @pytest.mark.parametrize(
-    "skews, status",
-    [((5.0, 0.2), CLOCK_OK), ((-5.0, None), CLOCK_OK), ((5.01, 0.2), CLOCK_SKEW), ((0.1, -5.01), CLOCK_SKEW),
-     ((None, None), CLOCK_UNCHECKED)],
+    "offsets, status",
+    [((5.0, 0.2), CLOCK_OK), ((-5.0, 0.0), CLOCK_OK), ((5.01, 0.2), CLOCK_SKEW), ((0.1, -5.01), CLOCK_SKEW),
+     ((0.2, None), CLOCK_PARTIAL), ((None, None), CLOCK_UNCHECKED)],
 )  # fmt: skip
-def test_the_5_second_limit_and_the_unchecked_case(skews, status):
-    reading = ClockCheck([FixedServer("github", skews[0]), FixedServer("slack", skews[1])]).check()
+def test_the_5_second_limit_a_partial_check_and_the_unchecked_case(offsets, status):
+    servers = [FixedServer("github", offsets[0], lambda: HOST), FixedServer("slack", offsets[1], lambda: HOST)]
+    reading = ClockCheck(servers, lambda: HOST).check()
     assert reading.status == status
-    assert reading.warning().startswith("WARNING: host clock differs") == (status == CLOCK_SKEW)
+    assert bool(reading.warning()) == (status != CLOCK_OK)  # a skew or an unchecked server is always said
+
+
+def test_the_wiring_asks_github_at_the_repository_and_slack(monkeypatch):
+    from fno.intraday import wiring
+    from tests.intraday.groww_fakes import FakeGrowwProvider
+
+    monkeypatch.setattr(wiring, "GrowwProvider", lambda cfg: FakeGrowwProvider())
+    servers = wiring.build_intraday_recorder({}, Path("/tmp/a16-dry")).clock_check.servers
+    assert [(s.name, s.url) for s in servers] == [
+        ("github", "https://api.github.com/repos/exepex/trading"), ("slack", "https://slack.com/api/api.test")
+    ]  # fmt: skip
 
 
 def beat(finished: datetime) -> dict:

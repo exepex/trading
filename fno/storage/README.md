@@ -49,11 +49,10 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `cboe/indices/spx-history`, `nasdaq/indices/ndx-history` (private: values in Drive only, owner decision a927390), `us-treasury/rates/par-yield-curve`, `eia/petroleum/brent-spot-daily`, `rbi/currency/reference-rate`, `fbil/currency/reference-rate` | `fno/global_cues/` sources (story A17) | the publishers' files, one copy per fetch filed as `<dataset>/<YYYY>/<MM>/<DD>/<HHMMSS>_<name>` (IST fetch time; the publishers rewrite them in place); logged in `research/data/manifests/global-cues/<cue>.csv`; tables in `research/data/global-cues/`, or for the private cues in Drive's `derived/global-cues/<cue>/` | 15 Oct 2026 onwards (values from 2007) |
 
 Groww's 15-minute snapshots (story A16, `fno/intraday/`): `groww/derivatives/intraday-snapshots/<YYYY>/<MM>/<DD>/
-nifty_<YYYYMMDD>_<HHMM>.json.gz`, one per mark of a session (09:15-15:30 IST), raw quotes in Drive only; a later
-different version of the same path goes to the `revisions` area (A11's layout) with a row in
-`research/data/intraday/revisions/` (one index file per revision). The repository holds only the derived records,
-one file each: a row per mark (`slots/<YYYY>/<MM>/<DD>/`), the realised variance per session (`rv/<YYYY>/`) and the
-heartbeat.
+nifty_<YYYYMMDD>_<HHMM>_<SHA-256 first 16>.json.gz`, one content-addressed copy per run and mark of a session
+(09:15-15:30 IST), raw quotes in Drive only; two runs never write one name, and a mark's copy is the one its ledger
+row names. The repository holds only the derived records, one file each: a row per mark
+(`research/data/intraday/slots/<YYYY>/<MM>/<DD>/`), the realised variance per session (`rv/<YYYY>/`) and the heartbeat.
 
 Filing files are grouped by category, company and the year of the period reported (owner, 13 Oct 2026); later
 categories (annual reports, insider trades, pledges, credit ratings, corporate actions) take the same shape. The

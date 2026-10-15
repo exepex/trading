@@ -100,8 +100,8 @@ def test_the_row_is_written_once_and_other_inputs_are_refused(tmp_path):
     rows, recorder = _two_sessions(tmp_path)
     assert "already written" in recorder.session_rv.compute(DAY)
     first = recorder.session_rv.table.rows()
-    path = recorder.settlement.path(DAY, ist(DAY, 12, 0))
-    recorder.store.raw.store.folder.joinpath("raw", *path.split("/")).unlink()  # an input disappears (planted)
+    path = recorder.files.used(DAY, ist(DAY, 12, 0))
+    recorder.files.store.store.folder.joinpath("raw", *path.split("/")).unlink()  # an input disappears (planted)
     with pytest.raises(RvConflict):
         recorder.session_rv.compute(DAY)
     assert recorder.session_rv.table.rows() == first

@@ -1,6 +1,7 @@
-"""Brings a session's ledger up to date (story A16): a row for the snapshot just taken, a row for every stored
-snapshot that has none yet (a run that stopped after saving), and a `missed` row for every due mark with no snapshot.
-Then the streak alert: its outcome line is kept in the newest row."""
+"""Brings a session's ledger up to date (story A16): a row for the snapshot just taken, a row for a due mark whose copy
+is in Drive with no row yet (a run that stopped after saving; the copy is chosen by `SnapshotFiles`' fixed rule), and
+a `missed` row for every due mark with no copy. Then the streak alert, at most one send per settlement: its outcome
+line is kept in the newest row."""
 
 from __future__ import annotations
 
@@ -8,10 +9,10 @@ import hashlib
 from datetime import date, datetime
 
 from ..alerts.sender import AlertSender
-from ..storage.raw_store import RawFileStore
-from .document import SnapshotDocument, snapshot_path, utc_text
+from .document import SnapshotDocument, utc_text
 from .ledger import SlotLedger, failed_row, missed_row, taken_row
 from .slots import marks, window_end
+from .snapshot_files import SnapshotFiles
 from .status import verdict
 from .streak import streak_alert_text
 
@@ -19,15 +20,13 @@ ALERT_LINE = "ALERT: {text} -> {outcome}"
 
 
 class Settlement:
-    def __init__(self, source: str, store: RawFileStore, ledger: SlotLedger, alerts: AlertSender):
-        self.source, self.store, self.ledger, self.alerts = source, store, ledger, alerts
-
-    def path(self, day: date, mark: datetime) -> str:
-        return snapshot_path(self.source, day, mark)
+    def __init__(self, files: SnapshotFiles, ledger: SlotLedger, alerts: AlertSender):
+        self.files, self.ledger, self.alerts = files, ledger, alerts
+        self.source = files.source
 
     def settle(self, day: date, now: datetime, taken=None, failed=None) -> tuple[list[dict], str]:
-        """The rows written now, and the alert lines ("" when none was due). `taken`: (document, bytes, clock
-        reading) of the snapshot just taken; `failed`: (mark, failure name) of a mark whose snapshot failed."""
+        """The rows written now, and the alert line ("" when none was due). `taken`: (document, bytes, clock reading,
+        path) of the snapshot just taken; `failed`: (mark, failure name) of a mark whose snapshot failed."""
         existing = self.ledger.rows(day)
         have = {row["mark"] for row in existing}
         new = []
@@ -35,28 +34,36 @@ class Settlement:
             if utc_text(mark) in have:
                 continue
             if taken is not None and taken[0].mark == mark:
-                new.append(self._row(day, mark, *taken))
+                new.append(self._row(day, mark, *taken, new))
             elif failed is not None and failed[0] == mark:
                 new.append(failed_row(day, mark, self.source, failed[1], now))
             elif window_end(mark) < now:
-                data = self.store.get(self.path(day, mark))
+                path = self.files.unrowed_copy(day, mark)
+                data = self.files.read(path)
                 document = SnapshotDocument.from_bytes(data) if data else None
-                new.append(self._row(day, mark, document, data, None) if document else missed_row(
+                new.append(self._row(day, mark, document, data, None, path, new) if document else missed_row(
                     day, mark, self.source, now))  # fmt: skip
-        lines = [line for position in range(len(new)) if (line := self._alert(existing + new[: position + 1], now))]
+        line = next((line for position in range(len(new)) if (line := self._alert(existing + new[: position + 1],
+                                                                                  now))), "")  # fmt: skip
         self.ledger.append(day, new)
-        return new, "\n".join(lines)
+        return new, line
 
-    def _row(self, day: date, mark: datetime, document: SnapshotDocument, data: bytes, reading) -> dict:
-        judged = verdict(document, self._previous_level(day, mark))
-        return taken_row(document, judged, self.path(day, mark), hashlib.sha256(data).hexdigest(), reading)
+    def _row(self, day: date, mark: datetime, document: SnapshotDocument, data: bytes, reading, path: str,
+             new: list[dict] | None = None) -> dict:  # fmt: skip
+        judged = verdict(document, self._previous_level(day, mark, new or []))
+        return taken_row(document, judged, path, hashlib.sha256(data).hexdigest(), reading)
 
-    def _previous_level(self, day: date, mark: datetime) -> float | None:
+    def _previous_level(self, day: date, mark: datetime, new: list[dict]) -> float | None:
+        """The previous mark's level, read from the copy its row names (a row written earlier in this settlement
+        counts too); for the `index_repeated` flag only."""
         session_marks = marks(day)
         position = session_marks.index(mark)
         if position == 0:
             return None
-        data = self.store.get(self.path(day, session_marks[position - 1]))
+        previous = utc_text(session_marks[position - 1])
+        row = next((r for r in new if r["mark"] == previous), None)
+        path = (row["raw_path"] or None) if row else self.files.used(day, session_marks[position - 1])
+        data = self.files.read(path)
         return SnapshotDocument.from_bytes(data).index_level if data else None
 
     def _alert(self, rows: list[dict], now: datetime) -> str:
