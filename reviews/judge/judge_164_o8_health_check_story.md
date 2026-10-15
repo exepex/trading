@@ -97,3 +97,22 @@ and make the design simpler, not bigger.
   the NSE misses already in the data). Each fix removes noise and adds no new mechanism. No finding asks for a guard
   against an unlikely case.
 - Lane 1 is correct. Gap list: every handover section 11 and response 144 item 18 requirement is mapped. No gap.
+
+## Addendum 1: revision 2 at c5bbfbd2 (story text)
+
+**Verdict: PASS (text).** Code may start. The branch diff against main is only the story, response 153 (addendum 1),
+its README row and the work-register row. No other file changed.
+
+| Finding | Fix in revision 2 | Judge's check | Result |
+|---|---|---|---|
+| SF1 deadline owners | `LATEST_START`, `GENERATION_DEADLINE`, `receipt_deadline` and the desk config are imported. Four health-owned constants (`A8_RELEASE_BY`, `INDEX_CLOSE_BY`, `PANEL_DAY_BY`, `FLOWS_BY`) carry their cron sources and are listed for step 5. Criterion 3 greps that they are the only time literals in `fno/health/` | Each cron source cited is the real line (`participant-oi-release.yml:13`, `index-closes.yml:18`, `panel-days.yml:19`, `flows-download.yml:10`) | Fixed |
+| SF2 log coverage | The window holds the sessions from 6 calendar days before the run's IST date up to that date | By construction, the oldest push needed is at most 6 d 8 h 47 min old (15:13 on the first day, read by 23:59 on the last). Later pushes (evening jobs, late pushes) are younger, so the window is inside the 168-hour log on every run. Criterion 1 also replays 2025 | Fixed |
+| SF3 criterion 1 | The window is defined once. D is in the window from D 17:51 to D+6 23:59 and out at D+7 00:01, with the boundaries tested | Consistent with the window rule | Fixed |
+| SF4 time basis | A per-row column: push receipt, or in-file time (forecast `generated_at`, desk `finished_at`) | Criteria 2 and 4 are now per row | Fixed |
+| SF5 repetition | One line per check, listing its bad sessions. Criterion 5: "never one per (check, session)" | Testable | Fixed |
+| Minors 1-5 | The fire-log reason, the NSE label, watcher bounds (window and after the first row), `not expected` narrowed, A16's status final | Each is in the text and in criteria 2 and 6 | Fixed |
+| F1 page-cap note | Added to Known limits | Shared limit, stated | Accepted |
+
+**Note for the code review (no action now):** the AI row says the reveal and forecasts must be "present" but gives no
+time for them. The 15:30 `REVEAL_DEADLINE` exists in `fno/ai/timing.py` if lateness is ever wanted. Presence is
+enough under the simplicity rule.
