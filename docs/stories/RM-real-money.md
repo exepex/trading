@@ -134,8 +134,8 @@ writes the yes of condition 7. Until then RM2's code may exist but records nothi
 - `fno realtest record-entry|record-exit|skip|status` (CLI). A Claude session runs it at the owner's word (owner,
   Q1). It checks the screenshot file exists in Drive and stores its id and SHA-256 with the typed values.
 - **Pairing:** each real trade is paired with Book 1's paper trade of the same card (E8, R = 60), **restated at 1 lot**:
-  the paper fills' gross per unit (entry and exit prices before pad, every leg) × the 1-lot units, minus the pad of
-  Rs 1 per unit × those units, minus C1's charges for 1-lot orders (`fno/costs.py`). Never paper net ÷ lots: C1's
+  the paper fills' gross per unit (entry and exit prices before pad, every leg) × the 1-lot units, minus Rs 1 per unit on every
+  leg at entry and at exit (research's PAD, `fno/research_engine/cycle_costs.py:24`), minus C1's charges for 1-lot orders (`fno/costs.py`). Never paper net ÷ lots: C1's
   brokerage is a flat Rs 20 + 18% GST per order, so dividing a 2-lot trade's charges halves the Rs 94.40 a 2-leg spread
   pays at 1 lot and puts about Rs 47 into every paired difference with no execution behind it (judge 198 SF1). The
   real side carries the contract note's actual charges (owner, Q3), so the pair compares actual 1-lot charges with
@@ -189,7 +189,7 @@ unchanged.
 **Acceptance criteria:**
 1. A recorded entry and exit give the trade's real net from the typed fills and the contract note's charges, its
    paired paper net restated at 1 lot (a 2-lot paper spread is charged Rs 94.40 of brokerage and GST at 1 lot, not
-   Rs 47.20), the per-leg execution slippage and timing gap, all to the paisa on a constructed example.
+   Rs 47.20, and its pad at 65 units is Rs 260 per trade: 2 legs × entry and exit × 65 × Rs 1, not Rs 65), the per-leg execution slippage and timing gap, all to the paisa on a constructed example.
 2. Valid quote: a screenshot 4 minutes before the order is used; 6 minutes before is not, and the A16 fallback
    applies; an A16 mark exactly at the order time is used (age 0); one with too little size is not; no valid quote
    gives "unknown", never zero.
