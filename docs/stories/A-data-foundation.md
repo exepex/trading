@@ -1077,3 +1077,150 @@ Out: any consumer (M1, the weather, forecasts); any display of the private cues;
 the US calendar against the archived trading dates; plants a muhurat case, a mis-timed adopt and a fourth attempt.
 
 **Depends:** A17 · **Size:** S · **Status:** story text for the judge's check (quality rule 1); no code yet
+
+---
+
+## A9b. NSE downloads: one retry policy, and a named failure everywhere
+
+**Repository:** trading
+
+**Description:** As the data owner, I want every NSE download to retry what is worth retrying, stop politely on a
+refusal, and end in a failure each command names, so that no dataset crashes with a traceback, waits into a longer
+block, or skips a file silently.
+
+**Context and why:** judge 100 (A15), open item: `fno/storage/raw_source.py:123` lets NSE's 403, 429 and 5xx out as
+`requests.HTTPError` on the first answer, never retried and not as `RawSourceUnavailable`, the error
+`RawFileSource.fetch` promises. `NseArchiveSource._response` is shared by A1, A8, A10, A11, A12, A14, A15, P6 and P8
+(22 source classes, one of them on NSDL's host through the same code). Inventory of 15 Oct 2026 (builder, read-only):
+- a 403/429/5xx is a traceback in `data-librarian`, `data-snapshot`, `data-revisions sweep`, `data-fingerprints
+  --spot-check`, `market archive`, `market daily` (CRASHED), `market look-up`, `participant-oi watch` and
+  `participant-oi sweep`;
+- `participant-oi check-once` crashes before its UNREACHABLE alert is built, so #fno-desk hears nothing;
+- `SourceCoolingOff` (the pacer's 15-minute pause after two refusals, `fno/http_pacing.py`) is a
+  `RequestException`, so `_response` sleeps 5 + 15 + 45 s into a host that is cooling off, then gives up;
+- `market`'s `_archive_revisions` (`fno/market_read_models/cli.py:137`) drops the sweep's unanswered paths: a silent
+  skip;
+- the VIX sweep's and the revision sweep's "no answer" lines do not say why (404, refusal or no connection);
+- `research/data/participant_oi/README.md:54` says the sweep asks for headers only; the wired sweep
+  (`RevisionCapturingSource`) reads every file in full.
+No raw file is ever written partially today (bytes are complete and checked before any `put`); this stays so.
+
+**Scope.** In:
+1. **One retry policy in `NseArchiveSource._response`** (GET and HEAD alike), as named constants:
+
+   | Answer | What the source does |
+   |---|---|
+   | 2xx | returns it: **unchanged**, one request, no wait |
+   | 404 | `None` (not published): **unchanged** |
+   | no connection, timeout, cut answer (a `RequestException` other than `SourceCoolingOff`) | retried |
+   | 429, and every 5xx (500-599) | retried |
+   | 403, and every other 4xx | **not retried**: raises `RawFileRefused` at once (retrying a refusal invites a longer block; the pacer already pauses a host after two refusals in a row) |
+   | `SourceCoolingOff` from the session | **not retried**: raises `RawSourceUnavailable` at once, naming the cool-off |
+
+   - At most 4 tries: waits of 5, 15 and 45 s before tries 2-4 (today's waits, kept).
+   - `Retry-After` (seconds or an HTTP date) on a retried answer: the wait is the larger of the scheduled wait and
+     `Retry-After`. Above `MAX_RETRY_AFTER_SECONDS` (120) the source stops at once with `RawSourceUnavailable` naming
+     it, rather than block a run; the next scheduled run tries again. A malformed or past `Retry-After` is ignored.
+   - With the pacer: a 429 counts as a refusal, so a second 429 in a row pauses the host and the next try stops at
+     once as cooling off. A 429 therefore gets one retry in practice; a 5xx up to three.
+   - Worst case per file: 65 s of waits, or 3 x 120 s with long `Retry-After` values.
+2. **One failure contract.** `fetch`, `fetch_published` and `last_written` of an NSE source return the bytes (or the
+   time), `None` for 404, or raise `RawSourceUnavailable`; never `requests.HTTPError` or `SourceCoolingOff`.
+   - New `RawFileRefused(RawSourceUnavailable)`: this one file was refused (403 or another 4xx). A subclass, so every
+     caller that handles `RawSourceUnavailable` handles it too; a caller that can go on to the next file catches it
+     first.
+   - Both carry the HTTP status (or none) and the number of tries, and their message names the source, the path, the
+     status or error, and the tries: e.g. `NSE archive: nse/indices/index-close/2026/10/ind_close_all_14102026.csv:
+     HTTP 503 after 4 tries`.
+3. **Every caller names a final failure** (table below): a named line and a non-zero exit, a recorded failure, or an
+   alert; never a traceback, never a silent skip, never a partial or empty raw file.
+
+   | Command or caller | On `RawSourceUnavailable` (incl. `RawFileRefused`) |
+   |---|---|
+   | `data-librarian <ds>` | `stopped: ...` line, exit 1, manifest rows committed (today's path, now reached) |
+   | `data-snapshot <ds>` | `NOT archived: ...`, exit 1 (today's path) |
+   | `data-revisions sweep` | each path listed `no answer` **with its reason**, exit 1 |
+   | `data-fingerprints --spot-check` | **new**: one named line, exit 1, the manifest already written stays |
+   | `market archive`, `market daily` | the problem line (`ARCHIVE_FAILED`, or `Stopped` with its alert), not CRASHED |
+   | `market`'s revision step | **new**: every unanswered path is a problem line (today dropped) |
+   | `market look-up` | **new**: one named line, exit 1 |
+   | `participant-oi watch`, `check-once`, `sweep` | the `unreachable` row and #fno-desk alert / `no answer` line (today's path, now reached for HTTP errors too) |
+   | `vix-history fill`, `sweep` | `STOPPED (...)` line / `no answer` **with its reason**; the stale "not retried" comments go |
+   | `filings archive` (A12) | `RawFileRefused`: a failure for that company, the run goes on (as an `HTTPError` is today); any other `RawSourceUnavailable`: the run stops naming the company (as today); the truncated-file second download alike |
+   | `filings day-lists` | each list stops with its own named line; the next list still runs |
+   | library consumers (quotes recorder, expiry and validity listings, settlement, panel daily files, participant-OI point in time, the capacity script) | receive `RawSourceUnavailable` instead of `HTTPError`; no caller anywhere catches `requests.HTTPError` from an NSE source after this story (a test checks the code) |
+4. **Docs:** `docs/DATA_SOURCES.md` "Politeness" states the policy; `research/data/participant_oi/README.md:54`
+   corrected (the sweep reads files in full through `RevisionCapturingSource`).
+
+Out:
+- `PublicData` (`fno/providers/public.py`: the option chain and the A12 filing indexes on www.nseindia.com/api) keeps
+  its own three-attempt loop with cookie warm-up; it is not an `NseArchiveSource`. Bringing it under this policy is its
+  own change (it needs the warm-up kept);
+- `tools/nse_raw_download/nse_raw_download.py` (a one-off script, stops at the first 403/429 by design);
+- the pacer's numbers (1 request a second a host, a 15-minute pause after two refusals: owner decision,
+  `docs/DESK_DECISIONS.md:44`);
+- non-NSE sources (the global cues have their own rules).
+
+**Acceptance criteria:**
+1. The policy, for every NSE source class (a test over all 22 `NseArchiveSource` subclasses, with a fake session; GET
+   and HEAD):
+   - 200 at once: the same bytes, one request, no sleep (unchanged);
+   - 404: `None`, one request;
+   - 503, 503, 200: the bytes, waits [5, 15]; 4 x 503: `RawSourceUnavailable` with status 503 and 4 tries, waits
+     [5, 15, 45]; the same for 500, 502, 504 and a dropped connection;
+   - 429 then 200: the bytes; 429 twice through the real pacer: the third try stops at once as cooling off;
+   - 403 and 400: `RawFileRefused` after one request, no wait;
+   - `SourceCoolingOff`: `RawSourceUnavailable` at once, no wait;
+   - `Retry-After`: 30 waits 30 (over the scheduled 5); 3 waits 5; exactly 120 waits 120; 121 stops at once; an HTTP
+     date; a malformed value and a past date use the scheduled wait.
+2. No `requests.HTTPError` or `SourceCoolingOff` leaves an NSE source (tests above), and no code in `fno/` or
+   `research/` catches `requests.HTTPError` around an NSE source's `fetch`, `fetch_published` or `last_written` (a
+   test reads the code).
+3. Every row of the caller table, tested end to end with a fake NSE answering 503 four times and with 403: the named
+   line or recorded failure, the exit code, nothing saved for that file, and work done before it kept (manifest rows
+   committed). `participant-oi check-once` sends its UNREACHABLE alert on a 503. `market`'s revision step names an
+   unanswered path. `filings archive` goes on after a 403 on one company and stops on a cool-off. `filings day-lists`
+   runs the second list after the first stops.
+4. Successful downloads are unchanged: for every source, a 200 makes one request and returns the same bytes and
+   `Last-Modified` time as before (the tests above); one real download through the new code matches its manifest
+   SHA-256.
+5. Docs: the policy in `docs/DATA_SOURCES.md`; the participant-OI README line corrected.
+6. Quality rules 1-9:
+   - rule 1: this text first, code after the judge's check;
+   - rule 2: the gap list below;
+   - rule 3: self-review by independent agents (correctness, silent failures);
+   - rule 4: a broken-code proof per criterion;
+   - rule 5: good, bad, boundary and empty cases (the boundaries are `Retry-After` 120/121, the fourth try, the second
+     429; the empty case is an empty 200 body, which stays the dataset check's job and is never retried);
+   - rule 6: real output: one real successful download, and each command's failure line from the end-to-end tests
+     (labelled as test output: NSE cannot be made to fail on purpose);
+   - rule 7: the orchestrator's check;
+   - rule 8: after the merge, one real `data-librarian` run on a recent day;
+   - rule 9: no money path, so no ChatGPT review (stated, not skipped).
+   Code size, lint, imports and the full suite pass.
+
+**Gap list (quality rule 2):**
+
+| Requirement (source) | Where |
+|---|---|
+| 403/429/5xx raised as `HTTPError`, not `RawSourceUnavailable` (judge 100, `raw_source.py:123`) | scope 2, criteria 1-2 |
+| no retry of 429/5xx (judge 100) | scope 1, criterion 1 |
+| which statuses, how many tries, backoff, `Retry-After` (orchestrator, 15 Oct 2026) | scope 1, criterion 1 |
+| what each caller does on a final failure: named, never silent, never a partial file (orchestrator) | scope 3, criterion 3 |
+| cross-dataset tests (judge 100; orchestrator) | criterion 1 (all 22 classes), criterion 3 (every command) |
+| no behaviour change for successful downloads (orchestrator) | criterion 4 |
+| polite: one a second a host, pause after two refusals (owner, `docs/DESK_DECISIONS.md:44`) | kept (out: the pacer's numbers); scope 1: 403 not retried, a cool-off never waited into |
+| `SourceCoolingOff` retried into a paused host (inventory) | scope 1-2, criterion 1 |
+| `check-once` alert lost on an HTTP error (inventory) | scope 3, criterion 3 |
+| `market` revision step drops unanswered paths (inventory) | scope 3, criterion 3 |
+| "no answer" without a reason in the sweeps (inventory) | scope 3, criterion 3 |
+| stale HEAD-only line in the participant-OI README (inventory) | scope 4, criterion 5 |
+| `PublicData`'s own retry loop (inventory) | **out**: not an `NseArchiveSource`; needs its cookie warm-up |
+| the download tool script (inventory) | **out**: one-off, stops on refusal by design |
+
+**Judge verifies:** plants 503s, a 403, a 429 with `Retry-After` and a cool-off against two datasets of its choice and
+reads each command's line and exit code; checks no `HTTPError` escapes; confirms a successful download is byte- and
+request-identical.
+
+**Depends:** A1, A9, A11, A12, A15, P8 · **Size:** M · **Status:** story text for the judge's check (quality rule 1);
+no code yet
