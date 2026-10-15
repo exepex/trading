@@ -8,6 +8,7 @@ from pathlib import Path
 
 SESSION_ID = "session_01TESTxyz"
 REPLY = "a reply text that must never reach the ledger"
+CAPTURED = "2026-10-16T09:00:00+05:30"  # the export was read on 16 Oct IST
 
 
 def result_event(created_at: str, duration_ms: int, uuid: str, output_tokens: int | None = 100) -> dict:
@@ -20,10 +21,27 @@ def result_event(created_at: str, duration_ms: int, uuid: str, output_tokens: in
     return {"created_at": created_at, "result": {"uuid": uuid, "internal_anthropic_catchall": catchall}}
 
 
-def export(events: list[dict], has_more: bool = False, wrapped: bool = True) -> dict:
+def page(events: list[dict], has_more: bool, first_id: str, wrapped: bool = True) -> dict:
+    response = {"data": events, "has_more": has_more, "first_id": first_id, "last_id": "x"}
+    return {"ccr": response} if wrapped else response
+
+
+def export(events: list[dict], has_more: bool = False, wrapped: bool = True, captured_at: str = CAPTURED) -> dict:
+    """One page, or the events split over chained pages when `pages` is used instead."""
     session = {"id": SESSION_ID, "title": "Builder", "configured_model": "model-x", "session_context": {"model": "m"}}
-    page = {"data": events, "has_more": has_more, "first_id": "a", "last_id": "b"}
-    return {"session": {"ccr": session} if wrapped else session, "result_pages": [{"ccr": page} if wrapped else page]}
+    first = {"before_id": None, "response": page(events, has_more, "p1", wrapped)}
+    return {"captured_at": captured_at, "session": {"ccr": session} if wrapped else session, "result_pages": [first]}
+
+
+def chained(*event_pages: list[dict]) -> dict:
+    """An export whose pages run newest to oldest, each read with the newer page's first_id."""
+    data = export([])
+    pages, cursor = [], None
+    for n, events in enumerate(event_pages, start=1):
+        last = n == len(event_pages)
+        pages.append({"before_id": cursor, "response": page(events, not last, f"p{n}")})
+        cursor = f"p{n}"
+    return data | {"result_pages": pages}
 
 
 def write_export(tmp_path: Path, data: dict) -> Path:

@@ -35,8 +35,10 @@ def test_levels_at_the_boundaries(used, level):
     assert reading.level == level and reading.cap_minutes == 50
 
 
-def test_nothing_measured_is_unknown():
+def test_nothing_measured_is_unknown_and_never_called_a_lower_bound():
     assert cap_reading([], SETTINGS).level == "unknown" and cap_reading([], SETTINGS).pct_of_cap is None
+    reading = cap_reading([], SETTINGS, missing_captures=2)
+    assert reading.note == "unknown: no minutes to measure against; 2 fired AI book session(s) not captured"
 
 
 def test_the_measured_basis_is_all_purposes_and_the_owner_figure_replaces_it():
@@ -59,3 +61,33 @@ def test_a_new_cost_needs_a_cited_owner_decision():
     flagged = unapproved_costs(costs, "2026-10")
     assert len(flagged) == 2 and "Paid data" in flagged[0] and "Weather feed" in flagged[1]
     assert unknown_items(costs, "2026-10") == ["Weather feed"]
+
+
+@pytest.mark.parametrize(
+    "books, development, plan, level",
+    [("0.68", "1.02", None, "alert"), ("0.17", "0.17", None, "stop"), ("1.16", "0", "2.9", "alert")],
+)
+def test_exact_boundaries_are_not_lost_to_float_rounding(books, development, plan, level):
+    """Reviewer finding: 0.68 of 1.70 minutes is exactly 80% of a 0.85 cap, never 79.999...%."""
+    rows = [minutes("books_and_roles", books), minutes("development", development)]
+    assert cap_reading(rows, CapSettings(50, 80, 100, plan)).level == level
+
+
+def test_no_development_minutes_on_the_measured_basis_is_unknown_not_stop():
+    reading = cap_reading([minutes("books_and_roles", 30)], SETTINGS)
+    assert reading.level == "unknown" and "no minutes other than the books' and roles'" in reading.note
+
+
+def test_missing_captures_make_ok_unknown_and_alert_a_lower_bound():
+    ok = cap_reading([minutes("books_and_roles", 10), minutes("development", 90)], SETTINGS, missing_captures=2)
+    assert ok.level == "unknown" and "2 fired AI book session(s) not captured" in ok.note
+    alert = cap_reading([minutes("books_and_roles", 42), minutes("development", 58)], SETTINGS, missing_captures=1)
+    assert alert.level == "alert" and alert.note.startswith("at least this level")
+    owner = cap_reading([], CapSettings(50, 80, 100, 600), missing_captures=5)
+    assert owner.level == "unknown" and owner.pct_of_cap == 0.0
+
+
+def test_data_routine_minutes_count_in_the_basis_but_never_against_the_cap():
+    rows = [minutes("books_and_roles", 20), minutes("development", 20), minutes("data_routines", 60)]
+    reading = cap_reading(rows, SETTINGS)
+    assert (reading.books_and_roles_minutes, reading.basis_minutes, reading.level) == (20, 100, "ok")

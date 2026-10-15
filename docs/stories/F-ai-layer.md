@@ -355,12 +355,15 @@ stay for later (they need books 2 and 3 to trade); this version builds the captu
   per-turn `usage` leaves out. So minutes are wall minutes of turns, tokens are main-loop tokens: both labelled.
 
 **Scope.** In:
-- `SessionUsageReader` (interface) and `ExportFileUsageReader`: a Claude session saves `get_session` plus every page of
-  `list_events(kinds=["result"])` for one session into a JSON file outside the repository; the reader extracts only
-  numbers (never message text) as one usage row per session per IST day;
+- `SessionUsageReader` (interface) and `ExportFileUsageReader`: a Claude session saves, into one JSON file outside the
+  repository, the time it read the session (`captured_at`, with its zone), `get_session`, and every page of
+  `list_events(kinds=["result"])` newest first, each with the `before_id` cursor it was read with; the reader extracts
+  only numbers (never message text) as one usage row per session per IST day;
 - `accounting/ai_usage.csv`, written once per (session, day): `date, purpose, book, role_or_bundle, session_id, model,
   minutes, turns, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, tokens_basis, source`. `purpose`
-  is `books_and_roles` (counts against the cap) or `development` (builders, orchestrator, judges);
+  is `books_and_roles` (counts against the cap), `development` (builders, orchestrator, judges) or `data_routines`
+  (code jobs a Claude routine runs, such as the 3 pm and 15-minute recorders, whose host the owner chose on 15 Oct 2026
+  with "cost measured by F8"; never against the AI cap);
 - the allocation (formula `minutes_share_v1`, to be frozen by S1): the month's recorded plan cost from
   `accounting/operating_costs.csv` (item `Claude subscription`) split by measured minutes per (purpose, book, role),
   rounded to paise by largest remainder so the parts sum exactly to the plan cost; labelled "allocated, not a bill";
@@ -377,11 +380,16 @@ the command), per-book lines in C1's account ledger, scoreboards, the dashboard,
 4. Usage rows come only from the session's own figures: minutes = sum of `duration_ms` of that IST day's `result`
    events; tokens = sums of their `usage` fields, left blank (unknown) when any of that day's events lacks them; no
    message text is kept (test with a recorded export shape).
-5. An export missing older event pages (no page with `has_more` false) is refused, so a session is never under-counted
-   silently (test).
-6. A (session, day) already in the ledger is never rewritten; only IST days before today are recorded (complete days).
-7. The capture coverage is shown: each fired AI book session in the fire logs with no usage row is counted as "not
-   captured" for its month.
+5. An export that could under-count is refused, never read as less: a missing older or middle page (each page must be
+   read with the newer page's `first_id`, and only the last may have `has_more` false), an event without a `uuid`, a
+   duration that is not a number of 0 or more, a time without a zone, or no result events at all (tests).
+6. A (session, day) already in the ledger is never rewritten, and the same session written as `cse_<id>` or
+   `session_<id>` counts once (only the `session_<id>` form is accepted); only days before both today and the
+   export's capture day (IST) are recorded, so a day still running when the export was taken is never frozen short;
+   a damaged ledger (wrong field count, minutes not a number of 0 or more) is refused; the file is replaced whole.
+7. The capture coverage is shown: each fired AI book session before today in the fire logs with no usage row is counted
+   as "not captured" for its month (a fired session without a link too); a fire log of another shape is refused,
+   naming the file. A negative plan cost is refused.
 
 **Test plan:** unit tests on the export reader (real field names from 15 Oct), the ledger, the allocation (uneven
 rounding, no plan cost, no usage), and the coverage.

@@ -25,17 +25,18 @@ lists the items; section 7.6 the order in which AI roles stop. F8 (minimal, buil
 published minutes allowance: a session's rate-limit information says only "allowed" and when the five-hour window
 resets, never how much of the plan is used. So the plan's capacity in minutes **cannot be measured from available
 data**. This story uses, by default, the literal reading that can be measured: the cap is 50% of **all measured session
-minutes in the month** (books and roles plus development, from `accounting/ai_usage.csv`). Two flaws, both reported on
+minutes in the month** (books and roles, development and data routines, from `accounting/ai_usage.csv`). Two flaws, both reported on
 every meter: (a) when development is quiet, the books' share rises and can hit the cap while the plan is barely used;
 when development is busy, the cap is loose; (b) the books' routine sessions cannot be read yet (F8 facts), so their
-minutes are missing and the percentage is not a bound in either direction. The owner may instead state a monthly
+minutes are missing: the reading is then "unknown" or "at least this level" (criterion 7). The owner may instead state a monthly
 minutes figure (`budget.plan_minutes_per_month` in `config.yaml`); the cap is then 50% of that number. Choosing is the
 owner's decision (open question 2); this story never sets the number.
 
 **Scope.** In:
 - the meter, per month, one line per item of 8.1: Claude subscription (cash spend = the owner's recorded fee; the
   allocated share per purpose from F8, "allocated, not a bill"; the AI minutes cap), GitHub Actions and Drive (no cap),
-  Azure Database for PostgreSQL, Groww API, recorder and monitor hosting, paid data (owner records each). A month with
+  Azure Database for PostgreSQL, Groww API, recorder and monitor hosting (a Claude routine by the owner's 15 Oct decision: its `data_routines` minutes,
+  no cash cost), paid data (owner records each). A month with
   no recorded amount for an item shows "not recorded", never zero;
 - the new-cost rule: a recorded cost of an item other than the existing Claude subscription and Azure database, or of
   an item not in 8.1, is flagged "needs the owner's written yes" unless its `source` cites a `DESK_DECISIONS` row;
@@ -61,7 +62,10 @@ is missing (2027 today) the last weekday is used and labelled, until NSE's 2027 
 **Acceptance criteria:**
 1. The meter shows every item of 8.1 for the month, with cash spend and allocated cost in separate fields, and "not
    recorded" (never zero) for an item with no recorded amount (test).
-2. The cap level is `ok` at 79.9%, `alert` at 80%, `stop` at 100% (boundary tests), `unknown` with no measured minutes.
+2. The cap level is `ok` below 80%, `alert` from exactly 80%, `stop` from exactly 100%, compared in decimals so an
+   exact boundary is never read as just below it (boundary tests, including 0.68 of 1.70 minutes); `unknown` with no
+   measured minutes, and on the measured basis when no development minutes are recorded (the books would otherwise
+   read as all the use). The alert text floors its percentage, so it never reads 100% below the stop level.
 3. With `plan_minutes_per_month` unset, the cap is 50% of the month's measured minutes of all purposes; set, it is 50%
    of that number; the meter names which basis it used and its limits (test).
 4. The signal file holds the level, the % of cap, the alert text, the stop flag, 7.6's stop order and "code jobs keep
@@ -70,8 +74,11 @@ is missing (2027 today) the last weekday is used and labelled, until NSE's 2027 
 6. The stop-rule tracker gives 31 May 2027 for a freeze in November 2026, labels it "projected" with the dependency
    while no freeze date is set, gives days left from a given day, and reports both tests "not computable yet" listing
    each missing input and its story (test).
-7. Missing captures (fired AI book sessions with no usage row) are counted on the meter, which then says its % is not
-   a bound (test).
+7. Missing captures (fired AI book sessions before today with no usage row) are counted. They can only raise the books'
+   share, so with missing captures an `ok` reading becomes `unknown` and an `alert` or `stop` reading is marked "at
+   least this level"; the signal file carries the same level and note (test). Development sessions never recorded are
+   not tracked and lower the measured share; the meter says so (its basis limit) and prints "no rows recorded", never
+   0, for a purpose without rows.
 
 **Test plan:** unit tests with constructed CSV files and exports; a CLI test that prints the meter for a temporary
 repository; no network, no Slack.

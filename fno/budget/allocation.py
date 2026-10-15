@@ -38,6 +38,8 @@ def minutes_by_share(usage_rows: list[dict]) -> dict[Share, float]:
 
 def allocate(month: str, plan_cost_rs: float | None, usage_rows: list[dict]) -> Allocation:
     minutes = minutes_by_share(usage_rows)
+    if plan_cost_rs is not None and plan_cost_rs < 0:
+        raise ValueError(f"{month}: the Claude plan cost is negative (Rs {plan_cost_rs:,.2f}); record a refund apart")
     if plan_cost_rs is None:
         return Allocation(month, None, minutes, dict.fromkeys(minutes))
     total = sum(minutes.values())

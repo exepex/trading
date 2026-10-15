@@ -25,7 +25,7 @@ CAPS = {  # what 8.1 sets for each item (the AI cap itself is computed in cap.py
     ITEM_GITHUB_DRIVE: "no cap needed (free: public repositories; Drive within the owner's storage)",
     ITEM_AZURE_POSTGRES: "no cap set; owner records the cost",
     ITEM_GROWW_API: "no cap set; owner records any charge",
-    ITEM_RECORDER_HOSTING: "inside the Azure free grant if option (b), else measured",
+    ITEM_RECORDER_HOSTING: "a Claude routine (owner, 15 Oct 2026): measured as data_routines minutes, not a cash cost",
     ITEM_PAID_DATA: "none without an idea past the cost wall; owner approves each",
 }
 

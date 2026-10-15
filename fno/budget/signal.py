@@ -5,6 +5,7 @@ dry-run sender: nothing is posted to Slack until a later routine wires the Slack
 from __future__ import annotations
 
 import json
+import math
 from datetime import datetime
 from pathlib import Path
 
@@ -16,11 +17,11 @@ SIGNAL_FOLDER = "accounting/budget"
 CODE_JOBS = "keep running"
 NO_MEASURE = "no alert: the level is unknown (no measured minutes to compare with)"
 ALERT_TEXT = (
-    "Omenix F&O SYSTEM: AI budget {month}: books and roles used {pct:.0f}% of their cap ({used:,.0f} of {cap:,.0f} "
+    "Omenix F&O SYSTEM: AI budget {month}: books and roles used {pct:.1f}% of their cap ({used:,.2f} of {cap:,.2f} "
     "minutes); at 100% AI roles stop ({order}); code jobs keep running"
 )
 STOP_TEXT = (
-    "Omenix F&O SYSTEM: AI budget {month}: cap reached ({pct:.0f}%, {used:,.0f} of {cap:,.0f} minutes): AI roles stop "
+    "Omenix F&O SYSTEM: AI budget {month}: cap reached ({pct:.1f}%, {used:,.2f} of {cap:,.2f} minutes): AI roles stop "
     "in this order: {order}; code jobs keep running"
 )
 
@@ -35,7 +36,8 @@ def alert_text(month: str, reading: CapReading) -> str:
     if template is None:
         return ""
     order = ", then ".join(AI_ROLE_STOP_ORDER)
-    return template.format(month=month, pct=reading.pct_of_cap, used=reading.books_and_roles_minutes,
+    shown = math.floor(reading.pct_of_cap * 10) / 10  # floored, so 99.96% never reads as 100% below the stop level
+    return template.format(month=month, pct=shown, used=reading.books_and_roles_minutes,
                            cap=reading.cap_minutes, order=order)  # fmt: skip
 
 
@@ -48,6 +50,7 @@ def signal_data(month: str, reading: CapReading, missing_captures: int, computed
         "cap_minutes": reading.cap_minutes,
         "basis": reading.basis,
         "missing_captures": missing_captures,
+        "note": reading.note,
         "alert_text": alert_text(month, reading),
         "stop_ai_roles": reading.level == BUDGET_STOP,
         "stop_order": list(AI_ROLE_STOP_ORDER),

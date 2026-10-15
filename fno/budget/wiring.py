@@ -36,18 +36,19 @@ def build_budget_alert_sender() -> AlertSender:
     return DryRunAlertSender()
 
 
-def build_month_meter(month: str, root: Path = ROOT, config: dict | None = None) -> MonthMeter:
+def build_month_meter(month: str, today: date, root: Path = ROOT, config: dict | None = None) -> MonthMeter:
     budget = (config or load_app_config())["budget"]
     costs_file = root / COSTS_FILE
     costs = read_operating_costs(costs_file.read_text(encoding="utf-8")) if costs_file.is_file() else []
     usage = [row for row in UsageLedger(root).rows() if row["date"].startswith(month)]
+    missing = not_captured(root, month, usage, today.isoformat())
     return MonthMeter(
         month=month,
         items=month_items(costs, month),
         allocation=allocate(month, plan_cost(costs, month), usage),
-        cap=cap_reading(usage, CapSettings.from_config(budget)),
+        cap=cap_reading(usage, CapSettings.from_config(budget), len(missing)),
         usage_rows=usage,
-        missing_captures=not_captured(root, month, usage),
+        missing_captures=missing,
         needs_owner_yes=unapproved_costs(costs, month),
         unknown_items=unknown_items(costs, month),
     )

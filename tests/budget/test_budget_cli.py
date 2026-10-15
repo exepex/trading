@@ -32,4 +32,4 @@ def test_record_usage_writes_once_and_refuses_an_incomplete_export(tmp_path, mon
     bad = tmp_path / "bad.json"
     bad.write_text(json.dumps(export(TWO_DAYS, has_more=True)), encoding="utf-8")
     assert cli.cmd_budget(SimpleNamespace(**{**vars(args), "export": bad})) == 1
-    assert "refused: the export has no page with has_more false" in capsys.readouterr().out
+    assert "refused: the export's last page has has_more true" in capsys.readouterr().out

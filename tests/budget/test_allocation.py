@@ -41,3 +41,8 @@ def test_no_recorded_plan_cost_is_flagged_and_unknown_never_zero():
 def test_a_cost_with_no_measured_usage_stays_whole_as_unmeasured():
     allocation = allocate("2026-10", 1700.0, [])
     assert allocation.allocated_rs == {UNMEASURED: 1700.0} and not allocation.flagged
+
+
+def test_a_negative_plan_cost_is_refused():
+    with pytest.raises(ValueError, match="negative"):
+        allocate("2026-10", -10.01, THREE_WAYS)

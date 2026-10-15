@@ -33,7 +33,7 @@ def test_an_alert_is_dry_run_only(monkeypatch):
 
     monkeypatch.setattr(requests.Session, "post", lambda *a, **k: (_ for _ in ()).throw(AssertionError("network")))
     sender, data = DryRunAlertSender(), data_at(42)
-    assert data["level"] == "alert" and not data["stop_ai_roles"] and "84%" in data["alert_text"]
+    assert data["level"] == "alert" and not data["stop_ai_roles"] and "84.0%" in data["alert_text"]
     outcome = send_alert(sender, data)
     assert outcome.startswith("dry run, nothing sent") and sender.would_send == [data["alert_text"]]
 
@@ -47,3 +47,9 @@ def test_the_composition_root_wires_only_the_dry_run_sender():
     from fno.budget.wiring import build_budget_alert_sender
 
     assert type(build_budget_alert_sender()) is DryRunAlertSender
+
+
+def test_the_alert_text_never_rounds_up_to_the_stop_level():
+    rows = [{"purpose": "books_and_roles", "minutes": "99.96"}, {"purpose": "development", "minutes": "100.04"}]
+    data = signal_data("2026-10", cap_reading(rows, CapSettings(50, 80, 100, None)), 0, AT)
+    assert data["level"] == "alert" and "used 99.9% of their cap (99.96 of 100.00 minutes)" in data["alert_text"]

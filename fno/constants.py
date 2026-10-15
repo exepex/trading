@@ -242,7 +242,10 @@ MARGIN_SOURCE_NSE_SPAN = "NSE SPAN"  # margins.csv `source` prefix of a computed
 # Stories F8 (minimal) and BG1 (fno/budget/): what an AI session's minutes were for, design v2 section 8.1's cost
 # items, and the order AI roles stop in at 100% of the AI cap (section 7.6); code jobs keep running
 PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT = "books_and_roles", "development"  # only the first counts against the cap
-USAGE_PURPOSES = (PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT)
+PURPOSE_DATA_ROUTINES = (
+    "data_routines"  # code jobs run by a Claude routine (3 pm and 15-minute recorders): keep running
+)
+USAGE_PURPOSES = (PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT, PURPOSE_DATA_ROUTINES)
 ITEM_CLAUDE_PLAN = "Claude subscription"
 ITEM_GITHUB_DRIVE = "GitHub Actions and Drive"
 ITEM_AZURE_POSTGRES = "Azure Database for PostgreSQL"

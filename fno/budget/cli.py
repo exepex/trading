@@ -47,7 +47,7 @@ def _meter(args, today: date) -> int:
     from .report import meter_lines
     from .wiring import build_month_meter
 
-    print("\n".join(meter_lines(build_month_meter(_month(args, today)))))
+    print("\n".join(meter_lines(build_month_meter(_month(args, today), today))))
     return 0
 
 
@@ -57,7 +57,7 @@ def _signal(args, today: date) -> int:
     from .signal import send_alert, signal_data, write_signal
     from .wiring import build_budget_alert_sender, build_month_meter
 
-    meter = build_month_meter(_month(args, today))
+    meter = build_month_meter(_month(args, today), today)
     data = signal_data(meter.month, meter.cap, len(meter.missing_captures), now_ist())
     print(f"signal {data['level']} written: {write_signal(ROOT, data).relative_to(ROOT)}")
     print(send_alert(build_budget_alert_sender(), data))
@@ -79,10 +79,11 @@ def _record_usage(args, today: date) -> int:
     from .wiring import build_usage_ledger, build_usage_reader
 
     try:
-        days = build_usage_reader(args.export).days()
-        lines = build_usage_ledger().record(days, Attribution(args.purpose, args.book, args.role), today)
+        reader = build_usage_reader(args.export)
+        before = min(today, reader.captured_on())  # a day still running when the export was taken is not complete
+        lines = build_usage_ledger().record(reader.days(), Attribution(args.purpose, args.book, args.role), before)
     except (ExportRefused, UsageRefused) as refused:
         print(f"refused: {refused}")
         return 1
-    print("\n".join(lines) or "no finished turns in the export")
+    print("\n".join(lines))
     return 0

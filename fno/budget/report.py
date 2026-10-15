@@ -14,7 +14,6 @@ from .items import ItemLine
 from .stop_rule_tracker import ZERO_SHADOWS, ReviewDate, stop_test_status
 
 NOT_RECORDED = "not recorded"
-NOT_A_BOUND = "{n} fired AI book session(s) have no usage row: the % above is not a bound in either direction"
 
 
 @dataclass(frozen=True)
@@ -55,9 +54,12 @@ def _usage_lines(rows: list[dict]) -> list[str]:
     lines = []
     for purpose in USAGE_PURPOSES:
         mine = [r for r in rows if r["purpose"] == purpose]
+        if not mine:
+            lines.append(f"  measured {purpose}: no rows recorded (unknown, not zero)")
+            continue
         minutes = sum(float(r["minutes"]) for r in mine)
         known = all(r["output_tokens"] != "" for r in mine)
-        tokens = sum(int(r["output_tokens"]) for r in mine) if mine and known else None
+        tokens = sum(int(r["output_tokens"]) for r in mine) if known else None
         out = "not available" if tokens is None else f"{tokens:,}"
         sessions = len({r["session_id"] for r in mine})
         lines.append(f"  measured {purpose}: {minutes:,.2f} minutes, {sessions} session(s), output tokens {out}")
@@ -71,8 +73,8 @@ def _cap_lines(meter: MonthMeter) -> list[str]:
              f"level {cap.level}", f"    basis: {cap.basis}"]  # fmt: skip
     if cap.basis == BASIS_MEASURED:
         lines.append(f"    {MEASURED_LIMIT}")
-    if meter.missing_captures:
-        lines.append(f"    {NOT_A_BOUND.format(n=len(meter.missing_captures))}")
+    if cap.note:
+        lines.append(f"    {cap.note}")
     return lines
 
 
