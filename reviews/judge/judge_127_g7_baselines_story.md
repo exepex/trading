@@ -34,3 +34,47 @@ rule), so this case is real. The fix: trailing for V1 is `d-1`'s `RV_s`, missing
 ## Not checked here
 
 The code (it comes as G7's own lane-1 check). The protocol itself (judge 98).
+
+## Addendum 1 (15 Oct 2026): G7 code at 58f4329 (code 1311858)
+
+**Verdict: PASS.** No blocking or should-fix findings and one note for the G6 freeze text.
+
+**Gates, run by me.**
+- On 58f4329: 4,998 passed and 0 failed (both `test_freeze_v2` tests pass). ruff, format and check_imports are
+  clean. `fno/forecast_v4_rules/` is 601 lines in all.
+- Nothing under `fno/forecast/` differs from main 02cb2b8. The new composition root is
+  `fno/forecast_v4_rules/wiring.py`.
+- A trial merge with `origin/main` conflicts only in `reviews/claude/README.md` (keep both rows).
+
+**My hand values, reproduced by the code on the committed closes (through 14 Oct 2026, forecast day 15 Oct).**
+- EWMA `s2` 7.72236e-05.
+- `v6_ewma_t4` V6a 0.0323228, V6b 0.1514985.
+- V6a base rate 0.0266667 (20 of 750).
+- HAR daily (h = 1): 7.824063e-05. I rebuilt this one independently: refit day 1 Oct 2026, the 750 most recent rows
+  whose target closed before it, features from RVs before the row's day, target RV of the next session. OLS gives
+  the same figure to all printed digits.
+
+**Real runs, in a scratch worktree.**
+- `python -m fno forecast-v4 capture` at 15:49 IST printed "nothing written: ... at or after 2026-10-15's 15:00
+  cutoff", as criterion 11 requires.
+- `python -m fno forecast-v4 backfill` wrote 2,409 days, 9,636 rows, all `backfill_exploratory`. Only V6 folders
+  were written (`base_rate`, `v6_ewma_t4`): V1 has no live A16 rows yet, so it is not started and not written. The
+  first rows are `not_eligible`. The last day is 14 Oct.
+- A second back-fill added 0 rows and the file hash was unchanged (`4de7b6e5…`), so re-runs are identical
+  (criterion 10).
+
+**Point in time and decision 56, read in the code.**
+- Every baseline reads sessions strictly before `d` (`before()`).
+- A16 rows count only if `day < d` and `first_seen_at < d 15:00 IST`.
+- `live_intraday_rv` reads A16's `rv/` rows only.
+- HAR rows use RVs before row day t and a target closed before the refit day.
+- V1 starts at 20 usable live sessions and intraday HAR at 250.
+- My judge 127 minor is fixed: `trailing_previous_session` takes the previous scored session's RV and is missing when
+  that session is void or has no row.
+
+**Note for the G6 session (protocol text, not G7's to fix).** Intraday HAR drops void sessions and forms its 1-, 5-
+and 22-session means over the usable ones. The docstring says so plainly. The strict reading of 3.1 ("cannot be
+computed: missing, never replaced") would make intraday HAR missing whenever any of the last 22 sessions is void. At
+A16's tolerated 5% voids that is about 1 - 0.95^22 = 68% of days, and after V1's one-way switch it would leave V1
+without a primary most days. G7's reading is the workable one. The freeze could state it in 3.1 so the code and the
+text agree.
