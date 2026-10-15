@@ -175,9 +175,9 @@ def test_candle_times_are_read_as_ist_whatever_the_host_time_zone(monkeypatch):
     assert candle_start("2026-10-15T09:29:00").tzinfo is IST
 
 
-def test_the_composition_root_gives_the_source_only_the_wrapper(monkeypatch):
+def test_the_composition_root_gives_the_source_only_the_wrapper(tmp_path, monkeypatch):
     from tests.intraday.groww_fakes import FakeGrowwProvider
 
     monkeypatch.setattr(wiring, "GrowwProvider", lambda cfg: FakeGrowwProvider())
-    held = vars(wiring.build_intraday_recorder({}, Path("/tmp/a16-dry")).source)
+    held = vars(wiring.build_intraday_recorder({}, tmp_path / "dry").source)
     assert [type(v).__name__ for v in held.values() if "Groww" in type(v).__name__] == ["ReadOnlyGroww"]

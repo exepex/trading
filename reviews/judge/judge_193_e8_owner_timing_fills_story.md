@@ -197,3 +197,16 @@ S1's freeze needs the answer, wired in `wiring.py`, or a recorded owner row keep
 trade? Yes: it decides which entries fill for the whole evaluation.
 
 Re-review: only that line.
+
+## Addendum 3: revision 6 at df7a1d65: PASS
+
+Should-fix 5 is closed. The only change since f2753ebf is in `docs/stories/E8-owner-timing-fills.md` (+4, -1). It
+adds S1 item 4: "The entry rule (rule 6) waits for the owner. S1's freeze needs the answer wired in `wiring.py`, or a
+recorded owner row keeping `ApprovedLimit`", and gives the reason, that `wiring.py` is frozen. The old item 4 becomes
+item 5.
+
+The S1 text owner's register row on main records it as pending edit (9). The precondition is therefore on both sides:
+E8's text and S1's own list.
+
+E8's story text passes at df7a1d65. Under quality rule 9, it goes to ChatGPT next (it changes how fills are priced).
+The owner's entry-rule answer stays open and is now a precondition of S1's freeze.
