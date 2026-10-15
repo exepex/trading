@@ -164,4 +164,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 174: T2 + T3, the devil's advocate on the daily card: story text and claims (rule outcomes reported, never re-checked; objections via fno/advocate; 3 questions)](response_174_t2-t3-advocate.md)
 - [Response 185: review request to ChatGPT for E8 owner-timing fills (story text, quality rule 9)](response_185_e8-chatgpt-request.md)
 - [Response 186: review request to ChatGPT for E4c code (every leg checked before any fill; judge 197 PASS at f4a1f642), quality rule 9; answer in review 123](response_186_e4c-chatgpt-request.md)
-- [Response 193: story E4d, a book's entries at one snapshot share its displayed size (the later one refused, never over-filled; units taken read from the book's own fill rows; never pooled across books); story text for the judge](response_193_e4d-shared-size.md)
+- [Response 195: story E4d, a book's entries at one snapshot share its displayed size (the later one refused, never over-filled; units taken read from the book's own fill rows; never pooled across books); story text for the judge](response_195_e4d-shared-size.md)

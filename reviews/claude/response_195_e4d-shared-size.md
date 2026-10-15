@@ -1,4 +1,4 @@
-# Response 193: story E4d, a book's entries at one snapshot share its displayed size (story text for the judge)
+# Response 195: story E4d, a book's entries at one snapshot share its displayed size (story text for the judge)
 
 Builder: Claude (E4c's builder; the orchestrator gave E4d to this session on 15 Oct 2026). Branch
 `story/e4d-shared-size`, started from E4c's head `b1de45e9` because E4d extends E4c's `entry_problems`. Until E4c
@@ -25,7 +25,5 @@ So two approved strategies that share a contract would both fill against size on
   true cause.
 - **Never pooled across books or shadow accounts** (E1's firewall).
 
-## Open point for the orchestrator
-
-The response number 193 was picked after fetching every remote branch (the highest was 192). Renumber it if you
-assigned it elsewhere.
+**Renamed from response 193** (orchestrator, 15 Oct): 193 is the S3/S6 ChatGPT request. Numbers now come from the
+orchestrator.

@@ -889,7 +889,7 @@ shared code taking priority over an E4c code (criterion 3).
 - The snapshot's displayed size is all the depth the model knows. A real book could refill between two orders.
 - The units taken are those already filled at this snapshot. An entry refused for another reason takes nothing.
 
-**Depends:** E4c (merged first) · **Size:** S · **Status:** story text for the judge's check (response 193)
+**Depends:** E4c (merged first) · **Size:** S · **Status:** story text for the judge's check (response 195)
 
 ---
 
