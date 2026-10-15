@@ -1118,12 +1118,19 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
 - **the factor applied automatically (owner question 3)**: each run appends one row to
   `research/data/margins/stress_factor.csv` (append-only, never edited): `as_of` (run day), `factor` (in force),
   `computed` (this run's rounded result), `unrounded`, `status` (`applied` or `held`), `peak` (window, structure, width,
-  entry day), `evidence_sha256` (of the evidence CSV). C2 and C4 read the latest row (story C2d); `config.yaml` keeps
+  entry day), `coverage_through` (the last session the archive covers, checked as below), `evidence_sha256` (of the
+  evidence CSV). C2 and C4 read the latest row (story C2d); `config.yaml` keeps
   only the method, the file path and `max_age_days`. A run never edits `config.yaml`;
-- guardrails, in this order: a result below 1.0, or an archive covering fewer sessions than the last run's, is refused
-  by name and writes no row; a result at or above the factor in force is `applied` (a rise applies at once); **any
-  result below the factor in force is `held`**: the row keeps the old factor and the alert asks the owner to approve
-  the lower one (DESK_DECISIONS row, then a row with status `applied` written by the next run that cites it);
+- **coverage check first (ChatGPT review 117; it replaces a session count, which a same-count archive with a different
+  missing date, or one ending a session early, would pass):** before computing, the run derives the required date set,
+  every session A7's calendar gives (regular and special, not muhurat-only) from 2 Jan 2020 through the latest session
+  before the run day, and checks each date has its first-archived `i1` file in the A9 manifest; any gap is named, no
+  row is appended, and one #fno-desk line goes out, so stale or holed data can neither drop the worst holding nor reset
+  the 30-day age; `coverage_through` is that latest session, recorded in the row and the evidence;
+- guardrails, in this order: a result below 1.0 is refused by name and writes no row; a result at or above the factor in
+  force is `applied` (a rise applies at once); **any result below the factor in force is `held`**: the row keeps the old
+  factor and the alert asks the owner to approve the lower one (DESK_DECISIONS row, then a row with status `applied`
+  written by the next run that cites it);
 - incremental runs: the rule is a maximum over a window that only grows, so a run computes only the entries whose
   holding ended since the last run's newest entry and takes the larger of that and the last `unrounded`; a full
   re-run from 2020 is a flag (`--full`) and must give the same `unrounded` (test); the first run, and any run whose last
@@ -1185,17 +1192,20 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
    the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 2020"); 3 and 4 with the hold-every-fall
    rule at da0f769d; C2c and C2d are merged before it, so the value is applied as it was measured.
 7. Guardrails (tests on planted runs): a rise is `applied`; any fall, 0.01 included, is `held` with the old factor kept
-   and one alert asking the owner; a result below 1.0 and an archive covering fewer sessions than the last run's are
-   refused with no row; an owner-approved fall is `applied` only when its DESK_DECISIONS row is cited; a mutation that
-   applies a fall fails a test.
-8. Incremental equals full: on planted files the incremental run's `unrounded` equals `--full`'s (test); after a row
+   and one alert asking the owner; a result below 1.0 is refused with no row; an owner-approved fall is `applied` only
+   when its DESK_DECISIONS row is cited; a mutation that applies a fall fails a test.
+8. Coverage (planted manifests and calendar, ChatGPT review 117): (a) the same number of files with one required date
+   missing and another date present instead: refused, the missing date named, no row; (b) the latest session missing
+   while every earlier one is present: refused, no row, so the 30-day age is not reset; (c) a complete archive: the
+   row's `coverage_through` is the latest session before the run day (tests).
+9. Incremental equals full: on planted files the incremental run's `unrounded` equals `--full`'s (test); after a row
    with an empty `unrounded` (the owner seed) the run is `--full` and the seed's 1.45 is not a floor (test: planted
    files whose true maximum is 1.30 give `computed` 1.30, then `held` against the seed's factor 1.45).
-9. Alerts: one #fno-desk line per run with the factor, the change, the status and the peak (test); a Groww mismatch
+10. Alerts: one #fno-desk line per run with the factor, the change, the status and the peak (test); a Groww mismatch
    beyond the stated tolerance posts one line and leaves the factor applied (test on planted figures; the live check
    is read-only and places nothing); a second broker check of the same `applied` row writes nothing and prints
    "nothing to check" (test).
-10. Code size, lint, imports and the full suite pass.
+11. Code size, lint, imports and the full suite pass.
 
 **Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; judge
 by 11 Nov; 1.45 expires after 13 Nov. Then weekly (Sunday), automatic. Bootstrap: story C2d seeds
