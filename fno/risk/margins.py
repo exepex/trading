@@ -14,12 +14,15 @@ cash already deducts.
 
 At entry a broker such as Groww credits nothing for the sold premium (it arrives after settlement) and takes the bought
 premium at once, so MarginRoom also checks the funds at entry (judge 77 addendum 3): the margin without the premium
-credit, `max(0, k x scan - NOV) + exposure`, plus the bought premium and charges, against the free cash before entry.
+credit, `max(0, k x scan - NOV) + k x exposure`, plus the bought premium and charges, against the free cash before
+entry.
 
 Stressed margin, one frozen method (`risk.stressed_margin`):
-- `multiplier`: the factor k stresses the scanning risk only (the premium paid or received does not grow):
-  `max(0, k x scan - NOV) + min(0, NOV) + exposure`, with its source and date; missing or older than its age fails
-  closed;
+- `multiplier`: the factor k stresses the scanning risk and the exposure, the whole margin as k was measured (owner,
+  15 Oct 2026, story C2c); the premium paid or received does not grow (judge 75):
+  `max(0, k x scan - NOV) + min(0, NOV) + k x exposure`, with its source and date; missing or older than its age fails
+  closed. For SF and SC that is exactly k x what C2 counts; for BF never below it; for the STR1 codes the cap below
+  bounds the SPAN part only;
 - `scenario_lookup`: a margin per stress scenario from SPAN parameter files (`structure, width, scenario,
   margin_per_lot_rs, source, as_of`); every configured scenario needs a fresh row, and the largest counts.
 """
@@ -33,7 +36,7 @@ from dataclasses import dataclass, replace
 from datetime import date
 from pathlib import Path
 
-from ..constants import STRESSED_MARGIN_MULTIPLIER, STRESSED_MARGIN_SCENARIO_LOOKUP
+from ..constants import STRESSED_MARGIN_MULTIPLIER, STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_STRESSES
 from .capital import stress_cap_per_lot
 from .inputs import RiskInputError, TradeTerms
 from .margin_age import MarginAge
@@ -93,12 +96,12 @@ class MarginParts:
         return self.stressed(1.0)
 
     def stressed(self, factor: float) -> float:
-        """The scanning risk times `factor`; the premium paid or received does not grow under stress."""
-        return _positive(self._span(factor) + min(0.0, self.nov) + self.exposure, self.what, self.bought_only)
+        """The scanning risk and the exposure times `factor`; the premium paid or received does not grow (C2c)."""
+        return _positive(self._span(factor) + min(0.0, self.nov) + factor * self.exposure, self.what, self.bought_only)
 
     def at_entry(self, factor: float) -> float:
         """The margin blocked at entry when the sold premium is not credited: no `min(0, NOV)` term."""
-        return _positive(self._span(factor) + self.exposure, self.what, self.bought_only)
+        return _positive(self._span(factor) + factor * self.exposure, self.what, self.bought_only)
 
     def _span(self, factor: float) -> float:
         """The SPAN figure at `factor`; with a cap (STR1 codes) the stress extra is capped, never the broker's own
@@ -178,7 +181,7 @@ class MultiplierMargin(StressedMargin):
 
     def record(self) -> dict[str, str]:
         values = {"multiplier": self.settings.multiplier, "source": self.settings.source, "as_of": self.settings.as_of}
-        stressed = {"method": self.method, "stresses": "scan risk only (judge 75)"}
+        stressed = {"method": self.method, "stresses": STRESSED_MARGIN_STRESSES}
         return stressed | {k: "" if v is None else str(v) for k, v in values.items()}
 
 

@@ -142,6 +142,7 @@ BOOK_DISPLAY_NAMES = {BOOK1_RULES: "Book 1", BOOK2_HYBRID: "Book 2", BOOK3_AI: "
 OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
+STRESSED_MARGIN_STRESSES = "scan and exposure (owner, 15 Oct 2026; story C2c)"  # every decision record's label
 # Risk buckets (story C5, design 6.2): an underlying group and a side of exposure. Only the index groups 6.2 names are
 # mapped; a stock (its own group, or "stock results this week") is unmapped until the events calendar is wired in.
 BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH = (
