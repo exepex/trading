@@ -164,3 +164,20 @@ which cannot happen in practice) and C7 (minor 1).
   the shadow's minutes land in that day's cost and are charged to the role. It is conservative and labelled.
 - The change keeps every agreed rule: risk is never deciding; unknown cost on a scored date means no verdict and no
   Holm entry (M4 caught); there is no edit under `fno/scoreboard/`.
+
+## Addendum 4: should-fixes of addendum 3 at 922c3fbc
+
+**Verdict: PASS.**
+- `git diff ba7a3145 922c3fbc -- fno` is empty: the code is unchanged.
+- The new `tests/role_value/test_cost_dates.py` has an unscored Rs 200 day first, then scored days of Rs 300 and
+  Rs 100. The resampler series is (1,160, 1,360). I checked it by hand: 1,460 − 300 and 1,460 − 100.
+- **My plants, re-run:**
+  - M1, every opportunity charged the first consulted date: caught.
+  - M3, net from the mean of the scored dates' costs: caught.
+  - M2, the all-days mean: caught.
+- **Story text:** the cost item and criterion 5 now block the verdict only on an unknown scored date. An unknown
+  unscored day leaves the verdict possible and only the operating cost unknown. Each statement is backed by a test.
+  This matches the code.
+- **Gates at 922c3fbc:**
+  - `pytest -n auto`: 6,674 passed;
+  - `ruff check` and imports are clean.
