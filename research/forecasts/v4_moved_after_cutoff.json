@@ -1,0 +1,17 @@
+{
+ "x": 0.006104597099330481,
+ "sample_count": 1661,
+ "quantile": 0.95,
+ "convention": "nearest rank: the ceil(0.95 n)-th smallest move, no interpolation; flagged when strictly above X",
+ "first_session": "2020-01-02",
+ "last_session": "2026-10-14",
+ "rows_read": 1680,
+ "flagged_in_history": 83,
+ "flagged_share": 0.049969897652016856,
+ "source": {
+  "table": "research/data/intraday/rv-candle",
+  "table_revision": "1d68c4477ec2356ecc9a3c5583c5702152424b8f",
+  "manifests_revision": "1d68c4477ec2356ecc9a3c5583c5702152424b8f"
+ },
+ "computed_at": "2026-10-15T19:12:25+00:00"
+}
