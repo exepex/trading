@@ -57,13 +57,24 @@ def test_a_failed_fetch_is_one_alert_and_the_day_goes_on(tmp_path):
     assert "checkout is shallow" in sent and "exits run" in sent
 
 
-def test_the_runner_takes_the_whole_history_before_the_day():
+def test_the_runner_takes_the_whole_history_before_the_day_and_the_parts(tmp_path):
+    from datetime import date
+
     order = []
 
     class Run:
+        steps = type("Steps", (), {"root": tmp_path, "timetable": None})()
+
         def run(self, day):
             order.append("day")
             return type("Log", (), {"steps": {}})()
 
-    DayRunner(Run(), parts=None, waiter=None, before=lambda: order.append("history")).run(None)
-    assert order == ["history", "day"]
+    class Parts:
+        def start(self, day):
+            order.append("parts")
+
+        def busy(self):
+            return False
+
+    DayRunner(Run(), Parts(), waiter=None, before=lambda: order.append("history")).run(date(2026, 10, 14))
+    assert order == ["history", "parts", "day"]

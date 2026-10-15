@@ -10,12 +10,14 @@ from datetime import date
 from ..constants import STEP_FAILED, STEP_REFUSED
 from ..desk.daily_ports import Waiter
 from ..desk.daily_run import DailyRun, RunStopped
+from ..desk.run_log import RunLog
 from .quote_parts import QuoteParts
 
 DAY_DONE = "day done"
 WITH_PROBLEMS = "day done with problems: {steps}"
 NO_CARD = "; no card today"
 PROBLEMS = (STEP_FAILED, STEP_REFUSED)
+QUOTES_STEP = "quotes"
 
 
 class DayRunner:
@@ -25,13 +27,24 @@ class DayRunner:
         self.daily_run, self.parts, self.waiter, self.before = daily_run, parts, waiter, before
 
     def run(self, day: date) -> tuple[int, str]:
-        """The exit code and the one line the command ends on. `before` runs first (the whole git history)."""
+        """The exit code and the one line the command ends on. `before` runs first (the whole git history); then the
+        quote parts start, before the run's Drive download, so a Drive outage never loses the day's NSE record (judge D,
+        orchestrator 16 Oct). A rerun whose log already holds `quotes` starts none (judge 178 note 4)."""
         self.before()
+        if not RunLog.open(self.daily_run.steps.root, day).done(QUOTES_STEP):
+            self.parts.start(day)
         try:
             log = self.daily_run.run(day)
         except RunStopped as stopped:
-            if self.parts.started:
-                self.parts.finish(self.waiter.until)
+            self._finish_parts(day)
             return 1, f"{stopped}{NO_CARD}"
+        self._finish_parts(day)  # a closed day records only `skipped`: its parts (each "not a trading day") end here
         problems = [name for name, step in log.steps.items() if step["result"].get("status") in PROBLEMS]
         return (1, WITH_PROBLEMS.format(steps=", ".join(problems))) if problems else (0, DAY_DONE)
+
+    def _finish_parts(self, day: date) -> None:
+        """Waits at least until the desk's `fills_by` (after every part's own window, read from the timetable), so a
+        run stopped early still lets each part end and commit its files."""
+        if self.parts.busy():
+            times = self.daily_run.steps.timetable
+            self.parts.finish(self.waiter.until, times.at(day, times.fills_by))

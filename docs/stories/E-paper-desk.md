@@ -658,8 +658,8 @@ unless the guard fires; that is stated in E6's report as a known effect, not a c
   held. This follows E2b's rule that no committed desk record reveals a quote.
 - **What is alerted:** one #fno-desk line per refused entry, through the daily run's existing `AlertSender`, of the
   form "F&O paper desk <book>: trade <id> not opened: <reason code> (<contract>, <units> units): information, no
-  action" (design 6.5: the first line says what to do). Without the token it prints "alert NOT sent: ..." and the run
-  goes on.
+  action" (design 6.5: the first line says what to do). Without the token the daily run's one sender (story O1's
+  `ReportedAlerts`) prints it once, "alert NOT sent: <reason> | <text>", and the run goes on.
 - **Tests in lane 1 that change on purpose (stated, not loosened):**
   - `test_a_short_leg_failing_after_protection_unwinds_at_the_same_snapshot_with_its_legging_cost`: now expects
     `not_opened` with `short_leg_not_sellable`, nothing bought and no legging cost. Its unwind assertions (order,
@@ -766,8 +766,9 @@ is sent from `fno/desk/daily_steps.py`, which already holds the `AlertSender`.
 6. Exception 3 is gone. E2b's scenario (the fly with a wing's bid size 1) gives `not_opened`, and no committed row
    reveals both sides of any contract. E2b's story text lists two exceptions, exception 1 only through the guard.
 7. One #fno-desk alert per refused entry through `AlertSender`, ending "information, no action", and holding no quote
-   figure (a test checks the sent text against the snapshot's figures). Without the token it prints "alert NOT sent:
-   <reason>" and the run continues to its exits (tests with a fake sender and with none).
+   figure (a test checks the sent text against the snapshot's figures). Without the token O1's `ReportedAlerts` prints
+   it exactly once, "alert NOT sent: <reason> | <text>", and the run continues to its exits (tests with a fake sender
+   and with none).
 8. Guard (E4 criterion 2, changed by decision 43): if a fill fails after the entry check passed, E4's unwind still
    runs. Legs are traded back short first and protection last, the legging cost is recorded, and a leg it cannot trade
    back stays an exit order (tests drive the guard with a test double; the moved assertions are unchanged).

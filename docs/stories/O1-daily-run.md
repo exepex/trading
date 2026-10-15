@@ -77,6 +77,14 @@ step, the run fetches the full history (`Git.unshallow`) when `git rev-parse --i
 failed fetch is one alert and the day goes on: E8's step refuses in a shallow checkout by itself (entries fail closed,
 exits run), and stopping the whole day would lose the quotes and exits too.
 
+**The quote parts start before the run's Drive download (judge D, orchestrator, 16 Oct):** E2c's download is the
+desk run's first act, and a Drive outage there stops the run before any step. So `DayRunner` starts the quote parts
+first; the `quotes` step then records them. A Drive outage at the download loses the desk's day but never the NSE
+record (which needs no Drive); after the stop the runner waits for the parts, at least until `desk.timetable.fills_by`,
+and commits their own files. A rerun whose log already holds `quotes` starts no part (judge 178 note 4). On a closed
+day each recorder's own calendar rule records nothing. Chosen over "skip only the steps that need Drive" because it
+stays inside O1 and leaves E2c's judged stop rule as it is (reasoning only).
+
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
 
