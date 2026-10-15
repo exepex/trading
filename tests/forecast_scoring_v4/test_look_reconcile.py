@@ -109,7 +109,8 @@ def test_an_unsettled_slot_day_stops_a_recorded_look_and_records_nothing(tmp_pat
     assert "2027-05-26 (v6_abs_move_2pct_next_session, ai_team)" in capsys.readouterr().out
 
 
-def test_a_complete_record_lets_the_look_run_with_its_definitive_misses(tmp_path):
+def test_ai_rows_with_no_audit_file_and_a_complete_record_let_the_look_run_with_its_misses(tmp_path):
+    """No open_audits.csv exists (G11 keeps none): only the record rows decide."""
     assert _look_on(tmp_path, records(DAYS)) == (0, True)  # 27 May's not_fired row is a miss, not a refusal
 
 
