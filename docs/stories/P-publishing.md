@@ -50,6 +50,10 @@ of the Strategy lab.
 - The examples are the one copy of the mock data: mockups 39 and 40 build their `data.json` from them; the dashboard
   check fails if a mockup's data differs. Mockups 37 and 38 keep their signed-off draft data; their notes say the
   catalog supersedes their proposed F&O contracts.
+- **Where the contract lives (owner, 15 Oct 2026: "contract A"):** the dashboard's `api/` is the single master contract
+  for both stock and F&O; this repository keeps the pinned copy with its hashes and drift check (`pin.json`, `python -m fno
+  market contract-check`), as W11 and P6 do. It supersedes the reading of DESK_DECISIONS' 13 Oct "API design kept" row
+  that this repository owns the F&O contract.
 - Drift fails a test on both sides: `tools/api/check_fno_screens.py` in the dashboard (CI job api-contract);
   `tests/market_read_models/test_p1_data_catalog.py` here against the pinned copy (`pin.json` names the dashboard commit,
   version 2.7.0).

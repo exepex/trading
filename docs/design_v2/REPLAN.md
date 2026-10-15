@@ -48,7 +48,7 @@ v2 changes to them come later as separate stories, never by reopening a passed c
 | S3 Scoreboard A | keep; **code earlier** (slice B) | Same reason as F9: S1 v1's freeze needs its code; it reports only once books 2-3 trade |
 | S4 Monthly report and reviews | **change** | Split: weekly post-mortem (LR1, slice A) and monthly report plus quarterly reviews (S4, slice C) |
 | S5 Research feedback loop | **change: becomes LR2 and LR3** | Why-it-was-wrong reviews and drift detection, feeding new versions |
-| P1 Read-model contract | keep, change, **slice A** (owner, 15 Oct 2026: "2 Yes", "1 Yes", "2 B") | Becomes the F&O data catalog: schemas, Mock examples (positive, negative, empty) and field tables of the card, weather, Forecast lab, Strategy lab and paper trades in the dashboard's contract; Slack still comes first (T1) |
+| P1 Read-model contract | keep, change, **slice A** (owner, 15 Oct 2026: "2 Yes", "1 Yes", "2 B") | Becomes the F&O data catalog: schemas, Mock examples (positive, negative, empty) and field tables of the card, weather, Forecast lab, Strategy lab and paper trades in the dashboard's contract, the single master contract (owner, 15 Oct 2026: "contract A"; this repository keeps the pinned copy and drift check); Slack still comes first (T1) |
 | P2 Read-model builder | keep, change, slice C | Same |
 | P3 Atomic publisher to Azure | **change** | No new publisher: reuse P6/P7's `ReadModelPublisher` and run status; P3's remaining scope is the book and card pages |
 | P4 Slack daily message and alerts | **change: becomes T1 plus the alert classes** | The card is the owner's main surface (layer 6), so it moves to slice A |
