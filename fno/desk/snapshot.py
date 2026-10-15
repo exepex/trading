@@ -138,8 +138,11 @@ class RecordedExecutionSnapshots(ExecutionSnapshotSource):
         self.store, self.dataset = store, dataset
 
     def snapshot(self, day: date, snapshot_id: str) -> ExecutionSnapshot:
-        csv_bytes = self.store.get(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.csv", self.dataset))
-        meta_bytes = self.store.get(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.meta.json", self.dataset))
+        try:
+            csv_bytes = self.store.get(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.csv", self.dataset))
+            meta_bytes = self.store.get(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.meta.json", self.dataset))
+        except Exception as exc:  # A4b: the quote file is read from Drive; a failed read is a gate refusal, alerted
+            raise SnapshotError(f"snapshot {snapshot_id} of {day} could not be read: {type(exc).__name__}") from exc
         if not csv_bytes or not meta_bytes:
             raise SnapshotError(f"snapshot {snapshot_id} of {day} is not in the quote store")
         return parse_execution_snapshot(day, snapshot_id, csv_bytes, meta_bytes)
