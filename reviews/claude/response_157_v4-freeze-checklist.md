@@ -1,4 +1,4 @@
-# Response 156: protocol v4 freeze checklist (prepared before ChatGPT review 113)
+# Response 157: protocol v4 freeze checklist (prepared before ChatGPT review 113)
 
 Prepared by the A16/G8 builder, who owns the freeze now (the G6 session no longer exists; orchestrator, 15 Oct 2026).
 Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet.
@@ -30,10 +30,13 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
 - **Byte-checked SHA-256** (protocol section 10): `PROTOCOL_v4.md`, `PROTOCOL_v4_calibration.md`, every file of
   `fno/forecast_v4/`, `tools/v4_*.py` and their committed `research/forecasts/v4_*.{json,md}` tables,
   `tests/fixtures/forecast_v4/v4_golden.json`, every file of `fno/forecast_v4_rules/` (G7), `fno/forecast_scoring/v4/`
-  (G8) and `fno/weather/` (M1, V6's rules slot, decision 70).
+  (G8), and M1's own `METHOD_FILES` (`fno/weather/wiring.py:28-32`: `checklist_v0.py`, `v0_live.py`,
+  `vix_scaled.py`, `colour.py`, `day.py`, `wiring.py`; the files M1's `method_sha256` covers, V6's rules slot,
+  decision 70; orchestrator, 15 Oct).
 - **Recorded, not byte-checked:** `fno/constants.py`, `fno/desk/settlement.py`, `fno/research_data/calendar.py`,
   `fno/research_engine/implied_vol.py` (section 10), plus `fno/intraday/rv_table.py` (V1's outcomes) and
-  `fno/forecast/iv30.py` (frozen under v1-v3 already).
+  `fno/forecast/iv30.py` (frozen under v1-v3 already), and the rest of `fno/weather/` (the US flag and the card stay
+  free).
 - **Owner confirmations quoted:** items A, B, C ("A accept, B accept, C accept"); D ("3 B"); E ("merge G6, E option 2");
   "V6b stays a scored member"; the miss caps ("Both 10%", G9); the v4 timeline rows (G10). Each with its date.
 - **Disclosures:** both back-fills (above); the 2017-26 base rates (section 8); G8's exploratory runs.
@@ -47,7 +50,7 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
 - G8's slot registry adapter reading the ledger row (one class plus one line in `fno/forecast_scoring/v4/wiring.py`),
   replacing `NoRegistrations`.
 
-## Open before the freeze (to the owner or the orchestrator)
-- The go-live date (G10 says about a week).
-- Whether `fno/weather/` is byte-checked in full (it holds M1's v0 checklist too) or only its V6 model files; proposed:
-  in full (simplest, nothing in it changes after the freeze without a new version).
+## Settled by the orchestrator (15 Oct)
+- Go-live date: set once ChatGPT 113 and the freeze review pass; planned for 22-23 Oct 2026 (21-23 are sessions, 20 is
+  a holiday). The record keeps `YYYY-MM-DD` until then.
+- `fno/weather/`: only M1's `METHOD_FILES` are byte-checked; the rest is recorded, not checked.
