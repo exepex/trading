@@ -36,8 +36,7 @@ strategies). The text is in `docs/stories/LR-learning.md`, section LR3. The evid
 ## Placement
 
 The code goes in `fno/learning/` as `drift_cusum.py`, `drift_strategies.py`, `drift_forecasters.py` and its own
-`drift_wiring.py`. I proposed this to LR1's builder (session_0145TfSwzmpk6MBrH92f5h4G), who owns `fno/learning/`,
-and I am waiting for their answer. LR1's post-mortem reads `drift_alarms(period)`, and LR1's builder adds that call.
+`drift_wiring.py`. LR1's builder (session_0145TfSwzmpk6MBrH92f5h4G), who owns `fno/learning/`, agreed on 16 Oct 2026, with two conditions: E6 and G8 are read through their own readers or ports (no second parser), and the wiring is separate. LR1's post-mortem reads `drift_alarms(period)`, and LR1's builder adds that call.
 
 ## Questions for the owner (via the orchestrator), each with my recommendation
 

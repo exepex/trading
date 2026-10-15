@@ -321,7 +321,10 @@ Out:
 - any change to a score or a record;
 - LR1's post-mortem code (it reads LR3's alarms; its builder adds the call).
 
-**Expected design** (in `fno/learning/`, placement agreed with LR1's builder, its own `drift_wiring.py`):
+**Expected design** (in `fno/learning/`, its own `drift_wiring.py`; placement agreed with LR1's builder, session
+0145TfSwzmpk6MBrH92f5h4G, 16 Oct 2026). E6's per-trade nets and G8's loss differences are read through their own
+readers or ports, never by parsing their files a second time. Where no reader exists, its builder is asked, and no
+copy is built here:
 - **The rule** (`drift_cusum.py`, pure): a one-sided CUSUM `S_t = max(0, S_(t-1) + z_t - k)`, alarm when
   `S_t > h`, then `S` restarts at 0. `z_t` is positive when worse. `k = 0.5` everywhere: the design's "detect a
   1 SD collapse" (some evidence: the computed run lengths).
