@@ -43,6 +43,14 @@ class NseSessionCalendar(CueCalendar):
         kind = self.calendar.session_kind(day)
         return kind is not None and kind != SESSION_MUHURAT
 
+    def next_open(self, day: date) -> date:
+        """The first session with a 09:15 open after a date: a muhurat hour has none (the `live` label, story A17b).
+        Past the calendar's last year it raises CalendarError, so a label is never guessed."""
+        day += timedelta(days=1)
+        while not self.is_session(day):
+            day += timedelta(days=1)
+        return day
+
 
 class NyseCalendar(CueCalendar):
     def __init__(self, closures: Iterable[date]):

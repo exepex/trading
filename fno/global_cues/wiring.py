@@ -9,9 +9,9 @@ from __future__ import annotations
 import csv
 import os
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import date
 
-from ..constants import DERIVED_AREA, RESEARCH_USER_AGENT, SESSION_MUHURAT
+from ..constants import DERIVED_AREA, RESEARCH_USER_AGENT
 from ..http_pacing import PacedSession
 from ..models import now_ist
 from ..research_data.calendar import SessionCalendar
@@ -55,19 +55,9 @@ def sources_named(names: list[str] | None) -> list[GlobalCueSource]:
 
 
 def next_nse_session(calendar: SessionCalendar, first: date) -> Callable[[date], date]:
-    """The first NSE session after a date. Before the calendar's first day (`first`, 2017) it is the next day: those
-    rows were fetched years later and are `backfilled` either way. After its last year it raises CalendarError, so a
-    run stops and names the missing year (add NSE's holiday circular) instead of guessing a label."""
-
-    def after(day: date) -> date:
-        if day < first:
-            return day + timedelta(days=1)
-        day = calendar.next_session(day)
-        while calendar.session_kind(day) == SESSION_MUHURAT:  # an evening or afternoon hour: no 09:15 open
-            day = calendar.next_session(day)
-        return day
-
-    return after
+    """The first NSE open after a date (`NseSessionCalendar.next_open`): Monday to Friday before the calendar's first
+    day (`first`, 2017; those rows were fetched years later and are `backfilled` either way)."""
+    return NseSessionCalendar(calendar, first).next_open
 
 
 def _after() -> Callable[[date], date]:
@@ -83,7 +73,13 @@ def us_market_closures(path=CLOSURES_FILE) -> list[date]:
 def build_calendars(calendar: SessionCalendar) -> dict[str, CueCalendar | None]:
     """Each cue's calendar for its expected date; None: age only (Brent, a weekly release)."""
     nyse, nse = NyseCalendar(us_market_closures()), NseSessionCalendar(calendar, calendar.first)
-    by_cue = {"sp500": nyse, "nasdaq100": nyse, "us10y": WeekdayCalendar(), "usdinr_rbi": nse, "usdinr_fbil": nse}
+    by_cue = {
+        CboeSp500Source.cue: nyse,
+        NasdaqNdxSource.cue: nyse,
+        TreasuryTenYearSource.cue: WeekdayCalendar(),
+        RbiUsdInrSource.cue: nse,
+        FbilUsdInrSource.cue: nse,
+    }
     return {s.cue: by_cue.get(s.cue) for s in SOURCES}
 
 

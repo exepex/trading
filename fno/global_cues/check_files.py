@@ -3,7 +3,8 @@
 Public cues' gaps and the RBI/FBIL comparison go to `research/data/global-cues/checks/`. A private cue's gaps (dates,
 never values, but still kept out of this public repository by the owner's rule) go to its own Drive log; only their
 counts are printed. Each run writes a full new snapshot there; the newest is current. When both US index tables are
-read (the Drive settings present), the dates-only list of US trading days is rewritten too (story A17b).
+read (the Drive settings present), the dates-only list of US trading days is rewritten too (story A17b); from it the
+S&P 500's weekday gaps can be derived (an open owner item, data README).
 """
 
 from __future__ import annotations

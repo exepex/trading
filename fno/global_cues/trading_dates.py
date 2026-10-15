@@ -4,8 +4,10 @@ date is one of Nasdaq's holiday rows (a repeated close) and is listed, never cou
 
 from __future__ import annotations
 
+from .us_index_sources import CboeSp500Source, NasdaqNdxSource
+
 FIELDS = ("date", "in_sp500", "in_nasdaq100")
-SP500_CUE, NASDAQ100_CUE = "sp500", "nasdaq100"
+SP500_CUE, NASDAQ100_CUE = CboeSp500Source.cue, NasdaqNdxSource.cue
 
 
 def us_trading_dates(sp500: list[dict[str, str]], nasdaq100: list[dict[str, str]]) -> list[tuple[str, int, int]]:

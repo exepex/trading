@@ -26,6 +26,7 @@ from .attempt_log import (
     NOT_PUBLISHERS_FILE,
     SAVE_FAILED,
     SAVED,
+    STARTED,
     STOPPED,
     AttemptLog,
 )
@@ -65,9 +66,9 @@ class CueCollector:
         return self._logged_attempt(source, start, end, started)
 
     def _logged_attempt(self, source: GlobalCueSource, start: date, end: date, started: datetime) -> Collection:
-        """Downloads once and logs the attempt whatever happens: an unexpected failure is logged `stopped` and raised,
-        so it still counts against the day's cap. The log is checked first: a broken log never lets a download by."""
-        self.attempts.check_appendable(source.cue)
+        """Downloads once, logged as `started` first (a killed run still counts against the day's cap) and then with
+        its outcome; an unexpected failure is logged `stopped` and raised. A broken log never lets a download by."""
+        self.attempts.append(source.cue, started, STARTED)  # raises on a broken log: no download then
         outcome = STOPPED
         try:
             result, outcome = self._download(source, start, end, Collection(source.cue, started))

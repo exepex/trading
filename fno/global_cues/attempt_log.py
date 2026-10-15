@@ -1,7 +1,8 @@
 """Every download attempt of a once-a-day cue (story A17b): its time and outcome, never a value.
 
-The once-a-day rule caps failures too: after `MAX_ATTEMPTS` attempts on one IST date, or after one saved copy (the
-snapshot log's business), nothing more is downloaded that day. One CSV per cue under
+Each attempt is two rows: `started` before the download (a run killed mid-download still counts) and its outcome
+after it. The once-a-day rule caps failures too: after `MAX_ATTEMPTS` attempts on one IST date, or after one saved
+copy (the snapshot log's business), nothing more is downloaded that day. One CSV per cue under
 `research/data/manifests/global-cues/attempts/`.
 """
 
@@ -15,7 +16,8 @@ from .row_log import CsvRowLog
 
 FIELDS = ("attempted_at", "outcome")
 MAX_ATTEMPTS = 3
-SAVED, DOWNLOAD_FAILED, NOT_PUBLISHERS_FILE, NO_VALUES, SAVE_FAILED, STOPPED = (
+STARTED, SAVED, DOWNLOAD_FAILED, NOT_PUBLISHERS_FILE, NO_VALUES, SAVE_FAILED, STOPPED = (
+    "started",  # written before the download: a killed run still counts
     "saved",
     "download_failed",
     "not_publishers_file",
@@ -41,6 +43,6 @@ class AttemptLog:
         log.append(FIELDS, [(attempted_at.astimezone(IST).isoformat(), outcome)])
 
     def count_on(self, cue: str, day: date) -> int:
-        """Attempts on an IST date."""
-        rows = self._log(cue).rows()
+        """Attempts started on an IST date."""
+        rows = [r for r in self._log(cue).rows() if r["outcome"] == STARTED]
         return sum(datetime.fromisoformat(r["attempted_at"]).astimezone(IST).date() == day for r in rows)

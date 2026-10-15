@@ -3,6 +3,8 @@ none, current, ahead, behind, stale. All values are made up (fake), never real o
 
 from datetime import date, timedelta
 
+import pytest
+
 from fno.global_cues.as_of import DECISION, OPEN
 from fno.global_cues.cue_calendars import NseSessionCalendar, NyseCalendar, WeekdayCalendar
 from fno.global_cues.other_sources import EiaBrentSource, RbiUsdInrSource
@@ -10,7 +12,7 @@ from fno.global_cues.reading import AHEAD, BEHIND, CURRENT, NONE, STALE, CueRead
 from fno.global_cues.treasury_source import TreasuryTenYearSource
 from fno.global_cues.us_index_sources import CboeSp500Source, NasdaqNdxSource
 from fno.global_cues.wiring import us_market_closures
-from fno.research_data.calendar import CsvSessionCalendar
+from fno.research_data.calendar import CalendarError, CsvSessionCalendar
 
 NYSE = NyseCalendar(us_market_closures())
 SOURCE = "https://nsearchives.nseindia.com/content/circulars/example.pdf"
@@ -129,3 +131,28 @@ def test_a_row_dated_after_the_india_date_is_never_usable():
     future = rows("2026-10-14", "2026-10-20", seen="2026-10-14T08:00:00+05:30")
     reading = reading_for(future, date(2026, 10, 15), OPEN, True, CboeSp500Source(), NYSE)
     assert (reading.row["value_date"], reading.age_days) == ("2026-10-14", 1)
+
+
+def test_a_reading_never_prints_its_value():
+    reading = reading_for(rows("2026-10-14"), date(2026, 10, 15), OPEN, False, CboeSp500Source(), NYSE)
+    assert "1.0" not in repr(reading) and "status='current'" in repr(reading)
+
+
+def test_usdinr_past_the_nse_calendars_last_year_stops_and_names_the_year():
+    calendar = NseSessionCalendar(NSE, NSE.first)
+    with pytest.raises(CalendarError, match="2027"):
+        reading_for(rows("2026-12-31"), date(2027, 1, 4), OPEN, False, RbiUsdInrSource(), calendar)
+
+
+def test_a_calendar_without_any_session_is_an_error_not_an_age_only_reading():
+    class Closed(WeekdayCalendar):
+        def is_session(self, day):
+            return False
+
+    with pytest.raises(ValueError, match="the calendar is broken"):
+        reading_for(rows("2026-10-14"), date(2026, 10, 15), OPEN, False, CboeSp500Source(), Closed())
+
+
+def test_reading_a_cue_that_is_not_loaded_names_the_drive_settings():
+    with pytest.raises(KeyError, match="needs the Drive settings"):
+        CueReader({}, {}, {"sp500": NYSE}).read("sp500", date(2026, 10, 15), OPEN, False)

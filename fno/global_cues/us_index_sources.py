@@ -54,7 +54,7 @@ class CboeSp500Source(UsIndexSource):
         rows = document.get("data") if isinstance(document, dict) else None
         if not isinstance(rows, list):
             raise ValueError(f'{self.cue}: no "data" list')
-        values = [CueValue(date.fromisoformat(r["date"]), positive(r["close"], r["date"])) for r in rows]
+        values = [CueValue(date.fromisoformat(r["date"]), positive(r["close"], r["date"], self.private)) for r in rows]
         return checked(values, self.cue)
 
 
@@ -77,6 +77,7 @@ class NasdaqNdxSource(UsIndexSource):
         if total != len(rows):
             raise ValueError(f"{self.cue}: {len(rows)} rows of {total}: the answer was cut")
         values = [
-            CueValue(datetime.strptime(r["date"], "%m/%d/%Y").date(), positive(r["close"], r["date"])) for r in rows
+            CueValue(datetime.strptime(r["date"], "%m/%d/%Y").date(), positive(r["close"], r["date"], self.private))
+            for r in rows
         ]
         return checked(values, self.cue)

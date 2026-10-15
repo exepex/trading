@@ -17,7 +17,7 @@ repeat the previous close on US holidays), so the day after a US holiday never r
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 
 from ..models import IST
@@ -32,7 +32,7 @@ SEARCH_DAYS = 40  # how far back an expected date is looked for (no calendar has
 
 @dataclass(frozen=True)
 class CueReading:
-    row: dict[str, str] | None
+    row: dict[str, str] | None = field(repr=False)  # holds the value: never printed (private cues, owner a927390)
     status: str
     age_days: int | None  # India date minus value date, in calendar days
     expected: date | None  # the date the publisher should have given by the cutoff (None: no calendar)
@@ -50,6 +50,8 @@ class CueReader:
         self.tables, self.sources, self.calendars = tables, sources, calendars
 
     def read(self, cue: str, india_day: date, cutoff: time, live_only: bool) -> CueReading:
+        if cue not in self.tables:
+            raise KeyError(f"{cue}: no table loaded (a private cue needs the Drive settings)")
         rows = self.tables[cue].rows()
         return reading_for(rows, india_day, cutoff, live_only, self.sources[cue], self.calendars[cue])
 
@@ -83,11 +85,11 @@ def _status(value_date: date, age: int, expected: date | None, max_age: int) -> 
     return BEHIND if age <= max_age else STALE
 
 
-def expected_date(india_day: date, cutoff: time, source: GlobalCueSource, calendar: CueCalendar) -> date | None:
+def expected_date(india_day: date, cutoff: time, source: GlobalCueSource, calendar: CueCalendar) -> date:
     """The latest session whose value the source publishes before the cutoff on the India date."""
     moment = datetime.combine(india_day, cutoff, tzinfo=IST)
     for back in range(SEARCH_DAYS):
         day = india_day - timedelta(days=back)
         if calendar.is_session(day) and source.available_at(day) < moment:
             return day
-    return None
+    raise ValueError(f"{source.cue}: no session in the {SEARCH_DAYS} days to {india_day}: the calendar is broken")

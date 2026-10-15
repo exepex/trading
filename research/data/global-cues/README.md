@@ -20,11 +20,13 @@ their terms (quoted below), with these conditions:
   URL, SHA-256 and size of each copy);
 - at most one download a day: a second run on the same IST date downloads nothing and reads that day's archived copy
   again (so a run whose table write failed can finish with the copy's true `first_seen_at`). Failed attempts are
-  capped too (story A17b): every attempt is logged with its time and outcome only (`saved`, `download_failed`,
-  `not_publishers_file`, `no_values`, `save_failed`; never a value) in
-  `research/data/manifests/global-cues/attempts/<cue>.csv`, and after 3 attempts or 1 saved copy on one IST date
-  nothing more is downloaded that day (the run says so). Limit: both rules read logs in the repository, so run from a
-  checkout that has pulled the last run's logs;
+  capped too (story A17b): every attempt is logged with times and outcomes only, never a value, in
+  `research/data/manifests/global-cues/attempts/<cue>.csv`: a `started` row before the download (so a run killed
+  mid-download still counts) and its outcome after it (`saved`, `download_failed`, `not_publishers_file`, `no_values`,
+  `save_failed`, or `stopped` for an unexpected failure). After 3 attempts or 1 saved copy on one IST date nothing
+  more is downloaded that day (the run says so). Limit: both rules read logs in the repository, so run from a checkout
+  that has pulled the last run's logs, and **commit and push the logs after every run, failed ones too**: a run whose
+  attempt rows are lost resets the cap in the next checkout (no scheduled job runs this yet);
 - a US index file read during the US session may hold the day's price so far: a value not yet final when the file
   was fetched (before 16:00 US Eastern on its date) never becomes a row;
 - **the card and the dashboard show nothing from them until the owner approves a display (open item).**
@@ -117,8 +119,21 @@ The NYSE rules are reasoning only (not NYSE's own list per year), checked in CI 
 dates (never values) of the Drive-only S&P 500 table, with whether the Nasdaq 100 table has the date too
 (orchestrator's decision, owner away: trading dates are exchange-calendar facts). `global-cues check` rewrites it when
 the Drive settings are present. On 15 Oct 2026: 4,977 S&P 500 dates, every weekday since 2007 matching the calendar,
-and 83 Nasdaq-only dates (Nasdaq's holiday rows, 82 of them repeating the previous close). Those holiday rows are
-skipped by readings, so the day after a US holiday never reads `ahead` with a repeated value.
+and 83 Nasdaq-only dates (Nasdaq's holiday rows: 82 repeat the previous close; the 83rd, 1 Jan 2007, is the table's
+first row, with nothing before it to compare). Those holiday rows are skipped by readings, so the day after a US
+holiday never reads `ahead` with a repeated value. Limit: an unscheduled NYSE closure not yet in
+`us_market_closures.csv` counts as a session, so Nasdaq's repeated row that day reads `current` (the value is the true
+last close; the S&P 500 reads `behind`), until the CI test names the mismatch at the next `check` with Drive and the
+closure row is added.
+
+**These dates make the private cues' gap lists public in effect**: the S&P 500's weekday gaps are the weekdays not
+listed with `in_sp500=1`. The orchestrator's decision covers trading dates; that it also exposes the gaps the owner's
+rule kept in Drive is an **open owner item** (keep, or keep only calendar mismatches public, which would drop the CI
+check against the archived dates).
+
+**USD/INR readings stop on 1 Jan 2027** (`CalendarError` naming the year) until NSE's 2027 holiday circular is added
+to `research/data/calendar/nse_sessions.csv`, as the `live` label does: fail closed, never a guessed date. Add it in
+December 2026.
 
 ## Rules
 
@@ -133,7 +148,9 @@ skipped by readings, so the day after a US holiday never reads `ahead` with a re
   older value for the dates after it. Deliberate (a table never changes behind its last date); read `revisions.csv`
   for such values.
 - A run names a cue `STALE` (and exits 1) when its newest value is older than the source allows on the run's day:
-  the age limits above (US closes and US 10-year 4 days, RBI 5, FBIL 14, Brent 16).
+  the age limits above (US closes and US 10-year 4 days, RBI 5, FBIL 14, Brent 16). The run counts age only, so a
+  replay of an unscheduled closure (Sandy: 26 Oct read on 31 Oct, 5 days) says STALE where the reading says
+  `current`; consumers use the reading.
 - `first_seen_at` is the time after a cue's last download (a slow fetch is never labelled earlier than it ended).
 - `provenance` needs NSE's session calendar: for a value dated after the calendar's last year the run stops and names
   it (add NSE's holiday circular to `research/data/calendar/nse_sessions.csv`) instead of guessing a label. The first
@@ -141,7 +158,8 @@ skipped by readings, so the day after a US holiday never reads `ahead` with a re
   is skipped (story A17b). Every committed label already was `backfilled` and recomputes unchanged.
 - A failed download or a file that is not the publisher's writes nothing for that cue and is named; others still run.
 - Gaps are listed, never filled (`checks/gaps.csv`): weekdays without a value (unverified: the gap list uses no
-  holiday calendar, so holiday and gap are not told apart there; the NYSE calendar is checked by the CI test above) and values equal to the previous date's.
+  holiday calendar, so holiday and gap are not told apart there; the NYSE calendar is checked by the CI test above)
+  and values equal to the previous date's.
 
 ## Open owner item: FBIL in a public repository
 

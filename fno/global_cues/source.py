@@ -71,14 +71,16 @@ def at_local(day: date, clock: time, zone: str) -> datetime:
     return datetime.combine(day, clock, tzinfo=ZoneInfo(zone)).astimezone(IST)
 
 
-def positive(text, what: str) -> float:
-    """A published level as a number: refuses anything that is not a finite number above zero."""
+def positive(text, what: str, private: bool = False) -> float:
+    """A published level as a number: refuses anything that is not a finite number above zero. A private cue's text is
+    never put in the error (it may be a real close)."""
+    shown = "the value" if private else repr(text)
     try:
         value = float(str(text).replace(",", ""))
     except ValueError as exc:
-        raise ValueError(f"{what}: {text!r} is not a number") from exc
+        raise ValueError(f"{what}: {shown} is not a number") from exc
     if not math.isfinite(value) or value <= 0:
-        raise ValueError(f"{what}: {text!r} is not a positive number")
+        raise ValueError(f"{what}: {shown} is not a positive number")
     return value
 
 

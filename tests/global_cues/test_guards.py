@@ -100,7 +100,14 @@ def test_a_third_failed_attempt_is_the_last_that_day(tmp_path):
     assert outcomes[-1] == "no download: 3 attempts today already, none saved (at most 3)"
     logged = attempts(tmp_path)
     assert tuple(logged[0]) == FIELDS  # times and outcomes only, never a value
-    assert [r["outcome"] for r in logged] == ["download_failed", "not_publishers_file", "download_failed"]
+    assert [r["outcome"] for r in logged] == [
+        "started",
+        "download_failed",
+        "started",
+        "not_publishers_file",
+        "started",
+        "download_failed",
+    ]
     next_day = collector(tmp_path, lambda: datetime(2026, 10, 16, 6, 0, tzinfo=IST))
     assert next_day.collect(source, *SPAN).failure == "" and source.downloads == MAX_ATTEMPTS + 1
 
@@ -113,7 +120,7 @@ def test_a_saved_copy_ends_the_days_downloads(tmp_path):
     assert collect.collect(source, *SPAN).values
     again = collect.collect(source, *SPAN)
     assert source.downloads == 2 and again.skipped.startswith("no download: today's copy")
-    assert [r["outcome"] for r in attempts(tmp_path)] == ["download_failed", "saved"]
+    assert [r["outcome"] for r in attempts(tmp_path)] == ["started", "download_failed", "started", "saved"]
     assert all(set(r.values()) & {"1000.5", "1001.25"} == set() for r in attempts(tmp_path))
 
 
@@ -130,7 +137,7 @@ def test_an_unexpected_failure_still_counts_and_a_broken_log_lets_no_download_by
         with pytest.raises(RuntimeError):
             collect.collect(source, *SPAN)
     assert collect.collect(source, *SPAN).failure.startswith("no download: 3 attempts")
-    assert source.downloads == MAX_ATTEMPTS and {r["outcome"] for r in attempts(tmp_path)} == {"stopped"}
+    assert source.downloads == MAX_ATTEMPTS and {r["outcome"] for r in attempts(tmp_path)} == {"started", "stopped"}
     broken = tmp_path / "broken"
     (broken / "log" / ATTEMPTS_FOLDER).mkdir(parents=True)
     (broken / "log" / ATTEMPTS_FOLDER / "sp500.csv").write_text("attempted_at,outcome\n2026-10-14T06:00:00+05:30,saved")
@@ -149,3 +156,12 @@ def test_attempts_count_on_the_ist_date_whatever_the_clocks_zone(tmp_path):
     assert attempts(tmp_path)[0]["attempted_at"] == "2026-10-16T01:30:00+05:30"
     assert collect.collect(source, *SPAN).failure.startswith("no download")
     assert collector(tmp_path, lambda: PATH_TIME).collect(FlakyCboe([REFUSED]), *SPAN).failure.startswith("download")
+
+
+def test_a_run_killed_mid_download_still_counts(tmp_path):
+    log = tmp_path / "log" / ATTEMPTS_FOLDER / "sp500.csv"
+    log.parent.mkdir(parents=True)
+    log.write_text("attempted_at,outcome\n" + "2026-10-15T06:00:00+05:30,started\n" * MAX_ATTEMPTS)  # no outcomes
+    source = FlakyCboe([FAKE])
+    assert collector(tmp_path, lambda: PATH_TIME).collect(source, *SPAN).failure.startswith("no download: 3")
+    assert source.downloads == 0
