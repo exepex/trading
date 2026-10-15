@@ -65,7 +65,7 @@ class RepoDeliveryFiles(DeliveryLog):
 
 def misses(log: DeliveryLog, day: date) -> tuple[str, ...]:
     """What went wrong with a session's card, as the next card states it (design 4.1: "the next card says so")."""
-    attempts = [metadata for _, metadata in log.attempts(day)]
+    attempts = [metadata for _, metadata in log.attempts(day) if not metadata.get("test")]  # a test is not the card
     if not attempts:
         return (NO_CARD.format(day=day),)
     sent = [a for a in attempts if a["slack"]["sent"]]

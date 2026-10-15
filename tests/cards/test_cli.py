@@ -22,9 +22,9 @@ def no_network(monkeypatch):
     monkeypatch.setattr(requests, "head", refuse)
 
 
-def run(on, post=False):
+def run(on, post=False, test=False):
     out = []
-    code = card_cli.cmd_card_daily(Namespace(on=on, post=post), out=out.append)
+    code = card_cli.cmd_card_daily(Namespace(on=on, post=post, test=test), out=out.append)
     return code, "\n".join(out)
 
 
@@ -43,8 +43,8 @@ class Issuer:
     def __init__(self, sent, saved):
         self.sent, self.saved, self.calls = sent, saved, []
 
-    def issue(self, card, text):
-        self.calls.append(text)
+    def issue(self, card, text, test=False):
+        self.calls.append((text, test))
         return IssueResult(
             ("alert NOT sent: x",) if not self.sent else ("alert sent to #fno-desk",), self.sent, self.saved
         )
@@ -55,7 +55,15 @@ def test_post_issues_the_printed_card_and_the_exit_code_says_if_it_failed(monkey
     issuer = Issuer(sent, saved)
     monkeypatch.setattr(wiring, "build_card_issuer", lambda: issuer)
     result, text = run(date(2026, 10, 15), post=True)
-    assert result == code and issuer.calls and text.startswith(issuer.calls[0])
+    assert result == code and issuer.calls[0][1] is False and text.startswith(issuer.calls[0][0])
+
+
+def test_test_marks_one_live_post_and_needs_post(no_network, monkeypatch):
+    monkeypatch.setattr(wiring, "build_card_issuer", lambda: pytest.fail("--test alone must not post"))
+    assert run(date(2026, 10, 15), test=True) == (2, card_cli.TEST_NEEDS_POST)
+    issuer = Issuer(True, True)
+    monkeypatch.setattr(wiring, "build_card_issuer", lambda: issuer)
+    assert run(date(2026, 10, 15), post=True, test=True)[0] == 0 and issuer.calls[0][1] is True
 
 
 def test_the_command_is_registered(monkeypatch):

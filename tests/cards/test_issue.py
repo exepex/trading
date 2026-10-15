@@ -16,11 +16,11 @@ from tests.cards.fakes import HOST, TOKEN, FakeDrive, FakeRecords, FakeSlack, Fi
 DAY = date(2026, 10, 15)
 
 
-def issue(tmp_path, poster, store, clocks=(), files=None):
+def issue(tmp_path, poster, store, clocks=(), files=None, test=False):
     records = FakeRecords(files)
     card, text = daily_card(records, tmp_path).prepare(DAY)
     issuer = CardIssuer(poster, store, RepoDeliveryFiles(tmp_path, records), clocks, Ticking(), "c" * 40)
-    return card, text, issuer.issue(card, text)
+    return card, text, issuer.issue(card, text, test=test)
 
 
 def written(tmp_path, attempt=1):
@@ -131,3 +131,20 @@ def test_slack_ts_far_from_the_host_clock_is_a_warning(tmp_path):
     slack = FakeSlack(slack_ok(HOST - timedelta(seconds=30)))
     _, _, result = issue(tmp_path, SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack), NoCardRecords())
     assert result.lines[1].startswith("clock WARNING: host vs Slack off by 30.0 s")
+
+
+def test_a_test_post_is_marked_on_its_first_line_and_records_and_never_counts_as_the_card(tmp_path):
+    slack, drive = FakeSlack(slack_ok()), FakeDrive()
+    _, text, result = issue(
+        tmp_path, SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack), DriveCardRecords(drive), test=True
+    )
+    posted = slack.calls[0]["json"]["text"]
+    assert posted.startswith("TEST — PAPER ONLY:") and posted.endswith(text) and result.sent
+    ((name, data),) = drive.files.items()
+    assert name.endswith("_test.json") and json.loads(data)["test"] is True
+    path, delivery = written(tmp_path)
+    assert delivery["test"] is True and delivery["slack"]["ts"] == slack_ok()["ts"]
+    committed = FakeRecords()
+    committed.files[path.relative_to(tmp_path).as_posix()] = path.read_bytes()
+    _, next_text = daily_card(committed, tmp_path).prepare(date(2026, 10, 16))
+    assert "Previous card: no card on record for 2026-10-15" in next_text

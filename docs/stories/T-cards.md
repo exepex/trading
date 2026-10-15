@@ -26,6 +26,7 @@ witness). The owner decided on 15 Oct 2026 that card records are kept in Google 
 - `python -m fno card daily [--on YYYY-MM-DD] [--post]`: builds the card for a session and prints it. Without `--post`
   it is a dry run: nothing is posted, saved or written. With `--post` it posts to #fno-desk, saves the card record to
   Drive and writes the delivery metadata to the repository.
+- `--post --test`: the one live delivery check (criterion 16), marked TEST on its first line and in its records.
 - `python -m fno card witness --on YYYY-MM-DD`: prints both issuance witnesses of that day's cards (Slack's server
   timestamp from the delivery metadata, GitHub's push receipt of the commit that added it).
 - Status: `NO TRADE` with a reason code; v1 never shows a trade. Reason codes: `no_approved_strategy` (no version at
@@ -103,6 +104,13 @@ merged: they plug in as a new `ForecastSource`); the dashboard renderer.
     still gets a card that names the missing calendar.
 15. Engineering rules: every source, store and sender behind an interface, wired only in `fno/cards/wiring.py` (listed
     in CLAUDE.md); no file or class over 350 lines; constants in `fno/constants.py` or at the top of their module.
+16. Live delivery to #fno-desk verified once (orchestrator addendum, 15 Oct 2026; fakes cannot prove it):
+    `python -m fno card daily --post --test` posts one card whose first line is "TEST — PAPER ONLY: a one-off check of
+    live delivery, not the day's card.", marked `test: true` in the Drive record and the delivery metadata, and never
+    counted as the session's card. `--test` without `--post` does nothing. Done only after the owner's yes, relayed
+    by the orchestrator: then the delivery file is committed and pushed, `card witness` shows Slack's `ts` and
+    GitHub's push receipt, and both go in the builder's response with the message link. Until then this criterion is
+    NOT MET.
 
 **Test plan:** fakes for Slack, Drive, the records and the clock. Positive: a full card from planted committed records
 (empty registry, a capture, a score report). Negative: a registry with a `paper` version; an unreadable registry; a

@@ -18,6 +18,7 @@ from .record_store import CardRecordStore
 
 RECORD_SCHEMA, DELIVERY_SCHEMA = "card_record/v1", "card_delivery/v1"
 SLACK = "Slack"
+TEST_BANNER = "TEST — PAPER ONLY: a one-off check of live delivery, not the day's card."
 WRITTEN = "delivery metadata written: {path} (commit and push it: its push receipt is the second issuance witness)"
 
 
@@ -40,14 +41,19 @@ class CardIssuer:
         self.poster, self.records, self.deliveries = poster, records, deliveries
         self.clocks, self.host_now, self.code_commit = tuple(clocks), host_now, code_commit
 
-    def issue(self, card: TradeCard, text: str) -> IssueResult:
+    def issue(self, card: TradeCard, text: str, test: bool = False) -> IssueResult:
+        """`test`: the one live delivery check (T1 criterion 16): marked on its first line and in both records, and
+        never counted as the session's card."""
+        text = f"{TEST_BANNER}\n{text}" if test else text
         before = self.host_now()
         receipt = self.poster.post(text)
         after = self.host_now()
         checks = [self._slack_check(receipt, before, after), *(check_server(c, self.host_now) for c in self.clocks)]
-        facts = self._facts(card, text, receipt, before, after, checks)
+        facts = {**self._facts(card, text, receipt, before, after, checks), "test": test}
         record = {**facts, "schema": RECORD_SCHEMA, "text": text, "sections": [_section(s) for s in card.sections]}
-        saved, drive_line = self.records.save(card.day, _record_name(card, receipt, after), _json(record))
+        saved, drive_line = self.records.save(
+            card.day, _record_name(card, receipt, after) + ("_test" if test else ""), _json(record)
+        )
         delivery = {**facts, "schema": DELIVERY_SCHEMA, "drive": {"saved": saved, "outcome": drive_line}}
         path = self.deliveries.write(card.day, delivery)
         lines = (receipt.outcome, *(c.line for c in checks), drive_line, WRITTEN.format(path=path))
