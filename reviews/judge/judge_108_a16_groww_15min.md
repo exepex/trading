@@ -286,3 +286,57 @@ works. I ran `python -m fno intraday snapshot --dry-run <scratch folder outside 
 **Verdict: FAIL for a471f44f14cd1080206b81d0622dad59ad14a857**, on should-fixes 1 and 2. Amendment 1 is accepted with
 its NSE-open check, and everything else is verified, including a live read-only snapshot. A re-check needs the store
 race design and its test, and the shared clock with its test.
+
+## Addendum 4 (15 Oct 2026): the fixes at 84e80eb6110fa4acc6a216c533869e219d8bde37 (a471f44..84e80eb)
+
+A16's own change is 79a981c, plus the claims commit 84e80eb. The rest of the range is `main` merged in. The story text
+gains "amendment 2" (the store and clock rules below) and the 09:15 condition.
+
+## Gates
+
+- Full suite at 84e80eb: **4,126 passed** (Slack token unset). `ruff check`, `ruff format --check` and `check_imports`
+  are clean.
+- A trial merge with today's `origin/main` conflicts only in `reviews/claude/README.md` (keep both rows).
+- No reference to the removed first-version store remains. `fno/server_clock.py` is 109 lines.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Should-fix 1: two writers, one Drive name | MET | Each copy is `nifty_<day>_<HHMM>_<SHA-256 first 16>.json.gz` (`document.snapshot_path`). `SnapshotFiles` saves copies and reads only through the ledger row (`used`). A due mark without a row takes the smallest-named copy (`unrowed_copy`), a fixed rule. The `InterleavingDrive` fake reproduces Drive's look-up-then-create. My plants J1 (one shared name again), J4 (largest copy instead of smallest) and J6 (reads ignore the row) are all caught |
+| Should-fix 2: one shared clock | MET | `fno/server_clock.py` trusts 2xx/3xx answers only and asks GitHub at `api.github.com/repos/exepex/trading`. A16's `ClockCheck` adds `clock_partial`. **Live, from this session:** `clock_ok {'github': 0.0, 'slack': 0.0}`, so GitHub is now really checked (it was `None` at a471f44). My plants J2 (status check off), J3 (root URL) and J5 (partial counted as ok) are caught |
+| Minors 1-2 | MET | One alert send per settlement (my J7 caught). I18 and I22 now caught |
+| Minor 3 (shared committer) | MET | Stated in the claims; 12 of 13 workflows commit and all set `core.hooksPath` |
+| `document.py` against the claims (the builder's checkout slip) | MET | At 84e80eb it has `snapshot_folder`, `snapshot_path(source, day, mark, data)` with the SHA-256 in the name, `mark_prefix`, and `gzip.compress(..., mtime=0)`, as the claims say. The intraday tests that depend on them pass, and my J1 and I18 plants bite on this file |
+
+## The orchestrator's two questions
+
+**(1) Can two runs make byte-identical copies, and so collide on one name again? Not in practice.**
+- Every document stores each call's `request_sent_at` and `response_received_at`, plus `finished_at`, from the host
+  clock to the microsecond. My 10:00 dry-run document has 222 such times (e.g. `04:30:05.413325`, `04:30:54.611155`).
+- Two independent runs would need all of them, and every quote, equal to the microsecond. That is not reachable.
+- The only way to repeat the same bytes is one run retrying its own save, and A9's store already handles that (same
+  bytes change nothing; reserved IDs stop a second create).
+- A run id in the name would add nothing (reasoning plus the evidence above).
+
+**(2) Is the shim `fno/cards/clock.py` dead code? No.** T1's production code imports through it (`fno/cards/issue.py:14`,
+`fno/cards/wiring.py:25`), as do T1's tests. It is a used re-export that leaves the passed T1 files untouched.
+- Minor: `fno/cards/wiring.py` now imports `GITHUB_TIME_URL` from `fno.server_clock` and `HttpDateClock` from
+  `.clock`, two paths to one module. Pointing T1 at `fno.server_clock` directly and deleting the shim would be cleaner,
+  at the cost of touching passed T1 files. That can be a follow-up, not a finding.
+
+## Amendment 2 (story text): ACCEPTED
+
+- Unique content-addressed names replace the first-version store and its revisions index. Nothing can be written over,
+  so design 4.4's "kept under A11's revision rule" holds by construction.
+- The ledger row decides which copy counts, the first-pushed row wins, and an unused second copy stays in Drive,
+  harmless.
+- `clock_partial` is a clearer reading than calling a one-server check "ok".
+- The 09:15 condition from addendum 3 is now in the text: compare with NSE's official open, report differences above
+  0.05 points, and treat a systematic difference as a new version.
+
+**Verdict: PASS for 84e80eb6110fa4acc6a216c533869e219d8bde37.** Open items for after the merge, not in this code:
+1. The `requirements-groww.txt` fix (its own lane-1 change; the `--no-deps` line works, verified here).
+2. The owner sets up the routine (no builder creates a schedule).
+3. The criterion 15 trial (5 sessions, void share, each fire's delay and length, and the 09:15 NSE-open comparison).
+   Nothing counts as recorded history before it is reported.
+4. Merge keeping both index rows, run the full suite on the merged tree, and rule 8's end-to-end record. A dry run like
+   mine is the right shape: no Drive writes and no Slack posts outside the owner's routine.
