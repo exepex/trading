@@ -89,3 +89,10 @@ which cannot happen in practice) and C7 (minor 1).
    that F9b writes rows only from the common start.
 3. **Note (no action):** `score.percentile` repeats S3's one-line nearest-rank formula (`uncertainty.py:55`). This is
    acceptable as is. A shared reader in S3 would remove it later.
+
+## Addendum 1: against S3 as passed (650e861d, judge 191 addendum 1)
+- The difference from `eebf90ef` (F9a's base) to `650e861d` is only S3's added tie test
+  (`tests/scoreboard/test_matched_bounds.py`) and the rename of S3's response file. No change under `fno/scoreboard/`.
+- `git diff 650e861d f04076dd -- fno/scoreboard` is empty: F9a sees exactly the S3 code that passed.
+- A trial merge of `f04076dd` onto `650e861d` merges clean (README auto-merged).
+- The PASS stands.
