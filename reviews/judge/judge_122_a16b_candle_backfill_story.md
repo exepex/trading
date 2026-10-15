@@ -299,3 +299,147 @@ Nothing else changed.
 
 - **No minor is left from the text rounds.**
 - **Carried to the code round, as in addendum 4:** the tests and the planted mutations.
+
+## Addendum 6 (15 Oct 2026): A16b code at 305e1f1b64869e11f0a3aeee5f11e0fa3bd77780 (merge-base 0a1cfa9; claims: `response_122_a16b-candle-backfill.md`)
+
+**Gates, run myself on the exact SHA (main merged in):**
+- `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: 4740 passed;
+- `ruff check fno tests tools`: clean; `ruff format --check fno tests tools`: clean (902 files);
+- `python tools/check_imports.py`: clean.
+- A16b's own tests: 86. A16 (`tests/intraday`): 180. A17 (`tests/global_cues`): 98.
+
+**Live reads.** I made no live Groww read: I hold no Groww credentials, and none may be put in a file or chat. The live
+evidence is the builder's two dry runs (Q1 2020 and all of 2020) and its read-only search for where the 1-minute
+history starts. I mark these as the builder's evidence.
+
+### Text change since my PASS at 1109296: decision 62, "Incomplete sessions too": SOUND
+
+- **What it adds.** A session with some but not all candles is also checked on its present marks, and any failed mark
+  makes its levels untrusted. This is stricter than 1109296, where a partial session skipped the check: no level is
+  now used unchecked.
+- **The code matches.**
+  - `check_minutes` skips only absent levels.
+  - `derive` trusts only `missing_candles`.
+  - `last_level` gives `None` for untrusted rows, so the next session's overnight part is void.
+- **Tests.** Four named tests exist, and J10 is caught.
+- **The `nse_open_gap` sentence** ("blank only for a session with no candle") is consistent with it.
+
+### The A16 files changed beyond the allow-list constant: BEHAVIOUR-NEUTRAL (verified)
+
+| File | Change | Check |
+|---|---|---|
+| `realised_vol.py` | `QuoteSnapshotRv15m.compute`'s body moved, unchanged, into `session_rv()`; `CandleCloseRv15m` calls it | Diff read line by line. **J9** (overnight from `levels[1]`) fails A16's 2 and A16b's 2 tests. **J9b** (intraday without the first level) fails A16's 2 and A16b's 1 |
+| `rv_table.py` | Class attributes `fields`/`file_name`/`pattern` default to A16's constants; `row(day)` split out of `write_once`, the same comparison | Diff read; A16's 180 tests pass |
+| `session_rv.py` | `_figure` renamed `figure`; a local `figure` renamed `shown` | Rename only |
+| `cli.py`, `dry_run.py` | `_inside_repository` moved to `dry_run.inside_repository`, the same body; the backfill subcommands added | Diff read |
+| `test_safety.py` | `backfill_wiring.py` allowed as a composition root | It is on CLAUDE.md's list (the branch adds it) |
+| `read_only.py` | `CANDLE_INTERVAL_MIN_15` only | Plain string `"15minute"` (judge 122, question c) |
+
+A16's `wiring.py` and all of `fno/global_cues/` are unchanged against the merge-base.
+
+### Addendum 4's list
+
+| Item | Status | Evidence |
+|---|---|---|
+| The four transient/permanent tests | MET | `test_a_groww_error_on_the_1_minute_call_defers_and_the_next_run_writes_it`, `test_a_received_1_minute_answer_missing_a_minute_is_a_void_row`, `test_a_failed_nse_read_defers`, `test_nse_s_definitive_absence_is_a_void_row`. **J6** (a failed NSE read treated as absent) is caught, 5 failed |
+| The 23 Mar 2020 high test | MET | `test_one_high_19630_above_nse_voids_although_every_close_is_inside`. **J3b** (range on levels only) is caught, 2 failed |
+| The deferral resume | MET | `test_a_failed_middle_window_defers_then_resumes_without_a_refusal`. **J8** (no deferral without a previous row) is caught, 5 failed |
+| The open gap blank / checked-sessions count | MET | `_gap`; the report line "of N sessions with a 1-minute answer" |
+
+### Planted mutations (separate worktree; A16, A16b and A17 suites each run): 18 of 19 caught
+
+| # | Mutation | A16b (A16 / A17) |
+|---|---|---|
+| J1 | 09:15 open → close | 24 failed |
+| J2 | `used` = every candle of the day (pre-open, 15:30 and later) | 32 failed |
+| J3 | tolerance 0.06 | 5 failed |
+| J3b | NSE range on levels only | 2 failed |
+| J4 | provenance boundary `<` → `<=` in A17's shared function | 4 failed (A17: 2 failed) |
+| J5 | `nse_unchecked` trusted for the next overnight | 1 failed |
+| J6 | a failed NSE read becomes "absent" (transient → permanent) | 5 failed |
+| J7 | a 404 counts at once (21:00 rule off) | 1 failed |
+| J8 | no deferral without a previous row | 5 failed |
+| J9 / J9b | shared `session_rv` overnight / intraday | 2 / 1 failed (A16: 2 / 2 failed) |
+| J10 | incomplete sessions not checked (decision 62) | 3 failed |
+| J12 | stop after 4 failures, not 3 | 1 failed |
+| **J13** | **pacing 0.4 s, not 0.5** | **survived** (minor 1) |
+| J14 | the first version not kept | 1 failed |
+| J15 | a missing minute ignored | 2 failed |
+| J16 | untrusted levels computed | 4 failed |
+| J17 | an unreadable answer archived | 1 failed |
+| J18 | `first_seen_at` = earliest copy, not latest | 1 failed |
+
+### Self-review fixes M1-M3: MET
+
+- **M1.** The row and the previous close now come from the same kept copy: `PreviousClose.of` reads the previous
+  row's own `copy_15m`. J14 is caught.
+- **M2.** Identical bytes keep their first manifest row and fetch time (`CandleArchive.save`).
+  `test_a_rerun_after_a_deferral_keeps_the_first_fetch_time_and_verifies` covers it.
+- **M3, the 21:00 rule.** NSE's 404 counts as absent only from 21:00 IST on the day after the session (`nse_final`).
+  Before that the session is deferred, with the "not published yet" reason. This matches the repository's 21:00
+  archive time (A13) and the CLI's `latest_finished` (today only from 21:00). It is the safe side: a late file is never
+  mistaken for no file. `test_nse_s_404_defers_until_the_file_is_final_then_voids` covers it, and J7 is caught.
+
+### Is `backfill-verify` truly read-only? YES
+
+- `build_candle_verifier` builds no Groww object.
+- Its NSE library has `archive_to=None`, so `RawFileLibrary.get` never calls `put` (`raw_library.py`).
+- `CandleArchive.load` only `get`s.
+- The verifier writes no table row and no deferral row; `_verify` only prints.
+- `test_the_verifier_is_built_without_groww_and_archives_nothing` covers it.
+
+### Claims against reality
+
+- **Criterion 14 (the real run): NOT MET at this SHA.**
+  - The story says: "The claims show the full back-fill, 1 Jan 2020 to the latest finished session, as counts".
+  - The claims show a dry run of 2020 only: 251 of about 1,680 sessions, 15%.
+  - The full run is deferred to "after the PASS and merge, under owner rule 1 B". But the owner's "1 B" (DESK_DECISIONS
+    15 Oct) says only that builders run their own commands. It says nothing about running after the merge.
+  - A **dry run** of the full range writes nothing to Drive or the repository, as the 2020 one showed. So it can be
+    made before the merge.
+  - **Why it matters.** Rows are written once. A defect that only 2021-2026 data shows would be fixed into the real
+    series on the first real run, and could then only be corrected by a new method version. Such data includes:
+    - the 15:45 candles from 2025;
+    - 24 Feb 2021's extended session;
+    - the 2024 specials;
+    - the 26 Sep 2025 and 29 Sep 2026 holes;
+    - any era of 1-minute mismatches.
+  - The void share for 2021-2026 is unmeasured.
+- **Every other claim checked against the diff holds:**
+  - the 4740 / 86 counts reproduce;
+  - "A16's wiring.py and global_cues unchanged" is true;
+  - the decision-62 tests exist.
+
+### Hunt for unclaimed bugs (none blocking)
+
+- **Note.** An NSE file present but without a NIFTY 50 row raises `ValueError`. That is transient, so the session is
+  deferred on every run. This is consistent with the story ("an unreadable answer is transient"), and it is visible in
+  `deferred.csv` with a count of runs.
+- **Ordering.** The 15-minute window, then the 1-minute copy, then NSE: the 1-minute copy is archived even when NSE
+  then defers. That is harmless: the same bytes keep their first row and first fetch time (M2).
+- **Secrets.** Errors are named by class only (`CandleCallFailed`, the CLI's `except Exception`). The planted-secret
+  test covers it.
+
+## Findings
+
+**Should-fix 1: criterion 14's evidence.**
+- **Evidence:** the claims' "Not yet done: the full back-fill run (criterion 14)"; the story's criterion 14; DESK_DECISIONS
+  "1 B".
+- **Expected fix, one of:**
+  - **(A) recommended.** The builder runs `intraday backfill --dry-run <folder>` over 1 Jan 2020 to the latest finished
+    session, plus verify over that folder, and adds the counts to the claims: windows, calls, sessions, ok, void by
+    reason, void share, provenance, pre-open gaps, verify. Never a level. About 23 min of 15-minute calls plus about
+    1,700 one-minute checks at 2 a second, by the builder's own rate. Rule 8 then repeats it for real after the merge.
+  - **(B)** The orchestrator changes criterion 14 to say the full run comes after the merge, with a stated reason. That
+    is a lane-1 text change, and I re-check it. I would accept it only with a reason, given the write-once risk above.
+
+**Minor 1.** The pacing test checks against `MIN_GAP_SECONDS` itself, so changing the constant to 0.4 passes (J13).
+Pin the story's figure: assert `MIN_GAP_SECONDS == 0.5`, or measure gaps of at least 0.5 directly.
+
+### Verdict: FAIL for 305e1f1b64869e11f0a3aeee5f11e0fa3bd77780
+
+- **One should-fix:** the full-range run in the claims (A), or a reasoned text change (B).
+- **The code itself is sound.** Everything else is met: the gates, the 18 caught mutations, behaviour-neutral A16
+  changes, transient against permanent, read-only verify, M1-M3, and decision 62.
+- **A re-check after (A)** needs only the claims' new counts and minor 1's one-line test change. I re-run the gates
+  only if code changes.

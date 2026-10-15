@@ -560,3 +560,16 @@ The story text otherwise matches the code it describes: `manifest_commit.py`'s a
 - The first live routine fire after merge is recorded by the builder in `conversations/<date>.md`. It must show that fire's commit file list (`git show --stat`), containing only `slots/…` and `heartbeat.json` (plus `rv/…` at 15:30), and no refusal line.
 
 I check that commit in the merge check. Until then, A16e counts as merged but not yet proven live.
+
+## Addendum 14 (15 Oct 2026): owner rule "keep the design simple" applied to my open items
+
+The owner rule is in `docs/DESK_DECISIONS.md`, 15 Oct: a scenario counts only if it happens in this system's normal running or has already happened in our data. I re-checked my open items against it.
+
+- **Withdrawn: addendum 13 minor.** It asked for a test with a staged `heartbeat.json.tmp`. Nothing in our system writes that file; it came from my own planted mutation J4.
+- **Withdrawn: addendum 13 note.** Another writer running `git rm --cached` on an owned file is a person hand-making odd commits.
+- **Withdrawn: addendum 7 note 1.** The scanner hardening for `pip3`, `--requirement`, multi-line commands and scripts was for doc forms nobody uses.
+- **Kept: addendum 7 note 2.** It stays a one-line note, not a request: an unpinned build setuptools could break the install one day.
+- **Kept: addendum 11 should-fix 1, now met.** The missing `rv/` before the first 15:30 is a real case: the first live session hits it for certain.
+- **Re-rated: addendum 11 should-fix 2, now met.** It assumed another writer stages files in the recorder's checkout. The story itself says each routine fire is a fresh clone, and A16b's backfill is a one-off command run elsewhere. Under the new rule that path is not shown to happen. It would have been at most a note, and the folder-only check the orchestrator first decided would have been enough.
+  - What it added: the whole-index check is a few lines inside the same committer, with two tests.
+  - The owner or orchestrator decides whether to keep it, per point 4 of the rule. I do not ask for its removal.
