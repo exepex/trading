@@ -135,3 +135,10 @@ def test_the_evaluation_package_imports_no_broker_provider_or_desk_module():
             elif isinstance(node, ast.Import):
                 imported.update(alias.name for alias in node.names)
     assert [m for m in imported if any(part in FORBIDDEN_IMPORTS for part in m.strip(".").split("."))] == []
+
+
+def test_the_real_protocol_lists_the_gate_and_its_checker_in_frozen_files():
+    from fno.evaluation.freeze import frozen_targets
+    from tests.evaluation.builders import DRAFT
+
+    assert {GATE_FILE, "fno/evaluation/gate.py"} <= set(frozen_targets(DRAFT))

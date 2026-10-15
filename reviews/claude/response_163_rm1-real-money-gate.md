@@ -157,3 +157,10 @@ bound uses one gap per position; note 2 is in the story as a note for RM2.
 
 Open for S1's text owner (session 0185gR5D): the `frozen_files` line (`research/evaluation/REAL_MONEY_GATE.md`,
 `fno/evaluation/gate.py`), now allowed by the owner's Q10.
+
+**`frozen_files` line, in this branch (S1 text owner, session 0185gR5D, approved the wording):** the Files list adds
+`research/evaluation/REAL_MONEY_GATE.md` and `fno/evaluation/gate.py`, and the Reason gains the RM1 bullet. One part of
+the proposed wording was not taken, with the reason: appending "(gate files added on 2026-10-15, RM1 Q10)" to the
+Status line would fail S1's own check, which accepts only "decided by the owner on YYYY-MM-DD" exactly
+(`fno/evaluation/protocol.py`, `DECIDED`); the date is in the Reason instead. A test guards that the real protocol
+lists both gate files.
