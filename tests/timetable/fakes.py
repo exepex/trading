@@ -4,6 +4,7 @@ committed decisions, the recorder's execution capture, C4's gate and the exit ru
 from __future__ import annotations
 
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from fno.checks.gate import DataGate
 from fno.checks.wiring import build_data_checks
@@ -59,13 +60,14 @@ class Clock(Waiter):
 
 class Commits(Committer):
     def __init__(self, clock: Clock):
-        self.clock, self.made, self.crash_on = clock, [], ""
+        self.clock, self.made, self.crash_on, self.paths = clock, [], "", set()
 
     def commit(self, paths, message, own_unpushed=None):
         if self.crash_on and self.crash_on in message:
             self.crash_on = ""
             raise RuntimeError("the run was killed after the fills")
         self.made.append((self.clock(), message))
+        self.paths.update(Path(p) for p in paths)
         return f"c{len(self.made)}"
 
 
