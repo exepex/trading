@@ -605,6 +605,69 @@ it records "no approved strategy" each day (that is a result, not an error).
 
 ---
 
+## E5b. Book 1's decision command: a failed commit alerts once and is recovered, never redecided
+
+**Repository:** trading
+
+**Description:** As the owner, I want `fno desk book1` to handle a failed commit the way E3's daily run now does (story
+E2b, decisions 44 and 47): one alert, a clear line, exit code 1, no traceback, and a rerun that commits the recorded
+decision as it was made, so that a refused or rejected commit is never silent and a decision is never made twice.
+
+**Context and why:** Orchestrator decision 46 (judge 118 addenda 3 and 7). Today `Book1.decide`
+(`fno/books/book1.py:74`) calls `GitCommitter.commit`, which raises `CommitFailed` on any refusal or git failure (a
+raw quote file in the index, a failed pull, a push rejected three times, an unpushed commit it did not make). Nothing
+catches it, so the command ends in a traceback and nothing reaches #fno-desk. A rerun with byte-identical inputs then
+returns "already decided" (`DuplicateRun`, `fno/playbook/decision_store.py:72-75`) without committing, so the first
+decision stays uncommitted (or committed but unpushed) for good; with any changed input it decides again as a second
+run beside the first, so the day holds two decisions. The judge's note (addendum 7): a Book 1 decision commit left unpushed in a checkout
+also stops E3's daily run in that same checkout at its first commit (an unpushed commit the run did not make, decision
+51), so its exits are not reviewed until the decision is resolved.
+
+**Scope.** In:
+- `cmd_book1` (`fno/books/book1_cli.py`) catches `CommitFailed`: one alert to #fno-desk through the same alert
+  sender as the daily run, the same text printed as one line, exit code 1, no traceback. The text names the cause and
+  what it blocks: the decision is not public yet, so it is not on time unless it is pushed before E3's deadline, and
+  a daily run in this checkout stops at its first commit until it is resolved. The hand fix: remove the cause, then
+  rerun `fno desk book1`.
+- Book 1's commit goes through E2b's `PendingCommitter` (a second use of the same class, with its own marker
+  `journal/runs/.pending_book1.json`, git-ignored), so the rerun's first act commits the recorded decision files
+  exactly as they are on disk, pushes a commit left unpushed, and never runs D2 again. A changed or missing file
+  stops the rerun with the alert naming it. Nothing is regenerated.
+- Its own marker, not the daily run's: the two commands may run in one checkout at overlapping times, and one shared
+  marker could be overwritten.
+Out:
+- any change to on-time rules: E3's collector decides from what origin shows at the deadline (`committed_at` before
+  the deadline and visible then), so a decision pushed by a rerun after the deadline is late, as today;
+- automatic retries or schedules (no routine runs `fno desk book1` yet);
+- the daily run itself (E2b).
+
+**Owner or orchestrator choice (not decided here):** A (recommended): recover as above, which reuses E2b's class (one
+new constructor argument, the marker name). B (smaller): alert and exit 1 only, with the hand fix "push the local
+commit with `git push`, or remove the decision folder and rerun". B leaves an uncommitted decision folder that the
+rerun treats as already decided (or decides again beside, when an input changed), so I do not recommend it
+(reasoning only).
+
+**Acceptance criteria:**
+1. With the real `GitCommitter` and a bare origin, a staged raw quote file, an unreachable origin and a push rejected
+   three times each give exactly one alert naming the cause, one printed line, exit code 1 and no traceback (tests).
+2. After the cause is removed, a rerun commits the decision files byte-identical to the first run's, with D2 run once
+   in total, and origin then holds the decision; a push left unpushed is pushed by the rerun (tests).
+3. A decision file changed after the failure stops the rerun with an alert naming it; nothing is committed and D2 is
+   not run again (test).
+4. Book 1's marker and the daily run's marker are separate files; a pending Book 1 commit does not change what the
+   daily run's recovery commits (test).
+5. A successful decision prints the same line as today, and exit code 0 (test).
+
+**Test plan:** CLI and unit tests with real git against a bare origin, a fake alert sender (nothing posted), broken-code
+proofs per criterion.
+
+**Judge verifies:** reruns criterion 2 by hand; plants a missing catch, a shared marker and a skipped hash check.
+
+**Depends:** E2b (merged first: `CommitFailed`, `PendingCommitter`) · **Size:** S · **Status:** story text on
+`story/e5b-book1-commit-failure`, for the judge's story check (response 122)
+
+---
+
 ## E6. Strategy paper scorecard and pause rules
 
 **Repository:** trading
