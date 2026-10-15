@@ -379,3 +379,14 @@ I accepted every finding after checking each against its source. For every sourc
   - 8 states clean at 1280 and 390 px.
 - Trading: see the orchestrator message for the full-suite count; `tests/market_read_models` 180 passed, 1 xfailed
   (pending T1); ruff and imports clean.
+
+## Addendum 3: T1 on main (orchestrator, 15 Oct 2026; judge 102 addendum 1 follow-up)
+
+- origin/main (with T1, f0c47ae) is merged in.
+- `tests/market_read_models/test_p1_t1_card.py` now:
+  - imports `CARD_DELIVERIES_FOLDER` and `CARD_VALID_UNTIL` from `fno.constants` instead of copying them;
+  - reads T1's real record on main, `research/cards/deliveries/2026/2026-10-15-a1.json`. The byte-identical fixture
+    copy is deleted (one copy);
+  - replaces the xfail with an assertion that at least one delivery record exists, so a moved folder fails instead of
+    staying expect-failed.
+- All three tests pass; no test is xfailed any more.
