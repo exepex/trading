@@ -159,3 +159,23 @@ Notes (one line each, reasoning only, not should-fix):
 8. `ChildProcess.stop()` kills only the Python child. A `git push` that `book1` started could outlive it and touch
    the checkout while the run goes on. No evidence that this happens, and a 10-minute hang of `book1` has not been
    seen either.
+
+## Addendum 4: O1 at 71b00878 (notes 7 and 8)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings. Notes 7 and 8 are closed.
+
+- **Note 7.** The `CommandStep` docstring and the story's "No command holds the day" line now say plainly that the
+  10-minute limit does not protect 15:12 for `book1` (which can start at about 15:10), and that E3's late rule
+  decides that case. The claim now matches the behaviour.
+- **Note 8.** Children start with `start_new_session=True`, and `stop()` kills the whole process group (`killpg`,
+  SIGKILL; a child that already ended is tolerated). This also covers a quote part stopped at `FINISH_LIMIT`. The new
+  test, `test_stopping_a_command_kills_what_it_started_too`, uses a real grandchild and checks it is dead (zombies
+  count as dead). My mutation removing `start_new_session` makes it fail.
+- **Gates on a trial merge with origin/main dd35b2e5:** the suite is now **fully green, 6180 passed** (main's fixes
+  for the 3 earlier red tests are in). `ruff check`, `ruff format --check` and `check_imports` are clean.
+- One-line note, reasoning only: in their own session, the children no longer receive a Ctrl-C or SIGTERM sent to
+  the routine's process group. If the run itself dies, a running recorder carries on with no one to commit its files.
+  That was already the case for a crashed parent, and the stated known limit (a rerun after a dead run) covers it.
+  Nothing to change.
+
+Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the real day), and the merge after A4c.

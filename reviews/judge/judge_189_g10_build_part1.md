@@ -35,3 +35,32 @@ record, and 6 (the 14:30 dry run) are part 2, by design and stated.
 
 **Verdict: PASS for 0d0d83f7 as part 1.** Merge it after `main` is green. Part 2 comes back with criteria 1, 1a, 1b,
 the rest of 3, 6 and items 1-3 above.
+
+## Addendum 1 (15 Oct 2026): 5fd16405, part-2 item 2 fixed early
+
+One commit changes `cutoff_moves.py` and its test. `A16CutoffMoves.level` now returns None, meaning "not computable",
+when the Drive read raises. The try covers only `store.get`, so `SnapshotChanged` still stops the report. The new test
+(a store whose `get` raises `ConnectionError`) passes, and with the fix reverted it fails, as the builder reports.
+`tests/forecast_scoring_v4`: 54 passed.
+
+**Item 1, the builder's proposal (store the flag at A16's 15:30 run in the day's derived files):** sound, and better
+than giving the weekly job Drive access. The report would no longer depend on credentials, and re-running it gives the
+same number (reasoning only). Two conditions:
+- (a) it touches A16's paths, so agree it with the orchestrator first, as the builder says;
+- (b) A16's `session_rv.py`, `status.py`, `slots.py` and `realised_vol.py` are byte-checked at the v4 freeze (judge
+  177 addendum 1), so the change must land **before** the freeze commit, or it becomes a new version.
+
+**Verdict: 5fd16405 stands under the PASS of judge 189.** Items 1, 3 and 4 stay for part 2.
+
+## Addendum 2 (15 Oct 2026): 638cf54c, after the main merge
+
+- **The delta since the PASS:** 5fd16405 (addendum 1); the merge of `main` (355c6669, no conflicts, which brings in
+  the orchestrator's batch: the V1 filter, skill_n, effective_start, the IV proof and the E2c test fixes); and
+  638cf54c, one test call. `test_iv_never_used.py` now passes `days=build_day_counts(DAY)` to `report_json`, the
+  agreed one-line merge fix (part-2 item 4, done). The IV proof still compares the plain and patched runs, with the
+  day counts now part of both.
+- **Gates on 638cf54c, run myself:** **6,318 passed, 0 failed**. Ruff and format are clean. v4, scoring, rules and
+  weather tests: 324 passed.
+
+**Verdict: PASS for 638cf54c** (part 1). Merge it. Part 2 keeps items 1 and 3 (the stored flag, before the freeze; the
+cohort scores) and criteria 1, 1a, 1b and 6.

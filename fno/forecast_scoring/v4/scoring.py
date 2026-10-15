@@ -12,7 +12,7 @@ from ...forecast_v4.terms import HORIZON_SESSIONS, POINT_QUESTIONS
 from .comparison import Comparison, compare, paired_rows, seed_word
 from .inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
 from .primary import primary_names, primary_values
-from .records import SlotRegistry
+from .records import Registration, SlotRegistry
 from .scores import point_scores, probability_scores
 
 QUESTIONS = tuple(HORIZON_SESSIONS)  # the protocol's order
@@ -41,7 +41,7 @@ class V4Scoring:
             return QuestionReport(question, STATUS_NO_DATA)
         outcomes, baseline = self.outcomes.outcomes(question), primary_values(question, self.forecasts)
         values = {name: self.forecasts.values(question, name) for name in names}
-        slots = {forecaster: slot for (q, slot), forecaster in self.registry.registered().items() if q == question}
+        slots = {r.forecaster: slot for (q, slot), r in self.registry.registered().items() if q == question}
         report = QuestionReport(question, STATUS_SCORED)
         report.live_forecasts = sum(v.live and v.value is not None for vs in values.values() for v in vs.values())
         base_rate = self.forecasts.values(question, V4_BASELINE_BASE_RATE)
@@ -56,15 +56,16 @@ class V4Scoring:
     def member_comparisons(self, counted_after: date | None) -> dict[tuple[str, str], Comparison]:
         """Each registered member: its slot's forecaster against the question's primary baseline. After the freeze
         (`counted_after`: its day) only live rows of later forecast days count (protocol section 8); back-fill and
-        earlier live rows never do. None (before the freeze, exploratory): every row."""
+        earlier live rows never do, and misses count from the slot's `effective_start` (never before the day after
+        the freeze), even before its first forecast. None (before the freeze, exploratory): every row, misses from
+        the first forecast."""
         found = {}
-        for (question, slot), forecaster in self.registry.registered().items():
+        for (question, slot), registration in self.registry.registered().items():
             outcomes = self.outcomes.outcomes(question)
             baseline = _counted(primary_values(question, self.forecasts), counted_after)
-            every = self.forecasts.values(question, forecaster)
-            values = _counted(every, counted_after)
-            found[(question, slot)] = self._compare(question, forecaster, values, baseline, outcomes, slot,
-                                                    _miss_start(every, counted_after))  # fmt: skip
+            values = _counted(self.forecasts.values(question, registration.forecaster), counted_after)
+            found[(question, slot)] = self._compare(question, registration.forecaster, values, baseline, outcomes,
+                                                    slot, _miss_start(registration, counted_after))  # fmt: skip
         return found
 
     @staticmethod
@@ -78,13 +79,12 @@ def _counted(values: dict[date, ForecastValue], after: date | None) -> dict[date
     return values if after is None else {day: v for day, v in values.items() if v.live and day > after}
 
 
-def _miss_start(values: dict[date, ForecastValue], after: date | None) -> date | None:
-    """After the freeze, misses count from the day after it for a forecaster that had already started (any row, back-
-    fill included), else from its first forecast; before the freeze, from the first forecast in the rows (None)."""
-    given = [day for day, v in values.items() if v.value is not None]
-    if after is None or not given:
+def _miss_start(registration: Registration, after: date | None) -> date | None:
+    """After the freeze, the slot's declared `effective_start`, never earlier than the day after the freeze (no
+    earlier day can count); before the freeze, None (exploratory: misses from the first forecast in the rows)."""
+    if after is None:
         return None
-    return max(min(given), after + timedelta(days=1))
+    return max(registration.effective_start, after + timedelta(days=1))
 
 
 def _scores(question: str, values: dict[date, ForecastValue], outcomes: dict[date, Outcome],

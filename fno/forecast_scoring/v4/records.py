@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import re
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
@@ -27,16 +28,25 @@ class LookRecordExists(RuntimeError):
     """A look's record is written once; a second write is refused."""
 
 
+@dataclass(frozen=True)
+class Registration:
+    """A slot's registered forecaster and its declared `effective_start` (owner, 16 Oct 2026: misses count from it,
+    even before the slot's first forecast; ChatGPT review 119)."""
+
+    forecaster: str
+    effective_start: date
+
+
 class SlotRegistry(ABC):
     @abstractmethod
-    def registered(self) -> dict[tuple[str, str], str]:
-        """(question, slot) -> the forecaster id registered for it in the ledger before its first counted forecast."""
+    def registered(self) -> dict[tuple[str, str], Registration]:
+        """(question, slot) -> its registration, written in the ledger before the slot's first eligible session."""
 
 
 class NoRegistrations(SlotRegistry):
     """Before the freeze writes its ledger row, no slot has a registered forecaster (Test A: undecided)."""
 
-    def registered(self) -> dict[tuple[str, str], str]:
+    def registered(self) -> dict[tuple[str, str], Registration]:
         return {}
 
 

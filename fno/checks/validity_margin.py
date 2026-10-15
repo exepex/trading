@@ -1,9 +1,9 @@
 """Margin room as C4 recomputes it (story C4, judge 83), on A14's three-part margins file. Each row holds, per lot, a
 structure and width's SPAN scan, net option value (NOV) and exposure margin, with source and date.
 
-- Stressed margin per lot: max(0, k x scan - NOV) + min(0, NOV) + exposure, with k the owner's stressed-margin
-  multiplier (which needs its source and date). A total not above 0 is refused, except 0 for a bought-only
-  structure (LC, LP: NSE blocks no margin on a paid-up long option; story STR1).
+- Stressed margin per lot: max(0, k x scan - NOV) + min(0, NOV) + k x exposure (story C2c), with k the owner's
+  stressed-margin multiplier (which needs its source and date). A total not above 0 is refused, except 0 for a
+  bought-only structure (LC, LP: NSE blocks no margin on a paid-up long option; story STR1).
 - Needed: every open trade's stressed margin, plus those of the trades chosen earlier the same day, plus the
   proposal's.
 - Available after the entry: the least of
@@ -90,9 +90,10 @@ def stressed_per_lot(rows, terms: tuple[str, float, int], day: date, settings: M
     structure, width, _ = terms
     row = margin_row(rows, terms, day, settings)
     scan, nov, exposure = (float(row[k]) for k in ("scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs"))
-    span, cap = max(0.0, multiplier(settings, day) * scan - nov), span_cap(structure, width, nov, lot_size)
+    factor = multiplier(settings, day)
+    span, cap = max(0.0, factor * scan - nov), span_cap(structure, width, nov, lot_size)
     capped = span if cap is None else max(max(0.0, scan - nov), min(span, cap))  # never below the broker's own figure
-    per_lot = capped + min(0.0, nov) + exposure
+    per_lot = capped + min(0.0, nov) + factor * exposure  # k stresses the exposure too, outside the cap (story C2c)
     if per_lot < 0 or (per_lot == 0 and structure not in STRUCTURES_BOUGHT_ONLY):
         raise MarginProblem(f"margin for {structure} {width:g} on {row['as_of']} is not above 0")
     return per_lot

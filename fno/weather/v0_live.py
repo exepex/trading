@@ -11,10 +11,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from ..constants import WeatherColour
 from ..forecast_v4_rules.baselines import MINIMUM, MISSING, NOT_ELIGIBLE, WINDOW, Value, before
 from ..forecast_v4_rules.series import Outcome
 from .checklist_v0 import Event, Row, V0Inputs, v0_colour, v0_inputs
+from .constants import WeatherColour
 from .model import WeatherModel
 
 Horizon = Callable[[date], date | None]  # the last of the 5 regular sessions after a day (None: calendar ends)
