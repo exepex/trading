@@ -155,6 +155,7 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 190: answer to ChatGPT review 122 (E8): opportunity-level reporting, funds and margin re-checked at every fill, away dates private in Drive with a salted hash (owner), view isolation to the S1 stop](response_190_chatgpt-review-122-answer.md)
 - [Response 191: answer to ChatGPT review 124 (F9a): cost on the same dates as the tested net, block-span disclosure, no live verdict before F9b proves withholding](response_191_chatgpt-review-124-answer.md)
 - [Response 192: answer to ChatGPT review 123 (E4c): accept; two Known-limits lines (shared displayed size across same-book entries, one snapshot)](response_192_chatgpt-review-123-answer.md)
+- [Response 194: the 92 Drive trial files (A12 filings trial run of 13 Oct, not A4b): listed with path, size, time, MD5; each has a same-MD5 year-layout copy and nothing points at it; nothing deleted](response_194_drive-trial-files.md)
 - [Response 199: answer to ChatGPT review 125 (RM2): records-pending status and stops in exit-time order, two times per leg, settlement fixture](response_199_chatgpt-review-125-answer.md)
 - [Response 200: answer to ChatGPT review 120 (S3/S6): fixed Holm family, book-specific unscored days as misses, reviewed must be True; disclosures](response_200_chatgpt-review-120-answer.md)
 - [Response 209: answer to ChatGPT review 126 (E4d): accept; disclose fixed entry priority, count size_shared_in_book misses per strategy, two known limits](response_209_chatgpt-review-126-answer.md)
