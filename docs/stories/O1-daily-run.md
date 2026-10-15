@@ -61,6 +61,11 @@ otherwise (exit 0), exits 1 on a Groww or read failure (one O1 alert; the next s
 `research/data/margins/stress_broker_check.csv`, the one path the step commits. It stays `not_live`
 (`daily.live_from.margin_check`) until A14c's code lands.
 
+**E8's step (agreed with the E8 builder, 15 Oct; E8 rule 11 at `story/e8-owner-timing-fills` fd3a0344):**
+`owner_timing_fills` joins `DAILY_RUN_STEPS` right after `quotes`, as E8's own `DayStep` listed with one line in
+`fno/daily/wiring.py`; a failure fails closed for new entries through E2c's `_unreviewed` block, exits still run. E8
+builds it on `main` after O1 merges; O1 adds nothing for it now.
+
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
 
