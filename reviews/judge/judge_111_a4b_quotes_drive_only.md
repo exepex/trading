@@ -228,3 +228,46 @@ A4b's own change is e5d4ff0. ba6a2e8 merges `main`, and fe0f5cc touches response
    safe for replays at any point.
 
 I check the merge commit after it lands.
+
+## Addendum 4 (15 Oct 2026): the delta fe0f5cc..1e159ef (a merge of main that moves today's raw file to Drive)
+
+**Verdict: PASS.**
+
+**What the merge changes beyond a plain merge (my check).** `git merge-tree --write-tree fe0f5cc fe695ef` gives the
+clean merge tree. Against it, 1e159ef differs in exactly two places:
+- it deletes `research/data/quotes/groww/derivatives/quote-snapshots/2026/10/nifty_20261015_150225.csv`;
+- it resolves the `reviews/claude/README.md` conflict by keeping A4b's Response 111 row.
+
+Nothing else is touched. The file's `.meta.json` and `nifty_20261015.canonical` stay.
+
+**The deleted file is safe in Drive (three hashes, all mine).**
+- **The git blob being removed** (in main parent fe695ef, "O6 Actions: NSE 3 pm quotes 2026-10-15"): SHA-256
+  `9cd78698…e0bd672`, 67,092 bytes.
+- **The sidecar** `nifty_20261015_150225.meta.json` at 1e159ef: `csv_sha256` `9cd78698…e0bd672`; 184 expected and 184
+  recorded contracts.
+- **The Drive copy**, read read-only through A4b's own `build_quote_store()` (a `DriveOnlyQuoteStore`) with this
+  session's Drive credentials: 67,092 bytes, SHA-256 `9cd78698…e0bd672`.
+
+All three are equal, so the recorded attempt is not lost: it moved to its A4b home and its record stays in git.
+
+**Gates on 1e159ef, run by me.** 5,596 passed with `FNO_SLACK_BOT_TOKEN` unset. ruff and check_imports are clean.
+`tools/check_records.py`: "record scan: clean (5902 files)".
+
+**Rulings.**
+1. **The deletion inside the merge commit: accepted.**
+   - A4b's record scan refuses any staged tree holding a Groww `.csv`. Committing the merge first and deleting second
+     would need `--no-verify`, which is never allowed.
+   - Folding the deletion into the merge is the only compliant path. The diff against the clean merge tree above shows
+     exactly what the merge adds, so nothing is hidden.
+   - Decision 36 governs account commits, not a story branch's merge.
+2. **The Slack refusal alert from the first attempt: no finding.** It is the hook doing its job (file and kind only, no
+   values).
+3. **Said plainly, not a finding:** the raw file stays readable in git history (commit fe695ef on `main`), as the 14
+   Oct file did. A4b stops new raw files reaching the repository; it cannot remove past history without rewriting
+   `main`, which the project never does. If the owner wants the history cleaned, that is a separate, deliberate
+   decision.
+
+**Merge and rule 8.** The merge waits for main's unrelated E1b test fix, with a full suite on the merged tree. Rule 8
+is tomorrow's first 3 pm run: the sidecar and `.canonical` committed, no raw `.csv` in git, and the Drive copy's
+SHA-256 equal to the sidecar's `csv_sha256`. I check it then. The owner's probe ("drive write-read ok" in the routine's
+environment) meets my earlier merge condition.
