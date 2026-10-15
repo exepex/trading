@@ -43,12 +43,11 @@ Out:
 
 **Expected design (after a text PASS):**
 - `fno/evaluation/gate.py` (new, small): `GATE_FILE` and the gate's required items (the 12 keys of the draft).
-- `fno/evaluation/completeness.py`: `completeness_problems` and `undecided_items` take the required-item list as a
-  parameter (default S1's), and `completeness_problems` takes `require_version` (default true; false for the gate),
-  so one checker serves both documents (DRY). The gate has no version line of its own: it is versioned and frozen
+- `fno/evaluation/completeness.py`: `completeness_problems` takes the required-item list (default S1's) and
+  `versioned` (default true; false for the gate), so one checker serves both documents (DRY). The gate has no version line of its own: it is versioned and frozen
   with S1.
-- `fno/evaluation/freeze.py`: `_checked_text` also checks the gate (complete and decided) and refuses by naming each
-  problem. `cli.py`'s `check` prints the gate's result as a second line.
+- `fno/evaluation/freeze.py`: `_require_gate` refuses unless the protocol's `frozen_files` lists the gate and the
+  gate is complete and decided, naming each problem. `cli.py`'s `check` prints the gate's result as a second line.
 - `research/evaluation/PROTOCOL.md`, `frozen_files`: adds `research/evaluation/REAL_MONEY_GATE.md` and
   `fno/evaluation/gate.py`. This changes an owner-decided item's list (as the scoring-code addition already
   foresees), so it goes to the owner as question Q10. S1's text owner (session 0185gR5DmoDh2zBAvgRU4CEB) makes that
@@ -82,6 +81,8 @@ gate with the gate's hash; `verify` flags a one-byte gate edit; the import test;
 
 **Judge verifies:** the text against 8.3, 8.4 and the decision rows (criterion 1's table); each owner question is
 asked with options, never answered by the builder; the freeze refusal by planting an undecided status.
+
+**Notes for RM2 (judge 171 addendum 4):** RM2's text names which A16 mark is "next" when a fill time equals a mark.
 
 **Known limits:**
 - The gate is frozen with S1, so changing it later is a new S1 protocol version (the intended cost: no quiet edit).

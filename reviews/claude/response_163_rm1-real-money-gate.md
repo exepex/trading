@@ -135,3 +135,25 @@ noise-aware form; the owner kept 8.3 (row 22df15bf) made noise-aware: not met on
 of the mean gap to the next A16 snapshot exceeds the pad. Q14: the gate's paper pad is research's Rs 1 per unit, so
 execution slippage may average up to Rs 1.50 per unit and stop (b) fires above Rs 2 per unit over 5 trades. Every
 item is decided.
+
+## 9. Code round (orchestrator's go after judge 171 addendum 4 PASS)
+
+**What changed:** `fno/evaluation/gate.py` (new, 36 lines: `GATE_FILE`, the 12 `GATE_ITEMS`, `gate_problems`);
+`completeness.py` (`completeness_problems` takes `required` and `versioned`, defaults unchanged for S1); `freeze.py`
+(`_require_gate`: the freeze refuses unless `frozen_files` lists the gate and the gate is complete and decided);
+`cli.py` (`check` prints the gate's line and fails on it); `tests/evaluation/builders.py` (the temporary repository
+holds and lists the committed gate); `tests/evaluation/test_freeze.py` (the exact hash set now includes the gate);
+`tests/evaluation/test_real_money_gate.py` (new, 16 tests). Judge A's note 1 is in the gate text: fill honesty's
+bound uses one gap per position; note 2 is in the story as a note for RM2.
+
+| # | Claim | Evidence |
+|---|---|---|
+| C1 | The committed gate is complete and decided; `python -m fno evaluation check` prints both documents and exits 0; `check --decided` fails only on S1's 13 undecided items | strong evidence (run output) |
+| C2 | The freeze refuses an undecided gate (no record, ledger unchanged), an unlisted gate, a missing gate and an uncommitted gate edit; a decided gate is hashed in `FREEZE_v1.md` and a later edit shows in `verify` | strong evidence (tests) |
+| C3 | Broken-code proofs (each mutation run against `tests/evaluation`, then restored): no gate check in the freeze, 2 fail; undecided ignored, 3 fail; version line always required, 27 fail; `check` ignoring the gate, 1 fails; no required gate items, 29 fail. Restored: 60 pass | strong evidence |
+| C4 | `fno/evaluation/` imports no provider, desk, book, broker, Groww or order module (AST test) | strong evidence |
+| C5 | The real repository's S1 freeze now refuses until S1's text owner adds the gate to `frozen_files` (owner Q10 = yes); that is the intended link, not a failure | strong evidence (run: the freeze names the 13 undecided protocol items first; the gate check runs after) |
+| C6 | No file over 350 lines: `freeze.py` 189, `cli.py` 111, `gate.py` 36, the new test 137 | strong evidence |
+
+Open for S1's text owner (session 0185gR5D): the `frozen_files` line (`research/evaluation/REAL_MONEY_GATE.md`,
+`fno/evaluation/gate.py`), now allowed by the owner's Q10.

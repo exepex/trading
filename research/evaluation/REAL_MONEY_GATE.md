@@ -99,8 +99,9 @@ Terms used below:
   depth), checked against the hashed snapshot E8 filled from; one invalid leg is not met.
   (b) **Gap to the next snapshot:** for each leg, gap per unit = the first A16 snapshot after the fill (about 15
   minutes later) against the paper price before pad (buys: that snapshot's ask minus the paper price; sells: the
-  paper price minus its bid), worse positive. Not met only when the one-sided 95% lower bound of the mean gap over the
-  record's legs (mean − t(0.95, k−1) × SD ÷ √k, k legs) exceeds the paper pad (owner, Q13 noise-aware, row
+  paper price minus its bid), worse positive. A position's gap is the mean of its legs' gaps (its legs fill together, so
+  they are one observation, judge 171 addendum 4). Not met only when the one-sided 95% lower bound of the mean gap over
+  the record's positions (mean − t(0.95, k−1) × SD ÷ √k, k positions) exceeds the paper pad (owner, Q13 noise-aware, row
   162d8fbf). A leg with no valid next snapshot is left out of the mean and listed; fewer than 20 legs with
   a next snapshot is not met.
   A16 records only the nearest weekly and nearest monthly NIFTY expiries, so a version trading any other expiry
