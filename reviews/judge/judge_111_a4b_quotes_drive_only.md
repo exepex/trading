@@ -126,7 +126,8 @@ response 111 only. I judged A4b's own diff (`git diff 3ac5e65^ 3ac5e65`) and ran
 ## Gates
 
 - Full suite at 65d75e6: **3,591 passed** (Slack token unset). `ruff check`, `ruff format --check` and `check_imports`
-  are clean. It merges cleanly with today's `origin/main`.
+  are clean. A trial merge with today's `origin/main` conflicts only in `reviews/claude/README.md` (index rows on both
+  sides; keep both).
 - **Frozen files.** Of the files A4b changes, only `fno/quotes/recorder.py` (FREEZE_v2, recorded) and
   `fno/forecast_scoring/wiring.py` (FREEZE_v3, recorded) appear in any freeze record, as rulings R1 and R2 allow. No
   byte-checked file changes.
