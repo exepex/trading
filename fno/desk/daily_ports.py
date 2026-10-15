@@ -47,12 +47,20 @@ class CommitFailed(Exception):
         self.unpushed = unpushed
 
 
+@dataclass(frozen=True)
+class OwnCommit:
+    """This run's own earlier commit that may still be unpushed (a rejected push being recovered): its message and the
+    SHA-256 of each file as recorded (None for a file that did not exist)."""
+
+    message: str
+    files: Mapping[str, str | None]  # path relative to the repository root -> SHA-256
+
+
 class Committer(ABC):
     @abstractmethod
-    def commit(self, paths: Sequence[Path], message: str, own_unpushed: str = "") -> str:
-        """Pulls, commits these paths and pushes; the commit ID. Raises `CommitFailed` when it cannot. `own_unpushed`
-        is the message of this run's own earlier commit of these paths that may still be unpushed (a rejected push
-        being recovered); any other unpushed commit is refused."""
+    def commit(self, paths: Sequence[Path], message: str, own_unpushed: OwnCommit | None = None) -> str:
+        """Pulls, commits these paths and pushes; the commit ID. Raises `CommitFailed` when it cannot. Any unpushed
+        commit other than `own_unpushed` is refused."""
 
 
 class Packs(ABC):

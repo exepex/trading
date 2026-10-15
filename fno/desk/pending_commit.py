@@ -17,7 +17,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ..constants import JOURNAL_FOLDER
-from .daily_ports import CommitFailed, Committer
+from .daily_ports import CommitFailed, Committer, OwnCommit
 from .run_log import RUNS_FOLDER
 
 MARKER = ".pending_commit.json"
@@ -35,7 +35,7 @@ class PendingCommitter(Committer):
         self.committer, self.root = committer, Path(root)
         self.marker = self.root / JOURNAL_FOLDER / RUNS_FOLDER / MARKER
 
-    def commit(self, paths: Sequence[Path], message: str, own_unpushed: str = "") -> str:
+    def commit(self, paths: Sequence[Path], message: str, own_unpushed: OwnCommit | None = None) -> str:
         """The run's `recover()` comes first (`DailyRun.run`), so no marker is ever left here when this writes one."""
         self._write({"message": message, "files": {self._name(p): _sha256(Path(p)) for p in paths}})
         commit = self.committer.commit(paths, message, own_unpushed)
@@ -53,7 +53,8 @@ class PendingCommitter(Committer):
             fix = CHANGED_FIX.format(marker=self._name(self.marker))
             raise PendingChanged(CHANGED.format(message=pending["message"], paths=", ".join(changed), fix=fix))
         named = [self.root / name for name in files]
-        commit = self.committer.commit(named, pending["message"] + RECOVERED, own_unpushed=pending["message"])
+        own = OwnCommit(pending["message"], files)
+        commit = self.committer.commit(named, pending["message"] + RECOVERED, own_unpushed=own)
         self.marker.unlink()
         return commit
 

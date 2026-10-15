@@ -198,3 +198,12 @@ My earlier "a sum over at least two legs" was wrong as a defence: the playbook's
 
 **Changed test text:** the unreachable-origin test now expects "git fetch -q failed". The stray check fetches before
 the pull, so the same cause is reported at the fetch.
+
+## Judge 118 addendum 7 minors 1-2 (decision 54)
+
+| Item | Fix | Tests | Evidence |
+|---|---|---|---|
+| Minor 1: plant S4 (the message rule dropped) survived | no code change; a test for it | `tests/timetable/test_push_guard.py`, the `reworded` case: the stuck commit itself under another message (the marker's files, recorded content) is refused | strong: S4 is now caught. My first try used other content too, so the content rule refused it and S4 still survived; the reworded case isolates the message rule |
+| Minor 2: "own" exact by content | The port's `own_unpushed` is now an `OwnCommit` (message plus each file's recorded SHA-256, `fno/desk/daily_ports.py`). `GitCommitter._own` requires the same message, only the marker's files, and each file's content in the commit (`git show <c>:<path>`) equal to the recorded SHA-256 (`fno/desk/git_sync.py`) | the `changed_content` case: the run's own message, only the marker's log file, other content, with the disk put back as recorded: refused | strong: plants S4 (message), C1 (content) and C2 (files) are each caught by exactly one case. Both cases check that origin's head is unchanged |
+
+Gates: 3,951 passed; ruff, format and `check_imports.py` clean.

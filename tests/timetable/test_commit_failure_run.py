@@ -89,7 +89,7 @@ class FailingOn(Commits):
         super().__init__(clock)
         self.what = what
 
-    def commit(self, paths, message, own_unpushed=""):
+    def commit(self, paths, message, own_unpushed=None):
         if self.what in message:
             raise CommitFailed(f"push of '{message}' rejected 3 times")
         return super().commit(paths, message, own_unpushed)

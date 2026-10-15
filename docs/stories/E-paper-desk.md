@@ -303,7 +303,8 @@ the hash-checked store. The guard and the derived pack work the same with either
    every file the push would change on origin (`origin/<branch>..HEAD`, deletions too). Before the pull, an unpushed
    commit the run did not make is refused, naming its message and files, through the same handler (one alert). Both
    writers use the same `Git.unpushed()`: account writes refuse any unpushed commit, and the run's commits allow only
-   the run's own stuck commit, told apart by the pending marker (its message, and only the marker's files). A merge
+   the run's own stuck commit, told apart by the pending marker: its message, and only the marker's files, each with
+   the content the marker recorded (SHA-256). A merge
    left by a retry's pull is not counted: what it brings in is checked commit by commit, and its files by the guard
    (tests with real git: a stray raw-file commit refused with origin unchanged, by each layer alone; a stray commit
    without quotes; one copying the run's message with other files; the run's own stuck commit pushed after origin

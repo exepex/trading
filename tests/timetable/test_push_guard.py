@@ -48,7 +48,7 @@ def test_a_stray_local_raw_quote_commit_is_refused_before_any_push(root, tmp_pat
 
 def test_the_pre_push_guard_alone_refuses_a_raw_quote_file_in_any_unpushed_commit(root, tmp_path, alerts, monkeypatch):
     """Layer (a) holds by itself: with the stray refusal switched off, the push is still refused, naming the file."""
-    monkeypatch.setattr(GitCommitter, "_refuse_stray", lambda self, paths, own: None)
+    monkeypatch.setattr(GitCommitter, "_refuse_stray", lambda self, own: None)
     run, clock = stopped(root, tmp_path, alerts)
     stray_commit(root, RAW_QUOTE, "contract_id,bid,ask\n")
     with pytest.raises(RunStopped):
@@ -101,3 +101,37 @@ def test_a_stray_commit_copying_the_run_s_message_but_touching_other_files_is_re
         run.run(NORMAL)
     assert "the run did not make" in alerts.sent[-1] and "notes/hand_edit.md" in alerts.sent[-1]
     assert f"Desk run {NORMAL} step exits" not in origin_messages(root)
+
+
+def reworded(root):
+    """The stuck commit itself under another message: the marker's files with the recorded content."""
+    git(root, "reset", "-q", "--soft", "HEAD~1")
+    git(root, "commit", "-q", "-m", "another message")
+
+
+def changed_content(root):
+    """A commit with the run's own message touching only one of the marker's files, with other content; the file on
+    disk is then put back as recorded, so the rerun's own hash check passes and only the stray rule can refuse it."""
+    log = root / "journal" / "runs" / f"{NORMAL}.json"
+    recorded = log.read_bytes()
+    log.write_text("{}\n", encoding="utf-8")
+    git(root, "add", "--", str(log.relative_to(root)))
+    git(root, "commit", "-q", "-m", f"Desk run {NORMAL} step exits")
+    log.write_bytes(recorded)
+
+
+@pytest.mark.parametrize("stray", [reworded, changed_content])
+def test_a_stray_on_only_the_marker_s_files_is_refused_by_message_and_by_content(root, tmp_path, alerts, stray):
+    """Judge 118 addendum 7 minors 1-2: the recorded content under another message is refused (plant S4); the run's
+    own message with content other than the marker recorded is refused too (own is exact by content)."""
+    run, clock = stopped(root, tmp_path, alerts)
+    hook = reject_exits(root)
+    with pytest.raises(RunStopped):
+        run_day(run, clock, NORMAL)
+    stray(root)
+    hook.unlink()
+    before = git(root / "origin.git", "rev-parse", "main")
+    with pytest.raises(RunStopped):
+        run.run(NORMAL)
+    assert "the run did not make" in alerts.sent[-1] and f"journal/runs/{NORMAL}.json" in alerts.sent[-1]
+    assert git(root / "origin.git", "rev-parse", "main") == before  # nothing pushed

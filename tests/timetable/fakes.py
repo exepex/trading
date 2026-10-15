@@ -60,7 +60,7 @@ class Commits(Committer):
     def __init__(self, clock: Clock):
         self.clock, self.made, self.crash_on = clock, [], ""
 
-    def commit(self, paths, message, own_unpushed=""):
+    def commit(self, paths, message, own_unpushed=None):
         if self.crash_on and self.crash_on in message:
             self.crash_on = ""
             raise RuntimeError("the run was killed after the fills")
