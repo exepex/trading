@@ -13,7 +13,7 @@ from fno.intraday.read_only import ReadOnlyGroww
 from fno.intraday.recorder import ALREADY, NO_MARK, NOT_TRADING_DAY, SlotOutcome
 from fno.intraday.snapshot_files import SnapshotFiles
 from fno.intraday.sync import NOT_PUBLISHED, GitLedgerSync, NoSync
-from fno.storage.manifest_commit import GitManifestRecorder
+from fno.storage.owned_paths_commit import OwnedPathsCommitter
 from fno.storage.raw_store import AreaStore
 from fno.storage.wiring import REPOSITORY
 from tests.intraday.groww_fakes import FakeGrowwProvider
@@ -61,7 +61,9 @@ def test_the_live_wiring_writes_to_the_repository_folder_and_commits_it(monkeypa
     recorder = wiring.build_intraday_recorder({})
     assert recorder.ledger.folder == wiring.INTRADAY_FOLDER == REPOSITORY / "research" / "data" / "intraday"
     committer = recorder.sync.committer
-    assert isinstance(recorder.sync, GitLedgerSync) and isinstance(committer, GitManifestRecorder)
+    assert isinstance(recorder.sync, GitLedgerSync) and isinstance(committer, OwnedPathsCommitter)
+    assert recorder.sync.alerts is recorder.alerts  # one sender, so "one alert per run" is the run's own
+    assert committer.owned == tuple(f"research/data/intraday/{name}" for name in ("slots/", "rv/", "heartbeat.json"))
     assert committer.folder == "research/data/intraday" and committer.merge_option == ("-X", "theirs")
     assert committer.message.format(what="x") == "Data: intraday slots (x)" and committer.label == "intraday files"
     assert recorder.files.store.area == "raw" and recorder.files.store.store.folder == tmp_path

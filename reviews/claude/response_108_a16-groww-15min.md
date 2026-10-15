@@ -355,3 +355,26 @@ Both reproduced in a scratch repository before editing (strong evidence):
    criterion 5 (one alert per run, three refusal lines, one send).
 Also stated: an untracked file that the pull would bring in at the same path still fails that pull; it is reported as
 today, with no new rule. And the text notes that the shared push-guard story (decision 64) will absorb this check.
+
+### Part 6c: A16e build claims (text passed: judge 108 addendum 12)
+
+- `fno/storage/owned_paths_commit.py` (new, `OwnedPathsCommitter` beside the unchanged manifest committer): adds and
+  commits only owned paths that `git ls-files --cached --others --exclude-standard` shows exist or are tracked;
+  `foreign_staged()` reads the whole index (`git diff --cached --name-only`, no pathspec).
+- `fno/storage/manifest_commit.py`: one `_paths()` hook (the whole folder, as before); `pending()` returns nothing,
+  rather than the whole repository, when there is no pathspec. Git arguments for the manifest committer are unchanged.
+- `fno/intraday/sync.py`: `GitLedgerSync(committer, alerts)` refuses the pull and the commit while anything foreign is
+  staged; at most 5 paths are named, then a count; the first refusal of a run is alerted, the rest are printed only.
+- `fno/intraday/wiring.py`: `OWNED_PATHS = (ledger ROOT "slots/", rv_table ROOT "rv/", heartbeat FILE_NAME)`, from
+  each module's own constant (one source of truth); one alert sender shared by the recorder and the sync.
+- Tests (`tests/intraday/test_owned_paths.py`, real Git, bare origin plus clone): criteria 1 (strays `rv-candle/` and
+  `heartbeat.json.tmp` stay untracked, only slots/rv/heartbeat reach origin), 2 (no `rv/`: the 09:15 row and heartbeat
+  push; nothing owned: "nothing new to commit"), 3 (staged in the folder: pull and commit refused, one alert, HEAD
+  unchanged, still staged, the row kept on disk; after unstaging the next commit pushes 2 files), 4 (staged manifest
+  row outside the folder: refused, one alert, HEAD unchanged), 5 (three marks: three refusal lines, one alert), 6
+  (stray untracked only: no refusal); 7 (existing manifest committer tests unchanged and green); plus the five-path cap.
+- Broken-code proof (strong evidence; each mutation run with `python -B` on the new tests plus the two-clone test):
+  M1 whole-folder add: criteria 1, 3 and 6 tests fail; M2 every owned path present or not: criterion 2 test and both
+  two-clone tests fail (exit 128 on `add`); M3 staged check limited to the folder: criteria 4 and 5 tests fail;
+  M4 no staged check: criteria 3, 4 and 5 tests fail; M5 alert on every refusal: criteria 3, 4 and 5 tests fail.
+  5 of 5 caught.

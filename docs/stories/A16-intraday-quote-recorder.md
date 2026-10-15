@@ -571,6 +571,9 @@ only widen what the run can commit.
    makes criteria 3 and 4 fail; alerting on every refusal makes criterion 5 fail.
 9. Gates: pytest, ruff, imports, code size.
 
+**Status:** text PASSED (judge 108 addendum 12); code on `story/a16e-commit-paths`, claims in response 108
+part 6c: for the judge.
+
 **Out of scope, stated:** (a) `git push origin HEAD` publishes every unpushed commit on the checkout, including one
 another writer made locally (the class of decision 51 (b) for the desk). Each routine fire is a fresh clone that only
 this recorder writes to, and A16b's backfill is a one-off command, so the risk is low (reasoning only); refusing

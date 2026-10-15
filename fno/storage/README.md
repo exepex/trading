@@ -121,6 +121,10 @@ printed, not bypassed), and `data-coverage` lists any manifest file still uncomm
 `tools/nse_raw_download/` serve that tool only; the code no longer reads them (the regenerated ones agree with them on
 every file both have).
 
+`owned_paths_commit.py` (story A16e) is the same committer limited to the paths one writer owns inside a shared folder
+(A16's `slots/`, `rv/` and `heartbeat.json`; only those that exist or are tracked), and it names anything else staged
+in the checkout so its writer can refuse to pull or commit.
+
 Adding a store (S3, Dropbox) or a source (another exchange) means one new class behind `RawFileStore` or
 `RawFileSource`, and one line in `wiring.py`.
 
