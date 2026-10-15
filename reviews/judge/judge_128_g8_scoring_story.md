@@ -120,3 +120,27 @@ I did not re-run the full suite on this SHA (it fails on the open should-fix any
   only in `reviews/claude/README.md` (keep both).
 - **Still the freeze's, not G8's.** `FREEZE_v4.md` must carry "Frozen on: YYYY-MM-DD" (addendum 2) and the section
   11 E line. The power-report consequence (addendum 1) is for the owner and the G6 session (response 133).
+
+## Addendum 4 (15 Oct 2026): merge check, G8 merged to `main` as 5e50ba8
+
+**Verdict: merge check complete, matching the PASS.** One correction to the rule 8 record.
+
+- **Parents and content.** `5e50ba8` has parents `f891d9b` (main) and `1e2ebf8`, the SHA I passed, and it is on
+  `origin/main`. Every file G8 changed that main did not touch is byte-identical to 1e2ebf8. Only
+  `reviews/claude/README.md` changed on both sides:
+  - no main line is lost and there are no markers;
+  - the one branch line not kept is an older wording of the Response 71 row ("19 of 19"), which main itself had
+    already changed. It is not a loss from the merge.
+- **Gates on 5e50ba8, run by me.** 5,274 passed with `FNO_SLACK_BOT_TOKEN` unset; ruff and check_imports clean.
+- **Rule 8, my own run.** `python -m fno forecast-v4-scores report --as-of 2026-10-15` on main's committed back-fill
+  printed the EXPLORATORY line. I deleted the report files afterwards; nothing was committed.
+  - The committed back-fill (f891d9b) is byte-identical to my own back-fill run (V6a `v6_ewma_t4` file hash
+    `4de7b6e5…`).
+- **Correction to the rule 8 record in `conversations/2026-10-15.md`.** The figures quoted as "V6a" (scored 1,900,
+  relative improvement 0.1711, p 0.0064, r 61.53, 52,379 outcomes) are **V6b's** lines in the report. V6a's own lines
+  are scored 1,908, relative improvement 0.1449, p batch-means 0.0070, r 86.55, 103,648 outcomes, which equal my
+  independent rebuild in addendum 1.
+  - Both questions read "cannot settle in useful time", so the point for the owner (response 133) is unchanged.
+  - The log line should name V6b, or quote V6a's numbers.
+- **The back-fill commit f891d9b.** It is exploratory forecast data, all `backfill_exploratory`. Protocol 8 requires
+  it to be disclosed in the freeze record. Adding that is the G6 freeze commit's job.
