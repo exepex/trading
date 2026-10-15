@@ -8,7 +8,6 @@ import math
 from datetime import date, timedelta
 from pathlib import Path
 
-from fno.forecast_scoring.v4.audits import OpenAuditFile
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome
 from fno.forecast_scoring.v4.reconcile import AiSlotDays
 from fno.forecast_scoring.v4.records import NoRegistrations
@@ -46,7 +45,6 @@ def synthetic_window(n: int, big_days: int, start: date = date(2025, 1, 1)):
     return days, outcomes
 
 
-def settled_gates(audits=None):
-    """A look's gates with nothing open: no open-audit file and no registered AI slot (or the given audit file)."""
-    return (audits or OpenAuditFile(Path("no-such-file.csv"), lambda: False),
-            AiSlotDays(None, NoRegistrations(), lambda first, last: []))  # fmt: skip
+def settled_slot_days():
+    """A look's reconciliation with nothing to settle: no registered AI slot."""
+    return AiSlotDays(None, NoRegistrations(), lambda first, last: [])

@@ -3,19 +3,17 @@ threshold tools, the look records and the slot registrations. Swapping any of th
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 
 from ...config import ROOT
-from ...constants import V4_DAY_SYSTEM_LATE, V4_KIND_AI
 from ...forecast_v4.sessions import is_scored_session
 from ...intraday.rv_table import RvTable
-from .audits import OpenAuditFile, has_kind
 from .cutoff_moves import RecordedCutoffMoves
 from .days import DayCounts, DayFiles, LateDaysOut, day_counts
 from .g7_series import G7Series
 from .inputs import ForecastFiles
 from .outcomes import SeriesOutcomes
-from .reconcile import AiSlotDays
+from .reconcile import AiSlotDays, sessions_not_late
 from .records import LookRecords, NoRegistrations, SlotRegistry
 from .scoring import V4Scoring
 from .thresholds import FrozenToolThresholds
@@ -25,7 +23,6 @@ SCORES_FOLDER = ROOT / "research" / "forecasts" / "v4_scores"
 FREEZE_FILE = ROOT / "research" / "forecasts" / "FREEZE_v4.md"
 CLOSES_FILE = ROOT / "research" / "data" / "nifty-panel" / "warmup_closes.csv"  # O6
 INTRADAY_FOLDER = ROOT / "research" / "data" / "intraday"  # A16's live rv/ files (never A16b's rv-candle/)
-OPEN_AUDITS_FILE = ROOT / "research" / "forecasts" / "v4_audits" / "open_audits.csv"  # G11 keeps it
 V4_DAYS_FOLDER = ROOT / "research" / "data" / "v4_days"  # G10: one label file per live day, written by the capture
 
 
@@ -37,16 +34,16 @@ def build_scoring() -> V4Scoring:
 
 
 def build_ai_slot_days() -> AiSlotDays:
-    return AiSlotDays(ForecastFiles(FORECASTS_FOLDER), _registry(), _sessions_not_late)
+    from ...storage.wiring import build_session_calendar
+
+    calendar = build_session_calendar()
+    sessions = sessions_not_late(lambda d: is_scored_session(calendar, d), DayFiles(V4_DAYS_FOLDER))
+    return AiSlotDays(ForecastFiles(FORECASTS_FOLDER), _registry(), sessions)
 
 
 def build_day_counts(as_of: date) -> DayCounts:
     flags = RecordedCutoffMoves(RvTable(INTRADAY_FOLDER).rows())  # A16's 15:30 run commits each day's flag
     return day_counts(DayFiles(V4_DAYS_FOLDER).labels(), flags.moved, as_of)
-
-
-def build_open_audits() -> OpenAuditFile:
-    return OpenAuditFile(OPEN_AUDITS_FILE, lambda: has_kind(FORECASTS_FOLDER, V4_KIND_AI))
 
 
 def build_look_records() -> LookRecords:
@@ -65,12 +62,3 @@ def _outcomes() -> SeriesOutcomes:
 def _registry() -> SlotRegistry:
     """One registry for scoring and the look's reconciliation; the freeze's ledger adapter replaces this line."""
     return NoRegistrations()
-
-
-def _sessions_not_late(first: date, last: date) -> list[date]:
-    from ...storage.wiring import build_session_calendar
-
-    calendar = build_session_calendar()
-    late = {d for d, label in DayFiles(V4_DAYS_FOLDER).labels().items() if label.label == V4_DAY_SYSTEM_LATE}
-    days = (first + timedelta(days=i) for i in range((last - first).days + 1))
-    return [d for d in days if is_scored_session(calendar, d) and d not in late]
