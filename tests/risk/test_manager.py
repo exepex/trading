@@ -52,7 +52,7 @@ def test_inside_every_limit_the_trade_may_open_and_every_rule_reports(tmp_path):
     record = decision.record()
     assert record["stressed_margin"] == {
         "method": "multiplier",
-        "stresses": "scan risk only (judge 75)",
+        "stresses": "scan and exposure (owner, 15 Oct 2026; story C2c)",
         "multiplier": "1.5",
         "source": "test factor",
         "as_of": "2026-10-13",

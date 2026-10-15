@@ -32,6 +32,8 @@ class ProbabilityScores:
     intercept: float | None
     slope: float | None
     brier_skill: float | None  # 1 - Brier / base rate's Brier on the days both exist; None without them
+    skill_n: int  # the paired days the skill score uses (both forecasts and a resolved outcome); n is this
+    # forecaster's own scored days, so two forecasters' n can differ while their skill shares the same days
 
 
 def least_squares(x: Sequence[float], y: Sequence[float]) -> tuple[float | None, float | None]:
@@ -74,6 +76,7 @@ def probability_scores(pairs: Sequence[tuple[float, bool]], base_pairs: Sequence
         calibration_table(pairs),
         *least_squares([p for p, _ in pairs], [float(o) for _, o in pairs]),
         skill,
+        len(base_pairs),
     )
 
 
