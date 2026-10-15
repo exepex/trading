@@ -50,8 +50,12 @@ and send their prompt lines to O1 through the orchestrator; no second copy of th
 **Lines other stories send for the prompt (through the orchestrator):** A4c (its steps 2-3b, above); G10 (14:05
 start and its windows, at go-live); A14c (orchestrator, 15 Oct; owner decision in `docs/DESK_DECISIONS.md`, da0f769d):
 after each applied row in `research/data/margins/stress_factor.csv`, the read-only Groww margin comparison runs
-(SPAN within Rs 1, exposure within 1%; a mismatch alerts). Its exact command comes from the A14c builder and becomes
-an O1 step or a prompt line when it arrives.
+(SPAN within Rs 1, exposure within 1%; a mismatch alerts). Its line (A14c builder through the orchestrator, 15 Oct;
+command name provisional until A14c's code lands): "After A14c's weekly row is `applied`: `python -m fno margins
+stress-broker-check` (read-only Groww margin request for the SF 100 basket on that day's A14 row; never places an
+order). A mismatch posts its own #fno-desk line; the factor stays applied." The weekly row lands on Sunday, when the
+day's run records only `skipped`, so it becomes an O1 step run every session, and the command itself decides whether
+an applied row still waits for its check (asked of the A14c builder).
 
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
