@@ -324,3 +324,30 @@ it to each item how unknown legs count.
 **Verdict: PASS.** Every gate item is decided by the owner on 15 Oct 2026, with five cited rows, all on main. RM1's
 code round follows the orchestrator's go. ChatGPT re-reads only if the orchestrator sends it (rule 9 was met at review
 118).
+
+## Addendum 5: efeb49b1 (routed by the orchestrator): PASS stands
+
+Addendum 4 already passed 04a80222, which holds SF1, SF2, the Paper pad and stop (b). The orchestrator asked for
+addendum 4; since it exists, this is addendum 5.
+
+**What changed in RM1's files from 04a80222 to efeb49b1:** one Reason line in `real_test_pass`. The rest is main
+merged in. The branch differs from main only in RM1's six documents, with no code.
+- The floor fact now gives Rs 2,496 at n = 30 and m = 20: 1.7291 × 5,000 × √(1/30 + 1/20) = 2,495.7. I recomputed
+  it, and it is correct.
+- The n = 20 figure stays at Rs 2,734.
+
+**Re-read at efeb49b1** (unchanged since addendum 4, all still MET):
+- `real_test_pass` 3: Rs 1.50; more than 10% unknown legs is not met; at 10% or fewer they are left out and listed;
+- `fill_honesty` (a) validity, binding, and (b) the noise-aware next-snapshot gap against the Rs 1 pad;
+- Paper pad = research's Rs 1;
+- stop (b) at Rs 2 per unit over 5 trades.
+
+**Gates at efeb49b1:**
+- pytest: 6086 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1120 files formatted;
+- `check_imports`: clean.
+
+**Merge:** against main now, only `reviews/claude/README.md` conflicts, on rows only; keep both sides.
+
+**Verdict: PASS.**
