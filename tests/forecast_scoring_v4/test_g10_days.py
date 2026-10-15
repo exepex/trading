@@ -1,24 +1,21 @@
 """Story G10 part 1 (criteria 3 and 4, G8's side): the day files' labels, the system_late day out for every family,
-the counts on every report and the live moved-after-cutoff flag from A16's SHA-checked snapshots."""
+the counts on every report and the moved-after-cutoff flag A16's 15:30 run commits."""
 
-import hashlib
-from datetime import date, datetime, time, timedelta
+import math
+from datetime import date, datetime
 
 import pytest
 
 from fno.constants import V4_DAY_A, V4_DAY_A2, V4_DAY_SYSTEM_LATE, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.comparison import compare, paired_rows
-from fno.forecast_scoring.v4.cutoff_moves import A16CutoffMoves, SnapshotChanged
+from fno.forecast_scoring.v4.cutoff_moves import RecordedCutoffMoves
 from fno.forecast_scoring.v4.days import DayCounts, DayFileError, DayLabel, LateDaysOut, day_counts, parse_day
 from fno.forecast_scoring.v4.inputs import Outcome, V4ForecastSource, V4OutcomeSource
 from fno.forecast_scoring.v4.render import report_json, report_lines
+from fno.forecast_v4.cutoff_move import cutoff_flag
 from fno.forecast_v4.misses import MissReport
-from fno.forecast_v4.terms import MOVED_AFTER_CUTOFF_X
-from fno.intraday.document import CallRecord, SnapshotDocument
-from fno.intraday.ledger import SlotLedger, taken_row
-from fno.intraday.status import verdict
+from fno.forecast_v4.terms import MOVED_AFTER_CUTOFF_X, V4_CAPTURE_START, V4_COMMON_SNAPSHOT
 from fno.models import IST
-from fno.storage.raw_store import LocalFolderStore
 from tests.forecast_scoring_v4.helpers import values
 
 DAY = date(2026, 10, 22)
@@ -104,45 +101,18 @@ def test_every_report_counts_the_labels_and_the_flag_up_to_its_day():
     assert report_json([], frozen=False, as_of="x", days=counts)["days"]["late"] == 1
 
 
-def snapshot(at, level, sent_after=0.0):
-    mark = datetime.combine(DAY, at, IST)
-    answered = mark + timedelta(seconds=sent_after + 1)
-    index = CallRecord("index", mark + timedelta(seconds=sent_after), answered, {"last_price": level}, "")
-    return SnapshotDocument("groww", "NIFTY", DAY, mark, index, level, answered - timedelta(seconds=1))
+def test_g8_reads_the_flag_a16_committed_and_an_older_row_has_none():
+    flags = {"2026-10-19": "yes", "2026-10-20": "no", "2026-10-21": ""}
+    rows = [{"session": d, "moved_after_cutoff": f} for d, f in flags.items()] + [{"session": "2026-10-22"}]
+    found = RecordedCutoffMoves(rows)
+    assert [found.moved(d) for d in DAYS[:5]] == [True, False, None, None, None]  # 23 Oct: no row at all
 
 
-def recorded(tmp_path, docs):
-    ledger, store = SlotLedger(tmp_path / "intraday"), LocalFolderStore(tmp_path / "drive")
-    for n, doc in enumerate(docs):
-        data, path = doc.to_bytes(), f"intraday/{n}.json.gz"
-        store.put(path, data)
-        ledger.append(DAY, [taken_row(doc, verdict(doc, None), path, hashlib.sha256(data).hexdigest(), None)])
-    return ledger, store
-
-
-def test_the_live_flag_reads_a16s_1430_and_1515_levels_and_is_strict(tmp_path):
-    start = 25000.0
-    above = start * (1 + MOVED_AFTER_CUTOFF_X * 1.01)
-    ledger, store = recorded(tmp_path, [snapshot(time(14, 30), start), snapshot(time(15, 15), above)])
-    assert A16CutoffMoves(ledger, store, MOVED_AFTER_CUTOFF_X).moved(DAY) is True
-    assert A16CutoffMoves(ledger, store, MOVED_AFTER_CUTOFF_X * 1.02).moved(DAY) is False
-
-
-def test_a_missing_or_unusable_level_is_not_computable_and_a_changed_copy_stops(tmp_path):
-    late_answer = snapshot(time(15, 15), 25100.0, sent_after=200)  # answered after the mark's window: unusable
-    ledger, store = recorded(tmp_path, [snapshot(time(14, 30), 25000.0), late_answer])
-    assert A16CutoffMoves(ledger, store, MOVED_AFTER_CUTOFF_X).moved(DAY) is None
-    assert A16CutoffMoves(ledger, store, MOVED_AFTER_CUTOFF_X).moved(DAY + timedelta(days=1)) is None  # no rows
-    (tmp_path / "drive" / "intraday" / "0.json.gz").write_bytes(b"changed")  # edited in place in Drive
-    with pytest.raises(SnapshotChanged):
-        A16CutoffMoves(ledger, store, MOVED_AFTER_CUTOFF_X).moved(DAY)
-
-
-class DriveDown(LocalFolderStore):
-    def get(self, path):
-        raise ConnectionError("Drive unreachable")
-
-
-def test_a_drive_read_error_is_not_computable_never_a_stopped_report(tmp_path):
-    ledger, _ = recorded(tmp_path, [snapshot(time(14, 30), 25000.0), snapshot(time(15, 15), 25010.0)])
-    assert A16CutoffMoves(ledger, DriveDown(tmp_path / "drive"), MOVED_AFTER_CUTOFF_X).moved(DAY) is None
+def test_the_flag_is_strict_at_x_carries_only_a_sign_and_needs_both_levels():
+    start, x = 25000.0, MOVED_AFTER_CUTOFF_X
+    at = {V4_CAPTURE_START: start}
+    assert cutoff_flag({**at, V4_COMMON_SNAPSHOT: start * math.exp(x) * (1 + 1e-9)}, x) == ("yes", "+")
+    assert cutoff_flag({**at, V4_COMMON_SNAPSHOT: start * math.exp(x) * (1 - 1e-9)}, x) == ("no", "+")
+    assert cutoff_flag({**at, V4_COMMON_SNAPSHOT: start * math.exp(-2 * x)}, x) == ("yes", "-")
+    assert cutoff_flag({**at, V4_COMMON_SNAPSHOT: start}, x) == ("no", "0")
+    assert cutoff_flag({**at, V4_COMMON_SNAPSHOT: None}, x) == ("", "")
