@@ -1,0 +1,72 @@
+{
+ "card_sha256": "995fdaa6460a5dd6a6eb675471fe0c364535add956a1a9cb53f640ec886f73c7",
+ "clock": [
+  {
+   "server": "Slack",
+   "skew_seconds": 0.006496,
+   "warning": false
+  },
+  {
+   "server": "GitHub",
+   "skew_seconds": null,
+   "warning": false
+  }
+ ],
+ "code_commit": "e5dcf69a632c85f47fbab9bb9e7712ea7edb0482",
+ "day": "2026-10-15",
+ "drive": {
+  "outcome": "card record saved to Drive: 2026/10/2026-10-15_1792025414919329_test.json",
+  "saved": true
+ },
+ "host_clock": {
+  "after_utc": "2026-10-15T00:50:14.912833+00:00",
+  "before_utc": "2026-10-15T00:50:14.355616+00:00"
+ },
+ "missing": [
+  "weather model (story M1) not built"
+ ],
+ "previous_misses": [
+  "no card on record for 2026-10-14"
+ ],
+ "reason_code": "no_approved_strategy",
+ "records_used": [
+  {
+   "path": "research/data/calendar/nse_sessions.csv",
+   "sha256": "e34fbad752bb244e6116c1e474902208a72a03f5af6037c6d75bf9baa6756b4d"
+  },
+  {
+   "path": "playbook/registry.csv",
+   "sha256": "ae81127a1c191d7bcef1e48feac46e57c75ec51f66cf2db195da11974534da09"
+  },
+  {
+   "path": "journal/book1_rules/account/positions.json",
+   "sha256": "fbae2864b585ba99675babeac21d007c5aaf1a9397008023e8db6e5b67a2e069"
+  },
+  {
+   "path": "journal/book2_hybrid/account/positions.json",
+   "sha256": "e2a1498bc4f8cfd239b7f0d6452609299837fdbeb008236e89147781f9e64ef2"
+  },
+  {
+   "path": "journal/book3_ai/account/positions.json",
+   "sha256": "1b52d7c00d1791c46e8bb76ff7cd398a95cce24a317c6a19b9fcf3df6a030f6c"
+  },
+  {
+   "path": "research/forecasts/live_v2/2026/2026-10-14_forecasts.csv",
+   "sha256": "3f1303e8628a6269e74dfc73533efc481a8fa3aefd51ef3135d331bb9d38a21f"
+  },
+  {
+   "path": "research/forecasts/scores/2026-10-15.json",
+   "sha256": "dd991c24916a7b7e916660879d581be805c17ef48c05212b2c76088cb304f9ca"
+  }
+ ],
+ "schema": "card_delivery/v1",
+ "slack": {
+  "channel": "C0C89E8QCCD",
+  "outcome": "alert sent to #fno-desk",
+  "sent": true,
+  "server_time_utc": "2026-10-15T00:50:14.919329+00:00",
+  "ts": "1792025414.919329"
+ },
+ "status": "NO TRADE",
+ "test": true
+}

@@ -32,7 +32,7 @@ from fno.checks.data_checks import CheckReport
 from fno.desk.records import DeskEvent
 from fno.forecast.schema_v2 import RECORD_COLUMNS_V2, ForecastRecordV2
 from fno.forecast_scoring.block_bootstrap import BootstrapResult
-from fno.forecast_scoring.scores import ScoreSummary
+from fno.forecast_scoring.scores import CalibrationBin, ScoreSummary
 from fno.market_read_models.contract import ContractBroken, PinnedContract
 from fno.market_read_models.publication import canonical
 from fno.market_read_models.wiring import CONTRACT_FOLDER
@@ -75,6 +75,7 @@ RECORD_FIELDS = {  # the records the catalog may name (tools/api/check_fno_scree
     "ledger_csv": ledger_header,
     "forecast_record_v2": lambda: set(RECORD_COLUMNS_V2),
     "score_summary": lambda: fields_of(ScoreSummary),
+    "calibration_bin": lambda: fields_of(CalibrationBin),
     "bootstrap_result": lambda: fields_of(BootstrapResult),
     "check_report": lambda: fields_of(CheckReport),
     "paper_account": lambda: set(inspect.signature(PaperAccount.__init__).parameters) - {"self"},
@@ -87,6 +88,7 @@ RECORD_FIELDS = {  # the records the catalog may name (tools/api/check_fno_scree
 
 TYPED_RECORDS = {  # the records with Python types: the schema's type must match the field's annotation
     "score_summary": ScoreSummary,
+    "calibration_bin": CalibrationBin,
     "bootstrap_result": BootstrapResult,
     "check_report": CheckReport,
     "account_state": AccountState,

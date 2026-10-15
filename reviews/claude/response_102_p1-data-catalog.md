@@ -189,3 +189,40 @@ Forecast lab (43 fields; 10 fillable today):
 3. Look for any live-looking detail or strategy threshold in the example free text.
 4. Edit one example value: the mockup check and the hash check must both fail.
 5. Whether the owner and public split, and conflict 1 (P2), are right.
+
+## Addendum 1: what T1's real card shows (orchestrator, 15 Oct 2026)
+
+T1's first real post to #fno-desk (a TEST post, 15 Oct 2026) carried fields that FnoCard lacked. They are now in
+FnoCard, in its Mock examples and in mockup 39 (dashboard d3f8093; the pin moved there, and all 33 files are
+byte-identical):
+
+| Field | Source | Fillable today |
+|---|---|---|
+| `test_post` | T1's delivery record (`test`) | no: T1, not on main yet |
+| `session_note` | T1's TradeCard.session | no: T1 |
+| `valid_until` | T1's CARD_VALID_UNTIL | no: T1 |
+| `paper_trades_so_far` {total, by_book} | T1's status section, built from the E1 accounts | no: T1 |
+| `forecasts_on_record`: every question's house forecast, with `live` and `backfill` track records kept apart | G3's live capture; G4's score report | track-record fields **yes** (`score_summary:scored`, `score_summary:mean_brier`, `calibration_bin:low`, `calibration_bin:high`, `calibration_bin:count`, `calibration_bin:observed_frequency`); capture fields **yes** (`forecast_record_v2:date`, `forecast_record_v2:generated_at`); the rest no: T1 |
+| `missing`, `previous_misses` | T1's TradeCard.missing and its delivery record | no: T1 |
+| `footer.record_hashes[]` {path, sha256} (was {kind, sha256}) | T1's delivery record (`records_used`) | no: T1 |
+
+- **Visibility:** all of these are `public`. Counts, repository paths and SHA-256s of committed records reveal neither
+  strategy internals nor live strikes.
+- **Fillable fields:** 53 of 272 now name a record that exists today (was 25 of 231).
+
+**Tests in this repository** (`tests/market_read_models/test_p1_t1_card.py`):
+- **The real record fits the catalog.** A byte copy of T1's first real delivery record (9f540e9) is at
+  `tests/fixtures/cards/t1_delivery_2026-10-15.json`. A FnoCard built from it validates: NO TRADE,
+  no_approved_strategy, TEST, 7 records used.
+- **A new reason code fails.** A delivery with a reason code the catalog lacks fails validation.
+- **Every committed delivery record must validate once T1 is on main.** Until then the test reports **XFAIL "pending
+  T1: story/t1-daily-card is not on main yet"** in every run: visible, never a silent skip.
+- **Limit:** a delivery record does not hold the forecast section's lines or the weather. Those parts of the built card
+  come from the catalog's empty example, so this test checks the fields T1 publishes, not T1's text sections. Testing
+  the Drive card record directly needs T1 to write it as structured JSON in FnoCard's shape. That is a proposal for T1
+  (reasoning only).
+
+**Gates:**
+- Dashboard: `check_fno_screens` every rule holds, 21 of 21 planted; `check_contract` pass; size pass; 465 of 465 web
+  tests; check_text 0 findings; 5 card states clean at 1280 and 390 px.
+- Here: `tests/market_read_models` 180 passed, 1 xfailed (pending T1); ruff, format and imports clean.

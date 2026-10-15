@@ -31,11 +31,11 @@ FnoFamily:
   x-unit: enum
 FnoRecordHash:
   type: object
-  description: One record the page was built from, by its SHA-256 (the evidence that the numbers come from that record)
+  description: One record the page was built from, by its path and the SHA-256 of its bytes (the evidence that the numbers come from that record)
   additionalProperties: false
-  required: [kind, sha256]
+  required: [path, sha256]
   properties:
-    kind: {type: string, enum: [decision, forecast, weather, objections, risk, pack, scores, ledger, account], x-unit: enum, description: Which kind of record}
+    path: {type: string, pattern: '^[A-Za-z0-9_./-]+$', x-unit: repository path, description: 'Where the record is, e.g. research/forecasts/scores/2026-10-15.json (a Drive-only record names its Drive path)'}
     sha256: {type: string, pattern: '^[0-9a-f]{64}$', x-unit: SHA-256 hex, description: The record's SHA-256}
 FnoLeg:
   type: object
