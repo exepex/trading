@@ -169,3 +169,63 @@ I made no live Groww or NSE read. Step 0's figures are the builder's, and I labe
   re-check. The A16 report must state the reproduced figure, not 40/40.
 - **The verdict is unchanged: FAIL.** None of the three should-fix findings depends on that count, because A16b's void
   rule does not use the 09:15-vs-NSE open.
+
+## Addendum 2 (15 Oct 2026): revision at d7894440d8d3d7f466da676ffc701864594c7b00 (d7bfd66..d789444, story file only)
+
+| Judge 122 finding | Status | Check |
+|---|---|---|
+| SF1: equality evidence and its stop rule | **MET (decision 55)** | Every session with 25 candles is checked against its own 1-minute candles at all 26 marks. A difference above 0.05 voids the session (`candle_mismatch:<marks>`). There is never a fall-back. Paced: one call at a time, at least 0.5 s between starts; 3 failures in a row stop the run. Tests at 0.05 / 0.06, empty, a missing minute, pacing. Step 0 now says the 3 days are all 2026 |
+| SF2: candle high and low against NSE's range | MET | The void covers the 26 levels and the 25 used candles' highs and lows. There is a 23 Mar 2020-shaped test. The cost, 0 of 40, is stated (some evidence) |
+| SF3: order after a failed window | MET as written, **but see new should-fix 1** | Deferred, named, exit 1. The session after 10 Oct 2025 gets a void overnight part and a computed intraday part. There is a test of a failed middle window then a resume |
+| Minor 1: named cases | MET | Halt days, 24 Feb 2021, the 2024 specials, the two Groww holes and 10 Oct 2025, each with its expected `missing_candles:n`. The void share counts the short sessions and also lists them apart |
+| Minor 2: one provenance function | MET (text) | `provenance()` moves to `fno/provenance.py`, and A17's table and verify import it. `global_cues/table.py` is in no freeze (I searched the manifests and JUDGE.md). In the code round I check that it is a pure move (the same body, A17's tests unchanged and green) and plant one mutation in the moved function that both A17's and A16b's tests must catch |
+| Minor 3: G6 told | MET | Decision row 56 in response 113, plus an open item in response 122. I check that both exist in the code round |
+| Minor 4: A16's NSE-open finding | MET | Recounted: 67 of 74 recent sessions differ, 7 within 0.05. The random sample was 40 of 40. The 40/40 is now limited to its sample and the correction is stated. The finding is recorded as decision 53, with the fix in A16d (judge D). This also settles my addendum 1 |
+| Minor 5: per-window count | MET | Each window prints its candle count against 25 × sessions. Tested with a window one candle short |
+
+**The orchestrator's question: are the 26 Sep 2025 and 29 Sep 2026 holes adequately marked as Groww's? YES.**
+- They are labelled "reasoning only" with the evidence given: NSE's normal index-close file exists for both days, and
+  the calendar has no disruption.
+- The label is right. A normal close file does not by itself rule out an NSE trading interruption, so it is not strong
+  evidence.
+- Both sessions are void either way, so the label changes no row.
+
+## New should-fix (text)
+
+1. **A transient failure and a permanent absence are treated alike, and one of them blocks the series forever.**
+   - **The cascade.** A session whose 1-minute answer arrives but lacks a needed minute is "not written ... `no_1m_check`,
+     exit 1". By the Order rule, the next session is then deferred, because its previous session has no row. The one
+     after that is deferred too, and so on.
+     - If Groww simply has no such minute, a permanent 1-minute hole, every later run fetches the same answer, never
+       writes that session, and defers **every session after it**.
+     - The back-fill can never get past the first such hole, and every run exits 1 for ever.
+     - Groww does have holes: the 15-minute holes of 26 Sep 2025 and 29 Sep 2026. So a 1-minute hole on a day with all
+       25 15-minute candles is plausible (reasoning only; not measured).
+   - **The same class in the NSE check.** "NSE's file missing **or unreadable**: void `nse_unchecked`" writes a
+     write-once void row on what may be a transient Drive read error. When Drive recovers, the inputs differ and the row
+     is refused. That is the very defect should-fix 3 removed for Groww windows.
+   - **Expected fix:** separate the two cases.
+     - **Transient** (a call or read failed, no answer): not written, deferred, exit 1, retried next run.
+     - **Permanent** (an answer was received and archived, but the data is not there: the 1-minute answer lacks the
+       minute, or NSE's archive has no file for that day): a **void row**, `no_1m_check` or `nse_unchecked`. It is
+       written once, named, and listed apart. The next session then gets a void overnight part, as after 10 Oct 2025.
+       This is still never a fall-back: the session is void, not trusted.
+   - **Tests:**
+     - a 1-minute answer missing one needed minute: void row, and the next session is written with a void overnight
+       part;
+     - a failing 1-minute call: deferred, then written on resume;
+     - an NSE file absent: void row;
+     - an NSE read error: deferred.
+
+## Minor (text)
+
+1. Name where `NseSessionCalendar.next_open` comes from for A16b. It lives in `fno/global_cues/cue_calendars.py`. Say
+   whether A16b imports it from there or it moves beside `provenance()`, so the intraday package does not depend on the
+   global-cues package for a calendar.
+
+### Verdict: FAIL for d7894440d8d3d7f466da676ffc701864594c7b00 (story text)
+
+- **All 3 earlier should-fix and all 5 minors are met.**
+- **One new should-fix:** separating transient from permanent outcomes. It was caused by combining the new 1-minute
+  check with the new Order rule, and it would stop the back-fill at the first permanent 1-minute hole.
+- **A re-check needs only the story file.**

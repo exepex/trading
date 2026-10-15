@@ -400,3 +400,19 @@ Checked on exact SHA `04371e8cb49fa65227883c041579dada9d9e7f05` and on a trial m
 **Claims vs reality:**
 - Response 108 part 4 and the story's root-cause text match what I reproduced.
 - One claim I did not verify: "in a fresh virtual environment (pip 26) they build fine". It is not a criterion.
+
+## Addendum 8 (15 Oct 2026): merge check, A16c merged to `main` as d29c9b3
+
+**Verdict: merge check complete, matches the PASS.**
+
+- **Parents.** `d29c9b3` has parents `fdaf4f6` (main) and `04371e8`, the SHA I passed, and it is on `origin/main`.
+- **Same change.** The merge's change against its main parent has the same stable patch-id as the branch's own diff (`bd9c4a41…`): the same 12 files, 124 lines added, 26 removed. Nothing else came in with the merge.
+- **Gates on d29c9b3, run by me.**
+  - Full suite with `FNO_SLACK_BOT_TOKEN` unset: **4,614 passed**. Main grew since my trial merge.
+  - ruff check, ruff format --check and check_imports: clean.
+  - The A16c tests plus `tests/cards`: 66 passed.
+  - `fno/cards/clock.py` is gone.
+- **Rule 8, my own run.** `python -m fno card daily` (dry, token unset) printed `NO TRADE (no_approved_strategy)` for 15 Oct and left the tree clean. The orchestrator's install run into an empty folder matches my addendum 7 run. It is logged in `conversations/2026-10-15.md`.
+- **Still open.**
+  - The owner's routine prompt needs `--use-pep517`.
+  - The scanner hardening is queued as optional.
