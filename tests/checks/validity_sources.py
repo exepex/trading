@@ -9,7 +9,7 @@ import csv
 import io
 import zipfile
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 
 from fno.checks.validity_account import AccountFacts, Position
 from fno.checks.validity_limits import priced
@@ -20,6 +20,7 @@ from fno.fo_bhavcopy import COLUMNS
 from fno.storage.raw_library import RawFile
 from fno.storage.raw_source import NseDailyFoSource
 from fno.storage.wiring import build_session_calendar
+from tests.stress_factor_files import factor_file
 
 FILE_DAY = date(2026, 10, 13)  # the session before the decision day, 14 Oct 2026
 EXPIRIES = ("2026-10-20", "2026-10-27", "2026-11-03", "2026-11-24")  # two weeklies; October's and November's monthly
@@ -95,7 +96,7 @@ def limits(profile: str = RISK_PROFILE_MANUAL, stressed_margin=None, **profile_c
     """config.yaml's limits of risk `profile` (by default the Manual account, which keeps C2's original checks on
     Rs 5 lakh) with a stressed-margin factor of 1.45 set (dated, sourced) and these profile changes."""
     cfg = copy.deepcopy(load_config(ROOT / "config.yaml"))
-    cfg["risk"]["stressed_margin"] |= {"multiplier": 1.45, "source": "test fixture", "as_of": FILE_DAY.isoformat()}
+    cfg["risk"]["stressed_margin"] |= {"factor_file": str(factor_file(1.45, FILE_DAY - timedelta(days=1)))}
     cfg["risk"]["stressed_margin"] |= stressed_margin or {}
     cfg["risk"]["profiles"][profile] |= profile_changes
     return limits_from_config(cfg, ROOT, profile, build_session_calendar().session_kind)

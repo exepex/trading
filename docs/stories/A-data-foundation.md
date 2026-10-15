@@ -1169,7 +1169,8 @@ Facts checked on 14 Oct 2026 (builder, response 77):
   edits or reorders a past row; the same row again is a no-op, a different figure for the same key is a conflict;
 - judge 75 (14 Oct 2026): the scanning risk, the net option value and the exposure are stored as separate columns; C2
   counts `max(0, scan - NOV) + min(0, NOV) + exposure` and stresses only the scan (`max(0, k x scan - NOV) + min(0, NOV)
-  + exposure`, k from config); with an open losing trade C2 never leaves more free than a broker that nets the
+  + exposure`, k from config; superseded by stories C2c and C2d, 15 Oct 2026: k stresses the exposure too, and comes
+  from A14c's factor file); with an open losing trade C2 never leaves more free than a broker that nets the
   premium (test);
 - a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (07:45 IST, retry 08:30):
   librarian, revisions sweep, compute, commit; one #fno-desk line on any failure;
@@ -1213,7 +1214,7 @@ re-downloadable; its SHA-256 recorded in the claims).
 **Judge verifies:** recomputes two rows by hand from the real file; plants a late-created file and a damaged one;
 re-runs the job twice and checks the CSV is unchanged; checks the validation evidence and tolerance.
 
-**Depends:** A9, A11, C2, O6 · **Size:** M · **Status:** in progress (builder session 01FVYzWZtDAZrZLDZ6DtmSYL)
+**Depends:** A9, A11, C2, O6 · **Size:** M · **Status:** done: judge 77 PASS (round 2 2c3865e, merged 6568315; Groww check ee7f35b, merged e49705e; funds at entry 90dfcd3, merged 6647511); schedule on `story/a14-schedule`, awaiting the judge
 
 ---
 
@@ -1297,8 +1298,8 @@ outputs and failure modes.**
 check` (committed checks unchanged); probes NSE for a window before 19 Jul 2010; plants a changed row and a rewrite of
 an old row; checks 2 Mar 2024 and the zero-open days against NSE; confirms no frozen file changed.
 
-**Depends:** A9, A10, A11 · **Size:** S · **Status:** judge 100 FAIL (3 should-fix) fixed; awaiting re-judge (claims:
-`reviews/claude/response_100_a15-vix-history.md`, addendum 1)
+**Depends:** A9, A10, A11 · **Size:** S · **Status:** done: judge 100 addendum 1 PASS (b377af2), merged
+176a1a1 (addendum 2; claims: `reviews/claude/response_100_a15-vix-history.md`)
 
 ## A17. Global cues, daily
 
@@ -1410,7 +1411,8 @@ as if it were last night's.
 15 Oct 2026. Judge 103 found that `value_for` returns sp500's 14 Oct value for 27 Nov 2026, six weeks old, and that on
 15 Oct at 09:15 nasdaq100's "previous close" is 13 Oct, because Nasdaq lacked 14 Oct. Only the run says STALE. No code
 reads a cue yet, so this must be done before the first consumer. Judge 103 minor 2 (FBIL in a public repository) is
-the orchestrator's decision: the table stays public for now, as an open owner item.
+the orchestrator's decision: the table stays public for now, as an open owner item (superseded: the owner moved it to
+Drive on 15 Oct 2026, story A17d).
 
 **Scope.** In:
 1. **Readings with an age and an expected date.** A `CueReading` returns the row, its age in calendar days from the
@@ -1478,7 +1480,7 @@ the orchestrator's decision: the table stays public for now, as an open owner it
      calendar's circulars;
    - the `lambda` and `noqa` in `fno/vix_history/wiring.py` replaced by a named function.
 8. **FBIL:** the data README records the orchestrator's decision (the table stays public, non-commercial use of a
-   published benchmark) as an open owner item.
+   published benchmark) as an open owner item. Superseded by story A17d (the owner's decision: FBIL in Drive).
 
 Out: any consumer (M1, the weather, forecasts); any display of the private cues; changing past table rows.
 
@@ -1543,6 +1545,101 @@ Out: any consumer (M1, the weather, forecasts); any display of the private cues;
 the US calendar against the archived trading dates; plants a muhurat case, a mis-timed adopt and a fourth attempt.
 
 **Depends:** A17 · **Size:** S · **Status:** story text for the judge's check (quality rule 1); no code yet
+
+---
+
+## A17d. FBIL's USD/INR table moves to Drive
+
+**Repository:** trading
+
+**Description:** As the owner, I want FBIL's USD/INR reference-rate table kept in my Drive, not in this public
+repository, because FBIL does not authorise commercial use of its data without written permission.
+
+**Context and why:** owner decision of 15 Oct 2026 (`docs/DESK_DECISIONS.md`, row "FBIL's USD/INR reference-rate table
+moves to Drive"). It reverses response 113's decision 17 and closes A17b's open owner item (judge 103 minor 2). A17
+already keeps the US closes this way (owner decision a927390): a source marked `private` has its rows, revisions and
+gap list in Drive (`DrivePartsRowLog` and `DriveSnapshots` under `derived/global-cues/<cue>/`). The repository keeps
+only the copy log (paths, URLs, SHA-256 values and sizes). Readers go through `wiring.build_tables` and
+`build_reader`, which already download a private table first. Nothing outside `fno/global_cues/` reads
+`usdinr_fbil`: the weather reads the US cues only, and no forecast, check, dashboard or freeze uses it (searched
+15 Oct). So this story only moves the cue to that existing mechanism. It adds no class, option or new path.
+
+**Facts (15 Oct 2026, strong: read from the files):**
+- `research/data/global-cues/usdinr_fbil.csv` holds 1,981 rows, 10 Jul 2018 to 7 Oct 2026, all `backfilled`, all
+  first seen at 06:16:31 IST on 15 Oct.
+- Its two raw copies are already in Drive's raw area. The copy log is `research/data/manifests/global-cues/
+  usdinr_fbil.csv`: the full history at 06:16:31 and a top-up at 06:17:49.
+- The shared public `revisions.csv` does not exist yet, so no FBIL revision is public.
+- `checks/gaps.csv` lists 171 FBIL gap dates (dates only).
+- `checks/overlap_usdinr.csv` has its header only, but its `fbil` column would hold FBIL values on any date where RBI
+  and FBIL differed.
+
+**Scope.** In:
+1. **FBIL becomes private.** Set `private = True` on `FbilUsdInrSource`, the same flag the US index sources use. Rows,
+   revisions and gaps then go to Drive through the existing wiring. `once_a_day` and `may_hold_unfinished` stay off:
+   they are the US closes' own conditions, and FBIL publishes one rate a day, a week late.
+2. **The public overlap check names dates, never rates.** `overlap_usdinr.csv` keeps `date,kind` only, with no `rbi`
+   or `fbil` column. A difference against the public RBI value would reveal FBIL's rate, so no difference is
+   published either. The run line keeps its counts ("N dates compared, differs M").
+3. **The table moves without losing a row or a first-seen time.** After the merge, `global-cues adopt` takes the two
+   Drive copies, in their fetch order, into the Drive table. It is A17's own path: each row is first seen at its
+   copy's fetch time, and Drive's creation-time check applies. A one-off comparison then shows that the Drive table
+   equals the repository file row for row, on every column, with `git show` of the last commit that held it. It
+   prints counts and one SHA-256 over the sorted rows, never a value.
+4. **The repository file is removed in its own commit,** after the comparison passes:
+   `research/data/global-cues/usdinr_fbil.csv`, and FBIL's rows in `checks/gaps.csv` (they move to Drive's gap
+   list). The copy log stays: hashes and paths only, as for the US closes.
+5. **Tests and docs follow.** `test_no_private_cue_has_a_table_or_values_in_the_repository` names `usdinr_fbil` too,
+   so a committed FBIL table, revision or gap row fails CI from then on.
+   - Two fixtures hold real FBIL rates: `test_sources.py:37` and `test_as_of_checks.py:70-72`. They get made-up
+     values.
+   - Docs:
+     - the global-cues README: the public and private lists, the overlap columns, and the closed owner item;
+     - A17's and A17b's FBIL lines, marked as superseded by this story;
+     - the docstrings of `row_log.py`, `wiring.py`, `check_files.py` and `source.py`;
+     - `fno/storage/README.md` ("private" beside FBIL's raw folder).
+
+Out:
+- Rewriting git history to purge the old file and old quotes. The owner chose "repos stay public" on the same day, and
+  a rewrite would break every clone and session.
+- RBI's public table (`usdinr_rbi.csv`): RBI's own publication, not FBIL's.
+
+**Known limits:**
+- Past copies stay readable in git history: the table at d359fc3e and later commits up to the removal, and one FBIL
+  row quoted in `reviews/claude/response_103_a17-global-cues.md` (a historical record, left as written).
+- RBI's public table carries the same rate on the 1,086 dates both publish (A17's overlap: no difference). So FBIL's
+  values stay public through RBI on those dates; only its 2018-2022 fill is unique to FBIL.
+- Without the Drive settings (CI, a fresh clone), FBIL is skipped like the US closes, and the overlap check compares
+  0 dates.
+
+**Acceptance criteria:**
+1. `FbilUsdInrSource.private` is true. `build_tables(include_private=False)` has no `usdinr_fbil`, and
+   `build_tables()` with the Drive settings reads it from `derived/global-cues/usdinr_fbil/rows`. Tests use a
+   local-folder Drive: a fill writes FBIL's rows and revisions there and none into the repository folder.
+2. `overlap_usdinr.csv` has columns `date,kind`. A planted difference gives one `differs` row that has no rate in it.
+3. The committed-files test lists `usdinr_fbil` as private and fails on a planted `usdinr_fbil.csv`, revision row or
+   gap row in the repository.
+4. No test fixture holds a real FBIL rate.
+5. **Real run (rule 6; rule 8 after the merge):** the adopt of both copies, then the comparison, give equal row
+   counts (1,981, plus any newer rows) and equal SHA-256 values. `global-cues check` with Drive prints FBIL's gaps as
+   counts and the overlap as counts.
+6. Gates: pytest, ruff, imports, code size. Quality rules 1-8. Rule 9 does not apply: no money path.
+
+**Gap list (requirement -> where):**
+
+| Requirement (source) | Where |
+|---|---|
+| FBIL's table in Drive, like the US closes (owner, 15 Oct) | scope 1, criterion 1 |
+| only derived and hashed values in the repository (orchestrator) | scopes 2 and 4, criteria 2-3 |
+| the removal in its own commit (orchestrator) | scope 4 |
+| every reader downloads first (orchestrator) | scope 1: `build_tables`/`build_reader` already do; no other reader exists |
+| past copies in git history (orchestrator) | known limits |
+| the simplest design (owner, 15 Oct "keep the design simple") | one existing flag; no new class, option or path |
+
+**Judge verifies:** the diff is the flag, the overlap columns, the removal, tests and docs; the committed-files test
+fails on a planted FBIL file; the fixtures hold no real rate; after the merge, the adopt and comparison output.
+
+**Depends:** A17, A17b · **Size:** S · **Status:** story text for the judge (quality rule 1); no code yet
 
 ---
 

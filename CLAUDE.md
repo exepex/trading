@@ -104,8 +104,9 @@ commit with `--no-verify`.
 
 ## Code
 
-- `python -m pytest -q`, `ruff check fno tests tools` and `python tools/check_imports.py` must pass before pushing code
-  changes; format with `ruff format`.
+- `python -m pytest -q -n auto` (parallel, pytest-xdist), `ruff check fno tests tools` and
+  `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. When the gates
+  run: `docs/JUDGE.md`, "Merge procedure".
 - **Engineering standards (owner, mandatory for every agent and every session):** SOLID, DRY, KISS and clean code
   (clear names, small single-purpose functions and classes, no duplication, no dead code, comments only for the "why").
   **No file and no class over 350 lines.** Anything that would pass 350 lines is broken down into smaller single-purpose
@@ -148,9 +149,11 @@ commit with `--no-verify`.
   `fno/budget/wiring.py` (AI usage, the budget meter and the stop-rule tracker, stories F8 and BG1),
   `fno/cards/wiring.py` (the daily trade card, story T1), `fno/weather/wiring.py` (the market weather as a
   scored forecaster, story M1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
-  Groww source behind a read-only allow-list, Drive store, clock check, story A16) and
+  Groww source behind a read-only allow-list, Drive store, clock check, story A16),
   `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
-  A16b).
+  A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
+  run record, story O8) and `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
+  its AI routine and the devil's advocate port, story LR1).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.

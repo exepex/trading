@@ -31,9 +31,10 @@ class PendingChanged(CommitFailed):
 
 
 class PendingCommitter(Committer):
-    def __init__(self, committer: Committer, root: Path):
+    def __init__(self, committer: Committer, root: Path, marker: str = MARKER):
+        """`marker`: each command keeps its own (story E5b: Book 1's decision and the daily run may overlap)."""
         self.committer, self.root = committer, Path(root)
-        self.marker = self.root / JOURNAL_FOLDER / RUNS_FOLDER / MARKER
+        self.marker = self.root / JOURNAL_FOLDER / RUNS_FOLDER / marker
 
     def commit(self, paths: Sequence[Path], message: str, own_unpushed: OwnCommit | None = None) -> str:
         """The run's `recover()` comes first (`DailyRun.run`), so no marker is ever left here when this writes one."""
@@ -63,7 +64,7 @@ class PendingCommitter(Committer):
 
     def _write(self, body: dict) -> None:
         self.marker.parent.mkdir(parents=True, exist_ok=True)
-        temporary = self.marker.with_name(f"{MARKER}.tmp")
+        temporary = self.marker.with_name(f"{self.marker.name}.tmp")
         temporary.write_text(json.dumps(body, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         os.replace(temporary, self.marker)
 

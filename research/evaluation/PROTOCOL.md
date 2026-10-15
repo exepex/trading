@@ -64,6 +64,11 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - Fills and exits finished by 15:20.
   - Account lock lease 60 seconds.
 
+  Scoring at the snapshot and at the fill (story G10):
+  - The 15:15 execution snapshot gives a skill score that is a diagnostic only: no book, strategy or version is
+    promoted on it; the money verdict uses the 60-minute fill (E8; owner, 15 Oct 2026; story G10).
+  - An instrument not available at the 60-minute fill is a no-fill, never a fabricated fill (story G10).
+
   These are the values in `config.yaml` `desk.timetable` today (E3, "proposed until S1"). They are confirmed or
   changed by this rule: before the freeze, at least 10 sessions of measured run times. Each step's slot must then be
   at least the measured 95th-percentile duration plus 60 seconds. If that cannot hold before 15:20, the owner
@@ -300,7 +305,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 ### `frozen_files` Files and settings the freeze hashes
 - **Value:**
   - **Files:** `research/evaluation/PROTOCOL.md`, `fno/evaluation/protocol.py`, `fno/evaluation/completeness.py`,
-    `fno/scorecard/review.py`, `fno/research_engine/statistics.py`, `fno/desk/timetable.py`.
+    `fno/scorecard/review.py`, `fno/research_engine/statistics.py`, `fno/desk/timetable.py`,
+    `research/evaluation/REAL_MONEY_GATE.md`, `fno/evaluation/gate.py`.
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
   - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2 and S3 and the code of F8 and F9
@@ -312,6 +318,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - The owner chose option A: code written after decisions are seen could be shaped by them, so the code is hashed
     with its rules before anything is counted.
   - Hashing settings by section means an unrelated config change does not break the freeze.
+  - The real-money gate (story RM1) is frozen with the protocol, so it precedes every counted paper decision (design
+    v2 8.3; owner, 15 Oct 2026, RM1 Q10 "Yes, one freeze"; the two gate files were added on 2026-10-15).
 - **Evidence:** reasoning only
 
 ## Open questions for the owner (raised by judge 85)

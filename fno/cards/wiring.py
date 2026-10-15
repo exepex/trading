@@ -22,7 +22,7 @@ from ..server_clock import GITHUB_TIME_URL, HttpDateClock
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from .card import CardBuilder
-from .committed import GitHeadRecords
+from .committed import DownloadedRecords, GitHeadRecords
 from .daily import DailyCard
 from .deliveries import RepoDeliveryFiles
 from .forecasts import LiveCaptureForecasts
@@ -30,6 +30,8 @@ from .issue import CardIssuer
 from .posting import CardPoster, NoCardPoster, SlackCardPoster
 from .record_store import CardRecordStore, DriveCardRecords, NoCardRecords
 from .render import SlackTextRenderer
+from .rule_checks import DecisionOutcome, ExecutionOutcome, RunLogReader
+from .ruled_status import RuleChecks, RuledStatus
 from .session import SessionCheck
 from .status import RegistryStatus
 from .weather import PendingWeather
@@ -49,8 +51,23 @@ def _host_now() -> datetime:
 
 def build_daily_card(root: Path = ROOT) -> DailyCard:
     records = GitHeadRecords(root)
-    builder = CardBuilder(RegistryStatus(records), PendingWeather(), LiveCaptureForecasts(records))
+    builder = CardBuilder(build_status(records, root), PendingWeather(), LiveCaptureForecasts(records))
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
+
+
+def build_status(records: GitHeadRecords, root: Path = ROOT) -> RuledStatus:
+    """T1's registry status (accounts from Drive's download, E2c) with T2's rule outcomes; the final times come from
+    the desk's own timetable."""
+    from ..config import load_app_config
+    from ..desk.timetable import timetable_from_config
+
+    timetable, runs = timetable_from_config(load_app_config()), RunLogReader(records)
+    previous = SessionCheck(records)
+    rules = (
+        DecisionOutcome(records, runs, timetable),
+        ExecutionOutcome(runs, timetable, lambda d: previous.answer(d).previous),
+    )
+    return RuledStatus(RegistryStatus(records, DownloadedRecords(root)), RuleChecks(rules))
 
 
 def build_card_poster(env=os.environ) -> CardPoster:

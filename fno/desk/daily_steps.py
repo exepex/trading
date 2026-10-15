@@ -4,7 +4,7 @@ its result and the files to commit."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -40,6 +40,8 @@ NOT_WRITTEN = "not filled: the account write was refused ({reason})"
 NOT_ORDERED = "not filled: the committed decision gives no orders ({reason})"
 ALERT = "F&O paper desk {day} {book}: {what}"
 LATE_AT_SNAPSHOT = "late: committed {committed}, not before the execution snapshot started {started}"
+DOUBLE = "{count} original runs ({runs}): only {taken} counts; check why the decision ran twice"
+BLOCKED = "no new entry: {why} (today's exits run; the next session opens as usual)"
 NOT_VALIDATED = "not filled: no completed C4 pass ({problems})"
 
 
@@ -104,7 +106,17 @@ class DeskSteps:
                                 "committed_at": decision.committed_at.isoformat()}  # fmt: skip
             others = self.decisions.others(book, day, decision.run_id if decision else None)
             result[book] |= {"others": others} if others else {}
+            self._alert_double(day, book, decision, others)
         return StepOutcome({"deadline": deadline.isoformat(), "origin": origin}, result, tuple(paths))
+
+    def _alert_double(self, day: date, book: str, decision: CommittedDecision | None, others: list[dict]) -> None:
+        """ChatGPT review 107: more than one original run of a book on a day (a session fired twice) is one alert; only
+        the first counts (D3b), the rest are listed in the run log."""
+        originals = [o["run_id"] for o in others if "corrections" not in o] + ([decision.run_id] if decision else [])
+        if len(originals) > 1:
+            taken = decision.run_id if decision else "none (late)"
+            what = DOUBLE.format(count=len(originals), runs=", ".join(sorted(originals)), taken=taken)
+            self.alerts.send(ALERT.format(day=day, book=book, what=what))
 
     def _all_late(self, day: date, deadline: datetime, why: str, inputs: dict) -> StepOutcome:
         paths = tuple(write_no_decision(self.root, book, day, deadline, why) for book in self.books)
@@ -125,11 +137,22 @@ class DeskSteps:
     def pack(self, day: date) -> CommonPack:
         return self.packs.stored(day) or no_pack(day)
 
-    def fill(self, day: date, snapshot_valid: bool, collected: dict) -> StepOutcome:
-        """Only the runs the decisions step recorded are filled; a book recorded late never fills (judge 82)."""
+    def fill(self, day: date, snapshot_valid: bool, collected: dict, blocked: Mapping[str, str] | None = None
+             ) -> StepOutcome:  # fmt: skip
+        """Only the runs the decisions step recorded are filled; a book recorded late never fills (judge 82). A book in
+        `blocked` (its last session's exits not reviewed, story E2c and review 115) opens nothing new: one alert names
+        each such book and why; the other books fill as usual."""
+        blocked, inputs = blocked or {}, {"snapshot_valid": snapshot_valid, "decisions": collected}
+        if blocked:
+            inputs["blocked"] = dict(blocked)
+            what = "; ".join(f"{book} {BLOCKED.format(why=why)}" for book, why in blocked.items())
+            self.alerts.send(ALERT.format(day=day, book="entries", what=what))
         pack, result = self.pack(day), {}
         for book in self.books:
             entry = collected.get(book, {})
+            if book in blocked:
+                result[book] = {"outcome": "not filled", "reason": BLOCKED.format(why=blocked[book])}
+                continue
             if "run_id" not in entry:
                 continue
             decision = self.decisions.recorded(book, day, entry["run_id"], entry["commit"])
@@ -146,7 +169,7 @@ class DeskSteps:
                     reason = NOT_WRITTEN.format(reason=refused)
                     result[order.proposal.trade_id] = {"outcome": "not filled", "reason": reason}
                     self.alerts.send(ALERT.format(day=day, book=book, what=reason))
-        return StepOutcome({"snapshot_valid": snapshot_valid, "decisions": collected}, result)
+        return StepOutcome(inputs, result)
 
     def _fill_one(self, pack: CommonPack, decision: CommittedDecision, order, snapshot_valid: bool) -> dict:
         if not snapshot_valid:

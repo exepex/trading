@@ -37,7 +37,7 @@ python -m fno research run 2026-10-12-experiment-1 --period discovery|challenge 
 python -m fno research validate-live F1_live_atm_iv_minus_rv20  # a live 15:00 feature against its close version (B7)
 python -m fno forecast-scores run|summary [--as-of --send]  # forecast scores (G4); secondary to net profit
 python -m fno card daily [--on YYYY-MM-DD] [--post]  # daily trade card, PAPER ONLY (T1); a dry run without --post
-python -m pytest -q && ruff check fno tests tools # tests and lint; python tools/check_imports.py checks imports
+python -m pytest -q -n auto && ruff check fno tests tools # tests (parallel) and lint; python tools/check_imports.py checks imports
 python tools/check_records.py [--staged | PATH] [--alert]  # public-record scan: no secrets, personal data or broker IDs (O5)
 ```
 
@@ -84,7 +84,9 @@ fno/
   config.py          settings (`config.yaml`, allowed keys only)
 tools/               NSE raw-file downloader, import-graph check, public-record scan
 research/            studies, ledger, recorded data
-journal/<book>/account/  each book's paper account: cash_ledger.csv (append-only), positions.json, equity_history.csv
+journal/<book>/account/  each book's paper account (cash ledger, positions, equity history, desk fills and events):
+                     kept in Google Drive, downloaded here git-ignored, never committed (E2c)
+journal/<book>/daily_totals.csv  the account's only public part: closed equity and trade and fill counts per day (E2c)
 journal/<book>/owner_overrides.csv  the owner's written restarts of that book's drawdown brake (C2)
 tests/               unit and integration tests
 ```

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -43,13 +42,12 @@ class ExposureSettings:
 
 @dataclass(frozen=True)
 class StressedMarginSettings:
-    """The one frozen stressed-margin method. `multiplier` needs a factor with its source and date (expires after
-    `max_age_days`); `scenario_lookup` reads a margin per scenario from `scenario_file`."""
+    """The one frozen stressed-margin method. `multiplier` reads its factor from `factor_file`, A14c's append-only
+    file (story C2d; a row expires after `max_age_days`); `scenario_lookup` reads a margin per scenario from
+    `scenario_file`."""
 
     method: str
-    multiplier: float | None
-    source: str | None
-    as_of: date | None
+    factor_file: Path | None
     max_age_days: int
     scenario_file: Path | None
 
@@ -114,28 +112,25 @@ def exposure_at(block: Mapping[str, Any], where: str) -> ExposureSettings:
     return ExposureSettings(*(positive_setting(exposure, k, inner) for k in keys))
 
 
-def _optional_date(value: Any) -> date | None:
-    if value is None or isinstance(value, date):
-        return value
-    return date.fromisoformat(str(value))
+FACTOR_MOVED_TO_FILE = frozenset({"multiplier", "source", "as_of"})
+FACTOR_IN_FILE = "not allowed: the factor is read from factor_file, A14c's file (story C2d)"
 
 
 def _stressed_margin(block: Mapping[str, Any], root: Path) -> StressedMarginSettings:
-    """Only the method and its expiry are required here: a missing factor, source or file fails closed when a
-    proposal is checked (MarginRoom), so the desk refuses trades instead of refusing to start."""
+    """Only the method and its expiry are required here: a missing factor file or row fails closed when a proposal
+    is checked (MarginRoom), so the desk refuses trades instead of refusing to start. The factor itself is never in
+    config (story C2d): `multiplier`, `source` or `as_of` here is refused, so two sources can never disagree."""
     stressed = get_setting(block, "stressed_margin", "")
     method = get_setting(stressed, "method", ".stressed_margin")
     if method not in STRESSED_MARGIN_METHODS:
         raise RiskSettingsError(f"config.yaml risk.stressed_margin: method must be one of {STRESSED_MARGIN_METHODS}")
-    factor = stressed.get("multiplier")
-    if factor is not None and (isinstance(factor, bool) or not isinstance(factor, int | float) or factor < 1):
-        raise RiskSettingsError(f"config.yaml risk.stressed_margin: multiplier must be at least 1, not {factor!r}")
-    scenario_file = stressed.get("scenario_file")
+    moved = sorted(FACTOR_MOVED_TO_FILE & set(stressed))
+    if moved:
+        raise RiskSettingsError(f"config.yaml risk.stressed_margin: {', '.join(moved)} {FACTOR_IN_FILE}")
+    factor_file, scenario_file = stressed.get("factor_file"), stressed.get("scenario_file")
     return StressedMarginSettings(
         method,
-        float(factor) if factor is not None else None,
-        stressed.get("source") or None,
-        _optional_date(stressed.get("as_of")),
+        root / factor_file if factor_file else None,
         count_setting(stressed, "max_age_days", ".stressed_margin"),
         root / scenario_file if scenario_file else None,
     )

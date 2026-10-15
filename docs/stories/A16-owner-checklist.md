@@ -81,6 +81,10 @@ is reported. From the committed files and their git history the builder reports,
 - each fire's start delay and run length (from the heartbeat's run times in each commit), and any fire that did not run;
 - the pre-open comparison: the close of the last pre-open 1-minute candle minus NSE's official open, or "no pre-open
   value" (amendment 3).
+- the day's 3 pm recorder result (recorded, complete or not) and any Groww sign-in error in either run (judge 157:
+  the 14:52 fire signs in while the 3 pm recorder runs). Checked once on 15 Oct 2026 at 21:38 IST, outside market
+  hours (some evidence): two TOTP sign-ins 35 s apart gave different tokens and both kept answering quotes for a
+  minute after the second, so a second sign-in did not end the first. The trial confirms it in market hours.
 
 **Consequence:** if more than 5% of the trial's sessions are void (and later of any 20), the sampling or the trigger
 gets a new version and the host question goes back to the owner (design 5.2 and 6.6). The result goes in response

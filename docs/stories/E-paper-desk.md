@@ -237,7 +237,7 @@ source and availability time; an item available after the cutoff is refused. A p
 **Judge verifies:** rebuilds one day's packs from committed inputs and compares hashes; greps the common pack for any
 book field.
 
-**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** built on branch `story/e2-market-pack`; awaiting judge (claims: `reviews/claude/response_74_e2-market-pack.md`)
+**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** done: judge 72 PASS (be9bc5e; delta b2749a6), merged b4f1e1b (claims: `reviews/claude/response_74_e2-market-pack.md`)
 
 ---
 
@@ -601,7 +601,112 @@ it records "no approved strategy" each day (that is a result, not an error).
 
 **Judge verifies:** replays three Book-1 records.
 
-**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** built on `story/e5-book1`, judge pending; not live (no routine; until C4 merges and writes `validity.c4`, no Book 1 order can fill) (claims: reviews/claude/response_85_e5-book1.md)
+**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** done: judge 84 PASS (e3e0346), merged 58f5781; not live (no routine yet) (claims: reviews/claude/response_85_e5-book1.md)
+
+---
+
+## E5b. Book 1's decision command: one decision a day, and a failed commit alerts once and is recovered
+
+**Repository:** trading
+
+**Description:** As the owner, I want Book 1 to hold at most one decision a day, and `fno desk book1` to handle a
+failed commit the way E3's daily run now does (story E2b, decisions 44 and 47): one alert, a clear line, exit code 1,
+no traceback, and a rerun that commits the recorded decision as it was made. That way a later run can never re-decide
+the day with later data (a look-ahead hole in the book's record), and a refused or rejected commit is never silent.
+
+**Context and why:** Orchestrator decisions 46, 57 and 59 (judge 118 addenda 3 and 7; judge 123). Today `Book1.decide`
+(`fno/books/book1.py:74`) calls `GitCommitter.commit`, which raises `CommitFailed` on any refusal or git failure (a
+raw quote file in the index, a failed pull, a push rejected three times, an unpushed commit it did not make). Nothing
+catches it, so the command ends in a traceback and nothing reaches #fno-desk. A rerun with byte-identical inputs then
+returns "already decided" (`DuplicateRun`, `fno/playbook/decision_store.py:72-75`) without committing, so the first
+decision stays uncommitted (or committed but unpushed) for good; with any changed input it decides again as a second
+run beside the first, so the day holds two decisions, and E3's collector takes the latest one committed before the
+deadline (`fno/desk/committed_decisions.py:36-41`). A rerun at 15:08 with fresher data would then replace the 15:00
+decision: a look-ahead hole (decision 57). The judge's note (addendum 7): a Book 1 decision commit left unpushed in a checkout
+also stops E3's daily run in that same checkout at its first commit (an unpushed commit the run did not make, decision
+51), so its exits are not reviewed until the decision is resolved.
+
+**Scope.** In:
+- **One Book 1 decision a day: the prevention (decision 59 a).** Before deciding, `Book1.decide` fetches origin and
+  looks for a Book 1 run of the day in three places: `origin/<branch>`'s decision folder, this checkout's `HEAD`, and
+  this checkout's day folder on disk. A run found anywhere means it never decides again, whatever the inputs. Then:
+  - **on origin, or committed here:** it reports "already decided" (after pushing a commit left unpushed, below);
+  - **recorded by the pending marker:** it recovers the pending commit (below);
+  - **on disk only, neither committed nor in the marker** (a stop between the decision and the marker write; judge
+    123 should-fix 2): one alert naming the run and the hand fix. The fix is to inspect it, then commit it as recorded
+    with `fno desk book1 --commit-run <run_id>`, or remove it before the deadline. Never a quiet "already decided",
+    never a new decision. `--commit-run` refuses a run whose files D3's own check finds edited
+    (`DecisionStore.edited`, the run's `records.sha256`), and it never runs D2.
+  A second check sits just before the commit. Book 1's committer is given a check of the pulled tree (one new
+  optional argument on the `Committer` port, run by `GitCommitter` after its pull and before it commits). That check
+  refuses to commit a new Book 1 run when the pulled tree already holds another for the day, through `CommitFailed`,
+  so it gets one alert. This covers two checkouts deciding at the same time (a scheduled session fired twice, or a
+  retry in a fresh container).
+- **Changed inputs on a decided day.** The day's inputs are recomputed and serialized as `DecisionRun` writes them,
+  then compared byte for byte with each input file the run records (today `inputs.json`). When they differ, one alert
+  states the fact and names each differing file and the top-level fields that differ ("inputs changed after
+  decision <run_id> ...; not re-decided"). Nothing is acted on.
+- **The guarantee is in D3b, not here (decision 59 b).** E3's collector will take the *first* non-correction run
+  committed before the deadline, for every book. Then a second run that slips past this story's checks still never
+  becomes the day's decision. This story is the prevention, and D3b carries the guarantee. Both are needed: the
+  prevention alone depends on every writer checking, and the guarantee alone would still let a second run be written
+  and published.
+- `cmd_book1` (`fno/books/book1_cli.py`) catches `CommitFailed`: one alert to #fno-desk through the same alert
+  sender as the daily run, the same text printed as one line, exit code 1, no traceback. The text names the cause and
+  what it blocks: the decision is not public yet, so it is not on time unless it is pushed before E3's deadline, and
+  a daily run in this checkout stops at its first commit until it is resolved. The hand fix: remove the cause, then
+  rerun `fno desk book1`.
+- Book 1's commit goes through E2b's `PendingCommitter` (a second use of the same class, with its own marker
+  `journal/runs/.pending_book1.json`, git-ignored), so the rerun's first act commits the recorded decision files
+  exactly as they are on disk, pushes a commit left unpushed, and never runs D2 again. A changed or missing file
+  stops the rerun with the alert naming it. Nothing is regenerated.
+- Its own marker, not the daily run's: the two commands may run in one checkout at overlapping times, and one shared
+  marker could be overwritten.
+Out:
+- D3's shared store rule (`DecisionStore`: same inputs refused, new inputs make a new run;
+  `tests/decisions/test_records.py::test_the_same_inputs_twice_are_refused_new_inputs_make_a_new_run`) stays as it is.
+  It serves every book and D3's corrections (a new run linked by `corrects`, `test_a_correction_is_a_new_run_linked_to_
+  the_record_it_corrects`). The one-a-day rule is Book 1's, in `Book1.decide`; books 2 and 3 take it when they are
+  built (F5, F6). No existing test expects Book 1 itself to decide twice (checked: `tests/book1/`);
+- E3's collector and D3 corrections: decided by decision 59 (b) and carried by story D3b (decision 58). The collector
+  takes the first non-correction run before the deadline, and corrections are recorded and shown but never become a
+  book's timely decision;
+- any change to on-time rules: E3's collector decides from what origin shows at the deadline (`committed_at` before
+  the deadline and visible then), so a decision pushed by a rerun after the deadline is late, as today;
+- automatic retries or schedules (no routine runs `fno desk book1` yet);
+- the daily run itself (E2b).
+
+**Decided (orchestrator decision 57):** option A, recovery with Book 1's own marker (one new constructor argument on
+E2b's class, the marker name), plus the one-decision-a-day rule. Option B (alert only, with a hand fix) was not taken.
+
+**Acceptance criteria:**
+0. Decide, change an input, rerun: one decision run for the day; one alert naming each input file that differs byte
+   for byte from the run's recorded copy, and the fields; the decision files byte-identical. The same holds in each of
+   three states: the decision committed, recorded only by the marker, or on disk only (then the alert gives the hand
+   fix, and `--commit-run` commits it unchanged or refuses an edited run). A rerun with unchanged inputs on a committed
+   decision reports "already decided" with no alert. Two checkouts of one bare origin each run `fno desk book1` for the
+   same day, one after the other and also with the second pulling only after the first decided: origin ends with
+   exactly one Book 1 run, and the second gets "already decided" or a refused commit, with an alert (tests).
+1. With the real `GitCommitter` and a bare origin, a staged raw quote file, an unreachable origin and a push rejected
+   three times each give exactly one alert naming the cause, one printed line, exit code 1 and no traceback (tests).
+2. After the cause is removed, a rerun commits the decision files byte-identical to the first run's, with D2 run once
+   in total, and origin then holds the decision; a push left unpushed is pushed by the rerun (tests).
+3. A decision file changed after the failure stops the rerun with an alert naming it; nothing is committed and D2 is
+   not run again (test).
+4. Book 1's marker and the daily run's marker are separate files; a pending Book 1 commit does not change what the
+   daily run's recovery commits (test).
+5. A successful decision prints the same line as today, and exit code 0 (test).
+
+**Test plan:** CLI and unit tests with real git against a bare origin, a fake alert sender (nothing posted), broken-code
+proofs per criterion.
+
+**Judge verifies:** reruns criteria 0 and 2 by hand; plants a second decision on changed inputs, a skipped origin
+check, a skipped pre-commit check, a quiet "already decided" for an on-disk-only run, a missing catch, a shared
+marker and a skipped hash check.
+
+**Depends:** E2b (merged first: `CommitFailed`, `PendingCommitter`); D3b carries the collector's guarantee
+(decision 59 b) and can merge in either order · **Size:** S · **Status:** story text on
+`story/e5b-book1-commit-failure`, for the judge's story check (response 123)
 
 ---
 
@@ -651,7 +756,7 @@ or retires (D1). Judge 67: a paper version whose live feature drifts drops out o
 
 **Judge verifies:** recomputes one scorecard number from the records.
 
-**Depends:** C1, D1, E4 · **Size:** M · **Status:** built; awaiting judge (branch `story/e6-scorecard`, claims
+**Depends:** C1, D1, E4 · **Size:** M · **Status:** done: judge 73 PASS (round 3 be69a08), merged 374ad67 (claims
 `reviews/claude/response_75_e6-scorecard.md`)
 
 ---
@@ -706,4 +811,294 @@ settled), choosing exits (E4's rules and the playbook).
 **Judge verifies:** recomputes one settlement by hand from an expiry day's NSE file.
 
 **Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** done (judge 71 PASS; merged f655612; claims `reviews/claude/response_73_e7-expiry-settlement.md`)
-claims `reviews/claude/response_73_e7-expiry-settlement.md`)
+
+---
+
+
+## E8a. Fill-timing study: what E8's reaction-time fills do to an entry (history)
+
+**Repository:** trading
+
+**Description:** As the F&O trader and the risk manager, I want to know how far each structure family's entry price
+moves between the decision and E8's fills (R = 5, 30 and 60 minutes), for a 15:00 decision and for a 14:00 decision,
+and how often a trade that wins when filled at the decision price would lose when filled at E8's price, so that the
+owner can choose the decision time from numbers before any strategy is paper traded on E8's fills.
+
+**Context and why:** owner decision of 15 Oct 2026 "Fill-timing study: history now, then live"
+(`docs/DESK_DECISIONS.md:179`). E8's design (`docs/design_v2/03_layers_factory_desk.md:88-102`): a card at time T
+fills at the first quote snapshot at or after T + R; after 15:25 the fill moves to the next session's 09:15 + R; the
+remedy for a costly delay is an earlier decision time (an S1 `timetable` change, for example 14:00), never a shorter
+R. Response 144 plan item 3. Facts already measured:
+- NIFTY's close-to-open move, 680 sessions of 2024-26 (`research/data/intraday/rv-candle`, `rv_overnight`): median
+  0.22%, at least 0.5% on 17% of sessions, at least 1% on 5% (some evidence; recomputed by judge 153).
+- Groww serves 15-minute candles of **expired** NIFTY options (read-only probe, 15 Oct 2026, nothing stored): Jan and
+  Jun 2024 and Mar 2025 contracts answered 51-53 candles with volume and open interest. The prices are **real last
+  trades**, not bid and ask and not model estimates. A Sep 2025 symbol returned nothing (probably a wrong expiry date
+  after NSE's move to Tuesday expiries), so coverage is probed before the freeze (below).
+- The daily card has no trade fields yet (`fno/cards/card.py:76-78`) and E8 is not built, so no entry range exists.
+
+**What the numbers can and cannot mean (judge 153 B1).** For one structure entered later with the same exit, the P&L
+changes by exactly the entry move `C`. The families mirror each other (STR1: SF = CCS + PCS, BF = CDS + PDS, BF is SF
+with every leg reversed), so the **mean** of `C` for a seller is minus the buyer's: it is mostly price drift, chiefly
+the overnight time decay (theta), which a later seller also stops paying for. So the mean is never read as "the cost of
+waiting". The study leads with the **size** of the move (the spread of `C` and of `|C|`, the bad-side tail) and with
+the **flip share** (below), splits 1-night from 3-night (weekend and holiday) gaps, and shows the time part
+separately. It cannot measure what waiting costs in the decision itself (an older signal): that is out of scope and
+said on the report.
+
+**Scope.** In:
+- a frozen, registered history study, 2 Jan 2024 to 30 Sep 2026, of NIFTY monthly options, for the families SF, SC,
+  BF and the STR1 codes (LC, LP, CDS, CCS, PDS, PCS);
+- the two decision times with all three E8 reaction times;
+- E4's 15:15 execution snapshot (it is at the same time as the 15:00 decision's R = 5 fill and the 14:00 decision's
+  R = 60 fill, so it is labelled on those rows, not computed apart);
+- the flip share;
+- the raw candles archived;
+- one results file.
+
+Out, each with its reason (gap list, judge 153 B3):
+- The live comparison with A16's bid and ask. It needs 20 sessions of A16 data, so it is a follow-up story; this story
+  only fixes its rule.
+- E8's fill code and its entry range. The card has no trade fields yet.
+- "Missed, price moved". It needs an entry range; the 5/10/20% thresholds below stand in for it.
+- The decay of the decision signal. It cannot be measured from prices alone.
+- Weekly options. The decisions are monthly.
+- Any edge or verdict on a strategy.
+- A timetable change. The owner decides from the results.
+
+**Expected design:**
+- **Registration:** study folder `research/2026-10-16-fill-timing/` (`PROTOCOL.md`, `FREEZE.md`, `README.md`,
+  `results.md`, `results.json`, a small `ft1study/` package) and idea card `research/ideas/FT1.md`. Ledger trial 54
+  takes kind `prospective`, hypothesis `no`, as R2 did (`fno/research_engine/ledger.py:26`). Protocol and code hash
+  are frozen before the full fetch (`research/FACTORY_RULES.md` G4).
+- **Coverage probe before the freeze:** one read-only call per month of the window (nearest-ATM call of that month's
+  monthly expiry, symbol built from the panel's listed expiry date) records only whether Groww answers and its candle
+  count, never a price. A month that does not answer is first investigated (symbol format, the Tuesday-expiry dates
+  from Sep 2025, a second strike) and its cause written in the protocol; only a month still unanswered is left out and
+  listed. The probe's counts and causes go into the protocol before the freeze.
+- **Sessions:** every regular session (A7) whose next session exists. Special and muhurat sessions are left out and
+  counted.
+- **Expiry:** the nearest monthly expiry more than 7 sessions away. Figures are split by sessions to expiry (8-15,
+  16-25, 26 and more), so contracts of different ages are never pooled without a split.
+- **Strikes:** built by `fno/research_engine/structures.py` at NIFTY's 15-minute close at the decision time, at width
+  200 points (experiment 1's middle width; 100 and 300 as sensitivity), from the expiry's strikes in the daily panel.
+- **Prices and times:** each leg's close of the 15-minute candle ending at the time named. All legs of a structure
+  are taken at the same time.
+  - The decision price is the 15:00 close (candle 14:45) or the 14:00 close (candle 13:45).
+  - A 15:00 decision (card about 15:08) fills at 15:15 (R = 5), next session 09:45 (R = 30) and next session 10:15
+    (R = 60).
+  - A 14:00 decision (card about 14:08) fills at 14:15, 14:45 and 15:15.
+- **Measure:** `C = signed(price_fill - price_decision)` in index points per unit, positive when worse for the trader
+  (a seller gets less credit, a buyer pays more); **bad side** means `C > 0`. It is shown also as a share of the
+  structure's risk scale: the width for SF, SC, BF and the four spreads, the decision debit for LC and LP (their
+  "width" is a distance out of the money, not a risk), never a share of a small credit; and in rupees at today's NIFTY
+  lot size (stated once; points carry the result).
+- **Per family, decision time and R:**
+  - n; the 10th, 50th and 90th percentiles of `C`; the mean of `|C|` and its 95% block-bootstrap interval;
+  - the share of days with bad-side `C` above 5%, 10% and 20% of the risk scale (entry-range stand-ins, reasoning
+    only);
+  - the time part: the Black-76 value change from the decision time to the fill time with only time moving (forward
+    and IV held at the decision; forward = the same-expiry NIFTY future's 15-minute close at the decision time,
+    fetched read-only with the legs; IV per leg from that forward and the leg's decision price,
+    `fno/research_engine/implied_vol.py`; time in calendar minutes / (365 x 1440)), shown beside the mean of `C`; a
+    leg whose IV cannot be solved makes that structure's time part "not computed", counted, never filled in;
+  - splits: 1-night vs 3-or-more-night gaps; gap band from the same 15:00-to-fill window (below 0.5%, 0.5-1%, 1% and
+    more); India VIX at the decision day's open (known at decision time; below 13, 13-18, above 18). A cell with fewer
+    than 30 days prints "too few days", never a number.
+- **The owner's choice, paired:** per session and family, the difference between the 15:00 decision's R = 60 bad-side
+  `|C|` and the 14:00 decision's R = 60 bad-side `|C|`, with its block-bootstrap interval. What the 14:00 path gives up
+  (the last hour's information) is stated as not measured.
+- **Flip share ("win at both", owner row):** for each structure, held to expiry (settled at intrinsic value against
+  NSE's final settlement price, E7), net of C1 charges, each fill charged at its own price (STT and exchange charges are shares of premium), with a P&L of exactly zero counted as
+  not a win. Printed per family and decision time at R = 60: **bad flips** (wins at the decision price that lose at
+  E8's price) as a share of those wins, and **good flips** (losses that become wins) as a share of those losses. The
+  report prints only these two shares, never a win rate or a mean P&L, so no strategy result leaks out. All entries
+  into one expiry share one settlement price, so the independent unit is the **expiry** (about 33): the interval
+  resamples whole expiries (B = 10,000, the protocol's seed). Exploratory: it reads option P&L of spent data.
+- **Bootstrap:** stationary blocks of 5 sessions (10 and 20 as checks), B = 10,000, one fixed seed in the protocol.
+- **Stale and missing legs:** a leg whose candle has zero volume is stale. The structure is left out of that time's
+  figures and counted; no other price stands in. Per family and path, more than 10% of sessions stale or missing makes
+  that cell "insufficient data", and the report shows it as such, never as a number.
+- **Spread caveat:** candle closes carry no spread. A4 has only a few sessions of 15:00 bid and ask and nothing at
+  09:45, 10:15 or 14:00-14:45, so the spread at the fill times is **not measured** here. The report says so and gives
+  A4's 15:00 median half-spread per family only as an order of size; the live follow-up measures it.
+- **Raw answers** go to Drive through `RawFileStore` (`raw/groww/options/candles-15m/<yyyy>/...`) with a manifest and
+  SHA-256 in `research/data/manifests/`, in A16b's pattern. Nothing raw goes in the repository. Groww is reached only
+  through A16's `ReadOnlyGroww` behind a paced candle-source interface, at most 2 calls a second, outside market hours.
+  Estimate: about 2,000-3,000 calls, 20-40 minutes (reasoning only; the dry run measures it).
+- **Data spend:** Groww's historical 2024-26 option and future candles become `registered` with the ledger row and
+  `spent` after the run, for the 14:00-to-next-10:15 windows of the sampled contracts, because `C` is the P&L of
+  "sell at the decision, buy back at the fill". Their 2019-23 candles stay `fresh`. The flip share reads NSE's final
+  settlement prices of 2024-26 expiries (already seen through the spent monthly data). The rows are written in
+  `research/DATA_SPEND.md` with the ledger row.
+- **Live rule, for the follow-up:** after 20 sessions of A16 snapshots, `C` from mid-quotes and from bid/ask (sells at
+  bid, buys at ask) is compared, paired by session and family, with the candle-close `C` of the same sessions. The
+  report gives the paired difference and its interval, and says the history figures are "not confirmed" when that
+  interval excludes zero or its median passes 2% of the risk scale.
+
+**Acceptance criteria:**
+1. The coverage probe, protocol, idea card, ledger row 54 (prospective, hypothesis no), the DATA_SPEND rows and the
+   code hash are committed and frozen before the full fetch; the probe records no price.
+2. One 15:00-decision day and one 14:00-decision day are recomputed by hand from the archived raw answers: strikes,
+   leg prices at the decision and at each fill, `C`, and the flip of one SF and one LC structure. Each equals the
+   output.
+3. Signs and mirrors: fixture candles where a seller's credit falls give positive `C` for SF and negative for BF on the
+   same legs (`C(BF) = -C(SF)`, and likewise CDS/CCS and PDS/PCS), tested exactly.
+4. E8's timing: a 15:00 decision maps to 15:15, next 09:45 and next 10:15, and a 14:00 decision to 14:15, 14:45 and
+   15:15. A Friday decision's next-session fills fall on Monday (or the next A7 session) and are counted as 3 or more
+   nights.
+5. Exclusions: a stale leg removes that structure at that time and is counted; an entry 7 or fewer sessions before
+   expiry, a special or muhurat session, and a month the probe did not answer are excluded and counted. A cell over
+   10% stale or missing prints "insufficient data".
+6. The bootstrap uses the protocol's seed, B and block lengths; the flip-share interval resamples whole expiries. The
+   same run twice gives the same intervals.
+7. The report prints, per family, decision time and R, every figure listed in the design, the paired 14:00-vs-15:00
+   difference, the flip share, the time part, the splits, the exclusion counts, the spread caveat and the window,
+   each labelled exploratory measurement, and the "not measured" lines (signal decay, fill-time spread).
+8. The time part equals a hand Black-76 value for one fixture leg (forward, strike, IV, minutes to fill given); the
+   gap, VIX, nights and sessions-to-expiry splits put fixture days in the right cells; a cell under 30 days prints
+   "too few days".
+9. The report prints only the two flip shares from option P&L, never a win rate or mean P&L (a test reads the
+   report's fields).
+10. Read-only: the study's import closure reaches no order, position, margin or funds call (A16b's test pattern). No
+   credential and no raw candle appears in the repository or the output.
+
+**Test plan:**
+- Unit tests with fixture candles: the strike choice, the E8 time mapping, the sign and mirror rule, the stale and
+  exclusion rules, the bootstrap seed, the flip share, and the report.
+- The read-only closure test.
+- A dry run on 5 sessions with real answers before the full run, giving the call count and duration.
+
+**Judge verifies:**
+- Recomputes the two hand days from the archived raw answers.
+- Plants a sign error, a stale-leg substitution, an expiry-week entry and a wrong R mapping, and sees each test fail.
+- Checks that the probe and the freeze precede the full fetch and that the probe holds no price.
+
+**Depends:** A7, A15, A16 (`ReadOnlyGroww`), A16b (candle pattern), B2 and STR1 (structures), C1, E7 (settlement for
+the flip share) · **Size:** M · **Status:** proposed (story text revision 3, answering judges 153 and 154)
+
+**Evidence labels:**
+- The overnight-gap figures are some evidence.
+- The 5/10/20% thresholds, the 7-session rule, the 10% insufficient-data cut and the 2% live tolerance are reasoning
+  only.
+- The study is exploratory measurement with no edge claim. Only the live comparison can make its figures evidence of
+  what the owner would really get.
+
+---
+
+## E2c. Per-contract paper fills, marks and equity history in Drive; per-book daily totals in public
+
+**Repository:** trading
+
+**Description:** As the owner, I want every paper record that names a contract's price, and every mark, kept in Drive,
+with only per-book daily totals in the public repository. Then no one can rebuild a Groww quote from the public record
+(owner "6 A" and "8 A").
+
+**Context and why:** Owner decision, 15 Oct 2026 (`docs/DESK_DECISIONS.md`): "Per-contract paper fills, marks and
+equity history move to Drive before the first counted paper fill (story E2c)" ("A: move to Drive"). ChatGPT review
+105, point 1 (strong evidence: algebra) found the leak that E2b left open. A public fill at the ask `a`, together with a
+public mark `m` of the same contract at the same snapshot, gives the bid: `b = 2m - a`. For a book with one open
+contract, `m` is `(marked_equity - cash) / units` (`equity_history.csv`, scoreboard B's `raw_account_net_rs`). STR1's
+single-leg structures (LC, LP) make this a real path, not an imagined one. Response 131 records the rule (the public
+record keeps per-book daily totals only) and review 105's point 3 (a run with an unrecovered stop opens nothing). No
+paper fill has happened yet (no strategy approved), so the move costs no history.
+
+**What is public today and where each part goes (checked in code on `main`):**
+
+| File (committed today) | What it holds | Goes to |
+|---|---|---|
+| `journal/<book>/account/cash_ledger.csv` (E1) | every fill: contract, quoted and fill price, charges | Drive |
+| `journal/<book>/account/desk_fills.csv`, `desk_events.csv` (E4) | every leg's fill; events with reasons and legging cost | Drive |
+| `journal/<book>/account/positions.json` (E1) | open and closed trades with their money | Drive |
+| `journal/<book>/account/equity_history.csv` (E1) | daily cash, closed and **marked** equity | Drive |
+| `research/scoreboards/B/<date>.json` (S2) | per-trade lines and marked results | Drive |
+| `journal/<book>/packs/<date>/private.json` (E2, committed by E3's pack step: `daily_steps.py:85`, `pack_store.py:28`) | the full text of the book's own files, its account folder included (`private_pack.py`) | Drive; its `private.json.sha256` stays public (D3 records the pack's hash as evidence) |
+| new: `journal/<book>/daily_totals.csv` | per book, one row per date with a ledger row (closed equity cannot change without one): `date`, `closed_equity_rs`, `open_trades`, `closed_trades`, `fills` (a count) | public |
+
+`closed_equity_rs` is the opening cash plus the net of closed trades only. It holds no cash for open positions and no
+mark. A closed trade's net is the sum of its fills at different snapshots, so it gives no bid-ask pair (reasoning).
+The run log keeps what it holds after E2b (outcomes, run IDs, snapshot IDs, no prices). The daily card is already
+Drive-only (T1).
+
+**Scope.** In:
+- **Where the files live.** A book's account folder becomes local and git-ignored. Its files are kept in Drive through
+  A4b's Drive store, under their repository paths in the `paper` area (`paper/journal/<book>/account/`; judge 159
+  accepted the whole path, so one rule covers accounts, packs and scoreboard B), with the same names and formats (E1,
+  E4). Shadow accounts go the same way (`paper/journal/shadow/<name>/account/`).
+- **The writer.** Every account write (fills, exits, settlement) runs as one `DriveAccountSync`, behind E3's existing
+  `AccountSync` port and replacing `GitAccountSync` in `fno/desk/daily_wiring.py`:
+  - download the book's files from Drive;
+  - apply under E1's lock;
+  - upload the changed files, the desk fills first and the desk events last (judge 159: a push that stops part way
+    leaves a state the rerun completes; an entry's event is its "done" marker, and a ledger fill never reaches Drive
+    without its desk row);
+  - then write and commit `daily_totals.csv`.
+
+  The daily run is the only writer of accounts (E3), so the git reset-and-reapply logic for competing writers goes:
+  one writer, no merge.
+- **The private packs.** E2's pack builder writes each book's `private.json` to Drive beside the account. Only its
+  `private.json.sha256` is committed, and D3 records the pack's hash, as today. Book 1's decision hashes its pack for
+  D3's record (`fno/books/book1_inputs.py:42`), so it needs the downloaded copy.
+- **The readers: one shared download at the start of each run or command that reads accounts or private packs.**
+  The function fetches every book's account and private packs from Drive into the git-ignored local folders. It runs
+  once, before anything reads them. The readers are:
+  - E3's daily run (fills, exits, settlement, the C3 and C4 checks);
+  - Book 1's decision (C2's view of the book, trade counts, opening runs, its private pack: `fno/books/book1_wiring.py`);
+  - C4's `LedgerAccounts` (`fno/checks/validity_account.py`, wired in `fno/checks/wiring.py:91`). Its replay stays
+    valid on the Drive copy, because C4 counts only the ledger rows filled by the decision cutoff, and the ledger is
+    append-only;
+  - T1's card (`fno/cards/status.py:29`, `:83-100`). It reads `positions.json` from the downloaded folder, no longer
+    from the committed record;
+  - E6's scorecards (`fno/scorecard/wiring.py`);
+  - scoreboard B (`fno/scoreboard/wiring.py`), which writes its board to Drive, not to `research/scoreboards/B/`;
+  - Home's read model (`fno/market_read_models/home_inputs.py`), which publishes to the dashboard's Azure store as
+    today;
+  - E1's account command (`fno/composition.py`), and the shadow books (`fno/desk/shadow_books.py`), whose accounts
+    are downloaded with the books'.
+- **The move itself.** Today's committed account files hold only the opening rows. They are uploaded to Drive once,
+  then removed from the repository (`git rm`, the history keeps the opening rows only), and the folder is ignored.
+- **A stop before the exits blocks new entries** (review 105 point 3; response 131). E3's rerun recovers a stop in the
+  same checkout (E2b). But the daily routine starts in a fresh container each day, so the stop can only be seen in the
+  committed run log. Before today's fills, the desk reads the last session's run log. If that log has no `exits` step
+  (the run stopped before its exits), today opens no new entry, with one alert naming the day. A stop before any
+  step (the recovery or the download) leaves no log, so a missing log blocks too once an earlier log exists (judge
+  159). A completed exits step can still hold a book whose review failed (an `error`, such as a Drive 503) or whose
+  due exits were held up for lack of a snapshot (a non-empty `waiting`): that book alone opens nothing new (ChatGPT
+  review 115). A day without a snapshot and nothing due blocks nothing. Today's exits still run, and once they are
+  done the next session opens normally.
+Out:
+- the raw quote files (A4b);
+- D3's decision records and C4's records (they hold no fill or mark; E2b's kept mids stay, as decided);
+- any change to how fills are priced (E4, E4c).
+
+**Acceptance criteria:**
+1. After a day with fills and exits, no committed file holds a contract's fill price, a mark, cash or marked equity:
+   a test runs a fixture day end to end (the pack step included) and scans every committed file, the private packs'
+   folders included, for the day's prices and marks.
+2. `daily_totals.csv` holds, per book and date with a ledger row, exactly the five columns above, matching the Drive account by
+   hand on a fixture day (one entry and one closed trade).
+3. After the shared download, the daily run, Book 1's decision (with its private pack), C4, T1's card, E6, scoreboard B
+   and Home read the same values as they read from the local folder before (one test each, on a fake Drive store).
+4. A Drive write that fails stops the account write with E3's alert. Nothing is committed for that step, and the rerun
+   repeats the write (E1's fills are idempotent by fill ID).
+5. With the last session's run log holding no `exits` step, today's fills step opens nothing and sends one alert, and
+   today's exits still run. With the step present, entries open as usual.
+
+**Test plan:** a fake Drive store (A4b's), a fixture day end to end, the committed-file scan (packs included), and one
+reader test each.
+No network, no Slack.
+
+**Judge verifies:** runs the fixture day and greps the committed tree for the day's prices; recomputes one
+`daily_totals.csv` row by hand; checks the stop-blocks-entries test.
+
+**Known limits:**
+- The read models go only to the dashboard's Azure store behind sign-in (judge 148). P2 or any later job must never
+  commit a page holding these fields to a public repository.
+- Two daily runs on one book at the same time would race on Drive (no lock across containers). Only one routine runs
+  the desk.
+- A closed single-leg trade's net, kept owner-only here, is not a bid-ask pair (its fills are at different snapshots).
+- Every command that reads the accounts needs Drive's four `FNO_GDRIVE_*` settings, `market publish --local`
+  included; without them it stops with one line rather than read a stale copy.
+
+**Depends:** A4b (the Drive store), E2b, E3, E4 · **Size:** M · **Status:** code on `story/e2c-fills-to-drive`
+(response 150, first numbered 148; story text PASS judge 148 add. 1; code judge 159 FAIL, fixes for the re-check)

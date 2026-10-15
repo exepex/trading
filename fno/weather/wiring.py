@@ -27,6 +27,7 @@ EVENTS_FILE = ROOT / "research" / "data" / "events" / "events.csv"
 WEATHER_FOLDER = V4_FOLDER / "weather"
 METHOD_FILES = (  # every file the probabilities and the colour depend on, G7's V6 outcomes and base rate included
     *(f"weather/{name}" for name in ("checklist_v0.py", "v0_live.py", "vix_scaled.py", "colour.py", "day.py")),
+    "weather/constants.py",  # the thresholds and colours (moved from fno/constants.py, which was never hashed)
     "weather/wiring.py", "forecast_v4_rules/series.py", "forecast_v4_rules/baselines.py", "forecast_v4/terms.py",
     "forecast_v4/sessions.py",  # v0's event window and the previous regular session
 )  # fmt: skip
@@ -53,9 +54,13 @@ def build_weather_days() -> WeatherDays:
         except CalendarError:  # the calendar's last year ends inside the window: no event check
             return None
 
-    fno = Path(__file__).resolve().parents[1]
-    method = hashlib.sha256(b"".join((fno / name).read_bytes() for name in METHOD_FILES)).hexdigest()
+    method = method_sha256(Path(__file__).resolve().parents[1])
     return WeatherDays(WeatherInputs(weather_rows, lines, read_events(EVENTS_FILE.read_text()), horizon, method))
+
+
+def method_sha256(fno: Path) -> str:
+    """The SHA-256 of every file in METHOD_FILES, read under `fno` (the package folder): the record's method hash."""
+    return hashlib.sha256(b"".join((fno / name).read_bytes() for name in METHOD_FILES)).hexdigest()
 
 
 def _vix(text: str) -> float | None:

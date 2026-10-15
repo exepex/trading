@@ -95,10 +95,11 @@ calculation itself (an input: measured from NSE SPAN files or the broker's calcu
   proposal is evaluated: `scenario_lookup` (margin per stress scenario from SPAN parameter files, when available for
   the structure) or `multiplier` (current margin x a predeclared conservative factor, with its source and date). The
   method in force is recorded in every decision record so the judge reproduces it; a missing or expired multiplier
-  (older than 30 days) fails closed. Judge 75 (14 Oct 2026, story A14): the file holds a structure's scanning risk,
-  net option value (NOV) and exposure apart; C2 counts `max(0, scan - NOV) + min(0, NOV) + exposure`, the multiplier
-  stresses the scan only, and MarginRoom also never leaves more than cash + the entry's cash flow + each trade's own
-  liability, so a debit trade's premium is not counted free against an open credit trade's liability.
+  (older than 30 days) fails closed. Judge 75 (14 Oct 2026, story A14): the file holds a structure's scanning risk, net
+  option value (NOV) and exposure apart; C2 counts `max(0, scan - NOV) + min(0, NOV) + exposure`, the multiplier
+  stresses the scan only (superseded by story C2c, 15 Oct 2026: the scan and the exposure), and MarginRoom also never
+  leaves more than cash + the entry's cash flow + each trade's own liability, so a debit trade's premium is not counted
+  free against an open credit trade's liability.
 - **Two different Rs 30,000 limits:** the drawdown brake uses closed equity against its high-water mark; the stress
   limit uses the combined stress loss of open trades plus the proposal from current marks. They are separate rules
   with separate tests.
@@ -168,7 +169,7 @@ present (session per the A1 calendar).
 
 **Judge verifies:** runs the checks on a deliberately stale snapshot and confirms the refusal.
 
-**Depends:** A3, A4, A7, E2 · **Size:** S · **Status:** built on `story/c3-data-checks`, judge pending (claims: reviews/claude/response_82_c3-data-checks.md)
+**Depends:** A3, A4, A7, E2 · **Size:** S · **Status:** done: judge 81 PASS (round 2 0cc22a2), merged e3506ec; first real capture 14 Oct (addendum 3) (claims: reviews/claude/response_82_c3-data-checks.md)
 
 ---
 
@@ -231,7 +232,7 @@ Output: pass or fail with each check's numbers; failures written to `journal/<bo
 
 **Judge verifies:** adds a new wrong proposal of its own and confirms it is caught.
 
-**Depends:** C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) · **Size:** M · **Status:** judge 83 FAIL (3 must-fixes) fixed on `story/c4-hard-validity`, re-judge pending (claims: reviews/claude/response_83_c4-hard-validity.md, addendum 1); criteria 1-5 built (playbook mode for Book 1 in full); criterion 6 waits for D5 and criterion 7 for D4 (both books fail closed until then)
+**Depends:** C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) · **Size:** M · **Status:** done for criteria 1-5: judge 83 PASS (round 3 bf0d4af, merged dafbebe; A4-valid quotes e01a939, merged b03c4ef) (claims: reviews/claude/response_83_c4-hard-validity.md); criteria 1-5 built (playbook mode for Book 1 in full); criterion 6 waits for D5 and criterion 7 for D4 (both books fail closed until then)
 
 ---
 
@@ -352,8 +353,8 @@ options A18); showing the stress line on the card (T1); a Manual account ledger 
 checks a held trade's maximum loss by hand; plants an unsigned restart row; breaks the Manual profile; feeds C4 a
 breach C2 passed.
 
-**Depends:** C2, C4, A7, A14, B2, E1, D2, D3, the owner's decisions of 14-15 Oct 2026 · **Size:** M · **Status:** built
-on `story/c5-risk-buckets`, judge pending (claims: reviews/claude/response_105_c5-risk-buckets.md)
+**Depends:** C2, C4, A7, A14, B2, E1, D2, D3, the owner's decisions of 14-15 Oct 2026 · **Size:** M · **Status:** done:
+judge 105 addendum 2 PASS (b929743), merged a8379e6; inactive infrastructure (claims: reviews/claude/response_105_c5-risk-buckets.md)
 
 ---
 
@@ -449,3 +450,145 @@ a reused row; checks C2 and C4 refuse the bad ones; reads the JUDGE.md step.
 
 **Depends:** C2, C4, C5 · **Size:** S · **Status:** text passed (judge 134 addendum 1); code built on
 `story/c5b-restart-decision` for the judge (claims: `reviews/claude/response_135_c5b-restart-decision.md`, addendum 2)
+
+---
+
+## C2c. The stressed margin multiplies the whole margin, not the scan alone
+
+**Repository:** trading · **Lane:** 1 (money and risk: C2's and C4's margin stress)
+
+**Description:** As the risk manager, I want the owner's stress factor k to multiply the whole margin C2 counts (the
+SPAN part and the exposure margin), as k was measured, so that the crash buffer covers a held trade's margin rising in
+a crisis instead of almost nothing.
+
+**Context and why:** Owner, 15 Oct 2026 (relayed by the orchestrator; A14c question 1): "WHOLE MARGIN. k multiplies
+the whole margin (scan plus exposure), as it was measured." Today C2 and C4 stress the scan only (judge 75):
+`max(0, k x scan - NOV) + min(0, NOV) + exposure`. On the real 14 Oct rows the scan is 1-14% of the margin (exposure
+59,077.07 a lot on every row), so k = 1.45 adds +0.6% to SF 100 and 0% to every BF row, while 1.45 was measured as the
+rise of the whole held margin (response 77). Strong evidence (response 77's own table, recomputed with
+`MarginParts`).
+
+**The change (one term):** the exposure margin is multiplied by k too; the SPAN part, the premium rule and the STR1 cap
+stay as they are:
+
+`stressed = max(0, k x scan - NOV) + min(0, NOV) + k x exposure` (and at entry, with no premium credit:
+`max(0, k x scan - NOV) + k x exposure`).
+
+For an uncapped credit structure (SF, SC) this is exactly `k x (what C2 counts)`; for a debit (BF) it is never below
+that (the premium paid is still not multiplied, judge 75). For the capped credit spreads (CCS, PCS) the STR1 cap still
+bounds the SPAN part, so the figure lies between what C2 counts and `k x` that (judge 174). On the 14 Oct rows at
+k = 1.45, lot 65 (per lot, recomputed):
+
+| Row | Broker (k = 1) | Stressed today | Stressed after C2c | At entry today | At entry after C2c |
+|---|---|---|---|---|---|
+| SF 100 | 59,899.32 | 60,269.33 | 86,854.01 | 66,340.33 | 92,925.01 |
+| SF 300 | 62,679.37 | 64,300.40 | 90,885.09 | 81,434.40 | 108,019.09 |
+| SC 300 | 67,594.67 | 71,427.59 | 98,012.27 | 81,580.59 | 108,165.27 |
+| BF 300 | 59,077.07 | 59,077.07 | 85,661.75 | 59,077.07 | 85,661.75 |
+| CCS 300 (capped) | 38,968.08 | 38,968.08 | 52,260.42 | 38,968.08 | 63,567.17 |
+
+CCS 300: scan 9,429.55, NOV -11,306.75, exposure 29,538.53; the cap `300 x 65 - 11,306.75 = 8,193.25` is below the
+broker's SPAN figure 20,736.30, so the SPAN part stays at the broker's and only the exposure is stressed:
+`20,736.30 - 11,306.75 + 1.45 x 29,538.53 = 52,260.42`, against `k x 38,968.08 = 56,503.72`.
+
+**What the owner should know (reasoning):** every stressed figure rises by about 45%, so about a third fewer lots fit
+the same paper capital (C5's buckets and C2's caps unchanged). That is the buffer the owner chose working as measured.
+
+**STR1 cap (story STR1b, `fno/risk/capital.py`):** the cap stays on the SPAN part only (the worst terminal loss beyond
+the premium: 0 for a debit row, width x lot - credit for a credit spread), never below the broker's own unstressed
+SPAN figure. The exposure is outside the cap: it is charged on the short legs' notional, rises with the index and by
+NSE circular, and is not bounded by the spread's loss (reasoning). So for every code the stressed figure is never below
+the broker's unstressed figure (k >= 1, settings refuse k < 1), and a bought-only code (LC, LP: no exposure) is
+unchanged.
+
+**Scope.** In: `fno/risk/margins.py` (`MarginParts.stressed`, `at_entry`, the module text and `record()`'s
+`"stresses"` value), C4's independent copy `fno/checks/validity_margin.py` (`stressed_per_lot`), the `capital.py` text
+("The owner's factor k stresses the scanning risk" becomes the scan and the exposure; the cap's rationale is unchanged),
+their tests (`tests/risk/test_margin_formula.py`, `tests/risk/test_manager.py`, C4's margin tests). Out: the value of k
+and its recompute (A14c); the scenario-lookup method; the STR1 cap's values; any order.
+
+**Acceptance criteria:**
+1. The five rows above (CCS 300 included, the cap and the stressed exposure together) equal C2's and C4's figures to
+   the paisa on the real 14 Oct rows at lot 65 (test).
+2. For uncapped credit rows (SF, SC) C2's stressed figure equals `k x initial()`; for debit rows (BF) it is not below
+   it; for the capped credit spreads (CCS, PCS) it is at least `initial()` and at most `k x initial()`, with CCS 300's
+   52,260.42 as the known answer (tests over every structure and width in a planted table, judge 174).
+3. C2 and C4 agree on every planted row and k (test); a mutation in either copy (exposure unstressed, premium
+   stressed, cap applied to the exposure) fails a test.
+4. STR1 codes: the cap still bounds the SPAN part; the stressed figure is never below the broker's unstressed figure
+   (tests at the cap's edges, k = 1 and k = 1.45); LC and LP unchanged.
+5. Every decision record's stressed-margin method says what is stressed: `"stresses": "scan and exposure (owner,
+   15 Oct 2026; story C2c)"`.
+6. The claims list every existing pinned figure that changes (`tests/risk/test_margin_formula.py`,
+   `tests/risk/test_manager.py`, C4's margin tests), each with its recomputation, so a changed expected value reads as
+   a recompute, never a loosened test (judge 174).
+7. Code size, lint, imports and the full suite pass.
+
+**Order:** C2c goes before STR1b-2 (which lists `fno/risk/` but has not started); STR1b-2 builds on C2c's formula.
+
+**Judge verifies:** recomputes two rows by hand; plants the three mutations in both C2 and C4; checks an STR1 credit
+spread at its cap.
+
+**Depends:** C2, C4, STR1b-1 · **Size:** S · **Status:** text for the judge (lane 1)
+
+---
+
+## C2d. C2 and C4 read the stress factor from A14c's file, not from config.yaml
+
+**Repository:** trading · **Lane:** 1 (money and risk: C2's and C4's margin input)
+
+**Description:** As the risk manager, I want C2 and C4 to take the stress factor k from the latest dated row of
+`research/data/margins/stress_factor.csv`, which story A14c's weekly job appends, so that the owner's "automatic, with
+an alert" rule works without any job editing `config.yaml`.
+
+**Context and why:** Owner, 15 Oct 2026 (relayed by the orchestrator; A14c question 3): "AUTOMATIC, with an alert. The
+job applies the new factor itself and posts it to #fno-desk." The orchestrator's design: the job never edits
+`config.yaml` (lane 1); it appends the factor and its evidence to a data file and C2 reads the latest row. Today
+`config.yaml` `risk.stressed_margin` holds `multiplier`, `source` and `as_of` by hand; `fno/risk/settings.py` and C4's
+`fno/checks/validity_settings.py` each read them. Kept apart from C2c (the formula, already judged): C2d changes only
+where k comes from, and must merge before A14c's first automatic run (about 6 Nov 2026).
+
+**Scope.** In:
+- `config.yaml` `risk.stressed_margin`: `method: multiplier`, `factor_file:
+  research/data/margins/stress_factor.csv`, `max_age_days: 30`; `multiplier`, `source` and `as_of` leave config (the
+  settings refuse them, so two sources can never disagree);
+- one reader of the file used by both C2 (`fno/risk/`) and C4 (`fno/checks/`), or two by the same rule if C4's
+  independence requires it (the builder says which and why): columns as A14c writes them (`as_of, factor, computed,
+  unrounded, status, peak, coverage_through, evidence_sha256`; `coverage_through`, the last session A14c's archive
+  covered, ChatGPT review 117); the factor in force on day d is the `factor` of the latest row with `as_of < d`,
+  strictly before the decision day (point in time: a replay of day d never sees a row written on d, even by a manual
+  weekday run; the weekly Sunday row serves Monday on; judge 176 note 3); C2 and C4 read only `as_of`, `factor` and
+  `status`; a missing file, a wrong header, no row before d, a factor below 1, or a row older than `max_age_days` (day
+  30 after `as_of` passes, day 31 refuses, as today's `(day - as_of) > 30`) fails closed by name;
+- the seed row, in the same commit as the switch: `2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14
+  Oct",,` (`computed`, `unrounded`, `coverage_through` and `evidence_sha256` empty, `peak` quoted because it holds a
+  comma), so C2 keeps the owner's current factor and its 13 Nov lapse until A14c's first run; an empty `unrounded` marks
+  a row A14c's incremental rule never reads (A14c: its first run, and any run after such a row, is a `--full` run; judge
+  176);
+- every decision record's stressed-margin block names the row used: `as_of`, `factor`, `status` and
+  `evidence_sha256` (the judge can reproduce it from the file).
+
+Out: the factor's computation and the guardrails (A14c); the formula (C2c); the scenario-lookup method; any order.
+
+**Acceptance criteria:**
+1. Point in time: with rows dated 14 Oct (1.45) and Sun 8 Nov (1.50), decisions on 6 Nov and on 8 Nov use 1.45 and one
+   on Mon 9 Nov uses 1.50; a row dated on the decision day itself is not used (a manual weekday run); a replay of 6 Nov
+   after the 8 Nov row exists still uses 1.45 (tests, C2 and C4).
+2. Fail closed: no file, a wrong header, no row before the day, a factor below 1 and a row older than 30 days each
+   refuse every trade with one named reason (tests, C2 and C4); at the boundary, 13 Nov (day 30 after 14 Oct) passes
+   and 14 Nov (day 31) refuses (test); a `held` row's `factor` (the old one) is the one used (test).
+3. The seed row: the real file's first row parses with its quoted `peak`; C2 and C4 read it; its empty `unrounded`
+   is ignored by A14c's incremental rule (test, here or in A14c).
+4. Single source: `config.yaml` with `multiplier`, `source` or `as_of` under `stressed_margin` is refused at start-up
+   (test).
+5. Same figures: on the seed row, C2's and C4's stressed margins equal today's on every 14 Oct row (test), so the switch
+   changes no trade.
+6. The decision record names the row used (test).
+7. Code size, lint, imports and the full suite pass.
+
+**Order:** after C2c, before A14c's first automatic run and before STR1b-2 (`fno/risk/`).
+
+**Judge verifies:** plants a later row and replays an earlier day; deletes the file; checks the seed row equals the
+owner's 14 Oct decision; reads one decision record.
+
+**Depends:** C2, C2c, C4 · **Size:** S · **Status:** text for the judge (lane 1)

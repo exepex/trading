@@ -18,7 +18,7 @@ from ..storage.index_store import DriveIndexStore
 from ..storage.librarian import RawDataLibrarian
 from ..storage.manifest_folder import FingerprintingStore
 from ..storage.raw_store import AreaStore, RawFileStore, StoredCopyDamaged
-from ..storage.snapshot_source import Nifty500ListSource
+from ..storage.snapshot_source import EquityListSource, Nifty500ListSource, SnapshotSource
 from .archive import FilingArchive
 from .coverage import FilingsCoverage
 from .day_lists import EveryDayCalendar, check_day_list
@@ -30,6 +30,7 @@ from .index import (
     NseShareholdingIndex,
 )
 from .librarian import FilingsLibrarian
+from .listing_dates import read_listing_dates
 from .manifest import FilingManifest
 from .progress import ProgressRecord
 from .results_table import ResultsTable
@@ -39,7 +40,7 @@ FILINGS_MANIFEST_FOLDER = storage.MANIFEST_FOLDER / "filings"
 GAPS_FILE = FILINGS_MANIFEST_FOLDER / "gaps.csv"
 INDEX_AREA = "index"  # Drive area for files a job rewrites (progress, symbol map); never under `raw`
 SYMBOL_MAP_PATH = "nse/equities/filings/symbols.csv"
-NIFTY500_SNAPSHOT_DAY = date(2026, 10, 13)  # the archived Nifty 500 list the company list comes from (P6)
+NIFTY500_SNAPSHOT_DAY = date(2026, 10, 13)  # the archived Nifty 500 and NSE equity lists the coverage reads (P6)
 DAY_LIST_SOURCES = (NseAnnouncementsSource, NseBoardMeetingsSource)
 DAY_LISTS = {s.dataset.rsplit("/", 1)[-1]: s for s in DAY_LIST_SOURCES}
 UPLOAD_SETTINGS_MISSING = f"set {', '.join(storage.OWNER_UPLOAD_SETTINGS)} to upload to Drive"
@@ -82,16 +83,23 @@ def build_day_list_librarian(name: str, log=print) -> RawDataLibrarian:
 
 def build_companies() -> list[str]:
     """The Nifty 500's symbols from the archived list in Drive."""
-    return sorted(read_nifty500_list(_nifty500_list(), Nifty500ListSource.FILENAME))
+    return sorted(read_nifty500_list(_archived_list(Nifty500ListSource), Nifty500ListSource.FILENAME))
 
 
-def _nifty500_list() -> bytes:
-    """The archived Nifty 500 list, checked against its manifest's SHA-256. Read with the owner sign-in when its
+def build_listing_dates() -> dict[str, date]:
+    """Each company's date of listing on NSE, from the archived equity list of the same day (judge 51 addendum 8)."""
+    return read_listing_dates(_archived_list(EquityListSource), EquityListSource.FILENAME)
+
+
+def _archived_list(source: type[SnapshotSource]) -> bytes:
+    """An archived NSE list of NIFTY500_SNAPSHOT_DAY, checked against that day's manifest row (the same file name is
+    archived every day, so a later day's SHA-256 must not be the one checked). Read with the owner sign-in when its
     settings are there (the scheduled job has them), else with the service account."""
-    path = Nifty500ListSource.path_for(NIFTY500_SNAPSHOT_DAY)
+    path = source.path_for(NIFTY500_SNAPSHOT_DAY)
     reader = _owner_raw_area() if storage.build_owner_drive() else storage.build_drive_reader()
     data = reader.get(path)
-    want = storage.build_manifest_folder().fingerprints(Nifty500ListSource).get(Nifty500ListSource.FILENAME)
+    rows = storage.build_manifest_folder().read(source)
+    want = next((f.sha256 for f in rows if f.day == NIFTY500_SNAPSHOT_DAY), None)
     if data is None or hashlib.sha256(data).hexdigest() != want:
         raise StoredCopyDamaged(f"{path}: missing in Drive or not the manifest's SHA-256")
     return data
@@ -125,7 +133,7 @@ def build_progress() -> ProgressRecord:
 def write_symbol_map() -> None:
     """`index/nse/equities/filings/symbols.csv`: each company's symbol, ISIN and name from the archived Nifty 500
     list, so a symbol NSE renames later still leads to its history (rewritten only when it changes)."""
-    rows = csv.DictReader(io.StringIO(_nifty500_list().decode("utf-8-sig")))
+    rows = csv.DictReader(io.StringIO(_archived_list(Nifty500ListSource).decode("utf-8-sig")))
     out = io.StringIO()
     writer = csv.writer(out, lineterminator="\n")
     writer.writerow(("symbol", "isin", "company_name", "source"))

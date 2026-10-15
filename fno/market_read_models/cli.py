@@ -62,8 +62,10 @@ def cmd_market(args) -> int:
 
 def _publish(args) -> int:
     from ..config import load_app_config
+    from ..desk.wiring import download_private_records
     from .wiring import build_market_run
 
+    download_private_records()  # story E2c: Home's books are read from the accounts in Drive
     code, lines = build_market_run(load_app_config(), args.local).run(_day(args))
     print("\n".join(lines))
     return code
@@ -86,8 +88,10 @@ def _day(args) -> date:
 
 def _daily(args) -> int:
     from ..config import load_app_config
+    from ..desk.wiring import download_private_records
     from .wiring import build_market_run
 
+    download_private_records()  # story E2c: Home's books are read from the accounts in Drive
     code, lines = build_market_run(load_app_config()).run(_day(args), prepare=_archive_session)
     print("\n".join(lines))
     return code
