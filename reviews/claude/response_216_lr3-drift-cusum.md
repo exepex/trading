@@ -77,3 +77,11 @@ All four were accepted as recommended and are now written into the text as decid
 | SF4: alert wording | Correct: design 6.5 requires the first line and the 60-minute line. | Wording for the strategy and forecaster alerts, PAPER ONLY, WARNING class. Criterion 10. |
 | m1: "8-12" | Correct: BF at the floor of 4 flags in 6. | "6-12". |
 | m2: the back-fill result is in-sample | Correct: `s` comes from the same 95 blocks. | Labelled in-sample. |
+
+## O1's builder's answer (16 Oct 2026): the interface agreed
+
+The step is `reviews`, after `exits` (`fno/daily/reviews.py` on `story/o1-daily-run`, efa57570).
+- LR3 provides `DriftReview(Review)` with `review(day, marks) -> list[str]`, wrapping `DriftCheck.run(day)`.
+- The run's alert sender is passed in as `build_drift_check(cfg, root, alerts=None)`.
+- The step commits `journal/drift/alarms.csv`, a new append-only alarm record. **I added it** because the CUSUM is
+  recomputed from records on each run, so without a record a forecaster alarm would be re-sent every day.

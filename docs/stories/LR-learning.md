@@ -328,12 +328,21 @@ copy is built here:
 - **The rule** (`drift_cusum.py`, pure): a one-sided CUSUM `S_t = max(0, S_(t-1) + z_t - k)`, alarm when
   `S_t > h`, then `S` restarts at 0. `z_t` is positive when worse. `k = 0.5` everywhere: the design's "detect a
   1 SD collapse" (some evidence: the computed run lengths).
-- **Trigger (judge 214):** the drift check runs **every session in O1's daily run**, in the E6 scorecard-and-pause
-  step after the exits, which the orchestrator asked O1's builder (session_014zYLf18PgCzR7YoHs1X5Dp) to add. E6's
-  catastrophic-loss pauses run first, then `DriftCheck.run(day) -> list[DriftAlarm]` from `drift_wiring.py`. It is
-  idempotent per day (a rerun pauses and sends nothing twice), and a failure raises into the step's own SYSTEM alert.
-  The interface is proposed to O1's builder. **No version reaches `paper` until that step is live**, because a pause
-  that no job runs protects nothing.
+- **Trigger (judge 214; interface agreed with O1's builder, session_014zYLf18PgCzR7YoHs1X5Dp, 16 Oct 2026):** the
+  drift check runs **every session in O1's daily run**, in the step `reviews` after `exits` (`fno/daily/reviews.py`
+  on `story/o1-daily-run`). That step runs its `Review`s in order: E6's `ScorecardReview` first, then LR3's
+  `DriftReview(Review)`, a thin adapter whose `review(day, marks) -> list[str]` calls `DriftCheck.run(day)` and turns
+  each `DriftAlarm` into one line of the step's result. `marks` are not needed and are ignored.
+  - `build_drift_check(cfg, root, alerts=None)` takes the run's one alert sender (O1's `ReportedAlerts`), so every
+    pause and alert inside the run goes through it.
+  - **State and idempotence:** each run recomputes every CUSUM from the records: a strategy's completed trades since
+    its last restart (the owner's restart row), and a forecaster's scored blocks since its last alarm. Each alarm is
+    appended once to `journal/drift/alarms.csv` (subject, alarm day, observation count, `S`, `h`). An alarm already
+    in that file is never re-sent or re-applied, so a rerun on the same day, or on a later day, does nothing twice.
+    O1's step commits that path beside `playbook/`.
+  - A failure raises. The step is then recorded failed with one alert, and the next session blocks new entries
+    (O1's rule).
+  - **No version reaches `paper` until that step is live**, because a pause that no job runs protects nothing.
 - **Strategies** (`drift_strategies.py`):
   - **Data:** for each `paper` version, the C1 net of each completed position in close order (E6's strategy record).
   - **Standardising:** `z = (mu0 - net) / sigma`, where `mu0` is the plan's `expected_net_per_opportunity` and
@@ -390,7 +399,8 @@ copy is built here:
   `drift_rule` (today only `owner` and `hard_loss_rule`).
 - **E6, the pauser** (`fno/scorecard/pauses.py`): `AutoPauser` takes the approver from the pause's reason instead of
   the hard-coded `hard_loss_rule`.
-- **O1, the daily run:** the E6 scorecard-and-pause step after the exits, which runs `DriftCheck.run(day)`.
+- **O1, the daily run:** the `reviews` step after `exits` runs `DriftReview` after E6's `ScorecardReview`, and commits
+  `journal/drift/alarms.csv` beside `playbook/` (one wiring entry and one pathspec, O1's).
 
 **Acceptance criteria:**
 1. On a constructed series the CUSUM's `S` and alarm days match a hand computation, including the restart after an
@@ -410,7 +420,9 @@ copy is built here:
 7. A forecaster alarm changes no score, record or forecast; it is only alerted and reported (test).
 8. The constants (k = 0.5, block 20, h = 4 for forecasters, the ten-year target, 10,000 runs, the seed) match S1's text
    once S1 states them (test, as F9a criterion 11).
-9. `DriftCheck.run(day)` run twice on the same day pauses and sends nothing the second time; a failure raises (tests).
+9. `DriftCheck.run(day)` run twice on the same day, or again the next day with no new data, pauses and sends nothing
+   new, because each alarm is in `journal/drift/alarms.csv` once; a failure raises; `DriftReview` returns one line per
+   alarm, and every sender in the run is O1's one sender (tests).
 10. Each alert's first line and owner-delay line match the wording above, marked PAPER ONLY (tests for the strategy
     and the forecaster alert).
 11. A V1-V3 forecaster shows "drift not monitored until calibrated" and never alarms (test).
