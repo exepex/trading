@@ -115,3 +115,11 @@ def test_the_reader_reads_a_cue_through_its_own_source_and_calendar():
     reader = CueReader({"sp500": Table(rows("2026-10-14"))}, {"sp500": CboeSp500Source()}, {"sp500": NYSE})
     reading = reader.read("sp500", date(2026, 10, 15), OPEN, False)
     assert (reading.status, reading.expected) == (CURRENT, date(2026, 10, 14))
+
+
+def test_a_muhurat_day_is_no_usdinr_session_so_its_rate_reads_ahead():
+    calendar = CsvSessionCalendar(f"date,kind,description,source_url\n2024-11-01,muhurat,Diwali muhurat,{SOURCE}\n")
+    nse = NseSessionCalendar(calendar, calendar.first)
+    reading = reading_for(rows("2024-11-01"), date(2024, 11, 4), OPEN, False, RbiUsdInrSource(), nse)
+    assert (reading.status, reading.expected) == (AHEAD, date(2024, 10, 31))
+    assert nse.is_session(date(2016, 3, 7)) and not nse.is_session(date(2016, 3, 6))  # before 2024: weekdays

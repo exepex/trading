@@ -7,7 +7,7 @@ from datetime import date, time, timedelta
 
 from fno.global_cues import wiring
 from fno.global_cues.as_of import DECISION, OPEN
-from fno.global_cues.check_files import GAPS_FILE
+from fno.global_cues.check_files import GAPS_FILE, CueChecks
 from fno.global_cues.cue_calendars import NyseCalendar, WeekdayCalendar
 from fno.global_cues.reading import BEHIND, STALE, expected_date, reading_for
 from fno.global_cues.treasury_source import TreasuryTenYearSource
@@ -35,6 +35,7 @@ def test_juneteenth_from_2022_and_weekend_observed_holidays():
     assert not NYSE.is_session(date(2026, 7, 3))  # 4 Jul 2026 a Saturday
     assert not NYSE.is_session(date(2022, 12, 26))  # Christmas 2022 a Sunday
     assert NYSE.is_session(date(2021, 12, 31))  # New Year 2022 a Saturday: no Friday closure
+    assert date(2021, 12, 31) not in NYSE.holidays(2022) and date(2023, 1, 2) in NYSE.holidays(2023)  # Sunday: Monday
     assert expected(date(2026, 7, 6)) == date(2026, 7, 2)
 
 
@@ -90,3 +91,24 @@ def test_every_missing_us10y_weekday_is_a_listed_gap_and_never_read_as_a_session
     for day in missing:
         reading = reading_for(rows, day + timedelta(days=1), OPEN, False, source, weekdays)
         assert reading.expected == day and reading.status in (BEHIND, STALE), day
+
+
+class Table:
+    def __init__(self, *days):
+        self.held = [{"value_date": d, "value": "1.0"} for d in days]
+
+    def rows(self):
+        return self.held
+
+
+def test_check_writes_the_dates_of_both_us_tables_and_nothing_without_them(tmp_path):
+    out = tmp_path / "us_trading_dates.csv"
+    tables = {"sp500": Table("2026-01-16", "2026-01-20"), "nasdaq100": Table("2026-01-16", "2026-01-19")}
+    lines = CueChecks(tables, tmp_path / "checks", trading_dates=out).write()
+    assert out.read_text() == (
+        "date,in_sp500,in_nasdaq100\n2026-01-16,1,1\n2026-01-19,0,1\n2026-01-20,1,0\n"
+    )  # dates and flags only, never a value
+    assert lines[0] == "US trading dates: 2 S&P 500 dates, 1 Nasdaq-only dates listed"
+    other = tmp_path / "other.csv"
+    CueChecks({"sp500": tables["sp500"]}, tmp_path / "checks", trading_dates=other).write()
+    assert not other.exists()  # without the Drive tables (no settings) the committed list is left alone
