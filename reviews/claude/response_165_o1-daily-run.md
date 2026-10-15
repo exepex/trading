@@ -27,5 +27,4 @@ Slack). Code waits for the text PASS, E2c's merge and the orchestrator's go.
   (NF 8a) and G10 change the same routine. Proposal: O1 owns the prompt text; the others change only the command they
   own (`quotes record`, its window).
 - The run-log contract with O8 (session 012eM7Ti8ZaSVowgyMkgoGmM): agreed 15 Oct with its three conditions (one tuple the run loops over; status rules; constants size), now in the story text.
-  and `reason` on O1's steps.
 - E3's snapshot moving to A16's 15:15 mark (G10's "E3 / S1 desk" row) has no named builder yet.
