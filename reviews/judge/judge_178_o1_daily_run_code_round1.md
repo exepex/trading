@@ -76,3 +76,32 @@ The stated duplicate alert on a failed Book 1 commit (E5b's alert plus "step boo
    "CLAUDE.md 3 pm section, routine prompts", and O1's row claims the same files. The orchestrator's ruling gives the
    prompt to O1 (story text, "Ownership of the prompt"). The orchestrator should update the Handover row so the
    register shows one owner. The E5b row also still reads "after E2c" although E5b is merged.
+
+## Addendum 1: delta to 22e4dd7f (margin_check step, constants split)
+
+**Verdict: PASS for round 1's scope.** This delta adds no blocking or should-fix finding. Note 2 is closed. Note 1
+stays open: the criterion 2 and 4 tests have not arrived yet. Note 6 is new and optional.
+
+- **Gates on a trial merge with origin/main (4e72c4e4 line, 15 Oct evening):** 6142 passed. `ruff check`,
+  `ruff format --check` and `check_imports` are clean, and `tests/test_code_size.py` passes. `fno/constants.py` is now
+  341 lines and `fno/constants_operations.py` 37.
+- **The split (closes note 2).** The daily-operations block moved out whole. All 15 names in `__all__`
+  (`RUN_LOG_DECISIONS_STEP`, the two step tuples, O1's four statuses and O8's health names) read the same through
+  `fno.constants` as through the new module (checked in Python). The health values equal main's lines 343-346, and
+  `RUN_LOG_DECISIONS_STEP` is still "decisions". It is one `import *` driven by an explicit `__all__`, so no caller
+  changes. This is a split, not a squeeze. The CLAUDE.md conflict is resolved: both the LR1 and O1 composition roots
+  are listed.
+- **`margin_check` (text amendment, accepted).** It records A14c's agreed line (decision da0f769d; the A14c builder,
+  15 Oct) as O1's first step. It runs the unchanged command, commits only `stress_broker_check.csv`, and stays
+  `not_live` (`daily.live_from.margin_check: null`) while the command does not exist, so nothing calls Groww today.
+  Tests: the order, failure and rerun tests now include it. The new wiring test shows the composition root gives every
+  name in `DAILY_RUN_STEPS` a step.
+- **T2's note (judge 180): the card comes after `decisions` and after 15:15.** MET by the order. `card` follows
+  `quotes_done`, which follows `exits`. `exits` waits until `desk.timetable.execution_snapshot` (15:15), so the card
+  can never start before 15:15 or before `decisions` (15:12).
+
+6. **(Optional, reasoning only) Put `margin_check` after `quotes`, not before.** Each `CommandStep` waits for its
+   child with no time limit. As the first step, a Groww call in A14c's command that hangs would hold back the start of
+   the quote parts, the day's main data. The parts are child processes that wait for 14:55 themselves, so starting
+   them first costs nothing and still avoids overlapping the 14:55 capture on the Groww key. There is no evidence of a
+   Groww hang, so this is not a should-fix. Otherwise, when A14c lands, confirm its Groww request has a timeout.
