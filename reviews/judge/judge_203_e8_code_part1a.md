@@ -322,3 +322,10 @@ One commit since 09d14c43, b79dee94.
   - the merge is clean.
 
 Addendum 3's PASS stands at b79dee94. Next is ChatGPT's review (rule 9).
+
+**Addendum 4, continued: cfd6a95b.** This commit only adds a test (+8 lines in `tests/desk_owner_timing/test_entry_fills.py`). It is addendum
+3's probe: a protection bid size of 64 against 65 units gives `protection_not_sellable`, and the account has no fill
+row. At cfd6a95b the package's tests give 103 passed, and ruff check and format are clean on the test folder. No code
+changed since b79dee94, whose full-suite run above (7,062 passed) stands.
+
+**The PASS covers b79dee94 and cfd6a95b together.**
