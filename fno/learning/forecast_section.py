@@ -15,7 +15,10 @@ from .week import Week
 NO_V4 = "Protocol v4: no G8 score report yet"
 NO_G4 = "Protocol v1-v3: no G4 score report yet"
 HIDDEN_SCORE_FIELDS = ("calibration",)
-COHORT_LABELS = {V4_COHORT_LIVE: "live", V4_COHORT_CLOSE_PROXY: "back-fill (close-proxy), exploratory: does not count"}
+COHORT_LABELS = {
+    V4_COHORT_CLOSE_PROXY: "close-proxy cohort (back-fill, exploratory: does not count)",
+    V4_COHORT_LIVE: "live cohort",
+}
 
 
 class ForecastSection(PostMortemSection):
@@ -37,7 +40,7 @@ class ForecastSection(PostMortemSection):
             return [NO_V4]
         path, document = found
         earlier = self.v4.latest(week.previous_saturday)
-        before = _scored_counts(earlier[1]) if earlier and earlier[0] != path and _has_cohorts(earlier[1]) else None
+        before = _scored_counts(earlier[1]) if earlier and earlier[0] != path else None
         lines = [f"Protocol v4 (G8 report {path})"]
         for q in document["questions"]:
             lines.append(f"- {q['question']}: {q['status']}, live forecasts {q['live_forecasts']}")
@@ -55,17 +58,13 @@ class ForecastSection(PostMortemSection):
 
 
 def _cohorts(question: dict) -> dict[str, dict]:
-    """G8's cohorts. A report written before G10 has one pooled block: shown as the back-fill cohort (no v4 row was
-    live before G10; checked 16 Oct 2026: every v4 forecast file had 0 live rows), never compared with a new one."""
+    """G8's cohorts. A report written before G10 has one pooled block, read as the back-fill cohort: no v4 row was
+    live before G10 (checked 16 Oct 2026: every v4 forecast file had 0 live rows), so its counts compare like for
+    like."""
     if "cohorts" in question:
         return question["cohorts"]
     pooled = {"scores": question["scores"], "comparisons": question["comparisons"]}
     return {V4_COHORT_CLOSE_PROXY: pooled} if pooled["scores"] or pooled["comparisons"] else {}
-
-
-def _has_cohorts(document: dict) -> bool:
-    """A previous report of the old shape gives "first report": counts are never compared across shapes."""
-    return any("cohorts" in q for q in document["questions"])
 
 
 def _scored_counts(document: dict) -> dict[tuple[str, str, str], int]:
