@@ -154,7 +154,7 @@ merged f0c47ae; follow-ups 9d5310b and a84f92d, merged 860030c, addendum 5).
 ## T2 + T3. The devil's advocate on the daily card: rule checks (code) and objections (AI)
 
 **Repository:** trading · **Issues:** #104 (T2), #105 (T3) · **REPLAN:** slice B · **Lane:** 1 (new story; Slack; a
-routine)
+routine) · **Revision 1** (judge 180: FAIL, 2 blocking and 3 should-fix, all accepted after checking the code)
 
 **Description:** As the owner, I want every card to say plainly whether a registered rule stopped the trade, and on
 every trade card to show up to three objections from an AI that tried to find what is wrong, so that I see each call
@@ -162,34 +162,64 @@ attacked before I read it, without that AI ever deciding anything.
 
 **Context and why (design v2 `07_ai_team.md` 7.3, `04_...` 4.1; REPLAN T2, T3):**
 - Design 7.3 has two parts: rule checks (code, can block) and objections (AI, cannot block).
-- **Most of 7.3's rule checks already exist and already block, before any card is built** (strong: code read on
-  `main`). Stale or invalid data is C3's gate (`fno/checks/gate.py`, logged in the run log's `snapshot` step). Caps,
-  margin room, maximum loss with charges, structure shape and the version's terms are C4
-  (`fno/checks/validity_*.py`; each failure is a row of `journal/<book>/validity_failures.csv`). A trade only for a
-  version at `paper` is D1's registry, which T1's status already reads.
-- Re-checking them in the card would be a second version of each rule (one builder per function). So **T2 checks
-  nothing again**: it reads what those rules decided that day and makes the card say the same thing, with the reason.
-  The card is never `TRADE` when the desk's own records say a rule refused the trade.
-- Three items of 7.3 have no rule in the code today: an event inside the holding window, physical settlement, and an
-  idea that is a variant of a failed one. Each is new rule-making, so it stays out of T2's blocking (see Scope Out and
-  question 2).
+- **Most of 7.3's rule checks already exist and already block, inside the desk** (strong: code read on `main`):
+  - C4 (`fno/checks/validity_*.py`) refuses a proposed trade at the book's own decision (caps, margin room, maximum
+    loss with charges, structure shape, the version's terms). Each failure is a row of
+    `journal/<book>/validity_failures.csv`.
+  - C3's data checks (`fno/checks/gate.py`) run at the desk's **execution snapshot**, the run log's `snapshot` step.
+    No C3 check is recorded at decision time (checked: the decision run calls no data check; `DataGate` is used only
+    by the desk's snapshot, fill and exit steps).
+  - "No version at `paper`" is D1's registry, which T1's `RegistryStatus` already reads. Book 1 also commits its own
+    `journal/book1_rules/decisions/<d>/no_approved_strategy.json`.
+- Re-checking any of them in the card would be a second version of the rule (one builder per function). So **T2 checks
+  nothing again**: it reads what those rules recorded and makes the card say the same thing, with the reason.
+- **Those records become final at different times** (strong: `config.yaml` `desk.timetable`, `fno/desk/daily_run.py`):
+  - today's books' decisions and C4 rows: at the run log's `decisions` step, after `decision_deadline` (15:12 now);
+  - C3's execution check: at the `snapshot` step, `execution_snapshot` (15:15 now).
+  - Design 4.1's card at about 15:08 is earlier than both, and G10 moves the times again. So T2 never assumes a time.
+    It reads the times from the desk's own `Timetable` (`fno/desk/timetable.py`, from `config.yaml`; G10 changes them
+    in one place). A record that is not final at the card's build time is shown as "not yet decided (final at
+    HH:MM)", never as "no breach".
 - **Real state today (strong):**
   - card v1 is always `NO TRADE`; no version is at `paper`; T1's trade fields (slice B) are not built;
   - the card is not yet posted daily: nothing runs T1 until O1 goes live (orchestrator, 15 Oct 2026).
   So T2 v1 sharpens the `NO TRADE` reason, and T3 has no trade card to object to until slice B's trade fields exist.
 
+**Design 7.3's seven rule checks: where each one is (gap list, quality rule 2):**
+
+| 7.3 check | Where it is enforced today | In this story |
+|---|---|---|
+| Cost wall at today's quotes | Nowhere: no code (judge 180's grep and mine) | Out: a new rule. It needs a definition (the version's registered net edge against today's costs) and becomes a C4 rule when a strategy needs it (owner, decision 2 A) |
+| Bucket and account caps | C4 (`validity_caps`, `validity_limits`) | Reported: criterion 2 |
+| Event inside the holding window | Nowhere as a block | Warning line only (owner, decision 2 A), with T1's trade fields: T2b, criterion 12. A block, if wanted, is a C4 rule |
+| Stale data | C3, at the execution snapshot | Reported: criteria 3 and 4 |
+| Physical settlement | Nowhere: no stock option is traded | Out: a C4 rule before the first stock-option strategy (design 6.3 already places it in C4) |
+| Evidence label matching its rung | Nowhere: the card has no trade fields | With T1's trade fields: T2b, criterion 13, a card-side check (the card's label must equal the registry version's rung read through T1's `RegistryStatus`) |
+| Variant of a failed idea | Nowhere: R1 is not built | Out: R1's registration check, not the card |
+
 **Scope.** In:
-- **T2: `RuleOutcome`, read from committed records only** (`fno/cards/rule_checks.py`):
-  - `RuleSource` (interface) with one class per existing rule:
-    - `DataGateOutcome`: the day's run log (`journal/runs/<d>.json`), `snapshot` step `valid: false` →
-      `data_check_failed` with C3's failed check names;
-    - `ValidityOutcome`: the day's rows of each book's `validity_failures.csv` → `hard_rule_breach` with C4's check
-      names;
-    - `RungOutcome`: a trade for a version not at `paper` in the committed registry → `WATCH`, never `TRADE`.
-  - The card's status line takes the first reason in a fixed order: data, then rung, then validity, then T1's own
-    reasons. Every reason found is listed in a "Rule checks" line, or "rule checks: no breach".
-  - A rule's record that cannot be read gives `data_check_failed` naming the file, never "no breach".
-  - T2 decides nothing: the trades were already refused by C3, C4 and D1. The card only reports their records.
+- **T2 now: `RuleOutcome`, read from committed records only** (`fno/cards/rule_checks.py`), each with the time it is
+  final from the desk's `Timetable`:
+  - `DecisionOutcome` (final after `decision_deadline`): the run log's `decisions` step (`journal/runs/<d>.json`):
+    which books were recorded on time, late or not committed; plus each book's `validity_failures.csv` rows dated `d`
+    → `hard_rule_breach` naming C4's checks;
+  - `ExecutionOutcome` (final after `execution_snapshot`): the run log's `snapshot` step; `valid: false` →
+    `data_check_failed` naming C3's reason. A card built before then shows today's as "not yet decided (final at
+    HH:MM)" and also shows the **last session's** execution outcome, which is final ("last session: no valid
+    execution snapshot, no fills").
+  - "No version at `paper`" stays T1's `RegistryStatus` reading, unchanged: T2 adds no registry reader.
+  - No run log for the day: "not yet decided: the desk has not run today". A run log or failures file that cannot be
+    read: `data_check_failed` naming the file.
+  - The card's reason, in order: `data_check_failed` (unreadable record or execution failure), then
+    `hard_rule_breach`, then T1's own reasons. The "Rule checks" line lists every outcome: "no breach" only when
+    every record is final and none failed, otherwise "not complete" with each pending record and its time.
+  - T2 decides nothing: C3, C4 and D1 already refused the trades in the desk. The card only reports their records.
+- **T2b, with T1's trade fields (slice B; built with T3, not now):**
+  - the "event in window" warning: A6's `research/data/events/events.csv` scheduled rows dated inside the trade's
+    holding window (from the day after the card to the trade's exit: the version's time exit, else expiry, both from
+    the trade fields). One warning line; never a block;
+  - the evidence-label check: a `TRADE` card's rung label must equal the version's rung in the registry (through
+    T1's `RegistryStatus`); a mismatch makes the card `WATCH` with the reason.
 - **T3: objections through `fno/advocate` (LR1's port; no second AI caller):**
   - Subject: the card's **public** lines (status, reasons, weather, forecasts and their records, the footer's
     hashes), written as `research/cards/advocate/<YYYY>/<d>.md`. Never strikes, entry ranges or prices: card records
@@ -213,9 +243,8 @@ attacked before I read it, without that AI ever deciding anything.
   `FNO_ROUTINE_CARD_ADVOCATE_TRIGGER_ID` and `_TOKEN`, one hand run).
 
 Out (each with where it goes):
-- **New blocking rules** (event in the holding window without the version's permission, physical settlement of stock
-  options, a variant of a failed idea): each is a new rule. It belongs in C4 (or R1's registration for variants),
-  decided by the owner first (question 2), never in the card.
+- **New blocking rules** (cost wall, event in the holding window, physical settlement, failed-idea variants): see the
+  gap list. Each is a new rule for C4 (or R1 for variants), decided when a strategy needs it, never in the card.
 - **Weather RED and `not scored` blocking entries** (owner "4 A"): the desk must enforce them before a version reaches
   paper (M1 left enforcement out). Until then the card shows the colour and does not claim a block it does not have.
 - Counterfactual scoring of objections (paired shadows, 7.3) and F9's value test: they need trades (S3, F9).
@@ -223,46 +252,57 @@ Out (each with where it goes):
 - Scheduling the card: O1.
 
 **Design:**
-- `fno/cards/rule_checks.py`: `RuleSource`, `RuleOutcome`, the three readers and `RuleChecks` (the fixed order). It
-  plugs into T1's existing `StatusSource` and `CardSection`; no new status logic.
+- `fno/cards/rule_checks.py`: `RuleSource`, `RuleOutcome` (outcome, reason, `final_at`), `DecisionOutcome`,
+  `ExecutionOutcome` and `RuleChecks` (the fixed order, the "not yet decided" rule). The desk's `Timetable` is
+  injected. It plugs into T1's existing `StatusSource` and `CardSection`; no new status logic.
 - `fno/cards/advocate.py`: `CardAdvocateSubject` (writes the public lines file) and `CardAdvocateFirer` (pointer,
   budget, fire log). The objections come through `Advocate`: `RoutineFileAdvocate` with T3's `ObjectionCheck`
   settings.
 - Wiring: only `fno/cards/wiring.py`. Every file under 350 lines.
 
-**Acceptance criteria:**
-1. A run log with `snapshot` `valid: false` gives `NO TRADE`, reason `data_check_failed`, naming C3's failed checks.
-2. A `validity_failures.csv` row for the day gives `NO TRADE`, `hard_rule_breach`, naming C4's checks; other days'
-   rows are ignored.
-3. A trade for a version not at `paper` gives `WATCH`, never `TRADE`.
-4. With no failure, the line reads "rule checks: no breach"; an unreadable rule record gives `data_check_failed`
-   naming the file.
-5. T2 imports no `fno.checks` rule module and recomputes nothing: an AST test enforces it. It reads only the run log,
-   the failures files and the registry.
-6. The T3 subject file holds only public lines (a test plants a strike in the private trade fields and finds it absent).
-7. The routine is fired once per card day with only the pointer. A BG1 `stop`, a missing configuration or a
-   `FireFailed` each give `advocate_unavailable: <reason>`, and the card still goes out.
-8. Objections pass `ObjectionCheck` with T3's settings (0 to 3, `Effect:` required, numbers only as whole tokens of
-   the subject, no links or mentions), or the card shows `advocate_unavailable: <first failed rule>`.
-9. The objections never change the status, a reason or a number on the card; only T2's committed rule outcomes do.
-10. Each shown objection has an adjudication record `shown_only`; one pushed after `decision_finalized_at` is marked
-    `late: not scored`.
-11. LR1's tests still pass with `ObjectionCheck`'s settings moved to the constructor (1 to 5, `Effect:` not required).
+**Acceptance criteria (T2 now: 1-8; T3 and T2b later: 9-14):**
+1. Every outcome's final time comes from the desk's `Timetable` (`config.yaml`); no time is written in T2's code. A
+   test changes the timetable and the "final at" times follow.
+2. Built after `decision_deadline`: a `validity_failures.csv` row dated `d` gives `NO TRADE`, `hard_rule_breach`,
+   naming C4's checks; rows of other days are ignored; a book recorded late or not committed is named.
+3. Built after `execution_snapshot`: a `snapshot` step with `valid: false` gives `NO TRADE`, `data_check_failed`,
+   naming C3's reason.
+4. Built before a record is final (for example 15:08 with today's timetable): that outcome shows "not yet decided
+   (final at HH:MM)", the line says "rule checks: not complete", and the last session's execution outcome is shown.
+5. No run log for the day: "not yet decided: the desk has not run today", never "no breach".
+6. "Rule checks: no breach" only when every record is final and none failed; an unreadable record gives
+   `data_check_failed` naming the file.
+7. T2 adds no registry reader and recomputes no rule: an AST test finds no import of `fno.checks` rule modules or
+   `fno.playbook.registry` in `rule_checks.py` (the registry stays T1's `RegistryStatus`).
+8. T2 never changes the desk: it writes nothing under `journal/`.
+9. T3: the subject file holds only public lines (a planted strike in the private trade fields is absent).
+10. T3: fired once per `TRADE` or `WATCH` card with only the pointer; BG1 `stop`, missing configuration or
+    `FireFailed` give `advocate_unavailable: <reason>`, and the card still goes out.
+11. T3: objections pass `ObjectionCheck` with T3's settings (0 to 3, `Effect:` required, numbers only as whole tokens
+    of the subject, no links or mentions), or `advocate_unavailable: <first failed rule>`. They never change the status,
+    a reason or a number. Each shown objection has an adjudication record `shown_only`; one pushed after
+    `decision_finalized_at` is marked `late: not scored`. LR1's tests still pass with the settings in the constructor.
+12. T2b: one event warning line per scheduled `events.csv` row inside the holding window; none outside it; it never
+    changes the status.
+13. T2b: a `TRADE` card whose rung label differs from the registry's version rung becomes `WATCH` with the reason.
+14. T3 and T2b are built only after T1's trade fields and O1 (owner, decision 3 A).
 
-**Test plan:** fakes for the run log, failures files, registry, trigger, advocate, budget and Slack.
-1. Positive: each rule outcome; no breach; objections passing (0, 1 and 3).
-2. Negative: 4 objections; no `Effect:`; a number not in the subject; a late push; an unreadable failures file.
-3. Empty: no run log for the day (the desk did not run: "not yet decided", never "no breach"); no routine
-   configured; budget stop.
-4. Order: data before rung before validity.
-5. Privacy: planted private fields absent from the subject.
-6. AST: no rule recomputation, no second AI caller (only `fno.pipeline.trigger` fires).
+**Test plan:** fakes for the run log, failures files, timetable, trigger, advocate, budget and Slack.
+1. Timing: the same records built at 15:08, 15:13 and 15:16 with today's timetable, and at G10's times: each outcome is
+   pending or final as criteria 2-4 say.
+2. Positive: a C4 row; an execution failure; all final with no failure ("no breach").
+3. Negative: another day's C4 row (ignored); an unreadable failures file; a late book.
+4. Empty: no run log (criterion 5); no failures file (no breach for that book, once final).
+5. AST and writes: criteria 7 and 8.
+6. Later (T3, T2b): the cases of criteria 9-13.
 
 **Known limits:**
 - Until T1's trade fields exist and a version reaches `paper`, every card is `NO TRADE` and T3 has no trade card to
   object to (question 1).
-- The routine has about 5 minutes between the 15:00 pack and the card post (4.1 targets: advocate 15:05, card 15:08).
-  If it is regularly late, the record will show it; the deadline is never stretched for it.
+- The card's post time is O1's to set. With today's timetable a card before 15:12 shows the books' decisions as "not
+  yet decided"; posting after the decisions step (and after 15:15 for C3) shows them final. Recommendation for O1
+  (reasoning only): post after `decision_deadline` plus the collection step.
+- T3's window (pack to card) depends on that same post time; under G10's 14:32 pack it is ample (judge 180 note).
 - Objections are checked for form and numbers, not for being right; scoring them needs trades.
 - The subject is public lines only, so the objections cannot see the strikes (privacy rule). A private subject would
   be one new adapter behind `Advocate` (Drive), and only if the owner wants it.
@@ -279,12 +319,11 @@ Out (each with where it goes):
    fields and O1; (B) both now. **Recommendation: A** (reasoning only: T3 built now would run against nothing).
 
 **What the decisions mean for the build:**
-- T2's three rule outcomes are built now.
+- T2's two rule outcomes (decisions with C4, execution with C3) are built now.
 - T3 runs only on `TRADE` and `WATCH` cards, and its code comes after T1's trade fields and O1.
-- The "event in window" warning (decision 2) needs a trade's holding window: from the card day to its exit (the
-  version's time exit, or expiry). Only a `TRADE` or `WATCH` card has one, so the warning is built with T1's trade
-  fields, beside T3, not now. It reads A6's `events.csv` scheduled rows in that window, shows one warning line, and
-  blocks nothing.
+- The "event in window" warning (decision 2) needs a trade's holding window, so it is T2b, built with T1's trade
+  fields (scope and criterion 12).
 
-**Depends:** T1, C3, C4, D1, E3 (run log), LR1 (`fno/advocate`), F1 (routine pattern), F8, BG1 · **Size:** T2 S, T3 M ·
-**Status:** story text with judge E; owner's decisions A, A, A recorded
+**Depends:** T1, C3, C4, D1, E3 (run log and `Timetable`), A6 (events, for T2b), LR1 (`fno/advocate`), F1 (routine
+pattern), F8, BG1 · **Size:** T2 S, T3 M ·
+**Status:** revision 1 for judge E (judge 180 FAIL answered); owner's decisions A, A, A recorded
