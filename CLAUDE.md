@@ -96,8 +96,9 @@ commit with `--no-verify`.
 
 ## Code
 
-- `python -m pytest -q`, `ruff check fno tests tools` and `python tools/check_imports.py` must pass before pushing code
-  changes; format with `ruff format`.
+- `python -m pytest -q -n auto` (parallel, pytest-xdist), `ruff check fno tests tools` and
+  `python tools/check_imports.py` must pass before pushing code changes; format with `ruff format`. When the gates
+  run: `docs/JUDGE.md`, "Merge procedure".
 - **Engineering standards (owner, mandatory for every agent and every session):** SOLID, DRY, KISS and clean code
   (clear names, small single-purpose functions and classes, no duplication, no dead code, comments only for the "why").
   **No file and no class over 350 lines.** Anything that would pass 350 lines is broken down into smaller single-purpose

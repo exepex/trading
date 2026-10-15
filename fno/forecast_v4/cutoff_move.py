@@ -9,9 +9,14 @@ future days."""
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from datetime import time
+
+from .terms import V4_CAPTURE_START, V4_COMMON_SNAPSHOT
 
 FLAG_QUANTILE = 0.95
+MOVED, NOT_MOVED, NOT_COMPUTABLE = "yes", "no", ""  # the flag as A16's rv row stores it
+UP, DOWN, FLAT = "+", "-", "0"  # the move's sign; never a level (raw prices stay in Drive)
 
 
 def cutoff_move(level_at_capture_start: float, level_at_common_snapshot: float) -> float:
@@ -30,3 +35,14 @@ def nearest_rank(values: Sequence[float], quantile: float = FLAG_QUANTILE) -> fl
 def moved_after_cutoff(move: float, x: float) -> bool:
     """Strictly above X: a move exactly at X is not flagged."""
     return move > x
+
+
+def cutoff_flag(levels: Mapping[time, float | None], x: float) -> tuple[str, str]:
+    """(flag, sign) as A16's 15:30 run records them from its usable levels by mark; both empty when the 14:30 or the
+    15:15 level is missing."""
+    start, end = levels.get(V4_CAPTURE_START), levels.get(V4_COMMON_SNAPSHOT)
+    if start is None or end is None:
+        return NOT_COMPUTABLE, NOT_COMPUTABLE
+    moved = moved_after_cutoff(cutoff_move(start, end), x)
+    change = end - start
+    return MOVED if moved else NOT_MOVED, UP if change > 0 else DOWN if change < 0 else FLAT
