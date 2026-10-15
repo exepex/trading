@@ -14,10 +14,11 @@ session_01VG1RqxLFUVdvvPuMRYZtDH. **Text only: no code until a judge PASSes this
 
 ## Claims (to check against the text)
 
-1. F9a does not value decisions. It reads `real_net_rs` and `shadow_net_rs` valued by S3's one-lot valuer (one lot,
-   E4 fills on the day's snapshot, C1 charges), because S1 `role_value_schedule` says "valued like scoreboard A".
-   Two valuers would be a second version of one function (one-builder rule). **Strong evidence** for the rule;
-   the shared-input agreement with S3's builder is **pending** (question 5).
+1. F9a values both actions of a pair by importing S3's `fno/scoreboard/standard_unit.py` (orchestrator, 15 Oct 2026;
+   S3's text on `story/s3-scoreboard-a`, item 2), never a copy. **Revised:** my first text read pre-valued nets from
+   the rows. That is worse: the standard unit values through the time exit and E7 settlement on later snapshots, so a
+   net stored on the day would be incomplete, and the valuation path would sit outside the hashed scoring code.
+   Open actions are cut and listed, as in S3. **Strong evidence** (S3's text); F9a's code round waits for S3's merge.
 2. F9a reuses F8's `allocate` for cost (shares are already keyed `(purpose, book, role_or_bundle)`,
    `fno/budget/allocation.py:21`). **Strong evidence** (read the code).
 3. F9a cannot reuse an existing bootstrap: `fno/scoreboard/uncertainty.py` is a ratio of net to risk (and not mine to
@@ -49,9 +50,8 @@ S1's text leaves these open; the code must fix one answer before the freeze.
    charged to the role. **Recommend A** plus the separate evaluation line. Reasoning only.
 4. **Blocks.** "Blocks of 20 ablation days of that role": I read it as 20 of the unit's applicable opportunities in
    date order (with n units, about 20n trading days). **Recommend** that reading; say so in S1's text. Reasoning only.
-5. **Shared input with S3 (for the orchestrator).** F9a needs S3's one-lot valuer and writes nothing in
-   `fno/scoreboard/`. Recommend: S3's builder owns the valuer; F9a only reads the two net columns. If S3's valuer is
-   not built by F9a's code round, F9a's tests use constructed nets (it never needs the valuer to compute its score).
+5. **Shared input with S3: settled** by the orchestrator (15 Oct 2026): F9a imports `standard_unit.py`; any
+   change to it goes through the orchestrator to S3's builder.
 6. **S1's `frozen_files`.** F9a's files (`fno/role_value/*.py`, not `wiring.py`/`cli.py`) must join the list; that is
    S1's text, so I propose it to S1's owner rather than edit it.
 

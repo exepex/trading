@@ -444,9 +444,12 @@ frozen only once F9's code exists (owner's option A, 14 Oct 2026), so F9's **sco
   identifier order; a day without a real decision has no row and does not advance the cycle;
 - `PairedDecisionSource` (interface) with one adapter reading `journal/<book>/role_value/paired.csv`, one row per
   day the book made its real decision: `day, book, version, unit, consulted, real_decision_id, shadow_decision_id, real_packs_sha256,
-  shadow_packs_sha256, real_snapshot_sha256, shadow_snapshot_sha256, real_net_rs, shadow_net_rs, status`. The two nets
-  are valued by **the same one-lot valuer as scoreboard A (S3: one lot, E4 fills on the day's execution snapshot, C1
-  charges)**; F9a never values a decision itself (no second valuer);
+  shadow_packs_sha256, real_snapshot_id, shadow_snapshot_id, status`;
+- the valuation: each action (real and shadow) is valued by **importing S3's standard unit**
+  (`fno/scoreboard/standard_unit.py`: one lot, E4 touch fills at the day's execution snapshot, C1 charges, the
+  version's time exit, E7 settlement), never re-implemented or changed here (orchestrator, 15 Oct 2026). Its outcomes
+  carry over: "not filled" scores 0; a pair where either action is still "open" is cut from the score and listed
+  until both close;
 - the score per unit over a review period: applicable opportunities (scored ablation days where the unit's card was
   consulted), decisions changed (real and shadow decision differ), mean paired net difference (with the role minus
   without it, unchanged opportunities counting as zero), allocated cost per opportunity (F8's `allocate` for the unit's
@@ -464,7 +467,7 @@ frozen only once F9's code exists (owner's option A, 14 Oct 2026), so F9's **sco
 - `python -m fno role-value report --book <2|3> --from <date> --to <date> [--review]`: a Markdown report, one row per
   unit, every figure labelled with its protocol version (S1 `reporting_per_version`), allocated cost labelled
   "allocated, not a bill".
-Out: firing the shadow session and withholding the card (F9b); valuing a decision (S3's valuer, shared); changing
+Out: firing the shadow session and withholding the card (F9b); any change to the standard unit (requested through the orchestrator to S3's builder); changing
 `fno/scoreboard/` (S3 and S6 belong to another builder); adding F9a's files to S1's `frozen_files` list (S1's text,
 proposed to its owner in response 162); removing a role (the owner decides at a review).
 
@@ -478,27 +481,30 @@ proposed to its owner in response 162); removing a role (the owner decides at a 
    percentiles are pinned by a test with a fixed short series.
 4. No verdict (`drop proposed`, `earns its cost`, `inconclusive, stays`) appears before a `review_dates` date or below
    30 changed opportunities; the reason is printed instead (tests on the day before, the day of the review, 29 and 30).
-5. Rows with status `ai_unavailable`, `late` or `unscored` are excluded from the score and counted apart; a month with
+5. Rows with status `ai_unavailable`, `late` or `unscored`, and pairs with an open action, are excluded from the score
+   and counted apart (open pairs listed); a month with
    no recorded plan cost makes the cost and the net value "unknown", never zero, and no verdict is produced (tests).
 6. Control roles show caught violations and prevented invalid actions from C4's log and no profit figure (test).
 7. The constants (block 20, 10,000 resamples, seed 20261014, minimum 30, percentiles 5 and 95) match S1's text; a
    test reads both, so an edit of one alone fails.
+8. Both actions of a pair are valued by `fno/scoreboard/standard_unit.py` (a test asserts F9a's valuation is that
+   function, not a copy), on the snapshot ids of the row.
 
 **Test plan:** unit tests with constructed role sets, paired rows, a C4 log and F8 usage rows; the CLI on a temporary
 journal; a known-answer example worked by hand in the test file's docstring.
 
-**Judge verifies:** recomputes one unit's changed count, mean difference, cost per opportunity and verdict from the
+**Judge verifies:** recomputes one unit's changed count, the two one-lot nets of one pair (through the standard unit), mean difference, cost per opportunity and verdict from the
 constructed records by hand; feeds a row with a different snapshot hash and one naming a bundled role.
 
 **Known limits (owner's simplicity rule, 15 Oct 2026):**
 - Until books 2-3 trade there are no paired rows: the report prints "no paired decisions yet" (some months at least).
 - With n units each is ablated once every n trading days, so 30 changed opportunities can take years; said in every
   report.
-- F9a trusts the hashes and nets in the rows; that the shadow really withheld the card and used the same packs is F9b's
+- F9a trusts the hashes in the rows; that the shadow really withheld the card and used the same packs is F9b's
   end-to-end test.
 - C3's data-check refusals are not counted (C3 alerts but keeps no per-book refusal log); C2's limits are counted
   through the C4 checks that enforce them.
 - The shadow session's own plan usage is evaluation cost, not the role's: it is shown apart (response 162, question 3).
 
-**Depends:** F8, S1 (text), S3's one-lot valuer (shared input, response 162) · F9b: F1, F2, E4 · **Size:** M (F9a S)
+**Depends:** F8, S1 (text), S3's `standard_unit.py` merged (code round starts after it) · F9b: F1, F2, E4 · **Size:** M (F9a S)
 · **Status:** F9a story text for the judge on `story/f9-role-value` (response 162); F9b later
