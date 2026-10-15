@@ -77,18 +77,34 @@ outside the repository>`; no Drive, no Slack, no commit):
   mark and the candle that starts at the mark is in the answer, the level is that candle's **open** and its source
   time the mark (an open is fixed by the candle's first trade, at or after the mark; it does not change while the
   candle forms), basis `candle_1m_open`. In practice this applies only at 09:15; at every later mark the close of the
-  candle ending at the mark is used as before. The overnight return is then the session's opening index level against
-  the previous session's last close before 15:30, the usual open-to-close split.
+  candle ending at the mark is used as before. The 09:15 level is the first value of continuous trading, at or after
+  09:15:00. **It is not NSE's official open** (amendment 3, below): the official open is the pre-open call auction's
+  result, which Groww shows as the 09:14 pre-open 1-minute candle's close. So the overnight part runs from the
+  previous session's last close before 15:30 to the first continuous-trading value at 09:15, and it includes the
+  auction-to-first-trade move.
 - **One snapshot, measured (09:30 mark):** 2 chains (19 and 27 Oct), 220 contracts within 6%, 220 recorded, 220
   two-sided; the whole snapshot took 53 s at the 5-a-second pace; the gzip document is about 71 kB (09:15 mark).
   Host clock: within 0.5 s of **Slack only**; GitHub was never checked in that run (its API root answers 400 with no
   `Date` through this environment's proxy; judge 108 addendum 3). With the shared clock (amendment 2), a live check
   the same morning found GitHub (repository path) and Slack both within 0.0 s. At 09:15: 216 of 216 recorded, 204
   two-sided, 57 s.
-- **Condition on the 09:15 rule (judge 108 addendum 3, accepted by the orchestrator):** in the criterion 15 trial and
-  in every weekly post-mortem, each session's 09:15 `candle_1m_open` is compared with NSE's official NIFTY 50 open
-  (the open value of A1's archived index-close file for that day), and every difference above 0.05 points is
-  reported. A systematic difference means a new version of the rule (design 5.2), not a silent adjustment.
+- **Condition on the source (judge 108 addendum 3; corrected by amendment 3, orchestrator decision 53):** in the
+  criterion 15 trial and in every weekly post-mortem, each session's **09:14 pre-open 1-minute close** (Groww's
+  candle, read-only) is compared with NSE's official NIFTY 50 open (the "Open Index Value" of A1's archived
+  index-close file for that day), and every difference above 0.05 points is reported. A systematic difference means
+  a new version (design 5.2), not a silent adjustment. This checks that Groww's index candles carry NSE's own figures;
+  the 09:15 level is not compared with the official open, because it is a different number by design.
+- **Amendment 3 (15 Oct 2026, why the comparison moved to 09:14).** The first condition compared the 09:15
+  `candle_1m_open` with NSE's official open. NSE's official open is the pre-open call auction's result (09:00-09:08),
+  and the 09:15 open is the first value of continuous trading, so the two differ on many sessions by design and the
+  check would report them every time. Evidence: the A16b builder's live read-only check of 40 random sessions
+  (orchestrator decision 53): the 09:14 pre-open close equalled the official open on 40 of 40, the 09:15 open differed
+  on 40 of 40 by up to 51.65 points. **My own read-only check of 6 random regular sessions (2 Jul-5 Oct 2026):** the
+  09:14 close minus the official open was 0.00 on 6 of 6 (strong evidence); the 09:15 open minus the official open
+  was -8.30 to +10.65 points on 4 of 6 but **0.00 on 2 of 6**, so "differs on every session" did not hold in my sample.
+  Either way, comparing the 09:15 open with the official open cannot tell a bad source from the normal
+  auction-to-first-trade move; comparing the 09:14 close can. No code changes: the recorder never computed this
+  comparison (the trial and the post-mortem compute it).
 
 ## Scope
 
@@ -146,7 +162,8 @@ as a proposal.
      zone; a text that carries an offset, or does not parse, is `index_parse` (failed, by name).
      **At the first mark (amendment 1):** when the latest finished candle ends before the mark and the candle that
      starts at the mark is in the answer (09:15: no session candle has finished yet), the level is that candle's
-     **open** and its source time the mark; basis `candle_1m_open`.
+     **open** and its source time the mark; basis `candle_1m_open`. This is the first continuous-trading value, not
+     NSE's official open (the pre-open auction's result; amendment 3).
      The `index_basis` field of the document and the ledger says which rule gave the level and time
      (`quote_last_trade_time`, `candle_1m_close` or `candle_1m_open`); the RV row counts the marks of each basis, so a
      session that mixes them is visible.
