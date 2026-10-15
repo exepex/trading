@@ -1,0 +1,19 @@
+window 2026-01-01 to 2026-10-14: 194 sessions, 133 scored days, 198 underlyings (4 indices)
+contract-adjustment days excluded 25; moves >= 15% left after the rule 11
+base rate of Y 0.266 (face-value implied 0.317); rho of Y 0.101
+months columns: skill: K=3 a=.05 / K=3 a=.02 / K=12 a=.05 / K=12 a=.02
+all (198):
+   market vs trail60 mean d -0.0028 (t -2.01) rho_d 0.048 N_eff  18.9 sd 0.0162 lag1 +0.124 | 2%:9.0/11.2/12.3/14.5 3%:4.0/5.0/5.5/6.4
+    cal60 vs trail60 mean d -0.0006 (t -1.35) rho_d 0.011 N_eff  61.0 sd 0.0048 lag1 +0.135 | 2%:0.8/1.0/1.1/1.3 3%:0.4/0.4/0.5/0.6
+    cal60 vs cal20   mean d -0.0035 (t -2.32) rho_d 0.042 N_eff  21.5 sd 0.0175 lag1 +0.078 | 2%:9.4/11.7/12.9/15.2 3%:4.2/5.2/5.7/6.8
+    cal60 vs tilt    mean d -0.0081 (t -4.77) rho_d 0.106 N_eff   9.0 sd 0.0196 lag1 +0.143 | 2%:13.5/16.8/18.5/21.8 3%:6.0/7.5/8.2/9.7
+top 30 by option turnover (30):
+   market vs trail60 mean d -0.0054 (t -2.81) rho_d 0.065 N_eff  10.5 sd 0.0222 lag1 +0.028 | 2%:13.2/16.4/18.1/21.3 3%:5.8/7.3/8.0/9.5
+    cal60 vs trail60 mean d -0.0013 (t -2.10) rho_d 0.009 N_eff  23.8 sd 0.0073 lag1 -0.017 | 2%:1.3/1.6/1.8/2.1 3%:0.6/0.7/0.8/0.9
+    cal60 vs cal20   mean d -0.0017 (t -0.75) rho_d 0.071 N_eff   9.8 sd 0.0263 lag1 -0.020 | 2%:16.8/21.0/23.1/27.2 3%:7.5/9.3/10.3/12.1
+    cal60 vs tilt    mean d -0.0081 (t -3.98) rho_d 0.129 N_eff   6.3 sd 0.0236 lag1 +0.074 | 2%:15.7/19.6/21.6/25.4 3%:7.0/8.7/9.6/11.3
+indices (4):
+   market vs trail60 mean d -0.0053 (t -1.02) rho_d 0.501 N_eff   1.6 sd 0.0583 lag1 +0.011 | 2%:100.8/125.7/138.5/163.1 3%:44.8/55.9/61.5/72.5
+    cal60 vs trail60 mean d -0.0035 (t -2.50) rho_d 0.014 N_eff   3.8 sd 0.0165 lag1 -0.115 | 2%:7.7/9.7/10.6/12.5 3%:3.4/4.3/4.7/5.6
+    cal60 vs cal20   mean d +0.0030 (t +0.48) rho_d 0.547 N_eff   1.5 sd 0.0650 lag1 +0.045 | 2%:131.4/163.9/180.5/212.6 3%:58.4/72.8/80.2/94.5
+    cal60 vs tilt    mean d -0.0104 (t -2.53) rho_d 0.582 N_eff   1.5 sd 0.0476 lag1 +0.043 | 2%:70.4/87.8/96.7/113.8 3%:31.3/39.0/43.0/50.6

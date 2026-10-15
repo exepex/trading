@@ -1,184 +1,249 @@
-# Response 154: BR1, the fast-evidence breadth track (design proposal, no code)
+# Response 154: BR1, the fast-evidence breadth track (design proposal, no code), revision 1
 
 The owner's request (DESK_DECISIONS, 15 Oct 2026, 29d1fcef): "heavy usage, heavy predictions ... with evidence, with
-proof ... fast track, but not because of luck." This file is for the judge and ChatGPT, then for the owner's decision.
-Measured numbers come from `research/2026-10-15-breadth-sizing/`.
+proof ... fast track, but not because of luck." This file is for judge G (judge 165), ChatGPT, then the owner.
+Measured numbers come from `research/2026-10-15-breadth-sizing/` (`results/` holds every output).
 
-## The answer in five lines
+Revision 1 answers judge 165 (FAIL: 1 blocking, 7 should-fix). Each finding was re-checked on the data before it was
+accepted. The answers are at the end.
 
-1. **Breadth works, but only through the stocks.** On real data, forecast score differences across 194 F&O
-   underlyings correlate at only rho = 0.052, so they act like **about 17.5 independent bets a day**. The 4 index
-   underlyings together act like **about 1.6** (rho 0.51). Adding BANKNIFTY, FINNIFTY and MIDCPNIFTY to NIFTY barely
-   speeds up evidence. Stock chains do. (Strong evidence for the window measured; one regime only.)
-2. **Speed:** a forecaster with a 3% better Brier score than a strong baseline can be shown in about **5-6 months** of
-   daily forecasts over the stocks. A 2% edge takes about **12-14 months**, and a 1% edge about **4-5 years**. On
-   NIFTY alone the same 2% edge needs about 17 years.
-3. **Use frequent, market-neutral targets.** "Does the next move beat the option-implied move?" gets 17.5 effective
-   bets. Direction targets (up or down) mostly repeat the market: about 3.4 effective bets.
-4. **The data exists now.** NSE's full daily F&O files are archived in Drive for every session from 2019, with every
-   underlying in them. An end-of-day version can start without A4c. A4c and the stock chains matter only for a
-   version at the 14:30 decision time.
-5. **What makes it proof and not luck:** the targets, baselines, family size and looks are all written down before
-   the first forecast. Every confirmatory test runs only on forecasts made after the freeze. Holm control covers the
-   whole family. Nothing is retuned in place.
+## The answer in six lines
 
-## 1. What was measured (`research/2026-10-15-breadth-sizing/`)
+1. **Breadth helps, but less than the first draft said.** Across about 140-200 F&O underlyings, a realistic
+   volatility forecaster's daily errors behave like **about 9 independent bets a day**. The 4 index underlyings
+   together behave like about 1.5. The 17.5 of the first draft was one easy pair of forecasters. (Strong evidence for
+   2024-2026.)
+2. **Speed, honestly:**
+   - a believable **3% edge** over a strong baseline shows in about **8-10 months** of daily forecasts;
+   - a **2% edge** in about **17-22 months**;
+   - on the indices alone the same 2% edge needs about **7 years**.
 
-- **Data:** the last 300 sessions of NSE's UDiFF F&O bhavcopy (2025-07-29 to 2026-10-14), read only from the Drive
-  raw archive.
-- **Target:** `Y(u, t)` = 1 when the next close-to-close move of underlying `u` is at least its ATM-straddle implied
-  daily move.
-- **Forecasters compared:**
-  - the market's own p (0.317), which assumes unbiased implied moves and normal returns;
-  - a 60-session trailing frequency.
-- **Scored:** 239 days, 194 underlyings (4 indices and 190 stocks).
+   These assume K = 3 confirmatory tests, v4's 0.02 per look, 80% power, and the day-to-day correlation counted.
+   Faster than that is luck or an unbelievable edge.
+3. **Fast evidence comes from stocks, not from adding BANKNIFTY, FINNIFTY and MIDCPNIFTY.** Use frequent,
+   volatility-type targets. Direction calls are mostly one market bet.
+4. **An end-of-day version can start from data we already have.** NSE's full daily F&O files for every underlying
+   are archived in Drive daily: in the current format from 2024, in the old format from 2019. A4c and the stock chains
+   matter only for a 14:30 version.
+5. **Corporate actions must be removed first** (judge 165's blocking finding). A split or demerger looks like a
+   -50% to -160% "move". I propose a data-native rule, measured to catch all of them and no real crash (section 1).
+6. **Proof, not luck:**
+   - everything is written down before the first counted forecast;
+   - only forecasts after the freeze count;
+   - Holm control covers the whole family;
+   - the baseline is chosen by a rule;
+   - nothing is retuned in place.
 
-| Quantity | Value | What it means |
-|---|---|---|
-| Base rate of Y | 0.281 (implied says 0.317) | options overprice the next day's move (the volatility risk premium); a target with an outcome on about 1 day in 3.5 |
-| rho of outcomes Y across underlyings | 0.114, giving N_eff 8.4 of 194 | outcomes share a market-wide part (12% of their variance) |
-| **rho of score differences** across underlyings | **0.052, giving N_eff 17.5** | what decides test speed: errors are less correlated than outcomes |
-| rho of score differences, 4 indices | 0.514, giving N_eff 1.57 of 4 | the indices are almost one bet |
-| rho of signed next-day returns | 0.291, giving N_eff 3.4 | direction targets have little breadth |
-| SD of the daily cross-sectional mean score difference | 0.0182 (per underlying-day: 0.0754) | the denominator of every test below |
-| Lag-1 autocorrelation of that daily mean | 0.045 | days are close to independent, so block length can be short |
+## 1. The target and the corporate-action rule
 
-**Effective breadth** is N_eff = N / (1 + (N - 1) rho). Its ceiling is 1 / rho, about 19. Thirty well-chosen
-underlyings already give about 12, and 50 give about 14.
+**Target T1.** `Y(u, t)` = 1 when the next close-to-close move of underlying `u` is at least its ATM-straddle implied
+daily move. It is frequent:
 
-## 2. Months to show a realistic skill
+| Base rate | 2024 | 2025 | 2026 to date |
+|---|---|---|---|
+| Measured | 0.257 | 0.235 | 0.266 |
+| Face-value implied p | 0.317 | 0.317 | 0.317 |
 
-The test is one-sided on the daily mean Brier difference against the baseline, with 80% power. The first Holm step is
-at 0.05/K. The base Brier is 0.202. A "Brier skill" of 2% means 2% lower mean Brier than the baseline. Months count
-21 sessions each.
+Options overprice tomorrow's move. This is the volatility risk premium.
 
-| Skill vs baseline | 194 underlyings, K = 12 | 194, K = 30 | 4 indices, K = 12 | NIFTY alone, K = 12 |
+**Corporate actions (blocking finding 1, accepted).** NSE's daily file gives the unadjusted spot, so splits, bonuses
+and demergers look like crashes. Measured in 2024-2026:
+- **Rule:** a day is a contract-adjustment day, excluded from scoring, when fewer than half of a stock's listed
+  strikes on day t (for an expiry listed on both days) are still listed on t+1. NSE replaces every strike of an
+  adjusted contract.
+- **It catches the corporate actions:** KOTAKBANK's 5:1 split (14 Jan 2026) and TATAMOTORS' demerger (14 Oct 2025)
+  kept 0% of their strikes, as did the contract adjustments of TRENT (4 Jun 2026, spot x 0.67) and VEDL (30 Apr 2026,
+  spot x 0.35).
+- **It leaves real moves alone:** KAYNES (-22%, 14 May 2026), POLICYBZR (-45%) and every one of the 27 names that
+  fell 15% or more on 4 Jun 2024 (the election result) kept 100% of their strikes.
+- **The alternative was worse:** a rule on the market-lot size missed every demerger. It also dropped NSE's routine
+  lot revisions: 1,214 days, against 41 for the strike rule, in the last 300 sessions.
+- **After the rule,** all 64 moves of 15% or more in 2024-2026 are real market moves, each checked by hand.
+- **Why the exclusion is safe:** the excluded days are known in advance (NSE's circulars), are not forecasts, and
+  apply to every family alike.
+- **Second source:** NSE's corporate-action list (archived daily since Oct 2026) is the cross-check. BR1a records any
+  day where the two disagree.
+
+## 2. What was measured (2024-01-01 to 2026-10-14, 631 scored days)
+
+Five forecasters, each using only outcomes resolved before day t:
+- `market`: the implied move at face value;
+- `trail60`: the share of Y over the last 60 sessions;
+- `cal20` and `cal60`: the implied move scaled by the trailing 20 or 60 realised-to-implied ratio;
+- `tilt`: `cal60` x 1.15, a forecaster uniformly more volatility-bullish than `cal60`, which is the realistic kind of
+  "view".
+
+The test statistic is the daily cross-sectional mean of the Brier difference between two forecasters.
+
+| Pair (all 138 names) | rho of differences | Effective bets a day | SD of daily mean | Lag-1 autocorrelation |
 |---|---|---|---|---|
-| 1% | 47 months | 55 | 512 | 803 |
-| 2% | 12 months | 14 | 128 | 201 |
-| 3% | 5.2 months | 6.1 | 57 | 89 |
-| 5% | 1.9 months | 2.2 | 20 | 32 |
+| cal60 vs trail60 (two near-identical baselines) | 0.017 | 41.5 | 0.0063 | 0.16 |
+| cal60 vs cal20 | 0.031 | 26.4 | 0.0144 | 0.11 |
+| market vs trail60 (the first draft's pair) | 0.049 | 17.8 | 0.0176 | 0.09 |
+| **cal60 vs tilt (a realistic volatility view)** | **0.105** | **9.0** | **0.0198** | **0.15** |
+| Top 30 by option turnover, cal60 vs tilt | 0.134 | 6.1 | 0.0241 | 0.10 |
+| The 4 indices, cal60 vs tilt | 0.517 | 1.6 | 0.0475 | 0.04 |
+| Outcomes Y themselves | 0.107 | about 9 | n/a | n/a |
+| Signed next-day returns (direction targets), first-draft window | 0.291 | 3.4 | n/a | n/a |
 
-- **The arithmetic is strong evidence:** the SD and the correlation are measured.
-- **Which skill is realistic is reasoning only.** Beating the raw implied p is easy, because options are biased
-  upward. Beating a *calibrated* baseline by 2-3% is plausible for a good volatility forecaster. 5% would be
-  exceptional.
-- **This is why "fast" means months, not weeks.** A claim after a few weeks would be luck, or an edge too large to be
-  believable.
+**What this means (some evidence):** effective breadth depends on how the forecasters differ. A forecaster with a
+view that tilts the same way across all names on a given day gets only about 9 effective bets. This is about the same
+as the outcomes' own breadth. The realistic floor is about 9, not 17.5.
 
-## 3. Proposed design (for the story text after the owner's go)
+**Regime check, the same realistic pair by calendar year:**
+
+| Year | Names | SD of daily mean | Lag-1 | 2% months (K=3, 0.02 per look) | 3% months |
+|---|---|---|---|---|---|
+| 2024 (the election crash) | 179 | 0.0190 | 0.26 | **21.5** | **9.5** |
+| 2025 | 184 | 0.0177 | 0.10 | 14.7 | 6.5 |
+| 2026 to date | 198 | 0.0196 | 0.14 | 16.8 | 7.5 |
+
+The day-to-day correlation of the daily mean was not counted in the first draft. It reaches 0.26 in 2024, and raises
+the months by up to 1.7x. It is counted everywhere here as an AR(1) inflation, (1 + lag1) / (1 - lag1).
+
+## 3. Months to show a skill (realistic pair, all names, 2024-2026, 80% power, one-sided)
+
+"2% skill" means a mean Brier 2% lower than the baseline's.
+
+| Skill | K=3, 0.05 | **K=3, 0.02 per look (proposed)** | K=12, 0.05 | K=12, 0.02 per look |
+|---|---|---|---|---|
+| 2% | 13.8 | **17.2** | 18.9 | 22.3 |
+| 3% | 6.1 | **7.6** | 8.4 | 9.9 |
+
+The same skill on smaller universes, at K = 3 and 0.02 per look:
+
+| Skill | Top 30 names | The 4 indices |
+|---|---|---|
+| 2% | 22.0 | 81 |
+| 3% | 9.8 | 36 |
+
+Judge 165's 8.4 months at K = 3 used the easier market-vs-trailing pair, one look at 0.05, and no lag-1 correction.
+With those settings my script gave 8.5 on its window before I added the lag-1 correction; with the correction it is
+9.4.
+
+**The skill sizes are reasoning only.** 2-3% over a strong, calibrated baseline is plausible for a good volatility
+forecaster. 5% would be exceptional. Skill on the targets alone is not money (section 9, item 8).
+
+## 4. Proposed design (for the story text after the owner's go)
 
 1. **Universe, fixed by rule at the freeze:**
-   - every F&O underlying with a traded ATM straddle on at least 80% of the last 60 sessions;
-   - entries and exits from NSE's F&O list follow that rule, never a choice;
-   - a delisted underlying stays scored up to its last session, so there is no survivorship bias.
-2. **Targets:** at most 2 targets x 2 horizons, all frequent and close to market-neutral.
-   - **T1:** the next move beats the implied daily move (as measured above).
-   - **T2:** the 5-session move beats the implied 5-session move. Its windows overlap, so the confirmatory test uses
-     non-overlapping blocks, as v4 does.
-   - Optionally, a residual target (the move net of the index move against implied) if the story's sizing shows more
-     breadth.
-   - Direction targets: reported only, never confirmatory (N_eff 3.4).
-3. **Decision time:**
-   - **BR1-EOD**, buildable now: the forecast is made after the close of day t from the archived files, and committed
-     before 09:15 on t+1.
-   - **BR1-1430**, later: at v4's 14:30 snapshot, once A4c (indices first) and the stock chains are recorded live.
-   - Both are scored separately. EOD is the evidence engine; 14:30 is what a trade would use.
-4. **Baselines:** the primary is the strongest simple one, the calibrated market. That is the implied move rescaled by
-   its trailing realised-to-implied ratio. It is M1's `VixScaledWeather` method with the underlying's straddle in
-   place of VIX. Also reported: the trailing frequency and the raw implied p. A forecaster must beat the primary, not
-   the raw implied p.
-5. **Families:** the same targets, data packs and deadline for all three.
-   - rule-based: code only;
-   - hybrid: rules proposed by AI, applied by code to the whole universe;
-   - AI: direct probabilities.
-6. **Scoring and luck control:**
-   - Brier and log score per underlying-day; the daily cross-sectional mean difference against the primary baseline;
-     a block bootstrap or batch means on those daily means.
-   - Holm over the whole registered family: K <= 12 means 3 families x 2 targets x 2 horizons.
-   - Two looks at registered dates with v4's alpha split. Futility stops at look 1. The power report comes after 60
-     days.
-   - Every result is published, including losers.
-7. **Held-back period:**
-   - Confirmatory: only forecasts made after the BR1 freeze, which are forward and unseen by construction.
-   - 2019-2025 history: development and sizing only, labelled exploratory, as v4's back-fill.
-   - The 300 sessions above have been seen, for sizing only. They choose no rule and no threshold.
+   - every F&O underlying with a traded ATM straddle on at least 80% of the last 60 sessions, and at least 60
+     resolved outcomes;
+   - entries and exits follow NSE's F&O list by that rule;
+   - a delisted name stays scored to its last session, so there is no survivorship bias.
+2. **Confirmatory family, recommended: K = 3** (should-fix 8, accepted):
+   - T1 only, end of day only, one test per family (rule, hybrid, AI) against the primary baseline;
+   - reported only, never claimed: T2 (5-session moves), direction, the residual target and the 14:30 version;
+   - the alternative, K = 12 (2 targets x 2 times x 3 families), costs about 30% more time (table above).
+3. **Decision time:** BR1-EOD is the forecast after day t's close, committed before 09:15 on t+1. BR1-1430 is
+   reported only once A4c and the stock chains are live.
+4. **Baselines** (should-fix 3, accepted):
+   - Three simple baselines are registered: `market`, `trail60` and `cal60`. They differ from each other by 0.5-2.5%
+     in Brier, which is the size of the skill targeted.
+   - **The primary is chosen by a written rule before the freeze:** the registered baseline with the lowest mean
+     Brier on the whole 2019-2025 exploratory history (2019-2023 with spot from the near-month future).
+   - A claim must also not lose to either other baseline on the confirmatory data. That is reported, not tested.
+   - None of the three wins clearly. `cal60` vs `trail60` (t > 0: `trail60` better):
+     - +1.65 on all names, 2024-2026;
+     - -1.64 on the judge's window after the corporate-action rule (it was +3.25 before the rule);
+     - +3.31 on the top 30.
+5. **Families, all on the same targets, packs and deadline:**
+   - rule: code only;
+   - hybrid: rules proposed by AI and applied by code. **Its rule set is frozen at the freeze; a new rule is a new
+     version with a new clock** (should-fix 7, accepted);
+   - AI: direct probabilities on a fixed subset (section 6).
+   - **The rule and hybrid families are scored both on all names and on the AI's subset,** so the AI comparison is
+     like for like (should-fix 5, accepted).
+6. **Claim rule** (should-fix 4, accepted):
+   - The test is a plain one-sided Holm on `forecast_v4.confirmatory.confirmatory_test`'s p (batch means and
+     studentized bootstrap) on the daily mean Brier differences.
+   - Blocks are 5 sessions (lag-1 up to 0.26), with at least 12 blocks before a member is judged.
+   - The rate is 0.02 per look, at two registered looks (v4's split), with futility at look 1.
+   - **Not used:** v4's `calibrated_p` thresholds and its NIFTY judgeability gates (`crash_dominated` and the rest).
+     They were calibrated on v4's NIFTY members and do not carry over.
+   - BR1a states whether BR1 needs its own crash gate, after the 2019-2025 re-measure.
+7. **Freeze gate, the regime** (should-fix 6, accepted): before the freeze, BR1a re-measures the SD and lag-1 by
+   calendar year on 2019-2025, with the near-month future as spot where the old files have none. The look dates are
+   set from the **worst** year, not from an average. On 2024-2026 the worst year so far is 2024.
+8. **Results days** (judge note, accepted): skill is reported separately on a stock's results days and other days.
+   A forecaster that knows the results calendar gains legitimately but trivially.
 
-## 4. Data: now and later
+## 5. Data: now and later
 
 | Needed | Exists now | After |
 |---|---|---|
-| EOD option closes, all underlyings | yes: UDiFF bhavcopy 2024-01 on (with `UndrlygPric`) and legacy 2019 to 2024-07, about 2,060 files in Drive raw, archived daily | n/a |
-| Stock spot 2019-2023 | not in the legacy file (no underlying price column). The CM bhavcopy is archived only from 2025-10 | a CM bhavcopy back-fill from NSE's archive, or the near-month stock future as a proxy (the story decides) |
-| Index closes, all indices | yes (`index-close` 2017 on) | n/a |
-| 14:30 quotes, indices | no | A4c / NF step 8a (indices first) |
-| 14:30 quotes, stocks | no | stock chains after A4c |
-| Events per stock (results days) | partly (the filings archive, A12) | the story decides whether results days get a flag |
+| End-of-day option closes, every underlying | yes: the current format 2024-01 on (with spot) and the old format 2019 to 2024-07, about 2,060 files in Drive raw, archived daily | n/a |
+| Stock spot 2019-2023 | no spot column in the old format | the near-month stock future as spot (BR1a decides; the CM bhavcopy archive starts only in 2025-10) |
+| Contract-adjustment days | from the files themselves (the strike rule); NSE's corporate-action list from Oct 2026 | n/a |
+| Index closes | yes, 2017 on | n/a |
+| 14:30 quotes, indices / stocks | no | A4c / stock chains |
 
-## 5. AI cost against BG1 (reasoning only: no AI book minutes are measured yet)
+## 6. AI cost against BG1 (reasoning only: no AI book minutes are measured yet)
 
-BG1 caps book and role minutes at 50% of the month's measured session minutes, a share and not a known number.
-`accounting/ai_usage.csv` is not on main yet, so I can only give orders of magnitude:
+BG1 caps book and role minutes at 50% of the month's measured session minutes. `accounting/ai_usage.csv` is not on
+main yet.
 
-| AI family covers | Sessions a day | Minutes a day (guess) | Minutes a month (21 sessions) |
-|---|---|---|---|
-| 3-4 indices | 1 | about 10-15 | about 200-300 |
-| A fixed 30-name subset plus the indices | 1 | about 15-25 | about 300-500 |
-| All 194 underlyings | 1, in batch | about 30-60 | about 600-1,300 |
+| AI family covers | Minutes a day (guess) | Minutes a month | Effective bets a day (realistic pair) | 2% in (months) |
+|---|---|---|---|---|
+| The 4 indices | about 10-15 | about 200-300 | 1.6 | 81 |
+| **A fixed 30-name subset, by option turnover at the freeze** | about 15-25 | about 300-500 | **6.1** | **22** |
+| All names | about 30-60 | about 600-1,300 | 9.0 | 17 |
 
-Recommendation (reasoning only):
-- The AI family forecasts a **fixed, pre-registered subset of about 30 underlyings**, chosen by a liquidity rank at the
-  freeze. That gives about 12 of the 17.5 effective bets at about a third of the cost.
-- The rule and hybrid families cover all 194 at no AI cost, because code runs them.
-- The first two weeks are measured through F8 before the subset size is frozen.
+**Recommendation (reasoning only):** the AI family uses the fixed 30-name subset. That gives about 2/3 of the full
+breadth at about a third of the cost, and 2% skill in about 22 months, not the first draft's figure. The first two
+weeks of F8 minutes set the final size before the freeze. The rule and hybrid families cost no AI minutes.
 
-## 6. Reuse, not rebuild
+## 7. Reuse, not rebuild
 
-- **G7:** records through `forecast_v4_rules.records` (the same `Record`, validation and write-once `write`), with
-  the question `<target>/<underlying>`. Baselines follow G7's base-rate and window pattern.
-- **G8:**
-  - the loss functions, `confirmatory_test` (batch means, studentized bootstrap), `futility_p` and the 60-outcome
-    power report (`forecast_v4.power`) apply directly to the daily mean differences;
-  - a new family file gets BR1's own K and the same Holm logic;
-  - `fno/forecast_scoring/v4/` gets one new input adapter, not a second scorer.
-- **M1:** the primary baseline is M1's VIX-scaled method per underlying. The weather colour is reported as a regime
-  label. The weather code itself is not changed.
-- **S1:** BR1's protocol items go in S1's format and are frozen with S1's freeze check before the first counted
-  forecast.
-- **Data:** the A3 panel builder already parses both bhavcopy formats. The story widens the reader from NIFTY to every
-  underlying, with no new parser.
-
-## 7. What we must NOT do (data snooping)
-
-1. Pick targets, thresholds, the universe or the baseline after looking at outcomes. This includes the 300 sessions
-   above, which were used only for sizing.
-2. Count back-fill results as evidence, or tune a rule on history and "confirm" it on the same history.
-3. Add or drop underlyings, targets or families after the freeze. That needs a new version and a new clock.
-4. Look at interim results outside the two registered looks, or stop early on a good run.
-5. Report the best of many families or targets without the whole family's Holm correction, or hide the losers.
-6. Let an AI see the outcome or any data after its cutoff. The packs stay point in time, as v4's do.
-7. Treat direction calls as breadth: they are mostly one market bet.
-8. Read skill on the breadth target as money. Stock options have wide spreads, so a forecast edge is not a trading
-   edge until E4-style fills on liquid names show it.
+- **G7:** `forecast_v4_rules.records` (the same `Record`, validation and write-once `write`), with the question
+  `<target>/<underlying>`.
+- **G8:** `confirmatory_test`, `futility_p` and the 60-outcome power report in `forecast_v4`, plus one input adapter
+  in `fno/forecast_scoring/v4/`. `calibrated_p` is not used (section 4, item 6).
+- **M1:** `cal60` is M1's idea of scaling the market's implied move by realised history, but with a 60-session window
+  per name. M1's `VixScaledWeather` needs 500 resolved days, which a new F&O entrant does not have (judge note). The
+  weather colour is reported as a regime label, and M1's code is unchanged.
+- **S1:** BR1's protocol items in S1's format, frozen with S1's freeze check.
+- **Data:** the A3 panel builder already parses both file formats. BR1b widens it from NIFTY to every underlying.
 
 ## 8. Open points for the owner and the reviewers
 
-1. **EOD first?** I recommend it: it can start without A4c, and it is the evidence engine. The 14:30 version follows
-   the live chains.
-2. **The AI subset size,** about 30, once two weeks of F8 minutes exist.
-3. **Which baseline is primary:** I propose the calibrated market. A weaker baseline would make "skill" easy and
-   meaningless.
-4. **The 2019-2023 stock spot source:** a CM back-fill, or the futures proxy.
-5. **Limits, stated:**
-   - one 14-month window was measured, and the correlation can rise in a crash, when everything moves together;
-   - rho depends on the forecasters compared;
-   - liquid large caps may be more correlated than the average;
-   - the sizing story must re-measure on 2019-2024 (exploratory) before the freeze.
+1. **K = 3 (recommended), or K = 12?** K = 12 costs about 30% more months.
+2. **The AI subset size** (about 30), after two weeks of F8 minutes.
+3. **Stock spot for 2019-2023:** the near-month future (proposed) or a CM back-fill from NSE.
+4. **The expectation the owner should hold (some evidence):** a believable edge takes most of a year to prove at 3%,
+   and nearer two years at 2%. That is about 5x faster than the indices alone, not weeks.
+
+## 9. What we must NOT do (data snooping)
+
+1. Pick targets, thresholds, the universe, the baseline or the contract-adjustment rule after looking at the
+   confirmatory outcomes. The 2024-2026 data was used here only for sizing and for testing the rule on known cases.
+2. Count back-fill results as evidence, or tune on history and "confirm" on the same history.
+3. Add or drop names, targets, families or hybrid rules after the freeze. That needs a new version and a new clock.
+4. Look at interim results outside the two registered looks, or stop early on a good run.
+5. Claim the best of many without the whole family's Holm correction, or hide the losers.
+6. Let an AI see outcomes or any data after its cutoff. The packs stay point in time.
+7. Treat direction calls as breadth: they are mostly one market bet.
+8. Read forecast skill as money. Stock option spreads are wide, so a forecast edge becomes a trading edge only when
+   E4-style paper fills on liquid names show it.
 
 ## Proposed stories (text only after the owner's go)
 
-- **BR1a:** the protocol text (universe, targets, baselines, family, looks, held-back rule) in S1's format.
-- **BR1b:** the all-underlying EOD panel from the archived bhavcopies, extending A3.
+- **BR1a:** the protocol, including the 2019-2025 regime re-measure as a freeze gate and the baseline choice by rule.
+- **BR1b:** the all-underlying end-of-day panel, extending A3, with the contract-adjustment rule.
 - **BR1c:** baselines and the rule family, with G7-layout records.
-- **BR1d:** BR1 scoring in G8.
-- **BR1e:** the hybrid and AI families, after BR1a's freeze.
+- **BR1d:** BR1 scoring through G8's functions.
+- **BR1e:** the hybrid and AI families.
+
+## Answers to judge 165
+
+| # | Finding | Answer | Check |
+|---|---|---|---|
+| 1 | Corporate actions in the target (blocking) | **Accepted.** The strike rule (section 1) | 0% strikes kept on KOTAKBANK, TATAMOTORS, TRENT and VEDL; 100% on the 27 names of 4 Jun 2024, KAYNES and POLICYBZR; all 64 remaining moves of 15% or more checked as real |
+| 2 | N_eff is one pair's number | **Accepted.** The headline is now the realistic pair, about 9 (range 6-42) | my pairs reproduce yours: tilt 8.5 against your 8.6 on your window |
+| 3 | The primary baseline was asserted | **Accepted.** Chosen by rule on 2019-2025, and must not lose to the others | cal60 vs trail60: on your window, t -1.64 after the corporate-action rule (your +3.25 was before it); +1.65 on 2024-2026; +3.31 on the top 30. There is no clear winner |
+| 4 | Alpha and claim rule | **Accepted.** 0.02 per look in every table; plain Holm on `confirmatory_test`; no `calibrated_p` and no NIFTY gates | months +24% (2%: 13.8 to 17.2) |
+| 5 | The AI top 30 is slower | **Accepted.** 6.1 (realistic pair) or 10.5 (your pair); 2% in about 22 months; the rule and hybrid families also on the 30 | 10.5 reproduced |
+| 6 | One regime | **Accepted.** A freeze gate on the worst year of 2019-2025. Measured so far: 2024 is the worst (2% in 21.5 months) | also found: lag-1 up to 0.26, now in every months figure (up to 1.7x) |
+| 7 | Hybrid rules in flight | **Accepted.** Frozen at the freeze | n/a |
+| 8 | K = 3 | **Accepted** as the recommendation; K = 12 is the alternative | 8.5 against your 8.4 on your settings (9.4 with lag-1); 17.2 with v4's alpha and lag-1 on the realistic pair |
+| notes | Results days; M1's 500-day window; fetch.py; calendar; setup | All accepted: a results-day split; a 60-session `cal60`, not M1's 500; fetch.py rewritten (clean, no hard-coded path); NSE calendar for scoring; setup line in the README | `ruff check` clean on all three scripts |

@@ -1,128 +1,160 @@
-"""BR1 sizing: cross-underlying correlation of a frequent target, from NSE's UDiFF F&O bhavcopies.
+"""Step 2 of the BR1 sizing: how independent are daily forecasts across F&O underlyings, and how many months does a
+real skill take to show? Reads `extract.py`'s table.
 
-Per session t and underlying u: spot S (UndrlygPric), the nearest expiry with >= 3 sessions left, the ATM straddle
-(CE + PE close at the strike nearest S, both traded), implied daily move m = straddle / (S * sqrt(2/pi) * sqrt(n)).
-Target Y(u,t) = 1 if |ln(S(t+1)/S(t))| >= m (next move beats the implied 1-sigma daily move).
-Two forecasters: the market (p = 2*(1-Phi(1)) = 0.3173 if implied were right) and a 60-session trailing frequency.
-Outputs the base rate, the average pairwise correlation of Y and of the Brier difference across underlyings
-(day by day), the effective breadth N/(1+(N-1)rho), and the score-difference spread."""
+Target `Y(u, t)` = 1 when `|ln(S(t+1) / S(t))|` is at least the implied daily move of day t. Spot is not adjusted for
+corporate actions, so a contract-adjustment day is excluded by a rule written before the data is scored: fewer than
+half of a stock's listed strikes on t, for an expiry listed on both days, are still listed on t+1. NSE replaces every
+strike of a stock on a split, bonus or demerger (KOTAKBANK 14 Jan 2026, TATAMOTORS 14 Oct 2025: 0% kept) and keeps
+them on an ordinary crash (KAYNES 14 May 2026, POLICYBZR 24 Sep 2026: 100% kept).
+
+Forecasters, each from outcomes resolved before day t (an end-of-day forecast is made after t's close):
+- `market`: p = 2(1 - Phi(1)) = 0.3173, the implied move taken at face value;
+- `trail60`: the share of Y over the last 60 outcomes;
+- `cal20`, `cal60`: the implied move scaled by k = mean(|r| / m) / sqrt(2 / pi) over the last 20 (60) outcomes,
+  p = 2(1 - Phi(1 / k));
+- `tilt`: `cal60` with k x 1.15 (a forecaster uniformly more volatility-bullish than the baseline: a regime call).
+
+For each (baseline, forecaster) pair: d = Brier(baseline) - Brier(forecaster) per underlying-day (d > 0: the
+forecaster is better), its mean and t, the average pairwise correlation of d across underlyings, N_eff = N / (1 +
+(N - 1) rho), the SD and lag-1 autocorrelation of the daily cross-sectional mean of d, and the months a 2% or 3% Brier
+skill needs at 80% power, one-sided, for K tests at 0.05/K (one look) and 0.02/K (v4's rate per look), with the
+variance of the mean inflated by (1 + lag1) / (1 - lag1) for the day-to-day autocorrelation (AR(1)).
+
+    python -I sizing.py <table.csv> [first day] [last day]
+"""
 
 import csv
-import io
 import math
 import sys
-import zipfile
 from collections import defaultdict
-from pathlib import Path
+from statistics import NormalDist
 
 import numpy as np
 
-RAW = Path(sys.argv[1])
-MIN_SESSIONS_LEFT = 3
+HISTORY, BIG_MOVE, TILT, COVERAGE, TOP, KEPT = 60, 0.15, 1.15, 0.8, 30, 0.5
+P_MARKET = 2 * (1 - NormalDist().cdf(1))
+HALF_NORMAL_MEAN = math.sqrt(2 / math.pi)
+PAIRS = (("market", "trail60"), ("cal60", "trail60"), ("cal60", "cal20"), ("cal60", "tilt"))
+SKILLS, FAMILIES, RATES = (0.02, 0.03), (3, 12), (0.05, 0.02)
+SESSIONS_A_MONTH, POWER = 21, 0.8
 
 
-def read(path):
-    with zipfile.ZipFile(path) as z:
-        return list(csv.DictReader(io.TextIOWrapper(z.open(z.namelist()[0]), encoding="utf-8")))
+def load(path, first, last):
+    table = defaultdict(dict)
+    for r in csv.DictReader(open(path)):
+        if first <= r["day"] <= last:
+            table[r["underlying"]][r["day"]] = r
+    return table
 
 
-days = sorted(p.stem for p in RAW.glob("*.zip"))
-day_index = {d: i for i, d in enumerate(days)}
-spot = defaultdict(dict)  # u -> day -> S
-implied = defaultdict(dict)  # u -> day -> daily implied move
-kind = {}
-for d in days:
-    rows = read(RAW / f"{d}.zip")
-    chains = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))  # u -> expiry -> strike -> {CE, PE}
-    for r in rows:
-        tp = r["FinInstrmTp"]
-        if tp not in ("STO", "IDO"):
+def strike_sets(text):
+    return {e: set(ks.split(";")) for e, ks in (part.split("=") for part in text.split("|") if part)}
+
+
+def adjusted(a, b):
+    """True when NSE replaced most strikes between the two days (a contract adjustment)."""
+    before, after = strike_sets(a["strikes"]), strike_sets(b["strikes"])
+    common = sorted(set(before) & set(after))
+    return bool(common) and len(before[common[0]] & after[common[0]]) < KEPT * len(before[common[0]])
+
+
+def outcomes(rows, sessions):
+    """day -> (y, |r| / m) for one underlying; None on a contract-adjustment day."""
+    out, big = {}, 0
+    for t, nxt in zip(sessions, sessions[1:], strict=False):
+        a, b = rows.get(t), rows.get(nxt)
+        if not (a and b and a["implied"]):
             continue
-        u = r["TckrSymb"]
-        kind[u] = "index" if tp == "IDO" else "stock"
-        s = float(r["UndrlygPric"] or 0)
-        if s > 0:
-            spot[u][d] = s
-        if int(float(r["TtlTradgVol"] or 0)) > 0 and float(r["ClsPric"] or 0) > 0:
-            chains[u][r["XpryDt"]][float(r["StrkPric"])][r["OptnTp"]] = float(r["ClsPric"])
-    for u, by_expiry in chains.items():
-        s = spot[u].get(d)
-        if not s:
+        if adjusted(a, b):
+            out[t] = None
             continue
-        for expiry in sorted(by_expiry):
-            n = int(np.busday_count(d, expiry))  # weekdays to expiry (holidays ignored: sizing only)
-            if n < MIN_SESSIONS_LEFT:
-                continue
-            strikes = [k for k, v in by_expiry[expiry].items() if "CE" in v and "PE" in v]
-            if not strikes:
-                break
-            k = min(strikes, key=lambda x: abs(x - s))
-            if abs(k - s) / s > 0.02:
-                break
-            straddle = by_expiry[expiry][k]["CE"] + by_expiry[expiry][k]["PE"]
-            implied[u][d] = straddle / (s * math.sqrt(2 / math.pi) * math.sqrt(n))
-            break
-
-P_MARKET = 2 * (1 - 0.5 * (1 + math.erf(1 / math.sqrt(2))))
-ys, d_brier = defaultdict(dict), defaultdict(dict)
-for u in implied:
-    hist = []
-    for d in days[:-1]:
-        nxt = days[day_index[d] + 1]
-        if d in implied[u] and d in spot[u] and nxt in spot[u]:
-            y = int(abs(math.log(spot[u][nxt] / spot[u][d])) >= implied[u][d])
-            if len(hist) >= 60:
-                p_trail = sum(hist[-60:]) / 60
-                ys[u][d] = y
-                d_brier[u][d] = (P_MARKET - y) ** 2 - (p_trail - y) ** 2
-            hist.append(y)
-
-units = [u for u in ys if len(ys[u]) >= 0.8 * max(len(v) for v in ys.values())]
-cols = sorted({d for u in units for d in ys[u]})
+        r = abs(math.log(float(b["spot"]) / float(a["spot"])))
+        big += r >= BIG_MOVE
+        out[t] = (int(r >= float(a["implied"])), r / float(a["implied"]))
+    return out, big
 
 
-def matrix(values):
-    m = np.full((len(cols), len(units)), np.nan)
-    for j, u in enumerate(units):
-        for i, d in enumerate(cols):
-            m[i, j] = values[u].get(d, np.nan)
-    return m
+def p_calibrated(ratios, scale=1.0):
+    k = scale * float(np.mean(ratios)) / HALF_NORMAL_MEAN
+    return 2 * (1 - NormalDist().cdf(1 / k)) if k > 0 else 0.0
+
+
+def forecasts(series):
+    """day -> (y, {forecaster: p}), using only outcomes of earlier days."""
+    days, out = sorted(d for d, v in series.items() if v is not None), {}
+    for i, d in enumerate(days[HISTORY:], start=HISTORY):
+        past = [series[x] for x in days[i - HISTORY : i]]
+        ys, ratios = [y for y, _ in past], [q for _, q in past]
+        out[d] = (series[d][0], {
+            "market": P_MARKET, "trail60": sum(ys) / HISTORY, "cal20": p_calibrated(ratios[-20:]),
+            "cal60": p_calibrated(ratios), "tilt": p_calibrated(ratios, TILT),
+        })  # fmt: skip
+    return out
 
 
 def avg_corr(m):
-    """Average pairwise correlation across columns (pairwise complete)."""
-    df = np.ma.masked_invalid(m)
-    c = np.ma.corrcoef(df, rowvar=False).filled(np.nan)
-    iu = np.triu_indices(c.shape[0], 1)
-    return float(np.nanmean(c[iu]))
+    c = np.ma.corrcoef(np.ma.masked_invalid(m), rowvar=False).filled(np.nan)
+    return float(np.nanmean(c[np.triu_indices(c.shape[0], 1)]))
 
 
-def breadth(n, rho):
-    return n / (1 + (n - 1) * rho)
+def months(sd, lag1, skill, base_brier, k, rate):
+    z = NormalDist().inv_cdf(1 - rate / k) + NormalDist().inv_cdf(POWER)
+    inflation = (1 + lag1) / (1 - lag1) if lag1 > 0 else 1.0
+    return (z * sd / (skill * base_brier)) ** 2 * inflation / SESSIONS_A_MONTH
 
 
-Y, D = matrix(ys), matrix(d_brier)
-idx = [j for j, u in enumerate(units) if kind[u] == "index"]
-print(f"sessions {len(days)}, scored days {len(cols)}, underlyings {len(units)} ({len(idx)} indices)")
-print(f"base rate of Y: {np.nanmean(Y):.3f} (market-implied would be {P_MARKET:.3f})")
-for name, m in (("Y", Y), ("Brier difference", D)):
-    rho_all = avg_corr(m)
-    rho_idx = avg_corr(m[:, idx]) if len(idx) > 1 else float("nan")
-    print(f"{name}: avg pairwise rho all {rho_all:.3f} -> N_eff {breadth(len(units), rho_all):.1f} of {len(units)};"
-          f" indices {rho_idx:.3f} -> N_eff {breadth(len(idx), rho_idx):.2f} of {len(idx)}")
-day_mean = np.nanmean(Y, axis=1)
-print(f"share of Y variance from the day's market-wide mean: {np.nanvar(day_mean) / np.nanvar(Y):.3f}")
-print(f"Brier difference: mean {np.nanmean(D):+.4f}, sd per (u,t) {np.nanstd(D):.4f},"
-      f" sd of daily cross-sectional mean {np.nanstd(np.nanmean(D, axis=1)):.4f}")
-lag1 = np.corrcoef(np.nanmean(D, axis=1)[:-1], np.nanmean(D, axis=1)[1:])[0, 1]
-print(f"lag-1 autocorrelation of the daily mean Brier difference: {lag1:.3f}")
-rets = defaultdict(dict)
-for u in units:
-    for d in cols:
-        nxt = days[day_index[d] + 1]
-        if d in spot[u] and nxt in spot[u]:
-            rets[u][d] = math.log(spot[u][nxt] / spot[u][d])
-R = matrix(rets)
-rho_r = avg_corr(R)
-print(f"signed next-day returns: avg pairwise rho {rho_r:.3f} -> N_eff {breadth(len(units), rho_r):.1f}")
-print("indices:", [units[j] for j in idx])
+def pair_report(name, scored, units, days):
+    base, other = name
+    d = np.full((len(days), len(units)), np.nan)
+    brier = []
+    for j, u in enumerate(units):
+        for i, day in enumerate(days):
+            if day in scored[u]:
+                y, p = scored[u][day]
+                d[i, j] = (p[base] - y) ** 2 - (p[other] - y) ** 2
+                brier.append((p[base] - y) ** 2)
+    daily = np.nanmean(d, axis=1)
+    daily = daily[~np.isnan(daily)]
+    sd, rho, b = float(np.std(daily)), avg_corr(d), float(np.mean(brier))
+    t = float(np.mean(daily)) / (sd / math.sqrt(len(daily)))
+    lag1 = float(np.corrcoef(daily[:-1], daily[1:])[0, 1])
+    times = " ".join(f"{s:.0%}:" + "/".join(f"{months(sd, lag1, s, b, k, a):.1f}" for k in FAMILIES for a in RATES)
+                     for s in SKILLS)  # fmt: skip
+    print(
+        f"  {base:>7} vs {other:<7} mean d {np.nanmean(d):+.4f} (t {t:+.2f}) rho_d {rho:.3f} "
+        f"N_eff {len(units) / (1 + (len(units) - 1) * rho):5.1f} sd {sd:.4f} lag1 {lag1:+.3f} | {times}"
+    )
+
+
+def main(path, first="0000", last="9999"):
+    table = load(path, first, last)
+    sessions = sorted({d for rows in table.values() for d in rows})
+    series, big = {}, 0
+    for u, rows in table.items():
+        series[u], b = outcomes(rows, sessions)
+        big += b
+    excluded = sum(v is None for s in series.values() for v in s.values())
+    scored = {u: forecasts(s) for u, s in series.items()}
+    longest = max(len(s) for s in scored.values())
+    units = sorted(u for u in scored if len(scored[u]) >= COVERAGE * longest)
+    days = sorted({d for u in units for d in scored[u]})
+    turnover = {u: np.mean([float(r["turnover"]) for r in table[u].values()]) for u in units}
+    top = sorted(units, key=turnover.get, reverse=True)[:TOP]
+    ys = np.array([[scored[u].get(d, (np.nan,))[0] for u in units] for d in days], dtype=float)
+    kinds = {u: next(iter(table[u].values()))["kind"] for u in units}
+    print(
+        f"window {sessions[0]} to {sessions[-1]}: {len(sessions)} sessions, {len(days)} scored days, "
+        f"{len(units)} underlyings ({sum(kinds[u] == 'index' for u in units)} indices)"
+    )
+    print(f"contract-adjustment days excluded {excluded}; moves >= 15% left after the rule {big}")
+    print(f"base rate of Y {np.nanmean(ys):.3f} (face-value implied {P_MARKET:.3f}); rho of Y {avg_corr(ys):.3f}")
+    print("months columns: skill: K=3 a=.05 / K=3 a=.02 / K=12 a=.05 / K=12 a=.02")
+    for label, chosen in (("all", units), (f"top {TOP} by option turnover", top),
+                          ("indices", [u for u in units if kinds[u] == "index"])):  # fmt: skip
+        print(f"{label} ({len(chosen)}):")
+        for pair in PAIRS:
+            pair_report(pair, scored, chosen, days)
+
+
+if __name__ == "__main__":
+    main(*sys.argv[1:])
