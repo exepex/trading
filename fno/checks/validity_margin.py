@@ -26,6 +26,7 @@ from pathlib import Path
 from ..constants import STRESSED_MARGIN_MULTIPLIER, STRUCTURES_BOUGHT_ONLY, STRUCTURES_ONE_SIDE
 from .validity_account import Position
 from .validity_chain import PricedChain
+from .validity_factor import FactorProblem, factor_on
 from .validity_proposal import CheckResult
 from .validity_settings import MarginSettings
 from .validity_stress import marked
@@ -55,11 +56,10 @@ class MarginFile:
 def multiplier(settings: MarginSettings, day: date) -> float:
     if settings.method != STRESSED_MARGIN_MULTIPLIER:
         raise MarginProblem(f"stressed margin method {settings.method!r}: C4 checks the multiplier method only")
-    if settings.multiplier is None or not settings.source or settings.as_of is None:
-        raise MarginProblem("stressed margin multiplier is not set (factor, source and as_of are all required)")
-    if settings.as_of > day or (day - settings.as_of).days > settings.multiplier_max_age_days:
-        raise MarginProblem(f"stressed margin multiplier of {settings.as_of} is not valid on {day}")
-    return settings.multiplier
+    try:
+        return factor_on(settings.factor_file, day, settings.multiplier_max_age_days)[1]
+    except FactorProblem as exc:
+        raise MarginProblem(str(exc)) from exc
 
 
 def margin_row(rows, terms: tuple[str, float, int], day: date, settings: MarginSettings) -> dict:

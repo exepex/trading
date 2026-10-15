@@ -7,7 +7,7 @@ spread's stressed SPAN figure is capped at the width less the credit; SF, SC and
 k also stresses the exposure, outside the cap (LC and LP carry none, so they are unchanged)."""
 
 import csv
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -18,11 +18,12 @@ from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin
 from fno.risk.rules import MarginRoom, capital_at_entry
 from fno.risk.settings import StressedMarginSettings
+from tests.stress_factor_files import factor_file
 
 REAL_ROWS = Path(__file__).parent / "fixtures" / "margins_2026-10-14.csv"
 DAY, LOT, K = date(2026, 10, 14), 65, 1.45
 ROWS = list(csv.DictReader(REAL_ROWS.open(encoding="utf-8")))
-SETTINGS = StressedMarginSettings("multiplier", K, "owner, 14 Oct 2026", DAY, 30, None)
+SETTINGS = StressedMarginSettings("multiplier", factor_file(K, DAY - timedelta(days=1)), 30, None)
 MARGIN = MultiplierMargin(MarginTable(REAL_ROWS, DaysOld(7), LOT), SETTINGS)
 
 

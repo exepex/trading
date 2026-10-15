@@ -117,8 +117,7 @@ def test_margin_room_too_small_is_blocked():
     ],
 )
 def test_a_missing_stale_or_unsourced_margin_fails_closed(margins, owner, said):
-    owner_limits = limits(stressed_margin={"method": "multiplier", "multiplier": None, "source": None,
-                                           "as_of": None, "max_age_days": 30}) if owner else None  # fmt: skip
+    owner_limits = limits(stressed_margin={"factor_file": None}) if owner else None  # story C2d: no factor file
     report = check(margins=margins, owner_limits=owner_limits)
     assert failed(report) == {"margin_room"} and said in report.failures[0].reason
 

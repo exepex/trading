@@ -26,6 +26,7 @@ from tests.checks.validity_builders import (
 )
 from tests.checks.validity_proposal_builder import one_side_proposal
 from tests.checks.validity_sources import FILE_DAY, MARGIN_ROWS, Margins
+from tests.stress_factor_files import factor_file
 
 SHAPES = validity_shapes()
 # code -> (legs on the 25,000 ATM strike, width) as STR1 builds them (tests/research_engine/test_one_side.py)
@@ -117,7 +118,9 @@ def test_bounded_loss_is_checked_from_the_legs_whatever_the_code_and_shape_rules
     assert not bounded.ok and "CE" in bounded.reason
 
 
-SETTINGS = MarginSettings(Path("margins.csv"), 7, None, "multiplier", 1.45, "test", FILE_DAY, 30)  # 7 days (Manual)
+SETTINGS = MarginSettings(
+    Path("margins.csv"), 7, None, "multiplier", factor_file(1.45, FILE_DAY), 30
+)  # 7 days (Manual)
 
 
 def zero_row(code: str, width: float, exposure: float = 0.0) -> dict:

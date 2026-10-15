@@ -142,7 +142,7 @@ class FixedStressedMargin:
     def broker_margin(self, terms, day):
         return self.per_trade * terms.lots
 
-    def record(self):
+    def record(self, day=None):
         return {"method": self.method}
 
 
