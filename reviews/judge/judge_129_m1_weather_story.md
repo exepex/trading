@@ -186,3 +186,12 @@ Keep both; no code conflicts.
 ### Merge check: MET for M1's own parts; main's CI is red for an R2 cause, reported above
 
 M1 is done once main's CI is green again on a tree containing b29ac33. I will confirm that when the R2 fix lands.
+
+## Addendum 3 (15 Oct 2026): M1 merge check closed
+
+- **CI on `main` is green on trees containing b29ac33.** `checks` run 38743169675 on c791051 succeeded, as did
+  38743349971 (8aca45d) and 38743424608 (73b488a).
+- **What fixed it:** the Python 3.13 change (judge 137, merged at 7d98370) and the lane-2 test fixes in c791051.
+- Addendum 2's other two checks were already MET.
+
+**M1 is done.**
