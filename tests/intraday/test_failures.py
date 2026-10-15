@@ -7,6 +7,7 @@ from datetime import date, time
 
 import pytest
 
+from fno.intraday.ledger import missed_row
 from fno.intraday.recorder import ALREADY, NO_MARK, SettleRefused
 from fno.intraday.rv_table import FIELDS, RvTable
 from fno.storage.raw_store import StoredCopyDamaged
@@ -24,18 +25,23 @@ def test_a_source_that_raises_gives_a_failed_row_the_streak_alert_and_a_heartbea
     assert [(r["status"], r["failures"]) for r in rows] == [("failed", "take: ValueError")] * 2
     assert [o.status for o in outcomes] == ["failed", "failed"] and len(alerts.sent) == 1
     assert recorder.heartbeat.read()["status"] == "failed" and len(publisher.commits) == 2
-    assert "PLANTED" not in (tmp_path / "slots" / "2026" / "10" / "nifty_20261015.csv").read_text()
+    assert not [p for p in (tmp_path / "slots").rglob("*.csv") if "PLANTED" in p.read_text()]
 
 
 def test_a_store_that_raises_gives_a_failed_row_and_the_loop_goes_on(tmp_path):
     clock = FakeClock(ist(DAY, 9, 10))
     recorder, source, *_ = build(tmp_path, clock)
-    put = recorder.store.put
-    recorder.store.put = lambda path, data: (_ for _ in ()).throw(StoredCopyDamaged(path)) if "0915" in path else put(
-        path, data)  # fmt: skip
+    put = recorder.store.put_first
+
+    def drive_down_at_0915(path, data):
+        if "_0915." in path:
+            raise StoredCopyDamaged(path)
+        return put(path, data)
+
+    recorder.store.put_first = drive_down_at_0915
     recorder.run(time(9, 35))
     assert [(r["mark_ist"], r["status"], r["failures"]) for r in recorder.ledger.rows(DAY)] == [
-        ("09:15", "failed", "store: StoredCopyDamaged"), ("09:30", "good", "")
+        ("09:15", "failed", "drive_write: StoredCopyDamaged"), ("09:30", "good", "")
     ]  # fmt: skip
 
 
@@ -118,23 +124,42 @@ def test_marks_another_host_already_took_do_not_end_the_loop(tmp_path):
     assert source.taken == [ist(DAY, 10, 0)]
 
 
-def test_the_stored_first_version_is_what_the_row_describes(tmp_path):
+def test_a_run_whose_copy_came_second_writes_no_row_and_the_first_versions_row_is_settled_later(tmp_path):
     clock = FakeClock(ist(DAY, 9, 14))
     recorder, source, *_ = build(tmp_path, clock)
     path = recorder.settlement.path(DAY, ist(DAY, 9, 15))
     first = {}
-    real_put = recorder.store.put
+    real_put = recorder.store.put_first
 
-    def other_host_first(p, data):
-        if not first:
+    def other_run_first(p, data):
+        if not first:  # an overlapping run in another checkout stores its copy a moment earlier
             other = source.take(DAY, ist(DAY, 9, 15))
             other.two_sided_contracts = 1
             first["data"] = other.to_bytes()
-            real_put(p, first["data"])
-        real_put(p, data)
+            assert real_put(p, first["data"])
+        return real_put(p, data)
 
-    recorder.store.put = other_host_first
+    recorder.store.put_first = other_run_first
+    outcome = recorder.snapshot()
+    assert outcome.status == "already recorded" and "kept as a revision" in outcome.detail
+    assert recorder.ledger.rows(DAY) == [] and recorder.store.rows()[0]["path"] == path  # ours: a revision only
+    clock.moment = ist(DAY, 9, 29)  # the other run died before writing its row: the next settlement writes it
     recorder.snapshot()
     row = recorder.ledger.rows(DAY)[0]
     assert row["raw_sha256"] == hashlib.sha256(first["data"]).hexdigest() and row["two_sided_contracts"] == "1"
-    assert recorder.store.rows()[0]["path"] == path  # ours went to the revisions area
+
+
+def test_a_run_pulls_before_settling_so_a_row_the_other_run_pushed_is_never_duplicated(tmp_path):
+    clock = FakeClock(ist(DAY, 9, 29))
+    recorder, _, _, publisher, _ = build(tmp_path, clock)
+    pushed_by_other_run = missed_row(DAY, ist(DAY, 9, 15), "fakegroww", ist(DAY, 9, 20))
+
+    def pull():
+        recorder.ledger.append(DAY, [pushed_by_other_run])  # what the pull brings in
+        return "pulled main"
+
+    publisher.pull = pull
+    outcome = recorder.snapshot()
+    assert outcome.lines[0] == "pulled main"
+    [row_0915, _] = recorder.ledger.rows(DAY)
+    assert row_0915["first_seen_at"] == "2026-10-15T03:50:00+00:00"  # the other run's row, not a second one

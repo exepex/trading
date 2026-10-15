@@ -33,8 +33,8 @@ def doc(sent=0.0, received=1.0, age=1.0, level=25000.0, contracts=(4, 4), failur
     chain = [
         CallRecord(f"chain {n}", answered, answered, {}, "", {"contracts": contracts[0] // 2}) for n in range(chains)
     ]
-    return SnapshotDocument("groww", "NIFTY", DAY, MARK, index, level, source_time, None, chain, quotes, {},
-                            contracts[0])  # fmt: skip
+    return SnapshotDocument("groww", "NIFTY", DAY, MARK, index, level, source_time, chains=chain, quotes=quotes,
+                            expected_contracts=contracts[0])  # fmt: skip
 
 
 @pytest.mark.parametrize(
@@ -54,14 +54,16 @@ def doc(sent=0.0, received=1.0, age=1.0, level=25000.0, contracts=(4, 4), failur
     ],
 )
 def test_index_check_at_each_limit(kwargs, problem):
-    check = index_check(doc(**kwargs), previous_level=24990.0)
+    check = index_check(doc(**kwargs))
     assert check.problem == problem and (check.level is None) == bool(problem)
 
 
-def test_a_level_equal_to_the_previous_marks_is_stale_and_a_one_paisa_change_is_not():
-    assert index_check(doc(level=25000.0), 25000.0).problem == INDEX_REPEATED
-    assert index_check(doc(level=25000.01), 25000.0).problem == ""
-    assert index_check(doc(level=25000.0), None).problem == ""  # 09:15, or the previous mark has no level
+def test_a_level_equal_to_the_previous_marks_is_only_flagged_never_stale():
+    """Judge 108 should-fix 2: calm 15-minute intervals exist; voiding them would bias the realised variance."""
+    same = verdict(doc(level=25000.0), 25000.0)
+    assert same.status == "good" and INDEX_REPEATED in same.failures and index_check(doc(level=25000.0)).problem == ""
+    assert INDEX_REPEATED not in verdict(doc(level=25000.05), 25000.0).failures  # one tick of change: no flag
+    assert INDEX_REPEATED not in verdict(doc(level=25000.0), None).failures  # 09:15, or no previous level
 
 
 @pytest.mark.parametrize(

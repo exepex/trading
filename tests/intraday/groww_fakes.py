@@ -21,8 +21,12 @@ class ForbiddenCall(AssertionError):
 class FakeGrowwApi:
     EXCHANGE_NSE, SEGMENT_CASH, SEGMENT_FNO = "NSE", "CASH", "FNO"
 
-    def __init__(self, index_level: float = 25000.0, fail: tuple[str, ...] = (), error: Exception | None = None):
+    CANDLE_INTERVAL_MIN_1 = "1minute"
+
+    def __init__(self, index_level: float = 25000.0, fail: tuple[str, ...] = (), error: Exception | None = None,
+                 index_time: int | None = 1792036800000, candles: list | None = None):  # fmt: skip
         self.index_level, self.fail, self.error = index_level, fail, error or RuntimeError("Bad Request")
+        self.index_time, self.candles = index_time, candles or []
         self.calls: list[str] = []
 
     def __getattr__(self, name):
@@ -35,7 +39,7 @@ class FakeGrowwApi:
         if trading_symbol in self.fail:
             raise self.error
         if segment == self.SEGMENT_CASH:
-            return {"payload": {"last_price": self.index_level, "last_trade_time": 1792036800000}}
+            return {"payload": {"last_price": self.index_level, "last_trade_time": self.index_time}}
         return {"payload": {"bid_price": 10.5, "offer_price": 11.0, "bid_quantity": 75, "offer_quantity": 150,
                             "last_trade_time": 1792036790}}  # fmt: skip
 
@@ -47,6 +51,11 @@ class FakeGrowwApi:
         legs = {str(k): {kind: {"ltp": 1.0, "trading_symbol": f"NIFTY{tag}{k}{kind}"} for kind in ("CE", "PE")}
                 for k in STRIKES}  # fmt: skip
         return {"payload": {"underlying_ltp": self.index_level, "strikes": legs}}
+
+    def get_historical_candles(self, exchange, segment, groww_symbol, start_time, end_time, candle_interval,
+                               timeout=None):  # fmt: skip
+        self.calls.append(f"candles {groww_symbol} {candle_interval} {start_time}..{end_time}")
+        return {"payload": {"candles": self.candles, "interval_in_minutes": 1}}
 
 
 class FakeGrowwProvider:

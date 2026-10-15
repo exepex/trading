@@ -10,8 +10,10 @@ import pytest
 from fno.constants import ENV_GROWW_API_KEY, ENV_GROWW_TOTP_SECRET
 from fno.intraday.cli import report
 from fno.intraday.expiry_plan import ExpiryPlan
-from fno.intraday.groww_source import GrowwIntradaySource, epoch_time
+from fno.intraday.groww_source import GrowwIntradaySource
+from fno.intraday.index_reading import epoch_time
 from fno.intraday.pacing import RatePacer
+from fno.intraday.read_only import ReadOnlyGroww
 from tests.intraday.fakes import DAY, FakeClock, build, ist
 from tests.intraday.groww_fakes import FakeGrowwApi, FakeGrowwProvider
 
@@ -20,10 +22,11 @@ PLANTED = "PLANTED-SECRET-7f3a"
 
 
 def source(api=None, provider=None, listed=LISTED, clock=None):
+    """The adapter as the composition root builds it: its only Groww object is the read-only wrapper."""
     clock = clock or FakeClock(ist(DAY, 10, 0))
-    plan = ExpiryPlan(lambda: listed)
+    provider = provider or FakeGrowwProvider(api)
     pacer = RatePacer(1000, clock=lambda: 0.0, sleep=lambda s: None)
-    return GrowwIntradaySource(provider or FakeGrowwProvider(api), plan, clock.now, pacer)
+    return GrowwIntradaySource(ReadOnlyGroww(lambda: provider.api), ExpiryPlan(lambda: listed), 75, clock.now, pacer)
 
 
 def test_a_snapshot_holds_the_index_the_future_two_chains_and_every_contract_within_6_percent():
@@ -70,6 +73,7 @@ def test_a_refused_sign_in_fails_every_call_by_name_and_never_raises():
     found = adapter.take(DAY, ist(DAY, 10, 0))
     assert found.index.failure == "RuntimeError" and found.index_level is None
     assert found.notes == ["prepare sign_in: RuntimeError"] and found.expected_contracts == 0
+    assert found.index_basis == "" and found.index_candle is None  # no fallback call when the quote itself failed
     assert found.failures[0] == "index" and "chain 2026-10-19" in found.failures
 
 

@@ -1,10 +1,9 @@
-"""Groww as the 15-minute snapshot source (story A16). Read-only: only `get_quote` and `get_option_chain` here, plus
-the existing provider's sign-in and expiry list; no order, position, margin or funds call exists in this package.
-Credentials stay in the environment (`GrowwProvider`); a failure is kept by its exception class name only.
+"""Groww as the 15-minute snapshot source (story A16). It holds only a `ReadOnlyGroww` (criterion 10): read calls by
+name, nothing else. A failure is kept by its exception class name only (an exception's text could carry a credential).
 
-Order inside a snapshot: the index quote first (the realised variance's input, sent right at the mark), then the near
-future, the two chains, and one quote per contract within 6% of the index level, at most 4 at a time and 5 a second
-(step 0's measured limit)."""
+Order inside a snapshot: the index quote first (the realised variance's input, sent right at the mark; with the
+1-minute candle fallback when Groww gives the index no time), then the near future, the two chains, and one quote per
+contract within 6% of the index level, at most 4 at a time and 5 a second (step 0's measured limit)."""
 
 from __future__ import annotations
 
@@ -12,11 +11,13 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime
 
-from ..models import IST, now_ist
-from ..providers.groww import GrowwProvider, _payload, parse_groww_chain, parse_groww_quote_book
+from ..models import now_ist
+from ..providers.groww import _payload, listed_expiries, parse_groww_chain, parse_groww_quote_book
 from .document import CallRecord, SnapshotDocument
 from .expiry_plan import UNDERLYING, Expiries, ExpiryPlan
+from .index_reading import CANDLE_BASIS, CANDLE_SYMBOL, QUOTE_BASIS, candle_reading, candle_window, quote_reading
 from .pacing import RatePacer
+from .read_only import ReadOnlyGroww
 from .source import IntradayQuoteSource
 
 SPOT_BAND = 0.06  # strikes within 6% of the index level (design 2.1)
@@ -24,24 +25,28 @@ INDEX_SYMBOL = "NIFTY"
 FUTURE_SYMBOL = "NIFTY{expiry:%y}{month}FUT"  # e.g. NIFTY26OCTFUT (step 0: the form get_quote accepts)
 WORKERS, PER_SECOND = 4, 5
 CALL_TIMEOUT_SECONDS = 10  # a hung call is a failure, never a stuck loop
-INDEX_PARSE, CHAIN_PARSE = "index_parse", "chain_parse"
-EXPIRY_PLAN = "expiry_plan"
-MILLISECONDS_FROM = 10**11  # an epoch time above this is in milliseconds
+EXPIRY_PLAN, INDEX_PARSE, CHAIN_PARSE = "expiry_plan", "index_parse", "chain_parse"
+PARSE_ERRORS = (TypeError, ValueError, OverflowError, IndexError, KeyError, AttributeError, OSError)
+
+
+def groww_listed_expiries(client: ReadOnlyGroww, clock: Callable[[], datetime] = now_ist) -> Callable[[], list[date]]:
+    """Groww's expiry list read through the read-only client (for `ExpiryPlan`)."""
+    return lambda: listed_expiries(client, UNDERLYING, clock().date())
 
 
 class GrowwIntradaySource(IntradayQuoteSource):
     name = "groww"
 
-    def __init__(self, provider: GrowwProvider, plan: ExpiryPlan, clock: Callable[[], datetime] = now_ist,
-                 pacer: RatePacer | None = None):  # fmt: skip
-        self.provider, self.plan, self.clock = provider, plan, clock
+    def __init__(self, client: ReadOnlyGroww, plan: ExpiryPlan, lot_size: int,
+                 clock: Callable[[], datetime] = now_ist, pacer: RatePacer | None = None):  # fmt: skip
+        self.client, self.plan, self.lot_size, self.clock = client, plan, lot_size, clock
         self.pacer = pacer or RatePacer(PER_SECOND)
         self._expiries: dict[date, Expiries] = {}
         self._prepare_notes: list[str] = []
 
     def prepare(self, session: date) -> None:
         self._prepare_notes = []
-        for step, action in (("sign_in", lambda: self.provider.api), (EXPIRY_PLAN, lambda: self._plan(session))):
+        for step, action in (("sign_in", lambda: self.client.EXCHANGE_NSE), (EXPIRY_PLAN, lambda: self._plan(session))):
             try:
                 action()
             except Exception as exc:  # a note only: the snapshot tries again, and its own calls decide its status
@@ -52,10 +57,7 @@ class GrowwIntradaySource(IntradayQuoteSource):
                            segment=api.SEGMENT_CASH, timeout=CALL_TIMEOUT_SECONDS))  # fmt: skip
         doc = SnapshotDocument(self.name, UNDERLYING, session, mark, index, None, None,
                                notes=list(self._prepare_notes))  # fmt: skip
-        try:
-            doc.index_level, doc.index_source_time = _index_reading(index.payload)
-        except (TypeError, ValueError, OverflowError) as exc:  # an unexpected shape: no level, named, never a crash
-            doc.failures.append(f"{INDEX_PARSE}: {type(exc).__name__}")
+        self._read_index(doc)
         try:
             expiries = self._plan(session)
         except Exception as exc:
@@ -76,10 +78,29 @@ class GrowwIntradaySource(IntradayQuoteSource):
         doc.two_sided_contracts = sum(1 for q in doc.quotes if _two_sided(q))
         return self._finish(doc)
 
+    def _read_index(self, doc: SnapshotDocument) -> None:
+        """The level and its source time: the quote's own, else one finished 1-minute candle's close and end."""
+        try:
+            level, source_time = quote_reading(doc.index.payload)
+            basis = QUOTE_BASIS if source_time else ""
+            if source_time is None and not doc.index.failure:
+                doc.index_candle = self._call("index_candle", lambda api: api.get_historical_candles(
+                    exchange=api.EXCHANGE_NSE, segment=api.SEGMENT_CASH, groww_symbol=CANDLE_SYMBOL,
+                    candle_interval=api.CANDLE_INTERVAL_MIN_1, timeout=CALL_TIMEOUT_SECONDS,
+                    **candle_window(doc.index.response_received_at)))  # fmt: skip
+                if not doc.index_candle.failure:
+                    candle = candle_reading(doc.index_candle.payload, doc.index_candle.response_received_at)
+                    level, source_time = candle if candle[1] else (level, None)
+                    basis = CANDLE_BASIS if candle[1] else ""
+        except PARSE_ERRORS as exc:  # an unexpected shape: no level, named, never a crash
+            doc.failures.append(f"{INDEX_PARSE}: {type(exc).__name__}")
+            return
+        doc.index_level, doc.index_source_time, doc.index_basis = level, source_time, basis
+
     def _finish(self, doc: SnapshotDocument) -> SnapshotDocument:
         """Names every failed call in the document's failures and stamps when it was complete."""
-        calls = [doc.index, *([doc.future] if doc.future else []), *doc.chains, *doc.quotes]
-        doc.failures += [call.name for call in calls if call.failure]
+        extra = [r for r in (doc.index_candle, doc.future) if r]
+        doc.failures += [call.name for call in [doc.index, *extra, *doc.chains, *doc.quotes] if call.failure]
         doc.finished_at = self.clock()
         return doc
 
@@ -91,7 +112,7 @@ class GrowwIntradaySource(IntradayQuoteSource):
     def _call(self, name: str, request, meta: dict | None = None) -> CallRecord:
         sent = self.clock()
         try:
-            payload = _payload(request(self.provider.api))
+            payload = _payload(request(self.client))
         except Exception as exc:  # the class name only: an exception's text could carry a credential
             return CallRecord(name, sent, None, None, type(exc).__name__, meta or {})
         return CallRecord(name, sent, self.clock(), payload, "", meta or {})
@@ -108,10 +129,11 @@ class GrowwIntradaySource(IntradayQuoteSource):
                             {"expiry": expiry.isoformat()})  # fmt: skip
         if record.failure:
             return record, None
-        lot = self.provider.fallback_lot_size(UNDERLYING)
         try:
-            return record, parse_groww_chain(record.payload, UNDERLYING, expiry, lot, record.response_received_at)
-        except (TypeError, ValueError, AttributeError) as exc:
+            return record, parse_groww_chain(
+                record.payload, UNDERLYING, expiry, self.lot_size, record.response_received_at
+            )
+        except PARSE_ERRORS as exc:
             doc.failures.append(f"{CHAIN_PARSE} {expiry}: {type(exc).__name__}")
             return record, None
 
@@ -132,26 +154,11 @@ class GrowwIntradaySource(IntradayQuoteSource):
                           contract)  # fmt: skip
 
 
-def _index_reading(payload) -> tuple[float | None, datetime | None]:
-    """The index level and Groww's own time for it (its `last_trade_time`, epoch seconds or milliseconds)."""
-    if not isinstance(payload, dict):
-        return None, None
-    level = payload.get("last_price")
-    return (float(level) if level else None), epoch_time(payload.get("last_trade_time"))
-
-
-def epoch_time(value) -> datetime | None:
-    if not value:
-        return None
-    number = int(value)
-    return datetime.fromtimestamp(number / 1000 if number > MILLISECONDS_FROM else number, IST)
-
-
 def _two_sided(record: CallRecord) -> bool:
     if record.failure or not isinstance(record.payload, dict):
         return False
     try:
         book = parse_groww_quote_book(record.meta.get("symbol", ""), record.payload)
-    except (TypeError, ValueError, OverflowError, OSError):
+    except PARSE_ERRORS:
         return False  # an unreadable book is not counted two-sided; its raw answer is kept
     return bool(book.bid and book.ask)

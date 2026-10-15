@@ -15,9 +15,9 @@ from fno.intraday.recorder import IntradayRecorder
 from fno.intraday.rv_table import RvTable
 from fno.intraday.session_rv import SessionRv
 from fno.intraday.source import IntradayQuoteSource
+from fno.intraday.sync import LedgerSync
 from fno.models import IST
 from fno.research_data.calendar import CsvSessionCalendar
-from fno.storage.manifest_commit import ManifestRecorder
 from fno.storage.raw_store import AreaStore, LocalFolderStore
 
 SOURCE_LINK = "https://example.org/circular.pdf"
@@ -88,6 +88,7 @@ class FakeSource(IntradayQuoteSource):
             None if plan == "fail" else source_time, chains=chains, quotes=quotes, expected_contracts=self.contracts,
             two_sided_contracts=len(quotes), failures=["index"] if plan == "fail" else [],
         )  # fmt: skip
+        doc.index_basis = "" if plan == "fail" else "quote_last_trade_time"
         doc.finished_at = self.clock.now()
         return doc
 
@@ -104,12 +105,14 @@ class FakeAlerts(AlertSender):
         return NOT_SENT.format(reason="test") if self.failing else SENT
 
 
-class FakePublisher(ManifestRecorder):
+class FakePublisher(LedgerSync):
     def __init__(self):
         self.commits: list[str] = []
+        self.pulls = 0
 
-    def pending(self) -> list[str]:
-        return []
+    def pull(self) -> str:
+        self.pulls += 1
+        return "pulled (fake)"
 
     def commit(self, what: str) -> str:
         self.commits.append(what)
@@ -131,7 +134,7 @@ def calendar() -> CsvSessionCalendar:
 def build(tmp_path, clock: FakeClock, plans: dict | None = None, skew: float | None = 0.4):
     """A recorder on local folders with every fake; returns (recorder, source, alerts, publisher, store)."""
     drive = LocalFolderStore(tmp_path / "drive")
-    store = FirstVersionStore(AreaStore(drive, "raw"), AreaStore(drive, "revisions"), tmp_path / "revisions.csv",
+    store = FirstVersionStore(AreaStore(drive, "raw"), AreaStore(drive, "revisions"), tmp_path / "revisions",
                               clock.now)  # fmt: skip
     source, alerts, publisher = FakeSource(clock, plans), FakeAlerts(), FakePublisher()
     session_rv = SessionRv(store, source.name, calendar(), RvTable(tmp_path), QuoteSnapshotRv15m(), clock.now)

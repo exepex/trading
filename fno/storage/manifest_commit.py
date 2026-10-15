@@ -34,8 +34,11 @@ class ManifestRecorder(ABC):
 
 class GitManifestRecorder(ManifestRecorder):
     def __init__(self, repository: Path, folder: Path, run=subprocess.run, message: str = COMMIT_MESSAGE,
-                 label: str = MANIFEST_LABEL):  # fmt: skip
+                 label: str = MANIFEST_LABEL, keep_remote_on_conflict: bool = False):  # fmt: skip
+        """`keep_remote_on_conflict`: a pull conflict is settled with the copy already pushed (`-X theirs`), for a
+        folder of write-once records where the first push wins (story A16); off for manifests."""
         self.repository, self.run, self.message, self.label = Path(repository), run, message, label
+        self.merge_option = ("-X", "theirs") if keep_remote_on_conflict else ()
         self.folder = Path(folder).resolve().relative_to(self.repository.resolve()).as_posix()
 
     def _git(self, *args: str) -> subprocess.CompletedProcess:
@@ -63,9 +66,9 @@ class GitManifestRecorder(ManifestRecorder):
     def _publish(self, count: int) -> str:
         """Pulls and pushes; another session pushing in between is retried (PUSH_ATTEMPTS in all)."""
         for _ in range(PUSH_ATTEMPTS):
-            pulled = self._git("pull", "--no-rebase", "--no-edit", "origin", self._branch())
+            pulled = self.pull()
             if pulled.returncode != 0:
-                self._git("merge", "--abort")  # never leave the checkout mid-merge: every later commit would fail
+                self.abort_merge()
                 return self._not_committed("pull", _first_line(pulled))
             pushed = self._git("push", "origin", "HEAD")
             if pushed.returncode == 0:
@@ -74,6 +77,13 @@ class GitManifestRecorder(ManifestRecorder):
 
     def _not_committed(self, step: str, reason: str) -> str:
         return NOT_COMMITTED.format(label=self.label, folder=self.folder, step=step, reason=reason)
+
+    def pull(self) -> subprocess.CompletedProcess:
+        return self._git("pull", "--no-rebase", "--no-edit", *self.merge_option, "origin", self._branch())
+
+    def abort_merge(self) -> None:
+        """Never leaves the checkout mid-merge: every later commit would fail."""
+        self._git("merge", "--abort")
 
     def _branch(self) -> str:
         return self._git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()

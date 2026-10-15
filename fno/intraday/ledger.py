@@ -4,13 +4,13 @@ counts, statuses and SHA-256 values (never a price: raw quotes stay in Drive, de
 
 from __future__ import annotations
 
-import csv
-import io
 from datetime import date, datetime
 from pathlib import Path
 
+from ..models import IST
 from .clock import ClockReading
-from .document import SnapshotDocument, utc_text
+from .document import SnapshotDocument, parse_time, utc_text
+from .row_files import read_rows, write_row
 from .slots import label
 from .status import FAILED, MISSED, SlotVerdict
 
@@ -18,46 +18,36 @@ FIELDS = (
     "session", "mark", "mark_ist", "status", "failures", "request_sent_at", "response_received_at",
     "index_source_time", "lateness_seconds", "index_age_seconds", "expected_contracts", "recorded_contracts",
     "two_sided_contracts", "clock_status", "clock_skew_seconds", "raw_path", "raw_sha256", "source", "first_seen_at",
-    "alert", "alert_at",
+    "alert", "alert_at", "index_basis",
 )  # fmt: skip
 NOT_TAKEN = "not_taken"
-FILE_NAME = "slots/{day:%Y}/{day:%m}/nifty_{day:%Y%m%d}.csv"
+FILE_NAME = "slots/{day:%Y}/{day:%m}/{day:%d}/nifty_{day:%Y%m%d}_{mark:%H%M}.csv"
+DAY_FOLDER = "slots/{day:%Y}/{day:%m}/{day:%d}"
+SESSION_FOLDERS = "slots/*/*/*"
 
 
 class SlotLedger:
+    """One file per mark (`slots/<YYYY>/<MM>/<DD>/nifty_<YYYYMMDD>_<HHMM>.csv`): two recorder runs in two clones never
+    append to the same file."""
+
     def __init__(self, folder: Path):
         self.folder = Path(folder)
 
-    def path(self, day: date) -> Path:
-        return self.folder / FILE_NAME.format(day=day)
+    def path(self, day: date, mark: datetime) -> Path:
+        return self.folder / FILE_NAME.format(day=day, mark=mark.astimezone(IST))
 
     def rows(self, day: date) -> list[dict]:
-        file = self.path(day)
-        return list(csv.DictReader(io.StringIO(file.read_text(encoding="utf-8")))) if file.is_file() else []
+        return read_rows(self.folder / DAY_FOLDER.format(day=day), "nifty_*.csv")
 
     def sessions_before(self, day: date) -> list[date]:
-        """Sessions before `day` that have a ledger file."""
-        found = (date.fromisoformat(f"{p.stem[6:10]}-{p.stem[10:12]}-{p.stem[12:14]}") for p in self._files())
+        """Sessions before `day` that have ledger rows."""
+        found = (date(int(p.parts[-3]), int(p.parts[-2]), int(p.parts[-1])) for p in self.folder.glob(SESSION_FOLDERS))
         return sorted(d for d in found if d < day)
 
-    def _files(self) -> list[Path]:
-        return sorted((self.folder / "slots").glob("*/*/nifty_*.csv"))
-
     def append(self, day: date, rows: list[dict]) -> None:
-        """Adds rows for marks that have none; a second row for a mark is refused (rows are never rewritten)."""
-        if not rows:
-            return
-        taken = {row["mark"] for row in self.rows(day)}
-        if clash := sorted(taken & {row["mark"] for row in rows}):
-            raise ValueError(f"ledger already has rows for {clash}: rows are written once")
-        file = self.path(day)
-        file.parent.mkdir(parents=True, exist_ok=True)
-        new = not file.is_file()
-        with file.open("a", encoding="utf-8", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n")
-            if new:
-                writer.writeheader()
-            writer.writerows(rows)
+        """Writes each row to its mark's own file; a mark that already has one is refused (rows are written once)."""
+        for row in rows:
+            write_row(self.path(day, parse_time(row["mark"])), FIELDS, row)
 
 
 def taken_row(doc: SnapshotDocument, verdict: SlotVerdict, raw_path: str, raw_sha256: str,
@@ -72,7 +62,7 @@ def taken_row(doc: SnapshotDocument, verdict: SlotVerdict, raw_path: str, raw_sh
         "expected_contracts": doc.expected_contracts, "recorded_contracts": doc.recorded_contracts,
         "two_sided_contracts": doc.two_sided_contracts, "clock_status": clock.status if clock else "",
         "clock_skew_seconds": _number(clock.worst if clock else None), "raw_path": raw_path, "raw_sha256": raw_sha256,
-        "first_seen_at": utc_text(doc.finished_at), "alert": "", "alert_at": "",
+        "first_seen_at": utc_text(doc.finished_at), "alert": "", "alert_at": "", "index_basis": doc.index_basis,
     }  # fmt: skip
 
 

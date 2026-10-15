@@ -51,7 +51,9 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 Groww's 15-minute snapshots (story A16, `fno/intraday/`): `groww/derivatives/intraday-snapshots/<YYYY>/<MM>/<DD>/
 nifty_<YYYYMMDD>_<HHMM>.json.gz`, one per mark of a session (09:15-15:30 IST), raw quotes in Drive only; a later
 different version of the same path goes to the `revisions` area (A11's layout) with a row in
-`research/data/intraday/revisions.csv`. The repository holds only the derived slot ledger and realised variance.
+`research/data/intraday/revisions/` (one index file per revision). The repository holds only the derived records,
+one file each: a row per mark (`slots/<YYYY>/<MM>/<DD>/`), the realised variance per session (`rv/<YYYY>/`) and the
+heartbeat.
 
 Filing files are grouped by category, company and the year of the period reported (owner, 13 Oct 2026); later
 categories (annual reports, insider trades, pledges, credit ratings, corporate actions) take the same shape. The

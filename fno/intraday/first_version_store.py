@@ -1,11 +1,12 @@
 """Raw snapshots kept by A11's revision rule (story A16): the first bytes saved at a path stay the raw file; different
-bytes later offered for the same path (two hosts taking one mark) are never written over it: they go to the
-`revisions` area under A11's layout (`<raw path>/<found_at>_<sha256><suffixes>`) with one row in an append-only index.
-Readers get the first version, which is what was known first (point in time)."""
+bytes later offered for the same path (two overlapping runs taking one mark) are never written over it: they go to the
+`revisions` area under A11's layout (`<raw path>/<found_at>_<sha256><suffixes>`) with an index record in its own file
+(`revisions/<file stem>_<sha256 first 16>.csv`, so two runs never write the same index file). Readers get the first
+version, which is what was known first (point in time). `put_first` tells the caller whether its bytes are that first
+version: only that run writes the mark's ledger row (story A16, "Two checkouts, one ledger")."""
 
 from __future__ import annotations
 
-import csv
 import hashlib
 from collections.abc import Callable
 from datetime import datetime
@@ -14,45 +15,46 @@ from pathlib import Path, PurePosixPath
 from ..models import now_ist
 from ..storage.raw_store import RawFileConflict, RawFileStore
 from .document import utc_text
+from .row_files import read_rows, write_row
 
 INDEX_FIELDS = ("path", "sha256", "size_bytes", "found_at", "revision_path")
 REVISION_NAME = "{at:%Y%m%dT%H%M%S%z}_{sha256}{suffix}"
+INDEX_NAME = "{stem}_{sha256:.16}.csv"
 
 
 class FirstVersionStore(RawFileStore):
-    def __init__(self, raw: RawFileStore, revisions: RawFileStore, index_file: Path,
+    def __init__(self, raw: RawFileStore, revisions: RawFileStore, index_folder: Path,
                  clock: Callable[[], datetime] = now_ist):  # fmt: skip
-        self.raw, self.revisions, self.index_file, self.clock = raw, revisions, Path(index_file), clock
+        self.raw, self.revisions, self.index_folder, self.clock = raw, revisions, Path(index_folder), clock
         self.name = raw.name
 
     def get(self, path: str) -> bytes | None:
         return self.raw.get(path)
 
     def put(self, path: str, data: bytes) -> None:
+        self.put_first(path, data)
+
+    def put_first(self, path: str, data: bytes) -> bool:
+        """Saves the bytes; True when they are the path's first version (saved now or already identical), False when
+        another version was there first and these went to the revisions area."""
         try:
             self.raw.put(path, data)
         except RawFileConflict:
             self._save_revision(path, data)
+            return False
+        return True
+
+    def rows(self) -> list[dict]:
+        return read_rows(self.index_folder, "*.csv")
 
     def _save_revision(self, path: str, data: bytes) -> None:
         sha256, found_at = hashlib.sha256(data).hexdigest(), self.clock()
-        if sha256 in {row["sha256"] for row in self.rows() if row["path"] == path}:
+        stem = PurePosixPath(path).name.split(".")[0]
+        index_file = self.index_folder / INDEX_NAME.format(stem=stem, sha256=sha256)
+        if index_file.exists():
             return  # this version is already archived
         suffix = "".join(PurePosixPath(path).suffixes)
         revision_path = f"{path}/{REVISION_NAME.format(at=found_at, sha256=sha256, suffix=suffix)}"
-        self.revisions.put(revision_path, data)  # bytes first: an index row always has its file
-        self._append([path, sha256, len(data), utc_text(found_at), revision_path])
-
-    def rows(self) -> list[dict]:
-        if not self.index_file.is_file():
-            return []
-        return list(csv.DictReader(self.index_file.read_text(encoding="utf-8").splitlines()))
-
-    def _append(self, row: list) -> None:
-        self.index_file.parent.mkdir(parents=True, exist_ok=True)
-        new = not self.index_file.is_file()
-        with self.index_file.open("a", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f, lineterminator="\n")
-            if new:
-                writer.writerow(INDEX_FIELDS)
-            writer.writerow(row)
+        self.revisions.put(revision_path, data)  # bytes first: an index record always has its file
+        write_row(index_file, INDEX_FIELDS, dict(zip(INDEX_FIELDS, [path, sha256, len(data), utc_text(found_at),
+                                                                    revision_path])))  # fmt: skip

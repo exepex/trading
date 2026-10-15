@@ -70,6 +70,8 @@ class SnapshotDocument:
     index: CallRecord
     index_level: float | None  # parsed from the index call by the source adapter
     index_source_time: datetime | None  # the source's own time for that level, never our clock
+    index_basis: str = ""  # which rule gave the level and its time (index_reading: quote or 1-minute candle)
+    index_candle: CallRecord | None = None  # the fallback's candle call, when the quote had no time
     future: CallRecord | None = None
     chains: list[CallRecord] = field(default_factory=list)
     quotes: list[CallRecord] = field(default_factory=list)
@@ -89,7 +91,9 @@ class SnapshotDocument:
             "format": FORMAT, "source": self.source, "underlying": self.underlying,
             "session": self.session.isoformat(), "mark": utc_text(self.mark),
             "index_level": self.index_level, "index_source_time": utc_text(self.index_source_time),
-            "index": self.index.to_json(), "future": self.future.to_json() if self.future else None,
+            "index_basis": self.index_basis, "index": self.index.to_json(),
+            "index_candle": self.index_candle.to_json() if self.index_candle else None,
+            "future": self.future.to_json() if self.future else None,
             "chains": [c.to_json() for c in self.chains], "quotes": [q.to_json() for q in self.quotes],
             "expiries": self.expiries, "expected_contracts": self.expected_contracts,
             "recorded_contracts": self.recorded_contracts, "two_sided_contracts": self.two_sided_contracts,
@@ -103,10 +107,11 @@ class SnapshotDocument:
         body = json.loads(gzip.decompress(data))
         if body.get("format") != FORMAT:
             raise ValueError(f"not an intraday snapshot of format {FORMAT}")
-        future = body["future"]
+        future, candle = body["future"], body["index_candle"]
         return cls(
             body["source"], body["underlying"], date.fromisoformat(body["session"]), parse_time(body["mark"]),
             CallRecord.from_json(body["index"]), body["index_level"], parse_time(body["index_source_time"]),
+            body["index_basis"], CallRecord.from_json(candle) if candle else None,
             CallRecord.from_json(future) if future else None, [CallRecord.from_json(c) for c in body["chains"]],
             [CallRecord.from_json(q) for q in body["quotes"]], body["expiries"], body["expected_contracts"],
             body["two_sided_contracts"], body["failures"], body["notes"], parse_time(body["finished_at"]),

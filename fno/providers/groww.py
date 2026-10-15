@@ -106,6 +106,23 @@ def parse_groww_quote_book(symbol: str, payload: dict) -> QuoteBook:
     )
 
 
+def listed_expiries(api, underlying: str, today: date) -> list[date]:
+    """Upcoming expiries from Groww's `get_expiries`, this year and next. Takes any client with that read call (the
+    SDK client, or story A16's read-only wrapper)."""
+    found: set[date] = set()
+    for year in (today.year, today.year + 1):
+        try:
+            resp = _payload(
+                api.get_expiries(exchange=api.EXCHANGE_NSE, underlying_symbol=underlying.upper(), year=year)
+            )
+        except Exception:
+            if year == today.year:
+                raise
+            continue  # Groww refuses any future year ("Year cannot be in the future"); this year's list suffices
+        found |= {d for d in map(date.fromisoformat, resp.get("expiries", [])) if d >= today}
+    return sorted(found)
+
+
 class GrowwProvider(Provider):
     name = "groww"
 
@@ -144,24 +161,7 @@ class GrowwProvider(Provider):
         raise RuntimeError(CREDENTIALS_MISSING)
 
     def expiries(self, underlying: str) -> list[date]:
-        today = now_ist().date()
-        found: set[date] = set()
-        for year in (today.year, today.year + 1):
-            try:
-                resp = _payload(
-                    self.api.get_expiries(
-                        exchange=self.api.EXCHANGE_NSE, underlying_symbol=underlying.upper(), year=year
-                    )
-                )
-            except Exception:
-                if year == today.year:
-                    raise
-                continue  # Groww refuses any future year ("Year cannot be in the future"); this year's list suffices
-            for text in resp.get("expiries", []):
-                d = date.fromisoformat(text)
-                if d >= today:
-                    found.add(d)
-        return sorted(found)
+        return listed_expiries(self.api, underlying, now_ist().date())
 
     def chain(self, underlying: str, expiry: date) -> OptionChain:
         resp = self.api.get_option_chain(

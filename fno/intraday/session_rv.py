@@ -5,6 +5,7 @@ row is written once. Also reports the share of void sessions (design 5.2: above 
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 from collections.abc import Callable
 from datetime import date, datetime
 
@@ -32,10 +33,11 @@ class SessionRv:
 
     def compute(self, day: date) -> str:
         """Writes the session's row (once) and returns a one-line outcome."""
-        levels, hashes = self._levels(day, marks(day))
-        previous, previous_hashes = self._levels(*_closing_marks(self.calendar, day))
-        result = self.strategy.compute(levels, previous[-1])
-        row = self._row(day, result, hashes + previous_hashes)
+        readings = self._readings(day, marks(day))
+        previous_day = previous_recorded_session(self.calendar, day)
+        closing = self._readings(previous_day, marks(previous_day)[-1:])
+        result = self.strategy.compute([level for level, _, _ in readings], closing[0][0])
+        row = self._row(day, result, readings + closing)
         outcome = self.table.write_once(row)
         figure = f"RV {row['rv_session']} (vol {row['vol_pct']}%)" if row["status"] == OK else row["void_reason"]
         return f"{day} realised variance {outcome}: {row['status']}, {figure}"
@@ -50,21 +52,18 @@ class SessionRv:
         flag = VOID_SHARE_FLAG if share > VOID_SHARE_LIMIT else ""
         return VOID_SHARE_LINE.format(void=void, total=len(rows), share=share, flag=flag)
 
-    def _levels(self, day: date, wanted: list[datetime]) -> tuple[list[float | None], list[str]]:
-        """Each wanted mark's usable level (None where missing or unusable) and its stored file's SHA-256 ("" if
-        none). The repeat check compares each mark with the one before it in `wanted`."""
-        levels: list[float | None] = []
-        hashes: list[str] = []
-        previous_level = None
+    def _readings(self, day: date, wanted: list[datetime]) -> list[tuple[float | None, str, str]]:
+        """Per wanted mark: its usable level (None where missing or unusable), the basis of that level, and the stored
+        file's SHA-256 ("" when there is none)."""
+        found = []
         for mark in wanted:
             data = self.store.get(snapshot_path(self.source, day, mark))
-            hashes.append(hashlib.sha256(data).hexdigest() if data else "")
             doc = SnapshotDocument.from_bytes(data) if data else None
-            levels.append(index_check(doc, previous_level).level if doc else None)
-            previous_level = doc.index_level if doc else None
-        return levels, hashes
+            level = index_check(doc).level if doc else None
+            found.append((level, doc.index_basis if level is not None else "", _sha256(data)))
+        return found
 
-    def _row(self, day: date, result: RvResult, hashes: list[str]) -> dict:
+    def _row(self, day: date, result: RvResult, readings: list[tuple[float | None, str, str]]) -> dict:
         session_marks = marks(day)
         unusable = [label(session_marks[i]) for i in result.unusable_marks]
         reasons = ([f"no usable index level at {', '.join(unusable)}"] if unusable else []) + (
@@ -76,9 +75,10 @@ class SessionRv:
             "rv_overnight": _figure(result.overnight),
             "vol_pct": "" if result.vol_pct is None else f"{result.vol_pct:.4f}", "void_reason": "; ".join(reasons),
             "good_slots": len(session_marks) - len(unusable), "due_slots": len(session_marks),
+            "basis_counts": _basis_counts(readings[: len(session_marks)]),
             "measure": self.strategy.measure, "method": self.strategy.method, "source": self.source,
             "as_of": utc_text(session_marks[-1]), "first_seen_at": utc_text(self.now()),
-            "inputs_sha256": hashlib.sha256("\n".join(hashes).encode()).hexdigest(),
+            "inputs_sha256": hashlib.sha256("\n".join(sha for _, _, sha in readings).encode()).hexdigest(),
         }  # fmt: skip
 
 
@@ -91,10 +91,14 @@ def previous_recorded_session(calendar: SessionCalendar, day: date) -> date:
     return previous
 
 
-def _closing_marks(calendar: SessionCalendar, day: date) -> tuple[date, list[datetime]]:
-    """The previous recorded session and its 15:15 and 15:30 marks (15:15 only for the repeat check of 15:30)."""
-    previous = previous_recorded_session(calendar, day)
-    return previous, marks(previous)[-2:]
+def _basis_counts(readings: list[tuple[float | None, str, str]]) -> str:
+    """How many usable levels each rule gave, e.g. `candle_1m_close:26` (a session mixing rules is visible)."""
+    counts = Counter(basis for level, basis, _ in readings if level is not None)
+    return ";".join(f"{basis}:{count}" for basis, count in sorted(counts.items()))
+
+
+def _sha256(data: bytes | None) -> str:
+    return hashlib.sha256(data).hexdigest() if data else ""
 
 
 def _figure(value: float | None) -> str:

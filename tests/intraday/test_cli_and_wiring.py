@@ -9,9 +9,10 @@ import pytest
 from fno.alerts.sender import NoAlertSender
 from fno.intraday import wiring
 from fno.intraday.cli import cmd_intraday, report
-from fno.intraday.dry_run import NOT_PUBLISHED, NoPublish
 from fno.intraday.first_version_store import FirstVersionStore
+from fno.intraday.read_only import ReadOnlyGroww
 from fno.intraday.recorder import ALREADY, NO_MARK, NOT_TRADING_DAY, SlotOutcome
+from fno.intraday.sync import NOT_PUBLISHED, GitLedgerSync, NoSync
 from fno.storage.manifest_commit import GitManifestRecorder
 from fno.storage.wiring import REPOSITORY
 from tests.intraday.groww_fakes import FakeGrowwProvider
@@ -40,7 +41,7 @@ def test_the_dry_run_wiring_uses_local_folders_no_alert_and_no_commit(tmp_path, 
     recorder = wiring.build_intraday_recorder({}, tmp_path)
     assert isinstance(recorder.store, FirstVersionStore) and recorder.store.raw.store.folder == tmp_path / "drive"
     assert isinstance(recorder.alerts, NoAlertSender) and recorder.alerts.send("x") == "alert NOT sent: dry run"
-    assert isinstance(recorder.publisher, NoPublish) and recorder.publisher.commit("x") == NOT_PUBLISHED
+    assert isinstance(recorder.sync, NoSync) and recorder.sync.commit("x") == recorder.sync.pull() == NOT_PUBLISHED
     assert recorder.ledger.folder == tmp_path and recorder.heartbeat.file == tmp_path / "heartbeat.json"
     assert [s.name for s in recorder.clock_check.servers] == ["github", "slack"]
 
@@ -56,9 +57,11 @@ def test_the_live_wiring_writes_to_the_repository_folder_and_commits_it(monkeypa
     monkeypatch.setattr(wiring, "build_owner_drive", lambda: wiring.LocalFolderStore(tmp_path))
     recorder = wiring.build_intraday_recorder({})
     assert recorder.ledger.folder == wiring.INTRADAY_FOLDER == REPOSITORY / "research" / "data" / "intraday"
-    assert isinstance(recorder.publisher, GitManifestRecorder) and recorder.publisher.folder == "research/data/intraday"
-    assert recorder.publisher.message.format(what="x") == "Data: intraday slots (x)"
-    assert Path(recorder.store.index_file) == wiring.INTRADAY_FOLDER / "revisions.csv"
+    committer = recorder.sync.committer
+    assert isinstance(recorder.sync, GitLedgerSync) and isinstance(committer, GitManifestRecorder)
+    assert committer.folder == "research/data/intraday" and committer.merge_option == ("-X", "theirs")
+    assert committer.message.format(what="x") == "Data: intraday slots (x)" and committer.label == "intraday files"
+    assert Path(recorder.store.index_folder) == wiring.INTRADAY_FOLDER / "revisions"
 
 
 def test_a_failure_while_building_or_running_is_named_alerted_and_exits_1_and_a_dry_run_sends_nothing(
@@ -99,7 +102,9 @@ def test_rv_refusals_exit_1(tmp_path, monkeypatch, capsys):
 
 def test_the_nse_listing_used_for_expiries_is_read_only(monkeypatch):
     monkeypatch.setattr(wiring, "GrowwProvider", lambda cfg: FakeGrowwProvider())
-    plan = wiring.build_intraday_recorder({}, Path("/tmp/a16-dry")).source.plan
+    source = wiring.build_intraday_recorder({}, Path("/tmp/a16-dry")).source
+    plan = source.plan
+    assert isinstance(source.client, ReadOnlyGroww) and source.lot_size == 75
     assert plan.fallback.library.archive is None and plan.monthlies.history is plan.fallback
 
 

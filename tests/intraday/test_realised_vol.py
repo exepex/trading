@@ -78,10 +78,17 @@ def test_the_session_row_matches_a_hand_computation_from_the_stored_levels(tmp_p
     assert "previous session" in rows["2026-10-14"]["void_reason"]
 
 
-@pytest.mark.parametrize("plan", ["old", "repeat", "fail", "slow"])
+@pytest.mark.parametrize("plan", ["old", "fail", "slow"])
 def test_a_stale_failed_or_late_index_level_voids_the_session(tmp_path, plan):
     rows, _ = _two_sessions(tmp_path, {"12:00": plan})
     assert rows["2026-10-15"]["status"] == "void" and "12:00" in rows["2026-10-15"]["void_reason"]
+
+
+def test_a_repeated_level_is_kept_and_flagged_and_does_not_void_the_session(tmp_path):
+    rows, recorder = _two_sessions(tmp_path, {"12:00": "repeat"})
+    assert rows["2026-10-15"]["status"] == "ok" and rows["2026-10-15"]["basis_counts"] == "quote_last_trade_time:26"
+    flagged = [r for r in recorder.ledger.rows(DAY) if r["mark_ist"] == "12:00"][0]
+    assert (flagged["status"], flagged["failures"]) == ("good", "index_repeated")
 
 
 def test_missing_option_quotes_do_not_void_the_realised_variance(tmp_path):
@@ -94,7 +101,7 @@ def test_the_row_is_written_once_and_other_inputs_are_refused(tmp_path):
     assert "already written" in recorder.session_rv.compute(DAY)
     first = recorder.session_rv.table.rows()
     path = recorder.settlement.path(DAY, ist(DAY, 12, 0))
-    recorder.store.raw.store.folder.joinpath("raw", *path.split("/")).unlink()  # an input disappears
+    recorder.store.raw.store.folder.joinpath("raw", *path.split("/")).unlink()  # an input disappears (planted)
     with pytest.raises(RvConflict):
         recorder.session_rv.compute(DAY)
     assert recorder.session_rv.table.rows() == first

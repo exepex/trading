@@ -107,21 +107,21 @@ def test_a_day_outside_the_calendar_raises(tmp_path):
         recorder.snapshot()
 
 
-def test_two_bad_marks_in_a_row_alert_once_per_streak_and_at_most_once_an_hour(tmp_path):
+def test_two_bad_marks_in_a_row_alert_once_per_streak_and_a_repeat_is_not_bad(tmp_path):
     clock = FakeClock(ist(DAY, 9, 10))
     plans = {"09:30": "old", "09:45": "fail", "10:15": "repeat", "10:30": "slow", "10:45": "partial"}
     recorder, _, alerts, *_ = build(tmp_path, clock, plans)
     recorder.run(time(11, 5))
     rows = {r["mark_ist"]: r for r in recorder.ledger.rows(DAY)}
     assert [rows[m]["status"] for m in ("09:15", "09:30", "09:45", "10:00", "10:15", "10:30", "10:45", "11:00")] == [
-        "good", "stale", "failed", "good", "stale", "late", "incomplete", "good"
+        "good", "stale", "failed", "good", "good", "late", "incomplete", "good"
     ]  # fmt: skip
     assert rows["09:45"]["alert"].endswith("alert sent to #fno-desk") and rows["09:45"]["alert_at"]  # reached two
     assert alerts.sent[0].startswith("Action: check the 15-minute recorder")
     assert "09:30 stale (index_time_old)" in alerts.sent[0] and "09:45 failed (index_failed" in alerts.sent[0]
     assert rows["10:15"]["failures"] == "index_repeated" and rows["10:30"]["failures"] == "index_late"
-    assert rows["10:30"]["alert"] == ""  # second streak reached two 47 minutes after the first alert: held
-    assert rows["10:45"]["alert"] and len(alerts.sent) == 2  # exactly 60 minutes after the first: sent
+    assert rows["10:30"]["alert"] == ""  # one bad mark alone
+    assert rows["10:45"]["alert"] and len(alerts.sent) == 2  # reached two exactly 60 minutes after the first: sent
 
 
 def test_a_new_streak_more_than_an_hour_later_alerts_again(tmp_path):
@@ -160,7 +160,7 @@ def test_settling_a_finished_session_writes_every_missed_row_and_a_void_rv(tmp_p
     rows = recorder.ledger.rows(DAY)
     assert len(rows) == 26 and sum(r["status"] == "missed" for r in rows) == 25
     assert any("realised variance written: void" in line for line in lines)
-    assert "realised variance already written: void" in recorder.settle_day(DAY)[0]  # written once
+    assert any("realised variance already written: void" in line for line in recorder.settle_day(DAY))  # once
 
 
 def test_an_empty_session_settles_to_26_missed_rows(tmp_path):
@@ -184,7 +184,7 @@ def test_a_snapshot_stored_but_never_written_to_the_ledger_gets_its_row_later(tm
     clock = FakeClock(ist(DAY, 9, 14))
     recorder, *_ = build(tmp_path, clock)
     recorder.snapshot()
-    recorder.ledger.path(DAY).unlink()  # the run stopped after saving to Drive
+    recorder.ledger.path(DAY, ist(DAY, 9, 15)).unlink()  # the run stopped after saving to Drive
     clock.moment = ist(DAY, 9, 29)
     recorder.snapshot()
     assert [(r["mark_ist"], r["status"]) for r in recorder.ledger.rows(DAY)] == [("09:15", "good"), ("09:30", "good")]
