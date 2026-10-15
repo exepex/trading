@@ -621,9 +621,14 @@ snapshots (data only; no forecast, desk or card uses them); NIFTY's own recordin
 - Command `python -m fno quotes record-indices`: records each underlying in turn (an incomplete one is retried while
   the window lasts, A4's rule), prints one result line per underlying, exits 1 if any is not complete, and sends one
   #fno-desk alert naming the incomplete ones (Slack token from the environment, as A4).
-- Routine: after NIFTY's commit and push (step 3 today), the routine runs `record-indices`, then commits
-  `research/data/quotes/` and pushes again. Proposed `CLAUDE.md` wording below; the owner adds the step to the
-  routine's prompt.
+- Routine order (judge 151; the handover session's NSE step, `conversations/2026-10-15.md`: the 14:33 routine runs the
+  Groww and NSE recorders in parallel and pushes Groww first, then NSE). NIFTY (Groww) and NSE start together as
+  today. Right after NIFTY's push, `record-indices` starts, alongside the NSE recorder if that is still running. Each of
+  the three parts commits and pushes **only its own files** when it is done, one commit at a time (`git pull
+  --no-rebase` first): NIFTY its `nifty_*` sidecars and marker, NSE `research/data/quotes/nse/`, the indices their
+  `banknifty_*`, `finnifty_*` and `midcpnifty_*` sidecars and markers. Never `git add research/data/quotes/` as a
+  whole. NIFTY is always pushed first; NSE and the indices in whichever order they finish. The `CLAUDE.md` 3 pm
+  section is changed in this branch (below); the owner copies the same steps into the routine's prompt.
 
 **Step 0 (before code; read-only, counts and names only):** one call each of Groww's expiry list and option chain for
 BANKNIFTY, FINNIFTY and MIDCPNIFTY, to confirm Groww's names for them. A name Groww refuses is reported in the claims,
@@ -645,15 +650,28 @@ and that underlying's attempts are recorded incomplete with the error type, neve
    cross-check alert; NIFTY's cross-check is unchanged (tests).
 5. **Not a trading day / empty.** On a closed day the command records nothing and prints "not a trading day"; with no
    NSE file in the last 7 days it records nothing, prints why, alerts once and exits 1 (A4's fail-closed rule).
-6. **Routine and docs.** `CLAUDE.md`'s 3 pm section gains the step (wording below); the routine's
-   `git add research/data/quotes/` stages only sidecars and markers of the new underlyings (A4b's `.gitignore` and
-   record-scan rule already cover `groww/**.csv`).
+6. **Routine and docs.** `CLAUDE.md`'s 3 pm section (changed in this branch) lists the NIFTY, NSE and index steps,
+   their order and each part's own `git add` paths (wording below); each part's paths stage only its own sidecars and
+   markers, never a Groww quote file (test with `git add --dry-run` on a fixture folder holding all three parts' files;
+   A4b's `.gitignore` and record-scan rule already cover `groww/**.csv`).
 7. Code size, lint, imports and the full suite pass.
+8. **First live day (rule 8).** On the first session after the merge, `main` holds NIFTY's, NSE's and the three
+   indices' sidecars and markers for the day, each part in its own commit, NIFTY's pushed first; the orchestrator
+   records the commits and their push times in the conversation log.
 
-**Proposed routine wording (`CLAUDE.md`, 3 pm section, new step after step 3):** "3b. After NIFTY is pushed, run
-`python -m fno quotes record-indices` (BANKNIFTY, FINNIFTY and MIDCPNIFTY; 15:01-15:13 IST, paced; raw quotes to
-Drive only), then commit `research/data/quotes/` and push
-as in step 3. It alerts #fno-desk itself for any index not recorded."
+**`CLAUDE.md` 3 pm section, as changed in this branch (steps 2-3b; steps 1 and 4 unchanged):**
+- 2: "`python -m fno quotes record` (NIFTY, Groww) and `python -m fno quotes record --source nse` (NSE's public chain,
+  story O6) run in parallel from the routine's start; each waits for 14:55 IST and retries until 15:10. [the existing
+  calendar and Drive-only text stays]"
+- 3: "Each part commits and pushes only its own files, one commit at a time, `git pull --no-rebase` first; never
+  `git add research/data/quotes/` as a whole. NIFTY first, as soon as its result line is printed:
+  `git add ':(glob)research/data/quotes/groww/**/nifty_*'`. NSE when it is done: `git add research/data/quotes/nse/`.
+  [the existing never-edit, record-scan and alert text stays]"
+- 3b: "Right after NIFTY's push, run `python -m fno quotes record-indices` (BANKNIFTY, FINNIFTY and MIDCPNIFTY;
+  15:01-15:13 IST, paced; raw quotes to Drive only), alongside NSE if it is still running. When it is done:
+  `git add ':(glob)research/data/quotes/groww/**/banknifty_*' ':(glob)research/data/quotes/groww/**/finnifty_*'
+  ':(glob)research/data/quotes/groww/**/midcpnifty_*'`, commit and push. It alerts #fno-desk itself for any index not
+  recorded."
 
 **Test plan:** A4's fake provider extended with a per-underlying chain; a fake clock for the window and pace; A4b's
 fake Drive; one dry run with fake quotes for the claims' output sample; step 0's read-only check.
@@ -666,6 +684,8 @@ first live day (rule 8); no Groww quote file in the repository.
   group and stops at its gate (the day's pack is already on main).
 - The rate figures come from one morning's measurement (A16 step 0); a slower Groww day can leave an index "none".
 - A new index or a change in which indices trade needs an owner decision and a one-line change of the list.
+- NIFTY's own retries can run to 15:10 (A4's rule) and the indices start only after NIFTY's push, so on such a day the
+  indices get the last minutes of their window and may end "none" (data only).
 
 **Gap list (owner decisions 13 and 15 Oct; response 144 findings 1-9 on all-F&O recording):**
 
@@ -683,8 +703,9 @@ first live day (rule 8); no Groww quote file in the repository.
 | Finding 8: weeklies, SENSEX, futures, lot sizes not recorded | out of scope (owner's choice) |
 | Finding 9: raw files never under `research/data/quotes/` | A4b's store (criterion 1), A4b's ignore and scan rules (criterion 6) |
 | Stocks at 14:20 need an earlier routine start (owner schedule change) | out of scope: 8b |
+| Coordination with the NSE step in the same routine (owner 15 Oct; judge 151) | design (routine order), criteria 6 and 8; `CLAUDE.md` |
 
-**Depends:** A4, A4b, A5 · **Size:** M · **Status:** story text for the judge's check, revision 2 (15 Oct 2026: three indices, owner)
+**Depends:** A4, A4b, A5 · **Size:** M · **Status:** story text for the judge's check, revision 3 (15 Oct 2026: three indices, owner; judge 151's should-fix and minor)
 
 ---
 
