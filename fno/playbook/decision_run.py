@@ -48,16 +48,8 @@ class DecisionRun:
         counts: StrategyTradeCounts, shadow: ShadowBooks, context: Mapping[str, object],
     ) -> Path:  # fmt: skip
         """`context` gives the run's hashes and links (RUN_CONTEXT); `served` is computed here, never passed in."""
-        seen_features, seen_counts, seen_shadow = (
-            RecordingFeatures(features),
-            RecordingCounts(counts),
-            RecordingShadowBooks(shadow),
-        )
         playbook = snapshot.playbook()
-        evaluation = self.evaluator.evaluate(day, playbook, market, seen_features, book, seen_counts, seen_shadow)
-        inputs = DayInputs(day, snapshot, market_to_json(market), seen_features.seen, book_to_json(book),
-                           seen_counts.seen, seen_shadow.to_json())  # fmt: skip
-        data = canonical_json(inputs.to_json())
+        evaluation, data = self._evaluate(day, snapshot, market, features, book, counts, shadow)
         served = {"playbook": playbook_digest(playbook, day), "config": str(context["config_sha256"])}
         run_context = {**{k: context.get(k) for k in RUN_CONTEXT}, "inputs_sha256": sha256_hex(data),
                        "registry_commit": snapshot.commit, "served": served}  # fmt: skip
@@ -68,6 +60,26 @@ class DecisionRun:
         if self.validator is not None:  # only after the write: a refused duplicate run logs nothing (judge 84, D)
             self.validator.log_failures(day, validity)
         return run
+
+    def inputs(
+        self, day: date, snapshot: PlaybookSnapshot, market: Market, features: LiveFeatureValues, book: RiskBook,
+        counts: StrategyTradeCounts, shadow: ShadowBooks,
+    ) -> bytes:  # fmt: skip
+        """The `inputs.json` bytes a decision would record now; nothing is written and nothing decided (story E5b)."""
+        return self._evaluate(day, snapshot, market, features, book, counts, shadow)[1]
+
+    def _evaluate(self, day, snapshot, market, features, book, counts, shadow) -> tuple:
+        """D2's evaluation while recording every input it reads, and those inputs as `inputs.json` bytes."""
+        seen_features, seen_counts, seen_shadow = (
+            RecordingFeatures(features),
+            RecordingCounts(counts),
+            RecordingShadowBooks(shadow),
+        )
+        playbook = snapshot.playbook()
+        evaluation = self.evaluator.evaluate(day, playbook, market, seen_features, book, seen_counts, seen_shadow)
+        inputs = DayInputs(day, snapshot, market_to_json(market), seen_features.seen, book_to_json(book),
+                           seen_counts.seen, seen_shadow.to_json())  # fmt: skip
+        return evaluation, canonical_json(inputs.to_json())
 
 
 class ReplayRefused(ValueError):
