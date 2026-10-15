@@ -131,8 +131,8 @@ writes the yes of condition 7. Until then RM2's code may exist but records nothi
 - `RealTestRecord`: the test's header (version, its registration, the owner's yes row, first real entry date) and its
   trades, kept in Drive behind a `RealTradeStore` port (`DriveRealTrades`; `RawFileStore` rules: written once, the
   same bytes again change nothing, a correction is a new record naming the one it replaces).
-- `fno realtest record-entry|record-exit|skip|status` (CLI). A Claude session runs it at the owner's word (owner
-  question Q1). It checks the screenshot file exists in Drive and stores its id and SHA-256 with the typed values.
+- `fno realtest record-entry|record-exit|skip|status` (CLI). A Claude session runs it at the owner's word (owner,
+  Q1). It checks the screenshot file exists in Drive and stores its id and SHA-256 with the typed values.
 - **Pairing:** each real trade is paired with Book 1's paper trade of the same card (E8, R = 60), scaled to 1 lot
   (paper net ÷ paper lots). A card Book 1 did not fill ("missed, ...") gives an unpaired real trade: listed, kept out
   of the paired mean, counted in the discipline and stop rules.
@@ -164,7 +164,7 @@ Out:
   only);
 - the gate's numbers (they are the frozen gate's; RM2 reads them from one constants module, checked against the gate
   text by a test);
-- parsing Groww contract notes or screenshots (the owner types the values; owner question Q1);
+- parsing Groww contract notes or screenshots (the owner types the values; owner, Q1);
 - scaling beyond 1 lot, automation (gate `scope`).
 
 **Expected design:** `fno/realtest/` with `record.py` (the record and its trade rows), `rules.py` (the gate's
@@ -201,13 +201,10 @@ unchanged.
 **Test plan:** fakes for Drive, Slack, A16's marks and Book 1's paper trades; constructed tests for each criterion,
 with a broken-code proof per criterion (rule 4); one end-to-end run on a planted 30-trade test.
 
-**Owner questions (through the orchestrator):**
-
-| Q | Question | Options | Recommendation |
-|---|---|---|---|
-| Q1 | How does the owner report a real fill? | (a) tell a Claude session, which runs the CLI; (b) a fixed-format Slack message RM2 reads; (c) upload the Groww contract note for parsing | (a): simplest and checked line by line; (c) later if typing proves error-prone (reasoning only) |
-| Q2 | When does an unreported card count as skipped? | (a) at the close of the next session; (b) at the close of the same session | (a): the owner may place the order next morning, as E8's paper side does (reasoning only) |
-| Q3 | Charges: the contract note's actual total, or C1's model? | (a) actual, C1 shown beside; (b) C1 | (a): the test is about real money (reasoning only) |
+**Owner decisions (16 Oct 2026, `docs/DESK_DECISIONS.md` row at commit e7f40e8f, all three as recommended):**
+- Q1: the owner reports each fill to a Claude session, which checks it against the card and runs the CLI.
+- Q2: a card with no real entry reported by the close of the next session counts as "skipped, not recorded".
+- Q3: charges are the contract note's actual total; C1's modelled charges are shown beside them as a check.
 
 **Known limits:**
 - The owner types the fills, the screenshot's values and its time; a typo is caught only by the owner's check of each

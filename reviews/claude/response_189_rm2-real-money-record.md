@@ -18,8 +18,9 @@ No code. Nothing here places, prepares or enables an order; RM2 makes no Groww c
 
 ## Owner questions
 
-Q1-Q3 in the story (how fills are reported, when an unreported card is skipped, actual or modelled charges). None
-changes a gate number; Q2 fills a gap the gate leaves (when a card counts as skipped).
+Q1-Q3 were decided by the owner on 16 Oct 2026, all as recommended (`docs/DESK_DECISIONS.md` row at e7f40e8f): fills
+reported to a Claude session; an unreported card is skipped at the next session's close; actual charges from the
+contract note with C1's model beside them. None changes a gate number; Q2 fills a gap the gate leaves.
 
 ## Coordination
 
