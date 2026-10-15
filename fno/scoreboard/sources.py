@@ -12,12 +12,16 @@ from pathlib import Path
 from ..accounting.ledgers import read_operating_costs
 from ..books.paths import account_folder, book_folder
 from ..books.versions import VERSIONS_FILE
-from ..constants import BOOK1_RULES, JOURNAL_FOLDER
+from ..constants import BOOK1_RULES, INDEX_NIFTY_50, JOURNAL_FOLDER
 from ..desk.run_log import RUNS_FOLDER
 from ..desk.snapshot import ContractKey, ExecutionSnapshot, ExecutionSnapshotSource
+from ..market_read_models.nse_files import read_index_figures
 from ..playbook.decision_store import DecisionStore
 from ..scorecard.scorecard import snapshot_marks
+from ..storage.raw_source import NseIndexCloseSource
+from ..storage.raw_store import RawFileStore
 from .committed_runs import DayRun
+from .do_nothing import IndexDay
 
 OPERATING_COSTS_FILE = "operating_costs.csv"
 
@@ -104,3 +108,20 @@ class DaySnapshots:
         if day not in self._read:
             self._read[day] = self.snapshots.snapshot(day, self.ids[day])
         return self._read[day]
+
+
+class ArchivedIndexLevels:
+    """The NIFTY 50 close and dividend yield of a session, from NSE's index-close file as archived (A13's source,
+    `read_index_figures`), never fetched here; None when the day's file is not archived (story S6: never filled)."""
+
+    def __init__(self, raw: RawFileStore | None):
+        self.raw = raw
+        self._days: dict[date, IndexDay | None] = {}
+
+    def __call__(self, day: date) -> IndexDay | None:
+        if day not in self._days:
+            data = self.raw.get(NseIndexCloseSource.path_for(day)) if self.raw else None
+            figures = read_index_figures(data, NseIndexCloseSource.filename_for(day)) if data else {}
+            nifty = figures.get(INDEX_NIFTY_50)
+            self._days[day] = IndexDay(nifty.close, nifty.dividend_yield) if nifty else None
+        return self._days[day]

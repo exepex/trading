@@ -19,12 +19,14 @@ from ..risk.open_risk import HeldMaxLoss
 from .book_board import BookBoard
 from .committed_runs import CommittedRuns
 from .daily_values import DayMarks
+from .do_nothing import DoNothing, Terms
 from .entry_decisions import EntryDecisions
 from .matched_board import MatchedBoard
 from .matched_days import CommonPacks, MatchedDays
 from .ports import ProtocolStatus
 from .sources import (
     AiCostBeforeF8,
+    ArchivedIndexLevels,
     DaySnapshots,
     FileOperatingCosts,
     NoMatchedShadowYet,
@@ -38,13 +40,13 @@ from .whole_system import WholeSystemBoard
 
 def board_from(
     root: Path, charges: dict, calendar: SessionCalendar, versions: Versions, marks: DayMarks,
-    protocol: ProtocolStatus, brake_rs: float | None = None,
+    protocol: ProtocolStatus, brake_rs: float | None = None, do_nothing: DoNothing | None = None,
 ) -> WholeSystemBoard:  # fmt: skip
-    runs = CommittedRuns(root)
+    runs, board = CommittedRuns(root), BookBoard(calendar.sessions, AiCostBeforeF8(), brake_rs, do_nothing)
     return WholeSystemBoard(
         BOOKS, lambda book: DeskRecords(PaperAccount(root, book)),
         lambda: EntryDecisions(runs.runs(), runs.records, versions, RecordedOwnerOverride()), calendar.sessions, marks,
-        FileOperatingCosts(root), BookBoard(calendar.sessions, AiCostBeforeF8(), brake_rs), charges, protocol,
+        FileOperatingCosts(root), board, charges, protocol,
         lambda: input_hashes(root, BOOKS, runs.runs()), runs.uncollected, runs.missed_runs,
     )  # fmt: skip
 
@@ -55,10 +57,22 @@ def build_whole_system_board(cfg: dict, root: Path = ROOT) -> WholeSystemBoard:
     from .protocol_status import protocol_status
 
     marks = SnapshotMarks(build_execution_snapshots(), CommittedRuns(root).snapshot_ids())
-    brake = cfg["risk"]["profiles"]["books"]["drawdown_brake_rs"]  # the books' brake (S6: drawdown as its share)
+    books = cfg["risk"]["profiles"]["books"]  # the books' brake and account capital (story S6)
+    against = DoNothing(ArchivedIndexLevels(drive_raw_or_none()), Terms(books["paper_account_rs"]))
     return board_from(
-        root, cfg["charges"], build_session_calendar(), build_versions(root), marks, protocol_status(root), brake
-    )
+        root, cfg["charges"], build_session_calendar(), build_versions(root), marks, protocol_status(root),
+        books["drawdown_brake_rs"], against,
+    )  # fmt: skip
+
+
+def drive_raw_or_none():
+    """Drive's raw area, or None without its settings: the do-nothing comparison then reads "index day missing"."""
+    from ..storage.wiring import build_drive_reader
+
+    try:
+        return build_drive_reader()
+    except RuntimeError:
+        return None
 
 
 def matched_board_from(

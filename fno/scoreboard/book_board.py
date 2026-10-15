@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 from .book_trades import NO_RECORD, OVERRIDDEN, ScoredTrade, Sessions
+from .do_nothing import DoNothing
 from .ports import AiCostAllocation
 from .sections import section
 from .series import costs_by_session, daily_series
@@ -38,8 +39,9 @@ def full_months(first: date, last: date) -> int:
 
 
 class BookBoard:
-    def __init__(self, sessions: Sessions, ai: AiCostAllocation, brake_rs: float | None = None):
-        self.sessions, self.ai, self.brake_rs = sessions, ai, brake_rs
+    def __init__(self, sessions: Sessions, ai: AiCostAllocation, brake_rs: float | None = None,
+                 do_nothing: DoNothing | None = None):  # fmt: skip
+        self.sessions, self.ai, self.brake_rs, self.do_nothing = sessions, ai, brake_rs, do_nothing
 
     def build(self, inputs: BookInputs, common_start: date | None) -> dict:
         monthly = _monthly(inputs.operating_costs)
@@ -47,7 +49,8 @@ class BookBoard:
         board = {"overall": self._section(inputs, inputs.trades, inputs.first, inputs.on, monthly, False, whole)}
         if common_start is None or common_start > inputs.on:
             board["pilot"] = board["overall"] | {"label": COMMON_START_NOT_REACHED}
-            return board | {"head_to_head": None, "unscored": None, "overridden": None}
+            return board | {"head_to_head": None, "unscored": None, "overridden": None,
+                            "strategies": self._strategies(inputs)}  # fmt: skip
         pilot = [t for t in inputs.trades if t.opened_on < common_start]
         later = [t for t in inputs.trades if t.opened_on >= common_start]
         before = {m: v for m, v in monthly.items() if m < common_start.strftime("%Y-%m")}
@@ -68,7 +71,19 @@ class BookBoard:
             board[name] = self._section(
                 inputs, [t for t in later if t.group == name], common_start, inputs.on, {}, False
             )
+        board["strategies"] = self._strategies(inputs)
         return board
+
+    def _strategies(self, inputs: BookInputs) -> dict:
+        """One entry per playbook version this book traded, pilot included (story S6: the level RM1's gate reads; its
+        closed trades and net equal E6's card for the account and version, both from C1's trade ledger)."""
+        entries = {}
+        for version in sorted({t.strategy for t in inputs.trades}):
+            trades = [t for t in inputs.trades if t.strategy == version]
+            closed = sorted(t.trade_id for t in trades if t.line is not None)
+            entry = self._section(inputs, trades, inputs.first, inputs.on, {}, False)
+            entries[version] = entry | {"closed_trade_ids": closed}
+        return entries
 
     def _section(
         self, inputs: BookInputs, trades: Sequence[ScoredTrade], first: date, last: date, monthly: dict, judged: bool,
@@ -82,10 +97,21 @@ class BookBoard:
         positions = sum(t.completed and t.line is not None for t in trades)
         judged_by = uncertainty(series, positions, full_months(first, last)) if judged else None
         if ai_period is None:
-            board = section(trades, series, sum(costs.values()), 0.0, judged_by, first, last, self.brake_rs)
+            against = self._against(
+                self.ai.allocated(inputs.book, first, last)
+            )  # Book 1: 0; AI books: unknown until F8
+            board = section(trades, series, sum(costs.values()), 0.0, judged_by, first, last, self.brake_rs, against)
             return board | {"ai_cost_allocated_rs": AI_AT_BOOK_LEVEL}
         ai = self.ai.allocated(inputs.book, *ai_period)
-        return section(trades, series, sum(costs.values()), ai, judged_by, first, last, self.brake_rs)
+        return section(
+            trades, series, sum(costs.values()), ai, judged_by, first, last, self.brake_rs, self._against(ai)
+        )
+
+    def _against(self, cost: float | None):
+        """The do-nothing comparison for a section (story S6) with its AI cost; None: unknown, so no verdict."""
+        if self.do_nothing is None:
+            return None
+        return lambda series, capital, unrecorded: self.do_nothing.compare(series, capital, cost, unrecorded)
 
 
 def _monthly(rows: Sequence[dict]) -> dict[str, float]:

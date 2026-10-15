@@ -4,7 +4,7 @@ net also takes the allocated AI cost (F8, "allocated, not a bill") when it is kn
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import date
 
 from ..costs import CHARGE_NAMES
@@ -61,6 +61,7 @@ def _valuation(trades: Sequence[ScoredTrade]) -> dict:
 def section(
     trades: Sequence[ScoredTrade], series: DailySeries, operating_costs: float, ai_cost: float | None,
     uncertainty: Uncertainty | None, first: date | None, last: date | None, brake_rs: float | None = None,
+    against: Callable[[DailySeries, list[float], list[str]], dict] | None = None,
 ) -> dict:  # fmt: skip
     raw = series.total_net
     return {
@@ -77,6 +78,7 @@ def section(
         "risk": _risk(trades, series),
         "uncertainty": None if uncertainty is None else _judged(uncertainty, series),
         "measures": _measures(trades, series, brake_rs),
+        **_against(against, trades, series),
         "valuation": _valuation(trades),
     }  # fmt: skip
 
@@ -96,3 +98,17 @@ def _judged(uncertainty: Uncertainty, series: DailySeries) -> dict:
 def _measures(trades: Sequence[ScoredTrade], series: DailySeries, brake_rs: float | None) -> dict:
     nets = [t.line.net for t in trades if t.completed and t.line is not None]
     return {**trade_measures(nets, sum(t.closed_on is None for t in trades)), **drawdown(series, brake_rs)}
+
+
+def capital_path(trades: Sequence[ScoredTrade], series: DailySeries) -> list[float]:
+    """Capital tied at each session's close: every held trade's capital at entry (S2's margin-days basis)."""
+    return [sum(t.entry.capital_tied for t in trades if t.entry and t.entry.capital_tied and held_at_close(t, day))
+            for day in series.days]  # fmt: skip
+
+
+def _unrecorded(trades: Sequence[ScoredTrade]) -> list[str]:
+    return sorted(t.trade_id for t in trades if t.entry and t.entry.capital_tied is None)
+
+
+def _against(against, trades: Sequence[ScoredTrade], series: DailySeries) -> dict:
+    return {} if against is None else {"do_nothing": against(series, capital_path(trades, series), _unrecorded(trades))}
