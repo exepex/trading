@@ -362,3 +362,74 @@ This is the should-fix.
 
 **Verdict: FAIL for afafb07fbeaa78f3395219f045519e9bd92debee** on should-fix 1. A re-check needs the pre-push check
 and its test, and the two story lines.
+
+## Addendum 7 (15 Oct 2026): 8237214f7a523448d1b5a8316f2366f94b816d06
+
+Parent afafb07. Decision 51 adds the pre-push guard and the refusal of stray unpushed commits, plus the story minors.
+
+| Gate | At 8237214 | Trial merge with `main` fdaf4f6 |
+|---|---|---|
+| `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` | 3,949 passed | 4,683 passed |
+| ruff check / format / `check_imports.py` | clean | clean |
+| Conflicts | - | none (`reviews/claude/README.md` auto-merged) |
+
+`git_sync.py` is 217 lines, `pending_commit.py` 73.
+
+## Verdict: PASS (code); 3 minor
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 6 sf 1, pushing what the guard never saw | MET | Before every push attempt, `RawQuoteGuard` runs on `git diff --name-only -z origin/<branch> HEAD`, deletions included. Before the pull, `_refuse_stray` refuses unpushed non-merge commits that are not the run's own; account writes refuse any unpushed commit through the same `Git.unpushed()`. My plants caught: S1 (no pre-push guard), S2 (`_own` always true), S3 (files rule dropped), S5 (no stray check), S6 (recovery not passing its own message), S7 (merges counted), S8 (account writes allowing strays). **S4 (subject rule dropped) survived** (minor 1) |
+| Addendum 6 minors 1-3 | MET | The fresh-checkout rule and "inside the execution window; after `fills_by` C3 refuses" are in criterion 5. The unreachable `STILL_PENDING` branch is removed, and the docstring says why no marker can be left |
+
+### The orchestrator's three points
+
+**(1) A hand-made merge with its own edits passes (b).**
+- In the dedicated checkout the run makes merges only through `pull --no-rebase --no-edit`. A conflicted pull fails as a
+  `GitError`, so the run stops; it never commits a resolution. So an "evil merge" needs a person to make it in that
+  checkout.
+- Even then, (a) checks every file it changes against origin, so it cannot publish a raw quote file. What it could push
+  is non-quote content.
+- A local merge of a local branch brings its commits into `rev-list origin..HEAD --no-merges`, so they are checked as
+  strays.
+- Acceptable. It is reachable only by hand and cannot leak quotes.
+
+**(2) "Own" is a subset rule, not the same set: `files_of(commit) <= names`.**
+- A subset is right for the recovered commit (the commit touches what changed among the marker's files).
+- **It does not check content.** A stray commit with the run's message, touching only the marker's paths, with other
+  content would pass. To reach that, someone must copy the subject exactly and restore the files on disk to the marker's
+  digests (`recover()` checks the disk first). So it is not reachable by accident, and (a) still blocks raw quote files.
+- Minor 2: compare each file in the commit with the marker's SHA-256 (`git show <c>:<path>`), which makes "own" exact
+  and cheap.
+
+**(3) The new port parameter.**
+- The non-test `Committer` implementations are `GitCommitter` and `PendingCommitter`. The callers are `DailyRun._step`,
+  `PendingCommitter.recover`, D6's `book_versions.py:51`, the capture `execution_capture.py:52` and Book 1
+  `book1.py:74`.
+- Only `recover()` passes a value. Every other caller uses the default `""`, which allows no unpushed commit at all.
+  That is the safe default: it fails closed with one alert naming the commit.
+- One consequence to know: a Book 1 decision commit whose push was rejected stays local. In the same checkout, the
+  daily run then stops at its first commit (alert names it), and exits are not reviewed until it is resolved by hand.
+  That is consistent: account writes already refuse any unpushed commit, so exits could not run anyway. Pushing that
+  decision late would also have been wrong, since a late-pushed decision must stay late.
+
+## Minor
+
+1. **Plant S4 survived.** Dropping the subject comparison in `_own` passes all 43 related tests. The story says the run's
+   own commit is "told apart by ... its message", so add a test: a stray commit with another message, touching only the
+   marker's files, is refused.
+2. **Make "own" exact by content** (point 2 above): each file of the stuck commit must equal the marker's SHA-256.
+3. Carried from earlier addenda (follow-ups, not E2b's): a failed commit in `fno desk book1` still ends in a traceback.
+   Before A4b, a fresh rerun can report "not filled" for a filled trade.
+
+## Next steps
+
+- **Merge order** (decision 29 and this story's Depends line): after A4b. A4b is not on `main` yet: judge 111
+  addendum 3 says its merge waits for the owner's probe.
+- **Quality rule 9:** the code goes to ChatGPT after this PASS, before the merge.
+- **My merge check** will verify:
+  - `fno/scorecard/wiring.py` reads E6's snapshots through A4b's hash-checked store;
+  - one version of `execution_capture.py` is kept;
+  - the merged suite passes.
+
+**Verdict: PASS for 8237214f7a523448d1b5a8316f2366f94b816d06** (code). Minors 1-2 can ride the A4b merge commit.
