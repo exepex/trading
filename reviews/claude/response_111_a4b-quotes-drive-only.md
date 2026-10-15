@@ -137,5 +137,7 @@ says so); no test needs `growwapi`.
   proof: putting back the per-tree rule fails the mixed-tree test (1 failed); making the store skip Drive fails 4
   tests. Real replay of 14 Oct after the fix: from the commit's own file, identical; with that file removed, from
   Drive, identical.
+- **Gates after the fix (merged tree ba6a2e8 plus this addendum):** full suite 3702 passed, 0 failed; ruff check and
+  format, check_imports and check_records clean.
 - **Minor (`levels_failures` with NSE exception messages, `market_levels.py:83,87`):** left untouched as the
   orchestrator decided and the passed story promised; listed below as a later item.
