@@ -93,6 +93,15 @@ OPTION_CALL, OPTION_PUT = "CE", "PE"
 # Cycle simulator (story B2, fno/research_engine/): structure codes, as the experiment 1 protocol names them
 STRUCTURE_SHORT_IRON_FLY, STRUCTURE_SHORT_CONDOR, STRUCTURE_LONG_IRON_FLY = "SF", "SC", "BF"
 STRUCTURES = (STRUCTURE_SHORT_IRON_FLY, STRUCTURE_SHORT_CONDOR, STRUCTURE_LONG_IRON_FLY)
+# One- and two-leg structures (story STR1), each anchored at the ATM strike: bought calls and puts, vertical spreads
+STRUCTURE_LONG_CALL, STRUCTURE_LONG_PUT = "LC", "LP"
+STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD = "CDS", "CCS"  # bull call and bear call spreads
+STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD = "PDS", "PCS"  # bear put and bull put spreads
+STRUCTURES_BOUGHT_ONLY = (STRUCTURE_LONG_CALL, STRUCTURE_LONG_PUT)  # no sold leg: width may be 0, margin may be 0
+STRUCTURES_ONE_SIDE = (
+    *STRUCTURES_BOUGHT_ONLY,
+    STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD, STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD,
+)  # fmt: skip
 
 
 class CycleStatus(StrEnum):
