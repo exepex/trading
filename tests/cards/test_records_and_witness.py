@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime
 
 import pytest
 
-from fno.ai.receipts import PushReceipts, ReceiptUnknown
+from fno.ai.receipts import PushReceipts, ReceiptAccessDenied, ReceiptUnknown
 from fno.cards import wiring
 from fno.cards.clock import HttpDateClock, ServerTimeUnknown
 from fno.cards.committed import GitHeadRecords
@@ -49,12 +49,14 @@ class History:
 
 
 class Receipts(PushReceipts):
-    def __init__(self, at=None):
-        self.at = at
+    def __init__(self, at=None, error=None):
+        self.at, self.error = at, error
 
     def received_at(self, commit):
+        if self.error is not None:
+            raise self.error
         if self.at is None:
-            raise ReceiptUnknown("HTTP 401 from GitHub's activity log")
+            raise ReceiptUnknown(f"no push of {commit[:10]} in GitHub's activity log of main")
         return self.at
 
 
@@ -67,9 +69,15 @@ def test_the_witness_prints_slacks_time_beside_githubs_push_receipt(tmp_path):
         "GitHub push receipt 2026-10-15 15:09:30 IST (commit dddddddddd)"
     )
     (line,) = IssuanceWitness(log, History(None), Receipts(pushed)).lines(date(2026, 10, 15))
-    assert line.endswith("GitHub push receipt unknown (not committed)")
+    assert line.endswith("GitHub push receipt none yet (the delivery file is not committed)")
     (line,) = IssuanceWitness(log, History("d" * 40), Receipts()).lines(date(2026, 10, 15))
-    assert line.endswith("unknown (HTTP 401 from GitHub's activity log)")
+    assert line.endswith("none yet (no push of dddddddddd in GitHub's activity log of main)")
+    refused = Receipts(error=ReceiptAccessDenied("access refused: HTTP 403 from GitHub's activity log"))
+    (line,) = IssuanceWitness(log, History("d" * 40), refused).lines(date(2026, 10, 15))
+    assert line.endswith(
+        "GitHub push receipt NOT READABLE: access refused: HTTP 403 from GitHub's activity log "
+        "(an access problem, not a missing receipt)"
+    )
     assert IssuanceWitness(log, History(None), Receipts()).lines(date(2026, 10, 16)) == [
         "no committed card delivery for 2026-10-16"
     ]
@@ -99,8 +107,9 @@ def test_the_witness_never_crashes_on_a_record_without_slack_facts(tmp_path):
 
 
 class Answer:
-    def __init__(self, date_header):
+    def __init__(self, date_header, status=200):
         self.headers = {"Date": date_header} if date_header else {}
+        self.status_code = status
 
 
 def test_githubs_date_header_is_read_as_utc_and_a_missing_one_is_unknown():
@@ -108,6 +117,14 @@ def test_githubs_date_header_is_read_as_utc_and_a_missing_one_is_unknown():
         "GitHub", "https://example.invalid", head=lambda url, timeout: Answer("Thu, 15 Oct 2026 09:38:00 -0000")
     )
     assert clock.now() == datetime(2026, 10, 15, 9, 38, tzinfo=UTC)
-    clock = HttpDateClock("GitHub", "https://example.invalid", head=lambda url, timeout: Answer(None))
-    with pytest.raises(ServerTimeUnknown, match="KeyError"):
-        clock.now()
+    proxy_answer = HttpDateClock("GitHub", "https://example.invalid", head=lambda url, timeout: Answer(None, 400))
+    with pytest.raises(ServerTimeUnknown, match=r"no Date header in GitHub's answer \(HTTP 400\)"):
+        proxy_answer.now()  # what the cloud proxy gave on the live test post (root path, HTTP 400, no headers)
+
+
+def test_githubs_clock_is_asked_on_the_repository_path(monkeypatch):
+    issuer = wiring.build_card_issuer({})
+    (github,) = issuer.clocks
+    assert github.url == "https://api.github.com/repos/exepex/trading"
+    issuer = wiring.build_card_issuer({"GITHUB_REPOSITORY": "someone/fork"})
+    assert issuer.clocks[0].url == "https://api.github.com/repos/someone/fork"

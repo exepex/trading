@@ -34,8 +34,14 @@ from .status import RegistryStatus
 from .weather import PendingWeather
 from .witness import IssuanceWitness
 
-GITHUB_TIME_URL = "https://api.github.com"  # its `Date` header is GitHub's server time (no sign-in needed)
+# Its `Date` header is GitHub's server time (no sign-in needed). A repository path, not the API root: the cloud
+# sessions' GitHub proxy answers the root itself (HTTP 400, no Date header), found on the live test post of 15 Oct
+GITHUB_TIME_URL = "https://api.github.com/repos/{repository}"
 DEFAULT_REPOSITORY = "exepex/trading"  # outside GitHub Actions, where GITHUB_REPOSITORY is not set
+
+
+def _repository(env) -> str:
+    return env.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
 
 
 def _host_now() -> datetime:
@@ -65,7 +71,7 @@ def build_card_records(env=os.environ) -> CardRecordStore:
 
 def build_card_issuer(env=os.environ, root: Path = ROOT) -> CardIssuer:
     records = GitHeadRecords(root)
-    github = HttpDateClock("GitHub", GITHUB_TIME_URL)
+    github = HttpDateClock("GitHub", GITHUB_TIME_URL.format(repository=_repository(env)))
     deliveries = RepoDeliveryFiles(root, records)
     return CardIssuer(
         build_card_poster(env), build_card_records(env), deliveries, [github], _host_now, records.code_commit()
@@ -74,6 +80,5 @@ def build_card_issuer(env=os.environ, root: Path = ROOT) -> CardIssuer:
 
 def build_issuance_witness(env=os.environ, root: Path = ROOT) -> IssuanceWitness:
     history = RepoHistory(root)
-    repository = env.get(GITHUB_REPOSITORY_VARIABLE, DEFAULT_REPOSITORY)
-    receipts = GitHubActivityReceipts(repository, env.get(ENV_GITHUB_TOKEN, ""), history)
+    receipts = GitHubActivityReceipts(_repository(env), env.get(ENV_GITHUB_TOKEN, ""), history)
     return IssuanceWitness(RepoDeliveryFiles(root, GitHeadRecords(root)), history, receipts)

@@ -64,7 +64,7 @@ def test_slack_down_is_retried_once_printed_stored_and_still_saved_to_drive(tmp_
     _, _, result = issue(tmp_path, poster, DriveCardRecords(drive))
     assert len(slack.calls) == 2 and not result.sent
     assert result.lines[0] == "alert NOT sent: ratelimited after 2 attempts"
-    assert result.lines[1] == "clock: host vs Slack not checked (not posted)"
+    assert result.lines[1] == "clock NOT CHECKED: host vs Slack (not posted)"
     _, delivery = written(tmp_path)
     assert delivery["slack"]["sent"] is False and delivery["slack"]["ts"] is None
     ((name, data),) = drive.files.items()
@@ -123,10 +123,15 @@ def test_a_server_clock_off_by_more_than_five_seconds_is_a_warning_printed_and_s
     )
     assert "clock: host vs Slack within 0.0 s" in result.lines
     assert any(line.startswith("clock WARNING: host vs GitHub off by 10.0 s") for line in result.lines)
-    assert "clock: host vs Other not checked (ConnectionError)" in result.lines
+    assert "clock NOT CHECKED: host vs Other (ConnectionError)" in result.lines
     _, delivery = written(tmp_path)
     assert [c["warning"] for c in delivery["clock"]] == [False, True, False]
-    assert delivery["clock"][2]["line"] == "clock: host vs Other not checked (ConnectionError)"
+    assert delivery["clock"][2]["line"] == "clock NOT CHECKED: host vs Other (ConnectionError)"
+    assert [c["checked"] for c in delivery["clock"]] == [True, True, False]  # a named failure, never a bare null
+    committed = FakeRecords()
+    committed.files["research/cards/deliveries/2026/2026-10-15-a1.json"] = written(tmp_path)[0].read_bytes()
+    _, next_text = daily_card(committed, tmp_path).prepare(date(2026, 10, 16))
+    assert "Previous card: the 2026-10-15 card's clock NOT CHECKED: host vs Other (ConnectionError)" in next_text
 
 
 def test_slack_ts_far_from_the_host_clock_is_a_warning(tmp_path):

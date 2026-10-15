@@ -4,7 +4,7 @@ Branch `story/t1-daily-card` (from `origin/main` 96ee83f). Story text: `docs/sto
 (new story; touches Slack, Drive and an outside clock).
 
 **Verdict in one line:** the card is built, self-reviewed by two independent agents (their 20 findings checked: 18
-fixed, 2 kept with reasons), 43 of 43 planted breaks are caught, and it prints correctly from the real repository.
+fixed, 2 kept with reasons), 50 of 50 planted breaks are caught, and it prints correctly from the real repository.
 One live TEST post went to #fno-desk (made by the orchestrator after the owner's yes; this session's permission system
 blocked my own attempt) and was read back from the channel, and three
 inputs are honest placeholders (weather, house-forecast rule, owner availability), each named on the card.
@@ -78,13 +78,35 @@ orchestrator then ran `python -m fno card daily --post --test` from e5dcf69 and 
   receipt unknown (HTTP 403 from GitHub's activity log)`. The receipt is read from pushes to `main` only, so it is
   checked after the merge, as criterion 16 says. The 403 is this container's token.
 
-Two things the test post showed, said plainly:
-1. **The GitHub clock check was not done, and the record did not say why.** `skew_seconds` is null, and the reason went
-   only to the screen. Fixed after the post: each clock check now stores its line, e.g. "not checked (ConnectionError)",
-   with a test. The likely cause (some evidence: the stored null is consistent with any failure) is that the routine's
-   network blocks a plain HEAD to api.github.com. The judge should check this on the first scheduled post.
-2. **That card used the same-day score report (2026-10-15).** It was built from e5dcf69, before the point-in-time
-   fix in this commit. Cards from this commit use the latest report dated before the card's day.
+Three things the test post showed, each traced to its root cause and fixed with a test and a planted break:
+1. **"clock: host vs GitHub not checked (KeyError)", stored as a bare null.** Root cause, reproduced live (read-only):
+   the check sent a HEAD to `https://api.github.com`. This cloud container's GitHub proxy answers that root path
+   itself, with HTTP 400 and no headers at all, so there is no `Date` (a GET to `/zen` gives 403 "sessions are bound to
+   their configured repositories"). A repository path (`/repos/exepex/trading`) passes through and carries GitHub's
+   `Date`. Live after the fix: "clock: host vs GitHub within 0.0 s"; the old URL still gives "clock NOT CHECKED: host
+   vs GitHub (no Date header in GitHub's answer (HTTP 400))".
+   Fixes:
+   - `wiring.py` asks the repository path (from `GITHUB_REPOSITORY`, default `exepex/trading`, so it also works on
+     GitHub Actions).
+   - `clock.py` names the failure in plain words instead of an exception type.
+   - Each stored check carries `checked: false` and its line.
+   - The next card names an unchecked clock on a sent card ("the <day> card's clock NOT CHECKED: ...").
+2. **`card witness` gave "unknown (HTTP 403 ...)" with this session's token.** Root cause, reproduced live: page 1 of
+   the activity log returns 200. GitHub's `next` link for page 2 names the repository by numeric ID
+   (`/repositories/1414773933/activity`), which the proxy refuses ("Numeric-ID repository paths ... are not supported
+   through this proxy"). Fixes:
+   - `fno/ai/receipts.py` asks every page by owner/name with GitHub's cursor. This is story F1's reader, not frozen,
+     and the AI books' collector benefits too.
+   - A 401 or 403 now raises `ReceiptAccessDenied`, a subclass of `ReceiptUnknown`, so the collector still fails
+     closed.
+   - The witness prints three distinct states: a time, "none yet (...)", or "NOT READABLE: access refused ... (an
+     access problem, not a missing receipt)". Live after the fix: "GitHub push receipt none yet (no push of
+     cc441095a4 in GitHub's activity log of main)", which is correct, since that commit is on the story branch, not
+     `main`.
+   - The existing paging test was changed from a placeholder `next` URL to GitHub's real numeric-ID shape and now
+     asserts the cursor is carried. It is stricter, not loosened.
+3. **That card used the same-day score report (2026-10-15).** It was built from e5dcf69, before the point-in-time fix.
+   Cards from this branch now use the latest report dated before the card's day.
 
 ## Gap list: every requirement of design 04 (layer 6, section 4.4), design 6.5 and the T1 paragraph
 
@@ -149,10 +171,12 @@ Both reviewers found the secret handling clean.
 
 ## Planted breaks: one per criterion, each must turn a test red
 
-Script: each break goes into a throwaway git worktree, `tests/cards` runs, and the file is restored. The main tree is
-never touched. The first run caught 26 of 27 breaks. It missed "UTC stored", because the tests' host clock was already
-UTC; a test with an IST host clock was added. After the review fixes, 16 breaks were added. Result now: **43 of 43
-caught.**
+Script: each break goes into a throwaway git worktree, `tests/cards` and `tests/ai/test_receipts_and_coverage.py` run,
+and the file is restored. The main tree is never touched.
+- The first run caught 26 of 27 breaks. It missed "UTC stored", because the tests' host clock was already UTC; a test
+  with an IST host clock was added.
+- After the review fixes and the test-post fixes, breaks were added for each fix.
+- **Result now: 50 of 50 caught.**
 
 | Criterion | Break planted | Test that failed |
 |---|---|---|
@@ -176,6 +200,13 @@ caught.**
 | 6 | witness reads push receipt | `test_the_witness_prints_slacks_time_beside_githubs_push_receipt` |
 | 7 | skew limit | `test_a_server_clock_off_by_more_than_five_seconds_is_a_warning_printed_and_stored` |
 | 7 | naive Date is UTC | `test_githubs_date_header_is_read_as_utc_and_a_missing_one_is_unknown` |
+| 7 | GitHub clock on the repository path | `test_githubs_clock_is_asked_on_the_repository_path` |
+| 7 | missing Date header named | `test_githubs_date_header_is_read_as_utc_and_a_missing_one_is_unknown` |
+| 7 | unchecked clock stored as such | `test_a_server_clock_off_by_more_than_five_seconds_is_a_warning_printed_and_stored` |
+| 7 | next card names an unchecked clock | `test_a_server_clock_off_by_more_than_five_seconds_is_a_warning_printed_and_stored` |
+| 6 | receipt pages asked by owner/name | `test_the_activity_log_is_read_across_pages` |
+| 6 | access refused named apart | `test_an_unreadable_log_or_an_unknown_commit_fails_closed` |
+| 6 | witness names an access problem | `test_the_witness_prints_slacks_time_beside_githubs_push_receipt` |
 | 7 | UTC stored | `test_times_are_stored_in_utc_even_when_the_host_clock_is_in_ist` |
 | 8 | owner-unavailable line | `test_a_full_card_says_paper_only_no_trade_with_its_reason_and_the_owner_line` |
 | 9 | no card text in repo | `test_the_repository_metadata_holds_no_card_text_and_no_secret` |
@@ -229,7 +260,7 @@ used by both `SlackChannelAlerts` and `SlackCardPoster`; the existing alert test
 ## Gates (this commit)
 
 `git config core.hooksPath .githooks`; not shallow; `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`; `ruff check fno
-tests tools`; `ruff format` (no changes); `python tools/check_imports.py` (clean). Full suite on the final commit: 3253 passed; `tests/cards`: 48.
+tests tools`; `ruff format` (no changes); `python tools/check_imports.py` (clean). Full suite on the final commit: 3254 passed; `tests/cards`: 49.
 Note: `pip install -r requirements-groww.txt` fails in this container (two old dependencies of `growwapi` do not build);
 no T1 code needs it.
 
@@ -255,7 +286,7 @@ no T1 code needs it.
   standard alert to #fno-desk, because `FNO_SLACK_BOT_TOKEN` is set in this container. That alert names only the file,
   line and kind of value, never the value, and the value was fake. The fake token is now `test-token-not-real`, the
   same style the existing alert tests use. The card code itself made no live call.
-- One live TEST post only (above). No scheduled card has run yet, and the GitHub clock check has never succeeded live.
+- One live TEST post only (above). No scheduled card has run yet, and the GitHub clock check succeeded live only in a direct read-only check after its fix (not yet in a post).
 - A retry after a lost Slack answer can post the card twice (Slack accepted the first but the answer was lost). The
   delivery metadata then shows one `ts`; the duplicate is harmless but visible.
 - The paper trade count reads each book's `positions.json` view, not the ledger it is rebuilt from.

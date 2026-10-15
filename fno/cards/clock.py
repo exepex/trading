@@ -18,7 +18,8 @@ from ..constants import CLOCK_SKEW_WARNING_SECONDS
 TIMEOUT_SECONDS = 15
 OK_LINE = "clock: host vs {server} within {skew:.1f} s"
 WARNING_LINE = "clock WARNING: host vs {server} off by {skew:.1f} s (limit {limit:.0f} s)"
-UNCHECKED_LINE = "clock: host vs {server} not checked ({why})"
+UNCHECKED_LINE = "clock NOT CHECKED: host vs {server} ({why})"
+NO_DATE = "no Date header in {name}'s answer (HTTP {status})"
 
 
 class ServerTimeUnknown(RuntimeError):
@@ -43,10 +44,16 @@ class HttpDateClock(ServerClock):
     def now(self) -> datetime:
         try:
             response = self._head(self.url, timeout=TIMEOUT_SECONDS)
-            moment = parsedate_to_datetime(response.headers["Date"])
-            return moment if moment.tzinfo else moment.replace(tzinfo=UTC)  # "-0000" is UTC (RFC 5322)
-        except (requests.RequestException, KeyError, TypeError, ValueError) as error:
-            raise ServerTimeUnknown(type(error).__name__) from None
+        except requests.RequestException as error:
+            raise ServerTimeUnknown(f"{self.name} not reached ({type(error).__name__})") from None
+        header = response.headers.get("Date")
+        if not header:  # e.g. a proxy's own answer, which carries no server time
+            raise ServerTimeUnknown(NO_DATE.format(name=self.name, status=getattr(response, "status_code", "?")))
+        try:
+            moment = parsedate_to_datetime(header)
+        except (TypeError, ValueError):
+            raise ServerTimeUnknown(f"unreadable Date header from {self.name}") from None
+        return moment if moment.tzinfo else moment.replace(tzinfo=UTC)  # "-0000" is UTC (RFC 5322)
 
 
 @dataclass(frozen=True)
@@ -58,7 +65,9 @@ class SkewCheck:
 
     def stored(self) -> dict:
         """Kept with its line, so an unchecked server says why in the record too (not only on screen)."""
-        return {"server": self.server, "skew_seconds": self.skew_seconds, "warning": self.warning, "line": self.line}
+        checked = self.skew_seconds is not None
+        return {"server": self.server, "checked": checked, "skew_seconds": self.skew_seconds, "warning": self.warning,
+                "line": self.line}  # fmt: skip
 
 
 def skew_check(

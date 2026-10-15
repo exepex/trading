@@ -21,6 +21,7 @@ NO_CARD = "no card on record for {day}"
 NOT_SENT = "the {day} card was NOT sent ({outcome})"
 NOT_SAVED = "the {day} card record was NOT saved to Drive ({outcome})"
 CLOCK = "the {day} card's clock check gave a WARNING ({servers})"
+UNCHECKED = "the {day} card's {line}"
 
 
 def delivery_path(day: date, attempt: int) -> str:
@@ -81,4 +82,6 @@ def misses(log: DeliveryLog, day: date) -> tuple[str, ...]:
     warned = [c["server"] for c in last["clock"] if c["warning"]]
     if warned:
         found.append(CLOCK.format(day=day, servers=", ".join(warned)))
+    if last["slack"]["sent"]:  # on a sent card every server was asked: an unchecked one is a named miss
+        found += [UNCHECKED.format(day=day, line=c["line"]) for c in last["clock"] if c.get("checked") is False]
     return tuple(found)

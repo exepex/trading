@@ -7,14 +7,15 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from ..ai.history import RepoHistory
-from ..ai.receipts import PushReceipts, ReceiptUnknown
+from ..ai.receipts import PushReceipts, ReceiptAccessDenied, ReceiptUnknown
 from ..models import IST
 from .deliveries import DeliveryLog
 
 NONE = "no committed card delivery for {day}"
 LINE = "{path}: Slack {slack}; GitHub push receipt {github}"
 NOT_POSTED = "not posted ({outcome})"
-NOT_PUSHED = "unknown ({why})"
+NOT_PUSHED = "none yet ({why})"
+NO_ACCESS = "NOT READABLE: {why} (an access problem, not a missing receipt)"
 
 
 def _shown(moment: datetime) -> str:
@@ -34,9 +35,11 @@ class IssuanceWitness:
     def _github(self, path: str) -> str:
         commit = self.history.first_commit_adding(path)
         if commit is None:
-            return NOT_PUSHED.format(why="not committed")
+            return NOT_PUSHED.format(why="the delivery file is not committed")
         try:
             return f"{_shown(self.receipts.received_at(commit))} (commit {commit[:10]})"
+        except ReceiptAccessDenied as error:
+            return NO_ACCESS.format(why=error)
         except ReceiptUnknown as error:
             return NOT_PUSHED.format(why=error)
 
