@@ -758,8 +758,8 @@ Drive-only (T1).
   The daily run is the only writer of accounts (E3), so the git reset-and-reapply logic for competing writers goes:
   one writer, no merge.
 - **The private packs.** E2's pack builder writes each book's `private.json` to Drive beside the account. Only its
-  `private.json.sha256` is committed, and D3 records the pack's hash, as today. The books' decisions read the pack
-  from Drive (Book 1: `fno/books/book1_inputs.py`).
+  `private.json.sha256` is committed, and D3 records the pack's hash, as today. Book 1's decision hashes its pack for
+  D3's record (`fno/books/book1_inputs.py:42`), so it needs the downloaded copy.
 - **The readers: one shared download at the start of each run or command that reads accounts or private packs.**
   The function fetches every book's account and private packs from Drive into the git-ignored local folders. It runs
   once, before anything reads them. The readers are:
