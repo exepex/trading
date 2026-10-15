@@ -65,7 +65,7 @@ def test_not_live_and_ok_are_never_alerted_a_raise_always_is(alerts):
 
 def test_the_live_dates_come_from_config_and_none_is_set_today():
     assert "daily" in ALLOWED_APP_KEYS
-    assert live_dates(load_app_config()) == {"weather": None, "forecasts_v4": None, "card": None}
+    assert live_dates(load_app_config()) == {"margin_check": None, "weather": None, "forecasts_v4": None, "card": None}
     assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
 
 
@@ -78,3 +78,18 @@ def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypat
     printed = []
     assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append) == 1
     assert printed == ["day done with problems: weather (2026-10-14)"]
+
+
+def test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_file(monkeypatch):
+    """Every name of DAILY_RUN_STEPS has a step (the desk's own, or O1's from the wiring); A14c's check is first,
+    before the quote parts start, and commits only its own file."""
+    from fno.constants import DAILY_RUN_STEPS, DESK_RUN_STEPS
+    from fno.daily import wiring
+
+    seen = {}
+    monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda: None)
+    wiring.build_day_runner(load_app_config())
+    assert set(seen["day_steps"]) | set(DESK_RUN_STEPS) == set(DAILY_RUN_STEPS)
+    assert DAILY_RUN_STEPS[0] == "margin_check" and wiring.MARGIN_CHECKS.endswith("stress_broker_check.csv")

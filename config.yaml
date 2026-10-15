@@ -199,6 +199,7 @@ budget:
 # record ends M1's back-fill; live v4 rows before the G6 freeze would mix with it).
 daily:
   live_from:
+    margin_check: null  # A14c's `margins stress-broker-check`: set when its code lands
     weather: null
     forecasts_v4: null
     card: null

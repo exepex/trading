@@ -54,8 +54,12 @@ after each applied row in `research/data/margins/stress_factor.csv`, the read-on
 command name provisional until A14c's code lands): "After A14c's weekly row is `applied`: `python -m fno margins
 stress-broker-check` (read-only Groww margin request for the SF 100 basket on that day's A14 row; never places an
 order). A mismatch posts its own #fno-desk line; the factor stays applied." The weekly row lands on Sunday, when the
-day's run records only `skipped`, so it becomes an O1 step run every session, and the command itself decides whether
-an applied row still waits for its check (asked of the A14c builder).
+day's run records only `skipped`, so it is O1's first step, `margin_check`, run every session before the quote parts
+(no overlap with the 14:55 capture on the same Groww key). Agreed with the A14c builder (15 Oct; A14c text at
+`story/a14c-stress-recompute` f2192b2f): the command checks the latest `applied` row once, prints "nothing to check"
+otherwise (exit 0), exits 1 on a Groww or read failure (one O1 alert; the next session retries), and appends only
+`research/data/margins/stress_broker_check.csv`, the one path the step commits. It stays `not_live`
+(`daily.live_from.margin_check`) until A14c's code lands.
 
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
@@ -68,6 +72,7 @@ In:
 
   | Step | Runs | Does (existing code, unchanged) |
   |---|---|---|
+  | `margin_check` | at once | A14c's `margins stress-broker-check` (read-only Groww; commits only its own file) |
   | `weather` | at once | M1's `capture_weather` (refused after the cutoff or on stale closes: recorded, never retried) |
   | `forecasts_v4` | at once | G7's capture (same rules) |
   | `quotes` | starts the three quote parts in the background (below), records that they started, and goes on | A4c's routine steps 2-3b, unchanged |

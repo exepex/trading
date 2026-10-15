@@ -318,8 +318,8 @@ CARD_SESSION_KINDS = (
 RUN_LOG_DECISIONS_STEP = "decisions"
 # E3's steps, then story O1's whole day in order (the health check O8 reads it); Book 1 decides right after the pack
 DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", "exits")
-DAILY_RUN_STEPS = ("weather", "forecasts_v4", "quotes", *DESK_RUN_STEPS[:2], "book1", *DESK_RUN_STEPS[2:],
-                   "quotes_done", "card")  # fmt: skip
+DAILY_RUN_STEPS = ("margin_check", "weather", "forecasts_v4", "quotes", *DESK_RUN_STEPS[:2], "book1",
+                   *DESK_RUN_STEPS[2:], "quotes_done", "card")  # fmt: skip
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status
 
 # The market weather (story M1, fno/weather/; design 2.3): its forecasters, colours and the owner's thresholds

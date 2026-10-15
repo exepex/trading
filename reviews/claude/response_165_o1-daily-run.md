@@ -121,3 +121,15 @@ Said plainly:
   - `test_a_failed_or_refused_o1_step_is_a_problem_with_its_reason_not_live_is_not`.
 - `fno/constants.py` is at 348 lines after the merge: still under 350, with no squeeze. The next story that adds a
   block there must split a cohesive block out.
+
+### A14c's margin check (agreed with the A14c builder, 15 Oct)
+
+- `margin_check` is the first entry of `DAILY_RUN_STEPS`. It runs `python -m fno margins stress-broker-check`
+  (provisional name), which is idempotent: "nothing to check" with exit 0, exit 1 on a Groww failure.
+- It commits only `research/data/margins/stress_broker_check.csv`.
+- It is `not_live` (`daily.live_from.margin_check: null`) until A14c's code lands. While the command does not exist,
+  a live step would fail every day.
+- Tests:
+  - the order and failure tests now cover `margin_check`;
+  - `test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_file` checks that the composition
+    root gives a step for every name in the tuple.
