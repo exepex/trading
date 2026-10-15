@@ -318,7 +318,7 @@ RUN_LOG_DECISIONS_STEP = "decisions"
 # The market weather (story M1, fno/weather/; design 2.3): its forecasters, colours and the owner's thresholds
 # (15 Oct 2026, "Weather thresholds accepted"), scored on protocol v4's V6a and V6b
 WEATHER_MODEL_VIX, WEATHER_BASELINE_V0 = "weather_vix_v1", "weather_checklist_v0"
-WEATHER_OPERATIVE_MODEL = WEATHER_MODEL_VIX  # decision 71 (owner to confirm): back to v0 only by a recorded decision
+WEATHER_OPERATIVE_MODEL = WEATHER_MODEL_VIX  # decision 71: back to v0 only by a recorded decision
 WEATHER_OPERATIVE_PROVEN = False  # "not yet proven" until G8 scores it against v0 and the base rate
 
 
