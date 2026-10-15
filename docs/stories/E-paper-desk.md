@@ -163,10 +163,15 @@ Out:
 - books 2-3's per-contract trading inputs: F5, F6 (decided when they trade);
 - paper fills showing live strikes in the public journal: put to the owner by the orchestrator (outside E2b);
 - the fill price itself, which is one side of one quote by design (E4 criterion 1): kept;
+- **the one stated exception (judge 118 SF1; orchestrator for the owner, response 113):** when a hedged entry fails
+  (E4 criterion 2), the protection is bought at the ask (`FILL_OPEN`) and sold back at the bid (`FILL_UNWIND`) of the
+  same snapshot, and `legging_cost_rs` in `desk_events.csv` equals that spread times the units. Those rows publish both
+  sides of that one contract. It is rare (a failed hedge only, one contract, after 15:15), and it is put to the owner
+  together with the open question of whether paper fills should move to Drive at all;
 - NSE's public chain (`research/data/quotes/nse/`): public NSE data;
 - the forecast v2 pack and its frozen code (G1 v2): already derived, not touched.
 
-**How it fits with A4b:** both stories change `fno/desk/execution_capture.py` the same way (commit only what the
+**How it fits with A4b:** E2b merges only after A4b (criterion 3 reads the 15:15 quote file from Drive). Both stories change `fno/desk/execution_capture.py` the same way (commit only what the
 repository holds); whichever merges second keeps one version. Before A4b merges, the 15:15 quote CSV stays only in the
 run's local quote folder (not committed), so a capture made before A4b cannot be replayed from the repository; the
 desk is not live, so no counted day depends on it. After A4b, the CSV is in Drive and every reader gets it through
@@ -183,6 +188,7 @@ the hash-checked store. The guard and the derived pack work the same with either
 | Raw quotes to Drive only ("6 A") | out: A4b |
 | E2 criteria 1-5 (no book data, determinism, cutoff refusals, opportunity set) | criterion 6 (E2's tests still pass on schema 2) |
 | E4 criterion 1 (fill price = the snapshot's ask or bid, snapshot hash in the row) | kept; criterion 3 |
+| E4 criterion 2 (a failed short leg unwinds the protection, legging cost recorded) | kept; the one stated exception (criterion 3) |
 | E6's half-spread paid (criterion 3 of E6) | criterion 3 |
 | C3's spot rules (2% from the previous close, 0.2% chain agreement) | criterion 2 |
 
@@ -195,15 +201,22 @@ the hash-checked store. The guard and the derived pack work the same with either
    with its expiry (test).
 2. C3's spot check gives the same results from the `spot:` items as before from the option items: the 2% limit at,
    just under and just over; the 0.2% agreement at, under and over; no spot; one chain only (tests).
-3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column and no other column from which a filled leg's other quote
-   side follows; E6's half-spread from the execution snapshot equals the old figure on the same fixtures; a fill whose
-   snapshot is missing or whose hash differs counts as "touch unknown" (reported, excluded from the average, never
-   zero); a settlement row (no quote) is excluded as before (tests).
+3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the one stated exception (an unwound
+   protection: its `FILL_OPEN` and `FILL_UNWIND` rows of the same snapshot and contract, and their legging cost), no
+   committed desk record lets a filled leg's other quote side be worked out: a test builds every outcome of E4's
+   fixtures (opened, partial fill, closed, pending exit, settlement) and finds that only the unwind pair gives both
+   sides of one contract in one snapshot. E6's half-spread from the execution snapshot equals the old figure on the
+   same fixtures; a fill whose snapshot is missing or whose hash differs counts as "touch unknown" (excluded from the
+   average, never zero), and the scorecard report prints how many fills were "touch unknown"; a settlement row (no
+   quote) is excluded as before (tests). **Depends on A4b:** E6 reads the 15:15 quote file from Drive through A4b's
+   hash-checked store, so E2b merges only after A4b.
 4. E3's 15:15 capture commits its record and the sidecar, never the quote CSV; the record still holds both hashes, so
    the fill can prove which quotes it used (test).
 5. The committer refuses, before running git, any commit whose paths include a Groww quote file, naming the path; the
    sidecar `.meta.json` and the `.canonical` marker are allowed; a path outside the quotes folder with a `.csv` name
-   is allowed (tests: refused, allowed, mixed list, empty list).
+   is allowed. Paths are compared after resolving them, so an upper-case `.CSV`, a `../` path into the folder and a
+   symlink pointing into it are refused too (tests: refused, allowed, mixed list, empty list, `.CSV`, `../`,
+   symlink).
 6. E2's own criteria still hold on schema 2: no book data, byte-identical rebuilds, cutoff refusals named, the
    opportunity set unchanged (existing tests, updated only where they name option items).
 7. No reader of the committed pack uses per-contract quote figures (a test lists every `option:` lookup in `fno/` and
@@ -217,7 +230,7 @@ quote file (quality rule 6; the sample shows the pack's derived items only).
 **Judge verifies:** rebuilds a pack from a fixture and scans it for raw values; recomputes one half-spread from the
 snapshot by hand; plants a raw quote path in a commit; checks that the 15:15 capture commits no CSV.
 
-**Depends:** E2, E3, E4, E6, C3 (A4b for the Drive side) · **Size:** S · **Status:** story text for the judge's check
+**Depends:** A4b (merged first), E2, E3, E4, E6, C3 · **Size:** S · **Status:** story text for the judge's check
 (quality rule 1); no code yet
 
 ---
