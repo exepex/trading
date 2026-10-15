@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime
 
 from ..constants import (
     V1_RV_1S,
@@ -19,13 +19,14 @@ from ..constants import (
     V6_BIG_MOVE_1S,
     V6_BIG_MOVE_5S,
 )
+from ..forecast_v4.terms import V4_CAPTURE_START
 from ..models import IST
 from .baselines import NOT_ELIGIBLE, NOT_STARTED, BaseRate, Ewma, Har, Value, before, trailing_previous_session
 from .records import BASELINE, LIVE, RULE, SLOT_REPORTED, SLOT_RULES, Record, record
 from .rules import v1_close_blend, v6_ewma_t4
 from .series import DayValue, SessionRv, big_move_outcomes, close_proxy_rv
 
-CUTOFF = time(15, 0)
+CUTOFF = V4_CAPTURE_START  # story G10: the live capture refuses from 14:30 IST
 V1_START_SESSIONS, HAR_INTRADAY_SESSIONS = 20, 250  # live non-void A16 sessions (protocol 1.3 and 3.1)
 FORECASTERS = {  # (forecaster, question) -> (kind, slot); decision 70: V6's rules slot is M1's
     (V4_BASELINE_BASE_RATE, V6_BIG_MOVE_1S): (BASELINE, SLOT_REPORTED),
@@ -125,12 +126,12 @@ class CaptureRefused(RuntimeError):
 
 
 def capture_day(forecasts: DayForecasts, d: date, now: datetime, write) -> int:
-    """Today's live rows, only before 15:00 IST (as G3); `write(forecaster, question, rows)` stores them."""
+    """Today's live rows, only before the cutoff (14:30 IST, G10); `write(forecaster, question, rows)` stores them."""
     if d != now.date():
         raise CaptureRefused(f"{d} is not today ({now:%Y-%m-%d}): a live row is made on its own day only")
     if d not in forecasts.inputs.sessions:
         raise CaptureRefused(f"{d} is not a scored session")
     if now >= cutoff(d):
-        raise CaptureRefused(f"{now:%Y-%m-%d %H:%M} IST is at or after {d}'s 15:00 cutoff")
+        raise CaptureRefused(f"{now:%Y-%m-%d %H:%M} IST is at or after {d}'s {CUTOFF:%H:%M} cutoff")
     rows = forecasts.records(d, LIVE, now.isoformat())
     return sum(write(f, q, [row]) for (f, q), row in rows.items())

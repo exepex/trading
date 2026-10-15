@@ -22,7 +22,7 @@ from fno.weather.wiring import build_weather_days, is_session, previous_regular
 from .fakes import FakeStore
 
 DAY = date(2026, 10, 15)
-BEFORE = datetime(2026, 10, 15, 14, 55, tzinfo=IST)
+BEFORE = datetime(2026, 10, 15, 14, 25, tzinfo=IST)  # before the 14:30 cutoff (G10)
 FLAG = "flag-sentinel-7f3a"  # stands for the private flag: must never reach a repository file or a printed line
 WEATHER = build_weather_days()
 
