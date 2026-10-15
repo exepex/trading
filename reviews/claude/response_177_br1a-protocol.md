@@ -21,7 +21,7 @@ No code or study runs before the PASS.
 | 10 | K = 3. T2, direction, the residual target and 14:30 are descriptive | item `confirmatory_family` | judge 165 should-fix 8; review 116 Q5 |
 | 11 | BR1's own futility: plain batch-means p_e at most 0.025 at look 1 (`futility_p` with threshold 0.025), or study 3's fixed replacement | item `futility` | judge 165 add. 1 note A |
 | 12 | The wording in every BR1 text: the range 6-42; about 9 as the common-tilt planning case only; 2-3% hypothetical; the tilt lost (t -8.06); "unknown whether any forecaster beats the primary by 2-3%" | scope 4; criterion 9 | `results/2024-01-01_2026-10-14.txt` |
-| 13 | S1's freezer is made path-generic (`--protocol breadth`), with S1's behaviour and records unchanged | scope 3; criteria 2, 8 | **agreed (16 Oct):** S1's owner (byte-for-byte unchanged, definition passed only through wiring, land before S1's freeze); F9 (`parse_protocol` and `PROTOCOL_FILE` keep their names); order RM1 first, then BR1a; S6's `REQUIRED_ITEMS` line rebased by whichever lands second |
+| 13 | S1's freezer is made path-generic (`--protocol breadth`), with S1's behaviour and records unchanged | scope 3; criteria 2, 8 | **agreed (16 Oct):** S1's owner (byte-for-byte unchanged, definition passed only through wiring, land before S1's freeze); F9 (`parse_protocol` and `PROTOCOL_FILE` keep their names); order RM1 first, then BR1a, with the real-money gate kept on S1's protocol only; S6's `REQUIRED_ITEMS` line rebased by whichever lands second |
 
 ## Gap list
 
@@ -30,4 +30,5 @@ or a criterion.
 
 ## Open before code
 
-- RM1's confirmation of the order (RM1 first) is still awaited. S1's owner and F9 agreed (scope 3 of the story).
+- Nothing on coordination: RM1, S1's owner and F9 all agreed (scope 3 of the story). RM1 lands first. BR1's definition
+  carries no real-money gate, because a BR1 claim decides no money.

@@ -172,6 +172,11 @@ and false-futility rates are known on real Indian data.
        - RM1 (session 01CHxE3y: `completeness.py`, `freeze.py`, `cli.py`, a new `gate.py`) lands first. BR1a's
          change follows on top of it and keeps RM1's behaviour.
        - S6 adds five S1 items to `REQUIRED_ITEMS`. Whichever of BR1a and S6 lands second rebases that line.
+       - **RM1 (agreed):** RM1 (`story/rm1-real-money-gate`, 0c28cbed) adds the real-money gate (`gate.py`,
+         `_require_gate` in `freeze.py`). `completeness_problems` takes `required` and `versioned`. The gate
+         belongs to S1's evaluation protocol only: its decisions count toward real money. BR1's protocol definition
+         carries `requires_gate = False`, because a BR1 claim decides no money. `test_real_money_gate.py` and
+         `test_freeze.py` stay green.
      - **F9 (session 01SFDjjZ):** `parse_protocol(text)` and `PROTOCOL_FILE` (S1's path) stay importable under
        the same names. F9a's constants test reads them. `review_dates.py` is not touched.
 
