@@ -16,6 +16,7 @@ from fno.constants import (
     OUTCOME_PROTECTION_UNVERIFIED,
     OUTCOME_REFUSED,
     PROTECTION_NOT_BUYABLE,
+    PROTECTION_NOT_SELLABLE,
     SIZE_SHARED_IN_BOOK,
     VIEW_VERDICT,
 )
@@ -189,3 +190,10 @@ def test_protection_without_a_bid_at_the_mark_misses_with_e4cs_code(root, parts,
     entries, _, _, _ = parts
     marks.put(DUE, fly_rows({(25200, "CE"): {"bid": None}}))  # an ask but no bid: one-sided, so not valid by A4
     assert apply(root, entries).startswith(PROTECTION_NOT_BUYABLE)  # E4c's own code for it, as at 15:15
+
+
+def test_protection_that_cannot_be_sold_back_in_full_misses_and_fills_nothing(root, parts, marks):
+    """Judge C's probe (judge 203 addendum 3): a bid size of 64 against 65 units."""
+    entries, _, _, _ = parts
+    marks.put(DUE, fly_rows({(25200, "CE"): {"bid_qty": 64.0}}))
+    assert apply(root, entries).startswith(PROTECTION_NOT_SELLABLE) and not account(root).fill_rows()
