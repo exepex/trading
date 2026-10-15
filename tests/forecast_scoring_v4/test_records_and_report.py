@@ -6,7 +6,15 @@ from datetime import date
 
 import pytest
 
-from fno.constants import V1_RV_1S, V4_CLAIM, V4_OPEN, V5_INSIDE_STRADDLE, V6_BIG_MOVE_5S
+from fno.constants import (
+    V1_RV_1S,
+    V4_CLAIM,
+    V4_COHORT_CLOSE_PROXY,
+    V4_COHORT_LIVE,
+    V4_OPEN,
+    V5_INSIDE_STRADDLE,
+    V6_BIG_MOVE_5S,
+)
 from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
 from fno.forecast_scoring.v4.records import EXPLORATORY, LookRecordExists, LookRecords, NoRegistrations, Registration
@@ -56,8 +64,11 @@ def test_the_report_is_exploratory_before_the_freeze_and_never_fails_on_empty_qu
     lines = report_lines(reports, frozen=False, as_of="2025-01-06", days=NO_DAYS)
     assert lines[0] == EXPLORATORY and f"{V1_RV_1S}: {STATUS_NO_DATA}" in lines
     v6b = next(r for r in reports if r.question == V6_BIG_MOVE_5S)
-    assert v6b.live_forecasts == 2 and [c.forecaster for c in v6b.comparisons] == ["weather_m1"]
-    assert v6b.scores["weather_m1"].n == 1 and v6b.comparisons[0].pairing.unresolved == 1
+    live, proxy = v6b.cohorts[V4_COHORT_LIVE], v6b.cohorts[V4_COHORT_CLOSE_PROXY]
+    assert v6b.live_forecasts == 2 and [c.forecaster for c in live.comparisons] == ["weather_m1"]
+    assert live.scores["weather_m1"].n == 1 and live.comparisons[0].pairing.unresolved == 1
+    assert live.comparisons[0].pairing.missing_baseline == 1  # resolved 2 Jan: the back-fill base rate is never pooled
+    assert list(proxy.scores) == ["base_rate"] and proxy.comparisons == []
     assert report_json(reports, frozen=False, as_of="2025-01-06", days=NO_DAYS)["exploratory"] is True
     assert report_lines(reports, frozen=True, as_of="2025-01-06", days=NO_DAYS)[0] != EXPLORATORY
 

@@ -29,3 +29,30 @@ The LR1 reader change is also reviewed by the LR1 builder (orchestrator's go (b)
 2. This changes `fno/forecast_scoring/v4/`, so merge it **before** the v4 freeze commit, as the builder says.
 
 **Verdict: PASS for 0b47894f.** The LR1 part is subject to the LR1 builder's review, as agreed.
+
+## Addendum 1 (15 Oct 2026): e37ec7e0, with the LR1 builder's conditions
+
+- **G8.** Only the text changes: an empty cohort reads "no rows yet". The scoring is unchanged.
+- **LR1.**
+  - New labels: "live" and "back-fill (close-proxy), exploratory: does not count".
+  - An old-shape previous report gives "first report" (`_has_cohorts`), never a cross-shape difference. An old-shape
+    latest report still shows, as the back-fill cohort.
+  - My plant, `_has_cohorts` always True, fails 1 test.
+- **Gates.** `-n auto`: **6,525 passed, 0 failed**. Ruff is clean.
+
+**PASS for e37ec7e0.** Merge it before the freeze.
+
+## Addendum 2 (15 Oct 2026): f5f177d4 replaces e37ec7e0
+
+The LR1 builder withdrew the "first report" condition. A pre-G10 pooled report is pure back-fill: every v4 file has 0
+live rows, which I also checked at addendum 1 by the report run (live cohort empty). So it compares like for like with
+the new back-fill cohort, and `_has_cohorts` is gone.
+
+The 0b47894f..f5f177d4 diff:
+- G8's "no rows yet" text, with the scoring unchanged;
+- LR1's labels: "close-proxy cohort (back-fill, exploratory: does not count)" and "live cohort";
+- the docstring and tests.
+
+My plant, an old-shape report read as live, fails 2 tests. `-n auto`: **6,525 passed, 0 failed**.
+
+**PASS for f5f177d4** (it replaces addendum 1's e37ec7e0). Merge it before the freeze.
