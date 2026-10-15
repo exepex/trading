@@ -449,3 +449,13 @@ This replaces my addendum 3 condition: I compared the wrong value. The 09:15 ope
 **Gates.** A trial merge with `origin/main` is clean. The tests that read stories and responses, plus the code-size test: 893 passed.
 
 **For A16b, information only:** Groww returned no 1-minute candles for 2019-03-12. Its backfill should not assume 1-minute history goes back to 2019 without checking.
+
+## Addendum 10 (15 Oct 2026): merge check, A16d merged to `main` as eaa66df
+
+**Verdict: merge check complete, matches the PASS.**
+
+- **Parents.** `eaa66df` has parents `c2e631c` (main, which carries my addendum 9) and `274adb1`, the SHA I passed, and it is on `origin/main`.
+- **Same change.** The merge's change against its main parent has the same stable patch-id (`5cf9a151…`) as the branch's diff from its base `04547f2`. It touches 2 files, +71/-7, both text: the A16 story and response 108.
+- **Gates on eaa66df, run by me.** Full suite with `FNO_SLACK_BOT_TOKEN` unset: 4,614 passed. ruff check and check_imports: clean.
+- **Rule 8.** Not applicable: there is no code path. This is recorded in `conversations/2026-10-15.md`.
+- **Still open.** The criterion 15 minor (list the pre-open comparison in the trial report) is queued for the next A16 text change.
