@@ -286,3 +286,16 @@ the owner would see it at once.
   - JUDGE's planted mutations: the 09:15 open against the close, the 25-candle set, the 0.05 tolerance, the provenance
     boundary, the void rule, and transient against permanent.
 - **Rule 9:** none needed, no money path. Code may start.
+
+## Addendum 5 (15 Oct 2026): final SHA 1109296a491a21e48de616de22cf8b3bc8c5b1be (1c9c5c3..1109296, story file only, 5 lines)
+
+| Finding | Status | Check |
+|---|---|---|
+| Addendum 3 minor 2: `nse_open_gap` with no 1-minute answer | MET | Sessions void before the 1-minute check (`missing_candles`) have a blank `nse_open_gap`. The pre-open count covers sessions that had a 1-minute answer, and its line prints how many there were. A test is named |
+
+Nothing else changed.
+
+### Verdict: PASS for 1109296a491a21e48de616de22cf8b3bc8c5b1be (story text)
+
+- **No minor is left from the text rounds.**
+- **Carried to the code round, as in addendum 4:** the tests and the planted mutations.
