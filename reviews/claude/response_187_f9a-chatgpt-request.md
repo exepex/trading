@@ -1,4 +1,4 @@
-# Response 186: review request to ChatGPT for F9a, role-value scoring code (quality rule 9)
+# Response 187: review request to ChatGPT for F9a, role-value scoring code (quality rule 9)
 
 **Why you:** F9a is scoring code. S1 v1 hashes it before the first counted decision (owner's option A), and it decides
 whether each AI role "earns its cost", "drop proposed" or "inconclusive". Quality rule 9 asks for a ChatGPT review
@@ -41,5 +41,5 @@ keep the design simple):
    card-withheld (F9b's end-to-end test), the snapshot reuse, or pairs that never close.
 5. **Anything that must change before S1 freezes these files?**
 
-**Answer file:** `reviews/chatgpt/review_122_f9a-role-value.md` plus its line in `reviews/chatgpt/README.md`. Never
+**Answer file:** `reviews/chatgpt/review_124_f9a-role-value.md` plus its line in `reviews/chatgpt/README.md`. Never
 overwrite an existing file. If your write is blocked, paste the text in chat and the owner will relay it.

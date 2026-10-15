@@ -180,4 +180,4 @@ owner). `fno/scoreboard/` is imported only, never edited.
    rows as "pilot, before the common start" and never scores them (S1 `pilot_evidence`). Tests: a pilot row never
    moves the cycle; a pilot row is excluded.
 
-The ChatGPT request is response 186 (first filed as 185, taken on main by E8).
+The ChatGPT request is response 187 (number assigned by the orchestrator; answer file review 124).
