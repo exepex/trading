@@ -64,9 +64,16 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
      after it);
    - one alert per condition per position per hour; after 10 DANGER alerts in a session, one summary every 30 minutes;
    - each alert is a record (condition, position, snapshot time, sent time, outcome of the send). A record names a
-     position and its marked loss, so it is kept in Drive with the paper desk's other private records, through E2c's
-     store (story E2c: no public record that names a contract's price or mark; agreed with the E2c builder); a send that
-     fails is printed by `ReportedAlerts`, retried at the next mark, and its record keeps the first try.
+     position and its marked loss, so it is private (story E2c: no public record names a contract's price or mark):
+     one file per mark, `journal/monitor/alerts/<YYYY>/<YYYY-MM-DD>/<HHMM>.csv`, written through E2c's `PrivateFiles`
+     (`build_private_files` in `fno/desk/wiring.py`; Drive's `paper` area; the local copy git-ignored by a
+     `.gitignore` line in the same commit, with a test that the folder is ignored; agreed with the E2c builder, 16
+     Oct). One file per mark means one writer per file, so overlapping recorder runs never overwrite each other's
+     rows (Drive's `replace` has no append).
+   - order: the record's "sending" row is pushed first, then the alert is sent, then its outcome row is pushed, so a
+     crash in between stays visible. If Drive is down (`PrivateFilesUnavailable`), the alert is still sent (the owner's
+     warning matters more than its record; reasoning only) and the public mark row says `alert_record_failed`. A
+     failed send is printed by `ReportedAlerts`, retried at the next mark, and its record keeps the first try.
    - the public repository gets only one row per mark handled (below), with times, counts and status, never a position
      or a price.
 5. **No duplicate of the daily run's alerts:**
@@ -110,7 +117,7 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
 **Open points, to agree before the judge (asked 16 Oct; answers in response 217):**
 1. A16 and O8 builders: **agreed 16 Oct** (the observer port; `MonitorHeartbeat` beside A16's heartbeat;
    `MonitorSilence` runs with A16's silence check, which stays A16's; per-mark rows for the uptime).
-6. E2c builder (asked 16 Oct): the alert records through E2c's Drive store.
+6. E2c builder: **agreed 16 Oct** (`PrivateFiles`, the path above, one file per mark, the write order).
 2. O1/O2 builder: **agreed 16 Oct** (alert path through `ReportedAlerts`, the boundary after the execution snapshot,
    the monitor-silent interface and text above).
 3. A16 builder: **answered 16 Oct**: no VIX in the mark; the VIX check waits (a later small A16 story after the trial).
