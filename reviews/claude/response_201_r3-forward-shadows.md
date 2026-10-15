@@ -18,3 +18,22 @@ Text only. Number 201 assigned by the orchestrator.
 | 9 | Test B of the stop rule waits for R3's closed-trades path. | Strong: `fno/budget/stop_rule_tracker.py` (`path=None`, producing story R3); S3/S6 builder, 16 Oct. |
 | 10 | Exercising the whole shadow path with B0 before the V-ideas is worth its one trial. | Reasoning only (question 1). |
 | 11 | E8 fills every pending order whatever its account; R3 writes shadow orders in Book 1's format, fills E8's per-account terms lookup and opens the accounts. | Strong for the split (E8 builder, 16 Oct); reasoning only for the interface names until E8's part 1b. |
+
+## Answer to judge 208 (should-fix 1 and notes): accepted, with one correction and one partial disagreement
+
+- **Should-fix 1 (Book 1 isolation): ACCEPT.** I checked it, and it is a real leak, not only a gap in the text.
+  `fno/books/book1_records.py` `_chosen` reads every record in Book 1's decision folder and checks only
+  `chosen_action == trade` and the structure, never `mode`. D2 writes shadow records with `chosen_action: trade` into
+  that same folder. So R3 adds: every Book 1 reader skips `mode: shadow`; a shadow's orders, fills and account live
+  only under `journal/shadow/<name>-v<n>/`. Criterion 9 lists the Book 1 readers (E5's counts and one-decision rule,
+  opening trades and terms, E6's Book 1 section, S2's board, S3's actions), and test 4 compares each with and without
+  the shadow.
+- **Note, second crash path: ACCEPT, with a correction.** `fno/risk/book_view.py` `_open_trade` raises
+  `RiskInputError`, not `KeyError`, when a shadow's open trade has no terms in Book 1's set. It is named in Context.
+- **Note, who stops B0: PARTIAL.**
+  - Prevention is automatic: C2's per-trade cap applies to each shadow's own book in D2, so a too-large trade is
+    never decided.
+  - A stop after the fact cannot be automatic. A research version is only alerted, never paused
+    (`fno/scorecard/pauses.py`, "research cannot be paused"), and retiring it is owner-only
+    (`fno/playbook/transitions.py`). So "needs no owner action" is not true of the code today. The text says so.
+- **Note, Test B: ACCEPT.** One line: with B0 only, Test B stays "undecided" for years.
