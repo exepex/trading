@@ -13,6 +13,8 @@ from pathlib import Path
 from ..alerts.sender import AlertSender, NoAlertSender
 from ..composition import build_alert_sender
 from ..constants import DEFAULT_REPOSITORY, GITHUB_REPOSITORY_VARIABLE
+from ..forecast_v4.cutoff_move import cutoff_flag
+from ..forecast_v4.terms import MOVED_AFTER_CUTOFF_X
 from ..models import now_ist
 from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
@@ -62,7 +64,7 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     plan = _expiry_plan(groww_listed_expiries(client))
     source = GrowwIntradaySource(client, plan, provider.fallback_lot_size(UNDERLYING))
     calendar = build_session_calendar()
-    session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m())
+    session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m(), cutoff=v4_cutoff_flag)
     github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
                                                              or DEFAULT_REPOSITORY))  # fmt: skip
     clock = ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
@@ -70,6 +72,11 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     return IntradayRecorder(
         source, files, ledger, Heartbeat(folder), calendar, alerts, clock, session_rv, _sync(dry_run_folder, alerts),
     )  # fmt: skip
+
+
+def v4_cutoff_flag(levels: dict) -> tuple[str, str]:
+    """Protocol v4's moved-after-cutoff flag and sign at the frozen X (story G10)."""
+    return cutoff_flag(levels, MOVED_AFTER_CUTOFF_X)
 
 
 def build_heartbeat() -> PublishedHeartbeat:

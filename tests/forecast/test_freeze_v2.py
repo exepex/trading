@@ -55,6 +55,7 @@ def test_no_v2_record_means_not_yet_frozen(tmp_path):
         require_version_frozen(tmp_path, "0" * 40)
 
 
+@pytest.mark.usefixtures("full_history")
 def test_the_repository_v2_freeze_holds_and_covers_the_v2_code():
     freeze = require_version_frozen(ROOT, Git(ROOT).head())
     frozen = set(freeze.hashes)
@@ -65,6 +66,7 @@ def test_the_repository_v2_freeze_holds_and_covers_the_v2_code():
     assert read_version_freeze((ROOT / FREEZE_V2).read_text(), PROTOCOL_V2) == freeze
 
 
+@pytest.mark.usefixtures("full_history")
 def test_the_v2_ledger_trials_carry_the_protocol_commit():
     freeze = require_version_frozen(ROOT, Git(ROOT).head())
     rows = [r for r in Ledger(Path(ROOT)).rows() if r["experiment"] == "forecasts-v2"]

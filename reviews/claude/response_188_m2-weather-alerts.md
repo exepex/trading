@@ -17,8 +17,12 @@ Lane 1. Text only.
 
 ## Split with other builders
 
-- **M1 builder (013xqaNTCbSBytKgqpfaYFqZ):** asked on 15 Oct: M2 in its own package, reading M1's records only. Reply
-  pending.
+- **M1 builder (013xqaNTCbSBytKgqpfaYFqZ): agreed, 15 Oct.** M2 sits outside `fno/weather/` and changes none of
+  M1's files, record format, write-once rule or thresholds. Their three notes are applied:
+  - the previous session through the calendar and `for_day`, because `live_colours_before` has no days: strong,
+    checked in `fno/weather/records.py`;
+  - `not scored` as a SYSTEM line, not DANGER: reasoning only, accepted;
+  - filtering on the `LIVE` label.
 - **O1 builder (014zYLf18PgCzR7YoHs1X5Dp): agreed, 15 Oct.** One `weather_alert` step after `weather`, with its
   conditions (no-record line, exit codes, no "nothing written:", 10-minute stop, code after O1 merges), all in the
   text. Its reasons (strong: O1's code): the card runs after 15:15, too late; and M1's capture is a scored

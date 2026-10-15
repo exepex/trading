@@ -298,10 +298,18 @@ knowing its price.
       1. O1 records the step failed and sends its one alert, and the routine posts "alert NOT sent" lines with the
       Slack connector (CLAUDE.md, 3 pm rules).
     - No line uses O1's reserved phrase "nothing written:".
-  - Rule, read from M1's committed records through `WeatherRecords` (never recomputed):
-    - today's record is `label: live` and its operative colour is RED, and
-    - the previous regular session's record is missing, back-fill, or not RED.
-    RED on two sessions in a row alerts once, on the first. Never on a back-fill record, never on `not scored`.
+  - Rule, read from M1's committed records through `WeatherRecords.for_day` only (never recomputed):
+    - today's record has `label` equal to `LIVE` (`fno/forecast_v4_rules/records.py`; a back-fill record carries
+      another label: filtered on the label, never inferred from the date) and operative colour RED, and
+    - the previous regular session (from the A7 calendar, M1's `previous_regular`) has no record, a non-`LIVE`
+      record, or a colour other than RED. `live_colours_before` is not used: it returns colours without their days
+      (M1 builder, 15 Oct 2026).
+    RED on two sessions in a row alerts once, on the first. Never on a back-fill record.
+  - **`not scored`** (a probability or base rate is missing; it blocks new trades like RED, owner "4 A"): never a
+    DANGER, so a data failure is never shown as a market warning. Instead one SYSTEM-class line (design 6.5: SYSTEM is
+    for data and job problems): "SYSTEM (paper only): weather not scored for <d>: <the record's missing item>. Owner
+    rule: no new paper entry until the weather is scored." It is sent once per day, with the same alert record and
+    exit codes as DANGER (M1 builder's view, accepted: reasoning only).
   - The message, PAPER ONLY, first line saying what it means (design 6.5): "DANGER (paper only): weather turned RED for
     <d> (was <colour> on <previous>). Owner rule: RED means no new paper entry today." Then, copied from the record:
     the operative model's `p_big_1d` and `p_big_5d` against the base rates, the v0 colour, the v0 inputs with the
@@ -329,7 +337,6 @@ Out (each with where it goes):
 - Intraday RED upgrades and AMBER WARNINGs: LM1 (layer 7), once A16 runs live.
 - The desk refusing entries on RED or `not scored` (owner "4 A"): the story that first approves a version to paper
   (M1 Out; T2's gap list).
-- A `not scored` day: no DANGER. The card names the missing weather, and O1 alerts a failed `weather` step.
 - The price of calm's code: R1.
 
 **Design:**
@@ -339,13 +346,18 @@ Out (each with where it goes):
 - `fno/weather_alerts/records.py`: `AlertRecords`, written once.
 - `fno/weather_alerts/cli.py` and `wiring.py`: `WeatherRecords` (M1), the A7 calendar's previous regular session
   (M1's `previous_regular`), the existing `AlertSender`.
-- No change to any `fno/weather/` file.
+- No change to any `fno/weather/` file (its files are in M1's `METHOD_FILES` hash: a change is a new method
+  version), nor to the record format, `RecordConflict`'s write-once rule, or the thresholds in
+  `fno/weather/constants.py` (moving there on `story/x-weather-constants`). An AST test: `fno/weather_alerts/` writes
+  no file under `research/forecasts/`.
 
 **Acceptance criteria:**
 1. A live RED record after a live GREEN or AMBER one sends one DANGER message with the fields above, copied from the
    record. A test compares each number with the planted record.
 2. RED after RED sends nothing; RED after a missing or back-fill previous record sends one.
-3. A back-fill RED, a `not scored` record and a missing record send nothing, each with its printed reason.
+3. A back-fill RED and a missing record send nothing, each with its printed reason. A `not scored` live record sends
+   one SYSTEM line, never DANGER. The previous session is found from the A7 calendar and read with `for_day`; a gap
+   day with no record counts as "none".
 4. The message never contains the US-move flag or any field of the private part (a test plants one in Drive's fake).
 5. A second run for the same day sends nothing ("already alerted"). "alert NOT sent" prints the reason and the text,
    exits 1 and writes no record. No live record prints "no live weather record for <d>" and exits 0. No output line
@@ -357,7 +369,8 @@ Out (each with where it goes):
 
 **Test plan:** fakes for the records, the calendar, Slack and the alert store.
 1. Positive: GREEN then RED; AMBER then RED; missing then RED.
-2. Negative: RED then RED; back-fill RED; `not scored`.
+2. Negative: RED then RED; back-fill RED. `not scored`: one SYSTEM line, no DANGER. A previous non-session day is
+   skipped by the calendar.
 3. Privacy: a planted private US flag never reaches the text.
 4. Once per day: a rerun; a Slack failure.
 
@@ -374,7 +387,12 @@ Out (each with where it goes):
   `weather-alert` sends it. Its conditions are in Scope (a):
   order, the no-record line, exit codes, no "nothing written:". M2's code is built on `main` after O1 merges (after
   A4c).
-- **M1 builder (session 013xqaNTCbSBytKgqpfaYFqZ):** reply pending. M2 changes no M1 file.
+- **M1 builder (session 013xqaNTCbSBytKgqpfaYFqZ): agreed, 15 Oct 2026.** M2 sits outside `fno/weather/` in its own
+  package and reads only through `WeatherRecords`. Nothing in M1, nor in the 26-week check, alerts on RED (no
+  conflict). Their three notes are in Scope (a):
+  - the previous session via the calendar and `for_day`;
+  - `not scored` as a SYSTEM line, not DANGER;
+  - filtering on the `LIVE` label.
 
 **Depends:** M1, O1 (`weather_alert` step; code after O1 merges), T1 (the card shows the colour), A7, R1 (part b only) · **Size:** S ·
 **Status:** story text, waiting for the judge
