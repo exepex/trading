@@ -19,7 +19,8 @@ Check before reading results: `sha256sum -c` on the files above at the run commi
 
 Tested on synthetic data only (`tests/research_ft1/`, 67 tests; `mutation_proof.py`: 18 of 18 planted bugs caught,
 among them a sign error, a stale-leg substitution, an expiry-week entry and a wrong R mapping). The dry run ran before
-this freeze, as the protocol orders (section 17): 5 decision days, 111 contract windows archived to Drive, 0 failed,
+this code freeze (section 17 puts it before the full fetch; section 19 lists it after the code freeze: it ran
+first so that a finding could still change the code, and no code changed): 5 decision days, 111 contract windows archived to Drive, 0 failed,
 2.41 s a call (Drive upload included); the full plan is 2,548 windows. It read candle counts and the row layout only
 (one window, `NSE-NIFTY-30Mar26-22450-PE` 13-17 Mar 2026, came back empty: its legs will count as missing), never a
 price. `study.py --run` refuses to run unless each file below hashes to its row here and the folder has no uncommitted
