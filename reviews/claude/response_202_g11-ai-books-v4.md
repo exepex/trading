@@ -26,8 +26,7 @@ Story text: `docs/stories/G-forecasts.md`, section G11. Code waits for the v4 fr
 
 - **A16/G8 builder:** agreed, see addendum 1.
 - **Owner:** chose A (addendum 3).
-- **Orchestrator:** answered (addendum 3); the exact `forecast-capture.yml` step is being agreed with the A16/G8/G10
-  builder.
+- **Orchestrator:** answered (addendum 3); the workflow step is agreed (addendum 4).
 
 ## Addendum 1: agreed with the A16/G8/G10 builder (16 Oct), each point checked in the code
 
@@ -59,3 +58,12 @@ names G10's receipt-time check as reused.
 - **`forecast-capture.yml`:** the AI fire step moves after the v4 pack's release; that workflow change belongs to the
   A16/G8/G10 builder (G10's capture owner) and is a prerequisite of G11 going live. The exact step is being agreed
   with them.
+
+## Addendum 4: the fire step, agreed with the A16/G8/G10 builder (16 Oct)
+
+Accepted, reasoning only (no run yet): no new or moved cron. The fire runs on the push that lands the released pack;
+G10 part 2 adds `V4_LATEST_FIRE = 14:55` to `fno/forecast_v4/terms.py`, and a later start is a recorded `not_fired`
+miss. Collect and audits-due keep `forecast-capture.yml`'s slot (about 15:30), re-pointed to v4; the v2 AI steps go at
+the freeze; the CLI stays `ai fire` and `ai collect`. The workflow file is theirs. One risk added (strong evidence,
+`forecast-capture.yml`'s own note): a push made with an Actions run's own token starts no workflow, so the pack's
+commit must come from the routine's credentials, or the fire never starts.

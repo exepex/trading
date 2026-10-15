@@ -747,7 +747,12 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
   session 01AGpndRQcLERm1xLMNb3Tmj, is not active).
 - **Prerequisite, `forecast-capture.yml`:** moving the AI fire step after the v4 pack's release is a workflow change
   owned by G10's capture owner, the A16/G8/G10 builder (session 01VK88LxJvV1Gi7Wbr3D4fzp); G11's code does not run
-  live until that change is merged. The exact step is agreed with them before G11's code (response 202).
+  live until that change is merged. Agreed 16 Oct (response 202, addendum 4), with no new or moved schedule: the fire
+  runs on the push that lands the released pack (`research/data/v4_days/<date>.json` and the pack's sidecar), with a
+  latest start of 14:55 IST (`V4_LATEST_FIRE` in `fno/forecast_v4/terms.py`, G10 part 2; a later start is a recorded
+  `not_fired` miss, never a late fire); collect and audits-due keep `forecast-capture.yml`'s existing slot, re-pointed
+  to v4; the v2 AI steps are removed at the freeze. The CLI stays `ai fire` and `ai collect`. A push made with an
+  Actions run's own token starts no workflow, so the pack's commit must come from the routine's own credentials.
 
 **Daily AI cost against BG1's cap:**
 - BG1's cap is minutes, not rupees: the books' and roles' minutes at most 50% of all measured session minutes in the
