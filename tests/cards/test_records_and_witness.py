@@ -8,13 +8,13 @@ import pytest
 
 from fno.ai.receipts import PushReceipts, ReceiptAccessDenied, ReceiptUnknown
 from fno.cards import wiring
-from fno.cards.clock import HttpDateClock, ServerTimeUnknown, check_server, skew_check
 from fno.cards.committed import GitHeadRecords
 from fno.cards.deliveries import RepoDeliveryFiles
 from fno.cards.posting import NoCardPoster, SlackCardPoster
 from fno.cards.record_store import DriveCardRecords, NoCardRecords
 from fno.cards.witness import IssuanceWitness
 from fno.constants import ENV_FNO_SLACK_BOT_TOKEN
+from fno.server_clock import HttpDateClock, ServerTimeUnknown, check_server, skew_check
 from fno.storage.wiring import OWNER_UPLOAD_SETTINGS
 from tests.cards.fakes import TOKEN, FakeDrive, FakeRecords
 

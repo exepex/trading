@@ -254,3 +254,26 @@ with `main`: **4126 passed**; `ruff check`, `ruff format --check`, `check_import
 Open items, unchanged: the `requirements-groww.txt` fix (its own change), the owner's routine, the criterion-15 trial
 (with the NSE-open comparison), the cosmetic line above, and the remote `wip/a16-groww-15min-code` branch, which this
 session cannot delete (the git proxy refuses the delete).
+
+## Part 4: A16c, the Groww install fix and one clock module (follow-up asked by the orchestrator)
+
+Branch `story/a16c-groww-install` from `main` at 72fc707 (A16 merged). Treated as a small fix, not a new story, so the
+change record (`docs/stories/A16-intraday-quote-recorder.md`, section A16c) and the code are in one push; say if the
+judge wants the text checked first.
+
+**Evidence for the root cause (strong, reproduced here):**
+- `pip install --no-cache-dir --target <empty> "clint==0.5.1"` with the system pip 24.0 fails:
+  `AttributeError: install_layout ... Failed to build clint args` (Debian's setuptools 68.1.2 at
+  `/usr/lib/python3/dist-packages`, legacy `setup.py` build).
+- The same install in a fresh virtual environment (pip 26.2.1) builds both.
+- `pip install --no-cache-dir --use-pep517 --target <empty> -r requirements.txt -r requirements-groww.txt`:
+  "Successfully built clint nkeys args", every package installed, `import growwapi, pyotp` works from that folder.
+- `--use-pep517` inside a requirements file: "Invalid requirement: --use-pep517 / no such option", so it goes on the
+  command line, and the file's header says so.
+
+**Proofs:** removing the flag from `CLAUDE.md` makes `tests/test_groww_install_command.py` fail; putting a
+`fno/cards/clock.py` back makes `tests/test_server_clock_single.py` fail. T1's 63 tests and A16's 180 pass.
+
+**Rule 8 for A16 (already sent to the orchestrator):** fresh worktree of `main` at 72fc707, `python -m fno intraday
+snapshot --dry-run <scratch>` at 11:00 IST: `11:00 good: 220 of 220 contracts (220 two-sided)`, basis
+`candle_1m_close`, index age 0.8 s, `clock_ok` (worst 0.0 s, GitHub repository path and Slack), exit 0.

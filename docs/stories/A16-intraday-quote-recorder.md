@@ -396,11 +396,11 @@ A run that starts late or dies leaves its marks to the next fire or, once their 
 5% ceiling would need each of 7 fires to fail under about 0.7% of the time. With overlap, only a fire's three middle
 marks are covered once; the trial measures what share of sessions are still void.
 
-**Install line (tested in this container on 15 Oct 2026; `pip install -r requirements-groww.txt` fails here because
-the SDK's old dependencies `clint` and `args` do not build):**
-`pip install -q -r requirements.txt && pip install -q --no-deps growwapi==1.5.0 && pip install -q aiohttp colorama
-"google>=3,<4" nats-py "nkeys<0.3" pandas "protobuf>=5.29,<6" pydantic pynacl "pyotp>=2.9"`. Fixing
-`requirements-groww.txt` itself is its own lane-1 change (open item, not in A16).
+**Install line (story A16c, 15 Oct 2026):** `pip install -q --use-pep517 -r requirements.txt -r requirements-groww.txt`.
+Without `--use-pep517`, pip builds the SDK's two old source dependencies (`clint`, `args`) with the container's
+Debian-patched setuptools, which fails (`AttributeError: install_layout`); with it they build in an isolated
+environment. Tested into an empty folder in this container: everything installs and `growwapi` imports. (The
+`--no-deps` workaround first written here is no longer needed.)
 
 **Prerequisites in the routine's environment:** `GROWW_API_KEY` and `GROWW_TOTP_SECRET` (secrets only, never in a
 file); `FNO_GDRIVE_FOLDER_ID`, `FNO_GDRIVE_OAUTH_CLIENT_ID`, `FNO_GDRIVE_OAUTH_CLIENT_SECRET`,
@@ -442,3 +442,35 @@ revised after judge 108 (FAIL, 5 should-fix, all accepted: response 108 part 1b)
 B accepted: part 1c); text PASSED (judge 108 addendum 2, 27f7b55). Amendment 1 (in-session check and the 09:15 open
 rule, accepted with its NSE-open condition: judge 108 addendum 3) and amendment 2 (content-addressed copies, the shared
 clock): for the judge
+
+---
+
+## A16c. Groww install fix and one clock module (follow-up, lane 1, 15 Oct 2026)
+
+**Why:** (1) the plain install of both requirement files (no flag), the 3 pm recorder's and A16's install step, failed
+in cloud containers; A16 worked around it with `--no-deps`. (2) A16 left `fno/cards/clock.py` as a re-export
+of `fno/server_clock.py` so T1's tests stayed unchanged; the orchestrator asked to point T1 straight at the shared
+module and remove the shim.
+
+**Root cause of (1), reproduced:** the SDK depends on `clint` 0.5.1 and `args` 0.1.0, which exist only as old source
+packages. With no `pyproject.toml`, pip builds them by running their `setup.py` with the container's system setuptools
+(68.1.2, Debian-patched), which fails: `AttributeError: install_layout` ("Failed to build clint args"). In a fresh
+virtual environment (pip 26, no Debian patch) they build fine. `--use-pep517` makes pip build them in an isolated
+environment with a current setuptools, which works; pip refuses that flag inside a requirements file.
+
+**Change:** the install command everywhere it is documented is `pip install -q --use-pep517 -r requirements.txt -r
+requirements-groww.txt` (`CLAUDE.md` step 1 of the 3 pm recorder, `README.md`, A16's install line), and
+`requirements-groww.txt` says so in its header. T1's `fno/cards/issue.py`, `fno/cards/wiring.py` and its two test
+modules import `fno.server_clock` directly; `fno/cards/clock.py` is removed. No behaviour change in either.
+
+**Acceptance criteria:**
+1. The documented command installs both files into an empty folder in this container, and `growwapi` imports; the
+   same command without the flag fails on `clint`/`args` (evidence in response 108 part 4).
+2. A test fails if any documented install command of `requirements-groww.txt` lacks `--use-pep517`, and checks that the
+   requirements file states the command.
+3. A test fails if `fno/cards/clock.py` exists again, if T1 or A16 import their clock from anywhere but
+   `fno/server_clock.py`, or if `HttpDateClock` is defined anywhere else.
+4. T1's and A16's tests pass with only the import path changed in T1's two test modules; gates pass.
+
+**Out of scope:** changing the SDK version, pinning `clint`/`args`, or the container's own setuptools (not this
+repository's to change).
