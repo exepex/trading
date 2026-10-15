@@ -287,3 +287,14 @@ My first M5b plant matched twice and was not applied, so I re-planted it with a 
 - The owner item (the routine's prompt or its retirement) is recorded in the story and is not needed for correctness:
   only the routine's start times are lost, never a check.
 - Merge check to follow.
+
+## Addendum 3 (15 Oct 2026): merge check, 16661ec9167ecc917ef0b165fb8b22ef457c2e7a
+
+| Check | Result |
+|---|---|
+| Recomputed merge equals the merge commit | **MET**: `git merge-tree --write-tree cac5f13 a19b5b3` gives tree b29c21ec…, the same as 16661ec's tree. Parents cac5f13 and a19b5b3, the SHA I passed |
+| Branch files identical | **MET**: `a19b5b3..16661ec` differs only in four review files changed on `main` after the branch (`response_113`, `judge_118`, `judge_119`, `reviews/judge/README.md`). No code, test, workflow or data file differs |
+| CI on `main` | **MET**: `checks` run 38691471905 on 16661ec, success. The later runs on d89947f and 6320f0b also succeeded |
+| Rule 8 | Recorded by the orchestrator in `conversations/2026-10-15.md`: `data-fingerprints index-close` 14 Oct, "identical" to Drive, exit 0. My own real-download check is in addendum 1 |
+
+**A9b is done.** The owner item stays open: update the A8 routine's prompt, or retire it.
