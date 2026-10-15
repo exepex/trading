@@ -48,7 +48,7 @@ the day. Layer and section references are to the design v2 files.
   `fno/forecast_v4/regime.py`. Depends: G6, G4. M. Slice A.
 - **G12 House forecast.** The combination rule of 7.4 as a versioned strategy, its calibration lines for the card, and
   its change only at quarterly reviews. Depends: G8, a first review. S. Slice C.
-- **G10 AI books on the v4 questions.** A new prompt version for books 2 and 3 under the sealed-same-day rule and its
+- **G11 AI books on the v4 questions** (named G10 until story G10, the v4 timeline, took the name). A new prompt version for books 2 and 3 under the sealed-same-day rule and its
   audit. Depends: G6, G5. S. Slice C.
 
 ## Weather (layer 3)

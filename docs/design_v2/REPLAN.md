@@ -24,7 +24,7 @@ v2 changes to them come later as separate stories, never by reopening a passed c
 | E6 Scorecard and pauses | PASS, merged as 374ad67 (judge 73) | keep | Later: drift CUSUM (LR3) |
 | F1 AI sessions | forecast part PASS (judges 62, 88, 90) | keep | Trading part deferred to slice E |
 | G1 Forecast protocol | v1-v3 frozen (v3 confirmed, judge 64) | keep | The plan's "later" line is stale; v3 keeps running; v4 is new (G6) |
-| G5 AI books' capture | PASS (judge 62), live from 14 Oct | keep | Later a v4 prompt version (G10) |
+| G5 AI books' capture | PASS (judge 62), live from 14 Oct | keep | Later a v4 prompt version (G11) |
 | S1 Evaluation protocol | tooling and draft merged (judges 85, 94); protocol still a draft, not frozen | keep, change items | Section 4 lists the items design v2 changes |
 | O6 Fetch and trigger | judge 52: "FAIL for now, no defect" (side-by-side sessions and the owner's steps pending) | keep | The pattern every new data job follows |
 | P8, P10 | PASS (judges 66, 79); read-back items pending | keep | India market blocks |
@@ -127,7 +127,7 @@ nothing.
 ### Slice C (December 2026 - January 2027): surfaces and depth
 
 G12 house forecast (first quarterly review), LM2 `intraday_exits` mode with its registered comparison, A18 stock-option
-data if R2 passed, P2, P3 (changed), P5, W3, W4, O3, O4, S4, MA1, G10 (AI books on v4 questions).
+data if R2 passed, P2, P3 (changed), P5, W3, W4, O3, O4, S4, MA1, G11 (AI books on v4 questions; renamed from G10 by story G10, the v4 timeline).
 
 ### Slice D (from about 31 May 2027): the stop-rule review
 
