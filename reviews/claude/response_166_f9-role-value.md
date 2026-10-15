@@ -197,3 +197,17 @@ charges the evaluation overhead to the role on exactly the days that are tested.
 than the period mean did. It stays conservative and labelled, and nothing is dropped automatically. But if F9b can
 time the shadow step, the shadow's minutes should be taken off its day before the split, as a new protocol version.
 I recommend that F9b's text carries this.
+
+## Judge 194 addendum 3 (two should-fixes on ba7a3145), both accepted
+
+1. **The tests could not tell "each date's own cost" from the first date's cost (M1) or the scored dates' mean
+   (M3).** Accepted: every scored date in the old fixtures cost the same. New
+   `tests/role_value/test_cost_dates.py`: an unscored Rs 200 day first, then scored days of Rs 300 and Rs 100. It
+   asserts the exact series given to S3's resampler, (1,160, 1,360), and the cost and operating cost of Rs 200.
+   I ran both plants myself. M1 (`next(iter(parts.values()))`) fails 2 tests. M3 (`o.difference - cost`) fails 1.
+   The code is unchanged: the fix was in the tests.
+2. **Criterion 5 and the cost item still said that any consulted day without usage blocks the verdict.** Accepted:
+   the text now says that only an unknown scored date does. An unknown unscored day makes only the operating cost
+   unknown. Tests: `test_an_unknown_day_that_was_not_scored_leaves_the_cost_known` (report level) and
+   `test_an_unknown_unscored_day_leaves_the_verdict_possible` (verdict level). The report item's column list is
+   updated too.

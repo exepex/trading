@@ -473,11 +473,14 @@ questions.
   allocated cost for a day is F8's month allocation of the book's `books_and_roles` shares times that day's minutes of
   those shares over their month's minutes (F8's `allocate` and its ledger rows, imported, not copied); it is split
   equally across the units whose cards were consulted that day, rounded down to the paisa, the paise left going to the
-  first unit in identifier order (F8's rounding rule). A unit's cost per opportunity is the mean of its daily
-  portions over the days its card was consulted (every day, not only ablation days). The book's decider gets no portion,
-  so each unit's cost is an upper bound: labelled "allocated, not a bill; declared split, upper bound". A consulted day
-  with no usage row, or a month with no recorded plan cost, makes the unit's cost and net value "unknown", and it gets
-  no verdict.
+  first unit in identifier order (F8's rounding rule). **Each scored opportunity is charged its own day's portion**
+  (ChatGPT review 124 Q1): its net value is its paired difference minus that portion, so the cost covers the same
+  dates as the tested net. The mean of the unit's portions over every day its card was consulted is printed apart as
+  "operating cost, all consulted days" and never enters the test. The book's decider gets no portion, so each unit's
+  cost is an upper bound: labelled "conservative cost allocation (declared split, upper bound; allocated, not a
+  bill)". A scored date with no usage row, or in a month with no recorded plan cost, makes the unit's cost and net
+  value "unknown", and it gets no verdict; an unknown day that was not scored only makes the operating cost
+  unknown.
 - **Interval and test.** The series is the unit's net values per applicable opportunity in date order. S3's moving-block
   resampler (`fno/scoreboard/uncertainty.py`, revision 2: the resampler and its one-sided p-value reader, imported) runs
   on it with a risk column of 1 (the mean), blocks of 20 opportunities, 10,000 resamples, seed 20261014. The printed
@@ -509,9 +512,10 @@ questions.
   violations (failed-check rows) and prevented invalid actions (distinct `(day, opportunity_id)`), never a profit
   figure.
 - **Report.** `python -m fno role-value report --book <2|3> --from <date> --to <date> --common-start <date>
-  [--review]`: a Markdown report, one row per unit (applicable, changed, mean difference, cost per opportunity, net
-  value, interval, Holm p-values, verdict or reason), the open pairs and excluded rows listed, every figure labelled
-  with its protocol version (S1 `reporting_per_version`).
+  [--review]`: a Markdown report, one row per unit (applicable, changed, mean difference, cost on scored dates, net
+  value, interval, Holm p-values, verdict or reason, risk effects, operating cost), each block's calendar span and the
+  observations per month, the open pairs (count and age) and excluded rows listed, every figure labelled with its
+  protocol version (S1 `reporting_per_version`).
 
 **Design requirements, where each goes (quality rule 2; judge 172 blocking 2):**
 
@@ -545,9 +549,11 @@ Out: firing the shadow session and withholding the card (F9b); any change to S3'
 4. No verdict appears without `--review`, on a date that is not a review date, or below 30 changed opportunities; the
    reason is printed instead (tests on the day before and the day of a review, with 29 and 30). `review_dates` is
    tested on a constructed calendar, including a month whose last calendar day is a holiday.
-5. A unit with a consulted day that has no usage row, or in a month with no recorded plan cost, shows cost and net
-   value "unknown" and gets no verdict; it does not enter Holm (tests). The daily split sums exactly to the book's
-   daily allocation (test).
+5. A unit with a scored date that has no usage row, or is in a month with no recorded plan cost, shows cost and net
+   value "unknown" and gets no verdict; it does not enter Holm (tests). An unknown day that was not scored leaves the
+   verdict possible and only the operating cost unknown (test). Each scored opportunity's net value uses its own
+   date's portion: on scored dates of different cost, each net value and the exact series given to the resampler
+   are checked (test). The daily split sums exactly to the book's daily allocation (test).
 6. Control roles show caught violations and prevented invalid actions from C4's log, and no profit figure (test).
 7. Holm: on constructed p-values the claims that pass match a hand computation of the step-down over the 2m claims,
    and the verdict follows the passing claim, not the printed interval (test). The function used is S3's (a test
