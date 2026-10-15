@@ -20,7 +20,7 @@ from .timetable import timetable_from_config
 def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                     books: Sequence[str] = (BOOK1_RULES,), root: Path = ROOT,
                     waiter: Waiter | None = None, day_steps: Mapping[str, DayStep] | None = None,
-                    git=None) -> DailyRun:  # fmt: skip
+                    git=None, alerts=None) -> DailyRun:  # fmt: skip
     from ..books.version_registry import VersionRegistry
     from ..books.versions import VERSIONS_FILE
     from ..checks.gate import DataGate
@@ -49,7 +49,7 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
 
     timetable, calendar, git = timetable_from_config(cfg), build_session_calendar(), git or Git(root)
     committer, history = PendingCommitter(GitCommitter(git), root), PlaybookGit(root)
-    alerts, files = build_alert_sender(), build_private_files(root)
+    alerts, files = alerts or build_alert_sender(), build_private_files(root)
     sync = DriveAccountSync(lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds, files), committer,
                             root)  # fmt: skip
     pull = lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.branch())  # noqa: E731

@@ -34,12 +34,18 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     from ..desk.daily_wiring import build_daily_run
     from ..desk.git_sync import Git, GitCommitter
     from ..models import now_ist
+    from .alerts import ReportedAlerts
     from .processes import ChildProcesses
     from .quote_parts import QUOTE_PARTS, QuoteParts
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
     from .steps import Alerted, CommandStep, LiveFrom
 
-    git, alerts, processes, live = Git(root), build_alert_sender(), ChildProcesses(root), live_dates(cfg)
+    git, alerts, processes, live = (
+        Git(root),
+        ReportedAlerts(build_alert_sender()),
+        ChildProcesses(root),
+        live_dates(cfg),
+    )
     parts = QuoteParts(QUOTE_PARTS, processes, GitCommitter(git), git.changed, alerts, now_ist)
     waiter = ServicingWaiter(parts, now_ist)
 
@@ -65,5 +71,6 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
     }
     cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules()
-    daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git)
+    daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
+                                alerts=alerts)  # fmt: skip
     return DayRunner(daily_run, parts, waiter)

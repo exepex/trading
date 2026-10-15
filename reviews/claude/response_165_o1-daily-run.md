@@ -192,3 +192,15 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   stopped at `FINISH_LIMIT`.
 - Test: `test_stopping_a_command_kills_what_it_started_too`, with a real grandchild process. Removing
   `start_new_session` was planted once and the test failed.
+
+### Unsent alerts are printed (found while checking M2's question, 15 Oct)
+
+- **Gap:** `AlertSender.send` returns its outcome line, and O1's steps and the desk dropped it. With Slack down or
+  `FNO_SLACK_BOT_TOKEN` missing, every alert of the day would have been lost silently. CLAUDE.md's 3 pm rules require
+  the routine to post "alert NOT sent" lines with the Slack connector, so the run must print them. **Strong evidence:**
+  `fno/alerts/sender.py` returns the outcome; `Alerted` and E3's `_guarded` ignored it.
+- **Fix:** `fno/daily/alerts.py`, `ReportedAlerts`, wraps the one sender of the run. Any outcome other than "sent" is
+  printed as `alert NOT sent: <reason> | <text>`. `build_daily_run` takes it (a new `alerts` parameter, E3's own
+  default unchanged), so the desk's alerts, the quote parts' commit alerts and O1's step alerts all go through it.
+- **Tests:** `test_an_alert_slack_did_not_take_is_printed_for_the_connector_one_it_took_is_not` and
+  `test_the_desk_and_o1_share_that_one_sender`.

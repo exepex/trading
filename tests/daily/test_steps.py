@@ -111,3 +111,30 @@ def test_a_command_still_running_at_its_limit_is_stopped_and_failed_never_holdin
     }
     assert processes.made[MARGIN_CHECK].stopped and asked == [] and done.paths == ()
     assert clock() - processes.started[0][0] == timedelta(seconds=COMMAND_LIMIT_SECONDS)
+
+
+def test_an_alert_slack_did_not_take_is_printed_for_the_connector_one_it_took_is_not():
+    """Every alert of the run (O1's and the desk's) goes through one sender; without Slack it is never lost silently."""
+    from fno.alerts.sender import SENT, NoAlertSender
+    from fno.daily.alerts import ReportedAlerts
+
+    class Sent:
+        def send(self, text):
+            return SENT
+
+    printed = []
+    ReportedAlerts(Sent(), printed.append).send("F&O daily run: step weather failed")
+    outcome = ReportedAlerts(NoAlertSender("FNO_SLACK_BOT_TOKEN is not set"), printed.append).send("step card failed")
+    assert printed == [f"{outcome} | step card failed"] and outcome.startswith("alert NOT sent")
+
+
+def test_the_desk_and_o1_share_that_one_sender(monkeypatch):
+    from fno.daily import wiring
+    from fno.daily.alerts import ReportedAlerts
+
+    seen = {}
+    monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda: None)
+    wiring.build_day_runner(load_app_config())
+    assert isinstance(seen["alerts"], ReportedAlerts)
