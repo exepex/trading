@@ -218,6 +218,131 @@ not frozen (claims `reviews/claude/response_99_g6-protocol-v4.md`)
 
 ---
 
+## G7. v4 baselines and rule forecasters, phase 1 (V6 now, V1 when A16 has 20 sessions)
+
+**Repository:** trading
+
+**Description:** As the quantitative modeller, I want protocol v4's baselines and one simple rule forecaster per
+question for V6a, V6b and V1, computed point in time from committed data, back-filled (labelled exploratory) and
+captured live each session, so that G8 can score them and the daily card can show them before anything else passes.
+
+**Context and why:** REPLAN slice A item 7; `REPLAN_new_stories.md` G7; protocol v4 (`research/forecasts/PROTOCOL_v4.md`,
+merged at 597487f, **not frozen yet**) sections 1-3 and 5.6; design 5.7 rule 5 (a rule forecaster fits at most 5
+parameters, on rolling past windows only); decision 56 (rows with provenance `backfilled`, A16b, never count as live
+forecast inputs); the owner's 15 Oct rules (keep the design simple; test real cases only). G7's file hashes go into
+v4's freeze record after G7 and G8 exist and the judge checks them, so G7's files are kept stable and named.
+
+**Scope.**
+- **In:** V6a and V6b: their outcomes from official closes, the base-rate baseline (primary) and one rule forecaster.
+  V1: the session RV series (A16's live `rv/` rows; the close proxy for the daily models), the trailing, EWMA, HAR
+  daily and HAR intraday baselines, the primary switch, and one rule forecaster. The v4 forecast record, its files and
+  its validation; the exploratory back-fill (V6 from 2017; V1 from A16's live rows only); a live capture command;
+  wiring in `fno/forecast/baseline_wiring.py`.
+- **Out:** V2-V5 and V7 (phase 2), the raw and premium-adjusted implied baselines (phase 2: they are V2's and V3's
+  primary and only "also reported" for V1), scoring, pairs and reports (G8), adding the capture to the daily routine
+  (at v4's freeze, a schedule change), the freeze record (G6), M1's weather model.
+
+**Expected design** (pure calculations apart from I/O; G6's `fno/forecast_v4/` is called, never re-implemented):
+- `fno/forecast_v4_rules/` (new package; every file under 350 lines):
+  - `series.py`: regular-session closes and `vix_closes()` (India VIX, for G8's V7) from `research/data/nifty-panel/warmup_closes.csv`
+    (`session == regular`, `forecast_v4.sessions`), close-proxy `RV_s`, V6a and V6b outcomes with their resolution
+    session, and A16's live intraday `RV_s` rows. **The one place for these rules:** G8 imports them to resolve
+    outcomes; G7 writes no outcome files (agreed with G8, 15 Oct).
+  - `baselines.py`: `Trailing`, `Ewma`, `HarDaily`, `HarIntraday`, `BaseRate` behind one interface (`PointBaseline`
+    for variances, `ProbabilityBaseline` for probabilities), each returning a value or `None` (missing, never filled).
+  - `rules.py`: the two rule forecasters below.
+  - `records.py`: the v4 record and its CSV files; `capture.py`: one session's forecasts at the cutoff; `backfill.py`.
+- Wiring: `fno/forecast/baseline_wiring.py` (G1's freeze pins `fno/forecast/wiring.py`). CLI: `python -m fno forecast
+  v4-capture [--day D]` and `python -m fno forecast v4-backfill`.
+- **Point in time (protocol 3.1):** an input enters a forecast for `d` only if it was first seen before `d`'s 15:00 cutoff.
+  `d`'s own close and `d`'s own `RV_s` are not known at 15:00, so the latest session RV a forecast for `d` reads is
+  `d-1`'s, and protocol 3.1's "ending at `d`" is read as "ending at the last session first seen before the cutoff"
+  (stated for the judge).
+
+**The two rule forecasters (zero fitted parameters; design 5.7 rule 5):**
+- **`v6_ewma_t4` (V6a, V6b):** `s` = the square root of the EWMA close-proxy session variance (lambda 0.94, the EWMA
+  baseline's own series) at the last session before the cutoff; `p1 = P(|X| >= 0.02)` with `X = s x T / sqrt(2)`, `T`
+  Student's t with 4 degrees of freedom (variance 2, so `X` has variance `s^2`), using `forecast_v4.student_t.t_cdf`;
+  V6a = `p1`, V6b = `1 - (1 - p1)^5` (independent sessions: reasoning only). Fixed choices, said plainly: lambda 0.94
+  (RiskMetrics) and 4 degrees of freedom (fat tails of daily index returns, reasoning only; not fitted, so nothing is
+  tuned on the spent 2017-26 data).
+- **`v1_close_blend` (V1):** the mean of the HAR daily and EWMA one-session variance forecasts on the close proxy;
+  missing when either is missing. Reasoning only: an equal-weight blend of two simple models, as Book 1 v1-v3 blends its
+  baselines.
+- **Slots (protocol 5.6):** `v1_close_blend` is proposed for V1's `rules` slot. V6's `rules` slot is named for M1's
+  weather model in protocol 5.6, so `v6_ewma_t4` is registered as **reported only** (orchestrator decision 70, 15 Oct:
+  V6's `rules` slot is M1's; `v1_close_blend` takes V1's `rules` slot). Registration itself (the ledger rows) happens at v4's freeze.
+
+**Acceptance criteria** (each with a test; real cases: positive, negative, boundary and empty):
+1. **V6 outcomes** from regular-session closes: `abs(ln(c(t+1) / c(t))) >= 0.02` (at 0.02 exactly: yes; just under: no);
+   V6b any of the next 5 returns; a special or muhurat session's move sits inside the next regular return. The
+   committed closes reproduce the disclosed counts (protocol 8): 100 of 2,409 and 331 of 2,405.
+2. **Resolution timing:** V6a for `t` resolves at `t+1`'s close, V6b at `t+5`'s; an outcome counts for a base rate on
+   `d` only if resolved before `d`'s cutoff.
+3. **Base rate:** the share of 1s among the most recent 750 resolved, non-void outcomes before the cutoff; at least
+   500, else missing (499 missing, 500 present).
+4. **Close-proxy RV and EWMA:** `RV_s = (ln c(t) / c(t-1))^2`, zero kept; EWMA `s2_t = 0.94 s2_(t-1) + 0.06 RV_t` seeded
+   with the mean of the first 250 sessions, eligible from session 251 (hand-computed fixture).
+5. **HAR daily:** OLS in levels of the mean next-`h` RV on an intercept and the mean RV of the last 1, 5 and 22
+   sessions; the most recent 750 rows resolved before the refit (500 minimum: 499 none); refit on the first scored
+   session of each month; a refit uses only rows resolved before it (look-ahead test); forecast `h x prediction`;
+   a forecast that is not strictly positive is missing.
+6. **V1 inputs and switch:** V1 starts after 20 non-void **live** A16 sessions (19: not started); `HarIntraday` is
+   eligible from 250 live sessions (up to 750), and from its first eligible day it is V1's primary for good
+   (`forecast_v4.eligibility.primary_baseline`); rows with provenance `backfilled` (A16b's `rv-candle/`) never count
+   toward 20, 250 or any live input (decision 56); a void session is never a value.
+7. **Trailing (V1):** the last live non-void intraday `RV_s` before the cutoff.
+8. **Rule forecasters:** `v6_ewma_t4` and `v1_close_blend` reproduce hand-computed values; missing when an input is
+   missing.
+9. **Records (layout agreed with G8, 15 Oct):** `research/forecasts/v4/<forecaster>/<question>.csv`, one row per day,
+   first columns `day,value,status,label`: value = a variance (finite, > 0) or a probability (in [0, 1]), empty unless
+   `status` is `ok` (`missing`, `not_eligible`, `not_started`: never imputed); `label` = `live` or
+   `backfill_exploratory`; then G7's audit columns: forecaster version, kind (`baseline` or `rule`), slot (`rules` or
+   `reported`), the method file's SHA-256, the inputs' SHA-256, `made_at`. Folder names are the ids in
+   `fno/constants.py` (`base_rate`, `trailing`, `ewma_094`, `har_daily`, `har_intraday`; new constants for
+   `v6_ewma_t4` and `v1_close_blend`), so G8 looks forecasters up by those constants. Invalid values are refused,
+   never written.
+10. **Back-fill:** V6 baselines and rule from 2017 closes, V1 from A16's live rows (none yet), every row
+    `backfill_exploratory`; the back-fill ends before the first live day (one row per day); re-running gives identical
+    files.
+11. **Live capture:** `v4-capture` for today writes before 15:00 IST only from inputs first seen before the cutoff;
+    a run after the cutoff writes nothing and says so (as G3); V1 rows read "not enough data yet" until criterion 6.
+
+**Test plan:** `tests/forecast_v4_rules/`: hand-computed fixtures (series, EWMA, HAR, base rate, both rules), the
+committed-closes reproduction of criterion 1, look-ahead tests for every baseline and rule (a later input changed
+must not change an earlier forecast), the boundaries named above, empty inputs. Real data only from committed files;
+no imagined failure modes (owner, 15 Oct).
+
+**Judge verifies:** recomputes one base rate, one EWMA value, one HAR forecast and one `v6_ewma_t4` probability by hand
+from the committed closes; checks that no input after the cutoff reaches a forecast.
+
+**Gap list** (`REPLAN_new_stories.md` G7 and protocol v4 sections 1-3 for V1, V6a, V6b):
+
+| Requirement | Covered by |
+|---|---|
+| Trailing baseline | criterion 7 (V1) |
+| EWMA baseline | criterion 4 |
+| HAR daily, later intraday | criteria 5-6 |
+| Implied and implied-ratio baselines | out: phase 2 (V2/V3's primary; for V1 only "also reported") |
+| Base rate (V6 primary) | criteria 2-3 |
+| V1's primary switch (HAR daily, then intraday, one way) | criterion 6 |
+| Rule forecasters (design 2.2, 5.7 rule 5) | criterion 8 |
+| Back-fill on close proxies, labelled | criterion 10 |
+| Live capture beside G3 | criterion 11 (adding it to the routine: at v4's freeze) |
+| Point in time (protocol 3.1) | Expected design; look-ahead tests |
+| Decision 56 (backfilled rows never live inputs) | criterion 6 |
+| Session set (regular only) | criterion 1 |
+| Wiring in `baseline_wiring.py` | Expected design |
+| V2-V5, V7 | out: phase 2 |
+
+**Known limits:** `v6_ewma_t4`'s independence for V6b is an approximation (volatility clusters); V1 has no live data
+until A16 runs; the back-fill uses spent 2017-26 data and is exploratory only (protocol 8).
+
+**Depends:** G6 (merged, not frozen), O6 (closes), A16 (V1) · **Size:** M · **Status:** story text, awaiting the
+judge (rule 1)
+
+---
+
 ## G8. Protocol v4 scoring, comparisons and the two looks
 
 **Repository:** trading

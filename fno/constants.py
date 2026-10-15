@@ -168,6 +168,7 @@ V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY = "har_daily", "har_intraday"
 V4_BASELINE_TRAILING, V4_BASELINE_EWMA = "trailing", "ewma_094"
 V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED = "raw_implied", "premium_adjusted_implied"
 V4_BASELINE_OPTION_IMPLIED_PROB, V4_BASELINE_BASE_RATE = "option_implied_probability", "base_rate"
+V4_RULE_V6_EWMA_T4, V4_RULE_V1_CLOSE_BLEND = "v6_ewma_t4", "v1_close_blend"  # story G7
 V4_IV30_EOD_PROXY = "iv30_eod_close_proxy"  # G1 v1's estimator on the panel's end-of-day chains (premium ratio window)
 V4_CLAIM, V4_TOO_SMALL, V4_FUTILE, V4_OPEN = "claim", "real_but_too_small", "futile", "open"  # a member's verdict
 STOP_YES, STOP_NO, STOP_UNDECIDED = "yes", "no", "undecided"  # design v2 section 8.2, tests A and B
