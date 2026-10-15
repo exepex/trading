@@ -284,3 +284,36 @@ judge 102 and addendum 1 is met.
 
 **Verdict: FAIL** for dashboard 1eef671072e21c59a54e548df535291ddf9b4825 and trading
 22ac79b27169d970071500227800e88eba61bedd, on should-fix 1 only (the family-null and kind dodge). Everything else is met.
+
+## Addendum 4 (15 Oct 2026): dashboard 13e76b4c25b789dbc6441d64287a75cee3e187a8, trading 5e91b0eee67b50a289b719029d513815002cfd88
+
+**Scope:**
+- Dashboard 1eef671..13e76b4 is one commit: four schema rules keyed by forecaster id, two probes and the plant. No web
+  or TypeScript change.
+- Trading 22ac79b..5e91b0e is one commit: re-pin and claims.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Addendum 3 should-fix: the AI-isolation dodge | **MET** | Rules by id: `book2_hybrid` must be family hybrid, `book3_ai` family ai, both `sealed_same_day` or `full_f1`; `book1_rules` must be family rule; and `kind: family` needs a non-null family. All my probes are refused: `code`; family null with `code`; kind baseline with family null and `code`; `book3_ai` relabelled as family rule with `code`; a sealed book with a wrong label. The valid example still validates. The 12 probes include both of mine. The plant that removes every id and family rule is caught (28/28) |
+| Pin | **MET** | All 33 files byte-equal to 13e76b4 and to `pin.json` |
+| Dashboard checks | **MET** | `check_fno_screens` (289 leaves, 56 built, 28/28 planted), `check_contract`, `check_mapping`, both `render --check` runs, `examples --check` and code size: all exit 0. The web gates of addendum 2 stand (no web or TypeScript change since 0266436) |
+| Trading gates | **MET** | Trial merge with today's `origin/main` (F8/BG1 included): its only conflict is index rows in `reviews/claude/README.md` (keep both). The merged tree gives **3,852 passed**; ruff, format (820 files) and imports clean |
+
+Note, not a finding: `book1_rules` may still carry a sealed label. That adds a label and dodges nothing.
+
+**Verdict: PASS** for dashboard 13e76b4c25b789dbc6441d64287a75cee3e187a8 and trading
+5e91b0eee67b50a289b719029d513815002cfd88.
+
+**Merge order (agreed):**
+1. C5 first (it waits for its ChatGPT round under rule 9), because Home's `limit_max` text assumes C5.
+2. The dashboard at exactly 13e76b4.
+3. Re-pin trading at the dashboard's merge commit: byte-equal files, the new commit in `pin.json`, the README index
+   conflict resolved by keeping both.
+4. Trading.
+5. The quality rule 8 run: `check_fno_screens` on the dashboard's `main` and `tests/market_read_models` on trading's
+   `main`.
+
+My merge check verifies:
+- that both merges equal their recomputed trees;
+- that the pinned commit is an ancestor of the dashboard's `main`;
+- that no file changed except the pin.
