@@ -63,6 +63,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - Execution snapshot 15:15.
   - Fills and exits finished by 15:20.
   - Account lock lease 60 seconds.
+
+  Scoring at the snapshot and at the fill (story G10):
   - The 15:15 execution snapshot gives a skill score that is a diagnostic only: no book, strategy or version is
     promoted on it; the money verdict uses the 60-minute fill (E8; owner, 15 Oct 2026; story G10).
   - An instrument not available at the 60-minute fill is a no-fill, never a fabricated fill (story G10).
