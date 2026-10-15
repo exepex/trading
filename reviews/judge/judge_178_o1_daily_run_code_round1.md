@@ -225,3 +225,29 @@ of the same kind that I missed in addenda 0-5, so I own that miss here.
     alerts too.
 
 Everything else stays as in addendum 5.
+
+## Addendum 7: the orchestrator's four checks on ea008836 (fix commit 48d58a97)
+
+The verdict stays **FAIL**. Should-fix 9 gains part (b), from check 1.
+
+1. **Does every alert path go through `ReportedAlerts`? No.**
+   - **Covered:** O1's steps (`Alerted`), the quote parts' "NOT committed", and E3's `DeskSteps` and `_guarded`. The
+     latter two get `alerts` from `build_daily_run`'s new parameter.
+   - **9(b), in process, bypassing the wrapper:** two more senders are built inside the run with their own
+     `build_alert_sender()` and never see the wrapper. Their "alert NOT sent" outcome is dropped exactly as before:
+     - `build_exit_desk` (`fno/desk/wiring.py:41`, `ExitDesk`), the exits' alerts;
+     - `build_book1_exit_rules` (`fno/books/book1_wiring.py:72`, `PlaybookExitRules`).
+
+     The exits are the one step that must always be seen (design 9). Fix: pass the run's `alerts` into both (the same
+     `alerts=None` default keeps their other callers unchanged). Extend the wiring test so that every sender the run
+     builds is the `ReportedAlerts` instance.
+   - **9(a), child processes:** as in addendum 6, their own lines are never relayed.
+2. **Is E3 unchanged without the parameter? Yes.** `alerts or build_alert_sender()` in `build_daily_run`, and E3's
+   tests pass unchanged.
+3. **Can the printed line hold a token or secret? No.** The line is "<outcome> | <text>". By the `AlertSender`
+   contract the outcome never holds the token: `slack_post` returns only the exception's type name or Slack's error
+   code. The text is the alert text, which is already posted to Slack and committed in run logs, so the line adds no
+   new exposure.
+4. **Would the tests catch a dropped outcome? Partly.** `test_steps.py` checks that `ReportedAlerts` prints the unsent
+   line and stays quiet on a sent one, and that the wiring hands the run a `ReportedAlerts`. It would not catch the two
+   bypassing senders in 1, or the children's lines (9(a)).
