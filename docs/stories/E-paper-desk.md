@@ -95,10 +95,15 @@ without rewriting their history.
   started, or when the book has open positions (its marked equity would need marks). The equity history gets that
   day's row. The target is a setting: raising it later would allow a second top-up, which is a lane-1 config change
   and an owner decision, and the command's output line names any top-up beyond the first as "a further top-up";
-- run once per book after the judge's PASS and the merge, and the output recorded and the data committed (lane 1:
-  `journal/`, judged as data). Who runs it: the builder, per the owner's rule of 15 Oct 2026 ("1 B": builders run
-  their own commands; orchestrator's instruction), never before the merge. Judge 110 wrote "never the builder"; that
-  predates the orchestrator's instruction, and the owner's rule decides.
+- run once per book after the judge's PASS and the merge (lane 1: `journal/`, judged as data). Who runs it: the
+  builder, per the owner's rule of 15 Oct 2026 ("1 B": builders run their own commands), accepted by judge 110
+  addendum 1 under three conditions:
+  1. from a clean checkout of `main` at or after the merge commit, with `python -m fno account top-up` only: no branch
+     build, no hand edit; the output lines and the commit are recorded in the claims;
+  2. the data commit holds only the command's own writes, per book: one appended `capital_top_up` row in
+     `journal/<book>/account/cash_ledger.csv`, the rebuilt `journal/<book>/account/positions.json`, and that day's row
+     of `journal/<book>/account/equity_history.csv`; no other file;
+  3. run outside 14:50-15:30 IST on a session day, so it never contends with the desk for the account lock.
 
 Out:
 - withdrawals and any capital decrease;
