@@ -4,8 +4,11 @@
 import subprocess
 from datetime import UTC, date, datetime
 
+import pytest
+
 from fno.ai.receipts import PushReceipts, ReceiptUnknown
 from fno.cards import wiring
+from fno.cards.clock import HttpDateClock, ServerTimeUnknown
 from fno.cards.committed import GitHeadRecords
 from fno.cards.deliveries import RepoDeliveryFiles
 from fno.cards.posting import NoCardPoster, SlackCardPoster
@@ -87,3 +90,24 @@ def test_the_composition_root_sends_only_with_the_token_and_saves_only_with_the_
     monkeypatch.setattr(wiring.storage, "build_owner_drive", refused)
     store = wiring.build_card_records(full)
     assert store.reason == "Drive sign-in failed (RuntimeError)" and "secret" not in store.reason
+
+
+def test_the_witness_never_crashes_on_a_record_without_slack_facts(tmp_path):
+    log = RepoDeliveryFiles(tmp_path, FakeRecords({DELIVERY: b"{}"}))
+    (line,) = IssuanceWitness(log, History(None), Receipts()).lines(date(2026, 10, 15))
+    assert "Slack not posted (no Slack outcome recorded)" in line
+
+
+class Answer:
+    def __init__(self, date_header):
+        self.headers = {"Date": date_header} if date_header else {}
+
+
+def test_githubs_date_header_is_read_as_utc_and_a_missing_one_is_unknown():
+    clock = HttpDateClock(
+        "GitHub", "https://example.invalid", head=lambda url, timeout: Answer("Thu, 15 Oct 2026 09:38:00 -0000")
+    )
+    assert clock.now() == datetime(2026, 10, 15, 9, 38, tzinfo=UTC)
+    clock = HttpDateClock("GitHub", "https://example.invalid", head=lambda url, timeout: Answer(None))
+    with pytest.raises(ServerTimeUnknown, match="KeyError"):
+        clock.now()

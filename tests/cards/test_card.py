@@ -50,7 +50,7 @@ def test_each_question_shows_only_the_past_average_with_its_records_and_the_othe
     assert "3 other forecasters recorded; none has passed its test yet." in text
     assert (
         "q1_nifty_up_20d (NIFTY higher in 20 sessions): past average 0.59 | back-fill, not live: said 0.5-0.6 on 175 "
-        "days, happened on 57%, mean Brier 0.245 over 670; live: not enough data yet (0 scored)"
+        "days, happened on 57%, mean Brier 0.245 over 669; live: not enough data yet (0 scored)"
     ) in text
     assert text.count(" | back-fill, not live: ") == 5  # one line per question
     assert "book1_rules 0.56" not in text and "baseline_c_model" not in text
@@ -108,7 +108,7 @@ def test_no_forecasts_and_no_score_report_still_give_a_card_that_names_them(tmp_
     files[CAPTURE] = planted()[CAPTURE]
     card, text = card_of(files, tmp_path)
     assert (
-        "track record: no score report yet" in text and "forecast score report on or before 2026-10-15" in card.missing
+        "track record: no score report yet" in text and "forecast score report dated before 2026-10-15" in card.missing
     )
 
 
@@ -148,3 +148,45 @@ def test_a_day_the_calendar_cannot_answer_still_gets_a_card_naming_the_gap(tmp_p
     files = {k: v for k, v in planted().items() if k != CALENDAR_PATH}
     card, _ = card_of(files, tmp_path)
     assert f"{CALENDAR_PATH} not committed" in card.missing
+
+
+def test_a_same_day_score_report_is_never_used_and_a_bad_report_is_named(tmp_path):
+    files = planted()
+    files["research/forecasts/scores/2026-10-15.json"] = files[REPORT]
+    card, text = card_of(files, tmp_path)
+    assert "track records from the score report of 2026-10-13" in text
+    assert "research/forecasts/scores/2026-10-15.json" not in {r.path for r in card.used}
+    files[REPORT] = b"{not json"
+    card, text = card_of(files, tmp_path)
+    assert f"{REPORT}: not readable (JSONDecodeError)" in card.missing
+    assert text.count("track record: no score report yet") == 5
+
+
+def test_a_late_capture_and_a_missing_past_average_row_are_named_missing(tmp_path):
+    files = planted()
+    kept = [line for line in files[CAPTURE].decode().splitlines(keepends=True) if ",q3_" not in line]
+    files[CAPTURE] = "".join(kept).encode()
+    card, text = card_of(files, tmp_path)
+    assert "q3_rv20_above_trailing (20-day realised volatility rises above the last 20 days'): no past-average " in text
+    assert "past average for q3_rv20_above_trailing not in the capture" in card.missing
+    assert "scored live forecasts for 2026-10-14 (the capture was late)" in card.missing
+
+
+def test_an_empty_capture_keeps_its_own_date(tmp_path):
+    files = planted()
+    files[CAPTURE] = files[CAPTURE].decode().splitlines(keepends=True)[0].encode()
+    _, text = card_of(files, tmp_path)
+    assert "live capture of 2026-10-14 (not today's" in text
+
+
+def test_a_muhurat_session_gets_no_card_and_is_skipped_as_the_previous_session(tmp_path):
+    assert card_of(planted(), tmp_path, day=date(2026, 11, 8)) is None  # Diwali muhurat, a Sunday evening hour
+    card, text = card_of(planted(), tmp_path, day=date(2026, 11, 9))
+    assert "Previous card: no card on record for 2026-11-06" in text
+
+
+def test_an_unreadable_account_is_a_failed_data_check(tmp_path):
+    files = planted()
+    del files["journal/book3_ai/account/positions.json"]
+    card, _ = card_of(files, tmp_path)
+    assert card.reason_code == CARD_DATA_CHECK_FAILED

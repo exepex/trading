@@ -43,7 +43,8 @@ class HttpDateClock(ServerClock):
     def now(self) -> datetime:
         try:
             response = self._head(self.url, timeout=TIMEOUT_SECONDS)
-            return parsedate_to_datetime(response.headers["Date"])
+            moment = parsedate_to_datetime(response.headers["Date"])
+            return moment if moment.tzinfo else moment.replace(tzinfo=UTC)  # "-0000" is UTC (RFC 5322)
         except (requests.RequestException, KeyError, TypeError, ValueError) as error:
             raise ServerTimeUnknown(type(error).__name__) from None
 

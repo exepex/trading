@@ -10,6 +10,9 @@ from .deliveries import DeliveryLog, misses
 from .render import CardRenderer
 from .session import SessionCheck
 
+NO_PREVIOUS = "the previous session could not be found in the calendar, so its card was not checked"
+UNREADABLE = "the {day} card's delivery record could not be read ({error})"
+
 
 class DailyCard:
     def __init__(self, sessions: SessionCheck, builder: CardBuilder, renderer: CardRenderer, deliveries: DeliveryLog):
@@ -20,6 +23,14 @@ class DailyCard:
         answer = self.sessions.answer(day)
         if not answer.is_session:
             return None
-        previous = misses(self.deliveries, answer.previous) if answer.previous else ()
+        previous = self._previous_misses(answer.previous)
         card = self.builder.build(day, answer, previous)
         return card, self.renderer.render(card)
+
+    def _previous_misses(self, previous: date | None) -> tuple[str, ...]:
+        if previous is None:
+            return (NO_PREVIOUS,)
+        try:
+            return misses(self.deliveries, previous)
+        except Exception as error:  # noqa: BLE001 - a bad earlier record is named, never a lost card
+            return (UNREADABLE.format(day=previous, error=type(error).__name__),)

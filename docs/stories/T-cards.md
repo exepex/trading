@@ -76,12 +76,14 @@ merged: they plug in as a new `ForecastSource`); the dashboard renderer.
 1. Every card's first line says PAPER ONLY; no card text tells the owner to place an order.
 2. Status is `NO TRADE` with a reason code and a plain reason; with an empty registry the reason is
    `no_approved_strategy` and the card states the paper trade count (0); with a version at `paper` the card is still
-   `NO TRADE` (`trade_fields_not_built`); an unreadable registry gives `data_check_failed`. No trade is ever invented.
+   `NO TRADE` (`trade_fields_not_built`); an unreadable registry or paper account gives `data_check_failed`. No trade is ever invented.
 3. Weather: "Weather: not yet scored (M1 pending)" and no colour word (GREEN, AMBER, RED) anywhere on a v1 card.
 4. Forecasts: for each question of the latest committed live capture on or before the day, only the house forecast
    (past average, labelled as the fallback), plus one line counting the other forecasters, each line with its
-   back-fill record (calibration bin, count, observed share, Brier) labelled "back-fill, not live", and "live record:
-   not enough data yet" until live days are scored; no forecasts on record gives "forecasts: none on record yet"; a
+   back-fill record (calibration bin, count, observed share, Brier) labelled "back-fill, not live", and "live: not enough
+   data yet" until live days are scored; the bin is G4's own (`calibration_bin`); the score report used is the latest
+   dated before the card's day (point in time: a same-day report may hold that day's later data); a question with no
+   past-average record, an unreadable report and a late capture are each named missing; no forecasts on record gives "forecasts: none on record yet"; a
    capture older than the day is labelled with its date.
 5. Built only from committed records: an uncommitted or edited working-tree file is never read (the reader reads
    `HEAD`); each record used is listed in the footer with its path and SHA-256, and the hash equals the committed bytes.
@@ -95,14 +97,19 @@ merged: they plug in as a new `ForecastSource`); the dashboard renderer.
    card text (a test checks the written repository file contains no line of the card's body).
 10. The card always arrives: a failing or missing input (no capture, no score report, unreadable registry, a source that
     raises) still gives a card that names each missing item.
-11. Slack down or no token: the post is retried once, the CLI prints "alert NOT sent: <reason>", the Drive record and
-    the delivery metadata are still written with the failure, and the next card names the miss. Drive down or not set:
+11. Slack down or no token: a post that surely did not reach Slack (connection failed, `ratelimited`,
+    `service_unavailable`) is retried once; one that may have been posted (read timeout, unreadable answer) is never
+    retried and says "Slack may still have posted it"; a Slack refusal (e.g. `channel_not_found`) is not retried.
+    Then the CLI prints "alert NOT sent: <reason>", the Drive record and the delivery metadata are still written with
+    the failure, and the next card names the miss. Drive down or not set:
     the card is still posted, "card record NOT saved to Drive: <reason>" is printed and stored, and the next card names
     it.
 12. Dry run by default: without `--post` nothing is posted, saved or written, and no network call is made.
 13. Secrets never in files or logs: the token is never printed, stored or put in a record; outputs name only the
     variable.
-14. Non-session days (NSE calendar) print "not a trading day: no card" and do nothing; a day the calendar cannot answer
+14. Non-session days (NSE calendar) and muhurat-only sessions (one evening hour, as A4) print "not a trading day: no
+    card" and do nothing; the previous-session check skips muhurat sessions; an unreadable earlier delivery record or
+    a failed metadata write is named, never a lost card or lost result; a day the calendar cannot answer
     still gets a card that names the missing calendar.
 15. Engineering rules: every source, store and sender behind an interface, wired only in `fno/cards/wiring.py` (listed
     in CLAUDE.md); no file or class over 350 lines; constants in `fno/constants.py` or at the top of their module.

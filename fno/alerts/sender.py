@@ -33,6 +33,8 @@ def slack_post(session: requests.Session, token: str, channel: str, text: str) -
         body = response.json()
     except (requests.RequestException, ValueError) as error:
         return None, type(error).__name__
+    if not isinstance(body, dict):
+        return None, f"unexpected answer (HTTP {response.status_code})"
     return (body, None) if body.get("ok") else (None, body.get("error", f"HTTP {response.status_code}"))
 
 

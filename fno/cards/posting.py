@@ -16,6 +16,15 @@ from ..alerts.sender import NO_TOKEN, NOT_SENT, SENT, slack_post
 
 ATTEMPTS = 2  # the post and one retry (design 4.1: "a failed post is retried and logged")
 RETRY_PAUSE_SECONDS = 5.0
+# Failures that mean Slack surely did not post (connection never made, or Slack refused before posting): only these
+# are retried, since chat.postMessage is not idempotent and a lost answer would otherwise post the card twice
+NOT_DELIVERED = frozenset({"ConnectionError", "ConnectTimeout", "ratelimited", "service_unavailable"})
+# Failures after the request went out, where Slack may have posted the card although no usable answer came back
+SENT_THEN_LOST = frozenset(
+    {"ReadTimeout", "Timeout", "ChunkedEncodingError", "JSONDecodeError", "RequestsJSONDecodeError"}
+)
+UNKNOWN = "{failure}; Slack may still have posted it (check #fno-desk); not retried"
+NO_TS = "Slack accepted the post but gave no readable ts: posted, with no issuance time (not retried)"
 
 
 @dataclass(frozen=True)
@@ -51,10 +60,27 @@ class SlackCardPoster(CardPoster):
             if attempt:
                 self._sleep(RETRY_PAUSE_SECONDS)
             body, failure = slack_post(self._session, self._token, self._channel, text)
-            if failure is None and body.get("ts"):
-                return PostReceipt(SENT, str(body["ts"]), body.get("channel", self._channel))
-            failure = failure or "no ts in Slack's answer"
+            if failure is None:  # accepted: never posted again, even without a usable ts
+                return _accepted(body, self._channel)
+            if _may_have_posted(failure):  # a retry could post the card twice
+                return PostReceipt(NOT_SENT.format(reason=UNKNOWN.format(failure=failure)))
+            if failure not in NOT_DELIVERED:  # Slack refused it (e.g. channel_not_found): retrying cannot help
+                return PostReceipt(NOT_SENT.format(reason=failure))
         return PostReceipt(NOT_SENT.format(reason=f"{failure} after {ATTEMPTS} attempts"))
+
+
+def _may_have_posted(failure: str) -> bool:
+    return failure in SENT_THEN_LOST or failure.startswith("unexpected answer")
+
+
+def _accepted(body: dict, channel: str) -> PostReceipt:
+    """A post Slack accepted; without a readable `ts` it has no issuance time, which is said plainly."""
+    try:
+        ts = str(body["ts"])
+        float(ts)
+    except (KeyError, TypeError, ValueError):
+        return PostReceipt(NOT_SENT.format(reason=NO_TS))
+    return PostReceipt(SENT, ts, body.get("channel", channel))
 
 
 class NoCardPoster(CardPoster):

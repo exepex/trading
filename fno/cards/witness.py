@@ -42,7 +42,7 @@ class IssuanceWitness:
 
 
 def _slack(metadata: dict) -> str:
-    slack = metadata["slack"]
-    if not slack["sent"]:
-        return NOT_POSTED.format(outcome=slack["outcome"])
+    slack = metadata.get("slack") or {}
+    if not slack.get("sent") or not slack.get("server_time_utc"):
+        return NOT_POSTED.format(outcome=slack.get("outcome", "no Slack outcome recorded"))
     return f"{_shown(datetime.fromisoformat(slack['server_time_utc']))} (ts {slack['ts']})"

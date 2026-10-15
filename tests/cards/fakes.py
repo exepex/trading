@@ -22,7 +22,7 @@ from fno.storage.raw_store import RawFileConflict, RawFileStore
 
 ROOT = Path(__file__).resolve().parents[2]
 CAPTURE = "research/forecasts/live_v2/2026/2026-10-14_forecasts.csv"
-REPORT = "research/forecasts/scores/2026-10-15.json"
+REPORT = "research/forecasts/scores/2026-10-13.json"
 REGISTRY_HEADER = b"name,version,sha256,status,changed_on,approved_by,evidence_commit\n"
 PAPER_ROW = (
     "sc-iv-rich,1," + "a" * 64 + ",research,2026-10-13,desk,\n"

@@ -11,6 +11,7 @@ from fno.cards.issue import CardIssuer
 from fno.cards.posting import NoCardPoster, SlackCardPoster
 from fno.cards.record_store import DriveCardRecords, NoCardRecords
 from fno.constants import FNO_DESK_CHANNEL_ID
+from fno.models import IST
 from tests.cards.fakes import HOST, TOKEN, FakeDrive, FakeRecords, FakeSlack, FixedClock, Ticking, daily_card, slack_ok
 
 DAY = date(2026, 10, 15)
@@ -58,11 +59,11 @@ def test_the_repository_metadata_holds_no_card_text_and_no_secret(tmp_path):
 
 
 def test_slack_down_is_retried_once_printed_stored_and_still_saved_to_drive(tmp_path):
-    slack, drive = FakeSlack({"ok": False, "error": "channel_not_found"}), FakeDrive()
+    slack, drive = FakeSlack({"ok": False, "error": "ratelimited"}), FakeDrive()
     poster = SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack, sleep=lambda s: None)
     _, _, result = issue(tmp_path, poster, DriveCardRecords(drive))
     assert len(slack.calls) == 2 and not result.sent
-    assert result.lines[0] == "alert NOT sent: channel_not_found after 2 attempts"
+    assert result.lines[0] == "alert NOT sent: ratelimited after 2 attempts"
     assert result.lines[1] == "clock: host vs Slack not checked (not posted)"
     _, delivery = written(tmp_path)
     assert delivery["slack"]["sent"] is False and delivery["slack"]["ts"] is None
@@ -148,3 +149,75 @@ def test_a_test_post_is_marked_on_its_first_line_and_records_and_never_counts_as
     committed.files[path.relative_to(tmp_path).as_posix()] = path.read_bytes()
     _, next_text = daily_card(committed, tmp_path).prepare(date(2026, 10, 16))
     assert "Previous card: no card on record for 2026-10-15" in next_text
+
+
+def test_times_are_stored_in_utc_even_when_the_host_clock_is_in_ist(tmp_path):
+    records = FakeRecords()
+    card, text = daily_card(records, tmp_path).prepare(DAY)
+    host = Ticking(HOST.astimezone(IST))
+    issuer = CardIssuer(NoCardPoster(), NoCardRecords(), RepoDeliveryFiles(tmp_path, records), (), host, "c" * 40)
+    issuer.issue(card, text)
+    _, delivery = written(tmp_path)
+    assert delivery["host_clock"]["before_utc"].startswith("2026-10-15T09:38:00")
+    assert delivery["host_clock"]["before_utc"].endswith("+00:00")
+
+
+def test_a_failure_that_may_have_posted_or_is_a_refusal_is_never_retried(tmp_path):
+    cases = (
+        (
+            requests.ReadTimeout("lost answer"),
+            "ReadTimeout; Slack may still have posted it (check #fno-desk); not retried",
+        ),
+        ({"ok": False, "error": "channel_not_found"}, "channel_not_found"),
+    )
+    for answer, reason in cases:
+        slack = FakeSlack(answer)
+        receipt = SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack, sleep=lambda s: None).post("card")
+        assert len(slack.calls) == 1 and not receipt.sent and receipt.outcome == f"alert NOT sent: {reason}"
+
+
+def test_an_accepted_post_without_a_readable_ts_is_said_and_not_posted_again():
+    for body in ({"ok": True}, {"ok": True, "ts": "not-a-number"}):
+        slack = FakeSlack(body)
+        receipt = SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack, sleep=lambda s: None).post("card")
+        assert len(slack.calls) == 1 and receipt.ts is None
+        assert "accepted the post but gave no readable ts" in receipt.outcome
+
+
+def test_a_non_dict_slack_answer_never_raises(tmp_path):
+    for body in ([], "html", None):
+        slack = FakeSlack(body)
+        receipt = SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack, sleep=lambda s: None).post("card")
+        assert receipt.outcome.startswith("alert NOT sent: unexpected answer") and len(slack.calls) == 1
+
+
+class FailingLog(RepoDeliveryFiles):
+    def write(self, day, metadata):
+        raise OSError("disk full")
+
+
+def test_a_failed_metadata_write_keeps_every_line_and_prints_the_metadata(tmp_path):
+    records = FakeRecords()
+    card, text = daily_card(records, tmp_path).prepare(DAY)
+    poster = SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, FakeSlack(slack_ok()))
+    issuer = CardIssuer(poster, NoCardRecords(), FailingLog(tmp_path, records), (), Ticking(), "c" * 40)
+    result = issuer.issue(card, text)
+    assert result.lines[0] == "alert sent to #fno-desk" and not result.saved
+    assert result.lines[-1].startswith("delivery metadata NOT written (OSError); commit it by hand:")
+    assert slack_ok()["ts"] in result.lines[-1] and text not in result.lines[-1]
+
+
+def test_attempt_numbers_count_committed_attempts_from_another_checkout(tmp_path):
+    committed = FakeRecords()
+    committed.files["research/cards/deliveries/2026/2026-10-15-a1.json"] = b"{}"
+    path = RepoDeliveryFiles(tmp_path, committed).write(DAY, {"x": 1})
+    assert path.endswith("2026-10-15-a2.json")
+
+
+def test_a_corrupt_earlier_delivery_record_is_named_and_never_stops_the_card(tmp_path):
+    for bad in (b"{not json", b'{"slack": {"sent": true}}', b"[]"):
+        committed = FakeRecords()
+        committed.files["research/cards/deliveries/2026/2026-10-15-a1.json"] = bad
+        prepared = daily_card(committed, tmp_path).prepare(date(2026, 10, 16))
+        assert prepared is not None
+        assert "Previous card: the 2026-10-15 card's delivery record could not be read (" in prepared[1]

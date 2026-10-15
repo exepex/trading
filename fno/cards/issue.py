@@ -19,6 +19,7 @@ from .record_store import CardRecordStore
 RECORD_SCHEMA, DELIVERY_SCHEMA = "card_record/v1", "card_delivery/v1"
 SLACK = "Slack"
 TEST_BANNER = "TEST — PAPER ONLY: a one-off check of live delivery, not the day's card."
+NOT_WRITTEN = "delivery metadata NOT written ({error}); commit it by hand:\n{metadata}"
 WRITTEN = "delivery metadata written: {path} (commit and push it: its push receipt is the second issuance witness)"
 
 
@@ -55,9 +56,15 @@ class CardIssuer:
             card.day, _record_name(card, receipt, after) + ("_test" if test else ""), _json(record)
         )
         delivery = {**facts, "schema": DELIVERY_SCHEMA, "drive": {"saved": saved, "outcome": drive_line}}
-        path = self.deliveries.write(card.day, delivery)
-        lines = (receipt.outcome, *(c.line for c in checks), drive_line, WRITTEN.format(path=path))
-        return IssueResult(lines, receipt.sent, saved)
+        written, delivery_line = self._write(card, delivery)
+        lines = (receipt.outcome, *(c.line for c in checks), drive_line, delivery_line)
+        return IssueResult(lines, receipt.sent, saved and written)
+
+    def _write(self, card: TradeCard, delivery: dict) -> tuple[bool, str]:
+        try:
+            return True, WRITTEN.format(path=self.deliveries.write(card.day, delivery))
+        except OSError as error:  # the post is out: print the metadata so it can still be committed by hand
+            return False, NOT_WRITTEN.format(error=type(error).__name__, metadata=_json(delivery).decode("utf-8"))
 
     @staticmethod
     def _slack_check(receipt: PostReceipt, before: datetime, after: datetime) -> SkewCheck:

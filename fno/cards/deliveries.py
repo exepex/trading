@@ -47,20 +47,25 @@ class RepoDeliveryFiles(DeliveryLog):
         return sorted(int(m.group(2)) for m in found if m)
 
     def write(self, day: date, metadata: dict) -> str:
-        path = delivery_path(day, max(self._numbers(day), default=0) + 1)
+        committed = [int(m.group(2)) for m in map(DELIVERY_FILE.fullmatch, self._committed_names(day)) if m]
+        path = delivery_path(day, max([*self._numbers(day), *committed], default=0) + 1)
         target = self.root / path
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("x", encoding="utf-8") as out:  # "x": an existing attempt is never rewritten
             out.write(json.dumps(metadata, indent=1, sort_keys=True) + "\n")
         return path
 
-    def attempts(self, day: date) -> list[tuple[str, dict]]:
+    def _committed_names(self, day: date) -> list[str]:
         names = self.committed.names(f"{CARD_DELIVERIES_FOLDER}/{day:%Y}")
+        return [n for n in names if n.startswith(f"{day.isoformat()}-a")]
+
+    def attempts(self, day: date) -> list[tuple[str, dict]]:
+        names = self._committed_names(day)
         numbers = sorted(
             int(m.group(2)) for m in map(DELIVERY_FILE.fullmatch, names) if m and m.group(1) == day.isoformat()
         )
-        paths = [delivery_path(day, n) for n in numbers]
-        return [(path, json.loads(self.committed.read(path))) for path in paths]
+        found = [(path, self.committed.read(path)) for path in (delivery_path(day, n) for n in numbers)]
+        return [(path, json.loads(data)) for path, data in found if data is not None]
 
 
 def misses(log: DeliveryLog, day: date) -> tuple[str, ...]:

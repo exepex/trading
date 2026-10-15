@@ -23,17 +23,21 @@ class GitHeadRecords(CommittedRecords):
         self.root, self.commit = Path(root), commit
 
     def _git(self, *args: str) -> subprocess.CompletedProcess:
-        return subprocess.run(["git", *args], cwd=self.root, capture_output=True)
+        """A failed or missing git reads as "not committed", so every record is named missing, never invented."""
+        try:
+            return subprocess.run(["git", *args], cwd=self.root, capture_output=True)
+        except OSError:
+            return subprocess.CompletedProcess(args, 1, b"", b"")
 
     def read(self, path: str) -> bytes | None:
         shown = self._git("show", f"{self.commit}:{path}")
         return shown.stdout if shown.returncode == 0 else None
 
     def names(self, folder: str) -> list[str]:
-        listed = self._git("ls-tree", "--name-only", self.commit, f"{folder.rstrip('/')}/")
+        listed = self._git("ls-tree", "-z", "--name-only", self.commit, f"{folder.rstrip('/')}/")
         if listed.returncode != 0:
             return []
-        return sorted(Path(line).name for line in listed.stdout.decode("utf-8").splitlines() if line)
+        return sorted(Path(name).name for name in listed.stdout.decode("utf-8").split("\0") if name)
 
     def code_commit(self) -> str:
-        return self._git("rev-parse", self.commit).stdout.decode("utf-8").strip()
+        return self._git("rev-parse", self.commit).stdout.decode("utf-8").strip() or "unknown"

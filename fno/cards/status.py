@@ -33,7 +33,7 @@ REASONS = {
         "{count} version(s) at paper ({names}), but card v1 cannot show trade fields (T1 slice B): "
         "see the desk's decision records"
     ),
-    CARD_DATA_CHECK_FAILED: "the playbook registry could not be read, so no status can be trusted",
+    CARD_DATA_CHECK_FAILED: "the playbook registry or a paper account could not be read, so no status can be trusted",
 }
 TRADES_LINE = "Paper trades so far: {total} ({books})"
 NOT_READ = "{path}: not readable ({why})"
@@ -47,7 +47,7 @@ class RegistryStatus(StatusSource):
         used, missing = [], []
         at_paper = self._at_paper(used, missing)
         trades = self._trade_counts(used, missing)
-        if at_paper is None:
+        if at_paper is None or missing:
             code, reason = CARD_DATA_CHECK_FAILED, REASONS[CARD_DATA_CHECK_FAILED]
         elif at_paper:
             code = CARD_TRADE_FIELDS_NOT_BUILT

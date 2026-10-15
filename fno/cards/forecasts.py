@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 
 from ..constants import BASELINE_BASE_RATE, FORECAST_QUESTIONS
 from ..forecast.record_files import read_records_v2
@@ -39,6 +39,8 @@ HOUSE_NOTE = "House forecast ({house}): no primary named in G1; past average sho
 OTHERS = "{count} other forecasters recorded; none has passed its test yet. None of this is advice."
 QUESTION_LINE = "{question} ({name}): past average {probability:.2f} | {record}"
 NO_FORECAST = "{question} ({name}): past average gave no forecast"
+NOT_IN_CAPTURE = "{question} ({name}): no past-average record in this capture"
+LATE_MISSING = "scored live forecasts for {day} (the capture was late)"
 
 
 def _latest(names: list[str], pattern: re.Pattern, day: date) -> date | None:
@@ -57,38 +59,45 @@ class LiveCaptureForecasts(ForecastSource):
         capture = self._latest_capture(day)
         if capture is None:
             return CardSection("forecasts", (NONE_YET,), missing=(f"live forecast capture on or before {day}",))
-        path, data = capture
-        rows = read_records_v2(data.decode("utf-8"))
-        report_day, report = self._latest_report(day)
+        path, capture_day, data = capture
+        rows = read_records_v2(data.decode("utf-8"))  # an unreadable capture fails the section, which says so
         used, missing = [UsedRecord.of(path, data)], []
-        if report is None:
-            missing.append(f"forecast score report on or before {day}")
-        else:
-            used.append(UsedRecord.of(f"{self.scores_folder}/{report_day}.json", report))
-        records = TrackRecords(json.loads(report) if report is not None else None)
-        capture_day = rows[0].record.date if rows else day
-        lines = [HEADER.format(day=capture_day, age=OLDER if capture_day < day else "", report=report_day or "none")]
+        report_day, records = self._track_records(day, used, missing)
+        house = [r.record for r in rows if r.record.book == self.house]
         others = len({r.record.book for r in rows} - {self.house})
-        lines += _late_lines(rows) + [HOUSE_NOTE.format(house=self.house), OTHERS.format(count=others)]
-        lines += _question_lines([r.record for r in rows if r.record.book == self.house], records)
+        late = _late_lines(rows)
+        missing += [LATE_MISSING.format(day=capture_day)] if late else []
+        lines = [HEADER.format(day=capture_day, age=OLDER if capture_day < day else "", report=report_day or "none")]
+        lines += late + [HOUSE_NOTE.format(house=self.house), OTHERS.format(count=others)]
+        lines += _question_lines(house, records, missing)
         return CardSection("forecasts", tuple(lines), tuple(used), tuple(missing))
 
-    def _latest_capture(self, day: date) -> tuple[str, bytes] | None:
+    def _latest_capture(self, day: date) -> tuple[str, date, bytes] | None:
         years = sorted(
             (y for y in self.records.names(self.live_folder) if y.isdigit() and int(y) <= day.year), reverse=True
         )
         for year in years:
             found = _latest(self.records.names(f"{self.live_folder}/{year}"), CAPTURE_FILE, day)
-            if found is not None:
-                path = f"{self.live_folder}/{year}/{found.isoformat()}_forecasts.csv"
-                return path, self.records.read(path)
+            data = self.records.read(f"{self.live_folder}/{year}/{found}_forecasts.csv") if found else None
+            if data is not None:
+                return f"{self.live_folder}/{year}/{found}_forecasts.csv", found, data
         return None
 
-    def _latest_report(self, day: date) -> tuple[str | None, bytes | None]:
-        found = _latest(self.records.names(self.scores_folder), REPORT_FILE, day)
-        if found is None:
-            return None, None
-        return found.isoformat(), self.records.read(f"{self.scores_folder}/{found.isoformat()}.json")
+    def _track_records(self, day: date, used: list, missing: list) -> tuple[str | None, TrackRecords]:
+        """The latest score report dated before the card's day (a same-day report may hold that day's later data)."""
+        found = _latest(self.records.names(self.scores_folder), REPORT_FILE, day - timedelta(days=1))
+        path = f"{self.scores_folder}/{found}.json"
+        data = self.records.read(path) if found else None
+        if data is None:
+            missing.append(f"forecast score report dated before {day}")
+            return None, TrackRecords(None)
+        try:
+            records = TrackRecords(json.loads(data))
+        except (ValueError, KeyError, TypeError) as error:
+            missing.append(f"{path}: not readable ({type(error).__name__})")
+            return None, TrackRecords(None)
+        used.append(UsedRecord.of(path, data))
+        return found.isoformat(), records
 
 
 def _late_lines(rows: list[ForecastRecordV2]) -> list[str]:
@@ -96,11 +105,15 @@ def _late_lines(rows: list[ForecastRecordV2]) -> list[str]:
     return [LATE.format(at=", ".join(late), deadline=GENERATION_DEADLINE)] if late else []
 
 
-def _question_lines(house_rows: list, records: TrackRecords) -> list[str]:
+def _question_lines(house_rows: list, records: TrackRecords, missing: list) -> list[str]:
     lines = []
     for question in FORECAST_QUESTIONS:
-        for r in (r for r in house_rows if r.question == question):
-            named = {"question": question, "name": QUESTION_NAMES[question]}
+        named = {"question": question, "name": QUESTION_NAMES[question]}
+        asked = [r for r in house_rows if r.question == question]
+        if not asked:
+            lines.append(NOT_IN_CAPTURE.format(**named))
+            missing.append(f"past average for {question} not in the capture")
+        for r in asked:
             if r.probability is None:
                 lines.append(NO_FORECAST.format(**named))
             else:
