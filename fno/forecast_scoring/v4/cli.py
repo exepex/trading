@@ -54,8 +54,9 @@ def _look(scoring, records, thresholds, look: str, decided_at) -> int:
     from .look import run_look
     from .records import EXPLORATORY
 
-    result = run_look(look, decided_at, scoring.member_comparisons(), thresholds, records.closed(look))
-    if not records.frozen():
+    counted_after = records.frozen_on() if records.frozen() else None
+    result = run_look(look, decided_at, scoring.member_comparisons(counted_after), thresholds, records.closed(look))
+    if counted_after is None:
         print("\n".join([EXPLORATORY, *result.lines()]))
         return 0
     payload = {"lines": result.lines(), "test_a": result.test_a, "regimes": [list(k) + [v] for k, v in

@@ -85,3 +85,14 @@ again; M9 regime from the wrong session; M10 V7 not strict.
 
 **Not done (stated):** slot registrations are `NoRegistrations` until the freeze writes its ledger row (its adapter is
 one class plus one line in `wiring.py`); V4 and V5 outcomes; the proxy-drift diagnostic (phase 2).
+
+### Addendum: only live forecasts after the freeze count at a look (from the G7 builder's self-review)
+
+The G7 builder pointed out that `v4-capture` has no freeze gate, so `live` rows can exist before the freeze. Checked:
+G8's look used every row of the registered forecaster, back-fill included, so a look after the freeze would have
+counted exploratory and pre-freeze rows (protocol section 8 forbids it; strong evidence: code reading). Fixed: after
+the freeze a look counts only `live` rows of forecast days strictly after the freeze day, for the forecaster and the
+baseline (`scoring.member_comparisons(counted_after)`). The freeze day is read from a line `Frozen on: YYYY-MM-DD`
+in `FREEZE_v4.md`; a record without it refuses the look (**a requirement on the G6 freeze commit**). Before the
+freeze (exploratory) every row is used, as before. Proof: M11 (back-fill counted), M12 (the freeze day counted) and
+M13 (the look ignoring the freeze day) are each caught: 13 of 13.

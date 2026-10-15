@@ -53,12 +53,15 @@ class V4Scoring:
     def forecasters(self, question: str) -> list[str]:
         return [] if question in NOT_STARTED else self.forecasts.forecasters(question)
 
-    def member_comparisons(self) -> dict[tuple[str, str], Comparison]:
-        """Each registered member: its slot's forecaster against the question's primary baseline."""
+    def member_comparisons(self, counted_after: date | None) -> dict[tuple[str, str], Comparison]:
+        """Each registered member: its slot's forecaster against the question's primary baseline. After the freeze
+        (`counted_after`: its day) only live rows of later forecast days count (protocol section 8); back-fill and
+        earlier live rows never do. None (before the freeze, exploratory): every row."""
         found = {}
         for (question, slot), forecaster in self.registry.registered().items():
-            outcomes, baseline = self.outcomes.outcomes(question), primary_values(question, self.forecasts)
-            values = self.forecasts.values(question, forecaster)
+            outcomes = self.outcomes.outcomes(question)
+            baseline = _counted(primary_values(question, self.forecasts), counted_after)
+            values = _counted(self.forecasts.values(question, forecaster), counted_after)
             found[(question, slot)] = self._compare(question, forecaster, values, baseline, outcomes, slot)
         return found
 
@@ -67,6 +70,10 @@ class V4Scoring:
         rows = paired_rows(values, baseline, outcomes)
         return compare(question, forecaster, " / ".join(sorted(primary_names(question))), rows, outcomes,
                        seed_word(question, slot, forecaster))  # fmt: skip
+
+
+def _counted(values: dict[date, ForecastValue], after: date | None) -> dict[date, ForecastValue]:
+    return values if after is None else {day: v for day, v in values.items() if v.live and day > after}
 
 
 def _scores(question: str, values: dict[date, ForecastValue], outcomes: dict[date, Outcome],
