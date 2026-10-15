@@ -89,3 +89,130 @@ renumber it if 119 is reserved.
 - The criteria carry the cases rule 5 asks for: `Retry-After` 120/121, the fourth try, the second 429, the empty 200.
 
 Code may start. Fold the four minors into the code round; I check them there.
+
+## Addendum 1 (15 Oct 2026): A9b code at f90e18bdc2e9251bd274d9a90f36b036800f4444 (merge-base fa58953; claims: `reviews/claude/response_119_a9b-nse-retry.md`)
+
+**Gates, run myself:**
+- **Exact SHA:** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` 4355 passed; `ruff check fno tests tools` clean;
+  `ruff format --check` clean (835 files); `python tools/check_imports.py` clean.
+- **Trial merge with origin/main a0b2915:** no conflict; 4604 passed; ruff clean; imports clean.
+  - `ruff format --check .` flags one file, `reviews/chatgpt/review_2_...md:98`. It is already flagged on `main` and is
+    not in this branch.
+- **Network:** a socket-blocking plugin over the 742 NSE-related tests: all passed, no real connection.
+
+**Real download (criterion 4):**
+- 9 Oct index close through the new code: SHA-256 equals the manifest (7b2b7c2e…).
+- 13 Oct participant-OI `Last-Modified` revision: 875c9cf4…, the recorded A11 revision, the same as the old code.
+- So the successful path is unchanged.
+
+**Planted mutations (separate worktree, 11; all caught):**
+
+| # | Mutation | Result |
+|---|---|---|
+| R1 | 429 refused, not retried | 9 failed |
+| R2 | 599 not retried | 1 failed |
+| R3 | `Retry-After` 120 stops (cap off by one) | 1 failed |
+| R4 | `SourceCoolingOff` retried | 26 failed |
+| R5 | a third 429 tried | 1 failed |
+| R6 | `Retry-After` ignored | 3 failed |
+| R7 | `checked_at` = start of check | 1 failed |
+| R8 | legacy log not read | 2 failed |
+| R9 | unanswered revision re-read ignored by `market daily` | 1 failed |
+| R10 | any failure, not only `RawFileRefused`, kept per company in A12 | 1 failed |
+| R11 | 410 treated as not published | 22 failed |
+
+### The orchestrator's points
+
+**(a) A8 v2 log: readers MET, writers PARTLY (should-fix 1).**
+- **Readers.** Every reader goes through `ReleaseLog.checks()`, which reads the legacy file, then v2. No frozen file
+  names `release_checks.csv` (searched every tracked file outside tests).
+- **Writers.**
+  - `ReleaseLog` refuses the legacy name for writing.
+  - `.gitattributes` has union lines for both v2 files.
+  - `participant-oi-watch.yml` `LOG` is v2 and `git add "$LOG"`.
+  - O6's `participant-oi-release.yml` adds the whole `actions/` folder.
+- **Not covered:** the A8 Claude routine "participant-OI release times". Its prompt as recorded
+  (`response_40_...:199`) says: "Commit `research/data/participant_oi/release_checks.csv` and push". O6 runs it side by
+  side "until the owner switches" (`participant-oi-release.yml:1-2`).
+  - After this merge, that routine writes its rows to `release_checks_v2.csv`.
+  - If it still commits only the legacy path, its rows die with the container every evening: lost A8 evidence and no
+    error.
+  - Neither the story, the response nor the gap list mentions the routine. I cannot read or change scheduled tasks, so I
+    cannot verify it either way. Under JUDGE.md, NOT MET.
+
+**(b) `market daily` stops when a revision re-read is unanswered: CONSISTENT with judge 49 and judge 79.**
+- "A bad file still stops": an unread re-read is now a named problem (ARCHIVE_INCOMPLETE). R9 is caught.
+- Documented in the story and `DATA_SOURCES.md`. The cost is accepted: one NSE hiccup at that step holds that day's
+  publication until a re-run.
+
+**(c) The code-reading test can be dodged: YES (minor 1).** It matches exception names written directly in the
+`except` of a function that directly calls `fetch`, `fetch_published` or `last_written`. These dodges passed it:
+- an alias (`E = requests.HTTPError`);
+- a tuple constant (the librarian's own `LIST_ERRORS` pattern);
+- a method alias for the read;
+- `except Exception`;
+- a catch one call up (the librarian's `run` catches `requests.RequestException` around `_company`, rightly for Drive,
+  and the test cannot see it).
+
+No offender exists today; my own search agrees. The behaviour itself is pinned by the source tests: R1, R4, R5 and R11
+are caught. So the code-reading test is a backstop, not the proof. Minor: name its limits in its docstring, or resolve
+module-level aliases and tuples.
+
+**(d) Network in the command tests: MET.**
+- The `nse` fixture patches both `wiring.build_nse_source` and `fno.composition.build_nse_source`. That fixes the
+  earlier real fetch the builder disclosed.
+- My socket-blocking run shows no connection.
+- There is no permanent socket guard, so a future name import could leak again. Minor 2: a suite-wide guard like judge
+  86's credential fixture.
+
+**(e) Worst case: MET.**
+- 65 s of waits, or 3 x 120 s, plus up to four 60 s timeouts per file. Twice that for A12's truncated second
+  download.
+- Stated in `retry_policy.py`, the story and `DATA_SOURCES.md`, with the reasoning-only label for the 120 s cap.
+
+### Judge 119's text minors
+
+| Minor | Status |
+|---|---|
+| 1 fake sender, no live post | MET: `FakeSender`; judge 86's fixture |
+| 2 120 s reason and label | MET |
+| 3 why `PublicData` is safe | MET (story and `DATA_SOURCES.md`) |
+| 4 which time `check-once` records | MET: `checked_at` = answer, `started_at` = start; tested with 503 then 200 (19:00:00 / 19:00:05). R7 caught |
+
+### Unclaimed-bug hunt
+
+- **3xx is now `RawFileRefused`.** `session.head` does not follow redirects. Before A9b, a redirect's own
+  `Last-Modified` would have been read as the file's (wrong). Now it is a named failure. No NSE redirect was seen in my
+  probes. Note only, safer than before.
+- **Ordering in the librarian's `run`:** `(SourceCoolingOff, RawSourceUnavailable)` is caught before
+  `requests.RequestException`. So an NSE stop is never reported as a Drive stop. Checked.
+- **Boundary and empty cases tested by the builder, re-read by me:**
+  - `Retry-After` 120 / 121, past, empty, malformed, non-ASCII;
+  - the fourth try; the second 429;
+  - an empty 200;
+  - a zero-byte v2 file;
+  - the legacy name refused for writing.
+
+### Findings
+
+**Should-fix 1 (blocking the PASS): the A8 Claude routine's commit path.**
+- **Evidence:** `response_40_...:199` (the prompt commits `release_checks.csv` by path) and
+  `participant-oi-release.yml:1-2` (the routine still runs). The branch writes v2 only.
+- **Expected:**
+  - (A) the orchestrator updates the routine's prompt to commit `research/data/participant_oi/` (or
+    `release_checks_v2.csv`), effective at the merge; or
+  - (B) shows that the routine is retired or already commits the folder.
+- **Either way,** record it in the story's gap list and the response, with the routine's prompt line quoted. A
+  schedule change is lane 1 for the orchestrator, not for me.
+
+**Minor 1:** the code-reading test's dodges, see (c).
+
+**Minor 2:** no permanent socket guard, see (d).
+
+### Verdict: FAIL for f90e18bdc2e9251bd274d9a90f36b036800f4444 (code)
+
+- **Everything else is met:** the code, the tests, the mutations, the trial merge, the network check, and the real
+  download.
+- **One should-fix:** the routine. It needs the orchestrator's evidence, not new code.
+- **A re-check needs:** the routine's prompt line (or its retirement) and the story or response row recording it. If the
+  code is unchanged, I re-run nothing else.
