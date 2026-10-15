@@ -104,3 +104,39 @@ E2c is this session's; E4c and E5b wait on it, so there is no overlap.
 
 **Verdict: FAIL for 7823796c**: blocking 1 (criterion 4), should-fix 1 (criterion 5), and the missing response
 rename. A re-check needs the fix commits and the new tests only. ChatGPT's review (rule 9) follows the PASS.
+
+## Addendum 1 (15 Oct 2026): fecb99fc (fix commits 30e819e8 code, fecb99fc text; rename dce63510)
+
+Answer table: `reviews/claude/response_150_e2c-fills-to-drive.md`, "Answer to judge 159".
+
+**Gates:** trial merge of fecb99fc with `main` 530bf2a6: **5,887 passed, 0 failed**. The only conflict is the
+`reviews/claude/README.md` index; keep both rows. `ruff check`, `ruff format --check` and `check_imports.py` are clean.
+`tests/timetable` + `tests/desk`: 163 passed.
+
+| Finding | Status | Evidence |
+|---|---|---|
+| Blocking 1: a part-way push | MET (fix differs from mine; see the ruling below) | New order: desk fills, ledger, positions, equity history, desk events. My own probe now passes for all five failure points: a 503 on each file, then a fresh-container rerun, leaves Drive with header plus opening plus 4 ledger fills, 4 desk rows and 1 event, with t1 open. The builder's parametrized test covers all five files. Planting the old order back fails 3 of the file's 10 tests |
+| Should-fix 1: a download or recovery stop | MET | `_stopped_before_exits` now blocks when the last session has no log and an earlier log exists. My probe without an earlier log: 14 Oct opens (the desk's first day, by design). With a 12 Oct log added: 14 Oct is blocked with one alert naming 13 Oct, and the exits run |
+| Response rename | MET | `response_150_e2c-fills-to-drive.md` (dce63510) |
+| Notes 1-3, deviation 1 Scope line | MET | Story text updated (fecb99fc) |
+
+**Ruling on "ledger last": the builder's rejection is correct, and I withdraw my order.**
+- I missed that an entry's desk event is the desk's own "done" marker (`entries.py:117-119`). With the events uploaded
+  before the ledger, a 503 on the ledger leaves the "opened" event with no ledger fills. The rerun returns the recorded
+  outcome and applies nothing, so the cash is silently wrong. That is worse than the crash.
+- I planted my order (equity, positions, desk fills, events, ledger) myself: the `cash_ledger.csv` case fails
+  (`assert 0 == 4`). One of 10 tests fails, not the builder's "3 of 9" (that count was for the builder's own variant),
+  but the conclusion stands.
+- The builder's order puts each "done" marker after the data it marks:
+  - desk fills before the ledger, since a ledger fill without its desk row crashes readers;
+  - the events last;
+  - the rebuilt views in between.
+
+**New minor (not blocking):** the exits path uses the same order, but only entries are tested part way. An exit's
+rerun finds the trade closed in the ledger and skips it, so the order holds there too (reasoning). No test needed under
+the simplicity rule.
+
+**Verdict: PASS for fecb99fc.** Next steps:
+- ChatGPT's review follows (rule 9, fills). Any change after it comes back to me.
+- Merge steps as in the main verdict, plus addition (a): all nine account files must print "uploaded" or "already in
+  Drive" before the `git rm --cached`.
