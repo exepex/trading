@@ -297,3 +297,28 @@ This is a note, not a blocker: the code path is E4c's own tested function, and t
 - `live_from` is set on or before S1's freeze.
 
 Under quality rule 9 (money path), ChatGPT reviews it next.
+
+## Addendum 4: E8 part 1b at b79dee94 (the notes of addenda 2 and 3): PASS stands
+
+One commit since 09d14c43, b79dee94.
+
+- **No future for that expiry.** `_missing_reason` returns `MISSED_NO_FUTURE` only when every missing contract is
+  quoted in the copy and its expiry has no valid future there; any other gap is still "no quote". The reason is in
+  `MISSED_REASONS` (9 reasons, with a test that the table and the code agree). A parametrised test covers a missing
+  level against its reason.
+- **The exit alert never shows a figure.** The reason before the first colon is used only if it is plain lower-case
+  words (`[a-z_ ]+`); anything else becomes "exit ordered". The test checks for "(exit ordered)" and that no digit
+  appears after the trade ID.
+- **Protection with no bid at the mark.** A one-sided protective quote (ask, no bid) is no longer "no quote". It goes
+  to E4c's `entry_problems`, and its opening-side check fails because A4 refuses a one-sided quote, so it gives
+  `protection_not_buyable`, with its own test.
+  - **Keeping E4c's code is right.** It is exactly what E4c gives for the same quote at 15:15 (`_side_problem` with
+    `opening=True` gives `PROTECTION_NOT_BUYABLE`), so E8 adds no second rule and the two paths stay comparable.
+  - The name reads oddly for a quote that has an ask, but changing it would be E4c's change, not E8's. Note only.
+  - Crossed or two-sided invalid quotes, and quotes with no price on the opening side, still give "no quote".
+- **Gates** (trial merge with origin/main):
+  - full suite with `-n auto`: 7,062 passed in 2 min 52 s;
+  - ruff check, ruff format and check_imports are clean;
+  - the merge is clean.
+
+Addendum 3's PASS stands at b79dee94. Next is ChatGPT's review (rule 9).
