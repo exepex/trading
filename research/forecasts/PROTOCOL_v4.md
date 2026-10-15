@@ -176,7 +176,9 @@ missing; daily HAR never stands in again.
 - **Missed days (revision 9; owner decisions of 15 Oct 2026, responses 144-147, judge 138-139, ChatGPT review 112;
   `misses.py`).** Verdicts use observed days only; a missed day is never imputed, because a filled-in day gives d = 0
   while the futility test still adds the minimum effect, so a forecaster that never ran would be called futile. What
-  the scored set leaves out is counted from the forecaster's first forecast (earlier days are "not started"):
+  the scored set leaves out is counted from the forecaster's first forecast (earlier days are "not started"); at a
+  look after the freeze, from the day after the freeze for a forecaster that had already started, so a member that
+  breaks straight after the freeze still counts those days:
   - a **miss** is a resolved, non-void day where the primary baseline forecast and the forecaster did not (a null
     answer is a miss);
   - an **input failure** is a resolved, non-void day where neither forecast (the common pack failed); it is counted

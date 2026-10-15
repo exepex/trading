@@ -73,7 +73,7 @@ def paired_rows(
 
 
 def compare(question: str, forecaster: str, baseline: str, rows: list[DatedForecasts],
-            outcomes: Mapping[date, Outcome], k: int) -> Comparison:  # fmt: skip
+            outcomes: Mapping[date, Outcome], k: int, miss_start: date | None = None) -> Comparison:  # fmt: skip
     pairing = (pair_point if question in POINT_QUESTIONS else pair_probability)(rows)
     scored, gate, block = pairing.scored, pairing.gate, BLOCK_LENGTH[question]
     d = scored.differences
@@ -84,7 +84,7 @@ def compare(question: str, forecaster: str, baseline: str, rows: list[DatedForec
         batch_means_p(d, block), studentized_bootstrap_p(d, block, k), one_sided_test(d, block, k).p_value,
         hac_one_sided_p(d, block), _half_signs(d), scored_regime(scored.days, outcomes),
         _power(question, gate.differences, gate.baseline_losses),
-        miss_report(_with_empty_days(rows, outcomes), _big_day(outcomes)),
+        miss_report(_with_empty_days(rows, outcomes), _big_day(outcomes), miss_start),
     )  # fmt: skip
 
 

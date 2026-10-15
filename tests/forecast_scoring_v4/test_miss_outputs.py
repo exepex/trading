@@ -78,3 +78,22 @@ def test_the_recorded_look_carries_each_members_miss_line(tmp_path, capsys):
     recorded = json.loads(records.path(LOOK_STOP_REVIEW).read_text())
     assert [V6_BIG_MOVE_5S, "rules", EXPECTED.line()] in recorded["misses"]
     assert recorded["test_a"] == "undecided"
+
+
+class BrokenAfterFreeze(V4ForecastSource):
+    """Live every day except 3-5 Jan, the three days straight after a 2 Jan freeze; the baseline never misses."""
+
+    def forecasters(self, question):
+        return ["base_rate", "weather_m1"]
+
+    def values(self, question, forecaster):
+        if forecaster == "base_rate":
+            return BASE | values({ABSENT: 0.2}, live=True)
+        return values({d: 0.3 for d in DAYS if d not in DAYS[2:5]}, live=True)
+
+
+def test_after_the_freeze_misses_count_from_the_day_after_it_and_earlier_days_never_count():
+    scoring = V4Scoring(BrokenAfterFreeze(), Outcomes(), Registered())
+    member = scoring.member_comparisons(counted_after=DAYS[1])[(V6_BIG_MOVE_5S, "rules")]
+    assert member.misses == MissReport(observable=8, missed=3, big_observable=2, big_missed=0, input_failures=0)
+    assert member.misses.operations_undecided

@@ -43,10 +43,15 @@ class MissReport:
                 f"{self.big_observable} 2% days; input failures: {self.input_failures}{verdict}")  # fmt: skip
 
 
-def miss_report(rows: Sequence[DatedForecasts], big_day: Callable[[date], bool]) -> MissReport:
-    """`big_day(d)`: whether day d's regime return is a 2% move (the same input as the scored window's regime)."""
+def miss_report(
+    rows: Sequence[DatedForecasts], big_day: Callable[[date], bool], start: date | None = None
+) -> MissReport:
+    """`big_day(d)`: whether day d's regime return is a 2% move (the same input as the scored window's regime).
+    `start`: the day misses count from when the rows begin later than the forecaster did (after the freeze, rows hold
+    only later days, so a member that breaks straight after it must still count those days; judge 149 review);
+    default: the first forecast in the rows."""
     started = [r for r in sorted(rows, key=lambda r: r.day) if r.forecast is not None]
-    first = started[0].day if started else None
+    first = start or (started[0].day if started else None)
     counted = [r for r in rows if first is not None and r.day >= first and r.outcome is not None and not r.void]
     observable = [r for r in counted if r.baseline is not None]
     missed = [r for r in observable if r.forecast is None]
