@@ -127,13 +127,13 @@ def zero_row(code: str, width: float, exposure: float = 0.0) -> dict:
 
 @pytest.mark.parametrize("code", ["LC", "LP"])
 def test_a_bought_only_structure_may_need_no_margin(code):
-    assert stressed_per_lot([zero_row(code, 0.0)], (code, 0.0, 1), DAY, SETTINGS) == 0.0
+    assert stressed_per_lot([zero_row(code, 0.0)], (code, 0.0, 1), DAY, SETTINGS, LOT) == 0.0
 
 
 @pytest.mark.parametrize("code", ["CDS", "PDS", "SF"])
 def test_a_structure_with_a_sold_leg_must_still_need_margin(code):
     with pytest.raises(MarginProblem, match="not above 0"):
-        stressed_per_lot([zero_row(code, 100.0)], (code, 100.0, 1), DAY, SETTINGS)
+        stressed_per_lot([zero_row(code, 100.0)], (code, 100.0, 1), DAY, SETTINGS, LOT)
 
 
 def test_the_proposal_builder_matches_the_real_structure_and_the_day():

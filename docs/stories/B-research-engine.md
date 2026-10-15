@@ -489,8 +489,11 @@ This story adds no strategy, no new code and no trading decision.
      - 0 for LC, LP, CDS and PDS, whose whole loss is already paid;
      - at most `width - credit` (plus charges) for CCS and PCS.
 
-     C2 takes the worst terminal loss from B2's model and C4 from its own grid. **SF, SC and BF are not capped**: the
-     owner's 1.45 came from a BF case (response 77), so changing it is the owner's call;
+     The cap never takes the figure below the broker's own unstressed `max(0, scan - NOV)` (C2 is never looser than
+     the broker at entry, judge 77 addendum 3): on NSE's real 14 Oct rows a credit spread's broker figure already
+     exceeds `width - credit`, so its stress reserve is 0 too. C2 and C4 take the cap from the margin row (its NOV and
+     the width), so a held trade is capped like a new one. **SF, SC and BF are not capped**: the owner's 1.45 came
+     from a BF case (response 77), so changing it is the owner's call;
    - `stress_reserve = stressed_span - max(0, scan - NOV)`, and `total_funds = broker_margin + premium_paid +
      stress_reserve` is what `margin_room` compares with cash. For SF/SC/BF this equals today's figure by algebra.
 
@@ -557,8 +560,9 @@ Out:
    - LC, LP, CDS and PDS have `stress_reserve` 0;
    - CCS/PCS's reserve is at most `width - credit`;
    - for SF, SC and BF at every research width, `total_funds` equals today's `at_entry` to the paisa, row by row.
-2. S2's capital figure: an LC trade's capital equals its premium plus charges; a CDS's equals its exposure plus debit
-   plus charges; the stress reserve is shown apart.
+2. S2's capital figure: an LC trade's capital equals its premium plus charges; a CDS's equals its exposure plus the
+   bought leg's premium plus charges (Groww credits the sold premium only after settlement, judge 77 addendum 3); the
+   stress reserve is shown apart.
 3. Per-code dates:
    - a code's row for the day before its `passed_on` is printed, not written; on the day itself it is written;
    - adding a code moves no other code's date;

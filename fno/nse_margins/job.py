@@ -1,11 +1,10 @@
 """The daily NSE margin job (story A14): each session's margin rows from its beginning-of-day SPAN file in Drive.
 
-Rows are written only once an independent broker check has passed (`IndependentCheck`, judge 77); until then each
-day's rows are printed and refused by name. Rows of a structure the passed check did not cover are printed, not
-written (story STR1). For every session from a week before the due day up to it that has no NSE row yet, the job
-reads the day's `i1` file as first archived (A9; A11 keeps later versions apart), checks it was written before
-09:00 IST on that day (point in time: a decision on d never sees a later file), computes the rows and appends them
-to `margins.csv`.
+A structure's rows are written only from the day its independent broker check passed (`BrokerApprovals`, judge 77;
+story STR1b); other rows are printed, not written, and a day with no approved structure is refused by name. For every
+session from a week before the due day up to it that has no NSE row yet, the job reads the day's `i1` file as first
+archived (A9; A11 keeps later versions apart), checks it was written before 09:00 IST on that day (point in time: a
+decision on d never sees a later file), computes the rows and appends them to `margins.csv`.
 
 Fail closed: a missing or invalid file, a file written too late or a conflicting row writes nothing for that day; a
 structure that cannot be computed gets no row. Every problem is named in one #fno-desk line and the run fails, so C2
@@ -21,8 +20,8 @@ from datetime import date, datetime, timedelta
 from ..alerts.sender import AlertSender
 from ..constants import MARGIN_SOURCE_NSE_SPAN, SPAN_BOD_CREATED_BEFORE
 from ..fo_bhavcopy import BadFile
+from .broker_approvals import NOT_PASSED, BrokerApprovals
 from .calculator import MarginOutsideModel
-from .independent_check import NOT_PASSED, IndependentCheck
 from .margin_log import MarginLog, MarginLogConflict
 from .rows import MarginRowBuilder
 from .span_file import read_span_file
@@ -30,7 +29,7 @@ from .span_file import read_span_file
 LOOKBACK_DAYS = 7  # a missed run is caught up within C2's 7-day margin age
 MAX_GAP_DAYS = 15  # the longest NSE break between sessions is far shorter; beyond it the calendar lacks the year
 ADDED = "nse margins: {day}: {rows} rows from {file}"
-HELD = "nse margins: {day}: {rows} rows not written, no broker check covers {codes} yet (printed for one):"
+HELD = "nse margins: {day}: {rows} rows not written, no broker check approves {codes} by this day (printed for one):"
 NOTHING_NEW = "nse margins: nothing new up to {day}"
 ALERT = "Omenix F&O NSE margins: {problems}. C2 keeps refusing trades without a fresh margin; the next run retries"
 DayFile = Callable[[date], tuple[str, bytes | None]]  # day -> (original file name, its first archived bytes or None)
@@ -53,7 +52,7 @@ def due_session(now: datetime, is_trading_day: Callable[[date], bool]) -> date:
 
 class NseMarginJob:
     def __init__(self, day_file: DayFile, builder: MarginRowBuilder, log: MarginLog,
-                 is_trading_day: Callable[[date], bool], check: IndependentCheck, alerts: AlertSender,
+                 is_trading_day: Callable[[date], bool], check: BrokerApprovals, alerts: AlertSender,
                  now: Callable[[], datetime], print_line=print):  # fmt: skip
         self.day_file, self.builder, self.log, self.is_trading_day = day_file, builder, log, is_trading_day
         self.check, self.alerts, self.now, self.print_line = check, alerts, now, print_line
@@ -100,19 +99,19 @@ class NseMarginJob:
             found = self.builder.rows(span, hashlib.sha256(data).hexdigest(), day)
         except MarginOutsideModel as exc:
             raise MarginDayProblem(str(exc)) from exc
-        if not self.check.passed_by(day):
+        if not self.check.any_by(day):
             for row in found.rows:
                 self.print_line(",".join(row.as_csv().values()))
             raise MarginDayProblem(NOT_PASSED.format(rows=len(found.rows)))
-        checked = [row for row in found.rows if self.check.covers(row.structure)]
-        self._print_held(day, [row for row in found.rows if not self.check.covers(row.structure)])
+        checked = [row for row in found.rows if self.check.approves(row.structure, day)]
+        self._print_held(day, [row for row in found.rows if not self.check.approves(row.structure, day)])
         added = self.log.append(checked)
         self.print_line(ADDED.format(day=day, rows=added, file=filename))
         return [f"{day}: {reason}" for reason in found.skipped]
 
     def _print_held(self, day: date, rows: list) -> None:
-        """Rows of structures no passed broker check covers (story STR1): printed for that check, never written. Not an
-        alert: C2 and C4 already refuse a structure without a fresh row."""
+        """Rows of structures no broker check approves by this day (stories STR1, STR1b): printed for that check, never
+        written. Not an alert: C2 and C4 already refuse a structure without a fresh row."""
         if rows:
             codes = sorted({row.structure for row in rows})
             self.print_line(HELD.format(day=day, rows=len(rows), codes=", ".join(codes)))

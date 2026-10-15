@@ -12,6 +12,7 @@ from datetime import date
 from pathlib import Path
 
 from ..constants import PLAYBOOK_REGISTRY_FILE
+from .activation import activation_problem
 from .approval_checks import ApprovalCheck, LiveFeatureDrift, run_checks
 from .documents import strategy_from_text
 from .fields import PlaybookError
@@ -109,6 +110,9 @@ class PlaybookLoader:
         if strategy.status != registered:
             raise PlaybookError(f"{where}: status", f"is {strategy.status} but the registry says {registered}")
         approval = next((row for row in reversed(history) if row.status == PAPER), None)
+        blocked = activation_problem(strategy, registered=bool(history))
+        if blocked:
+            raise PlaybookError(f"{where}: structure", blocked)
         try:
             for rule_check in self.rule_checks:
                 rule_check.check(strategy)

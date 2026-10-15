@@ -99,6 +99,10 @@ STRUCTURE_LONG_CALL, STRUCTURE_LONG_PUT = "LC", "LP"
 STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD = "CDS", "CCS"  # bull call and bear call spreads
 STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD = "PDS", "PCS"  # bear put and bull put spreads
 STRUCTURES_BOUGHT_ONLY = (STRUCTURE_LONG_CALL, STRUCTURE_LONG_PUT)  # no sold leg: width may be 0, margin may be 0
+# Story STR1b: each open gate before an STR1 code may be used, and the uses it blocks. Removing a gate is a judged
+# one-line change: STR1b-2 (E5/E7/E4 tests per code) removes its own; E8 (owner-timing fills) blocks paper use only.
+USE_SHADOW, USE_PAPER = "shadow", "paper"
+STR1_ACTIVATION_PENDING = {"STR1b-2": (USE_SHADOW, USE_PAPER), "E8": (USE_PAPER,)}
 STRUCTURES_ONE_SIDE = (
     *STRUCTURES_BOUGHT_ONLY,
     STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD, STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD,

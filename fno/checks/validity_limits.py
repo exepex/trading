@@ -88,7 +88,8 @@ class LimitChecks:
             ("stress_loss", lambda: stress.stress(held, own)),
             ("exposure_limit", lambda: stress.exposure((*held, own))),
             ("margin_room", lambda: margin_check(held, own, account.cash, proposal.premium_reserved, chain,
-                                                 self.margins.rows(), self.limits.margins, proposal.day)),
+                                                 self.margins.rows(), self.limits.margins, proposal.day,
+                                                 proposal.lot_size)),
         ]  # fmt: skip
         run = [_run(name, check) for name, check in checks if name in rules or name == "margin_room"]
         return self._caps(proposal, account, chain) + run
