@@ -19,9 +19,12 @@ their terms (quoted below), with these conditions:
   this README, and counts and hashes only (`research/data/manifests/global-cues/sp500.csv`, `nasdaq100.csv`: path,
   URL, SHA-256 and size of each copy);
 - at most one download a day: a second run on the same IST date downloads nothing and reads that day's archived copy
-  again (so a run whose table write failed can finish with the copy's true `first_seen_at`). Limits: a download that
-  failed or was refused saved nothing and may be retried that day; the rule reads the copy log in the repository, so
-  run from a checkout that has pulled the last run's log;
+  again (so a run whose table write failed can finish with the copy's true `first_seen_at`). Failed attempts are
+  capped too (story A17b): every attempt is logged with its time and outcome only (`saved`, `download_failed`,
+  `not_publishers_file`, `no_values`, `save_failed`; never a value) in
+  `research/data/manifests/global-cues/attempts/<cue>.csv`, and after 3 attempts or 1 saved copy on one IST date
+  nothing more is downloaded that day (the run says so). Limit: both rules read logs in the repository, so run from a
+  checkout that has pulled the last run's logs;
 - a US index file read during the US session may hold the day's price so far: a value not yet final when the file
   was fetched (before 16:00 US Eastern on its date) never becomes a row;
 - **the card and the dashboard show nothing from them until the owner approves a display (open item).**
@@ -32,7 +35,10 @@ their terms (quoted below), with these conditions:
 | nasdaq100 | `global-cues/nasdaq100/rows`, `/revisions`, `/checks` | 5,059 | 2007 - 13 Oct 2026 | Nasdaq's quote API |
 
 The history start is the four copies fetched once on 15 Oct 2026 before their terms were read, kept by the owner and
-adopted with `global-cues adopt` at their own fetch times (06:14:45, 06:17:18, 06:14:54 and 06:17:22 IST). Adopt the
+adopted with `global-cues adopt` at their own fetch times (06:14:45, 06:17:18, 06:14:54 and 06:17:22 IST). Since
+story A17b, adopt also reads Drive's own `createdTime` of the copy and refuses it unless it falls within 10 minutes
+after the time in its path (it names both times); a store that cannot give the time refuses every adopt. The four
+copies were created 8 to 10 seconds after their path times (checked 15 Oct 2026). Adopt the
 full-history copy first: a shorter copy adopted first would make every older date `late` (logged, never inserted).
 A Nasdaq copy's name carries its request's dates, so `--from`/`--to` must equal them. Each private table is a
 folder of write-once CSV parts (one per run that adds rows); its rows are the parts in name order. Its gaps are
@@ -86,6 +92,34 @@ label (`live` when seen before the first NSE open after the value date); a 15:00
 Real answers (15 Oct 2026, dates only): on 20 Jan 2026 (after the US holiday of 19 Jan), the S&P 500 and the US
 10-year give 16 Jan at both cutoffs; USD/INR gives 19 Jan at 09:15 and 20 Jan at 15:00.
 
+## Readings: what a consumer must use (story A17b)
+
+`value_for` is for research only. Every consumer (M1, the weather, forecasts) reads a cue through
+`reading_for` (`fno/global_cues/reading.py`; `wiring.build_reader()`), which gives the row, its age in calendar days
+from the India date, the date the source should have given by the cutoff (the expected date) and a status, decided in
+this order:
+- `none`: nothing usable;
+- `current`: the expected date's value, whatever its age (after Hurricane Sandy, 26 Oct 2012 is current on 31 Oct);
+- `ahead`: newer than the expected date (e.g. RBI on an NSE holiday): usable like `current`, flagged;
+- `behind`: older than expected, age within the cue's limit;
+- `stale`: older than expected and over the limit.
+Callers refuse `stale` and `none`; a caller using `behind` states it in its own rules.
+
+| Cue | Expected date from | Age limit (days) |
+|---|---|---|
+| sp500, nasdaq100 | `NyseCalendar`: NYSE's holiday rules, computed (weekend observance, Good Friday from Easter, Juneteenth from 2022, no Friday closure before a Saturday New Year), plus `us_market_closures.csv` (5 unscheduled closures since 2007, each with an https source) | 4 |
+| us10y | Monday to Friday (simplification: it follows the bond-market SIFMA calendar, not NYSE's; a bond holiday reads `behind`, never wrongly `current`; a sourced SIFMA calendar is out for now) | 4 |
+| usdinr_rbi | NSE's `regular` and `special` sessions (A7 calendar, no muhurat; Monday to Friday before 2017). Simplification: RBI's holidays are not NSE's, so a mismatch reads `behind` or `ahead` | 5 |
+| usdinr_fbil | the same; **FBIL almost always reads `behind`** (its public site trails a week) | 14 |
+| brent | none: age only (`behind`, `stale` or `none`) | 16 |
+
+The NYSE rules are reasoning only (not NYSE's own list per year), checked in CI against `us_trading_dates.csv`: the
+dates (never values) of the Drive-only S&P 500 table, with whether the Nasdaq 100 table has the date too
+(orchestrator's decision, owner away: trading dates are exchange-calendar facts). `global-cues check` rewrites it when
+the Drive settings are present. On 15 Oct 2026: 4,977 S&P 500 dates, every weekday since 2007 matching the calendar,
+and 83 Nasdaq-only dates (Nasdaq's holiday rows, 82 of them repeating the previous close). Those holiday rows are
+skipped by readings, so the day after a US holiday never reads `ahead` with a repeated value.
+
 ## Rules
 
 - Raw copies are never overwritten (each fetch is a new file); a later copy that changes a value already in a table
@@ -99,13 +133,22 @@ Real answers (15 Oct 2026, dates only): on 20 Jan 2026 (after the US holiday of 
   older value for the dates after it. Deliberate (a table never changes behind its last date); read `revisions.csv`
   for such values.
 - A run names a cue `STALE` (and exits 1) when its newest value is older than the source allows on the run's day:
-  US 10-year and RBI 7 days, FBIL 14 (its site trails a week), Brent 16 (weekly release).
+  the age limits above (US closes and US 10-year 4 days, RBI 5, FBIL 14, Brent 16).
 - `first_seen_at` is the time after a cue's last download (a slow fetch is never labelled earlier than it ended).
 - `provenance` needs NSE's session calendar: for a value dated after the calendar's last year the run stops and names
-  it (add NSE's holiday circular to `research/data/calendar/nse_sessions.csv`) instead of guessing a label.
+  it (add NSE's holiday circular to `research/data/calendar/nse_sessions.csv`) instead of guessing a label. The first
+  NSE open after a value date is the first `regular` or `special` session: a muhurat session (one hour, no 09:15 open)
+  is skipped (story A17b). Every committed label already was `backfilled` and recomputes unchanged.
 - A failed download or a file that is not the publisher's writes nothing for that cue and is named; others still run.
-- Gaps are listed, never filled (`checks/gaps.csv`): weekdays without a value (unverified: no US, UK or RBI holiday
-  calendar is in the repository, so holiday and gap are not told apart) and values equal to the previous date's.
+- Gaps are listed, never filled (`checks/gaps.csv`): weekdays without a value (unverified: the gap list uses no
+  holiday calendar, so holiday and gap are not told apart there; the NYSE calendar is checked by the CI test above) and values equal to the previous date's.
+
+## Open owner item: FBIL in a public repository
+
+FBIL's site says it does not authorise commercial use of its data without written permission (quoted above). The
+orchestrator's decision (15 Oct 2026, owner away, logged; judge 103 minor 2): `usdinr_fbil.csv` stays public for now,
+as personal, non-commercial use of a published benchmark. **Open for the owner**: keep it public, or move it to Drive
+like the private cues.
 
 ## The terms of the US index sources, and why they are used anyway
 
@@ -136,7 +179,7 @@ storage of these index levels.
 
 ```
 python -m fno global-cues fill     # download, archive in Drive, extend the tables, rewrite checks (first run back-fills)
-python -m fno global-cues check    # rewrite checks/ from the committed tables (no network)
+python -m fno global-cues check    # rewrite checks/ (and, with Drive, us_trading_dates.csv) from the tables
 python -m fno global-cues verify   # recompute every row from the archived copy it names (read-only)
 python -m fno global-cues adopt --cue sp500 --copy <raw path> [--from] [--to]   # a copy already in Drive into its table
 ```
