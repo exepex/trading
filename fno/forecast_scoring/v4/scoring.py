@@ -5,7 +5,7 @@ not started here (their outcomes need A16's weekly ATM quotes and the expiry set
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 
 from ...constants import V4_BASELINE_BASE_RATE, V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE
 from ...forecast_v4.terms import HORIZON_SESSIONS, POINT_QUESTIONS
@@ -61,19 +61,30 @@ class V4Scoring:
         for (question, slot), forecaster in self.registry.registered().items():
             outcomes = self.outcomes.outcomes(question)
             baseline = _counted(primary_values(question, self.forecasts), counted_after)
-            values = _counted(self.forecasts.values(question, forecaster), counted_after)
-            found[(question, slot)] = self._compare(question, forecaster, values, baseline, outcomes, slot)
+            every = self.forecasts.values(question, forecaster)
+            values = _counted(every, counted_after)
+            found[(question, slot)] = self._compare(question, forecaster, values, baseline, outcomes, slot,
+                                                    _miss_start(every, counted_after))  # fmt: skip
         return found
 
     @staticmethod
-    def _compare(question, forecaster, values, baseline, outcomes, slot) -> Comparison:
+    def _compare(question, forecaster, values, baseline, outcomes, slot, miss_start=None) -> Comparison:
         rows = paired_rows(values, baseline, outcomes)
         return compare(question, forecaster, " / ".join(sorted(primary_names(question))), rows, outcomes,
-                       seed_word(question, slot, forecaster))  # fmt: skip
+                       seed_word(question, slot, forecaster), miss_start)  # fmt: skip
 
 
 def _counted(values: dict[date, ForecastValue], after: date | None) -> dict[date, ForecastValue]:
     return values if after is None else {day: v for day, v in values.items() if v.live and day > after}
+
+
+def _miss_start(values: dict[date, ForecastValue], after: date | None) -> date | None:
+    """After the freeze, misses count from the day after it for a forecaster that had already started (any row, back-
+    fill included), else from its first forecast; before the freeze, from the first forecast in the rows (None)."""
+    given = [day for day, v in values.items() if v.value is not None]
+    if after is None or not given:
+        return None
+    return max(min(given), after + timedelta(days=1))
 
 
 def _scores(question: str, values: dict[date, ForecastValue], outcomes: dict[date, Outcome],

@@ -67,6 +67,11 @@ LOOK_STOP_REVIEW, LOOK_SETTLE_DATE = "stop_rule_review", "projected_settle_date"
 LOOK_ERROR_RATE = {LOOK_STOP_REVIEW: 0.02, LOOK_SETTLE_DATE: 0.03}
 LOOK_NUMBER = {LOOK_STOP_REVIEW: 1, LOOK_SETTLE_DATE: 2}  # the futility bound's last seed word
 
+# Revision 9 (owner, 15 Oct 2026; responses 144-147, judge 138-139, ChatGPT review 112): misses are never imputed,
+# but a member that misses too many baseline days, or too many of its 2% days, is "undecided, operations" at a look.
+MISS_CAP = 0.10  # share of baseline-observable days the forecaster may miss
+BIG_DAY_MISS_CAP = 0.10  # share of baseline-observable 2% days it may miss (below 10 such days: none)
+
 POWER_REPORT_AT = 60  # scored outcomes of a question before its noise ratio r is measured
 POWER = 0.80
 USEFUL_TIME_YEARS = 2  # a projected settle date later than this is reported as "cannot settle in useful time"

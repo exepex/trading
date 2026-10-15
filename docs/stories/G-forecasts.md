@@ -473,3 +473,38 @@ gate and threshold call.
 **Depends:** G6 (merged), G7 (its `series.py` and forecast files; built first), A7, A16 (V1 only); the freeze also
 needs the G6 session's section 11 E line · **Size:** M · **Status:** text PASSED (judge 128); built on
 `story/g8-scoring`, for the judge (claims `reviews/claude/response_126_g8-scoring.md`)
+
+## G9. Missed forecasts in protocol v4 (revision 9)
+
+**Repository:** trading
+
+**Description:** As the statistician, I want a member that misses too many days, or any scarce 2% day, to be
+"undecided, operations" instead of being judged, so that a missing forecaster can never be called futile and can never
+gain by skipping hard days.
+
+**Context and why:** owner decisions of 15 Oct 2026 (`docs/DESK_DECISIONS.md`: observed days with a miss cap; Test A
+keeps undecided), from responses 144-147, judge 138-139 and ChatGPT review 112. Section 4 already scores observed days
+only; it had no miss cap and no miss report. It must land before the v4 freeze.
+
+**Scope.** In: the miss definition, the two caps, the miss report on every comparison and look, Test A, the protocol
+text. Out: scoreboard A and B misses of desk decisions (S2/S3), EQ2's release time, and stopping or fixing a
+failing book (BG1's operational and budget stop).
+
+**Expected design:** `fno/forecast_v4/misses.py` (pure: `MissReport`, `miss_report`), two registered constants in
+`terms.py`, a `misses` field on G8's `Comparison`, `look.member_result` returning "not judged" for an operations-
+undecided member, and the miss line in `look.py`, `render.py` and the recorded look JSON.
+
+**Acceptance criteria:**
+1. A miss is a resolved, non-void day with a baseline and no forecast, counted from the first forecast; a day with
+   neither is an input failure, counted apart; unresolved and void days are neither.
+2. More than 10% of baseline days missed, or more than 10% of baseline 2% days missed (any miss below 10 such days),
+   makes the member "undecided, operations": not judged, never a claim, never futile; Test A stays undecided.
+3. Every comparison and look prints the miss counts; the protocol text and `terms.py` state the same numbers (test).
+
+**Test plan:** `tests/forecast_v4/test_misses.py` (boundaries of both caps), `tests/forecast_scoring_v4/test_look.py`
+(an operations-undecided member through a look), `tests/forecast_v4/test_protocol_text.py`.
+
+**Judge verifies:** recounts one miss report by hand; checks both cap boundaries; confirms an operations-undecided
+member never asks for thresholds and leaves Test A undecided.
+
+**Depends:** G6, G8 · **Size:** S · **Status:** built on `story/g9-miss-rule`, for the judge
