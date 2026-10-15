@@ -90,7 +90,9 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    WARNING's exact text: "Action: check the position monitor's routine (story LM1). WARNING, monitor silent: no
    monitor heartbeat for {minutes} minutes while {positions} positions are open; alert_only strategies continue and
    no exit changes." In `alert_only` a silent monitor blocks nothing; new entries are blocked only for
-   `intraday_exits` strategies (LM2). The daily card reports the day's monitor uptime (marks checked / due).
+   `intraday_exits` strategies (LM2). LM1 records the day's uptime (marks checked / due) and alert count in its heartbeat and alert records; showing them
+   on the daily card (uptime plus a count, never the alerts' texts again) is the card's change, asked of the T2/T3
+   builder, not built here.
 8. **Clock (4.4):** times stored in UTC with offset, shown in IST; A16's skew flag (above 5 s) carries into the alert
    record; the monitor never uses a mark's time it cannot trust as "live" (staleness first).
 9. **Weekly replay:** `python -m fno monitor replay --week` runs the week's committed marks through the same checks and
@@ -142,6 +144,6 @@ first-line rule and limits; no second heartbeat checker or alert sender exists.
   silences both; an independent host is a later decision, not LM1's.
 - A16 keeps contracts within 6% of the index, so a far leg can be unmarked; the monitor says so instead of guessing.
 
-**Depends:** A16 live and past its 5-session trial (from 16 Oct), A16's `MarkObserver` port, E1 accounts, E4's exit rules, T1 (the card's uptime line), O1's
+**Depends:** A16 live and past its 5-session trial (from 16 Oct), A16's `MarkObserver` port, E1 accounts, E4's exit rules, the card's uptime line (T2/T3, asked 16 Oct), O1's
 alert path; the first open paper or shadow position · **Status:** story text, open points with their owners
 (`reviews/claude/response_217_lm1-position-monitor.md`)
