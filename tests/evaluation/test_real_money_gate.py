@@ -142,3 +142,10 @@ def test_the_real_protocol_lists_the_gate_and_its_checker_in_frozen_files():
     from tests.evaluation.builders import DRAFT
 
     assert {GATE_FILE, "fno/evaluation/gate.py"} <= set(frozen_targets(DRAFT))
+
+
+def test_the_check_command_exits_failed_when_only_the_gate_fails(monkeypatch):
+    from fno.evaluation import cli
+
+    monkeypatch.setattr(cli, "_check_gate", lambda root, decided: True)
+    assert cli._check(decided=False) == cli.EXIT_FAILED

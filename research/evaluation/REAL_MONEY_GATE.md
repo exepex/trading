@@ -102,8 +102,8 @@ Terms used below:
   paper price minus its bid), worse positive. A position's gap is the mean of its legs' gaps (its legs fill together, so
   they are one observation, judge 171 addendum 4). Not met only when the one-sided 95% lower bound of the mean gap over
   the record's positions (mean − t(0.95, k−1) × SD ÷ √k, k positions) exceeds the paper pad (owner, Q13 noise-aware, row
-  162d8fbf). A leg with no valid next snapshot is left out of the mean and listed; fewer than 20 legs with
-  a next snapshot is not met.
+  162d8fbf). A leg with no valid next snapshot is left out of its position's mean and listed; a position
+  with no such leg at all is left out and listed; fewer than 20 positions with a gap is not met.
   A16 records only the nearest weekly and nearest monthly NIFTY expiries, so a version trading any other expiry
   cannot meet this condition until A16 records it.
 - **Status:** decided by the owner on 2026-10-15

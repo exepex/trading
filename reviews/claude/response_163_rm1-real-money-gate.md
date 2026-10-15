@@ -164,3 +164,10 @@ the proposed wording was not taken, with the reason: appending "(gate files adde
 Status line would fail S1's own check, which accepts only "decided by the owner on YYYY-MM-DD" exactly
 (`fno/evaluation/protocol.py`, `DECIDED`); the date is in the Reason instead. A test guards that the real protocol
 lists both gate files.
+
+## 10. Follow-up after judge 190's PASS (branch `story/rm1b-gate-followup`)
+
+- `fill_honesty` (b)'s floor counts positions: fewer than 20 positions with a gap is not met (it counted legs, which
+  no longer matched the per-position bound). A position with no leg that has a next snapshot is left out and listed.
+- A test that `evaluation check` exits failed when only the gate fails; broken-code proof: with `_check` ignoring
+  the gate's result, that test fails (1 failed, 17 passed); restored, `tests/evaluation` has 62 passing.
