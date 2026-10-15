@@ -13,8 +13,17 @@ from pathlib import Path
 
 import pytest
 
+from fno.composition import build_record_scanner
 from fno.constants import ENV_FNO_SLACK_BOT_TOKEN
-from fno.record_scan.record_files import NamedFiles, StagedRecords, TrackedRecords
+from fno.record_scan.record_files import (
+    TRACKED_FILES,
+    NamedFiles,
+    RecordSource,
+    StagedRecords,
+    TrackedRecords,
+    is_code,
+    texts_of,
+)
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 TOOL = ROOT / "tools" / "check_records.py"
@@ -182,6 +191,34 @@ def test_fresh_checkout_is_gated_by_the_session_start_hook(tmp_path):
     assert commit.returncode != 0 and "conversations/2026-10-13.md:1: Slack token" in commit.stderr
 
 
-def test_current_repository_records_pass_the_scan():
-    result = scan()
-    assert result.returncode == 0, result.stdout
+SHARDS = 4  # the whole repository in four parts of about equal size, so a parallel run scans them side by side
+
+
+class TrackedShard(RecordSource):
+    """One part of every tracked file, read exactly as `TrackedRecords` reads it (same listing, same texts)."""
+
+    def __init__(self, paths: list[str]):
+        self._paths = paths
+
+    def records(self):
+        for path in self._paths:
+            yield from texts_of(path, (ROOT / path).read_bytes(), is_code(path))
+
+
+def tracked_shards() -> list[list[str]]:
+    listed = subprocess.run(TRACKED_FILES, cwd=ROOT, check=True, capture_output=True).stdout.decode().split("\0")
+    paths = sorted((p for p in listed if p and (ROOT / p).is_file()), key=lambda p: -(ROOT / p).stat().st_size)
+    shards, sizes = [[] for _ in range(SHARDS)], [0] * SHARDS
+    for path in paths:  # largest first, each into the lightest shard
+        lightest = sizes.index(min(sizes))
+        shards[lightest].append(path)
+        sizes[lightest] += (ROOT / path).stat().st_size
+    return shards
+
+
+@pytest.mark.parametrize("shard", range(SHARDS))
+def test_current_repository_records_pass_the_scan(shard):
+    shards = tracked_shards()
+    assert sum(map(len, shards)) == len(set().union(*map(set, shards)))  # every tracked file in exactly one part
+    findings = build_record_scanner().scan(TrackedShard(shards[shard]).records())
+    assert not findings, [str(f) for f in findings]
