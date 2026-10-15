@@ -23,7 +23,9 @@ channel. Orchestrator of the stories below marked (O): session_01VG1RqxLFUVdvvPu
 | A4b rule 8 (O) | First live 3 pm run with raw quotes in Drive only | judge D 01Pb8z2koLuxty7mbujFpgZa | merged | research/data/quotes/ | check 16 Oct after 15:10 IST |
 | A16 routine (O) | 15-minute recorder routine (owner creates it) | A16/G8 builder 01VK88LxJvV1Gi7Wbr3D4fzp reads the first runs | docs/stories/A16-owner-checklist.md | research/data/intraday/ | waits for the owner |
 | G6 freeze | Protocol v4 freeze; V6 report-only (owner, 15 Oct) | 01MgTu3L1T3y6R18ATTwbFub | story/g6-protocol-v4 | research/forecasts/PROTOCOL_v4*, FREEZE_v4.md | waits for the G6 session |
-| Project thread | G9 (merged), owner decisions on v4 miss caps, 26-week weather check, fill-timing study | 01H1CmuWzBtbtjzoQNJUz2Dz | claude/project-thread-vdpsxd | please add your rows | asked to list its stories |
+| G9 (project thread) | Protocol v4 miss rule (misses, input failures, 10% caps, operations-undecided) | 01H1CmuWzBtbtjzoQNJUz2Dz | story/g9-miss-rule | fno/forecast_v4/misses.py, fno/forecast_scoring/v4/ (comparison, look, render, cli, scoring), PROTOCOL_v4.md section 4 | done (merged f3835aba, judge 150 add. 1 PASS) |
+| E8a (project thread) | Fill-timing study: 15:00 entry vs E8's next-session 10:15 fill, and 14:00 vs 15:00, 2024-26, Groww expired-option 15-minute candles (read-only), raw to Drive; then a live check against A16 | 01H1CmuWzBtbtjzoQNJUz2Dz | story/e8a-fill-timing | docs/stories/E-paper-desk.md (E8a), research/2026-10-16-fill-timing/, research/ideas/FT1.md, ledger trial 54, DATA_SPEND row | story text with the judge; code waits for the orchestrator's go |
+| 26-week weather check (project thread) | Owner decision row only; the build is unassigned | 01H1CmuWzBtbtjzoQNJUz2Dz | none | M1 weather records, G8 V6 scores | proposed; orchestrator to route |
 | Handover / routines | Routine schedules, NSE in the 3 pm routine, late-data ladder | 01Mt6dcBU5kp2htdPN2KmiZH | story/O7-routine-setup | CLAUDE.md 3 pm section, routine prompts | please add your rows |
 
 ## Known overlaps to settle (15 Oct)
