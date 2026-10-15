@@ -725,14 +725,14 @@ fills at the first quote snapshot at or after T + R; after 15:25 the fill moves 
 remedy for a costly delay is an earlier decision time (an S1 `timetable` change, for example 14:00), never a shorter
 R. Response 144 plan item 3. Facts already measured:
 - NIFTY's close-to-open move, 680 sessions of 2024-26 (`research/data/intraday/rv-candle`, `rv_overnight`): median
-  0.22%, at least 0.5% on 17% of sessions, at least 1% on 5% (some evidence; recomputed by judge 151).
+  0.22%, at least 0.5% on 17% of sessions, at least 1% on 5% (some evidence; recomputed by judge 153).
 - Groww serves 15-minute candles of **expired** NIFTY options (read-only probe, 15 Oct 2026, nothing stored): Jan and
   Jun 2024 and Mar 2025 contracts answered 51-53 candles with volume and open interest. The prices are **real last
   trades**, not bid and ask and not model estimates. A Sep 2025 symbol returned nothing (probably a wrong expiry date
   after NSE's move to Tuesday expiries), so coverage is probed before the freeze (below).
 - The daily card has no trade fields yet (`fno/cards/card.py:76-78`) and E8 is not built, so no entry range exists.
 
-**What the numbers can and cannot mean (judge 151 B1).** For one structure entered later with the same exit, the P&L
+**What the numbers can and cannot mean (judge 153 B1).** For one structure entered later with the same exit, the P&L
 changes by exactly the entry move `C`. The families mirror each other (STR1: SF = CCS + PCS, BF = CDS + PDS, BF is SF
 with every leg reversed), so the **mean** of `C` for a seller is minus the buyer's: it is mostly price drift, chiefly
 the overnight time decay (theta), which a later seller also stops paying for. So the mean is never read as "the cost of
@@ -751,7 +751,7 @@ said on the report.
 - the raw candles archived;
 - one results file.
 
-Out, each with its reason (gap list, judge 151 B3):
+Out, each with its reason (gap list, judge 153 B3):
 - The live comparison with A16's bid and ask. It needs 20 sessions of A16 data, so it is a follow-up story; this story
   only fixes its rule.
 - E8's fill code and its entry range. The card has no trade fields yet.
@@ -870,7 +870,7 @@ Out, each with its reason (gap list, judge 151 B3):
 - Checks that the probe and the freeze precede the full fetch and that the probe holds no price.
 
 **Depends:** A7, A15, A16 (`ReadOnlyGroww`), A16b (candle pattern), B2 and STR1 (structures), C1, E7 (settlement for
-the flip share) · **Size:** M · **Status:** proposed (story text revision 3, answering judges 151 and 152)
+the flip share) · **Size:** M · **Status:** proposed (story text revision 3, answering judges 153 and 154)
 
 **Evidence labels:**
 - The overnight-gap figures are some evidence.

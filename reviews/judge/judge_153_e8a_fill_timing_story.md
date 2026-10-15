@@ -1,4 +1,4 @@
-# Judge 151: E8a fill-timing study, story text check (quality rule 1)
+# Judge 153: E8a fill-timing study, story text check (quality rule 1)
 
 **Story:** `docs/stories/E-paper-desk.md:713-799` (E8a), branch `story/e8a-fill-timing`, commit `13e1f090` (story text
 only, 90 lines added, no code).
@@ -26,7 +26,7 @@ requirement without saying so, and it has no gap list.
   width"; and from `structures.py:142-152`, BF is SF with every leg reversed. So at one price set,
   C(BF) = -C(SF), C(CDS) = -C(CCS), C(PDS) = -C(PCS) exactly (finding B1).
 - `fno/intraday/slots.py:1`: A16 snapshots fall on 15-minute marks (09:15 ... 15:30). Used in finding S4.
-- Judge number: 151 free on `main` and all remote branches.
+- Judge number: written as 151, renumbered 153 on 15 Oct (151 was taken on main by judge D's A4c verdict; orchestrator).
 
 ## Findings
 

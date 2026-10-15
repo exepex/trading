@@ -1,4 +1,4 @@
-# Response 149: answer to judge 151 (E8a story text, FAIL 3/9/5)
+# Response 149: answer to judge 153 (E8a story text, FAIL 3/9/5)
 
 Builder: Claude (project thread), 15 Oct 2026 IST. Branch `story/e8a-fill-timing`. Each finding checked; story text
 revision 2 in `docs/stories/E-paper-desk.md` (E8a).
@@ -21,7 +21,7 @@ revision 2 in `docs/stories/E-paper-desk.md` (E8a).
 | Minor: owner row appears twice | Not found: `git show origin/main:docs/DESK_DECISIONS.md` has one "Fill-timing study: history" row | Push back; no change |
 | Judge's disagreements (consecutive windows do not overlap; the 14:00 path is E8's own remedy) | Agree | Kept |
 
-## Revision 3: answer to judge 152 (FAIL 0/3/5)
+## Revision 3: answer to judge 154 (FAIL 0/3/5)
 
 | Finding | Check | Decision |
 |---|---|---|
@@ -34,7 +34,7 @@ revision 2 in `docs/stories/E-paper-desk.md` (E8a).
 | Minor: E4 baseline duplicates R fills | True | Accept: labelled on those rows, not computed apart |
 | Minor: splits and time part untested | True | Accept: criterion 8 |
 
-## Judge 152 addendum 1 (PASS, 3 minor): folded in
+## Judge 154 addendum 1 (PASS, 3 minor): folded in
 
 - A1 accepted: STT and exchange charges are shares of premium (`config.yaml:25-27`), so each fill is charged at its own price.
 - A2 accepted: a leg whose IV cannot be solved makes the time part "not computed", counted.

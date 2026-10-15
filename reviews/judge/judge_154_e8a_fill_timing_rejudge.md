@@ -1,16 +1,16 @@
-# Judge 152: E8a fill-timing study, story text re-judge (revision 2)
+# Judge 154: E8a fill-timing study, story text re-judge (revision 2)
 
 **Story:** `docs/stories/E-paper-desk.md:713-860`, branch `story/e8a-fill-timing`, commit `0cc98798`. Builder's
-answers: `reviews/claude/response_149_e8a-judge-151-answer.md`.
+answers: `reviews/claude/response_149_e8a-judge-153-answer.md`.
 
 ## Verdict: FAIL (0 blocking, 3 should fix, 5 minor)
 
-All 3 blocking and all 9 should-fix findings of judge 151 are fixed in the text. Revision 2 adds three new gaps, all in
+All 3 blocking and all 9 should-fix findings of judge 153 are fixed in the text. Revision 2 adds three new gaps, all in
 the parts it added: the flip share, the theta part and the width share for single options.
 
-## Judge 151 findings, checked one by one
+## Judge 153 findings, checked one by one
 
-| 151 | Fix in revision 2 | Result |
+| 153 | Fix in revision 2 | Result |
 |---|---|---|
 | B1 mean is drift | Lines 735-742: mirror identity stated; headline is the size of the move, `|C|` and the bad-side tail; theta shown separately; 1 vs 3+ nights split; signal decay "not measured" | Fixed |
 | B2 win at both | Lines 798-800 flip share; threshold shares named as stand-ins for "missed, price moved" (757) | Fixed (new issue N1) |
@@ -25,7 +25,7 @@ the parts it added: the flip share, the theta part and the width share for singl
 | S8 expiry and units | 774-775 split by sessions to expiry; points, share of width and rupees at today's lot | Fixed (new issue N3) |
 | S9 criteria | Criteria 4-6 and a hand-checked 14:00 day (823-834) | Fixed |
 | M1-M5 | Blocks 10/20; gap from the same window; VIX at the decision day's open; call estimate; line 709 fixed | Fixed |
-| M5 "owner row appears twice" | Builder's pushback **accepted**: there is one row (`DESK_DECISIONS.md:179`) on 13e1f090, 0cc98798 and origin/main. My error: the `tail -5` I ran in judge 151 included line 179, which my `grep -n` had already printed | Withdrawn |
+| M5 "owner row appears twice" | Builder's pushback **accepted**: there is one row (`DESK_DECISIONS.md:179`) on 13e1f090, 0cc98798 and origin/main. My error: the `tail -5` I ran in judge 153 included line 179, which my `grep -n` had already printed | Withdrawn |
 
 ## New findings
 
