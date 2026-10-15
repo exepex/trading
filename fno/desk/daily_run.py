@@ -13,6 +13,11 @@
    none if it is invalid.
 7. `exits`: every book's exit review, whatever happened before (risk-reducing exits always run).
 
+The steps run in the order of `DAILY_RUN_STEPS` (story O1, the one tuple the health check O8 reads): the desk's own
+above, and around them O1's `DayStep`s (the margin check, weather, v4 forecasts and the quote parts before, Book 1's
+decision after the pack, the parts' results and the card after), each run at once when its turn comes. A name with no
+step given (E3's tests) is passed over.
+
 Each step's start, end, inputs and result go to `journal/runs/<date>.json`, committed after the step; a restarted run
 skips every step already recorded, so nothing is done twice. A commit that fails (a refused raw quote file, a failed
 pull, a push rejected every time) stops the run at that step: one alert naming why, what is missed and the hand fix,
@@ -23,14 +28,14 @@ first commits that failed commit's files exactly as they were recorded, and neve
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from datetime import date, datetime, timedelta
+from collections.abc import Callable, Mapping
+from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from ..constants import RUN_LOG_DECISIONS_STEP
+from ..constants import DAILY_RUN_STEPS, RUN_LOG_DECISIONS_STEP
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
-from .daily_ports import CommitFailed, Waiter
+from .daily_ports import CommitFailed, DayStep, Waiter
 from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
 from .private_files import PrivateFiles
@@ -39,7 +44,7 @@ from .run_log import RunLog
 SKIPPED = "skipped"
 STOPPED = "F&O paper desk {day}: run STOPPED at {where}, no later step runs{missed}: the commit failed: {reason}. {fix}"
 EXITS_MISSED = "; exits not reviewed today"
-RERUN = "Fix: remove the cause, then rerun `fno desk run` (it commits these files as recorded, never repeating a step)"
+RERUN = "Fix: remove the cause, then rerun `fno daily run` (it commits these files as recorded, never repeating a step)"
 PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
 DOWNLOAD = "the download of the private paper records"
@@ -56,9 +61,11 @@ class RunStopped(Exception):
 
 class DailyRun:
     def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
-                 clock: Callable[[], datetime], files: PrivateFiles | None = None):  # fmt: skip
+                 clock: Callable[[], datetime], files: PrivateFiles | None = None,
+                 day_steps: Mapping[str, DayStep] | None = None):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
         self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
+        self.day_steps = dict(day_steps or {})  # story O1's steps around the desk's
 
     def run(self, day: date) -> RunLog:
         self._guarded(day, RECOVERY, self.committer.recover)
@@ -70,29 +77,29 @@ class DailyRun:
             if not log.done(SKIPPED):
                 self._step(log, SKIPPED, lambda: StepOutcome({"session": kind}, {"reason": "not a session day"}))
             return log
-        times, steps = self.steps.timetable, self.steps
-        plan = (
-            ("versions", times.pack, lambda: steps.keep_versions(day)),
-            ("pack", times.pack, lambda: self._pack(day)),
-            (RUN_LOG_DECISIONS_STEP, times.decision_deadline, lambda: steps.collect_decisions(day)),
-            ("snapshot", times.execution_snapshot, lambda: steps.take_snapshot(day)),
-            (
-                "fills",
-                times.execution_snapshot,
-                lambda: steps.fill(
-                    day,
-                    log.result("snapshot")["valid"],
-                    log.result(RUN_LOG_DECISIONS_STEP),
-                    self._unreviewed(day),
-                ),
-            ),  # fmt: skip
-            ("exits", times.execution_snapshot, lambda: steps.review_exits(day)),
-        )
-        for name, moment, action in plan:
-            if not log.done(name):
-                self.waiter.until(times.at(day, moment))
+        plan = self._plan(day, log)
+        for name in DAILY_RUN_STEPS:
+            if name in plan and not log.done(name):
+                moment, action = plan[name]
+                if moment is not None:
+                    self.waiter.until(self.steps.timetable.at(day, moment))
                 self._step(log, name, action)
         return log
+
+    def _plan(self, day: date, log: RunLog) -> dict[str, tuple[time | None, Callable[[], StepOutcome]]]:
+        """Each step by name: when it may start (None: at once, in its turn) and what it does."""
+        times, steps = self.steps.timetable, self.steps
+        desk = {
+            "versions": (times.pack, lambda: steps.keep_versions(day)),
+            "pack": (times.pack, lambda: self._pack(day)),
+            RUN_LOG_DECISIONS_STEP: (times.decision_deadline, lambda: steps.collect_decisions(day)),
+            "snapshot": (times.execution_snapshot, lambda: steps.take_snapshot(day)),
+            "fills": (times.execution_snapshot, lambda: steps.fill(day, log.result("snapshot")["valid"],
+                                                                   log.result(RUN_LOG_DECISIONS_STEP),
+                                                                   self._unreviewed(day))),
+            "exits": (times.execution_snapshot, lambda: steps.review_exits(day)),
+        }  # fmt: skip
+        return desk | {name: (None, lambda step=step: step.run(day)) for name, step in self.day_steps.items()}
 
     def _unreviewed(self, day: date) -> dict[str, str]:
         """Each book whose exits the last session did not review, with why (review 105 point 3, judge 159, review
