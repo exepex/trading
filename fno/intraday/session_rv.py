@@ -1,14 +1,15 @@
 """Computes a finished session's realised variance from the snapshots stored in Drive (story A16): each mark's copy is
 the one its ledger row names, its index level is judged by the same rule as when it was taken
 (`status.index_check`), the strategy computes the figure, and the row is written once. Also reports the share of void
-sessions (design 5.2: above 5%, a new version is proposed)."""
+sessions (design 5.2: above 5%, a new version is proposed). The same readings give protocol v4's moved-after-cutoff flag
+and its sign (G10; `cutoff`, injected by the composition root), never a level."""
 
 from __future__ import annotations
 
 import hashlib
 from collections import Counter
 from collections.abc import Callable
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from ..models import now_ist
 from ..quotes.recorder import RECORDED_SESSION_KINDS
@@ -26,11 +27,16 @@ VOID_SHARE_LINE = "void sessions: {void} of {total} ({share:.1%}){flag}"
 VOID_SHARE_FLAG = " - above 5%: propose a new version (design 5.2)"
 
 
+def no_cutoff_flag(levels: dict[time, float | None]) -> tuple[str, str]:
+    return "", ""
+
+
 class SessionRv:
     def __init__(self, files: SnapshotFiles, calendar: SessionCalendar, table: RvTable,
-                 strategy: IntradayRealisedVol, now: Callable[[], datetime] = now_ist):  # fmt: skip
+                 strategy: IntradayRealisedVol, now: Callable[[], datetime] = now_ist,
+                 cutoff: Callable[[dict[time, float | None]], tuple[str, str]] = no_cutoff_flag):  # fmt: skip
         self.files, self.source, self.calendar, self.table = files, files.source, calendar, table
-        self.strategy, self.now = strategy, now
+        self.strategy, self.now, self.cutoff = strategy, now, cutoff
 
     def compute(self, day: date) -> str:
         """Writes the session's row (once) and returns a one-line outcome."""
@@ -39,6 +45,8 @@ class SessionRv:
         closing = self._readings(previous_day, marks(previous_day)[-1:])
         result = self.strategy.compute([level for level, _, _ in readings], closing[0][0])
         row = self._row(day, result, readings + closing)
+        levels = {mark.time(): level for mark, (level, _, _) in zip(marks(day), readings, strict=True)}
+        row["moved_after_cutoff"], row["cutoff_move_sign"] = self.cutoff(levels)  # usable levels by mark (IST)
         outcome = self.table.write_once(row)
         shown = f"RV {row['rv_session']} (vol {row['vol_pct']}%)" if row["status"] == OK else row["void_reason"]
         return f"{day} realised variance {outcome}: {row['status']}, {shown}"

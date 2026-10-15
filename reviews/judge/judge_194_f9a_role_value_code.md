@@ -96,3 +96,71 @@ which cannot happen in practice) and C7 (minor 1).
 - `git diff 650e861d f04076dd -- fno/scoreboard` is empty: F9a sees exactly the S3 code that passed.
 - A trial merge of `f04076dd` onto `650e861d` merges clean (README auto-merged).
 - The PASS stands.
+
+## Addendum 2: the minors fixed at 3f5afff1 (f04076dd..3f5afff1)
+- **Code changed:** only `checks.py` and `report.py`. The rest is tests, response 166 and the ChatGPT request 185.
+- **Minor 1 (test only): fixed.** A new test values an unfilled take against a skip: both nets are 0, and the pair
+  counts as changed. My plant C7 (counting "changed" by net) is now caught.
+- **Minor 2 (code): fixed.**
+  - `check_rotation` counts only rows dated on or after the common start.
+  - `report.build` counts earlier rows apart, as "pilot, before the common start", and drops them before any pair is
+    valued or any cost day is built. So pilot rows neither score nor dilute a unit's cost.
+  - My plants were both caught:
+    - R1: pilot rows moving the rotation;
+    - R2: pilot rows scored.
+- **Gates at 3f5afff1:**
+  - `pytest -n auto`: 6,434 passed;
+  - `ruff check`, `ruff format --check` and imports are clean.
+- **The PASS stands at 3f5afff1.**
+
+## Addendum 3: after ChatGPT review 124 (ba7a3145; code commit 2e7aa1f1)
+
+**Verdict: FAIL.** 2 should fix, both small. The design of the change is right.
+
+**What changed (read in full):**
+- `cost.daily_parts` gives each consulted day the unit's part.
+- Each scored opportunity carries its own day's part, and its net is the difference minus that part.
+- The mean over every consulted day is printed apart as "operating cost".
+- Labels: "conservative cost allocation", and EARNS/DROP marked provisional until F9b.
+- Each block's span and the observations per month are printed.
+- Open pairs are shown with their count and age.
+
+**Gates at ba7a3145:**
+- `pytest -n auto`: 6,667 passed;
+- `ruff check`, `ruff format --check` and imports are clean.
+
+**My plants (`tests/role_value`):**
+
+| Plant | Result |
+|---|---|
+| M1: each opportunity charged the first consulted date's cost (a mismatched date) | **not caught** (47 passed) |
+| M2: each opportunity charged the all-days mean (the old behaviour) | caught |
+| M3: net = difference − mean of the scored dates' costs, not each date's own | **not caught** (47 passed) |
+| M4: an unknown day counted as 0 | caught |
+| M5: the "provisional" label removed | caught |
+
+## Should fix
+1. **The date alignment is not pinned by a test (strong evidence: M1 and M3 survive).**
+   - The new fixture has one scored date, Rs 300, and one unavailable date, Rs 100. Charging every opportunity the
+     first date's cost, or the mean of the scored dates, gives the same numbers.
+   - The orchestrator asked for exactly this plant.
+   - Add one known-answer test with at least two scored dates of different costs (say Rs 300 and Rs 100), and an
+     unscored day placed first, asserting:
+     - each opportunity's net value: difference minus its own day's part;
+     - the series fed to the resampler.
+   - M3 matters even though the mean net is the same: the per-date series changes the bootstrap p-values, which
+     decide the verdict.
+2. **Story criterion 5 and the scope text no longer match the code (strong evidence: reading).**
+   - `F-ai-layer.md` lines 479 and 548 still say that a consulted day with no usage row makes the cost unknown with no
+     verdict.
+   - The code now blocks the verdict only when a scored date is unknown. An unknown unscored day only makes the
+     operating cost unknown.
+   - The new rule is the right one (review 124: the cost covers the same dates as the tested net), but the text that
+     S1 hashes must say it. Update both lines, and name the test that proves an unknown unscored day leaves the
+     verdict possible.
+
+## Notes (no action now)
+- The builder's own caveat is accepted as stated, and routed by the orchestrator to F9b's text: on an ablation day,
+  the shadow's minutes land in that day's cost and are charged to the role. It is conservative and labelled.
+- The change keeps every agreed rule: risk is never deciding; unknown cost on a scored date means no verdict and no
+  Holm entry (M4 caught); there is no edit under `fno/scoreboard/`.

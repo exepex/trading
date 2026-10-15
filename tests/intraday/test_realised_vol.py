@@ -118,3 +118,29 @@ def test_the_overnight_part_starts_from_the_last_recorded_session_skipping_a_muh
     assert previous_recorded_session(calendar(), date(2026, 11, 9)) == date(2026, 11, 6)
     assert previous_recorded_session(calendar(), date(2026, 10, 19)) == date(2026, 10, 17)  # special Saturday
     assert previous_recorded_session(calendar(), date(2026, 10, 21)) == date(2026, 10, 19)  # holiday skipped
+
+
+def test_the_1530_run_records_v4s_moved_after_cutoff_flag_and_sign_never_a_level(tmp_path):
+    """Story G10: the same usable levels as the RV; 14:30 to 15:15 on the fake path is +0.3%, under X (0.61%)."""
+    from fno.forecast_v4.cutoff_move import cutoff_flag
+    from fno.intraday.wiring import v4_cutoff_flag
+
+    clock = FakeClock(ist(DAY, 9, 10))
+    recorder, *_ = build(tmp_path, clock)
+    recorder.session_rv.cutoff = v4_cutoff_flag
+    recorder.run(time(15, 35))
+    row = recorder.session_rv.table.row(DAY)
+    assert (row["moved_after_cutoff"], row["cutoff_move_sign"]) == ("no", "+")
+    assert cutoff_flag({time(14, 30): level_at(ist(DAY, 14, 30)), time(15, 15): level_at(ist(DAY, 15, 15))},
+                       0.002) == ("yes", "+")  # fmt: skip
+
+
+def test_an_unusable_1515_level_leaves_the_flag_not_computable(tmp_path):
+    from fno.intraday.wiring import v4_cutoff_flag
+
+    clock = FakeClock(ist(DAY, 9, 10))
+    recorder, *_ = build(tmp_path, clock, {"15:15": "fail"})
+    recorder.session_rv.cutoff = v4_cutoff_flag
+    recorder.run(time(15, 35))
+    row = recorder.session_rv.table.row(DAY)
+    assert (row["moved_after_cutoff"], row["cutoff_move_sign"]) == ("", "")
