@@ -104,14 +104,22 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
 - **With B0 as the only shadow, the stop rule's Test B stays "undecided" for years:** about 12 trades a year, and a
   measurement is not an economic test of an idea (`fno/forecast_v4/stop_rule.py`).
 - **B0's registration (owner, decision 1 A), counted in the trial total:** experiment 1's P1 rule (SC every monthly opportunity),
-  its card labelled `measurement`, never promoted. Response 92's stop ("a single loss above Rs 10,000"):
+  its card labelled `measurement`, never promoted (ChatGPT review 129, accepted):
+  - every output that shows B0 (E6's scorecard, the stop-rule tracker, the post-mortem) carries the label
+    `measurement`;
+  - B0 is excluded from G6 promotion and from every count of positive candidates.
+  Response 92's stop ("a single loss above Rs 10,000"):
   - **prevented by code:** D2 evaluates each shadow with C2's rules on its own book, so C2's per-trade cap
     (`max_loss_per_trade`, `fno/risk/rules.py`) refuses any B0 trade whose maximum loss with costs exceeds the cap.
     A defined-risk condor cannot lose more than its maximum loss, except through a settlement or data error;
   - **if it happens anyway:** E6 alerts #fno-desk on the day the trade closes (a research shadow is alerted, never
-    paused: `fno/scorecard/pauses.py`). Retiring B0 is the owner's action (`playbook set-status ... retired`; only
-    the owner may retire, `fno/playbook/transitions.py`). Judge 208 asked who stops it: the owner, on E6's alert.
-    Code cannot pause a research version (design 12.8).
+    paused: `fno/scorecard/pauses.py`). For B0 the alert reads: "B0 measurement: realised loss over Rs 10,000; owner
+    review or retirement required; no further promotion. B0 stays eligible for further hypothetical entries until
+    the owner acts" (review 129). A second such loss is escalated in the same alert as a possible simulator defect
+    (fill or settlement path), to be checked before any strategy relies on that path. Retiring B0 is the owner's
+    action (`playbook set-status ... retired`; only the owner may retire, `fno/playbook/transitions.py`). Judge 208
+    asked who stops it: the owner, on E6's alert. Code cannot pause a research version (design 12.8). The alert's
+    wording is built with B0's registration (one message constant in E6's pause alerts).
 
 Out (each with where it goes):
 - **V1 and V2 shadows:** later R3 work, when their blockers clear: A16's 20 sessions and G10 part 2 for V1; G7 phase 2
@@ -148,7 +156,9 @@ Out (each with where it goes):
 6. Nothing fills a shadow before E8's code is merged (no other fill rule exists).
 7. The stop-rule tracker's Test B path points at the shadow accounts' closed trades; zero shadows still give
    "undecided" (`fno/forecast_v4/stop_rule.py`).
-8. A measurement shadow's idea card, ledger row and registry evidence say `measurement: never promoted`.
+8. A measurement shadow's idea card, ledger row and registry evidence say `measurement: never promoted`. Every
+   output showing it carries `measurement`, it is never counted as a positive candidate or promoted at G6, and its
+   E6 loss alert has review 129's wording, with the repeat escalation.
 9. Book 1's scoring is isolated: with one Book 1 trade and one shadow trade on the same day, each of these returns
    exactly what it returns with the shadow absent:
    - E5's trade counts and its one-decision-a-day rule;
