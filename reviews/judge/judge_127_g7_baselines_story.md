@@ -78,3 +78,19 @@ computed: missing, never replaced") would make intraday HAR missing whenever any
 A16's tolerated 5% voids that is about 1 - 0.95^22 = 68% of days, and after V1's one-way switch it would leave V1
 without a primary most days. G7's reading is the workable one. The freeze could state it in 3.1 so the code and the
 text agree.
+
+## Addendum 2 (15 Oct 2026): merge check, G7 merged to `main` as d5d94c6
+
+**Verdict: merge check complete, matching the PASS.**
+
+- **Parents.** `d5d94c6` has parents `ec02d64` (main) and `58f4329`, the SHA I passed, and it is on `origin/main`.
+- **Branch content intact.** Every file G7 changed that main did not touch is byte-identical to 58f4329. Two files
+  were changed on both sides:
+  - `fno/constants.py`: the merge adds exactly G7's one line (`V4_RULE_V6_EWMA_T4, V4_RULE_V1_CLOSE_BLEND`) to
+    main's file. Main's own 13 changed lines are kept.
+  - `reviews/claude/README.md`: no line from either side is lost, and there are no markers.
+- **Gates on d5d94c6, run by me.** 5,159 passed with `FNO_SLACK_BOT_TOKEN` unset; ruff and check_imports clean.
+- **Rule 8.** The orchestrator's capture after the cutoff printed "nothing written … after the 15:00 cutoff",
+  which is correct. My own back-fill run in addendum 1 (9,636 rows, re-run identical) is the real-data record.
+
+No findings.

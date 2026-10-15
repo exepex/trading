@@ -148,10 +148,10 @@ def test_a_newer_run_pushed_after_the_deadline_never_replaces_the_recorded_one(r
     """The fills read only the run recorded at the deadline: a second run committed at 15:11:58 but visible from
     15:13 (a different trade) is never filled, even though it is the book's latest run by fill time."""
     decisions = Decisions()
-    decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
     second, orders = decided(BOOK1_RULES, "t2", NORMAL, (15, 11, 58))
     newer = CommittedDecision(BOOK1_RULES, f"{NORMAL}-r2", second.commit, second.committed_at, Path(f"{NORMAL}-r2"))
-    decisions.add(newer, orders, NORMAL, visible_at=at(15, 13))
+    decisions.add(newer, orders, NORMAL, visible_at=at(15, 13))  # first in the fake: only visibility can skip it
+    decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
     run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
     log = run_day(run, clock, NORMAL)
     assert log.result("decisions")[BOOK1_RULES]["run_id"] == f"{NORMAL}-r1"

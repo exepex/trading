@@ -110,10 +110,12 @@ def test_d3_decisions_are_read_at_the_deadline_and_the_fills_reread_only_the_rec
     source = D3CommittedDecisions(tmp_path, git)
     assert source.observe() == "origin-head"
     decision = source.committed(BOOK1_RULES, DAY, deadline)
-    assert (decision.run_id, decision.commit, decision.committed_at) == ("2026-10-14-r2", "c2", at(15, 7))  # r3 late
-    assert source.recorded(BOOK1_RULES, DAY, "2026-10-14-r2", "c2") == decision
+    # story D3b: the FIRST timely run (r1 at 15:03), never the latest (r2 at 15:07, which E3 used to take); r3 is late
+    assert (decision.run_id, decision.commit, decision.committed_at) == ("2026-10-14-r1", "c1", at(15, 3))
+    assert [r["run_id"] for r in source.others(BOOK1_RULES, DAY, decision.run_id)] == ["2026-10-14-r2", "2026-10-14-r3"]
+    assert source.recorded(BOOK1_RULES, DAY, "2026-10-14-r1", "c1") == decision
     with pytest.raises(RunNotRecorded, match="not held by the recorded commit c9"):
-        source.recorded(BOOK1_RULES, DAY, "2026-10-14-r2", "c9")
+        source.recorded(BOOK1_RULES, DAY, "2026-10-14-r1", "c9")
     with pytest.raises(RunNotRecorded):
         source.recorded(BOOK1_RULES, DAY, "2026-10-14-r7", "c7")
     assert D3CommittedDecisions(tmp_path, Commits_({})).committed(BOOK1_RULES, DAY, deadline) is None
