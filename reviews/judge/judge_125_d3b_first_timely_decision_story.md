@@ -87,3 +87,13 @@ Nothing in `market_read_models`, `cards`, packs or `tools/` reads decision runs.
 
 **Verdict: PASS for 5251ddc447b9a3454a3679ad00924a11362ab10e** (story text). Code may start. Minors 1-4 go into the
 text or the claims, and I check them in the code.
+
+## Note (15 Oct 2026): the owner's "keep the design simple" rule
+
+Under `docs/DESK_DECISIONS.md`, 15 Oct row "Keep the design simple", a judge's finding needs a path that happens in
+the normal running of this system. Under that rule:
+- **Minor 2 (ancestry for clock skew) is withdrawn.** It needs racing checkouts with skewed clocks.
+- **Minor 3 (a missing or mismatched opening run log) becomes one line under the story's Known limits, with no code.**
+  After E2b, the run log is committed with every step.
+- **Minors 1 and 4 stand.** Minor 1 is text only. Minor 4 is a real path: a chosen trade that does not fill is a normal
+  outcome.
