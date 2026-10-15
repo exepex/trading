@@ -34,8 +34,9 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
     (judge 208 note; the error is `RiskInputError`, not `KeyError`);
   - **Book 1's readers do not filter shadows.** The shadow decision records sit in Book 1's own decision folder
     (`journal/book1_rules/decisions/<d>/`), and a "shadow: would trade" record has `chosen_action: trade`. Book 1's
-    `_chosen` (`fno/books/book1_records.py`) checks only `chosen_action` and the structure, never `mode`, so Book 1's
-    opening trades and recorded terms would take a shadow's trade as its own (judge 208).
+    `_chosen` (`fno/books/book1_records.py`) checks only `chosen_action` and the structure, never `mode`. Today no
+    shadow record enters Book 1's trades, only because they key on Book 1's own fills (`opening_runs`) and shadow trade
+    ids carry the `shadow-` prefix. The isolation rests on that prefix alone (judge 208).
 - **No idea passes the cost wall today:**
   - desk meeting 2 found zero candidates with an edge after costs (`reviews/claude/response_92_...`, strong evidence:
     Rs 814-939 per four-leg round trip against the premium);

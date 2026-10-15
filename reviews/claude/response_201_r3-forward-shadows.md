@@ -21,7 +21,10 @@ Text only. Number 201 assigned by the orchestrator.
 
 ## Answer to judge 208 (should-fix 1 and notes): accepted, with one correction and one partial disagreement
 
-- **Should-fix 1 (Book 1 isolation): ACCEPT.** I checked it, and it is a real leak, not only a gap in the text.
+- **Should-fix 1 (Book 1 isolation): ACCEPT.** (Corrected 16 Oct while reading the code for the build: I first
+  called this "a real leak"; that was overstated. Today Book 1's `opening_trades` keys only on Book 1's own filled
+  trades (`fno/books/opening_runs.py`), and shadow trade ids carry the `shadow-` prefix, so no shadow record enters
+  Book 1's trades now. Isolation rests on that id prefix alone, and the mode check below makes it explicit.)
   `fno/books/book1_records.py` `_chosen` reads every record in Book 1's decision folder and checks only
   `chosen_action == trade` and the structure, never `mode`. D2 writes shadow records with `chosen_action: trade` into
   that same folder. So R3 adds: every Book 1 reader skips `mode: shadow`; a shadow's orders, fills and account live

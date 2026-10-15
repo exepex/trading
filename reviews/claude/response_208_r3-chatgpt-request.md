@@ -21,7 +21,8 @@ code part comes later).
   first registration would make Book 1's run raise.
 - Gives each shadow its own trade terms. Today it gets Book 1's, a second crash once a shadow holds a trade.
 - Makes every Book 1 reader skip `mode: shadow` records. They share Book 1's decision folder, and Book 1's `_chosen`
-  ignores the mode today.
+  ignores the mode. Today no shadow record reaches Book 1, only because Book 1's trades key on its own fills and
+  shadow ids carry a `shadow-` prefix; the mode check makes that isolation explicit.
 - Writes shadow orders in Book 1's order format under `journal/shadow/<name>-v<n>/`. E8 fills them like a book's:
   T = the day's card time, an R = 60 verdict, a price cap, and a funds re-check on the shadow's own terms. Nothing
   fills before E8's part 1b.
