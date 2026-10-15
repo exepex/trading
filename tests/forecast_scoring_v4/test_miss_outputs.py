@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta, timezone
 
 from fno.constants import V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.comparison import compare, paired_rows, seed_word
+from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import Outcome, V4ForecastSource, V4OutcomeSource
 from fno.forecast_scoring.v4.records import LookRecords, NoRegistrations
 from fno.forecast_scoring.v4.render import report_json, report_lines
@@ -23,6 +24,8 @@ OUTCOMES = {d: Outcome(i % 2 == 0, False, 15.0, RETURNS.get(d, 0.001)) for i, d 
 OWN = values({d: 0.3 for d in DAYS if d not in (ABSENT, MISSED)}, live=True)
 BASE = values({d: 0.2 for d in DAYS if d != ABSENT}, live=True)
 EXPECTED = MissReport(observable=9, missed=1, big_observable=2, big_missed=1, input_failures=1)
+
+NO_DAYS = DayCounts(0, 0, 0, 0, 0)
 
 
 def test_a_day_neither_file_holds_is_an_input_failure_and_exactly_2_percent_is_a_2_percent_day():
@@ -61,8 +64,8 @@ def _scoring():
 
 def test_the_report_text_and_json_carry_the_miss_counts():
     reports = [_scoring().question_report(q) for q in QUESTIONS]
-    assert f"    {EXPECTED.line()}" in report_lines(reports, frozen=False, as_of="2025-01-20")
-    v6b = next(q for q in report_json(reports, frozen=False, as_of="2025-01-20")["questions"]
+    assert f"    {EXPECTED.line()}" in report_lines(reports, frozen=False, as_of="2025-01-20", days=NO_DAYS)
+    v6b = next(q for q in report_json(reports, frozen=False, as_of="2025-01-20", days=NO_DAYS)["questions"]
                if q["question"] == V6_BIG_MOVE_5S)  # fmt: skip
     assert v6b["comparisons"][0]["misses"] == asdict(EXPECTED)
 

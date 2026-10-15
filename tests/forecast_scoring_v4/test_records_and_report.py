@@ -7,12 +7,15 @@ from datetime import date
 import pytest
 
 from fno.constants import V1_RV_1S, V4_CLAIM, V4_OPEN, V5_INSIDE_STRADDLE, V6_BIG_MOVE_5S
+from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
 from fno.forecast_scoring.v4.records import EXPLORATORY, LookRecordExists, LookRecords, NoRegistrations
 from fno.forecast_scoring.v4.render import report_json, report_lines
 from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_NO_DATA, STATUS_NOT_STARTED, V4Scoring
 from fno.forecast_v4.terms import LOOK_SETTLE_DATE, LOOK_STOP_REVIEW
 from tests.forecast_scoring_v4.helpers import values
+
+NO_DAYS = DayCounts(0, 0, 0, 0, 0)
 
 
 def test_a_look_is_recorded_once_and_look_2_reads_the_members_closed_at_look_1(tmp_path):
@@ -50,13 +53,13 @@ def test_the_report_is_exploratory_before_the_freeze_and_never_fails_on_empty_qu
     reports = [scoring.question_report(q) for q in QUESTIONS]
     status = {r.question: r.status for r in reports}
     assert status[V5_INSIDE_STRADDLE] == STATUS_NOT_STARTED and status[V1_RV_1S] == STATUS_NO_DATA
-    lines = report_lines(reports, frozen=False, as_of="2025-01-06")
+    lines = report_lines(reports, frozen=False, as_of="2025-01-06", days=NO_DAYS)
     assert lines[0] == EXPLORATORY and f"{V1_RV_1S}: {STATUS_NO_DATA}" in lines
     v6b = next(r for r in reports if r.question == V6_BIG_MOVE_5S)
     assert v6b.live_forecasts == 2 and [c.forecaster for c in v6b.comparisons] == ["weather_m1"]
     assert v6b.scores["weather_m1"].n == 1 and v6b.comparisons[0].pairing.unresolved == 1
-    assert report_json(reports, frozen=False, as_of="2025-01-06")["exploratory"] is True
-    assert report_lines(reports, frozen=True, as_of="2025-01-06")[0] != EXPLORATORY
+    assert report_json(reports, frozen=False, as_of="2025-01-06", days=NO_DAYS)["exploratory"] is True
+    assert report_lines(reports, frozen=True, as_of="2025-01-06", days=NO_DAYS)[0] != EXPLORATORY
 
 
 def test_a_look_before_the_freeze_prints_exploratory_and_writes_nothing_and_after_it_records_once(tmp_path, capsys):

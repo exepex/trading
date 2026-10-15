@@ -8,14 +8,15 @@ from dataclasses import asdict
 
 from ...forecast_v4.terms import POWER_REPORT_AT
 from .comparison import Comparison, margin
+from .days import DayCounts
 from .records import EXPLORATORY
 from .scoring import STATUS_SCORED, QuestionReport
 
 SECONDARY = "Forecasts are secondary to net profit; no p-value here is a verdict (verdicts come only from a look)."
 
 
-def report_lines(reports: list[QuestionReport], frozen: bool, as_of: str) -> list[str]:
-    lines = ([] if frozen else [EXPLORATORY]) + [f"Omenix F&O protocol v4 scores as of {as_of}", SECONDARY]
+def report_lines(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts) -> list[str]:
+    lines = ([] if frozen else [EXPLORATORY]) + [f"Omenix F&O protocol v4 scores as of {as_of}", SECONDARY, days.line()]
     for report in reports:
         lines.append(f"{report.question}: {report.status}")
         if report.status != STATUS_SCORED:
@@ -51,8 +52,9 @@ def comparison_lines(c: Comparison) -> list[str]:
     ]
 
 
-def report_json(reports: list[QuestionReport], frozen: bool, as_of: str) -> dict:
-    return {"as_of": as_of, "exploratory": not frozen, "questions": [_question_json(r) for r in reports]}
+def report_json(reports: list[QuestionReport], frozen: bool, as_of: str, days: DayCounts) -> dict:
+    questions = [_question_json(r) for r in reports]
+    return {"as_of": as_of, "exploratory": not frozen, "days": asdict(days), "questions": questions}
 
 
 def _question_json(report: QuestionReport) -> dict:
