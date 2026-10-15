@@ -1,6 +1,6 @@
 {
  "repository": "exepex/omenix-dashboard",
- "commit": "1eef671072e21c59a54e548df535291ddf9b4825",
+ "commit": "13e76b4c25b789dbc6441d64287a75cee3e187a8",
  "contract_version": "2.7.0",
  "files": {
   "api/examples/blocks-32.json": "17c455b146ee2ae778468ab779ec17d1aed08575eb04349841a780882a047498",
@@ -24,7 +24,7 @@
   "api/schemas/companies.yaml": "498e380ad032c5522a202b99bdbe71c0a8d7691d9ee336856f99797e35877411",
   "api/schemas/company.yaml": "f2e8085bc98753a8276f747f2c48e8366414cc2fd715ed29cdc01d19b3886a22",
   "api/schemas/fno-card.yaml": "36b2d33d31abe1fc5def9e49ccc225e42038ce2401b552fa5d1dab4ec6972866",
-  "api/schemas/fno-forecast-lab.yaml": "8fa8c9475c34aea0a84b12d42af55b482518ab440f01af891553856778a1efc9",
+  "api/schemas/fno-forecast-lab.yaml": "bd3eb1bf5072bdfe32c60640e5dc3ddfb3036e5eff3b80307be412669548f6f9",
   "api/schemas/fno-paper-trades.yaml": "464cab679017f27499625b6ca7b0da166d70674bb8bbecca4f88e26332f386c9",
   "api/schemas/fno-screens-common.yaml": "3e8ae0211577d78c12615dc24d397c2fa8d3c5526aa163256716de22de895473",
   "api/schemas/fno-strategy-lab.yaml": "c84bd4e9c6a985630ac0c42101c42be5950cf9d8aa1b6444057b35fe9653fb58",

@@ -411,3 +411,16 @@ The dashboard head is 1eef671; the pin moved there and all 33 files are byte-ide
   2. Then the dashboard.
   3. Then trading is re-pinned at the dashboard's merge commit.
   4. Then trading merges.
+
+## Addendum 5: judge 102 addendum 3 (one should-fix)
+
+The dashboard head is 13e76b4; the pin moved there and all files are byte-identical.
+
+- **Accepted.** The rule is now pinned by forecaster id:
+  - `book2_hybrid` and `book3_ai` must be kind family, with their own family (hybrid, ai), and isolation
+    sealed_same_day or full_f1;
+  - `book1_rules` must be kind family, family rule;
+  - any family-kind row needs a non-null family.
+- **New probes:** the judge's two, a null family and a kind of baseline, are both refused.
+- **Planted break widened:** "AI isolation rules deleted" now removes every AI rule at once. The id rules alone
+  would catch a single deletion, which is the point of defence in depth. Planted breaks: 28 of 28.

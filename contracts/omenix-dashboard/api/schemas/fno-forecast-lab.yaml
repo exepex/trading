@@ -69,6 +69,15 @@ FnoForecastLab:
           # an AI book can never be declared code (owner, 14 Oct 2026, condition 2: its label stays on every record)
           - if: {properties: {kind: {const: family}, family: {enum: [hybrid, ai]}}, required: [kind, family]}
             then: {properties: {isolation: {enum: [sealed_same_day, full_f1]}}}
+          # the books by their ids (judge 102 addendum 3), so a mislabelled kind or a null family cannot dodge the rule
+          - if: {properties: {id: {const: book2_hybrid}}, required: [id]}
+            then: {properties: {kind: {const: family}, family: {const: hybrid}, isolation: {enum: [sealed_same_day, full_f1]}}}
+          - if: {properties: {id: {const: book3_ai}}, required: [id]}
+            then: {properties: {kind: {const: family}, family: {const: ai}, isolation: {enum: [sealed_same_day, full_f1]}}}
+          - if: {properties: {id: {const: book1_rules}}, required: [id]}
+            then: {properties: {kind: {const: family}, family: {const: rule}}}
+          - if: {properties: {kind: {const: family}}, required: [kind]}
+            then: {properties: {family: {type: string}}}
     questions:
       type: array
       minItems: 1
