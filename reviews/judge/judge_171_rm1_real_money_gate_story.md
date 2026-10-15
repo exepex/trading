@@ -223,3 +223,131 @@ and it omits that test as an option.**
 **Gates at 2945dbd8 (docs-only delta; the trial merge conflicts on index rows only):** pytest 5878 passed; `ruff check` clean; `ruff format --check` 1074 files formatted; `check_imports` clean.
 
 **A re-check needs only:** `real_test_pass` 3's unknown-leg rule, Q13's options and wording, and the Rs 2,734 figure.
+
+## Addendum 3: final text at d3d577e9 (every item decided by the owner): FAIL (2 should-fix open)
+
+The builder sent this directly, and I reported it to the orchestrator. The three DESK_DECISIONS rows are on main:
+946bb8e7 (18:45 UTC), f0f6d2d8 (18:48) and 793aeb54 (18:50). The gate's values match them item by item:
+- account Rs 2 lakh, cap Rs 5,000;
+- max(30, registered) trades and 6 months;
+- the second period as the only route;
+- one-sided, with both bounds binding;
+- replay cap Rs 5,000;
+- 90% discipline;
+- stops (a) and (a2) at Rs 20,000;
+- the paired margin of −Rs 500;
+- valid quotes no older than 5 minutes for real orders and 15 for recorder uses, with the screenshot source and more
+  than 10% unknown legs failing;
+- Q13 (a).
+All 12 items parse with a decided status and exact labels (my script on the trial merge). Depth is available, since
+A16's Groww parser keeps bid and offer quantities (`fno/providers/groww.py:82-91`).
+
+**SF1 (addendum 2): NOT MET.** `real_test_pass` 3 still gives no rule for the mean when 10% or fewer legs are unknown.
+It now says only "more than 10% of real legs with unknown slippage is not met". Stop (b) says "left out of the mean
+and listed". The fix is unchanged: one clause, the same as stop (b). This is a builder text fix, with no owner question.
+
+**SF2 (addendum 2): open, now an owner confirmation.**
+- The owner answered Q13 at 18:48. My finding came at 18:54, so the owner chose (a) from the options as asked. Those
+  options did not say that (a) relaxes the owner-accepted 8.3 condition 4 ("the mean gap between paper fill and the
+  next real snapshot is within the pad"), and they did not offer that test as an option.
+- The owner's choice stands; I do not reopen it.
+- **Expected:** the orchestrator puts one line to the owner. "Your Q13 answer replaces 8.3 condition 4's accepted
+  test (the paper fill against the next A16 snapshot, about 15 minutes later, noisy) with validity only. Keep that, or
+  add the next-snapshot gap within the pad?" Record the answer in DESK_DECISIONS. If the owner keeps (a), the row says
+  it amends 8.3 condition 4, and SF2 is closed.
+
+**Notes (one line each, no fix asked):**
+- The `real_test_pass` Reason still says the prediction floor is "about Rs 2,160 below paper's mean" at n = m = 20.
+  The formula gives Rs 2,734. The example also predates the owner's floor of 30: at n = 30 and m = 20 it is
+  1.7291 × 5,000 × √(1/30 + 1/20) = Rs 2,496.
+- `fill_honesty` (a) says "one invalid leg is not met", and validity now includes depth. The owner's row says
+  validity "(fresh, two-sided, depth)" but not that one leg fails the condition. E8 should never fill from an invalid
+  quote anyway, so this is a consistency check. State that in the code round, so one thin far strike cannot void a
+  record unseen.
+
+**Gates (trial merge with origin/main 1d85ede5, tree be5c907, clean merge):** pytest 5993 passed; `ruff check` clean; `ruff format --check` 1095 files formatted; `check_imports` clean.
+
+**A re-check needs only:** SF1's clause, and the owner's answer for SF2 with its row.
+
+## Addendum 4: final text at 04a80222: PASS
+
+The builder sent 0b47e271 and then 04a80222 directly, and I reported this to the orchestrator. Scope: SF1 and SF2 of
+addenda 2-3, and the new Paper-pad term with the items it touches.
+
+**SF1: MET.** `real_test_pass` 3 reads: "more than 10% of real legs with unknown slippage is not met; at 10% or fewer,
+unknown legs are left out of the mean and listed". It is the same rule as stop (b). The "valid quote" term now leaves
+it to each item how unknown legs count.
+
+**SF2: MET.**
+- Row 22df15bf (on main, 18:55 UTC) records the owner re-asked "with the missing option". The owner kept 8.3
+  condition 4 as written, replacing the Q13 answer in f0f6d2d8.
+- Row 162d8fbf (18:57) records the owner's noise-aware form.
+- `fill_honesty` now matches both:
+  - (a) quote validity, binding;
+  - (b) the gap to the first A16 snapshot after the fill, worse positive. It is not met only when the one-sided 95%
+    lower bound of the mean gap exceeds the paper pad;
+  - a leg with no next snapshot is left out and listed, and fewer than 20 such legs is not met. The 20 is the original
+    draft's number; I checked it at d29934f5.
+- The 15-minute noise is stated in the Reason.
+
+**Paper pad (Q14, row 162d8fbf): MET, and the fact is right.**
+- The desk's `FILL_PAD_RS = 0.0` (`fno/desk/pricing.py:17`), so "the paper pad in force" would have meant Rs 0: an
+  allowance of only Rs 0.50 for real slippage, a stop on any adverse average, and a gap rule failed by noise about
+  half the time.
+- Research's `PAD = 1.0` rupees per unit (`fno/research_engine/cycle_costs.py:24`).
+- The gate's numbers follow:
+  - `real_test_pass` 3 allows ≤ Rs 1.50 per unit;
+  - stop (b) fires above Rs 2 per unit over 5 trades;
+  - the crash replay adds the paper pad;
+  - `fill_honesty` (b) compares against Rs 1.
+  These match the row.
+- The builder found this; it is a real gap that my addenda missed.
+
+**Prediction floor: MET.** Rs 2,734 (1.7291 × 5,000 × √0.1).
+
+**Format and gates:**
+- On the trial merge with origin/main 04fa3635 (tree 95a3146, clean auto-merge), `parse_protocol` finds 12 items, no
+  duplicates, every status "decided by the owner on …", exact labels and no undecided words.
+- pytest: 6086 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1120 files formatted;
+- `check_imports`: clean.
+
+**Notes (one line each, no fix asked):**
+- `fill_honesty` (b)'s t-bound treats every leg as independent. Legs of one position share the same 15-minute move,
+  usually offsetting (a spread's bought and sold legs, or a strangle's call and put), so the leg count k overstates
+  the independent observations. The bias's direction depends on the structure. In the code round, use one gap per
+  position (the mean of its legs) as the unit.
+- The 60-minute fill (E8) and A16's 15-minute grid together decide which snapshot is "next". State in RM2 which mark
+  counts when the fill time equals a mark.
+
+**Verdict: PASS.** Every gate item is decided by the owner on 15 Oct 2026, with five cited rows, all on main. RM1's
+code round follows the orchestrator's go. ChatGPT re-reads only if the orchestrator sends it (rule 9 was met at review
+118).
+
+## Addendum 5: efeb49b1 (routed by the orchestrator): PASS stands
+
+Addendum 4 already passed 04a80222, which holds SF1, SF2, the Paper pad and stop (b). The orchestrator asked for
+addendum 4; since it exists, this is addendum 5.
+
+**What changed in RM1's files from 04a80222 to efeb49b1:** one Reason line in `real_test_pass`. The rest is main
+merged in. The branch differs from main only in RM1's six documents, with no code.
+- The floor fact now gives Rs 2,496 at n = 30 and m = 20: 1.7291 × 5,000 × √(1/30 + 1/20) = 2,495.7. I recomputed
+  it, and it is correct.
+- The n = 20 figure stays at Rs 2,734.
+
+**Re-read at efeb49b1** (unchanged since addendum 4, all still MET):
+- `real_test_pass` 3: Rs 1.50; more than 10% unknown legs is not met; at 10% or fewer they are left out and listed;
+- `fill_honesty` (a) validity, binding, and (b) the noise-aware next-snapshot gap against the Rs 1 pad;
+- Paper pad = research's Rs 1;
+- stop (b) at Rs 2 per unit over 5 trades.
+
+**Gates at efeb49b1:**
+- pytest: 6086 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1120 files formatted;
+- `check_imports`: clean.
+
+**Merge:** against main now, only `reviews/claude/README.md` conflicts, on rows only; keep both sides.
+
+**Verdict: PASS.**

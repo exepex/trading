@@ -94,3 +94,39 @@ The revision changes `response_157_v4-freeze-checklist.md` (adding a "Revision 1
 **Verdict: PASS for 3e3fd302** (plan only). Next, in order: ChatGPT, the owner, G10's build, then the protocol-edit
 commit and the freeze commit, each with its own lane-1 verdict. The G7 method filter must land, judged with its test,
 before the freeze commit.
+
+## Addendum 2 (15 Oct 2026): revision 2 (ChatGPT review 119) at 10fa113c
+
+The delta is the "Revision 2" section of response 157.
+
+| Item | Status | Evidence |
+|---|---|---|
+| 1. IV30 and Black-76 are not in v4's live path | MET (claim verified) | I imported all 48 modules of `fno/forecast_v4/`, `fno/forecast_v4_rules/`, `fno/forecast_scoring/v4/` and `fno/weather/` myself. `fno.forecast.iv30` is never loaded. `fno.research_engine.implied_vol` is loaded, through the import chain the builder names. A grep finds no call: `forecast_v4/units.py` uses only its own arithmetic and a parameter named `implied_vol`. The planned patched-to-raise run is the right proof. Saying that V2-V5 count only under a later record that byte-checks their IV code is correct and honest |
+| 2. Prospective `effective_start` for a registered slot | Sound as a rule; **not carried into the plan's own edit table** (should-fix 4) | From the slot's registered start, every baseline-observable day counts. A registered family therefore cannot dodge misses by submitting late, which is the owner's own aim for the miss rule ("cannot gain by missing hard days"). It is stricter, never looser. Unregistered slots stay `not_started` |
+| 3. V1's method filter | Planned (not built), as stated | Built and judged with its test before the freeze commit |
+
+**Should-fix 4: the protocol-edit table still writes the rule Revision 2 replaces.**
+- Line 22 of response 157 still tells step 2 to add "a forecaster that starts only after the freeze counts misses from
+  its first live forecast; the days before it are not started".
+- For registered slots, Revision 2 replaces this with "from its `effective_start`". A protocol commit that follows the
+  table would freeze the old rule.
+- Fix: rewrite that row. A registered slot counts from its `effective_start`, a session on or after the freeze and
+  before its first eligible session. An unregistered slot is `not_started`. Name review 119 as the source, beside
+  judge 156.
+- Because this changes the start of the owner's miss rule (G9, the 15 Oct row on `DESK_DECISIONS.md` line 177), the
+  owner should see it as a change when they decide the checklist, not only as an edit. Add it to the list of what the
+  owner confirms.
+
+**Verdict: FAIL for 10fa113c on should-fix 4** (one table row plus one owner-confirmation line). Items 1-3 are
+accepted. A re-check needs only those lines.
+
+## Addendum 3 (15 Oct 2026): 03586b07
+
+There is one commit, and it changes only response 157 (4 lines added, 2 removed).
+
+| Finding | Status | Evidence |
+|---|---|---|
+| Should-fix 4 | MET | The edit-table row now replaces section 4's start rule. A registered slot counts from its `effective_start` (a session on or after the freeze, before its first eligible session, named in its registration row). An unregistered slot is `not_started`. Its sources are review 119 and judge 156 notes 1 and 3. The owner-confirmation list carries the change as "one change for the owner to confirm before the freeze" (line 177's start moves to `effective_start`) |
+
+**Verdict: PASS for 03586b07** (plan only). The open steps are unchanged: ChatGPT, the owner (including this change),
+G10's build, the V1 method filter, then the protocol-edit and freeze commits, each with its own verdict.

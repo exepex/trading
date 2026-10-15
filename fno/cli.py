@@ -13,6 +13,7 @@ from .budget.cli import add_budget_parser
 from .cards.cli import add_card_parser
 from .config import ROOT, load_app_config
 from .desk.cli import add_desk_parser
+from .desk.private_files import PrivateFilesUnavailable
 from .evaluation.cli import add_evaluation_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
@@ -228,4 +229,8 @@ def main(argv: list[str] | None = None) -> int:
     add_health_parser(sub)
 
     args = p.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except PrivateFilesUnavailable as unavailable:  # story E2c: a command that needs the paper records stops, named
+        print(f"stopped: {unavailable}")
+        return 1
