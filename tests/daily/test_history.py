@@ -57,7 +57,7 @@ def test_a_failed_fetch_is_one_alert_and_the_day_goes_on(tmp_path):
     assert "checkout is shallow" in sent and "exits run" in sent
 
 
-def test_the_runner_takes_the_whole_history_before_the_day_and_the_parts(tmp_path):
+def test_the_runner_starts_the_parts_then_takes_the_whole_history_then_runs_the_day(tmp_path):
     from datetime import date
 
     order = []
@@ -77,4 +77,21 @@ def test_the_runner_takes_the_whole_history_before_the_day_and_the_parts(tmp_pat
             return False
 
     DayRunner(Run(), Parts(), waiter=None, before=lambda: order.append("history")).run(date(2026, 10, 14))
-    assert order == ["history", "parts", "day"]
+    assert order == ["parts", "history", "day"]
+
+
+def test_a_hung_fetch_is_stopped_at_its_limit_and_is_one_alert(tmp_path):
+    """Judge 178 addendum 10 (made a must by the orchestrator): a fetch that never answers cannot hold the day."""
+    _, clone = shallow_clone(tmp_path)
+    real = subprocess.run
+
+    def hung(command, **options):
+        if command[:2] == ["git", "fetch"]:
+            raise subprocess.TimeoutExpired(command, options["timeout"])
+        return real(command, **options)
+
+    alerts = Alerts()
+    WholeHistory(Git(clone, run=hung), alerts)()
+    (sent,) = alerts.sent
+    assert "ran past 120 s and was stopped" in sent
+    assert git(clone, "rev-parse", "--is-shallow-repository") == "true"

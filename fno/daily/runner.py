@@ -27,12 +27,13 @@ class DayRunner:
         self.daily_run, self.parts, self.waiter, self.before = daily_run, parts, waiter, before
 
     def run(self, day: date) -> tuple[int, str]:
-        """The exit code and the one line the command ends on. `before` runs first (the whole git history); then the
-        quote parts start, before the run's Drive download, so a Drive outage never loses the day's NSE record (judge D,
-        orchestrator 16 Oct). A rerun whose log already holds `quotes` starts none (judge 178 note 4)."""
-        self.before()
+        """The exit code and the one line the command ends on. The quote parts start first, before the whole-history
+        fetch (`before`) and the run's Drive download, so neither a hung fetch nor a Drive outage can delay or lose the
+        day's quotes, NSE included (judge D and the orchestrator, 16 Oct). A rerun whose log already holds `quotes`
+        starts none (judge 178 note 4)."""
         if not RunLog.open(self.daily_run.steps.root, day).done(QUOTES_STEP):
-            self.parts.start(day)
+            self.parts.start(day)  # first: neither the history fetch nor the Drive download can delay the 3 pm parts
+        self.before()
         try:
             log = self.daily_run.run(day)
         except RunStopped as stopped:

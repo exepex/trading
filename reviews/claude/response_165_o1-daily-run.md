@@ -260,3 +260,10 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
    - `tests/timetable/test_entry_check_alert.py` now wires `ReportedAlerts`, as production does, and pins exactly one
      "alert NOT sent ... trade" line. A planted second print fails it. The reaches-exits check is kept.
    - E4c's two story lines in `docs/stories/E-paper-desk.md` now name `ReportedAlerts`.
+
+### Judge 178 addendum 10 note, made a must by the orchestrator: a hung history fetch
+
+- Both fixes are in. The quote parts now start first, before the history fetch and the Drive download. `Git.unshallow`
+  runs its fetch with a hard 120-second limit (`UNSHALLOW_TIMEOUT_SECONDS`; it measured 6.7 s on a fresh clone). A
+  time-out is a `GitError`, so it gives one alert and the day goes on, like a failed fetch.
+- Tests: `test_a_hung_fetch_is_stopped_at_its_limit_and_is_one_alert`, and the runner order "parts, history, day".
