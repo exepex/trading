@@ -9,12 +9,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import date
-from itertools import accumulate
+from itertools import accumulate, groupby
 from pathlib import Path
 
 from ..books.account import PaperAccount
 from ..books.equity import TradePosition, trade_positions
-from .inputs import Market, OpenTrade, RiskBook, RiskInputError, TradeTerms
+from .inputs import Market, OpenTrade, RiskBook, RiskInputError, SessionTrade, TradeTerms
 from .overrides import brake_restarts
 
 
@@ -36,6 +36,27 @@ def _open_trade(trade: TradePosition, terms: Mapping[str, TradeTerms]) -> OpenTr
     return OpenTrade(trade.trade_id, terms[trade.trade_id], units, trade.cash_flow)
 
 
+def session_trades(trades: list[TradePosition], day: date) -> tuple[SessionTrade, ...]:
+    """The trades first filled on `day`, each with its held units and cash after each of that day's fill times."""
+    out = []
+    for trade in trades:
+        fills = sorted(trade.fills, key=lambda f: f.filled_at)
+        if fills and fills[0].filled_at.date() == day:
+            out.append(SessionTrade(trade.trade_id, _states([f for f in fills if f.filled_at.date() == day])))
+    return tuple(out)
+
+
+def _states(fills) -> tuple[tuple[dict[str, int], float], ...]:
+    units: dict[str, int] = {}
+    cash, states = 0.0, []
+    for _, group in groupby(fills, key=lambda f: f.filled_at):
+        for fill in group:
+            units[fill.contract] = units.get(fill.contract, 0) + fill.signed_units
+            cash += fill.amount
+        states.append(({c: n for c, n in units.items() if n}, cash))
+    return tuple(states)
+
+
 def load_risk_book(
     root: Path, book: str, market: Market, terms: Mapping[str, TradeTerms], premium_reserved: float = 0.0
 ) -> RiskBook:
@@ -52,4 +73,5 @@ def load_risk_book(
         tuple(_open_trade(t, terms) for t in trades if t.is_open),
         closed_equity_series(start_day, state.starting_cash, trades),
         brake_restarts(root, book, market.day),
+        session_trades(trades, market.day),
     )

@@ -573,3 +573,24 @@ The owner rule is in `docs/DESK_DECISIONS.md`, 15 Oct: a scenario counts only if
 - **Re-rated: addendum 11 should-fix 2, now met.** It assumed another writer stages files in the recorder's checkout. The story itself says each routine fire is a fresh clone, and A16b's backfill is a one-off command run elsewhere. Under the new rule that path is not shown to happen. It would have been at most a note, and the folder-only check the orchestrator first decided would have been enough.
   - What it added: the whole-index check is a few lines inside the same committer, with two tests.
   - The owner or orchestrator decides whether to keep it, per point 4 of the rule. I do not ask for its removal.
+
+## Addendum 15 (15 Oct 2026): merge check, part 1, A16e merged to `main` as b035811
+
+**Merge structure: complete and matching the PASS.**
+- `b035811` has parents `c6c285a` (main) and `f8ba463`, the SHA I passed, and it is on `origin/main`.
+- Leaving out judge files, the merge's change has the same stable patch-id (`bb9b3d00…`) as the branch's diff from its base `902f3b6`.
+- On b035811 with `FNO_SLACK_BOT_TOKEN` unset: 4,624 passed; ruff and check_imports clean.
+
+**Rule 8: open.** Under the plan accepted in addendum 13, I check the builder's dry run and the first live fire's commit file list when they arrive. Until then A16e is merged but not yet proven live.
+
+The orchestrator keeps the whole-index check (addendum 14, point 4).
+
+## Addendum 16 (15 Oct 2026): A16e merge check, part 2: rule 8, part 1
+
+**Merge check complete, matching the PASS.** One item is open: the first live commit.
+
+- **The builder's record.** `conversations/2026-10-15.md` has the dry run on main `b6910e8`: "14:15 good: 224 of 224 contracts", exit 0, clean tree.
+- **My own run.** On main `ea18b1f`, which contains b035811, I ran `python -m fno intraday snapshot --dry-run <scratch>` with `FNO_SLACK_BOT_TOKEN` unset. It used read-only Groww with this session's credentials and wrote to a scratch folder, since deleted.
+  - Output: `14:30 good: 220 of 220 contracts (220 two-sided), index answered 0.7 s after the mark`, then "dry run: nothing pulled, committed or pushed", exit 0, clean tree.
+  - The run also printed a "2 bad snapshots in a row (09:15, 09:30 not_taken)" alert, marked "alert NOT sent: dry run". That is expected for an empty dry folder, which has no earlier rows that session. It is not a defect.
+- **Open: part 2, the first live routine commit.** It waits for the owner to set up A16's routine. When it comes, its `git show --stat` must hold only `slots/…` and `heartbeat.json` (plus `rv/…` at 15:30), with no refusal line. I check it then.

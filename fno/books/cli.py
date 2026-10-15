@@ -10,9 +10,9 @@ EXIT_BUSY = 3  # another writer holds the account: this run wrote nothing
 
 
 def add_account_parser(subparsers) -> None:
-    account = subparsers.add_parser("account", help="the three books' Rs 5 lakh paper accounts (never orders)")
+    account = subparsers.add_parser("account", help="the three books' paper accounts (never orders)")
     actions = account.add_subparsers(dest="account_cmd", required=True)
-    init = actions.add_parser("init", help="open each book's account once with Rs 5,00,000 and no positions")
+    init = actions.add_parser("init", help="open each book's account once with risk.paper_account_rs and no positions")
     init.add_argument("--book", choices=BOOKS, action="append", help="only this book (repeatable); default all three")
     show = actions.add_parser("show", help="cash, closed equity and open legs of one book (no marks needed)")
     show.add_argument("book", choices=BOOKS)

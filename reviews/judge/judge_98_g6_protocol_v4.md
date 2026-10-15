@@ -604,3 +604,31 @@ On a trial merge with current `origin/main` (clean; README auto-merge): **4819 p
 **Verdict: PASS for a0c191ed6d2ada87c8ea4e90f698a9ec8869014b** (the draft, not frozen). I agree with the builder and
 the orchestrator that this should be the last revision before ChatGPT's re-review and the owner's item E choice. The
 freeze still needs G7 and G8's code and my check of the freeze record's hashes.
+
+## Addendum 9 (15 Oct 2026): merge check, G6 v4 draft merged to main as 597487f (not frozen)
+
+- **Merge is exact.** 597487f's parents are ea18b1f (main) and 093c3ca (the branch). Recomputing the merge with
+  `git merge-tree --write-tree ea18b1f 093c3ca` gives a tree identical to 597487f's (empty diff).
+- **Merged content equals the passed SHA.** 093c3ca is a0c191e (my addendum 8 PASS) plus only ChatGPT's review 102
+  files (`review_102_g6-protocol-v4-final.md` and its README row; verdict APPROVE). Every file the branch touched is
+  identical on 597487f.
+- **No unjudged code since.** Nothing under `fno`, `tests`, `tools`, `.github` or `config.yaml` changed between
+  597487f and current `origin/main`. The later commits are decisions, logs, manifests and judge files.
+- **Owner's item E is recorded.** 67105da appends the row "G6 item E: option 2, outcome-side crash-share cut" with
+  the owner's words ("merge G6, E option 2") **and the question asked**. A window whose share of 2% days exceeds 10%
+  is undecided, with the cut-off frozen now, before any v4 score.
+- **CI.** The parent ea18b1f is green. The first run that includes the merge (4e46edc) was in progress; its result
+  follows in my report.
+
+**For the freeze check (recorded now):**
+- The protocol's section 11 E still lists the three options. The freeze commit must write option 2 in as the
+  operative rule.
+- `judgeable` (5+ 2% days) and the new cut (2%-day share at most 10%) must both be applied by G8 to **every** member,
+  at every look, with the window's mean VIX, 2%-day count and band printed beside each verdict.
+- The cut only removes verdicts, so the band thresholds stay valid (conservative); no recalibration is needed. But at
+  n = 125 the cut means at most 12 2% days, so the 13+ band is never used at that size. The freeze text should say
+  so.
+- The freeze record must hash the protocol, the calibration file, `fno/forecast_v4/`, the tools that compute the
+  operative thresholds, their committed tables, and the G7 and G8 files.
+
+**Verdict: merge check PASS** (CI on the merge to be confirmed).

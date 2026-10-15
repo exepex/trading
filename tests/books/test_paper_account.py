@@ -7,18 +7,19 @@ from datetime import date, datetime
 import pytest
 
 from fno.accounting.ledgers import Order, trade_line
-from fno.books.account import STARTING_CASH_RS, AccountError, AccountWriter, PaperAccount
+from fno.books.account import AccountError, AccountWriter, PaperAccount
 from fno.books.equity import Mark, MissingMark
 from fno.books.fills import Fill, FillError
 from fno.books.lock import AccountLock, Lease
 from fno.books.paths import BookPathError, account_folder
-from fno.composition import build_paper_account, open_account_writer
+from fno.composition import build_paper_account, open_account_writer, paper_account_rs
 from fno.config import ROOT, load_config
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, BOOKS
 from fno.models import IST
 
 CHARGES = load_config(ROOT / "config.yaml")["charges"]
 DAY = date(2026, 10, 13)
+START_CASH = 2_000_000.0
 
 
 def fill(fill_id, trade_id, contract, side, price, units=65, pad=0.5, hour=15):
@@ -34,11 +35,13 @@ def root(tmp_path):
     return tmp_path
 
 
-def test_the_committed_starting_state_is_rs_5_lakh_and_no_positions_for_each_book():
+def test_the_committed_starting_state_is_the_13_oct_rs_5_lakh_opening_and_no_positions_for_each_book():
+    """The books were opened on 13 Oct 2026, before the owner's Rs 20 lakh account (14 Oct). The records stay as
+    written; C5's paper-account rule refuses every trade in them until the owner decides how they are reopened."""
     assert BOOKS == ("book1_rules", "book2_hybrid", "book3_ai")  # the names the stories use (epic E)
     for book in BOOKS:
         account = build_paper_account(book)  # the repository's own journal/<book>/account/
-        assert account.started and account.starting_cash() == 500_000.0 == STARTING_CASH_RS
+        assert account.started and account.starting_cash() == 500_000.0 != paper_account_rs()
         assert account.fills() == [] and len(account.ledger_rows()) == 1
         summary = json.loads(account.file("positions.json").read_text())
         assert summary["open_trades"] == [] and summary["cash_rs"] == 500_000.0 == summary["closed_equity_rs"]
@@ -46,6 +49,14 @@ def test_the_committed_starting_state_is_rs_5_lakh_and_no_positions_for_each_boo
         assert [(r["cash_rs"], r["marked_equity_rs"], r["open_trades"]) for r in history] == [
             ("500000.00",) * 2 + ("0",)
         ]
+
+
+def test_a_new_account_opens_with_the_owners_paper_account_of_rs_20_lakh(root):
+    assert paper_account_rs() == 2_000_000.0
+    for book in BOOKS:
+        account = build_paper_account(book, root)
+        assert account.starting_cash() == 2_000_000.0 == account.state({}).cash
+        assert account.ledger_rows()[0]["amount_rs"] == "2000000.0"
 
 
 def test_starting_twice_changes_nothing(root):
@@ -65,8 +76,8 @@ def test_the_three_measures_by_hand(root):
     assert sell.amount == pytest.approx(149.5 * 65 - sum(sell.charges.values()))
     assert buy.amount == pytest.approx(-50.5 * 65 - sum(buy.charges.values()))
     state = account.state({"CE25000": Mark(120.0), "CE25200": Mark(40.0, stale=True)}, margin_blocked=30_000)
-    cash = 500_000 + sell.amount + buy.amount
-    assert state.cash == pytest.approx(cash) and state.closed_equity == 500_000  # nothing closed yet
+    cash = START_CASH + sell.amount + buy.amount
+    assert state.cash == pytest.approx(cash) and state.closed_equity == START_CASH  # nothing closed yet
     assert state.open_value == pytest.approx(-120.0 * 65 + 40.0 * 65)
     assert state.marked_equity == pytest.approx(cash - 120.0 * 65 + 40.0 * 65)  # = cash + marked open value
     assert state.available_cash == pytest.approx(state.marked_equity - 30_000)  # marked equity < cash here
@@ -82,7 +93,7 @@ def test_available_cash_never_counts_a_bought_premium_as_spendable(root):
     state = account.state({"CE25000": Mark(100.0)}, margin_blocked=0, premium_reserved=1_000)
     assert state.marked_equity > state.cash  # the option's value is in marked equity, not in cash
     assert state.available_cash == pytest.approx(state.cash - 1_000)
-    assert state.available_cash < 500_000 - 6_532.5
+    assert state.available_cash < START_CASH - 6_532.5
 
 
 def test_available_cash_never_counts_a_short_options_open_loss_as_spendable(root):
@@ -90,13 +101,13 @@ def test_available_cash_never_counts_a_short_options_open_loss_as_spendable(root
         writer.apply_fill(fill("f1", "short", "PE24000", "sell", 100.0))  # receives 99.5 x 65 - charges
     account = build_paper_account(BOOK1_RULES, root)
     state = account.state({"PE24000": Mark(180.0)}, margin_blocked=40_000)  # the put has risen: open loss
-    assert state.cash > 500_000 and state.marked_equity == pytest.approx(state.cash - 180.0 * 65)
+    assert state.cash > START_CASH and state.marked_equity == pytest.approx(state.cash - 180.0 * 65)
     assert state.available_cash == pytest.approx(state.marked_equity - 40_000)
 
 
 def test_available_cash_of_a_flat_account_is_its_cash(root):
     state = build_paper_account(BOOK1_RULES, root).state({}, margin_blocked=0, premium_reserved=0)
-    assert state.available_cash == state.cash == state.marked_equity == 500_000
+    assert state.available_cash == state.cash == state.marked_equity == START_CASH
 
 
 def test_a_closed_trade_matches_the_cost_accountants_trade_net(root):
@@ -109,7 +120,7 @@ def test_a_closed_trade_matches_the_cost_accountants_trade_net(root):
     account = build_paper_account(BOOK1_RULES, root)
     (closed,) = account.closed_trades()
     assert closed.closed_on == DAY
-    assert state.closed_equity - 500_000 == pytest.approx(trade_line(closed, CHARGES).net)  # C1 and E1 agree
+    assert state.closed_equity - START_CASH == pytest.approx(trade_line(closed, CHARGES).net)  # C1 and E1 agree
     assert state.marked_equity == pytest.approx(state.closed_equity) == pytest.approx(state.cash)
     with open_account_writer(BOOK1_RULES, root) as writer, pytest.raises(AccountError, match="closed on"):
         writer.apply_fill(fill("f5", "spread", "CE25000", "sell", 10.0))
@@ -137,15 +148,15 @@ def test_the_equity_history_keeps_one_row_per_day(root):
 def test_writes_need_this_books_lock_held(root, tmp_path_factory):
     account = PaperAccount(root, BOOK1_RULES)
     with pytest.raises(AccountError, match="lock"):
-        AccountWriter(account, AccountLock(root, BOOK1_RULES))  # not held
+        AccountWriter(account, AccountLock(root, BOOK1_RULES), START_CASH)  # not held
     with AccountLock(root, BOOK2_HYBRID) as other, pytest.raises(AccountError, match="lock"):
-        AccountWriter(account, other)  # another book's lock
+        AccountWriter(account, other, START_CASH)  # another book's lock
     elsewhere = tmp_path_factory.mktemp("elsewhere")
     with AccountLock(elsewhere, BOOK1_RULES) as same_name, pytest.raises(AccountError, match="lock"):
-        AccountWriter(account, same_name)  # same book name, another folder
+        AccountWriter(account, same_name, START_CASH)  # same book name, another folder
     lock = AccountLock(root, BOOK1_RULES)
     with lock:
-        writer = AccountWriter(account, lock)
+        writer = AccountWriter(account, lock, START_CASH)
         lease = Lease.from_text(lock.path.read_text())
         assert lease.book == BOOK1_RULES and lease.holder.pid == os.getpid()
     assert lock.path.read_text() == ""  # a clean exit empties the lease

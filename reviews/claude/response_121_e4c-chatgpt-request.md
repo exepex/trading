@@ -22,7 +22,7 @@ to the judge.
 - the judge: `reviews/judge/judge_120_e4c_story.md` on main (FAIL, then addendum 1 PASS, with a condition for the code round on
   the guard's test);
 - design: `docs/design_v2/` sections 3.2 and 6.1a;
-- related: E2b's exceptions (branch `story/e2b-derived-packs`, judge 118); C5 risk buckets (your review 101).
+- related: E2b's exceptions (branch `story/e2b-derived-packs`, judge 118); C5 risk buckets (your review 103).
 
 **What the judge already proved (attack instead of repeating):**
 - A4's quote rule already refuses no bid, bid 0, no size and crossed quotes on both sides (`snapshot.py:48-59`).
@@ -43,5 +43,5 @@ to the judge.
 5. Any path left where the public record shows both sides of a quote, or where a refusal hides information the
    scoreboard needs (refusals counted, reasons kept)?
 
-**Write your answer as a new file** `reviews/chatgpt/review_102_e4c-entry-refusal.md` and add its line to
-`reviews/chatgpt/README.md`. Never overwrite an existing review file. (Review 101 is reserved for C5.)
+**Write your answer as a new file** `reviews/chatgpt/review_104_e4c-entry-refusal.md` and add its line to
+`reviews/chatgpt/README.md`. Never overwrite an existing review file. (Reviews 101-102 are G6's; 103 is reserved for C5.)

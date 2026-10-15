@@ -13,6 +13,7 @@ from fno.nse_margins.margin_log import MarginLog, MarginLogConflict
 from fno.nse_margins.rows import MarginRow, MarginRowBuilder
 from fno.research_engine.structures import LongIronFly, ShortCondor, ShortIronFly
 from fno.risk.inputs import RiskInputError, TradeTerms
+from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MARGIN_COLUMNS, MarginParts, MarginTable
 
 from .span_builder import DAY, LOT, span_zip
@@ -165,7 +166,7 @@ def test_a_calendar_without_sessions_is_an_alert_not_a_hang(tmp_path):
 def test_c2_uses_a_computed_row_from_its_day_on_and_never_before(tmp_path):
     path = margins_file(tmp_path, done_before(DAY))
     make_job(path, {DAY: span_zip()}).run()
-    table, terms = MarginTable(path, max_age_days=7), TradeTerms("SF", 200.0, lots=2)  # width 200: no older row
+    table, terms = MarginTable(path, DaysOld(7)), TradeTerms("SF", 200.0, lots=2)  # width 200: no older row
     # sold C20000 and P20000, bought C20200 and P19800 at 10: scan max(100 - 20, -15 + 90) = 80 a unit, NOV -210
     assert table.parts(terms, DAY) == MarginParts(80 * 65.0, -210 * 65.0, 52000.0, "SF width 200")
     assert table.margin(terms, DAY) == pytest.approx(2 * (5200 + 52000))  # a credit: scan + exposure (judge 75)
