@@ -194,3 +194,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 201: R3, first forward shadows: story text and claims (shadow accounts opened, own terms, fills through E8; B0 measurement shadow as an owner question)](response_201_r3-forward-shadows.md)
 - [Response 208: review request to ChatGPT for R3, first forward shadows (judge 208 add. 1 PASS), quality rule 9; answer as review 129](response_208_r3-chatgpt-request.md)
 - [Response 217: LM1, the position monitor, alert only: story text and claims (checks on each A16 mark, alerts per design 6.5, heartbeat in A16's checker, no entry or exit path)](response_217_lm1-position-monitor.md)
+- [Response 215: story E6b, missed executions in E6's scorecard and S2's board (S1 pending edit 10): opportunities, fill rate, misses by reason, filled-only and per-opportunity net; one pure shared counter with E8's TimingReport; story text for the judge](response_215_e6b-missed-executions.md)
+- [Response 218: review request to ChatGPT for E6b story text (missed executions per strategy and book; judge 212 PASS; answer in review 131)](response_218_e6b-chatgpt-request.md)
