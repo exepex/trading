@@ -25,14 +25,14 @@ channel. Orchestrator of the stories below marked (O): session_01VG1RqxLFUVdvvPu
 | G6 freeze | Protocol v4 freeze; V6 report-only (owner, 15 Oct) | 01MgTu3L1T3y6R18ATTwbFub | story/g6-protocol-v4 | research/forecasts/PROTOCOL_v4*, FREEZE_v4.md | waits for the G6 session |
 | G9 (project thread) | Protocol v4 miss rule (misses, input failures, 10% caps, operations-undecided) | 01H1CmuWzBtbtjzoQNJUz2Dz | story/g9-miss-rule | fno/forecast_v4/misses.py, fno/forecast_scoring/v4/ (comparison, look, render, cli, scoring), PROTOCOL_v4.md section 4 | done (merged f3835aba, judge 150 add. 1 PASS) |
 | E8a (project thread) | Fill-timing study: 15:00 entry vs E8's next-session 10:15 fill, and 14:00 vs 15:00, 2024-26, Groww expired-option 15-minute candles (read-only), raw to Drive; then a live check against A16 | 01H1CmuWzBtbtjzoQNJUz2Dz | story/e8a-fill-timing | docs/stories/E-paper-desk.md (E8a), research/2026-10-16-fill-timing/, research/ideas/FT1.md, ledger trial 54, DATA_SPEND row | story text with the judge; code waits for the orchestrator's go |
-| 26-week weather check (project thread) | Owner decision row only; the build is unassigned | 01H1CmuWzBtbtjzoQNJUz2Dz | none | M1 weather records, G8 V6 scores | proposed; orchestrator to route |
+| 26-week weather check (O) | Every 26 weeks of live v4 forecasts: weather_vix_v1's V6 vs v0 and the base rate; a loss gives the owner a keep-or-switch row, never an automatic switch | M1 builder 013xqaNTCbSBytKgqpfaYFqZ (routed by the orchestrator) | none | fno/weather/, G8 V6 scores | not started on purpose: story text near the first check (about 26 weeks after the v4 freeze) |
 | Handover / routines | Routine schedules, NSE in the 3 pm routine, late-data ladder | 01Mt6dcBU5kp2htdPN2KmiZH | story/O7-routine-setup | CLAUDE.md 3 pm section, routine prompts | please add your rows |
 
 ## Known overlaps to settle (15 Oct)
 
 - **3 pm routine:** A4b (merged, raw quotes to Drive) and the handover session's "NSE moved into the 3 pm routine" both
   change that routine. The handover session should confirm its change matches CLAUDE.md's A4b steps.
-- **Protocol v4:** G9 (merged by the project thread) and the G6 freeze (G6 session), G8 scoring and M1 weather
+- **Protocol v4 (checked 15 Oct: G9 agrees with G8; A16/G8 builder, 210 tests together):** G9 (merged by the project thread) and the G6 freeze (G6 session), G8 scoring and M1 weather
   (orchestrator (O)) all touch v4. The G6 session checks G9 against its text before freezing.
 - **Weather:** the project thread's "26-week weather colour check" decision and M1 (weather_vix_v1 operative,
   unproven; decision 71) must use the same records (fno/weather/).
