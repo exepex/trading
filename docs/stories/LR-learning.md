@@ -331,15 +331,16 @@ copy is built here:
 - **Strategies** (`drift_strategies.py`):
   - **Data:** for each `paper` version, the C1 net of each completed position in close order (E6's strategy record).
   - **Standardising:** `z = (mu0 - net) / sigma`, where `mu0` is the plan's `expected_net_per_opportunity` and
-    `sigma` its registered SD. The SD is a new plan field, `expected_sd_per_opportunity`, from the same research test
-    (a D1 format change through the orchestrator; R1's sample plan needs it too).
-  - **Threshold:** `h` is set **per version at registration**. It is `max(4, h*)`, where `h*` is the smallest h in
+    `sigma` its registered SD. The SD is a new plan field, `expected_sd_per_opportunity`, from the same research test,
+    **required for `paper`** (decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all four"); a D1 format change through the orchestrator; R1's sample plan needs it
+    too).
+  - **Threshold** (decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all four")): `h` is set **per version at registration**. It is `max(4, h*)`, where `h*` is the smallest h in
     steps of 0.5 whose in-control median run length is at least ten years of that version's trades
     (`trades_per_year` from its plan). The run length comes from resampling the version's research-test per-trade
     nets: 10,000 runs, seed 20261014. The floor of 4 is design 5.8's value: a research sample of 30-60 trades
     under-represents the tails. The value is frozen in the plan. On experiment 1's six samples this gives h = 4.0
     to 5.5, and a 1 SD collapse is flagged in a median of 8-12 trades. A version without a registered SD or `h` is shown "drift not monitored", never a silent pass.
-  - **Alarm:**
+  - **Alarm** (the pause as designed, decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all four")):
     - new entries in every book pause at once through E6's pause path (`paper -> paused`, approver `drift_rule`,
       D1's status change);
     - one #fno-desk line, and a line in LR1's post-mortem;
@@ -353,7 +354,8 @@ copy is built here:
   - **Standardising:** `z = block mean / s`, where `s` is the SD of the block means over the forecaster's exploratory
     back-fill before the v4 freeze. A forecaster without a back-fill (the AI books) takes `s` from its first 12 live
     blocks, and has no alarm before those blocks are complete.
-  - **Threshold:** `h = 4`, fixed for every forecaster (back-fill: 0 alarms in 95 blocks).
+  - **Threshold:** `h = 4`, fixed for every forecaster (back-fill: 0 alarms in 95 blocks). The block rule is decided
+    (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all four").
   - **Alarm:** one #fno-desk line and a post-mortem line. It is an input to the next scheduled review, where the
     house forecast (G9) may lower that forecaster's weight. It never stops a forecast and never changes a score: v4's
     scoring is frozen.
@@ -391,8 +393,8 @@ alarm count.
 |---|---|---|
 | Pre-registered CUSUM on each strategy's per-trade net (4.3, 5.8) | strategy monitor, criteria 1-5 | |
 | Standardised by the registered SD around the registered expected net (5.8) | `expected_sd_per_opportunity`, criterion 5 | The new plan field is a D1 change, routed through the orchestrator |
-| Alarm at 4, about 340 trades between false alarms (5.8) | k = 0.5 kept; h calibrated per version | A fixed 4 gives a median of 40 trades for short-premium skew (computed): replaced by per-version calibration, owner question 1 |
-| Forecasters: CUSUM on loss difference, SD of the first 60 outcomes, alarm at 5 (5.8) | 20-outcome blocks, back-fill SD, h = 4 | The rule as written gives hundreds of alarms on real data (computed), owner question 2 |
+| Alarm at 4, about 340 trades between false alarms (5.8) | k = 0.5 kept; h calibrated per version, floor 4 (decided, owner 16 Oct) | A fixed 4 gives a median of 40 trades for short-premium skew (computed) |
+| Forecasters: CUSUM on loss difference, SD of the first 60 outcomes, alarm at 5 (5.8) | 20-outcome blocks, back-fill SD, h = 4 (decided, owner 16 Oct) | The rule as written gives hundreds of alarms on real data (computed) |
 | V6b every fifth day (5.8) | criterion 6 | |
 | A strategy alarm pauses new entries until the owner reviews (4.3, 5.8) | criterion 4 | |
 | A forecaster alarm lowers its house weight at the next review (4.3) | review input, criterion 7 | The weight change is G9's (slice C) |
@@ -411,4 +413,4 @@ alarm count.
 
 **Depends:** E6 (strategy records and pause path), D1 (the SD field, through the orchestrator), G8 (scores and loss
 functions), S1 (text owner: the drift pause exception and the constants), LR1 (reads the alarms) · **Size:** M ·
-**Status:** story text for the judge (response 216); code after the PASS
+**Status:** story text for the judge (response 216), the owner's four answers in; code after the PASS

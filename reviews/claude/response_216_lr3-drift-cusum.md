@@ -58,3 +58,11 @@ The code goes in `fno/learning/` as `drift_cusum.py`, `drift_strategies.py`, `dr
 The CUSUM never detects a small edge quietly disappearing; that is the review's job. Monthly strategies react in
 months even to breakage, so the catastrophic-loss rules stay the first line. The calibration rests on close-proxy
 research history.
+
+## The owner's answers (16 Oct 2026, `docs/DESK_DECISIONS.md` row "LR3 drift detection: the four design answers accepted as recommended")
+
+All four were accepted as recommended and are now written into the text as decided:
+1. h is calibrated per version, with a floor of 4;
+2. forecasters use 20-outcome blocks with the back-fill's SD and h = 4;
+3. the strategy pause works as designed;
+4. `expected_sd_per_opportunity` is required for `paper`, as a D1 format change through the orchestrator.
