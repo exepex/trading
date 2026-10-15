@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from fno.forecast_v4.terms import V1_INTRADAY_METHOD
 from fno.forecast_v4_rules.baselines import MISSING, NOT_ELIGIBLE, OK, BaseRate, Ewma, Value
 from fno.forecast_v4_rules.rules import big_move_probability, v1_close_blend, v6_ewma_t4
 from fno.forecast_v4_rules.series import (
@@ -17,6 +18,7 @@ from fno.forecast_v4_rules.series import (
     regular_closes,
     vix_closes,
 )
+from fno.intraday.realised_vol import QuoteSnapshotRv15m
 from fno.intraday.rv_table import PATTERN
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -78,9 +80,11 @@ def test_zero_return_is_a_zero_rv_kept_as_observed():
 
 def test_a16_rows_void_is_no_value_and_candle_backfill_is_never_read():
     rows = [
-        {"session": "2026-10-16", "status": "ok", "rv_session": "0.0001", "first_seen_at": "2026-10-16T10:05:00+00:00"},
-        {"session": "2026-10-19", "status": "void", "rv_session": "", "first_seen_at": "2026-10-19T10:05:00+00:00"},
-    ]
+        {"session": "2026-10-16", "status": "ok", "rv_session": "0.0001", "first_seen_at": "2026-10-16T10:05:00+00:00",
+         "method": V1_INTRADAY_METHOD},
+        {"session": "2026-10-19", "status": "void", "rv_session": "", "first_seen_at": "2026-10-19T10:05:00+00:00",
+         "method": V1_INTRADAY_METHOD},
+    ]  # fmt: skip
     found = live_intraday_rv(rows)
     assert [r.value for r in found] == [0.0001, None]
     assert found[0].first_seen_at == datetime.fromisoformat("2026-10-16T10:05:00+00:00")
@@ -98,3 +102,16 @@ def test_rule_forecasters_pass_on_missing_inputs_and_blend_two_values():
     assert v1_close_blend(Value(OK, 2e-4), Value(NOT_ELIGIBLE)) == Value(MISSING)
     p1 = v6_ewma_t4(Value(OK, 1e-4))[0].value
     assert v6_ewma_t4(Value(OK, 1e-4))[1].value == pytest.approx(1 - (1 - p1) ** 5)
+
+
+def test_v1_reads_only_the_pinned_a16_method():
+    first_seen = "2026-10-16T10:05:00+00:00"
+    v1 = {"session": "2026-10-16", "status": "ok", "rv_session": "0.0001", "first_seen_at": first_seen,
+          "method": V1_INTRADAY_METHOD}  # fmt: skip
+    newer = dict(v1, rv_session="0.0009", method="rv-quote-5m-v2")  # same date, a new A16 sampling method
+    found = live_intraday_rv([newer, v1, dict(v1, session="2026-10-19", method="")])
+    assert [(r.day, r.value) for r in found] == [(date(2026, 10, 16), 0.0001)]  # only the pinned method's row
+
+
+def test_the_pinned_method_is_a16s_live_method():
+    assert QuoteSnapshotRv15m.method == V1_INTRADAY_METHOD
