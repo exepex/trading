@@ -81,3 +81,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 121: BR1a breadth protocol — ACCEPT](review_121_br1a-protocol.md)
 - [Review 122: E8 owner-timing fills — CHANGE](review_122_e8-owner-timing-fills.md)
 - [Review 123: E4c protective-leg entry check code — ACCEPT](review_123_e4c-entry-check-code.md)
+- [Review 127: G11 AI books on v4 — one audit reconciliation change](review_127_g11-ai-books-v4.md)
