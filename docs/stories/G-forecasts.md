@@ -467,5 +467,5 @@ boundary tests above; planted changes for criterion 10.
 gate and threshold call.
 
 **Depends:** G6 (merged), G7 (its `series.py` and forecast files; built first), A7, A16 (V1 only); the freeze also
-needs the G6 session's section 11 E line · **Size:** M · **Status:** story text for the judge
-(claims `reviews/claude/response_126_g8-scoring.md`)
+needs the G6 session's section 11 E line · **Size:** M · **Status:** text PASSED (judge 128); built on
+`story/g8-scoring`, for the judge (claims `reviews/claude/response_126_g8-scoring.md`)

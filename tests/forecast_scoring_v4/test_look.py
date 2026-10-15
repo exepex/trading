@@ -75,3 +75,16 @@ def test_a_member_closed_at_look_1_is_not_judged_at_look_2():
     member, source = (V6_BIG_MOVE_5S, "rules"), Recording()
     look = run_look(LOOK_SETTLE_DATE, AT, {member: v6b(125, 9)}, source, {member})
     assert not source.calls and not look.decision.members[FAMILY.index(member)].judged
+
+
+def test_a_point_member_asks_futility_with_the_gate_sets_own_n():
+    from fno.constants import V1_RV_1S
+    from fno.forecast_scoring.v4.inputs import Outcome
+
+    days, outcomes = synthetic_window(125, 9)
+    outcomes = {d: Outcome(0.0 if i < 10 else 1e-4, False, o.vix, o.log_return) for i, (d, o) in
+                enumerate(outcomes.items())}  # fmt: skip
+    rows = paired_rows(values({d: 2e-4 for d in days}), values({d: 1.5e-4 for d in days}), outcomes)
+    source = Recording()
+    member_result(compare(V1_RV_1S, "v1_close_blend", "har_daily", rows, outcomes, 1), LOOK_STOP_REVIEW, source, 1)
+    assert source.calls == [(V1_RV_1S, LOOK_STOP_REVIEW, 125, 115, (8, 12))]  # 10 zero-RV days left out of the gate

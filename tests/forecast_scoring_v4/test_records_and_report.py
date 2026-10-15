@@ -57,3 +57,22 @@ def test_the_report_is_exploratory_before_the_freeze_and_never_fails_on_empty_qu
     assert v6b.scores["weather_m1"].n == 1 and v6b.comparisons[0].pairing.unresolved == 1
     assert report_json(reports, frozen=False, as_of="2025-01-06")["exploratory"] is True
     assert report_lines(reports, frozen=True, as_of="2025-01-06")[0] != EXPLORATORY
+
+
+def test_a_look_before_the_freeze_prints_exploratory_and_writes_nothing_and_after_it_records_once(tmp_path, capsys):
+    from datetime import datetime, timedelta, timezone
+
+    from fno.forecast_scoring.v4.cli import _look
+    from fno.forecast_scoring.v4.thresholds import FrozenToolThresholds
+
+    scoring = V4Scoring(OneForecaster(), Outcomes(), NoRegistrations())
+    records = LookRecords(tmp_path / "v4_scores", tmp_path / "FREEZE_v4.md")
+    at = datetime(2027, 5, 31, 16, 0, tzinfo=timezone(timedelta(hours=5, minutes=30)))
+    assert _look(scoring, records, FrozenToolThresholds(tmp_path), LOOK_STOP_REVIEW, at) == 0
+    assert capsys.readouterr().out.startswith(EXPLORATORY) and not records.path(LOOK_STOP_REVIEW).exists()
+    (tmp_path / "FREEZE_v4.md").write_text("frozen\n")
+    _look(scoring, records, FrozenToolThresholds(tmp_path), LOOK_STOP_REVIEW, at)
+    recorded = json.loads(records.path(LOOK_STOP_REVIEW).read_text())
+    assert recorded["test_a"] == "undecided" and len(recorded["members"]) == 15
+    with pytest.raises(LookRecordExists):
+        _look(scoring, records, FrozenToolThresholds(tmp_path), LOOK_STOP_REVIEW, at)
