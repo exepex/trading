@@ -38,7 +38,8 @@ def root(tmp_path):
 def test_the_committed_state_is_the_13_oct_rs_5_lakh_opening_topped_up_to_rs_20_lakh_on_15_oct():
     """The books opened on 13 Oct 2026 with Rs 5 lakh, before the owner's Rs 20 lakh account (14 Oct). The records stay
     as written; story E1b's top-up (data commit 400d6921, 15 Oct 19:29 IST) added Rs 15 lakh each, so the capital in
-    force from the 16 Oct decision is the profile's Rs 20 lakh, and nothing was ever traded."""
+    force from the 16 Oct decision is the profile's Rs 20 lakh (15 Oct's 15:00 decision still had Rs 5 lakh), and
+    nothing was ever traded."""
     assert BOOKS == ("book1_rules", "book2_hybrid", "book3_ai")  # the names the stories use (epic E)
     for book in BOOKS:
         account = build_paper_account(book)  # the repository's own journal/<book>/account/
@@ -47,6 +48,7 @@ def test_the_committed_state_is_the_13_oct_rs_5_lakh_opening_topped_up_to_rs_20_
         assert (top_up["kind"], top_up["amount_rs"], top_up["filled_at"][:10]) == ("capital_top_up", "1500000.0",
                                                                                  "2026-10-15")  # fmt: skip
         assert account.started and account.capital() == 2_000_000.0 == paper_account_rs() and account.fills() == []
+        assert account.capital(datetime(2026, 10, 15, 15, 0, tzinfo=IST)) == 500_000.0  # 15 Oct's decision: before it
         summary = json.loads(account.file("positions.json").read_text())
         assert summary["open_trades"] == [] and summary["cash_rs"] == 2_000_000.0 == summary["closed_equity_rs"]
         history = account.equity_history()

@@ -492,3 +492,30 @@ README, which merged automatically.
 - **Notes:** minor 1 (the pacing pin), and the 106-session high/low observation.
 - **Rule 8, after the merge:** the real `backfill` of the full range, then `backfill-verify`. Its counts must equal this
   dry run's, or show any difference as CHANGED lines. I check that in the merge check.
+
+## Addendum 8 (15 Oct 2026, judge D): rule 8 for A16b, the real back-fill on `main` (1d68c447)
+
+**Criterion 14 / rule 8: MET.** The real run equals addendum 7's dry run in every count.
+
+**Counts, from the committed files (my own count of `research/data/intraday/rv-candle/`).**
+- 1,680 files and 1,680 rows: 1,661 `ok` and 19 `void`. Every row has provenance `backfilled`.
+- Void reasons: `no_previous_close` 10, `missing_candles` 8, `no_1m_check` 8, `outside_nse_range` 5.
+- Voids by year: 2020 5, 2021 2, 2022 2, 2024 4, 2025 4, 2026 2.
+- All identical to addendum 7. 7 Mar 2022 is again void with `nse_high_gap` -251.60.
+
+**The manifests in the same commit.** `groww-candles/nifty-15m.csv` has 28 windows and `nifty-1m.csv` 1,680 days.
+- The builder says the dry run showed 29 windows because it resumed from a 2020-only folder. That explains the only
+  field difference reported (`copy_15m` on 28-31 Dec 2020): the same candles, cut into a different window file.
+- The 1-minute copies are content-addressed, so they cannot differ silently.
+
+**Drive copies, my own read-only check with this session's Drive credentials.**
+- 4 of the 28 15-minute windows (first, 2022, 2024, last) and 8 random 1-minute days: each file read from Drive has
+  the SHA-256 and size of its manifest row. 12 of 12 match.
+- My full `python -m fno intraday backfill-verify` run did not finish inside my 25-minute limit, with no output by
+  then. So the full-verify result ("every candle-close row equals its Drive copies", exit 0) is the builder's, from
+  main. I checked the sample above in its place.
+
+**Notes carried over (not findings).**
+- Minor 1, the pacing pin, is still undone.
+- Groww's highs and lows lie beyond NSE's on 106 ok sessions; read `nse_high_gap` / `nse_low_gap` before using them.
+- These rows are `backfilled` and never live inputs (decision 56). G7 reads only `rv/`, as checked in judge 127.
