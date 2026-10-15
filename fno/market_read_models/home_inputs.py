@@ -6,10 +6,11 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, time
 from pathlib import Path
 
 from ..books.account import PaperAccount
+from ..models import IST
 
 BOOK_FAMILIES = (("rule", "F&O Book 1"), ("hybrid", "F&O Book 2"), ("ai", "F&O Book 3"))  # books 1, 2, 3 (W10)
 NO_APPROVED_NOTE = (
@@ -49,9 +50,10 @@ class BooksReader:
         family, name = BOOK_FAMILIES[number - 1]
         account = PaperAccount(self.root, book)
         rows = [r for r in account.equity_history() if date.fromisoformat(r["date"]) <= day]
-        start = account.starting_cash() if account.started else self.paper_account_rs
         if not rows:  # the book had not opened by then: its opening balance, nothing traded
-            return BookFigures(number, family, name, start, 0.0, 0)
+            opening = float(account.ledger_rows()[0]["amount_rs"]) if account.started else self.paper_account_rs
+            return BookFigures(number, family, name, opening, 0.0, 0)
+        start = account.capital(datetime.combine(day, time.max, IST))  # capital in force that day: never pnl (E1b)
         value = float(rows[-1]["marked_equity_rs"])
         return BookFigures(number, family, name, value, round(value - start, 2), int(rows[-1]["open_trades"]))
 

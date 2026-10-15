@@ -132,7 +132,7 @@ def test_a_book_whose_session_trades_are_unknown_fails_closed():
 @pytest.mark.parametrize(("opened_with", "ok"), [(START, True), (500_000.0, False), (START + 0.01, False)])
 def test_a_book_opened_with_any_other_cash_than_rs_20_lakh_trades_nothing(opened_with, ok):
     the_book = book()
-    the_book = replace(the_book, state=replace(the_book.state, starting_cash=opened_with))
+    the_book = replace(the_book, state=replace(the_book.state, capital=opened_with))
     verdict = PaperAccountSize(CAPS.paper_account_rs).check(NEW, the_book, MARKET)
     assert CAPS.paper_account_rs == START == 2_000_000.0 and verdict.ok is ok
     assert ok or "no trade until the owner decides" in verdict.reason
