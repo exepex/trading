@@ -68,7 +68,14 @@ E4c/E4d builder (0134MoC6f7aAJVcHRBiyATo6, dashboard `web/`). One builder per fu
    not already public. **Owner question:** (a) accept the weather levels as public (they already are), or (b) make
    them private from now on (code levels and future records' `reaches` moved to Drive; git history keeps every past
    value public). Recommendation (a), reasoning only: (b) costs an M1 change and hides only future values of a rule
-   whose past values stay public.
+   whose past values stay public. The question also covers the probability rule (P2 builder, 16 Oct): the colour
+   follows the chance of a 2% move against its usual rate (RED and AMBER at fixed floors and multiples), so a day's
+   probability, base rate and colour, shown together over about 2,400 days of `weather_history`, let that rule be
+   read back. Under (a) that is fine; under (b) the history page drops either the probabilities or the colour, and
+   today's page shows one of them only. **Drivers' `push`** is defined without any level: the sign of the driver's
+   change since the previous session (VIX up: riskier), and drivers are ordered by the size of that change against
+   the driver's own typical daily change over the last 250 sessions, never by a model coefficient (which is in the
+   never-sent list).
 5. **Owner-only fields** (`x-visibility: owner`, P1) are published to Azure and shown only on the signed-in dashboard;
    the gateway never imports the F&O screen code: an import-graph test over everything the gateway serves
    (`web/middleware.ts`; under `MB_GATEWAY=1`, `web/lib/tools/gateway.ts` lets through only `app/slack` (POST),

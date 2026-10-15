@@ -36,3 +36,12 @@ runs).
   in the table). My "20 manifests (~21.7k rows)" came from a summary I did not recount; it was wrong.
 - **Notes:** a Drive failure stops the whole publish, public pages included (rule 2 says so); the duplicate register
   row is merged into the screens builder's own row.
+
+## Addendum 2: the P2 builder's threshold points (16 Oct), checked
+
+- **`push`: accepted.** Defined as the sign of the driver's change since the previous session; ordering by the change
+  against the driver's own typical daily change. Never derived from a level or a coefficient (reasoning only: a
+  level-based `push` would be `reaches` under another name).
+- **The probability rule: accepted as part of the owner question.** Colour plus probability plus base rate over 2,400
+  days reveals the colour rule; under (a) fine, under (b) one of them goes.
+- **Levels already public:** already in addendum 1.
