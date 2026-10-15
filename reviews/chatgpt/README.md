@@ -65,3 +65,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 104: E4c entry refusal](review_104_e4c-entry-refusal.md)
 - [Review 105: E2b derived packs](review_105_e2b-derived-packs.md)
 - [Review 106: M1 weather](review_106_m1-weather.md)
+- [Review 107: D3b first timely decision](review_107_d3b-first-timely-decision.md)
