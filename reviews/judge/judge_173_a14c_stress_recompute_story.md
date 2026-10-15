@@ -155,3 +155,23 @@ checkable.
 - **The stated consequence: correct and intended.** If the measured whole-margin maximum is below 1.45, the first run
   holds it, and 1.45 stays until the owner approves the lower value. A `held` row carries the run day as `as_of` with
   the old factor, so holding never makes C2's 30-day freshness lapse.
+
+## Addendum 5 (15 Oct 2026): ChatGPT review 117 applied, at 096c94f5432b61092ead28a19fec3c3ef48c2d52 (f2192b2..096c94f)
+
+**Verdict: PASS.** One note.
+
+- **The fix is right.** A session count is passed by a same-count archive with a different date missing, and by an
+  archive that ends one session early, which would write a fresh `as_of` on stale data and reset C2's 30-day age.
+  - The run now derives the required dates from A7's calendar (regular and special, not muhurat-only) from 2 Jan
+    2020 to the latest session before the run day, and checks each against the A9 manifest. Any gap is named, no row
+    is written, and one alert goes out. `coverage_through` is recorded.
+  - Criterion 8 tests (a) the swapped missing date, (b) the missing last session (no age reset) and (c) the complete
+    case.
+- **Real-data check (mine, read-only).** NSE publishes an `i1` file for the special sessions the calendar names. HEAD
+  requests to NSE's archive returned 200 for 20 Jan 2024, 2 Mar 2024, 18 May 2024, 1 Feb 2025 and 1 Feb 2026, as well
+  as 2 Jan 2020 and 23 Mar 2020. So requiring every regular and special session is satisfiable. I found no evidence of
+  an NSE gap that would block every run.
+- **Note (text consistency).** Criterion 3 still says "a missing day in a holding is named in the report and that entry
+  is excluded, never filled". Under the new coverage check, a missing day refuses the whole run before any entry is
+  computed, so that exclusion path cannot happen. Change criterion 3 to point at criterion 8, or drop its exclusion
+  clause. If NSE ever turns out not to have published a session's file, that becomes an owner decision then.
