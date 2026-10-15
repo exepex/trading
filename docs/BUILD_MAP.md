@@ -65,7 +65,7 @@ work), **gap** (no story yet).
 ## Next actions
 
 1. Mockups: the Forecast lab (37) and the Strategy lab (38), the owner's main decision screen.
-2. G2 + G3: done (judge 54).
+2. G2 + G3 builder, after G1 passes the judge.
 3. Write the missing stories: option-chain read model (32 and 35's F&O block); Manual paper account backend and
    read model (Home); forecast read model for G4's report fields; FII/DII download (NSE's daily FII/DII cash-market
    buy and sell values). India VIX history needs no story (the panel carries it). F&O news waits until its source,
