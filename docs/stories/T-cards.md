@@ -82,7 +82,8 @@ no 15:00 market and no forecast capture (`fno/forecast/capture.py` skips it), so
 2. Status is `NO TRADE` with a reason code and a plain reason; with an empty registry the reason is
    `no_approved_strategy` and the card states the paper trade count (0); with a version at `paper` the card is still
    `NO TRADE` (`trade_fields_not_built`); an unreadable registry or paper account gives `data_check_failed`. No trade is ever invented.
-3. Weather: "Weather: not yet scored (M1 pending)" and no colour word (GREEN, AMBER, RED) anywhere on a v1 card.
+3. Weather: "Weather: not yet scored (M1 pending)", followed by "No new trades while the weather reading is missing
+   (owner rule)." (owner "4 A", 15 Oct 2026), and no colour word (GREEN, AMBER, RED) anywhere on a v1 card.
 4. Forecasts: for each question of the latest committed live capture on or before the day, only the house forecast
    (past average, labelled as the fallback), plus one line counting the other forecasters, each line with its
    back-fill record (calibration bin, count, observed share, Brier) labelled "back-fill, not live", and "live: not enough

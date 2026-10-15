@@ -234,3 +234,53 @@ The stop-rule tracker, the ledger's write-once rule, the item lines and the dry-
 **Verdict: FAIL for 553ab47e1e123e1ac80cf8d1bdf35729f53038e8**, on the data-routine part of MF3 only. Everything else
 from judge 104 is met, including the accepted book pushback. A re-check needs `cap.py` (and wherever the coverage
 comes from) and its tests.
+
+## Addendum 2 (15 Oct 2026): revision 4 at 790bad9b3e3cc30b8ef351b266c607fa236e279e
+
+One commit after 553ab47 (15 files, +295 −35): `routine_coverage.py`, `plan_cost.py`, config, cap, wiring, report and
+tests.
+
+### Gates
+
+- **At 790bad9 (Slack token unset):** 3,335 passed; `ruff check`, `ruff format --check` (735 files) and
+  `check_imports` clean.
+- **Trial merge with `origin/main` (d401037):** it conflicts in `CLAUDE.md`, `fno/cli.py` and `fno/constants.py`, where
+  T1, now merged, appended at the same places. All three are both-sides additions. I resolved them by keeping both
+  sides, with the imports sorted. The merged tree then gives **3,712 passed**, and ruff, format and imports are clean.
+- **The merger must resolve the same way:**
+  - both composition-root lines in `CLAUDE.md`, as one sentence;
+  - both CLI imports, in sorted order;
+  - both constants blocks.
+
+### Items
+
+| Item | Result | Evidence |
+|---|---|---|
+| Addendum 1 must-fix (data routines) | **MET in mechanism** | Each routine named in `budget.data_routines` is expected once per NSE session day. While n of m runs are recorded, the measured level is `unknown`, with the reason. My addendum 1 probe (books 45, development 55, no routine rows) now reads `unknown` with "0 of 3 expected run(s) recorded". With the three session-day rows added the gap clears. A missing calendar year (2027 today) gives "data routines not checked", which is fail-closed. The owner's-figure basis ignores the gap, which is correct. My mutations "routine gap ignored in cap" and "found counts every day" are caught |
+| Plan-cost minor | **MET** | One config value cites the decision row; `from_config` refuses a citation that is not a real row (mutation caught). Rs 20,000 is applied from 2026-10, with nothing before it (mutation caught). A recorded payment of 19,999.99 is flagged "differs" (mutation caught). A month with no payment row shows "Rs 20,000.00 (decided monthly fee (...); no payment row recorded)": labelled, not presented as a recorded payment |
+| Decision 6 (option a) and the "two months" note | Noted | Config now says "the orchestrator's decision while the owner was away, response 113; the owner may change it" |
+
+### Should-fix
+
+1. **The expected runs follow the NSE calendar, but the 3 pm routine runs every day.**
+   - `CLAUDE.md` says the recorder is "started by a scheduled session at about 14:50 IST every day". On a holiday,
+     weekend or muhurat-only day it still runs and prints "not a trading day".
+   - Those runs use session minutes that sit in the measured denominator, and `routine_gap` never expects them. A
+     month whose session-day runs are all recorded reads as "complete" while its non-session-day runs are missing,
+     which overstates the books' share. The bias is small, but it is the same bias addendum 1 closed.
+   - Fix: take the expected days from the routine's real schedule. That is every calendar day for the 3 pm recorder,
+     or the scheduled task's own cron, named per routine in `budget.data_routines`. Also correct the docstring ("runs
+     once on every NSE session day").
+2. **The fail-closed calendar path is untested.** My mutation that turns `CalendarError` into "complete" survived all
+   126 budget tests. Add a test for a month outside the calendar, for example 2027 today.
+
+**Minor:**
+- A routine run is matched by its `--role` text equalling the config name exactly ("3 pm quote recorder"). A typo in
+  `record-usage --role` leaves the run uncounted, which is fail-closed. Say so in the help text, or validate `--role`
+  against `budget.data_routines` when `--purpose data_routines` is given.
+- When A16's 15-minute recorder starts, it must be added to `budget.data_routines`.
+
+**My mutations this round:** 6, of which 5 caught (R3 survived, should-fix 2).
+
+**Verdict: FAIL for 790bad9b3e3cc30b8ef351b266c607fa236e279e** on should-fixes 1 and 2 (small). Everything else in
+judge 104 and addendum 1 is met.
