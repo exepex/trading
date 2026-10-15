@@ -1123,7 +1123,9 @@ shared touch or the owner's timing is seen as capacity-constrained, not as inact
 
 **Scope.** In:
 - **One counter, used three times.** A new class `ExecutionOpportunities` (new module, `fno/desk/execution_outcomes.py`)
-  reads one account's desk records and C1 trade lines and gives, per strategy version and for the whole account:
+  is a pure function over one account's desk event rows and C1 trade lines (no file, Drive or desk I/O inside, so
+  hashing it at S1's freeze pulls in no desk behaviour; S1's owner, 15 Oct). It gives, per strategy version and for the
+  whole account:
   - **opportunities:** every trade with an entry outcome that reached the fill step: `opened`, a partial fill
     (unwound at once) or `not_opened` for any reason, E8's misses included (E8 writes each miss as a `not_opened`
     event with its fixed reason; agreed with E8's builder, 15 Oct). Gate refusals (`refused`: C2, C3, timing, a
@@ -1137,15 +1139,18 @@ shared touch or the owner's timing is seen as capacity-constrained, not as inact
     `MISSED_PRICE_MOVED`, `MISSED_EXPIRED`, `MISSED_FUNDS`, `MISSED_RISK_CAP`, `DECIDED_AFTER_CARD`, imported from E8's
     modules, never copied). A reason the table does not know is counted as "other" with its count, never dropped;
   - **filled-only net:** C1 net per closed completed position (E6's review sample, unchanged);
-  - **net per opportunity:** C1 net of every closed trade among the opportunities (an unwound entry's legging cost
-    included, it is real money; any other miss is 0) over the opportunities that are no longer open. A trade still
-    open is in neither net; it is counted as open (a part of filled).
+  - **net per opportunity:** C1 net of every closed trade among the opportunities over the opportunities that are no
+    longer open. An unwound partial fill enters with its actual C1 net (legging and unwind costs), never as 0: only a
+    true no-fill counts 0 (S1's owner, correction a). A trade still open is neither 0 nor a miss: it is counted apart
+    as "open" (a part of filled) and is in neither net, as S3's `after_cut` does (correction b).
 - **E6's scorecard** shows the block for every card. Its present entry line (`attempts`, `opened`, `not filled`,
   `refused`) is replaced by the block, so there is one count of entries, not two (DRY). The changed report line is
   stated in the claims, not loosened.
-- **S2's board** shows the block in each book's overall section and in each strategy entry (`strategies`). The book's
-  block also states the entry priority: "fixed, the decision's order (Book 1's order list), never reordered after
-  outcomes" (E4d).
+- **S2's board** shows the block in each book's overall section and in each strategy entry (`strategies`), with the
+  gate refusals beside it so nothing vanishes. The block's logic is in the new module; `book_board.py` gains one call
+  for the overall section and one per strategy entry, and `sections.py` (S6's) is not changed. The book's block also
+  states the entry priority: "fixed, the decision's order (Book 1's order list), never reordered after outcomes"
+  (E4d).
 - **E8's `TimingReport`** calls the same class once per view account (agreed with E8's builder, 15 Oct: the class
   takes one account, with no view logic inside). E6 and S2 read the verdict account only (E8 rule 10).
 - **Reported only.** No verdict, review, pause, brake, uncertainty test, do-nothing comparison or random control
@@ -1157,10 +1162,11 @@ Out:
 - any change to how an entry fills or is refused (E4, E4c, E4d, E8);
 - per-section blocks on the board's pilot, head-to-head and segment sections (one line to add later if S1 asks).
 
-**Expected design:** `ExecutionOpportunities(records, trade_lines)` with one method `by_strategy() ->
-dict[str, ExecutionCounts]` and `whole() -> ExecutionCounts`. `ExecutionCounts` is a frozen dataclass (opportunities,
-filled, misses by reason, open, gate refusals, filled-only net, net per opportunity). The reason table and the labels
-are constants in `fno/constants.py`. E6's `execution_costs` keeps the half-spread, legging and pending-exit figures and
+**Expected design:** `ExecutionOpportunities(event_rows, trade_lines)` (callers read the account) with
+`by_strategy() -> dict[str, ExecutionCounts]` and `whole() -> ExecutionCounts`. `ExecutionCounts` is a frozen
+dataclass (opportunities, awaiting fill, filled, misses by reason, open, gate refusals, filled-only net, net per
+opportunity). The reason table and the labels are constants in `fno/constants.py`; E8's reasons are imported from E8's
+modules. E6's `execution_costs` keeps the half-spread, legging and pending-exit figures and
 takes its entry counts from the class. S2's `book_board` adds the block. No new file over 350 lines.
 
 **Acceptance criteria:**
@@ -1187,17 +1193,21 @@ takes its entry counts from the class. S2's `book_board` adds the block. No new 
 unknown reason, an open trade, two strategies, two books; E6 and S2 rendering tests; a planted break per criterion.
 
 **Judge verifies:** plants a miss dropped from the denominator (criterion 1 fails), a gate refusal counted as an
-opportunity (criterion 1), an unknown reason dropped (criterion 3), pooling across books (criterion 5), and E6 and S2
-counting differently (criterion 6).
+opportunity (criterion 1), an unknown reason dropped (criterion 3), an unwound partial fill counted as 0 (criterion
+1), an open trade counted as 0 (criterion 4), pooling across books (criterion 5), and E6 and S2 counting differently
+(criterion 6).
 
-**Open questions (to agree before code):**
+**Agreements before code (both closed, 15 Oct):**
 1. **E8's miss record: closed** (E8's builder, session 01H1CmuW, 15 Oct): `not_opened` with E8's fixed reason, no new
    outcome; `TimingReport` calls this class per view account.
-2. **S1's text** (with its owner, session 0185gR5D): item 10 as its own protocol item, and the new module in
-   `frozen_files` with S2's scoring code; which S6 files the board change touches.
+2. **S1's text: agreed** (its owner, session 0185gR5D, 15 Oct): its own item `execution_opportunities` (added to
+   `REQUIRED_ITEMS`; status "proposal, owner decides" until the owner decides), worded and landed by S1's owner, with
+   `fno/desk/execution_outcomes.py` named explicitly in `frozen_files` (the freezer reads explicit paths only). The
+   board change touches `book_board.py` only and is built after S6's follow-ups merge (`story/s6-followups`), or on
+   main merged first.
 
-**Depends:** E6, S2, E4c, E4d (all merged), E8 (code only) · **Size:** S · **Status:** story text for the judge
-(response 215)
+**Depends:** E6, S2, E4c, E4d (all merged); E8 and S6's follow-ups (code only) · **Size:** S · **Status:** story
+text for the judge (response 215)
 
 ---
 
