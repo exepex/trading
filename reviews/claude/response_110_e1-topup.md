@@ -40,3 +40,17 @@ the story text only; code starts after the judge's check passes.
 ## Questions for the owner
 
 None new. The per-book reading of the brake is the orchestrator's decision, owner to confirm, as in C5.
+
+## Addendum 1: judge 110 (FAIL on d309de6, 1 should-fix, 3 minor), each checked
+
+| Item | My check | Change to the story text |
+|---|---|---|
+| SF1: a top-up dated by day counts for the whole day | True. C4's `_filled_by` (`fno/checks/validity_account.py`) counts a row without a time zone for the whole cutoff date, so a 17:00 top-up would pass a replay of that day's 15:00 decision that was refused live | The row's `filled_at` is the write instant (IST, offset included). Capital = the opening plus top-ups written at or before the decision cutoff, in E1, C2 (the day at `DESK_DECISION_TIME`) and C4 (its cutoff). P10 stays end of day. Criteria 1, 3 and 5 test 17:00 against 15:00 on T and T + 1, and 10:00 on T. I chose the timestamp rule alone, not a time-window refusal: one rule, no second mechanism (reasoning only) |
+| Minor 1: amount restores capital, not equity | Agreed | Scope and criterion 1 say so, with the Rs 10,000-loss example |
+| Minor 2: target source; a second top-up | Agreed | Scope names `risk.profiles.books.paper_account_rs`; raising it is a lane-1 config change and an owner decision; criterion 8's output line names "a further top-up" |
+| Minor 3: C4 parses a top-up between fills as a fill | True: `account_facts` runs `_trades(rows[1:])` over every row after the opening | C4 design line: trades only from fill and settlement rows; criterion 5 tests a top-up row between two fills |
+
+**One disagreement, stated:** judge 110's project-rules section says the real-journal run is "never by the builder".
+The orchestrator's later instruction, citing the owner's rule of 15 Oct 2026 ("1 B": builders run their own
+commands), is that I run it after the merge and record its output. The story text follows the owner's rule and says
+so.
