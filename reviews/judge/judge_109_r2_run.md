@@ -352,3 +352,21 @@ removed or edited.
 3. The run is made from a commit whose study folder equals 02e84d0's (`check_frozen` enforces it), and it runs once.
 After the run: `results.json`, `results.md`, the `DATA_SPEND.md` rows updated to what was read, and my check of the
 results against the protocol.
+
+## Addendum 5 (15 Oct 2026): A12 fill completeness at f296e25484860650b253a5143e7ad85530bd1617
+
+Since 02e84d0, the range touches only `research/data/manifests/board-meetings.csv` and response 109. The study folder is
+byte-identical to 02e84d0 (`git diff --quiet`).
+
+| Check | Result |
+|---|---|
+| A row for every calendar day 2018-12-01 to 2026-10-14 (the last F&O session) | MET: 2,875 days, 0 missing, 0 duplicated; every row in the file has status 200 (3,895 rows including 2005-2007); none after 14 Oct |
+| Append-only | MET: 0 rows removed or changed since adccf53 |
+| Drive files equal their rows | MET: 10 days drawn with seed 20261015 across 2019-2025, each Drive file (`NseBoardMeetingsSource.path_for`) read through the service-account reader, with SHA-256 and size equal to the row: 10 of 10. Bytes hashed only, never parsed |
+| Fill report | In the commit message: 2,875 uploaded, 0 damaged, rejected or unpublished, result "complete" |
+
+**Verdict: the fill condition of addendum 4 is MET.** The run may go ahead in this order:
+1. Take the snapshot today, 14:00-15:00 IST, with adccf53's snapshot files (byte-identical at 02e84d0). Log its printed
+   SHA-256 and Drive path.
+2. Make one `study.py --run --snapshot <path without raw/> <sha256>` from a commit whose study folder equals 02e84d0's.
+3. Commit the results and the `DATA_SPEND.md` rows updated to what was read. Then I check the results.
