@@ -58,7 +58,8 @@ risk:
       # Side(s) of exposure per structure code; a code not listed is unmapped and refused (design 6.1a). A directional
       # spread lists two sides and counts its full maximum loss in both buckets (owner, 15 Oct 2026, "1 B"): a credit
       # vertical [its direction, short_volatility], a debit vertical [its direction, long_volatility]. LC and LP (a
-      # bought option) are not in the owner's words: unmapped, so refused, until the owner decides (response 105).
+      # bought option, a directional bet that gains when movement grows): orchestrator decision, owner to confirm
+      # (owner away, 15 Oct 2026; response 105 addendum 4).
       bucket_sides:
         SF: short_volatility
         SC: short_volatility
@@ -67,6 +68,8 @@ risk:
         CCS: [bearish, short_volatility]   # bear call credit spread
         CDS: [bullish, long_volatility]    # bull call debit spread
         PDS: [bearish, long_volatility]    # bear put debit spread
+        LC: [bullish, long_volatility]     # long call: orchestrator decision, owner to confirm
+        LP: [bearish, long_volatility]     # long put: orchestrator decision, owner to confirm
       margin_max_age_sessions: 1
     # The Manual paper account (owner, 13 Oct 2026; unchanged on 15 Oct 2026): Rs 5 lakh, Rs 10,000 a trade, 3 open
     # trades, Rs 30,000 brake, C2's stress and exposure limits, margins up to 7 days old.

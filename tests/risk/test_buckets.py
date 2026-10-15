@@ -133,10 +133,12 @@ def test_the_repository_maps_str1s_verticals_to_the_owners_two_buckets(code, sid
     assert BUCKETS.buckets_of(code, ["NIFTY26OCT24800PE"]) == tuple(Bucket("NIFTY", s) for s in sides)
 
 
-@pytest.mark.parametrize("code", ["LC", "LP"])
-def test_a_bought_option_stays_unmapped_until_the_owner_decides(code):
-    with pytest.raises(RiskInputError, match=f"structure '{code}'"):
-        BUCKETS.buckets_of(code, ["NIFTY26OCT25300CE"])
+@pytest.mark.parametrize(
+    ("code", "sides"), [("LC", (BUCKET_BULLISH, BUCKET_LONG_VOL)), ("LP", ("bearish", BUCKET_LONG_VOL))]
+)
+def test_a_bought_option_is_its_direction_and_long_volatility(code, sides):
+    """Orchestrator decision while the owner was away (15 Oct 2026), owner to confirm."""
+    assert BUCKETS.buckets_of(code, ["NIFTY26OCT25300CE"]) == tuple(Bucket("NIFTY", s) for s in sides)
 
 
 def test_a_real_bull_put_spread_counts_with_a_held_fly_and_a_held_call_debit_spread(tmp_path):

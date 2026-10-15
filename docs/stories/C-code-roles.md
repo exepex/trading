@@ -320,7 +320,9 @@ options A18); showing the stress line on the card (T1); a Manual account ledger 
 4. A cap only refuses: the decision judges the very proposal it was given, lots unchanged.
 5. Buckets as 6.2: SF/SC NIFTY short volatility, BF NIFTY long volatility; STR1's verticals in two buckets each ("1 B"):
    PCS bullish and short volatility, CCS bearish and short volatility, CDS bullish and long volatility, PDS bearish
-   and long volatility; LC and LP (a bought option) unmapped and refused until the owner decides;
+   and long volatility; LC bullish and long volatility, LP bearish and long volatility (orchestrator decision while
+   the owner was away, 15 Oct 2026, owner to confirm: a bought option is a directional bet that gains when movement
+   grows, so it follows "1 B");
    BANKNIFTY its own group; an unlisted structure, a stock ("5 A": waits for A18), another index or mixed underlyings
    refused as "unmapped bucket".
 6. A held trade's maximum loss equals B2's for the same entry; a not-defined-risk held position is refused.
