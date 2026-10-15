@@ -1211,7 +1211,12 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
 **Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; judge
 by 11 Nov; 1.45 expires after 13 Nov. Then weekly (Sunday), automatic. Bootstrap: story C2d seeds
 `stress_factor.csv` with the owner's 1.45 of 14 Oct (status `applied`, source response 77), so C2 keeps its current
-factor until the first run.
+factor until the first run. **Hard date (orchestrator, 15 Oct):** the code merged and its first row written by about
+7 Nov, a week before every trade is refused from 14 Nov; any threat to that date is reported at once.
+
+**Known limit:** no cache of the files' arrays. An incremental weekly run reads only the files back to the earliest
+holding that ended since the last row (about 35-50 files at about 5 s each, about 4 minutes); only a full run reads all
+of them once (about 2.5 hours). A cache would add a second store for no real saving (orchestrator agreed, 15 Oct).
 
 **Judge verifies:** recomputes one held position's rise by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
