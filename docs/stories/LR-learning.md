@@ -20,15 +20,20 @@ report"), without reading the daily records one by one.
 factory status, drift alarms). Slice A has no paper trades, no loss reviews (LR2) and no drift detection (LR3), so v1
 covers only the three parts named in the REPLAN: forecasts, weather, data health. It **reports and never decides a
 trade**. Every score is **read** from the committed G4 and G8 reports, never recomputed a second way. G4 already posts a
-Monday summary (`forecast-scores.yml`); LR1 reuses that function's text and, if the orchestrator agrees (claims file
-question 1), replaces the Monday post so the owner gets one weekly report, not two.
+Monday summary (`forecast-scores.yml`); LR1 carries that function's text and replaces the Monday post, so the owner
+gets one weekly report, not two (owner, 15 Oct 2026, LR1 question 1). As the REPLAN says, an AI writer turns the
+code-built lines into a short summary in plain words and the devil's advocate checks it (owner, 15 Oct 2026, question
+2: both in v1, the simple way). The code-built lines stay the source of truth and are always posted. The writer
+reuses the AI books' existing fire path and F8's usage record; no second AI caller is built.
 
 **Scope.** In:
 - `python -m fno postmortem weekly [--week-ending YYYY-MM-DD] [--post]`. The week is the A7 regular sessions from
   Monday to Friday of the week that ends on that Saturday (default: the latest Saturday on or before today, IST).
-  Without `--post` it is a dry run: it prints and writes nothing. With `--post` it writes
-  `research/postmortems/<YYYY>/<week-ending>.md` and `.json` and posts the text to #fno-desk
-  (`FNO_SLACK_BOT_TOKEN`, through the existing alert sender of `fno/composition.py`).
+  Without `--post` it is a dry run: it prints the lines and writes, fires and posts nothing. With `--post` it writes
+  the lines to `research/postmortems/<YYYY>/<week-ending>.md` and `.json` and fires the post-mortem writer (below).
+- `python -m fno postmortem publish [--week-ending YYYY-MM-DD]`: one hour later, reads the writer's prose if it came,
+  runs the devil's advocate check, and posts once to #fno-desk (`FNO_SLACK_BOT_TOKEN`, through the existing alert
+  sender of `fno/composition.py`): the checked prose first, then the lines; or the lines only, with one alert line.
 - **Forecasts section.**
   - Protocol v4 (G8): the latest committed report `research/forecasts/v4_scores/<d>.json` with `d` on or before the
     week's end. Per question: its status; per forecaster its scores as the report states them; per comparison with
@@ -60,18 +65,49 @@ question 1), replaces the Monday post so the owner gets one weekly report, not t
   - 15-minute recorder (A16): the number of live session rows in `research/data/intraday/rv/`; below 20 sessions it
     says "not enough data yet (n of 20)", the V1 minimum of the REPLAN;
   - one completeness line: sessions with a complete capture, a card and a weather record, out of the week's sessions.
+- **The AI writer** (the "post-mortem writer" role of design 7.6's stop order):
+  - fired by `postmortem weekly --post` through the existing `RoutineTrigger` interface (`fno/pipeline/trigger.py`,
+    `RoutineFireTrigger`, as the AI books in `fno/ai/fire.py`), with a one-line pointer: the week's Saturday and the
+    SHA-256 of the committed lines file. Only the pointer is sent, never data;
+  - its routine (created by the owner from `docs/stories/LR1-owner-checklist.md`; two repository secrets,
+    `FNO_ROUTINE_POSTMORTEM_TRIGGER_ID` and `FNO_ROUTINE_POSTMORTEM_TOKEN`) reads the committed lines file, checks its
+    SHA-256 against the pointer, writes at most 150 words to `research/postmortems/<YYYY>/<week-ending>_prose.md`
+    with the lines' SHA-256 on its first line, records its own run with F8's
+    `python -m fno budget record-usage --self-timed --purpose books_and_roles --role "post-mortem writer"`, and
+    pushes. Its prompt: plain words, every number in digits and copied from the lines, no advice, no trade, no
+    forecast of its own;
+  - not fired, and the lines posted alone with one line saying why, when: the month's BG1 signal
+    (`accounting/budget/<YYYY-MM>_signal.json`) is `stop` (design 7.6: the writer stops before the advocate and the
+    forecasters), the routine's secrets are missing (`UnconfiguredTrigger`), or the fire fails (`FireFailed`'s reason);
+  - the fire is logged once per week in `research/postmortems/<YYYY>/<week-ending>_fired.json` (the routine's session
+    link, for F8's audit), as `fno/ai/fire.py` does; never retried.
+- **The devil's advocate check** (code, run by `publish`): the prose is posted only when all of these hold, else it is
+  dropped, the lines are posted alone and one alert line names the first failed rule:
+  1. the prose file exists and its first line is the SHA-256 of the committed lines file;
+  2. at most 150 words, no link, no Slack mention (`<@`, `<!`, `<#`), no code block;
+  3. every number in the prose (each run of digits with its decimal point, sign and `%`, dates included) appears as
+     the same text in the lines;
+  4. no number written in words (zero to twenty, "half", "double", "twice"), so rule 3 cannot be dodged.
+  The check is code, not a second AI call: matching each number exactly is a rule, and a rule is cheaper and surer in
+  code (reasoning only). An AI devil's advocate that raises objections in words is T3 (slice B).
+- **Nothing the AI writes can decide a trade:** only `publish` reads the prose file, and only to post it; an AST test
+  fails if any module outside `fno/learning/` names the prose path, and `fno/learning/` imports nothing from
+  `fno/desk/`, `fno/books/`, `fno/risk/` or `fno/checks/`.
 - A week with no regular session (all holidays) gives one line, "no NSE regular session this week", and is still
   written and posted.
 - The report is a record: written once per week. The same bytes again change nothing; different bytes for a week
   already written are refused with one line (re-run after a late file: the next week's report shows the change).
-- A scheduled plain job (no AI), `.github/workflows/postmortem-weekly.yml`, Saturday 10:41 IST: run G8's own
-  `forecast-v4-scores report --as-of <Saturday>` (so a current v4 report exists), then `postmortem weekly --post`, then
-  commit `research/forecasts/v4_scores/` and `research/postmortems/` with the public-record scan on.
+- A scheduled plain job (no AI in the job itself), `.github/workflows/postmortem-weekly.yml`:
+  - Saturday 10:41 IST (owner, 15 Oct 2026): run G8's own `forecast-v4-scores report --as-of <Saturday>` (so a current
+    v4 report exists), commit `research/forecasts/v4_scores/` and the lines files, then `postmortem weekly --post`
+    (fires the writer) and commit the fire log, with the public-record scan on;
+  - Saturday 11:41 IST: pull, `postmortem publish`, commit nothing but the publish record
+    (`<week-ending>_posted.json`: which text was posted and why).
+- `forecast-scores.yml`: its Monday summary post (cron `41 3 * * 1` and its step) is removed; G4's daily scoring and
+  the `forecast-scores summary` command stay.
 
 Out (each with where it goes):
-- An AI writer and the devil's advocate review (REPLAN LR1 text): out of v1. The text is code-built lines only, so
-  there is nothing for an advocate to check yet and no AI cost against BG1's budget. They come with T3 and the F
-  roles in slice B (claims file question 2).
+- An AI devil's advocate that raises objections in words (T3, slice B); v1's advocate is the code check above.
 - Cards with trade outcomes, open positions, loss reviews (LR2), drift alarms (LR3), budget and factory status: slice
   B or later, when those records exist.
 - Groww-vs-NSE agreement and A11 revisions (design 2.1 metrics): not in v1 (Known limits).
@@ -88,15 +124,20 @@ Out (each with where it goes):
     it.
   - `report.py`: `PostMortemBuilder` (joins the sections, puts the EXPLORATORY line first before the v4 freeze) and
     `PostMortemRecords` (write once).
-  - `cli.py` (the command) and `wiring.py` (composition root: the folders, `WeatherRecords`, G7's series, the A7
-    calendar, the alert sender).
-- Reuse, not a second version: G4's `weekly_summary`, G8's report JSON and `EXPLORATORY`, M1's `WeatherRecords`, G7's
+  - `writer.py`: `WriterPointer` (the one-line pointer, a `FiredText`) and `PostMortemWriter` (budget signal, fire
+    through a `RoutineTrigger`, fire log).
+  - `advocate.py`: `ProseCheck` (interface) and `NumberCheck` (the four rules), returning the first failed rule.
+  - `publish.py`: `Publisher` (prose or lines only, one alert, the publish record).
+  - `cli.py` (the two commands) and `wiring.py` (composition root: the folders, `WeatherRecords`, G7's series, the A7
+    calendar, the alert sender, the writer's trigger from its two secrets, the budget signal file).
+- Reuse, not a second version: `RoutineTrigger`/`RoutineFireTrigger`/`UnconfiguredTrigger` and `FireFailed`
+  (the AI books' fire path), F8's `record-usage --self-timed`, BG1's signal file, G4's `weekly_summary`, G8's report JSON and `EXPLORATORY`, M1's `WeatherRecords`, G7's
   `big_move_outcomes`, the A7 calendar, the existing alert sender. Each file under 350 lines.
 
 **Acceptance criteria:**
 1. `postmortem weekly` without `--post` prints the report and writes and posts nothing.
-2. With `--post` it writes the `.md` and `.json` for the week and posts the `.md` text once to #fno-desk; a Slack
-   failure prints "alert NOT sent" and the files are still written.
+2. With `--post` it writes the `.md` and `.json` for the week and fires the writer once; `publish` posts once to
+   #fno-desk; a Slack failure prints "alert NOT sent" and the files are still written.
 3. Every score line equals the number in the committed G4 or G8 report it names (the report's file name is printed);
    LR1 contains no scoring formula (test 7).
 4. "New this week" is the difference of two committed reports' scored counts; with no earlier report it is the full
@@ -113,8 +154,18 @@ Out (each with where it goes):
     line and exit code 1.
 12. No module of `fno/learning/` imports from `fno/desk/`, `fno/books/`, `fno/risk/` or `fno/checks/` (an AST test in
     `tests/learning/`, as test 7).
-13. The workflow runs on Saturday at 10:41 IST, never places orders, uses only `FNO_SLACK_BOT_TOKEN` for Slack, and
-    commits with the public-record scan on (no `--no-verify`).
+13. The workflow runs on Saturday at 10:41 and 11:41 IST, never places orders, uses only `FNO_SLACK_BOT_TOKEN` for Slack, and
+    commits with the public-record scan on (no `--no-verify`); `forecast-scores.yml` no longer posts on Mondays.
+14. The writer is fired once per week with only the pointer; a second `weekly --post` for the same week fires nothing
+    ("already fired").
+15. The writer is not fired when the BG1 signal is `stop`, or its secrets are missing; the fire failing is logged with
+    `FireFailed`'s reason; in each case `publish` posts the lines alone with one line naming the reason.
+16. `publish` posts the prose only when all four advocate rules pass; otherwise the lines alone and one alert line
+    naming the first failed rule; the lines are posted in every case.
+17. No prose file by 11:41: the lines alone, with "writer: no summary received".
+18. Only `fno/learning/publish.py` reads the prose path (AST test); nothing in `fno/learning/` imports the desk, books,
+    risk or checks.
+19. The owner checklist names the routine's prompt, its two secrets and its `record-usage` step.
 
 **Test plan:** fakes for Slack, the calendar and each reader; planted committed reports and records in a temporary
 folder.
@@ -131,6 +182,12 @@ folder.
    (`scores`, `scoring`, `comparison`, `block_bootstrap`); only report JSON and `weekly_summary` are read.
 8. Exploratory line before and after a planted `FREEZE_v4.md`.
 9. A TEST card delivery is not counted.
+10. Writer: a fake `RoutineTrigger` receives exactly the pointer (Saturday and SHA-256, nothing else); `stop` signal,
+    `UnconfiguredTrigger` and `FireFailed` each give their line and no fire; a second fire for the week is refused.
+11. Advocate, one test per rule: a matching prose passes; a wrong SHA line, 151 words, a link, `<!channel>`, a number
+    not in the lines (`41%` where the lines say `40%`), a changed sign (`-0.0042` vs `+0.0042`) and "three days" each
+    fail with their rule named.
+12. Publish: prose plus lines; lines only with each failure line; no prose file; Slack failure.
 
 **Judge verifies:** runs `python -m fno postmortem weekly --week-ending 2026-10-17` on the repository and checks every
 number against the committed report or record it names; reads the import rule; checks the workflow's schedule,
@@ -144,5 +201,11 @@ secrets and commit step.
 - A file committed after Saturday's run shows in the next week's report, not this one (the report is written once).
 - Groww-vs-NSE agreement and A11 revisions are not reported in v1.
 - If Slack is down on Saturday the report is still in the repository; there is no retry.
+- The advocate checks numbers, not meaning: a prose that copies every number right but draws a wrong conclusion in
+  words ("the model is better") passes. The lines are always posted below it as the source of truth; T3's objections
+  come in slice B.
+- The writer's run is counted in F8 by its own timing record only; BG1's coverage check reads the AI books' fire
+  logs, not LR1's, so a missed timing record makes the books-and-roles minutes look lower (one short run a week).
+- The routine and its two secrets are the owner's step; until then every week is "lines only: writer not configured".
 
-**Depends:** G4, G8, M1, T1, A4b, A7 · **Size:** S · **Status:** story text, waiting for the judge
+**Depends:** G4, G8, M1, T1, A4b, A7, F1/G5 (fire path), F8, BG1 · **Size:** S · **Status:** story text, waiting for the judge

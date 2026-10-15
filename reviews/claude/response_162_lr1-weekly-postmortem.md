@@ -37,3 +37,34 @@ forecasts (read from the committed G4 and G8 reports), weather (M1's records plu
 
 Exploratory before the v4 freeze; "new this week" is a count difference, not a weekly score; late files show next
 week; no Groww-vs-NSE agreement or A11 revisions in v1; no Slack retry (the repository copy stays).
+
+## Revision 1 (after the owner's answers, 15 Oct 2026, relayed by the orchestrator)
+
+Owner: Q1 "one report": G4's Monday post is retired and LR1 carries its lines (`forecast-scores.yml` change is part
+of LR1's judged change). Q2: the AI writer and the devil's advocate are **in v1**, the simple way. Q3: Saturday
+10:41 IST. The story text changed in Q1 and Q2; the forecasts, weather and data-health parts are unchanged.
+
+What changed (story text `docs/stories/LR-learning.md`):
+- Two steps: `postmortem weekly --post` (10:41) writes the lines and fires the writer; `postmortem publish` (11:41)
+  checks and posts once.
+- The writer is fired through the existing `RoutineTrigger` / `RoutineFireTrigger` / `UnconfiguredTrigger` and
+  `FireFailed` (the AI books' path in `fno/ai/fire.py`), with a pointer holding only the Saturday and the lines file's
+  SHA-256. Its routine records its run with F8's `record-usage --self-timed --purpose books_and_roles`. It is not fired
+  when BG1's signal is `stop` (design 7.6 stops the post-mortem writer before the advocate). No second AI caller.
+- The devil's advocate is a **code** check of four rules: the SHA line, size and no links or mentions, every number
+  in the prose appears verbatim in the lines, and no numbers in words. Any failure drops the prose: the lines are
+  posted alone with one alert. The lines are posted in every case.
+- Nothing the AI writes can decide a trade: only `publish.py` reads the prose file (AST test).
+
+New claims:
+
+| # | Claim | Evidence |
+|---|---|---|
+| 9 | The fire path is reused, not rebuilt: `RoutineTrigger.fire(pointer: FiredText)` takes any one-line pointer. | Strong: `fno/pipeline/trigger.py`. |
+| 10 | F8 records a fired routine's usage only by its own timing record (`record-usage --self-timed`); tokens are unknown. | Strong: `fno/budget/self_timed.py` docstring. |
+| 11 | BG1's stop order names the "post-mortem writer" before the advocate and the AI forecasters. | Strong: `AI_ROLE_STOP_ORDER` in `fno/budget/constants.py`. |
+| 12 | A code number check is surer than a second AI for "every number matches the lines". | Reasoning only. Its limit (meaning is not checked) is in Known limits. |
+
+Open point for the orchestrator (not blocking the judge): I read "the devil's advocate checks every number in the
+prose against the lines" as a code check. If the owner meant a second AI call, that is T3's objection role and adds
+one more routine plus its budget line; say so and I revise.
