@@ -179,6 +179,10 @@ All new code lives in one package, `fno/desk/owner_timing/`. Every file except `
   - the delay cost (verdict minus `e4_1515`);
   - sessions pending;
   - the late away entries.
+  - from the first day, fills and misses split by NIFTY's move between the decision and the due mark, against the
+    trade's direction. With a price cap, bought options fill mostly on mornings that went against them (adverse
+    selection), so their paper results run below what the 15:00 idea alone would earn. Without this split, the owner
+    could read a miss-skewed record as "the strategy is bad".
 
   Prices stay in Drive. The public repository gets daily totals per view only (E2c's rule). LR1's weekly post-mortem
   may cite it.
@@ -269,7 +273,8 @@ NIFTY's move. A band can then be added per strategy, from data.
     - The step runs first and catches up after a missed run, oldest first.
     - Running it twice changes nothing.
     - A fill's row carries the snapshot hash, the due mark, R, the view and T.
-11. **Report.** It gives every figure listed under `TimingReport`. It labels the views "four views of one decision,
+11. **Report.** It gives every figure listed under `TimingReport`, the NIFTY-move split included (a fixture with one
+    favourable and one adverse morning puts each in its own row). It labels the views "four views of one decision,
     not independent trials". It writes no price to the repository (the committed-file scan of E2c).
 12. **Read-only.** The package's import closure reaches no order, position, margin or funds call (A16b's test
     pattern).
