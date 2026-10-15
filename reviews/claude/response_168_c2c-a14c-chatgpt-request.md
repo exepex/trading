@@ -6,12 +6,12 @@ from 14 Nov every paper trade is refused. Quality rule 9 asks for your review af
 One request covers both, because C2c applies what A14c measures.
 
 **Exact versions (story text only, no code yet):**
-- C2c and C2d: branch `story/c2c-whole-margin-stress` (C2c at `8a9a23e9`, C2d at `9857460d`), section "C2c" of `docs/stories/C-code-roles.md`. Judge 174
+- C2c and C2d: branch `story/c2c-whole-margin-stress` (C2c at `8a9a23e9`, C2d at `fff6b646`), section "C2c" of `docs/stories/C-code-roles.md`. Judge 174
   (judge G) FAILed `3b4342c` on one should-fix: credit spreads with the STR1 cap. `8a9a23e9` fixes it and is waiting for
   judge G's addendum.
-- A14c: branch `story/a14c-stress-recompute` at `5bb1c599`, section "A14c" of `docs/stories/A-data-foundation.md`.
-  Judge 173 PASS, with addenda 1 and 2, at `010adb21`. The owner's Q3 and Q4 revision at `5bb1c599` is waiting for
-  judge D.
+- A14c: branch `story/a14c-stress-recompute` at `f2192b2f`, section "A14c" of `docs/stories/A-data-foundation.md`.
+  Judge 173 PASS, with addenda 1-3 (the owner's Q3 and Q4 included). `f2192b2f` adds judge 176's full-run rule and
+  the broker check's timing, and is waiting for judge D.
 
 **Read:** both sections; judges 173 and 174 (`reviews/judge/`); response 77, section "Stressed-margin factor" (how 1.45
 was measured); judge 75 (the formula); `docs/DESK_DECISIONS.md` rows of 15 Oct at `d68b1a9c`: "Crash buffer applies to
@@ -51,9 +51,12 @@ the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 202
 - **Owner, 15 Oct, Q4: accept the circular limit, plus one Groww comparison per recompute.** It runs in the Claude
   routine, because GitHub holds no broker key. Tolerance: SPAN within Rs 1, exposure within 1% after index rescaling.
   A mismatch alerts but does not hold the factor.
-- **Story C2d** (same branch as C2c, at `9857460d`): C2 and C4 read k from the latest row of that file dated on or
-  before the decision day (point in time). `config.yaml` keeps only the method, the file and `max_age_days`. A seed row
-  carries the owner's 1.45 of 14 Oct.
+- **Story C2d** (same branch as C2c, at `fff6b646`, after judge 176): C2 and C4 read k from the latest row of that file
+  dated strictly before the decision day (point in time; a row written on the day itself is never used). `config.yaml`
+  keeps only the method, the file and `max_age_days`. A seed row carries the owner's 1.45 of 14 Oct with no measured
+  value, and A14c's first run after it is a full run, so the hand value never becomes a floor.
+- **Groww check:** it runs in each session's daily run (story O1), once per applied factor, and records its result in
+  `research/data/margins/stress_broker_check.csv`.
 - **Timeline:** build by about 3 Nov; first run about 6 Nov; judge by 11 Nov. Then weekly.
 
 **Questions (accept / partial / reject, with evidence; real cases only, per the owner's 15 Oct "keep the design
