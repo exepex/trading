@@ -10,7 +10,7 @@ amended on 15 Oct 2026). This file only fixes, before any counted paper result e
 So the gate is frozen before the first counted paper decision of every book (S1's `order` check). A change after the
 freeze is a new protocol version; the pass mark is never lowered because time passed (owner, 14 Oct 2026, principle 4).
 
-Item format: as `PROTOCOL.md` (Value, Status, Reason, Evidence). Items whose Reason names a question (Q1-Q10) need the owner's
+Item format: as `PROTOCOL.md` (Value, Status, Reason, Evidence). Items whose Reason names a question (Q1-Q13) need the owner's
 written answer (questions in `reviews/claude/response_163_rm1-real-money-gate.md`); the others are the builder's
 proposal, which the owner may accept as a set. The gate has no version line: it is versioned with S1's protocol.
 
@@ -24,7 +24,7 @@ Terms used below:
 - **Paper price before pad:** the quote price a paper leg filled at (E8's snapshot ask for a buy, bid for a sell),
   without `FILL_PAD_RS`. Signed so that worse is positive, like every slippage below.
 - **Valid quote:** a recorded ask (for a buy) or bid (for a sell) of the same contract, both sides present, no older
-  than the quote-age limit before the moment it prices (owner question Q12). It comes from the recorders (A16's
+  than 5 minutes before the moment it prices (owner, 15 Oct 2026, Q12). It comes from the recorders (A16's
   15-minute snapshots or the 3 pm recorder, A4) or from the owner's record of Groww's bid and ask at the order (Q12).
   No valid quote means "unknown", which counts as not met; it is never zero and never a pass.
 - **Execution slippage per unit:** a real leg's fill price minus the valid quote at the owner's order time (sells: the
@@ -54,7 +54,7 @@ Terms used below:
      net per risk unit minus the one-sided 95% t quantile × its standard error) is above zero.
   3. **Whole period:** the record's total net is above zero.
 - **Status:** proposal, owner decides
-- **Reason:** 8.3 condition 1. The "and" in 2 is owner question Q6. The t-check is a printed warning on scoreboards (owner, 15 Oct 2026, decision 167);
+- **Reason:** 8.3 condition 1. Both bounds binding is the owner's answer to Q6 (15 Oct 2026). The t-check is a printed warning on scoreboards (owner, 15 Oct 2026, decision 167);
   for real money the proposal makes it a pass condition because a bootstrap of few, skewed positions claims too
   often (some evidence: S1's own note on 6 blocks), and an extra condition can only make the gate stricter.
 - **Evidence:** some evidence
@@ -77,7 +77,7 @@ Terms used below:
   position's loss is at most the real cap. This is a **daily-settlement proxy**, not an executable intraday result. A
   replay that cannot be run (missing data) counts as not met.
 - **Status:** proposal, owner decides
-- **Reason:** 8.3 condition 3; the replay cap is owner question Q7; owner principle 4 (14 Oct 2026) names the 2020 and 2024 crashes.
+- **Reason:** 8.3 condition 3; the replay cap is the real cap at 1 lot, Rs 5,000 (owner, 15 Oct 2026, Q7); owner principle 4 (14 Oct 2026) names the 2020 and 2024 crashes.
 - **Evidence:** reasoning only
 
 ### `fill_honesty` Condition 4: paper fills were not kinder than the market
@@ -107,7 +107,7 @@ Terms used below:
     date, fixed at that one predeclared review (Bonferroni, which is also Holm's first step; valid for one fixed
     family and one look, so a later re-check is a new review with its own count).
 - **Status:** proposal, owner decides
-- **Reason:** The default route is owner question Q4. 8.3 condition 5 (owner decision 8 amended, "B ... => I accept"). With m = 50, route (b) needs a 99.9%
+- **Reason:** Route (a) is the default by the owner's answer to Q4 (15 Oct 2026). 8.3 condition 5 (owner decision 8 amended, "B ... => I accept"). With m = 50, route (b) needs a 99.9%
   bound: about 10 of 10,000 bootstrap resamples set it, so it is noisy; route (a) costs time but is cleaner.
 - **Evidence:** some evidence
 
@@ -135,24 +135,25 @@ Terms used below:
 
 ### `real_test_account` The small test's account, cap and size
 - **Value:** Real account Rs 2,00,000 funded by the owner; per-trade cap Rs 5,000 (2.5%), every charge included;
-  1 lot per trade.
+  1 lot per trade (owner, 15 Oct 2026, Q1 and Q2).
 - **Status:** proposal, owner decides
 - **Reason:** Owner questions Q1 and Q2. 8.4; owner decision 8 requires the exact numbers in writing before the freeze.
 - **Evidence:** reasoning only
 
 ### `real_test_sample` How long the test runs
-- **Value:** The later of (a) max(20, the version's registered number of trades) real trades placed and (b) 6 months
-  from the first real entry.
+- **Value:** The later of (a) max(30, the version's registered number of trades) real trades placed and (b) 6 months
+  from the first real entry (owner, 15 Oct 2026, Q3).
 - **Status:** proposal, owner decides
-- **Reason:** 8.4: "its registered number of trades or 6 months, whichever is later" (decision 8). The floor of 20
-  (S1's paper gate) is owner question Q3; it only matters when a registration names fewer.
+- **Reason:** 8.4: "its registered number of trades or 6 months, whichever is later" (decision 8). The floor of 30
+  is the owner's answer to Q3; it only matters when a registration names fewer.
 - **Evidence:** reasoning only
 
 ### `real_test_pass` The paired real-versus-paper test
 - **Value:** Each real trade is paired with the paper trade of the same card (E8, R = 60, scaled to 1 lot). All four
   must hold at the end:
   1. **Paired net (binding):** d = real net − paper net per paired trade, charges included. The one-sided 95% lower
-     bound of the mean of d (mean − t(0.95, n−1) × SD(d) ÷ √n) is at or above the margin of owner question Q11.
+     bound of the mean of d (mean − t(0.95, n−1) × SD(d) ÷ √n) is at or above −Rs 500 per trade at 1 lot (owner,
+     15 Oct 2026, Q11).
   2. **Prediction floor:** the real trades' mean net per trade is at or above paper mean − t(0.95, m−1) × paper SD ×
      √(1/n + 1/m), from the evidence record's m positions. This is a model-based prediction bound (independent,
      normally distributed trades assumed; option returns are skewed and can cluster, so it is a floor, not a
@@ -160,22 +161,23 @@ Terms used below:
   3. **Execution:** the mean execution slippage per unit over all real legs is at most the paper pad (`FILL_PAD_RS`
      in force) + Rs 0.50; a leg with unknown slippage counts against the test (not met if more than one in ten legs
      is unknown).
-  4. **Discipline:** the owner placed at least 80% of the version's cards in the period; skipped cards are listed and
-     their paper results shown, never counted as real.
+  4. **Discipline:** the owner placed at least 90% of the version's eligible cards in the period (owner, 15 Oct 2026,
+     Q8); every skipped card is listed with its paper net, never counted as real.
   Reported, not judged: the timing gap per leg and its mean, and the paired mean with its two-sided 95% interval.
 - **Status:** proposal, owner decides
 - **Reason:** 8.4 (owner decision 8 amended) asks for a paired test and a prediction interval, never the narrower
   interval of paper's mean; ChatGPT review 118 showed the paired comparison must bind, not only be reported. The
-  margin is Q11, the interval side Q5, the discipline share Q8. Only underperformance fails, so bounds are one-sided.
+  margin (Q11), the one-sided side (Q5) and the discipline share (Q8) are the owner's answers of 15 Oct 2026. Only underperformance fails, so bounds are one-sided.
   Fact: with n = m = 20 and SD Rs 5,000 the prediction floor sits about Rs 2,160 below paper's mean, a weak filter.
 - **Evidence:** some evidence
 
 ### `real_test_stops` When the test stops early
-- **Value:** Stop and report at once when either holds: (a) cumulative real net from the first real entry reaches
-  minus Rs 20,000, every charge included; (b) the mean execution slippage per unit over the legs of any 5
+- **Value:** Stop and report at once when any holds (owner, 15 Oct 2026, Q9: both loss stops): (a) cumulative real
+  net from the first real entry reaches minus Rs 20,000, every charge included; (a2) cumulative real net falls
+  Rs 20,000 below its highest value since the first real entry (peak to trough), every charge included; (b) the mean execution slippage per unit over the legs of any 5
   consecutive real trades exceeds twice the paper pad (legs with unknown slippage left out of the mean and listed). A stop is a fail; a new test needs a new owner decision.
 - **Status:** proposal, owner decides
-- **Reason:** The base of (a) is owner question Q9. 8.4; both numbers are the owner's (decision 8).
+- **Reason:** (a) and (a2) are the owner's answer to Q9. 8.4; both numbers are the owner's (decision 8).
 - **Evidence:** reasoning only
 
 ## Known limits

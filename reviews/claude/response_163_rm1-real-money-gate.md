@@ -84,3 +84,23 @@ The orchestrator answers review 118 in response 171; these are the builder's che
 | Cap fit on arbitrary days | Agreed (strong evidence) | Last 20 eligible opportunities with their own contracts; plus the next proposed trade |
 | Fill honesty against a later snapshot | Partly agreed: a later move is no proof, but the fill's own snapshot is circular. And an independent quote at fill time rarely exists (E8 at ~10:15 from A16; 3 pm recorder near 14:30-14:55) | Split into (a) validity and (b) independent check; the shortfall goes to the owner as Q13 rather than a gate that can never pass |
 | Wording (model-based bound, Bonferroni, settlement proxy) | Agreed | Done; the replay adds C1 charges and the pad. Also corrected 76.9 points as "before charges" |
+
+## 7. The owner's answers (15 Oct 2026, relayed by the orchestrator) and what is still open
+
+Written into the gate: Q1 Rs 2 lakh; Q2 Rs 5,000; Q3 max(30, registered) trades and 6 months; Q4 route (a) second
+untouched period; Q5 one-sided 95%; Q6 bootstrap and t bounds both binding; Q7 replay cap Rs 5,000 at 1 lot; Q8 90%
+of eligible cards, every skip with its paper net; Q9 both stops (−Rs 20,000 cumulative and Rs 20,000 peak to
+trough); Q10 one S1 freeze; Q11 paired bound at or above −Rs 500 per trade; Q12 quote age at most 5 minutes, none
+means unknown.
+
+Not yet answered, so every item's status stays "proposal, owner decides" until they are:
+1. **Q12, source.** With recorders only, A16's snapshots are 15 minutes apart, so about two in three real orders
+   have no recorder quote within 5 minutes and their slippage is unknown; under the 10% unknown-leg limit the test
+   would fail on missing data, not on execution (some evidence: arithmetic on the 15-minute grid). The owner noting
+   Groww's bid and ask at each order (screenshot to Drive) avoids that. Which source?
+2. **Q12, unknown-leg limit:** 10% as proposed?
+3. **Q13:** fill honesty's independent check when fewer than 20 paper legs have a second recorder's quote.
+4. **Q4 scope:** is route (a) the only route, or the default with route (b) still allowed when a registration names
+   it before its first counted entry?
+5. **The unnumbered parts** (scope, the evidence-record definition, `index_benchmark`, the replay windows, the cap-fit
+   rule, `owner_approval`): does the owner accept them as a set?
