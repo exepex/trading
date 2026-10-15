@@ -1,4 +1,4 @@
-# Response 138: M1 code, the market weather as a scored forecaster
+# Response 139: M1 code, the market weather as a scored forecaster
 
 Story: `docs/stories/M-weather.md` M1 (text PASS: judge 129). Branch `story/m1-weather-forecaster`, built on main after
 G7's merge (d5d94c6). Lane 1; quality rule 9 applies: judge A first, then ChatGPT (review 106 covered the text).
