@@ -38,7 +38,7 @@ The history start is the four copies fetched once on 15 Oct 2026 before their te
 adopted with `global-cues adopt` at their own fetch times (06:14:45, 06:17:18, 06:14:54 and 06:17:22 IST). Since
 story A17b, adopt also reads Drive's own `createdTime` of the copy and refuses it unless it falls within 10 minutes
 after the time in its path (it names both times); a store that cannot give the time refuses every adopt. The four
-copies were created 8 to 10 seconds after their path times (checked 15 Oct 2026). Adopt the
+copies were created 4 to 9 seconds after their path times (checked 15 Oct 2026). Adopt the
 full-history copy first: a shorter copy adopted first would make every older date `late` (logged, never inserted).
 A Nasdaq copy's name carries its request's dates, so `--from`/`--to` must equal them. Each private table is a
 folder of write-once CSV parts (one per run that adds rows); its rows are the parts in name order. Its gaps are

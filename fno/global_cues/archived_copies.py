@@ -23,7 +23,7 @@ from .source import GlobalCueSource
 
 COPY_TIME = "%Y/%m/%d/%H%M%S"  # a copy's fetch time, from its path `<YYYY>/<MM>/<DD>/<HHMMSS>_<name>` (IST)
 COPY_PATH = "<dataset>/<YYYY>/<MM>/<DD>/<HHMMSS>_<name>"
-ADOPT_WINDOW = timedelta(minutes=10)  # an upload ends seconds after its fetch; the four copies took 8 to 10 seconds
+ADOPT_WINDOW = timedelta(minutes=10)  # an upload ends seconds after its fetch (the four adopted: 4 to 9 s)
 
 
 class ArchivedCopies:
