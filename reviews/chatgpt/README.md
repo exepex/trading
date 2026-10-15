@@ -55,3 +55,6 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 28: Experiment 1 v2.2, G1 forecast protocol, and thin-slice build order](review_28_2026-10-13-protocols-and-build-order.md)
 - [Review 29: Experiment 1 v2.2 holdout disclosure and forecast live inputs](review_29_2026-10-13-protocol-2-2-and-forecast-inputs.md)
 - [Review 30: G1 v3 append-only panel extension](review_30_2026-10-14-g1-v3-panel-extension.md)
+- [Review 97: design v2 revision 3 — changes required](review_97_design-v2-revision-3.md)
+- [Review 98: design v2 revision 4 — APPROVE](review_98_design-v2-revision-4.md)
+- [Review 100: STR1 one- and two-leg structures](review_100_str1-structures.md)
