@@ -12,6 +12,19 @@ orchestrator's decisions of 15 Oct (response 113), so the judge re-checks it wit
 **Merge order:** after A4b (criterion 3 reads the 15:15 quote file from Drive), then ChatGPT (quality rule 9), then
 the merge. Nothing here is live, posts anything, or places an order.
 
+## Answer to judge 118 addendum 2 (FAIL on `b76be4f`: 2 should-fix, 3 minor)
+
+| Item | Done | Where (code; tests; broken-code proof) |
+|---|---|---|
+| **SF1** A refusal during an account write left the fills applied but not committed, and escaped the steps' handling | **Accepted, design fixed** | `GitAccountSync.write` checks the whole index before `apply` (`_require_no_raw_quote_staged`, `fno/desk/git_sync.py`), so a refusal applies nothing. It is raised through `_stop` as `CheckoutNotDedicated`, an `AccountWriteRefused`, with one alert. `Git.staged()` is now the one source of "what the next commit carries" |
+| | | Tests: `tests/timetable/test_git_sync.py` (`test_a_raw_quote_file_staged_earlier_refuses_the_write_before_anything_is_applied`, for a fill and an exit write: journal byte-identical, nothing committed, one alert); `tests/timetable/test_raw_quote_refusal_run.py` (the daily run: "not filled: the account write was refused ... before any fill was applied", book 2 still fills, the exit step still runs) |
+| | | Mutations caught: the pre-apply check removed; the refusal raised as a plain `RawQuoteCommitRefused` |
+| **SF2** M16 (narrow except) and M18 (one-sided quote) survived | **Accepted, tests added** | `tests/scorecard/test_touches.py`, through the real `RecordedExecutionSnapshots`: a corrupt sidecar (JSONDecodeError) gives one "touch unknown"; a one-sided quote gives one "touch unknown" while the other fill is still averaged (65 units, 0.5); a corrupt snapshot among good ones leaves the good ones averaged. M16 and M18 are now caught |
+| Minor 1: "two" vs three exceptions | **Fixed** | story text |
+| Minor 2: a chain with no rows had no `spot:` item | **Fixed** (a few lines) | The chain list is the sidecar's `expiries`, with the rows as the fallback for older sidecars such as the golden fixtures. A chain with no rows gets an item with no value at the capture's first request (`fno/desk/snapshot_inputs.py` `_spots`; `tests/packs/test_derived_pack.py::test_a_chain_the_sidecar_names_without_rows_gets_an_item_with_no_value`) |
+| Minor 3: the guard is path-based; a staged deletion is refused | **Confirmed and stated** | Kept. An account commit should never carry a deletion of a raw quote file. A4b removes the old 14 Oct CSV in its own commit, made by its builder with `git rm` at its merge, never through `GitAccountSync` or the desk's `Git`. The story now says the guard is path-based because the desk's writers never copy or rename a raw file |
+| For the merge check after A4b | **Planned** | `fno/scorecard/wiring.py` must read snapshots through A4b's hash-checked store, which is `build_quote_store()` once A4b is merged. Today it passes `root / QUOTES_FOLDER...` to `build_execution_snapshots(folder)`. After A4b, `build_execution_snapshots` builds on A4b's `build_quote_store(folder)`, so the store is swapped there with no change in E2b's wiring. I will re-check at the merge that the scorecard path reaches the Drive store, and keep one version of `execution_capture.py` (both stories commit only what the repository holds) |
+
 ## Decisions this story rests on
 
 - **Option B (orchestrator for the owner).** Mid plus spread % gives bid and ask back exactly: 648 of 648 cases on

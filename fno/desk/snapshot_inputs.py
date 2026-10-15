@@ -33,10 +33,11 @@ def _nse_time(text: str) -> datetime | None:
     return None
 
 
-def _spots(rows: list[dict], source: str) -> list[PackItem]:
-    """One NIFTY level per monthly chain; a chain whose rows carry two levels is refused, never averaged, and a chain
-    whose rows carry none still gets its item, with no value, so C3 can name it (one spot per recorded chain)."""
-    chains: dict[str, list[dict]] = {}
+def _spots(rows: list[dict], source: str, expiries: list[str], first_request: str) -> list[PackItem]:
+    """One NIFTY level per monthly chain; a chain whose rows carry two levels is refused, never averaged. A chain the
+    sidecar asked for (`expiries`) whose rows carry no level, or that has no rows at all, still gets its item, with no
+    value, so C3 names it (one spot per recorded chain)."""
+    chains: dict[str, list[dict]] = {expiry: [] for expiry in expiries}
     for row in rows:
         chains.setdefault(row["expiry"], []).append(row)
     items = []
@@ -44,7 +45,8 @@ def _spots(rows: list[dict], source: str) -> list[PackItem]:
         levels = {float(r["spot"]) for r in chain if r["spot"]}
         if len(levels) > 1:
             raise PackError(f"chain {expiry} carries {len(levels)} different spots {sorted(levels)}: nothing packed")
-        arrived = min(r["response_received_at"] for r in chain)  # the level is known with the chain's first row
+        # the level is known with the chain's first row; a chain without rows, at the capture's first request
+        arrived = min((r["response_received_at"] for r in chain), default=first_request)
         level = levels.pop() if levels else None
         items.append(PackItem(f"{SPOT_PREFIX}{expiry}", level, f"{source} spot of chain {expiry}", arrived))
     return items
@@ -79,7 +81,7 @@ class SnapshotInput(CommonInput):
         meta = json.loads(meta_bytes)
         source = f"a4 {self.dataset} {snapshot_id}"
         first_request = min((r["request_sent_at"] for r in rows), default="")
-        items = _spots(rows, source) + [_counts(rows, meta, source)]
+        items = _spots(rows, source, list(meta.get("expiries") or []), first_request) + [_counts(rows, meta, source)]
         items += self._vix(meta, source, first_request) + self._futures(meta, source, first_request)
         provenance = {"dataset": self.dataset, "snapshot_id": snapshot_id, "csv_sha256": sha256_hex(csv_bytes),
                       "meta_sha256": sha256_hex(meta_bytes)}  # fmt: skip

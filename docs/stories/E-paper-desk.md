@@ -163,7 +163,7 @@ Out:
 - books 2-3's per-contract trading inputs: F5, F6 (decided when they trade);
 - paper fills showing live strikes in the public journal: put to the owner by the orchestrator (outside E2b);
 - the fill price itself, which is one side of one quote by design (E4 criterion 1): kept;
-- **two stated exceptions**, put to the owner together with the open question of whether paper fills should move to
+- **three stated exceptions**, put to the owner together with the open question of whether paper fills should move to
   Drive at all:
   1. *an unwound entry* (judge 118 SF1; orchestrator for the owner, response 113): when an entry fails after some legs
      filled (E4 criterion 2), each filled leg is traded back at the same snapshot (a protection bought at the ask and
@@ -225,8 +225,10 @@ the hash-checked store. The guard and the derived pack work the same with either
    with its expiry (test).
 2. C3's spot check gives the same results from the `spot:` items as before from the option items: the 2% limit at,
    just under and just over; the 0.2% agreement at, under and over; no spot (tests). New (orchestrator's decision 4):
-   one spot per recorded chain. A chain whose rows carry no spot keeps its `spot:` item with no value, and a refused
-   `spot:` item counts as missing; C3 names the chain and fails, so the 0.2% agreement is never skipped (test).
+   one spot per recorded chain. The chains are those the sidecar asked for (`expiries`; the rows when an older sidecar
+   has none). A chain whose rows carry no spot, or that has no rows at all, keeps its `spot:` item with no value, and
+   a refused `spot:` item counts as missing; C3 names the chain and fails, so the 0.2% agreement is never skipped
+   (tests).
 3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the three stated exceptions (an unwound
    entry; two accounts on opposite sides of one contract at one snapshot; protection unverified at the opening
    snapshot), no committed desk fill row lets a filled leg's other quote side be worked out: tests build E4's outcomes
@@ -245,7 +247,13 @@ the hash-checked store. The guard and the derived pack work the same with either
    symlink pointing into it are refused too. Because a commit takes the whole index, every commit through `Git`
    (the daily run's committer and the account sync) also checks every staged file after its add: a folder holding a
    quote file, or a quote file staged earlier by anything else, is refused, this add is undone and nothing is
-   committed (tests: refused, allowed, mixed list, empty list, `.CSV`, `../`, symlink, folder, earlier-staged file).
+   committed. An account write checks the whole index before it applies anything (judge 118 addendum 2), so a
+   refusal there is an `AccountWriteRefused` the fill and exit steps handle ("not filled", an alert, the other books
+   and the exits go on) and the journal is untouched (tests: refused, allowed, mixed list, empty list, `.CSV`, `../`,
+   symlink, folder, earlier-staged file, account write before apply, the daily run's fill and exit steps). The guard
+   is path-based on purpose: the desk's writers never copy or rename a raw file, so the only way a raw quote reaches a
+   desk commit is the quote folder itself; a staged deletion there is refused too, which is safe because A4b's removal
+   of the old raw file is its own commit and never goes through the desk's `Git`.
 6. E2's own criteria still hold on schema 2: no book data, byte-identical rebuilds, cutoff refusals named, the
    opportunity set unchanged (existing tests, updated only where they name option items).
 7. No reader of the committed pack uses per-contract quote figures (a test lists every `option:` lookup in `fno/` and

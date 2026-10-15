@@ -42,6 +42,7 @@ class CheckoutNotDedicated(GitError):
 
 DIRTY = "{book}: account write refused: the checkout holds other work ({what}); it is never reset over"
 UNEXPECTED = "{book}: rejected push NOT reset: {count} commit(s) ahead, not only this write's; resolve by hand"
+RAW_STAGED = "{book}: account write refused before any fill was applied: {reason}"
 NOT_KEPT = "{book}: rejected push NOT reset: the reset would overwrite a local edit ({error}); resolve by hand"
 
 
@@ -67,9 +68,8 @@ class Git:
         self.guard.check(paths)
         added = [self.relative(p) for p in paths]
         self("add", "--", *added)
-        staged = self("diff", "--cached", "--name-only", "-z").stdout.split("\0")
         try:
-            self.guard.check([self.root / name for name in staged if name])
+            self.guard.check(self.staged())
         except RawQuoteCommitRefused:
             self("reset", "-q", "--", *added, check=False)
             raise
@@ -77,6 +77,11 @@ class Git:
             return False
         self("commit", "-q", "-m", message)
         return True
+
+    def staged(self) -> list[Path]:
+        """Every path in the index that differs from HEAD (a staged deletion too): what the next commit would carry."""
+        names = self("diff", "--cached", "--name-only", "-z").stdout.split("\0")
+        return [self.root / name for name in names if name]
 
     def push(self) -> bool:
         return self("push", "-q", "origin", f"HEAD:{self.branch()}", check=False).returncode == 0
@@ -125,6 +130,7 @@ class GitAccountSync(AccountSync):
         branch, folder = self.git.branch(), book_folder(self.git.root, book)
         for _ in range(PUSH_ATTEMPTS):
             self._require_dedicated(book, folder)
+            self._require_no_raw_quote_staged(book)
             self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
             pulled = self.git("rev-parse", "HEAD").stdout.strip()
             with self.open_journal(book) as journal:
@@ -142,6 +148,16 @@ class GitAccountSync(AccountSync):
         other = self.git.other_work(folder)
         if other:
             self._stop(DIRTY.format(book=book, what=other))
+
+    def _require_no_raw_quote_staged(self, book: str) -> None:
+        """Checked before anything is applied (judge 118 addendum 2): a raw quote file already in the index would be
+        swept into this account commit, so the write is refused as one the desk handles ("not filled", an alert, the
+        other books and the exits go on) and the journal is left exactly as it was. The account writer itself never
+        copies a raw file, so after this check the add of the book folder cannot stage one."""
+        try:
+            self.git.guard.check(self.git.staged())
+        except RawQuoteCommitRefused as refused:
+            self._stop(RAW_STAGED.format(book=book, reason=refused))
 
     def _reset_keeping_edits(self, book: str, target: str) -> None:
         done = self.git("reset", "-q", "--keep", target, check=False)
