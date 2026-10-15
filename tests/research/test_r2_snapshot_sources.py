@@ -192,3 +192,38 @@ def test_the_run_rebuilds_snapshot_legs_from_the_raw_file_and_counts_missing_pre
     with pytest.raises(SnapshotMismatch):
         rebuild(data, "groww/x.json", "0" * 64, chains)
     assert symbols(data) == {"ABC"} and taken_on(data) == date(2026, 10, 15)
+
+
+def test_no_previous_row_rule_uses_exactly_20_percent_and_refuses_just_over():
+    from r2study.snapshot_legs import SnapshotLegs
+
+    legs = [quoted_leg() for _ in range(10)]
+    assert SnapshotLegs("p", "s", "t", legs=legs, no_previous_row=2).usable  # exactly 20%
+    assert not SnapshotLegs("p", "s", "t", legs=legs, no_previous_row=3).usable  # just over
+    assert not SnapshotLegs("p", "s", "t", legs=[], no_previous_row=0).usable  # no legs at all
+
+
+def quoted_leg():
+    from r2study.spreads import QuotedLeg
+
+    return QuotedLeg(0, 10.0, 9.5, 10.5, 100.0, 100.0, 100)
+
+
+def test_check_frozen_refuses_a_changed_protocol_or_amendment(tmp_path, monkeypatch):
+    import shutil
+    import subprocess
+
+    import r2study.wiring as wiring
+
+    copy = tmp_path / "study"
+    shutil.copytree(wiring.FOLDER, copy, ignore=shutil.ignore_patterns("__pycache__", ".cache"))
+    monkeypatch.setattr(wiring, "FOLDER", copy)
+    clean = subprocess.CompletedProcess([], 0, stdout="", stderr="")
+    monkeypatch.setattr(wiring.subprocess, "run", lambda *a, **k: clean)
+    wiring.check_frozen()  # the committed files: frozen
+    for name in ("PROTOCOL.md", "AMENDMENT_1.md", "AMENDMENT_2.md"):
+        original = (copy / name).read_text()
+        (copy / name).write_text(original + "\nchanged after the freeze\n")
+        with pytest.raises(wiring.NotFrozen, match=name):
+            wiring.check_frozen()
+        (copy / name).write_text(original)

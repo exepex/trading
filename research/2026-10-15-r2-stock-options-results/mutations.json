@@ -406,5 +406,17 @@
   "old": "    if day in sessions.irregular:\n        return sessions.after(day)\n",
   "new": "",
   "test": "test_r2_timing_events.py::test_a_market_hours_filing_on_a_muhurat_day_is_after_hours"
+ },
+ {
+  "file": "snapshot_legs.py",
+  "old": "return bool(self.legs) and self.no_row_share <= MAX_NO_PREVIOUS_ROW_SHARE",
+  "new": "return bool(self.legs) and self.no_row_share < MAX_NO_PREVIOUS_ROW_SHARE",
+  "test": "test_r2_snapshot_sources.py::test_no_previous_row_rule_uses_exactly_20_percent_and_refuses_just_over"
+ },
+ {
+  "file": "wiring.py",
+  "old": "    \"PROTOCOL.md\",\n",
+  "new": "",
+  "test": "test_r2_snapshot_sources.py::test_check_frozen_refuses_a_changed_protocol_or_amendment"
  }
 ]
