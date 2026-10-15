@@ -29,9 +29,13 @@ order or fill (no entry or exit code path is wired into it); LM2's `intraday_exi
 E8); the daily RED weather alert (M2); a second weather or risk model; any schedule or routine change by this builder.
 
 **Expected design** (design 4.2's interfaces; reuse first):
-1. **Where it runs (no new schedule):** one step right after each A16 mark in the same routine run, reading that mark
-   through A16's reader (`SnapshotFiles` / `IntradayQuoteSource`, the ledger-named copy, never a bare file name).
-   Placement agreed with the A16 builder (open point 1).
+1. **Where it runs (no new schedule, no change to the owner's routine prompt):** A16's recorder gains one observer
+   port, `MarkObserver.after_mark(day, mark, document | None)`, called in `IntradayRecorder` after each mark settles,
+   with the parsed `SnapshotDocument` already in memory (no Drive re-read, no bare file name); a no-op by default,
+   LM1's observer wired in `fno/intraday/wiring.py`. The recorder isolates it: any exception is caught and named by
+   class only, and the recorder's own rows, commit and alerts go ahead; the failure shows in LM1's heartbeat. The port,
+   its isolation and its test are the A16 builder's (lane 1, their judge); the observer is LM1's (agreed 16 Oct). A
+   mark that is stale or failed (document `None` or status not good) is "no check", never a price.
 2. **`PositionMonitor`** runs one `MonitorCheck` per condition (strategy pattern) over every open position of every
    book and shadow account (E1's `PaperAccount`, read-only). Wired only in a new `fno/monitor/wiring.py`. Staleness
    is checked first: a stale or failed mark gives the staleness WARNING and no other check runs on it.
@@ -43,8 +47,8 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
 | Short strike near | NIFTY within 0.5% of a short strike of an open position | DANGER | index quote, the position's legs |
 | Exit rule reached | a registered exit rule (E4's `ExitRule`: profit target, stop loss, time exit) would close it on this mark | DANGER, information only (below) | E4's rules on the mark's marks |
 | Big move | NIFTY at least 1.5% from the previous close | DANGER | index quote, A13's previous close |
-| VIX jump | VIX up at least 10% in the session | DANGER | an intraday VIX value (open point 3) |
-| Weather upgrade | the weather upgraded during the session (AMBER: WARNING; RED: DANGER) | WARNING / DANGER | M1's own rule on the mark (open point 4) |
+| VIX jump | VIX up at least 10% in the session | DANGER | **waits** for an intraday VIX source (none in A16's mark; not added during A16's trial); nothing built |
+| Weather upgrade | the weather turned RED (DANGER) or AMBER (WARNING) after the day's live record | WARNING / DANGER | **waits** for an M1 intraday rule (a new M1 method version; M1 rates one record a session, before 14:30); nothing built |
 | Quotes stale | no good mark for 30 minutes (A16's statuses) | WARNING | A16's ledger |
 | Expiry near | an open position's expiry or physical settlement is within its registered window | WARNING | the position, the NSE calendar |
 
@@ -71,14 +75,17 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
      position, same rule, same session); market and loss DANGER and WARNING alerts continue to the last mark (15:30),
      under the hourly limit, because the daily run reports only what its 15:15 snapshot decided and a position may stay
      open overnight (O1/O2 builder, 16 Oct);
-   - the daily RED weather alert is M2's; the monitor alerts only an upgrade during the session.
+   - the daily RED weather alert is M2's (today's live record RED after a session that was not, sent by O1's
+     `weather_alert` step, record `research/alerts/weather/<YYYY>/<d>.json`); once M1 has an intraday rule, the monitor
+     alerts only a colour reached after that record, and nothing when the day's record was already RED.
 6. **Silent with nothing to watch:** with no open position the monitor runs no check, sends nothing and only writes
    its heartbeat (`positions: 0`). It is wired from the start condition: no code runs before the first position.
-7. **Heartbeat and "monitor silent":** after every mark it checks, the monitor writes
-   `research/data/monitor/heartbeat.json` (mark time, finish time, positions watched, alerts sent). The existing
-   silence checker (A16's `heartbeat-check`, `fno/intraday/heartbeat.py`: 30 minutes, 09:45-15:45 IST) gains this
-   second heartbeat, and reports "monitor silent" (WARNING) only while positions are open (6.5). One checker, not a
-   second one (open point 1). The interface O2's suite drives (`tests/e2e/test_monitor_silent.py`, with a fake clock):
+7. **Heartbeat and "monitor silent":** after every mark, the monitor writes `research/data/monitor/heartbeat.json`
+   (mark time, finish time, positions watched, alerts sent, the observer's failure class if any) through a
+   `MonitorHeartbeat` in `fno/monitor/` that reuses `fno/intraday/heartbeat.py`'s `heartbeat_state`, `SILENT_AFTER`
+   (30 minutes) and its 09:45-15:45 window, never a copy (A16 builder, 16 Oct). It reports "monitor silent" (WARNING)
+   only while positions are open (6.5). It runs wherever A16's silence check already runs, so one checker reads both
+   heartbeats with no new schedule (open point 1, with the O8 builder). The interface O2's suite drives (`tests/e2e/test_monitor_silent.py`, with a fake clock):
    `MonitorSilence.check(now) -> SilenceResult` (silent or not, minutes since the last finish, positions open). The
    WARNING's exact text: "Action: check the position monitor's routine (story LM1). WARNING, monitor silent: no
    monitor heartbeat for {minutes} minutes while {positions} positions are open; alert_only strategies continue and
@@ -91,11 +98,13 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    alarms (conditions gone at the next mark). Written to `research/data/monitor/replay/<week>.md`; numbers only.
 
 **Open points, to agree before the judge (asked 16 Oct; answers in response 217):**
-1. A16 builder: the step's place in the recorder's run; the second heartbeat in A16's checker.
+1. A16 builder: **agreed 16 Oct** (the observer port, `MonitorHeartbeat` beside A16's heartbeat). Still open with the
+   O8 builder: where `MonitorSilence` runs (proposed: with A16's existing silence check).
 2. O1/O2 builder: **agreed 16 Oct** (alert path through `ReportedAlerts`, the boundary after the execution snapshot,
    the monitor-silent interface and text above).
-3. A16 builder: an intraday India VIX value; if none exists, the VIX check waits for a source and nothing is built.
-4. M1/M2 owner: whether M1 can read the weather on a mark; if not, the weather check waits for M1's intraday rule.
+3. A16 builder: **answered 16 Oct**: no VIX in the mark; the VIX check waits (a later small A16 story after the trial).
+4. M2 builder: **answered 16 Oct**: no intraday weather reading in M1; the weather check waits for an M1 rule; the
+   boundary with M2's daily alert is above.
 5. E8 builder: the information-only exit alert never becomes E8's T.
 
 **Acceptance criteria:**
@@ -103,7 +112,8 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    check).
 2. With no open position, a mark writes only the heartbeat (`positions: 0`) and sends nothing.
 3. Each check fires on a fixture mark at its threshold and stays quiet just below it (50%/80% loss, 0.5% strike,
-   1.5% move, 10% VIX if built, each exit rule, weather upgrade if built, 30 minutes stale, expiry window).
+   1.5% move, each exit rule, 30 minutes stale, expiry window); the VIX and weather checks exist only as "waits"
+   lines and send nothing.
 4. A stale or failed mark gives only the staleness WARNING; an unmarked leg gives "cannot mark", never a value.
 5. The same condition on the same position alerts once per hour; the 11th DANGER in a session starts the 30-minute
    summary.
@@ -132,6 +142,6 @@ first-line rule and limits; no second heartbeat checker or alert sender exists.
   silences both; an independent host is a later decision, not LM1's.
 - A16 keeps contracts within 6% of the index, so a far leg can be unmarked; the monitor says so instead of guessing.
 
-**Depends:** A16 live (and its 5-session trial), E1 accounts, E4's exit rules, T1 (the card's uptime line), O1's
+**Depends:** A16 live and past its 5-session trial (from 16 Oct), A16's `MarkObserver` port, E1 accounts, E4's exit rules, T1 (the card's uptime line), O1's
 alert path; the first open paper or shadow position · **Status:** story text, open points with their owners
 (`reviews/claude/response_217_lm1-position-monitor.md`)
