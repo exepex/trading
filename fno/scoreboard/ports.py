@@ -35,3 +35,8 @@ class ProtocolStatus:
             return "no evaluation protocol: figures provisional"
         state = "frozen" if self.frozen else "not frozen: figures provisional"
         return f"protocol v{self.version}, {state}"
+
+
+class MatchedShadowDecisions(Protocol):
+    def records(self, day: date) -> list[dict] | None:
+        """Book 3's F7 shadow entries of the day in D3's record form (story S3); None while F7 does not exist."""

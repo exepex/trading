@@ -335,6 +335,7 @@ CARD_SESSION_KINDS = (
 
 # Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
 RUN_LOG_DECISIONS_STEP = "decisions"
+RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)
 
 # The daily health check (story O8, fno/health/): its statuses and its own run record
 HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", "unknown"
