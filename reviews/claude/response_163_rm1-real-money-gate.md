@@ -110,3 +110,7 @@ A16 as fallback; 5 minutes for real orders, 15 for recorder-only uses; more than
 Q13 (a) (validity binding, independent check reported). Depth was added to a valid quote at the owner's word
 ("fresh, two-sided, depth"); A16 keeps Groww's bid and offer quantities in its raw answer (`fno/providers/groww.py:83`).
 Still open: point 4 (Q4 scope) and point 5 (the unnumbered parts as a set).
+
+**All answered (15 Oct 2026):** Q4 the second untouched period is the only route (route (b) removed), and the
+unnumbered parts accepted as a set (row 793aeb54). Every gate item's status is now "decided by the owner on
+2026-10-15", citing rows 946bb8e7, f0f6d2d8 and 793aeb54.

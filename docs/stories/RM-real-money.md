@@ -77,8 +77,8 @@ Out:
 
 **Test plan (each criterion with a broken-code proof, rule 4):** completeness on a fixture gate (missing item, empty
 field, bad label, "tbd"); freeze refused on an undecided gate (no record, no ledger row), freeze written on a decided
-gate with the gate's hash; `verify` flags a one-byte gate edit; the import test; the real draft gate passes
-`check` (complete) and fails `check --decided` (not decided) until the owner answers.
+gate with the gate's hash; `verify` flags a one-byte gate edit; the import test; the real gate passes `check
+--decided` (complete and decided by the owner).
 
 **Judge verifies:** the text against 8.3, 8.4 and the decision rows (criterion 1's table); each owner question is
 asked with options, never answered by the builder; the freeze refusal by planting an undecided status.
@@ -92,5 +92,6 @@ asked with options, never answered by the builder; the freeze refusal by plantin
 - The gate's conditions read data that does not exist yet (E8 fills, S6's benchmark, A16 snapshots); missing data
   counts as "not met", never as a pass.
 
-**Depends:** S1 (draft built), S6 (text on main), E8 (story) · **Size:** S · **Status:** story text and draft gate
-revised for judge 171's should-fixes and ChatGPT review 118; owner questions Q1-Q13; code waits for a text PASS, ChatGPT and the orchestrator's go
+**Depends:** S1 (draft built), S6 (text on main), E8 (story) · **Size:** S · **Status:** story text PASS (judge 171
+add. 1); ChatGPT review 118 changes made; every gate item decided by the owner on 15 Oct 2026 (rows 946bb8e7,
+f0f6d2d8, 793aeb54); final delta with judge A; code waits for the orchestrator's go

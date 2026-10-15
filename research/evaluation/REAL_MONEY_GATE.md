@@ -1,20 +1,22 @@
 # Real-money gate (story RM1)
 
-**Status: DRAFT, not frozen. Nothing here allows, enables or places a real order.** The tool never places, modifies or
+**Status: every item decided by the owner on 15 Oct 2026; not frozen until S1's freeze hashes it. Nothing here
+allows, enables or places a real order.** The tool never places, modifies or
 cancels an order; the owner places every real order by hand (design v2 8.4, `docs/DESK_DECISIONS.md` decision 8 as
 amended on 15 Oct 2026). This file only fixes, before any counted paper result exists, when a strategy version may be
 *put to the owner* for the small real-money test, and how that test is judged and stopped.
 
-**Freeze.** This file is listed in evaluation protocol S1's `frozen_files` and is hashed by S1's freeze
+**Freeze.** This file joins evaluation protocol S1's `frozen_files` (owner, Q10) and is hashed by S1's freeze
 (`python -m fno evaluation freeze`), which refuses while any item below is not complete or not decided by the owner.
 So the gate is frozen before the first counted paper decision of every book (S1's `order` check). A change after the
 freeze is a new protocol version; the pass mark is never lowered because time passed (owner, 14 Oct 2026, principle 4).
 
-Item format: as `PROTOCOL.md` (Value, Status, Reason, Evidence). Items whose Reason names a question (Q1-Q13) need the owner's
-written answer (questions in `reviews/claude/response_163_rm1-real-money-gate.md`); the others are the builder's
-proposal, which the owner may accept as a set. The gate has no version line: it is versioned with S1's protocol.
-The owner's answers to Q1-Q12 are the `docs/DESK_DECISIONS.md` row "RM1 real-money gate numbers" (15 Oct 2026, commit
-946bb8e7), and the row "RM1 Q13 and the Q12 quote source" (15 Oct 2026, commit f0f6d2d8); the review 118 changes are answered in `reviews/claude/response_171_chatgpt-review-118-answer.md`.
+Item format: as `PROTOCOL.md` (Value, Status, Reason, Evidence). The gate has no version line: it is versioned with
+S1's protocol. The owner's decisions are the `docs/DESK_DECISIONS.md` rows of 15 Oct 2026 "RM1 real-money gate
+numbers" (commit 946bb8e7), "RM1 Q13 and the Q12 quote source" (f0f6d2d8) and "RM1: the second untouched forward
+period is the only route; the unnumbered parts accepted as a set" (793aeb54); the questions and both sides'
+recommendations are in `reviews/claude/response_163_rm1-real-money-gate.md`, and the answer to ChatGPT review 118 in
+`reviews/claude/response_171_chatgpt-review-118-answer.md`.
 
 Terms used below:
 - **Version:** one strategy version (playbook id and version; a changed rule is a new version and starts again).
@@ -44,7 +46,7 @@ Terms used below:
   switch. The small real-money test then runs under `real_test_account` to `real_test_stops`. Scaling beyond 1 lot and
   any Groww API automation stay outside this gate: each needs a test pass and a separate written owner decision
   (automation also a fresh check of SEBI's retail algorithmic trading rules).
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** Design v2 8.3 and 8.4; the hard line "never place orders" stays.
 - **Evidence:** reasoning only
 
@@ -57,9 +59,9 @@ Terms used below:
      nearest-rank 5th percentile (E6's method, S1 `strategy_review_rule`). **And** the t-based lower bound (mean of
      net per risk unit minus the one-sided 95% t quantile × its standard error) is above zero.
   3. **Whole period:** the record's total net is above zero.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** 8.3 condition 1. Both bounds binding is the owner's answer to Q6 (15 Oct 2026). The t-check is a printed warning on scoreboards (owner, 15 Oct 2026, decision 167);
-  for real money the proposal makes it a pass condition because a bootstrap of few, skewed positions claims too
+  for real money it is a pass condition because a bootstrap of few, skewed positions claims too
   often (some evidence: S1's own note on 6 blocks), and an extra condition can only make the gate stricter.
 - **Evidence:** some evidence
 
@@ -68,7 +70,7 @@ Terms used below:
   on the same capital-days) is true over the evidence record's months, with F&O net taxed at 31.2%. Null (not
   computable) counts as not met. Only the evidence record counts; Books 2-3 trades of the version are shown, never
   combined into it.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** 8.3 condition 2; owner decision 168. Judge 158 asked how several books' values combine: the gate reads
   one record, Book 1's, the one whose trades the real test copies. A point comparison with no interval; tax is
   labelled an assumption until verified.
@@ -80,7 +82,7 @@ Terms used below:
   settlement files, with C1 charges and the pad in force at the review added to every leg: every replayed
   position's loss is at most the real cap. This is a **daily-settlement proxy**, not an executable intraday result. A
   replay that cannot be run (missing data) counts as not met.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** 8.3 condition 3; the replay cap is the real cap at 1 lot, Rs 5,000 (owner, 15 Oct 2026, Q7); owner principle 4 (14 Oct 2026) names the 2020 and 2024 crashes.
 - **Evidence:** reasoning only
 
@@ -94,7 +96,7 @@ Terms used below:
   15 Oct 2026, Q13 (a)).
   A16 records only the nearest weekly and nearest monthly NIFTY expiries, so a version trading any other expiry
   cannot meet (a) until A16 records it.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** 8.3 condition 4; the owner's answer to Q13 (a). ChatGPT review 118: a later snapshot moving is not
   proof of a dishonest fill, and the fill's own snapshot cannot prove its price by itself. An independent quote at
   fill time will be rare (E8 fills at about 10:15 next session from A16; the 3 pm recorder runs near 14:30-14:55), so
@@ -102,17 +104,14 @@ Terms used below:
 - **Evidence:** reasoning only
 
 ### `selection_adjustment` Condition 5: the edge survives the number of ideas tried
-- **Value:** The version's registration names one route before its first counted entry; with none named, route (a).
-  - **(a) Second untouched period:** after condition 1 first passes, a new forward paper period of the same version,
-    with the same sample size as condition 1's, must pass conditions 1 to 4 on its own positions only. No rule,
-    setting or code of the version changes between the two periods.
-  - **(b) Multiplicity:** condition 1's lower bounds use one-sided level 0.05 ÷ m instead of 0.05, where m is the
-    research ledger's trial count (every registered idea, screened-out and abandoned ones included) on the review
-    date, fixed at that one predeclared review (Bonferroni, which is also Holm's first step; valid for one fixed
-    family and one look, so a later re-check is a new review with its own count).
-- **Status:** proposal, owner decides
-- **Reason:** Route (a) is the default by the owner's answer to Q4 (15 Oct 2026). 8.3 condition 5 (owner decision 8 amended, "B ... => I accept"). With m = 50, route (b) needs a 99.9%
-  bound: about 10 of 10,000 bootstrap resamples set it, so it is noisy; route (a) costs time but is cleaner.
+- **Value:** A second untouched period, the only route: after condition 1 first passes, a new forward paper period
+  of the same version, with the same sample size as condition 1's, must pass conditions 1 to 4 on its own positions
+  only. No rule, setting or code of the version changes between the two periods. There is no multiplicity route
+  (no 0.05 ÷ m level).
+- **Status:** decided by the owner on 2026-10-15
+- **Reason:** 8.3 condition 5 (owner decision 8 amended allowed a second period or a multiplicity adjustment); the
+  owner chose the second period as the only route (Q4, 15 Oct 2026, row 793aeb54). A Bonferroni level at 50 ideas
+  would need a 99.9% bound set by about 10 of 10,000 bootstrap resamples, a noisy rule.
 - **Evidence:** some evidence
 
 ### `real_cap_fit` Condition 6: the trade fits the real cap and the rules of the day
@@ -122,7 +121,7 @@ Terms used below:
   (b) the next proposed real trade fits the real cap at current valid quotes before the owner places it; (c) a dated
   note in `docs/DESK_DECISIONS.md` records a fresh check of SEBI's F&O and retail algo rules and of the tax treatment,
   with sources.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** 8.3 condition 6; ChatGPT review 118 (opportunities, not arbitrary days). Fact for the owner: NIFTY's lot
   is 65 (`config.yaml`), so a Rs 5,000 cap allows 76.9 index points of maximum loss per unit before charges
   (Rs 4,000: 61.5). A credit vertical's loss per lot is 65 × (width − credit) + charges: width 100, credit 30,
@@ -133,21 +132,21 @@ Terms used below:
 ### `owner_approval` Condition 7: the owner says yes in writing
 - **Value:** A dated row in `docs/DESK_DECISIONS.md` quoting the owner, naming the version and accepting the test.
   The tool never starts the test on its own.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** 8.3 condition 7.
 - **Evidence:** reasoning only
 
 ### `real_test_account` The small test's account, cap and size
 - **Value:** Real account Rs 2,00,000 funded by the owner; per-trade cap Rs 5,000 (2.5%), every charge included;
   1 lot per trade (owner, 15 Oct 2026, Q1 and Q2).
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** Owner questions Q1 and Q2. 8.4; owner decision 8 requires the exact numbers in writing before the freeze.
 - **Evidence:** reasoning only
 
 ### `real_test_sample` How long the test runs
 - **Value:** The later of (a) max(30, the version's registered number of trades) real trades placed and (b) 6 months
   from the first real entry (owner, 15 Oct 2026, Q3).
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** 8.4: "its registered number of trades or 6 months, whichever is later" (decision 8). The floor of 30
   is the owner's answer to Q3; it only matters when a registration names fewer.
 - **Evidence:** reasoning only
@@ -167,7 +166,7 @@ Terms used below:
   4. **Discipline:** the owner placed at least 90% of the version's eligible cards in the period (owner, 15 Oct 2026,
      Q8); every skipped card is listed with its paper net, never counted as real.
   Reported, not judged: the timing gap per leg and its mean, and the paired mean with its two-sided 95% interval.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** 8.4 (owner decision 8 amended) asks for a paired test and a prediction interval, never the narrower
   interval of paper's mean; ChatGPT review 118 showed the paired comparison must bind, not only be reported. The
   margin (Q11), the one-sided side (Q5) and the discipline share (Q8) are the owner's answers of 15 Oct 2026. Only underperformance fails, so bounds are one-sided.
@@ -179,7 +178,7 @@ Terms used below:
   net from the first real entry reaches minus Rs 20,000, every charge included; (a2) cumulative real net falls
   Rs 20,000 below its highest value since the first real entry (peak to trough), every charge included; (b) the mean execution slippage per unit over the legs of any 5
   consecutive real trades exceeds twice the paper pad (legs with unknown slippage left out of the mean and listed). A stop is a fail; a new test needs a new owner decision.
-- **Status:** proposal, owner decides
+- **Status:** decided by the owner on 2026-10-15
 - **Reason:** (a) and (a2) are the owner's answer to Q9. 8.4; both numbers are the owner's (decision 8).
 - **Evidence:** reasoning only
 
