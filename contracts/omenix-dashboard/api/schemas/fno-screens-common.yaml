@@ -1,0 +1,72 @@
+# Story P1 (exepex/trading, owner decision 15 Oct 2026): the F&O data catalog. Shared parts of the five F&O screens'
+# contracts (the daily card, the weather, the Forecast lab, the Strategy lab, paper trades). The catalog keys these
+# schemas carry, inherited downward like x-catalog (api/catalog/README.md, "F&O screens (P1)"):
+#   description   what the field means, in plain words (on every leaf)
+#   x-unit        its unit; every money field says "INR (Paper)"
+#   x-visibility  public (may appear in the public repositories), owner (the owner's dashboard only, behind sign-in;
+#                 never committed to a public repository: live card legs and entry ranges, owner 15 Oct 2026)
+#   x-fill        built (the backend record exists today; x-record names it as <record>:<field>) or not_built (the
+#                 story in x-catalog.story builds it; never faked)
+#   x-never-sent  on each payload: the strategy internals the backend must never send (owner 13 Oct 2026)
+
+FnoScreenMeta:
+  description: >-
+    Envelope of an F&O screen page: the F&O block envelope (ReadModelMeta, publisher, freshness, Paper, product,
+    publication_id). One page per screen and publication, page_key as the operation says
+  allOf:
+    - $ref: '#/components/schemas/FnoBlockMeta'
+FnoMissingInput:
+  type: object
+  description: An input the backend needed and did not have, named so the screen can say what is missing and who brings it
+  additionalProperties: false
+  required: [input, story, detail]
+  properties:
+    input: {type: string, minLength: 1, x-unit: text, description: 'The missing input in plain words, e.g. "15-minute NIFTY quotes"'}
+    story: {type: string, pattern: '^[A-Z]{1,3}[0-9]{1,2}$', x-unit: id, description: 'The exepex/trading story that provides it (e.g. A16)'}
+    detail: {type: string, minLength: 1, x-unit: text, description: 'What is missing exactly, or what has to happen first'}
+FnoFamily:
+  type: string
+  description: 'The family that decided: rule = Book 1 (rule-based), hybrid = Book 2, ai = Book 3 (AI team)'
+  enum: [rule, hybrid, ai]
+  x-unit: enum
+FnoRecordHash:
+  type: object
+  description: One record the page was built from, by its SHA-256 (the evidence that the numbers come from that record)
+  additionalProperties: false
+  required: [kind, sha256]
+  properties:
+    kind: {type: string, enum: [decision, forecast, weather, objections, risk, pack, scores, ledger, account], x-unit: enum, description: Which kind of record}
+    sha256: {type: string, pattern: '^[0-9a-f]{64}$', x-unit: SHA-256 hex, description: The record's SHA-256}
+FnoLeg:
+  type: object
+  description: One option leg of a paper position (owner only while the card or trade is live)
+  additionalProperties: false
+  required: [contract, side, lots, option_type, strike, expiry]
+  x-visibility: owner
+  properties:
+    contract: {$ref: '#/components/schemas/InstrumentRef', description: 'The NSE contract code, e.g. NIFTY26NOV22600PE'}
+    side: {type: string, enum: [buy, sell], x-unit: enum, description: Bought or sold}
+    lots: {type: integer, minimum: 1, x-unit: lots, description: Number of lots}
+    option_type: {type: string, enum: [CE, PE], x-unit: enum, description: 'CE = call, PE = put'}
+    strike: {type: number, exclusiveMinimum: 0, x-unit: index points, description: The strike price}
+    expiry: {type: string, format: date, x-unit: date, description: The expiry date}
+FnoCardResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoCard'}}}
+FnoWeatherResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoWeather'}}}
+FnoForecastLabResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoForecastLab'}}}
+FnoStrategyLabResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoStrategyLab'}}}
+FnoPaperTradesResponse:
+  allOf:
+    - $ref: '#/components/schemas/FnoScreenMeta'
+    - {type: object, required: [payload], properties: {payload: {$ref: '#/components/schemas/FnoPaperTrades'}}}

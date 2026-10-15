@@ -7,40 +7,124 @@ Story template, definition of done and the full story index: `docs/IMPLEMENTATIO
 
 ---
 
-## P1. F&O read-model contract
+## P1. F&O data catalog (shared mock data and the read-model contract of the five F&O screens)
 
-**Repository:** trading
+**Repository:** both: omenix-dashboard (the catalog lives in the dashboard's API contract) and trading (the pinned copy
+and the backend tests).
 
-**Description:** As the dashboard developer, I want a versioned JSON schema for every F&O page, owned and tested in this
-repository, so that the dashboard knows exactly what it reads and a backend change can never silently break a screen.
+**Description:** As the owner, I want a data catalog, "which is nothing but mock data that could be shared between
+front-end and back-end, so that they could decide how the data looks like for each screen, what kind of data do we
+need, and what kind of API contract will be needed, and how UI will consume and use that mock data on its screens, so
+that both backend and frontend could keep working on their own parts ... and then later on they integrate" (owner,
+15 Oct 2026).
 
-**Context and why:** Design 13.2: each backend owns a versioned data contract; the dashboard checks the version it
-expects; a breaking change is a new version. The stock dashboard already uses the read-model envelope `market,
-page_key, as_of, cutoff, built_at, schema_version, source_commit, payload_sha256, payload`
-(`agentic-stock-prediction/web/lib/data/serve.ts`, read only); F&O uses the same envelope with `product = fno`.
+**Context and why:** Owner decisions of 15 Oct 2026 (`docs/DESK_DECISIONS.md`): P1 moves into slice A ("2 Yes"); it is
+a shared mock-data catalog and its first screens are the daily card, the weather, the Forecast lab, the Strategy lab
+(with its honest empty state) and paper trades ("1 Yes"); it starts now as a third builder ("2 B"). Design v2 defines
+what each screen shows: the card (`docs/design_v2/04_layers_card_monitor_learning.md` 4.1 and 4.4), the weather (02,
+2.3), the forecasts V1-V7 and their scores (05), the factory and the paper desk (03). Without one written contract the
+engine (P2, T1, M1, G8) and the screens (W3) would drift apart; the dashboard's contract already carries the F&O blocks
+(W10, W11, W13) and this repository already validates against a pinned copy of it (P6). Cards are kept in Google Drive
+only (owner, 15 Oct 2026), and strategy internals never reach a screen or an API (owner, 13 Oct 2026).
 
-**Scope.** In: page list and JSON schemas, the envelope, contract tests, the version policy. Out: building or
-publishing pages (P2, P3).
+**Scope.** In: per screen, a schema in the dashboard's contract (one home: `api/schemas/fno-*.yaml`, endpoints in
+`api/paths/fno-screens.yaml`, contract version 2.7.0, additions only); Mock examples in the positive, negative and
+empty cases (`api/examples/fno-screens.json`); a plain-words field table generated from the schemas
+(`api/catalog/fno-screens.md`: field, meaning, unit, source record in the backend, freshness, visibility public or
+owner, and whether the backend can fill it today); checks in the dashboard; mockups for the card (39) and the weather
+(40) built from the catalog; the pinned copy here with tests that the catalog's examples, the record fields it names and
+fixtures built from this repository's records validate. Out: building or publishing the pages (P2, P3), the screens in
+the app (W3), the card's Slack text (T1), rebuilding mockups 37 and 38 on the new contract (W3), the stock tool's half
+of the Strategy lab.
 
-**Expected design:** `contracts/fno/v1/*.schema.json` for pages: `today` (per book: decision, reasons, Book 2's rule
-default vs AI action), `positions` (per book: legs, marks, pending exits, days left), `risk` (per book: each owner limit
-used vs allowed, brake distance, stress, exposure), `scoreboard_b` and `scoreboard_a` (every detail of 12.5, per segment,
-pilot apart; `scoreboard_a` is added as a minor version when S3 lands), `forecasts`, `ledgers` (cash spend and allocated AI cost labelled apart), `judge` (approvals,
-rejections, abstentions, overrides, hard-validity failures), `evidence` (hashes and commits of packs, decisions,
-snapshots, versions), `health` (data and run status, alerts). `contracts/fno/CHANGELOG.md`; a compatibility test
-fails if a field is removed or retyped without a major version.
+**Design:**
+- Five India-only endpoints under `/api/v1/markets/india/fno/` (absent in the US), tag `fno-screens`, each answering 501
+  until built: `card`, `weather`, `forecast-lab`, `strategy-lab`, `paper-trades`; the F&O block envelope (`FnoBlockMeta`:
+  ReadModelMeta plus publisher, freshness, Paper, `product`, `publication_id`), one page per screen per publication.
+- Catalog keys on the schemas, inherited downward: `x-visibility` (`public`, or `owner`: the owner's signed-in dashboard
+  only, never a public repository: live legs, entry ranges, exit plans, objections), `x-fill` (`built` with `x-record`
+  naming `<record>:<field>` of a record that exists here today, or `not_built` with the story that builds it), and
+  `x-never-sent` on each page (the strategy internals the backend must never send). Every object is closed; every money
+  unit is "INR (Paper)"; the card's `label` is the constant PAPER ONLY; `real_money_eligible` and the Strategy lab's
+  `real_money.eligible` can only be false in this version.
+- The examples are the one copy of the mock data: mockups 39 and 40 build their `data.json` from them; the dashboard
+  check fails if a mockup's data differs. Mockups 37 and 38 keep their signed-off draft data; their notes say the
+  catalog supersedes their proposed F&O contracts.
+- Drift fails a test on both sides: `tools/api/check_fno_screens.py` in the dashboard (CI job api-contract);
+  `tests/market_read_models/test_p1_data_catalog.py` here against the pinned copy (`pin.json` names the dashboard commit,
+  version 2.7.0).
 
 **Acceptance criteria:**
-1. Every page schema validates a fixture payload built from fixture records.
-2. Removing or retyping a field without bumping the major version fails the compatibility test.
-3. No schema field can hold a credential or broker identifier (a field-name and pattern check).
-4. The envelope matches the stock read-model envelope field for field, plus `product` and `publication_id`.
+1. Each of the five screens has a schema, an endpoint and Mock examples covering its positive, negative and empty cases
+   (at least: card TRADE, NO TRADE for RED, NO TRADE with a missing input named, NO TRADE because no strategy has passed;
+   weather RED; Forecast lab "not enough data yet" with V1's missing input named; Strategy lab "no strategy has passed";
+   paper trades with a loss).
+2. Every example validates against its schema in both repositories, is labelled Mock, carries contract version 2.7.0,
+   its page key and the SHA-256 of its payload by this repository's canonical JSON.
+3. Every leaf field has its meaning, unit, source record, freshness, visibility and whether the backend can fill it
+   today; every built field names a record field that exists in this repository (a test reads each one); no field the
+   backend cannot fill is filled with a made-up value outside a Mock example.
+4. Every money field says Paper; the card says PAPER ONLY; no example or schema property is named like a strategy
+   internal (rule, threshold, filter, parameter, prompt, weight, feature, coefficient), and each page lists what is never
+   sent.
+5. Mockups 39 (card) and 40 (weather) read their data from the catalog only, each with data.json, template.html, a
+   deterministic build.py, notes.md, rationale.md and screenshots at 1280 and 390 px with no console errors, no external
+   requests and no overflow.
+6. Planted breaks are caught (an extra field, a missing field, RED without the block, NO TRADE without a reason, real money
+   eligible, a label without Mock, a stale hash, a missing empty case, money without Paper, a built field without or with
+   an unknown record, no visibility, a private key, no never-sent list), and here a renamed field fails validation.
+7. Gates: dashboard code size, typecheck, tests and build, its api-contract checks; here pytest, ruff, ruff format and
+   the import check; no file or class over 350 lines.
 
-**Test plan:** schema validation and compatibility tests.
+**Test plan:** the dashboard check with its planted breaks and the generated-table currency check; the backend test file
+(every example, every named record field, fixtures from the trial ledger, a fresh paper account and the 14 Oct 2026 live
+forecasts, a renamed field); page checks of every mockup state.
 
-**Judge verifies:** validates one real day's payloads against the schemas.
+**Judge verifies:** reads the five schemas against design v2 (4.1, 2.3, 5, 3.1-3.2) for missing or wrong fields; plants a
+field rename in a backend record and sees the test fail; checks that no public example carries a strategy threshold or a
+live card detail; rebuilds mockups 39 and 40 and compares data.json with the examples.
 
-**Depends:** D3, S2 (S3 for the scoreboard A page) · **Size:** M · **Status:** later
+**Depends:** W10, W11 (the block envelope), P6 (the pin) · **Size:** M · **Status:** built on branches
+`story/p1-data-catalog` (both repositories); awaiting the judge (claims: `reviews/claude/response_102_p1-data-catalog.md`)
+
+### History: the original P1 (12 Oct 2026, design 13.2), superseded by the owner's decisions of 15 Oct 2026
+
+Kept for the record. Its version policy (a breaking change is a new major version; the envelope with `product` and
+`publication_id`) is kept by the dashboard contract; its page list (today, positions, risk, scoreboards, ledgers, judge,
+evidence, health) returns with P2 and W3 where design v2 still needs it.
+
+> **Repository:** trading
+>
+> **Description:** As the dashboard developer, I want a versioned JSON schema for every F&O page, owned and tested in this
+> repository, so that the dashboard knows exactly what it reads and a backend change can never silently break a screen.
+>
+> **Context and why:** Design 13.2: each backend owns a versioned data contract; the dashboard checks the version it
+> expects; a breaking change is a new version. The stock dashboard already uses the read-model envelope `market,
+> page_key, as_of, cutoff, built_at, schema_version, source_commit, payload_sha256, payload`
+> (`agentic-stock-prediction/web/lib/data/serve.ts`, read only); F&O uses the same envelope with `product = fno`.
+>
+> **Scope.** In: page list and JSON schemas, the envelope, contract tests, the version policy. Out: building or
+> publishing pages (P2, P3).
+>
+> **Expected design:** `contracts/fno/v1/*.schema.json` for pages: `today` (per book: decision, reasons, Book 2's rule
+> default vs AI action), `positions` (per book: legs, marks, pending exits, days left), `risk` (per book: each owner limit
+> used vs allowed, brake distance, stress, exposure), `scoreboard_b` and `scoreboard_a` (every detail of 12.5, per segment,
+> pilot apart; `scoreboard_a` is added as a minor version when S3 lands), `forecasts`, `ledgers` (cash spend and allocated AI cost labelled apart), `judge` (approvals,
+> rejections, abstentions, overrides, hard-validity failures), `evidence` (hashes and commits of packs, decisions,
+> snapshots, versions), `health` (data and run status, alerts). `contracts/fno/CHANGELOG.md`; a compatibility test
+> fails if a field is removed or retyped without a major version.
+>
+> **Acceptance criteria:**
+> 1. Every page schema validates a fixture payload built from fixture records.
+> 2. Removing or retyping a field without bumping the major version fails the compatibility test.
+> 3. No schema field can hold a credential or broker identifier (a field-name and pattern check).
+> 4. The envelope matches the stock read-model envelope field for field, plus `product` and `publication_id`.
+>
+> **Test plan:** schema validation and compatibility tests.
+>
+> **Judge verifies:** validates one real day's payloads against the schemas.
+>
+> **Depends:** D3, S2 (S3 for the scoreboard A page) · **Size:** M · **Status:** later
 
 ---
 

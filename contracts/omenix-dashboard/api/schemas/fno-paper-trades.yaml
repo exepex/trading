@@ -1,0 +1,87 @@
+# Story P1: the F&O paper trades (exepex/trading design v2 section 3.2; stories E1, E4, E7, E8). Each book's account,
+# its open positions and its closed trades, each book on its own (never added across books). Paper only: the owner never
+# overrides a paper trade; only S1's safety stop exists.
+
+FnoPaperTrades:
+  type: object
+  description: >-
+    Each book's paper account, open positions and closed trades after costs, with the fills at the three owner reaction
+    times. Empty state: open and closed empty and each account at its opening value (no paper trade yet)
+  x-catalog: {publisher: fno, source: "each book's paper account (E1: journal/<book>/account/), the desk's fill and event records (E4, E7) and the owner-timing fills (E8)", freshness: 'after each fill or exit; marks after the close of each NSE session', story: P2, status: planned}
+  x-visibility: public
+  x-fill: not_built
+  x-never-sent:
+    - "the rules that opened or closed a trade (only what was done and why in plain words)"
+  additionalProperties: false
+  required: [accounts, open, closed]
+  properties:
+    accounts:
+      type: array
+      minItems: 3
+      maxItems: 3
+      description: One paper account per book
+      items:
+        type: object
+        additionalProperties: false
+        required: [family, as_of, opening_value, value, cash, open_trades, open_max_loss]
+        properties:
+          family: {$ref: '#/components/schemas/FnoFamily', x-fill: built, x-record: 'paper_account:book', description: The book}
+          as_of: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'equity_history:date', description: The session of the marks}
+          opening_value: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:starting_cash', description: 'The account''s opening balance (Rs 5 lakh a book today; design v2 proposes a Rs 20 lakh account through C5)'}
+          value: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'equity_history:marked_equity_rs', description: 'Marked value: cash plus open positions at their marks'}
+          cash: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'equity_history:cash_rs', description: Cash}
+          open_trades: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'equity_history:open_trades', description: Open positions}
+          open_max_loss: {type: number, minimum: 0, x-unit: INR (Paper), x-fill: not_built, x-catalog: {story: C5}, description: "Sum of the open positions' maximum losses (the account cap is Rs 1.5 lakh, owner 15 Oct 2026)"}
+    open:
+      type: array
+      description: Open paper positions
+      items:
+        type: object
+        additionalProperties: false
+        required: [trade_id, family, strategy, structure, legs, opened_on, max_loss, mark_value, unrealised, days_to_expiry, monitor, alerts_today]
+        properties:
+          trade_id: {type: string, minLength: 1, x-unit: id, x-fill: built, x-record: 'desk_event:trade_id', description: The trade's id}
+          family: {$ref: '#/components/schemas/FnoFamily', description: Its book}
+          strategy: {type: string, minLength: 1, x-unit: text, description: "The version's display name (never its rules)"}
+          structure: {type: string, minLength: 1, x-unit: text, description: 'The structure in plain words, e.g. "put spread"'}
+          legs: {type: array, minItems: 1, x-visibility: owner, description: 'Its legs (owner only while live)', items: {$ref: '#/components/schemas/FnoLeg'}}
+          opened_on: {type: string, format: date, x-unit: date (IST), description: The session it opened}
+          max_loss: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Most it can lose, fixed at entry'}
+          mark_value: {type: number, x-unit: INR (Paper), description: 'Its value at the latest marks (quotes, not closes, for live exits)'}
+          unrealised: {type: number, x-unit: INR (Paper), description: 'Profit or loss so far at the marks, before exit costs'}
+          days_to_expiry: {type: integer, minimum: 0, x-unit: sessions, description: NSE sessions left to expiry}
+          monitor: {type: string, enum: [alert_only, intraday_exits], x-unit: enum, x-catalog: {story: LM1}, description: "The live monitor's mode for its version"}
+          alerts_today: {type: integer, minimum: 0, x-unit: count, x-catalog: {story: LM1}, description: Monitor alerts on it today}
+    closed:
+      type: array
+      description: Closed paper trades, newest first
+      items:
+        type: object
+        additionalProperties: false
+        required: [trade_id, family, strategy, structure, opened_on, closed_on, gross, costs, net, result, exit, fills]
+        properties:
+          trade_id: {type: string, minLength: 1, x-unit: id, x-fill: built, x-record: 'trade_line:trade_id', description: The trade's id}
+          family: {$ref: '#/components/schemas/FnoFamily', description: Its book}
+          strategy: {type: string, minLength: 1, x-unit: text, description: "The version's display name"}
+          structure: {type: string, minLength: 1, x-unit: text, description: The structure in plain words}
+          opened_on: {type: string, format: date, x-unit: date (IST), description: The session it opened}
+          closed_on: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'trade_line:closed_on', description: The session it closed}
+          gross: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'trade_line:gross', description: "At quoted prices, before costs, at the desk's execution-snapshot fill (E4)"}
+          costs: {type: number, minimum: 0, x-unit: INR (Paper), x-fill: built, x-record: 'trade_line:charges', description: 'Charges plus pads (C1)'}
+          net: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'trade_line:net', description: "gross minus costs, at the desk's execution-snapshot fill (E4); the owner-timing views are in fills"}
+          result: {type: string, enum: [won, lost, flat], x-unit: enum, description: 'After costs; never colour alone on screen'}
+          exit: {type: string, enum: [take_profit, time_exit, max_loss_exit, expiry_settlement, safety_stop, other], x-unit: enum, description: How it closed}
+          fills:
+            type: array
+            minItems: 3
+            maxItems: 3
+            description: 'The same entry filled at the owner''s reaction times 5, 30 and 60 minutes (E8); the verdict uses 60 (owner, 15 Oct 2026). Three views of one decision, never three trials'
+            x-catalog: {source: "E8's owner-timing fill records", story: E8}
+            items:
+              type: object
+              additionalProperties: false
+              required: [minutes, outcome, net]
+              properties:
+                minutes: {type: integer, enum: [5, 30, 60], x-unit: minutes, description: The assumed owner reaction time}
+                outcome: {type: string, enum: [filled, missed_price_moved, missed_no_quote], x-unit: enum, description: 'missed_price_moved = the price left the card''s entry range; missed_no_quote = no valid quote at that snapshot (never a synthetic fill)'}
+                net: {type: ['number', 'null'], x-unit: INR (Paper), description: 'The trade''s net at that fill; null when missed'}

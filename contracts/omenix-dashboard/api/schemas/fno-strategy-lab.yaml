@@ -1,0 +1,125 @@
+# Story P1: the F&O part of the Strategy lab (mockup 38; exepex/trading design v2 sections 3.1, 3.2 and 8.3). The
+# factory's honest bookkeeping (every attempt, pass or fail, counted), each idea's progress through the gates, and each
+# strategy version's paper record per book. F&O only: the stock tool's part is its own page; the two are never merged
+# (the screen's "both books together" line is a labelled total it adds itself, owner choice (a), 13 Oct 2026).
+
+FnoStrategyLab:
+  type: object
+  description: >-
+    Which F&O strategies were tried, how far each got and how the approved ones do on paper. Empty state (today's
+    real state): any_passed false, results empty and the headline says no strategy has passed
+  x-catalog: {publisher: fno, source: "the trial ledger (B4, research/ledger.csv), the idea cards and gate records (R1), the version registry (D6) and the scorecards (E6, S2)", freshness: 'after each ledger change and after the close of each NSE session', story: R1, status: planned}
+  x-visibility: public
+  x-fill: not_built
+  x-never-sent:
+    - "a strategy's entry and exit rules, filters, thresholds and parameters"
+    - "an idea card's structure details beyond its plain title (strikes, widths, timing)"
+  additionalProperties: false
+  required: [headline, factory, ideas, books, results, real_money]
+  properties:
+    headline:
+      type: object
+      description: The answer in one line
+      additionalProperties: false
+      required: [any_passed, text]
+      properties:
+        any_passed: {type: boolean, x-unit: yes/no, description: 'True once any strategy has passed its registered test'}
+        text: {type: string, minLength: 1, x-unit: text, description: 'e.g. "No strategy has passed its test yet: 53 ideas tried, 0 passed"'}
+    factory:
+      type: object
+      description: "The factory's count: every try is counted, so the owner knows how many tries stand behind any winner"
+      additionalProperties: false
+      required: [trials_total, by_status, expected_false_passes, pass_level]
+      properties:
+        trials_total: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'ledger_csv:trial_id', description: 'Every ledger row (K in "trial k of K")'}
+        by_status:
+          type: object
+          description: How many trials are at each status (R1 adds the status column to the ledger)
+          additionalProperties: false
+          required: [idea, screened_out, exploratory_shadow, registered, testing, passed, failed, retired]
+          properties:
+            idea: {type: integer, minimum: 0, x-unit: count, description: Idea card written (G0)}
+            screened_out: {type: integer, minimum: 0, x-unit: count, description: Stopped by the cost wall (G1)}
+            exploratory_shadow: {type: integer, minimum: 0, x-unit: count, description: 'Running forward as an exploratory shadow (counted; promoted only if its forecast beat the baseline)'}
+            registered: {type: integer, minimum: 0, x-unit: count, description: 'Registered before any result (G4)'}
+            testing: {type: integer, minimum: 0, x-unit: count, description: Test running (G5)}
+            passed: {type: integer, minimum: 0, x-unit: count, description: Passed its registered mark (G6)}
+            failed: {type: integer, minimum: 0, x-unit: count, description: 'Failed (final for that version)'}
+            retired: {type: integer, minimum: 0, x-unit: count, description: Stopped later by its retire rule}
+        expected_false_passes: {type: number, minimum: 0, x-unit: count, description: 'Passes expected by chance alone at the pass level (e.g. 53 trials at 1% one-sided: about 0.5)'}
+        pass_level: {type: number, exclusiveMinimum: 0, maximum: 1, x-unit: probability 0-1, description: The pass level used for that count}
+    ideas:
+      type: array
+      description: Each idea's progress, newest first
+      items:
+        type: object
+        additionalProperties: false
+        required: [trial, title, rests_on, gate, status, verdict, label]
+        properties:
+          trial: {type: integer, minimum: 1, x-unit: id, x-fill: built, x-record: 'ledger_csv:trial_id', description: 'Its ledger row ("trial k of K")'}
+          title: {type: string, minLength: 1, x-unit: text, description: 'What it tries, in plain words, without its rules (e.g. "Sell protected premium when movement is forecast well below what options price in")'}
+          rests_on: {type: ['string', 'null'], pattern: '^(Q[1-5]|V[1-7](_1d|_5d)?)$', x-unit: id, description: 'The forecast question it rests on; null if none'}
+          gate: {type: string, enum: [G0, G1, G2, G3, G4, G5, G6], x-unit: enum, description: 'The last gate it reached (G0 idea card ... G6 verdict)'}
+          status: {type: string, enum: [idea, screened_out, exploratory_shadow, registered, testing, passed, failed, retired], x-unit: enum, description: Its status}
+          verdict: {type: ['string', 'null'], enum: [pass, fail, null], x-unit: enum, description: 'The judge''s verdict at G6; null before it'}
+          label: {type: string, enum: [strong evidence, some evidence, reasoning only], x-unit: enum, description: 'Its evidence label'}
+    books:
+      type: array
+      description: Each book (family) and why it trades or not
+      minItems: 3
+      maxItems: 3
+      items:
+        type: object
+        additionalProperties: false
+        required: [family, approved, trading, why_not]
+        properties:
+          family: {$ref: '#/components/schemas/FnoFamily', description: The book's family}
+          approved: {type: array, description: "Display names of its strategy versions approved to paper (rung 3)", items: {type: string, minLength: 1, x-unit: text, description: A display name}}
+          trading: {type: boolean, x-unit: yes/no, description: 'True once it trades on paper (Books 2 and 3 start only after a strategy has passed, owner 15 Oct 2026)'}
+          why_not: {type: ['string', 'null'], x-unit: text, description: 'Why it does not trade yet; null when trading'}
+    results:
+      type: array
+      description: Each strategy version on paper (rung 3 and above), per book; never added across books
+      items: {$ref: '#/components/schemas/FnoStrategyResult'}
+    real_money:
+      type: object
+      description: 'The real-money gate (design 8.3, frozen by RM1): all seven checks must hold (the 15 Oct decision row says six; design 8.3 lists seven, the seventh being the owner''s written approval); the contract cannot say eligible today'
+      x-catalog: {source: "RM1's frozen gate and its check record", story: RM1}
+      additionalProperties: false
+      required: [eligible, checks]
+      properties:
+        eligible: {type: boolean, const: false, x-unit: yes/no, description: 'False until RM1 exists and every check holds (a later contract version may allow true)'}
+        checks:
+          type: array
+          description: The checks of design 8.3 in plain words
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, plain, met]
+            properties:
+              id: {type: integer, minimum: 1, maximum: 7, x-unit: id, description: The check's number in design 8.3}
+              plain: {type: string, minLength: 1, x-unit: text, description: The check in plain words}
+              met: {type: ['boolean', 'null'], x-unit: yes/no, description: 'True, false, or null when it cannot be judged yet'}
+FnoStrategyResult:
+  type: object
+  description: One strategy version's paper record, after every cost
+  x-catalog: {source: "the strategy scorecard (E6) and scoreboard B (S2, with benchmarks and tax)", story: S2}
+  additionalProperties: false
+  required: [strategy, family, rung, status, pause_reason, trades, won, lost, gross, costs, net, net_after_tax, worst_trade, max_drawdown, vs_index_fund, vs_cash]
+  properties:
+    strategy: {type: string, minLength: 1, x-unit: text, description: "The version's display name (never its rules)"}
+    family: {$ref: '#/components/schemas/FnoFamily', description: Its book}
+    rung: {type: integer, minimum: 3, maximum: 4, x-unit: rung 0-4, description: '3 = approved to paper; 4 = real-money gate met'}
+    status: {type: string, enum: [active, paused, retired], x-unit: enum, description: 'paused = a pause rule stopped new entries until the owner reviews'}
+    pause_reason: {type: ['string', 'null'], x-unit: text, description: 'Why it is paused or retired, in plain words; null when active'}
+    trades: {type: integer, minimum: 0, x-unit: count, description: Closed paper trades}
+    won: {type: integer, minimum: 0, x-unit: count, description: Of them won after costs}
+    lost: {type: integer, minimum: 0, x-unit: count, description: Of them lost after costs}
+    gross: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'trade_line:gross', description: 'Sum of its closed trades at quoted prices, before costs (one strategy''s own trades)'}
+    costs: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Charges, pads, and its allocated AI and data costs (labelled allocated, not a bill)'}
+    net: {type: number, x-unit: INR (Paper), description: gross minus costs}
+    net_after_tax: {type: number, x-unit: INR (Paper), description: "net after the owner's chosen 31.2% tax scenario on a positive year"}
+    worst_trade: {type: ['number', 'null'], x-unit: INR (Paper), description: 'Its worst closed trade after costs; null with no trade'}
+    max_drawdown: {type: number, minimum: 0, x-unit: INR (Paper), description: Largest fall from a high of its closed equity}
+    vs_index_fund: {type: ['number', 'null'], x-unit: INR (Paper), description: 'net minus a NIFTY 50 index fund on the same capital and dates, after fees and tax; null until S2 publishes it'}
+    vs_cash: {type: ['number', 'null'], x-unit: INR (Paper), description: 'net minus cash at the liquid-fund proxy rate on the same capital and dates; null until S2 publishes it'}
