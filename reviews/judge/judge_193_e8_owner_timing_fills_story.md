@@ -288,3 +288,28 @@ Notes (no change needed):
 - Tell the owner plainly that an away date counts only if it is in the Drive file before the run's start (14:33 now,
   14:05 after G10) on the session before the trade.
 - The time-out case of criterion 10 should use the same planted hang as the chosen mechanism.
+
+## Addendum 5: revision 8 at 1faa6978 (owner's entry rule): the rule-6 change passes; still FAIL on should-fixes 6 and 7
+
+The only change is to `docs/stories/E8-owner-timing-fills.md`, on top of 0776b0bd.
+
+**The rule-6 change passes:**
+- Rule 6 now reads "price cap only" and cites the owner's row, `docs/DESK_DECISIONS.md:220` (16 Oct, "Price cap only
+  (Recommended)").
+- `ApprovedLimit` is wired as decided, and the two options not chosen are kept as a record (band about 32%, any price).
+- The funds and risk checks at the fill are unchanged.
+- S1 item 4 now reads "The entry rule: closed", citing the same row.
+- The owner-question section now records the decision and its plain cost.
+- Criterion 6 tests one paisa worse (missed) and exactly at the limit (fills), the wiring, the cap and the two funds
+  fixtures.
+- The scope's "Out" line and the design match.
+
+Note (no change needed): `EntryRange` stays an interface with one class. A second use (T1's card range) is named, and
+it now needs an owner decision and S1, which is right for a frozen rule.
+
+**Still open, unchanged from addendum 4:** revision 8 does not touch rules 8 and 11.
+- **Should-fix 6:** a sealed-prefix mismatch blocks new entries with no repair path, and the hashed lines are not
+  defined.
+- **Should-fix 7:** the step's time limit has no number, and there is no mechanism that stops a hung in-process read.
+
+Re-review: those two only.
