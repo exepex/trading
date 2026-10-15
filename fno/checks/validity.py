@@ -3,7 +3,7 @@ code that proposed it. Common checks:
 - evidence: the committed snapshot and its hashes, its day and cutoff;
 - NSE's listing: a monthly expiry, the lot size;
 - every leg listed, and quoted before the cutoff at the price used;
-- the maximum loss, recomputed;
+- the maximum loss, recomputed, and fixed at entry (no naked short leg, story STR1);
 - every owner limit, recomputed from the ledger, the snapshot and the margins file.
 
 The book's mode adds its own checks. A failure is final: no path, the owner's included, turns it into a pass."""
@@ -20,7 +20,7 @@ from .validity_limits import LimitChecks
 from .validity_listing import NseListing
 from .validity_market import listing_checks, snapshot_checks
 from .validity_modes import ValidityMode
-from .validity_money import max_loss
+from .validity_money import max_loss, uncovered_types
 from .validity_proposal import CheckResult, ValidityProposal
 
 LOSS_TOLERANCE = 1.0  # rupees (criterion 1: a maximum loss wrong by Rs 1 or more fails)
@@ -100,10 +100,13 @@ class ValidityChecker:
         return self.limits.checks(proposal, account, evidence)
 
     def _money(self, proposal: ValidityProposal) -> list[CheckResult]:
-        loss = max_loss([leg.leg for leg in proposal.legs], proposal.units, self.limits.charges)
+        legs = [leg.leg for leg in proposal.legs]
+        naked = uncovered_types(legs)
+        loss = max_loss(legs, proposal.units, self.limits.charges)
         off, limit = abs(loss.total - proposal.claimed_max_loss), self.limits.limits.max_loss_per_trade
         numbers = {**loss.numbers(), "claimed": round(proposal.claimed_max_loss, 2), "difference": round(off, 2)}
         return [
+            CheckResult("bounded_loss", not naked, f"naked short {naked}" if naked else "every sold leg is covered"),
             CheckResult("max_loss", off < LOSS_TOLERANCE, f"recomputed {loss.total:.2f}", numbers),
             CheckResult("loss_limit", loss.total <= limit, f"recomputed {loss.total:.2f}, limit {limit:g}"),
         ]

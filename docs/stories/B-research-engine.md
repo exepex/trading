@@ -343,3 +343,88 @@ disagreement days are listed for the red team.
 strategy.
 
 **Depends:** B1, A4, A7 · **Size:** M · **Status:** done: judge 44 PASS round 2 (13 Oct 2026). Follow-up before D1 uses the gate: recompute per-day values from the committed A4 snapshots and the panel (or check snapshot hashes), since hand-edited per-day values pass today
+
+---
+
+## STR1. One- and two-leg structures
+
+**Repository:** trading
+
+**Description:** As the options strategist, I want B2's structures, C4's checks, D1's codes, D2's candidates and A14's
+margin rows to accept a single bought call or put and the four vertical spreads, so that a debit or credit spread (half
+the four-leg costs, response 92) can be registered and shadow-tested once a strategy asks for it, while a naked short
+leg stays impossible.
+
+**Context and why:** Response 92 (desk meeting 2) found four-leg structures pay Rs 810-940 a round trip and named the
+put spread "blocked on code". The design (`docs/design_v2/03_layers_factory_desk.md`, structures) allows bought
+options, vertical spreads and protected four-leg structures, never a naked short leg, and C4 refuses any position whose
+maximum loss is not fixed at entry. Today B2's `Structure` builds exactly four legs, `payoff_bounds` looks only at
+strikes (a bought call would read as bounds [0, 0] and every bought option as `bad_prices`), C4's shape check knows only
+SF, SC and BF, and C2 and C4 refuse a margin of 0 (which is what NSE charges a fully paid bought option). This story
+opens the shapes only: no new strategy, no new trading decision.
+
+**Scope.** In:
+- six codes, each with its strike rule fixed by the code (like SF, SC and BF), anchored at the ATM strike (the listed
+  strike nearest spot, the lower one on a tie, as the iron flies):
+  - `LC` long call: buy the call `width` points above ATM (`width` 0 is ATM); `LP` long put: buy the put `width`
+    points below ATM;
+  - `CDS` call debit spread (bull call): buy the ATM call, sell the call `width` higher;
+  - `CCS` call credit spread (bear call): sell the ATM call, buy the call `width` higher;
+  - `PDS` put debit spread (bear put): buy the ATM put, sell the put `width` lower;
+  - `PCS` put credit spread (bull put): sell the ATM put, buy the put `width` lower.
+  SF is exactly CCS plus PCS, and BF is CDS plus PDS, at the same width;
+- B2: `Structure` builds any number of legs (template method); every structure's legs pass one coverage rule, so no
+  structure can return a naked short leg; `payoff_bounds` covers the whole index range (0 to unbounded);
+- B2's cost model (`PositionCosts.max_loss`) refuses uncovered legs, so C2 cannot price a naked short leg either;
+- C4: a shape rule per code (its own table, independent of B2), and a new `bounded_loss` check from the legs alone
+  (every sold call covered by a bought call, every sold put by a bought put); its independent maximum loss is
+  unchanged and stays correct for every covered shape;
+- D1: the six codes in the vocabulary; `widths` may hold 0 for the bought-only codes (LC, LP), and must be above 0 for
+  the others;
+- D2: candidates for the new codes through the structures, unchanged rules (widest width within the cap first);
+- C2 and C4 margins: a bought-only structure (LC, LP) may have a margin of 0 (NSE charges no margin on a paid-up long
+  option; its premium is in the funds at entry); every structure with a sold leg must still be above 0. C2's
+  `TradeTerms` accepts width 0 for bought-only codes only;
+- A14: the job computes rows for every code; rows of a code the independent broker check has not covered are printed
+  and not written (fail closed, no alert); the 14 Oct 2026 check covered SF, SC and BF (judge 77), and
+  `risk.margins.nse_span_check.structures` can list more once the owner's broker check of them passes.
+
+Out: any strategy or playbook version using the new codes; strike rules away from ATM (response 92's "3% below spot" put
+spread would be a new code, as SC is SF's 2% variant); ratio spreads, straddles, strangles, calendars; any change to
+experiment 1's results; E4 fills and exits (already leg-generic); a broker check of the new rows (owner).
+
+**Design:** `fno/research_engine/structures.py` keeps `Leg`, `payoff_bounds`, `nearest_strike` and the four-leg
+`BodyAndWings` (SF, SC, BF unchanged); `Structure.legs` is a template method that calls each class's `build` and
+refuses uncovered legs (`require_covered`). `fno/research_engine/one_side.py` holds `BoughtOption` (LC, LP) and
+`VerticalSpread` (CDS, CCS, PDS, PCS). `fno/composition.py`: `build_structures()` stays experiment 1's three;
+`build_tradable_structures()` is all nine (D2, A14). C4: `fno/checks/validity_shapes.py` (shape rules, one class per
+family) and `bounded_loss` in `validity_money.py`, importing nothing from B2 or C2 (the independence test).
+
+**Acceptance criteria:**
+1. Each of the six codes builds its legs on a fixture chain exactly as the scope says, returns None when a leg is not
+   listed, and SF/SC/BF build the same legs as before on every width (regression on experiment 1's fixtures).
+2. A naked short leg cannot be built: every structure's legs pass the coverage rule; a planted structure returning a
+   naked short call or put raises; `PositionCosts.max_loss` raises on uncovered legs.
+3. `payoff_bounds` is right for every shape: a bought call's top is unbounded, a bought put's top is its strike,
+   verticals and four-leg structures are unchanged.
+4. C4's shape check accepts each code's own legs and refuses: wrong leg count, wrong sides, wrong kinds, wrong width,
+   a credit spread built as a debit one, and planted naked short legs (one short call, one short put, a short call
+   "covered" by a bought put); C4's `bounded_loss` refuses every planted naked short whatever the code claimed.
+5. C4's independent maximum loss equals B2's (within Rs 1) for each new code on fixture quotes.
+6. D1 loads a version with each new code; refuses an unknown code, and width 0 for codes with a sold leg.
+7. D2 builds a candidate for each new code from a fixture market, widest width within the cap first.
+8. A14 computes a row for each code and width; rows of a code outside the broker check are printed, not written; C2
+   and C4 accept a 0 margin for LC and LP only.
+9. Existing four-leg results are identical: experiment 1's real-data cycle tests and every existing test pass
+   unchanged.
+
+**Test plan:** `tests/research_engine/test_one_side.py`, `tests/checks/test_validity_shapes.py`,
+`tests/playbook/test_one_side_codes.py`, `tests/nse_margins/test_one_side_rows.py`, `tests/risk/test_bought_only.py`;
+the existing suites as the regression.
+
+**Judge verifies:** builds each code by hand on a chain and compares; plants naked shorts at B2, C2 and C4; recomputes
+one vertical's maximum loss and margin by hand; checks four-leg results are unchanged (experiment 1 cycle tests,
+`tests/research/test_experiment_1_frozen.py`).
+
+**Depends:** B2, C4, D1, D2, A14 · **Size:** M · **Status:** built on `story/str1-structures`, waits for the judge
+(claims: `reviews/claude/response_106_str1-structures.md`)
