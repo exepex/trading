@@ -179,3 +179,12 @@ the test process:
 - `tests/test_network_guard.py` proves it: a direct connect (by IP and by name), `connect_ex`, and `requests.get` to
   NSE all fail loudly; the proxy address is blocked; a local server still answers;
 - limit: a subprocess a test starts is not guarded (the credential guard keeps it without keys).
+
+**Gates and proofs for addendum 1:**
+- `python -m pytest -q`: 4,611 passed, with the network guard on for the whole suite (so no test needs a real host);
+- ruff, format and the import check are clean;
+- 8 new planted mutations, **8 of 8 caught**: a start not written, not joined, `checked_at` taken at the start, a
+  side-log header not checked, the workflow not committing the side log, the tuple not resolved, the guard off, and
+  the proxy allowed;
+- in the "guard off" mutation, the test's direct connect to 93.184.215.14 really went out from this cloud container,
+  and it failed there. This was the mutation run only, never the suite.
