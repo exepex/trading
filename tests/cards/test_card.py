@@ -39,17 +39,28 @@ def test_weather_is_never_a_colour_on_a_v1_card(tmp_path):
     assert not COLOURS.search(text)
 
 
-def test_every_forecaster_is_shown_with_its_back_fill_record_and_no_live_record_yet(tmp_path):
+def test_each_question_shows_only_the_past_average_with_its_records_and_the_others_are_counted(tmp_path):
     _, text = card_of(planted(), tmp_path)
     assert "Forecasts on record: live capture of 2026-10-14 (not today's" in text
     assert "This capture was generated at 19:27 IST, after its 15:15 deadline: its records are not scored" in text
+    assert "House forecast: past average (baseline_b_base_rate). G1 names no primary yardstick" in text
+    assert "3 other forecasters recorded; none has passed its test yet." in text
     assert (
-        "  book1_rules 0.56 | back-fill, not live: said 0.5-0.6 on 551 days, happened on 60%, mean Brier 0.244 "
-        "over 670; live: not enough data yet (0 scored)"
+        "q1_nifty_up_20d (NIFTY higher in 20 sessions): past average 0.59 | back-fill, not live: said 0.5-0.6 on 175 "
+        "days, happened on 57%, mean Brier 0.245 over 670; live: not enough data yet (0 scored)"
     ) in text
-    assert "  baseline_c_model: no forecast" in text
-    assert text.count(" | back-fill, not live: ") == 15  # 20 rows, 5 of them "no forecast"
-    assert "none is advice" in text
+    assert text.count(" | back-fill, not live: ") == 5  # one line per question
+    assert "book1_rules 0.56" not in text and "baseline_c_model" not in text
+
+
+def test_a_question_the_past_average_did_not_answer_says_so(tmp_path):
+    files = planted()
+    capture = files[CAPTURE].decode().splitlines(keepends=True)
+    blank = [line if not line.startswith("baseline_b_base_rate,2026-10-14,2026-10-14T15:00:00+05:30,q4") else
+             line.replace(line.split(",")[4], "", 1) for line in capture]  # fmt: skip
+    files[CAPTURE] = "".join(blank).encode()
+    _, text = card_of(files, tmp_path)
+    assert "q4_vix_up_10d (India VIX higher in 10 sessions): past average gave no forecast" in text
 
 
 def test_the_footer_lists_every_record_used_with_the_hash_of_its_committed_bytes(tmp_path):

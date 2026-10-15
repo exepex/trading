@@ -1,7 +1,12 @@
-"""The card's forecast section (story T1 v1): the latest committed live G1 capture on or before the card's day, every
-forecaster and question in it, each with its scored track record (`TrackRecords`). No house-forecast rule is frozen yet
-(design 07 section 7.4) and no forecaster has passed a comparison, so all are shown and the card says none is advice.
-Protocol v4's forecasters (G6) plug in later as another `ForecastSource`."""
+"""The card's forecast section (story T1 v1): the house forecast per question from the latest committed live G1
+capture on or before the card's day, with its scored track record (`TrackRecords`).
+
+The house forecast is the past average (`baseline_b_base_rate`) on all five questions (orchestrator, 15 Oct 2026):
+G1 v1-v3 name no primary yardstick for any question, and the base rate is the only baseline defined on all five, with no
+model or market input ("baselines until something passes", REPLAN). It was never chosen by its scores. It is a
+display choice only and changes no scoring. The other forecasters are counted on the card; their full list belongs on
+the dashboard. Protocol v4's forecasters and its own primary baselines (G6, design 05 section 5.3) plug in later as
+another `ForecastSource`."""
 
 from __future__ import annotations
 
@@ -9,7 +14,7 @@ import json
 import re
 from datetime import date
 
-from ..constants import FORECAST_QUESTIONS
+from ..constants import BASELINE_BASE_RATE, FORECAST_QUESTIONS
 from ..forecast.record_files import read_records_v2
 from ..forecast.schema_v2 import GENERATION_DEADLINE, ForecastRecordV2
 from ..models import IST
@@ -30,9 +35,12 @@ NONE_YET = "Forecasts: none on record yet"
 HEADER = "Forecasts on record: live capture of {day}{age}; track records from the score report of {report}"
 OLDER = " (not today's: the latest committed capture)"
 LATE = "This capture was generated at {at} IST, after its {deadline:%H:%M} deadline: its records are not scored"
-NOT_ADVICE = "No forecaster has passed a comparison and no house-forecast rule is frozen (design 7.4): none is advice."
-FORECASTER_LINE = "  {forecaster} {probability:.2f} | {record}"
-NO_FORECAST = "  {forecaster}: no forecast"
+HOUSE_NOTE = (
+    "House forecast: past average ({house}). G1 names no primary yardstick, so this is the fallback (display only)."
+)
+OTHERS = "{count} other forecasters recorded; none has passed its test yet. None of this is advice."
+QUESTION_LINE = "{question} ({name}): past average {probability:.2f} | {record}"
+NO_FORECAST = "{question} ({name}): past average gave no forecast"
 
 
 def _latest(names: list[str], pattern: re.Pattern, day: date) -> date | None:
@@ -41,8 +49,11 @@ def _latest(names: list[str], pattern: re.Pattern, day: date) -> date | None:
 
 
 class LiveCaptureForecasts(ForecastSource):
-    def __init__(self, records: CommittedRecords, live_folder: str = LIVE_FOLDER, scores_folder: str = SCORES_FOLDER):
-        self.records, self.live_folder, self.scores_folder = records, live_folder, scores_folder
+    def __init__(
+        self, records: CommittedRecords, house: str = BASELINE_BASE_RATE, live_folder: str = LIVE_FOLDER,
+        scores_folder: str = SCORES_FOLDER,
+    ):  # fmt: skip
+        self.records, self.house, self.live_folder, self.scores_folder = records, house, live_folder, scores_folder
 
     def forecasts(self, day: date) -> CardSection:
         capture = self._latest_capture(day)
@@ -59,7 +70,9 @@ class LiveCaptureForecasts(ForecastSource):
         records = TrackRecords(json.loads(report) if report is not None else None)
         capture_day = rows[0].record.date if rows else day
         lines = [HEADER.format(day=capture_day, age=OLDER if capture_day < day else "", report=report_day or "none")]
-        lines += _late_lines(rows) + [NOT_ADVICE] + _question_lines(rows, records)
+        others = len({r.record.book for r in rows} - {self.house})
+        lines += _late_lines(rows) + [HOUSE_NOTE.format(house=self.house), OTHERS.format(count=others)]
+        lines += _question_lines([r.record for r in rows if r.record.book == self.house], records)
         return CardSection("forecasts", tuple(lines), tuple(used), tuple(missing))
 
     def _latest_capture(self, day: date) -> tuple[str, bytes] | None:
@@ -85,17 +98,14 @@ def _late_lines(rows: list[ForecastRecordV2]) -> list[str]:
     return [LATE.format(at=", ".join(late), deadline=GENERATION_DEADLINE)] if late else []
 
 
-def _question_lines(rows: list[ForecastRecordV2], records: TrackRecords) -> list[str]:
+def _question_lines(house_rows: list, records: TrackRecords) -> list[str]:
     lines = []
     for question in FORECAST_QUESTIONS:
-        asked = [r.record for r in rows if r.record.question == question]
-        if not asked:
-            continue
-        lines.append(f"{question} ({QUESTION_NAMES[question]}):")
-        for r in asked:
+        for r in (r for r in house_rows if r.question == question):
+            named = {"question": question, "name": QUESTION_NAMES[question]}
             if r.probability is None:
-                lines.append(NO_FORECAST.format(forecaster=r.book))
+                lines.append(NO_FORECAST.format(**named))
             else:
                 record = records.line(r.book, question, r.probability)
-                lines.append(FORECASTER_LINE.format(forecaster=r.book, probability=r.probability, record=record))
+                lines.append(QUESTION_LINE.format(**named, probability=r.probability, record=record))
     return lines

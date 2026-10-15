@@ -35,11 +35,12 @@ witness). The owner decided on 15 Oct 2026 that card records are kept in Google 
 - Weather: M1 is not built and no production code for response 94's v0 rule exists (it lives only in the research
   study `research/2026-10-14-weekly-weather/`), so the card says "Weather: not yet scored (M1 pending)". Never a colour.
 - Forecasts: the latest committed live G1 capture (`research/forecasts/live_v2/<YYYY>/<d>_forecasts.csv`, on or before
-  the card's day) and, for each forecaster and question, its record from the latest committed G4 score report
+  the card's day) and, for each question, the house forecast with its record from the latest committed G4 score report
   (`research/forecasts/scores/<d>.json`): the calibration bin that holds today's probability ("said 0.5-0.6 on 551
   days, happened on 62%") and its mean Brier score, labelled as back-fill history, not live; the live record is "not
-  enough data yet" until G4 scores live days (V1 needs the unbuilt A16 recorder). No house-forecast rule is frozen yet
-  (design 07 section 7.4), so the card lists every forecaster on record and says no forecaster has passed a comparison.
+  enough data yet" until G4 scores live days (V1 needs the unbuilt A16 recorder). The house forecast is the past average (`baseline_b_base_rate`) on all five questions, labelled as the fallback (orchestrator, 15 Oct 2026): G1 v1-v3 name no primary yardstick for any question; the base rate is the only baseline defined on all five and uses no model or market input; it matches REPLAN's "baselines until something passes" and the owner's signed-off Forecast lab mockup (37), whose main yardstick is "Past average". It was never chosen by its scores. It is a display choice only and changes no scoring. When protocol v4 merges, its own primary baselines (design 05 section 5.3) replace this for the V questions.
+  One line counts the other forecasters ("N other forecasters recorded; none has passed its test yet"); their full
+  list belongs on the dashboard, not the card.
 - Footer: path and SHA-256 of every record used; issuance-time line; valid-until time.
 - The owner-unavailable line: "If you cannot act by 15:25 IST, the paper record assumes: no action (nothing is opened or
   closed)." E8's availability calendar is not built; the line says so.
@@ -77,7 +78,8 @@ merged: they plug in as a new `ForecastSource`); the dashboard renderer.
    `no_approved_strategy` and the card states the paper trade count (0); with a version at `paper` the card is still
    `NO TRADE` (`trade_fields_not_built`); an unreadable registry gives `data_check_failed`. No trade is ever invented.
 3. Weather: "Weather: not yet scored (M1 pending)" and no colour word (GREEN, AMBER, RED) anywhere on a v1 card.
-4. Forecasts: every forecaster and question of the latest committed live capture on or before the day, with its
+4. Forecasts: for each question of the latest committed live capture on or before the day, only the house forecast
+   (past average, labelled as the fallback), plus one line counting the other forecasters, each line with its
    back-fill record (calibration bin, count, observed share, Brier) labelled "back-fill, not live", and "live record:
    not enough data yet" until live days are scored; no forecasts on record gives "forecasts: none on record yet"; a
    capture older than the day is labelled with its date.
