@@ -31,3 +31,16 @@ then ChatGPT (rule 9). Written from the owner's rows of 15 Oct 2026 (last rows a
    run measures both together, and the capture starts after A16's mark if they clash.
 3. The AI books' v4 prompt story is renamed G11 in `REPLAN.md` (lines 27 and 130) and `REPLAN_new_stories.md` (line 51).
 Judge note (c), accepted: X uses A16b's checked closes of the candles ending at 14:30 and 15:15, not candle opens.
+
+## Revision 2: ChatGPT review 113 (PARTIAL, one blocker) and the owner's decision (response 159)
+
+- **Cutoff integrity (blocker), fixed by the owner's choice "Honest times, window to 14:40":** every live field keeps its
+  real `observed_at`; the pack's cutoff is "observed by 14:40:00"; a day's label carries its pack's latest observation
+  time; after 14:40 the day is `system_late`; nothing is ever labelled earlier than observed. ChatGPT's fixture is
+  criterion 1a (14:29:59 in, 14:41:00 out, the real A16 fallback with its own times).
+- `A` and `A2` only for packs complete within the window. X frozen with its sample count, source revision and the
+  nearest-rank 95th percentile convention. One pack hash bound to every family (criterion 1b). GitHub receipt time,
+  never commit time. Counts of `A`, `A2`, `system_late` and flagged days on every report. Live and close-proxy cohorts
+  apart. G1 v2's 15:00 records never merged into v4.
+- Judge 161 addendum 1 notes: the table row reads "(G11)"; the two-sign-in line says "some evidence, once, outside
+  market hours".
