@@ -304,3 +304,43 @@ Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the 
   6.7 s says it is unlikely.
 
 Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.
+
+## Addendum 11: O1 at 8a7ca874 (quote parts before the download; E4c's double print removed)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings. This closes judge 204's note A (the
+O1 side) and note B.
+
+- **Parts before the download.** `DayRunner` now starts the quote parts after the whole-history fetch and before
+  `DailyRun.run`, so before E2c's download. A Drive outage at the download therefore stops the desk with E3's one
+  alert, but the parts still end and commit (NSE needs no Drive).
+  - **After a stop,** `_finish_parts` waits at least until `desk.timetable.fills_by` (read from the timetable, not
+    typed), so a stop at 14:35 still covers every part's window.
+  - **No double start.** A rerun whose log already holds `quotes` starts no part, and the `quotes` step's own
+    `start` does not start them again (`QuoteParts.start` acts once per day).
+  - **A closed day.** Each recorder exits on its own calendar rule; `busy()` ends the wait at once and nothing is
+    committed.
+  - **Tests:** the Drive-down-at-download case (stop line, one alert, the three part commits); the closed-day case;
+    the order history, then parts, then day. My mutation removing the early start fails 3 tests in `tests/daily`.
+- **E4c's double print.** The `print(outcome)` in `DeskSteps._fill_one` is gone (E4c's owner agreed). The unsent
+  line now comes once, from `ReportedAlerts`, and E4c's text and test say so. `build_daily_run`'s default sender is
+  reached only by E3's own tests, so no live path loses the line.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6860 passed** in 3 min 2 s; `ruff check` and
+  `check_imports` are clean.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c. Judge 204's O2 row (a) should now say
+that the parts still record on a download outage; the O2 builder updates it with the code.
+
+## Addendum 12: O1 at d123dbb9 (addendum 10's note done)
+
+**Verdict: PASS for the code built so far.** Addendum 10's note is closed.
+
+- **Order.** The quote parts now start before the whole-history fetch and before the Drive download, so neither can
+  delay the 3 pm parts.
+- **Time limit.** `Git.unshallow` runs with a hard limit of 120 s (`subprocess` timeout). A time-out becomes a
+  `GitError`, which means one alert and the day goes on.
+- **Test.** `test_a_hung_fetch_is_stopped_at_its_limit_and_is_one_alert` covers it. My mutation removing the timeout
+  makes it fail.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6870 passed**; `ruff check` and `check_imports` are
+  clean.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.

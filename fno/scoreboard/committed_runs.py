@@ -14,8 +14,11 @@ from pathlib import Path
 from ..constants import JOURNAL_FOLDER, RUN_LOG_DECISIONS_STEP, RUN_LOG_EXITS_STEP
 from ..desk.run_log import RUNS_FOLDER
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
+from ..playbook.opportunities import SHADOW
 
 DECISIONS_STEP, SNAPSHOT_STEP, EXITS_STEP = RUN_LOG_DECISIONS_STEP, "snapshot", RUN_LOG_EXITS_STEP
+NO_EXITS_STEP, NOT_REVIEWED = "no exit review ran", "exit review not recorded as done"
+NOT_CHECKED, REVIEW_FAILED = "not checked against prices: {reason}", "exit review failed: {error}"
 
 
 @dataclass(frozen=True)
@@ -66,9 +69,12 @@ class CommittedRuns:
         return ids
 
     def records(self, run: DayRun) -> list[dict]:
+        """The book's own records of a run. D2's shadow records share the run's folder but are never the book's
+        action: kept out here, so no reader keyed by opportunity ID can take a shadow's for the book's (R3 probe)."""
         folder = DecisionStore(self.root, run.book).day_folder(run.day) / run.run_id
         paths = sorted(p for p in folder.glob("*.json") if p.name != INPUTS_FILE)
-        return [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+        found = [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+        return [r for r in found if r.get("mode") != SHADOW]
 
     def missed_runs(self, book: str, sessions: Sequence[date], held: Callable[[date], bool]) -> list[dict]:
         """Scoreboard B's missed runs (story S6 section 5), read from the run logs: a session with no run of the book
@@ -82,14 +88,21 @@ class CommittedRuns:
                 continue  # the report day before its run: not run yet, not missed
             steps = logs.get(day, {})
             collected = "run_id" in steps.get(DECISIONS_STEP, {}).get("result", {}).get(book, {})
-            exits_missed = not _reviewed(steps, book) and i > 0 and held(sessions[i - 1])
-            if not collected or exits_missed:
+            why = _unreviewed(steps, book) if i > 0 and held(sessions[i - 1]) else ""
+            if not collected or why:
                 found.append({"day": day.isoformat(), "missed_decision": not collected,
-                              "missed_exit_review": exits_missed})  # fmt: skip
+                              "missed_exit_review": bool(why), "exit_review": why})  # fmt: skip
         return found
 
 
-def _reviewed(steps: dict, book: str) -> bool:
+def _unreviewed(steps: dict, book: str) -> str:
+    """Why the book's exits were not reviewed that day, or "" when they were. E3 writes `reviewed` on every outcome:
+    `waiting` means no valid snapshot, so the held trades were not checked against prices (orchestrator, 16 Oct)."""
     if EXITS_STEP not in steps:
-        return False
-    return steps[EXITS_STEP].get("result", {}).get(book, {}).get("reviewed") is True  # E3 writes it on every outcome
+        return NO_EXITS_STEP
+    outcome = steps[EXITS_STEP].get("result", {}).get(book, {})
+    if outcome.get("reviewed") is True:
+        return ""
+    if "waiting" in outcome:
+        return NOT_CHECKED.format(reason=outcome.get("reason") or "no valid snapshot")
+    return REVIEW_FAILED.format(error=outcome["error"]) if outcome.get("error") else NOT_REVIEWED

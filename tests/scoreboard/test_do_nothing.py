@@ -82,6 +82,7 @@ def test_view_b_the_whole_account_with_idle_cash_at_the_cash_rate():
 
 def test_every_tax_figure_carries_the_assumption_label_and_an_unreadable_index_names_its_cause():
     result = against().compare(series([2000.0, 0, 0, 0, 0]), [100_000.0] * 5, 0.0, [])
+    assert result["cash_rate_basis"] == "placeholder until the S1 freeze sets the 91-day T-bill yield"
     assert result["tax"] == TAX_LABEL and result["comparison"].startswith("point")
     blind = DoNothing(ArchivedIndexLevels(None), TERMS, "not computable: the archived index files cannot be read")
     out = blind.compare(series([2000.0, 0, 0, 0, 0]), [100_000.0] * 5, 0.0, [])

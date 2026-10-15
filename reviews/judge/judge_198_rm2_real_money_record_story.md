@@ -188,3 +188,28 @@ is the window the orchestrator asked about, and it exists.**
 - `check_imports`: clean.
 
 **A re-check needs only the start of the "records pending" rule, its escalation line and the Known-limits line.**
+
+## Addendum 4: revision at 73850818: PASS
+
+The delta 96c444dc..73850818 touches the "records pending" bullet, criterion 10 and one Known-limits line. The
+orchestrator's request queued at 21:59 UTC and reached me at 23:14.
+
+- **SF1 (addendum 3): MET.**
+  - Pending now starts "from the moment an open real trade has a delivered exit alert or reaches expiry with no exit
+    or settlement recorded, or a reported fill's Drive write fails, until the record is made".
+  - The close of the next session is only the escalation point: one #fno-desk alert naming the trade as unreconciled.
+  - Criterion 10 now names the 09:45 alert, pending from 09:45, and the 12:00 card showing "do not place:
+    unreconciled". The stop is dated 10:00, and later trades are breaches.
+  - With an alert, the window is closed. A stop-crossing exit after an alert can no longer go unflagged while another
+    card is placed.
+- **The remaining limit, stated as asked:** "An exit the owner makes without an exit alert … cannot be detected until
+  it is reported; until then no card warns". That is correct, because only a report can show it.
+
+**Gates:**
+- The branch conflicts with main in `reviews/chatgpt/README.md` and `reviews/claude/README.md`, rows only. With the
+  conflict markers left in, 4 tests fail.
+- With both sides kept (trial tree e98c530, origin/main 65bf6804), `-n auto`: pytest 6814 passed; `ruff check`
+  clean; `ruff format --check` 1210 files formatted; `check_imports` clean.
+
+**Verdict: PASS.** Keep both sides of the two README conflicts at the merge. ChatGPT re-reads only if the orchestrator
+sends it.

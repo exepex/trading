@@ -108,3 +108,48 @@ before the freeze commit. I check that at the freeze verdict.
 **Cosmetic:** the edited item-7 line runs past 120 characters. Rewrap it at the next edit.
 
 **PASS for bcb9a3f4.**
+
+## Addendum 4 (15 Oct 2026): 085f6c51 (one sentence)
+
+The added sentence: from the books' first live day, `open_audits.csv` always exists (header-only when no audit is
+open), so a deleted file is never read as "nothing open". It matches G8's check (judge 209 addendum 1).
+**PASS for 085f6c51.**
+
+## Addendum 5 (15 Oct 2026): e1f7ea8c, after ChatGPT review 127 (response 202 addenda 5-6)
+
+**(a) One reconciliation rule replaces `open_audits.csv`: accepted (reasoning on the contract).**
+- G11's collect writes exactly one v4 row per scheduled session day of each registered AI slot and started question,
+  from `effective_start`, once the day's audit gate settles. The row is `ok` or a definitive miss (`not_fired`,
+  including days the fire never ran and BG1 stops, `no_submission`, `late`, `not_revealed`, `invalid`,
+  `model_mismatch`, `exposed`, `breach`, `stopped`).
+- Before recording a look on date L, G8 refuses if any registered `hybrid` or `ai_team` slot lacks a row for a scored
+  session in [`effective_start`, L], `system_late` days excepted.
+- **Coverage check (each case the old gate covered, plus those it missed):**
+  - an open audit: no row yet, so refused (as before);
+  - a sealed commitment never collected: no row, so refused (the old file could not see it, review 127's point);
+  - a collect that never ran, or a fire that never ran: no row until collect writes `not_fired`, so refused;
+  - a deleted file: there is no file, so there is nothing to delete.
+
+  The new rule covers a strict superset of the old one, so dropping `open_audits.csv` and judge 209 addendum 1's
+  file rule leaves no gap. It is also simpler (DRY): G8 reads only the record files it already reads.
+- **Two things the text implies, to make explicit in the code round:**
+  - collect must write `not_fired` rows for **past** days it finds without a row (a day whose workflow never ran), not
+    only for today. Otherwise one lost run blocks every later look until fixed by hand;
+  - days before `effective_start` are never required.
+
+**(b) Claim scope: accepted.** Book 2 sees the rules' value, so its errors correlate with the rules'. A better Book 2
+score means "the hybrid improves on its frozen baseline", not independent evidence, and Book 3 is the independent
+comparison (reasoning only, sound).
+
+**(c) Runtime p50 and p95** by question set from day one, with no second cap: accepted.
+
+**For the coming G8 change** (the A16/G8 builder removes the open-audit gate and the file rule): I will check it has
+tests for each case above:
+- an open audit (no row);
+- sealed but not collected;
+- collect never ran;
+- `system_late` excepted;
+- a day before `effective_start` not required;
+- a complete record that lets the look run.
+
+**PASS for e1f7ea8c.**

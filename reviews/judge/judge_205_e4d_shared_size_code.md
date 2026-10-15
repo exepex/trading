@@ -43,3 +43,18 @@ PASS.
 reports 8 plants.
 
 **Verdict: PASS for e33ba70d.** ChatGPT's review follows (rule 9). Any change from it comes back to me.
+
+## Addendum 1 (15 Oct 2026): 0f185cff, after ChatGPT review 126 (text only)
+
+- **No code changes since e33ba70d.** The diff is the story text, the log, review 126, response 205 and README lines;
+  no file under `fno/` or `tests/` changed.
+- **The added lines are accurate:**
+  - fixed, deterministic entry priority (Book 1's order list; the earlier strategy wins);
+  - the bid-side sell-back labelled "a conservative reservation, not consumed liquidity";
+  - two Known limits.
+- **The builder's wording, checked:** "every action other than `open` on a bought leg reduces the protection still
+  held: `unwind`, `close` and `settle`". `constants.py:280` has exactly `open`, `unwind`, `close` and `settle`;
+  `settlement.py:81` writes `FILL_SETTLE` fills; and `taken_units` uses `+1` for `open` and `-1` for any other
+  action. The text matches the code.
+
+**PASS for 0f185cff.** Merge it.

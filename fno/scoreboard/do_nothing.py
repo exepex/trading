@@ -14,6 +14,7 @@ from datetime import date
 
 from .series import DailySeries, rupees
 
+CASH_PLACEHOLDER = "placeholder until the S1 freeze sets the 91-day T-bill yield"
 TAX_LABEL = "the owner's tax scenario, not a tax determination; checked before RM1"
 INDEX_LABEL = "approximate total return (trailing dividend yield)"
 POINT = "point comparison with no interval (response 144 item 24)"
@@ -34,6 +35,7 @@ class Terms:
 
     account_rs: float
     cash_rate: float = 0.055  # a year; set on the freeze day with PROTOCOL.md (a test pins the two), labelled
+    cash_rate_basis: str = CASH_PLACEHOLDER  # at the freeze: "91-day T-bill, RBI auction of <date>"
     fo_tax: float = 0.312  # each financial year's positive F&O net, no loss carried forward
     fund_short_tax: float = 0.208  # the fund held under 12 months (20% + 4% cess)
     fund_long_tax: float = 0.13  # 12 months or more (12.5% + 4% cess), above the exemption
@@ -102,7 +104,8 @@ class DoNothing:
         """Views (a) and (b) for one section: `capital` is the capital tied at each session's close (S2's basis)."""
         terms = self.terms
         book = fo_after_tax(series, terms.fo_tax) - (ai_cost or 0.0)
-        label = {"tax": TAX_LABEL, "index": INDEX_LABEL, "comparison": POINT, "cash_rate": terms.cash_rate}
+        label = {"tax": TAX_LABEL, "index": INDEX_LABEL, "comparison": POINT, "cash_rate": terms.cash_rate,
+                 "cash_rate_basis": terms.cash_rate_basis}  # fmt: skip
         if self.unavailable:
             return {**label, "view_a": _refused(self.unavailable), "view_b": _refused(self.unavailable)}
         return {**label, "view_a": self._view_a(series, capital, book, ai_cost, unrecorded),

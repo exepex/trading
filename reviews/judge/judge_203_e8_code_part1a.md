@@ -137,3 +137,163 @@ Until it does, a shallow routine session gets a refused fill step every day: no 
 fails safe, but it would stop paper trading, so O1's change is needed before E8 goes live.
 
 E8 part 1a passes. Part 1b is next, under the four conditions in this file.
+
+## Early view on part 1b's design (asked through the orchestrator; not a verdict, reasoning only)
+
+On the builder's points 2, 4 and 6 and the live switch.
+
+1. **Do not rebuild the order the next session (point 2).** `OrderBuilder` run on the fill day reads that day's pack
+   and spot, so it can pick other strikes, other units or another approved entry than the card showed. The trade
+   filled must be the trade decided at T. So `entry_pending` stores, at decision time:
+   - the decided legs and units;
+   - the approved entry (the price cap);
+   - the decision's ID;
+   - the card's T.
+
+   The E8 step fills exactly those, and never re-decides. The fill-day C2/C4 run is a check on that stored order
+   (condition 1). A test: the fill-day pack moves spot by 300 points and the filled legs are still the decided ones.
+2. **`e4_1515` stays today's E4 (criterion 9).** If E3's fills step now writes `entry_pending` for the verdict, the
+   15:15 fill must still be computed by today's E4 path into the `e4_1515` view account, bit for bit.
+3. **Exits.**
+   - One exit order ID per position, idempotent. The 15:15 exits step and E4's `due_exits` path (point 6) must never
+     both alert or both fill the same exit.
+   - T is the first delivered alert's `ts`, resent until delivered.
+   - A pending exit retries at each later mark, never counted as risk reduced until it fills.
+4. **Writes (point 4): acceptable, read then write per item, with two conditions.**
+   - Each item's write is all or nothing on disk: every leg and the cash row in one journal entry, so a crash or
+     time-out between items never leaves half a fill.
+   - A re-run finds completed items by their fill IDs and skips them.
+
+   Since writes are synchronous and never abandoned, the late-write problem of should-fix 2 is gone.
+5. **The live switch `desk.owner_timing.live` (default false).** Good as a safe cut-over, with three rules.
+   - It is an allowed `config.yaml` key, and turning it on is an owner decision row.
+   - Cut-over: decisions committed after the switch's commit use E8; earlier ones finish under E4. None is ever
+     filled twice.
+   - **S1's freeze needs it on.** The owner's row (`docs/DESK_DECISIONS.md:181`) makes the 60-minute fill the
+     verdict, so a frozen evaluation with the switch off would quietly use the 15:15 fill. Add it to S1's
+     preconditions, beside the entry rule.
+   - Say whether the step still seals the calendar while the switch is off. Recommended: yes, so the seal history
+     exists before go-live.
+
+## Addendum 2: E8 part 1b at 65ec0b05: FAIL, one should-fix
+
+Branch `story/e8-code-part1` at 65ec0b05: part 1a, then the hooks (ec2ef783), the package (49b8eda9) and the early
+view (beb89fe3), merged with O1 d123dbb9 and main.
+
+**Gates** (trial merge with origin/main, d4982347; E4d's 35c43e26 is on main but not on this head):
+- `-n auto`: 7,057 passed in 2 min 49 s.
+- ruff check, ruff format and check_imports are clean.
+- The largest file in `owner_timing` has 148 lines.
+
+### Should-fix 3: the due-mark fill skips E4c's and E4d's entry checks
+
+`DueFill.price` prices each leg with `price_leg` on its opening side only. It never calls `entry_problems` or
+`taken_units` (`fno/desk/entry_check.py`); a search of `fno/desk/owner_timing` finds neither. So at E8's real fill:
+
+- **E4c (decision 43).** A protective (bought) leg must also be sellable back at the snapshot it fills at. E8 fills an
+  entry whose protection has no bid at 10:15. This is the trade E4c exists to refuse: the next exit review marks it
+  "protection unverified".
+- **E4d (ChatGPT review 126, judge 205).** A book's entries at one snapshot share its displayed size. Two entries of
+  one book needing 65 units each against an ask size of 100 at the same due mark both pass `price_leg` alone, and
+  130 units fill against 100. E8 makes this more likely than E4 did, because every 15:00 decision of a book lands on
+  the same 10:15 mark.
+
+`entry_check.py` says itself that it "depends only on the snapshot it is given, so E8 can apply it at each of its
+snapshots", so the fix is one call, not a new rule.
+
+**Fix:**
+- In `DueFill.price`, after pricing, run `entry_problems(mark snapshot, order.legs(), units,
+  taken_units(book fill rows, mark snapshot, trade_id))` with main's E4d signature after the merge.
+- Any problem is "missed, no quote" with E4c's or E4d's code in the reason.
+- Earlier fills at that mark come first (rule 11 order), so `taken` sees them.
+- Two tests at a due mark:
+  - a protective leg with no bid misses;
+  - two entries of 65 units against a displayed 100: the first fills, the second misses with `size_shared_in_book`.
+
+Would it change a trade? Yes: it opens trades E4 would refuse.
+
+### The builder's two pushbacks: both accepted
+
+- **(a) T from T1's write-once delivery record, not from `entry_pending`.** Correct: the card is posted after the fills
+  step, so T does not exist when `entry_pending` is written.
+  - `DeliveredCards` takes the day's first attempt that Slack accepted, skipping test posts, from T1's committed
+    record, so a later post cannot move T.
+  - Early view 1's real point, that the order must never be rebuilt, is met by `KeptOrders`. The legs, units, cap,
+    decision ID and decision time are written once, before the `entry_pending` event, and filled as kept.
+- **(b) Switch by day (`daily.live_from.owner_timing_fills`), not by commit time.** Correct and simpler. Each decision
+  is handled once, on its own day, by that day's rule; a rerun of an earlier day keeps that day's rule; and a future
+  `live_from` set by the go-live row is clean. S1's precondition becomes "`live_from` set, on or before the freeze"
+  (sent to S1's text owner).
+
+### Judge 203's four conditions: met
+
+1. **A check, not a decision.** `FillDayRisk.miss` calls `manager.evaluate` and returns fill or miss. Nothing is
+   recorded as a decision.
+2. **E4 unchanged when E8 is not used.**
+   - `EntryDesk` and `ImmediateExits` are the defaults.
+   - `_unfilled` blocks entries only when the step's result is failed or refused (not when it is `not_live`, ok or
+     absent).
+   - Settlement still runs before `defer`.
+   - Today's timetable and daily tests pass.
+3. **Validity of what C2 and C4 read.** The spot must exist, and every contract held and proposed must be quoted in
+   that copy, or the entry is "missed, no quote". C4's maximum loss is recomputed on the fill prices.
+4. **Earlier fills first.** Items are sorted by order time. Each item's journal write (all legs, then the outcome
+   event) completes before the next item's check. A rerun finishes an item that already has fills without
+   re-checking it.
+
+### Known limits (stated by the builder): accepted as notes
+
+- **A second exit alert after a failed alert record.** If the alert record fails after Slack accepted the post, a
+  rerun posts again with a later T. That gives a later fill, the cautious direction. Note only.
+- **Legs of a non-near-month expiry miss with "no quote"**, because A16 records only the near-month future. This is a
+  systematic miss for any strategy that trades the next month. Report it under its own reason ("no future for that
+  expiry"), not inside "no quote", so the owner sees it; the remedy is A16 adding the next future. Recommended,
+  reasoning only.
+- **On a day with no snapshot, an exit is not ordered until the next 15:15.** One day later, the same as E4 today.
+  Note.
+- **The exit alert text** uses the first part of the exit reason before ":". The code judge should confirm that no
+  exit rule's reason puts a price before its first colon (the card rule).
+
+Re-review: should-fix 3 only. The E4/E2c builder's agreement on the hooks is still awaited through the orchestrator.
+
+## Addendum 3: E8 part 1b at 09d14c43: PASS
+
+Two commits since 65ec0b05: 6e85ef7a and 09d14c43.
+
+**Should-fix 3: closed.**
+- `DueFill.price` misses an entry with "missed, no quote" only when a leg has no quote or an invalid one (A4's rule).
+- It then runs E4c's `entry_problems` with E4d's `taken_units` (the book's fill rows) on the due mark's own copy,
+  before pricing or any fill, and misses with the first problem's own code.
+- Misses now keep the copy's ID and hash, and the fixed miss reasons sit in one table, `outcomes.MISSED_REASONS`.
+
+**Tests.**
+- **E4d:** two entries of 65 units each against a displayed size of 100 at one mark. The first fills its 4 legs; the
+  second misses with `size_shared_in_book (..., 65 already taken in this book at this snapshot)`.
+- **E4c's thin size:** an ask size of 64 against 65 units on the protection gives `protection_not_buyable`, not
+  "no quote".
+
+**The orchestrator's request, a protection-with-no-bid case:** there is no test of its own on this head. I ran one as
+a probe in a scratch checkout. A protection bid size of 64 against 65 units gives
+`protection_not_sellable (NIFTY26102725200CE, 65 units)` and writes no fill, so the behaviour is right. A literal "no
+bid" is a one-sided quote, which A4 treats as invalid, so that case is correctly "missed, no quote". The builder
+should add the probe as a test in the next commit:
+
+    marks.put(DUE, fly_rows({(25200, "CE"): {"bid_qty": 64.0}}))
+    assert apply(root, entries).startswith(PROTECTION_NOT_SELLABLE)
+
+This is a note, not a blocker: the code path is E4c's own tested function, and the probe passes on this head.
+
+**Hooks:** O1's builder and the E4/E2c builder both agreed (through the orchestrator; 73 E4 tests pass on 6e85ef7a).
+
+**Gates** (trial merge with origin/main, ae7fc6ad):
+- Full suite with `-n auto`: 7,060 passed in 2 min 55 s.
+- ruff check, ruff format and check_imports are clean.
+- The merge is clean.
+
+**E8 part 1 (1a and 1b) passes.** The notes of addendum 2 still stand:
+- report the next-month future miss under its own reason;
+- the code judge checks the exit-alert text;
+- O1 fetches the full history before go-live;
+- `live_from` is set on or before S1's freeze.
+
+Under quality rule 9 (money path), ChatGPT reviews it next.
