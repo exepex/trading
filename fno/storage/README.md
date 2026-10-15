@@ -45,6 +45,7 @@ Datasets so far (all from NSE's public archive, `raw_source.py`):
 | `nse/equities/filings/shareholding-xbrl/<SYMBOL>/<YYYY>` | `NseFilingFileSource` | a company's shareholding-pattern XBRL files (A12) | NSE lists the latest 20 quarters |
 | `nse/equities/filings/announcements` | `NseAnnouncementsSource` | every company's announcements made public on one day (website JSON, `announcements_YYYYMMDD.json`; A12) | 2005 onwards |
 | `nse/equities/filings/board-meetings` | `NseBoardMeetingsSource` | every company's board-meeting notices of one day (`board-meetings_YYYYMMDD.json`; A12) | 2005 onwards |
+| `nse/indices/india-vix-history` | `NseVixHistorySource` (`fno/vix_history/`) | India VIX daily open, high, low, close, one NSE website JSON answer per ended calendar month (`india-vix_<YYYYMM>.json`; story A15); manifest rows at save time, revisions by `vix-history sweep`; derived table `research/data/vix/` | 19 Jul 2010 (NSE's first served day) onwards |
 
 Filing files are grouped by category, company and the year of the period reported (owner, 13 Oct 2026); later
 categories (annual reports, insider trades, pledges, credit ratings, corporate actions) take the same shape. The

@@ -1,13 +1,17 @@
-"""Experiment 1's protected structures (story B2, protocol section 4): four legs, a body and two wings W points out.
+"""Option structures (story B2, protocol section 4; story STR1). `Structure` builds any number of legs and refuses a
+naked short leg: every sold call is matched by a bought call and every sold put by a bought put, so each position's
+loss is fixed at entry. Experiment 1's protected four-leg structures (`BodyAndWings`: SF, SC, BF) are here; the one-
+and two-leg ones (STR1) are in `one_side.py`.
 
 Strikes: the nearest listed strike to the target; on an equal-distance tie the ATM strike is the lower one (as in F1)
-and a short out-of-the-money leg takes the strike farther from spot (more conservative). A wing W points away must be
-listed exactly, otherwise that width is unavailable. Every structure has one call and one put bought for each one sold,
-so its terminal payoff is flat beyond the outer strikes and its extremes lie at strikes.
+and a short out-of-the-money leg takes the strike farther from spot (more conservative). A leg W points away must be
+listed exactly, otherwise that width is unavailable. A covered position's terminal payoff is flat or rising beyond its
+outer strikes, so its worst payoff lies at a strike.
 """
 
 from __future__ import annotations
 
+import math
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -56,11 +60,26 @@ def position_value(legs: Iterable[Leg], prices: Iterable[float]) -> float:
     return sum(leg.side * price for leg, price in zip(legs, prices, strict=True))
 
 
+class NakedShortLeg(ValueError):
+    """A sold option without a bought option of the same type: its loss is not fixed at entry, so it is never built."""
+
+
+def require_covered(legs: Sequence[Leg]) -> None:
+    """Refuse a naked short leg: per option type, the legs sold may not outnumber the legs bought."""
+    for kind in (OPTION_CALL, OPTION_PUT):
+        if sum(leg.side for leg in legs if leg.kind == kind) < 0:
+            shown = [(leg.strike, leg.kind, leg.side) for leg in legs]
+            raise NakedShortLeg(f"more {kind} legs sold than bought: {shown}")
+
+
 def payoff_bounds(legs: Sequence[Leg]) -> tuple[float, float]:
-    """The least and most the position can be worth at expiry, per unit (its extremes lie at strikes). A market value
-    outside these bounds is an impossible price: no-arbitrage keeps a position between its worst and best payoff."""
-    values = [terminal_value(legs, leg.strike) for leg in legs]
-    return min(values), max(values)
+    """The least and most the position can be worth at expiry, per unit, over every index level from 0 up. Between 0
+    and the top strike the payoff is linear between strikes; above it, it rises without limit when more calls are
+    bought than sold. A market value outside these bounds is an impossible price: no-arbitrage keeps a position
+    between its worst and best payoff."""
+    values = [terminal_value(legs, level) for level in (0.0, *(leg.strike for leg in legs))]
+    upward = sum(leg.side for leg in legs if leg.kind == OPTION_CALL)
+    return -math.inf if upward < 0 else min(values), math.inf if upward > 0 else max(values)
 
 
 def nearest_strike(strikes: Iterable[float], target: float, tie_higher: bool) -> float:
@@ -68,36 +87,55 @@ def nearest_strike(strikes: Iterable[float], target: float, tie_higher: bool) ->
     return min(strikes, key=lambda k: (abs(k - target), -k if tie_higher else k))
 
 
+def atm_strike(strikes: Iterable[float], spot: float) -> float:
+    """The ATM strike: the listed strike nearest spot, the lower one on a tie."""
+    return nearest_strike(strikes, spot, tie_higher=False)
+
+
 class Structure(ABC):
-    """A body (a call and a put on `body_side`) with a wing `width` points further out on the other side."""
+    """A position built from the day's listed contracts, spot and a width in points. `legs` is the one way to get its
+    legs: it refuses a naked short leg whatever `build` returns."""
 
     code: str
-    body_side: int
 
     def legs(self, chain: Chain, spot: float, width: float) -> list[Leg] | None:
-        """The four legs for this width, or None when a needed contract is not listed (the width is unavailable)."""
+        """The legs for this width, or None when a needed contract is not listed (the width is unavailable)."""
         strikes = {strike for strike, _ in chain}
         if not strikes:
             return None
+        legs = self.build(strikes, spot, width)
+        require_covered(legs)
+        return legs if all(leg.contract in chain for leg in legs) else None
+
+    @abstractmethod
+    def build(self, strikes: set[float], spot: float, width: float) -> list[Leg]:
+        """The legs on these listed strikes (any number); `legs` checks they are listed and covered."""
+
+
+class BodyAndWings(Structure):
+    """A body (a call and a put on `body_side`) with a wing `width` points further out on the other side."""
+
+    body_side: int
+
+    def build(self, strikes: set[float], spot: float, width: float) -> list[Leg]:
         call, put = self.body_strikes(strikes, spot)
-        legs = [
+        return [
             Leg(call, OPTION_CALL, self.body_side),
             Leg(put, OPTION_PUT, self.body_side),
             Leg(call + width, OPTION_CALL, -self.body_side),
             Leg(put - width, OPTION_PUT, -self.body_side),
         ]
-        return legs if all(leg.contract in chain for leg in legs) else None
 
     @abstractmethod
     def body_strikes(self, strikes: set[float], spot: float) -> tuple[float, float]:
         """The body's (call strike, put strike)."""
 
 
-class IronFly(Structure, ABC):
-    """Body at the ATM strike: the listed strike nearest spot, the lower one on a tie."""
+class IronFly(BodyAndWings, ABC):
+    """Body at the ATM strike."""
 
     def body_strikes(self, strikes: set[float], spot: float) -> tuple[float, float]:
-        atm = nearest_strike(strikes, spot, tie_higher=False)
+        atm = atm_strike(strikes, spot)
         return atm, atm
 
 
@@ -113,7 +151,7 @@ class LongIronFly(IronFly):
     code, body_side = STRUCTURE_LONG_IRON_FLY, BOUGHT
 
 
-class ShortCondor(Structure):
+class ShortCondor(BodyAndWings):
     """SC: sell the call nearest spot x 1.02 and the put nearest spot x 0.98, buy each W further out."""
 
     code, body_side = STRUCTURE_SHORT_CONDOR, SOLD
