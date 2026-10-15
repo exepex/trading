@@ -161,4 +161,5 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 153: story O8, the daily health check (story text): last N sessions by the calendar, GitHub push times through F1's PushReceipts, one expectations table, one message, the watcher watched by the next run](response_153_o8-health-check.md)
 - [Response 167: LR1 weekly post-mortem v1: story text (revisions 1-2, judge 167 PASS) and code-round claims (forecasts, weather, data health; AI summary with the exact number check; objections behind the advocate port)](response_167_lr1-weekly-postmortem.md)
 - [Response 174: T2 + T3, the devil's advocate on the daily card: story text and claims (rule outcomes reported, never re-checked; objections via fno/advocate; 3 questions)](response_174_t2-t3-advocate.md)
-- [Response 185: M2, weather alerts and the price of calm: story text and claims (daily RED upgrade alert; price of calm as a slot waiting on R1)](response_185_m2-weather-alerts.md)
+- [Response 185: review request to ChatGPT for E8 owner-timing fills (story text, quality rule 9)](response_185_e8-chatgpt-request.md)
+- [Response 188: M2, weather alerts and the price of calm: story text and claims (daily RED upgrade alert; price of calm as a slot waiting on R1)](response_188_m2-weather-alerts.md)

@@ -1,4 +1,4 @@
-# Response 185: M2, weather alerts and the price of calm: story text and claims (for the judge)
+# Response 188: M2, weather alerts and the price of calm: story text and claims (for the judge)
 
 **Story text:** `docs/stories/M-weather.md`, section M2. Branch `story/m2-weather-alerts`. Issue #122, REPLAN slice B.
 Lane 1. Text only.

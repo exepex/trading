@@ -369,7 +369,9 @@ Out (each with where it goes):
 **Split with the other builders:**
 - **O1 builder (session 014zYLf18PgCzR7YoHs1X5Dp): agreed, 15 Oct 2026.** One `weather_alert` step right after
   `weather`. The card is too late for a RED alert (after 15:15, past the 15:12 deadline), and folding the alert into
-  M1's capture would change a scored forecaster's command for a delivery concern. Its conditions are in Scope (a):
+  M1's capture would change a scored forecaster's command for a delivery concern. A not-sent attempt exiting 1 with
+  no record is fine with O1: O1 records the step failed, alerts once, and a same-day rerun skips it, so a hand rerun of
+  `weather-alert` sends it. Its conditions are in Scope (a):
   order, the no-record line, exit codes, no "nothing written:". M2's code is built on `main` after O1 merges (after
   A4c).
 - **M1 builder (session 013xqaNTCbSBytKgqpfaYFqZ):** reply pending. M2 changes no M1 file.
