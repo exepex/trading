@@ -84,3 +84,11 @@ The builder's plants (the AI-slot filter, the freeze floor, the skipped check) w
 
 **PASS for db1a0e93.** Merge it before the freeze. Response 157 is updated (36f87bbe) to drop the gate from the
 checklist.
+
+## Addendum 2 (15 Oct 2026): 83a5ee7a (test rename only)
+
+The db1a0e93..83a5ee7a diff renames the complete-record test to
+`test_ai_rows_with_no_audit_file_and_a_complete_record_let_the_look_run_with_its_misses` and adds its docstring (2
+lines added, 1 removed, test only). It names the orchestrator's case explicitly. The audit-file-required rule
+(16e082a7: `has_kind`, `AuditFileError`, `V4_KIND_AI`) is gone: on 83a5ee7a a grep of `fno/` and `tests/` finds only
+that docstring's mention of the file. **PASS for 83a5ee7a.**
