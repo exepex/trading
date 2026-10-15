@@ -36,3 +36,24 @@ def test_a_run_stopped_before_exits_is_a_missed_exit_review_only_while_a_trade_w
     held = runs.missed_runs("book1_rules", [MON, TUE], lambda day: day == MON)
     assert held == [{"day": "2026-11-10", "missed_decision": False, "missed_exit_review": True}]
     assert runs.missed_runs("book1_rules", [MON, TUE], lambda day: False) == []
+
+
+def test_an_exits_step_where_the_books_review_failed_or_was_held_up_is_a_missed_exit_review(tmp_path):
+    for day, outcome in ((MON, {"error": "no snapshot"}), (TUE, {"waiting": ["NIFTY-C"]})):
+        write_log(tmp_path, day, {"book1_rules": f"r-{day}"})
+        path = tmp_path / "journal" / "runs" / f"{day.isoformat()}.json"
+        log = json.loads(path.read_text())
+        log["steps"]["exits"] = {"started_at": "", "finished_at": "", "inputs": {}, "result": {"book1_rules": outcome}}
+        path.write_text(json.dumps(log))
+    found = CommittedRuns(tmp_path).missed_runs("book1_rules", [FRI, MON, TUE, date(2026, 11, 11)], lambda day: True)
+    assert [(m["day"], m["missed_exit_review"]) for m in found] == [
+        ("2026-11-06", False), ("2026-11-09", True), ("2026-11-10", True)]  # fmt: skip
+    # Friday: no log, a missed decision, and no trade held before it; 11 Nov, the report day, has not run yet
+
+
+def test_a_real_nse_holiday_is_never_listed(tmp_path):
+    from fno.composition import build_session_calendar
+
+    sessions = build_session_calendar().sessions(date(2026, 10, 1), date(2026, 10, 5))  # 2 Oct: Gandhi Jayanti
+    found = CommittedRuns(tmp_path).missed_runs("book1_rules", sessions, lambda day: False)
+    assert date(2026, 10, 2) not in sessions and "2026-10-02" not in [m["day"] for m in found]

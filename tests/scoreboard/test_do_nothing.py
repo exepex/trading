@@ -4,8 +4,6 @@ expected figure below is written from the files' "Nifty 50" closes and "Div Yiel
 from datetime import date
 from pathlib import Path
 
-import pytest
-
 from fno.scoreboard.do_nothing import NO_CAPITAL, DoNothing, Terms, fo_after_tax, fund_after_tax
 from fno.scoreboard.series import DailySeries
 from fno.scoreboard.sources import ArchivedIndexLevels
@@ -34,16 +32,6 @@ def series(nets, days=DAYS):
     return DailySeries(tuple(days), tuple(nets), tuple(0.0 for _ in nets))
 
 
-def by_hand(capital: float):
-    """The fund's and cash's gain on `capital` tied at each previous close, before tax."""
-    fund = cash = 0.0
-    for i in range(1, len(DAYS)):
-        span = (DAYS[i] - DAYS[i - 1]).days
-        fund += capital * (CLOSE[i] / CLOSE[i - 1] - 1 + (YIELD[i - 1] / 100 - 0.0005) * span / 365)
-        cash += capital * 0.055 * span / 365
-    return fund, cash
-
-
 def test_the_adapter_reads_the_nifty_50_close_and_yield_from_the_archived_files():
     index = ArchivedIndexLevels(Raw())
     assert [(index(d).close, index(d).dividend_yield) for d in DAYS] == list(zip(CLOSE, YIELD, strict=True))
@@ -51,29 +39,38 @@ def test_the_adapter_reads_the_nifty_50_close_and_yield_from_the_archived_files(
 
 
 def test_view_a_rs_1_lakh_tied_for_5_sessions_and_a_book_net_of_rs_2000():
-    fund, cash = by_hand(100_000.0)
+    """By hand from the files: each interval's fund return = close change + (Div Yield of the earlier day / 100 - 0.05%)
+    x calendar days / 365: -1.639272%, +1.301626%, -0.685506% (3 days), +1.607571%; on Rs 1,00,000 that is
+    -1,639.27 + 1,301.63 - 685.51 + 1,607.57 = Rs 584.42, after 20.8% tax Rs 462.86. Cash: 1,00,000 x 5.5% x 6 days
+    / 365 = Rs 90.41, after 31.2% Rs 62.20. The book: 2,000 less 31.2% = Rs 1,376."""
     view = against().compare(series([2000.0, 0, 0, 0, 0]), [100_000.0] * 5, 0.0, [])["view_a"]
-    fund_after = fund - 0.208 * max(fund, 0.0)  # under 12 months
-    cash_after = cash - 0.312 * max(cash, 0.0)
-    assert view["capital_days_rs"] == 500_000.0 and view["book_after_tax_rs"] == 2000.0 - 624.0
-    assert view["fund_after_tax_rs"] == pytest.approx(round(fund_after, 2), abs=0.005)
-    assert view["cash_after_tax_rs"] == pytest.approx(round(cash_after, 2), abs=0.005)
-    assert view["beats_index_after_tax"] == (fund_after < 1376.0) and view["beats_cash_after_tax"] is True
+    assert (view["capital_days_rs"], view["book_after_tax_rs"]) == (500_000.0, 1376.0)
+    assert (view["fund_after_tax_rs"], view["cash_after_tax_rs"]) == (462.86, 62.2)
+    assert (view["beats_index_after_tax"], view["beats_cash_after_tax"]) == (True, True)
 
 
 def test_view_b_the_whole_account_with_idle_cash_at_the_cash_rate():
-    fund, cash = by_hand(2_000_000.0)
-    _, idle_cash = by_hand(1_900_000.0)
+    """Idle Rs 19,00,000 at 5.5% for 6 days = Rs 1,717.81, after tax 1,181.85, plus the book's 1,376 = Rs 2,557.85;
+    the fund on Rs 20,00,000 gains 20 x 584.42 = Rs 11,688.38, after tax 9,257.20; cash Rs 1,808.22, after tax
+    1,244.05."""
     view = against().compare(series([2000.0, 0, 0, 0, 0]), [100_000.0] * 5, 0.0, [])["view_b"]
-    assert view["book_with_idle_cash_rs"] == pytest.approx(round(1376.0 + idle_cash * (1 - 0.312), 2), abs=0.005)
-    assert view["fund_rs"] == pytest.approx(round(fund - 0.208 * max(fund, 0.0), 2), abs=0.005)
-    assert view["cash_rs"] == pytest.approx(round(cash * (1 - 0.312), 2), abs=0.005)
+    assert (view["book_with_idle_cash_rs"], view["fund_rs"], view["cash_rs"]) == (2557.85, 9257.2, 1244.05)
+    assert (view["beats_index_after_tax"], view["beats_cash_after_tax"]) == (False, True)
+
+
+def test_every_tax_figure_carries_the_assumption_label_and_an_unreadable_index_names_its_cause():
+    result = against().compare(series([2000.0, 0, 0, 0, 0]), [100_000.0] * 5, 0.0, [])
+    assert result["tax"] == "assumption until verified (owner's scenario)" and result["comparison"].startswith("point")
+    blind = DoNothing(ArchivedIndexLevels(None), TERMS, "not computable: the archived index files cannot be read")
+    out = blind.compare(series([2000.0, 0, 0, 0, 0]), [100_000.0] * 5, 0.0, [])
+    assert out["view_a"]["reason"] == out["view_b"]["reason"] == blind.unavailable
 
 
 def test_with_no_trade_and_no_operating_cost_view_b_equals_cash_and_view_a_has_no_capital():
     result = against().compare(series([0.0] * 5), [0.0] * 5, 0.0, [])
     assert result["view_a"]["reason"] == NO_CAPITAL and result["view_a"]["beats_index_after_tax"] is None
     assert result["view_b"]["book_with_idle_cash_rs"] == result["view_b"]["cash_rs"]
+    assert result["view_b"]["beats_index_after_tax"] is not None  # view (b) still computes: all idle
 
 
 def test_the_whole_account_tied_leaves_no_idle_credit():

@@ -77,3 +77,15 @@ def test_a_disagreement_is_printed_and_never_changes_the_claim():
     judged = _judged(claim, noisy)
     assert judged["claim_allowed"] is True and judged["t_check"]["agrees_with_bootstrap"] is False
     assert judged["reason"].endswith(DISAGREES)
+
+
+def test_without_a_brake_every_share_is_null_and_scoreboard_as_label_says_no_marks():
+    from fno.scoreboard.trade_measures import BY_DECISION_DAY
+
+    d = drawdown(series([100.0, 200.0]), None, BY_DECISION_DAY)
+    assert (d["worst_day_share_of_brake"], d["max_drawdown_share_of_brake"], d["label"]) == (
+        None,
+        None,
+        BY_DECISION_DAY,
+    )
+    assert drawdown(series([100.0, 200.0]), 120000.0)["worst_day_share_of_brake"] == 0.0

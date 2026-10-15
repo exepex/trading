@@ -9,17 +9,13 @@ from datetime import date
 
 from ..costs import CHARGE_NAMES
 from .book_trades import ScoredTrade
-from .series import DailySeries, held_at_close
+from .series import DailySeries, held_at_close, rupees
 from .t_check import DISAGREES, t_check
 from .trade_measures import drawdown, trade_measures
 from .uncertainty import FIGURES_STATUS, Uncertainty
 
 AI_NOT_AVAILABLE = "not available: F8 (AI cost allocation) not built"
 MARGIN_AT_ENTRY = "capital tied at entry (broker margin + premium paid) x sessions held (not re-margined daily)"
-
-
-def rupees(value: float | None) -> float | None:
-    return None if value is None else float(round(value, 2))
 
 
 def _money(trades: Sequence[ScoredTrade]) -> dict:

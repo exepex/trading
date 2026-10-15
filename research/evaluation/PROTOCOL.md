@@ -322,7 +322,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     closing change plus its "Div Yield" / 100 x calendar days / 365, less a 0.05% a year expense pro rata. A missing
     index day makes the comparison not computable; it is never filled.
   - **Numbers (proposals, owner decides; tax an assumption until verified):** cash rate = the RBI repo rate on the
-    freeze day, written here as a number at the freeze; F&O tax 31.2% on each financial year's positive net, no loss
+    freeze day, written here and in `Terms.cash_rate` (fno/scoreboard/do_nothing.py, hashed with the scoring code) at
+    the freeze; F&O tax 31.2% on each financial year's positive net, no loss
     carried forward; the fund treated as sold at the section's last session, its gain taxed once at 20.8% if the
     section is under 12 months, else 13% above one Rs 1.25 lakh exemption, a loss untaxed; cash taxed at 31.2%.
     Every simplification leans against the book.
@@ -390,7 +391,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     `fno/scorecard/review.py`, `fno/research_engine/statistics.py`, `fno/desk/timetable.py`.
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
-  - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2 and S3 and the code of F8 and F9
+  - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct
+    2026) and the code of F8 and F9
     is added to this list before the freeze. Version 1 is not frozen until all of it exists. There is no hashes-only
     version 2.
   - **Refusal:** the freeze tool refuses a listed file that does not exist.

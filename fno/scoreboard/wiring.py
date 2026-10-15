@@ -38,6 +38,8 @@ from .sources import (
 from .standard_unit import StandardUnit
 from .whole_system import WholeSystemBoard
 
+INDEX_UNREACHABLE = "not computable: the archived index files cannot be read (Drive settings missing)"
+
 
 def board_from(
     root: Path, charges: dict, calendar: SessionCalendar, versions: Versions, marks: DayMarks,
@@ -70,13 +72,13 @@ def build_whole_system_board(cfg: dict, root: Path = ROOT) -> WholeSystemBoard:
 
 def do_nothing(cfg: dict) -> DoNothing:
     """Story S6's comparison: the archived index-close files and the books' account capital."""
-    return DoNothing(
-        ArchivedIndexLevels(drive_raw_or_none()), Terms(cfg["risk"]["profiles"]["books"]["paper_account_rs"])
-    )
+    raw = drive_raw_or_none()
+    terms = Terms(cfg["risk"]["profiles"]["books"]["paper_account_rs"])
+    return DoNothing(ArchivedIndexLevels(raw), terms, "" if raw else INDEX_UNREACHABLE)
 
 
 def drive_raw_or_none():
-    """Drive's raw area, or None without its settings: the do-nothing comparison then reads "index day missing"."""
+    """Drive's raw area, or None without its settings: the do-nothing comparison then names that cause."""
     from ..storage.wiring import build_drive_reader
 
     try:

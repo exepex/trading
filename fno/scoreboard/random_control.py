@@ -89,7 +89,7 @@ class RandomControl:
 
     def control(self, trades: Sequence[RealTrade]) -> dict:
         trades = sorted(trades, key=lambda t: (t.entry, t.exit))
-        book = measure([t.net for t in trades], [t.max_loss * t.held for t in trades])
+        book = measure([t.net for t in trades], [self._own_risk(t) * t.held for t in trades])
         if book is None:
             return {"label": LABEL, "percentile": None, "reason": "no completed position"}
         rng, values, missing = random.Random(self.seed), [], 0
@@ -143,6 +143,19 @@ class RandomControl:
             return None
         net = flow_in + sum(cash(Order(q.side, q.price, trade.units), self.charges) for q in closing)
         return Twin(net, max_loss, self.sides.get(code, ()))
+
+    def _own_risk(self, trade: RealTrade) -> float:
+        """The real trade's maximum loss on its twins' basis (B2's model on its legs at the entry snapshot's touch), so
+        the trade ties its own twin; the record's figure (priced at the pack's mids) only when it cannot be priced."""
+        entry = self.snapshots(trade.entry)
+        quotes = [price_leg(entry, leg, leg.side(True), trade.units) for leg in trade.legs] if entry else []
+        if not quotes or not all(q.fills for q in quotes):
+            return trade.max_loss
+        flow = sum(cash(Order(q.side, q.price, trade.units), self.charges) for q in quotes)
+        try:
+            return self.held.of_legs([(leg.leg, trade.units) for leg in trade.legs], flow)
+        except RiskInputError:
+            return trade.max_loss
 
     def _bucket_room(self, twin: Twin, open_twins: list) -> bool:
         for side in twin.sides:

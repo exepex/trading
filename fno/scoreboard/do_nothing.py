@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import date
 
-from .series import DailySeries
+from .series import DailySeries, rupees
 
 TAX_LABEL = "assumption until verified (owner's scenario)"
 INDEX_LABEL = "approximate total return (trailing dividend yield)"
@@ -74,8 +74,10 @@ class Growth:
 
 
 class DoNothing:
-    def __init__(self, index: Callable[[date], IndexDay | None], terms: Terms):
-        self.index, self.terms = index, terms
+    def __init__(self, index: Callable[[date], IndexDay | None], terms: Terms, unavailable: str = ""):
+        """`unavailable` names why the index files cannot be read at all (e.g. Drive settings missing): every view then
+        says so, instead of reporting each day as missing."""
+        self.index, self.terms, self.unavailable = index, terms, unavailable
 
     def growth(self, days: Sequence[date], capital: Sequence[float]) -> Growth:
         """Capital at each previous close earns the fund's and cash's return to the next session."""
@@ -100,6 +102,8 @@ class DoNothing:
         terms = self.terms
         book = fo_after_tax(series, terms.fo_tax) - (ai_cost or 0.0)
         label = {"tax": TAX_LABEL, "index": INDEX_LABEL, "comparison": POINT, "cash_rate": terms.cash_rate}
+        if self.unavailable:
+            return {**label, "view_a": _refused(self.unavailable), "view_b": _refused(self.unavailable)}
         return {**label, "view_a": self._view_a(series, capital, book, ai_cost, unrecorded),
                 "view_b": self._view_b(series, capital, book, ai_cost, unrecorded)}  # fmt: skip
 
@@ -117,9 +121,9 @@ class DoNothing:
         per = lambda rs: round(rs / capital_days, 8)  # noqa: E731
         verdict = None if ai_cost is None else book > fund
         return {
-            "capital_days_rs": _rs(capital_days), "book_after_tax_rs": _rs(book), "fund_after_tax_rs": _rs(fund),
-            "cash_after_tax_rs": _rs(cash), "book_per_rupee_day": per(book), "fund_per_rupee_day": per(fund),
-            "cash_per_rupee_day": per(cash), "beats_index_after_tax": verdict,
+            "capital_days_rs": rupees(capital_days), "book_after_tax_rs": rupees(book),
+            "fund_after_tax_rs": rupees(fund), "cash_after_tax_rs": rupees(cash), "book_per_rupee_day": per(book),
+            "fund_per_rupee_day": per(fund), "cash_per_rupee_day": per(cash), "beats_index_after_tax": verdict,
             "beats_cash_after_tax": None if ai_cost is None else book > cash,
             "reason": BEFORE_AI if ai_cost is None else "",
         }  # fmt: skip
@@ -139,14 +143,10 @@ class DoNothing:
         book_whole, cash = book + after_cash(idle.cash), after_cash(whole.cash)
         known = ai_cost is not None
         return {
-            "account_rs": _rs(account), "book_with_idle_cash_rs": _rs(book_whole), "fund_rs": _rs(fund),
-            "cash_rs": _rs(cash), "beats_index_after_tax": book_whole > fund if known else None,
+            "account_rs": rupees(account), "book_with_idle_cash_rs": rupees(book_whole), "fund_rs": rupees(fund),
+            "cash_rs": rupees(cash), "beats_index_after_tax": book_whole > fund if known else None,
             "beats_cash_after_tax": book_whole > cash if known else None, "reason": "" if known else BEFORE_AI,
         }  # fmt: skip
-
-
-def _rs(value: float) -> float:
-    return float(round(value, 2))
 
 
 def _refused(reason: str) -> dict:

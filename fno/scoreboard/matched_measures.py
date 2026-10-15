@@ -12,7 +12,11 @@ from .matched import DayScore, Results, series_of
 from .matched_actions import TAKE
 from .matched_days import BookDay
 from .standard_unit import CLOSED, OPEN
-from .trade_measures import drawdown, trade_measures
+from .trade_measures import BY_DECISION_DAY, drawdown, trade_measures
+
+# The standard unit carries no operating or AI cost (S1: no account, one lot), so A's verdict stands for every book,
+# while scoreboard B withholds an AI book's verdict until F8 knows its cost.
+NO_OPERATING_COST = 0.0
 
 
 def _takes(days: Sequence[BookDay], results: Results, scored: set) -> list:
@@ -27,10 +31,10 @@ def a_measures(
     takes = [t for t in _takes(days, results, scored) if t[3].status == CLOSED]
     opened = sum(r.status == OPEN for d in days for o, a in d.actions.items()
                  if (r := results.get((d.book, d.day, o))) is not None)  # fmt: skip
-    out = {"measures": {**trade_measures([t[3].net for t in takes], opened), **drawdown(series, None)}}
+    out = {"measures": {**trade_measures([t[3].net for t in takes], opened), **drawdown(series, None, BY_DECISION_DAY)}}
     if against is not None:
         capital, unrecorded = capital_path(takes, series.days)
-        compared = against.compare(series, capital, 0.0, unrecorded)
+        compared = against.compare(series, capital, NO_OPERATING_COST, unrecorded)
         out["do_nothing"] = {key: value for key, value in compared.items() if key != "view_b"}
     return out
 

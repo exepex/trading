@@ -99,9 +99,9 @@ class BookBoard:
         positions = sum(t.completed and t.line is not None for t in trades)
         judged_by = uncertainty(series, positions, full_months(first, last)) if judged else None
         if ai_period is None:
-            against = self._against(
-                self.ai.allocated(inputs.book, first, last)
-            )  # Book 1: 0; AI books: unknown until F8
+            # The AI cost is charged at book level only, so a part of the book has no share of it: its verdict stands
+            # only when the book's whole AI cost is zero (Book 1), else it is unknown (no verdict), never counted twice.
+            against = self._against(0.0 if self.ai.allocated(inputs.book, first, last) == 0 else None)
             board = section(trades, series, sum(costs.values()), 0.0, judged_by, first, last, self.brake_rs, against)
             return board | {"ai_cost_allocated_rs": AI_AT_BOOK_LEVEL} | self._luck(trades, series, judged)
         ai = self.ai.allocated(inputs.book, *ai_period)

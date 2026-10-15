@@ -321,6 +321,7 @@ CARD_SESSION_KINDS = (
 
 # Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
 RUN_LOG_DECISIONS_STEP = "decisions"
+RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)
 
 # The market weather (story M1, fno/weather/; design 2.3): its forecasters, colours and the owner's thresholds
 # (15 Oct 2026, "Weather thresholds accepted"), scored on protocol v4's V6a and V6b

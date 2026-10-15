@@ -95,3 +95,13 @@ def test_each_strategy_version_entry_reconciles_with_e6s_card(tmp_path):
             assert entry["closed_trade_ids"] == sorted(t.trade_id for t in card.closed), version
             assert entry["closed_net_rs"] == round(sum(t.line.net for t in card.closed), 2), version
             assert {"measures", "do_nothing"} <= set(entry)
+
+
+def test_a_part_of_an_ai_book_has_no_verdict_while_its_ai_cost_is_unknown_and_book_1s_parts_do(tmp_path):
+    board = build(history(tmp_path))
+    book1 = board["books"][BOOK1_RULES]["head_to_head"]["segments"]
+    book2 = board["books"][BOOK2_HYBRID]["head_to_head"]["segments"]
+    assert all(
+        s["do_nothing"]["view_a"]["reason"] != "before AI cost: AI cost unknown, no verdict" for s in book1.values()
+    )
+    assert all(s["do_nothing"]["view_b"]["beats_index_after_tax"] is None for s in book2.values())

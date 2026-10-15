@@ -13,6 +13,11 @@ from .book_trades import ScoredTrade
 from .daily_values import daily_changes
 
 
+def rupees(value: float | None) -> float | None:
+    """Rupees to the paisa, for every figure the scoreboards print."""
+    return None if value is None else float(round(value, 2))
+
+
 @dataclass(frozen=True)
 class DailySeries:
     days: tuple[date, ...]
