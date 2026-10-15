@@ -42,7 +42,7 @@ def test_weather_is_never_a_colour_on_a_v1_card(tmp_path):
 def test_every_forecaster_is_shown_with_its_back_fill_record_and_no_live_record_yet(tmp_path):
     _, text = card_of(planted(), tmp_path)
     assert "Forecasts on record: live capture of 2026-10-14 (not today's" in text
-    assert "after the 15:15 deadline: these records are not scored" in text  # generated 19:27 IST
+    assert "This capture was generated at 19:27 IST, after its 15:15 deadline: its records are not scored" in text
     assert (
         "  book1_rules 0.56 | back-fill, not live: said 0.5-0.6 on 551 days, happened on 60%, mean Brier 0.244 "
         "over 670; live: not enough data yet (0 scored)"

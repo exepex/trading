@@ -108,9 +108,11 @@ merged: they plug in as a new `ForecastSource`); the dashboard renderer.
     `python -m fno card daily --post --test` posts one card whose first line is "TEST — PAPER ONLY: a one-off check of
     live delivery, not the day's card.", marked `test: true` in the Drive record and the delivery metadata, and never
     counted as the session's card. `--test` without `--post` does nothing. Done only after the owner's yes, relayed
-    by the orchestrator: then the delivery file is committed and pushed, `card witness` shows Slack's `ts` and
-    GitHub's push receipt, and both go in the builder's response with the message link. Until then this criterion is
-    NOT MET.
+    by the orchestrator. Split by witness (orchestrator, 15 Oct 2026): (a) on the branch, the test delivery file is
+    committed and pushed to the story branch and `card witness` shows Slack's `ts` (the judge checks it before the
+    merge); (b) GitHub's push receipt is read only from pushes to `main`, so it is shown after the merge and the judge
+    checks it in its merge check. The delivery file is never pushed to `main` by hand (it is not a scheduled job's
+    output, so not lane 3). Until (a) is done this criterion is NOT MET; (b) is checked at the merge.
 
 **Test plan:** fakes for Slack, Drive, the records and the clock. Positive: a full card from planted committed records
 (empty registry, a capture, a score report). Negative: a registry with a `paper` version; an unreadable registry; a
