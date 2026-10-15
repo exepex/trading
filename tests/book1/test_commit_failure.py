@@ -48,7 +48,7 @@ class Desk:
 
     def __init__(self, root, monkeypatch, capsys):
         self.root, self.run, self.alerts, self.inputs, self.capsys = root, CountedRun(root), Alerts(), None, capsys
-        monkeypatch.setattr("fno.books.book1_wiring.build_book1", lambda cfg: self.book1())
+        monkeypatch.setattr("fno.books.book1_wiring.build_book1", lambda cfg, files=None: self.book1())
         monkeypatch.setattr("fno.composition.build_alert_sender", lambda: self.alerts)
         self.downloads = []  # story E2c's shared download: Drive is not tested here, only that it is asked for
         monkeypatch.setattr("fno.desk.wiring.download_private_records", lambda day=None: self.downloads.append(day))

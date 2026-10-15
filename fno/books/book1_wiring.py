@@ -17,7 +17,9 @@ from .book1_orders import ReplayedOrders
 from .book1_records import recorded_terms
 
 
-def build_book1(cfg: dict, root: Path = ROOT) -> Book1:
+def build_book1(cfg: dict, root: Path = ROOT, files=None) -> Book1:
+    """`files`: E2c's private records in Drive, from the command's shared download; each new shadow account is kept
+    there (story R3)."""
     from ..composition import build_alert_sender, build_session_calendar
     from ..playbook.wiring import build_decision_run, snapshot_playbook
     from ..research_engine.implied_vol import Black76
@@ -28,8 +30,12 @@ def build_book1(cfg: dict, root: Path = ROOT) -> Book1:
                              lambda day, snapshot: _features(cfg, day, snapshot), lambda market: _parts(root, market),
                              lambda day, hashes: _context(root, day, hashes))  # fmt: skip
     committer, decided = build_book1_commits(root)
+    from ..desk.wiring import start_shadow_books
+
+    opener = lambda strategies, day: start_shadow_books(strategies, day, root, files)  # noqa: E731
     return Book1(root, build_session_calendar(), lambda: snapshot_playbook(root), inputs,
-                 build_decision_run(cfg, BOOK1_RULES, root), committer, decided, build_alert_sender())  # fmt: skip
+                 build_decision_run(cfg, BOOK1_RULES, root), committer, decided, build_alert_sender(),
+                 opener)  # fmt: skip
 
 
 def build_book1_commits(root: Path = ROOT) -> tuple:
@@ -91,7 +97,8 @@ def _parts(root: Path, market) -> tuple:
 
     terms = recorded_terms(root, BOOK1_RULES)
     counts = DeskTradeCounts(DeskRecords(PaperAccount(root, BOOK1_RULES)))
-    return load_risk_book(root, BOOK1_RULES, market, terms), counts, build_shadow_books(market, terms, root)
+    shadow_terms = lambda account: recorded_terms(root, account, BOOK1_RULES)  # noqa: E731 - each shadow's own (R3)
+    return load_risk_book(root, BOOK1_RULES, market, terms), counts, build_shadow_books(market, shadow_terms, root)
 
 
 def _context(root: Path, day: date, hashes: Mapping[str, str]) -> dict:

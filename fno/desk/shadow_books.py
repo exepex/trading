@@ -6,7 +6,7 @@ lies outside every real book's folder."""
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from datetime import date
 from pathlib import Path
 
@@ -25,18 +25,18 @@ def shadow_name(strategy: Strategy) -> str:
 
 
 class JournalShadowBooks(ShadowBooks):
-    """One day's shadow accounts, valued at that day's market. `terms`: the recorded terms (structure, width, lots) of
-    each open shadow trade, as C2 needs them."""
+    """One day's shadow accounts, valued at that day's market. `terms(account)`: that shadow account's own recorded
+    terms (structure, width, lots) of each open trade, as C2 needs them; never another account's (story R3)."""
 
-    def __init__(self, root: Path, market: Market, terms: Mapping[str, TradeTerms]):
-        self.root, self.market, self.terms = root, market, terms
+    def __init__(self, root: Path, market: Market, terms: Callable[[str], Mapping[str, TradeTerms]]):
+        self.root, self.market, self.terms = root, market, terms  # terms(account): that account's own (story R3)
 
     def account(self, strategy: Strategy) -> ShadowAccount:
         name = shadow_name(strategy)
         account = PaperAccount(self.root, name)
         if not account.started:
             raise ValueError(f"{name} has not been started (run the shadow accounts' start step first)")
-        book = load_risk_book(self.root, name, self.market, self.terms)
+        book = load_risk_book(self.root, name, self.market, self.terms(name))
         return ShadowAccount(book, DeskTradeCounts(DeskRecords(account)), account_folder(self.root, name))
 
 

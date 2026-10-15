@@ -16,9 +16,10 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from ..constants import SHADOW_PREFIX
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
 from ..playbook.documents import strategy_from_text
-from ..playbook.opportunities import OpportunityFinder
+from ..playbook.opportunities import SHADOW, OpportunityFinder
 from ..playbook.run_order import run_counter
 from ..risk.inputs import TradeTerms
 from .opening_runs import opening_runs
@@ -50,11 +51,13 @@ class DecidedExits:
     other_runs: Mapping[str, tuple[str, ...]]
 
 
-def opening_trades(root: Path, book: str) -> BookTrades:
-    openings = opening_runs(root, book)
+def opening_trades(root: Path, book: str, decider: str | None = None) -> BookTrades:
+    """A book reads only its own records; a shadow account (`decider` Book 1) only records of mode `shadow` (R3)."""
+    openings = opening_runs(root, book, decider)
     chosen: dict[str, list[DecidedTrade]] = {}
-    for record_path in _record_files(DecisionStore(root, book)):
-        trade = _chosen(record_path)
+    shadow = book.startswith(SHADOW_PREFIX)
+    for record_path in _record_files(DecisionStore(root, decider or book)):
+        trade = _chosen(record_path, shadow)
         if trade is not None:
             chosen.setdefault(trade.trade_id, []).append(trade)
     trades, problems, others = {}, dict(openings.problems), {}
@@ -72,9 +75,9 @@ def opening_trades(root: Path, book: str) -> BookTrades:
     return BookTrades(trades, problems, others)
 
 
-def recorded_terms(root: Path, book: str) -> dict[str, TradeTerms]:
+def recorded_terms(root: Path, book: str, decider: str | None = None) -> dict[str, TradeTerms]:
     """Each filled trade's structure, width and lots, by trade ID, from its opening run."""
-    return {t.trade_id: t.terms for t in opening_trades(root, book).trades.values()}
+    return {t.trade_id: t.terms for t in opening_trades(root, book, decider).trades.values()}
 
 
 def decided_exit_days(root: Path, book: str, finder: OpportunityFinder) -> DecidedExits:
@@ -101,12 +104,14 @@ def _day_and_counter(run: Path) -> tuple[str, int]:
     return run.parent.name, run_counter(run)
 
 
-def _chosen(record_path: Path) -> DecidedTrade | None:
+def _chosen(record_path: Path, shadow: bool) -> DecidedTrade | None:
+    """A book's reader never takes a shadow's record, and a shadow's reader only those (judge 208: the isolation must
+    not rest on the trade ID's `shadow-` prefix alone)."""
     if record_path.name == INPUTS_FILE:
         return None
     record = json.loads(record_path.read_text(encoding="utf-8"))
     trade = record.get("structure")
-    if record.get("chosen_action") != TRADE or not trade:
+    if record.get("chosen_action") != TRADE or not trade or (record.get("mode") == SHADOW) != shadow:
         return None
     version, _, expiry = record["opportunity_id"].rpartition(":")
     terms = TradeTerms(trade["structure"], trade["width"], trade["lots"])
