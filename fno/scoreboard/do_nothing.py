@@ -32,7 +32,7 @@ class Terms:
     """S1's numbers: proposals the owner decides; the cash rate is replaced by the repo rate on the freeze day."""
 
     account_rs: float
-    cash_rate: float = 0.055  # a year; proposal until the freeze (RBI repo rate), labelled on the board
+    cash_rate: float = 0.055  # a year; set on the freeze day with PROTOCOL.md (a test pins the two), labelled
     fo_tax: float = 0.312  # each financial year's positive F&O net, no loss carried forward
     fund_short_tax: float = 0.208  # the fund held under 12 months (20% + 4% cess)
     fund_long_tax: float = 0.13  # 12 months or more (12.5% + 4% cess), above the exemption

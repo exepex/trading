@@ -206,4 +206,18 @@ def test_scoreboard_a_carries_s6s_measures_and_do_nothing_view_a_on_one_lot_capi
     assert m["max_drawdown_share_of_brake"] is None  # rupees only on scoreboard A
     view = head["do_nothing"]["view_a"]  # one lot = 20,000 / 2 lots, held from 2 Nov to its exit on 4 Nov: 2 sessions
     assert view["capital_days_rs"] == 20000.0 and view["book_after_tax_rs"] == round(2210 * (1 - 0.312), 2)
-    assert "view_b" not in head["do_nothing"]
+    assert "view_b" not in head["do_nothing"] and head["do_nothing"]["capital_cut"] == ""
+
+
+def test_view_a_says_when_a_closed_take_s_capital_runs_past_the_series_end(tmp_path):
+    """Judge 196 note 1: O1 (2 Nov) exits 4 Nov, but O2 (3 Nov) is still open, so the series ends on 2 Nov."""
+    pack = write_pack(tmp_path, D1, ("O1", EXIT))
+    runs_for(tmp_path, D1, [record("O1", pack=pack, capital=20000.0)], pack=pack)
+    pack = write_pack(tmp_path, D2, ("O2", date(2026, 11, 20)))
+    runs_for(tmp_path, D2, [record("O2", pack=pack, capital=20000.0)], pack=pack)
+    for day in (EXIT, ON):
+        runs_for(tmp_path, day, pack=write_pack(tmp_path, day))
+    quotes = {**QUOTES, D2: [quote(25000, "CE", 99, 100)]}
+    flat = DoNothing(lambda day: IndexDay(20000.0, 0.0), Terms(account_rs=2_000_000.0))
+    head = board(tmp_path, quotes, against=flat).build(ON)["books"][BOOK1_RULES]["head_to_head"]
+    assert head["do_nothing"]["capital_cut"].startswith("capital-days after the series' last day are left out for 1")

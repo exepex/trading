@@ -17,6 +17,9 @@ from .trade_measures import BY_DECISION_DAY, drawdown, trade_measures
 # The standard unit carries no operating or AI cost (S1: no account, one lot), so A's verdict stands for every book,
 # while scoreboard B withholds an AI book's verdict until F8 knows its cost.
 NO_OPERATING_COST = 0.0
+# Judge 196 note 1: a take's net sits on its decision day, its capital only on the series' days, so a take exiting after
+# the last series day loses capital-days and flatters view (a). It is descriptive (RM1's gate reads scoreboard B).
+CAPITAL_CUT = "capital-days after the series' last day are left out for {n} take(s), so view (a) flatters the book"
 
 
 def _takes(days: Sequence[BookDay], results: Results, scored: set) -> list:
@@ -36,6 +39,8 @@ def a_measures(
         capital, unrecorded = capital_path(takes, series.days)
         compared = against.compare(series, capital, NO_OPERATING_COST, unrecorded)
         out["do_nothing"] = {key: value for key, value in compared.items() if key != "view_b"}
+        cut = sum(t[3].exited_on > series.days[-1] for t in takes) if series.days else 0
+        out["do_nothing"]["capital_cut"] = CAPITAL_CUT.format(n=cut) if cut else ""
     return out
 
 

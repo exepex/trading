@@ -321,9 +321,10 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - **Index:** NSE's daily index-close file has no NIFTY 50 total-return row, so the fund's return is the "Nifty 50"
     closing change plus its "Div Yield" / 100 x calendar days / 365, less a 0.05% a year expense pro rata. A missing
     index day makes the comparison not computable; it is never filled.
-  - **Numbers (proposals, owner decides; tax an assumption until verified):** cash rate = the RBI repo rate on the
-    freeze day, written here and in `Terms.cash_rate` (fno/scoreboard/do_nothing.py, hashed with the scoring code) at
-    the freeze; F&O tax 31.2% on each financial year's positive net, no loss
+  - **Numbers (proposals, owner decides; tax an assumption until verified):** cash rate = 5.5% a year (set at the
+    freeze): at the freeze the RBI repo rate of that day replaces 5.5% here and in `Terms.cash_rate`
+    (fno/scoreboard/do_nothing.py, hashed with the scoring code; a test keeps the two equal) and the marker is removed;
+    while the marker stands, `evaluation check --decided` and the freeze refuse this item; F&O tax 31.2% on each financial year's positive net, no loss
     carried forward; the fund treated as sold at the section's last session, its gain taxed once at 20.8% if the
     section is under 12 months, else 13% above one Rs 1.25 lakh exemption, a loss untaxed; cash taxed at 31.2%.
     Every simplification leans against the book.

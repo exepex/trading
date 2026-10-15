@@ -71,3 +71,31 @@ def test_every_draw_in_the_window_unquotable_at_exit_is_counted_missing_after_th
     no_exit_quotes = {D1: TWO[D1], D2: [quote(26000, "CE", 1, 2)]}  # the exit snapshot quotes no strike in the window
     result = control(no_exit_quotes, runs=5).control([REAL])
     assert result["percentile"] is None and result["missing_share"] == 1.0
+
+
+def test_a_draw_that_would_overfill_its_bucket_is_redrawn():
+    """Judge 196, criterion 10: one strike only, so an unflipped twin is the real trade (a tie) and a flipped one (a
+    long put) is not. A bucket too small for any long put redraws every flip: every run ties. With room, flips count."""
+    one_strike = {D1: [quote(25000, "CE", 99, 100), quote(25000, "PE", 99, 100)],
+                  D2: [quote(25000, "CE", 130, 131), quote(25000, "PE", 60, 61)]}  # fmt: skip
+    source = Snapshots(one_strike)
+    trade = RealTrade("LC", (CALL,), LOT, D1, D2, 2210.0, 1.0, 1)
+
+    def luck(bucket_rs: float) -> dict:
+        snapshots = lambda day: source.snapshot(day, "s") if day in one_strike else None  # noqa: E731
+        return RandomControl(snapshots, HeldMaxLoss(CHARGES), CHARGES, 10000.0, bucket_rs, {"LP": ["bearish"]},
+                             runs=50).control([trade])  # fmt: skip
+
+    full, room = luck(1.0), luck(30000.0)
+    assert (full["percentile"], full["missing_twins"], full["runs_median"]) == (0.5, 0, full["book_measure"])
+    assert room["percentile"] > 0.5  # long puts lose here, so with room some runs fall below the book
+
+
+def test_the_window_holds_strikes_exactly_10_steps_from_the_money_and_not_11():
+    """Rule 5's boundary: the money is 25,000 (call and put mids equal there); 50-point steps."""
+    quotes = [quote(k, kind, mid - 0.5, mid + 0.5) for k in range(24000, 26001, 50) for kind, mid in
+              (("CE", 600 - (k - 25000) / 10), ("PE", 600 + (k - 25000) / 10))]  # fmt: skip
+    snapshot = Snapshots({D1: quotes}).snapshot(D1, "s")
+    near = window(snapshot, EXPIRY, 25000.0)
+    assert {24500.0, 25500.0} <= set(near) and not {24450.0, 25550.0} & set(near)
+    assert 25550.0 in window(snapshot, EXPIRY, 25550.0)  # 11 steps away only as the real trade's own strike

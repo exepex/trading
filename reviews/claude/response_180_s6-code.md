@@ -68,3 +68,39 @@ lists the miss.
 - The random control replays the per-trade and bucket caps only. It holds the real dates (selection luck only), and
   its twins exit at the real exit day's quotes.
 - No real paper decision exists yet, so every real board today is empty ("not started").
+
+## Revision 1: judge 196 (FAIL at a9f745bf), both should-fixes and both notes
+
+All four points were checked against the code first, and all were found correct. Each fix is verified by a mutation
+that now fails a test.
+
+1. **The cash rate can no longer be frozen silently.**
+   - `PROTOCOL.md` now states "cash rate = 5.5% a year (set at the freeze)".
+   - `undecided_items` (fno/evaluation/completeness.py) treats any item whose value carries the "(set at the freeze)"
+     marker as not decided. Because of that, `evaluation check --decided` and the freezer both refuse it, and both
+     name `do_nothing_benchmark`.
+   - A test keeps `Terms.cash_rate` equal to the protocol's number: `test_the_cash_rate_in_the_code_is_the_protocol_s_number`.
+   - Refusal tests: `test_a_decided_item_whose_value_waits_for_the_freeze_day_is_not_decided` and
+     `test_a_decided_protocol_with_a_number_still_marked_for_the_freeze_day_is_never_frozen`.
+   - Mutation check: dropping the marker check fails 4 tests.
+   - The marker is generic, so any later freeze-day number uses the same guard.
+2. **The three test gaps are closed. The judge's three surviving mutations now each fail:**
+   - **t-check:** 7 big losing sessions are placed before the 6 known blocks, and the bound equals the 6-block answer
+     with `left_out == 7`. Keeping the oldest sessions instead fails.
+   - **Bucket redraw, end to end:** a one-strike snapshot makes every unflipped twin tie the book. A bucket too small
+     for a long put must redraw every flip, so the percentile is 0.5. With room in the bucket it rises above 0.5.
+     Removing `_bucket_room` from `_twin` fails.
+   - **Window boundary:** with the money at 25,000 and 50-point steps, 24,500 and 25,500 are in the window, while
+     24,450 and 25,550 are out unless 25,550 is the real trade's strike. Changing `<=` to `<` fails.
+3. **Note 1 (view (a) on scoreboard A):** the output now carries `capital_cut`, which counts the takes whose exit falls
+   after the series' last day and says view (a) flatters the book for them. It is empty when nothing is cut. Tested
+   both ways. I labelled it rather than extending the capital path: extending it would need index days beyond the
+   series and a second timeline, and view (a) on A is descriptive (RM1 reads scoreboard B).
+4. **Note 3 (fixtures):** the 12 and 13 Oct fixtures are now the archived bytes, taken from Drive's raw area. Their
+   SHA-256 values are fc847998… and a402bb45…, equal to `research/data/manifests/index-close.csv`. A new test pins all
+   five fixtures to the manifest. Their "Nifty 50" rows are unchanged, so every figure stands.
+
+The branch also merges main (433845b8 and later). Gates on the merged tree:
+- `pytest -q -n auto`: 6,641 passed, 0 failed, 0 skipped;
+- ruff check and format are clean;
+- the import check is clean.

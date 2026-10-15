@@ -51,6 +51,17 @@ def test_a_draft_is_never_frozen(tmp_path):
     assert not (tmp_path / freeze_path(1)).exists()
 
 
+def test_a_decided_protocol_with_a_number_still_marked_for_the_freeze_day_is_never_frozen(tmp_path):
+    """Judge 196: the cash rate's placeholder is refused until the owner sets it and removes the marker."""
+    text = small_frozen_files(decided()).replace(
+        "cash rate = 5.5% a year", "cash rate = 5.5% a year (set at the freeze)"
+    )
+    protocol_repo(tmp_path, text)
+    with pytest.raises(FreezeRefused, match="not decided by the owner: do_nothing_benchmark"):
+        freezer(tmp_path).freeze(TODAY)
+    assert not (tmp_path / freeze_path(1)).exists()
+
+
 def test_an_incomplete_protocol_is_never_frozen(tmp_path):
     protocol_repo(tmp_path, small_frozen_files(decided()).replace("Block length 20", "Block length to be decided"))
     with pytest.raises(FreezeRefused, match="to be decided"):

@@ -1,7 +1,8 @@
 """The protocol's completeness check (story S1, criterion 2). Two questions, asked separately:
 - **complete**: every required item is present once, with a value or an exact rule, a status, a reason and an
   evidence label; "to be decided" and its kin appear nowhere in the document;
-- **decided**: every item's status says the owner decided it, and when. Only a complete and decided protocol can be
+- **decided**: every item's status says the owner decided it, and when, and no value still carries the "(set at the
+  freeze)" marker (a number the owner fixes on the freeze day, judge 196). Only a complete and decided protocol can be
   frozen. A draft of proposals can be complete without being decided.
 The same check serves the real-money gate (story RM1): it passes its own required items and has no version line."""
 
@@ -11,6 +12,7 @@ import re
 
 from .protocol import DECIDED, EVIDENCE_LABELS, FIELDS, PROPOSAL, REQUIRED_ITEMS, Protocol
 
+SET_AT_FREEZE = "(set at the freeze)"
 UNDECIDED_WORDS = re.compile(r"\b(to be decided|to be determined|tbd|tbc|to decide later|undecided)\b", re.IGNORECASE)
 
 
@@ -48,5 +50,7 @@ def completeness_problems(
 
 
 def undecided_items(protocol: Protocol) -> list[str]:
-    """Items the owner has not decided yet: a protocol with any is a draft and cannot be frozen."""
-    return [key for key, item in protocol.items.items() if not DECIDED.match(item.fields.get("Status", ""))]
+    """Items the owner has not decided yet, or whose value waits for the freeze day: a protocol with any is a draft and
+    cannot be frozen."""
+    return [key for key, item in protocol.items.items()
+            if not DECIDED.match(item.fields.get("Status", "")) or SET_AT_FREEZE in item.value]  # fmt: skip

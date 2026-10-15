@@ -1,9 +1,15 @@
 """Story S6 criteria 5-8: against doing nothing, after tax, on NSE's real index-close files of 7-13 Oct 2026. Every
-expected figure below is written from the files' "Nifty 50" closes and "Div Yield" by hand."""
+expected figure below is written from the files' "Nifty 50" closes and "Div Yield" by hand. The fixtures are the
+archived bytes (Drive's raw area), each equal to its row's SHA-256 in research/data/manifests/index-close.csv."""
 
+import csv
+import hashlib
+import re
 from datetime import date
 from pathlib import Path
 
+from fno.config import ROOT
+from fno.evaluation.protocol import PROTOCOL_FILE, parse_protocol
 from fno.scoreboard.do_nothing import NO_CAPITAL, DoNothing, Terms, fo_after_tax, fund_after_tax
 from fno.scoreboard.series import DailySeries
 from fno.scoreboard.sources import ArchivedIndexLevels
@@ -30,6 +36,22 @@ def against(terms=TERMS) -> DoNothing:
 
 def series(nets, days=DAYS):
     return DailySeries(tuple(days), tuple(nets), tuple(0.0 for _ in nets))
+
+
+def test_the_fixtures_are_the_archived_bytes_of_the_manifest():
+    with (ROOT / "research/data/manifests/index-close.csv").open() as file:
+        manifest = {row["date"]: row["sha256"] for row in csv.DictReader(file)}
+    for day in DAYS:
+        data = (FILES / NseIndexCloseSource.filename_for(day)).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == manifest[day.isoformat()], day
+
+
+def test_the_cash_rate_in_the_code_is_the_protocol_s_number():
+    """Judge 196: the freeze hashes `Terms.cash_rate`; the protocol states the same number, so setting it on the freeze
+    day changes both or this fails."""
+    value = parse_protocol((ROOT / PROTOCOL_FILE).read_text(encoding="utf-8")).items["do_nothing_benchmark"].value
+    stated = re.search(r"cash rate = ([0-9.]+)% a year", value)
+    assert stated is not None and float(stated.group(1)) / 100 == TERMS.cash_rate
 
 
 def test_the_adapter_reads_the_nifty_50_close_and_yield_from_the_archived_files():

@@ -71,6 +71,17 @@ def test_the_t_bound_needs_two_whole_blocks_and_leaves_the_oldest_remainder_out(
     assert t_bound(series([10.0] * 45))[1:] == (2, 5)
 
 
+def test_the_oldest_sessions_are_the_ones_left_out_and_never_move_the_bound():
+    """Judge 196: 7 big losing sessions before the 6 known blocks are the remainder; the bound is the 6 blocks' answer.
+    Keeping the oldest instead would shift every block and take in the losses."""
+    nets, risks = [100, 200, 0, 300, 100, 500], [1000, 2500, 1000, 1500, 1000, 1000]
+    known, whole = t_bound(blocks(nets, risks)), blocks(nets, risks)
+    old = series([-5000.0] * 7, [1000.0] * 7)
+    joined = DailySeries(old.days + tuple(d + timedelta(7) for d in whole.days), old.net + whole.net,
+                         old.risk + whole.risk)  # fmt: skip
+    assert t_bound(joined) == (pytest.approx(known[0]), 6, 7)
+
+
 def test_a_disagreement_is_printed_and_never_changes_the_claim():
     noisy = blocks([1000, -900, 1200, -1100], [1000] * 4)  # t bound well below zero
     claim = Uncertainty(0.01, True, True, "lower bound and whole-period net above zero")
