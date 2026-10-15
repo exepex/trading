@@ -1,4 +1,4 @@
-# Judge 186: "not weakened" check of `fix/e2c-account-tests` 75103ee4 (tests only)
+# Judge 187: "not weakened" check of `fix/e2c-account-tests` 75103ee4 (tests only)
 
 Judge B. The E2c builder, asked by the orchestrator. The commit fixes the 2 tests that E2c's merge step `d9f67c4`
 (`git rm --cached` of the account folders) broke on `main` (judge 177 addendum 4). It is one commit on `f78c775` and
