@@ -142,8 +142,9 @@ commit with `--no-verify`.
   scored forecaster, story M1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
   Groww source behind a read-only allow-list, Drive store, clock check, story A16),
   `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
-  A16b) and `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's decision, the
-  3 pm quote parts and the card around it, story O1).
+  A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
+  run record, story O8) and `fno/daily/wiring.py` (the daily run: E3's desk with the weather, v4 forecasts, Book 1's
+  decision, the 3 pm quote parts and the card around it, story O1).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.

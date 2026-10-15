@@ -64,6 +64,11 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - Fills and exits finished by 15:20.
   - Account lock lease 60 seconds.
 
+  Scoring at the snapshot and at the fill (story G10):
+  - The 15:15 execution snapshot gives a skill score that is a diagnostic only: no book, strategy or version is
+    promoted on it; the money verdict uses the 60-minute fill (E8; owner, 15 Oct 2026; story G10).
+  - An instrument not available at the 60-minute fill is a no-fill, never a fabricated fill (story G10).
+
   These are the values in `config.yaml` `desk.timetable` today (E3, "proposed until S1"). They are confirmed or
   changed by this rule: before the freeze, at least 10 sessions of measured run times. Each step's slot must then be
   at least the measured 95th-percentile duration plus 60 seconds. If that cannot hold before 15:20, the owner

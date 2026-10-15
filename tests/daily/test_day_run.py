@@ -79,7 +79,7 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
 
 
 def test_the_desk_s_own_steps_are_exactly_its_tuple_in_order(root, tmp_path, alerts):
-    """E3's tests run without O1's steps: what the desk writes is DESK_RUN_STEPS, the tuple O8 reads."""
+    """E3's tests run without O1's steps: what the desk writes is exactly DESK_RUN_STEPS, inside DAILY_RUN_STEPS."""
     decisions = Decisions()
     run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
     clock.now = at(14, 50, day=NORMAL)
