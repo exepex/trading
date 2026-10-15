@@ -513,9 +513,9 @@ member never asks for thresholds and leaves Test A undecided.
 
 ## G10. Protocol v4 timeline: 14:30 cutoff, one release, one 15:10 deadline (before the v4 freeze)
 
-**Repository:** trading · **Lane:** 1 (a frozen-to-be rule document and the capture times) · **Name note:** REPLAN
-already uses "G10" for "AI books on the v4 questions"; that story becomes G11 when it is written (the orchestrator
-registered this one as G10).
+**Repository:** trading · **Lane:** 1 (a frozen-to-be rule document and the capture times) · **Name note:** REPLAN's
+"AI books on the v4 questions" was also called G10; this story renames it G11 (`REPLAN.md` and
+`REPLAN_new_stories.md`).
 
 **Description:** As the statistician and the owner, I want protocol v4's day to run on one clock that every family
 shares (one data cutoff, one release, one deadline, one common snapshot), written into the protocol before its freeze,
@@ -549,7 +549,8 @@ The label carries it; adding the next monthly to A16 (about 70 more quotes a mar
 
 **"Moved after cutoff" (flag, never a block):** a day with `abs(ln(S_15:15 / S_14:30)) > X` is flagged and reported
 apart; nothing is dropped. **X** is frozen before go-live as the 95th percentile of that move over A16b's 2020-26
-15-minute index candles (regular sessions; the 14:30 and 15:15 candles' opens), so about 1 day in 20 is flagged
+checked 15-minute levels (regular sessions; the closes of the candles ending at 14:30 and at 15:15, A16b's level
+rule), so about 1 day in 20 is flagged
 (reasoning only for 95th; the 99th is the alternative and would flag about 1 in 100).
 
 **Lateness (owner's row):** a `system_late` day is excluded for every family and counted ("system late"), like G9's
@@ -593,8 +594,8 @@ protocol 1.1-1.2 define them.
 | 3 pm routine (CLAUDE.md, A4, A7) | starts 14:33; `quotes record` window 14:55-15:10 (`fno/quotes/recorder.py:36`) | starts 14:05; window 14:30-14:40 (lane 1, A4 change, and the owner's schedule) |
 | v2 forecast capture (`.github/workflows/forecast-capture.yml:86-92`, `fno/ai/timing.py`) | waits to 15:10, pulls to 15:13, deadline 15:15 | **unchanged**: v2 keeps its frozen times until v4 is live, then retires or runs beside it as v2 says (its late days reported) |
 | v4 capture times | G7 `fno/forecast_v4_rules/capture.py:28` and M1 `fno/weather/capture.py:39` refuse at 15:00 | refuse at 14:30 (one `terms` constant both import) |
-| A4c's other indices (15:01-15:13) | after A16's 15:00 mark, before 15:13 | **14:41-14:58**: after NIFTY's last retry, before A16's 15:00 mark; data only, not in the pack |
-| Stock chains (response 144 step 8b) | needed a 14:20 start (owner schedule change) | **15:01-15:13**, then the 15:13-15:17 pause for the 15:15 snapshots, hard stop 15:30 (8b's own story) |
+| A4c's other indices (15:01-15:13) | after A16's 15:00 mark, before 15:13 | **14:41-14:44 and 14:47-14:58**: after NIFTY's last retry, paused 14:44-14:47 around A16's 14:45 mark (about 216 quotes, about 50 s, same Groww key), stopped before A16's 15:00 mark; data only, not in the pack |
+| Stock chains | | the stock-chain slot is decided by the owner separately |
 | AI books' v4 prompt (REPLAN's "G10", to be G11) | v2: deadline 15:15, reveal 15:15:10 | v4: release about 14:32, deadline 15:10, reveal after 15:10 |
 | G7, M1 back-fill labels | `backfill_exploratory` | unchanged label; a method note says "close stands in for 14:30" (no content change, above) |
 | G8 scoring | counts live rows after the freeze | also: excludes `system_late` days, reports per label and the flagged days; reads the label from the record |
@@ -610,7 +611,14 @@ protocol 1.1-1.2 define them.
    day just above X is flagged, just below is not; nothing is dropped.
 5. The back-fill's content is byte-identical before and after the change for G7 and M1 (proof that they read `d-1`
    only); the method note is added.
-6. Gates; real-data run: one day's 14:30 capture end to end in a dry run (counts and times only).
+6. Gates; real-data run: one day's 14:30 capture end to end in a dry run, beside A16's 14:30 mark on the same key
+   (counts, errors and finishing times only).
+
+**Shared Groww key at 14:30 (said plainly):** A16's 14:30 mark (about 216 quotes at about 5 a second) runs in the
+same minute as the new 14:30 NIFTY capture, on the same key (A16 paces itself; the 3 pm recorder's provider has no
+pacer, response 144 item 7). Today they never overlap (14:55 capture, 15:00 mark). Criterion 6's dry run therefore
+measures both together at 14:30 (request count, errors and the time each finishes); if they clash, the capture starts
+after A16's mark (about 14:31), still inside the 14:40 retry end. Two sign-ins on one key coexist (checked 15 Oct).
 
 **Known limits:** an `A2` day's IV30 is usually flagged (above); X rests on 2020-26 history, one crash included (some
 evidence); a GitHub push delay near 15:10 counts as late (the push time is the only clock both sides trust).

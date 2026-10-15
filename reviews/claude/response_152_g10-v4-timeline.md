@@ -19,6 +19,15 @@ then ChatGPT (rule 9). Written from the owner's rows of 15 Oct 2026 (last rows a
    99th is the alternative). Flag only, as the owner decided.
 2. `system_late` is decided by the pack (none by 14:40), not by the files, so a day without the common input is out for
    everyone even when a baseline that needs no pack (V6) could be computed.
-3. A4c's slot moves to 14:41-14:58 and stocks take 15:01-15:13: both keep clear of A16's 15:00 and 15:15 marks and the
-   shared Groww key's busy minutes (A16 measured about 50 s a mark).
+3. A4c's slot moves to 14:41-14:44 and 14:47-14:58 (revision 1); stocks are the owner's decision.
 4. The 15:10 deadline is GitHub's push time, as v2's 15:15 is today.
+
+## Revision 1: answer to judge 161 (FAIL, 3 should-fix): all accepted
+
+1. Stock chains taken out of the table: one line, "the stock-chain slot is decided by the owner separately".
+2. Correct (strong evidence: A16 marks every 15 minutes, so 14:45 sat inside 14:41-14:58). A4c is now 14:41-14:44 and
+   14:47-14:58. The same check found a fourth overlap the judge did not list: A16's 14:30 mark and the new 14:30 NIFTY
+   capture run in the same minute on the same key (they never overlap today). Stated in the story; criterion 6's dry
+   run measures both together, and the capture starts after A16's mark if they clash.
+3. The AI books' v4 prompt story is renamed G11 in `REPLAN.md` (lines 27 and 130) and `REPLAN_new_stories.md` (line 51).
+Judge note (c), accepted: X uses A16b's checked closes of the candles ending at 14:30 and 15:15, not candle opens.
