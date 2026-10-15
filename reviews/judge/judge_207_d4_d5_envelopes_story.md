@@ -68,3 +68,39 @@ register), C4 plugging in at one line each and D1's format for Book 3's specs ar
    strict-ancestor commit check this is a small hole, but one line closes it.
 2. **The new `ValidityProposal` fields** (`action`, `rule_default`, `strategy_id`) live in C4's file. Put "C4 owner
    agreement" in Depends for both stories, not only in response 204 and the register row.
+
+## Addendum 1: revision at e40a5d7d (docs only)
+
+**Verdict: PASS (text).** Code waits for slice E's trigger. The branch diff against main is the D section, response
+204, its README row and the register row.
+
+| Finding | Fix | Judge's check | Result |
+|---|---|---|---|
+| SF1 envelope key | One D6 component per playbook version, `trade_envelope:<name>-v<n>`, with the same key in `served`. The traded version's envelope governs every action of the trade, `choose_strategy` included. Criterion 8 tests A and B both eligible with differing envelopes | It fits D6's free component mapping (`versions.py`); there is no clash with Hybrid's `envelope`; the governing rule is testable | Fixed |
+| SF2 shadow-only scoring | Recorded with status `shadow`, listed and unscored until S3 reads it. S3's change is in Depends and the gap list; criterion 3 forbids scoring the rule default under the AI's name | It matches `matched_actions.action_of` as built, and the gap is explicit | Fixed |
+| m1 `proposed_on` | Set by `register()` from the IST clock; a spec's own earlier date is replaced (test in criterion 1) | | Fixed |
+| m2 C4 owner agreement | In both stories' Depends | | Fixed |
+
+- The owner's five answers are written in from `DESK_DECISIONS.md` row 229 ("Accept all five (Recommended)"), and
+  the text quotes it.
+- D3's refusal of `owner_override` is recorded as a slice E code item: consistent with "never override on paper".
+- Risk and scoring stay C2 and S1 references.
+
+## Addendum 2: after ChatGPT review 130 (a7b3a0d2)
+
+**Verdict: PASS (text).**
+- **Text only:** `git diff origin/main...a7b3a0d2` changes 7 files, all docs and reviews (the D section, response
+  204, responses 210 and 212's request, review 130, the READMEs and the register row). The `fno/` changes seen
+  against e40a5d7d come from main's merge, not this branch.
+- **Matches response 212's five points:**
+  1. **Estimand:** "AI veto and width selection within the same registered playbook"; veto rate and width changes
+     shown; a zero difference reads "inconclusive". In D4.
+  2. **Trial family:** every registered Book 3 strategy enters the G0-G6 trial ledger and family; confirmatory
+     claims belong only to a frozen selection policy; no cap and no wait. D5 criterion 8 tests two prior-session
+     variants.
+  3. **C4's check:** D4 criterion 9 checks the eligible set, the trade_envelope hash against D6 and `served`, and
+     the action, with the A-forbids/B-allows fixture. As 212 states, there is no "default must also permit" rule.
+  4. **Universe label:** "monthly NIFTY defined-risk strategies with planned time exits of at most 21 days". In D5.
+  5. **Order of D3's refusal:** D3's `owner_override` refusal is built before any Book 2 or 3 paper decision (D4's
+     gap-list row).
+- Nothing else changed in the stories. Addendum 1's PASS stands.

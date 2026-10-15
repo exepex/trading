@@ -34,7 +34,9 @@ def test_a_run_stopped_before_exits_is_a_missed_exit_review_only_while_a_trade_w
     with_exits(tmp_path, MON)  # Tuesday's run stopped before its exits step
     runs = CommittedRuns(tmp_path)
     held = runs.missed_runs("book1_rules", [MON, TUE], lambda day: day == MON)
-    assert held == [{"day": "2026-11-10", "missed_decision": False, "missed_exit_review": True}]
+    assert held == [
+        {"day": "2026-11-10", "missed_decision": False, "missed_exit_review": True, "exit_review": "no exit review ran"}
+    ]
     assert runs.missed_runs("book1_rules", [MON, TUE], lambda day: False) == []
 
 
@@ -49,8 +51,9 @@ def test_an_exits_step_where_the_books_review_failed_or_was_held_up_is_a_missed_
         log["steps"]["exits"] = {"started_at": "", "finished_at": "", "inputs": {}, "result": {"book1_rules": outcome}}
         path.write_text(json.dumps(log))
     found = CommittedRuns(tmp_path).missed_runs("book1_rules", [FRI, MON, TUE, date(2026, 11, 11)], lambda day: True)
-    assert [(m["day"], m["missed_exit_review"]) for m in found] == [
-        ("2026-11-06", False), ("2026-11-09", True), ("2026-11-10", True)]  # fmt: skip
+    assert [(m["day"], m["missed_exit_review"], m["exit_review"]) for m in found] == [
+        ("2026-11-06", False, ""), ("2026-11-09", True, "exit review failed: no snapshot"),
+        ("2026-11-10", True, "not checked against prices: held up")]  # fmt: skip
     # Friday: no log, a missed decision, and no trade held before it; 11 Nov, the report day, has not run yet
 
 
@@ -79,4 +82,7 @@ def test_only_an_exit_review_that_says_reviewed_counts_as_reviewed(tmp_path):
     exits_log(tmp_path, wed, {"book1_rules": {"reviewed": False}})
     exits_log(tmp_path, thu, {"book2_hybrid": {"reviewed": True, "results": []}})
     found = CommittedRuns(tmp_path).missed_runs("book1_rules", [MON, TUE, wed, thu], lambda day: True)
-    assert [(m["day"], m["missed_exit_review"]) for m in found] == [("2026-11-11", True), ("2026-11-12", True)]
+    assert [(m["day"], m["exit_review"]) for m in found] == [
+        ("2026-11-11", "exit review not recorded as done"),
+        ("2026-11-12", "exit review not recorded as done"),
+    ]

@@ -25,7 +25,7 @@ from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_NO_DATA, STATUS_NO
 from fno.forecast_v4.terms import LOOK_SETTLE_DATE, LOOK_STOP_REVIEW
 from tests.forecast_scoring_v4.helpers import values
 
-NO_AUDITS = OpenAuditFile(Path("no-such-file.csv"))  # no AI book has an open audit
+NO_AUDITS = OpenAuditFile(Path("no-such-file.csv"), lambda: False)  # no AI book has written a row yet
 NO_DAYS = DayCounts(0, 0, 0, 0, 0)
 
 

@@ -93,4 +93,4 @@ def exit_desk(clock, alerts, settlements):
 def check_passed(monkeypatch):
     """Story E4c's guard: a test double for the entry check that passes, so a leg that then does not fill is a fill
     failing after the check (a defect) and E4's unwind runs as built (decision 43)."""
-    monkeypatch.setattr("fno.desk.entries.entry_problems", lambda snapshot, legs, units: [])
+    monkeypatch.setattr("fno.desk.entries.entry_problems", lambda snapshot, legs, units, taken=None: [])
