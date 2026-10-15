@@ -4,7 +4,8 @@ Protocol version: 1
 
 **Status: DRAFT, not frozen.** The owner decided five items on 14 Oct 2026 (`uncertainty_criterion`,
 `catastrophic_loss_strategy`, `ai_cost_allocation`, `reporting_per_version`, `frozen_files`;
-`docs/DESK_DECISIONS.md`). Every other value is still a proposal. Nothing is counted under this protocol until the
+`docs/DESK_DECISIONS.md`) and the rules of story S6's five items on 15 Oct 2026 (their numbers stay proposals). Every
+other value is still a proposal. Nothing is counted under this protocol until the
 owner decides each item, the protocol is frozen (`python -m fno evaluation freeze`), and the freeze record
 is committed before the first counted decision of every book. Builder: Claude, 14 Oct 2026, branch
 `story/s1-protocol`.
@@ -116,6 +117,11 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - scored as net per unit of maximum loss at entry.
 
   A "no trade" scores zero. Book 3's matched shadow decision is scored the same way.
+  - **Series and claims (story S3):** a book's series holds every session it is observed, each action on its decision
+    day as (net, maximum loss), skip-only sessions as (0, 0), up to the last decision day whose actions have all
+    closed. "X beats Y" uses the daily difference of one-lot nets on the sessions both are observed. Holm runs across
+    a review's claims on one-sided bootstrap p-values (the share of resampled values at or below zero), so a single
+    claim agrees with the bootstrap bound.
 - **Status:** proposal, owner decides
 - **Reason:** Scoreboard A asks whether the decision was good, so sizing and account state (which scoreboard B covers)
   are removed. One lot and the same fills make the three books' decisions directly comparable.
@@ -302,6 +308,82 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 - **Reason:** Story S1, criterion 3: no result can be reinterpreted under rules written after it was seen.
 - **Evidence:** reasoning only
 
+### `do_nothing_benchmark` Against doing nothing, after tax (story S6)
+- **Value:** Every scoreboard section shows the book's result against a NIFTY 50 index fund and against cash, on the
+  same capital, sessions and tax scenario. It is a gate before real money (RM1 reads Book 1's value per strategy
+  version) and never the verdict.
+  - **View (a), per rupee-day of capital tied** (the gate). Capital tied is each held trade's broker margin plus
+    premium paid at entry. Capital tied at the previous session's close earns the fund's change to this close (the
+    fund) and the cash rate for the calendar days between (cash). The book's after-tax net per rupee-day is compared
+    with each. `beats_index_after_tax` is a point comparison with no interval; it is null when not computable.
+  - **View (b), the whole account:** the account's after-tax net plus idle cash (capital minus capital tied) at the
+    after-tax cash rate, against the fund and cash on the whole account capital.
+  - **Index:** NSE's daily index-close file has no NIFTY 50 total-return row, so the fund's return is the "Nifty 50"
+    closing change plus its "Div Yield" / 100 x calendar days / 365, less a 0.05% a year expense pro rata. A missing
+    index day makes the comparison not computable; it is never filled.
+  - **Numbers (proposals, owner decides; tax an assumption until verified):** cash rate = the RBI repo rate on the
+    freeze day, written here as a number at the freeze; F&O tax 31.2% on each financial year's positive net, no loss
+    carried forward; the fund treated as sold at the section's last session, its gain taxed once at 20.8% if the
+    section is under 12 months, else 13% above one Rs 1.25 lakh exemption, a loss untaxed; cash taxed at 31.2%.
+    Every simplification leans against the book.
+- **Status:** decided by the owner on 2026-10-15
+- **Reason:** Owner, 15 Oct 2026: "Shown + real-money gate" (design v2 03:110-120 and 08:83, item 2). The figures are
+  the owner's tax scenario, not a verified personal position.
+- **Evidence:** some evidence
+
+### `scorecard_measures` Measures beside the headline (story S6)
+- **Value:** Shown on every section of both scoreboards, never the verdict:
+  - net without the best trade (closed net minus the largest single trade net);
+  - the profit factor (sum of winning nets over the absolute sum of losing nets), null with "no losing trade" when
+    nothing lost, never infinite, with winner and loser counts and both totals; a trade netting exactly zero is in
+    neither;
+  - the maximum drawdown and worst day of the daily series (the running high starts at 0), in rupees, with dates, and
+    on scoreboard B as a share of the books' drawdown brake; labelled "marked daily, not the brake's closed equity".
+  Completed positions only; open trades are counted and left out.
+- **Status:** decided by the owner on 2026-10-15
+- **Reason:** Owner, 15 Oct 2026: "Yes, add all four" and "Replace": the largest-loss share sits near the Rs 10,000
+  cap by design and is unstable near zero gains (judge 138, ChatGPT review 112).
+- **Evidence:** reasoning only
+
+### `t_check` t-based check beside the bootstrap (story S6)
+- **Value:** A one-sided 95% t bound of net per unit of risk on k whole blocks of 20 sessions counted back from the
+  section's last session (the oldest sessions that do not fill a block are left out of this check only, and counted):
+  R = the blocks' net / their risk; z_b = (net_b - R x risk_b) / mean(risk_b);
+  bound = R - t(0.95, k-1) x sd(z) / sqrt(k),
+  with t from a fixed table (1-30 degrees of freedom; above 30 the 30 value). Null below two blocks or with no risk.
+  When the t bound and the bootstrap bound fall on different sides of zero, "t-check disagrees: warning" is printed
+  beside the claim. It is never a pass condition and never changes whether a claim is allowed.
+- **Status:** decided by the owner on 2026-10-15
+- **Reason:** Owner, 15 Oct 2026: "Warning, printed". Uncalibrated on about 6 blocks, so it warns instead of deciding.
+- **Evidence:** some evidence
+
+### `missed_runs` Missed desk runs (story S6)
+- **Value:**
+  - **Scoreboard B, as it ran:** each session a book had no collected decision (`missed_decision`), and each session
+    with no exit review while a trade was held (`missed_exit_review`), read from E3's run logs and the NSE session
+    calendar. The next run reviews every open trade at its own snapshot, dated that day, never backdated.
+  - **Scoreboard A, observed decisions only:** a missed decision is not scored and is listed. A book's misses are its
+    sessions with no run collected, counted from its first collected run. Above a cap of 10% of its eligible sessions
+    (sessions without a snapshot or a common pack, D6-unscored sessions and Book 3's sessions before F7 are counted
+    apart), the book's scoreboard A verdict is withheld for operations. Exactly 10% is not over the cap.
+- **Status:** decided by the owner on 2026-10-15
+- **Reason:** Owner, 15 Oct 2026: "A observed, B as it ran". It matches S3 criterion 3; the 10% figure is G9's.
+- **Evidence:** reasoning only
+
+### `random_control` Random-strategy control (story S6)
+- **Value:** For each completed position, each of 1,000 runs (one `random.Random(20261014)` stream) draws a twin with
+  the same entry and exit sessions, expiry, lots and shape, a random direction (PCS/CCS, CDS/PDS, LC/LP each 50%) and
+  a random first strike within 10 strike steps of the at-the-money strike (widened to include the real strike),
+  filled by E4's pricing with C1 charges. A draw that is not quotable, breaks the per-trade maximum-loss cap or the
+  bucket cap given that run's open twins is redrawn up to 20 times; above 10% of twins missing the percentile is not
+  computable. Output: the book's percentile among the runs (ties count half) of closed-trade net per rupee-day of
+  risk. Descriptive, never a gate and never in Holm; it controls selection luck (direction and strike), not window
+  luck. Numbers (runs, strike window, redraws) are proposals, owner decides.
+- **Status:** decided by the owner on 2026-10-15
+- **Reason:** Owner, 15 Oct 2026, "Scorecard ... four measures added" (random-strategy percentile); response 144 red
+  team 7 and 26.
+- **Evidence:** reasoning only
+
 ### `frozen_files` Files and settings the freeze hashes
 - **Value:**
   - **Files:** `research/evaluation/PROTOCOL.md`, `fno/evaluation/protocol.py`, `fno/evaluation/completeness.py`,
@@ -325,9 +407,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
    option A.** Version 1 is frozen only once the S2, S3, F8 and F9 code exists. Book 1 may paper-trade before
    that; those trades are pilot evidence.
 2. **Too few blocks for the bootstrap** (`uncertainty_criterion`). **Decided by the owner on 14 Oct 2026: keep 120
-   trading days.** That goes against the recommendation of a year plus a t-based check. **Still open:** whether to
-   add the t-based lower bound alongside (the block means' mean minus the one-sided 95% t quantile × their standard
-   error). The orchestrator has asked the owner.
+   trading days.** That goes against the recommendation of a year plus a t-based check. **Decided on 15 Oct 2026:**
+   the t-based bound is added as a printed warning, never a pass condition (item `t_check`).
 
 ## Mapping of the provisional terms this protocol replaces
 

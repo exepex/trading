@@ -12,10 +12,11 @@ def problems(text: str) -> list[str]:
     return completeness_problems(text, parse_protocol(text))
 
 
-# The owner's decisions of 14 Oct 2026 (docs/DESK_DECISIONS.md); every other item still awaits the owner
+# The owner's decisions of 14 and 15 Oct 2026 (docs/DESK_DECISIONS.md; story S6's five items, 15 Oct); every other item
+# still awaits the owner
 DECIDED_BY_OWNER = (
     "uncertainty_criterion", "catastrophic_loss_strategy", "ai_cost_allocation", "reporting_per_version",
-    "frozen_files",
+    "frozen_files", "do_nothing_benchmark", "scorecard_measures", "t_check", "missed_runs", "random_control",
 )  # fmt: skip
 
 
@@ -87,3 +88,13 @@ def test_the_check_command_passes_the_draft_and_refuses_it_as_decided(capsys):
     assert "complete" in capsys.readouterr().out
     assert _check(decided=True) == EXIT_FAILED
     assert f"not decided by the owner ({len(REQUIRED_ITEMS) - len(DECIDED_BY_OWNER)})" in capsys.readouterr().out
+
+
+S6_ITEMS = ("do_nothing_benchmark", "scorecard_measures", "t_check", "missed_runs", "random_control")
+
+
+@pytest.mark.parametrize("key", S6_ITEMS)
+def test_each_of_story_s6s_items_is_required(key):
+    start = DRAFT.index(f"### `{key}`")
+    without = DRAFT[:start] + DRAFT[DRAFT.index("\n### ", start + 1) + 1 :]
+    assert any(key in p for p in problems(without))
