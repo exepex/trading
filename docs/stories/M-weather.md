@@ -312,7 +312,9 @@ knowing its price.
     exit codes as DANGER (M1 builder's view, accepted: reasoning only).
   - The message, PAPER ONLY, first line saying what it means (design 6.5): "DANGER (paper only): weather turned RED for
     <d> (was <colour> on <previous>). Owner rule: RED means no new paper entry today." Then, copied from the record:
-    the operative model's `p_big_1d` and `p_big_5d` against the base rates, the v0 colour, the v0 inputs with the
+    the operative model's probabilities against the base rates, read from the record's keys
+    `probabilities[<operative>].v6_abs_move_2pct_next_session` and `.v6_abs_move_2pct_within_5_sessions` (design 2.3
+    calls them `p_big_1d` and `p_big_5d`), with `probabilities.base_rate` beside them, the v0 colour, the v0 inputs with the
     level each reaches, the scheduled events in the next 5 sessions, and `red_share` and `over_alarming` as written.
   - The owner-delay line (design 6.5, owner decision of 15 Oct 2026): "If you act 60 minutes later, the paper record
     assumes: no change (the weather stops only new entries)."
@@ -358,7 +360,8 @@ Out (each with where it goes):
 3. A back-fill RED and a missing record send nothing, each with its printed reason. A `not scored` live record sends
    one SYSTEM line, never DANGER. The previous session is found from the A7 calendar and read with `for_day`; a gap
    day with no record counts as "none".
-4. The message never contains the US-move flag or any field of the private part (a test plants one in Drive's fake).
+4. The message never contains the US-move flag: `drivers.us_move` is skipped, and no field of the private part
+   appears (a test plants a value in both the record's `drivers.us_move` and Drive's fake).
 5. A second run for the same day sends nothing ("already alerted"). "alert NOT sent" prints the reason and the text,
    exits 1 and writes no record. No live record prints "no live weather record for <d>" and exits 0. No output line
    contains "nothing written:".
@@ -378,6 +381,9 @@ Out (each with where it goes):
 - A RED that appears only during the session (after the 14:30 record) is not seen until LM1.
 - The alert comes at about the record's time (before 14:30 IST under G10); the card follows later the same day.
 - A record that changes colour back the next day sends nothing (only upgrades alert, design 2.3).
+- If Slack accepts the alert but the alert record's commit then fails, a same-day hand rerun sends it again (judge 202).
+- Going live: the capture refuses from 14:30 IST, and today's routine starts at 14:33, so `weather` and this alert can
+  only run live after G10's 14:05 start. `daily.live_from.weather` is set after that (judge 202).
 
 **Split with the other builders:**
 - **O1 builder (session 014zYLf18PgCzR7YoHs1X5Dp): agreed, 15 Oct 2026.** One `weather_alert` step right after
