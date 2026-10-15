@@ -554,27 +554,34 @@ where k comes from, and must merge before A14c's first automatic run (about 6 No
 - one reader of the file used by both C2 (`fno/risk/`) and C4 (`fno/checks/`), or two by the same rule if C4's
   independence requires it (the builder says which and why): columns as A14c writes them (`as_of, factor, computed,
   unrounded, status, peak, evidence_sha256`); the factor in force on day d is the `factor` of the latest row with
-  `as_of <= d` (point in time: a replay of day d never sees a later row); a missing file, a wrong header, no row on or
-  before d, a factor below 1, or a row older than `max_age_days` fails closed by name, as today;
-- the seed row, in the same commit as the switch: `2026-10-14, 1.45, 1.45, 1.45, applied, response 77 (three windows,
-  owner decision 14 Oct), -` so C2 keeps the owner's current factor and its 13 Nov lapse until A14c's first run;
+  `as_of < d`, strictly before the decision day (point in time: a replay of day d never sees a row written on d, even
+  by a manual weekday run; the weekly Sunday row serves Monday on; judge 176 note 3); C2 and C4 read only `as_of`,
+  `factor` and `status`; a missing file, a wrong header, no row before d, a factor below 1, or a row older than
+  `max_age_days` (day 30 after `as_of` passes, day 31 refuses, as today's `(day - as_of) > 30`) fails closed by name;
+- the seed row, in the same commit as the switch: `2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14
+  Oct",` (`computed`, `unrounded` and `evidence_sha256` empty, `peak` quoted because it holds a comma), so C2 keeps the
+  owner's current factor and its 13 Nov lapse until A14c's first run; an empty `unrounded` marks a row A14c's
+  incremental rule never reads (A14c: its first run, and any run after such a row, is a `--full` run; judge 176);
 - every decision record's stressed-margin block names the row used: `as_of`, `factor`, `status` and
   `evidence_sha256` (the judge can reproduce it from the file).
 
 Out: the factor's computation and the guardrails (A14c); the formula (C2c); the scenario-lookup method; any order.
 
 **Acceptance criteria:**
-1. Point in time: with rows dated 14 Oct (1.45) and 8 Nov (1.50), a decision on 7 Nov uses 1.45 and one on 8 Nov uses
-   1.50; a replay of 7 Nov after the 8 Nov row exists still uses 1.45 (tests, C2 and C4).
-2. Fail closed: no file, a wrong header, no row on or before the day, a factor below 1 and a row older than 30 days
-   each refuse every trade with one named reason (tests, C2 and C4); a `held` row's `factor` (the old one) is the one
-   used (test).
-3. Single source: `config.yaml` with `multiplier`, `source` or `as_of` under `stressed_margin` is refused at start-up
+1. Point in time: with rows dated 14 Oct (1.45) and Sun 8 Nov (1.50), decisions on 6 Nov and on 8 Nov use 1.45 and one
+   on Mon 9 Nov uses 1.50; a row dated on the decision day itself is not used (a manual weekday run); a replay of 6 Nov
+   after the 8 Nov row exists still uses 1.45 (tests, C2 and C4).
+2. Fail closed: no file, a wrong header, no row before the day, a factor below 1 and a row older than 30 days each
+   refuse every trade with one named reason (tests, C2 and C4); at the boundary, 13 Nov (day 30 after 14 Oct) passes
+   and 14 Nov (day 31) refuses (test); a `held` row's `factor` (the old one) is the one used (test).
+3. The seed row: the real file's first row parses with its quoted `peak`; C2 and C4 read it; its empty `unrounded`
+   is ignored by A14c's incremental rule (test, here or in A14c).
+4. Single source: `config.yaml` with `multiplier`, `source` or `as_of` under `stressed_margin` is refused at start-up
    (test).
-4. Same figures: on the seed row, C2's and C4's stressed margins equal today's on every 14 Oct row (test), so the switch
+5. Same figures: on the seed row, C2's and C4's stressed margins equal today's on every 14 Oct row (test), so the switch
    changes no trade.
-5. The decision record names the row used (test).
-6. Code size, lint, imports and the full suite pass.
+6. The decision record names the row used (test).
+7. Code size, lint, imports and the full suite pass.
 
 **Order:** after C2c, before A14c's first automatic run and before STR1b-2 (`fno/risk/`).
 
