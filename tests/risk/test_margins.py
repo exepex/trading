@@ -69,8 +69,9 @@ def test_multiplier_margin_and_its_record(tmp_path):
     stressed = _multiplier(_table(tmp_path, "SF,200,40000,0,0,calc,2026-10-12\n"))
     assert stressed.margin(TERMS, DAY) == 120_000.0
     record = stressed.record(DAY)
-    assert record["method"] == "multiplier" and record["multiplier"] == "1.5" and record["as_of"] == "2026-10-12"
-    assert record["status"] == "applied" and record["factor_file"].endswith(".csv")
+    row = record["stress_factor_row"]
+    assert record["method"] == "multiplier" and row["factor"] == "1.5" and row["as_of"] == "2026-10-12"
+    assert row["status"] == "applied" and record["factor_file"].endswith(".csv")
 
 
 @pytest.mark.parametrize(

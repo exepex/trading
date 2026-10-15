@@ -1,6 +1,8 @@
 """Story C2d test helper: a stress factor file with one row, the way A14c's job writes it (the factor in force on a
 decision day is the latest row dated strictly before it)."""
 
+import atexit
+import shutil
 import tempfile
 from datetime import date
 from pathlib import Path
@@ -8,6 +10,7 @@ from pathlib import Path
 from fno.constants import STRESS_FACTOR_COLUMNS
 
 _DIR = Path(tempfile.mkdtemp(prefix="stress-factor-"))
+atexit.register(shutil.rmtree, _DIR, ignore_errors=True)  # module-level settings need the files at import
 HEADER = ",".join(STRESS_FACTOR_COLUMNS) + "\n"
 
 

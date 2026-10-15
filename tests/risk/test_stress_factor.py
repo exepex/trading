@@ -127,3 +127,24 @@ def test_of_two_rows_with_the_same_date_the_later_one_wins(tmp_path, read, error
     earlier_first = f"{LATER},1.5,1.5,1.5,applied,first,2026-11-06,a\n{SEED},1.45,,,applied,seed,,\n"
     earlier_first += f"{LATER},1.6,1.6,1.6,applied,correction,2026-11-06,b\n"
     assert read(_file(tmp_path, earlier_first), date(2026, 11, 9)) == 1.6
+
+
+@BOTH
+@pytest.mark.parametrize(
+    "bad_row",
+    [
+        f"{SEED},,,,applied,seed,,",  # empty factor
+        "not-a-date,1.45,,,applied,seed,,",
+        "20261014,1.45,,,applied,seed,,",  # only YYYY-MM-DD is accepted
+        "2026-10-14T23:00,1.45,,,applied,seed,,",
+        f"{SEED},1.45",  # a short row
+        f"{SEED},nan,,,applied,seed,,",
+        f"{SEED},inf,,,applied,seed,,",
+    ],
+    ids=["empty factor", "bad date", "compact date", "date-time", "short row", "nan", "inf"],
+)
+def test_an_unreadable_or_non_finite_row_anywhere_refuses_the_file_by_name(tmp_path, read, error, bad_row):
+    """A14c appends unattended: a bad row, even one dated after the day, refuses with the file and row named."""
+    path = _file(tmp_path, f"{SEED},1.45,,,applied,seed,,\n{bad_row}\n")
+    with pytest.raises(error, match="stress_factor.csv row 3"):
+        read(path, date(2026, 10, 20))
