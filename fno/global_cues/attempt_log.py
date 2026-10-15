@@ -10,16 +10,18 @@ from __future__ import annotations
 from datetime import date, datetime
 from pathlib import Path
 
+from ..models import IST
 from .row_log import CsvRowLog
 
 FIELDS = ("attempted_at", "outcome")
 MAX_ATTEMPTS = 3
-SAVED, DOWNLOAD_FAILED, NOT_PUBLISHERS_FILE, NO_VALUES, SAVE_FAILED = (
+SAVED, DOWNLOAD_FAILED, NOT_PUBLISHERS_FILE, NO_VALUES, SAVE_FAILED, STOPPED = (
     "saved",
     "download_failed",
     "not_publishers_file",
     "no_values",
     "save_failed",
+    "stopped",  # an unexpected failure: the run stopped, the attempt still counts
 )
 
 
@@ -30,10 +32,15 @@ class AttemptLog:
     def _log(self, cue: str) -> CsvRowLog:
         return CsvRowLog(self.folder / f"{cue}.csv")
 
+    def check_appendable(self, cue: str) -> None:
+        self._log(cue).check_appendable()
+
     def append(self, cue: str, attempted_at: datetime, outcome: str) -> None:
         log = self._log(cue)
         log.check_appendable()
-        log.append(FIELDS, [(attempted_at.isoformat(), outcome)])
+        log.append(FIELDS, [(attempted_at.astimezone(IST).isoformat(), outcome)])
 
     def count_on(self, cue: str, day: date) -> int:
-        return sum(datetime.fromisoformat(r["attempted_at"]).date() == day for r in self._log(cue).rows())
+        """Attempts on an IST date."""
+        rows = self._log(cue).rows()
+        return sum(datetime.fromisoformat(r["attempted_at"]).astimezone(IST).date() == day for r in rows)

@@ -123,3 +123,9 @@ def test_a_muhurat_day_is_no_usdinr_session_so_its_rate_reads_ahead():
     reading = reading_for(rows("2024-11-01"), date(2024, 11, 4), OPEN, False, RbiUsdInrSource(), nse)
     assert (reading.status, reading.expected) == (AHEAD, date(2024, 10, 31))
     assert nse.is_session(date(2016, 3, 7)) and not nse.is_session(date(2016, 3, 6))  # before 2024: weekdays
+
+
+def test_a_row_dated_after_the_india_date_is_never_usable():
+    future = rows("2026-10-14", "2026-10-20", seen="2026-10-14T08:00:00+05:30")
+    reading = reading_for(future, date(2026, 10, 15), OPEN, True, CboeSp500Source(), NYSE)
+    assert (reading.row["value_date"], reading.age_days) == ("2026-10-14", 1)

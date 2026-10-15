@@ -15,6 +15,7 @@ from datetime import date, datetime
 
 import requests
 
+from ..models import IST
 from ..storage.creation_times import CreationTimes
 from ..storage.raw_store import RawFileConflict, RawFileStore, StoredCopyDamaged
 from .archived_copies import ArchivedCopies
@@ -25,6 +26,7 @@ from .attempt_log import (
     NOT_PUBLISHERS_FILE,
     SAVE_FAILED,
     SAVED,
+    STOPPED,
     AttemptLog,
 )
 from .collection import UNREADABLE, Collection, SourcedValue, final_values
@@ -53,16 +55,25 @@ class CueCollector:
         started = self.clock()
         if not source.once_a_day:
             return self._download(source, start, end, Collection(source.cue, started))[0]
-        day = started.date()
+        day = started.astimezone(IST).date()
         if self.log.fetched_on(source.cue, day):  # a saved copy ends the day's downloads
             return self.copies.reuse_today(source, day, start, end)
         if self.attempts.count_on(source.cue, day) >= MAX_ATTEMPTS:
             capped = Collection(source.cue, started)
             capped.failure = f"no download: {MAX_ATTEMPTS} attempts today already, none saved (at most {MAX_ATTEMPTS})"
             return capped
-        result, outcome = self._download(source, start, end, Collection(source.cue, started))
-        self.attempts.append(source.cue, started, outcome)
-        return result
+        return self._logged_attempt(source, start, end, started)
+
+    def _logged_attempt(self, source: GlobalCueSource, start: date, end: date, started: datetime) -> Collection:
+        """Downloads once and logs the attempt whatever happens: an unexpected failure is logged `stopped` and raised,
+        so it still counts against the day's cap. The log is checked first: a broken log never lets a download by."""
+        self.attempts.check_appendable(source.cue)
+        outcome = STOPPED
+        try:
+            result, outcome = self._download(source, start, end, Collection(source.cue, started))
+            return result
+        finally:
+            self.attempts.append(source.cue, started, outcome)
 
     def _download(self, source: GlobalCueSource, start: date, end: date, result: Collection) -> tuple[Collection, str]:
         """The collection and the attempt's outcome (`attempt_log`'s names)."""

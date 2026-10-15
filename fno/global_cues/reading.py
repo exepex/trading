@@ -62,6 +62,8 @@ def reading_for(
     source: GlobalCueSource,
     calendar: CueCalendar | None,
 ) -> CueReading:
+    # a row dated after the India date is bad data (or a wrong first_seen_at): never usable, whatever the view
+    rows = [r for r in rows if date.fromisoformat(r["value_date"]) <= india_day]
     if calendar is not None and source.holiday_rows:
         rows = [r for r in rows if calendar.is_session(date.fromisoformat(r["value_date"]))]
     expected = None if calendar is None else expected_date(india_day, cutoff, source, calendar)

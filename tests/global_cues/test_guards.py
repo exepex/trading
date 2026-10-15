@@ -2,11 +2,14 @@
 creation time, and a once-a-day cue's attempts are logged (time and outcome only) and capped. Values are fake."""
 
 import csv
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
+
+import pytest
 
 from fno.global_cues.archived_copies import ADOPT_WINDOW
 from fno.global_cues.attempt_log import FIELDS, MAX_ATTEMPTS
 from fno.global_cues.collector import ATTEMPTS_FOLDER, CueCollector
+from fno.global_cues.row_log import TableFileBroken
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.table import BACKFILLED, LIVE, provenance
 from fno.global_cues.us_index_sources import CboeSp500Source
@@ -118,3 +121,31 @@ def test_a_cue_without_the_once_a_day_rule_logs_no_attempt(tmp_path):
     source = FakeSource({"a.csv": fake_file(("2026-10-14", 2.0))})
     collector(tmp_path, lambda: PATH_TIME).collect(source, *SPAN)
     assert not (tmp_path / "log" / ATTEMPTS_FOLDER).exists()
+
+
+def test_an_unexpected_failure_still_counts_and_a_broken_log_lets_no_download_by(tmp_path):
+    source = FlakyCboe([RuntimeError("parser crashed")] * 4)
+    collect = collector(tmp_path, lambda: PATH_TIME)
+    for _ in range(MAX_ATTEMPTS):
+        with pytest.raises(RuntimeError):
+            collect.collect(source, *SPAN)
+    assert collect.collect(source, *SPAN).failure.startswith("no download: 3 attempts")
+    assert source.downloads == MAX_ATTEMPTS and {r["outcome"] for r in attempts(tmp_path)} == {"stopped"}
+    broken = tmp_path / "broken"
+    (broken / "log" / ATTEMPTS_FOLDER).mkdir(parents=True)
+    (broken / "log" / ATTEMPTS_FOLDER / "sp500.csv").write_text("attempted_at,outcome\n2026-10-14T06:00:00+05:30,saved")
+    fresh = FlakyCboe([FAKE])
+    with pytest.raises(TableFileBroken):
+        collector(broken, lambda: PATH_TIME).collect(fresh, *SPAN)
+    assert fresh.downloads == 0
+
+
+def test_attempts_count_on_the_ist_date_whatever_the_clocks_zone(tmp_path):
+    utc_evening = datetime(2026, 10, 15, 20, 0, tzinfo=UTC)  # 01:30 IST on 16 Oct
+    source = FlakyCboe([REFUSED] * 4)
+    collect = collector(tmp_path, lambda: utc_evening)
+    for _ in range(MAX_ATTEMPTS):
+        collect.collect(source, *SPAN)
+    assert attempts(tmp_path)[0]["attempted_at"] == "2026-10-16T01:30:00+05:30"
+    assert collect.collect(source, *SPAN).failure.startswith("no download")
+    assert collector(tmp_path, lambda: PATH_TIME).collect(FlakyCboe([REFUSED]), *SPAN).failure.startswith("download")
