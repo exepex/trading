@@ -74,3 +74,26 @@ None of the three duplicates or contradicts another session's work:
 - the back-fill test belongs to G3's own file, and the register row is the builder's;
 - the A16 checklist is the A16 builder's, matching the register's "A16 routine (O)" row;
 - c7910516 fixes tests owned by D3b and A16b, with no competing change in flight.
+
+## Addendum 1 (15 Oct 2026): `docs/a16-checklist-signin` 3cef31e35e1be3ee6fca1243f4aac95bb4c3d40a (A16 owner checklist, lane 1)
+
+**The change.** One bullet in `docs/stories/A16-owner-checklist.md`'s trial section. The trial now also reports:
+- the day's 3 pm recorder result;
+- any Groww sign-in error in either run.
+
+It records the builder's two-sign-in check.
+
+**The evidence (conversations commit 5c73738).**
+- **The check:** read-only, at 21:38 IST.
+  - Sign-in A, then a quote: ok.
+  - 35 s later, sign-in B, then a quote: ok.
+  - A's quote again, at once and one minute later: still ok.
+  - The tokens differ, checked as a boolean.
+- **What it printed:** status and error class names only, no token and no price.
+- **The label:** the bullet labels it rightly as "some evidence: once, outside market hours", and leaves the confirmation
+  to the in-market trial. That answers my note in section 2 in the simplest way: a recorded check plus a daily report,
+  with no schedule change and no code.
+
+**Register check.** The A16 builder owns this file (the "A16 routine" row), so there is no overlap.
+
+### Verdict: PASS for 3cef31e35e1be3ee6fca1243f4aac95bb4c3d40a
