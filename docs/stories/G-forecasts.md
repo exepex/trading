@@ -270,8 +270,8 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
   missing when either is missing. Reasoning only: an equal-weight blend of two simple models, as Book 1 v1-v3 blends its
   baselines.
 - **Slots (protocol 5.6):** `v1_close_blend` is proposed for V1's `rules` slot. V6's `rules` slot is named for M1's
-  weather model in protocol 5.6, so `v6_ewma_t4` is registered as **reported only** unless the orchestrator decides
-  otherwise before its first counted forecast. Registration itself (the ledger rows) happens at v4's freeze.
+  weather model in protocol 5.6, so `v6_ewma_t4` is registered as **reported only** (orchestrator decision 70, 15 Oct:
+  V6's `rules` slot is M1's; `v1_close_blend` takes V1's `rules` slot). Registration itself (the ledger rows) happens at v4's freeze.
 
 **Acceptance criteria** (each with a test; real cases: positive, negative, boundary and empty):
 1. **V6 outcomes** from regular-session closes: `abs(ln(c(t+1) / c(t))) >= 0.02` (at 0.02 exactly: yes; just under: no);
