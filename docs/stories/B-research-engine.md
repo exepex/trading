@@ -440,5 +440,193 @@ response 106.
 one vertical's maximum loss and margin by hand; checks four-leg results are unchanged (experiment 1 cycle tests,
 `tests/research/test_experiment_1_frozen.py`).
 
-**Depends:** B2, C4, D1, D2, A14 · **Size:** M · **Status:** built on `story/str1-structures`, waits for the judge
-(claims: `reviews/claude/response_106_str1-structures.md`)
+**Depends:** B2, C4, D1, D2, A14 · **Size:** M · **Status:** done: judge 106 PASS (0ba5edc), ChatGPT review 100
+PARTIAL "inactive infrastructure" (response 114), merged abc23d3 on 15 Oct 2026. No strategy may use a new code before
+STR1b's activation gates pass.
+
+---
+
+## STR1b. Activation gates for the one- and two-leg structures
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want every gate that ChatGPT review 100 and judge 106 named closed before any
+playbook version may use LC, LP, CDS, CCS, PDS or PCS. Then a paper fill of a one- or two-leg trade cannot happen on a
+mislabelled proposal, an unchecked proposal, an unapproved margin row or a broken exit, and the capital it ties up is
+reported without double counting.
+
+**Context and why:**
+- STR1 (judge 106 PASS, merged abc23d3) made the six shapes buildable and checkable. ChatGPT review 100 accepted it only
+  as **inactive infrastructure**, and response 114 accepted each of its four points. Judge 106's minors 1, 2, 3 and 6
+  name the same gaps. Today no live path exists: every new code is refused until the owner's broker check lists it.
+  But a future caller could go round the one real gate, which is C4.
+- What exists and what is missing:
+  - **E3 fills only on a recorded C4 pass** (`fno/desk/recorded_c4.py`). That pass is not bound to the order: it only
+    reads `validity.c4.ok`.
+  - **C2 trusts the structure label.** It looks up margin and the bought-only allowance by `TradeTerms.structure`, so a
+    PCS labelled LC gets LC's 0 margin in C2 alone.
+  - **The owner's 1.45 stress factor adds 0.45 x premium** of "margin" to a paid-up long option. That is
+    Rs 15,828.64 on judge 106's real ATM call, and S2's "per rupee tied" figure would count it as capital.
+  - **One `passed_on` date covers every code** in the broker check, so a later approval either back-dates a new code
+    or re-dates the old ones.
+  - **E5's exit review and E7's settlement have no test with one or two legs.** E4's entry, unwind and time exit were
+    probed by judge 106 but have no committed test.
+
+This story adds no strategy, no new code and no trading decision. It makes the six codes safe to activate later. A
+playbook version using one still needs its own idea card, cost wall and registration (R1).
+
+**Scope.** In:
+1. **C2 derives the shape from the legs** (minor 3, review 100 point 1):
+   - a new C2 rule, `StructureMatchesLegs`, rebuilds the labelled structure with B2 (`Structure.legs` on the market's
+     valid chain, spot and the proposal's width) and refuses a proposal whose legs differ (strike, type, side, count);
+   - it also refuses uncovered legs (its own coverage check, before any pricing);
+   - C2's margin and bought-only decisions use `bought_only` derived from the legs (no sold leg), never from the label;
+   - this rule runs first among C2's rules, so no margin is looked up for a mismatched label.
+2. **A recorded C4 pass bound to the order** (review 100 point 1):
+   - C4's record gains a `binding` block:
+     - the proposal's SHA-256 over its canonical terms and legs (trade ID, structure, width, lots, lot size, and each
+       leg's contract, strike, type and side; prices are excluded because the fill is at the execution quotes);
+     - the margin row C4 used (structure, width, `as_of`, source) and the SHA-256 of `margins.csv` as read;
+     - the decision snapshot's ID and its two file SHA-256s;
+   - E3's `RecordedC4Pass` recomputes the order's proposal SHA-256 and refuses a missing or different binding, and also
+     a margin row no longer present byte-for-byte or a snapshot not the decision's capture;
+   - `EntryDesk.enter` (the only place an entry fill is recorded) takes the verified pass and refuses an order whose
+     hash differs from it, so a caller that skips E3's gate cannot fill;
+   - a bypass test lists every code path that records an entry fill and shows each refuses an order without a matching
+     pass.
+3. **Capital split** (minor 1, review 100 point 2). C2's `MarginRoom` and C4's `margin_room` record four figures per
+   trade:
+   - `broker_margin = max(0, scan - NOV) + exposure` at factor 1, with no credit for the sold premium (0 for LC and LP);
+   - `premium_paid` = the bought legs' padded premium plus entry charges (today's `entry_funds`);
+   - `stress_reserve`:
+     - 0 when the legs have no sold leg;
+     - otherwise the owner's factor's extra, `max(0, k x scan - NOV) - max(0, scan - NOV)`, capped at the position's
+       worst terminal loss as computed independently (C2: B2's model; C4: its own grid);
+   - `total_funds = broker_margin + premium_paid + stress_reserve`, which is what `margin_room` compares with cash.
+
+   For SF, SC and BF the cap must not bind on any row in `margins.csv`, so their results are unchanged; a test proves
+   it. If it ever binds, that is a behaviour change to report, not to hide.
+
+   S2's capital figure (`margin_days`) uses `broker_margin + premium_paid`, with `stress_reserve` reported apart and
+   never as capital tied.
+4. **Per-code broker approval dates** (minor 2, review 100 point 4.4):
+   - `risk.margins.nse_span_check` becomes a map: code -> `{source, passed_on}`;
+   - A14 writes a code's rows only for days on or after its own `passed_on`;
+   - the old single-date shape is refused with a message naming the new one;
+   - `config.yaml` is migrated in the same commit with exactly the recorded SF, SC and BF check (same source, 14 Oct
+     2026). No new code gets a date: that needs the owner's check.
+5. **E5 exit review, for each of LC, LP, CDS, CCS, PDS and PCS** (minor 6, point 4.1):
+   - Book 1's exit rules fire (time; profit and loss where a version sets them) and close every leg;
+   - a missing or invalid quote on any leg leaves a visible pending exit, never an invented close;
+   - a session gap is priced at the next valid snapshot;
+   - the exit cash flow and charges are recomputed independently in the test.
+6. **E7 settlement, for each new code** (point 4.2):
+   - a bought option expiring worthless and in the money;
+   - each vertical with both legs expiring (both worthless, one in the money, both in the money);
+   - a holiday-shifted expiry;
+   - the settlement source recorded;
+   - C1's settlement charges;
+   - zero units left open.
+7. **E4 legging, no naked short** (point 4.3):
+   - committed tests for each new code: protection fills first; a failed short leg unwinds the bought leg; a failed
+     protective leg opens nothing;
+   - on exit, a credit spread whose short leg has no quote keeps its bought leg (`PROTECTION_HELD`);
+   - at no recorded point is any book short more options of a type than it holds bought, checked after every fill
+     event of every test sequence.
+
+   E8 (owner-timing fills, the 60-minute delay) is not built: it is listed as a pending activation gate, with a test
+   that fails until E8 exists. It must be skipped with that reason, never deleted.
+
+Out:
+- a 3%-OTM credit-spread code (a separate R1 idea card, response 114);
+- any playbook version or research run using the new codes;
+- E8 itself;
+- the owner's broker check of the new codes' margin rows;
+- changing the owner's 1.45 factor or its scope for four-leg structures beyond the cap above;
+- an ATM anchor check for SF/SC/BF in C4.
+
+**Gap list (quality rule 2).**
+
+| Requirement (source) | Criterion |
+|---|---|
+| C2 derives shape and bought-only from legs, own shape and coverage test (review 100 pt 1, judge 106 minor 3, response 114 #1) | 1, 2 |
+| Recorded C4 PASS bound to proposal hash, legs, margin row and snapshot before any fill or order record; bypass test (pt 1) | 3, 4 |
+| Capital split: broker margin, premium paid, stress reserve, total funds; no 0.45 x premium for LC/LP; verticals bounded by independent worst terminal loss; not S2's denominator (pt 2, minor 1) | 5, 6 |
+| Per-code broker approval dates (pt 4.4, minor 2) | 7 |
+| E5 exit review per new code: rules, missing quote, gap, independent exit price and cost; refusal leaves a visible open position (pt 4.1, minor 6) | 8 |
+| E7 settlement per new code: worthless, in the money, both legs, holiday-shifted expiry, source, charges, zero residual (pt 4.2, minor 6) | 9 |
+| E4 legging: atomic, no-fill, partial-fill; no naked short after a failed hedge (pt 4.3) | 10 |
+| E8 owner delay (pt 4.3) | **Out:** E8 not built; pending gate test (criterion 11) |
+| Cost wall and registration before any version uses a code (pt 4.5) | **Out:** R1's process; a playbook version is not part of STR1b |
+| Separate accounting of debit, credit, margin, reserve, fees, realised P&L (pt 4.6) | 5, 6 (capital); realised P&L already in E1/E4 records (unchanged) |
+| 3%-OTM variant as its own code (pt 3) | **Out:** separate idea card |
+| `composition.py` near 350 lines (judge 106 minor 5) | 12 (no growth; new wiring in `fno/risk/wiring.py` and `fno/desk/daily_wiring.py`) |
+
+**Design:**
+- C2: `fno/risk/shape_rule.py` (`StructureMatchesLegs`, a `RiskRule`), wired first in `fno/risk/wiring.py`; the
+  `bought_only` derived from the proposal's legs is passed to `MarginTable`, never derived from the label.
+- Binding: `fno/checks/validity_binding.py` (canonical proposal hash from plain values, used by C4's adapter and E3's
+  gate; it imports no proposer code); the record is written by `validity_adapter.py`.
+- E3: `RecordedC4Pass` returns a `VerifiedPass(order_sha256, ...)`; `EntryDesk.enter` requires it.
+- Capital: `fno/risk/capital.py` (`CapitalAtEntry`: the four figures), used by `MarginRoom`; C4's own version in
+  `validity_margin.py`; S2's `entry_facts.py` and `sections.py` read `broker_margin` and `premium_paid`.
+- A14: `IndependentCheck` becomes `BrokerApprovals` (code -> date and source).
+- E5/E7/E4: tests only, unless one finds a defect, which is then fixed in its module and named in the claims file.
+
+**Acceptance criteria:**
+1. C2 refuses a proposal whose legs are not the labelled structure's at the market's ATM and width: every code
+   mislabelled as each other code (81 pairs, the 9 true labels pass), a moved strike, a flipped side, a missing or extra
+   leg, and an empty leg list. It refuses before any margin lookup.
+2. C2 refuses uncovered legs (5 planted naked shorts) before pricing; `bought_only` comes from the legs: a PCS labelled
+   LC with an LC 0 margin row is refused, and an LC passes with a 0 row.
+3. C4's record carries the binding block. E3 refuses an order whose proposal hash, margin row (edited, removed or
+   `margins.csv` changed), or snapshot differs from it, and an order with no binding. A matching order fills.
+4. Bypass: `EntryDesk.enter` refuses an order without a verified pass or with a pass for another order. A static test
+   lists every caller that records an entry fill (today only `EntryDesk.enter`) and fails when a new one appears.
+5. Capital, by hand on judge 106's real rows (`i1` file of 14 Oct) and on fixtures:
+   - LC/LP: `broker_margin` 0 and `stress_reserve` 0, so `total_funds` = premium plus charges (no 0.45 x premium);
+   - each vertical: the reserve is capped at the worst terminal loss;
+   - SF/SC/BF: `total_funds` equals today's `at_entry` to the paisa on every `margins.csv` row, i.e. the cap never binds,
+     shown row by row.
+6. S2's capital figure uses `broker_margin + premium_paid`; the stress reserve appears apart; a test shows an LC trade's
+   capital equals its premium plus charges.
+7. Per-code dates:
+   - a code's rows are written from its own `passed_on` on and never before;
+   - adding a code does not move another's date;
+   - the old shape, an unknown code, a missing date or a missing source are refused;
+   - `config.yaml` holds SF, SC and BF with the recorded check only.
+8. E5 per new code: the time exit closes every leg; a missing quote gives `pending_exit` with an alert and no close; a
+   gap day closes at the next valid snapshot; the test's own arithmetic equals the recorded exit cash and charges.
+9. E7 per new code: every settlement case in scope 6, each leaving zero open units, with the settlement source and C1's
+   charges recorded, and the cash equal to a hand computation.
+10. E4 per new code: the legging cases in scope 7. An invariant check after every fill event of every test sequence
+    shows sold options never exceed bought options of the same type in any book.
+11. E8 pending gate: a test named for E8's 60-minute delay is skipped with "E8 not built: activation gate pending", and
+    the activation checklist in the claims file lists it as open.
+12. No file or class over 350 lines; `composition.py` does not grow.
+
+**Test plan:**
+- `tests/risk/test_shape_rule.py` (1, 2);
+- `tests/checks/test_validity_binding.py` and `tests/desk/test_recorded_c4_binding.py` (3, 4);
+- `tests/risk/test_capital.py` and `tests/checks/test_validity_capital.py` on fixtures and the real 14 Oct rows (5);
+- `tests/scoreboard/test_capital_figure.py` (6);
+- `tests/nse_margins/test_broker_approvals.py` (7);
+- `tests/desk/test_one_side_exits.py` and `tests/book1/test_one_side_exit_review.py` (8);
+- `tests/desk/test_one_side_settlement.py` (9);
+- `tests/desk/test_one_side_legging.py` with the invariant helper (10);
+- `tests/desk/test_e8_pending.py` (11);
+- the full suite as regression;
+- per quality rules 3-6: two review agents, one mutation per criterion
+  (`research/2026-10-15-str1b-samples/mutate.py`), positive, negative, boundary and empty cases, and a real output
+  sample (the capital split of the 14 Oct rows and a refused bypass).
+
+**Judge verifies:**
+- plants a mislabelled proposal at C2 and a bypass of E3's gate;
+- recomputes one capital split by hand;
+- adds a code to the approvals map and checks no other date moves;
+- runs one E7 settlement of a vertical by hand;
+- checks every four-leg C2/C4 margin result is unchanged.
+
+**Depends:** STR1, C2, C4, E3, E4, E5, E7, A14, S2 · **Size:** M-L (about 14-18 files with tests; it may be split at the
+judge's word into STR1b-1 (criteria 1-7) and STR1b-2 (8-11)) · **Status:** story text for the judge's check (quality
+rule 1); code starts after that check passes. Claims: `reviews/claude/response_115_str1b-activation-gates.md`.
