@@ -251,3 +251,17 @@ The verdict stays **FAIL**. Should-fix 9 gains part (b), from check 1.
 4. **Would the tests catch a dropped outcome? Partly.** `test_steps.py` checks that `ReportedAlerts` prints the unsent
    line and stays quiet on a sent one, and that the wiring hands the run a `ReportedAlerts`. It would not catch the two
    bypassing senders in 1, or the children's lines (9(a)).
+
+## Addendum 8: O1 at d03d5d97 (should-fix 9(a) built)
+
+**Verdict: FAIL.** 9(a) is closed. 9(b) (addendum 7) is not built yet; this commit was probably made before the
+builder saw addendum 7.
+
+- **9(a) closed.** `ChildProcess` reads the child's whole output once, both when the child ends (`lines()`) and when
+  it is stopped (`stop()`). It prints every line containing "alert NOT sent" exactly as written; the phrase comes from
+  the sender's own `NOT_SENT`, so the two cannot drift apart. The run log still keeps the last 10 lines. The quote
+  parts and the `CommandStep`s both reach that read: `_finish` and `CommandStep.run` call `lines()`, and
+  `QuoteParts.finish` and `CommandStep` call `stop()`. Two real-child tests cover it: the line among 14 lines, and a
+  child stopped while asleep. My mutation that never reports fails 2 of them; `tests/daily` passes 39.
+- **9(b) open.** `ExitDesk` (`fno/desk/wiring.py:41`) and `PlaybookExitRules` (`fno/books/book1_wiring.py:72`)
+  still build their own senders inside the run. Expected fix as in addendum 7.

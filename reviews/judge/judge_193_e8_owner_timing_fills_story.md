@@ -210,3 +210,106 @@ E8's text and S1's own list.
 
 E8's story text passes at df7a1d65. Under quality rule 9, it goes to ChatGPT next (it changes how fills are priced).
 The owner's entry-rule answer stays open and is now a precondition of S1's freeze.
+
+## Addendum 4: revision 7 at 0776b0bd (ChatGPT review 122, response 190, judge D's time limit): FAIL, two should-fixes
+
+The only change is in `docs/stories/E8-owner-timing-fills.md` (+48, -16). The owner's row is
+`docs/DESK_DECISIONS.md:219` (16 Oct: "Private: Drive, hash in repo").
+
+**Closed, each against the text:**
+
+1. **Reporting per opportunity.** Net P&L is given per executed fill and per eligible opportunity; a miss counts as 0
+   and stays in the denominator and in the fill rate. The NIFTY-move split covers the whole opportunity set.
+3. **The 15:15 yardstick and isolation.** `e4_1515` is labelled an "unexecutable timing yardstick" in rule 10 and in
+   criterion 9. Rule 10 adds the drawdown brake and S1's stop to what only the verdict account drives. Criterion 9
+   tests isolation both ways: `e4_1515` profits while the verdict misses, and the reverse, with identical cash, caps,
+   brake and S1 stop whether the views are on or off.
+4. **Funds and margin at the fill.** For every candidate, C2's and C4's entry checks (cash, stressed margin, per-trade
+   cap, buckets) run again on the due-mark prices, the current verdict account and the pending fills. Criterion 6 has
+   the two fixtures response 190 named:
+   - a bought option under the loss cap but above available cash;
+   - a credit vertical with loss headroom but too little margin.
+
+   An earlier pending fill counts against both. Criterion 12 makes these the desk's own checks, never Groww's.
+
+**The availability seals: (a) and (b) hold, (c) is simple enough.**
+
+- **(a) Seal before T.**
+  - `owner_timing_fills` is the first step after `quotes` (14:33 today, 14:05 after G10).
+  - The card's T is 15:15 or later (addendum 2).
+  - Exit alerts go out after `exits`.
+
+  So that day's seal commit is always about 40 minutes or more before that day's T. If the step fails before it
+  seals, orders use the previous seal, an older and so safer version. A row the owner adds between the seal and the
+  card counts only from the next day's seal.
+- **(b) No back-dating.**
+  - An order uses the last seal committed before its T, and only that seal's first n lines.
+  - Any row appended later, an `away` or an `available`, lies outside n and is ignored and counted as a late entry.
+  - "Latest row wins" applies only inside the sealed prefix, which was fixed before T.
+  - A catch-up run uses each order's own T, so it cannot pick a later seal.
+  - Changing or deleting a sealed line breaks the prefix hash.
+- **(c) Simplicity.** One append-only Drive file, one committed CSV of (hash, n), and one seal a day. That is simpler
+  than keeping or fetching old file versions, and the salt is needed because a few dates are guessable.
+
+**Should-fix 6: a sealed-prefix mismatch has no way back, and "line" is undefined.**
+
+Rule 8 refuses the step on a mismatch, and rule 11 then blocks new entries for every book. Every later seal starts
+with the same broken prefix, so the block lasts **until someone repairs the file, and the story never says how.**
+
+The path (reasoning only): the owner fixes a typo in an old row, or saves the file from an editor that rewrites line
+endings, quoting or the final newline. Every earlier seal then fails, and the desk opens nothing, every day.
+
+Fix, in two lines of text:
+- **Define the hashed lines exactly.** Each line has its trailing whitespace and CR removed and is joined with LF, so
+  re-saving the same rows gives the same hash.
+- **Say the repair.** The refusal alert names the fix: restore the Drive file's last sealed version from Drive's
+  version history, then append. The step never re-seals over a mismatch, and a test shows that a restored file passes
+  again.
+
+**Should-fix 7: the step's time limit needs a number and a way to stop.**
+
+Rule 11 says only that the step "has its own" limit. Two gaps:
+- **No number.** The step runs in the foreground before `versions`, `pack` and `decisions` (deadline 15:12), so a long
+  limit would delay the whole desk day, not only the exits. Name it, and keep it no longer than O1's 10-minute command
+  limit: the step at 14:33 plus 10 minutes is 14:43, well before the pack.
+- **No way to stop.** The step is an in-process `DayStep`. Python cannot stop a thread that is stuck in a Drive or
+  A16 read, so a timer alone does not end the hang. Say how it stops. Either run the step as a child process under
+  O1's command limit and process-group kill, as O1's `CommandStep` does, or give every Drive and A16 read its own
+  network time-out shorter than the limit. Keep criterion 10's hang test on the chosen mechanism.
+
+This is the check judge D asked for (judge 178 addendum 5): as written, the step can hang the day.
+
+Would either change a trade? Yes. Should-fix 6 can stop every new entry indefinitely, and should-fix 7 can delay the
+pack and the decisions.
+
+Re-review: should-fixes 6 and 7 only.
+
+Notes (no change needed):
+- Tell the owner plainly that an away date counts only if it is in the Drive file before the run's start (14:33 now,
+  14:05 after G10) on the session before the trade.
+- The time-out case of criterion 10 should use the same planted hang as the chosen mechanism.
+
+## Addendum 5: revision 8 at 1faa6978 (owner's entry rule): the rule-6 change passes; still FAIL on should-fixes 6 and 7
+
+The only change is to `docs/stories/E8-owner-timing-fills.md`, on top of 0776b0bd.
+
+**The rule-6 change passes:**
+- Rule 6 now reads "price cap only" and cites the owner's row, `docs/DESK_DECISIONS.md:220` (16 Oct, "Price cap only
+  (Recommended)").
+- `ApprovedLimit` is wired as decided, and the two options not chosen are kept as a record (band about 32%, any price).
+- The funds and risk checks at the fill are unchanged.
+- S1 item 4 now reads "The entry rule: closed", citing the same row.
+- The owner-question section now records the decision and its plain cost.
+- Criterion 6 tests one paisa worse (missed) and exactly at the limit (fills), the wiring, the cap and the two funds
+  fixtures.
+- The scope's "Out" line and the design match.
+
+Note (no change needed): `EntryRange` stays an interface with one class. A second use (T1's card range) is named, and
+it now needs an owner decision and S1, which is right for a frozen rule.
+
+**Still open, unchanged from addendum 4:** revision 8 does not touch rules 8 and 11.
+- **Should-fix 6:** a sealed-prefix mismatch blocks new entries with no repair path, and the hashed lines are not
+  defined.
+- **Should-fix 7:** the step's time limit has no number, and there is no mechanism that stops a hung in-process read.
+
+Re-review: those two only.
