@@ -52,3 +52,18 @@ Left out on purpose: win rate alone, Sharpe on short samples, more forecast meas
    no-skill forecast (we propose the primary baseline's value)?
 2. Any measure above you would drop or add, with reasons?
 3. All-F&O capture inside 14:55-15:10: any reason to split stock chains into a later window?
+
+## Red team of this plan (Claude, same day)
+1. Step 7 is exploratory only: the 2019-2023 holdout is used up (DESK_DECISIONS 13-14 Oct; experiment 2 is forward).
+2. E2's earlier release gives AI books about 17 minutes with the pack while live prices move; verify their network
+   allow-list blocks market sites and log fetches before E2 (F-ai-layer lines 34-48 say no network; the live
+   forecast books push to GitHub, so this must be checked).
+3. `fno/timeline.py` must import the frozen `GENERATION_DEADLINE` from `fno/forecast/schema_v2.py` (hashed by the v2
+   freeze), never move it.
+4. All-F&O: one recorder per underlying group, each with its own completeness and canonical file; NIFTY's recorder
+   and its byte-identical baseline untouched, so illiquid stock chains can never leave NIFTY's day without a canonical.
+5. All-F&O builds on the Drive-only raw-quote story (DESK_DECISIONS 15 Oct, "6 A").
+6. E5 for point questions V1-V3: a miss scores as the primary baseline's forecast (no base rate exists for QLIKE).
+7. Define the random strategy (same structures and sizes, random direction and strike, 1,000 seeded runs) and the
+   do-nothing benchmark (per rupee of capital tied) in S1 before its freeze.
+8. Add S1's t-based check: 120 days is about 6 bootstrap blocks, which over-claims.
