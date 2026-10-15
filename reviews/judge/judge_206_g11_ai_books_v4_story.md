@@ -108,3 +108,9 @@ before the freeze commit. I check that at the freeze verdict.
 **Cosmetic:** the edited item-7 line runs past 120 characters. Rewrap it at the next edit.
 
 **PASS for bcb9a3f4.**
+
+## Addendum 4 (15 Oct 2026): 085f6c51 (one sentence)
+
+The added sentence: from the books' first live day, `open_audits.csv` always exists (header-only when no audit is
+open), so a deleted file is never read as "nothing open". It matches G8's check (judge 209 addendum 1).
+**PASS for 085f6c51.**

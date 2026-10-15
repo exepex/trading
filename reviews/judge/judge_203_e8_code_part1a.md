@@ -137,3 +137,40 @@ Until it does, a shallow routine session gets a refused fill step every day: no 
 fails safe, but it would stop paper trading, so O1's change is needed before E8 goes live.
 
 E8 part 1a passes. Part 1b is next, under the four conditions in this file.
+
+## Early view on part 1b's design (asked through the orchestrator; not a verdict, reasoning only)
+
+On the builder's points 2, 4 and 6 and the live switch.
+
+1. **Do not rebuild the order the next session (point 2).** `OrderBuilder` run on the fill day reads that day's pack
+   and spot, so it can pick other strikes, other units or another approved entry than the card showed. The trade
+   filled must be the trade decided at T. So `entry_pending` stores, at decision time:
+   - the decided legs and units;
+   - the approved entry (the price cap);
+   - the decision's ID;
+   - the card's T.
+
+   The E8 step fills exactly those, and never re-decides. The fill-day C2/C4 run is a check on that stored order
+   (condition 1). A test: the fill-day pack moves spot by 300 points and the filled legs are still the decided ones.
+2. **`e4_1515` stays today's E4 (criterion 9).** If E3's fills step now writes `entry_pending` for the verdict, the
+   15:15 fill must still be computed by today's E4 path into the `e4_1515` view account, bit for bit.
+3. **Exits.**
+   - One exit order ID per position, idempotent. The 15:15 exits step and E4's `due_exits` path (point 6) must never
+     both alert or both fill the same exit.
+   - T is the first delivered alert's `ts`, resent until delivered.
+   - A pending exit retries at each later mark, never counted as risk reduced until it fills.
+4. **Writes (point 4): acceptable, read then write per item, with two conditions.**
+   - Each item's write is all or nothing on disk: every leg and the cash row in one journal entry, so a crash or
+     time-out between items never leaves half a fill.
+   - A re-run finds completed items by their fill IDs and skips them.
+
+   Since writes are synchronous and never abandoned, the late-write problem of should-fix 2 is gone.
+5. **The live switch `desk.owner_timing.live` (default false).** Good as a safe cut-over, with three rules.
+   - It is an allowed `config.yaml` key, and turning it on is an owner decision row.
+   - Cut-over: decisions committed after the switch's commit use E8; earlier ones finish under E4. None is ever
+     filled twice.
+   - **S1's freeze needs it on.** The owner's row (`docs/DESK_DECISIONS.md:181`) makes the 60-minute fill the
+     verdict, so a frozen evaluation with the switch off would quietly use the 15:15 fill. Add it to S1's
+     preconditions, beside the entry rule.
+   - Say whether the step still seals the calendar while the switch is off. Recommended: yes, so the seal history
+     exists before go-live.

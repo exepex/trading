@@ -27,3 +27,15 @@ the v4 freeze; response 157 says so.
   it, it fits the existing error path.
 
 **Verdict: PASS for 4b8912fc.** Merge it before the freeze commit.
+
+## Addendum 1 (15 Oct 2026): my note built, `story/g8-audit-file-required` 16e082a7
+
+- **The change.** `OpenAuditFile(path, ai_rows_exist)`: a missing `open_audits.csv` raises `AuditFileError` ("never
+  deleted") once any v4 record row has `kind == "ai"` (`V4_KIND_AI` in `constants.py`). `has_kind` scans
+  `research/forecasts/v4/*/*.csv`, which matches G7's layout and will match G11's `book2_hybrid/` and `book3_ai/`
+  folders (every v4 CSV today sits at that depth; checked). A header-only file still means nothing is open.
+- **Agreed with G11:** their text now says the file always exists from the first live day (judge 206 addendum 4).
+- **My plants:** skipping the raise fails 1 test; `has_kind` always False fails 1 test.
+- **Gates.** `-n auto`: **6,798 passed, 0 failed**. Ruff is clean.
+
+**PASS for 16e082a7.** Merge it before the freeze.
