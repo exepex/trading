@@ -735,6 +735,14 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
    freeze-checklist line; built on `story/g8-look-audits` at 4b8912fc, constant `wiring.py` `OPEN_AUDITS_FILE`): a look on date L refuses while any row has `day <= L`, naming the count and the earliest
    open day; a missing file means no open audit; a bad header or date stops the look. G8 reads the file, never G11's
    code.
+   **Reconcile before a look** (ChatGPT review 127, response 213): `open_audits.csv` cannot show a submission that was
+   sealed but never collected (no audit row, no v4 row). So G11 guarantees one v4 row per AI slot, started question
+   and eligible session day from `effective_start` once the day settles, whatever the outcome, and before recording a
+   confirmatory look G8 checks every such slot, question and day up to the look's date (system-late days excepted):
+   each has a v4 row (any status) or an `open_audits.csv` row, else the look refuses, naming the slot, question and
+   earliest such day. A written `not_fired` or `no_submission` row is a definitive miss and passes. Built by the A16/G8
+   builder beside the open-audit gate, before the freeze; this interface is G11's proposal of 16 Oct, to be confirmed
+   by them (response 202, addendum 5).
 8. **Composition:** wired in `fno/ai/wiring.py` and `book_wiring.py` only.
 
 **Settled before code (16 Oct; response 202):**
@@ -755,6 +763,11 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
   to v4; the v2 AI steps are removed at the freeze. The CLI stays `ai fire` and `ai collect`. A push made with an
   Actions run's own token starts no workflow, so the pack's commit must come from the routine's own credentials.
 
+**Claim scope (ChatGPT review 127, response 213):** a better Book 2 score means "the hybrid improves on its frozen
+baseline", never "an independent AI found the same skill": Book 2 sees the rules' value, so Book 2 and the rules are
+not independent observations when counting the family's sample size. Book 3, without the rules' value, is the
+independent comparison.
+
 **Daily AI cost against BG1's cap:**
 - BG1's cap is minutes, not rupees: the books' and roles' minutes at most 50% of all measured session minutes in the
   month until December 2026 (`config.yaml` `budget`), then 50% of the owner's plan minutes; alert at 80%, stop at
@@ -764,6 +777,8 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
 - Estimate (reasoning only): 2 books x 5-10 minutes = 10-20 minutes a session day, about 220-440 minutes in a
   22-session month, the same number of runs as today's v2 run (option A: v4 replaces v2).
 - This story makes the number real: the v2 prompts write BG1's timing record, so BG1 measures it from the first day.
+  G11's output reports runtime p50 and p95 by question set from day one; a run past 15:10 is late; no second runtime
+  cap (BG1's cap is enough, ChatGPT review 127).
   At BG1's `stop`, AI forecasters stop last (design 7.6); a stopped day is written as `not_fired`, so it is a miss.
 
 **Acceptance criteria:**
@@ -779,8 +794,11 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
 5. A pack hash other than the released one is refused; a `system_late` day is out for the AI slots.
 6. A day whose audit is pending has no v4 row, has its rows in `open_audits.csv` and is printed in "N days awaiting
    audit"; once settled, its v4 row lands and its `open_audits.csv` rows go in the same commit, and G8's recomputed
-   report shows it scored or missed. (The look's refusal on that file is the A16/G8 builder's test.)
-7. Each run writes BG1's timing record; BG1's meter shows the book minutes.
+   report shows it scored or missed. Every settled AI slot-day has exactly one v4 row per started question. (The look's
+   refusals, on that file and on a slot-day with neither row, for example a sealed commitment never collected, are the
+   A16/G8 builder's tests.)
+7. Each run writes BG1's timing record; BG1's meter shows the book minutes; G11's output shows runtime p50 and p95
+   by question set.
 8. No AI answer ever gets `label=backfill_exploratory`; no AI row exists before the slot's `effective_start`.
 9. Gates: pytest, ruff, ruff format, the import check; no file or class over 350 lines.
 

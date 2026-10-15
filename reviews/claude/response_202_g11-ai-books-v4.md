@@ -67,3 +67,14 @@ miss. Collect and audits-due keep `forecast-capture.yml`'s slot (about 15:30), r
 the freeze; the CLI stays `ai fire` and `ai collect`. The workflow file is theirs. One risk added (strong evidence,
 `forecast-capture.yml`'s own note): a push made with an Actions run's own token starts no workflow, so the pack's
 commit must come from the routine's credentials, or the fire never starts.
+
+## Addendum 5: ChatGPT review 127 (AGREE, one change), orchestrator's answer response 213
+
+Checked each point; all accepted:
+- **Reconcile before a look: accepted** (strong evidence: a collect that dies after a sealed commitment leaves no
+  audit row and no v4 row, so `open_audits.csv` alone cannot see it). Proposed interface, sent to the A16/G8 builder:
+  G11 writes one v4 row per AI slot, question and settled day whatever the outcome; the look refuses while any
+  AI slot-day up to its date has neither a v4 row nor an `open_audits.csv` row. No new file; G8 reads only files it
+  already reads. Awaiting their confirmation.
+- **Claim scope: accepted** (reasoning only: Book 2 sees the rules' value, so their errors correlate).
+- **Runtime p50 and p95 by question set from day one: accepted;** no second runtime cap.
