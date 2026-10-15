@@ -12,12 +12,27 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+import requests
+
 from ..models import now_ist
+from ..research_data.calendar import CalendarError
+from ..storage.owner_token import DriveSignInRefused
 from ..storage.raw_source import RawSourceUnavailable
+from ..storage.raw_store import RawFileConflict
 from .source import NseVixHistorySource, last_complete_month, months_between
 from .table import VixTableConflict
 
 MONTH_FORMAT = "%Y-%m"
+RESUME = "Nothing more was done; run the same command again (only missing months are fetched)."
+STOPPING_FAILURES = (
+    RawSourceUnavailable,
+    requests.RequestException,  # NSE's 403, 429 or 5xx, and Drive's network errors
+    DriveSignInRefused,
+    RawFileConflict,
+    RuntimeError,  # Drive settings missing
+    CalendarError,
+    OSError,  # a missing calendar, closes or table file
+)
 COMMIT_REMINDER = "commit research/data/vix/ and research/data/manifests/ (rows are evidence only once committed)"
 
 
@@ -34,24 +49,30 @@ def add_vix_history_parser(subparsers) -> None:
 
 
 def cmd_vix_history(args) -> int:
-    return {"fill": _fill, "sweep": _sweep, "check": _check, "verify": _verify}[args.action](args)
+    """Every action; a Drive, network or setup failure stops it with a named line and exit 1, never a traceback."""
+    action = {"fill": _fill, "sweep": _sweep, "check": _check, "verify": _verify}[args.action]
+    try:
+        return action(args)
+    except STOPPING_FAILURES as exc:
+        print(f"STOPPED ({type(exc).__name__}): {exc}. {RESUME}")
+        return 1
 
 
 def months_to_fetch(start: date | None, end: date | None, today: date) -> list[date]:
     """The months asked for, never one still running on `today` (its file would grow after it was archived)."""
     last_ended = last_complete_month(today)
-    return months_between(start or NseVixHistorySource.first_day, min(end or last_ended, last_ended))
+    first = max(start or NseVixHistorySource.first_day, NseVixHistorySource.first_day)  # NSE serves nothing earlier
+    return months_between(first, min(end or last_ended, last_ended))
 
 
 def _fill(args) -> int:
     from .wiring import build_vix_librarian, build_vix_raw_area, build_vix_table, build_vix_table_builder
 
     raw, months = build_vix_raw_area(), months_to_fetch(args.start, args.end, now_ist().date())
-    try:
-        report = build_vix_librarian(raw).fill(months)
-    except RawSourceUnavailable as exc:
-        print(f"stopped: {exc}. Run the same command again later (only missing months are fetched).")
+    if not months:
+        print("no ended month in the range asked for: nothing to do")
         return 1
+    report = build_vix_librarian(raw).fill(months)
     print("\n".join(report.lines()))
     every_month = months_between(NseVixHistorySource.first_day, months[-1]) if months else []
     try:
@@ -85,6 +106,9 @@ def _verify(args) -> int:
     from .wiring import build_vix_raw_area, build_vix_table, build_vix_verifier
 
     rows = build_vix_table().rows()
+    if not rows:
+        print("India VIX table is empty: nothing to verify")
+        return 1
     problems = build_vix_verifier(build_vix_raw_area()).problems(rows)
     print("\n".join(problems) or f"India VIX table: all {len(rows)} days equal their archived month files")
     return 1 if problems else 0

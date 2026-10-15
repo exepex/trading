@@ -17,6 +17,8 @@ from .month_file import VixMonthReader
 from .source import month_start
 from .table import VALUE_FIELDS, value_cells
 
+MISSING_ROW, DIFFERS = "no manifest row for the archived file", "SHA-256 differs from the manifest"
+
 
 class VixTableVerifier:
     def __init__(
@@ -33,11 +35,14 @@ class VixTableVerifier:
         """Every difference between the table and its archived month files ([] when they agree in full): a value or
         source that differs, a day the table holds that its file lacks, and a day of any archived month (in the
         manifest) that the table lacks, so a deleted month or a table cut short is named too."""
+        days = [row["date"] for row in rows]
+        order = [f"{d}: the table holds this day twice" for d in sorted({d for d in days if days.count(d) > 1})]
+        order += [] if days == sorted(days) else ["the table's days are not in date order"]
         by_month: dict[date, list[dict[str, str]]] = defaultdict(list)
         for row in rows:
             by_month[month_start(date.fromisoformat(row["date"]))].append(row)
         months = sorted(set(by_month) | set(self.manifest))
-        return [problem for month in months for problem in self._month(month, by_month.get(month, []))]
+        return order + [problem for month in months for problem in self._month(month, by_month.get(month, []))]
 
     def _month(self, month: date, held: list[dict[str, str]]) -> list[str]:
         path = self.path_for(month)
@@ -45,7 +50,8 @@ class VixTableVerifier:
         if data is None:
             return [f"{month:%Y-%m}: {path} is not in the archive"]
         sha256 = hashlib.sha256(data).hexdigest()
-        problems = [f"{month:%Y-%m}: SHA-256 differs from the manifest"] if self.manifest.get(month) != sha256 else []
+        want = self.manifest.get(month)
+        problems = [] if want == sha256 else [f"{month:%Y-%m}: {MISSING_ROW if want is None else DIFFERS}"]
         try:
             days = self.reader.read(data, month)
         except ValueError as exc:

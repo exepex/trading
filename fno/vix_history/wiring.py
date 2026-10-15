@@ -60,11 +60,14 @@ def build_vix_table() -> VixDailyTable:
 
 
 def build_vix_table_builder(raw: RawFileStore) -> VixTableBuilder:
-    return VixTableBuilder(raw, NseVixHistorySource.path_for, NseVixJsonReader(), build_vix_table(), now_ist)
+    manifest = lambda: _fingerprints(storage.build_manifest_folder())  # noqa: E731 - read when the extension starts
+    path_for, reader = NseVixHistorySource.path_for, NseVixJsonReader()
+    return VixTableBuilder(raw, path_for, reader, build_vix_table(), now_ist, manifest)
 
 
 def build_vix_checks(folder: Path = CHECKS_FOLDER) -> VixCheckFiles:
-    return VixCheckFiles(folder, storage.build_session_calendar(), lambda: committed_vix_closes(REFERENCE_CLOSES))
+    calendar = storage.build_session_calendar()
+    return VixCheckFiles(folder, calendar, calendar.first, lambda: committed_vix_closes(REFERENCE_CLOSES))
 
 
 def build_vix_verifier(raw: RawFileStore) -> VixTableVerifier:

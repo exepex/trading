@@ -32,28 +32,32 @@ MUHURAT_ROW = "muhurat_session", "a VIX row on a one-hour muhurat session, not a
 SPECIAL_ROW = "special_session", "a VIX row on a weekend special session, not a regular day"
 UNVERIFIED = "unverified", "weekday without a row; the session calendar does not cover this year"
 WEEKEND_ROW = "weekend_row", "a VIX row on a weekend; the session calendar does not cover this year"
+CALENDAR_LACKS_YEAR = "calendar_lacks_year", "the session calendar has no rows for this year: add NSE's circular"
 SATURDAY = 5
 DIFFERS, ROUNDED = "differs", "rounded"
 ONLY_HISTORY, ONLY_INDEX_CLOSE = "only_in_history", "only_in_index_close"
 
 
-def gap_rows(days: set[date], calendar: SessionCalendar) -> list[tuple[str, str, str]]:
-    """Every day from the table's first to its last day that is a gap, unverified or doubtful."""
+def gap_rows(days: set[date], calendar: SessionCalendar, calendar_first: date) -> list[tuple[str, str, str]]:
+    """Every day from the table's first to its last day that is a gap, unverified or doubtful. A day the calendar
+    cannot answer is `unverified` only before `calendar_first`; later, the calendar lacks a year and that is named."""
     if not days:
         return []
     found, day = [], min(days)
     while day <= max(days):
-        kind = _gap_kind(day, day in days, calendar)
+        kind = _gap_kind(day, day in days, calendar, calendar_first)
         if kind:
             found.append((day.isoformat(), *kind))
         day += timedelta(days=1)
     return found
 
 
-def _gap_kind(day: date, has_row: bool, calendar: SessionCalendar) -> tuple[str, str] | None:
+def _gap_kind(day: date, has_row: bool, calendar: SessionCalendar, calendar_first: date) -> tuple[str, str] | None:
     try:
         kind = calendar.session_kind(day)
     except CalendarError:
+        if day >= calendar_first:
+            return CALENDAR_LACKS_YEAR
         if day.weekday() < SATURDAY:
             return None if has_row else UNVERIFIED
         return WEEKEND_ROW if has_row else None

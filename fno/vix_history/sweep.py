@@ -13,6 +13,8 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import date
 
+import requests
+
 from ..storage.raw_source import RawFileSource, RawSourceUnavailable
 from ..storage.raw_store import RawFileStore
 from ..storage.revisions import RevisionArchive
@@ -62,7 +64,7 @@ class VixRevisionSweep:
         path = self.path_for(month)
         try:
             found = self.source.fetch_published(path)
-        except RawSourceUnavailable:
+        except (RawSourceUnavailable, requests.RequestException):  # a 403/429/5xx is an HTTPError, not retried
             found = None
         if found is None:
             report.unanswered.append(month)
@@ -75,10 +77,19 @@ class VixRevisionSweep:
             report.invalid.append((month, str(exc)))
             return
         if self.archive.capture(path, found) is not None:
-            original = self.reader.read(self.raw.get(path), month)
-            report.revised.append((month, day_changes(original, revised)))
+            report.revised.append((month, self._changes(path, month, revised)))
         elif path in self.archive.not_archived:
             report.not_archived.append(month)
+
+    def _changes(self, path: str, month: date, revised: list[VixDay]) -> list[str]:
+        """The revision's changes against the archived original (named when the original cannot be read)."""
+        data = self.raw.get(path)
+        if data is None:
+            return ["kept, but the original is MISSING from the archive: nothing compared"]
+        try:
+            return day_changes(self.reader.read(data, month), revised)
+        except ValueError as exc:
+            return [f"kept, but the original fails the check ({exc}): nothing compared"]
 
 
 def day_changes(original: list[VixDay], revised: list[VixDay]) -> list[str]:

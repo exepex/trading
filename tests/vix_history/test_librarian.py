@@ -4,7 +4,7 @@ named, a stored file is never replaced, and a stopped run resumes with only what
 import hashlib
 from datetime import date
 
-from fno.storage.manifest_folder import FingerprintingStore, ManifestFolder
+from fno.storage.manifest_folder import Fingerprint, FingerprintingStore, ManifestFolder
 from fno.storage.raw_store import LocalFolderStore
 from fno.vix_history.librarian import VixHistoryLibrarian
 from fno.vix_history.month_file import NseVixJsonReader
@@ -79,3 +79,11 @@ def test_a_stored_file_differing_from_its_manifest_is_reported_and_left_alone(tm
     assert report.damaged == [(JULY, "SHA-256 differs from the manifest")] and not report.complete
     assert report.present == [] and report.uploaded == []
     assert raw.get(Source.path_for(JULY)) == july_2010(close_on_20th=99.0) and source.fetched == []
+
+
+def test_a_manifest_conflict_after_the_save_is_named_not_a_crash(tmp_path):
+    lib, (raw, manifests) = librarian(tmp_path, FakeNseVix(NSE))
+    old = Fingerprint(JULY, Source.url_for(Source.path_for(JULY)), "0" * 64, 1)
+    manifests.record(Source, old)  # a row from an earlier copy whose file is gone
+    report = lib.fill([JULY])
+    assert [m for m, _ in report.damaged] == [JULY] and report.uploaded == [] and not report.complete

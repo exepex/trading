@@ -75,7 +75,11 @@ class VixDailyTable:
     def _write(self, cells: list[tuple[str, ...]]) -> None:
         if not cells:
             return
-        new_file = not self.path.is_file()
+        new_file = not self.path.is_file() or self.path.stat().st_size == 0
+        if not new_file and not self.path.read_bytes().endswith(b"\n"):
+            raise VixTableConflict(
+                f"{self.path.name} does not end with a new line: appending would change its last row"
+            )
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8", newline="") as file:
             writer = csv.writer(file, lineterminator="\n")

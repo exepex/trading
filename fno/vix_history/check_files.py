@@ -27,21 +27,37 @@ def committed_vix_closes(path: Path) -> dict[date, str]:
 
 
 class VixCheckFiles:
-    def __init__(self, folder: Path, calendar: SessionCalendar, reference: Callable[[], Mapping[date, str]]):
-        self.folder, self.calendar, self.reference = Path(folder), calendar, reference
+    def __init__(
+        self,
+        folder: Path,
+        calendar: SessionCalendar,
+        calendar_first: date,
+        reference: Callable[[], Mapping[date, str]],
+    ):
+        """`calendar_first`: the first day the session calendar covers."""
+        self.folder, self.calendar, self.calendar_first, self.reference = (
+            Path(folder),
+            calendar,
+            calendar_first,
+            reference,
+        )
 
     def write(self, rows: list[dict[str, str]]) -> list[str]:
         closes = {date.fromisoformat(r["date"]): r["close"] for r in rows}
-        gaps = gap_rows(set(closes), self.calendar)
+        gaps = gap_rows(set(closes), self.calendar, self.calendar_first)
         flags = level_rows(rows)
-        overlap = overlap_rows(closes, self.reference())
+        reference = self.reference()
+        overlap = overlap_rows(closes, reference)
+        compared = sorted(set(closes) & set(reference))
         self._csv(GAPS_FILE, GAP_FIELDS, gaps)
         self._csv(LEVELS_FILE, LEVEL_FIELDS, flags)
         self._csv(OVERLAP_FILE, OVERLAP_FIELDS, overlap)
         return [
             f"gaps ({GAPS_FILE}): {_counts(gaps)}",
             f"doubtful levels, kept as published ({LEVELS_FILE}): {_counts(flags)}",
-            f"against the index-close VIX closes ({OVERLAP_FILE}): {_counts(overlap)}",
+            f"against the index-close VIX closes ({OVERLAP_FILE}): {len(compared)} days compared"
+            + (f" ({compared[0]} to {compared[-1]})" if compared else " (NOTHING compared)")
+            + f": {_counts(overlap)}",
         ]
 
     def _csv(self, name: str, fields: tuple[str, ...], rows: list[tuple]) -> None:

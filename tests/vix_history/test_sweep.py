@@ -4,6 +4,8 @@ error page is never kept as a version; the table is not changed by a revision.""
 import hashlib
 from datetime import date, datetime
 
+import requests
+
 from fno.models import IST
 from fno.storage.manifest_folder import ManifestFolder
 from fno.storage.raw_source import PublishedFile, RawSourceUnavailable
@@ -76,3 +78,20 @@ def test_a_missing_original_is_named_not_passed_over(tmp_path):
     report = job.sweep([JULY])
     assert report.not_archived == [JULY] and report.revised == [] and index.for_path(PATH) == []
     assert "original MISSING from the archive, nothing compared 2010-07" in report.lines()
+
+
+def test_a_revision_against_a_damaged_original_is_kept_and_named_and_the_sweep_goes_on(tmp_path):
+    job, raw, index = sweep(tmp_path, FakeNseVix({PATH: july_2010(close_on_20th=20.4)}))
+    (tmp_path / "raw" / PATH).write_bytes(b"<html>damaged</html>")
+    report = job.sweep([JULY, date(2010, 8, 1)])
+    assert report.checked == 2 and report.unanswered == [date(2010, 8, 1)]
+    assert report.revised[0][0] == JULY and "the original fails the check" in report.revised[0][1][0]
+
+
+def test_an_http_refusal_is_no_answer_not_a_crash(tmp_path):
+    class Refused(FakeNseVix):
+        def fetch_published(self, path):
+            raise requests.HTTPError("403 Forbidden")
+
+    job, _, _ = sweep(tmp_path, Refused({}))
+    assert job.sweep([JULY]).unanswered == [JULY]

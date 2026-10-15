@@ -30,8 +30,14 @@ def archive_with(tmp_path, files):
     return raw
 
 
-def builder(raw, table, clock=lambda: SEEN):
-    return VixTableBuilder(raw, Source.path_for, NseVixJsonReader(), table, clock)
+def manifest_of(raw, months=(JULY, AUGUST, SEPTEMBER)):
+    found = {m: raw.get(Source.path_for(m)) for m in months}
+    return {m: hashlib.sha256(data).hexdigest() for m, data in found.items() if data is not None}
+
+
+def builder(raw, table, clock=lambda: SEEN, manifest=None):
+    rows = manifest if manifest is not None else manifest_of(raw)
+    return VixTableBuilder(raw, Source.path_for, NseVixJsonReader(), table, clock, lambda: rows)
 
 
 def test_appending_keeps_earlier_bytes_and_skips_a_day_already_held(tmp_path):
@@ -132,4 +138,35 @@ def test_verify_names_a_month_the_manifest_does_not_hold(tmp_path):
     table = VixDailyTable(tmp_path / "vix.csv")
     builder(raw, table).extend([JULY])
     verifier = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), {})
-    assert verifier.problems(table.rows())[0] == "2010-07: SHA-256 differs from the manifest"
+    assert verifier.problems(table.rows())[0] == "2010-07: no manifest row for the archived file"
+
+
+def test_a_month_whose_bytes_differ_from_its_manifest_row_stops_the_table(tmp_path):
+    raw = archive_with(tmp_path, {JULY: july_2010()})
+    table = VixDailyTable(tmp_path / "vix.csv")
+    wrong = builder(raw, table, manifest={JULY: "0" * 64}).extend([JULY])
+    assert wrong.stopped_at == "2010-07: archived file's SHA-256 differs from the manifest" and table.rows() == []
+    missing = builder(raw, table, manifest={}).extend([JULY])
+    assert missing.stopped_at == "2010-07: archived file has no manifest row" and table.rows() == []
+
+
+def test_an_empty_table_file_gets_its_header_and_a_file_without_a_final_newline_is_refused(tmp_path):
+    table = VixDailyTable(tmp_path / "vix.csv")
+    table.path.write_text("")
+    table.append([row(date(2010, 7, 19), 20.71)])
+    assert table.rows()[0]["date"] == "2010-07-19"
+    table.path.write_text(table.path.read_text().rstrip("\n"))
+    before = table.path.read_bytes()
+    with pytest.raises(VixTableConflict, match="does not end with a new line"):
+        table.append([row(date(2010, 7, 20), 20.38)])
+    assert table.path.read_bytes() == before
+
+
+def test_verify_names_a_day_held_twice_and_rows_out_of_order(tmp_path):
+    raw = archive_with(tmp_path, {JULY: july_2010()})
+    table = VixDailyTable(tmp_path / "vix.csv")
+    builder(raw, table).extend([JULY])
+    verifier = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), manifest_of(raw, (JULY,)))
+    first, second = table.rows()
+    assert "2010-07-19: the table holds this day twice" in verifier.problems([first, first, second])
+    assert "the table's days are not in date order" in verifier.problems([second, first])

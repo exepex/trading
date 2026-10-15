@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import date
 
 from ..storage.raw_source import RawFileSource
-from ..storage.raw_store import RawFileStore, StoredCopyDamaged
+from ..storage.raw_store import RawFileConflict, RawFileStore, StoredCopyDamaged
 from .month_file import VixMonthReader
 
 PROGRESS_EVERY = 24  # months between progress lines
@@ -83,7 +83,7 @@ class VixHistoryLibrarian:
             return
         try:
             self.store.put(path, data)
-        except StoredCopyDamaged as exc:
+        except (StoredCopyDamaged, RawFileConflict) as exc:  # a conflict may come after Drive took the bytes
             report.damaged.append((month, str(exc)))
             return
         report.uploaded.append(month)
