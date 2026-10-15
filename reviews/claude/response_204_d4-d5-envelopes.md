@@ -68,3 +68,15 @@ DESK_DESIGN 12.4 (line 304) and S1's `catastrophic_loss_book` still say "3 open 
 section 4 already lists `catastrophic_loss_book` as changing ("the account brake and bucket caps on Rs 20 lakh").
 D4 and D5 reference C2's limits rather than numbers, so they work with whichever figure S1 settles. Strong evidence
 (the three files).
+
+## The owner's answers (16 Oct 2026, `docs/DESK_DECISIONS.md` row "D4/D5: the five design questions accepted as recommended")
+
+All five were accepted as recommended. They are written into the texts as decided:
+1. 21 calendar days to the planned exit;
+2. all nine of C4's defined-risk codes for Book 3;
+3. monthly NIFTY expiries only;
+4. D3 refuses any non-empty `owner_override` for every book. This is a D3 code item at slice E, and its builder is
+   settled then (orchestrator). It is named in both gap lists;
+5. envelope v1 stays narrow.
+
+The Rs 30,000 brake conflict goes to S1's text owner (orchestrator).

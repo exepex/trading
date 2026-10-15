@@ -269,7 +269,7 @@ component and a D3 `served` key. Out: the AI that chooses (F5); new playbook for
 - `playbook/<name>-v<n>.envelope.yaml`, one per playbook version, beside it. Each action of a closed enum
   (`fno/playbook/envelope.py`) has a status `allowed`, `shadow-only` or `forbidden`; an action not listed is
   `forbidden`. Envelope v1's actions and their default statuses (design 12.2, cut to what the playbook format can
-  express today):
+  express today; the narrow v1 decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all five")):
 
   | Action | Default | What it may change |
   |---|---|---|
@@ -325,15 +325,15 @@ repository for the hash check.
 | Rule default and AI action with reason in every record (12.2) | criterion 7 | |
 | Fixed before paper, versioned (12.2) | criterion 4 (D6 component) | |
 | C4 blocks independently (12.4) | criterion 5 | |
-| The owner never overrides on paper; only S1's safety stop (design v2 03) | no owner action in the enum | D3's `owner_override` field: question 4 of response 204 |
+| The owner never overrides on paper; only S1's safety stop (design v2 03) | no owner action in the enum | D3 refuses any non-empty `owner_override` for every book (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all five"): a D3 code item at slice E, its builder settled then |
 
 **Known limits (owner's simplicity rule, 15 Oct 2026):**
 - Envelope v1 is narrow (no strike, exit or delay actions) because the playbook format cannot express them yet. Each
   later action is a new envelope version, so its record starts fresh.
 - With `lots: 1` (the example version), `reduce_lots` has no effect; it matters only for versions with more lots.
 
-**Depends:** D1, D2, D3, D6, C4 · **Size:** S · **Status:** story text for the judge (response 204); code waits for
-slice E's trigger
+**Depends:** D1, D2, D3, D6, C4 · **Size:** S · **Status:** story text for the judge (response 204), the owner's five answers in; code waits
+for slice E's trigger
 
 ---
 
@@ -364,9 +364,10 @@ Book 3 mode. Out: the AI that invents and decides (F6); matched shadows (F7).
 **Expected design:**
 - **Constitution** `book3/constitution-v<n>.yaml`, committed before Book 3's first counted decision and hashed as a D6
   component (`components["constitution"]`) and a D3 `served` key. Allowed keys only:
-  - `underlying: NIFTY`; `expiry: monthly` (the only expiry the 3 pm recorder, E4 and S3 can price);
-  - `structures`: the allowed codes, a subset of C4's defined-risk codes (LC, LP, CDS, CCS, PDS, PCS, SF, SC, BF);
-  - `max_holding_days: 21` (calendar days from entry to the planned exit; design's "up to 3 weeks"; question 1);
+  - `underlying: NIFTY`; `expiry: monthly` (the only expiry the 3 pm recorder, E4 and S3 can price; decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all five"));
+  - `structures`: all nine defined-risk codes C4 accepts (LC, LP, CDS, CCS, PDS, PCS, SF, SC, BF), decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all five");
+    STR1's activation gates apply as for every book;
+  - `max_holding_days: 21` (calendar days from entry to the planned exit; design's "up to 3 weeks"; decided (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`: "Accept all five"));
   - `sources`: the common and Book 3's private pack only (F1's isolation already enforces it);
   - `risk: risk.profiles.books` and `scoring: research/evaluation/PROTOCOL.md`: references, never numbers. Book 3 can
     change neither, because they are not in its file.
@@ -418,7 +419,7 @@ trades it the same session, and confirms that is refused.
 | Never touches real money (12.3) | | Nothing in the repository places orders |
 | Red team and judge are evidence, not blocks (12.3) | criterion 7 | |
 | No same-day invent-and-trade (F6) | criterion 1 | |
-| The owner never overrides on paper; only S1's safety stop (design v2 03) | no owner action anywhere in D5 | |
+| The owner never overrides on paper; only S1's safety stop (design v2 03) | no owner action anywhere in D5 | D3's refusal of `owner_override`: as in D4 |
 
 **Known limits (owner's simplicity rule, 15 Oct 2026):**
 - Monthly NIFTY expiries only, because nothing else is recorded or priced; weekly options come with a new
@@ -426,7 +427,7 @@ trades it the same session, and confirms that is refused.
 - Exits are the playbook format's time exit only (as D4), so every Book 3 strategy holds to its planned exit.
 
 **Depends:** D1, D3, D6, C2, C4, B4/D6 (git ancestry) · **Size:** M · **Status:** story text for the judge (response
-204); code waits for slice E's trigger
+204), the owner's five answers in; code waits for slice E's trigger
 
 ---
 
