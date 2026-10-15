@@ -23,7 +23,7 @@ on observed days only, with a miss cap" and "Test A stays undecided ..." (respon
 3. Miss counts on every comparison and look; protocol text equals `terms.py`. MET.
 
 ## Checks
-- `python -m pytest -q`: see the merge note below for the full run on the merged tree.
+- `python -m pytest -q` on the tree merged with main (FNO_SLACK_BOT_TOKEN unset): 5,553 passed.
 - `ruff check fno tests tools`: clean. `python tools/check_imports.py`: clean. `ruff format`: applied.
 - First full run on this session's shallow clone failed 9 history-based freeze tests (the clone had no history) and
   one A16b test that main has since fixed (c7910516); after `git fetch --unshallow` and merging main, they pass.
