@@ -157,8 +157,8 @@ Forecast lab (43 fields; 10 fillable today):
 3. **Visibility has two values.** Strategy internals are never in a payload: they are listed in `x-never-sent`, and
    internal-sounding names are refused.
 4. **The weather colour rule's numbers are not sent each day.** They are frozen per `model_version`.
-5. **A missing weather now blocks new entries (fails closed).** This is my choice, after review; the owner may prefer
-   otherwise.
+5. **A missing weather blocks new entries (fails closed).** This is now an owner decision (15 Oct 2026, "4 A";
+   DESK_DECISIONS row "Missing weather blocks new trades").
 
 ## Findings while building (facts)
 
