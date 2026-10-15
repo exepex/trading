@@ -41,3 +41,9 @@ def test_an_alert_is_dry_run_only(monkeypatch):
 def test_below_the_alert_level_nothing_is_sent():
     sender = DryRunAlertSender()
     assert send_alert(sender, data_at(10)) == "no alert: below the alert level" and sender.would_send == []
+
+
+def test_the_composition_root_wires_only_the_dry_run_sender():
+    from fno.budget.wiring import build_budget_alert_sender
+
+    assert type(build_budget_alert_sender()) is DryRunAlertSender
