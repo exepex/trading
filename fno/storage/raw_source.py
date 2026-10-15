@@ -7,18 +7,28 @@ import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from email.utils import parsedate_to_datetime
 
 import requests
 
 from ..constants import MONTH_CODES
+from ..http_pacing import SourceCoolingOff
+from .retry_policy import MAX_RETRY_AFTER_SECONDS, NOT_FOUND, REFUSED, RETRY, RETRY_WAITS, retry_after_seconds, verdict
 
-NOT_PUBLISHED = 404
+NOT_PUBLISHED = NOT_FOUND
 
 
 class RawSourceUnavailable(RuntimeError):
     """The source could not be reached (after retries); try again later. Not the same as "no such file"."""
+
+    def __init__(self, message: str, status: int | None = None, tries: int = 0):
+        super().__init__(message)
+        self.status, self.tries = status, tries
+
+
+class RawFileRefused(RawSourceUnavailable):
+    """The source refused this one file (403 or another 4xx but 404): never retried; a caller may go on to the next."""
 
 
 @dataclass(frozen=True)
@@ -54,16 +64,17 @@ class RawFileSource(ABC):
 
 
 class NseArchiveSource(RawFileSource):
-    """A dated file from NSE's public archive, through a polite session: retries dropped connections, reports a day
-    without a file (holiday, weekend) as None. Subclasses give only the dataset, file name and URL."""
+    """A dated file from NSE's public archive, through a polite session, under one retry policy (`retry_policy.py`,
+    story A9b). A day without a file (holiday, weekend) is None; every failure is `RawSourceUnavailable` (a refused
+    file: `RawFileRefused`), never an HTTP error. Subclasses give only the dataset, file name and URL."""
 
     name = "NSE archive"
     FILENAME = ""  # format string of the original file name for a day
-    RETRY_WAITS = (5, 15, 45)  # seconds before each retry of a dropped connection
     TIMEOUT_SECONDS = 60
 
-    def __init__(self, session: requests.Session, sleep=time.sleep):
-        self.session, self.sleep = session, sleep
+    def __init__(self, session: requests.Session, sleep=time.sleep, clock=lambda: datetime.now(UTC)):
+        """`clock`: the time an HTTP-date `Retry-After` is measured from."""
+        self.session, self.sleep, self.clock = session, sleep, clock
 
     @classmethod
     def filename_for(cls, day: date) -> str:
@@ -110,19 +121,40 @@ class NseArchiveSource(RawFileSource):
 
     def _response(self, path: str, head: bool = False) -> requests.Response | None:
         send = self.session.head if head else self.session.get
-        for wait in (*self.RETRY_WAITS, None):
+        for tries, scheduled in enumerate((*RETRY_WAITS, None), start=1):
             try:
                 response = send(self.url_for(path), timeout=self.TIMEOUT_SECONDS)
+            except SourceCoolingOff as exc:  # the host is paused: waiting here would only wait into the pause
+                raise RawSourceUnavailable(f"{self.name}: {path}: {exc}", tries=tries) from exc
             except requests.RequestException as exc:
-                if wait is None:
-                    raise RawSourceUnavailable(f"{self.name}: {path}: {exc}") from exc
-                self.sleep(wait)
+                if scheduled is None:
+                    raise RawSourceUnavailable(f"{self.name}: {path}: {exc} after {tries} tries", tries=tries) from exc
+                self.sleep(scheduled)
                 continue
             if response.status_code == NOT_PUBLISHED:
                 return None
-            response.raise_for_status()
-            return response
+            outcome = verdict(response.status_code)
+            if outcome == REFUSED:
+                raise RawFileRefused(self._failed(path, response, tries), response.status_code, tries)
+            if outcome != RETRY:
+                return response
+            wait = self._retry_wait(path, response, scheduled, tries)
+            self.sleep(wait)
         raise AssertionError("unreachable")
+
+    def _retry_wait(self, path: str, response: requests.Response, scheduled: int | None, tries: int) -> float:
+        """The wait before the next try; raises when there is none or NSE asks for more than the cap."""
+        asked = retry_after_seconds(response.headers.get("Retry-After"), self.clock())
+        if scheduled is None or (asked is not None and asked > MAX_RETRY_AFTER_SECONDS):
+            raise RawSourceUnavailable(self._failed(path, response, tries), response.status_code, tries)
+        return max(scheduled, asked or 0)
+
+    def _failed(self, path: str, response: requests.Response, tries: int) -> str:
+        asked = response.headers.get("Retry-After")
+        after = f" (Retry-After {asked})" if asked else ""
+        return (
+            f"{self.name}: {path}: HTTP {response.status_code}{after} after {tries} {'try' if tries == 1 else 'tries'}"
+        )
 
 
 class NseDailyFoSource(NseArchiveSource):
