@@ -114,3 +114,18 @@ Still open: point 4 (Q4 scope) and point 5 (the unnumbered parts as a set).
 **All answered (15 Oct 2026):** Q4 the second untouched period is the only route (route (b) removed), and the
 unnumbered parts accepted as a set (row 793aeb54). Every gate item's status is now "decided by the owner on
 2026-10-15", citing rows 946bb8e7, f0f6d2d8 and 793aeb54.
+
+## 8. Judge 171 addendum 2 (FAIL, 2 should-fix): both fixed; one new question
+
+- SF1: `real_test_pass` 3 now says unknown legs (10% or fewer) are left out of the mean and listed; more than 10% is
+  not met.
+- SF2: Q13 was re-asked with the missing option; the owner kept 8.3 condition 4 as written (row 22df15bf). `fill_honesty`
+  (b) is now the binding mean gap to the next A16 snapshot within the paper pad, its noise stated; the validity check
+  stays; the "reported only" independent check is removed.
+- Note: the prediction floor is Rs 2,734 (1.7291 × 5,000 × √0.1); my Rs 2,160 was wrong.
+- **New, open (Q14), strong evidence from the code:** `FILL_PAD_RS = 0.0` (`fno/desk/pricing.py:17`): the desk fills
+  at the touch and research uses a Rs 1 per unit pad (`fno/research_engine/cycle_costs.py:24`). The gate's "paper
+  pad" is therefore Rs 0 today, which makes `real_test_pass` 3 allow Rs 0.50, makes stop (b) fire on any adverse
+  5-trade average, and makes `fill_honesty` (b) a "mean gap at most Rs 0" test that 15 minutes of noise fails about
+  half the time. Options to the owner: (a) the research pad, Rs 1 per unit; (b) the desk pad in force (Rs 0 today);
+  (c) a figure the owner names. Recommendation (a), reasoning only.
