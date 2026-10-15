@@ -94,3 +94,74 @@ The revision changes `response_157_v4-freeze-checklist.md` (adding a "Revision 1
 **Verdict: PASS for 3e3fd302** (plan only). Next, in order: ChatGPT, the owner, G10's build, then the protocol-edit
 commit and the freeze commit, each with its own lane-1 verdict. The G7 method filter must land, judged with its test,
 before the freeze commit.
+
+## Addendum 2 (15 Oct 2026): revision 2 (ChatGPT review 119) at 10fa113c
+
+The delta is the "Revision 2" section of response 157.
+
+| Item | Status | Evidence |
+|---|---|---|
+| 1. IV30 and Black-76 are not in v4's live path | MET (claim verified) | I imported all 48 modules of `fno/forecast_v4/`, `fno/forecast_v4_rules/`, `fno/forecast_scoring/v4/` and `fno/weather/` myself. `fno.forecast.iv30` is never loaded. `fno.research_engine.implied_vol` is loaded, through the import chain the builder names. A grep finds no call: `forecast_v4/units.py` uses only its own arithmetic and a parameter named `implied_vol`. The planned patched-to-raise run is the right proof. Saying that V2-V5 count only under a later record that byte-checks their IV code is correct and honest |
+| 2. Prospective `effective_start` for a registered slot | Sound as a rule; **not carried into the plan's own edit table** (should-fix 4) | From the slot's registered start, every baseline-observable day counts. A registered family therefore cannot dodge misses by submitting late, which is the owner's own aim for the miss rule ("cannot gain by missing hard days"). It is stricter, never looser. Unregistered slots stay `not_started` |
+| 3. V1's method filter | Planned (not built), as stated | Built and judged with its test before the freeze commit |
+
+**Should-fix 4: the protocol-edit table still writes the rule Revision 2 replaces.**
+- Line 22 of response 157 still tells step 2 to add "a forecaster that starts only after the freeze counts misses from
+  its first live forecast; the days before it are not started".
+- For registered slots, Revision 2 replaces this with "from its `effective_start`". A protocol commit that follows the
+  table would freeze the old rule.
+- Fix: rewrite that row. A registered slot counts from its `effective_start`, a session on or after the freeze and
+  before its first eligible session. An unregistered slot is `not_started`. Name review 119 as the source, beside
+  judge 156.
+- Because this changes the start of the owner's miss rule (G9, the 15 Oct row on `DESK_DECISIONS.md` line 177), the
+  owner should see it as a change when they decide the checklist, not only as an edit. Add it to the list of what the
+  owner confirms.
+
+**Verdict: FAIL for 10fa113c on should-fix 4** (one table row plus one owner-confirmation line). Items 1-3 are
+accepted. A re-check needs only those lines.
+
+## Addendum 3 (15 Oct 2026): 03586b07
+
+There is one commit, and it changes only response 157 (4 lines added, 2 removed).
+
+| Finding | Status | Evidence |
+|---|---|---|
+| Should-fix 4 | MET | The edit-table row now replaces section 4's start rule. A registered slot counts from its `effective_start` (a session on or after the freeze, before its first eligible session, named in its registration row). An unregistered slot is `not_started`. Its sources are review 119 and judge 156 notes 1 and 3. The owner-confirmation list carries the change as "one change for the owner to confirm before the freeze" (line 177's start moves to `effective_start`) |
+
+**Verdict: PASS for 03586b07** (plan only). The open steps are unchanged: ChatGPT, the owner (including this change),
+G10's build, the V1 method filter, then the protocol-edit and freeze commits, each with its own verdict.
+
+## Addendum 4 (15 Oct 2026): the V1 method filter, `story/v1-method-filter` 732db7e7 (code, lane 1)
+
+This is option (b) of should-fix 1. Four files change: `fno/forecast_v4/terms.py`, `fno/forecast_v4_rules/series.py`
+and two test files.
+
+- **The code.**
+  - `terms.V1_INTRADAY_METHOD = "rv-quote-15m-v1"`.
+  - `series.live_intraday_rv` skips every row whose `method` is not the pinned one, including a missing method.
+  - It is the only path: G7's capture (`forecast_v4_rules/wiring.py:37`) and G8's outcomes (`g7_series.py:31`) both
+    read A16 rows through `live_intraday_rv`. Checked by grep. So V1's outcomes, its trailing baseline and its HAR
+    baseline are all filtered by one line.
+- **Tests.**
+  - One test feeds the same date with a v1 row, an `rv-quote-5m-v2` row and an empty-method row: only the v1 row is
+    read.
+  - `test_the_pinned_method_is_a16s_live_method` ties the pin to `QuoteSnapshotRv15m.method`, so the two cannot drift.
+  - My plant: removing the filter's two lines fails 1 test.
+  - `tests/forecast_v4` + `forecast_v4_rules` + `forecast_scoring_v4` + `weather`: 304 passed.
+- **Gates.**
+  - Trial merge with `main` 2281a679: ruff, format and imports clean; **6,120 passed, 3 failed**.
+  - **All 3 also fail on `main` 2281a679 alone**, so they are not this branch's:
+    - `tests/books/test_paper_account.py::test_the_committed_state_is_the_13_oct_rs_5_lakh_opening_topped_up_to_rs_20_lakh_on_15_oct`
+      and `tests/market_read_models/test_home_blocks.py::test_the_live_wiring_reads_the_repositorys_books_and_their_open_risk_cap`
+      expect committed account files, which E2c's merge step 3 removed (`journal/<book>/` now holds only
+      `daily_totals.csv`);
+    - `tests/forecast_v4_rules/test_v4rules_series_and_rules.py::test_committed_closes_reproduce_the_disclosed_v6_counts`
+      expects 2,409 V6a outcomes and the committed closes now give 2,410 (one more day of data).
+  - This is a red `main`, reported to the orchestrator. It is a fix for E2c's owner and G7's owner, not for this
+    branch.
+- **Note (not blocking).** A skipped row leaves its session unresolved for V1, so it is not counted as void. If A16
+  ever writes a new method, V1 simply stops resolving. That is intended ("a new version"), but the look's count line
+  should then show it. The freeze record can say so in one line.
+
+**Verdict: PASS for 732db7e7.** Merge it before the freeze commit, after `main`'s 3 failures are fixed (the full suite
+on the merged tree must pass).

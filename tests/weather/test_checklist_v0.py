@@ -9,8 +9,8 @@ from datetime import date
 import pytest
 
 from fno.config import ROOT
-from fno.constants import WeatherColour
 from fno.weather.checklist_v0 import AMBER_LIMITS, RED_LIMITS, Event, Row, V0Inputs, colour_as_of_close, v0_colour
+from fno.weather.constants import WeatherColour
 from fno.weather.v0_live import ChecklistV0
 from fno.weather.wiring import EVENTS_FILE, build_weather_days, read_events
 

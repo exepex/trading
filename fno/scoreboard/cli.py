@@ -1,5 +1,6 @@
-"""`python -m fno scoreboard b [--on YYYY-MM-DD]` (story S2): scoreboard B from the committed records, written to
-`research/scoreboards/B/<date>.json` (commit it). Research only: it reads records and places nothing."""
+"""`python -m fno scoreboard b [--on YYYY-MM-DD]` (story S2): scoreboard B from the paper records, written to
+`research/scoreboards/B/<date>.json` and kept in Drive, never committed (story E2c: it holds marked results). Research
+only: it reads records and places nothing."""
 
 from __future__ import annotations
 
@@ -33,11 +34,14 @@ def summary(board: dict) -> list[str]:
 
 def cmd_scoreboard(args) -> int:
     from ..config import ROOT, load_app_config
+    from ..desk.wiring import download_private_records
     from ..models import now_ist
     from .whole_system import write_board
     from .wiring import build_whole_system_board
 
+    files = download_private_records()
     board = build_whole_system_board(load_app_config()).build(args.on or now_ist().date())
     path = write_board(ROOT, board)
-    print("\n".join([*summary(board), f"written {path.relative_to(ROOT)}: commit it"]))
+    files.push([path])
+    print("\n".join([*summary(board), f"written {path.relative_to(ROOT)} and kept in Drive (never committed)"]))
     return 0

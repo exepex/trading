@@ -84,7 +84,9 @@ fno/
   config.py          settings (`config.yaml`, allowed keys only)
 tools/               NSE raw-file downloader, import-graph check, public-record scan
 research/            studies, ledger, recorded data
-journal/<book>/account/  each book's paper account: cash_ledger.csv (append-only), positions.json, equity_history.csv
+journal/<book>/account/  each book's paper account (cash ledger, positions, equity history, desk fills and events):
+                     kept in Google Drive, downloaded here git-ignored, never committed (E2c)
+journal/<book>/daily_totals.csv  the account's only public part: closed equity and trade and fill counts per day (E2c)
 journal/<book>/owner_overrides.csv  the owner's written restarts of that book's drawdown brake (C2)
 tests/               unit and integration tests
 ```

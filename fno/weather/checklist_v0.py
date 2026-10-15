@@ -16,7 +16,7 @@ import statistics
 from dataclasses import dataclass
 from datetime import date
 
-from ..constants import WeatherColour
+from .constants import WeatherColour
 
 MEDIAN_ROWS, CHANGE_ROWS, MOVE_ROWS, RV_ROWS = 250, 5, 5, 10
 RED_LIMITS = (1.30, 0.20, 0.020, 0.25)  # vix_ratio, vix_change5, move5, rv10

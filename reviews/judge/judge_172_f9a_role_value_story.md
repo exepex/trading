@@ -79,3 +79,44 @@ What is sound:
 - `standard_unit.py` does not exist yet (S3 is still story text). The code round waits for S3's merge, as stated.
 - Work register: the row is added, with no overlap. `fno/scoreboard/` is untouched.
 - Engineering rules: about six small modules planned (reasoning only until built).
+
+## Addendum 1: revision at 4d61fb8c (story text; response 166)
+
+**Verdict: PASS (text), with one required delta before code.** This is the orchestrator's go of 15 Oct. The branch
+diff against main is docs only: the F9 section, response 166, its README row and the work-register row.
+
+| Finding | Fix | Judge's check | Result |
+|---|---|---|---|
+| B1 unit cost source | A declared split. The book's daily allocated cost is F8's month allocation of its `books_and_roles` shares, times the day's minutes over the month's minutes (F8's `allocate`, imported). It is split equally across the consulted units, to the paisa, with F8's remainder rule. The decider takes none, so it is labelled "upper bound". A missing usage row or a missing plan cost makes it "unknown", with no verdict and no Holm entry (criterion 5; split-sums test) | Honest and simple; works with F8 as built (one row per session). Measured sub-agent minutes later become a new protocol version (Known limits) | Fixed |
+| B2 gap list | A table covering design 3.1, 10 and 13.6 and S1. Abstentions are criterion 9; joint tests via bundles, pairwise out with a reason; risk out with a reason; one at a time out with a reason | Every requirement I listed is mapped, in or out with a reason | Fixed (see the delta below for risk) |
+| SF1 Holm | S3 revision 2's definition and code (`S-scoreboards.md:158-165` on `story/s3-scoreboard-a`, read): one-sided bootstrap p-values, step-down 0.05/(m − i + 1). Two claims per unit, "earns" (share of means ≤ 0) and "drop" (the negated series), all 2m claims in one list. The verdict follows the passing claim; the 5/95 interval is printed only (criteria 7, 11) | Consistent. The orchestrator accepted the owner's "stricter only" answer (Q7) | Fixed |
+| SF2 constants | S1 pending edit 3, in register row "S1 text" (read at 4d61fb8c, line 38). They enter S1's text before the code round; criterion 11's test pins both | Pinnable once S1's edit lands; the order is stated in Depends | Fixed |
+| SF3 third bootstrap | S3's resampler is reused with a risk column of 1, exactly S3's own paired construction (`S-scoreboards.md:155-157`). Claim 3 is withdrawn | No second bootstrap | Fixed |
+| SF4 review dates | `review_dates(common_start, calendar, through)` in `fno/evaluation/review_dates.py`, with S1's text owner's agreement (register row F9a, no file overlap with RM1's `gate.py`). Holiday month-end test (criterion 4). The common start is a CLI input until S1 fixes it | Codes only S1's current scheduled-review rule, as stated | Fixed |
+| m1 snapshot ids | Both ids must equal the run log's execution snapshot, through S3's `CommittedRuns.snapshot_ids` (criterion 1) | | Fixed |
+| m2 no-trade advances | Stated in scope and criterion 1 | | Fixed |
+
+**Required delta before the code round (owner, 15 Oct, `DESK_DECISIONS` row added in d6628c90: "Money only, risk
+shown").** The verdict stays money only, which the text already has. The decision also says a role's effect on worst
+month and maximum loss is **printed beside the verdict and never decides**. The text and the gap-list row say "lower
+risk: out of the verdict" but print nothing.
+- Add to the report: per unit, the with-minus-without difference in worst month and in maximum loss.
+- Add one criterion: the figures are shown, and changing them never changes the verdict.
+- Turn the gap-list row into "in (shown, never deciding), owner 15 Oct".
+
+The orchestrator allowed this as a small delta. I check it in the code review; no new text verdict is needed if it
+is only that.
+
+Gates: docs only, and the builder's run of the same code tree is 5,992 passed. I did not re-run the suite for a
+text-only change.
+
+**Delta checked (36f6b0fa, docs only; the diff from 4d61fb8c touches only the F9 section and response 166):** the
+owner's "money only, risk shown" is now in.
+- **Risk shown:** per unit, the worst calendar month of paired differences and the mean one-lot maximum-loss
+  difference over changed opportunities, the latter from S3's code, imported.
+- **Never deciding:** neither figure enters Holm or the verdict, and "drop proposed" is printed as a proposal.
+- **Tests:** new criterion 12 tests that changing only these figures leaves the verdicts and p-values unchanged.
+- **Gap list:** the "lower risk" row now points to criterion 12.
+
+The required delta is met. **F9a text: PASS at 36f6b0fa.** Code may start once S1's pending edit 3 and S3's three
+files are on main.
