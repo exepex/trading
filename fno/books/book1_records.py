@@ -21,9 +21,9 @@ from ..playbook.documents import strategy_from_text
 from ..playbook.opportunities import OpportunityFinder
 from ..playbook.run_order import run_counter
 from ..risk.inputs import TradeTerms
-from .opening_runs import SumsAt, opening_runs
+from .opening_runs import opening_runs
 
-BOOK_MODE, TRADE = "book", "trade"
+TRADE = "trade"
 NOT_IN_RUN = "its opening run {run} holds no chosen record of it"
 
 
@@ -50,10 +50,10 @@ class DecidedExits:
     other_runs: Mapping[str, tuple[str, ...]]
 
 
-def opening_trades(root: Path, book: str, sums_at: SumsAt) -> BookTrades:
-    openings = opening_runs(root, book, sums_at)
+def opening_trades(root: Path, book: str) -> BookTrades:
+    openings = opening_runs(root, book)
     chosen: dict[str, list[DecidedTrade]] = {}
-    for record_path in DecisionStore(root, book).folder.glob("*/*/*.json"):
+    for record_path in _record_files(DecisionStore(root, book)):
         trade = _chosen(record_path)
         if trade is not None:
             chosen.setdefault(trade.trade_id, []).append(trade)
@@ -64,20 +64,22 @@ def opening_trades(root: Path, book: str, sums_at: SumsAt) -> BookTrades:
             trades[trade_id] = own[0]
         else:
             problems[trade_id] = NOT_IN_RUN.format(run=run.name)
-        elsewhere = sorted({t.run for t in chosen.get(trade_id, ()) if t.run != run}, key=_day_and_counter)
+    for trade_id in (*openings.runs, *openings.problems):
+        opening = openings.runs.get(trade_id)
+        elsewhere = sorted({t.run for t in chosen.get(trade_id, ()) if t.run != opening}, key=_day_and_counter)
         if elsewhere:
             others[trade_id] = tuple(r.name for r in elsewhere)
     return BookTrades(trades, problems, others)
 
 
-def recorded_terms(root: Path, book: str, sums_at: SumsAt) -> dict[str, TradeTerms]:
+def recorded_terms(root: Path, book: str) -> dict[str, TradeTerms]:
     """Each filled trade's structure, width and lots, by trade ID, from its opening run."""
-    return {t.trade_id: t.terms for t in opening_trades(root, book, sums_at).trades.values()}
+    return {t.trade_id: t.terms for t in opening_trades(root, book).trades.values()}
 
 
-def decided_exit_days(root: Path, book: str, finder: OpportunityFinder, sums_at: SumsAt) -> DecidedExits:
+def decided_exit_days(root: Path, book: str, finder: OpportunityFinder) -> DecidedExits:
     """Each filled trade's time exit as fixed at its opening decision, with the trades that have none and why."""
-    found = opening_trades(root, book, sums_at)
+    found = opening_trades(root, book)
     exits, files = {}, {}
     for trade in found.trades.values():
         if trade.run not in files:
@@ -86,6 +88,12 @@ def decided_exit_days(root: Path, book: str, finder: OpportunityFinder, sums_at:
         strategy = strategy_from_text(files[trade.run][name], name)
         exits[trade.trade_id] = (finder.exit_day(strategy, trade.expiry), trade.version)
     return DecidedExits(exits, found.problems, found.other_runs)
+
+
+def _record_files(store: DecisionStore) -> list[Path]:
+    """Every record file of the book's runs, through the store's own listing, so a hidden temporary folder left by a
+    crashed write is never read."""
+    return [path for run in store.every_run() for path in run.glob("*.json")]
 
 
 def _day_and_counter(run: Path) -> tuple[str, int]:

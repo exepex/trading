@@ -5,13 +5,15 @@ fill), as that day's run log names it. A fill row's `decision_id` is the record'
 the run, so the run log is the source. Only trades opened by fills are the book's: a run never collected, or a chosen
 trade never filled, adds nothing.
 
-When the run log is missing, names no run, or names a run that is gone or does not match its committed
-`records.sha256` (an edit, or its sums file changed since the commit the log names), there is no opening run: the
-problem is named, and nothing falls back to another run, least of all the latest record."""
+When the run log is missing, names no run, or names a run that is gone or does not match the `records.sha256` the
+decisions step recorded (its SHA-256, taken from the committed file when the run was collected), there is no opening
+run: the problem is named, and nothing falls back to another run, least of all the latest record. The hash is in the
+run log, so this needs no git history: a shallow clone checks it the same way."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+import hashlib
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -24,9 +26,8 @@ from ..playbook.decision_store import SUMS_FILE, DecisionStore
 
 NO_LOG = "the run log of {day} names no decision of {book}"
 GONE = "its opening run {run} (run log of {day}) is not in the decision store"
-CHANGED = "its opening run {run} does not match the records.sha256 committed in {commit}"
-
-SumsAt = Callable[[str, str], bytes | None]  # (repository path, commit) -> the file's bytes at that commit
+CHANGED = "its opening run {run} does not match the records.sha256 the run log of {day} recorded"
+NO_HASH = "the run log of {day} records no records.sha256 hash for {run}"
 
 
 @dataclass(frozen=True)
@@ -35,10 +36,10 @@ class OpeningRuns:
     problems: Mapping[str, str]  # trade ID -> why it has no opening run
 
 
-def opening_runs(root: Path, book: str, sums_at: SumsAt) -> OpeningRuns:
+def opening_runs(root: Path, book: str) -> OpeningRuns:
     runs, problems = {}, {}
     for trade_id, day in _entry_days(root, book).items():
-        found = _opening_run(Path(root), book, day, sums_at)
+        found = _opening_run(Path(root), book, day)
         if isinstance(found, Path):
             runs[trade_id] = found
         else:
@@ -55,7 +56,7 @@ def _entry_days(root: Path, book: str) -> dict[str, date]:
     return days
 
 
-def _opening_run(root: Path, book: str, day: date, sums_at: SumsAt) -> Path | str:
+def _opening_run(root: Path, book: str, day: date) -> Path | str:
     log = RunLog.open(root, day)
     entry = log.result(RUN_LOG_DECISIONS_STEP).get(book, {}) if log.done(RUN_LOG_DECISIONS_STEP) else {}
     if "run_id" not in entry:
@@ -63,8 +64,13 @@ def _opening_run(root: Path, book: str, day: date, sums_at: SumsAt) -> Path | st
     run = DecisionStore(root, book).day_folder(day) / entry["run_id"]
     if not run.is_dir():
         return GONE.format(run=entry["run_id"], day=day)
+    if not entry.get("sums_sha256"):
+        return NO_HASH.format(day=day, run=entry["run_id"])
     sums = run / SUMS_FILE
-    committed = sums_at(sums.relative_to(root).as_posix(), entry["commit"])
-    if committed is None or not sums.is_file() or committed != sums.read_bytes() or DecisionStore.edited(run):
-        return CHANGED.format(run=entry["run_id"], commit=entry["commit"])
+    if not sums.is_file() or _sha256(sums) != entry["sums_sha256"] or DecisionStore.edited(run):
+        return CHANGED.format(run=entry["run_id"], day=day)
     return run
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()

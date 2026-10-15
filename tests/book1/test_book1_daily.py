@@ -10,7 +10,7 @@ import pytest
 from fno.books.account import PaperAccount
 from fno.books.book1_exits import PlaybookExitRules
 from fno.books.book1_orders import ReplayedOrders
-from fno.books.book1_records import decided_exit_days
+from fno.books.book1_records import decided_exit_days, opening_trades
 from fno.checks.gate import DataGate
 from fno.checks.wiring import build_data_checks
 from fno.composition import open_account_writer
@@ -91,7 +91,7 @@ def run_days(root, tmp_path, alerts, c4, monkeypatch, version=None, code=SAME_CO
                                       CALENDAR), RecordedExecutionSnapshots(quotes),
                     CommittedExecutionSchedule(root, TIMETABLE), alerts)  # fmt: skip
     finder = OpportunityFinder(TradingDays(CALENDAR))
-    exits = PlaybookExitRules(lambda book: decided_exit_days(root, book, finder, git.committed_bytes),
+    exits = PlaybookExitRules(lambda book: decided_exit_days(root, book, finder),
                               lambda version: playbook.files.get(f"{version}.yaml"),
                               lambda book: DeskRecords(PaperAccount(root, book)), alerts)  # fmt: skip
     steps = DeskSteps(root, (BOOK1_RULES,), TIMETABLE, Versions(), FakePacks(),
@@ -118,6 +118,10 @@ def test_book1_s_records_are_collected_on_time_every_fixture_day_and_a_c4_pass_f
     opened = DeskRecords(PaperAccount(root, BOOK1_RULES)).fill_rows()
     assert opened and {(r["strategy"], r["decision_id"].split(":")[0]) for r in opened} == {("sc-a-v1", "sc-a-v1")}
     assert all(r["outcome"] == "held" for log in logs[1:] for r in log.result("exits")[BOOK1_RULES]["results"])
+    # story D3b: the decisions step logs the committed sums hash, so every opened trade finds its opening run
+    assert all(log.result("decisions")[BOOK1_RULES]["sums_sha256"] for log in logs)
+    found = opening_trades(root, BOOK1_RULES)
+    assert found.problems == {} and set(found.trades) == {r["trade_id"] for r in opened}
 
 
 @pytest.mark.parametrize("c4", [None, FAILED])

@@ -2,8 +2,6 @@
 version file as the run read it, the expiry in the opportunity ID), so an edit to today's version file, a file that no
 longer parses, or an unrelated broken draft never stops or moves it; today's file only feeds the alerts."""
 
-import json
-import subprocess
 from datetime import date, datetime, time
 
 import pytest
@@ -30,11 +28,6 @@ from .openings import open_trades
 
 DAY = date(2026, 10, 13)
 FINDER = OpportunityFinder(TradingDays(CALENDAR))
-SUMS_AT = {}
-
-
-def sums_at(path, commit):
-    return SUMS_AT["at"](path, commit)
 
 
 class Alerts:
@@ -53,29 +46,15 @@ def decided(tmp_path, monkeypatch):
     decider.decide(DAY)
     [run] = DecisionStore(tmp_path, BOOK1_RULES).runs(DAY)
     open_trades(tmp_path, BOOK1_RULES, DAY, run.name, commits.made[0][0])  # story D3b: only filled trades count
-    SUMS_AT["at"] = commits.committed_bytes
-    [(trade_id, (exit_day, version))] = decided_exit_days(tmp_path, BOOK1_RULES, FINDER, sums_at).exits.items()
+    [(trade_id, (exit_day, version))] = decided_exit_days(tmp_path, BOOK1_RULES, FINDER).exits.items()
     legs = ((DeskLeg("N", date(2026, 11, 27), Leg(25_000, "CE", BOUGHT)), 65),)
     position = OpenPosition(trade_id, version, "d", legs, 0.0, datetime(2026, 10, 13, 15, 15), "exec", "", ())
     monkeypatch.setattr(book1_exits, "open_positions", lambda records: [position])
     return tmp_path, trade_id, exit_day, version
 
 
-def commit_for_real(root):
-    """The real wiring asks real git for the run's committed sums file: commit the run, and name that commit in the
-    run log as E3 would have."""
-    for args in (("init", "-q"), ("config", "user.email", "t@example.org"), ("config", "user.name", "t"),
-                 ("config", "core.hooksPath", "/dev/null"), ("add", "-A"), ("commit", "-q", "-m", "run")):  # fmt: skip
-        subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
-    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], check=True, capture_output=True, text=True)
-    log = root / "journal" / "runs" / f"{DAY}.json"
-    body = json.loads(log.read_text())
-    body["steps"]["decisions"]["result"][BOOK1_RULES]["commit"] = head.stdout.strip()
-    log.write_text(json.dumps(body))
-
-
 def rules(root, version_text, alerts):
-    decided = lambda book: decided_exit_days(root, book, FINDER, sums_at)  # noqa: E731
+    decided = lambda book: decided_exit_days(root, book, FINDER)  # noqa: E731
     exits = PlaybookExitRules(decided, version_text, lambda b: None, alerts)
     return exits.rules(BOOK1_RULES)
 
@@ -118,7 +97,6 @@ def test_an_unrelated_broken_draft_leaves_every_exit_applied(decided):
     folder = root / PLAYBOOK_FOLDER
     folder.mkdir(exist_ok=True)
     (folder / "draft-v1.yaml").write_text("name: [unclosed")  # a draft that does not parse
-    commit_for_real(root)
     [rule] = build_book1_exit_rules(root).rules(BOOK1_RULES)[trade]
     assert rule.exit_day == exit_day
 

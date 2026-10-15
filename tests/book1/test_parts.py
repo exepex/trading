@@ -97,8 +97,7 @@ def test_the_trade_terms_of_book1_s_trades_come_from_its_committed_records(tmp_p
     sums = "".join(f"{hashlib.sha256((run / n).read_bytes()).hexdigest()}  {n}\n" for n in ("a.json", "b.json"))
     (run / SUMS_FILE).write_text(sums)
     open_trades(tmp_path, BOOK1_RULES, DAY, run.name, "c1", ["t1", "t2"])  # story D3b: filled trades only
-    sums_at = lambda path, commit: (tmp_path / path).read_bytes()  # noqa: E731 - as committed
-    assert recorded_terms(tmp_path, BOOK1_RULES, sums_at) == {"t1": TradeTerms("SC", 200, 1)}
+    assert recorded_terms(tmp_path, BOOK1_RULES) == {"t1": TradeTerms("SC", 200, 1)}
 
 
 def test_the_exit_is_the_version_s_time_exit_as_d2_computed_it():

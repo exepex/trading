@@ -50,7 +50,7 @@ the code is broken (a plant), and **reasoning** means read in code, not tested.
 | 6 | Scoreboard B lists uncollected runs and corrections apart; its scored figures do not change | `fno/scoreboard/committed_runs.py` `uncollected`, `whole_system.py`, `wiring.py` | `tests/scoreboard/test_uncollected_runs.py` | strong (M12) |
 | 7 | The existing tests that changed, and why | see below | | |
 
-**Broken-code proofs:** 15 plants, each caught (`M1`-`M15`); M14 survived until the first-open-fill test was added.
+**Broken-code proofs:** 21 plants (M1-M21), each caught by the final tests. Two survived at first: M14 (the last open fill's day), until the first-open-fill test was added; and M20 (no sums hash in the run log), until the end-to-end daily test checked that every opened trade finds its opening run.
 
 **Changed existing tests (criterion 7):**
 - `tests/timetable/test_parts.py` (the D3 collector test) expected r2 over r1, the latest rule. It now expects r1, the
@@ -59,9 +59,12 @@ the code is broken (a plant), and **reasoning** means read in code, not tested.
   does, and gains `others`.
 - `tests/book1/test_parts.py` (terms from records) and `tests/book1/test_exits.py` read terms and exits from records
   with no fill and no run log. That is now refused by design, so they first open the trade (`tests/book1/openings.py`).
-  The wiring test commits the run for real, because the real wiring asks git for the committed sums file.
-- `tests/book1/builders.py` and `tests/book1/test_book1_daily.py`: the git fake gains `is_ancestor` and
-  `committed_bytes`, and the exit rules get `sums_at`.
+- `tests/book1/builders.py`: the git fake gains `is_ancestor` (one line of history) and `committed_bytes` (the
+  collector hashes the committed sums file). `tests/book1/test_book1_daily.py` also checks the logged hash and that
+  every opened trade finds its opening run.
+- `tests/timetable/test_daily_run.py`, the late-visible run test: the late-visible run is now added first in the fake,
+  so the test still fails if visibility is ignored (plant M21). With the first-run rule, it would otherwise have
+  passed without the visibility check (found by the test audit).
 
 **Judge 125's minors:**
 1. `recorded_c4.py` and `decision_timing.py` are added to the reader table.
@@ -101,4 +104,22 @@ F&O paper desk book1_rules t1: the run log of 2026-10-14 names no decision of bo
   E5b removes.
 - The "other runs" alert repeats at every exit review while the trade is open: "once" means once per review.
 - Ancestry needs both commits in the local history. A shallow clone that lacks one treats the two runs as parallel,
-  so commit time decides.
+  so commit time decides. On the day itself, both runs are minutes old, so they are in any clone.
+
+## Self-review by two independent agents, and what was done
+
+| Finding | From | Accepted? | Fix and evidence |
+|---|---|---|---|
+| The opening-run check asked git for the run's committed sums file. A scheduled session clones 50 commits (about an hour of `main` today), so after a day every open Book 1 trade would lose its terms and exit | code review | **accepted (strong)** | The decisions step now records the SHA-256 of the committed `records.sha256` in the run log (`sums_sha256`). The opening-run check compares with it and needs no git history. `sums_at` is gone. Tests: missing hash, re-summed run; M7 and M20 caught |
+| A hidden temporary folder left by a crashed write was read by `glob("*/*/*.json")`, and its name broke `run_counter`, failing every Book 1 exit | code review | **accepted** | Records are read through the new `DecisionStore.every_run()`, which skips hidden folders; the guard test keeps every ordered read on `ordered_runs`. Test: a hidden folder with a record naming the trade is ignored (M17) |
+| "Alerted once" disagreed with the code (once per review) | both | **accepted** | The story now says one alert at each exit review while the trade is open. Test: two reviews give two alerts, one each |
+| Other runs were listed only for trades that have an opening run | code review | **accepted** | Listed for every filled trade (M18) |
+| A first run that lands late, followed by a run made after pulling it with a slower clock: the later run was collected | code review | **accepted** | When the first committed original run is late, nothing is collected (M16) |
+| One malformed record raised inside the collector and stopped the step for all books | code review | **accepted** | An unreadable record makes only its own run uncollectable; it is listed with the file, and other books are unaffected (M19) |
+| Ancestry was recomputed on every pass (about n³ `git merge-base` calls) | code review | **accepted** | Computed once per pair (n²) |
+| `BOOK_MODE` dead constant; `RunCommits` duplicated; `"decisions"` as a bare literal; the name `book_trades` used twice | both | **accepted** | Removed; the protocol extends run_order's; `RUN_LOG_DECISIONS_STEP` in `fno/constants.py`; renamed `opening_trades` |
+| Ten-run tests missing for Book 1's listing and S1 | test audit | **accepted** | Both now use ten runs |
+| `book1_records` does not use `ordered_runs` | test audit | **accepted as stated** | It needs no order: it takes the opening run by ID from the run log. The story text says so |
+| Shadow trades lose terms | code review | **stated** | No shadow filler exists yet; E6's must use `opening_runs` |
+| The collector decides "is a correction" from the working tree, not the committed text | code review | **stated, not changed** | After the collector's pull the tree is the committed one; the fill re-checks the collected run's files (`recorded_c4` `edited`) |
+| Book 1's decision fails with a traceback when an open trade has no terms | code review | **stated** | It fails closed (no run, so late), as before. E5b removes the traceback |

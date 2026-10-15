@@ -2,6 +2,7 @@
 before the deadline (ancestry first, then commit time), never a correction; the decisions step lists every other run
 of the day in the run log, a correction with what it corrects and why."""
 
+import hashlib
 import json
 import os
 import subprocess
@@ -112,3 +113,31 @@ def test_a_ten_run_day_is_ordered_by_landing_then_counter_never_by_name(tmp_path
     assert source.committed(BOOK1_RULES, NORMAL, DEADLINE).run_id == f"{NORMAL}-r10"
     listed = [o["run_id"] for o in source.others(BOOK1_RULES, NORMAL, f"{NORMAL}-r10")]
     assert listed == [f"{NORMAL}-r{n}" for n in range(1, 10)]
+
+
+def test_a_late_first_run_is_never_replaced_by_one_made_after_it(tmp_path):
+    """r1 lands late; r2, made after pulling it, shows an earlier time (a slow clock): neither is the decision."""
+    repository(tmp_path)
+    commit_run(tmp_path, BOOK1_RULES, 1, 14)
+    commit_run(tmp_path, BOOK1_RULES, 2, 6)
+    assert collector(tmp_path).committed(BOOK1_RULES, NORMAL, DEADLINE) is None
+
+
+def test_an_unreadable_record_makes_only_its_own_run_uncollectable(tmp_path):
+    repository(tmp_path)
+    commit_run(tmp_path, BOOK1_RULES, 1, 3)
+    (DecisionStore(tmp_path, BOOK1_RULES).day_folder(NORMAL) / f"{NORMAL}-r1" / "a.json").write_text("{ broken")
+    commit_run(tmp_path, BOOK1_RULES, 2, 5)
+    commit_run(tmp_path, BOOK2_HYBRID, 1, 4)
+    source = collector(tmp_path)
+    assert source.committed(BOOK1_RULES, NORMAL, DEADLINE).run_id == f"{NORMAL}-r2"
+    [listed] = source.others(BOOK1_RULES, NORMAL, f"{NORMAL}-r2")
+    assert listed["corrections"][0]["unreadable"] == "a.json"
+    assert source.committed(BOOK2_HYBRID, NORMAL, DEADLINE).run_id == f"{NORMAL}-r1"
+
+
+def test_the_collected_run_carries_the_hash_of_its_committed_sums_file(tmp_path):
+    repository(tmp_path)
+    commit_run(tmp_path, BOOK1_RULES, 1, 3)
+    taken = collector(tmp_path).committed(BOOK1_RULES, NORMAL, DEADLINE)
+    assert taken.sums_sha256 == hashlib.sha256(b"sums\n").hexdigest()

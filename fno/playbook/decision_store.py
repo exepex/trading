@@ -44,6 +44,16 @@ class DecisionStore:
             sorted(p for p in folder.iterdir() if p.is_dir() and not p.name.startswith(".")) if folder.is_dir() else []
         )
 
+    def every_run(self) -> list[Path]:
+        """Every run of the book, hidden temporary folders aside, in no meaningful order: for readers that need all of
+        them, never "the first" (that is `run_order.ordered_runs`)."""
+        days = (
+            sorted(p for p in self.folder.iterdir() if p.is_dir() and not p.name.startswith("."))
+            if self.folder.is_dir()
+            else []
+        )
+        return [run for day in days for run in self.runs(date.fromisoformat(day.name))]
+
     def next_run_id(self, day: date) -> str:
         return f"{day.isoformat()}-r{len(self.runs(day)) + 1}"
 

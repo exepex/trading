@@ -103,6 +103,9 @@ class Commits_:
     def is_ancestor(self, older, newer):
         return False  # parallel commits: the commit time orders them
 
+    def committed_bytes(self, path, commit):
+        return None  # no blobs here: the run log then records no sums hash
+
 
 def test_d3_decisions_are_read_at_the_deadline_and_the_fills_reread_only_the_recorded_run(tmp_path):
     store, deadline = DecisionStore(tmp_path, BOOK1_RULES), at(15, 12)

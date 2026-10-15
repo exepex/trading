@@ -11,6 +11,7 @@ day is listed for the run log, a correction with what it corrects and why, and i
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date, datetime
 from pathlib import Path
 from typing import Protocol
@@ -25,6 +26,8 @@ from .pack_items import available_time
 class RunCommits(OrderCommits, Protocol):
     def observed(self) -> str: ...
 
+    def committed_bytes(self, path: str, commit: str) -> bytes | None: ...
+
 
 class RunNotRecorded(ValueError):
     """The run the decisions step recorded is gone or held by another commit: it is never filled."""
@@ -38,9 +41,16 @@ class D3CommittedDecisions(DecisionSource):
         return self.git.observed()
 
     def committed(self, book: str, day: date, deadline: datetime) -> CommittedDecision | None:
+        """The first committed original run, if it is on time. When it is late, nothing is: a run in its descent was
+        made after it, whatever its own clock says (a fast clock), so it is never taken instead."""
         for run in self._ordered(book, day):
-            if run.commit is not None and run.committed_at < deadline and not corrections(run.path):
-                return CommittedDecision(book, run.run_id, run.commit, run.committed_at, run.path)
+            if run.commit is None or corrections(run.path):
+                continue
+            if run.committed_at >= deadline:
+                return None
+            sums = self.git.committed_bytes((run.path / SUMS_FILE).relative_to(self.root).as_posix(), run.commit)
+            digest = hashlib.sha256(sums).hexdigest() if sums is not None else None
+            return CommittedDecision(book, run.run_id, run.commit, run.committed_at, run.path, digest)
         return None
 
     def others(self, book: str, day: date, taken: str | None) -> list[dict]:
