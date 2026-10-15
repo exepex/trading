@@ -87,3 +87,12 @@ covered by E1b's own unit tests on fixtures, and I checked it on the real journa
 ### Verdict: PASS for dde94700b40a94402bd9bcbceecc46deb27e6f6f
 
 - E1b's merge check closes when the first `checks` run on `main` with this test is green.
+
+## Addendum 3 (15 Oct 2026): E1b merge check closed
+
+- **CI on `main` is green.** `checks` run 38755685061 on **2355b80** succeeded: a full run, 14:55-15:04 UTC.
+- **That tree holds every part of E1b.** It contains the E1b merge d8efc3b, the real top-up data 400d692 and the
+  restated test dde9470. The test file is identical to the one I passed in addendum 2.
+- Merge and rule 8 were already MET (addendum 1).
+
+**E1b is done.**
