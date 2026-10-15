@@ -275,8 +275,9 @@ knowing its price.
   - M1 writes one live weather record per regular session (`fno/weather/capture.py` `capture_weather`), refused at or
     after the 14:30 IST cutoff (`fno/forecast_v4_rules/capture.py`, `CUTOFF = V4_CAPTURE_START`). Back-fill records
     are labelled `backfill_exploratory`.
-  - O1 (branch `story/o1-daily-run`) runs `weather` as its first steps after `margin_check`, live only from
-    `config.yaml` `daily.live_from.weather` (null today), and the card last.
+  - O1 (branch `story/o1-daily-run` at 81f4cd11) runs `quotes`, `margin_check`, `weather`, `forecasts_v4`, then the
+    desk, and the card last (after 15:15, so after the books' 15:12 deadline). `weather` is live only from
+    `config.yaml` `daily.live_from.weather` (null today).
   - Intraday upgrades ("from the live monitor, layer 7: amber to red only", design 2.3) need LM1, which is not built.
   - No paper version is approved and no shadow trade exists (R1 is not built). So nothing is blocked by RED yet.
 - So the only RED upgrade that can happen in a real day now is **the daily record**: today's live record is RED and the
@@ -285,8 +286,18 @@ knowing its price.
 **Scope.** In:
 - **(a) The DANGER alert** (new package `fno/weather_alerts/`, outside M1's files; split agreed with the M1 builder,
   see the end of this section):
-  - `python -m fno weather-alert --day YYYY-MM-DD`, run by O1 as step `weather_alert`, right after `weather` (one row
-    in O1's step table, agreed with the O1 builder).
+  - `python -m fno weather-alert --day YYYY-MM-DD`, run by O1 as step `weather_alert`, right after `weather` and
+    before `forecasts_v4` (one `CommandStep` row in `fno/daily/wiring.py`, gated by `live["weather"]`, committing only
+    `research/alerts/weather/`; agreed with the O1 builder, below).
+  - Its result lines and exit codes, as O1 reads them:
+    - no live record for the day (the `weather` step was refused or failed, or is not live yet): one line "no live
+      weather record for <d>", exit 0. O1 already alerted the weather failure once, so M2 adds no second alert;
+    - not an upgrade (not RED, or RED after RED): one line, exit 0;
+    - RED upgrade, sent: the alert's first line and "alert sent to #fno-desk", exit 0;
+    - Slack refused, the token missing, or a record unreadable: "alert NOT sent: <reason>" plus the alert's text, exit
+      1. O1 records the step failed and sends its one alert, and the routine posts "alert NOT sent" lines with the
+      Slack connector (CLAUDE.md, 3 pm rules).
+    - No line uses O1's reserved phrase "nothing written:".
   - Rule, read from M1's committed records through `WeatherRecords` (never recomputed):
     - today's record is `label: live` and its operative colour is RED, and
     - the previous regular session's record is missing, back-fill, or not RED.
@@ -300,9 +311,10 @@ knowing its price.
   - **Never the US-move flag**: it is private (decision 72). The alert reads only the public record.
   - Honesty line while the desk does not enforce RED (M1 Out): "The desk does not yet refuse entries on RED (no version
     is at paper); this is the rule it will apply." It is removed by the story that adds the enforcement.
-  - One alert per day at most: an alert record `research/alerts/weather/<YYYY>/<d>.json` (condition, the weather
-    record's SHA-256 and `made_at`, Slack's sent time and outcome), written once. A rerun with the record present
-    sends nothing. "alert NOT sent" is recorded and printed; O1 alerts a failed step once.
+  - One alert per day at most: after a sent alert, an alert record `research/alerts/weather/<YYYY>/<d>.json`
+    (condition, the weather record's SHA-256 and `made_at`, Slack's sent time and `ts`), written once. A run with the
+    record present sends nothing ("already alerted"). A not-sent attempt writes no record, so a hand rerun can send it.
+    O1 stops every command after 10 minutes and skips a recorded step on a same-day rerun.
   - Not live before `daily.live_from.weather`: no live records exist, so the command prints "no live weather record"
     and sends nothing.
 - **(b) The price of calm: a slot that waits on R1** (no code now, no invented source):
@@ -335,7 +347,9 @@ Out (each with where it goes):
 2. RED after RED sends nothing; RED after a missing or back-fill previous record sends one.
 3. A back-fill RED, a `not scored` record and a missing record send nothing, each with its printed reason.
 4. The message never contains the US-move flag or any field of the private part (a test plants one in Drive's fake).
-5. A second run for the same day sends nothing ("already alerted"); "alert NOT sent" is recorded and printed.
+5. A second run for the same day sends nothing ("already alerted"). "alert NOT sent" prints the reason and the text,
+   exits 1 and writes no record. No live record prints "no live weather record for <d>" and exits 0. No output line
+   contains "nothing written:".
 6. The command reads only committed public weather records and writes only its alert record (AST and file tests).
 7. The message carries the PAPER ONLY first line, the owner-delay line and, while the desk does not enforce RED, the
    honesty line.
@@ -352,8 +366,13 @@ Out (each with where it goes):
 - The alert comes at about the record's time (before 14:30 IST under G10); the card follows later the same day.
 - A record that changes colour back the next day sends nothing (only upgrades alert, design 2.3).
 
-**Split agreed with the M1 builder (session 013xqaNTCbSBytKgqpfaYFqZ) and the O1 builder (session
-014zYLf18PgCzR7YoHs1X5Dp):** pending their replies; see claims file.
+**Split with the other builders:**
+- **O1 builder (session 014zYLf18PgCzR7YoHs1X5Dp): agreed, 15 Oct 2026.** One `weather_alert` step right after
+  `weather`. The card is too late for a RED alert (after 15:15, past the 15:12 deadline), and folding the alert into
+  M1's capture would change a scored forecaster's command for a delivery concern. Its conditions are in Scope (a):
+  order, the no-record line, exit codes, no "nothing written:". M2's code is built on `main` after O1 merges (after
+  A4c).
+- **M1 builder (session 013xqaNTCbSBytKgqpfaYFqZ):** reply pending. M2 changes no M1 file.
 
-**Depends:** M1, O1 (`weather_alert` step), T1 (the card shows the colour), A7, R1 (part b only) · **Size:** S ·
+**Depends:** M1, O1 (`weather_alert` step; code after O1 merges), T1 (the card shows the colour), A7, R1 (part b only) · **Size:** S ·
 **Status:** story text, waiting for the judge
