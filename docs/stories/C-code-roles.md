@@ -473,8 +473,10 @@ stay as they are:
 `stressed = max(0, k x scan - NOV) + min(0, NOV) + k x exposure` (and at entry, with no premium credit:
 `max(0, k x scan - NOV) + k x exposure`).
 
-For a credit structure this is exactly `k x (what C2 counts)`; for a debit it is never below that (the premium paid is
-still not multiplied, judge 75). On the 14 Oct rows at k = 1.45 (per lot, recomputed):
+For an uncapped credit structure (SF, SC) this is exactly `k x (what C2 counts)`; for a debit (BF) it is never below
+that (the premium paid is still not multiplied, judge 75). For the capped credit spreads (CCS, PCS) the STR1 cap still
+bounds the SPAN part, so the figure lies between what C2 counts and `k x` that (judge 174). On the 14 Oct rows at
+k = 1.45, lot 65 (per lot, recomputed):
 
 | Row | Broker (k = 1) | Stressed today | Stressed after C2c | At entry today | At entry after C2c |
 |---|---|---|---|---|---|
@@ -482,6 +484,11 @@ still not multiplied, judge 75). On the 14 Oct rows at k = 1.45 (per lot, recomp
 | SF 300 | 62,679.37 | 64,300.40 | 90,885.09 | 81,434.40 | 108,019.09 |
 | SC 300 | 67,594.67 | 71,427.59 | 98,012.27 | 81,580.59 | 108,165.27 |
 | BF 300 | 59,077.07 | 59,077.07 | 85,661.75 | 59,077.07 | 85,661.75 |
+| CCS 300 (capped) | 38,968.08 | 38,968.08 | 52,260.42 | 38,968.08 | 63,567.17 |
+
+CCS 300: scan 9,429.55, NOV -11,306.75, exposure 29,538.53; the cap `300 x 65 - 11,306.75 = 8,193.25` is below the
+broker's SPAN figure 20,736.30, so the SPAN part stays at the broker's and only the exposure is stressed:
+`20,736.30 - 11,306.75 + 1.45 x 29,538.53 = 52,260.42`, against `k x 38,968.08 = 56,503.72`.
 
 **What the owner should know (reasoning):** every stressed figure rises by about 45%, so about a third fewer lots fit
 the same paper capital (C5's buckets and C2's caps unchanged). That is the buffer the owner chose working as measured.
@@ -494,21 +501,27 @@ the broker's unstressed figure (k >= 1, settings refuse k < 1), and a bought-onl
 unchanged.
 
 **Scope.** In: `fno/risk/margins.py` (`MarginParts.stressed`, `at_entry`, the module text and `record()`'s
-`"stresses"` value), C4's independent copy `fno/checks/validity_margin.py` (`stressed_per_lot`), the `capital.py` text,
+`"stresses"` value), C4's independent copy `fno/checks/validity_margin.py` (`stressed_per_lot`), the `capital.py` text
+("The owner's factor k stresses the scanning risk" becomes the scan and the exposure; the cap's rationale is unchanged),
 their tests (`tests/risk/test_margin_formula.py`, `tests/risk/test_manager.py`, C4's margin tests). Out: the value of k
 and its recompute (A14c); the scenario-lookup method; the STR1 cap's values; any order.
 
 **Acceptance criteria:**
-1. The four rows above equal C2's and C4's figures to the paisa on the real 14 Oct rows (test).
-2. For credit rows C2's stressed figure equals `k x initial()`; for debit rows it is not below it (test over every
-   structure and width in a planted table).
+1. The five rows above (CCS 300 included, the cap and the stressed exposure together) equal C2's and C4's figures to
+   the paisa on the real 14 Oct rows at lot 65 (test).
+2. For uncapped credit rows (SF, SC) C2's stressed figure equals `k x initial()`; for debit rows (BF) it is not below
+   it; for the capped credit spreads (CCS, PCS) it is at least `initial()` and at most `k x initial()`, with CCS 300's
+   52,260.42 as the known answer (tests over every structure and width in a planted table, judge 174).
 3. C2 and C4 agree on every planted row and k (test); a mutation in either copy (exposure unstressed, premium
    stressed, cap applied to the exposure) fails a test.
 4. STR1 codes: the cap still bounds the SPAN part; the stressed figure is never below the broker's unstressed figure
    (tests at the cap's edges, k = 1 and k = 1.45); LC and LP unchanged.
 5. Every decision record's stressed-margin method says what is stressed: `"stresses": "scan and exposure (owner,
    15 Oct 2026; story C2c)"`.
-6. Code size, lint, imports and the full suite pass.
+6. The claims list every existing pinned figure that changes (`tests/risk/test_margin_formula.py`,
+   `tests/risk/test_manager.py`, C4's margin tests), each with its recomputation, so a changed expected value reads as
+   a recompute, never a loosened test (judge 174).
+7. Code size, lint, imports and the full suite pass.
 
 **Order:** C2c goes before STR1b-2 (which lists `fno/risk/` but has not started); STR1b-2 builds on C2c's formula.
 
