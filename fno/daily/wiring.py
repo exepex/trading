@@ -35,6 +35,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     from ..desk.git_sync import Git, GitCommitter
     from ..models import now_ist
     from .alerts import ReportedAlerts
+    from .history import WholeHistory
     from .processes import ChildProcesses
     from .quote_parts import QUOTE_PARTS, QuoteParts
     from .quote_steps import FinishQuoteParts, ServicingWaiter, StartQuoteParts
@@ -73,4 +74,4 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
     cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules(root, alerts)
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts)  # fmt: skip
-    return DayRunner(daily_run, parts, waiter)
+    return DayRunner(daily_run, parts, waiter, WholeHistory(git, alerts))

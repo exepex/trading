@@ -4,6 +4,7 @@ waited for and commit their own files (they are the recorder's data, not the des
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import date
 
 from ..constants import STEP_FAILED, STEP_REFUSED
@@ -18,11 +19,14 @@ PROBLEMS = (STEP_FAILED, STEP_REFUSED)
 
 
 class DayRunner:
-    def __init__(self, daily_run: DailyRun, parts: QuoteParts, waiter: Waiter):
-        self.daily_run, self.parts, self.waiter = daily_run, parts, waiter
+    def __init__(
+        self, daily_run: DailyRun, parts: QuoteParts, waiter: Waiter, before: Callable[[], None] = lambda: None
+    ):
+        self.daily_run, self.parts, self.waiter, self.before = daily_run, parts, waiter, before
 
     def run(self, day: date) -> tuple[int, str]:
-        """The exit code and the one line the command ends on."""
+        """The exit code and the one line the command ends on. `before` runs first (the whole git history)."""
+        self.before()
         try:
             log = self.daily_run.run(day)
         except RunStopped as stopped:

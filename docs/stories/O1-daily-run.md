@@ -71,6 +71,12 @@ builds it on `main` after O1 merges; O1 adds nothing for it now.
 only `research/alerts/weather/`); with no live weather record it prints one line and exits 0 (O1 has already alerted
 the weather step's failure once). M2 builds it on `main` after O1 merges.
 
+**The whole git history first (asked by E8, judge 203 should-fix 1; agreed with the orchestrator):** a cloud
+checkout is shallow, and commit times date E8's availability seals and E3's committed decisions. So before the first
+step, the run fetches the full history (`Git.unshallow`) when `git rev-parse --is-shallow-repository` says true. A
+failed fetch is one alert and the day goes on: E8's step refuses in a shallow checkout by itself (entries fail closed,
+exits run), and stopping the whole day would lose the quotes and exits too.
+
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
 

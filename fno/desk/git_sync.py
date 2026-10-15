@@ -43,6 +43,14 @@ class Git:
     def branch(self) -> str:
         return self("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
 
+    def unshallow(self) -> bool:
+        """Fetches the whole history when the checkout is shallow (story O1: commit times are dates); False when it
+        was whole already. `GitError` when the fetch fails."""
+        if self("rev-parse", "--is-shallow-repository").stdout.strip() != "true":
+            return False
+        self("fetch", "-q", "--unshallow", "origin", self.branch())
+        return True
+
     def commit_paths(self, paths: Sequence[Path], message: str) -> bool:
         """Adds and commits these paths, and only these (a pathspec commit: a file staged earlier by anything else is
         never swept in, judge 169 addendum 1); False when nothing changed in them. The raw-quote guard still checks

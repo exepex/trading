@@ -229,3 +229,15 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
 - **Test:** `test_every_sender_inside_the_built_run_is_its_one_reported_sender` builds the real run, walks its object
   graph, and requires every held sender (12 places) to be the one `ReportedAlerts`. Each bypass was put back once,
   and the test failed on its assertion each time.
+
+### The whole git history before the day (asked by E8, 16 Oct)
+
+- **Why:** a cloud checkout is shallow (this session's was 50 commits). Older commits then read as made at the
+  boundary commit, and E8's seals and E3's committed decisions are dated by commit time. **Strong evidence:** E8
+  builder's judge 203 should-fix 1, and `git rev-parse --is-shallow-repository` returned true in this session.
+- **What:** `Git.unshallow()` plus `fno/daily/history.py` `WholeHistory`, run by `DayRunner` before the first step.
+- **Choice I made (reasoning only):** a failed fetch is one alert and the day goes on, not a stop. E8's step already
+  fails closed in a shallow checkout, and a stop would also lose the quotes and exits. This differs from E8's
+  "fail the run loudly"; it is loud (one alert), but it does not stop the run.
+- **Tests:** a real shallow clone gets its whole history; a whole checkout is left alone; a failed fetch gives one
+  alert; the runner fetches before the day.
