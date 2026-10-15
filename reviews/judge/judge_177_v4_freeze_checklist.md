@@ -78,3 +78,19 @@ gets its own lane-1 verdict (and rule 9).
 
 **Verdict: FAIL for c84d3554 on should-fixes 1-3.** Each is a plan edit of one or two lines, plus, if option (b) is
 chosen, one G7 change before the freeze. A re-check needs only the revised response 157 and the register row.
+
+## Addendum 1 (15 Oct 2026): revision 1 at 3e3fd302
+
+The revision changes `response_157_v4-freeze-checklist.md` (adding a "Revision 1" section) and the
+`docs/WORK_REGISTER.md` row. The rest of the branch diff is the `main` merge.
+
+| Finding | Status | Evidence |
+|---|---|---|
+| Should-fix 1: V1's RV method | MET | Both options are taken. (b): the record pins `rv-quote-15m-v1` (checked: `fno/intraday/realised_vol.py:49`), and G7's `series.live_intraday_rv` will read only that method's rows, with a test, before the freeze. (a): `realised_vol.py`, `session_rv.py`, `status.py` and `slots.py` are byte-checked. The builder's reason for taking both is right (reasoning): (b) stops a new class, and (a) stops an edit in place |
+| Should-fix 2: `fno/forecast_scoring/scores.py` | MET | Added to the byte-checked list, with what it decides |
+| Should-fix 3: register row | MET | "G6 freeze" names the A16/G8 builder, its branch, the freeze test and the status |
+| Notes 1-3 | MET | Later registrations are appended ledger rows that G8 reads in full. The golden fixture's hash is in the freeze test. Each owner quote carries its `DESK_DECISIONS.md` line and the row's text. I checked lines 121, 123, 157, 177, 181, 182, 184, 185, 186 and 194 on 3e3fd302: each is the row named |
+
+**Verdict: PASS for 3e3fd302** (plan only). Next, in order: ChatGPT, the owner, G10's build, then the protocol-edit
+commit and the freeze commit, each with its own lane-1 verdict. The G7 method filter must land, judged with its test,
+before the freeze commit.
