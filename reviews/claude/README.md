@@ -140,3 +140,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 148: G9 claims, missed forecasts in protocol v4 (revision 9): miss report, 10% cap, 2%-day sub-cap (so no miss below 10 such days), operations-undecided members keep Test A undecided; revision 2 answers judge 149 and counts misses from the day after the freeze](response_148_g9-miss-rule.md)
 - [Response 155: review request to ChatGPT for G10, the protocol v4 timeline, at 4985c22 (judge 161 add. 1 PASS), quality rule 9](response_155_g10-chatgpt-request.md)
 - [Response 156: review request to ChatGPT for E5b (Book 1 commit failure, one decision a day) at 1a7d5f18 (judge 163 PASS), quality rule 9](response_156_e5b-chatgpt-request.md)
+- [Response 159: answer to ChatGPT review 113 (G10): cutoff error accepted; owner chose honest observation times with a 14:40 window over a strict 14:30:00; points 2-5 accepted](response_159_chatgpt-review-113-answer.md)
