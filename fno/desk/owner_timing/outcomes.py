@@ -4,8 +4,10 @@ The reasons are the fixed public wording of E8's rules; a reason never carries a
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
+
+from ..snapshot import ExecutionSnapshot
 
 ENTRY, EXIT = "entry", "exit"
 
@@ -16,6 +18,10 @@ MISSED_PRICE_MOVED = "missed, price moved"
 MISSED_EXPIRED = "missed, contract expired"
 MISSED_FUNDS = "missed, insufficient funds"
 MISSED_RISK_CAP = "missed, over risk cap"
+DECIDED_AFTER_CARD = "missed, decision committed after the card"
+# Every fixed miss reason, the one table E6 and S2 count from (E4c's codes and E4d's shared size come from E4c's own)
+MISSED_REASONS = (MISSED_NO_CARD, MISSED_OWNER_AWAY, MISSED_NO_QUOTE, MISSED_PRICE_MOVED, MISSED_EXPIRED, MISSED_FUNDS,
+                  MISSED_RISK_CAP, DECIDED_AFTER_CARD)  # fmt: skip
 
 
 @dataclass(frozen=True)
@@ -31,3 +37,4 @@ class DueMark:
 @dataclass(frozen=True)
 class Missed:
     reason: str
+    copy: ExecutionSnapshot | None = field(default=None, compare=False)  # the due mark's copy the miss was read from

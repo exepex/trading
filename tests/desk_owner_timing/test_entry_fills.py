@@ -15,14 +15,15 @@ from fno.constants import (
     OUTCOME_OPENED,
     OUTCOME_PROTECTION_UNVERIFIED,
     OUTCOME_REFUSED,
+    SIZE_SHARED_IN_BOOK,
     VIEW_VERDICT,
 )
 from fno.desk.owner_timing.availability import AlwaysAvailable
 from fno.desk.owner_timing.clock import OwnerTimingClock
 from fno.desk.owner_timing.due_fill import DueFill
-from fno.desk.owner_timing.entry_fills import BLOCKED, DECIDED_AFTER_CARD, OwnerTimingEntries
+from fno.desk.owner_timing.entry_fills import BLOCKED, OwnerTimingEntries
 from fno.desk.owner_timing.entry_range import ApprovedLimit
-from fno.desk.owner_timing.outcomes import ENTRY, MISSED_FUNDS, MISSED_NO_CARD, MISSED_NO_QUOTE
+from fno.desk.owner_timing.outcomes import DECIDED_AFTER_CARD, ENTRY, MISSED_FUNDS, MISSED_NO_CARD, MISSED_NO_QUOTE
 from fno.desk.records import DeskEvent, DeskRecords
 from fno.desk.snapshot import SnapshotError
 from fno.desk.wiring import open_desk_journal
@@ -100,7 +101,9 @@ def test_one_leg_without_a_quote_fills_nothing(root, parts, marks):
     entries, risk, log, _ = parts
     marks.put(DUE, fly_rows({(25200, "CE"): {"valid": False, "reason": "no trade today"}}))
     assert apply(root, entries) == MISSED_NO_QUOTE
-    assert not account(root).fill_rows() and not risk.asked and log.records[0].fill_mark is None
+    assert not account(root).fill_rows() and not risk.asked
+    record = log.records[0]  # the copy the miss was read from, so it can be checked again (rule 12)
+    assert (record.fill_mark, record.snapshot_id, len(record.snapshot_sha256)) == (DUE, "a16_20261015_1015", 64)
 
 
 def test_funds_short_at_the_fill_misses_with_the_priced_copy(root, parts, marks):
@@ -162,3 +165,14 @@ def test_a_300_point_move_never_changes_the_filled_legs(root, parts, marks):
     filled = [(r["contract"], r["units"]) for r in account(root).fill_rows("t1")]
     order = fly_order()
     assert filled == [(leg.contract, str(order.proposal.lot_size * order.proposal.terms.lots)) for leg in order.legs()]
+
+
+def test_two_entries_due_at_one_mark_share_its_displayed_size(root, parts, marks):
+    """E4c and E4d at the mark's own copy: 65 + 65 units against a size of 100 fills the first entry only."""
+    entries, _, log, _ = parts
+    marks.put(DUE, fly_rows(size=100.0))
+    apply(root, entries)
+    second = apply(root, entries, fly_order("t2"))
+    assert second.startswith(SIZE_SHARED_IN_BOOK) and "65 already taken in this book at this snapshot" in second
+    assert len(account(root).fill_rows("t1")) == 4 and not account(root).fill_rows("t2")
+    assert log.records[-1].snapshot_id == "a16_20261015_1015"

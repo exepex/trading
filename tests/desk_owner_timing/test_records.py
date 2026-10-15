@@ -8,6 +8,7 @@ from datetime import date
 import pytest
 
 from fno.constants import BOOK1_RULES
+from fno.desk.owner_timing import outcomes
 from fno.desk.owner_timing.order_record import KeptOrders
 from fno.desk.owner_timing.outcomes import ENTRY
 from fno.desk.owner_timing.pending import OrderMissing, PendingEntry
@@ -55,3 +56,10 @@ def test_the_kept_order_is_exactly_the_decided_one():
 def test_an_entry_without_a_kept_order_is_refused():
     with pytest.raises(OrderMissing):
         KeptOrders(DictStore(), DictStore()).order(PendingEntry(BOOK1_RULES, "t1", DAY))
+
+
+def test_every_fixed_miss_reason_is_in_the_one_table():
+    reasons = {
+        value for name, value in vars(outcomes).items() if name.startswith("MISSED_") and name != "MISSED_REASONS"
+    }
+    assert set(outcomes.MISSED_REASONS) == reasons | {outcomes.DECIDED_AFTER_CARD} and len(outcomes.MISSED_REASONS) == 8

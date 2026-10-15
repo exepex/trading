@@ -18,14 +18,13 @@ from ...intraday.slots import ON_TIME_SECONDS
 from ..entries import EntryOrder
 from ..execution import check_point_in_time
 from ..records import DeskEvent, DeskJournal
-from ..snapshot import SnapshotError
+from ..snapshot import ExecutionSnapshot, SnapshotError
 from ..status import blocking_trades
 from .due_fill import DueFill, PricedEntry
 from .fill_risk import FillRisk
-from .outcomes import ENTRY, MISSED_NO_CARD, DueMark, Missed
+from .outcomes import DECIDED_AFTER_CARD, ENTRY, MISSED_NO_CARD, DueMark, Missed
 from .timing_log import TimingLog, TimingRecord
 
-DECIDED_AFTER_CARD = "missed, decision committed after the card"
 BLOCKED = "open trade {trades} blocks new risk in {book}"
 OPENED = "{legs} legs filled at the {mark:%H:%M} mark of {session}"
 REPRICED = "trade {trade_id} has fills but its due mark no longer prices it ({reason}): the copy changed"
@@ -55,7 +54,7 @@ class OwnerTimingEntries:
         if blocked:
             reason = BLOCKED.format(trades="; ".join(blocked), book=order.book)
             return self._decided(journal, order, card_time, due, Missed(reason), OUTCOME_REFUSED)
-        priced = self.due_fill.price(order, due)
+        priced = self.due_fill.price(order, due, journal.records.fill_rows())
         if isinstance(priced, Missed):
             if rerun:
                 raise SnapshotError(REPRICED.format(trade_id=trade_id, reason=priced.reason))
@@ -68,28 +67,29 @@ class OwnerTimingEntries:
 
     def _fill(self, journal: DeskJournal, order: EntryOrder, card_time: datetime, priced: PricedEntry) -> str:
         reason = OPENED.format(legs=len(priced.quotes), mark=priced.due.mark, session=priced.due.session)
-        self.log.record(self._record(order, card_time, priced.due, priced, OUTCOME_OPENED, reason))
+        snapshot = priced.maker.snapshot
+        self.log.record(self._record(order, card_time, priced.due, snapshot, OUTCOME_OPENED, reason))
         for quote in priced.quotes:  # protection first (E4's order)
             journal.record_fill(priced.maker.record(quote, FILL_OPEN))
-        return self._event(journal, order, OUTCOME_OPENED, reason, priced)
+        return self._event(journal, order, OUTCOME_OPENED, reason, snapshot)
 
     def _decided(self, journal, order: EntryOrder, card_time: datetime, due: DueMark | None, missed: Missed,
                  outcome: str = OUTCOME_NOT_OPENED, priced: PricedEntry | None = None) -> str:  # fmt: skip
-        self.log.record(self._record(order, card_time, due, priced, outcome, missed.reason))
-        return self._event(journal, order, outcome, missed.reason, priced)
+        """A miss, with the copy it was read from when there was one, so its record can be checked again."""
+        snapshot = priced.maker.snapshot if priced else missed.copy
+        self.log.record(self._record(order, card_time, due, snapshot, outcome, missed.reason))
+        return self._event(journal, order, outcome, missed.reason, snapshot)
 
-    def _record(self, order: EntryOrder, card_time: datetime, due: DueMark | None, priced: PricedEntry | None,
-                outcome: str, reason: str) -> TimingRecord:  # fmt: skip
-        snapshot = priced.maker.snapshot if priced else None
+    def _record(self, order: EntryOrder, card_time: datetime, due: DueMark | None,
+                snapshot: ExecutionSnapshot | None, outcome: str, reason: str) -> TimingRecord:  # fmt: skip
         return TimingRecord(
             order.book, self.view, order.proposal.trade_id, ENTRY, self.reaction, card_time,
-            due.mark if due else None, priced.due.mark if priced else None,
+            due.mark if due else None, due.mark if due and snapshot else None,
             snapshot.snapshot_id if snapshot else "", snapshot.sha256 if snapshot else "", outcome, reason,
         )  # fmt: skip
 
     def _event(self, journal: DeskJournal, order: EntryOrder, outcome: str, reason: str,
-               priced: PricedEntry | None = None) -> str:  # fmt: skip
-        snapshot = priced.maker.snapshot if priced else None
+               snapshot: ExecutionSnapshot | None = None) -> str:  # fmt: skip
         trade_id = order.proposal.trade_id
         day = snapshot.day if snapshot else self.clock().date()
         journal.record_event(DeskEvent(
