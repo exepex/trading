@@ -4,12 +4,15 @@ manifest's, from one folder listing per company). A file in the archive without 
 a listed file missing or with another MD5 is damaged. Every gap is printed with its reason.
 
 The half-year check (criterion 6): for each recent half-year end (September, March) whose filing deadline has passed,
-the share of companies whose results for it hold both a balance sheet and a cash-flow statement.
+the share of companies whose results for it hold both a balance sheet and a cash-flow statement. A company counts in a
+half-year once NSE's list shows it listed by the period end, or when it filed the statements anyway (judge 51 addendum
+8): a company listed later had no results to file, but one that filed them (an IPO's last quarter) is covered. A company
+missing from NSE's list counts in every half-year (nothing shows it was not listed).
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
@@ -27,6 +30,7 @@ FIRST_PERIOD = date(2023, 9, 30)  # the first quarter the 3-year archive covers 
 SHAREHOLDING_DEADLINE = timedelta(days=21)  # SEBI LODR 31: within 21 days of the quarter's end
 NO_PERIOD = "NSE's lists return no {kind} filing for the quarter ended {end}"  # only what is known, no guessed cause
 NO_RESULTS_FILE, NO_STATEMENTS = "no results file", "results file without a readable balance sheet and cash flow"
+LISTED_AFTER = "listed after the period end (NSE list)"
 
 
 @dataclass
@@ -124,20 +128,39 @@ def half_years(today: date, count: int = HALF_YEARS_CHECKED) -> list[date]:
     return sorted(ends, reverse=True)
 
 
-def half_year_shares(manifest: FilingManifest, companies: Sequence[str], ends: Sequence[date]) -> dict[date, float]:
-    """Half-year end -> share of companies with a results file for it holding a balance sheet and a cash flow."""
+def listed_by(companies: Sequence[str], end: date, listed: Mapping[str, date]) -> set[str]:
+    """The companies listed on NSE by `end` (or absent from NSE's list)."""
+    return {s for s in companies if listed.get(s, end) <= end}
+
+
+def half_year_shares(
+    manifest: FilingManifest, companies: Sequence[str], ends: Sequence[date], listed: Mapping[str, date]
+) -> dict[date, float]:
+    """Half-year end -> share, among the companies listed by then or holding the statements anyway, of those with a
+    results file holding a balance sheet and a cash flow."""
     full = {
         (r.filing.symbol, r.filing.period_end)
         for r in manifest.rows(FILING_RESULTS).values()
         if r.balance_sheet and r.cash_flow
     }
-    wanted = set(companies)
-    return {end: sum((s, end) in full for s in wanted) / max(len(wanted), 1) for end in ends}
+    shares = {}
+    for end in ends:
+        wanted = listed_by(companies, end, listed) | {s for s in companies if (s, end) in full}
+        shares[end] = sum((s, end) in full for s in wanted) / max(len(wanted), 1)
+    return shares
 
 
-def half_year_misses(manifest: FilingManifest, companies: Sequence[str], end: date) -> dict[str, str]:
-    """Company -> why it lacks a balance sheet and cash flow for the half-year (no file, or a file without them)."""
+def half_year_misses(
+    manifest: FilingManifest, companies: Sequence[str], end: date, listed: Mapping[str, date]
+) -> dict[str, str]:
+    """Company -> why it lacks a balance sheet and cash flow for the half-year: listed after it, no file, or a file
+    without them."""
     rows = [r for r in manifest.rows(FILING_RESULTS).values() if r.filing.period_end == end]
     full = {r.filing.symbol for r in rows if r.balance_sheet and r.cash_flow}
     filed = {r.filing.symbol for r in rows}
-    return {s: NO_STATEMENTS if s in filed else NO_RESULTS_FILE for s in companies if s not in full}
+    counted = listed_by(companies, end, listed)
+    return {
+        s: LISTED_AFTER if s not in counted else NO_STATEMENTS if s in filed else NO_RESULTS_FILE
+        for s in companies
+        if s not in full
+    }
