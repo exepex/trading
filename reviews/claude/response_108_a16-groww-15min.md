@@ -277,3 +277,43 @@ judge wants the text checked first.
 **Rule 8 for A16 (already sent to the orchestrator):** fresh worktree of `main` at 72fc707, `python -m fno intraday
 snapshot --dry-run <scratch>` at 11:00 IST: `11:00 good: 220 of 220 contracts (220 two-sided)`, basis
 `candle_1m_close`, index age 0.8 s, `clock_ok` (worst 0.0 s, GitHub repository path and Slack), exit 0.
+
+## Part 5: A16d, the official-open comparison moves to 09:14 (orchestrator decision 53)
+
+Branch `story/a16d-open-comparison` from `main`. Text only (story amendment 3); no code, because nothing in the
+repository computes this comparison (`grep` for the comparison over `fno/`: none; the criterion-15 trial and the weekly
+post-mortem will compute it).
+
+**Independent check first, as asked (read-only Groww 1-minute candles; NSE's index-close files read through the raw
+library with no archive, so nothing was written):** 6 random regular sessions, 2 Jul to 5 Oct 2026.
+
+| Session | 09:14 pre-open close minus official open | 09:15 open minus official open |
+|---|---|---|
+| 2026-07-02 | 0.00 | +10.65 |
+| 2026-07-07 | 0.00 | 0.00 |
+| 2026-07-29 | 0.00 | 0.00 |
+| 2026-08-06 | 0.00 | -8.30 |
+| 2026-08-12 | 0.00 | -2.65 |
+| 2026-10-05 | 0.00 | -1.00 |
+
+- **Agreed (strong evidence):** the 09:14 pre-open close equals NSE's official open on 6 of 6, so the comparison
+  belongs there.
+- **Partly agreed:** the claim "the 09:15 open differs on 40 of 40" is not reproduced. In my sample it differed on 4 of
+  6 and was equal on 2 of 6. That does not change the decision: a check that compares the 09:15 open with the official
+  open would report the normal auction-to-first-trade move as a fault on most days, and could not tell it from a bad
+  source.
+- Groww's 1-minute index candles start at 09:00 (pre-open) on every sampled day.
+
+**Text changes:** the condition now compares the 09:14 close; the story says plainly, in Definitions and in the step-0
+amendment, that the 09:15 level is the first continuous-trading value and NOT NSE's official open, and that the
+overnight part therefore includes the auction-to-first-trade move (the "usual open-to-close split" wording was wrong
+and is gone). The 09:15 rule itself is unchanged.
+
+### Part 5, correction: the last pre-open candle, not a fixed 09:14 (A16b builder's recount, its 0adc455)
+
+Checked before changing: 6 random sessions 2021-2023 (read-only, same method). Each has a single pre-open 1-minute
+candle at **09:07**, none at 09:14; its close minus NSE's official open is 0.00 on 6 of 6; the 09:15 open differs on 6
+of 6 (+3.65 to +9.00). With the 6 recent sessions above: 12 of 12 exact for the last pre-open close. So the condition
+now reads "the close of the last pre-open 1-minute candle (before 09:15)", a session without one is reported as "no
+pre-open value" (never filled from 09:15), and the text carries the recount's 114 of 114 and 67 of 74. My earlier
+"4 of 6 differ, 2 of 6 equal" stands for its sample and is consistent with 67 of 74.
