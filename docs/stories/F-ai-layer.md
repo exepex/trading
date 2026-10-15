@@ -426,26 +426,79 @@ with and without it, so that a role is kept only if it adds measurable net value
 **Context and why:** Design 3.1 (paired shadow decisions with and without a role; abstentions count), 10 (roles added
 one at a time, kept only if they add net value), 13.6 (ablation where safe; inseparable roles evaluated as a bundle;
 keep or drop only at predeclared review dates; control roles scored on prevented invalid actions, not profit).
-ChatGPT review 24: allocated cost alone cannot prove value.
+ChatGPT review 24: allocated cost alone cannot prove value. REPLAN (`docs/design_v2/REPLAN.md`, slice B): S1 v1 is
+frozen only once F9's code exists (owner's option A, 14 Oct 2026), so F9's **scoring code** is built now and
+**reports only once books 2-3 trade** (slice E). Response 162 holds the claims and the owner questions.
 
-**Scope.** In: the ablation schedule, shadow decisions without a role, scoring, the review report. Out: removing a
-role automatically (owner decides at a review).
+**Two parts.**
+- **F9a (now, slice B): the scoring code S1 hashes.** The rotation, the record checks, the per-role score, the
+  interval, the review gate, the control-role counts and the report, all on records. No AI session, no shadow firing.
+- **F9b (slice E, with F1's trading part and F2):** the book's session actually produces the shadow decision with the
+  role's card withheld and writes the records F9a reads. Its story text is written when slice E starts.
 
-**Expected design:** the evaluation (which roles, which are bundled, a rotation that ablates one role or bundle per day
-to bound plan usage, the metric, the uncertainty rule, minimum applicable opportunities) is frozen in the evaluation
-protocol (S1) before counting. On an ablation day the book's session also produces a shadow decision with that role's
-card withheld (same packs, same deadline); the difference is valued with the E4 fill model on the day's execution
-snapshot. Report per role or bundle: applicable opportunities, decisions changed, net difference, allocated cost (F8),
-interval. Control roles: caught violations and prevented invalid actions.
+**Scope (F9a).** In: `fno/role_value/` (new package, its own composition root `fno/role_value/wiring.py`):
+- `RoleSet`: a book version's registered AI roles and declared bundles (D6's registry entry), each unit with an
+  identifier; mandatory control roles (C1, C2, C3, C4, the CUSUM and stop-rule meters) are never a unit;
+- the rotation (S1 `role_value_schedule`): for books 2 and 3, from the common start (or a new version's first day),
+  the k-th day the book makes its real decision (k from 0) ablates unit `k mod n` of that version's n units in
+  identifier order; a day without a real decision has no row and does not advance the cycle;
+- `PairedDecisionSource` (interface) with one adapter reading `journal/<book>/role_value/paired.csv`, one row per
+  day the book made its real decision: `day, book, version, unit, consulted, real_decision_id, shadow_decision_id, real_packs_sha256,
+  shadow_packs_sha256, real_snapshot_sha256, shadow_snapshot_sha256, real_net_rs, shadow_net_rs, status`. The two nets
+  are valued by **the same one-lot valuer as scoreboard A (S3: one lot, E4 fills on the day's execution snapshot, C1
+  charges)**; F9a never values a decision itself (no second valuer);
+- the score per unit over a review period: applicable opportunities (scored ablation days where the unit's card was
+  consulted), decisions changed (real and shadow decision differ), mean paired net difference (with the role minus
+  without it, unchanged opportunities counting as zero), allocated cost per opportunity (F8's `allocate` for the unit's
+  `(books_and_roles, book, unit)` share over the period, divided by the days the unit's card was consulted in the
+  period, every day, not only ablation days), and the net value per opportunity (difference minus cost);
+- the interval: a moving-block bootstrap of the mean net value per opportunity over the unit's applicable
+  opportunities in date order (block 20 opportunities, 10,000 resamples, seed 20261014, nearest rank); the lower end
+  is the 5th percentile and the upper end the 95th (each a one-sided 95% bound; see response 162, question 1);
+- the verdict (S1 `role_value_minimum_sample`): `drop proposed` (upper end below zero), `earns its cost` (lower end
+  above zero) or `inconclusive, stays`, produced only on a `review_dates` date and only with at least 30 changed
+  opportunities, with Holm's correction across the book's units if the owner chooses it (response 162, question
+  2); otherwise `no verdict: <reason>` (before the review date, or `<m> of 30 changed opportunities`);
+- control roles: from C4's failure log (`journal/<book>/validity_failures.csv`), per book and period, caught violations
+  (failed-check rows) and prevented invalid actions (distinct `(day, opportunity_id)`), never a profit figure;
+- `python -m fno role-value report --book <2|3> --from <date> --to <date> [--review]`: a Markdown report, one row per
+  unit, every figure labelled with its protocol version (S1 `reporting_per_version`), allocated cost labelled
+  "allocated, not a bill".
+Out: firing the shadow session and withholding the card (F9b); valuing a decision (S3's valuer, shared); changing
+`fno/scoreboard/` (S3 and S6 belong to another builder); adding F9a's files to S1's `frozen_files` list (S1's text,
+proposed to its owner in response 162); removing a role (the owner decides at a review).
 
 **Acceptance criteria:**
-1. Ablated shadow decisions use the same packs and snapshot as the real decision (hash test).
-2. A role that cannot be separated is reported only as part of its declared bundle.
-3. The report reproduces, from the records, a hand computation on a constructed example with a known answer.
-4. No keep-or-drop proposal is produced before the predeclared review date or below the minimum sample.
+1. A paired row whose real and shadow packs hashes or snapshot hashes differ is refused with the day and the unit; a
+   row whose unit is not the one the rotation schedules for that day is refused (hash and schedule tests).
+2. A role that belongs to a declared bundle is never a unit on its own: a row naming it is refused, and the report has
+   no row for it (test).
+3. On a constructed set of records with a known answer (changed count, mean difference, cost per opportunity and the
+   interval with the fixed seed), the report reproduces the hand computation to the paisa; the bootstrap's
+   percentiles are pinned by a test with a fixed short series.
+4. No verdict (`drop proposed`, `earns its cost`, `inconclusive, stays`) appears before a `review_dates` date or below
+   30 changed opportunities; the reason is printed instead (tests on the day before, the day of the review, 29 and 30).
+5. Rows with status `ai_unavailable`, `late` or `unscored` are excluded from the score and counted apart; a month with
+   no recorded plan cost makes the cost and the net value "unknown", never zero, and no verdict is produced (tests).
+6. Control roles show caught violations and prevented invalid actions from C4's log and no profit figure (test).
+7. The constants (block 20, 10,000 resamples, seed 20261014, minimum 30, percentiles 5 and 95) match S1's text; a
+   test reads both, so an edit of one alone fails.
 
-**Test plan:** tests with constructed records.
+**Test plan:** unit tests with constructed role sets, paired rows, a C4 log and F8 usage rows; the CLI on a temporary
+journal; a known-answer example worked by hand in the test file's docstring.
 
-**Judge verifies:** recomputes one role's score from the records.
+**Judge verifies:** recomputes one unit's changed count, mean difference, cost per opportunity and verdict from the
+constructed records by hand; feeds a row with a different snapshot hash and one naming a bundled role.
 
-**Depends:** F1, F2, F8, S1, E4 · **Size:** M · **Status:** later
+**Known limits (owner's simplicity rule, 15 Oct 2026):**
+- Until books 2-3 trade there are no paired rows: the report prints "no paired decisions yet" (some months at least).
+- With n units each is ablated once every n trading days, so 30 changed opportunities can take years; said in every
+  report.
+- F9a trusts the hashes and nets in the rows; that the shadow really withheld the card and used the same packs is F9b's
+  end-to-end test.
+- C3's data-check refusals are not counted (C3 alerts but keeps no per-book refusal log); C2's limits are counted
+  through the C4 checks that enforce them.
+- The shadow session's own plan usage is evaluation cost, not the role's: it is shown apart (response 162, question 3).
+
+**Depends:** F8, S1 (text), S3's one-lot valuer (shared input, response 162) · F9b: F1, F2, E4 · **Size:** M (F9a S)
+· **Status:** F9a story text for the judge on `story/f9-role-value` (response 162); F9b later
