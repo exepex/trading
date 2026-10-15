@@ -244,7 +244,7 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
 
 **Expected design** (pure calculations apart from I/O; G6's `fno/forecast_v4/` is called, never re-implemented):
 - `fno/forecast_v4_rules/` (new package; every file under 350 lines):
-  - `series.py`: regular-session closes (and India VIX closes) from `research/data/nifty-panel/warmup_closes.csv`
+  - `series.py`: regular-session closes and `vix_closes()` (India VIX, for G8's V7) from `research/data/nifty-panel/warmup_closes.csv`
     (`session == regular`, `forecast_v4.sessions`), close-proxy `RV_s`, V6a and V6b outcomes with their resolution
     session, and A16's live intraday `RV_s` rows. **The one place for these rules:** G8 imports them to resolve
     outcomes; G7 writes no outcome files (agreed with G8, 15 Oct).
@@ -298,7 +298,10 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
    first columns `day,value,status,label`: value = a variance (finite, > 0) or a probability (in [0, 1]), empty unless
    `status` is `ok` (`missing`, `not_eligible`, `not_started`: never imputed); `label` = `live` or
    `backfill_exploratory`; then G7's audit columns: forecaster version, kind (`baseline` or `rule`), slot (`rules` or
-   `reported`), the method file's SHA-256, the inputs' SHA-256, `made_at`. Invalid values are refused, never written.
+   `reported`), the method file's SHA-256, the inputs' SHA-256, `made_at`. Folder names are the ids in
+   `fno/constants.py` (`base_rate`, `trailing`, `ewma_094`, `har_daily`, `har_intraday`; new constants for
+   `v6_ewma_t4` and `v1_close_blend`), so G8 looks forecasters up by those constants. Invalid values are refused,
+   never written.
 10. **Back-fill:** V6 baselines and rule from 2017 closes, V1 from A16's live rows (none yet), every row
     `backfill_exploratory`; the back-fill ends before the first live day (one row per day); re-running gives identical
     files.
