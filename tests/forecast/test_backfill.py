@@ -37,6 +37,7 @@ def committed():
     return read_records(gzip.decompress((ROOT / BACKFILL_FILE).read_bytes()).decode("utf-8"))
 
 
+@pytest.mark.usefixtures("full_history")
 def test_the_committed_backfill_equals_a_fresh_recomputation(committed):
     history = build_forecast_history(load_app_config())
     last = max(r.date for r in committed)
@@ -45,6 +46,7 @@ def test_the_committed_backfill_equals_a_fresh_recomputation(committed):
     assert gzip.decompress(records_gzip(fresh)) == gzip.decompress((ROOT / BACKFILL_FILE).read_bytes())
 
 
+@pytest.mark.usefixtures("full_history")
 def test_every_record_names_its_method_version_proxy_and_iv30_state(committed):
     golden = {r["date"]: r["iv30_flagged"] for r in read_golden((ROOT / GOLDEN_FILE).read_text(encoding="utf-8"))}
     state = {"true": "iv30:flagged", "false": "iv30:interpolated", "": "iv30:none"}

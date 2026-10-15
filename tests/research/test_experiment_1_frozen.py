@@ -6,6 +6,8 @@ import hashlib
 import re
 import subprocess
 
+import pytest
+
 from fno.config import ROOT
 
 EXPERIMENT = ROOT / "research" / "2026-10-12-experiment-1"
@@ -18,6 +20,7 @@ def _at(commit: str, path: str) -> bytes:
     return subprocess.run(["git", "show", f"{commit}:{path}"], cwd=ROOT, capture_output=True, check=True).stdout
 
 
+@pytest.mark.usefixtures("full_history")
 def test_every_frozen_file_has_its_frozen_bytes_at_the_run_commit():
     frozen = HASH_LINE.findall((EXPERIMENT / "FREEZE.md").read_text(encoding="utf-8"))
     assert len(frozen) == 45
