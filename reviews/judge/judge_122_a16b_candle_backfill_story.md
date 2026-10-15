@@ -149,3 +149,23 @@ I made no live Groww or NSE read. Step 0's figures are the builder's, and I labe
   - the 23 Mar 2020 kind of error is not guaranteed to void;
   - a failed window can permanently damage the next session's row.
 - **A re-check needs only the story file.**
+
+## Addendum 1 (15 Oct 2026): a correction to my own text
+
+**I withdraw "The A16 finding is correct by construction"** (section "Other checks").
+- **What I said.** I wrote that A16's NSE-open condition "fires on every session". My only grounds were step 0's "40 of
+  40" and the mechanism, not my own data.
+- **Contrary evidence.** The orchestrator reports that the A16 builder's 6-session check found the 09:15 open equal to
+  NSE's open on 2 of 6 sessions. The 09:14 pre-open close matched on 6 of 6.
+- **Why the mechanism does not settle it.** The first trade after the auction can equal the auction price, so "every
+  session" does not follow from it.
+
+**Status of step 0's claims:**
+- "differs on 40 of 40" and "fires on every session": **unverified, conflicting evidence**;
+- "the pre-open close equals NSE's open": consistent in both samples, 40 of 40 and 6 of 6 (some evidence).
+
+**What changes:**
+- **Minor 4 now also asks** that step 0's open counts be rechecked and corrected, with the session list, before the
+  re-check. The A16 report must state the reproduced figure, not 40/40.
+- **The verdict is unchanged: FAIL.** None of the three should-fix findings depends on that count, because A16b's void
+  rule does not use the 09:15-vs-NSE open.
