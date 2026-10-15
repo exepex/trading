@@ -14,6 +14,7 @@ from pathlib import Path
 from ..constants import JOURNAL_FOLDER, RUN_LOG_DECISIONS_STEP, RUN_LOG_EXITS_STEP
 from ..desk.run_log import RUNS_FOLDER
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
+from ..playbook.opportunities import SHADOW
 
 DECISIONS_STEP, SNAPSHOT_STEP, EXITS_STEP = RUN_LOG_DECISIONS_STEP, "snapshot", RUN_LOG_EXITS_STEP
 NO_EXITS_STEP, NOT_REVIEWED = "no exit review ran", "exit review not recorded as done"
@@ -68,9 +69,12 @@ class CommittedRuns:
         return ids
 
     def records(self, run: DayRun) -> list[dict]:
+        """The book's own records of a run. D2's shadow records share the run's folder but are never the book's
+        action: kept out here, so no reader keyed by opportunity ID can take a shadow's for the book's (R3 probe)."""
         folder = DecisionStore(self.root, run.book).day_folder(run.day) / run.run_id
         paths = sorted(p for p in folder.glob("*.json") if p.name != INPUTS_FILE)
-        return [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+        found = [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+        return [r for r in found if r.get("mode") != SHADOW]
 
     def missed_runs(self, book: str, sessions: Sequence[date], held: Callable[[date], bool]) -> list[dict]:
         """Scoreboard B's missed runs (story S6 section 5), read from the run logs: a session with no run of the book
