@@ -54,6 +54,10 @@ of the Strategy lab.
   for both stock and F&O; this repository keeps the pinned copy with its hashes and drift check (`pin.json`, `python -m fno
   market contract-check`), as W11 and P6 do. It supersedes the reading of DESK_DECISIONS' 13 Oct "API design kept" row
   that this repository owns the F&O contract.
+- **A missing weather blocks new trades** (owner, 15 Oct 2026, DESK_DECISIONS row "Missing weather blocks new trades" (owner:
+  "4 A"; asked: "A: If the weather reading is missing, block new trades. B: ... allow trades and just show 'weather
+  unknown'."): "Fails closed, like RED"). The weather schema requires `blocks_new_entries: true` when `status` is
+  `not_published`, and a TRADE card needs GREEN or AMBER.
 - Drift fails a test on both sides: `tools/api/check_fno_screens.py` in the dashboard (CI job api-contract);
   `tests/market_read_models/test_p1_data_catalog.py` here against the pinned copy (`pin.json` names the dashboard commit,
   version 2.7.0).
