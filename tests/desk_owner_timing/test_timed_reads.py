@@ -5,11 +5,15 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import date
 
 import pytest
 
+from fno.desk.owner_timing.availability import AvailabilitySealer
 from fno.desk.owner_timing.timed_reads import StepDeadline, StepTimedOut, TimedStore
+from fno.storage.raw_store import ReadOnlyStoreError
 from tests.desk.builders import DictStore
+from tests.desk_owner_timing.fakes import MemorySeals, ist
 
 
 class HungStore(DictStore):
@@ -70,3 +74,24 @@ def test_a_failed_read_keeps_its_error():
 
     with pytest.raises(ConnectionError):
         TimedStore(Broken(), StepDeadline()).get("a")
+
+
+def test_the_timed_store_never_writes():
+    store = DictStore()
+    with pytest.raises(ReadOnlyStoreError):
+        TimedStore(store, StepDeadline()).put("a", b"1")
+    assert store.get("a") is None
+
+
+def test_no_write_starts_after_a_timed_out_read():
+    """Judge 203 sf 2: a seal is written only after its read returned, so a hung read leaves no seal behind."""
+    store, seals = HungStore(), MemorySeals()
+    try:
+        with pytest.raises(StepTimedOut):
+            AvailabilitySealer(TimedStore(store, StepDeadline(), cap_seconds=0.2), "a", seals).seal(
+                ist(date(2026, 10, 15), 14, 33)
+            )
+    finally:
+        store.release.set()
+    time.sleep(0.05)  # let the released read return: its result must still be ignored
+    assert seals.latest() is None

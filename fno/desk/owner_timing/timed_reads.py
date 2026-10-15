@@ -5,7 +5,8 @@ data, so a server that trickles bytes can outlast them. So every call through `T
 thread and is abandoned when it has not returned within its cap of the whole call (60 seconds) or the step's
 remaining time (10 minutes, O1's part limit), whichever ends first. An abandoned call raises `StepTimedOut`, which the
 step treats as a failure: new entries fail closed and exits still run. The abandoned thread can finish later; its
-result is ignored."""
+result is ignored. Only reads go through it: an abandoned write could still land after the step moved on and overwrite
+later work, so `put` refuses (judge 203, sf 2)."""
 
 from __future__ import annotations
 
@@ -14,11 +15,12 @@ import time
 from collections.abc import Callable
 from typing import TypeVar
 
-from ...storage.raw_store import RawFileStore
+from ...storage.raw_store import RawFileStore, ReadOnlyStoreError
 
 READ_CAP_SECONDS = 60.0
 STEP_LIMIT_SECONDS = 600.0  # O1's 10-minute part limit
 TIMED_OUT = "{what} did not finish within {seconds:.0f} s (the fill step's time limit)"
+READ_ONLY = "the fill step's timed store only reads; writes go to write-once paths after every read (not {path})"
 
 T = TypeVar("T")
 
@@ -59,7 +61,7 @@ def call_within(what: str, call: Callable[[], T], seconds: float) -> T:
 
 
 class TimedStore(RawFileStore):
-    """Any store, with every call capped (decorator): the step's only way to reach Drive."""
+    """Any store, read-only, with every read capped (decorator): the step's only way to read Drive."""
 
     def __init__(self, store: RawFileStore, deadline: StepDeadline, cap_seconds: float = READ_CAP_SECONDS):
         self.store, self.deadline, self.cap = store, deadline, cap_seconds
@@ -69,7 +71,7 @@ class TimedStore(RawFileStore):
         return self._timed(f"reading {path}", lambda: self.store.get(path))
 
     def put(self, path: str, data: bytes) -> None:
-        self._timed(f"writing {path}", lambda: self.store.put(path, data))
+        raise ReadOnlyStoreError(READ_ONLY.format(path=path))
 
     def checksums(self, folder: str) -> dict[str, str]:
         return self._timed(f"listing {folder}", lambda: self.store.checksums(folder))

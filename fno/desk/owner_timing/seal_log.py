@@ -1,6 +1,8 @@
 """The committed seals of the availability file (story E8 rule 8): `research/desk/availability_seals.csv`, one row
 per sealed version (`sealed_at,lines,sha256`). A seal counts for an order at T only once the commit that added its row
-is on `main` before T, read from git's commit time, so a row written but never committed can never count."""
+is on `main` before T, read from git's commit time, so a row written but never committed can never count. A shallow
+clone cuts history at its boundary commit and dates every older seal to that commit, so an away day sealed weeks ago
+would read as sealed too late and the entry would fill: the log refuses to answer there (judge 203, sf 1)."""
 
 from __future__ import annotations
 
@@ -10,10 +12,11 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-from .availability import Seal, SealLog
+from .availability import AvailabilityRefused, Seal, SealLog
 
 FIELDS = ("sealed_at", "lines", "sha256")
 PUBLISHED_REF = "origin/main"  # a seal counts once pushed: a local commit that never reached main never counts
+SHALLOW = "the checkout is a shallow clone, so seal commit times are wrong: run git fetch --unshallow origin main"
 
 
 class GitSealLog(SealLog):
@@ -25,6 +28,7 @@ class GitSealLog(SealLog):
         return self.repository / self.relative_path
 
     def sealed_before(self, moment: datetime) -> Seal | None:
+        self._require_full_history()
         committed = [seal for seal in self._seals() if (when := self._committed_at(seal)) and when < moment]
         return committed[-1] if committed else None
 
@@ -47,10 +51,16 @@ class GitSealLog(SealLog):
         rows = csv.DictReader(io.StringIO(self.file.read_text()))
         return [Seal(int(row["lines"]), row["sha256"]) for row in rows]
 
+    def _require_full_history(self) -> None:
+        if self._git("rev-parse", "--is-shallow-repository").strip() != "false":
+            raise AvailabilityRefused(SHALLOW)
+
     def _committed_at(self, seal: Seal) -> datetime | None:
         """The commit time of the first published commit whose change added this seal's hash."""
-        found = subprocess.run(
-            ["git", "log", self.ref, "--format=%cI", "--reverse", "-S", seal.sha256, "--", self.relative_path],
-            cwd=self.repository, capture_output=True, text=True, check=False,
-        ).stdout.split()  # fmt: skip
+        found = self._git(
+            "log", self.ref, "--format=%cI", "--reverse", "-S", seal.sha256, "--", self.relative_path
+        ).split()
         return datetime.fromisoformat(found[0]) if found else None
+
+    def _git(self, *args: str) -> str:
+        return subprocess.run(["git", *args], cwd=self.repository, capture_output=True, text=True, check=False).stdout

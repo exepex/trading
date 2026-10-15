@@ -14,7 +14,7 @@ from fno.desk.owner_timing.availability import (
     normalised_lines,
     prefix_sha256,
 )
-from fno.desk.owner_timing.seal_log import GitSealLog
+from fno.desk.owner_timing.seal_log import SHALLOW, GitSealLog
 from tests.desk.builders import DictStore
 from tests.desk_owner_timing.fakes import MemorySeals, calendar_file, ist
 
@@ -132,3 +132,24 @@ def test_git_seal_log_counts_a_seal_only_after_its_commit(tmp_path):
     git("commit", "-q", "-m", "seal")
     assert log.sealed_before(CARD) == sealed
     assert log.sealed_before(RUN) is None  # committed at 14:34, after 14:33
+
+
+def test_git_seal_log_refuses_in_a_shallow_clone(tmp_path):
+    """Judge 203 sf 1: a depth-1 clone dates every seal to its boundary commit, so the log refuses to answer."""
+
+    def git(cwd, *args):
+        subprocess.run(["git", "-c", "core.hooksPath=/dev/null", *args], cwd=cwd, check=True, capture_output=True)
+
+    origin = tmp_path / "origin"
+    (origin / "research/desk").mkdir(parents=True)
+    git(origin, "init", "-q")
+    for n in (1, 2):
+        (origin / "research/desk/availability_seals.csv").write_text(f"sealed_at,lines,sha256\nx,{n},{n:064x}\n")
+        git(origin, "add", ".")
+        git(origin, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "-m", f"c{n}")
+    git(tmp_path, "clone", "-q", "--depth", "1", f"file://{origin}", "shallow")
+    shallow = GitSealLog(tmp_path / "shallow", "research/desk/availability_seals.csv", ref="HEAD")
+    with pytest.raises(AvailabilityRefused, match="git fetch --unshallow origin main") as refused:
+        shallow.sealed_before(CARD)
+    assert str(refused.value) == SHALLOW
+    GitSealLog(origin, "research/desk/availability_seals.csv", ref="HEAD").sealed_before(CARD)  # full: answers
