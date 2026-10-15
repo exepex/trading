@@ -7,8 +7,10 @@ from datetime import date, datetime
 import pytest
 
 from fno.global_cues.check_files import GAPS_FILE, CueChecks
+from fno.global_cues.collection import SourcedValue
 from fno.global_cues.collector import CueCollector
 from fno.global_cues.job import GlobalCueJob
+from fno.global_cues.other_sources import FbilUsdInrSource
 from fno.global_cues.row_log import DrivePartsRowLog, DriveSnapshots
 from fno.global_cues.snapshot_log import SnapshotLog
 from fno.global_cues.table import CueTable
@@ -16,7 +18,7 @@ from fno.global_cues.us_index_sources import CboeSp500Source, NasdaqNdxSource
 from fno.global_cues.verify import CueTableVerifier
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
-from tests.global_cues.fakes import FakeCreationTimes, cboe, nasdaq
+from tests.global_cues.fakes import FakeCreationTimes, cboe, fbil, nasdaq
 
 FAKE = [("2026-10-13", 1000.5), ("2026-10-14", 1001.25)]  # fake levels
 SEEN = datetime(2026, 10, 15, 6, 14, 45, tzinfo=IST)
@@ -180,3 +182,22 @@ def test_a_checks_failure_never_hides_the_cue_lines(tmp_path):
     lines, ok = GlobalCueJob(collect, {"sp500": table}, BrokenChecks()).run([FakeCboe()], None, date(2026, 10, 15))
     assert not ok and lines[0].startswith("sp500: 2 dates added")
     assert lines[1] == "checks FAILED (RuntimeError): Drive refused the gaps snapshot"
+
+
+def test_fbil_is_private_and_its_table_and_revisions_go_to_drive_never_to_the_repository(tmp_path, monkeypatch):
+    """Story A17d: FBIL's USD/INR rows live in Drive's derived area, like the US closes (made-up rates)."""
+    from fno.global_cues import wiring
+
+    drive = LocalFolderStore(tmp_path / "drive")
+    monkeypatch.setattr(wiring.storage, "build_owner_drive", lambda env: drive)
+    assert FbilUsdInrSource().private and not FbilUsdInrSource().once_a_day
+    assert "usdinr_fbil" not in wiring.build_tables(include_private=False)
+    table = wiring.build_tables()["usdinr_fbil"]
+    for rate in (91.2345, 91.5):  # the second is a revision
+        table.merge([SourcedValue(v, "a" * 64) for v in FbilUsdInrSource().parse(fbil(("2026-10-07", rate)))], SEEN)
+    held = {p.relative_to(tmp_path / "drive").parts[:4] for p in (tmp_path / "drive").rglob("*.csv")}
+    assert held == {
+        ("derived", "global-cues", "usdinr_fbil", "rows"),
+        ("derived", "global-cues", "usdinr_fbil", "revisions"),
+    }
+    assert [r["value"] for r in table.rows()] == ["91.2345"]

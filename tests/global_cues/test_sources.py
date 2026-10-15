@@ -34,7 +34,7 @@ def test_rbi_gives_the_reference_rate():
 
 
 def test_fbil_gives_only_the_usd_rate():
-    assert FbilUsdInrSource().parse(fbil(("2026-10-07", 96.623))) == values(("2026-10-07", 96.623))
+    assert FbilUsdInrSource().parse(fbil(("2026-10-07", 91.2345))) == values(("2026-10-07", 91.2345))  # made up
 
 
 class FormSession:

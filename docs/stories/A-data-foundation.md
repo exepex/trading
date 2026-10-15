@@ -1263,7 +1263,8 @@ as if it were last night's.
 15 Oct 2026. Judge 103 found that `value_for` returns sp500's 14 Oct value for 27 Nov 2026, six weeks old, and that on
 15 Oct at 09:15 nasdaq100's "previous close" is 13 Oct, because Nasdaq lacked 14 Oct. Only the run says STALE. No code
 reads a cue yet, so this must be done before the first consumer. Judge 103 minor 2 (FBIL in a public repository) is
-the orchestrator's decision: the table stays public for now, as an open owner item.
+the orchestrator's decision: the table stays public for now, as an open owner item (superseded: the owner moved it to
+Drive on 15 Oct 2026, story A17d).
 
 **Scope.** In:
 1. **Readings with an age and an expected date.** A `CueReading` returns the row, its age in calendar days from the
@@ -1331,7 +1332,7 @@ the orchestrator's decision: the table stays public for now, as an open owner it
      calendar's circulars;
    - the `lambda` and `noqa` in `fno/vix_history/wiring.py` replaced by a named function.
 8. **FBIL:** the data README records the orchestrator's decision (the table stays public, non-commercial use of a
-   published benchmark) as an open owner item.
+   published benchmark) as an open owner item. Superseded by story A17d (the owner's decision: FBIL in Drive).
 
 Out: any consumer (M1, the weather, forecasts); any display of the private cues; changing past table rows.
 
