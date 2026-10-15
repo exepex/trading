@@ -80,3 +80,18 @@
   right.
 - **Simplicity:** a single data file read by one function is the simplest design that keeps any job from editing
   `config.yaml`.
+
+## Addendum 1: re-judge at `fff6b64670507c9aa8b397d75177bb1d89a5c925` (judge G)
+
+**Verdict: PASS (text).** The fix reached me from the builder. I re-judged it as part of the judge and builder loop and
+report the verdict to the orchestrator.
+
+| # | Fix | Re-judge |
+|---|---|---|
+| 1 (should fix) | The seed is `2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",`, with `computed`, `unrounded` and `evidence_sha256` empty. C2 and C4 read only `as_of`, `factor` and `status`. A14c (commit `f2192b2f`, sent to judge D) makes its first run, and any run after an empty `unrounded`, a `--full` run, and adds a test that the seed is not a floor. New C2d criterion 3 | **Accepted.** The two stories now agree, and both have a test |
+| 2 | `peak` is quoted, and criterion 3 parses the real first row | **Accepted** |
+| 3 | `as_of < d`, strictly before the decision day. Criterion 1 plants a same-day row: Sunday 8 Nov serves Monday 9 Nov, while 6 Nov and 8 Nov use 1.45 | **Accepted.** It closes the manual-weekday case and costs nothing: the Sunday row still serves every trading day after it. The seed (14 Oct) serves from 15 Oct, so the switch changes no figure on any day after the merge. Criterion 5 holds |
+| 4 | The boundary: 13 Nov (day 30) passes, 14 Nov (day 31) refuses | **Accepted.** It matches today's `(day - as_of) > 30` |
+
+The branch head `858cfbc2` changes only `reviews/claude/response_168` and its README row. The C2d text is as judged at
+`fff6b646`.
