@@ -96,3 +96,39 @@ rule exists to stop.
   - A4c's slot overlaps A16's 14:45 mark;
   - REPLAN still uses G10.
 - **A re-check needs only the G10 section and REPLAN's two lines.** ChatGPT follows the PASS.
+
+## Addendum 1: revision 1 at 4985c228424142f6818d75ced2139d02c8f45d25: PASS
+
+Checked the diff 5694825..4985c22 (4 files: G-forecasts.md, REPLAN.md, REPLAN_new_stories.md, response 152). No code.
+
+**Should-fix items:**
+1. Stock chains: **MET.**
+   - The 15:01-15:13 row is gone; the table now says "the stock-chain slot is decided by the owner separately".
+   - Owner row 166 is no longer contradicted. The slot is still an open owner question, and G10 does not depend on it.
+2. A4c and A16's 14:45 mark: **MET.**
+   - A4c now runs 14:41-14:44 and 14:47-14:58. That leaves A16's 14:45 mark (about 50 s) and its 15:00 mark clear.
+   - Total time is 14 minutes, against 12 before, so the A4c set still fits.
+3. REPLAN: **MET.**
+   - `REPLAN.md:27` and `REPLAN.md:130`, and `REPLAN_new_stories.md:51`, now say G11 with a rename note.
+   - `git grep G10` on 4985c22 finds no other AI-books use outside the story itself.
+
+**Earlier note (c):** **MET.** X now uses A16b's checked closes of the candles ending at 14:30 and at 15:15.
+
+**The builder's added overlap** (A16's 14:30 mark and the new 14:30 capture on the same key):
+- The overlap is real. A16 marks every 15 minutes, and the story sets the capture at 14:30.
+- The answer is in proportion. Criterion 6's dry run measures both together, and the fallback start (about 14:31) still leaves about 9 minutes before the 14:40 retry end.
+
+**Coordination:** WORK_REGISTER row 37 covers G10 on this branch. No other row covers the timeline, A4c's times or G11.
+
+**Gates on the trial merge with origin/main** (tree 10592e0, clean merge):
+- pytest: 5861 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1072 files formatted;
+- `check_imports`: ok.
+
+**Notes (one line each, no fix asked):**
+- The table row label "AI books' v4 prompt (REPLAN's "G10", to be G11)" is now past tense in fact. It could read "(G11)".
+- "Two sign-ins on one key coexist (checked 15 Oct)" should carry its label. It is some evidence only: once, outside market hours (`conversations/2026-10-15.md:751`, A16 checklist line 87). Criterion 6's dry run is the real test.
+- The stock-chain slot remains an owner decision. It must be settled before any story that schedules stock chains.
+
+**Verdict: PASS.** ChatGPT's review follows, before the v4 freeze.
