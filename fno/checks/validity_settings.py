@@ -1,7 +1,7 @@
 """The owner's limits as C4 reads them (stories C4 and C5, judge 83): straight from `config.yaml` `risk` (one profile
 of `risk.profiles`) and `risk_free_rate`, not through the risk manager's settings code. C2 checks the block's shape at
-start-up, so a malformed value never reaches here. A missing stressed-margin factor, source or date is not an error
-here: the margin check fails closed. C4 runs a limit only when the profile lists its rule, as C2 does."""
+start-up, so a malformed value never reaches here. A missing stress factor file or row (A14c's file, story C2d) is
+not an error here: the margin check fails closed. C4 runs a limit only when the profile lists its rule, as C2 does."""
 
 from __future__ import annotations
 
@@ -28,9 +28,7 @@ class MarginSettings:
     max_age_days: int | None  # the Manual profile: calendar days
     max_age_sessions: int | None  # the books (design 6.1a): trading days, counted with `session_kind`
     method: str
-    multiplier: float | None
-    source: str | None
-    as_of: date | None
+    factor_file: Path | None  # A14c's stress factor file (story C2d), read by C4's own reader
     multiplier_max_age_days: int
     session_kind: Callable[[date], str | None] | None = None  # NSE's calendar (A7): a day's kind, None if closed
 
@@ -83,18 +81,14 @@ class ValidityLimits:
     caps: CapLimits | None = None
 
 
-def _date(value) -> date | None:
-    return value if value is None or isinstance(value, date) else date.fromisoformat(str(value))
-
-
 def _margins(risk: Mapping, profile: Mapping, root: Path, session_kind) -> MarginSettings:
     files, stressed = risk["margins"], risk["stressed_margin"]
-    factor, days = stressed.get("multiplier"), profile.get("margin_max_age_days")
+    factor_file, days = stressed.get("factor_file"), profile.get("margin_max_age_days")
     sessions = profile.get("margin_max_age_sessions")
     return MarginSettings(
         root / str(files["file"]), None if days is None else int(days), None if sessions is None else int(sessions),
-        str(stressed["method"]), None if factor is None else float(factor), stressed.get("source") or None,
-        _date(stressed.get("as_of")), int(stressed["max_age_days"]), session_kind,
+        str(stressed["method"]), root / str(factor_file) if factor_file else None, int(stressed["max_age_days"]),
+        session_kind,
     )  # fmt: skip
 
 

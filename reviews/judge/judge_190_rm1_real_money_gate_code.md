@@ -67,3 +67,25 @@ None is in RM1's files. The orchestrator's message said 2. It is 3 on main today
    the gate is next shown.
 3. After this merges, S1's real freeze also needs the gate decided, which it is, so C5 holds. S1's 13 undecided
    items still block it first, as intended.
+
+## Addendum 1: follow-up at `story/rm1b-gate-followup` 6c167ce4: PASS
+
+The delta d1805788..6c167ce4 touches 3 files: the gate's `fill_honesty` (b), one test, and response 163.
+
+- **Note 1: MET.** The new `test_the_check_command_exits_failed_when_only_the_gate_fails` replaces `_check_gate` with
+  a stand-in that always fails and asserts `_check` returns `EXIT_FAILED` on the complete real protocol. My plant M3
+  (the exit code ignores the gate) now fails 1 test, where it failed none before. `tests/evaluation` has 62 tests,
+  and all pass unplanted.
+- **Note 2: MET.** The minimum now counts positions: "fewer than 20 positions with a gap is not met". A leg with no
+  next snapshot is left out of its position's mean, and a position with no such leg is left out. Both are listed.
+  This matches the per-position bound. It is stricter than 20 legs, since a two-leg position counts once, and that
+  only makes the gate harder to pass. The owner should hear it in one line when the gate is next shown, with the
+  per-position change of d1805788.
+
+**Gates on the trial merge with origin/main 453de57c (tree 8a7e79b, clean auto-merge):**
+- pytest: 6314 passed, 0 failed;
+- `ruff check`: clean;
+- `ruff format --check`: 1131 files formatted;
+- `check_imports`: clean.
+
+**Verdict: PASS.**

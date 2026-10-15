@@ -4,7 +4,7 @@ and the point-in-time rule (never a later quote)."""
 
 import csv
 import hashlib
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 
@@ -35,6 +35,7 @@ from fno.quotes.recorder import QuoteSnapshotRecorder
 from fno.risk.book_view import load_risk_book
 from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.wiring import build_risk_manager
+from tests.stress_factor_files import factor_file
 
 from .builders import (
     CHARGES,
@@ -208,7 +209,7 @@ def test_the_risk_manager_s_refusal_for_stale_margins_fills_nothing(root, store,
                                                                     margin_as_of, opens):  # fmt: skip
     margins = root / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + f"\nSF,200,40000,0,0,test calculator,{margin_as_of}\n")
-    stressed = {"multiplier": 1.5, "source": "test factor", "as_of": "2026-10-13"}
+    stressed = {"factor_file": str(factor_file(1.5, date(2026, 10, 12)))}  # the day before the decision
     cfg = load_app_config(overrides={"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed}})
     market = decision_market()
     decision = build_risk_manager(cfg, root).evaluate(fly_proposal(), load_risk_book(root, BOOK1_RULES, market, {}),
