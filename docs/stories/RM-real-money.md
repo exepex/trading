@@ -133,14 +133,20 @@ writes the yes of condition 7. Until then RM2's code may exist but records nothi
   same bytes again change nothing, a correction is a new record naming the one it replaces).
 - `fno realtest record-entry|record-exit|skip|status` (CLI). A Claude session runs it at the owner's word (owner,
   Q1). It checks the screenshot file exists in Drive and stores its id and SHA-256 with the typed values.
-- **Pairing:** each real trade is paired with Book 1's paper trade of the same card (E8, R = 60), scaled to 1 lot
-  (paper net ÷ paper lots). A card Book 1 did not fill ("missed, ...") gives an unpaired real trade: listed, kept out
+- **Pairing:** each real trade is paired with Book 1's paper trade of the same card (E8, R = 60), **restated at 1 lot**:
+  the paper fills' gross per unit (entry and exit prices before pad, every leg) × the 1-lot units, minus the pad of
+  Rs 1 per unit × those units, minus C1's charges for 1-lot orders (`fno/costs.py`). Never paper net ÷ lots: C1's
+  brokerage is a flat Rs 20 + 18% GST per order, so dividing a 2-lot trade's charges halves the Rs 94.40 a 2-leg spread
+  pays at 1 lot and puts about Rs 47 into every paired difference with no execution behind it (judge 198 SF1). The
+  real side carries the contract note's actual charges (owner, Q3), so the pair compares actual 1-lot charges with
+  C1's 1-lot model. The prediction floor's evidence record is restated at 1 lot the same way. A card Book 1 did not fill ("missed, ...") gives an unpaired real trade: listed, kept out
   of the paired mean, counted in the discipline and stop rules.
-- **Valid quote at the owner's order (the gate's term):** the screenshot's bid or ask with its quantity covering the
-  leg's units, taken at most 5 minutes before the order time. The screenshot's time is the one the owner types from the
+- **Valid quote at the owner's order (the gate's term):** both sides present, and the leg's side (ask for a buy, bid for
+  a sell) with a quantity covering the leg's units, taken at most 5 minutes before the order time. The screenshot's time is the one the owner types from the
   phone's clock in the image (Drive's upload time comes after the order, so it cannot date the image); the file name's
-  timestamp, when the phone writes one, is stored beside it, and a difference of more than a minute is flagged. Fallback (owner, Q12): A16's latest mark **at or
-  before** the order time and at most 5 minutes before it. A mark exactly at the order time is valid (age 0).
+  timestamp, when the phone writes one, is stored beside it, and a difference of more than a minute is flagged. Fallback (owner, Q12): A16's latest snapshot **at or
+  before** the order time and at most 5 minutes before it, timed by the snapshot's observed quote time (its recorded
+  fetch time), never its nominal mark; one observed exactly at the order time is valid (age 0).
 - **Execution slippage** per leg (gate): real fill minus that valid quote (sells: the reverse), worse positive;
   unknown when there is no valid quote.
 - **Timing gap** per leg, reported only: real fill minus the paired paper fill price before pad.
@@ -149,7 +155,9 @@ writes the yes of condition 7. Until then RM2's code may exist but records nothi
   listed with its paper net (gate, Q8).
 - **Stops (gate `real_test_stops`), evaluated after every recorded exit:** (a) cumulative real net from the first
   real entry at or below −Rs 20,000; (a2) cumulative real net Rs 20,000 or more below its highest value since the first
-  real entry; (b) mean execution slippage per unit over the legs of the last 5 real trades above Rs 2 (twice the paper
+  real entry; (b) mean execution slippage per unit over the legs of the last 5 real trades above Rs 2 (trades ordered by exit time,
+  so "the last 5" checked after every exit covers every run of 5 consecutive trades, as the gate's "any 5 consecutive"
+  says) (twice the paper
   pad of Rs 1), unknown legs left out and listed. A stop posts one alert to #fno-desk (`FNO_SLACK_BOT_TOKEN`) naming
   the rule and the figure, and the test status becomes "stopped: <rule>" for good.
 - **Pass (gate `real_test_pass`), evaluated once the sample is met** (the later of max(30, the registered number)
@@ -180,7 +188,8 @@ unchanged.
 
 **Acceptance criteria:**
 1. A recorded entry and exit give the trade's real net from the typed fills and the contract note's charges, its
-   paired paper net at 1 lot, the per-leg execution slippage and timing gap, all to the paisa on a constructed example.
+   paired paper net restated at 1 lot (a 2-lot paper spread is charged Rs 94.40 of brokerage and GST at 1 lot, not
+   Rs 47.20), the per-leg execution slippage and timing gap, all to the paisa on a constructed example.
 2. Valid quote: a screenshot 4 minutes before the order is used; 6 minutes before is not, and the A16 fallback
    applies; an A16 mark exactly at the order time is used (age 0); one with too little size is not; no valid quote
    gives "unknown", never zero.

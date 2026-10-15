@@ -25,3 +25,13 @@ contract note with C1's model beside them. None changes a gate number; Q2 fills 
 ## Coordination
 
 Work register read on main at 3627d0bd: no row covers RM2. E8 (fills), T1 (cards) and A16 (marks) are read only.
+
+## Judge 198 (FAIL, 1 should-fix): fixed
+
+| Point | Check | Change |
+|---|---|---|
+| SF1 paper net ÷ lots divides flat brokerage | Agreed, strong evidence: `fno/costs.py:27,34` charges Rs 20 + 18% GST per order; a 2-leg spread's 4 orders cost Rs 94.40 at any lot count, so 2 lots ÷ 2 gives Rs 47.20 | Paper restated at 1 lot from gross per unit, the per-unit pad and C1's 1-lot charges; the same for the prediction floor's record; criterion 1 tests it |
+| Note 1: both sides present | Agreed (the gate's valid quote says two-sided) | Written in |
+| Note 2: observed time, not nominal mark | Agreed: a mark's fetch can run late | Written in |
+| Note 3: "last 5" equals "any 5 consecutive" | Agreed, when ordered by exit time and checked after every exit | Written in |
+| Rename to 189, Q2 wording | Done; the orchestrator accepted the Q2 wording | none |
