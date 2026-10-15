@@ -18,11 +18,10 @@ from ..constants import (
     FNO_DESK_CHANNEL_ID,
     GITHUB_REPOSITORY_VARIABLE,
 )
-from ..server_clock import GITHUB_TIME_URL
+from ..server_clock import GITHUB_TIME_URL, HttpDateClock
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from .card import CardBuilder
-from .clock import HttpDateClock
 from .committed import GitHeadRecords
 from .daily import DailyCard
 from .deliveries import RepoDeliveryFiles

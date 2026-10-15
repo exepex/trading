@@ -371,3 +371,32 @@ merged naming and clock.
 
 **Verdict: merge check complete.** A16 is done as built. The recorder counts only after the owner's routine and the
 criterion 15 trial (with the 09:15 NSE-open comparison).
+
+## Addendum 7 (15 Oct 2026): A16c at 04371e8 (Groww install flag, clock shim removed)
+
+**Verdict: PASS.** No blocking or should-fix findings. Two notes below, neither blocks.
+
+Checked on exact SHA `04371e8cb49fa65227883c041579dada9d9e7f05` and on a trial merge with `origin/main` (4806156).
+
+| Criterion | Result | Evidence (all run by me) |
+|---|---|---|
+| 1. Command installs into an empty folder; without the flag it fails | MET | System pip 24.0, Debian setuptools 68.1.2. Without the flag: `pip install --no-cache-dir --no-deps --target <empty> clint args` fails with "Failed to build clint args", `AttributeError: install_layout`. With `--use-pep517`: both install. The full documented command `pip install --no-cache-dir -q --use-pep517 --target <empty> -r requirements.txt -r requirements-groww.txt` returns 0; `growwapi` 1.5.0, `clint` and `args` import from that folder. |
+| 2. Test catches a documented install line without the flag; the requirements file states the command | MET, with note 1 | Planted: flag removed from CLAUDE.md, from README.md, from the requirements header, and a `python -m pip install … -r requirements-groww.txt` line in docs without the flag: all caught. |
+| 3. Test fails if the shim returns, if T1/A16 import the clock elsewhere, or if `HttpDateClock` is defined elsewhere | MET | Planted: `fno/cards/clock.py` re-export back; a second `class HttpDateClock` in `fno/cards/`: both caught. No `cards.clock` import is left in `fno/` or `tests/`. `fno/cards/clock.py` is not in any freeze list. |
+| 4. T1 and A16 tests pass with only the import path changed | MET | The T1 test diff is two import lines. `tests/cards`: 63 passed. Full suite: 4,129 passed on the SHA and 4,129 on the merged tree (`FNO_SLACK_BOT_TOKEN` unset). ruff check, ruff format --check and check_imports are clean on both. |
+
+**Questions from the orchestrator:**
+- **Network.** The isolated build fetched `setuptools>=40.8.0`, which resolved to 84.0.0, from PyPI here. It uses the same index the routine already needs for `requirements.txt`, so no new host is involved. I cannot see the routine's network policy from this session. If PyPI is reachable for `requirements.txt`, it is reachable for this.
+- **Pinning (note 2).** Nothing pins the build setuptools; it floats to the newest release. A future setuptools could stop building `clint` 0.5.1's `setup.py`. That failure would be loud (pip errors at step 1), not silent, but it would cost that day's recording. If it happens, the fix is a constraint such as `PIP_CONSTRAINT` with `setuptools<N` on the install line; pip applies that to isolated builds too. I do not require it now: no second need yet (KISS), and the story puts pinning out of scope.
+- **What the test scans (note 1).** It scans `CLAUDE.md`, `README.md`, `AGENTS.md`, `docs/`, `.github/` and `.claude/`, and only lines matching `pip install … -r requirements-groww.txt`. These forms dodge it (each planted, each passed unnoticed):
+  - `pip3 install -r requirements-groww.txt`;
+  - `--requirement requirements-groww.txt`;
+  - a backslash-continued multi-line command;
+  - a script outside those folders (e.g. `tools/setup_env.sh`).
+
+  No such line exists today, and a dodged line fails loudly at install time. Suggested hardening for a later change: match `pip3?` and `(-r|--requirement)`, join continued lines, and scan all tracked files except `reviews/` and `conversations/`.
+- **Owner item, unchanged.** The routine prompt outside the repository also needs `--use-pep517`. No test here can see it.
+
+**Claims vs reality:**
+- Response 108 part 4 and the story's root-cause text match what I reproduced.
+- One claim I did not verify: "in a fresh virtual environment (pip 26) they build fine". It is not a criterion.
