@@ -80,9 +80,14 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    - the public repository gets only one row per mark handled (below), with times, counts and status, never a position
      or a price.
 5. **No duplicate of the daily run's alerts:**
-   - an exit rule reached intraday is one information alert ("<trade> reached its <rule> at HH:MM; the paper exit
-     happens at today's daily run, and its exit alert follows then"); it names no action and never sets E8's T; E8's
-     exit alert at the daily run stays the only action alert (open point 5 with the E8 builder);
+   - an exit rule reached intraday is one information alert ("F&O monitor: information, no action: <trade> reached
+     its <rule> at HH:MM; the paper record changes at the daily run"); it never uses the words EXIT, CLOSE or "close
+     it", gives no price, and every monitor alert starts "F&O monitor:", never E8's "F&O paper desk <book>: EXIT", so
+     the two never look alike on a phone (E8 models the owner acting 60 minutes after E8's alert; an owner acting on
+     the monitor's message instead would make E8's paper fills silently wrong). It cannot set E8's T: T is only the
+     receipt of E8's own post (`AlertThenWait`); E8's exit alert at the daily run stays the only action alert (agreed
+     with the E8 builder, 16 Oct). LM2 will hand its intraday exits to E8 through `ExitTiming`
+     (`fno/desk/exit_timing.py`), never post its own;
    - after the day's execution snapshot (`config.yaml` `desk.timetable.execution_snapshot`, 15:15 today; read, never
      typed) the monitor stays quiet only about an exit-rule hit that the daily run's exit review already handled (same
      position, same rule, same session); market and loss DANGER and WARNING alerts continue to the last mark (15:30),
@@ -117,7 +122,7 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    compares the alerts it would send with the alert records in Drive: missed alerts, late alerts (snapshot to sent), false
    alarms (conditions gone at the next mark). Written to `research/data/monitor/replay/<week>.md`; numbers only.
 
-**Open points, to agree before the judge (asked 16 Oct; answers in response 217):**
+**Agreed with the neighbouring owners (16 Oct; response 217):**
 1. A16 and O8 builders: **agreed 16 Oct** (the observer port; `MonitorHeartbeat` beside A16's heartbeat;
    `MonitorSilence` runs with A16's silence check, which stays A16's; per-mark rows for the uptime).
 6. E2c builder: **agreed 16 Oct** (`PrivateFiles`, the path above, one file per mark, the write order).
@@ -126,7 +131,7 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
 3. A16 builder: **answered 16 Oct**: no VIX in the mark; the VIX check waits (a later small A16 story after the trial).
 4. M2 builder: **answered 16 Oct**: no intraday weather reading in M1; the weather check waits for an M1 rule; the
    boundary with M2's daily alert is above.
-5. E8 builder: the information-only exit alert never becomes E8's T.
+5. E8 builder: **agreed 16 Oct** (wording and prefix above; T comes only from E8's own post).
 
 **Acceptance criteria:**
 1. No entry, exit, order or fill path: the monitor's wiring imports none (a test lists its imports; the judge can
@@ -138,7 +143,8 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
 4. A stale or failed mark gives only the staleness WARNING; an unmarked leg gives "cannot mark", never a value.
 5. The same condition on the same position alerts once per hour; the 11th DANGER in a session starts the 30-minute
    summary.
-6. Every alert's first line is an action or "information, no action", and it states the 60-minute assumption.
+6. Every alert starts "F&O monitor:", its first line is an action or "information, no action", it states the 60-minute
+   assumption, and no monitor alert contains EXIT, CLOSE, "close it" or a price (a test over every alert text).
 7. A second fire for a mark that already has its public row sends nothing, with Drive up or down, and after Drive
    recovers. Every alert is recorded in the private store; a failed send prints "alert NOT sent", is retried at the next mark
    and keeps its first record; no committed file names a position, a contract or a price (a test scans the public
@@ -166,5 +172,5 @@ first-line rule and limits; no second heartbeat checker or alert sender exists.
 - A16 keeps contracts within 6% of the index, so a far leg can be unmarked; the monitor says so instead of guessing.
 
 **Depends:** A16 live and past its 5-session trial (from 16 Oct), A16's `MarkObserver` port, E1 accounts, E4's exit rules, the card's uptime line (T2/T3, asked 16 Oct), O1's
-alert path; the first open paper or shadow position · **Status:** story text, open points with their owners
+alert path; the first open paper or shadow position · **Status:** story text for the judge
 (`reviews/claude/response_217_lm1-position-monitor.md`)
