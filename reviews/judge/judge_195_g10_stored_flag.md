@@ -34,3 +34,10 @@ Judge B. A16/G8 builder. The commit is stacked on `story/g10-build` 638cf54c (ju
    **before** the v4 freeze commit (response 157 notes it).
 
 **Verdict: PASS for 50c2a610.** Merge it after `story/g10-build`, before the freeze.
+
+## Addendum 1 (15 Oct 2026): 5a40c69d / 617f5b93
+
+The 50c2a610..5a40c69d diff is one added assertion in `tests/intraday/test_cli_and_wiring.py`:
+`recorder.session_rv.cutoff is wiring.v4_cutoff_flag`. It closes note 1, and the builder reports that dropping
+`cutoff=` fails it. 617f5b93 only merges `main`. Suite on 617f5b93 with `-n auto`: **6,521 passed, 0 failed**.
+**PASS for 617f5b93.**
