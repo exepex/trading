@@ -340,3 +340,20 @@ gains "amendment 2" (the store and clock rules below) and the 09:15 condition.
    Nothing counts as recorded history before it is reported.
 4. Merge keeping both index rows, run the full suite on the merged tree, and rule 8's end-to-end record. A dry run like
    mine is the right shape: no Drive writes and no Slack posts outside the owner's routine.
+
+## Addendum 5 (15 Oct 2026): merge check, A16 merged to `main` as 72fc707
+
+- **Parents.** 72fc707's parents are 80c03a8 (`main`) and 84e80eb (the passed tip).
+- **It equals my recomputed merge, apart from the expected conflict.** `git merge-tree --write-tree 80c03a8 84e80eb`
+  differs from 72fc707's tree only in `reviews/claude/README.md`: the conflict markers are removed and both index rows
+  kept, as asked.
+- **The passed files arrived unchanged.** `fno/`, `tests/`, the A16 story file and `CLAUDE.md` are identical between
+  84e80eb and 72fc707.
+- **Nothing unjudged after it.** `main` was still at 72fc707 when I checked.
+- **Gates.** The orchestrator reports 4,126 passed on 72fc707, which matches my run on 84e80eb, whose code tree is
+  identical. CI on 72fc707 is not read from here.
+- **Rule 8.** The builder's live `intraday snapshot --dry-run` on merged `main` is still owed; the orchestrator will
+  forward its line. My own read-only dry run on 84e80eb's parent code (a471f44, 10:00 IST: 220/220, candle basis)
+  shows the shape it should have.
+
+**Verdict: merge check PASS.** It becomes complete once the rule 8 line is recorded.
