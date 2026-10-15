@@ -92,10 +92,14 @@ class DailyRun:
 
     def _stopped_before_exits(self, day: date) -> date | None:
         """The last session, when its run stopped before its exits (review 105 point 3): today opens nothing new. The
-        routine starts in a fresh container, so the committed run log is the only place the stop can be seen."""
+        routine starts in a fresh container, so the committed run log is the only place the stop can be seen. A stop
+        before any step (the recovery or the download, judge 159) leaves no log: a missing log blocks too, once the
+        desk has run before (an earlier log exists)."""
         last = self.calendar.previous_session(day)
         steps = RunLog.open(self.steps.root, last).steps
-        return last if steps and "exits" not in steps and SKIPPED not in steps else None
+        if not steps:
+            return last if any(d < last for d in RunLog.days(self.steps.root)) else None
+        return last if "exits" not in steps and SKIPPED not in steps else None
 
     def _pack(self, day: date) -> StepOutcome:
         """Retries while the canonical snapshot is not committed yet, until the recorder's window ends."""

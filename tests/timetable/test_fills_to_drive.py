@@ -8,12 +8,13 @@ from datetime import date
 
 import pytest
 
-from fno.books.account import PaperAccount
-from fno.constants import BOOK1_RULES, BOOK2_HYBRID, OUTCOME_CLOSED, OUTCOME_OPENED
+from fno.books.account import EQUITY_HISTORY_FILE, POSITIONS_FILE, PaperAccount
+from fno.constants import BOOK1_RULES, BOOK2_HYBRID, CASH_LEDGER_FILE, OUTCOME_CLOSED, OUTCOME_OPENED
 from fno.desk.daily_run import RunStopped
 from fno.desk.exit_rules import TimeExit
-from fno.desk.records import DeskRecords
+from fno.desk.records import EVENTS_FILE, FILLS_FILE, DeskRecords
 from fno.desk.run_log import RunLog
+from fno.desk.status import open_positions
 from fno.storage.index_store import LocalIndexStore
 from tests.desk.builders import FLY_QUOTES, at
 
@@ -83,31 +84,68 @@ def test_the_daily_totals_match_the_drive_account_by_hand(root, tmp_path, alerts
 
 
 class FailingWrites(LocalIndexStore):
-    def __init__(self, folder):
+    """Drive answering 503 once, for the first write of the named account file of Book 1."""
+
+    def __init__(self, folder, name=None):
         super().__init__(folder)
-        self.failing = False
+        self.name = name
 
     def replace(self, path, data):
-        if self.failing and "/account/" in path:
+        if self.name and path == f"journal/{BOOK1_RULES}/account/{self.name}":
+            self.name = None
             raise OSError("Drive answered 503")
         super().replace(path, data)
 
 
-def test_a_failed_drive_write_stops_the_run_and_the_rerun_fills_once(root, tmp_path, alerts):
-    """Criterion 4."""
+@pytest.mark.parametrize("name", [FILLS_FILE, CASH_LEDGER_FILE, POSITIONS_FILE, EQUITY_HISTORY_FILE, EVENTS_FILE])
+def test_a_failed_drive_write_of_any_file_stops_the_run_and_the_rerun_fills_once(root, tmp_path, alerts, name):
+    """Criterion 4 (judge 159): the push stops part way, after any of the five files; the rerun, in a new container,
+    completes from what Drive holds and fills each leg exactly once."""
     store = FailingWrites(tmp_path / "drive")
-    run, clock, _, commits, _ = opening_week(root, tmp_path, alerts, store)
-    store.failing = True
+    run, clock, _, commits, files = opening_week(root, tmp_path, alerts, store)
+    store.name = name
     with pytest.raises(RunStopped):
         run_day(run, clock, NORMAL)
     assert len(alerts.sent) == 1 and "step fills" in alerts.sent[0] and "could not be written" in alerts.sent[0]
     assert not [m for _, m in commits.made if m.endswith("step fills")]
-    store.failing = False
-    fresh_container(root)  # the rerun in a new container: Drive still holds the account before the fill
+    fresh_container(root)
     log = run.run(NORMAL)  # later the same day
-    assert log.result("fills")["t1"]["outcome"] == OUTCOME_OPENED
-    drive = store.get("journal/book1_rules/account/desk_fills.csv").decode()
-    assert len(drive.splitlines()) == 1 + 4  # the header and the fly's four legs, once
+    assert log.result("fills")["t1"]["outcome"] == OUTCOME_OPENED and "exits" in log.steps
+    fresh_container(root)
+    files.download()
+    account = PaperAccount(root, BOOK1_RULES)
+    assert len(account.fills()) == len(DeskRecords(account).fill_rows()) == 4  # each leg once, in both files
+    assert [e["outcome"] for e in DeskRecords(account).event_rows()] == [OUTCOME_OPENED]
+    assert [p.trade_id for p in open_positions(DeskRecords(account))] == ["t1"]
+
+
+class FailingReads(LocalIndexStore):
+    def __init__(self, folder):
+        super().__init__(folder)
+        self.failing = False
+
+    def get(self, path):
+        if self.failing:
+            raise OSError("Drive token expired")
+        return super().get(path)
+
+
+def test_a_stop_at_the_download_blocks_the_next_session_s_entries(root, tmp_path, alerts):
+    """Judge 159 should-fix 1: a run stopped before any step (the download) leaves no log; once the desk has run
+    before (12 Oct's log), the missing 13 Oct log blocks 14 Oct's entries, and 14 Oct's exits still run."""
+    store = FailingReads(tmp_path / "drive")
+    run, clock, *_ = opening_week(root, tmp_path, alerts, store)
+    earlier = RunLog.open(root, date(2026, 10, 12))
+    for step in ("versions", "exits"):
+        earlier.record(step, at(15, 20, day=earlier.day), at(15, 20, day=earlier.day), {}, {})
+    store.failing = True
+    with pytest.raises(RunStopped, match="the download of the private paper records"):
+        run_day(run, clock, date(2026, 10, 13))
+    store.failing = False
+    alerts.sent.clear()
+    log = run_day(run, clock, NORMAL)
+    assert "blocked" in log.result("fills") and "2026-10-13" in log.result("fills")["blocked"]
+    assert len(alerts.sent) == 1 and list(log.steps)[-1] == "exits"
 
 
 def stopped_before_exits(root, day):

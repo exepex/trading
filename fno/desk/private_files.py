@@ -17,7 +17,11 @@ from .daily_ports import CommitFailed
 from .pack_store import PackStore
 from .records import EVENTS_FILE, FILLS_FILE
 
-ACCOUNT_FILES = (CASH_LEDGER_FILE, EQUITY_HISTORY_FILE, POSITIONS_FILE, FILLS_FILE, EVENTS_FILE)
+# Pushed in this order (judge 159): a push that stops part way must leave Drive at a state the rerun completes. The desk
+# fills go before the ledger (a ledger fill without its desk row breaks every reader), and the events go last: an
+# entry's event is its "done" marker, and the rerun returns the recorded outcome without applying anything once it is
+# there. Fills are idempotent by fill ID in both files; positions and equity history are rebuilt from the ledger.
+ACCOUNT_FILES = (FILLS_FILE, CASH_LEDGER_FILE, POSITIONS_FILE, EQUITY_HISTORY_FILE, EVENTS_FILE)
 UNAVAILABLE = "the private paper records in Drive could not be {what} ({path}: {why})"
 UPLOADED, ALREADY, DIFFERENT = "uploaded", "already in Drive, same bytes", "REFUSED: Drive holds different bytes"
 
