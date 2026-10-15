@@ -191,3 +191,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 210: review request to ChatGPT for D4 and D5 (Book 2's envelope, Book 3's constitution) after judge 207 add. 1 PASS, quality rule 9](response_210_d4-d5-chatgpt-request.md)
 - [Response 202: G11, the AI books on the v4 questions: story text and claims (same questions and scoring as the rules, every failed run a miss, cost against BG1, open points)](response_202_g11-ai-books-v4.md)
 - [Response 206: review request to ChatGPT for G11, AI books on the v4 questions (story text, quality rule 9); answer in review 127](response_206_g11-chatgpt-request.md)
+- [Response 207: review request to ChatGPT for E8 code part 1 (owner-timing fills, 1a and 1b) after judge 203 add. 3 PASS, quality rule 9; answer in review 128](response_207_e8-part1-chatgpt-request.md)
