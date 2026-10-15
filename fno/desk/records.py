@@ -30,9 +30,10 @@ FILL_COLUMNS = (
     + tuple(CHARGE_NAMES)
     + ("charges_rs", "quote_age_unknown")  # no quote_bid / quote_ask: owner "8 A" (story E2b)
 )
+# No shortfall_rs: with the approved limit it gives the net at the touch back (decision 45, story E2b).
 EVENT_COLUMNS = (
     "event_id", "day", "book", "strategy", "trade_id", "decision_id", "snapshot_id", "snapshot_sha256", "outcome",
-    "reason", "legging_cost_rs", "shortfall_rs",
+    "reason", "legging_cost_rs",
 )  # fmt: skip
 
 
@@ -77,12 +78,11 @@ class DeskEvent:
     outcome: str
     reason: str
     legging_cost_rs: float | None = None
-    shortfall_rs: float | None = None  # how far the entry at the touch fell short of C2's approved entry
 
     def row(self) -> dict[str, str]:
-        cost, shortfall = (_amount(v) for v in (self.legging_cost_rs, self.shortfall_rs))
         values = (self.event_id, self.day.isoformat(), self.book, self.strategy, self.trade_id, self.decision_id,
-                  self.snapshot_id, self.snapshot_sha256, self.outcome, self.reason, cost, shortfall)  # fmt: skip
+                  self.snapshot_id, self.snapshot_sha256, self.outcome, self.reason,
+                  _amount(self.legging_cost_rs))  # fmt: skip
         return dict(zip(EVENT_COLUMNS, values, strict=True))
 
 

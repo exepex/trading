@@ -191,10 +191,13 @@ Out:
 - **removed here (orchestrator decision 42):** the size shown at the touch in E4's no-fill reason ("size N at the
   touch is below M units"), written to `desk_events.csv` and used again in pending-exit reasons; it now reads "not
   enough size at the touch for M units" (`fno/desk/pricing.py:19`);
-- **stated, not changed (found in the decision 42 round):** a refused entry's "net entry Rs X at the touch is worse
-  than the approved Rs Y" reason and `shortfall_rs` (`fno/desk/entries.py:48-51`) publish the net of every leg at
-  the touch for an entry that never opened. It is a sum over the legs (each playbook structure is defined risk, so at
-  least two legs), not one contract's figure; a single-leg structure would publish its touch price;
+- **removed here (orchestrator decision 45):** a refused entry's "net entry Rs X at the touch is worse than the
+  approved Rs Y by Rs Z" reason and the `shortfall_rs` column of `desk_events.csv`. For a single-leg structure (LC,
+  LP in STR1) X is one contract's ask, and the mids are public, so the bid follows; for a spread X less the net at the
+  mids gives the sum of half-spreads; and Z with the committed approved limit gives X back. The reason is now the fixed
+  text "entry_worse_than_approved: entry price at the touch worse than the approved limit". Schema change:
+  `desk_events.csv` loses the `shortfall_rs` column (nothing read it; no `desk_events.csv` is committed yet, the desk
+  is not live). If research needs the figure, it goes to a Drive-only record, not git (not built here);
 - **kept, by decision (orchestrator for the owner, response 113):** the per-contract mids and implied volatilities of
   the 14:55 canonical snapshot in Book 1's D3 decision inputs (`fno/playbook/decision_codec.py:15-27`) and C4's
   `snapshot_mid` per leg (`fno/checks/validity_market.py:46`): derived figures the letter of "8 A" allows, which alone

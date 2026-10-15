@@ -115,9 +115,8 @@ That is 7 items in place of the 184 per-contract quote items before, and nothing
    - two accounts on opposite sides of one contract at one snapshot;
    - protection unverified at the opening snapshot.
 
-   **Known channels:** scoreboard B and `equity_history`; a refused entry's net-at-the-touch reason and
-   `shortfall_rs` (a sum over at least two legs, not one contract). The touch size in E4's no-fill reason is removed
-   (decision 42, below). All of these go to the owner with the question of moving
+   **Known channels:** scoreboard B and `equity_history`. The touch size in E4's no-fill reason (decision 42) and a
+   refused entry's net-at-the-touch reason and `shortfall_rs` column (decision 45) are removed (below). All of these go to the owner with the question of moving
    paper fills, marks and scoreboard B to Drive.
 2. Before A4b merges, the 15:15 quote CSV is not committed and lives only in the run's local folder, so E6 shows
    "touch unknown" on a fresh checkout. E2b merges after A4b for this reason.
@@ -140,7 +139,7 @@ That is 7 items in place of the 184 per-contract quote items before, and nothing
 | E4's no-fill reason no longer carries the size shown at the touch: "not enough size at the touch for M units" | `fno/desk/pricing.py:19`, `:63` | strong |
 | Test: the reason and the committed `desk_events.csv` row carry no size (size 64 against 65 units) | `tests/desk/test_entries.py:118-122` | strong: putting `size {size}` back fails it ("'64' is contained here") |
 | Pending-exit reasons reuse the same leg reason, so they lose the size too | `fno/desk/exits.py:137` | strong (same text) |
-| Found in this round, not changed: a refused entry's net-at-the-touch reason and `shortfall_rs` | `fno/desk/entries.py:48-51` | reasoning only: a sum over at least two legs; owner question with the others |
+| Found in this round: a refused entry's net-at-the-touch reason and `shortfall_rs` | removed by decision 45 (below) | strong |
 
 ## Answer to judge 118 addendum 3 (decision 44)
 
@@ -154,3 +153,17 @@ That is 7 items in place of the 184 per-contract quote items before, and nothing
 **Out, stated:** `fno desk book1`, Book 1's decision command, still ends in a traceback with no alert when its own
 commit fails (`fno/books/book1.py:74`), as it did before E2b. That command is not the daily run, so it is listed as a
 follow-up in the story's Out list.
+
+## Decision 45: no entry figures in a refused entry's record
+
+My earlier "a sum over at least two legs" was wrong as a defence: the playbook's STR1 structures include LC and LP
+(`fno/constants.py:97`), which have a single leg. Accepted (strong):
+
+| What | Where | Evidence |
+|---|---|---|
+| A refused entry's reason is the fixed text "entry_worse_than_approved: entry price at the touch worse than the approved limit"; no net, limit or shortfall figure | `fno/desk/entries.py` (`WORSE_THAN_APPROVED`, `worse_than_approved`) | strong |
+| Schema change: `desk_events.csv` loses `shortfall_rs`; `EntryResult` and `DeskEvent` lose the field | `fno/desk/records.py` (`EVENT_COLUMNS`), `fno/desk/entries.py` | strong: nothing in `fno/` read it (grep), and no `desk_events.csv` is committed (`git ls-files`) |
+| Tests: for a single-leg long call and for the iron fly, the reason is the fixed text with no digit, the row has exactly the new columns, and no column but names, day and hashes holds a digit | `tests/desk/test_entry_limit.py` (`assert_no_quote_figure` and its two tests) | strong: plants caught by both tests: the limit back in the reason (D1), the column back (D2), a figure in another column (D3) |
+| The limit's own logic is still tested through outcomes: equal or better fills, a paisa worse refuses, the limit scales with lots (2 lots at a Rs 3 half-spread are refused though they beat a 1-lot limit) | `tests/desk/test_entry_limit.py` | strong |
+
+**Out:** a Drive-only record of the figures for research is not built (nothing needs it today).
