@@ -34,14 +34,15 @@ class TreasuryTenYearSource(GlobalCueSource):
 
     def parse(self, data: bytes) -> list[CueValue]:
         try:
-            rows = list(csv.DictReader(io.StringIO(data.decode("utf-8-sig"))))
+            reader = csv.DictReader(io.StringIO(data.decode("utf-8-sig")))
+            fields, rows = reader.fieldnames or [], list(reader)
         except UnicodeDecodeError as exc:
             raise ValueError(f"{self.cue}: not the Treasury's CSV") from exc
-        if not rows or TREASURY_TEN_YEAR not in rows[0] or "Date" not in rows[0]:
+        if TREASURY_TEN_YEAR not in fields or "Date" not in fields:
             raise ValueError(f"{self.cue}: no Date and {TREASURY_TEN_YEAR} columns (not the Treasury's CSV)")
         dated = [r for r in rows if (r[TREASURY_TEN_YEAR] or "").strip()]  # a blank cell is a gap, never filled
         values = [CueValue(_us_date(r["Date"]), positive(r[TREASURY_TEN_YEAR], r["Date"])) for r in dated]
-        return checked(values, self.cue)
+        return checked(values, self.cue, allow_empty=True)  # a new year's file is empty until its first day
 
 
 def _us_date(text: str) -> date:

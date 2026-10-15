@@ -51,3 +51,12 @@ class SnapshotLog:
         for row in rows:
             found.setdefault(row["sha256"], row["path"])
         return found
+
+    def fetched_by_sha256(self, cue: str) -> dict[str, datetime]:
+        """SHA-256 -> when the first copy with those bytes was fetched."""
+        file = self.path_for(cue)
+        rows = csv.DictReader(file.read_text(encoding="utf-8").splitlines()) if file.is_file() else []
+        found: dict[str, datetime] = {}
+        for row in rows:
+            found.setdefault(row["sha256"], datetime.fromisoformat(row["fetched_at"]))
+        return found

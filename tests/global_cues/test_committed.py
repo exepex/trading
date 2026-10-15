@@ -28,7 +28,8 @@ def test_every_cue_has_history_from_2007_and_every_row_names_a_logged_copy():
 
 
 def test_backfilled_rows_are_exactly_those_seen_after_their_first_nse_open():
-    after = wiring.next_nse_session(wiring.storage.build_session_calendar())
+    calendar = wiring.storage.build_session_calendar()
+    after = wiring.next_nse_session(calendar, calendar.first)
     for source in wiring.SOURCES:
         for r in TABLES[source.cue].rows():
             first_use = datetime.combine(after(date.fromisoformat(r["value_date"])), NSE_OPEN, tzinfo=IST)
@@ -44,8 +45,7 @@ def test_the_committed_checks_are_what_the_code_writes(tmp_path):
 
 
 def test_rbi_and_fbil_never_differ_where_both_publish():
-    kinds = {line.split(",")[1] for line in (wiring.CHECKS_FOLDER / OVERLAP_FILE).read_text().splitlines()[1:]}
-    assert kinds <= {"only_fbil", "only_rbi"}
+    assert (wiring.CHECKS_FOLDER / OVERLAP_FILE).read_text().splitlines()[1:] == []  # no "differs" row
 
 
 def test_recomputing_from_the_copies_finds_a_planted_change(tmp_path):
@@ -55,7 +55,7 @@ def test_recomputing_from_the_copies_finds_a_planted_change(tmp_path):
     result = CueCollector(None, store, log, lambda: seen).collect(source, date(2026, 1, 1), date(2026, 12, 31))
     table = CueTable(tmp_path / "tables", "fake", lambda d: d)
     table.merge(result.values, seen)
-    verifier = CueTableVerifier(store, log)
+    verifier = CueTableVerifier(store, log, lambda d: d)
     assert verifier.problems(source, table.rows()) == []
     planted = table.rows()
     planted[1]["value"] = "2.5"

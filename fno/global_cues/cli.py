@@ -23,6 +23,8 @@ STOPPING_FAILURES = (
     RuntimeError,  # Drive settings missing
     CalendarError,
     OSError,  # a missing calendar or table file
+    KeyError,  # a table file missing a column
+    ValueError,  # a table cell that is not a number or a date
 )
 
 
@@ -50,7 +52,11 @@ def cmd_global_cues(args) -> int:
 def _fill(args) -> int:
     from .wiring import build_job, sources_named
 
-    lines, ok = build_job().run(sources_named(args.cue), args.start, args.end or now_ist().date())
+    end = args.end or now_ist().date()
+    if args.start and args.start > end:
+        print(f"--from {args.start} is after --to {end}: nothing asked for")
+        return 1
+    lines, ok = build_job().run(sources_named(args.cue), args.start, end)
     print("\n".join(lines))
     return 0 if ok else 1
 
@@ -67,9 +73,7 @@ def _verify(args) -> int:
 
     verifier, tables = build_verifier(), build_tables()
     sources = sources_named(args.cue)
-    if not any(tables[s.cue].rows() for s in sources):
-        print("no cue table has rows: nothing to verify")
-        return 1
-    problems = [p for s in sources for p in verifier.problems(s, tables[s.cue].rows())]
+    problems = [f"{s.cue}: the table has no rows, nothing verified" for s in sources if not tables[s.cue].rows()]
+    problems += [p for s in sources for p in verifier.problems(s, tables[s.cue].rows())]
     print("\n".join(problems) or "every cue row equals the archived copy it names")
     return 1 if problems else 0

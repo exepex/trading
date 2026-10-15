@@ -69,6 +69,8 @@ class CueTable:
             status = provenance(sourced.value.value_date, seen_at, self.next_session)
             new_rows.append((day, repr(value), sourced.source_sha256, seen_at.isoformat(), status))
             last = day
+        _check_appendable(self.path)  # both files first: never a table row written and its revision lost
+        _check_appendable(self.revisions_path)
         _append(self.path, FIELDS, new_rows)
         _append(self.revisions_path, REVISION_FIELDS, [(*r[:-1], r[-1].isoformat()) for r in revisions])
         return MergeResult(len(new_rows), len(revisions))
@@ -82,12 +84,15 @@ def _read(path: Path) -> list[dict[str, str]]:
     return list(csv.DictReader(path.read_text(encoding="utf-8").splitlines())) if path.is_file() else []
 
 
+def _check_appendable(path: Path) -> None:
+    if path.is_file() and path.stat().st_size and not path.read_bytes().endswith(b"\n"):
+        raise TableFileBroken(f"{path.name} does not end with a new line: appending would change its last row")
+
+
 def _append(path: Path, fields: tuple[str, ...], rows: list[tuple]) -> None:
     if not rows:
         return
     new = not path.is_file() or path.stat().st_size == 0
-    if not new and not path.read_bytes().endswith(b"\n"):
-        raise TableFileBroken(f"{path.name} does not end with a new line: appending would change its last row")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, lineterminator="\n")

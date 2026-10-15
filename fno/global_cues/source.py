@@ -38,6 +38,7 @@ class GlobalCueSource(ABC):
     unit: str = ""
     date_zone: str = ""  # the time zone the publisher's dates are in
     first_value_date: date = date(2007, 1, 1)  # how far back the back-fill asks
+    max_age_days: int = 7  # a newest value older than this on the run's day is reported STALE
 
     @abstractmethod
     def requests(self, start: date, end: date) -> list[CueRequest]:
@@ -65,9 +66,10 @@ def positive(text, what: str) -> float:
     return value
 
 
-def checked(values: list[CueValue], what: str) -> list[CueValue]:
-    """Values in date order; refuses an empty file and a date given twice."""
-    if not values:
+def checked(values: list[CueValue], what: str, allow_empty: bool = False) -> list[CueValue]:
+    """Values in date order; refuses a date given twice, and an empty file unless the publisher's empty file is valid
+    (a year's file before its first business day)."""
+    if not values and not allow_empty:
         raise ValueError(f"{what}: no values in the file")
     days = [v.value_date for v in values]
     if len(set(days)) != len(days):

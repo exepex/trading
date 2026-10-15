@@ -62,6 +62,10 @@ class CueCollector:
                 result.failure = f"not the publisher's file, nothing saved: {request.name}: {exc}"
                 return result
             downloaded.append((request, data, values))
+        result.fetched_at = self.clock()  # after the last download: a slow fetch is never labelled earlier than it was
+        if not any(values for _, _, values in downloaded):
+            result.failure = "no values in any file, nothing saved"
+            return result
         values = []
         for done, (request, data, file_values) in enumerate(downloaded):
             try:

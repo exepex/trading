@@ -4,7 +4,8 @@ value never dropped.
 - gaps: weekdays between a cue's first and last date without a value. Unverified: the repository has no US or UK
   holiday calendar, so a holiday and a missing value cannot be told apart;
 - repeated: a value equal to the previous date's value (a publisher's holiday row or a stale value, to look at);
-- usdinr overlap: RBI's and FBIL's reference rates on every date both have, with any difference listed.
+- usdinr overlap: RBI's and FBIL's reference rates on every date both have, with any difference listed (the summary
+  gives how many dates were compared).
 """
 
 from __future__ import annotations
@@ -34,15 +35,7 @@ def gap_rows(cue: str, rows: list[dict[str, str]]) -> list[tuple[str, str, str]]
 
 
 def overlap_rows(rbi: Mapping[str, str], fbil: Mapping[str, str]) -> list[tuple[str, str, str, str]]:
-    """Every date from FBIL's first to RBI's last where the two differ or only one has a value."""
-    if not rbi or not fbil:
-        return []
-    start, end = max(min(rbi), min(fbil)), min(max(rbi), max(fbil))
-    found = []
-    for day in sorted(d for d in set(rbi) | set(fbil) if start <= d <= end):
-        ours, theirs = rbi.get(day, ""), fbil.get(day, "")
-        if not ours or not theirs:
-            found.append((day, "only_rbi" if ours else "only_fbil", ours, theirs))
-        elif float(ours) != float(theirs):
-            found.append((day, "differs", ours, theirs))
-    return found
+    """Every date both publish where their rates differ. A date only one has is not listed here: RBI's own gaps (its
+    2018-2022 hole included) are in `gaps.csv`, and FBIL's public site trails by a week."""
+    shared = sorted(set(rbi) & set(fbil))
+    return [(day, "differs", rbi[day], fbil[day]) for day in shared if float(rbi[day]) != float(fbil[day])]

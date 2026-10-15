@@ -7,10 +7,11 @@ Daily cues an NSE session may know before its 09:15 IST open. Derived tables; th
 |---|---|---|---|---|
 | `us10y.csv` | US Treasury 10-year par yield, percent a year | 4,950 | 2 Jan 2007 - 14 Oct 2026 | US Treasury |
 | `brent.csv` | Europe Brent spot price FOB, US dollars a barrel | 4,992 | 2 Jan 2007 - 6 Oct 2026 | US EIA |
-| `usdinr_rbi.csv` | USD/INR reference rate, rupees per dollar | 3,871 | 2 Jan 2007 - 14 Oct 2026, **none 25 Jul 2018 - 11 Apr 2022** | RBI |
+| `usdinr_rbi.csv` | USD/INR reference rate, rupees per dollar | 3,871 | 2 Jan 2007 - 14 Oct 2026, **none 10 Jul 2018 - 11 Apr 2022 except 24 Jul 2018** | RBI |
 | `usdinr_fbil.csv` | the same reference rate | 1,981 | 10 Jul 2018 - 7 Oct 2026 | FBIL |
 
-**Not collected: the previous US closes (S&P 500, Nasdaq 100).** No permitted source was reachable; see "Blocked".
+**Not collected: the previous US closes (S&P 500, Nasdaq 100). Blocked: source terms.** No source whose terms allow
+it was found; see "Blocked".
 
 ## Columns
 
@@ -31,8 +32,8 @@ archived copy it came from; its path, URL and fetch time are in `research/data/m
 | usdinr_rbi | Reserve Bank of India, reference rate archive (form), `www.rbi.org.in/Scripts/ReferenceRateArchive.aspx` | IST | Computed from about 13:00-13:30 IST quotes on t, i.e. after t's open: first usable on t+1 | Not found on RBI's pages; RBI is a public authority publishing it for the public (reasoning only) |
 | usdinr_fbil | FBIL reference rates, `www.fbil.org.in/wasdm/refrates/fetchfiltered` | IST | Rate of t at 13:00 IST (13:30 before about 2025), but **FBIL's public site trails by about a week** (on 15 Oct 2026 it ended on 7 Oct) | Not read: FBIL's site is a script page whose terms could not be fetched; FBIL licenses its benchmarks commercially, so **republishing them in a public repository may need permission (reasoning only, a risk)** |
 
-RBI's and FBIL's rates are the same benchmark: on every date both publish (10-24 Jul 2018 and 12 Apr 2022 on) they are
-equal (`checks/overlap_usdinr.csv`: no `differs` row). FBIL fills RBI's 2018-2022 hole.
+RBI's and FBIL's rates are the same benchmark: on all 1,086 dates both publish (24 Jul 2018 and 12 Apr 2022 on) they
+are equal (`checks/overlap_usdinr.csv` lists only differences: none). FBIL fills RBI's 2018-2022 hole.
 
 ## The date rule (as-of)
 
@@ -52,12 +53,22 @@ For an NSE session on India date d, a cue's usable value is the latest one dated
   is logged in `revisions.csv` (`changed`, old and new value, the copy and when) and the table keeps its first value;
   a value that appears late for a date before a table's last date is logged (`late`) and never inserted. This is
   A11's rule (both versions kept, nothing rewritten) applied to publishers that rewrite whole files every day.
-- Tables are append-only: old bytes stay a prefix.
+- Tables are append-only: old bytes stay a prefix. Both a table and `revisions.csv` are checked before either is
+  written, so a row is never added while its revision is lost.
+- **A late value is never inserted.** If a publisher later fills a date before a table's last date (RBI back-filling a
+  missing day, say), it is logged as `late` and the table keeps the gap for good; `value_for` keeps returning the
+  older value for the dates after it. Deliberate (a table never changes behind its last date); read `revisions.csv`
+  for such values.
+- A run names a cue `STALE` (and exits 1) when its newest value is older than the source allows on the run's day:
+  US 10-year and RBI 7 days, FBIL 14 (its site trails a week), Brent 16 (weekly release).
+- `first_seen_at` is the time after a cue's last download (a slow fetch is never labelled earlier than it ended).
+- `provenance` needs NSE's session calendar: for a value dated after the calendar's last year the run stops and names
+  it (add NSE's holiday circular to `research/data/calendar/nse_sessions.csv`) instead of guessing a label.
 - A failed download or a file that is not the publisher's writes nothing for that cue and is named; others still run.
 - Gaps are listed, never filled (`checks/gaps.csv`): weekdays without a value (unverified: no US, UK or RBI holiday
   calendar is in the repository, so holiday and gap are not told apart) and values equal to the previous date's.
 
-## Blocked: previous US closes (S&P 500, Nasdaq 100)
+## Blocked: source terms (previous US closes, S&P 500 and Nasdaq 100)
 
 Tried on 15 Oct 2026 from the cloud session:
 - **FRED** (`fred.stlouisfed.org`, series SP500, NASDAQ100, and also DGS10, DCOILBRENTEU, DEXINUS): refused by this
@@ -71,11 +82,20 @@ Tried on 15 Oct 2026 from the cloud session:
 Both were downloaded once before their terms were read; the copies are not in this repository. Four files remain in
 Drive, listed in `reviews/claude/response_103_a17-global-cues.md`, for the owner to keep or delete.
 
-Proposal (owner decision): allow `fred.stlouisfed.org` in the environment's network settings (or add a FRED API key as
-a secret), and keep FRED's S&P 500 and Nasdaq 100 values **only in Drive, not in this public repository**. From
-memory, not checked here (FRED is blocked): FRED shows S&P's and Nasdaq's copyright notices on those series, S&P's
-forbids reproduction without permission, and FRED keeps only about 10 years of S&P 500 history. The owner should read
-those notices before deciding.
+**FRED is not a clean path either.** FRED's own series pages, read on 15 Oct 2026 through a web fetch (this container
+cannot reach FRED):
+- SP500: "Copyright © 2016, S&P Dow Jones Indices LLC. All rights reserved. Reproduction of S&P 500 in any form is
+  prohibited except with the prior written permission of S&P Dow Jones Indices LLC" (FRED's page gives S&P's permissions
+  address);
+- NASDAQ100: "Copyright © 2016, NASDAQ OMX Group, Inc.", tagged "Copyrighted: Pre-Approval Required".
+
+So storing either series anywhere, Drive included, needs the index owner's permission. Options for the owner:
+1. ask S&P DJI (its permissions address is on FRED's SP500 page) and Nasdaq for permission for personal research storage; then FRED (allow
+   `fred.stlouisfed.org` in the environment's network settings, or a FRED API key as a secret) is the simplest path,
+   with the values kept in Drive only, never in this public repository;
+2. go without US closes for now; the weather can use the US 10-year, Brent and USD/INR;
+3. look for a licensed feed the owner already pays for (the broker's), read-only.
+Reasoning only: I know of no free source whose terms allow automated storage of these index levels.
 
 ## Commands
 

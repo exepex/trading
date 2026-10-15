@@ -11,7 +11,7 @@ from datetime import date, timedelta
 from ..constants import RESEARCH_USER_AGENT
 from ..http_pacing import PacedSession
 from ..models import now_ist
-from ..research_data.calendar import CalendarError, SessionCalendar
+from ..research_data.calendar import SessionCalendar
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore, RawFileStore
 from .collector import CueCollector
@@ -39,21 +39,22 @@ def sources_named(names: list[str] | None) -> list[GlobalCueSource]:
     return [s for s in SOURCES if not names or s.cue in names]
 
 
-def next_nse_session(calendar: SessionCalendar) -> Callable[[date], date]:
-    """The first NSE session after a date; outside the calendar's years, the next day (rows dated before 2017 were
-    fetched years later and are `backfilled` either way)."""
+def next_nse_session(calendar: SessionCalendar, first: date) -> Callable[[date], date]:
+    """The first NSE session after a date. Before the calendar's first day (`first`, 2017) it is the next day: those
+    rows were fetched years later and are `backfilled` either way. After its last year it raises CalendarError, so a
+    run stops and names the missing year (add NSE's holiday circular) instead of guessing a label."""
 
     def after(day: date) -> date:
-        try:
-            return calendar.next_session(day)
-        except CalendarError:
+        if day < first:
             return day + timedelta(days=1)
+        return calendar.next_session(day)
 
     return after
 
 
 def build_tables() -> dict[str, CueTable]:
-    after = next_nse_session(storage.build_session_calendar())
+    calendar = storage.build_session_calendar()
+    after = next_nse_session(calendar, calendar.first)
     return {s.cue: CueTable(CUES_FOLDER, s.cue, after) for s in SOURCES}
 
 
@@ -78,4 +79,6 @@ def build_checks() -> CueChecks:
 
 
 def build_verifier(env=os.environ) -> CueTableVerifier:
-    return CueTableVerifier(build_raw_area(env), SnapshotLog(SNAPSHOT_LOG_FOLDER))
+    calendar = storage.build_session_calendar()
+    after = next_nse_session(calendar, calendar.first)
+    return CueTableVerifier(build_raw_area(env), SnapshotLog(SNAPSHOT_LOG_FOLDER), after)

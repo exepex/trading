@@ -792,11 +792,14 @@ file, a forecast input or the weather.
 4. Raw copies in Drive through `RawFileStore`, never overwritten, each logged; a later change to a held value is
    logged as a revision and never rewrites the table; a late value is logged, never inserted; tables are append-only
    (tests).
-5. Gaps recorded, never filled (weekdays without a value, repeated values); RBI and FBIL compared on every common date,
-   differences listed (tests; committed check files reproduce).
+5. Gaps recorded, never filled (weekdays without a value, repeated values); RBI and FBIL compared on every date both
+   publish, differences listed, the number compared printed (tests; committed check files reproduce); a cue whose
+   newest value is older than its source allows is named STALE.
 6. A failed download, a file that is not the publisher's, an empty answer, or a copy Drive refuses writes nothing to
    that cue's table and is named; a Drive or setup failure stops the command with one line and exit 1 (tests).
-7. Derived rows equal the archived copies: `verify` recomputes every row; a test plants a change and a wrong SHA-256.
+7. Derived rows equal the archived copies: `verify` recomputes every row's value from its copy, checks
+   `first_seen_at` is not before the copy was fetched and recomputes `provenance`, names a date held twice, rows out of
+   order and an empty cue table; tests plant each.
 8. Behind interfaces with one composition root (added to CLAUDE.md); no frozen file changes; code size, lint, imports
    and the full suite pass.
 
@@ -805,7 +808,7 @@ modes, and the orchestrator's brief.**
 
 | Requirement | Where |
 |---|---|
-| previous US close, S&P 500 and Nasdaq 100 | **blocked, out until the owner decides**: FRED refused by the network policy, S&P DJI 403, Nasdaq's and Cboe's terms forbid it; proposal in the README (criterion 1) |
+| previous US close, S&P 500 and Nasdaq 100 | **blocked: source terms**, out until the owner decides: S&P DJI 403; Nasdaq's and Cboe's terms forbid automated capture and storage; FRED (also refused by the network policy) carries S&P's "Reproduction ... in any form is prohibited" and Nasdaq's "Pre-Approval Required" notices; options in the README (criterion 1) |
 | Brent | criterion 1 (EIA; weekly release, every row `backfilled`) |
 | USD/INR | criterion 1 (RBI, and FBIL for RBI's 2018-2022 hole) |
 | US 10-year yield | criterion 1 (US Treasury) |
@@ -829,5 +832,5 @@ modes, and the orchestrator's brief.**
 **Judge verifies:** runs `global-cues verify`; reads each source's terms itself; checks two US-holiday India dates
 with `value_for`; plants a revised value and a late value; confirms no S&P 500 or Nasdaq 100 data is in the repository.
 
-**Depends:** A7, A9, A11 · **Size:** M · **Status:** built without the US closes (blocked, owner decision); awaiting
-judge (claims: `reviews/claude/response_103_a17-global-cues.md`)
+**Depends:** A7, A9, A11 · **Size:** M · **Status:** built without the US closes (blocked: source terms, owner
+decision); awaiting judge (claims: `reviews/claude/response_103_a17-global-cues.md`)

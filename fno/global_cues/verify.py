@@ -6,23 +6,29 @@ from __future__ import annotations
 
 import hashlib
 from collections import Counter
+from collections.abc import Callable
+from datetime import date, datetime
 
 from ..storage.raw_store import RawFileStore
 from .collector import UNREADABLE
 from .snapshot_log import SnapshotLog
 from .source import GlobalCueSource
+from .table import provenance
 
 
 class CueTableVerifier:
-    def __init__(self, store: RawFileStore, log: SnapshotLog):
-        self.store, self.log = store, log
+    def __init__(self, store: RawFileStore, log: SnapshotLog, next_session: Callable[[date], date]):
+        """`next_session`: the first NSE session after a date, to recompute each row's `provenance`."""
+        self.store, self.log, self.next_session = store, log, next_session
 
     def problems(self, source: GlobalCueSource, rows: list[dict[str, str]]) -> list[str]:
+        if not rows:
+            return []  # the command names an empty table itself
         days = [row["value_date"] for row in rows]
         twice = sorted(d for d, n in Counter(days).items() if n > 1)
         problems = [f"{source.cue} {d}: the table holds this date twice" for d in twice]
         problems += [] if days == sorted(days) else [f"{source.cue}: the table's dates are not in order"]
-        paths, parsed = self.log.paths_by_sha256(source.cue), {}
+        paths, parsed, fetched = self.log.paths_by_sha256(source.cue), {}, self.log.fetched_by_sha256(source.cue)
         for row in rows:
             sha256 = row["source_sha256"]
             if sha256 not in parsed:
@@ -33,6 +39,7 @@ class CueTableVerifier:
             elif values.get(row["value_date"]) != float(row["value"]):
                 copy = values.get(row["value_date"])
                 problems.append(f"{source.cue} {row['value_date']}: table {row['value']}, archived copy {copy}")
+            problems += self._timing(source.cue, row, fetched.get(sha256))
         return problems
 
     def _values(self, source: GlobalCueSource, path: str | None, sha256: str) -> dict[str, float] | str:
@@ -45,3 +52,14 @@ class CueTableVerifier:
             return {v.value_date.isoformat(): v.value for v in source.parse(data)}
         except UNREADABLE as exc:
             return f"{path} fails the publisher's check: {exc}"
+
+    def _timing(self, cue: str, row: dict[str, str], fetched_at: datetime | None) -> list[str]:
+        """`first_seen_at` never before the copy was fetched, and `provenance` recomputed from it."""
+        seen = datetime.fromisoformat(row["first_seen_at"])
+        problems = []
+        if fetched_at is not None and seen < fetched_at:
+            problems.append(f"{cue} {row['value_date']}: first seen {seen} before its copy was fetched {fetched_at}")
+        label = provenance(date.fromisoformat(row["value_date"]), seen, self.next_session)
+        if row["provenance"] != label:
+            problems.append(f"{cue} {row['value_date']}: labelled {row['provenance']}, should be {label}")
+        return problems
