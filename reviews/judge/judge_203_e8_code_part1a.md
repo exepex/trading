@@ -108,3 +108,32 @@ in place of the whole-snapshot "complete" test for A16 copies. **Sound, with fou
 
 Would the two should-fixes change a trade? Yes. Should-fix 1 fills on away days. Should-fix 2 can lose an exit.
 Re-review: those two only.
+
+## Addendum 1: fixes at c9f32507: PASS
+
+The only change since 0516cfb0 is `seal_log.py`, `timed_reads.py` and two test files (+69, -11).
+
+**Should-fix 1: closed.**
+- `GitSealLog.sealed_before` first checks `git rev-parse --is-shallow-repository`.
+- Anything but `false`, including an error or empty output, raises `AvailabilityRefused` with the unshallow message,
+  so the step fails, entries fail closed and exits run.
+- `latest()` and `add()` need no commit time (the sealer compares only the seal's content), so they rightly skip the
+  check.
+- The new test builds a real origin with two seal commits and a `--depth 1` clone. The clone refuses and the full
+  repository answers.
+
+**Should-fix 2: closed.**
+- `TimedStore` caps only `get`, `checksums` and `folders`. `put` raises `ReadOnlyStoreError` and never starts a write.
+- A test holds a read inside `AvailabilitySealer` until it times out, then releases it, and shows that no seal is
+  added.
+
+**Gates** on a trial merge with origin/main:
+- `tests/desk_owner_timing`: 46 passed.
+- Full suite with `-n auto`: 6,859 passed in 2 min 35 s.
+- ruff check, ruff format and check_imports are clean.
+
+**Dependency, not this head's:** the routine's own unshallow at the start of the run lands in O1, with the O1 builder.
+Until it does, a shallow routine session gets a refused fill step every day: no new entries, exits still run. It
+fails safe, but it would stop paper trading, so O1's change is needed before E8 goes live.
+
+E8 part 1a passes. Part 1b is next, under the four conditions in this file.
