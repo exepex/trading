@@ -138,6 +138,9 @@ gaps." These rules add to the loop above; none of them replaces the judge's own 
 **Merge procedure: when the gates run (owner, 16 Oct 2026; story X fast checks).**
 - The gates (`python -m pytest -q -n auto`, `ruff check fno tests tools`, `python tools/check_imports.py`) run once,
   on the final merged tree, before the merge is pushed.
+- The gates need the whole git history: the freeze and back-fill tests read past commits. In a shallow clone
+  (`git rev-parse --is-shallow-repository` says `true`, as in some cloud sessions) those tests fail with "shallow
+  clone: run git fetch --unshallow origin main"; run that command, then the gates again. It is never a code failure.
 - A `git pull --no-rebase` just before the push that brings only lane-3 files (`reviews/`, `conversations/`,
   `docs/DESK_DECISIONS.md`, `docs/WORK_REGISTER.md`: the paths `tools/ci_scope.sh` names) needs no rerun: no gate reads
   them. A pull that brings anything else means the gates run again on the new tree.

@@ -118,3 +118,22 @@ are finding 2.
 - **Size:** every file is under 350 lines.
 - **Process:** the self-review is present (1 must-fix and 8 should-fix, 7 applied, 2 stated), and real index files are
   used.
+
+## Addendum 1: re-judge of revision 1 at `f6d0d379312739e0df291dbaed5e4252a12fb7dd` (judge G)
+
+**Verdict: PASS.** I judged the S6 commit `f6d0d379`. The rest of the range is main merged in.
+
+| # | Fix | Re-judge |
+|---|---|---|
+| 1 (should fix) | The cash-rate placeholder: `PROTOCOL.md` says "cash rate = 5.5% a year (set at the freeze)"; `undecided_items` refuses any value still carrying the marker; a test pins `Terms.cash_rate` to the protocol's number; the freeze and `--decided` both refuse | **Accepted.** On the real `PROTOCOL.md`, `python -m fno evaluation check --decided` lists `do_nothing_benchmark` as not decided, and the parsed value contains the marker even though it is split across a line break. My mutations are caught: ignoring the marker (4 tests fail), and changing `Terms.cash_rate` to 0.06 without the protocol (3 fail). The freeze test refuses with "not decided by the owner: do_nothing_benchmark" and writes no freeze file |
+| 2 (should fix) | Three test gaps | **Accepted.** I re-planted all three surviving mutations. Each now fails a test: the t-check keeping the oldest remainder, the 10-step window at `<`, and no bucket replay in `_twin` |
+| note 1 | Scoreboard A's capital cut | Labelled on the board (`capital_cut`, with the count of takes): accepted |
+| note 3 | Fixtures | The 12 and 13 Oct fixtures are now the archived bytes. A new test pins all five fixtures to the manifest's SHA-256. Accepted |
+
+**Gates on `f6d0d379`:**
+
+- ruff check, ruff format and `check_imports` are clean.
+- `tests/scoreboard tests/evaluation` with `-n auto`: 187 passed.
+- Full suite with `-n auto` (`env -u FNO_SLACK_BOT_TOKEN`, full git history): **6,641 passed, 0 failed**.
+
+Per rule 9 (money and the real-money gate's input), ChatGPT reviews next, then the merge with S3.

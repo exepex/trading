@@ -13,6 +13,7 @@ FIELDS = (
     "session", "status", "rv_session", "rv_intraday", "rv_overnight", "vol_pct", "void_reason", "good_slots",
     "due_slots", "basis_counts", "measure", "method", "source", "as_of", "first_seen_at", "inputs_sha256",
 )  # fmt: skip
+CUTOFF_FIELDS = ("moved_after_cutoff", "cutoff_move_sign")  # G10: the 14:30-15:15 flag and sign, never a level
 ROOT = "rv/"  # everything the table writes is under this folder
 FILE_NAME = ROOT + "{day:%Y}/nifty_rv_{day:%Y%m%d}.csv"
 PATTERN = ROOT + "*/nifty_rv_*.csv"
@@ -25,9 +26,10 @@ class RvConflict(RuntimeError):
 
 
 class RvTable:
-    """A16's table; a subclass with its own file layout and columns keeps every rule (story A16b)."""
+    """A16's table; a subclass with its own file layout and columns keeps every rule (story A16b). Rows written before
+    G10 have no cutoff columns (each file carries its own header): readers use `.get`."""
 
-    fields, file_name, pattern = FIELDS, FILE_NAME, PATTERN
+    fields, file_name, pattern = (*FIELDS, *CUTOFF_FIELDS), FILE_NAME, PATTERN
 
     def __init__(self, folder: Path):
         self.folder = Path(folder)
