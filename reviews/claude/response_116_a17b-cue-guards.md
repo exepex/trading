@@ -5,11 +5,12 @@ Branch `story/a17b-cue-guards`. Story text passed at 464f5ff (judge 116 addendum
 ## Verdict first
 
 Every reading now says how old it is, which date it should be, and whether it is that date. The real tables give
-(dates, ages and statuses only; never a private value):
+(dates, ages and statuses only; never a private value). Every cell is the research view (`live_only=False`) unless it
+says otherwise:
 
 | India date, cutoff | sp500 | nasdaq100 | us10y | brent | usdinr_rbi | usdinr_fbil |
 |---|---|---|---|---|---|---|
-| 15 Oct 2026, 09:15 | 14 Oct, current | 13 Oct, **behind** (expected 14 Oct) | 14 Oct, current | 2 Oct, behind (13 days) | 14 Oct, current | 7 Oct, behind (8 days) |
+| 15 Oct 2026, 09:15 | 14 Oct, current | 13 Oct, **behind** (expected 14 Oct) | 14 Oct, current | 2 Oct, behind (13 days; research view, which assumes Brent is out 10 days after its date; the live view gives 6 Oct, behind, 9 days: the copy fetched at 06:15 IST held it) | 14 Oct, current | 7 Oct, behind (8 days) |
 | 15 Oct 2026, 15:00 | 14 Oct, current | 13 Oct, behind | 14 Oct, current | 2 Oct, behind | 14 Oct, **behind** (expected 15 Oct, not yet fetched) | 7 Oct, behind |
 | 27 Nov 2026, 09:15 | 14 Oct, **stale** (44 days; expected 25 Nov, Thanksgiving skipped) | stale | stale | stale | stale | stale |
 | 31 Oct 2012, 09:15 | 26 Oct, **current** at 5 days (Sandy) | 26 Oct, current | 29 Oct, behind (expected 30 Oct) | 19 Oct, behind | 30 Oct, current | none (FBIL from 2018) |
@@ -109,3 +110,22 @@ Criterion reviewer:
 | 12 | The run's STALE disagrees with readings on closure replays | **Accepted**: stated in the README; consumers use the reading |
 | 13 | `UsSessionCalendar` name; creation times outside the store interface | Explained under "Choices to check", for the judge |
 | 14 | Diff base; README long line; `positive()` printed a private close's text in errors | **Accepted**: the judge's diff base is `git merge-base origin/main HEAD`; line wrapped; private sources' errors name the date only (test) |
+
+## Addendum 1: A17c minors (orchestrator, after judge 116 addendum 2)
+
+Branch `story/a17c-minors` from `main` af96586.
+
+1. **`expected_date` boundary test** (`tests/global_cues/test_us_calendar.py`): the expected date turns over strictly
+   after the close is out. At 01:30:00 IST in US summer time (16:00 EDT) the previous close is not yet expected, and at
+   01:30:01 it is; the same at 02:30 in winter (EST); across the US clock change of 8 Mar 2026. Broken-code proof:
+   `<` changed to `<=` is caught. Strong.
+2. **Sandy's closure source**: both rows now cite NYSE Euronext's own release "NYSE Euronext announces trading volumes
+   for October 2012" (13 Nov 2012) on euronext.com: "The industry decision to close the U.S. markets for two trading
+   days due to Hurricane Sandy". The same release is in ICE's investor-relations archive as a PDF. Limit: it says "two
+   trading days" without naming them. NYSE Euronext's 28 Oct 2012 statement ("will close its markets on Monday,
+   Oct. 29, 2012 and pending confirmation on Tuesday, Oct. 30, 2012") names the days, but I found it only reprinted by
+   news sites, not on NYSE's or ICE's own pages. The archived S&P 500 table has no row on 29 or 30 Oct 2012, which pins
+   the two days. Strong evidence together; the dates alone rest on the reprint and the archived table.
+3. **Brent row of the real-output table**: it now names its view. Research view: 2 Oct, 13 days, `behind` (it assumes
+   Brent is out 10 days after its date). Live view: 6 Oct, 9 days, `behind` (the copy fetched at 06:15 IST on 15 Oct
+   held it). Both re-run on the public table today. Every other cell is the research view, now said above the table.

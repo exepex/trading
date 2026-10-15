@@ -112,3 +112,13 @@ def test_check_writes_the_dates_of_both_us_tables_and_nothing_without_them(tmp_p
     other = tmp_path / "other.csv"
     CueChecks({"sp500": tables["sp500"]}, tmp_path / "checks", trading_dates=other).write()
     assert not other.exists()  # without the Drive tables (no settings) the committed list is left alone
+
+
+def test_expected_date_turns_over_strictly_after_the_close_is_out():
+    summer_out, winter_out = time(1, 30), time(2, 30)  # IST: 16:00 EDT and 16:00 EST on the US day before
+    assert expected(date(2026, 7, 15), summer_out) == date(2026, 7, 13)  # at the moment itself: not yet out
+    assert expected(date(2026, 7, 15), time(1, 30, 1)) == date(2026, 7, 14)
+    assert expected(date(2026, 1, 15), winter_out) == date(2026, 1, 13)
+    assert expected(date(2026, 1, 15), time(2, 30, 1)) == date(2026, 1, 14)
+    assert expected(date(2026, 3, 9), time(1, 31)) == date(2026, 3, 6)  # US clocks change 8 Mar: Friday was EST
+    assert expected(date(2026, 3, 10), time(1, 31)) == date(2026, 3, 9)  # Monday 9 Mar closes in EDT

@@ -84,3 +84,68 @@ state.
 
 **Verdict: PASS for de2830061a845cc366752ab6900da8439ec8abb2** (story text). Code may start. The merge waits for A4b,
 and by quality rule 9 the code goes to ChatGPT after my code PASS.
+
+## Addendum 2 (15 Oct 2026): E2b code at b76be4fdf00ab776148d854afde5f69d10782293
+
+Code plus the changed story text (`git diff de28300 b76be4f`). Builder's claims: response 118.
+
+### Gates
+
+| Gate | At b76be4f | Trial merge with `main` b28bc53 |
+|---|---|---|
+| `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` | 3,865 passed | 3,919 passed |
+| `ruff check` / `ruff format --check` / `check_imports.py` | clean / clean / clean | clean / clean / clean |
+| Conflicts | - | `reviews/claude/README.md` only (index rows) |
+
+A4b is not on `main` yet (judge 111 addendum 3: waits for the owner's probe), so this trial merge does not include it.
+
+## Verdict: FAIL (code), 2 should-fix; 3 minor
+
+### Per criterion
+
+| Criterion | Builder's claim | My evidence | Status |
+|---|---|---|---|
+| 1 No per-contract figure in the pack; spot per chain; two spots refused | `option:` items gone; `spot:<expiry>`, `quote_counts` | On the real 14 Oct snapshot (184 rows), `_spots` gives `spot:2026-10-27` 22,620.00 at the chain's first row (14:55:25.46) and `spot:2026-11-23` 22,621.15. Blanking one chain's spots gives that item with value None. A second level 22,620.05 in one chain is a PackError naming the expiry. 22620.0 and 22620.00 count as one level. No bid, ask or size field in any item. Plants M13, M14, M19 and M20 caught | MET |
+| 2 C3 from `spot:` items; one spot per chain | blank or refused `spot:` named | The code names a blank item and a refused item. Plants M11 (refused ignored) and M12 (blank ignored) caught | MET |
+| 3 Fill rows carry no touch; exceptions pinned; E6 from the snapshot; unknowns counted | as in response 118 | `FILL_COLUMNS` has no `quote_bid`/`quote_ask`. The cross-account test (`test_public_fills.py:73`) compares across book 1 and book 2 by snapshot and contract, as my addendum 1 note asked. Hand check on the real snapshot: 10 legs at the touch give 5.9325/unit from `half_spread`, and my own arithmetic gives 5.9325. Wrong hash, blank or `../` snapshot ID, absent contract, other contract ID, other day: each is one "touch unknown", no crash. The report prints the count (plant M22 caught). **But a corrupt snapshot and a one-sided quote are untested (should-fix 2)** | PARTLY |
+| 4 Capture commits record and sidecar only | `names[1]` | Plant M15 (the CSV re-added) caught | MET |
+| 5 Guard: before git, after the add, folders, earlier-staged files | as in response 118 | On real git repositories: a folder, a trailing-slash pathspec and a parent folder are refused after the add, and the add is undone. A file staged earlier is refused and left staged. `.CSV`, `../` and a symlink are refused. A sidecar alone commits. Plants M1-M5 and M21 caught. **But a refusal inside an account write escapes the desk's per-book handling after the fills were applied (should-fix 1)** | PARTLY |
+| 6-7 E2 criteria on schema 2; no `option:` reader | existing tests | Full suite green. My grep finds no `option:` lookup left in `fno/` | MET |
+| Story text re-check | exceptions 1-3, known channels, kept mids | Exception 3 matches `fno/desk/exits.py:90-106`. The scoreboard B channel matches `daily_values.py:44-55`. All are stated for the owner, not silently kept. One slip (minor 1) | MET |
+
+Plants: 22 of my own. 20 were caught; M16 and M18 survived (should-fix 2).
+
+## Should-fix
+
+**1. A guard refusal during an account write leaves the fills applied but not committed, and escapes the desk's per-book handling.**
+- **What happens.** `GitAccountSync.write` runs `apply(journal)` (the fills reach the book's ledger), and only then `commit_paths`.
+- **Probe on a real repository.** A raw quote file staged earlier outside the book folder, then one account write:
+  - `RawQuoteCommitRefused` is raised. It is a `ValueError`, not `AccountWriteRefused`.
+  - `cash_ledger.csv` already holds the new fill row, uncommitted.
+  - The next write for that book stops on "uncommitted work in journal/book1_rules/account".
+- **Why it matters.**
+  - `DailySteps.fill` catches only `AccountWriteRefused` (`daily_steps.py:143`, "never crashes the run before its exits", judge 84). This refusal escapes `fill()`, ends the run step, and the exits step never runs.
+  - The paper account then holds a trade that the run log does not record.
+  - In `review_exits` the broad handler alerts, but the exit fills are likewise applied and not committed.
+  - This is exactly the case criterion 5 was written for ("a quote file staged earlier by anything else"). So when the guard does its job, it breaks judge 84 and splits the account from its record.
+- **Expected fix.**
+  - Check the whole index in the account write's dedicated check, before `apply`, so a refusal applies nothing.
+  - Make the refusal one the desk handles: an `AccountWriteRefused` subclass, or caught and turned into one. The fill step then records "not filled" with an alert, and other books and the exits go on.
+  - Test it: with an earlier-staged quote file, the fill step gives "not filled" plus an alert, the journal is byte-identical, and exits are still reviewed. Add the same for an exit write.
+
+**2. "Touch unknown, never a crash" is untested for the two cases that need the code.**
+- **M16 survived.** Narrowing `except (SnapshotError, ValueError, KeyError, OSError)` to `SnapshotError` passes all 293 related tests. On a copy of the real snapshot with a corrupt `.meta.json`, the reader raises `JSONDecodeError`, not `SnapshotError`, so without the wide `except` E6 crashes.
+- **M18 survived.** Dropping the bid/ask `None` check passes too. `ExecutionQuote.bid/ask` are `float | None`, so a one-sided quote would then crash on `None + float`.
+- **Expected fix:** two tests. A corrupt sidecar or CSV gives one "touch unknown", and a one-sided quote gives one "touch unknown"; both still average the other fills.
+
+## Minor
+
+1. **Story text slip.** "**two stated exceptions**" is followed by a list of three. Make it "three", matching criterion 3.
+2. **A chain with no rows at all gets no `spot:` item** (the meta's `expiries` lists it, the rows do not). C3's 0.2% agreement then quietly runs on one chain, as it did before E2b. "One spot per recorded chain" could take the chain list from `meta["expiries"]` and give a missing chain a None item. Reasoning only; not a regression.
+3. **The guard is path-based by design.** A raw file copied or renamed outside the folder passes. It also refuses a staged deletion of a raw quote file (`diff --cached` lists deletions). That errs on the safe side, but if A4b removes the 14 Oct Groww CSV that is still on `main` (`.../2026/10/nifty_20261014_145500.csv`, public since that day), that removal must not go through `Git`.
+
+## For the merge check (after A4b)
+
+- `fno/scorecard/wiring.py` builds E6's snapshots from the local quote folder. After A4b, it must read through A4b's hash-checked Drive store, or every fill outside the capture's checkout is "touch unknown". The merge must keep one version of `execution_capture.py`.
+
+**Verdict: FAIL for b76be4fdf00ab776148d854afde5f69d10782293** (code) on should-fixes 1-2. A re-check needs only `git_sync.py`, the fill and exit step handling, `touches.py` and their tests.
