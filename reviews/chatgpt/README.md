@@ -80,3 +80,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 116: BR1 breadth-track design — partial](review_116_br1-breadth-design.md)
 - [Review 121: BR1a breadth protocol — ACCEPT](review_121_br1a-protocol.md)
 - [Review 122: E8 owner-timing fills — CHANGE](review_122_e8-owner-timing-fills.md)
+- [Review 125: RM2 real-money test record — PARTIAL](review_125_rm2-real-money-record.md)
