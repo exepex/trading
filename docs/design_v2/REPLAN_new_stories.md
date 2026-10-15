@@ -46,7 +46,7 @@ the day. Layer and section references are to the design v2 files.
   `fno/forecast_scoring/`. Acceptance (G6 revision 7, judge 98 addendum 6): every verdict, claim, "no" and Test A
   result prints its scored window's regime (mean India VIX, 2%-day count and judgeable band) from
   `fno/forecast_v4/regime.py`. Depends: G6, G4. M. Slice A.
-- **G9 House forecast.** The combination rule of 7.4 as a versioned strategy, its calibration lines for the card, and
+- **G12 House forecast.** The combination rule of 7.4 as a versioned strategy, its calibration lines for the card, and
   its change only at quarterly reviews. Depends: G8, a first review. S. Slice C.
 - **G10 AI books on the v4 questions.** A new prompt version for books 2 and 3 under the sealed-same-day rule and its
   audit. Depends: G6, G5. S. Slice C.
