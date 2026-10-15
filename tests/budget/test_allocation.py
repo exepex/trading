@@ -18,7 +18,17 @@ THREE_WAYS = [usage("books_and_roles", "book2_hybrid", 10), usage("books_and_rol
 def test_parts_sum_exactly_to_the_plan_cost_even_when_rounding_is_uneven(cost):
     parts = allocate("2026-10", cost, THREE_WAYS).allocated_rs
     assert round(sum(parts.values()) * 100) == round(cost * 100)
-    assert max(parts.values()) - min(parts.values()) <= 0.01  # equal minutes: at most one paisa apart
+
+
+def test_the_remainder_goes_to_the_largest_share_ties_to_the_first_by_name():
+    """S1's decided rule (`ai_cost_allocation`, 14 Oct 2026): "to the paisa, with the remainder added to the largest
+    share". Rs 1,700 over three equal shares: 566.66 each and 2 paise left, all to the first share by name."""
+    parts = allocate("2026-10", 1700.0, THREE_WAYS).allocated_rs
+    assert parts == {("books_and_roles", "book2_hybrid", ""): 566.68, ("books_and_roles", "book3_ai", ""): 566.66,
+                     ("development", "", "builder"): 566.66}  # fmt: skip
+    uneven = [usage("books_and_roles", "book3_ai", 10), usage("development", "builder", 11)]
+    parts = allocate("2026-10", 100.0, uneven).allocated_rs  # 47.619... and 52.380...: 1 paisa left
+    assert parts == {("books_and_roles", "book3_ai", ""): 47.61, ("development", "", "builder"): 52.39}
 
 
 def test_a_hand_computed_month():

@@ -41,3 +41,29 @@ def test_an_input_exists_only_when_its_story_names_a_path_that_is_there(tmp_path
     (tmp_path / "scores.csv").write_text("x\n")
     assert StopRuleInput("A", "w", "G8", "scores.csv").exists(tmp_path)
     assert not StopRuleInput("A", "w", "G8").exists(tmp_path)
+
+
+def test_a_month_ending_on_a_weekend_falls_back_to_its_friday():
+    """Judge 104 should-fix 1: July 2027 ends on a Saturday; the calendar has no 2027 rows here."""
+    review = review_date(date(2027, 1, 10), "2026-11", CAL_2026)
+    assert review.day == date(2027, 7, 30) and review.day.weekday() == 4
+
+
+def test_the_freeze_date_in_config_is_read_by_the_wiring():
+    from fno.budget.wiring import build_review_date
+    from fno.config import load_app_config
+
+    config = load_app_config()
+    config["budget"]["stop_rule"]["v4_freeze_date"] = "2026-12-03"
+    review = build_review_date(config)
+    assert review.day == date(2027, 6, 30) and "freeze on 2026-12-03" in review.basis
+    assert build_review_date().basis.startswith("projected")
+
+
+def test_the_review_date_reached_alert_comes_only_on_or_after_the_date():
+    from fno.budget.stop_rule_tracker import review_reached
+
+    review = review_date(None, "2026-11", CAL_2026)
+    assert review_reached(review, date(2027, 5, 30)) == ""
+    text = review_reached(review, date(2027, 5, 31))
+    assert text.startswith("Omenix F&O SYSTEM: the stop-rule review date (31 May 2027") and "Test A and Test B" in text

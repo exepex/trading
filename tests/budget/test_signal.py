@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 from fno.alerts.dry_run import DryRunAlertSender
-from fno.budget.cap import CapSettings, cap_reading
+from fno.budget.cap import CapSettings, Coverage, cap_reading
 from fno.budget.signal import send_alert, signal_data, write_signal
 from fno.constants import AI_ROLE_STOP_ORDER
 
@@ -16,7 +16,7 @@ def data_at(used):
         {"purpose": "books_and_roles", "minutes": str(used)},
         {"purpose": "development", "minutes": str(100 - used)},
     ]
-    return signal_data("2026-10", cap_reading(rows, CapSettings(50, 80, 100, None)), 0, AT)
+    return signal_data("2026-10", cap_reading(rows, CapSettings(50, 80, 100, None), "2026-10", Coverage()), 0, AT)
 
 
 def test_a_stop_signal_carries_the_stop_order_and_keeps_code_jobs(tmp_path):
@@ -51,5 +51,11 @@ def test_the_composition_root_wires_only_the_dry_run_sender():
 
 def test_the_alert_text_never_rounds_up_to_the_stop_level():
     rows = [{"purpose": "books_and_roles", "minutes": "99.96"}, {"purpose": "development", "minutes": "100.04"}]
-    data = signal_data("2026-10", cap_reading(rows, CapSettings(50, 80, 100, None)), 0, AT)
+    data = signal_data("2026-10", cap_reading(rows, CapSettings(50, 80, 100, None), "2026-10", Coverage()), 0, AT)
     assert data["level"] == "alert" and "used 99.9% of their cap (99.96 of 100.00 minutes)" in data["alert_text"]
+
+
+def test_99_6_percent_reads_99_6_not_100():
+    rows = [{"purpose": "books_and_roles", "minutes": "49.8"}, {"purpose": "development", "minutes": "50.2"}]
+    data = signal_data("2026-10", cap_reading(rows, CapSettings(50, 80, 100, None), "2026-10", Coverage()), 0, AT)
+    assert data["level"] == "alert" and "used 99.6% of their cap" in data["alert_text"]

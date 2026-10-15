@@ -1,8 +1,8 @@
 """The AI usage ledger `accounting/ai_usage.csv` (story F8): one row per AI session per IST day, written once and never
-rewritten. Rows come only from a `SessionUsageReader`; only complete days are recorded: before today in IST and before
-the day the usage was read. A session is known by its id without the prefix (`session_` or `cse_`), so the same session
-written two ways is still recorded once. The file is rewritten whole through a temporary file, never appended in place.
-One recorder at a time: there is no lock (no routine runs this yet)."""
+rewritten. Rows come only from a `SessionUsageReader`; only days the reader calls complete are recorded (before today,
+and before the day an export was taken), each with the time it was read. A session is known by its id without the prefix
+(`session_` or `cse_`), so the same session written two ways is still recorded once. The file is rewritten whole through
+a temporary file, never appended in place. One recorder at a time: there is no lock (no routine runs this yet)."""
 
 from __future__ import annotations
 
@@ -15,13 +15,13 @@ from datetime import date
 from pathlib import Path
 
 from ..constants import AI_BOOKS, PURPOSE_BOOKS_AND_ROLES, USAGE_PURPOSES
-from .usage_export import TOKEN_FIELDS, DayUsage
+from .usage_export import TOKEN_FIELDS
+from .usage_reader import DayUsage
 
 LEDGER_FILE = "accounting/ai_usage.csv"
 COLUMNS = ("date", "purpose", "book", "role_or_bundle", "session_id", "model", "minutes", "turns",
-           *TOKEN_FIELDS, "tokens_basis", "source")  # fmt: skip
+           *TOKEN_FIELDS, "tokens_basis", "source", "captured_at")  # fmt: skip
 TOKENS_BASIS = "main-loop usage of result events (side calls not included)"
-SOURCE = "get_session + list_events(result) export"
 NOT_COMPLETE = "{day} is not complete in this reading (complete days are before {before}): record it from a later one"
 SESSION_ID = re.compile(r"session_[A-Za-z0-9]+")  # get_session's id form
 
@@ -116,4 +116,5 @@ def _row(usage: DayUsage, who: Attribution) -> dict:
            "role_or_bundle": who.role_or_bundle, "session_id": usage.session_id, "model": usage.model,
            "minutes": f"{usage.minutes:.2f}", "turns": usage.turns}  # fmt: skip
     row |= {column: tokens.get(column, "") for column in TOKEN_FIELDS}  # blank: unknown, never zero
-    return row | {"tokens_basis": TOKENS_BASIS if usage.tokens else "not available", "source": SOURCE}
+    basis = TOKENS_BASIS if usage.tokens else "not available"
+    return row | {"tokens_basis": basis, "source": usage.source, "captured_at": usage.captured_at}

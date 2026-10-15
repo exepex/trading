@@ -1,5 +1,6 @@
 """A sender that sends nothing and says what it would have sent: for stories whose alerts are data until a later
-routine wires the Slack sender (story BG1)."""
+routine wires the Slack sender (story BG1). It sits beside `NoAlertSender` on purpose: that one reports a missing token
+as a failure, while a dry run is the intended outcome and keeps the texts it would have sent, so tests read them."""
 
 from __future__ import annotations
 

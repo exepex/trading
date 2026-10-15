@@ -1,7 +1,9 @@
 """The whole-project stop rule's tracker (story BG1; design v2 section 8.2, owner decision of 15 Oct 2026). Review date:
-the last session of the sixth full calendar month after protocol v4's freeze (the freeze's own month is not counted).
-While v4 is not frozen the date is projected from the design's assumed freeze month and says so. Test A and Test B are
-only reported as computable once every input they need exists; until then each reads "not computable yet"."""
+the last session of the sixth full calendar month after protocol v4's freeze (the freeze's own month is not counted;
+"session" is any NSE session, a special weekend session included: design 8.2 does not say, and it is immaterial for the
+months seen). While v4 is not frozen the date is projected from the design's assumed freeze month and says so. Test A
+and Test B are only reported as computable once every input they need exists; until then each reads "not computable
+yet"."""
 
 from __future__ import annotations
 
@@ -19,6 +21,10 @@ WEEKDAY_FALLBACK = (
     "the NSE calendar has no {year} rows, so the last weekday is used until NSE's {year} circular is added"
 )
 NOT_COMPUTABLE = "not computable yet"
+REVIEW_REACHED = (
+    "Omenix F&O SYSTEM: the stop-rule review date ({day:%d %b %Y}, {basis}) is reached: run Test A and Test B "
+    "(design v2 section 8.2)"
+)
 ZERO_SHADOWS = "at the review, zero eligible or resolved shadows gives undecided / no_economic_test, never no"
 
 
@@ -73,3 +79,8 @@ def stop_test_status(root: Path, test: str) -> tuple[str, list[StopRuleInput]]:
     """'computable' or 'not computable yet', with the inputs still missing."""
     missing = [i for i in INPUTS if i.test == test and not i.exists(root)]
     return ("computable" if not missing else NOT_COMPUTABLE), missing
+
+
+def review_reached(review: ReviewDate, today: date) -> str:
+    """Design v2 section 6.5's SYSTEM alert "a stop-rule date reached", or empty before the date."""
+    return REVIEW_REACHED.format(day=review.day, basis=review.basis) if today >= review.day else ""

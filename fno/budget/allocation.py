@@ -1,15 +1,21 @@
-"""The month's Claude plan cost split by measured minutes (story F8, formula `minutes_share_v1`, to be frozen by S1).
-Each (purpose, book, role) gets cost x its minutes / all minutes, in paise, with the paise left by rounding given to
-the largest remainders, so the parts sum exactly to the recorded cost. The result is "allocated, not a bill": the cash
-spent is the plan's fee, shown apart. No recorded cost: every part is unknown (None), never zero."""
+"""The month's Claude plan cost split by measured minutes (story F8; S1's decided item `ai_cost_allocation` of 14 Oct
+2026, `research/evaluation/PROTOCOL.md`). Each (purpose, book, role) gets cost x its minutes / all minutes, rounded down
+to the paisa; the paise left go to the largest share (most minutes; a tie goes to the first in name order), so the
+parts sum exactly to the recorded cost. Development's part is "development, not a book cost". The result is
+"allocated, not a bill": the cash spent is the plan's fee, shown apart. No recorded cost: every part is unknown
+(None), never zero. When sessions are known to be missing, the meter says which way the book shares are off."""
 
 from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from decimal import Decimal
 
 FORMULA = "minutes_share_v1"
 ALLOCATED_LABEL = "allocated, not a bill"
+DEVELOPMENT_LABEL = "development, not a book cost"
+BOOKS_UNDERSTATED = "{n} fired AI book session(s) not captured: book shares understated"
+BOOKS_OVERSTATED = "development not fully captured ({reason}): book shares overstated"
 UNMEASURED = ("unmeasured", "", "no measured usage")  # where the cost goes in a month with no measured minutes
 
 Share = tuple[str, str, str]  # (purpose, book, role_or_bundle)
@@ -19,7 +25,7 @@ Share = tuple[str, str, str]  # (purpose, book, role_or_bundle)
 class Allocation:
     month: str
     plan_cost_rs: float | None  # None: the owner has not recorded the month's fee
-    minutes: dict[Share, float]
+    minutes: dict[Share, Decimal]
     allocated_rs: dict[Share, float | None]
 
     @property
@@ -29,10 +35,11 @@ class Allocation:
         )
 
 
-def minutes_by_share(usage_rows: list[dict]) -> dict[Share, float]:
-    minutes: dict[Share, float] = defaultdict(float)
+def minutes_by_share(usage_rows: list[dict]) -> dict[Share, Decimal]:
+    """Exact sums of the ledger's two-decimal minutes, so the split's rounding never depends on float error."""
+    minutes: dict[Share, Decimal] = defaultdict(Decimal)
     for row in usage_rows:
-        minutes[(row["purpose"], row["book"], row["role_or_bundle"])] += float(row["minutes"])
+        minutes[(row["purpose"], row["book"], row["role_or_bundle"])] += Decimal(row["minutes"])
     return dict(sorted(minutes.items()))
 
 
@@ -48,10 +55,14 @@ def allocate(month: str, plan_cost_rs: float | None, usage_rows: list[dict]) -> 
     return Allocation(month, plan_cost_rs, minutes, _split(round(plan_cost_rs * 100), minutes, total))
 
 
-def _split(paise: int, minutes: dict[Share, float], total: float) -> dict[Share, float]:
-    exact = {share: paise * value / total for share, value in minutes.items()}
-    parts = {share: int(value) for share, value in exact.items()}
-    left = paise - sum(parts.values())
-    for share in sorted(exact, key=lambda s: (parts[s] - exact[s], s))[:left]:  # largest remainders first
-        parts[share] += 1
+def _split(paise: int, minutes: dict[Share, Decimal], total: Decimal) -> dict[Share, float]:
+    parts = {share: int(paise * value // total) for share, value in minutes.items()}
+    largest = min(minutes, key=lambda share: (-minutes[share], share))  # most minutes; ties: first in name order
+    parts[largest] += paise - sum(parts.values())
     return {share: part / 100 for share, part in parts.items()}
+
+
+def coverage_warnings(book_missing: int, development_gap: str) -> list[str]:
+    """Which way the book shares are off when sessions are missing from the minutes."""
+    warnings = [BOOKS_UNDERSTATED.format(n=book_missing)] if book_missing else []
+    return warnings + ([BOOKS_OVERSTATED.format(reason=development_gap)] if development_gap else [])

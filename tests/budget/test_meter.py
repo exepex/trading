@@ -8,6 +8,7 @@ import pytest
 
 from fno.budget.capture_coverage import FireLogUnreadable, not_captured
 from fno.budget.report import meter_lines, stop_rule_lines
+from fno.budget.session_roster import SessionRoster
 from fno.budget.stop_rule_tracker import review_date
 from fno.budget.usage_export import ExportFileUsageReader
 from fno.budget.usage_ledger import Attribution, UsageLedger, session_key
@@ -20,6 +21,8 @@ COSTS = "month,item,category,amount_rs,source\n2026-10,Claude subscription,ai,17
 
 
 TODAY = date(2026, 10, 16)
+DEV_IN_ROSTER = {"session_id": "session_01DEVabc", "created_at": "2026-10-14T09:00:00+05:30",
+                 "updated_at": "2026-10-14T12:00:00+05:30", "captured_at": "2026-10-16T08:00:00+05:30"}  # fmt: skip
 FIRED_LINK = f"https://claude.ai/code/cse_{SESSION_ID.split('_', 1)[1]}"  # the same session as the export
 
 
@@ -32,6 +35,7 @@ def repo(tmp_path, costs=COSTS, fired_session=FIRED_LINK):
     builder["session"]["ccr"]["id"] = "session_01DEVabc"
     days = ExportFileUsageReader(write_export(tmp_path, builder)).days()  # 3 minutes on 14 Oct
     UsageLedger(tmp_path).record(days, Attribution("development", "", "builder"), date(2026, 10, 16))
+    SessionRoster(tmp_path).record([DEV_IN_ROSTER])
     log = tmp_path / "research/forecasts/ai_v1/2026/2026-10-14_fired.json"
     log.parent.mkdir(parents=True)
     entries = {"book2_hybrid": {"fired": True, "session": fired_session}, "book3_ai": {"fired": True, "session": ""}}
@@ -44,10 +48,12 @@ def test_the_meter_keeps_cash_spend_and_allocated_cost_apart(tmp_path):
     text = "\n".join(lines)
     assert "Claude subscription: cash spend Rs 1,700.00" in text
     assert "allocated, not a bill (minutes_share_v1)" in text and "books_and_roles book2_hybrid: Rs 850.00" in text
-    assert "development builder: Rs 850.00" in text
+    assert "builder (development, not a book cost): Rs 850.00" in text
     assert "Azure Database for PostgreSQL: cash spend not recorded" in text
     assert "NEEDS OWNER: 2026-10 Paid data Rs 99.00" in text
     assert "3.00 of 3.00 minutes = 100.0%; level stop" in text and "plan's real capacity is not measurable" in text
+    assert "development capture: complete" in text
+    assert "WARNING: 1 fired AI book session(s) not captured: book shares understated" in text
 
 
 def test_a_month_without_the_plan_cost_shows_unknown(tmp_path):
@@ -89,3 +95,21 @@ def test_the_stop_rule_lines_say_projected_days_left_and_missing_inputs(tmp_path
 def test_a_purpose_without_rows_says_no_rows_not_zero(tmp_path):
     meter = build_month_meter("2026-11", TODAY, repo(tmp_path), load_app_config())
     assert "measured development: no rows recorded (unknown, not zero)" in "\n".join(meter_lines(meter))
+
+
+def test_without_a_fresh_roster_the_level_is_unknown_and_book_shares_are_overstated(tmp_path):
+    root = repo(tmp_path)
+    (root / "accounting/ai_session_roster.csv").unlink()
+    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, load_app_config())))
+    assert "level unknown" in text and "no session roster read since 2026-10-16T00:00:00+05:30" in text
+    assert "development not fully captured (no session roster read since" in text and "book shares overstated" in text
+
+
+def test_tokens_are_not_available_when_any_row_lacks_them(tmp_path):
+    root = repo(tmp_path)
+    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, load_app_config())))
+    assert "measured books_and_roles: 3.00 minutes, 1 session(s), output tokens 300" in text
+    path = root / "accounting/ai_usage.csv"
+    path.write_text(path.read_text(encoding="utf-8").replace(",100,", ",,", 1), encoding="utf-8")
+    text = "\n".join(meter_lines(build_month_meter("2026-10", TODAY, root, load_app_config())))
+    assert "measured books_and_roles: 3.00 minutes, 1 session(s), output tokens not available" in text

@@ -34,7 +34,8 @@ def export(events: list[dict], has_more: bool = False, wrapped: bool = True, cap
 
 
 def chained(*event_pages: list[dict]) -> dict:
-    """An export whose pages run newest to oldest, each read with the newer page's first_id."""
+    """An export whose pages run newest to oldest, each read with the newer page's first_id; the last says
+    has_more false (the real last page omits the key: see the envelope test)."""
     data = export([])
     pages, cursor = [], None
     for n, events in enumerate(event_pages, start=1):

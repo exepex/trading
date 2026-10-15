@@ -1,10 +1,11 @@
 """Design v2 section 8.1's cost items for one month, from the owner's `accounting/operating_costs.csv` (story C1's
 file): the cash spent on each item (None when nothing is recorded: "not recorded", never zero), and the new-cost rule:
-any recorded cost other than the two running before 15 Oct 2026, or of an item not in 8.1, needs the owner's written
-yes, shown by a `DESK_DECISIONS` row cited in the row's `source`."""
+any recorded cost other than the two running before 15 Oct 2026, or of an item not in 8.1, and any negative amount,
+needs the owner's written yes, shown by citing an existing `docs/DESK_DECISIONS.md` row in the row's `source`."""
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from ..constants import (
@@ -19,10 +20,14 @@ from ..constants import (
 )
 
 DECISION_CITATION = "DESK_DECISIONS"
-NEEDS_YES = "{month} {item} Rs {amount:,.2f}: a new recurring cost needs the owner's written yes (cite its {cite} row)"
+CITATION = re.compile(r"DESK_DECISIONS: (.+)$")
+NEEDS_YES = (
+    "{month} {item} Rs {amount:,.2f}: a new recurring cost (or a negative amount) needs the owner's written yes: "
+    "cite its {cite} row as `DESK_DECISIONS: <bold title>`"
+)
 CAPS = {  # what 8.1 sets for each item (the AI cap itself is computed in cap.py)
     ITEM_CLAUDE_PLAN: "AI minutes cap for books and roles (below)",
-    ITEM_GITHUB_DRIVE: "no cap needed (free: public repositories; Drive within the owner's storage)",
+    ITEM_GITHUB_DRIVE: "no cap needed (free); storage not reported yet: no Drive size source is wired (later)",
     ITEM_AZURE_POSTGRES: "no cap set; owner records the cost",
     ITEM_GROWW_API: "no cap set; owner records any charge",
     ITEM_RECORDER_HOSTING: "a Claude routine (owner, 15 Oct 2026): measured as data_routines minutes, not a cash cost",
@@ -46,16 +51,23 @@ def plan_cost(costs: list[dict], month: str) -> float | None:
     return _cash([row for row in costs if row["month"] == month], ITEM_CLAUDE_PLAN)
 
 
-def unapproved_costs(costs: list[dict], month: str) -> list[str]:
-    """One line per recorded cost of the month that needs the owner's written yes and cites none."""
-    return [
-        NEEDS_YES.format(month=month, item=row["item"], amount=float(row["amount_rs"]), cite=DECISION_CITATION)
-        for row in costs
-        if row["month"] == month
-        and float(row["amount_rs"]) > 0
-        and row["item"] not in EXISTING_COST_ITEMS
-        and DECISION_CITATION not in row["source"]
-    ]
+def unapproved_costs(costs: list[dict], month: str, decisions: str) -> list[str]:
+    """One line per recorded cost of the month that needs the owner's written yes and does not cite an existing
+    decision row: its `source` must read `DESK_DECISIONS: <the row's bold title>`, and that row must exist."""
+    lines = []
+    for row in costs:
+        amount = float(row["amount_rs"])
+        if row["month"] != month or amount == 0 or (row["item"] in EXISTING_COST_ITEMS and amount > 0):
+            continue
+        title = cited_title(row["source"])
+        if title is None or f"**{title}**" not in decisions:
+            lines.append(NEEDS_YES.format(month=month, item=row["item"], amount=amount, cite=DECISION_CITATION))
+    return lines
+
+
+def cited_title(source: str) -> str | None:
+    match = CITATION.search(source)
+    return match.group(1).strip() if match else None
 
 
 def unknown_items(costs: list[dict], month: str) -> list[str]:

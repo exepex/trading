@@ -79,7 +79,7 @@ def test_a_time_without_a_zone_is_refused(tmp_path):
     with pytest.raises(ExportRefused, match="has no time zone"):
         days_of(tmp_path, export([result_event("2026-10-14T20:00:00", 60_000, "u1")]))
     with pytest.raises(ExportRefused, match="captured_at"):
-        ExportFileUsageReader(write_export(tmp_path, export(TWO_DAYS, captured_at="2026-10-16T09:00"))).captured_on()
+        ExportFileUsageReader(write_export(tmp_path, export(TWO_DAYS, captured_at="2026-10-16T09:00"))).days()
 
 
 def test_an_export_of_an_unknown_shape_is_refused_not_read_as_nothing(tmp_path):
@@ -87,9 +87,23 @@ def test_an_export_of_an_unknown_shape_is_refused_not_read_as_nothing(tmp_path):
         days_of(tmp_path, export([{"created_at": "2026-10-14T05:00:00Z", "data": {"result": {}}}]))
 
 
-def test_the_capture_day_is_given_in_ist(tmp_path):
+def test_complete_days_end_at_the_capture_day_in_ist_or_today(tmp_path):
     reader = ExportFileUsageReader(write_export(tmp_path, export(TWO_DAYS, captured_at="2026-10-15T20:00:00Z")))
-    assert reader.captured_on() == date(2026, 10, 16)
+    assert reader.complete_before(date(2026, 10, 20)) == date(2026, 10, 16)  # 20:00 UTC is 01:30 IST next day
+    assert reader.complete_before(date(2026, 10, 14)) == date(2026, 10, 14)
+    assert {d.captured_at for d in reader.days()} == {"2026-10-16T01:30:00+05:30"}
+
+
+def test_the_real_page_envelope_of_15_october(tmp_path):
+    """Judge 104 must-fix 1: the real last page has no has_more key and, when empty, no data key either."""
+    data = chained(TWO_DAYS[2:], TWO_DAYS[:2])
+    data["result_pages"][1]["response"]["ccr"].pop("has_more")
+    data["result_pages"].append({"before_id": "p2", "response": {"ccr": {"first_id": "p3", "last_id": "x"}}})
+    data["result_pages"][1]["response"]["ccr"]["has_more"] = True
+    assert [d.turns for d in days_of(tmp_path, data)] == [1, 2]
+    del data["result_pages"][1]["response"]["ccr"]["has_more"]  # a page without has_more must be the last
+    with pytest.raises(ExportRefused, match="out of order"):
+        days_of(tmp_path, data)
 
 
 def test_no_reply_text_is_kept(tmp_path):

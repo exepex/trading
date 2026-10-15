@@ -5,13 +5,12 @@ dry-run sender: nothing is posted to Slack until a later routine wires the Slack
 from __future__ import annotations
 
 import json
-import math
 from datetime import datetime
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
 from ..constants import AI_ROLE_STOP_ORDER, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN
-from .cap import CapReading
+from .cap import CapReading, shown_pct
 
 SIGNAL_FOLDER = "accounting/budget"
 CODE_JOBS = "keep running"
@@ -36,8 +35,7 @@ def alert_text(month: str, reading: CapReading) -> str:
     if template is None:
         return ""
     order = ", then ".join(AI_ROLE_STOP_ORDER)
-    shown = math.floor(reading.pct_of_cap * 10) / 10  # floored, so 99.96% never reads as 100% below the stop level
-    return template.format(month=month, pct=shown, used=reading.books_and_roles_minutes,
+    return template.format(month=month, pct=shown_pct(reading.pct_of_cap), used=reading.books_and_roles_minutes,
                            cap=reading.cap_minutes, order=order)  # fmt: skip
 
 

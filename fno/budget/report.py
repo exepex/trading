@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from ..constants import ITEM_CLAUDE_PLAN, USAGE_PURPOSES
-from .allocation import ALLOCATED_LABEL, FORMULA, Allocation
-from .cap import BASIS_MEASURED, MEASURED_LIMIT, CapReading
+from ..constants import ITEM_CLAUDE_PLAN, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
+from .allocation import ALLOCATED_LABEL, DEVELOPMENT_LABEL, FORMULA, UNMEASURED, Allocation
+from .cap import BASIS_MEASURED, MEASURED_LIMIT, CapReading, shown_pct
 from .items import ItemLine
 from .stop_rule_tracker import ZERO_SHADOWS, ReviewDate, stop_test_status
 
@@ -26,6 +26,8 @@ class MonthMeter:
     missing_captures: list[tuple[str, str, str]]
     needs_owner_yes: list[str]
     unknown_items: list[str]
+    allocation_warnings: list[str]
+    development_gap: str  # empty when every development session is captured
 
 
 def meter_lines(meter: MonthMeter) -> list[str]:
@@ -35,6 +37,7 @@ def meter_lines(meter: MonthMeter) -> list[str]:
         lines.append(f"  {item.item}: cash spend {cash}; cap: {item.cap}")
         if item.item == ITEM_CLAUDE_PLAN:
             lines += _allocation_lines(meter.allocation)
+            lines += [f"    WARNING: {w}" for w in meter.allocation_warnings if not meter.allocation.flagged]
     lines += [f"  unknown item (not in 8.1): {name}" for name in meter.unknown_items]
     lines += _usage_lines(meter.usage_rows) + _cap_lines(meter)
     lines += [f"  NEEDS OWNER: {line}" for line in meter.needs_owner_yes]
@@ -46,7 +49,10 @@ def _allocation_lines(allocation: Allocation) -> list[str]:
         return [f"    {allocation.flagged}"]
     lines = [f"    {ALLOCATED_LABEL} ({FORMULA}):"]
     for (purpose, book, role), rupees in allocation.allocated_rs.items():
-        lines.append(f"      {purpose} {book or role}: Rs {rupees:,.2f}")
+        label = f"{role} ({DEVELOPMENT_LABEL})" if purpose == PURPOSE_DEVELOPMENT else f"{purpose} {book or role}"
+        if (purpose, book, role) == UNMEASURED:
+            label = "not allocated yet (no measured usage this month)"
+        lines.append(f"      {label}: Rs {rupees:,.2f}")
     return lines
 
 
@@ -68,13 +74,14 @@ def _usage_lines(rows: list[dict]) -> list[str]:
 
 def _cap_lines(meter: MonthMeter) -> list[str]:
     cap = meter.cap
-    pct = "unknown" if cap.pct_of_cap is None else f"{cap.pct_of_cap:.1f}%"
+    pct = "unknown" if cap.pct_of_cap is None else f"{shown_pct(cap.pct_of_cap):.1f}%"
     lines = [f"  AI cap: books and roles {cap.books_and_roles_minutes:,.2f} of {cap.cap_minutes:,.2f} minutes = {pct}; "
              f"level {cap.level}", f"    basis: {cap.basis}"]  # fmt: skip
     if cap.basis == BASIS_MEASURED:
         lines.append(f"    {MEASURED_LIMIT}")
     if cap.note:
         lines.append(f"    {cap.note}")
+    lines.append(f"    development capture: {meter.development_gap or 'complete'}")
     return lines
 
 

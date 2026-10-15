@@ -1,5 +1,6 @@
 """Story F8 criterion 6: a (session, day) is written once, only for complete IST days; attributions are checked."""
 
+from dataclasses import replace
 from datetime import date
 
 import pytest
@@ -72,7 +73,9 @@ def test_a_day_still_running_at_the_capture_is_not_frozen_short(tmp_path, monkey
     monkeypatch.setattr(wiring, "build_usage_ledger", lambda: UsageLedger(tmp_path))
     monkeypatch.setattr(models, "now_ist", lambda: datetime(2026, 10, 16, 9, 0, tzinfo=models.IST))
     path = write_export(tmp_path, export(TWO_DAYS, captured_at="2026-10-15T09:00:00+05:30"))
-    args = SimpleNamespace(budget_cmd="record-usage", export=path, purpose="development", book="", role="judge")
+    args = SimpleNamespace(
+        budget_cmd="record-usage", export=path, self_timed=False, purpose="development", book="", role="judge"
+    )
     assert cli.cmd_budget(args) == 0
     assert [r["date"] for r in UsageLedger(tmp_path).rows()] == ["2026-10-14"]
     assert "2026-10-15 is not complete in this reading (complete days are before 2026-10-15)" in capsys.readouterr().out
@@ -81,7 +84,7 @@ def test_a_day_still_running_at_the_capture_is_not_frozen_short(tmp_path, monkey
 @pytest.mark.parametrize("session_id", ["cse_01TESTxyz", " session_01TESTxyz", "session_01-x", "https://x/session_1"])
 def test_a_session_id_not_in_get_session_form_is_refused(tmp_path, session_id):
     days = ExportFileUsageReader(write_export(tmp_path, export(TWO_DAYS))).days()
-    odd = [type(d)(d.day, session_id, d.model, d.minutes, d.turns, d.tokens) for d in days]
+    odd = [replace(d, session_id=session_id) for d in days]
     with pytest.raises(UsageRefused, match="is not of the form session_"):
         UsageLedger(tmp_path).record(odd, BUILDER, date(2026, 10, 16))
 

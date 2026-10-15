@@ -3,7 +3,11 @@
 - `meter`: the month's costs by item (design v2 section 8.1), the allocated plan cost apart from cash spend, the AI cap;
 - `signal`: writes the month's signal file (`accounting/budget/<YYYY-MM>_signal.json`) and dry-runs its alert;
 - `stop-rule`: the stop-rule review date, days left, and which inputs of Test A and Test B exist yet;
-- `record-usage`: adds one session's complete days to `accounting/ai_usage.csv` from a session export (F8).
+- `record-usage`: adds one session's complete days to `accounting/ai_usage.csv` from a session export, or from a
+  routine's own timing of its run (`--self-timed`, owner's "5 A") (F8);
+- `record-roster`: merges a `list_sessions` export into `accounting/ai_session_roster.csv`, so the meter knows which
+  development sessions exist.
+Exports hold reply texts, so they must live outside the repository; a path inside it is refused.
 """
 
 from __future__ import annotations
@@ -23,24 +27,44 @@ def add_budget_parser(subparsers) -> None:
     actions.add_parser("stop-rule", help="the stop-rule review date and its inputs")
     record = actions.add_parser("record-usage", help="record one session's usage from its export (written once)")
     record.add_argument("--export", type=Path, required=True, help="the JSON a Claude session saved (outside git)")
+    record.add_argument("--self-timed", action="store_true", help="the file is a routine's own timing of its run")
     record.add_argument("--purpose", required=True, choices=USAGE_PURPOSES)
     record.add_argument("--book", default="", choices=("", *AI_BOOKS))
     record.add_argument("--role", default="", help="the role or bundle the session worked for")
+    roster = actions.add_parser("record-roster", help="merge a list_sessions export into the session roster")
+    roster.add_argument("--export", type=Path, required=True, help="the JSON a Claude session saved (outside git)")
     budget.set_defaults(func=cmd_budget)
 
 
 def cmd_budget(args) -> int:
     from ..models import now_ist
+    from .usage_reader import ExportRefused
 
     today = now_ist().date()
-    commands = {"meter": _meter, "signal": _signal, "stop-rule": _stop_rule, "record-usage": _record_usage}
-    return commands[args.budget_cmd](args, today)
+    commands = {"meter": _meter, "signal": _signal, "stop-rule": _stop_rule, "record-usage": _record_usage,
+                "record-roster": _record_roster}  # fmt: skip
+    try:
+        return commands[args.budget_cmd](args, today)
+    except (ExportRefused, ValueError) as refused:  # every refusal says why; none is a traceback
+        print(f"refused: {refused}")
+        return 1
 
 
 def _month(args, today: date) -> str:
     month = getattr(args, "month", None) or f"{today:%Y-%m}"
-    date.fromisoformat(month + "-01")  # refuses a malformed month
+    try:
+        date.fromisoformat(month + "-01")
+    except ValueError:
+        raise ValueError(f"--month {month!r} is not YYYY-MM") from None
     return month
+
+
+def _outside_repository(path: Path) -> Path:
+    from ..config import ROOT
+
+    if path.resolve().is_relative_to(ROOT.resolve()):
+        raise ValueError(f"{path} is inside the repository: exports hold reply texts, keep them outside it")
+    return path
 
 
 def _meter(args, today: date) -> int:
@@ -67,23 +91,30 @@ def _signal(args, today: date) -> int:
 def _stop_rule(args, today: date) -> int:
     from ..config import ROOT
     from .report import stop_rule_lines
-    from .wiring import build_review_date
+    from .stop_rule_tracker import review_reached
+    from .wiring import build_budget_alert_sender, build_review_date
 
-    print("\n".join(stop_rule_lines(ROOT, build_review_date(), today)))
+    review = build_review_date()
+    print("\n".join(stop_rule_lines(ROOT, review, today)))
+    if alert := review_reached(review, today):
+        print(build_budget_alert_sender().send(alert))
     return 0
 
 
 def _record_usage(args, today: date) -> int:
-    from .usage_export import ExportRefused
-    from .usage_ledger import Attribution, UsageRefused
+    from .usage_ledger import Attribution
     from .wiring import build_usage_ledger, build_usage_reader
 
-    try:
-        reader = build_usage_reader(args.export)
-        before = min(today, reader.captured_on())  # a day still running when the export was taken is not complete
-        lines = build_usage_ledger().record(reader.days(), Attribution(args.purpose, args.book, args.role), before)
-    except (ExportRefused, UsageRefused) as refused:
-        print(f"refused: {refused}")
-        return 1
-    print("\n".join(lines))
+    reader = build_usage_reader(_outside_repository(args.export), args.self_timed)
+    who = Attribution(args.purpose, args.book, args.role)
+    print("\n".join(build_usage_ledger().record(reader.days(), who, reader.complete_before(today))))
+    return 0
+
+
+def _record_roster(args, today: date) -> int:
+    from .session_roster import read_roster_export
+    from .wiring import build_session_roster
+
+    sessions = read_roster_export(_outside_repository(args.export))
+    print(f"roster: {build_session_roster().record(sessions)} session(s) listed")
     return 0
