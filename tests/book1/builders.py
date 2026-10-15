@@ -46,7 +46,7 @@ class Commits(Committer):
     def __init__(self, clock):
         self.clock, self.made = clock, []
 
-    def commit(self, paths, message):
+    def commit(self, paths, message, own_unpushed=""):
         commit = f"{len(self.made) + 1:040x}"
         self.made.append((commit, self.clock(), tuple(paths), message))
         return commit

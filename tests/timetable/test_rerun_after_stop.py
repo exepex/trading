@@ -143,7 +143,7 @@ def test_a_pending_file_changed_since_it_was_recorded_stops_the_rerun_and_is_nev
 
 REJECT_EXITS = """#!/bin/sh
 while read old new ref; do
-  git log -1 --format=%s "$new" | grep -q "step exits" && exit 1
+  git log --format=%s "$old..$new" | grep -q "step exits" && exit 1
 done
 exit 0
 """

@@ -45,6 +45,7 @@ class CheckoutNotDedicated(GitError):
 
 
 DIRTY = "{book}: account write refused: the checkout holds other work ({what}); it is never reset over"
+STRAY = "the checkout holds {count} unpushed commit(s) the run did not make ({what}); never pushed: resolve by hand"
 UNEXPECTED = "{book}: rejected push NOT reset: {count} commit(s) ahead, not only this write's; resolve by hand"
 RAW_STAGED = "{book}: account write refused before any fill was applied: {reason}"
 NOT_KEPT = "{book}: rejected push NOT reset: the reset would overwrite a local edit ({error}); resolve by hand"
@@ -98,33 +99,55 @@ class Git:
         aside), or commits not on origin; empty when there is none."""
         if self("status", "--porcelain", "--untracked-files=all", "--", self.relative(folder)).stdout.strip():
             return f"uncommitted work in {self.relative(folder)}"
-        self("fetch", "-q", "origin", self.branch())
-        ahead = self("rev-list", f"origin/{self.branch()}..HEAD").stdout.split()
+        ahead = self.unpushed()
         return f"{len(ahead)} unpushed commit(s)" if ahead else ""
 
-    def ahead_of(self, commit: str) -> list[str]:
-        return self("rev-list", f"{commit}..HEAD").stdout.split()
+    def unpushed(self, *options: str) -> list[str]:
+        """Commits on HEAD that origin does not have (after a fetch): what a push would publish. The one rule both the
+        account writes and the run's commits start from (decision 51)."""
+        self("fetch", "-q", "origin", self.branch())
+        return self.ahead_of(f"origin/{self.branch()}", *options)
+
+    def unpushed_files(self) -> list[Path]:
+        """Every file a push would change on origin (a deletion too), whoever made the commits."""
+        names = self("diff", "--name-only", "-z", f"origin/{self.branch()}", "HEAD").stdout.split("\0")
+        return [self.root / name for name in names if name]
+
+    def subject(self, commit: str) -> str:
+        return self("show", "-s", "--format=%s", commit).stdout.strip()
+
+    def files_of(self, commit: str) -> set[str]:
+        names = self("diff-tree", "--no-commit-id", "--name-only", "-r", "-z", commit).stdout.split("\0")
+        return {name for name in names if name}
+
+    def ahead_of(self, commit: str, *options: str) -> list[str]:
+        return self("rev-list", *options, f"{commit}..HEAD").stdout.split()
 
 
 class GitCommitter(Committer):
     """Every commit passes `RawQuoteGuard` (story E2b): first on the given paths, before git runs (not even the pull),
-    then on everything staged (`Git.commit_paths`). Any refusal or git failure is raised as `CommitFailed`."""
+    then on everything staged (`Git.commit_paths`), and before every push on every file the push would change. An
+    unpushed commit the run did not make is refused before the pull (decision 51): the only one allowed is the run's
+    own `own_unpushed` commit, known by its message and by touching only these paths. Any refusal or git failure is
+    raised as `CommitFailed`."""
 
     def __init__(self, git: Git):
         self.git = git
 
-    def commit(self, paths: Sequence[Path], message: str) -> str:
+    def commit(self, paths: Sequence[Path], message: str, own_unpushed: str = "") -> str:
         try:
-            return self._commit(paths, message)
+            return self._commit(paths, message, own_unpushed)
         except (RawQuoteCommitRefused, GitError) as failure:
             raise CommitFailed(str(failure), unpushed=isinstance(failure, PushRejected)) from failure
 
-    def _commit(self, paths: Sequence[Path], message: str) -> str:
+    def _commit(self, paths: Sequence[Path], message: str, own_unpushed: str) -> str:
         self.git.guard.check(paths)
+        self._refuse_stray(paths, own_unpushed)
         branch = self.git.branch()
         self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
         if self.git.commit_paths(paths, message) or self.git.ahead_of(f"origin/{branch}"):  # or one left unpushed
             for _ in range(PUSH_ATTEMPTS):
+                self.git.guard.check(self.git.unpushed_files())
                 if self.git.push():
                     break
                 self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
@@ -133,6 +156,18 @@ class GitCommitter(Committer):
                     f"push of '{message}' rejected {PUSH_ATTEMPTS} times; the commit stays local, unpushed"
                 )
         return self.git("rev-parse", "HEAD").stdout.strip()
+
+    def _refuse_stray(self, paths: Sequence[Path], own_unpushed: str) -> None:
+        """A merge made by a retry's pull is not a stray: what it brings in is checked commit by commit here, and every
+        file it changes on origin by the guard before the push."""
+        names = {self.git.relative(p) for p in paths}
+        stray = [c for c in self.git.unpushed("--no-merges") if not self._own(c, own_unpushed, names)]
+        if stray:
+            what = "; ".join(f"'{self.git.subject(c)}': {', '.join(sorted(self.git.files_of(c)))}" for c in stray)
+            raise GitError(STRAY.format(count=len(stray), what=what))
+
+    def _own(self, commit: str, own_unpushed: str, names: set[str]) -> bool:
+        return bool(own_unpushed) and self.git.subject(commit) == own_unpushed and self.git.files_of(commit) <= names
 
 
 class GitAccountSync(AccountSync):

@@ -49,8 +49,10 @@ class CommitFailed(Exception):
 
 class Committer(ABC):
     @abstractmethod
-    def commit(self, paths: Sequence[Path], message: str) -> str:
-        """Pulls, commits these paths and pushes; the commit ID. Raises `CommitFailed` when it cannot."""
+    def commit(self, paths: Sequence[Path], message: str, own_unpushed: str = "") -> str:
+        """Pulls, commits these paths and pushes; the commit ID. Raises `CommitFailed` when it cannot. `own_unpushed`
+        is the message of this run's own earlier commit of these paths that may still be unpushed (a rejected push
+        being recovered); any other unpushed commit is refused."""
 
 
 class Packs(ABC):

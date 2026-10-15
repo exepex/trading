@@ -24,7 +24,6 @@ MARKER = ".pending_commit.json"
 RECOVERED = " (committed on the rerun, as recorded)"
 CHANGED = "the files of '{message}' changed since they were recorded ({paths}); they are never regenerated: {fix}"
 CHANGED_FIX = "restore them as recorded or resolve by hand, then remove {marker}"
-STILL_PENDING = "an earlier commit is still pending ('{message}'); the rerun commits it first"
 
 
 class PendingChanged(CommitFailed):
@@ -36,12 +35,10 @@ class PendingCommitter(Committer):
         self.committer, self.root = committer, Path(root)
         self.marker = self.root / JOURNAL_FOLDER / RUNS_FOLDER / MARKER
 
-    def commit(self, paths: Sequence[Path], message: str) -> str:
-        pending = self._pending()
-        if pending is not None:
-            raise CommitFailed(STILL_PENDING.format(message=pending["message"]))
+    def commit(self, paths: Sequence[Path], message: str, own_unpushed: str = "") -> str:
+        """The run's `recover()` comes first (`DailyRun.run`), so no marker is ever left here when this writes one."""
         self._write({"message": message, "files": {self._name(p): _sha256(Path(p)) for p in paths}})
-        commit = self.committer.commit(paths, message)
+        commit = self.committer.commit(paths, message, own_unpushed)
         self.marker.unlink()
         return commit
 
@@ -55,7 +52,8 @@ class PendingCommitter(Committer):
         if changed:
             fix = CHANGED_FIX.format(marker=self._name(self.marker))
             raise PendingChanged(CHANGED.format(message=pending["message"], paths=", ".join(changed), fix=fix))
-        commit = self.committer.commit([self.root / name for name in files], pending["message"] + RECOVERED)
+        named = [self.root / name for name in files]
+        commit = self.committer.commit(named, pending["message"] + RECOVERED, own_unpushed=pending["message"])
         self.marker.unlink()
         return commit
 

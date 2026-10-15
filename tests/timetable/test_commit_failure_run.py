@@ -67,7 +67,7 @@ def test_a_staged_raw_quote_file_stops_the_run_with_one_alert_naming_it(root, tm
 def test_a_pull_that_cannot_reach_origin_stops_the_run_with_one_alert(root, tmp_path, alerts):
     shutil.rmtree(checkout_with_origin(root))
     sent = stopped_run(root, tmp_path, alerts)
-    assert "run STOPPED at step versions" in sent and "git pull -q failed" in sent
+    assert "run STOPPED at step versions" in sent and "git fetch -q failed" in sent  # the stray check fetches first
 
 
 def test_a_push_rejected_every_time_stops_the_run_with_one_alert(root, tmp_path, alerts):
@@ -89,10 +89,10 @@ class FailingOn(Commits):
         super().__init__(clock)
         self.what = what
 
-    def commit(self, paths, message):
+    def commit(self, paths, message, own_unpushed=""):
         if self.what in message:
             raise CommitFailed(f"push of '{message}' rejected 3 times")
-        return super().commit(paths, message)
+        return super().commit(paths, message, own_unpushed)
 
 
 def test_a_failed_commit_inside_a_step_stops_the_run_at_that_step(root, tmp_path, alerts):

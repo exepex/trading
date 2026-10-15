@@ -23,7 +23,7 @@ class Recording(Committer):
     def __init__(self):
         self.paths = []
 
-    def commit(self, paths, message):
+    def commit(self, paths, message, own_unpushed=""):
         self.paths.append(list(paths))
         return "c1"
 

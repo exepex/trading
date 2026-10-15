@@ -286,11 +286,28 @@ the hash-checked store. The guard and the derived pack work the same with either
    instead, and nothing is regenerated (a later pack or capture, or decisions collected after the deadline, would not
    be what happened). A commit that failed inside a step (D6's registry, the 15:15 capture record) is committed the
    same way; that step is not recorded, so the rerun runs it again. Book 1's version keeper then finds its version
-   registered. The capture takes a second snapshot: it is committed beside the first, fills read the latest, and
-   none had been made. The committer also pushes a commit left unpushed even when it has nothing new to commit
+   registered. The capture takes a second snapshot: it is committed beside the first, and the fills read the latest
+   one inside the execution window (after `fills_by`, C3 refuses it as outside its window, so nothing fills); none had
+   been made. The committer also pushes a commit left unpushed even when it has nothing new to commit
    (tests with the real `GitCommitter`: a stop at the pack and one at the decisions, each committed byte-identical on
    the rerun with one build or collection, one capture and four fills; a tampered pending file; a rejected push of
    the last step, pushed by the rerun).
+   **A rerun in a fresh checkout** has no marker and starts from what was committed (judge 118 addendum 6). Fills
+   are idempotent by `trade_id` against the committed journal (each account write is pushed by itself), so nothing is
+   filled twice, and exits work from the journal's open positions. A decisions step run again after the deadline
+   makes every book late: fail closed, visible in the no-decision files, and it loses that day's entries. The pack
+   rebuilds byte-identical (E2 criterion 6). Before A4b, the 15:15 quote file is absent in a fresh checkout, so the
+   rerun's log can say "not filled" for a trade that was filled (a report mismatch, not a fill); after A4b the
+   snapshot is read from Drive.
+   **Nothing the run did not make is pushed** (decision 51). Before every push attempt, the raw-quote guard checks
+   every file the push would change on origin (`origin/<branch>..HEAD`, deletions too). Before the pull, an unpushed
+   commit the run did not make is refused, naming its message and files, through the same handler (one alert). Both
+   writers use the same `Git.unpushed()`: account writes refuse any unpushed commit, and the run's commits allow only
+   the run's own stuck commit, told apart by the pending marker (its message, and only the marker's files). A merge
+   left by a retry's pull is not counted: what it brings in is checked commit by commit, and its files by the guard
+   (tests with real git: a stray raw-file commit refused with origin unchanged, by each layer alone; a stray commit
+   without quotes; one copying the run's message with other files; the run's own stuck commit pushed after origin
+   moved on, through a merge).
 6. E2's own criteria still hold on schema 2: no book data, byte-identical rebuilds, cutoff refusals named, the
    opportunity set unchanged (existing tests, updated only where they name option items).
 7. No reader of the committed pack uses per-contract quote figures (a test lists every `option:` lookup in `fno/` and

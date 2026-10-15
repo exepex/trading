@@ -184,3 +184,17 @@ My earlier "a sum over at least two legs" was wrong as a defence: the playbook's
   before. Making the capture step itself resumable would change E3, so it is left as stated.
 - The marker is local to one checkout. A rerun in a fresh container has no marker; the failed step's files are not in
   that checkout either, so nothing is committed by mistake. That run starts the day over from what was committed.
+
+## Answer to judge 118 addendum 6 (decision 51)
+
+| Item | Accepted? | Fix | Tests | Evidence |
+|---|---|---|---|---|
+| Should-fix 1: a push published files the guard never checked | **accepted** (the judge's probe put a raw file on origin) | (a) Before every push attempt, `RawQuoteGuard` checks `Git.unpushed_files()`, every file the push would change on origin. (b) Before the pull, `GitCommitter._refuse_stray` refuses any unpushed non-merge commit except the run's own, naming each commit's message and files. Both go through `CommitFailed`, so the one handler sends one alert. Account writes and the run share `Git.unpushed()`: account writes refuse any unpushed commit (unchanged), the run allows only its own (`fno/desk/git_sync.py`) | `tests/timetable/test_push_guard.py`, real git and a bare origin: a stray raw-file commit refused, origin unchanged, the alert names the file; the same with (b) switched off, so (a) alone refuses it; a stray commit without quotes; a stray copying the run's message but touching other files; the run's own stuck commit pushed after origin moved on, through a merge | strong. Plants caught: R1 (no pre-push guard), R2 (no stray refusal), R3 (own commit never recognised), R4 (merges counted as strays), R5 (own commit's files not checked; it survived until I added the copied-message test), R6 (recovery passes no own commit) |
+| How (b) tells the run's own commit apart | | The pending marker: `recover()` passes its message as `own_unpushed`. A commit counts as the run's own only if its subject equals that message AND its files are within the marker's files | the copied-message test and the stuck-commit test | strong |
+| A merge left by a retry's pull | found by me while building (b) | When origin moved on, the retry's pull creates a merge commit, and (b) would have refused the run's own recovery. Merges are skipped in (b): the commits a merge brings in are checked one by one, and its files by (a) | the stuck-commit test (a rerun with pushes still rejected leaves one merge unpushed; the next rerun pushes) | strong (R4) |
+| Minor 1: the fresh-checkout rule | **accepted** | stated in story criterion 5, with the pre-A4b report gap | none (text) | the judge's reasoning, checked against `entries.py` and `daily_steps.py` |
+| Minor 2: the capture window | **accepted** | "inside the execution window (after `fills_by`, C3 refuses it ...)" | none (text) | the judge's reading of `snapshot_checks.py` |
+| Minor 3: plant Q5, `STILL_PENDING` | **accepted: removed** | Unreachable: `DailyRun.run` calls `recover()` before any step, and `PendingCommitter` is built only in the daily run's wiring and used only inside its steps. A failed commit stops the run. The docstring states that order | none | reasoning plus `grep`: the only users are `daily_wiring.py` and the tests |
+
+**Changed test text:** the unreachable-origin test now expects "git fetch -q failed". The stray check fetches before
+the pull, so the same cause is reported at the fetch.
