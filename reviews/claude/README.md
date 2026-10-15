@@ -150,3 +150,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 152: story G10, protocol v4 timeline (14:30 cutoff, one release, 15:10 deadline, day labels, flag-not-block, lateness; the exact protocol changes and what moves with it)](response_152_g10-v4-timeline.md)
 - [Response 153: story O8, the daily health check (story text): last N sessions by the calendar, GitHub push times through F1's PushReceipts, one expectations table, one message, the watcher watched by the next run](response_153_o8-health-check.md)
 - [Response 157: protocol v4 freeze checklist (order, protocol edits with sources, FREEZE_v4.md contents, slot registrations, freeze check code; go-live 22-23 Oct planned; M1's METHOD_FILES byte-checked)](response_157_v4-freeze-checklist.md)
+- [Response 172: review request to ChatGPT for the protocol v4 freeze plan (response 157 at 3e3fd30, judge 177 add. 1 PASS), quality rule 9](response_172_v4-freeze-chatgpt-request.md)
