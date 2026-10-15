@@ -655,3 +655,116 @@ evidence); a GitHub push delay near 15:10 counts as late (the push time is the o
 
 **Depends:** G6 (merged), G9 (merged), G7, M1, G8 (merged); A16 live for the `A2` fallback; the owner's routine change
 at go-live · **Size:** M · **Status:** story text for judge A, then ChatGPT (rule 9) (`reviews/claude/response_152_g10-v4-timeline.md`)
+
+---
+
+## G11. AI books on the v4 questions: books 2 and 3 forecast like the rules and are scored by G8 the same way
+
+**Repository:** trading · **Lane:** 1 (forecast records, a new registered prompt version, the AI books' fire) · **Name
+note:** called G10 in REPLAN until story G10 (the v4 timeline) took the name.
+
+**Description:** As the statistician and the owner, I want the Hybrid book (Book 2) and the AI team (Book 3) to answer
+the same protocol v4 questions as the rule forecaster on the same day, the same pack and the same deadline, scored by
+G8 with the same metrics and miss rule, so that the AI team builds an honest record before it may trade, and a failed
+AI run shows as a miss, never as a gap.
+
+**Context and why:**
+- Design v2 7 (`docs/design_v2/07_ai_team.md:10-12`): "there is no evidence yet that the AI books forecast better than
+  the baselines"; every AI role earns its cost on the record. Books 2-3 trade only from the first approved strategy or
+  rung-2 idea; until then they forecast and are scored (`docs/DESK_DECISIONS.md`, 15 Oct).
+- Protocol v4 already names them: the family has a `hybrid` (Book 2) and an `ai_team` (Book 3) slot beside `rules` on
+  each member question (`research/forecasts/PROTOCOL_v4.md:225-228`); each slot holds "the first forecaster version
+  registered in the ledger for it before its first counted v4 forecast".
+- Today the books answer only v2 (Q1-Q5, prompt v1, `fno/ai/versions.py:90-95`) and write
+  `research/forecasts/ai_v1/`, which G8 does not read. No v4 path exists for them.
+- Real record so far (strong evidence, the audit files): 14 Oct both books `no_submission` (fired at 19:27 IST);
+  15 Oct both `late` (commitments received about 12 s after v2's 15:15 deadline). No on-time AI day yet.
+- Decision row 16 Oct (`DESK_DECISIONS.md`, "R3, G11, O2 ... start in parallel"): story text now, code after the v4
+  freeze (about 22-23 Oct), within BG1's budget cap.
+
+**Scope.** In: a v4 prompt version per book; the books' v4 answers as G7-schema records in G8's folder; their slot
+registration; the outcome-to-status mapping (every failure a miss); the audit gate on v4 rows; the self-timing record
+BG1 asks for. Out: any trading by the AI books (full F1 isolation, F1); G8's scoring code (the A16/G8 builder); the
+v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new questions.
+
+**Expected design** (reuse, no second version of anything):
+1. **Questions:** each book answers exactly the questions the `rules` slot answers that day, read from G8's started
+   set: at the freeze V6a and V6b (decision 16 Oct: "v4 freezes with V6a/V6b"); V1 when A16 is ready; V2-V5 when G7
+   phase 2 builds them. One list, never a separate AI list.
+2. **Prompt versions:** `agents/forecast/book2_hybrid_v2.md` and `book3_ai_v2.md`, registered in `fno/ai/versions.py`
+   as new versions (a prompt "changes only as a new version"); same model; same label form
+   `book/v2/sha256:.../isolation:sealed_same_day`. Book 2 keeps the rules' numbers in its pointer, Book 3 does not.
+   Each version also writes BG1's self-timing record (`fno/budget/self_timed.py`), the prompt change
+   `BG-budget.md:102-104` left open.
+3. **Fire and collect:** F1/G5's existing firer, seal, reveal and outcome code (`fno/ai/fire.py`, `seal.py`,
+   `outcome.py`, `scoring_gate.py`), pointed at the v4 pack: fired after the pack's release (about 14:32, at the latest
+   14:40); the commitment must be **received by GitHub by 15:10** (G10, `fno/forecast_v4/terms.py` `V4_DEADLINE`);
+   reveal after 15:10. Fired once, never retried (as today). The timing constants come from `terms.py`, not a copy.
+4. **Records:** a new writer behind the existing record interface writes
+   `research/forecasts/v4/book2_hybrid/<question>.csv` and `research/forecasts/v4/book3_ai/<question>.csv` in G7's
+   schema (`fno/forecast_v4_rules/records.py`: `day, value, status, label, forecaster_version, kind, slot,
+   method_sha256, inputs_sha256, made_at`), `label=live` always (AI answers have no back-fill; G10's cohorts), `slot`
+   `hybrid` or `ai_team`, `method_sha256` the prompt's hash, `inputs_sha256` the released pack's hash (any other pack
+   hash is refused, G10). Written once (`RecordConflict` on a different row). G8 finds the folders itself
+   (`fno/forecast_scoring/v4/inputs.py:106-107`).
+5. **Every failure is a miss:** each session day from the slot's `effective_start`, each book writes one row per
+   question. On `on_time` with no breach: `status=ok` and the value. Otherwise value empty and status one of
+   `late`, `not_fired`, `no_submission`, `not_revealed`, `invalid`, `model_mismatch`, `exposed`, `breach`,
+   `stopped` (two breaches in 20 days, `stop_rule.py`). G8 counts any non-`ok` status as no forecast, so it is a miss
+   under the 10% caps; past the caps the slot is "undecided, operations" (`PROTOCOL_v4.md:251-257`). A `system_late`
+   day (G10's day label) is out for the AI slots as for every family.
+6. **Registration:** `book2_hybrid_v2` for `hybrid` and `book3_ai_v2` for `ai_team` in the freeze's ledger row (G8's
+   `SlotRegistry`), each with a declared `effective_start`; misses count from it (decision 16 Oct).
+7. **Composition:** wired in `fno/ai/wiring.py` and `book_wiring.py` only.
+
+**To agree before code (asked 16 Oct; answers recorded in response 202):**
+- With the A16/G8 builder: (a) how a row whose transcript audit is still pending is treated. Option 1: G11 writes the
+  row only when the gate settles (no G8 change; a false miss for up to about a week). Option 2: status
+  `pending_audit`, which G8 treats as neither scored nor missed (one status in G8's miss rule). Builder's lean:
+  option 2 (reasoning only). (b) Whether the freeze's ledger row carries the AI slots or G11 adds them after it.
+- With the owner, through the orchestrator: v2's AI run. One run cannot serve both (v2's pack is committed after
+  15:10, v4's deadline is 15:10). Option A: the v4 run replaces the v2 AI run at the freeze (cost unchanged; the v2
+  AI record, no on-time day so far, stops). Option B: both run (two runs per book per day, about double the AI
+  books' minutes). Builder's lean: A (reasoning only).
+- With the orchestrator: who owns `fno/ai` (no register row) and who changes `forecast-capture.yml` (the fire step
+  moves after the v4 pack; a workflow change, not this builder's).
+
+**Daily AI cost against BG1's cap:**
+- BG1's cap is minutes, not rupees: the books' and roles' minutes at most 50% of all measured session minutes in the
+  month until December 2026 (`config.yaml` `budget`), then 50% of the owner's plan minutes; alert at 80%, stop at
+  100%; the plan costs Rs 20,000 a month.
+- No book run has been measured yet (`accounting/ai_usage.csv` has no book row). The one data point: on 15 Oct each
+  book's commitment came about 5 minutes after the fire (15:10:20 to 15:15:12-15). Some evidence, one day.
+- Estimate (reasoning only): 2 books x 5-10 minutes = 10-20 minutes a session day, about 220-440 minutes in a
+  22-session month, under option A the same as today's v2 run; under option B about twice that.
+- This story makes the number real: the v2 prompts write BG1's timing record, so BG1 measures it from the first day.
+  At BG1's `stop`, AI forecasters stop last (design 7.6); a stopped day is written as `not_fired`, so it is a miss.
+
+**Acceptance criteria:**
+1. The books answer exactly the `rules` slot's questions for the day (same list); a question the rules do not answer
+   is never asked.
+2. A fixture day with both books on time writes one `ok` row per question in G7's schema, `label=live`, the right
+   slot, the prompt hash and the released pack's hash; G8 scores them with the rules' metric.
+3. Each failure outcome (late, not fired, no submission, not revealed, invalid, model mismatch, exposed, breach,
+   stopped) writes a non-`ok` row and G8 counts it a miss; a day past 10% makes the slot "undecided, operations".
+   No outcome leaves the day without a row.
+4. A commitment received at 15:10:01 is `late`; at 15:09:59 it is on time (GitHub's receipt time, G10).
+5. A pack hash other than the released one is refused; a `system_late` day is out for the AI slots.
+6. The pending-audit rule agreed with the G8 builder holds on a fixture (no premature score, no false miss under
+   option 2).
+7. Each run writes BG1's timing record; BG1's meter shows the book minutes.
+8. No AI answer ever gets `label=backfill_exploratory`; no AI row exists before the slot's `effective_start`.
+9. Gates: pytest, ruff, ruff format, the import check; no file or class over 350 lines.
+
+**Test plan:** fixture days for each outcome; a G8 run over the fixture rows (score and miss counts); the 15:10
+boundary; the pack-hash refusal; a dry run of one real day's fire and collect after the freeze.
+
+**Judge verifies:** a failed-run fixture shows as a miss in G8's report, not a gap; the AI rows use the same pack and
+deadline as the rules; no second firer, sealer or record format.
+
+**Known limits:** the routines still have the repository and the network, so the label stays "sealed same day (not
+full F1)" and these forecasts never decide a trade (owner's condition 3, 14 Oct); with no on-time day yet, the 10%
+miss cap may make an AI slot "undecided, operations" early, which is an honest result, not a fault.
+
+**Depends:** G6 freeze, G8 (merged), G9 (merged), G10 (the v4 pack and clock), G5, BG1 · **Size:** S-M ·
+**Status:** story text for the judge (`reviews/claude/response_202_g11-ai-books-v4.md`); code after the v4 freeze
