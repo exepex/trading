@@ -736,6 +736,7 @@ paper fill has happened yet (no strategy approved), so the move costs no history
 | `journal/<book>/account/positions.json` (E1) | open and closed trades with their money | Drive |
 | `journal/<book>/account/equity_history.csv` (E1) | daily cash, closed and **marked** equity | Drive |
 | `research/scoreboards/B/<date>.json` (S2) | per-trade lines and marked results | Drive |
+| `journal/<book>/packs/<date>/private.json` (E2, committed by E3's pack step: `daily_steps.py:85`, `pack_store.py:28`) | the full text of the book's own files, its account folder included (`private_pack.py`) | Drive; its `private.json.sha256` stays public (D3 records the pack's hash as evidence) |
 | new: `journal/<book>/daily_totals.csv` | per book and session: `date`, `closed_equity_rs`, `open_trades`, `closed_trades`, `fills` (a count) | public |
 
 `closed_equity_rs` is the opening cash plus the net of closed trades only. It holds no cash for open positions and no
@@ -756,16 +757,25 @@ Drive-only (T1).
 
   The daily run is the only writer of accounts (E3), so the git reset-and-reapply logic for competing writers goes:
   one writer, no merge.
-- **The readers.** Each composition root that reads an account downloads the book's files from Drive first, through
-  one shared function. The readers are:
-  - Book 1's decision (C2's view of the book, trade counts, opening runs: `fno/books/book1_wiring.py`);
+- **The private packs.** E2's pack builder writes each book's `private.json` to Drive beside the account. Only its
+  `private.json.sha256` is committed, and D3 records the pack's hash, as today. The books' decisions read the pack
+  from Drive (Book 1: `fno/books/book1_inputs.py`).
+- **The readers: one shared download at the start of each run or command that reads accounts or private packs.**
+  The function fetches every book's account and private packs from Drive into the git-ignored local folders. It runs
+  once, before anything reads them. The readers are:
+  - E3's daily run (fills, exits, settlement, the C3 and C4 checks);
+  - Book 1's decision (C2's view of the book, trade counts, opening runs, its private pack: `fno/books/book1_wiring.py`);
+  - C4's `LedgerAccounts` (`fno/checks/validity_account.py`, wired in `fno/checks/wiring.py:91`). Its replay stays
+    valid on the Drive copy, because C4 counts only the ledger rows filled by the decision cutoff, and the ledger is
+    append-only;
+  - T1's card (`fno/cards/status.py:29`, `:83-100`). It reads `positions.json` from the downloaded folder, no longer
+    from the committed record;
   - E6's scorecards (`fno/scorecard/wiring.py`);
   - scoreboard B (`fno/scoreboard/wiring.py`), which writes its board to Drive, not to `research/scoreboards/B/`;
-  - Home's read model (`fno/market_read_models/home_inputs.py`).
-- **The dashboard contract** (`contracts/omenix-dashboard/api/schemas/fno-paper-trades.yaml`). The book's marked
-  `value`, each open position's `mark_value` and `unrealised`, and each closed trade's money fields become owner-only
-  (`x-visibility: owner`). The public view keeps the per-book daily totals above. Home's read model (P10) reads the
-  account's `value` from Drive, owner-only.
+  - Home's read model (`fno/market_read_models/home_inputs.py`), which publishes to the dashboard's Azure store as
+    today;
+  - E1's account command (`fno/composition.py`), and the shadow books (`fno/desk/shadow_books.py`), whose accounts
+    are downloaded with the books'.
 - **The move itself.** Today's committed account files hold only the opening rows. They are uploaded to Drive once,
   then removed from the repository (`git rm`, the history keeps the opening rows only), and the folder is ignored.
 - **A stop before the exits blocks new entries** (review 105 point 3; response 131). E3's rerun recovers a stop in the
@@ -780,24 +790,27 @@ Out:
 
 **Acceptance criteria:**
 1. After a day with fills and exits, no committed file holds a contract's fill price, a mark, cash or marked equity:
-   a test runs a fixture day end to end and scans every committed file for the day's prices and marks.
+   a test runs a fixture day end to end (the pack step included) and scans every committed file, the private packs'
+   folders included, for the day's prices and marks.
 2. `daily_totals.csv` holds, per book and session, exactly the five columns above, matching the Drive account by
    hand on a fixture day (one entry and one closed trade).
-3. Book 1's decision, E6, scoreboard B and Home read the same account values from Drive as they read from the local
-   folder before (one test each, on a fake Drive store).
+3. After the shared download, the daily run, Book 1's decision (with its private pack), C4, T1's card, E6, scoreboard B
+   and Home read the same values as they read from the local folder before (one test each, on a fake Drive store).
 4. A Drive write that fails stops the account write with E3's alert. Nothing is committed for that step, and the rerun
    repeats the write (E1's fills are idempotent by fill ID).
 5. With the last session's run log holding no `exits` step, today's fills step opens nothing and sends one alert, and
    today's exits still run. With the step present, entries open as usual.
-6. The dashboard contract's money fields named above are owner-only, and the contract test passes.
 
-**Test plan:** a fake Drive store (A4b's), a fixture day end to end, the committed-file scan, and one reader test each.
+**Test plan:** a fake Drive store (A4b's), a fixture day end to end, the committed-file scan (packs included), and one
+reader test each.
 No network, no Slack.
 
 **Judge verifies:** runs the fixture day and greps the committed tree for the day's prices; recomputes one
 `daily_totals.csv` row by hand; checks the stop-blocks-entries test.
 
 **Known limits:**
+- The read models go only to the dashboard's Azure store behind sign-in (judge 148). P2 or any later job must never
+  commit a page holding these fields to a public repository.
 - Two daily runs on one book at the same time would race on Drive (no lock across containers). Only one routine runs
   the desk.
 - A closed single-leg trade's net, kept owner-only here, is not a bid-ask pair (its fills are at different snapshots).

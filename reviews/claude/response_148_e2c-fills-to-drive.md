@@ -28,9 +28,10 @@ design simple" (real paths only). Sources:
 | The dashboard contract plans each book's marked `value`, and each open trade's `mark_value` and `unrealised`, as public | `contracts/omenix-dashboard/api/schemas/fno-paper-trades.yaml` |
 | The scheduled routine starts in a fresh container, so a stop is seen only in the committed run log | reasoning (how the scheduled sessions run) |
 
-## Consequence the owner should see
+## Answer to judge 148
 
-The dashboard's paper-trades view loses its public money figures: book value, marks and per-trade nets become
-owner-only. That follows from "per-book daily totals only" (response 131). If the owner wants closed-trade nets
-public, they give no bid-ask pair, because their fills are at different snapshots (reasoning). That is the owner's
-call, not mine.
+| Finding | Accepted? | Change |
+|---|---|---|
+| Ruling: the dashboard read model is not public | **accepted** (I had checked it too: `PostgresPublisher` on `FNO_DB_URL`; the only GitHub commit is `PublicationInputsFile`, provenance hashes only) | The dashboard-contract bullet and criterion 6 are dropped. A Known-limits line says no later job may commit these fields to a public repository |
+| Must-fix 1: the committed private packs would copy the downloaded account files every day | **accepted (strong: `private_pack.py`, `daily_steps.py:85`, `pack_store.py:28`)** | I chose the simpler option: `private.json` goes to Drive beside the account, and only its `.sha256` stays public (D3 records the pack's hash already). Leaving the account text out of the pack would change what the books read. The private packs are added to criterion 1's scan |
+| Should-fix 1: daily readers missing | **accepted** | Named: the daily run, Book 1 with its pack, C4's `LedgerAccounts` (its cutoff filter keeps replays valid on the Drive copy), T1's card, E6, scoreboard B, Home, E1's account command and the shadow books. One shared download runs at the start of each run or command |
