@@ -175,3 +175,114 @@ folder can conflict. That makes it safe as scoped.
 **Verdict: PASS for 27f7b55419b74874420180d8462052dda9752e8c** (story text). Code may start on the story branch. The code
 check covers every criterion, the trial (criterion 15) and the in-session amendment. The work-in-progress code on the
 side branch is judged only once it is on the story branch.
+
+## Addendum 3 (15 Oct 2026): the code and story amendment 1 at a471f44f14cd1080206b81d0622dad59ad14a857
+
+A16's own commits are 059fd07 (code), a5ed4b9 (amendment 1 and claims) and a471f44 (claims); the rest of the range is
+`main` merged in.
+
+## Gates
+
+- Full suite at a471f44: **4,059 passed** (Slack token unset). `ruff check`, `ruff format --check` and `check_imports`
+  are clean.
+- A trial merge with today's `origin/main` conflicts only in `reviews/claude/README.md` (index rows; keep both).
+- Every new file is under 350 lines (largest: `recorder.py`, 209). There is a new composition root,
+  `fno/intraday/wiring.py`, and it is listed in `CLAUDE.md`.
+
+## My own live check (read-only Groww, 15 Oct 2026, 10:00 IST mark)
+
+My session has the Groww key and TOTP in its environment. The SDK installed with the story's `--no-deps` line, which
+works. I ran `python -m fno intraday snapshot --dry-run <scratch folder outside the repository>`:
+- `10:00 good: 220 of 220 contracts (220 two-sided), index answered 0.8 s after the mark`.
+- The index quote's `last_trade_time` was empty, the basis was `candle_1m_close`, and the source time equalled the
+  mark. Chains were 19 and 27 Oct; the document finished 54 s after the mark; `clock_ok`.
+- The marks 09:15-09:45 got `missed` rows (my run started at 09:54), and the streak alert went through the dry-run
+  sender ("NOT sent: dry run").
+- The worktree stayed clean. The raw document exists only in the scratch folder. Only reads were made, and no order
+  call is reachable (below).
+
+## Safety checks (the special-care items)
+
+| Item | Result |
+|---|---|
+| No order path to Groww | MET. The source holds only `ReadOnlyGroww` (allow-list: `get_quote`, `get_option_chain`, `get_expiries`, `get_contracts`, `get_historical_candles`, four constants). It is built in `wiring.py` around `GrowwProvider.api`, and `__setattr__` is refused. My plant I1 (allow-list off) is caught. `listed_expiries`, moved into `providers/groww.py`, uses only `get_expiries` |
+| Secrets | MET. Credentials come from the environment through `GrowwProvider`. Failures keep exception class names only (`_call`, `_take`, `cli`). Covered by the builder's planted-secret test |
+| No raw quotes in the repository | MET. Repository files hold times, counts, statuses, SHA-256 values and the realised variance. The raw document goes to Drive or a dry-run folder, and a dry run inside the repository is refused (plant I14 caught) |
+| Gaps never filled | MET. A `missed` row is written only after mark + 120 s (I9 caught). A failed mark has a row and no file and is never retaken. Both RV parts are void on any missing level (I7 caught) |
+| Clock contract | PARTLY: see should-fix 2 |
+
+## Story amendment 1 (the 09:15 open rule): ACCEPTED, with one condition
+
+- **The problem is real.** I saw the same live behaviour: no index time, the candle fallback always runs. At 09:15 no
+  session candle has finished, so under the passed rule every session's RV would be void.
+- **Fairness.** The open of the 09:15 1-minute candle is NIFTY's first value at or after 09:15:00, the level set by
+  the pre-open call auction. That is the index's opening level, a fair 09:15 sample.
+- **Staleness.** A forming candle exists only if ticks arrived in that minute, and its open cannot change afterwards.
+  So it cannot carry a previous session's value, provided Groww builds candles only from ticks (some evidence: one
+  day).
+- **Scope in the code.** `index_reading.candle_reading` takes the open only when the latest finished candle ends
+  before the mark and the candle starting at the mark is present. At later marks the close of the candle ending at the
+  mark is used. My plant I3 (open rule first) is caught.
+- **Condition.** In the criterion 15 trial, and then weekly in the post-mortem, compare each session's 09:15
+  `candle_1m_open` with NSE's official NIFTY 50 open (the index-close file's open value, already archived by A1).
+  Report every difference above 0.05 points. A systematic difference is a new version. This makes the rule checkable
+  instead of assumed.
+
+## My mutations: 21 of 24 caught; 1 plant was invalid
+
+- **Caught:** I1-I5, I7-I17, I19-I21, I23, I24 (allow-list, forming candle, open-rule order, 120 s boundary, early
+  request, void rule, muhurat skip, missed timing, streak length, alert hour, heartbeat 30 min, skew 5 s, dry-run
+  guard, hooks check, `-X theirs` scope, candle offset, second copy writing a row, heartbeat from GitHub, quote price
+  without time, the 6% band, empty chain).
+- **Invalid:** I6 (a no-op plant of mine).
+- **Survived:** I18 (gzip `mtime=0` dropped: "same document, same bytes" is untested) and I22 (row files' write-once
+  check removed: the ledger's write-once is tested only through settle skipping existing rows). Both minor.
+
+## Should-fix
+
+**1. Two runs can create two Drive files with the same name, after which every read of that mark fails.**
+- `GoogleDriveUploadStore` says it is "meant for one writer at a time": `put` looks for the file, then creates it.
+  The trigger design puts two writers on one path at every hour boundary.
+- If both runs finish a boundary mark within the second or two between look-up and create, Drive holds two files
+  named `nifty_<day>_<HHMM>.json.gz`.
+- From then on, every `get` of that path raises `RawFileConflict` ("2 items named ... in one Drive folder",
+  `google_drive.py:78`). That includes the next mark's settle (`_previous_level`) and the session's RV (`_readings`).
+  The rest of the day's runs stop with an alert, the session's RV is lost, and the duplicate stays for good.
+- How likely: the later fire usually starts late, so it is rare. But nothing prevents it. The two-clone test uses a
+  local folder as "Drive", so it cannot show this.
+- Fix, one of:
+  - (a) each run stores under a run-unique name (for example with its run id or SHA-256), the first-pushed ledger row
+    names the file, and readers and the RV read the file the row names;
+  - (b) after its put, a run looks for duplicates of the name and resolves them deterministically (earliest Drive
+    `createdTime` stays the raw file; the other is moved to `revisions/` with its index row), both in the recorder and
+    in readers;
+  - (c) drop the boundary overlap and accept the trial's measured void share.
+
+  Add a test with a fake Drive that interleaves two runs' look-up and create.
+
+**2. The host clock is never checked against GitHub, and the clock code repeats T1's two fixed defects.**
+- `fno/intraday/clock.py` uses `GITHUB_TIME_URL = "https://api.github.com"`. Through this environment's proxy that
+  answers 400 with no `Date`: my `HttpDateClock("github", ...)` gives `None`, while Slack gives +0.26 s. So "GitHub"
+  is always unchecked, and `clock_ok` rests on Slack alone.
+- It also takes a `Date` header from any status, including an error answer from a proxy.
+- Both are exactly judge 101's should-fixes 1 and 4 on T1, fixed in `fno/cards/clock.py` (2xx/3xx only; the
+  repository path `api.github.com/repos/exepex/trading`).
+- The claim "host clock against GitHub and Slack within 0.5 s" does not hold for GitHub here.
+- Fix: use one clock module for both stories (DRY), with T1's checks, and a test for an error answer carrying a
+  `Date`.
+
+## Minor
+
+1. When the alert send fails, one settlement can try the same streak alert several times. My dry run printed the
+   3-mark alert twice after the 2-mark one; that is harmless, but one attempt per settlement would do.
+2. Tests for I18 (equal documents, equal bytes) and I22 (a ledger row file is never rewritten).
+3. `manifest_commit.py`, shared by every manifest job, now refuses to commit without `core.hooksPath`. Every workflow
+   that commits sets it (I checked all 12), and routines do per `CLAUDE.md`. Correct, but outside A16's own folder;
+   say so in the claims.
+4. Open items, stated by the builder and not blocking the code: the `requirements-groww.txt` fix (its own change), the
+   routine set-up by the owner, and the criterion 15 trial. Nothing counts as recorded history before the trial
+   (criterion 15).
+
+**Verdict: FAIL for a471f44f14cd1080206b81d0622dad59ad14a857**, on should-fixes 1 and 2. Amendment 1 is accepted with
+its NSE-open check, and everything else is verified, including a live read-only snapshot. A re-check needs the store
+race design and its test, and the shared clock with its test.
