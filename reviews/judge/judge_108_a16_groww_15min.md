@@ -459,3 +459,41 @@ This replaces my addendum 3 condition: I compared the wrong value. The 09:15 ope
 - **Gates on eaa66df, run by me.** Full suite with `FNO_SLACK_BOT_TOKEN` unset: 4,614 passed. ruff check and check_imports: clean.
 - **Rule 8.** Not applicable: there is no code path. This is recorded in `conversations/2026-10-15.md`.
 - **Still open.** The criterion 15 minor (list the pre-open comparison in the trial report) is queued for the next A16 text change.
+
+## Addendum 11 (15 Oct 2026): A16e story text at a59b8be (committer adds only A16's own paths)
+
+**Verdict: FAIL.** There are two should-fix findings. Everything else is correct.
+
+The criterion 15 minor from addendum 9 is met: the comparison is now in criterion 15 and in the trial paragraph.
+
+**Checked and correct (scratch Git repository, my own runs):**
+- **Pathspec boundaries.** `git add -n -- d/rv` and `-- d/rv/` match `d/rv/2026/r.csv` but not `d/rv-candle/2026/c.csv`. `-- d/heartbeat.json` does not match `d/heartbeat.json.tmp`. The text's claim holds.
+- **Partial commits.** `git commit --only -- <owned>` with `rv-candle/…csv` staged commits only the owned file and leaves the stray file staged.
+- **No manifests.** A16 writes no manifest rows: the wiring uses the bare `AreaStore(drive, RAW_AREA)`. The builder's correction of the brief is right.
+- **Existing behaviour.** Today's committer already commits by pathspec (`commit -m … -- <folder>`, Git's default `--only`), so the change narrows the pathspec. It does not change the commit mode.
+- **The push risk left out of scope.** I accept leaving it to the planned shared push guard, as decided under 51(b). One guard instead of a copy per writer is the better design.
+
+**Should-fix 1: an owned path that does not exist yet breaks every commit.**
+- Evidence: `research/data/intraday/` does not exist on `main` today. On the first live session, `rv/` first appears at the 15:30 mark. In my scratch repository with `rv/` absent:
+  - `git add -- d/slots d/rv d/heartbeat.json` gave `fatal: pathspec 'd/rv' did not match any files` (exit 128) and added nothing;
+  - `git commit --only -- … d/rv …` gave `error: pathspec 'd/rv' did not match any file(s) known to git`.
+- As written, every mark from 09:15 to 15:15 on the first session would print "NOT committed". The heartbeat would not reach GitHub, and the heartbeat-silence check would fire.
+- Criterion 1's fixture already contains an `rv/` file, so it cannot catch this.
+- Expected fix:
+  - the text says the committer passes only owned paths that exist in the working tree or are tracked;
+  - a criterion covers a fresh folder with no `rv/` (slot row plus heartbeat committed, no error);
+  - a broken-code proof shows the naive add fails that criterion.
+
+**Should-fix 2: the staged-file check looks only inside the folder, but Git's pull refuses on any staged file.**
+- `git merge`, and so `git pull`, aborts when the index differs from HEAD and a merge is needed. Reproduced: a stray staged file with a new remote commit gave "Merge with strategy ort failed".
+- So a file staged anywhere else in the checkout passes the folder-only check. Examples: A16b's own manifest rows in `research/data/manifests/groww-candles/`, the story's own shared-checkout case, or a quotes file.
+- The run would then:
+  - make its local commit;
+  - fail the pull and run `merge --abort`;
+  - print "NOT committed: pull failed";
+  - repeat every mark, piling up local commits that never get pushed, with none of the one-alert-per-run rule.
+- Expected fix: check the whole index (`git diff --cached --name-only`, no pathspec) and refuse when anything staged is not an owned path. The refusal line, the single alert and the criterion 2 checks stay as written. Add a criterion with a staged file outside the folder, for example a manifest row: refused, one alert, HEAD unchanged.
+
+**Minor:** the response says the boundaries were "checked: `git add -n` in a scratch repository". I confirm that result. Keep the pathspec boundary test in criterion 1 as stated.
+
+The story text otherwise matches the code it describes: `manifest_commit.py`'s add and commit steps, the `-X theirs` pull, and `abort_merge`.
