@@ -54,7 +54,7 @@ STATUS_FAILED = (f"Status: {CardStatus.NO_TRADE} ({CARD_DATA_CHECK_FAILED})", "R
 
 
 def _failed(title: str, error: Exception, lines: tuple[str, ...] | None = None) -> CardSection:
-    missing = FAILED.format(title=title, error=f"{type(error).__name__}: {error}"[:160])
+    missing = FAILED.format(title=title, error=type(error).__name__)  # by type only: the message stays off the record
     return CardSection(title, lines or (UNAVAILABLE.format(title=title),), missing=(missing,))
 
 

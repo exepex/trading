@@ -2,13 +2,13 @@
 (criterion 6) and the composition root's choices (criteria 11-13)."""
 
 import subprocess
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from fno.ai.receipts import PushReceipts, ReceiptAccessDenied, ReceiptUnknown
 from fno.cards import wiring
-from fno.cards.clock import HttpDateClock, ServerTimeUnknown
+from fno.cards.clock import HttpDateClock, ServerTimeUnknown, check_server, skew_check
 from fno.cards.committed import GitHeadRecords
 from fno.cards.deliveries import RepoDeliveryFiles
 from fno.cards.posting import NoCardPoster, SlackCardPoster
@@ -33,10 +33,16 @@ def test_an_edited_or_untracked_working_tree_file_is_never_read(tmp_path):
     git(tmp_path, "add", ".")
     git(tmp_path, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-q", "-m", "x")
     (tmp_path / "a" / "x.csv").write_bytes(b"edited\n")
+    (tmp_path / "a" / "z.csv").write_bytes(b"staged only\n")
+    git(tmp_path, "add", "a/z.csv")  # staged, not committed: the index must never reach a card (judge 101 SF3)
     (tmp_path / "a" / "y.csv").write_bytes(b"untracked\n")
     records = GitHeadRecords(tmp_path)
     assert records.read("a/x.csv") == b"committed\n"
     assert records.read("a/y.csv") is None and records.names("a") == ["x.csv"]
+    assert records.read("a/z.csv") is None
+    (tmp_path / "a" / "x.csv").write_bytes(b"staged edit\n")
+    git(tmp_path, "add", "a/x.csv")
+    assert records.read("a/x.csv") == b"committed\n"
     assert records.names("missing") == [] and len(records.code_commit()) == 40
 
 
@@ -118,8 +124,47 @@ def test_githubs_date_header_is_read_as_utc_and_a_missing_one_is_unknown():
     )
     assert clock.now() == datetime(2026, 10, 15, 9, 38, tzinfo=UTC)
     proxy_answer = HttpDateClock("GitHub", "https://example.invalid", head=lambda url, timeout: Answer(None, 400))
-    with pytest.raises(ServerTimeUnknown, match=r"no Date header in GitHub's answer \(HTTP 400\)"):
+    with pytest.raises(ServerTimeUnknown, match=r"^HTTP 400 from GitHub, no Date header"):
         proxy_answer.now()  # what the cloud proxy gave on the live test post (root path, HTTP 400, no headers)
+    no_date = HttpDateClock("GitHub", "https://example.invalid", head=lambda url, timeout: Answer(None, 200))
+    with pytest.raises(ServerTimeUnknown, match=r"^HTTP 200 from GitHub with no Date header$"):
+        no_date.now()
+
+
+def test_an_error_answer_carrying_a_date_is_never_trusted_as_githubs_time():
+    """Judge 101 SF1: a proxy's 403 with its own current Date must not read as "within skew"."""
+    for status in (403, 400, 500):
+        clock = HttpDateClock(
+            "GitHub",
+            "https://example.invalid",
+            head=lambda url, timeout, s=status: Answer("Thu, 15 Oct 2026 09:38:00 GMT", s),
+        )
+        with pytest.raises(
+            ServerTimeUnknown, match=f"^HTTP {status} from GitHub, a Date header: an error answer's time"
+        ):
+            clock.now()
+        check = check_server(clock, lambda: datetime(2026, 10, 15, 9, 38, tzinfo=UTC))
+        assert check.skew_seconds is None and check.stored()["checked"] is False
+    redirect = HttpDateClock(
+        "GitHub", "https://example.invalid", head=lambda url, timeout: Answer("Thu, 15 Oct 2026 09:38:00 GMT", 301)
+    )
+    assert redirect.now() == datetime(2026, 10, 15, 9, 38, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    ("offset", "resolution", "warning"),
+    [
+        (-5.0, 0.0, False), (-5.1, 0.0, True), (5.0, 0.0, False), (5.1, 0.0, True),  # early and late, exact clock
+        (-6.0, 1.0, False), (-6.1, 1.0, True), (6.0, 1.0, False), (6.1, 1.0, True),  # with GitHub's 1 s resolution
+    ],
+)  # fmt: skip
+def test_the_five_second_boundary_on_both_sides(offset, resolution, warning):
+    """Judge 101 SF2: at 5.0 s beyond the host's window (after resolution) no WARNING; at 5.1 s a WARNING."""
+    before = datetime(2026, 10, 15, 9, 38, tzinfo=UTC)
+    after = before + timedelta(seconds=0.5)
+    server = (before if offset < 0 else after) + timedelta(seconds=offset)
+    check = skew_check("GitHub", server, before, after, resolution)
+    assert check.warning is warning and check.line.startswith("clock WARNING" if warning else "clock: host vs GitHub")
 
 
 def test_githubs_clock_is_asked_on_the_repository_path(monkeypatch):

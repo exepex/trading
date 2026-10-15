@@ -2,7 +2,7 @@
 network call; `--post` issues the card and fails the exit code when it was not sent or not saved."""
 
 from argparse import Namespace
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 import requests
@@ -20,6 +20,13 @@ def no_network(monkeypatch):
 
     monkeypatch.setattr(requests.Session, "request", refuse)
     monkeypatch.setattr(requests, "head", refuse)
+
+
+@pytest.fixture(autouse=True)
+def today_is_the_15th(monkeypatch):
+    from fno import models
+
+    monkeypatch.setattr(models, "now_ist", lambda: datetime(2026, 10, 15, 15, 8, tzinfo=models.IST))
 
 
 def run(on, post=False, test=False):
@@ -72,3 +79,11 @@ def test_the_command_is_registered(monkeypatch):
     with pytest.raises(SystemExit):
         cli.main(["card", "daily", "--on", "not-a-date"])
     assert cli.main(["card", "witness", "--on", "2026-10-15"]) == 0 and seen == [date(2026, 10, 15)]
+
+
+def test_post_refuses_any_day_but_today(monkeypatch):
+    """Judge 101 minor 1: today's records must never be issued as another day's card."""
+    monkeypatch.setattr(wiring, "build_card_issuer", lambda: pytest.fail("another day's card was issued"))
+    code, text = run(date(2026, 10, 14), post=True)
+    assert code == 2 and text == card_cli.POST_TODAY_ONLY.format(day=date(2026, 10, 14), today=date(2026, 10, 15))
+    assert run(date(2026, 10, 14))[0] == 0  # a dry run of another day stays allowed

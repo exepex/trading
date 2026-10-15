@@ -131,8 +131,9 @@ def test_a_source_that_raises_never_loses_the_card(tmp_path):
     answer = daily_card(records, tmp_path).sessions.answer(DAY)
     card = builder.build(DAY, answer)
     assert card.status == CardStatus.NO_TRADE and card.reason_code == CARD_DATA_CHECK_FAILED
-    assert "status source failed (OSError: disk gone)" in card.missing
-    assert "forecasts source failed (ValueError: bad csv)" in card.missing
+    assert "status source failed (OSError)" in card.missing  # by type only: no source message on the record
+    assert "forecasts source failed (ValueError)" in card.missing
+    assert not [m for m in card.missing if "disk gone" in m or "bad csv" in m]
     assert card.sections[2].lines == ("forecasts: not available on this card",)
 
 

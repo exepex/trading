@@ -16,12 +16,13 @@ from ..alerts.sender import NO_TOKEN, NOT_SENT, SENT, slack_post
 
 ATTEMPTS = 2  # the post and one retry (design 4.1: "a failed post is retried and logged")
 RETRY_PAUSE_SECONDS = 5.0
-# Failures that mean Slack surely did not post (connection never made, or Slack refused before posting): only these
-# are retried, since chat.postMessage is not idempotent and a lost answer would otherwise post the card twice
-NOT_DELIVERED = frozenset({"ConnectionError", "ConnectTimeout", "ratelimited", "service_unavailable"})
-# Failures after the request went out, where Slack may have posted the card although no usable answer came back
+# Failures that mean Slack surely did not post (no connection was made, or Slack answered that it did not post): only
+# these are retried, since chat.postMessage is not idempotent and a lost answer would otherwise post the card twice
+NOT_DELIVERED = frozenset({"ConnectTimeout", "ratelimited", "service_unavailable"})
+# Failures after the request may have gone out, where Slack may have posted the card although no usable answer came
+# back (a plain ConnectionError includes a connection dropped after sending; judge 101 minor 3)
 SENT_THEN_LOST = frozenset(
-    {"ReadTimeout", "Timeout", "ChunkedEncodingError", "JSONDecodeError", "RequestsJSONDecodeError"}
+    {"ConnectionError", "ReadTimeout", "Timeout", "ChunkedEncodingError", "JSONDecodeError", "RequestsJSONDecodeError"}
 )
 UNKNOWN = "{failure}; Slack may still have posted it (check #fno-desk); not retried"
 NO_TS = "Slack accepted the post but gave no readable ts: posted, with no issuance time (not retried)"

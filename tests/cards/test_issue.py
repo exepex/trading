@@ -71,8 +71,8 @@ def test_slack_down_is_retried_once_printed_stored_and_still_saved_to_drive(tmp_
     assert "unsent-" in name and json.loads(data)["slack"]["sent"] is False
 
 
-def test_a_network_error_then_success_posts_once_more(tmp_path):
-    slack = FakeSlack(requests.ConnectionError("down"), slack_ok())
+def test_a_connect_timeout_then_success_posts_once_more(tmp_path):
+    slack = FakeSlack(requests.ConnectTimeout("never connected"), slack_ok())
     poster = SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, slack, sleep=lambda s: None)
     _, _, result = issue(tmp_path, poster, NoCardRecords())
     assert result.sent and len(slack.calls) == 2
@@ -174,6 +174,10 @@ def test_a_failure_that_may_have_posted_or_is_a_refusal_is_never_retried(tmp_pat
             requests.ReadTimeout("lost answer"),
             "ReadTimeout; Slack may still have posted it (check #fno-desk); not retried",
         ),
+        (
+            requests.ConnectionError("dropped after sending"),
+            "ConnectionError; Slack may still have posted it (check #fno-desk); not retried",
+        ),
         ({"ok": False, "error": "channel_not_found"}, "channel_not_found"),
     )
     for answer, reason in cases:
@@ -227,3 +231,17 @@ def test_a_corrupt_earlier_delivery_record_is_named_and_never_stops_the_card(tmp
         prepared = daily_card(committed, tmp_path).prepare(date(2026, 10, 16))
         assert prepared is not None
         assert "Previous card: the 2026-10-15 card's delivery record could not be read (" in prepared[1]
+
+
+def test_the_next_card_names_an_unchecked_github_clock_even_without_any_warning(tmp_path):
+    """Judge 101 SF4: the routine's GitHub clock is often not checked; the next card must say so."""
+    _, _, result = issue(
+        tmp_path, SlackCardPoster(TOKEN, FNO_DESK_CHANNEL_ID, FakeSlack(slack_ok())), NoCardRecords(),
+        [FixedClock("GitHub", None)],
+    )  # fmt: skip
+    path, delivery = written(tmp_path)
+    assert [c["warning"] for c in delivery["clock"]] == [False, False]  # no WARNING anywhere: only "not checked"
+    committed = FakeRecords()
+    committed.files[path.relative_to(tmp_path).as_posix()] = path.read_bytes()
+    _, next_text = daily_card(committed, tmp_path).prepare(date(2026, 10, 16))
+    assert "Previous card: the 2026-10-15 card's clock NOT CHECKED: host vs GitHub (ConnectionError)" in next_text

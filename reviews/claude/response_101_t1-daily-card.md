@@ -4,10 +4,38 @@ Branch `story/t1-daily-card` (from `origin/main` 96ee83f). Story text: `docs/sto
 (new story; touches Slack, Drive and an outside clock).
 
 **Verdict in one line:** the card is built, self-reviewed by two independent agents (their 20 findings checked: 18
-fixed, 2 kept with reasons), 50 of 50 planted breaks are caught, and it prints correctly from the real repository.
+fixed, 2 kept with reasons), 58 of 58 planted breaks are caught (judge 101's included), and it prints correctly from the real repository.
 One live TEST post went to #fno-desk (made by the orchestrator after the owner's yes; this session's permission system
 blocked my own attempt) and was read back from the channel, and three
 inputs are honest placeholders (weather, house-forecast rule, owner availability), each named on the card.
+
+## Judge 101 (FAIL on 3e705bf): answer item by item
+
+All eight are accepted; each was checked against the code first. Every fix has a test and a planted break that turns
+it red. The judge's own planted breaks are in the table below: T12 (read the index), B1 (limit raised to 9.9 s) and B2
+(resolution ignored on the early side).
+
+| Item | Check | Fix | Test (and the break it catches) |
+|---|---|---|---|
+| SF1: GitHub clock trusts any `Date` | Correct: 9f540e9 still read a 403 carrying a `Date` as GitHub's time | `fno/cards/clock.py`: only a 2xx or 3xx answer's `Date` is GitHub's time. Otherwise: "HTTP 403 from GitHub, a Date header: an error answer's time is not trusted" / "HTTP 400 from GitHub, no Date header ..." / "HTTP 200 from GitHub with no Date header" | `test_an_error_answer_carrying_a_date_is_never_trusted_as_githubs_time` (403, 400, 500 with `Date`; 301 accepted), `test_githubs_date_header_is_read_as_utc_and_a_missing_one_is_unknown` (400 and 200 without `Date`). Break "error answer's Date trusted": caught |
+| SF2: 5 s boundary untested | Correct: B1 and B2 survived | none needed in code (the rule was right) | `test_the_five_second_boundary_on_both_sides`: 8 cases, early and late, at 5.0 s (no WARNING) and 5.1 s (WARNING), with resolution 0 and 1 s. B1, B2 and `>` to `>=`: all caught |
+| SF3: staged edit not pinned | Correct: T12 survived | none needed in code (`git show HEAD:<path>`) | `test_an_edited_or_untracked_working_tree_file_is_never_read` now stages a new file and a staged edit; both are not read. T12: caught |
+| SF4: unchecked GitHub clock silent | Partly done in 9f540e9 | `misses()` names every unchecked server on a sent card; stored `checked: false` with the line | `test_the_next_card_names_an_unchecked_github_clock_even_without_any_warning` (no WARNING anywhere, only "not checked"). Removing that line: caught |
+| SF4 known limit | Partly agree. True as judged on 3e705bf: the root path gives 400 with no `Date`. **Pushback with evidence on "never available from this host":** 9f540e9 found a route. From this builder container, a HEAD to `https://api.github.com/repos/exepex/trading` passes the proxy with GitHub's `Date`; live, read-only: "clock: host vs GitHub within 0.0 s". | Written in known limits below: the route works from this container but not yet from a scheduled post; if the routine's network refuses it, every card says "clock NOT CHECKED" and the next card names it | judge to re-run the live read-only check |
+| Minor 1: `--post` with another `--on` | Correct | `fno/cards/cli.py`: refused unless today (IST); a dry run of any day stays allowed | `test_post_refuses_any_day_but_today`. Break: caught |
+| Minor 2: source message in the public file | Correct | `fno/cards/card.py`: a failed source is named by error type only | `test_a_source_that_raises_never_loses_the_card` asserts no message text. Break: caught |
+| Minor 3: ConnectionError double post | Correct: a plain `ConnectionError` includes a connection dropped after sending | No idempotency check: that would need `conversations.history`, a new Slack scope, so it is not cheap. Instead a plain `ConnectionError` is now "may have posted": not retried, with "check #fno-desk". Only `ConnectTimeout` (never connected), `ratelimited` and `service_unavailable` are retried | `test_a_failure_that_may_have_posted_or_is_a_refusal_is_never_retried`, `test_a_connect_timeout_then_success_posts_once_more`. My first break for this was equivalent (not caught, because the may-have-posted check runs first); the replacement break then exposed that the case was missing from the test. Added: caught |
+| Minor 4: test post's old clock entries | Agree | left as is (append-only) | none |
+| Design note: muhurat | Agree (owner "3 A") | `docs/stories/T-cards.md`: "a card every session with a 15:00 market" in the description and a design note | `test_a_muhurat_session_gets_no_card_and_is_skipped_as_the_previous_session` |
+
+**`fno/ai/receipts.py` (changed in 9f540e9) is in no frozen list.** It is not in G1 v1-v3 (`research/forecasts/FREEZE*.md`),
+not in `fno/freeze_sections.py`, and not in S1's `frozen_files` (`research/evaluation/PROTOCOL.md`, which is not frozen
+yet). **The G5 collector's results cannot change** (reasoning plus a test): only how page 2 onward is asked changed,
+from GitHub's numeric-ID `next` URL to the same endpoint by owner/name with that link's own cursor. GitHub serves the
+same page either way, so the pushes read and the receipt chosen are the same. Where the old path worked (GitHub
+Actions, no proxy), nothing differs; where it failed (this proxy), it failed closed, and now it reads. A 401 or 403 is
+`ReceiptAccessDenied`, a subclass of `ReceiptUnknown`, so the collector's `except ReceiptUnknown` (fail closed) is
+unchanged. `tests/ai` passes.
 
 ## What the card says today: the real dry-run text
 
@@ -175,8 +203,9 @@ Script: each break goes into a throwaway git worktree, `tests/cards` and `tests/
 and the file is restored. The main tree is never touched.
 - The first run caught 26 of 27 breaks. It missed "UTC stored", because the tests' host clock was already UTC; a test
   with an IST host clock was added.
-- After the review fixes and the test-post fixes, breaks were added for each fix.
-- **Result now: 50 of 50 caught.**
+- After the review, test-post and judge-101 fixes, breaks were added for each fix, including the judge's T12, B1 and
+  B2.
+- **Result now: 58 of 58 caught.**
 
 | Criterion | Break planted | Test that failed |
 |---|---|---|
@@ -207,6 +236,14 @@ and the file is restored. The main tree is never touched.
 | 6 | receipt pages asked by owner/name | `test_the_activity_log_is_read_across_pages` |
 | 6 | access refused named apart | `test_an_unreadable_log_or_an_unknown_commit_fails_closed` |
 | 6 | witness names an access problem | `test_the_witness_prints_slacks_time_beside_githubs_push_receipt` |
+| 7 | SF1 error answer's Date trusted | `test_githubs_date_header_is_read_as_utc_and_a_missing_one_is_unknown` |
+| 7 | SF2 boundary > becomes >= | `test_the_five_second_boundary_on_both_sides[-5.0-0.0-False]` |
+| 7 | SF2 limit raised to 9.9 s (judge B1) | `test_the_five_second_boundary_on_both_sides[-5.1-0.0-True]` |
+| 7 | SF2 resolution ignored early (judge B2) | `test_the_five_second_boundary_on_both_sides[-6.0-1.0-False]` |
+| 5 | SF3 reads the index (judge T12) | `test_an_edited_or_untracked_working_tree_file_is_never_read` |
+| 11 | minor 3 ConnectionError treated as may-have-posted | `test_a_failure_that_may_have_posted_or_is_a_refusal_is_never_retried` |
+| 13 | minor 2 source message off the record | `test_a_source_that_raises_never_loses_the_card` |
+| 12 | minor 1 --post today only | `test_post_refuses_any_day_but_today` |
 | 7 | UTC stored | `test_times_are_stored_in_utc_even_when_the_host_clock_is_in_ist` |
 | 8 | owner-unavailable line | `test_a_full_card_says_paper_only_no_trade_with_its_reason_and_the_owner_line` |
 | 9 | no card text in repo | `test_the_repository_metadata_holds_no_card_text_and_no_secret` |
@@ -260,7 +297,7 @@ used by both `SlackChannelAlerts` and `SlackCardPoster`; the existing alert test
 ## Gates (this commit)
 
 `git config core.hooksPath .githooks`; not shallow; `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`; `ruff check fno
-tests tools`; `ruff format` (no changes); `python tools/check_imports.py` (clean). Full suite on the final commit: 3254 passed; `tests/cards`: 49.
+tests tools`; `ruff format` (no changes); `python tools/check_imports.py` (clean). Full suite on the final commit: 3265 passed; `tests/cards`: 60.
 Note: `pip install -r requirements-groww.txt` fails in this container (two old dependencies of `growwapi` do not build);
 no T1 code needs it.
 
@@ -281,6 +318,14 @@ no T1 code needs it.
 
 ## Known limits (said plainly)
 
+- **GitHub's clock from the routine (judge 101 SF4).** Through this cloud container's GitHub proxy, the API root
+  (HEAD `https://api.github.com`) gives HTTP 400 and `/zen` gives 403, both with no `Date`. That was the live test
+  post's "not checked (KeyError)". The card now asks `https://api.github.com/repos/exepex/trading`, which passes with
+  GitHub's `Date`: "within 0.0 s" live from this builder container (some evidence: one read-only check, not yet a
+  scheduled post). If a scheduled routine's network refuses that path too, its cards will store "clock NOT CHECKED:
+  host vs GitHub (HTTP ..., ...)", `checked: false`, and the next card names it. The check is then missing, never
+  read as "within skew". GitHub's push receipt, the second issuance witness, is unaffected: it is read later, from the
+  activity log.
 - **One unintended live Slack post during building.** My first commit attempt held a fake test token shaped like a
   Slack bot token (`xoxb-...`). The record scan (story O5) correctly refused the commit, and its hook posted its own
   standard alert to #fno-desk, because `FNO_SLACK_BOT_TOKEN` is set in this container. That alert names only the file,

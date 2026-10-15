@@ -11,7 +11,8 @@ section 6.5, `REPLAN_new_stories.md` T1). Story template and definition of done:
 
 **Repository:** trading
 
-**Description:** As the owner, I want one card in Slack #fno-desk every NSE session that says PAPER ONLY, gives the
+**Description:** As the owner, I want one card in Slack #fno-desk every NSE session with a 15:00 market that says
+PAPER ONLY, gives the
 desk's status (v1: always `NO TRADE`, with its reason), the market weather, the forecasts on record with their track
 records, and the SHA-256 of every record it used, so that I see each day what the desk knows and how sure it is, and so
 that every forecast the card shows has an issuance time no one can back-date.
@@ -53,6 +54,10 @@ Out: scheduling (the owner decides later); `TRADE` and `WATCH` fields (slice B);
 house-forecast rule (design 07 section 7.4, frozen separately); weather scoring (M1); protocol v4 forecasters (G6, not
 merged: they plug in as a new `ForecastSource`); the dashboard renderer.
 
+**Design note (judge 101, owner "3 A", 15 Oct 2026):** design 04's "a card exists every trading day" is read as "a
+card every session with a 15:00 market": regular and special sessions. A muhurat-only session (one evening hour) has
+no 15:00 market and no forecast capture (`fno/forecast/capture.py` skips it), so it gets no card, as in A4.
+
 **Design:**
 - Package `fno/cards/`, composition root `fno/cards/wiring.py` (design 04 section 4.1 names `fno/cards/wiring.py`).
 - `CommittedRecords` (interface; `GitHeadRecords` reads `git show HEAD:<path>` bytes): the card reads only committed
@@ -91,7 +96,10 @@ merged: they plug in as a new `ForecastSource`); the dashboard renderer.
    metadata; `card witness` prints it beside GitHub's push receipt of the commit that added the metadata; committer
    time is never read.
 7. Section 4.4 clock contract: stored times are UTC with offset (`+00:00`), shown in IST on the card; the host clock is
-   checked against Slack and GitHub; a skew above 5 seconds prints and stores a WARNING.
+   checked against Slack and GitHub; a skew above 5 seconds (beyond the server clock's resolution) prints and stores a
+   WARNING, and exactly 5 seconds does not. GitHub's time is trusted only from a 2xx or 3xx answer; any other answer,
+   or one without a `Date`, is "clock NOT CHECKED" with its plain reason, stored as `checked: false`, and named on the
+   next card.
 8. Section 4.4 owner-unavailable line on every card, with E8's absence stated.
 9. Card records go to Drive only: the Drive record holds the card text; the repository's delivery metadata holds no
    card text (a test checks the written repository file contains no line of the card's body).
@@ -104,7 +112,8 @@ merged: they plug in as a new `ForecastSource`); the dashboard renderer.
     the failure, and the next card names the miss. Drive down or not set:
     the card is still posted, "card record NOT saved to Drive: <reason>" is printed and stored, and the next card names
     it.
-12. Dry run by default: without `--post` nothing is posted, saved or written, and no network call is made.
+12. Dry run by default: without `--post` nothing is posted, saved or written, and no network call is made; `--post`
+    is refused for any day but today (IST), so today's records are never issued as another day's card.
 13. Secrets never in files or logs: the token is never printed, stored or put in a record; outputs name only the
     variable.
 14. Non-session days (NSE calendar) and muhurat-only sessions (one evening hour, as A4) print "not a trading day: no

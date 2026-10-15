@@ -8,6 +8,7 @@ from datetime import date
 
 NOT_A_SESSION = "not a trading day: no card for {day}"
 TEST_NEEDS_POST = "--test marks a live post: use it with --post (nothing done)"
+POST_TODAY_ONLY = "--post issues only today's card ({today}, IST), not {day}'s: nothing done"
 DRY_RUN = "dry run: nothing posted, saved or written (add --post to send it to #fno-desk)"
 
 
@@ -31,7 +32,11 @@ def cmd_card_daily(args, out=print) -> int:
     if args.test and not args.post:
         out(TEST_NEEDS_POST)
         return 2
-    day = args.on or now_ist().date()
+    today = now_ist().date()
+    day = args.on or today
+    if args.post and day != today:  # today's records would be issued as another day's card
+        out(POST_TODAY_ONLY.format(day=day, today=today))
+        return 2
     prepared = build_daily_card().prepare(day)
     if prepared is None:
         out(NOT_A_SESSION.format(day=day))

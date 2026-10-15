@@ -19,7 +19,8 @@ TIMEOUT_SECONDS = 15
 OK_LINE = "clock: host vs {server} within {skew:.1f} s"
 WARNING_LINE = "clock WARNING: host vs {server} off by {skew:.1f} s (limit {limit:.0f} s)"
 UNCHECKED_LINE = "clock NOT CHECKED: host vs {server} ({why})"
-NO_DATE = "no Date header in {name}'s answer (HTTP {status})"
+NO_DATE = "HTTP {status} from {name} with no Date header"
+NOT_ANSWERED = "HTTP {status} from {name}, {date} Date header: an error answer's time is not trusted"
 
 
 class ServerTimeUnknown(RuntimeError):
@@ -46,9 +47,11 @@ class HttpDateClock(ServerClock):
             response = self._head(self.url, timeout=TIMEOUT_SECONDS)
         except requests.RequestException as error:
             raise ServerTimeUnknown(f"{self.name} not reached ({type(error).__name__})") from None
-        header = response.headers.get("Date")
-        if not header:  # e.g. a proxy's own answer, which carries no server time
-            raise ServerTimeUnknown(NO_DATE.format(name=self.name, status=getattr(response, "status_code", "?")))
+        status, header = getattr(response, "status_code", None), response.headers.get("Date")
+        if not isinstance(status, int) or not 200 <= status < 400:  # an error answer may be a proxy's, with its time
+            raise ServerTimeUnknown(NOT_ANSWERED.format(status=status, name=self.name, date="a" if header else "no"))
+        if not header:
+            raise ServerTimeUnknown(NO_DATE.format(name=self.name, status=status))
         try:
             moment = parsedate_to_datetime(header)
         except (TypeError, ValueError):
