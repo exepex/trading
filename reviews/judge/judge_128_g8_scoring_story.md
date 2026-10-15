@@ -84,3 +84,39 @@ not run, stays "unresolved" instead of "void". Both are left out of the scored s
   - That is a property of the registered rules: the 2% minimum effect, Bonferroni at /15 and section 7's formula. It
     is not a code error. Changing it is a protocol decision (G6 is not frozen); I make no recommendation on the
     rule itself.
+
+## Addendum 2 (15 Oct 2026): G8 at de4272e8 (merges G7 58f4329, adds c256ec15)
+
+**Verdict: FAIL.** Addendum 1's should-fix is not addressed. Everything new is correct.
+
+- **Should-fix (open, unchanged).** `look.py` at de4272e still has no `DESCRIPTIVE_ONLY` skip. The new SHA changes
+  only `cli.py`, `records.py` and `scoring.py`. I reproduced the crash end to end:
+  - a real `run_look` with `FrozenToolThresholds(Path('tools'))`;
+  - one registered V7 member, 130 scored outcomes, 9 2% days (passing both gates);
+  - the look raised `KeyError: 'v7_vix_higher_in_5_sessions'`.
+  - The fix stays as stated in addendum 1.
+- **New and correct: c256ec15.**
+  - After the freeze, a look counts only live rows of forecast days strictly after the freeze day, for the member
+    and for its primary baseline. Back-fill rows and earlier live rows are dropped. That matches protocol 8 ("only
+    forecasts made after the freeze count"). Excluding the freeze day itself is the conservative reading.
+  - The freeze day is read from a required `Frozen on: YYYY-MM-DD` line. A record without the line is refused
+    (`FreezeDateMissing`), so a look cannot silently count everything.
+  - This adds a dependency for the G6 freeze commit: `FREEZE_v4.md` must carry that line. Tests cover both.
+- **The rename** `forecast-v4-scores` avoids G7's `forecast-v4`. CLAUDE.md and the docstring agree.
+
+I did not re-run the full suite on this SHA (it fails on the open should-fix anyway). I will run it on the fix SHA.
+
+## Addendum 3 (15 Oct 2026): G8 at 1e2ebf81 (fix on top of de4272e)
+
+**Verdict: PASS.** Addendum 1's should-fix is met, and nothing else is open.
+
+- **Fix.** `member_result` returns NOT_JUDGED for `terms.DESCRIPTIVE_ONLY` (V7) before the batch, gate or threshold
+  step. The new test runs a look with a registered V7 member through a threshold source that raises if asked: not
+  judged, p = 1, Test A undecided.
+- **My repro from addendum 2, on this SHA.** A real `run_look` with `FrozenToolThresholds(Path('tools'))` and the
+  same V7 member (130 outcomes, 9 2% days) now completes: Test A is "undecided", with no KeyError.
+- **Gates, run by me.** 5,074 passed and 0 failed with `FNO_SLACK_BOT_TOKEN` unset (G7 58f4329 is merged in, so
+  `test_freeze_v2` is green). ruff, format and check_imports are clean. A trial merge with `origin/main` conflicts
+  only in `reviews/claude/README.md` (keep both).
+- **Still the freeze's, not G8's.** `FREEZE_v4.md` must carry "Frozen on: YYYY-MM-DD" (addendum 2) and the section
+  11 E line. The power-report consequence (addendum 1) is for the owner and the G6 session (response 133).
