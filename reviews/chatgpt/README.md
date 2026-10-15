@@ -84,3 +84,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 120: S3/S6 scoreboards — PARTIAL, changes before freeze](review_120_s3-s6-scoreboards.md)
 - [Review 124: F9a role-value scoring — PARTIAL](review_124_f9a-role-value.md)
 - [Review 126: E4d shared displayed size — PARTIAL](review_126_e4d-shared-size-code.md)
+- [Review 131: E6b missed executions in scorecards — PARTIAL](review_131_e6b-missed-executions.md)
