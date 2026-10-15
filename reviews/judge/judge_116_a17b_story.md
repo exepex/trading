@@ -159,3 +159,17 @@ folded into the code round; I check it there.
 
 **Verdict: PASS for 1b4d9705373e645abfaf1f17e1f228c156b7e0c2.** Merge it; then I check the merge. Consumers (M1, the
 weather, forecasts) must read cues only through `CueReader` or `reading_for` and refuse `stale` and `none`.
+
+## Addendum 3 (15 Oct 2026): merge check, A17b merged to main as af96586
+
+- **Parents.** af96586's parents are 4362a94 (main) and 1b4d970 (the passed tip).
+- **The merge matches my recomputation exactly** (empty diff; no conflicts).
+- **Branch files arrived unchanged.** Every file the branch changed is identical in af96586 and 1b4d970.
+- **No unjudged code since.** No file under `fno/`, `tests/`, `tools/`, `.github/` or `config.yaml` changed after it.
+- **CI.** Run 38680360001 (`checks`) on af96586: **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records `global-cues verify` against Drive on the merged tree as clean.
+
+**Merge check: PASS.** The three minors of addendum 2 go to the builder's follow-up.
+
+**The consumer rule goes into the M1 and weather briefs:** read cues only through `CueReader` or `reading_for`,
+refuse `stale` and `none`, and state any use of `behind`.
