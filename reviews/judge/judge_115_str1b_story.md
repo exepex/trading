@@ -141,3 +141,59 @@ Text only; lane 1 (acceptance criteria). It lists its test files, a mutation per
 
 **Verdict: FAIL for 53abdc0e9dc6678b2caf1e2ae4475ee19ad6420e** (story text), on should-fixes 1-7. A re-check needs only
 the STR1b section.
+
+## Addendum 1 (15 Oct 2026): revised text at 0462f71bcacd01989b89f190e8704da2d7fa52cf
+
+Text only (`git diff 53abdc0 0462f71`: one file, the STR1b section and STR1's status line).
+
+| Item | Status | Evidence |
+|---|---|---|
+| sf 1, shadows | MET | Shadow and paper entry fills take the same bound-C4 path (playbook mode against the shadow's own account; orchestrator's logged decision). The activation gate refuses STR1 codes for shadows until STR1b-2 passes |
+| sf 2, activation gate and strict xfail | MET | `STR1_ACTIVATION_PENDING = {"STR1b-2": ("shadow", "paper"), "E8": ("paper",)}`. D1's loader and status changer, and D2's shadow path, refuse STR1 versions while the gate is open. Criterion 8 tests the gate both shipped and with "STR1b-2" removed. The E8 test is `xfail(strict=True)` importing `OwnerTiming` |
+| sf 3, capital | MET | For the six codes only: `stressed_span` is capped at `max(0, worst terminal loss − max(0, net debit))`. That gives 0 reserve for LC, LP, CDS and PDS, and at most `width − credit` for CCS and PCS. SF/SC/BF are uncapped, so they equal today's figure by algebra. This is proven on the real 14 Oct `i1` rows, and the CDS figure is checked by hand |
+| sf 4, binding | MET | Hash fields: book, version, `rule_sha256`, trade ID, terms, legs. Sorted JSON with decimal strings (`25000` equals `25000.0`). `margins.csv` is checked as a bound-length prefix with its SHA, plus the bound row; an append is accepted, an edit or truncation refused, and both SHAs recorded |
+| sf 5, no margin read | MET | The manager stops reading data after a failed shape rule (later rules "not run"); criterion 1's spy records zero reads |
+| sf 6, bypass at the primitive | MET for openings | `record_fill` requires a `VerifiedPass` for `FILL_OPEN` and `FILL_UNWIND`; a static test lists their call sites, shadows included |
+| sf 7, D2's chain | MET | It rebuilds on D2's own `live_chain`, and a stale-quote strike is refused |
+| Minors | MET | 72 mislabelled pairs plus 9 true labels; the pending exit stays open in the account and is alerted; `SttlmPric` comes from the expiry day's own file |
+| Split | MET | STR1b-1 = scope 1-6 and criteria 1-9, including the gate; STR1b-2 = criteria 10-13. Built after C5 merges |
+
+### The orchestrator's question: can the pass-free CLOSE and SETTLE be abused? Yes, today; one should-fix
+
+**`AccountWriter.apply_fill` never checks direction** (read: `fno/books/account.py:134-151`).
+- It refuses a reused fill ID and a fill on an already **closed** trade.
+- It accepts any fill on a **new** trade ID, and any fill that adds to or flips a held position.
+- `DeskRecords.record_fill` passes the action through untouched.
+
+So under the revised text, with the pass required only for `FILL_OPEN` and `FILL_UNWIND`, a caller could record
+`FILL_CLOSE` on a new trade ID, or a "close" that sells more than is held, and open risk with no C4 pass. That is the
+exact bypass the binding exists to stop. The static call-site test lists only `FILL_OPEN`/`FILL_UNWIND` sites, so it
+would not see it.
+
+**Should-fix 8 (text, then code in STR1b-1).** `record_fill` with `FILL_CLOSE` or `FILL_SETTLE` is accepted only when
+every one of its fills reduces an existing open holding of the same trade and contract, in absolute units, by at most
+what is held:
+- never a new trade ID;
+- never a contract the trade does not hold;
+- never more units than held;
+- never a change of sign.
+
+Add these as cases in criterion 4:
+- close on a new trade ID;
+- close of a contract not held;
+- a close that sells one more unit than held (it flips a long into a short);
+- a close that adds to a short;
+- settle of a non-expiring leg;
+- settle of more units than held.
+
+Each must be refused, and the static test must list every `FILL_CLOSE`/`FILL_SETTLE` call site too.
+
+**Why this is right (risk manager, reasoning only).** A risk-reducing exit needs no pre-trade check, but only if
+"risk-reducing" is enforced. E4's exits and E7's settlement already only reduce holdings, so the check costs them
+nothing.
+
+**`FILL_UNWIND`.** It needs the pass of the order it unwinds, which is consistent. With should-fix 8, an unwind could
+equally be checked as reducing only. Keeping the pass is acceptable and stricter.
+
+**Verdict: FAIL for 0462f71bcacd01989b89f190e8704da2d7fa52cf** on should-fix 8 only (text). Judge 115's seven
+should-fixes and three minors are all met. A re-check needs only scope 2's exit sentence and criterion 4.
