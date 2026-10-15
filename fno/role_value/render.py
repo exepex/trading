@@ -7,12 +7,16 @@ from .cost import COST_LABEL
 from .report import RoleValueResult
 from .score import UnitScore
 
+PROVISIONAL_NOTE = (
+    "Every verdict is provisional: none is evidence until F9b's end-to-end card-withholding test "
+    "passes; the bootstrap's coverage on sparse ablations is unvalidated (review 124)."
+)
 NO_ROWS = "no paired decisions yet: books 2-3 have not traded with shadow decisions (F9b, slice E)."
 SLOW = ("Each unit is ablated once every n decision days (n units), so 30 changed opportunities can take years; "
         "no early figure is an answer.")  # fmt: skip
-COLUMNS = ("Unit", "Applicable", "Changed", "Mean difference (Rs)", "Cost per opportunity (Rs)", "Net value (Rs)",
+COLUMNS = ("Unit", "Applicable", "Changed", "Mean difference (Rs)", "Cost on scored dates (Rs)", "Net value (Rs)",
            "Interval 5-95% (shown only)", "p earns", "p drop", "Verdict", "Worst month (Rs)",
-           "Max-loss difference (Rs)")  # fmt: skip
+           "Max-loss difference (Rs)", "Operating cost, all consulted days (Rs)")  # fmt: skip
 HEADER = "| " + " | ".join(COLUMNS) + " |"
 
 
@@ -30,8 +34,15 @@ def _row(score: UnitScore, verdict: str) -> str:
     mean = "-" if score.mean_difference is None else f"{score.mean_difference:,.2f}"
     risk = "-" if score.mean_max_loss_difference is None else f"{score.mean_max_loss_difference:,.2f}"
     cells = [score.unit, str(score.applicable), str(score.changed), mean, _rs(score.cost), _rs(score.mean_net_value),
-             interval, _p(score.p_earns), _p(score.p_drop), verdict, month, risk]  # fmt: skip
+             interval, _p(score.p_earns), _p(score.p_drop), verdict, month, risk,
+             _rs(score.operating_cost)]  # fmt: skip
     return "| " + " | ".join(cells) + " |"
+
+
+def _spread(score: UnitScore) -> str:
+    blocks = "; ".join(f"{first} to {last}" for first, last in score.block_spans)
+    months = ", ".join(f"{month}: {n}" for month, n in score.months)
+    return f"- {score.unit}: blocks of 20 observations {blocks}; observations by month {months}"
 
 
 def render(result: RoleValueResult) -> str:
@@ -47,7 +58,9 @@ def render(result: RoleValueResult) -> str:
         return "\n".join(lines + [NO_ROWS, "", SLOW, ""])
     lines += [HEADER, "|" + " --- |" * len(COLUMNS)]
     lines += [_row(s, result.verdicts.get(s.unit, "")) for s in result.scores]
-    lines += ["", SLOW, "", "## Open pairs (waiting, never scored as 0)", ""]
+    lines += ["", PROVISIONAL_NOTE, SLOW, "", "## Sample spread (beside the p-values)", ""]
+    lines += [_spread(s) for s in result.scores if s.applicable]
+    lines += ["", f"## Open pairs: {len(result.open_pairs)} (waiting, never scored as 0)", ""]
     lines += [f"- {line}" for line in result.open_pairs] or ["- none"]
     lines += ["", "## Rows not scored", ""]
     lines += [f"- {reason}: {n}" for reason, n in sorted(result.excluded.items())] or ["- none"]

@@ -12,16 +12,17 @@ from ..scoreboard.matched_days import CommonSet
 from ..scoreboard.standard_unit import StandardUnit
 from .checks import checked
 from .controls import ControlCounts
-from .cost import ConsultedDay, MonthAllocation, cost_per_opportunity
+from .cost import ConsultedDay, MonthAllocation, daily_parts, mean_cost
 from .records import DecisionRecords
 from .role_set import RoleSet
 from .rows import SCORED, PairedDecisionSource, PairedRow
 from .score import Opportunity, UnitScore, score_unit
 from .valuation import SCORED as PAIR_SCORED
-from .valuation import WAITING, value_pair
+from .valuation import WAITING, PairValue, value_pair
 from .verdict import verdicts
 
 PILOT = "pilot, before the common start"
+OPEN_PAIR = "{day} {unit}: open {age} days ({note})"
 
 
 @dataclass(frozen=True)
@@ -75,20 +76,23 @@ class RoleValueReport:
         if pilot:
             result.excluded[PILOT] = len(pilot)
         rows = [r for r in rows if r.day >= period.common_start]
-        found: dict[str, list[Opportunity]] = {}
+        found: dict[str, list[tuple[PairedRow, PairValue]]] = {}
         for row in rows:
             self._pair(row, period.last, result, found)
         days = [ConsultedDay(r.day, r.consulted_units) for r in rows]
         units = sorted({u for r in rows for u in self.i.role_set_of(book, r.version).unit_ids})
         for unit in units:
-            cost = cost_per_opportunity(unit, days, book, self.i.allocation_of, self.i.usage_of)
-            result.scores.append(score_unit(unit, found.get(unit, []), cost))
+            parts = daily_parts(unit, days, book, self.i.allocation_of, self.i.usage_of)
+            scored = [Opportunity(r.day, v.difference, v.changed, v.max_loss_difference, parts.get(r.day))
+                      for r, v in found.get(unit, [])]  # fmt: skip
+            result.scores.append(score_unit(unit, scored, mean_cost(parts.values())))
         reviews = self.i.review_days(period.common_start, period.last)
         result.verdicts = verdicts(result.scores, period.review, period.last, reviews)
         result.controls = self.i.controls(book, period.first, period.last)
         return result
 
-    def _pair(self, row: PairedRow, on: date, result: RoleValueResult, found: dict[str, list[Opportunity]]) -> None:
+    def _pair(self, row: PairedRow, on: date, result: RoleValueResult,
+              found: dict[str, list[tuple[PairedRow, PairValue]]]) -> None:  # fmt: skip
         if row.status != SCORED or not row.consulted:
             reason = row.status if row.status != SCORED else "card not consulted (not applicable)"
             result.excluded[reason] = result.excluded.get(reason, 0) + 1
@@ -97,10 +101,10 @@ class RoleValueReport:
         shadow = self.i.shadow.records(row.book, row.day, row.shadow_decision_id)
         value = value_pair(real, shadow, self.i.packs(row.day), row.day, self.i.unit, on)
         if value.status == WAITING:
-            result.open_pairs.append(f"{row.day} {row.unit}: {value.note}")
+            result.open_pairs.append(OPEN_PAIR.format(day=row.day, unit=row.unit, age=(on - row.day).days,
+                                                      note=value.note))  # fmt: skip
         elif value.status != PAIR_SCORED:
             reason = f"not scored: {value.note}"
             result.excluded[reason] = result.excluded.get(reason, 0) + 1
         else:
-            opportunity = Opportunity(row.day, value.difference, value.changed, value.max_loss_difference)
-            found.setdefault(row.unit, []).append(opportunity)
+            found.setdefault(row.unit, []).append((row, value))

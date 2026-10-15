@@ -181,3 +181,19 @@ owner). `fno/scoreboard/` is imported only, never edited.
    moves the cycle; a pilot row is excluded.
 
 The ChatGPT request is response 187 (number assigned by the orchestrator; answer file review 124).
+
+## ChatGPT review 124 (PARTIAL) and the orchestrator's response 191: what changed, each point checked
+
+| Point | Verdict | Check and change |
+|---|---|---|
+| Q1: the cost covers other dates than the tested net | **accepted** | Confirmed in the code. `report.py` built `ConsultedDay` from every row of the period, excluded and unavailable rows included, while `score_unit` tested only scored pairs. Now each scored opportunity carries its own day's part (`cost.daily_parts`), and its net value is its difference minus that part. The mean over every consulted day is printed apart as "operating cost, all consulted days". The label is now "conservative cost allocation". Fixture: Rs 300 (scored) and Rs 100 (unavailable) days give a cost of Rs 300 and a net value of Rs 1,160, with an operating cost of Rs 200 (`test_the_cost_is_taken_on_the_scored_dates_not_the_period_mean`). Strong evidence (test). |
+| Q3: blocks are 20 observations, about 20n sessions | **accepted (print, no new service)** | Each block's calendar span and the observations per month are printed beside the p-values. The verdicts are labelled provisional (`test_the_spread_beside...`, `test_earns_and_drop_are_labelled_provisional`). |
+| Q4: equal hashes do not prove withholding; open pairs | **accepted** | Story text, Known limits: no verdict is evidence until F9b's withholding test passes. Open pairs are printed with their count and age in days (`test_an_open_pair_is_listed_with_its_count_and_age`). |
+| Q2, Q5 | accepted; S1 items go to S1's text owner (orchestrator) | No code change here. |
+
+**One caveat I add (reasoning only).** On an ablation day the book's session also runs the shadow decision, so that
+day's minutes, and its cost, include the shadow's work. Charging each scored opportunity its own day's part therefore
+charges the evaluation overhead to the role on exactly the days that are tested. That leans further toward "drop"
+than the period mean did. It stays conservative and labelled, and nothing is dropped automatically. But if F9b can
+time the shadow step, the shadow's minutes should be taken off its day before the split, as a new protocol version.
+I recommend that F9b's text carries this.

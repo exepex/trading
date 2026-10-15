@@ -571,6 +571,9 @@ Feeds a row with a wrong snapshot id, one naming a bundled role, and a consulted
 
 **Known limits (owner's simplicity rule, 15 Oct 2026):**
 - Until books 2-3 trade there are no rows: the report prints "no paired decisions yet" (some months at least).
+- **No "earns its cost" or "drop" verdict is shown as evidence until F9b's end-to-end card-withholding test passes**
+  (review 124, Q4): every verdict is labelled provisional until then. Open pairs are reported with their count and
+  age, never scored as 0.
 - With n units each is ablated once every n trading days, so 30 changed opportunities can take years. Every report
   says so.
 - F9a trusts the rows' packs hashes. That the shadow really withheld the card is F9b's end-to-end test.

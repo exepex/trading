@@ -13,7 +13,9 @@ from ..scoreboard.uncertainty import holm
 from .score import UnitScore
 
 MIN_CHANGED = 30  # changed opportunities before a unit is judged (S1)
-DROP, EARNS, INCONCLUSIVE = "drop proposed (the owner decides)", "earns its cost", "inconclusive, stays"
+PROVISIONAL = " (provisional: not evidence until F9b's card-withholding test passes)"
+DROP, EARNS = "drop proposed, the owner decides" + PROVISIONAL, "earns its cost" + PROVISIONAL
+INCONCLUSIVE = "inconclusive, stays"
 NOT_REVIEW = "no verdict: not a scheduled review (run with --review on a review date)"
 NOT_REVIEW_DATE = "no verdict: {day} is not a scheduled review date"
 TOO_FEW = "no verdict: {changed} of 30 changed opportunities"

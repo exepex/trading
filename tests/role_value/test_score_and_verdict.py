@@ -15,8 +15,8 @@ DIFFS = [((i * 37) % 11 - 4) * 100.0 for i in range(30)]
 REVIEW = date(2027, 6, 29)
 
 
-def opportunities(max_loss_step: float = 10.0):
-    return [Opportunity(D0 + timedelta(i), DIFFS[i], DIFFS[i] != 0, max_loss_step * i) for i in range(30)]
+def opportunities(max_loss_step: float = 10.0, cost: float | None = 25.0):
+    return [Opportunity(D0 + timedelta(i), DIFFS[i], DIFFS[i] != 0, max_loss_step * i, cost) for i in range(30)]
 
 
 def scored(p_earns, p_drop, unit="u", changed=30, cost=1.0):
@@ -24,18 +24,18 @@ def scored(p_earns, p_drop, unit="u", changed=30, cost=1.0):
 
 
 def test_the_score_reproduces_the_hand_computation():
-    s = score_unit("macro", opportunities(), 25.0)
+    s = score_unit("macro", opportunities())
     assert (s.applicable, s.changed, s.mean_difference, s.mean_net_value) == (30, 27, 83.33, 58.33)
     assert s.worst_month == ("2026-12", 200.0) and s.mean_max_loss_difference == 147.78
 
 
 def test_the_bootstrap_is_pinned_with_the_fixed_seed():
-    s = score_unit("macro", opportunities(), 25.0)
+    s = score_unit("macro", opportunities())
     assert s.interval == (48.33, 101.67) and (s.p_earns, s.p_drop) == (0.0, 1.0)
 
 
 def test_risk_figures_never_change_a_p_value_or_a_verdict():
-    a, b = score_unit("macro", opportunities(10.0), 25.0), score_unit("macro", opportunities(-99.0), 25.0)
+    a, b = score_unit("macro", opportunities(10.0)), score_unit("macro", opportunities(-99.0))
     assert a.mean_max_loss_difference != b.mean_max_loss_difference
     assert (a.p_earns, a.p_drop) == (b.p_earns, b.p_drop)
     assert verdicts([a], True, REVIEW, [REVIEW]) == verdicts([b], True, REVIEW, [REVIEW])
@@ -71,4 +71,14 @@ def test_an_unknown_cost_gives_no_verdict_and_no_holm_entry():
     unknown = UnitScore("x", 40, 40, 10.0, None, None, None, None, None, None, None)
     found = verdicts([unknown, scored(0.9, 0.02, "b")], True, REVIEW, [REVIEW])
     assert found == {"x": COST_UNKNOWN, "b": DROP}  # with x outside Holm, b's 0.02 < 0.05/2 passes
-    assert score_unit("x", opportunities(), None).p_earns is None
+    assert score_unit("x", opportunities(cost=None)).p_earns is None
+
+
+def test_the_spread_beside_the_p_values_shows_each_block_s_calendar_span_and_the_months():
+    s = score_unit("macro", opportunities())
+    assert s.block_spans == ((date(2026, 11, 2), date(2026, 11, 21)), (date(2026, 11, 22), date(2026, 12, 1)))
+    assert s.months == (("2026-11", 29), ("2026-12", 1))
+
+
+def test_earns_and_drop_are_labelled_provisional():
+    assert "provisional" in EARNS and "provisional" in DROP and "F9b" in EARNS

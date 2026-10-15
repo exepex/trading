@@ -79,7 +79,8 @@ def test_a_day_the_ablated_unit_s_card_was_not_consulted_does_not_apply(tmp_path
     journal(tmp_path, [row(DAY, "macro", consulted=("positioning", "vol"))])
     result = report(tmp_path).build(period())
     assert result.excluded == {"card not consulted (not applicable)": 1}
-    assert {s.unit: s.cost for s in result.scores}["positioning"] == 1500.0  # Rs 3,000 over the two consulted
+    positioning = {s.unit: s for s in result.scores}["positioning"]
+    assert (positioning.cost, positioning.operating_cost) == (None, 1500.0)  # no scored date; Rs 3,000 over two
 
 
 def test_rows_before_the_common_start_are_pilot_never_scored(tmp_path):
@@ -87,3 +88,29 @@ def test_rows_before_the_common_start_are_pilot_never_scored(tmp_path):
     result = report(tmp_path).build(period(start=date(2026, 11, 3)))
     assert result.excluded == {"pilot, before the common start": 1}
     assert {s.unit: s.applicable for s in result.scores} == {}
+
+
+def test_the_cost_is_taken_on_the_scored_dates_not_the_period_mean(tmp_path):
+    """Review 124 Q1: macro is consulted alone on 2 Nov (scored, its day costs Rs 300) and 3 Nov (shadow unavailable,
+    Rs 100). Plan Rs 400, 30 and 10 minutes. The scored net is charged Rs 300, never the Rs 200 mean; Rs 200 is shown
+    apart as the operating cost: net value 1,460 - 300 = Rs 1,160."""
+    unavailable = row(date(2026, 11, 3), "positioning", status="shadow_unavailable", consulted=("macro",))
+    journal(tmp_path, [row(DAY, "macro", consulted=("macro",)), unavailable])
+    usage_rows = [usage(DAY, "30.00"), usage(date(2026, 11, 3), "10.00")]
+    built = role_value_report_from(tmp_path, LOTS, Calendar().sessions, Snapshots(QUOTES), Settlements(),
+                                   ProtocolStatus(None, False), lambda month: allocate(month, 400.0, usage_rows),
+                                   lambda month: usage_rows)  # fmt: skip
+    macro = {s.unit: s for s in built.build(period()).scores}["macro"]
+    assert (macro.cost, macro.mean_net_value, macro.operating_cost) == (300.0, 1160.0, 200.0)
+
+
+def test_an_open_pair_is_listed_with_its_count_and_age(tmp_path):
+    """Review 124 Q4: no exit quote, so the take stays open on 30 Nov, 28 days after 2 Nov; never scored as 0."""
+    journal(tmp_path, [row(DAY, "macro")])
+    built = role_value_report_from(tmp_path, LOTS, Calendar().sessions, Snapshots({DAY: QUOTES[DAY]}), Settlements(),
+                                   ProtocolStatus(None, False), lambda month: allocate(month, 3_000.0, USAGE),
+                                   lambda month: USAGE)  # fmt: skip
+    result = built.build(period())
+    assert result.open_pairs == ["2026-11-02 macro: open 28 days (real: an action still open)"]
+    assert "## Open pairs: 1" in render(result)
+    assert {s.unit: s.applicable for s in result.scores}["macro"] == 0
