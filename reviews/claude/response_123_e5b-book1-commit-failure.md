@@ -60,3 +60,76 @@ tree). Both are within the story's size S.
 - Decision 67: drop the two-checkout pre-commit re-check; keep only the cheap origin check before deciding.
 - ChatGPT review 107 (orchestrator): the collector sends one integrity alert when a book has more than one original
   run on a day (a double-fired session).
+
+## Code round (for the judge; then ChatGPT, rule 9: it touches what decides a trade)
+
+Built from the PASSed text with the three notes above, rebased onto current `main` (E2b and D3b merged).
+
+**What changed**
+- `fno/books/decided_runs.py` (new): `GitDecidedRuns.find(day)` fetches origin and lists Book 1's runs of the day on
+  `origin/<branch>`, in `HEAD` and on disk. Each run is given its most public place, with its recorded `inputs.json`.
+  If origin cannot be read, it raises `CommitFailed`, so the command gets one alert and decides nothing.
+  `changed_fields` names the top-level fields that differ.
+- `fno/books/book1.py`: `decide` first recovers Book 1's pending commit, then checks the three places. A run found
+  anywhere means nothing is decided again:
+  - changed inputs get one alert ("inputs changed after decision ... (inputs.json: <fields>); not decided again");
+  - a run on disk only gets one alert with the hand fix (`--commit-run`), never a quiet "already decided";
+  - otherwise the result is "already decided" (or "committed on this rerun as recorded").
+  `commit_run(day, run_id)` commits a run only when it is on disk only and D3's `edited` check passes. It never runs D2
+  and never sets a date. The run's files are committed one by one, so the marker records each file's hash.
+- `fno/playbook/decision_run.py`: `DecisionRun.inputs(...)` gives the `inputs.json` bytes a decision would record now.
+  It writes nothing and decides nothing. `decide` now shares `_evaluate` with it, so its behaviour is unchanged.
+- `fno/desk/pending_commit.py`: the marker name is a constructor argument (default unchanged). Book 1 uses
+  `journal/runs/.pending_book1.json`, which is git-ignored.
+- `fno/books/book1_cli.py`: adds `--commit-run RUN_ID`. `CommitFailed` gives one alert, the same line printed and exit
+  code 1. `CommitRunRefused` gives one line and exit code 1.
+- `fno/books/book1_wiring.py`: `build_book1_commits` builds the committer and the runs check. The tests use the same
+  function, so the wiring itself is tested.
+- `fno/desk/daily_steps.py` (review 107): more than one original run of a book on a day gives one alert ("N original
+  runs (...): only <first> counts"). A correction does not count as a second original.
+
+**Claims per criterion** (`tests/book1/test_commit_failure.py`, 11 tests; `tests/timetable/test_first_timely_decision.py`,
+2 tests)
+- 0. Each of the three states is tested with a changed input:
+  - committed: one run, one alert naming `inputs.json: book`, files byte-identical;
+  - marker: the recorded run is committed, and the same alert is sent;
+  - on disk only: the hand-fix alert, then `--commit-run` commits it unchanged; a second `--commit-run` is refused
+    ("on origin"), and an edited run is refused.
+  An unchanged rerun says "already decided" with no alert. Two checkouts, one after the other: the second says
+  "already decided (r1 on origin)", decides 0 times, and origin holds one run.
+- 1. With real git, each of three causes gives exactly one alert, the same line printed, exit code 1 and no
+  exception: a staged raw quote file, an unreachable origin and a push rejected three times (pre-receive hook).
+- 2. After the cause is removed, the rerun commits the files byte-identical, with one decision in total, and origin
+  holds the run. A local commit left unpushed is pushed by the rerun.
+- 3. An edited decision file stops the rerun, naming `inputs.json`. Nothing is pushed, and there is no second decision.
+- 4. Book 1's marker is `.pending_book1.json`. The daily run's recovery finds nothing of it.
+- 5. A successful decision prints `Book 1 <day>: decided (<run>), committed <sha>` and exits 0, with no alert.
+
+**Plants (all caught)**
+1. a second decision when a run is found (6 tests failed);
+2. the origin check skipped (2);
+3. a quiet "already decided" for a run on disk only (1);
+4. no catch in the CLI (8);
+5. a shared marker in the wiring (3);
+6. no hash check in `--commit-run` (1);
+7. `--commit-run` in any state (1);
+8. no changed-input alert (3);
+9. no two-originals alert (1);
+10. a correction counted as an original (2).
+
+**Where I depart from the text, or interpret it (please rule)**
+- **The concurrent two-checkout case.** Criterion 0's "second pulling only after the first decided" is no longer
+  prevented. Decision 67 dropped the pre-commit re-check, so two checkouts deciding at the same moment can both reach
+  origin. The guarantee is D3b's first-run rule plus review 107's alert, and that test shows only r1 counts with one
+  alert. The sequential case is prevented and tested.
+- **"D2 run once in total".** To compare inputs on a decided day, D2's evaluation runs read-only (`DecisionRun.inputs`):
+  nothing is written, decided or logged. The tests count decisions written, not evaluations. There is no other way to
+  know the inputs D2 would read now; reasoning only.
+- **Changed inputs when a day has more than one run.** Every run of the day is compared and none is ranked (D3b's run
+  order owns "first"). `tests/decisions/test_one_run_order.py` lists `decided_runs.py` as a reader that uses runs only
+  to see whether any exist.
+
+**Known limits**
+- Book 2 and Book 3 take the one-a-day rule when they are built (F5, F6), as the story says.
+- The input comparison is byte for byte. A field whose serialisation changes with no change in value would be alerted.
+  It is never acted on.
