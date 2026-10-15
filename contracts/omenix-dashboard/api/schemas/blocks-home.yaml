@@ -65,7 +65,7 @@ StrategyResult:
 FnoBooks:
   type: object
   description: >-
-    The three F&O paper books (India only), each its own Rs 5 lakh account: Book 1 rule-based, Book 2 hybrid,
+    The three F&O paper books (India only), each its own Rs 20 lakh account (story C5): Book 1 rule-based, Book 2 hybrid,
     Book 3 AI team. Feeds the "F&O: total profit / loss" line of each group card (never added to the stock total) and
     the order window's account list (books are listed, never tradable by hand)
   x-catalog: {publisher: fno, source: "fno.pages_history page 'risk' (published by P10) over E1's paper accounts (scoreboard_b belongs to S2, not built: it gets its own field or block by a contract change)", freshness: '3 pm run and the post-close marks (NSE session calendar)', story: P10, status: planned}

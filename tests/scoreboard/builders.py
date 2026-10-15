@@ -20,7 +20,7 @@ COMMITS = ("c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9")  # oldest
 
 def facts(max_loss=5000.0, overridden=False, label="v1") -> EntryFacts:
     segment = Segment("book1_rules", label, "matches")
-    return EntryFacts("r/o", date(2026, 10, 14), max_loss, 9000.0, 0.4, overridden, segment)
+    return EntryFacts("r/o", date(2026, 10, 14), max_loss, 9000.0, 0.0, 0.4, overridden, segment)
 
 
 class OrderedHistory:
@@ -38,12 +38,14 @@ def versions(*rows: tuple[str, str, date], served=SERVED) -> Versions:
     return Versions(registry, OrderedHistory())
 
 
-def record(book, day, run_id, opportunity_id, max_loss=None, served=SERVED, override=None, margin=9000.0, stress=None):
+def record(book, day, run_id, opportunity_id, max_loss=None, served=SERVED, override=None, margin=9000.0, stress=None,
+           reserve=0.0):  # fmt: skip
     """A D3 record: a chosen trade when `max_loss` is given, else the run's day record."""
     body = {"run_id": run_id, "opportunity_id": opportunity_id, "book": book, "served": dict(served),
             "owner_override": override, "header": {}, "expected": None, "risk": None}  # fmt: skip
     if max_loss is not None:
-        verdicts = [{"rule": "margin_room", "numbers": {"stressed_margin_rs": {f"x-{opportunity_id}": margin}}}]
+        capital = {f"x-{opportunity_id}": {"capital_tied": margin, "stress_reserve": reserve}}
+        verdicts = [{"rule": "margin_room", "numbers": {"capital_rs": capital}}]
         if stress:
             verdicts.append({"rule": "stress_loss", "numbers": {"worst_loss_rs": stress[0], "limit_rs": stress[1]}})
         body |= {"expected": {"worst_rs": -max_loss}, "risk": {"trade_id": f"x-{opportunity_id}", "verdicts": verdicts}}

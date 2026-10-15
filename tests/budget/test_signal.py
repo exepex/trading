@@ -5,8 +5,8 @@ from datetime import datetime
 
 from fno.alerts.dry_run import DryRunAlertSender
 from fno.budget.cap import CapSettings, Coverage, cap_reading
+from fno.budget.constants import AI_ROLE_STOP_ORDER
 from fno.budget.signal import send_alert, signal_data, write_signal
-from fno.constants import AI_ROLE_STOP_ORDER
 
 AT = datetime(2026, 10, 31, 18, 0)
 

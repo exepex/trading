@@ -4,9 +4,9 @@ coverage rules; the new-cost rule with a cited, existing owner decision."""
 import pytest
 
 from fno.budget.cap import BASIS_MEASURED, CapSettings, Coverage, cap_reading, shown_pct
+from fno.budget.constants import BUDGET_ITEMS
 from fno.budget.items import month_items, plan_cost, unapproved_costs, unknown_items
 from fno.config import load_app_config
-from fno.constants import BUDGET_ITEMS
 
 DECISIONS = '| 20 Oct 2026 | **Groww API data plan approved** (owner: "yes") | ... |\n'
 COMPLETE = Coverage()  # nothing known to be missing

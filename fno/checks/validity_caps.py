@@ -134,6 +134,6 @@ def _failing_closed(name: str, check) -> CheckResult:
 
 
 def paper_account_check(account: AccountFacts, paper_account: float) -> CheckResult:
-    opened = account.closed_equity[0][1]
-    reason = f"the account opened with Rs {opened:,.2f}; the profile's paper account is Rs {paper_account:,.2f}"
-    return CheckResult("paper_account", opened == paper_account, reason, {"opened_with_rs": opened})
+    capital = account.closed_equity[0][1]  # the opening plus top-ups written by the cutoff (story E1b)
+    reason = f"the account's capital is Rs {capital:,.2f}; the profile's paper account is Rs {paper_account:,.2f}"
+    return CheckResult("paper_account", capital == paper_account, reason, {"capital_rs": capital})

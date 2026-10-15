@@ -139,6 +139,9 @@ class FixedStressedMargin:
     def margin_at_entry(self, terms, day):
         return self.per_trade * terms.lots
 
+    def broker_margin(self, terms, day):
+        return self.per_trade * terms.lots
+
     def record(self):
         return {"method": self.method}
 

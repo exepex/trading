@@ -7,9 +7,9 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from ..constants import ITEM_CLAUDE_PLAN, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
 from .allocation import ALLOCATED_LABEL, DEVELOPMENT_LABEL, FORMULA, UNMEASURED, Allocation
 from .cap import BASIS_MEASURED, MEASURED_LIMIT, CapReading, shown_pct
+from .constants import ITEM_CLAUDE_PLAN, PURPOSE_DEVELOPMENT, USAGE_PURPOSES
 from .items import ItemLine
 from .stop_rule_tracker import ZERO_SHADOWS, ReviewDate, stop_test_status
 

@@ -47,6 +47,7 @@ SHADOW_FOLDER, SHADOW_PREFIX = "shadow", "shadow:"
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
 LEDGER_SETTLEMENT = "settlement"  # an option closed by NSE's cash settlement at expiry (story E7), not a trade
+LEDGER_TOP_UP = "capital_top_up"  # capital added to a book at its write instant (story E1b; owner, 15 Oct 2026, "2 B")
 
 # Order sides, one definition for the accounting ledgers, the charges model and the paper-account fills
 SIDE_BUY, SIDE_SELL = "buy", "sell"
@@ -89,6 +90,7 @@ FEATURE_ATM_IV_MINUS_RV20 = "F1_atm_iv_minus_rv20"  # ATM implied minus past 20-
 FEATURE_VIX_ABOVE_MEDIAN = "F2_vix_above_250d_median"  # India VIX close above its previous 250 closes' median
 FEATURE_EVENT_IN_WINDOW = "F3_scheduled_event_in_window"  # a known scheduled event after entry, up to exit
 SESSION_CLOSE_TIME = time(15, 30)  # IST: a regular or special session's closing prices exist from here
+DESK_DECISION_TIME = time(15, 0)  # design 13.5: books decide at about 15:00 IST; story E3 freezes the exact timetable
 OPTION_CALL, OPTION_PUT = "CE", "PE"
 
 # Cycle simulator (story B2, fno/research_engine/): structure codes, as the experiment 1 protocol names them
@@ -99,6 +101,10 @@ STRUCTURE_LONG_CALL, STRUCTURE_LONG_PUT = "LC", "LP"
 STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD = "CDS", "CCS"  # bull call and bear call spreads
 STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD = "PDS", "PCS"  # bear put and bull put spreads
 STRUCTURES_BOUGHT_ONLY = (STRUCTURE_LONG_CALL, STRUCTURE_LONG_PUT)  # no sold leg: width may be 0, margin may be 0
+# Story STR1b: each open gate before an STR1 code may be used, and the uses it blocks. Removing a gate is a judged
+# one-line change: STR1b-2 (E5/E7/E4 tests per code) removes its own; E8 (owner-timing fills) blocks paper use only.
+USE_SHADOW, USE_PAPER = "shadow", "paper"
+STR1_ACTIVATION_PENDING = {"STR1b-2": (USE_SHADOW, USE_PAPER), "E8": (USE_PAPER,)}
 STRUCTURES_ONE_SIDE = (
     *STRUCTURES_BOUGHT_ONLY,
     STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD, STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD,
@@ -284,26 +290,6 @@ DEEP_OTM_EXPOSURE_RATE, DEEP_OTM_DISTANCE = 0.03, 0.10  # a short option more th
 EXPOSURE_MODEL_MAX_MONTHS = 9  # beyond 9 months (5%) and on expiry day (+2%) NSE's rule differs: not modelled
 SPAN_BOD_CREATED_BEFORE = time(9, 0)  # IST: a day's `i1` file must be written before this (point in time)
 MARGIN_SOURCE_NSE_SPAN = "NSE SPAN"  # margins.csv `source` prefix of a computed row: "NSE SPAN <file> sha256=<hex>"
-
-# Stories F8 (minimal) and BG1 (fno/budget/): what an AI session's minutes were for, design v2 section 8.1's cost
-# items, and the order AI roles stop in at 100% of the AI cap (section 7.6); code jobs keep running
-PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT = "books_and_roles", "development"  # only the first counts against the cap
-PURPOSE_DATA_ROUTINES = (
-    "data_routines"  # code jobs run by a Claude routine (3 pm and 15-minute recorders): keep running
-)
-USAGE_PURPOSES = (PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT, PURPOSE_DATA_ROUTINES)
-ITEM_CLAUDE_PLAN = "Claude subscription"
-ITEM_GITHUB_DRIVE = "GitHub Actions and Drive"
-ITEM_AZURE_POSTGRES = "Azure Database for PostgreSQL"
-ITEM_GROWW_API = "Groww API"
-ITEM_RECORDER_HOSTING = "Recorder and monitor hosting"
-ITEM_PAID_DATA = "Paid data"
-BUDGET_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_GITHUB_DRIVE, ITEM_AZURE_POSTGRES, ITEM_GROWW_API, ITEM_RECORDER_HOSTING,
-                ITEM_PAID_DATA)  # fmt: skip
-EXISTING_COST_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_AZURE_POSTGRES)  # running before 15 Oct 2026; others need a written yes
-BUDGET_OK, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN = "ok", "alert", "stop", "unknown"
-AI_ROLE_STOP_ORDER = ("analysts", "idea generator", "post-mortem writer", "devil's advocate objections",
-                      "AI forecasters")  # fmt: skip
 
 
 # The daily trade card (story T1, fno/cards/): its status, the reason codes of a `NO TRADE` card (design 04, 4.1),

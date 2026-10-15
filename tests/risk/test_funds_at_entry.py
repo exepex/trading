@@ -47,7 +47,7 @@ def room(tmp_path, costs) -> MarginRoom:
     rows = [f"{p.what.split()[0]},100,{p.scan},{p.nov},{p.exposure},NSE SPAN i1,{DAY}\n" for p in (SF, BF)]
     (tmp_path / "margins.csv").write_text(HEADER + "".join(rows))
     settings = StressedMarginSettings("multiplier", 1.0, "exact input", DAY, 30, None)
-    return MarginRoom(MultiplierMargin(MarginTable(tmp_path / "margins.csv", DaysOld(7)), settings), costs)
+    return MarginRoom(MultiplierMargin(MarginTable(tmp_path / "margins.csv", DaysOld(7), 65), settings), costs)
 
 
 def check(tmp_path, cash, debit=False):
