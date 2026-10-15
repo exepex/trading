@@ -185,3 +185,57 @@ Checked the G10 section, response 152's revision 2 and response 159 against the 
 
 **Verdict: FAIL (1 should-fix, no blocking).** A re-check needs only the definition of `observed_at`, the window lines
 and criterion 1a.
+
+## Addendum 3: revision 3 at 75009a50b75cc6fde874a89d317c10a75e1b1b3c: PASS
+
+Scope as asked: the `observed_at` definition, the window lines, criterion 1a, notes a-d. Diff b30a792..75009a50:
+`G-forecasts.md`, `research/evaluation/PROTOCOL.md` (2 lines), response 152.
+
+- **`observed_at`: MET.** It is our answer's receipt time by the host's checked clock. `last_trade_time` is its own
+  field, used only for "traded today" and never the observation time. A provider stamp counts only where one exists
+  (NSE's page time). The cited lines check out (`recorder.py:65-69` GROWW_NOTE and `quote_validity`;
+  `groww.py:94-103`).
+- **Window lines: MET.** They now agree everywhere:
+  - the table: the capture starts at 14:30:00, and a quote is in if received by 14:40:00;
+  - the honest-times paragraph: received after 14:40:00 means out;
+  - the pack paragraph: "received between 14:30:00 and 14:40:00";
+  - change 1: observed by 14:40:00, captured from 14:30:00.
+- **Criterion 1a: MET.** It pins received 14:40:00 in and 14:40:01 out. A quote received at 14:31:05 whose last trade
+  was 14:29:59 carries 14:31:05. The A16 fallback keeps its own times. No field is ever earlier than its `observed_at`.
+- **Note a, the flag's S from A16's checked 14:30 and 15:15 levels: MET, and sound (some evidence).**
+  - A16's level rule (`fno/intraday/index_reading.py:1-10`) is the quote's `last_price` with its `last_trade_time`.
+    When Groww leaves that time empty, as on all of 15 Oct, the rule uses the close of the latest finished 1-minute
+    candle. At the 14:30 mark that is the 14:29-14:30 candle, whose close is the last trade before 14:30:00. That is
+    also the close of A16b's 15-minute candle ending at 14:30, which X is calibrated on.
+  - On the primary path the level is seconds later, which is negligible against a 95th-percentile move.
+  - The pack's spot would measure a different interval each day, so using A16's levels is the right choice.
+  - A day without either level is counted "flag not computable", not dropped. The flag decides no trade.
+- **Note b: MET.** "14:30" became "the pack's" in changes 3 and 6, the heading and the owner paragraph. "No intraday
+  IV history" is correct (A16b holds index candles only).
+- **Note c: MET.** Criterion 2 names `terms.V4_CAPTURE_START = time(14, 30)`, with the 14:29:59 and 14:30:00 boundary.
+- **Note d: MET, touches nothing frozen.**
+  - `research/evaluation/PROTOCOL.md` says "Status: DRAFT, not frozen" (line 5). `research/evaluation/` holds no freeze
+    record.
+  - The two lines go under the `timetable` item, whose status is "proposal, owner decides".
+  - `fno/evaluation/protocol.py` reads the items' structure only, and the full suite passes.
+  - WORK_REGISTER row 36 (S6) names PROTOCOL.md "later", for different items (the scorecard measures). That is no
+    duplicate and no contradiction.
+
+**Gates (trial merge with origin/main 35e999af, tree f1f3de0):**
+- pytest: 5877 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1074 files formatted;
+- `check_imports`: clean.
+The branch does not merge cleanly. `reviews/chatgpt/README.md` and `reviews/claude/README.md` conflict, index rows
+only: main added reviews 114-115 and responses 160, 161 and 123; the branch added response 152. Keeping both sides
+resolves it. I did that in a scratch trial commit only, never pushed.
+
+**Notes (one line each, no fix asked):**
+- The merge must keep both sides of the two README conflicts. Merge main into the branch before sending ChatGPT the
+  link, so it reads a mergeable head.
+- In PROTOCOL.md the two new lines sit above "These are the values in `config.yaml` `desk.timetable` today", which they
+  are not. They read better as their own sub-list.
+- S1's draft `timetable` still says cutoff 15:00 and deadline 15:12, while v4 says 14:30-14:40 and 15:10. These are two
+  protocols, and G10's E3 row records the desk's move to 14:32. Settle it when S1 is decided.
+
+**Verdict: PASS.** ChatGPT's review of the revision follows (rule 9), before the v4 freeze.

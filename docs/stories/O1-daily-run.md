@@ -142,4 +142,4 @@ criterion with good, failing and empty cases; every criterion broken once on pur
 secrets and order-placing; checks the real day's log and commits.
 
 **Depends:** E3 (merged), E2c (accounts to Drive, not merged), T1, M1, G7, A4/A7; G10 for the go-live times ·
-**Status:** story text, waits for the orchestrator's A/B choice, then the judge (`reviews/claude/response_162_o1-daily-run.md`)
+**Status:** story text, waits for the orchestrator's A/B choice, then the judge (`reviews/claude/response_165_o1-daily-run.md`)

@@ -11,7 +11,7 @@ the owner doing anything, fails safely and visibly, and is proven to work across
 **Changed by REPLAN (line 61, issue #76):** the story text is now `docs/stories/O1-daily-run.md` (one daily run:
 weather, v4 forecasts, quotes, data checks, desk, card). The earlier text is in this file's history.
 
-**Depends:** E3, E2c, T1, M1, G7, A4, A7 · **Size:** M · **Status:** story text (`reviews/claude/response_162_o1-daily-run.md`)
+**Depends:** E3, E2c, T1, M1, G7, A4, A7 · **Size:** M · **Status:** story text (`reviews/claude/response_165_o1-daily-run.md`)
 
 ---
 
