@@ -1023,7 +1023,9 @@ Out: any consumer (M1, the weather, forecasts); any display of the private cues;
    - 27 Nov 2026 with nothing after 14 Oct: `stale`. The expected date is 25 Nov: Thanksgiving is 26 Nov 2026, from the
      computed 2026 US calendar;
    - 31 Oct 2012 at 09:15, sp500 last value 26 Oct: `current` (Sandy closed NYSE on 29-30 Oct), although 5 days old;
-   - us10y on a Good Friday India date with a value for Good Friday: `ahead`;
+   - usdinr_rbi with a value for a date that is an NSE holiday but an RBI business day: `ahead`;
+   - us10y with a value for Good Friday read on the following Monday: `current`. Under the Monday-to-Friday rule
+     Good Friday is the expected date; that rule never makes us10y `ahead`;
    - an age exactly at `max_age_days` is `behind`, one day more is `stale`;
    - Brent: only `behind`, `stale` or `none`;
    - no rows: `none`.
