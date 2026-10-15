@@ -237,7 +237,7 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
   V1: the session RV series (A16's live `rv/` rows; the close proxy for the daily models), the trailing, EWMA, HAR
   daily and HAR intraday baselines, the primary switch, and one rule forecaster. The v4 forecast record, its files and
   its validation; the exploratory back-fill (V6 from 2017; V1 from A16's live rows only); a live capture command;
-  wiring in `fno/forecast/baseline_wiring.py`.
+  wiring in `fno/forecast_v4_rules/wiring.py`.
 - **Out:** V2-V5 and V7 (phase 2), the raw and premium-adjusted implied baselines (phase 2: they are V2's and V3's
   primary and only "also reported" for V1), scoring, pairs and reports (G8), adding the capture to the daily routine
   (at v4's freeze, a schedule change), the freeze record (G6), M1's weather model.
@@ -252,8 +252,12 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
     for variances, `ProbabilityBaseline` for probabilities), each returning a value or `None` (missing, never filled).
   - `rules.py`: the two rule forecasters below.
   - `records.py`: the v4 record and its CSV files; `capture.py`: one session's forecasts at the cutoff; `backfill.py`.
-- Wiring: `fno/forecast/baseline_wiring.py` (G1's freeze pins `fno/forecast/wiring.py`). CLI: `python -m fno forecast
-  v4-capture [--day D]` and `python -m fno forecast v4-backfill`.
+  - `wiring.py` (composition root) and `cli.py`: `python -m fno forecast-v4 capture` (today only) and `python -m fno
+    forecast-v4 backfill`.
+- **Changed while building (for judge D):** the text first named `fno/forecast/baseline_wiring.py` (REPLAN's wording)
+  and `fno/forecast v4-capture [--day D]`. The v2 freeze pins every file of `fno/forecast/` (`FREEZE_v2.md`;
+  `tests/forecast/test_freeze_v2.py` fails on any edit, found by the G8 builder), so the wiring and the CLI live in
+  this package, as G4's do in `fno/forecast_scoring/`. `--day` is dropped: a live row is made on its own day only.
 - **Point in time (protocol 3.1):** an input enters a forecast for `d` only if it was first seen before `d`'s 15:00 cutoff.
   `d`'s own close and `d`'s own `RV_s` are not known at 15:00, so the latest session RV a forecast for `d` reads is
   `d-1`'s, and protocol 3.1's "ending at `d`" is read as "ending at the last session first seen before the cutoff"
@@ -332,7 +336,7 @@ from the committed closes; checks that no input after the cutoff reaches a forec
 | Point in time (protocol 3.1) | Expected design; look-ahead tests |
 | Decision 56 (backfilled rows never live inputs) | criterion 6 |
 | Session set (regular only) | criterion 1 |
-| Wiring in `baseline_wiring.py` | Expected design |
+| Wiring (REPLAN named `baseline_wiring.py`, frozen by v2) | `fno/forecast_v4_rules/wiring.py`, Expected design |
 | V2-V5, V7 | out: phase 2 |
 
 **Known limits:** `v6_ewma_t4`'s independence for V6b is an approximation (volatility clusters); V1 has no live data
@@ -420,7 +424,7 @@ freeze**.
   is at most 0.025. A member closed at look 1 (claim or futile) is not judged at look 2 (read from look 1's record).
   Then `judge_family`, Test A by `forecasting_test`, and the output: `FamilyDecision.lines()`, each member's regime
   line under its verdict, Test A with every counted member's regime.
-- `report.py` and the CLI `python -m fno forecast-v4 report` (descriptive, any day) and `python -m fno forecast-v4 look
+- `report.py` and the CLI `python -m fno forecast-v4-scores report` (descriptive, any day) and `python -m fno forecast-v4-scores look
   --look <name>`: Markdown and JSON under `research/forecasts/v4_scores/`. **Before `research/forecasts/FREEZE_v4.md`
   exists every output says "EXPLORATORY: protocol v4 not frozen; nothing here counts"**, and `look` prints its result
   without writing a record. After the freeze, a look's record is written once and never overwritten; the report

@@ -70,7 +70,7 @@ look record overwritten; M6 crash cut not applied at a look; M7 5-day gate not a
 again; M9 regime from the wrong session; M10 V7 not strict.
 
 **Real end-to-end (rule 8 style, scratch worktree, nothing committed):** G7's `forecast v4-backfill` (2,409 days,
-9,636 rows, labelled exploratory), then `forecast-v4 report`, 3.5 s:
+9,636 rows, labelled exploratory), then `forecast-v4-scores report`, 3.5 s:
 - V6a: G7's `v6_ewma_t4` against the base rate, 1,908 scored pairs: Brier skill 0.145, batch-means p 0.007; regime:
   mean VIX 17.1, 94 2% days.
 - V6b: 1,900 pairs, Brier skill 0.171, batch-means p 0.006.
@@ -96,3 +96,9 @@ baseline (`scoring.member_comparisons(counted_after)`). The freeze day is read f
 in `FREEZE_v4.md`; a record without it refuses the look (**a requirement on the G6 freeze commit**). Before the
 freeze (exploratory) every row is used, as before. Proof: M11 (back-fill counted), M12 (the freeze day counted) and
 M13 (the look ignoring the freeze day) are each caught: 13 of 13.
+
+### Addendum: merged G7's 58f4329 (frozen-file fix)
+
+G7's `fno/forecast/` files are byte-identical to main again (the v2 freeze holds). G7 now also registers a
+`forecast-v4` command, so G8's commands are renamed `forecast-v4-scores report|look` (like G4's `forecast-scores`).
+Full suite on the merged tree: 5,073 passed, both `test_freeze_v2` tests included.

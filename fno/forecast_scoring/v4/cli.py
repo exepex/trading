@@ -1,7 +1,7 @@
 """Commands of story G8 (protocol v4 scoring):
 
-python -m fno forecast-v4 report [--as-of YYYY-MM-DD]    # write research/forecasts/v4_scores/<as-of>.{md,json}
-python -m fno forecast-v4 look --look stop_rule_review   # the family decision and Test A (recorded once)
+python -m fno forecast-v4-scores report [--as-of YYYY-MM-DD]    # write research/forecasts/v4_scores/<as-of>.{md,json}
+python -m fno forecast-v4-scores look --look stop_rule_review   # the family decision and Test A (recorded once)
 
 Before `research/forecasts/FREEZE_v4.md` exists every output starts with the EXPLORATORY line and `look` writes nothing.
 """
@@ -14,8 +14,10 @@ from datetime import date
 from ...forecast_v4.terms import LOOK_ERROR_RATE
 
 
-def add_forecast_v4_parser(subparsers) -> None:
-    parser = subparsers.add_parser("forecast-v4", help="protocol v4 scores, comparisons and the two looks (story G8)")
+def add_forecast_v4_scores_parser(subparsers) -> None:
+    parser = subparsers.add_parser(
+        "forecast-v4-scores", help="protocol v4 scores, comparisons and the two looks (story G8)"
+    )
     actions = parser.add_subparsers(dest="v4_cmd", required=True)
     report = actions.add_parser("report", help="score every v4 forecast and write the descriptive report")
     report.add_argument("--as-of", type=date.fromisoformat, help="YYYY-MM-DD (default: today in IST)")

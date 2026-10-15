@@ -126,6 +126,8 @@ class CaptureRefused(RuntimeError):
 
 def capture_day(forecasts: DayForecasts, d: date, now: datetime, write) -> int:
     """Today's live rows, only before 15:00 IST (as G3); `write(forecaster, question, rows)` stores them."""
+    if d != now.date():
+        raise CaptureRefused(f"{d} is not today ({now:%Y-%m-%d}): a live row is made on its own day only")
     if d not in forecasts.inputs.sessions:
         raise CaptureRefused(f"{d} is not a scored session")
     if now >= cutoff(d):

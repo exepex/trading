@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import os
-from datetime import date, datetime, timedelta
+from datetime import datetime
 
 from ..config import ROOT
 from ..constants import PIPELINE_AREA
@@ -72,36 +72,3 @@ def build_live_capture(cfg: dict) -> LiveCapture:
 
     return LiveCapture(ROOT, storage.build_quote_store(), CommittedClosesFile(CLOSES_FILE), panel, calendar,
                        build_atm_iv30(cfg), LivePackBuilder(rule), calendar.calendar_sha256(), now_ist)  # fmt: skip
-
-
-V4_FOLDER = ROOT / "research" / "forecasts" / "v4"  # story G7's records, G8's input (one file per forecaster/question)
-V4_METHOD_FILES = ("series.py", "baselines.py", "rules.py", "capture.py")  # their bytes are each record's method hash
-V4_LATER_DAYS = 10  # calendar days after the last close: today's session when it is not yet in the closes file
-
-
-def build_v4_forecasts(today: date | None = None):
-    """Protocol v4's phase-1 forecasters (story G7) on the committed closes and A16's live `rv/` rows."""
-    from ..forecast_v4.sessions import is_scored_session
-    from ..forecast_v4_rules import series
-    from ..forecast_v4_rules.capture import DayForecasts, Inputs
-    from ..intraday.rv_table import RvTable
-    from ..intraday.wiring import INTRADAY_FOLDER
-
-    text = CLOSES_FILE.read_text()
-    rows = series.closes_rows(text)
-    closes = series.regular_closes(rows)
-    lines = [line for line in text.splitlines()[1:] if line.split(",")[1:2] == ["regular"]]
-    calendar = build_session_calendar()
-    end = max(closes[-1].day, today or closes[-1].day)
-    days = [closes[0].day + timedelta(days=i) for i in range((end - closes[0].day).days + V4_LATER_DAYS)]
-    sessions = [d for d in days if d <= end and is_scored_session(calendar, d)]
-    package = ROOT / "fno" / "forecast_v4_rules"
-    method = hashlib.sha256(b"".join((package / name).read_bytes() for name in V4_METHOD_FILES)).hexdigest()
-    intraday = series.live_intraday_rv(RvTable(INTRADAY_FOLDER).rows()) if INTRADAY_FOLDER.exists() else []
-    return DayForecasts(Inputs(closes, lines, intraday, sessions, method))
-
-
-def v4_writer(folder=V4_FOLDER):
-    from ..forecast_v4_rules import records
-
-    return lambda forecaster, question, rows: records.write(folder, forecaster, question, rows)
