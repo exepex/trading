@@ -252,3 +252,37 @@ the checked sessions only.
 
 - Same single should-fix as addendum 2.
 - Minors: addendum 2's minor 1 (`next_open`'s home) and minor 2 above.
+
+## Addendum 4 (15 Oct 2026): revision at 1c9c5c3c7c8359c9d5cad5f9559f36431096ed5a (3e8e6c9..1c9c5c3, story file only)
+
+| Finding | Status | Check |
+|---|---|---|
+| Addendum 2 should-fix 1: transient against permanent | **MET** | A new "Transient or permanent" definition (detailed below). Criterion 5 has four tests, each with its outcome: a Groww error on the 1-minute call defers and is then written; a missing minute gives a void row and a next session with a void overnight part; a Drive read error or NSE `RawSourceUnavailable` defers; no copy plus 404 gives a void row and a next session with a void overnight part |
+| Addendum 2 minor 1: `next_open`'s home | MET | `provenance()` from `fno/global_cues/table.py` and `NseSessionCalendar.next_open` from `fno/global_cues/cue_calendars.py`, imported, not moved or copied. A17's files are unchanged (the earlier move is withdrawn), so there is no A17 code change to check in the code round. The intraday package then depends on `global_cues` for these two names. That is acceptable, and stated |
+| Addendum 3 minor 2: `nse_open_gap` with no 1-minute answer | **NOT IN THE TEXT** | No line says that the gap is blank for sessions void before the 1-minute check, or that the pre-open count covers checked sessions only. Carried to the code round as a minor: the claims must state it and a test must show it |
+
+**The "Transient or permanent" definition:**
+- **Transient, deferred:** a Groww error or timeout, an unreadable answer, a Drive read error, or NSE's
+  `RawSourceUnavailable`. It is deferred, no row is written, and the run exits 1.
+- **Permanent, a void row:** the answer was received and archived but the data is absent. That is `no_1m_check`,
+  `missing_candles`, or `nse_unchecked`.
+- **"No NSE file" is definitive only** when Drive has no copy **and** NSE answers 404. That is A9b's `RawFile(None)`,
+  so it is consistent with the policy merged in 16661ec.
+- **The permanent 1-minute hole** now gives a void row, so the Order rule no longer blocks the rest of the series.
+
+**Residual risk (note, not a finding).** A day that Groww refuses with an *error* every time, rather than answering
+empty, would stay deferred and block the sessions after it. It is visible: named, with exit 1, on every run. Step 0
+saw Groww answer empty for a no-data day (10 Oct 2025, 0 candles), not with an error. So this is reasoning only, and
+the owner would see it at once.
+
+### Verdict: PASS for 1c9c5c3c7c8359c9d5cad5f9559f36431096ed5a (story text)
+
+- No blocking or should-fix finding is left.
+- **Carried to the code round:**
+  - minor 2 (the open gap blank, and the count over checked sessions);
+  - the four transient/permanent tests;
+  - the 23 Mar 2020-shaped high test;
+  - the deferral resume test;
+  - JUDGE's planted mutations: the 09:15 open against the close, the 25-candle set, the 0.05 tolerance, the provenance
+    boundary, the void rule, and transient against permanent.
+- **Rule 9:** none needed, no money path. Code may start.
