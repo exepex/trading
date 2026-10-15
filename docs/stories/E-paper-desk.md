@@ -614,7 +614,7 @@ failed commit the way E3's daily run now does (story E2b, decisions 44 and 47): 
 no traceback, and a rerun that commits the recorded decision as it was made. That way a later run can never re-decide
 the day with later data (a look-ahead hole in the book's record), and a refused or rejected commit is never silent.
 
-**Context and why:** Orchestrator decisions 46 and 57 (judge 118 addenda 3 and 7). Today `Book1.decide`
+**Context and why:** Orchestrator decisions 46, 57 and 59 (judge 118 addenda 3 and 7; judge 123). Today `Book1.decide`
 (`fno/books/book1.py:74`) calls `GitCommitter.commit`, which raises `CommitFailed` on any refusal or git failure (a
 raw quote file in the index, a failed pull, a push rejected three times, an unpushed commit it did not make). Nothing
 catches it, so the command ends in a traceback and nothing reaches #fno-desk. A rerun with byte-identical inputs then
@@ -627,11 +627,30 @@ also stops E3's daily run in that same checkout at its first commit (an unpushed
 51), so its exits are not reviewed until the decision is resolved.
 
 **Scope.** In:
-- **One Book 1 decision a day.** Before deciding, `Book1.decide` checks the day: a decision run already on disk
-  (committed, or recorded by the pending marker below) means it never decides again, whatever the inputs. It
-  recovers the pending commit, or reports "already decided". When the day's inputs now differ from that run's
-  `inputs.json`, it sends one alert stating the fact ("inputs changed after the decision ...; not re-decided") and
-  acts on nothing.
+- **One Book 1 decision a day: the prevention (decision 59 a).** Before deciding, `Book1.decide` fetches origin and
+  looks for a Book 1 run of the day in three places: `origin/<branch>`'s decision folder, this checkout's `HEAD`, and
+  this checkout's day folder on disk. A run found anywhere means it never decides again, whatever the inputs. Then:
+  - **on origin, or committed here:** it reports "already decided" (after pushing a commit left unpushed, below);
+  - **recorded by the pending marker:** it recovers the pending commit (below);
+  - **on disk only, neither committed nor in the marker** (a stop between the decision and the marker write; judge
+    123 should-fix 2): one alert naming the run and the hand fix. The fix is to inspect it, then commit it as recorded
+    with `fno desk book1 --commit-run <run_id>`, or remove it before the deadline. Never a quiet "already decided",
+    never a new decision. `--commit-run` refuses a run whose files D3's own check finds edited
+    (`DecisionStore.edited`, the run's `records.sha256`), and it never runs D2.
+  A second check sits just before the commit. Book 1's committer is given a check of the pulled tree (one new
+  optional argument on the `Committer` port, run by `GitCommitter` after its pull and before it commits). That check
+  refuses to commit a new Book 1 run when the pulled tree already holds another for the day, through `CommitFailed`,
+  so it gets one alert. This covers two checkouts deciding at the same time (a scheduled session fired twice, or a
+  retry in a fresh container).
+- **Changed inputs on a decided day.** The day's inputs are recomputed and serialized as `DecisionRun` writes them,
+  then compared byte for byte with each input file the run records (today `inputs.json`). When they differ, one alert
+  states the fact and names each differing file and the top-level fields that differ ("inputs changed after
+  decision <run_id> ...; not re-decided"). Nothing is acted on.
+- **The guarantee is in D3b, not here (decision 59 b).** E3's collector will take the *first* non-correction run
+  committed before the deadline, for every book. Then a second run that slips past this story's checks still never
+  becomes the day's decision. This story is the prevention, and D3b carries the guarantee. Both are needed: the
+  prevention alone depends on every writer checking, and the guarantee alone would still let a second run be written
+  and published.
 - `cmd_book1` (`fno/books/book1_cli.py`) catches `CommitFailed`: one alert to #fno-desk through the same alert
   sender as the daily run, the same text printed as one line, exit code 1, no traceback. The text names the cause and
   what it blocks: the decision is not public yet, so it is not on time unless it is pushed before E3's deadline, and
@@ -649,8 +668,9 @@ Out:
   It serves every book and D3's corrections (a new run linked by `corrects`, `test_a_correction_is_a_new_run_linked_to_
   the_record_it_corrects`). The one-a-day rule is Book 1's, in `Book1.decide`; books 2 and 3 take it when they are
   built (F5, F6). No existing test expects Book 1 itself to decide twice (checked: `tests/book1/`);
-- a question for the orchestrator, not changed here: E3's collector takes the latest run committed before the
-  deadline, so a D3 correction run committed before the deadline would be read as the day's decision;
+- E3's collector and D3 corrections: decided by decision 59 (b) and carried by story D3b (decision 58). The collector
+  takes the first non-correction run before the deadline, and corrections are recorded and shown but never become a
+  book's timely decision;
 - any change to on-time rules: E3's collector decides from what origin shows at the deadline (`committed_at` before
   the deadline and visible then), so a decision pushed by a rerun after the deadline is late, as today;
 - automatic retries or schedules (no routine runs `fno desk book1` yet);
@@ -660,9 +680,13 @@ Out:
 E2b's class, the marker name), plus the one-decision-a-day rule. Option B (alert only, with a hand fix) was not taken.
 
 **Acceptance criteria:**
-0. Decide, change an input, rerun: one decision run for the day, one alert naming the changed input file, and the
-   decision files byte-identical; the same with the decision only recorded by the marker (not yet committed); a rerun
-   with unchanged inputs reports "already decided" with no alert (tests).
+0. Decide, change an input, rerun: one decision run for the day; one alert naming each input file that differs byte
+   for byte from the run's recorded copy, and the fields; the decision files byte-identical. The same holds in each of
+   three states: the decision committed, recorded only by the marker, or on disk only (then the alert gives the hand
+   fix, and `--commit-run` commits it unchanged or refuses an edited run). A rerun with unchanged inputs on a committed
+   decision reports "already decided" with no alert. Two checkouts of one bare origin each run `fno desk book1` for the
+   same day, one after the other and also with the second pulling only after the first decided: origin ends with
+   exactly one Book 1 run, and the second gets "already decided" or a refused commit, with an alert (tests).
 1. With the real `GitCommitter` and a bare origin, a staged raw quote file, an unreachable origin and a push rejected
    three times each give exactly one alert naming the cause, one printed line, exit code 1 and no traceback (tests).
 2. After the cause is removed, a rerun commits the decision files byte-identical to the first run's, with D2 run once
@@ -676,10 +700,12 @@ E2b's class, the marker name), plus the one-decision-a-day rule. Option B (alert
 **Test plan:** CLI and unit tests with real git against a bare origin, a fake alert sender (nothing posted), broken-code
 proofs per criterion.
 
-**Judge verifies:** reruns criteria 0 and 2 by hand; plants a second decision on changed inputs, a missing catch, a
-shared marker and a skipped hash check.
+**Judge verifies:** reruns criteria 0 and 2 by hand; plants a second decision on changed inputs, a skipped origin
+check, a skipped pre-commit check, a quiet "already decided" for an on-disk-only run, a missing catch, a shared
+marker and a skipped hash check.
 
-**Depends:** E2b (merged first: `CommitFailed`, `PendingCommitter`) · **Size:** S · **Status:** story text on
+**Depends:** E2b (merged first: `CommitFailed`, `PendingCommitter`); D3b carries the collector's guarantee
+(decision 59 b) and can merge in either order · **Size:** S · **Status:** story text on
 `story/e5b-book1-commit-failure`, for the judge's story check (response 123)
 
 ---

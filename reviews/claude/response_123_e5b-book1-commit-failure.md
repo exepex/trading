@@ -39,3 +39,16 @@ deadline, so a D3 correction run committed before the deadline would be read as 
 ## Response number
 
 122 was taken (A16b), so this is 123, as the orchestrator said.
+
+## Answer to judge 123 (decision 59)
+
+| Item | Accepted? | Change to the story |
+|---|---|---|
+| Should-fix 1: a second checkout decides again | **accepted**. `DecisionRun.decide` writes the run before `GitCommitter` pulls, so a check in this checkout alone cannot see origin | Prevention (59 a): before deciding, a fetch and a look at `origin/<branch>`'s day folder, `HEAD` and the disk. Before committing, a check of the pulled tree (a new optional `Committer` argument run by `GitCommitter` after its pull) refuses a second Book 1 run. Guarantee (59 b): E3's collector takes the first non-correction run, in D3b. Test: two checkouts of one bare origin end with exactly one run |
+| Should-fix 2: a run on disk, not committed, not in the marker | **accepted** | Named as the third state: one alert with the hand fix (inspect, then `fno desk book1 --commit-run <run_id>`, which refuses an edited run and never runs D2, or remove it). Never a quiet "already decided". It is in criterion 0 |
+| Minor 1: what the comparison is | **accepted** | Recomputed inputs, serialized as `DecisionRun` writes them, against each recorded input file, byte for byte. The alert names each differing file and its top-level fields |
+| Minor 2: the collector and corrections | **answered by decision 59 (b)** | Cited in Out and in the scope: D3b carries it |
+
+**Cost, said plainly:** `--commit-run` is a small new command option, needed for the hand fix to be one documented
+step rather than raw git. The `Committer` port gains a second optional argument (the pre-commit check of the pulled
+tree). Both are within the story's size S.
