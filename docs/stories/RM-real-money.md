@@ -28,6 +28,9 @@ constraints belong in RM1's frozen text before counted evidence); judge 158 (RM1
   format, each with an exact value or rule (draft on this branch);
 - the gate listed in S1's `frozen_files`, so S1's freeze hashes it and S1's `order` check proves it precedes every
   counted decision (one freeze, one order check; no second freeze tool);
+- the gate's evidence is only Book 1 positions counted under the protocol version that holds the gate (the
+  decision's commit has that freeze as a strict ancestor); pilot and shadow positions are shown, never counted
+  (judge 171 SF1);
 - S1's freeze refuses while the gate is incomplete or any gate item is not decided by the owner; `python -m fno
   evaluation check` also checks the gate.
 
@@ -41,13 +44,15 @@ Out:
 **Expected design (after a text PASS):**
 - `fno/evaluation/gate.py` (new, small): `GATE_FILE` and the gate's required items (the 12 keys of the draft).
 - `fno/evaluation/completeness.py`: `completeness_problems` and `undecided_items` take the required-item list as a
-  parameter (default S1's), so one checker serves both documents (DRY). The gate has no version line of its own: it
-  is versioned and frozen with S1.
+  parameter (default S1's), and `completeness_problems` takes `require_version` (default true; false for the gate),
+  so one checker serves both documents (DRY). The gate has no version line of its own: it is versioned and frozen
+  with S1.
 - `fno/evaluation/freeze.py`: `_checked_text` also checks the gate (complete and decided) and refuses by naming each
   problem. `cli.py`'s `check` prints the gate's result as a second line.
 - `research/evaluation/PROTOCOL.md`, `frozen_files`: adds `research/evaluation/REAL_MONEY_GATE.md` and
   `fno/evaluation/gate.py`. This changes an owner-decided item's list (as the scoring-code addition already
-  foresees), so it goes to the owner as question Q10.
+  foresees), so it goes to the owner as question Q10. S1's text owner (session 0185gR5DmoDh2zBAvgRU4CEB) makes that
+  one-line edit; RM1 does not edit `PROTOCOL.md`.
 - No new composition root: no outside service is touched.
 
 **Acceptance criteria:**
@@ -62,9 +67,12 @@ Out:
    reports a later edit of the gate as changed.
 5. The gate's two owner numbers of 8.4 (account size, per-trade cap) carry the owner's written decision and date
    before the freeze (decision 8): criterion 3 enforces it mechanically.
-6. No code path reads the gate to place, modify or cancel an order, and no broker write is imported (the
+6. The gate's terms define the evidence record by S1's version rule (Book 1 only, decisions after the freeze) and
+   measure every slippage from the paper price before pad (judge 171 SF1, SF2); `real_test_sample` keeps 8.4's
+   registered number (SF3). Checked by reading, traced in response 163.
+7. No code path reads the gate to place, modify or cancel an order, and no broker write is imported (the
    `check_imports` rule and a test that `fno/evaluation/` imports no provider or broker module).
-7. Files stay under 350 lines; `fno/evaluation/freeze.py` stays one class with one job.
+8. Files stay under 350 lines; `fno/evaluation/freeze.py` stays one class with one job.
 
 **Test plan (each criterion with a broken-code proof, rule 4):** completeness on a fixture gate (missing item, empty
 field, bad label, "tbd"); freeze refused on an undecided gate (no record, no ledger row), freeze written on a decided
@@ -78,8 +86,10 @@ asked with options, never answered by the builder; the freeze refusal by plantin
 - The gate is frozen with S1, so changing it later is a new S1 protocol version (the intended cost: no quiet edit).
 - S1 v1 cannot freeze before the owner answers RM1's questions; a slow answer delays counted paper evidence (Book 1
   keeps trading as pilot evidence meanwhile).
+- Shadow records never count toward the gate until a later story extends S1's order check to them.
+- `fill_honesty` needs A16 snapshots, which cover only the nearest weekly and monthly NIFTY expiries.
 - The gate's conditions read data that does not exist yet (E8 fills, S6's benchmark, A16 snapshots); missing data
   counts as "not met", never as a pass.
 
-**Depends:** S1 (draft built), S6 (text PASS), E8 (story) · **Size:** S · **Status:** story text and draft gate for the
-judge's story check; code waits for a text PASS and the orchestrator's go
+**Depends:** S1 (draft built), S6 (text on main), E8 (story) · **Size:** S · **Status:** story text and draft gate
+revised for judge 171's three should-fixes; code waits for a text PASS, ChatGPT and the orchestrator's go

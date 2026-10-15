@@ -64,3 +64,39 @@ $ wc -l fno/pipeline/*.py                                                       
   instead of a per-contract last-trade time.
 - That changes what the recorded history means, so it must be stated in A4's story and measured side by side before
   any switch, as the builder proposes.
+
+---
+
+## Addendum 1 (judge E, 15 Oct 2026, 17:50 UTC): re-judge on main's run history. Still FAIL; the cause is GitHub's schedule, not the code
+
+| # | Result now | Evidence (mine) |
+|---|---|---|
+| 2 | **MET** | The real fire happened, end to end. Run 38762893901 (15 Oct) logged "4 batches in window, 1 fired to dry-run, 3 already fired, 0 failed". In Drive, `pipeline/fired/.../participant-oi/2026-10-15` was written at 15:44:38 UTC, then `processed/` and `derived/` at 15:45:13-15 UTC: the routine ran about 35 s after the fire. The same holds for 14 Oct, and on 13 Oct for the batches of 8, 9, 12 and 13 Oct. Each batch fired once ("3 already fired"). Strong |
+| 1 | **NOT MET** | GitHub starts this repository's scheduled runs hours late and skips most of them. Strong (Actions API) |
+
+**Criterion 1 in detail:**
+- **3 pm recorder (`quote-recorder-nse.yml`, cron 14:20 IST).**
+  - Both scheduled runs started after the market closed: 14 Oct at 19:34 IST and 15 Oct at 19:12 IST.
+  - Both runs failed. Both days' `.canonical` is `none` (fe695efc). 0 sessions recorded, so it cannot be compared with
+    the routine.
+- **Participant-OI release check (cron 17:11 and 22:45 IST).**
+  - The scheduled runs started about 4 h late: 14 Oct at 21:27 IST and 15 Oct at 21:13 IST.
+  - The second runs (14 Oct 02:14 IST, 13 Oct 03:22 IST) were cancelled after about 6 h.
+  - `participant-oi-watch.yml` (28 slots a day) ran once a day: 2 runs in 2 days.
+  - So the Actions copy never sees the file absent and cannot measure a release time. `participant-oi compare` gives
+    "0 of 4 days the same".
+  - The file itself matches the routine's on 14 and 15 Oct (same SHA-256 and Last-Modified). 13 Oct is not comparable:
+    the routine never saw that file.
+- **Monthly sweep:** first run on 1 Nov.
+
+**What is still missing (plainly):** no code fix can make GitHub's cron keep a time window. O6's premise holds for
+jobs with no time window, and fails for timed captures. It needs a scope decision, for the orchestrator and the owner:
+- **(a) Recommended. Keep the timed jobs on scheduled routines** (the 3 pm capture already runs from the 14:33
+  routine). Narrow criterion 1 to the downloads with no time window: the participant-OI file, matching on 3 sessions
+  (14 and 15 Oct match; one more is needed), and the sweep on 1 Nov.
+- **(b) Have each routine start its workflow on time** (`workflow_dispatch`) instead of cron.
+
+Until then, `quote-recorder-nse.yml` fails every day and alerts #fno-desk for a capture that cannot succeed.
+Disabling it is the owner's call; it is noise now.
+
+**Verdict: FAIL** (criterion 1); criterion 2 now MET.

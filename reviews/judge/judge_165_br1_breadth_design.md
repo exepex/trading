@@ -127,3 +127,62 @@ the forecaster beat the baseline.
 No `fno/` code, no order path, no secrets, no write to Drive or NSE (the fetch only reads). Work register row exists
 for this builder; no duplicate of another session's work. AGENTS.md roles: the statistician's and risk manager's
 angles are covered; the trader's point (forecast skill is not money, must-not-do 8) is right and should stay.
+
+## Addendum 1: re-judge of revision 1 at `0719dd7217e524b9d03e310a9ed2930a6d3a48a3` (judge G)
+
+**Verdict: PASS (design text).** Every finding was accepted and each answer checks out on the data. Three notes
+remain, none blocking. The proposal can go to ChatGPT and then to the owner.
+
+### What I re-ran
+
+- I fetched the 700 most recent files the same read-only way (692 sessions exist from 2024-01-01), then ran the
+  builder's `extract.py` and `sizing.py` at this SHA. My output **matches `results/2024-01-01_2026-10-14.txt` and
+  `results/2024-01-01_2024-12-31.txt` byte for byte** (`diff` empty). Strong evidence.
+- Strike rule on the named days: KOTAKBANK 14 Jan 2026, TATAMOTORS 14 Oct 2025, TRENT 4 Jun 2026 and VEDL 30 Apr 2026
+  each kept 0.0 of their strikes; KAYNES, POLICYBZR and SBIN on 4 Jun 2024 each kept 1.0. Reproduced.
+- The 64 moves of 15% or more left after the rule: I checked each against the same-expiry stock future. All 64 have
+  the future moving by the same amount (for example IEX -0.351 vs -0.341, POLICYBZR -0.446 vs -0.433). They are real
+  moves, not missed adjustments. 27 of them are 4 Jun 2024. Strong evidence.
+- Of the 116 excluded days, 27 move less than 1%: NSE's dividend adjustments and the 2 Mar 2024 special session.
+  Excluding them costs a few days and adds no bias, because the rule depends only on the contracts listed and not on
+  the move.
+- **Dividends the strike rule leaves in (my own check).** From NSE's corporate-action list archived in Drive, there
+  are 280 dividend ex-days of F&O names from Sep 2025 to Oct 2026 with data. The rule excluded the 21 that NSE
+  adjusts. On the 259 left, Y = 1 on 36% of days, against 27% if the dividend is added back (41% vs 22% where the
+  yield is at least half the implied move). So unadjusted dividends do bias the target. But they are about 0.5% of
+  name-days, so even a forecaster that knows every ex-date gains under 0.2% of the baseline Brier: an upper bound of
+  about 0.05 per day x 259 days / about 47,000 name-days. That is far below the 2-3% skill being sized. Note, not a
+  finding (strong evidence on the size).
+
+### Each finding
+
+| # | Revision 1's answer | Re-judge |
+|---|---|---|
+| 1 (blocking) | Strike-continuity rule: exclude a day when fewer than half of the strikes survive | **Accepted.** Catches the four named actions, keeps the real crashes, and leaves no false 15% move (above). The cross-check against NSE's list is a sound second source |
+| 2 | Headline on the realistic pair: about 9 effective bets, range 6-42 | **Accepted.** cal60 vs tilt: rho 0.105, N_eff 9.0, SD 0.0198 (reproduced) |
+| 3 | Primary chosen by the lowest Brier on 2019-2025; a claim must also not lose to the other two (reported) | **Accepted.** t values reproduced: +1.65 all names, -1.64 on my window after the rule (my +3.25 was before it), +3.31 on the top 30. No clear winner, so a written rule is right |
+| 4 | 0.02 per look everywhere; plain Holm on `confirmatory_test`; no `calibrated_p` and no NIFTY gates | **Accepted**, with note A |
+| 5 | Top 30: N_eff 6.1 (realistic pair) or 10.5 (mine); 2% in about 22 months; rule and hybrid families also scored on the 30 | **Accepted** (reproduced) |
+| 6 | Worst-year freeze gate on 2019-2025, plus an AR(1) inflation (1 + lag1) / (1 - lag1) | **Accepted.** 2024 is the worst year so far: SD 0.0190, lag-1 0.26, 2% in 21.5 months (reproduced). The inflation is the standard large-sample variance factor for an AR(1) mean, and 5-session blocks fit lag-1 up to 0.26 |
+| 7 | The hybrid's rule set is frozen at the freeze | **Accepted** (also must-not-do item 3) |
+| 8 | K = 3 recommended, K = 12 the alternative (+30%) | **Accepted.** 22.3 / 17.2 = 1.30 |
+| notes | Results-day split; 60-session `cal60`; fetch.py rewritten; NSE calendar for scoring; setup line | Accepted, with note C |
+
+The months claims match the results files: 2% in 17.2 months (K = 3, 0.02 per look), 3% in 7.6, top 30 22.0 and 9.8,
+indices 81 and 36. The headline "3% in 8-10 months, 2% in 17-22" spans the whole window and the worst year.
+
+### Notes (no fix required before the owner)
+
+- **A.** `forecast_v4.confirmatory.futility_p` needs a `threshold` argument, the v4-calibrated one that revision 1
+  says BR1 does not use. BR1a must state BR1's own futility level, for example a plain p_e at or below 0.025 (the
+  same as passing a threshold of 0.025).
+- **B.** Dividends below NSE's adjustment threshold stay in the target (above). They are immaterial at this size.
+  BR1a may add one line: the dividend effect is measured and reported, not adjusted.
+- **C.** The claim "`ruff check` clean on all three scripts" is not quite right: `sizing.py:44` raises SIM115
+  (`open` without a context manager) under the repository's `ruff.toml`. `fetch.py` and `extract.py` are clean, and
+  all three are formatted. This is a research script outside the gated paths.
+
+### Project rules
+
+This is design text and research scripts only: no `fno/` change, no order path, no secrets, Drive read-only. The BR1
+row in the work register belongs to this builder, and nothing duplicates G7, G8, M1, S1 or S6.

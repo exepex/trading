@@ -42,7 +42,7 @@ questions are gaps 8.3 and 8.4 leave open; each needs an exact rule before the f
 |---|---|---|---|
 | Q1 | Real account size | (a) Rs 2,00,000; (b) Rs 1,50,000; (c) Rs 3,00,000 | (a), as 8.4 (reasoning only) |
 | Q2 | Per-trade cap, all charges included | (a) Rs 5,000 (2.5%); (b) Rs 4,000 (2%) | (a): at lot 65, Rs 4,000 leaves about 61 points per unit and fewer spreads fit; the Rs 20,000 stop is then 4 full losses (some evidence) |
-| Q3 | Real test minimum trades (with 6 months, the later) | (a) 20; (b) 30; (c) 12 | (a) 20; honest: even 20 finds only a large shortfall (some evidence) |
+| Q3 | 8.4 already fixes the test length: the version's registered number of trades or 6 months, whichever is later. Only the floor is asked: the minimum number of real trades when a registration names fewer | (a) 20; (b) 30; (c) no floor (the registered number alone) | (a) 20, S1's paper gate; honest: even 20 finds only a large shortfall (some evidence) |
 | Q4 | Condition 5 default route | (a) second untouched forward period; (b) level 0.05 ÷ trial count; (c) each registration chooses, no default | (a): cleaner; (b) at 50 ideas needs a 99.9% bound set by about 10 resamples (some evidence) |
 | Q5 | Prediction interval side | (a) one-sided 95% lower; (b) two-sided 95% | (a): only real underperformance should fail (reasoning only) |
 | Q6 | t-based lower bound for real money | (a) a pass condition here (both bounds above zero); (b) a warning only, as on scoreboards (decision 167) | (a): stricter only; few skewed positions make the bootstrap claim too often (some evidence) |
@@ -58,3 +58,14 @@ questions are gaps 8.3 and 8.4 leave open; each needs an exact rule before the f
   `freeze.py`, `cli.py` and one line of `PROTOCOL.md`'s `frozen_files`. Different lines; order of merging to be set by
   the orchestrator.
 - Next: judge story check → ChatGPT (rule 9) → the owner's answers to Q1-Q10 → code.
+
+## 5. Judge 171 (FAIL, 3 should-fix, no blocking): all three accepted, fixed at the commit after d29934f5
+
+| Finding | Check | Fix |
+|---|---|---|
+| SF1 evidence not tied to the freeze; shadows outside the order check | Agreed (strong evidence): `order.py` checks only book D3 runs; a shadow decision is never in a book, and Book 1 pilot positions predate the freeze. My claim 3 held for books only | Terms: evidence = Book 1 positions whose decision commit has the gate's freeze as a strict ancestor; pilot and shadow positions shown, never counted; Known limit added. I chose "Book 1 only" over extending the order check: simpler, and promoted shadow ideas reach paper anyway |
+| SF2 slippage has no reference price | Agreed (strong evidence): `fno/desk/execution.py:52` keeps price and pad apart; "paper fill" with the pad would allow about 2 × pad + Rs 0.50 | New term "paper price before pad"; `real_test_pass` 2 and `real_test_stops` (b) measure from it, worse positive, as `fill_honesty` does |
+| SF3 fixed 20 replaced 8.4's registered number | Agreed (strong evidence): 8.4 and decision 8 say "its registered number of trades or 6 months, whichever is later" | max(20, registered number) or 6 months, the later; Q3 now asks only the floor and states 8.4's rule |
+| Note: status and evidence fields with extra text; no version line | Agreed: the draft now parses with today's `parse_protocol` and all 12 items carry the exact status and bare labels (checked by script); the version line is exempted by a `require_version` parameter in the code round | Question references moved to Reason lines |
+| Note: A16 covers only nearest weekly and monthly expiries | Agreed | Stated in `fill_honesty` and Known limits; the owner sees it with the questions |
+| Note: `real_cap_fit` source | Agreed | Names the 3 pm recorder (A4, `research/data/quotes/`) at S1's timetable capture time |

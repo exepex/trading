@@ -111,6 +111,7 @@ class FbilUsdInrSource(ReferenceRateSource):
     publisher = "Financial Benchmarks India Pvt Ltd (FBIL), reference rates (public site, about a week late)"
     first_value_date = date(2018, 7, 10)  # FBIL took over the reference rate from RBI
     max_age_days = 14  # its public site trails by about a week
+    private = True  # FBIL does not authorise commercial use without permission: Drive only (owner, 15 Oct; A17d)
 
     def requests(self, start: date, end: date) -> list[CueRequest]:
         url = FBIL_RATES.format(start=start.isoformat(), end=end.isoformat())
