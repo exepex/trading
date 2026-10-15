@@ -86,3 +86,13 @@ fails. Test 11's 41% vs 40% case does not cover this.
 **On coordination:** the builder sent me this SHA directly, as the orchestrator said it would. I told the orchestrator.
 
 **Verdict: PASS for 86f46232b28b8e583b64706d273143ccc0b49007** (story text). Code may start.
+
+## Note 2 (15 Oct 2026): addendum 1's PASS is superseded
+
+The owner chose, in v1, both the code number check **and** a second, objecting AI: the devil's advocate, built as the
+reusable piece T3 will use later. So addendum 1's PASS on 86f46232, whose advocate was code only, is superseded. I will
+judge the builder's next SHA as addendum 2. The same four points apply, now also for the second AI:
+- its cost is counted and it stops on BG1's `stop`;
+- it can only object, never change a number or a line;
+- the week's post goes out when it fails;
+- it is built once, as the piece T3 reuses, not as a second AI caller.
