@@ -199,3 +199,15 @@ which has no code change since.
 - real sample: the Brent readings, run by me.
 
 **Verdict: PASS for cc739e7d1d28bfdc2eef7209208d12203cbaf79b.** Merge with `--no-ff`; I check the merge afterwards.
+
+## Addendum 5 (15 Oct 2026): merge check, A17c merged to main as 4e74d8a
+
+- **Parents.** 4e74d8a's parents are 1fdbc68 (main) and cc739e7 (the passed tip). It is a `--no-ff` merge.
+- **The merge matches my recomputation exactly** (empty diff).
+- **Branch files arrived unchanged.** The test, `us_market_closures.csv` and response 116 equal cc739e7. The judge
+  files differ only by `main`'s own later addenda.
+- **No unjudged code since.** a103793 brought only judge and response files.
+- **CI.** Run 38682721169 (`checks`) on a103793, the first push carrying the merge: **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records `global-cues verify` as clean.
+
+**Merge check: PASS.** A17, A17b and A17c are done.
