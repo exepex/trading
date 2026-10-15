@@ -110,3 +110,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 121: review request to ChatGPT for E4c (refuse an entry whose legs cannot all fill, or whose protection cannot be sold back, before any fill) at 8e53630 (judge 120 PASS), quality rule 9](response_121_e4c-chatgpt-request.md)
 - [Response 108: story A16, 15-minute Groww quote recorder: story text and step 0 feasibility (candles from 2020, 216 quotes a snapshot at about 5 a second), then the build claims](response_108_a16-groww-15min.md)
 - [Response 124: review request to ChatGPT for E2b (derived daily packs; failed-commit handling; no quote figure in public files) at 9aefbc0 (judge 118 addenda 7-8 PASS), quality rule 9](response_124_e2b-chatgpt-request.md)
+- [Response 126: story G8, protocol v4 scoring (story text: outcomes, scores, comparisons, the two looks with both gates and the regime line)](response_126_g8-scoring.md)
