@@ -24,8 +24,13 @@ CLOSES = ROOT / "research" / "data" / "nifty-panel" / "warmup_closes.csv"
 HEADER = "date,session,underlying,vix,index_file,index_sha256\n"
 
 
-def committed():
-    return regular_closes(closes_rows(CLOSES.read_text()))
+DISCLOSED_THROUGH = date(2026, 10, 14)  # the counts response 127 disclosed were taken on the panel up to this session
+
+
+def committed(through: date = DISCLOSED_THROUGH):
+    """The committed panel's closes up to `through`: the panel gains a session every day, so a fixed count needs a
+    fixed end (the 15 Oct session made V6a's count 2,410)."""
+    return [c for c in regular_closes(closes_rows(CLOSES.read_text())) if c.day <= through]
 
 
 def test_committed_closes_reproduce_the_disclosed_v6_counts():

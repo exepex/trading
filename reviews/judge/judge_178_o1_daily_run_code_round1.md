@@ -76,3 +76,86 @@ The stated duplicate alert on a failed Book 1 commit (E5b's alert plus "step boo
    "CLAUDE.md 3 pm section, routine prompts", and O1's row claims the same files. The orchestrator's ruling gives the
    prompt to O1 (story text, "Ownership of the prompt"). The orchestrator should update the Handover row so the
    register shows one owner. The E5b row also still reads "after E2c" although E5b is merged.
+
+## Addendum 1: delta to 22e4dd7f (margin_check step, constants split)
+
+**Verdict: PASS for round 1's scope.** This delta adds no blocking or should-fix finding. Note 2 is closed. Note 1
+stays open: the criterion 2 and 4 tests have not arrived yet. Note 6 is new and optional.
+
+- **Gates on a trial merge with origin/main (4e72c4e4 line, 15 Oct evening):** 6142 passed. `ruff check`,
+  `ruff format --check` and `check_imports` are clean, and `tests/test_code_size.py` passes. `fno/constants.py` is now
+  341 lines and `fno/constants_operations.py` 37.
+- **The split (closes note 2).** The daily-operations block moved out whole. All 15 names in `__all__`
+  (`RUN_LOG_DECISIONS_STEP`, the two step tuples, O1's four statuses and O8's health names) read the same through
+  `fno.constants` as through the new module (checked in Python). The health values equal main's lines 343-346, and
+  `RUN_LOG_DECISIONS_STEP` is still "decisions". It is one `import *` driven by an explicit `__all__`, so no caller
+  changes. This is a split, not a squeeze. The CLAUDE.md conflict is resolved: both the LR1 and O1 composition roots
+  are listed.
+- **`margin_check` (text amendment, accepted).** It records A14c's agreed line (decision da0f769d; the A14c builder,
+  15 Oct) as O1's first step. It runs the unchanged command, commits only `stress_broker_check.csv`, and stays
+  `not_live` (`daily.live_from.margin_check: null`) while the command does not exist, so nothing calls Groww today.
+  Tests: the order, failure and rerun tests now include it. The new wiring test shows the composition root gives every
+  name in `DAILY_RUN_STEPS` a step.
+- **T2's note (judge 180): the card comes after `decisions` and after 15:15.** MET by the order. `card` follows
+  `quotes_done`, which follows `exits`. `exits` waits until `desk.timetable.execution_snapshot` (15:15), so the card
+  can never start before 15:15 or before `decisions` (15:12).
+
+6. **(Optional, reasoning only) Put `margin_check` after `quotes`, not before.** Each `CommandStep` waits for its
+   child with no time limit. As the first step, a Groww call in A14c's command that hangs would hold back the start of
+   the quote parts, the day's main data. The parts are child processes that wait for 14:55 themselves, so starting
+   them first costs nothing and still avoids overlapping the 14:55 capture on the Groww key. There is no evidence of a
+   Groww hang, so this is not a should-fix. Otherwise, when A14c lands, confirm its Groww request has a timeout.
+
+## Addendum 2: O1 at f22ffc42 (note 1 tests; E2c merged in)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings, and notes 1, 2 and 4 are closed.
+Criteria 2 and 4 are now MET. Still to come before the story's final code verdict: criterion 8 (the CLAUDE.md section,
+after A4c) and criterion 9 (the real day).
+
+- **Note 1 closed.** New tests:
+  - `test_quotes_or_card_raising_is_recorded_failed_with_one_alert` (quotes, card);
+  - `test_a_quote_part_that_exits_non_zero_gets_no_o1_alert_and_the_others_still_commit` (each of the 3 parts);
+  - `test_a_failed_nifty_still_starts_the_indices_after_it_and_lets_nse_commit`.
+
+  Each asserts what my probe found: one O1 alert for a step that raises, none for a part (A4c's own alerts stand),
+  the others still commit, and the indices start when NIFTY ends, whatever NIFTY's result.
+- **Note 4: declined, and I accept the reason.** A killed recorder can leave a half-written sidecar or canonical, and
+  only the recorder can tell whether an attempt is complete. Committing blind could put a broken record on `main`. The
+  limit is now a Known-limits line.
+- **E2c merge.** The resolution keeps both additions: E2c's `files` (private records downloaded before any step) with
+  `_unreviewed` passed to `fills`, and O1's `day_steps`. `build_daily_run` passes both. The real-git pathspec test now
+  stages a tracked file of another writer, because E2c ignores the account files in git. That is right: the test still
+  proves a staged file is never swept in.
+- **Gates on a trial merge with origin/main f78c7759:**
+  - 6175 passed, 3 failed;
+  - plain main at f78c7759, run at the same time: 6118 passed and **the same 3 failed** (`test_paper_account` 15 Oct
+    top-up, `test_committed_closes_reproduce_the_disclosed_v6_counts`, `test_home_blocks` live wiring);
+  - none of the 3 is in O1's files, so the builder's claim holds. Merge rule: they must be green on main (their owners'
+    fix) before O1 merges, since the merge needs the full suite green on the merged tree;
+  - `ruff check`, `ruff format --check` and `check_imports` are clean.
+- Note 3 (merge after A4c) stands, and so does optional note 6 (start `quotes` before `margin_check`). The builder
+  did not mention note 6.
+
+## Addendum 3: O1 at 43943a52 (note 6 built: quotes first, 10-minute command limit)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings. Note 6 is closed. Criteria 8 and 9
+and the merge after A4c are still to come.
+
+- **Order.** `DAILY_RUN_STEPS` now starts with `quotes`, then `margin_check`, so the quote parts (child processes that
+  wait for 14:55 themselves) always start before any command that might call Groww. My mutation swapping the two
+  makes `tests/daily` fail. The story table and the "No command holds the day" line match the code.
+- **Limit.** Every O1 `CommandStep` (margin_check, weather, forecasts_v4, book1, card) is stopped after
+  `COMMAND_LIMIT_SECONDS` = 600 and recorded `failed`, with nothing committed. The new test proves the stop, the
+  10-minute bound and the empty paths. My mutation removing the limit makes it fail.
+- **Gates on a trial merge with origin/main:**
+  - 6176 passed, 3 failed: the same 3 that are red on plain main (judge 178 addendum 2), none in O1's files;
+  - `ruff check`, `ruff format --check` and `check_imports` are clean.
+
+Notes (one line each, reasoning only, not should-fix):
+
+7. A 10-minute limit does not protect the 15:12 deadline for `book1`, which starts after the pack (up to about
+   15:10). A hung `book1` could push `decisions` to about 15:20. E3's late rule then applies and the exits still run,
+   so no trade or stop is decided wrongly. The claim "never holding the deadline" is too strong for `book1`.
+8. `ChildProcess.stop()` kills only the Python child. A `git push` that `book1` started could outlive it and touch
+   the checkout while the run goes on. No evidence that this happens, and a 10-minute hang of `book1` has not been
+   seen either.

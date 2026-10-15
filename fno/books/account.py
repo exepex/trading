@@ -42,7 +42,7 @@ class TopUp:
     further: bool  # a top-up was already recorded before this one (a raised target: an owner decision, lane 1)
 
 
-def _instant(filled_at: str) -> datetime:
+def row_instant(filled_at: str) -> datetime:
     """A row's instant; the opening row, dated by day only, counts from the start of its day (IST)."""
     when = datetime.fromisoformat(filled_at)
     return when if when.tzinfo else datetime.combine(when.date(), time.min, IST)
@@ -105,7 +105,7 @@ class PaperAccount:
         return sum(
             float(row["amount_rs"])
             for row in rows
-            if row["kind"] in CAPITAL_KINDS and (at is None or _instant(row["filled_at"]) <= at)
+            if row["kind"] in CAPITAL_KINDS and (at is None or row_instant(row["filled_at"]) <= at)
         )
 
     def fills(self) -> list[Fill]:
