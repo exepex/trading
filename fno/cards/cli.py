@@ -26,6 +26,7 @@ def add_card_parser(subparsers) -> None:
 
 
 def cmd_card_daily(args, out=print) -> int:
+    from ..desk.wiring import download_private_records
     from ..models import now_ist
     from .wiring import build_card_issuer, build_daily_card
 
@@ -37,6 +38,7 @@ def cmd_card_daily(args, out=print) -> int:
     if args.post and day != today:  # today's records would be issued as another day's card
         out(POST_TODAY_ONLY.format(day=day, today=today))
         return 2
+    download_private_records()  # story E2c: the trade counts come from the accounts in Drive
     prepared = build_daily_card().prepare(day)
     if prepared is None:
         out(NOT_A_SESSION.format(day=day))

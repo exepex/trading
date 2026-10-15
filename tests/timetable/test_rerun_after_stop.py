@@ -14,10 +14,9 @@ from fno.desk.daily_run import RunStopped
 from fno.desk.git_sync import Git, GitCommitter
 from fno.desk.pending_commit import PendingCommitter
 
-from .fakes import C4, Decisions, FakePacks, Rules, daily_run
+from .fakes import C4, RAW_QUOTE, Decisions, FakePacks, Rules, daily_run
 from .test_commit_failure_run import checkout_with_origin, git
 from .test_daily_run import NORMAL, decided, run_day
-from .test_raw_quote_refusal_run import RAW_QUOTE
 
 
 class Cause:
