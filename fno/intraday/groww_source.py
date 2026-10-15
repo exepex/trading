@@ -15,7 +15,7 @@ from ..models import now_ist
 from ..providers.groww import _payload, listed_expiries, parse_groww_chain, parse_groww_quote_book
 from .document import CallRecord, SnapshotDocument
 from .expiry_plan import UNDERLYING, Expiries, ExpiryPlan
-from .index_reading import CANDLE_BASIS, CANDLE_SYMBOL, QUOTE_BASIS, candle_reading, candle_window, quote_reading
+from .index_reading import CANDLE_SYMBOL, QUOTE_BASIS, candle_reading, candle_window, quote_reading
 from .pacing import RatePacer
 from .read_only import ReadOnlyGroww
 from .source import IntradayQuoteSource
@@ -89,9 +89,8 @@ class GrowwIntradaySource(IntradayQuoteSource):
                     candle_interval=api.CANDLE_INTERVAL_MIN_1, timeout=CALL_TIMEOUT_SECONDS,
                     **candle_window(doc.index.response_received_at)))  # fmt: skip
                 if not doc.index_candle.failure:
-                    candle = candle_reading(doc.index_candle.payload, doc.index_candle.response_received_at)
-                    level, source_time = candle if candle[1] else (level, None)
-                    basis = CANDLE_BASIS if candle[1] else ""
+                    candle = candle_reading(doc.index_candle.payload, doc.index_candle.response_received_at, doc.mark)
+                    level, source_time, basis = candle if candle[1] else (level, None, "")
         except PARSE_ERRORS as exc:  # an unexpected shape: no level, named, never a crash
             doc.failures.append(f"{INDEX_PARSE}: {type(exc).__name__}")
             return

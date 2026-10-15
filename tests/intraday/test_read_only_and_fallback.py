@@ -10,7 +10,7 @@ import pytest
 from fno.intraday import wiring
 from fno.intraday.expiry_plan import ExpiryPlan
 from fno.intraday.groww_source import GrowwIntradaySource
-from fno.intraday.index_reading import CANDLE_BASIS, QUOTE_BASIS, candle_start
+from fno.intraday.index_reading import CANDLE_BASIS, OPEN_BASIS, QUOTE_BASIS, candle_start
 from fno.intraday.pacing import RatePacer
 from fno.intraday.read_only import ALLOWED, ReadOnlyGroww, ReadOnlyViolation
 from fno.intraday.status import verdict
@@ -128,12 +128,27 @@ def test_the_quote_time_wins_when_groww_gives_one_and_no_candle_is_asked_for():
     assert not [call for call in api.calls if call.startswith("candles")]
 
 
-def test_no_finished_candle_leaves_no_source_time_and_the_mark_is_stale():
-    clock = FakeClock(ist(DAY, 9, 30, 0.4))
-    api = FakeGrowwApi(index_time=None, candles=[candle("2026-10-15T09:30:00", 25030.0)])
-    found = source(api, clock).take(DAY, ist(DAY, 9, 30))
+def test_at_0915_no_session_candle_has_finished_so_the_level_is_the_open_of_the_0915_candle():
+    """Amendment 1 (in-session check, 15 Oct 2026): at 09:15:01.5 Groww's answer held only the forming 09:15 candle."""
+    clock = FakeClock(ist(DAY, 9, 15, 0.8))
+    api = FakeGrowwApi(index_level=24000.0, index_time=None, candles=[candle("2026-10-15T09:15:00", 25030.0)])
+    found = source(api, clock).take(DAY, ist(DAY, 9, 15))
+    assert (found.index_level, found.index_basis) == (25029.0, OPEN_BASIS)  # the open (close - 1 in this fixture)
+    assert found.index_source_time == ist(DAY, 9, 15) and verdict(found, None).status == "good"
+
+
+def test_no_candle_at_all_leaves_no_source_time_and_the_mark_is_stale():
+    api = FakeGrowwApi(index_time=None, candles=[])
+    found = source(api, FakeClock(ist(DAY, 9, 30, 0.4))).take(DAY, ist(DAY, 9, 30))
     assert found.index_source_time is None and found.index_basis == ""
     assert verdict(found, None).status == "stale" and "index_time_missing" in verdict(found, None).failures
+
+
+def test_a_candle_starting_after_the_mark_is_never_the_marks_open():
+    clock = FakeClock(ist(DAY, 9, 31, 10))  # the 09:30 candle has finished, the 09:31 one is forming
+    rows = [candle("2026-10-15T09:30:00", 25030.0), candle("2026-10-15T09:31:00", 25040.0)]
+    found = source(FakeGrowwApi(index_time=None, candles=rows), clock).take(DAY, ist(DAY, 9, 30))
+    assert (found.index_level, found.index_basis, found.index_source_time) == (25030.0, CANDLE_BASIS, ist(DAY, 9, 31))
 
 
 def test_an_old_finished_candle_is_stale_at_121_seconds_and_fresh_at_120():

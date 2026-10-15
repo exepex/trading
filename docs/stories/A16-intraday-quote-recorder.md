@@ -60,10 +60,28 @@ nothing beyond what is below). Pre-market run 07:01-07:07 IST; in-session run: s
   So the safe pace is about 5 requests a second: **a full snapshot (index, future, 2 chains, 216 quotes) takes about
   45-50 s** at 4 workers. Some evidence (one morning, pre-market).
 
-**In-session check:** to be added as an amendment from a run after 09:15 IST on 15 Oct 2026 (index `last_trade_time`
-during the session, which source-time rule applies, two-sided books share, snapshot duration at the chosen pace). The
-source-time rule itself is fixed below (Definitions) with its fallback, so the amendment only confirms which branch
-applies.
+**In-session check (amendment 1, live, read-only, 15 Oct 2026 09:15-09:31 IST; counts and timings only).** Made by a
+standalone probe and by the recorder's own dry run (`python -m fno intraday run --until 09:47 --dry-run <folder
+outside the repository>`; no Drive, no Slack, no commit):
+- **Groww gives no time for the index during the session either:** `last_trade_time` was empty in 3 of 3 index quotes
+  read at 09:18:23, 09:18:43 and 09:19:04 (answered in 0.57-0.72 s). So the candle fallback is the rule in practice;
+  the quote branch stays built for the day Groww fills it. Strong evidence for this day (direct reads); whether it
+  ever fills it, unknown.
+- **1-minute candles arrive in time:** the candle answer at 09:19:25 already held the forming 09:19 candle. At the
+  09:30 mark the candle call (sent 0.7 s after the mark, answered 1.5 s after) held 09:25-09:30, so the latest
+  finished candle ended exactly at 09:30:00 and the mark was `good`, source age 0.7 s.
+- **The 09:15 mark exposed a gap in the passed rule:** at 09:15:01.5 the answer held only the forming 09:15 candle (no
+  session candle has finished at the first mark), so "the latest finished candle" gave no time and the mark was
+  `stale`. Under the passed text the 09:15 level would be stale every day, which voids every session's RV (both
+  parts need 09:15). **Rule change proposed (for the judge's check):** when the latest finished candle ends before the
+  mark and the candle that starts at the mark is in the answer, the level is that candle's **open** and its source
+  time the mark (an open is fixed by the candle's first trade, at or after the mark; it does not change while the
+  candle forms), basis `candle_1m_open`. In practice this applies only at 09:15; at every later mark the close of the
+  candle ending at the mark is used as before. The overnight return is then the session's opening index level against
+  the previous session's last close before 15:30, the usual open-to-close split.
+- **One snapshot, measured (09:30 mark):** 2 chains (19 and 27 Oct), 220 contracts within 6%, 220 recorded, 220
+  two-sided; the whole snapshot took 53 s at the 5-a-second pace; the gzip document is about 71 kB (09:15 mark); host
+  clock against GitHub and Slack within 0.5 s. At 09:15: 216 of 216 recorded, 204 two-sided, 57 s.
 
 ## Scope
 
@@ -119,9 +137,12 @@ as a proposal.
      **Candle times:** step 0 showed them as IST wall-clock text with no offset (`2026-10-14T09:15:00`); they are
      parsed as a naive ISO time and given +05:30 explicitly (India has no daylight saving), never the host's time
      zone; a text that carries an offset, or does not parse, is `index_parse` (failed, by name).
+     **At the first mark (amendment 1):** when the latest finished candle ends before the mark and the candle that
+     starts at the mark is in the answer (09:15: no session candle has finished yet), the level is that candle's
+     **open** and its source time the mark; basis `candle_1m_open`.
      The `index_basis` field of the document and the ledger says which rule gave the level and time
-     (`quote_last_trade_time` or `candle_1m_close`); the RV row counts the marks of each basis, so a session that mixes
-     them is visible.
+     (`quote_last_trade_time`, `candle_1m_close` or `candle_1m_open`); the RV row counts the marks of each basis, so a
+     session that mixes them is visible.
   3. **Neither:** no source time; the level is stale (`index_time_missing`), never assumed fresh.
   Pre-market on 15 Oct the index `last_trade_time` was empty; the in-session check (amendment below) says which rule
   applies in the session. Both rules are built and tested, so the recorder does not depend on the answer.
@@ -400,4 +421,5 @@ session-day of about 55 minutes each (F8 measures).
 
 **Depends:** A7, A9, A11, owner's host and terms decisions (15 Oct 2026) · **Size:** M · **Status:** story text
 revised after judge 108 (FAIL, 5 should-fix, all accepted: response 108 part 1b) and its addendum 1 (FAIL, A and
-B accepted: part 1c), for the judge's re-check
+B accepted: part 1c); text PASSED (judge 108 addendum 2, 27f7b55). Amendment 1 (in-session check and the 09:15 open
+rule) and the code: for the judge
