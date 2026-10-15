@@ -25,7 +25,7 @@ from ..forecast.freeze import require_frozen_before
 from ..forecast.freeze_v2 import NotYetFrozen, require_version_frozen
 from ..forecast.wiring import GOLDEN_OPTION_DAYS
 from ..freeze_sections import FORECAST_SCORES, require_section_frozen
-from ..quotes.recorder import DATASET as GROWW_QUOTE_DATASET
+from ..quotes.export_first_store import ExportFirstQuoteStore
 from ..research_data.calendar import load_session_calendar
 from ..research_data.panel_reader import read_nifty_panel
 from ..research_engine.ledger import Git
@@ -111,12 +111,10 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
 
 
 def replay_quote_store(folder: Path) -> RawFileStore:
-    """The quote store a replayed capture reads. A commit from before story A4b holds its Groww quote files, read as
-    the capture read them then; a later commit holds only the sidecars, and its quote files are read from Drive,
-    checked against those sidecars (an absent or changed Drive copy stops the replay, never a quiet switch to NSE)."""
-    if any((folder / GROWW_QUOTE_DATASET).rglob("*.csv")):
-        return LocalFolderStore(folder)
-    return storage.build_quote_store(folder)
+    """The quote store a replayed capture reads: each file from the commit's export when it holds it (every quote file
+    of a commit before story A4b), else from Drive, checked against the committed sidecar (a later day's quote file;
+    an absent or changed Drive copy stops the replay, never a quiet switch to NSE's snapshot)."""
+    return ExportFirstQuoteStore(LocalFolderStore(folder), storage.build_quote_store(folder))
 
 
 def recompute_live_day(inputs: Path, day: date, generated_at: datetime) -> dict[str, bytes]:

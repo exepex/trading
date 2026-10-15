@@ -27,7 +27,7 @@ mutations, one real Drive round trip). Open points that are not mine to decide a
 | `fno/quotes/report.py`, `compare.py` | read through the store (they read the folder directly before) |
 | `fno/desk/execution_capture.py` | commits the record and the sidecar only; an unsaved or unreadable quote file gives no record (sidecar still committed) |
 | `fno/desk/snapshot.py` | a failed Drive read becomes `SnapshotError`, so C3's gate refuses and alerts, and exits still run |
-| `fno/forecast_scoring/wiring.py` | `replay_quote_store`: G4's replay reads a pre-A4b commit's own quote files and a later commit's from Drive, hash-checked |
+| `fno/forecast_scoring/wiring.py`, `fno/quotes/export_first_store.py` (new) | `replay_quote_store` → `ExportFirstQuoteStore`: G4's replay reads **each file** from the commit's export when it holds it (git gives the committed bytes), else from Drive, hash-checked (judge 111 addendum 2, SF1: deciding per tree was wrong for a mixed export) |
 | `.gitignore` | `research/data/quotes/groww/**/*.csv` |
 | `fno/record_scan/forbidden_files.py` (new), `scanner.py`, `fno/composition.py` | O5's record scan refuses a staged Groww quote file by path, even after `git add -f` |
 | `tests/fixtures/quote_recorder_golden/{retry,none}/.../*.meta.json` | only the `failures` strings: `<contract>: ConnectionError: dropped` → `<contract>: ConnectionError (provider message withheld)` (13 lines; criterion 6 as ruled) |
@@ -124,3 +124,18 @@ says so); no test needs `growwapi`.
 5. **Behaviour change:** an unreadable Groww Drive copy now fails the forecast day loudly instead of falling back to
    NSE's snapshot.
 6. History is unchanged: the 14 Oct file is still public in commit 5c22bcc, as the owner decided.
+
+## Addendum 1: judge 111 addendum 2 (FAIL, 1 should-fix) on 65d75e6
+
+- **SF1, accepted and fixed.** The judge's repro is right: `replay_quote_store` chose the plain export store when
+  *any* Groww quote file was in the export, so a commit holding an older day's file (14 or 15 Oct, before the move)
+  and only the replayed day's sidecar would give the frozen `load_snapshot` no quote file, and it would quietly use
+  NSE's snapshot: a false DIFFERS. Fix: `ExportFirstQuoteStore` decides per file (export first, else the Drive-only
+  store with its hash check). Tests: the judge's mixed-tree case (replayed day's file only in Drive, an older day's
+  file left in the export) equals the all-in-git replay; the export's own file is read without any Drive call; unit
+  tests for each path (export hit, Drive hit, Drive missing → `RawQuoteMissing`, absent, never writes). Broken-code
+  proof: putting back the per-tree rule fails the mixed-tree test (1 failed); making the store skip Drive fails 4
+  tests. Real replay of 14 Oct after the fix: from the commit's own file, identical; with that file removed, from
+  Drive, identical.
+- **Minor (`levels_failures` with NSE exception messages, `market_levels.py:83,87`):** left untouched as the
+  orchestrator decided and the passed story promised; listed below as a later item.

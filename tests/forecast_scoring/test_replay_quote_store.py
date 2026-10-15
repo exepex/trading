@@ -59,3 +59,21 @@ def test_a_changed_or_missing_drive_copy_stops_the_replay(tmp_path, drive):
     drive.files.clear()
     with pytest.raises(RawQuoteMissing):
         recompute_live_day(inputs, DAY, GENERATED)
+
+
+def test_a_mixed_export_reads_each_day_s_file_from_where_it_is(tmp_path, drive):
+    """Judge 111 addendum 2: an export holding an older day's quote file (pre-A4b) and only the sidecar of the replayed
+    day reads the replayed day from Drive, not "no Groww snapshot" (which would switch quietly to NSE's)."""
+    before = recompute_live_day(_inputs(tmp_path / "before", True), DAY, GENERATED)
+    mixed = _inputs(tmp_path / "mixed", False)
+    older = mixed / "research" / "data" / "quotes" / FOLDER / "nifty_20261012_145500.csv"
+    older.write_bytes(b"snapshot_id,bid\nnifty_20261012_145500,1\n")  # a pre-A4b day still in the tree
+    assert recompute_live_day(mixed, DAY, GENERATED) == before
+
+
+def test_the_export_s_own_file_is_used_without_drive(tmp_path, monkeypatch):
+    monkeypatch.setattr(quote_wiring, "build_owner_drive", lambda env: pytest.fail("Drive must not be used"))
+    inputs = _inputs(tmp_path, True)
+    assert json.loads(recompute_live_day(inputs, DAY, GENERATED)["pack.json"])["snapshot"]["dataset"].startswith(
+        "groww/"
+    )
