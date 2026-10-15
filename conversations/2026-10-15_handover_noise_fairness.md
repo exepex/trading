@@ -229,3 +229,32 @@ judge's freeze notes for G6:
 2. E5: missed forecast day scored as the base rate? (Recommended; the owner leaned yes.)
 3. Approve recommendation items 1-5 (BANKNIFTY recording first)?
 4. Which scorecard measures lead: P&L per risk, edge at entry, Brier, or random-family percentile? (To discuss.)
+
+## 11. Routine schedules (owner's last question of the session)
+
+Owner: "what should we do about the routine schedule? ... schedules can run ... late ... What should we do?"
+
+**Facts (strong evidence):**
+- Claude routines fired on time on 15 Oct: the 3 pm recorder 26 s after 14:48, A8 53 s after 17:11. The 14-minute
+  loss was setup inside the session, fixed by O7: the 17:11 A8 run set up in 1 s.
+- GitHub Actions cron ran hours late on 14 Oct (forecast capture at 19:27). GitHub's schedule is best effort.
+
+**Rules agreed in discussion:**
+1. Time-critical jobs start at least 20 minutes early and wait in code for the exact time (the recorder starts at
+   14:33 and captures at 14:55).
+2. Chain steps by events, not clocks:
+   - forecast-capture already starts on the push of the `.canonical` snapshot;
+   - E2 extends this to the AI books.
+3. Time-critical work runs on Claude routines. GitHub cron is only a fallback, or for evening data jobs (no credits).
+4. Deadlines live in the data (15:00 per-field cutoff, 15:15 lock by push time), so lateness can only lose a day,
+   never corrupt data; E5 counts lost days.
+5. Every job is safe to re-run (write-once data).
+
+**To build:** one daily **health check**, a GitHub Actions job at about 18:00 IST (no Claude credits; a late start is
+harmless). From the repository it checks:
+- quotes `.canonical` committed by 15:13;
+- forecast v2 records 20 of 20 and on time;
+- AI books' sealed commitments by 15:15;
+- A8 rows for the day.
+It posts one line to #fno-desk: "all on time", or which routine was late or missed. It catches a routine that never
+started, which today raises no alert. Lane 1 (workflow), about 50 lines.
