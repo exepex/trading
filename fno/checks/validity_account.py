@@ -3,7 +3,8 @@ restart rows, not through E1's or C2's code. Only ledger rows filled by the deci
 reads the same account. What C4 derives here:
 - cash (every amount so far);
 - each trade's units and cash flow;
-- closed equity at each day's close (the start, then each day a trade went flat);
+- each trade's first fill day;
+- the opening cash, and closed equity at each day's close (the start, then each day a trade went flat);
 - the brake restart days."""
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ class Position:
     units: Mapping[str, int]  # contract -> signed units held (long +, short -)
     cash_flow: float  # premium received minus paid, minus charges, so far
     terms: tuple[str, float, int] | None = None  # structure, width, lots (what its margin row is found by)
+    opened_on: date | None = None  # the trade's first fill day (C5's new risk per day)
 
 
 @dataclass(frozen=True)
@@ -54,18 +56,20 @@ def _filled_by(row: dict[str, str], cutoff: datetime) -> bool:
     return (when.date() <= cutoff.date()) if when.tzinfo is None else when <= cutoff
 
 
-def _trades(rows: list[dict[str, str]]) -> tuple[dict[str, dict], dict[str, float], dict[str, date | None]]:
+def _trades(rows: list[dict[str, str]]) -> tuple[dict[str, dict], dict[str, float], dict[str, date | None], dict]:
     units: dict[str, dict[str, int]] = {}
     flows: dict[str, float] = {}
     flat_on: dict[str, date | None] = {}
+    first: dict[str, date] = {}
     for row in rows:
         trade, sign = row["trade_id"], 1 if row["side"] == SIDE_BUY else -1
+        first.setdefault(trade, datetime.fromisoformat(row["filled_at"]).date())
         held = units.setdefault(trade, {})
         held[row["contract"]] = held.get(row["contract"], 0) + sign * int(row["units"])
         flows[trade] = flows.get(trade, 0.0) + float(row["amount_rs"])
         flat = not any(held.values())
         flat_on[trade] = datetime.fromisoformat(row["filled_at"]).date() if flat else None
-    return units, flows, flat_on
+    return units, flows, flat_on, first
 
 
 def account_facts(rows: list[dict[str, str]], restarts: tuple[date, ...], cutoff: datetime) -> AccountFacts:
@@ -73,7 +77,7 @@ def account_facts(rows: list[dict[str, str]], restarts: tuple[date, ...], cutoff
     if not rows or rows[0]["kind"] != LEDGER_OPENING:
         raise AccountProblem("the ledger has no opening balance by the decision cutoff")
     start, fills = rows[0], rows[1:]
-    units, flows, flat_on = _trades(fills)
+    units, flows, flat_on, first = _trades(fills)
     by_day: dict[date, float] = {}
     for trade, day in flat_on.items():
         if day is not None:
@@ -84,7 +88,9 @@ def account_facts(rows: list[dict[str, str]], restarts: tuple[date, ...], cutoff
         equity += by_day[day]
         series.append((day, equity))
     positions = tuple(
-        Position(t, {c: n for c, n in held.items() if n}, flows[t]) for t, held in units.items() if flat_on[t] is None
+        Position(t, {c: n for c, n in held.items() if n}, flows[t], None, first[t])
+        for t, held in units.items()
+        if flat_on[t] is None
     )
     return AccountFacts(sum(float(r["amount_rs"]) for r in rows), tuple(series), restarts, positions)
 

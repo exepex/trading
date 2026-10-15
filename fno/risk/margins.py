@@ -4,7 +4,7 @@
 as_of` (story A14, judge 75): SPAN's scanning risk, the position's net option value (its value at the prices used,
 bought legs plus, so a credit structure's is negative) and the exposure margin, stored apart and never one netted
 figure. The row used is the latest dated on or before the decision day; a missing row, or one older than the
-configured age, fails closed.
+profile's margin age (`margin_age.py`), fails closed.
 
 The margin C2 counts is `max(0, scan - NOV) + min(0, NOV) + exposure` (judge 75): MarginRoom already moves cash and
 marked equity by the entry and takes the lower, so this leaves exactly what a broker that nets the premium into SPAN
@@ -34,6 +34,7 @@ from pathlib import Path
 
 from ..constants import STRESSED_MARGIN_MULTIPLIER, STRESSED_MARGIN_SCENARIO_LOOKUP
 from .inputs import RiskInputError, TradeTerms
+from .margin_age import MarginAge
 from .settings import StressedMarginSettings
 
 MARGIN_COLUMNS = ("structure", "width", "scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs", "source", "as_of")
@@ -50,15 +51,15 @@ def _rows(path: Path, columns: tuple[str, ...]) -> list[dict[str, str]]:
         return list(reader)
 
 
-def _fresh_row(rows: list[dict[str, str]], what: str, day: date, max_age_days: int) -> dict[str, str]:
+def _fresh_row(rows: list[dict[str, str]], what: str, day: date, age: MarginAge) -> dict[str, str]:
     """The latest sourced row dated on or before `day`; refused when there is none or it is too old."""
     dated = [(date.fromisoformat(r["as_of"]), r) for r in rows if r["source"].strip()]
     usable = [(d, r) for d, r in dated if d <= day]
     if not usable:
         raise RiskInputError(f"no margin recorded for {what} on or before {day}")
     as_of, row = max(usable, key=lambda pair: pair[0])
-    if (day - as_of).days > max_age_days:
-        raise RiskInputError(f"margin for {what} is from {as_of}, older than {max_age_days} days on {day}")
+    if not age.fresh(as_of, day):
+        raise RiskInputError(f"margin for {what} is from {as_of}, {age.limit()} on {day}")
     return row
 
 
@@ -105,14 +106,14 @@ def _matches(row: dict[str, str], terms: TradeTerms) -> bool:
 
 
 class MarginTable:
-    def __init__(self, path: Path, max_age_days: int):
-        self.path, self.max_age_days = path, max_age_days
+    def __init__(self, path: Path, age: MarginAge):
+        self.path, self.age = path, age
 
     def parts(self, terms: TradeTerms, day: date) -> MarginParts:
         """One lot's margin parts from the latest fresh row for the trade's structure and width."""
         rows = [r for r in _rows(self.path, MARGIN_COLUMNS) if _matches(r, terms)]
         what = f"{terms.structure} width {terms.width:g}"
-        return MarginParts.from_row(_fresh_row(rows, what, day, self.max_age_days), what)
+        return MarginParts.from_row(_fresh_row(rows, what, day, self.age), what)
 
     def margin(self, terms: TradeTerms, day: date) -> float:
         """Initial margin of a trade in rupees: the per-lot margin C2 counts x lots."""
@@ -164,8 +165,8 @@ class MultiplierMargin(StressedMargin):
 class ScenarioLookupMargin(StressedMargin):
     method = STRESSED_MARGIN_SCENARIO_LOOKUP
 
-    def __init__(self, settings: StressedMarginSettings, scenarios: Sequence[str], max_age_days: int):
-        self.settings, self.scenarios, self.max_age_days = settings, tuple(scenarios), max_age_days
+    def __init__(self, settings: StressedMarginSettings, scenarios: Sequence[str], age: MarginAge):
+        self.settings, self.scenarios, self.age = settings, tuple(scenarios), age
 
     def margin(self, terms: TradeTerms, day: date) -> float:
         if self.settings.scenario_file is None:
@@ -181,7 +182,7 @@ class ScenarioLookupMargin(StressedMargin):
 
     def _scenario_margin(self, rows: list[dict[str, str]], terms: TradeTerms, name: str, day: date) -> float:
         what = f"{terms.structure} {name}"
-        row = _fresh_row([r for r in rows if r["scenario"] == name], what, day, self.max_age_days)
+        row = _fresh_row([r for r in rows if r["scenario"] == name], what, day, self.age)
         return _positive(float(row["margin_per_lot_rs"]), what)
 
     def record(self) -> dict[str, str]:

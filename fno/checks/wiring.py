@@ -64,10 +64,12 @@ def validity_modes() -> dict[str, ValidityMode]:
 
 def build_validity_checker(cfg: dict, root: Path, quotes, nse_library, accounts=None, margins=None) -> ValidityChecker:
     """C4's checker: the A4 quote store, NSE's F&O files (A2's library), the books' ledgers and A14's margins file;
-    charges and limits read straight from config.yaml, never through C2 or B2."""
+    charges and the books' risk profile read straight from config.yaml, never through C2 or B2."""
+    from ..constants import RISK_PROFILE_BOOKS
     from ..quotes.recorder import DATASET
+    from ..storage.wiring import build_session_calendar
 
-    limits = limits_from_config(cfg, root)
+    limits = limits_from_config(cfg, root, RISK_PROFILE_BOOKS, build_session_calendar().previous_session)
     sources = Sources(EvidenceReader(quotes, DATASET), NseListing(nse_library), accounts or LedgerAccounts(root))
     checks = LimitChecks(limits, cfg["charges"], margins or MarginFile(limits.margins.file))
     return ValidityChecker(sources, checks, validity_modes())

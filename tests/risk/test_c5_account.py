@@ -1,5 +1,6 @@
-"""Story C5 criteria 8-12: the settings are the owner's and checked at start-up, the Rs 1.2 lakh brake lifts only by a
-written owner record, the daily stress line, the day each trade opened, and no Rs 5 lakh setting used silently."""
+"""Story C5: the books' and the Manual account's profiles are the owner's and checked at start-up, the Rs 1.2 lakh brake
+lifts only by a written owner record, the daily stress line, the day each trade opened, and no Rs 5 lakh setting used
+silently for the books."""
 
 import copy
 import inspect
@@ -14,19 +15,19 @@ from fno.books.account import AccountWriter
 from fno.books.fills import Fill
 from fno.composition import open_account_writer
 from fno.config import ROOT, load_app_config
-from fno.constants import BOOK1_RULES, BOOKS, SIDE_BUY, SIDE_SELL
+from fno.constants import BOOK1_RULES, BOOKS, RISK_PROFILE_BOOKS, RISK_PROFILE_MANUAL, SIDE_BUY, SIDE_SELL
 from fno.models import IST
 from fno.playbook.book_effects import book_after_entry
 from fno.playbook.decision_codec import book_from_json, book_to_json
 from fno.risk.book_view import load_risk_book
-from fno.risk.cap_settings import cap_settings
 from fno.risk.drawdown import DrawdownBrake
 from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.overrides import OVERRIDE_COLUMNS, overrides_file
-from fno.risk.settings import RiskSettingsError, risk_settings
+from fno.risk.profile_settings import RULE_SETTINGS, profile_settings
+from fno.risk.settings import ExposureSettings, RiskSettingsError
 from fno.risk.trade_costs import SimulatorTradeCosts
-from fno.risk.wiring import build_risk_manager, build_stress_line
+from fno.risk.wiring import RULES, build_risk_manager, build_stress_line
 
 from .builders import CHARGES, DAY, FLY, LOT, START, book, contract, market, open_trade, proposal, short_fly
 
@@ -36,32 +37,71 @@ PRICES = {(25000, "CE"): 150.0, (25000, "PE"): 140.0, (25200, "CE"): 70.0, (2480
 NEW = proposal("new", FLY, 200, short_fly(25000, 200), EXPIRY)
 
 
-def test_the_repository_holds_the_owners_numbers_and_no_rs_5_lakh_account_or_brake():
-    caps, risk = cap_settings(CONFIG), risk_settings(CONFIG, ROOT)
-    assert (caps.paper_account_rs, risk.max_loss_per_trade_rs, risk.drawdown_brake_rs) == (2_000_000, 10_000, 120_000)
-    assert (caps.bucket_cap_rs, caps.open_risk_cap_rs, caps.new_risk_per_day_rs) == (30_000, 150_000, 50_000)
+def _profile(name: str = RISK_PROFILE_BOOKS, cfg=CONFIG):
+    return profile_settings(cfg, name)
 
 
-@pytest.mark.parametrize(
-    "path",
-    [
-        ("risk", "paper_account_rs"),
-        ("risk", "caps"),
-        ("risk", "caps", "bucket_cap_rs"),
-        ("risk", "caps", "open_risk_cap_rs"),
-        ("risk", "caps", "new_risk_per_day_rs"),
-        ("risk", "caps", "bucket_sides"),
-        ("risk", "stress_line"),
-    ],
-)
-def test_a_missing_c5_setting_is_an_error_never_a_default(path):
+def test_the_books_hold_the_owners_numbers_and_only_the_new_rules():
+    books = _profile()
+    assert (books.paper_account_rs, books.max_loss_per_trade_rs, books.drawdown_brake_rs) == (
+        2_000_000,
+        10_000,
+        120_000,
+    )
+    assert (books.bucket_cap_rs, books.open_risk_cap_rs, books.new_risk_per_day_rs) == (30_000, 150_000, 50_000)
+    assert books.rules == (
+        "paper_account", "max_loss_per_trade", "bucket_cap", "open_risk_cap", "new_risk_per_day", "drawdown_brake",
+        "margin_room",
+    )  # fmt: skip
+    assert (books.max_open_trades, books.max_stress_loss_rs, books.exposure) == (None, None, None)  # "1 A", "2 A"
+    assert (books.margin_age_sessions, books.margin_age_days) == (1, None)  # design 6.1a
+
+
+def test_the_manual_account_keeps_its_13_oct_limits_unchanged():
+    """DESK_DECISIONS row of 13 Oct 2026, unchanged on 15 Oct: Rs 5 lakh, Rs 10,000 a trade, 3 open trades, Rs 30,000
+    brake, C2's stress and exposure limits, margins up to 7 days old; no C5 cap."""
+    manual = _profile(RISK_PROFILE_MANUAL)
+    assert (manual.paper_account_rs, manual.max_loss_per_trade_rs, manual.max_open_trades) == (500_000, 10_000, 3)
+    assert (manual.drawdown_brake_rs, manual.max_stress_loss_rs) == (30_000, 30_000)
+    assert manual.exposure == ExposureSettings(2, 15_000, 5, 15_000)
+    assert (manual.margin_age_days, manual.margin_age_sessions, manual.bucket_sides) == (7, None, None)
+    assert manual.rules == (
+        "paper_account", "max_loss_per_trade", "max_open_trades", "drawdown_brake", "stress_loss", "exposure_limit",
+        "margin_room",
+    )  # fmt: skip
+    rules = [r.name for r in build_risk_manager(CONFIG, ROOT, RISK_PROFILE_MANUAL).rules]
+    assert rules == [
+        "paper_account", "max_loss_per_trade", "max_open_trades", "drawdown_brake", "stress_loss", "exposure_limit",
+        "margin_room",
+    ]  # fmt: skip
+
+
+def _without(path: tuple[str, ...]):
     cfg = copy.deepcopy(CONFIG)
-    block = cfg
+    block = cfg["risk"]["profiles"]["books"]
     for key in path[:-1]:
         block = block[key]
     del block[path[-1]]
-    with pytest.raises(RiskSettingsError, match=path[-1]):
-        cap_settings(cfg)
+    return cfg
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["rules", "paper_account_rs", "bucket_cap_rs", "open_risk_cap_rs", "new_risk_per_day_rs", "bucket_sides",
+     "drawdown_brake_rs", "max_loss_per_trade_rs"],
+)  # fmt: skip
+def test_a_missing_books_setting_is_an_error_never_a_default(key):
+    with pytest.raises(RiskSettingsError, match=key):
+        _profile(cfg=_without((key,)))
+
+
+def test_both_or_no_margin_age_is_an_error():
+    with pytest.raises(RiskSettingsError, match="exactly one"):
+        _profile(cfg=_without(("margin_max_age_sessions",)))
+    cfg = copy.deepcopy(CONFIG)
+    cfg["risk"]["profiles"]["books"]["margin_max_age_days"] = 7
+    with pytest.raises(RiskSettingsError, match="exactly one"):
+        _profile(cfg=cfg)
 
 
 @pytest.mark.parametrize(
@@ -70,13 +110,20 @@ def test_a_missing_c5_setting_is_an_error_never_a_default(path):
         ("bucket_sides", {"SF": "sideways"}, "sides must be one of"),
         ("bucket_cap_rs", 0, "positive"),
         ("open_risk_cap_rs", 2_000_001, "larger than the paper account"),
+        ("max_open_trades", 3, "belong to no rule"),  # a setting without its rule is never silently ignored
+        ("rules", ["paper_account", "max_loss_per_trade", "drawdown_brake"], "missing \\['margin_room'\\]"),
+        ("rules", ["paper_account", "max_loss_per_trade", "drawdown_brake", "margin_room", "guess"], "unknown"),
     ],
 )
-def test_a_malformed_c5_setting_is_an_error(key, value, problem):
+def test_a_malformed_books_setting_is_an_error(key, value, problem):
     cfg = copy.deepcopy(CONFIG)
-    cfg["risk"]["caps"][key] = value
+    cfg["risk"]["profiles"]["books"][key] = value
     with pytest.raises(RiskSettingsError, match=problem):
-        cap_settings(cfg)
+        _profile(cfg=cfg)
+
+
+def test_every_rule_name_a_profile_may_list_is_built_by_the_composition_root():
+    assert set(RULE_SETTINGS) == set(RULES)
 
 
 def test_no_rs_5_lakh_account_size_or_old_brake_is_left_in_the_code():
@@ -94,15 +141,6 @@ def test_no_rs_5_lakh_account_size_or_old_brake_is_left_in_the_code():
     assert hits == []
 
 
-def test_the_rs_5_lakh_limits_not_rescaled_are_marked_in_the_settings_never_silent():
-    """max_open_trades, max_stress_loss_rs and the exposure limits have no Rs 20 lakh value from the owner yet: the
-    settings file says so next to them (response 105, question 1)."""
-    text = (ROOT / "config.yaml").read_text(encoding="utf-8")
-    for key in ("max_open_trades:", "max_stress_loss_rs:", "exposure:"):
-        before = text[: text.index("\n", text.index(key))].splitlines()[-5:]
-        assert any("NOT rescaled" in line for line in before), key
-
-
 def test_the_repository_books_opened_on_rs_5_lakh_are_refused_by_the_wired_manager(tmp_path):
     margins = tmp_path / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-12\n")
@@ -117,7 +155,7 @@ def test_the_repository_books_opened_on_rs_5_lakh_are_refused_by_the_wired_manag
 @pytest.mark.parametrize(("closed_now", "ok"), [(1_880_000.01, True), (1_880_000.0, False), (1_879_999.99, False)])
 def test_the_rs_120000_brake_at_just_under_and_just_over(closed_now, ok):
     series = ((DAY - timedelta(days=30), START), (DAY - timedelta(days=1), closed_now))
-    verdict = DrawdownBrake(risk_settings(CONFIG, ROOT).drawdown_brake_rs).check(NEW, book(closed=series), None)
+    verdict = DrawdownBrake(_profile().drawdown_brake_rs).check(NEW, book(closed=series), None)
     assert verdict.ok is ok and verdict.numbers["brake_rs"] == 120_000
 
 

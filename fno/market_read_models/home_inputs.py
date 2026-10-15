@@ -33,7 +33,7 @@ class HomeInputs:
     books: list[BookFigures]
     approved: list[str]  # the policies the latest frozen experiment passed
     approval_note: str
-    limit_max: float  # C2's max_stress_loss_rs
+    limit_max: float  # the books' open-risk cap (story C5; C2's stress limit before the owner's 15 Oct decision)
 
 
 class BooksReader:

@@ -7,6 +7,8 @@ import csv
 import pytest
 
 from fno.config import ALLOWED_APP_KEYS, ROOT, load_app_config
+from fno.constants import RISK_PROFILE_MANUAL
+from fno.risk.profile_settings import profile_settings
 from fno.risk.settings import RiskSettingsError, risk_settings
 
 CONFIG = load_app_config()
@@ -25,16 +27,21 @@ def _with(path: tuple[str, ...], value):
     return cfg
 
 
+def _manual(cfg):
+    return profile_settings(cfg, RISK_PROFILE_MANUAL)
+
+
 def test_risk_is_an_allowed_key_and_the_repository_settings_hold_the_owners_limits():
+    """C2's original limits now live in the Manual profile, unchanged (the books' are story C5's)."""
     assert "risk" in ALLOWED_APP_KEYS
-    s = risk_settings(CONFIG, ROOT)
-    assert (s.max_loss_per_trade_rs, s.max_open_trades, s.drawdown_brake_rs, s.max_stress_loss_rs) == (
+    s, m = risk_settings(CONFIG, ROOT), _manual(CONFIG)
+    assert (m.max_loss_per_trade_rs, m.max_open_trades, m.drawdown_brake_rs, m.max_stress_loss_rs) == (
         10000,
         3,
-        120000,  # the owner's brake on the Rs 20 lakh account, 15 Oct 2026 (story C5)
+        30000,
         30000,
     )
-    assert s.margins_file == ROOT / "research" / "data" / "margins" / "margins.csv" and s.margin_max_age_days == 7
+    assert s.margins_file == ROOT / "research" / "data" / "margins" / "margins.csv" and m.margin_age_days == 7
     assert s.stressed_margin.method == "multiplier" and s.stressed_margin.max_age_days == 30
 
 
@@ -49,36 +56,54 @@ def test_the_design_scenarios_are_all_configured():
     "path",
     [
         ("risk",),
-        ("risk", "max_loss_per_trade_rs"),
-        ("risk", "max_open_trades"),
-        ("risk", "drawdown_brake_rs"),
-        ("risk", "max_stress_loss_rs"),
         ("risk", "scenarios"),
-        ("risk", "exposure"),
+        ("risk", "stress_line"),
         ("risk", "margins"),
         ("risk", "stressed_margin"),
-        ("risk", "exposure", "max_move_loss_rs"),
-        ("risk", "margins", "max_age_days"),
     ],
 )
-def test_a_missing_setting_is_an_error_never_a_default(path):
+def test_a_missing_shared_setting_is_an_error_never_a_default(path):
     with pytest.raises(RiskSettingsError, match=path[-1]):
         risk_settings(_with(path, None), ROOT)
 
 
 @pytest.mark.parametrize(
+    "key",
+    ["max_loss_per_trade_rs", "max_open_trades", "drawdown_brake_rs", "max_stress_loss_rs", "exposure"],
+)
+def test_a_missing_manual_setting_is_an_error_never_a_default(key):
+    with pytest.raises(RiskSettingsError, match=key):
+        _manual(_with(("risk", "profiles", "manual", key), None))
+
+
+def test_a_missing_nested_exposure_limit_is_an_error():
+    with pytest.raises(RiskSettingsError, match="max_move_loss_rs"):
+        _manual(_with(("risk", "profiles", "manual", "exposure", "max_move_loss_rs"), None))
+
+
+@pytest.mark.parametrize(
     ("path", "value"),
     [
-        (("risk", "max_open_trades"), 2.5),
-        (("risk", "max_loss_per_trade_rs"), -1),
-        (("risk", "drawdown_brake_rs"), "x"),
+        (("risk", "profiles", "manual", "max_open_trades"), 2.5),
+        (("risk", "profiles", "manual", "max_loss_per_trade_rs"), -1),
+        (("risk", "profiles", "manual", "drawdown_brake_rs"), "x"),
+        (("risk", "profiles", "manual", "max_open_trades"), True),
+    ],
+)
+def test_an_unusable_profile_setting_is_an_error(path, value):
+    with pytest.raises(RiskSettingsError):
+        _manual(_with(path, value))
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
         (("risk", "stressed_margin", "method"), "guess"),
         (("risk", "stressed_margin", "multiplier"), 0.9),
         (("risk", "scenarios"), []),
-        (("risk", "max_open_trades"), True),
     ],
 )
-def test_an_unusable_setting_is_an_error(path, value):
+def test_an_unusable_shared_setting_is_an_error(path, value):
     with pytest.raises(RiskSettingsError):
         risk_settings(_with(path, value), ROOT)
 

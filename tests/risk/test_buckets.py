@@ -6,18 +6,25 @@ from datetime import timedelta
 import pytest
 
 from fno.config import load_app_config
-from fno.constants import BUCKET_LONG_VOL, BUCKET_SHORT_VOL, OPTION_CALL, OPTION_PUT, STRUCTURE_LONG_IRON_FLY
+from fno.constants import (
+    BUCKET_LONG_VOL,
+    BUCKET_SHORT_VOL,
+    OPTION_CALL,
+    OPTION_PUT,
+    RISK_PROFILE_BOOKS,
+    STRUCTURE_LONG_IRON_FLY,
+)
 from fno.research_engine.structures import BOUGHT, SOLD
 from fno.risk.buckets import Bucket, StructureBuckets, underlying_of
-from fno.risk.cap_settings import cap_settings
 from fno.risk.inputs import RiskInputError
 from fno.risk.open_risk import HeldMaxLoss
+from fno.risk.profile_settings import profile_settings
 from fno.risk.trade_costs import SimulatorTradeCosts
 from fno.risk.wiring import build_risk_manager
 
 from .builders import CHARGES, CONDOR, DAY, FLY, book, market, open_trade, proposal, short_condor, short_fly
 
-SIDES = cap_settings(load_app_config()).bucket_sides
+SIDES = profile_settings(load_app_config(), RISK_PROFILE_BOOKS).bucket_sides
 BUCKETS = StructureBuckets(SIDES)
 EXPIRY = DAY + timedelta(days=14)
 PRICES = {
@@ -67,7 +74,7 @@ def test_an_unmapped_position_is_an_input_error(structure, contracts, problem):
 
 def test_the_risk_manager_refuses_an_unmapped_proposal_with_the_reason(tmp_path):
     cfg = load_app_config()
-    cfg["risk"]["caps"]["bucket_sides"] = {CONDOR: BUCKET_SHORT_VOL}  # SF not mapped
+    cfg["risk"]["profiles"]["books"]["bucket_sides"] = {CONDOR: BUCKET_SHORT_VOL}  # SF not mapped
     decision = build_risk_manager(cfg, tmp_path).evaluate(
         proposal("new", FLY, 200, short_fly(25000, 200), EXPIRY), book(), market(25000, PRICES, EXPIRY)
     )

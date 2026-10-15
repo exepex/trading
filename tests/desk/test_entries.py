@@ -183,7 +183,7 @@ def test_the_risk_manager_s_refusal_for_stale_margins_fills_nothing(root, store,
     result = enter(root, snapshots, entry_desk, fly_order(risk=decision))
     assert (result.outcome == OUTCOME_OPENED) == opens
     if not opens:
-        assert result.reason.startswith("risk manager refused") and "older than 7 days" in result.reason
+        assert result.reason.startswith("risk manager refused") and "older than 1 session(s)" in result.reason
         assert PaperAccount(root, BOOK1_RULES).fills() == []
 
 

@@ -132,6 +132,9 @@ BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH = (
 )  # fmt: skip
 BUCKET_SIDES = (BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH)
 BUCKET_INDEX_GROUPS = ("NIFTY", "BANKNIFTY")
+# Risk profiles (story C5, config.yaml risk.profiles): the three paper books on the Rs 20 lakh account, and the Manual
+# paper account on its 13 Oct 2026 limits (DESK_DECISIONS, 15 Oct 2026: "1 A", "2 A")
+RISK_PROFILE_BOOKS, RISK_PROFILE_MANUAL = "books", "manual"
 
 # Daily forecasts (epic G, research/forecasts/PROTOCOL.md): the five frozen questions and who answers them
 FORECAST_Q1_UP_20D = "q1_nifty_up_20d"  # P(NIFTY close in 20 trading days > today's close)

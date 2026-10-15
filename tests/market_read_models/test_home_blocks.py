@@ -52,10 +52,10 @@ def test_the_approvals_are_the_frozen_experiments_passing_policies():
     assert approvals.note().startswith("No F&O strategy has passed testing yet: Experiment 1 (the 2019-2023 challenge)")
 
 
-def test_the_live_wiring_reads_the_repositorys_books_and_c2s_limit(monkeypatch):
+def test_the_live_wiring_reads_the_repositorys_books_and_their_open_risk_cap(monkeypatch):
     monkeypatch.setattr(market_wiring, "build_versioned_reader", lambda: None)  # no Drive in tests
     home = market_wiring.build_session_rows_builder(load_app_config()).home.on(DAY)
-    assert home.limit_max == load_app_config()["risk"]["max_stress_loss_rs"] == 30000
+    assert home.limit_max == load_app_config()["risk"]["profiles"]["books"]["open_risk_cap_rs"] == 150000
     assert [b.name for b in home.books] == ["F&O Book 1", "F&O Book 2", "F&O Book 3"] and home.approved == []
     assert all(PaperAccount(ROOT, book).started for book in BOOKS)
 

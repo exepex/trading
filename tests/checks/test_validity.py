@@ -7,7 +7,6 @@ from datetime import datetime, time, timedelta
 import pytest
 
 from fno.checks.validity import HardValidityError, override
-from fno.checks.validity_limits import PRICED
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
 from fno.models import IST
 from fno.quotes.recorder import QuoteSnapshotRecorder
@@ -29,7 +28,7 @@ from tests.checks.validity_builders import (
     proposer_max_loss,
     snapshot_rows,
 )  # fmt: skip
-from tests.checks.validity_sources import fresh_account, held
+from tests.checks.validity_sources import PRICED, fresh_account, held
 
 
 @pytest.mark.parametrize("code", ["SF", "SC", "BF"])

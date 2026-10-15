@@ -56,14 +56,11 @@ class StressedMarginSettings:
 
 @dataclass(frozen=True)
 class RiskSettings:
-    max_loss_per_trade_rs: float
-    max_open_trades: int
-    drawdown_brake_rs: float
-    max_stress_loss_rs: float
-    scenarios: tuple[Scenario, ...]
-    exposure: ExposureSettings
+    """What every risk profile shares; each profile's limits are in `profile_settings.py` (story C5)."""
+
+    scenarios: tuple[Scenario, ...]  # C2's stress scenarios (the profiles that run `stress_loss`)
+    stress_line: tuple[Scenario, ...]  # design 6.2's daily stress line, a report (story C5)
     margins_file: Path
-    margin_max_age_days: int
     stressed_margin: StressedMarginSettings
 
 
@@ -80,7 +77,7 @@ def positive_setting(block: Mapping[str, Any], key: str, where: str = "") -> flo
     return float(value)
 
 
-def _count(block: Mapping[str, Any], key: str, where: str = "") -> int:
+def count_setting(block: Mapping[str, Any], key: str, where: str = "") -> int:
     value = positive_setting(block, key, where)
     if value != int(value):
         raise RiskSettingsError(f"config.yaml risk{where}: `{key}` must be a whole number, not {value!r}")
@@ -95,7 +92,7 @@ def _scenario(row: Mapping[str, Any]) -> Scenario:
         str(get_setting(row, "name", ".scenarios")),
         float(move),
         positive_setting(row, "iv_factor", ".scenarios"),
-        _count(row, "days", ".scenarios"),
+        count_setting(row, "days", ".scenarios"),
     )
 
 
@@ -111,14 +108,10 @@ def scenarios_at(block: Mapping[str, Any], key: str = "scenarios") -> tuple[Scen
     return scenarios
 
 
-def _exposure(block: Mapping[str, Any]) -> ExposureSettings:
-    exposure = get_setting(block, "exposure", "")
-    return ExposureSettings(
-        *(
-            positive_setting(exposure, k, ".exposure")
-            for k in ("nifty_move_pct", "max_move_loss_rs", "iv_rise_points", "max_iv_loss_rs")
-        )
-    )
+def exposure_at(block: Mapping[str, Any], where: str) -> ExposureSettings:
+    exposure, inner = get_setting(block, "exposure", where), f"{where}.exposure"
+    keys = ("nifty_move_pct", "max_move_loss_rs", "iv_rise_points", "max_iv_loss_rs")
+    return ExposureSettings(*(positive_setting(exposure, k, inner) for k in keys))
 
 
 def _optional_date(value: Any) -> date | None:
@@ -143,7 +136,7 @@ def _stressed_margin(block: Mapping[str, Any], root: Path) -> StressedMarginSett
         float(factor) if factor is not None else None,
         stressed.get("source") or None,
         _optional_date(stressed.get("as_of")),
-        _count(stressed, "max_age_days", ".stressed_margin"),
+        count_setting(stressed, "max_age_days", ".stressed_margin"),
         root / scenario_file if scenario_file else None,
     )
 
@@ -153,14 +146,9 @@ def risk_settings(config: Mapping[str, Any], root: Path) -> RiskSettings:
     block = get_setting(config, "risk", "")
     margins = get_setting(block, "margins", "")
     settings = RiskSettings(
-        positive_setting(block, "max_loss_per_trade_rs"),
-        _count(block, "max_open_trades"),
-        positive_setting(block, "drawdown_brake_rs"),
-        positive_setting(block, "max_stress_loss_rs"),
         scenarios_at(block),
-        _exposure(block),
+        scenarios_at(block, "stress_line"),
         root / str(get_setting(margins, "file", ".margins")),
-        _count(margins, "max_age_days", ".margins"),
         _stressed_margin(block, root),
     )
     if settings.stressed_margin.method == STRESSED_MARGIN_MULTIPLIER and settings.stressed_margin.scenario_file:

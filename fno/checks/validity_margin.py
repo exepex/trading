@@ -71,7 +71,7 @@ def stressed_per_lot(rows, terms: tuple[str, float, int], day: date, settings: M
     if not usable:
         raise MarginProblem(f"no margin row for {structure} {width:g} on or before {day}")
     row = max(usable, key=lambda r: r["as_of"])
-    if (day - date.fromisoformat(row["as_of"])).days > settings.max_age_days:
+    if not settings.fresh(date.fromisoformat(row["as_of"]), day):
         raise MarginProblem(f"margin for {structure} {width:g} is from {row['as_of']}, too old on {day}")
     scan, nov, exposure = (float(row[k]) for k in ("scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs"))
     per_lot = max(0.0, multiplier(settings, day) * scan - nov) + min(0.0, nov) + exposure

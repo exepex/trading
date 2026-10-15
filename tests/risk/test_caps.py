@@ -7,16 +7,16 @@ from datetime import timedelta
 import pytest
 
 from fno.config import load_app_config
-from fno.constants import BUCKET_LONG_VOL, BUCKET_SHORT_VOL
+from fno.constants import BUCKET_LONG_VOL, BUCKET_SHORT_VOL, RISK_PROFILE_BOOKS
 from fno.risk.buckets import Bucket
-from fno.risk.cap_settings import cap_settings
 from fno.risk.caps import BucketCap, NewRiskPerDay, OpenRiskCap, PaperAccountSize
 from fno.risk.manager import RiskManager
 from fno.risk.open_risk import PositionRisk
+from fno.risk.profile_settings import profile_settings
 
 from .builders import DAY, FLY, START, book, market, open_trade, proposal, short_fly
 
-CAPS = cap_settings(load_app_config())
+CAPS = profile_settings(load_app_config(), RISK_PROFILE_BOOKS)
 EXPIRY = DAY + timedelta(days=14)
 SHORT_VOL, LONG_VOL = Bucket("NIFTY", BUCKET_SHORT_VOL), Bucket("NIFTY", BUCKET_LONG_VOL)
 OWN = PositionRisk("new", SHORT_VOL, 10_000.0, DAY, True)

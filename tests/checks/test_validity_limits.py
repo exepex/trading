@@ -7,7 +7,6 @@ from datetime import date
 import pytest
 
 from fno.checks.validity_account import AccountProblem
-from fno.checks.validity_limits import PRICED
 from fno.checks.validity_money import entry_cash_flow
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from tests.checks.builders import committed_record
@@ -24,6 +23,7 @@ from tests.checks.validity_builders import (
 from tests.checks.validity_sources import (
     FILE_DAY,
     MARGIN_ROWS,
+    PRICED,
     Margins,
     NseFiles,
     fresh_account,

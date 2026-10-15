@@ -114,11 +114,12 @@ def open_account_writer(book: str, root: Path = ROOT, lease_seconds: float = DEF
 
 
 def paper_account_rs() -> float:
-    """Story C5: the owner's paper account size, `config.yaml` `risk.paper_account_rs` (checked by C2's settings)."""
+    """Story C5: the books' paper account size, `config.yaml` `risk.profiles.books.paper_account_rs`."""
     from .config import load_app_config
-    from .risk.cap_settings import cap_settings
+    from .constants import RISK_PROFILE_BOOKS
+    from .risk.profile_settings import profile_settings
 
-    return cap_settings(load_app_config()).paper_account_rs
+    return profile_settings(load_app_config(), RISK_PROFILE_BOOKS).paper_account_rs
 
 
 def build_paper_account(book: str, root: Path = ROOT) -> PaperAccount:

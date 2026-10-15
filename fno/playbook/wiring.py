@@ -52,11 +52,12 @@ def build_playbook_loader(root: Path = ROOT, reports: LiveReports | None = None)
 
 
 def _risk_cap(root: Path) -> float:
-    """C2's per-trade maximum loss from config.yaml `risk` (the one place the owner's limit is set)."""
+    """The books' per-trade maximum loss from config.yaml `risk` (the one place the owner's limit is set)."""
     from ..config import load_app_config
-    from ..risk.settings import risk_settings
+    from ..constants import RISK_PROFILE_BOOKS
+    from ..risk.profile_settings import profile_settings
 
-    return risk_settings(load_app_config(), root).max_loss_per_trade_rs
+    return profile_settings(load_app_config(), RISK_PROFILE_BOOKS).max_loss_per_trade_rs
 
 
 def build_status_changer(root: Path = ROOT, reports: LiveReports | None = None) -> StatusChanger:
@@ -76,13 +77,13 @@ def build_rule_evaluator(cfg: dict, root: Path = ROOT) -> RuleEvaluator:
     and the risk manager with every owner limit (C2), all from config.yaml."""
     from ..books.paths import book_folder
     from ..composition import build_session_calendar, build_structures
-    from ..constants import BOOKS, NIFTY_SYMBOL
+    from ..constants import BOOKS, NIFTY_SYMBOL, RISK_PROFILE_BOOKS
     from ..research_engine.cycles import TradingDays
-    from ..risk.settings import risk_settings
+    from ..risk.profile_settings import profile_settings
     from ..risk.trade_costs import SimulatorTradeCosts
     from ..risk.wiring import build_risk_manager
 
-    costs, cap = SimulatorTradeCosts(cfg["charges"]), risk_settings(cfg, root).max_loss_per_trade_rs
+    costs, cap = SimulatorTradeCosts(cfg["charges"]), profile_settings(cfg, RISK_PROFILE_BOOKS).max_loss_per_trade_rs
     structures = {structure.code: structure for structure in build_structures()}
     builder = CandidateBuilder(structures, costs, cap, cfg["lot_sizes"][NIFTY_SYMBOL])
     finder = OpportunityFinder(TradingDays(build_session_calendar()))
