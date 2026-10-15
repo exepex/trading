@@ -143,8 +143,9 @@ commit with `--no-verify`.
   Groww source behind a read-only allow-list, Drive store, clock check, story A16),
   `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
   A16b), `fno/health/wiring.py` (the daily health check: repository evidence, GitHub push receipts, calendar,
-  run record, story O8) and `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
-  its AI routine and the devil's advocate port, story LR1).
+  run record, story O8), `fno/learning/wiring.py` (the weekly post-mortem: committed scores, weather, data health,
+  its AI routine and the devil's advocate port, story LR1), `fno/role_value/wiring.py` (the role-value evaluation:
+  paired rows, role sets, S3's standard unit, F8's allocation, S1's review dates, C4's log, story F9a).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.

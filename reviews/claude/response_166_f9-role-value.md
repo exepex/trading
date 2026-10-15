@@ -122,3 +122,50 @@ It is a Known limit now, and I am telling S1's text owner.
   paired differences and the mean one-lot maximum-loss difference (scoreboard A's maximum loss, from S3's code); neither
   ever decides. A "drop proposed" is a proposal the owner can overrule. New criterion 12.
 - **10:** `wiring.py` is hashed.
+
+## Code round (on S3's branch, orchestrator's go of 15 Oct 2026; text PASS judge 172 add. 1 at 36f6b0fa)
+
+Files: `fno/role_value/` (`role_set.py`, `role_set_file.py`, `rows.py`, `checks.py`, `records.py`, `valuation.py`,
+`cost.py`, `score.py`, `verdict.py`, `controls.py`, `report.py`, `render.py`, `wiring.py`, `cli.py`),
+`fno/evaluation/review_dates.py`, one parser line in `fno/cli.py`, the composition-root line in `CLAUDE.md`, and
+`tests/role_value/` (39 tests). Every file is under 120 lines.
+
+| Criterion | Where | Test | Evidence |
+|---|---|---|---|
+| 1 hashes, run-log snapshot, rotation | `checks.py` | `test_checks.py` (wrong unit, packs, snapshots, equal but wrong snapshot, a no-trade or unavailable day advances) | strong (tests) |
+| 2 bundles | `role_set.py`, `checks.py` | a bundled role refused alone; no unit row for it | strong |
+| 3 known answer | `score.py`, `report.py` | `test_score_and_verdict.py` (30 opportunities by hand), `test_report.py` (one pair: 1,460 - 1,000 = 460) | strong |
+| 4 review gate, review_dates | `verdict.py`, `review_dates.py` | not a review, the day before, 29 and 30; a June month-end holiday | strong |
+| 5 unknown cost, split sums | `cost.py` | `test_cost.py` (by hand), `test_report.py` (no plan cost) | strong |
+| 6 control roles | `controls.py` | `test_report.py` (2 caught, 1 prevented, no profit figure) | strong |
+| 7 Holm, S3's | `verdict.py` | 6 claims by hand; `verdict.holm is uncertainty.holm` | strong |
+| 8 standard unit | `valuation.py` | identity of the imports; a spy shows one `value` call per take; open pair waits | strong |
+| 9 no-trade = 0 and a change | `valuation.py` | trade vs no-trade both ways (+1,460 and -1,460) | strong |
+| 10 excluded rows | `report.py` | `shadow_unavailable` and an unconsulted card counted apart | strong |
+| 11 figures vs S1's text | `test_protocol_figures.py` | 30, 20, 10,000, 20261014 read from S1 today | strong, **partial**: see deviation 5 |
+| 12 risk shown, never deciding | `score.py`, `render.py` | changing only the max-loss figures leaves p-values and verdicts equal | strong |
+
+**Deviations from the text, each for the judge to check:**
+1. **`consulted_units` (a `;` list) replaces the `consulted` column.** The passed text's own split ("equally across
+   the units consulted that day") needs every consulted unit, not only whether the ablated one was consulted.
+   `consulted` is now derived (the ablated unit is in the list). The text's column list was the error.
+2. **A pair is "not scored" and listed when an opportunity is not observed** (no record, another common pack, a risk
+   input not usable, a refused paper account), or when a maximum loss cannot be computed. These are S3's reasons.
+   The text did not name them.
+3. **Hashes are checked on scored rows only.** A `shadow_unavailable` or `unscored` row has no shadow pack or snapshot.
+4. **The real decision must be the day's run collected on time** (S3's `CommittedRuns`, E3's late rule). Otherwise the
+   pair is not scored, with "real decision not found".
+5. **Criterion 11 is partial until S1's pending edit 3 lands.** S1's text has no wording yet for the percentiles or
+   the cost denominator. The percentile test checks 5 and 95 as soon as S1 states "Nth and Mth". Until then it
+   checks that the old "one-sided 95%" wording is still there. The cost denominator cannot be checked from the text
+   until S1 states it. Reasoning only: there is nothing yet to read.
+6. **"First full month"** is read as the month after the common start's month (S1's own example: 2 Dec 2026 gives a
+   June 2027 review). Some evidence (the example).
+7. **The role units file, `agents/role_units.yaml`**, maps book, then version, then unit id to its roles, with control
+   role ids refused (`role_set.py: CONTROL_ROLES`). F2 writes it with each version. It does not exist yet, which is
+   harmless while there are no rows.
+8. **Fewer than 20 applicable opportunities** give no interval and no p-value (S3's resampler needs one block). That
+   is always true below the 30-changed minimum.
+
+Not done here (as the text says): firing shadows (F9b); any change to S3's files; S1's text (pending edits with its
+owner). `fno/scoreboard/` is imported only, never edited.
