@@ -33,6 +33,7 @@ from .storage.fingerprints_cli import add_fingerprints_parser
 from .storage.librarian_cli import add_librarian_parser
 from .storage.revisions_cli import add_revisions_parser
 from .vix_history.cli import add_vix_history_parser
+from .weather.cli import add_weather_parser
 
 
 def _cfg(args) -> dict:
@@ -217,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     add_forecast_scores_parser(sub)
     add_vix_history_parser(sub)
     add_card_parser(sub)
+    add_weather_parser(sub)
     add_global_cues_parser(sub)
 
     args = p.parse_args(argv)
