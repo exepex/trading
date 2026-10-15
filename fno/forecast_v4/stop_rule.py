@@ -23,7 +23,7 @@ from ..constants import (
     V4_CLAIM,
 )
 from .family import MemberVerdict
-from .terms import USEFUL_TIME_YEARS
+from .terms import DESCRIPTIVE_ONLY, USEFUL_TIME_YEARS
 
 
 @dataclass(frozen=True)
@@ -38,9 +38,10 @@ class ShadowResult:
 
 
 def forecasting_test(members: Sequence[MemberVerdict], registered: Set[tuple[str, str]]) -> str:
-    """yes: a counted member claims (Holm and the minimum effect). no: every counted member is futile, a significant
-    but too-small one included. Else undecided, including when nothing is counted."""
-    counted = [m for m in members if (m.question, m.slot) in registered]
+    """yes: a counted member claims (calibrated rule and the minimum effect). no: every counted member is futile, a
+    significant but too-small one included. Else undecided, including when nothing is counted. Descriptive-only
+    members (V7) are never counted: they can neither claim nor block a "no"."""
+    counted = [m for m in members if (m.question, m.slot) in registered and m.question not in DESCRIPTIVE_ONLY]
     if any(m.verdict == V4_CLAIM for m in counted):
         return STOP_YES
     if counted and all(m.futile for m in counted):

@@ -249,3 +249,35 @@ Each item was checked before it was accepted.
 3. **A VIX null for V7 is still owed.** Item D keeps the note; V7 borrows V6b's banded thresholds until one is measured.
 4. **Tests.** `test_brier_bands.py` covers band coverage, the conditional quantile, every band within tolerance, and
    the committed table.
+
+## Revision 6: answer to ChatGPT review 101
+
+1. **Item 6, V7 borrowing V6b's calibration: ACCEPTED. The preferred remedy was tried; it fails; the alternative is
+   applied (strong evidence).**
+   - **The V7 null.** `tools/v4_vix_null.py` builds it from point-in-time India VIX, using the exposed 2019-26 regular
+     sessions (disclosed). A rival (the base rate conditioned on VIX against its 20-session mean) is compared with the
+     750-session base rate. It runs in both orientations, over the full period and inside the calmest and most
+     volatile 125- and 250-session stretches, with 200,000 series per null, at n = 125 and 250, at both looks.
+   - **Three rules measured (`v4_vix_null.md`):**
+     - R0, V6b's NIFTY 2%-day gate and bands, borrowed: claim size 0.5-14%, false futility 13-80%.
+     - R1, V7's own threshold with no gate: 5.8-20% and 30-65%.
+     - R2, V7's own thresholds per mean-VIX band: 1.2-25% and 13-75%.
+     - Nominal is 0.13-0.20% for claims and 2.5% for futility. **None holds.**
+   - **Why it fails.** R1 holds on the full period (0.11-0.12% and 2.4-2.5%) and fails only inside one regime. A calm
+     year gives false claims of 5.8-16.8%; a volatile half-year gives a false "no" up to 65%. V7's skill depends on the
+     regime, so a 6-12 month window cannot settle it.
+   - **Applied: V7 is descriptive-only in v4** (`terms.DESCRIPTIVE_ONLY`). Its three slots stay at p = 1: it never
+     claims and is never futile. It is not counted in Test A, so it can neither claim nor block a "no". The family
+     stays at 15. Tests are in `test_vix_null.py`.
+2. **A finding the review did not ask for, said plainly: the same regime test also breaks V6b.**
+   - Inside the busiest stretches by 2% days (the 2020 crash), V6b's banded thresholds claim falsely up to 44%
+     (n = 125) and 91% (n = 250).
+   - In the other orientation they say a false "no" up to 86% and 99.9% (`v4_brier_busy_stress.json`).
+   - The calm stress passed only because calm windows are not judgeable.
+   - I did not change V6b's rule unasked. It is protocol item E, for the judge, ChatGPT and the owner: accept with the
+     disclosure, exclude crash-dominated windows, or make V6b descriptive too. The last would leave **no claimable
+     member in v4**.
+3. **Protocol split.** `PROTOCOL_v4.md` was at 350 lines. The calibration detail moved to `PROTOCOL_v4_calibration.md`,
+   which is part of the protocol and frozen with it. References and tests are updated; the main file is now 325 lines.
+4. **Items 1-5, 7 and 8:** no change asked. The product warning in item 7 stands. The protocol already lists which
+   members are eligible and why (item D), and an unjudgeable member is never evidence of no skill.

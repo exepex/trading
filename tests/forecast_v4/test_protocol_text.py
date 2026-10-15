@@ -46,3 +46,12 @@ def test_the_disclosed_base_rates_are_in_the_text():
         "**331 of 2,405 = 13.76%**",
     ):
         assert figure in TEXT
+
+
+def test_the_calibration_part_is_referenced_draft_and_frozen_with_the_protocol():
+    calibration = (Path(__file__).resolve().parents[2] / "research/forecasts/PROTOCOL_v4_calibration.md").read_text(
+        encoding="utf-8"
+    )
+    assert "**DRAFT, not\nfrozen**" in calibration or "DRAFT, not frozen" in calibration.replace("\n", " ")
+    assert "`PROTOCOL_v4_calibration.md`" in TEXT and "PROTOCOL_v4_calibration.md` (part of this protocol" in TEXT
+    assert "V7 is descriptive-only" in TEXT and "## 3. V7's own VIX null" in calibration

@@ -58,6 +58,9 @@ FAMILY_QUESTIONS = (V1_RV_1S, V2_RV_5S, V6_BIG_MOVE_1S, V6_BIG_MOVE_5S, V7_VIX_U
 FAMILY = tuple((q, slot) for q in FAMILY_QUESTIONS for slot in V4_SLOTS)
 FAMILY_SIZE = len(FAMILY)
 REPORTED_ONLY = (V3_RV_20S, V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE)
+# Revision 6 (ChatGPT review 101): no measured rule holds V7's size across VIX regimes, so its three members keep their
+# slots at p = 1 (never a claim, never futile) and are left out of the stop rule's Test A (`v4_vix_null.md`).
+DESCRIPTIVE_ONLY = frozenset({V7_VIX_UP_5S})
 
 # At most two confirmatory looks; their family-wise rates add to 5% (Bonferroni over looks).
 LOOK_STOP_REVIEW, LOOK_SETTLE_DATE = "stop_rule_review", "projected_settle_date"

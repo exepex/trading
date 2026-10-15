@@ -184,58 +184,28 @@ missing; daily HAR never stands in again.
    starts uniformly from 0..n-L with replacement (`numpy.random.default_rng(SeedSequence(words))`, the words starting
    with the v4 seed 20261015; all starts in one draw of shape (B, ceil(n / L))), joined in draw order and cut to n.
    k is the member's place in the family (below); reported-only comparisons are numbered after 15.
-3. **Confirmatory claim rule, revision 2: rule E+D** (owner decision "3 B", 15 Oct 2026; judge 98 addendum 2;
-   `confirmatory.calibrated_p`, `tools/v4_claim_thresholds.py`). A member claims at a look only with **at least 12
-   whole batches** and a **batch-means t** p-value (the latest floor(n / L) batches of L, Student t with batches - 1
-   df) **at or below its worst-case calibrated threshold**. The threshold is computed at the look for the member's
-   actual n by the frozen tool: the smallest, over the member's null group, of the p-quantile at rate / 15 (taken at
-   its 95% lower confidence rank) from 100,000 seeded mean-zero series. Each group is Gaussian i.i.d., AR(1) 0.5 and
-   overlapping nulls plus an **empirical null from exposed 2024-26 NIFTY data** (circular 20-session blocks of centred
-   baseline-vs-baseline differences, right-skewed orientation). V1 and V2 use QLIKE nulls (trailing 5 vs 20 sessions),
-   V6a and V6b Brier nulls (EWMA-normal vs base rate), and V7 borrows V6b's (no VIX null measured, reasoning only).
-   **Why:** QLIKE differences on real data have a raw skew of -17 to +15 and a batch-mean skew of up to 7.5, against
-   2.8 for the lognormal case (some evidence: exposed data, a few baseline pairs). Rare crash days dominate the mean,
-   so most windows without one favour the forecaster that under-forecasts. On those nulls, revision 1's
-   max(batch t, studentized bootstrap) rejected **6-18% at Holm's first step 0.0013** at n = 125 for L = 5 and 10,
-   still 7.5-10% at n = 250. A divisor of 10 still gave 2-13%; Hall's skew correction did not help. The bootstrap's
-   1 / 10,001 resolution cannot reach the thresholds needed, so it is dropped from the rule. **Measured size of E+D**
-   (held-out seeds, 100,000 series): within nominal + 2 Monte Carlo SE in all 30 cells (5 questions, n = 2L, 125
-   and 250, both looks); fewer than 12 batches gives no claim at all. **What "held-out" proves:** fresh seeds
-   measure Monte Carlo error only, on the same 2024-26 days; they prove nothing about other periods. Tables:
-   `research/forecasts/v4_size_study.md` (every option) and `v4_claim_thresholds.md`.
-   **Brier members, revision 4 (judge 98 addendum 3; `tools/v4_brier_regimes.py`):** the 2024-26 Brier thresholds
-   broke on 2019-26 data, because a low-probability forecaster "wins" every calm day with a tiny SE. V6a, V6b and V7
-   are therefore calibrated on **every exposed regular session with a valid base rate (15 Jan 2019 to 14 Oct 2026)**.
-   A **calm stress** adds the calmest 125 and 250 sessions (13 Apr - 12 Oct 2021 and 6 Oct 2022 - 10 Oct 2023, no 2%
-   day in either). A Brier member is **judged (claim or futility) only when its scored window holds at least 5 2%
-   days** (`confirmatory.brier_judgeable`); otherwise it is not judgeable at that look (p = 1, open, never "no").
-   Without the gate V6b's claim size is up to 62-99%; with it every cell holds. Judgeable: 53% of 2019-26 windows at
-   n = 125, 90% at n = 250, none in the calm stretches. **Revision 5 (judge 98 addendum 4;
-   `tools/v4_brier_bands.py`, `confirmatory.event_band`):** one threshold per question over-rejected 2-4x in windows
-   with only 5-7 2% days, because the count is known before the verdict. So each band (5-7, 8-12, 13+ days) has its own
-   claim and futility thresholds, calibrated on nulls conditioned to that band (200,000 series). Every band holds:
-   claims and false futility, n = 125 and 250, both looks (held-out). Revision 1's calibration
-   (`v4_null_calibration.md`) is superseded (some evidence only below 0.01). The studentized bootstrap,
-   revision 0's centred bootstrap and a Newey-West HAC t are reported sensitivities, **never used to choose a
-   result**.
+3. **Confirmatory claim rule: E+D** (`confirmatory.calibrated_p`; revisions 2, 4, 5 and 6 of this draft). A member
+   claims at a look only with **at least 12 whole batches** and a **batch-means t** p-value (Student t, batches - 1
+   df) **at or below its worst-case calibrated threshold**, computed at the look for the member's n by the frozen
+   tools. The Brier members V6a and V6b also need **at least 5 2% days** in the scored window and use the thresholds
+   of that window's band (5-7, 8-12, 13+ days). **V7 is descriptive-only in v4** (revision 6: no measured rule holds
+   its size across VIX regimes; its slots stay at p = 1, never a claim, never futile, not counted in Test A). Every
+   threshold, the nulls behind
+   it, the measured sizes and what "held-out" proves are in **`PROTOCOL_v4_calibration.md` (part of this protocol,
+   frozen with it)**. The studentized bootstrap, revision 0's centred bootstrap and a Newey-West HAC t are reported
+   sensitivities, **never used to choose a result**.
 4. **Minimum effect, registered (owner's 3%, unit confirmed 15 Oct 2026):** on the gate set, the relative improvement
    `-mean(d) / mean(baseline loss)` must be **at least 0.03** for a point question, with the baseline's **textbook**
    QLIKE as the loss (so the gate reads "3% lower mean textbook QLIKE on the same RV > 0 dates"), and **at least 0.02**
    for a probability question with Brier (identical to a Brier skill score of 0.02). The primary test keeps every scored
    date, zeros included. These are forecast effects only, never evidence of money. Significant but smaller: "real but
    too small to use".
-5. **Futility, revision 3: rule F+D** (`confirmatory.futility_p`, `tools/v4_futility_study.py`; a false "no" gets the
-   false-"yes" standard). On the gate set, with e_t = d_t + margin x b_t, "improvement below the minimum effect" is
-   mean(e) > 0. A member is **futile at a look only with at least 12 batches and a batch-means t p-value for it at or
-   below its worst-case calibrated threshold**: the 2.5% quantile (at its 95% lower confidence rank) over both
-   orientations of the empirical null shifted to a true improvement exactly equal to the minimum effect, computed at
-   the look for the member's n. 2.5% per look (Bonferroni 2 x 2.5%); futile at look 1 is final. **Measured (held-out,
-   100,000 series; `v4_futility_study.md`):** F+D's false-futility rate is 0.0-2.6% in all 16 cells (V1, V2, V6a,
-   V6b; n = 125 and 250; both orientations; tolerance 2.60%). Revision 1's bootstrap bound (F0) said a false "no" in
-   **23-32%** of cases for V1 and V2 and 7-17% for V6a and V6b, against 2.5%: it is reported only. Strong evidence for
-   the measured nulls, some evidence for future data. V7 borrows V6b's threshold (reasoning only). The Brier members
-   use revision 4's gate and 2019-26 thresholds (5.3). Across members, "every member futile" is an
-   intersection-union claim (Berger 1982).
+5. **Futility: F+D** (`confirmatory.futility_p`; a false "no" gets the false-"yes" standard). With e_t = d_t +
+   margin x b_t, "improvement below the minimum effect" is mean(e) > 0. A member is **futile at a look only with at
+   least 12 batches and a batch-means t p-value for it at or below its calibrated threshold**: 2.5% per look
+   (Bonferroni 2 x 2.5%), on nulls shifted to a true improvement exactly equal to the minimum effect; futile at look 1
+   is final. The Brier and V7 gates and bands apply as in item 3. Measurements: `PROTOCOL_v4_calibration.md`. Across
+   members, "every member futile" is an intersection-union claim (Berger 1982).
 6. **The confirmatory family (15 members, fixed now).** Targets V1, V2, V6a, V6b, V7, each with three forecaster slots:
    `rules` (the registered code forecaster: G7's rule forecaster, or M1's weather model for V6), `hybrid` (Book 2) and
    `ai_team` (Book 3), numbered k = 1..15 in the order of `terms.FAMILY`. Each slot holds the first forecaster version
@@ -316,7 +286,8 @@ calibrated threshold replaces rate / 15 in this formula, which needs far more ou
 ## 10. The freeze (after the judge's PASS and ChatGPT's review only)
 
 `research/forecasts/FREEZE_v4.md` will name the commit that adds this text in its final form and list the SHA-256 of
-this file, every file of `fno/forecast_v4/`, `tests/fixtures/forecast_v4/v4_golden.json`, and every G7 and G8 file that
+this file and `PROTOCOL_v4_calibration.md`, every file of `fno/forecast_v4/`, the calibration tools
+(`tools/v4_*.py`) and their committed tables, `tests/fixtures/forecast_v4/v4_golden.json`, and every G7 and G8 file that
 decides a v4 baseline, outcome or score. As S1's option A, **v4 is frozen only once that code exists**, so no counted
 v4 forecast is made before its code is hashed. Recorded, not byte-checked (shared, changed by other stories, behaviour
 locked by these tests): `fno/constants.py`, `fno/desk/settlement.py`, `fno/research_data/calendar.py`,
@@ -324,7 +295,7 @@ locked by these tests): `fno/constants.py`, `fno/desk/settlement.py`, `fno/resea
 version, never an edit.
 
 **Preconditions of the freeze:** the judge's PASS; ChatGPT's review; G7 and G8's code exists; and the owner's written
-confirmation of section 11's items A-C (given, 15 Oct 2026) and of item D.
+confirmation of section 11's items A-C (given, 15 Oct 2026), D and E.
 
 ## 11. Points for the judge and ChatGPT (decided in this draft, open to challenge)
 
@@ -342,9 +313,13 @@ confirmation of section 11's items A-C (given, 15 Oct 2026) and of item D.
   / 316. Under E+D: V1 426 / 1,183 (about 1.7 / 4.7 years); V2 396 / 1,099 (about 8 / 22 years). Brier, by band
   (revision 5, at r = 3): V6a 221-631 at n = 125 and 586-1,047 at n = 250, with claim thresholds of 2.6e-14 to 2e-5
   (down to 1.4e-23 at n = 250, 5-7 days). **Such thresholds are effectively unreachable, so V6a, like V1 and V2,
-  will almost surely never be claimed.** V6b and V7: 149-206 (about 3-4 years), only in windows with 5 or more 2%
-  days. **Said plainly: only V6b and V7 can be claimed, slowly.** Other options: `v4_size_study.md`; futility as 5.5.
-  **Still owed: a VIX null for V7**; it borrows V6b's thresholds until one is measured.
+  will almost surely never be claimed.** V6b: 149-206 (about 3-4 years), only in windows with 5 or more 2%
+  days. **Said plainly: only V6b can be claimed, slowly, and see E.** V7 is descriptive-only (5.3; its own VIX null
+  is measured in `PROTOCOL_v4_calibration.md` section 3). Other options: `v4_size_study.md`; futility as 5.5.
+- **E. Regime dependence of V6b (revision 6, for the judge, ChatGPT and the owner):** V6b's banded thresholds hold on
+  2019-26 and in calm stretches, but inside the busiest stretch (the 2020 crash) they claim falsely up to 44% (n =
+  125) and 91% (n = 250) and say a false "no" up to 86-99.9% (calibration section 4). The rule is unchanged here;
+  whether a crash-only window should be judgeable (or V6b should also be descriptive) is the owner's decision.
 
 Also open to challenge: the family without V3-V5 (5.6), special sessions out (2), V2-V3 on `close_proxy` (1.1), the
 5% spread limit and parity forward (1.4), strict "inside" for V5 (1.5).

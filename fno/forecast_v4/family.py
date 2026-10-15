@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from ..constants import V4_CLAIM, V4_FUTILE, V4_OPEN, V4_TOO_SMALL
-from .terms import FAMILY, LOOK_ERROR_RATE
+from .terms import DESCRIPTIVE_ONLY, FAMILY, LOOK_ERROR_RATE
 
 NOT_JUDGED_P = 1.0
 
@@ -71,14 +71,15 @@ def bonferroni(p_values: Sequence[float], rate: float) -> list[bool]:
 
 
 def judge_family(look: str, decided_at: datetime, results: Mapping[tuple[str, str], MemberResult]) -> FamilyDecision:
-    """Every member of FAMILY is in the decision; a member missing from `results` is not judged (p = 1)."""
+    """Every member of FAMILY is in the decision; a member missing from `results`, or a descriptive-only one (V7), is
+    not judged (p = 1)."""
     if decided_at.tzinfo is None:
         raise ValueError("a decision timestamp needs its time zone")
     unknown = set(results) - set(FAMILY)
     if unknown:
         raise ValueError(f"not members of the registered family: {sorted(unknown)}")
     rate = LOOK_ERROR_RATE[look]
-    stats = [results.get(member) for member in FAMILY]
+    stats = [None if member[0] in DESCRIPTIVE_ONLY else results.get(member) for member in FAMILY]
     p_used = [s.p_value if s is not None and s.p_value is not None else NOT_JUDGED_P for s in stats]
     significant = bonferroni(p_used, rate)
     members = tuple(
