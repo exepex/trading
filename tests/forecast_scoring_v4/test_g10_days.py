@@ -136,3 +136,13 @@ def test_a_missing_or_unusable_level_is_not_computable_and_a_changed_copy_stops(
     (tmp_path / "drive" / "intraday" / "0.json.gz").write_bytes(b"changed")  # edited in place in Drive
     with pytest.raises(SnapshotChanged):
         A16CutoffMoves(ledger, store, MOVED_AFTER_CUTOFF_X).moved(DAY)
+
+
+class DriveDown(LocalFolderStore):
+    def get(self, path):
+        raise ConnectionError("Drive unreachable")
+
+
+def test_a_drive_read_error_is_not_computable_never_a_stopped_report(tmp_path):
+    ledger, _ = recorded(tmp_path, [snapshot(time(14, 30), 25000.0), snapshot(time(15, 15), 25010.0)])
+    assert A16CutoffMoves(ledger, DriveDown(tmp_path / "drive"), MOVED_AFTER_CUTOFF_X).moved(DAY) is None
