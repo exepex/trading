@@ -7,9 +7,10 @@ from datetime import date
 
 import pytest
 
+from fno.constants import V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from fno.forecast.iv30 import AtmIv30Feature, PanelAtmIv30
 from fno.forecast_scoring.v4.render import report_json
-from fno.forecast_scoring.v4.scoring import QUESTIONS
+from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_SCORED
 from fno.forecast_scoring.v4.wiring import build_scoring
 from fno.forecast_v4_rules.records import LIVE
 from fno.forecast_v4_rules.wiring import build_v4_forecasts
@@ -64,7 +65,8 @@ def test_the_patch_reaches_every_implied_vol_path(iv_raises):
 
 def test_g7_m1_and_g8_give_identical_outputs_when_implied_vol_raises(monkeypatch):
     plain = _outputs()
-    assert plain["g7"] and plain["weather"][1] and plain["g8"]["questions"]  # a real day, not an empty one
+    scored = {q["question"] for q in plain["g8"]["questions"] if q["status"] == STATUS_SCORED}
+    assert plain["g7"] and plain["weather"][1] and {V6_BIG_MOVE_1S, V6_BIG_MOVE_5S} <= scored  # a real, scored day
     with monkeypatch.context() as patched:
         _make_implied_vol_raise(patched)
         assert _outputs() == plain
