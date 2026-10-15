@@ -4,15 +4,18 @@ remembers when each path was committed, and a git view built from it, so E3's re
 from __future__ import annotations
 
 from datetime import date, datetime
+from pathlib import Path
 
-from fno.books.book1 import Book1, Book1Day, Book1Inputs
+from fno.books.book1 import PENDING_MARKER, Book1, Book1Day, Book1Inputs
+from fno.books.decided_runs import ON_DISK, ON_ORIGIN, DecidedRuns, FoundRun
 from fno.composition import build_session_calendar, build_structures
 from fno.constants import BOOK1_RULES
 from fno.desk.daily_ports import Committer
+from fno.desk.pending_commit import PendingCommitter
 from fno.playbook.allocation import Allocator
 from fno.playbook.candidates import CandidateBuilder
 from fno.playbook.decision_run import DecisionRun
-from fno.playbook.decision_store import DecisionStore
+from fno.playbook.decision_store import INPUTS_FILE, DecisionStore
 from fno.playbook.evaluate import RuleEvaluator
 from fno.playbook.opportunities import OpportunityFinder
 from fno.research_engine.cycles import TradingDays
@@ -54,8 +57,7 @@ class Commits(Committer):
     def added_in(self, path: str):
         """(commit, committer time) of the first commit holding `path` (a run's records.sha256)."""
         for commit, moment, paths, _ in self.made:
-            if any(path.startswith(f"journal/{BOOK1_RULES}/decisions/") and str(p).endswith(path.rsplit("/", 1)[0])
-                   for p in paths):  # fmt: skip
+            if path.startswith(f"journal/{BOOK1_RULES}/decisions/") and any(str(p).endswith(path) for p in paths):
                 return commit, moment.isoformat()
         return None
 
@@ -63,10 +65,44 @@ class Commits(Committer):
         return f"origin-{len(self.made)}"
 
 
-def book1(root, playbook, clock, inputs=None, validator=None) -> tuple[Book1, Commits]:
+class DiskRuns(DecidedRuns):
+    """Book 1's runs on disk, each "on origin" once `commits` has committed it (no git in these fixtures)."""
+
+    def __init__(self, root, commits: Commits):
+        self.store, self.commits = DecisionStore(root, BOOK1_RULES), commits
+
+    def find(self, day):
+        committed = {Path(p).parent.name for _, _, paths, _ in self.commits.made for p in paths}
+        return [FoundRun(run.name, ON_ORIGIN if run.name in committed else ON_DISK, (run / INPUTS_FILE).read_bytes())
+                for run in self.store.runs(day)]  # fmt: skip
+
+
+class Alerts:
+    def __init__(self):
+        self.sent = []
+
+    def send(self, text):
+        self.sent.append(text)
+        return "sent"
+
+
+def book1(root, playbook, clock, inputs=None, validator=None, alerts=None) -> tuple[Book1, Commits]:
     commits = Commits(clock)
     run = DecisionRun(priced_evaluator(), DecisionStore(root, BOOK1_RULES), validator)
-    return Book1(root, CALENDAR, lambda: playbook, inputs or FixedInputs(), run, commits), commits
+    committer = PendingCommitter(commits, root, PENDING_MARKER)
+    decider = Book1(root, CALENDAR, lambda: playbook, inputs or FixedInputs(), run, committer, DiskRuns(root, commits),
+                    alerts or Alerts())  # fmt: skip
+    return decider, commits
+
+
+def git_book1(root, playbook, run, alerts=None, inputs=None) -> Book1:
+    """Book 1 as the app wires it, on a real git checkout: E2b's committer with Book 1's marker, origin checked."""
+    from fno.books.decided_runs import GitDecidedRuns
+    from fno.desk.git_sync import Git, GitCommitter
+
+    committer = PendingCommitter(GitCommitter(Git(root)), root, PENDING_MARKER)
+    return Book1(root, CALENDAR, lambda: playbook, inputs or FixedInputs(), run, committer,
+                 GitDecidedRuns(Git(root), BOOK1_RULES), alerts or Alerts())  # fmt: skip
 
 
 def clock_at(moment: datetime):
