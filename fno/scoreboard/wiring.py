@@ -38,13 +38,13 @@ from .whole_system import WholeSystemBoard
 
 def board_from(
     root: Path, charges: dict, calendar: SessionCalendar, versions: Versions, marks: DayMarks,
-    protocol: ProtocolStatus,
+    protocol: ProtocolStatus, brake_rs: float | None = None,
 ) -> WholeSystemBoard:  # fmt: skip
     runs = CommittedRuns(root)
     return WholeSystemBoard(
         BOOKS, lambda book: DeskRecords(PaperAccount(root, book)),
         lambda: EntryDecisions(runs.runs(), runs.records, versions, RecordedOwnerOverride()), calendar.sessions, marks,
-        FileOperatingCosts(root), BookBoard(calendar.sessions, AiCostBeforeF8()), charges, protocol,
+        FileOperatingCosts(root), BookBoard(calendar.sessions, AiCostBeforeF8(), brake_rs), charges, protocol,
         lambda: input_hashes(root, BOOKS, runs.runs()), runs.uncollected,
     )  # fmt: skip
 
@@ -55,8 +55,9 @@ def build_whole_system_board(cfg: dict, root: Path = ROOT) -> WholeSystemBoard:
     from .protocol_status import protocol_status
 
     marks = SnapshotMarks(build_execution_snapshots(), CommittedRuns(root).snapshot_ids())
+    brake = cfg["risk"]["profiles"]["books"]["drawdown_brake_rs"]  # the books' brake (S6: drawdown as its share)
     return board_from(
-        root, cfg["charges"], build_session_calendar(), build_versions(root), marks, protocol_status(root)
+        root, cfg["charges"], build_session_calendar(), build_versions(root), marks, protocol_status(root), brake
     )
 
 

@@ -38,8 +38,8 @@ def full_months(first: date, last: date) -> int:
 
 
 class BookBoard:
-    def __init__(self, sessions: Sessions, ai: AiCostAllocation):
-        self.sessions, self.ai = sessions, ai
+    def __init__(self, sessions: Sessions, ai: AiCostAllocation, brake_rs: float | None = None):
+        self.sessions, self.ai, self.brake_rs = sessions, ai, brake_rs
 
     def build(self, inputs: BookInputs, common_start: date | None) -> dict:
         monthly = _monthly(inputs.operating_costs)
@@ -82,10 +82,10 @@ class BookBoard:
         positions = sum(t.completed and t.line is not None for t in trades)
         judged_by = uncertainty(series, positions, full_months(first, last)) if judged else None
         if ai_period is None:
-            board = section(trades, series, sum(costs.values()), 0.0, judged_by, first, last)
+            board = section(trades, series, sum(costs.values()), 0.0, judged_by, first, last, self.brake_rs)
             return board | {"ai_cost_allocated_rs": AI_AT_BOOK_LEVEL}
         ai = self.ai.allocated(inputs.book, *ai_period)
-        return section(trades, series, sum(costs.values()), ai, judged_by, first, last)
+        return section(trades, series, sum(costs.values()), ai, judged_by, first, last, self.brake_rs)
 
 
 def _monthly(rows: Sequence[dict]) -> dict[str, float]:

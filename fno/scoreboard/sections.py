@@ -10,6 +10,8 @@ from datetime import date
 from ..costs import CHARGE_NAMES
 from .book_trades import ScoredTrade
 from .series import DailySeries, held_at_close
+from .t_check import DISAGREES, t_check
+from .trade_measures import drawdown, trade_measures
 from .uncertainty import FIGURES_STATUS, Uncertainty
 
 AI_NOT_AVAILABLE = "not available: F8 (AI cost allocation) not built"
@@ -58,7 +60,7 @@ def _valuation(trades: Sequence[ScoredTrade]) -> dict:
 
 def section(
     trades: Sequence[ScoredTrade], series: DailySeries, operating_costs: float, ai_cost: float | None,
-    uncertainty: Uncertainty | None, first: date | None, last: date | None,
+    uncertainty: Uncertainty | None, first: date | None, last: date | None, brake_rs: float | None = None,
 ) -> dict:  # fmt: skip
     raw = series.total_net
     return {
@@ -73,9 +75,24 @@ def section(
         "raw_account_net_rs": rupees(raw),
         "net_rs": rupees(raw - ai_cost) if ai_cost is not None else None,
         "risk": _risk(trades, series),
-        "uncertainty": None if uncertainty is None else {
-            "lower_bound": None if uncertainty.lower_bound is None else round(uncertainty.lower_bound, 6),
-            "sample_met": uncertainty.sample_met, "claim_allowed": uncertainty.claim_allowed,
-            "reason": uncertainty.reason, "figures": FIGURES_STATUS},
+        "uncertainty": None if uncertainty is None else _judged(uncertainty, series),
+        "measures": _measures(trades, series, brake_rs),
         "valuation": _valuation(trades),
     }  # fmt: skip
+
+
+def _judged(uncertainty: Uncertainty, series: DailySeries) -> dict:
+    """S1's criterion, with the t-check beside it: a printed warning, never a pass condition (story S6)."""
+    check = t_check(series, uncertainty.lower_bound)
+    warning = check["agrees_with_bootstrap"] is False
+    return {
+        "lower_bound": None if uncertainty.lower_bound is None else round(uncertainty.lower_bound, 6),
+        "sample_met": uncertainty.sample_met, "claim_allowed": uncertainty.claim_allowed,
+        "reason": f"{uncertainty.reason}; {DISAGREES}" if warning else uncertainty.reason,
+        "figures": FIGURES_STATUS, "t_check": check,
+    }  # fmt: skip
+
+
+def _measures(trades: Sequence[ScoredTrade], series: DailySeries, brake_rs: float | None) -> dict:
+    nets = [t.line.net for t in trades if t.completed and t.line is not None]
+    return {**trade_measures(nets, sum(t.closed_on is None for t in trades)), **drawdown(series, brake_rs)}
