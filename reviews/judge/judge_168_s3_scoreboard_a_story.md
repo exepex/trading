@@ -92,3 +92,29 @@ text.
 - **Order:** code waits for E2c, which is correct, since the board goes to Drive.
 - **Simplicity:** six modules' worth of design for an M story is proportionate. Nothing is built for unrealistic
   cases.
+
+## Addendum 1: re-judge of text revision 2 at `1ea46646929803a771e27dda821d7a2b1b1b5fcd` (judge G)
+
+**Verdict: PASS (text).** I judged only the S3 changes (commit `22fd8369`). The rest of the range is main merged in.
+
+| # | Fix | Re-judge |
+|---|---|---|
+| 1 (blocking) | `stress_loss` and `exposure_limit` become account limits (take), with fixtures for each alone and a skip for `max_loss_per_trade` with `bucket_cap` | **Accepted.** It matches the rules' account-wide inputs (`rules.py:45-47, 82-84`). The claim that neither is in the books' profile today is true: the `config.yaml` `risk.profiles.books.rules` list on the branch has no `stress_loss` or `exposure_limit`. Taking them as account limits rather than re-running the risk check on an empty book is the simpler choice (row 156) |
+| 2 (should fix) | `uncertainty.py` is split into the resampler plus two readers (S2's bound unchanged, and a one-sided bootstrap p = share of resampled values at or below 0), with Holm step-down on the p-values | **Accepted.** See the checks below the table |
+| 3 (should fix) | Series days: every observed session, skip-only and no-opportunity days as (0, 0), not-observed days left out, up to the last decision day whose actions have all closed; known answer 25 − 3 = 22 days | **Accepted.** It is consistent with S2's every-day series and fixes the 20-day null and the 120-day count |
+| minors | Book 3 before F7: "not observed: F7 not built", outside the miss cap, verdict "undecided, F7 not built"; exit "dated the day it fills, never backdated"; a fixed maximum loss cited (`docs/design_v2/03_layers_factory_desk.md:106`, "fixed at entry"), with "maximum loss unknown" listed apart; a not-filled take added to criterion 2 | **All accepted** |
+
+Checks on finding 2:
+
+- **The single-claim equivalence is exact.** With R = 10,000 resamples, the nearest-rank 5th percentile is the 500th
+  smallest value. p < 0.05 means at most 499 values are at or below 0, which holds exactly when the 500th smallest
+  value is above 0. The strict inequalities match on both sides, including ties at 0.
+- **The Holm known answer is right.** For 0.010, 0.030 and 0.040: 0.010 < 0.05/3 = 0.0167 passes; 0.030 ≥ 0.05/2 =
+  0.025 fails and stops the test, so 0.040 is never tested.
+
+**On the orchestrator's design point (one Holm implementation in `fno/scoreboard/uncertainty.py`, also used by F9):**
+agreed, it is DRY, and owner row 201 gives F9 Holm across roles. Two conditions, notes for the code review:
+
+- **(a)** The Holm step-down takes a plain list of p-values, so F9 can pass its own p-values without the resampler.
+- **(b)** S2 is merged code, so the split must leave every existing S2 test in `tests/scoreboard/` unedited and
+  passing. The judge checks that at the code review.
