@@ -724,25 +724,17 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
    question, each before the slot's first counted forecast and with an `effective_start` no later than the slot's
    first eligible session (the ledger adapter refuses a later one, judge 184); misses count from it (decision 16 Oct).
    V7, when it starts, is a member that is never judged (`terms.py` `DESCRIPTIVE_ONLY`).
-7. **Looks:** every AI transcript audit up to a confirmatory look's date is settled before that look runs (a look is
-   recorded once, `LookRecords`, and would keep a false miss). G11 keeps the committed file
-   `research/forecasts/v4_audits/open_audits.csv` (header `day,forecaster,question`; one row per AI forecast whose
-   audit is open; the row enters in the same commit as the book's collected submission (its sealed commitment and
-   reveal), so an open audit is never missing from the file, and leaves when the audit settles, in the same commit as
-   its v4 record row). From the books' first live day the file always exists, header-only when no audit is open,
-   so a deleted file is never read as "nothing open". The look's
-   refusal is built by the A16/G8 builder in `fno/forecast_scoring/v4/` before the freeze (their register row and a
-   freeze-checklist line; built on `story/g8-look-audits` at 4b8912fc, constant `wiring.py` `OPEN_AUDITS_FILE`): a look on date L refuses while any row has `day <= L`, naming the count and the earliest
-   open day; a missing file means no open audit; a bad header or date stops the look. G8 reads the file, never G11's
-   code.
-   **Reconcile before a look** (ChatGPT review 127, response 213): `open_audits.csv` cannot show a submission that was
-   sealed but never collected (no audit row, no v4 row). So G11 guarantees one v4 row per AI slot, started question
-   and eligible session day from `effective_start` once the day settles, whatever the outcome, and before recording a
-   confirmatory look G8 checks every such slot, question and day up to the look's date (system-late days excepted):
-   each has a v4 row (any status) or an `open_audits.csv` row, else the look refuses, naming the slot, question and
-   earliest such day. A written `not_fired` or `no_submission` row is a definitive miss and passes. Built by the A16/G8
-   builder beside the open-audit gate, before the freeze; this interface is G11's proposal of 16 Oct, to be confirmed
-   by them (response 202, addendum 5).
+7. **Looks: reconcile before a confirmatory look** (ChatGPT review 127, response 213; a look is recorded once,
+   `LookRecords`, and would keep a false miss). G11 guarantees that collect writes exactly one v4 row for every
+   scheduled session day of each registered AI slot and started question from `effective_start`, whatever the
+   outcome (ok, or a definitive miss status: `not_fired`, including days the fire never ran and BG1 stops,
+   `no_submission`, `late`, `not_revealed`, `invalid`, `model_mismatch`, `exposed`, `breach`, `stopped`), and only once
+   the day's audit gate has settled. Before recording a look on date L, G8 checks every registered `hybrid` and
+   `ai_team` slot: each scored session from its `effective_start` to L, `system_late` days excepted, has a row; any day
+   without one refuses the look, naming the count and the earliest day. That covers an open audit, a sealed commitment
+   never collected and a collect that never ran. Built by the A16/G8 builder in `fno/forecast_scoring/v4/` before the
+   freeze (agreed 16 Oct, response 202 addendum 6); it replaces their earlier `open_audits.csv` gate, which this rule
+   makes redundant, so G11 keeps no such file. G8 reads only the record files it already reads, never G11's code.
 8. **Composition:** wired in `fno/ai/wiring.py` and `book_wiring.py` only.
 
 **Settled before code (16 Oct; response 202):**
@@ -792,11 +784,10 @@ independent comparison.
 4. A commitment received at 15:10:01 is `late`; at 15:09:59 it is on time, decided by G10's receipt-time check
    (reused, not copied).
 5. A pack hash other than the released one is refused; a `system_late` day is out for the AI slots.
-6. A day whose audit is pending has no v4 row, has its rows in `open_audits.csv` and is printed in "N days awaiting
-   audit"; once settled, its v4 row lands and its `open_audits.csv` rows go in the same commit, and G8's recomputed
-   report shows it scored or missed. Every settled AI slot-day has exactly one v4 row per started question. (The look's
-   refusals, on that file and on a slot-day with neither row, for example a sealed commitment never collected, are the
-   A16/G8 builder's tests.)
+6. A day whose audit is pending has no v4 row and is printed in "N days awaiting audit"; once settled, its v4 row
+   lands and G8's recomputed report shows it scored or missed. Every settled AI slot-day has exactly one v4 row per
+   started question, including `not_fired` days. (The look's refusal on a slot-day without a row, for example a sealed
+   commitment never collected, is the A16/G8 builder's test.)
 7. Each run writes BG1's timing record; BG1's meter shows the book minutes; G11's output shows runtime p50 and p95
    by question set.
 8. No AI answer ever gets `label=backfill_exploratory`; no AI row exists before the slot's `effective_start`.
@@ -813,5 +804,5 @@ full F1)" and these forecasts never decide a trade (owner's condition 3, 14 Oct)
 miss cap may make an AI slot "undecided, operations" early, which is an honest result, not a fault.
 
 **Depends:** G6 freeze, G8 (merged), G9 (merged), G10 (the v4 pack and clock, and the `forecast-capture.yml` fire
-step), the A16/G8 builder's look refusal on `open_audits.csv`, G5, BG1 · **Size:** S-M ·
+step), the A16/G8 builder's look reconciliation, G5, BG1 · **Size:** S-M ·
 **Status:** story text for the judge (`reviews/claude/response_202_g11-ai-books-v4.md`); code after the v4 freeze

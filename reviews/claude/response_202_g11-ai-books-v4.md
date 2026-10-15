@@ -78,3 +78,12 @@ Checked each point; all accepted:
   already reads. Awaiting their confirmation.
 - **Claim scope: accepted** (reasoning only: Book 2 sees the rules' value, so their errors correlate).
 - **Runtime p50 and p95 by question set from day one: accepted;** no second runtime cap.
+
+## Addendum 6: one rule, the reconciliation (agreed with the A16/G8 builder, 16 Oct)
+
+Their proposal, accepted (strong evidence by reasoning on the contract: an open audit is a day without a row, which the
+reconciliation already refuses): before a look, every scored session of every registered AI slot from its
+`effective_start`, `system_late` days excepted, must have a row; G11's collect writes exactly one row per scheduled
+day, including `not_fired` days, only once the audit gate settles. `open_audits.csv` and its gate are dropped (DRY);
+G11 still prints "N days awaiting audit". Added on my side: `stopped` is a definitive status. Supersedes the file in
+addenda 2 and 5.
