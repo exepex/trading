@@ -123,3 +123,14 @@ only to read all runs and to list them in an alert. Nothing "first" depends on t
 
 **Verdict: PASS for 5ff83b2e16c67b223ba412b6e56dee480a08e9ff** (code). Rule 9: ChatGPT next, then the merge (pull,
 full suite on the merged tree).
+
+## Addendum 2 (15 Oct 2026): merge check of 3760640
+
+- **The merge is clean.** 3760640 is a `--no-ff` merge of 5ff83b2 (my PASS) into 3cba029. Its tree
+  (`7271bbf…`) equals git's own `merge-tree` of the two parents byte for byte, so no hand edit was made in the merge.
+  Against the first parent it carries exactly the PASSed diff: 28 files, 851 insertions and 75 deletions.
+- **Gates on the merged tree:** 5,198 passed (the orchestrator's figure); ruff and imports clean.
+- **ChatGPT review 107** came before the merge (rule 9). The one change it asks for (an integrity alert when a book
+  has more than one original run on a day) goes into E5b's code, and I check it there.
+
+**Merge check: MET.**
