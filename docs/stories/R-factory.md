@@ -45,8 +45,8 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
     - the playbook vocabulary has no v4 forecast feature (`fno/playbook/vocabulary.py`: F1-F3 only).
   - **V2** (buy protected movement): its forecasters are G7 phase 2 (not built); its debit spreads need STR1b-2 (not
     started; only SF, SC and BF are usable today, `fno/playbook/activation.py`); the same feature gap applies.
-- So R3 delivers the money half now, so that any shadow can run, and a registration procedure. It registers the
-  first shadow only if the owner chooses B0 (question 1). Nothing is invented to fill the queue.
+- So R3 delivers the money half now, so that any shadow can run, and a registration procedure. Its first shadow is
+  B0, the measurement the owner chose (decision 1 A). Nothing is invented to fill the queue.
 
 **Scope.** In:
 - **Shadow accounts opened at registration time.** The step that runs Book 1's decision opens every research version's
@@ -86,7 +86,7 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
     `pauses.py`, unchanged);
   - the stop-rule tracker's Test B input "R3: resolved shadow trades, net after costs" (`fno/budget/stop_rule_tracker.py`,
     `path=None` today). R3 sets its path to the closed-trades file and tells BG1's owner.
-- **(If the owner says yes to question 1) B0's registration:** experiment 1's P1 rule (SC every monthly opportunity),
+- **B0's registration (owner, decision 1 A), counted in the trial total:** experiment 1's P1 rule (SC every monthly opportunity),
   its card labelled `measurement`, never promoted. It is stopped if a single loss exceeds Rs 10,000 (response 92's
   "what proves it wrong").
 
@@ -155,7 +155,7 @@ Out (each with where it goes):
     never creates one, and an order for a missing account fails loudly.
   - The interface names are reasoning only until E8's part 1b (which waits for O1's merge). E8 notes cite R3.
 
-**Questions for the owner (via the orchestrator):**
+**Owner's decisions (16 Oct 2026, decision row on `main`, relayed by the orchestrator): 1 A and 2 A.** The questions as asked:
 1. **Register B0 now?** (A) Yes: the monthly short condor, P1, labelled `measurement: never promoted`. It is the only
    way to exercise the whole shadow path (fills, exits, costs at real quotes) before V1 or V2 can start, and it
    measures real premium and costs (response 92). Cost: one trial counted, and a monthly rule gives about 12 trades a
@@ -164,6 +164,9 @@ Out (each with where it goes):
 2. **Build order:** (A) the account opening and the per-shadow terms now (small, and needed before any registration),
    with fills when E8's code merges; (B) everything after E8. **Recommendation: A** (reasoning only: the crash on the
    first registration is real today).
+
+**Build order (decision 2 A):** the account opening and the per-shadow terms are built now (criteria 1-2), and B0 is
+registered after they merge. Shadow orders and fills (criteria 3-5) are built when E8's part 1b merges.
 
 **Depends:** D1, D2, E3, E5 (Book 1's run), E8 (fills), E6 (scorecard), BG1 (stop-rule tracker), STR1b-2 and G7/A16/G10
 for the V-ideas · **Size:** M · **Status:** story text, waiting for the judge
