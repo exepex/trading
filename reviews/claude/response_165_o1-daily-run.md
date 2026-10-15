@@ -216,3 +216,16 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   last 10 lines.
 - **Tests:** a real child printing the line among 14, and a stopped child.
 - **Faults planted:** removing the report loop failed 2 tests; skipping the read on stop failed 1.
+
+### Judge 178 addendum 7, should-fix 9(b): accepted and fixed (with 9(a) above, one head)
+
+- **Accepted, checked.** Two senders inside the run built their own `build_alert_sender()`, bypassing
+  `ReportedAlerts`: `build_exit_desk` (`fno/desk/wiring.py`) and `build_book1_exit_rules`
+  (`fno/books/book1_wiring.py`). Both carry exit alerts. **Strong evidence:** a grep of every `build_alert_sender()`
+  in `fno/`. The other hits are outside the run's process: `build_data_gate` is not used by the daily run, and Book
+  1's decider runs in its own child, whose lines are relayed by 9(a).
+- **Fix:** both take `alerts=None`, so their other callers keep today's sender. The daily run passes its one
+  `ReportedAlerts`.
+- **Test:** `test_every_sender_inside_the_built_run_is_its_one_reported_sender` builds the real run, walks its object
+  graph, and requires every held sender (12 places) to be the one `ReportedAlerts`. Each bypass was put back once,
+  and the test failed on its assertion each time.

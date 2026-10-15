@@ -62,5 +62,5 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
                     CommittedExecutionSchedule(root, timetable), alerts)  # fmt: skip
     decisions = D3CommittedDecisions(root, history)
     steps = DeskSteps(root, books, timetable, versions, packs, decisions, orders, capture, gate, RecordedC4Pass(), sync,
-                      build_entry_desk(cfg), build_exit_desk(cfg), exit_rules, alerts, now_ist)  # fmt: skip
+                      build_entry_desk(cfg), build_exit_desk(cfg, alerts), exit_rules, alerts, now_ist)  # fmt: skip
     return DailyRun(steps, calendar, committer, waiter or SleepingWaiter(now_ist), now_ist, files, day_steps)

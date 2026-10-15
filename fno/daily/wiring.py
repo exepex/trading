@@ -70,7 +70,7 @@ def build_day_runner(cfg: dict, root: Path = ROOT) -> DayRunner:
         "quotes_done": Alerted("quotes_done", FinishQuoteParts(parts, waiter), alerts, status_alerts=False),
         "card": Alerted("card", LiveFrom(card, live["card"]), alerts),
     }
-    cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules()
+    cfg_orders, exit_rules = build_book1_orders(cfg), build_book1_exit_rules(root, alerts)
     daily_run = build_daily_run(cfg, cfg_orders, exit_rules, root=root, waiter=waiter, day_steps=steps, git=git,
                                 alerts=alerts)  # fmt: skip
     return DayRunner(daily_run, parts, waiter)

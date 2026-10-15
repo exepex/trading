@@ -89,7 +89,7 @@ def test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     assert set(seen["day_steps"]) | set(DESK_RUN_STEPS) == set(DAILY_RUN_STEPS)
     assert DAILY_RUN_STEPS[:2] == ("quotes", "margin_check") and wiring.MARGIN_CHECKS.endswith(
@@ -135,6 +135,32 @@ def test_the_desk_and_o1_share_that_one_sender(monkeypatch):
     seen = {}
     monkeypatch.setattr("fno.desk.daily_wiring.build_daily_run", lambda *a, **k: seen.update(k) or object())
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_orders", lambda cfg: None)
-    monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda: None)
+    monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda *args: None)
     wiring.build_day_runner(load_app_config())
     assert isinstance(seen["alerts"], ReportedAlerts)
+
+
+def test_every_sender_inside_the_built_run_is_its_one_reported_sender():
+    """Judge 178 addendum 7, should-fix 9(b): no part of the run (desk, exit desk, Book 1's exit rules, data gate,
+    O1's steps, the quote parts) keeps a sender of its own that would drop an unsent alert."""
+    from fno.alerts.sender import AlertSender
+    from fno.daily import wiring
+    from fno.daily.alerts import ReportedAlerts
+
+    runner = wiring.build_day_runner(load_app_config())
+    shared, found, seen = runner.parts.alerts, [], set()
+
+    def walk(value, depth=0):
+        if isinstance(value, AlertSender):
+            found.append(value)  # every place a sender is held, counted; its own inner Slack sender is not walked
+            return
+        if id(value) in seen or depth > 8 or isinstance(value, (str, bytes, int, float, type(None))):
+            return
+        seen.add(id(value))
+        items = value.values() if isinstance(value, dict) else value if isinstance(value, (list, tuple, set)) else (
+            vars(value).values() if hasattr(value, "__dict__") else ())  # fmt: skip
+        for item in items:
+            walk(item, depth + 1)
+
+    walk(runner)
+    assert isinstance(shared, ReportedAlerts) and len(found) > 3 and all(sender is shared for sender in found)
