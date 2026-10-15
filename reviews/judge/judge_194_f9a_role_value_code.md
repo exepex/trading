@@ -96,3 +96,19 @@ which cannot happen in practice) and C7 (minor 1).
 - `git diff 650e861d f04076dd -- fno/scoreboard` is empty: F9a sees exactly the S3 code that passed.
 - A trial merge of `f04076dd` onto `650e861d` merges clean (README auto-merged).
 - The PASS stands.
+
+## Addendum 2: the minors fixed at 3f5afff1 (f04076dd..3f5afff1)
+- **Code changed:** only `checks.py` and `report.py`. The rest is tests, response 166 and the ChatGPT request 185.
+- **Minor 1 (test only): fixed.** A new test values an unfilled take against a skip: both nets are 0, and the pair
+  counts as changed. My plant C7 (counting "changed" by net) is now caught.
+- **Minor 2 (code): fixed.**
+  - `check_rotation` counts only rows dated on or after the common start.
+  - `report.build` counts earlier rows apart, as "pilot, before the common start", and drops them before any pair is
+    valued or any cost day is built. So pilot rows neither score nor dilute a unit's cost.
+  - My plants were both caught:
+    - R1: pilot rows moving the rotation;
+    - R2: pilot rows scored.
+- **Gates at 3f5afff1:**
+  - `pytest -n auto`: 6,434 passed;
+  - `ruff check`, `ruff format --check` and imports are clean.
+- **The PASS stands at 3f5afff1.**
