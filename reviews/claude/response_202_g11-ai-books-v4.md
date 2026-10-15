@@ -43,3 +43,11 @@ Story text: `docs/stories/G-forecasts.md`, section G11. Code waits for the v4 fr
   adds for every family.
 - **Slots and kind: accepted.** `V4_SLOT_HYBRID = "hybrid"`, `V4_SLOT_AI = "ai_team"` (`fno/constants.py:191`);
   `kind=ai`. V7 is a member never judged (`terms.py:65` `DESCRIPTIVE_ONLY`); not started at the freeze.
+
+## Addendum 2: judge 206 should-fix (who builds the look's refusal)
+
+Accepted (strong evidence: the look code is G8's, byte-checked at the freeze). The A16/G8 builder builds the refusal in
+`fno/forecast_scoring/v4/` before the freeze, with their register row and a freeze-checklist line (their written
+answer, 16 Oct). G11 supplies a committed file, `research/forecasts/v4_audits/open_audits.csv`
+(`day,forecaster,question`), so G8 never imports G11's code. Criterion 6 and the Out list now say so; criterion 4
+names G10's receipt-time check as reused.

@@ -684,7 +684,8 @@ AI run shows as a miss, never as a gap.
 
 **Scope.** In: a v4 prompt version per book; the books' v4 answers as G7-schema records in G8's folder; their slot
 registration; the outcome-to-status mapping (every failure a miss); the audit gate on v4 rows; the self-timing record
-BG1 asks for. Out: any trading by the AI books (full F1 isolation, F1); G8's scoring code (the A16/G8 builder); the
+BG1 asks for. Out: any trading by the AI books (full F1 isolation, F1); G8's scoring code, including the look's refusal below
+(the A16/G8 builder, before the freeze, agreed 16 Oct); the
 v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new questions.
 
 **Expected design** (reuse, no second version of anything):
@@ -724,8 +725,13 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
    first eligible session (the ledger adapter refuses a later one, judge 184); misses count from it (decision 16 Oct).
    V7, when it starts, is a member that is never judged (`terms.py` `DESCRIPTIVE_ONLY`).
 7. **Looks:** every AI transcript audit up to a confirmatory look's date is settled before that look runs (a look is
-   recorded once, `LookRecords`, and would keep a false miss); a precondition of each look date, which the look side
-   may check later.
+   recorded once, `LookRecords`, and would keep a false miss). G11 keeps the committed file
+   `research/forecasts/v4_audits/open_audits.csv` (header `day,forecaster,question`; one row per AI forecast whose
+   audit is open; the row is removed when the audit settles, in the same commit as its v4 record row). The look's
+   refusal is built by the A16/G8 builder in `fno/forecast_scoring/v4/` before the freeze (their register row and a
+   freeze-checklist line): a look on date L refuses while any row has `day <= L`, naming the count and the earliest
+   open day; a missing file means no open audit; a bad header or date stops the look. G8 reads the file, never G11's
+   code.
 8. **Composition:** wired in `fno/ai/wiring.py` and `book_wiring.py` only.
 
 **To agree before code (asked 16 Oct; answers recorded in response 202):**
@@ -758,11 +764,12 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
 3. Each failure outcome (late, not fired, no submission, not revealed, invalid, model mismatch, exposed, breach,
    stopped) writes a non-`ok` row and G8 counts it a miss; a day past 10% makes the slot "undecided, operations".
    No outcome leaves the day without a row.
-4. A commitment received at 15:10:01 is `late`; at 15:09:59 it is on time (GitHub's receipt time, G10).
+4. A commitment received at 15:10:01 is `late`; at 15:09:59 it is on time, decided by G10's receipt-time check
+   (reused, not copied).
 5. A pack hash other than the released one is refused; a `system_late` day is out for the AI slots.
-6. A day whose audit is pending has no row and is printed in "N days awaiting audit"; once settled, its row lands and
-   G8's recomputed report shows it scored or missed. A confirmatory look refuses to run while an audit up to its date
-   is open.
+6. A day whose audit is pending has no v4 row, has its rows in `open_audits.csv` and is printed in "N days awaiting
+   audit"; once settled, its v4 row lands and its `open_audits.csv` rows go in the same commit, and G8's recomputed
+   report shows it scored or missed. (The look's refusal on that file is the A16/G8 builder's test.)
 7. Each run writes BG1's timing record; BG1's meter shows the book minutes.
 8. No AI answer ever gets `label=backfill_exploratory`; no AI row exists before the slot's `effective_start`.
 9. Gates: pytest, ruff, ruff format, the import check; no file or class over 350 lines.
