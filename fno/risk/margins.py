@@ -18,11 +18,11 @@ credit, `max(0, k x scan - NOV) + k x exposure`, plus the bought premium and cha
 entry.
 
 Stressed margin, one frozen method (`risk.stressed_margin`):
-- `multiplier`: the factor k stresses the scanning risk and the exposure, the whole margin as k was measured (owner,
-  15 Oct 2026, story C2c); the premium paid or received does not grow (judge 75):
-  `max(0, k x scan - NOV) + min(0, NOV) + k x exposure`, with its source and date; missing or older than its age fails
-  closed. For SF and SC that is exactly k x what C2 counts; for BF never below it; for the STR1 codes the cap below
-  bounds the SPAN part only;
+- `multiplier`: the factor k stresses the scanning risk and the exposure, the whole margin as k was measured (owner, 15
+  Oct 2026, story C2c); the premium paid or received does not grow (judge 75): `max(0, k x scan - NOV) + min(0, NOV) + k
+  x exposure`, with k from A14c's factor file, the latest row before the decision day (`stress_factor.py`, story C2d);
+  missing or older than its age fails closed. For SF and SC that is exactly k x what C2 counts; for BF never below it;
+  for the STR1 codes the cap below bounds the SPAN part only;
 - `scenario_lookup`: a margin per stress scenario from SPAN parameter files (`structure, width, scenario,
   margin_per_lot_rs, source, as_of`); every configured scenario needs a fresh row, and the largest counts.
 """
@@ -41,6 +41,7 @@ from .capital import stress_cap_per_lot
 from .inputs import RiskInputError, TradeTerms
 from .margin_age import MarginAge
 from .settings import StressedMarginSettings
+from .stress_factor import FactorRow, factor_in_force
 
 MARGIN_COLUMNS = ("structure", "width", "scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs", "source", "as_of")
 SCENARIO_MARGIN_COLUMNS = ("structure", "width", "scenario", "margin_per_lot_rs", "source", "as_of")
@@ -152,8 +153,9 @@ class StressedMargin(ABC):
         """What a broker blocks at entry beyond the premium paid, unstressed (factor 1), in rupees (story STR1b)."""
 
     @abstractmethod
-    def record(self) -> dict[str, str]:
-        """The method in force, for every decision record, so the judge can reproduce it."""
+    def record(self, day: date | None = None) -> dict[str, str]:
+        """The method in force, for every decision record, so the judge can reproduce it; with a day, what was used
+        on it."""
 
 
 class MultiplierMargin(StressedMargin):
@@ -172,17 +174,18 @@ class MultiplierMargin(StressedMargin):
         return self.table.parts(terms, day).at_entry(1.0) * terms.lots
 
     def _factor(self, day: date) -> float:
-        s = self.settings
-        if s.multiplier is None or not s.source or s.as_of is None:
-            raise RiskInputError("stressed margin multiplier is not set (factor, source and as_of are all required)")
-        if s.as_of > day or (day - s.as_of).days > s.max_age_days:
-            raise RiskInputError(f"stressed margin multiplier of {s.as_of} is not valid on {day}")
-        return s.multiplier
+        return self._row(day).factor
 
-    def record(self) -> dict[str, str]:
-        values = {"multiplier": self.settings.multiplier, "source": self.settings.source, "as_of": self.settings.as_of}
-        stressed = {"method": self.method, "stresses": STRESSED_MARGIN_STRESSES}
-        return stressed | {k: "" if v is None else str(v) for k, v in values.items()}
+    def _row(self, day: date) -> FactorRow:
+        if self.settings.factor_file is None:
+            raise RiskInputError("stressed margin multiplier is not set (risk.stressed_margin.factor_file is required)")
+        return factor_in_force(self.settings.factor_file, day, self.settings.max_age_days)
+
+    def record(self, day: date | None = None) -> dict[str, str]:
+        """The method and file; with a day, also the factor row in force on it (story C2d)."""
+        file = self.settings.factor_file
+        method = {"method": self.method, "stresses": STRESSED_MARGIN_STRESSES, "factor_file": file.name if file else ""}
+        return method if day is None else method | self._row(day).record()
 
 
 class ScenarioLookupMargin(StressedMargin):
@@ -211,6 +214,6 @@ class ScenarioLookupMargin(StressedMargin):
         row = _fresh_row([r for r in rows if r["scenario"] == name], what, day, self.age)
         return _positive(float(row["margin_per_lot_rs"]), what, terms.bought_only)
 
-    def record(self) -> dict[str, str]:
+    def record(self, day: date | None = None) -> dict[str, str]:
         file = self.settings.scenario_file
         return {"method": self.method, "scenario_file": file.name if file else ""}

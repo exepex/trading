@@ -30,10 +30,11 @@ Perturber = Callable[[ResearchData, datetime, Random], tuple[ResearchData, int]]
 
 
 def _scaled(value: float | None, rng: Random) -> float | None:
-    """Another value, never the same one: removed one time in five, else scaled by 0.5 to 1.5 (never 1)."""
+    """Another value, never the same one: removed one time in five, else scaled by 0.5 to 1.5 (never 1), down or up
+    with even odds."""
     if value is None or rng.random() < 0.2:
         return None if value is not None else rng.uniform(10, 30000)
-    return value * rng.choice([rng.uniform(0.5, 0.95), rng.uniform(1.05, 1.5)])
+    return value * (rng.uniform(0.5, 0.95) if rng.random() < 0.5 else rng.uniform(1.05, 1.5))
 
 
 def _price(value: float, rng: Random) -> float:
@@ -45,17 +46,28 @@ def _shake_session(s: SessionClose, rng: Random) -> SessionClose:
 
 
 def _shake_options(quotes: tuple[OptionQuote, ...], rng: Random) -> tuple[OptionQuote, ...]:
+    """Built field by field rather than with `_replace` (millions of rows per test: the harness's own cost)."""
     changed = [
-        q._replace(close=_price(q.close, rng), settle=_price(q.settle + 1, rng), volume=rng.choice([0, q.volume + 7]))
+        OptionQuote(q.expiry, q.strike, q.kind, _price(q.close, rng), _price(q.settle + 1, rng),
+                    0 if rng.random() < 0.5 else q.volume + 7, q.open_interest)
         for q in quotes
         if rng.random() > 0.1  # one leg in ten removed
+    ]  # fmt: skip
+    extra = [
+        OptionQuote(q.expiry, q.strike + 25, q.kind, q.close, q.settle, rng.randint(1, 500), q.open_interest)
+        for q in quotes
+        if rng.random() < 0.2
     ]
-    extra = [q._replace(strike=q.strike + 25, volume=rng.randint(1, 500)) for q in quotes if rng.random() < 0.2]
     return tuple(changed + extra)
 
 
 def _shake_futures(quotes: tuple[FutureQuote, ...], rng: Random) -> tuple[FutureQuote, ...]:
-    return tuple(q._replace(close=_price(q.close, rng), volume=rng.choice([0, q.volume + 3])) for q in quotes)
+    return tuple(
+        FutureQuote(
+            q.expiry, _price(q.close, rng), q.settle, 0 if rng.random() < 0.5 else q.volume + 3, q.open_interest
+        )
+        for q in quotes
+    )
 
 
 def perturb_panel(data: ResearchData, cutoff: datetime, rng: Random) -> tuple[ResearchData, int]:

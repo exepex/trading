@@ -16,7 +16,7 @@ from fno.weather.wiring import build_weather_days, is_session, previous_regular
 from .fakes import FakeStore
 
 DAY = date(2026, 10, 15)
-BEFORE = datetime(2026, 10, 15, 14, 55, tzinfo=IST)
+BEFORE = datetime(2026, 10, 15, 14, 25, tzinfo=IST)  # before the 14:30 cutoff (G10)
 WEATHER = build_weather_days()
 
 
@@ -51,7 +51,7 @@ def test_capture_before_the_cutoff_writes_the_record_and_both_forecasters_rows(t
         "day", "label", "colour", "status", "operative", "proof", "model_colour", "v0_colour", "probabilities",
         "red_share", "over_alarming", "drivers", "method_sha256", "inputs_sha256", "made_at",
     }  # fmt: skip
-    assert (public["label"], public["red_share"], public["made_at"]) == (LIVE, NOT_ENOUGH, "2026-10-15T09:25:00+00:00")
+    assert (public["label"], public["red_share"], public["made_at"]) == (LIVE, NOT_ENOUGH, "2026-10-15T08:55:00+00:00")
     assert public["status"] == "scored"
     assert set(public["probabilities"]) == {"weather_vix_v1", "weather_checklist_v0", "base_rate"}
     for forecaster, slot, kind in (("weather_vix_v1", "rules", "rule"), ("weather_checklist_v0", "reported",
@@ -67,7 +67,7 @@ def test_capture_before_the_cutoff_writes_the_record_and_both_forecasters_rows(t
 def test_a_rerun_the_same_day_keeps_the_first_record(tmp_path):
     _capture(tmp_path)
     first = (tmp_path / "weather" / "2026" / "2026-10-15.json").read_bytes()
-    lines, _ = _capture(tmp_path, now=BEFORE.replace(minute=58))
+    lines, _ = _capture(tmp_path, now=BEFORE.replace(minute=28))
     assert (tmp_path / "weather" / "2026" / "2026-10-15.json").read_bytes() == first
     assert "0 v4 rows written" in lines[0]
     records = WeatherRecords(tmp_path / "weather")

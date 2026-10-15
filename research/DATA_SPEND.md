@@ -26,7 +26,9 @@ section 3.1, checked against `research/LEDGER.md` on 15 Oct 2026. A change to th
 | NIFTY 50 index | daily closes | 2017-2026 | `exposed` | many: experiment 1 features (F1), 42, 43-52 | Predictor and holding-window moves seen |
 | India VIX | daily closes | 2017-2026 | `exposed` | experiment 1 (F2), 43-52 | Predictor |
 | Event calendar (A6) | dates | 2019-2026 | `exposed` | experiment 1 (F3), 43-52 | Predictor |
-| NIFTY options 15:00 bid/ask (A4) | Groww quotes | from 13 Oct 2026 | `forward` | 37-41 (forecast protocol v2, live inputs) | Each day after a test's registration is fresh for that test |
+| NIFTY options 15:00 bid/ask (A4) | Groww quotes | from 13 Oct 2026 | `forward` | 37-41 (forecast protocol v2, live inputs); 54 (FT1 spread caveat, registered) | Each day after a test's registration is fresh for that test |
+| NIFTY monthly option and future candles | Groww 15-minute candles (last trades), read-only | 2 Jan 2024 - 1 Oct 2026 | `spent` | 54 (FT1 fill timing, protocol frozen `47d1598`, run 15 Oct 2026 at `1962610`) | Spent for the 14:00-to-next-10:15 windows of the sampled contracts (`C` is the P&L of selling at the decision and buying back at the fill); the flip share read held-to-expiry P&L of these entries; the probe before the freeze read candle counts only |
+| NIFTY monthly option and future candles | Groww 15-minute candles (last trades) | 2019 - 2023 | `fresh` | none | Not read by FT1 |
 | NIFTY 15-minute quotes (A16) | Groww quotes | not yet recorded | `fresh` | none | Starts with A16 |
 | Participant open interest (A8) | NSE daily files | history | `fresh` | none | Idea O1 waits for 20 measured release days |
 | F&O stock options around results | NSE F&O bhavcopy: volume, open interest, lot size, strikes, entry-day closes | 1 Jan 2019 - 14 Oct 2026 | `exposed` | 53 (R2 feasibility, run 15 Oct 2026 from the study folder of 02e84d0) | Read by R2 for fit, liquidity and cost only; **no option P&L**, no exit price, no implied-vs-realised comparison was read. A later P&L test of stock options around results is not exploratory on account of R2 for outcomes, but its entry prices, volumes and open interest were seen |

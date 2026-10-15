@@ -11,7 +11,7 @@ from fno.constants import V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
 from fno.forecast.iv30 import AtmIv30Feature, PanelAtmIv30
 from fno.forecast_scoring.v4.render import report_json
 from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_SCORED
-from fno.forecast_scoring.v4.wiring import build_scoring
+from fno.forecast_scoring.v4.wiring import build_day_counts, build_scoring
 from fno.forecast_v4_rules.records import LIVE
 from fno.forecast_v4_rules.wiring import build_v4_forecasts
 from fno.research_engine.implied_vol import Black76, ImpliedVolModel
@@ -48,7 +48,9 @@ def _outputs() -> dict:
     red = red_share(build_records().live_colours_before(DAY), weather.colours(DAY)[0])
     day = weather.day(DAY, LIVE, MADE_AT, red)
     scoring = build_scoring()
-    report = report_json([scoring.question_report(q) for q in QUESTIONS], frozen=False, as_of=DAY.isoformat())
+    report = report_json(
+        [scoring.question_report(q) for q in QUESTIONS], frozen=False, as_of=DAY.isoformat(), days=build_day_counts(DAY)
+    )
     return {
         "g7": {key: asdict(row) for key, row in g7.items()},
         "weather": (day.public, {key: asdict(row) for key, row in day.rows.items()}),

@@ -22,7 +22,7 @@ from fno.weather.wiring import build_weather_days, is_session, previous_regular
 from .fakes import FakeStore
 
 DAY = date(2026, 10, 15)
-BEFORE = datetime(2026, 10, 15, 14, 55, tzinfo=IST)
+BEFORE = datetime(2026, 10, 15, 14, 25, tzinfo=IST)  # before the 14:30 cutoff (G10)
 FLAG = "flag-sentinel-7f3a"  # stands for the private flag: must never reach a repository file or a printed line
 WEATHER = build_weather_days()
 
@@ -129,3 +129,17 @@ def test_the_method_hash_covers_every_file_that_decides_a_value():
     fno = wiring.ROOT / "fno"
     assert {"weather/wiring.py", "forecast_v4/sessions.py", "forecast_v4_rules/series.py"} <= set(wiring.METHOD_FILES)
     assert all((fno / name).is_file() for name in wiring.METHOD_FILES)
+
+
+def test_the_method_hash_changes_when_a_weather_constant_changes(tmp_path):
+    """The thresholds and colours (`fno/weather/constants.py`) are part of the method: a changed red floor changes the
+    record's method hash."""
+    fno = wiring.ROOT / "fno"
+    for name in wiring.METHOD_FILES:
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_bytes((fno / name).read_bytes())
+    before = wiring.method_sha256(tmp_path)
+    assert before == wiring.method_sha256(fno)
+    constants = tmp_path / "weather" / "constants.py"
+    constants.write_text(constants.read_text().replace("(0.10, 0.35)", "(0.11, 0.35)"))
+    assert wiring.method_sha256(tmp_path) != before

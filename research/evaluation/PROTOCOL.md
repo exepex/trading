@@ -388,7 +388,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
 ### `frozen_files` Files and settings the freeze hashes
 - **Value:**
   - **Files:** `research/evaluation/PROTOCOL.md`, `fno/evaluation/protocol.py`, `fno/evaluation/completeness.py`,
-    `fno/scorecard/review.py`, `fno/research_engine/statistics.py`, `fno/desk/timetable.py`.
+    `fno/scorecard/review.py`, `fno/research_engine/statistics.py`, `fno/desk/timetable.py`,
+    `research/evaluation/REAL_MONEY_GATE.md`, `fno/evaluation/gate.py`.
   - **Settings:** `config.yaml:desk.timetable`, `config.yaml:scorecard_review`, `config.yaml:risk`,
     `config.yaml:charges`.
   - **Scoring code (the owner's option A, 14 Oct 2026):** the scoring code of S2, S3 and S6 (S6 added 15 Oct
@@ -401,6 +402,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - The owner chose option A: code written after decisions are seen could be shaped by them, so the code is hashed
     with its rules before anything is counted.
   - Hashing settings by section means an unrelated config change does not break the freeze.
+  - The real-money gate (story RM1) is frozen with the protocol, so it precedes every counted paper decision (design
+    v2 8.3; owner, 15 Oct 2026, RM1 Q10 "Yes, one freeze"; the two gate files were added on 2026-10-15).
 - **Evidence:** reasoning only
 
 ## Open questions for the owner (raised by judge 85)

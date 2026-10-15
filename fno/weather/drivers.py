@@ -12,11 +12,11 @@ from __future__ import annotations
 import math
 from datetime import date
 
-from ..constants import WEATHER_US_CUES
 from ..forecast_v4.terms import BIG_MOVE
 from ..global_cues.as_of import DECISION
 from ..global_cues.reading import NONE, STALE, CueReader, reading_for
 from .checklist_v0 import Event, V0Inputs, crossed
+from .constants import WEATHER_US_CUES
 
 US_PUBLIC = "private"
 LARGE, NORMAL, NOT_AVAILABLE = "large", "normal", "not available"

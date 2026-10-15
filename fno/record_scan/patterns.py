@@ -10,6 +10,14 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Iterator
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
+def lowered(text: str) -> str:
+    """The text in lower case, made once per file for all its patterns (the scanner runs every pattern on one text in
+    turn; a 60 MB data file was lowered ten times)."""
+    return text.lower()
 
 
 class RecordPattern(ABC):
@@ -36,7 +44,7 @@ class RegexPattern(RecordPattern):
 
     def values_in(self, text: str) -> Iterator[tuple[int, str]]:
         if self._required:
-            lower = text.lower()
+            lower = lowered(text)
             if not any(word in lower for word in self._required):
                 return
         group = "value" if "value" in self._regex.groupindex else 0

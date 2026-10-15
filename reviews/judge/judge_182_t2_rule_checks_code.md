@@ -66,3 +66,20 @@ gains 5 cases; LR1's `test_boundaries.py` now uses the shared reader.
 
 **Verdict: PASS for b0556129.** Merge with the full suite on the merged tree. Whichever of T2 and O1 merges second
 resolves `constants.py` (347 lines here).
+
+---
+
+## Addendum 2 (judge E): merge check at 38699fee (main merged into b0556129): PASS
+
+- **Parents:** b0556129 (the passed tip) and 46980e99 (`main`).
+- **The hand resolution is right.** The only hand-resolved file is `fno/cards/wiring.py`. Its difference from `main` is
+  only T2's addition: the `rule_checks` and `ruled_status` imports, and `build_status`. `build_status` wraps
+  `RegistryStatus(records, DownloadedRecords(root))`, which is E2c's Drive accounts reader, kept unchanged.
+- **E2c does not touch T2's sources.** Its `ACCOUNT_FILES` (`fno/desk/private_files.py:24`) holds the five account
+  files only. The run log and `validity_failures.csv` stay in the repository.
+- **Gates on 38699fee (full history):**
+  - full suite 6,139 passed; `tests/cards` 75 passed;
+  - ruff clean; format clean (1,131 files); `check_imports` clean;
+  - `constants.py` is 349 lines, inside the limit.
+
+**Verdict: PASS for 38699fee.** It may go to `main`.
