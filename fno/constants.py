@@ -137,6 +137,8 @@ ENV_FNO_DB_URL = "FNO_DB_URL"  # the fno schema's runtime publisher role (storie
 # to stress a margin
 CASH_LEDGER_FILE = "cash_ledger.csv"  # journal/<book>/account/cash_ledger.csv: E1's append-only ledger
 OWNER_OVERRIDES_FILE = "owner_overrides.csv"  # journal/<book>/owner_overrides.csv, written by the owner only
+DESK_DECISIONS_FILE = "docs/DESK_DECISIONS.md"  # the owner's decisions; a brake restart cites one row (story C5b)
+BOOK_DISPLAY_NAMES = {BOOK1_RULES: "Book 1", BOOK2_HYBRID: "Book 2", BOOK3_AI: "Book 3"}  # as the owner writes them
 OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
@@ -318,7 +320,7 @@ RUN_LOG_DECISIONS_STEP = "decisions"
 # The market weather (story M1, fno/weather/; design 2.3): its forecasters, colours and the owner's thresholds
 # (15 Oct 2026, "Weather thresholds accepted"), scored on protocol v4's V6a and V6b
 WEATHER_MODEL_VIX, WEATHER_BASELINE_V0 = "weather_vix_v1", "weather_checklist_v0"
-WEATHER_OPERATIVE_MODEL = WEATHER_MODEL_VIX  # decision 71 (owner to confirm): back to v0 only by a recorded decision
+WEATHER_OPERATIVE_MODEL = WEATHER_MODEL_VIX  # decision 71: back to v0 only by a recorded decision
 WEATHER_OPERATIVE_PROVEN = False  # "not yet proven" until G8 scores it against v0 and the base rate
 
 

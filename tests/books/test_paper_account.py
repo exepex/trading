@@ -35,19 +35,24 @@ def root(tmp_path):
     return tmp_path
 
 
-def test_the_committed_starting_state_is_the_13_oct_rs_5_lakh_opening_and_no_positions_for_each_book():
-    """The books were opened on 13 Oct 2026, before the owner's Rs 20 lakh account (14 Oct). The records stay as
-    written; C5's paper-account rule refuses every trade in them until the owner decides how they are reopened."""
+def test_the_committed_state_is_the_13_oct_rs_5_lakh_opening_topped_up_to_rs_20_lakh_on_15_oct():
+    """The books opened on 13 Oct 2026 with Rs 5 lakh, before the owner's Rs 20 lakh account (14 Oct). The records stay
+    as written; story E1b's top-up (data commit 400d6921, 15 Oct 19:29 IST) added Rs 15 lakh each, so the capital in
+    force from the 16 Oct decision is the profile's Rs 20 lakh, and nothing was ever traded."""
     assert BOOKS == ("book1_rules", "book2_hybrid", "book3_ai")  # the names the stories use (epic E)
     for book in BOOKS:
         account = build_paper_account(book)  # the repository's own journal/<book>/account/
-        assert account.started and account.capital() == 500_000.0 != paper_account_rs()
-        assert account.fills() == [] and len(account.ledger_rows()) == 1
+        opening, top_up = account.ledger_rows()
+        assert (opening["kind"], opening["amount_rs"]) == ("opening_balance", "500000.0")
+        assert (top_up["kind"], top_up["amount_rs"], top_up["filled_at"][:10]) == ("capital_top_up", "1500000.0",
+                                                                                 "2026-10-15")  # fmt: skip
+        assert account.started and account.capital() == 2_000_000.0 == paper_account_rs() and account.fills() == []
         summary = json.loads(account.file("positions.json").read_text())
-        assert summary["open_trades"] == [] and summary["cash_rs"] == 500_000.0 == summary["closed_equity_rs"]
+        assert summary["open_trades"] == [] and summary["cash_rs"] == 2_000_000.0 == summary["closed_equity_rs"]
         history = account.equity_history()
-        assert [(r["cash_rs"], r["marked_equity_rs"], r["open_trades"]) for r in history] == [
-            ("500000.00",) * 2 + ("0",)
+        assert [(r["date"], r["cash_rs"], r["marked_equity_rs"], r["open_trades"]) for r in history] == [
+            ("2026-10-13", "500000.00", "500000.00", "0"),
+            ("2026-10-15", "2000000.00", "2000000.00", "0"),
         ]
 
 

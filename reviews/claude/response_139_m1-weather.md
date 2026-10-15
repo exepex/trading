@@ -14,7 +14,7 @@ It does this for two forecasters:
 - `weather_vix_v1`, the model: yesterday's VIX scaled by the tail shape of the last 750 sessions;
 - `weather_checklist_v0`, the baseline: response 94's frozen checklist, turned into a probability by colour.
 
-The model's colour is the operative one, labelled "not yet proven" (decision 71, owner to confirm). The US-move flag
+The model's colour is the operative one, labelled "not yet proven" (decision 71, owner confirmed, 15 Oct 2026, docs/DESK_DECISIONS.md). The US-move flag
 goes only to the owner's Drive (decision 72). Nothing places an order. Nothing was run live: every write in this
 round went to a temporary folder.
 

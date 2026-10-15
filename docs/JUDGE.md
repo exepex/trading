@@ -86,6 +86,17 @@ unsure, the change is lane 1.
   so a wrong claim can sit on `main` until that day's audit. Lane 1 keeps everything that touches money, trades or
   permanent records out of that risk.
 
+### Brake restarts (story C5b)
+
+Every change adding or editing a row of `journal/<book>/owner_overrides.csv` is lane 1. For each `restart_brake` row
+the judge reads the `docs/DESK_DECISIONS.md` row whose bold title the row's `decision` column cites, and confirms
+itself that the owner's own quoted words restart that book's drawdown brake for the episode being restarted (the brake
+that fired before that date, not an earlier one), and that the decisions row was added by the owner's words, not
+written for them. The code checks only the form (title once, owner quote, book named, dated on or before the restart,
+not reused); whether the words really mean "restart this brake now" is the judge's call, and a doubt is a FAIL.
+The judge also confirms the words with the owner directly (asks the owner and gets a yes in its own session); no file
+in the repository counts as proof, and no answer is a FAIL (ChatGPT review 110, response 142).
+
 ## Quality rules for every story (owner decision, 15 Oct 2026: "rules yes")
 
 Owner: "Everything must have to be reviewed thoroughly and properly. I don't want that we develop story with lot of

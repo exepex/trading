@@ -10,3 +10,7 @@ nse_raw_download.zip
 journal/*/account/.lock
 journal/*/account/*.tmp
 .ai_book/
+
+# Raw Groww quote files live in Google Drive only (owner, 15 Oct 2026, "6 A"; story A4b): the repository keeps each
+# attempt's sidecar and the day's canonical marker
+research/data/quotes/groww/**/*.csv

@@ -354,3 +354,98 @@ breach C2 passed.
 
 **Depends:** C2, C4, A7, A14, B2, E1, D2, D3, the owner's decisions of 14-15 Oct 2026 · **Size:** M · **Status:** built
 on `story/c5-risk-buckets`, judge pending (claims: reviews/claude/response_105_c5-risk-buckets.md)
+
+---
+
+## C5b. A brake restart cites the owner's decision row
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want a drawdown-brake restart to be valid only when it cites the
+`docs/DESK_DECISIONS.md` row that holds the owner's own words for that brake episode, with the judge's audit checking
+it, so that the only thing that lifts a book's brake is a written owner decision, never a typed name alone.
+
+**Context and why:**
+- Owner, 15 Oct 2026 (caps accepted): "brake: closed equity Rs 1.2 lakh below its high stops new trades until the owner
+  restarts in writing".
+- Judge 105 minor 3: "signed" today means a non-empty `entered_by`. Any session can commit a `restart_brake` row with
+  `entered_by: owner`. A guard tying each row to an owner decision would be a separate story.
+- Orchestrator, 15 Oct 2026: this story, before the first counted paper decision; the judge's audit checks it; no
+  cryptography (owner's simplicity rule, "Keep the design simple").
+- `docs/DESK_DECISIONS.md` is where the owner's decisions are recorded, each row dated, in the standard form
+  `**title** (owner: "...")` in its Decision cell. Measured on main (judge 134): 152 rows; 17 have no bold title, and
+  one title ("approved") is the title of 4 rows. The owner names the books "Book 1", "Book 2" and "Book 3" (14
+  times), never by their IDs.
+- Today no book has an `owner_overrides.csv` (no brake has ever fired), so the file format can change without
+  migrating any record.
+
+**Scope.** In:
+- a fifth column, `decision`, in `journal/<book>/owner_overrides.csv`: the cited row's title, which is the **first**
+  `**...**` span of its Decision cell. A row with no bold span cannot be cited. The owner's restart decision is written
+  in the standard form `**title** (owner: "...")`;
+- a restart row is valid only if the cited row:
+  - has that title exactly once in the file (a repeated title such as "approved" is refused);
+  - quotes the owner (`(owner: "`);
+  - names the restarted book by its display name as a whole word ("Book 1" for `book1_rules`, "Book 2" for
+    `book2_hybrid`, "Book 3" for `book3_ai`: one map in `fno/constants.py`), so "Book 1" never matches "Book 10";
+  - is dated on or before the restart date;
+  - is cited by no other restart row of that book;
+- the check in C2 (`fno/risk/overrides.py`) and, with its own code, in C4 (`fno/checks/validity_account.py`): an
+  invalid row fails closed (the book cannot be read, so it trades nothing), exactly as a malformed row does today;
+- the judge's audit of every new restart row: the owner's words really restart that book's brake for that episode.
+
+Out:
+- cryptographic signatures, and a CI guard on commits (owner's simplicity rule);
+- deciding the episode by code (the judge's audit does it);
+- the Manual account (no ledger yet).
+
+**Design:**
+- `fno/risk/overrides.py`: `OVERRIDE_COLUMNS` gains `decision`. A small `DecisionRows` reader parses the table rows of
+  `docs/DESK_DECISIONS.md`: date, title (the first bold span of the Decision cell, or none) and full text.
+  `brake_restarts` validates each row against it with the five rules above, as a `RiskInputError` with the reason.
+- `fno/checks/validity_account.py`: C4's own parse of the same file (no `fno.risk` import), the same five rules,
+  `AccountProblem` on failure.
+- In `fno/constants.py`: the decisions file path (`DESK_DECISIONS_FILE`) and each book's display name
+  (`BOOK_DISPLAY_NAMES`: `book1_rules` → "Book 1", `book2_hybrid` → "Book 2", `book3_ai` → "Book 3"), used by C2 and,
+  read from constants (not from C2's code), by C4.
+- No other change: the brake's arithmetic and the restart's re-arm level are C2's, unchanged.
+
+**Acceptance criteria:**
+1. A restart row citing a real owner row that names the book, dated on or before the restart, lifts the brake in C2
+   and in C4 (tests with a planted decisions file).
+2. Each of these fails closed in C2 and C4, with a reason naming the problem, and the book stays braked: a missing
+   `decision`; a title not in the file; a title appearing twice; a row without `(owner: "`; a row not naming the book
+   (a row naming "Book 1" lifts `book1_rules` and not `book2_hybrid`); a row dated after the restart; the same row
+   cited by two restarts of one book.
+3. The real `docs/DESK_DECISIONS.md` parses: every table row yields its date, and its title when its Decision cell has
+   a bold span (none otherwise: not citable). The count of rows, of rows without a title, and of repeated titles
+   matches the file (test on the committed file).
+4. The judge's audit step is written into `docs/JUDGE.md`'s lane-1 checks for `journal/<book>/owner_overrides.csv`:
+   read the cited row and confirm the owner's words restart that book's brake for that episode.
+
+**Gap list:**
+
+| Requirement (source) | Criterion or reason out |
+|---|---|
+| A restart only by the owner's written decision (owner 15 Oct caps row) | 1, 2 |
+| The row holds the owner's own words (orchestrator) | 2 (`(owner: "`), 4 (audit reads the words) |
+| For that brake episode (orchestrator) | 2 (dated on or before the restart, not reused), 4 (the audit judges the episode) |
+| The judge's audit checks it (orchestrator) | 4 |
+| No cryptography (owner's simplicity rule) | out |
+| C2 and C4 in step (judge 83, C5) | 1, 2 |
+| Before the first counted paper decision (orchestrator) | status: built before S1's freeze |
+
+**Known limits (one line each):** the decisions file is plain text in the repository; anyone who can commit could add a
+row. The protection is the judge's audit of every lane-1 change to it and to `owner_overrides.csv`.
+A deleted `docs/DESK_DECISIONS.md` fails closed by an error, not a reason. A shadow book's brake cannot be restarted
+(it is not named in the owner's decisions; its restart is refused).
+
+**Test plan:** `tests/risk/test_restart_decision.py` (C2: criteria 1-3), `tests/checks/test_validity_restart.py`
+(C4: 1-2), with planted decisions files in the standard `**title** (owner: "...")` form. Every criterion broken on
+purpose once.
+
+**Judge verifies:** plants a restart row citing a real row, a row without the owner's words, a row for another book and
+a reused row; checks C2 and C4 refuse the bad ones; reads the JUDGE.md step.
+
+**Depends:** C2, C4, C5 · **Size:** S · **Status:** text passed (judge 134 addendum 1); code built on
+`story/c5b-restart-decision` for the judge (claims: `reviews/claude/response_135_c5b-restart-decision.md`, addendum 2)

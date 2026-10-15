@@ -25,11 +25,12 @@ from ..forecast.freeze import require_frozen_before
 from ..forecast.freeze_v2 import NotYetFrozen, require_version_frozen
 from ..forecast.wiring import GOLDEN_OPTION_DAYS
 from ..freeze_sections import FORECAST_SCORES, require_section_frozen
+from ..quotes.export_first_store import ExportFirstQuoteStore
 from ..research_data.calendar import load_session_calendar
 from ..research_data.panel_reader import read_nifty_panel
 from ..research_engine.ledger import Git
 from ..storage import wiring as storage
-from ..storage.raw_store import AreaStore, LocalFolderStore
+from ..storage.raw_store import AreaStore, LocalFolderStore, RawFileStore
 from ..storage.wiring import PANEL_FOLDER, build_session_calendar
 from .ai_sources import ai_forecasts
 from .coverage import book_coverage
@@ -109,6 +110,13 @@ def score_forecasts(cfg: dict, as_of: date, receipts: CaptureReceipts, root: Pat
     return report_document(context, ForecastScorer(resolvers).score(scored))
 
 
+def replay_quote_store(folder: Path) -> RawFileStore:
+    """The quote store a replayed capture reads: each file from the commit's export when it holds it (every quote file
+    of a commit before story A4b), else from Drive, checked against the committed sidecar (a later day's quote file;
+    an absent or changed Drive copy stops the replay, never a quiet switch to NSE's snapshot)."""
+    return ExportFirstQuoteStore(LocalFolderStore(folder), storage.build_quote_store(folder))
+
+
 def recompute_live_day(inputs: Path, day: date, generated_at: datetime) -> dict[str, bytes]:
     """Protocol v2's live capture of `day` on one commit's exported inputs (panel, closes, quotes, calendar, config)."""
     panel_folder = inputs / "research" / "data" / "nifty-panel"
@@ -116,7 +124,7 @@ def recompute_live_day(inputs: Path, day: date, generated_at: datetime) -> dict[
     calendar = load_session_calendar(inputs / "research" / "data" / "calendar" / "nse_sessions.csv")
     years = list(range(day.year - LIVE_PANEL_YEARS + 1, day.year + 1))
     keep = lambda d, e: (e - d).days <= GOLDEN_OPTION_DAYS  # noqa: E731  (as baseline_wiring's live panel)
-    capture.root, capture.quotes = inputs / "replayed", LocalFolderStore(inputs / "research" / "data" / "quotes")
+    capture.root, capture.quotes = inputs / "replayed", replay_quote_store(inputs / "research" / "data" / "quotes")
     capture.closes = CommittedClosesFile(panel_folder / "warmup_closes.csv")
     capture.panel = lambda: read_nifty_panel(panel_folder, years, keep=keep)
     capture.calendar, capture.calendar_sha256 = calendar, calendar.calendar_sha256()
