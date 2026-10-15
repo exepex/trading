@@ -35,10 +35,10 @@ def g8_document(scored: int, as_of: str = "2026-10-17", live: int = 3) -> dict:
         "scores": {"weather_vix_v1": {"n": scored, "mean_brier": 0.0391664, "calibration": []}, "base_rate": None},
         "comparisons": [_comparison(scored)],
     }
-    live_block = {
-        "scores": {"weather_vix_v1": {"n": live, "mean_brier": 0.02, "calibration": []}},
-        "comparisons": [_comparison(live)],
-    }
+    live_block = {"scores": {}, "comparisons": []}
+    if live:
+        live_block = {"scores": {"weather_vix_v1": {"n": live, "mean_brier": 0.02, "calibration": []}},
+                      "comparisons": [_comparison(live)]}  # fmt: skip
     return {"as_of": as_of, "exploratory": True, "questions": [
         {"question": "v1_rv_next_session", "status": "not enough data yet", "live_forecasts": 0, "cohorts": {}},
         {"question": "v4_rv5_below_weekly_atm_iv", "status": "not started", "live_forecasts": 0, "cohorts": {}},

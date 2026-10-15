@@ -34,7 +34,7 @@ def report_lines(reports: list[QuestionReport], frozen: bool, as_of: str, days: 
 
 def _cohort_lines(name: str, cohort: Cohort) -> list[str]:
     if not cohort.scores:
-        return [f"  {COHORT_HEADINGS[name]}: no rows"]
+        return [f"  {COHORT_HEADINGS[name]}: no rows yet"]
     lines = [f"  {COHORT_HEADINGS[name]}:"] + [f"  {f}: {_scores_text(s)}" for f, s in cohort.scores.items()]
     for comparison in cohort.comparisons:
         lines += comparison_lines(comparison)
