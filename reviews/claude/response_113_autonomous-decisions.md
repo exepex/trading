@@ -65,3 +65,5 @@ judge's PASS, and ChatGPT's review where quality rule 9 needs it.
 | 54 | 12:06 | Judge C (118 add. 7) | E2b passed with 3 minors; it waits for A4b and ChatGPT anyway. Do minors 1-2 (an S4 test; 'own' exact by file content) now or later? | (a) now, before ChatGPT; (b) a follow-up after the merge | (a) | ChatGPT should review the final version; both are small and close a spoof path (reasoning only) |
 
 Correction (10:20 IST): the times I first wrote in this table were estimates and ran ahead of the clock by up to 80 minutes (rows 3-37). Every row now shows the time of the commit that logged it. The commit is the true time each decision was recorded; no decision changed.
+
+Evidence note on decision 53 (12:08 IST): the A16 builder's independent 6-session check confirmed that the 09:14 pre-open close equals NSE's official open on 6 of 6, but found the 09:15 open EQUAL to it on 2 of 6, so the A16b builder's "differs on 40 of 40" is not reproduced and is being rechecked. The decision stands: a 09:15 comparison flags the normal auction-to-first-trade move. Its evidence label for the 09:14 rule stays strong; for "differs on every session" it is now unverified.
