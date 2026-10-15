@@ -21,7 +21,7 @@ No code or study runs before the PASS.
 | 10 | K = 3. T2, direction, the residual target and 14:30 are descriptive | item `confirmatory_family` | judge 165 should-fix 8; review 116 Q5 |
 | 11 | BR1's own futility: plain batch-means p_e at most 0.025 at look 1 (`futility_p` with threshold 0.025), or study 3's fixed replacement | item `futility` | judge 165 add. 1 note A |
 | 12 | The wording in every BR1 text: the range 6-42; about 9 as the common-tilt planning case only; 2-3% hypothetical; the tilt lost (t -8.06); "unknown whether any forecaster beats the primary by 2-3%" | scope 4; criterion 9 | `results/2024-01-01_2026-10-14.txt` |
-| 13 | S1's freezer is made path-generic (`--protocol breadth`), with S1's behaviour and records unchanged | scope 3; criteria 2, 8 | **to agree first** with the S1, RM1 and F9 owners, who also touch `fno/evaluation/` (orchestrator, 16 Oct) |
+| 13 | S1's freezer is made path-generic (`--protocol breadth`), with S1's behaviour and records unchanged | scope 3; criteria 2, 8 | **agreed (16 Oct):** S1's owner (byte-for-byte unchanged, definition passed only through wiring, land before S1's freeze); F9 (`parse_protocol` and `PROTOCOL_FILE` keep their names); order RM1 first, then BR1a; S6's `REQUIRED_ITEMS` line rebased by whichever lands second |
 
 ## Gap list
 
@@ -30,5 +30,4 @@ or a criterion.
 
 ## Open before code
 
-- Item 13: who changes `fno/evaluation/freeze.py` first, BR1a or RM1. I have asked the three owners. The story's
-  freezer part is written so it can follow RM1's change, whichever lands first.
+- RM1's confirmation of the order (RM1 first) is still awaited. S1's owner and F9 agreed (scope 3 of the story).

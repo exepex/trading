@@ -159,6 +159,21 @@ and false-futility rates are known on real Indian data.
      S1's is.
    - `python -m fno evaluation check|freeze|verify` gains a `--protocol breadth` choice, with `evaluation` the
      default.
+   - **Agreed with the other owners of `fno/evaluation/` (16 Oct 2026):**
+     - **S1's text owner (session 0185gR5D):**
+       - S1's behaviour, file names, records and tests stay byte-for-byte unchanged, and `--protocol` defaults to
+         `evaluation`.
+       - BR1's definition is passed only through `fno/evaluation/wiring.py`, never chosen inside `protocol.py`,
+         `completeness.py` or `freeze.py`.
+       - BR1's freeze record hashes its own file list.
+       - S1's decided `frozen_files` lists `protocol.py` and `completeness.py`, so this change must land before
+         S1's freeze. After that freeze it would need a new S1 version.
+     - **Order:**
+       - RM1 (session 01CHxE3y: `completeness.py`, `freeze.py`, `cli.py`, a new `gate.py`) lands first. BR1a's
+         change follows on top of it and keeps RM1's behaviour.
+       - S6 adds five S1 items to `REQUIRED_ITEMS`. Whichever of BR1a and S6 lands second rebases that line.
+     - **F9 (session 01SFDjjZ):** `parse_protocol(text)` and `PROTOCOL_FILE` (S1's path) stay importable under
+       the same names. F9a's constants test reads them. `review_dates.py` is not touched.
 
 4. **Wording** (owner, 16 Oct). Every BR1 text and report states the following:
    - breadth as the measured **range of 6 to 42** effective bets a day;
