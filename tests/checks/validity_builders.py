@@ -96,9 +96,9 @@ def snapshot_rows(received: datetime = RECEIVED) -> list[dict]:
     return rows
 
 
-def committed_store(rows=None, started: datetime = STARTED) -> DictStore:
+def committed_store(rows=None, started: datetime = STARTED, spot: float | None = None) -> DictStore:
     store = DictStore()
-    write_snapshot(store, "exec", rows or snapshot_rows(), started, started.replace(minute=56), day=DAY)
+    write_snapshot(store, "exec", rows or snapshot_rows(), started, started.replace(minute=56), day=DAY, spot=spot)
     return store
 
 

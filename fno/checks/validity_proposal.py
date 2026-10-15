@@ -23,7 +23,7 @@ class ValidityProposal:
     day: date
     cutoff: datetime  # the decision cutoff, time zone aware
     expiry: str  # the opportunity's expiry, ISO
-    structure: str  # SF, SC or BF
+    structure: str  # SF, SC, BF or a STR1 code (LC, LP, CDS, CCS, PDS, PCS)
     width: float
     lots: int
     lot_size: int
