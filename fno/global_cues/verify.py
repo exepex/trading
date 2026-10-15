@@ -5,8 +5,10 @@ the snapshot log, read from the raw archive, its SHA-256 checked, and its value 
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 
 from ..storage.raw_store import RawFileStore
+from .collector import UNREADABLE
 from .snapshot_log import SnapshotLog
 from .source import GlobalCueSource
 
@@ -16,7 +18,11 @@ class CueTableVerifier:
         self.store, self.log = store, log
 
     def problems(self, source: GlobalCueSource, rows: list[dict[str, str]]) -> list[str]:
-        paths, parsed, problems = self.log.paths_by_sha256(source.cue), {}, []
+        days = [row["value_date"] for row in rows]
+        twice = sorted(d for d, n in Counter(days).items() if n > 1)
+        problems = [f"{source.cue} {d}: the table holds this date twice" for d in twice]
+        problems += [] if days == sorted(days) else [f"{source.cue}: the table's dates are not in order"]
+        paths, parsed = self.log.paths_by_sha256(source.cue), {}
         for row in rows:
             sha256 = row["source_sha256"]
             if sha256 not in parsed:
@@ -35,4 +41,7 @@ class CueTableVerifier:
         data = self.store.get(path)
         if data is None or hashlib.sha256(data).hexdigest() != sha256:
             return f"{path} missing from the archive or not the logged bytes"
-        return {v.value_date.isoformat(): v.value for v in source.parse(data)}
+        try:
+            return {v.value_date.isoformat(): v.value for v in source.parse(data)}
+        except UNREADABLE as exc:
+            return f"{path} fails the publisher's check: {exc}"

@@ -56,7 +56,8 @@ class CueChecks:
         counts = Counter((g[0], g[2]) for g in gaps)
         return [
             "gaps: " + (", ".join(f"{cue} {kind} {n}" for (cue, kind), n in sorted(counts.items())) or "none"),
-            f"USD/INR RBI against FBIL: {dict(Counter(o[1] for o in overlap)) or 'no difference'}",
+            f"USD/INR RBI against FBIL: {len(set(rbi) & set(fbil))} dates compared, "
+            f"{dict(Counter(o[1] for o in overlap)) or 'no difference'}",
         ]
 
 

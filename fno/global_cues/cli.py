@@ -11,7 +11,19 @@ from __future__ import annotations
 
 from datetime import date
 
+import requests
+
 from ..models import now_ist
+from ..research_data.calendar import CalendarError
+from ..storage.owner_token import DriveSignInRefused
+
+STOPPING_FAILURES = (
+    requests.RequestException,  # Drive's network errors (a publisher's are named per cue by the job)
+    DriveSignInRefused,
+    RuntimeError,  # Drive settings missing
+    CalendarError,
+    OSError,  # a missing calendar or table file
+)
 
 
 def add_global_cues_parser(subparsers) -> None:
@@ -26,7 +38,13 @@ def add_global_cues_parser(subparsers) -> None:
 
 
 def cmd_global_cues(args) -> int:
-    return {"fill": _fill, "check": _check, "verify": _verify}[args.action](args)
+    """Every action; a Drive or setup failure stops it with one named line and exit 1, never a traceback."""
+    action = {"fill": _fill, "check": _check, "verify": _verify}[args.action]
+    try:
+        return action(args)
+    except STOPPING_FAILURES as exc:
+        print(f"STOPPED ({type(exc).__name__}): {exc}. Run the same command again.")
+        return 1
 
 
 def _fill(args) -> int:
@@ -48,6 +66,10 @@ def _verify(args) -> int:
     from .wiring import build_tables, build_verifier, sources_named
 
     verifier, tables = build_verifier(), build_tables()
-    problems = [p for s in sources_named(args.cue) for p in verifier.problems(s, tables[s.cue].rows())]
+    sources = sources_named(args.cue)
+    if not any(tables[s.cue].rows() for s in sources):
+        print("no cue table has rows: nothing to verify")
+        return 1
+    problems = [p for s in sources for p in verifier.problems(s, tables[s.cue].rows())]
     print("\n".join(problems) or "every cue row equals the archived copy it names")
     return 1 if problems else 0

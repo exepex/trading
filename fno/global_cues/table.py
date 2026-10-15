@@ -27,6 +27,10 @@ LIVE, BACKFILLED = "live", "backfilled"
 CHANGED, LATE = "changed", "late"
 
 
+class TableFileBroken(RuntimeError):
+    """A table file that cannot be appended to without changing its last row."""
+
+
 @dataclass
 class MergeResult:
     added: int = 0
@@ -81,7 +85,9 @@ def _read(path: Path) -> list[dict[str, str]]:
 def _append(path: Path, fields: tuple[str, ...], rows: list[tuple]) -> None:
     if not rows:
         return
-    new = not path.is_file()
+    new = not path.is_file() or path.stat().st_size == 0
+    if not new and not path.read_bytes().endswith(b"\n"):
+        raise TableFileBroken(f"{path.name} does not end with a new line: appending would change its last row")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, lineterminator="\n")

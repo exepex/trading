@@ -794,10 +794,37 @@ file, a forecast input or the weather.
    (tests).
 5. Gaps recorded, never filled (weekdays without a value, repeated values); RBI and FBIL compared on every common date,
    differences listed (tests; committed check files reproduce).
-6. A failed download or a file that is not the publisher's writes nothing for that cue and is named (tests).
+6. A failed download, a file that is not the publisher's, an empty answer, or a copy Drive refuses writes nothing to
+   that cue's table and is named; a Drive or setup failure stops the command with one line and exit 1 (tests).
 7. Derived rows equal the archived copies: `verify` recomputes every row; a test plants a change and a wrong SHA-256.
 8. Behind interfaces with one composition root (added to CLAUDE.md); no frozen file changes; code size, lint, imports
    and the full suite pass.
+
+**Gap list (quality rule 2): every requirement of REPLAN's A17 paragraph, design 2.1's data row, outputs and failure
+modes, and the orchestrator's brief.**
+
+| Requirement | Where |
+|---|---|
+| previous US close, S&P 500 and Nasdaq 100 | **blocked, out until the owner decides**: FRED refused by the network policy, S&P DJI 403, Nasdaq's and Cboe's terms forbid it; proposal in the README (criterion 1) |
+| Brent | criterion 1 (EIA; weekly release, every row `backfilled`) |
+| USD/INR | criterion 1 (RBI, and FBIL for RBI's 2018-2022 hole) |
+| US 10-year yield | criterion 1 (US Treasury) |
+| each behind `GlobalCueSource`, one composition root | criterion 8 |
+| `first_seen_at` on every value; back-fill marked as such | criterion 2 |
+| official or primary sources first; source, publication lag and time zone named | criterion 1 |
+| NSE currency and MCX files (design 2.1's suggestion) | **out**: NSE's currency-derivative file paths tried answered 404 and MCX answered 403 from this session; RBI and FBIL are the official reference rate, and NSE's USD/INR futures are a different quantity (a futures price) |
+| FRED for US closes (design 2.1) | **blocked** (network policy); proposal in the README |
+| "previous US close known before 09:15 IST": the date mapping across time zones and US holidays | criterion 3 |
+| known before 09:15 IST (REPLAN) and "global cues as of 15:00" (2.1 outputs) | criterion 3 answers 09:15. That answer is safe for a 15:00 decision, but it leaves out the same day's USD/INR rate (published about 13:00-13:30 IST); a 15:00 variant needs each cue's publication time and is **out** until a forecast needs it |
+| raw files in Drive (A9) with A11's revision rule | criterion 4 |
+| derived daily table with a README | criteria 1, 2, 5 |
+| gaps recorded, never filled | criterion 5 |
+| a failed download writes nothing and is named | criterion 6 |
+| a publisher revising history kept apart (2.1; FRED revises) | criterion 4 |
+| look-ahead failure mode (2.1) | criterion 3 (`live_only`) |
+| licence and terms of each source, honestly labelled | criterion 1 |
+| no scheduling; O6 fetch-and-trigger | **out** (orchestrator: no schedules) |
+| no frozen files | criterion 8 |
 
 **Judge verifies:** runs `global-cues verify`; reads each source's terms itself; checks two US-holiday India dates
 with `value_for`; plants a revised value and a late value; confirms no S&P 500 or Nasdaq 100 data is in the repository.

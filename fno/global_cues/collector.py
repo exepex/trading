@@ -16,11 +16,12 @@ from datetime import date, datetime
 
 import requests
 
-from ..storage.raw_store import RawFileStore
+from ..storage.raw_store import RawFileConflict, RawFileStore, StoredCopyDamaged
 from .snapshot_log import SnapshotLog, SnapshotRow
 from .source import CueValue, GlobalCueSource
 
 UNREADABLE = (ValueError, KeyError, TypeError)  # a file that is not the publisher's layout
+SAVE_FAILURES = (RawFileConflict, StoredCopyDamaged, requests.RequestException)  # Drive refused or failed the copy
 
 
 @dataclass(frozen=True)
@@ -61,9 +62,15 @@ class CueCollector:
                 result.failure = f"not the publisher's file, nothing saved: {request.name}: {exc}"
                 return result
             downloaded.append((request, data, values))
-        for request, data, values in downloaded:
-            sha256 = self._archive(source, request, data, result.fetched_at)
-            result.values += [SourcedValue(v, sha256) for v in values if start <= v.value_date <= end]
+        values = []
+        for done, (request, data, file_values) in enumerate(downloaded):
+            try:
+                sha256 = self._archive(source, request, data, result.fetched_at)
+            except SAVE_FAILURES as exc:  # copies saved before it stay saved and logged; the table is not touched
+                result.failure = f"saving failed after {done} of {len(downloaded)} copies: {request.name}: {exc}"
+                return result
+            values += [SourcedValue(v, sha256) for v in file_values if start <= v.value_date <= end]
+        result.values = values
         return result
 
     def _archive(self, source: GlobalCueSource, request, data: bytes, fetched_at: datetime) -> str:
