@@ -68,3 +68,28 @@ New claims:
 Open point for the orchestrator (not blocking the judge): I read "the devil's advocate checks every number in the
 prose against the lines" as a code check. If the owner meant a second AI call, that is T3's objection role and adds
 one more routine plus its budget line; say so and I revise.
+
+## Revision 2 (owner, 15 Oct 2026, relayed by the orchestrator: the devil's advocate is BOTH)
+
+The owner chose both: the exact code check of the numbers and a second AI that reads the report and raises
+objections (REPLAN's devil's advocate, the role T3 uses, issue #105). Judge 167 addendum 1's note is applied too.
+
+What changed in `docs/stories/LR-learning.md`:
+- **One routine, two steps** (the owner asked for small setup): step 1 writes the summary, step 2 reads only the
+  committed lines and summary and writes at most 5 objections, each tied to a line `[L<n>]`. It is one fire, has one
+  F8 self-timed record (`role_or_bundle` "weekly post-mortem: writer and devil's advocate"), and BG1 `stop` skips both.
+- **The objecting AI is built once, for T3:** `fno/advocate/` holds the `Advocate` port, the `RoutineFileAdvocate`
+  adapter, `ObjectionCheck`, and the shared number tokenizer and `NumberCheck`. `publish` depends only on the port.
+  My register row says T3 reuses it.
+- **The objections are their own labelled section**, checked for form and numbers. They never change a number. A
+  failure or missing setup gives "advocate not run: <reason>" and nothing else changes.
+- **Rule 3 matches whole number tokens** (judge 167 addendum 1): "4 sessions" against "40%" fails (test 13).
+- **The owner's setup checklist** is in the text: one routine, two secrets, one hand-run check.
+
+New claims:
+
+| # | Claim | Evidence |
+|---|---|---|
+| 13 | F8 accepts a bundle name for one session that works for two roles. | Strong: `usage_ledger.py` column `role_or_bundle`; `record-usage --role` is free text. |
+| 14 | One routine is enough: both steps read only committed files and the fire path takes one pointer. | Some evidence (the AI books do the same with one routine per book). |
+| 15 | Objections from the same session as the summary are less independent than from a second routine. | Reasoning only; stated in Known limits, owner chose small setup. |

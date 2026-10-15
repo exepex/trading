@@ -23,8 +23,11 @@ trade**. Every score is **read** from the committed G4 and G8 reports, never rec
 Monday summary (`forecast-scores.yml`); LR1 carries that function's text and replaces the Monday post, so the owner
 gets one weekly report, not two (owner, 15 Oct 2026, LR1 question 1). As the REPLAN says, an AI writer turns the
 code-built lines into a short summary in plain words and the devil's advocate checks it (owner, 15 Oct 2026, question
-2: both in v1, the simple way). The code-built lines stay the source of truth and are always posted. The writer
-reuses the AI books' existing fire path and F8's usage record; no second AI caller is built.
+2: both in v1, the simple way). The devil's advocate is two things (owner, 15 Oct 2026): an exact code check of every
+number in the summary, and a second AI step that reads the report and raises objections (REPLAN's devil's advocate,
+the role T3 will use daily, issue #105). The code-built lines stay the source of truth and are always posted. Both AI
+steps run in one routine fired through the AI books' existing fire path, with F8's usage record; no second AI caller is
+built, and the objecting AI is built once, behind one port, for T3 to reuse.
 
 **Scope.** In:
 - `python -m fno postmortem weekly [--week-ending YYYY-MM-DD] [--post]`. The week is the A7 regular sessions from
@@ -32,8 +35,9 @@ reuses the AI books' existing fire path and F8's usage record; no second AI call
   Without `--post` it is a dry run: it prints the lines and writes, fires and posts nothing. With `--post` it writes
   the lines to `research/postmortems/<YYYY>/<week-ending>.md` and `.json` and fires the post-mortem writer (below).
 - `python -m fno postmortem publish [--week-ending YYYY-MM-DD]`: one hour later, reads the writer's prose if it came,
-  runs the devil's advocate check, and posts once to #fno-desk (`FNO_SLACK_BOT_TOKEN`, through the existing alert
-  sender of `fno/composition.py`): the checked prose first, then the lines; or the lines only, with one alert line.
+  runs the number check, reads the objections if they came, and posts once to #fno-desk (`FNO_SLACK_BOT_TOKEN`, through the existing alert
+  sender of `fno/composition.py`), in this order: the checked prose (or one line saying why it was dropped), the
+  objections section (or "advocate not run: <reason>"), then the lines.
 - **Forecasts section.**
   - Protocol v4 (G8): the latest committed report `research/forecasts/v4_scores/<d>.json` with `d` on or before the
     week's end. Per question: its status; per forecaster its scores as the report states them; per comparison with
@@ -65,34 +69,65 @@ reuses the AI books' existing fire path and F8's usage record; no second AI call
   - 15-minute recorder (A16): the number of live session rows in `research/data/intraday/rv/`; below 20 sessions it
     says "not enough data yet (n of 20)", the V1 minimum of the REPLAN;
   - one completeness line: sessions with a complete capture, a card and a weather record, out of the week's sessions.
-- **The AI writer** (the "post-mortem writer" role of design 7.6's stop order):
+- **The AI routine: one routine, two steps** (the "post-mortem writer" and "devil's advocate objections" roles of
+  design 7.6's stop order; one routine keeps the owner's setup to one routine and two secrets):
   - fired by `postmortem weekly --post` through the existing `RoutineTrigger` interface (`fno/pipeline/trigger.py`,
     `RoutineFireTrigger`, as the AI books in `fno/ai/fire.py`), with a one-line pointer: the week's Saturday and the
     SHA-256 of the committed lines file. Only the pointer is sent, never data;
   - its routine (created by the owner from `docs/stories/LR1-owner-checklist.md`; two repository secrets,
     `FNO_ROUTINE_POSTMORTEM_TRIGGER_ID` and `FNO_ROUTINE_POSTMORTEM_TOKEN`) reads the committed lines file, checks its
-    SHA-256 against the pointer, writes at most 150 words to `research/postmortems/<YYYY>/<week-ending>_prose.md`
-    with the lines' SHA-256 on its first line, records its own run with F8's
-    `python -m fno budget record-usage --self-timed --purpose books_and_roles --role "post-mortem writer"`, and
-    pushes. Its prompt: plain words, every number in digits and copied from the lines, no advice, no trade, no
-    forecast of its own;
-  - not fired, and the lines posted alone with one line saying why, when: the month's BG1 signal
-    (`accounting/budget/<YYYY-MM>_signal.json`) is `stop` (design 7.6: the writer stops before the advocate and the
-    forecasters), the routine's secrets are missing (`UnconfiguredTrigger`), or the fire fails (`FireFailed`'s reason);
+    SHA-256 against the pointer, then:
+    - step 1, writer: at most 150 words to `research/postmortems/<YYYY>/<week-ending>_prose.md`, the lines' SHA-256
+      on its first line; plain words, every number in digits and copied from the lines, no advice, no trade, no
+      forecast of its own;
+    - step 2, objections: reads only the committed lines file and the step-1 prose, and writes
+      `research/postmortems/<YYYY>/<week-ending>_objections.md`: the lines' SHA-256 on its first line, then at most 5
+      objections, each one sentence of at most 40 words starting with the lines-file line number it questions
+      (`[L12] ...`), aimed at what the numbers may not show (too few days, a miss pattern, a missing input, a claim in
+      the prose the lines do not support). Objections never give new numbers, advice or a trade;
+    - records its own run once with F8's `python -m fno budget record-usage --self-timed --purpose books_and_roles
+      --role "weekly post-mortem: writer and devil's advocate"` (F8's `role_or_bundle`), and pushes both files;
+  - not fired (so neither step runs), and the lines posted with "summary: <reason>" and "advocate not run: <reason>",
+    when: the month's BG1 signal (`accounting/budget/<YYYY-MM>_signal.json`) is `stop` (design 7.6: at 100% every AI
+    role stops; code keeps running), the routine's secrets are missing (`UnconfiguredTrigger`), or the fire fails (`FireFailed`'s reason);
   - the fire is logged once per week in `research/postmortems/<YYYY>/<week-ending>_fired.json` (the routine's session
     link, for F8's audit), as `fno/ai/fire.py` does; never retried.
-- **The devil's advocate check** (code, run by `publish`): the prose is posted only when all of these hold, else it is
-  dropped, the lines are posted alone and one alert line names the first failed rule:
+- **The number check** (code, run by `publish`; the exact half of the devil's advocate): the prose is posted only when
+  all of these hold, else it is dropped (the objections and lines are still posted) and one alert line names the first
+  failed rule:
   1. the prose file exists and its first line is the SHA-256 of the committed lines file;
   2. at most 150 words, no link, no Slack mention (`<@`, `<!`, `<#`), no code block;
-  3. every number in the prose (each run of digits with its decimal point, sign and `%`, dates included) appears as
-     the same text in the lines;
+  3. every number token in the prose appears as a whole number token in the lines: one regex splits both texts into
+     number tokens (digits with their decimal point, sign and `%`, dates as one token), and the prose's tokens must be
+     a subset of the lines' tokens; never a substring match ("4" does not match "40%", judge 167 addendum 1);
   4. no number written in words (zero to twenty, "half", "double", "twice"), so rule 3 cannot be dodged.
-  The check is code, not a second AI call: matching each number exactly is a rule, and a rule is cheaper and surer in
-  code (reasoning only). An AI devil's advocate that raises objections in words is T3 (slice B).
-- **Nothing the AI writes can decide a trade:** only `publish` reads the prose file, and only to post it; an AST test
-  fails if any module outside `fno/learning/` names the prose path, and `fno/learning/` imports nothing from
-  `fno/desk/`, `fno/books/`, `fno/risk/` or `fno/checks/`.
+  Matching each number exactly is a rule, so it is code (reasoning only: cheaper and surer than an AI for this).
+- **The objections** (the AI half of the devil's advocate), behind a reusable port in a new package `fno/advocate/`:
+  - `Advocate` (interface): `objections(subject: AdvocateSubject) -> AdvocateResult`; `AdvocateSubject` is the subject's
+    name, its committed lines file and that file's SHA-256; `AdvocateResult` is either the checked objections or "not
+    run" with a reason;
+  - `RoutineFileAdvocate` (adapter): reads `<subject>_objections.md` that a routine wrote beside the lines file and
+    applies `ObjectionCheck`: the SHA line matches; 1 to 5 objections; each at most 40 words, starting with `[L<n>]`
+    for a line that exists; no link, mention or code block; rules 3 and 4 of the number check (numbers only as whole
+    tokens of the lines, none in words);
+  - no file, or any rule failed: "advocate not run: <reason>", and nothing else in the report changes;
+  - posted as their own section, headed "Devil's advocate objections (AI; they change no number and decide no
+    trade)"; the numbers in the lines are never edited because of them;
+  - T3 (daily card objections) reuses `Advocate`, `RoutineFileAdvocate` and `ObjectionCheck` with its own subject and
+    never builds a second objecting AI (work register row).
+- **Nothing the AI writes can decide a trade:** only `fno/learning/publish.py` reads the prose and objections files
+  (through `Advocate` for the objections), and only to post them; an AST test fails if any other module names those
+  paths, and neither `fno/learning/` nor `fno/advocate/` imports from `fno/desk/`, `fno/books/`, `fno/risk/` or
+  `fno/checks/`.
+- **The owner's setup (one routine, two secrets; checklist `docs/stories/LR1-owner-checklist.md`, written with the
+  code):**
+  1. Create one Claude Code routine "Omenix F&O weekly post-mortem" on this repository, with an API trigger (`/fire`)
+     and no schedule of its own (the workflow fires it), its prompt copied from the checklist (the two steps above,
+     the SHA check, the `record-usage` line, push to `main` with the public-record scan on).
+  2. Add the trigger's id and token as repository secrets `FNO_ROUTINE_POSTMORTEM_TRIGGER_ID` and
+     `FNO_ROUTINE_POSTMORTEM_TOKEN`.
+  3. Run the workflow once by hand (`workflow_dispatch`, test week) and check that #fno-desk shows the three sections.
+  Until steps 1-2 are done, every week posts "summary: writer not configured" and "advocate not run: not configured".
 - A week with no regular session (all holidays) gives one line, "no NSE regular session this week", and is still
   written and posted.
 - The report is a record: written once per week. The same bytes again change nothing; different bytes for a week
@@ -107,7 +142,7 @@ reuses the AI books' existing fire path and F8's usage record; no second AI call
   the `forecast-scores summary` command stay.
 
 Out (each with where it goes):
-- An AI devil's advocate that raises objections in words (T3, slice B); v1's advocate is the code check above.
+- The daily card's objections (T3, slice B): T3 reuses `fno/advocate/` with the card as its subject.
 - Cards with trade outcomes, open positions, loss reviews (LR2), drift alarms (LR3), budget and factory status: slice
   B or later, when those records exist.
 - Groww-vs-NSE agreement and A11 revisions (design 2.1 metrics): not in v1 (Known limits).
@@ -124,12 +159,15 @@ Out (each with where it goes):
     it.
   - `report.py`: `PostMortemBuilder` (joins the sections, puts the EXPLORATORY line first before the v4 freeze) and
     `PostMortemRecords` (write once).
-  - `writer.py`: `WriterPointer` (the one-line pointer, a `FiredText`) and `PostMortemWriter` (budget signal, fire
+  - `writer.py`: `WriterPointer` (the one-line pointer, a `FiredText`) and `PostMortemRoutine` (budget signal, fire
     through a `RoutineTrigger`, fire log).
-  - `advocate.py`: `ProseCheck` (interface) and `NumberCheck` (the four rules), returning the first failed rule.
-  - `publish.py`: `Publisher` (prose or lines only, one alert, the publish record).
+  - `publish.py`: `Publisher` (the three sections, one alert per dropped part, the publish record).
+- `fno/advocate/` (reusable, for T3): `numbers.py` (`number_tokens`, the one tokenizer, and `NumberCheck`, the four
+  rules, returning the first failed rule), `port.py` (`Advocate`, `AdvocateSubject`, `AdvocateResult`),
+  `routine_file.py` (`RoutineFileAdvocate`, `ObjectionCheck`).
   - `cli.py` (the two commands) and `wiring.py` (composition root: the folders, `WeatherRecords`, G7's series, the A7
-    calendar, the alert sender, the writer's trigger from its two secrets, the budget signal file).
+    calendar, the alert sender, the routine's trigger from its two secrets, the budget signal file,
+    `RoutineFileAdvocate`).
 - Reuse, not a second version: `RoutineTrigger`/`RoutineFireTrigger`/`UnconfiguredTrigger` and `FireFailed`
   (the AI books' fire path), F8's `record-usage --self-timed`, BG1's signal file, G4's `weekly_summary`, G8's report JSON and `EXPLORATORY`, M1's `WeatherRecords`, G7's
   `big_move_outcomes`, the A7 calendar, the existing alert sender. Each file under 350 lines.
@@ -159,13 +197,17 @@ Out (each with where it goes):
 14. The writer is fired once per week with only the pointer; a second `weekly --post` for the same week fires nothing
     ("already fired").
 15. The writer is not fired when the BG1 signal is `stop`, or its secrets are missing; the fire failing is logged with
-    `FireFailed`'s reason; in each case `publish` posts the lines alone with one line naming the reason.
-16. `publish` posts the prose only when all four advocate rules pass; otherwise the lines alone and one alert line
-    naming the first failed rule; the lines are posted in every case.
-17. No prose file by 11:41: the lines alone, with "writer: no summary received".
-18. Only `fno/learning/publish.py` reads the prose path (AST test); nothing in `fno/learning/` imports the desk, books,
-    risk or checks.
-19. The owner checklist names the routine's prompt, its two secrets and its `record-usage` step.
+    `FireFailed`'s reason; in each case `publish` posts the lines with "summary: <reason>" and "advocate not run:
+    <reason>".
+16. `publish` posts the prose only when all four number-check rules pass (whole number tokens only); otherwise it
+    drops the prose with one alert line naming the first failed rule; the lines are posted in every case.
+17. No prose file by 11:41: "summary: no summary received"; the objections and lines are still posted.
+18. Only `fno/learning/publish.py` reads the prose and objections paths (AST test); neither `fno/learning/` nor
+    `fno/advocate/` imports the desk, books, risk or checks.
+19. The owner checklist names the one routine, its two-step prompt, its two secrets and its `record-usage` line.
+20. Objections are posted, in their own labelled section, only when `ObjectionCheck` passes; no file, a failed rule,
+    a `stop` signal or a missing configuration gives "advocate not run: <reason>" and changes nothing else.
+21. `Advocate` is an interface with one adapter (`RoutineFileAdvocate`); `publish` depends only on the interface.
 
 **Test plan:** fakes for Slack, the calendar and each reader; planted committed reports and records in a temporary
 folder.
@@ -187,7 +229,13 @@ folder.
 11. Advocate, one test per rule: a matching prose passes; a wrong SHA line, 151 words, a link, `<!channel>`, a number
     not in the lines (`41%` where the lines say `40%`), a changed sign (`-0.0042` vs `+0.0042`) and "three days" each
     fail with their rule named.
-12. Publish: prose plus lines; lines only with each failure line; no prose file; Slack failure.
+12. Publish: all three sections; prose dropped (objections and lines kept); objections not run (prose and lines
+    kept); no files; Slack failure.
+13. Whole tokens (judge 167 addendum 1): prose "4 sessions" against lines holding only "40%" fails rule 3; "40%"
+    passes; "2026-10-16" passes only when the lines hold that date.
+14. Objections, one test per rule: a passing file; wrong SHA line; 0 and 6 objections; 41 words; `[L99]` for a line
+    that does not exist; a link; a number not in the lines; "twice".
+15. Port: `publish` works with a fake `Advocate` (both results), so T3 can plug in its own subject.
 
 **Judge verifies:** runs `python -m fno postmortem weekly --week-ending 2026-10-17` on the repository and checks every
 number against the committed report or record it names; reads the import rule; checks the workflow's schedule,
@@ -206,6 +254,12 @@ secrets and commit step.
   come in slice B.
 - The writer's run is counted in F8 by its own timing record only; BG1's coverage check reads the AI books' fire
   logs, not LR1's, so a missed timing record makes the books-and-roles minutes look lower (one short run a week).
-- The routine and its two secrets are the owner's step; until then every week is "lines only: writer not configured".
+- The routine and its two secrets are the owner's step; until then every week is "summary: writer not configured" and
+  "advocate not run: not configured".
+- One routine writes and then objects, so the objections are not fully independent of the summary (same session). The
+  step-2 prompt reads only the committed files; the owner chose one routine to keep setup small. Reasoning only: a
+  separate routine would be more independent and cost one more routine and its secrets; T3 may revisit it.
+- The objections are checked for form and numbers only, not for whether they are fair; they are labelled AI and change
+  nothing.
 
 **Depends:** G4, G8, M1, T1, A4b, A7, F1/G5 (fire path), F8, BG1 · **Size:** S · **Status:** story text, waiting for the judge
