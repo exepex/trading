@@ -52,3 +52,11 @@ deadline, so a D3 correction run committed before the deadline would be read as 
 **Cost, said plainly:** `--commit-run` is a small new command option, needed for the hand fix to be one documented
 step rather than raw git. The `Committer` port gains a second optional argument (the pre-commit check of the pulled
 tree). Both are within the story's size S.
+
+## Notes for the code round (after E2b merges)
+
+- Judge 123 addendum 1: `--commit-run` passes the same check as a normal commit, accepts only a run in the
+  on-disk-only state, and never sets commit dates (E3 judges timeliness by committer time).
+- Decision 67: drop the two-checkout pre-commit re-check; keep only the cheap origin check before deciding.
+- ChatGPT review 107 (orchestrator): the collector sends one integrity alert when a book has more than one original
+  run on a day (a double-fired session).
