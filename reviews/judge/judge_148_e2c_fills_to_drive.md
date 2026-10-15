@@ -70,3 +70,20 @@ daily desk run takes, shown in the code on `main`.
 **Verdict: FAIL for the story text at cf6da93156530bdf702172b9e819fcdc26c6f9a5**, on must-fix 1 (private packs) and
 should-fix 1 (readers), plus the ruling: drop the dashboard contract change. It is text only, and a re-check needs
 only the E2c section and response 148.
+
+## Addendum 1 (15 Oct 2026): story text at c62ef47d129eeae867fd84bb719a61c97d1b1a28
+
+**Scope.** 25f83f0 and c62ef47 change only the E2c section and response 148. The merge of `main` (23fef60) brings judge
+files only.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Ruling: dashboard contract change | **APPLIED** | The bullet and criterion 6 are gone. Known limits now say that read models go only to the Azure store behind sign-in, and that no later job may commit such a page publicly |
+| Must-fix 1: private packs | **MET** | The table gains `private.json`, which goes to Drive, with only its `.sha256` committed (D3 already records the hash). Book 1's decision reads the downloaded copy to hash it (`book1_inputs.py:42`). Criterion 1's fixture day runs the pack step and scans the packs' folders |
+| Should-fix 1: readers | **MET** | One shared download, once per run or command, before any read. The named readers are: E3's daily run (C3 and C4 included), Book 1 with its pack, C4's `LedgerAccounts` (the line on cutoff replay is present), T1's card (now the downloaded folder, not the committed record), E6, scoreboard B, Home, E1's account command and the shadow books. Criterion 3 tests each on a fake Drive store |
+
+Nothing else changed. What judge 148 found right still stands.
+
+**Verdict: PASS for the E2c story text at c62ef47d129eeae867fd84bb719a61c97d1b1a28.** Code may start. The code review
+will run criterion 1's committed-file scan on a real fixture day and check that no committed file holds a fill price,
+a mark, cash or marked equity.
