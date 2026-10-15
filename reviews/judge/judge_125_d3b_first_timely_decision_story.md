@@ -102,7 +102,7 @@ the normal running of this system. Under that rule:
 
 Judged under the owner's "keep the design simple" rule: only paths from normal running, no planted mutations.
 - Gates: 4,992 passed; ruff, format and imports clean.
-- `main` merged in: `merge-tree` with `origin/main` shows no conflict, and `main` has 6 commits since.
+- `main` merged in: `merge-tree` with `origin/main` shows no conflict, and `main` has 8 commits since.
 - The story's own tests: 27 of 27 pass (first timely, opening runs, run order, one-order guard, S1 order, uncollected
   runs).
 
