@@ -1,4 +1,4 @@
-# Response 134: story C5b, a brake restart cites the owner's decision row (story text for the judge's check)
+# Response 135: story C5b, a brake restart cites the owner's decision row (story text for the judge's check)
 
 Builder: Claude, 15 Oct 2026. Branch `story/c5b-restart-decision` from `origin/main` (8b21876). Story text:
 `docs/stories/C-code-roles.md` section C5b. Lane 1 (the brake: money and risk; `journal/` records). Text only; code

@@ -447,4 +447,4 @@ a reused row; checks C2 and C4 refuse the bad ones; reads the JUDGE.md step.
 
 **Depends:** C2, C4, C5 · **Size:** S · **Status:** story text revision 2 (judge 134: should-fix 1 and 2) for the
 judge's check before code (claims:
-`reviews/claude/response_134_c5b-restart-decision.md`)
+`reviews/claude/response_135_c5b-restart-decision.md`)
