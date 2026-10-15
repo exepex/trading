@@ -173,6 +173,23 @@ Out:
   2. *two accounts on opposite sides* (judge 118 addendum 1, confirmed by a test): E4 fills each account on its own,
      so when one account buys a contract and another sells it at the same execution snapshot (one closing while the
      other opens, or a book and a shadow), their rows together publish both sides of that contract;
+  3. *protection unverified at the opening snapshot* (builder's review 2, confirmed by a test; orchestrator for the
+     owner, response 113): when a protective leg's bid size cannot cover its units at the snapshot that opened the
+     trade, E4 marks it `protection_unverified` and closes the trade at that same snapshot (`fno/desk/exits.py:90-106`),
+     so its rows show both sides of each leg closed there. It is also a pointless loss (the spread paid in and out at
+     once): a separate small E4 story will refuse such an entry (a protection-exit size check before opening), which
+     removes this exception;
+- **known channels outside the fill rows (stated, not changed here; one owner question with the fills-to-Drive
+  question):** scoreboard B (`research/scoreboards/B/<date>.json`, `fno/scoreboard/whole_system.py:60`) commits
+  `raw_account_net_rs`, which marks open legs at the mid of the same 15:15 execution snapshot the fills used
+  (`fno/scoreboard/daily_values.py:44-55`): for a single-leg trade on its entry day, mid = (board net - fill amount) /
+  units and bid = 2 mid - ask (recovered exactly in review 2). `journal/<book>/account/equity_history.csv`
+  (`marked_equity_rs - cash_rs`, `fno/books/account.py:153`) would leak the same way once anything calls it. Nothing
+  is live, so nothing has leaked;
+- **kept, by decision (orchestrator for the owner, response 113):** the per-contract mids and implied volatilities of
+  the 14:55 canonical snapshot in Book 1's D3 decision inputs (`fno/playbook/decision_codec.py:15-27`) and C4's
+  `snapshot_mid` per leg (`fno/checks/validity_market.py:46`): derived figures the letter of "8 A" allows, which alone
+  give neither bid nor ask, and no exact pairing with the 15:15 fills was found;
 - NSE's public chain (`research/data/quotes/nse/`): public NSE data;
 - the forecast v2 pack and its frozen code (G1 v2): already derived, not touched.
 
@@ -196,6 +213,8 @@ the hash-checked store. The guard and the derived pack work the same with either
 | E4 criterion 2 (a failed short leg unwinds the protection, legging cost recorded) | kept; the one stated exception (criterion 3) |
 | E6's half-spread paid (criterion 3 of E6) | criterion 3 |
 | C3's spot rules (2% from the previous close, 0.2% chain agreement) | criterion 2 |
+| One spot per recorded chain (orchestrator's decision 4, review 2 finding 6) | criterion 2 |
+| Other committed figures that could reveal a quote (review 2) | Scope "Out": exception 3, known channels, kept mids |
 
 **Acceptance criteria:**
 1. A common pack built from a canonical snapshot holds no `option:` item and no field named `bid`, `ask`, `bid_qty` or
@@ -205,12 +224,15 @@ the hash-checked store. The guard and the derived pack work the same with either
    snapshot is refused on a session day exactly as before (E2, judge 72). A chain with two different spots is refused
    with its expiry (test).
 2. C3's spot check gives the same results from the `spot:` items as before from the option items: the 2% limit at,
-   just under and just over; the 0.2% agreement at, under and over; no spot; one chain only (tests).
-3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the two stated exceptions (an unwound entry;
-   two accounts on opposite sides of one contract at one snapshot), no committed desk record lets a filled leg's other
-   quote side be worked out: tests build E4's outcomes (opened, closed at a later snapshot, pending exit, an exit
-   review at the opening snapshot, partial fill) and find that within one account only the unwound legs give both
-   sides of one contract in one snapshot, and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old figure on the
+   just under and just over; the 0.2% agreement at, under and over; no spot (tests). New (orchestrator's decision 4):
+   one spot per recorded chain. A chain whose rows carry no spot keeps its `spot:` item with no value, and a refused
+   `spot:` item counts as missing; C3 names the chain and fails, so the 0.2% agreement is never skipped (test).
+3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the three stated exceptions (an unwound
+   entry; two accounts on opposite sides of one contract at one snapshot; protection unverified at the opening
+   snapshot), no committed desk fill row lets a filled leg's other quote side be worked out: tests build E4's outcomes
+   (opened, closed at a later snapshot, pending exit, a time rule at the opening snapshot, partial fill) and find that
+   within one account only the unwound legs give both sides, that unverified protection at the opening snapshot does
+   (pinned until the E4 story removes it), and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old figure on the
    same fixtures; a fill whose snapshot is missing or whose hash differs counts as "touch unknown" (excluded from the
    average, never zero), and the scorecard report prints how many fills were "touch unknown"; a settlement row (no
    quote) is excluded as before (tests). **Depends on A4b:** E6 reads the 15:15 quote file from Drive through A4b's
@@ -220,8 +242,10 @@ the hash-checked store. The guard and the derived pack work the same with either
 5. The committer refuses, before running git, any commit whose paths include a Groww quote file, naming the path; the
    sidecar `.meta.json` and the `.canonical` marker are allowed; a path outside the quotes folder with a `.csv` name
    is allowed. Paths are compared after resolving them, so an upper-case `.CSV`, a `../` path into the folder and a
-   symlink pointing into it are refused too (tests: refused, allowed, mixed list, empty list, `.CSV`, `../`,
-   symlink).
+   symlink pointing into it are refused too. Because a commit takes the whole index, every commit through `Git`
+   (the daily run's committer and the account sync) also checks every staged file after its add: a folder holding a
+   quote file, or a quote file staged earlier by anything else, is refused, this add is undone and nothing is
+   committed (tests: refused, allowed, mixed list, empty list, `.CSV`, `../`, symlink, folder, earlier-staged file).
 6. E2's own criteria still hold on schema 2: no book data, byte-identical rebuilds, cutoff refusals named, the
    opportunity set unchanged (existing tests, updated only where they name option items).
 7. No reader of the committed pack uses per-contract quote figures (a test lists every `option:` lookup in `fno/` and

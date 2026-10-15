@@ -150,3 +150,16 @@ def test_the_same_failure_is_alerted_once_however_often_it_is_checked(store, sna
         the_gate.check(pack, LEGS)
     the_gate.check(pack)  # a different check (no legs) with the same failures: still the same text
     assert len(alerts.sent) == 1
+
+
+def test_a_chain_without_a_spot_fails_naming_it(store, snapshots, alerts):
+    """Story E2b (orchestrator's decision 4): one spot per recorded chain, so the 0.2% agreement is always checked; a
+    chain whose spot was blank, or whose spot item was refused at the cutoff, is named."""
+    _, report = checked(store, snapshots, alerts, spots=(25_000.0, None))
+    assert "the pack holds no spot for the chain(s) 2026-11-24: one spot per recorded chain" in report.reason()
+    pack = pack_of(store, DAY)
+    pack.body["refused"] = [{"name": "spot:2026-11-24", "available_at": "x", "reason": "after the cutoff"}]
+    late = gate(snapshots, alerts, DAY).check(pack, LEGS)[1]
+    assert "the pack holds no spot for the chain(s) 2026-11-24" in late.reason()
+    _, both = checked(store, snapshots, alerts, spots=(25_000.0, 25_012.35))
+    assert both.ok

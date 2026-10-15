@@ -74,7 +74,7 @@ def test_a_chain_carrying_two_spots_is_refused_naming_its_expiry(tmp_path):
         builder(tmp_path).build(DAY, CUTOFF)
 
 
-def test_a_chain_without_any_spot_gives_no_spot_item(tmp_path):
+def test_a_chain_without_any_spot_keeps_its_item_with_no_value_for_c3_to_name(tmp_path):
     folder = snapshot_folder(tmp_path)
     path = folder / f"{SNAPSHOT}.csv"
     rows = [r | {"spot": ""} for r in golden_rows(folder)]
@@ -82,8 +82,9 @@ def test_a_chain_without_any_spot_gives_no_spot_item(tmp_path):
         writer = csv.DictWriter(out, fieldnames=list(rows[0]), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
-    names = {i["name"] for i in builder(tmp_path).build(DAY, CUTOFF).body["items"]}
-    assert not any(name.startswith("spot:") for name in names) and "quote_counts" in names
+    items = {i["name"]: i["value"] for i in builder(tmp_path).build(DAY, CUTOFF).body["items"]}
+    spots = {name: value for name, value in items.items() if name.startswith("spot:")}
+    assert spots and set(spots.values()) == {None} and "quote_counts" in items
 
 
 def test_no_reader_in_the_app_looks_up_a_per_contract_pack_item():
@@ -93,3 +94,16 @@ def test_no_reader_in_the_app_looks_up_a_per_contract_pack_item():
     found = [str(p.relative_to(ROOT)) for p in (ROOT / "fno").rglob("*.py")
              if any(f"{quote}option:" in p.read_text(encoding="utf-8") for quote in ("'", '"'))]  # fmt: skip
     assert found == []
+
+
+def test_the_valid_count_counts_only_valid_rows(tmp_path):
+    folder = snapshot_folder(tmp_path)
+    path = folder / f"{SNAPSHOT}.csv"
+    rows = golden_rows(folder)
+    rows[0]["valid"], rows[0]["invalid_reason"] = "false", "no trade today"
+    with path.open("w", encoding="utf-8", newline="") as out:
+        writer = csv.DictWriter(out, fieldnames=list(rows[0]), lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+    items = {i["name"]: i["value"] for i in builder(tmp_path).build(DAY, CUTOFF).body["items"]}
+    assert items["quote_counts"]["valid_contracts"] == sum(r["valid"] == "true" for r in rows) == len(rows) - 1

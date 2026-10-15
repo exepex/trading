@@ -35,7 +35,12 @@ class SpotNearPreviousClose(DataCheck):
         self.calendar, self.shocks, self.limit, self.agreement = calendar, shocks, limit, agreement
 
     def problems(self, subject: CheckSubject) -> list[str]:
-        spots = sorted({v for v in pack_items(subject, SPOT_PREFIX).values() if v})
+        chains = pack_items(subject, SPOT_PREFIX)
+        refused = [r["name"] for r in subject.pack.body.get("refused", []) if r["name"].startswith(SPOT_PREFIX)]
+        blank = sorted(name.removeprefix(SPOT_PREFIX) for name in refused + [n for n, v in chains.items() if not v])
+        if blank:
+            return [f"the pack holds no spot for the chain(s) {', '.join(blank)}: one spot per recorded chain"]
+        spots = sorted(set(chains.values()))
         previous = self.calendar.previous_session(subject.day)
         close = pack_items(subject, CLOSE_PREFIX).get(f"{CLOSE_PREFIX}{previous.isoformat()}")
         if not spots:

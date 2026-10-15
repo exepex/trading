@@ -34,7 +34,8 @@ def _nse_time(text: str) -> datetime | None:
 
 
 def _spots(rows: list[dict], source: str) -> list[PackItem]:
-    """One NIFTY level per monthly chain; a chain whose rows carry two levels is refused, never averaged."""
+    """One NIFTY level per monthly chain; a chain whose rows carry two levels is refused, never averaged, and a chain
+    whose rows carry none still gets its item, with no value, so C3 can name it (one spot per recorded chain)."""
     chains: dict[str, list[dict]] = {}
     for row in rows:
         chains.setdefault(row["expiry"], []).append(row)
@@ -43,9 +44,9 @@ def _spots(rows: list[dict], source: str) -> list[PackItem]:
         levels = {float(r["spot"]) for r in chain if r["spot"]}
         if len(levels) > 1:
             raise PackError(f"chain {expiry} carries {len(levels)} different spots {sorted(levels)}: nothing packed")
-        if levels:
-            arrived = min(r["response_received_at"] for r in chain)  # the level is known with the chain's first row
-            items.append(PackItem(f"{SPOT_PREFIX}{expiry}", levels.pop(), f"{source} spot of chain {expiry}", arrived))
+        arrived = min(r["response_received_at"] for r in chain)  # the level is known with the chain's first row
+        level = levels.pop() if levels else None
+        items.append(PackItem(f"{SPOT_PREFIX}{expiry}", level, f"{source} spot of chain {expiry}", arrived))
     return items
 
 
