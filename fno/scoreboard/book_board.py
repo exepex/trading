@@ -13,8 +13,9 @@ from datetime import date, timedelta
 from .book_trades import NO_RECORD, OVERRIDDEN, ScoredTrade, Sessions
 from .do_nothing import DoNothing
 from .ports import AiCostAllocation
+from .random_control import RandomControl, RealTrade
 from .sections import section
-from .series import costs_by_session, daily_series
+from .series import costs_by_session, daily_series, held_at_close
 from .uncertainty import uncertainty
 
 PILOT = "pilot, not counted"
@@ -40,8 +41,9 @@ def full_months(first: date, last: date) -> int:
 
 class BookBoard:
     def __init__(self, sessions: Sessions, ai: AiCostAllocation, brake_rs: float | None = None,
-                 do_nothing: DoNothing | None = None):  # fmt: skip
+                 do_nothing: DoNothing | None = None, luck: RandomControl | None = None):  # fmt: skip
         self.sessions, self.ai, self.brake_rs, self.do_nothing = sessions, ai, brake_rs, do_nothing
+        self.luck = luck
 
     def build(self, inputs: BookInputs, common_start: date | None) -> dict:
         monthly = _monthly(inputs.operating_costs)
@@ -101,11 +103,21 @@ class BookBoard:
                 self.ai.allocated(inputs.book, first, last)
             )  # Book 1: 0; AI books: unknown until F8
             board = section(trades, series, sum(costs.values()), 0.0, judged_by, first, last, self.brake_rs, against)
-            return board | {"ai_cost_allocated_rs": AI_AT_BOOK_LEVEL}
+            return board | {"ai_cost_allocated_rs": AI_AT_BOOK_LEVEL} | self._luck(trades, series, judged)
         ai = self.ai.allocated(inputs.book, *ai_period)
-        return section(
+        board = section(
             trades, series, sum(costs.values()), ai, judged_by, first, last, self.brake_rs, self._against(ai)
         )
+        return board | self._luck(trades, series, judged)
+
+    def _luck(self, trades: Sequence[ScoredTrade], series, judged: bool) -> dict:
+        """The random control on judged sections only (story S6): every completed position with its record's shape."""
+        if self.luck is None or not judged:
+            return {}
+        real = [RealTrade(t.structure, t.legs, t.units, t.opened_on, t.closed_on, t.line.net, t.entry.max_loss,
+                          sum(held_at_close(t, d) for d in series.days))
+                for t in trades if t.completed and t.line and t.entry and t.legs and t.structure]  # fmt: skip
+        return {"random_control": self.luck.control(real)}
 
     def _against(self, cost: float | None):
         """The do-nothing comparison for a section (story S6) with its AI cost; None: unknown, so no verdict."""

@@ -24,6 +24,7 @@ from .entry_decisions import EntryDecisions
 from .matched_board import MatchedBoard
 from .matched_days import CommonPacks, MatchedDays
 from .ports import ProtocolStatus
+from .random_control import RandomControl
 from .sources import (
     AiCostBeforeF8,
     ArchivedIndexLevels,
@@ -41,8 +42,9 @@ from .whole_system import WholeSystemBoard
 def board_from(
     root: Path, charges: dict, calendar: SessionCalendar, versions: Versions, marks: DayMarks,
     protocol: ProtocolStatus, brake_rs: float | None = None, do_nothing: DoNothing | None = None,
+    luck: RandomControl | None = None,
 ) -> WholeSystemBoard:  # fmt: skip
-    runs, board = CommittedRuns(root), BookBoard(calendar.sessions, AiCostBeforeF8(), brake_rs, do_nothing)
+    runs, board = CommittedRuns(root), BookBoard(calendar.sessions, AiCostBeforeF8(), brake_rs, do_nothing, luck)
     return WholeSystemBoard(
         BOOKS, lambda book: DeskRecords(PaperAccount(root, book)),
         lambda: EntryDecisions(runs.runs(), runs.records, versions, RecordedOwnerOverride()), calendar.sessions, marks,
@@ -56,11 +58,13 @@ def build_whole_system_board(cfg: dict, root: Path = ROOT) -> WholeSystemBoard:
     from ..desk.wiring import build_execution_snapshots
     from .protocol_status import protocol_status
 
-    marks = SnapshotMarks(build_execution_snapshots(), CommittedRuns(root).snapshot_ids())
-    brake = cfg["risk"]["profiles"]["books"]["drawdown_brake_rs"]  # drawdown as a share of the books' brake (S6)
+    snapshots, ids = build_execution_snapshots(), CommittedRuns(root).snapshot_ids()
+    books = cfg["risk"]["profiles"]["books"]  # the books' brake, caps and bucket sides (story S6)
+    luck = RandomControl(DaySnapshots(snapshots, ids), HeldMaxLoss(cfg["charges"]), cfg["charges"],
+                         books["max_loss_per_trade_rs"], books["bucket_cap_rs"], books["bucket_sides"])  # fmt: skip
     return board_from(
-        root, cfg["charges"], build_session_calendar(), build_versions(root), marks, protocol_status(root), brake,
-        do_nothing(cfg),
+        root, cfg["charges"], build_session_calendar(), build_versions(root), SnapshotMarks(snapshots, ids),
+        protocol_status(root), books["drawdown_brake_rs"], do_nothing(cfg), luck,
     )  # fmt: skip
 
 

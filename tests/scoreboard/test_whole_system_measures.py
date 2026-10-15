@@ -8,9 +8,11 @@ from fno.books.account import PaperAccount
 from fno.composition import build_session_calendar
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID
 from fno.desk.records import DeskRecords
+from fno.risk.open_risk import HeldMaxLoss
 from fno.scoreboard.book_trades import NO_RECORD, OVERRIDDEN
 from fno.scoreboard.do_nothing import NO_CAPITAL, DoNothing, IndexDay, Terms
 from fno.scoreboard.ports import ProtocolStatus
+from fno.scoreboard.random_control import RandomControl
 from fno.scoreboard.whole_system import canonical
 from fno.scoreboard.wiring import board_from
 from fno.scorecard.strategy_record import strategy_records
@@ -22,9 +24,12 @@ FLAT = DoNothing(lambda day: IndexDay(20000.0, 1.2), Terms(account_rs=2_000_000.
 SECTIONS = ("overall", "pilot", "head_to_head", NO_RECORD, OVERRIDDEN)
 
 
-def build(root, against=FLAT):
+LUCK = RandomControl(lambda day: None, HeldMaxLoss(CHARGES), CHARGES, 10000.0, 30000.0, {}, runs=10)
+
+
+def build(root, against=FLAT, luck=LUCK):
     board = board_from(root, CHARGES, build_session_calendar(), VERSIONS, lambda day: MARKS, ProtocolStatus(1, False),
-                       120000.0, against)  # fmt: skip
+                       120000.0, against, luck)  # fmt: skip
     return board.build(ON)
 
 
@@ -36,6 +41,8 @@ def test_every_section_carries_the_measures_and_the_do_nothing_comparison(tmp_pa
         assert {"measures", "do_nothing"} <= set(segment), name
     assert book["head_to_head"]["uncertainty"]["t_check"]["blocks"] == 0
     assert book["pilot"]["uncertainty"] is None  # only judged sections carry the t-check
+    assert "random_control" in book["head_to_head"] and "random_control" not in book["pilot"]
+    assert all("random_control" in segment for segment in book["head_to_head"]["segments"].values())
 
 
 def test_an_empty_section_has_no_capital_tied_never_zero_over_zero(tmp_path):
