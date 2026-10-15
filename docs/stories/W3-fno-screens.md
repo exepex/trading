@@ -95,8 +95,12 @@ here.
 per book, `status` not_run / ok), `FnoBudget` (minutes used against BG1's cap and its level ok / alert / stop / unknown,
 by role group, never a model or session; the plan's monthly cost, labelled) and `FnoDataHealth` (per source: last day,
 rows, gaps, check result; the last publish run's status from `fno.run_status`; O8's last result), each with Mock
-examples in the positive, negative and empty cases and its field table, as P1. Weather: no field change (it already has
-no threshold); its `drivers[].text` is stated as values only. Trading re-pins in the same story (its pin bump is the
+examples in the positive, negative and empty cases and its field table, as P1; and `FnoWeatherHistory` (page
+`weather_history`, agreed with the P2 builder, 16 Oct): one row per session (day, operative colour, label, the two
+probabilities and their base rates) plus counts by colour and label, one page (about 2,400 rows; paged only if it
+proves slow). Today's weather stays P1's page `weather`, with no field change (it already has no threshold); its
+`drivers[].text` is stated as values only; no per-input `reaches`, no method page with levels. All in a new contract
+version 2.8.0 (additions only). Trading re-pins in the same story (its pin bump is the
 P2 builder's).
 
 **Mockups (lane 2, `design/`):** paper books and trades, scoreboards, budget and AI usage, data health, each per the
@@ -127,8 +131,8 @@ them):**
 
 ## Build order (each step: page, contract or mockup, screen; each its own judge)
 
-1. **Weather (W3a, P2a):** 2,409 real records; today's colour "not published" until M1's live job runs; history,
-   red share and scores from the back-fill, labelled exploratory.
+1. **Weather (W3a, P2a):** pages `weather` and `weather_history` from 2,409 real records; today's colour "not
+   published" until M1's live job runs; history, red share and scores from the back-fill, labelled exploratory.
 2. **Forecast lab (W3b, P2b):** G4's live-v2 scores, G8's v4 report (exploratory until the freeze), the AI books with
    their real record (no on-time day yet); 37 rebuilt first.
 3. **Paper books (W3c, P2c):** daily totals and the Drive accounts (rule 2, through the existing download).
