@@ -480,8 +480,8 @@ This story adds no strategy, no new code and no trading decision.
   `main` after C5 merges.
 
 **Scope.** In STR1b-1:
-1. **Capital split** (minor 1, review 100 point 2). C2's `MarginRoom` and C4's `margin_room` record four figures per
-   trade:
+1. **Capital split** (minor 1, review 100 point 2). C2's `MarginRoom` records the split per trade in `capital_rs`
+   (C4 recomputes the same capped stressed margin with its own code and names its margin row; S2 reads C2's record):
    - `broker_margin = max(0, scan - NOV) + exposure` at factor 1, with no credit for the sold premium;
    - `premium_paid` = the bought legs' padded premium plus entry charges (today's `entry_funds`);
    - `stressed_span = max(0, k x scan - NOV)`, the owner's factor applied as today. **For the six STR1 codes only** it
@@ -494,8 +494,9 @@ This story adds no strategy, no new code and no trading decision.
      exceeds `width - credit`, so its stress reserve is 0 too. C2 and C4 take the cap from the margin row (its NOV and
      the width), so a held trade is capped like a new one. **SF, SC and BF are not capped**: the owner's 1.45 came
      from a BF case (response 77), so changing it is the owner's call;
-   - `stress_reserve = stressed_span - max(0, scan - NOV)`, and `total_funds = broker_margin + premium_paid +
-     stress_reserve` is what `margin_room` compares with cash. For SF/SC/BF this equals today's figure by algebra.
+   - `stress_reserve = stressed_span - max(0, scan - NOV)` (recorded; `stressed_span` is broker span plus reserve),
+     `total_funds = broker_margin + premium_paid + stress_reserve` is what `margin_room` compares with cash, and
+     `capital_tied = broker_margin + premium_paid`. For SF/SC/BF this equals today's figure by algebra.
 
    S2's capital figure (`margin_days`) uses `broker_margin + premium_paid`, with `stress_reserve` reported apart.
 2. **Per-code broker approval dates** (minor 2, review 100 point 4.4):
