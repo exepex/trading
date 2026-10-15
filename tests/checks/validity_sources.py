@@ -98,7 +98,7 @@ def limits(profile: str = RISK_PROFILE_MANUAL, stressed_margin=None, **profile_c
     cfg["risk"]["stressed_margin"] |= {"multiplier": 1.45, "source": "test fixture", "as_of": FILE_DAY.isoformat()}
     cfg["risk"]["stressed_margin"] |= stressed_margin or {}
     cfg["risk"]["profiles"][profile] |= profile_changes
-    return limits_from_config(cfg, ROOT, profile, build_session_calendar().previous_session)
+    return limits_from_config(cfg, ROOT, profile, build_session_calendar().session_kind)
 
 
 def held(trade_id: str, units: dict[str, int], cash_flow: float = 0.0) -> Position:

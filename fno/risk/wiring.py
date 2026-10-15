@@ -11,6 +11,7 @@ from pathlib import Path
 from ..config import ROOT
 from ..constants import RISK_PROFILE_BOOKS, STRESSED_MARGIN_MULTIPLIER
 from ..research_data.calendar import SessionCalendar
+from ..research_engine.cycles import TradingDays
 from ..research_engine.implied_vol import Black76
 from .buckets import StructureBuckets
 from .caps import BucketCap, NewRiskPerDay, OpenRiskCap, PaperAccountSize
@@ -61,9 +62,9 @@ def _calendar() -> SessionCalendar:
 
 
 def build_margin_age(profile: ProfileSettings, calendar: SessionCalendar | None = None) -> MarginAge:
-    """The Manual profile's calendar days, or the books' sessions on NSE's session calendar (A7)."""
+    """The Manual profile's calendar days, or the books' trading days (A14's, on NSE's session calendar A7)."""
     if profile.margin_age_sessions is not None:
-        return SessionsOld(calendar or _calendar(), profile.margin_age_sessions)
+        return SessionsOld(TradingDays(calendar or _calendar()), profile.margin_age_sessions)
     return DaysOld(profile.margin_age_days)
 
 

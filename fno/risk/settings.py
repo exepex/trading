@@ -141,9 +141,17 @@ def _stressed_margin(block: Mapping[str, Any], root: Path) -> StressedMarginSett
     )
 
 
+RISK_KEYS = frozenset({"profiles", "scenarios", "stress_line", "margins", "stressed_margin"})
+
+
 def risk_settings(config: Mapping[str, Any], root: Path) -> RiskSettings:
-    """The checked `risk` block of an app config (`fno.config.load_app_config`); file paths are relative to `root`."""
+    """The checked `risk` block of an app config (`fno.config.load_app_config`); file paths are relative to `root`.
+    A key outside `RISK_KEYS` (say a leftover flat `max_open_trades`, judge 105) is an error: it would look like a
+    limit while nothing runs it."""
     block = get_setting(config, "risk", "")
+    stray = sorted(set(block) - RISK_KEYS) if isinstance(block, Mapping) else []
+    if stray:
+        raise RiskSettingsError(f"config.yaml risk: {stray} are not settings; limits belong under risk.profiles")
     margins = get_setting(block, "margins", "")
     settings = RiskSettings(
         scenarios_at(block),

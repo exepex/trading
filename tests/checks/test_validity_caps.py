@@ -12,7 +12,7 @@ from fno.checks.validity_account import AccountFacts, Position
 from fno.checks.validity_caps import held_max_loss
 from fno.checks.validity_chain import PricedChain
 from fno.checks.validity_evidence import EvidenceReader
-from fno.checks.validity_money import entry_cash_flow
+from fno.checks.validity_money import entry_cash_flow, max_loss
 from fno.constants import RISK_PROFILE_BOOKS
 from fno.quotes.recorder import DATASET
 from fno.risk.open_risk import HeldMaxLoss
@@ -172,5 +172,85 @@ def test_c4_treats_a_day_the_calendar_cannot_answer_as_a_stale_margin():
     def no_calendar(day):
         raise ValueError("calendar has no 2031")
 
-    settings = replace(limits(RISK_PROFILE_BOOKS).margins, previous_session=no_calendar)
+    settings = replace(limits(RISK_PROFILE_BOOKS).margins, session_kind=no_calendar)
     assert not settings.fresh(date(2031, 1, 2), date(2031, 1, 2))
+
+
+@pytest.mark.parametrize(
+    ("as_of", "day", "fresh"),
+    [
+        (date(2026, 11, 6), date(2026, 11, 9), True),  # Sun 8 Nov muhurat is not a trading day (A14 writes no row)
+        (date(2026, 11, 5), date(2026, 11, 9), False),
+        (date(2026, 1, 30), date(2026, 2, 2), False),  # Sun 1 Feb special session is one
+        (date(2026, 10, 16), date(2026, 10, 19), True),
+    ],
+)
+def test_c4_counts_margin_age_in_a14s_trading_days(as_of, day, fresh):
+    assert limits(RISK_PROFILE_BOOKS).margins.fresh(as_of, day) is fresh
+
+
+def test_c4_refuses_an_unsigned_restart_row_on_its_own():
+    """Judge 105 should-fix 2: C4 requires `entered_by` itself, as C2 does."""
+    from fno.checks.validity_account import AccountProblem, restart_days
+
+    row = {"date": "2026-10-07", "action": "restart_brake", "reason": "reviewed", "entered_by": ""}
+    with pytest.raises(AccountProblem, match="malformed"):
+        restart_days([row], DAY)
+    assert restart_days([row | {"entered_by": "owner"}], DAY) == (date(2026, 10, 7),)
+
+
+@pytest.mark.parametrize(("limit", "ok"), [(30.0, True), (30.01, True), (29.99, False)])
+def test_each_c4_cap_passes_at_exactly_its_limit(limit, ok):
+    """Judge 105 N1: C4's cap arithmetic passes at the limit and refuses a paisa under it."""
+    from fno.checks.validity_caps import _cap
+
+    assert _cap("bucket_cap", [("g", {"a": 10.0, "b": 20.0})], limit).ok is ok
+    assert _cap("bucket_cap", [("g1", {"a": 1.0}), ("g2", {"a": 10.0, "b": 20.0})], limit).ok is ok  # every group
+
+
+def test_c4_does_not_count_a_held_position_of_the_other_side():
+    """Judge 105 N2: same group (NIFTY), other side: a held short fly is not in a long fly's bucket."""
+    held = (_held("short_vol"),)
+    report = check(proposal("BF", open_terms=_terms(*held)), **_books(*held))
+    numbers = next(r for r in report.results if r.name == "bucket_cap").numbers
+    assert set(numbers["bucket NIFTY/long_volatility"]["counted_rs"]) == {proposal("BF").opportunity_id}
+
+
+def test_c4_counts_a_locked_in_held_position_as_zero_never_negative():
+    """Judge 105 N5: a position that can no longer lose is not room for another trade."""
+    store = committed_store()
+    evidence, _ = EvidenceReader(store, DATASET).read(DAY, committed_record(store, DAY, "exec"))
+    chain = PricedChain(evidence, DAY, 0.065)
+    assert held_max_loss(replace(_held("locked"), cash_flow=1_000_000.0), chain, CHARGES) == 0.0
+
+
+def test_c4_refuses_a_position_on_two_underlyings():
+    """Judge 105 N17: NIFTY and BANKNIFTY legs in one position are not one bucket."""
+    from fno.checks.validity_caps import CapProblem, buckets_of
+
+    with pytest.raises(CapProblem, match="unmapped"):
+        buckets_of("SF", ["NIFTY26OCT25000CE", "BANKNIFTY26OCT52000PE"], {"SF": "short_volatility"})
+    assert buckets_of("SF", ["NIFTY26OCT25000CE"], {"SF": "short_volatility"}) == (("NIFTY", "short_volatility"),)
+
+
+def test_c4_counts_a_two_lot_proposal_at_its_units():
+    """Judge 105 N19: the proposal's loss is on lots x lot size, not one lot."""
+    two = proposal(lots=2)
+    report = check(two, **_books())
+    total = _total(report, "bucket_cap", "bucket NIFTY/short_volatility")
+    legs = [leg.leg for leg in two.legs]
+    assert total == pytest.approx(max_loss(legs, 2 * LOT, CHARGES).total, abs=0.01)
+    assert total > 1.9 * _one_trade_loss()
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [("bucket_cap_rs", "30000"), ("bucket_cap_rs", True), ("rules", "paper_account"), ("bucket_sides", []),
+     ("margin_max_age_sessions", 0)],
+)  # fmt: skip
+def test_c4_checks_its_own_value_types(key, value):
+    """Judge 105 minor 2: C4 does not rely on C2's start-up check for malformed values."""
+    from fno.checks.validity_settings import ValidityLimitsError
+
+    with pytest.raises(ValidityLimitsError):
+        limits(RISK_PROFILE_BOOKS, **{key: value})

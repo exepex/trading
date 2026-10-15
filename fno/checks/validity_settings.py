@@ -7,8 +7,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
+
+from ..constants import SESSION_MUHURAT
 
 
 @dataclass(frozen=True)
@@ -24,23 +26,30 @@ class Shock:
 class MarginSettings:
     file: Path
     max_age_days: int | None  # the Manual profile: calendar days
-    max_age_sessions: int | None  # the books (design 6.1a): sessions, counted with `previous_session`
+    max_age_sessions: int | None  # the books (design 6.1a): trading days, counted with `session_kind`
     method: str
     multiplier: float | None
     source: str | None
     as_of: date | None
     multiplier_max_age_days: int
-    previous_session: Callable[[date], date] | None = None  # NSE's session calendar (A7)
+    session_kind: Callable[[date], str | None] | None = None  # NSE's calendar (A7): a day's kind, None if closed
+
+    def _trading_day(self, day: date) -> bool:
+        """A14 writes margin rows on regular and special sessions only, never on a muhurat-only session."""
+        kind = self.session_kind(day)
+        return kind is not None and kind != SESSION_MUHURAT
 
     def fresh(self, as_of: date, day: date) -> bool:
         if self.max_age_sessions is None:
             return (day - as_of).days <= self.max_age_days
-        if self.previous_session is None:
+        if self.session_kind is None:
             return False  # no calendar: fail closed
         oldest = day
         try:
             for _ in range(self.max_age_sessions):
-                oldest = self.previous_session(oldest)
+                oldest -= timedelta(days=1)
+                while not self._trading_day(oldest):
+                    oldest -= timedelta(days=1)
         except ValueError:  # the calendar cannot answer for that day: fail closed
             return False
         return as_of >= oldest
@@ -78,14 +87,14 @@ def _date(value) -> date | None:
     return value if value is None or isinstance(value, date) else date.fromisoformat(str(value))
 
 
-def _margins(risk: Mapping, profile: Mapping, root: Path, previous_session) -> MarginSettings:
+def _margins(risk: Mapping, profile: Mapping, root: Path, session_kind) -> MarginSettings:
     files, stressed = risk["margins"], risk["stressed_margin"]
     factor, days = stressed.get("multiplier"), profile.get("margin_max_age_days")
     sessions = profile.get("margin_max_age_sessions")
     return MarginSettings(
         root / str(files["file"]), None if days is None else int(days), None if sessions is None else int(sessions),
         str(stressed["method"]), None if factor is None else float(factor), stressed.get("source") or None,
-        _date(stressed.get("as_of")), int(stressed["max_age_days"]), previous_session,
+        _date(stressed.get("as_of")), int(stressed["max_age_days"]), session_kind,
     )  # fmt: skip
 
 
@@ -126,19 +135,37 @@ NEEDS = {
 ALWAYS = ("paper_account_rs", "max_loss_per_trade_rs", "drawdown_brake_rs")
 
 
+def _number(value) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool) and value > 0
+
+
+def _typed(key: str, value) -> bool:
+    """C4's own type check, so it never depends on C2's start-up check (judge 105 minor 2)."""
+    if key == "bucket_sides":
+        return isinstance(value, Mapping) and bool(value)
+    if key == "exposure":
+        return isinstance(value, Mapping)
+    return _number(value)
+
+
 def _require(profile: Mapping, rules: tuple[str, ...], name: str) -> None:
+    if not isinstance(profile.get("rules"), list) or not all(isinstance(r, str) for r in profile["rules"]):
+        raise ValidityLimitsError(f"risk.profiles.{name}: rules must be a list of rule names")
     needed = set(ALWAYS) | {key for rule in rules for key in NEEDS.get(rule, ())}
-    missing = sorted(key for key in needed if profile.get(key) is None)
+    missing = sorted(key for key in needed if profile.get(key) is None or not _typed(key, profile[key]))
     ages = [key for key in ("margin_max_age_days", "margin_max_age_sessions") if profile.get(key) is not None]
+    missing += [key for key in ages if not _number(profile[key])]
     if missing or len(ages) != 1:
-        raise ValidityLimitsError(f"risk.profiles.{name}: missing {missing}, margin ages set {ages} (need exactly one)")
+        raise ValidityLimitsError(
+            f"risk.profiles.{name}: missing or not usable {missing}, margin ages set {ages} (need exactly one)"
+        )
 
 
-def limits_from_config(cfg: Mapping, root: Path, profile_name: str, previous_session=None) -> ValidityLimits:
-    """Risk profile `profile_name`'s limits; `previous_session` is NSE's calendar step for a margin age in sessions."""
+def limits_from_config(cfg: Mapping, root: Path, profile_name: str, session_kind=None) -> ValidityLimits:
+    """Risk profile `profile_name`'s limits; `session_kind` is NSE's calendar for a margin age in trading days."""
     risk = cfg["risk"]
     profile = risk["profiles"][profile_name]
-    rules = tuple(profile["rules"])
+    rules = tuple(profile["rules"]) if isinstance(profile.get("rules"), list) else ()
     _require(profile, rules, profile_name)
     scenarios = tuple(
         Shock(s["name"], float(s["nifty_move_pct"]), float(s["iv_factor"]), 0.0, int(s["days"]))
@@ -146,6 +173,6 @@ def limits_from_config(cfg: Mapping, root: Path, profile_name: str, previous_ses
     )
     return ValidityLimits(
         rules, float(profile["paper_account_rs"]), float(profile["max_loss_per_trade_rs"]),
-        float(profile["drawdown_brake_rs"]), scenarios, _margins(risk, profile, root, previous_session),
+        float(profile["drawdown_brake_rs"]), scenarios, _margins(risk, profile, root, session_kind),
         float(cfg["risk_free_rate"]), **_optional(profile, rules),
     )  # fmt: skip

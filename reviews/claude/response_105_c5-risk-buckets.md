@@ -4,6 +4,25 @@ Builder: Claude, 15 Oct 2026. Branch `story/c5-risk-buckets` (lane 1: money and 
 `docs/stories/C-code-roles.md` section C5. Not merged; G6 not used. Owner decisions used: 14 Oct (Rs 20 lakh, Rs 10,000
 a trade), 15 Oct (caps and brake; "1 A" and "2 A"), 13 Oct (Manual account), all quoted in the story text.
 
+## Addendum 2: judge 105 (FAIL on f4f2e35, 4 should-fix, 5 minor), each checked and answered
+
+All accepted after checking each one myself.
+
+| Item | My check | Fix | Test |
+|---|---|---|---|
+| SF1 margin age on muhurat days | True: on A7's calendar Sun 8 Nov 2026 is muhurat. `previous_session(9 Nov)` = 8 Nov, so Fri 6 Nov's row was refused. A14 writes rows only on `TradingDays` (no row for 8 Nov) | C2 `SessionsOld` steps over `TradingDays` (`fno/risk/margin_age.py`). C4 has its own rule: a trading day is a regular or special session, never muhurat (`MarginSettings.fresh`, `fno/checks/validity_settings.py`, reading `session_kind`) | `tests/risk/test_margin_age.py` and `tests/checks/test_validity_caps.py::test_c4_counts_margin_age_in_a14s_trading_days`. Both cover 6 Nov to 9 Nov (fresh), 5 Nov to 9 Nov (refused), and Fri 30 Jan to Mon 2 Feb (refused: the Sun 1 Feb special session counts) |
+| SF2 C4 unsigned restart | True: C4's `restart_days` checked the action and reason only | C4 now requires a non-empty `entered_by` | `test_c4_refuses_an_unsigned_restart_row_on_its_own` |
+| SF3 five C4 plants survived (N1, N2, N5, N17, N19) | The judge's evidence (all 5 survived at f4f2e35). I did not re-plant them before writing the tests: reasoning only that they would still have survived on the addendum-1 tree | Tests only; the code was already right | `test_each_c4_cap_passes_at_exactly_its_limit` (N1), `test_c4_does_not_count_a_held_position_of_the_other_side` (N2), `test_c4_counts_a_locked_in_held_position_as_zero_never_negative` (N5), `test_c4_refuses_a_position_on_two_underlyings` (N17), `test_c4_counts_a_two_lot_proposal_at_its_units` (N19). All 5 plants are now caught (table below) |
+| SF4 P10 rule text | True | `docs/stories/P-publishing.md` criterion 1: `limit_max` = the books' `open_risk_cap_rs` (Rs 1,50,000, owner "2 A"). Once P10 publishes open trades, `limit_used` = the sum of open maximum losses. The dashboard's contract wording goes to the P1 builder (orchestrator) | doc |
+| Minor 1 stray keys under `risk` | True: a leftover flat `max_open_trades` started C2 silently | `risk_settings` refuses any key outside profiles, scenarios, stress_line, margins and stressed_margin | `test_a_stray_key_under_risk_stops_start_up` (3 keys) |
+| Minor 2 C4 value types | True | C4 checks its own types: rules a list of names, amounts positive numbers (no bool, no string), `bucket_sides` a non-empty mapping, margin age a positive number | `test_c4_checks_its_own_value_types` (5 cases) |
+| Minor 3 "signed" | True: it is a typed name | Stated in story criterion 8: protected by lane 1 only; a CI guard would be a later story. **The owner should know this.** | doc |
+| Minor 4 E1-topup | Agreed | Written into C5's Out list as criteria for `e1-topup`: `PaperAccountSize` reads the opening plus top-ups; a top-up never raises the brake's high-water mark | doc (next story) |
+| Minor 5 brake per book | Orchestrator's decision (owner away), logged | Story criterion 8: the brake and caps apply per book, each book on its own Rs 20 lakh; the owner confirms on return | doc |
+
+Every deliberate break re-run on this tree with `PYTHONDONTWRITEBYTECODE=1`: **43 of 43 caught**. This includes the
+judge's 5 survivors, SF1 for C2 and C4 (muhurat counted), SF2 (C4 unsigned row) and both minors.
+
 ## Addendum 1 (owner's answers of 15 Oct 2026, rows on main 665c835)
 
 - **"1 B" two buckets:** `bucket_sides` takes one side or a list. A position counts its full maximum loss in each of
@@ -83,7 +102,7 @@ a trade), 15 Oct (caps and brake; "1 A" and "2 A"), 13 Oct (Manual account), all
 | 9 | Daily stress line, five scenarios, below the sum of maximum losses (assumptions accepted, "4 A") | `fno/risk/stress_line.py`; `config.yaml` `stress_line` | `tests/risk/test_c5_account.py` (`test_the_daily_stress_line_reports_every_scenario_below_the_sum_of_maximum_losses`) | some evidence (one structure checked; reasoning beyond) |
 | 10 | Books run exactly their rules; any setting problem in any profile stops start-up | `fno/risk/profile_settings.py:60`, `:71`, `:108`; `fno/risk/wiring.py:90` | `tests/risk/test_c5_account.py:44`, `:93`, `:98`, `:118`, `:125`, `:225` | strong evidence |
 | 11 | Manual keeps its 13 Oct limits, runs exactly those rules | `config.yaml:64` | `tests/risk/test_c5_account.py:60`; `tests/risk/test_settings.py` | strong evidence |
-| 12 | Books' margin older than one session refused; weekends and holidays never age a row | `fno/risk/margin_age.py:38`; `fno/checks/validity_settings.py:35` | `tests/risk/test_margin_age.py:28`, `:37`; `tests/checks/test_validity_caps.py:107` | strong evidence |
+| 12 | Books' margin older than one trading day refused (A14's `TradingDays`; addendum 2); weekends, holidays and muhurat Sundays never age a row | `fno/risk/margin_age.py:38`; `fno/checks/validity_settings.py:35` | `tests/risk/test_margin_age.py:28`, `:37`; `tests/checks/test_validity_caps.py:107` | strong evidence |
 | 13 | C4 in step: own caps, books without old checks, breach C2 allowed refused, 4 open pass books and fail Manual, C4 max loss = C2's, C4 refuses to start on a missing setting | `fno/checks/validity_caps.py`, `validity_limits.py:58`, `validity_settings.py:129` | `tests/checks/test_validity_caps.py:50`, `:57`, `:66`, `:78`, `:85`, `:92`, `:102`, `:117`, `:132`, `:139` | strong evidence |
 
 ## Margin freshness: how C5 differs from C4's 7-day lookback (judge C, point a)
@@ -126,39 +145,49 @@ later fill and catches it.
 
 | Criterion broken | File | Test run | Result |
 |---|---|---|---|
-| 1 bucket cap boundary | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 2 passed in 0.15s |
-| 2 open-risk counts all | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 11 passed in 0.21s |
-| 4 cap never resizes (proposal kept) | `fno/risk/manager.py` | `test_caps.py` | caught: 1 failed, 22 passed in 0.17s |
-| 5 index groups only | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 9 passed in 0.15s |
+| 1 bucket cap boundary | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 2 passed in 0.14s |
+| 2 open-risk counts all | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 11 passed in 6.30s |
+| 4 cap never resizes (proposal kept) | `fno/risk/manager.py` | `test_caps.py` | caught: 1 failed, 22 passed in 0.34s |
+| 5 index groups only | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 9 passed in 0.16s |
 | 5 unlisted structure refused | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 8 passed in 0.18s |
-| 6 held max loss exit pads | `fno/risk/open_risk.py` | `test_buckets.py` | caught: 1 failed, 13 passed in 0.28s |
-| 6 net short tail refused | `fno/risk/open_risk.py` | `test_buckets.py` | caught: 1 failed, 16 passed in 0.34s |
+| 6 held max loss exit pads | `fno/risk/open_risk.py` | `test_buckets.py` | caught: 1 failed, 13 passed in 0.30s |
+| 6 net short tail refused | `fno/risk/open_risk.py` | `test_buckets.py` | caught: 1 failed, 16 passed in 0.31s |
 | 7 paper account exact | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 20 passed in 0.16s |
-| 7 E1 opens at books size | `fno/composition.py` | `test_paper_account.py` | caught: 1 failed in 0.39s |
-| 8 brake amount | `config.yaml` | `test_c5_account.py` | caught: 1 failed in 0.46s |
-| 8 restart needs signature | `fno/risk/overrides.py` | `test_c5_account.py` | caught: 1 failed, 27 passed in 0.63s |
-| 9 stress line max-loss sum | `fno/risk/stress_line.py` | `test_c5_account.py` | caught: 1 failed, 28 passed in 0.62s |
+| 7 E1 opens at books size | `fno/composition.py` | `test_paper_account.py` | caught: 1 failed in 0.40s |
+| 8 brake amount | `config.yaml` | `test_c5_account.py` | caught: 1 failed in 0.42s |
+| 8 restart needs signature | `fno/risk/overrides.py` | `test_c5_account.py` | caught: 1 failed, 27 passed in 0.58s |
+| 9 stress line max-loss sum | `fno/risk/stress_line.py` | `test_c5_account.py` | caught: 1 failed, 28 passed in 0.65s |
 | 10 unused setting refused | `fno/risk/profile_settings.py` | `test_c5_account.py` | caught: 1 failed, 17 passed in 0.46s |
-| 10 every profile checked | `fno/risk/wiring.py` | `test_c5_account.py` | caught: 1 failed, 30 passed in 0.76s |
-| 11 Manual unchanged | `config.yaml` | `test_c5_account.py` | caught: 1 failed, 1 passed in 0.40s |
-| 12 margin one session (C2) | `fno/risk/margin_age.py` | `test_margin_age.py` | caught: 1 failed, 2 passed in 0.21s |
-| 13 C4 bucket breach | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 2 passed in 0.28s |
-| 13 C4 old 3-trade check off for books | `fno/checks/validity_limits.py` | `test_validity_caps.py` | caught: 1 failed in 0.23s |
-| 13 C4 paper account | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 10 passed in 0.77s |
-| 13 C4 held max loss | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 2 passed in 0.29s |
-| 13 C4 margin one session | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 12 passed in 0.87s |
-| 13 C4 checks its own settings | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 15 passed in 0.94s |
-| 1 bucket selector (per bucket) | `fno/risk/caps.py` | `test_caps.py::test_another_bucket_does_not_count_against_this_one` | caught: 1 failed in 0.13s |
-| 1B every proposal bucket checked | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 5 passed in 0.15s |
-| 1B list of sides read | `fno/risk/profile_settings.py` | `test_c5_account.py` | caught: 1 failed in 0.45s |
-| 1B both buckets mapped | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 7 passed in 0.14s |
-| 3A closed same-session trade counts (C2) | `fno/risk/open_risk.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.74s |
-| 3A session = first filled today | `fno/risk/book_view.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.83s |
-| 3A same-session choice counts | `fno/playbook/book_effects.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.77s |
-| 3A unknown session refused | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 18 passed in 0.17s |
-| 3A C4 closed round trip counts | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 3 passed in 0.40s |
-| 1B C4 per-bucket group | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 7 passed in 0.66s |
+| 10 every profile checked | `fno/risk/wiring.py` | `test_c5_account.py` | caught: 1 failed, 33 passed in 0.79s |
+| 11 Manual unchanged | `config.yaml` | `test_c5_account.py` | caught: 1 failed, 1 passed in 0.45s |
+| 12 margin one session (C2) | `fno/risk/margin_age.py` | `test_margin_age.py` | caught: 1 failed, 2 passed in 0.25s |
+| 13 C4 bucket breach | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 2 passed in 0.42s |
+| 13 C4 old 3-trade check off for books | `fno/checks/validity_limits.py` | `test_validity_caps.py` | caught: 1 failed in 0.22s |
+| 13 C4 paper account | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 10 passed in 0.79s |
+| 13 C4 held max loss | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 2 passed in 0.30s |
+| 13 C4 margin one session | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 12 passed in 0.83s |
+| 13 C4 checks its own settings | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 15 passed in 0.93s |
+| 1 bucket selector (per bucket) | `fno/risk/caps.py` | `test_caps.py::test_another_bucket_does_not_count_against_this_one` | caught: 1 failed in 0.15s |
+| 1B every proposal bucket checked | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 5 passed in 0.14s |
+| 1B list of sides read | `fno/risk/profile_settings.py` | `test_c5_account.py` | caught: 1 failed in 0.49s |
+| 1B both buckets mapped | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 7 passed in 0.19s |
+| 3A closed same-session trade counts (C2) | `fno/risk/open_risk.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.90s |
+| 3A session = first filled today | `fno/risk/book_view.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.76s |
+| 3A same-session choice counts | `fno/playbook/book_effects.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.75s |
+| 3A unknown session refused | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 18 passed in 0.16s |
+| 3A C4 closed round trip counts | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 3 passed in 0.46s |
+| 1B C4 per-bucket group | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 7 passed in 0.71s |
 | 3A C4 session from ledger | `fno/checks/validity_account.py` | `test_validity_inputs.py` | caught: 1 failed, 9 passed in 0.22s |
+| J105 N1 C4 cap at its limit | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 25 passed in 1.10s |
+| J105 N2 C4 bucket on group only | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 28 passed in 1.15s |
+| J105 N5 C4 negative held loss | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 29 passed in 1.09s |
+| J105 N17 C4 mixed underlyings | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 30 passed in 1.09s |
+| J105 N19 C4 proposal on one lot | `fno/checks/validity_limits.py` | `test_validity_caps.py` | caught: 1 failed, 31 passed in 1.06s |
+| SF1 C4 muhurat counted | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 20 passed in 1.07s |
+| SF1 C2 muhurat counted | `fno/risk/margin_age.py` | `test_margin_age.py` | caught: 1 failed, 6 passed in 0.21s |
+| SF2 C4 unsigned restart | `fno/checks/validity_account.py` | `test_validity_caps.py` | caught: 1 failed, 24 passed in 1.09s |
+| minor1 stray risk keys | `fno/risk/settings.py` | `test_c5_account.py` | caught: 1 failed, 30 passed in 0.90s |
+| minor2 C4 value types | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 32 passed in 1.09s |
 
 ## Sample of real output (owner's step 4)
 

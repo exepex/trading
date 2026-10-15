@@ -122,7 +122,8 @@ def restart_days(rows: list[dict[str, str]], day: date) -> tuple[date, ...]:
     """The owner's restart rows dated on or before `day`; any other action is malformed and fails closed."""
     days = []
     for row in rows:
-        if row.get("action") != OVERRIDE_RESTART_BRAKE or not (row.get("reason") or "").strip():
+        signed = (row.get("reason") or "").strip() and (row.get("entered_by") or "").strip()
+        if row.get("action") != OVERRIDE_RESTART_BRAKE or not signed:
             raise AccountProblem(f"{OWNER_OVERRIDES_FILE}: malformed row {row}")
         days.append(date.fromisoformat(row["date"]))
     return tuple(sorted(d for d in days if d <= day))

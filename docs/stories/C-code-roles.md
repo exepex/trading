@@ -281,7 +281,9 @@ arithmetic (judge 83 must-fix 3), so it changes in step.
   age); C4 drops the 3-open, stress and exposure checks for the books and keeps them for the Manual account;
 - the daily stress line of 6.2 as a computed record.
 
-Out: the Rs 15 lakh top-up that moves the three committed books to Rs 20 lakh (owner "2 B": story `e1-topup`); the
+Out: the Rs 15 lakh top-up that moves the three committed books to Rs 20 lakh (owner "2 B": story `e1-topup`, whose
+criteria must make `PaperAccountSize` read the opening row plus top-ups and keep a top-up out of the brake's
+high-water mark: it is capital, never a closed-equity gain; judge 105 minor 4); the
 structure codes of directional spreads (STR1 adds them with two sides each, per "1 B"); stock buckets and "stock results this week" (events calendar A6/A12, stock
 options A18); showing the stress line on the card (T1); a Manual account ledger and its desk (MA1); S1's protocol text
 (`catastrophic_loss_book`, a draft the owner decides).
@@ -321,14 +323,19 @@ options A18); showing the stress line on the card (T1); a Manual account ledger 
    refused as "unmapped bucket".
 6. A held trade's maximum loss equals B2's for the same entry; a not-defined-risk held position is refused.
 7. New books open with Rs 20,00,000; a book opened with any other amount is refused (`paper_account`).
-8. Books' brake at Rs 1,20,000 (Rs 0.01 less passes, at and beyond refuses); only a signed `restart_brake` row lifts it.
+8. Books' brake at Rs 1,20,000 (Rs 0.01 less passes, at and beyond refuses); only a signed `restart_brake` row lifts it,
+   in C2 and in C4. "Signed" means a non-empty `entered_by` (and reason): a typed name, protected by process only
+   (`journal/` is lane 1 by path); a CI guard tying each row to an owner decision would be a later story. The brake and
+   every cap apply per book, each book on its own Rs 20 lakh (orchestrator's reading of the owner's "2 B", owner to
+   confirm on return).
 9. Daily stress line: the five 6.2 scenarios, loss from entry and from marks, below the sum of maximum losses
    (assumptions accepted, information only: "4 A").
 10. Profiles: the books run exactly paper account, per-trade loss, the three caps, brake and margin room; any setting
-    problem in any profile stops start-up.
+    problem in any profile, or a stray key under `risk`, stops start-up; C4 checks its own settings and their types.
 11. The Manual profile keeps its 13 Oct limits unchanged (Rs 5 lakh, Rs 10,000, 3 open, Rs 30,000 brake, stress and
     exposure, 7-day margins) and its risk manager runs exactly those rules.
-12. Books' margin rows older than one NSE session refuse the entry; a weekend or holiday never ages a row.
+12. Books' margin rows older than one trading day refuse the entry, counted as A14 writes rows (`TradingDays`: regular
+    and special sessions, never a muhurat-only session); a weekend, holiday or muhurat Sunday never ages a row.
 13. C4 in step: for the books C4 recomputes paper account and the three caps itself, does not run 3-open, stress or
     exposure; a bucket breach C2 allowed is refused by C4; four open trades pass C4 for the books and fail for the
     Manual account; C4's held maximum loss equals C2's; C4 refuses to start on a missing setting.

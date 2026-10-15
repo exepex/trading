@@ -69,7 +69,7 @@ def build_validity_checker(cfg: dict, root: Path, quotes, nse_library, accounts=
     from ..quotes.recorder import DATASET
     from ..storage.wiring import build_session_calendar
 
-    limits = limits_from_config(cfg, root, RISK_PROFILE_BOOKS, build_session_calendar().previous_session)
+    limits = limits_from_config(cfg, root, RISK_PROFILE_BOOKS, build_session_calendar().session_kind)
     sources = Sources(EvidenceReader(quotes, DATASET), NseListing(nse_library), accounts or LedgerAccounts(root))
     checks = LimitChecks(limits, cfg["charges"], margins or MarginFile(limits.margins.file))
     return ValidityChecker(sources, checks, validity_modes())

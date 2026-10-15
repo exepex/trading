@@ -2,16 +2,18 @@
 
 The Manual paper account keeps C2's rule of 13 Oct 2026, a row at most `max_age_days` calendar days old. The books
 follow design 6.1a (story C5): margin data older than one session means no new entry, so a row is fresh only when it
-is dated on or after the session `sessions` sessions before the decision day (one session: the previous session's row,
-or the day's own). A weekend or holiday therefore never ages a row, and a missed session's row always does.
+is dated on or after the trading day `sessions` trading days before the decision day (one: the previous trading day's
+row, or the day's own). Trading days are A14's (`TradingDays`: regular and special sessions, never a muhurat-only
+session, for which A14 writes no row; judge 105). A weekend, holiday or muhurat Sunday never ages a row; a missed
+trading day's row always does.
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from datetime import date
+from datetime import date, timedelta
 
-from ..research_data.calendar import SessionCalendar
+from ..research_engine.cycles import TradingDays
 
 
 class MarginAge(ABC):
@@ -36,13 +38,13 @@ class DaysOld(MarginAge):
 
 
 class SessionsOld(MarginAge):
-    def __init__(self, calendar: SessionCalendar, sessions: int):
-        self.calendar, self.sessions = calendar, sessions
+    def __init__(self, days: TradingDays, sessions: int):
+        self.days, self.sessions = days, sessions
 
     def oldest(self, day: date) -> date:
-        """The oldest usable row date: the session `sessions` sessions before `day`."""
+        """The oldest usable row date: the trading day `sessions` trading days before `day`."""
         for _ in range(self.sessions):
-            day = self.calendar.previous_session(day)
+            day = self.days.last_on_or_before(day - timedelta(days=1))
         return day
 
     def fresh(self, as_of: date, day: date) -> bool:

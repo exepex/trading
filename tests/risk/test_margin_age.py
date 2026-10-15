@@ -5,12 +5,13 @@ from datetime import date
 
 import pytest
 
+from fno.research_engine.cycles import TradingDays
 from fno.risk.inputs import RiskInputError, TradeTerms
 from fno.risk.margin_age import DaysOld, SessionsOld
 from fno.risk.margins import MARGIN_COLUMNS, MarginTable
 from fno.storage.wiring import build_session_calendar
 
-ONE_SESSION = SessionsOld(build_session_calendar(), 1)
+ONE_SESSION = SessionsOld(TradingDays(build_session_calendar()), 1)
 TERMS = TradeTerms("SF", 200.0, 1)
 
 
@@ -23,9 +24,13 @@ TERMS = TradeTerms("SF", 200.0, 1)
         (date(2026, 10, 16), date(2026, 10, 19), True),  # Friday's row on Monday: a weekend never ages a row
         (date(2026, 10, 15), date(2026, 10, 19), False),
         (date(2026, 10, 19), date(2026, 10, 21), True),  # 20 Oct is an NSE holiday (calendar)
+        (date(2026, 11, 6), date(2026, 11, 9), True),  # Sun 8 Nov muhurat: A14 writes no row for it (judge 105)
+        (date(2026, 11, 5), date(2026, 11, 9), False),
+        (date(2026, 1, 30), date(2026, 2, 2), False),  # Sun 1 Feb special session: A14 writes a row, so it counts
+        (date(2026, 2, 1), date(2026, 2, 2), True),
     ],
 )
-def test_one_session_is_the_previous_session_on_nses_calendar(as_of, day, fresh):
+def test_one_session_is_the_previous_trading_day_as_a14_counts_them(as_of, day, fresh):
     assert ONE_SESSION.fresh(as_of, day) is fresh
 
 
