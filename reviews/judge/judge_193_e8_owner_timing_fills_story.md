@@ -156,3 +156,44 @@ Would these change a trade? Yes. Each one decides whether an entry fills, at wha
 chooses.
 
 Re-review needs should-fixes 1, 3 and 4 and the criterion 10 line.
+
+## Addendum 2: revisions 4 and 5 at f2753ebf: FAIL, one should-fix of one line
+
+**Closed, each checked against the text and the data:**
+
+- **Should-fix 1 (card time).** A new "Card time" section quotes O1 (card after `quotes_done`, which is after the
+  15:15 snapshot). The examples are now right:
+  - R = 5, 30 and 60 fill at the next session's 09:30, 09:45 and 10:15.
+  - Point 3 covers all three owner-timing views; only `e4_1515` fills before A16.
+  - Point 4 says the 14:00 remedy needs an earlier card too, and names its cost.
+  - Criterion 1 uses a 15:16 card: R = 5 gives 15:21, which needs the 15:30 mark, which is after 15:25, so the fill
+    moves to 09:30. Correct.
+  - The text now states that E8a's R = 5 cell does not describe the real R = 5 view, and that E8a has no 09:30 cell.
+- **Should-fix 3 (band figure).** About 32%, with 204 of 645 (SF) and 210 of 660 (LC). The cited lines are right:
+  `results.md` lines 200 and 216 at 76d73a06 hold SF 162 + 42 and LC 165 + 45.
+- **Criterion 10.** It names the planted-failure test: no new entry in any book or view, and `exits` still runs.
+- **Should-fix 4 (entry rule as a slot).**
+  - Rule 6 lists three `EntryRange` candidates, each with its miss reason.
+  - `AnyPrice` re-checks C2's hard caps on the fill's own prices. The Rs 10,000 per-trade cap is in `config.yaml`
+    (`max_loss_per_trade_rs: 10000`, lines 53 and 80), and a breach gives "missed, over risk cap".
+  - Criterion 6 has one line per candidate, with boundary fixtures (0.49% / 0.51%, one paisa).
+  - The owner card states each option's plain cost.
+  - The Out line no longer assumes an answer.
+
+**The orchestrator's question: does a wired pending default hold the slot open?** Yes, on one condition.
+- An unwired slot cannot run, so E8 would have no entry rule at all.
+- `ApprovedLimit` is today's E4 behaviour, it is labelled pending in rule 6, the design and criterion 6, and the
+  answer is one line in `wiring.py`.
+- Until A16's routine runs, no owner-timing fill happens anyway (point 3), so the default decides no verdict fill
+  before then.
+
+**Should-fix 5: the owner's answer must come before S1's freeze.** The text says `wiring.py` joins S1's
+`frozen_files` (S1 item 1) and that both build parts land before the freeze. If the freeze comes first,
+`ApprovedLimit` is frozen as the evaluated rule, and the owner's later answer becomes a change to a frozen file,
+needing a protocol amendment. So the pending default would quietly become the answer.
+
+Fix: add one line to the S1 items, beside item 3 (the decision time): "The entry rule (rule 6) waits for the owner;
+S1's freeze needs the answer, wired in `wiring.py`, or a recorded owner row keeping `ApprovedLimit`." Would it change a
+trade? Yes: it decides which entries fill for the whole evaluation.
+
+Re-review: only that line.
