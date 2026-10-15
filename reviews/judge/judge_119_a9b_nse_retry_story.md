@@ -216,3 +216,74 @@ module-level aliases and tuples.
 - **One should-fix:** the routine. It needs the orchestrator's evidence, not new code.
 - **A re-check needs:** the routine's prompt line (or its retirement) and the story or response row recording it. If the
   code is unchanged, I re-run nothing else.
+
+## Addendum 2 (15 Oct 2026): A9b fix round at a19b5b3e8856571b7f6d5000bc878592febd0e45 (f90e18b..a19b5b3, main merged in)
+
+**Gates, run myself:**
+- **Exact SHA:** 4611 passed; `ruff check fno tests tools` clean; `ruff format --check fno tests tools` clean (877
+  files); imports clean.
+- **Trial merge with origin/main a511228 (187195b):** no conflict; 4611 passed; ruff and imports clean.
+
+| Addendum 1 finding | Status | Check |
+|---|---|---|
+| Should-fix 1: the A8 routine commits the check log by path | **MET (by design, decision 49)** | `release_checks.csv` keeps its name and header (`LOG_FIELDS` unchanged), with `checked_at` = the answer time. Start times go to `release_check_starts.csv` beside it, so a by-path writer loses start times, never a check (`test_a_lost_start_log_loses_start_times_never_evidence`). The watch workflow adds `$LOG $STARTS $REREADS`; O6 adds its whole `actions/` folder. v2 is withdrawn: no `*_v2.csv` in the tree, and `release_checks.csv` is unchanged against main. The gap list records the routine, with an **owner item**: update its prompt or retire it |
+| Minor 1: code-reading test dodges | MET | Module-level exception tuples are resolved (the `tuple.py` plant is found; `proper.py` and the source's own `RawSourceCoolingOff` pass). The docstring names what it still cannot see: an imported alias, a tuple built in a function, a method alias, `except Exception`, one call up |
+| Minor 2: no permanent network guard | MET | `tests/conftest.py` `no_real_network` (autouse): `connect` and `connect_ex` allow loopback and Unix sockets only, block the proxy's own `(host, port)`, and remove the proxy settings. It raises `RealNetworkBlocked` (not an `OSError`, so nothing retries it). The subprocess limit is stated |
+
+**The orchestrator's four questions:**
+
+1. **Is the join on (day, checked_at) unique? YES in practice.**
+   - `checked_at` is `now_ist()` with microseconds. The real rows confirm it: `2026-10-13T06:06:28.088401+05:30`.
+   - Each side log has one writer: the root pair is the watch job's; `actions/` is O6's. The routine writes the root
+     check log, but its start rows are never committed.
+   - Two checks in one process are sequential, with an NSE call between them, so "same second" is not "same key".
+   - The existing logs have 0 duplicate (day, checked_at) keys (root and `actions/`).
+   - A clash would keep the last start row silently. That needs two identical microsecond times on one day: not
+     reachable. Note only.
+2. **Does every reader ignore a missing start row? YES.**
+   - `checks()` uses `started.get(...)`, which gives `None`.
+   - No code outside `release_times.py` reads the release log's `started_at` (searched `fno/`, `research/`, `tools/`).
+     `first_seen_times`, `last_written_times` and the rule read `checked_at` only.
+   - Tested: rows before A9b, and a deleted side log.
+3. **Can the side log's union merge duplicate rows? NO harm either way.**
+   - Tried myself on a scratch repository: both sides add the same row and one adds another → one copy of each.
+   - Even an identical duplicate maps to the same start time.
+   - Different rows from different checks cannot share a key (question 1).
+4. **Does the guard block a legitimate local server? NO.**
+   - `test_a_local_server_still_answers` binds 127.0.0.1:0.
+   - The full suite passes with the guard on (4611), Postgres fixture included.
+   - Only the proxy's exact `(host, port)` is blocked on loopback. A test server cannot hold that port while the proxy
+     does.
+
+**Planted mutations (separate worktree, 9 of 9 caught):**
+
+| # | Mutation | Result |
+|---|---|---|
+| M1 | join key without `day` | 7 failed |
+| M2 | start row never written | 8 failed |
+| M3 | a missing start row raises | 6 failed |
+| M4 | the proxy on loopback allowed | 1 failed |
+| M5 | `connect_ex` unguarded | 2 failed |
+| M5b | proxy settings kept | 1 failed |
+| M6 | tuple constants ignored | 1 failed |
+| M7 | workflow drops `$STARTS` | 1 failed |
+| M9 | header check off on append | 1 failed |
+
+My first M5b plant matched twice and was not applied, so I re-planted it with a unique context.
+
+**Notes (non-blocking, nothing to fix now):**
+1. The guard matches the proxy by the address it is set as. A proxy set as `localhost:port` would be reached as
+   `127.0.0.1`, which is not matched. Today it is set as 127.0.0.1, and the settings are removed anyway, so no library
+   routes through it.
+2. `test_requests_to_nse_fail_loudly...` needs DNS: `requests` resolves the name before `connect`. Where DNS is down
+   it would fail with a `ConnectionError`, not the guard's error. Both this container and GitHub Actions resolve. DNS
+   lookups themselves are not blocked: a name leaks, but no connection is made.
+3. The builder disclosed one raw TCP connect during a guard-off mutation run, which failed. It is expected for that
+   run and not reproducible with the guard on.
+
+### Verdict: PASS for a19b5b3e8856571b7f6d5000bc878592febd0e45
+
+- No blocking or should-fix finding is left.
+- The owner item (the routine's prompt or its retirement) is recorded in the story and is not needed for correctness:
+  only the routine's start times are lost, never a check.
+- Merge check to follow.
