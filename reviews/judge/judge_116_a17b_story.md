@@ -159,3 +159,55 @@ folded into the code round; I check it there.
 
 **Verdict: PASS for 1b4d9705373e645abfaf1f17e1f228c156b7e0c2.** Merge it; then I check the merge. Consumers (M1, the
 weather, forecasts) must read cues only through `CueReader` or `reading_for` and refuse `stale` and `none`.
+
+## Addendum 3 (15 Oct 2026): merge check, A17b merged to main as af96586
+
+- **Parents.** af96586's parents are 4362a94 (main) and 1b4d970 (the passed tip).
+- **The merge matches my recomputation exactly** (empty diff; no conflicts).
+- **Branch files arrived unchanged.** Every file the branch changed is identical in af96586 and 1b4d970.
+- **No unjudged code since.** No file under `fno/`, `tests/`, `tools/`, `.github/` or `config.yaml` changed after it.
+- **CI.** Run 38680360001 (`checks`) on af96586: **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records `global-cues verify` against Drive on the merged tree as clean.
+
+**Merge check: PASS.** The three minors of addendum 2 go to the builder's follow-up.
+
+**The consumer rule goes into the M1 and weather briefs:** read cues only through `CueReader` or `reading_for`,
+refuse `stale` and `none`, and state any use of `behind`.
+
+## Addendum 4 (15 Oct 2026): A17c minors at cc739e7d1d28bfdc2eef7209208d12203cbaf79b (response 116 addendum 1)
+
+cc739e7 = 7601e4f plus a clean merge of `main`. The changes:
+- one test in `tests/global_cues/test_us_calendar.py`;
+- two source rows in `us_market_closures.csv`;
+- response 116's table.
+
+No `fno/` code changes.
+
+| Minor | Status | My evidence |
+|---|---|---|
+| 1. `expected_date` boundary test | **MET** | The new test covers 01:30:00 vs 01:30:01 IST (US summer time), 02:30:00 vs 02:30:01 (winter), and 9 and 10 Mar 2026 around the 8 Mar clock change: good, boundary and both time zones. **Broken-code proof, by me:** `available_at(day) < moment` changed to `<=` in a separate worktree fails it (1 failed, 7 passed). The mutant that survived in addendum 2 is now caught |
+| 2. Sandy source | **MET, limit adequately disclosed** | I fetched the cited euronext.com release myself: "The industry decision to close the U.S. markets for two trading days due to Hurricane Sandy". It is primary (NYSE Euronext), but it does not name the days. Response 116 addendum 1 says so plainly. It names the 28 Oct statement that does name them, available only as news reprints, and the S&P table's missing rows on 29-30 Oct 2012. My addendum 2 check (0 mismatches against the S&P dates) confirms those are the two days. The `reason` column says "two trading days". Adequate. A NYSE or ICE page naming the dates would be better, but it is not required |
+| 3. Brent row names its view | **MET** | Re-run by me on the public table, 15 Oct 2026 09:15: research view `behind`, 13 days, 2 Oct; live view `behind`, 9 days, 6 Oct. That matches the response, which now states the research view above the table |
+
+**Gates.** At cc739e7, Slack token unset: **3,877 passed** (one more than A17b, the new test). `ruff check`, `ruff
+format --check` (827 files) and `check_imports` (839 files) are clean. It merges cleanly with current `origin/main`,
+which has no code change since.
+
+**Rules 4-6:**
+- broken-code proof: the boundary mutant, planted by me;
+- cases: summer, winter and the clock change, at, just after and around the boundary;
+- real sample: the Brent readings, run by me.
+
+**Verdict: PASS for cc739e7d1d28bfdc2eef7209208d12203cbaf79b.** Merge with `--no-ff`; I check the merge afterwards.
+
+## Addendum 5 (15 Oct 2026): merge check, A17c merged to main as 4e74d8a
+
+- **Parents.** 4e74d8a's parents are 1fdbc68 (main) and cc739e7 (the passed tip). It is a `--no-ff` merge.
+- **The merge matches my recomputation exactly** (empty diff).
+- **Branch files arrived unchanged.** The test, `us_market_closures.csv` and response 116 equal cc739e7. The judge
+  files differ only by `main`'s own later addenda.
+- **No unjudged code since.** a103793 brought only judge and response files.
+- **CI.** Run 38682721169 (`checks`) on a103793, the first push carrying the merge: **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records `global-cues verify` as clean.
+
+**Merge check: PASS.** A17, A17b and A17c are done.

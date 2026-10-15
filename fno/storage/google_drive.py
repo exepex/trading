@@ -125,6 +125,13 @@ class GoogleDriveStore(RawFileStore):
                 return found
             params["pageToken"] = page["nextPageToken"]
 
+    def metadata(self, path: str, fields: str) -> dict | None:
+        """The named Drive fields of the file at an archive path (None when absent)."""
+        file_id = self.file_id(path)
+        if file_id is None:
+            return None
+        return self.drive.get(f"{DRIVE_FILES_URL}/{file_id}", params={"fields": fields}).json()
+
     def _download(self, file_id: str) -> bytes:
         return self.drive.get(f"{DRIVE_FILES_URL}/{file_id}", params={"alt": "media"}).content
 
