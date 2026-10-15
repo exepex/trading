@@ -289,3 +289,16 @@ def test_a_take_open_past_its_expiry_without_settlement_makes_the_section_incomp
     judged_ = board(tmp_path, QUOTES).build(after)["books"][BOOK1_RULES]["head_to_head"]["judged"]
     assert (judged_["incomplete"], judged_["claim_allowed"], judged_["holm_pass"]) == (True, False, False)
     assert judged_["reason"].startswith("incomplete")
+
+
+def test_an_incomplete_section_never_enters_holm_as_testable():
+    """Judge 196 addendum 2 note: a met sample and a tiny p-value do not make an incomplete section testable."""
+    claim = {"days": 120, "p_value": 0.0001, "sample_met": True, "claim_allowed": False, "incomplete": True}
+    books = {"x": {"f7_not_built": False, "started": True, "miss_share": 0.0, "head_to_head": {"judged": claim}}}
+    board_ = {"books": books, "pairs": {}}
+    _apply_holm(board_)
+    assert claim["holm_pass"] is False and books["x"]["verdict"] == NO_CLAIM
+    complete = {**claim, "incomplete": False, "claim_allowed": True}
+    board_ = {"books": {"x": {**books["x"], "head_to_head": {"judged": complete}}}, "pairs": {}}
+    _apply_holm(board_)
+    assert complete["holm_pass"] is True  # the same claim, complete, passes

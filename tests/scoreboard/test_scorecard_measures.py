@@ -45,6 +45,9 @@ def test_drawdown_and_worst_day_with_their_dates_and_share_of_the_brake():
     assert (d["worst_day_rs"], d["worst_day"]) == (-3000.0, "2026-01-02")
     assert d["max_drawdown_share_of_brake"] == pytest.approx(4500 / 120000) and d["worst_day_share_of_brake"] == 0.025
     assert drawdown(series([-100.0]), None)["max_drawdown_rs"] == 100.0  # the running high starts at 0
+    flat = drawdown(series([0.0, 250.0]), 120000.0)  # no day lost money: no worst day (orchestrator, 16 Oct)
+    assert (flat["worst_day"], flat["worst_day_rs"], flat["worst_day_share_of_brake"]) == (None, None, None)
+    assert flat["worst_day_reason"] == "no losing day yet" and d["worst_day_reason"] == ""
 
 
 def blocks(nets, risks):
@@ -99,4 +102,4 @@ def test_without_a_brake_every_share_is_null_and_scoreboard_as_label_says_no_mar
         None,
         BY_DECISION_DAY,
     )
-    assert drawdown(series([100.0, 200.0]), 120000.0)["worst_day_share_of_brake"] == 0.0
+    assert drawdown(series([100.0, -600.0]), 120000.0)["worst_day_share_of_brake"] == 0.005  # with a brake: a share

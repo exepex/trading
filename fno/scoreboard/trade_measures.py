@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from .series import DailySeries, rupees
 
 NO_LOSS, NO_TRADE, NO_DAY = "no losing trade", "no completed trade", "no session"
+NO_LOSING_DAY = "no losing day yet"
 MARKED = "marked daily, not the brake's closed equity"
 BY_DECISION_DAY = "one-lot results on their decision day, no daily marks (scoreboard A)"
 
@@ -46,10 +47,13 @@ def drawdown(series: DailySeries, brake_rs: float | None, label: str = MARKED) -
             deepest, deepest_at = high - cumulative, (peak_day, day)
     worst = min(range(len(series.days)), key=lambda i: (series.net[i], series.days[i]))
     share = lambda rs: None if not brake_rs else round(rs / brake_rs, 6)  # noqa: E731
+    lost = series.net[worst] < 0  # a Rs 0.00 "worst day" misleads (orchestrator, 16 Oct): no worst day until a loss
     return {
         "label": label, "max_drawdown_rs": rupees(deepest), "max_drawdown_share_of_brake": share(deepest),
         "drawdown_from": deepest_at[0].isoformat() if deepest_at[0] else None,
         "drawdown_to": deepest_at[1].isoformat() if deepest_at[1] else None,
-        "worst_day_rs": rupees(series.net[worst]), "worst_day": series.days[worst].isoformat(),
-        "worst_day_share_of_brake": share(max(-series.net[worst], 0.0)),
+        "worst_day_rs": rupees(series.net[worst]) if lost else None,
+        "worst_day": series.days[worst].isoformat() if lost else None,
+        "worst_day_share_of_brake": share(-series.net[worst]) if lost else None,
+        "worst_day_reason": "" if lost else NO_LOSING_DAY,
     }  # fmt: skip
