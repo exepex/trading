@@ -9,20 +9,19 @@ import hashlib
 from dataclasses import dataclass
 from datetime import date
 
-from ..constants import (
-    V6_BIG_MOVE_1S,
-    V6_BIG_MOVE_5S,
+from ..constants import V6_BIG_MOVE_1S, V6_BIG_MOVE_5S
+from ..forecast_v4_rules.baselines import BaseRate, Value, before
+from ..forecast_v4_rules.records import BASELINE, RULE, SLOT_REPORTED, SLOT_RULES, Record, record
+from ..forecast_v4_rules.series import DayValue, big_move_outcomes
+from .checklist_v0 import Event, Row
+from .colour import weather_colour
+from .constants import (
     WEATHER_BASELINE_V0,
     WEATHER_MODEL_VIX,
     WEATHER_OPERATIVE_MODEL,
     WEATHER_OPERATIVE_PROVEN,
     WeatherColour,
 )
-from ..forecast_v4_rules.baselines import BaseRate, Value, before
-from ..forecast_v4_rules.records import BASELINE, RULE, SLOT_REPORTED, SLOT_RULES, Record, record
-from ..forecast_v4_rules.series import DayValue, big_move_outcomes
-from .checklist_v0 import Event, Row
-from .colour import weather_colour
 from .drivers import public_drivers
 from .model import WeatherModel
 from .v0_live import ChecklistV0, ColourBaseRate, Horizon

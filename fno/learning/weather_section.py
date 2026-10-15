@@ -8,8 +8,8 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from datetime import date
 
-from ..constants import WeatherColour
 from ..forecast_v4_rules.records import LIVE
+from ..weather.constants import WeatherColour
 from ..weather.records import WeatherRecords
 from .report import PostMortemSection
 from .week import Week
