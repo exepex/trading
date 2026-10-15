@@ -102,12 +102,15 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
    - **take**, when `decision.action` is a trade (`chosen`), or when the record is `not chosen` and every refusal is an
      account limit, which scoreboard A removes (S1 `scoreboard_a_standardisation`: "no cash, slot or margin limits").
      Account limits are the slot and cash rules (`allocation.py:18`, `max_open_trades`, `margin_room`), the
-     account-state caps in `risk.verdicts` (`bucket_cap`, `open_risk_cap`, `new_risk_per_day`, `drawdown_brake`), and
-     the "unproven:" open-trade limit (`allocation.py:72-77`);
+     account-state caps in `risk.verdicts` (`bucket_cap`, `open_risk_cap`, `new_risk_per_day`, `drawdown_brake`), the
+     account-wide stress and exposure checks (`stress_loss`, `exposure_limit`: they add the book's other open positions,
+     `fno/risk/rules.py:45-47, 82-84`, and are not in the books' profile today, `config.yaml` `risk.profiles.books`), and
+     the "unproven:" open-trade limit (`allocation.py:72-77`). Counting these as account limits is chosen over
+     re-checking the one-lot trade against an empty book: it needs no second risk run, and A drops account state
+     anyway (judge 168);
    - **skip**, when `decision.action` is "no trade" for any other reason: the rule did not fire; no valid trade; a C4
      block (the action reads "no trade" even when `decision.outcome` reads "chosen", `decision_record.py:76-79`); or a
-     `not chosen` whose refusals include a trade-level rule (`max_loss_per_trade`, `stress_loss`, `exposure_limit`).
-     A trade-level refusal is the book's own rule judging the trade;
+     `not chosen` refused by `max_loss_per_trade`, the one rule that judges the trade alone;
    - **not observed**, never scored and always counted (criterion 3):
      - no run collected for that book that day (late, `no_decision.json`, "AI unavailable" or a missed run);
      - a collected run with no record for that opportunity (for example a version paused during the day, which Book
@@ -118,7 +121,7 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
      - a day with no valid execution snapshot (no book is scored that day).
    Research candidates (`shadow: ...`) are not in the common set and never appear. Book 3's actions come from F7's
    `shadow_decisions.json` through a port, `MatchedShadowDecisions`. Until F7 exists the port returns nothing, so every
-   Book 3 day is "not observed" and counted. F7's text does not yet say that each entry must name its structure and the
+   Book 3 day is "not observed: F7 not built", counted apart from misses (design 6). F7's text does not yet say that each entry must name its structure and the
    day's `common_pack_sha256`; F7 must add both before Book 3 can be scored (Depends).
 2. **The standard unit** (`standard_unit.py`), the one valuation F9 reuses ("valued like scoreboard A"; shared through
    the orchestrator, no second copy):
@@ -136,7 +139,13 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
 3. **Scores** (`matched.py`). A take's result is its one-lot net in rupees and its one-lot maximum loss at entry,
    recomputed from the one-lot entry fills by the maximum-loss function the candidates use (never the record's
    `worst_rs`, which is negative, priced at the pack's mids and for the book's lot count). A skip is 0 and 0. Actions
-   still open are cut from both sums and listed, never counted as 0.
+   still open are cut from both sums and listed, never counted as 0. Every take has a fixed maximum loss, because C4
+   refuses any position whose maximum loss is not fixed at entry (design v2 03 item 3). A take whose one-lot maximum
+   loss cannot be computed (a missing input) is listed apart as "maximum loss unknown" and not scored.
+   - **Series days:** a book's series holds every session of the period on which it is observed, from the period's
+     first session to the last decision day whose actions have all closed. Days with only skips, or with no
+     opportunity, are in the series as (0, 0). Not-observed days are left out, never set to 0. The sample rule's 120
+     days and the bound's 20-day minimum count these observed sessions.
    - **Per book:** net per unit of maximum loss at entry, Σ net ÷ Σ maximum loss over closed takes. This is S1's
      scoreboard A measure (`scoreboard_a_standardisation`), not S2's net per risk-day: A has no daily marks. Its series
      puts each action on its decision day (net, maximum loss), so S2's `uncertainty.lower_bound`, a ratio of sums over
@@ -144,9 +153,15 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
      A claim also needs the sample rule and the whole-period net above zero (S1 `uncertainty_criterion`).
    - **Paired, X against Y:** on the decision days both books are observed and all their actions closed, the daily
      difference of their one-lot nets in rupees (S1: "for X beats Y, the paired daily difference"). The statistic is
-     the mean difference, computed by the same `lower_bound` on a series whose risk column is 1 on every day (the ratio
-     of sums is then the mean). A claim also needs the whole-period difference above zero and the sample rule, and
-     Holm's correction across the claims made at one review (S1). Each book's not-observed days are printed beside
+     the mean difference: the same moving-block resampler on a series whose risk column is 1 on every day (the ratio
+     of sums is then the mean). A claim also needs the whole-period difference above zero and the sample rule.
+   - **Holm across the claims made at one review** (S1). `lower_bound` has a fixed 5%, so it cannot apply Holm.
+     `uncertainty.py` is split into the resampler (the sorted resampled values, unchanged) and two readers:
+     - S2's lower bound (unchanged);
+     - a one-sided bootstrap p-value, the share of resampled values at or below 0.
+     Holm then runs on the p-values: sorted ascending, the i-th of m claims passes while p < 0.05 / (m − i + 1); the
+     first failure stops the rest. For a single claim, p < 0.05 holds exactly when the nearest-rank 5th percentile is
+     above 0, so it agrees with S2's bound. Each book's not-observed days are printed beside
      every pair.
    - Reported per D6 segment and overall (S2's `EntryDecisions` segments), with pilot before the common start apart, as
      S2 does.
@@ -155,8 +170,8 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
 5. **S6's share** (criterion 5) lands with S6's code, which is built after this code: the measures and the do-nothing
    view (a) on these series.
 6. **The miss cap** is computed here from scoreboard A's own actions, so it does not wait for S6. A book's misses are its
-   days with no run collected (late, `no_decision.json`, "AI unavailable", missed). Days D6 leaves unscored and days
-   with no valid snapshot are counted apart, outside the cap. The cap is 10% (G9's figure, owner row 170); S6's S1
+   days with no run collected (late, `no_decision.json`, "AI unavailable", missed). Days D6 leaves unscored, days
+   with no valid snapshot and Book 3's days before F7 are counted apart, outside the cap. The cap is 10% (G9's figure, owner row 170); S6's S1
    item `missed_runs` freezes it.
 
 **Acceptance criteria:**
@@ -167,6 +182,8 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
    - 2 sessions and 2 opportunities, on fixture snapshots, with hand-computed fills and C1 charges;
    - Book 1 takes O1 (a closed one-lot result and maximum loss by hand), Book 2 skips everything, Book 3 is not
      observed;
+   - on day 2, Book 1 takes O2, whose short leg has too little size at the touch: "not filled", scored 0 and listed,
+     with its maximum loss out of the sum;
    - expected: Book 1's net per unit of maximum loss and the Book 1 − Book 2 daily differences to the paisa, with
      Book 3 absent from every pair and counted.
 3. "AI unavailable", late, missed and unscored decisions are excluded from judgement scores and counted separately;
@@ -181,13 +198,15 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
    - an entry leg with too little size at the touch gives "not filled", scored 0;
    - the exit is on the last trading day at least `exit_days_before_expiry` days before the expiry (a holiday on that
      day moves it earlier, as the opportunity code does);
-   - a leg without a quote that day exits at the next snapshot, dated that day;
+   - a leg without a quote on the exit day exits at the next snapshot where it has one, dated the day it fills, never
+     backdated;
    - a leg still open at expiry is settled at E7's price;
    - an action still open on the report day is listed and unscored.
 7. **Actions**, one fixture record per case:
    - `chosen`: a take;
    - `not chosen` refused by `bucket_cap` only, or by "unproven:": a take;
-   - `not chosen` refused by `max_loss_per_trade`: a skip;
+   - `not chosen` refused by `stress_loss` only: a take; by `exposure_limit` only: a take;
+   - `not chosen` refused by `max_loss_per_trade`: a skip, and by `max_loss_per_trade` with `bucket_cap`: a skip;
    - "input not usable": not observed;
    - a C4 block with `decision.outcome` "chosen": a skip;
    - `no trade`: a skip;
@@ -195,11 +214,17 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
    - a collected run missing one opportunity's record: not observed for that opportunity;
    - a day without a valid snapshot: not observed for every book;
    - a `shadow: would trade` record never appears.
-   Before F7, every Book 3 day is "not observed", and Book 3's verdict reads "undecided, operations".
+   Before F7, every Book 3 day is "not observed: F7 not built", outside the miss cap, and Book 3's verdict reads
+   "undecided, F7 not built".
 8. **Bounds:**
    - the per-book bound equals `uncertainty.lower_bound` on the decision-day series;
    - the pair bound equals it on the difference series with risk 1;
-   - a series shorter than one block (19 days) gives null, while exactly 20 gives a bound;
+   - a series shorter than one block (19 observed days) gives null, while exactly 20 gives a bound;
+   - a book with 25 sessions, 3 of them not observed and 10 skip-only, has a 22-day series holding the 10 skip-only
+     days as (0, 0);
+   - **Holm, known answer:** p-values 0.010, 0.030 and 0.040 for three claims: the first passes (0.010 < 0.0167), the
+     second fails (0.030 ≥ 0.025), and the third is not tested;
+   - p-value and bound agree: on one series, p < 0.05 exactly when `lower_bound` > 0;
    - a pair with no common observed day gives null with "no common day";
    - an action open on the report day is cut from both sums: a day with one closed +1,000 take and one open take
      scores 1,000 over the closed take's maximum loss only.
@@ -217,7 +242,7 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
 | Book 3 via F7 (12.5) | the `MatchedShadowDecisions` port; before F7, "not observed" (criterion 7) |
 | "AI unavailable" excluded from judgement (13.5) | "not observed" (criterion 3) |
 | Missed decisions on observed days, with the miss cap (row 170, S6) | design 6; criterion 3 |
-| Paired differences and the uncertainty criterion (S1) | design 3; criteria 2 and 8 |
+| Paired differences, the uncertainty criterion and Holm (S1) | design 3; criteria 2 and 8 |
 | Never merged with B (12.5) | criterion 4 |
 | Per segment, pilot apart (S1 `segments`, `pilot_evidence`) | design 3 |
 | S6's measures and do-nothing on A (rows 162, 168) | criterion 5, with S6's code |
