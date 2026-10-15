@@ -14,7 +14,7 @@ from collections.abc import Mapping
 from datetime import date, timedelta
 
 GAP_FIELDS = ("cue", "date", "kind")
-OVERLAP_FIELDS = ("date", "kind", "rbi", "fbil")
+OVERLAP_FIELDS = ("date", "kind")  # never a rate: with RBI's public rate, any FBIL figure would reveal FBIL's (A17d)
 WEEKDAY_WITHOUT_VALUE, REPEATED = "weekday_without_value", "repeated_previous_value"
 SATURDAY = 5
 
@@ -34,8 +34,8 @@ def gap_rows(cue: str, rows: list[dict[str, str]]) -> list[tuple[str, str, str]]
     return sorted(found, key=lambda r: (r[1], r[2]))
 
 
-def overlap_rows(rbi: Mapping[str, str], fbil: Mapping[str, str]) -> list[tuple[str, str, str, str]]:
+def overlap_rows(rbi: Mapping[str, str], fbil: Mapping[str, str]) -> list[tuple[str, str]]:
     """Every date both publish where their rates differ. A date only one has is not listed here: RBI's own gaps (its
     2018-2022 hole included) are in `gaps.csv`, and FBIL's public site trails by a week."""
     shared = sorted(set(rbi) & set(fbil))
-    return [(day, "differs", rbi[day], fbil[day]) for day in shared if float(rbi[day]) != float(fbil[day])]
+    return [(day, "differs") for day in shared if float(rbi[day]) != float(fbil[day])]

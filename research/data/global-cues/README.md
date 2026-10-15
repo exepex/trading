@@ -9,7 +9,12 @@ per fetch, filed under the fetch time). First fill: 15 Oct 2026, 06:15 IST.
 | `us10y.csv` | US Treasury 10-year par yield, percent a year | 4,950 | 2 Jan 2007 - 14 Oct 2026 | US Treasury |
 | `brent.csv` | Europe Brent spot price FOB, US dollars a barrel | 4,992 | 2 Jan 2007 - 6 Oct 2026 | US EIA |
 | `usdinr_rbi.csv` | USD/INR reference rate, rupees per dollar | 3,871 | 2 Jan 2007 - 14 Oct 2026, **none 10 Jul 2018 - 11 Apr 2022 except 24 Jul 2018** | RBI |
-| `usdinr_fbil.csv` | the same reference rate | 1,981 | 10 Jul 2018 - 7 Oct 2026 | FBIL |
+
+**FBIL's USD/INR reference rate is private too (story A17d, owner decision of 15 Oct 2026):** FBIL does not authorise
+commercial use of its data without written permission, so its table, revisions and gaps are in Drive like the US
+closes. Same conditions as below, except the US-only ones: FBIL is not limited to one download a day and has no
+unfinished values (it publishes one rate a day, a week late). Until 15 Oct 2026 its table was public here
+(`usdinr_fbil.csv`, 1,981 rows, 10 Jul 2018 - 7 Oct 2026); those copies stay in git history (known limit).
 
 **Private cues: the previous US closes (S&P 500, Nasdaq 100) are in the owner's Drive only.** Owner decision of
 15 Oct 2026 (`docs/DESK_DECISIONS.md`, commit a927390): use the Cboe and Nasdaq files for personal research despite
@@ -35,6 +40,7 @@ their terms (quoted below), with these conditions:
 |---|---|---|---|---|
 | sp500 | `global-cues/sp500/rows`, `/revisions`, `/checks` | 4,977 | 3 Jan 2007 - 14 Oct 2026 | Cboe's SPX history |
 | nasdaq100 | `global-cues/nasdaq100/rows`, `/revisions`, `/checks` | 5,059 | 2007 - 13 Oct 2026 | Nasdaq's quote API |
+| usdinr_fbil | `global-cues/usdinr_fbil/rows`, `/revisions`, `/checks` | 1,981 | 10 Jul 2018 - 7 Oct 2026 | FBIL reference rates |
 
 The history start is the four copies fetched once on 15 Oct 2026 before their terms were read, kept by the owner and
 adopted with `global-cues adopt` at their own fetch times (06:14:45, 06:17:18, 06:14:54 and 06:17:22 IST). Since
@@ -68,7 +74,9 @@ archived copy it came from; its path, URL and fetch time are in `research/data/m
 | nasdaq100 (private) | Nasdaq, `api.nasdaq.com/api/quote/NDX/historical` | US Eastern | 16:00 ET on t; on 15 Oct at 06:00 IST it still lacked 14 Oct | Nasdaq's terms: users must "Not access or use the Service, or any process, whether automated or manual, to capture data or content from the Service" (strong evidence, quoted). Used under the owner's decision a927390 |
 
 RBI's and FBIL's rates are the same benchmark: on all 1,086 dates both publish (24 Jul 2018 and 12 Apr 2022 on) they
-are equal (`checks/overlap_usdinr.csv` lists only differences: none). FBIL fills RBI's 2018-2022 hole.
+are equal (`checks/overlap_usdinr.csv` lists only differences, by `date,kind`, never a rate: none). FBIL fills RBI's
+2018-2022 hole. So RBI's public table carries FBIL's rate on those 1,086 dates anyway: only FBIL's 2018-2022 fill is
+FBIL's alone (A17d known limit).
 
 ## The date rule (as-of): two cutoffs
 
@@ -161,12 +169,12 @@ December 2026.
   holiday calendar, so holiday and gap are not told apart there; the NYSE calendar is checked by the CI test above)
   and values equal to the previous date's.
 
-## Open owner item: FBIL in a public repository
+## FBIL in a public repository: closed by the owner
 
-FBIL's site says it does not authorise commercial use of its data without written permission (quoted above). The
-orchestrator's decision (15 Oct 2026, owner away, logged; judge 103 minor 2): `usdinr_fbil.csv` stays public for now,
-as personal, non-commercial use of a published benchmark. **Open for the owner**: keep it public, or move it to Drive
-like the private cues.
+FBIL's site says it does not authorise commercial use of its data without written permission (quoted above). It was
+public here from 15 Oct 2026 (orchestrator, judge 103 minor 2) until the owner's decision the same day moved it to
+Drive (story A17d, `docs/DESK_DECISIONS.md`). Its past copies stay readable in git history; a history rewrite is out
+(the owner keeps the repositories public).
 
 ## The terms of the US index sources, and why they are used anyway
 
