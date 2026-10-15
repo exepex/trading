@@ -204,3 +204,73 @@ with the next SHA.
 
 **Verdict: FAIL for c653744aa1e9e75c451e7c272316e441be20415a** on new should-fix 1. A re-check needs the committer's
 refusal handling, its run-level test, the N4 test, and decision 42's commit.
+
+## Addendum 4 (15 Oct 2026): af31238713e4bd076524ce6832a77e5bdf76a2fe
+
+New commits: 290a8a0 (decision 42) and af31238 (decision 44). Gates: 3,935 passed (the builder's figure); ruff, format
+and imports clean. Decision 45's commit was not pushed yet; I check it with the next SHA.
+
+## Verdict: FAIL, 1 should-fix; 3 minor
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 3 sf 1, the run's own commit | MET | `GitCommitter` turns the raw-quote refusal and every `GitError` into `CommitFailed`, and `DailyRun._step` is the one handler (one alert, then `RunStopped`); `fno desk run` returns 1 on one line. The tests use the real `GitCommitter` with a bare origin: a staged raw file, an unreachable origin, a pre-receive hook. I read all three and the in-step case (capture commit) |
+| Addendum 3 minor 1, staged deletion | MET | `test_a_staged_deletion_of_a_quote_file_is_refused` (this catches my N4) |
+| Decision 42 | MET | `pricing.py` `NOT_ENOUGH_SIZE` names only the units. The pending-exit reason reuses `q.reason` (`exits.py:137`), so it carries no size. The test reads the committed `desk_events.csv` row |
+
+### The orchestrator's questions
+
+**1. Is a commit stuck local after a push rejected three times acceptable? Yes, but the alert gives no hand fix.**
+- It fails closed: `other_work` refuses every later account write while a commit is unpushed.
+- It also heals: the next successful `GitCommitter.commit` pulls and pushes `HEAD`, so a rerun carries the stuck commit
+  once origin accepts pushes again.
+- The alert says what happened, not what to do. It should say: exits did not run, open positions were not reviewed
+  today; fix the cause, then rerun `fno desk run`. That rerun advice is only safe after should-fix 1 below.
+
+**2. Can `RunStopped` skip something that must run? Yes, in two ways.**
+- **The exits.** A stop at any step before `exits` skips them. For all three causes this changes nothing, because the
+  exits' account writes would refuse anyway:
+  - a staged raw file is refused before apply;
+  - an unpushed commit fails the dedicated check;
+  - a failed pull raises `GitError` in the account write too.
+
+  The exception is a pull that fails once and works minutes later. Then the stop gives up that day's exits, as the old
+  crash did. Acceptable only if the alert names it (minor 1).
+- **The locks.** Account locks are context managers inside `GitAccountSync.write` (`with self.open_journal(...)`), so
+  an exception releases them. Nothing else holds a resource across `_step`.
+- **The failed step's own files on a rerun.** This is should-fix 1.
+
+## Should-fix
+
+**1. After a stop, a rerun marks the failed step done, and its files are never committed.**
+- **The order.** `_step` calls `log.record(...)` (which writes `journal/runs/<day>.json` to disk) before
+  `committer.commit(...)`. `run()` skips every step for which `log.done(name)` is true.
+- **Probe.** The real `DailyRun._step` and `RunLog`, a committer that fails once, the pack step with its
+  `journal/packs/<day>/common.json`: after `RunStopped`, `RunLog.open(root, day).done("pack")` is True.
+- **Consequence.** A rerun skips the pack step, and the next step's commit carries only the log and that step's own
+  paths.
+  - The pack stays uncommitted for good, while the committed run log says `"built": true` with its hash.
+  - That is a silent gap in the public record, after the very recovery an operator would try.
+  - A failed `decisions` step leaves its no-decision files the same way. Those sit in the book's folder, so later account
+    writes refuse (fail closed, alerted), but nothing says why.
+- **Before E2b** the same order existed, but the run crashed. Decision 44 makes stop-then-rerun the designed path, so
+  the rerun must be correct.
+- **Expected fix.** A step whose commit failed is not "done" on a rerun: either the log records it only once committed,
+  or the rerun first commits the paths of recorded but uncommitted steps. No step may run twice, and the fills step must
+  never refill. Test it with the real `GitCommitter`: a stop at `pack`, the cause removed, a rerun; the pack file is
+  committed, every step ran once, nothing was refilled.
+
+## Minor
+
+1. **The stop alert should say plainly what is missed and what to do.** Name "exits not reviewed today" when the stop
+   comes before `exits`, and give the hand fix: remove the cause, then rerun `fno desk run`. For a rejected push, add
+   "the local commit is pushed by that rerun".
+2. **Possible decision 45 scope (reasoning only).** `exit_rules.py:42,55` write "net Rs X if closed now" into the
+   `exit_ordered` reason. That net is worked out at the touch of every leg. If a leg then stays pending (not enough size),
+   X minus the published close fills of the other legs gives that leg's touch price at a snapshot where it did not fill.
+   That is one side, not both. Fold it into decision 45 if the rule is "no quote figure for an unfilled leg".
+3. The new Out line (Book 1's decision command still ends in a traceback on a failed commit) is a fair follow-up, not
+   E2b's.
+
+**Verdict: FAIL for af31238713e4bd076524ce6832a77e5bdf76a2fe** on should-fix 1. A re-check needs the rerun behaviour
+and its test, the alert text, and decision 45's commit.
