@@ -119,7 +119,8 @@ def test_scenario_lookup_cannot_give_the_margin_at_entry_so_it_fails_closed(tmp_
 
 def test_the_margin_at_entry_stresses_the_scan_and_drops_the_premium_credit(tmp_path):
     """SF width 200 with scan 4,000, NOV -6,000 and exposure 50,000 a lot, factor 1.5, 2 lots: at entry
-    max(0, 6,000 + 6,000) + 50,000 = 62,000 a lot; C2's netted margin is 6,000 less."""
+    max(0, 1.5 x 4,000 + 6,000) + 1.5 x 50,000 = 87,000 a lot (C2c: k stresses the exposure too; was 62,000); C2's
+    netted margin is 6,000 less."""
     stressed = _multiplier(_table(tmp_path, "SF,200,4000,-6000,50000,calc,2026-10-12\n"))
-    assert stressed.margin_at_entry(TERMS, DAY) == 124_000.0
-    assert stressed.margin(TERMS, DAY) == 112_000.0
+    assert stressed.margin_at_entry(TERMS, DAY) == 174_000.0
+    assert stressed.margin(TERMS, DAY) == 162_000.0
