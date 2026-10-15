@@ -13,3 +13,13 @@ Merging this branch into `main` must keep the freeze commit in history (a merge,
 ledger guard refuses the trial.
 
 Check before reading results: `sha256sum -c` on the files above at the run commit.
+
+## Pre-run amendment 1 (15 Oct 2026)
+
+`AMENDMENT_1.md` (judge 97's follow-ups 1-3 and 5, and data details the protocol leaves open) is committed before
+`study.py` and before any data of this study is read. It changes no threshold and no rule chosen with an outcome in
+view; `PROTOCOL.md` keeps its hash above and governs.
+
+| File | SHA-256 |
+|---|---|
+| `AMENDMENT_1.md` | `8b36416b4f000bec11ab0e0a56d4e2f74655539eb744535180bfb3a23d1da47d` |
