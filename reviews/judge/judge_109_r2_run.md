@@ -90,3 +90,34 @@ labels present. The amendment is append-only beside an unchanged protocol, as ju
 no threshold and uses no outcome, and the exposure is harmless. A re-check needs only `AMENDMENT_1.md` (D1, D3, D4),
 its new hash in `FREEZE.md` and, if the source changes, `DATA_SPEND.md`. Nothing may read study data until this
 amendment and the `study.py` commit both pass.
+
+## Addendum 1 (15 Oct 2026): amendment 1 revision 1 at 425b69336676083ddb06643820fb9cf2d93c1f50 (a4fbc53..425b693)
+
+425b693 (parent a4fbc53, a merge of `main`) changes only `AMENDMENT_1.md`, `FREEZE.md` and `research/DATA_SPEND.md`.
+`PROTOCOL.md` still hashes to `89947b4c...e40a6b`. `AMENDMENT_1.md` hashes to `3b84ecae...35d1e6`, equal to `FREEZE.md`,
+and the first version's hash is kept beside it. No `fno/` or `tools/` file changes from 32262d4 to 425b693.
+- 9bfa0ad (an unfrozen script) is not judged here. It must not run on study data before the script check.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Should-fix 1: one downloader, A12's layout | MET | D1 now fills the lists through `build_day_list_librarian("board-meetings")` (`fno/filings/wiring.py:73`): A12's `NseBoardMeetingsSource` (one day per request, `board-meetings_YYYYMMDD.json`), the shared `PacedSession`, `check_day_list`, a `FingerprintingStore` writing A12's manifest rows, and `RawDataLibrarian.fill(start, end)`, which takes an explicit start (`librarian.py:58`), so no code change is needed. The scheduled job's `first_unarchived_day` (`runs_cli.py:179`) walks to the first day without a row from 2005, so the 2007-2018 backlog is still filled later. Pre-filled days are found present, and no gap is hidden. Completeness: a manifest row for every calendar day, no damaged, rejected or unpublished day, or the stage-0 answer is "cannot answer" |
+| `DATA_SPEND.md` names the real source | MET | The "Company results dates (A12)" row names A12's daily lists from 1 Dec 2018 and `results-xbrl.csv` |
+| Should-fix 2: the traded contract's lot | MET | D4: `NewBrdLotQty` of the chosen expiry's K0 call (else put) on the entry session. Legacy rows use the derivation on the same-expiry future, and the 98% validation uses the same rule. D3: the lot test is on that expiry's K0 options, current format only |
+| Minor 1: no R prices on legacy rows | MET | Legacy rows use the K0-listing test and the corporate-actions file only. The current-format test reads R's lot column, not a price |
+| Minor 2: `filed_at` coverage | MET | D10, descriptive |
+| Builder's additions | ACCEPTED | D5: sessions after the archive's last file are counted from the A7 calendar. This is needed when an expiry lies after the last archived session, and it uses no data. D1: reschedule chains (each fewer than 30 days after the one before) form one group, and the latest meeting with a matched filing is kept. This is a mechanical rule chosen blind; neither addition changes a threshold |
+| Data touched since the first version | ACCEPTED (attestation) | Raw F&O and index-close files copied to a local cache with SHA-256 checks; nothing parsed; no list fetched. Copying bytes is not reading |
+
+**On the orchestrator's decision to run the A12 fill alongside the script check:** no reason it is unsafe for the
+study. It is archiving only, and the lists hold event dates, not outcomes. Three conditions:
+1. **Manifest commits.** The scheduled `filings-archive.yml` (every 6 hours) appends board-meetings rows to the same
+   CSV. That file has no `merge=union` in `.gitattributes`, so pulls can conflict at the end of the file. Resolve by
+   keeping both sides' rows, never dropping or rewriting one.
+2. **Who commits the rows.** A hand-run fill's manifest rows are A12 output, but not a scheduled job's commit
+   (refinement 3). Commit them with the fill report, which gives the day counts and the damaged, rejected and
+   unpublished lists. My script check will verify a row for every day from 1 Dec 2018 to the last F&O session, and a
+   sample of Drive files against their rows.
+3. **Nothing parses the lists before the script passes.** This covers the work-in-progress `study.py` too.
+
+**Verdict: PASS for 425b69336676083ddb06643820fb9cf2d93c1f50** (amendment 1, revision 1). The study may not read study
+data until the `study.py` and snapshot-script commit passes, with its hash in `FREEZE.md`.
