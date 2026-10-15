@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from .forbidden_files import ForbiddenFiles
 from .patterns import RecordPattern
 from .record_files import RecordText
 
@@ -28,11 +29,16 @@ class RecordScanner:
     the patterns themselves and the tests' planted examples."""
 
     def __init__(
-        self, patterns: list[RecordPattern], allowed_values: Iterable[str] = (), code_patterns: list[RecordPattern] = ()
+        self,
+        patterns: list[RecordPattern],
+        allowed_values: Iterable[str] = (),
+        code_patterns: list[RecordPattern] = (),
+        forbidden: Iterable[ForbiddenFiles] = (),
     ):
         self._patterns = patterns
         self._code_patterns = list(code_patterns)
         self._allowed = frozenset(allowed_values)
+        self._forbidden = tuple(forbidden)  # refused by path, whatever they hold (story A4b)
 
     def scan_text(self, path: str, text: str, is_code: bool = False) -> list[Finding]:
         if "\x00" in text:
@@ -52,6 +58,9 @@ class RecordScanner:
             for finding in (
                 [Finding(record.path, 0, UNREADABLE)]
                 if record.unreadable
-                else self.scan_text(record.path, record.text, record.is_code)
+                else self._forbidden_kinds(record.path) + self.scan_text(record.path, record.text, record.is_code)
             )
         ]
+
+    def _forbidden_kinds(self, path: str) -> list[Finding]:
+        return [Finding(path, 0, files.kind) for files in self._forbidden if files.matches(path)]

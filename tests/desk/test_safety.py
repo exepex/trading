@@ -19,6 +19,8 @@ from fno.desk.records import DeskEvent, DeskRecords
 from fno.desk.snapshot import parse_execution_snapshot
 from fno.desk.wiring import build_entry_desk, build_execution_snapshots, build_exit_desk, open_desk_journal
 from fno.quotes.recorder import QuoteSnapshotRecorder
+from fno.storage import quote_wiring
+from tests.quotes.drive_fakes import FakeDrive
 
 from .builders import DAY, DictStore, at, enter, fly_order, fly_rows, passed, write_snapshot
 
@@ -51,6 +53,8 @@ def test_a_full_day_of_fills_and_exits_never_touches_a_provider(root, tmp_path, 
     for module in (fno.providers, fno.composition):
         monkeypatch.setattr(module, "get_provider", lambda *a, **k: Trap())
     monkeypatch.setitem(sys.modules, "growwapi", types.SimpleNamespace(GrowwAPI=Trap()))
+    drive = FakeDrive()  # A4b: Groww's quote files are in Drive only; a fake one here
+    monkeypatch.setattr(quote_wiring, "build_owner_drive", lambda env: drive)
     folder = tmp_path / "quotes"
     store = build_execution_snapshots(folder).store
     write_snapshot(store, "exec", fly_rows(), at(15, 15), at(15, 15, 40))

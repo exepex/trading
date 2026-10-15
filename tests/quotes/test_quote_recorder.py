@@ -123,7 +123,7 @@ def test_an_outside_window_attempt_is_never_canonical(tmp_path):
 def test_the_report_uses_canonical_valid_quotes_by_distance(tmp_path):
     rec, folder = recorder(tmp_path, FakeProvider(), datetime(2026, 10, 13, 14, 55, tzinfo=IST))
     rec.record()
-    report = spread_report(canonical_snapshots(folder))
+    report = spread_report(canonical_snapshots(folder, LocalFolderStore(folder)))
     assert report["days"] == 1
     assert report["bands"]["0-1%"]["median_half_spread"] == 0.5 and report["bands"]["0-1%"]["valid_quotes"] == 4
     assert report["bands"]["3-5%"]["valid_quotes"] == 8  # 21000 and 23000 are 4.5% from 22000

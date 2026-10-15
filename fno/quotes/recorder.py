@@ -46,6 +46,9 @@ VERIFIED, UNVERIFIED = "verified", "unverified"  # status of meta.json's monthly
 POINT_IN_TIME_RULE = f"listed more than {MONTHLY_LISTING_DAYS} days ahead by that day (A5 monthly_as_of)"
 FALLBACK_RULE = "last listed expiry of month"
 NONE_MARKER = "none"
+RAW_FILE_NOT_SAVED = "raw quote file not saved"
+MESSAGE_WITHHELD = "provider message withheld"
+RAW_FILE_SAVED = "raw_file_saved"  # sidecar key, written (false) only when the save failed: absent means saved (A4b)
 COLUMNS = (
     "snapshot_id", "request_sent_at", "response_received_at", "quote_time", "age_basis", "freshness_proxy",
     "last_trade_time",
@@ -106,6 +109,8 @@ class RecordResult:
     rows: int = 0
     reason: str = ""  # why a session day was skipped or failed the calendar cross-check
     monthly_unverified: str = ""  # why the monthly contracts were chosen by the fallback rule (alerted, never hidden)
+    raw_file_error: str = ""  # why the quote file was not saved (A4b: Drive only; alerted, never saved elsewhere)
+    raw_file_detail: str = ""  # the error's own text: for the private alert only, never in a committed file
 
 
 class QuoteSnapshotRecorder:
@@ -183,7 +188,7 @@ class QuoteSnapshotRecorder:
         try:
             monthly, used = self.monthly_check.monthlies(UNDERLYING, listed, day)
         except Exception as exc:
-            check.update(status=UNVERIFIED, rule=FALLBACK_RULE, reason=f"{type(exc).__name__}: {exc}")
+            check.update(status=UNVERIFIED, rule=FALLBACK_RULE, reason=withheld("expiry history", exc))
             return monthly_expiries(listed, day)
         if check.get("status") != UNVERIFIED:
             check.update(status=VERIFIED, rule=POINT_IN_TIME_RULE)
@@ -202,13 +207,13 @@ class QuoteSnapshotRecorder:
                     listed, expiry_source = self.fallback.listed(UNDERLYING, day)
                     months = self._nearest_monthlies(listed, day, check)
                 except Exception as exc:
-                    failures.append(f"expiry fallback: {type(exc).__name__}: {exc}")
+                    failures.append(withheld("expiry fallback", exc))
             if len(months) < MONTHLY_EXPIRIES:
                 failures.append(f"only {len(months)} monthly expiries found")
             for expiry in months:
                 chains.append(self.provider.chain(UNDERLYING, expiry))
         except Exception as exc:  # recorded, never hidden: the attempt is incomplete
-            failures.append(f"chain: {type(exc).__name__}: {exc}")
+            failures.append(withheld("chain", exc))
         levels = self.levels.levels(UNDERLYING) if self.levels else None  # inside the capture: before finished_at
         expected, traded = sum(len(self._contracts(c)) for c in chains), False
         for chain in chains:
@@ -217,7 +222,7 @@ class QuoteSnapshotRecorder:
                 try:
                     book = self.provider.quote_book(chain, strike, kind)
                 except Exception as exc:
-                    failures.append(f"{chain.expiry} {strike:g} {kind}: {type(exc).__name__}: {exc}")
+                    failures.append(withheld(f"{chain.expiry} {strike:g} {kind}", exc))
                     continue
                 rows.append(self._row(snapshot_id, sent, self.now(), chain, strike, kind, book, day))
                 traded = traded or traded_today(book, day)
@@ -225,8 +230,11 @@ class QuoteSnapshotRecorder:
             if self.calendar is None:
                 return RecordResult("not a trading day", snapshot_id)  # A4 inference: no contract traded, closed
             failures.append(NO_SAME_DAY_TRADES)  # kept and retried; the day ends "none" if it persists to 15:10
-        complete = bool(chains) and not failures and len(rows) == expected
         csv_bytes = self._csv(rows)
+        raw_file_error, raw_file_detail = self._save_quote_file(self._path(day, f"{snapshot_id}.csv"), csv_bytes)
+        if raw_file_error:
+            failures.append(raw_file_error)
+        complete = bool(chains) and not failures and len(rows) == expected
         meta = {
             "snapshot_id": snapshot_id, "underlying": UNDERLYING, "provider": self.provider.name,
             "started_at": started.isoformat(), "finished_at": self.now().isoformat(),
@@ -236,17 +244,30 @@ class QuoteSnapshotRecorder:
             "complete": complete, "in_window": canonical_allowed, "csv_sha256": hashlib.sha256(csv_bytes).hexdigest(),
             "note": PROVIDER_NOTES.get(self.provider.name, GROWW_NOTE),
         }  # fmt: skip
+        if raw_file_error:
+            meta[RAW_FILE_SAVED] = False
         if self.monthly_check is not None:
             meta["monthly_check"] = check  # verified with the NSE files that proved it, or unverified and why
         if levels is not None:
             meta.update(levels.meta(), levels_source=self.levels.name)  # India VIX and futures for live features
-        self.store.put(self._path(day, f"{snapshot_id}.csv"), csv_bytes)
         self.store.put(self._path(day, f"{snapshot_id}.meta.json"), json.dumps(meta, indent=1, sort_keys=True).encode())
         if complete and canonical_allowed and self.canonical(day) is None:
             self.store.put(self._path(day, f"nifty_{day:%Y%m%d}.canonical"), snapshot_id.encode())
         reason = NO_SAME_DAY_TRADES if NO_SAME_DAY_TRADES in failures else ""
         unverified = check["reason"] if check.get("status") == UNVERIFIED else ""
-        return RecordResult("recorded", snapshot_id, complete, len(rows), reason, unverified)
+        return RecordResult("recorded", snapshot_id, complete, len(rows), reason, unverified, raw_file_error,
+                            raw_file_detail)  # fmt: skip
+
+    def _save_quote_file(self, path: str, data: bytes) -> tuple[str, str]:
+        """("", "") when saved; otherwise (the reason for the public sidecar, the error's own text). The quote rows are
+        then kept nowhere (A4b: never in the repository instead), and the attempt is incomplete, so it is never
+        canonical and the window retries. The sidecar gets the error's type only: a Drive error's text can hold the
+        request URL with the private folder's ID."""
+        try:
+            self.store.put(path, data)
+        except Exception as exc:
+            return f"{RAW_FILE_NOT_SAVED}: {type(exc).__name__}", str(exc)
+        return "", ""
 
     @staticmethod
     def _contracts(chain: OptionChain) -> list[tuple[float, str]]:
@@ -279,6 +300,12 @@ class QuoteSnapshotRecorder:
         writer.writeheader()
         writer.writerows(rows)
         return out.getvalue().encode()
+
+
+def withheld(where: str, exc: Exception) -> str:
+    """A public sidecar's failure entry (A4b): the exception's type only. Its message can carry a request URL, a private
+    Drive folder ID or a quoted value, and the sidecar is committed to the public repository."""
+    return f"{where}: {type(exc).__name__} ({MESSAGE_WITHHELD})"
 
 
 def _freshness_proxy(book: QuoteBook | None) -> str:

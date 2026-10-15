@@ -10,7 +10,7 @@
   "source": "fake"
  },
  "failures": [
-  "2026-10-27 21000 CE: ConnectionError: dropped"
+  "2026-10-27 21000 CE: ConnectionError (provider message withheld)"
  ],
  "finished_at": "2026-10-13T14:55:27+05:30",
  "in_window": true,

@@ -52,17 +52,21 @@ print "not a trading day". Research data only: never places, modifies or cancels
 2. `python -m fno quotes record` (waits for 14:55 IST, records NIFTY monthly quotes, retries until 15:10 if a capture is
    incomplete). NSE's session calendar (`research/data/calendar/nse_sessions.csv`, story A7) decides the day: a
    holiday, weekend or muhurat-only day records nothing ("not a trading day"); a special weekend session is recorded.
-   It prints the result line.
+   It prints the result line. The raw quote rows go to Google Drive only (story A4b; needs the four `FNO_GDRIVE_*`
+   settings): the repository gets each attempt's sidecar (`.meta.json`, with the Drive file's SHA-256) and the day's
+   `.canonical` marker, never a Groww quote file (`.gitignore` keeps them out).
 3. Commit `research/data/quotes/` and push to `main` (`git pull --no-rebase` first). Never edit or delete a recorded
    attempt or `.canonical` file. If the record scan refuses the commit, do not commit and never bypass it
    (`--no-verify`). The hook posts its lines (file, line and kind of value; never the value) to #fno-desk itself when
    `FNO_SLACK_BOT_TOKEN` is set; if it prints "alert NOT sent", post those lines with the Slack connector. Note them in
    `conversations/<date>.md`.
 4. If the result is not "recorded" with complete=True, "already recorded" or "not a trading day": the command itself
-   posts its two alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades" and
+   posts its three alerts to #fno-desk (`FNO_SLACK_BOT_TOKEN`): "calendar says session, no same-day trades",
    "stopped, nothing recorded" (the calendar cannot answer for today, e.g. a new year missing: add NSE's holiday
-   circular rows for that year). Post one line with the result to #fno-desk (`C0C89E8QCCD`) yourself only for any
-   other result, or if it printed "alert NOT sent". Note every such result in `conversations/<date>.md`.
+   circular rows for that year) and "raw quote file NOT saved to Drive" (Drive down or its settings missing or
+   expired; the day ends "none" if it lasts to 15:10). Post one line with the result to #fno-desk (`C0C89E8QCCD`)
+   yourself only for any other result, or if it printed "alert NOT sent". Note every such result in
+   `conversations/<date>.md`.
 
 ## Branch
 
@@ -108,7 +112,9 @@ commit with `--no-verify`.
   interface (`Provider`, `RawFileStore`, `RawFileSource`, `FoFileFormat`, `ListedExpiries`, and those the stories add)
   rather than into an existing one. Follow SOLID, KISS and DRY: high cohesion, loose coupling, depend on interfaces.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
-  `fno/storage/wiring.py` (raw data stores and sources), `fno/risk/wiring.py` (the risk manager, story C2),
+  `fno/storage/wiring.py` (raw data stores and sources), `fno/storage/quote_wiring.py` (the 3 pm quote store: Groww's
+  raw quote files in Drive only, story A4b; apart because `wiring.py` is at the size limit), `fno/risk/wiring.py` (the
+  risk manager, story C2),
   `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
   and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`),
   `fno/forecast_v4_rules/wiring.py` (protocol v4's baselines and rule forecasters, story G7; apart because the v2 freeze

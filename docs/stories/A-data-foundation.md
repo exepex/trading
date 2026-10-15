@@ -184,7 +184,8 @@ storage, a spread report. Out: order placement (never), other underlyings, intra
   environment, else NSE's public chain).
 - Command `python -m fno quotes record` and a scheduled cloud routine near 15:00 IST on weekdays.
 - Each attempt saved as `groww/derivatives/quote-snapshots/<YYYY>/<MM>/nifty_<YYYYMMDD>_<HHMMSS>.csv` through a
-  writable store (the repository folder `research/data/quotes/` while Drive is read-only), never overwritten.
+  writable store, never overwritten (A4b, 15 Oct 2026: the quote file in the owner's Drive only, the sidecar and the
+  canonical marker in the repository folder `research/data/quotes/`).
 - Columns (as built): `snapshot_id`, `request_sent_at`, `response_received_at` (IST, machine clock), `quote_time`
   (the provider's own quote timestamp; empty for Groww, which gives none), `age_basis`, `freshness_proxy`,
   `last_trade_time`, `provider`, `contract_id`, `expiry`, `strike`, `type`, `bid`, `ask`, `last`, `bid_qty`,
@@ -240,6 +241,324 @@ than two monthlies the recorder takes the listed expiries from NSE's latest dail
 (`fno/quotes/expiry_listing.py`), records its file, date and SHA-256 in `expiry_source`, and asks Groww's chain by
 explicit date (checked to work out to Dec 2028); no recent NSE file means incomplete (fail closed). NSE lists about
 three monthlies ahead, so the January monthly appears in NSE's file well before late December.
+
+---
+
+## A4b. Raw Groww quotes in Google Drive only; the public repository keeps hashes, counts and derived values
+
+**Repository:** trading · **Lane:** 1 (outside-service data, the daily routine's output, inputs of the forecasts and
+the paper desk) · **Branch:** `story/a4b-quotes-drive-only` · **Claims:** `reviews/claude/response_111_a4b-quotes-drive-only.md`
+
+**Description:** As the owner, I want the 3 pm recorder's raw Groww quote rows (bid, ask, quantities and every other
+per-contract value) saved only in my private Google Drive, while the public repository keeps what proves and dates
+them (capture ID, times, counts, completeness, the SHA-256 of the Drive file) and the derived values the desk and the
+forecasts need, so that the public repository no longer republishes Groww's data and nothing that reads the snapshots
+stops working.
+
+**Context and why:**
+- Owner decision, 15 Oct 2026 (`docs/DESK_DECISIONS.md`, owner "6 A"): "Raw Groww quotes go to Drive only from now on;
+  the public repository keeps hashes, counts and derived values". It changes A4 through a lane-1 story; A16 (15-minute
+  recorder) and R2 follow it from the start; `research/data/quotes/groww/derivatives/quote-snapshots/2026/10/
+  nifty_20261014_145500.csv` stays in git history (history is never rewritten).
+- Design v2 section 4.4, "Data rights, retention and security": raw quotes stay in Drive (private); the public
+  repository holds only derived figures (counts, gaps and the like); raw files are kept under A11's rule (never
+  overwritten); keys follow section 6.6.
+- Today (A4 as built) every attempt's CSV and sidecar are written by `LocalFolderStore` into `research/data/quotes/`,
+  and the routine commits that folder to the public repository. One Groww snapshot is in the tree (14 Oct 2026, 184
+  contracts, commit 5c22bcc). A9 already gives a writable Drive store as the owner (`build_owner_drive`).
+
+**What is raw and what is kept in the repository (the split).** Raw = every row of a Groww attempt's quote file
+(`<snapshot_id>.csv` of the dataset `groww/derivatives/quote-snapshots`: bid, ask, last, quantities, last trade time,
+contract ID, per-row spot, each row's raw-response SHA-256). Kept in the repository, per attempt: the sidecar
+`<snapshot_id>.meta.json` and the day's `nifty_<YYYYMMDD>.canonical` marker. Every sidecar key, and why it is not a
+raw Groww quote:
+
+| Sidecar key | What it is | Why it may be public |
+|---|---|---|
+| `snapshot_id`, `underlying`, `provider`, `started_at`, `finished_at`, `in_window`, `note` | identity and capture times | metadata |
+| `expiries`, `expiry_source`, `monthly_check` | which contracts were asked, from NSE's public files | metadata from NSE |
+| `expected_contracts`, `recorded_contracts`, `complete`, `failures` | counts, completeness and failure entries | counts; each failure entry is a fixed text with the exception's type, never its message (criterion 9) |
+| `csv_sha256`, new `raw_file_saved` | the Drive file's SHA-256 and whether it was saved | the hash is the anchor the readers check |
+| `spot` | NIFTY's index level with the chain | an index level, not an option quote; read by B7's `CutoffSnapshot` |
+| `india_vix`, `india_vix_time`, `futures`, `levels_source`, `levels_failures` | NSE's public India VIX and futures levels (A4's `NseLevelSource`) | NSE's public data, not Groww's; the G1 v2 live pack reads them |
+
+The orchestrator's brief named "the 15:00 spot/VIX/futures fields the G1 live pack reads". Checked against the 14 Oct
+pack (`research/forecasts/live_v2/2026/2026-10-14_pack.json`): it reads `nifty_spot` from the quote rows (so from
+the Drive file), `india_vix` and the futures from the sidecar, and derives the ATM IVs from the rows' mids. The pack
+itself holds only those derived values and the two hashes, so it stays public unchanged.
+
+**Decision on the existing 14 Oct file (for the judge):** it is uploaded to Drive at the new path with the same bytes,
+read back and checked against its sidecar's `csv_sha256` (`9d9de08b...`), and then **removed from the tree** (`git rm`,
+never a history rewrite). Reasons: (1) one way to read a Groww quote file: through Drive with the hash check; keeping
+this one file in the tree would need a "repository fallback" path in every reader, which is exactly the path the owner
+closed; (2) the test "no Groww quote file is tracked under `research/data/quotes/groww/`" can then hold without an
+exception; (3) removal un-publishes nothing (it stays public in history at 5c22bcc) and loses nothing (Drive copy,
+hash-checked). Its sidecar and canonical marker stay in the tree. (The routine's rule "never edit or delete a recorded
+attempt" binds the routine; this one move is the owner's decision applied by this story, with the bytes kept in Drive.) The sidecar has no `raw_file_saved` key; a sidecar
+without the key counts as saved (only A4b's recorder writes `false`).
+
+**Scope.** In:
+- a quote store behind `RawFileStore` that sends the Groww dataset's quote files to a private store (the owner's Drive,
+  `raw` area, A9) and every other file to the repository folder, and returns a Groww quote file only after checking its
+  SHA-256 against the committed sidecar; wired in `fno/storage/wiring.py` `build_quote_store`, so every reader that gets
+  its store there is switched with no change of its own;
+- the recorder: a quote file that cannot be saved makes the attempt incomplete (never canonical), recorded in the
+  sidecar (`raw_file_saved: false`, written only then, so a complete attempt's sidecar is byte-identical to A4's; the
+  reason in `failures`), printed in the result line and alerted to #fno-desk by
+  the command; nothing raw is ever written to the repository instead;
+- the readers that read the folder directly (`quotes report`, `quotes compare`) read through the store; E3's
+  execution capture commits only the files the repository holds;
+- the 14 Oct file moved as decided above; a `.gitignore` rule for Groww quote files under `research/data/quotes/groww/`;
+- docs: A4's "Expected design" storage line, `fno/storage/README.md`, and the routine's steps in `CLAUDE.md` (wording
+  below).
+
+Out:
+- NSE's public chain (`research/data/quotes/nse/`, story O6): public NSE data, not Groww's; stays in the repository;
+- A16 (15-minute recorder) and R2: their own stories; they reuse this store from the start (owner decision row);
+- the E2 common pack's per-contract quote items (see "Found outside scope", item 1): not written to the repository
+  today, but would be once the paper desk's daily run commits its packs;
+- deleting anything in Drive; rewriting git history.
+
+**Expected design:**
+- `fno/quotes/drive_only_store.py`: class `DriveOnlyQuoteStore(RawFileStore)` with the repository store, a factory of
+  the private store (called on first use, so building the store never signs in: the forecast job's golden step and the
+  NSE recorder build it without needing Drive), and the private dataset (`groww/derivatives/quote-snapshots`).
+  - `put(path)`: a Groww quote file goes to the private store only; with no private store, `RawQuoteStoreUnavailable`
+    (naming the four Drive settings, never their values). Every other file goes to the repository store.
+  - `get(path)` of a Groww quote file: reads its sidecar from the repository. No sidecar, or a sidecar with
+    `raw_file_saved: false` → `None` (there is no such file). Otherwise the private store's bytes, only if their
+    SHA-256 equals `csv_sha256`; a different hash → `RawQuoteHashMismatch`; no file in Drive → `RawQuoteMissing`; no
+    private store → `RawQuoteStoreUnavailable`. A saved file is never reported as quietly absent.
+- `fno/storage/wiring.py` `build_quote_store(folder=None)` calls `fno/storage/quote_wiring.py`
+  `build_drive_only_quote_store`, which returns `DriveOnlyQuoteStore(LocalFolderStore(folder), <the raw area of
+  build_owner_drive(), built on first use>, GROWW dataset)` (a new composition root, listed in `CLAUDE.md`: `wiring.py`
+  would pass the 350-line limit). Drive path of a file:
+  `raw/groww/derivatives/quote-snapshots/<YYYY>/<MM>/<snapshot_id>.csv` (A9's layout).
+- `fno/quotes/recorder.py` `_attempt`: the quote file is saved first, inside a guard; on any error the failure
+  `raw quote file not saved: <type>` is added (the error's type only: a Drive error's text can hold the request URL with
+  the private folder's ID, and the sidecar is public; the full text goes only to the private #fno-desk alert),
+  `complete` is false and the sidecar says `raw_file_saved: false`; then the sidecar is written as before. `RecordResult.raw_file_error` carries the reason.
+- `fno/quotes/cli.py`: the result line ends with ` - raw quote file not saved: ...`; the alert
+  `3 pm quote recorder: raw quote file NOT saved to Drive (...); the sidecar is kept, no raw quote went to the
+  repository; the recorder retries until 15:10. Fix: check the four FNO_GDRIVE_* settings (A9: run
+  tools/gdrive_oauth_setup.py if the owner's consent expired)` is sent; exit code 1.
+- Frozen files are not edited: G1 v2's byte-frozen `fno/forecast/capture.py`, `baseline_wiring.py` and `cli.py` get
+  the new store through `storage.build_quote_store()`; `fno/quotes/recorder.py` and
+  `fno/research_data/quote_snapshots.py` are in v2's "recorded, not byte-checked" table (behaviour locked by the golden
+  cases, which `tools/forecast_live_golden.py` recomputes on synthetic files in the golden folder with its own
+  `LocalFolderStore`; already changed since the freeze by A7, A5 and O6).
+
+**Readers of the snapshot files (each must keep working):**
+
+| Reader | Reads | Gets its store from | Change |
+|---|---|---|---|
+| `fno/forecast/capture.py` `load_snapshot` (G1 v2 live capture and `forecast snapshot-ready`; byte-frozen) | canonical, quote file, sidecar | `storage.build_quote_store()` in frozen `baseline_wiring.py` / `cli.py` | none (store swapped) |
+| `fno/research_data/quote_snapshots.py` `RecordedSnapshots` (B7 live features, `composition.py`) | same | `build_quote_store()` | none |
+| `fno/desk/snapshot_inputs.py` `SnapshotInput` (E2 common pack) | same | `build_quote_store()` in `pack_wiring.py` | none |
+| `fno/desk/snapshot.py` `RecordedExecutionSnapshots` (E4 fills) | quote file, sidecar by ID | `build_quote_store()` in `desk/wiring.py` | a failed Drive read becomes `SnapshotError`, so C3's gate refuses and alerts and the day's exits still run |
+| `fno/checks/validity_evidence.py` `EvidenceReader` (C4) | quote file, sidecar by ID, hashes checked | `build_quote_store()` in `checks/wiring.py` | none |
+| `fno/books/book1_inputs.py` (Book 1) | quote file by ID, hash checked | `build_quote_store()` in `book1_wiring.py` | none |
+| `fno/desk/execution_capture.py` (E3, 15:15 capture) | quote file, sidecar; commits them | `build_quote_store()` | commits the repository files only; an unsaved or unreadable quote file gives no capture record (its sidecar is still committed) |
+| `fno/quotes/report.py`, `fno/quotes/compare.py` | canonical, quote file, sidecar | read the folder directly | read through the store |
+| `tools/forecast_live_golden.py` (frozen) | synthetic golden files | its own `LocalFolderStore` | none (their hand-built sidecars' `csv_sha256` is not their files' hash, so they could not pass this store's check; they never go through it) |
+| `fno/forecast_scoring/wiring.py` `recompute_live_day` (G4's live replay; in G1 v3's "recorded, not byte-checked" table, already changed since; the byte-frozen `replay.py` is not changed) | canonical, quote file, sidecar of a commit's exported inputs | its own `LocalFolderStore` | `replay_quote_store`: a commit from before A4b is read from its own files (as captured then); a later commit's quote files from Drive, hash-checked, so a missing copy stops the replay instead of switching quietly to NSE's snapshot |
+| `research/2026-10-14-desk-meeting-2/analysis.py` (a dated research record) | the 14 Oct quote file by its repository path | none | none: a record of its day, re-run at its own commit, where the file exists; its committed output holds derived values only (half-spreads, IVs) |
+
+**Judge 111 (story check of d1c2d06): readings R1-R4 accepted; this revision fixes its two should-fixes (criterion 6,
+merge condition) and minor 1 (criterion 9).** Minor 2 ("`replay_quote_store` hash-checks pre-A4b files too") is
+answered with a pushback, for the judge to rule: a commit from before A4b is read by the replay from `git archive` of
+that commit, and git's objects are addressed by their own hash, so those bytes are exactly the committed ones; a
+second check against the sidecar adds no protection there. It would also refuse a legitimate input: the G1 v2 golden
+cases' hand-built sidecars (frozen) carry a `csv_sha256` that is not their file's hash, and
+`tests/forecast_scoring/test_live_replay.py::test_the_real_recompute_is_the_v2_capture` replays golden case A through
+this code; with the check that test fails and could only pass by editing frozen fixtures or loosening the test. The
+check exists for Drive because a Drive copy can change after the commit. If the judge still wants it, the builder adds
+it and the test question goes to the judge first.
+
+**Who calls `build_quote_store` (every call site, how it reads after A4b, and its test):**
+
+| Call site | Component it feeds | After A4b | Test |
+|---|---|---|---|
+| `fno/forecast/cli.py` `snapshot-ready` (byte-frozen) | `load_snapshot` | sidecar and marker from the checkout, quote file from Drive, hash-checked | readers test "forecast capture reads the same files" |
+| `fno/forecast/baseline_wiring.py` `build_live_capture` (byte-frozen) | `LiveCapture.quotes` → `load_snapshot` | same | same, plus "the live pack is the same from Drive" |
+| `fno/checks/wiring.py` `build_trade_validator` (C3/C4) | `EvidenceReader` | same; its own hash checks unchanged | readers test "C4's evidence is the same and still hash-checked" |
+| `fno/desk/pack_wiring.py` (E2) | `SnapshotInput` | same | readers test "E2's common pack input is the same" |
+| `fno/desk/wiring.py` `build_execution_snapshots` (E4) | `RecordedExecutionSnapshots` | same; a Drive read failure is `SnapshotError` | readers tests for E4 (same result; Drive failure) and `tests/desk/test_safety.py` (given a fake Drive) |
+| `fno/desk/daily_wiring.py` (E3) | `RecorderExecutionCapture` and the recorder's `capture` | quote file saved to Drive; record and sidecar committed | readers tests for E3 (repository files only; unsaved; unreadable) |
+| `fno/books/book1_wiring.py` | `LiveBook1Inputs` | same; its hash check against the pack unchanged | readers test "Book 1's snapshot is the same" |
+| `fno/composition.py` (recorders; B7's `RecordedSnapshots`) | `QuoteSnapshotRecorder`, `RecordedSnapshots` | the recorder writes through it; B7 reads as above | recording tests; readers test "B7's cutoff snapshot is the same" |
+| `fno/quotes/cli.py` `report`, `compare` | `canonical_snapshots`, `compare_lines` | through the store (they read the folder before) | readers test "report and comparison are the same" |
+
+**Answers to the story check (judge D, through the orchestrator, 15 Oct 2026):**
+
+1. **G4's replay (`fno/forecast_scoring/replay.py`, byte-frozen by G1 v3) is not changed.** It exports
+   `research/data/quotes` from the pack commit's parent and calls `recompute_live_day` in
+   `fno/forecast_scoring/wiring.py`, which is in G1 v3's "recorded, not byte-checked" table (its reason: the Q5
+   resolver) and already differs from its recorded hash. The pack does **not** carry every quote it used (it holds
+   derived values and the quote file's SHA-256), so a replay after A4b needs the quote file. A4b changes only
+   `recompute_live_day`'s store: a commit that holds its Groww quote files (every commit before A4b) is read from them
+   as now; a later commit holds the sidecar, whose `csv_sha256` pins the bytes, and the quote file is read from Drive and
+   checked against it. Real replay of 14 Oct (builder's session, real Drive, real git history): (A) as today, from the
+   commit's own file: pack and records identical; (B) the same exported inputs with the quote file deleted, read from
+   Drive: identical (10.6 s); (C) the same deleted file with main's folder-only reader: both differ, so without this
+   change every post-A4b replay would report DIFFERS. **The open question for the judge and the owner:**
+   PROTOCOL_v3 section 2 says the replay "exports ... the quote snapshots ... from that commit". In the builder's
+   reading the commit still fixes the bytes (through `csv_sha256`) and the frozen code is unchanged, so no new version
+   is needed (reasoning, backed by test B). If the judge reads "exported from that commit" as "the quote file's bytes
+   in git", this story needs a G1 v3 amendment, which is the owner's decision; then A4b stops here until it is made.
+2. **`fno/quotes/recorder.py`: pushback, with the evidence, for the judge to rule.** FREEZE_v2 lists it under
+   "Recorded, not byte-checked (behaviour locked by the golden cases)"; its bytes already differ from the recorded hash
+   (`a9a06063...` now, `0775c4cc...` recorded) after A7, A5 and O6, each judge-passed. A4b's change keeps the golden
+   behaviour: a complete attempt's files are byte-identical (A4's baseline test `tests/quotes/test_recorder_baseline.py`
+   and `python tools/forecast_live_golden.py` both unchanged), and no golden file moves. Leaving its bytes alone and
+   changing only the store is possible, but loses the Drive-down handling: the store cannot tell the recorder that the
+   save failed except by raising, and an exception out of `_attempt` ends `record()` at once: no retry inside the
+   window, no sidecar recording why, no "none" marker at 15:10, and a traceback instead of the result line. A store
+   that swallowed the error would be worse: the attempt would be marked complete and canonical while its quote file is
+   nowhere. The builder recommends the small recorder change (a guarded save, `raw_file_saved: false` only on failure);
+   if the judge still requires the bytes unchanged, the fallback is the store-only change with that loss stated.
+   `market_levels.py` is not changed in either case.
+3. **Every call site:** the table above.
+4. **The forecast-capture Action and Drive.** `.github/workflows/forecast-capture.yml` already passes
+   `FNO_GDRIVE_FOLDER_ID`, `FNO_GDRIVE_OAUTH_CLIENT_ID`, `FNO_GDRIVE_OAUTH_CLIENT_SECRET` and
+   `FNO_GDRIVE_OAUTH_REFRESH_TOKEN` to its capture job (and `forecast-scores.yml` to the replay), so no new secret and no
+   workflow change is needed for A4b. That token's scope is full Drive (`https://www.googleapis.com/auth/drive`, A9),
+   not read-only. **Owner step, optional, not done by this story:** a read-only path would be the service account
+   (`FNO_GDRIVE_SERVICE_ACCOUNT_JSON`, Viewer on the project folder, A9's reader) added as an Actions secret, and the
+   quote store reading through it; until the owner adds it, reads use the owner's token. **Fails closed:** with Drive
+   down, missing settings, a missing or changed copy, `load_snapshot` raises (never falls back to git or to NSE's
+   snapshot); `snapshot-ready` keeps polling until 15:13, `forecast capture` fails, and the workflow's failure step
+   alerts #fno-desk; that day has no live forecast (found outside scope, item 5).
+5. **Per file, what stays in git:** see "What is raw and what is kept" above. Of the sidecar's values: India VIX, its
+   time and the futures' last price and volume come from NSE's public pages (`levels_source: nse`, A4's
+   `NseLevelSource`): NSE data, not Groww's; times and counts are ours; `spot` is the NIFTY index level that Groww's
+   chain response carries (a value Groww returned, of a public index; not an option quote): it stays public by **the
+   orchestrator's decision** (15 Oct 2026, owner away, logged: "an index level the NSE publishes itself, not a raw
+   bid/ask"), accepted by judge 111 (R4). Guard against a raw quote file in the repository: `.gitignore`, a test on the real tree, and **a record-scan
+   rule** (story O5's pre-commit hook) that refuses a staged `.csv` under `research/data/quotes/groww/` even when added
+   with `git add -f` (criterion 2).
+
+**Point in time and the 15:15 lock:** the sidecar with `csv_sha256` is committed by the routine right after the
+capture (GitHub's push receipt dates it); every read of the Drive copy is checked against it, so a Drive copy changed
+later is refused, never used. The live capture reads the same bytes as before, so the pack and its hashes are
+unchanged (test). Added time: one Drive read per snapshot read (the forecast job polls `snapshot-ready` every 20 s
+from 15:10 and must generate by 15:15); measured on the real 14 Oct file and reported in the claims.
+
+**Drive down at 15:00 (the failure case):** the attempt's quote rows are not saved anywhere (never to the repository,
+never to a local spool); its sidecar is kept with `complete: false`, `raw_file_saved: false` and the reason; it is
+never canonical; the recorder retries every minute until 15:10 as A4 does; if Drive never comes back the day's
+canonical is "none" and the command prints `recorded: <id> (<n> contracts, complete=False) - raw quote file not saved:
+<reason>`, sends the alert above and exits 1. The day's quotes are lost (A4's rule: never back-filled). If Drive comes
+back inside the window, the next attempt is complete and canonical.
+
+**Acceptance criteria:**
+1. **Raw rows to Drive only.** A recording through `build_quote_store`'s store saves the attempt's quote file only in
+   the private store at `raw/groww/derivatives/quote-snapshots/<YYYY>/<MM>/<snapshot_id>.csv`; the repository folder
+   gets the sidecar and canonical marker and no `.csv`; the Drive bytes hash to the sidecar's `csv_sha256` (tests:
+   positive; an NSE-dataset file still goes to the repository and never to Drive).
+2. **No raw quote in the repository.** The sidecar's keys are exactly the table above (test fails on any new key);
+   `.gitignore` ignores any `.csv` under `research/data/quotes/groww/` (test with `git check-ignore`); the record scan
+   (O5's pre-commit hook) refuses a staged `.csv` there, also one added with `git add -f` (test); no file under
+   `research/data/quotes/groww/` ending `.csv` is tracked (test on the real tree); the 14 Oct file is in Drive with its
+   hash verified (evidence in the claims) and removed from the tree; its sidecar and marker stay.
+3. **Hash-checked reads, loud failures.** A Groww quote file is returned only when its bytes hash to the committed
+   `csv_sha256`; a different hash raises `RawQuoteHashMismatch`, a saved file absent from Drive `RawQuoteMissing`, no
+   Drive settings `RawQuoteStoreUnavailable`; `None` only when there is no sidecar or it says `raw_file_saved: false`
+   (tests for each; boundary: a one-byte change; empty: an empty quote file with its correct hash is returned as
+   empty bytes).
+4. **Every reader keeps working.** Each reader in the table gives the same result from the split store (fake Drive) as
+   from A4's single folder for the same snapshot (tests); E3's capture commits only repository files and returns no
+   record for an unsaved quote file; `quotes report` and `quotes compare` give the same output as before.
+5. **Drive down.** With the private store failing on save: the attempt's sidecar is kept with `complete: false`,
+   `raw_file_saved: false` and the reason; no `.csv` exists anywhere under the repository folder; the attempt is not
+   canonical; the window ends "none"; the command prints the reason, sends one alert and exits 1. Drive failing on the
+   first attempt and working on the second: the second is complete and canonical (tests; the alert text names no
+   credential value).
+6. **Frozen files; point in time.** No byte-checked file of the G1 v1, v2 or v3 freeze records changes (a script over
+   every `FREEZE*.md` byte-checked table against the diff; `fno/forecast_scoring/replay.py` among them). The two
+   "recorded, not byte-checked" files change only as judge 111 ruled: `fno/quotes/recorder.py` (the guarded save, R2,
+   and the fixed failure texts below) and `fno/forecast_scoring/wiring.py` (the replay's quote store, R1). With them:
+   the freeze tests, `python tools/forecast_live_golden.py` ("unchanged"), A4's baseline test
+   `tests/quotes/test_recorder_baseline.py` (byte-identical output for its normal and december scenarios; for retry and
+   none only the `failures` texts change, to the fixed form below, and its fixture files are updated for exactly those
+   strings) and G4's Q5 wiring test `tests/forecast_scoring/test_scoring_wiring_q5.py` all pass; the live pack built from
+   the split store equals the pack built from A4's folder for the same bytes (test); a real replay of 14 Oct reproduces
+   its pack and records both from the commit's own file and, with that file removed, from Drive.
+7. **The routine stays correct.** `CLAUDE.md`'s 3 pm steps say where the raw rows go, what step 3 commits and the new
+   alert; `git add research/data/quotes/` after a recording stages only sidecars and markers (gitignore test above).
+8. Code size, lint, imports and the full suite pass; no credential value in any file, log or message.
+9. **Public failure texts are fixed texts.** Every entry the recorder writes to the public sidecar's `failures` is
+   `<where>: <exception type> (provider message withheld)` (for a provider or expiry-listing error) or
+   `raw quote file not saved: <exception type>` (for the save), never the exception's own message, which can carry a
+   request URL, a Drive folder ID or a value (test: a planted value in a provider's and in Drive's exception never
+   appears in any file under the repository folder or in the printed result line). The full text of a failed save goes
+   only to the private #fno-desk alert. Cost, stated: the message of a provider error is no longer kept anywhere public;
+   the type and the contract stay.
+
+**Merge condition (judge 111, should-fix 2; for the orchestrator before the merge):** a write-read check of Drive in
+the 3 pm routine's own environment, printing no value: the routine's environment saves a small probe file through
+`build_quote_store` to a probe path, reads it back hash-checked and prints only "drive write-read ok" or the error
+type. Without the four Drive settings there, every attempt fails and every day ends "none" (no forecast pack, no desk
+inputs). After the merge, Quality rule 8's first real run of the 15:00 recorder (its result line, the sidecar committed,
+the Drive file's hash equal to the sidecar's) is recorded in the conversation log and the merge record.
+
+**Test plan:** a fake private store (dict, with switches for "down on save", "missing", "tampered") and a temporary
+repository folder; the recorder's fake provider from the A4 tests; each reader run once through the old layout and
+once through the split store on the same synthetic snapshot; a dry run of `record_today` with fake quotes and a fake
+Drive for the claims' real output sample (no real quote in the repository). One real check: the 14 Oct file uploaded
+and read back through the committed store with its hash checked, and the read time measured.
+
+**Judge verifies:** reads the diff and the frozen-file hashes; plants a changed byte in a fake Drive copy and sees it
+refused; makes the fake Drive fail and checks that no `.csv` appears under the repository folder and the day ends
+"none"; checks that no Groww `.csv` is tracked; reads one sidecar against the key table; checks the 14 Oct Drive copy's
+hash if it can reach Drive (else says so).
+
+**Gap list (design 4.4, the owner's decision row and the orchestrator's brief):**
+
+| Requirement | Where |
+|---|---|
+| Raw Groww quotes stay in Drive (private) (4.4; owner "6 A") | criteria 1, 5 |
+| The public repository holds only derived figures, hashes and counts (4.4; owner "6 A") | criterion 2 (key table) |
+| Raw files kept under A11's rule: never overwritten (4.4) | criterion 1 (A9's Drive store refuses different bytes at a path: `RawFileConflict`, already tested by A9) |
+| Key handling, section 6.6 (4.4) | criterion 5 and 8 (settings only from the environment, named never valued) |
+| Card records, section 8.5 (4.4) | out of scope: T1's story (cards in Drive, owner decision 15 Oct) |
+| "Unless the terms allow more" (4.4) | settled by the owner: "6 A" (Drive only), although Groww's terms allow storing |
+| The existing file stays in git history (owner row) | criterion 2 (moved, `git rm`, no rewrite) |
+| A16 and R2 follow from the start (owner row) | out of scope: their own stories, which build their store with `build_quote_store` |
+| Every reader keeps working; derived values the desk and forecasts need (brief) | criterion 4, key table |
+| Drive down at 15:00; no raw quote falls back to the repository (brief) | criterion 5 |
+| Frozen readers: stop before changing them (brief) | criterion 6 and answers 1-2: no byte-checked file changes; two "recorded, not byte-checked" files do, with the judge to rule |
+| Point in time and the 15:15 lock unaffected (brief) | criterion 6, "Point in time" paragraph |
+| The routine's CLAUDE.md steps stay correct (brief) | criterion 7 |
+| NSE files under `research/data/quotes/nse` | out of scope: public NSE data |
+| Clock contract (4.4) | unchanged: no time field changes |
+
+**Proposed routine wording (`CLAUDE.md`, "3 pm quote recorder", lane 1):** step 2 gains "The raw quote rows go to
+Google Drive only (story A4b, needs the four `FNO_GDRIVE_*` settings); the repository gets each attempt's sidecar
+(`.meta.json`, with the Drive file's SHA-256) and the day's `.canonical` marker." Step 3 is unchanged (it commits
+`research/data/quotes/`; `.gitignore` keeps Groww quote files out). Step 4 adds the command's third alert "raw quote
+file NOT saved to Drive".
+
+**Found outside scope (reported, not built):**
+1. **E2's common pack republishes raw quotes.** `SnapshotInput` copies every option row's bid, ask and quantities into
+   `journal/packs/<day>/common.json`, and the paper desk's daily run (E3) commits each step's files. Owner, 15 Oct
+   ("8 A"): the daily packs keep only derived quote figures (mid, spread in %), raw bid/ask in Drive, before the paper
+   desk goes live: **follow-up story E2b**, not A4b's scope.
+2. **Until A4b is merged, each day's routine still commits the raw quote file.** Owner, 15 Oct ("7 A"): today's routine
+   may commit one more raw file; A4b lands only after the judge's PASS. Each such file is moved the same way as 14 Oct
+   (Drive copy verified against its sidecar, then `git rm`) by the merge.
+3. The routine's environment must hold the four Drive settings; if it does not, every attempt fails loudly and the day
+   is "none". To be checked before the merge (this builder session has them; the routine's environment was not
+   checked from here).
+4. P5 (read models for the dashboard: quotes) must publish only derived values under this rule.
+5. **Behaviour change for the owner to know:** before A4b, a Groww quote file the forecast job could not read made it
+   use NSE's snapshot (O6's order); now a canonical Groww snapshot whose Drive copy is missing, changed or unreadable
+   stops the job, which alerts #fno-desk ("forecast capture failed"), and that day has no live forecast. This is the
+   owner's "never a guess" rule applied to Drive; the alternative (fall back to NSE) would hide a Drive failure.
+6. The desk's 15:15 capture (E3) gets no alert of its own when its quote file is not saved: C3's gate alerts "no
+   capture" instead. Left for E3 (not live).
+
+**Depends:** A4, A9 · **Size:** M · **Status:** story text for the judge's check, revision 3 (15 Oct 2026; judge 111 FAIL on revision 2, fixed)
 
 ---
 

@@ -93,6 +93,15 @@ Rules:
 - While the owner's Google Cloud app is in "Testing", the refresh token expires after 7 days. The librarian then stops
   with `DriveSignInRefused` and alerts #fno-desk with the fix (rerun the setup tool, or publish the app).
 
+## Groww's 3 pm quote files (story A4b)
+
+Raw Groww quote files (`raw/groww/derivatives/quote-snapshots/<YYYY>/<MM>/<snapshot_id>.csv`) are written by the 3 pm
+recorder to Drive only, signed in as the owner (owner decision, 15 Oct 2026, "6 A"). Each attempt's sidecar
+(`.meta.json`, with the file's SHA-256) and the day's `.canonical` marker are in the repository
+(`research/data/quotes/`). `DriveOnlyQuoteStore` (wired in `quote_wiring.py`) returns a quote file only when its bytes
+hash to the committed sidecar's `csv_sha256`; NSE's public chain (`nse/derivatives/quote-snapshots`) stays in the
+repository.
+
 ## The librarian
 
 `python -m fno data-librarian <participant-oi|index-close> [--from YYYY-MM-DD] [--to YYYY-MM-DD]` fills the dataset's
