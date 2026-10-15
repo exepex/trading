@@ -22,13 +22,12 @@ Story text: `docs/stories/G-forecasts.md`, section G11. Code waits for the v4 fr
    v4's window is wider (release about 14:32, deadline 15:10), but if the books stay late the 10% cap makes their
    slots "undecided, operations", which the story treats as a result, not a fault.
 
-## Open, to agree before code
+## Open points (state on 16 Oct)
 
 - **A16/G8 builder:** agreed, see addendum 1.
-- **Owner, through the orchestrator:** option A (the v4 run replaces the v2 AI run at the freeze) or B (both run, about
-  double the minutes). Lean A, reasoning only: v2's AI record has no on-time day and the two cannot share one run.
-- **Orchestrator:** who owns `fno/ai` (no register row); who changes `forecast-capture.yml` (the fire step moves after
-  the v4 pack; a workflow change this builder does not make).
+- **Owner:** chose A (addendum 3).
+- **Orchestrator:** answered (addendum 3); the exact `forecast-capture.yml` step is being agreed with the A16/G8/G10
+  builder.
 
 ## Addendum 1: agreed with the A16/G8/G10 builder (16 Oct), each point checked in the code
 
@@ -51,3 +50,12 @@ Accepted (strong evidence: the look code is G8's, byte-checked at the freeze). T
 answer, 16 Oct). G11 supplies a committed file, `research/forecasts/v4_audits/open_audits.csv`
 (`day,forecaster,question`), so G8 never imports G11's code. Criterion 6 and the Out list now say so; criterion 4
 names G10's receipt-time check as reused.
+
+## Addendum 3: the orchestrator's answers (16 Oct)
+
+- **Owner chose A:** at the v4 freeze the AI books' v4 run replaces the v2 AI run (`DESK_DECISIONS.md`, 16 Oct row).
+  Cost: the same number of runs a day as today.
+- **`fno/ai`:** this builder owns its v4 changes for G11 (register row updated).
+- **`forecast-capture.yml`:** the AI fire step moves after the v4 pack's release; that workflow change belongs to the
+  A16/G8/G10 builder (G10's capture owner) and is a prerequisite of G11 going live. The exact step is being agreed
+  with them.

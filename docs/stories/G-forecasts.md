@@ -736,16 +736,18 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
    code.
 8. **Composition:** wired in `fno/ai/wiring.py` and `book_wiring.py` only.
 
-**To agree before code (asked 16 Oct; answers recorded in response 202):**
+**Settled before code (16 Oct; response 202):**
 - With the A16/G8 builder: **agreed 16 Oct** (response 202, addendum 1): rows written after the gate settles (a
   `pending_audit` status cannot work, since a written row never changes); G11 adds its own registration rows after the
   freeze; its own writer; the pack hash in G10's new column.
-- With the owner, through the orchestrator: v2's AI run. One run cannot serve both (v2's pack is committed after
-  15:10, v4's deadline is 15:10). Option A: the v4 run replaces the v2 AI run at the freeze (cost unchanged; the v2
-  AI record, no on-time day so far, stops). Option B: both run (two runs per book per day, about double the AI
-  books' minutes). Builder's lean: A (reasoning only).
-- With the orchestrator: who owns `fno/ai` (no register row) and who changes `forecast-capture.yml` (the fire step
-  moves after the v4 pack; a workflow change, not this builder's).
+- **The owner chose A** (`DESK_DECISIONS.md`, 16 Oct, "G11: at the v4 freeze the AI books' v4 run replaces the v2
+  AI run"): one run cannot serve both (v2's pack lands after v4's 15:10 deadline), so from the freeze the books fire
+  for v4 only and the v2 AI capture stops (its record, no on-time day, stays as it is).
+- **`fno/ai`:** this builder owns `fno/ai`'s v4 changes for G11 (orchestrator, 16 Oct; its only earlier builder,
+  session 01AGpndRQcLERm1xLMNb3Tmj, is not active).
+- **Prerequisite, `forecast-capture.yml`:** moving the AI fire step after the v4 pack's release is a workflow change
+  owned by G10's capture owner, the A16/G8/G10 builder (session 01VK88LxJvV1Gi7Wbr3D4fzp); G11's code does not run
+  live until that change is merged. The exact step is agreed with them before G11's code (response 202).
 
 **Daily AI cost against BG1's cap:**
 - BG1's cap is minutes, not rupees: the books' and roles' minutes at most 50% of all measured session minutes in the
@@ -754,7 +756,7 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
 - No book run has been measured yet (`accounting/ai_usage.csv` has no book row). The one data point: on 15 Oct each
   book's commitment came about 5 minutes after the fire (15:10:20 to 15:15:12-15). Some evidence, one day.
 - Estimate (reasoning only): 2 books x 5-10 minutes = 10-20 minutes a session day, about 220-440 minutes in a
-  22-session month, under option A the same as today's v2 run; under option B about twice that.
+  22-session month, the same number of runs as today's v2 run (option A: v4 replaces v2).
 - This story makes the number real: the v2 prompts write BG1's timing record, so BG1 measures it from the first day.
   At BG1's `stop`, AI forecasters stop last (design 7.6); a stopped day is written as `not_fired`, so it is a miss.
 
@@ -786,5 +788,6 @@ deadline as the rules; no second firer, sealer or record format.
 full F1)" and these forecasts never decide a trade (owner's condition 3, 14 Oct); with no on-time day yet, the 10%
 miss cap may make an AI slot "undecided, operations" early, which is an honest result, not a fault.
 
-**Depends:** G6 freeze, G8 (merged), G9 (merged), G10 (the v4 pack and clock), G5, BG1 · **Size:** S-M ·
+**Depends:** G6 freeze, G8 (merged), G9 (merged), G10 (the v4 pack and clock, and the `forecast-capture.yml` fire
+step), the A16/G8 builder's look refusal on `open_audits.csv`, G5, BG1 · **Size:** S-M ·
 **Status:** story text for the judge (`reviews/claude/response_202_g11-ai-books-v4.md`); code after the v4 freeze
