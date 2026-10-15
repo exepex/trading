@@ -414,3 +414,17 @@ byte-identical to 02e84d0 (`git diff --quiet`).
    - Main's A12 job has filled 2005-2011 board-meeting rows since the branch point.
    - I compared both sides: 1,020 days appear on both, all with identical SHA-256, and no day has two rows.
    - So the manifest resolves as the union of both sides, sorted by date, never one side only. That needs a full suite on the merged tree before the push, as usual.
+
+## Addendum 7 (15 Oct 2026): merge check, R2 merged to `main` as 72ffc31
+
+**Verdict: merge check complete, matching the PASS.**
+
+- **Parents and history.** `72ffc31` has parents `d72af56` (main) and `ca8e5d5`, the SHA I passed, and it is on `origin/main`. The freeze commit `93a19c3` is in its history: a real merge, not a squash, so B4's ledger guard holds.
+- **Branch content intact.** Every file the branch changed that main did not touch is byte-identical to ca8e5d5. That covers the study folder, results, ledger, idea card and `DATA_SPEND.md`. The 28 revision-1 `FREEZE.md` hashes still check OK on the merged tree.
+- **The three conflicts, checked line by line.**
+  - `research/data/manifests/board-meetings.csv`: same header; 5,125 rows, exactly the union of both parents' rows (set equality), sorted by date, no date twice.
+  - `conversations/2026-10-15.md` and `reviews/claude/README.md`: no line of either parent was lost, and there are no conflict markers.
+- **Gates on 72ffc31, run by me.** 4,953 passed with `FNO_SLACK_BOT_TOKEN` unset; ruff and check_imports clean.
+- **Rule 8.** The protocol allows one run only, so the run of addendum 6 is the record. A second run would break the registration. Noted in `conversations/2026-10-15.md`.
+
+No findings. R2 is closed: NO at stage 3, ledger status `screened_out`.
