@@ -36,10 +36,8 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
   V1 arithmetic and void rule `fno/intraday/realised_vol.py`, `session_rv.py`, `status.py` and `slots.py` (judge 177),
   and M1's own `METHOD_FILES` (`fno/weather/wiring.py:28-32`: `checklist_v0.py`, `v0_live.py`,
   `vix_scaled.py`, `colour.py`, `day.py`, `wiring.py`; the files M1's `method_sha256` covers, V6's rules slot,
-  decision 70; orchestrator, 15 Oct), plus `fno/weather/constants.py` once `story/x-weather-constants` merges (the E2c
-  builder moves M1's weather constants out of `fno/constants.py` into it; orchestrator, 16 Oct). **The freeze commit
-  comes after that move.** If M1's `METHOD_FILES` does not list the new file, its `method_sha256` stops covering those
-  values: the move should add it there too (checked when the freeze is prepared).
+  decision 70; orchestrator, 15 Oct), plus a seventh M1 file, `fno/weather/constants.py` (V6's colours and thresholds; `story/x-weather-constants`,
+  judge 192 PASS, adds it to M1's `METHOD_FILES`). **The freeze commit comes after that move merges.**
 - **Before the freeze commit (judge 189, judge B's condition):** G10 part 2's moved-after-cutoff flag, written by
   A16's 15:30 run into its rv row (orchestrator's go, 16 Oct), changes `fno/intraday/session_rv.py`, which is
   byte-checked; it lands before the freeze or becomes a new version.
