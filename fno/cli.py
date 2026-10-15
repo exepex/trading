@@ -17,6 +17,7 @@ from .evaluation.cli import add_evaluation_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
+from .forecast_scoring.v4.cli import add_forecast_v4_scores_parser
 from .forecast_v4_rules.cli import add_forecast_v4_parser
 from .global_cues.cli import add_global_cues_parser
 from .intraday.cli import add_intraday_parser
@@ -216,6 +217,7 @@ def main(argv: list[str] | None = None) -> int:
     add_forecast_parser(sub)
     add_forecast_v4_parser(sub)
     add_forecast_scores_parser(sub)
+    add_forecast_v4_scores_parser(sub)
     add_vix_history_parser(sub)
     add_card_parser(sub)
     add_weather_parser(sub)

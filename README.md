@@ -23,7 +23,7 @@ data only.
 ## Commands
 
 ```bash
-pip install --use-pep517 -r requirements.txt -r requirements-groww.txt   # Groww market data needs --use-pep517
+sh tools/routine_setup.sh --groww                # install into every Python on PATH, check imports, hooks on
 python -m fno chain NIFTY                         # option chain around the money (root `provider` in config.yaml)
 python -m fno quotes record                       # 3 pm quote recorder (story A4); run by a weekday routine
 python -m fno quotes report                       # half-spread by distance from the money, from recorded days

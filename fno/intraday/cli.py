@@ -9,6 +9,9 @@ from pathlib import Path
 
 from ..models import IST, now_ist
 from ..research_data.calendar import CalendarError
+from .backfill_cli import COMMANDS as BACKFILL_COMMANDS
+from .backfill_cli import add_backfill_parsers, cmd_backfill
+from .dry_run import inside_repository
 from .recorder import GOOD_OUTCOMES, SettleRefused, SlotOutcome
 
 DEFAULT_UNTIL = "15:35"
@@ -31,6 +34,7 @@ def add_intraday_parser(subparsers) -> None:
     rv = actions.add_parser("rv", help="settle a finished session: missed rows and its realised variance")
     rv.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: the latest finished session)")
     actions.add_parser("heartbeat-check", help="alert when the recorder has been silent for 30 minutes")
+    add_backfill_parsers(actions)  # story A16b
     intraday.set_defaults(func=cmd_intraday)
 
 
@@ -41,10 +45,12 @@ def cmd_intraday(args) -> int:
     from ..storage.wiring import build_session_calendar
     from .wiring import DRY_RUN_ALERTS, build_heartbeat, build_intraday_recorder
 
+    if args.intraday_cmd in BACKFILL_COMMANDS:
+        return cmd_backfill(args)
     if args.intraday_cmd == "heartbeat-check":
         return heartbeat_check(build_heartbeat(), build_session_calendar(), build_alert_sender(), now_ist())
     folder = getattr(args, "dry_run", None)
-    if folder is not None and _inside_repository(folder):
+    if folder is not None and inside_repository(folder):
         print(INSIDE_REPOSITORY.format(folder=folder))
         return 1
     alerts = NoAlertSender(DRY_RUN_ALERTS) if folder is not None else build_alert_sender()
@@ -97,12 +103,6 @@ def _calendar_stop(error: CalendarError, alerts) -> int:
     print(message)
     print(alerts.send(message))
     return 1
-
-
-def _inside_repository(folder: Path) -> bool:
-    from ..storage.wiring import REPOSITORY
-
-    return folder.resolve().is_relative_to(REPOSITORY.resolve())
 
 
 def _clock_time(text: str) -> time:
