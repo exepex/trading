@@ -139,7 +139,7 @@ alert is safer than a lost one).
 ### Gates (at the pushed SHA)
 
 `git config core.hooksPath` = `.githooks`; `pip install` as in the story's install line (the `-r
-requirements-groww.txt` line fails here, open item); `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: **3878 passed**;
+requirements-groww.txt` line fails here, open item); `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q` on the tree merged with `main` (4362a94): **4059 passed**;
 `ruff check fno tests tools` clean; `ruff format --check` clean; `python tools/check_imports.py` clean; no file or class
 over 350 lines (largest new file 209).
 
@@ -165,11 +165,29 @@ prices by design):
 |---|---|---|---|---|---|---|---|---|
 | 09:15 | stale | index_time_missing | (none) | 0.8 | (none) | 216 / 216 / 204 | clock_ok, -0.5 s | 03:45:57 UTC (57 s) |
 | 09:30 | good | (none) | candle_1m_close | 0.7 | 0.7 | 220 / 220 / 220 | clock_ok, 0.0 s | 04:00:53 UTC (53 s) |
+| 09:45 | good | (none) | candle_1m_close | 0.7 | 0.7 | 220 / 220 / 220 | clock_ok, -0.1 s | 04:15:51 UTC (52 s) |
 
 The raw 09:15 document in the dry-run folder is 71,275 bytes (gzip). The 09:15 row is the evidence for amendment 1;
 with the change, the same answer (the forming 09:15 candle, held at 09:15:01.5) gives `candle_1m_open` and `good`
-(test `test_at_0915_no_session_candle_has_finished_so_the_level_is_the_open_of_the_0915_candle`). The 09:45 mark of the
-same run is still being taken as this is written; its row will be added to this file if it changes anything.
+(test `test_at_0915_no_session_candle_has_finished_so_the_level_is_the_open_of_the_0915_candle`).
+
+The command's own printed output (the run ended with exit 1, correctly, because the 09:15 mark was bad):
+
+```
+09:15 stale: 216 of 216 contracts (204 two-sided), index answered 0.8 s after the mark; failures: index_time_missing
+dry run: nothing pulled, committed or pushed
+dry run: nothing pulled, committed or pushed
+09:30 good: 220 of 220 contracts (220 two-sided), index answered 0.7 s after the mark; failures:
+dry run: nothing pulled, committed or pushed
+dry run: nothing pulled, committed or pushed
+09:45 good: 220 of 220 contracts (220 two-sided), index answered 0.7 s after the mark; failures:
+dry run: nothing pulled, committed or pushed
+dry run: nothing pulled, committed or pushed
+EXIT 1
+```
+
+Minor, seen in this output and not fixed in this push: an empty failures list prints as "failures: " rather than
+"none" (cosmetic).
 
 ### Open items, stated plainly
 
