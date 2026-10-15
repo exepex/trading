@@ -129,7 +129,8 @@ commit with `--no-verify`.
   pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
   freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),
   `fno/budget/wiring.py` (AI usage, the budget meter and the stop-rule tracker, stories F8 and BG1),
-  `fno/cards/wiring.py` (the daily trade card, story T1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
+  `fno/cards/wiring.py` (the daily trade card, story T1), `fno/weather/wiring.py` (the market weather as a
+  scored forecaster, story M1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
   Groww source behind a read-only allow-list, Drive store, clock check, story A16) and
   `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
   A16b).
