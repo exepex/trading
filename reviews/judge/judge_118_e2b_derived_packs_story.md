@@ -433,3 +433,19 @@ Parent afafb07. Decision 51 adds the pre-push guard and the refusal of stray unp
   - the merged suite passes.
 
 **Verdict: PASS for 8237214f7a523448d1b5a8316f2366f94b816d06** (code). Minors 1-2 can ride the A4b merge commit.
+
+## Addendum 8 (15 Oct 2026): 9aefbc0ab1cbf6a1cda5a200cf6500aa0002b231
+
+One commit on top of 8237214 (orchestrator's decision 54): the two code minors of addendum 7.
+- Gates: 3,951 passed (the builder's figure); ruff, format and imports clean.
+- `git merge-tree` with `origin/main`: no conflict.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Minor 1, the message rule tested | MET | A `reworded` case covers it. My plant S4 (subject comparison dropped) is now caught |
+| Minor 2, "own" exact by content | MET | `OwnCommit` holds the message and each file's recorded SHA-256. `_own` requires the same subject, files within the marker's, and each committed file's content (`git show <c>:<path>`) equal to its recorded hash, where None means deleted. My plants caught: the content check dropped, the files rule dropped, and recovery not passing `OwnCommit` (S6) |
+| Nit | - | The `GitCommitter` docstring wraps oddly ("Any / refusal or git failure is / raised"); cosmetic |
+
+**Verdict: PASS for 9aefbc0ab1cbf6a1cda5a200cf6500aa0002b231** (code). The addendum 7 PASS carries to this SHA, and
+it is the version for ChatGPT (quality rule 9). The merge still waits for A4b, and my merge check is as listed in
+addendum 7.
