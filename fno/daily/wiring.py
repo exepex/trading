@@ -17,7 +17,7 @@ from .runner import DayRunner
 V4_RECORDS = "research/forecasts/v4/"  # G7's rows and M1's weather records (`fno/forecast_v4_rules/wiring.py`)
 WEATHER = ("weather", "capture")  # today only, before its cutoff
 FORECASTS_V4 = ("forecast-v4", "capture")  # today only, before its cutoff
-MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww; first, before the quote parts
+MARGIN_CHECK = ("margins", "stress-broker-check")  # A14c: idempotent, read-only Groww, done long before 14:55
 MARGIN_CHECKS = "research/data/margins/stress_broker_check.csv"  # the one file it appends to (A14c builder, 15 Oct)
 LIVE_STEPS = ("margin_check", "weather", "forecasts_v4", "card")
 

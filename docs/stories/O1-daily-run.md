@@ -54,8 +54,8 @@ after each applied row in `research/data/margins/stress_factor.csv`, the read-on
 command name provisional until A14c's code lands): "After A14c's weekly row is `applied`: `python -m fno margins
 stress-broker-check` (read-only Groww margin request for the SF 100 basket on that day's A14 row; never places an
 order). A mismatch posts its own #fno-desk line; the factor stays applied." The weekly row lands on Sunday, when the
-day's run records only `skipped`, so it is O1's first step, `margin_check`, run every session before the quote parts
-(no overlap with the 14:55 capture on the same Groww key). Agreed with the A14c builder (15 Oct; A14c text at
+day's run records only `skipped`, so it is an O1 step, `margin_check`, run every session right after the quote parts
+start (they wait for 14:55 themselves) and done long before the 14:55 capture on the same Groww key. Agreed with the A14c builder (15 Oct; A14c text at
 `story/a14c-stress-recompute` f2192b2f): the command checks the latest `applied` row once, prints "nothing to check"
 otherwise (exit 0), exits 1 on a Groww or read failure (one O1 alert; the next session retries), and appends only
 `research/data/margins/stress_broker_check.csv`, the one path the step commits. It stays `not_live`
@@ -72,10 +72,10 @@ In:
 
   | Step | Runs | Does (existing code, unchanged) |
   |---|---|---|
-  | `margin_check` | at once | A14c's `margins stress-broker-check` (read-only Groww; commits only its own file) |
   | `weather` | at once | M1's `capture_weather` (refused after the cutoff or on stale closes: recorded, never retried) |
   | `forecasts_v4` | at once | G7's capture (same rules) |
   | `quotes` | starts the three quote parts in the background (below), records that they started, and goes on | A4c's routine steps 2-3b, unchanged |
+  | `margin_check` | at once | A14c's `margins stress-broker-check` (read-only Groww; commits only its own file) |
   | `versions`, `pack` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
   | `book1` | right after `pack` | E5's `desk book1 --day <d>` (Book 1's decision, committed by itself) |
   | `decisions` ... `exits` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
@@ -107,6 +107,9 @@ In:
   refused E3 commit are never swept into a part's commit (judge 169 addendum 1, notes 1-2). Why not leave the parts to the routine's prompt, as today: the routine's git commands and the run's
   own commits would then share the checkout with no common lock, and a collision inside E3 stops the desk (decision 44).
 
+- **No command holds the day:** each O1 command (`margin_check`, `weather`, `forecasts_v4`, `book1`, `card`) is
+  stopped and recorded `failed` after 10 minutes (`COMMAND_LIMIT_SECONDS`); the quote parts start before any of them,
+  so a hung Groww call can never delay the 3 pm capture (judge 178 addendum 1 note 6; orchestrator: required).
 - **A step that fails never stops the next** (design 9): an exception or refusal in `weather`, `forecasts_v4`, a quote
   part or `card` is recorded with `status` and `reason`, alerted once to #fno-desk, and the run goes on. A quote part's
   own alerts (the recorder's three, the record scan's) are its own, as A4c says; O1 adds none for them.

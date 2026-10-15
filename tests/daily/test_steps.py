@@ -3,13 +3,13 @@ rule, the settings, and the command's one line."""
 
 import inspect
 from argparse import Namespace
-from datetime import date
+from datetime import date, timedelta
 
 from fno.config import ALLOWED_APP_KEYS, load_app_config
 from fno.constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
 from fno.daily import cli as daily_cli
-from fno.daily.steps import NOTHING_WRITTEN, Alerted, CommandStep, LiveFrom, outcome
-from fno.daily.wiring import live_dates
+from fno.daily.steps import COMMAND_LIMIT_SECONDS, NOTHING_WRITTEN, Alerted, CommandStep, LiveFrom, outcome
+from fno.daily.wiring import MARGIN_CHECK, live_dates
 from fno.forecast_v4_rules import cli as v4_cli
 from fno.weather import cli as weather_cli
 from tests.timetable.fakes import Clock
@@ -81,8 +81,8 @@ def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypat
 
 
 def test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_file(monkeypatch):
-    """Every name of DAILY_RUN_STEPS has a step (the desk's own, or O1's from the wiring); A14c's check is first,
-    before the quote parts start, and commits only its own file."""
+    """Every name of DAILY_RUN_STEPS has a step (the desk's own, or O1's from the wiring); the quote parts start
+    first, then A14c's check (judge 178 add. 1 note 6), which commits only its own file."""
     from fno.constants import DAILY_RUN_STEPS, DESK_RUN_STEPS
     from fno.daily import wiring
 
@@ -92,4 +92,22 @@ def test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_
     monkeypatch.setattr("fno.books.book1_wiring.build_book1_exit_rules", lambda: None)
     wiring.build_day_runner(load_app_config())
     assert set(seen["day_steps"]) | set(DESK_RUN_STEPS) == set(DAILY_RUN_STEPS)
-    assert DAILY_RUN_STEPS[0] == "margin_check" and wiring.MARGIN_CHECKS.endswith("stress_broker_check.csv")
+    assert DAILY_RUN_STEPS[:2] == ("quotes", "margin_check") and wiring.MARGIN_CHECKS.endswith(
+        "stress_broker_check.csv"
+    )
+
+
+def test_a_command_still_running_at_its_limit_is_stopped_and_failed_never_holding_the_day():
+    """Judge 178 addendum 1, note 6: a hung Groww call in a command can never delay the 3 pm capture or the deadline."""
+    clock = Clock()
+    processes = FakeProcesses(clock, {("margins", "stress-broker-check"): (clock() + timedelta(hours=5), 0, [])})
+    asked = []
+    step = CommandStep(processes, lambda day: MARGIN_CHECK, ("x.csv",), lambda specs: asked.append(specs) or [],
+                       sleep=clock.advance)  # fmt: skip
+    done = step.run(DAY)
+    assert done.result == {
+        "status": STEP_FAILED,
+        "reason": "stopped after 10 minutes without ending; nothing of it committed",
+    }
+    assert processes.made[MARGIN_CHECK].stopped and asked == [] and done.paths == ()
+    assert clock() - processes.started[0][0] == timedelta(seconds=COMMAND_LIMIT_SECONDS)

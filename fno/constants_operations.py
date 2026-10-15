@@ -26,8 +26,17 @@ __all__ = [
 RUN_LOG_DECISIONS_STEP = "decisions"
 # E3's steps, then story O1's whole day in order (the health check O8 reads it); Book 1 decides right after the pack
 DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", "exits")
-DAILY_RUN_STEPS = ("margin_check", "weather", "forecasts_v4", "quotes", *DESK_RUN_STEPS[:2], "book1",
-                   *DESK_RUN_STEPS[2:], "quotes_done", "card")  # fmt: skip
+DAILY_RUN_STEPS = (
+    "quotes",
+    "margin_check",
+    "weather",
+    "forecasts_v4",
+    *DESK_RUN_STEPS[:2],
+    "book1",
+    *DESK_RUN_STEPS[2:],
+    "quotes_done",
+    "card",
+)  # fmt: skip; the quote parts start first (judge 178)
 STEP_OK, STEP_FAILED, STEP_REFUSED, STEP_NOT_LIVE = "ok", "failed", "refused", "not_live"  # an O1 step's status
 
 # The daily health check (story O8, fno/health/): its statuses and its own run record

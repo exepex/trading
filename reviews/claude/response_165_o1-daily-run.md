@@ -171,3 +171,13 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   waits.
 - Test fix: E2c ignores the account files in git, so the real-git pathspec test now stages a tracked file of another
   writer (`research/notes/another_writer.md`) instead of `cash_ledger.csv`.
+
+### Judge 178 addendum 1, note 6 (required by the orchestrator)
+
+- `quotes` is now the first entry of `DAILY_RUN_STEPS`, before `margin_check`. The parts wait for 14:55 themselves,
+  so starting them first costs nothing.
+- Every `CommandStep` is stopped after `COMMAND_LIMIT_SECONDS` (600) and recorded `failed`; nothing it wrote is
+  committed. This covers a hang in any O1 command, not only A14c's.
+- Ten minutes keeps a hung `margin_check` (about 14:35) well before the 15:00 weather/v4 cutoff, and a hung `book1`
+  (about 14:58) before the 15:12 deadline (reasoning only: real run times are not measured yet).
+- Test: `test_a_command_still_running_at_its_limit_is_stopped_and_failed_never_holding_the_day`.

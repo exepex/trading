@@ -19,12 +19,19 @@ NOT_LIVE = "not live before {live_from} (config.yaml daily.live_from)"
 NO_DATE = "no live date set (config.yaml daily.live_from)"
 FAILED_ALERT = "F&O daily run {day}: step {name} {status}: {reason}; the run goes on"
 POLL_SECONDS = 1.0
+COMMAND_LIMIT_SECONDS = 600.0  # a hung command (a Groww call that never answers) is stopped, never holds the day
+STOPPED_AT_LIMIT = "stopped after {minutes} minutes without ending; nothing of it committed"
 
 
-def wait(process: Process, sleep: Callable[[float], None] = clock_time.sleep) -> int:
-    code = process.poll()
+def wait(process: Process, sleep: Callable[[float], None] = clock_time.sleep, limit: float | None = None) -> int | None:
+    """The command's exit code; None when it ran past `limit` seconds and was stopped."""
+    code, waited = process.poll(), 0.0
     while code is None:
+        if limit is not None and waited >= limit:
+            process.stop()
+            return None
         sleep(POLL_SECONDS)
+        waited += POLL_SECONDS
         code = process.poll()
     return code
 
@@ -41,7 +48,8 @@ def outcome(arguments: Sequence[str], code: int, lines: list[str], paths=()) -> 
 
 class CommandStep(DayStep):
     """Runs one command for the day and commits the files it changed under its pathspecs (none: it commits its own
-    files, as Book 1's decision does)."""
+    files, as Book 1's decision does). A command still running after `COMMAND_LIMIT_SECONDS` is stopped and failed
+    (judge 178 add. 1 note 6: a hang never delays the 3 pm capture or the deadline)."""
 
     def __init__(
         self,
@@ -62,7 +70,10 @@ class CommandStep(DayStep):
     def run(self, day: date) -> StepOutcome:
         arguments = self.arguments(day)
         process = self.processes.start(arguments)
-        code = wait(process, self.sleep)
+        code = wait(process, self.sleep, COMMAND_LIMIT_SECONDS)
+        if code is None:
+            reason = STOPPED_AT_LIMIT.format(minutes=int(COMMAND_LIMIT_SECONDS // 60))
+            return StepOutcome({"command": list(arguments)}, {"status": STEP_FAILED, "reason": reason})
         return outcome(arguments, code, process.lines(), self.changed(self.pathspecs) if self.pathspecs else ())
 
 
