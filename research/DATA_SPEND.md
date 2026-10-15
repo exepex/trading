@@ -27,7 +27,7 @@ section 3.1, checked against `research/LEDGER.md` on 15 Oct 2026. A change to th
 | India VIX | daily closes | 2017-2026 | `exposed` | experiment 1 (F2), 43-52 | Predictor |
 | Event calendar (A6) | dates | 2019-2026 | `exposed` | experiment 1 (F3), 43-52 | Predictor |
 | NIFTY options 15:00 bid/ask (A4) | Groww quotes | from 13 Oct 2026 | `forward` | 37-41 (forecast protocol v2, live inputs); 54 (FT1 spread caveat, registered) | Each day after a test's registration is fresh for that test |
-| NIFTY monthly option and future candles | Groww 15-minute candles (last trades), read-only | 2 Jan 2024 - 1 Oct 2026 | `registered` | 54 (FT1 fill timing, protocol frozen `47d1598`) | To become `spent` after the run for the 14:00-to-next-10:15 windows of the sampled contracts (`C` is the P&L of selling at the decision and buying back at the fill); the probe before the freeze read candle counts only |
+| NIFTY monthly option and future candles | Groww 15-minute candles (last trades), read-only | 2 Jan 2024 - 1 Oct 2026 | `spent` | 54 (FT1 fill timing, protocol frozen `47d1598`, run 15 Oct 2026 at `1962610`) | Spent for the 14:00-to-next-10:15 windows of the sampled contracts (`C` is the P&L of selling at the decision and buying back at the fill); the flip share read held-to-expiry P&L of these entries; the probe before the freeze read candle counts only |
 | NIFTY monthly option and future candles | Groww 15-minute candles (last trades) | 2019 - 2023 | `fresh` | none | Not read by FT1 |
 | NIFTY 15-minute quotes (A16) | Groww quotes | not yet recorded | `fresh` | none | Starts with A16 |
 | Participant open interest (A8) | NSE daily files | history | `fresh` | none | Idea O1 waits for 20 measured release days |
