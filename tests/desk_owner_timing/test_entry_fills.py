@@ -15,6 +15,7 @@ from fno.constants import (
     OUTCOME_OPENED,
     OUTCOME_PROTECTION_UNVERIFIED,
     OUTCOME_REFUSED,
+    PROTECTION_NOT_BUYABLE,
     SIZE_SHARED_IN_BOOK,
     VIEW_VERDICT,
 )
@@ -176,3 +177,9 @@ def test_two_entries_due_at_one_mark_share_its_displayed_size(root, parts, marks
     assert second.startswith(SIZE_SHARED_IN_BOOK) and "65 already taken in this book at this snapshot" in second
     assert len(account(root).fill_rows("t1")) == 4 and not account(root).fill_rows("t2")
     assert log.records[-1].snapshot_id == "a16_20261015_1015"
+
+
+def test_a_thin_size_is_e4cs_miss_not_a_missing_quote(root, parts, marks):
+    entries, _, _, _ = parts
+    marks.put(DUE, fly_rows({(25200, "CE"): {"size": 64.0}}))  # one unit below the 65 the protection needs
+    assert apply(root, entries).startswith(PROTECTION_NOT_BUYABLE)

@@ -1,7 +1,8 @@
 """An order's owner-timing fill in two steps (story E8 rules 2-9): `schedule` gives its due mark when it is sent (or
 why it misses), and `price` reads that mark's snapshot once the mark has passed. Every leg is priced before any fill
-(E4c's rule): one leg without a valid quote misses the whole entry ("missed, no quote"); E4c's entry check and E4d's
-shared size then run at the mark's own copy and miss it with their own code; an entry outside the owner's entry rule
+(E4c's rule): one leg without a valid quote misses the whole entry ("missed, no quote"); E4c's entry check (a thin
+size, protection not sellable back) and E4d's shared size then run at the mark's own copy and miss it with their own
+code; an entry outside the owner's entry rule
 is "missed, price moved". A miss is never retried at another mark or price."""
 
 from __future__ import annotations
@@ -13,7 +14,8 @@ from datetime import datetime
 from ..entries import EntryOrder
 from ..entry_check import entry_problems, taken_units
 from ..execution import FillMaker
-from ..pricing import LegQuote, price_leg
+from ..pricing import DeskLeg, LegQuote, price_leg
+from ..snapshot import ExecutionSnapshot
 from .clock import FillClock
 from .entry_range import EntryRange
 from .mark_levels import MarkSnapshot
@@ -51,16 +53,22 @@ class DueFill:
         mark = self.snapshots.at(due.session, due.mark)
         if mark is None:
             return Missed(MISSED_NO_QUOTE)
-        snapshot, units, trade_id = mark.prices, order.proposal.units, order.proposal.trade_id
-        quotes = [price_leg(snapshot, leg, leg.side(opening=True), units) for leg in order.legs()]
-        if not all(quote.fills for quote in quotes):
+        snapshot, units, trade_id, legs = mark.prices, order.proposal.units, order.proposal.trade_id, order.legs()
+        if any(_unquoted(snapshot, leg) for leg in legs):
             return Missed(MISSED_NO_QUOTE, snapshot)
-        problems = entry_problems(snapshot, order.legs(), units, taken_units(book_fills, snapshot, trade_id))
-        if problems:  # E4c and E4d at the mark's own copy: protection sellable back, the book's shared size
+        problems = entry_problems(snapshot, legs, units, taken_units(book_fills, snapshot, trade_id))
+        if problems:  # E4c and E4d at the mark's own copy: sizes, protection sellable back, the book's shared size
             return Missed(problems[0], snapshot)
+        quotes = [price_leg(snapshot, leg, leg.side(opening=True), units) for leg in legs]
         maker = FillMaker(
             order.book, order.strategy, order.decision_id, order.proposal.trade_id, snapshot, self.charges
         )
         if not self.entry_range.admits(order, maker, quotes):
             return Missed(MISSED_PRICE_MOVED, snapshot)
         return PricedEntry(due, mark, maker, quotes)
+
+
+def _unquoted(snapshot: ExecutionSnapshot, leg: DeskLeg) -> bool:
+    """No valid quote for the leg in this copy (judge 203 condition 3); a thin size is E4c's to name, not this."""
+    quote = snapshot.quote(leg.expiry, leg.leg.strike, leg.leg.kind)
+    return quote is None or bool(quote.a4_problem)
