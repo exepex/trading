@@ -187,8 +187,9 @@ missing; daily HAR never stands in again.
 3. **Confirmatory claim rule: E+D** (`confirmatory.calibrated_p`; revisions 2, 4, 5 and 6 of this draft). A member
    claims at a look only with **at least 12 whole batches** and a **batch-means t** p-value (Student t, batches - 1
    df) **at or below its worst-case calibrated threshold**, computed at the look for the member's n by the frozen
-   tools. The Brier members V6a and V6b also need **at least 5 2% days** in the scored window and use the thresholds
-   of that window's band (5-7, 8-12, 13+ days). **V7 is descriptive-only in v4** (revision 6: no measured rule holds
+   tools. **Every member also needs at least 5 2% days in the scored window** (`confirmatory.judgeable`; V1 and V2
+   from revision 8), else it is undecided at that look; V6a and V6b use the thresholds of the window's band (5-7,
+   8-12, 13+ days), V1 and V2 one threshold (measured: no band needed). **V7 is descriptive-only in v4** (revision 6: no measured rule holds
    its size across VIX regimes; its slots stay at p = 1, never a claim, never futile, not counted in Test A). Every
    threshold, the nulls behind
    it, the measured sizes and what "held-out" proves are in **`PROTOCOL_v4_calibration.md` (part of this protocol,
@@ -204,7 +205,7 @@ missing; daily HAR never stands in again.
    margin x b_t, "improvement below the minimum effect" is mean(e) > 0. A member is **futile at a look only with at
    least 12 batches and a batch-means t p-value for it at or below its calibrated threshold**: 2.5% per look
    (Bonferroni 2 x 2.5%), on nulls shifted to a true improvement exactly equal to the minimum effect; futile at look 1
-   is final. The Brier and V7 gates and bands apply as in item 3. Measurements: `PROTOCOL_v4_calibration.md`. Across
+   is final. The 5-day gate and the Brier bands apply as in item 3. Measurements: `PROTOCOL_v4_calibration.md`. Across
    members, "every member futile" is an intersection-union claim (Berger 1982).
 6. **The confirmatory family (15 members, fixed now).** Targets V1, V2, V6a, V6b, V7, each with three forecaster slots:
    `rules` (the registered code forecaster: G7's rule forecaster, or M1's weather model for V6), `hybrid` (Book 2) and
@@ -317,18 +318,19 @@ confirmation of section 11's items A-C (given, 15 Oct 2026), D and E.
   will almost surely never be claimed.** V6b: 149-206 (about 3-4 years), only in windows with 5 or more 2%
   days. **Said plainly: only V6b can be claimed, slowly, and see E.** V7 is descriptive-only (5.3; its own VIX null
   is measured in `PROTOCOL_v4_calibration.md` section 3). Other options: `v4_size_study.md`; futility as 5.5.
-- **E. Regime dependence (revisions 6-7, judge 98 addendum 6; calibration section 4), for the owner.** The regime
+- **E. Regime dependence (revisions 6-8, judge 98 addenda 6-7; calibration section 4), for the owner.** The regime
   caveat covers **every member's claims and futility, and so the whole of Test A**: a "yes" or "no" from a
-  crash-dominated or calm-dominated window measures that regime, not general skill. Measured: every rule holds over
-  2019-26; inside one regime most large rates are that regime's truth, and the genuine errors are V1 in calm 2021
-  (false "no" 6.81%, false claims 0.85%), V6b in the 2020-21 crash year (3.43%, 0.43%) and V6a there (2.69%, tolerance 2.60%). The owner's options,
-  as the judge framed them:
+  crash-dominated or calm-dominated window measures that regime, not general skill. Revision 8 extends the 5-day gate
+  to V1 and V2, so a calm window is undecided for every member (V1's calm-window errors are gone). Measured with the
+  gate: every rule holds over 2019-26; the remaining genuine errors are all in the 2020-21 crash year (V6b false "no"
+  3.43% and false claims 0.43%; V6a false "no" 2.69%). The owner's options, as the judge framed them:
   1. **Accept**, with every verdict worded "beat the baseline over the scored window" and the window's regime printed
-     (mean VIX, 2% days, band). Recommended (some evidence: option 2 measured worse; option 3 ends every claim).
-  2. **Exclude crash windows**, cut frozen now on outcome-side data only. Measured (mean VIX above 25, or more than 10%
-     2% days): removes 8-16% of windows and, inside the crash year, raises V6b's false "no" from 3.43% to 10-16%, as
-     the kept calmer windows form the next regime. It does not fix the problem.
+     (mean VIX, 2% days, band).
+  2. **Exclude crash windows**, cut frozen now on outcome-side data only. Measured against each kept set's own truth:
+     the share cut (more than 10% 2% days) removes those crash-year errors, adds one small one on few series and costs
+     13-16% of windows; the VIX cut (mean above 25) costs 8-9% but adds larger errors. Some evidence, one crash.
   3. **V6b descriptive** like V7: no claimable member is left in v4, so Test A could never say "yes".
+  No recommendation from me between 1 and 2-share (the measured difference rests on one crash); 3 ends every claim.
 
 Also open to challenge: the family without V3-V5 (5.6), special sessions out (2), V2-V3 on `close_proxy` (1.1), the
 5% spread limit and parity forward (1.4), strict "inside" for V5 (1.5).

@@ -27,7 +27,7 @@ from .terms import BOOTSTRAP_SEED, RESAMPLES
 STUDENTIZED_SEED_WORD = 2
 MIN_CLAIM_BATCHES = 12  # rules E+D and F+D: fewer batches give neither a claim nor a futility "no"
 FUTILITY_LEVEL = 0.025  # per member and look (Bonferroni 2 x 2.5% over the two looks)
-MIN_EVENT_DAYS = 5  # Brier members (V6a, V6b, V7): fewer 2% days in the scored window give no claim and no "no"
+MIN_EVENT_DAYS = 5  # every member (revision 8): fewer 2% days in the scored window give no claim and no "no"
 EVENT_BANDS = ((5, 7), (8, 12), (13, None))  # revision 5: each band has its own Brier thresholds
 
 
@@ -112,11 +112,11 @@ def futility_p(
     return min(1.0, FUTILITY_LEVEL * batch_means_p(excess, block) / threshold)
 
 
-def brier_judgeable(event_days: int) -> bool:
-    """Revision 4 (judge 98 addendum 3): a Brier member (V6a, V6b, V7) is judged at a look only when its scored
-    window holds at least 5 sessions with an absolute NIFTY move of 2% or more; otherwise it is not judgeable at that
-    look (p = 1 for claims and futility: open, never "no"). Calm stretches of 2019-26 held none in 125 and 250
-    sessions (`tools/v4_brier_regimes.py`)."""
+def judgeable(event_days: int) -> bool:
+    """Revision 4 (judge 98 addendum 3) for the Brier members, revision 8 (judge 98 addendum 7) for every member: a
+    member is judged at a look only when its scored window holds at least 5 sessions with an absolute NIFTY move of 2%
+    or more; otherwise it is not judgeable at that look (p = 1 for claims and futility: undecided, never "no"). Calm
+    windows otherwise gave V1 false claims and a false "no" well above nominal (`tools/v4_regime_stress.py`)."""
     return event_days >= MIN_EVENT_DAYS
 
 

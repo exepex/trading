@@ -20,7 +20,7 @@ from .terms import BIG_MOVE
 class WindowRegime:
     mean_vix: float
     big_days: int
-    band: tuple[int, int | None] | None  # None: below the Brier gate (not judgeable)
+    band: tuple[int, int | None] | None  # None: below the 5-day gate (no member judgeable)
 
     def line(self) -> str:
         return (
@@ -39,6 +39,6 @@ def window_regime(vix_closes: Sequence[float], log_returns: Sequence[float]) -> 
 
 def _band_name(band: tuple[int, int | None] | None) -> str:
     if band is None:
-        return "below 5 (Brier members not judgeable)"
+        return "below 5 (not judgeable: undecided)"
     low, high = band
     return f"{low}-{high}" if high is not None else f"{low}+"

@@ -1,4 +1,4 @@
-"""Protocol v4 revision 7: every judgeable member's claim and futility rules inside one regime (judge 98 addendum 6).
+"""Protocol v4 revisions 7-8: every judgeable member's claim and futility rules inside one regime (judge 98 addendum 6).
 
 Revision 6 stressed V6b alone; the judge showed its crash-window "failures" are regime-local truth (inside the 2020
 crash the full-period null's local mean is far from zero), and asked the same check for V1, V2 and V6a, since futility
@@ -142,22 +142,38 @@ def verdict_rates(
     index: np.ndarray,
     futility: bool,
     keep: np.ndarray | None = None,
-) -> tuple[float, float]:
-    """(rate of the verdict among the kept series, share of all series judged). A claim also needs the point estimate
-    at or above the minimum effect (`family`); `keep` is option 2's crash cut (None: every series kept)."""
-    kind, _, block, margin = QUESTIONS[question]
+) -> dict:
+    """The verdict among the kept series (`keep`: option 2's crash cut; None keeps all). Revision 8: every member is
+    judged only with 5 or more 2% days (`confirmatory.judgeable`); a claim also needs the point estimate at or above
+    the minimum effect. Returns the rate among kept series, the rate among judged series, the judged share and the
+    judged set's own truth (pooled relative improvement), overall and per band."""
+    _, _, block, margin = QUESTIONS[question]
     xd, xb, events = d[index], series["b"][index], series["big"][index].sum(axis=1)
     t, k = batch_t(-(xd + margin * xb) if futility else xd, block)
     keep = np.ones(len(index), bool) if keep is None else keep
-    judged = keep & (events >= MIN_EVENT_DAYS if kind == "brier" else True)
-    if not futility:
-        judged &= -xd.mean(axis=1) / xb.mean(axis=1) >= margin
+    gated = keep & (events >= MIN_EVENT_DAYS)
+    eligible = gated if futility else gated & (-xd.mean(axis=1) / xb.mean(axis=1) >= margin)
     found = np.zeros(len(index), bool)
     for band, (claim, fut) in thresholds(question, n).items():
-        chosen = judged if band is None else judged & bands.in_band(events, band)
+        chosen = eligible if band is None else eligible & bands.in_band(events, band)
         found |= chosen & (t <= t_at(fut if futility else claim, k - 1))
-    return float(found.sum() / max(keep.sum(), 1)), float((keep & (events >= MIN_EVENT_DAYS if kind == "brier"
-                                                                     else True)).mean())  # fmt: skip
+    per_band = {}
+    for band in bands.BANDS:
+        chosen = gated & bands.in_band(events, band)
+        per_band[bands.band_name(band)] = {"count": int(chosen.sum()), "rate": _share(found, chosen),
+                                           "truth": _truth(xd, xb, chosen)}  # fmt: skip
+    return {"rate": _share(found, keep), "conditional": _share(found, gated), "judged": float(gated.mean()),
+            "kept": float(keep.mean()), "set_truth": _truth(xd, xb, gated), "bands": per_band}  # fmt: skip
+
+
+def _share(found: np.ndarray, among: np.ndarray) -> float:
+    return float(found[among].mean()) if among.any() else 0.0
+
+
+def _truth(xd: np.ndarray, xb: np.ndarray, chosen: np.ndarray) -> float | None:
+    """The pooled true relative improvement of the chosen series: what "beat the baseline over the scored window"
+    means for that set."""
+    return float(-xd[chosen].sum() / xb[chosen].sum()) if chosen.any() else None
 
 
 def draw(question: str, series: dict, name: str, stretch, n: int, flip: bool, futility: bool):
@@ -177,52 +193,91 @@ def run_question(question: str) -> list[dict]:
             for futility in (False, True):
                 for flip in (False, True):
                     d, index = draw(question, series, name, stretch, n, flip, futility)
-                    rate, judged = verdict_rates(question, n, d, series, index, futility)
+                    result = verdict_rates(question, n, d, series, index, futility)
                     rows.append({"question": question, "n": n, "stretch": name, "days": [series["day"][lo],
                                  series["day"][hi - 1]], "big_days": int(series["big"][lo:hi].sum()),
                                  "mean_vix": float(series["vix"][lo:hi].mean()), "kind": "futility" if futility
-                                 else "claim", "orientation": "flipped" if flip else "as measured", "rate": rate,
-                                 "judged": judged, "local_improvement": local_improvement(d, series["b"], stretch),
+                                 else "claim", "orientation": "flipped" if flip else "as measured", **result,
+                                 "local_improvement": local_improvement(d, series["b"], stretch),
                                  "margin": margin})  # fmt: skip
                     print(rows[-1], flush=True)
     return rows
 
 
+HEADER = f"""# Protocol v4: every member's rules inside one regime (`tools/v4_regime_stress.py`)
+
+{SERIES:,} series per cell; operative thresholds unchanged; revision 8: **every member** is judged only with 5 or more
+2% days in the scored window. Claims: look 1, null centred over 2019-26 (nominal 0.133%; a claim also needs the point
+estimate at the minimum effect). Futility: null shifted to a full-period true improvement of exactly the minimum effect
+(target 2.5%). "all" = rate among every series (unjudged = no verdict); "judged" = rate among judged series. **local**
+= the stretch's true relative improvement; **set** = the judged series' own pooled true improvement (what "beat the
+baseline over the scored window" means for them). Each rate is marked against its own truth: a "no" is false only
+where truth >= the minimum effect, a claim only where truth <= 0. **Bold**: false and above nominal + 2 Monte Carlo SE
+of its count; *italic*: above it but that set's truth. Exposed data.
+"""
+
+
 def markdown(rows: list[dict]) -> str:
-    lines = [
-        "# Protocol v4: every member's rules inside one regime (`tools/v4_regime_stress.py`)",
-        "",
-        f"{SERIES:,} series per cell; operative thresholds unchanged. Claims: look 1, null centred over 2019-26 "
-        "(nominal 0.133%; a claim also needs the point estimate at the minimum effect). Futility: null shifted to a "
-        "full-period true improvement of exactly the minimum effect (target 2.5%). **local** = the true relative "
-        'improvement inside the stretch: a futility "no" is false only where local >= the minimum effect, a claim '
-        "only where local <= 0. **Bold**: a false verdict above nominal + 2 Monte Carlo SE; *italic*: above it, but "
-        "the regime's truth. Exposed data; Brier members judged only with 5+ 2% days.",
-        "",
-        "| question | stretch | n | orientation | claim | local (claim null) | futility | local (futility null) | "
-        "judged |",
-        "|---|---|---|---|---|---|---|---|---|",
-    ]
+    lines = [HEADER, "| question | stretch | n | orientation | judged | claim all | claim judged | futility all | "
+             "futility judged | local claim / futility null | set claim / futility null |",
+             "|---|---|---|---|---|---|---|---|---|---|---|"]  # fmt: skip
     keyed = {(r["question"], r["stretch"], r["n"], r["orientation"], r["kind"]): r for r in rows}
-    for (q, s, n, o, kind), r in keyed.items():
+    for (q, s, n, o, kind), c in keyed.items():
         if kind != "claim":
             continue
-        f = keyed[(q, s, n, o, "futility")]
+        f, count = keyed[(q, s, n, o, "futility")], max(1, round(c["judged"] * SERIES))
+        cells = [_pct(c["rate"], c["local_improvement"] > 0, CLAIM_NOMINAL, SERIES),
+                 _pct(c["conditional"], _above(c["set_truth"], 0), CLAIM_NOMINAL, count),
+                 _pct(f["rate"], f["local_improvement"] < f["margin"], 0.025, SERIES),
+                 _pct(f["conditional"], not _above(f["set_truth"], f["margin"] - 1e-12), 0.025, count)]  # fmt: skip
         lines.append(
-            f"| {q} | {s} ({r['days'][0]} to {r['days'][1]}; {r['big_days']} 2% days, VIX {r['mean_vix']:.1f}) | "
-            f"{n} | {o} | {_pct(r['rate'], r['local_improvement'] > 0, CLAIM_NOMINAL)} | "
-            f"{r['local_improvement']:+.3f} | "
-            f"{_pct(f['rate'], f['local_improvement'] < f['margin'], 0.025)} | {f['local_improvement']:+.3f} | "
-            f"{100 * f['judged']:.0f}% |"
+            f"| {q} | {s} ({c['days'][0]} to {c['days'][1]}; {c['big_days']} 2% days, VIX {c['mean_vix']:.1f}) | "
+            f"{n} | {o} | {100 * c['judged']:.0f}% | {' | '.join(cells)} | {c['local_improvement']:+.3f} / "
+            f"{f['local_improvement']:+.3f} | {_num(c['set_truth'])} / {_num(f['set_truth'])} |"
         )
+    return "\n".join(lines) + "\n\n" + band_table(rows)
+
+
+def band_table(rows: list[dict]) -> str:
+    """Full period, rates among judged series per 2%-day band: does a member need banded thresholds (revision 5's
+    test: a band's conditional rate above tolerance against the full-period null)?"""
+    lines = ["## Full period by 2%-day band (the banding test)", "",
+             "Rates among the band's series, thresholds as above; **bold** above nominal + 2 Monte Carlo SE of the "
+             "band's count (revision 5's test, against the full-period null); truth = the band's pooled true "
+             "improvement.", "",
+             "| question | n | orientation | band | series | claim | futility | truth claim / futility null |",
+             "|---|---|---|---|---|---|---|---|"]  # fmt: skip
+    keyed = {(r["question"], r["n"], r["orientation"], r["kind"]): r for r in rows if r["stretch"] == "full"}
+    for (q, n, o, kind), c in keyed.items():
+        if kind != "claim":
+            continue
+        f = keyed[(q, n, o, "futility")]
+        for band, cb in c["bands"].items():
+            fb = f["bands"][band]
+            claim, futility = _bold(cb["rate"], CLAIM_NOMINAL, cb["count"]), _bold(fb["rate"], 0.025, fb["count"])
+            lines.append(f"| {q} | {n} | {o} | {band} | {cb['count']:,} | {claim} | {futility} | "
+                         f"{_num(cb['truth'])} / {_num(fb['truth'])} |")  # fmt: skip
     return "\n".join(lines) + "\n"
 
 
-def _pct(rate: float, regime_truth: bool, nominal: float) -> str:
-    """Bold above nominal + 2 Monte Carlo SE only where the verdict is false for that regime; italic where it is the
-    regime's truth."""
+def _above(value: float | None, level: float) -> bool:
+    return value is not None and value > level
+
+
+def _num(value: float | None) -> str:
+    return "none" if value is None else f"{value:+.3f}"
+
+
+def _bold(rate: float, nominal: float, count: int) -> str:
     text = f"{100 * rate:.2f}%"
-    if rate <= study.tolerance(nominal, SERIES):
+    return f"**{text}**" if count and rate > study.tolerance(nominal, count) else text
+
+
+def _pct(rate: float, regime_truth: bool, nominal: float, count: int) -> str:
+    """Bold above nominal + 2 Monte Carlo SE only where the verdict is false for its set; italic where it is that
+    set's truth."""
+    text = f"{100 * rate:.2f}%"
+    if rate <= study.tolerance(nominal, count):
         return text
     return f"*{text}*" if regime_truth else f"**{text}**"
 

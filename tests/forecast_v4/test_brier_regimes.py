@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from fno.forecast_v4.confirmatory import MIN_EVENT_DAYS, brier_judgeable
+from fno.forecast_v4.confirmatory import MIN_EVENT_DAYS, judgeable
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -20,7 +20,7 @@ DATA = json.loads((ROOT / "research/forecasts/v4_brier_regimes.json").read_text(
 
 
 def test_the_gate_is_five_two_percent_days():
-    assert MIN_EVENT_DAYS == 5 and brier_judgeable(5) and not brier_judgeable(4)
+    assert MIN_EVENT_DAYS == 5 and judgeable(5) and not judgeable(4)
 
 
 def test_the_nulls_cover_every_exposed_session_with_a_valid_base_rate_and_the_calm_stretches_have_no_event():

@@ -69,3 +69,5 @@ def test_revision_7_states_the_regime_caveat_for_every_member_and_test_a():
     assert "`regime.py`" in TEXT and "`regime.window_regime`" in TEXT
     for option in ("1. **Accept**", "2. **Exclude crash windows**", "3. **V6b descriptive**"):
         assert option in TEXT
+    assert "**Every member also needs at least 5 2% days in the scored window**" in TEXT
+    assert "the 5-day gate covers every member" in calibration

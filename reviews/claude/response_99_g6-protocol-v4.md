@@ -323,3 +323,31 @@ Each item was checked before it was accepted.
    regime-robust QLIKE rule would be a new calibration (for example, nulls conditioned on the window's VIX level, as
    the bands condition on 2% days). I have not built one because the judge did not ask and V7's attempt (R2) failed.
    If the owner or judge wants it, it is the next item.
+
+## Revision 8: answer to judge 98 addendum 7 (FAIL on 41f29d3)
+
+1. **Must-fix 1, V1's calm-window results are real failures: ACCEPTED (my own revision 7 table showed the same:
+   6.81% and 0.85%). Fixed by design:** the 5-day gate (at least five 2% days in the scored window) now covers **every
+   member**, claims and futility (`confirmatory.judgeable`, renamed from `brier_judgeable`; protocol 5.3 item 3).
+   A calm window is undecided for every member. Re-run (`v4_regime_stress.md`, 100,000 series per cell):
+   - Calm stretches: 0% judged for every member, so no error there.
+   - V1 full period, false "no": **0.56%** at n = 125 (was 1.49%; the judge expected 0.54%) and 1.88% at n = 250.
+     Judgeable: 53% at n = 125, 90% at n = 250, as the judge expected.
+   - Every member holds over the full period. The remaining genuine errors are all in the 2020-21 crash year: V6a
+     false "no" 2.69%, V6b false "no" 3.43%, V6b false claims 0.43% / 0.20%.
+   - **Banding for V1/V2: measured, not needed.** 47 of 48 band cells are within tolerance. One is marginal: V1,
+     n = 250, flipped, 5-7 days, 2.75% against 2.73%. That band's own truth (+0.017) is below the 0.03 effect, so a
+     "no" there is the band's truth. One marginal cell at 2 SE in 48 is what chance gives (some evidence).
+2. **Must-fix 2, option 2's "worse" was on the wrong basis: ACCEPTED, and the claim is WITHDRAWN.** Every rate is now
+   marked against its own set's truth: the pooled true improvement of the judged series each cut keeps. It is shown
+   beside the same draws with no cut (`v4_crash_cut.md`).
+   - The share cut (more than 10% 2% days) removes V6b's and V6a's crash-year genuine errors. It adds one small one:
+     V6b false claims 0.42% on the 1.2% of series it keeps in the 2020 crash.
+   - The VIX cut (mean above 25) removes some errors and adds larger ones: V6b at n = 250, a false "no" 5.14% and
+     false claims 0.91%.
+   - The cost table stands: the cuts remove 7.6-15.7% of windows.
+   - Some evidence only: one crash decides it.
+   - Section 11 E and calibration section 4 are corrected. I no longer recommend between option 1 and option 2 with
+     the share cut; option 3 ends every claim.
+3. **Unchanged:** no threshold was recalibrated; the G8 regime line now says "not judgeable: undecided" below 5 days
+   for every member.

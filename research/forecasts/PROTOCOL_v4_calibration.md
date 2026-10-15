@@ -33,7 +33,7 @@ they prove nothing about other periods. Every empirical null here is built from 
    are therefore calibrated on **every exposed regular session with a valid base rate (15 Jan 2019 to 14 Oct 2026)**.
    A **calm stress** adds the calmest 125 and 250 sessions (13 Apr - 12 Oct 2021 and 6 Oct 2022 - 10 Oct 2023, no 2%
    day in either). A Brier member is **judged (claim or futility) only when its scored window holds at least 5 2%
-   days** (`confirmatory.brier_judgeable`); otherwise it is not judgeable at that look (p = 1, open, never "no").
+   days** (`confirmatory.judgeable`; every member from revision 8, section 4); otherwise it is not judgeable at that look (p = 1, open, never "no").
    Without the gate V6b's claim size is up to 62-99%; with it every cell holds. Judgeable: 53% of 2019-26 windows at
    n = 125, 90% at n = 250, none in the calm stretches. **Revision 5 (judge 98 addendum 4;
    `tools/v4_brier_bands.py`, `confirmatory.event_band`):** one threshold per question over-rejected 2-4x in windows
@@ -82,7 +82,7 @@ they prove nothing about other periods. Every empirical null here is built from 
   p = 1: it never claims, is never futile, and is not counted in Test A, so it can neither claim nor block a "no"
   (`terms.DESCRIPTIVE_ONLY`). A later version may bring it back with a regime-robust rule.
 
-## 4. Every member inside one regime (revisions 6 and 7; `v4_regime_stress.md`, `v4_crash_cut.md`)
+## 4. Every member inside one regime (revisions 6-8; `v4_regime_stress.md`, `v4_crash_cut.md`)
 
 **The caveat (judge 98 addendum 6), for every member's claims AND futility.** Inside one regime the full-period null's
 local mean is far from zero (inside the 2020 crash V6b's is -0.33, larger than its full SD of 0.21), so the forecaster
@@ -91,48 +91,69 @@ scored window's regime, not general skill.** This covers V1, V2, V6a and V6b, cl
 of Test A: a Test A "yes" or "no" from a crash-dominated or calm-dominated window measures that regime. Every verdict
 therefore prints its window's regime (`regime.window_regime`: mean India VIX, 2% days, band; G8 criterion).
 
+**Revision 8 (judge 98 addendum 7): the 5-day gate covers every member.** Revision 7 measured genuine V1 errors in
+calm windows (false "no" 6.81% where V1 is locally 21% better; false claims 0.85% where it is 18% worse), reproduced
+by the judge. So **V1 and V2, like the Brier members, are judged (claim or futility) only when the scored window holds
+at least 5 2% days** (`confirmatory.judgeable`); a calm window is undecided for every member. Judgeable: 53% of
+2019-26 windows at n = 125, 90% at n = 250 (resampled); none in either calm stretch.
+
 **Method (`tools/v4_regime_stress.py`).** Each member's null over every exposed 2019-26 regular session (from 15 Jan
 2019) is resampled in circular 20-session blocks over the full period and inside the busiest and the calmest 125 and
 250 sessions by 2% days: busy 16 Dec 2019 - 18 Jun 2020 (36 2% days, mean VIX 30.6) and 31 Jan 2020 - 2 Feb 2021 (44,
 27.5); calm 13 Apr - 12 Oct 2021 (0, 16.0) and 6 Oct 2022 - 10 Oct 2023 (0, 13.2). Both orientations, n = 125 and 250,
-100,000 series per cell, operative thresholds unchanged. "local" is the true relative improvement inside the stretch:
-a "no" is false only where local is at least the minimum effect, a claim only where local is at most 0.
+100,000 series per cell, operative thresholds unchanged, every member gated. Each rate is marked against its own
+truth: "local" (the stretch's true relative improvement) for rates among all series, "set" (the judged series' own
+pooled true improvement) for rates among judged series. A "no" is false only where truth is at least the minimum
+effect, a claim only where truth is at most 0.
 
-**Futility (the judge's must-fix (a)), worst rates, target 2.5% (tolerance 2.60%):**
+**Results with the gate (worst rates; futility target 2.5%, claims 0.133%):**
 
-| member | full 2019-26 | busy stretches: false "no" / regime truth | calm stretches: false "no" / regime truth |
+| member | full 2019-26: false "no" / false claim | busy stretches: false "no" / false claim | calm |
 |---|---|---|---|
-| V1 | 0.00-2.25% | 0.00-0.46% / none above | **6.81%** (n = 125), **2.93%** (n = 250), calm 2021, local +0.21 / 4.51-11.44% (calm 2022-23, local -0.13) |
-| V2 | 0.00-0.78% | 0.00-0.10% / none above | 0.00-1.96% / 13.71-41.42% (calm 2022-23, local -1.27) |
-| V6a | 0.00-2.16% | **2.69%** (n = 125, busy 2020-21, local +0.24) / 10.27-35.97% | not judgeable (0% of windows) |
-| V6b | 0.33-2.00% | **3.43%** (n = 125, busy 2020-21, local +0.31) / 12.65-99.88% | not judgeable (0% of windows) |
+| V1 | 0.56% (was 1.49%), 1.88% at n = 250 / 0.04% | 0.00-0.46% / 0.00% | undecided (0% judged) |
+| V2 | 0.29-0.35% / 0.01% | 0.00-0.08% / 0.01% | undecided |
+| V6a | 1.12-2.16% / 0.08% | **2.69%** (n = 125, 2020-21, local +0.24) / 0.10% | undecided |
+| V6b | 0.33-2.00% / 0.09% | **3.43%** (n = 125, 2020-21, local +0.31) / **0.43%**, **0.20%** (flipped) | undecided |
 
-**Claims, worst false rates (local at most 0), nominal 0.133% (tolerance 0.156%):** V1 **0.85%** (n = 125) and
-**0.66%** (n = 250) in calm 2021, where the forecaster is locally 18% worse; V6b **0.43%** and **0.20%** in busy
-2020-21 (flipped, locally 30% worse); V2 and V6a within. The full period holds for every member (V1 and V2's 2024-26
-thresholds hold on 2019-26: claims at most 0.05%, futility at most 2.25%).
+Regime truth (not errors) stays large inside the crash, as before: V6a 10-36% "no"; V6b 13-100% "no" and 2-91%
+claims. **Remaining genuine errors: V6a 2.69% and V6b 3.43% false "no" and V6b 0.43% / 0.20% false claims, all in the
+2020-21 crash year** (some evidence: one crash).
 
-**Read plainly (some evidence: exposed data, one crash, two calm stretches):**
-- The rules are sound over a mixed 2019-26 window and not inside one regime. Most large rates are regime truth (the
-  forecaster really is better or worse there); the bold ones are genuine errors even against that regime's truth.
-- **V1 in a calm stretch is the worst genuine error:** a false "no" 6.81% against 2.5%, and false claims 0.85% per
-  slot; three V1 slots could reach about 2.6% by the union bound, against look 1's 2% (reasoning only: slots are
-  correlated, so the true union is lower).
-- **Test A "no"** needs every counted member futile (intersection-union, 5.5). In the calm stretches the Brier members
-  are never judgeable, so they block a "no"; in the busy stretches V1 and V2 say "no" at most 0.46%. So a false Test A
-  "no" in these stretches is at most the smallest counted member's rate (reasoning on measured marginal rates; the
-  joint rate is not measured). If only V1 and V2 were counted, calm 2021 would give at most 1.96%.
+**Do V1 and V2 need banded thresholds?** Revision 5's test (rate among each band's series, full-period null): 47 of 48
+V1/V2 band cells are within nominal + 2 Monte Carlo SE; one is just above: V1, n = 250, flipped, 5-7 days, false "no"
+2.75% against a tolerance of 2.73%, where that band's own truth (+0.017) is below the 0.03 effect, so a "no" there is
+the band's truth. One marginal cell in 48 at 2 SE is what chance gives. **Not banded** (some evidence; V6 needed bands
+because its band rates were 2-4x nominal).
 
-**Item E's option 2 measured (`tools/v4_crash_cut.py`, `v4_crash_cut.md`).** Two cuts, outcome-side only, that would
-make a crash-dominated window not judgeable for every member: mean closing India VIX above 25 (2019-26 mean 17.1), or
-more than 10% 2% days (base rate 4.15%). Cost on the real rolling 2019-26 windows: the VIX cut removes 7.6% (n = 125)
-and 8.9% (n = 250), all starting Aug 2019 - May 2020; the share cut removes 12.6-15.7%. V6b's judgeable share falls
-from 50% to 43% / 37% (n = 125) and from 78% to 69% / 63% (n = 250). Full-period rates barely move. **Inside the crash
-year the cut makes things worse:** V6b's false "no" (n = 125, busy 2020-21) rises from 3.43% to **10.41%** (VIX cut) and
-**16.00%** (share cut); its false claims from 0.43% to 1.31% and 2.10%; V6a's false "no" from 2.69% to 7.57% (VIX
-cut). The cut keeps the calmer part of a crash year, whose own median measured improvement is mostly below the minimum
-effect (-0.19 to +0.06): the regime dependence moves to the next regime instead of going away. Neither cut touches
-V1's calm-window error. **Option 2, as measured, does not fix the problem and costs 8-16% of windows** (some evidence).
+**Test A "no"** needs every counted member futile (intersection-union, 5.5). Calm windows are now undecided for every
+member. In the busy stretches V1 and V2 say "no" at most 0.46%, so a false Test A "no" there is at most that
+(reasoning on measured marginal rates; the joint rate is not measured).
+
+**Item E's option 2 (`tools/v4_crash_cut.py`, `v4_crash_cut.md`).** Two cuts, outcome-side only, that would make a
+crash-dominated window not judgeable for every member: mean closing India VIX above 25 (2019-26 mean 17.1), or more than
+10% 2% days (base rate 4.15%). **Cost** on the real rolling 2019-26 windows: the VIX cut removes 7.6% (n = 125) and
+8.9% (n = 250), all starting Aug 2019 - May 2020; the share cut removes 12.6-15.7%. With the gate, judgeable windows
+fall from 50% to 42-43% / 37% (n = 125) and from 78-79% to 69-70% / 63% (n = 250).
+
+**Benefit, revision 8, marked against each kept set's own truth** (judge 98 addendum 7: revision 7 marked the kept
+series against the whole stretch's truth, which was wrong, and its "worse" is withdrawn). Same paired draws, rates
+among the judged series each cut keeps, beside no cut:
+- V6b, 2020-21, n = 125: no cut has the genuine errors above (false "no" 3.48%, false claims 0.44% among judged). Both
+  cuts turn them into the kept set's truth (VIX cut: "no" 10.90% where the kept set's truth is +0.008; share cut:
+  17.32% where it is -0.158). So at n = 125 the cuts remove the genuine errors, by keeping a set where the forecaster
+  is no better.
+- V6b, 2020-21, n = 250: no cut has false claims 0.20%; the VIX cut has **new** genuine errors, a false "no" 5.14%
+  (kept truth +0.058) and false claims 0.91% (kept truth -0.047); the share cut has none (11.39% and 2.05%, both the
+  kept set's truth).
+- V6a: no cut 2.73% false "no" (n = 125, 2020-21); the VIX cut has false claims 0.37% (2020 crash, flipped); the
+  share cut has none.
+- The share cut adds one: V6b, 2020 crash, n = 125, flipped, false claims 0.42% on the 1.2% of series it keeps
+  (about 1,200), kept truth -0.342.
+- Full period and V1, V2: no genuine error under either cut.
+- **Read plainly (some evidence):** on the right basis, the share cut (more than 10% 2% days) removes every genuine
+  error that no cut has and adds one small one on few series; the VIX cut removes some and adds larger ones. Under either cut, the kept windows of a crash
+  year still give large rates that are their own truth, so the regime caveat and the window's printed regime stay. The
+  cost is 13-16% of windows (share cut). This is measured on one crash: one stretch decides it.
 
 **Revision 6's V6b busy stress** (`v4_brier_busy_stress.json`) is kept and agrees: claims up to 44% / 91% and a "no" up
 to 86% / 99.9% inside the 2020 crash, all regime truth by the measure above.
