@@ -47,7 +47,7 @@ class Clock:
 
 def build(tmp_path, answers: dict, now: datetime):
     archive, clock = Archive({ParticipantOiSource.path_for(d): a for d, a in answers.items()}), Clock(now)
-    log = ReleaseLog(tmp_path / "release_checks_v2.csv")
+    log = ReleaseLog(tmp_path / "release_checks.csv")
     recorder = ReleaseTimeRecorder(archive, ParticipantOiSource.path_for, CALENDAR, log, clock, lambda s: None)
     return ReleaseCheckOnce(recorder, RereadLog(tmp_path / "release_rereads.csv")), archive, clock, log
 

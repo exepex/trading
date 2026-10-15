@@ -1223,6 +1223,8 @@ Out:
 | stale HEAD-only line in the participant-OI README (inventory) | scope 4, criterion 5 |
 | `PublicData`'s own retry loop (inventory) | **out**: not an `NseArchiveSource`; needs its cookie warm-up |
 | the download tool script (inventory) | **out**: one-off, stops on refusal by design |
+| A8's release time is the answer's, with the check's start beside it (orchestrator's decision 37) | code round: `checked_at` is the answer time; `started_at` goes to the side log `release_check_starts.csv` |
+| the A8 Claude routine commits `release_checks.csv` by path (judge 119 addendum 1; orchestrator's decision 49) | code round: the check log keeps its name and header, so the routine's rows are never lost; only its start times would be, since it does not commit the side log. **Owner item**: update the routine's prompt to commit `research/data/participant_oi/`, or retire it |
 
 **Judge verifies:** plants 503s, a 403, a 429 with `Retry-After` and a cool-off against two datasets of its choice and
 reads each command's line and exit code; checks no `HTTPError` escapes; confirms a successful download is byte- and

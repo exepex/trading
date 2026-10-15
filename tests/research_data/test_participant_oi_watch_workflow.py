@@ -11,7 +11,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "participant-oi-watch.yml"
-LOG = "research/data/participant_oi/release_checks_v2.csv"
+LOG = "research/data/participant_oi/release_checks.csv"
 IST_OFFSET = timedelta(hours=5, minutes=30)
 
 
@@ -85,6 +85,9 @@ def test_the_alert_step_runs_whatever_happened_before_it_and_the_re_read_record_
     alert = next(s for s in steps if s.get("name", "").startswith("One line to #fno-desk"))
     assert alert["if"] == "${{ always() }}"
     commit = next(s for s in steps if s.get("id") == "commit")
-    assert 'git add "$LOG" "$REREADS"' in commit["run"]
-    assert workflow()["jobs"]["check"]["env"]["REREADS"] == "research/data/participant_oi/release_rereads.csv"
-    assert (ROOT / workflow()["jobs"]["check"]["env"]["REREADS"]).is_file()  # committed, so `git add` never fails
+    assert 'git add "$LOG" "$STARTS" "$REREADS"' in commit["run"]
+    env = workflow()["jobs"]["check"]["env"]
+    assert env["REREADS"] == "research/data/participant_oi/release_rereads.csv"
+    assert env["STARTS"] == "research/data/participant_oi/release_check_starts.csv"  # A9b: each check's start time
+    for name in ("LOG", "STARTS", "REREADS"):
+        assert (ROOT / env[name]).is_file(), name  # committed, so `git add` never fails

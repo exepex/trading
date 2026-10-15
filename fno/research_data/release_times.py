@@ -1,11 +1,14 @@
 """Measures when NSE first publishes a session's file, and sets the availability rule from that evidence (story A8).
 
 The recorder checks the archive on a schedule and appends every check to a committed log (`day, checked_at, outcome,
-sha256, last_modified, started_at`); it never edits a row. `checked_at` is when NSE's answer arrived (a 503 retried
-first is not seeing the file: orchestrator's decision 37, A9b) and `started_at` when the check began, so a retry gap
-shows. The log before A9b (`LEGACY_LOG_NAME`, no `started_at`: one try per check, its `checked_at` the start) is read
-beside the current one, never written. A day counts as measured only when the log shows its file absent and
-later present, so the release falls between two checks. The first `present` time is used: an upper bound on the real
+sha256, last_modified`); it never edits a row. Since A9b `checked_at` is when NSE's answer arrived (a 503 retried
+first is not seeing the file: orchestrator's decision 37) and the check's start goes to a side log beside it
+(`STARTS_NAME`: `day, checked_at, started_at`), so a retry gap shows. The side log is separate so that a writer that
+commits only the check log (the A8 routine commits it by path) loses start times, never evidence; a check without a
+start row (all checks before A9b: one try, `checked_at` its start) reads as started when it was checked.
+
+A day counts as measured only when the log shows its file absent and later present, so the release falls between two
+checks. The first `present` time is used: an upper bound on the real
 release, the safe side for look-ahead. Until `MIN_MEASURED_DAYS` days are measured, the default next-session rule
 applies.
 
@@ -30,9 +33,9 @@ from ..storage.raw_source import PublishedFile, RawFileSource, RawSourceUnavaila
 from .availability import AvailabilityRule, MeasuredReleaseRule, NextSessionRule, sessions_until_usable
 from .calendar import SessionCalendar
 
-LOG_FIELDS = ("day", "checked_at", "outcome", "sha256", "last_modified", "started_at")
-LEGACY_LOG_NAME = "release_checks.csv"  # before A9b: LOG_FIELDS without started_at; read, never written
-LEGACY_FIELDS = LOG_FIELDS[:-1]
+LOG_FIELDS = ("day", "checked_at", "outcome", "sha256", "last_modified")
+STARTS_NAME = "release_check_starts.csv"  # beside each check log: when each check began (A9b)
+STARTS_FIELDS = ("day", "checked_at", "started_at")
 MIN_MEASURED_DAYS = 20
 RECHECK_SESSIONS = 5  # each run re-reads the last few seen files, so a rewrite soon after release is caught
 
@@ -44,47 +47,52 @@ class ReleaseCheck:
     outcome: str  # RELEASE_PRESENT, RELEASE_ABSENT, RELEASE_UNREACHABLE (says nothing) or RELEASE_REWRITTEN
     sha256: str = ""
     last_modified: datetime | None = None  # the source's own last-write time for the bytes seen
-    started_at: datetime | None = None  # when the check began (None in the legacy log: the same as checked_at)
+    started_at: datetime | None = None  # when the check began (None: no start row, the same as checked_at)
 
 
 class ReleaseLog:
-    """The append-only CSV of checks, with the legacy log beside it (read first, never written)."""
+    """The append-only CSV of checks, and the side log of their start times beside it."""
 
     def __init__(self, path: Path):
         self.path = Path(path)
-        if self.path.name == LEGACY_LOG_NAME:
-            raise ValueError(f"{LEGACY_LOG_NAME} is the log before A9b: read only, never written")
-        self.legacy = self.path.with_name(LEGACY_LOG_NAME)
+        self.starts = self.path.with_name(STARTS_NAME)
 
     def checks(self) -> list[ReleaseCheck]:
-        return _read(self.legacy, LEGACY_FIELDS) + _read(self.path, LOG_FIELDS)
+        started = {(r["day"], r["checked_at"]): r["started_at"] for r in _rows(self.starts, STARTS_FIELDS)}
+        return [_check_from(row, started.get((row["day"], row["checked_at"]))) for row in _rows(self.path, LOG_FIELDS)]
 
     def append(self, check: ReleaseCheck) -> None:
-        new = not self.path.is_file() or not self.path.stat().st_size
-        if not new and self.path.read_text(encoding="utf-8").split("\n", 1)[0] != ",".join(LOG_FIELDS):
-            raise ValueError(f"{self.path.name}: its header is not {','.join(LOG_FIELDS)}; nothing appended")
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8", newline="") as f:
-            writer = csv.writer(f, lineterminator="\n")
-            if new:
-                writer.writerow(LOG_FIELDS)
-            written = check.last_modified.isoformat() if check.last_modified else ""
-            started = check.started_at.isoformat() if check.started_at else ""
-            day, checked = check.day.isoformat(), check.checked_at.isoformat()
-            writer.writerow([day, checked, check.outcome, check.sha256, written, started])
+        """The check row first (the evidence), then its start row."""
+        day, checked = check.day.isoformat(), check.checked_at.isoformat()
+        written = check.last_modified.isoformat() if check.last_modified else ""
+        _append(self.path, LOG_FIELDS, [day, checked, check.outcome, check.sha256, written])
+        if check.started_at:
+            _append(self.starts, STARTS_FIELDS, [day, checked, check.started_at.isoformat()])
 
 
-def _read(path: Path, fields: tuple[str, ...]) -> list[ReleaseCheck]:
+def _append(path: Path, fields: tuple[str, ...], row: list[str]) -> None:
+    new = not path.is_file() or not path.stat().st_size
+    if not new and path.read_text(encoding="utf-8").split("\n", 1)[0] != ",".join(fields):
+        raise ValueError(f"{path.name}: its header is not {','.join(fields)}; nothing appended")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f, lineterminator="\n")
+        if new:
+            writer.writerow(fields)
+        writer.writerow(row)
+
+
+def _rows(path: Path, fields: tuple[str, ...]) -> list[dict[str, str]]:
     if not path.is_file():
         return []
     lines = path.read_text(encoding="utf-8").splitlines()
     if lines and lines[0] != ",".join(fields):
         raise ValueError(f"{path.name}: its header is not {','.join(fields)}")
-    return [_check_from(row) for row in csv.DictReader(lines)]
+    return list(csv.DictReader(lines))
 
 
-def _check_from(row: dict[str, str]) -> ReleaseCheck:
-    written, started = row["last_modified"], row.get("started_at", "")
+def _check_from(row: dict[str, str], started: str | None) -> ReleaseCheck:
+    written = row["last_modified"]
     return ReleaseCheck(
         date.fromisoformat(row["day"]),
         datetime.fromisoformat(row["checked_at"]),

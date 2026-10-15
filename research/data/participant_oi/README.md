@@ -1,23 +1,26 @@
 # Participant open interest: release-time evidence (story A8)
 
-`release_checks_v2.csv` is the committed log of the release-time recorder (`fno/research_data/release_times.py`): the
+`release_checks.csv` is the committed log of the release-time recorder (`fno/research_data/release_times.py`): the
 GitHub Actions job `participant-oi-watch` runs `python -m fno participant-oi check-once` every 15 minutes from 16:37 to
 23:22 IST, with no AI session (`participant-oi watch` keeps checking in one process). `.gitattributes` merges this file
 by union, so two writers' new rows never conflict. `release_rereads.csv` records, per due day, that the daily re-read
 of the last 5 seen files (rewrite detection) finished with every file answered.
 
-Since story A9b (15 Oct 2026) new checks go to `release_checks_v2.csv`, which adds `started_at`; the earlier log
-`release_checks.csv` (the checks made before A9b's merge) is kept as it is and read before it, never written. Each row is one
-check of NSE's archive for one session's file `fao_participant_oi_DDMMYYYY.csv`:
+Each row is one check of NSE's archive for one session's file `fao_participant_oi_DDMMYYYY.csv`:
 
 | column | meaning |
 |---|---|
 | `day` | the session the file is for |
-| `checked_at` | when NSE's answer came (IST, ISO 8601): after any retries (a 503 retried first is not seeing the file; orchestrator's decision 37). In `release_checks.csv`, when the single try began |
+| `checked_at` | when NSE's answer came (IST, ISO 8601), after any retries: a 503 retried first is not seeing the file (orchestrator's decision 37, story A9b). Rows before A9b's merge: when the single try began (no retries then, so the two are seconds apart at most) |
 | `outcome` | `present`, `absent` (HTTP 404), `unreachable` (no answer after the retries of `fno/storage/retry_policy.py`, or refused: says nothing about the file) or `rewritten` (present, with other bytes than first seen) |
 | `sha256` | SHA-256 of the file when present |
 | `last_modified` | NSE's own Last-Modified time for the bytes seen (ISO 8601; empty in the two rows written before 13 Oct 2026's change) |
-| `started_at` | when the check began (`release_checks_v2.csv` only): `checked_at` minus `started_at` is the retry gap (up to 65 s, or 3 x 120 s when NSE asks to wait) |
+
+Since A9b each check's start time goes to `release_check_starts.csv` beside it (`day, checked_at, started_at`, joined on
+`day` and `checked_at`; also merged by union): `checked_at` minus `started_at` is the retry gap (up to 65 s of waits,
+or 3 x 120 s when NSE asks to wait). It is a separate file so that a writer that commits only `release_checks.csv`
+(the A8 Claude routine commits it by path) loses start times, never a check. A check without a start row reads as
+started when it was checked.
 
 Rows are only ever appended, never edited or deleted.
 

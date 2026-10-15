@@ -127,7 +127,7 @@ class FakeClock:
 def recorder(tmp_path, answers, start):
     clock = FakeClock(start)
     archive = FakeArchive(answers)
-    log = ReleaseLog(tmp_path / "release_checks_v2.csv")
+    log = ReleaseLog(tmp_path / "release_checks.csv")
     return ReleaseTimeRecorder(archive, ParticipantOiSource.path_for, CALENDAR, log, clock, clock.sleep), archive, log
 
 
@@ -139,7 +139,7 @@ def test_the_recorder_logs_every_check_until_the_file_appears_and_never_asks_aga
     assert archive.asked == [ParticipantOiSource.path_for(FRIDAY)] * 3
     assert rec.watch(FRIDAY, at(FRIDAY, 22), timedelta(minutes=5)) == found and len(archive.asked) == 3
     assert first_seen_times(log.checks()) == {FRIDAY: at(FRIDAY, 19)}
-    assert log.path.read_text().splitlines()[0] == "day,checked_at,outcome,sha256,last_modified,started_at"
+    assert log.path.read_text().splitlines()[0] == "day,checked_at,outcome,sha256,last_modified"
 
 
 def test_the_recorder_stops_at_the_cutoff_and_skips_closed_days(tmp_path):
@@ -196,7 +196,7 @@ class PublishingArchive(RawFileSource):
 
 def test_the_recorder_stores_the_last_write_and_flags_a_later_rewrite(tmp_path):
     clock = FakeClock(at(MONDAY, 19))
-    log = ReleaseLog(tmp_path / "release_checks_v2.csv")
+    log = ReleaseLog(tmp_path / "release_checks.csv")
     first, later = at(FRIDAY, 18, 48), at(MONDAY, 18, 30)
     archive = PublishingArchive([PublishedFile(b"v1", first), PublishedFile(b"v2", later), PublishedFile(b"v2", later)])
     rec = ReleaseTimeRecorder(archive, ParticipantOiSource.path_for, CALENDAR, log, clock, clock.sleep)
@@ -210,7 +210,7 @@ def test_the_recorder_stores_the_last_write_and_flags_a_later_rewrite(tmp_path):
 
 
 def test_the_log_refuses_to_append_under_an_old_header(tmp_path):
-    path = tmp_path / "release_checks_v2.csv"
+    path = tmp_path / "release_checks.csv"
     path.write_text("day,checked_at,outcome,sha256\n")
     with pytest.raises(ValueError, match="header"):
         ReleaseLog(path).append(ReleaseCheck(FRIDAY, at(FRIDAY, 19), RELEASE_ABSENT))

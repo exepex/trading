@@ -94,7 +94,7 @@ def test_the_fingerprint_spot_check_names_each_file_and_goes_on(failure):
 
 def test_participant_oi_check_once_alerts_when_nse_is_down(tmp_path, monkeypatch, capsys):
     source = ParticipantOiSource(ScriptedNse(*DOWN), sleep=lambda s: None)
-    log = ReleaseLog(tmp_path / "release_checks_v2.csv")
+    log = ReleaseLog(tmp_path / "release_checks.csv")
     recorder = ReleaseTimeRecorder(source, ParticipantOiSource.path_for, CALENDAR, log, Clock(ist(MONDAY, 18)))
     sender = FakeSender()
     monkeypatch.setattr(

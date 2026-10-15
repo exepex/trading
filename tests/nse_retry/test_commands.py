@@ -125,11 +125,11 @@ def test_vix_history_sweep_stops_on_a_paused_host(nse, monkeypatch, tmp_path, ca
 
 
 def test_participant_oi_watch_logs_unreachable_and_exits_1(nse, monkeypatch, tmp_path, capsys):
-    monkeypatch.setattr(wiring, "PARTICIPANT_OI_RELEASE_LOG", tmp_path / "release_checks_v2.csv")
+    monkeypatch.setattr(wiring, "PARTICIPANT_OI_RELEASE_LOG", tmp_path / "release_checks.csv")
     nse(Always(503))
     assert main(["participant-oi", "watch", "--day", "2026-10-12", "--until", "00:01", "--every", "5"]) == 1
     assert "2026-10-12: unreachable at" in capsys.readouterr().out
-    assert (tmp_path / "release_checks_v2.csv").read_text().count("unreachable") == 1
+    assert (tmp_path / "release_checks.csv").read_text().count("unreachable") == 1
 
 
 @pytest.mark.parametrize(
