@@ -118,3 +118,22 @@ The rename to response 189 is in.
 - `check_imports`: clean.
 
 **A re-check needs only the pad phrase and criterion 1's example.**
+
+## Addendum 2: revision at 694b8a2f: PASS
+
+The delta c528a9b6..694b8a2f is 3 lines in `docs/stories/RM-real-money.md` and nothing else, so the builder's claim
+holds.
+
+- **SF2: MET.** The pairing now reads "minus Rs 1 per unit on every leg at entry and at exit (research's PAD,
+  `fno/research_engine/cycle_costs.py:24`)". Criterion 1 pins it: 2 legs × entry and exit × 65 × Rs 1 = Rs 260 per
+  trade, "not Rs 65". This is the research `PAD`'s own scope ("worse on every leg at entry and at exit").
+- SF1, notes 1-3, the owner's Q1-Q3 (e7f40e8f) and the rename are unchanged from addendum 1.
+
+**Gates (trial merge with origin/main 72d474c7, tree 31671c3, clean, `-n auto`):**
+- pytest: 6521 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1155 files formatted;
+- `check_imports`: clean.
+
+**Verdict: PASS.** ChatGPT's review follows (rule 9). The code starts only when a version reaches the gate and the
+orchestrator says go.
