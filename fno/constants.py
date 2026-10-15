@@ -325,3 +325,6 @@ CARD_SESSION_KINDS = (
     SESSION_REGULAR,
     SESSION_SPECIAL,
 )  # a muhurat session is the one-hour Diwali session: no 15:00 card
+
+# Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
+RUN_LOG_DECISIONS_STEP = "decisions"

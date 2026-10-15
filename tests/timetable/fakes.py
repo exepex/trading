@@ -120,7 +120,10 @@ class Decisions(DecisionSource, OrderBuilder):
 
     def committed(self, book, day, deadline):
         timely = [d for d in self.by_day.get((book, day), []) if self._visible(d) and d.committed_at < deadline]
-        return timely[-1] if timely else None
+        return timely[0] if timely else None  # the first timely run (story D3b), as the real collector
+
+    def others(self, book, day, taken):
+        return []
 
     def recorded(self, book, day, run_id, commit):
         [decision] = [d for d in self.by_day[(book, day)] if (d.run_id, d.commit) == (run_id, commit)]

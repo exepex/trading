@@ -1,6 +1,7 @@
 """Scoreboard B, whole systems (story S2, design 12.5): each book's real paper account with every detail, per segment
 and overall, pilot evidence apart, under the protocol's rules. Output: `research/scoreboards/B/<date>.json`, canonical
-JSON, so a rebuild from the same records gives the same bytes. It reads records only and writes nothing else."""
+JSON, so a rebuild from the same records gives the same bytes. It reads records only and writes nothing else. Runs the
+desk saw but did not collect, corrections included, are listed apart (`uncollected_runs`, story D3b): never scored."""
 
 from __future__ import annotations
 
@@ -27,9 +28,11 @@ class WholeSystemBoard:
         self, books: Sequence[str], records: Callable[[str], DeskRecords], decisions: Callable[[], EntryDecisions],
         sessions: Sessions, marks: DayMarks, costs: OperatingCosts, board: BookBoard, charges: Mapping[str, float],
         protocol: ProtocolStatus, inputs: Callable[[], dict[str, str]],
+        uncollected: Callable[[Sequence[str]], dict[str, list[dict]]],
     ):  # fmt: skip
         self.books, self.records, self.decisions, self.sessions, self.marks = books, records, decisions, sessions, marks
         self.costs, self.board, self.charges, self.protocol, self.inputs = costs, board, charges, protocol, inputs
+        self.uncollected = uncollected
 
     def build(self, on: date) -> dict:
         decisions = self.decisions()
@@ -38,7 +41,7 @@ class WholeSystemBoard:
             "kind": KIND, "date": on.isoformat(), "protocol": self.protocol.label,
             "common_start": common_start.isoformat() if common_start else None,
             "books": {book: self._book(book, decisions, common_start, on) for book in self.books},
-            "inputs_sha256": self.inputs(),
+            "inputs_sha256": self.inputs(), "uncollected_runs": self.uncollected(self.books),
         }  # fmt: skip
 
     def _book(self, book: str, decisions: EntryDecisions, common_start: date | None, on: date) -> dict:
