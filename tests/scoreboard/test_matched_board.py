@@ -1,6 +1,7 @@
 """Story S3 criteria 1-4, 7 and 9 on a whole board built from fixture records: the known-answer example, the shared
 pack and snapshot, not-observed days and opportunities, Book 3 before F7, the miss cap, determinism and the schema."""
 
+import json
 from datetime import date
 
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, Decision
@@ -302,3 +303,19 @@ def test_an_incomplete_section_never_enters_holm_as_testable():
     board_ = {"books": {"x": {**books["x"], "head_to_head": {"judged": complete}}}, "pairs": {}}
     _apply_holm(board_)
     assert complete["holm_pass"] is True  # the same claim, complete, passes
+
+
+def test_a_shadow_record_with_the_books_opportunity_id_never_stands_for_the_books_action(tmp_path):
+    """R3's probe: D2's shadow records share the run folder. Book 1 skips O1; a shadow record with the same ID that
+    takes it (written under another file name) must not turn Book 1's skip into a take, on A or in B's entries."""
+    from fno.playbook.decision_store import DecisionStore
+
+    pack = write_pack(tmp_path, D1, ("O1", EXIT))
+    runs_for(tmp_path, D1, [record("O1", Decision.NO_TRADE, "rule did not fire", pack=pack)], pack=pack)
+    folder = DecisionStore(tmp_path, BOOK1_RULES).day_folder(D1) / f"{D1.isoformat()}-{BOOK1_RULES}"
+    shadow = {**record("O1", pack=pack), "mode": "shadow", "run_id": folder.name, "book": BOOK1_RULES}
+    (folder / "O1_shadow.json").write_text(json.dumps(shadow, sort_keys=True))
+    for day in (D2, EXIT, ON):
+        runs_for(tmp_path, day, pack=write_pack(tmp_path, day))
+    rows = [r for r in board(tmp_path, QUOTES).build(ON)["actions"] if r["book"] == BOOK1_RULES]
+    assert [(r["opportunity_id"], r["action"]) for r in rows] == [("O1", "skip")]
