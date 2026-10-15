@@ -20,7 +20,7 @@ from .opportunity_set import OpportunitySet
 from .pack_inputs import CommonInput
 from .pack_items import PackError, admit, canonical_json, sha256_hex
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2  # E2b: no per-contract quote items (owner "8 A")
 FUTURE_PREFIX = "future:"
 SESSION_ITEM, SNAPSHOT_INPUT = "session", "a4_snapshot"  # SessionInput's item and SnapshotInput's provenance key
 FORBIDDEN = (*BOOKS, f"{JOURNAL_FOLDER}/")  # a book's name or journal path never appears in the common pack

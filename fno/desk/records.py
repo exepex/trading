@@ -1,7 +1,9 @@
 """A book's desk records (story E4), beside its paper account in `journal/<book>/account/`:
 
 - `desk_fills.csv`: one row per filled leg: book, decision ID, snapshot ID and hash, leg, side, price, size, every C1
-  charge, `quote_age_unknown`. The money itself is E1's cash ledger, written with the same fill ID first.
+  charge, `quote_age_unknown`. The touch it filled against is not written (owner "8 A", story E2b): E6 reads it from
+  the hash-checked execution snapshot the row names. The money itself is E1's cash ledger, written with the same fill
+  ID first.
 - `desk_events.csv`: how each entry or exit attempt ended (opened, not opened, partial fill and its legging cost,
   exit ordered, pending exit, protection unverified, closed), so E3, E6 and the judge can replay a day.
 
@@ -26,7 +28,7 @@ FILL_COLUMNS = (
     ("fill_id", "book", "strategy", "decision_id", "trade_id", "action", "filled_at", "snapshot_id", "snapshot_sha256")
     + ("contract", "quote_contract_id", "expiry", "strike", "type", "opening_side", "side", "price", "units")
     + tuple(CHARGE_NAMES)
-    + ("charges_rs", "quote_age_unknown", "quote_bid", "quote_ask")
+    + ("charges_rs", "quote_age_unknown")  # no quote_bid / quote_ask: owner "8 A" (story E2b)
 )
 EVENT_COLUMNS = (
     "event_id", "day", "book", "strategy", "trade_id", "decision_id", "snapshot_id", "snapshot_sha256", "outcome",
@@ -46,8 +48,6 @@ class FillRecord:
     quote_contract_id: str
     quote_age_unknown: bool
     fill: Fill  # E1's fill: trade, time, contract, order (side, price, units, pad) and C1's charges
-    quote_bid: float | None = None  # the touch it filled against (E6 measures the half-spread paid); none at settlement
-    quote_ask: float | None = None
 
     def row(self) -> dict[str, str]:
         fill, leg = self.fill, self.leg
@@ -61,7 +61,6 @@ class FillRecord:
         }  # fmt: skip
         row |= {name: repr(float(fill.charges[name])) for name in CHARGE_NAMES}
         row |= {"charges_rs": repr(float(sum(fill.charges.values()))), "quote_age_unknown": str(self.quote_age_unknown)}
-        row |= {"quote_bid": _amount(self.quote_bid), "quote_ask": _amount(self.quote_ask)}
         return row
 
 

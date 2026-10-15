@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from ..accounting.ledgers import Ledgers, TradeLine
-from ..desk.snapshot import ContractKey, ExecutionSnapshot
+from ..desk.snapshot import ContractKey, ExecutionSnapshot, ExecutionSnapshotSource
 from ..playbook.schema import Strategy
 from .execution_costs import ExecutionCosts, execution_costs
 from .review import Review, ReviewTerms, review
@@ -63,7 +63,12 @@ def _mark(trade: OpenTrade, marks: Mapping[ContractKey, float]) -> OpenMark:
 
 
 def build_scorecard(
-    record: StrategyRecord, strategy: Strategy | None, on: date, marks: Mapping[ContractKey, float], terms: ReviewTerms
+    record: StrategyRecord,
+    strategy: Strategy | None,
+    on: date,
+    marks: Mapping[ContractKey, float],
+    terms: ReviewTerms,
+    snapshots: ExecutionSnapshotSource,
 ) -> Scorecard:
     lines = tuple(t.line for t in record.closed)
     ledgers = Ledgers(list(lines), [], {})
@@ -74,5 +79,6 @@ def build_scorecard(
     return Scorecard(
         record.account, record.strategy, str(strategy.status) if strategy else NO_VERSION,
         plan["expected_range"] if plan else None, plan["unit"] if plan else "", lines, ledgers.by_month(),
-        ledgers.tax_by_year(), execution_costs(record, on), judged, tuple(_mark(t, marks) for t in record.open),
+        ledgers.tax_by_year(), execution_costs(record, on, snapshots), judged,
+        tuple(_mark(t, marks) for t in record.open),
     )  # fmt: skip

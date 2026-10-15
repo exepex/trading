@@ -1,8 +1,8 @@
 """Execution costs measured from the paper record (story E6, criterion 3), against what research assumed:
 
 - **half-spread paid** per unit: a buy at the ask pays ask - mid, a sell at the bid pays mid - bid (mid of the touch it
-  filled against, recorded by E4), averaged over every unit traded at a quote (settlements have no quote), next to
-  research's Rs 1 pad (B2);
+  filled against, read from the execution snapshot the fill row names: `touches.py`, story E2b), averaged over every
+  unit traded at a known touch (settlements have no quote), next to research's Rs 1 pad (B2);
 - **legging costs**: what entries unwound at once (partial fills) cost, from E4's events;
 - **not filled**: the share of attempts that reached the fill step and did not open (a leg without a valid quote or
   size, or an entry worse than approved); gate refusals (C2, timing, a blocked book) are counted apart;
@@ -24,10 +24,11 @@ from ..constants import (
     OUTCOME_PARTIAL_FILL,
     OUTCOME_PENDING_EXIT,
     OUTCOME_REFUSED,
-    SIDE_BUY,
 )
+from ..desk.snapshot import ExecutionSnapshotSource
 from ..research_engine.cycle_costs import PAD
 from .strategy_record import StrategyRecord
+from .touches import half_spread
 
 RESEARCH_PAD_RS = PAD  # rupees per unit, every leg, entry and exit (B2)
 
@@ -35,7 +36,8 @@ RESEARCH_PAD_RS = PAD  # rupees per unit, every leg, entry and exit (B2)
 @dataclass(frozen=True)
 class ExecutionCosts:
     units_at_quotes: int
-    half_spread_per_unit: float | None  # None when nothing traded at a quote yet
+    half_spread_per_unit: float | None  # None when nothing traded at a known touch yet
+    touch_unknown: int  # fills whose touch could not be read from their snapshot (story E2b)
     research_pad_per_unit: float
     legging_costs_rs: float
     attempts: int  # entries that reached the fill step
@@ -55,18 +57,6 @@ class ExecutionCosts:
         return sum(self.pending_days) / len(self.pending_days) if self.pending_days else None
 
 
-def half_spread(fills: Sequence) -> tuple[int, float | None]:
-    units, paid = 0, 0.0
-    for row in fills:
-        if not row["quote_bid"] or not row["quote_ask"]:
-            continue
-        mid = (float(row["quote_bid"]) + float(row["quote_ask"])) / 2
-        price, size = float(row["price"]), int(row["units"])
-        paid += (price - mid if row["side"] == SIDE_BUY else mid - price) * size
-        units += size
-    return units, (paid / units if units else None)
-
-
 def _pending(events: Sequence, today: date) -> tuple[list[int], list[str]]:
     days, waiting = [], []
     for trade_id in sorted({e["trade_id"] for e in events if e["outcome"] == OUTCOME_PENDING_EXIT}):
@@ -79,14 +69,15 @@ def _pending(events: Sequence, today: date) -> tuple[list[int], list[str]]:
     return days, waiting
 
 
-def execution_costs(record: StrategyRecord, today: date) -> ExecutionCosts:
+def execution_costs(record: StrategyRecord, today: date, snapshots: ExecutionSnapshotSource) -> ExecutionCosts:
     outcomes = [e["outcome"] for e in record.events]
-    units, per_unit = half_spread(record.fills)
+    spread = half_spread(record.fills, snapshots)
     legging = sum(float(e["legging_cost_rs"]) for e in record.events if e["legging_cost_rs"])
     not_filled = outcomes.count(OUTCOME_NOT_OPENED) + outcomes.count(OUTCOME_PARTIAL_FILL)
     days, waiting = _pending(record.events, today)
     return ExecutionCosts(
-        units, per_unit, RESEARCH_PAD_RS, legging, not_filled + outcomes.count(OUTCOME_OPENED),
+        spread.units, spread.per_unit, spread.touch_unknown, RESEARCH_PAD_RS, legging,
+        not_filled + outcomes.count(OUTCOME_OPENED),
         outcomes.count(OUTCOME_OPENED), not_filled, outcomes.count(OUTCOME_REFUSED), len(days), tuple(days),
         tuple(waiting),
     )  # fmt: skip

@@ -74,7 +74,7 @@ class Versions(VersionKeeper):
 
 def pack_for(day: date) -> CommonPack:
     previous = CALENDAR.previous_session(day)
-    items = [{"name": "option:2026-10-27:25000:CE", "value": {"spot": 25_000.0}},
+    items = [{"name": "spot:2026-10-27", "value": 25_000.0},
              {"name": f"close:{previous}", "value": {"nifty": 24_900.0, "vix": 12.0}}]  # fmt: skip
     return CommonPack(day, {"day": day.isoformat(), "provenance": {}, "items": items})
 

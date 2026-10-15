@@ -3,9 +3,9 @@ official close unless the day is flagged as a shock, and the previous session's 
 the A7 calendar). Both stop new trades only (judge 81): freshness is proven by the window and record checks, so on a
 big-move day (a crash, a budget) due exits still fill at valid quotes, as design 9 requires.
 
-An A4 snapshot holds one spot per monthly chain (MONTHLY_EXPIRIES = 2), each from its own provider call seconds apart,
-so the spots differ slightly. They must agree within `SPOT_AGREEMENT`; a larger gap means one chain carries a wrong
-underlying price (a future's price has a basis of about 0.3-1% a month out)."""
+An A4 snapshot holds one spot per monthly chain (the pack's `spot:<expiry>` items, story E2b) (MONTHLY_EXPIRIES = 2),
+each from its own provider call seconds apart, so the spots differ slightly. They must agree within `SPOT_AGREEMENT`; a
+larger gap means one chain carries a wrong underlying price (a future's basis is about 0.3-1% a month out)."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from .shock import ShockFlags
 SPOT_LIMIT = 0.02  # story C3: spot within 2% of the previous close
 SPOT_AGREEMENT = 0.002  # 0.2% (~50 points): two index readings seconds apart; reasoning only, until real captures
 ROUNDING = 1e-9  # float rounding of the ratio: exactly 2% passes
-OPTION_PREFIX, CLOSE_PREFIX = "option:", "close:"
+SPOT_PREFIX, CLOSE_PREFIX = "spot:", "close:"  # one `spot:<expiry>` item per monthly chain (E2b)
 
 
 def pack_items(subject: CheckSubject, prefix: str) -> dict[str, object]:
@@ -35,7 +35,7 @@ class SpotNearPreviousClose(DataCheck):
         self.calendar, self.shocks, self.limit, self.agreement = calendar, shocks, limit, agreement
 
     def problems(self, subject: CheckSubject) -> list[str]:
-        spots = sorted({v["spot"] for v in pack_items(subject, OPTION_PREFIX).values() if v.get("spot")})
+        spots = sorted({v for v in pack_items(subject, SPOT_PREFIX).values() if v})
         previous = self.calendar.previous_session(subject.day)
         close = pack_items(subject, CLOSE_PREFIX).get(f"{CLOSE_PREFIX}{previous.isoformat()}")
         if not spots:

@@ -163,11 +163,16 @@ Out:
 - books 2-3's per-contract trading inputs: F5, F6 (decided when they trade);
 - paper fills showing live strikes in the public journal: put to the owner by the orchestrator (outside E2b);
 - the fill price itself, which is one side of one quote by design (E4 criterion 1): kept;
-- **the one stated exception (judge 118 SF1; orchestrator for the owner, response 113):** when a hedged entry fails
-  (E4 criterion 2), the protection is bought at the ask (`FILL_OPEN`) and sold back at the bid (`FILL_UNWIND`) of the
-  same snapshot, and `legging_cost_rs` in `desk_events.csv` equals that spread times the units. Those rows publish both
-  sides of that one contract. It is rare (a failed hedge only, one contract, after 15:15), and it is put to the owner
-  together with the open question of whether paper fills should move to Drive at all;
+- **two stated exceptions**, put to the owner together with the open question of whether paper fills should move to
+  Drive at all:
+  1. *an unwound entry* (judge 118 SF1; orchestrator for the owner, response 113): when an entry fails after some legs
+     filled (E4 criterion 2), each filled leg is traded back at the same snapshot (a protection bought at the ask and
+     sold at the bid; a short already sold at the bid bought back at the ask), and `legging_cost_rs` in
+     `desk_events.csv` is the spreads paid. Those rows publish both sides of each unwound contract. Rare: a failed
+     entry only, after 15:15;
+  2. *two accounts on opposite sides* (judge 118 addendum 1, confirmed by a test): E4 fills each account on its own,
+     so when one account buys a contract and another sells it at the same execution snapshot (one closing while the
+     other opens, or a book and a shadow), their rows together publish both sides of that contract;
 - NSE's public chain (`research/data/quotes/nse/`): public NSE data;
 - the forecast v2 pack and its frozen code (G1 v2): already derived, not touched.
 
@@ -201,11 +206,11 @@ the hash-checked store. The guard and the derived pack work the same with either
    with its expiry (test).
 2. C3's spot check gives the same results from the `spot:` items as before from the option items: the 2% limit at,
    just under and just over; the 0.2% agreement at, under and over; no spot; one chain only (tests).
-3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the one stated exception (an unwound
-   protection: its `FILL_OPEN` and `FILL_UNWIND` rows of the same snapshot and contract, and their legging cost), no
-   committed desk record lets a filled leg's other quote side be worked out: a test builds every outcome of E4's
-   fixtures (opened, partial fill, closed, pending exit, settlement) and finds that only the unwind pair gives both
-   sides of one contract in one snapshot. E6's half-spread from the execution snapshot equals the old figure on the
+3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the two stated exceptions (an unwound entry;
+   two accounts on opposite sides of one contract at one snapshot), no committed desk record lets a filled leg's other
+   quote side be worked out: tests build E4's outcomes (opened, closed at a later snapshot, pending exit, an exit
+   review at the opening snapshot, partial fill) and find that within one account only the unwound legs give both
+   sides of one contract in one snapshot, and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old figure on the
    same fixtures; a fill whose snapshot is missing or whose hash differs counts as "touch unknown" (excluded from the
    average, never zero), and the scorecard report prints how many fills were "touch unknown"; a settlement row (no
    quote) is excluded as before (tests). **Depends on A4b:** E6 reads the 15:15 quote file from Drive through A4b's

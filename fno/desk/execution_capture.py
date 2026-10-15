@@ -46,7 +46,10 @@ class RecorderExecutionCapture(ExecutionCapture):
         path = records_folder(self.root, day) / f"{result.snapshot_id}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(body, sort_keys=True, indent=1) + "\n", encoding="utf-8")
-        commit = self.committer.commit((path, *(self.quotes_folder / n for n in names)), f"Execution capture {day}")
+        sidecar = (
+            self.quotes_folder / names[1]
+        )  # the quote file itself is never committed (story E2b; A4b keeps it in Drive)
+        commit = self.committer.commit((path, sidecar), f"Execution capture {day}")
         return _record(body, f"{path.relative_to(self.root).as_posix()} in commit {commit}")
 
 

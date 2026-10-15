@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 from fno.checks.data_checks import CaptureRecord, ScheduledCapture
 from fno.checks.gate import DataGate
@@ -49,10 +49,10 @@ class ExecutionWindow(ExecutionSchedule):
 
 
 def pack_of(store, day: date, snapshot_id: str = "exec", spots=(SPOT,), close: float | None = CLOSE) -> CommonPack:
-    """E2's pack shape: the A4 snapshot's provenance (its file and sidecar hashes), option items carrying each chain's
-    spot, and the previous session's official close."""
+    """E2's pack shape (schema 2, story E2b): the A4 snapshot's provenance (its file and sidecar hashes), one
+    `spot:<expiry>` item per chain, and the previous session's official close."""
     previous = CALENDAR.previous_session(day)
-    items = [{"name": f"option:{EXPIRY}:{25000 + 100 * n:g}:CE", "value": {"spot": s}} for n, s in enumerate(spots)]
+    items = [{"name": f"spot:{EXPIRY + timedelta(days=28 * n)}", "value": s} for n, s in enumerate(spots)]
     if close is not None:
         items.append({"name": f"close:{previous}", "value": {"nifty": close, "vix": 12.0}})
     provenance = {"snapshot_id": snapshot_id, "csv_sha256": file_hash(store, day, f"{snapshot_id}.csv"),

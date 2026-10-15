@@ -1,7 +1,10 @@
-"""The day's canonical A4 quote snapshot as common-pack items (story E2). Times follow the forecast pack's rules
-(protocol v2, review 29): an option row is available when its response arrived; India VIX at the later of NSE's own
-timestamp and the capture's first request (A4 reads it before any quote); the futures' last prices at that first
-request. A day without a canonical snapshot gives no items and says so in the provenance."""
+"""The day's canonical A4 quote snapshot as common-pack items (stories E2 and E2b). The committed pack holds no
+per-contract quote figure (owner "8 A", decision B of 15 Oct 2026: a mid and a spread % would give bid and ask back
+exactly on 0.05 ticks); readers read the raw rows through the hash-checked quote store, named by the provenance's
+snapshot ID and both hashes. Kept: each monthly chain's NIFTY level (`spot:<expiry>`, an index level, available when the
+chain's first row arrived), the capture's counts (`quote_counts`, available when its last row arrived), India VIX at the
+later of NSE's own timestamp and the capture's first request (A4 reads it before any quote), and the futures' NSE levels
+at that first request. A day without a canonical snapshot gives no items and says so in the provenance."""
 
 from __future__ import annotations
 
@@ -14,10 +17,11 @@ from ..models import IST
 from ..quotes.recorder import NONE_MARKER, QuoteSnapshotRecorder
 from ..storage.raw_store import RawFileStore
 from .pack_inputs import CommonInput, InputBatch
-from .pack_items import PackItem, available_time, sha256_hex
+from .pack_items import PackError, PackItem, available_time, sha256_hex
 
 NSE_TIME_FORMATS = ("%d-%b-%Y %H:%M:%S", "%d-%b-%Y %H:%M")
-QUOTE_FIELDS = ("contract_id", "bid", "ask", "bid_qty", "ask_qty", "valid", "invalid_reason", "spot")
+SPOT_PREFIX, COUNTS_ITEM = "spot:", "quote_counts"
+VALID = "true"  # A4's `valid` column
 
 
 def _nse_time(text: str) -> datetime | None:
@@ -29,8 +33,30 @@ def _nse_time(text: str) -> datetime | None:
     return None
 
 
-def _number(text: str) -> float | None:
-    return float(text) if text else None
+def _spots(rows: list[dict], source: str) -> list[PackItem]:
+    """One NIFTY level per monthly chain; a chain whose rows carry two levels is refused, never averaged."""
+    chains: dict[str, list[dict]] = {}
+    for row in rows:
+        chains.setdefault(row["expiry"], []).append(row)
+    items = []
+    for expiry, chain in sorted(chains.items()):
+        levels = {float(r["spot"]) for r in chain if r["spot"]}
+        if len(levels) > 1:
+            raise PackError(f"chain {expiry} carries {len(levels)} different spots {sorted(levels)}: nothing packed")
+        if levels:
+            arrived = min(r["response_received_at"] for r in chain)  # the level is known with the chain's first row
+            items.append(PackItem(f"{SPOT_PREFIX}{expiry}", levels.pop(), f"{source} spot of chain {expiry}", arrived))
+    return items
+
+
+def _counts(rows: list[dict], meta: dict, source: str) -> PackItem:
+    value = {
+        "expected_contracts": meta.get("expected_contracts"),
+        "recorded_contracts": meta.get("recorded_contracts"),
+        "valid_contracts": sum(1 for r in rows if r["valid"] == VALID),
+        "complete": bool(meta.get("complete")),
+    }
+    return PackItem(COUNTS_ITEM, value, f"{source} counts", max((r["response_received_at"] for r in rows), default=""))
 
 
 class SnapshotInput(CommonInput):
@@ -52,20 +78,11 @@ class SnapshotInput(CommonInput):
         meta = json.loads(meta_bytes)
         source = f"a4 {self.dataset} {snapshot_id}"
         first_request = min((r["request_sent_at"] for r in rows), default="")
-        items = [self._option(row, source) for row in rows]
+        items = _spots(rows, source) + [_counts(rows, meta, source)]
         items += self._vix(meta, source, first_request) + self._futures(meta, source, first_request)
         provenance = {"dataset": self.dataset, "snapshot_id": snapshot_id, "csv_sha256": sha256_hex(csv_bytes),
                       "meta_sha256": sha256_hex(meta_bytes)}  # fmt: skip
         return InputBatch(tuple(items), provenance)
-
-    @staticmethod
-    def _option(row: dict, source: str) -> PackItem:
-        name = f"option:{row['expiry']}:{float(row['strike']):g}:{row['type']}"
-        value = {key: row[key] for key in QUOTE_FIELDS}
-        for key in ("bid", "ask", "bid_qty", "ask_qty", "spot"):
-            value[key] = _number(value[key])
-        value["valid"] = value["valid"] == "true"
-        return PackItem(name, value, source, row["response_received_at"])
 
     @staticmethod
     def _vix(meta: dict, source: str, first_request: str) -> list[PackItem]:

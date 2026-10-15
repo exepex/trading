@@ -21,11 +21,13 @@ from typing import TypeVar
 
 from ..alerts.sender import AlertSender
 from ..books.paths import book_folder
+from .commit_guard import RawQuoteGuard
 from .daily_ports import AccountSync, AccountWriteRefused, Committer
 from .records import DeskJournal
 
 T = TypeVar("T")
 PUSH_ATTEMPTS = 3
+QUOTES_FOLDER_IN_REPOSITORY = Path("research/data/quotes")  # fno/storage/wiring.py QUOTES_FOLDER, relative to the root
 
 
 class GitError(AccountWriteRefused):
@@ -83,10 +85,13 @@ class Git:
 
 
 class GitCommitter(Committer):
-    def __init__(self, git: Git):
-        self.git = git
+    """Every commit first passes `RawQuoteGuard` (story E2b): a raw Groww quote file is refused before git runs."""
+
+    def __init__(self, git: Git, guard: RawQuoteGuard | None = None):
+        self.git, self.guard = git, guard or RawQuoteGuard(git.root, git.root / QUOTES_FOLDER_IN_REPOSITORY)
 
     def commit(self, paths: Sequence[Path], message: str) -> str:
+        self.guard.check(paths)
         self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", self.git.branch())
         if self.git.commit_paths(paths, message):
             for _ in range(PUSH_ATTEMPTS):
