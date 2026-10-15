@@ -1125,13 +1125,17 @@ shared touch or the owner's timing is seen as capacity-constrained, not as inact
 - **One counter, used three times.** A new class `ExecutionOpportunities` (new module, `fno/desk/execution_outcomes.py`)
   reads one account's desk records and C1 trade lines and gives, per strategy version and for the whole account:
   - **opportunities:** every trade with an entry outcome that reached the fill step: `opened`, a partial fill
-    (unwound at once), `not_opened` for any reason, or an E8 miss. Gate refusals (`refused`: C2, C3, timing, a
-    blocked book) are risk or data decisions, not execution opportunities: counted apart, as E6 does today;
+    (unwound at once) or `not_opened` for any reason, E8's misses included (E8 writes each miss as a `not_opened`
+    event with its fixed reason; agreed with E8's builder, 15 Oct). Gate refusals (`refused`: C2, C3, timing, a
+    blocked book, E8's blocked book too) are risk or data decisions, not execution opportunities: counted apart, as
+    E6 does today. E8's `entry_pending` (handed over, not yet due) is counted as "awaiting fill", outside the
+    denominator until its fill or miss lands;
   - **filled** and the **fill rate** (filled over opportunities);
   - **misses by reason**, from one fixed table: `protection_not_buyable`, `protection_not_sellable`,
     `short_leg_not_sellable`, `size_shared_in_book`, `entry_worse_than_approved`, "partial fill, unwound", E4's guard
-    ("a leg did not fill after the check"), and E8's seven reasons. A reason the table does not know is counted as
-    "other" with its count, never dropped;
+    ("a leg did not fill after the check"), and E8's eight (`MISSED_NO_CARD`, `MISSED_OWNER_AWAY`, `MISSED_NO_QUOTE`,
+    `MISSED_PRICE_MOVED`, `MISSED_EXPIRED`, `MISSED_FUNDS`, `MISSED_RISK_CAP`, `DECIDED_AFTER_CARD`, imported from E8's
+    modules, never copied). A reason the table does not know is counted as "other" with its count, never dropped;
   - **filled-only net:** C1 net per closed completed position (E6's review sample, unchanged);
   - **net per opportunity:** C1 net of every closed trade among the opportunities (an unwound entry's legging cost
     included, it is real money; any other miss is 0) over the opportunities that are no longer open. A trade still
@@ -1142,8 +1146,8 @@ shared touch or the owner's timing is seen as capacity-constrained, not as inact
 - **S2's board** shows the block in each book's overall section and in each strategy entry (`strategies`). The book's
   block also states the entry priority: "fixed, the decision's order (Book 1's order list), never reordered after
   outcomes" (E4d).
-- **E8's `TimingReport`** calls the same class once per view (agreed with E8's builder before code; see open
-  question 1). E6 and S2 read the verdict account only (E8 rule 10).
+- **E8's `TimingReport`** calls the same class once per view account (agreed with E8's builder, 15 Oct: the class
+  takes one account, with no view logic inside). E6 and S2 read the verdict account only (E8 rule 10).
 - **Reported only.** No verdict, review, pause, brake, uncertainty test, do-nothing comparison or random control
   changes. Those keep reading what they read now.
 
@@ -1165,7 +1169,8 @@ takes its entry counts from the class. S2's `book_board` adds the block. No new 
    3 filled, fill rate 50%, misses {size_shared_in_book: 1, protection_not_sellable: 1, partial fill, unwound: 1}, 1
    gate refusal apart. The nets match a hand computation: filled-only = sum of the 3 nets / 3; per opportunity =
    (sum of the 3 nets - 120) / 6.
-2. An E8 miss (an event as agreed in open question 1) counts as one opportunity, with its reason, and 0 net.
+2. An E8 miss (`not_opened`, reason `MISSED_PRICE_MOVED`) counts as one opportunity, with its reason, and 0 net; an
+   E8 `entry_pending` counts as awaiting fill and is in no denominator; E8's blocked-book `refused` is a gate refusal.
 3. An unknown `not_opened` reason is counted under "other", and the totals still add up: filled + misses =
    opportunities, with open a part of filled.
 4. A trade still open is in neither net and is counted as open.
@@ -1186,9 +1191,8 @@ opportunity (criterion 1), an unknown reason dropped (criterion 3), pooling acro
 counting differently (criterion 6).
 
 **Open questions (to agree before code):**
-1. **E8's miss record** (with E8's builder, session 01H1CmuW): proposed, one desk event row per missed entry in the
-   view's account, outcome `missed`, reason = E8's fixed wording, with the trade, strategy and decision IDs the entry
-   would have had. Whether `TimingReport` uses this class.
+1. **E8's miss record: closed** (E8's builder, session 01H1CmuW, 15 Oct): `not_opened` with E8's fixed reason, no new
+   outcome; `TimingReport` calls this class per view account.
 2. **S1's text** (with its owner, session 0185gR5D): item 10 as its own protocol item, and the new module in
    `frozen_files` with S2's scoring code; which S6 files the board change touches.
 
