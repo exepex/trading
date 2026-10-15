@@ -162,7 +162,8 @@ Terms used below:
      normally distributed trades assumed; option returns are skewed and can cluster, so it is a floor, not a
      guarantee).
   3. **Execution:** the mean execution slippage per unit over all real legs is at most the paper pad (`FILL_PAD_RS`
-     in force) + Rs 0.50; more than 10% of real legs with unknown slippage is not met (owner, 15 Oct 2026, Q12).
+     in force) + Rs 0.50; more than 10% of real legs with unknown slippage is not met (owner, 15 Oct 2026, Q12); at 10% or fewer, unknown
+     legs are left out of the mean and listed.
   4. **Discipline:** the owner placed at least 90% of the version's eligible cards in the period (owner, 15 Oct 2026,
      Q8); every skipped card is listed with its paper net, never counted as real.
   Reported, not judged: the timing gap per leg and its mean, and the paired mean with its two-sided 95% interval.
@@ -170,7 +171,7 @@ Terms used below:
 - **Reason:** 8.4 (owner decision 8 amended) asks for a paired test and a prediction interval, never the narrower
   interval of paper's mean; ChatGPT review 118 showed the paired comparison must bind, not only be reported. The
   margin (Q11), the one-sided side (Q5) and the discipline share (Q8) are the owner's answers of 15 Oct 2026. Only underperformance fails, so bounds are one-sided.
-  Fact: with n = m = 20 and SD Rs 5,000 the prediction floor sits about Rs 2,160 below paper's mean, a weak filter.
+  Fact: with n = m = 20 and SD Rs 5,000 the prediction floor sits about Rs 2,734 below paper's mean (1.7291 × 5,000 × √0.1), a weak filter.
 - **Evidence:** some evidence
 
 ### `real_test_stops` When the test stops early
