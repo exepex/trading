@@ -35,7 +35,7 @@ failure never changes another book's records.
 - **Design 9's rows** (`docs/DESK_DESIGN.md` section 9), and where each stands today:
   - data missing or stale: C3, tested here;
   - a limit hit, or the drawdown brake hit: C4, tested here;
-  - a broken protection closed: E4c (in progress), its case added when E4c merges;
+  - a broken protection: E4c (merged, 4d2dc961), tested here;
   - "a role fails to report", "judge or AI unavailable": these need the AI books' trading (F5/F6, slice E), which is
     not built. They are out until then (Known limits);
   - "paper results outside the plan": E6's scorecard pauses, outside the daily run.
@@ -56,6 +56,7 @@ family:
 | Routine never starts | session D has no run log | O8's desk check gives D `missed (never ran)`; the run on D+1 blocks new entries for every book (`NO_LOG`), runs its exits, and alerts |
 | Partial run and rerun | the process is killed after each step k in turn (every step of `DAILY_RUN_STEPS`, 13 today), then rerun at the same clock | the final run log, the committed files and the private records are byte-identical (SHA-256) to an uninterrupted day. A rerun after the 15:12 deadline follows E3's late rule (every book late) and nothing else |
 | Data and limits (design 9) | a stale snapshot; an order over a C4 limit; the drawdown brake hit | no new trade for that order or book, stale prices never used as a fill, the alert names the check, and open trades go on under their own exits |
+| Broken protection (E4c) | at the entry snapshot: a protective leg cannot be bought; a protective leg can be bought but not sold back; a short leg cannot be sold | nothing fills and the trade is `not_opened` with E4c's reason code (`protection_not_buyable`, `protection_not_sellable`, `short_leg_not_sellable`), one desk event, no fill or ledger row, the account unchanged, and E4c's one alert ("... not opened: <reason code> (<contract>, <units> units): information, no action"). The position is never half-hedged. Neither the record nor the alert holds a quote figure |
 | One book's failure | Book 2's orders refused; its account write refused; its exit review raising | Book 1's decision, fills, exits and private records are byte-identical to a no-failure day |
 
 Every case also checks: each alert is named and sent once (or printed once when unsent); every due exit is reviewed
@@ -66,9 +67,8 @@ Out:
 - new failure behaviour, unless a case shows that a judged rule is not met. Each such gap is fixed in the story that
   owns the code and named in the claims, not patched in O2;
 - LM1's heartbeat (it waits for LM1);
-- the AI books' cases (F5/F6);
-- E4c's broken-protection case, until E4c merges;
-- design 6.5's first-line rule (see Open points).
+- the AI books' cases (F5/F6, slice E);
+- design 6.5's first-line rule (a separate story, below).
 
 ## Acceptance criteria
 
@@ -93,7 +93,7 @@ Out:
 
 | Requirement (source) | Criterion or reason out |
 |---|---|
-| Every design 9 row (old O2) | 1 (data, limits, brake); broken protection after E4c; the AI rows after F5/F6 |
+| Every design 9 row (old O2) | 1 (data, limits, brake, broken protection); the AI rows after F5/F6 |
 | Exits still run (old O2 criterion 2) | 2 |
 | One book never changes another (old O2 criterion 3, design 13.5) | 5 |
 | "alert NOT sent" paths (REPLAN 62) | 3 |
@@ -105,15 +105,10 @@ Out:
 
 - The routine that never starts is reported at O8's 17:51 run (cron, can be late); that session's decision is lost
   anyway.
-- The monitor-silent case waits for LM1; the AI-book cases for F5/F6; broken protection for E4c.
+- The monitor-silent case waits for LM1; the AI-book cases for F5/F6 (slice E).
+- Design 6.5's first-line rule ("says what to do, or 'information, no action'") is not met by today's run alerts; a
+  separate small story fixes it after O1 merges (orchestrator, 16 Oct), and O2's suite then checks it.
 - The fakes cannot reproduce a real Groww or Drive error message; the cases use each adapter's documented exception.
-
-## Open points (to the orchestrator)
-
-- **Design 6.5's rule "the first line of every alert says what to do, or 'information, no action'":** today's run
-  alerts do not follow it (strong evidence, for example "F&O daily run {day}: step weather failed: ..."). Fixing it
-  touches every story's alert text, so I recommend a separate small story, not O2 (reasoning only). O2's suite could
-  then check the rule on every alert it sees.
 
 ## Test plan
 
@@ -123,5 +118,6 @@ twin, and each family's key assertion is broken once on purpose.
 **Judge verifies:** runs the suite under `-n auto`; reads three failure transcripts (Drive at download, Slack down,
 kill after `fills` and rerun); plants one regression (for example, exits skipped after a stop) and sees a test fail.
 
-**Depends:** O1 (merge), E2c (merged), C3, C4, E3, O8 (merged); E4c and LM1 for their cases · **Status:** story text
-for the judge (`reviews/claude/response_203_o2-failure-handling.md`)
+**Depends:** O1 (merge), E2c, E4c, C3, C4, E3, O8 (merged); LM1 for its case · **Status:** story text
+revision 2 (orchestrator, 16 Oct: E4c in scope; the first-line rule a separate story) for judge D
+(`reviews/claude/response_203_o2-failure-handling.md`)

@@ -14,13 +14,17 @@ Branch `story/o2-failure-handling`. Text: `docs/stories/O2-failure-handling.md`.
    entry block) already exists and is proven here. **Strong evidence:** `REPLAN_new_stories.md` LM1, design 4.2 and
    6.5, and `DailyRun._unreviewed` with `NO_LOG`.
 4. Design 9's AI rows ("a role fails to report", "judge or AI unavailable") cannot be tested until the AI books trade
-   (F5/F6). Broken protection waits for E4c. **Strong evidence:** the work register; no AI order code on `main`.
+   (F5/F6). **Strong evidence:** the work register; no AI order code on `main`. Broken protection is in scope: E4c
+   merged at 4d2dc961, and its three reason codes and its alert are tested as E4c's text states them.
 5. A kill-after-each-step rerun that gives byte-identical records is the right test of "a partial run and its
    rerun": E3's rule is that a rerun repeats nothing. **Reasoning only** until the suite runs.
 6. Today's run alerts do not follow design 6.5's first-line rule. I recommend a separate story for that.
    **Strong evidence:** the alert templates in `fno/daily/steps.py` and `fno/desk/daily_run.py`. The recommendation
    itself is reasoning only.
 
-## Open points (sent to the orchestrator)
+## Revision 2 (orchestrator, 16 Oct)
 
-- The design 6.5 first-line rule, in a separate story (recommended) or inside O2.
+- Heartbeat: agreed as written (LM1's).
+- E4c merged (4d2dc961), so a broken-protection family is added: E4c's three refusals, `not_opened`, one alert, never
+  half-hedged, no quote figure in the record.
+- The design 6.5 first-line rule: a separate story after O1 merges. It is a Known-limits line with that pointer.
