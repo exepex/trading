@@ -11,7 +11,9 @@ from __future__ import annotations
 from collections.abc import Callable
 
 READ_CALLS = frozenset({"get_quote", "get_option_chain", "get_expiries", "get_contracts", "get_historical_candles"})
-CONSTANTS = frozenset({"EXCHANGE_NSE", "SEGMENT_CASH", "SEGMENT_FNO", "CANDLE_INTERVAL_MIN_1"})
+CONSTANTS = frozenset(
+    {"EXCHANGE_NSE", "SEGMENT_CASH", "SEGMENT_FNO", "CANDLE_INTERVAL_MIN_1", "CANDLE_INTERVAL_MIN_15"}  # 15: A16b
+)
 ALLOWED = READ_CALLS | CONSTANTS
 
 

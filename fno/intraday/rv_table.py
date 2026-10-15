@@ -24,21 +24,30 @@ class RvConflict(RuntimeError):
 
 
 class RvTable:
+    """A16's table; a subclass with its own file layout and columns keeps every rule (story A16b)."""
+
+    fields, file_name, pattern = FIELDS, FILE_NAME, PATTERN
+
     def __init__(self, folder: Path):
         self.folder = Path(folder)
 
     def path(self, day: date) -> Path:
-        return self.folder / FILE_NAME.format(day=day)
+        return self.folder / self.file_name.format(day=day)
 
     def rows(self) -> list[dict]:
-        return read_rows(self.folder, PATTERN)
+        return read_rows(self.folder, self.pattern)
+
+    def row(self, day: date) -> dict | None:
+        path = self.path(day)
+        found = read_rows(path.parent, path.name)
+        return found[0] if found else None
 
     def write_once(self, row: dict) -> str:
-        path = self.path(date.fromisoformat(row["session"]))
-        found = read_rows(path.parent, path.name)
-        if found:
-            if all(found[0][k] == str(row[k]) for k in SAME_INPUTS):
+        day = date.fromisoformat(row["session"])
+        held = self.row(day)
+        if held:
+            if all(held[k] == str(row[k]) for k in SAME_INPUTS):
                 return ALREADY
             raise RvConflict(f"{row['session']}: already written from other inputs; rows are never changed")
-        write_row(path, FIELDS, row)
+        write_row(self.path(day), self.fields, row)
         return WRITTEN
