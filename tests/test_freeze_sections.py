@@ -71,6 +71,7 @@ def test_no_record_is_not_yet_frozen_and_a_missing_section_is_refused(tmp_path, 
         _check(repo, "other-job")
 
 
+@pytest.mark.usefixtures("full_history")
 def test_the_repository_v3_freeze_holds_for_both_jobs_with_the_protocol_s_file_lists():
     from fno.config import ROOT
     from fno.research_engine.ledger import Git
@@ -86,6 +87,7 @@ def test_the_repository_v3_freeze_holds_for_both_jobs_with_the_protocol_s_file_l
     assert "fno/pipeline/wiring.py" not in panel and "fno/forecast_scoring/wiring.py" not in scores  # shared roots
 
 
+@pytest.mark.usefixtures("full_history")
 def test_the_real_panel_job_guard_passes_under_the_freeze():
     from fno.pipeline.panel_wiring import require_v3_frozen
 

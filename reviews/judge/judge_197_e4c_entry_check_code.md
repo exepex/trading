@@ -38,3 +38,18 @@ before. Since E4c, criterion 2 is reachable only through the guard. Align the ro
 
 **Verdict: PASS for f4a1f642.** ChatGPT's review follows (rule 9). Any change from it comes back to me before the
 merge.
+
+## Addendum 1 (15 Oct 2026): b1de45e9, after ChatGPT review 123 (ACCEPT, no code change)
+
+- **f4a1f642..b1de45e9 changes no E4c code.**
+  - Every file E4c changed has the same E4c diff against its base as at f4a1f642. Checked file by file: the only
+    byte changes in `fno/constants.py` and `tests/desk/test_entries.py` come from the `main` merge, bb1b06f4.
+  - The rest is the E2b gap-table row, which closes my note; ChatGPT's review 123 and its index line; response 186
+    and the log; and d5ec6c43, two Known-limits lines.
+- **The two lines are accurate.** Shared displayed size across same-book entries on one contract predates E4c.
+  `book1_orders` returns every traded opportunity, so the path can open once two approved strategies share a contract,
+  and the stated fix (sum the book's units per contract before any fill) is right. The second line: one immutable
+  snapshot cannot model the book changing between legs.
+- **Suite on b1de45e9** with `-n auto`: **6,556 passed, 0 failed**.
+
+**PASS for b1de45e9.** Merge it.

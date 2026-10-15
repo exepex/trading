@@ -195,3 +195,89 @@ Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the 
   For E8's and M2's judges, one point, reasoning only: E8's step is planned as its own `DayStep`, not a
   `CommandStep`, so it does not get O1's 10-minute limit. Whoever judges E8 should check it cannot hang the day
   before the exits.
+
+## Addendum 6: O1 at ea008836 (unsent alerts are printed)
+
+**Verdict: FAIL, one should-fix.** The new `ReportedAlerts` is right as far as it goes. But checking it showed a gap
+of the same kind that I missed in addenda 0-5, so I own that miss here.
+
+- **What is right.** Every alert the run sends itself (O1's step alerts, the quote parts' "NOT committed", and E3's
+  desk alerts through the new `alerts` parameter) prints "alert NOT sent: <reason> | <text>" when Slack does not take
+  it. The default for `build_daily_run` is unchanged for E3. Two tests cover this. Gates on a trial merge with
+  origin/main: `-n auto` gives 6584 passed in 2 min 49 s; `ruff check` and `check_imports` are clean.
+- **Should-fix 9: child commands' own "alert NOT sent" lines never reach the routine.**
+  - **Path:** every O1 child (the three quote parts, `book1`, `card`, and later `margin_check`, `weather`,
+    `forecasts_v4`) prints into a temporary file (`ChildProcesses.start`, `stdout=output`). The run keeps only the
+    last 10 lines, inside the run log's `result.lines`, and never prints them.
+  - **What is lost:** the recorder sends its own three alerts ("calendar says session, no same-day trades", "stopped,
+    nothing recorded", "raw quote file NOT saved to Drive"; CLAUDE.md step 4). E5b's `cmd_book1` sends its own
+    "NOT committed" alert, and the card prints its post outcome. When Slack is down or the token is missing or
+    expired, each of these prints "alert NOT sent: ...". Today the routine sees that line and posts it with the Slack
+    connector (CLAUDE.md steps 3-4). Under O1 the line goes only into a temp file. It may fall outside the 10 kept
+    lines, and the routine is never shown it. So a "raw quote file NOT saved to Drive" day, on a day Slack also fails,
+    reaches no one.
+  - **Evidence:** the code (`processes.py` stdout to a temp file; `runner.py` prints one line; `KEPT_LINES = 10`).
+    The alert texts come from CLAUDE.md and `fno/quotes/cli.py`.
+  - **Expected fix (small):** when a child ends (or is stopped), the run prints, as they are, every line of its output
+    that contains `alert NOT sent`. Read the whole output, not just the kept 10, before the temp file closes. Add one
+    test: a fake child that prints an unsent alert line among more than 10 lines, and that line appears on the run's
+    output. Criterion 8's routine line ("if the command printed 'alert NOT sent', post its lines") then covers child
+    alerts too.
+
+Everything else stays as in addendum 5.
+
+## Addendum 7: the orchestrator's four checks on ea008836 (fix commit 48d58a97)
+
+The verdict stays **FAIL**. Should-fix 9 gains part (b), from check 1.
+
+1. **Does every alert path go through `ReportedAlerts`? No.**
+   - **Covered:** O1's steps (`Alerted`), the quote parts' "NOT committed", and E3's `DeskSteps` and `_guarded`. The
+     latter two get `alerts` from `build_daily_run`'s new parameter.
+   - **9(b), in process, bypassing the wrapper:** two more senders are built inside the run with their own
+     `build_alert_sender()` and never see the wrapper. Their "alert NOT sent" outcome is dropped exactly as before:
+     - `build_exit_desk` (`fno/desk/wiring.py:41`, `ExitDesk`), the exits' alerts;
+     - `build_book1_exit_rules` (`fno/books/book1_wiring.py:72`, `PlaybookExitRules`).
+
+     The exits are the one step that must always be seen (design 9). Fix: pass the run's `alerts` into both (the same
+     `alerts=None` default keeps their other callers unchanged). Extend the wiring test so that every sender the run
+     builds is the `ReportedAlerts` instance.
+   - **9(a), child processes:** as in addendum 6, their own lines are never relayed.
+2. **Is E3 unchanged without the parameter? Yes.** `alerts or build_alert_sender()` in `build_daily_run`, and E3's
+   tests pass unchanged.
+3. **Can the printed line hold a token or secret? No.** The line is "<outcome> | <text>". By the `AlertSender`
+   contract the outcome never holds the token: `slack_post` returns only the exception's type name or Slack's error
+   code. The text is the alert text, which is already posted to Slack and committed in run logs, so the line adds no
+   new exposure.
+4. **Would the tests catch a dropped outcome? Partly.** `test_steps.py` checks that `ReportedAlerts` prints the unsent
+   line and stays quiet on a sent one, and that the wiring hands the run a `ReportedAlerts`. It would not catch the two
+   bypassing senders in 1, or the children's lines (9(a)).
+
+## Addendum 8: O1 at d03d5d97 (should-fix 9(a) built)
+
+**Verdict: FAIL.** 9(a) is closed. 9(b) (addendum 7) is not built yet; this commit was probably made before the
+builder saw addendum 7.
+
+- **9(a) closed.** `ChildProcess` reads the child's whole output once, both when the child ends (`lines()`) and when
+  it is stopped (`stop()`). It prints every line containing "alert NOT sent" exactly as written; the phrase comes from
+  the sender's own `NOT_SENT`, so the two cannot drift apart. The run log still keeps the last 10 lines. The quote
+  parts and the `CommandStep`s both reach that read: `_finish` and `CommandStep.run` call `lines()`, and
+  `QuoteParts.finish` and `CommandStep` call `stop()`. Two real-child tests cover it: the line among 14 lines, and a
+  child stopped while asleep. My mutation that never reports fails 2 of them; `tests/daily` passes 39.
+- **9(b) open.** `ExitDesk` (`fno/desk/wiring.py:41`) and `PlaybookExitRules` (`fno/books/book1_wiring.py:72`)
+  still build their own senders inside the run. Expected fix as in addendum 7.
+
+## Addendum 9: O1 at f01bf9d7 (should-fix 9(a) and 9(b) built)
+
+**Verdict: PASS for the code built so far.** Should-fix 9 is closed (both parts), and there are no new findings.
+Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the real day), and the merge after A4c.
+
+- **9(a):** as in addendum 8, unchanged.
+- **9(b):** `build_exit_desk(cfg, alerts=None)` and `build_book1_exit_rules(root, alerts=None)` now take the run's one
+  `ReportedAlerts`, and their other callers keep `build_alert_sender()`.
+  - **My grep** of every `build_alert_sender()` in `fno/` at f01bf9d7 finds no other sender built inside the run's
+    process: the gate gets the run's `alerts`, and the rest are other commands' CLIs and wirings. Book 1's decider
+    (`book1_wiring.py:33`) runs in its child process, which 9(a) relays.
+  - **The new test** `test_every_sender_inside_the_built_run_is_its_one_reported_sender` walks the real run's
+    objects. My mutation putting `build_exit_desk(cfg)` back fails it.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6590 passed** in 2 min 48 s; `ruff check` and
+  `check_imports` are clean.
