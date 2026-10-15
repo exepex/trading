@@ -72,10 +72,10 @@ In:
 
   | Step | Runs | Does (existing code, unchanged) |
   |---|---|---|
-  | `weather` | at once | M1's `capture_weather` (refused after the cutoff or on stale closes: recorded, never retried) |
-  | `forecasts_v4` | at once | G7's capture (same rules) |
   | `quotes` | starts the three quote parts in the background (below), records that they started, and goes on | A4c's routine steps 2-3b, unchanged |
   | `margin_check` | at once | A14c's `margins stress-broker-check` (read-only Groww; commits only its own file) |
+  | `weather` | at once | M1's `capture_weather` (refused after the cutoff or on stale closes: recorded, never retried) |
+  | `forecasts_v4` | at once | G7's capture (same rules) |
   | `versions`, `pack` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
   | `book1` | right after `pack` | E5's `desk book1 --day <d>` (Book 1's decision, committed by itself) |
   | `decisions` ... `exits` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
