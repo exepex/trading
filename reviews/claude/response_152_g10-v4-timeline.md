@@ -44,3 +44,19 @@ Judge note (c), accepted: X uses A16b's checked closes of the candles ending at 
   apart. G1 v2's 15:00 records never merged into v4.
 - Judge 161 addendum 1 notes: the table row reads "(G11)"; the two-sign-in line says "some evidence, once, outside
   market hours".
+
+## Revision 3: judge 161 addendum 2 (FAIL, 1 should-fix) and notes a-d
+
+- **`observed_at` defined (should-fix, accepted; strong evidence):** Groww returns no quote timestamp
+  (`fno/quotes/recorder.py:65-69`; `fno/providers/groww.py:94-103` has only `last_trade_time`). `observed_at` is our
+  request's answer receipt time, the honest upper bound; `last_trade_time` stays its own field for the "traded today"
+  check only; a provider's own stamp only where one exists (NSE's page time).
+- The window lines agree: the capture starts at 14:30:00; a quote is in if received by 14:40:00.
+- Fixture 1a rewritten: received 14:40:00 in, 14:40:01 out; a quote received 14:31:05 with its last trade at 14:29:59
+  carries 14:31:05.
+- Notes a-c: the flag's S is A16's checked 14:30 and 15:15 levels (the same rule X is calibrated on; the pack's spot
+  would measure a different interval each day); "14:30" -> "the pack's" in changes 3 and 6, the heading and the owner
+  paragraph; criterion 2 names `terms.V4_CAPTURE_START`.
+- Note d: two lines added to the S1 protocol draft (`research/evaluation/PROTOCOL.md`, `timetable`, a draft, not frozen):
+  the 15:15 skill score is a diagnostic only, nothing is promoted on it; an instrument missing at the 60-minute fill is
+  a no-fill.

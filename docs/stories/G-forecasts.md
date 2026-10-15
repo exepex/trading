@@ -511,7 +511,7 @@ member never asks for thresholds and leaves Test A undecided.
 
 ---
 
-## G10. Protocol v4 timeline: 14:30 cutoff, one release, one 15:10 deadline (before the v4 freeze)
+## G10. Protocol v4 timeline: the pack observed 14:30-14:40, one release, one 15:10 deadline (before the v4 freeze)
 
 **Repository:** trading · **Lane:** 1 (a frozen-to-be rule document and the capture times) · **Name note:** REPLAN's
 "AI books on the v4 questions" was also called G10; this story renames it G11 (`REPLAN.md` and
@@ -522,27 +522,31 @@ shares (one data cutoff, one release, one deadline, one common snapshot), writte
 so that no family gets more data or more time than another and no late or rebuilt day is scored as if it were normal.
 
 **Owner decisions (15 Oct 2026, `docs/DESK_DECISIONS.md`, rows "v4 timeline", "flagged, not blocked", "Lateness",
-"V6b stays a scored member", "The 60-minute fill decides"):** the 14:30 cutoff with retries to 14:40 and A16's 14:30
-snapshot as the fallback; one pack to every family at about 14:32 (at the latest 14:40); one 15:10 deadline; the
+"V6b stays a scored member", "The 60-minute fill decides"):** the capture from 14:30 with retries to 14:40 (revision 2: honest times, every quote
+received by 14:40) and A16's 14:30 snapshot as the fallback; one pack to every family at about 14:32 (at the latest 14:40); one 15:10 deadline; the
 15:15 common snapshot; the 3 pm routine moves to 14:05 only at go-live; two scores per desk decision (skill at the
 common snapshot, money at the 60-minute fill); "moved after cutoff" days flagged, never blocked; system-late days out
-for every family, a late family charged a miss (G9's caps); EQ2 and EQ5 and the day-quality labels into v4; 14:30
-values stand in for the close, labelled and scored separately. V6b stays a scored member (no V6 code change).
+for every family, a late family charged a miss (G9's caps); EQ2 and EQ5 and the day-quality labels into v4; the
+pack's values stand in for the close, labelled and scored separately. V6b stays a scored member (no V6 code change).
 
 ### The day at go-live (a regular session `d`, IST)
 
 | Time | What happens | Who |
 |---|---|---|
 | 14:05 | The 3 pm routine starts (setup ends well before 14:30) | owner's routine |
-| from 14:30:00 | The NIFTY pack is captured (spot, near future, chains, IV30); an incomplete capture retries | 3 pm recorder (A4) |
-| 14:40:00 | **The pack's cutoff: every field observed by 14:40:00** (revision 2, owner's "Honest times, window to 14:40"). Fallback: A16's 14:30 mark, when no complete capture exists | A16 |
+| 14:30:00 | The NIFTY pack's capture starts (spot, near future, chains, IV30); an incomplete capture retries | 3 pm recorder (A4) |
+| 14:40:00 | **The pack's cutoff: a quote is in if its answer was received by 14:40:00** (owner's "Honest times, window to 14:40"). Fallback: A16's 14:30 mark, when no complete capture exists | A16 |
 | when the pack is complete, at the latest 14:40 | **One release (EQ2):** the one pack, with one SHA-256, goes to every family at the same moment; rule outputs are computed but not published before the deadline | capture job |
 | 15:10:00 | **One deadline:** a family's forecast or decision counts only if GitHub received its push by then (GitHub's receipt time, never the commit's own author or committer time) | every family |
 | 15:15 | **Common snapshot** (A16's 15:15 mark): the skill score of every desk decision; the money verdict uses the 60-minute fill (E8, about 10:15 next session) | desk (E3, S1) |
 
 **Honest times (revision 2, ChatGPT review 113, owner's decision of 15 Oct):** every live field keeps its real
-`observed_at`; no field and no day ever carries a label earlier than its `observed_at`. A field observed after
-14:40:00 is not in the pack. **Day-quality label (one per day, on every v4 record and report):** `A` the live capture,
+`observed_at`; no field and no day ever carries a label earlier than its `observed_at`. A field received after
+14:40:00 is not in the pack. **What `observed_at` is (revision 3, judge 161 addendum 2):** the time our request's
+answer was received, by this host's checked clock: the honest upper bound of when the quote existed. Groww gives no
+quote timestamp (strong evidence: `fno/quotes/recorder.py:65-69`, "quote age unknown"; `fno/providers/groww.py:94-103`
+has only `last_trade_time`), so `last_trade_time` stays its own field, used only for the "traded today" check, and is
+never the observation time. A provider's own snapshot stamp is used only where one exists (NSE's page time). **Day-quality label (one per day, on every v4 record and report):** `A` the live capture,
 every required field observed by 14:40:00; `A2` A16's 14:30 mark (fallback), every required field observed by
 14:40:00; `system_late` no complete pack by 14:40:00. The label carries the pack's latest `observed_at` (for example
 "A, observed by 14:31:12"). Every report counts `A`, `A2`, `system_late` and flagged days; a protocol v4 verdict uses
@@ -556,7 +560,11 @@ The label carries it; adding the next monthly to A16 (about 70 more quotes a mar
 apart; nothing is dropped. **X** is frozen before go-live as the 95th percentile of that move over A16b's 2020-26
 checked 15-minute levels (regular sessions; the closes of the candles ending at 14:30 and at 15:15, A16b's level
 rule), so about 1 day in 20 is flagged
-(reasoning only for 95th; the 99th is the alternative and would flag about 1 in 100). **Frozen with it:** X's value, the
+(reasoning only for 95th; the 99th is the alternative and would flag about 1 in 100). **Live S (revision 3):** A16's
+checked levels at its 14:30 and 15:15 marks, by A16's own level rule, because X is calibrated on A16b's levels made by
+the same rule; the pack's spot is not used (its `observed_at` varies within the window, so the flag would measure a
+different interval each day). A day without either A16 level has no flag value and is counted as "flag not
+computable". **Frozen with it:** X's value, the
 sample count, the source revision (A16b's archive manifest commit) and the quantile convention (nearest rank:
 the `ceil(0.95 n)`-th smallest move). History's 5% does not promise 5% of future days.
 
@@ -565,7 +573,7 @@ input failure but decided by the pack, not by the files: with no pack, no family
 commitment is after 15:10 has no forecast that day: a miss under G9's 10% caps.
 
 **Pack values stand in for the close:** every input of `d` itself (spot, futures, IV30, quotes) is the pack's value,
-observed between 14:30:00 and 14:40:00 with its real time, labelled `live_pack`. The back-fill has no 14:30 implied-volatility history (strong evidence: the panel holds end-of-day
+received between 14:30:00 and 14:40:00 with its real time, labelled `live_pack`. The back-fill has no intraday implied-volatility history (strong evidence: the panel holds end-of-day
 chains only; A16b holds index candles, no option quotes), so back-filled rows that use `d`'s level or IV use the close
 and stay labelled `backfill_exploratory`: the live and the close-proxy cohorts are scored apart and never pooled.
 **G1 v2's 15:00 records are never merged into v4** (a different protocol, pack and time). **For today's forecasters this
@@ -584,15 +592,16 @@ protocol 1.1-1.2 define them.
 2. Sections 1.4, 1.5 and 3.1: every "15:00" spot, quote, spread check, pack, future and IV30 -> "the pack's" (section
    1.6), with its `observed_at`. The spread limit (5%) is unchanged.
 3. Section 3.1, premium-adjusted implied: add "live forecasts multiply the **pack's** raw implied by the ratio; no 14:30
-   IV30 history exists, so the window stays the EOD proxy and the 14:30 / EOD mismatch enters the ratio's noise
-   (reasoning only)"; `diagnostics.proxy_drift` pairs 14:30 with EOD.
+   IV30 history exists, so the window stays the EOD proxy and the pack / EOD mismatch enters the ratio's noise
+   (reasoning only)"; `diagnostics.proxy_drift` pairs the pack's IV30 with EOD.
 4. New section **1.6 "The day's clock"**: the table above, honest times, the day-quality labels, the one pack hash, the
    moved-after-cutoff flag with X's rule (value, sample count, source revision and quantile convention added at the
    freeze), and the 15:10 deadline (GitHub's receipt time).
 5. Section 4, after the miss rule: "**A `system_late` day** is excluded for every member and counted apart; **a
    commitment after 15:10** is no forecast that day (a miss). Every report states each label's day count and the
    flagged days."
-6. Section 8, disclosure: "the back-fill uses closes where live uses 14:30 values; no 14:30 IV history exists".
+6. Section 8, disclosure: "the back-fill uses closes where live uses the pack's values; no intraday IV history
+   exists".
 7. Section 10, freeze preconditions: X's number frozen; the go-live date stated in `FREEZE_v4.md` with its
    `Frozen on:` line (G8).
 `tests/forecast_v4/test_protocol_text.py` gains the cutoff and deadline times so the text and `terms.py` cannot drift.
@@ -613,14 +622,16 @@ protocol 1.1-1.2 define them.
 
 **Acceptance criteria (for the build after this text passes):**
 1. The protocol text carries changes 1-7; `test_protocol_text.py` checks 14:30, 14:40 and 15:10 against `terms.py`.
-1a. **Honest-time fixture (ChatGPT review 113):** a quote observed at 14:29:59 enters the pack with that time; one
-   observed at 14:41:00 does not (the field is missing; a required field missing makes the day `system_late`); the real
-   shared-key fallback (A16's 14:30 mark, observed 14:30-14:31) keeps its own times and is labelled `A2` with them;
+1a. **Honest-time fixture (ChatGPT review 113; revision 3):** a quote whose answer was received at 14:40:00 is in the
+   pack with that time; one received at 14:40:01 is not (the field is missing; a required field missing makes the day
+   `system_late`); a quote received at 14:31:05 whose last trade was at 14:29:59 carries 14:31:05, never 14:29:59; the
+   real shared-key fallback (A16's 14:30 mark, received about 14:30-14:31) keeps its own times and is labelled `A2`;
    no field ever carries a time earlier than its `observed_at`.
 1b. Every family's record names the released pack's SHA-256; a record with another hash is refused. The deadline check
    reads GitHub's receipt time; a commit dated 15:09 but received at 15:10:01 is late.
-2. `terms.py` holds the cutoff, retry end, deadline and common-snapshot times and X; G7's and M1's capture refuse at
-   14:30 (boundary: 14:29:59 accepted, 14:30:00 refused) through that one constant.
+2. `terms.py` holds the capture start, window end, deadline and common-snapshot times and X; G7's and M1's capture
+   refuse at the capture start through one constant, `terms.V4_CAPTURE_START = time(14, 30)` (boundary: 14:29:59
+   accepted, 14:30:00 refused).
 3. Each v4 record and report carries the day label; every report counts `A`, `A2`, `system_late` and flagged days; a
    `system_late` day is excluded for every member and counted; a commitment received at 15:10:01 is a miss, at
    15:10:00 on time (G9's caps then apply); live and close-proxy cohorts are reported apart; no v2 record is read.
