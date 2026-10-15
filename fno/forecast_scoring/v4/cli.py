@@ -28,13 +28,13 @@ def add_forecast_v4_scores_parser(subparsers) -> None:
 
 def cmd_forecast_v4(args) -> int:
     from ...models import now_ist
-    from .wiring import build_day_counts, build_look_records, build_scoring, build_thresholds
+    from .wiring import build_day_counts, build_look_records, build_open_audits, build_scoring, build_thresholds
 
     scoring, records = build_scoring(), build_look_records()
     if args.v4_cmd == "report":
         as_of = args.as_of or now_ist().date()
         return _report(scoring, records, as_of.isoformat(), build_day_counts(as_of))
-    return _look(scoring, records, build_thresholds(), args.look, now_ist())
+    return _look(scoring, records, build_thresholds(), build_open_audits(), args.look, now_ist())
 
 
 def _report(scoring, records, as_of: str, days) -> int:
@@ -51,13 +51,20 @@ def _report(scoring, records, as_of: str, days) -> int:
     return 0
 
 
-def _look(scoring, records, thresholds, look: str, decided_at) -> int:
+def _look(scoring, records, thresholds, audits, look: str, decided_at) -> int:
     from dataclasses import asdict
 
+    from .audits import LookBlocked, require_settled
     from .look import run_look
     from .records import EXPLORATORY
 
     counted_after = records.frozen_on() if records.frozen() else None
+    if counted_after is not None:
+        try:
+            require_settled(audits, decided_at.date())
+        except LookBlocked as refusal:
+            print(f"look NOT run, nothing recorded: {refusal}")
+            return 1
     result = run_look(look, decided_at, scoring.member_comparisons(counted_after), thresholds, records.closed(look))
     if counted_after is None:
         print("\n".join([EXPLORATORY, *result.lines()]))
