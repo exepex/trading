@@ -149,3 +149,58 @@ Plants: 22 of my own. 20 were caught; M16 and M18 survived (should-fix 2).
 - `fno/scorecard/wiring.py` builds E6's snapshots from the local quote folder. After A4b, it must read through A4b's hash-checked Drive store, or every fill outside the capture's checkout is "touch unknown". The merge must keep one version of `execution_capture.py`.
 
 **Verdict: FAIL for b76be4fdf00ab776148d854afde5f69d10782293** (code) on should-fixes 1-2. A re-check needs only `git_sync.py`, the fill and exit step handling, `touches.py` and their tests.
+
+## Addendum 3 (15 Oct 2026): fixes at c653744aa1e9e75c451e7c272316e441be20415a
+
+E2b's own commit is 8b47713; c653744 merges `origin/main` into it. Gates on c653744: 3,928 passed (the builder's figure);
+ruff, format and imports clean. Decision 42's commit (the touch size in E4's reason) was not pushed yet; I check it
+with the next SHA.
+
+| Item | Status | Evidence |
+|---|---|---|
+| sf 1, account write | MET for the account write | `_require_no_raw_quote_staged` runs before the pull and before `apply` and raises `CheckoutNotDedicated` with one alert. My plants caught: N1 (check removed), N2 (check moved after `apply`), N3 (refusal raised as a raw `ValueError`) |
+| sf 1, the run as a whole | **NOT MET (new should-fix 1)** | see below |
+| sf 2, untested touch cases | MET | Tests read the real `RecordedExecutionSnapshots`; my M16 and M18 are now caught |
+| Minor 1, "three" | MET | |
+| Minor 2, chain list | MET | Chains come from `meta["expiries"]`; a chain with no rows gets a None item, timed at the first request (plants N5, N6 caught) |
+| Minor 3, path-based guard | MET (reason stated) | |
+
+**The orchestrator's question: can the "rows as fallback for older sidecars" path hide a missing chain in a new capture? No.**
+- The fallback only runs when `expiries` is missing or empty.
+- The recorder always writes `expiries` (`recorder.py:233`). An empty list means no chain was fetched.
+- A pack is built only from the canonical capture, which must be `complete`. `complete` requires chains, no failures
+  and `rows == expected` (`recorder.py:228`), and fewer than 2 monthly expiries is itself a failure (`recorder.py:206-207`).
+- So a canonical capture always lists both chains. A chain fetched with no contracts is listed, gets a None item, and C3
+  names it.
+- Wording nit: the story says the sidecar's `expiries` are the chains "asked for"; they are the chains fetched. For a
+  canonical capture the two are the same.
+
+## New should-fix
+
+**1. In a real run, the daily run's own step commit hits the staged raw file first, and it stops the run with no alert.**
+- **How.** `DeskRun._step` commits the run log after every step through `GitCommitter`. With a raw quote file staged, the
+  first step's commit (before the fill step) runs `commit_paths`. Its staged check raises `RawQuoteCommitRefused`, a
+  `ValueError`.
+- **Probe.** Real `Git` and `GitCommitter`, a staged raw quote file, committing `journal/runs/<day>.json`: the refusal is
+  unhandled.
+- **Consequence.** `_step` does not catch it, and neither does `fno desk` → `book1_cli` (`build_daily_run(...).run(...)`).
+  - The run ends at its first step with a traceback.
+  - Nothing reaches #fno-desk. There are no exits that day.
+  - The new account-write path, with its "not filled" result and alert, is never reached.
+- **Why the tests missed it.** `test_raw_quote_refusal_run.py` swaps in a real check for book 1's account sync but
+  keeps the fake committer.
+- **Exits.** They could not run in that checkout anyway: every account write now refuses while the file is staged. The
+  defect is the silence.
+- **Expected fix.** The committer's refusal is alerted once to the desk channel, naming the file (the same sender
+  `_stop` uses). Test it with the real `GitCommitter` in a run: a staged raw file gives one alert naming it, and nothing
+  is committed.
+- Today a push rejected three times also ends the run unalerted. That is older than E2b and not E2b's to fix; it is worth
+  one line in the story's Out list or a follow-up.
+
+## Minor
+
+1. **N4 survived.** Making `staged()` ignore deletions (`--diff-filter=d`) passes all 310 related tests. Criterion 5 now
+   states "a staged deletion there is refused too", so that claim needs a test.
+
+**Verdict: FAIL for c653744aa1e9e75c451e7c272316e441be20415a** on new should-fix 1. A re-check needs the committer's
+refusal handling, its run-level test, the N4 test, and decision 42's commit.
