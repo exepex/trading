@@ -54,15 +54,16 @@ not committed.
 **1-minute candles also exist from 2020.** Days sampled in 2020-2026 gave 377-420 candles each, about 0.8 s per day.
 
 **15-minute candles carry exactly A16's live levels.**
-- Days checked: 14 Oct, 13 Oct and 1 Sep 2026.
+- Days checked: 14 Oct, 13 Oct and 1 Sep 2026, **all in 2026**, while about 95% of the back-fill is 2020-2025.
 - The close of the 15-minute candle that ends at each mark equals the close of the 1-minute candle that ends there:
   75 of 75 marks, largest difference 0.00 points.
 - The open of the 09:15 15-minute candle equals the open of the 09:15 1-minute candle: 3 of 3.
 - These are A16's live rules (`candle_1m_close` at 09:30 ... 15:30, `candle_1m_open` at 09:15). A16 uses them on every
   live mark, because Groww leaves the index quote's time empty.
-- So the back-fill measures the same levels as A16's live series, with about 60 times fewer calls (one per 90 days,
-  not one per day).
-- Some evidence: 3 days, equality is checked again in the run (criterion 5).
+- So the back-fill measures the same levels as A16's live series. The 15-minute windows give the levels in 28 calls;
+  the per-session 1-minute check below costs one call per session on top.
+- Some evidence for 2026 only. Hence the per-session check below (orchestrator's decision 55, judge 122 should-fix 1):
+  every session's levels are compared with its own 1-minute candles, and a session that differs is void.
 
 **Against NSE's official open, high and low** (A1/A10 index-close files; 40 random regular sessions 2020-2026):
 - **NSE's official open equals the close of Groww's last pre-open 1-minute candle** (the last candle before 09:15;
@@ -88,6 +89,17 @@ not committed.
     NSE's official range, so a check against NSE's range is needed before any level is used. This session is void
     anyway (23 candles).
 
+**The holes (judge 122 minor 1).** The 1-minute candles of the short sessions:
+- 13 and 23 Mar 2020: 324 and 325 of 375 minutes (09:15-15:29); market-wide halts on both days;
+- 24 Feb 2021: 54 minutes (09:15-13:31); NSE's trading outage;
+- 26 Sep 2025: 321 minutes, ending 14:35; 29 Sep 2026: 290 minutes, ending 14:04; 10 Oct 2025: none.
+NSE published its normal index-close file for each of these three days, and our calendar has no disruption on them.
+Reasoning only: they are Groww's holes, not NSE's. They are void either way.
+
+**Candle highs and lows outside NSE's range (cost of judge 122 should-fix 2):** in the 40 sessions of the second
+sample, 1-minute candle highs and lows were never outside NSE's official range except on 23 Mar 2020 (high 196.30
+points above). So the extended void rule costs 0 of 40 sessions besides that one (some evidence).
+
 ## Scope
 
 **In:**
@@ -107,7 +119,8 @@ not committed.
   so G6 can apply its own rule.
 - **Mixing with A16:** a candle row never fills, replaces or edits an A16 row. The two series live in separate files.
   Comparing them on sessions where both exist is the post-mortem's job (layer 8).
-- **1-minute back-fill:** not needed. At the marks it gives the same levels (step 0) at about 60 times the calls.
+- **1-minute levels:** the levels come from the 15-minute candles; the 1-minute candles are read only to check them
+  (one call per session), never used as a fall-back source of levels.
 - **Futures and option candles:** different questions (A16's chains, LM1), not V1's target.
 - **Changing A16:** its RV files, ledger, heartbeat and NSE-open condition stay as they are. The NSE-open finding goes
   to the orchestrator.
@@ -125,12 +138,29 @@ not committed.
     `candle_15m_close`.
   So a session uses the 25 candles that start 09:15 ... 15:15. Candles starting 09:00, 15:30, 15:45 or later are not
   levels; they are counted in the row's `outside_candles`. A missing candle leaves its level `None`; never filled.
+- **1-minute check, every session (orchestrator's decision 55; judge 122 should-fix 1):** for each recorded session
+  with its 25 candles, one more read-only call fetches that session's 1-minute candles (09:00-15:59), archived raw in
+  Drive like every answer. Each of the 26 levels is compared with the 1-minute value at the same mark: the 09:15 open
+  with the open of the 09:15 1-minute candle, each close with the close of the 1-minute candle ending at the mark.
+  - Any difference above 0.05 points voids the session (`candle_mismatch:<marks>`).
+  - A session whose 1-minute answer is empty or lacks a needed minute (a Groww cap or hole) is **not written**: it is
+    counted and printed as `no_1m_check`, and the run exits 1. There is never a silent fall-back to the 15-minute
+    candles alone.
+  - Rate: one call at a time, at least 0.5 s between call starts (at most 2 a second, under the 4-5 a second A16
+    measured as safe). At about 0.8 s a call, the roughly 1,680 sessions take about 23 minutes, once. Three Groww
+    failures in a row stop the run, naming them, rather than hammer a refusing service.
 - **Previous close:** the 15:30 level of the previous recorded session (muhurat skipped, as A16), or `None` for the
   first session in the data.
+- **Order (judge 122 should-fix 3):** a session is written only when its previous recorded session already has a
+  derived row (from this run or an earlier one). Otherwise it is **deferred**: not written, named, and the run exits
+  1. A later run that derives the previous session then writes it, so a transient failure never fixes a wrong row in
+  place. A previous session that has a row with a void 15:30 level (10 Oct 2025: no candles) gives a void overnight
+  part, as A16; the intraday part is still computed.
 - **NSE range check (step 0):** for each session, from the index-close file of A1/A10 (Drive, read through the
   existing `build_nse_index_close_library`):
-  - **void `outside_nse_range`** when any of the 26 levels is below NSE's low minus 0.05 or above NSE's high plus
-    0.05. A level NSE says never happened cannot be used;
+  - **void `outside_nse_range`** when any of the 26 levels, **or any of the 25 used candles' high or low** (judge 122
+    should-fix 2), is below NSE's low minus 0.05 or above NSE's high plus 0.05. A value NSE says never happened means
+    the feed was wrong that session, even if the closes look fine (23 Mar 2020: closes inside, one high 196.30 above);
   - **reported, not void:** the pre-open check (`|close of the 09:00 candle - NSE open| > 0.05`, expected equal) and
     the range gap (`NSE high - max candle high`, `min candle low - NSE low`), in points. These stay in the row
     (`nse_open_gap`, `nse_high_gap`, `nse_low_gap`): differences of NSE's figures, never a level;
@@ -141,8 +171,13 @@ not committed.
   `rv_session`, `vol_pct`, the void rules, never interpolated). It is computed by `CandleCloseRv15m`, a new class
   behind A16's `IntradayRealisedVol`, sharing A16's arithmetic (one function, not a copy). `method` is
   `rv-candle-15m-v1` and `measure` is `candle_close`.
-- **Provenance (A17's rule):**
-  - `first_seen_at` is the fetch time of the raw copy the levels came from;
+- **Provenance (A17's rule, A17's function; judge 122 minor 2):**
+  - computed by the same `provenance()` A17 uses: it moves from `fno/global_cues/table.py` to `fno/provenance.py`
+    (with `LIVE`, `BACKFILLED` and `NSE_OPEN`) and A17's table and verify import it from there, unchanged in
+    behaviour (A17's tests stay green); the next session comes from `NseSessionCalendar.next_open` (A17b), so muhurat
+    is skipped as there;
+  - `first_seen_at` is the latest fetch time of the raw copies the row came from (its 15-minute window and its
+    1-minute session answer);
   - `provenance` is `live` when that time is before 09:15 IST of the session after the row's session, else
     `backfilled`;
   - every row of the first back-fill is `backfilled`;
@@ -150,8 +185,9 @@ not committed.
 
 ## Expected design
 
-- `IntradayCandleSource` (interface): `candles(start, end) -> CandleAnswer` (raw bytes, parsed candles, request and
-  response times). It has one adapter, `GrowwCandleSource`, which holds only A16's `ReadOnlyGroww`. The wrapper's
+- `IntradayCandleSource` (interface): `candles(start, end) -> CandleAnswer` (15-minute) and
+  `minute_candles(day) -> CandleAnswer` (1-minute, for the check), each with raw bytes, parsed candles, request and
+  response times. It has one adapter, `GrowwCandleSource`, which holds only A16's `ReadOnlyGroww`. The wrapper's
   allow-list gains one constant, `CANDLE_INTERVAL_MIN_15`: no call is added. That is the only line of A16's code this
   story touches, and it is stated in the claims.
 - `CandleArchive`:
@@ -183,7 +219,12 @@ not committed.
    - A failed call or an unreadable answer names the window and the error class, archives nothing, derives nothing
      for that window, and the run goes on to the next window, then exits 1.
    - A rerun fetches only windows not yet fully derived.
-   - Tests: a fake source and store; a store that raises (nothing derived); an interrupted run resumed.
+   - Each window's line prints its candle count against the expected 25 x its sessions (judge 122 minor 5), so a
+     capped or truncated answer shows as one line; its sessions are void `missing_candles` in any case.
+   - Sessions whose previous session has no row are deferred (Definitions, "Order"), named, exit 1.
+   - Tests: a fake source and store; a store that raises (nothing derived); an interrupted run resumed; **a failed
+     middle window, then a resume: the first session after it is deferred, then written with its overnight part
+     computed, and nothing is refused**; a window answer one candle short (its line shows the shortfall).
 2. **Levels.**
    - The 26 levels are exactly the 09:15 open and the 25 closes defined above. Candles at 09:00, 15:30 and 15:45 are
      never levels and are counted.
@@ -193,8 +234,15 @@ not committed.
 3. **Calendar.**
    - Regular and special sessions get a row; muhurat, holiday and weekend get none, even with candles.
    - A session with no candles still gets a void row (`missing_candles:25`), never silence. 10 Oct 2025 is the real
-     case.
+     case; **the session after it gets a void overnight part and a computed intraday part** (test).
    - A day outside the calendar stops with exit 1 and A7's message.
+   - Rule-5 cases named with their expected rows (judge 122 minor 1), each a test from a fixture of the real counts:
+     - 13 and 23 Mar 2020 (23 of 25 candles): void `missing_candles:2`;
+     - 24 Feb 2021 (5 of 25): void `missing_candles:20`; its candles after 15:30 are not levels and are counted in
+       `outside_candles`;
+     - 2 Mar and 18 May 2024 (10 each, short special sessions): void `missing_candles:15`;
+     - 26 Sep 2025 (22) and 29 Sep 2026 (20): void `missing_candles:3` and `missing_candles:5` (Groww's holes, step 0);
+     - 10 Oct 2025 (0): void `missing_candles:25`.
 4. **Realised variance.**
    - `CandleCloseRv15m` gives A16's numbers for the same 26 levels. Tested against a hand computation and against
      `QuoteSnapshotRv15m` on the same input. They share one function; a mutation in it fails both.
@@ -203,22 +251,28 @@ not committed.
    - The row is written once: the same inputs again change nothing, different inputs are refused and named.
    - `vol_pct` is as A16's.
 5. **NSE check.**
-   - A level outside NSE's range by more than 0.05 voids the session (`outside_nse_range`). Tests at 0.05 and 0.06
-     beyond.
+   - A level, or a used candle's high or low, outside NSE's range by more than 0.05 voids the session
+     (`outside_nse_range`). Tests at 0.05 and 0.06 beyond; **a full session with every close inside NSE's range and
+     one candle high 196.30 above it voids** (the 23 Mar 2020 shape).
    - A missing NSE file voids it (`nse_unchecked`).
    - The open, high and low gaps are in the row.
    - The run prints how many sessions have a pre-open gap above 0.05, and every such session by date.
-   - It also re-checks step 0's equality on 5 sessions spread over the range: the 15-minute close equals the 1-minute
-     close at every mark. That is 5 extra one-day 1-minute reads; the run prints how many marks are equal.
+   - **The 1-minute check (Definitions):** a session with any of its 26 marks more than 0.05 from the 1-minute value
+     voids (`candle_mismatch`, marks named); a session without a usable 1-minute answer is not written and counted
+     (`no_1m_check`, exit 1). Tests at 0.05 and 0.06; an empty 1-minute answer; a 1-minute answer missing one needed
+     minute; the pacing (no two calls start less than 0.5 s apart); three failures in a row stop the run.
 6. **Provenance and look-ahead.**
-   - Every row has `first_seen_at` (the raw copy's fetch time) and `provenance` by A17's rule.
+   - Every row has `first_seen_at` and `provenance` from A17's own `provenance()` (moved to `fno/provenance.py`;
+     A17's tests and verify unchanged and green).
    - Tests: fetched after the next session's 09:15 gives `backfilled`; fetched at 18:00 the same day gives `live`;
      09:14:59 and 09:15:00 of the next session (boundary); the next session found by the calendar across a weekend
      and a holiday.
    - The README states plainly: a back-filled row is history fetched later; it was never known at the time by this
      tool.
-7. **Void share.** The run prints sessions, `ok`, void by reason, and the void share, and flags it above 5% (design
-   5.2). The real run's figures are in the claims.
+7. **Void share.** The run prints sessions, `ok`, void by reason, and the void share over all recorded sessions,
+   and flags it above 5% (design 5.2). Structurally short sessions (the two short specials and the two halt days) count
+   in that share like any other void and are also listed apart by reason, never excluded. The real run's figures are
+   in the claims.
 8. **Verify.** `backfill-verify` recomputes every row from its manifest's Drive copies. A planted change to a row, a
    copy whose SHA-256 differs from its manifest, and a row with no copy are each named; exit 1.
 9. **No prices in the repository.**
@@ -269,13 +323,16 @@ not committed.
 | Every day checked against the calendar; holes recorded (A16 Out of scope) | 3 (8 holes known from step 0) |
 | Raw to Drive, never in the repository (owner; 4.4) | 1, 9 |
 | One read per 90 days, about 30 calls (A16 Out of scope) | 1 (28 calls measured) |
-| Back-filled rows labelled `backfilled`, never live forecasts (orchestrator) | 6; the forecast label itself: G6 (out, with the fields it needs) |
+| Back-filled rows labelled `backfilled`, never live forecasts (orchestrator) | 6; the forecast label itself: G6 (out, with the fields it needs). G6 has no story text yet, so the condition is put to the orchestrator as a decision row in response 113 and as an open item in response 122, for G6's text to carry (judge 122 minor 3) |
 | Point in time: inputs only from rows with `first_seen_at` before the cutoff (5.7 rule 6) | 6 |
 | A16's layout read, not changed (orchestrator) | 11; the one allow-list constant stated |
 | Groww read-only, secrets only in the environment (owner; 6.6) | 10 |
 | V1's HAR needs 250 intraday sessions (5.3; judge 108 minor 3; decision 15) | the series itself (about 1,670 sessions); fitting: out (G6/G7) |
 | A level outside NSE's official range (step 0's 23 Mar 2020) | 5 |
-| A16's NSE-open condition flags every session (step 0 finding) | out of scope here; reported to the orchestrator for A16 |
+| A16's NSE-open condition flags most sessions (step 0 finding: 67 of 74 recent sessions) | out of scope here; recorded as decision 53 in response 113 and fixed in A16d (edd5ad5, with judge D) |
+| The 2020-2025 back-fill is equal to 1-minute values (judge 122 should-fix 1) | Definitions (1-minute check), 5 |
+| A bad high or low on an otherwise normal session (judge 122 should-fix 2) | Definitions (NSE range check), 5 |
+| A failed window must not fix a wrong row in place (judge 122 should-fix 3) | Definitions (Order), 1, 3 |
 | Interfaces plus a composition root (CLAUDE.md) | 12 |
 | Scheduling a daily extension | out: the owner's |
 
@@ -287,5 +344,6 @@ not committed.
   so);
 - recomputes one session's RV by hand from a fixture.
 
-**Depends:** A1, A7, A9, A10, A16, A17 (the provenance rule) · **Size:** M · **Status:** story text for the judge's
-check (quality rule 1); no code yet
+**Depends:** A1, A7, A9, A10, A16, A17 (the provenance rule) · **Size:** M · **Status:** story text revised after
+judge 122 (FAIL on d7bfd66: 3 should-fix and 5 minors, all accepted; the orchestrator's decision 55 chose the
+per-session 1-minute check), for the judge's re-check; no code yet
