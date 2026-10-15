@@ -386,3 +386,40 @@ sizes.
 **Verdict: FAIL for 2490d562da672731be83e83d8eef7e0760f14253**, on must-fix A only. Addendum 3's must-fixes are met on
 average, and the builder's tables reproduce with independent seeds. The remaining gap is conditional error near the
 gate, which the calm stress cannot show because those stretches hold no events.
+
+## Addendum 5 (15 Oct 2026): revision 5 at 355eae4665b3f3b0adc2fd7ca08dfdb285e683e2 (2490d56..355eae4)
+
+One commit (parent 2490d56). It adds Brier thresholds per event-count band (`tools/v4_brier_bands.py`, its tables),
+`confirmatory.event_band`, protocol text and tests.
+
+## Gates
+
+On a trial merge with current `origin/main` (it merges cleanly; `reviews/claude/README.md` auto-merges):
+**3824 passed**; ruff, format (820 files) and `check_imports` are clean. `PROTOCOL_v4.md` is exactly 350 lines, at
+the limit and not over it. Next time, split it rather than trim it.
+
+## Must-fix A (addendum 4)
+
+| Item | Status | Evidence |
+|---|---|---|
+| Thresholds by event-count band | MET | Bands 5-7, 8-12 and 13+. Each band's claim and futility thresholds are calibrated on nulls conditioned to that band: the 2019-26 empirical nulls in both orientations, plus Gaussian nulls for claims. Calibration and held-out draws use separate seed words (11/12, 13/14, 15/16). `event_band` returns None below 5 (not judgeable) and the band otherwise; G8 calls `operative_thresholds(question, n, band)` |
+| My band split, own seeds | MET | 200,000 series per n and orientation, seed words [4711, n, horizon, flip], different from the builder's, at the committed band thresholds. **All 24 cells are within nominal + 2 Monte Carlo SE.** Worst rates: claim look 1 0.00119 (V6a, n = 250, 8-12); claim look 2 0.00176; false "no" 0.0255 (V6b, n = 250, 13+; tolerance there 0.0261) |
+| Identical V6b n = 125 rows for 8-12 and 13+ | Not a bug | Each band's claim threshold is the smallest quantile over the empirical and Gaussian nulls. The Gaussian nulls have no events, so they enter every band unchanged. For V6b at n = 125 the Gaussian quantile is the binding minimum in both bands: I recomputed it at 0.000647573764932622, identical to both rows' threshold to every digit. The worst held-out claim size in both rows is then the Gaussian null's, also band-independent. The futility columns, which have no Gaussian null, differ (2.35% and 2.45%) as expected |
+| V6a declared effectively unclaimable; VIX null owed | Done | Stated in the protocol and response 99 |
+
+## Remaining notes (not blocking)
+
+- Every Brier verdict is conditional on a count of outcomes that the forecasts do not influence, so conditioning on it
+  is legitimate (conditional inference on a count that carries no information about relative skill). It must stay
+  defined exactly as in `brier_series`: 2% days of each forecast day's first outcome session within the scored window.
+  G8 must use that same definition.
+- **For the owner, plainly:** under v4 as written, V1, V2 and V6a will almost surely never be claimed. V6b and V7 need
+  about 150-200 independent outcomes at r = 3, and no verdict at all in a window with fewer than five 2% days. Futility
+  ("no") still works for every question. So the most likely May 2027 Test A result is "undecided", and the owner's
+  confirmed option B then applies.
+- `PROTOCOL_v4.md` is at the 350-line limit; any later change must split it.
+
+**Verdict: PASS for 355eae4665b3f3b0adc2fd7ca08dfdb285e683e2** (the draft, not frozen). The freeze still needs:
+ChatGPT's re-review of revisions 1-5, the G7 and G8 code (G8 must use `event_band`, the operative thresholds and the
+gate exactly), and then my check of the freeze record's hashes. Merge as a merge commit after ChatGPT, keeping both
+READMEs' rows.
