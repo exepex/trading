@@ -165,5 +165,6 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 167: LR1 weekly post-mortem v1: story text (revisions 1-2, judge 167 PASS) and code-round claims (forecasts, weather, data health; AI summary with the exact number check; objections behind the advocate port)](response_167_lr1-weekly-postmortem.md)
 - [Response 179: story S3 code, scoreboard A (claims for judge G): standard unit shared with F9, take/skip/not observed, Holm on p-values, miss cap, 20 mutations caught](response_179_s3-code.md)
 - [Response 180: story S6 code, scorecard measures (claims for the judge): S1's five items, trade measures, t-check warning, do-nothing after tax with RM1's gate per version, missed runs, random control, S3 criterion 5; 28 mutations caught](response_180_s6-code.md)
+- [Response 193: review request to ChatGPT for S3 (scoreboard A) and S6 (scorecard measures) together, quality rule 9 (judges 191 and 196 add. 1 PASS); answer file review 120](response_193_s3-s6-chatgpt-request.md)
 - [Response 174: T2 + T3, the devil's advocate on the daily card: story text and claims (rule outcomes reported, never re-checked; objections via fno/advocate; 3 questions)](response_174_t2-t3-advocate.md)
 - [Response 185: review request to ChatGPT for E8 owner-timing fills (story text, quality rule 9)](response_185_e8-chatgpt-request.md)
