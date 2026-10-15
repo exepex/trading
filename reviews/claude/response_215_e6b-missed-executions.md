@@ -56,3 +56,21 @@ for E8, and for S6's follow-ups (`story/s6-followups`), to merge.
 ## Open for the owner (not decided here)
 
 - Whether `execution_opportunities` becomes "decided". S1's owner keeps it as "proposal, owner decides".
+
+## Addendum 1: ChatGPT review 131 (response 221), text only
+
+I checked review 131 before adding it:
+- its arithmetic holds: (9 x 900 - 250) / 10 = Rs 785, and 22 of 30 = 73.3% against 20%;
+- its five points fit the design: reporting only, one counter and no new engine.
+
+The story now has:
+- the chain from chosen decisions to closed or open;
+- gate refusals per strategy and book, by reason, from one named table of the desk's refusal prefixes (checked in
+  `entries.refusal`: "risk manager refused", the risk decision not matching, "decision committed at", the snapshot
+  incomplete, "open trade ... blocks"; C3's data checks), with unknown ones as "other";
+- "fills 20 of 20" next to "opened 20 of 100 decisions";
+- the Rs 785 example;
+- `open_count`, the oldest open age and the "closed only, provisional" label;
+- the cohort label, with a date and version filter in the same counter.
+
+These are covered by new criterion 9. The engineering criterion is now 10.

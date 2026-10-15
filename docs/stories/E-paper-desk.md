@@ -1143,6 +1143,29 @@ shared touch or the owner's timing is seen as capacity-constrained, not as inact
     longer open. An unwound partial fill enters with its actual C1 net (legging and unwind costs), never as 0: only a
     true no-fill counts 0 (S1's owner, correction a). A trade still open is neither 0 nor a miss: it is counted apart
     as "open" (a part of filled) and is in neither net, as S3's `after_cut` does (correction b).
+- **The chain, per strategy and book** (ChatGPT review 131, response 221): chosen decisions (every desk entry
+  event of the strategy: gate refusals plus fill-step opportunities; orders stopped before the desk are S6's
+  `missed_runs`) → gate refused → reached the fill → opened / missed / awaiting fill → closed / still open. It keeps
+  decision feasibility apart from execution feasibility:
+  - **gate refusals by reason**, beside the execution figures, from one named table of the desk's refusal prefixes
+    (C2's "risk manager refused", with C2's first verdict named; C3's data checks; the risk decision not matching;
+    decided too late; snapshot incomplete; a blocked book), unknown ones as "other";
+  - **both counts in words**, never one as the other: for 100 decisions, 80 refused by C2, 20 reaching the fill and
+    20 opened, "fills 20 of 20" and "opened 20 of 100 decisions"; never "100% of signals traded";
+  - **an unwound partial fill** is an execution miss and its real net (spreads, C1 charges, legging loss) enters net
+    per opportunity: nine closes at +Rs 900 and one unwind at -Rs 250 give a filled-only average of Rs 900 and a net
+    per opportunity of (9 x 900 - 250) / 10 = Rs 785;
+  - **open trades:** `open_count` and the oldest open trade's age in sessions; both averages labelled "closed only,
+    provisional while trades are open". When they close, the figures are recomputed from the same immutable events,
+    never backdated. The denominator of net per opportunity is printed: opportunities minus open (awaiting fill is
+    in neither);
+  - **cohort label:** the block covers all dates and versions of the account and says so, "all dates, not the claim
+    cohort". Before any figure is used for a version or promotion comparison, the block for that claim is computed
+    on the claim's own eligible dates and version, by a date and version filter in the same counter (no second
+    engine). Example: pilot 20 of 20 filled and the new version 2 of 10 give 22 of 30 (73.3%) overall, which hides
+    the new version's 20%. E6b still changes no S1 verdict;
+  - E4d's fixed priority and `size_shared_in_book` per strategy, and E8's owner away, price moved and no quote apart
+    (they have different remedies).
 - **E6's scorecard** shows the block for every card. Its present entry line (`attempts`, `opened`, `not filled`,
   `refused`) is replaced by the block, so there is one count of entries, not two (DRY). The changed report line is
   stated in the claims, not loosened.
@@ -1188,7 +1211,13 @@ takes its entry counts from the class. S2's `book_board` adds the block. No new 
 7. No verdict changes: E6's review, S2's head-to-head figures, uncertainty, do-nothing and random control are
    unchanged on the existing fixtures (their tests pass unchanged).
 8. The block holds no quote figure: reasons are codes and E8's fixed wording only (E2b).
-9. Engineering: constants in `fno/constants.py`; no file over 350 lines; ruff, imports and the full suite (`-n auto`)
+9. The chain (review 131): a strategy with 100 decisions, 80 C2 refusals (reason counted), 20 reaching the fill and
+   20 opened shows "fills 20 of 20" and "opened 20 of 100 decisions". Nine closes at +Rs 900 and one unwind at -Rs 250
+   give Rs 900 filled-only and Rs 785 per opportunity. An open trade shows `open_count` 1, its age in sessions and the
+   "closed only, provisional" label. The whole-account block says "all dates, not the claim cohort", and the filter
+   on one version's dates gives that version's own counts (pilot 20 of 20 and version 2 of 10 give 2 of 10, not 22 of
+   30). An unknown refusal or miss reason is "other".
+10. Engineering: constants in `fno/constants.py`; no file over 350 lines; ruff, imports and the full suite (`-n auto`)
    pass.
 
 **Test plan:** unit tests on fixture desk records (no network, no Slack): criterion 1's account, an E8 miss, an
