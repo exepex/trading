@@ -93,3 +93,36 @@ New claims:
 | 13 | F8 accepts a bundle name for one session that works for two roles. | Strong: `usage_ledger.py` column `role_or_bundle`; `record-usage --role` is free text. |
 | 14 | One routine is enough: both steps read only committed files and the fire path takes one pointer. | Some evidence (the AI books do the same with one routine per book). |
 | 15 | Objections from the same session as the summary are less independent than from a second routine. | Reasoning only; stated in Known limits, owner chose small setup. |
+
+## Code round (after judge 167 addendum 2 PASS)
+
+Branch `story/lr1-weekly-postmortem`. New: `fno/learning/` (week, readers, three sections, report, writer, publish,
+cli, wiring) and `fno/advocate/` (numbers, port, routine_file); `.github/workflows/postmortem-weekly.yml`;
+`docs/stories/LR1-owner-checklist.md`; 52 tests in `tests/learning/` and `tests/advocate/`. Changed: the Monday post
+removed from `forecast-scores.yml`; two secret names in `fno/constants.py`; `postmortem` in `fno/cli.py`; the new
+composition root listed in `CLAUDE.md`. Every file is under 90 lines.
+
+Two choices made while coding (story text updated for both):
+1. **A separate `postmortem fire` command.** If `weekly --post` fired the routine itself, the routine could start
+   before the job pushed the lines, find no file and write nothing. So the job writes, commits and pushes the lines,
+   then fires (strong: the routine reads `main`).
+2. **The card line uses T1's own `misses(log, day)`** instead of a new reader. A TEST delivery is not counted, and
+   the words match the next card's (strong: `fno/cards/deliveries.py`).
+
+Live dry run on this branch, `python -m fno postmortem weekly --week-ending 2026-10-17`, writes nothing:
+- **Forecasts:** "Protocol v4: no G8 score report yet" (no schedule has written one; the new job writes it first).
+  G4's own summary of `scores/2026-10-15.json` follows.
+- **Weather:** 12-14 Oct GREEN (back-fill, v0 AMBER), no 2% move after 12 or 13 Oct, 14 Oct unresolved; 15-16 Oct
+  "missing". No live weather record exists yet.
+- **Data health:** 3 pm captures on 14 Oct (2.7 minutes after 14:55) and 15 Oct (10.7 minutes after), "none" on the
+  other days. "No card on record" every day: 15 Oct's only delivery is the TEST. A16: 0 of 20. Complete days: 0 of 5.
+  These rows show the real state of the inputs, not a code fault.
+
+Desk note (some evidence, exploratory back-fill only, not counted): G8's report run for this check
+(`forecast-v4-scores report --as-of 2026-10-15`, not committed) shows weather_vix_v1 against the base rate on V6a
+with relative improvement 0.1756, p 0.0021 (batch means), over 1,907 back-fill days. v6_ewma_t4 shows 0.1449. Both
+are back-fill; only forecasts after the v4 freeze count.
+
+Known gaps: the routine's prompt is checked only by the owner's hand run (checklist step 3). The number check needs
+numbers exactly as the lines print them, so a rounded number ("0.04" for "0.0391664") drops the summary. That is
+deliberate: the routine is told to copy numbers exactly.

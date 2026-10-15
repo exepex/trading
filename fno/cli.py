@@ -21,6 +21,7 @@ from .forecast_scoring.v4.cli import add_forecast_v4_scores_parser
 from .forecast_v4_rules.cli import add_forecast_v4_parser
 from .global_cues.cli import add_global_cues_parser
 from .intraday.cli import add_intraday_parser
+from .learning.cli import add_postmortem_parser
 from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
@@ -221,6 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     add_vix_history_parser(sub)
     add_card_parser(sub)
     add_weather_parser(sub)
+    add_postmortem_parser(sub)
     add_global_cues_parser(sub)
 
     args = p.parse_args(argv)

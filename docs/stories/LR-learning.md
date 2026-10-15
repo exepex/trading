@@ -33,7 +33,10 @@ built, and the objecting AI is built once, behind one port, for T3 to reuse.
 - `python -m fno postmortem weekly [--week-ending YYYY-MM-DD] [--post]`. The week is the A7 regular sessions from
   Monday to Friday of the week that ends on that Saturday (default: the latest Saturday on or before today, IST).
   Without `--post` it is a dry run: it prints the lines and writes, fires and posts nothing. With `--post` it writes
-  the lines to `research/postmortems/<YYYY>/<week-ending>.md` and `.json` and fires the post-mortem writer (below).
+  the lines to `research/postmortems/<YYYY>/<week-ending>.md` and `.json`.
+- `python -m fno postmortem fire [--week-ending YYYY-MM-DD]`: fires the post-mortem routine (below), run by the job
+  only after the lines are pushed to `main`, so the routine always finds them (code round: a separate command, because
+  firing inside `weekly --post` would start the routine before the lines are committed).
 - `python -m fno postmortem publish [--week-ending YYYY-MM-DD]`: one hour later, reads the writer's prose if it came,
   runs the number check, reads the objections if they came, and posts once to #fno-desk (`FNO_SLACK_BOT_TOKEN`, through the existing alert
   sender of `fno/composition.py`), in this order: the checked prose (or one line saying why it was dropped), the
@@ -64,14 +67,15 @@ built, and the objecting AI is built once, behind one port, for T3 to reuse.
 - **Data health section** (layer 1 metrics, design 2.1), per session of the week, from committed files only:
   - 3 pm quotes (A4, A4b): the day's `.canonical` marker present; its attempt's sidecar `complete` and `finished_at`;
     lateness = `finished_at` minus 14:55 IST in minutes; no marker: "none";
-  - daily card (T1): a non-test delivery record in `research/cards/deliveries/<YYYY>/<d>-*.json` present;
+  - daily card (T1): "ok", or T1's own `misses` lines for the day (the same words the next card uses: no card on
+    record, not sent, not saved, a clock warning); a TEST delivery is not the card, as in T1;
   - v4 forecasts: G8's miss lines above already count missed days; data health does not count them again;
   - 15-minute recorder (A16): the number of live session rows in `research/data/intraday/rv/`; below 20 sessions it
     says "not enough data yet (n of 20)", the V1 minimum of the REPLAN;
   - one completeness line: sessions with a complete capture, a card and a weather record, out of the week's sessions.
 - **The AI routine: one routine, two steps** (the "post-mortem writer" and "devil's advocate objections" roles of
   design 7.6's stop order; one routine keeps the owner's setup to one routine and two secrets):
-  - fired by `postmortem weekly --post` through the existing `RoutineTrigger` interface (`fno/pipeline/trigger.py`,
+  - fired by `postmortem fire` through the existing `RoutineTrigger` interface (`fno/pipeline/trigger.py`,
     `RoutineFireTrigger`, as the AI books in `fno/ai/fire.py`), with a one-line pointer: the week's Saturday and the
     SHA-256 of the committed lines file. Only the pointer is sent, never data;
   - its routine (created by the owner from `docs/stories/LR1-owner-checklist.md`; two repository secrets,
@@ -135,7 +139,7 @@ built, and the objecting AI is built once, behind one port, for T3 to reuse.
 - A scheduled plain job (no AI in the job itself), `.github/workflows/postmortem-weekly.yml`:
   - Saturday 10:41 IST (owner, 15 Oct 2026): run G8's own `forecast-v4-scores report --as-of <Saturday>` (so a current
     v4 report exists), commit `research/forecasts/v4_scores/` and the lines files, then `postmortem weekly --post`
-    (fires the writer) and commit the fire log, with the public-record scan on;
+    and commit and push the lines, then `postmortem fire` and commit the fire log, with the public-record scan on;
   - Saturday 11:41 IST: pull, `postmortem publish`, commit nothing but the publish record
     (`<week-ending>_posted.json`: which text was posted and why).
 - `forecast-scores.yml`: its Monday summary post (cron `41 3 * * 1` and its step) is removed; G4's daily scoring and
@@ -155,8 +159,8 @@ Out (each with where it goes):
   - `sections.py`: `PostMortemSection` (interface: `lines(week) -> list[str]` and `data(week) -> dict`), with
     `ForecastSection`, `WeatherSection` and `DataHealthSection`, one class each.
   - `readers.py`: `ScoreReports` (latest committed G4 and G8 JSON on or before a day), `CaptureMarkers` (the 3 pm
-    marker and sidecar), `CardDeliveries`, `IntradaySessions`; each a small class behind an interface so a test fakes
-    it.
+    marker and sidecar), `IntradaySessions`; each a small class behind an interface so a test fakes it. Card
+    deliveries are T1's own `DeliveryLog` and `misses`.
   - `report.py`: `PostMortemBuilder` (joins the sections, puts the EXPLORATORY line first before the v4 freeze) and
     `PostMortemRecords` (write once).
   - `writer.py`: `WriterPointer` (the one-line pointer, a `FiredText`) and `PostMortemRoutine` (budget signal, fire
@@ -165,7 +169,7 @@ Out (each with where it goes):
 - `fno/advocate/` (reusable, for T3): `numbers.py` (`number_tokens`, the one tokenizer, and `NumberCheck`, the four
   rules, returning the first failed rule), `port.py` (`Advocate`, `AdvocateSubject`, `AdvocateResult`),
   `routine_file.py` (`RoutineFileAdvocate`, `ObjectionCheck`).
-  - `cli.py` (the two commands) and `wiring.py` (composition root: the folders, `WeatherRecords`, G7's series, the A7
+  - `cli.py` (the three commands) and `wiring.py` (composition root: the folders, `WeatherRecords`, G7's series, the A7
     calendar, the alert sender, the routine's trigger from its two secrets, the budget signal file,
     `RoutineFileAdvocate`).
 - Reuse, not a second version: `RoutineTrigger`/`RoutineFireTrigger`/`UnconfiguredTrigger` and `FireFailed`
@@ -262,4 +266,4 @@ secrets and commit step.
 - The objections are checked for form and numbers only, not for whether they are fair; they are labelled AI and change
   nothing.
 
-**Depends:** G4, G8, M1, T1, A4b, A7, F1/G5 (fire path), F8, BG1 · **Size:** S · **Status:** story text, waiting for the judge
+**Depends:** G4, G8, M1, T1, A4b, A7, F1/G5 (fire path), F8, BG1 · **Size:** S · **Status:** text PASS (judge 167 addenda 1-2); code on `story/lr1-weekly-postmortem`, with the judge
