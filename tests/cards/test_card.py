@@ -43,7 +43,10 @@ def test_each_question_shows_only_the_past_average_with_its_records_and_the_othe
     _, text = card_of(planted(), tmp_path)
     assert "Forecasts on record: live capture of 2026-10-14 (not today's" in text
     assert "This capture was generated at 19:27 IST, after its 15:15 deadline: its records are not scored" in text
-    assert "House forecast: past average (baseline_b_base_rate). G1 names no primary yardstick" in text
+    assert (
+        "House forecast (baseline_b_base_rate): no primary named in G1; past average shown "
+        "(orchestrator's fallback rule)." in text
+    )
     assert "3 other forecasters recorded; none has passed its test yet." in text
     assert (
         "q1_nifty_up_20d (NIFTY higher in 20 sessions): past average 0.59 | back-fill, not live: said 0.5-0.6 on 175 "

@@ -35,9 +35,7 @@ NONE_YET = "Forecasts: none on record yet"
 HEADER = "Forecasts on record: live capture of {day}{age}; track records from the score report of {report}"
 OLDER = " (not today's: the latest committed capture)"
 LATE = "This capture was generated at {at} IST, after its {deadline:%H:%M} deadline: its records are not scored"
-HOUSE_NOTE = (
-    "House forecast: past average ({house}). G1 names no primary yardstick, so this is the fallback (display only)."
-)
+HOUSE_NOTE = "House forecast ({house}): no primary named in G1; past average shown (orchestrator's fallback rule)."
 OTHERS = "{count} other forecasters recorded; none has passed its test yet. None of this is advice."
 QUESTION_LINE = "{question} ({name}): past average {probability:.2f} | {record}"
 NO_FORECAST = "{question} ({name}): past average gave no forecast"
