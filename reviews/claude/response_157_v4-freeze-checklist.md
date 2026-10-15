@@ -41,9 +41,10 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
 - **Before the freeze commit (judge 189, judge B's condition):** G10 part 2's moved-after-cutoff flag, written by
   A16's 15:30 run into its rv row (orchestrator's go, 16 Oct), changes `fno/intraday/session_rv.py`, which is
   byte-checked; it lands before the freeze or becomes a new version.
-- **Also before the freeze commit (judge 206):** the look's open-audit gate (`fno/forecast_scoring/v4/audits.py`,
-  `story/g8-look-audits`): a confirmatory look refuses while an AI audit up to its date is open (G11 keeps
-  `research/forecasts/v4_audits/open_audits.csv`). It changes `fno/forecast_scoring/v4/`, which is byte-checked.
+- **Also before the freeze commit (judge 206, response 213):** the look's reconciliation
+  (`fno/forecast_scoring/v4/reconcile.py`, merged 4b8912fc/16e082a7 then replaced by `story/g8-look-reconcile`): a
+  confirmatory look refuses while any scheduled AI slot-day up to its date has no v4 record row (G11 writes one per
+  slot-day once settled). It changes `fno/forecast_scoring/v4/`, which is byte-checked.
 - **Recorded, not byte-checked:** `fno/constants.py`, `fno/desk/settlement.py`, `fno/research_data/calendar.py`,
   `fno/research_engine/implied_vol.py` (section 10), plus `fno/intraday/rv_table.py` (V1's outcomes) and
   `fno/forecast/iv30.py` (frozen under v1-v3 already), and the rest of `fno/weather/` (the US flag and the card stay
