@@ -68,3 +68,23 @@ outcome. The code was read on origin/main after E2c and E4c, and on O1's branch 
 
 Coordination: no other row in `docs/WORK_REGISTER.md` covers an end-to-end failure suite, and LM1, E4c and the
 first-line story are kept apart as stated. No duplicate.
+
+## Addendum 1: revision 3 at 3050495d
+
+**Verdict: PASS.** All three should-fixes and all four notes are applied, and each matches the code.
+
+- **Should-fix 1.** Row (b) now gives E2c's rule: `PrivateFilesUnavailable` is a `CommitFailed`, so the run stops at
+  `fills` and no exits run that day, the stop alert names "exits not reviewed today", and `BEFORE_EXITS` applies the
+  next session. Only `AccountWriteRefused` and `OrdersRefused` fail one book closed. Any change to this belongs to
+  E2c.
+- **Should-fix 2.** One named test-only book, `book_test`, comes in through `build_daily_run`'s existing `books`
+  parameter. It is written down as the single exception to criterion 6, and the row now names the real exceptions
+  (`OrdersRefused`, `AccountWriteRefused`, an exit review that raises).
+- **Should-fix 3.** For kills from `quotes` to `exits`, the expected outcome is now named: `quotes_done`
+  `NOT_IN_THIS_RUN`, with the part files uncommitted. Every other kill must leave the records byte-identical. A kill
+  between a step's record and its commit is added, and the step count is read from the tuple.
+- **Notes A-D.** All in: the download failure loses that day's quote parts, NSE included; the double print is a Known
+  limit, routed to E4c's owner; `NO_LOG`'s wording also covers a run that never began; the step count is read from the
+  tuple.
+- **One-line note:** criterion 5 still says "each Book 2 failure". Write `book_test` so it matches criterion 6 and the
+  family row.
