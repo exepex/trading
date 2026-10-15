@@ -79,7 +79,7 @@ def test_a_quote_received_after_15_00_and_an_untimed_vix_are_refused(tmp_path, v
     """Must-fix 2: a request sent at 14:59:59 whose response arrived at 15:00:01 is late (P3); VIX without a readable
     NSE time is untimed, never admitted at the capture's time (P4)."""
     refused = {r["name"]: r["reason"] for r in late_and_untimed(tmp_path, vix_time).body["refused"]}
-    assert refused == {"option:2026-11-23:22500:PE": "after the cutoff", "india_vix": "no availability time"}
+    assert refused == {"quote_counts": "after the cutoff", "india_vix": "no availability time"}  # E2b: counts, not rows
 
 
 def test_an_item_at_exactly_the_cutoff_is_kept():

@@ -37,10 +37,30 @@ class Waiter(ABC):
         """Returns at `moment` (at once when it has passed)."""
 
 
+class CommitFailed(Exception):
+    """The committer could not commit and push (a refused file, a failed pull, a push rejected every time); the message
+    names why, and `unpushed` says a local commit was left for the rerun to push. The daily run stops at that step with
+    one alert (decision 44)."""
+
+    def __init__(self, message: str, unpushed: bool = False):
+        super().__init__(message)
+        self.unpushed = unpushed
+
+
+@dataclass(frozen=True)
+class OwnCommit:
+    """This run's own earlier commit that may still be unpushed (a rejected push being recovered): its message and the
+    SHA-256 of each file as recorded (None for a file that did not exist)."""
+
+    message: str
+    files: Mapping[str, str | None]  # path relative to the repository root -> SHA-256
+
+
 class Committer(ABC):
     @abstractmethod
-    def commit(self, paths: Sequence[Path], message: str) -> str:
-        """Pulls, commits these paths and pushes; the commit ID. Raises when it cannot."""
+    def commit(self, paths: Sequence[Path], message: str, own_unpushed: OwnCommit | None = None) -> str:
+        """Pulls, commits these paths and pushes; the commit ID. Raises `CommitFailed` when it cannot. Any unpushed
+        commit other than `own_unpushed` is refused."""
 
 
 class Packs(ABC):

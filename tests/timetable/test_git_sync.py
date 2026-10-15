@@ -183,3 +183,29 @@ def test_every_git_refusal_of_an_account_write_is_an_account_write_refused():
     from fno.desk.git_sync import GitError
 
     assert issubclass(CheckoutNotDedicated, AccountWriteRefused) and issubclass(GitError, AccountWriteRefused)
+
+
+RAW_QUOTE = "research/data/quotes/groww/derivatives/quote-snapshots/2026/10/nifty_20261014_151500.csv"
+
+
+@pytest.mark.parametrize("message", ["fills t1", "exit fills t1"])
+def test_a_raw_quote_file_staged_earlier_refuses_the_write_before_anything_is_applied(checkouts, message):
+    """Judge 118 addendum 2, should-fix 1: the index is checked before `apply`, so a refusal leaves the journal as it
+    was, and it is an AccountWriteRefused, which the fill and exit steps handle (judge 84)."""
+    from fno.desk.daily_ports import AccountWriteRefused
+
+    _, b = checkouts
+    sync_for(b).write(BOOK1_RULES, lambda j: j.fill("t0-open"), "fills t0")
+    folder = book_folder(b, BOOK1_RULES)
+    before = {p: p.read_bytes() for p in folder.rglob("*") if p.is_file()}
+    raw = b / RAW_QUOTE
+    raw.parent.mkdir(parents=True)
+    raw.write_text("contract_id,bid,ask\n")
+    git(b, "add", "--", RAW_QUOTE)
+    alerts, applied = Alerts(), []
+    with pytest.raises(AccountWriteRefused, match="refused before any fill was applied") as refused:
+        sync_for(b, alerts).write(BOOK1_RULES, lambda j: applied.append(j.fill("t1-open")), message)
+    assert isinstance(refused.value, CheckoutNotDedicated) and applied == []
+    assert {p: p.read_bytes() for p in folder.rglob("*") if p.is_file()} == before  # byte-identical journal
+    assert len(alerts.sent) == 1 and "nifty_20261014_151500.csv" in alerts.sent[0]
+    assert git(b, "log", "--format=%s").splitlines()[0] == "fills t0"  # nothing committed

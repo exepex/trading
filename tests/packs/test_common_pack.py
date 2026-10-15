@@ -35,7 +35,8 @@ def test_the_pack_holds_market_items_with_source_and_time(tmp_path):
     assert set(pack.body) == TOP_KEYS
     names = {item["name"] for item in pack.body["items"]}
     assert {"india_vix", "session", "future:2026-10-27", "future:2026-11-23", "close:2026-10-12"} <= names
-    assert "option:2026-11-23:22450:CE" in names
+    assert {"spot:2026-10-27", "spot:2026-11-23", "quote_counts"} <= names  # story E2b: no per-contract quotes
+    assert not any(name.startswith("option:") for name in names) and pack.body["schema_version"] == 2
     assert all(item["source"] and item["available_at"] for item in pack.body["items"])
     assert pack.body["provenance"]["a4_snapshot"]["snapshot_id"] == SNAPSHOT
 
@@ -107,7 +108,9 @@ def test_a_quote_and_vix_observed_after_15_00_are_refused_by_name(tmp_path):
     meta_path.write_text(json.dumps(meta))
     pack = builder(tmp_path).build(DAY, CUTOFF)
     refused = {r["name"]: r["reason"] for r in pack.body["refused"]}
-    assert refused == {"option:2026-11-23:22500:PE": "after the cutoff", "india_vix": "after the cutoff"}
+    # story E2b: a late row makes the capture's counts late; each chain's spot was known with its first row
+    assert refused == {"quote_counts": "after the cutoff", "india_vix": "after the cutoff"}
+    assert {"spot:2026-10-27", "spot:2026-11-23"} <= {i["name"] for i in pack.body["items"]}
     assert "india_vix" not in {i["name"] for i in pack.body["items"]}
 
 

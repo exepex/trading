@@ -2,6 +2,7 @@
 invalid quote, partial fills unwound with their legging cost (criterion 2), the risk manager's refusal (C2, issue #85)
 and the point-in-time rule (never a later quote)."""
 
+import csv
 import hashlib
 from datetime import timedelta
 
@@ -78,8 +79,7 @@ def test_each_fill_is_at_the_snapshot_ask_or_bid_with_its_hash_and_protection_fi
     }
     assert all(r["units"] == "65" and r["quote_age_unknown"] == "True" and r["book"] == BOOK1_RULES for r in rows)
     assert {r["strategy"] for r in rows} == {STRATEGY}  # E6 scores each version by this tag
-    touch = [(float(r["quote_bid"]), float(r["quote_ask"])) for r in rows]
-    assert touch == [(70.0, 71.0), (60.0, 60.5), (150.0, 151.0), (140.0, 141.5)]  # the touch each leg filled against
+    assert not {"quote_bid", "quote_ask"} & set(rows[0])  # story E2b: the touch stays in the hash-checked snapshot
     # The money (E1's ledger): hand computation, premium at the touch minus C1's charges on each fill price.
     premium = (150.0 + 140.0 - 71.0 - 60.5) * LOT  # Rs 10,302.50 received
     cost = charges(71.0, SIDE_BUY) + charges(60.5, SIDE_BUY) + charges(150.0, SIDE_SELL) + charges(140.0, SIDE_SELL)
@@ -115,7 +115,11 @@ def test_a_leg_fills_only_when_the_size_at_the_touch_covers_its_units(root, stor
     result = enter(root, snapshots, entry_desk, fly_order())
     assert result.outcome == outcome
     if outcome == OUTCOME_NOT_OPENED:
-        assert "size 64 at the touch is below 65 units" in result.reason
+        assert "not enough size at the touch for 65 units" in result.reason
+        assert "64" not in result.reason  # the size shown is a quote figure: never in the public reason
+        (events,) = root.rglob("desk_events.csv")
+        (row,) = csv.DictReader(events.open())
+        assert row["reason"] == result.reason  # the committed row carries the same reason, no size
         assert PaperAccount(root, BOOK1_RULES).fills() == []
 
 

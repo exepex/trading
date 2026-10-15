@@ -14,6 +14,7 @@ Commits run the repository's hooks (the public-record scan, O5): never `--no-ver
 
 from __future__ import annotations
 
+import hashlib
 import subprocess
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -21,7 +22,10 @@ from typing import TypeVar
 
 from ..alerts.sender import AlertSender
 from ..books.paths import book_folder
-from .daily_ports import AccountSync, AccountWriteRefused, Committer
+from ..config import ROOT
+from ..storage.wiring import QUOTES_FOLDER
+from .commit_guard import RawQuoteCommitRefused, RawQuoteGuard
+from .daily_ports import AccountSync, AccountWriteRefused, CommitFailed, Committer, OwnCommit
 from .records import DeskJournal
 
 T = TypeVar("T")
@@ -32,19 +36,26 @@ class GitError(AccountWriteRefused):
     """A git step failed; the message names it. For the daily run, any git failure refuses that account write."""
 
 
+class PushRejected(GitError):
+    """Every push attempt was rejected: the commit stays local and unpushed."""
+
+
 class CheckoutNotDedicated(GitError):
     """Other work is in the way (unpushed commits, uncommitted work in the book's folder, or an edit a reset would
     overwrite): no account write, no reset."""
 
 
 DIRTY = "{book}: account write refused: the checkout holds other work ({what}); it is never reset over"
+STRAY = "the checkout holds {count} unpushed commit(s) the run did not make ({what}); never pushed: resolve by hand"
 UNEXPECTED = "{book}: rejected push NOT reset: {count} commit(s) ahead, not only this write's; resolve by hand"
+RAW_STAGED = "{book}: account write refused before any fill was applied: {reason}"
 NOT_KEPT = "{book}: rejected push NOT reset: the reset would overwrite a local edit ({error}); resolve by hand"
 
 
 class Git:
-    def __init__(self, root: Path, run=subprocess.run):
+    def __init__(self, root: Path, run=subprocess.run, guard: RawQuoteGuard | None = None):
         self.root, self.run = Path(root), run
+        self.guard = guard or RawQuoteGuard(self.root, self.root / QUOTES_FOLDER.relative_to(ROOT))
 
     def __call__(self, *args: str, check: bool = True) -> subprocess.CompletedProcess:
         done = self.run(["git", *args], cwd=self.root, capture_output=True, text=True)
@@ -56,12 +67,27 @@ class Git:
         return self("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
 
     def commit_paths(self, paths: Sequence[Path], message: str) -> bool:
-        """Adds and commits these paths; False when nothing changed."""
-        self("add", "--", *(self.relative(p) for p in paths))
+        """Adds and commits these paths; False when nothing changed. What would be committed is the whole index, so
+        the raw-quote guard checks every staged file after the add (a folder or a pathspec expands there, and a file
+        staged earlier by anything else is seen too); on a refusal this add is undone (another writer's staged files are
+        left as they were, so the next commit refuses too) and nothing is committed."""
+        self.guard.check(paths)
+        added = [self.relative(p) for p in paths]
+        self("add", "--", *added)
+        try:
+            self.guard.check(self.staged())
+        except RawQuoteCommitRefused:
+            self("reset", "-q", "--", *added, check=False)
+            raise
         if self("diff", "--cached", "--quiet", check=False).returncode == 0:
             return False
         self("commit", "-q", "-m", message)
         return True
+
+    def staged(self) -> list[Path]:
+        """Every path in the index that differs from HEAD (a staged deletion too): what the next commit would carry."""
+        names = self("diff", "--cached", "--name-only", "-z").stdout.split("\0")
+        return [self.root / name for name in names if name]
 
     def push(self) -> bool:
         return self("push", "-q", "origin", f"HEAD:{self.branch()}", check=False).returncode == 0
@@ -74,28 +100,84 @@ class Git:
         aside), or commits not on origin; empty when there is none."""
         if self("status", "--porcelain", "--untracked-files=all", "--", self.relative(folder)).stdout.strip():
             return f"uncommitted work in {self.relative(folder)}"
-        self("fetch", "-q", "origin", self.branch())
-        ahead = self("rev-list", f"origin/{self.branch()}..HEAD").stdout.split()
+        ahead = self.unpushed()
         return f"{len(ahead)} unpushed commit(s)" if ahead else ""
 
-    def ahead_of(self, commit: str) -> list[str]:
-        return self("rev-list", f"{commit}..HEAD").stdout.split()
+    def unpushed(self, *options: str) -> list[str]:
+        """Commits on HEAD that origin does not have (after a fetch): what a push would publish. The one rule both the
+        account writes and the run's commits start from (decision 51)."""
+        self("fetch", "-q", "origin", self.branch())
+        return self.ahead_of(f"origin/{self.branch()}", *options)
+
+    def unpushed_files(self) -> list[Path]:
+        """Every file a push would change on origin (a deletion too), whoever made the commits."""
+        names = self("diff", "--name-only", "-z", f"origin/{self.branch()}", "HEAD").stdout.split("\0")
+        return [self.root / name for name in names if name]
+
+    def subject(self, commit: str) -> str:
+        return self("show", "-s", "--format=%s", commit).stdout.strip()
+
+    def content_sha256(self, commit: str, name: str) -> str | None:
+        """The SHA-256 of `name` as `commit` holds it; None when the commit holds no such file (deleted)."""
+        done = self.run(["git", "show", f"{commit}:{name}"], cwd=self.root, capture_output=True)
+        return hashlib.sha256(done.stdout).hexdigest() if done.returncode == 0 else None
+
+    def files_of(self, commit: str) -> set[str]:
+        names = self("diff-tree", "--no-commit-id", "--name-only", "-r", "-z", commit).stdout.split("\0")
+        return {name for name in names if name}
+
+    def ahead_of(self, commit: str, *options: str) -> list[str]:
+        return self("rev-list", *options, f"{commit}..HEAD").stdout.split()
 
 
 class GitCommitter(Committer):
+    """Every commit passes `RawQuoteGuard` (story E2b): first on the given paths, before git runs (not even the pull),
+    then on everything staged (`Git.commit_paths`), and before every push on every file the push would change. An
+    unpushed commit the run did not make is refused before the pull (decision 51): the only one allowed is the run's
+    own `own_unpushed` commit: its message, and only the pending marker's files with their recorded content. Any
+    refusal or git failure is
+    raised as `CommitFailed`."""
+
     def __init__(self, git: Git):
         self.git = git
 
-    def commit(self, paths: Sequence[Path], message: str) -> str:
-        self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", self.git.branch())
-        if self.git.commit_paths(paths, message):
+    def commit(self, paths: Sequence[Path], message: str, own_unpushed: OwnCommit | None = None) -> str:
+        try:
+            return self._commit(paths, message, own_unpushed)
+        except (RawQuoteCommitRefused, GitError) as failure:
+            raise CommitFailed(str(failure), unpushed=isinstance(failure, PushRejected)) from failure
+
+    def _commit(self, paths: Sequence[Path], message: str, own_unpushed: OwnCommit | None) -> str:
+        self.git.guard.check(paths)
+        self._refuse_stray(own_unpushed)
+        branch = self.git.branch()
+        self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
+        if self.git.commit_paths(paths, message) or self.git.ahead_of(f"origin/{branch}"):  # or one left unpushed
             for _ in range(PUSH_ATTEMPTS):
+                self.git.guard.check(self.git.unpushed_files())
                 if self.git.push():
                     break
-                self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", self.git.branch())
+                self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
             else:
-                raise GitError(f"push of '{message}' rejected {PUSH_ATTEMPTS} times")
+                raise PushRejected(
+                    f"push of '{message}' rejected {PUSH_ATTEMPTS} times; the commit stays local, unpushed"
+                )
         return self.git("rev-parse", "HEAD").stdout.strip()
+
+    def _refuse_stray(self, own: OwnCommit | None) -> None:
+        """A merge made by a retry's pull is not a stray: what it brings in is checked commit by commit here, and every
+        file it changes on origin by the guard before the push."""
+        stray = [c for c in self.git.unpushed("--no-merges") if not self._own(c, own)]
+        if stray:
+            what = "; ".join(f"'{self.git.subject(c)}': {', '.join(sorted(self.git.files_of(c)))}" for c in stray)
+            raise GitError(STRAY.format(count=len(stray), what=what))
+
+    def _own(self, commit: str, own: OwnCommit | None) -> bool:
+        """Exact: the same message, and each file the commit touches as the marker recorded it (judge 118 add. 7)."""
+        if own is None or self.git.subject(commit) != own.message:
+            return False
+        files = self.git.files_of(commit)
+        return files <= set(own.files) and all(self.git.content_sha256(commit, f) == own.files[f] for f in files)
 
 
 class GitAccountSync(AccountSync):
@@ -106,6 +188,7 @@ class GitAccountSync(AccountSync):
         branch, folder = self.git.branch(), book_folder(self.git.root, book)
         for _ in range(PUSH_ATTEMPTS):
             self._require_dedicated(book, folder)
+            self._require_no_raw_quote_staged(book)
             self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
             pulled = self.git("rev-parse", "HEAD").stdout.strip()
             with self.open_journal(book) as journal:
@@ -123,6 +206,16 @@ class GitAccountSync(AccountSync):
         other = self.git.other_work(folder)
         if other:
             self._stop(DIRTY.format(book=book, what=other))
+
+    def _require_no_raw_quote_staged(self, book: str) -> None:
+        """Checked before anything is applied (judge 118 addendum 2): a raw quote file already in the index would be
+        swept into this account commit, so the write is refused as one the desk handles ("not filled", an alert, the
+        other books and the exits go on) and the journal is left exactly as it was. The account writer itself never
+        copies a raw file, so after this check the add of the book folder cannot stage one."""
+        try:
+            self.git.guard.check(self.git.staged())
+        except RawQuoteCommitRefused as refused:
+            self._stop(RAW_STAGED.format(book=book, reason=refused))
 
     def _reset_keeping_edits(self, book: str, target: str) -> None:
         done = self.git("reset", "-q", "--keep", target, check=False)

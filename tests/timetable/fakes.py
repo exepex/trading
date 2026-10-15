@@ -27,6 +27,7 @@ from fno.desk.entries import EntryDesk
 from fno.desk.execution_capture import CommittedExecutionSchedule, RecorderExecutionCapture
 from fno.desk.exit_rules import StopLoss
 from fno.desk.exits import ExitDesk
+from fno.desk.pending_commit import PendingCommitter
 from fno.desk.snapshot import RecordedExecutionSnapshots
 from fno.desk.timetable import timetable_from_config
 from fno.desk.wiring import open_desk_journal
@@ -59,7 +60,7 @@ class Commits(Committer):
     def __init__(self, clock: Clock):
         self.clock, self.made, self.crash_on = clock, [], ""
 
-    def commit(self, paths, message):
+    def commit(self, paths, message, own_unpushed=None):
         if self.crash_on and self.crash_on in message:
             self.crash_on = ""
             raise RuntimeError("the run was killed after the fills")
@@ -74,7 +75,7 @@ class Versions(VersionKeeper):
 
 def pack_for(day: date) -> CommonPack:
     previous = CALENDAR.previous_session(day)
-    items = [{"name": "option:2026-10-27:25000:CE", "value": {"spot": 25_000.0}},
+    items = [{"name": "spot:2026-10-27", "value": 25_000.0},
              {"name": f"close:{previous}", "value": {"nifty": 24_900.0, "vix": 12.0}}]  # fmt: skip
     return CommonPack(day, {"day": day.isoformat(), "provenance": {}, "items": items})
 
@@ -181,11 +182,12 @@ def daily_run(root, tmp_path, alerts, books, decisions, validity, rules, clock=N
     quotes = LocalFolderStore(tmp_path / "quotes")
     capture = Capture(clock, quotes)
     commits = Commits(clock)
+    committer = PendingCommitter(commits, root)
     gate = DataGate(build_data_checks([nse_files(*CALENDAR.sessions(date(2026, 10, 1), date(2026, 10, 31)))],
                                       CALENDAR), RecordedExecutionSnapshots(quotes),
                     CommittedExecutionSchedule(root, TIMETABLE), alerts)  # fmt: skip
     steps = DeskSteps(root, books, TIMETABLE, Versions(), FakePacks(), decisions, decisions,
-                      RecorderExecutionCapture(capture, quotes, tmp_path / "quotes", root, commits), gate, validity,
+                      RecorderExecutionCapture(capture, quotes, tmp_path / "quotes", root, committer), gate, validity,
                       LocalSync(root), EntryDesk(CHARGES, clock), ExitDesk(CHARGES, alerts, FakeSettlements(), clock),
                       rules, alerts, clock)  # fmt: skip
-    return DailyRun(steps, CALENDAR, commits, clock, clock), clock, capture, commits
+    return DailyRun(steps, CALENDAR, committer, clock, clock), clock, capture, commits

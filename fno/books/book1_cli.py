@@ -30,12 +30,17 @@ def cmd_book1(args) -> int:
 
 def cmd_run(args) -> int:
     from ..config import load_app_config
+    from ..desk.daily_run import RunStopped
     from ..desk.daily_wiring import build_daily_run
     from ..models import now_ist
     from .book1_wiring import build_book1_exit_rules, build_book1_orders
 
     cfg = load_app_config()
-    log = build_daily_run(cfg, build_book1_orders(cfg), build_book1_exit_rules()).run(args.day or now_ist().date())
+    try:
+        log = build_daily_run(cfg, build_book1_orders(cfg), build_book1_exit_rules()).run(args.day or now_ist().date())
+    except RunStopped as stopped:
+        print(stopped)
+        return 1
     for name, step in log.steps.items():
         print(f"{name}: {step['started_at']} -> {step['finished_at']}: {step['result']}")
     return 0

@@ -33,12 +33,13 @@ def build_daily_run(cfg: dict, orders: OrderBuilder, exit_rules: ExitRules,
     from .execution_capture import CommittedExecutionSchedule, RecorderExecutionCapture
     from .git_sync import Git, GitAccountSync, GitCommitter
     from .pack_wiring import build_packs
+    from .pending_commit import PendingCommitter
     from .recorded_c4 import RecordedC4Pass
     from .sleeper import SleepingWaiter
     from .wiring import build_entry_desk, build_execution_snapshots, build_exit_desk, open_desk_journal
 
     timetable, calendar, git = timetable_from_config(cfg), build_session_calendar(), Git(root)
-    committer, history = GitCommitter(git), PlaybookGit(root)
+    committer, history = PendingCommitter(GitCommitter(git), root), PlaybookGit(root)
     alerts = build_alert_sender()
     sync = GitAccountSync(git, lambda book: open_desk_journal(book, root, timetable.lock_lease_seconds), alerts)
     packs = build_packs(root, refresh=lambda: git("pull", "-q", "--no-rebase", "--no-edit", "origin", git.branch()))

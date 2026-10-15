@@ -14,7 +14,11 @@
 7. `exits`: every book's exit review, whatever happened before (risk-reducing exits always run).
 
 Each step's start, end, inputs and result go to `journal/runs/<date>.json`, committed after the step; a restarted run
-skips every step already recorded, so nothing is done twice.
+skips every step already recorded, so nothing is done twice. A commit that fails (a refused raw quote file, a failed
+pull, a push rejected every time) stops the run at that step: one alert naming why, what is missed and the hand fix,
+no later step, nothing more committed, and `RunStopped` for the command to end on one line (decision 44). The rerun
+first commits that failed commit's files exactly as they were recorded, and never repeats the step that made them
+(`PendingCommitter`, decision 47).
 """
 
 from __future__ import annotations
@@ -26,20 +30,31 @@ from pathlib import Path
 from ..constants import RUN_LOG_DECISIONS_STEP
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
-from .daily_ports import Committer, Waiter
+from .daily_ports import CommitFailed, Waiter
 from .daily_steps import DeskSteps, StepOutcome
+from .pending_commit import PendingChanged, PendingCommitter
 from .run_log import RunLog
 
 SKIPPED = "skipped"
+STOPPED = "F&O paper desk {day}: run STOPPED at {where}, no later step runs{missed}: the commit failed: {reason}. {fix}"
+EXITS_MISSED = "; exits not reviewed today"
+RERUN = "Fix: remove the cause, then rerun `fno desk run` (it commits these files as recorded, never repeating a step)"
+PUSHES = "; the rerun pushes the local commit"
+RECOVERY = "the rerun's start"
 PACK_RETRY = timedelta(seconds=30)
 
 
+class RunStopped(Exception):
+    """The run stopped at a failed commit; the message is the alert sent."""
+
+
 class DailyRun:
-    def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: Committer, waiter: Waiter,
+    def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
                  clock: Callable[[], datetime]):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
 
     def run(self, day: date) -> RunLog:
+        self._guarded(day, RECOVERY, self.committer.recover)
         log = RunLog.open(self.steps.root, day)
         kind = self.calendar.session_kind(day)
         if kind not in RECORDED_SESSION_KINDS:
@@ -75,8 +90,22 @@ class DailyRun:
         return outcome
 
     def _step(self, log: RunLog, name: str, action: Callable[[], StepOutcome]) -> None:
-        started = self.clock()
-        outcome = action()
-        log.record(name, started, self.clock(), outcome.inputs, outcome.result)
-        paths: tuple[Path, ...] = (log.path, *outcome.paths)
-        self.committer.commit(paths, f"Desk run {log.day} step {name}")
+        def step() -> None:
+            started = self.clock()
+            outcome = action()
+            log.record(name, started, self.clock(), outcome.inputs, outcome.result)
+            paths: tuple[Path, ...] = (log.path, *outcome.paths)
+            self.committer.commit(paths, f"Desk run {log.day} step {name}")
+
+        self._guarded(log.day, f"step {name}", step)
+
+    def _guarded(self, day: date, where: str, action: Callable[[], object]) -> None:
+        """The one place a failed commit is handled: the rerun's recovery, a step's own commit and any inside it."""
+        try:
+            action()
+        except CommitFailed as failed:
+            missed = "" if where == "step exits" else EXITS_MISSED
+            fix = "" if isinstance(failed, PendingChanged) else RERUN + (PUSHES if failed.unpushed else "")
+            text = STOPPED.format(day=day, where=where, missed=missed, reason=failed, fix=fix).rstrip(" ")
+            self.steps.alerts.send(text)
+            raise RunStopped(text) from failed

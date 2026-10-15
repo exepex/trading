@@ -20,7 +20,7 @@ from fno.scorecard.pauses import AutoPauser
 from fno.scorecard.review import review_terms
 from fno.scorecard.run import ScorecardRun
 
-from .history import CHARGES
+from .history import CHARGES, snapshots_of
 
 TERMS = review_terms(load_config(ROOT / "config.yaml"))  # the repository's provisional terms (until S1)
 
@@ -86,6 +86,6 @@ def make_run(root, alerts):
     def make(checks=()):
         pauser = AutoPauser(StatusChanger(loader(root, checks), NoGit()), alerts)
         records = lambda name: DeskRecords(PaperAccount(root, name))  # noqa: E731
-        return ScorecardRun(lambda: ACCOUNTS, records, loader(root, checks), pauser, CHARGES, TERMS)
+        return ScorecardRun(lambda: ACCOUNTS, records, loader(root, checks), pauser, CHARGES, TERMS, snapshots_of(root))
 
     return make

@@ -32,7 +32,8 @@ def card_lines(card: Scorecard) -> list[str]:
         f"  closed trades {len(card.trade_lines)}, net {_rs(card.total_net)}; expected range {low_high} ({card.unit})",
         f"  review sample unit: {SAMPLE_UNIT}",
         f"  half-spread paid {_rs(costs.half_spread_per_unit)}/unit over {costs.units_at_quotes} units "
-        f"(research pad {_rs(costs.research_pad_per_unit)}); legging costs {_rs(costs.legging_costs_rs)}",
+        f"(research pad {_rs(costs.research_pad_per_unit)}); touch unknown on {costs.touch_unknown} fill(s); "
+        f"legging costs {_rs(costs.legging_costs_rs)}",
         f"  entries: {costs.attempts} reached the fill step, {costs.opened} opened, {costs.not_filled} not filled "
         f"({_share(costs.not_filled_share)}); {costs.refused} refused by a gate",
         f"  pending exits: {costs.pending_exits}, mean wait {_days(costs.mean_pending_days)}; "

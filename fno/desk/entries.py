@@ -13,8 +13,9 @@ Entry limit (orchestrator, 14 Oct 2026; judge 68): C2 checked the maximum loss o
 B2's pad, entry charges) and records that entry cash in its decision, with the proposal it judged; the limit is read
 from there only, never passed in, and a decision on any other proposal is refused. When every leg is quoted, the net
 entry at the touch (premium at ask/bid minus C1's charges) must be no worse than that approved entry, as a limit order
-would enforce; otherwise nothing fills and the shortfall is recorded. The limit scales with the lots (legs never
-fill in part). Exits are never limited.
+would enforce; otherwise nothing fills and a fixed reason is recorded, never the figures (decision 45: for a single-leg
+structure the net at the touch is one contract's ask, and the shortfall with the approved limit gives it back). The
+limit scales with the lots (legs never fill in part). Exits are never limited.
 """
 
 from __future__ import annotations
@@ -45,11 +46,7 @@ from .status import ENTRY_OUTCOMES, blocking_trades
 
 UNWIND_PENDING = "unwind of a partial fill could not finish: {legs}"
 LIMIT_TOLERANCE_RS = 1e-6  # float rounding between C2's sum and this one; far below a paisa
-WORSE_THAN_APPROVED = (
-    ENTRY_WORSE_THAN_APPROVED
-    + ": net entry Rs {actual:,.2f} at the touch is worse than the approved Rs {approved:,.2f}"
-    " by Rs {shortfall:,.2f}"
-)
+WORSE_THAN_APPROVED = ENTRY_WORSE_THAN_APPROVED + ": entry price at the touch worse than the approved limit"
 
 
 @dataclass(frozen=True)
@@ -78,14 +75,12 @@ class EntryResult:
     outcome: str
     reason: str
     legging_cost_rs: float | None = None
-    shortfall_rs: float | None = None
 
 
-def entry_shortfall(order: EntryOrder, maker: FillMaker, quotes: list[LegQuote]) -> float:
-    """Rupees by which the net entry at these quotes falls short of the approved entry (0 when no worse)."""
+def worse_than_approved(order: EntryOrder, maker: FillMaker, quotes: list[LegQuote]) -> bool:
+    """The net entry at these quotes falls short of the approved entry by more than float rounding."""
     actual = sum(maker.fill(q, FILL_OPEN).amount for q in quotes)
-    shortfall = order.risk.entry_cash_rs - actual
-    return shortfall if shortfall > LIMIT_TOLERANCE_RS else 0.0
+    return order.risk.entry_cash_rs - actual > LIMIT_TOLERANCE_RS
 
 
 def refusal(order: EntryOrder, snapshot: ExecutionSnapshot, blocked: list[str]) -> str:
@@ -126,10 +121,8 @@ class EntryDesk:
             return self._event(journal, order, snapshot, OUTCOME_REFUSED, reason)
         maker = FillMaker(order.book, order.strategy, order.decision_id, trade_id, snapshot, self.charges)
         quotes = [price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units) for leg in order.legs()]
-        if all(q.fills for q in quotes) and (shortfall := entry_shortfall(order, maker, quotes)):
-            approved = order.risk.entry_cash_rs
-            reason = WORSE_THAN_APPROVED.format(actual=approved - shortfall, approved=approved, shortfall=shortfall)
-            return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, reason, shortfall=shortfall)
+        if all(q.fills for q in quotes) and worse_than_approved(order, maker, quotes):
+            return self._event(journal, order, snapshot, OUTCOME_NOT_OPENED, WORSE_THAN_APPROVED)
         opened: list[LegQuote] = []
         for quote in quotes:
             if not quote.fills:
@@ -154,16 +147,16 @@ class EntryDesk:
         return self._event(journal, order, snapshot, OUTCOME_PARTIAL_FILL, reason, legging_cost(fills))
 
     @staticmethod
-    def _event(journal, order: EntryOrder, snapshot, outcome: str, reason: str, cost=None, shortfall=None):
+    def _event(journal, order: EntryOrder, snapshot, outcome: str, reason: str, cost=None):
         trade_id = order.proposal.trade_id
         event = DeskEvent(
             f"{trade_id}:{outcome}", snapshot.day, order.book, order.strategy, trade_id, order.decision_id,
-            snapshot.snapshot_id, snapshot.sha256, outcome, reason, cost, shortfall,
+            snapshot.snapshot_id, snapshot.sha256, outcome, reason, cost,
         )  # fmt: skip
         journal.record_event(event)
-        return EntryResult(trade_id, outcome, reason, cost, shortfall)
+        return EntryResult(trade_id, outcome, reason, cost)
 
 
 def _result(row: dict[str, str]) -> EntryResult:
-    cost, shortfall = (float(row[k]) if row[k] else None for k in ("legging_cost_rs", "shortfall_rs"))
-    return EntryResult(row["trade_id"], row["outcome"], row["reason"], cost, shortfall)
+    cost = float(row["legging_cost_rs"]) if row["legging_cost_rs"] else None
+    return EntryResult(row["trade_id"], row["outcome"], row["reason"], cost)

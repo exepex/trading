@@ -1,6 +1,7 @@
 """Story E4, exits: pending exits on missing quotes (criterion 3), protection_unverified (criterion 4), exit rules
 closing at the next valid quotes (criterion 5), shorts first and protection last, settlement and point in time."""
 
+import re
 from datetime import date, timedelta
 
 import pytest
@@ -25,7 +26,7 @@ from fno.constants import (
 )
 from fno.costs import order_charges
 from fno.desk.execution import PROTECTION_HELD
-from fno.desk.exit_rules import ProfitTarget, StopLoss, TimeExit
+from fno.desk.exit_rules import STOP_REACHED, TARGET_REACHED, ProfitTarget, StopLoss, TimeExit
 from fno.desk.exits import HELD, NO_RULES
 from fno.desk.records import DeskRecords
 from fno.desk.snapshot import SnapshotError
@@ -145,6 +146,9 @@ def test_an_exit_rule_reached_closes_the_trade_at_the_next_valid_quotes(root, st
     assert result.outcome == OUTCOME_CLOSED and result.reason == f"every leg closed; net Rs {net:,.2f}"
     assert outcomes(root)[1] == OUTCOME_EXIT_ORDERED and not is_open(root)
     assert PaperAccount(root, BOOK1_RULES).closed_trades()[0].trade_id == "t1"
+    ordered = DeskRecords(PaperAccount(root, BOOK1_RULES)).event_rows("t1")[1]["reason"]
+    assert ordered == f"{rule.name}: {TARGET_REACHED if rule is ProfitTarget else STOP_REACHED}"  # decision 48
+    assert not re.search(r"\d", ordered)  # no net if closed now: no quote-derived figure in the public reason
 
 
 def test_price_rules_are_not_judged_at_the_snapshot_that_opened_the_position(root, snapshots, exit_desk, opened):

@@ -241,6 +241,237 @@ book field.
 
 ---
 
+## E2b. Derived quote figures only in the committed packs and desk records
+
+**Repository:** trading · **Lane:** 1 (the paper desk's committed records, the fill records E6 scores, a commit rule)
+· **Branch:** `story/e2b-derived-packs` · **Claims:** `reviews/claude/response_118_e2b-derived-packs.md`
+
+**Description:** As the owner, I want the paper desk's committed files (the daily common pack, the 15:15 capture
+record and the paper fill rows) to hold no raw Groww quote values beyond the one price each paper fill must name, so
+that the public repository never republishes Groww's bid, ask or quantities, while every book still decides and fills
+on exactly the same, hash-proven quotes kept in Drive.
+
+**Context and why:**
+- Owner, 15 Oct 2026 (`docs/DESK_DECISIONS.md`, "8 A"): "The daily packs keep only derived quote figures; raw bid/ask
+  stays in Drive, before the paper desk goes live". Changes E2's common pack (`fno/desk/snapshot_inputs.py`) and what
+  E3 commits, through a lane-1 story before E3 goes live. Owner "6 A" (same day): raw Groww quotes go to Drive only
+  (story A4b, branch `story/a4b-quotes-drive-only`, not merged).
+- **Finding that shaped this story (builder, 15 Oct; strong evidence, tested):** the owner's example figures, the mid
+  price and the bid-ask spread in %, give the raw quotes back exactly: mid = (b+a)/2 and s = (a-b)/mid, so
+  a = mid(1+s/2) and b = mid(1-s/2). Option prices sit on 0.05 ticks, so even with s rounded to 2 decimals bid and ask
+  were recovered exactly in 648 of 648 synthetic cases. Committing them per contract would meet "8 A" in form only.
+- **Decision (orchestrator for the owner, who was away; response 113, 15 Oct 2026): option B.** The committed common
+  pack holds no per-contract quote figure; it keeps the snapshot's identity and hashes, counts, the NIFTY spot, India
+  VIX and NSE's futures levels. Readers keep reading the raw rows through the hash-checked quote store, as Book 1
+  already does; books 2-3's per-contract inputs are decided when they trade (F5, F6). Fills: drop `quote_bid` and
+  `quote_ask`; E6 reads the touch from the hash-checked execution snapshot; the fill price stays, and nothing beside it
+  may reveal the other side. Add a commit guard.
+- **Today (main at c428867):** `SnapshotInput` copies every option row's `bid`, `ask`, `bid_qty`, `ask_qty`, `valid`,
+  `invalid_reason`, `spot` into `journal/packs/<day>/common.json` (`fno/desk/snapshot_inputs.py:20`, `:61-68`), which
+  the daily run commits (`fno/desk/daily_steps.py:80-85`, `daily_run.py:76-81`); E3's 15:15 capture commits the raw
+  quote CSV with its sidecar (`fno/desk/execution_capture.py:49`); E4 writes `quote_bid` and `quote_ask` into
+  `journal/<book>/account/desk_fills.csv` (`fno/desk/records.py:29`, `:64`). No pack has been committed yet (no
+  `journal/packs/`); the desk is not live (E3, judge 82).
+
+**Readers of what changes (each must keep working):**
+
+| Reader | Reads today | After E2b |
+|---|---|---|
+| C3 spot check, `fno/checks/market_checks.py:38-47` | each option item's `value["spot"]` (one spot per monthly chain; the two must agree within 0.2%) | the new `spot:<expiry>` items, one per chain, same values and rule |
+| C3 schedule and capture checks, `fno/checks/schedule.py:27-33`, `validity_capture.py:21-31` | provenance `snapshot_id`, `csv_sha256`, `meta_sha256` | unchanged |
+| Book 1, `fno/books/book1_inputs.py:37-57` | provenance hashes, then the raw CSV through the store | unchanged |
+| AI books (F1, G5), `fno/ai/` | the forecast v2 pack `research/forecasts/live_v2/`, not the desk pack | unchanged (that pack is already derived: spot, VIX, futures, ATM IVs) |
+| E4 fills, C4 evidence, scorecard marks, scoreboard | the raw snapshot by ID through the store | unchanged |
+| E6 half-spread, `fno/scorecard/execution_costs.py:61-63` | `desk_fills.csv` `quote_bid`, `quote_ask` | the touch from the execution snapshot named in the fill row (`snapshot_id`, `quote_contract_id`), read through the store and hash-checked against the row's `snapshot_sha256` |
+
+**Scope.** In:
+- the common pack (schema version 2): no `option:` items. In their place, from the same canonical snapshot:
+  - `spot:<expiry>`: the chain's NIFTY level (an index level; every row of a chain carries the same value: the 14 Oct
+    capture has 22,620.00 on all October rows and 22,621.15 on all November rows). A chain whose rows carry more than
+    one spot is refused, naming the expiry, never averaged;
+  - `quote_counts`: `expected_contracts`, `recorded_contracts`, `valid_contracts`, `complete` (counts only);
+  - unchanged: `india_vix`, `future:<expiry>` (`last`, `volume`: NSE's public levels, A4b's split), `session`,
+    `close:<date>`, `event:...`, the opportunity set and the provenance with both hashes;
+- C3's spot check reads the `spot:` items;
+- `desk_fills.csv` without `quote_bid` and `quote_ask`; E6's half-spread reads the touch from the execution snapshot;
+  a fill whose snapshot cannot be read or whose hash differs is reported as "touch unknown" and left out of the
+  average, never counted as zero;
+- E3's 15:15 capture commits its capture record and the sidecar only, never the quote CSV;
+- a commit guard in the desk's committer (`GitCommitter`, used by the daily run and the capture): any path that is a
+  Groww quote file (`<quotes folder>/groww/derivatives/quote-snapshots/**/*.csv`) is refused with the path named, and
+  nothing is committed;
+- tests that a committed common pack and a fill row hold no field named `bid`, `ask`, `bid_qty`, `ask_qty`,
+  `quote_bid` or `quote_ask`, and that no value in the pack equals a row's bid or ask by construction (fixture with
+  distinct prices).
+Out:
+- moving the raw quote files to Drive and the store's hash check: A4b;
+- books 2-3's per-contract trading inputs: F5, F6 (decided when they trade);
+- paper fills showing live strikes in the public journal: put to the owner by the orchestrator (outside E2b);
+- the fill price itself, which is one side of one quote by design (E4 criterion 1): kept;
+- a failed commit in `fno desk book1` (Book 1's decision, `fno/books/book1.py:74`) still ends in a traceback with no
+  alert, as before E2b: that command is not the daily run; a follow-up for the orchestrator;
+- **three stated exceptions**, put to the owner together with the open question of whether paper fills should move to
+  Drive at all:
+  1. *an unwound entry* (judge 118 SF1; orchestrator for the owner, response 113): when an entry fails after some legs
+     filled (E4 criterion 2), each filled leg is traded back at the same snapshot (a protection bought at the ask and
+     sold at the bid; a short already sold at the bid bought back at the ask), and `legging_cost_rs` in
+     `desk_events.csv` is the spreads paid. Those rows publish both sides of each unwound contract. Rare: a failed
+     entry only, after 15:15;
+  2. *two accounts on opposite sides* (judge 118 addendum 1, confirmed by a test): E4 fills each account on its own,
+     so when one account buys a contract and another sells it at the same execution snapshot (one closing while the
+     other opens, or a book and a shadow), their rows together publish both sides of that contract;
+  3. *protection unverified at the opening snapshot* (builder's review 2, confirmed by a test; orchestrator for the
+     owner, response 113): when a protective leg's bid size cannot cover its units at the snapshot that opened the
+     trade, E4 marks it `protection_unverified` and closes the trade at that same snapshot (`fno/desk/exits.py:90-106`),
+     so its rows show both sides of each leg closed there. It is also a pointless loss (the spread paid in and out at
+     once): a separate small E4 story will refuse such an entry (a protection-exit size check before opening), which
+     removes this exception;
+- **known channels outside the fill rows (stated, not changed here; one owner question with the fills-to-Drive
+  question):** scoreboard B (`research/scoreboards/B/<date>.json`, `fno/scoreboard/whole_system.py:60`) commits
+  `raw_account_net_rs`, which marks open legs at the mid of the same 15:15 execution snapshot the fills used
+  (`fno/scoreboard/daily_values.py:44-55`): for a single-leg trade on its entry day, mid = (board net - fill amount) /
+  units and bid = 2 mid - ask (recovered exactly in review 2). `journal/<book>/account/equity_history.csv`
+  (`marked_equity_rs - cash_rs`, `fno/books/account.py:153`) would leak the same way once anything calls it. Nothing
+  is live, so nothing has leaked;
+- **removed here (orchestrator decision 42):** the size shown at the touch in E4's no-fill reason ("size N at the
+  touch is below M units"), written to `desk_events.csv` and used again in pending-exit reasons; it now reads "not
+  enough size at the touch for M units" (`fno/desk/pricing.py:19`);
+- **removed here (orchestrator decision 45):** a refused entry's "net entry Rs X at the touch is worse than the
+  approved Rs Y by Rs Z" reason and the `shortfall_rs` column of `desk_events.csv`. For a single-leg structure (LC,
+  LP in STR1) X is one contract's ask, and the mids are public, so the bid follows; for a spread X less the net at the
+  mids gives the sum of half-spreads; and Z with the committed approved limit gives X back. The reason is now the fixed
+  text "entry_worse_than_approved: entry price at the touch worse than the approved limit". Schema change:
+  `desk_events.csv` loses the `shortfall_rs` column (nothing read it; no `desk_events.csv` is committed yet, the desk
+  is not live). If research needs the figure, it goes to a Drive-only record, not git (not built here);
+- **removed here (orchestrator decision 48):** the "net Rs X if closed now reaches the target/stop Rs Y" reasons of
+  E4's exit rules (`fno/desk/exit_rules.py`), written to `desk_events.csv` as `exit_ordered`. X is worked out at the
+  touch of every leg, so if a leg then stays pending, X less the other legs' published close fills gives that leg's
+  touch at a snapshot where it did not fill. They now read "profit_target: the net if closed now reaches the profit
+  target" and "stop_loss: the net if closed now reaches the stop loss". The "every leg closed; net Rs N" reason stays:
+  N is the sum of the trade's published fills;
+- **kept, by decision (orchestrator for the owner, response 113):** the per-contract mids and implied volatilities of
+  the 14:55 canonical snapshot in Book 1's D3 decision inputs (`fno/playbook/decision_codec.py:15-27`) and C4's
+  `snapshot_mid` per leg (`fno/checks/validity_market.py:46`): derived figures the letter of "8 A" allows, which alone
+  give neither bid nor ask, and no exact pairing with the 15:15 fills was found;
+- NSE's public chain (`research/data/quotes/nse/`): public NSE data;
+- the forecast v2 pack and its frozen code (G1 v2): already derived, not touched.
+
+**How it fits with A4b:** E2b merges only after A4b (criterion 3 reads the 15:15 quote file from Drive). Both stories change `fno/desk/execution_capture.py` the same way (commit only what the
+repository holds); whichever merges second keeps one version. Before A4b merges, the 15:15 quote CSV stays only in the
+run's local quote folder (not committed), so a capture made before A4b cannot be replayed from the repository; the
+desk is not live, so no counted day depends on it. After A4b, the CSV is in Drive and every reader gets it through
+the hash-checked store. The guard and the derived pack work the same with either store.
+
+**Requirements map (quality rule 2):**
+
+| Requirement (source) | Where |
+|---|---|
+| Packs keep only derived quote figures; raw bid/ask stays in Drive ("8 A") | criteria 1, 2; per-contract figures left out by decision B |
+| ... and what E3 commits ("8 A") | criteria 4, 5 |
+| The AI books read the derived pack ("8 A" row) | criterion 7 (they read the derived forecast v2 pack; the desk pack holds nothing per contract) |
+| Before the paper desk goes live ("8 A") | criterion 5: the guard stops a live run from committing a raw quote file |
+| Raw quotes to Drive only ("6 A") | out: A4b |
+| E2 criteria 1-5 (no book data, determinism, cutoff refusals, opportunity set) | criterion 6 (E2's tests still pass on schema 2) |
+| E4 criterion 1 (fill price = the snapshot's ask or bid, snapshot hash in the row) | kept; criterion 3 |
+| E4 criterion 2 (a failed short leg unwinds the protection, legging cost recorded) | kept; the one stated exception (criterion 3) |
+| E6's half-spread paid (criterion 3 of E6) | criterion 3 |
+| C3's spot rules (2% from the previous close, 0.2% chain agreement) | criterion 2 |
+| One spot per recorded chain (orchestrator's decision 4, review 2 finding 6) | criterion 2 |
+| Other committed figures that could reveal a quote (review 2) | Scope "Out": exception 3, known channels, kept mids |
+
+**Acceptance criteria:**
+1. A common pack built from a canonical snapshot holds no `option:` item and no field named `bid`, `ask`, `bid_qty` or
+   `ask_qty`; with a fixture whose bids and asks are all distinct from every spot, count and level, no value anywhere
+   in the pack equals any row's bid or ask (test). It holds `spot:<expiry>` per chain, `quote_counts`, `india_vix`,
+   `future:<expiry>`, and the provenance's snapshot ID and both hashes; `schema_version` is 2. A day without a canonical
+   snapshot is refused on a session day exactly as before (E2, judge 72). A chain with two different spots is refused
+   with its expiry (test).
+2. C3's spot check gives the same results from the `spot:` items as before from the option items: the 2% limit at,
+   just under and just over; the 0.2% agreement at, under and over; no spot (tests). New (orchestrator's decision 4):
+   one spot per recorded chain. The chains are those the sidecar asked for (`expiries`; the rows when an older sidecar
+   has none). A chain whose rows carry no spot, or that has no rows at all, keeps its `spot:` item with no value, and
+   a refused `spot:` item counts as missing; C3 names the chain and fails, so the 0.2% agreement is never skipped
+   (tests).
+3. `desk_fills.csv` has no `quote_bid` or `quote_ask` column. Apart from the three stated exceptions (an unwound
+   entry; two accounts on opposite sides of one contract at one snapshot; protection unverified at the opening
+   snapshot), no committed desk fill row lets a filled leg's other quote side be worked out: tests build E4's outcomes
+   (opened, closed at a later snapshot, pending exit, a time rule at the opening snapshot, partial fill) and find that
+   within one account only the unwound legs give both sides, that unverified protection at the opening snapshot does
+   (pinned until the E4 story removes it), and that two accounts on opposite sides do. E6's half-spread from the execution snapshot equals the old figure on the
+   same fixtures; a fill whose snapshot is missing or whose hash differs counts as "touch unknown" (excluded from the
+   average, never zero), and the scorecard report prints how many fills were "touch unknown"; a settlement row (no
+   quote) is excluded as before (tests). **Depends on A4b:** E6 reads the 15:15 quote file from Drive through A4b's
+   hash-checked store, so E2b merges only after A4b.
+4. E3's 15:15 capture commits its record and the sidecar, never the quote CSV; the record still holds both hashes, so
+   the fill can prove which quotes it used (test).
+5. The committer refuses, before running git, any commit whose paths include a Groww quote file, naming the path; the
+   sidecar `.meta.json` and the `.canonical` marker are allowed; a path outside the quotes folder with a `.csv` name
+   is allowed. Paths are compared after resolving them, so an upper-case `.CSV`, a `../` path into the folder and a
+   symlink pointing into it are refused too. Because a commit takes the whole index, every commit through `Git`
+   (the daily run's committer and the account sync) also checks every staged file after its add: a folder holding a
+   quote file, or a quote file staged earlier by anything else, is refused, this add is undone and nothing is
+   committed. An account write checks the whole index before it applies anything (judge 118 addendum 2), so a
+   refusal there is an `AccountWriteRefused` the fill and exit steps handle ("not filled", an alert, the other books
+   and the exits go on) and the journal is untouched (tests: refused, allowed, mixed list, empty list, `.CSV`, `../`,
+   symlink, folder, earlier-staged file, account write before apply, the daily run's fill and exit steps). The guard
+   is path-based on purpose: the desk's writers never copy or rename a raw file, so the only way a raw quote reaches a
+   desk commit is the quote folder itself; a staged deletion there is refused too (test), which is safe because A4b's
+   removal of the old raw file is its own commit and never goes through the desk's `Git`. Any failure of the daily
+   run's committer (this refusal, a failed pull, a push rejected three times) is raised as `CommitFailed` and handled
+   at one place, the run's step (judge 118 addendum 3; decision 44): one alert naming why (the refused file named),
+   no later step, nothing committed (a push rejected three times leaves its one commit local and unpushed, which
+   refuses every later account write until it is resolved by hand), and `fno desk run` ends on that line with exit
+   code 1, never a traceback (tests with the real `GitCommitter` in a run: staged raw file, unreachable origin,
+   rejected push; a commit failing inside a step; the command). The alert says "exits not reviewed today" when the
+   stop comes before the exits, and gives the hand fix: remove the cause, then rerun `fno desk run` (for a rejected
+   push, "the rerun pushes the local commit"). The rerun never repeats a step (judge 118 addendum 4; decision 47).
+   Before every commit, the run keeps a local, git-ignored marker (`journal/runs/.pending_commit.json`) holding the
+   commit's paths, their SHA-256 and its message. A failed commit leaves the marker, and the rerun's first act commits
+   those files exactly as they are on disk. If one is missing or changed, the rerun stops with an alert naming it
+   instead, and nothing is regenerated (a later pack or capture, or decisions collected after the deadline, would not
+   be what happened). A commit that failed inside a step (D6's registry, the 15:15 capture record) is committed the
+   same way; that step is not recorded, so the rerun runs it again. Book 1's version keeper then finds its version
+   registered. The capture takes a second snapshot: it is committed beside the first, and the fills read the latest
+   one inside the execution window (after `fills_by`, C3 refuses it as outside its window, so nothing fills); none had
+   been made. The committer also pushes a commit left unpushed even when it has nothing new to commit
+   (tests with the real `GitCommitter`: a stop at the pack and one at the decisions, each committed byte-identical on
+   the rerun with one build or collection, one capture and four fills; a tampered pending file; a rejected push of
+   the last step, pushed by the rerun).
+   **A rerun in a fresh checkout** has no marker and starts from what was committed (judge 118 addendum 6). Fills
+   are idempotent by `trade_id` against the committed journal (each account write is pushed by itself), so nothing is
+   filled twice, and exits work from the journal's open positions. A decisions step run again after the deadline
+   makes every book late: fail closed, visible in the no-decision files, and it loses that day's entries. The pack
+   rebuilds byte-identical (E2 criterion 6). Before A4b, the 15:15 quote file is absent in a fresh checkout, so the
+   rerun's log can say "not filled" for a trade that was filled (a report mismatch, not a fill); after A4b the
+   snapshot is read from Drive.
+   **Nothing the run did not make is pushed** (decision 51). Before every push attempt, the raw-quote guard checks
+   every file the push would change on origin (`origin/<branch>..HEAD`, deletions too). Before the pull, an unpushed
+   commit the run did not make is refused, naming its message and files, through the same handler (one alert). Both
+   writers use the same `Git.unpushed()`: account writes refuse any unpushed commit, and the run's commits allow only
+   the run's own stuck commit, told apart by the pending marker: its message, and only the marker's files, each with
+   the content the marker recorded (SHA-256). A merge
+   left by a retry's pull is not counted: what it brings in is checked commit by commit, and its files by the guard
+   (tests with real git: a stray raw-file commit refused with origin unchanged, by each layer alone; a stray commit
+   without quotes; one copying the run's message with other files; the run's own stuck commit pushed after origin
+   moved on, through a merge).
+6. E2's own criteria still hold on schema 2: no book data, byte-identical rebuilds, cutoff refusals named, the
+   opportunity set unchanged (existing tests, updated only where they name option items).
+7. No reader of the committed pack uses per-contract quote figures (a test lists every `option:` lookup in `fno/` and
+   finds none); the AI books' pack reader is unchanged.
+
+**Test plan:** unit tests per criterion with positive, negative, boundary and empty cases (quality rule 5); a fixture
+snapshot with distinct prices for the "no raw value" scan; the existing E2, E3, E4, C3 and E6 suites; mutations per
+criterion (quality rule 4); a real-output sample of a schema-2 pack built from the committed 14 Oct sidecar and its
+quote file (quality rule 6; the sample shows the pack's derived items only).
+
+**Judge verifies:** rebuilds a pack from a fixture and scans it for raw values; recomputes one half-spread from the
+snapshot by hand; plants a raw quote path in a commit; checks that the 15:15 capture commits no CSV.
+
+**Depends:** A4b (merged first), E2, E3, E4, E6, C3 · **Size:** S · **Status:** story text for the judge's check
+(quality rule 1); no code yet
+
+---
+
 ## E3. Daily timetable: deadline, execution snapshot and exits
 
 **Repository:** trading

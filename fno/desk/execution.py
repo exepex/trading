@@ -59,7 +59,7 @@ class FillMaker:
         touch = quote.quote
         return FillRecord(
             self.book, self.strategy, self.decision_id, action, self.snapshot.snapshot_id, self.snapshot.sha256,
-            quote.leg, touch.contract_id, touch.quote_age_unknown, self.fill(quote, action), touch.bid, touch.ask,
+            quote.leg, touch.contract_id, touch.quote_age_unknown, self.fill(quote, action),
         )  # fmt: skip
 
 

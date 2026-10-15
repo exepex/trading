@@ -14,6 +14,11 @@ from datetime import date, timedelta
 
 from .status import OpenPosition
 
+# Public reasons (desk_events.csv) carry no quote-derived figure: the net if closed now, with the other legs' published
+# close fills, gives a pending leg's touch at a snapshot where it did not fill (decision 48, story E2b).
+TARGET_REACHED = "the net if closed now reaches the profit target"
+STOP_REACHED = "the net if closed now reaches the stop loss"
+
 
 @dataclass(frozen=True)
 class ExitContext:
@@ -39,7 +44,7 @@ class ProfitTarget(ExitRule):
         net = context.net_if_closed_rs
         if net is None or net < self.target_rs:
             return ""
-        return f"{self.name}: net Rs {net:,.2f} if closed now reaches the target Rs {self.target_rs:,.2f}"
+        return f"{self.name}: {TARGET_REACHED}"
 
 
 class StopLoss(ExitRule):
@@ -52,7 +57,7 @@ class StopLoss(ExitRule):
         net = context.net_if_closed_rs
         if net is None or net > -self.loss_rs:
             return ""
-        return f"{self.name}: net Rs {net:,.2f} if closed now reaches the stop -Rs {self.loss_rs:,.2f}"
+        return f"{self.name}: {STOP_REACHED}"
 
 
 class TimeExit(ExitRule):
