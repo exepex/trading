@@ -31,3 +31,11 @@ after the judge's check passes (quality rule 1).
 ## Questions for the owner
 
 None.
+
+## Addendum 1: judge 134 (FAIL on a29778d, 2 should-fix), both checked on the real file and accepted
+
+| Item | My check on `docs/DESK_DECISIONS.md` (main) | Change to the text |
+|---|---|---|
+| SF1: which title is citable | True: 152 table rows; 17 have no bold span; "approved" is the first bold span of two rows | The title is the first `**...**` span of the Decision cell. A row without one is not citable; a repeated title is refused by "exactly once". Criterion 3 tests the counts on the committed file |
+| SF2: book names | True: the owner writes "Book 1/2/3" (14 times) and never `book1_rules` and the like (0 times) | `BOOK_DISPLAY_NAMES` in `fno/constants.py`, matched as whole words. Criterion 2: "Book 1" lifts `book1_rules`, not `book2_hybrid` |
+| Note: the form of a restart row | Agreed | Scope states the standard `**title** (owner: "...")` form |
