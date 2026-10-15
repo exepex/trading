@@ -321,3 +321,34 @@ the prefix. A wrong path stops the run loudly, so nothing is at risk, but say it
 **Verdict: FAIL for e634a36bb83d8b2f85d35fdccc437134230d14a8**, on the one new should-fix (a boundary test). Everything
 else in addendum 2 is fixed and verified. A re-check needs only the new test or tests at the next SHA. The frozen
 files must stay as at e634a36. The snapshot plan of addendum 2 is unchanged.
+
+## Addendum 4 (15 Oct 2026): the test commit at 02e84d029a4a94bc6122792f1f441fab91165899 (e634a36..02e84d0)
+
+Changes: two tests in `tests/research/test_r2_snapshot_sources.py`, `mutations.json`, the folder's `README.md`, and
+fill-progress manifest rows (f2a5749, 3ee3ab7). No frozen file changed: all 28 rows of `FREEZE.md`'s revision-1
+table match at 02e84d0, and every `r2study/*.py` is listed.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Should-fix: exact-20% boundary | MET | 2 of 10 legs without a row is usable, 3 of 10 is not, no legs is not. My plant N1 (`<=` to `<`) is now caught |
+| Minor A: `check_frozen` and the protocol | MET | The test changes `PROTOCOL.md` and each amendment in a copy and expects `NotFrozen` naming the file. My plant N7 is now caught |
+| Minor B: run instructions | MET | `README.md` step 3: the printed Drive path **without** `raw/`, and the printed SHA-256, and the run refuses a different file |
+
+**Gates on a clean worktree at 02e84d0** (the builder's run collided with the live fill writing `board-meetings.csv`):
+- **3,285 passed** (Slack token unset).
+- `ruff check`, `ruff format --check` and `check_imports` are clean.
+- It merges cleanly with `origin/main`.
+
+**A12 fill so far.** At 1763c63: 1,000 rows appended since adccf53, every status 200, 2018-12-01 to 2021-08-26, none
+removed or edited.
+
+**Verdict: PASS for 02e84d029a4a94bc6122792f1f441fab91165899** (the analysis script, revision 1, with its tests). Before
+`study.py --run`:
+1. The A12 fill finishes and its final commit carries the fill report. I check a manifest row for every calendar day
+   from 2018-12-01 to the last F&O session, and a sample of Drive files against their rows. The run itself also
+   refuses on a missing day (`MissingResultsDates`).
+2. The snapshot is taken with adccf53's `snapshot.py` and `r2study/snapshot_capture.py`, which are byte-identical at
+   02e84d0. Its printed SHA-256 and Drive path are logged.
+3. The run is made from a commit whose study folder equals 02e84d0's (`check_frozen` enforces it), and it runs once.
+After the run: `results.json`, `results.md`, the `DATA_SPEND.md` rows updated to what was read, and my check of the
+results against the protocol.
