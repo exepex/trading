@@ -213,3 +213,20 @@ So nothing wrong is stored. Record the A9 change as an open item.
 **Verdict: PASS for b377af2f676a94582596819d414c47c0163cd357.** All three should-fixes are met with evidence; three
 minors remain, none blocking. Merge it. After the merge I check the recomputed merge, that the branch files are
 identical to b377af2, and CI.
+
+## Addendum 2 (15 Oct 2026): merge check, A15 merged to main as 176a1a1
+
+- **Parents.** 176a1a1's parents are db07101 (main) and b377af2 (the passed tip).
+- **The merge matches my recomputation, apart from one resolved conflict.** `git merge-tree --write-tree db07101
+  b377af2` conflicts only in `reviews/claude/README.md`, where both sides added index rows. 176a1a1 resolves it by
+  keeping both rows. Its tree differs from the recomputed tree only by the 3 conflict-marker lines in that file.
+- **Branch files arrived unchanged.** Every file the branch changed since its base e3179f0 is identical in 176a1a1 and
+  b377af2 (`git diff b377af2 176a1a1 -- <branch files>`), except `reviews/claude/README.md`, which gains main's rows.
+- **No unjudged change since.** From 176a1a1 to af9168f only `reviews/` files changed: judge verdicts and response
+  index rows.
+- **CI.** 176a1a1 was first pushed inside af9168f. Run 38669220644 (`checks`) on af9168f: **completed, success**.
+- **End-to-end run (quality rule 8).** The orchestrator records `vix-history verify` on the merged tree: all 4,019
+  equal, exit 0. That matches my own two runs at 514d43b and b377af2.
+
+**Merge check: PASS.** The three minors of addendum 1 go to the builder as a follow-up. The `raw_source.py:123`
+HTTPError item is recorded as a separate lane-1 A9 change.
