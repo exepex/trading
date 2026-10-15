@@ -3,11 +3,13 @@
 A mark after 15:25 moves the fill to the next session's open plus R; "next session" is A7's calendar, never a
 muhurat-only day (it has no 09:15 mark). A session the owner is away (by the availability sealed before T) moves the
 fill one session further. An entry is valid only until its first available session: a second away session misses it.
-An exit is never dropped and keeps moving. E4's own view fills at the execution snapshot of the decision day."""
+An exit is never dropped and keeps moving, and is retried at every later mark until it fills. E4's own view fills at
+the execution snapshot of the decision day."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from datetime import date, datetime, time, timedelta
 
 from ...constants import SESSION_MUHURAT
@@ -46,6 +48,15 @@ class OwnerTimingClock(FillClock):
             day = self._next_fill_session(day)
             mark = self._open_mark(day)
         return DueMark(day, mark, moves)
+
+    def marks_from(self, due: DueMark, order_time: datetime, until: datetime) -> Iterator[datetime]:
+        """An exit's due mark and every following mark up to `until`, on the sessions the owner is not away (rule 7: a
+        pending exit is retried at each following mark, never dropped)."""
+        day = due.session
+        while datetime.combine(day, FIRST_MARK, IST) <= until:
+            if day == due.session or not self.availability.away(day, order_time):
+                yield from (m for m in marks(day) if (day != due.session or m >= due.mark) and m <= until)
+            day = self._next_fill_session(day)
 
     def _fill_session(self, day: date) -> bool:
         kind = self.calendar.session_kind(day)

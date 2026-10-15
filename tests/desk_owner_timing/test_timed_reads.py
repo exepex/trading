@@ -10,7 +10,8 @@ from datetime import date
 import pytest
 
 from fno.desk.owner_timing.availability import AvailabilitySealer
-from fno.desk.owner_timing.timed_reads import StepDeadline, StepTimedOut, TimedStore
+from fno.desk.owner_timing.timed_reads import StepDeadline, StepTimedOut, TimedIndexStore, TimedStore
+from fno.storage.index_store import IndexFileStore
 from fno.storage.raw_store import ReadOnlyStoreError
 from tests.desk.builders import DictStore
 from tests.desk_owner_timing.fakes import MemorySeals, ist
@@ -95,3 +96,36 @@ def test_no_write_starts_after_a_timed_out_read():
         store.release.set()
     time.sleep(0.05)  # let the released read return: its result must still be ignored
     assert seals.latest() is None
+
+
+class HungIndex(IndexFileStore):
+    def __init__(self):
+        self.release, self.written = threading.Event(), {}
+
+    def get(self, path):
+        self.release.wait()
+        return None
+
+    def replace(self, path, data):
+        time.sleep(0.3)  # a slow push longer than the read cap
+        self.written[path] = data
+
+
+def test_e2cs_pulls_are_capped_and_its_pushes_made_in_full():
+    store = HungIndex()
+    timed = TimedIndexStore(store, StepDeadline(), cap_seconds=0.2)
+    try:
+        with pytest.raises(StepTimedOut):
+            timed.get("book1_rules/ledger.csv")
+    finally:
+        store.release.set()
+    timed.replace("book1_rules/ledger.csv", b"rows")
+    assert store.written == {"book1_rules/ledger.csv": b"rows"}
+
+
+def test_the_deadline_counts_from_the_steps_start():
+    now = [0.0]
+    deadline = StepDeadline(limit_seconds=600, clock=lambda: now[0])
+    now[0] = 900.0  # the run was built long before the step ran
+    deadline.restart()
+    assert deadline.remaining() == 600

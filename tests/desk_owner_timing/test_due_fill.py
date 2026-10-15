@@ -11,6 +11,7 @@ from fno.desk.owner_timing.availability import AlwaysAvailable
 from fno.desk.owner_timing.clock import OwnerTimingClock
 from fno.desk.owner_timing.due_fill import DueFill
 from fno.desk.owner_timing.entry_range import ApprovedLimit
+from fno.desk.owner_timing.mark_levels import MarkSnapshot
 from fno.desk.owner_timing.mark_snapshots import MarkSnapshots
 from fno.desk.owner_timing.outcomes import MISSED_EXPIRED, MISSED_NO_QUOTE, MISSED_PRICE_MOVED, DueMark, Missed
 from fno.desk.snapshot import RecordedExecutionSnapshots
@@ -31,7 +32,7 @@ class OneMark(MarkSnapshots):
     def at(self, day: date, mark: datetime):
         if (day, mark) != (DUE.session, DUE.mark) or not self.store.files:
             return None
-        return RecordedExecutionSnapshots(self.store).snapshot(day, "a16")
+        return MarkSnapshot(RecordedExecutionSnapshots(self.store).snapshot(day, "a16"), 25000.0)
 
 
 def due_fill(rows=None) -> DueFill:
@@ -49,8 +50,8 @@ def test_an_entry_due_after_its_expiry_misses():
 
 
 def test_every_leg_quoted_inside_the_cap_fills():
-    maker, quotes = due_fill(fly_rows()).price(fly_order(), DUE)
-    assert len(quotes) == 4 and maker.snapshot.snapshot_id == "a16"
+    priced = due_fill(fly_rows()).price(fly_order(), DUE)
+    assert len(priced.quotes) == 4 and priced.maker.snapshot.snapshot_id == "a16"
 
 
 def test_one_leg_without_a_valid_quote_misses_the_whole_entry():
@@ -63,7 +64,7 @@ def test_no_snapshot_at_the_mark_misses():
 
 
 def test_one_paisa_worse_than_the_approved_entry_misses():
-    maker, quotes = due_fill(fly_rows()).price(fly_order(), DUE)
-    at_touch = sum(maker.fill(q, FILL_OPEN).amount for q in quotes)
+    priced = due_fill(fly_rows()).price(fly_order(), DUE)
+    at_touch = sum(priced.maker.fill(q, FILL_OPEN).amount for q in priced.quotes)
     assert not isinstance(due_fill(fly_rows()).price(fly_order(limit=at_touch), DUE), Missed)
     assert due_fill(fly_rows()).price(fly_order(limit=at_touch + 0.01), DUE) == Missed(MISSED_PRICE_MOVED)

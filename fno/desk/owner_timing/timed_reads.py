@@ -15,6 +15,7 @@ import time
 from collections.abc import Callable
 from typing import TypeVar
 
+from ...storage.index_store import IndexFileStore
 from ...storage.raw_store import RawFileStore, ReadOnlyStoreError
 
 READ_CAP_SECONDS = 60.0
@@ -31,8 +32,12 @@ class StepTimedOut(TimeoutError):
 
 class StepDeadline:
     def __init__(self, limit_seconds: float = STEP_LIMIT_SECONDS, clock: Callable[[], float] = time.monotonic):
-        self.clock = clock
+        self.clock, self.limit = clock, limit_seconds
         self.ends = clock() + limit_seconds
+
+    def restart(self) -> None:
+        """The limit counts from the step's start, not from when the run was built."""
+        self.ends = self.clock() + self.limit
 
     def remaining(self) -> float:
         return self.ends - self.clock()
@@ -81,3 +86,17 @@ class TimedStore(RawFileStore):
 
     def _timed(self, what: str, call: Callable[[], T]) -> T:
         return call_within(what, call, min(self.cap, self.deadline.remaining()))
+
+
+class TimedIndexStore(IndexFileStore):
+    """E2c's private-records store for the step's account writes: each pull capped like any read, each push made in
+    full (a write is never abandoned, judge 203 should-fix 2; the pushes come after that item's reads)."""
+
+    def __init__(self, store: IndexFileStore, deadline: StepDeadline, cap_seconds: float = READ_CAP_SECONDS):
+        self.store, self.deadline, self.cap = store, deadline, cap_seconds
+
+    def get(self, path: str) -> bytes | None:
+        return call_within(f"reading {path}", lambda: self.store.get(path), min(self.cap, self.deadline.remaining()))
+
+    def replace(self, path: str, data: bytes) -> None:
+        self.store.replace(path, data)

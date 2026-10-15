@@ -6,6 +6,7 @@ owner's entry rule is "missed, price moved". A miss is never retried at another 
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 
 from ..entries import EntryOrder
@@ -13,8 +14,19 @@ from ..execution import FillMaker
 from ..pricing import LegQuote, price_leg
 from .clock import FillClock
 from .entry_range import EntryRange
+from .mark_levels import MarkSnapshot
 from .mark_snapshots import MarkSnapshots
 from .outcomes import ENTRY, MISSED_EXPIRED, MISSED_NO_QUOTE, MISSED_PRICE_MOVED, DueMark, Missed
+
+
+@dataclass(frozen=True)
+class PricedEntry:
+    """Every leg of an entry priced at its due mark, inside the owner's entry rule: what the fill-day checks read."""
+
+    due: DueMark
+    mark: MarkSnapshot
+    maker: FillMaker
+    quotes: list[LegQuote]
 
 
 class DueFill:
@@ -30,10 +42,11 @@ class DueFill:
             return Missed(MISSED_EXPIRED)  # the contract stopped trading before the owner could act
         return due
 
-    def price(self, order: EntryOrder, due: DueMark) -> tuple[FillMaker, list[LegQuote]] | Missed:
-        snapshot = self.snapshots.at(due.session, due.mark)
-        if snapshot is None:
+    def price(self, order: EntryOrder, due: DueMark) -> PricedEntry | Missed:
+        mark = self.snapshots.at(due.session, due.mark)
+        if mark is None:
             return Missed(MISSED_NO_QUOTE)
+        snapshot = mark.prices
         quotes = [price_leg(snapshot, leg, leg.side(opening=True), order.proposal.units) for leg in order.legs()]
         if not all(quote.fills for quote in quotes):
             return Missed(MISSED_NO_QUOTE)
@@ -42,4 +55,4 @@ class DueFill:
         )
         if not self.entry_range.admits(order, maker, quotes):
             return Missed(MISSED_PRICE_MOVED)
-        return maker, quotes
+        return PricedEntry(due, mark, maker, quotes)
