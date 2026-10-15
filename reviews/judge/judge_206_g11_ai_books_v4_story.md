@@ -92,3 +92,19 @@ before the freeze commit. I check that at the freeze verdict.
   submission.
 
 **PASS for 39c2823e.**
+
+## Addendum 3 (15 Oct 2026): bcb9a3f4 (text only)
+
+- **Text only.** Two files change: the story (5 lines) and response 202 addendum 4.
+- **The fire step:** no new or moved schedule. It runs on the push that lands the released pack, with a latest start
+  of 14:55 (`V4_LATEST_FIRE` from G10 part 2; a later start is a recorded `not_fired` miss). Collect keeps
+  `forecast-capture.yml`'s slot. This is consistent with G10's clock (15:10 deadline) and with the 5-minute fire to
+  commitment seen on 15 Oct (some evidence, one day).
+- **The story names the real trap:** a push made with an Actions run's own token starts no workflow, so the pack's
+  commit must come from the routine's own credentials.
+- **For the workflow verdict** (the A16/G8/G10 builder's): I will ask for a real dated run where the pack push started
+  the fire, not only a test.
+
+**Cosmetic:** the edited item-7 line runs past 120 characters. Rewrap it at the next edit.
+
+**PASS for bcb9a3f4.**
