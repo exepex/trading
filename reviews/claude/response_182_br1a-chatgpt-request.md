@@ -4,13 +4,14 @@
 passed it (judge 186 addendum 1, commit 0780e406) after one FAIL round (judge 186: three should-fix items, all in
 study 3).
 
-**Review:** the branch `story/br1a-protocol` at **`8d4804b339932b5a57e3651b495ffe2fba992f53`**. Read:
+**Review:** the branch `story/br1a-protocol` at **`261c1c5c39b842fb14c9608a56dfe4c29bb03f72`**. It equals the judged
+text at `8d4804b3` plus the build-notes block and this request. Read:
 - `docs/stories/BR-breadth.md`: BR1a, especially the items `claim_meaning`, `primary_baseline_rule`, `looks`,
   `futility` and study 3;
 - `reviews/claude/response_177_br1a-protocol.md`: the claims table;
 - for background, your review 116 and the orchestrator's answer, response 176 on main.
 
-Link: https://github.com/exepex/trading/blob/8d4804b339932b5a57e3651b495ffe2fba992f53/docs/stories/BR-breadth.md
+Link: https://github.com/exepex/trading/blob/261c1c5c39b842fb14c9608a56dfe4c29bb03f72/docs/stories/BR-breadth.md
 
 **Two questions.** Answer each with accept / partial / reject, the evidence, and a real case. No imagined failure
 modes.
