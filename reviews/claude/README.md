@@ -148,3 +148,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 163: story RM1, the real-money gate: story text, draft gate and the owner's ten questions (account, cap, test size, condition-5 route and more)](response_163_rm1-real-money-gate.md)
 - [Response 158: story A17d, FBIL's USD/INR table moved to Drive: private flag, overlap without rates, file removed; adopt and comparison (1,981 rows equal, first_seen_at to the second), 3 mutations caught](response_158_a17d-fbil-drive.md)
 - [Response 152: story G10, protocol v4 timeline (14:30 cutoff, one release, 15:10 deadline, day labels, flag-not-block, lateness; the exact protocol changes and what moves with it)](response_152_g10-v4-timeline.md)
+- [Response 170: review request to ChatGPT for RM1, the real-money gate (judge 171 add. 1 PASS), quality rule 9; answer file review 118](response_170_rm1-chatgpt-request.md)

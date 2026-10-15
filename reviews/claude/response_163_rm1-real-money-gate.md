@@ -13,7 +13,7 @@ Files: `docs/stories/RM-real-money.md` (story text), `research/evaluation/REAL_M
 | 1 | Every 8.3 condition (1-7) and 8.4 element has one gate item with an exact rule (table in section 2) | strong evidence (read side by side) |
 | 2 | No decided owner number is changed: Rs 20,000 stop, pad + Rs 0.50, 2× pad over 5 trades, 1 lot, 6 months, R = 60 fills, 31.2% tax, prediction interval, condition 5 always | strong evidence |
 | 3 | Reusing S1's freeze (one more `frozen_files` entry, the freezer refusing an undecided gate) meets "frozen and hashed before the first counted paper decision" without a second freeze tool, because S1's `order` check already proves the freeze precedes each book's first counted decision | some evidence (read of `fno/evaluation/freeze.py`, `order.py`; not yet tested) |
-| 4 | Judge 158's open point (several books' `beats_index_after_tax`) is answered: the gate reads one record, Book 1 or the version's shadow account | reasoning only |
+| 4 | Judge 158's open point (several books' `beats_index_after_tax`) is answered: the gate reads one record, Book 1's (shadow records are shown, never counted; judge 171 SF1) | reasoning only |
 | 5 | Condition 6's fact: at NIFTY lot 65, a Rs 5,000 cap allows about 76 points of maximum loss per unit; a single bought ATM monthly option usually costs more, so mainly spreads fit | some evidence (lot from `config.yaml`; premium from general market levels, not measured here) |
 
 ## 2. Trace: source → gate item
