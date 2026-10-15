@@ -119,14 +119,14 @@ Out (each with where it goes):
    format. E8 fills it into that shadow account only, by E8's rule: T = the day's card delivery time from the card
    record, the R = 60 verdict with r5, r30 and e4_1515 beside it, the price cap, and the funds re-check on the
    shadow's own terms. "No trade" writes no order. No card gives "missed, card not delivered".
-3b. Each shadow's entry in E8's terms lookup is the shadow's own; a test plants different book and shadow terms and
+4. Each shadow's entry in E8's terms lookup is the shadow's own; a test plants different book and shadow terms and
    checks that neither reaches the other.
-4. A shadow's exits run by the same exit rules as a book's, and its costs come from C1.
-5. Nothing fills a shadow before E8's code is merged (no other fill rule exists).
-6. The stop-rule tracker's Test B path points at the shadow accounts' closed trades; zero shadows still give
+5. A shadow's exits run by the same exit rules as a book's, and its costs come from C1.
+6. Nothing fills a shadow before E8's code is merged (no other fill rule exists).
+7. The stop-rule tracker's Test B path points at the shadow accounts' closed trades; zero shadows still give
    "undecided" (`fno/forecast_v4/stop_rule.py`).
-7. A measurement shadow's idea card, ledger row and registry evidence say `measurement: never promoted`.
-8. Nothing in R3 changes a book's account, decision or fill.
+8. A measurement shadow's idea card, ledger row and registry evidence say `measurement: never promoted`.
+9. Nothing in R3 changes a book's account, decision or fill.
 
 **Test plan:** fakes for the registry, the shadow accounts, E8's fill rule and the clock.
 1. Positive: registration on d, account opened, one "would trade" filled, then exited and closed.
