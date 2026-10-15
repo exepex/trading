@@ -31,13 +31,14 @@ def _fill(fill_id: str, trade_id: str, name: str, side: str, price: float, day: 
 
 @pytest.fixture
 def root(tmp_path):
-    """Book 1 lost Rs 32,500 plus charges on a closed trade (brake hit); book 2 holds an open short fly."""
+    """Book 1 lost Rs 1,23,500 plus charges on a closed trade (the Rs 1.2 lakh brake hit); book 2 holds an open short
+    fly."""
     for book in BOOKS:
         with open_account_writer(book, tmp_path) as writer:
             writer.start(START_DAY)
     with open_account_writer(BOOK1_RULES, tmp_path) as writer:
         writer.apply_fill(_fill("f1", "loser", LOSER, SIDE_SELL, 100.0, date(2026, 9, 10)))
-        writer.apply_fill(_fill("f2", "loser", LOSER, SIDE_BUY, 600.0, date(2026, 9, 20)))
+        writer.apply_fill(_fill("f2", "loser", LOSER, SIDE_BUY, 2000.0, date(2026, 9, 20)))
     with open_account_writer(BOOK2_HYBRID, tmp_path) as writer:
         for i, (strike, kind, side) in enumerate(short_fly(25000, 200)):
             price = PRICES[(strike, kind)]
@@ -66,9 +67,9 @@ def test_a_brake_hit_in_one_book_blocks_only_that_book(root):
     book1 = _book(root, BOOK1_RULES)
     book2 = _book(root, BOOK2_HYBRID, {"fly": TradeTerms(FLY, 200, 1)})
     the_market = market(25000, PRICES, EXPIRY)
-    assert book1.state.closed_equity < 500_000 - 32_500
-    assert not DrawdownBrake(30000).check(_new(), book1, the_market).ok
-    assert DrawdownBrake(30000).check(_new(), book2, the_market).ok
+    assert book1.state.closed_equity < 2_000_000 - 123_500
+    assert not DrawdownBrake(120000).check(_new(), book1, the_market).ok
+    assert DrawdownBrake(120000).check(_new(), book2, the_market).ok
 
 
 def test_a_stress_test_of_one_book_never_includes_another_books_positions(root):

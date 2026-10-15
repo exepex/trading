@@ -110,7 +110,9 @@ commit with `--no-verify`.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
   `fno/storage/wiring.py` (raw data stores and sources), `fno/risk/wiring.py` (the risk manager, story C2),
   `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
-  and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`), `fno/filings/wiring.py` (the
+  and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`),
+  `fno/forecast_v4_rules/wiring.py` (protocol v4's baselines and rule forecasters, story G7; apart because the v2 freeze
+  pins every file of `fno/forecast/`), `fno/filings/wiring.py` (the
   company filings archive, story A12), `fno/pipeline/wiring.py` (fetch-and-trigger jobs, story O6),
   `fno/pipeline/panel_wiring.py` (the daily NIFTY panel job, story A13; apart so G1 v3 can freeze it without O6),
   `fno/market_read_models/wiring.py` (the market read models and their publisher, stories P6-P9),

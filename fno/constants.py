@@ -33,7 +33,8 @@ SESSION_HOLIDAY, SESSION_SPECIAL, SESSION_MUHURAT, SESSION_REGULAR = "holiday", 
 # Index names in NSE's daily index-close file that every file must carry (the research needs both)
 INDEX_NIFTY_50, INDEX_INDIA_VIX = "Nifty 50", "India VIX"
 
-# The three paper books (design 12.1, story E1): each has its own Rs 5 lakh paper account under journal/<book>/account/
+# The three paper books (design 12.1, story E1): each has its own paper account under journal/<book>/account/,
+# opened with config.yaml risk.paper_account_rs (story C5)
 BOOK1_RULES = "book1_rules"  # pure rules
 BOOK2_HYBRID = "book2_hybrid"  # AI inside the authority envelope
 BOOK3_AI = "book3_ai"  # fully AI under the constitution
@@ -133,6 +134,16 @@ OWNER_OVERRIDES_FILE = "owner_overrides.csv"  # journal/<book>/owner_overrides.c
 OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
+# Risk buckets (story C5, design 6.2): an underlying group and a side of exposure. Only the index groups 6.2 names are
+# mapped; a stock (its own group, or "stock results this week") is unmapped until the events calendar is wired in.
+BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH = (
+    "short_volatility", "long_volatility", "bullish", "bearish",
+)  # fmt: skip
+BUCKET_SIDES = (BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH)
+BUCKET_INDEX_GROUPS = ("NIFTY", "BANKNIFTY")
+# Risk profiles (story C5, config.yaml risk.profiles): the three paper books on the Rs 20 lakh account, and the Manual
+# paper account on its 13 Oct 2026 limits (DESK_DECISIONS, 15 Oct 2026: "1 A", "2 A")
+RISK_PROFILE_BOOKS, RISK_PROFILE_MANUAL = "books", "manual"
 
 # Daily forecasts (epic G, research/forecasts/PROTOCOL.md): the five frozen questions and who answers them
 FORECAST_Q1_UP_20D = "q1_nifty_up_20d"  # P(NIFTY close in 20 trading days > today's close)
@@ -168,6 +179,7 @@ V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY = "har_daily", "har_intraday"
 V4_BASELINE_TRAILING, V4_BASELINE_EWMA = "trailing", "ewma_094"
 V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED = "raw_implied", "premium_adjusted_implied"
 V4_BASELINE_OPTION_IMPLIED_PROB, V4_BASELINE_BASE_RATE = "option_implied_probability", "base_rate"
+V4_RULE_V6_EWMA_T4, V4_RULE_V1_CLOSE_BLEND = "v6_ewma_t4", "v1_close_blend"  # story G7
 V4_IV30_EOD_PROXY = "iv30_eod_close_proxy"  # G1 v1's estimator on the panel's end-of-day chains (premium ratio window)
 V4_CLAIM, V4_TOO_SMALL, V4_FUTILE, V4_OPEN = "claim", "real_but_too_small", "futile", "open"  # a member's verdict
 STOP_YES, STOP_NO, STOP_UNDECIDED = "yes", "no", "undecided"  # design v2 section 8.2, tests A and B
@@ -313,3 +325,6 @@ CARD_SESSION_KINDS = (
     SESSION_REGULAR,
     SESSION_SPECIAL,
 )  # a muhurat session is the one-hour Diwali session: no 15:00 card
+
+# Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
+RUN_LOG_DECISIONS_STEP = "decisions"

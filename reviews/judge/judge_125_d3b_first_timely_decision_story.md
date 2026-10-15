@@ -97,3 +97,29 @@ the normal running of this system. Under that rule:
   After E2b, the run log is committed with every step.
 - **Minors 1 and 4 stand.** Minor 1 is text only. Minor 4 is a real path: a chosen trade that does not fill is a normal
   outcome.
+
+## Addendum 1 (15 Oct 2026): D3b code at 5ff83b2e16c67b223ba412b6e56dee480a08e9ff
+
+Judged under the owner's "keep the design simple" rule: only paths from normal running, no planted mutations.
+- Gates: 4,992 passed; ruff, format and imports clean.
+- `main` merged in: `merge-tree` with `origin/main` shows no conflict, and `main` has 8 commits since.
+- The story's own tests: 27 of 27 pass (first timely, opening runs, run order, one-order guard, S1 order, uncollected
+  runs).
+
+## Verdict: PASS (code)
+
+| Real path | Status | Evidence |
+|---|---|---|
+| The collector takes the first timely original run, and a late first run gives nothing | MET | `committed_decisions.py` `committed()` goes through `ordered_runs`, skips uncommitted runs and corrections, returns the first, and returns None when that one is at or after the deadline. The decisions step records the other runs, with corrections, as `others` |
+| `-r2`/`-r10` order for every caller | MET | `run_order.ordered_runs` sorts by commit time, then `run_counter` as an int; uncommitted runs come last. My probe: r1, r2 and r10 with one commit time, plus an uncommitted r11, give r1, r2, r10, r11. Its callers are the collector, `others`, S1's `first_counted_decision`, and Book 1's alert listing (counter, never chooses). `test_one_run_order` guards against a caller sorting by itself |
+| Book 1's terms and exits come only from each filled trade's opening run | MET | `opening_runs` reads the entry day (first `FILL_OPEN`) and that day's run log, and checks the run against its own `records.sha256`, so a shallow clone works. `opening_trades` takes the chosen record only from that run, and other runs naming the trade are only listed (`other_runs`, alerted at each review). Unfilled chosen trades no longer count, so my minor 4 is closed |
+| C2's book view fails closed | MET | `recorded_terms` holds filled trades with an opening run only. An open trade without one raises `RiskInputError` in `book_view._open_trade:33-34`, so C2 refuses |
+| Exits for a trade with no opening run | MET | There is no time exit, with an alert naming why. E4's own risk-reducing exits (protection unverified, expiry settlement, an exit already ordered) still run, as the `book1_exits` docstring states (design 9) |
+| S1 unchanged on r1-r9 | MET | `test_order_runs` (criterion 4b). An uncommitted run is never first counted, because it has no commit |
+| Corrections shown apart | MET | `CommittedRuns.uncollected` lists them for scoreboard B, never scored (`test_uncollected_runs`) |
+
+**Note (does not change a trade):** `DecisionStore.every_run` and the old `decided_trades` listing order are used
+only to read all runs and to list them in an alert. Nothing "first" depends on them.
+
+**Verdict: PASS for 5ff83b2e16c67b223ba412b6e56dee480a08e9ff** (code). Rule 9: ChatGPT next, then the merge (pull,
+full suite on the merged tree).

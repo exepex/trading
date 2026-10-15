@@ -12,7 +12,7 @@ from fno.checks.validity import Sources, ValidityChecker
 from fno.checks.validity_adapter import BookTradeValidator
 from fno.checks.validity_evidence import EvidenceReader
 from fno.checks.validity_failures import ValidityFailureLog
-from fno.checks.validity_limits import PRICED, LimitChecks
+from fno.checks.validity_limits import LimitChecks
 from fno.checks.validity_listing import NseListing
 from fno.checks.wiring import validity_modes
 from fno.composition import DESK_DECISION_TIME
@@ -22,7 +22,7 @@ from fno.playbook.decision_store import DecisionStore, DuplicateRun
 from fno.playbook.decision_validity import BLOCKED
 from fno.quotes.recorder import DATASET
 from tests.checks.builders import committed_record
-from tests.checks.validity_sources import MARGIN_ROWS, Accounts, Margins, NseFiles, limits, nse_file
+from tests.checks.validity_sources import MARGIN_ROWS, PRICED, Accounts, Margins, NseFiles, limits, nse_file
 from tests.desk.builders import DictStore, row, write_snapshot
 from tests.playbook.evaluation_builders import (
     DAY,
