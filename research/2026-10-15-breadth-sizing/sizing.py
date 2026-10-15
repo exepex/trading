@@ -41,9 +41,10 @@ SESSIONS_A_MONTH, POWER = 21, 0.8
 
 def load(path, first, last):
     table = defaultdict(dict)
-    for r in csv.DictReader(open(path)):
-        if first <= r["day"] <= last:
-            table[r["underlying"]][r["day"]] = r
+    with open(path) as f:
+        for r in csv.DictReader(f):
+            if first <= r["day"] <= last:
+                table[r["underlying"]][r["day"]] = r
     return table
 
 

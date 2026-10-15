@@ -228,7 +228,14 @@ weeks of F8 minutes set the final size before the freeze. The rule and hybrid fa
 
 ## Proposed stories (text only after the owner's go)
 
-- **BR1a:** the protocol, including the 2019-2025 regime re-measure as a freeze gate and the baseline choice by rule.
+- **BR1a:** the protocol. It includes:
+  - the 2019-2025 regime re-measure as a freeze gate, and the baseline choice by rule;
+  - **BR1's own futility level** (judge 165 addendum 1, note A): a member is futile at look 1 when the plain
+    batch-means p_e of "the true improvement is below the minimum effect" is at most 0.025. That is the same as
+    calling `futility_p` with a threshold of 0.025, not v4's calibrated one;
+  - **dividends below NSE's adjustment threshold** (note B): they stay in the target, and their effect is measured
+    and reported, never adjusted. Judge G's bound is under 0.2% of the baseline Brier, against the 2-3% skill being
+    sized.
 - **BR1b:** the all-underlying end-of-day panel, extending A3, with the contract-adjustment rule.
 - **BR1c:** baselines and the rule family, with G7-layout records.
 - **BR1d:** BR1 scoring through G8's functions.
@@ -246,4 +253,4 @@ weeks of F8 minutes set the final size before the freeze. The rule and hybrid fa
 | 6 | One regime | **Accepted.** A freeze gate on the worst year of 2019-2025. Measured so far: 2024 is the worst (2% in 21.5 months) | also found: lag-1 up to 0.26, now in every months figure (up to 1.7x) |
 | 7 | Hybrid rules in flight | **Accepted.** Frozen at the freeze | n/a |
 | 8 | K = 3 | **Accepted** as the recommendation; K = 12 is the alternative | 8.5 against your 8.4 on your settings (9.4 with lag-1); 17.2 with v4's alpha and lag-1 on the realistic pair |
-| notes | Results days; M1's 500-day window; fetch.py; calendar; setup | All accepted: a results-day split; a 60-session `cal60`, not M1's 500; fetch.py rewritten (clean, no hard-coded path); NSE calendar for scoring; setup line in the README | `ruff check` clean on all three scripts |
+| notes | Results days; M1's 500-day window; fetch.py; calendar; setup | All accepted: a results-day split; a 60-session `cal60`, not M1's 500; fetch.py rewritten (clean, no hard-coded path); NSE calendar for scoring; setup line in the README | `ruff check` under the repository's `ruff.toml` is clean on all three scripts, after SIM115 in `sizing.py` was fixed (addendum 1, note C) |
