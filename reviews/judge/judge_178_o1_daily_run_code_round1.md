@@ -179,3 +179,19 @@ Notes (one line each, reasoning only, not should-fix):
   Nothing to change.
 
 Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the real day), and the merge after A4c.
+
+## Addendum 5: O1 at 3e955e0c, re-run on main with parallel tests (orchestrator, 15 Oct)
+
+**Verdict: PASS for the code built so far, unchanged.**
+
+- **What moved since 71b00878:** main merges plus two story-text commits, 590d9491 (E8's `owner_timing_fills`) and
+  68e548f0 (M2's `weather_alert`). No O1 code changed.
+- **Gates on a trial merge with origin/main:** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto` gives
+  **6579 passed in 2 min 45 s**, with no test that fails only in parallel. `ruff check` and `check_imports` are clean.
+- **The two text additions are accepted as records of agreed interfaces, not O1 scope.** Each step is built and
+  judged in its own story after O1 merges, and O1 adds no code for either. Both sit after `quotes`, so neither can
+  delay the 3 pm parts.
+
+  For E8's and M2's judges, one point, reasoning only: E8's step is planned as its own `DayStep`, not a
+  `CommandStep`, so it does not get O1's 10-minute limit. Whoever judges E8 should check it cannot hang the day
+  before the exits.
