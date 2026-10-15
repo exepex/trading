@@ -66,6 +66,9 @@ FnoForecastLab:
             then: {properties: {isolation_label: {const: sealed same day (not full F1)}}}
           - if: {properties: {isolation: {const: code}}}
             then: {properties: {isolation_label: {type: 'null'}}}
+          # an AI book can never be declared code (owner, 14 Oct 2026, condition 2: its label stays on every record)
+          - if: {properties: {kind: {const: family}, family: {enum: [hybrid, ai]}}, required: [kind, family]}
+            then: {properties: {isolation: {enum: [sealed_same_day, full_f1]}}}
     questions:
       type: array
       minItems: 1

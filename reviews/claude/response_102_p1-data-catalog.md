@@ -390,3 +390,24 @@ I accepted every finding after checking each against its source. For every sourc
   - replaces the xfail with an assertion that at least one delivery record exists, so a moved folder fails instead of
     staying expect-failed.
 - All three tests pass; no test is xfailed any more.
+
+## Addendum 4: judge 102 addendum 2 (one should-fix, two minors)
+
+The dashboard head is 1eef671; the pin moved there and all 33 files are byte-identical.
+
+- **SF1 (accepted):** a Forecast-lab row of kind family with family hybrid or ai must have isolation sealed_same_day
+  or full_f1, never code (a schema rule).
+  - A probe sets an AI book to code with a null label; the schema refuses it.
+  - A planted break deletes the rule; the probe then lets the page through, and the check fails.
+- **Minor (accepted):** `fno_rules.PROVISIONAL_PATHS` guards every field whose v4 meaning waits for G6:
+  - p_value, interval, verdict, min_effect_met, futility_upper_bound, n_needed, variance, settle, and the weather's
+    scores.
+  - A planted break removes the mark on p_value, and the check fails.
+  - Planted breaks: 28 of 28.
+- **Minor (accepted):** mockup 31's `changes.md` records limit_max going from Rs 30,000 to Rs 1,50,000. It also notes
+  that trading's main publishes 30,000 until C5 merges.
+- **Merge plan (orchestrator):**
+  1. C5 merges first.
+  2. Then the dashboard.
+  3. Then trading is re-pinned at the dashboard's merge commit.
+  4. Then trading merges.
