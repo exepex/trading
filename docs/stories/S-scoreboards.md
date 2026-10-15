@@ -469,7 +469,8 @@ later years (the law allows 8 years). One non-tax item leans for the book: see K
 **Strategy versions (the gate's level):** RM1's criterion 2 is per strategy version (design v2 8.3). Each book's board
 gains `strategies`: for each playbook version (`ScoredTrade.strategy`, `<name>-v<n>`) in that book, its closed trades,
 pilot included (per-strategy evaluation comes before the common start, REPLAN section 4), with `measures` and
-`do_nothing`. `beats_index_after_tax` there is the value RM1 reads.
+`do_nothing`. `beats_index_after_tax` there is the value RM1 reads; RM1 reads Book 1's value only, and other books'
+values are shown, never combined (RM1, judge 158 add. 1 minor).
 - **Why here and not on E6's card:** E6 (`fno/scorecard/`) is the same level (one version in one account) but has no
   capital tied, no index and no daily series, and its `review.py` is an S1-frozen file. Adding them there would build a
   second capital and index path; scoreboard B already has both.
@@ -534,7 +535,7 @@ nothing to rank for months; its definition is in S1 now (response 144 red team 7
 | Selection luck only, descriptive, not in Holm (response 144 item 26) | section 6 label; S1 item `random_control` |
 | Random control shares dates, universe, entry delays, structure eligibility, caps, fills, charges (response 147 item 7) | section 6: same dates and expiry, flips only to mapped codes, E4 pricing, C1 charges; caps: per-trade and bucket only (Known limits) |
 | t-check a printed warning, disagreement flagged beside every claim (row 167, response 147 item 5) | section 3; criterion 4 |
-| Do-nothing on every scoreboard (row 168) | scoreboard B: section 4, criterion 12; scoreboard A: S3 text and criterion 4b |
+| Do-nothing on every scoreboard (row 168) | scoreboard B: section 4, criterion 12; scoreboard A: S3 text and S3 criterion 5 |
 | Do-nothing a gate before real money, per strategy version (row 168, design 08:83 item 2) | `strategies` entries; criterion 11; RM1 reads it (out) |
 | Same capital, horizon and tax scenario; tax an assumption (row 168, response 147 item 4) | section 4 labels; criterion 8 |
 | Per rupee-day of capital tied, the index over the same rupee-days (design 03:118-120, REPLAN.md:47) | view (a); criterion 5 |
@@ -572,7 +573,7 @@ nothing to rank for months; its definition is in S1 now (response 144 red team 7
    sessions and a book net of Rs 2,000: the account's after-tax net plus Rs 19,00,000 idle credited at the after-tax cash
    rate, against the fund and against cash on Rs 20,00,000, each matches a hand calculation to the paisa. Boundary
    cases:
-   - no trade at all: the book's view (b) equals the cash benchmark exactly;
+   - no trade at all and no operating cost: the book's view (b) equals the cash benchmark exactly;
    - the whole Rs 20,00,000 tied: the idle credit is exactly 0.
 7. **Empty sections:** an overridden section with no trade and a head-to-head section before its first trade give
    `do_nothing` null with "no capital tied" in view (a); view (b) still computes (all idle).

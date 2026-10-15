@@ -57,7 +57,7 @@ def blocks(nets, risks):
 
 
 def test_the_t_bound_known_answer_on_6_blocks_with_unequal_risk():
-    nets, risks = [100, 200, 0, 300, 100, 500], [1000, 1000, 2000, 1000, 1000, 2000]
+    nets, risks = [100, 200, 0, 300, 100, 500], [1000, 2500, 1000, 1500, 1000, 1000]
     ratio = 1200 / 8000  # 0.15
     z = [(n - ratio * r) / (8000 / 6) for n, r in zip(nets, risks, strict=True)]
     expected = ratio - 2.015 * statistics.stdev(z) / math.sqrt(6)  # t(0.95, 5) = 2.015

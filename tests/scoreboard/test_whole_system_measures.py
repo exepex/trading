@@ -6,8 +6,9 @@ from datetime import date
 
 from fno.books.account import PaperAccount
 from fno.composition import build_session_calendar
-from fno.constants import BOOK1_RULES, BOOK2_HYBRID
+from fno.constants import BOOK1_RULES, BOOK2_HYBRID, FILL_CLOSE, FILL_OPEN, SIDE_BUY, SIDE_SELL
 from fno.desk.records import DeskRecords
+from fno.desk.wiring import open_desk_journal
 from fno.risk.open_risk import HeldMaxLoss
 from fno.scoreboard.book_trades import NO_RECORD, OVERRIDDEN
 from fno.scoreboard.do_nothing import NO_CAPITAL, DoNothing, IndexDay, Terms
@@ -16,9 +17,9 @@ from fno.scoreboard.random_control import RandomControl
 from fno.scoreboard.whole_system import canonical
 from fno.scoreboard.wiring import board_from
 from fno.scorecard.strategy_record import strategy_records
-from tests.scorecard.history import CHARGES
+from tests.scorecard.history import CHARGES, LONG, _record
 
-from .test_whole_system import MARKS, ON, VERSIONS, history
+from .test_whole_system import MARKS, ON, START, VERSIONS, history
 
 FLAT = DoNothing(lambda day: IndexDay(20000.0, 1.2), Terms(account_rs=2_000_000.0))
 SECTIONS = ("overall", "pilot", "head_to_head", NO_RECORD, OVERRIDDEN)
@@ -73,8 +74,17 @@ def test_the_drawdown_share_uses_the_books_brake(tmp_path):
     assert date.fromisoformat(measures["worst_day"]) <= ON
 
 
+def unwound(root, book, strategy, trade_id, day):
+    """An entry whose short leg did not fill: the long leg bought and sold back at the same snapshot, no "opened"
+    event (E4's legging cost, a real case)."""
+    with open_desk_journal(book, root) as journal:
+        journal.record_fill(_record(root, book, strategy, trade_id, FILL_OPEN, LONG, SIDE_BUY, 20.0, 0.5, day))
+        journal.record_fill(_record(root, book, strategy, trade_id, FILL_CLOSE, LONG, SIDE_SELL, 20.0, 0.5, day))
+
+
 def test_each_strategy_version_entry_reconciles_with_e6s_card(tmp_path):
     root = history(tmp_path)
+    unwound(root, BOOK1_RULES, "fly-a-v1", "w1", START)
     board = build(root)
     for book in (BOOK1_RULES, BOOK2_HYBRID):
         cards = {r.strategy: r for r in strategy_records(book, DeskRecords(PaperAccount(root, book)), CHARGES)}
