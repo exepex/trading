@@ -19,7 +19,7 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
 | Section 11 E decided | 11 E and 5.3 | "**Decided: option 2** (owner, 15 Oct 2026): a window whose 2% days are more than 10% of its scored outcomes is not judgeable at that look, for every member (`confirmatory.crash_dominated`); at n = 125 a judgeable window holds at most 12 such days, so the 13+ band starts at n = 130" | `DESK_DECISIONS.md` 15 Oct ("G6 item E: option 2"); G8 built it |
 | V6b stays scored | 5.6, 11 D/E | no edit needed: the protocol never wrote "V6 report-only" (checked: only V7 is descriptive-only, line 207); the record quotes the owner's row "V6b stays a scored member" | `DESK_DECISIONS.md` 15 Oct (row 182) |
 | Intraday HAR skips void sessions | 3.1 | "**HAR (intraday)** forms its 1-, 5- and 22-session means over the usable (non-void) sessions; a void session is skipped, not a reason to be missing" (otherwise about 68% of days would have no V1 primary at A16's 5% voids) | judge 127, note for the G6 session; G7's code does this |
-| Freeze start and "not started" | 4 (miss rule) | already in section 4 (lines 179-181); add: "a forecaster that starts only after the freeze counts misses from its first live forecast; the days before it are not started" | judge 156 notes 1 and 3 |
+| Miss start: `effective_start` and "not started" | 4 (miss rule) | replace the start rule in section 4 (lines 179-181): "a **registered** slot counts misses from its `effective_start` (a session on or after the freeze, before its first eligible session, named in its registration row), so every baseline-observable day from then is observed or missed, even before its first forecast; an **unregistered** slot is `not_started`" (revision 2; replaces "from the first live forecast") | ChatGPT review 119; judge 156 notes 1 and 3 |
 | Back-fills disclosed | 8 | "Run before the freeze, exploratory, never counted: G7's V6 back-fill (`f891d9b`, 2017-01-03 to 2026-10-14; `base_rate`, `v6_ewma_t4`) and M1's weather back-fill (`6b7eaba`, same days; `weather_vix_v1`, `weather_checklist_v0`), each labelled `backfill_exploratory`; G8's exploratory reports and demo look (response 126)" | the two commits; G8 claims |
 | G10's changes | 1.2-1.6, 3.1, 4, 8, 10 | as G10 lists them (after ChatGPT 113) | story G10 |
 | Long line | 4 | the one line over 120 characters ("such days, missing **any** ...") rewrapped | judge 156 note 2 |
@@ -45,7 +45,9 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
   ("A accept, B accept, C accept", line 121); D ("3 B", line 123); E ("merge G6, E option 2", line 157); the miss caps
   ("Both 10%", line 177); the 60-minute fill decides (line 181); V6b stays a scored member (line 182); the v4 timeline
   (line 184), flagged not blocked (line 185), lateness (line 186) and honest times with the 14:40 window (line 194).
-  Line numbers as on main today; the record quotes each row's text too, so a later insertion cannot misdirect it.
+  **One change for the owner to confirm before the freeze:** the start of the confirmed miss rule (line 177) moves
+  from a slot's first forecast to its registered `effective_start` (ChatGPT review 119; stricter: a registered family
+  cannot avoid misses by starting late). Line numbers as on main today; the record quotes each row's text too, so a later insertion cannot misdirect it.
 - **Disclosures:** both back-fills (above); the 2017-26 base rates (section 8); G8's exploratory runs.
 - **V1's method pinned (judge 177, should-fix 1, option b with a):** the record names A16's method `rv-quote-15m-v1`
   (`fno/intraday/realised_vol.py:49`), and V1 counts only A16 rows of that method: `series.live_intraday_rv` today
