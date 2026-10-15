@@ -1,0 +1,3 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-15T06:14:54+05:30,nasdaq/indices/ndx-history/2026/10/15/061454_ndx-history_20070101_20261015.json,https://api.nasdaq.com/api/quote/NDX/historical?assetclass=index&fromdate=2007-01-01&todate=2026-10-15&limit=10000,,25afac569c9fa13670ea851873aadd2a58d2bc91c1887dce320d6dddc75dcd5d,551966
+2026-10-15T06:17:22+05:30,nasdaq/indices/ndx-history/2026/10/15/061722_ndx-history_20260912_20261015.json,https://api.nasdaq.com/api/quote/NDX/historical?assetclass=index&fromdate=2026-09-12&todate=2026-10-15&limit=10000,,82e6e18756e30a43772afbe339af4fcc1dc6c401260f6e28303cfb412207dc1e,2731
