@@ -22,7 +22,7 @@ from ..server_clock import GITHUB_TIME_URL, HttpDateClock
 from ..storage import wiring as storage
 from ..storage.raw_store import AreaStore
 from .card import CardBuilder
-from .committed import GitHeadRecords
+from .committed import DownloadedRecords, GitHeadRecords
 from .daily import DailyCard
 from .deliveries import RepoDeliveryFiles
 from .forecasts import LiveCaptureForecasts
@@ -51,12 +51,13 @@ def _host_now() -> datetime:
 
 def build_daily_card(root: Path = ROOT) -> DailyCard:
     records = GitHeadRecords(root)
-    builder = CardBuilder(build_status(records), PendingWeather(), LiveCaptureForecasts(records))
+    builder = CardBuilder(build_status(records, root), PendingWeather(), LiveCaptureForecasts(records))
     return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
 
 
-def build_status(records: GitHeadRecords) -> RuledStatus:
-    """T1's registry status with T2's rule outcomes; the final times come from the desk's own timetable."""
+def build_status(records: GitHeadRecords, root: Path = ROOT) -> RuledStatus:
+    """T1's registry status (accounts from Drive's download, E2c) with T2's rule outcomes; the final times come from
+    the desk's own timetable."""
     from ..config import load_app_config
     from ..desk.timetable import timetable_from_config
 
@@ -66,7 +67,7 @@ def build_status(records: GitHeadRecords) -> RuledStatus:
         DecisionOutcome(records, runs, timetable),
         ExecutionOutcome(runs, timetable, lambda d: previous.answer(d).previous),
     )
-    return RuledStatus(RegistryStatus(records), RuleChecks(rules))
+    return RuledStatus(RegistryStatus(records, DownloadedRecords(root)), RuleChecks(rules))
 
 
 def build_card_poster(env=os.environ) -> CardPoster:

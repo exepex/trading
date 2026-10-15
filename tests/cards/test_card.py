@@ -98,7 +98,7 @@ def test_an_unreadable_registry_or_account_is_a_failed_data_check_named_on_the_c
     assert card.reason_code == CARD_DATA_CHECK_FAILED
     assert "Paper trades so far: at least 0 (book1_rules 0, book2_hybrid unknown, book3_ai 0)" in text
     assert "playbook/registry.csv: not readable (PlaybookError)" in text
-    assert "journal/book2_hybrid/account/positions.json: not readable (not committed)" in text
+    assert "journal/book2_hybrid/account/positions.json: not readable (not downloaded from Drive)" in text
 
 
 def test_open_and_closed_trades_are_counted(tmp_path):

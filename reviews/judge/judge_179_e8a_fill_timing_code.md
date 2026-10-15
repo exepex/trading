@@ -109,3 +109,29 @@ is the owner's-choice table (mean D = bad-side C at 15:00 minus at 14:00, R60): 
 
 Only the test fix needs re-checking: the full suite on the merged tree. The study, run and results stand as judged
 here.
+
+## Addendum 1: the must-fix at 1f8ddef5 (branch head 76d73a06): PASS
+
+The builder sent this re-check directly, and I told the orchestrator. The fix is 1f8ddef5, the only change since
+b4c0ea07 apart from the merge.
+- `tests/research/test_ledger_guard.py` now pins `range(1, 55)` and checks row 54 as prospective, hypothesis "no" and
+  protocol commit 47d15989, following the pattern of 08901f5b.
+- The study's files are unchanged since b4c0ea07: `research/2026-10-16-fill-timing/`, `tests/research_ft1/` and the
+  ledger row.
+- Main has added no ledger trial; 54 is still the last row.
+
+**Trial merge with today's main (cbdc3c38):** 76d73a06 merged an older main. Today's main conflicts with it in
+`docs/stories/E-paper-desk.md`, where E2c's story section and E8a's were both appended after E7. I resolved it by
+keeping both sections and ran the gates on that tree:
+- ruff check, ruff format and check_imports are clean.
+- The full suite gives **3 failed, 6,219 passed**. All 3 failures are main's own: they fail the same way on
+  origin/main cbdc3c38 alone, with no E8a in the tree.
+  - `tests/books/test_paper_account.py::test_the_committed_state_is_the_13_oct_rs_5_lakh_opening_topped_up_to_rs_20_lakh_on_15_oct`
+    (ValueError, "not enough values to unpack"; the paper accounts left the public record in E2c d9f67c4f)
+  - `tests/forecast_v4_rules/test_v4rules_series_and_rules.py::test_committed_closes_reproduce_the_disclosed_v6_counts`
+    ((100, 2410) against the pinned (100, 2409); the new 2026-10-16 close, 69af006a)
+  - `tests/market_read_models/test_home_blocks.py::test_the_live_wiring_reads_the_repositorys_books_and_their_open_risk_cap`
+
+E8a's must-fix is closed, and E8a adds no failure. The merge itself still needs main green first: the merger takes main
+again, keeps both story sections, and runs the full suite. Those 3 tests belong to main's own builders (E2c, G7/v4 and
+P6-P9), not E8a.
