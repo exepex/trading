@@ -2,10 +2,12 @@
 
 Protocol version: 1
 
-**Status: DRAFT, not frozen. Claims are POSTPONED.** Study 3 found no per-look rate at which the frozen test keeps
-its false-claim limits on the real null (`studies/results/study3.json`). By the rule written before the run, BR1
-reports descriptively until a new protocol version. Every item below is a proposal until the owner decides it item by
-item. BR1 freezes only after BR1b-BR1e exist (`python -m fno evaluation freeze --protocol breadth`). Builder: Claude,
+**Status: DRAFT, not frozen. BR1 is DESCRIPTIVE ONLY (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md`).** Study 3
+found no per-look rate at which the frozen test keeps its false-claim limits on the real null
+(`studies/results/study3.json`). None of three candidate replacements passed either
+(`reviews/claude/response_198_br1-test-candidates.md`). So BR1 makes no confirmatory skill claim: its results are
+reported, each labelled descriptive, and the null size check is re-measured each year. The owner decided `looks` and
+`null_size_check`; every other item is a proposal until the owner decides it item by item. BR1 freezes only after BR1b-BR1e exist (`python -m fno evaluation freeze --protocol breadth`). Builder: Claude,
 16 Oct 2026, branch `story/br1a-protocol`.
 
 How to read an item: the same as S1's protocol (`research/evaluation/PROTOCOL.md`). **Value** is the exact value or
@@ -85,7 +87,8 @@ evidence, some evidence, or reasoning only. `python -m fno evaluation check --pr
 - **Evidence:** some evidence
 
 ### `claim_meaning` What a claim means
-- **Value:** the only confirmatory claim is "family F beats the primary baseline on T1, end of day". Against the
+- **Value:** the only confirmatory claim is "family F beats the primary baseline on T1, end of day". Under
+  version 1 it is never made: BR1 is descriptive only (owner, 16 Oct 2026). Against the
   other two baselines each family's paired mean difference and its 95% interval are reported, labelled descriptive. A
   result is never worded as a win over every baseline, and never as a trading or real-money result. A descriptive
   loss to a non-primary baseline is shown as a caution, never as proven inferiority.
@@ -117,12 +120,13 @@ evidence, some evidence, or reasoning only. `python -m fno evaluation check --pr
 - **Evidence:** reasoning only
 
 ### `looks` Looks and rate
-- **Value:** none: claims are postponed. Study 3's single loop tried 0.02, 0.015, 0.01 and 0.005 per look (look
+- **Value:** none: BR1 is descriptive only and holds no confirmatory look. Study 3's single loop tried 0.02, 0.015, 0.01 and 0.005 per look (look
   counts 248/495, 263/526, 285/569, 321/642 sessions); at every rate the sign-flipped null (-d) on the whole window
   exceeded the limits of 0.025 per look and 0.045 at either (at 0.02: 0.092, 0.082, 0.136; at 0.005: 0.052, 0.033,
-  0.071). No confirmatory look is held under this version; a new version sets the rate and the looks again.
-- **Status:** proposal, owner decides
-- **Reason:** the rule written before the run: if no rate passes, claims are postponed.
+  0.071). A confirmatory look would need a new protocol version whose size check passes.
+- **Status:** decided by the owner on 2026-10-16
+- **Reason:** the rule written before the run (if no rate passes, claims are postponed), then the owner's choice of
+  descriptive only over a 21-session-block test that would take about 2.5-4 years to its second look.
 - **Evidence:** some evidence
 
 ### `futility` Futility
@@ -138,9 +142,13 @@ evidence, some evidence, or reasoning only. `python -m fno evaluation check --pr
   three registered-baseline pairs' daily d, centred within the population tested; 2,000 circular block-bootstrap
   paths of 63-session blocks with the same block starts for all members; both signs, both looks, whole window and
   worst year. Result: **no rate passes, claims postponed** (`studies/results/study3.json`; the reasons, some
-  evidence, in `studies/results/DIAGNOSTICS.md`: strongly skewed crash-day differences, the two `market` pairs).
-- **Status:** proposal, owner decides
-- **Reason:** ChatGPT review 116 Q4: a test's size is measured on the real null before any claim.
+  evidence, in `studies/results/DIAGNOSTICS.md` and response 198: crash-day skew and dependence lasting longer
+  than the test's 5-session blocks, in the two `market` pairs). **Re-measured each year:** after each calendar year
+  closes, the same check is run on the latest two full years and reported, labelled exploratory. A pass is never a
+  claim by itself; it can only start a new protocol version.
+- **Status:** decided by the owner on 2026-10-16
+- **Reason:** ChatGPT review 116 Q4: a test's size is measured on the real null before any claim; the owner (16 Oct)
+  keeps measuring it as history grows.
 - **Evidence:** some evidence
 
 ### `regime_gate` Regime gate (study 2)
@@ -154,15 +162,15 @@ evidence, some evidence, or reasoning only. `python -m fno evaluation check --pr
 
 ### `descriptive_reports` Descriptive reports
 - **Value:** N_eff of each family's errors (rho of d across names), the results-day split, T2, direction, 14:30, the
-  non-primary comparisons and the exclusion counts. While claims are postponed, every member's paired difference and
-  its interval against the primary are descriptive too.
+  non-primary comparisons and the exclusion counts. Under BR1's descriptive-only rule, every member's paired
+  difference and its interval against the primary are descriptive too, and never worded as proven skill.
 - **Status:** proposal, owner decides
 - **Reason:** what is useful to see but never tested.
 - **Evidence:** reasoning only
 
 ### `reporting` Reporting
-- **Value:** every member at every look: its p, its decision, the date, the losers too. Results are per protocol
-  version.
+- **Value:** every family against every baseline at every report: the paired difference, its interval and the
+  date, the losers too, each labelled descriptive. Results are per protocol version.
 - **Status:** proposal, owner decides
 - **Reason:** nothing is shown only when it wins.
 - **Evidence:** reasoning only

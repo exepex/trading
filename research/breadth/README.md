@@ -15,8 +15,9 @@ Research only: forecasts and their scores, never an order. The story is `docs/st
   (t -8.06).
 - **A BR1 claim means one thing only:** "family F beats the primary baseline on T1, end of day". It is never a win over
   every baseline, and never a trading or real-money result.
-- **Claims are postponed under protocol version 1:** study 3 found no rate at which the test keeps its false-claim
-  limits on the real null (`studies/results/DIAGNOSTICS.md`). A new version is the owner's decision.
+- **BR1 is descriptive only (owner, 16 Oct 2026):** no confirmatory skill claim. Study 3 found no rate at which the
+  test keeps its false-claim limits on the real null, and none of three candidate replacements passed (response 198).
+  Results are reported, each labelled descriptive, and the null size check is re-measured each year.
 
 ## Layout
 

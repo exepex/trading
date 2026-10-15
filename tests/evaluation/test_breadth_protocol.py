@@ -39,10 +39,11 @@ def breadth_repo(root, text: str) -> None:
     commit_all(root, "breadth protocol")
 
 
-def test_the_committed_breadth_protocol_is_complete_for_its_own_items_and_every_item_is_a_proposal():
+def test_the_committed_breadth_protocol_is_complete_and_only_the_owners_descriptive_only_items_are_decided():
     protocol = parse_protocol(TEXT)
     assert completeness_problems(TEXT, protocol, BREADTH_ITEMS) == []
-    assert set(protocol.items) == set(BREADTH_ITEMS) and undecided_items(protocol) == list(protocol.items)
+    decided = {"looks", "null_size_check"}  # owner, 16 Oct 2026: BR1 descriptive only, the size check yearly
+    assert set(protocol.items) == set(BREADTH_ITEMS) and set(undecided_items(protocol)) == set(protocol.items) - decided
 
 
 def test_the_freezer_refuses_the_breadth_protocol_while_any_item_is_a_proposal(tmp_path):
