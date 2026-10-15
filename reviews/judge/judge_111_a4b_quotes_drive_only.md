@@ -98,3 +98,22 @@ log. If the settings are missing, the owner adds them first and the merge waits.
 
 **Verdict: FAIL for d1c2d06f1b01539c5903671b12f1d5bad4c14674** (story text), on should-fixes 1-2, both wording and
 criteria only. Rulings 1-3 stand for the code check. A re-check needs only the A4b section.
+
+## Addendum 1 (15 Oct 2026): story text revision 3 at 6db62600c85d8cfa4de81e2ca3edc39aa148ab35 (d1c2d06..6db6260)
+
+One commit, which changes only `docs/stories/A-data-foundation.md` (+40 −8). Text only.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Should-fix 1: criterion 6 | MET | "No byte-checked file of the G1 v1-v3 freeze records changes", checked by a script over every `FREEZE*.md` byte-checked table against the diff (`replay.py` named). Only `recorder.py` (R2 and criterion 9) and `forecast_scoring/wiring.py` (R1) change. Named tests: the freeze tests, `forecast_live_golden.py`, A4's baseline (byte-identical for normal and december; for retry and none only the `failures` strings change, with their fixtures updated for exactly those strings), the Q5 wiring test, and a real 14 Oct replay from the commit's file and from Drive |
+| Should-fix 2: merge condition | MET | A write-read probe through `build_quote_store` in the routine's own environment, printing only "drive write-read ok" or the error type. Rule 8's first real 15:00 run (result line, sidecar committed, Drive hash equal to the sidecar's) goes in the log and the merge record. The orchestrator's decision 14 (the merge waits for the owner's probe) matches |
+| Minor 1: public failure texts | MET | New criterion 9: `<where>: <exception type> (provider message withheld)` and `raw quote file not saved: <type>`, with a planted-value test over every repository file and the result line. The cost is stated |
+| R4 label | MET | `spot` stays public "by the orchestrator's decision", accepted by judge 111 R4 |
+| Pushback on minor 2 (hash-check pre-A4b files in the replay) | **ACCEPTED** | A pre-A4b commit's quote file comes out of `git archive` of that commit. Git addresses blobs by their own hash, so the bytes are exactly the committed ones, and a sidecar check adds nothing there. The check would also refuse golden case A, which `test_live_replay.py:93-102` replays. One correction to the builder's wording: case A's sidecar has **no** `csv_sha256` key at all (`nifty_20261013_145600.meta.json`; the file hashes to `25a5f9ea...`), rather than a wrong one. The effect is the same: a check would refuse it or need an exception |
+
+The A4 baseline fixtures changing for retry and none is not a loosened test. It is the deliberate output change of
+criterion 9, with the normal and december cases still byte-identical. The code check will confirm that only those
+`failures` strings differ.
+
+**Verdict: PASS for 6db62600c85d8cfa4de81e2ca3edc39aa148ab35** (story text). Code may start. The merge also needs the
+owner's routine-environment probe (merge condition; decision 14).
