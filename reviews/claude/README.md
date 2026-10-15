@@ -146,6 +146,7 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 162: answer to ChatGPT review 115 (E2c): exit-guard defect confirmed in code and sent to the builder; block only on an error or a non-empty waiting list](response_162_chatgpt-review-115-answer.md)
 - [Response 168: review request to ChatGPT for C2c (stressed margin on the whole margin), C2d (k from the factor file) and A14c (automatic weekly recompute; judge 173 PASS), quality rule 9](response_168_c2c-a14c-chatgpt-request.md)
 - [Response 175: story C2c code, k multiplies the whole margin in C2 and C4 (claims; every changed pinned figure with its recompute; 6 mutations caught)](response_175_c2c-whole-margin-code.md)
+- [Response 178: story C2d code, C2 and C4 read the stress factor from A14c's file (claims; seed row, point in time, 6 mutations caught)](response_178_c2d-stress-factor-file-code.md)
 - [Response 169: answer to ChatGPT review 117 (C2c, C2d, A14c): accepted; the session-date coverage guard replaces the count guard before code](response_169_chatgpt-review-117-answer.md)
 - [Response 171: answer to ChatGPT review 118 (RM1): timing-matched slippage, binding paired test, eligible cap fit accepted; fill-honesty partly; owner numbers Q1-Q12 recorded](response_171_chatgpt-review-118-answer.md)
 - [Response 173: answer to ChatGPT review 119 (v4 freeze checklist): operative IV30/Black-76 hashed or proven inert; prospective start per slot](response_173_chatgpt-review-119-answer.md)
