@@ -103,3 +103,17 @@ Caught: 12.
 - **Privacy:** the board path is git-ignored and pushed to Drive through E2c's `PrivateFiles`.
 - **Process:** a self-review section is present (1 must-fix and 7 should-fix, all applied), and a real output sample
   is in the claims.
+
+## Addendum 1: re-judge at `650e861df50e466a7669fdcb5b200693d9013d51` (judge G)
+
+**Verdict: PASS.** The fix reached me from the builder. I re-judged it as part of the judge and builder loop and report
+the verdict to the orchestrator.
+
+- **Should-fix 1 is accepted.** `test_a_resample_exactly_at_zero_counts_against_the_claim` covers both cases:
+  - a flat series, where every resample is exactly 0: `lower_bound` = 0.0 and `p_value` = 1.0;
+  - a tied series of 19 zeros and one positive day: p < 0.05 exactly when the bound is above 0.
+- **I re-ran both:**
+  - `tests/scoreboard` on the fix gives 76 passed;
+  - my `< 0` mutation of the p-value is now caught (1 failed, 75 passed).
+- **The commit changes nothing else:** no `fno/` change, only the test, the claims renamed to
+  `response_179_s3-code.md` (177 was BR1a's) and the README row.
