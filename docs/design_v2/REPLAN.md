@@ -126,7 +126,7 @@ nothing.
 
 ### Slice C (December 2026 - January 2027): surfaces and depth
 
-G9 house forecast (first quarterly review), LM2 `intraday_exits` mode with its registered comparison, A18 stock-option
+G12 house forecast (first quarterly review), LM2 `intraday_exits` mode with its registered comparison, A18 stock-option
 data if R2 passed, P2, P3 (changed), P5, W3, W4, O3, O4, S4, MA1, G11 (AI books on v4 questions; renamed from G10 by story G10, the v4 timeline).
 
 ### Slice D (from about 31 May 2027): the stop-rule review
