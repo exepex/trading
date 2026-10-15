@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 from fno.config import ROOT
+from fno.evaluation.completeness import SET_AT_FREEZE
 from fno.evaluation.gate import GATE_FILE
 from fno.evaluation.protocol import PROPOSAL, PROTOCOL_FILE
 from fno.research_engine.ledger import COLUMNS
@@ -32,7 +33,9 @@ LEDGER_HEAD = ",".join(COLUMNS) + "\n1,old,an earlier trial,retrospective,no,202
 
 
 def decided(text: str = DRAFT) -> str:
-    return text.replace(f"**Status:** {PROPOSAL}", f"**Status:** {DECIDED_ON}")
+    """Every item decided, and every number marked for the freeze day set (its marker removed)."""
+    marker = r"\s+" + r"\s+".join(map(re.escape, SET_AT_FREEZE.split()))  # it may wrap across lines
+    return re.sub(marker, "", text.replace(f"**Status:** {PROPOSAL}", f"**Status:** {DECIDED_ON}"))
 
 
 def small_frozen_files(text: str) -> str:

@@ -42,6 +42,11 @@ REQUIRED_ITEMS = {
     "role_value_schedule": "the role-value evaluation and ablation schedule (story F9, design 13.6)",
     "role_value_minimum_sample": "the role-value minimum sample and decision rule (story F9)",
     "reporting_per_version": "how results are reported per protocol version (story S1, criterion 3)",
+    "do_nothing_benchmark": "the do-nothing comparison after tax, a gate before real money (story S6)",
+    "scorecard_measures": "net without the best trade, profit factor, drawdown and worst day (story S6)",
+    "t_check": "the t-based check beside the bootstrap, a printed warning only (story S6)",
+    "missed_runs": "missed desk runs on scoreboards A and B, with the miss cap (story S6)",
+    "random_control": "the random-strategy control, descriptive (story S6)",
     "frozen_files": "the files and settings the freeze hashes (scoring code, timetable, allocation formula)",
 }
 

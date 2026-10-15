@@ -6,7 +6,9 @@ from __future__ import annotations
 from datetime import date
 
 from ...config import ROOT
+from ...constants import V4_KIND_AI
 from ...intraday.rv_table import RvTable
+from .audits import OpenAuditFile, has_kind
 from .cutoff_moves import RecordedCutoffMoves
 from .days import DayCounts, DayFiles, LateDaysOut, day_counts
 from .g7_series import G7Series
@@ -21,6 +23,7 @@ SCORES_FOLDER = ROOT / "research" / "forecasts" / "v4_scores"
 FREEZE_FILE = ROOT / "research" / "forecasts" / "FREEZE_v4.md"
 CLOSES_FILE = ROOT / "research" / "data" / "nifty-panel" / "warmup_closes.csv"  # O6
 INTRADAY_FOLDER = ROOT / "research" / "data" / "intraday"  # A16's live rv/ files (never A16b's rv-candle/)
+OPEN_AUDITS_FILE = ROOT / "research" / "forecasts" / "v4_audits" / "open_audits.csv"  # G11 keeps it
 V4_DAYS_FOLDER = ROOT / "research" / "data" / "v4_days"  # G10: one label file per live day, written by the capture
 
 
@@ -34,6 +37,10 @@ def build_scoring() -> V4Scoring:
 def build_day_counts(as_of: date) -> DayCounts:
     flags = RecordedCutoffMoves(RvTable(INTRADAY_FOLDER).rows())  # A16's 15:30 run commits each day's flag
     return day_counts(DayFiles(V4_DAYS_FOLDER).labels(), flags.moved, as_of)
+
+
+def build_open_audits() -> OpenAuditFile:
+    return OpenAuditFile(OPEN_AUDITS_FILE, lambda: has_kind(FORECASTS_FOLDER, V4_KIND_AI))
 
 
 def build_look_records() -> LookRecords:

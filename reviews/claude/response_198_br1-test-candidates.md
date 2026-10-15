@@ -63,3 +63,88 @@ round.
 ## Part 2: results
 
 Written after the run, below this line, without editing Part 1.
+
+Run once on 16 Oct 2026, after part 1 (0fd0c2de) and the code (76952bf2) were pushed. The code is
+`research/breadth/candidates/` (`prep.py`, `compare.py`, `run.py`, tests in
+`tests/research/test_breadth_candidates.py`). The raw output is `research/breadth/candidates/results.json`, with the
+log in `run.log`. 437 sessions; 10 NIFTY 2% days in the window.
+
+### Verdict: no candidate passes, so there is no winner (some evidence, one window)
+
+| Candidate | Passes? | Worst false claim at either look (limit 0.045) | Power on +d at either look |
+|---|---|---|---|
+| A, v4 crash gate | **no**, at every rate | whole, -d: 0.125 at 0.02 ... 0.065 at 0.005 (SE 0.005-0.007) | 0.878 at 0.02, for information only |
+| B, daily sign | **no**, at every rate, on both nulls | its own median-centred null: 0.271 at 0.02, 0.168 at 0.005; the mean-centred null: up to 0.929 | 0.982, meaningless at that size |
+| C, calibrated | **no**: α* = 0.0055 holds in 2024 only | hold-out 2025, -d: 0.072; whole, -d: 0.098 | 0.871 at α* = 0.0055, for information only |
+
+None is even a borderline pass. At every rate, each candidate's largest excess is at least 3 standard errors
+above its limit (the closest: A at 0.005, 0.065 against 0.045 at either look, SE 0.005).
+
+### A, the v4 crash gate
+
+| Rate | Looks | Whole +d (look 1 / 2 / either) | Whole -d | Worst year +d | Worst year -d | Share judgeable, whole (look 1 / 2) |
+|---|---|---|---|---|---|---|
+| 0.02 | 248 / 495 | 0.002 / 0.018 / 0.019 | **0.072 / 0.082 / 0.125** | 0.004 / 0.004 / 0.009 | **0.040 / 0.032 / 0.059** | 0.62 / 0.95 |
+| 0.015 | 263 / 526 | 0.001 / 0.011 / 0.011 | **0.057 / 0.064 / 0.097** | 0.002 / 0.001 / 0.002 | **0.033** / 0.019 / 0.044 | 0.67 / 0.97 |
+| 0.01 | 285 / 569 | 0.003 / 0.006 / 0.008 | **0.053 / 0.051 / 0.087** | 0.001 / 0.001 / 0.002 | 0.025 / 0.019 / 0.038 | 0.72 / 0.98 |
+| 0.005 | 321 / 642 | 0.001 / 0.001 / 0.002 | **0.044 / 0.033 / 0.065** | 0.001 / 0.000 / 0.001 | 0.021 / 0.011 / 0.028 | 0.78 / 0.99 |
+
+- The gate removes only windows with too few 2% days. With 10 such days in 437 sessions (2.3%), the "more than 10%"
+  cut never triggers. So the gate cuts calm windows, not crash-dominated ones.
+- That cost is 22-38% of look-1 windows not judged at all, and the false claims barely move (0.125 against study 3's
+  0.136 at 0.02).
+- Power at 0.02, for information only (the rate fails): 0.37 at look 1, 0.88 at look 2.
+
+### B, the daily sign test
+
+- B fails on its own null at every rate: 0.27 at either look at 0.02, still 0.17 at 0.005. On the mean-centred null
+  (the meaning check) it is far worse: 0.46-0.93.
+- **Why (some evidence):** the daily sign of who wins has long memory. For `market`/`trail60` and `market`/`cal60`,
+  the sign's autocorrelation is 0.25-0.34 at lag 1 and still 0.19-0.22 at lag 20. Its variance over 63-session blocks
+  is 6-8 times what 5-session batches see. Who wins comes in regimes lasting months.
+- B's power (0.98) means nothing at that size.
+
+### C, the calibrated threshold
+
+| Population | +d (look 1 / 2 / either) | -d |
+|---|---|---|
+| 2024 (calibration, in-sample) | 0.001 / 0.001 / 0.002 | 0.025 / 0.019 / 0.037 |
+| **2025 (hold-out)** | 0.003 / 0.018 / 0.020 | **0.044 / 0.051 / 0.072** |
+| Whole window (tuned on data it is judged on) | 0.001 / 0.007 / 0.009 | **0.064 / 0.055 / 0.098** |
+
+- **α* = 0.0055 against the nominal 0.02**, almost 4 times smaller. In plain words: on 2024's data the frozen test
+  would need a quarter of its stated rate to be honest.
+- **Even that does not transfer.** The hold-out year and the whole window still exceed the limits at α*. 2024, the
+  worst year by variance (study 2), is **not** the worst year for the test's size. So a threshold calibrated on one
+  year can be anti-conservative in the next.
+- Power at α*, for information only: 0.53 at look 1, 0.87 at look 2.
+
+### What this means, by role
+
+- **Statistician (some evidence).** The failure has one main cause, and none of the three candidates addresses it:
+  **dependence lasting longer than the test's 5-session blocks.**
+  - Study 3's mean-difference series for the two `market` pairs: the variance ratio of 63-session to 5-session means
+    is 1.43 and 2.08.
+  - For `trail60`/`cal60`, which over-rejects about nil, it is 0.62.
+  - Skew adds to it, but the gate (A) and the ranks (B) leave the dependence in, and the calibrated threshold (C)
+    only fits the dependence of the year it was tuned on.
+- **Options strategist (reasoning only).** The `market` pairs are the relevant ones. A real rule or AI forecaster
+  will lean on the implied move, so its errors against `trail60` will drift with the volatility risk premium, which
+  moves over months. That is the same long-memory pattern.
+- **Risk manager (reasoning only).** Any of A-C, adopted as is, would let a forecaster "prove" skill by luck at 2-6
+  times the stated rate. Claims should stay postponed.
+- **Mathematician (reasoning only), a candidate for a separate pre-declared run (not run here):**
+  - **D:** the same frozen test with batches and bootstrap blocks of 21 sessions instead of 5.
+  - **Its cost:** with at least 12 batches, the first look needs at least 252 sessions, and the look counts rise by
+    about the variance ratio (roughly 1.3-2 times), so look 2 lands somewhere around 650-1,000 sessions, i.e. 2.5-4
+    years.
+  - **Its known limit:** 437 sessions hold only about 20 batches of 21, so the size check itself would be noisy.
+  - **The honest alternative:** report BR1 descriptively and wait for more history.
+
+### What I recommend (reasoning only)
+
+1. Keep claims postponed under v1. None of A, B or C should become v2.
+2. If the owner wants a v2 attempt, pre-declare candidate D as above, measured the same way. Expect it to buy
+   honesty at the cost of 2.5-4 years of looks, which defeats BR1's purpose of fast evidence.
+3. Otherwise run BR1 descriptively (paired differences with intervals, never a claim) while history grows, and
+   re-measure the size check on each new year.

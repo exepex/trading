@@ -119,7 +119,7 @@ evidence, some evidence, or reasoning only. `python -m fno evaluation check --pr
 ### `looks` Looks and rate
 - **Value:** none: claims are postponed. Study 3's single loop tried 0.02, 0.015, 0.01 and 0.005 per look (look
   counts 248/495, 263/526, 285/569, 321/642 sessions); at every rate the sign-flipped null (-d) on the whole window
-  passed the limits of 0.025 per look and 0.045 at either (at 0.02: 0.092, 0.082, 0.136; at 0.005: 0.052, 0.033,
+  exceeded the limits of 0.025 per look and 0.045 at either (at 0.02: 0.092, 0.082, 0.136; at 0.005: 0.052, 0.033,
   0.071). No confirmatory look is held under this version; a new version sets the rate and the looks again.
 - **Status:** proposal, owner decides
 - **Reason:** the rule written before the run: if no rate passes, claims are postponed.

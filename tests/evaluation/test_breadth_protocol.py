@@ -112,3 +112,8 @@ def test_the_owners_wording_appears_in_the_protocol_and_the_readme(text):
     for wording in ("6 to 42", "about 9", "planning projections", "never deadlines",
                     "whether any forecaster beats the frozen primary baseline by 2-3% is unknown"):  # fmt: skip
         assert wording in flat
+
+
+def test_the_verify_command_takes_protocol_breadth(capsys):
+    assert _run(["evaluation", "verify", "--protocol", "breadth"]) == 0
+    assert "unchanged" in capsys.readouterr().out

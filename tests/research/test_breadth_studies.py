@@ -124,3 +124,10 @@ def test_on_a_gaussian_ar1_null_of_lag_0_3_the_study_rate_is_the_frozen_tests_ra
     full = {look: np.mean([min(confirmatory_test(paths[m, i, :look], 5, m).p_value for m in range(3)) <= rate / 3
                            for i in range(30)]) for look in looks}  # fmt: skip
     assert shortcut["look1"] == full[80] and shortcut["look2"] == full[160] and shortcut["look1"] > 0
+
+
+def test_block_starts_vary_across_paths_and_populations():
+    first, other = study3.block_paths(300, 50, 126, 0), study3.block_paths(300, 50, 126, 1)
+    starts = first[:, :: study3.BLOCK]
+    assert len({tuple(row) for row in starts}) == 50  # every path draws its own starts
+    assert not np.array_equal(first, other)  # each population has its own seed word

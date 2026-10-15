@@ -137,3 +137,113 @@ are finding 2.
 - Full suite with `-n auto` (`env -u FNO_SLACK_BOT_TOKEN`, full git history): **6,641 passed, 0 failed**.
 
 Per rule 9 (money and the real-money gate's input), ChatGPT reviews next, then the merge with S3.
+
+## Addendum 2: re-judge of revision 2 after ChatGPT review 120, at `3eb96cda` (code commit `6a26770d`) (judge G)
+
+**Verdict: PASS.** The orchestrator's answer to review 120 is response 200. I judged the code commit `6a26770d`; the
+rest of the range is main merged in.
+
+**Gates on `3eb96cda`:** ruff check, ruff format and `check_imports` are clean. Full suite with `-n auto`
+(`env -u FNO_SLACK_BOT_TOKEN`, full git history): **6,693 passed, 0 failed**.
+
+| Fix | Code | My planted break (each alone) | Result |
+|---|---|---|---|
+| 1. A fixed Holm family | `_apply_holm`: each book's head-to-head claim plus every directional pair (3 + 6 = 9 for three books); an untestable member enters with p = 1; `holm_family` is shown | Untestable members dropped, so the family shrinks | caught (4 tests) |
+| | | Pairs with no common day dropped from the family | caught |
+| 2. Own unscored days as misses | `_misses`: a D6-unscored day while another book submitted is the book's own miss and is eligible; a day unscored for every book stays apart | Own unscored day not counted as a miss | caught |
+| | | Own unscored day left apart | caught |
+| | | Every unscored day counted, including all-book days | caught |
+| 3. `_reviewed` requires True | `.get("reviewed") is True`; a missing book counts as a missed review. E3 writes `reviewed` on every outcome (`daily_steps.py:205, 215, 218`) | `reviewed: false` accepted | caught |
+| | | A missing book read as reviewed | caught |
+| Disclosure 4: `inputs` | An account limit only with the "is already open in" reason | `inputs` read as a limit for any reason | caught |
+| Disclosure 8: "not comparable" | View (a)'s verdict is withheld when `capital_cut` is not 0 | Withholding removed | caught |
+| Cash rate | `PROTOCOL.md` states the owner's 16 Oct rule (91-day T-bill on the freeze date, DESK_DECISIONS row 221), and the "(set at the freeze)" marker stays | — | `evaluation check --decided` still names `do_nothing_benchmark` |
+
+**Caught:** 9 of my 10 planted breaks; the clean tree gives 195 passed in `tests/scoreboard tests/evaluation`.
+
+### Notes (no fix required)
+
+1. **Untested design point.** Making an *incomplete* section testable in Holm (removing `not claim.get("incomplete")`)
+   survives. Its own verdict is still blocked, because `_section` sets `claim_allowed` to false. But a testable
+   incomplete member with a small p would move the other members' step-down thresholds.
+   - It needs a take open past its expiry with no settlement price, which E7 refuses only on a malformed settlement
+     file, so it is not normal running.
+   - Worth a one-line test when the file is next touched.
+2. **`reviewed` is now stricter than E3's own blocking rule.** E3 treats "no snapshot, nothing due" as nothing left
+   unreviewed (`daily_run.py:104`). With a trade held, S6 now lists it as a missed exit review.
+   - That is review 120's choice: `reviewed: false` with no error counts. It is conservative and descriptive (scoreboard
+     B's operations list).
+   - It will appear on any day the execution snapshot fails while trades are open. Read it as "exits not checked
+     against prices that day", not as a lost exit.
+3. Disclosures 5, 6, 7 and 9 (staggered exits and no-fill share, `after_cut` "not a claim" and "incomplete",
+   `net_per_risk` beside each rupee pair, random-control `flipped_share` and rejections) are reporting only, and
+   their tests pass. They change no figure that decides anything.
+
+S3 and S6 can merge, followed by the rule 8 dry run.
+
+## Addendum 3: head `7cb57e3cb8d17cb9effd6f95926d1235a86f91a6` (judge G)
+
+**The PASS stands.** `git diff 3eb96cda 7cb57e3c` touches only `research/evaluation/PROTOCOL.md`. It adds two lines to
+`missed_runs`' reason, which cite the owner's 16 Oct row "S3 missed runs: one book's unscored day counts as its miss"
+(DESK_DECISIONS line 225, owner: "Yes, count it (Recommended)"). That row is the rule judged in addendum 2.
+
+- The status stays "decided by the owner on 2026-10-15".
+- No code changed.
+- On this head, `python -m fno evaluation check` reports "complete", and `tests/evaluation tests/scoreboard` gives
+  195 passed.
+
+## Addendum 4: `story/s6-followups` at `edb78629` (on main `91c54f88`) (judge G)
+
+**Verdict: PASS.** The branch has two commits:
+
+- `8a9f849c`: the reasons for a missed exit review, a test that an incomplete section is never testable in Holm (my
+  addendum 2 note 1), and no `-0.0` share;
+- `edb78629`: no worst day until a day loses money, and `cash_rate_basis` = "placeholder until the S1 freeze sets the
+  91-day T-bill yield" on every do-nothing block.
+
+**Gates:**
+
+- ruff check, ruff format and `check_imports` are clean.
+- Full suite with `-n auto`: **6,788 passed, 0 failed**.
+
+**Mutations (each alone, then reverted).** All four were caught; `tests/scoreboard` gives 127 passed clean:
+
+- an incomplete section made testable in Holm, which survived in addendum 2;
+- a worst day reported at a net of 0;
+- `waiting` read as "failed";
+- the cash-rate basis label emptied.
+
+**Exit-review reasons:**
+
+- "no exit review ran";
+- "not checked against prices: <reason>" when `waiting` (no valid snapshot);
+- "exit review failed: <error>";
+- "exit review not recorded as done".
+
+This answers my addendum 2 note 2: a no-snapshot day now says it was not checked against prices, not that an exit was
+lost.
+
+**Real data:** I built both boards for 16 Oct 2026 from the repository, without the CLI's Drive push, so no Drive
+download was made.
+
+- Scoreboard A: every book "not started", `holm_family` 0, because the common start is not reached.
+- Scoreboard B: every account "account not started" locally, because the accounts are kept in Drive under E2c.
+- No book has a missed run.
+
+This is the expected state before the first paper run.
+
+**R3 note (judge 208):** see judge 208, addendum 1 note.
+
+## Addendum 5: `story/s6-followups` at `e015438b` (judge G)
+
+**Verdict: PASS.** It is one commit on top of the merged `edb78629`. `CommittedRuns.records` now drops records with
+`mode: shadow`, so a D2 shadow record can never stand for the book's own action: not in S3's `MatchedDays._actions`,
+not in S2's readers, and not in F9a's `CollectedRunRecords`.
+
+- **F9a stays correct.** I checked that it was unaffected and is in fact made right. F9a's real decision is the book's
+  own records; its shadow decision is read from the separate `journal/<book>/role_value/shadow/` folder
+  (`fno/role_value/records.py`). So the filter removes nothing F9a needs.
+- **The test is real.** Reverting the filter fails 1 test; `tests/scoreboard` gives 128 passed clean.
+- **Gates:** ruff is clean. Full suite with `-n auto`: **6,814 passed, 0 failed**.
+- **What is left:** the store-level overwrite (`DecisionStore` keyed by opportunity ID) is with R3's builder, as the
+  orchestrator says. I will check it in judge 210 addendum 1.

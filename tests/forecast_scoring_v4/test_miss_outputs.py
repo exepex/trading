@@ -4,8 +4,10 @@ regime's own `>=`; the miss counts reach the report text, the report JSON and th
 import json
 from dataclasses import asdict
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 from fno.constants import V4_SLOT_AI, V6_BIG_MOVE_5S
+from fno.forecast_scoring.v4.audits import OpenAuditFile
 from fno.forecast_scoring.v4.comparison import compare, paired_rows, seed_word
 from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import Outcome, V4ForecastSource, V4OutcomeSource
@@ -25,6 +27,7 @@ OWN = values({d: 0.3 for d in DAYS if d not in (ABSENT, MISSED)}, live=True)
 BASE = values({d: 0.2 for d in DAYS if d != ABSENT}, live=True)
 EXPECTED = MissReport(observable=9, missed=1, big_observable=2, big_missed=1, input_failures=1)
 
+NO_AUDITS = OpenAuditFile(Path("no-such-file.csv"), lambda: False)  # no AI book has written a row yet
 NO_DAYS = DayCounts(0, 0, 0, 0, 0)
 
 
@@ -70,7 +73,8 @@ def test_the_report_text_and_json_carry_the_miss_counts():
     assert f"    {EXPECTED.line()}" in report_lines(reports, frozen=False, as_of="2025-01-20", days=NO_DAYS)
     v6b = next(q for q in report_json(reports, frozen=False, as_of="2025-01-20", days=NO_DAYS)["questions"]
                if q["question"] == V6_BIG_MOVE_5S)  # fmt: skip
-    assert v6b["comparisons"][0]["misses"] == asdict(EXPECTED)
+    assert v6b["cohorts"]["live"]["comparisons"][0]["misses"] == asdict(EXPECTED)
+    assert v6b["cohorts"]["close_proxy"] == {"scores": {}, "comparisons": []}
 
 
 def test_the_recorded_look_carries_each_members_miss_line(tmp_path, capsys):
@@ -80,7 +84,7 @@ def test_the_recorded_look_carries_each_members_miss_line(tmp_path, capsys):
     records = LookRecords(tmp_path / "v4_scores", tmp_path / "FREEZE_v4.md")
     (tmp_path / "FREEZE_v4.md").write_text("# Freeze\nFrozen on: 2024-12-31\n")
     at = datetime(2027, 5, 31, 16, 0, tzinfo=timezone(timedelta(hours=5, minutes=30)))
-    _look(_scoring(), records, FrozenToolThresholds(tmp_path), LOOK_STOP_REVIEW, at)
+    _look(_scoring(), records, FrozenToolThresholds(tmp_path), NO_AUDITS, LOOK_STOP_REVIEW, at)
     recorded = json.loads(records.path(LOOK_STOP_REVIEW).read_text())
     assert [V6_BIG_MOVE_5S, "rules", EXPECTED.line()] in recorded["misses"]
     assert recorded["test_a"] == "undecided"

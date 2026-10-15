@@ -251,3 +251,96 @@ The verdict stays **FAIL**. Should-fix 9 gains part (b), from check 1.
 4. **Would the tests catch a dropped outcome? Partly.** `test_steps.py` checks that `ReportedAlerts` prints the unsent
    line and stays quiet on a sent one, and that the wiring hands the run a `ReportedAlerts`. It would not catch the two
    bypassing senders in 1, or the children's lines (9(a)).
+
+## Addendum 8: O1 at d03d5d97 (should-fix 9(a) built)
+
+**Verdict: FAIL.** 9(a) is closed. 9(b) (addendum 7) is not built yet; this commit was probably made before the
+builder saw addendum 7.
+
+- **9(a) closed.** `ChildProcess` reads the child's whole output once, both when the child ends (`lines()`) and when
+  it is stopped (`stop()`). It prints every line containing "alert NOT sent" exactly as written; the phrase comes from
+  the sender's own `NOT_SENT`, so the two cannot drift apart. The run log still keeps the last 10 lines. The quote
+  parts and the `CommandStep`s both reach that read: `_finish` and `CommandStep.run` call `lines()`, and
+  `QuoteParts.finish` and `CommandStep` call `stop()`. Two real-child tests cover it: the line among 14 lines, and a
+  child stopped while asleep. My mutation that never reports fails 2 of them; `tests/daily` passes 39.
+- **9(b) open.** `ExitDesk` (`fno/desk/wiring.py:41`) and `PlaybookExitRules` (`fno/books/book1_wiring.py:72`)
+  still build their own senders inside the run. Expected fix as in addendum 7.
+
+## Addendum 9: O1 at f01bf9d7 (should-fix 9(a) and 9(b) built)
+
+**Verdict: PASS for the code built so far.** Should-fix 9 is closed (both parts), and there are no new findings.
+Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the real day), and the merge after A4c.
+
+- **9(a):** as in addendum 8, unchanged.
+- **9(b):** `build_exit_desk(cfg, alerts=None)` and `build_book1_exit_rules(root, alerts=None)` now take the run's one
+  `ReportedAlerts`, and their other callers keep `build_alert_sender()`.
+  - **My grep** of every `build_alert_sender()` in `fno/` at f01bf9d7 finds no other sender built inside the run's
+    process: the gate gets the run's `alerts`, and the rest are other commands' CLIs and wirings. Book 1's decider
+    (`book1_wiring.py:33`) runs in its child process, which 9(a) relays.
+  - **The new test** `test_every_sender_inside_the_built_run_is_its_one_reported_sender` walks the real run's
+    objects. My mutation putting `build_exit_desk(cfg)` back fails it.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6590 passed** in 2 min 48 s; `ruff check` and
+  `check_imports` are clean.
+
+## Addendum 10: O1 at 0dbe8f94 (the whole git history first; main merged)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings.
+
+- **`Git.unshallow` and `WholeHistory`.** Asked for by E8 (judge 203 should-fix 1).
+  - **Behaviour:** when `git rev-parse --is-shallow-repository` says true, the run fetches the full history before
+    the first step. A failed fetch sends one alert through the run's `ReportedAlerts` and the day goes on. That is
+    the right choice: stopping the day would lose the quotes and the exits, and E8's step refuses by itself in a
+    shallow checkout.
+  - **Tests:** a real shallow clone becomes whole; a whole checkout is left alone; a missing origin gives one alert;
+    the runner fetches the history before the day.
+  - **Timing, measured by me:** a fresh `--depth 50` clone of exepex/trading took **6.7 s** to unshallow (2,756
+    commits, pack about 139 MiB). It finishes long before 14:55.
+- **Merge.** main's `RUN_LOG_EXITS_STEP` moved into `fno/constants_operations.py` (listed in `__all__`), and
+  `DESK_RUN_STEPS` uses it. Sizes: `constants.py` 338 lines, `constants_operations.py` 48.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6859 passed** in 2 min 55 s; `ruff check` and
+  `check_imports` are clean.
+- **One-line note, reasoning only:** the fetch has no time limit and runs before `quotes`, so a hung fetch would hold
+  back the 3 pm parts. A `timeout` on this one git call, or starting `quotes` first, would close that. The measured
+  6.7 s says it is unlikely.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.
+
+## Addendum 11: O1 at 8a7ca874 (quote parts before the download; E4c's double print removed)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings. This closes judge 204's note A (the
+O1 side) and note B.
+
+- **Parts before the download.** `DayRunner` now starts the quote parts after the whole-history fetch and before
+  `DailyRun.run`, so before E2c's download. A Drive outage at the download therefore stops the desk with E3's one
+  alert, but the parts still end and commit (NSE needs no Drive).
+  - **After a stop,** `_finish_parts` waits at least until `desk.timetable.fills_by` (read from the timetable, not
+    typed), so a stop at 14:35 still covers every part's window.
+  - **No double start.** A rerun whose log already holds `quotes` starts no part, and the `quotes` step's own
+    `start` does not start them again (`QuoteParts.start` acts once per day).
+  - **A closed day.** Each recorder exits on its own calendar rule; `busy()` ends the wait at once and nothing is
+    committed.
+  - **Tests:** the Drive-down-at-download case (stop line, one alert, the three part commits); the closed-day case;
+    the order history, then parts, then day. My mutation removing the early start fails 3 tests in `tests/daily`.
+- **E4c's double print.** The `print(outcome)` in `DeskSteps._fill_one` is gone (E4c's owner agreed). The unsent
+  line now comes once, from `ReportedAlerts`, and E4c's text and test say so. `build_daily_run`'s default sender is
+  reached only by E3's own tests, so no live path loses the line.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6860 passed** in 3 min 2 s; `ruff check` and
+  `check_imports` are clean.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c. Judge 204's O2 row (a) should now say
+that the parts still record on a download outage; the O2 builder updates it with the code.
+
+## Addendum 12: O1 at d123dbb9 (addendum 10's note done)
+
+**Verdict: PASS for the code built so far.** Addendum 10's note is closed.
+
+- **Order.** The quote parts now start before the whole-history fetch and before the Drive download, so neither can
+  delay the 3 pm parts.
+- **Time limit.** `Git.unshallow` runs with a hard limit of 120 s (`subprocess` timeout). A time-out becomes a
+  `GitError`, which means one alert and the day goes on.
+- **Test.** `test_a_hung_fetch_is_stopped_at_its_limit_and_is_one_alert` covers it. My mutation removing the timeout
+  makes it fail.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6870 passed**; `ruff check` and `check_imports` are
+  clean.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.
