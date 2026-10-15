@@ -58,7 +58,8 @@ def test_a_pending_exit_reveals_no_second_side(root, store, snapshots, exit_desk
     assert both_sides(rows(root)) == set()
 
 
-def test_only_an_unwind_reveals_both_sides_within_one_account(root, store, snapshots, entry_desk):
+def test_only_an_unwind_reveals_both_sides_within_one_account(root, store, snapshots, entry_desk, check_passed):
+    """Exception 1, reached only through E4c's guard (a fill failing after the entry check passed)."""
     from tests.desk.builders import write_snapshot
     from tests.desk.test_entries import at
 
@@ -95,21 +96,23 @@ def test_a_time_rule_is_never_judged_at_the_opening_snapshot(root, store, snapsh
     assert result.reason == "no exit rule reached" and both_sides(rows(root)) == set()
 
 
-def test_unverified_protection_at_the_opening_snapshot_closes_there_the_third_exception(
+def test_unverified_protection_at_the_opening_snapshot_is_never_bought_the_third_exception_is_gone(
     root, store, snapshots, entry_desk, exit_desk, clock
 ):
-    """Review 2 finding 1 (pinned, put to the owner): a protective leg whose bid size cannot cover its units at the
-    snapshot that opened the trade marks it `protection_unverified`, and E4 closes the trade at that same snapshot, so
-    its rows show both sides of each leg closed there."""
+    """Story E4c (decision 30): review 2 finding 1's scenario, a wing whose bid size cannot cover its units at the
+    entry snapshot, is now refused before any leg fills, so no row reveals both sides of any contract."""
     from tests.desk.builders import write_snapshot
     from tests.desk.test_entries import at
 
     write_snapshot(store, "exec", fly_rows({(25200, CE): {"bid_qty": 1}}), at(15, 15), at(15, 15, 40))
-    assert enter(root, snapshots, entry_desk, fly_order()).outcome == "opened"
+    result = enter(root, snapshots, entry_desk, fly_order())
+    assert (result.outcome, result.reason) == (
+        "not_opened",
+        f"protection_not_sellable ({contract(25200, CE)}, 65 units)",
+    )
     clock.set(at_close())
     review(root, snapshots, exit_desk, DAY, "exec", REACHED)
-    assert both_sides(rows(root)) == {("exec", contract(25000, CE)), ("exec", contract(25000, PE)),
-                                      ("exec", contract(24800, PE))}  # fmt: skip
+    assert rows(root) == [] and both_sides(rows(root)) == set()
 
 
 def at_close():

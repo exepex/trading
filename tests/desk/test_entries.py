@@ -23,6 +23,8 @@ from fno.constants import (
     OUTCOME_OPENED,
     OUTCOME_PARTIAL_FILL,
     OUTCOME_REFUSED,
+    PROTECTION_NOT_BUYABLE,
+    SHORT_LEG_NOT_SELLABLE,
     SIDE_BUY,
     SIDE_SELL,
 )
@@ -116,7 +118,7 @@ def test_a_leg_fills_only_when_the_size_at_the_touch_covers_its_units(root, stor
     result = enter(root, snapshots, entry_desk, fly_order())
     assert result.outcome == outcome
     if outcome == OUTCOME_NOT_OPENED:
-        assert "not enough size at the touch for 65 units" in result.reason
+        assert result.reason == f"{PROTECTION_NOT_BUYABLE} ({contract(25200, CE)}, 65 units)"  # story E4c's code
         assert "64" not in result.reason  # the size shown is a quote figure: never in the public reason
         (events,) = root.rglob("desk_events.csv")
         (row,) = csv.DictReader(events.open())
@@ -128,11 +130,27 @@ def test_a_leg_fills_only_when_the_size_at_the_touch_covers_its_units(root, stor
 def test_a_protective_leg_without_a_valid_quote_opens_nothing(root, store, snapshots, entry_desk, change):
     write_snapshot(store, "exec", fly_rows({(25200, CE): change}), at(15, 15), at(15, 15, 40))
     result = enter(root, snapshots, entry_desk, fly_order())
-    assert result.outcome == OUTCOME_NOT_OPENED and result.reason.startswith(contract(25200, CE))
+    assert result.outcome == OUTCOME_NOT_OPENED
+    assert result.reason == f"{PROTECTION_NOT_BUYABLE} ({contract(25200, CE)}, 65 units)"  # story E4c
     assert PaperAccount(root, BOOK1_RULES).fills() == [] and records(root).fill_rows() == []
 
 
-def test_a_second_protective_leg_failing_unwinds_the_first_and_nothing_opens(root, store, snapshots, entry_desk):
+def test_a_second_protective_leg_failing_buys_nothing(root, store, snapshots, entry_desk):
+    """Story E4c (decision 43): the second protective leg is checked before the first is bought."""
+    write_snapshot(store, "exec", fly_rows({(24800, PE): None}), at(15, 15), at(15, 15, 40))
+    result = enter(root, snapshots, entry_desk, fly_order())
+    assert (result.outcome, result.reason) == (
+        OUTCOME_NOT_OPENED,
+        f"{PROTECTION_NOT_BUYABLE} ({contract(24800, PE)}, 65 units)",
+    )
+    assert result.legging_cost_rs is None and PaperAccount(root, BOOK1_RULES).fills() == []
+    assert records(root).fill_rows() == []
+
+
+def test_the_guard_unwinds_the_first_protective_leg_when_the_second_fails_after_the_check(
+    root, store, snapshots, entry_desk, check_passed
+):
+    """E4 criterion 2's assertions, unchanged, now through the guard (story E4c, decision 43)."""
     write_snapshot(store, "exec", fly_rows({(24800, PE): None}), at(15, 15), at(15, 15, 40))
     result = enter(root, snapshots, entry_desk, fly_order())
     assert result.outcome == OUTCOME_PARTIAL_FILL and "no quote in the snapshot" in result.reason
@@ -142,8 +160,19 @@ def test_a_second_protective_leg_failing_unwinds_the_first_and_nothing_opens(roo
     assert not trade_positions(PaperAccount(root, BOOK1_RULES).fills())["t1"].is_open
 
 
-def test_a_short_leg_failing_after_protection_unwinds_at_the_same_snapshot_with_its_legging_cost(
-    root, store, snapshots, entry_desk
+def test_a_short_leg_that_cannot_be_sold_buys_no_protection(root, store, snapshots, entry_desk):
+    """Story E4c: E4's unwind path for a short leg becomes a refusal before any leg fills; no legging cost."""
+    write_snapshot(store, "exec", fly_rows({(25000, PE): {"valid": False}}), at(15, 15), at(15, 15, 40))
+    result = enter(root, snapshots, entry_desk, fly_order())
+    assert (result.outcome, result.reason) == (
+        OUTCOME_NOT_OPENED,
+        f"{SHORT_LEG_NOT_SELLABLE} ({contract(25000, PE)}, 65 units)",
+    )
+    assert result.legging_cost_rs is None and PaperAccount(root, BOOK1_RULES).fills() == []
+
+
+def test_the_guard_unwinds_after_a_short_leg_fails_at_the_same_snapshot_with_its_legging_cost(
+    root, store, snapshots, entry_desk, check_passed
 ):
     write_snapshot(store, "exec", fly_rows({(25000, PE): {"valid": False}}), at(15, 15), at(15, 15, 40))
     result = enter(root, snapshots, entry_desk, fly_order())
@@ -160,7 +189,8 @@ def test_a_short_leg_failing_after_protection_unwinds_at_the_same_snapshot_with_
     assert not trade_positions(PaperAccount(root, BOOK1_RULES).fills())["t1"].is_open  # the trade did not open
 
 
-def test_an_unwind_leg_without_bid_size_stays_as_an_exit_order(root, store, snapshots, entry_desk):
+def test_an_unwind_leg_without_bid_size_stays_as_an_exit_order(root, store, snapshots, entry_desk, check_passed):
+    """Through the guard (story E4c): the pending-unwind path is kept, with the same assertions."""
     changes = {(25000, PE): {"valid": False}, (24800, PE): {"bid_qty": 10}}
     write_snapshot(store, "exec", fly_rows(changes), at(15, 15), at(15, 15, 40))
     result = enter(root, snapshots, entry_desk, fly_order())

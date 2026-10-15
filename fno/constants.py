@@ -288,6 +288,10 @@ OUTCOME_PROTECTION_UNVERIFIED = "protection_unverified"  # a protective leg is u
 OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit filled: NSE's settlement price needed
 # Entry limit: the net entry at the execution snapshot's touch is worse than the entry C2 approved (its modelled cash)
 ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"
+# Story E4c: the entry check before any leg fills (every leg's opening side, a protective leg's closing side too)
+PROTECTION_NOT_BUYABLE = "protection_not_buyable"
+PROTECTION_NOT_SELLABLE = "protection_not_sellable"
+SHORT_LEG_NOT_SELLABLE = "short_leg_not_sellable"
 DATA_UNVERIFIED = "no new trade: stale or unverified data"  # story C3: a data check failed before the decision
 NO_DECISION_LATE = "no decision (late)"  # story E3: nothing committed by the decision deadline
 NO_APPROVED_STRATEGY = "no approved strategy"  # story E5: Book 1 has no `paper` version on the day
