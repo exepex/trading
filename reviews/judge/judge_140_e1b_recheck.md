@@ -35,3 +35,30 @@ account from the ledger as of a past time is not supported."
 - The fixture follows E1b's rename.
 - The full suite passes on today's merged tree.
 - Judge C's code verdict (110 addendum 2) stands for the rest.
+
+## Addendum 1 (15 Oct 2026): E1b merge check and rule 8
+
+| Check | Result |
+|---|---|
+| Recomputed merge equals the merge commit | **MET.** `git merge-tree --write-tree 3baf0e8 5e3e5bf` gives fc9ceab…, which equals the E1b merge **d8efc3b**'s tree. 65ec7c7 is a later merge of main |
+| Branch files identical | **MET.** `fno/`, `tests/`, `contracts/` and the E1b story are the same in 5e3e5bf and d8efc3b |
+| Rule 8, the real top-up (data commit 400d692) | **MET.** 9 files, only the command's own writes: per book, one `capital_top_up` row (amount 1,500,000, capital after 2,000,000, filled at 19:29:16 IST), `positions.json` and the day's equity row. **My own read** of `PaperAccount.capital(at)` on `main`: all three books show 500,000 at **15 Oct 15:00** and 2,000,000 at **16 Oct 15:00**. Today's decision is untouched, and tomorrow's sees Rs 20 lakh, as the story says |
+| CI on `main` | **NOT MET.** `checks` on 65ec7c7 (the E1b merge, before the data commit) succeeded. `checks` on **400d692** (the data commit) **failed**: `tests/books/test_paper_account.py::test_the_committed_starting_state_is_the_13_oct_rs_5_lakh_opening_and_no_positions_for_each_book` asserts that the repository's own journal holds 500,000 for each book. The real top-up made that false, as designed |
+
+**The root cause.**
+- The test pins the committed journal's state, and its docstring says the books stay at Rs 5 lakh "until the owner
+  decides how they are reopened".
+- E1b's top-up is that reopening, so the test describes a state that has now ended.
+- The top-up was committed without running the suite on the data commit, and CI caught it.
+
+**Expected fix.** Restate the test for the committed state after the top-up. For each book:
+- `capital()` equals 2,000,000, which equals `paper_account_rs()`;
+- the ledger has the opening row plus one `capital_top_up` row;
+- there are no positions;
+- `capital(15 Oct 15:00)` equals 500,000.
+
+This is a test change on money records, so it is lane 1 (a quick judge check). Do not rewrite the data.
+
+### Merge check: NOT MET until CI on `main` is green again with the restated test
+
+The code merge and the real top-up are correct.
