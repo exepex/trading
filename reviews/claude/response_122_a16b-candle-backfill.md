@@ -282,3 +282,82 @@ void outside_nse_range: 2020-03-13, 2020-03-23
 - The 2020 void share is 2.0%, under the 5% flag; Q1 alone was 7.8%.
 - Verify over the dry folder: "251 rows; every row equals its copies".
 
+
+## Criterion 14: the full range as a dry run (judge 122 addendum 6)
+
+This was a live, read-only dry run from 1 Jan 2020 to 14 Oct 2026, the latest finished session (run at about 14:15 IST
+on 15 Oct). Files went to scratch only: nothing to Drive, nothing into the repository. It resumed from the 2020 dry
+folder, so 2020's 251 rows were held and 2021-2026 was fetched fresh, taking 45 min 16 s. Exit 0. **Strong** for
+everything in this section.
+
+- **Calls:** 29 fifteen-minute windows (2020's 5 from the earlier dry run, plus 24 now) and 1,679 one-minute calls.
+  That is one per session with any candle; 10 Oct 2025 had none. No Groww failure, no stop.
+- **Sessions:** 1,680: 1,661 ok and 19 void (1.1%, under the 5% flag). **0 deferred. 0 CHANGED.**
+- **Void by year:** 2020 5, 2021 2, 2022 2, 2023 0, 2024 4, 2025 4, 2026 2. Of the void sessions, 10 are
+  `no_previous_close` follow-ons: the session after each void day, plus 1 Jan 2020.
+- **Void reasons, counting each reason once per session:** `missing_candles` 8, `no_1m_check` 8, `no_previous_close`
+  10, `outside_nse_range` 5.
+- **Provenance:** 1,680 backfilled, 0 live.
+- **Pre-open gap above 0.05:** 4 of 1,678 sessions with a pre-open check (20 Jan 2020, 18 Sep 2020, 5 and 6 Sep 2023).
+- **Verify** over the dry folder's own copies: "1680 rows; every row equals its copies", exit 0. It took about 30 min,
+  mostly reading NSE's 1,680 files from Drive.
+
+The 19 void sessions. Gaps are NSE minus Groww; negative means Groww is outside NSE's range.
+
+| Session | Reasons | Levels | Out-of-session candles | Note |
+|---|---|---|---|---|
+| 2020-01-01 | no_previous_close | 26 | 09:00, 15:30 | series start |
+| 2020-03-13 | missing_candles:2; no_1m_check:2; outside_nse_range | 24 | 09:00, 15:30 | circuit-breaker halt; low 79.00 below NSE's |
+| 2020-03-16 | no_previous_close | 26 | | after 13 Mar |
+| 2020-03-23 | missing_candles:2; no_1m_check:1; outside_nse_range | 24 | | circuit breaker; high 196.30 above NSE's |
+| 2020-03-24 | no_previous_close | 26 | | after 23 Mar |
+| **2021-02-24** | missing_candles:20; no_1m_check:2 | 6 | **8: 09:00, 15:30, 15:45, 16:00, 16:15, 16:30, 16:45, 17:00** | NSE's halt, trading extended to 17:00: the after-hours candles are counted, never levels |
+| 2021-02-25 | no_previous_close | 26 | | after 24 Feb |
+| **2022-03-07** | no_1m_check:2; outside_nse_range | **26 (all 25 candles)** | | **new defect found by the full run: a full session whose high is 251.60 above NSE's high, and 2 needed minutes missing. Caught and void** |
+| 2022-03-08 | no_previous_close | 26 | | after 7 Mar |
+| **2024-03-02** | missing_candles:15; no_1m_check:3; outside_nse_range | 11 | 09:00 only | **special session (DR drill), 10 of 25 candles**; high 0.70 and low 0.10 beyond NSE's |
+| 2024-03-04 | no_previous_close | 26 | | after 2 Mar |
+| **2024-05-18** | missing_candles:15; no_1m_check:3; outside_nse_range | 11 | 09:00 only | **special session (DR drill), 10 of 25**; low 127.30 below NSE's |
+| 2024-05-21 | no_previous_close | 26 | | after 18 May (20 May was a holiday) |
+| **2025-09-26** | missing_candles:3; no_1m_check:1 | 23 | 09:00 only | **Groww's hole** (22 of 25, as step 0) |
+| 2025-09-29 | no_previous_close | 26 | | after 26 Sep |
+| **2025-10-10** | missing_candles:25 | 0 | none | **Groww's hole: no candle at all**; no 1-minute call, blank gaps |
+| 2025-10-13 | no_previous_close | 26 | | after 10 Oct |
+| **2026-09-29** | missing_candles:5; no_1m_check:1 | 21 | 09:00 only | **Groww's hole** (20 of 25, as step 0) |
+| 2026-09-30 | no_previous_close | 26 | | after 29 Sep |
+
+**The other special sessions are ok.** 20 Jan 2024 (Saturday, full session), 1 Feb 2025 and 1 Feb 2026 (budget
+Saturdays) each have all 26 levels, every check passed.
+
+**The 15:45 candles from 2025.** Groww gives a 15:45 candle on every session from **6 May 2025** on. 5 May 2025 is the
+last session with only 09:00 and 15:30 outside the session; from 6 May every session has 09:00, 15:30 and 15:45, which
+is 193 sessions in 2026 and 163 in 2025. Earlier, out-of-session candles past 15:30 appear only on:
+- 24 Feb 2021 (to 17:00);
+- 28 Jun 2021 (15:45, 16:00);
+- 1 Dec 2023 (16:00).
+
+None of them is a level; all are counted in `outside_candles`. The 25-candle set (09:15 to 15:15 starts) is unaffected.
+This is the case criterion 2 tests.
+
+**Observation, not a void (some evidence; reasoning on the cause).** On 106 ok sessions, NSE's high or low lies more
+than 5 points beyond every Groww candle on the inside side: Groww's candles never reached NSE's extreme. The maximum is
+91.95 points.
+
+| Year | Sessions |
+|---|---|
+| 2020 | 21 |
+| 2021 | 1 |
+| 2022 | 3 |
+| 2023 | 6 |
+| 2024 | 5 |
+| 2025 | 40 |
+| 2026 | 30 |
+
+Only levels outside NSE's range void a session, by the story's rule, so these stay ok. Their levels are closes inside
+NSE's range, and the 1-minute check passed. A likely cause, unverified, is NSE's high or low being set by a tick that
+Groww's candles do not carry, for example around the open. It does not touch the realised variance, which uses closes
+only, but the `nse_high_gap` and `nse_low_gap` columns record it per session for anyone using highs or lows.
+
+**What this means for the live run (rule 8):** the same run against Drive will write 1,680 rows with these counts,
+unless Groww's answers differ from today's, which the output would show as CHANGED lines. `backfill-verify` on it will
+take about 30 min.
