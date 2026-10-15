@@ -20,11 +20,17 @@ def add_forecast_parser(subparsers) -> None:
     ready.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today in IST)")
     backfill = actions.add_parser("backfill", help="write (or --check) the baselines' and Book 1's history records")
     backfill.add_argument("--check", action="store_true", help="recompute and compare with the committed file")
+    v4_capture = actions.add_parser("v4-capture", help="record today's v4 phase-1 forecasts (before 15:00 IST only)")
+    v4_capture.add_argument("--day", type=date.fromisoformat, help="YYYY-MM-DD (default: today in IST)")
+    actions.add_parser("v4-backfill", help="write the v4 phase-1 exploratory back-fill (before the first live day)")
     forecast.set_defaults(func=cmd_forecast)
 
 
 def cmd_forecast(args) -> int:
-    commands = {"capture": _capture, "snapshot-ready": _snapshot_ready, "backfill": _backfill}
+    commands = {
+        "capture": _capture, "snapshot-ready": _snapshot_ready, "backfill": _backfill,
+        "v4-capture": _v4_capture, "v4-backfill": _v4_backfill,
+    }  # fmt: skip
     return commands[args.forecast_cmd](args)
 
 
@@ -75,4 +81,32 @@ def _backfill(args) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     print(f"wrote {BACKFILL_FILE} ({len(data):,} bytes)")
+    return 0
+
+
+def _v4_capture(args) -> int:
+    from ..forecast_v4_rules.capture import CaptureRefused, capture_day
+    from ..models import now_ist
+    from .baseline_wiring import build_v4_forecasts, v4_writer
+
+    now = now_ist()
+    day = args.day or now.date()
+    try:
+        added = capture_day(build_v4_forecasts(day), day, now, v4_writer())
+    except CaptureRefused as refused:
+        print(f"v4 forecasts {day}: nothing written: {refused}")
+        return 1
+    print(f"v4 forecasts {day}: {added} rows written (live, exploratory until v4 is frozen)")
+    return 0
+
+
+def _v4_backfill(args) -> int:
+    from ..forecast_v4_rules.backfill import backfill, backfill_days
+    from ..forecast_v4_rules.records import first_live_day
+    from .baseline_wiring import V4_FOLDER, build_v4_forecasts, v4_writer
+
+    forecasts = build_v4_forecasts()
+    days = backfill_days(forecasts, first_live_day(V4_FOLDER))
+    added = backfill(forecasts, days, v4_writer())
+    print(f"v4 back-fill: {len(days)} days, {added} rows added (labelled backfill_exploratory)")
     return 0
