@@ -13,6 +13,7 @@ from ..composition import build_alert_sender
 from ..config import ROOT
 from ..constants import BOOKS, ENV_FNO_DB_URL, ENV_GITHUB_RUN_ATTEMPT, ENV_GITHUB_RUN_ID
 from ..research_engine.implied_vol import SpotBlackScholes
+from ..risk.cap_settings import cap_settings
 from ..risk.settings import risk_settings
 from ..storage.manifest_commit import GitManifestRecorder
 from ..storage.wiring import build_session_calendar, build_versioned_reader
@@ -138,7 +139,8 @@ def build_session_rows_builder(cfg: dict) -> SessionRowsBuilder:
     fno_rows = FnoRowBuilder(SpotBlackScholes(), cfg["risk_free_rate"])
     followed = FollowedCompaniesFolder(FOLLOWED_COMPANIES_FOLDER)
     chain = ChainBuilder(cfg["risk_free_rate"])
-    home = HomeInputsReader(BooksReader(ROOT, BOOKS), FrozenExperimentApprovals(*LATEST_FROZEN_EXPERIMENT),
+    books = BooksReader(ROOT, BOOKS, cap_settings(cfg).paper_account_rs)
+    home = HomeInputsReader(books, FrozenExperimentApprovals(*LATEST_FROZEN_EXPERIMENT),
                             risk_settings(cfg, ROOT).max_stress_loss_rs)  # fmt: skip
     store, calendar = build_versioned_reader(), build_session_calendar()
     return SessionRowsBuilder(store, calendar, fno_rows, followed, chain, home, FlowsReader(store, calendar))

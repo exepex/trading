@@ -17,8 +17,12 @@ EXPIRY = DAY + timedelta(days=14)
 PRICES = {(25000, "CE"): 150.0, (25000, "PE"): 140.0, (25200, "CE"): 70.0, (24800, "PE"): 60.0}
 RULES = [
     "inputs",
+    "paper_account",
     "max_loss_per_trade",
     "max_open_trades",
+    "bucket_cap",
+    "open_risk_cap",
+    "new_risk_per_day",
     "drawdown_brake",
     "stress_loss",
     "exposure_limit",
@@ -37,6 +41,10 @@ def _manager(tmp_path, **risk) -> RiskManager:
 def _evaluate(manager, lots=1, the_book=None):
     new = proposal("new", FLY, 200, short_fly(25000, 200), EXPIRY, lots=lots)
     return manager.evaluate(new, the_book or book(), market(25000, PRICES, EXPIRY))
+
+
+def _verdict(decision, rule):
+    return next(v for v in decision.verdicts if v.rule == rule)
 
 
 def test_inside_every_limit_the_trade_may_open_and_every_rule_reports(tmp_path):
@@ -62,9 +70,9 @@ def test_outside_the_per_trade_limit_the_trade_is_refused_with_reason_and_number
 
 
 def test_borderline_the_limit_equal_to_the_maximum_loss_passes_and_a_paisa_less_refuses(tmp_path):
-    loss = _evaluate(_manager(tmp_path)).verdicts[1].numbers["max_loss_rs"]
-    assert _evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss)).verdicts[1].ok
-    assert not _evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss - 0.01)).verdicts[1].ok
+    loss = _verdict(_evaluate(_manager(tmp_path)), "max_loss_per_trade").numbers["max_loss_rs"]
+    assert _verdict(_evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss)), "max_loss_per_trade").ok
+    assert not _verdict(_evaluate(_manager(tmp_path, max_loss_per_trade_rs=loss - 0.01)), "max_loss_per_trade").ok
 
 
 def test_the_repository_settings_refuse_every_trade_until_margin_rows_are_entered():
@@ -108,7 +116,7 @@ def test_a_stale_mark_cannot_price_a_new_trade(tmp_path):
     new = proposal("new", FLY, 200, short_fly(25000, 200), EXPIRY)
     stale = market(25000, PRICES, EXPIRY, stale=frozenset({(25000, "CE")}))
     decision = _manager(tmp_path).evaluate(new, book(), stale)
-    assert not decision.ok and "stale" in decision.verdicts[1].reason
+    assert not decision.ok and "stale" in _verdict(decision, "max_loss_per_trade").reason
 
 
 def test_a_proposal_reusing_an_open_trade_id_is_refused(tmp_path):

@@ -1,4 +1,5 @@
-"""A book's Rs 5 lakh paper account (story E1, design 12.6), stored under `journal/<book>/account/`:
+"""A book's paper account (story E1, design 12.6), stored under `journal/<book>/account/`; it opens with
+`config.yaml` `risk.paper_account_rs` (story C5):
 
 - `cash_ledger.csv`: append-only, one row per fill (plus the opening balance). The source of truth.
 - `positions.json`: a view rebuilt from the ledger after every write (open legs, cash, closed equity, closed trades).
@@ -29,7 +30,6 @@ from .paths import account_folder, file_in_account
 POSITIONS_FILE = "positions.json"
 EQUITY_HISTORY_FILE = "equity_history.csv"
 EQUITY_COLUMNS = ("date", "cash_rs", "closed_equity_rs", "marked_equity_rs", "open_trades", "stale_marks", "fills")
-STARTING_CASH_RS = 500_000.0  # owner decision and design 12.6: Rs 5 lakh per book
 OPENING_ENTRY_ID = "opening"
 
 
@@ -112,20 +112,22 @@ class PaperAccount:
 class AccountWriter:
     """The only way to change an account. Each write first checks that this book's lock is held."""
 
-    def __init__(self, account: PaperAccount, lock: WriterLock):
+    def __init__(self, account: PaperAccount, lock: WriterLock, starting_cash: float):
         self.account = account
         self._lock = lock
+        self.starting_cash = starting_cash  # the owner's paper account size, given by the composition root
         self.require_lock()
         if account.started:
             self._recover()
 
     def start(self, day: date) -> bool:
-        """Open the account with Rs 5 lakh and no positions. Done once; False (and nothing written) if it exists."""
+        """Open the account with the paper account's cash and no positions. Done once; False (and nothing written) if
+        it exists."""
         self.require_lock()
         if self.account.started:
             return False
-        opening = opening_row(OPENING_ENTRY_ID, day.isoformat(), STARTING_CASH_RS)
-        first = _equity_row(day, account_state(STARTING_CASH_RS, [], {}), fills=0)
+        opening = opening_row(OPENING_ENTRY_ID, day.isoformat(), self.starting_cash)
+        first = _equity_row(day, account_state(self.starting_cash, [], {}), fills=0)
         self._write_atomic(EQUITY_HISTORY_FILE, csv_text(EQUITY_COLUMNS, [first], header=True))
         self._write_atomic(CASH_LEDGER_FILE, csv_text(LEDGER_COLUMNS, [opening], header=True))  # marks "started"
         self._write_positions()

@@ -30,7 +30,7 @@ def journal(tmp_path, rows_by_book: dict[str, str]):
         folder.mkdir(parents=True)
         (folder / "cash_ledger.csv").write_text(LEDGER)
         (folder / EQUITY_HISTORY_FILE).write_text(EQUITY + rows)
-    return BooksReader(tmp_path, BOOKS)
+    return BooksReader(tmp_path, BOOKS, 500_000.0)
 
 
 def test_each_book_is_read_from_its_own_account_as_of_the_session(tmp_path):

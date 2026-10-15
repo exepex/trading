@@ -13,7 +13,7 @@ from fno.risk.inputs import ContractQuote, Market, OpenTrade, Proposal, Proposed
 
 DAY = date(2026, 10, 13)
 LOT = 65  # NIFTY units per lot (config.yaml lot_sizes)
-START = 500_000.0
+START = 2_000_000.0  # the owner's paper account (14 Oct 2026)
 MODEL = Black76()  # the app's model (fno/risk/wiring.py)
 ZERO_CHARGES = dict.fromkeys(
     (

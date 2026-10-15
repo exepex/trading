@@ -14,6 +14,10 @@ def test_the_app_evaluator_uses_every_owner_limit():
     evaluator = build_rule_evaluator(load_app_config())
     rules = {rule.name for rule in evaluator.allocator.risk.rules}
     assert rules == {
+        "paper_account",
+        "bucket_cap",
+        "open_risk_cap",
+        "new_risk_per_day",
         "max_loss_per_trade",
         "max_open_trades",
         "drawdown_brake",

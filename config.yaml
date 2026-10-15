@@ -37,12 +37,25 @@ slack:
 
 risk_free_rate: 0.065
 
-# Risk manager (story C2, fno/risk/). Owner decisions of 12 Oct 2026 (docs/DESK_DECISIONS.md), per book on its own
-# Rs 5 lakh paper account. A rule passes at its limit and refuses beyond it.
+# Risk manager (stories C2 and C5, fno/risk/), per book on its own paper account. A rule passes at its limit and
+# refuses beyond it, except the drawdown brake, which stops entries at its amount. Owner decisions (docs/DESK_DECISIONS.md):
+# Rs 20 lakh account and Rs 10,000 a trade (14 Oct 2026); caps and brake (15 Oct 2026, design v2 section 6.2).
 risk:
+  paper_account_rs: 2000000        # every book and shadow account opens with this; a book opened otherwise trades nothing
   max_loss_per_trade_rs: 10000     # one trade's modelled maximum loss, every charge and pad included
+  drawdown_brake_rs: 120000        # closed equity this far below its high: no new trades until the owner restarts
+  # Story C5: sums of B2 maximum losses, the proposal's included. Caps on new entries only, never a stop.
+  caps:
+    bucket_cap_rs: 30000           # one bucket: an underlying group and a side of exposure
+    open_risk_cap_rs: 150000       # all open positions of the book
+    new_risk_per_day_rs: 50000     # the trades opened in one session
+    # Side of exposure per structure code. A code not listed is unmapped and refused (design 6.1a). Directional
+    # structures (STR1) need the owner's mapping first (reviews/claude/response_105_c5-risk-buckets.md, question 2).
+    bucket_sides: {SF: short_volatility, SC: short_volatility, BF: long_volatility}
+  # Rs 5 lakh-era limits, NOT rescaled for Rs 20 lakh: the owner has not set new values (response 105, question 1).
+  # Kept as they are because a stricter limit can only refuse more trades; with max_open_trades 3 the Rs 1.5 lakh cap
+  # cannot bind (3 x Rs 10,000 = Rs 30,000).
   max_open_trades: 3
-  drawdown_brake_rs: 30000         # closed equity this far below its high: no new trades until the owner restarts
   max_stress_loss_rs: 30000        # open trades (from marks) plus the proposal (from entry), worst scenario below
   # Stress scenarios (design 8.1): NIFTY move in %, every leg's implied volatility times iv_factor, days that pass.
   # Replays: the NIFTY 50 and India VIX close-to-close moves of the day (previous session to that day), from
@@ -60,7 +73,16 @@ risk:
     - {name: replay_2024-06-04, nifty_move_pct: -5.9294, iv_factor: 1.2775, days: 1}
     - {name: replay_2026-02-01, nifty_move_pct: -1.9557, iv_factor: 1.1079, days: 1}  # Feb 2026's largest fall
     - {name: replay_2026-02-03, nifty_move_pct: 2.5476, iv_factor: 0.9301, days: 1}   # Feb 2026's largest move
+  # Design 6.2's daily stress line (story C5): a report on every card, not a limit. VIX +50% is an iv_factor of 1.5 on
+  # every leg; "+5%" keeps volatility unchanged (response 105, question 3).
+  stress_line:
+    - {name: nifty_down_5pct_vix_up_50pct, nifty_move_pct: -5, iv_factor: 1.5, days: 1}
+    - {name: nifty_down_5pct_vix_up_100pct, nifty_move_pct: -5, iv_factor: 2, days: 1}
+    - {name: nifty_down_10pct_vix_up_50pct, nifty_move_pct: -10, iv_factor: 1.5, days: 1}
+    - {name: nifty_down_10pct_vix_up_100pct, nifty_move_pct: -10, iv_factor: 2, days: 1}
+    - {name: nifty_up_5pct, nifty_move_pct: 5, iv_factor: 1, days: 1}
   # Proposed values, reasoning only (design 8.1); to be set from research before paper trading.
+  # Rs 5 lakh-era, NOT rescaled for Rs 20 lakh (response 105, question 1).
   exposure:
     nifty_move_pct: 2
     max_move_loss_rs: 15000

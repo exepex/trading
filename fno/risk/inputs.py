@@ -122,6 +122,7 @@ class OpenTrade:
     terms: TradeTerms
     units: Mapping[str, int]  # contract -> signed units still held (long +, short -)
     cash_flow: float  # premium received minus paid, minus charges, so far (E1)
+    opened_on: date | None = None  # the trade's first fill day (C5's new risk per day); None: not known, refused there
 
 
 @dataclass(frozen=True)

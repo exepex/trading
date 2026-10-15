@@ -232,3 +232,92 @@ Output: pass or fail with each check's numbers; failures written to `journal/<bo
 **Judge verifies:** adds a new wrong proposal of its own and confirms it is caught.
 
 **Depends:** C2, D3 (D4 and D5 for the Book-2 envelope check and the Book-3 mode) · **Size:** M · **Status:** judge 83 FAIL (3 must-fixes) fixed on `story/c4-hard-validity`, re-judge pending (claims: reviews/claude/response_83_c4-hard-validity.md, addendum 1); criteria 1-5 built (playbook mode for Book 1 in full); criterion 6 waits for D5 and criterion 7 for D4 (both books fail closed until then)
+
+---
+
+## C5. Risk buckets and the Rs 20 lakh paper account
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want every proposed trade checked against the caps of the owner's Rs 20 lakh
+paper account (one bucket of correlated positions, all open positions, the new risk of one session, and the drawdown
+brake), and the book's daily stress line computed, so that many strategies can run in parallel without one crash taking
+the account.
+
+**Context and why:** Design v2 section 6 (`docs/design_v2/06_risk_and_alerts.md` 6.1, 6.1a, 6.2) and the owner's
+decisions (`docs/DESK_DECISIONS.md`): paper account Rs 20 lakh with Rs 10,000 maximum loss per trade (14 Oct 2026);
+risk buckets and caps accepted on 15 Oct 2026: Rs 30,000 a bucket; open maximum losses at most Rs 1.5 lakh (a cap on
+new entries, not a stop); new maximum loss at most Rs 50,000 a session; drawdown brake when closed equity is Rs 1.2 lakh
+below its high, lifted only by the owner's written restart. C2 was built for a Rs 5 lakh account with at most 3 open
+trades and a Rs 30,000 brake. With Rs 20 lakh, 15-20 protected NIFTY structures could be funded at once and would all
+lose in the same crash, so the limits must apply to correlated groups (6.2). Design 6.1a: an unmapped bucket means no
+new entry.
+
+**Scope.** In:
+- the paper account size as a setting (`risk.paper_account_rs`), used by E1 to open every new book and shadow account;
+  a book opened with any other amount trades nothing until the owner decides how it is reopened;
+- the bucket, open-risk and new-risk-per-day caps, one `RiskRule` class each inside C2, on B2's maximum loss;
+- bucket assignment as 6.2 defines it, failing closed on anything 6.2 does not map;
+- the drawdown brake at Rs 1.2 lakh (C2's rule and restart record, new amount);
+- the daily stress line of 6.2 as a computed record for the card (T1 shows it);
+- every setting in `config.yaml` `risk` through `fno/config.py`'s allowed key, checked at start-up.
+
+Out: reopening the three books committed on 13 Oct at Rs 5 lakh (owner's choice); new values for C2's Rs 5 lakh-era
+limits the owner has not rescaled (`max_open_trades` 3, `max_stress_loss_rs` 30,000, exposure Rs 15,000 each); bucket
+sides for directional structures (STR1, owner's mapping first); stock buckets and the "stock results this week" group
+(needs the events calendar, A6/A12, and stock options, A18); C4's independent recomputation of the new caps; showing
+the stress line on the card (T1); S1's protocol text (`catastrophic_loss_book`, a draft the owner decides).
+
+**Design:**
+- `fno/risk/cap_settings.py`: `CapSettings` from `risk.paper_account_rs`, `risk.caps` (`bucket_cap_rs`,
+  `open_risk_cap_rs`, `new_risk_per_day_rs`, `bucket_sides`) and `risk.stress_line`; no defaults; a cap larger than the
+  account is an error.
+- `fno/risk/buckets.py`: `BucketMap` interface, `StructureBuckets` adapter. Group: the contracts' underlying (symbol
+  letters before the first digit), NIFTY or BANKNIFTY only; side: the structure code through `bucket_sides` (SF and SC
+  short volatility, BF long volatility). Legs on two underlyings, an unlisted code, a stock or another index raise an
+  input error (refused).
+- `fno/risk/open_risk.py`: `HeldMaxLoss` (B2's maximum loss of a held position from its ledger cash flow, its worst
+  terminal value at a strike, exit pads and exit charges; a net short tail is refused, a locked-in position counts 0);
+  `PositionRisks` gives each open trade's and the proposal's bucket and maximum loss (the proposal by B2's model, the
+  number `MaxLossPerTrade` checks).
+- `fno/risk/caps.py`: `MaxLossCap` (sum of the selected positions' maximum losses plus the proposal's, at most the
+  limit) with `BucketCap`, `OpenRiskCap`, `NewRiskPerDay`; `PaperAccountSize`. A cap only refuses.
+- `OpenTrade.opened_on`: first fill day from the ledger (E1), the decision day for a trade chosen earlier the same
+  session (D2's `book_after_entry`), kept in D3's decision codec; unknown means refused by the new-risk cap.
+- `fno/risk/stress_line.py`: `DailyStressLine` reuses C2's `StressEngine` on the open positions; per scenario the loss
+  from entry and from marks, next to the sum of maximum losses.
+- Wiring only in `fno/risk/wiring.py` (`build_position_risks`, `build_stress_line`, `build_risk_manager`) and
+  `fno/composition.py` (`paper_account_rs` for E1's writer).
+
+**Acceptance criteria:**
+1. Bucket cap: a proposal whose bucket's open maximum losses plus its own reach exactly Rs 30,000 passes; Rs 0.01 more
+   is refused with the rule name `bucket_cap`, the bucket and the numbers; another bucket's positions do not count.
+2. Open-risk cap: the same at Rs 1,50,000 across all buckets (`open_risk_cap`).
+3. New risk per day: the same at Rs 50,000 for trades opened this session, the proposal included; trades opened on
+   earlier sessions do not count; an open trade with no known first-fill day is refused (`new_risk_per_day`).
+4. A cap only refuses: the decision judges the very proposal it was given, lots unchanged; no cap resizes or enlarges a
+   trade.
+5. Buckets as 6.2: SF and SC are NIFTY short volatility, BF NIFTY long volatility, BANKNIFTY its own group; an unlisted
+   structure, a stock, another index or legs on two underlyings are refused as "unmapped bucket" (6.1a).
+6. A held trade's maximum loss equals B2's maximum loss for the same entry (to Rs 0.000001); a held position that is
+   not defined risk is refused, never measured.
+7. Paper account: a new book or shadow account opens with Rs 20,00,000; a book opened with any other amount (the
+   committed Rs 5 lakh books included) is refused with the rule name `paper_account`.
+8. Drawdown brake at Rs 1,20,000: Rs 0.01 less passes, at and beyond refuses; only a signed `restart_brake` row in the
+   book's `owner_overrides.csv` lifts it; an unsigned row makes the book unreadable (nothing trades).
+9. Daily stress line: the five 6.2 scenarios, loss from entry and from marks, below the sum of maximum losses; zero for
+   an empty book.
+10. Every C5 number comes from `config.yaml` `risk`; a missing or malformed one is an error at start-up; the repository
+    holds exactly the owner's numbers.
+11. No Rs 5 lakh account size or Rs 30,000 brake is left in `fno/`; E1's writer has no default cash; the Rs 5 lakh-era
+    limits not rescaled are marked "NOT rescaled" next to their keys in `config.yaml`.
+
+**Test plan:** `tests/risk/test_caps.py` (criteria 1-4, 7), `tests/risk/test_buckets.py` (5-6),
+`tests/risk/test_c5_account.py` (7-11), and C2, C4, D2, E1 and E4 tests updated to the new account and brake.
+
+**Judge verifies:** re-runs each cap at its number and one paisa over; plants an unmapped structure and a stock leg;
+checks a held trade's maximum loss against B2's by hand for one structure; plants an unsigned restart row; greps for
+any Rs 5 lakh or Rs 30,000-brake value still in use.
+
+**Depends:** C2, A14, B2, E1, D2, D3, the owner's numbers (14-15 Oct 2026) · **Size:** M · **Status:** built on
+`story/c5-risk-buckets`, judge pending (claims: reviews/claude/response_105_c5-risk-buckets.md)

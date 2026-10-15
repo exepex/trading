@@ -51,9 +51,9 @@ def test_c4_reads_the_ledger_as_e1_and_c2_do(ledger):
     account = PaperAccount(ledger, BOOK1_RULES)
     fills = [f for f in account.fills() if f.fill_id != "7"]  # E4's 15:15 fill comes after the 15:00 cutoff
     trades = list(trade_positions(fills).values())
-    assert facts.closed_equity == closed_equity_series(date(2026, 10, 1), 500_000.0, trades)
+    assert facts.closed_equity == closed_equity_series(date(2026, 10, 1), 2_000_000.0, trades)
     marks = {c: Mark(1.0) for c in ("X1PE", "X2PE")}
-    state = account_state(500_000.0, fills, marks)
+    state = account_state(2_000_000.0, fills, marks)
     assert facts.cash == pytest.approx(state.cash, abs=1e-9)
     (position,) = facts.positions
     assert position.trade_id == "b" and position.units == {"X1PE": -65, "X2PE": 65}

@@ -22,5 +22,5 @@ def book_after_entry(book: RiskBook, proposal: Proposal, market: Market, costs: 
         marked_equity=state.marked_equity + cash_flow + marked,
         open_trades=state.open_trades + 1,
     )
-    trade = OpenTrade(proposal.trade_id, proposal.terms, units, cash_flow)
+    trade = OpenTrade(proposal.trade_id, proposal.terms, units, cash_flow, market.day)
     return replace(book, state=state, open_trades=(*book.open_trades, trade))

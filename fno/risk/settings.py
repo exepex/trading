@@ -67,54 +67,55 @@ class RiskSettings:
     stressed_margin: StressedMarginSettings
 
 
-def _get(block: Mapping[str, Any], key: str, where: str) -> Any:
+def get_setting(block: Mapping[str, Any], key: str, where: str) -> Any:
     if not isinstance(block, Mapping) or key not in block or block[key] is None:
         raise RiskSettingsError(f"config.yaml risk{where}: `{key}` is required")
     return block[key]
 
 
-def _positive(block: Mapping[str, Any], key: str, where: str = "") -> float:
-    value = _get(block, key, where)
+def positive_setting(block: Mapping[str, Any], key: str, where: str = "") -> float:
+    value = get_setting(block, key, where)
     if isinstance(value, bool) or not isinstance(value, int | float) or value <= 0:
         raise RiskSettingsError(f"config.yaml risk{where}: `{key}` must be a positive number, not {value!r}")
     return float(value)
 
 
 def _count(block: Mapping[str, Any], key: str, where: str = "") -> int:
-    value = _positive(block, key, where)
+    value = positive_setting(block, key, where)
     if value != int(value):
         raise RiskSettingsError(f"config.yaml risk{where}: `{key}` must be a whole number, not {value!r}")
     return int(value)
 
 
 def _scenario(row: Mapping[str, Any]) -> Scenario:
-    move = _get(row, "nifty_move_pct", ".scenarios")
+    move = get_setting(row, "nifty_move_pct", ".scenarios")
     if isinstance(move, bool) or not isinstance(move, int | float) or move <= -100:
         raise RiskSettingsError(f"config.yaml risk.scenarios: bad nifty_move_pct {move!r}")
     return Scenario(
-        str(_get(row, "name", ".scenarios")),
+        str(get_setting(row, "name", ".scenarios")),
         float(move),
-        _positive(row, "iv_factor", ".scenarios"),
+        positive_setting(row, "iv_factor", ".scenarios"),
         _count(row, "days", ".scenarios"),
     )
 
 
-def _scenarios(block: Mapping[str, Any]) -> tuple[Scenario, ...]:
-    rows = _get(block, "scenarios", "")
+def scenarios_at(block: Mapping[str, Any], key: str = "scenarios") -> tuple[Scenario, ...]:
+    """A non-empty list of uniquely named scenarios under `key` (C2's limit scenarios, C5's stress line)."""
+    rows = get_setting(block, key, "")
     if not isinstance(rows, list) or not rows:
-        raise RiskSettingsError("config.yaml risk: `scenarios` must be a non-empty list")
+        raise RiskSettingsError(f"config.yaml risk: `{key}` must be a non-empty list")
     scenarios = tuple(_scenario(row) for row in rows)
     names = [s.name for s in scenarios]
     if len(set(names)) != len(names):
-        raise RiskSettingsError(f"config.yaml risk.scenarios: names must be unique: {names}")
+        raise RiskSettingsError(f"config.yaml risk.{key}: names must be unique: {names}")
     return scenarios
 
 
 def _exposure(block: Mapping[str, Any]) -> ExposureSettings:
-    exposure = _get(block, "exposure", "")
+    exposure = get_setting(block, "exposure", "")
     return ExposureSettings(
         *(
-            _positive(exposure, k, ".exposure")
+            positive_setting(exposure, k, ".exposure")
             for k in ("nifty_move_pct", "max_move_loss_rs", "iv_rise_points", "max_iv_loss_rs")
         )
     )
@@ -129,8 +130,8 @@ def _optional_date(value: Any) -> date | None:
 def _stressed_margin(block: Mapping[str, Any], root: Path) -> StressedMarginSettings:
     """Only the method and its expiry are required here: a missing factor, source or file fails closed when a
     proposal is checked (MarginRoom), so the desk refuses trades instead of refusing to start."""
-    stressed = _get(block, "stressed_margin", "")
-    method = _get(stressed, "method", ".stressed_margin")
+    stressed = get_setting(block, "stressed_margin", "")
+    method = get_setting(stressed, "method", ".stressed_margin")
     if method not in STRESSED_MARGIN_METHODS:
         raise RiskSettingsError(f"config.yaml risk.stressed_margin: method must be one of {STRESSED_MARGIN_METHODS}")
     factor = stressed.get("multiplier")
@@ -149,16 +150,16 @@ def _stressed_margin(block: Mapping[str, Any], root: Path) -> StressedMarginSett
 
 def risk_settings(config: Mapping[str, Any], root: Path) -> RiskSettings:
     """The checked `risk` block of an app config (`fno.config.load_app_config`); file paths are relative to `root`."""
-    block = _get(config, "risk", "")
-    margins = _get(block, "margins", "")
+    block = get_setting(config, "risk", "")
+    margins = get_setting(block, "margins", "")
     settings = RiskSettings(
-        _positive(block, "max_loss_per_trade_rs"),
+        positive_setting(block, "max_loss_per_trade_rs"),
         _count(block, "max_open_trades"),
-        _positive(block, "drawdown_brake_rs"),
-        _positive(block, "max_stress_loss_rs"),
-        _scenarios(block),
+        positive_setting(block, "drawdown_brake_rs"),
+        positive_setting(block, "max_stress_loss_rs"),
+        scenarios_at(block),
         _exposure(block),
-        root / str(_get(margins, "file", ".margins")),
+        root / str(get_setting(margins, "file", ".margins")),
         _count(margins, "max_age_days", ".margins"),
         _stressed_margin(block, root),
     )

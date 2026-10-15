@@ -31,7 +31,7 @@ def test_risk_is_an_allowed_key_and_the_repository_settings_hold_the_owners_limi
     assert (s.max_loss_per_trade_rs, s.max_open_trades, s.drawdown_brake_rs, s.max_stress_loss_rs) == (
         10000,
         3,
-        30000,
+        120000,  # the owner's brake on the Rs 20 lakh account, 15 Oct 2026 (story C5)
         30000,
     )
     assert s.margins_file == ROOT / "research" / "data" / "margins" / "margins.csv" and s.margin_max_age_days == 7

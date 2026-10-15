@@ -59,6 +59,7 @@ def book_to_json(book: RiskBook) -> dict:
                 "terms": asdict(t.terms),
                 "units": dict(sorted(t.units.items())),
                 "cash_flow": t.cash_flow,
+                "opened_on": t.opened_on.isoformat() if t.opened_on else None,
             }  # fmt: skip
             for t in book.open_trades
         ],
@@ -67,10 +68,16 @@ def book_to_json(book: RiskBook) -> dict:
     }
 
 
+def _day(text: str | None) -> date | None:
+    """A recorded day; None in records written before C5 (the new-risk rule then refuses, never guesses)."""
+    return date.fromisoformat(text) if text else None
+
+
 def book_from_json(data: dict) -> RiskBook:
     state = AccountState(**{**data["state"], "stale_marks": tuple(data["state"]["stale_marks"])})
     trades = tuple(
-        OpenTrade(t["trade_id"], TradeTerms(**t["terms"]), t["units"], t["cash_flow"]) for t in data["open_trades"]
+        OpenTrade(t["trade_id"], TradeTerms(**t["terms"]), t["units"], t["cash_flow"], _day(t.get("opened_on")))
+        for t in data["open_trades"]
     )
     closed = tuple((date.fromisoformat(d), value) for d, value in data["closed_equity"])
     return RiskBook(data["name"], state, trades, closed, tuple(date.fromisoformat(d) for d in data["restarts"]))

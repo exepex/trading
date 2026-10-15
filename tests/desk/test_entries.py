@@ -85,7 +85,7 @@ def test_each_fill_is_at_the_snapshot_ask_or_bid_with_its_hash_and_protection_fi
     cost = charges(71.0, SIDE_BUY) + charges(60.5, SIDE_BUY) + charges(150.0, SIDE_SELL) + charges(140.0, SIDE_SELL)
     account = PaperAccount(root, BOOK1_RULES)
     assert premium == 10302.5
-    assert account.summary()["cash_rs"] == pytest.approx(500_000 + premium - cost, abs=1e-9)
+    assert account.summary()["cash_rs"] == pytest.approx(2_000_000 + premium - cost, abs=1e-9)
     assert [f.fill_id for f in account.fills()] == [r["fill_id"] for r in rows]
 
 

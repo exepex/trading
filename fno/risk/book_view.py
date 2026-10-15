@@ -33,7 +33,8 @@ def _open_trade(trade: TradePosition, terms: Mapping[str, TradeTerms]) -> OpenTr
     if trade.trade_id not in terms:
         raise RiskInputError(f"open trade {trade.trade_id} has no recorded terms (structure, width, lots)")
     units = {contract: n for contract, n in trade.units.items() if n}
-    return OpenTrade(trade.trade_id, terms[trade.trade_id], units, trade.cash_flow)
+    opened_on = min(fill.filled_at.date() for fill in trade.fills)
+    return OpenTrade(trade.trade_id, terms[trade.trade_id], units, trade.cash_flow, opened_on)
 
 
 def load_risk_book(

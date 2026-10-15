@@ -82,7 +82,7 @@ def test_an_entry_equal_to_or_better_than_the_approved_one_fills(root, store, sn
     snapshot_with_half_spread(store, half)
     result = enter(root, snapshots, entry_desk, fly_order())
     assert result.outcome == OUTCOME_OPENED and result.shortfall_rs is None
-    assert PaperAccount(root, BOOK1_RULES).summary()["cash_rs"] == pytest.approx(500_000 + net_at_touch(half))
+    assert PaperAccount(root, BOOK1_RULES).summary()["cash_rs"] == pytest.approx(2_000_000 + net_at_touch(half))
 
 
 def test_a_paisa_worse_than_approved_fills_nothing(root, store, snapshots, entry_desk):
