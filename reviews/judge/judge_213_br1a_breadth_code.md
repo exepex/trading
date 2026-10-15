@@ -110,3 +110,17 @@ The study code's other check is my byte-identical re-run.
 - On the branch itself: 81 of 81 evaluation and study tests pass.
 
 **A re-check needs only the one word in `looks`.**
+
+## Addendum 1: the head named by the orchestrator (90fe09be)
+
+The orchestrator's message, queued at 21:58 UTC and received at 23:14, named head 90fe09be. a2e4adf9..90fe09be
+renames the claims file (response 201 to 197) and changes one line each in `BR-breadth.md`, `WORK_REGISTER.md` and
+the claims index. There is no code, study or `PROTOCOL.md` change, so judge 213 applies to 90fe09be unchanged (FAIL,
+SF1 "passed" → "exceeded").
+
+The orchestrator's two questions, answered above:
+- **What I re-ran:** all three studies, from the Drive files, byte-identical, plus study 3 at a second seed. Nothing
+  was checked from the committed results alone.
+- **S1:** S1's freeze is byte-for-byte unchanged, and nothing is weaker than before. `requires_gate=True` moved from
+  the unfrozen `freeze.py` call to the unfrozen `definition.py`. Both files should join S1's `frozen_files` before
+  S1's freeze.
