@@ -428,85 +428,147 @@ one at a time, kept only if they add net value), 13.6 (ablation where safe; inse
 keep or drop only at predeclared review dates; control roles scored on prevented invalid actions, not profit).
 ChatGPT review 24: allocated cost alone cannot prove value. REPLAN (`docs/design_v2/REPLAN.md`, slice B): S1 v1 is
 frozen only once F9's code exists (owner's option A, 14 Oct 2026), so F9's **scoring code** is built now and
-**reports only once books 2-3 trade** (slice E). Response 166 holds the claims and the owner questions.
+**reports only once books 2-3 trade** (slice E). Response 166 holds the claims, the answers to judge 172 and the owner
+questions.
 
 **Two parts.**
-- **F9a (now, slice B): the scoring code S1 hashes.** The rotation, the record checks, the per-role score, the
-  interval, the review gate, the control-role counts and the report, all on records. No AI session, no shadow firing.
-- **F9b (slice E, with F1's trading part and F2):** the book's session actually produces the shadow decision with the
-  role's card withheld and writes the records F9a reads. Its story text is written when slice E starts.
+- **F9a (now, slice B): the scoring code S1 hashes.** The rotation, the record checks, the per-unit score, the
+  interval and Holm, the review gate, the control-role counts and the report, all on records. No AI session, no shadow
+  firing.
+- **F9b (slice E, with F1's trading part and F2):** the book's session produces the shadow decision with the unit's
+  card withheld and writes the rows F9a reads. Its story text is written when slice E starts.
 
 **Scope (F9a).** In: `fno/role_value/` (new package, its own composition root `fno/role_value/wiring.py`):
-- `RoleSet`: a book version's registered AI roles and declared bundles (D6's registry entry), each unit with an
-  identifier; mandatory control roles (C1, C2, C3, C4, the CUSUM and stop-rule meters) are never a unit;
-- the rotation (S1 `role_value_schedule`): for books 2 and 3, from the common start (or a new version's first day),
-  the k-th day the book makes its real decision (k from 0) ablates unit `k mod n` of that version's n units in
-  identifier order; a day without a real decision has no row and does not advance the cycle;
-- `PairedDecisionSource` (interface) with one adapter reading `journal/<book>/role_value/paired.csv`, one row per
-  day the book made its real decision: `day, book, version, unit, consulted, real_decision_id, shadow_decision_id, real_packs_sha256,
-  shadow_packs_sha256, real_snapshot_id, shadow_snapshot_id, status`;
-- the valuation: each action (real and shadow) is valued by **importing S3's standard unit**
+- **Units.** `RoleSet`: a book version's registered AI roles and declared bundles (D6's registry entry; F2's
+  `agents/roles.yaml`), each unit with an identifier. A role inside a declared bundle is never a unit on its own.
+  Mandatory control roles (C1, C2, C3, C4, the CUSUM and stop-rule meters) are never a unit.
+- **Rotation** (S1 `role_value_schedule`). For books 2 and 3, from the common start (or a new version's first day), the
+  k-th day the book commits a real decision (k from 0) ablates unit `k mod n` of that version's n units, in identifier
+  order. A no-trade decision is a real decision and advances the cycle. A day without a committed decision ("AI
+  unavailable", late, missed) has no row and does not advance it.
+- **Rows.** `PairedDecisionSource` (interface), one adapter reading `journal/<book>/role_value/paired.csv`, one row per
+  day the book committed its real decision: `day, book, version, unit, consulted, real_decision_id,
+  shadow_decision_id, real_packs_sha256, shadow_packs_sha256, real_snapshot_id, shadow_snapshot_id, status`
+  (`scored`, `shadow_unavailable`, `unscored`).
+- **Checks on each row** (refused with the day and the unit): packs hashes differ; the two snapshot ids differ, or
+  differ from the day's execution snapshot in E3's committed run log (read through S3's
+  `fno/scoreboard/committed_runs.py` `CommittedRuns.snapshot_ids`, imported, not copied); the unit is not the one the
+  rotation schedules; the unit is a role inside a bundle.
+- **Valuation.** Each action, real and shadow, is valued by **importing S3's standard unit**
   (`fno/scoreboard/standard_unit.py`: one lot, E4 touch fills at the day's execution snapshot, C1 charges, the
   version's time exit, E7 settlement), never re-implemented or changed here (orchestrator, 15 Oct 2026). Its outcomes
-  carry over: "not filled" scores 0; a pair where either action is still "open" is cut from the score and listed
-  until both close;
-- the score per unit over a review period: applicable opportunities (scored ablation days where the unit's card was
-  consulted), decisions changed (real and shadow decision differ), mean paired net difference (with the role minus
-  without it, unchanged opportunities counting as zero), allocated cost per opportunity (F8's `allocate` for the unit's
-  `(books_and_roles, book, unit)` share over the period, divided by the days the unit's card was consulted in the
-  period, every day, not only ablation days), and the net value per opportunity (difference minus cost);
-- the interval: a moving-block bootstrap of the mean net value per opportunity over the unit's applicable
-  opportunities in date order (block 20 opportunities, 10,000 resamples, seed 20261014, nearest rank); the lower end
-  is the 5th percentile and the upper end the 95th (each a one-sided 95% bound). This, the cost per consulted day and
-  the block of 20 applicable opportunities are **provisional constants, to confirm at the S1 freeze** (orchestrator,
-  15 Oct 2026; response 166, questions 1, 3 and 4), pinned by a test against S1's text;
-- the verdict (S1 `role_value_minimum_sample`): `drop proposed` (upper end below zero), `earns its cost` (lower end
-  above zero) or `inconclusive, stays`, produced only on a `review_dates` date and only with at least 30 changed
-  opportunities, with Holm's correction across the book's units at that review (owner, 15 Oct 2026, via the
-  orchestrator; the units' one-sided bootstrap p-values); otherwise `no verdict: <reason>` (before the review date, or `<m> of 30 changed opportunities`);
-- control roles: from C4's failure log (`journal/<book>/validity_failures.csv`), per book and period, caught violations
-  (failed-check rows) and prevented invalid actions (distinct `(day, opportunity_id)`), never a profit figure;
-- `python -m fno role-value report --book <2|3> --from <date> --to <date> [--review]`: a Markdown report, one row per
-  unit, every figure labelled with its protocol version (S1 `reporting_per_version`), allocated cost labelled
-  "allocated, not a bill".
-Out: firing the shadow session and withholding the card (F9b); any change to the standard unit (requested through the orchestrator to S3's builder); changing
-`fno/scoreboard/` (S3 and S6 belong to another builder); adding F9a's files to S1's `frozen_files` list (S1's text,
-proposed to its owner in response 166); removing a role (the owner decides at a review).
+  carry over: a no-trade (skip) and a "not filled" entry are 0; a pair where either action is still open is cut from
+  the score and listed until both close.
+- **Score per unit** over a period: applicable opportunities (scored rows where the unit's card was consulted),
+  changed opportunities (the real and shadow decisions differ, including a trade against a no-trade either way),
+  paired differences (with the unit minus without it, in rupees, unchanged opportunities 0), cost per opportunity (next
+  item) and the net value per opportunity (difference minus cost).
+- **Cost per opportunity: a declared split** (judge 172 blocking 1). A unit runs as a sub-agent inside the book's one
+  session, and F8 writes one usage row per (session, day), so no unit has minutes of its own. The rule: the book's
+  allocated cost for a day is F8's month allocation of the book's `books_and_roles` shares times that day's minutes of
+  those shares over their month's minutes (F8's `allocate` and its ledger rows, imported, not copied); it is split
+  equally across the units whose cards were consulted that day, rounded down to the paisa, the paise left going to the
+  first unit in identifier order (F8's rounding rule). A unit's cost per opportunity is the mean of its daily
+  portions over the days its card was consulted (every day, not only ablation days). The book's decider gets no portion,
+  so each unit's cost is an upper bound: labelled "allocated, not a bill; declared split, upper bound". A consulted day
+  with no usage row, or a month with no recorded plan cost, makes the unit's cost and net value "unknown", and it gets
+  no verdict.
+- **Interval and test.** The series is the unit's net values per applicable opportunity in date order. S3's moving-block
+  resampler (`fno/scoreboard/uncertainty.py`, revision 2: the resampler and its one-sided p-value reader, imported) runs
+  on it with a risk column of 1 (the mean), blocks of 20 opportunities, 10,000 resamples, seed 20261014. The printed
+  interval is the nearest-rank 5th and 95th percentiles. It is shown only; the verdict comes from Holm.
+- **Holm** (owner, 15 Oct 2026, via the orchestrator; S3 revision 2's definition and code). At a review, each unit with
+  a known cost and at least 30 changed opportunities enters two one-sided claims: "earns its cost" (p = the reader on
+  the series: the share of resampled means at or below 0) and "drop" (p = the reader on the negated series). All 2m
+  claims of the book's m entering units go into S3's Holm step-down at 0.05/(m' − i + 1) over the 2m claims, as one
+  plain list. At most one claim per unit can pass. For a single unit this is about as strict as a two-sided 5% test,
+  stricter than S1's "one-sided 95%" (response 166, question 7).
+- **Verdict** (S1 `role_value_minimum_sample`): `drop proposed` (its drop claim passes Holm), `earns its cost` (its
+  earns claim passes) or `inconclusive, stays`. It is produced only with `--review` on a review date and with at least
+  30 changed opportunities. Otherwise `no verdict: <reason>` (not a review date, `<m> of 30 changed opportunities`, cost
+  unknown).
+- **Review dates.** S1's `review_dates` rule has no code today. F9a adds one pure function, `review_dates(common_start,
+  calendar, through)`: the last NSE session of the sixth full calendar month after the common start, then every 3
+  calendar months on that month's last session. The NSE calendar is `fno/research_data/calendar.py`'s
+  `SessionCalendar`. The common start is an input (`--common-start`) until S1 fixes it in its record. Where the function
+  lives (`fno/evaluation/`, S1's package, so S3 and S4 use the same one) is agreed with S1's text owner (response 166,
+  question 8).
+- **Control roles.** From C4's failure log (`journal/<book>/validity_failures.csv`), per book and period: caught
+  violations (failed-check rows) and prevented invalid actions (distinct `(day, opportunity_id)`), never a profit
+  figure.
+- **Report.** `python -m fno role-value report --book <2|3> --from <date> --to <date> --common-start <date>
+  [--review]`: a Markdown report, one row per unit (applicable, changed, mean difference, cost per opportunity, net
+  value, interval, Holm p-values, verdict or reason), the open pairs and excluded rows listed, every figure labelled
+  with its protocol version (S1 `reporting_per_version`).
+
+**Design requirements, where each goes (quality rule 2; judge 172 blocking 2):**
+
+| Requirement (source) | In F9a | Or out, with the reason |
+|---|---|---|
+| Paired with and without the role, same packs and snapshot (design 3.1; 13.6) | criteria 1, 8 | |
+| Net after the role's own running cost (3.1) | criteria 3, 5 (declared split) | |
+| Abstentions and rejected trades count (3.1) | criterion 9: a no-trade is valued 0 and counts as a change | |
+| Only opportunities where the role applies (3.1) | `consulted`, criterion 3 | |
+| Joint tests where roles interact (3.1) | declared bundles only, criterion 2 | Pairwise ablations of two separate roles: out. They need a second shadow a day (twice the extra usage) and a sample already years long. Roles expected to interact are declared as one bundle in the version (F2's matrix) |
+| Lower risk can justify lower profit (3.1) | | Out of the verdict: S1's frozen metric is net value. A risk-adjusted rule is a new S1 item for the owner (response 166, question 9) |
+| Roles added one at a time (design 10; DESK_DESIGN step 4) | | Out: a rollout order for slice E (F2, F5, F6), not scoring. Each added role is a new version (D6) with its own rotation and record |
+| Inseparable roles as a bundle (13.6) | criterion 2 | |
+| Keep or drop only at predeclared review dates; owner decides (13.6) | criterion 4 | Automatic removal: out (owner decides) |
+| Control roles on prevented invalid actions (3.1; 13.6) | criterion 6 | C3 refusals: Known limits |
+| Results per protocol version (S1) | report labels | |
+
+Out: firing the shadow session and withholding the card (F9b); any change to S3's `standard_unit.py`,
+`uncertainty.py` or `committed_runs.py` (through the orchestrator to S3's builder); adding F9a's files to S1's
+`frozen_files` (S1's text owner, register row "S1 text"); removing a role (the owner decides at a review).
 
 **Acceptance criteria:**
-1. A paired row whose real and shadow packs hashes or snapshot hashes differ is refused with the day and the unit; a
-   row whose unit is not the one the rotation schedules for that day is refused (hash and schedule tests).
-2. A role that belongs to a declared bundle is never a unit on its own: a row naming it is refused, and the report has
-   no row for it (test).
-3. On a constructed set of records with a known answer (changed count, mean difference, cost per opportunity and the
-   interval with the fixed seed), the report reproduces the hand computation to the paisa; the bootstrap's
-   percentiles are pinned by a test with a fixed short series.
-4. No verdict (`drop proposed`, `earns its cost`, `inconclusive, stays`) appears before a `review_dates` date or below
-   30 changed opportunities; the reason is printed instead (tests on the day before, the day of the review, 29 and 30).
-5. Rows with status `ai_unavailable`, `late` or `unscored`, and pairs with an open action, are excluded from the score
-   and counted apart (open pairs listed); a month with
-   no recorded plan cost makes the cost and the net value "unknown", never zero, and no verdict is produced (tests).
-6. Control roles show caught violations and prevented invalid actions from C4's log and no profit figure (test).
-7. The constants (block 20, 10,000 resamples, seed 20261014, minimum 30, percentiles 5 and 95) match S1's text; a
-   test reads both, so an edit of one alone fails.
-8. Both actions of a pair are valued by `fno/scoreboard/standard_unit.py` (a test asserts F9a's valuation is that
-   function, not a copy), on the snapshot ids of the row.
+1. A row is refused, with its day and unit, when: its real and shadow packs hashes differ; its two snapshot ids differ
+   or differ from the run log's execution snapshot for the day; or its unit is not the one the rotation schedules (a
+   no-trade day advances the cycle; a day without a row does not) (tests).
+2. A role that belongs to a declared bundle is never a unit: a row naming it is refused, and the report has no row for
+   it (test).
+3. On constructed records with a known answer (changed count, mean difference, daily cost portions, cost per
+   opportunity, net value), the report reproduces the hand computation to the paisa. The interval and the p-values
+   with the fixed seed are pinned by a test on a fixed short series.
+4. No verdict appears without `--review`, on a date that is not a review date, or below 30 changed opportunities; the
+   reason is printed instead (tests on the day before and the day of a review, with 29 and 30). `review_dates` is
+   tested on a constructed calendar, including a month whose last calendar day is a holiday.
+5. A unit with a consulted day that has no usage row, or in a month with no recorded plan cost, shows cost and net
+   value "unknown" and gets no verdict; it does not enter Holm (tests). The daily split sums exactly to the book's
+   daily allocation (test).
+6. Control roles show caught violations and prevented invalid actions from C4's log, and no profit figure (test).
+7. Holm: on constructed p-values the claims that pass match a hand computation of the step-down over the 2m claims,
+   and the verdict follows the passing claim, not the printed interval (test). The function used is S3's (a test
+   asserts the import is `fno.scoreboard.uncertainty`'s, not a copy).
+8. Both actions of a pair are valued by `fno/scoreboard/standard_unit.py` (a test asserts it is that function), on the
+   row's snapshot; an open action cuts the pair and lists it (test).
+9. A no-trade on either side is valued 0: a real trade against a shadow no-trade, and the reverse, count as changed
+   and enter the difference with their signs (tests).
+10. Rows with status `shadow_unavailable` or `unscored` are excluded from the score and counted apart (test).
+11. The constants (block 20 opportunities, 10,000 resamples, seed 20261014, minimum 30, printed percentiles 5 and 95,
+    the cost denominator) match S1's text. A test reads both, so an edit of one alone fails. These values enter S1's
+    text through its owner (register row "S1 text", pending edit 3) before F9a's code round. Until then they are
+    provisional, to be confirmed at the S1 freeze.
 
-**Test plan:** unit tests with constructed role sets, paired rows, a C4 log and F8 usage rows; the CLI on a temporary
-journal; a known-answer example worked by hand in the test file's docstring.
+**Test plan:** unit tests with constructed role sets, paired rows, run logs, a C4 log, F8 usage rows and a calendar;
+the CLI on a temporary journal; a known-answer example worked by hand in the test file's docstring.
 
-**Judge verifies:** recomputes one unit's changed count, the two one-lot nets of one pair (through the standard unit), mean difference, cost per opportunity and verdict from the
-constructed records by hand; feeds a row with a different snapshot hash and one naming a bundled role.
+**Judge verifies:** recomputes one unit's changed count, the two one-lot nets of one pair (through the standard unit),
+the mean difference, the daily cost portions, the Holm step and the verdict from the constructed records by hand.
+Feeds a row with a wrong snapshot id, one naming a bundled role, and a consulted day with no usage row.
 
 **Known limits (owner's simplicity rule, 15 Oct 2026):**
-- Until books 2-3 trade there are no paired rows: the report prints "no paired decisions yet" (some months at least).
-- With n units each is ablated once every n trading days, so 30 changed opportunities can take years; said in every
-  report.
-- F9a trusts the hashes in the rows; that the shadow really withheld the card and used the same packs is F9b's
-  end-to-end test.
-- C3's data-check refusals are not counted (C3 alerts but keeps no per-book refusal log); C2's limits are counted
+- Until books 2-3 trade there are no rows: the report prints "no paired decisions yet" (some months at least).
+- With n units each is ablated once every n trading days, so 30 changed opportunities can take years. Every report
+  says so.
+- F9a trusts the rows' packs hashes. That the shadow really withheld the card is F9b's end-to-end test.
+- The declared cost split charges the whole book session to its consulted units (the decider is not charged), so each
+  unit's cost is an upper bound. Measured per-sub-agent minutes (F9b) can replace it, as a new protocol version.
+- On ablation days the shadow decision runs inside the same book session, so its usage is part of that day's cost and
+  cannot be shown apart (response 166, question 3, revised).
+- C3's data-check refusals are not counted (C3 alerts but keeps no per-book refusal log). C2's limits are counted
   through the C4 checks that enforce them.
-- The shadow session's own plan usage is evaluation cost, not the role's: it is shown apart (response 166, question 3).
 
-**Depends:** F8, S1 (text), S3's `standard_unit.py` merged (code round starts after it) · F9b: F1, F2, E4 · **Size:** M (F9a S)
-· **Status:** F9a story text for the judge on `story/f9-role-value` (response 166); F9b later
+**Depends:** F8, S1 (text, with F9a's pending edits), S3's `standard_unit.py`, `uncertainty.py` (revision 2) and
+`committed_runs.py` merged (the code round starts after them) · F9b: F1, F2, E4 · **Size:** M (F9a S) · **Status:**
+F9a story text revised after judge 172 on `story/f9-role-value` (response 166); F9b later

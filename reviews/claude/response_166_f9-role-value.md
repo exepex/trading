@@ -21,7 +21,7 @@ session_01VG1RqxLFUVdvvPuMRYZtDH. **Text only: no code until a judge PASSes this
    Open actions are cut and listed, as in S3. **Strong evidence** (S3's text); F9a's code round waits for S3's merge.
 2. F9a reuses F8's `allocate` for cost (shares are already keyed `(purpose, book, role_or_bundle)`,
    `fno/budget/allocation.py:21`). **Strong evidence** (read the code).
-3. F9a cannot reuse an existing bootstrap: `fno/scoreboard/uncertainty.py` is a ratio of net to risk (and not mine to
+3. **Withdrawn after judge 172 (S3 revision 2 is reused).** F9a cannot reuse an existing bootstrap: `fno/scoreboard/uncertainty.py` is a ratio of net to risk (and not mine to
    change), and `fno/forecast_scoring/block_bootstrap.py` is pinned to protocol v2's frozen constants (seed 20261013,
    linear percentiles). A third small bootstrap is the honest cost of three frozen protocols. **Strong evidence**
    (read the code); whether to unify them later is a judgement call (reasoning only).
@@ -73,3 +73,35 @@ hashes (F9b tests the real withholding); C3 not counted; the shadow's own usage 
   valuer of its own. I sent this reading back to the orchestrator to confirm.
 - **Question 6:** S1's text owner is session_0185gR5DmoDh2zBAvgRU4CEB. I sent it the `frozen_files` line and the
   wording for questions 1 and 4.
+
+## Answers to judge 172 (FAIL at 642c3f73), each checked before accepting
+
+| Point | Verdict | Evidence and what changed |
+|---|---|---|
+| B1 a unit's cost has no source | **accepted** | Confirmed: F2 runs roles as sub-agents in one session (`F-ai-layer.md:98`), and F8 writes one row per (session, day) (`fno/budget/usage_ledger.py:25`). Strong evidence. Chose (b), a declared split: the book's daily allocation split equally across the consulted units, with F8's paisa rule. The decider gets no portion, so the cost is labelled an upper bound. A day with no usage row, or no plan cost, makes the cost "unknown", with no verdict and no Holm entry (criterion 5). Why not (a): nothing records per-sub-agent minutes today. F9b may measure them, as a new protocol version. Reasoning only. |
+| B2 gap list | **accepted** | Table added. Abstentions are in (criterion 9: a no-trade is 0 and counts as a change). Joint tests are in through bundles only; pairwise ablation is out (twice the extra usage, a sample already years long). Lower risk is out of the verdict (S1's metric is net; question 9). Roles added one at a time is out (a slice E rollout order; each addition is a new D6 version). |
+| SF1 Holm | **accepted** | Uses S3 revision 2's reader and step-down (`S-scoreboards.md` on `story/s3-scoreboard-a`, lines 158-165), imported. Claims entering: two per unit ("earns" on the series, "drop" on the negated series), all 2m in one list. The 5th/95th interval is printed only (criteria 7, 11). |
+| SF2 constants vs S1's text | **accepted** | S1's text owner recorded them as pending edit 3 (register row "S1 text", main). The text now says they enter S1's text before the code round, provisional until the freeze. |
+| SF3 third bootstrap | **accepted** | S3 revision 2's resampler takes any ordered series with a risk column (1 for a mean), and its owner says it stays generic. F9a imports it, so no third bootstrap. My earlier claim 3 is withdrawn. |
+| SF4 review_dates source | **accepted** | Confirmed: no code computes S1's rule; `fno/scorecard/review.py` reads playbook dates. F9a adds `review_dates(common_start, calendar, through)` on `SessionCalendar` (`fno/research_data/calendar.py:36`), tested on a holiday month-end. Placement: question 8. |
+| m1 snapshot = run log's | **accepted** | Both ids must equal `CommittedRuns.snapshot_ids()` (`fno/scoreboard/committed_runs.py:59`, S3's reader, imported). |
+| m2 no-trade advances | **accepted** | Stated in the rotation item and criterion 1. |
+
+Correction to question 3: the shadow decision runs inside the same book session, so its usage cannot be shown apart.
+It is a Known limit now, and I am telling S1's text owner.
+
+## New questions (via the orchestrator)
+
+7. **Holm is stricter than S1's words.** With two one-sided claims per unit in Holm, one unit alone needs p < 0.025 on
+   its side (about a two-sided 5% test), where S1 says "one-sided 95%". Options: (A) keep 2m claims (valid for any
+   direction, stricter); (B) one claim per unit, its direction fixed before counting (for example "drop" only, since
+   that is the action). **Recommend A**: the direction is not known in advance, and choosing it after seeing the sign
+   doubles the error. Some evidence (standard multiple-testing reasoning).
+8. **Where `review_dates` lives.** Recommend `fno/evaluation/review_dates.py` (S1's package, hashed with S1), so S3 and S4
+   use one function. That needs S1's text owner's yes, because it is that package. Otherwise it goes in
+   `fno/role_value/`, and S4 imports it from there.
+9. **Lower risk for lower profit (design 3.1).** Out of F9a's verdict. Recommend: show nothing new now, and add a
+   risk-adjusted role rule only as an S1 item the owner decides, if S3's risk measure proves useful. Reasoning only.
+10. **`wiring.py` in `frozen_files`** (S1's text owner's pushback). **Accepted**: the composition root picks the
+    scorer class, so a one-line edit after the freeze could swap the rule unhashed. Hash `wiring.py`; leave out only
+    `cli.py`. Some evidence (that is what wiring does here).
