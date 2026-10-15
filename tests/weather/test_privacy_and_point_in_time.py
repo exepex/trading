@@ -123,3 +123,9 @@ def test_the_previous_session_is_the_previous_regular_one():
     assert WEATHER.latest_row(date(2024, 1, 23)) == date(2024, 1, 19)
     vix_19 = next(r.vix for r in WEATHER.inputs.rows if r.day == date(2024, 1, 19))
     assert WEATHER.models["weather_vix_v1"].scale(date(2024, 1, 23)) == pytest.approx(vix_19 / 100 / 252**0.5)
+
+
+def test_the_method_hash_covers_every_file_that_decides_a_value():
+    fno = wiring.ROOT / "fno"
+    assert {"weather/wiring.py", "forecast_v4/sessions.py", "forecast_v4_rules/series.py"} <= set(wiring.METHOD_FILES)
+    assert all((fno / name).is_file() for name in wiring.METHOD_FILES)

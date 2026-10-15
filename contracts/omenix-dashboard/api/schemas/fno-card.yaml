@@ -1,0 +1,298 @@
+# Story P1: the daily trade card (exepex/trading design v2 section 4.1). One card every NSE session day: TRADE,
+# NO TRADE (with a reason) or WATCH (a candidate's shadow decision, shown for learning, never to be traded). The card
+# never computes its own numbers: every figure is copied from the desk's records, whose hashes are in its footer.
+# Card records are kept in Google Drive only (owner, 15 Oct 2026): fields marked owner never enter a public repository.
+
+FnoCard:
+  type: object
+  description: >-
+    The day's trade card, PAPER ONLY. Empty state: status NO TRADE with reason no_approved_strategy (the real state
+    while no strategy has passed); a missing input gives NO TRADE with reason data_check_failed and the input named
+  x-catalog: {publisher: fno, source: "the day's card record (T1's CardBuilder from the decision, risk, forecast, weather and objection records)", freshness: 'once a session day at card_sent_at (target 15:08 IST)', story: T1, status: planned}
+  x-visibility: public
+  x-fill: not_built
+  x-never-sent:
+    - "the strategy's entry conditions, filters and thresholds (why it chose this day beyond the forecast and weather shown)"
+    - "the AI team's and the devil's advocate's prompts and model settings"
+    - "the strategy's parameters and any fitted value"
+  additionalProperties: false
+  required: [label, test_post, session, session_note, status, reason, reason_text, timing, valid_until, trade, stress, paper_trades_so_far, weather, forecast, forecasts_on_record, advocate, data_checks, missing, previous_misses, evidence, price_of_staying_out, if_you_cannot_act, footer]
+  properties:
+    label: {type: string, const: PAPER ONLY, x-unit: text, description: 'Every card is for paper trading; no card ever tells the owner to place a real order'}
+    test_post: {type: boolean, x-unit: yes/no, x-catalog: {source: "T1's delivery record (research/cards/deliveries/, card_delivery/v1: test)"}, description: 'True for a one-off check of live delivery, not the day''s card (the post says TEST)'}
+    session: {type: string, format: date, x-unit: date (IST), description: The NSE session the card is for}
+    session_note: {type: string, minLength: 1, x-unit: text, x-catalog: {source: "T1's TradeCard.session (from the NSE session calendar, A7)"}, description: 'What kind of day it is, e.g. "NSE regular session", or that the calendar could not say'}
+    status: {type: string, enum: [TRADE, NO TRADE, WATCH], x-unit: enum, description: 'TRADE = a paper trade of a strategy approved to paper; NO TRADE = nothing today, with a reason; WATCH = a candidate''s shadow decision, for learning, never to be traded'}
+    reason:
+      type: ['string', 'null']
+      enum: [no_approved_strategy, weather_red, data_check_failed, risk_bucket_full, budget_stop, cost_wall, advocate_hard_rule, null]
+      x-unit: enum
+      description: Why there is no trade (NO TRADE only; null otherwise)
+    reason_text: {type: string, minLength: 1, x-unit: text, description: 'The status in one plain sentence, e.g. "No trade today: no strategy has passed its test yet"'}
+    timing:
+      type: object
+      description: The card's three times, in this order (design 4.1, timing contract)
+      additionalProperties: false
+      required: [market_data_cutoff, decision_finalized_at, card_sent_at, delivery]
+      properties:
+        market_data_cutoff: {type: string, format: date-time, x-unit: UTC time, description: 'The market pack is frozen and hashed (15:00 IST); no later market data enters the card'}
+        decision_finalized_at: {type: string, format: date-time, x-unit: UTC time, description: 'The decision, the code checks and the objections are final (target 15:06 IST)'}
+        card_sent_at: {type: ['string', 'null'], format: date-time, x-unit: UTC time, description: 'Slack''s server time of the post (the issuance time); null while not sent'}
+        delivery: {type: string, enum: [sent, retrying, not_sent], x-unit: enum, description: 'Slack delivery; not_sent is shown as "alert NOT sent" and the next card says so'}
+    valid_until: {type: string, format: date-time, x-unit: UTC time, x-catalog: {source: "T1's CARD_VALID_UNTIL (15:25 IST)"}, description: 'After this time the card is stale (15:25 IST)'}
+    stress:
+      type: object
+      description: "The daily stress line (design 6.2): the loss of all open paper positions together under fixed overnight scenarios, information only (the scenario assumptions accepted by the owner, \"4 A\"). All positions are defined-risk, so no line can exceed the sum of their maximum losses; the line shows how close the book is to it"
+      x-visibility: owner
+      x-catalog: {source: "the risk manager's stress of the open positions (C2's stressed marks; the design 6.2 line is added with the risk buckets)", story: C5}
+      additionalProperties: false
+      required: [open_positions, max_loss_sum, scenarios]
+      properties:
+        open_positions: {type: integer, minimum: 0, x-unit: count, description: Open paper positions across the books}
+        max_loss_sum: {type: number, minimum: 0, x-unit: INR (Paper), description: 'The ceiling: the sum of their maximum losses'}
+        scenarios:
+          type: array
+          description: 'Exactly three paired overnight scenarios, in this order (design 6.2 as the owner accepted it, "4 A"; orchestrator, 15 Oct 2026, response 113 #4): NIFTY -5% with India VIX +50%, NIFTY -10% with VIX +100%, NIFTY +5% with volatility unchanged'
+          minItems: 3
+          maxItems: 3
+          prefixItems:
+            - {$ref: '#/components/schemas/FnoStressLine', properties: {nifty_move_pct: {const: -5}, vix_move_pct: {const: 50}}}
+            - {$ref: '#/components/schemas/FnoStressLine', properties: {nifty_move_pct: {const: -10}, vix_move_pct: {const: 100}}}
+            - {$ref: '#/components/schemas/FnoStressLine', properties: {nifty_move_pct: {const: 5}, vix_move_pct: {const: 0}}}
+          items: false
+    paper_trades_so_far:
+      type: object
+      description: How many paper trades each book has made so far (a book that cannot be read is named in missing)
+      x-catalog: {source: "T1's status section: each book's closed and open trades in its account (E1 journal/<book>/account/positions.json)"}
+      additionalProperties: false
+      required: [total, by_book]
+      properties:
+        total: {type: integer, minimum: 0, x-unit: count, description: All books' trades together (a count of trades, not money)}
+        by_book:
+          type: array
+          minItems: 3
+          maxItems: 3
+          description: One count per book
+          items:
+            type: object
+            additionalProperties: false
+            required: [family, trades]
+            properties:
+              family: {$ref: '#/components/schemas/FnoFamily', description: The book}
+              trades: {type: integer, minimum: 0, x-unit: count, description: Its paper trades so far}
+    trade:
+      description: The position (TRADE and WATCH); null on NO TRADE
+      anyOf: [{type: 'null'}, {$ref: '#/components/schemas/FnoCardTrade'}]
+    weather:
+      type: object
+      description: The weather the card quotes (the weather screen has the details)
+      x-catalog: {source: "the session's weather record (M1)", story: M1}
+      additionalProperties: false
+      required: [colour, why]
+      properties:
+        colour: {type: ['string', 'null'], enum: [GREEN, AMBER, RED, null], x-unit: enum, description: 'The weather colour; null when no weather record exists for the session'}
+        why: {type: string, minLength: 1, x-unit: text, description: 'One plain line, e.g. "AMBER: VIX up 14% in 5 sessions"'}
+    forecast:
+      description: The house forecast the card rests on, with that forecaster's record; null when the card rests on none
+      anyOf: [{type: 'null'}, {$ref: '#/components/schemas/FnoCardForecast'}]
+    forecasts_on_record:
+      description: "Every question's house forecast from the latest committed live capture, each with its back-fill and live track records (T1's forecast section); null when no capture exists"
+      anyOf:
+        - {type: 'null'}
+        - type: object
+          x-catalog: {source: "T1's forecast section: the latest committed live capture (G3, research/forecasts/live_v2/) and the latest G4 score report before the card's day"}
+          additionalProperties: false
+          required: [capture_day, late_generated_at, report_day, house_forecaster, other_forecasters, questions]
+          properties:
+            capture_day: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'forecast_record_v2:date', description: "The capture's day (the card says when it is not today's)"}
+            late_generated_at: {type: ['string', 'null'], format: date-time, x-unit: UTC time, x-fill: built, x-record: 'forecast_record_v2:generated_at', description: 'When a late capture was generated (after its 15:15 IST deadline: its records are not scored); null when on time'}
+            report_day: {type: ['string', 'null'], format: date, x-unit: date (IST), description: 'The score report the track records come from; null when none exists yet'}
+            house_forecaster: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: 'The forecaster shown (today the past average, baseline_b_base_rate: a display choice, never chosen by its scores)'}
+            other_forecasters: {type: integer, minimum: 0, x-unit: count, description: Other forecasters recorded in the capture (their list is on the Forecast lab)}
+            questions: {type: array, description: One entry per question, items: {$ref: '#/components/schemas/FnoCardForecast'}}
+    missing:
+      type: array
+      description: "Every gap the card names in plain words (a missing source or record); the card always goes out, naming what it lacks"
+      x-catalog: {source: "T1's TradeCard.missing and its delivery record (missing)"}
+      items: {type: string, minLength: 1, x-unit: text, description: 'One gap, e.g. "weather model (story M1) not built"'}
+    previous_misses:
+      type: array
+      description: 'What went wrong with earlier cards, e.g. "no card on record for 2026-10-14" (design 4.1: the next card states a miss)'
+      x-catalog: {source: "T1's delivery records of earlier days (previous_misses)"}
+      items: {type: string, minLength: 1, x-unit: text, description: One earlier miss}
+    advocate:
+      type: object
+      description: "The devil's advocate's objections on the same frozen pack (T2 rule checks, T3 objections)"
+      x-catalog: {source: "the session's objection record", story: T3}
+      additionalProperties: false
+      required: [status, objections, verdict]
+      properties:
+        status: {type: string, enum: [answered, advocate_unavailable, not_needed], x-unit: enum, description: 'advocate_unavailable = it did not answer by its deadline; the card went out with the code checks only and no objection is invented; not_needed on NO TRADE'}
+        objections: {type: array, maxItems: 3, x-visibility: owner, description: Its three strongest objections, items: {type: string, minLength: 1, x-unit: text, description: One objection in plain words}}
+        verdict: {type: ['string', 'null'], enum: [no_hard_rule_breach, hard_rule_breach, null], x-unit: enum, description: 'Its verdict; a hard-rule breach makes the card NO TRADE'}
+    data_checks:
+      type: object
+      description: The data checks before every decision (C3) and the hard-validity checks (C4)
+      x-catalog: {source: "the session's data-check record (C3, C4)", story: C3}
+      x-fill: built
+      additionalProperties: false
+      required: [passed, missing_inputs]
+      properties:
+        passed: {type: boolean, x-unit: yes/no, x-record: 'check_report:ok', description: 'Every check passed (C3''s CheckReport.ok)'}
+        missing_inputs: {type: array, description: 'Each missing or failed input, named', x-fill: not_built, items: {$ref: '#/components/schemas/FnoMissingInput'}}
+    evidence:
+      type: object
+      description: How far the strategy has come and what the evidence says (design 3.1 rungs; 8.3 the real-money gate)
+      x-catalog: {source: 'the version registry (D6) and the ledger (B4)', story: D6}
+      additionalProperties: false
+      required: [rung, label, text, real_money_eligible]
+      properties:
+        rung: {type: ['integer', 'null'], minimum: 0, maximum: 4, x-unit: rung 0-4, description: '0 idea, 1 its forecast beat the baseline, 2 forward shadow, 3 approved to paper by the owner, 4 real-money gate met; a TRADE card is only ever rung 3; null on NO TRADE'}
+        label: {type: ['string', 'null'], enum: [strong evidence, some evidence, reasoning only, null], x-unit: enum, description: The evidence label}
+        text: {type: string, x-unit: text, description: 'The evidence in one plain sentence, e.g. "some evidence: lower bound -0.02 per rupee risked after 38 trades"'}
+        real_money_eligible: {type: boolean, const: false, x-unit: yes/no, description: 'Always false until the real-money gate (design 8.3) is met; this contract cannot say true'}
+    price_of_staying_out:
+      description: "NO TRADE only: what skipping cost or saved, from the shadow results of what was skipped; null otherwise"
+      anyOf:
+        - {type: 'null'}
+        - type: object
+          description: The price of staying out
+          x-catalog: {source: 'the matched shadow fills of the skipped trades (design 2.3)', story: E8}
+          additionalProperties: false
+          required: [status, shadow_net]
+          properties:
+            status: {type: string, enum: [not_measured_yet, measured, nothing_skipped], x-unit: enum, description: 'not_measured_yet until shadow fills exist; nothing_skipped when no approved strategy wanted a trade'}
+            shadow_net: {type: ['number', 'null'], x-unit: INR (Paper), description: 'Net result the skipped trades would have had after costs (negative = staying out saved money); null unless measured'}
+    if_you_cannot_act: {type: string, minLength: 1, x-unit: text, description: 'What the paper record assumes if the owner cannot act in time (design 4.4), e.g. "If you cannot act by 16:08, the paper record assumes the next session at 10:15"'}
+    footer:
+      type: object
+      description: The issuance footer (design 4.4)
+      additionalProperties: false
+      required: [record_hashes]
+      properties:
+        record_hashes: {type: array, description: 'Every committed record the card used, by path and SHA-256 of its bytes (T1: records_used)', x-catalog: {source: "T1's delivery record (records_used)"}, items: {$ref: '#/components/schemas/FnoRecordHash'}}
+  allOf:
+    - if: {properties: {status: {const: NO TRADE}}}
+      then: {properties: {reason: {type: string}, trade: {type: 'null'}}}
+      else: {properties: {reason: {type: 'null'}, trade: {type: object}, price_of_staying_out: {type: 'null'}}}
+    - if: {properties: {reason: {const: data_check_failed}}, required: [reason]}
+      then: {properties: {data_checks: {properties: {passed: {const: false}, missing_inputs: {minItems: 1}}}}}
+    - if: {properties: {reason: {const: weather_red}}, required: [reason]}
+      then: {properties: {weather: {properties: {colour: {const: RED}}}}}
+    - if: {properties: {reason: {const: advocate_hard_rule}}, required: [reason]}
+      then: {properties: {advocate: {properties: {verdict: {const: hard_rule_breach}}}}}
+    # design 4.1: a TRADE card is only ever rung 3 (anything earlier is WATCH); RED, a failed data check and a hard-rule
+    # breach each make the card NO TRADE
+    - if: {properties: {status: {const: TRADE}}}
+      then:
+        properties:
+          evidence: {properties: {rung: {const: 3}}}
+          weather: {properties: {colour: {enum: [GREEN, AMBER]}}}
+          data_checks: {properties: {passed: {const: true}}}
+          advocate: {properties: {verdict: {enum: [no_hard_rule_breach, null]}}}
+    - if: {properties: {status: {const: WATCH}}}
+      then: {properties: {evidence: {properties: {rung: {type: integer, maximum: 2}}}}}
+FnoCardTrade:
+  type: object
+  description: The position of a TRADE or WATCH card; owner only (live strikes and entry ranges never enter a public repository)
+  x-visibility: owner
+  x-catalog: {source: "the day's decision record (D3) and the risk manager's sizing (C2, A14)", story: T1}
+  additionalProperties: false
+  required: [family, strategy, what, legs, entry, size, max_loss, worst_cases, exit_plan, costs, vol_edge, proves_wrong]
+  properties:
+    family: {$ref: '#/components/schemas/FnoFamily', description: The family whose strategy this is}
+    strategy: {type: string, minLength: 1, x-unit: text, description: "The strategy version's display name (never its rules)"}
+    what: {type: string, minLength: 1, x-unit: text, description: 'The trade in one line, e.g. "NIFTY 24 Nov 2026 put spread: buy 1 lot 22,600 PE, sell 1 lot 22,450 PE"'}
+    legs: {type: array, minItems: 1, description: The legs, items: {$ref: '#/components/schemas/FnoLeg'}}
+    entry:
+      type: object
+      description: The entry range from the 15:00 bid and ask; the card is valid until valid_until
+      additionalProperties: false
+      required: [kind, min_per_unit, max_per_unit, valid_until]
+      properties:
+        kind: {type: string, enum: [debit, credit], x-unit: enum, description: 'debit = pay to enter; credit = receive'}
+        min_per_unit: {type: number, minimum: 0, x-unit: INR (Paper) per unit, description: Low end of the net price range}
+        max_per_unit: {type: number, minimum: 0, x-unit: INR (Paper) per unit, description: 'High end; for a debit, do not enter above it (for a credit, do not enter below min_per_unit)'}
+        valid_until: {type: string, format: date-time, x-unit: UTC time, description: 'After this time the card is stale (target 15:25 IST)'}
+    size:
+      type: object
+      description: How much
+      additionalProperties: false
+      required: [lots, units, funds_at_entry]
+      properties:
+        lots: {type: integer, minimum: 1, x-unit: lots, description: Lots per leg}
+        units: {type: integer, minimum: 1, x-unit: units, description: Lots times the lot size}
+        funds_at_entry: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Money tied up at entry (C2 and A14: the debit plus the short leg''s margin)'}
+    max_loss: {type: number, minimum: 0, maximum: 10000, x-unit: INR (Paper), description: 'Most it can lose, charges included, fixed at entry (at most Rs 10,000 a trade, owner 14 Oct 2026)'}
+    worst_cases:
+      type: array
+      minItems: 1
+      description: The same position through the worst historical stretches (stress tests, never evidence of an edge)
+      items:
+        type: object
+        additionalProperties: false
+        required: [scenario, loss]
+        properties:
+          scenario: {type: string, minLength: 1, x-unit: text, description: 'e.g. "The worst 5 sessions of March 2020"'}
+          loss: {type: number, minimum: 0, x-unit: INR (Paper), description: The loss in that stretch}
+    exit_plan: {type: array, minItems: 1, description: "This trade's exits in plain words (what will happen, not the strategy's rules)", items: {type: string, minLength: 1, x-unit: text, description: One exit}}
+    costs:
+      type: object
+      description: Costs and tax
+      additionalProperties: false
+      required: [charges_and_pads, breakeven_per_unit, tax_rate]
+      properties:
+        charges_and_pads: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Round-trip charges (C1) plus the assumed worse fills (pads)'}
+        breakeven_per_unit: {type: number, x-unit: INR (Paper) per unit, description: 'Net price at which the trade breaks even after costs'}
+        tax_rate: {type: number, minimum: 0, maximum: 1, x-unit: share 0-1, description: "The owner's chosen tax scenario on the year's net F&O profit (0.312 = 31.2%)"}
+    vol_edge:
+      description: 'Volatility ideas only: vega per lot and the edge needed to cover full costs (design 5.6); null otherwise'
+      anyOf:
+        - {type: 'null'}
+        - type: object
+          additionalProperties: false
+          required: [vega_per_lot, edge_needed_points]
+          properties:
+            vega_per_lot: {type: number, x-unit: INR (Paper) per volatility point, description: 'Rupees gained or lost per 1 point of implied volatility, per lot'}
+            edge_needed_points: {type: number, minimum: 0, x-unit: volatility points, description: Implied-volatility points needed to cover full costs}
+    proves_wrong: {type: array, minItems: 1, description: "What would prove it wrong: the version's registered pause and retire checks in plain words", items: {type: string, minLength: 1, x-unit: text, description: One check}}
+FnoCardForecast:
+  type: object
+  description: A house forecast (G9; the past average until something passes) with that forecaster's record, back-fill and live apart
+  x-catalog: {source: "the session's forecast record and G4/G8's score report", story: G9}
+  additionalProperties: false
+  required: [question, plain, probability, forecaster, backfill, live]
+  properties:
+    question: {type: string, pattern: '^(Q[1-5]|V[1-7](_1d|_5d)?)$', x-unit: id, description: 'The question (Q1-Q5 protocol v3, V1-V7 protocol v4)'}
+    plain: {type: string, minLength: 1, x-unit: text, description: 'The question in plain words'}
+    probability: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, x-fill: built, x-record: 'forecast_record_v2:probability', description: 'The house forecast; null when it gave no forecast'}
+    forecaster: {type: string, minLength: 1, x-unit: text, description: "The forecaster's display name"}
+    backfill: {$ref: '#/components/schemas/FnoTrackRecord', description: 'Its record on the back-fill (made after the fact from end-of-day data: not a live record)'}
+    live: {$ref: '#/components/schemas/FnoTrackRecord', description: 'Its record on live forecasts (made before the 15:00 cutoff)'}
+FnoTrackRecord:
+  type: object
+  description: 'A forecaster''s record at the level it said today, e.g. "said 0.6-0.7 on 140 days, happened on 64%, mean Brier 0.245 over 670" (design 7.4), read from G4''s score report, never recomputed'
+  x-catalog: {source: "G4's score report (research/forecasts/scores/<day>.json, forecast_scores/v1): modes[].scores[].primary", story: G4}
+  additionalProperties: false
+  required: [status, scored, said_from, said_to, days, happened_share, mean_brier]
+  properties:
+    status: {type: string, enum: [scored, not_enough_data, no_bin, no_report], x-unit: enum, description: 'not_enough_data = nothing scored yet; no_bin = the report has no calibration bin for this chance; no_report = no score report yet'}
+    scored: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'score_summary:scored', description: Days scored in this mode}
+    said_from: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, x-fill: built, x-record: 'calibration_bin:low', description: Low end of the calibration bin of today's chance}
+    said_to: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, x-fill: built, x-record: 'calibration_bin:high', description: High end of that bin}
+    days: {type: ['integer', 'null'], minimum: 0, x-unit: count, x-fill: built, x-record: 'calibration_bin:count', description: Days it said a chance in that bin}
+    happened_share: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, x-fill: built, x-record: 'calibration_bin:observed_frequency', description: How often it happened on those days}
+    mean_brier: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: Brier score (0 perfect), x-fill: built, x-record: 'score_summary:mean_brier', description: Its mean miss score in this mode}
+  allOf:
+    - if: {properties: {status: {const: scored}}}
+      then: {properties: {said_from: {type: number}, said_to: {type: number}, days: {type: integer}, scored: {minimum: 1}}}
+      else: {properties: {said_from: {type: 'null'}, said_to: {type: 'null'}, days: {type: 'null'}, happened_share: {type: 'null'}}}
+FnoStressLine:
+  type: object
+  description: One stress scenario's line
+  additionalProperties: false
+  required: [nifty_move_pct, vix_move_pct, loss]
+  properties:
+    nifty_move_pct: {type: number, x-unit: percent points, description: 'The overnight NIFTY move: -5, -10 or +5'}
+    vix_move_pct: {type: number, x-unit: percent points, description: 'The India VIX move with it: +50, +100, or 0 (unchanged)'}
+    loss: {type: number, minimum: 0, x-unit: INR (Paper), description: 'The loss of all open positions together in that scenario (0 with none open); never above max_loss_sum'}

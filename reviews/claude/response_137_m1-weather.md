@@ -73,7 +73,8 @@ CLI with a sentinel flag. `test_the_flag_goes_only_to_the_private_drive_part` ch
    content (an input changed) prints "nothing written" and exits 1, with no traceback and nothing half-written.
 6. **`status`** is `scored`, or `not scored: <each missing figure and its status>`, so the future entry gate can say
    why a day is blocked.
-7. **`method_sha256`** covers M1's method files plus G7's `series.py` and `baselines.py` and G6's `terms.py`. A change
+7. **`method_sha256`** covers M1's method files plus G7's `series.py` and `baselines.py`, G6's `terms.py` and `sessions.py`, and `weather/wiring.py` (judge 129
+   addendum 1, note 1: both decide v0's event window and the previous regular session). A change
    in G7's outcomes or base rate changes M1's numbers, so it must change the hash (review finding 2).
 8. **`--day`** exists as the story says, but any day other than today is refused (as G7: a later day would lack its
    previous close).

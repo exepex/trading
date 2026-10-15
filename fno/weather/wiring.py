@@ -27,7 +27,8 @@ EVENTS_FILE = ROOT / "research" / "data" / "events" / "events.csv"
 WEATHER_FOLDER = V4_FOLDER / "weather"
 METHOD_FILES = (  # every file the probabilities and the colour depend on, G7's V6 outcomes and base rate included
     *(f"weather/{name}" for name in ("checklist_v0.py", "v0_live.py", "vix_scaled.py", "colour.py", "day.py")),
-    "forecast_v4_rules/series.py", "forecast_v4_rules/baselines.py", "forecast_v4/terms.py",
+    "weather/wiring.py", "forecast_v4_rules/series.py", "forecast_v4_rules/baselines.py", "forecast_v4/terms.py",
+    "forecast_v4/sessions.py",  # v0's event window and the previous regular session
 )  # fmt: skip
 HORIZON = 5  # V6b's sessions: the v0 event window of the live mode
 
