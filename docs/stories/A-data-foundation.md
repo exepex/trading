@@ -1183,7 +1183,7 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
 2. Hand computation: on planted SPAN files (a held SF whose scan doubles on day 3) the reported rise and its day equal a
    hand calculation (test); a mutation that skips a day or takes the first rise instead of the largest fails a test.
 3. Point in time: each day uses that day's first-archived `i1` file written before 09:00 IST on it, as A14 does
-   (test); a missing day in a holding is named in the report and that entry is excluded, never filled.
+   (test); a missing day refuses the whole run before any computation (criterion 8), so no entry is ever filled.
 4. 2020 method: a planted file with a non-zero short-option minimum gives the SPAN figure by hand (test); any other
    method difference is refused by name (test).
 5. Output: the CSV and Markdown name every file's SHA-256, the rule, the windows and the run day; a second run on the
