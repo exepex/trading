@@ -113,6 +113,67 @@ Nothing was parsed. Strong evidence (the librarian's own report and an independe
 
 Out of scope: F&O ban days (protocol section 10 limit), point-in-time sectors (limit), P&L (forbidden).
 
-## Results
+## Results (the one run, 15 Oct 2026)
 
-Not run yet: the run waits for the judge's PASS on the script commit.
+**Registered answer: does not fit. NO, stopped at stage 3 (cost wall). Trial 53 of 53.**
+
+How it was run (strong evidence, command output and hashes):
+- Snapshot from the worktree pinned at adccf53 (27 `FREEZE.md` hashes checked), 14:00:31-14:19:18 IST: 73 stocks,
+  1,001 legs quoted (975 two-sided), 1 stock skipped, 3 legs not listed, 0 after 15:00, 0 errors, 2 legs without a
+  previous-session row (0.2%, under the 20% rule). Raw SHA-256 `b83836e32d8bdfadd5c45f0b001587c9b1086f7e95f7c6d6b794afed42bb6c3f`,
+  Drive `raw/groww/derivatives/stock-option-quotes/2026/10/15/r2-snapshot_20261015_140024.json`. Raw quotes are in
+  Drive only; the repository has bucket statistics.
+- `study.py --run --snapshot <that path without raw/> <that hash>` at 14:19 IST from the checkout at f296e25, whose
+  study folder equals 02e84d0's (`git diff` empty); `check_frozen` passed. The run read 1,930 F&O sessions, 2,875
+  board-meeting day lists (109,204 rows, 0 without symbol or date) and A12's filings.
+
+Numbers (strong evidence: `results.json`; labels on interpretation below):
+
+| Stage | Result |
+|---|---|
+| 0, data | Passes. Results dates for 1,617 of 1,626 decision-window stock-quarters (99.4% vs 80% needed); lot unknown 0.0% of decision-window events (vs at most 10%); 98.7% of decision-window events have a matched `filed_at`. 1,677 decision-window events, 1,664 analysed (4 corporate action, 9 no expiry at least 5 sessions after R) |
+| 1, cap (no pads) | Passes for S5 89.3%, S6 86.4%, S7 79.3% of events (vs 25%). Fails for every bought option: S1 0.9%, S2 1.0%, S3 0.0%, S4 0.2% (median lot value Rs 6.2-6.6 lakh in 2025-26) |
+| 2, liquidity | Passes: fit and liquid S5 63.4%, S6 55.2%, S7 49.7% |
+| 3, cost wall | **Fails for every structure.** Criterion 1 with pads is met (S5 50.8%, S6 44.3%, S7 48.3%), but criterion 2 is not: median / mean EN Rs -3,177 / -3,289 (S5), -3,077 / -3,174 (S6), -2,725 / -2,999 (S7). Median break-even edge e\* 101.2% (S5), 96.4% (S6), 49.3% (S7) of the structure's price, against the 5% assumed hurdle; gross/cost 0.05-0.10 (`thin margin`) |
+| 4, clusters | Not reached. Descriptive only: the decision window's analysed events fall in 602 clusters (about 295 a year); Kish 1,289.7 |
+
+Spread buckets from the snapshot (descriptive; they set the pads): 75th-percentile half-spread 19.3% (K0, legs with no
+trade the previous session), 6.5% (K0, traded), 16.9% / 2.3% (1 step, middle / most liquid tercile), 16.1% / 2.4%
+(2-3 steps); the lowest tercile is legs with 0 contracts the previous session (bound 0.0). No bucket untradable. Depth:
+median best bid and ask 1-2 lots; 94-100% of legs show at least one lot on both sides.
+
+Within-week correlation (2019-2021 moves only): 1,870 events in 849 clusters; ICC of m 0.030 (90% -0.077 to 0.152),
+of |m| 0.082 (90% -0.077 to 0.259); Kish effective count 1,569.6 (6 events left out for a lot change, 3 for a missing
+close). 2022-26 moves were not read.
+
+What the answer means (labels):
+- **Strong evidence (within the registered rules):** at today's lot sizes, C1 charges and one session's spreads, no
+  defined-risk stock-option structure around results clears costs at a 5% edge: the cheapest structures need roughly
+  50-100% of their price as edge just to break even. The NO is far from the line (e\* 10-20 times the hurdle), so it
+  does not hinge on the 5% choice.
+- **Some evidence:** one snapshot on one day stands for two years; spreads were probably wider earlier, which would
+  make costs higher, not lower. The bought options fail on the cap alone, independent of spreads.
+- **Not shown:** nothing about whether stock-option prices around results are mispriced; R2 never read outcomes.
+- Per the protocol, a NO stops the branch: no P&L study of stock options around results is registered, A18 is not
+  built. The ledger status is `screened_out`.
+
+Honest limits and flaws of the run (reported, not fixed after seeing results):
+- The legacy lot derivation matched the lot column on only 13.0% of overlap stock-sessions (3,034 of 23,333), far
+  under the 98% bar, so every legacy-only event is "lot unknown" (3,371 events, 2019 - mid 2024). The 2019 - Sep 2024
+  descriptive table therefore has only 536 events (Jan-Sep 2024). This does not touch the decision window. Reasoning
+  only for the cause: turnover is at traded prices, not the settlement price, so the ratio is rarely an exact integer.
+- The descriptive table's "First failed" column reads "none": the code fills that column only for the decision table.
+  A display flaw, not a number.
+- "duplicate meeting" 32,858: NSE's day lists repeat a meeting on several days; the grouping keeps one per meeting.
+- F&O ban days and point-in-time sectors remain the protocol's stated limits; 13 decision-window events are in the
+  `unknown` sector.
+
+Desk view, one line per role (reasoning only unless labelled):
+- Mathematician / statistician: the cost wall fails by an order of magnitude; the correlation estimates are near 0
+  with wide intervals, so had stage 4 been reached, clusters (about 295 a year) were not the binding constraint.
+- F&O trader / options strategist: Rs 6 lakh lots make single bought options too large for Rs 10,000; one-step
+  spreads fit, but four crossings of 2-19% half-spreads eat the whole debit.
+- Risk manager: nothing here enters a book; no structure passed.
+- Portfolio manager: drop the stock-options-around-results branch for this account size; revisit only if lots or the
+  cap change (a new idea and trial).
+- Analyst: the data work (A12 board-meeting archive 2018-12 to 2026-10, complete) is reusable for other event studies.
