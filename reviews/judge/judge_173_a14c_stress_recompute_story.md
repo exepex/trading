@@ -135,3 +135,23 @@ write a second copy of the prompt. Name O1 in Depends.
 **Note 2.** The owner's Q3 and Q4 answers are not yet rows in `docs/DESK_DECISIONS.md`; Q1 and Q2 are, in d68b1a9c.
 Criterion 6 already requires the rows before the first automatic row. Adding them now keeps the story's citations
 checkable.
+
+## Addendum 4 (15 Oct 2026): revision at f2192b2f3893839844b35515fc603153e216331a (5bb1c59..f2192b2, text only)
+
+**Verdict: PASS, with no notes left.**
+
+- **Note 1: met.** The Groww check is a command (`margins stress-broker-check`), and O1 adds its one routine line (O1
+  is in Depends; no second prompt copy).
+  - It runs first in each session's daily run, before the 3 pm quote parts, so its single read-only request never
+    overlaps the 14:55 capture.
+  - It is idempotent: once per `applied` row, "nothing to check" otherwise, and a Groww failure exits 1 and retries
+    next session.
+  - It writes only `stress_broker_check.csv`. Criterion 9 tests the second-run case.
+- **Note 2: met.** `da0f769d` adds the owner's two 15 Oct rows ("applied automatically, with an alert"; "NSE circular
+  changes … with one Groww comparison"). Criterion 6 cites them, and the hold-every-fall rule is recorded there.
+- **The judge 176 point (judge G, C2d).** The first run, and any run after a row with an empty `unrounded` (C2d's hand
+  seed of 1.45), is `--full`, so the hand value is never a floor of the measured series. Criterion 8 tests planted
+  files whose true maximum is 1.30: computed 1.30, then `held` against the seed.
+- **The stated consequence: correct and intended.** If the measured whole-margin maximum is below 1.45, the first run
+  holds it, and 1.45 stays until the owner approves the lower value. A `held` row carries the run day as `as_of` with
+  the old factor, so holding never makes C2's 30-day freshness lapse.
