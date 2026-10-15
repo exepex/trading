@@ -449,3 +449,19 @@ One commit on top of 8237214 (orchestrator's decision 54): the two code minors o
 **Verdict: PASS for 9aefbc0ab1cbf6a1cda5a200cf6500aa0002b231** (code). The addendum 7 PASS carries to this SHA, and
 it is the version for ChatGPT (quality rule 9). The merge still waits for A4b, and my merge check is as listed in
 addendum 7.
+
+## Addendum 9 (15 Oct 2026): merge re-check at d410374cdf037ff12d4625d33c1c782215077eb3
+
+d410374 merges `main` 2355b80b (A4b, E1b, C5b and STR1b-1 included) into my PASSed 9aefbc0. These are the merge checks
+I set in addendum 7.
+
+| Check | Status | Evidence |
+|---|---|---|
+| One version of `execution_capture.py` | MET | It is identical to `main`'s (A4b's): `git diff 2355b80b d410374 -- fno/desk/execution_capture.py` is empty. It commits only `(record, sidecar)`, or the sidecar alone when the quote file was not saved. The raw CSV stays in Drive (E2b criterion 4) |
+| E6 reads the 15:15 touch through A4b's store | MET | `scorecard/wiring.py` goes through `build_execution_snapshots` → `RecordedExecutionSnapshots(build_quote_store(...))` → `build_drive_only_quote_store`. So a fill outside the capture's checkout reads its touch from Drive, not "touch unknown" |
+| Conflict resolutions | MET | `.gitignore` keeps both sides (E2b's pending-commit marker, A4b's raw-CSV ignore). `test_entry_limit.py` combines decision 45's digit-free reason test with E1b's Rs 20,00,000 opening |
+| Merged suite | MET | 5,835 passed (the builder's figure); ruff and imports clean |
+| ChatGPT review (rule 9) | MET | Review 105, answered in response 131. The public-reconstruction point goes to E2c (text PASS, judge 148 addendum 1) |
+
+**Merge check: PASS for d410374cdf037ff12d4625d33c1c782215077eb3.** It may merge to `main` (pull, then the full suite on
+the merged tree).
