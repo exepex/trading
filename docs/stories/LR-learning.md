@@ -331,8 +331,9 @@ copy is built here:
 - **Trigger (judge 214; interface agreed with O1's builder, session_014zYLf18PgCzR7YoHs1X5Dp, 16 Oct 2026):** the
   drift check runs **every session in O1's daily run**, in the step `reviews` after `exits` (`fno/daily/reviews.py`
   on `story/o1-daily-run`). That step runs its `Review`s in order: E6's `ScorecardReview` first, then LR3's
-  `DriftReview(Review)`, a thin adapter whose `review(day, marks) -> list[str]` calls `DriftCheck.run(day)` and turns
-  each `DriftAlarm` into one line of the step's result. `marks` are not needed and are ignored.
+  `DriftReview(Review)`, a thin adapter whose `review(day, marks) -> ReviewResult` calls `DriftCheck.run(day)` and
+  returns `ReviewResult(lines)`, one line per `DriftAlarm`, with `open_positions` left at 0 because drift marks no
+  position (O1's interface as of `e57046f3`). `marks` are not needed and are ignored.
   - `build_drift_check(cfg, root, alerts=None)` takes the run's one alert sender (O1's `ReportedAlerts`), so every
     pause and alert inside the run goes through it.
   - **State and idempotence:** each run recomputes every CUSUM from the records: a strategy's completed trades since
