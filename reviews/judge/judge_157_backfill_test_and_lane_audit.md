@@ -1,4 +1,6 @@
-# Judge 156: the back-fill test reads decompressed records (`story/x-backfill-test-decompressed` 40c6a3f5b48bffb1dcc246f75aac4af739b25cb1), and an after-the-fact lane-1 check of two lane-2 merges (judge A)
+# Judge 157: the back-fill test reads decompressed records (`story/x-backfill-test-decompressed` 40c6a3f5b48bffb1dcc246f75aac4af739b25cb1), and an after-the-fact lane-1 check of two lane-2 merges (judge A)
+
+**Number note.** The orchestrator asked for 156, but `judge_156_g9_miss_rule_independent.md` already holds it, so this is 157.
 
 ## 1. `tests/forecast/test_backfill.py:44`, 40c6a3f5
 
