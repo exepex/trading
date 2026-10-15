@@ -1,4 +1,4 @@
-# Response 201: BR1a code round, claims for judge A (lane 1)
+# Response 197: BR1a code round, claims for judge A (lane 1)
 
 Builder: session 013xqaNTCbSBytKgqpfaYFqZ, branch `story/br1a-protocol`. Story: `docs/stories/BR-breadth.md`, BR1a
 (text PASS: judge 186; ChatGPT review 121 ACCEPT, answered in response 183). The orchestrator gave GO for the code after

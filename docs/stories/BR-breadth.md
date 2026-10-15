@@ -281,4 +281,4 @@ Out (with reasons):
 `futility_p` (`fno/forecast_v4/confirmatory.py`).
 
 **Size:** M · **Status:** text PASS (judge 186), ChatGPT review 121 ACCEPT; studies run once, claims POSTPONED by
-study 3; code with judge A (`reviews/claude/response_201_br1a-code-claims.md`).
+study 3; code with judge A (`reviews/claude/response_197_br1a-code-claims.md`).
