@@ -1,0 +1,81 @@
+"""Composition root of story A17, the global cues: the only place that picks the concrete sources (US Treasury, EIA,
+RBI, FBIL), the shared polite HTTP session, the owner's Drive raw area, the snapshot logs, the tables
+in the repository and NSE's session calendar for the `live` rule. Swapping a source is one line in SOURCES."""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Callable
+from datetime import date, timedelta
+
+from ..constants import RESEARCH_USER_AGENT
+from ..http_pacing import PacedSession
+from ..models import now_ist
+from ..research_data.calendar import CalendarError, SessionCalendar
+from ..storage import wiring as storage
+from ..storage.raw_store import AreaStore, RawFileStore
+from .collector import CueCollector
+from .job import CueChecks, GlobalCueJob
+from .other_sources import EiaBrentSource, FbilUsdInrSource, RbiUsdInrSource
+from .snapshot_log import SnapshotLog
+from .source import GlobalCueSource
+from .table import CueTable
+from .treasury_source import TreasuryTenYearSource
+from .verify import CueTableVerifier
+
+CUES_FOLDER = storage.REPOSITORY / "research" / "data" / "global-cues"
+CHECKS_FOLDER = CUES_FOLDER / "checks"
+SNAPSHOT_LOG_FOLDER = storage.MANIFEST_FOLDER / "global-cues"  # one row per archived copy, like the manifests
+SOURCES: tuple[GlobalCueSource, ...] = (
+    TreasuryTenYearSource(),
+    EiaBrentSource(),
+    RbiUsdInrSource(),
+    FbilUsdInrSource(),
+)
+DRIVE_SETTINGS_MISSING = f"set {', '.join(storage.OWNER_UPLOAD_SETTINGS)} to archive the global cues in Drive"
+
+
+def sources_named(names: list[str] | None) -> list[GlobalCueSource]:
+    return [s for s in SOURCES if not names or s.cue in names]
+
+
+def next_nse_session(calendar: SessionCalendar) -> Callable[[date], date]:
+    """The first NSE session after a date; outside the calendar's years, the next day (rows dated before 2017 were
+    fetched years later and are `backfilled` either way)."""
+
+    def after(day: date) -> date:
+        try:
+            return calendar.next_session(day)
+        except CalendarError:
+            return day + timedelta(days=1)
+
+    return after
+
+
+def build_tables() -> dict[str, CueTable]:
+    after = next_nse_session(storage.build_session_calendar())
+    return {s.cue: CueTable(CUES_FOLDER, s.cue, after) for s in SOURCES}
+
+
+def build_raw_area(env=os.environ) -> RawFileStore:
+    drive = storage.build_owner_drive(env)
+    if drive is None:
+        raise RuntimeError(DRIVE_SETTINGS_MISSING)
+    return AreaStore(drive, storage.RAW_AREA)
+
+
+def build_job(env=os.environ) -> GlobalCueJob:
+    session = PacedSession()
+    session.headers["User-Agent"] = RESEARCH_USER_AGENT
+    collector = CueCollector(session, build_raw_area(env), SnapshotLog(SNAPSHOT_LOG_FOLDER), now_ist)
+    tables = build_tables()
+    return GlobalCueJob(collector, tables, CueChecks(tables, CHECKS_FOLDER))
+
+
+def build_checks() -> CueChecks:
+    """The checks from the committed tables (no network, no Drive)."""
+    return CueChecks(build_tables(), CHECKS_FOLDER)
+
+
+def build_verifier(env=os.environ) -> CueTableVerifier:
+    return CueTableVerifier(build_raw_area(env), SnapshotLog(SNAPSHOT_LOG_FOLDER))

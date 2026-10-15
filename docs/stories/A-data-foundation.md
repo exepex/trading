@@ -748,3 +748,59 @@ re-downloadable; its SHA-256 recorded in the claims).
 re-runs the job twice and checks the CSV is unchanged; checks the validation evidence and tolerance.
 
 **Depends:** A9, A11, C2, O6 · **Size:** M · **Status:** in progress (builder session 01FVYzWZtDAZrZLDZ6DtmSYL)
+
+---
+
+## A17. Global cues, daily
+
+**Repository:** trading
+
+**Description:** As the risk manager and the macro economist, I want the overnight global cues (previous US closes of
+the S&P 500 and Nasdaq 100, the US 10-year yield, Brent and USD/INR) as they were known before each NSE open, from
+official or primary sources, so that the weather and gap-risk work use real cues and never a value published after
+the decision.
+
+**Context and why:** design v2 section 2.1 (data table) and the weather's drivers (2.3); `REPLAN_new_stories.md` A17.
+Facts checked on 15 Oct 2026 (builder, response 103):
+- FRED's site is refused by this environment's network policy, and S&P Dow Jones Indices answers 403. Nasdaq's and
+  Cboe's sites are reachable, but their terms forbid automated capture (Nasdaq) and storing index values (Cboe).
+- The US Treasury (yearly par-yield CSV), EIA (Brent, released weekly), RBI (reference rate archive; none from
+  25 Jul 2018 to 11 Apr 2022) and FBIL (reference rates from 10 Jul 2018; public site about a week late) are
+  reachable.
+
+**Scope.** In:
+- one `GlobalCueSource` per cue and publisher, wired only in `fno/global_cues/wiring.py`;
+- raw copies archived in the owner's Drive through `RawFileStore` (A9), one per fetch, never overwritten, each logged
+  with its URL, SHA-256 and fetch time; a later copy that changes a held value is logged as a revision and the table
+  keeps the first value (A11's rule);
+- a derived table per cue in `research/data/global-cues/` with a README (source, URL, time zone, publication lag,
+  terms with evidence labels), `first_seen_at` and `provenance` (`live` or `backfilled`) on every row;
+- the as-of rule for an India date across time zones and holidays, with a live-only mode;
+- commands `python -m fno global-cues fill|check|verify`.
+
+Out: a schedule; the previous US closes until a permitted source is chosen (owner decision); any change to a frozen
+file, a forecast input or the weather.
+
+**Acceptance criteria:**
+1. Each cue names its publisher, URL, the time zone of its dates, when a value is published and the terms that apply,
+   each terms statement with an evidence label; a source whose terms or the network forbid it is not used, is named
+   with the reason, and another is proposed.
+2. Every value carries `first_seen_at`; back-filled history is marked `backfilled` and only a value first seen before
+   09:15 IST on the first NSE session after its date is `live` (test on the committed tables recomputes the label).
+3. The as-of rule: an India date uses only a value dated before it; a US Monday holiday gives Tuesday the Friday
+   value; live use also needs `first_seen_at` before that day's 09:15 IST (tests).
+4. Raw copies in Drive through `RawFileStore`, never overwritten, each logged; a later change to a held value is
+   logged as a revision and never rewrites the table; a late value is logged, never inserted; tables are append-only
+   (tests).
+5. Gaps recorded, never filled (weekdays without a value, repeated values); RBI and FBIL compared on every common date,
+   differences listed (tests; committed check files reproduce).
+6. A failed download or a file that is not the publisher's writes nothing for that cue and is named (tests).
+7. Derived rows equal the archived copies: `verify` recomputes every row; a test plants a change and a wrong SHA-256.
+8. Behind interfaces with one composition root (added to CLAUDE.md); no frozen file changes; code size, lint, imports
+   and the full suite pass.
+
+**Judge verifies:** runs `global-cues verify`; reads each source's terms itself; checks two US-holiday India dates
+with `value_for`; plants a revised value and a late value; confirms no S&P 500 or Nasdaq 100 data is in the repository.
+
+**Depends:** A7, A9, A11 · **Size:** M · **Status:** built without the US closes (blocked, owner decision); awaiting
+judge (claims: `reviews/claude/response_103_a17-global-cues.md`)

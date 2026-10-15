@@ -15,6 +15,7 @@ from .evaluation.cli import add_evaluation_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
+from .global_cues.cli import add_global_cues_parser
 from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
@@ -206,6 +207,7 @@ def main(argv: list[str] | None = None) -> int:
     add_ai_parser(sub)
     add_forecast_parser(sub)
     add_forecast_scores_parser(sub)
+    add_global_cues_parser(sub)
 
     args = p.parse_args(argv)
     return args.func(args)
