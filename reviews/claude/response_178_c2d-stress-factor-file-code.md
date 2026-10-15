@@ -1,4 +1,4 @@
-# Response 175: story C2d code, C2 and C4 read the stress factor from A14c's file (claims for the judge)
+# Response 178: story C2d code, C2 and C4 read the stress factor from A14c's file (claims for the judge)
 
 **Branch:** `story/c2d-stress-factor-file`, built on `story/c2c-whole-margin-stress` (C2c's code is with the judge;
 C2d merges after it). **Text:** judge 176 addendum 2 PASS (`da699ce8`). **Lane 1** (money and risk).
