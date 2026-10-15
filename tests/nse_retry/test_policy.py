@@ -8,7 +8,7 @@ import pytest
 import requests
 
 from fno.http_pacing import PacedSession, RequestPacer, SourceCoolingOff
-from fno.storage.raw_source import RawFileRefused, RawSourceUnavailable
+from fno.storage.raw_source import RawFileRefused, RawSourceCoolingOff, RawSourceUnavailable
 from tests.nse_retry.fake_nse import ScriptedNse, a_path, answer, nse_source_classes, source_with
 
 CLASSES = nse_source_classes()
@@ -68,7 +68,7 @@ def test_every_retried_status_and_a_dropped_connection(status):
 
 
 @pytest.mark.parametrize("cls", CLASSES, ids=lambda c: c.__qualname__)
-@pytest.mark.parametrize("status", [403, 400, 401, 410, 451])
+@pytest.mark.parametrize("status", [403, 400, 401, 410, 451, 100, 199, 301, 304, 399, 600, 0])
 def test_a_refusal_is_never_retried(cls, status):
     with pytest.raises(RawFileRefused) as refused:
         run(cls, answer(status), answer(200, b"never asked"))
@@ -81,10 +81,10 @@ def test_a_host_cooling_off_stops_at_once_without_waiting(cls):
     paused = SourceCoolingOff("nsearchives.nseindia.com refused requests (HTTP 403); not calling it for 15 minutes")
     with pytest.raises(RawSourceUnavailable, match="not calling it for 15 minutes") as stopped:
         run(cls, paused)
-    assert not isinstance(stopped.value, RawFileRefused) and stopped.value.tries == 1
+    assert isinstance(stopped.value, RawSourceCoolingOff) and stopped.value.tries == 0  # no request was sent
 
 
-def test_two_429s_through_the_real_pacer_stop_at_the_third_try():
+def test_a_second_429_stops_at_once_without_waiting_into_the_pause():
     class Nse429(requests.adapters.BaseAdapter):
         def send(self, request, **kwargs):
             got = answer(429)
@@ -99,9 +99,12 @@ def test_two_429s_through_the_real_pacer_stop_at_the_third_try():
     session = PacedSession(pacer)
     session.mount("https://", Nse429())
     waits = []
-    with pytest.raises(RawSourceUnavailable, match="not calling it for 15 minutes") as stopped:
+    with pytest.raises(RawSourceCoolingOff, match="HTTP 429 after 2 tries") as stopped:
         source_with(CLASSES[0], session, waits, NOW).fetch(a_path(CLASSES[0]))
-    assert waits == [5, 15] and stopped.value.tries == 3  # two 429s pause the host; the third try asks nothing
+    assert waits == [5] and stopped.value.status == 429  # the pacer paused the host at the second 429
+    with pytest.raises(RawSourceCoolingOff, match="not calling it for 15 minutes"):
+        source_with(CLASSES[0], session, waits, NOW).fetch(a_path(CLASSES[0]))  # the next file: no request
+    assert run(CLASSES[0], answer(429), answer(503), answer(429), answer(200, b"x"))[2] == [5, 15, 45]
 
 
 @pytest.mark.parametrize(
@@ -129,3 +132,23 @@ def test_a_retry_after_over_the_cap_stops_at_once():
 def test_an_empty_success_is_returned_as_is_for_the_dataset_check():
     result, session, waits = run(CLASSES[0], answer(200, b""))
     assert result.data == b"" and len(session.requests) == 1 and waits == []
+
+
+def test_a_retry_after_that_only_looks_numeric_is_ignored():
+    assert run(CLASSES[0], answer(503, Retry_After="\u00b2"), answer(200, b"x"))[2] == [5]
+
+
+def test_a_request_that_cannot_be_built_is_not_retried():
+    with pytest.raises(RawSourceUnavailable, match=r"\(not sent\)") as failed:
+        run(CLASSES[0], requests.exceptions.InvalidURL("bad url"), answer(200, b"never asked"))
+    assert failed.value.tries == 1
+
+
+@pytest.mark.parametrize(
+    ("stamp", "expected"),
+    [("garbage", None), ("Wed, 14 Oct 2026 12:30:00 -0000", datetime(2026, 10, 14, 12, 30, tzinfo=UTC))],
+)
+def test_an_unreadable_or_zoneless_last_modified_never_raises(stamp, expected):
+    for head in (False, True):
+        result = run(CLASSES[0], answer(200, b"x", Last_Modified=stamp), head=head)[0]
+        assert (result if head else result.last_modified) == expected

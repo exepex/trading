@@ -54,8 +54,12 @@ alike:
 
 A final failure is always `RawSourceUnavailable` (a refused file: its subclass `RawFileRefused`), naming the file, the
 status and the tries; every command prints it as a named line, records it, or alerts; never a traceback or a silent
-skip. Worst case per file: 65 s of waits, or 3 x 120 s; A12's deadline-bound `filings archive --max-minutes` checks its
-deadline between companies, so each slow file of the last company can carry a run up to about 6 minutes past it.
+skip. A paused site stops a pass over many files (a sweep) with one line naming how many were not read. In `market
+daily`, a session file NSE does not answer on its revision re-read is an archive problem and stops that day's
+publication (NSE's latest version cannot be confirmed). Worst case per
+file: 65 s of waits, or 3 x 120 s, plus up to 4 request timeouts of 60 s; A12's `filings archive --max-minutes` checks
+its deadline before each file, so only the file in flight runs over (twice that for a truncated file's second
+download).
 
 `PublicData` (`fno/providers/public.py`: the option-chain fallback and A12's filing indexes on www.nseindia.com/api)
 is not under this policy: it keeps its own three tries with a cookie warm-up. Safe today because its callers catch all

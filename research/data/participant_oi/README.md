@@ -7,7 +7,7 @@ by union, so two writers' new rows never conflict. `release_rereads.csv` records
 of the last 5 seen files (rewrite detection) finished with every file answered.
 
 Since story A9b (15 Oct 2026) new checks go to `release_checks_v2.csv`, which adds `started_at`; the earlier log
-`release_checks.csv` (24 checks, 13-15 Oct 2026) is kept as it is and read before it, never written. Each row is one
+`release_checks.csv` (the checks made before A9b's merge) is kept as it is and read before it, never written. Each row is one
 check of NSE's archive for one session's file `fao_participant_oi_DDMMYYYY.csv`:
 
 | column | meaning |

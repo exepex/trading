@@ -1,12 +1,22 @@
-"""Story A9b, criterion 2: an NSE source never lets `requests.HTTPError` out, so no code catches one around a source
-read: a test that reads the code (every function in fno/ and research/ that calls `fetch`, `fetch_published` or
-`last_written`)."""
+"""Story A9b, criterion 2: an NSE source never lets `requests.HTTPError` (or any other `requests` error, or the pacer's
+`SourceCoolingOff`) out, so no code catches one around a source read: a test that reads the code (every function in
+fno/ and research/ that calls `fetch`, `fetch_published` or `last_written`)."""
 
 import ast
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 READS = {"fetch", "fetch_published", "last_written"}
+NEVER_RAISED = {"HTTPError", "RequestException", "SourceCoolingOff"}
+
+
+def _names(expression: ast.AST) -> set[str]:
+    """The exception names an except clause lists (`requests.HTTPError` gives `HTTPError`)."""
+    return {
+        n.id if isinstance(n, ast.Name) else n.attr
+        for n in ast.walk(expression)
+        if isinstance(n, ast.Name | ast.Attribute)
+    }
 
 
 def _calls_a_read(function: ast.AST) -> bool:
@@ -18,7 +28,7 @@ def _calls_a_read(function: ast.AST) -> bool:
 
 def _catches_http_error(function: ast.AST) -> bool:
     return any(
-        isinstance(node, ast.ExceptHandler) and node.type is not None and "HTTPError" in ast.unparse(node.type)
+        isinstance(node, ast.ExceptHandler) and node.type is not None and _names(node.type) & NEVER_RAISED
         for node in ast.walk(function)
     )
 

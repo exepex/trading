@@ -13,11 +13,21 @@ from email.utils import parsedate_to_datetime
 import requests
 
 from ..constants import MONTH_CODES
-from ..http_pacing import SourceCoolingOff
-from .retry_policy import MAX_RETRY_AFTER_SECONDS, NOT_FOUND, REFUSED, RETRY, RETRY_WAITS, retry_after_seconds, verdict
+from ..http_pacing import REFUSALS_BEFORE_PAUSE, SourceCoolingOff
+from .retry_policy import (
+    MAX_RETRY_AFTER_SECONDS,
+    NOT_PUBLISHED,
+    OK,
+    REFUSED,
+    RETRY_WAITS,
+    TOO_MANY_REQUESTS,
+    UNBUILDABLE,
+    retry_after_seconds,
+    verdict,
+)
 
-NOT_PUBLISHED = NOT_FOUND
 NOT_PUBLISHED_REASON = "not served (HTTP 404)"
+COOLING_OFF_STOP = "{error}; {left} file(s) not read: run again after the pause"  # a pass over many files stops
 
 
 class RawSourceUnavailable(RuntimeError):
@@ -29,7 +39,13 @@ class RawSourceUnavailable(RuntimeError):
 
 
 class RawFileRefused(RawSourceUnavailable):
-    """The source refused this one file (403 or another 4xx but 404): never retried; a caller may go on to the next."""
+    """The source refused this one file (403, or any status but 2xx, 404, 429 and 5xx): never retried; a caller may
+    go on to the next file."""
+
+
+class RawSourceCoolingOff(RawSourceUnavailable):
+    """The host is paused after refusals (`fno/http_pacing.py`, 15 minutes): every file would fail the same way, so a
+    pass over many files stops here instead of listing each one."""
 
 
 @dataclass(frozen=True)
@@ -117,30 +133,38 @@ class NseArchiveSource(RawFileSource):
 
     @staticmethod
     def _stamp(response: requests.Response) -> datetime | None:
-        stamp = response.headers.get("Last-Modified")
-        return parsedate_to_datetime(stamp) if stamp else None
+        """NSE's Last-Modified (HTTP dates are GMT); None when absent or unreadable, never an error."""
+        try:
+            stamp = parsedate_to_datetime(response.headers.get("Last-Modified") or "")
+        except (TypeError, ValueError):
+            return None
+        return stamp if stamp.tzinfo else stamp.replace(tzinfo=UTC)
 
     def _response(self, path: str, head: bool = False) -> requests.Response | None:
-        send = self.session.head if head else self.session.get
+        send, too_many = (self.session.head if head else self.session.get), 0
         for tries, scheduled in enumerate((*RETRY_WAITS, None), start=1):
             try:
                 response = send(self.url_for(path), timeout=self.TIMEOUT_SECONDS)
             except SourceCoolingOff as exc:  # the host is paused: waiting here would only wait into the pause
-                raise RawSourceUnavailable(f"{self.name}: {path}: {exc}", tries=tries) from exc
+                raise RawSourceCoolingOff(f"{self.name}: {path}: {exc}", tries=tries - 1) from exc
+            except UNBUILDABLE as exc:
+                raise RawSourceUnavailable(f"{self.name}: {path}: {exc} (not sent)", tries=tries) from exc
             except requests.RequestException as exc:
                 if scheduled is None:
                     raise RawSourceUnavailable(f"{self.name}: {path}: {exc} after {tries} tries", tries=tries) from exc
                 self.sleep(scheduled)
                 continue
-            if response.status_code == NOT_PUBLISHED:
-                return None
             outcome = verdict(response.status_code)
+            if outcome == OK:
+                return response
+            if outcome == NOT_PUBLISHED:
+                return None
             if outcome == REFUSED:
                 raise RawFileRefused(self._failed(path, response, tries), response.status_code, tries)
-            if outcome != RETRY:
-                return response
-            wait = self._retry_wait(path, response, scheduled, tries)
-            self.sleep(wait)
+            too_many = too_many + 1 if response.status_code == TOO_MANY_REQUESTS else 0
+            if too_many >= REFUSALS_BEFORE_PAUSE:  # the pacer has just paused the host: never wait into the pause
+                raise RawSourceCoolingOff(self._failed(path, response, tries), response.status_code, tries)
+            self.sleep(self._retry_wait(path, response, scheduled, tries))
         raise AssertionError("unreachable")
 
     def _retry_wait(self, path: str, response: requests.Response, scheduled: int | None, tries: int) -> float:

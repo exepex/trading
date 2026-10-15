@@ -1125,9 +1125,9 @@ No raw file is ever written partially today (bytes are complete and checked befo
      the host for 15 minutes and the next scheduled run is the right retry.
    - With the pacer: a 429 counts as a refusal, so a second 429 in a row pauses the host and the next try stops at
      once as cooling off. A 429 therefore gets one retry in practice; a 5xx up to three.
-   - Worst case per file: 65 s of waits, or 3 x 120 s with long `Retry-After` values. A12's `filings archive
-     --max-minutes` checks its deadline between companies, so each slow file of the last company can carry a run
-     about 6 minutes past it.
+   - Worst case per file: 65 s of waits, or 3 x 120 s with long `Retry-After` values, plus up to 4 request timeouts
+     of 60 s. A12's `filings archive --max-minutes` checks its deadline before each file, so only the file in flight
+     runs over (twice that for a truncated file's second download).
 2. **One failure contract.** `fetch`, `fetch_published` and `last_written` of an NSE source return the bytes (or the
    time), `None` for 404, or raise `RawSourceUnavailable`; never `requests.HTTPError` or `SourceCoolingOff`.
    - New `RawFileRefused(RawSourceUnavailable)`: this one file was refused (403 or another 4xx). A subclass, so every
@@ -1146,7 +1146,7 @@ No raw file is ever written partially today (bytes are complete and checked befo
    | `data-revisions sweep` | each path listed `no answer` **with its reason**, exit 1 |
    | `data-fingerprints --spot-check` | **new**: one named line, exit 1, the manifest already written stays |
    | `market archive`, `market daily` | the problem line (`ARCHIVE_FAILED`, or `Stopped` with its alert), not CRASHED |
-   | `market`'s revision step | **new**: every unanswered path is a problem line (today dropped) |
+   | `market`'s revision step | **new**: every unanswered path is a problem line (today dropped); like any archive problem it stops that day's publication, since NSE's latest version cannot be confirmed (judge 49) |
    | `market look-up` | **new**: one named line, exit 1 |
    | `participant-oi watch`, `check-once`, `sweep` | the `unreachable` row and #fno-desk alert / `no answer` line (today's path, now reached for HTTP errors too) |
    | `vix-history fill`, `sweep` | `STOPPED (...)` line / `no answer` **with its reason**; the stale "not retried" comments go |
@@ -1228,5 +1228,5 @@ Out:
 reads each command's line and exit code; checks no `HTTPError` escapes; confirms a successful download is byte- and
 request-identical.
 
-**Depends:** A1, A9, A11, A12, A15, P8 · **Size:** M · **Status:** story text for the judge's check (quality rule 1);
-no code yet
+**Depends:** A1, A9, A11, A12, A15, P8 · **Size:** M · **Status:** story text passed (judge 119); code round for the
+judge (response 119)

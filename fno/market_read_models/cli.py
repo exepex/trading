@@ -17,7 +17,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from ..storage.raw_source import RawSourceUnavailable
+from ..storage.raw_source import RawSourceCoolingOff, RawSourceUnavailable
 
 DAILY_DATASETS = ("fo-bhavcopy", "index-close", "cm-bhavcopy", "security-delivery")
 ARCHIVED = "{day}: the session's NSE files are archived in Drive"
@@ -104,28 +104,37 @@ def _archive_session(day: date) -> str | None:
             if not report.complete:
                 gaps = len(report.not_published), len(report.damaged), len(report.rejected)
                 return f"{name}: {gaps[0]} not published yet, {gaps[1]} damaged, {gaps[2]} rejected"
-        unanswered = _archive_revisions(day)
-        _take_snapshots(day)
-        _archive_own_lists(day)
-        return unanswered
+        problems = [_archive_revisions(day), *_take_snapshots(day)]
+        try:
+            _archive_own_lists(day)
+        except RawSourceUnavailable as failed:
+            problems.append(f"own corporate-action lists: {failed}")
+        return "; ".join(p for p in problems if p) or None
     except (RuntimeError, ValueError) as exc:
         return f"{type(exc).__name__}: {exc}"
     finally:
         print(recorder.commit(f"market daily {day}"))
 
 
-def _take_snapshots(day: date) -> None:
+def _take_snapshots(day: date) -> list[str]:
     """Today's copy of each latest-day list. A flows copy refused as covering a later session (a re-run of an old day
     after NSE moved on) is named and skipped; the other lists are still taken, and the publish step's own check says
-    whether the session's flows are archived."""
+    whether the session's flows are archived. A list NSE refused or did not answer is the run's problem (A9b), and
+    the other lists are still taken unless NSE's host is paused."""
     from ..storage.session_filed_taker import LaterSession
     from ..storage.wiring import build_snapshot_taker
 
+    problems = []
     for name in DAILY_SNAPSHOTS:
         try:
             print(build_snapshot_taker(name).take(day))
         except LaterSession as refused:
             print(SNAPSHOT_REFUSED.format(name=name, reason=refused))
+        except RawSourceCoolingOff as paused:
+            return [*problems, f"{name}: {paused}; the later lists not taken"]
+        except RawSourceUnavailable as failed:
+            problems.append(f"{name}: {failed}")
+    return problems
 
 
 def _archive_revisions(day: date) -> str | None:
@@ -140,7 +149,10 @@ def _archive_revisions(day: date) -> str | None:
     for name in DAILY_DATASETS:
         source_type = wiring.FINGERPRINT_SOURCES[name]
         source = wiring.build_revision_capturing_source(source_type, archive)
-        unanswered.update(sweep_revisions(source, [source_type.path_for(day)]).unanswered)
+        swept = sweep_revisions(source, [source_type.path_for(day)])
+        unanswered.update(swept.unanswered)
+        if swept.stopped:
+            unanswered[source_type.path_for(day)] = swept.stopped
     print("\n".join(revision_lines(archive)) or f"{day}: no newer NSE versions")
     if not unanswered:
         return None

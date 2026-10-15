@@ -12,16 +12,18 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..models import now_ist
-from ..storage.raw_source import RawFileSource, RawSourceUnavailable
+from ..storage.raw_source import COOLING_OFF_STOP, RawFileSource, RawSourceCoolingOff, RawSourceUnavailable
 
 SWEEP_FIELDS = ("day", "checked_at", "last_modified")
+NO_LAST_MODIFIED = "not served, or no Last-Modified given"
 
 
 @dataclass
 class SweepResult:
     checked: int = 0
     moved: list[tuple[date, datetime, datetime]] = field(default_factory=list)  # day, recorded write, newer write
-    unanswered: list[date] = field(default_factory=list)  # unreachable, or no Last-Modified given
+    unanswered: dict[date, str] = field(default_factory=dict)  # day -> why: unreachable, refused, no Last-Modified
+    stopped: str = ""  # the host paused after refusals: the pass stopped, the rest not read (A9b)
 
 
 def read_sweeps(path: Path) -> dict[date, datetime]:
@@ -47,15 +49,18 @@ class LastWriteSweep:
 
     def run(self, recorded: dict[date, datetime]) -> SweepResult:
         """Checks every day in `recorded` (day -> latest recorded write) once."""
-        result = SweepResult()
-        for day in sorted(recorded):
+        result, days = SweepResult(), sorted(recorded)
+        for done, day in enumerate(days):
             try:
-                written = self.source.last_written(self.path_for(day))
-            except RawSourceUnavailable:
-                written = None
+                written, why = self.source.last_written(self.path_for(day)), NO_LAST_MODIFIED
+            except RawSourceCoolingOff as paused:  # every later file would fail the same way
+                result.stopped = COOLING_OFF_STOP.format(error=paused, left=len(days) - done)
+                break
+            except RawSourceUnavailable as failed:
+                written, why = None, str(failed)
             result.checked += 1
             if written is None:
-                result.unanswered.append(day)
+                result.unanswered[day] = why
             elif written > recorded[day]:
                 result.moved.append((day, recorded[day], written))
                 self._append(day, written)

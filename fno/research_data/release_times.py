@@ -52,15 +52,15 @@ class ReleaseLog:
 
     def __init__(self, path: Path):
         self.path = Path(path)
-        legacy = self.path.with_name(LEGACY_LOG_NAME)
-        self.legacy = None if legacy == self.path else legacy
+        if self.path.name == LEGACY_LOG_NAME:
+            raise ValueError(f"{LEGACY_LOG_NAME} is the log before A9b: read only, never written")
+        self.legacy = self.path.with_name(LEGACY_LOG_NAME)
 
     def checks(self) -> list[ReleaseCheck]:
-        legacy = _read(self.legacy, LEGACY_FIELDS) if self.legacy else []
-        return legacy + _read(self.path, LOG_FIELDS)
+        return _read(self.legacy, LEGACY_FIELDS) + _read(self.path, LOG_FIELDS)
 
     def append(self, check: ReleaseCheck) -> None:
-        new = not self.path.is_file()
+        new = not self.path.is_file() or not self.path.stat().st_size
         if not new and self.path.read_text(encoding="utf-8").split("\n", 1)[0] != ",".join(LOG_FIELDS):
             raise ValueError(f"{self.path.name}: its header is not {','.join(LOG_FIELDS)}; nothing appended")
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -154,7 +154,9 @@ class ReleaseTimeRecorder:
         self.log.append(check)
         return check
 
-    def _outcome(self, day: date, answered_at: datetime, found: PublishedFile | None, started_at) -> ReleaseCheck:
+    def _outcome(
+        self, day: date, answered_at: datetime, found: PublishedFile | None, started_at: datetime
+    ) -> ReleaseCheck:
         if found is None:
             return ReleaseCheck(day, answered_at, RELEASE_ABSENT, started_at=started_at)
         sha = hashlib.sha256(found.data).hexdigest()
