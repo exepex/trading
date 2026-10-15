@@ -64,3 +64,23 @@ Date: 15 Oct 2026 (UTC). Branch `story/e2b-derived-packs` at **dd0be6a1015eea8de
 
 **Verdict: FAIL for dd0be6a1015eea8de880b1a0cc43f9049fcd21cc** (story text) on should-fixes 1-2. A re-check needs only
 criterion 3, the dependency line and the A4b paragraph.
+
+## Addendum 1 (15 Oct 2026): de2830061a845cc366752ab6900da8439ec8abb2
+
+Text only (`git diff dd0be6a de28300`: the E2b section).
+
+| Item | Status | Evidence |
+|---|---|---|
+| sf 1, the unwind pair | MET | Named as the one stated exception: a failed hedge's `FILL_OPEN` at the ask, its `FILL_UNWIND` at the bid of the same snapshot, and `legging_cost_rs`. It goes to the owner with the fills-to-Drive question (orchestrator's decision 28). Criterion 3 now tests every E4 outcome (opened, partial fill, closed, pending exit, settlement) and finds both sides of one contract only in the unwind pair |
+| sf 2, A4b first | MET | A4b is a dependency in criterion 3 and the Depends line, and E2b merges only after A4b (orchestrator's decision 29). E6 reads the 15:15 file from Drive through A4b's hash-checked store |
+| Minor 1, the unknown count | MET | The scorecard report prints the number of "touch unknown" fills |
+| Minor 2, path tricks | MET | The guard compares resolved paths; tests cover `.CSV`, `../` and a symlink into the Groww folder |
+
+**Code note (I check it when judging the code):** a test that "only the unwind pair reveals both sides" must compare
+each pair of rows on the same `snapshot_id` and `quote_contract_id`, across all books' and shadows' fill files, so that
+two books filling the same contract in one snapshot on opposite sides is not missed. A buy in one book and a sell in
+another at the same snapshot give both sides just as an unwind does. If it can happen, it is a second exception to
+state.
+
+**Verdict: PASS for de2830061a845cc366752ab6900da8439ec8abb2** (story text). Code may start. The merge waits for A4b,
+and by quality rule 9 the code goes to ChatGPT after my code PASS.
