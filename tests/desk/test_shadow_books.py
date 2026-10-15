@@ -14,7 +14,18 @@ from fno.desk.wiring import start_shadow_books
 from fno.playbook.schema import parse_strategy
 from fno.playbook.shadow import RealBooks
 
-from .builders import DAY, approved, at, decision_market, enter, fly_order, fly_proposal, fly_rows, write_snapshot
+from .builders import (
+    DAY,
+    DECIDED_AT,
+    approved,
+    at,
+    decision_market,
+    enter,
+    fly_order,
+    fly_proposal,
+    fly_rows,
+    write_snapshot,
+)
 
 CANDIDATE = parse_strategy(document(name="cand-c"))  # a research candidate
 NAME = shadow_name(CANDIDATE)
@@ -87,3 +98,41 @@ def test_a_shadow_with_an_open_trade_is_valued_on_its_own_terms_never_book_1s(st
     own = lambda account: asked.append(account) or {"t1": TradeTerms("SF", 200, 1)}  # noqa: E731
     account = JournalShadowBooks(started, decision_market(), own).account(CANDIDATE)
     assert asked == [NAME] and [t.trade_id for t in account.book.open_trades] == ["t1"]
+
+
+def _book1_run_on(root, records: dict[str, dict]) -> None:
+    """Book 1's committed run of DAY (one folder for book and shadow records, as D2 writes it), named by the run log."""
+    import json
+
+    from fno.constants import BOOK1_RULES
+    from fno.desk.run_log import RunLog
+    from fno.playbook.decision_store import SUMS_FILE, DecisionStore
+
+    run = DecisionStore(root, BOOK1_RULES).day_folder(DAY) / f"{DAY}-r1"
+    run.mkdir(parents=True)
+    for name, record in records.items():
+        (run / name).write_text(json.dumps(record))
+    (run / SUMS_FILE).write_text(
+        "".join(f"{hashlib.sha256((run / n).read_bytes()).hexdigest()}  {n}\n" for n in records)
+    )
+    entry = {"run_id": run.name, "commit": "c1", "committed_at": DECIDED_AT.isoformat()}
+    RunLog.open(root, DAY).record("decisions", DECIDED_AT, DECIDED_AT, {}, {BOOK1_RULES: entry})
+
+
+def test_book1_s_parts_give_each_shadow_book_its_own_trade_terms(started, store, snapshots, entry_desk):
+    """Judge 210 finding 1, criterion 2 where it takes effect: `_parts` (Book 1's composition root) values a shadow's
+    open trade on the shadow record's terms. Given Book 1's terms instead, the shadow's trade has none and C2 raises."""
+    from fno.books.book1_wiring import _parts
+    from fno.constants import BOOK1_RULES, STRUCTURE_SHORT_IRON_FLY
+
+    write_snapshot(store, "exec", fly_rows(), at(15, 15), at(15, 15, 40))
+    assert enter(started, snapshots, entry_desk, fly_order("b1")).outcome == OUTCOME_OPENED  # Book 1's own trade
+    assert enter(started, snapshots, entry_desk, shadow_order("t1")).outcome == OUTCOME_OPENED
+    trade = {"structure": STRUCTURE_SHORT_IRON_FLY, "width": 200, "lots": 1}
+    book = {"chosen_action": "trade", "opportunity_id": "fixture-fly-v1:2026-11-24", "mode": "book"}
+    _book1_run_on(started, {"a.json": book | {"structure": trade | {"trade_id": "b1"}},
+                            "b.json": book | {"mode": "shadow", "structure": trade | {"trade_id": "t1"}}})  # fmt: skip
+    risk_book, _, shadow_books = _parts(started, decision_market())
+    assert [t.trade_id for t in risk_book.open_trades] == ["b1"]
+    assert [t.trade_id for t in shadow_books.account(CANDIDATE).book.open_trades] == ["t1"]
+    assert BOOK1_RULES not in str(shadow_books.account(CANDIDATE).storage)

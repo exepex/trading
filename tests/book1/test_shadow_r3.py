@@ -179,3 +179,22 @@ def test_s2_book1_section_is_identical_with_a_shadow_record_in_book1_s_run(tmp_p
 
     alone, both = section(tmp_path / "alone", False), section(tmp_path / "both", True)
     assert alone and both == alone
+
+
+def test_book1_as_the_app_builds_it_opens_a_registered_research_version_s_account(tmp_path):
+    """Judge 210 finding 1, criterion 1 where it takes effect: `build_book1` wires E6's opener (no Drive here). Only
+    the playbook and the run finder are fixtures; the day then stops at the inputs (no packs), after the opening."""
+    import pytest
+
+    from fno.books.book1_inputs import InputsRefused
+    from fno.books.book1_wiring import build_book1
+    from fno.config import load_app_config
+
+    from .builders import Commits, DiskRuns
+
+    decider = build_book1(load_app_config(), tmp_path)
+    decider.playbook = lambda: snapshot(doc("sc-a"), doc("cand", status="research"), registered_research=("cand",))
+    decider.decided = DiskRuns(tmp_path, Commits(clock_at(FIFTEEN(DAYS[0]))))
+    with pytest.raises(InputsRefused):
+        decider.decide(DAYS[0])
+    assert PaperAccount(tmp_path, SHADOW).folder.is_dir()

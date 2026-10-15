@@ -33,3 +33,22 @@ Test B's `exists()` is true only after a run has opened or downloaded a shadow.
 | Conflicting caps: refuse only the shadow | ACCEPT, already covered | `tests/playbook/test_evaluate.py::test_shadow_and_book_never_share_slots`: the shadow's own book is full, so the shadow gets `SHADOW_NO_TRADE` ("slot:") while Book 1 is chosen. New for R3's own change: `test_a_shadow_with_an_open_trade_is_valued_on_its_own_terms_never_book_1s`, where terms lacking the shadow's trade raise `RiskInputError` (the old crash) and its own terms load. |
 
 **Gates:** `pytest -q -n auto` 6,796 passed; ruff, format, imports and the record scan are clean.
+
+## Answer to judge 210 (FAIL, finding 1) and the orchestrator's store fix
+
+| Ask | Answer | Evidence (strong: each test fails under the judge's mutation, run by me) |
+|---|---|---|
+| `_parts` gives a shadow book only its own trade's terms | ACCEPT, tested | `tests/desk/test_shadow_books.py::test_book1_s_parts_give_each_shadow_book_its_own_trade_terms`: one Book 1 trade (`b1`) and one shadow trade (`t1`) opened by E4's desk, both recorded in Book 1's run. `_parts` gives Book 1 `b1` and the shadow `t1`. Mutation `shadow_terms = lambda account: terms` fails it with `RiskInputError` (`book_view.py:38`). |
+| `build_book1` wires the opener | ACCEPT, tested | `tests/book1/test_shadow_r3.py::test_book1_as_the_app_builds_it_opens_a_registered_research_version_s_account`: the app's `build_book1(cfg, root)`, only the playbook and run finder replaced; `decide` opens `journal/shadow/cand-v1/account`, then stops at the inputs (no packs). Mutation (opener not passed) fails it on the folder assertion. |
+| Tracker's R3 path | ACCEPT, tested | `tests/budget/test_stop_rule_tracker.py::test_test_b_reads_resolved_shadow_trades_from_the_shadow_accounts_folder`: the path is `journal/shadow`, and it exists once E6 opens an account. Mutation (path dropped) fails it. |
+| Notes 1 and 2 | AGREE | E6 and S2 with/without tests go with part B (E8's fills). The S3 test is a guard that passes partly by construction. |
+| Store: keep shadow records apart, both survive an overlapping ID | ACCEPT, built | `record_file(opportunity_id, mode)`: a shadow record is `shadow_<id>.json`. Version names are `[a-z0-9-]` only (`schema.py` `NAME_PATTERN`), so it never matches a book name. `DecisionStore.write` now refuses a run (`RecordClash`, nothing written) if two records would still share a file, instead of keeping the later one silently. The replay names fresh records the same way (`decision_run.py`). Test: `tests/decisions/test_records.py::test_a_book_and_a_shadow_record_of_one_opportunity_both_survive_and_a_true_clash_is_refused`. Its shadow-case replay test still passes. |
+
+**What the store fix changes in practice** (reasoning plus code reading): today nothing. D2 cannot make the overlap:
+- `status_on` gives a version one status a day;
+- `approved_on` (paper) and `shadow_on` (research) are therefore disjoint;
+- `evaluation.chosen` holds Book 1's choices only (`outcomes.py:71`), so the order replay (`book1_orders._stored_action`, book name) never reads a shadow file.
+
+The fix makes the overlap impossible at the store too, so a later change cannot reopen it silently. No shadow record is committed yet, so no stored run changes name. Two readers stay book-only: `book1_orders` and `recorded_c4` (by `order.decision_id`). Part B's shadow orders must pass the mode (Known limit for E8 part 1b).
+
+**Gates:** see the push message to the orchestrator.
