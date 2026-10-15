@@ -117,3 +117,87 @@ criterion 9, with the normal and december cases still byte-identical. The code c
 
 **Verdict: PASS for 6db62600c85d8cfa4de81e2ca3edc39aa148ab35** (story text). Code may start. The merge also needs the
 owner's routine-environment probe (merge condition; decision 14).
+
+## Addendum 2 (15 Oct 2026): the code at 65d75e63c6626bf5e359b961b36eaf3f7215b1b5
+
+The code commit is 3ac5e65 (parent 6db6260, the passed text); efd71d0 merges `main`; the last two commits touch
+response 111 only. I judged A4b's own diff (`git diff 3ac5e65^ 3ac5e65`) and ran everything on the merged tip.
+
+## Gates
+
+- Full suite at 65d75e6: **3,591 passed** (Slack token unset). `ruff check`, `ruff format --check` and `check_imports`
+  are clean. It merges cleanly with today's `origin/main`.
+- **Frozen files.** Of the files A4b changes, only `fno/quotes/recorder.py` (FREEZE_v2, recorded) and
+  `fno/forecast_scoring/wiring.py` (FREEZE_v3, recorded) appear in any freeze record, as rulings R1 and R2 allow. No
+  byte-checked file changes.
+- **A4 baseline fixtures.** Only `retry/.../nifty_20261013_145503.meta.json` (1 line) and
+  `none/.../nifty_20261013_150933.meta.json` (12 lines) change, and only their `failures` strings: `ConnectionError:
+  dropped` becomes `ConnectionError (provider message withheld)`. No other fixture changes.
+
+## Real checks, on real data (read-only)
+
+- **The 14 Oct Drive copy.** Read through the committed `build_quote_store()`: 67,154 bytes, SHA-256 `9d9de08b...`,
+  equal to its sidecar's `csv_sha256`, read in 2.5 s. No Groww `.csv` is tracked in the tree.
+- **Replay of 14 Oct from git.** `python -m fno forecast-scores replay --day 2026-10-14`: "reproduces; inputs from
+  73ec163dc3, pack from c46f64c5e3".
+- **Replay of 14 Oct from Drive.** The same replay with the Groww CSV deleted from the exported inputs: pack and
+  records equal (`matches: True`).
+- **The O5 rule in a scratch worktree with the hooks on.** A CSV under `research/data/quotes/groww/` is ignored by
+  git. Added with `git add -f`, the commit is refused: "raw Groww quote file (Google Drive only, story A4b)". The same
+  holds for an upper-case `.CSV`. Nothing was committed.
+
+## My mutations: 15 of 15 caught
+
+| Plant | What it would break |
+|---|---|
+| A1-A3 | the hash check is skipped; `raw_file_saved: false` is ignored; a missing Drive copy returns a quiet `None` |
+| A4, A6 | a failed save does not make the attempt incomplete; the sidecar flag is not written |
+| A5 | the provider's message is written into `failures` (criterion 9) |
+| A7 | NSE's CSV is sent to Drive |
+| A8, A14 | the scan's suffix check becomes case-sensitive; the forbidden-files rule is removed from the scanner |
+| A9 | E3's capture commits the CSV |
+| A10 | E4's Drive read error does not become `SnapshotError` |
+| A11 | the replay always reads the local folder |
+| A12, A13 | the exit code ignores a raw-file error; the raw-file alert is not sent |
+| A15 | the Drive store is built eagerly (it signs in without need) |
+
+## Criteria
+
+| # | Result | Evidence |
+|---|---|---|
+| 1 Raw rows to Drive only | MET | `DriveOnlyQuoteStore.put`. A1/A7 plants. The 14 Oct Drive copy verified |
+| 2 No raw quote in the repository | MET | `.gitignore`, the O5 rule (my real commit attempt refused), no tracked Groww CSV, the 14 Oct file `git rm`'d with its sidecar and marker kept |
+| 3 Hash-checked reads, loud failures | MET | A1-A3 |
+| 4 Every reader keeps working | MET except the replay case below | Readers and call sites tested (`test_drive_only_readers.py`); `quotes report` and `compare` read through the store; E3 commits only repository files (A9); E4 gives `SnapshotError` (A10) |
+| 5 Drive down | MET | No `.csv` anywhere in the repository, never canonical, "none" at 15:10, one alert, exit 1 (A4, A6, A12, A13) |
+| 6 Frozen files; point in time | MET | Above. Both real 14 Oct replays reproduce |
+| 7 Routine text | MET | `CLAUDE.md` steps 2 and 4 name Drive, the sidecar and marker and the third alert. `quote_wiring.py` is listed as a composition root |
+| 8 Gates; no credential in output | MET | Above |
+| 9 Fixed public failure texts | MET | `withheld()`. A5 plant. Only the two expected fixture strings change |
+
+## Should-fix
+
+**1. `replay_quote_store` decides by the whole folder, not per file, and gives a false "DIFFERS" in the transition.**
+- It returns the plain local store if **any** Groww CSV exists anywhere in the exported tree
+  (`wiring.py:113-120`). Otherwise it returns the Drive store.
+- The owner's "7 A" lets today's routine commit one more raw CSV (15 Oct) before the merge, and the orchestrator plans
+  to remove it in a follow-up. Every live day captured while that file is still in the tree is replayed with the local
+  store.
+- The day's own CSV is in Drive only, so `load_snapshot` (frozen) finds no Groww file. It silently moves on to NSE's
+  snapshot, and the replay reports a mismatch for a correct live day.
+- Reproduced: the 14 Oct export with its CSV removed and a 13 Oct CSV left in the tree. The local store was chosen,
+  and `pack.json` and `forecasts.csv` both differ.
+- Fix: choose per file. If the export holds that quote file, use it; else read it from Drive, hash-checked. My
+  accepted pushback on minor 2 still holds for files that come from the commit. Add a test of the mixed tree.
+
+## Minor
+
+1. `levels_failures` in the public sidecar still carries NSE exception messages (`market_levels.py:83,87`: `india vix:
+   {type}: {exc}`). This is NSE's public data, not Groww's, and outside criterion 9's `failures`. Applying the same
+   withheld form would be consistent.
+2. Merge condition, unchanged: the owner's write-read probe in the routine's environment (decision 14), then rule 8's
+   first real run logged. A 15 Oct raw CSV committed before the merge needs its verified Drive copy and `git rm`, which
+   should-fix 1 makes safe either way.
+
+**Verdict: FAIL for 65d75e63c6626bf5e359b961b36eaf3f7215b1b5**, on should-fix 1 only. Everything else is verified on
+real data and with 15 of 15 mutations caught. A re-check needs only `replay_quote_store` and its new test.
