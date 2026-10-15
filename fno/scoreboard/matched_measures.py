@@ -20,6 +20,7 @@ NO_OPERATING_COST = 0.0
 # Judge 196 note 1: a take's net sits on its decision day, its capital only on the series' days, so a take exiting after
 # the last series day loses capital-days and flatters view (a). It is descriptive (RM1's gate reads scoreboard B).
 CAPITAL_CUT = "capital-days after the series' last day are left out for {n} take(s), so view (a) flatters the book"
+NOT_COMPARABLE = "not comparable: {cut}; RM1 reads scoreboard B's full capital path"
 
 
 def _takes(days: Sequence[BookDay], results: Results, scored: set) -> list:
@@ -41,6 +42,10 @@ def a_measures(
         out["do_nothing"] = {key: value for key, value in compared.items() if key != "view_b"}
         cut = sum(t[3].exited_on > series.days[-1] for t in takes) if series.days else 0
         out["do_nothing"]["capital_cut"] = CAPITAL_CUT.format(n=cut) if cut else ""
+        if cut:  # review 120 (response 200 disclosure 8): the figures stay, the comparison is withheld
+            view = out["do_nothing"]["view_a"]
+            view.update(beats_index_after_tax=None, beats_cash_after_tax=None,
+                        reason=NOT_COMPARABLE.format(cut=CAPITAL_CUT.format(n=cut)))  # fmt: skip
     return out
 
 

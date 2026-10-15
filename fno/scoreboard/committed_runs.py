@@ -92,5 +92,4 @@ class CommittedRuns:
 def _reviewed(steps: dict, book: str) -> bool:
     if EXITS_STEP not in steps:
         return False
-    outcome = steps[EXITS_STEP].get("result", {}).get(book, {})
-    return not (outcome.get("error") or outcome.get("waiting"))
+    return steps[EXITS_STEP].get("result", {}).get(book, {}).get("reviewed") is True  # E3 writes it on every outcome

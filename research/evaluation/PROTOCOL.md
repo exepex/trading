@@ -119,9 +119,11 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   A "no trade" scores zero. Book 3's matched shadow decision is scored the same way.
   - **Series and claims (story S3):** a book's series holds every session it is observed, each action on its decision
     day as (net, maximum loss), skip-only sessions as (0, 0), up to the last decision day whose actions have all
-    closed. "X beats Y" uses the daily difference of one-lot nets on the sessions both are observed. Holm runs across
-    a review's claims on one-sided bootstrap p-values (the share of resampled values at or below zero), so a single
-    claim agrees with the bootstrap bound.
+    closed. "X beats Y" uses the daily difference of one-lot nets on the sessions both are observed. Holm runs on
+    one-sided bootstrap p-values (the share of resampled values at or below zero), so a single claim agrees with the
+    bootstrap bound, over a fixed family: each book's head-to-head claim and every directional pair (three books: 9
+    claims). A member not testable at a look (sample not met, no p-value, or incomplete) enters with p = 1, so
+    eligibility never moves the others' thresholds (ChatGPT review 120, response 200).
 - **Status:** proposal, owner decides
 - **Reason:** Scoreboard A asks whether the decision was good, so sizing and account state (which scoreboard B covers)
   are removed. One lot and the same fills make the three books' decisions directly comparable.
@@ -321,13 +323,15 @@ an item open. `--decided` also requires the owner's decision on every item; the 
   - **Index:** NSE's daily index-close file has no NIFTY 50 total-return row, so the fund's return is the "Nifty 50"
     closing change plus its "Div Yield" / 100 x calendar days / 365, less a 0.05% a year expense pro rata. A missing
     index day makes the comparison not computable; it is never filled.
-  - **Numbers (proposals, owner decides; tax an assumption until verified):** cash rate = 5.5% a year (set at the
-    freeze): at the freeze the RBI repo rate of that day replaces 5.5% here and in `Terms.cash_rate`
-    (fno/scoreboard/do_nothing.py, hashed with the scoring code; a test keeps the two equal) and the marker is removed;
-    while the marker stands, `evaluation check --decided` and the freeze refuse this item; F&O tax 31.2% on each financial year's positive net, no loss
-    carried forward; the fund treated as sold at the section's last session, its gain taxed once at 20.8% if the
-    section is under 12 months, else 13% above one Rs 1.25 lakh exemption, a loss untaxed; cash taxed at 31.2%.
-    Every simplification leans against the book.
+  - **Cash rate (owner, 16 Oct 2026):** 5.5% a year (set at the freeze). On the S1 freeze date the latest 91-day
+    T-bill yield from RBI's published auction result replaces 5.5% here and in `Terms.cash_rate`
+    (fno/scoreboard/do_nothing.py, hashed with the scoring code; a test keeps the two equal), with the auction's date
+    and source written here, and the marker is removed; the rate is then fixed for the run. While the marker stands,
+    `evaluation check --decided` and the freeze refuse this item.
+  - **Tax (the owner's scenario, not a tax determination; checked before RM1):** F&O 31.2% on each financial year's
+    positive net, no loss carried forward; the fund treated as sold at the section's last session, its gain taxed once
+    at 20.8% if the section is under 12 months, else 13% above one Rs 1.25 lakh exemption, a loss untaxed; cash taxed
+    at 31.2%. Every simplification leans against the book.
 - **Status:** decided by the owner on 2026-10-15
 - **Reason:** Owner, 15 Oct 2026: "Shown + real-money gate" (design v2 03:110-120 and 08:83, item 2). The figures are
   the owner's tax scenario, not a verified personal position.
@@ -365,9 +369,11 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     with no exit review while a trade was held (`missed_exit_review`), read from E3's run logs and the NSE session
     calendar. The next run reviews every open trade at its own snapshot, dated that day, never backdated.
   - **Scoreboard A, observed decisions only:** a missed decision is not scored and is listed. A book's misses are its
-    sessions with no run collected, counted from its first collected run. Above a cap of 10% of its eligible sessions
-    (sessions without a snapshot or a common pack, D6-unscored sessions and Book 3's sessions before F7 are counted
-    apart), the book's scoreboard A verdict is withheld for operations. Exactly 10% is not over the cap.
+    sessions with no run collected, counted from its first collected run, and its D6-unscored sessions on which another
+    book was scored on the same common pack (its own operations fault; review 120, response 200). Above a cap of 10%
+    of its eligible sessions (sessions without a snapshot or a common pack, sessions D6 leaves unscored for every book
+    and Book 3's sessions before F7 are counted apart), the book's scoreboard A verdict is withheld for operations.
+    Exactly 10% is not over the cap.
 - **Status:** decided by the owner on 2026-10-15
 - **Reason:** Owner, 15 Oct 2026: "A observed, B as it ran". It matches S3 criterion 3; the 10% figure is G9's.
 - **Evidence:** reasoning only

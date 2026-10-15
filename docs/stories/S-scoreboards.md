@@ -160,7 +160,8 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
      - S2's lower bound (unchanged);
      - a one-sided bootstrap p-value, the share of resampled values at or below 0.
      Holm then runs on the p-values: sorted ascending, the i-th of m claims passes while p < 0.05 / (m − i + 1); the
-     first failure stops the rest. For a single claim, p < 0.05 holds exactly when the nearest-rank 5th percentile is
+     first failure stops the rest. The family is fixed (review 120, response 200 fix 1): each book's claim and every
+     directional pair; a member not testable at a look enters with p = 1. For a single claim, p < 0.05 holds exactly when the nearest-rank 5th percentile is
      above 0, so it agrees with S2's bound. Each book's not-observed days are printed beside
      every pair.
    - Reported per D6 segment and overall (S2's `EntryDecisions` segments), with pilot before the common start apart, as
@@ -170,8 +171,9 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
 5. **S6's share** (criterion 5) lands with S6's code, which is built after this code: the measures and the do-nothing
    view (a) on these series.
 6. **The miss cap** is computed here from scoreboard A's own actions, so it does not wait for S6. A book's misses are its
-   days with no run collected (late, `no_decision.json`, "AI unavailable", missed). Days D6 leaves unscored, days
-   with no valid snapshot and Book 3's days before F7 are counted apart, outside the cap. The cap is 10% (G9's figure, owner row 170); S6's S1
+   days with no run collected (late, `no_decision.json`, "AI unavailable", missed), and its D6-unscored days on which
+   another book was scored on the same common pack (review 120, response 200 fix 2). Days D6 leaves unscored for every
+   book, days with no valid snapshot and Book 3's days before F7 are counted apart, outside the cap. The cap is 10% (G9's figure, owner row 170); S6's S1
    item `missed_runs` freezes it.
 
 **Acceptance criteria:**
@@ -392,7 +394,7 @@ Five items are added to `REQUIRED_ITEMS`, so `python -m fno evaluation check` re
 
 | Item | Rule (from the owner's row) | Numbers, proposals the owner decides |
 |---|---|---|
-| `do_nothing_benchmark` | Row 168, a gate before real money. Per rupee-day of capital tied, as in section 4 below. | Index fund expense 0.05% a year. Cash rate: the RBI repo rate on the freeze day, written as a number. Tax: F&O 31.2% on each financial year's positive net, no loss carried forward; the fund is treated as sold at the section's last session, its gain taxed once at 20.8% if the section is under 12 months, else 13% above one Rs 1.25 lakh exemption, a loss untaxed; cash 31.2%. |
+| `do_nothing_benchmark` | Row 168, a gate before real money. Per rupee-day of capital tied, as in section 4 below. | Index fund expense 0.05% a year. Cash rate: the latest 91-day T-bill yield on the S1 freeze date (RBI's auction result; owner, 16 Oct 2026), written as a number with its date and source. Tax: F&O 31.2% on each financial year's positive net, no loss carried forward; the fund is treated as sold at the section's last session, its gain taxed once at 20.8% if the section is under 12 months, else 13% above one Rs 1.25 lakh exemption, a loss untaxed; cash 31.2%. |
 | `scorecard_measures` | Rows 162 and 169: net without the best trade, profit factor, maximum drawdown and worst day. All are descriptive. | none |
 | `t_check` | Row 167: printed warning, never a pass condition. | Blocks of 20 sessions (`uncertainty_criterion`'s block), one-sided 95%. |
 | `missed_runs` | Row 170. | Scoreboard A miss cap: 10% of the book's eligible sessions in the period (G9's figure). |

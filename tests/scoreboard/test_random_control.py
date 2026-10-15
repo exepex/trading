@@ -71,6 +71,7 @@ def test_every_draw_in_the_window_unquotable_at_exit_is_counted_missing_after_th
     no_exit_quotes = {D1: TWO[D1], D2: [quote(26000, "CE", 1, 2)]}  # the exit snapshot quotes no strike in the window
     result = control(no_exit_quotes, runs=5).control([REAL])
     assert result["percentile"] is None and result["missing_share"] == 1.0
+    assert set(result["rejected_draws"]) == {"not quotable at entry and exit"}
 
 
 def test_a_draw_that_would_overfill_its_bucket_is_redrawn():
@@ -89,6 +90,9 @@ def test_a_draw_that_would_overfill_its_bucket_is_redrawn():
     full, room = luck(1.0), luck(30000.0)
     assert (full["percentile"], full["missing_twins"], full["runs_median"]) == (0.5, 0, full["book_measure"])
     assert room["percentile"] > 0.5  # long puts lose here, so with room some runs fall below the book
+    # review 120 (response 200 disclosure 9): the accepted twins' direction share and each rejected draw's reason
+    assert full["flipped_share"] == 0.0 and full["rejected_draws"]["bucket full"] > 0
+    assert 0.0 < room["flipped_share"] < 1.0 and "bucket full" not in room["rejected_draws"]
 
 
 def test_the_window_holds_strikes_exactly_10_steps_from_the_money_and_not_11():

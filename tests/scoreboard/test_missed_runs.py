@@ -39,7 +39,10 @@ def test_a_run_stopped_before_exits_is_a_missed_exit_review_only_while_a_trade_w
 
 
 def test_an_exits_step_where_the_books_review_failed_or_was_held_up_is_a_missed_exit_review(tmp_path):
-    for day, outcome in ((MON, {"error": "no snapshot"}), (TUE, {"waiting": ["NIFTY-C"]})):
+    for day, outcome in (
+        (MON, {"reviewed": False, "error": "no snapshot"}),
+        (TUE, {"reviewed": False, "waiting": ["NIFTY-C"], "reason": "held up"}),
+    ):  # E3's shapes
         write_log(tmp_path, day, {"book1_rules": f"r-{day}"})
         path = tmp_path / "journal" / "runs" / f"{day.isoformat()}.json"
         log = json.loads(path.read_text())
@@ -57,3 +60,23 @@ def test_a_real_nse_holiday_is_never_listed(tmp_path):
     sessions = build_session_calendar().sessions(date(2026, 10, 1), date(2026, 10, 5))  # 2 Oct: Gandhi Jayanti
     found = CommittedRuns(tmp_path).missed_runs("book1_rules", sessions, lambda day: False)
     assert date(2026, 10, 2) not in sessions and "2026-10-02" not in [m["day"] for m in found]
+
+
+def exits_log(root, day, result):
+    write_log(root, day, {"book1_rules": f"r-{day}"})
+    path = root / "journal" / "runs" / f"{day.isoformat()}.json"
+    log = json.loads(path.read_text())
+    log["steps"]["exits"] = {"started_at": "", "finished_at": "", "inputs": {}, "result": result}
+    path.write_text(json.dumps(log))
+
+
+def test_only_an_exit_review_that_says_reviewed_counts_as_reviewed(tmp_path):
+    """Review 120 (response 200 fix 3): `reviewed: false` without an error, or no outcome for the book at all, is a
+    missed exit review; E3 writes `reviewed: true` only when the review ran."""
+    wed, thu = date(2026, 11, 11), date(2026, 11, 12)
+    exits_log(tmp_path, MON, {"book1_rules": {"reviewed": True, "results": []}})
+    exits_log(tmp_path, TUE, {"book1_rules": {"reviewed": True, "results": []}})
+    exits_log(tmp_path, wed, {"book1_rules": {"reviewed": False}})
+    exits_log(tmp_path, thu, {"book2_hybrid": {"reviewed": True, "results": []}})
+    found = CommittedRuns(tmp_path).missed_runs("book1_rules", [MON, TUE, wed, thu], lambda day: True)
+    assert [(m["day"], m["missed_exit_review"]) for m in found] == [("2026-11-11", True), ("2026-11-12", True)]

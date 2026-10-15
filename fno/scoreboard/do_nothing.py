@@ -14,7 +14,7 @@ from datetime import date
 
 from .series import DailySeries, rupees
 
-TAX_LABEL = "assumption until verified (owner's scenario)"
+TAX_LABEL = "the owner's tax scenario, not a tax determination; checked before RM1"
 INDEX_LABEL = "approximate total return (trailing dividend yield)"
 POINT = "point comparison with no interval (response 144 item 24)"
 NO_CAPITAL, NO_INDEX, NO_CAPITAL_RECORDED = "no capital tied", "index day missing: {day}", "no capital recorded: {ids}"
@@ -29,7 +29,8 @@ class IndexDay:
 
 @dataclass(frozen=True)
 class Terms:
-    """S1's numbers: proposals the owner decides; the cash rate is replaced by the repo rate on the freeze day."""
+    """S1's numbers: the owner's; the cash rate is the latest 91-day T-bill yield on the S1 freeze date (owner, 16 Oct
+    2026), set with PROTOCOL.md on that day; the tax rates are the owner's scenario, not a tax determination."""
 
     account_rs: float
     cash_rate: float = 0.055  # a year; set on the freeze day with PROTOCOL.md (a test pins the two), labelled

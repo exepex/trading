@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import random
 import statistics
+from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import date
@@ -25,7 +26,10 @@ from .standard_unit import cash
 
 FLIPS = {"PCS": "CCS", "CCS": "PCS", "CDS": "PDS", "PDS": "CDS", "LC": "LP", "LP": "LC"}
 RUNS, SEED, WINDOW_STEPS, REDRAWS, MISSING_CAP = 1000, 20261014, 10, 20, 0.10
-LABEL = "selection luck only, same dates (not window luck); descriptive, never a gate"
+LABEL = "feasible-random selection on the same dates (selection luck, not window luck); descriptive, never a gate"
+UNQUOTABLE, OVER_CAP, NO_MAX_LOSS, BUCKET_FULL = (
+    "not quotable at entry and exit", "over the per-trade cap", "maximum loss unknown", "bucket full",
+)  # fmt: skip
 
 
 @dataclass(frozen=True)
@@ -93,6 +97,7 @@ class RandomControl:
         if book is None:
             return {"label": LABEL, "percentile": None, "reason": "no completed position"}
         rng, values, missing = random.Random(self.seed), [], 0
+        self._seen = {"flipped": 0, "accepted": 0, "rejected": Counter()}
         for _ in range(self.runs):
             nets, risks, open_twins = [], [], []
             for trade in trades:
@@ -108,12 +113,16 @@ class RandomControl:
         found = [v for v in values if v is not None]
         if share > MISSING_CAP or not found:
             return {"label": LABEL, "percentile": None, "missing_share": round(share, 6),
+                    "rejected_draws": dict(sorted(self._seen["rejected"].items())),
                     "reason": f"not computable: {missing} twins missing"}  # fmt: skip
         below, ties = sum(v < book for v in found), sum(v == book for v in found)
+        seen = self._seen
         return {"label": LABEL, "runs": len(found), "book_measure": round(book, 6),
                 "percentile": round((below + ties / 2) / len(found), 6),
                 "runs_median": round(statistics.median(found), 6), "missing_twins": missing,
-                "missing_share": round(share, 6), "reason": ""}  # fmt: skip
+                "missing_share": round(share, 6), "reason": "",
+                "flipped_share": round(seen["flipped"] / seen["accepted"], 6) if seen["accepted"] else None,
+                "rejected_draws": dict(sorted(seen["rejected"].items()))}  # fmt: skip
 
     def _twin(self, trade: RealTrade, rng: random.Random, open_twins: list) -> Twin | None:
         entry, leave = self.snapshots(trade.entry), self.snapshots(trade.exit)
@@ -125,22 +134,28 @@ class RandomControl:
             key = (trade.entry, legs[0].expiry, legs[0].leg.strike)
             strikes = self._windows.setdefault(key, window(entry, *key[1:]))
             twin = self._valued(shifted(legs, rng.choice(strikes) - legs[0].leg.strike), code, trade, entry, leave)
-            if twin is not None and self._bucket_room(twin, open_twins):
+            if isinstance(twin, Twin) and not self._bucket_room(twin, open_twins):
+                twin = BUCKET_FULL
+            if isinstance(twin, Twin):
+                self._seen["accepted"] += 1
+                self._seen["flipped"] += flip
                 return twin
+            self._seen["rejected"][twin] += 1  # each redraw's reason, disclosed (review 120)
         return None
 
-    def _valued(self, legs, code, trade: RealTrade, entry, leave) -> Twin | None:
+    def _valued(self, legs, code, trade: RealTrade, entry, leave) -> Twin | str:
+        """The twin, or why it cannot be one."""
         opening = [price_leg(entry, leg, leg.side(True), trade.units) for leg in legs]
         closing = [price_leg(leave, leg, leg.side(False), trade.units) for leg in legs]
         if not all(q.fills for q in (*opening, *closing)):
-            return None
+            return UNQUOTABLE
         flow_in = sum(cash(Order(q.side, q.price, trade.units), self.charges) for q in opening)
         try:
             max_loss = self.held.of_legs([(leg.leg, trade.units) for leg in legs], flow_in)
         except RiskInputError:
-            return None
+            return NO_MAX_LOSS
         if max_loss > self.cap_rs:
-            return None
+            return OVER_CAP
         net = flow_in + sum(cash(Order(q.side, q.price, trade.units), self.charges) for q in closing)
         return Twin(net, max_loss, self.sides.get(code, ()))
 

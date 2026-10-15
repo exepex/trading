@@ -31,6 +31,8 @@ class StandardResult:
     max_loss: float | None = None  # B2's model on the one-lot entry fills (story S3: never the record's figure)
     exited_on: date | None = None
     note: str = ""
+    staggered: bool = False  # its legs exited on different sessions (E4's retry), disclosed (review 120)
+    past_expiry: bool = False  # open with a leg past its expiry: settlement not available, so incomplete
 
 
 def cash(order: Order, charges: Mapping[str, float]) -> float:
@@ -62,13 +64,14 @@ class StandardUnit:
         return self._exit(list(legs), flow, max_loss, exit_day, on)
 
     def _exit(self, legs: list[DeskLeg], flow: float, max_loss: float, exit_day: date, on: date) -> StandardResult:
-        last = None
+        exits: set[date] = set()
         for day in self.sessions(exit_day, on) if exit_day <= on else ():
             snapshot = self.snapshots(day)
             for leg in [leg for leg in legs if snapshot is not None and day <= leg.expiry]:
                 quote = price_leg(snapshot, leg, leg.side(False), self.lot)
                 if quote.fills:
-                    flow, last = flow + cash(Order(quote.side, quote.price, self.lot), self.charges), day
+                    flow = flow + cash(Order(quote.side, quote.price, self.lot), self.charges)
+                    exits.add(day)
                     legs.remove(leg)
         note = ""
         for leg in [leg for leg in legs if leg.expiry < on]:
@@ -79,8 +82,11 @@ class StandardUnit:
             if final is None:
                 continue
             settled = Order(leg.side(False), leg.leg.intrinsic(final.price), self.lot, settlement=True)
-            flow, last = flow + cash(settled, self.charges), max(last or leg.expiry, leg.expiry)
+            flow = flow + cash(settled, self.charges)
+            exits.add(leg.expiry)
             legs.remove(leg)
         if legs:
-            return StandardResult(OPEN, max_loss=max_loss, note=f"{len(legs)} leg(s) still open{note}")
-        return StandardResult(CLOSED, round(flow, 2), round(max_loss, 2), last)
+            past = any(leg.expiry < on for leg in legs)
+            note = f"{len(legs)} leg(s) still open{note}"
+            return StandardResult(OPEN, max_loss=max_loss, note=note, past_expiry=past)
+        return StandardResult(CLOSED, round(flow, 2), round(max_loss, 2), max(exits), staggered=len(exits) > 1)

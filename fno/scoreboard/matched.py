@@ -20,6 +20,7 @@ from .standard_unit import CLOSED, MAX_LOSS_UNKNOWN, NOT_FILLED, OPEN, StandardR
 from .uncertainty import p_value, uncertainty
 
 Results = Mapping[tuple[str, date, str], StandardResult]  # (book, day, opportunity ID) -> one-lot result
+NOT_A_CLAIM, INCOMPLETE = "not a claim", "incomplete: a take is open past its expiry without a settlement price"
 
 
 @dataclass(frozen=True)
@@ -86,12 +87,38 @@ def counts(days: Sequence[BookDay], results: Results) -> dict:
         for action in book_day.actions.values():
             if action.kind not in (TAKE, SKIP):
                 not_observed[action.reason] = not_observed.get(action.reason, 0) + 1
+    staggered = [(d.day, r) for d in days for o, a in d.actions.items()
+                 if a.kind == TAKE and (r := results[(d.book, d.day, o)]).staggered]  # fmt: skip
     return {
         "observed_days": sum(d.observed for d in days),
         "takes": {s: statuses.count(s) for s in (CLOSED, OPEN, NOT_FILLED, MAX_LOSS_UNKNOWN)},
+        "no_fill_share": round(statuses.count(NOT_FILLED) / len(statuses), 6) if statuses else None,
+        "staggered_exits": {
+            "count": len(staggered),
+            "holding_days": [(r.exited_on - day).days for day, r in staggered],
+        },  # fmt: skip
         "skips": sum(a.kind == SKIP for d in days for a in d.actions.values()),
         "not_observed": dict(sorted(not_observed.items())),
     }
+
+
+def after_cut(days: Sequence[BookDay], results: Results, scores: Sequence[DayScore], on: date) -> dict:
+    """What the cut at the first open take leaves out (review 120, response 200 disclosure 6), never part of a claim:
+    later closed takes and their provisional net, and the unresolved takes with their age in calendar days. A take
+    still open past its expiry (no settlement) makes the section incomplete: no claim."""
+    last = scores[-1].day if scores else None
+    later, unresolved, incomplete = [], [], False
+    for d in days:
+        for o, a in d.actions.items():
+            result = results.get((d.book, d.day, o)) if a.kind == TAKE else None
+            if result is not None and result.status == CLOSED and (last is None or d.day > last):
+                later.append(result.net)
+            elif result is not None and result.status == OPEN:
+                unresolved.append((on - d.day).days)
+                incomplete = incomplete or result.past_expiry
+    return {"label": NOT_A_CLAIM, "later_closed_takes": len(later),
+            "later_provisional_net_rs": round(sum(later), 2), "unresolved_takes": len(unresolved),
+            "unresolved_age_days": unresolved, "incomplete": incomplete}  # fmt: skip
 
 
 def judged(series: DailySeries, positions: int) -> dict:

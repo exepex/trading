@@ -104,3 +104,61 @@ The branch also merges main (433845b8 and later). Gates on the merged tree:
 - `pytest -q -n auto`: 6,641 passed, 0 failed, 0 skipped;
 - ruff check and format are clean;
 - the import check is clean.
+
+## Revision 2: ChatGPT review 120 (PARTIAL), as accepted in response 200, for S3 and S6
+
+Review 120 is not committed on any branch, so the source is response 200. I checked each point against the code before
+changing anything, and every point holds:
+- **Fix 1:** `_apply_holm` built its family from eligible claims only, so its size moved with eligibility.
+- **Fix 2:** `_misses` put every D6-unscored day outside the miss cap. D6 "unscored" is one book's own AI-model
+  fallback (docs/stories D6, rules 2-3).
+- **Fix 3:** `_reviewed` treated `{"reviewed": false}` without an error, or a book missing from the exits result, as
+  reviewed. E3 writes `reviewed: True` or `False` on every outcome (`fno/desk/daily_steps.py:199-212`).
+- **Disclosure 4:** "inputs" fails only with "is already open in" today (`fno/risk/manager.py:58`, its only failing
+  verdict).
+
+**Fixes:**
+1. **Fixed Holm family** (`matched_board._apply_holm`): it holds each book's head-to-head claim and every directional
+   pair; with three books that is 9. A member that cannot be tested (sample not met, no p-value, or incomplete) enters
+   with p = 1, and `holm_family` is written on the board. Test: book x at p = 0.006 fails 0.05 / 9 whether pair y - z is
+   testable or not; a family of eligible claims only (8) would pass it.
+2. **Book-specific unscored days are misses** (`_misses`): an unscored day counts as a miss when another book was
+   scored on the same common pack. A day unscored for every book stays apart. Test: Book 1 unscored while Book 2
+   submits gives 2 eligible days and 1 miss; the existing test keeps the all-unscored case apart.
+3. **`_reviewed` requires `reviewed is True`.** Test: `reviewed: false` with no error, and a book missing from the
+   exits step, are both missed exit reviews. The existing tests now use E3's real outcome shapes.
+
+**Disclosures:**
+4. **Refusal reasons and the board label.** A take refused only by account limits lists each original refusal, for
+   example "account limit only (bucket_cap: over by 2,000; margin_room: short)". "inputs" counts as an account limit
+   only with its "already open" reason; any other "inputs" failure is a skip (new fixture). The board carries
+   `"label": "hypothetical one-lot idea quality"`.
+5. **Staggered exits and no-fill share.** `StandardResult.staggered` is set when legs exit on different sessions. Each
+   section reports `staggered_exits` (count and holding days) and `no_fill_share`.
+6. **After the cut.** Each section has `after_cut`, labelled "not a claim":
+   - later closed takes and their provisional net;
+   - unresolved takes and their age in calendar days;
+   - `incomplete` when a take is open past its expiry without a settlement price
+     (`StandardResult.past_expiry`). An incomplete section gets `claim_allowed` False, an "incomplete" reason, and
+     p = 1 in Holm.
+7. **Ratios beside the rupee result.** Each pair carries `net_per_risk` for both books on its shared days, with a label
+   saying the rupee result is never a risk-adjusted verdict.
+8. **View (a) withheld when capital is cut.** When `capital_cut` is nonzero, scoreboard A's view (a) keeps its
+   figures, but `beats_*` are null and the reason reads "not comparable: …; RM1 reads scoreboard B's full capital
+   path".
+9. **Random control.** It shows `flipped_share` (the share of accepted twins in the mirrored direction) and
+   `rejected_draws` by reason: not quotable, over the per-trade cap, maximum loss unknown, bucket full. Both appear
+   also when the control is not computable. Its label is "feasible-random selection on the same dates …".
+
+**Owner decisions applied:**
+- The cash-rate text in `PROTOCOL.md`, `do_nothing.py` and the story is now the owner's 16 Oct rule: the latest 91-day
+  T-bill yield on the S1 freeze date, from RBI's auction result, with its date and source written in. The
+  "(set at the freeze)" guard stays.
+- Tax is labelled "the owner's tax scenario, not a tax determination; checked before RM1".
+- `PROTOCOL.md` (`scoreboard_a_standardisation` and `missed_runs`) and the S3 story text state the fixed family and the
+  unscored-miss rule. `missed_runs` keeps its 15 Oct owner status: the change refines which unscored days are the
+  book's own fault, and the orchestrator is asked to confirm that with the owner.
+
+**Mutations:** each change was broken on purpose, one at a time, and all 16 breaks fail a test: 2 for Holm, 2 for the
+miss rule, 1 for `_reviewed`, 2 for the refusal reasons, 2 for staggered exits and no-fill share, 3 for the cut, and 1
+each for the pair ratio, "not comparable", the flip share and the bucket reason.

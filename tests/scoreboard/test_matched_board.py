@@ -50,11 +50,15 @@ def test_the_known_answer_example_reproduces_book_1s_ratio_and_the_pair_differen
     head = result["books"][BOOK1_RULES]["head_to_head"]
     # O1: paid 7,520, received 9,730: net 2,210; B2 maximum loss 7,615. O2 not filled: 0, out of the maximum-loss sum.
     assert head["takes"] == {"closed": 1, "open": 0, "not filled": 1, "maximum loss unknown": 0}
+    assert head["no_fill_share"] == 0.5 and head["staggered_exits"] == {"count": 0, "holding_days": []}
     assert (head["judged"]["net_rs"], head["judged"]["risk_rs"], head["judged"]["days"]) == (2210.0, 7615.0, 4)
     assert head["judged"]["ratio"] == round(2210 / 7615, 6)
     pair = result["pairs"][f"{BOOK1_RULES} - {BOOK2_HYBRID}"]["judged"]
     assert (pair["days"], pair["net_rs"], pair["ratio"]) == (4, 2210.0, 552.5)  # differences 2,210, 0, 0, 0
-    assert result["pairs"][f"{BOOK1_RULES} - {BOOK3_AI}"]["judged"] == {"days": 0, "reason": "no common day"}
+    beside = result["pairs"][f"{BOOK1_RULES} - {BOOK2_HYBRID}"]["net_per_risk"]  # Book 2 skipped: no risk, no ratio
+    assert beside == {BOOK1_RULES: round(2210 / 7615, 6), BOOK2_HYBRID: None} and result["label"].startswith("hypo")
+    no_day = {"days": 0, "reason": "no common day", "holm_pass": False}  # in the fixed family at p = 1
+    assert result["pairs"][f"{BOOK1_RULES} - {BOOK3_AI}"]["judged"] == no_day
 
 
 def test_book_3_before_f7_is_counted_apart_and_undecided(tmp_path):
@@ -171,17 +175,37 @@ def test_a_shadow_candidate_outside_the_common_set_never_appears(tmp_path):
     assert {r["opportunity_id"] for r in rows} == {"O1"}
 
 
-def test_holm_runs_across_the_head_to_head_claims_whose_sample_is_met():
+def test_holm_runs_over_the_fixed_family_with_untestable_members_at_p_1():
     claim = lambda p, met=True: {"days": 120, "p_value": p, "sample_met": met, "claim_allowed": True}  # noqa: E731
     books = {b: {"f7_not_built": False, "started": True, "miss_share": 0.0, "head_to_head": {"judged": claim(p)}}
              for b, p in (("x", 0.010), ("y", 0.030))}  # fmt: skip
     board_ = {"books": books, "pairs": {"x - y": {"judged": claim(0.040)}, "y - x": {"judged": claim(0.001, False)}}}
     _apply_holm(board_)
     assert [books["x"]["verdict"], books["y"]["verdict"]] == [CLAIM, NO_CLAIM]
-    assert "holm_pass" not in board_["pairs"]["y - x"]["judged"]  # sample not met: not a claim, not in Holm
+    assert board_["pairs"]["y - x"]["judged"]["holm_pass"] is False and board_["holm_family"] == 4  # sample not met
 
 
-def test_a_d6_unscored_day_is_counted_apart_outside_the_miss_cap(tmp_path):
+def test_an_ineligible_pair_never_changes_the_other_claims_thresholds():
+    """Review 120 (response 200 fix 1): three books and six directional pairs make a family of 9 at every look. Book x
+    at p = 0.006 fails 0.05 / 9 = 0.00556 whether or not the pair y - z is testable; a family of only the testable
+    claims (8) would let it pass at 0.00625."""
+    claim = lambda p, met=True: {"days": 120, "p_value": p, "sample_met": met, "claim_allowed": True}  # noqa: E731
+
+    def looked(pair_met: bool) -> dict:
+        books = {b: {"f7_not_built": False, "started": True, "miss_share": 0.0,
+                     "head_to_head": {"judged": claim(0.006 if b == "x" else 0.9)}} for b in "xyz"}  # fmt: skip
+        pairs = {f"{a} - {b}": {"judged": claim(0.9, pair_met or (a, b) != ("y", "z"))}
+                 for a in "xyz" for b in "xyz" if a != b}  # fmt: skip
+        board_ = {"books": books, "pairs": pairs}
+        _apply_holm(board_)
+        return board_
+
+    for pair_met in (True, False):
+        board_ = looked(pair_met)
+        assert board_["holm_family"] == 9 and board_["books"]["x"]["verdict"] == NO_CLAIM
+
+
+def test_a_d6_unscored_day_is_counted_apart_when_no_other_book_was_scored_on_it(tmp_path):
     pack = write_pack(tmp_path, D1, ("O1", EXIT))
     runs_for(tmp_path, D1, [record("O1", pack=pack)], [record("O1", pack=pack)], pack=pack)
     pack = write_pack(tmp_path, D2, ("O2", EXIT))
@@ -221,3 +245,47 @@ def test_view_a_says_when_a_closed_take_s_capital_runs_past_the_series_end(tmp_p
     flat = DoNothing(lambda day: IndexDay(20000.0, 0.0), Terms(account_rs=2_000_000.0))
     head = board(tmp_path, quotes, against=flat).build(ON)["books"][BOOK1_RULES]["head_to_head"]
     assert head["do_nothing"]["capital_cut"].startswith("capital-days after the series' last day are left out for 1")
+    view = head["do_nothing"]["view_a"]  # review 120: the figures stay, the comparison says "not comparable"
+    assert view["beats_index_after_tax"] is None and view["reason"].startswith("not comparable")
+    assert view["capital_days_rs"] > 0
+
+
+def test_a_book_unscored_while_another_submitted_on_the_same_pack_has_missed_that_day(tmp_path):
+    """Review 120 (response 200 fix 2): Book 2 submits on 3 Nov's common pack; Book 1's unscored run that day is its own
+    miss, so it never improves Book 1's rate."""
+    pack = write_pack(tmp_path, D1, ("O1", EXIT))
+    runs_for(tmp_path, D1, [record("O1", pack=pack)], [record("O1", pack=pack)], pack=pack)
+    pack = write_pack(tmp_path, D2, ("O2", EXIT))
+    unscored = {**record("O2", pack=pack), "served": {"playbook": "not registered"}}
+    write_run(tmp_path, BOOK1_RULES, D2, unscored, pack=pack)
+    write_run(tmp_path, BOOK2_HYBRID, D2, record("O2", Decision.NO_TRADE, "no", pack=pack), pack=pack)
+    write_day(tmp_path, D2, {BOOK1_RULES: f"{D2.isoformat()}-{BOOK1_RULES}",
+                             BOOK2_HYBRID: f"{D2.isoformat()}-{BOOK2_HYBRID}", BOOK3_AI: None})  # fmt: skip
+    books = board(tmp_path, QUOTES).build(D2)["books"]
+    assert (books[BOOK1_RULES]["eligible_days"], books[BOOK1_RULES]["misses"]) == (2, 1)
+    assert (books[BOOK2_HYBRID]["eligible_days"], books[BOOK2_HYBRID]["misses"]) == (2, 0)
+
+
+def test_what_the_open_take_cut_leaves_out_is_shown_and_never_claimed(tmp_path):
+    """Review 120 (response 200 disclosure 6): O1 (2 Nov) is still open, so the series is empty; O2 (3 Nov) closed with
+    Rs 2,210 is shown as provisional, and O1 as one unresolved take, 3 days old on 5 Nov."""
+    pack = write_pack(tmp_path, D1, ("O1", date(2026, 11, 20)))
+    runs_for(tmp_path, D1, [record("O1", pack=pack)], pack=pack)
+    pack = write_pack(tmp_path, D2, ("O2", EXIT))
+    runs_for(tmp_path, D2, [record("O2", pack=pack)], pack=pack)
+    for day in (EXIT, ON):
+        runs_for(tmp_path, day, pack=write_pack(tmp_path, day))
+    quotes = {**QUOTES, D2: [quote(25000, "CE", 99, 100)]}
+    head = board(tmp_path, quotes).build(ON)["books"][BOOK1_RULES]["head_to_head"]
+    assert head["judged"]["days"] == 0
+    assert head["after_cut"] == {"label": "not a claim", "later_closed_takes": 1, "later_provisional_net_rs": 2210.0,
+                                 "unresolved_takes": 1, "unresolved_age_days": [3], "incomplete": False}  # fmt: skip
+
+
+def test_a_take_open_past_its_expiry_without_settlement_makes_the_section_incomplete(tmp_path):
+    after = date(2026, 11, 26)  # the monthly expiry was 24 Nov; no settlement price is known
+    pack = write_pack(tmp_path, D1, ("O1", date(2026, 11, 25)))
+    runs_for(tmp_path, D1, [record("O1", pack=pack)], pack=pack)
+    judged_ = board(tmp_path, QUOTES).build(after)["books"][BOOK1_RULES]["head_to_head"]["judged"]
+    assert (judged_["incomplete"], judged_["claim_allowed"], judged_["holm_pass"]) == (True, False, False)
+    assert judged_["reason"].startswith("incomplete")

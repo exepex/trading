@@ -10,7 +10,7 @@ from pathlib import Path
 
 from fno.config import ROOT
 from fno.evaluation.protocol import PROTOCOL_FILE, parse_protocol
-from fno.scoreboard.do_nothing import NO_CAPITAL, DoNothing, Terms, fo_after_tax, fund_after_tax
+from fno.scoreboard.do_nothing import NO_CAPITAL, TAX_LABEL, DoNothing, Terms, fo_after_tax, fund_after_tax
 from fno.scoreboard.series import DailySeries
 from fno.scoreboard.sources import ArchivedIndexLevels
 from fno.storage.raw_source import NseIndexCloseSource
@@ -50,7 +50,7 @@ def test_the_cash_rate_in_the_code_is_the_protocol_s_number():
     """Judge 196: the freeze hashes `Terms.cash_rate`; the protocol states the same number, so setting it on the freeze
     day changes both or this fails."""
     value = parse_protocol((ROOT / PROTOCOL_FILE).read_text(encoding="utf-8")).items["do_nothing_benchmark"].value
-    stated = re.search(r"cash rate = ([0-9.]+)% a year", value)
+    stated = re.search(r"Cash rate \(owner[^)]*\):\*\* ([0-9.]+)% a year", value)
     assert stated is not None and float(stated.group(1)) / 100 == TERMS.cash_rate
 
 
@@ -82,7 +82,7 @@ def test_view_b_the_whole_account_with_idle_cash_at_the_cash_rate():
 
 def test_every_tax_figure_carries_the_assumption_label_and_an_unreadable_index_names_its_cause():
     result = against().compare(series([2000.0, 0, 0, 0, 0]), [100_000.0] * 5, 0.0, [])
-    assert result["tax"] == "assumption until verified (owner's scenario)" and result["comparison"].startswith("point")
+    assert result["tax"] == TAX_LABEL and result["comparison"].startswith("point")
     blind = DoNothing(ArchivedIndexLevels(None), TERMS, "not computable: the archived index files cannot be read")
     out = blind.compare(series([2000.0, 0, 0, 0, 0]), [100_000.0] * 5, 0.0, [])
     assert out["view_a"]["reason"] == out["view_b"]["reason"] == blind.unavailable

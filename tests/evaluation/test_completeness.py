@@ -106,9 +106,7 @@ def test_a_decided_item_whose_value_waits_for_the_freeze_day_is_not_decided():
     """Judge 196: a number marked "(set at the freeze)" must never be frozen as it stands."""
     text = decided()
     start = text.index("### `do_nothing_benchmark`")
-    marked = text[:start] + text[start:].replace(
-        "cash rate = 5.5% a year", f"cash rate = 5.5% a year {SET_AT_FREEZE}", 1
-    )
+    marked = text[:start] + text[start:].replace("5.5% a year", f"5.5% a year {SET_AT_FREEZE}", 1)
     assert problems(marked) == []
     assert undecided_items(parse_protocol(marked)) == ["do_nothing_benchmark"]
     assert "do_nothing_benchmark" in undecided_items(parse_protocol(DRAFT))  # the committed draft carries it
