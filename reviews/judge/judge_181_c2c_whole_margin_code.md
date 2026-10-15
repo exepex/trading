@@ -78,3 +78,30 @@ on its premium") is accurate, and its arithmetic identity still checks that the 
 - **Engineering rules:** the files are under 350 lines, the constant lives in `fno/constants.py`, and the duplication
   between C2 and C4 is intended (C4's independence) and pinned by the agreement test.
 - **Register:** this builder owns the C2c row.
+
+## Addendum 1: re-judge at `6353bf68565cafd0204a2c4a133e8e2fc289ab86` (judge G)
+
+**Verdict: PASS.** The fix reached me from the builder. I re-judged it as part of the judge and builder loop and report
+the verdict to the orchestrator.
+
+- **Should-fix 1 (rule 3 self-review) is accepted.** The claims (renamed `response_175_c2c-whole-margin-code.md`) now
+  carry the section: one independent agent, given only the diff, the passed text and the claims.
+- **The self-review caught something I missed.** STR1b's written `stress_reserve` contradicted the new code, so my
+  statement above that "I found nothing such a review would" was wrong:
+  - **STR1b's text:** "LC, LP, CDS and PDS have stress_reserve 0", and CCS/PCS "at most width − credit".
+  - **After C2c:** the reserve includes `(k − 1) × exposure`.
+  - **My recomputation:** 0.45 × 29,538.53 = 13,292.34 for CDS 200, PDS 300 and CCS 100. For CCS 100 the SPAN
+    extra stays capped to the broker's 6,893.25, because the cap of 2,564.25 is below it. LC and LP remain 0.
+- **The fix is correct and within scope.**
+  - A new test pins each reserve, and CDS and PDS at entry are pinned as a number (42,830.87).
+  - The rule documents get accurate "superseded by C2c/C2d" notes, with no criterion rewritten:
+    - STR1b's reserve paragraph and criterion 1;
+    - C2's judge-75 sentence;
+    - A14's judge-75 bullet.
+  - These are lane-1 rule-document edits, judged here. They match C2c's passed text: the exposure is outside the cap.
+- **No `fno/` file changed** (`git diff 01d39e4d 6353bf68 --stat -- fno` is empty).
+  - On the fix tree, `tests/risk tests/checks tests/scoreboard` give 782 passed, and ruff is clean.
+  - `capital_tied` (S2's capital figure) is unchanged; only the reported `stress_reserve` and scoreboard B's
+    `stress_reserve_days_rs` rise, as the claims state.
+- **For the merge:** C2d's branch is built on `01d39e4d`, so it needs `6353bf68` merged in. That fix is docs and tests
+  only.
