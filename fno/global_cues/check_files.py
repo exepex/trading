@@ -1,6 +1,7 @@
 """The checks of the cue tables, rewritten on every run (story A17; reports, not records).
 
-Public cues' gaps and the RBI/FBIL comparison go to `research/data/global-cues/checks/`. A private cue's gaps (dates,
+Public cues' gaps and the RBI/FBIL comparison (dates and kinds only, never a rate: story A17d) go to
+`research/data/global-cues/checks/`. A private cue's gaps (dates,
 never values, but still kept out of this public repository by the owner's rule) go to its own Drive log; only their
 counts are printed. Each run writes a full new snapshot there; the newest is current. When both US index tables are
 read (the Drive settings present), the dates-only list of US trading days is rewritten too (story A17b); from it the

@@ -333,7 +333,7 @@ cash spend separately.
 
 **Judge verifies:** recomputes one month's allocation.
 
-**Depends:** C1, F1 · **Size:** S · **Status:** split (design v2, 15 Oct 2026): the minimal part below is built; **F8 part
+**Depends:** C1, F1 · **Size:** S · **Status:** split (design v2, 15 Oct 2026): the minimal part below is done (judge 104, merged 757c20d); **F8 part
 2, later**, keeps the per-book lines in C1's account ledger, the scoreboards' and dashboard's separate fields (criterion 2)
 and filling S2's `AiCostAllocation` port (judge 87: "latent until F8 fills the port"), once books 2 and 3 trade
 
@@ -411,8 +411,8 @@ allocation (uneven, tie, no cost, no usage), the coverage, and the CLI refusals.
 **Judge verifies:** recomputes one month's allocation by hand from the two CSV files; feeds a real export, one with a
 missing middle page and one taken mid-day; checks no text field reaches a ledger.
 
-**Depends:** C1, F1, S1 (`ai_cost_allocation`) · **Size:** S · **Status:** built on `story/f8-bg1-budget`, revised
-after judge 104 (response 104)
+**Depends:** C1, F1, S1 (`ai_cost_allocation`) · **Size:** S · **Status:** done: judge 104 addendum 3 PASS
+(4fcea00), merged 757c20d (addendum 4)
 
 ---
 
@@ -428,7 +428,7 @@ one at a time, kept only if they add net value), 13.6 (ablation where safe; inse
 keep or drop only at predeclared review dates; control roles scored on prevented invalid actions, not profit).
 ChatGPT review 24: allocated cost alone cannot prove value. REPLAN (`docs/design_v2/REPLAN.md`, slice B): S1 v1 is
 frozen only once F9's code exists (owner's option A, 14 Oct 2026), so F9's **scoring code** is built now and
-**reports only once books 2-3 trade** (slice E). Response 162 holds the claims and the owner questions.
+**reports only once books 2-3 trade** (slice E). Response 166 holds the claims and the owner questions.
 
 **Two parts.**
 - **F9a (now, slice B): the scoring code S1 hashes.** The rotation, the record checks, the per-role score, the
@@ -457,11 +457,13 @@ frozen only once F9's code exists (owner's option A, 14 Oct 2026), so F9's **sco
   period, every day, not only ablation days), and the net value per opportunity (difference minus cost);
 - the interval: a moving-block bootstrap of the mean net value per opportunity over the unit's applicable
   opportunities in date order (block 20 opportunities, 10,000 resamples, seed 20261014, nearest rank); the lower end
-  is the 5th percentile and the upper end the 95th (each a one-sided 95% bound; see response 162, question 1);
+  is the 5th percentile and the upper end the 95th (each a one-sided 95% bound). This, the cost per consulted day and
+  the block of 20 applicable opportunities are **provisional constants, to confirm at the S1 freeze** (orchestrator,
+  15 Oct 2026; response 166, questions 1, 3 and 4), pinned by a test against S1's text;
 - the verdict (S1 `role_value_minimum_sample`): `drop proposed` (upper end below zero), `earns its cost` (lower end
   above zero) or `inconclusive, stays`, produced only on a `review_dates` date and only with at least 30 changed
-  opportunities, with Holm's correction across the book's units if the owner chooses it (response 162, question
-  2); otherwise `no verdict: <reason>` (before the review date, or `<m> of 30 changed opportunities`);
+  opportunities, with Holm's correction across the book's units at that review (owner, 15 Oct 2026, via the
+  orchestrator; the units' one-sided bootstrap p-values); otherwise `no verdict: <reason>` (before the review date, or `<m> of 30 changed opportunities`);
 - control roles: from C4's failure log (`journal/<book>/validity_failures.csv`), per book and period, caught violations
   (failed-check rows) and prevented invalid actions (distinct `(day, opportunity_id)`), never a profit figure;
 - `python -m fno role-value report --book <2|3> --from <date> --to <date> [--review]`: a Markdown report, one row per
@@ -469,7 +471,7 @@ frozen only once F9's code exists (owner's option A, 14 Oct 2026), so F9's **sco
   "allocated, not a bill".
 Out: firing the shadow session and withholding the card (F9b); any change to the standard unit (requested through the orchestrator to S3's builder); changing
 `fno/scoreboard/` (S3 and S6 belong to another builder); adding F9a's files to S1's `frozen_files` list (S1's text,
-proposed to its owner in response 162); removing a role (the owner decides at a review).
+proposed to its owner in response 166); removing a role (the owner decides at a review).
 
 **Acceptance criteria:**
 1. A paired row whose real and shadow packs hashes or snapshot hashes differ is refused with the day and the unit; a
@@ -504,7 +506,7 @@ constructed records by hand; feeds a row with a different snapshot hash and one 
   end-to-end test.
 - C3's data-check refusals are not counted (C3 alerts but keeps no per-book refusal log); C2's limits are counted
   through the C4 checks that enforce them.
-- The shadow session's own plan usage is evaluation cost, not the role's: it is shown apart (response 162, question 3).
+- The shadow session's own plan usage is evaluation cost, not the role's: it is shown apart (response 166, question 3).
 
 **Depends:** F8, S1 (text), S3's `standard_unit.py` merged (code round starts after it) · F9b: F1, F2, E4 · **Size:** M (F9a S)
-· **Status:** F9a story text for the judge on `story/f9-role-value` (response 162); F9b later
+· **Status:** F9a story text for the judge on `story/f9-role-value` (response 166); F9b later

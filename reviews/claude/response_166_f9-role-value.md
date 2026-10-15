@@ -1,4 +1,4 @@
-# Response 162: story F9a, role-value scoring code (so S1 v1 can freeze); story text for the judge
+# Response 166: story F9a, role-value scoring code (so S1 v1 can freeze); story text for the judge
 
 Builder: Claude, 15 Oct 2026, branch `story/f9-role-value` (issue #61). Lane 1 (a new story; scoring). Orchestrator:
 session_01VG1RqxLFUVdvvPuMRYZtDH. **Text only: no code until a judge PASSes this text.**
@@ -59,3 +59,17 @@ S1's text leaves these open; the code must fix one answer before the freeze.
 
 In the story text: no rows until books 2-3 trade; 30 changed opportunities may take years; F9a trusts the rows'
 hashes (F9b tests the real withholding); C3 not counted; the shadow's own usage shown apart.
+
+## Answers (orchestrator, 15 Oct 2026)
+
+- **Numbering:** first filed as response 162, which was taken twice; renamed to 166.
+- **Split F9a / F9b:** agreed.
+- **Question 2, Holm:** the owner said yes. Holm's correction runs across a book's units at each review (story text
+  updated).
+- **Questions 1, 3, 4:** coded as my recommendations, as **provisional constants, to confirm at the S1 freeze**. A test
+  pins them against S1's text. The owner signs S1 at the freeze.
+- **Question 5:** S3's builder owns `standard_unit.py`. The orchestrator's note says "F9a reads only the nets and
+  builds no valuer". I read that as matching the text: F9a gets each net by calling the standard unit, and has no
+  valuer of its own. I sent this reading back to the orchestrator to confirm.
+- **Question 6:** S1's text owner is session_0185gR5DmoDh2zBAvgRU4CEB. I sent it the `frozen_files` line and the
+  wording for questions 1 and 4.

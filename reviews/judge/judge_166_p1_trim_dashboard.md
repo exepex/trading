@@ -31,3 +31,21 @@ rule), held back by decision 68 until the owner approved. Read-only clone; nothi
    return. Today it does not.
 
 **Verdict: PASS for 171e6129ee6230112b67f925a101d35c61007262** (dashboard). Merge, then re-pin trading.
+
+## Addendum 1: trading re-pin to dashboard f617139 (story/p1-trim-repin at 2ebd62aa)
+
+**Verdict: PASS.** Merge it.
+
+| Check | Evidence (mine) | Result |
+|---|---|---|
+| f617139 is the judged trim | Dashboard `git diff 171e612 f617139` is empty: the merge commit's tree is the tree judged above | MET |
+| yaml byte for byte | All 33 files in `pin.json`: the trading copy at 2ebd62aa equals `git show f617139:<file>` byte for byte, and its SHA-256 equals the pinned hash. 0 mismatches | MET |
+| Other 32 pins unchanged | Same 33 keys as on main. Only `api/schemas/fno-forecast-lab.yaml` changed its hash. The only other pin.json change is `commit` (a696b4d to f617139); `contract_version` stays 2.7.0 | MET |
+| contract-check | `python -m fno market contract-check`: "pinned W11 contract 2.7.0 (commit f617139491cd): same as the dashboard's", exit 0 | MET |
+| Gates | pytest 5,861 passed; ruff check and format clean; import check clean | MET |
+| Docs | The P-publishing test-plan line and response 102 addendum 7 say the planted breaks were removed (the "28 of 28" line no longer holds). This matches the dashboard diff | MET |
+
+The branch diff is the 4 files named, and nothing else.
+
+Note (no action): the trim removes schema rules but no field, and the version stays 2.7.0. That is consistent with the
+compatibility rule, which covers field removals and retypes. The family-keyed isolation rule stays in the yaml.
