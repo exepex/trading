@@ -45,9 +45,10 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
   ("A accept, B accept, C accept", line 121); D ("3 B", line 123); E ("merge G6, E option 2", line 157); the miss caps
   ("Both 10%", line 177); the 60-minute fill decides (line 181); V6b stays a scored member (line 182); the v4 timeline
   (line 184), flagged not blocked (line 185), lateness (line 186) and honest times with the 14:40 window (line 194).
-  **One change for the owner to confirm before the freeze:** the start of the confirmed miss rule (line 177) moves
-  from a slot's first forecast to its registered `effective_start` (ChatGPT review 119; stricter: a registered family
-  cannot avoid misses by starting late). Line numbers as on main today; the record quotes each row's text too, so a later insertion cannot misdirect it.
+  **Confirmed by the owner on 16 Oct 2026 (line 213):** misses count from each slot's declared `effective_start`
+  ("Yes, from the declared start (Recommended)"), replacing "from the first live forecast" in line 177's rule. **Recorded
+  (line 214):** v4 freezes with V6a and V6b (V1 when A16 is ready); V2-V5 later in G7 phase 2 under their own record.
+  The freeze commit still needs the owner's final sign-off after the build passes. Line numbers as on main today; the record quotes each row's text too, so a later insertion cannot misdirect it.
 - **Disclosures:** both back-fills (above); the 2017-26 base rates (section 8); G8's exploratory runs.
 - **V1's method pinned (judge 177, should-fix 1, option b with a):** the record names A16's method `rv-quote-15m-v1`
   (`fno/intraday/realised_vol.py:49`), and V1 counts only A16 rows of that method: `series.live_intraday_rv` today
