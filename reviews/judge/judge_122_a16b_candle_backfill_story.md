@@ -443,3 +443,52 @@ Pin the story's figure: assert `MIN_GAP_SECONDS == 0.5`, or measure gaps of at l
   changes, transient against permanent, read-only verify, M1-M3, and decision 62.
 - **A re-check after (A)** needs only the claims' new counts and minor 1's one-line test change. I re-run the gates
   only if code changes.
+
+## Addendum 7 (15 Oct 2026): criterion-14 re-check at 497ffaf9 (305e1f1..497ffaf: builder commit 5b383cd, claims only, then a merge of main)
+
+**What changed.**
+- **The builder's own commit, 5b383cd:** `response_122` and the claims README only. No code or test change.
+- **The merge of main:** it brought main's code in, and none of it touches A16b's files.
+
+**Gates.** I made a trial merge of 497ffaf with origin/main as of now (5d61e34). It has no conflict apart from the claims
+README, which merged automatically.
+- `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: **5240 passed**;
+- `ruff check fno tests tools`: clean;
+- `ruff format --check fno tests tools`: clean;
+- `python tools/check_imports.py`: clean.
+
+| Addendum 6 finding | Status | Check |
+|---|---|---|
+| Should-fix 1: criterion 14's full-range run | **MET** | Live, read-only dry run of 1 Jan 2020 to 14 Oct 2026: 29 windows, 1,679 one-minute calls, 1,680 sessions, 1,661 ok and 19 void (1.1%), 0 deferred, 0 CHANGED, 1,680 backfilled. Verify: 1,680 of 1,680 equal, exit 0. Builder's live evidence: I hold no Groww credentials. Checked below for internal consistency and against committed data |
+| Minor 1: pin 0.5 in the pacing test (J13) | **Not done** | The pacing test still compares with `MIN_GAP_SECONDS` itself. Under the owner's 15 Oct rule, a pacing constant changes no signal, trade or stop, so this stays a one-line note: a later change of the constant would show in review, not in a test |
+
+**Checks of the new counts:**
+- **Internally consistent.**
+  - The 19-row table gives `missing_candles` 8, `no_1m_check` 8, `no_previous_close` 10 and `outside_nse_range` 5, as
+    the reason line says.
+  - By year: 2020 5, 2021 2, 2022 2, 2023 0, 2024 4, 2025 4, 2026 2, which sums to 19.
+  - Each `no_previous_close` row is the session after a void day, or 1 Jan 2020.
+  - The 1,679 one-minute calls are 1,680 sessions less 10 Oct 2025, which has no candle.
+- **Against the committed A7 calendar (`research/data/calendar/nse_sessions.csv`):**
+  - 2 Mar and 18 May 2024 are the DR-drill specials (F&O 09:15-10:00 plus 11:30-12:30), which fits 10 of 25 candles.
+  - 20 Jan 2024 is a full Saturday special.
+  - 1 Feb 2025 and 1 Feb 2026 are the budget sessions with normal timings, which fits all 26 levels being ok.
+  - 20 May 2024 is a holiday, so 21 May follows 18 May.
+  - 10 Oct 2025 is not a holiday, so it is a regular session with no Groww candle: Groww's hole.
+- **The full run earned its cost.** 7 Mar 2022 is a full session whose Groww high is 251.60 above NSE's, with 2 needed
+  minutes missing. It is caught by the candle-high rule (judge 122 should-fix 2) and voided. The 2020-only sample could
+  not have shown it, and a write-once row would otherwise have carried it.
+- **The 15:45 candles** come from 6 May 2025 on, plus 24 Feb 2021 to 17:00, 28 Jun 2021 and 1 Dec 2023. They are all
+  counted in `outside_candles` and are never levels (criterion 2).
+- **Observation (note).** On 106 ok sessions, NSE's high or low lies beyond every Groww candle, by up to 91.95 points,
+  mostly in 2025-2026 (40 and 30 sessions). The closes pass the 1-minute check, and the realised variance uses closes
+  only, so no realised-variance figure, signal or trade changes. The gap is recorded per row (`nse_high_gap`,
+  `nse_low_gap`). Anyone later using Groww's highs or lows should read those columns first.
+
+### Verdict: PASS for 497ffaf9 (A16b code and claims)
+
+- **No should-fix left.** Criterion 14 is met by the full-range dry run, and every other criterion was met in addendum
+  6 (the code is unchanged).
+- **Notes:** minor 1 (the pacing pin), and the 106-session high/low observation.
+- **Rule 8, after the merge:** the real `backfill` of the full range, then `backfill-verify`. Its counts must equal this
+  dry run's, or show any difference as CHANGED lines. I check that in the merge check.
