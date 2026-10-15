@@ -289,3 +289,9 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
     day 2's Book 1 opens nothing, with its exits run.
 - **Faults planted:** removing `_unscored` from the fills fails the end-to-end test; `pause=False` fails both step
   tests.
+- **Judge 178 addendum 13, should-fix 10, accepted and fixed:** an invalid snapshot with no open position would have
+  blocked the next session for nothing. It happens in normal running: a capture that fails twice is an O2 family,
+  and all 3 books hold no open trades today. Now `Review.review` returns `ReviewResult(lines, open_positions)`;
+  E6's count is `sum(len(card.open_marks))` from its own scorecards, so the accounts are not read a second time. The
+  step is refused only when the snapshot is invalid and a position is open. Tests cover both ways. Putting the old
+  rule back fails the nothing-open test.
