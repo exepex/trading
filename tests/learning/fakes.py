@@ -24,17 +24,37 @@ def misses(missed=0):
     return {"observable": 100, "missed": missed, "big_observable": 5, "big_missed": 0, "input_failures": 0}
 
 
-def g8_document(scored: int, as_of: str = "2026-10-17") -> dict:
-    comparison = {"forecaster": "weather_vix_v1", "baseline": "base_rate", "scored": scored, "mean_difference": -0.0083,
-                  "relative_improvement": 0.1756, "misses": misses()}  # fmt: skip
+def _comparison(scored: int) -> dict:
+    return {"forecaster": "weather_vix_v1", "baseline": "base_rate", "scored": scored, "mean_difference": -0.0083,
+            "relative_improvement": 0.1756, "misses": misses()}  # fmt: skip
+
+
+def g8_document(scored: int, as_of: str = "2026-10-17", live: int = 3) -> dict:
+    """G8's report since G10: each question's live and close-proxy (back-fill) cohorts."""
+    proxy = {
+        "scores": {"weather_vix_v1": {"n": scored, "mean_brier": 0.0391664, "calibration": []}, "base_rate": None},
+        "comparisons": [_comparison(scored)],
+    }
+    live_block = {
+        "scores": {"weather_vix_v1": {"n": live, "mean_brier": 0.02, "calibration": []}},
+        "comparisons": [_comparison(live)],
+    }
     return {"as_of": as_of, "exploratory": True, "questions": [
-        {"question": "v1_rv_next_session", "status": "not enough data yet", "live_forecasts": 0, "scores": {},
-         "comparisons": []},
+        {"question": "v1_rv_next_session", "status": "not enough data yet", "live_forecasts": 0, "cohorts": {}},
+        {"question": "v4_rv5_below_weekly_atm_iv", "status": "not started", "live_forecasts": 0, "cohorts": {}},
+        {"question": "v6_abs_move_2pct_next_session", "status": "scored", "live_forecasts": live,
+         "cohorts": {"close_proxy": proxy, "live": live_block}},
+    ]}  # fmt: skip
+
+
+def legacy_g8_document(scored: int, as_of: str) -> dict:
+    """G8's report before G10 (one pooled block; no v4 row was live then), as the committed reports still are."""
+    return {"as_of": as_of, "exploratory": True, "questions": [
         {"question": "v4_rv5_below_weekly_atm_iv", "status": "not started", "live_forecasts": 0, "scores": {},
          "comparisons": []},
-        {"question": "v6_abs_move_2pct_next_session", "status": "scored", "live_forecasts": 3,
-         "scores": {"weather_vix_v1": {"n": scored, "mean_brier": 0.0391664, "calibration": []}, "base_rate": None},
-         "comparisons": [comparison]},
+        {"question": "v6_abs_move_2pct_next_session", "status": "scored", "live_forecasts": 0,
+         "scores": {"weather_vix_v1": {"n": scored, "mean_brier": 0.04}, "base_rate": None},
+         "comparisons": [_comparison(scored)]},
     ]}  # fmt: skip
 
 
