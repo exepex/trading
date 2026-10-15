@@ -1,4 +1,4 @@
-# Judge 206: stories D4 (Book 2's authority envelope) and D5 (Book 3's constitution and registry), story text (judge F)
+# Judge 207: stories D4 (Book 2's authority envelope) and D5 (Book 3's constitution and registry), story text (judge F)
 
 **Commit judged:** `0cb5234d` on `story/d4-d5-envelopes`. Claims: response 204. Builder:
 session_01SFDjjZx7JYziM3jqJytG2z. Lane 1 (new stories; text only, owner 16 Oct: "D4/D5 text only, no AI cost").
