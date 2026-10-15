@@ -440,5 +440,189 @@ response 106.
 one vertical's maximum loss and margin by hand; checks four-leg results are unchanged (experiment 1 cycle tests,
 `tests/research/test_experiment_1_frozen.py`).
 
-**Depends:** B2, C4, D1, D2, A14 · **Size:** M · **Status:** built on `story/str1-structures`, waits for the judge
-(claims: `reviews/claude/response_106_str1-structures.md`)
+**Depends:** B2, C4, D1, D2, A14 · **Size:** M · **Status:** done: judge 106 PASS (0ba5edc), ChatGPT review 100
+PARTIAL "inactive infrastructure" (response 114), merged abc23d3 on 15 Oct 2026. No strategy may use a new code before
+STR1b's activation gates pass.
+
+---
+
+## STR1b. Activation gates for the one- and two-leg structures
+
+**Repository:** trading
+
+**Description:** As the risk manager, I want the real gaps that ChatGPT review 100 and judge 106 named closed, with the
+use of LC, LP, CDS, CCS, PDS and PCS refused in code until they are. Then a one- or two-leg trade is margined on an
+approved row and counted without double-counted premium, and no version (paper or shadow) uses a new code before its
+exits and settlement are tested.
+
+**Context and why:**
+- STR1 (judge 106 PASS, merged abc23d3) made the six shapes buildable and checkable. ChatGPT review 100 accepted it as
+  **inactive infrastructure**, and response 114 accepted its four points.
+- On 15 Oct the owner set the rule "keep the design simple": build only for what happens in the normal running of this
+  system (`docs/DESK_DECISIONS.md`). Under that rule, the orchestrator's decision 65 keeps four real items from the text
+  that passed judge 115 and drops the guards that only a hand-made or buggy caller could need (Known limits).
+- The real gaps:
+  - **The owner's 1.45 factor counts premium twice.** It adds 0.45 x premium of "margin" to a paid-up long option
+    (Rs 15,828.64 on judge 106's real ATM call) and 0.45 x debit to a debit spread (Rs 3,572.89 on the real CDS 200
+    row), although that money is already counted as premium paid. S2 would report it as capital tied.
+  - **One `passed_on` date covers every code**, while broker checks will arrive one code at a time.
+  - **C4's record does not name the margin row it used**, so an audit cannot tie a fill to its margin.
+  - **Nothing in code stops a version from using a new code** once the owner's broker check lists it, although E5's
+    exit review and E7's settlement are untested with one or two legs and E8 is not built.
+
+This story adds no strategy, no new code and no trading decision.
+
+**Split (judge 115, accepted).**
+- **STR1b-1** (scope 1-4, criteria 1-6) carries the activation gate, so merging part 1 alone leaves every new code
+  refused.
+- **STR1b-2** (scope 5-7, criteria 7-10) holds the exit, settlement and legging tests.
+- STR1b-1 changes `MarginRoom` and `config.yaml` `risk`, as C5 (`story/c5-risk-buckets`) does, so it is built on
+  `main` after C5 merges.
+
+**Scope.** In STR1b-1:
+1. **Capital split** (minor 1, review 100 point 2). C2's `MarginRoom` records the split per trade in `capital_rs`
+   (C4 recomputes the same capped stressed margin with its own code and names its margin row; S2 reads C2's record):
+   - `broker_margin = max(0, scan - NOV) + exposure` at factor 1, with no credit for the sold premium;
+   - `premium_paid` = the bought legs' padded premium plus entry charges (today's `entry_funds`);
+   - `stressed_span = max(0, k x scan - NOV)`, the owner's factor applied as today. **For the six STR1 codes only** it
+     is capped at `max(0, worst terminal loss - max(0, net debit paid at entry))`:
+     - 0 for LC, LP, CDS and PDS, whose whole loss is already paid;
+     - at most `width - credit` (plus charges) for CCS and PCS.
+
+     The cap never takes the figure below the broker's own unstressed `max(0, scan - NOV)` (C2 is never looser than
+     the broker at entry, judge 77 addendum 3): on NSE's real 14 Oct rows a credit spread's broker figure already
+     exceeds `width - credit`, so its stress reserve is 0 too. C2 and C4 take the cap from the margin row (its NOV and
+     the width), so a held trade is capped like a new one. **SF, SC and BF are not capped**: the owner's 1.45 came
+     from a BF case (response 77), so changing it is the owner's call;
+   - `stress_reserve = stressed_span - max(0, scan - NOV)` (recorded; `stressed_span` is broker span plus reserve),
+     `total_funds = broker_margin + premium_paid + stress_reserve` is what `margin_room` compares with cash, and
+     `capital_tied = broker_margin + premium_paid`. For SF/SC/BF this equals today's figure by algebra.
+
+   S2's capital figure (`margin_days`) uses `broker_margin + premium_paid`, with `stress_reserve` reported apart.
+2. **Per-code broker approval dates** (minor 2, review 100 point 4.4):
+   - `risk.margins.nse_span_check` becomes a map: code -> `{source, passed_on}`;
+   - A14 writes a code's rows only from its own `passed_on` on; a row of the day before is printed, never written;
+   - the old single-date shape, an unknown code, or a missing source or date is refused with a message naming the new
+     shape;
+   - `config.yaml` is migrated with exactly the recorded SF, SC and BF check (same source, 14 Oct 2026), and no new code
+     gets a date;
+   - whichever of C5 and STR1b-1 merges second resolves `config.yaml` with both sides.
+3. **C4 names the margin row it used** (review 100 point 1, its margin-row part; judge 126 note 1): C4's record names
+   the row (structure, width, `as_of`, source and its three figures), for audit. Rows A14 appends between the decision
+   and the fill change nothing.
+4. **A code-enforced activation gate** (judge 115 should-fix 2; orchestrator's shadow decision):
+   - `STR1_ACTIVATION_PENDING` in `fno/constants.py` maps each open gate to the uses it blocks:
+     `{"STR1b-2": ("shadow", "paper"), "E8": ("paper",)}`;
+   - D1's loader and status changer refuse a version whose structure is an STR1 code at `paper` or as a registered
+     research shadow, and D2's shadow path refuses it too. The reason names the open gates;
+   - removing a gate is a one-line, judged change; STR1b-2's merge removes `"STR1b-2"`.
+
+In STR1b-2:
+5. **E5 exit review, for each of LC, LP, CDS, CCS, PDS and PCS**:
+   - the time exit closes every leg;
+   - a missing quote on any leg leaves a pending exit, alerted and visible as an open position;
+   - a gap day closes at the next valid snapshot;
+   - the test's own arithmetic equals the recorded exit cash and charges.
+6. **E7 settlement, for each new code**:
+   - a bought option expiring worthless and in the money;
+   - each vertical with both legs expiring (both worthless, one in the money, both in the money);
+   - NSE's `SttlmPric` from the expiry day's own file;
+   - C1's settlement charges;
+   - zero units left open.
+7. **E4 legging, for each new code**:
+   - protection fills first; a failed short leg unwinds the bought leg; a failed protective leg opens nothing;
+   - a credit spread whose short leg has no exit quote keeps its bought leg (`PROTECTION_HELD`);
+   - E8 is not built: the E8 test is `xfail(strict=True)` and imports `OwnerTiming`.
+
+Out:
+- a 3%-OTM credit-spread code (a separate R1 idea card);
+- any playbook version or research run using the new codes;
+- E8 itself;
+- the owner's broker check of the new codes;
+- changing the 1.45 factor for SF, SC or BF;
+- the guards under Known limits.
+
+**Gap list (quality rule 2).**
+
+| Requirement (source) | Criterion |
+|---|---|
+| Capital split; no premium or debit counted twice; not S2's denominator (review 100 pt 2, minor 1, judge 115 sf 3) | 1, 2 |
+| Per-code broker approval dates (pt 4.4, minor 2) | 3 |
+| Recorded C4 pass names the margin row (pt 1, its margin-row part) | 4 |
+| Code-enforced activation gate; shadows scoped; E8 strict xfail (judge 115 sf 1-2, pt 4.3) | 5, 10 |
+| `composition.py` must not grow (minor 5) | 6 |
+| E5, E7, E4 per new code (pt 4.1-4.3, minor 6) | 7, 8, 9 |
+| C2 derives the shape from the legs; proposal-hash binding; bypass test (pt 1); bypass at the fill primitive; reducing-only closes (judge 115 sf 4-8) | **Out** under the owner's 15 Oct rule (decision 65): Known limits |
+| Cost wall and registration first (pt 4.5) | **Out:** R1's process; the activation gate holds every STR1 version meanwhile |
+| 3%-OTM variant as its own code (pt 3) | **Out:** a separate idea card |
+
+**Acceptance criteria (STR1b-1: 1-6):**
+1. Capital, by hand on NSE's real 14 Oct `i1` rows (SHA-256 `d85b883a…0e8b5b`) and on fixtures:
+   - LC, LP, CDS and PDS have `stress_reserve` 0;
+   - CCS/PCS's reserve is at most `width - credit`;
+   - for SF, SC and BF at every research width, `total_funds` equals today's `at_entry` to the paisa, row by row.
+2. S2's capital figure: an LC trade's capital equals its premium plus charges; a CDS's equals its exposure plus the
+   bought leg's premium plus charges (Groww credits the sold premium only after settlement, judge 77 addendum 3); the
+   stress reserve is shown apart.
+3. Per-code dates:
+   - a code's row for the day before its `passed_on` is printed, not written; on the day itself it is written;
+   - adding a code moves no other code's date;
+   - the old shape, an unknown code, a missing date and a missing source are each refused;
+   - `config.yaml` holds SF, SC and BF with the recorded check only.
+4. Margin row: C4's record names its row, and an order still fills after an A14 append.
+5. Activation gate:
+   - with the constant as shipped, D1's loader and status changer refuse an STR1-code version at `paper` and at
+     research registration, and D2's shadow path refuses it, each naming the open gates;
+   - SF, SC and BF versions are unaffected;
+   - with `"STR1b-2"` removed in a test, a shadow is allowed and paper is still refused.
+6. No file or class over 350 lines; `composition.py` does not grow.
+
+**Acceptance criteria (STR1b-2: 7-10):**
+7. E5 per new code: scope 5's cases, with the exit cash and charges equal to the test's own arithmetic.
+8. E7 per new code: scope 6's cases, each leaving zero open units, with the cash equal to a hand computation.
+9. E4 per new code: scope 7's legging cases; after every fill event of each test, no book is short more options of a
+   type than it holds bought.
+10. The E8 test is `xfail(strict=True)`. STR1b-2's merge removes `"STR1b-2"` from `STR1_ACTIVATION_PENDING` and leaves
+    `"E8"`.
+
+**Known limits (owner's 15 Oct rule "keep the design simple", orchestrator's decision 65):** each guard below defends
+only against a hand-made or buggy caller. Proposals are built only through B2 by D2, the only fill path is E3's gate on
+a committed C4 pass, and C4 independently refuses a mislabelled shape. Nothing is built for them:
+- C2 does not rebuild the labelled structure from the legs: it trusts the label for its margin lookup, and C4's shape
+  check is the gate (review 100 point 1, its "better follow-up").
+- The C4 pass is not bound by a hash to the exact proposal, book and version: the order is read from the same committed
+  D3 record C4 checked, and the D3 record's files are hash-checked (`DecisionStore.edited`) (review 100 point 1).
+- There is no pass object at the fill primitive and no static call-site test: E3's gate is the only caller of the entry
+  fill (review 100 point 1's bypass test; judge 115 should-fix 6).
+- `AccountWriter.apply_fill` does not refuse a close or settle that adds risk: E4 and E7 only close holdings they read
+  from the account (judge 115 addendum 1, should-fix 8).
+- E3 does not refuse a fill whose bound margin row has gone from `margins.csv`: A14 only appends (`margin_log.py` opens
+  the file with "a"), so only a hand edit removes a row (judge 126 note 1).
+- An order path outside D1 (for example Book 3's D5 registry, not built) must check `STR1_ACTIVATION_PENDING` in its own
+  story (judge 126 note 2).
+
+**Test plan:**
+- `tests/risk/test_capital.py` and `tests/checks/test_validity_capital.py` (1);
+- `tests/scoreboard/test_capital_figure.py` (2);
+- `tests/nse_margins/test_broker_approvals.py` (3);
+- `tests/desk/test_recorded_c4_row.py` (4);
+- `tests/playbook/test_activation_gate.py` (5);
+- `tests/desk/test_one_side_exits.py`, `test_one_side_settlement.py`, `test_one_side_legging.py` and
+  `test_e8_pending.py` (7-10);
+- the full suite;
+- per quality rules 3-6: two review agents, one mutation per criterion (real cases only), and a real output sample (the
+  capital split of the 14 Oct rows and a refused STR1 version);
+- ChatGPT reviews the trim (`reviews/claude/response_115_str1b-activation-gates.md`) before STR1b-1 is merged; any point
+  it upholds is restored from 6b62348 (judge 126 note 3).
+
+**Judge verifies:**
+- recomputes the CDS 200 and a CCS capital split by hand;
+- checks SF/SC/BF are unchanged on the real rows;
+- adds a code to the approvals map;
+- checks C4 names its margin row and an A14 append still fills;
+- tries to approve an STR1 version;
+- runs one E7 settlement of a vertical by hand.
+
+**Depends:** STR1, C2, C4, C5 (merge order), D1, D2, E3, E4, E5, E7, A14, S2 · **Size:** STR1b-1 S-M (about 6-8 files
+with tests), STR1b-2 S-M (tests) · **Status:** text trimmed under the owner's 15 Oct rule (decision 65); judge 126 PASS (5e20bbc) with three notes folded in;
+code after the pass, STR1b-1 after C5 merges. Claims: `reviews/claude/response_115_str1b-activation-gates.md`.

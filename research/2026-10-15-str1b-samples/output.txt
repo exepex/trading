@@ -1,0 +1,12 @@
+Margin at entry per lot, 14 Oct 2026 real rows, factor 1.45 (Rs): code width | before | now | broker | reserve
+  LC    0 |  15,828.64 |       0.00 |       0.00 |      0.00
+  LP  300 |   5,950.91 |       0.00 |       0.00 |      0.00
+  CDS 200 |  33,111.42 |  29,538.53 |  29,538.53 |      0.00
+  PDS 300 |  32,160.79 |  29,538.53 |  29,538.53 |      0.00
+  CCS 100 |  37,762.65 |  36,431.78 |  36,431.78 |      0.00
+  PCS 100 |  36,840.57 |  35,237.08 |  35,237.08 |      0.00
+  SF  100 |  66,340.33 |  66,340.33 |  65,970.32 |    370.01
+  SC  300 |  81,580.59 |  81,580.59 |  77,747.67 |  3,832.92
+  BF  300 |  59,077.07 |  59,077.07 |  59,077.07 |      0.00
+Status change to research refused: sc-test-v1.yaml: structure: PCS cannot be used for shadow while these activation gates are open: STR1b-2 (story STR1b)
+Status change to paper refused: sc-test-v1.yaml: structure: PCS cannot be used for paper while these activation gates are open: STR1b-2, E8 (story STR1b)

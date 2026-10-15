@@ -119,9 +119,12 @@ risk:
     # Story A14 criterion 1 (judge 77): NSE SPAN rows are written only after an independent broker check of the job's
     # figures passed. 14 Oct 2026: Groww's SPAN equals the row's to the rupee and its exposure equals NSE's rule to the
     # paisa on the same index base (claims response 77, "Broker check 2"); the judge decides whether this meets it.
+    # Story STR1b: one approval per structure code (a check covers the codes it compared). The 14 Oct check compared
+    # SF, SC and BF rows only; a new code is added with its own check's source and date.
     nse_span_check:
-      source: "Groww margin API (read-only), orchestrator run"
-      passed_on: 2026-10-14
+      SF: {source: "Groww margin API (read-only), orchestrator run", passed_on: 2026-10-14}
+      SC: {source: "Groww margin API (read-only), orchestrator run", passed_on: 2026-10-14}
+      BF: {source: "Groww margin API (read-only), orchestrator run", passed_on: 2026-10-14}
   # One frozen stressed-margin method: multiplier (factor, source and as_of required; expires after max_age_days) or
   # scenario_lookup (scenario_file: a margin per scenario above). Owner, 14 Oct 2026 (DESK_DECISIONS): 1.45 by hand.
   # Rule (response 77, section "Stressed-margin factor"): the largest rise of a held position's NSE margin over its

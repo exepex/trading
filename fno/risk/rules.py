@@ -154,7 +154,9 @@ class MarginRoom(RiskRule):
         needed = sum(margins.values())
         funds = self.costs.entry_funds(proposal, market)
         at_entry = sum(margins.values()) - margins[proposal.trade_id] + funds
-        at_entry += self.stressed.margin_at_entry(proposal.terms, market.day)
+        own_at_entry = self.stressed.margin_at_entry(proposal.terms, market.day)
+        at_entry += own_at_entry
+        capital = capital_at_entry(self.stressed.broker_margin(proposal.terms, market.day), funds, own_at_entry)
         free = min(state.cash, state.marked_equity, state.cash + held_liabilities) - state.premium_reserved
         ok = needed <= after and at_entry <= free
         reason = (
@@ -172,8 +174,20 @@ class MarginRoom(RiskRule):
             funds_at_entry_rs=funds,
             needed_at_entry_rs=at_entry,
             free_before_entry_rs=free,
+            capital_rs={proposal.trade_id: capital},
             **self.stressed.record(),
         )
+
+
+def capital_at_entry(broker_margin: float, premium_paid: float, margin_at_entry: float) -> dict[str, float]:
+    """The trade's money at entry, split (story STR1b, review 100 point 2): what a broker blocks unstressed, the premium
+    and charges paid, the owner's stress reserve on top, and their total. `capital_tied` (broker margin plus premium
+    paid) is what scoreboard B counts; the stress reserve is a safety margin, never capital tied."""
+    reserve = margin_at_entry - broker_margin
+    return {
+        "broker_margin": broker_margin, "premium_paid": premium_paid, "stress_reserve": reserve,
+        "total_funds": broker_margin + premium_paid + reserve, "capital_tied": broker_margin + premium_paid,
+    }  # fmt: skip
 
 
 def _relation(needed: float, available: float) -> str:

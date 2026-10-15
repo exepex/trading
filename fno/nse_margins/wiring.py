@@ -19,8 +19,8 @@ from ..research_engine.cycles import TradingDays
 from ..storage import wiring as storage
 from ..storage.raw_source import NseSpanBodSource
 from ..storage.raw_store import AreaStore, RawFileStore
+from .broker_approvals import BrokerApprovals
 from .calculator import NseIndexOptionExposure, SpanMarginCalculator
-from .independent_check import IndependentCheck
 from .job import DayFile, NseMarginJob, due_session
 from .margin_log import MarginLog
 from .rows import MarginRowBuilder
@@ -56,7 +56,7 @@ def build_nse_margin_job(cfg: dict, env=os.environ, day_file: DayFile | None = N
         if drive is None:
             raise RuntimeError(DRIVE_SETTINGS_MISSING)
         day_file = archived_span_file(AreaStore(drive, storage.RAW_AREA))
-    check = IndependentCheck.from_margins_block(cfg["risk"]["margins"])
+    check = BrokerApprovals.from_margins_block(cfg["risk"]["margins"])
     return NseMarginJob(day_file, build_row_builder(cfg), build_margin_log(cfg), build_trading_days(), check,
                         build_alert_sender(), now_ist)  # fmt: skip
 

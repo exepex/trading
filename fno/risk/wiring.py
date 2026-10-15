@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..config import ROOT
-from ..constants import RISK_PROFILE_BOOKS, STRESSED_MARGIN_MULTIPLIER
+from ..constants import NIFTY_SYMBOL, RISK_PROFILE_BOOKS, STRESSED_MARGIN_MULTIPLIER
 from ..research_data.calendar import SessionCalendar
 from ..research_engine.cycles import TradingDays
 from ..research_engine.implied_vol import Black76
@@ -68,10 +68,10 @@ def build_margin_age(profile: ProfileSettings, calendar: SessionCalendar | None 
     return DaysOld(profile.margin_age_days)
 
 
-def build_stressed_margin(settings: RiskSettings, age: MarginAge) -> StressedMargin:
+def build_stressed_margin(settings: RiskSettings, age: MarginAge, lot_size: int) -> StressedMargin:
     """The one stressed-margin method frozen in `risk.stressed_margin`."""
     if settings.stressed_margin.method == STRESSED_MARGIN_MULTIPLIER:
-        return MultiplierMargin(MarginTable(settings.margins_file, age), settings.stressed_margin)
+        return MultiplierMargin(MarginTable(settings.margins_file, age, lot_size), settings.stressed_margin)
     names = [scenario.name for scenario in settings.scenarios]
     return ScenarioLookupMargin(settings.stressed_margin, names, age)
 
@@ -95,7 +95,7 @@ def build_risk_manager(
     cost model for a trade's money."""
     settings, chosen = risk_settings(cfg, root), all_profiles(cfg)[profile]
     costs, engine = SimulatorTradeCosts(cfg["charges"]), StressEngine(Black76())
-    stressed = build_stressed_margin(settings, build_margin_age(chosen, calendar))
+    stressed = build_stressed_margin(settings, build_margin_age(chosen, calendar), cfg["lot_sizes"][NIFTY_SYMBOL])
     risks = build_position_risks(cfg, chosen) if chosen.bucket_sides else None
     parts = RuleParts(settings, chosen, costs, engine, stressed, risks)
     rules = [RULES[name](parts) for name in chosen.rules]

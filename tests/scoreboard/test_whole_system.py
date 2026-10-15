@@ -35,7 +35,8 @@ SECTION_KEYS = {
     "operating_costs_rs", "ai_cost_allocated_rs", "raw_account_net_rs", "net_rs", "risk", "uncertainty", "valuation",
 }  # fmt: skip
 RISK_KEYS = {"max_loss_at_entry_rs", "risk_days_rs", "mean_daily_risk_rs", "net_per_unit_of_risk", "margin_days_rs",
-             "margin_days_method", "stress_usage_at_entry_max", "no_max_loss"}  # fmt: skip
+             "margin_days_method", "stress_reserve_days_rs", "stress_usage_at_entry_max", "no_max_loss",
+             "no_capital"}  # fmt: skip
 
 
 def history(tmp_path, common=True):
@@ -105,6 +106,7 @@ def test_head_to_head_net_and_net_per_unit_of_risk_by_hand(root):
     assert h2h["risk"]["risk_days_rs"] == 6000 * held
     assert h2h["risk"]["net_per_unit_of_risk"] == round(net(root, BOOK1_RULES, "h1") / (6000 * held), 6)
     assert h2h["risk"]["stress_usage_at_entry_max"] == 0.4 and h2h["risk"]["margin_days_rs"] == 9000 * held
+    assert h2h["risk"]["stress_reserve_days_rs"] == 0.0  # STR1b: the reserve is apart, never in the capital figure
     assert h2h["uncertainty"]["sample_met"] is False and h2h["ai_cost_allocated_rs"] == 0.0
     assert h2h["uncertainty"]["figures"] == "S1 proposal, provisional: not decided by the owner"
 
