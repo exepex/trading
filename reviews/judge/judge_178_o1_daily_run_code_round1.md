@@ -265,3 +265,19 @@ builder saw addendum 7.
   child stopped while asleep. My mutation that never reports fails 2 of them; `tests/daily` passes 39.
 - **9(b) open.** `ExitDesk` (`fno/desk/wiring.py:41`) and `PlaybookExitRules` (`fno/books/book1_wiring.py:72`)
   still build their own senders inside the run. Expected fix as in addendum 7.
+
+## Addendum 9: O1 at f01bf9d7 (should-fix 9(a) and 9(b) built)
+
+**Verdict: PASS for the code built so far.** Should-fix 9 is closed (both parts), and there are no new findings.
+Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the real day), and the merge after A4c.
+
+- **9(a):** as in addendum 8, unchanged.
+- **9(b):** `build_exit_desk(cfg, alerts=None)` and `build_book1_exit_rules(root, alerts=None)` now take the run's one
+  `ReportedAlerts`, and their other callers keep `build_alert_sender()`.
+  - **My grep** of every `build_alert_sender()` in `fno/` at f01bf9d7 finds no other sender built inside the run's
+    process: the gate gets the run's `alerts`, and the rest are other commands' CLIs and wirings. Book 1's decider
+    (`book1_wiring.py:33`) runs in its child process, which 9(a) relays.
+  - **The new test** `test_every_sender_inside_the_built_run_is_its_one_reported_sender` walks the real run's
+    objects. My mutation putting `build_exit_desk(cfg)` back fails it.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6590 passed** in 2 min 48 s; `ruff check` and
+  `check_imports` are clean.
