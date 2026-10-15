@@ -20,6 +20,22 @@ class AlertSender(ABC):
         """Send the alert; returns a one-line outcome to print (never raises, never prints a credential)."""
 
 
+def slack_post(session: requests.Session, token: str, channel: str, text: str) -> tuple[dict | None, str | None]:
+    """Posts one message: (Slack's answer, None) when it was accepted, else (None, the reason). Never raises and never
+    puts the token in the reason."""
+    try:
+        response = session.post(
+            SLACK_POST_MESSAGE_URL,
+            headers={"Authorization": f"Bearer {token}"},
+            json={"channel": channel, "text": text},
+            timeout=SLACK_TIMEOUT_SECONDS,
+        )
+        body = response.json()
+    except (requests.RequestException, ValueError) as error:
+        return None, type(error).__name__
+    return (body, None) if body.get("ok") else (None, body.get("error", f"HTTP {response.status_code}"))
+
+
 class SlackChannelAlerts(AlertSender):
     def __init__(self, token: str, channel: str, session: requests.Session | None = None):
         self._token = token
@@ -27,17 +43,8 @@ class SlackChannelAlerts(AlertSender):
         self._session = session or requests.Session()
 
     def send(self, text: str) -> str:
-        try:
-            response = self._session.post(
-                SLACK_POST_MESSAGE_URL,
-                headers={"Authorization": f"Bearer {self._token}"},
-                json={"channel": self._channel, "text": text},
-                timeout=SLACK_TIMEOUT_SECONDS,
-            )
-            body = response.json()
-        except (requests.RequestException, ValueError) as error:
-            return NOT_SENT.format(reason=type(error).__name__)
-        return SENT if body.get("ok") else NOT_SENT.format(reason=body.get("error", f"HTTP {response.status_code}"))
+        _, failure = slack_post(self._session, self._token, self._channel, text)
+        return SENT if failure is None else NOT_SENT.format(reason=failure)
 
 
 class NoAlertSender(AlertSender):
