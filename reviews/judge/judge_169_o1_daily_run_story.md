@@ -73,3 +73,45 @@ contradiction with another session's passed work is a FAIL).
 - **Times are read from their owners** (G10, the recorder's window, `terms`), never typed again. That is right.
 - **The work register.** O1 owns the routine prompt per the orchestrator. Should-fix 1 is exactly the place where that
   ownership must take in A4c's passed lines rather than overwrite them.
+
+## Addendum 1 (15 Oct 2026): revision 2 at 63c2dd1fa52306b44231a4140f74fc2cfac12ae3 (main merged in)
+
+**Verdict: PASS.** Both should-fix findings are met. Two notes.
+
+- **Should-fix 1: met.**
+  - The `quotes` step now starts A4c's passed steps 2-3b as child processes beside E3's steps:
+    - NIFTY (Groww) and NSE together at the start;
+    - `record-indices` right after NIFTY's push, each in its own window (today's and G10's times);
+    - each part commits only A4c's paths, word for word, NIFTY first, never the whole folder;
+    - the paths are one constant, checked against CLAUDE.md by A4c's own test.
+  - E3's steps run in the foreground. `pack` is released by NIFTY's push, as E3 already waits for the committed
+    canonical.
+  - A new `quotes_done` step after `exits` collects the parts' results. The CLAUDE.md section keeps A4c's steps 2-4
+    word for word, so there is one prompt and no contradiction with judge 151 or 160.
+  - Criterion 4 tests the per-part paths, NIFTY first, and that a part running to 15:13 moves neither `decisions` nor
+    `snapshot`.
+- **The single git lock (4a): accepted.** A part's commit and an E3 commit asked for at the same moment in one
+  checkout would otherwise collide on git's `index.lock`. A collision inside E3 is a `CommitFailed`, which stops the
+  desk (decision 44). That is a real path once the parts run beside E3, and the lock is the simplest fix.
+- **Should-fix 2: met.** After E3's `RunStopped`:
+  - the card does not run (T1's `--post` writes delivery metadata, and nothing more may be committed);
+  - the running parts finish and commit their own paths under A4c's rule, alerting for themselves;
+  - `quotes_done` and `card` are not recorded, so O8 shows them missed;
+  - the last line adds "no card today";
+  - the owner's loss that day is stated (the card's forecast block and Slack witness; the forecasts stay committed by
+    their own job).
+
+  Criteria 2 and 5 test it with a fake card that proves no call, post or write.
+
+**Note 1 (one line under "Known limits").** E3's `GitCommitter` refuses any unpushed commit it did not make
+(`_refuse_stray`, decision 51; `fno/desk/git_sync.py`).
+- So a quote part whose push is rejected every time leaves a local commit that stops E3 at its next commit, with one
+  alert and the desk's later steps missed.
+- That is a single real failure, the same kind E3 lists for itself ("a push rejected every time"). The lock does not
+  cover it.
+- State it, and make the parts' commits go through the same committer as E3's (`GitCommitter`: the raw-quote guard,
+  pull and three push attempts), not a second git path.
+
+**Note 2 (code round).** After E3's stop, a refused E3 commit can leave E3's files staged. A part's commit must commit
+by pathspec (`git commit -- <its paths>`, as the A16e committer does), so it never carries E3's staged files. Criterion
+4's "each commit stages exactly that part's paths" should be tested with another writer's file staged.
