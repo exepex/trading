@@ -5,9 +5,10 @@ Fills: bought legs at price + pad, sold legs at price - pad, at entry and at exi
 no order is filled lower, so every order pays brokerage). The modelled maximum loss is the largest terminal payoff
 loss (width minus credit for a short structure, the debit for a long one) plus entry charges, all pads (every leg,
 entry and exit) and the exit charges at the worst-case exit prices: each leg's terminal value at the index level where
-the loss is largest (a strike, as the payoff is flat beyond the outer strikes); where several levels give that loss,
-the one with the larger exit charges. It bounds the terminal payoff only: an exit at closes that break no-arbitrage
-bounds can lose more (tests/research_engine/test_cycles_real.py, July 2024).
+the loss is largest (a strike: a covered position's payoff is flat or rising beyond its outer strikes); where
+several levels give that loss, the one with the larger exit charges. Uncovered legs (a sold option without a bought
+one of its type) are refused rather than priced (story STR1). It bounds the terminal payoff only: an exit at closes
+that break no-arbitrage bounds can lose more (tests/research_engine/test_cycles_real.py, July 2024).
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from dataclasses import dataclass
 
 from ..constants import SIDE_BUY, SIDE_SELL
 from ..costs import order_charges
-from .structures import Leg, terminal_value
+from .structures import Leg, require_covered, terminal_value
 
 OPTION_TICK = 0.05  # NSE's smallest option price: every order, a worst-case exit at zero value included, pays charges
 PAD = 1.0  # rupees per unit, worse on every leg at entry and at exit
@@ -61,6 +62,7 @@ class PositionCosts:
 
     def max_loss(self, legs: Sequence[Leg], entry: Sequence[float]) -> float:
         """Modelled maximum loss in rupees: terminal payoff loss, entry charges, all pads, worst-case exit charges."""
+        require_covered(legs)
         payoff_loss, exit_charges = max(
             (round(loss, LOSS_DECIMALS), self.charges(legs, [leg.intrinsic(level) for leg in legs], False))
             for level, loss in _terminal_losses(legs, entry).items()

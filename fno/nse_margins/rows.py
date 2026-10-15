@@ -1,4 +1,5 @@
-"""One day's margin rows from its beginning-of-day SPAN file (story A14): SF, SC and BF at every research width.
+"""One day's margin rows from its beginning-of-day SPAN file (story A14): every structure at every research width
+(SF, SC, BF; STR1's one- and two-leg codes too, LC and LP also at width 0, the ATM strike).
 
 The legs are B2's own structures on the file's listed strikes and index close (the ATM strike nearest the close),
 on the first monthly expiry at least `min_days_to_expiry` calendar days after the day (the near edge of the entry
@@ -8,7 +9,7 @@ exactly gets no row and a named reason instead.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
@@ -46,9 +47,13 @@ def span_source(filename: str, sha256: str) -> str:
 
 class MarginRowBuilder:
     def __init__(self, structures: Sequence[Structure], widths: Sequence[float], calculator: SpanMarginCalculator,
-                 min_days_to_expiry: int):  # fmt: skip
+                 min_days_to_expiry: int, extra_widths: Mapping[str, Sequence[float]] | None = None):  # fmt: skip
         self.structures, self.widths = tuple(structures), tuple(widths)
         self.calculator, self.min_days_to_expiry = calculator, min_days_to_expiry
+        self.extra_widths = dict(extra_widths or {})  # structure code -> widths it gets beyond `widths`
+
+    def widths_for(self, structure: Structure) -> tuple[float, ...]:
+        return (*self.widths, *self.extra_widths.get(structure.code, ()))
 
     def expiry_for(self, span: SpanFile, day: date) -> date:
         later = [e for e in span.monthly_expiries if (e - day).days >= self.min_days_to_expiry]
@@ -61,7 +66,7 @@ class MarginRowBuilder:
         chain = frozenset(span.series.get(expiry, {}))
         found = DayRows([], [])
         for structure in self.structures:
-            for width in self.widths:
+            for width in self.widths_for(structure):
                 what = f"{structure.code} width {width:g}"
                 legs = structure.legs(chain, span.underlying, width)
                 if legs is None:
