@@ -401,7 +401,9 @@ copy is built here:
 - **E6, the pauser** (`fno/scorecard/pauses.py`): `AutoPauser` takes the approver from the pause's reason instead of
   the hard-coded `hard_loss_rule`.
 - **O1, the daily run:** the `reviews` step after `exits` runs `DriftReview` after E6's `ScorecardReview`, and commits
-  `journal/drift/alarms.csv` beside `playbook/` (one wiring entry and one pathspec, O1's).
+  the alarm record beside `playbook/`. Agreed with O1's builder: **LR3's own code commit** adds the one wiring entry
+  and the pathspec in `fno/daily/wiring.py`, using a named constant `DRIFT_ALARMS_FILE = "journal/drift/alarms.csv"`
+  from LR3's module, so O1 carries no path without a writer. The path is not git-ignored (checked by O1's builder).
 
 **Acceptance criteria:**
 1. On a constructed series the CUSUM's `S` and alarm days match a hand computation, including the restart after an
