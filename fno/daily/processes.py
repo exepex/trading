@@ -3,6 +3,9 @@ unchanged, so its rules, output and alerts stay the story's that built it. Behin
 
 from __future__ import annotations
 
+import contextlib
+import os
+import signal
 import subprocess
 import sys
 import tempfile
@@ -41,7 +44,10 @@ class ChildProcess(Process):
         return self.popen.poll()
 
     def stop(self) -> None:
-        self.popen.kill()
+        """Kills the child's whole process group, so a git or Groww call it started dies with it (judge 178 add. 3
+        note 8)."""
+        with contextlib.suppress(ProcessLookupError):  # it ended on its own meanwhile
+            os.killpg(self.popen.pid, signal.SIGKILL)
         self.popen.wait()
 
     def lines(self) -> list[str]:
@@ -60,5 +66,7 @@ class ChildProcesses(Processes):
     def start(self, arguments: Sequence[str]) -> Process:
         output = tempfile.TemporaryFile("w+", encoding="utf-8")  # noqa: SIM115 - open for the child's run, closed by lines()
         command = [sys.executable, "-m", "fno", *arguments]
-        popen = subprocess.Popen(command, cwd=self.root, stdout=output, stderr=subprocess.STDOUT, text=True)
+        # its own process group, so `stop` ends everything it started
+        popen = subprocess.Popen(command, cwd=self.root, stdout=output, stderr=subprocess.STDOUT, text=True,
+                                 start_new_session=True)  # fmt: skip
         return ChildProcess(popen, output)

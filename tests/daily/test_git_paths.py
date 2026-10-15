@@ -2,8 +2,10 @@
 own files (A4c's paths), never a Groww raw quote file, and never a file another writer staged; and a real child
 command's exit code and lines."""
 
+import os
 import shutil
 import subprocess
+import sys
 import time
 
 from fno.config import ROOT
@@ -51,3 +53,39 @@ def test_a_real_child_command_gives_its_exit_code_and_last_lines():
     process = ChildProcesses(ROOT).start(["daily", "--help"])
     assert wait(process, sleep=lambda seconds: time.sleep(0.05)) == 0
     assert any("daily" in line for line in process.lines())
+
+
+GRANDCHILD = (
+    "import subprocess, sys, time\n"
+    "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+    "open(sys.argv[1], 'w').write(str(p.pid))\n"
+    "time.sleep(60)\n"
+)
+
+
+def test_stopping_a_command_kills_what_it_started_too(tmp_path, monkeypatch):
+    """Judge 178 addendum 3, note 8: a grandchild (a git or Groww call) dies with the command it ran under."""
+    marker = tmp_path / "grandchild.pid"
+    real_popen = subprocess.Popen
+
+    def popen(command, **options):  # the same options ChildProcesses gives, on a script that starts a grandchild
+        return real_popen([sys.executable, "-c", GRANDCHILD, str(marker)], **options)
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    process = ChildProcesses(tmp_path).start(["anything"])
+    while not marker.exists() or not marker.read_text():
+        time.sleep(0.05)
+    grandchild = int(marker.read_text())
+    assert os.getpgid(process.popen.pid) == process.popen.pid  # it leads its own group, so the group kill reaches all
+    process.stop()
+    time.sleep(0.2)
+    assert process.poll() is not None and not _alive(grandchild)
+
+
+def _alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    with open(f"/proc/{pid}/stat") as stat:  # killed but not yet reaped by init: a zombie is not alive
+        return stat.read().split()[2] != "Z"

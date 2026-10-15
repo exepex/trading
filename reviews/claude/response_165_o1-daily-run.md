@@ -181,3 +181,14 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
 - Ten minutes keeps a hung `margin_check` (about 14:35) well before the 15:00 weather/v4 cutoff, and a hung `book1`
   (about 14:58) before the 15:12 deadline (reasoning only: real run times are not measured yet).
 - Test: `test_a_command_still_running_at_its_limit_is_stopped_and_failed_never_holding_the_day`.
+
+### Judge 178 addendum 3 (PASS at 43943a52): notes 7 and 8, both accepted
+
+- **Note 7, accepted.** The 10-minute limit does not protect the 15:12 deadline for `book1`: the pack can retry
+  until 15:10, so `book1` may start then. The docstring and the story text now say so plainly; E3's late rule
+  decides that case. **Strong evidence:** `pack_wait_until` 15:10 in `config.yaml`.
+- **Note 8, accepted and fixed.** Every child now starts in its own process group (`start_new_session=True`), and
+  `stop()` kills the whole group, so a git or Groww call it started dies with it. This also covers the quote part
+  stopped at `FINISH_LIMIT`.
+- Test: `test_stopping_a_command_kills_what_it_started_too`, with a real grandchild process. Removing
+  `start_new_session` was planted once and the test failed.

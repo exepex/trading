@@ -109,7 +109,10 @@ In:
 
 - **No command holds the day:** each O1 command (`margin_check`, `weather`, `forecasts_v4`, `book1`, `card`) is
   stopped and recorded `failed` after 10 minutes (`COMMAND_LIMIT_SECONDS`); the quote parts start before any of them,
-  so a hung Groww call can never delay the 3 pm capture (judge 178 addendum 1 note 6; orchestrator: required).
+  so a hung Groww call can never delay the 3 pm capture (judge 178 addendum 1 note 6; orchestrator: required). A
+  stopped command's whole process group is killed (a git call it started dies with it). Said plainly (judge 178
+  addendum 3 note 7): the limit does not protect the 15:12 deadline for `book1`, which can start at about 15:10 when
+  the pack comes late; E3's late rule then records Book 1 as late and the exits still run.
 - **A step that fails never stops the next** (design 9): an exception or refusal in `weather`, `forecasts_v4`, a quote
   part or `card` is recorded with `status` and `reason`, alerted once to #fno-desk, and the run goes on. A quote part's
   own alerts (the recorder's three, the record scan's) are its own, as A4c says; O1 adds none for them.

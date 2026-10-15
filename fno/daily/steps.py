@@ -19,7 +19,9 @@ NOT_LIVE = "not live before {live_from} (config.yaml daily.live_from)"
 NO_DATE = "no live date set (config.yaml daily.live_from)"
 FAILED_ALERT = "F&O daily run {day}: step {name} {status}: {reason}; the run goes on"
 POLL_SECONDS = 1.0
-COMMAND_LIMIT_SECONDS = 600.0  # a hung command (a Groww call that never answers) is stopped, never holds the day
+COMMAND_LIMIT_SECONDS = (
+    600.0  # a hung command (a Groww call that never answers) is stopped, never holds the day forever
+)
 STOPPED_AT_LIMIT = "stopped after {minutes} minutes without ending; nothing of it committed"
 
 
@@ -49,7 +51,8 @@ def outcome(arguments: Sequence[str], code: int, lines: list[str], paths=()) -> 
 class CommandStep(DayStep):
     """Runs one command for the day and commits the files it changed under its pathspecs (none: it commits its own
     files, as Book 1's decision does). A command still running after `COMMAND_LIMIT_SECONDS` is stopped and failed
-    (judge 178 add. 1 note 6: a hang never delays the 3 pm capture or the deadline)."""
+    (judge 178 add. 1 note 6: a hang never delays the 3 pm capture, which starts before any command). It does not
+    protect the 15:12 deadline for `book1`, which can start as late as about 15:10; E3's late rule decides then."""
 
     def __init__(
         self,
