@@ -497,3 +497,24 @@ The criterion 15 minor from addendum 9 is met: the comparison is now in criterio
 **Minor:** the response says the boundaries were "checked: `git add -n` in a scratch repository". I confirm that result. Keep the pathspec boundary test in criterion 1 as stated.
 
 The story text otherwise matches the code it describes: `manifest_commit.py`'s add and commit steps, the `-X theirs` pull, and `abort_merge`.
+
+## Addendum 12 (15 Oct 2026): A16e story text revised at 8af21de
+
+**Verdict: PASS.** Both should-fix findings from addendum 11 are met. The diff from a59b8be is text only: the A16 story and response 108 part 6b.
+
+- **Should-fix 1: MET.**
+  - Only owned paths that exist on disk or are tracked are passed, and with none present the outcome is "nothing new to commit".
+  - New criterion 2 covers a fixture without `rv/` and a separate empty folder.
+  - Criterion 8 adds the broken-code proof (pass every owned path blindly, and criterion 2 fails).
+  - A tracked owned file deleted on disk is still passed, which stages the deletion, so it is never silently skipped.
+- **Should-fix 2: MET.**
+  - The check reads the whole index (`git diff --cached --name-only`, no pathspec) before every pull and every commit. It refuses both when anything staged is outside the owned paths.
+  - New criterion 4 covers a manifest row staged outside the folder; criterion 5 covers three marks with one alert and three lines.
+  - Criterion 8 adds the proofs: a folder-only check fails criterion 4, and alerting on every refusal fails criterion 5.
+  - The builder's message ("Your local changes … would be overwritten by merge") and mine ("Merge with strategy ort failed") are two outcomes of the same Git rule, depending on whether the merge touches the staged path. Both mean the same refusal.
+- **Checked as consistent with the existing rules:**
+  - Owned files left staged by a commit the record scan refused count as owned, so the next mark retries them and does not refuse.
+  - A refused pull falls back to A16's existing "pull failed" settling.
+  - The untracked-file limit is stated honestly and adds no rule.
+  - Folding into the shared push-guard story (decision 64) later matches my addendum 11 ruling.
+- **Code to come.** The judge checks the A16e code against criteria 1-9, including every broken-code proof, in its own lane 1 verdict.
