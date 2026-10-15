@@ -165,8 +165,8 @@ Out (each with where it goes):
    with fills when E8's code merges; (B) everything after E8. **Recommendation: A** (reasoning only: the crash on the
    first registration is real today).
 
-**Build order (decision 2 A):** the account opening and the per-shadow terms are built now (criteria 1-2), and B0 is
-registered after they merge. Shadow orders and fills (criteria 3-5) are built when E8's part 1b merges.
+**Build order (decision 2 A):** the account opening, the per-shadow terms and the Test B path are built now (criteria 1, 2,
+6-9); B0 is registered after they merge. Shadow orders and fills (criteria 3-5) are built when E8's part 1b merges.
 
 **Depends:** D1, D2, E3, E5 (Book 1's run), E8 (fills), E6 (scorecard), BG1 (stop-rule tracker), STR1b-2 and G7/A16/G10
 for the V-ideas · **Size:** M · **Status:** story text, waiting for the judge
