@@ -290,3 +290,75 @@ a31ea11 is af31238 plus decision 45. Gates: 3,936 passed (the builder's figure);
 **Verdict: FAIL for a31ea116dfc46bc89b59ffb8df6d3879281d575c** on addendum 4 should-fix 1 alone. Decision 45 is met
 and needs no further check. The next re-check needs only the rerun fix and its real-committer test, and the alert
 text.
+
+## Addendum 6 (15 Oct 2026): afafb07fbeaa78f3395219f045519e9bd92debee
+
+Parent a31ea11 (decision 45 already MET). This commit: decision 47 (`PendingCommitter`), decision 48 (fixed exit-rule
+reasons) and the alert texts. Gates: 3,943 passed (the builder's figure); ruff, format and imports clean. Files under 350
+lines (`pending_commit.py` 77, `daily_run.py` 110, `git_sync.py` 182).
+
+## Verdict: FAIL, 1 should-fix; 3 minor
+
+| Item | Status | Evidence |
+|---|---|---|
+| Addendum 4 sf 1, rerun after a stop | MET in the same checkout | A marker with paths, SHA-256 and message is written before every run commit and removed on success. `run()` calls `recover()` first, inside the one handler, and commits the files as recorded or stops naming a changed file. My plants: Q1 (no hash check), Q2 (no push when ahead) and Q3 (no recovery) are caught |
+| Addendum 4 minor 1, alert text | MET | "exits not reviewed today" before the exits, the hand fix, "the rerun pushes the local commit" (plant Q4 caught) |
+| Decision 48 | MET | `TARGET_REACHED`/`STOP_REACHED` fixed texts (plant Q6, a figure put back, caught). "every leg closed; net Rs N" stays: N is the sum of published fills |
+| The builder's partial disagreement with my addendum 4 Q1 | **accepted** | I said the next successful commit pushes the stuck one. It did not when that commit had nothing new (`commit_paths` False, so no push), which is exactly the recovery of an already-committed step. The builder is right, and the fix is right |
+
+### The orchestrator's three points
+
+**(1) A rerun in a fresh container (no marker, no uncommitted files). It is safe: fail-closed, no double fill. But the story does not state it (minor 1).**
+- **Fills.** `EntryDesk.enter` returns the recorded outcome when the journal already holds an entry event for that
+  `trade_id` (`entries.py:116-118`, reading the committed journal). Every book's account write is committed and pushed
+  by `GitAccountSync` itself. So a fresh rerun of the fills step never refills a trade whose write reached origin. A
+  write that never reached origin is not on the public record, so filling it once on the rerun is not a second fill.
+- **Exits.** These work from the journal's open positions, so a closed trade is not closed again.
+- **Decisions.** `collect_decisions` started after the deadline plus grace marks every book late (`daily_steps.py:91-94`,
+  "fails closed"). A fresh rerun after a stop at the decisions step therefore loses that day's entries for all books.
+  That is safe and visible (the no-decision files say why), but a cost.
+- **Pack.** The pack rebuilds byte-identically (E2 criterion 6), so re-running it is harmless.
+- **Reporting gap (reasoning only).** In a fresh checkout before A4b, the 15:15 raw CSV is absent. `_fill_one` then
+  returns "not filled" from the gate before `enter` can return the recorded outcome, so the rerun's log can say "not
+  filled" for a trade that was filled. It is a report mismatch, not a fill. After A4b, the snapshot comes from Drive.
+- **Conclusion.** No durable marker is needed for safety. The story must state the fresh-checkout rule (minor 1).
+
+**(2) A second capture on the rerun. It is consistent with E3: C3 refuses a capture outside the window.**
+- `CommittedExecutionSchedule` picks the latest record, but its window is `execution_snapshot`..`fills_by`.
+- `snapshot_checks.py:24-34` refuses a capture "outside its window (stale or early)" as `prices_unverified`.
+- So a rerun capture after `fills_by` fills nothing. One inside the window is a legitimate execution time.
+- Both records are committed, and each fill row names its `snapshot_id`, so the timing is visible.
+- I checked E3 and C3 only, not E8's text.
+- Minor 2: the story's "fills read the latest" should add "inside the window; after it C3 refuses".
+
+**(3) Can "push when HEAD is ahead" push a commit the run did not make? Yes, and the raw-quote guard does not stop it.**
+This is the should-fix.
+
+## Should-fix
+
+**1. The desk's committer pushes commits whose files the raw-quote guard never checked.**
+- **Probe.** Real `Git`, `GitCommitter` and `PendingCommitter`, with a bare origin. A stray local commit containing
+  `.../quote-snapshots/2026/10/nifty_20261014_151500.csv` (not made by the run), then one run commit of
+  `journal/runs/<day>.json`. Result: committed, and **origin now holds the raw quote file**.
+- **Why.** The guard checks the given paths and the index (`staged()`), and `push` sends `HEAD`, which includes every
+  unpushed commit. `GitAccountSync` refuses when unpushed commits exist (`other_work`), but `GitCommitter` does not.
+- **Before E2b?** Any push already carried earlier unpushed commits. The new "push when ahead" adds the case where the
+  run makes no commit at all.
+- **Why it matters.** The guard exists so a raw quote file never reaches the public repository, and a push is what
+  publishes.
+- **Expected fix.** Before every push, check the files changed in `origin/<branch>..HEAD`
+  (`git diff --name-only origin/<branch> HEAD`) against `RawQuoteGuard` and refuse naming them. That also covers a
+  recovered commit. Test it: a stray local commit with a raw file is refused before any push, and origin is unchanged.
+- **Optionally** also refuse unpushed commits not made by the run, as `other_work` does for account writes.
+
+## Minor
+
+1. **State the fresh-checkout rule in the story**, not only in response 118: a rerun in a fresh checkout has no marker
+   and starts from what was committed. Fills and exits are idempotent against the committed journal, and a decisions
+   step re-run after the deadline makes every book late (fail closed).
+2. **"Fills read the latest" needs the window**: inside the execution window; after `fills_by`, C3 refuses.
+3. **Plant Q5 survived.** Removing the `STILL_PENDING` refusal in `PendingCommitter.commit` passes all related tests.
+   `run()` recovers first, so the branch is defensive, but it should have a one-line test or go.
+
+**Verdict: FAIL for afafb07fbeaa78f3395219f045519e9bd92debee** on should-fix 1. A re-check needs the pre-push check
+and its test, and the two story lines.
