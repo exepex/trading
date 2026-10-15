@@ -61,7 +61,9 @@ In:
   | `weather` | at once | M1's `capture_weather` (refused after the cutoff or on stale closes: recorded, never retried) |
   | `forecasts_v4` | at once | G7's capture (same rules) |
   | `quotes` | starts the three quote parts in the background (below), records that they started, and goes on | A4c's routine steps 2-3b, unchanged |
-  | `versions` ... `exits` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
+  | `versions`, `pack` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
+  | `book1` | right after `pack` | E5's `desk book1 --day <d>` (Book 1's decision, committed by itself) |
+  | `decisions` ... `exits` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
   | `quotes_done` | after `exits`: waits for the parts still running, records each part's result line and commit | |
   | `card` | after `quotes_done`, only if E3 did not stop | T1's `card daily --post` |
 
@@ -80,8 +82,10 @@ In:
     gives the same ones;
   - E3's `pack` already waits for NIFTY's committed canonical (it retries until `pack_wait_until`), so NIFTY's push
     inside the run is what releases it; `forecast-capture.yml`'s push trigger still starts on that push.
-- **One git at a time:** every git command of the run (the parts' commits, E3's commits and its pack's pull) goes
-  through one lock, and a commit (pull, add, commit, push) holds it whole, so two commits never interleave in the one
+- **One git at a time:** every git command of the run (the parts' commits, E3's commits and its pack's pull) runs in
+  the run's one thread, so a commit (pull, add, commit, push) is always whole (code round: the "lock" is that single
+  thread; the parts are child processes that never run git, and the run commits each one only between the desk's
+  steps or while it waits, `ServicingWaiter`), so two commits never interleave in the one
   checkout (reasoning only that git's own `index.lock` would otherwise fail one of them at random; the test below
   proves the order). The parts' commits go through E3's own `GitCommitter` (its record-scan guard, pull and push
   attempts), never a second git path, and each commits by pathspec (`git commit -- <paths>`), so files staged by a
@@ -126,6 +130,11 @@ In:
 Out: any change to the steps' own code (E3, A4, A4c, M1, G7, T1, G10); the routine's schedule time (the owner's, 14:05
 at G10's go-live); E3's snapshot source moving to A16's 15:15 mark (a dependency, not O1's: see Depends); the health check (O8);
 O2's end-to-end failure suite.
+
+**Code-round amendment (for judge D):** Book 1's decision (`fno desk book1`, E5) had no caller either: its own
+docstring said "No routine starts them yet". Without the `book1` step, E3's `decisions` step would record "no decision
+(late)" for Book 1 every day. It runs right after `pack` (it needs the pack) and before the 15:12 deadline, as its own
+command, which commits its own decision; its pathspecs are none, so the run sweeps up nothing for it.
 
 ## Acceptance criteria
 

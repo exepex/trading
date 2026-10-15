@@ -1,0 +1,80 @@
+"""Story O1, criteria 2 and 6: an O1 command's status from its exit code and printed lines, `live_from`, the alert
+rule, the settings, and the command's one line."""
+
+import inspect
+from argparse import Namespace
+from datetime import date
+
+from fno.config import ALLOWED_APP_KEYS, load_app_config
+from fno.constants import STEP_FAILED, STEP_NOT_LIVE, STEP_OK, STEP_REFUSED
+from fno.daily import cli as daily_cli
+from fno.daily.steps import NOTHING_WRITTEN, Alerted, CommandStep, LiveFrom, outcome
+from fno.daily.wiring import live_dates
+from fno.forecast_v4_rules import cli as v4_cli
+from fno.weather import cli as weather_cli
+from tests.timetable.fakes import Clock
+
+from .fakes import FakeProcesses, RecordedStep
+
+DAY = date(2026, 10, 14)
+
+
+def test_exit_zero_is_ok_a_printed_refusal_is_refused_anything_else_failed():
+    assert outcome(("x",), 0, ["weather 2026-10-14: 9 rows"]).result["status"] == STEP_OK
+    refused = outcome(("x",), 0, [f"weather 2026-10-14: {NOTHING_WRITTEN} at or after the 15:00 cutoff"]).result
+    assert refused["status"] == STEP_REFUSED and refused["reason"].endswith("cutoff")
+    assert outcome(("x",), 1, []).result == {"status": STEP_FAILED, "reason": "exit code 1, nothing printed",
+                                             "exit_code": 1, "lines": []}  # fmt: skip
+
+
+def test_the_refusal_phrase_is_the_one_the_weather_and_v4_commands_print():
+    """If either command changes how it prints a refusal, this fails before a refusal is read as ok."""
+    assert all(NOTHING_WRITTEN in inspect.getsource(module) for module in (weather_cli, v4_cli))
+
+
+def test_a_command_step_commits_the_files_it_changed_under_its_pathspecs_only():
+    clock = Clock()
+    processes = FakeProcesses(clock, {("weather", "capture"): (clock(), 0, ["weather: 9 rows"])})
+    asked = []
+    step = CommandStep(processes, lambda day: ("weather", "capture"), ("research/forecasts/v4/",),
+                       lambda specs: asked.append(specs) or ["a.csv"], sleep=clock.advance)  # fmt: skip
+    done = step.run(DAY)
+    assert done.paths == ("a.csv",) and asked == [("research/forecasts/v4/",)] and done.result["status"] == STEP_OK
+    no_specs = CommandStep(processes, lambda day: ("weather", "capture"), (), lambda specs: 1 / 0, sleep=clock.advance)
+    assert no_specs.run(DAY).paths == ()  # Book 1 commits its own: nothing else is ever swept up
+
+
+def test_before_its_live_date_or_with_none_a_step_is_not_live_and_calls_nothing():
+    calls = []
+    for live_from in (None, date(2026, 10, 15)):
+        done = LiveFrom(RecordedStep("weather", calls), live_from).run(DAY)
+        assert done.result["status"] == STEP_NOT_LIVE
+    assert calls == []
+    assert LiveFrom(RecordedStep("weather", calls), DAY).run(DAY).result["status"] == STEP_OK and calls == ["weather"]
+
+
+def test_not_live_and_ok_are_never_alerted_a_raise_always_is(alerts):
+    Alerted("card", LiveFrom(RecordedStep("card", []), None), alerts).run(DAY)
+    Alerted("card", RecordedStep("card", []), alerts).run(DAY)
+    assert alerts.sent == []
+    quiet = Alerted("quotes_done", RecordedStep("q", [], {"status": STEP_FAILED, "reason": "nse"}), alerts, False)
+    assert quiet.run(DAY).result["status"] == STEP_FAILED and alerts.sent == []  # the parts alert for themselves
+    Alerted("quotes_done", RecordedStep("q", [], raises=OSError("disk")), alerts, False).run(DAY)
+    assert alerts.sent == ["F&O daily run 2026-10-14: step quotes_done failed: OSError: disk; the run goes on"]
+
+
+def test_the_live_dates_come_from_config_and_none_is_set_today():
+    assert "daily" in ALLOWED_APP_KEYS
+    assert live_dates(load_app_config()) == {"weather": None, "forecasts_v4": None, "card": None}
+    assert live_dates({"daily": {"live_from": {"card": "2026-10-20"}}})["card"] == date(2026, 10, 20)
+
+
+def test_the_command_prints_the_runner_s_one_line_and_returns_its_code(monkeypatch):
+    class Runner:
+        def run(self, day):
+            return 1, f"day done with problems: weather ({day})"
+
+    monkeypatch.setattr("fno.daily.wiring.build_day_runner", lambda cfg: Runner())
+    printed = []
+    assert daily_cli.cmd_daily_run(Namespace(day=DAY), out=printed.append) == 1
+    assert printed == ["day done with problems: weather (2026-10-14)"]

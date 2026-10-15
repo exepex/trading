@@ -1,0 +1,172 @@
+"""Story O1, criteria 1-5 and 7: one day of the daily run over E3's real `DailyRun` with fake O1 steps and fake quote
+parts: the step order is `DAILY_RUN_STEPS`, the parts run beside the desk and commit their own files (NIFTY first),
+a failing O1 step never stops the next, and after E3's commit-failure stop the card does not run."""
+
+from datetime import timedelta
+
+import pytest
+
+from fno.constants import BOOK1_RULES, DAILY_RUN_STEPS, DESK_RUN_STEPS, STEP_FAILED, STEP_OK, STEP_REFUSED
+from fno.daily.quote_parts import GROWW_QUOTES, QUOTE_PARTS
+from fno.daily.quote_steps import NOT_IN_THIS_RUN, FinishQuoteParts, StartQuoteParts
+from fno.daily.runner import DAY_DONE, NO_CARD, DayRunner
+from fno.daily.steps import Alerted
+from fno.desk.daily_ports import CommitFailed
+from fno.desk.pending_commit import PendingCommitter
+from tests.desk.builders import at
+from tests.timetable.fakes import C4, Commits, Decisions, Rules, daily_run
+from tests.timetable.test_daily_run import HOLIDAY, NORMAL, decided
+
+from .fakes import RecordedStep, RecordingCommitter, quote_parts
+
+NIFTY, NSE, INDICES = (part.arguments for part in QUOTE_PARTS)
+NIFTY_SPEC, NSE_SPEC, BANKNIFTY_SPEC = GROWW_QUOTES.format(name="nifty"), "research/data/quotes/nse/", (
+    GROWW_QUOTES.format(name="banknifty"))  # fmt: skip
+FILES = {NIFTY_SPEC: ["nifty.canonical"], NSE_SPEC: ["nse.canonical"], BANKNIFTY_SPEC: ["banknifty.canonical"]}
+
+
+def script(nifty=(14, 56), nse=(14, 57), indices=(15, 13), day=NORMAL):
+    return {NIFTY: (at(*nifty, day=day), 0, ["recorded: nifty (complete=True)"]),
+            NSE: (at(*nse, day=day), 0, ["recorded: nse (complete=True)"]),
+            INDICES: (at(*indices, day=day), 0, ["recorded: 3 indices"])}  # fmt: skip
+
+
+class FailingDesk(Commits):
+    def commit(self, paths, message, own_unpushed=None):
+        if "step pack" in message:
+            raise CommitFailed("pull failed: origin unreachable")
+        return super().commit(paths, message, own_unpushed)
+
+
+@pytest.fixture
+def day(root, tmp_path, alerts):
+    """A day's run: E3's desk with Book 1, the five O1 steps, the quote parts on a recording committer."""
+
+    def build(times=None, steps=None, desk_fails=False, part_fails=""):
+        decisions = Decisions()
+        decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
+        run, clock, _, commits = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
+        if desk_fails:
+            run.committer = PendingCommitter(FailingDesk(clock), root)
+        commits_made = []
+        parts, waiter = quote_parts(clock, times or script(), RecordingCommitter(clock, commits_made, part_fails),
+                                    alerts, FILES)  # fmt: skip
+        calls = []
+        run.waiter, run.day_steps = (
+            waiter,
+            {
+                "weather": RecordedStep("weather", calls),
+                "forecasts_v4": RecordedStep("forecasts_v4", calls),
+                "quotes": StartQuoteParts(parts),
+                "book1": RecordedStep("book1", calls),
+                "quotes_done": FinishQuoteParts(parts, waiter),
+                "card": RecordedStep("card", calls),
+            }
+            | (steps or {}),
+        )
+        clock.now = at(14, 35, day=NORMAL)
+        return DayRunner(run, parts, waiter), run, clock, parts, commits_made, calls
+
+    return build
+
+
+def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
+    runner, run, _, _, _, calls = day()
+    code, line = runner.run(NORMAL)
+    log = run.run(NORMAL)  # a rerun the same day repeats nothing (criterion 3)
+    assert (code, line) == (0, DAY_DONE)
+    assert tuple(log.steps) == DAILY_RUN_STEPS and calls == ["weather", "forecasts_v4", "book1", "card"]
+
+
+def test_the_desk_s_own_steps_are_exactly_its_tuple_in_order(root, tmp_path, alerts):
+    """E3's tests run without O1's steps: what the desk writes is DESK_RUN_STEPS, the tuple O8 reads."""
+    decisions = Decisions()
+    run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
+    clock.now = at(14, 50, day=NORMAL)
+    assert tuple(run.run(NORMAL).steps) == DESK_RUN_STEPS
+
+
+def test_a_closed_day_records_only_skipped_and_starts_no_part(day):
+    runner, run, _, parts, _, calls = day()
+    runner.run(HOLIDAY)
+    assert list(run.run(HOLIDAY).steps) == ["skipped"] and calls == [] and not parts.started
+
+
+def test_nifty_and_nse_start_together_the_indices_after_nifty_s_commit_nifty_commits_first(day):
+    runner, run, _, parts, commits, _ = day(script(nifty=(14, 56), nse=(14, 55)))  # NSE ends first
+    runner.run(NORMAL)
+    started = {arguments: when for when, arguments in parts.processes.started}
+    assert started[NIFTY] == started[NSE] == at(14, 35, day=NORMAL)
+    assert started[INDICES] == at(14, 56, day=NORMAL)  # right after NIFTY's commit, not before
+    assert [(when, message.split()[-1], paths) for when, message, paths in commits] == [
+        (at(14, 56, day=NORMAL), "nifty", ("nifty.canonical",)),  # first, though NSE ended before it
+        (at(14, 56, day=NORMAL), "nse", ("nse.canonical",)),
+        (at(15, 13, day=NORMAL), "indices", ("banknifty.canonical",)),  # its own files only
+    ]
+
+
+def test_a_part_running_to_15_13_does_not_move_the_desk_s_steps(day):
+    runner, run, *_ = day()
+    runner.run(NORMAL)
+    steps = run.run(NORMAL).steps
+    assert steps["decisions"]["started_at"] == at(15, 12, day=NORMAL).isoformat()
+    assert steps["snapshot"]["started_at"] == at(15, 15, day=NORMAL).isoformat()
+    assert steps["quotes_done"]["result"]["status"] == STEP_OK
+
+
+@pytest.mark.parametrize("name", ["weather", "forecasts_v4", "book1"])
+@pytest.mark.parametrize("how", ["raises", "refused"])
+def test_a_failing_o1_step_is_recorded_alerted_once_and_every_later_step_runs(day, alerts, name, how):
+    calls = []
+    refused = {"status": STEP_REFUSED, "reason": "nothing written: stale closes"}
+    failing = (
+        RecordedStep(name, calls, raises=RuntimeError("boom"))
+        if how == "raises"
+        else RecordedStep(name, calls, refused)
+    )
+    runner, run, *_ = day(steps={name: Alerted(name, failing, alerts)})
+    code, line = runner.run(NORMAL)
+    steps = run.run(NORMAL).steps
+    status = STEP_FAILED if how == "raises" else STEP_REFUSED
+    assert steps[name]["result"]["status"] == status and (code, line) == (1, f"day done with problems: {name}")
+    assert [text for text in alerts.sent if f"step {name}" in text] == [alerts.sent[0]] and len(alerts.sent) == 1
+    assert "exits" in steps and "card" in steps  # nothing later was skipped
+
+
+def test_after_the_desk_s_commit_failure_stop_the_card_never_runs_and_the_parts_still_commit(day, alerts):
+    runner, run, _, parts, commits, calls = day(desk_fails=True)
+    code, line = runner.run(NORMAL)
+    assert code == 1 and line.endswith(NO_CARD) and "run STOPPED at step pack" in line
+    assert "card" not in calls and len(alerts.sent) == 1  # E3's alert stands alone
+    assert [message.split()[-1] for _, message, _ in commits] == ["nifty", "nse", "indices"]  # recorder's data kept
+
+
+def test_a_part_commit_that_fails_is_alerted_with_its_own_paths_and_the_day_goes_on(day, alerts):
+    runner, run, *_ = day(part_fails="nse")
+    code, line = runner.run(NORMAL)
+    (sent,) = alerts.sent
+    assert "quote part nse NOT committed" in sent and "git add 'research/data/quotes/nse/'" in sent
+    assert (code, line) == (1, "day done with problems: quotes_done")
+    assert "card" in run.run(NORMAL).steps
+
+
+def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
+    runner, run, clock, parts, commits, calls = day()
+    run.day_steps["quotes_done"].run = lambda d: (_ for _ in ()).throw(KeyboardInterrupt())  # the routine is killed
+    with pytest.raises(KeyboardInterrupt):
+        runner.run(NORMAL)
+    again, rerun, _, new_parts, _, new_calls = day()
+    again.run(NORMAL)
+    steps = rerun.run(NORMAL).steps
+    assert calls == ["weather", "forecasts_v4", "book1"] and new_calls == ["card"] and not new_parts.started
+    assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
+
+
+def test_a_hung_part_is_stopped_after_the_limit_and_the_ended_parts_are_committed(day):
+    runner, run, clock, parts, commits, _ = day(script(nifty=(23, 0)))  # NIFTY never ends today
+    runner.run(NORMAL)
+    results = run.run(NORMAL).steps["quotes_done"]["result"]["parts"]
+    assert parts.processes.made[NIFTY].stopped and results["nifty"]["status"] == STEP_FAILED
+    assert results["indices"]["reason"].startswith("never started")
+    assert [message.split()[-1] for _, message, _ in commits] == ["nse"]  # after the limit, NIFTY's files never
+    assert clock() - at(15, 15, day=NORMAL) <= timedelta(minutes=21)

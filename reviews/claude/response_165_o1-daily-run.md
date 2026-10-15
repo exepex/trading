@@ -52,3 +52,60 @@ Checked against the files before accepting:
   strong evidence: its docstring in `fno/desk/git_sync.py`). The parts commit through that same committer, and a
   Known-limits line covers a part whose push always fails.
 - Note 2 accepted: the parts commit by pathspec, and criterion 4a gains a test with another file already staged.
+
+## Code round 1 (parts that do not wait for E2c; the orchestrator's go of 15 Oct)
+
+What is built (`fno/daily/`, wired in `fno/daily/wiring.py`, listed in CLAUDE.md's composition roots):
+- `python -m fno daily run [--day]`: E3's `DailyRun` loops over `DAILY_RUN_STEPS` (`fno/constants.py`), with O1's
+  steps passed in as `DayStep`s (`fno/desk/daily_ports.py`). E3's tests, which pass no O1 steps, write exactly
+  `DESK_RUN_STEPS`.
+- `fno desk run` is replaced by `fno daily run`, so there is one command for the day and no dead entry point. E3's
+  stop alert now names `fno daily run` as the rerun. The old CLI test is covered by the runner's stop test.
+- **Amendment (see the story text): a `book1` step** after `pack`. Nothing called `fno desk book1` either, so Book 1
+  would have been "no decision (late)" every day. **Strong evidence:** `fno/books/book1_cli.py` docstring "No routine
+  starts them yet".
+- **Quote parts** (`quote_parts.py`, `quote_steps.py`):
+  - A4c's three commands run as child processes;
+  - NIFTY commits first, and the indices start after NIFTY's commit;
+  - each part commits `Git.changed(<A4c's pathspecs>)` through E3's `GitCommitter` (judge note 1);
+  - a part still running 20 minutes after `quotes_done` starts is stopped, and its files are not committed (they may
+    be half-written).
+- **"One git at a time" is the run's single thread** (a story-text clarification, above). The parts never run git;
+  the run commits them between steps or while it waits (`ServicingWaiter`).
+- **Pathspec commits (judge note 2):** `Git.commit_paths` now commits `-- <paths>` and checks only those paths for
+  changes. A real-git test commits each part with another file staged.
+- **`daily.live_from`** in `config.yaml` (new allowed key `daily`): weather, v4 forecasts and card are all null, so
+  they are `not_live` until the owner or the freeze sets a date.
+
+Criteria and tests (`tests/daily/`; strong evidence: they pass, and each was broken once on purpose, see below):
+
+| Criterion | Test |
+|---|---|
+| 1 order, closed day | `test_a_session_runs_every_step_once_in_the_tuple_s_order`, `test_a_closed_day_records_only_skipped_and_starts_no_part`, `test_the_desk_s_own_steps_are_exactly_its_tuple_in_order` |
+| 2 failure, stop | `test_a_failing_o1_step_is_recorded_alerted_once_and_every_later_step_runs` (3 steps x raise/refusal), `test_after_the_desk_s_commit_failure_stop_the_card_never_runs_and_the_parts_still_commit`, `test_a_part_commit_that_fails_is_alerted_with_its_own_paths_and_the_day_goes_on` |
+| 3 restart | `test_a_rerun_skips_every_recorded_step_and_restarts_no_part` |
+| 4 parts | `test_nifty_and_nse_start_together_the_indices_after_nifty_s_commit_nifty_commits_first`, `test_a_part_running_to_15_13_does_not_move_the_desk_s_steps`, `test_a_hung_part_is_stopped_after_the_limit_and_the_ended_parts_are_committed` |
+| 4a one git, pathspec | `test_each_part_commits_only_its_own_files_with_another_file_staged` (real git) |
+| 5 card | the stop test above, and order test (card last) |
+| 6 not live | `test_before_its_live_date_or_with_none_a_step_is_not_live_and_calls_nothing`, `test_not_live_and_ok_are_never_alerted_a_raise_always_is` |
+| 7 O8's tuple | order tests; the O8 swap waits for O8 on main (below) |
+
+Faults planted on purpose, one at a time (each made a test fail, then was reverted):
+- NIFTY-first rule removed;
+- the pathspec commit removed;
+- parts not waited for after a stop;
+- the indices starting without waiting for NIFTY.
+
+Not done yet, with the reason:
+- the CLAUDE.md "Daily desk routine" section (criterion 8) waits for A4c's merge (16 Oct), so that it carries A4c's
+  lines word for word from `main`;
+- the O8 swap (import `DAILY_RUN_STEPS`, delete `DESK_RUN_STEPS` in `fno/health/desk_checks.py` and its
+  source-parsing test) waits for O8 to reach `main`;
+- anything touching the account files waits for E2c;
+- the real day (criterion 9) waits for the owner pasting the prompt.
+
+Said plainly:
+- `book1`'s commit failure gets two alerts: E5b's own, and O1's "step book1 failed". I accept the duplicate rather
+  than risk a missing alert for other failures (reasoning only).
+- The refusal status is read from the commands' printed phrase "nothing written:". A test fails if either command
+  stops printing it.

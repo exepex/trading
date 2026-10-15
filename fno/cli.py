@@ -12,6 +12,7 @@ from .books.versions_cli import add_versions_parser
 from .budget.cli import add_budget_parser
 from .cards.cli import add_card_parser
 from .config import ROOT, load_app_config
+from .daily.cli import add_daily_parser
 from .desk.cli import add_desk_parser
 from .evaluation.cli import add_evaluation_parser
 from .filings.cli import add_filings_parser
@@ -220,6 +221,7 @@ def main(argv: list[str] | None = None) -> int:
     add_forecast_v4_scores_parser(sub)
     add_vix_history_parser(sub)
     add_card_parser(sub)
+    add_daily_parser(sub)
     add_weather_parser(sub)
     add_global_cues_parser(sub)
 
