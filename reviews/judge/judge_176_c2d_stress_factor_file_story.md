@@ -95,3 +95,16 @@ report the verdict to the orchestrator.
 
 The branch head `858cfbc2` changes only `reviews/claude/response_168` and its README row. The C2d text is as judged at
 `fff6b646`.
+
+## Addendum 2: `da699ce8870d0eb0a920af728b631deb3992ffa9` (judge G)
+
+**PASS stands.** The only change since `fff6b646` comes from ChatGPT review 117: a `coverage_through` column (A14c's
+coverage check), inserted between `peak` and `evidence_sha256`, plus two re-wrapped lines.
+
+- **The seed row has the right shape.** `2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14 Oct",,` has
+  8 fields: as_of, factor, computed, unrounded, status, peak, coverage_through and evidence_sha256, matching the
+  8-column header.
+- **The readers are untouched.** C2 and C4 still read only `as_of`, `factor` and `status`, so no figure, no
+  fail-closed path and no point-in-time rule changes.
+- **The header test covers the new column.** The header check (criterion 2) covers it, because the column list in the
+  text is the header.
