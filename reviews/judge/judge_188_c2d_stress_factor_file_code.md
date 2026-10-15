@@ -1,4 +1,4 @@
-# Judge 187: C2d code, C2 and C4 read the stress factor from A14c's file (judge G)
+# Judge 188: C2d code, C2 and C4 read the stress factor from A14c's file (judge G)
 
 - **Judged:** `story/c2d-stress-factor-file` at `8c0c9fdcfef1c5cf7df44f5db53afd0f9bca01fb`, built on C2c `01d39e4d`.
   The C2d diff is `git diff 01d39e4d 8c0c9fdc`. Lane 1. The text was PASSed in judge 176 addendum 2 (`da699ce8`), and
@@ -6,6 +6,7 @@
   judged as it is.
 - The branch head `1fbcb2ff` merges in C2c's fix `6353bf68` and the two claims renames. I checked that this adds no
   `fno/` change.
+- **Number:** first written as 187; renumbered 188 because another judge took 187 at the same moment.
 - **Verdict: FAIL**, on the same process should-fix as C2c (judge 181): the claims have no quality rule 3 self-review.
   The code is correct. Every criterion is MET on my own evidence, and all 13 mutations I planted are caught.
 
