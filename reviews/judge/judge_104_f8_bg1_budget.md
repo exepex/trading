@@ -165,3 +165,72 @@ Checking the cited design paragraphs myself:
 - Should-fixes 1-3.
 
 The stop-rule tracker, the ledger's write-once rule, the item lines and the dry-run signal are sound.
+
+## Addendum 1 (15 Oct 2026): revision 3 at 553ab47e1e123e1ac80cf8d1bdf35729f53038e8
+
+**Scope:**
+- The branch's own diff from its merge base with `main` (826864a): 38 files, +2,670. Its `main` merges are not part of
+  this review.
+- I read every module of `fno/budget/` in full, plus the config, the cost row, the changed accounting test, both story
+  texts and response 104.
+
+### Gates
+
+- **At 553ab47 (Slack token unset):** 3,319 passed; `ruff check`, `ruff format --check` (732 files) and
+  `check_imports` clean.
+- **Trial merge with `origin/main` (07e37a5):** clean; 3,319 passed; same checks clean.
+
+### Judge 104 items
+
+| Item | Result | My evidence |
+|---|---|---|
+| MF1 real export refused | **MET** | My own real 3-page export of this session, re-wrapped in the new shape (`captured_at`, `before_id` per page, the real last page with no `has_more` and no `data`), reads as 4.61 minutes, 6 turns and 18,315 output tokens. That equals my hand sum. `record-usage` then declines 15 Oct correctly, because the capture day is not complete. Mutation "absent has_more read as more" caught |
+| MF2 missing middle page | **MET** | The same real export with its middle page dropped: "page 2 was not read with the previous page's first_id". Chain-check mutation caught |
+| MF3 development and coverage bias | **PARTLY**: development MET, book pushback ACCEPTED, data routines NOT MET | See below |
+| MF4 rounding | **MET** | Rs 1,700 over three equal shares: 566.68 / 566.66 / 566.66, the decided rule (round down, remainder to the largest, ties by name). "Remainder to smallest" mutation caught |
+| MF5 gap list | **MET** | Covered or out of scope with a reason: Drive storage stated as not wired; the 6.5 alert `review_reached` built as a dry run; original F8 marked "F8 part 2, later", naming S2's `AiCostAllocation` port; S1's development label used |
+| SF1 tests | **MET** | Dry-run wiring, `v4_freeze_date`, weekend fallback (Fri 30 Jul 2027) and the token check are pinned |
+| SF2 citation | **MET** | The source must be exactly `DESK_DECISIONS <date>: <bold title>` of an existing row. My "unanchored" mutation (`search` for `match`) survives, but it is equivalent: the pattern carries `^...$`. The INR 20,000 row cites "15 Oct 2026: Claude plan cost: INR 20,000 a month", which is a real row (f31b366) |
+| SF3 self-review | **MET** | Three reviews reported with findings and responses |
+| Minors 1-7 | **MET** | Floored % in the meter and the alert; one "refused:" line for a bad month; config bounds checked; an export path inside the repository refused; midnight and special-session rules stated |
+| Accounting test change | **Not weaker** | `test_ledgers.py:83` still pins the whole file by equality (now the owner's exact row instead of empty) and adds `Ledgers(...).reconciles()`. S2 reads the per-book `journal/<book>/operating_costs.csv`, so the root row is not charged to any book |
+| Roster export | **MET** | My probes: titles, tags and token-like text in the export are dropped (ids and times only). A missing middle page, a full last page, no pages and a limit of 500 are all refused. Stale-roster, full-page and complete-before mutations caught |
+| Owner items | **MET** | `measured_basis_until: "2026-12"`. After it, with no fixed figure, the level is `unknown` with "the owner's fixed monthly figure is owed" (expiry mutation caught). "Nov and Dec" is the orchestrator's reading, labelled "owner to confirm" in the config and logged in response 113 |
+
+**MF3 in detail.**
+- **Development:** MET. With a development gap the measured level is `unknown`; with the owner's figure set, a
+  development gap does not matter (my probe: owner basis gives `ok` at 9%, measured gives `unknown`). The mutation
+  removing the rule is caught.
+- **The book pushback is ACCEPTED.** I tested monotonicity on 20,000 random cases with both bases: adding missed book
+  minutes never lowered the %, so 0 violations. That holds because books sit in both the numerator and the measured
+  denominator, while the owner's figure is fixed. So `alert`/`stop` with missed book sessions is a true floor, and
+  `ok` correctly becomes `unknown`. (30% gives unknown, 41% "alert, at least", 51% "stop, at least".)
+- **The new `data_routines` purpose breaks the "known level" rule. This is the remaining must-fix.**
+  - On the measured basis, data-routine minutes sit in the denominator only.
+  - Their sessions are scheduled or trigger-fired. The 3 pm Groww recorder runs every trading day today, and the
+    15-minute recorder is a Claude routine by owner decision.
+  - Those sessions are not in `list_sessions` and have no capture route, and nothing checks their coverage.
+    `MEASURED_LIMIT` says so, but the level is still given as known.
+  - My probe: books 45 and development 55 with 200 data-routine minutes uncaptured reads **90.0%, level `alert`, no
+    note**. The truth with them is 30.0%, `ok`. Missing data routines raise the %, so an `alert` or `stop` on the
+    measured basis is no longer a floor either.
+  - Fix, either:
+    - (a) the measured level is `unknown`, with that reason, until data-routine coverage is shown, for example from the
+      scheduled tasks' run records or a self-timed record per run; or
+    - (b) put to the owner whether data routines belong in the basis at all.
+  - The owner's-figure basis is unaffected.
+
+**My planted mutations: 12, of which 11 caught; the 12th is the equivalent citation one.**
+
+**Minor (new):**
+- Only October has a plan-cost row. From November the allocation shows "unknown" until a monthly row is added.
+- Say who adds it each month: the owner, or a recurring row taken from the "INR 20,000 a month" decision.
+
+**Orchestrator decisions noted:**
+- "Two months = Nov and Dec 2026" is labelled "owner to confirm".
+- Book usage stays "not captured" until a separate book-version story changes the prompts. That is consistent with the
+  judge 62 conditions, since a prompt change is a new registered version.
+
+**Verdict: FAIL for 553ab47e1e123e1ac80cf8d1bdf35729f53038e8**, on the data-routine part of MF3 only. Everything else
+from judge 104 is met, including the accepted book pushback. A re-check needs `cap.py` (and wherever the coverage
+comes from) and its tests.
