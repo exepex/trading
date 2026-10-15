@@ -62,7 +62,9 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    - each says what the paper record assumes if the owner acts 60 minutes later; in `alert_only` that is always "the
      paper record changes only at the next daily run's execution snapshot" (today's before 15:15, the next session's
      after it);
-   - one alert per condition per position per hour; after 10 DANGER alerts in a session, one summary every 30 minutes;
+   - one alert per condition per position per hour; a market-wide condition (the NIFTY 1.5% move; VIX once built) is
+     one alert per hour for the whole desk, never one per position; after 10 DANGER alerts in a session, one summary
+     every 30 minutes;
    - each alert is a record (condition, position, snapshot time, sent time, outcome of the send). A record names a
      position and its marked loss, so it is private (story E2c: no public record names a contract's price or mark):
      one file per mark, `journal/monitor/alerts/<YYYY>/<YYYY-MM-DD>/<HHMM>.csv`, written through E2c's `PrivateFiles`
@@ -141,10 +143,12 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    1.5% move, each exit rule, 30 minutes stale, expiry window); the VIX and weather checks exist only as "waits"
    lines and send nothing.
 4. A stale or failed mark gives only the staleness WARNING; an unmarked leg gives "cannot mark", never a value.
-5. The same condition on the same position alerts once per hour; the 11th DANGER in a session starts the 30-minute
+5. The same condition on the same position alerts once per hour, and a market-wide condition once per hour for the
+   desk; the 11th DANGER in a session starts the 30-minute
    summary.
 6. Every alert starts "F&O monitor:", its first line is an action or "information, no action", it states the 60-minute
-   assumption, and no monitor alert contains EXIT, CLOSE, "close it" or a price (a test over every alert text).
+   assumption, and no monitor alert contains EXIT, CLOSE, "close it" or a contract's price (a test over every alert
+   text; index levels such as NIFTY's are allowed).
 7. A second fire for a mark that already has its public row sends nothing, with Drive up or down, and after Drive
    recovers. Every alert is recorded in the private store; a failed send prints "alert NOT sent", is retried at the next mark
    and keeps its first record; no committed file names a position, a contract or a price (a test scans the public
@@ -171,6 +175,7 @@ first-line rule and limits; no second heartbeat checker or alert sender exists.
   silences both; an independent host is a later decision, not LM1's.
 - A16 keeps contracts within 6% of the index, so a far leg can be unmarked; the monitor says so instead of guessing.
 
-**Depends:** A16 live and past its 5-session trial (from 16 Oct), A16's `MarkObserver` port, E1 accounts, E4's exit rules, the card's uptime line (T2/T3, asked 16 Oct), O1's
+**Depends:** A16 live and past its 5-session trial (from 16 Oct), A16's `MarkObserver` port, E8 (its `ExitTiming`
+exists only on `story/e8-code-part1`), E1 accounts, E4's exit rules, the card's uptime line (T2/T3, asked 16 Oct), O1's
 alert path; the first open paper or shadow position · **Status:** story text for the judge
 (`reviews/claude/response_217_lm1-position-monitor.md`)
