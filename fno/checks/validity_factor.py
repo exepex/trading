@@ -27,7 +27,7 @@ def factor_on(path: Path | None, day: date, max_age_days: int) -> tuple[date, fl
         before = [r for r in reader if date.fromisoformat(r["as_of"]) < day]
     if not before:
         raise FactorProblem(f"stressed margin: {path.name} has no factor row before {day}")
-    row = max(before, key=lambda r: r["as_of"])
+    row = sorted(before, key=lambda r: r["as_of"])[-1]  # stable: of two same-day rows, the later (append-only)
     as_of, factor = date.fromisoformat(row["as_of"]), float(row["factor"])
     if factor < 1 or row["status"] not in STRESS_FACTOR_STATUSES:
         status = row["status"]

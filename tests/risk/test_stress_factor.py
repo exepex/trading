@@ -116,3 +116,14 @@ def test_the_switch_changes_no_figure_on_the_real_rows():
     for (code, width), figure in expected.items():
         assert round(c2_margin.margin(TradeTerms(code, width, 1), day), 2) == figure
         assert round(stressed_per_lot(REAL, (code, width, 1), day, c4_settings, 65), 2) == figure
+
+
+@BOTH
+def test_of_two_rows_with_the_same_date_the_later_one_wins(tmp_path, read, error):
+    """Append-only: a second row for the same day is its correction (judge 188), wherever the rows sit in the file."""
+    rows = f"{SEED},1.45,,,applied,seed,,\n{LATER},1.5,1.5,1.5,applied,first,2026-11-06,a\n"
+    rows += f"{LATER},1.6,1.6,1.6,applied,correction,2026-11-06,b\n"
+    assert read(_file(tmp_path, rows), date(2026, 11, 9)) == 1.6
+    earlier_first = f"{LATER},1.5,1.5,1.5,applied,first,2026-11-06,a\n{SEED},1.45,,,applied,seed,,\n"
+    earlier_first += f"{LATER},1.6,1.6,1.6,applied,correction,2026-11-06,b\n"
+    assert read(_file(tmp_path, earlier_first), date(2026, 11, 9)) == 1.6
