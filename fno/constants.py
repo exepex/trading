@@ -33,7 +33,8 @@ SESSION_HOLIDAY, SESSION_SPECIAL, SESSION_MUHURAT, SESSION_REGULAR = "holiday", 
 # Index names in NSE's daily index-close file that every file must carry (the research needs both)
 INDEX_NIFTY_50, INDEX_INDIA_VIX = "Nifty 50", "India VIX"
 
-# The three paper books (design 12.1, story E1): each has its own Rs 5 lakh paper account under journal/<book>/account/
+# The three paper books (design 12.1, story E1): each has its own paper account under journal/<book>/account/,
+# opened with config.yaml risk.paper_account_rs (story C5)
 BOOK1_RULES = "book1_rules"  # pure rules
 BOOK2_HYBRID = "book2_hybrid"  # AI inside the authority envelope
 BOOK3_AI = "book3_ai"  # fully AI under the constitution
@@ -133,6 +134,16 @@ OWNER_OVERRIDES_FILE = "owner_overrides.csv"  # journal/<book>/owner_overrides.c
 OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)
+# Risk buckets (story C5, design 6.2): an underlying group and a side of exposure. Only the index groups 6.2 names are
+# mapped; a stock (its own group, or "stock results this week") is unmapped until the events calendar is wired in.
+BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH = (
+    "short_volatility", "long_volatility", "bullish", "bearish",
+)  # fmt: skip
+BUCKET_SIDES = (BUCKET_SHORT_VOL, BUCKET_LONG_VOL, BUCKET_BULLISH, BUCKET_BEARISH)
+BUCKET_INDEX_GROUPS = ("NIFTY", "BANKNIFTY")
+# Risk profiles (story C5, config.yaml risk.profiles): the three paper books on the Rs 20 lakh account, and the Manual
+# paper account on its 13 Oct 2026 limits (DESK_DECISIONS, 15 Oct 2026: "1 A", "2 A")
+RISK_PROFILE_BOOKS, RISK_PROFILE_MANUAL = "books", "manual"
 
 # Daily forecasts (epic G, research/forecasts/PROTOCOL.md): the five frozen questions and who answers them
 FORECAST_Q1_UP_20D = "q1_nifty_up_20d"  # P(NIFTY close in 20 trading days > today's close)

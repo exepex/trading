@@ -7,7 +7,6 @@ from datetime import date
 import pytest
 
 from fno.checks.validity_account import AccountProblem
-from fno.checks.validity_limits import PRICED
 from fno.checks.validity_money import entry_cash_flow
 from fno.quotes.recorder import QuoteSnapshotRecorder
 from tests.checks.builders import committed_record
@@ -24,6 +23,7 @@ from tests.checks.validity_builders import (
 from tests.checks.validity_sources import (
     FILE_DAY,
     MARGIN_ROWS,
+    PRICED,
     Margins,
     NseFiles,
     fresh_account,
@@ -74,18 +74,18 @@ def test_a_rewritten_sidecar_fails_with_the_quote_file_intact():
 
 def test_a_drawdown_at_the_brake_is_blocked():
     account = fresh_account(
-        cash=470_000.0, closed_equity=((date(2026, 10, 1), 500_000.0), (date(2026, 10, 9), 470_000.0))
+        cash=380_000.0, closed_equity=((date(2026, 10, 1), 500_000.0), (date(2026, 10, 9), 380_000.0))
     )
     report = check(account=account)
     assert failed(report) == {"drawdown_brake"}
-    assert report.failures[0].numbers["drawdown_rs"] == 30_000.0
+    assert report.failures[0].numbers["drawdown_rs"] == 120_000.0  # the owner's brake of 15 Oct 2026 (story C5)
 
 
 def test_an_owner_restart_rearms_the_brake_but_never_one_that_had_not_fired():
-    series = ((date(2026, 10, 1), 500_000.0), (date(2026, 10, 9), 470_000.0), (date(2026, 10, 12), 465_000.0))
-    restarted = fresh_account(cash=465_000.0, closed_equity=series, restarts=(date(2026, 10, 10),))
-    assert check(account=restarted).ok  # re-armed at 470,000 on 10 Oct: 5,000 below
-    early = fresh_account(cash=465_000.0, closed_equity=series, restarts=(date(2026, 10, 5),))
+    series = ((date(2026, 10, 1), 500_000.0), (date(2026, 10, 9), 380_000.0), (date(2026, 10, 12), 375_000.0))
+    restarted = fresh_account(cash=375_000.0, closed_equity=series, restarts=(date(2026, 10, 10),))
+    assert check(account=restarted).ok  # re-armed at 380,000 on 10 Oct: 5,000 below
+    early = fresh_account(cash=375_000.0, closed_equity=series, restarts=(date(2026, 10, 5),))
     report = check(account=early)
     assert failed(report) == {"drawdown_brake"} and "not in force" in report.failures[0].reason
 
