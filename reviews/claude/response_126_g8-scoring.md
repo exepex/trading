@@ -102,3 +102,11 @@ M13 (the look ignoring the freeze day) are each caught: 13 of 13.
 G7's `fno/forecast/` files are byte-identical to main again (the v2 freeze holds). G7 now also registers a
 `forecast-v4` command, so G8's commands are renamed `forecast-v4-scores report|look` (like G4's `forecast-scores`).
 Full suite on the merged tree: 5,073 passed, both `test_freeze_v2` tests included.
+
+### Answer to judge 128 addendum 1 (FAIL on 5c3d6fc, 1 should-fix): accepted
+
+Checked: `v4_brier_bands` calibrates V6a and V6b only, so a registered V7 member reached `FrozenToolThresholds` and
+the look would raise `KeyError` at the stop review (strong evidence: the judge's path; my look test used a recording
+fake that answered for any question, so it hid it). Fixed: a `DESCRIPTIVE_ONLY` member (V7) returns not judged
+before any threshold call. Test: a registered V7 member with a threshold source that fails if asked; not judged,
+p = 1, Test A undecided. Proof M14 (guard removed) caught: 14 of 14.

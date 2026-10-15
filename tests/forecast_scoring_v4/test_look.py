@@ -88,3 +88,17 @@ def test_a_point_member_asks_futility_with_the_gate_sets_own_n():
     source = Recording()
     member_result(compare(V1_RV_1S, "v1_close_blend", "har_daily", rows, outcomes, 1), LOOK_STOP_REVIEW, source, 1)
     assert source.calls == [(V1_RV_1S, LOOK_STOP_REVIEW, 125, 115, (8, 12))]  # 10 zero-RV days left out of the gate
+
+
+class Refusing(ThresholdSource):
+    def thresholds(self, question, look, claim_n, futility_n, band):
+        raise AssertionError(f"thresholds asked for {question}")
+
+
+def test_a_registered_v7_member_is_not_judged_and_never_asks_for_thresholds():
+    days, outcomes = synthetic_window(125, 9)
+    rows = paired_rows(values({d: 0.3 for d in days}), values({d: 0.5 for d in days}), outcomes)
+    v7 = compare(V7_VIX_UP_5S, "v7_rule", "base_rate", rows, outcomes, 13)
+    look = run_look(LOOK_STOP_REVIEW, AT, {(V7_VIX_UP_5S, "rules"): v7}, Refusing(), set())
+    member = look.decision.members[FAMILY.index((V7_VIX_UP_5S, "rules"))]
+    assert not member.judged and member.p_used == 1.0 and look.test_a == "undecided"

@@ -21,7 +21,7 @@ from ...forecast_v4.confirmatory import (
 )
 from ...forecast_v4.family import FamilyDecision, MemberResult, judge_family
 from ...forecast_v4.stop_rule import forecasting_test
-from ...forecast_v4.terms import BLOCK_LENGTH, FAMILY, FAMILY_SIZE, LOOK_ERROR_RATE, family_seed_word
+from ...forecast_v4.terms import BLOCK_LENGTH, DESCRIPTIVE_ONLY, FAMILY, FAMILY_SIZE, LOOK_ERROR_RATE, family_seed_word
 from .comparison import Comparison, margin
 from .thresholds import ThresholdSource
 
@@ -47,6 +47,8 @@ def member_result(comparison: Comparison, look: str, thresholds: ThresholdSource
     scored, gate = comparison.pairing.scored, comparison.pairing.gate
     question, block = comparison.question, BLOCK_LENGTH[comparison.question]
     regime = comparison.regime
+    if question in DESCRIPTIVE_ONLY:  # V7: never judged, and no threshold tool covers it (judge 128 addendum 1)
+        return NOT_JUDGED
     if regime is None or len(scored.differences) // block < MIN_CLAIM_BATCHES:
         return NOT_JUDGED
     if not judgeable(regime.big_days) or crash_dominated(regime.big_days, len(scored.differences)):
