@@ -41,27 +41,37 @@ reported as "YES under the registered rule; below the 80%-power need". Changing 
 ## D. Data details (fixed before reading; none changes a threshold)
 
 1. **Results dates (D).** The A12 archive in Drive holds NSE's board-meeting lists only for 2005-2007 (manifest
-   `board-meetings.csv`), none for 2019-2026. The study reads the same NSE list (the API A12 archives,
-   `corporate-board-meetings`) one calendar month per request, Jan 2019 to the run month; the raw answers go to Drive and
-   their SHA-256 into the study's `inputs.csv`. A results meeting is a row whose purpose or description contains
+   `board-meetings.csv`), none for 2019-2026. Before the run, those lists are filled into A12's archive **through A12's
+   own classes** (`fno.filings.wiring.build_day_list_librarian("board-meetings")`, judge 109 should-fix 1, option b):
+   one calendar day per request, A12's file names (`board-meetings_YYYYMMDD.json`), A12's Drive layout, A12's content
+   check (`check_day_list`) and A12's manifest rows in `research/data/manifests/board-meetings.csv`, for every calendar
+   day from 1 Dec 2018 to the last F&O session. The study then reads only those Drive files, each checked against its
+   manifest row. **Completeness, proved before any row is parsed:** every calendar day in that range has a manifest
+   row (a day NSE answers with an empty list has one too); the fill report shows no damaged, rejected or unpublished
+   day; any missing day stops the run ("cannot answer", stage 0), never a silent gap. A results meeting is a row whose purpose or description contains
    "financial result" (any case). One event per stock and meeting date; meetings of one stock fewer than 30 days apart
-   are one event (a reschedule): the meeting with a matched filing is kept, else the later one; the rest are counted as
-   "duplicate meeting".
+   are one event (a reschedule; a chain of such meetings, each fewer than 30 days after the one before, is one group):
+   the latest meeting with a matched filing is kept, else the latest one; the rest are counted as "duplicate meeting".
 2. **Filing time (`filed_at`).** From A12's results filings (`research/data/manifests/filings/results-xbrl.csv`): the
    earliest results filing of the stock from the entry session's date to D + 3 days. None found means "no `filed_at`"
    and the protocol's rule R = first session after D. A filing at or before the entry session's 15:30 IST close
    excludes the event ("filing before entry"). Limit (reasoning only): NSE's XBRL time can lag the results PDF by hours,
    which can move R one session later.
 3. **Corporate actions.** NSE's corporate-actions file covers only about 400 days before 13 Oct 2026, so for every
-   event the study also detects an F&O adjustment from the bhavcopy itself: the stock's lot size differs between the
-   entry session and R, or K0 of the chosen expiry is not listed on R. Where the corporate-actions file covers the
+   event the study also detects an F&O adjustment from the bhavcopy itself, **on the chosen expiry's own contracts**
+   (judge 109 should-fix 2): K0 of the chosen expiry is not listed on R; and, in the current format only, the lot of
+   that expiry's K0 options (`NewBrdLotQty`) differs between the entry session and R. Legacy rows use only the
+   K0-listing test and the corporate-actions file, so no price of R is read for them (judge 109 minor 1). Where the corporate-actions file covers the
    dates, an ex-date in (entry, R] with a split, bonus, consolidation, rights, demerger or arrangement also excludes.
    Both counted under "corporate action".
-4. **Lot size and open interest.** Current format: `NewBrdLotQty` of the stock's near-month future on the entry
-   session. Open interest in contracts = `OpnIntrst` / lot in both formats (both carry shares; `fno/fo_bhavcopy.py`
+4. **Lot size and open interest.** The lot of the contracts traded: current format, `NewBrdLotQty` of the chosen
+   expiry's K0 call on the entry session (else its K0 put); legacy format, the protocol's derivation on the stock
+   future of the **same expiry** (3 of the 5 sessions ending at entry; the 98% validation compares that rule with the
+   same-expiry future's lot column). Lot unknown: excluded and counted. Open interest in contracts = `OpnIntrst` / lot in both formats (both carry shares; `fno/fo_bhavcopy.py`
    maps OPEN_INT to `OpnIntrst`). Contracts traded = `TtlTradgVol` (legacy `CONTRACTS`).
 5. **Sessions.** NSE sessions = days with a bhavcopy file in the manifests, checked against
-   `research/data/calendar/nse_sessions.csv`. "At least 5 sessions after R": at least 5 sessions strictly after R up to
+   `research/data/calendar/nse_sessions.csv`; days after the archive's last file are counted from that calendar (an
+   expiry after the last archived session still has its sessions counted). "At least 5 sessions after R": at least 5 sessions strictly after R up to
    and including the expiry day. A "push to the second month" is an event whose chosen expiry is later than the nearest
    expiry on or after R.
 6. **Strikes.** K0 + 2 steps = K0 + 2 x (the upward step), K0 - 2 steps = K0 - 2 x (the downward step); a leg whose
@@ -84,5 +94,17 @@ reported as "YES under the registered rule; below the 80%-power need". Changing 
    and reports the 5th and 95th percentiles. Kish's count is printed for all decision-window events and, per structure,
    for the events that pass criteria 1 and 2. The report also counts events in the `unknown` sector (judge 97
    follow-up 5).
-10. **Cost-hurdle wording.** The report calls e = 5% the **assumed hurdle** (`FACTORY_RULES.md` section 2, judge 97
+10. **`filed_at` coverage (judge 109 minor 2).** The report prints, descriptively, the share of decision-window events
+    with a matched `filed_at` (the rest use the conservative R rule, and their "filing before entry" exclusion cannot be
+    seen).
+11. **Cost-hurdle wording.** The report calls e = 5% the **assumed hurdle** (`FACTORY_RULES.md` section 2, judge 97
     must-fix 1) and prints e\* per structure.
+
+## Revision 1 (15 Oct 2026, judge 109)
+
+Judge 109 failed the first version (`291760c`, SHA-256 `8b36416b...1da47d`) on two should-fixes and two minors; all
+four are taken in D1, D3, D4 and D10 above, plus two clarifications found by this builder's own review: D5 counts
+sessions after the archive's last file from NSE's calendar, and D1 states how a chain of reschedules groups. Still
+before any study data is read: since the first version, the raw F&O and index-close files were **copied** to a local
+cache with each SHA-256 checked against its manifest row (file counts only; nothing parsed), and no board-meeting list
+was fetched.

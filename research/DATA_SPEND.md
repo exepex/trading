@@ -31,7 +31,7 @@ section 3.1, checked against `research/LEDGER.md` on 15 Oct 2026. A change to th
 | Participant open interest (A8) | NSE daily files | history | `fresh` | none | Idea O1 waits for 20 measured release days |
 | F&O stock options around results | NSE F&O bhavcopy: volume, open interest, lot size, strikes, closes | 2019 - 9 Oct 2026 | `registered` | 53 (R2 feasibility, `research/2026-10-15-r2-stock-options-results/`) | R2 reads volume, open interest, lot values, strike steps and entry-day prices only; it reads **no option P&L** and no implied-vs-realised comparison. It does read event moves of **2019-2021 only**, for their within-week correlation (section 7 of the R2 protocol): after R2 runs, 2019-21 stock event moves become `exposed` (correlation only), 2022-26 moves stay `fresh` |
 | F&O stock option bid/ask | one Groww snapshot | one session in the Oct-Nov 2026 results season | `registered` | 53 (R2) | Spreads only; used as a cost input, never as an outcome |
-| Company results dates (A12) | NSE board meetings, results filings | 2019-2026 | `registered` | 53 (R2) | Event dates only; filed numbers are not read |
+| Company results dates (A12) | NSE board meetings (A12's daily `board-meetings_YYYYMMDD.json` lists, filled from 1 Dec 2018 through A12's own classes before the R2 run, R2 amendment 1 D1), results filings' `filed_at` (A12 `results-xbrl.csv`) | 2019-2026 | `registered` | 53 (R2) | Event dates only; filed numbers are not read |
 
 ## Update rule
 

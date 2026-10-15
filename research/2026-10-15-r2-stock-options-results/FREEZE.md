@@ -22,4 +22,4 @@ view; `PROTOCOL.md` keeps its hash above and governs.
 
 | File | SHA-256 |
 |---|---|
-| `AMENDMENT_1.md` | `8b36416b4f000bec11ab0e0a56d4e2f74655539eb744535180bfb3a23d1da47d` |
+| `AMENDMENT_1.md` (revision 1, judge 109; the first version was `8b36416b...1da47d`) | `3b84ecae577fd3d8ab2426d788646e19fcbb338e3d40551fe41cf27e6435d1e6` |
