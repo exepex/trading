@@ -44,3 +44,13 @@ Date: 15 Oct 2026 (UTC). Branch `story/lr1-weekly-postmortem` at **cb632340b67d3
 **Verdict: PASS for cb632340b67d33c0f88c44e42f4d93e91ffa2102** (story text), with the builder's recommended options.
 Code may start. It posts to Slack and adds a schedule (lane 1), but decides no trade, so rule 9 applies only if the
 orchestrator says so.
+
+## Note (15 Oct 2026): on hold for a revised text
+
+The owner chose the AI writer and the devil's advocate **in v1**, not later. So the PASS above, which assumed "AI
+writer later", does not cover the coming revision. The other two answers match the assumptions: retire G4's Monday
+post, Saturday 10:41. I will judge the revised SHA as an addendum here. Points I will check there:
+- BG1's budget meter counts the AI cost;
+- the AI text never changes a committed number (it may only reword or comment on code-built lines);
+- the advocate's checks;
+- the week's post still goes out when the AI part fails.
