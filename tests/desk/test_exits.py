@@ -197,3 +197,15 @@ def test_a_rerun_of_the_exit_review_repeats_nothing(root, store, snapshots, exit
     second = review(root, snapshots, exit_desk, NEXT, "next", rules)
     assert [r.outcome for r in second] == [r.outcome for r in first] == [OUTCOME_PENDING_EXIT]
     assert PaperAccount(root, BOOK1_RULES).ledger_rows() == ledger and len(alerts.sent) == 1
+
+
+def test_a_trade_without_exit_rules_still_gets_e4_s_risk_exits(root, store, snapshots, exit_desk, clock, opened):
+    """Story D3b (judge 125 minor 3, design 9): with no opening run there is no time exit, but E4's own risk-reducing
+    exits still run: protection unverified orders the close, and an expired leg goes to settlement."""
+    snapshot_on(store, clock, NEXT, "next", fly_rows({(25200, CE): {"valid": False, "reason": "no size"}}))
+    [result] = review(root, snapshots, exit_desk, NEXT, "next", {})
+    assert result.outcome == OUTCOME_PENDING_EXIT and OUTCOME_EXIT_ORDERED in outcomes(root)
+    after = date(2026, 10, 28)
+    snapshot_on(store, clock, after, "after", fly_rows())
+    [result] = review(root, snapshots, exit_desk, after, "after", {})
+    assert result.outcome == OUTCOME_SETTLEMENT_NEEDED

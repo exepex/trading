@@ -62,9 +62,19 @@ class Commits(Committer):
     def observed(self):
         return f"origin-{len(self.made)}"
 
+    def committed_bytes(self, path, commit):
+        """The fake keeps no blobs: a run's sums file as on disk when `commit` is the one that added it."""
+        added = self.added_in(path)
+        return (self.root / path).read_bytes() if added and added[0] == commit else None
+
+    def is_ancestor(self, older, newer):
+        """One line of history: each commit descends from every earlier one."""
+        return int(older, 16) < int(newer, 16)
+
 
 def book1(root, playbook, clock, inputs=None, validator=None) -> tuple[Book1, Commits]:
     commits = Commits(clock)
+    commits.root = root
     run = DecisionRun(priced_evaluator(), DecisionStore(root, BOOK1_RULES), validator)
     return Book1(root, CALENDAR, lambda: playbook, inputs or FixedInputs(), run, commits), commits
 

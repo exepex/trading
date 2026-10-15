@@ -91,7 +91,7 @@ def run_days(root, tmp_path, alerts, c4, monkeypatch, version=None, code=SAME_CO
                                       CALENDAR), RecordedExecutionSnapshots(quotes),
                     CommittedExecutionSchedule(root, TIMETABLE), alerts)  # fmt: skip
     finder = OpportunityFinder(TradingDays(CALENDAR))
-    exits = PlaybookExitRules(lambda book: decided_exit_days(root, book, finder),
+    exits = PlaybookExitRules(lambda book: decided_exit_days(root, book, finder, git.committed_bytes),
                               lambda version: playbook.files.get(f"{version}.yaml"),
                               lambda book: DeskRecords(PaperAccount(root, book)), alerts)  # fmt: skip
     steps = DeskSteps(root, (BOOK1_RULES,), TIMETABLE, Versions(), FakePacks(),

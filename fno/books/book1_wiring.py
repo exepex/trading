@@ -47,6 +47,7 @@ def build_book1_exit_rules(root: Path = ROOT) -> PlaybookExitRules:
     from ..composition import build_alert_sender, build_session_calendar
     from ..constants import PLAYBOOK_FOLDER
     from ..desk.records import DeskRecords
+    from ..playbook.history import PlaybookGit
     from ..playbook.opportunities import OpportunityFinder
     from ..research_engine.cycles import TradingDays
     from .book1_records import decided_exit_days
@@ -57,7 +58,8 @@ def build_book1_exit_rules(root: Path = ROOT) -> PlaybookExitRules:
         path = root / PLAYBOOK_FOLDER / f"{version}.yaml"
         return path.read_text(encoding="utf-8") if path.is_file() else None
 
-    return PlaybookExitRules(lambda book: decided_exit_days(root, book, finder), version_text,
+    sums_at = PlaybookGit(root).committed_bytes
+    return PlaybookExitRules(lambda book: decided_exit_days(root, book, finder, sums_at), version_text,
                              lambda book: DeskRecords(PaperAccount(root, book)), build_alert_sender())  # fmt: skip
 
 
@@ -76,9 +78,10 @@ def _parts(root: Path, market) -> tuple:
     from ..desk.records import DeskRecords
     from ..desk.trade_counts import DeskTradeCounts
     from ..desk.wiring import build_shadow_books
+    from ..playbook.history import PlaybookGit
     from ..risk.book_view import load_risk_book
 
-    terms = recorded_terms(root, BOOK1_RULES)
+    terms = recorded_terms(root, BOOK1_RULES, PlaybookGit(root).committed_bytes)
     counts = DeskTradeCounts(DeskRecords(PaperAccount(root, BOOK1_RULES)))
     return load_risk_book(root, BOOK1_RULES, market, terms), counts, build_shadow_books(market, terms, root)
 

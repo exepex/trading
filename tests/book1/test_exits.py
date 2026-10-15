@@ -2,19 +2,22 @@
 version file as the run read it, the expiry in the opportunity ID), so an edit to today's version file, a file that no
 longer parses, or an unrelated broken draft never stops or moves it; today's file only feeds the alerts."""
 
+import json
+import subprocess
 from datetime import date, datetime, time
 
 import pytest
 
 from fno.books import book1_exits
 from fno.books.book1_exits import PlaybookExitRules
-from fno.books.book1_records import decided_exit_days
+from fno.books.book1_records import DecidedExits, decided_exit_days
 from fno.books.book1_wiring import build_book1_exit_rules
 from fno.constants import BOOK1_RULES, PLAYBOOK_FOLDER
 from fno.desk.exit_rules import ExitContext
 from fno.desk.pricing import DeskLeg
 from fno.desk.status import OpenPosition
 from fno.models import IST
+from fno.playbook.decision_store import DecisionStore
 from fno.playbook.opportunities import OpportunityFinder
 from fno.playbook.schema import parse_strategy
 from fno.research_engine.cycles import TradingDays
@@ -23,9 +26,15 @@ from tests.checks.builders import CALENDAR
 from tests.decisions.builders import snapshot
 
 from .builders import EXITS, book1, book1_doc, clock_at
+from .openings import open_trades
 
 DAY = date(2026, 10, 13)
 FINDER = OpportunityFinder(TradingDays(CALENDAR))
+SUMS_AT = {}
+
+
+def sums_at(path, commit):
+    return SUMS_AT["at"](path, commit)
 
 
 class Alerts:
@@ -40,17 +49,34 @@ class Alerts:
 @pytest.fixture
 def decided(tmp_path, monkeypatch):
     """Book 1 decides 13 Oct (one chosen trade); its open position is the decided trade."""
-    decider, _ = book1(tmp_path, snapshot(book1_doc()), clock_at(datetime.combine(DAY, time(15), IST)))
+    decider, commits = book1(tmp_path, snapshot(book1_doc()), clock_at(datetime.combine(DAY, time(15), IST)))
     decider.decide(DAY)
-    [(trade_id, (exit_day, version))] = decided_exit_days(tmp_path, BOOK1_RULES, FINDER).items()
+    [run] = DecisionStore(tmp_path, BOOK1_RULES).runs(DAY)
+    open_trades(tmp_path, BOOK1_RULES, DAY, run.name, commits.made[0][0])  # story D3b: only filled trades count
+    SUMS_AT["at"] = commits.committed_bytes
+    [(trade_id, (exit_day, version))] = decided_exit_days(tmp_path, BOOK1_RULES, FINDER, sums_at).exits.items()
     legs = ((DeskLeg("N", date(2026, 11, 27), Leg(25_000, "CE", BOUGHT)), 65),)
     position = OpenPosition(trade_id, version, "d", legs, 0.0, datetime(2026, 10, 13, 15, 15), "exec", "", ())
     monkeypatch.setattr(book1_exits, "open_positions", lambda records: [position])
     return tmp_path, trade_id, exit_day, version
 
 
+def commit_for_real(root):
+    """The real wiring asks real git for the run's committed sums file: commit the run, and name that commit in the
+    run log as E3 would have."""
+    for args in (("init", "-q"), ("config", "user.email", "t@example.org"), ("config", "user.name", "t"),
+                 ("config", "core.hooksPath", "/dev/null"), ("add", "-A"), ("commit", "-q", "-m", "run")):  # fmt: skip
+        subprocess.run(["git", "-C", str(root), *args], check=True, capture_output=True)
+    head = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"], check=True, capture_output=True, text=True)
+    log = root / "journal" / "runs" / f"{DAY}.json"
+    body = json.loads(log.read_text())
+    body["steps"]["decisions"]["result"][BOOK1_RULES]["commit"] = head.stdout.strip()
+    log.write_text(json.dumps(body))
+
+
 def rules(root, version_text, alerts):
-    exits = PlaybookExitRules(lambda book: decided_exit_days(root, book, FINDER), version_text, lambda b: None, alerts)
+    decided = lambda book: decided_exit_days(root, book, FINDER, sums_at)  # noqa: E731
+    exits = PlaybookExitRules(decided, version_text, lambda b: None, alerts)
     return exits.rules(BOOK1_RULES)
 
 
@@ -92,11 +118,12 @@ def test_an_unrelated_broken_draft_leaves_every_exit_applied(decided):
     folder = root / PLAYBOOK_FOLDER
     folder.mkdir(exist_ok=True)
     (folder / "draft-v1.yaml").write_text("name: [unclosed")  # a draft that does not parse
+    commit_for_real(root)
     [rule] = build_book1_exit_rules(root).rules(BOOK1_RULES)[trade]
     assert rule.exit_day == exit_day
 
 
 def test_a_trade_without_a_committed_record_is_left_to_e4_with_an_alert(decided):
     alerts = Alerts()
-    exits = PlaybookExitRules(lambda book: {}, lambda v: None, lambda b: None, alerts)
+    exits = PlaybookExitRules(lambda book: DecidedExits({}, {}, {}), lambda v: None, lambda b: None, alerts)
     assert exits.rules(BOOK1_RULES) == {} and "no committed decision record" in alerts.sent[0]

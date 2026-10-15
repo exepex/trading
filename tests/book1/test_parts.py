@@ -14,7 +14,7 @@ from fno.constants import BOOK1_RULES
 from fno.desk.common_pack import SNAPSHOT_INPUT, CommonPack
 from fno.desk.pack_store import PackStore
 from fno.desk.private_pack import PrivatePack
-from fno.playbook.decision_store import DecisionStore
+from fno.playbook.decision_store import SUMS_FILE, DecisionStore
 from fno.playbook.exit_terms import unenforceable_exits
 from fno.playbook.opportunities import OpportunityFinder
 from fno.playbook.schema import parse_strategy
@@ -30,6 +30,7 @@ from tests.decisions.builders import doc
 from tests.desk.builders import fly_rows, write_snapshot
 
 from .builders import EXITS, book1_doc
+from .openings import open_trades
 
 DAY, EXPIRY = date(2026, 10, 13), date(2026, 11, 24)
 
@@ -93,7 +94,11 @@ def test_the_trade_terms_of_book1_s_trades_come_from_its_committed_records(tmp_p
     )
     no_trade = {"chosen_action": "no trade", "structure": {**trade, "trade_id": "t2"}, "opportunity_id": opportunity}
     (run / "b.json").write_text(json.dumps(no_trade))
-    assert recorded_terms(tmp_path, BOOK1_RULES) == {"t1": TradeTerms("SC", 200, 1)}
+    sums = "".join(f"{hashlib.sha256((run / n).read_bytes()).hexdigest()}  {n}\n" for n in ("a.json", "b.json"))
+    (run / SUMS_FILE).write_text(sums)
+    open_trades(tmp_path, BOOK1_RULES, DAY, run.name, "c1", ["t1", "t2"])  # story D3b: filled trades only
+    sums_at = lambda path, commit: (tmp_path / path).read_bytes()  # noqa: E731 - as committed
+    assert recorded_terms(tmp_path, BOOK1_RULES, sums_at) == {"t1": TradeTerms("SC", 200, 1)}
 
 
 def test_the_exit_is_the_version_s_time_exit_as_d2_computed_it():

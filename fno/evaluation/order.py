@@ -18,8 +18,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
-from ..constants import JOURNAL_FOLDER
-from ..playbook.decision_store import DECISIONS_FOLDER, SUMS_FILE
+from ..playbook.decision_store import DecisionStore
+from ..playbook.run_order import ordered_runs
 from .freeze import AtCommit, WorkingTree, changed_targets, freeze_path, read_record
 
 FREEZE_NAME = re.compile(r"^FREEZE_v([1-9][0-9]*)\.md$")
@@ -52,17 +52,18 @@ def frozen_versions(root: Path) -> list[int]:
 
 
 def first_counted_decision(root: Path, git, book: str, common_start: date | None) -> CountedDecision | None:
-    """The book's earliest committed run dated on or after the common start (every run when none is given)."""
-    folder = Path(root) / JOURNAL_FOLDER / book / DECISIONS_FOLDER
-    days = sorted(p for p in folder.iterdir() if p.is_dir()) if folder.is_dir() else []
-    for day in days:
-        if common_start is not None and date.fromisoformat(day.name) < common_start:
+    """The book's earliest committed run dated on or after the common start (every run when none is given), in the
+    shared run order (story D3b: ancestry, then commit time, then the run counter as a number). An uncommitted run is
+    never first counted: it has no commit."""
+    store = DecisionStore(root, book)
+    days = sorted(p for p in store.folder.iterdir() if p.is_dir()) if store.folder.is_dir() else []
+    for folder in days:
+        day = date.fromisoformat(folder.name)
+        if common_start is not None and day < common_start:
             continue
-        for run in sorted(p for p in day.iterdir() if p.is_dir() and not p.name.startswith(".")):
-            path = (run / SUMS_FILE).relative_to(root).as_posix()
-            added = git.added_in(path)
-            if added:
-                return CountedDecision(book, run.relative_to(root).as_posix(), added[0])
+        for run in ordered_runs(root, store.runs(day), git):
+            if run.commit is not None:
+                return CountedDecision(book, run.path.relative_to(root).as_posix(), run.commit)
     return None
 
 

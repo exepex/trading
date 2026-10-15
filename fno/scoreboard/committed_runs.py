@@ -6,7 +6,7 @@ execution snapshot started (E3's late rule)."""
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
@@ -45,6 +45,15 @@ class CommittedRuns:
                 if "run_id" in entry:
                     late = started is None or datetime.fromisoformat(entry["committed_at"]) >= started
                     found.append(DayRun(book, day, entry["run_id"], entry["commit"], not late))
+        return found
+
+    def uncollected(self, books: Sequence[str]) -> dict[str, list[dict]]:
+        """Each book's runs the decisions step saw but did not collect (story D3b), with corrections: shown apart on
+        the board, never scored."""
+        found: dict[str, list[dict]] = {book: [] for book in books}
+        for day, steps in self.logs():
+            for book, entry in sorted(steps.get(DECISIONS_STEP, {}).get("result", {}).items()):
+                found.setdefault(book, []).extend({"day": day.isoformat(), **o} for o in entry.get("others", ()))
         return found
 
     def snapshot_ids(self) -> dict[date, str]:
