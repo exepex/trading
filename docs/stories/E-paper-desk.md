@@ -745,7 +745,7 @@ said on the report.
 - a frozen, registered history study, 2 Jan 2024 to 30 Sep 2026, of NIFTY monthly options, for the families SF, SC,
   BF and the STR1 codes (LC, LP, CDS, CCS, PDS, PCS);
 - the two decision times with all three E8 reaction times;
-- E4's 15:15 execution snapshot (it is the same price as the 15:00 decision's R = 5 fill and the 14:00 decision's
+- E4's 15:15 execution snapshot (it is at the same time as the 15:00 decision's R = 5 fill and the 14:00 decision's
   R = 60 fill, so it is labelled on those rows, not computed apart);
 - the flip share;
 - the raw candles archived;
