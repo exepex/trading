@@ -200,9 +200,18 @@ missing; daily HAR never stands in again.
    still 7.5-10% at n = 250. A divisor of 10 still gave 2-13%; Hall's skew correction did not help. The bootstrap's
    1 / 10,001 resolution cannot reach the thresholds needed, so it is dropped from the rule. **Measured size of E+D**
    (held-out seeds, 100,000 series): within nominal + 2 Monte Carlo SE in all 30 cells (5 questions, n = 2L, 125
-   and 250, both looks); fewer than 12 batches gives no claim at all. Strong evidence for the measured null
-   processes, some evidence that they represent future data. Tables: `research/forecasts/v4_size_study.md` (every
-   option) and `v4_claim_thresholds.md`. Revision 1's 1,000-series calibration
+   and 250, both looks); fewer than 12 batches gives no claim at all. **What "held-out" proves:** fresh seeds
+   measure Monte Carlo error only, on the same 2024-26 days; they prove nothing about other periods. Tables:
+   `research/forecasts/v4_size_study.md` (every option) and `v4_claim_thresholds.md`.
+   **Brier members, revision 4 (judge 98 addendum 3; `tools/v4_brier_regimes.py`):** the 2024-26 Brier thresholds
+   broke on 2019-26 data, because a low-probability forecaster "wins" every calm day with a tiny SE. V6a, V6b and V7
+   are therefore calibrated on **every exposed regular session with a valid base rate (15 Jan 2019 to 14 Oct 2026)**.
+   A **calm stress** adds the calmest 125 and 250 sessions (13 Apr - 12 Oct 2021 and 6 Oct 2022 - 10 Oct 2023, no 2%
+   day in either). A Brier member is **judged (claim or futility) only when its scored window holds at least 5 2%
+   days** (`confirmatory.brier_judgeable`); otherwise it is not judgeable at that look (p = 1, open, never "no").
+   Measured: without the gate, claim size is up to 62-99% for V6b; with it, every cell is within tolerance (n = 125
+   and 250, both looks, full period and calm stress, claims and false futility). The share of windows judgeable over
+   2019-26 is 53% at n = 125 and 90% at n = 250, and 0% in the calm stretches. Revision 1's 1,000-series calibration
    (`v4_null_calibration.md`) is superseded; its rates below 0.01 are some evidence only. The studentized bootstrap,
    revision 0's centred bootstrap and a Newey-West HAC t are reported sensitivities, **never used to choose a
    result**.
@@ -221,8 +230,9 @@ missing; daily HAR never stands in again.
    100,000 series; `v4_futility_study.md`):** F+D's false-futility rate is 0.0-2.6% in all 16 cells (V1, V2, V6a,
    V6b; n = 125 and 250; both orientations; tolerance 2.60%). Revision 1's bootstrap bound (F0) said a false "no" in
    **23-32%** of cases for V1 and V2 and 7-17% for V6a and V6b, against 2.5%: it is reported only. Strong evidence for
-   the measured nulls, some evidence for future data. V7 borrows V6b's threshold (reasoning only). Across members,
-   "every member futile" is an intersection-union claim (Berger 1982).
+   the measured nulls, some evidence for future data. V7 borrows V6b's threshold (reasoning only). The Brier members
+   use revision 4's gate and 2019-26 thresholds (5.3). Across members, "every member futile" is an
+   intersection-union claim (Berger 1982).
 6. **The confirmatory family (15 members, fixed now).** Targets V1, V2, V6a, V6b, V7, each with three forecaster slots:
    `rules` (the registered code forecaster: G7's rule forecaster, or M1's weather model for V6), `hybrid` (Book 2) and
    `ai_team` (Book 3), numbered k = 1..15 in the order of `terms.FAMILY`. Each slot holds the first forecaster version
@@ -293,20 +303,12 @@ calibrated threshold replaces rate / 15 in this formula, which needs far more ou
 
 | Criterion | Test |
 |---|---|
-| QLIKE ranking loss at zero, near-zero and missing RV | `test_loss_and_pairs.py`: zero, 1e-300, refusals; unresolved counted |
-| Equal paired differences with the textbook form when RV > 0 | `test_paired_differences_are_equal_under_both_forms...` |
-| The frozen day sets behind the 3% effect, zero-RV count | `test_scored_set_keeps_zero_rv...`, `test_gate_is_three_percent...` |
-| One-sided test (seed, blocks, missing pairs), null-calibrated | `test_bootstrap.py`, `test_confirmatory.py`, the committed calibration |
-| HAC as a sensitivity | `test_hac_matches_a_hand_newey_west...` |
-| Family rule (Bonferroni at rate / 15), p = 1 unjudged, membership and timestamp | `test_family_and_stop_rule.py` |
-| Rule E+D, its thresholds, size study and real-data skew | `test_claim_rule.py`, the committed tables |
-| Baseline eligibility | `test_eligibility_and_power.py` |
-| V4's dimensionally checked golden example | `test_units_settlement_sessions.py` with `v4_golden.json` |
-| V5's outcome from the expiry's final settlement, source and timestamp | `test_v5_...` (wrong expiry, later file, early timestamp) |
-| Futility against the minimum effect, 97.5% at each look | `test_futility_...` (both looks), `test_a_is_no_only_when...` |
-| Stop rule A/B table with zero trials, missing and void outcomes | `test_the_review_table`, `test_a_with_zero...`, `test_b_...` |
-| 60-outcome power report (planning only) | `test_power_report_...`, the design table reproduced |
-| Session set and the disclosed base rates | `test_session_set_is_a7_regular...`, `test_disclosed_base_rates...` |
+| QLIKE loss at zero, near-zero, missing RV; equal paired differences; the 3% day sets | `test_loss_and_pairs.py`, `test_bootstrap.py` |
+| One-sided test, rules E+D and F+D, thresholds, size and futility studies, Brier regimes | `test_confirmatory.py`, `test_claim_rule.py`, `test_futility_rule.py`, `test_brier_regimes.py` |
+| Family rule, p = 1 unjudged, membership and timestamp; stop-rule table (zero trials, missing, void) | `test_family_and_stop_rule.py` |
+| Baseline eligibility; 60-outcome power report (planning only) | `test_eligibility_and_power.py` |
+| V4's golden example; V5's settlement source and timestamp; session set and base rates | `test_units_settlement_sessions.py` |
+| Protocol text and code agree | `test_protocol_text.py` |
 
 ## 10. The freeze (after the judge's PASS and ChatGPT's review only)
 
@@ -334,10 +336,12 @@ confirmation of section 11's items A-C (given, 15 Oct 2026) and of item D.
   the only measured option within tolerance in every cell. Its power cost, by normal approximation (planning only,
   optimistic under heavy tails), in independent outcomes at r = 3 / r = 5 with the n = 125 thresholds (at least this,
   since thresholds fall as n grows). The plain first step needs 134
-  / 316. Under E+D: V1 426 / 1,183 (about 1.7 / 4.7 years); V2 396 / 1,099 (about 8 / 22 years); V6a 180 / 499
-  (about 0.7 / 2 years); V6b and V7 151 / 419 (about 3 / 8 years). **Said plainly: the QLIKE questions V1 and V2
-  cannot be claimed in useful time on realistic data**; the Brier questions can, slowly. The other options' sizes
-  stay disclosed in `v4_size_study.md`. Futility is measured the same way (5.5, rule F+D).
+  / 316. Under E+D: V1 426 / 1,183 (about 1.7 / 4.7 years); V2 396 / 1,099 (about 8 / 22 years). The Brier
+  members, with revision 4's gate and 2019-26 thresholds: V6a 541 / 1,501 at n = 125 (about 2.1 / 6 years) and
+  more at n = 250; V6b and V7 151 / 418 (about 3 / 8 years), and only in windows with 5 or more 2% days. **Said
+  plainly: V1, V2 and V6a cannot be claimed in useful time on realistic data; V6b and V7 can, slowly.** The other
+  options stay disclosed in `v4_size_study.md`. Futility is measured the same way (5.5, rule F+D). **Still owed: a
+  VIX null for V7**; it borrows V6b's thresholds until one is measured.
 
 Also open to challenge: the 15-member family without V3, V5 and V4 (5.6); special sessions excluded (section 2); V2
 and V3 on `close_proxy` (1.1); the 5% spread limit and parity forward (1.4); strict "inside" for V5 (1.5).

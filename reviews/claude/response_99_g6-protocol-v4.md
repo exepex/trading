@@ -187,3 +187,39 @@ Each item was checked before it was accepted.
   tolerance (strong evidence for the measured nulls). The worst cell is V2 at n = 125: 2.58%.
 - **Tests.** `test_futility_rule.py` checks the rule's mapping, the 12-batch minimum, that the fast bound equals
   `effect_check`, that the nulls sit exactly at the minimum effect, and the committed table.
+
+## Revision 4: answer to judge 98 addendum 3
+
+1. **Brier rules across regimes (must-fix 1): ACCEPTED. The defect is confirmed (strong evidence).**
+   - **The data.** `tools/v4_brier_regimes.py` rebuilds the V6a and V6b nulls from every exposed regular session with
+     a valid base rate (15 Jan 2019 to 14 Oct 2026).
+   - **The calm stress.** It adds the calmest stretches: 125 sessions from 13 Apr to 12 Oct 2021 and 250 sessions from
+     6 Oct 2022 to 10 Oct 2023, with no 2% day in either.
+   - **The run.** 100,000 held-out series per null, both orientations, n = 125 and 250, both looks, for claims and
+     false futility.
+   - **Without a gate, the rules fail.** V6b's claim size is 62-99% because calm windows always "claim". V6a is at
+     1.7% against 0.13%.
+   - **The gate: at least m 2% days in the scored window before any verdict.** With m = 5, 10, 15 or 20, every cell is
+     within tolerance; the calm stretches are never judgeable (0 events).
+   - **Operative rule: m = 5**, the smallest that holds. It keeps the most windows judgeable over 2019-26: 53% at
+     n = 125 and 90% at n = 250.
+   - **The stop rule.** A member that is not judgeable keeps p = 1 and is open, so it counts as undecided, never "no".
+     The existing decision unit already does this; no new state is needed.
+   - **Power cost** (normal approximation, planning only), in outcomes at r = 3 / r = 5:
+     - V6a: 541 / 1,501 at n = 125, and 874 at n = 250.
+     - V6b and V7: 151 / 418.
+   - **Said plainly:** V6a cannot be claimed in useful time either; V6b and V7 can, slowly, and only in non-calm
+     windows.
+2. **What "held-out" proves (must-fix 2): DONE.** Protocol 5.3 now says that fresh seeds measure Monte Carlo error
+   only, on the same days, and prove nothing about other periods.
+3. **Follow-ups: DONE.**
+   - The descriptive `_quantile` took the (k+1)-th order statistic. It is fixed, and `calibrated_t` was recomputed from
+     the same seeded series (`--repair-calibrated`).
+   - `calibrated_A` is dropped from the table, because recomputing it needs the conditional bootstrap again and the
+     operative values are elsewhere.
+   - Item D notes that a VIX null for V7 is still owed.
+   - `outcomes_needed` now uses -z(tau), which is exact for tiny thresholds.
+4. **Code and tests.**
+   - Code: `confirmatory.brier_judgeable` and `MIN_EVENT_DAYS = 5`, and `v4_brier_regimes.operative_thresholds` for G8
+     at each look.
+   - Tests: `test_brier_regimes.py`.

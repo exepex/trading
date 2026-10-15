@@ -98,7 +98,7 @@ def outcomes_needed(threshold: float, r: float) -> int | None:
     if threshold <= 0:
         return None
     z = NormalDist().inv_cdf
-    return math.ceil(((z(1 - threshold) + z(0.8)) * r) ** 2)
+    return math.ceil(((-z(threshold) + z(0.8)) * r) ** 2)  # -z(tau) = z(1 - tau), exact for very small tau
 
 
 def main() -> None:

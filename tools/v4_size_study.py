@@ -126,16 +126,32 @@ def tier_rates(x: np.ndarray, block: int, thresholds: tuple[float, ...], seed_ba
     rates = {"A": [float((a <= h).mean()) for h in thresholds], "C": [float((c <= h).mean()) for h in thresholds]}
     for divisor in DIVISORS:
         rates[f"B/{divisor}"] = [float((a <= h / divisor).mean()) for h in thresholds]
-    rates["calibrated_A"] = [_quantile(a, h) for h in thresholds]  # the threshold that would give size h
-    rates["calibrated_t"] = [_quantile(p_t, h) for h in thresholds]
+    rates["calibrated_t"] = [_quantile(p_t, h) for h in thresholds]  # the batch-t threshold giving size h
     return rates
 
 
 def _quantile(p: np.ndarray, rate: float) -> float:
-    """The largest threshold whose rejection rate is at most `rate` (exact below the tier's top)."""
+    """The largest order statistic whose rejection rate is at most `rate`: the `allowed`-th smallest p (1-based), so
+    rejecting at or below it rejects `allowed` series without ties (0 when none may be rejected)."""
     allowed = int(math.floor(rate * len(p)))
-    ordered = np.sort(p)
-    return float(ordered[allowed]) if allowed < len(ordered) else 1.0
+    return float(np.sort(p)[allowed - 1]) if allowed > 0 else 0.0
+
+
+def repair_calibrated(data: dict) -> dict:
+    """Judge 98 addendum 3: the first run's `calibrated_*` columns took the (allowed + 1)-th order statistic. The
+    batch-t column is recomputed from the same seeded series with the corrected quantile; `calibrated_A` needs the
+    conditional bootstrap again and is dropped (the operative values are in `v4_claim_thresholds.md`)."""
+    nulls = {"real_h1": real_differences(1), "real_h5": real_differences(5)}
+    nulls |= {name: brier_differences(h) for name, (h, _) in BRIER_PROCESSES.items()}
+    for number, cell in enumerate(data["cells"]):
+        rng = np.random.default_rng(np.random.SeedSequence([SEED, 98, number]))
+        x = null_matrix(cell["process"], data["small_tier"], cell["n"], cell["block"], rng, nulls)
+        for tier, rows, thresholds in (("small", x, data["small"]), ("large", x[: data["large_tier"]], data["large"])):
+            t, _, k = batch_stats(rows, cell["block"])
+            p_t = np.array([t_cdf(v, k - 1) if np.isfinite(v) else 1.0 for v in t])
+            cell[tier]["calibrated_t"] = [_quantile(p_t, h) for h in thresholds]
+            cell[tier].pop("calibrated_A", None)
+    return data
 
 
 def run_cell(process: str, block: int, n: int, cell: int, real: dict, small: int, large: int) -> dict:
@@ -191,7 +207,7 @@ def markdown(data: dict) -> str:
              f"{data['small_tier']:,} seeded mean-zero series per cell below 0.01, {data['large_tier']:,} above; "
              "B = 10,000; bootstrap only where the batch t rejects (exact for a max test). Columns: look 1 step 1 "
              "(0.00133), look 2 step 1 (0.002), 0.02, 0.03. **Bold** = above nominal + 2 Monte Carlo SE.", "",
-             "| process | L | n | batches | " + " | ".join(options) + " | calibrated A: L1, L2 |",
+             "| process | L | n | batches | " + " | ".join(options) + " | calibrated t: L1, L2 |",
              "|" + "---|" * (5 + len(options))]  # fmt: skip
     for c in data["cells"]:
         row = [f"{c['process']} | {c['block']} | {c['n']} | {c['batches']}"]
@@ -199,7 +215,7 @@ def markdown(data: dict) -> str:
             small = [_cell(c["small"][option][i], data["small"][i], data["small_tier"]) for i in first]
             large = [_cell(c["large"][option][i], data["large"][i], data["large_tier"]) for i in last]
             row.append(" / ".join(small + large))
-        row.append(", ".join(f"{c['small']['calibrated_A'][i]:.2g}" for i in first))
+        row.append(", ".join(f"{c['small']['calibrated_t'][i]:.2g}" for i in first))
         lines.append("| " + " | ".join(row) + " |")
     return "\n".join(lines) + "\n"
 
@@ -210,4 +226,7 @@ def _cell(rate: float, threshold: float, series: int) -> str:
 
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--repair-calibrated"]:
+        _write(repair_calibrated(json.loads(OUT.with_suffix(".json").read_text(encoding="utf-8")))["cells"])
+    else:
+        main()
