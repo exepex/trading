@@ -78,8 +78,8 @@ not committed.
   check found 2 of 6 equal: "differs on 40 of 40" held for the random sample, not for every session.)
 - **A finding for A16, which this story does not change:** A16's condition "compare the 09:15 `candle_1m_open` with
   NSE's official open and report every difference above 0.05" will report most sessions (67 of 74 recently) for a
-  reason that is no error. The comparable value is the last pre-open 1-minute candle's close. This is reported to the orchestrator for
-  A16's owner and judge.
+  reason that is no error. The comparable value is the last pre-open 1-minute candle's close. This is reported to the
+  orchestrator for A16's owner and judge.
 - High and low: 26-28 of 40 agree within 0.05 points.
   - Most of the rest are small, with Groww's range inside NSE's: from 0.05 to 6.25 points. Reasoning only: Groww's
     candles sample the index less often than NSE's own computation.
@@ -143,14 +143,26 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
   Drive like every answer. Each of the 26 levels is compared with the 1-minute value at the same mark: the 09:15 open
   with the open of the 09:15 1-minute candle, each close with the close of the 1-minute candle ending at the mark.
   - Any difference above 0.05 points voids the session (`candle_mismatch:<marks>`).
-  - A session whose 1-minute answer is empty or lacks a needed minute (a Groww cap or hole) is **not written**: it is
-    counted and printed as `no_1m_check`, and the run exits 1. There is never a silent fall-back to the 15-minute
-    candles alone.
+  - A session whose 1-minute answer was received and archived but is empty or lacks a needed minute (a Groww cap or
+    hole) gets a **void row** `no_1m_check` (permanent, below), counted and listed apart by reason. Its 15-minute
+    levels are never used without the check: no silent fall-back.
   - Rate: one call at a time, at least 0.5 s between call starts (at most 2 a second, under the 4-5 a second A16
     measured as safe). At about 0.8 s a call, the roughly 1,680 sessions take about 23 minutes, once. Three Groww
     failures in a row stop the run, naming them, rather than hammer a refusing service.
 - **Previous close:** the 15:30 level of the previous recorded session (muhurat skipped, as A16), or `None` for the
   first session in the data.
+- **Transient or permanent (judge 122 addendum 2):** one rule decides between deferring and a void row.
+  - **Transient: a call or read failed.** A Groww error or timeout, an unreadable answer, a Drive read error, or
+    NSE's archive unavailable (`RawSourceUnavailable`, A9b). The session is **deferred**: not written, named, exit 1,
+    and the next run tries again. A transient failure never writes a row.
+  - **Permanent: the answer was received and archived, but the data is absent.** A needed 1-minute minute is
+    missing (`no_1m_check`), a 15-minute candle is missing (`missing_candles`), or NSE has no index-close file for the
+    day (`nse_unchecked`). The session gets a **void row**, listed apart by reason, so the next session can be written
+    with a void overnight part, as after 10 Oct 2025.
+  - **How "NSE has no file" is told from "the read failed":** the index-close file is read through A1's
+    `RawFileLibrary` (Drive first, then NSE). "No file" is definitive only when Drive has no copy **and** NSE answers
+    404 (`RawFile(None)`: not published). A Drive error, or NSE's `RawSourceUnavailable` (after A9b's retries, a refusal
+    included), is transient.
 - **Order (judge 122 should-fix 3):** a session is written only when its previous recorded session already has a
   derived row (from this run or an earlier one). Otherwise it is **deferred**: not written, named, and the run exits
   1. A later run that derives the previous session then writes it, so a transient failure never fixes a wrong row in
@@ -165,18 +177,18 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
     from the session's 1-minute answer; expected equal, step 0) and
     the range gap (`NSE high - max candle high`, `min candle low - NSE low`), in points. These stay in the row
     (`nse_open_gap`, `nse_high_gap`, `nse_low_gap`): differences of NSE's figures, never a level;
-  - NSE's file missing or unreadable: `nse_check = unchecked`, named, and the session is **void** (`nse_unchecked`).
-    Its levels cannot be shown to be inside NSE's range. Reasoning only: an unchecked session is safer out than in;
-    the void share shows the cost.
+  - NSE's file definitively absent (Drive has no copy and NSE answers 404): `nse_check = unchecked`, and the session
+    is **void** (`nse_unchecked`, permanent). Its levels cannot be shown to be inside NSE's range. Reasoning only: an
+    unchecked session is safer out than in; the void share shows the cost. A failed read of the file is transient
+    (deferred), never a void row.
 - **Realised variance:** A16's definition and units exactly (`rv_intraday` over 25 intervals, `rv_overnight`,
   `rv_session`, `vol_pct`, the void rules, never interpolated). It is computed by `CandleCloseRv15m`, a new class
   behind A16's `IntradayRealisedVol`, sharing A16's arithmetic (one function, not a copy). `method` is
   `rv-candle-15m-v1` and `measure` is `candle_close`.
 - **Provenance (A17's rule, A17's function; judge 122 minor 2):**
-  - computed by the same `provenance()` A17 uses: it moves from `fno/global_cues/table.py` to `fno/provenance.py`
-    (with `LIVE`, `BACKFILLED` and `NSE_OPEN`) and A17's table and verify import it from there, unchanged in
-    behaviour (A17's tests stay green); the next session comes from `NseSessionCalendar.next_open` (A17b), so muhurat
-    is skipped as there;
+  - computed by A17's own `provenance()` (`fno/global_cues/table.py`), imported, not moved and not copied; the next
+    session comes from A17b's `NseSessionCalendar.next_open`, imported from `fno/global_cues/cue_calendars.py` (judge
+    122 addendum 2, minor 1). A17's files and tests are unchanged;
   - `first_seen_at` is the latest fetch time of the raw copies the row came from (its 15-minute window and its
     1-minute session answer);
   - `provenance` is `live` when that time is before 09:15 IST of the session after the row's session, else
@@ -255,17 +267,23 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
    - A level, or a used candle's high or low, outside NSE's range by more than 0.05 voids the session
      (`outside_nse_range`). Tests at 0.05 and 0.06 beyond; **a full session with every close inside NSE's range and
      one candle high 196.30 above it voids** (the 23 Mar 2020 shape).
-   - A missing NSE file voids it (`nse_unchecked`).
+   - A definitively absent NSE file voids it (`nse_unchecked`); a failed read defers it.
    - The open, high and low gaps are in the row.
    - The run prints how many sessions have a pre-open gap (the last pre-open 1-minute candle's close against NSE's
      open) above 0.05, and every such session by date.
    - **The 1-minute check (Definitions):** a session with any of its 26 marks more than 0.05 from the 1-minute value
-     voids (`candle_mismatch`, marks named); a session without a usable 1-minute answer is not written and counted
-     (`no_1m_check`, exit 1). Tests at 0.05 and 0.06; an empty 1-minute answer; a 1-minute answer missing one needed
+     voids (`candle_mismatch`, marks named); a received 1-minute answer that is empty or lacks a needed minute gives a
+     void row (`no_1m_check`). Tests at 0.05 and 0.06; an empty 1-minute answer; a 1-minute answer missing one needed
      minute; the pacing (no two calls start less than 0.5 s apart); three failures in a row stop the run.
+   - **Transient or permanent (judge 122 addendum 2), four tests, each with its expected outcome:**
+     - a Groww error or timeout on the 1-minute call: deferred, no row, exit 1; the next run writes it;
+     - a received 1-minute answer missing a needed minute: void row `no_1m_check`; the next session written with a
+       void overnight part;
+     - a Drive read error (or NSE's `RawSourceUnavailable`) on the index-close file: deferred, no row, exit 1;
+     - no Drive copy and NSE's 404: void row `nse_unchecked`; the next session written with a void overnight part.
 6. **Provenance and look-ahead.**
-   - Every row has `first_seen_at` and `provenance` from A17's own `provenance()` (moved to `fno/provenance.py`;
-     A17's tests and verify unchanged and green).
+   - Every row has `first_seen_at` and `provenance` from A17's own `provenance()`, imported from
+     `fno/global_cues/table.py` with A17b's `next_open` (A17's files and tests unchanged).
    - Tests: fetched after the next session's 09:15 gives `backfilled`; fetched at 18:00 the same day gives `live`;
      09:14:59 and 09:15:00 of the next session (boundary); the next session found by the calendar across a weekend
      and a holiday.
@@ -348,4 +366,5 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
 
 **Depends:** A1, A7, A9, A10, A16, A17 (the provenance rule) · **Size:** M · **Status:** story text revised after
 judge 122 (FAIL on d7bfd66: 3 should-fix and 5 minors, all accepted; the orchestrator's decision 55 chose the
-per-session 1-minute check), for the judge's re-check; no code yet
+per-session 1-minute check) and judge 122 addendum 2 (transient or permanent, accepted), for the judge's re-check;
+no code yet
