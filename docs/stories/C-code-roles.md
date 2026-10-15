@@ -449,3 +449,70 @@ a reused row; checks C2 and C4 refuse the bad ones; reads the JUDGE.md step.
 
 **Depends:** C2, C4, C5 · **Size:** S · **Status:** text passed (judge 134 addendum 1); code built on
 `story/c5b-restart-decision` for the judge (claims: `reviews/claude/response_135_c5b-restart-decision.md`, addendum 2)
+
+---
+
+## C2c. The stressed margin multiplies the whole margin, not the scan alone
+
+**Repository:** trading · **Lane:** 1 (money and risk: C2's and C4's margin stress)
+
+**Description:** As the risk manager, I want the owner's stress factor k to multiply the whole margin C2 counts (the
+SPAN part and the exposure margin), as k was measured, so that the crash buffer covers a held trade's margin rising in
+a crisis instead of almost nothing.
+
+**Context and why:** Owner, 15 Oct 2026 (relayed by the orchestrator; A14c question 1): "WHOLE MARGIN. k multiplies
+the whole margin (scan plus exposure), as it was measured." Today C2 and C4 stress the scan only (judge 75):
+`max(0, k x scan - NOV) + min(0, NOV) + exposure`. On the real 14 Oct rows the scan is 1-14% of the margin (exposure
+59,077.07 a lot on every row), so k = 1.45 adds +0.6% to SF 100 and 0% to every BF row, while 1.45 was measured as the
+rise of the whole held margin (response 77). Strong evidence (response 77's own table, recomputed with
+`MarginParts`).
+
+**The change (one term):** the exposure margin is multiplied by k too; the SPAN part, the premium rule and the STR1 cap
+stay as they are:
+
+`stressed = max(0, k x scan - NOV) + min(0, NOV) + k x exposure` (and at entry, with no premium credit:
+`max(0, k x scan - NOV) + k x exposure`).
+
+For a credit structure this is exactly `k x (what C2 counts)`; for a debit it is never below that (the premium paid is
+still not multiplied, judge 75). On the 14 Oct rows at k = 1.45 (per lot, recomputed):
+
+| Row | Broker (k = 1) | Stressed today | Stressed after C2c | At entry today | At entry after C2c |
+|---|---|---|---|---|---|
+| SF 100 | 59,899.32 | 60,269.33 | 86,854.01 | 66,340.33 | 92,925.01 |
+| SF 300 | 62,679.37 | 64,300.40 | 90,885.09 | 81,434.40 | 108,019.09 |
+| SC 300 | 67,594.67 | 71,427.59 | 98,012.27 | 81,580.59 | 108,165.27 |
+| BF 300 | 59,077.07 | 59,077.07 | 85,661.75 | 59,077.07 | 85,661.75 |
+
+**What the owner should know (reasoning):** every stressed figure rises by about 45%, so about a third fewer lots fit
+the same paper capital (C5's buckets and C2's caps unchanged). That is the buffer the owner chose working as measured.
+
+**STR1 cap (story STR1b, `fno/risk/capital.py`):** the cap stays on the SPAN part only (the worst terminal loss beyond
+the premium: 0 for a debit row, width x lot - credit for a credit spread), never below the broker's own unstressed
+SPAN figure. The exposure is outside the cap: it is charged on the short legs' notional, rises with the index and by
+NSE circular, and is not bounded by the spread's loss (reasoning). So for every code the stressed figure is never below
+the broker's unstressed figure (k >= 1, settings refuse k < 1), and a bought-only code (LC, LP: no exposure) is
+unchanged.
+
+**Scope.** In: `fno/risk/margins.py` (`MarginParts.stressed`, `at_entry`, the module text and `record()`'s
+`"stresses"` value), C4's independent copy `fno/checks/validity_margin.py` (`stressed_per_lot`), the `capital.py` text,
+their tests (`tests/risk/test_margin_formula.py`, `tests/risk/test_manager.py`, C4's margin tests). Out: the value of k
+and its recompute (A14c); the scenario-lookup method; the STR1 cap's values; any order.
+
+**Acceptance criteria:**
+1. The four rows above equal C2's and C4's figures to the paisa on the real 14 Oct rows (test).
+2. For credit rows C2's stressed figure equals `k x initial()`; for debit rows it is not below it (test over every
+   structure and width in a planted table).
+3. C2 and C4 agree on every planted row and k (test); a mutation in either copy (exposure unstressed, premium
+   stressed, cap applied to the exposure) fails a test.
+4. STR1 codes: the cap still bounds the SPAN part; the stressed figure is never below the broker's unstressed figure
+   (tests at the cap's edges, k = 1 and k = 1.45); LC and LP unchanged.
+5. Every decision record's stressed-margin method says what is stressed: `"stresses": "scan and exposure (owner,
+   15 Oct 2026; story C2c)"`.
+6. Code size, lint, imports and the full suite pass.
+
+**Order:** C2c goes before STR1b-2 (which lists `fno/risk/` but has not started); STR1b-2 builds on C2c's formula.
+
+**Judge verifies:** recomputes two rows by hand; plants the three mutations in both C2 and C4; checks an STR1 credit
+spread at its cap.
+
+**Depends:** C2, C4, STR1b-1 · **Size:** S · **Status:** text for the judge (lane 1)
