@@ -191,3 +191,45 @@ S3 and S6 can merge, followed by the rule 8 dry run.
 - No code changed.
 - On this head, `python -m fno evaluation check` reports "complete", and `tests/evaluation tests/scoreboard` gives
   195 passed.
+
+## Addendum 4: `story/s6-followups` at `edb78629` (on main `91c54f88`) (judge G)
+
+**Verdict: PASS.** The branch has two commits:
+
+- `8a9f849c`: the reasons for a missed exit review, a test that an incomplete section is never testable in Holm (my
+  addendum 2 note 1), and no `-0.0` share;
+- `edb78629`: no worst day until a day loses money, and `cash_rate_basis` = "placeholder until the S1 freeze sets the
+  91-day T-bill yield" on every do-nothing block.
+
+**Gates:**
+
+- ruff check, ruff format and `check_imports` are clean.
+- Full suite with `-n auto`: **6,788 passed, 0 failed**.
+
+**Mutations (each alone, then reverted).** All four were caught; `tests/scoreboard` gives 127 passed clean:
+
+- an incomplete section made testable in Holm, which survived in addendum 2;
+- a worst day reported at a net of 0;
+- `waiting` read as "failed";
+- the cash-rate basis label emptied.
+
+**Exit-review reasons:**
+
+- "no exit review ran";
+- "not checked against prices: <reason>" when `waiting` (no valid snapshot);
+- "exit review failed: <error>";
+- "exit review not recorded as done".
+
+This answers my addendum 2 note 2: a no-snapshot day now says it was not checked against prices, not that an exit was
+lost.
+
+**Real data:** I built both boards for 16 Oct 2026 from the repository, without the CLI's Drive push, so no Drive
+download was made.
+
+- Scoreboard A: every book "not started", `holm_family` 0, because the common start is not reached.
+- Scoreboard B: every account "account not started" locally, because the accounts are kept in Drive under E2c.
+- No book has a missed run.
+
+This is the expected state before the first paper run.
+
+**R3 note (judge 208):** see judge 208, addendum 1 note.

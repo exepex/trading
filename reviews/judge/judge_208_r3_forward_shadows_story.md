@@ -110,3 +110,11 @@
 - **Test B's line is added.**
 - **The owner's decisions are in.** 1 A (B0 registered after the build) and 2 A (account opening, per-shadow terms and
   the Test B path now; orders and fills with E8 part 1b) are recorded, and the criteria are split to match.
+
+**Addendum 1 note (builder's correction at `d0ad58ca`): agreed.** The leak was latent, not live:
+
+- `opening_trades` keeps only trade IDs in Book 1's own filled-trade openings (`book1_records.py:56-66`). A shadow
+  record that `_chosen` picks up is never used unless its ID matches one of Book 1's filled trades, and shadow IDs
+  carry the `shadow-` prefix.
+- Isolation rested on that prefix alone. R3's explicit `mode: shadow` check makes it hold by rule.
+- Criterion 9 and test 4 are unchanged and still right.
