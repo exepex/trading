@@ -815,6 +815,12 @@ settled), choosing exits (E4's rules and the playbook).
 ---
 
 
+## E8. Owner-timing fills
+
+Story text in its own file: `docs/stories/E8-owner-timing-fills.md` (issue #109).
+
+---
+
 ## E8a. Fill-timing study: what E8's reaction-time fills do to an entry (history)
 
 **Repository:** trading
