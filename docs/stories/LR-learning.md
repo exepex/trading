@@ -267,3 +267,145 @@ secrets and commit step.
   nothing.
 
 **Depends:** G4, G8, M1, T1, A4b, A7, F1/G5 (fire path), F8, BG1 · **Size:** S · **Status:** text PASS (judge 167 addenda 1-2); code on `story/lr1-weekly-postmortem`, with the judge
+
+---
+
+## LR3. Drift detection: a CUSUM on each strategy's trades and each forecaster's scores
+
+**Repository:** trading · **Issue:** #103 · **Slice:** B
+
+**Description:** As the statistician and the risk manager, I want a pre-registered CUSUM on each approved strategy's
+per-trade net and on each forecaster's loss against its baseline, so that a strategy or forecaster that has broken is
+flagged between scheduled reviews, without anyone reading a chart and switching it off by eye.
+
+**Context and why:** The owner accepted drift detection as a missing piece on 14 Oct 2026 (`DESK_DECISIONS.md`).
+Design v2 4.3 and 5.8 propose the rule, and 5.8 says "owner decides the numbers". REPLAN section 4 says S1's
+`strategy_review_rule` adds the drift CUSUM as an input, and `immediate_pauses` names the drift pause as an exception.
+Response 216 holds the claims, the evidence computed for this text and the owner questions.
+
+**What the evidence says (computed for this text, response 216; strong evidence for the figures, reasoning for the
+choices):**
+- **Normal theory.** By Markov chain, design 5.8's numbers hold for independent normal data: k = 0.5 gives an average
+  of 334 observations between false alarms at h = 4 and 925 at h = 5. But k = 0.5 is tuned to detect a 1 SD shift.
+  An edge of 0.1-0.3 SD per trade disappearing takes 60-100 or more trades to flag, which is 5-8 years for a
+  monthly strategy.
+- **Strategies, from experiment 1's real per-trade nets** (SF, SC, BF, 30-58 trades each, resampled):
+  - The false-alarm rate depends on the skew. Short-premium SF (skew -2.6) has a median in-control run of 40 trades,
+    not about 230. SC is around 100-150. Positively skewed BF never alarmed in 3,000.
+  - A strategy that becomes 1 SD worse per trade alarms in a median of 6-9 trades.
+  - An edge of +0.06 to +0.12 SD disappearing is never detected in practice.
+- **Forecasters, from the v4 back-fill (2019-2026, about 1,900 sessions, exploratory):**
+  - Design 5.8's rule as written (each day's Brier difference scaled by the SD of the first 60 outcomes) gives
+    287-503 alarms for V6's EWMA rule and both weather versions, although all three beat the base rate on average.
+    The first 60 sessions had no 2% move, so that SD was about 0.0001 against 0.08 over the whole history. Daily
+    Brier differences are mostly near 0 with spikes, and autocorrelated (lag 1: +0.25 to +0.52). **The rule as
+    written is unusable.**
+  - On the means of 20-outcome blocks, scaled by the SD of the back-fill's block means, the same k = 0.5 and h = 4
+    give **0 alarms in 95 blocks** (lag-1 autocorrelation +0.03 to +0.31). A forecaster that becomes 1 block-SD worse
+    than its baseline alarms in a median of 7 blocks (about 7 months), and 0.5 SD worse in 42. Losing its advantage
+    over the baseline is never detected.
+- **So the CUSUM detects breakage, not lost edge.** Lost edge is the scheduled review's job (S1, E6 and G8's
+  bootstrap comparisons). The catastrophic-loss rules (Rs 10,000 a trade, Rs 30,000 cumulative) stay the first and
+  faster line.
+
+**Scope.** In:
+- the CUSUM rule;
+- the strategy monitor on E6's completed positions;
+- the forecaster monitor on G8's scored v4 outcomes;
+- the per-version threshold calibration;
+- alarms: pause, alert, post-mortem line, review input.
+
+Out:
+- the review rule itself (S1 `strategy_review_rule`, its text owner);
+- the house forecast's weights (G9, slice C);
+- any change to a score or a record;
+- LR1's post-mortem code (it reads LR3's alarms; its builder adds the call).
+
+**Expected design** (in `fno/learning/`, placement agreed with LR1's builder, its own `drift_wiring.py`):
+- **The rule** (`drift_cusum.py`, pure): a one-sided CUSUM `S_t = max(0, S_(t-1) + z_t - k)`, alarm when
+  `S_t > h`, then `S` restarts at 0. `z_t` is positive when worse. `k = 0.5` everywhere: the design's "detect a
+  1 SD collapse" (some evidence: the computed run lengths).
+- **Strategies** (`drift_strategies.py`):
+  - **Data:** for each `paper` version, the C1 net of each completed position in close order (E6's strategy record).
+  - **Standardising:** `z = (mu0 - net) / sigma`, where `mu0` is the plan's `expected_net_per_opportunity` and
+    `sigma` its registered SD. The SD is a new plan field, `expected_sd_per_opportunity`, from the same research test
+    (a D1 format change through the orchestrator; R1's sample plan needs it too).
+  - **Threshold:** `h` is set **per version at registration**. It is `max(4, h*)`, where `h*` is the smallest h in
+    steps of 0.5 whose in-control median run length is at least ten years of that version's trades
+    (`trades_per_year` from its plan). The run length comes from resampling the version's research-test per-trade
+    nets: 10,000 runs, seed 20261014. The floor of 4 is design 5.8's value: a research sample of 30-60 trades
+    under-represents the tails. The value is frozen in the plan. On experiment 1's six samples this gives h = 4.0
+    to 5.5, and a 1 SD collapse is flagged in a median of 8-12 trades. A version without a registered SD or `h` is shown "drift not monitored", never a silent pass.
+  - **Alarm:**
+    - new entries in every book pause at once through E6's pause path (`paper -> paused`, approver `drift_rule`,
+      D1's status change);
+    - one #fno-desk line, and a line in LR1's post-mortem;
+    - open positions run to their registered exits (no owner action on paper);
+    - the version resumes only by the owner's restart row after a review, like C2's brake;
+    - a shadow version (status `research`) is alerted only.
+- **Forecasters** (`drift_forecasters.py`):
+  - **Data:** for each scored v4 forecaster and question, `d = loss(forecaster) - loss(primary baseline)` (Brier for
+    V6, QLIKE for V1; G8's own loss functions, imported), on non-overlapping outcomes only (V6b every fifth day).
+  - **Blocks:** means of consecutive blocks of 20 outcomes.
+  - **Standardising:** `z = block mean / s`, where `s` is the SD of the block means over the forecaster's exploratory
+    back-fill before the v4 freeze. A forecaster without a back-fill (the AI books) takes `s` from its first 12 live
+    blocks, and has no alarm before those blocks are complete.
+  - **Threshold:** `h = 4`, fixed for every forecaster (back-fill: 0 alarms in 95 blocks).
+  - **Alarm:** one #fno-desk line and a post-mortem line. It is an input to the next scheduled review, where the
+    house forecast (G9) may lower that forecaster's weight. It never stops a forecast and never changes a score: v4's
+    scoring is frozen.
+- **Report:** `python -m fno drift report` lists each monitored version or forecaster: `S`, `h`, observations since
+  the last restart, the last alarm, and "not monitored" with its reason.
+
+**Acceptance criteria:**
+1. On a constructed series the CUSUM's `S` and alarm days match a hand computation, including the restart after an
+   alarm (test).
+2. The Markov-chain run lengths for k = 0.5 and h = 4 or 5 (334 and 925, to the nearest 5) are reproduced by the code
+   that computes them, which the calibration uses on resampled data (test).
+3. A strategy's `h` is calibrated from its registered research nets with the fixed seed. The same inputs give the same
+   `h`; a more negatively skewed sample gives a higher `h` for the same target; and `h` is never below 4 (tests with
+   SF-like and BF-like samples).
+4. A strategy alarm pauses the version in every book through E6's path, sends one alert and leaves open positions to
+   their exits. A second alarm while paused sends nothing new. A shadow version is alerted only (tests).
+5. A version without `expected_sd_per_opportunity` or a calibrated `h` is reported "drift not monitored" and never
+   pauses (test).
+6. The forecaster monitor uses non-overlapping outcomes and 20-outcome blocks. On the committed back-fill it
+   reproduces the computed result: 0 alarms in 95 blocks for V6a's EWMA rule at h = 4. Scaling by the first 60 days
+   instead reproduces the hundreds of alarms, as a recorded check (test).
+7. A forecaster alarm changes no score, record or forecast; it is only alerted and reported (test).
+8. The constants (k = 0.5, block 20, h = 4 for forecasters, the ten-year target, 10,000 runs, the seed) match S1's text
+   once S1 states them (test, as F9a criterion 11).
+
+**Test plan:** unit tests with constructed series; calibration tests with resampled constructed samples; the
+back-fill check on the committed v4 files; E6 pause tests with a temporary playbook registry.
+
+**Judge verifies:** recomputes one CUSUM path by hand, one calibrated `h` from a small sample, and the back-fill
+alarm count.
+
+**Design requirements, where each goes (quality rule 2):**
+
+| Requirement (source) | In LR3 | Or out, with the reason |
+|---|---|---|
+| Pre-registered CUSUM on each strategy's per-trade net (4.3, 5.8) | strategy monitor, criteria 1-5 | |
+| Standardised by the registered SD around the registered expected net (5.8) | `expected_sd_per_opportunity`, criterion 5 | The new plan field is a D1 change, routed through the orchestrator |
+| Alarm at 4, about 340 trades between false alarms (5.8) | k = 0.5 kept; h calibrated per version | A fixed 4 gives a median of 40 trades for short-premium skew (computed): replaced by per-version calibration, owner question 1 |
+| Forecasters: CUSUM on loss difference, SD of the first 60 outcomes, alarm at 5 (5.8) | 20-outcome blocks, back-fill SD, h = 4 | The rule as written gives hundreds of alarms on real data (computed), owner question 2 |
+| V6b every fifth day (5.8) | criterion 6 | |
+| A strategy alarm pauses new entries until the owner reviews (4.3, 5.8) | criterion 4 | |
+| A forecaster alarm lowers its house weight at the next review (4.3) | review input, criterion 7 | The weight change is G9's (slice C) |
+| S1's `immediate_pauses` names the drift pause (REPLAN 4) | | S1's text, through its text owner |
+| Drift alarms in the weekly post-mortem (4.3) | `drift_alarms(period)` | LR1's builder adds the call |
+| Monthly strategies react in years; the catastrophic-loss rules are the first line (5.8) | Known limits | |
+
+**Known limits (owner's simplicity rule, 15 Oct 2026):**
+- The CUSUM detects breakage (about 1 SD worse), never a small edge quietly disappearing. That is the scheduled
+  review's job.
+- A monthly strategy makes about 12 trades a year, so even breakage takes months to flag. The catastrophic-loss rules
+  act first.
+- A strategy's calibration rests on its research test, which is close-proxy history (experiment 1 style), not paper
+  trades. Paper trades that differ from it widen the real false-alarm rate. It is re-calibrated only as a new version.
+- An AI forecaster's `s` comes from its first year of live blocks, which may be a calm or a busy year.
+
+**Depends:** E6 (strategy records and pause path), D1 (the SD field, through the orchestrator), G8 (scores and loss
+functions), S1 (text owner: the drift pause exception and the constants), LR1 (reads the alarms) · **Size:** M ·
+**Status:** story text for the judge (response 216); code after the PASS
