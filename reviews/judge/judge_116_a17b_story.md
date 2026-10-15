@@ -77,3 +77,26 @@ Three should-fixes, all in the text:
 - how the private-table calendar check runs.
 
 Code may start once they are fixed. The re-check needs only the A17b section.
+
+## Addendum 1 (15 Oct 2026): revised story text at 464f5ffda2c242606a629b3ba66ff1fa471722f6 (ba95c56..464f5ff, text only)
+
+| Judge 116 finding | Status | Check |
+|---|---|---|
+| 1. The US 10-year is not on the NYSE calendar | **MET** | The stock calendar is now for the S&P 500 and Nasdaq 100 only. The US 10-year's expected date is the previous Monday-to-Friday weekday, with a sourced SIFMA calendar out (stated). Under that rule a bond holiday reads `behind`, and a Good Friday value read on Monday is `current`, because the rule expects Friday. A weekday rule can never make the US 10-year `ahead`, since a weekend value is impossible. Its own dates get a CI check. My cited dates are restated in the text |
+| 2. Status precedence and the newer-than-expected case; Brent | **MET** | Order: `none`, `current` (expected date, any age), `ahead` (newer, usable, flagged), `behind`, `stale` (behind **and** over age). The Sandy and Ford cases become `current` (31 Oct 2012 is in criterion 1). Brent: `behind`, `stale` or `none` only. The 27 Nov 2026 case names Thanksgiving (26 Nov) from the computed calendar |
+| 3. The calendar test without Drive | **MET** | A dates-only `us_trading_dates.csv`, derived from the Drive-only S&P 500 table, under the orchestrator's logged decision 19. Trading dates are exchange-calendar facts, not index values; the owner may confirm. CI tests the computed NYSE calendar against it, both ways |
+| Minors 1-3 | MET | USD/INR uses NSE **sessions** from the A7 calendar; FBIL "will almost always read `behind`" is stated; the 2026 calendar dependency is named |
+
+**One new minor (text), from a check on the Drive tables (dates and counts only).** The Nasdaq 100 table has **83 dates
+the S&P 500 table lacks**, US holidays from 1 Jan 2007 on. **82** of them repeat the previous value.
+
+Under the new order, a Nasdaq 100 reading on the day after such a holiday finds the holiday row first. It reads
+`ahead`, "usable like `current`", with that day's repeated value. The level is right, but a day-change feature would
+see a zero move on a holiday.
+
+Say in scope 1 or 2 that for the Nasdaq 100 a row on a date that is not an NYSE session is skipped, so the reading is
+the last NYSE session's row. Or say that `ahead` with a repeated value is reported as a holiday row. A test should
+cover it.
+
+**Verdict: PASS for 464f5ffda2c242606a629b3ba66ff1fa471722f6** (story text). Code may start. The new minor can be
+folded into the code round; I check it there.
