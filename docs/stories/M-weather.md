@@ -11,10 +11,10 @@ structure. Story template and definition of done: `docs/IMPLEMENTATION_PLAN.md`.
 ## M1. Weather as a scored forecaster
 
 **Repository:** trading · **Lane:** 1 (forecast records; the colour gates new trades: RED blocks new entries, and a
-missing weather reading blocks new trades, owner "4 A"). **Quality rule 9:** M1 can change a trade decision (the
-owner's test: "would this change a buy/sell signal, a trade or a stop decision?": yes, through RED and "missing"). So
-it is proposed for a ChatGPT review after the judge's PASS and before the merge; the orchestrator decides. A finding
-that changes neither the probabilities, the colour nor the block is noted in one line, not a new round.
+missing weather reading blocks new trades, owner "4 A"). **Quality rule 9 applies** (orchestrator, 15 Oct): M1 can
+change a trade decision (the owner's test: "would this change a buy/sell signal, a trade or a stop decision?": yes,
+through RED and "missing"), so ChatGPT reviews it after the judge's PASS and before the merge. A finding that changes
+neither the probabilities, the colour nor the block is noted in one line, not a new round.
 
 **Description:** As the risk manager, I want each NSE session's weather published at the 15:00 cutoff:
 - the probability of a 2% NIFTY move in the next session and within the next 5 sessions;
@@ -69,8 +69,13 @@ whether the weather forecasts danger better than the base rate before it is trus
      tails come from the data, not from an assumed distribution, and the 5-session clustering from real windows.
      Reasoning only on whether it beats the base rate: VIX is forward-looking and prices scheduled events; that is
      what the forward score will tell. It differs from G7's `v6_ewma_t4` (past returns, assumed t tails).
-2. **The colour** (from `VixScaledWeather`, the operative weather; open question 1). The base rates `b1` and `b5` are
-   G7's 750-session V6a and V6b base rates:
+2. **The colour.** The operative colour is `VixScaledWeather`'s (orchestrator decision 71, for the owner to confirm):
+   - The record labels it "not yet proven" until G8 has scored the model against v0 and the base rate.
+   - If G8 shows that the model does not beat both, the colour falls back to v0. That change is a recorded decision
+     in `docs/DESK_DECISIONS.md`, applied through one constant (`WEATHER_OPERATIVE_MODEL`); it is never automatic.
+   - Why (reasoning only): v0 was RED on 26% of response 94's weeks, above the owner's 15% maximum.
+
+   The base rates `b1` and `b5` are G7's 750-session V6a and V6b base rates:
    - **RED** when `p_big_1d >= max(0.10, 2.5 x b1)` or `p_big_5d >= max(0.35, 2.5 x b5)`;
    - **AMBER** when `p_big_1d >= max(0.06, 1.5 x b1)` or `p_big_5d >= max(0.20, 1.5 x b5)`;
    - **GREEN** otherwise;
@@ -90,9 +95,12 @@ whether the weather forecasts danger better than the base rate before it is trus
    - the overnight US move.
 
    The US move is read only through A17b's `CueReader` / `reading_for` (S&P 500 and Nasdaq 100, both private cues,
-   owner a927390). A `stale` or `none` reading is refused and shows "not available". The record holds only a flag,
-   `large` when the latest US close-to-close log return is at least 2% in absolute value (the same 2% as V6, no new
-   number), else `normal`. It never holds the value or the return (open question 2).
+   owner a927390). A `stale` or `none` reading is refused and shows "not available". Otherwise it is a flag, `large`
+   when the latest US close-to-close log return is at least 2% in absolute value (the same 2% as V6, no new number),
+   else `normal`. **The flag is private (orchestrator decision 72):** it is written only to the private weather part in
+   Drive (`derived/weather/<YYYY>/<d>.json` in the owner's Drive, beside the private cue tables). The public record
+   says "US move: private". Neither the flag, the value nor the return ever reaches the repository. Without the Drive
+   settings the private part is not written; the capture says so, and the public record is unaffected.
 5. **Records:**
    - The probabilities go in G7's layout, `research/forecasts/v4/<forecaster>/<question>.csv`, one row per day with
      `day, value, status, label` and G7's audit columns. There are two forecasters:
@@ -106,7 +114,8 @@ whether the weather forecasts danger better than the base rate before it is trus
      - the label (`live` or `backfill_exploratory`);
      - the inputs' SHA-256 and `made_at` (UTC with offset).
 
-     Every input is public (closes, VIX, events) except the US flag, which holds no value.
+     Every input of the public record is public (closes, VIX, events); the US flag is only in the private part
+     (Scope item 4).
    - A reader, `WeatherRecords.for_day(d)`, for the card. T1 is not changed in this story: the card keeps "Weather:
      not yet scored (M1 pending)" until a follow-up T1 change reads this record (gap list).
 6. **Commands:**
@@ -138,8 +147,9 @@ Out (with reasons):
 |---|---|
 | `p_big_1d`, `p_big_5d` as V6a and V6b exactly (design 2.3; protocol 1.2) | criteria 4, 11 |
 | Colour from the owner's thresholds, with floors and base-rate multiples (design 2.3; decision of 15 Oct) | criterion 5 |
+| Which colour is operative; "must beat v0 and the base rate to replace it" (design 2.3; decision 71) | criterion 5 ("not yet proven" label; the fallback is a recorded decision) |
 | Maximum RED frequency 15% over 250 sessions, "over-alarming", never retuned in place | criterion 6 |
-| Drivers: VIX level and change, recent large moves, realised volatility, overnight US move, scheduled events | criterion 7 |
+| Drivers: VIX level and change, recent large moves, realised volatility, overnight US move, scheduled events | criterion 7 (the US move in Drive only, decision 72) |
 | v0 checklist as weather baseline v0, scored on the same questions | criteria 1-3 |
 | One weather record a session at 15:00 | criteria 8, 9 |
 | Intraday upgrades (amber to red only) and a Slack alert on RED | Out: LM1, M2 |
@@ -169,14 +179,18 @@ and empty cases):
    cutoff (`d`'s close, a later VIX) changes no forecast for `d` (look-ahead test).
 5. Colour: each of the four conditions at its threshold (RED or AMBER), just under, and just over. The floor binds
    when the base rate is low, and the multiple binds when it is high (one case each). A missing probability or base
-   rate gives `not scored`, never a colour.
+   rate gives `not scored`, never a colour. The record names the operative model and labels it "not yet proven";
+   with `WEATHER_OPERATIVE_MODEL` set to v0, v0's colour is the operative one (test).
 6. RED frequency: with 250 live records, 37 RED (14.8%) is not `over_alarming` and 38 RED (15.2%) is. With 249 live
    records it says "not enough data yet". Back-fill records never count toward the 250.
 7. Drivers:
    - v0's inputs are shown with the thresholds they cross, and the events of `d+1..d+5`;
    - the US flag reads `large` at an absolute log return of 2% and `normal` just under;
    - `stale` and `none` readings give "not available";
-   - a test finds no US value or return anywhere in the written files;
+   - the flag is written only to the private Drive part (a fake store in tests); the public record says "US move:
+     private", and a test finds no US flag, value or return in any repository file;
+   - without the Drive settings the private part is not written, the capture says so, and the public record is
+     still written;
    - the drivers never change the probabilities or the colour (test: the same forecast with and without them).
 8. Records:
    - G7's layout for both forecasters (`weather_vix_v1` in slot `rules`, `weather_checklist_v0` in `reported`), with
@@ -234,12 +248,10 @@ Only real cases (owner, 15 Oct): no imagined failure modes of sources.
 **Size:** M · **Status:** story text for the judge's check (quality rule 1); code waits for that check and G7's
 merge.
 
-**Open questions (orchestrator or owner):**
-1. **Which colour is operative?** Design 2.3 puts the owner's thresholds on the probabilities, which only the model
-   produces, so this text makes `VixScaledWeather`'s colour operative and records v0's beside it. Design 2.3 also
-   says a new model "must beat" v0 and the base rate "to replace it", which could mean v0's colour stays operative
-   until the model has beaten it. Recommendation: the model's colour (the accepted thresholds apply to it; v0's
-   colours were RED on 26% of weeks, above the 15% maximum). Reasoning only.
-2. **May a coarse flag derived from a private cue be public?** The US flag (`large` or `normal`) holds no value, but it
-   is derived from the private S&P 500 and Nasdaq 100 closes (owner a927390). If the answer is no, the flag is kept in
-   Drive only, beside the private cue tables, and the public record says "US: see Drive".
+**Decisions taken (orchestrator, 15 Oct 2026, response 113):**
+1. **Decision 71:** the model's colour is operative, labelled "not yet proven" until G8 scores it against v0 and the
+   base rate; it falls back to v0 if G8 shows that it does not beat both, as a recorded decision. **For the owner to
+   confirm.**
+2. **Decision 72:** the US-move flag stays in Drive with the private cue tables; the public record says "US move:
+   private".
+3. Quality rule 9 applies: a ChatGPT review after the judge's PASS.
