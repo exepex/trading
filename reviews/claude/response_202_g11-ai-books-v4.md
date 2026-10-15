@@ -24,9 +24,22 @@ Story text: `docs/stories/G-forecasts.md`, section G11. Code waits for the v4 fr
 
 ## Open, to agree before code
 
-- **A16/G8 builder (asked 16 Oct):** a row whose transcript audit is pending (write after the gate settles, or a
-  `pending_audit` status G8 ignores); whether the freeze's ledger row carries the AI slots. Answer: not yet received.
+- **A16/G8 builder:** agreed, see addendum 1.
 - **Owner, through the orchestrator:** option A (the v4 run replaces the v2 AI run at the freeze) or B (both run, about
   double the minutes). Lean A, reasoning only: v2's AI record has no on-time day and the two cannot share one run.
 - **Orchestrator:** who owns `fno/ai` (no register row); who changes `forecast-capture.yml` (the fire step moves after
   the v4 pack; a workflow change this builder does not make).
+
+## Addendum 1: agreed with the A16/G8/G10 builder (16 Oct), each point checked in the code
+
+- **Pending audit: accepted, write the row only after the gate settles.** My option 2 (`pending_audit`) cannot work:
+  `fno/forecast_v4_rules/records.py:74-90` raises `RecordConflict` on any changed row, so a pending row could never
+  become `ok` or `breach` (strong evidence, read the code). Added: "N days awaiting audit" in G11's output, and every
+  audit settled before a confirmatory look (a look is recorded once).
+- **Registration: accepted.** FREEZE_v4 registers only `rules` for V6a/V6b (response 157); G11 appends its own rows,
+  `effective_start` no later than the slot's first eligible session (judge 184).
+- **Own writer: accepted.** `records.record()` stamps G7's `VERSION = "1"` (`records.py:20,61`).
+- **Pack hash: accepted.** `inputs_sha256` stays the book's own inputs; the pack's hash goes in the column G10 part 2
+  adds for every family.
+- **Slots and kind: accepted.** `V4_SLOT_HYBRID = "hybrid"`, `V4_SLOT_AI = "ai_team"` (`fno/constants.py:191`);
+  `kind=ai`. V7 is a member never judged (`terms.py:65` `DESCRIPTIVE_ONLY`); not started at the freeze.

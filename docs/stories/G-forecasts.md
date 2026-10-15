@@ -700,28 +700,38 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
    `outcome.py`, `scoring_gate.py`), pointed at the v4 pack: fired after the pack's release (about 14:32, at the latest
    14:40); the commitment must be **received by GitHub by 15:10** (G10, `fno/forecast_v4/terms.py` `V4_DEADLINE`);
    reveal after 15:10. Fired once, never retried (as today). The timing constants come from `terms.py`, not a copy.
-4. **Records:** a new writer behind the existing record interface writes
+4. **Records:** G11's own writer (G7's `records.record()` stamps G7's version, so it is not reused) writes
    `research/forecasts/v4/book2_hybrid/<question>.csv` and `research/forecasts/v4/book3_ai/<question>.csv` in G7's
    schema (`fno/forecast_v4_rules/records.py`: `day, value, status, label, forecaster_version, kind, slot,
    method_sha256, inputs_sha256, made_at`), `label=live` always (AI answers have no back-fill; G10's cohorts), `slot`
-   `hybrid` or `ai_team`, `method_sha256` the prompt's hash, `inputs_sha256` the released pack's hash (any other pack
-   hash is refused, G10). Written once (`RecordConflict` on a different row). G8 finds the folders itself
-   (`fno/forecast_scoring/v4/inputs.py:106-107`).
+   `hybrid` or `ai_team` (`fno/constants.py` `V4_SLOT_HYBRID`, `V4_SLOT_AI`), `kind=ai`, `method_sha256` the prompt's
+   hash, `inputs_sha256` the hash of the book's own inputs (the pointer it was given), and the released pack's hash in
+   the `pack_sha256` column G10 part 2 adds for every family, with its "another pack is refused" check (the exact name
+   comes from G10). Written once (`records.write` raises `RecordConflict` on a different row). G8 finds the folders
+   itself (`fno/forecast_scoring/v4/inputs.py:106-107`) and reads a value only when `status == ok`.
 5. **Every failure is a miss:** each session day from the slot's `effective_start`, each book writes one row per
-   question. On `on_time` with no breach: `status=ok` and the value. Otherwise value empty and status one of
+   question, once its scoring gate has settled (a written row can never change, so a row is never written while its
+   transcript audit is pending; until then the day has no row and G8's reports show it as a provisional miss, which
+   disappears when the row lands, because G8 recomputes every report from the files). G11's output prints "N days
+   awaiting audit". On `on_time` with no breach: `status=ok` and the value. Otherwise value empty and status one of
    `late`, `not_fired`, `no_submission`, `not_revealed`, `invalid`, `model_mismatch`, `exposed`, `breach`,
    `stopped` (two breaches in 20 days, `stop_rule.py`). G8 counts any non-`ok` status as no forecast, so it is a miss
    under the 10% caps; past the caps the slot is "undecided, operations" (`PROTOCOL_v4.md:251-257`). A `system_late`
    day (G10's day label) is out for the AI slots as for every family.
-6. **Registration:** `book2_hybrid_v2` for `hybrid` and `book3_ai_v2` for `ai_team` in the freeze's ledger row (G8's
-   `SlotRegistry`), each with a declared `effective_start`; misses count from it (decision 16 Oct).
-7. **Composition:** wired in `fno/ai/wiring.py` and `book_wiring.py` only.
+6. **Registration:** FREEZE_v4's ledger row registers only `rules` for V6a and V6b (response 157). After the freeze,
+   G11 appends its own rows: `book2_hybrid_v2` for `hybrid` and `book3_ai_v2` for `ai_team` on each started member
+   question, each before the slot's first counted forecast and with an `effective_start` no later than the slot's
+   first eligible session (the ledger adapter refuses a later one, judge 184); misses count from it (decision 16 Oct).
+   V7, when it starts, is a member that is never judged (`terms.py` `DESCRIPTIVE_ONLY`).
+7. **Looks:** every AI transcript audit up to a confirmatory look's date is settled before that look runs (a look is
+   recorded once, `LookRecords`, and would keep a false miss); a precondition of each look date, which the look side
+   may check later.
+8. **Composition:** wired in `fno/ai/wiring.py` and `book_wiring.py` only.
 
 **To agree before code (asked 16 Oct; answers recorded in response 202):**
-- With the A16/G8 builder: (a) how a row whose transcript audit is still pending is treated. Option 1: G11 writes the
-  row only when the gate settles (no G8 change; a false miss for up to about a week). Option 2: status
-  `pending_audit`, which G8 treats as neither scored nor missed (one status in G8's miss rule). Builder's lean:
-  option 2 (reasoning only). (b) Whether the freeze's ledger row carries the AI slots or G11 adds them after it.
+- With the A16/G8 builder: **agreed 16 Oct** (response 202, addendum 1): rows written after the gate settles (a
+  `pending_audit` status cannot work, since a written row never changes); G11 adds its own registration rows after the
+  freeze; its own writer; the pack hash in G10's new column.
 - With the owner, through the orchestrator: v2's AI run. One run cannot serve both (v2's pack is committed after
   15:10, v4's deadline is 15:10). Option A: the v4 run replaces the v2 AI run at the freeze (cost unchanged; the v2
   AI record, no on-time day so far, stops). Option B: both run (two runs per book per day, about double the AI
@@ -750,8 +760,9 @@ v4 pack and its 14:30 capture (G10); any workflow schedule (its owner); new ques
    No outcome leaves the day without a row.
 4. A commitment received at 15:10:01 is `late`; at 15:09:59 it is on time (GitHub's receipt time, G10).
 5. A pack hash other than the released one is refused; a `system_late` day is out for the AI slots.
-6. The pending-audit rule agreed with the G8 builder holds on a fixture (no premature score, no false miss under
-   option 2).
+6. A day whose audit is pending has no row and is printed in "N days awaiting audit"; once settled, its row lands and
+   G8's recomputed report shows it scored or missed. A confirmatory look refuses to run while an audit up to its date
+   is open.
 7. Each run writes BG1's timing record; BG1's meter shows the book minutes.
 8. No AI answer ever gets `label=backfill_exploratory`; no AI row exists before the slot's `effective_start`.
 9. Gates: pytest, ruff, ruff format, the import check; no file or class over 350 lines.
