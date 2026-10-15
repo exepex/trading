@@ -74,8 +74,17 @@ the weather step's failure once). M2 builds it on `main` after O1 merges.
 **The whole git history first (asked by E8, judge 203 should-fix 1; agreed with the orchestrator):** a cloud
 checkout is shallow, and commit times date E8's availability seals and E3's committed decisions. So before the first
 step, the run fetches the full history (`Git.unshallow`) when `git rev-parse --is-shallow-repository` says true. A
-failed fetch is one alert and the day goes on: E8's step refuses in a shallow checkout by itself (entries fail closed,
+failed fetch, or one stopped at its hard 120 s limit (6.7 s measured on a fresh clone, judge 178 addendum 10), is
+one alert and the day goes on; and the quote parts start before it, so a hung fetch can never delay the 3 pm capture: E8's step refuses in a shallow checkout by itself (entries fail closed,
 exits run), and stopping the whole day would lose the quotes and exits too.
+
+**The quote parts start before the run's Drive download (judge D, orchestrator, 16 Oct):** E2c's download is the
+desk run's first act, and a Drive outage there stops the run before any step. So `DayRunner` starts the quote parts
+first; the `quotes` step then records them. A Drive outage at the download loses the desk's day but never the NSE
+record (which needs no Drive); after the stop the runner waits for the parts, at least until `desk.timetable.fills_by`,
+and commits their own files. A rerun whose log already holds `quotes` starts no part (judge 178 note 4). On a closed
+day each recorder's own calendar rule records nothing. Chosen over "skip only the steps that need Drive" because it
+stays inside O1 and leaves E2c's judged stop rule as it is (reasoning only).
 
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.

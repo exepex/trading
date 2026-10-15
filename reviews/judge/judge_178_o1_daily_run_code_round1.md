@@ -281,3 +281,26 @@ Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the 
     objects. My mutation putting `build_exit_desk(cfg)` back fails it.
 - **Gates on a trial merge with origin/main:** `-n auto` gives **6590 passed** in 2 min 48 s; `ruff check` and
   `check_imports` are clean.
+
+## Addendum 10: O1 at 0dbe8f94 (the whole git history first; main merged)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings.
+
+- **`Git.unshallow` and `WholeHistory`.** Asked for by E8 (judge 203 should-fix 1).
+  - **Behaviour:** when `git rev-parse --is-shallow-repository` says true, the run fetches the full history before
+    the first step. A failed fetch sends one alert through the run's `ReportedAlerts` and the day goes on. That is
+    the right choice: stopping the day would lose the quotes and the exits, and E8's step refuses by itself in a
+    shallow checkout.
+  - **Tests:** a real shallow clone becomes whole; a whole checkout is left alone; a missing origin gives one alert;
+    the runner fetches the history before the day.
+  - **Timing, measured by me:** a fresh `--depth 50` clone of exepex/trading took **6.7 s** to unshallow (2,756
+    commits, pack about 139 MiB). It finishes long before 14:55.
+- **Merge.** main's `RUN_LOG_EXITS_STEP` moved into `fno/constants_operations.py` (listed in `__all__`), and
+  `DESK_RUN_STEPS` uses it. Sizes: `constants.py` 338 lines, `constants_operations.py` 48.
+- **Gates on a trial merge with origin/main:** `-n auto` gives **6859 passed** in 2 min 55 s; `ruff check` and
+  `check_imports` are clean.
+- **One-line note, reasoning only:** the fetch has no time limit and runs before `quotes`, so a hung fetch would hold
+  back the 3 pm parts. A `timeout` on this one git call, or starting `quotes` first, would close that. The measured
+  6.7 s says it is unlikely.
+
+Still to come: criterion 8 (after A4c), criterion 9, and the merge after A4c.

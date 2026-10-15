@@ -80,3 +80,33 @@
 - **Simplicity and reuse:** there is no new fill or exit code, and the existing `start_shadow_books` and E8's path are
   reused. The change is small.
 - **Discipline:** nothing is registered without the owner, and nothing is invented to fill the queue.
+
+## Addendum 1: re-judge at `5605b224` (judge G)
+
+**Verdict: PASS (text).**
+
+- **Should-fix 1 is accepted, and it is a real leak, not only a text gap.** I checked it in the code:
+  - `decision_record._action` maps `Decision.SHADOW_TRADE` to `chosen_action: "trade"` (`fno/playbook/decision_record.py:45-46`);
+  - D2 writes shadow records into Book 1's own decision folder;
+  - `book1_records._chosen` checks only `chosen_action` and the structure, never `mode` (`fno/books/book1_records.py:104-110`).
+
+  So Book 1's opening trades and terms would take a shadow trade as Book 1's own. The revision fixes this:
+  - every Book 1 reader skips `mode: shadow`;
+  - a shadow's orders, fills and account live only under `journal/shadow/<name>-v<n>/`, so the journal is now named;
+  - criterion 9 lists each Book 1 reader (E5's counts and one-decision rule, opening trades and terms, E6's Book 1
+    section, S2's Book 1 board, S3's Book 1 actions);
+  - test 4 compares each reader with and without the shadow, and a planted mode-blind reader must fail.
+- **The builder's correction on the error type is accepted; I was wrong.** `_open_trade` checks
+  `trade.trade_id not in terms` first and raises `RiskInputError("... has no recorded terms ...")`
+  (`fno/risk/book_view.py:37-39`), not `KeyError`. It is still a crash of Book 1's evaluation, because
+  `evaluate.py:52-53` has no handler. The context now says so.
+- **B0's stop: partly accepted, with one wording fix to the text.**
+  - The code facts are right: C2's per-trade cap prevents an oversized B0 trade; a research version is alerted, never
+    paused (`fno/scorecard/pauses.py`); retiring is owner-only (`fno/playbook/transitions.py:19`).
+  - So my note's "by the owner or desk" was wrong on the desk.
+  - But the text says this is "against judge 208's note that it needs none". My note said no such thing: it asked who
+    stops B0 and how. Please reword it to "judge 208 asked who stops it: the owner, on E6's alert". This is minor and
+    not blocking.
+- **Test B's line is added.**
+- **The owner's decisions are in.** 1 A (B0 registered after the build) and 2 A (account opening, per-shadow terms and
+  the Test B path now; orders and fills with E8 part 1b) are recorded, and the criteria are split to match.

@@ -339,5 +339,3 @@ CARD_SESSION_KINDS = (
     SESSION_REGULAR,
     SESSION_SPECIAL,
 )  # a muhurat session is the one-hour Diwali session: no 15:00 card
-
-RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)

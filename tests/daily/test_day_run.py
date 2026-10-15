@@ -42,7 +42,7 @@ class FailingDesk(Commits):
 def day(root, tmp_path, alerts):
     """A day's run: E3's desk with Book 1, the five O1 steps, the quote parts on a recording committer."""
 
-    def build(times=None, steps=None, desk_fails=False, part_fails=""):
+    def build(times=None, steps=None, desk_fails=False, part_fails="", files=FILES):
         decisions = Decisions()
         decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
         run, clock, _, commits = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
@@ -50,7 +50,7 @@ def day(root, tmp_path, alerts):
             run.committer = PendingCommitter(FailingDesk(clock), root)
         commits_made = []
         parts, waiter = quote_parts(clock, times or script(), RecordingCommitter(clock, commits_made, part_fails),
-                                    alerts, FILES)  # fmt: skip
+                                    alerts, files)  # fmt: skip
         calls = []
         run.waiter, run.day_steps = (
             waiter,
@@ -90,10 +90,13 @@ def test_the_desk_s_own_steps_are_exactly_its_tuple_in_order(root, tmp_path, ale
     assert tuple(run.run(NORMAL).steps) == DESK_RUN_STEPS
 
 
-def test_a_closed_day_records_only_skipped_and_starts_no_part(day):
-    runner, run, _, parts, _, calls = day()
+def test_a_closed_day_records_only_skipped_its_parts_say_so_and_nothing_is_committed(day):
+    """The parts start before the run (so a Drive outage at the download never loses the NSE record); on a closed day
+    each recorder's own calendar rule records nothing, and the runner waits for them to end."""
+    runner, run, _, parts, commits, calls = day(files={})
     runner.run(HOLIDAY)
-    assert list(run.run(HOLIDAY).steps) == ["skipped"] and calls == [] and not parts.started
+    assert list(run.run(HOLIDAY).steps) == ["skipped"] and calls == [] and commits == []
+    assert not parts.busy() and set(parts.results) == {"nifty", "nse", "indices"}
 
 
 def test_nifty_and_nse_start_together_the_indices_after_nifty_s_commit_nifty_commits_first(day):
@@ -216,3 +219,20 @@ def test_a_failed_nifty_still_starts_the_indices_after_it_and_lets_nse_commit(da
         (at(14, 58, day=NORMAL), "nse"),
         (at(15, 13, day=NORMAL), "indices"),
     ]
+
+
+def test_a_drive_outage_at_the_download_never_loses_the_day_s_nse_record(day, alerts):
+    """Judge D and the orchestrator (16 Oct): the parts start before E2c's download, so when Drive is down the run
+    stops with E3's one alert, and the parts still end and commit their own files (NSE needs no Drive)."""
+    from fno.desk.private_files import PrivateFilesUnavailable
+
+    class DriveDown:
+        def download(self):
+            raise PrivateFilesUnavailable("Drive: 503 from the files API")
+
+    runner, run, _, parts, commits, calls = day()
+    run.files = DriveDown()
+    code, line = runner.run(NORMAL)
+    assert code == 1 and "run STOPPED at the download of the private paper records" in line and line.endswith(NO_CARD)
+    assert [message.split()[-1] for _, message, _ in commits] == ["nifty", "nse", "indices"] and calls == []
+    assert len(alerts.sent) == 1  # E3's stop alert stands alone

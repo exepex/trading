@@ -241,3 +241,29 @@ T2/T3 builder (through the orchestrator): the card runs after `decisions` (final
   "fail the run loudly"; it is loud (one alert), but it does not stop the run.
 - **Tests:** a real shallow clone gets its whole history; a whole checkout is left alone; a failed fetch gives one
   alert; the runner fetches before the day.
+
+### Two changes agreed with the orchestrator, judge D and E4c's owner (16 Oct)
+
+1. **The quote parts start before the Drive download** (judge D's design note; the orchestrator's point 2).
+   - `DayRunner` starts the parts before `DailyRun.run`, whose first act is E2c's download, unless the log already
+     records `quotes`.
+   - After a stop, the runner waits for the parts at least until `desk.timetable.fills_by` (the old 20-minute limit
+     counted from a 14:35 stop would have cut them off), then commits each part's own files.
+   - Chosen over "skip only the steps that need Drive" (reasoning only): it stays inside O1 and leaves E2c's judged
+     stop rule unchanged.
+   - Tests: `test_a_drive_outage_at_the_download_never_loses_the_day_s_nse_record`, and the closed-day test
+     (recorders record nothing, nothing is committed). Removing the early start fails both.
+2. **E4c's double print removed** (`fno/desk/daily_steps.py`), with the agreement of E4c's owner (session
+   0134MoC6f7aAJVcHRBiyATo6).
+   - The `send` call and its `refused_by_check` gate are unchanged; only the `print` went, because O1's
+     `ReportedAlerts` prints the unsent line.
+   - `tests/timetable/test_entry_check_alert.py` now wires `ReportedAlerts`, as production does, and pins exactly one
+     "alert NOT sent ... trade" line. A planted second print fails it. The reaches-exits check is kept.
+   - E4c's two story lines in `docs/stories/E-paper-desk.md` now name `ReportedAlerts`.
+
+### Judge 178 addendum 10 note, made a must by the orchestrator: a hung history fetch
+
+- Both fixes are in. The quote parts now start first, before the history fetch and the Drive download. `Git.unshallow`
+  runs its fetch with a hard 120-second limit (`UNSHALLOW_TIMEOUT_SECONDS`; it measured 6.7 s on a fresh clone). A
+  time-out is a `GitError`, so it gives one alert and the day goes on, like a failed fetch.
+- Tests: `test_a_hung_fetch_is_stopped_at_its_limit_and_is_one_alert`, and the runner order "parts, history, day".

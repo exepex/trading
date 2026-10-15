@@ -16,6 +16,7 @@ from .commit_guard import RawQuoteCommitRefused, RawQuoteGuard
 from .daily_ports import AccountWriteRefused, CommitFailed, Committer, OwnCommit
 
 PUSH_ATTEMPTS = 3
+UNSHALLOW_TIMEOUT_SECONDS = 120.0
 
 
 class GitError(AccountWriteRefused):
@@ -43,12 +44,19 @@ class Git:
     def branch(self) -> str:
         return self("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
 
-    def unshallow(self) -> bool:
+    def unshallow(self, timeout_seconds: float = UNSHALLOW_TIMEOUT_SECONDS) -> bool:
         """Fetches the whole history when the checkout is shallow (story O1: commit times are dates); False when it
-        was whole already. `GitError` when the fetch fails."""
+        was whole already. `GitError` when the fetch fails or runs past its hard time limit (it took 6.7 s on a fresh
+        clone of 2,756 commits, judge 178 addendum 10), so a hung fetch never holds the day."""
         if self("rev-parse", "--is-shallow-repository").stdout.strip() != "true":
             return False
-        self("fetch", "-q", "--unshallow", "origin", self.branch())
+        command = ["git", "fetch", "-q", "--unshallow", "origin", self.branch()]
+        try:
+            done = self.run(command, cwd=self.root, capture_output=True, text=True, timeout=timeout_seconds)
+        except subprocess.TimeoutExpired:
+            raise GitError(f"git fetch --unshallow ran past {timeout_seconds:.0f} s and was stopped") from None
+        if done.returncode != 0:
+            raise GitError(f"git fetch --unshallow failed: {(done.stderr or done.stdout).strip()[-300:]}")
         return True
 
     def commit_paths(self, paths: Sequence[Path], message: str) -> bool:

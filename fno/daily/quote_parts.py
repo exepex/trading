@@ -69,9 +69,13 @@ class QuoteParts:
         self.closed = False  # past the finish limit: no part starts any more
 
     def start(self, day: date) -> list[str]:
-        """Starts every part that waits for no other; the names started."""
-        self.day = day
-        return [self._start(part) for part in self.parts if part.starts_after is None]
+        """Starts every part that waits for no other, once; the names started (again, if already started)."""
+        if self.day != day:
+            self.day = day
+            for part in self.parts:
+                if part.starts_after is None:
+                    self._start(part)
+        return [part.name for part in self.parts if part.starts_after is None]
 
     @property
     def started(self) -> bool:
@@ -91,11 +95,11 @@ class QuoteParts:
             if self.started and not self.closed and waiting and part.starts_after in self.results:
                 self._start(part)
 
-    def finish(self, wait: Callable[[datetime], None]) -> dict[str, dict]:
+    def finish(self, wait: Callable[[datetime], None], not_before: datetime | None = None) -> dict[str, dict]:
         """Waits for the parts still running (servicing them), at most `FINISH_LIMIT`; their results. Past the limit
         a part still running is stopped (its files are not committed: they may be half-written), the parts that ended
         are committed and a part never started stays so."""
-        limit = self.clock() + FINISH_LIMIT
+        limit = max(self.clock() + FINISH_LIMIT, not_before or self.clock())  # a stop at 14:35 waits past the windows
         self.service()
         while self.busy() and self.clock() < limit:
             wait(min(limit, self.clock() + timedelta(seconds=5)))
