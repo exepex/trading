@@ -96,3 +96,27 @@ judge the builder's next SHA as addendum 2. The same four points apply, now also
 - it can only object, never change a number or a line;
 - the week's post goes out when it fails;
 - it is built once, as the piece T3 reuses, not as a second AI caller.
+
+## Addendum 2 (15 Oct 2026): revision 2 at 2c67480b211c626688da6cd53d766014568e9953
+
+The owner's choice is that the devil's advocate is both the code number check and an objecting AI, built once for
+T3. The forecasts, weather and data health sections are unchanged and stay MET.
+
+## Verdict: PASS (text); 1 note
+
+| Note 2's point | Status | Evidence |
+|---|---|---|
+| Cost counted; stops on BG1 `stop` | MET | One fire, one F8 `record-usage --self-timed` row for the routine's role bundle. BG1's `stop` skips both steps. BG1's signal is all-or-nothing at 100% (`stop_ai_roles`; `AI_ROLE_STOP_ORDER` in `fno/budget/constants.py` is a listed order, not a per-role switch), so one routine with one record fits it |
+| It can only object | MET | Objections are their own labelled section ("they change no number and decide no trade"). `ObjectionCheck` enforces: the SHA line; 1 to 5 objections of at most 40 words, each tied to an existing `[L<n>]` line; no link, mention or code block; numbers only as whole tokens of the lines; none in words. Only `publish.py` reads the prose and objection paths (AST test). Neither `fno/learning/` nor `fno/advocate/` imports desk, books, risk or checks |
+| The post goes out when it fails | MET | No file, a failed rule, `stop` or no configuration give "advocate not run: <reason>" and change nothing else. The lines are posted in every case (criteria 15-17, 20) |
+| Built once, for T3 | MET | `fno/advocate/`: the `Advocate` port, one adapter `RoutineFileAdvocate`, `ObjectionCheck`, and `NumberCheck` with the single tokenizer. `publish` depends only on the port (criterion 21, test 15). The register row "Devil's advocate objections" says T3 (#105) reuses it and never builds a second |
+| My addendum-1 note | MET | Rule 3 compares whole number tokens from one regex. Test 13: "4 sessions" against "40%" fails |
+| Known limits | ACCEPTED | One routine writing then objecting is less independent than two (the owner chose one routine for a small setup; T3 may revisit). Objections are checked for form and numbers, not fairness; they are labelled AI and change nothing |
+| Merge-tree with `origin/main` | MET | No conflict |
+
+## Note (does not change a trade)
+
+`docs/stories/T-cards.md:53` lists "the devil's advocate (T2, T3)" as out of scope. When T2 or T3 is written, its text
+must name `fno/advocate/` as the one objecting AI to reuse, as the register now says, so no second one is built.
+
+**Verdict: PASS for 2c67480b211c626688da6cd53d766014568e9953** (story text). Code may start.
