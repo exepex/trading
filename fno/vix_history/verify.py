@@ -1,7 +1,8 @@
 """Recomputes the India VIX table from the archived month files and lists every difference (story A15).
 
-Each month the table holds is read back from the raw archive, its SHA-256 compared with the manifest row, and its
-days compared with the table's rows cell by cell (values, source path and SHA-256). Read-only: nothing is changed.
+Every month the table holds or the manifest lists is read back from the raw archive, its SHA-256 compared with the
+manifest row, and its days compared with the table's rows cell by cell (values, source path and SHA-256), so a day
+missing from either side is named. Read-only: nothing is changed.
 """
 
 from __future__ import annotations
@@ -29,11 +30,14 @@ class VixTableVerifier:
         self.archive, self.path_for, self.reader, self.manifest = archive, path_for, reader, manifest
 
     def problems(self, rows: list[dict[str, str]]) -> list[str]:
-        """Every difference between the table and its archived month files ([] when they agree in full)."""
+        """Every difference between the table and its archived month files ([] when they agree in full): a value or
+        source that differs, a day the table holds that its file lacks, and a day of any archived month (in the
+        manifest) that the table lacks, so a deleted month or a table cut short is named too."""
         by_month: dict[date, list[dict[str, str]]] = defaultdict(list)
         for row in rows:
             by_month[month_start(date.fromisoformat(row["date"]))].append(row)
-        return [problem for month in sorted(by_month) for problem in self._month(month, by_month[month])]
+        months = sorted(set(by_month) | set(self.manifest))
+        return [problem for month in months for problem in self._month(month, by_month.get(month, []))]
 
     def _month(self, month: date, held: list[dict[str, str]]) -> list[str]:
         path = self.path_for(month)

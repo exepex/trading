@@ -787,26 +787,49 @@ index-close files, O6); any change to `warmup_closes.csv`, the panel, a frozen f
    probing (recorded with the probe range), not assumed; anything earlier than NSE's launch of India VIX that the
    source does not serve is stated as a gap, with the alternatives tried.
 3. Derived rows equal the raw files: a command recomputes every row from the archived files in Drive (values, source
-   path and SHA-256) and lists every difference; a test plants a changed value and a wrong SHA-256 and both are named;
+   path and SHA-256) and lists every difference, including every archived day the table lacks (a deleted month, a
+   table cut short); tests plant a changed value, a wrong SHA-256, a removed month and a cut end, and each is named;
    every committed row's SHA-256 equals its month's manifest row (test).
-4. Point in time: every row carries `first_seen_at`; rows are only appended (old bytes are a prefix of the new), a day
-   present is never rewritten, a hole is never filled from behind, a month still running is never fetched (tests);
+4. Point in time: every row carries `first_seen_at` (archive time, stated as such); the README states when a day's
+   value is known (after its 15:30 close, so a 15:00 decision on d uses d-1 at the latest); rows are only appended
+   (old bytes are a prefix of the new), a day present is never rewritten, a hole is never filled from behind, a month
+   still running is never fetched even when asked for (tests of the command's month range: mid-month, its last day,
+   the first of the next month, `--to` the running month);
    revisions only through A11 (stored beside the original, the table unchanged, changes named day by day; an error
    page is never kept as a version) (tests).
 5. Overlap check: the table's close is compared day by day with the VIX closes the repository already holds from 2017
    (A3/A10); every mismatch is listed in a committed file, rounding told apart from real differences, never fixed.
 6. Gaps recorded, never filled: sessions without a row (NSE's calendar), and, before the calendar's first year,
-   weekdays without a row as unverified; doubtful levels (zero, open or close outside the day's range) kept as
-   published and listed.
+   weekdays without a row as unverified; rows on muhurat and special sessions labelled, with the README telling users
+   to select regular sessions through the A7 calendar; doubtful levels (zero, open or close outside the day's range)
+   kept as published and listed. A sweep that finds a missing original names it and fails.
 7. A missing or failed download (no answer, an HTML page, a cut or malformed answer) writes nothing and is named; a
    stored file that fails its check or its manifest SHA-256 is reported and never replaced; a rerun fetches only what
    is missing (tests).
 8. No frozen file changes (FREEZE records and the frozen-file tests pass); code size, lint, imports and the full suite
    pass.
 
+**Gap list (quality rule 2): every requirement of design v2 2.1's A15 row, REPLAN's A15 paragraph and 2.1's
+outputs and failure modes.**
+
+| Requirement | Where |
+|---|---|
+| India VIX daily open, high, low, close | criteria 2, 3 |
+| back to its start | criterion 2 from NSE's first served day (19 Jul 2010); **2008 to Jul 2010 out**: NSE does not serve it (probed), NSE Indices refused; open owner question |
+| from NSE historical files | criterion 1 |
+| frequency daily | **out of scope**: no schedule (orchestrator: no schedules); daily closes come from the index-close files (O6); monthly `fill` by hand, lane 1 |
+| into Drive (raw) | criteria 2, 7 |
+| a derived table | criteria 3, 4, 6 |
+| A11's revision rule | criterion 4 (revisions) and 6 (missing original) |
+| every row with source, as_of, first_seen_at and the raw file's SHA-256 (2.1 outputs) | `source_path` (the publisher's file), `date` (as_of), `first_seen_at`, `source_sha256`: criteria 3, 4 |
+| look-ahead failure mode (2.1): a value used before it was known | criterion 4 (known-at rule) |
+| a source rewriting history (2.1) | criterion 4 (revisions kept apart) |
+| gaps recorded, never filled (2.1) | criterion 6 |
+| why: weather calibration and crash replays over several crashes | context; covers 2011, 2013, 2016, 2020, 2024, not 2008 |
+
 **Judge verifies:** runs `vix-history verify` (or recomputes 5 random months from Drive by hand) and `vix-history
 check` (committed checks unchanged); probes NSE for a window before 19 Jul 2010; plants a changed row and a rewrite of
 an old row; checks 2 Mar 2024 and the zero-open days against NSE; confirms no frozen file changed.
 
-**Depends:** A9, A10, A11 · **Size:** S · **Status:** built; awaiting judge (claims:
-`reviews/claude/response_100_a15-vix-history.md`)
+**Depends:** A9, A10, A11 · **Size:** S · **Status:** judge 100 FAIL (3 should-fix) fixed; awaiting re-judge (claims:
+`reviews/claude/response_100_a15-vix-history.md`, addendum 1)

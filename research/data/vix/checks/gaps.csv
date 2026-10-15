@@ -98,4 +98,18 @@ date,kind,detail
 2016-10-30,weekend_row,a VIX row on a weekend; the session calendar does not cover this year
 2016-10-31,unverified,weekday without a row; the session calendar does not cover this year
 2016-11-14,unverified,weekday without a row; the session calendar does not cover this year
+2017-10-19,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2018-11-07,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2019-10-27,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2020-02-01,special_session,"a VIX row on a weekend special session, not a regular day"
+2020-11-14,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2021-11-04,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2022-10-24,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2023-11-12,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2024-01-20,special_session,"a VIX row on a weekend special session, not a regular day"
 2024-03-02,gap,NSE calendar session with no VIX row
+2024-05-18,special_session,"a VIX row on a weekend special session, not a regular day"
+2024-11-01,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2025-02-01,special_session,"a VIX row on a weekend special session, not a regular day"
+2025-10-21,muhurat_session,"a VIX row on a one-hour muhurat session, not a regular day"
+2026-02-01,special_session,"a VIX row on a weekend special session, not a regular day"

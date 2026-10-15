@@ -1,7 +1,8 @@
 """Checks of the India VIX table (story A15). Each lists what it finds and changes nothing: a gap is never filled, a
 mismatch never corrected, a doubtful day never dropped.
 
-- gaps: against NSE's session calendar, a session without a row and a row on a closed day; before the calendar's
+- gaps: against NSE's session calendar, a session without a row and a row on a closed day; a row on a muhurat or
+  special session (not a regular full day: select regular sessions through the A7 calendar); before the calendar's
   first year (2017) a weekday without a row is listed as unverified, since holiday and gap cannot be told apart;
 - levels: a level that is not positive (NSE published an open of 0 on two days), or a day whose high and low do not
   contain its open and close;
@@ -17,6 +18,7 @@ from collections.abc import Mapping
 from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 
+from ..constants import SESSION_MUHURAT, SESSION_SPECIAL
 from ..research_data.calendar import CalendarError, SessionCalendar
 
 GAP_FIELDS = ("date", "kind", "detail")
@@ -26,6 +28,8 @@ NOT_POSITIVE, OUTSIDE_RANGE = "not_positive", "outside_low_high"
 OVERLAP_FIELDS = ("date", "kind", "history_close", "index_close_close")
 SESSION_WITHOUT_ROW = "gap", "NSE calendar session with no VIX row"
 ROW_ON_CLOSED_DAY = "row_on_closed_day", "a VIX row on a day the NSE calendar calls closed"
+MUHURAT_ROW = "muhurat_session", "a VIX row on a one-hour muhurat session, not a regular day"
+SPECIAL_ROW = "special_session", "a VIX row on a weekend special session, not a regular day"
 UNVERIFIED = "unverified", "weekday without a row; the session calendar does not cover this year"
 WEEKEND_ROW = "weekend_row", "a VIX row on a weekend; the session calendar does not cover this year"
 SATURDAY = 5
@@ -48,14 +52,16 @@ def gap_rows(days: set[date], calendar: SessionCalendar) -> list[tuple[str, str,
 
 def _gap_kind(day: date, has_row: bool, calendar: SessionCalendar) -> tuple[str, str] | None:
     try:
-        session = calendar.is_session(day)
+        kind = calendar.session_kind(day)
     except CalendarError:
         if day.weekday() < SATURDAY:
             return None if has_row else UNVERIFIED
         return WEEKEND_ROW if has_row else None
-    if session and not has_row:
+    if kind is None:
+        return ROW_ON_CLOSED_DAY if has_row else None
+    if not has_row:
         return SESSION_WITHOUT_ROW
-    return ROW_ON_CLOSED_DAY if has_row and not session else None
+    return {SESSION_MUHURAT: MUHURAT_ROW, SESSION_SPECIAL: SPECIAL_ROW}.get(kind)
 
 
 def level_rows(rows: list[dict[str, str]]) -> list[tuple[str, ...]]:

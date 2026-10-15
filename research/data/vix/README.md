@@ -25,7 +25,28 @@
 | `open`, `high`, `low`, `close` | India VIX index points (annualised implied volatility in percent: 15.0 means 15%), NSE's values copied exactly, never rounded (NSE gives up to 4 decimals; VIX moves in 0.0025 steps) |
 | `source_path` | the month file in Drive's raw area the row was copied from (always the first archived version) |
 | `source_sha256` | that file's SHA-256, equal to its manifest row |
-| `first_seen_at` | when this table first held the row (IST). An upper bound on when we knew it; for history it is the fill time (15 Oct 2026), not the day itself |
+| `first_seen_at` | when this table first held the row (IST): **archive time, not a known-at time**. For all history it is the fill time (15 Oct 2026). Never use it as when a value was known in a backtest; use the rule below |
+
+## When a day's value was known (use this in every backtest)
+
+- A day's VIX open, high, low and close are known only **after that session's close (15:30 IST)**; NSE publishes the
+  end-of-day values after the close.
+- So a decision or forecast at **15:00 IST on day d may use VIX up to day d-1, never day d** (d's close comes after
+  15:00). The earliest decision that may use day d is the next session's 15:00.
+- `first_seen_at` is when this archive got the row; for history it says nothing about when the value was knowable.
+
+## Which sessions the rows are (select through the A7 calendar)
+
+The table holds every day NSE's history serves, not only regular sessions:
+- **9 muhurat sessions** (one-hour Diwali evening sessions, 19 Oct 2017 to 21 Oct 2025) and **5 special sessions**
+  (weekend sessions in NSE's calendar from 2017, e.g. 20 Jan and 18 May 2024), all listed in `checks/gaps.csv`
+  (`muhurat_session`, `special_session`);
+- 9 weekend rows before 2017 (`weekend_row`; the calendar does not cover those years: special sessions such as budget
+  days, not verified).
+
+Daily changes, 5-session windows and the weather (G6, design v2) use **regular sessions only**: take a row only where
+the session calendar (`research/data/calendar/nse_sessions.csv`, `fno/research_data/calendar.py`) says `regular`. A
+muhurat session counted as a full day would distort any daily-change statistic.
 
 ## Rules
 
@@ -77,5 +98,7 @@ python -m fno vix-history check    # rewrite checks/ from the committed table (n
 python -m fno vix-history verify   # recompute the table from Drive and list any difference
 ```
 
-New days after 30 Sep 2026 come daily from the index-close files (O6, `warmup_closes.csv`); a monthly `fill` adds each
-ended month here. It is not scheduled (no schedule was added by this story).
+New days after 30 Sep 2026 come daily from the index-close files (O6, `warmup_closes.csv`, close only); a monthly
+`fill` adds each ended month here. It is not scheduled (no schedule was added by this story). Until it is, every
+monthly `fill` commit is **lane 1** (rows made by story code run by hand, not a scheduled job's output; judge 100 (f)).
+`verify` names any day of an archived month the table lacks, and any value or source that differs.

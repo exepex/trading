@@ -77,4 +77,5 @@ def test_a_stored_file_differing_from_its_manifest_is_reported_and_left_alone(tm
     lib, (raw, _) = librarian(tmp_path, source, {JULY: hashlib.sha256(july_2010()).hexdigest()})
     report = lib.fill([JULY])
     assert report.damaged == [(JULY, "SHA-256 differs from the manifest")] and not report.complete
+    assert report.present == [] and report.uploaded == []
     assert raw.get(Source.path_for(JULY)) == july_2010(close_on_20th=99.0) and source.fetched == []

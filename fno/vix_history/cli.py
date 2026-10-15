@@ -37,16 +37,16 @@ def cmd_vix_history(args) -> int:
     return {"fill": _fill, "sweep": _sweep, "check": _check, "verify": _verify}[args.action](args)
 
 
-def _months(args) -> list[date]:
-    last_ended = last_complete_month(now_ist().date())
-    end = min(args.end or last_ended, last_ended)  # a month still running is never fetched: its file would grow
-    return months_between(args.start or NseVixHistorySource.first_day, end)
+def months_to_fetch(start: date | None, end: date | None, today: date) -> list[date]:
+    """The months asked for, never one still running on `today` (its file would grow after it was archived)."""
+    last_ended = last_complete_month(today)
+    return months_between(start or NseVixHistorySource.first_day, min(end or last_ended, last_ended))
 
 
 def _fill(args) -> int:
     from .wiring import build_vix_librarian, build_vix_raw_area, build_vix_table, build_vix_table_builder
 
-    raw, months = build_vix_raw_area(), _months(args)
+    raw, months = build_vix_raw_area(), months_to_fetch(args.start, args.end, now_ist().date())
     try:
         report = build_vix_librarian(raw).fill(months)
     except RawSourceUnavailable as exc:
@@ -68,10 +68,10 @@ def _fill(args) -> int:
 def _sweep(args) -> int:
     from .wiring import build_vix_revision_sweep
 
-    report = build_vix_revision_sweep().sweep(_months(args))
+    report = build_vix_revision_sweep().sweep(months_to_fetch(args.start, args.end, now_ist().date()))
     print("\n".join(report.lines()))
     print(COMMIT_REMINDER)
-    return 0 if not (report.unanswered or report.invalid) else 1
+    return 0 if not (report.unanswered or report.invalid or report.not_archived) else 1
 
 
 def _check(args) -> int:

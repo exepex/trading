@@ -25,12 +25,14 @@ class SweepReport:
     unanswered: list[date] = field(default_factory=list)
     invalid: list[tuple[date, str]] = field(default_factory=list)
     revised: list[tuple[date, list[str]]] = field(default_factory=list)  # month, its changes day by day
+    not_archived: list[date] = field(default_factory=list)  # NSE answered other bytes but the original is missing
 
     def lines(self) -> list[str]:
         lines = [f"India VIX revisions: {self.checked} months read, {len(self.revised)} with a new NSE version"]
         lines += [f"no answer {m:%Y-%m}" for m in self.unanswered]
         lines += [f"answer failed the check, not kept {m:%Y-%m}: {why}" for m, why in self.invalid]
         lines += [f"revised {m:%Y-%m}: {change}" for m, changes in self.revised for change in changes]
+        lines += [f"original MISSING from the archive, nothing compared {m:%Y-%m}" for m in self.not_archived]
         return lines
 
 
@@ -75,6 +77,8 @@ class VixRevisionSweep:
         if self.archive.capture(path, found) is not None:
             original = self.reader.read(self.raw.get(path), month)
             report.revised.append((month, day_changes(original, revised)))
+        elif path in self.archive.not_archived:
+            report.not_archived.append(month)
 
 
 def day_changes(original: list[VixDay], revised: list[VixDay]) -> list[str]:

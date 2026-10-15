@@ -68,3 +68,11 @@ def test_a_last_modified_time_is_the_versions_time(tmp_path):
     job, _, index = sweep(tmp_path, Stamped({}))
     job.sweep([JULY])
     assert index.for_path(PATH)[0].available_from == datetime(2026, 10, 14, 23, 0, tzinfo=IST)
+
+
+def test_a_missing_original_is_named_not_passed_over(tmp_path):
+    job, raw, index = sweep(tmp_path, FakeNseVix({PATH: july_2010(close_on_20th=20.4)}))
+    (tmp_path / "raw" / PATH).unlink()
+    report = job.sweep([JULY])
+    assert report.not_archived == [JULY] and report.revised == [] and index.for_path(PATH) == []
+    assert "original MISSING from the archive, nothing compared 2010-07" in report.lines()

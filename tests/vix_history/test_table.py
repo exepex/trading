@@ -112,3 +112,24 @@ def test_recomputing_from_the_archive_gives_the_table_and_finds_a_planted_change
     assert verifier.problems(table.rows()[:1]) != []  # a day the table lacks is named too
     wrong = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), {**manifest, JULY: "0" * 64})
     assert "2010-07: SHA-256 differs from the manifest" in wrong.problems(table.rows())
+
+
+def test_verify_names_every_day_of_a_month_the_table_lacks_and_a_table_cut_short(tmp_path):
+    raw = archive_with(tmp_path, {JULY: july_2010(), AUGUST: august_2010()})
+    table = VixDailyTable(tmp_path / "vix.csv")
+    builder(raw, table).extend([JULY, AUGUST])
+    manifest = {JULY: hashlib.sha256(july_2010()).hexdigest(), AUGUST: hashlib.sha256(august_2010()).hexdigest()}
+    verifier = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), manifest)
+    rows = table.rows()
+    without_july = [r for r in rows if not r["date"].startswith("2010-07")]
+    assert [p.split(":")[0] for p in verifier.problems(without_july)] == ["2010-07-19", "2010-07-20"]
+    assert [p.split(":")[0] for p in verifier.problems(rows[:2])] == ["2010-08-02"]  # cut short at the end
+    assert len(verifier.problems([])) == 3  # empty table: every archived day is named
+
+
+def test_verify_names_a_month_the_manifest_does_not_hold(tmp_path):
+    raw = archive_with(tmp_path, {JULY: july_2010()})
+    table = VixDailyTable(tmp_path / "vix.csv")
+    builder(raw, table).extend([JULY])
+    verifier = VixTableVerifier(raw, Source.path_for, NseVixJsonReader(), {})
+    assert verifier.problems(table.rows())[0] == "2010-07: SHA-256 differs from the manifest"

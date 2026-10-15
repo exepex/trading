@@ -22,6 +22,20 @@ def test_a_session_without_a_row_and_a_row_on_a_closed_day_are_listed():
     ]
 
 
+def test_muhurat_and_special_session_rows_are_labelled():
+    calendar = CsvSessionCalendar(
+        "date,kind,description,source_url\n"
+        f"2024-01-20,special,special Saturday session,{SOURCE}\n"
+        f"2024-11-01,muhurat,Diwali muhurat session,{SOURCE}\n"
+    )
+    days = {date(2024, 1, 19), date(2024, 1, 20), date(2024, 1, 22)}
+    assert gap_rows(days, calendar) == [
+        ("2024-01-20", "special_session", "a VIX row on a weekend special session, not a regular day")
+    ]
+    muhurat = {date(2024, 10, 31), date(2024, 11, 1), date(2024, 11, 4)}
+    assert gap_rows(muhurat, calendar)[0][:2] == ("2024-11-01", "muhurat_session")
+
+
 def test_before_the_calendar_a_missing_weekday_is_unverified_and_a_weekend_row_is_listed():
     days = {date(2012, 1, 6), date(2012, 1, 7), date(2012, 1, 10)}  # Fri, Sat, Tue
     assert gap_rows(days, CALENDAR) == [
