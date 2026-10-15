@@ -97,12 +97,11 @@ def book1(root, playbook, clock, inputs=None, validator=None, alerts=None) -> tu
 
 def git_book1(root, playbook, run, alerts=None, inputs=None) -> Book1:
     """Book 1 as the app wires it, on a real git checkout: E2b's committer with Book 1's marker, origin checked."""
-    from fno.books.decided_runs import GitDecidedRuns
-    from fno.desk.git_sync import Git, GitCommitter
+    from fno.books.book1_wiring import build_book1_commits
 
-    committer = PendingCommitter(GitCommitter(Git(root)), root, PENDING_MARKER)
-    return Book1(root, CALENDAR, lambda: playbook, inputs or FixedInputs(), run, committer,
-                 GitDecidedRuns(Git(root), BOOK1_RULES), alerts or Alerts())  # fmt: skip
+    committer, decided = build_book1_commits(root)
+    return Book1(root, CALENDAR, lambda: playbook, inputs or FixedInputs(), run, committer, decided,
+                 alerts or Alerts())  # fmt: skip
 
 
 def clock_at(moment: datetime):

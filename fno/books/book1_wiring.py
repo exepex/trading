@@ -19,23 +19,28 @@ from .book1_records import recorded_terms
 
 def build_book1(cfg: dict, root: Path = ROOT) -> Book1:
     from ..composition import build_alert_sender, build_session_calendar
-    from ..desk.git_sync import Git, GitCommitter
-    from ..desk.pending_commit import PendingCommitter
     from ..playbook.wiring import build_decision_run, snapshot_playbook
     from ..research_engine.implied_vol import Black76
     from ..storage.wiring import build_quote_store
-    from .book1 import PENDING_MARKER
     from .book1_inputs import LiveBook1Inputs
-    from .decided_runs import GitDecidedRuns
 
     inputs = LiveBook1Inputs(root, build_quote_store(), cfg["risk_free_rate"], Black76(),
                              lambda day, snapshot: _features(cfg, day, snapshot), lambda market: _parts(root, market),
                              lambda day, hashes: _context(root, day, hashes))  # fmt: skip
-    git = Git(root)
-    committer = PendingCommitter(GitCommitter(git), root, PENDING_MARKER)
+    committer, decided = build_book1_commits(root)
     return Book1(root, build_session_calendar(), lambda: snapshot_playbook(root), inputs,
-                 build_decision_run(cfg, BOOK1_RULES, root), committer, GitDecidedRuns(git, BOOK1_RULES),
-                 build_alert_sender())  # fmt: skip
+                 build_decision_run(cfg, BOOK1_RULES, root), committer, decided, build_alert_sender())  # fmt: skip
+
+
+def build_book1_commits(root: Path = ROOT) -> tuple:
+    """Story E5b: E2b's committer with Book 1's own marker, and the origin, `HEAD` and disk check of the day's runs."""
+    from ..desk.git_sync import Git, GitCommitter
+    from ..desk.pending_commit import PendingCommitter
+    from .book1 import PENDING_MARKER
+    from .decided_runs import GitDecidedRuns
+
+    git = Git(root)
+    return PendingCommitter(GitCommitter(git), root, PENDING_MARKER), GitDecidedRuns(git, BOOK1_RULES)
 
 
 def build_book1_orders(cfg: dict, root: Path = ROOT) -> ReplayedOrders:
