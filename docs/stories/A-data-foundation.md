@@ -1126,15 +1126,22 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
   the lower one (DESK_DECISIONS row, then a row with status `applied` written by the next run that cites it);
 - incremental runs: the rule is a maximum over a window that only grows, so a run computes only the entries whose
   holding ended since the last run's newest entry and takes the larger of that and the last `unrounded`; a full
-  re-run from 2020 is a flag (`--full`) and must give the same `unrounded` (test);
+  re-run from 2020 is a flag (`--full`) and must give the same `unrounded` (test); the first run, and any run whose last
+  row has an empty `unrounded` (C2d's owner seed of 1.45, a hand value), is a `--full` run, so the seed never becomes a
+  floor of the measured series (judge 176);
 - a GitHub Actions job (no AI, no broker key) each Sunday 10:00 IST: the librarian archives the week's `i1` files, the
   run appends its row, the job commits; a weekly run keeps the row fresh (`max_age_days` 30 leaves three missed weeks
   before C2 refuses);
 - one #fno-desk line per run: the factor in force, the change, `applied` or `held`, and the peak's window;
 - the broker check of owner question 4, one step in the daily Claude routine that already holds Groww's read-only
   access (never in GitHub Actions, which holds no broker key); the routine's prompt is story O1's, so this story adds
-  the command and O1 adds its one line (judge 173 addendum 3, note 1): after each `applied` row, one read-only Groww
-  margin request for the SF 100 basket on that day's A14 row, compared with the row.
+  the command and O1 adds its one line (judge 173 addendum 3, note 1): `python -m fno margins stress-broker-check`
+  runs in every session's daily run, first, before the 3 pm quote parts (so its Groww requests never overlap the 14:55
+  capture); it checks the latest `applied` row once: one read-only Groww margin request for the SF 100 basket on the
+  latest A14 row, compared with that row, and appends the result to `research/data/margins/stress_broker_check.csv`
+  (append-only: the factor row's `as_of`, the check time, both figures, `ok` or `mismatch`); if that `applied` row
+  already has a result, or the latest row is `held`, it prints "nothing to check" and exits 0 (idempotent); a Groww
+  failure exits 1 and the next session retries; it writes no other path.
 
 Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing `config.yaml`; any order.
 
@@ -1181,10 +1188,13 @@ Out: changing C2's formula (story C2c) or C2's input source (story C2d); writing
    and one alert asking the owner; a result below 1.0 and an archive covering fewer sessions than the last run's are
    refused with no row; an owner-approved fall is `applied` only when its DESK_DECISIONS row is cited; a mutation that
    applies a fall fails a test.
-8. Incremental equals full: on planted files the incremental run's `unrounded` equals `--full`'s (test).
+8. Incremental equals full: on planted files the incremental run's `unrounded` equals `--full`'s (test); after a row
+   with an empty `unrounded` (the owner seed) the run is `--full` and the seed's 1.45 is not a floor (test: planted
+   files whose true maximum is 1.30 give `computed` 1.30, then `held` against the seed's factor 1.45).
 9. Alerts: one #fno-desk line per run with the factor, the change, the status and the peak (test); a Groww mismatch
    beyond the stated tolerance posts one line and leaves the factor applied (test on planted figures; the live check
-   is read-only and places nothing).
+   is read-only and places nothing); a second broker check of the same `applied` row writes nothing and prints
+   "nothing to check" (test).
 10. Code size, lint, imports and the full suite pass.
 
 **Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; judge
