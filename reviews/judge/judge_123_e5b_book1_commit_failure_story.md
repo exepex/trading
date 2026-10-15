@@ -128,3 +128,13 @@ Rule 9 stands: E5b is a money path, so it goes to ChatGPT after my code PASS.
 
 **Verdict: PASS for b94f4db233167613ffedf41240056ed3738c4b2a** (story text). Code may start once E2b is on `main`
 (`CommitFailed`, `PendingCommitter`). Minors 1-2 go into the story or the code's docstrings; I check them in the code.
+
+## Note (15 Oct 2026): the owner's "keep the design simple" rule
+
+Under `docs/DESK_DECISIONS.md`, 15 Oct row "Keep the design simple":
+- **Addendum 1 minor 1 (`--commit-run` refusing a second run) is now a note only.** It needs a person to apply the hand
+  fix wrongly.
+- **Minor 2 stands.** It is one sentence: never set commit dates.
+- **The two-checkout pre-commit re-check (should-fix 1) is flagged to the orchestrator.** It may count as unlikely while
+  no routine runs `fno desk book1`. The check against origin before deciding is cheap and covers a real fresh-container
+  rerun.
