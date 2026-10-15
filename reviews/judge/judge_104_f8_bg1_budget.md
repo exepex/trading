@@ -313,3 +313,28 @@ Every finding of judge 104 and addenda 1-2 is now met:
 - After the merge, quality rule 8 applies: the merger runs `python -m fno budget meter` and `stop-rule` on `main` (dry
   run, nothing posted) and records the result.
 - My merge check then compares the merge with this tree.
+
+## Addendum 4 (15 Oct 2026): merge check, F8/BG1 merged as 757c20d
+
+- **The merge is exact.**
+  - 757c20d's parents are 69ceaeb (`main`) and 4fcea00, the passed tip.
+  - `git merge-tree --write-tree 69ceaeb 4fcea00` gives a tree identical to 757c20d's (empty diff).
+- **No unjudged code since.** Between 757c20d and `origin/main` (3605384), nothing changed under `fno/`, `tests/`,
+  `tools/`, `config.yaml`, `accounting/` or `.github/`. The later commits are a pull merge, logs and judge files.
+  `CLAUDE.md` lists `fno/budget/wiring.py` among the composition roots.
+- **Quality rule 8 is verified.** I re-ran both commands myself on today's `main` as a dry run; nothing was posted and
+  the tree stayed clean.
+  - `budget meter --month 2026-10` prints:
+    - the Claude plan, Rs 20,000.00, "not allocated yet (no measured usage this month)";
+    - every usage purpose as "no rows recorded (unknown, not zero)";
+    - the AI cap level `unknown`, with 2 fired book sessions not captured, development not checked, and data routines
+      not fully captured.
+  - `stop-rule` prints 31 May 2027, projected, 228 days, with the 2027 weekday-fallback note.
+  - Both agree with the orchestrator's record, including "data routines 0 of 14" (1-14 Oct).
+- **CI.** checks.yml was green on 69ceaeb, the merge's first parent. The run on c8aef7b, the first push carrying 757c20d
+  (run 802), was in progress when I checked; its result goes in my report.
+
+**Verdict: merge check PASS.** F8 (minimal) and BG1 are done on `main`. The owner's open steps are:
+- the self-timing prompt changes;
+- the confirmation of "two months = Nov and Dec 2026";
+- the fixed plan-minutes figure from January 2027.
