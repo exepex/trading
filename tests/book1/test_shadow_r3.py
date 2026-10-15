@@ -84,3 +84,20 @@ def test_a_record_of_the_wrong_mode_is_never_taken_even_with_a_matching_id(tmp_p
     _open_shadow_fill(tmp_path, "other")
     assert recorded_terms(tmp_path, BOOK1_RULES) == {}
     assert recorded_terms(tmp_path, SHADOW, BOOK1_RULES) == {}
+
+
+def test_s3_book1_actions_are_unchanged_by_a_shadow_on_the_same_day(tmp_path):
+    """Criterion 9 for S3 (scoreboard A, `action_of` through `MatchedDays`): the same action rows with and without a
+    shadow candidate's record in Book 1's run of the day."""
+    from fno.constants import Decision
+    from tests.scoreboard.matched_builders import board, record, write_pack
+    from tests.scoreboard.test_matched_board import D1, EXIT, QUOTES, runs_for
+
+    def actions(root, with_shadow: bool) -> list[dict]:
+        pack = write_pack(root, D1, ("O1", EXIT))
+        shadow = [record("S1", Decision.SHADOW_TRADE, "shadow", pack=pack, action="trade")] if with_shadow else []
+        runs_for(root, D1, [record("O1", pack=pack), *shadow], [], pack=pack)
+        return [r for r in board(root, QUOTES).build(D1)["actions"] if r["book"] == BOOK1_RULES]
+
+    alone, both = actions(tmp_path / "alone", False), actions(tmp_path / "both", True)
+    assert alone and alone == both

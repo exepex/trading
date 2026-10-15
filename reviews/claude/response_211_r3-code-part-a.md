@@ -12,7 +12,7 @@ registration after this merges. Lane 1.
 | 4 | Book 1's readers take no shadow record, and the isolation does not rest on the `shadow-` prefix (criterion 9, E5's readers). | `_chosen` keeps a record only if its `mode` matches the reader. Two tests: same-day with and without a shadow; and a wrong-mode record with a matching id. Mutation (mode check removed) fails the second. |
 | 5 | Test B's R3 input points at the shadow accounts (criterion 7). | `fno/budget/stop_rule_tracker.py` `SHADOW_ACCOUNTS = journal/shadow`; zero shadows still give "undecided" (`fno/forecast_v4/stop_rule.py`, unchanged). |
 | 6 | Nothing fills a shadow yet (criterion 6). | No fill code added; shadow orders and fills are E8 part 1b's. |
-| 7 | E6, S2 and S3's Book 1 views are unchanged (criterion 9, the rest). | Some evidence: E6's Book 1 section and S2's board read Book 1's own account, which R3 does not write. S3's code is not built yet. Its future Book 1 actions must read decision records through the same mode rule. |
+| 7 | E6, S2 and S3's Book 1 views are unchanged (criterion 9, the rest). | S3: tested. `test_s3_book1_actions_are_unchanged_by_a_shadow_on_the_same_day` builds scoreboard A (`MatchedDays`, `action_of`, on `main` since 91c54f88) with and without a shadow record in Book 1's run, and Book 1's action rows are equal (S3's own `test_a_shadow_candidate_outside_the_common_set_never_appears` agrees). E6's Book 1 section and S2's Book 1 board: strong, from reading the code. They read Book 1's own account (`journal/book1_rules/account/`), which R3 never writes. |
 
 **Gates:** `pytest -q -n auto` 6,792 passed; `ruff check`, `ruff format --check`, `check_imports` and `check_records` are
 clean.
