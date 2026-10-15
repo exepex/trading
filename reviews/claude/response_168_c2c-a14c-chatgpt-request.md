@@ -6,7 +6,8 @@ from 14 Nov every paper trade is refused. Quality rule 9 asks for your review af
 One request covers both, because C2c applies what A14c measures.
 
 **Exact versions (story text only, no code yet):**
-- C2c and C2d: branch `story/c2c-whole-margin-stress` (C2c at `8a9a23e9`, C2d at `fff6b646`), section "C2c" of `docs/stories/C-code-roles.md`. Judge 174
+- C2c and C2d: branch `story/c2c-whole-margin-stress` (C2c at `8a9a23e9`, C2d at `fff6b646`), sections "C2c" and
+  "C2d" of `docs/stories/C-code-roles.md`. Judge 174
   (judge G) FAILed `3b4342c` on one should-fix: credit spreads with the STR1 cap. `8a9a23e9` fixes it and is waiting for
   judge G's addendum.
 - A14c: branch `story/a14c-stress-recompute` at `f2192b2f`, section "A14c" of `docs/stories/A-data-foundation.md`.
