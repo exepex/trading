@@ -13,9 +13,13 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import date
 
-import requests
-
-from ..storage.raw_source import RawFileSource, RawSourceUnavailable
+from ..storage.raw_source import (
+    COOLING_OFF_STOP,
+    NOT_PUBLISHED_REASON,
+    RawFileSource,
+    RawSourceCoolingOff,
+    RawSourceUnavailable,
+)
 from ..storage.raw_store import RawFileStore
 from ..storage.revisions import RevisionArchive
 from .month_file import VixDay, VixMonthReader
@@ -24,18 +28,19 @@ from .month_file import VixDay, VixMonthReader
 @dataclass
 class SweepReport:
     checked: int = 0
-    unanswered: list[date] = field(default_factory=list)
+    unanswered: dict[date, str] = field(default_factory=dict)  # month -> why: unreachable, refused or not served
     invalid: list[tuple[date, str]] = field(default_factory=list)
     revised: list[tuple[date, list[str]]] = field(default_factory=list)  # month, its changes day by day
     not_archived: list[date] = field(default_factory=list)  # NSE answered other bytes but the original is missing
+    stopped: str = ""  # NSE's host paused after refusals: the sweep stopped, the rest not read (A9b)
 
     def lines(self) -> list[str]:
         lines = [f"India VIX revisions: {self.checked} months read, {len(self.revised)} with a new NSE version"]
-        lines += [f"no answer {m:%Y-%m}" for m in self.unanswered]
+        lines += [f"no answer {m:%Y-%m}: {why}" for m, why in self.unanswered.items()]
         lines += [f"answer failed the check, not kept {m:%Y-%m}: {why}" for m, why in self.invalid]
         lines += [f"revised {m:%Y-%m}: {change}" for m, changes in self.revised for change in changes]
         lines += [f"original MISSING from the archive, nothing compared {m:%Y-%m}" for m in self.not_archived]
-        return lines
+        return lines + ([f"STOPPED: {self.stopped}"] if self.stopped else [])
 
 
 class VixRevisionSweep:
@@ -55,19 +60,26 @@ class VixRevisionSweep:
 
     def sweep(self, months: list[date]) -> SweepReport:
         report = SweepReport()
-        for month in months:
+        for done, month in enumerate(months):
+            try:
+                self._check(month, report)
+            except RawSourceCoolingOff as paused:  # every later month would fail the same way
+                report.stopped = COOLING_OFF_STOP.format(error=paused, left=len(months) - done)
+                break
             report.checked += 1
-            self._check(month, report)
         return report
 
     def _check(self, month: date, report: SweepReport) -> None:
         path = self.path_for(month)
         try:
             found = self.source.fetch_published(path)
-        except (RawSourceUnavailable, requests.RequestException):  # a 403/429/5xx is an HTTPError, not retried
-            found = None
+        except RawSourceCoolingOff:
+            raise
+        except RawSourceUnavailable as failed:  # retried already where worth it (A9b); a refusal included
+            report.unanswered[month] = str(failed)
+            return
         if found is None:
-            report.unanswered.append(month)
+            report.unanswered[month] = NOT_PUBLISHED_REASON
             return
         if hashlib.sha256(found.data).hexdigest() == self.fingerprints.get(month):
             return  # the archived original itself
