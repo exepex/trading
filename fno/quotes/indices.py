@@ -45,10 +45,12 @@ class IndexRecording:
             if (start - now).total_seconds() > MAX_EARLY_WAIT_SECONDS:
                 return dict.fromkeys(self.recorders, RecordResult("too early"))
             self.sleep((start - now).total_seconds())
-        results = dict.fromkeys(self.recorders, NOT_STARTED)
-        pending = list(self.recorders)
+        results = {name: self._done(recorder, day) or NOT_STARTED for name, recorder in self.recorders.items()}
+        pending = [name for name, result in results.items() if result is NOT_STARTED]
         while pending and self.now() <= end:
             for underlying in list(pending):
+                if self.now() > end:  # an index's expiry and chain calls never start after the window either
+                    break
                 results[underlying] = result = self.recorders[underlying].attempt_now()
                 if result.complete or result.status != "recorded" or _final(result.reason):
                     pending.remove(underlying)
@@ -58,6 +60,12 @@ class IndexRecording:
             if not result.complete and result.status not in DONE_WITHOUT_ATTEMPT:
                 self.recorders[underlying].close_day(day)
         return results
+
+    @staticmethod
+    def _done(recorder: QuoteSnapshotRecorder, day) -> RecordResult | None:
+        """A rerun on a day already recorded says so, inside the window or after it, like NIFTY's `record`."""
+        marker = recorder.canonical(day)
+        return RecordResult("already recorded", marker) if marker is not None else None
 
 
 def _final(reason: str) -> bool:

@@ -99,11 +99,11 @@ def test_a_quiet_index_is_recorded_complete_with_invalid_rows_and_no_alert(tmp_p
     assert alerts.sent == [] and "calendar says session" not in capsys.readouterr().out
 
 
-def test_a_closed_day_asks_nothing_and_records_nothing(tmp_path):
-    clock, alerts = Clock(datetime(2026, 10, 20, 15, 0, tzinfo=IST)), Alerts()  # Dussehra in the test calendar
+def test_a_closed_day_asks_nothing_records_nothing_and_does_not_wait(tmp_path):
+    clock, alerts = Clock(datetime(2026, 10, 20, 14, 35, tzinfo=IST)), Alerts()  # Dussehra; the routine starts 14:33
     recs = recorders(tmp_path, clock, provider=NoCalls())
     assert record_indices(lambda: recs, alerts, "cal.csv", clock.now, clock.sleep) == 0
-    assert alerts.sent == [] and not list(tmp_path.rglob("*"))
+    assert alerts.sent == [] and clock.slept == [] and not list(tmp_path.rglob("*"))
 
 
 def test_one_alert_names_every_index_not_recorded(tmp_path, capsys):
@@ -168,3 +168,17 @@ def test_the_nse_file_is_read_and_parsed_once_for_all_indices(monkeypatch):
         assert nse.listed(name, date(2026, 10, 13))[0] == [date(2026, 10, 27)]
         assert nse.listed_on(name, date(2026, 10, 12))[1] == [date(2026, 10, 27)]
     assert len(parses) == 1 and len(library.asked) == 1
+
+
+def test_a_rerun_after_the_window_on_a_recorded_day_says_already_recorded(tmp_path):
+    _run(tmp_path)  # 15:00:30: all three recorded
+    clock, alerts = Clock(datetime(2026, 10, 13, 15, 20, tzinfo=IST)), Alerts()
+    recs = recorders(tmp_path, clock, provider=NoCalls())
+    assert record_indices(lambda: recs, alerts, "cal.csv", clock.now, clock.sleep) == 0 and alerts.sent == []
+
+
+def test_an_index_whose_turn_comes_after_the_window_is_not_asked_anything(tmp_path):
+    provider = IndexProvider()
+    results, _, _, _ = _run(tmp_path, start=datetime(2026, 10, 13, 15, 12, 40, tzinfo=IST), provider=provider)
+    asked = {call[0] for call in provider.calls}
+    assert asked == {"BANKNIFTY"} and results["MIDCPNIFTY"].status == "window closed"
