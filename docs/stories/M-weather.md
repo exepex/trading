@@ -255,3 +255,144 @@ merge.
 2. **Decision 72:** the US-move flag stays in Drive with the private cue tables; the public record says "US move:
    private".
 3. Quality rule 9 applies: a ChatGPT review after the judge's PASS.
+
+---
+
+## M2. Weather alerts and the price of calm
+
+**Repository:** trading · **Issue:** #122 · **REPLAN:** slice B (`REPLAN_new_stories.md`, Weather) · **Lane:** 1 (new
+story; Slack)
+
+**Description:** As the owner, I want one DANGER message in #fno-desk on the first session the weather turns RED, with
+the numbers behind it, so that I learn of it before the 15:00 market rather than from the card. And, once the desk has
+shadow trades, I want a monthly line showing what the RED rule cost or saved, so that I keep "red means no new trade"
+knowing its price.
+
+**Context and why:**
+- Design 2.3 ("Outputs": "a Slack alert on any upgrade to RED") and 6.5 (DANGER: "Weather upgraded to RED"). REPLAN
+  M2: "RED upgrades as DANGER alerts; the monthly shadow result of trades RED blocked, beside the losses avoided".
+- **What exists today (strong evidence, code on `main`):**
+  - M1 writes one live weather record per regular session (`fno/weather/capture.py` `capture_weather`), refused at or
+    after the 14:30 IST cutoff (`fno/forecast_v4_rules/capture.py`, `CUTOFF = V4_CAPTURE_START`). Back-fill records
+    are labelled `backfill_exploratory`.
+  - O1 (branch `story/o1-daily-run` at 81f4cd11) runs `quotes`, `margin_check`, `weather`, `forecasts_v4`, then the
+    desk, and the card last (after 15:15, so after the books' 15:12 deadline). `weather` is live only from
+    `config.yaml` `daily.live_from.weather` (null today).
+  - Intraday upgrades ("from the live monitor, layer 7: amber to red only", design 2.3) need LM1, which is not built.
+  - No paper version is approved and no shadow trade exists (R1 is not built). So nothing is blocked by RED yet.
+- So the only RED upgrade that can happen in a real day now is **the daily record**: today's live record is RED and the
+  previous regular session's was not. M2 v1 alerts on that, and only that.
+
+**Scope.** In:
+- **(a) The DANGER alert** (new package `fno/weather_alerts/`, outside M1's files; split agreed with the M1 builder,
+  see the end of this section):
+  - `python -m fno weather-alert --day YYYY-MM-DD`, run by O1 as step `weather_alert`, right after `weather` and
+    before `forecasts_v4` (one `CommandStep` row in `fno/daily/wiring.py`, gated by `live["weather"]`, committing only
+    `research/alerts/weather/`; agreed with the O1 builder, below).
+  - Its result lines and exit codes, as O1 reads them:
+    - no live record for the day (the `weather` step was refused or failed, or is not live yet): one line "no live
+      weather record for <d>", exit 0. O1 already alerted the weather failure once, so M2 adds no second alert;
+    - not an upgrade (not RED, or RED after RED): one line, exit 0;
+    - RED upgrade, sent: the alert's first line and "alert sent to #fno-desk", exit 0;
+    - Slack refused, the token missing, or a record unreadable: "alert NOT sent: <reason>" plus the alert's text, exit
+      1. O1 records the step failed and sends its one alert, and the routine posts "alert NOT sent" lines with the
+      Slack connector (CLAUDE.md, 3 pm rules).
+    - No line uses O1's reserved phrase "nothing written:".
+  - Rule, read from M1's committed records through `WeatherRecords.for_day` only (never recomputed):
+    - today's record has `label` equal to `LIVE` (`fno/forecast_v4_rules/records.py`; a back-fill record carries
+      another label: filtered on the label, never inferred from the date) and operative colour RED, and
+    - the previous regular session (from the A7 calendar, M1's `previous_regular`) has no record, a non-`LIVE`
+      record, or a colour other than RED. `live_colours_before` is not used: it returns colours without their days
+      (M1 builder, 15 Oct 2026).
+    RED on two sessions in a row alerts once, on the first. Never on a back-fill record.
+  - **`not scored`** (a probability or base rate is missing; it blocks new trades like RED, owner "4 A"): never a
+    DANGER, so a data failure is never shown as a market warning. Instead one SYSTEM-class line (design 6.5: SYSTEM is
+    for data and job problems): "SYSTEM (paper only): weather not scored for <d>: missing <each probability entry whose `status` is not `ok`>. Owner
+    rule: no new paper entry until the weather is scored." It is sent once per day, with the same alert record and
+    exit codes as DANGER (M1 builder's view, accepted: reasoning only).
+  - The message, PAPER ONLY, first line saying what it means (design 6.5): "DANGER (paper only): weather turned RED for
+    <d> (was <colour> on <previous>). Owner rule: RED means no new paper entry today." Then, copied from the record:
+    the operative model's `p_big_1d` and `p_big_5d` against the base rates, the v0 colour, the v0 inputs with the
+    level each reaches, the scheduled events in the next 5 sessions, and `red_share` and `over_alarming` as written.
+  - The owner-delay line (design 6.5, owner decision of 15 Oct 2026): "If you act 60 minutes later, the paper record
+    assumes: no change (the weather stops only new entries)."
+  - **Never the US-move flag**: it is private (decision 72). The alert reads only the public record.
+  - Honesty line while the desk does not enforce RED (M1 Out): "The desk does not yet refuse entries on RED (no version
+    is at paper); this is the rule it will apply." It is removed by the story that adds the enforcement.
+  - One alert per day at most: after a sent alert, an alert record `research/alerts/weather/<YYYY>/<d>.json`
+    (condition, the weather record's SHA-256 and `made_at`, Slack's sent time and `ts`), written once. A run with the
+    record present sends nothing ("already alerted"). A not-sent attempt writes no record, so a hand rerun can send it.
+    O1 stops every command after 10 minutes and skips a recorded step on a same-day rerun.
+  - Not live before `daily.live_from.weather`: no live records exist, so the command prints "no live weather record"
+    and sends nothing.
+- **(b) The price of calm: a slot that waits on R1** (no code now, no invented source):
+  - The port `BlockedShadowSource` is named here and built with R1: per RED live day, each registered version's
+    shadow decision that the RED rule blocked, its matched shadow fill, its maximum loss and its net at exit.
+  - The monthly line, when built: "<month>: RED on <n> sessions; <k> entries blocked; risk avoided Rs <sum of maximum
+    losses>; their shadow net Rs <sum> (positive = calm cost money)". Until R1 exists the line is not shown anywhere;
+    no number is estimated (design 2.3: "the design never claims the weather protects anything").
+  - Where it shows (later): LR1's first post-mortem of each month, as one line read from the port.
+
+Out (each with where it goes):
+- Intraday RED upgrades and AMBER WARNINGs: LM1 (layer 7), once A16 runs live.
+- The desk refusing entries on RED or `not scored` (owner "4 A"): the story that first approves a version to paper
+  (M1 Out; T2's gap list).
+- The price of calm's code: R1.
+
+**Design:**
+- `fno/weather_alerts/rule.py`: `RedUpgrade`, which decides from two records (today, previous) whether to alert. Pure;
+  no I/O.
+- `fno/weather_alerts/message.py`: the message lines from one public record.
+- `fno/weather_alerts/records.py`: `AlertRecords`, written once.
+- `fno/weather_alerts/cli.py` and `wiring.py`: `WeatherRecords` (M1), the A7 calendar's previous regular session
+  (M1's `previous_regular`), the existing `AlertSender`.
+- No change to any `fno/weather/` file (its files are in M1's `METHOD_FILES` hash: a change is a new method
+  version), nor to the record format, `RecordConflict`'s write-once rule, or the thresholds in
+  `fno/weather/constants.py` (moving there on `story/x-weather-constants`). An AST test: `fno/weather_alerts/` writes
+  no file under `research/forecasts/`.
+
+**Acceptance criteria:**
+1. A live RED record after a live GREEN or AMBER one sends one DANGER message with the fields above, copied from the
+   record. A test compares each number with the planted record.
+2. RED after RED sends nothing; RED after a missing or back-fill previous record sends one.
+3. A back-fill RED and a missing record send nothing, each with its printed reason. A `not scored` live record sends
+   one SYSTEM line, never DANGER. The previous session is found from the A7 calendar and read with `for_day`; a gap
+   day with no record counts as "none".
+4. The message never contains the US-move flag or any field of the private part (a test plants one in Drive's fake).
+5. A second run for the same day sends nothing ("already alerted"). "alert NOT sent" prints the reason and the text,
+   exits 1 and writes no record. No live record prints "no live weather record for <d>" and exits 0. No output line
+   contains "nothing written:".
+6. The command reads only committed public weather records and writes only its alert record (AST and file tests).
+7. The message carries the PAPER ONLY first line, the owner-delay line and, while the desk does not enforce RED, the
+   honesty line.
+8. (Later, with R1) the price-of-calm line comes only from `BlockedShadowSource`; before R1 it does not appear.
+
+**Test plan:** fakes for the records, the calendar, Slack and the alert store.
+1. Positive: GREEN then RED; AMBER then RED; missing then RED.
+2. Negative: RED then RED; back-fill RED. `not scored`: one SYSTEM line, no DANGER. A previous non-session day is
+   skipped by the calendar.
+3. Privacy: a planted private US flag never reaches the text.
+4. Once per day: a rerun; a Slack failure.
+
+**Known limits:**
+- A RED that appears only during the session (after the 14:30 record) is not seen until LM1.
+- The alert comes at about the record's time (before 14:30 IST under G10); the card follows later the same day.
+- A record that changes colour back the next day sends nothing (only upgrades alert, design 2.3).
+
+**Split with the other builders:**
+- **O1 builder (session 014zYLf18PgCzR7YoHs1X5Dp): agreed, 15 Oct 2026.** One `weather_alert` step right after
+  `weather`. The card is too late for a RED alert (after 15:15, past the 15:12 deadline), and folding the alert into
+  M1's capture would change a scored forecaster's command for a delivery concern. A not-sent attempt exiting 1 with
+  no record is fine with O1: O1 records the step failed, alerts once, and a same-day rerun skips it, so a hand rerun of
+  `weather-alert` sends it. Its conditions are in Scope (a):
+  order, the no-record line, exit codes, no "nothing written:". M2's code is built on `main` after O1 merges (after
+  A4c).
+- **M1 builder (session 013xqaNTCbSBytKgqpfaYFqZ): agreed, 15 Oct 2026.** M2 sits outside `fno/weather/` in its own
+  package and reads only through `WeatherRecords`. Nothing in M1, nor in the 26-week check, alerts on RED (no
+  conflict). Their three notes are in Scope (a):
+  - the previous session via the calendar and `for_day`;
+  - `not scored` as a SYSTEM line, not DANGER;
+  - filtering on the `LIVE` label.
+
+**Depends:** M1, O1 (`weather_alert` step; code after O1 merges), T1 (the card shows the colour), A7, R1 (part b only) · **Size:** S ·
+**Status:** story text, waiting for the judge
