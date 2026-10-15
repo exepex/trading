@@ -8,12 +8,15 @@ from datetime import date
 import pytest
 
 from fno.books.account import EQUITY_HISTORY_FILE, PaperAccount
-from fno.config import ROOT, load_app_config
+from fno.composition import open_account_writer, paper_account_rs
+from fno.config import load_app_config
 from fno.constants import BOOKS
+from fno.desk.private_files import PrivateFiles
 from fno.market_read_models import wiring as market_wiring
 from fno.market_read_models.home_blocks import FiguresNotComputed, FnoBooksBlock, FnoPicksBlock
 from fno.market_read_models.home_inputs import BooksReader, FrozenExperimentApprovals
 from fno.market_read_models.wiring import LATEST_FROZEN_EXPERIMENT
+from fno.storage.index_store import LocalIndexStore
 
 from .test_market_contract_and_run import CONTRACT, DAY, OPENING_BOOKS, Rows, builder, example_rows, run
 
@@ -52,12 +55,23 @@ def test_the_approvals_are_the_frozen_experiments_passing_policies():
     assert approvals.note().startswith("No F&O strategy has passed testing yet: Experiment 1 (the 2019-2023 challenge)")
 
 
-def test_the_live_wiring_reads_the_repositorys_books_and_their_open_risk_cap(monkeypatch):
+def test_the_live_wiring_reads_the_books_the_shared_download_brought_and_their_open_risk_cap(monkeypatch, tmp_path):
+    """Story E2c: the accounts live in Drive and `market publish` downloads them first (tested in
+    `tests/timetable/test_private_readers.py`); here the live wiring reads the books of a checkout filled by that
+    download from a fake Drive holding three started accounts."""
     monkeypatch.setattr(market_wiring, "build_versioned_reader", lambda: None)  # no Drive in tests
+    seed, checkout, drive = tmp_path / "seed", tmp_path / "checkout", LocalIndexStore(tmp_path / "drive")
+    for book in BOOKS:
+        with open_account_writer(book, seed) as writer:
+            writer.start(DAY)
+    PrivateFiles(lambda: drive, seed).move_accounts()
+    PrivateFiles(lambda: drive, checkout).download()
+    monkeypatch.setattr(market_wiring, "ROOT", checkout)
     home = market_wiring.build_session_rows_builder(load_app_config()).home.on(DAY)
     assert home.limit_max == load_app_config()["risk"]["profiles"]["books"]["open_risk_cap_rs"] == 150000
     assert [b.name for b in home.books] == ["F&O Book 1", "F&O Book 2", "F&O Book 3"] and home.approved == []
-    assert all(PaperAccount(ROOT, book).started for book in BOOKS)
+    assert all(PaperAccount(checkout, book).started for book in BOOKS)
+    assert [b.value for b in home.books] == [paper_account_rs()] * 3
 
 
 def test_both_blocks_validate_and_say_the_truth():
