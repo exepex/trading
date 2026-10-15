@@ -175,3 +175,12 @@ checkable.
   is excluded, never filled". Under the new coverage check, a missing day refuses the whole run before any entry is
   computed, so that exclusion path cannot happen. Change criterion 3 to point at criterion 8, or drop its exclusion
   clause. If NSE ever turns out not to have published a session's file, that becomes an owner decision then.
+
+## Addendum 6: A14c at e828860 (addendum 5 note applied)
+
+**Verdict: PASS, no notes left.**
+
+- `git diff 096c94f e828860` changes one line, `docs/stories/A-data-foundation.md`, criterion 3. It now reads "a
+  missing day refuses the whole run before any computation (criterion 8), so no entry is ever filled". The exclusion
+  clause is gone, so criteria 3 and 8 agree. There is one commit in the range and nothing else changed, so the
+  addendum 5 PASS carries over to e828860.
