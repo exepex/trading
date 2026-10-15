@@ -53,7 +53,7 @@ def test_a_rewrite_months_later_is_logged_and_holds_the_day_back(tmp_path):
     assert (result.checked, result.moved, result.unanswered) == (
         3,
         [(JAN_15, at(JAN_15, 19), at(date(2025, 6, 2), 18))],
-        [date(2025, 1, 17)],
+        {date(2025, 1, 17): "down"},
     )
     assert log.read_text().splitlines()[0] == "day,checked_at,last_modified" and len(log.read_text().splitlines()) == 2
     written = latest_writes(recorded, read_sweeps(log))

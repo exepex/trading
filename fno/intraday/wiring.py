@@ -1,0 +1,106 @@
+"""Composition root of the 15-minute recorder (story A16): the only place that picks Groww, the owner's Drive, the
+repository folder, the clock servers, the alert sender and the publisher. Swapping the source is one new
+`IntradayQuoteSource` class plus one line here.
+
+A dry run reads Groww live but writes the raw snapshots, ledger, realised variance and heartbeat under a local folder
+outside the repository, sends no alert and commits nothing."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+from ..alerts.sender import AlertSender, NoAlertSender
+from ..composition import build_alert_sender
+from ..constants import DEFAULT_REPOSITORY, GITHUB_REPOSITORY_VARIABLE
+from ..models import now_ist
+from ..providers.groww import GrowwProvider
+from ..quotes.expiry_listing import NseDailyFileExpiries
+from ..quotes.monthly_contracts import PointInTimeMonthlies
+from ..server_clock import GITHUB_TIME_URL, SLACK_TIME_URL, HttpDateClock
+from ..storage.owned_paths_commit import OwnedPathsCommitter
+from ..storage.raw_library import RawFileLibrary
+from ..storage.raw_source import NseDailyFoSource
+from ..storage.raw_store import AreaStore, LocalFolderStore, RawFileStore
+from ..storage.wiring import (
+    OWNER_UPLOAD_SETTINGS,
+    RAW_AREA,
+    REPOSITORY,
+    build_nse_source,
+    build_owner_drive,
+    build_raw_stores,
+    build_session_calendar,
+)
+from .clock import ClockCheck
+from .expiry_plan import UNDERLYING, ExpiryPlan
+from .groww_source import GrowwIntradaySource, groww_listed_expiries
+from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
+from .ledger import ROOT as LEDGER_ROOT
+from .ledger import SlotLedger
+from .read_only import ReadOnlyGroww
+from .realised_vol import QuoteSnapshotRv15m
+from .recorder import IntradayRecorder
+from .rv_table import ROOT as RV_ROOT
+from .rv_table import RvTable
+from .session_rv import SessionRv
+from .snapshot_files import SnapshotFiles
+from .sync import GitLedgerSync, LedgerSync, NoSync
+
+INTRADAY_FOLDER = REPOSITORY / "research" / "data" / "intraday"  # derived files only: no prices
+DRY_RUN_DRIVE = "drive"  # inside a dry-run folder: stands in for the Drive project folder
+COMMIT_MESSAGE, COMMIT_LABEL = "Data: intraday slots ({what})", "intraday files"
+DRY_RUN_ALERTS = "dry run"
+OWNED_PATHS = (LEDGER_ROOT, RV_ROOT, FILE_NAME)  # the ledger, the session RV and the heartbeat; nothing else (A16e)
+
+
+def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> IntradayRecorder:
+    folder = Path(dry_run_folder) if dry_run_folder else INTRADAY_FOLDER
+    ledger = SlotLedger(folder)
+    files = SnapshotFiles(GrowwIntradaySource.name, _snapshot_store(folder, dry_run_folder is not None), ledger)
+    provider = GrowwProvider(cfg)
+    client = ReadOnlyGroww(lambda: provider.api)  # the only Groww object the source holds (criterion 10)
+    plan = _expiry_plan(groww_listed_expiries(client))
+    source = GrowwIntradaySource(client, plan, provider.fallback_lot_size(UNDERLYING))
+    calendar = build_session_calendar()
+    session_rv = SessionRv(files, calendar, RvTable(folder), QuoteSnapshotRv15m())
+    github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
+                                                             or DEFAULT_REPOSITORY))  # fmt: skip
+    clock = ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
+    alerts = _alerts(dry_run_folder)
+    return IntradayRecorder(
+        source, files, ledger, Heartbeat(folder), calendar, alerts, clock, session_rv, _sync(dry_run_folder, alerts),
+    )  # fmt: skip
+
+
+def build_heartbeat() -> PublishedHeartbeat:
+    """What the silence check reads: GitHub's copy on `main`, never this host's own working tree."""
+    return PublishedHeartbeat(REPOSITORY, (INTRADAY_FOLDER / FILE_NAME).relative_to(REPOSITORY).as_posix())
+
+
+def _snapshot_store(folder: Path, dry_run: bool) -> RawFileStore:
+    """The owner's Drive `raw` area (A9); in a dry run, a local folder of the same shape. Copies are content-addressed
+    (`SnapshotFiles`), so nothing is ever written over and no revisions area is needed."""
+    drive = LocalFolderStore(folder / DRY_RUN_DRIVE) if dry_run else build_owner_drive()
+    if drive is None:
+        raise RuntimeError(f"set {', '.join(OWNER_UPLOAD_SETTINGS)} to store snapshots in Drive")
+    return AreaStore(drive, RAW_AREA)
+
+
+def _expiry_plan(listed) -> ExpiryPlan:
+    """Groww's list first; NSE's daily files for what Groww cannot list and to prove the monthly (as A4). Read only:
+    a file not yet in Drive is fetched from NSE but never archived here (the 3 pm recorder's library does that), so
+    no run, dry or live, writes to Drive or the repository's manifests through this path."""
+    nse = NseDailyFileExpiries(RawFileLibrary(build_raw_stores(), build_nse_source(NseDailyFoSource)))  # read only
+    return ExpiryPlan(listed, nse, PointInTimeMonthlies(nse))
+
+
+def _alerts(dry_run_folder: Path | None) -> AlertSender:
+    return NoAlertSender(DRY_RUN_ALERTS) if dry_run_folder else build_alert_sender()
+
+
+def _sync(dry_run_folder: Path | None, alerts: AlertSender) -> LedgerSync:
+    if dry_run_folder:
+        return NoSync()
+    committer = OwnedPathsCommitter(REPOSITORY, INTRADAY_FOLDER, OWNED_PATHS, message=COMMIT_MESSAGE,
+                                    label=COMMIT_LABEL, keep_remote_on_conflict=True)  # fmt: skip
+    return GitLedgerSync(committer, alerts)

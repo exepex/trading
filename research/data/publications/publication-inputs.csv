@@ -1,3 +1,5 @@
 publication_id,page_key,dataset,copies,newest_filed_on,copies_sha256
 nse-2026-10-13-c3b50f940a73,flows,nsdl/fpi/fpi-daily-by-session,1,2026-10-13,3840ccca25f96228fe38fd2ccdf0daeb1394537e4bac78798b37f3bcb56dfe89
 nse-2026-10-13-c3b50f940a73,flows,nse/flows/fii-dii-cash-by-session,1,2026-10-13,c253e74fa4002768dc44bb806b41752f879af4a0439de020ca7777b6bf5c2536
+nse-2026-10-14-004826e47494,flows,nsdl/fpi/fpi-daily-by-session,2,2026-10-14,a8f9e95a626df4dad395532bcc85f93393fae169bfd24140c36abacb589f8495
+nse-2026-10-14-004826e47494,flows,nse/flows/fii-dii-cash-by-session,2,2026-10-14,894a0ffda7625004965b600ea769851b088f354af21bf4d24f5815e9cbde87bb

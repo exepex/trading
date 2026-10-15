@@ -1,0 +1,83 @@
+"""Composition root of the daily trade card (story T1): the only place that picks the card's concrete sources, sender,
+stores and clocks. Swapping Slack, Drive, the weather model or the forecasters changes this file only."""
+
+from __future__ import annotations
+
+import os
+from datetime import UTC, datetime
+from pathlib import Path
+
+from ..ai.history import RepoHistory
+from ..ai.receipts import GitHubActivityReceipts
+from ..config import ROOT
+from ..constants import (
+    CARDS_AREA,
+    DEFAULT_REPOSITORY,
+    ENV_FNO_SLACK_BOT_TOKEN,
+    ENV_GITHUB_TOKEN,
+    FNO_DESK_CHANNEL_ID,
+    GITHUB_REPOSITORY_VARIABLE,
+)
+from ..server_clock import GITHUB_TIME_URL, HttpDateClock
+from ..storage import wiring as storage
+from ..storage.raw_store import AreaStore
+from .card import CardBuilder
+from .committed import GitHeadRecords
+from .daily import DailyCard
+from .deliveries import RepoDeliveryFiles
+from .forecasts import LiveCaptureForecasts
+from .issue import CardIssuer
+from .posting import CardPoster, NoCardPoster, SlackCardPoster
+from .record_store import CardRecordStore, DriveCardRecords, NoCardRecords
+from .render import SlackTextRenderer
+from .session import SessionCheck
+from .status import RegistryStatus
+from .weather import PendingWeather
+from .witness import IssuanceWitness
+
+# Its `Date` header is GitHub's server time (no sign-in needed). A repository path, not the API root: the cloud
+# sessions' GitHub proxy answers the root itself (HTTP 400, no Date header), found on the live test post of 15 Oct
+
+
+def _repository(env) -> str:
+    return env.get(GITHUB_REPOSITORY_VARIABLE) or DEFAULT_REPOSITORY
+
+
+def _host_now() -> datetime:
+    return datetime.now(UTC)
+
+
+def build_daily_card(root: Path = ROOT) -> DailyCard:
+    records = GitHeadRecords(root)
+    builder = CardBuilder(RegistryStatus(records), PendingWeather(), LiveCaptureForecasts(records))
+    return DailyCard(SessionCheck(records), builder, SlackTextRenderer(), RepoDeliveryFiles(root, records))
+
+
+def build_card_poster(env=os.environ) -> CardPoster:
+    """#fno-desk with `FNO_SLACK_BOT_TOKEN` only; without it nothing is sent and the outcome says so."""
+    token = env.get(ENV_FNO_SLACK_BOT_TOKEN)
+    return SlackCardPoster(token, FNO_DESK_CHANNEL_ID) if token else NoCardPoster()
+
+
+def build_card_records(env=os.environ) -> CardRecordStore:
+    """The `cards` area of the owner's Drive project folder (owner OAuth settings), or a store that says why not."""
+    try:
+        drive = storage.build_owner_drive(env)
+    except Exception as error:  # noqa: BLE001 - a refused sign-in must not stop the card; named by type only
+        return NoCardRecords(f"Drive sign-in failed ({type(error).__name__})")
+    return NoCardRecords() if drive is None else DriveCardRecords(AreaStore(drive, CARDS_AREA))
+
+
+def build_card_issuer(env=os.environ, root: Path = ROOT) -> CardIssuer:
+    records = GitHeadRecords(root)
+    github = HttpDateClock("GitHub", GITHUB_TIME_URL.format(repository=_repository(env)))
+    deliveries = RepoDeliveryFiles(root, records)
+    return CardIssuer(
+        build_card_poster(env), build_card_records(env), deliveries, [github], _host_now, records.code_commit()
+    )
+
+
+def build_issuance_witness(env=os.environ, root: Path = ROOT) -> IssuanceWitness:
+    history = RepoHistory(root)
+    receipts = GitHubActivityReceipts(_repository(env), env.get(ENV_GITHUB_TOKEN, ""), history)
+    return IssuanceWitness(RepoDeliveryFiles(root, GitHeadRecords(root)), history, receipts)

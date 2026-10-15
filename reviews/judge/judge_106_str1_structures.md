@@ -152,3 +152,20 @@ before the owner's broker check (item 5), so this is a follow-up, not a defect.
 
 **Verdict: PASS for 0ba5edcc35321d3e037fcdd0e7029303e881801e.** Next, ChatGPT reviews it (quality rule 9). Then the merge
 must be a merge commit with the full suite run on the merged tree, and I check `main` against this SHA and CI.
+
+## Addendum 1 (15 Oct 2026): merge check, STR1 merged to `main` as abc23d3
+
+**MET.**
+- **Parents.** abc23d3's parents are 3707cf6 (`main`) and 0ba5edc (the passed tip).
+- **Merge content.** My `git merge-tree --write-tree 3707cf6 0ba5edc` conflicts only in `reviews/claude/README.md`.
+  abc23d3 differs from that tree only there: the conflict markers are removed and both sides' rows are kept.
+- **Code unchanged.** `git diff 0ba5edc abc23d3` over `fno`, `tests`, `tools`, `config.yaml`, the STR1 sample folder
+  and `docs/stories` is empty.
+- **ChatGPT step done.** Rule 9's step was done before the merge: review 100 PARTIAL, accepted in response 114 as
+  inactive infrastructure, with activation gates in story STR1b.
+- **CI.** `checks` is green on abc23d3 (run 38668321325) and on db07101, 9b52507 and the commits after them.
+
+**Note for STR1b and C5 (found while judging C5 addendum 1):**
+- `config.yaml` maps none of STR1's six codes in `risk.profiles.books.bucket_sides`. Every new-code trade is
+  therefore refused as "unmapped bucket": fail closed, consistent with inactive infrastructure.
+- The owner's 1 B row gives the mapping for the four verticals. LC and LP have no owner mapping yet.

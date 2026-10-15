@@ -6,9 +6,9 @@ the company finishes instead of failing on every run. A second download that dif
 import hashlib
 
 import pytest
-import requests
 
 from fno.filings.xbrl import NotXbrl, TruncatedXbrl, read_facts
+from fno.storage.raw_source import RawFileRefused, RawSourceUnavailable
 from tests.filings.fakes import FakeIndex, FakeXbrlHost, at, filing
 from tests.filings.test_filings_librarian import run
 from tests.filings.xbrl_fixtures import results_xbrl
@@ -48,8 +48,11 @@ def test_a_file_nse_serves_cut_off_twice_is_a_gap_with_its_size_and_sha256(tmp_p
 
 @pytest.mark.parametrize(
     ("second", "said"),
-    [(results_xbrl()[:-60], "a second download differed"), (requests.HTTPError("503"), "the second download failed")],
-    ids=["differs", "fails"],
+    [
+        (results_xbrl()[:-60], "a second download differed"),
+        (RawFileRefused("NSE filings archive: CUT.xml: HTTP 403 after 1 try", 403, 1), "the second download failed"),
+    ],
+    ids=["differs", "refused"],
 )
 def test_a_second_download_that_differs_or_fails_is_a_failure(tmp_path, second, said):
     report = run(tmp_path, index(), ChangingHost({"CUT.xml": [CUT, second]}), companies=("LAURUSLABS",))
@@ -88,3 +91,11 @@ def test_a_run_stopped_only_by_its_deadline_with_such_a_gap_needs_nothing_from_t
     assert report.stopped.startswith("deadline") and len(report.checked) < len(companies)
     assert "LAURUSLABS" in report.finished and not report.failures
     assert problem_of(report, "manifest rows committed and pushed (0 file(s))") == ""
+
+
+def test_nse_unavailable_on_the_second_download_stops_the_run(tmp_path):
+    down = RawSourceUnavailable("NSE filings archive: CUT.xml: HTTP 503 after 4 tries", 503, 4)
+    report = run(tmp_path, index(), ChangingHost({"CUT.xml": [CUT, down]}), companies=("LAURUSLABS",))
+    assert (
+        report.stopped.startswith("NSE stopped answering at LAURUSLABS") and "HTTP 503 after 4 tries" in report.stopped
+    )

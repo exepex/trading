@@ -1,0 +1,110 @@
+"""Story A15 with A11's rule: a later NSE version of a month is kept beside the original and named day by day; an
+error page is never kept as a version; the table is not changed by a revision."""
+
+import hashlib
+from argparse import Namespace
+from datetime import date, datetime
+
+from fno.models import IST
+from fno.storage.manifest_folder import ManifestFolder
+from fno.storage.raw_source import PublishedFile, RawFileRefused, RawSourceUnavailable
+from fno.storage.raw_store import LocalFolderStore
+from fno.storage.revisions import RevisionArchive, RevisionIndex
+from fno.vix_history import wiring
+from fno.vix_history.cli import cmd_vix_history
+from fno.vix_history.month_file import NseVixJsonReader
+from fno.vix_history.source import NseVixHistorySource as Source
+from fno.vix_history.sweep import VixRevisionSweep
+from tests.vix_history.nse_vix import FakeNseVix, july_2010
+
+JULY = date(2010, 7, 1)
+PATH = Source.path_for(JULY)
+FOUND = datetime(2026, 10, 15, 6, 0, tzinfo=IST)
+
+
+class Unreachable(FakeNseVix):
+    def fetch(self, path):
+        raise RawSourceUnavailable("NSE: connection reset")
+
+
+def sweep(tmp_path, source):
+    raw, revisions = LocalFolderStore(tmp_path / "raw"), LocalFolderStore(tmp_path / "revisions")
+    if raw.get(PATH) is None:
+        raw.put(PATH, july_2010())
+    index = RevisionIndex(tmp_path / "index", (Source,))
+    archive = RevisionArchive(raw, revisions, index, ManifestFolder(tmp_path / "manifests"), clock=lambda: FOUND)
+    fingerprints = {JULY: hashlib.sha256(july_2010()).hexdigest()}
+    return VixRevisionSweep(source, archive, raw, Source.path_for, NseVixJsonReader(), fingerprints), raw, index
+
+
+def test_a_revised_month_is_kept_beside_the_original_and_named_day_by_day(tmp_path):
+    job, raw, index = sweep(tmp_path, FakeNseVix({PATH: july_2010(close_on_20th=20.4)}))
+    report = job.sweep([JULY])
+    assert report.revised == [(JULY, ["2010-07-20: O 20.71 H 20.71 L 19.61 C 20.38 -> O 20.71 H 20.71 L 19.61 C 20.4"])]
+    assert raw.get(PATH) == july_2010()  # the original is never overwritten
+    (revision,) = index.for_path(PATH)
+    assert LocalFolderStore(tmp_path / "revisions").get(revision.revision_path) == july_2010(close_on_20th=20.4)
+
+
+def test_the_same_bytes_again_are_no_revision(tmp_path):
+    job, _, index = sweep(tmp_path, FakeNseVix({PATH: july_2010()}))
+    assert job.sweep([JULY]).revised == [] and index.for_path(PATH) == []
+
+
+def test_an_error_page_is_listed_and_never_kept_as_a_version(tmp_path):
+    job, _, index = sweep(tmp_path, FakeNseVix({PATH: b"<html>Service Temporarily Unavailable</html>"}))
+    report = job.sweep([JULY])
+    assert [m for m, _ in report.invalid] == [JULY] and index.for_path(PATH) == []
+
+
+def test_no_answer_is_listed(tmp_path):
+    for source, why in ((FakeNseVix({}), "not served (HTTP 404)"), (Unreachable({}), "NSE: connection reset")):
+        job, _, _ = sweep(tmp_path, source)
+        report = job.sweep([JULY])
+        assert report.unanswered == {JULY: why} and f"no answer 2010-07: {why}" in report.lines()
+
+
+def test_a_last_modified_time_is_the_versions_time(tmp_path):
+    class Stamped(FakeNseVix):
+        def fetch_published(self, path):
+            return PublishedFile(july_2010(close_on_20th=20.4), datetime(2026, 10, 14, 23, 0, tzinfo=IST))
+
+    job, _, index = sweep(tmp_path, Stamped({}))
+    job.sweep([JULY])
+    assert index.for_path(PATH)[0].available_from == datetime(2026, 10, 14, 23, 0, tzinfo=IST)
+
+
+def test_a_missing_original_is_named_not_passed_over(tmp_path):
+    job, raw, index = sweep(tmp_path, FakeNseVix({PATH: july_2010(close_on_20th=20.4)}))
+    (tmp_path / "raw" / PATH).unlink()
+    report = job.sweep([JULY])
+    assert report.not_archived == [JULY] and report.revised == [] and index.for_path(PATH) == []
+    assert "original MISSING from the archive, nothing compared 2010-07" in report.lines()
+
+
+def test_a_revision_against_a_damaged_original_is_kept_and_named_and_the_sweep_goes_on(tmp_path):
+    job, raw, index = sweep(tmp_path, FakeNseVix({PATH: july_2010(close_on_20th=20.4)}))
+    (tmp_path / "raw" / PATH).write_bytes(b"<html>damaged</html>")
+    report = job.sweep([JULY, date(2010, 8, 1)])
+    assert report.checked == 2 and list(report.unanswered) == [date(2010, 8, 1)]
+    assert report.revised[0][0] == JULY and "the original fails the check" in report.revised[0][1][0]
+
+
+def test_an_http_refusal_is_no_answer_with_its_reason_not_a_crash(tmp_path):
+    class Refused(FakeNseVix):
+        def fetch_published(self, path):
+            raise RawFileRefused(f"NSE archive: {path}: HTTP 403 after 1 try", 403, 1)
+
+    job, _, _ = sweep(tmp_path, Refused({}))
+    assert job.sweep([JULY]).unanswered == {JULY: f"NSE archive: {PATH}: HTTP 403 after 1 try"}
+
+
+def test_the_sweep_command_exits_1_when_an_original_is_missing(tmp_path, monkeypatch, capsys):
+    job, _, _ = sweep(tmp_path, FakeNseVix({PATH: july_2010(close_on_20th=20.4)}))
+    (tmp_path / "raw" / PATH).unlink()
+    monkeypatch.setattr(wiring, "build_vix_revision_sweep", lambda: job)
+    assert cmd_vix_history(Namespace(action="sweep", start=JULY, end=JULY)) == 1
+    assert "original MISSING from the archive, nothing compared 2010-07" in capsys.readouterr().out
+    job, _, _ = sweep(tmp_path / "kept", FakeNseVix({PATH: july_2010()}))
+    monkeypatch.setattr(wiring, "build_vix_revision_sweep", lambda: job)
+    assert cmd_vix_history(Namespace(action="sweep", start=JULY, end=JULY)) == 0  # the same bytes: nothing missing

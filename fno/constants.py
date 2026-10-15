@@ -176,6 +176,7 @@ ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"
 ENV_ROUTINE_BOOK3_TOKEN = "FNO_ROUTINE_BOOK3_AI_TOKEN"
 ENV_GITHUB_TOKEN = "GITHUB_TOKEN"  # the Actions run's own token: reads the repository's push log (receipt times)
 GITHUB_REPOSITORY_VARIABLE = "GITHUB_REPOSITORY"  # owner/name, set by GitHub Actions (not a secret, so no ENV_ name)
+DEFAULT_REPOSITORY = "exepex/trading"  # outside GitHub Actions, where GITHUB_REPOSITORY is not set
 
 
 # Playbook (story D1, fno/playbook/): a strategy version's lifecycle, who may change it, and its files
@@ -247,3 +248,44 @@ DEEP_OTM_EXPOSURE_RATE, DEEP_OTM_DISTANCE = 0.03, 0.10  # a short option more th
 EXPOSURE_MODEL_MAX_MONTHS = 9  # beyond 9 months (5%) and on expiry day (+2%) NSE's rule differs: not modelled
 SPAN_BOD_CREATED_BEFORE = time(9, 0)  # IST: a day's `i1` file must be written before this (point in time)
 MARGIN_SOURCE_NSE_SPAN = "NSE SPAN"  # margins.csv `source` prefix of a computed row: "NSE SPAN <file> sha256=<hex>"
+
+# Stories F8 (minimal) and BG1 (fno/budget/): what an AI session's minutes were for, design v2 section 8.1's cost
+# items, and the order AI roles stop in at 100% of the AI cap (section 7.6); code jobs keep running
+PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT = "books_and_roles", "development"  # only the first counts against the cap
+PURPOSE_DATA_ROUTINES = (
+    "data_routines"  # code jobs run by a Claude routine (3 pm and 15-minute recorders): keep running
+)
+USAGE_PURPOSES = (PURPOSE_BOOKS_AND_ROLES, PURPOSE_DEVELOPMENT, PURPOSE_DATA_ROUTINES)
+ITEM_CLAUDE_PLAN = "Claude subscription"
+ITEM_GITHUB_DRIVE = "GitHub Actions and Drive"
+ITEM_AZURE_POSTGRES = "Azure Database for PostgreSQL"
+ITEM_GROWW_API = "Groww API"
+ITEM_RECORDER_HOSTING = "Recorder and monitor hosting"
+ITEM_PAID_DATA = "Paid data"
+BUDGET_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_GITHUB_DRIVE, ITEM_AZURE_POSTGRES, ITEM_GROWW_API, ITEM_RECORDER_HOSTING,
+                ITEM_PAID_DATA)  # fmt: skip
+EXISTING_COST_ITEMS = (ITEM_CLAUDE_PLAN, ITEM_AZURE_POSTGRES)  # running before 15 Oct 2026; others need a written yes
+BUDGET_OK, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN = "ok", "alert", "stop", "unknown"
+AI_ROLE_STOP_ORDER = ("analysts", "idea generator", "post-mortem writer", "devil's advocate objections",
+                      "AI forecasters")  # fmt: skip
+
+
+# The daily trade card (story T1, fno/cards/): its status, the reason codes of a `NO TRADE` card (design 04, 4.1),
+# where its records go (Drive only, owner 15 Oct 2026) and the clock contract of design 04 section 4.4
+class CardStatus(StrEnum):
+    TRADE = "TRADE"
+    NO_TRADE = "NO TRADE"
+    WATCH = "WATCH"
+
+
+CARD_NO_APPROVED_STRATEGY = "no_approved_strategy"  # no playbook version is at `paper`
+CARD_TRADE_FIELDS_NOT_BUILT = "trade_fields_not_built"  # a version is at `paper`; card v1 has no trade fields (slice B)
+CARD_DATA_CHECK_FAILED = "data_check_failed"  # a record the status needs could not be read
+CARDS_AREA = "cards"  # Drive area of the card records (beside raw/ and pipeline/); never the public repository
+CARD_DELIVERIES_FOLDER = "research/cards/deliveries"  # non-sensitive delivery metadata only (no card text)
+CARD_VALID_UNTIL = time(15, 25)  # IST: design 04 4.1, a card is valid until 15:25
+CLOCK_SKEW_WARNING_SECONDS = 5.0  # design 04 4.4: host clock vs Slack's and GitHub's server times
+CARD_SESSION_KINDS = (
+    SESSION_REGULAR,
+    SESSION_SPECIAL,
+)  # a muhurat session is the one-hour Diwali session: no 15:00 card

@@ -12,7 +12,7 @@ from datetime import date
 from ..research_data.calendar import SessionCalendar
 from .coverage import DEFAULT_WORKERS, archive_range, days_between
 from .manifest_folder import Fingerprint
-from .raw_source import NseArchiveSource
+from .raw_source import COOLING_OFF_STOP, NseArchiveSource, RawSourceCoolingOff, RawSourceUnavailable
 from .raw_store import RawFileStore
 
 
@@ -31,11 +31,21 @@ def fingerprint_store(
     return [Fingerprint.of(source, source.path_for(day), data) for day, data in zip(days, files) if data is not None]
 
 
+NO_ANSWER = "NO ANSWER"  # the source failed after its retries (A9b)
+
+
 def compare_with_source(source: NseArchiveSource, fingerprints: list[Fingerprint]) -> list[str]:
     """One line per file: whether the source's live bytes still equal the archived fingerprint."""
     lines = []
-    for f in fingerprints:
-        live = source.fetch(source.path_for(f.day))
+    for done, f in enumerate(fingerprints):
+        try:
+            live = source.fetch(source.path_for(f.day))
+        except RawSourceCoolingOff as paused:  # every later file would fail the same way
+            lines.append(f"{NO_ANSWER}: {COOLING_OFF_STOP.format(error=paused, left=len(fingerprints) - done)}")
+            break
+        except RawSourceUnavailable as failed:  # named per file; the other files are still compared
+            lines.append(f"{f.day} {f.url}: {NO_ANSWER}: {failed}")
+            continue
         if live is None:
             lines.append(f"{f.day} {f.url}: the source no longer serves it (archive copy kept)")
         elif hashlib.sha256(live).hexdigest() == f.sha256:

@@ -114,3 +114,34 @@ desk:
     execution_snapshot: "15:15"
     fills_by: "15:20"
     lock_lease_seconds: 60
+
+# Story BG1: the monthly AI budget. Decided by the owner on 15 Oct 2026 (docs/DESK_DECISIONS.md, "Monthly AI budget
+# accepted"): AI routine use for books and roles capped at half of the plan's measured session minutes, alert at 80%,
+# AI roles stop at 100% while code jobs keep running. The plan publishes no minutes allowance, so the cap is 50% of all
+# measured session minutes of the month until `measured_basis_until`; then `plan_minutes_per_month`, the owner's fixed
+# figure from real data (owner, 15 Oct 2026, "7 A": "50% of measured minutes for two months, then a fixed monthly
+# figure"; two months from the decision taken as November and December 2026, October being partial: the
+# orchestrator's decision while the owner was away, response 113; the owner may change it).
+# `v4_freeze_date` is protocol v4's freeze day once it exists (G6); empty means "projected".
+budget:
+  books_and_roles_share_pct: 50
+  alert_pct: 80
+  stop_pct: 100
+  measured_basis_until: "2026-12"
+  plan_minutes_per_month: null  # owed by the owner after measured_basis_until; never set by a builder
+  # The plan's decided monthly cost, applied to every month from `from_month` until a newer decision row changes it
+  # (judge 104 addendum 1; the orchestrator's reading of the owner's row, response 113). A recorded payment row in
+  # accounting/operating_costs.csv is that month's cash spend; the meter flags it when it differs.
+  plan_cost:
+    rs_per_month: 20000
+    from_month: "2026-10"
+    decision: "DESK_DECISIONS 15 Oct 2026: Claude plan cost: INR 20,000 a month"
+  # Data routines run by a Claude routine, each with its real schedule; each run's self-timed record is needed before the
+  # measured level is known (judge 104 addenda 1-2). The 3 pm recorder is started every calendar day at about 14:50
+  # IST (CLAUDE.md), closed days included. Writing that record is a change to the routine's prompt: the owner's step.
+  data_routines:
+    - name: "3 pm quote recorder"
+      schedule: daily
+  stop_rule:
+    v4_freeze_date: null
+    projected_v4_freeze_month: "2026-11"  # design v2 section 8.2: "if v4 freezes in early November 2026"

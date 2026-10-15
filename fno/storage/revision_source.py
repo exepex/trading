@@ -12,7 +12,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .raw_source import PublishedFile, RawFileSource, RawSourceUnavailable
+from .raw_source import (
+    COOLING_OFF_STOP,
+    NOT_PUBLISHED_REASON,
+    PublishedFile,
+    RawFileSource,
+    RawSourceCoolingOff,
+    RawSourceUnavailable,
+)
 from .revisions import RevisionArchive
 
 
@@ -40,18 +47,24 @@ class RevisionCapturingSource(RawFileSource):
 @dataclass
 class RevisionSweepResult:
     checked: int = 0
-    unanswered: list[str] = field(default_factory=list)  # unreachable, or no longer served
+    unanswered: dict[str, str] = field(default_factory=dict)  # path -> why: unreachable, refused or no longer served
+    stopped: str = ""  # the host paused after refusals: the pass stopped, the rest not read (A9b)
 
 
 def sweep_revisions(source: RevisionCapturingSource, paths: Iterable[str]) -> RevisionSweepResult:
     """Reads every path once from the source; new versions land in the source's archive (`archive.stored`)."""
-    result = RevisionSweepResult()
-    for path in paths:
-        result.checked += 1
+    result, paths = RevisionSweepResult(), list(paths)
+    for done, path in enumerate(paths):
         try:
             found = source.fetch_published(path)
-        except RawSourceUnavailable:
-            found = None
+        except RawSourceCoolingOff as paused:  # every later file would fail the same way
+            result.stopped = COOLING_OFF_STOP.format(error=paused, left=len(paths) - done)
+            break
+        except RawSourceUnavailable as failed:
+            found, why = None, str(failed)
+        else:
+            why = NOT_PUBLISHED_REASON
+        result.checked += 1
         if found is None:
-            result.unanswered.append(path)
+            result.unanswered[path] = why
     return result

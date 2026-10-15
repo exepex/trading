@@ -14,9 +14,12 @@ from pathlib import Path
 
 PUSH_ATTEMPTS = 3
 COMMIT_MESSAGE = "Manifests: SHA-256 rows written at save time ({what})"
-COMMITTED = "manifest rows committed and pushed ({count} file(s))"
-NOTHING = "manifest rows: nothing new to commit"
-NOT_COMMITTED = "manifest rows NOT committed: {step} failed: {reason}. Commit research/data/manifests/ by hand"
+MANIFEST_LABEL = "manifest rows"
+COMMITTED_AS, NOTHING_AS = "{label} committed and pushed ({count} file(s))", "{label}: nothing new to commit"
+COMMITTED = COMMITTED_AS.format(label=MANIFEST_LABEL, count="{count}")
+NOTHING = NOTHING_AS.format(label=MANIFEST_LABEL)
+NOT_COMMITTED = "{label} NOT committed: {step} failed: {reason}. Commit {folder}/ by hand"
+NO_HOOKS = "core.hooksPath is not set, so the public-record scan would not run (git config core.hooksPath .githooks)"
 
 
 class ManifestRecorder(ABC):
@@ -30,40 +33,65 @@ class ManifestRecorder(ABC):
 
 
 class GitManifestRecorder(ManifestRecorder):
-    def __init__(self, repository: Path, folder: Path, run=subprocess.run):
-        self.repository, self.run = Path(repository), run
+    def __init__(self, repository: Path, folder: Path, run=subprocess.run, message: str = COMMIT_MESSAGE,
+                 label: str = MANIFEST_LABEL, keep_remote_on_conflict: bool = False):  # fmt: skip
+        """`keep_remote_on_conflict`: a pull conflict is settled with the copy already pushed (`-X theirs`), for a
+        folder of write-once records where the first push wins (story A16); off for manifests."""
+        self.repository, self.run, self.message, self.label = Path(repository), run, message, label
+        self.merge_option = ("-X", "theirs") if keep_remote_on_conflict else ()
         self.folder = Path(folder).resolve().relative_to(self.repository.resolve()).as_posix()
 
     def _git(self, *args: str) -> subprocess.CompletedProcess:
         return self.run(["git", *args], cwd=self.repository, capture_output=True, text=True)
 
+    def _paths(self) -> list[str]:
+        """The pathspecs this committer adds and commits (a commit with pathspecs takes only those: `--only`)."""
+        return [self.folder]
+
     def pending(self) -> list[str]:
-        status = self._git("status", "--porcelain", "--untracked-files=all", "--", self.folder)
+        paths = self._paths()
+        if not paths:  # no pathspec at all would mean the whole repository
+            return []
+        status = self._git("status", "--porcelain", "--untracked-files=all", "--", *paths)
         return sorted(line[3:] for line in status.stdout.splitlines() if line.strip())
 
     def commit(self, what: str) -> str:
         files = self.pending()
         if not files:
-            return NOTHING
+            return NOTHING_AS.format(label=self.label)
+        if not self._git("config", "core.hooksPath").stdout.strip():
+            return self._not_committed("hooks", NO_HOOKS)  # the scan is never skipped, so neither is it bypassed
+        paths = self._paths()
         for step, args in (
-            ("add", ("add", "--", self.folder)),
-            ("commit", ("commit", "-m", COMMIT_MESSAGE.format(what=what), "--", self.folder)),
+            ("add", ("add", "--", *paths)),
+            ("commit", ("commit", "-m", self.message.format(what=what), "--", *paths)),
         ):
             result = self._git(*args)
             if result.returncode != 0:
-                return NOT_COMMITTED.format(step=step, reason=_first_line(result))
+                return self._not_committed(step, _first_line(result))
         return self._publish(len(files))
 
     def _publish(self, count: int) -> str:
         """Pulls and pushes; another session pushing in between is retried (PUSH_ATTEMPTS in all)."""
         for _ in range(PUSH_ATTEMPTS):
-            pulled = self._git("pull", "--no-rebase", "--no-edit", "origin", self._branch())
+            pulled = self.pull()
             if pulled.returncode != 0:
-                return NOT_COMMITTED.format(step="pull", reason=_first_line(pulled))
+                self.abort_merge()
+                return self._not_committed("pull", _first_line(pulled))
             pushed = self._git("push", "origin", "HEAD")
             if pushed.returncode == 0:
-                return COMMITTED.format(count=count)
-        return NOT_COMMITTED.format(step="push", reason=_first_line(pushed))
+                return COMMITTED_AS.format(label=self.label, count=count)
+        return self._not_committed("push", _first_line(pushed))
+
+    def _not_committed(self, step: str, reason: str) -> str:
+        return NOT_COMMITTED.format(label=self.label, folder=self.folder, step=step, reason=reason)
+
+    def pull(self) -> subprocess.CompletedProcess:
+        return self._git("pull", "--no-rebase", "--no-edit", *self.merge_option, "origin", self._branch())
+
+    def abort_merge(self) -> None:
+        """Never leaves the checkout mid-merge: every later commit would fail."""
+        self._git("merge", "--abort")
 
     def _branch(self) -> str:
         return self._git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
