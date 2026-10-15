@@ -107,26 +107,20 @@ Only the `e4_1515` view fills the same day.
    pad 0, C1's charges. For an A16 quote, "a trade that session" is read from its `last_trade_time`.
 5. **All legs or none.** Every leg is checked at the due mark before any fill (E4c's rule). If any leg fails, nothing
    fills.
-6. **Entry rule (a slot the owner fills).** The entry fills only if the owner's chosen `EntryRange` admits it at the
-   due mark. A miss is never filled at another mark or price. The three candidates, put to the owner on one card:
-   - **Price cap only** (`ApprovedLimit`, recommended): the net at the touch must be no worse than the decision's
-     approved entry (C2's entry cash, the limit E4 already enforces); otherwise "missed, price moved".
-   - **Cap plus a NIFTY band** (`ApprovedLimitWithBand`): as above, and NIFTY at the due mark must also be within ±0.5%
-     of its decision level; otherwise "missed, NIFTY moved". About 32% of overnight entries would miss for this alone.
-   - **Any price** (`AnyPrice`): no range miss; every leg with a valid quote fills at its touch. C2's hard caps still
-     bind: the priced entry is checked again on the fill's own prices against the per-trade maximum loss in `config.yaml`
-     (Rs 10,000) and the risk buckets, and a breach is "missed, over risk cap". The decision's approved entry cash no
-     longer limits the price.
-   - **Funds and risk at the fill, for every candidate** (ChatGPT review 122 point 5, response 190). Approved cash,
+6. **Entry rule: price cap only** (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md:220`: "Price cap only
+   (Recommended)"). An entry fills only if the net at the touch is no worse than the decision's approved entry (C2's
+   entry cash, the limit E4 already enforces); otherwise "missed, price moved". A miss is never filled at another mark
+   or price. `EntryRange` stays an interface with this one class, `ApprovedLimit`, wired as decided.
+   - Considered, not chosen: a ±0.5% NIFTY band on top (about 32% of overnight entries missed for the band alone, its
+     width a guess) and any price (no miss bias, but an entry could cost more than C2 approved).
+   - **Funds and risk at the fill** (ChatGPT review 122 point 5, response 190). Approved cash,
      available cash and margin are separate, and each can change between decision and fill (other fills that
      morning, an overnight margin change). So before any entry is written, the existing C2 and C4 entry checks (cash,
      stressed margin, per-trade cap, buckets) run again on the due-mark prices, the current verdict account and the
      pending fills. A shortfall gives "missed, insufficient funds"; a cap or bucket breach gives "missed, over risk cap".
      These are the paper desk's own checks on its own accounts, never Groww's funds or margin API.
 
-   Until the owner answers, `wiring.py` wires `ApprovedLimit`, which is E4's behaviour today. The answer is one line
-   in `wiring.py`. The card shows whatever the chosen rule needs (the limit, the band) and never computes its own
-   (T1's trade fields).
+   The card shows this same limit and never computes its own (T1's trade fields).
 7. **No quote.** An entry is "missed, no quote" when the due mark has no valid quote for a leg. That covers:
    - the mark missing or failed with no stand-in;
    - a leg outside A16's strikes;
@@ -212,9 +206,8 @@ All new code lives in one package, `fno/desk/owner_timing/`. Every file except `
   - `FirstAvailable` composes the two.
 - **`Availability` (interface).** `SealedDriveAvailability` reads the private Drive file and checks it against the
   last seal committed before T (rule 8); `AvailabilitySealer` writes the day's seal.
-- **`EntryRange` (interface).** Three classes, one per candidate of rule 6: `ApprovedLimit` (C2's limit, wired until
-  the owner answers), `ApprovedLimitWithBand` (NIFTY read from the same due-mark snapshot) and `AnyPrice` (C2's caps
-  re-checked on the fill's prices). A card range from T1 plugs in later as one class plus one line in `wiring.py`.
+- **`EntryRange` (interface).** One class, `ApprovedLimit` (C2's limit, the owner's rule 6). Another rule, such as a
+  card range from T1, would be one class plus one line in `wiring.py`, through an owner decision and S1.
 - **`PendingOrders`.** The private store of entries and exits waiting for their due mark, in E2c's Drive store,
   written through E2c's journal.
 - **`OwnerTimingStep`.** Rule 11's daily-run step.
@@ -252,7 +245,7 @@ All new code lives in one package, `fno/desk/owner_timing/`. Every file except `
 - the card's trade fields (T1 slice B);
 - choosing the decision time (the owner);
 - changing R (owner decision 5);
-- any entry condition other than rule 6's three candidates.
+- any entry condition other than the owner's price cap (rule 6).
 
 ## S1 items (agreed with S1's text owner, session 0185gR5D, 15 Oct 2026)
 
@@ -272,27 +265,17 @@ All new code lives in one package, `fno/desk/owner_timing/`. Every file except `
    - E8's fills are applied by the daily run's first step after `quotes`; when it fails, no new entry opens that day
      and exits still run.
 3. **The decision time** (15:00, or 14:00) waits for the owner. This matches G10's open note 3 (judge 161 addendum 3).
-4. **The entry rule** (rule 6) waits for the owner. S1's freeze needs the answer wired in `wiring.py`, or a recorded
-   owner row keeping `ApprovedLimit`. Because `wiring.py` is frozen, the pending default must never quietly become the
-   answer.
+4. **The entry rule: closed.** The owner chose the price cap on 16 Oct 2026 (`docs/DESK_DECISIONS.md:220`), so
+   `ApprovedLimit` is wired as decided, not as a pending default.
 5. These land in `PROTOCOL.md` with S1's next edit, by its text owner.
 
-## Open question for the owner (one card; owner questions go through the orchestrator)
+## Owner decision on the entry rule (16 Oct 2026, closed)
 
-Which entry rule of rule 6 applies the morning after. Plain costs of each (E8a, 15:00 decision, R = 60, some evidence):
-- **Price cap only (recommended).** A bought option's price moves by more than 10% of the trade's risk on 23-28% of
-  mornings, so many entries miss. The fills that remain are mostly the mornings that went against the idea (a long
-  call is cheaper when NIFTY fell). That is what a real limit order gets, so it is honest, but it biases bought options
-  toward bad fills; the report's NIFTY-move split shows it from day one.
-- **Cap plus a ±0.5% NIFTY band.** Fewer of those bad fills, but about 32% of overnight entries miss for the band alone:
-  204 of 645 days (SF) and 210 of 660 (LC) moved 0.5% or more by 10:15 (`results.md` lines 200 and 216; judge 193
-  should-fix 3). The width is reasoning only. (An earlier draft said 17%: that was the 09:15 open's gap.)
-- **Any price.** Every entry with valid quotes fills, the mornings against the idea included, so the verdict shows the
-  full cost of the delay with no miss bias. But the entry can cost more than the cash C2 approved; only C2's hard caps
-  (Rs 10,000 per trade, the buckets), re-checked on the fill's prices, still stop a trade.
-
-Recommendation: price cap only, because it matches the limit the card gives the owner, needs no guessed number, and
-the split report shows whether a band is needed later, per strategy.
+The owner chose "Price cap only (Recommended)" (`docs/DESK_DECISIONS.md:220`; ChatGPT review 122 agreed). The cost,
+said plainly (E8a, 15:00 decision, R = 60, some evidence): a bought option's price moves by more than 10% of the trade's
+risk on 23-28% of mornings, so many entries miss, and the fills that remain are mostly mornings that went against the
+idea. That is what a real limit order gets. The report's NIFTY-move split and the per-opportunity P&L show it from day
+one. The ±0.5% band figure behind the choice was about 32%, not the 17% of an earlier draft (the 09:15 open's gap).
 
 ## Acceptance criteria
 
@@ -312,14 +295,11 @@ the split report shows whether a band is needed later, per strategy.
    no-trade quote, or too little size, fills nothing and gives "missed, no quote" for an entry or a pending exit for an
    exit.
 5. **All or none.** A four-leg entry with one bad leg writes no fill and no ledger row.
-6. **Entry rule**, one line per candidate (the same trade is never filled at a later mark):
-   - `ApprovedLimit`: a net at the touch one paisa worse than the approved entry gives "missed, price moved".
-   - `ApprovedLimitWithBand`: a fixture with the price inside the limit and NIFTY 0.51% from its decision level gives
-     "missed, NIFTY moved"; at 0.49% it fills.
-   - `AnyPrice`: a net far worse than the approved entry fills; one whose maximum loss on the fill prices is above
-     Rs 10,000 gives "missed, over risk cap".
-   - Until the owner answers, the wired rule is `ApprovedLimit` (a wiring test).
-   - Funds, for every candidate: a bought option whose debit at the due mark is under the loss cap but above the verdict
+6. **Entry rule** (the same trade is never filled at a later mark):
+   - A net at the touch one paisa worse than the approved entry gives "missed, price moved"; exactly at it, it fills.
+   - The wired rule is `ApprovedLimit` (a wiring test).
+   - A maximum loss on the fill prices above the per-trade cap gives "missed, over risk cap".
+   - Funds: a bought option whose debit at the due mark is under the loss cap but above the verdict
      account's available cash gives "missed, insufficient funds"; a credit vertical with loss headroom but too little
      stressed margin gives "missed, insufficient funds"; a pending fill earlier that morning counts against both.
 7. **Availability.**
