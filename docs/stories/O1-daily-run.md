@@ -47,6 +47,12 @@ schedule means no two schedules race (the old O1's reason).
 A4c (other indices), G10 (14:05 start, 14:30-14:40 window) and the handover session change only the command they own
 and send their prompt lines to O1 through the orchestrator; no second copy of the prompt is written anywhere.
 
+**Lines other stories send for the prompt (through the orchestrator):** A4c (its steps 2-3b, above); G10 (14:05
+start and its windows, at go-live); A14c (orchestrator, 15 Oct; owner decision in `docs/DESK_DECISIONS.md`, da0f769d):
+after each applied row in `research/data/margins/stress_factor.csv`, the read-only Groww margin comparison runs
+(SPAN within Rs 1, exposure within 1%; a mismatch alerts). Its exact command comes from the A14c builder and becomes
+an O1 step or a prompt line when it arrives.
+
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
 
