@@ -1,6 +1,5 @@
 """Story E1: the committed starting accounts, the account measures, idempotent fills and the book firewall."""
 
-import json
 import os
 from datetime import date, datetime
 
@@ -14,7 +13,7 @@ from fno.books.lock import AccountLock, Lease
 from fno.books.paths import BookPathError, account_folder
 from fno.composition import build_paper_account, open_account_writer, paper_account_rs
 from fno.config import ROOT, load_config
-from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, BOOKS
+from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, BOOKS, DAILY_TOTALS_FILE
 from fno.models import IST
 
 CHARGES = load_config(ROOT / "config.yaml")["charges"]
@@ -35,25 +34,21 @@ def root(tmp_path):
     return tmp_path
 
 
-def test_the_committed_state_is_the_13_oct_rs_5_lakh_opening_topped_up_to_rs_20_lakh_on_15_oct():
-    """The books opened on 13 Oct 2026 with Rs 5 lakh, before the owner's Rs 20 lakh account (14 Oct). The records stay
-    as written; story E1b's top-up (data commit 400d6921, 15 Oct 19:29 IST) added Rs 15 lakh each, so the capital in
-    force from the 16 Oct decision is the profile's Rs 20 lakh, and nothing was ever traded."""
+def test_the_public_record_is_the_13_oct_rs_5_lakh_opening_topped_up_to_rs_20_lakh_on_15_oct():
+    """The books opened on 13 Oct 2026 with Rs 5 lakh, before the owner's Rs 20 lakh account (14 Oct); story E1b's
+    top-up (data commit 400d6921, 15 Oct 19:29 IST) added Rs 15 lakh each, so the capital in force from the 16 Oct
+    decision is the profile's Rs 20 lakh, and nothing was ever traded. Since story E2c the accounts live in Drive
+    (moved at d9f67c4; the ledgers as committed stay in the history, `git show d9f67c4^:journal/<book>/account/`), and
+    the public record of that state is each book's committed `daily_totals.csv`."""
     assert BOOKS == ("book1_rules", "book2_hybrid", "book3_ai")  # the names the stories use (epic E)
     for book in BOOKS:
-        account = build_paper_account(book)  # the repository's own journal/<book>/account/
-        opening, top_up = account.ledger_rows()
-        assert (opening["kind"], opening["amount_rs"]) == ("opening_balance", "500000.0")
-        assert (top_up["kind"], top_up["amount_rs"], top_up["filled_at"][:10]) == ("capital_top_up", "1500000.0",
-                                                                                 "2026-10-15")  # fmt: skip
-        assert account.started and account.capital() == 2_000_000.0 == paper_account_rs() and account.fills() == []
-        summary = json.loads(account.file("positions.json").read_text())
-        assert summary["open_trades"] == [] and summary["cash_rs"] == 2_000_000.0 == summary["closed_equity_rs"]
-        history = account.equity_history()
-        assert [(r["date"], r["cash_rs"], r["marked_equity_rs"], r["open_trades"]) for r in history] == [
-            ("2026-10-13", "500000.00", "500000.00", "0"),
-            ("2026-10-15", "2000000.00", "2000000.00", "0"),
+        totals = (ROOT / "journal" / book / DAILY_TOTALS_FILE).read_text(encoding="utf-8").splitlines()
+        assert totals == [
+            "date,closed_equity_rs,open_trades,closed_trades,fills",
+            "2026-10-13,500000.00,0,0,0",  # the opening
+            "2026-10-15,2000000.00,0,0,0",  # E1b's top-up: capital Rs 20 lakh, no trade, no fill
         ]
+        assert float(totals[-1].split(",")[1]) == paper_account_rs()
 
 
 def test_a_new_account_opens_with_the_owners_paper_account_of_rs_20_lakh(root):
