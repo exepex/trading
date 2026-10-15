@@ -1122,8 +1122,10 @@ the value, owner question 3); any order.
 **Owner questions (each with a recommendation):**
 1. **Which quantity does k measure? ANSWERED (owner, 15 Oct 2026, relayed by the orchestrator): "WHOLE MARGIN. k
    multiplies the whole margin (scan plus exposure), as it was measured."** The run measures the held rise of the
-   whole margin C2 counts; story C2c makes C2 and C4 multiply the same quantity. The report also gives the scan's own
-   rise, for information only.
+   whole margin C2 counts. The separate story C2c makes C2 and C4 multiply the same quantity; its effect at k = 1.45 on
+   the 14 Oct rows: a held SF 100 from about 59,900 to about 86,900 a lot (today's scan-only stress gives 60,269), so C2
+   refuses more trades for the same capital, about 31% fewer lots (judge 173 note 3). The report also gives the scan's
+   own rise, for information only.
 2. **Which windows? ANSWERED (owner, 15 Oct 2026, relayed): everything since 1 Jan 2020.** Every entry day from
    2 Jan 2020 to the run day; later runs add the new days. The `config.yaml` comment ("the same windows, plus any later
    ones") is corrected when the first value from this run is entered.
@@ -1136,8 +1138,11 @@ the value, owner question 3); any order.
    rate that drifted from the broker is caught within a month.
 
 **Acceptance criteria:**
-1. Reproduction: on the 2026 window the command reproduces response 77's 1.127 (BF 100) within 0.001, or explains each
-   difference with the files' figures.
+1. Reproduction, run after the back-fill of question 2 (Drive's archive starts on 1 Oct 2026 and the 2026 window has
+   September entries; judge 173 note 1): the command reproduces each of response 77's three windows within 0.001, or
+   explains each difference with the files' figures: 1.127 (Sep-Oct 2026, BF 100), 1.265 (Jan-Apr 2020, the
+   short-option minimum binding) and 1.407 (May-Jun 2024, BF 300 entered 5 Jun, today's binding value). The 2020 and 2024
+   figures are anchors the builder did not write (judge 173 note 2).
 2. Hand computation: on planted SPAN files (a held SF whose scan doubles on day 3) the reported rise and its day equal a
    hand calculation (test); a mutation that skips a day or takes the first rise instead of the largest fails a test.
 3. Point in time: each day uses that day's first-archived `i1` file written before 09:00 IST on it, as A14 does
@@ -1146,7 +1151,8 @@ the value, owner question 3); any order.
    method difference is refused by name (test).
 5. Output: the CSV and Markdown name every file's SHA-256, the rule, the windows and the run day; a second run on the
    same files writes byte-identical output; nothing writes `config.yaml` (test).
-6. Owner questions 1 and 2 are recorded in DESK_DECISIONS (answered 15 Oct); 3 and 4 are answered there before the
+6. Owner questions 1 and 2 are recorded in DESK_DECISIONS (answered 15 Oct, commit d68b1a9c: "Crash buffer applies to
+   the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 2020"); 3 and 4 are answered there before the
    first value from this command is entered; C2c is merged before it, so the value is applied as it was measured.
 7. Code size, lint, imports and the full suite pass.
 
@@ -1156,8 +1162,8 @@ and judge by 11 Nov; 1.45 expires after 13 Nov. Then monthly, about 7 days befor
 **Judge verifies:** recomputes one held position's rise by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
 
-**Depends:** A9, A14, C2, C2c · **Size:** M · **Status:** text for the judge (lane 1); owner questions 1 and 2
-answered 15 Oct
+**Depends:** A9, A14, C2, C2c · **Size:** M · **Status:** text PASS (judge 173); owner-answer revision for
+judge 173 addendum 1
 
 ---
 
