@@ -28,7 +28,14 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
     chosen outcomes only: `fno/desk/daily_steps.py` `fill`, `fno/books/book1_orders.py`);
   - nothing opens the shadow accounts. `start_shadow_books` (`fno/desk/wiring.py`) is called only by a test, so the
     first registered candidate makes Book 1's run raise (`JournalShadowBooks.account`: "has not been started");
-  - the shadow books get Book 1's recorded terms, not each shadow's own (`fno/books/book1_wiring.py` `_parts`).
+  - the shadow books get Book 1's recorded terms, not each shadow's own (`fno/books/book1_wiring.py` `_parts`). That
+    is a second crash path: once a shadow holds an open trade, `fno/risk/book_view.py` `_open_trade` raises
+    `RiskInputError` ("open trade ... has no recorded terms"), because that trade's terms are not in Book 1's
+    (judge 208 note; the error is `RiskInputError`, not `KeyError`);
+  - **Book 1's readers do not filter shadows.** The shadow decision records sit in Book 1's own decision folder
+    (`journal/book1_rules/decisions/<d>/`), and a "shadow: would trade" record has `chosen_action: trade`. Book 1's
+    `_chosen` (`fno/books/book1_records.py`) checks only `chosen_action` and the structure, never `mode`, so Book 1's
+    opening trades and recorded terms would take a shadow's trade as its own (judge 208).
 - **No idea passes the cost wall today:**
   - desk meeting 2 found zero candidates with an edge after costs (`reviews/claude/response_92_...`, strong evidence:
     Rs 814-939 per four-leg round trip against the premium);
@@ -54,6 +61,12 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
   never breaks Book 1's run. Opening an account writes only `journal/shadow/<name>-v<n>/account/` (Drive-kept, E2c).
 - **Each shadow's own terms:** the shadow books are built from each shadow account's own filled trades (structure,
   width, lots), never from Book 1's.
+- **Book 1 isolation:** every Book 1 reader of the shared decision folder skips records with `mode: shadow`:
+  - E5's opening trades, recorded terms and decided exits (`fno/books/book1_records.py`);
+  - E5's one-decision-a-day finder.
+  A shadow's own readers take only `mode: shadow` records of that version. The decision records stay where D2 writes
+  them (D2 is unchanged). A shadow's orders, fills and account live only under `journal/shadow/<name>-v<n>/`, never
+  under `journal/book1_rules/`.
 - **Shadow fills and exits, through the desk's one fill path:** a "shadow: would trade" decision is filled into its
   shadow account exactly as a book's entry, and its exits run as a book's:
   - E8's owner-timing rule (`docs/stories/E8-owner-timing-fills.md`): order time T = that day's card delivery time,
@@ -62,8 +75,9 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
   - no card delivered: "missed, card not delivered", as for the books;
   - costs from C1 (`config.yaml` `charges`), the same as the books;
   - **the contract with E8 (agreed, below):**
-    - R3 writes each "shadow: would trade" decision as a pending order in the day's journal, in exactly the order
-      format Book 1's orders use, with the account id `shadow:<name>-v<n>`;
+    - R3 writes each "shadow: would trade" decision as a pending order in the shadow account's own journal
+      (`journal/shadow/<name>-v<n>/`), in exactly the order format Book 1's orders use, with the account id
+      `shadow:<name>-v<n>`;
     - E8 fills every pending order whatever its account, through the same code as a book's, so no separate shadow
       fill step exists;
     - R3 fills E8's one terms lookup (funds, limits, charges), keyed by account, for each shadow, as Book 1's wiring
@@ -86,9 +100,17 @@ earn rung 2 ("shadow", design 01) on a forward record, which is the road to an a
     `pauses.py`, unchanged);
   - the stop-rule tracker's Test B input "R3: resolved shadow trades, net after costs" (`fno/budget/stop_rule_tracker.py`,
     `path=None` today). R3 sets its path to the closed-trades file and tells BG1's owner.
+- **With B0 as the only shadow, the stop rule's Test B stays "undecided" for years:** about 12 trades a year, and a
+  measurement is not an economic test of an idea (`fno/forecast_v4/stop_rule.py`).
 - **B0's registration (owner, decision 1 A), counted in the trial total:** experiment 1's P1 rule (SC every monthly opportunity),
-  its card labelled `measurement`, never promoted. It is stopped if a single loss exceeds Rs 10,000 (response 92's
-  "what proves it wrong").
+  its card labelled `measurement`, never promoted. Response 92's stop ("a single loss above Rs 10,000"):
+  - **prevented by code:** D2 evaluates each shadow with C2's rules on its own book, so C2's per-trade cap
+    (`max_loss_per_trade`, `fno/risk/rules.py`) refuses any B0 trade whose maximum loss with costs exceeds the cap.
+    A defined-risk condor cannot lose more than its maximum loss, except through a settlement or data error;
+  - **if it happens anyway:** E6 alerts #fno-desk on the day the trade closes (a research shadow is alerted, never
+    paused: `fno/scorecard/pauses.py`). Retiring B0 is the owner's action (`playbook set-status ... retired`; only
+    the owner may retire, `fno/playbook/transitions.py`). So stopping after the fact needs the owner, against judge
+    208's note that it needs none: code cannot pause a research version, by design 12.8.
 
 Out (each with where it goes):
 - **V1 and V2 shadows:** later R3 work, when their blockers clear: A16's 20 sessions and G10 part 2 for V1; G7 phase 2
@@ -126,13 +148,22 @@ Out (each with where it goes):
 7. The stop-rule tracker's Test B path points at the shadow accounts' closed trades; zero shadows still give
    "undecided" (`fno/forecast_v4/stop_rule.py`).
 8. A measurement shadow's idea card, ledger row and registry evidence say `measurement: never promoted`.
-9. Nothing in R3 changes a book's account, decision or fill.
+9. Book 1's scoring is isolated: with one Book 1 trade and one shadow trade on the same day, each of these returns
+   exactly what it returns with the shadow absent:
+   - E5's trade counts and its one-decision-a-day rule;
+   - E5's opening trades and recorded terms;
+   - E6's Book 1 scorecard section;
+   - S2's Book 1 board;
+   - S3's Book 1 actions.
+   Nothing in R3 changes a book's account, decision or fill.
 
 **Test plan:** fakes for the registry, the shadow accounts, E8's fill rule and the clock.
 1. Positive: registration on d, account opened, one "would trade" filled, then exited and closed.
 2. Negative: an unopened shadow (opened, never raised); Book 1's terms kept out; "no trade" filled nothing.
 3. Empty: no research version (nothing opened, Test B "undecided").
-4. Isolation: one book trade and one shadow trade on the same day, each in its own account.
+4. Isolation (criterion 9): one Book 1 trade and one shadow trade on the same day. Each listed Book 1 reader is run
+   with and without the shadow's record and account, and the results must be equal. A planted reader that ignores
+   `mode` fails the test.
 
 **Known limits:**
 - Until a strategy is registered, R3 changes nothing a day records.
