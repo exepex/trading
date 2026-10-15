@@ -233,3 +233,17 @@ download was made.
 This is the expected state before the first paper run.
 
 **R3 note (judge 208):** see judge 208, addendum 1 note.
+
+## Addendum 5: `story/s6-followups` at `e015438b` (judge G)
+
+**Verdict: PASS.** It is one commit on top of the merged `edb78629`. `CommittedRuns.records` now drops records with
+`mode: shadow`, so a D2 shadow record can never stand for the book's own action: not in S3's `MatchedDays._actions`,
+not in S2's readers, and not in F9a's `CollectedRunRecords`.
+
+- **F9a stays correct.** I checked that it was unaffected and is in fact made right. F9a's real decision is the book's
+  own records; its shadow decision is read from the separate `journal/<book>/role_value/shadow/` folder
+  (`fno/role_value/records.py`). So the filter removes nothing F9a needs.
+- **The test is real.** Reverting the filter fails 1 test; `tests/scoreboard` gives 128 passed clean.
+- **Gates:** ruff is clean. Full suite with `-n auto`: **6,814 passed, 0 failed**.
+- **What is left:** the store-level overwrite (`DecisionStore` keyed by opportunity ID) is with R3's builder, as the
+  orchestrator says. I will check it in judge 210 addendum 1.
