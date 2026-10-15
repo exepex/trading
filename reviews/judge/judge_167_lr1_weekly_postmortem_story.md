@@ -54,3 +54,45 @@ post, Saturday 10:41. I will judge the revised SHA as an addendum here. Points I
 - the AI text never changes a committed number (it may only reword or comment on code-built lines);
 - the advocate's checks;
 - the week's post still goes out when the AI part fails.
+
+## Addendum 1 (15 Oct 2026): revision 1 at 86f46232b28b8e583b64706d273143ccc0b49007
+
+Owner answers (relayed by the orchestrator): one weekly report, so G4's Monday post is retired in LR1's change; the AI
+writer and the devil's advocate are both in v1, the simple way; Saturday 10:41 IST. The forecasts, weather and data
+health sections are unchanged and stay MET as above.
+
+## Verdict: PASS (text); 1 note
+
+| My hold-note point | Status | Evidence |
+|---|---|---|
+| The AI cost is counted | MET | The writer routine records its run with F8's `budget record-usage --self-timed --purpose books_and_roles` (`fno/budget/cli.py`). It is not fired when BG1's month signal (`accounting/budget/<YYYY-MM>_signal.json`, `fno/budget/signal.py`) is `stop` |
+| The AI never changes a number | MET | The code-built lines stay the source of truth and are posted every time. The prose is shown only if the code advocate passes four rules: the SHA line ties it to the committed lines; at most 150 words with no link, mention or code block; every number in the prose copied from the lines; no number written in words |
+| The post goes out if the AI part fails | MET | A `stop` signal, missing secrets (`UnconfiguredTrigger`), a failed fire (`FireFailed`), no prose by 11:41, or any failed advocate rule each give the lines alone plus one line naming why (criteria 15-17) |
+| No second AI caller | MET | The writer is fired through the existing `RoutineTrigger`/`RoutineFireTrigger` (`fno/pipeline/trigger.py`), as the AI books do (`fno/ai/fire.py`), with a pointer holding only the Saturday and the lines' SHA-256. All named classes exist on `main` |
+| Only the publisher reads the prose | MET | Criterion 18's AST test |
+| Merge-tree with `origin/main` | MET | No conflict |
+
+**Choosing a code check, not a second AI call, for the advocate is right.** It is cheaper and certain for "numbers
+copied exactly". An advocate that argues in words is T3 (slice B), as stated.
+
+## Note (does not change a trade)
+
+**Rule 3 must compare whole number tokens, not substrings.** As written ("appears as the same text in the lines"), a
+substring match would let a prose "4" pass because "40%" or "2026-10-14" contains it. Extract each number token from
+both texts with the same pattern (digits with their decimal point, sign and `%`, dates as one token) and check the
+prose's tokens are a subset of the lines' tokens. Add one test: prose "4 sessions" against lines holding only "40%"
+fails. Test 11's 41% vs 40% case does not cover this.
+
+**On coordination:** the builder sent me this SHA directly, as the orchestrator said it would. I told the orchestrator.
+
+**Verdict: PASS for 86f46232b28b8e583b64706d273143ccc0b49007** (story text). Code may start.
+
+## Note 2 (15 Oct 2026): addendum 1's PASS is superseded
+
+The owner chose, in v1, both the code number check **and** a second, objecting AI: the devil's advocate, built as the
+reusable piece T3 will use later. So addendum 1's PASS on 86f46232, whose advocate was code only, is superseded. I will
+judge the builder's next SHA as addendum 2. The same four points apply, now also for the second AI:
+- its cost is counted and it stops on BG1's `stop`;
+- it can only object, never change a number or a line;
+- the week's post goes out when it fails;
+- it is built once, as the piece T3 reuses, not as a second AI caller.
