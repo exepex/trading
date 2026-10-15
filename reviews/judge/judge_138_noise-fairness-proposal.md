@@ -1,7 +1,7 @@
-# Judge 138: response 140 (noise, fairness, all-F&O recording, scorecard) and the owner's rows of 15 Oct 2026
+# Judge 138: response 144 (noise, fairness, all-F&O recording, scorecard) and the owner's rows of 15 Oct 2026
 
 Independent judge, 15 Oct 2026 IST. Lane 1 (scoring, forecasts, frozen protocols, schedules, outside services).
-Reviewed at main `5a30837`: `reviews/claude/response_140_noise-fairness-scorecard.md` (all sections) and the last four
+Reviewed at main `5a30837`: `reviews/claude/response_144_noise-fairness-scorecard.md` (all sections) and the last four
 rows of `docs/DESK_DECISIONS.md` (equal terms E1-E5; observed days with a miss cap, replacing base rate; all-F&O in
 time slots; scorecard S1 headline plus four measures). Background read: the handover, response 137, PROTOCOL_v4,
 evaluation PROTOCOL, design v2 03/08, FREEZE_v2, the code cited below. Scratch tests (no repository writes):
@@ -21,7 +21,7 @@ None needs new code before ChatGPT reads it.
 
 ## Claims against reality
 
-| Claim (response 140) | My evidence | Result |
+| Claim (response 144) | My evidence | Result |
 |---|---|---|
 | Capture sleeps until 15:10 (`forecast-capture.yml` 86-89) | lines 86-89, the `Wait until 15:10 IST` step | true |
 | Times in `recorder.py:36`, `schema_v2.py:18`, `ai/timing.py:13-15` | all three exact | true |
@@ -58,7 +58,7 @@ None needs new code before ChatGPT reads it.
 
 **B1. The file asks ChatGPT to review a decision the owner has already replaced** (head of desk, statistician; strong
 evidence). The owner's last rows replace "base rate" with "observed days plus a miss cap" and "everything now" with
-time slots. Response 140 still says otherwise in four places. "Owner decisions" item 2 still reads base rate and item 3
+time slots. Response 144 still says otherwise in four places. "Owner decisions" item 2 still reads base rate and item 3
 still reads "everything now". Plan step 2 says "v4 section 4 base-rate rule". First red team item 6 says a miss scores as
 the baseline. ChatGPT question 1 asks whether base-rate scoring is right for QLIKE. The "Found" bullet on section 4 is
 stale too, as the table above shows. A builder following plan step 2 would build the rejected rule. **Fix:** rewrite the
@@ -89,7 +89,7 @@ S1 below.
 
 **S2. E5 for trades is still open and contradicts S3** (portfolio manager, risk manager; strong evidence). "Missed
 decision = NO TRADE" contradicts S3 criterion 3 (`S-scoreboards.md:101`). It is also false as written, because a missed
-desk run leaves exits undone (`daily_run.py:60`), so a missed day is not flat. Response 140 proposes "scoreboard B only"
+desk run leaves exits undone (`daily_run.py:60`), so a missed day is not flat. Response 144 proposes "scoreboard B only"
 (item 21) but does not take it to the owner, while the owner's new row covers forecasts only. **Fix:** one owner
 question. Scoreboard A uses the same principle as forecasts (observed decisions plus the cap). Scoreboard B records
 what the account really did (no entry; open positions held and valued at the next run).
@@ -108,7 +108,7 @@ carry forward.
   no frozen file.
 - The E2 release changes frozen protocol v2. `PROTOCOL_v2.md` is byte-hashed in `FREEZE_v2.md` and its line 80 states
   the 15:10 wait. The capture refuses to run when the v2 freeze check fails (yml:96), so editing that text stops every
-  v2 forecast. Response 140 names no way to amend it.
+  v2 forecast. Response 144 names no way to amend it.
 - `fno/timeline.py` is a refactor.
 
 **Fix:** step 2a is the v4 miss rule, first. Step 2b is E2: a workflow-only change plus an amendment record beside

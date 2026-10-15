@@ -1,7 +1,7 @@
-# Judge 139: re-judge of response 140 revision 2 and response 141 (answer to judge 138)
+# Judge 139: re-judge of response 144 revision 2 and response 145 (answer to judge 138)
 
 Independent judge, 15 Oct 2026 IST. Reviewed at `3c4259e` (branch `claude/project-thread-vdpsxd`):
-`reviews/claude/response_141_judge-138-answer.md` and `reviews/claude/response_140_noise-fairness-scorecard.md`
+`reviews/claude/response_145_judge-138-answer.md` and `reviews/claude/response_144_noise-fairness-scorecard.md`
 revision 2, both against judge 138 and the code. This is a document review, so no suite was run (pytest is not
 installed in this session, and I may not install packages).
 
@@ -17,7 +17,7 @@ ChatGPT from reviewing, but fix them in the next revision, before any story is w
 | Judge 138 | Builder's answer | My check | Result |
 |---|---|---|---|
 | B1 stale decisions | Accepted. Decisions list, found-in-code bullet, plan, question 1 rewritten; red team 3 and 6 marked superseded | Rev 2 decisions 2-3 match the 15 Oct rows. The section 4 bullet now says "already drops ... only the cap and report must be added" (PROTOCOL_v4:171-173 checked). Plan step 2 and question 1 are about observed days | **fixed** |
-| S1 (a) system days | Accepted in 141 | 141 states the right definition. But response 140 rev 2 (decision 2, plan step 2) does not carry it: step 2 lists "cap, 2%-day sub-cap, miss report" only | **fixed in 141, missing in 140** (minor A) |
+| S1 (a) system days | Accepted in 141 | 141 states the right definition. But response 144 rev 2 (decision 2, plan step 2) does not carry it: step 2 lists "cap, 2%-day sub-cap, miss report" only | **fixed in 141, missing in 140** (minor A) |
 | S1 (b) 2%-day sub-cap | Accepted; toy model not re-run, the reasoning stands alone | In decision 2 and plan step 2. Fair label (some evidence) | **fixed** |
 | S1 (c) cap base | Accepted: per question per slot, each look's scored window, from the first counted forecast | Stated in 141. Rev 2 decision 2 still says "its exact base ... open" | **fixed in 141** (minor A) |
 | S1 (d) Test A | Partly: true, but dropping the slot changes what Test A tests, so it goes to the owner (Q1) | `stop_rule.py:47-48` checked: `all(m.futile for m in counted)`. The builder is right that this is a test-definition change and belongs to the owner. Fair | **answered (owner Q1)** |
@@ -41,7 +41,7 @@ ChatGPT from reviewing, but fix them in the next revision, before any story is w
 ## New or remaining (all minor)
 
 - **A.** Carry the S1 (a) miss definition ("no forecast while the primary baseline has one; a day with neither is an
-  input failure, counted apart") and the S1 (c) base into response 140's decision 2 and plan step 2. ChatGPT's
+  input failure, counted apart") and the S1 (c) base into response 144's decision 2 and plan step 2. ChatGPT's
   question 1 is asked from 140, and today 140 says the base is "open".
 - **B.** Scorecard table, do-nothing row: add "a gate for real money (design 08:83); fund held under 12 months taxed
   short-term (verify the rate)".

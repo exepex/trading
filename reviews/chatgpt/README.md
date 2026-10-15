@@ -66,4 +66,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 105: E2b derived packs](review_105_e2b-derived-packs.md)
 - [Review 106: M1 weather](review_106_m1-weather.md)
 - [Review 107: D3b first timely decision](review_107_d3b-first-timely-decision.md)
-- [Review 111: noise, fairness and scorecard](review_111_noise-fairness.md)
+- [Review 112: noise, fairness and scorecard](review_112_noise-fairness.md)
