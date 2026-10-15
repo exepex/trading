@@ -38,9 +38,11 @@
 ## Which sessions the rows are (select through the A7 calendar)
 
 The table holds every day NSE's history serves, not only regular sessions:
-- **9 muhurat sessions** (one-hour Diwali evening sessions, 19 Oct 2017 to 21 Oct 2025) and **5 special sessions**
-  (weekend sessions in NSE's calendar from 2017, e.g. 20 Jan and 18 May 2024), all listed in `checks/gaps.csv`
-  (`muhurat_session`, `special_session`);
+- **9 muhurat sessions** (one-hour Diwali sessions, 19 Oct 2017 to 21 Oct 2025: in the evening until 2024, e.g.
+  18:15-19:15 IST from 2019 to 2023 and 18:00-19:00 in 2024, and 13:45-14:45 IST on 21 Oct 2025, per the circulars in
+  the session calendar; the 2017 and 2018 rows give no times) and **5 special sessions** (weekend sessions in NSE's
+  calendar from 2017, e.g. 20 Jan and 18 May 2024), all listed in `checks/gaps.csv` (`muhurat_session`,
+  `special_session`);
 - 9 weekend rows before 2017 (`weekend_row`; the calendar does not cover those years: special sessions such as budget
   days, not verified).
 
