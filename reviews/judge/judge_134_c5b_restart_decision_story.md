@@ -114,3 +114,17 @@ A row saying "all books" or "book 1" in lower case is refused (fail closed, the 
 orchestrator then words the row with the book's name.
 
 **Verdict: PASS for b2a4b0dd322c29b639d2b07530491e5bab173b0e** (code). Rule 9: ChatGPT next.
+
+## Addendum 3 (judge C, 15 Oct 2026): re-check at 305a4851ef89e8955619b0a563f7097abdbe27dc
+
+The base is my PASSed b2a4b0d plus two merges:
+- 1b9b7b30: `origin/main`, and a `docs/JUDGE.md` line;
+- 305a4851: `story/e1b-journal-pin` dde9470, judged by judge A.
+
+| Check | Status | Evidence |
+|---|---|---|
+| Both behaviours survive the import conflict in `fno/checks/validity_account.py` | MET | The merged file imports `DESK_DECISIONS_FILE`, `LEDGER_TOP_UP` and `decision_problem`/`decision_rows`. It defines `TRADE_KINDS` and `CAPITAL_KINDS`. `account_facts` counts capital from the opening plus top-ups by the cutoff (lines 119-126), and `restart_days` still calls `decision_problem` (line 147). `test_validity_restart.py`, `test_validity_top_up.py` and `test_validity_capital.py` are all in the green suite |
+| Gates | MET | 5,700 passed (the builder's figure); ruff, format and imports clean; `merge-tree` with `origin/main`: no conflict |
+| The new `docs/JUDGE.md` line | accepted, with one plain consequence | "The judge also confirms the words with the owner directly ... no answer is a FAIL." No person types in a judge session that the orchestrator starts, so I cannot get the owner's yes myself. Under this rule, every brake restart judged in such a session is a FAIL until the owner answers in a judge session. It fails closed and is safe, but the owner should know a restart needs them to answer a judge directly |
+
+**Verdict: PASS for 305a4851ef89e8955619b0a563f7097abdbe27dc.**
