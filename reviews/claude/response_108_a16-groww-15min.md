@@ -73,3 +73,23 @@ nothing there is claimed as evidence. After this text passes, the code will be c
 the allow-list wrapper, the candle fallback, `drive_write`) and every proof will be re-run on the pushed code.
 Minor 2: GitHub's push receipt of each heartbeat commit is now named as the off-platform witness the post-mortem
 reads. Minor 3 (A16b priority) is for the orchestrator.
+
+## Part 1c: answer to judge 108 addendum 1 (FAIL on 83f3614, should-fixes A and B): both accepted
+
+- **A, fallback level and time from two calls: accepted.** Checked: in my rule the level came from the quote and the
+  time from a separately fetched candle, so a frozen quote beside a live candle feed would pass; that is the exact
+  failure the staleness rule exists for. Of the judge's two options I chose the first: in fallback the level is the
+  latest finished 1-minute candle's close (`candle_1m_close`) and its time that candle's end, one record for both. Why
+  not the low-high range check: a frozen quote can still sit inside a calm minute's range, so it would pass for the
+  wrong reason. Candle times are IST text with no offset; parsed as naive ISO with +05:30 set explicitly, an offset or
+  bad text is `index_parse`. The RV row counts marks per basis, so a mixed session is visible.
+- **B, two checkouts appending one daily file: accepted.** Checked: each routine fire is its own clone, so both runs at
+  HH:00 append to the same CSV and the pull conflicts every hour (or, merged, gives two rows). Now: one file per mark
+  (and per RV session and per revision index row); only the run whose Drive write made the first version writes a
+  taken mark's row; each run pulls before settling; a same-path race (both write one mark's `missed` row, or the
+  heartbeat) is merged with GitHub's copy winning (`-X theirs`, only in this folder's committer), so the first push
+  wins and no push is blocked. Criterion 1's test uses two git clones of one bare repository.
+
+On the judge's process note: correct that I pushed work-in-progress code to `wip/a16-groww-15min-code` before the text
+passed. One fact for the record: I wrote none after reading the first FAIL (that code was finished at 08:03 IST; I
+read the FAIL and the orchestrator's stop at 08:04). No code has been written since, on any branch.

@@ -109,11 +109,19 @@ as a proposal.
   our clock, chosen in this order:
   1. **Primary:** the index quote's `last_trade_time` (epoch seconds, or milliseconds when above 10^11), when present.
   2. **Fallback, when Groww leaves it empty for the index:** one more read-only call right after the index quote,
-     `get_historical_candles(NSE-NIFTY, CASH, 1minute)` over the 5 minutes up to the response; the source time is the
-     **end** of the latest 1-minute candle (its start time plus 60 s). That is minute resolution: at the 09:30 mark the
-     latest finished candle is 09:29-09:30, so its end is the mark itself and the measured age is about the call's
-     latency. The `index_time_basis` field of the document and the ledger says which rule gave the time
-     (`last_trade_time` or `candle_1m_end`).
+     `get_historical_candles(NSE-NIFTY, CASH, 1minute)` over the 5 minutes up to the response. In fallback **the level
+     and its time come from the same record** (judge 108 addendum 1, should-fix A): the level is the **close of the
+     latest finished 1-minute candle** and its source time is that candle's **end** (its start plus 60 s). The quote's
+     `last_price` stays in the raw document but is not used as the level, so a frozen quote beside a live candle feed
+     can never read as fresh. A candle is finished only when its end is at or before our response time; one still
+     forming is never used. At the 09:30 mark the latest finished candle is normally 09:29-09:30, so the level is
+     sampled at the minute mark and its age is about the call's latency.
+     **Candle times:** step 0 showed them as IST wall-clock text with no offset (`2026-10-14T09:15:00`); they are
+     parsed as a naive ISO time and given +05:30 explicitly (India has no daylight saving), never the host's time
+     zone; a text that carries an offset, or does not parse, is `index_parse` (failed, by name).
+     The `index_basis` field of the document and the ledger says which rule gave the level and time
+     (`quote_last_trade_time` or `candle_1m_close`); the RV row counts the marks of each basis, so a session that mixes
+     them is visible.
   3. **Neither:** no source time; the level is stale (`index_time_missing`), never assumed fresh.
   Pre-market on 15 Oct the index `last_trade_time` was empty; the in-session check (amendment below) says which rule
   applies in the session. Both rules are built and tested, so the recorder does not depend on the answer.
@@ -158,18 +166,33 @@ New package `fno/intraday/` (each file under 350 lines):
 - Store: the owner's Drive `raw` area (`build_owner_drive`, A9) under
   `groww/derivatives/intraday-snapshots/<YYYY>/<MM>/<DD>/nifty_<YYYYMMDD>_<HHMM>.json.gz` (gzip with no time in its
   header, so the same document always gives the same bytes; step 0's sizes: about 216 quotes and two chains a mark),
-  wrapped by `FirstVersionStore`: different bytes at an existing path (two hosts taking one mark) are never written
-  over (A9/A11); they go to the `revisions` area at A11's path (`<raw path>/<found_at>_<sha256>.json.gz`) with a row
-  in `research/data/intraday/revisions.csv` (beside the ledger, so one folder is committed); readers use the first
-  version (point in time).
+  wrapped by `FirstVersionStore`: different bytes at an existing path (two runs taking one mark) are never written
+  over (A9/A11); they go to the `revisions` area at A11's path (`<raw path>/<found_at>_<sha256>.json.gz`) with an
+  index row in its own file `research/data/intraday/revisions/<YYYYMMDD>_<HHMM>_<sha256 first 16>.csv` (one file per
+  revision, so two runs never write the same index file); readers use the first version (point in time). Its `put`
+  says whether this run's bytes became the first version or went to revisions; the ledger rule below depends on it.
 - `IntradayRealisedVol` (strategy, design 2.1) with `QuoteSnapshotRv15m` (`rv-quote-15m-v1`), computed from the
   stored snapshots.
 - `ServerClock` (interface) with GitHub's and Slack's HTTP `Date` headers; `ClockCheck`.
 - `AlertSender` (existing) for alerts; `NoAlertSender` in dry runs and tests.
-- Repository files under `research/data/intraday/` (derived only, no prices): `slots/<YYYY>/<MM>/nifty_<YYYYMMDD>.csv`
-  (one row per slot), `rv/nifty_rv.csv` (one row per session), `heartbeat.json`, `revisions.csv`. After every mark
-  the recorder commits and pushes this folder itself (the existing `GitManifestRecorder`, given its own commit
-  message; hooks run, never bypassed), so GitHub's copy of the heartbeat is at most about 15 minutes old.
+- Repository files under `research/data/intraday/` (derived only, no prices), **one file per record** so two runs in
+  two checkouts never append to the same file: `slots/<YYYY>/<MM>/<DD>/nifty_<YYYYMMDD>_<HHMM>.csv` (header plus the
+  one row of that mark), `rv/<YYYY>/nifty_rv_<YYYYMMDD>.csv` (header plus the session's one row), `revisions/...`
+  (above), `heartbeat.json`. After every mark the recorder commits and pushes this folder itself (the existing
+  `GitManifestRecorder`, given its own commit message; hooks run, never bypassed), so GitHub's copy of the heartbeat
+  is at most about 15 minutes old.
+- **Two checkouts, one ledger (judge 108 addendum 1, should-fix B).** Each fire is its own container with its own
+  clone, and at every hour boundary two runs are live. The rules:
+  1. A taken mark's row is written only by the run whose Drive write created the first version; a run whose bytes
+     went to `revisions/` writes no row for that mark (it records the revision's index file only).
+  2. Before it settles marks, a run pulls `main` (`git pull --no-rebase`), so it sees the rows the other run pushed and
+     does not write a second `missed` row for a mark that already has one.
+  3. Two runs can still settle the same due mark at the same moment (both write its `missed` row, or both write the
+     heartbeat). Those are the same path in both checkouts, so the commit's pull merges with the copy already on
+     GitHub winning a conflict (`git pull --no-rebase -X theirs`, only in this committer, which commits only this
+     folder): the first-pushed row is kept, exactly one row per mark, and the push is never blocked by its own data.
+  4. Rows, RV files and revision index files are written once and never edited; the merge rule only chooses between
+     two first versions of the same file.
 - Composition root `fno/intraday/wiring.py` (added to CLAUDE.md's list); CLI `python -m fno intraday ...`.
 - Named constants for every status and failure name (`fno/intraday/` module constants; env names stay in
   `fno/constants.py`).
@@ -190,9 +213,11 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
 0. **Step 0 is recorded** in this file (above) with the in-session check, counts and timings only.
 1. **26 marks.** Given a recorded session, the session loop takes exactly the slots 09:15, 09:30, ..., 15:30 IST and no
    others; `snapshot` takes the next mark (waiting at most 15 minutes) and records "already recorded" for a slot that
-   has a file or a ledger row. Two overlapping runs (the trigger design) give each mark exactly one ledger row, keep
-   the first stored version, and put the other's different bytes under `revisions/` (test with two recorders on one
-   store and ledger).
+   has a file or a ledger row. Two overlapping runs (the trigger design) give each mark exactly one ledger row on
+   GitHub, keep the first stored version, and put the other's different bytes under `revisions/`. Test with **two git
+   clones of one bare repository** and one shared Drive fake, two recorders overlapping at a boundary mark and both
+   settling the same missed mark: after both push, `origin/main` has exactly one row per mark (the first pushed), no
+   conflict markers, and both commit lines say committed.
 2. **Calendar.** Regular and special sessions are recorded; a muhurat-only day, a holiday and a weekend record nothing
    and print "not a trading day"; a day outside the calendar stops with exit 1 and an alert (A7's message).
 3. **Raw to Drive, never overwritten.** Each snapshot taken is one JSON file at the path above in the owner's Drive
@@ -205,11 +230,13 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_u
 4. **Content.** A snapshot holds the index quote, the near future's quote, two chains (nearest listed and nearest
    monthly; the next listed if they coincide) and one quote per contract within 6% of the index level, each with raw
    SHA-256, request and response times; the expected and recorded contract counts are in the document and the ledger.
-5. **Gaps recorded, never filled.** Every due slot gets exactly one ledger row; a slot not taken by mark + 120 s is
-   `missed` (written by the next run or by `rv`), never taken later and never interpolated; stale, failed and incomplete
-   slots carry their status and failure names.
+5. **Gaps recorded, never filled.** Every due slot gets exactly one ledger row (one file per mark, written once; with
+   two checkouts, by the rules of "Two checkouts, one ledger"); a slot not taken by mark + 120 s is `missed` (written by
+   the next run or by `rv`), never taken later and never interpolated; stale, failed and incomplete slots carry their
+   status and failure names.
 6. **Realised variance.** `rv` writes one row per session with `rv_intraday`, `rv_overnight`, `rv_session`, `vol_pct`,
-   `status` (`ok`/`void`), `void_reason`, `good_slots`, `due_slots`, `source`, `as_of` (the session's 15:30 IST),
+   `status` (`ok`/`void`), `void_reason`, `good_slots`, `due_slots`, `basis_counts`, `source`,
+   `as_of` (the session's 15:30 IST),
    `first_seen_at`, `method`, and `inputs_sha256` (SHA-256 of the input files' SHA-256s in slot order); values equal a
    hand computation; any missing or stale index level voids the part that needs it; `rv` prints the share of void
    sessions and flags it above 5% (design 5.2). The row is written once per session (a rerun with the same inputs
@@ -321,7 +348,8 @@ the four marks of its hour **plus** the next hour's first mark (the 09:00 fire t
 the 10:00 fire takes 10:00, 10:15, 10:30, 10:45 and 11:00), so every hour boundary is covered by two runs and one
 late, slow or failed fire loses at most the marks only it covered, not the boundary. A run that finds a mark already
 stored or already in the ledger skips it ("already recorded") and waits for the next one; two runs racing for one mark
-both store, the second's different bytes go to `revisions/`, and the ledger keeps one row (criterion 1 tests this).
+both store, the second's different bytes go to `revisions/`, only the first-version run writes the mark's row, and a
+same-row race between the two checkouts is settled by the first push (criterion 1 tests this with two clones).
 A run that starts late or dies leaves its marks to the next fire or, once their windows close, to `missed` rows
 (never filled); two bad marks in a row alert (criterion 7).
 
@@ -371,4 +399,5 @@ read. A truly independent checker (another host) is a later decision, not in A16
 session-day of about 55 minutes each (F8 measures).
 
 **Depends:** A7, A9, A11, owner's host and terms decisions (15 Oct 2026) · **Size:** M · **Status:** story text
-revised after judge 108 (FAIL, 5 should-fix, all accepted: response 108 part 1b), for the judge's re-check
+revised after judge 108 (FAIL, 5 should-fix, all accepted: response 108 part 1b) and its addendum 1 (FAIL, A and
+B accepted: part 1c), for the judge's re-check
