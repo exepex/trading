@@ -248,3 +248,39 @@ should-fixes 1-5 are fixed and re-judged.
 **Verdict: FAIL** for dashboard 02664369f05a21c6642e2336b40a54fc7e2d29be and trading
 e4bade7ebaaec34caeadc2d4a7f2967eaf5d9476, on should-fix 1 only. It is one schema rule and one probe. Everything else in
 judge 102 and addendum 1 is met.
+
+## Addendum 3 (15 Oct 2026): dashboard 1eef671072e21c59a54e548df535291ddf9b4825, trading 22ac79b27169d970071500227800e88eba61bedd
+
+**Scope:**
+- Dashboard 0266436..1eef671 is one commit: one schema rule, the provisional guard, two plants and a `changes.md` row.
+  No web or TypeScript change, so the web gates of addendum 2 stand.
+- Trading e4bade7..22ac79b is one commit: re-pin and claims.
+
+**Gates:**
+- Pin: all 33 files byte-equal to 1eef671.
+- Dashboard: `check_fno_screens` passes, 28/28 planted, along with `check_contract`, `check_mapping`, both
+  `render --check` runs, `examples --check` and code size.
+- Trading: trial merge with today's `origin/main` is clean; **3,673 passed**; ruff, format (790 files) and imports clean.
+
+| Item | Result | Evidence |
+|---|---|---|
+| Should-fix 1: an AI book declared `code` | **PARTLY** | The new rule fires when `kind` is family and `family` is hybrid or ai. My probe (`book2_hybrid`, `code`, label null) is now refused, and the plant deleting the rule is caught. **But setting `family: null` on the same AI book skips the rule:** `kind: family`, `family: null`, `isolation: code`, label null validates (my probe). Nothing forces `family` to be set when `kind` is family. Mislabelling `kind` as baseline does the same |
+| Minor 1: provisional marks guarded | **MET** | `PROVISIONAL_PATHS` with `check_provisional`; removing `p_value`'s mark is a planted break and is caught |
+| Minor 2: mockup 31 `changes.md` row | **MET** | The row records 30,000 → 1,50,000, owner "2 A", and "the dashboard merges only after C5" |
+
+### Should-fix (narrower than before)
+
+1. **Key the AI-book rule on the forecaster's id, not only on `kind` and `family`.**
+   - Either require `isolation` to be `sealed_same_day` or `full_f1` when `id` is `book2_hybrid` or `book3_ai` (the AI
+     books, `AI_BOOKS`); or require `family` to be non-null when `kind` is family, and `kind: family` for those ids.
+   - Add my two probes: family null, and kind baseline.
+   - It is one rule and two probes; owner condition 2 is otherwise enforced.
+
+**Merge order (agreed):**
+1. C5 first: judge 105 PASS, then the ChatGPT round under rule 9.
+2. The dashboard.
+3. Re-pin trading at the dashboard's merge commit.
+4. Trading.
+
+**Verdict: FAIL** for dashboard 1eef671072e21c59a54e548df535291ddf9b4825 and trading
+22ac79b27169d970071500227800e88eba61bedd, on should-fix 1 only (the family-null and kind dodge). Everything else is met.
