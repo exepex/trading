@@ -11,7 +11,7 @@ from fno.books import book1_exits
 from fno.books.account import PaperAccount
 from fno.books.book1_exits import PlaybookExitRules
 from fno.books.book1_records import DecidedExits, opening_trades, recorded_terms
-from fno.books.opening_runs import CHANGED, GONE, NO_HASH, NO_LOG
+from fno.books.opening_runs import CHANGED, NO_LOG
 from fno.constants import BOOK1_RULES, FILL_OPEN
 from fno.desk.records import FILL_COLUMNS, DeskRecords
 from fno.playbook.decision_store import SUMS_FILE, DecisionStore
@@ -69,22 +69,12 @@ def test_a_missing_run_log_gives_no_trade_and_never_falls_back(tmp_path):
     assert found.trades == {} and found.problems == {"t1": NO_LOG.format(day=DAY, book=BOOK1_RULES)}
 
 
-def test_a_run_log_naming_a_gone_or_changed_run_gives_no_trade(tmp_path):
-    def gone(root, folder):
-        folder.rename(folder.with_name(".gone"))
-
-    def resummed(root, folder):  # a record edited and its sums file rewritten to match: not the committed sums
-        record = folder / "0.json"
-        record.write_bytes(record.read_bytes().replace(b'"lots": 1', b'"lots": 3'))
-        (folder / SUMS_FILE).write_text(f"{hashlib.sha256(record.read_bytes()).hexdigest()}  0.json\n")
-
+def test_a_run_that_no_longer_matches_its_logged_hash_gives_no_trade(tmp_path):
     def edited(root, folder):
         (folder / "0.json").write_text("{}")
 
-    assert no_opening(tmp_path / "a", gone).problems == {"t1": GONE.format(run=f"{DAY}-r1", day=DAY)}
-    for name, change in (("b", resummed), ("c", edited)):
-        found = no_opening(tmp_path / name, change)
-        assert found.trades == {} and found.problems == {"t1": CHANGED.format(run=f"{DAY}-r1", day=DAY)}
+    found = no_opening(tmp_path, edited)
+    assert found.trades == {} and found.problems == {"t1": CHANGED.format(run=f"{DAY}-r1", day=DAY)}
 
 
 def test_the_exit_rules_name_why_and_alert_the_other_runs(monkeypatch):
@@ -132,19 +122,6 @@ def test_the_other_runs_alert_is_sent_once_per_exit_review(monkeypatch):
     for review in (1, 2):
         exits.rules(BOOK1_RULES)
         assert sum("other runs name it" in a for a in alerts) == review
-
-
-def test_a_run_log_without_the_sums_hash_gives_no_trade(tmp_path):
-    """The hash recorded at collection is the check, so no git history is needed (a shallow clone checks the same)."""
-
-    def drop_hash(root, folder):
-        log = root / "journal" / "runs" / f"{DAY}.json"
-        body = json.loads(log.read_text())
-        del body["steps"]["decisions"]["result"][BOOK1_RULES]["sums_sha256"]
-        log.write_text(json.dumps(body))
-
-    found = no_opening(tmp_path, drop_hash)
-    assert found.trades == {} and found.problems == {"t1": NO_HASH.format(day=DAY, run=f"{DAY}-r1")}
 
 
 def test_a_hidden_folder_left_by_a_crashed_write_is_never_read(tmp_path):

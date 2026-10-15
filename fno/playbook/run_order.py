@@ -7,9 +7,7 @@ collector, the run log's list and S1's first counted decision. Nothing else orde
 - **Uncommitted runs** come after every committed one, by counter; they have no commit, so no reader can take one as
   the first decision or the first counted one.
 
-A correction is a run any of whose records names the record it corrects (D3 criterion 4): shown, never collected. A
-record that cannot be read makes its run unreadable: shown with the file, never collected, and never a reason to stop
-the other runs or books."""
+A correction is a run any of whose records names the record it corrects (D3 criterion 4): shown, never collected."""
 
 from __future__ import annotations
 
@@ -57,18 +55,13 @@ def ordered_runs(root: Path, runs: Sequence[Path], git: RunCommits) -> list[Orde
 
 
 def corrections(run: Path) -> list[dict]:
-    """What each of the run's records corrects, with its reason, and each record that cannot be read; empty for a
-    readable original run."""
+    """What each of the run's records corrects, with its reason; empty for an original run."""
     found = []
     for path in sorted(run.glob("*.json")):
         if path.name == INPUTS_FILE:
             continue
-        try:
-            record = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as problem:
-            found.append({"unreadable": path.name, "reason": f"{type(problem).__name__}: {problem}"})
-            continue
-        if isinstance(record, dict) and record.get("corrects"):
+        record = json.loads(path.read_text(encoding="utf-8"))
+        if record.get("corrects"):
             found.append({"corrects": record["corrects"], "reason": record.get("reason", "")})
     return found
 

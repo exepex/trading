@@ -107,19 +107,6 @@ def test_a_ten_run_day_is_ordered_by_commit_time_then_counter_never_by_name(tmp_
     assert listed == [f"{NORMAL}-r{n}" for n in range(1, 10)]
 
 
-def test_an_unreadable_record_makes_only_its_own_run_uncollectable(tmp_path):
-    repository(tmp_path)
-    commit_run(tmp_path, BOOK1_RULES, 1, 3)
-    (DecisionStore(tmp_path, BOOK1_RULES).day_folder(NORMAL) / f"{NORMAL}-r1" / "a.json").write_text("{ broken")
-    commit_run(tmp_path, BOOK1_RULES, 2, 5)
-    commit_run(tmp_path, BOOK2_HYBRID, 1, 4)
-    source = collector(tmp_path)
-    assert source.committed(BOOK1_RULES, NORMAL, DEADLINE).run_id == f"{NORMAL}-r2"
-    [listed] = source.others(BOOK1_RULES, NORMAL, f"{NORMAL}-r2")
-    assert listed["corrections"][0]["unreadable"] == "a.json"
-    assert source.committed(BOOK2_HYBRID, NORMAL, DEADLINE).run_id == f"{NORMAL}-r1"
-
-
 def test_the_collected_run_carries_the_hash_of_its_committed_sums_file(tmp_path):
     repository(tmp_path)
     commit_run(tmp_path, BOOK1_RULES, 1, 3)

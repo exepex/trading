@@ -168,16 +168,15 @@ guarantee for every book, whatever writes the run.
 run of a day. This story orders runs by their commit time (the commit that added `records.sha256`, E3's own timing
 source), then by the run counter as a number, never by the folder name. Decision 61's ancestry order was dropped by
 the owner's 15 Oct rule ("keep the design simple"): one runner per book and E5b's one-a-day check make commit time
-enough. Known limit: two checkouts with skewed clocks deciding one book on one day could be ordered wrongly; E5b
-prevents that second run.
+enough. Known limits: two checkouts with skewed clocks deciding one book on one day could be ordered wrongly (E5b
+prevents that second run); a run folder deleted or edited by hand after collection is reported only as "does not
+match", with no finer reason (owner's simplicity rule).
 
 **Scope.** In:
 - **A correction run:** a run any of whose records has a non-null `corrects`. D3 writes a correction as its own run.
 - **E3's collector** takes, for every book, the first committed original run in the shared order, when it is visible at
   the deadline (E3's visibility rule is unchanged) and committed before it. When that first run is late, nothing is
-  taken: a run after it in the order was made after it (or on a parallel branch later by the clock), so it can never
-  replace it. A run with a record that cannot be read is not an original: it is listed with the file and never
-  collected, and it never stops another run or book. The collected entry in the run log also records the SHA-256 of
+  taken: a run after it in the commit-time order is later still, so it can never replace it. The collected entry in the run log also records the SHA-256 of
   the run's `records.sha256` as committed (`sums_sha256`). The decisions step also records
   in the run log every correction run it saw for the day, and every other run that it did not take, each with its run
   ID, its commit and, for a correction, the record it corrects and its reason. These are shown, never collected.
@@ -189,8 +188,8 @@ prevents that second run.
   record with the same trade ID in any other run, a correction included, is ignored and reported in one alert at each
   exit review while the trade is open
   ("a later record names trade t1; the trade follows its opening run"). When the entry day's run log is missing,
-  names no run, records no `sums_sha256`, or names a run that is gone or whose `records.sha256` no longer has that
-  hash (or whose files no longer match it), the trade has no
+  names no run, or names a run whose `records.sha256` no longer has the logged `sums_sha256` (or whose files no
+  longer match it), the trade has no
   opening run: an alert names why, and nothing falls back to another run, least of all the latest record. Such a
   trade gets no time exit, and E4 holds it; E4's own risk-reducing exits still run for it (design 9): protection
   unverified orders its close, an expired leg goes to settlement, and an exit already ordered goes on. C2's view of

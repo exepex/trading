@@ -5,10 +5,10 @@ fill), as that day's run log names it. A fill row's `decision_id` is the record'
 the run, so the run log is the source. Only trades opened by fills are the book's: a run never collected, or a chosen
 trade never filled, adds nothing.
 
-When the run log is missing, names no run, or names a run that is gone or does not match the `records.sha256` the
-decisions step recorded (its SHA-256, taken from the committed file when the run was collected), there is no opening
-run: the problem is named, and nothing falls back to another run, least of all the latest record. The hash is in the
-run log, so this needs no git history: a shallow clone checks it the same way."""
+The run is checked against the SHA-256 of its `records.sha256` that the decisions step recorded from the committed
+file when it collected the run. The hash is in the run log, so this needs no git history: a scheduled session's
+shallow clone checks it the same way. When the run log names no run, or the run no longer matches that hash, there is
+no opening run: the reason is named, and nothing falls back to another run."""
 
 from __future__ import annotations
 
@@ -25,9 +25,7 @@ from ..desk.run_log import RunLog
 from ..playbook.decision_store import SUMS_FILE, DecisionStore
 
 NO_LOG = "the run log of {day} names no decision of {book}"
-GONE = "its opening run {run} (run log of {day}) is not in the decision store"
 CHANGED = "its opening run {run} does not match the records.sha256 the run log of {day} recorded"
-NO_HASH = "the run log of {day} records no records.sha256 hash for {run}"
 
 
 @dataclass(frozen=True)
@@ -62,12 +60,8 @@ def _opening_run(root: Path, book: str, day: date) -> Path | str:
     if "run_id" not in entry:
         return NO_LOG.format(day=day, book=book)
     run = DecisionStore(root, book).day_folder(day) / entry["run_id"]
-    if not run.is_dir():
-        return GONE.format(run=entry["run_id"], day=day)
-    if not entry.get("sums_sha256"):
-        return NO_HASH.format(day=day, run=entry["run_id"])
     sums = run / SUMS_FILE
-    if not sums.is_file() or _sha256(sums) != entry["sums_sha256"] or DecisionStore.edited(run):
+    if not sums.is_file() or _sha256(sums) != entry.get("sums_sha256") or DecisionStore.edited(run):
         return CHANGED.format(run=entry["run_id"], day=day)
     return run
 
