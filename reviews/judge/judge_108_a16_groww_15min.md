@@ -416,3 +416,36 @@ Checked on exact SHA `04371e8cb49fa65227883c041579dada9d9e7f05` and on a trial m
 - **Still open.**
   - The owner's routine prompt needs `--use-pep517`.
   - The scanner hardening is queued as optional.
+
+## Addendum 9 (15 Oct 2026): A16d at 274adb1 (amendment 3: the official-open comparison)
+
+**Verdict: PASS.** It is text only: A16 amendment 3 and response 108 part 5. There are no blocking or should-fix findings and one minor.
+
+This replaces my addendum 3 condition: I compared the wrong value. The 09:15 open is the first continuous trade. NSE's official open is the pre-open auction's result. They differ on most days, so my condition would have flagged normal market behaviour as a source fault.
+
+**My own read-only check (data, not the builder's figures).**
+- Method:
+  - Groww 1-minute NIFTY candles (08:55-09:20) through `ReadOnlyGroww` with this session's Groww credentials;
+  - NSE's `ind_close_all_<ddmmyyyy>.csv` "Open Index Value" fetched directly from NSE's archive;
+  - nothing written anywhere; my own picks of 17 dates.
+- Picks: 2019 to 2026, including stress days (2020-03-23, 2022-02-24, 2024-06-04, 2025-04-07) and three special Saturday sessions (2024-01-20, 2024-03-02, 2025-02-01).
+- Results:
+  - Last pre-open candle close minus official open: **0.00 on 15 of 15** sessions that have one. On 2025-04-07 and earlier the last pre-open candle is 09:07; from 2025-09-15 it is 09:14. Both match the text.
+  - 09:15 open minus official open: it differs by more than 0.05 on **15 of 15**, from -25.90 to +57.60. The smallest gaps are -0.25 (2026-08-20) and -0.45 (2026-10-14). This fits 67 of 74 and the A16b random-sample count.
+  - Two sessions have **no candle before 09:15**. 2019-03-12 has no candles at all, not even at 09:15. 2022-10-24 was the Diwali muhurat evening session. The new "no pre-open value, never filled from 09:15" rule is exactly what these need.
+- Cross-checks:
+  - The A16b recount is commit 0adc455 on `story/a16b-candle-backfill`: 40 of 40 plus 74 of 74 exact, which is 114. The 09:15 open differs on 40 of 40 random sessions and on 67 of 74 recent ones.
+  - The builder's 12 of 12 and 10 of 12 add up from its own two tables.
+
+**Orchestrator's questions.**
+1. **Is it testable before the trial code?** Yes. The value is defined without ambiguity: the close of the last Groww index candle starting before 09:15, a 0.05-point threshold, and a named outcome when there is none. I computed it with a 40-line read-only script.
+   - Minor finding: criterion 15's trial paragraph lists what the claims addendum must report, and the comparison is not on that list. It lives only in the Definitions condition, which says it applies "in the criterion 15 trial". The condition binds the trial anyway, so this is not blocking.
+   - Expected fix, the next time this text is touched: add "per session, the pre-open comparison (difference, or 'no pre-open value')" to the trial paragraph's list.
+2. **Do the realised-volatility (RV) wording changes alter a passed criterion?** No.
+   - `RV_overnight = (ln(S_0 / S_prev))^2` and `RV_s` are unchanged, with S_0 still the 09:15 level. The 09:15 rule and criterion 6 are unchanged.
+   - Design 5.2 and V4 (frozen in G6) refer to `RV_s` only.
+   - The removed "usual open-to-close split" wording was wrong. The new text correctly says the overnight part includes the move from the auction to the first trade. No number changes.
+
+**Gates.** A trial merge with `origin/main` is clean. The tests that read stories and responses, plus the code-size test: 893 passed.
+
+**For A16b, information only:** Groww returned no 1-minute candles for 2019-03-12. Its backfill should not assume 1-minute history goes back to 2019 without checking.
