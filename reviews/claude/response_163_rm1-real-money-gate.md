@@ -129,3 +129,9 @@ unnumbered parts accepted as a set (row 793aeb54). Every gate item's status is n
   5-trade average, and makes `fill_honesty` (b) a "mean gap at most Rs 0" test that 15 minutes of noise fails about
   half the time. Options to the owner: (a) the research pad, Rs 1 per unit; (b) the desk pad in force (Rs 0 today);
   (c) a figure the owner names. Recommendation (a), reasoning only.
+
+**Q13 and Q14 answered (15 Oct 2026, row 162d8fbf):** Q13 re-asked neutrally with option (d), 8.3 as written, and its
+noise-aware form; the owner kept 8.3 (row 22df15bf) made noise-aware: not met only when the one-sided 95% lower bound
+of the mean gap to the next A16 snapshot exceeds the pad. Q14: the gate's paper pad is research's Rs 1 per unit, so
+execution slippage may average up to Rs 1.50 per unit and stop (b) fires above Rs 2 per unit over 5 trades. Every
+item is decided.

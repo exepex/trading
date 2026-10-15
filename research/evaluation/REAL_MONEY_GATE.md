@@ -15,7 +15,8 @@ Item format: as `PROTOCOL.md` (Value, Status, Reason, Evidence). The gate has no
 S1's protocol. The owner's decisions are the `docs/DESK_DECISIONS.md` rows of 15 Oct 2026 "RM1 real-money gate
 numbers" (commit 946bb8e7), "RM1 Q13 and the Q12 quote source" (f0f6d2d8) and "RM1: the second untouched forward
 period is the only route; the unnumbered parts accepted as a set" (793aeb54) and "RM1 Q13 re-asked with the missing
-option: keep the accepted fill-honesty rule" (22df15bf, replacing f0f6d2d8's Q13 answer); the questions and both sides'
+option: keep the accepted fill-honesty rule" (22df15bf, replacing f0f6d2d8's Q13 answer) and "RM1 Q14: the gate's paper pad is research's Rs 1 per unit; Q13's
+check fails only when paper is clearly too optimistic" (162d8fbf); the questions and both sides'
 recommendations are in `reviews/claude/response_163_rm1-real-money-gate.md`, and the answer to ChatGPT review 118 in
 `reviews/claude/response_171_chatgpt-review-118-answer.md`.
 
@@ -39,6 +40,9 @@ Terms used below:
   reverse), worse positive. This isolates execution from market movement; E8's paper fill is often next session
   (about 10:15), so the real-minus-paper price gap also holds the market's move and is reported apart as the
   **timing gap**, never judged as slippage (ChatGPT review 118).
+- **Paper pad:** Rs 1 per unit, research's pad (`PAD` in `fno/research_engine/cycle_costs.py`), the pad research
+  results already assume (owner, 15 Oct 2026, Q14, row 162d8fbf). The desk's own `FILL_PAD_RS` is Rs 0, because
+  the desk fills at the touch; the gate never uses it as its pad.
 - **Risk unit:** the position's modelled maximum loss at entry, every charge and pad included (B2, C2).
 - **Real cap, real account:** the two owner numbers of `real_test_account`.
 
@@ -81,7 +85,7 @@ Terms used below:
 ### `loss_caps` Condition 3: every loss stayed within its cap, in the record and in the crash replays
 - **Value:** (a) Every completed position's net loss is at most its risk unit (no loss beyond the modelled maximum).
   (b) The version's rules replayed through 20 Feb-30 Apr 2020 and 3-7 Jun 2024, at 1 lot, from NSE's daily F&O
-  settlement files, with C1 charges and the pad in force at the review added to every leg: every replayed
+  settlement files, with C1 charges and the paper pad added to every leg: every replayed
   position's loss is at most the real cap. This is a **daily-settlement proxy**, not an executable intraday result. A
   replay that cannot be run (missing data) counts as not met.
 - **Status:** decided by the owner on 2026-10-15
@@ -95,8 +99,9 @@ Terms used below:
   depth), checked against the hashed snapshot E8 filled from; one invalid leg is not met.
   (b) **Gap to the next snapshot:** for each leg, gap per unit = the first A16 snapshot after the fill (about 15
   minutes later) against the paper price before pad (buys: that snapshot's ask minus the paper price; sells: the
-  paper price minus its bid), worse positive. The mean gap over all the record's legs is at most the paper pad in
-  force at each fill. A leg with no valid next snapshot is left out of the mean and listed; fewer than 20 legs with
+  paper price minus its bid), worse positive. Not met only when the one-sided 95% lower bound of the mean gap over the
+  record's legs (mean − t(0.95, k−1) × SD ÷ √k, k legs) exceeds the paper pad (owner, Q13 noise-aware, row
+  162d8fbf). A leg with no valid next snapshot is left out of the mean and listed; fewer than 20 legs with
   a next snapshot is not met.
   A16 records only the nearest weekly and nearest monthly NIFTY expiries, so a version trading any other expiry
   cannot meet this condition until A16 records it.
@@ -104,7 +109,8 @@ Terms used below:
 - **Reason:** 8.3 condition 4; the owner kept it as written when re-asked with every option (row 22df15bf, replacing
   the Q13 answer in row f0f6d2d8; judge 171 addendum 2 SF2). Its noise, stated as the owner asked: (b) also measures
   15 minutes of market movement, which for a NIFTY option is usually larger than the pad, so over a small record the
-  mean gap passes or fails partly by chance, not only by fill honesty (ChatGPT review 118; some evidence).
+  mean gap passes or fails partly by chance, not only by fill honesty (ChatGPT review 118; some evidence). So the
+  owner made it noise-aware (row 162d8fbf): it fails only when paper is clearly too optimistic.
 - **Evidence:** reasoning only
 
 ### `selection_adjustment` Condition 5: the edge survives the number of ideas tried
@@ -165,8 +171,8 @@ Terms used below:
      √(1/n + 1/m), from the evidence record's m positions. This is a model-based prediction bound (independent,
      normally distributed trades assumed; option returns are skewed and can cluster, so it is a floor, not a
      guarantee).
-  3. **Execution:** the mean execution slippage per unit over all real legs is at most the paper pad (`FILL_PAD_RS`
-     in force) + Rs 0.50; more than 10% of real legs with unknown slippage is not met (owner, 15 Oct 2026, Q12); at 10% or fewer, unknown
+  3. **Execution:** the mean execution slippage per unit over all real legs is at most the paper pad + Rs 0.50, that is Rs 1.50
+     per unit (owner, Q14); more than 10% of real legs with unknown slippage is not met (owner, 15 Oct 2026, Q12); at 10% or fewer, unknown
      legs are left out of the mean and listed.
   4. **Discipline:** the owner placed at least 90% of the version's eligible cards in the period (owner, 15 Oct 2026,
      Q8); every skipped card is listed with its paper net, never counted as real.
@@ -182,7 +188,7 @@ Terms used below:
 - **Value:** Stop and report at once when any holds (owner, 15 Oct 2026, Q9: both loss stops): (a) cumulative real
   net from the first real entry reaches minus Rs 20,000, every charge included; (a2) cumulative real net falls
   Rs 20,000 below its highest value since the first real entry (peak to trough), every charge included; (b) the mean execution slippage per unit over the legs of any 5
-  consecutive real trades exceeds twice the paper pad (legs with unknown slippage left out of the mean and listed). A stop is a fail; a new test needs a new owner decision.
+  consecutive real trades exceeds twice the paper pad, Rs 2 per unit (legs with unknown slippage left out of the mean and listed). A stop is a fail; a new test needs a new owner decision.
 - **Status:** decided by the owner on 2026-10-15
 - **Reason:** (a) and (a2) are the owner's answer to Q9. 8.4; both numbers are the owner's (decision 8).
 - **Evidence:** reasoning only
