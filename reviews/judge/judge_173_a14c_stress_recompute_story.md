@@ -80,3 +80,58 @@ story, not built here. No duplicate with A14 or C2 work in flight.
 - **On the builder's doubt about criterion 1.** Response 77's "margin (today's method)" is its table's "C2 counts"
   column, which is the quantity this revision now names. So 1.127 can be reproduced on that definition, and the
   criterion's "or explain each difference" covers any gap in response 77's hand run.
+
+## Addendum 2 (15 Oct 2026): final text at 010adb2152581670de451fd7ff62bae3e9ed53bd (83e7f6e..010adb2)
+
+**Verdict: PASS, with no notes left.**
+
+- **Note 1: met.** Criterion 1 runs after the full back-fill and says why (the archive starts on 1 Oct 2026, and the
+  2026 window has September entries).
+- **Note 2: met.** Criterion 1 now reproduces all three of response 77's windows within 0.001, or explains each
+  difference: 1.127 (2026), 1.265 (2020, the minimum binding) and 1.407 (2024, today's binding value). These are
+  anchors the builder did not write.
+- **Note 3: met.** Q1 states C2c's effect: a held SF 100 goes from about 59,900 to about 86,900 a lot (today's
+  scan-only stress gives 60,269). "About 31% fewer lots" checks out: 1 - 1/1.45 = 0.310.
+- **The decision commit.** Criterion 6 cites `d68b1a9c` ("Decision rows: … whole-margin crash buffer, recompute
+  windows"), and that commit holds the two 15 Oct rows.
+- **Still the owner's.** Q3 (who enters the value) and Q4 (NSE circulars) stay open, to be answered before the first
+  value. C2c is with judge G.
+
+## Addendum 3 (15 Oct 2026): revision at 5bb1c5993bfa94b8eb4a9bdeab96fb0deb6b7acf (owner's Q3 and Q4 answers)
+
+**Verdict: PASS.** No should-fix findings and two notes.
+
+- **Q3 (automatic, with an alert): sound and simple.**
+  - Each run appends one row to an append-only `stress_factor.csv`. C2 and C4 read the latest row through C2d (judge
+    G). `config.yaml` is never edited.
+  - Guardrails: a result below 1.0, or a shrunk archive, is refused with no row; a rise applies; a fall is held with an
+    alert. Criteria 7-9 test each case, including a mutation that applies a fall.
+  - C2d's seed row keeps today's 1.45 until the first run, so nothing lapses in the switch.
+- **Holding every fall (the builder's choice, against the orchestrator's 0.05 proposal): accepted.**
+  - The rule is the maximum over a window that only grows. The incremental run computes `max(last unrounded, new
+    entries)`, which by construction can never fall, and rounding up to the next 0.05 keeps that order.
+  - So a fall can only come from a `--full` run that disagrees, a data fault or a method change. Each of those is
+    exactly what the owner should see before a crash buffer is lowered, and holding them costs nothing in normal
+    running.
+  - The 0.05 band would let such a fault lower k unseen.
+- **Incremental equals full (criterion 8): right.** It is also the guard for the point above.
+- **Q4 (accept the circular limit, plus one Groww comparison): sound.**
+  - The read-only Groww check runs where Groww's key already is (the daily Claude routine), never in Actions (no broker
+    key in GitHub).
+  - The tolerance (SPAN within Rs 1, exposure within 1% after rescaling to Groww's index) is met by response 77's own
+    check 2.
+  - A mismatch alerts but does not hold an NSE-based factor. That is the right split: it flags A14's coded exposure
+    rule, not the measurement.
+- **The weekly Actions job: acceptable.**
+  - The owner's 15 Oct row puts time-critical jobs on routines because GitHub's timer runs 4-5 hours late and skips
+    slots. This job has no time window: any hour on Sunday, or a late run, still writes the week's row.
+  - It also needs no broker key, which fits the same row ("downloads with no time window" stay on Actions).
+  - With `max_age_days` 30, about four Sundays must all fail before C2 refuses, and C2's refusal is loud.
+
+**Note 1 (coordination with O1).** The Groww comparison adds a step to the daily Claude routine, whose prompt O1 owns
+(orchestrator ruling, judge 169). Send that one prompt line to O1 through the orchestrator, as A4c and G10 do; do not
+write a second copy of the prompt. Name O1 in Depends.
+
+**Note 2.** The owner's Q3 and Q4 answers are not yet rows in `docs/DESK_DECISIONS.md`; Q1 and Q2 are, in d68b1a9c.
+Criterion 6 already requires the rows before the first automatic row. Adding them now keeps the story's citations
+checkable.
