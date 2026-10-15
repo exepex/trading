@@ -289,3 +289,64 @@ alone. I had read "INCOMPLETE … deadline" as a cause; it was only the state li
 - Only two cases are never re-checked: truncation gaps on filings older than 400 days found during the backfill, and
   any filing during the backfill itself, since daily runs start only once every step is finished.
 - The re-check I suggested is needed only for those older gaps (low priority).
+
+---
+
+## Addendum 8 (judge E, 15 Oct 2026, 17:50 UTC): criteria 2 and 6 re-judged on main's data. FAIL on one should-fix
+
+The company list is the archived Nifty 500 list. I downloaded NSE's file today: same SHA-256 as the 13 Oct manifest row
+(2959bf20...), 501 companies.
+
+**Criterion 2: MET.** Some evidence for the Drive copies; strong for the rest.
+- **The backfill is complete.** Run 38727056157 (15 Oct): "companies 501, checked 501 ... gaps 29, failures 0;
+  result: complete".
+- **Coverage:**
+  - The manifests hold 25,272 results rows and 9,553 shareholding rows. Each type covers 495 of 501 companies.
+  - Every row has a SHA-256. No symbol falls outside the list.
+- **The 6 companies with no files each have a recorded reason** (`gaps.csv`): REITs, a placeholder symbol, ABBOTINDIA
+  and MCX.
+  - I checked ABBOTINDIA and MCX against NSE's own API (`corporates-financial-results`). It lists one 2010 entry for
+    ABBOTINDIA and none for MCX, so "NSE lists no filing" is true.
+- **5 random rows (seed 158):** I downloaded each from NSE. All 5 match the manifest's SHA-256 and size.
+- **"0 damaged"** rests on the save-time fingerprints and the run's 0 failures. I could not open the Drive copies from
+  this session.
+
+**Criterion 6: NOT MET as built, though met in substance (should fix).**
+
+The last 6 half-years whose results deadline has passed: the share of companies with a results file holding a balance
+sheet and a cash flow (`balance_sheet`, `cash_flow` columns), my count. "Listed after" is from NSE's `EQUITY_L.csv`
+(date of listing).
+
+| Half-year | All 501 | Listed after the period end | Covered of those listed by then |
+|---|---|---|---|
+| Sep 2023 | 408 (81.4%) | 63 | 408 of 438 (93.2%) |
+| Mar 2024 | 426 (85.0%) | 51 | 426 of 450 (94.7%) |
+| Sep 2024 | 445 (88.8%) | 39 | 445 of 462 (96.3%) |
+| Mar 2025 | 457 (91.2%) | 28 | 457 of 473 (96.6%) |
+| Sep 2025 | 475 (94.8%) | 11 | 475 of 490 (96.9%) |
+| Mar 2026 | 487 (97.2%) | 0 | 487 of 501 (97.2%) |
+
+**Why the rest are missing, all from NSE's own data:**
+- **Listing date:** the companies were not listed yet. This alone lifts every half-year above 90%.
+- **Financial years ending in December or June** (ABB, CASTROLIND, CIEINDIA, KSB, SCHAEFFLER, CRISIL, GILLETTE): their
+  half-years end in June and December, and those files carry both statements.
+- **Banks' September files** (e.g. HDFCBANK, standalone, 30 Sep 2023):
+  - My download is byte-identical to the archive (SHA-256 55983dae...).
+  - The file holds operating cash-flow facts on contexts `FourD` and `FourI`, but defines none of them: its 37 contexts
+    are segment contexts only. NSE's file is malformed; the parser is not at fault.
+
+**What is missing:** the coverage report (`fno/filings/coverage.py:half_year_shares`, `half_year_misses`) divides by all
+501 companies and gives only "no results file" or "file without statements". So it prints 81%, 85% and 89% as
+failures with no NSE reason.
+
+**Smallest fix:** count a company in a half-year only once NSE's equity list shows it listed by that period end,
+reported as "listed after the period end (NSE list)". That one rule meets the 90% in all six half-years. The other two
+reasons can stay "Known limits" lines.
+
+**Not part of A12's criteria, but unowned:**
+- Queue step 3 (companies in the Nifty 500 in past years, survivorship) is not built. Response 56 proposed it as its
+  own story, but there is no story, plan row or register row for it.
+- The orchestrator should assign it, or record the owner's choice to drop it. Until then the archive covers today's
+  members only (a survivorship bias for any backtest).
+
+**Verdict: FAIL** on one should-fix (criterion 6's report); criteria 1-5 are now MET.
