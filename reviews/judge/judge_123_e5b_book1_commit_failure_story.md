@@ -88,3 +88,43 @@ marker". One unmarked state is not covered. See should-fix 2.
 
 **Verdict: FAIL for aca525df523236008222adb99da0dd128ad04df4** (story text) on should-fixes 1-2. A re-check needs only
 the scope lines for the one-a-day check and criterion 0.
+
+## Addendum 1 (15 Oct 2026): b94f4db233167613ffedf41240056ed3738c4b2a
+
+Text only (`git diff aca525d b94f4db`: the E5b section and response 123), following the orchestrator's decision 59.
+
+| Item | Status | Evidence |
+|---|---|---|
+| sf 1, origin | MET | `Book1.decide` fetches and looks in three places: origin's day folder, `HEAD` and disk. Book 1's committer re-checks the pulled tree after its pull and before its commit, refusing through `CommitFailed` (one alert). Criterion 0 adds two checkouts of one bare origin, in sequence and with the second pulling only after the first decided: origin ends with exactly one run. Decision 59 (b) puts the guarantee in D3b (the collector takes the *first* non-correction run before the deadline), so a run that slips past is never the decision. Prevention plus guarantee is the right pair |
+| sf 2, on disk only | MET | It is named as the third state: one alert, the hand fix, never a quiet "already decided" and never a new decision. `--commit-run <run_id>` refuses a run that `DecisionStore.edited` finds edited and never runs D2. It is in criterion 0 and in the judge's plant list |
+| Minor 1, input comparison | MET | Byte for byte against each recorded input file, naming each file and the top-level fields |
+| Minor 2, correction runs | MET | Decided by decision 59 (b), carried by D3b |
+
+### The orchestrator's question: can `--commit-run` publish a run decided after the deadline as timely? No.
+
+From the code at this SHA:
+- **Timeliness comes from commit time.** E3 judges a run by the committer time of the commit that adds its
+  `records.sha256` (`committed_decisions.py:50-55`, `committed_at < deadline`). A commit made by `--commit-run` gets the
+  local time when it runs. It cannot be earlier than the decision it holds, so a run decided after the deadline is
+  always committed after it.
+- **Timeliness also comes from visibility.** The collector pulls once at the deadline (`collect_decisions`,
+  `observe()`) and records the run and commit it saw. A restart after the deadline plus grace makes every book late
+  (`daily_steps.py:91-94`). A run pushed after the collection is never read for that day.
+
+So `--commit-run` adds no timeliness of its own. Only someone forging the committer date and pushing before the deadline
+could cheat, and that is a hand forgery outside this tool.
+
+## Minor (text, for the code)
+
+1. **Say that `--commit-run` passes the same pre-commit check as a decision** (no other Book 1 run of the day in the
+   pulled tree). Also say it accepts only a run in the on-disk-only state: not in `HEAD`, not on origin, not in the
+   marker. Otherwise it could publish a second run beside a committed one, which D3b would then ignore but the record
+   would still hold.
+2. **Say that `--commit-run` never sets or changes a commit date** (no `GIT_COMMITTER_DATE`), and that timeliness stays
+   with E3's collector by commit time and visibility at the deadline. That is the answer above, written down where the
+   code author will read it.
+
+Rule 9 stands: E5b is a money path, so it goes to ChatGPT after my code PASS.
+
+**Verdict: PASS for b94f4db233167613ffedf41240056ed3738c4b2a** (story text). Code may start once E2b is on `main`
+(`CommitFailed`, `PendingCommitter`). Minors 1-2 go into the story or the code's docstrings; I check them in the code.
