@@ -71,8 +71,14 @@ class DrivePartsRowLog(RowLog):
     def __init__(self, store: RawFileStore, folder: str, clock: Callable[[], datetime]):
         """`store` lists and reads the folder (`checksums`, `get`) and writes new parts (`put`, never overwriting)."""
         self.store, self.folder, self.clock = store, folder, clock
+        self._rows: list[dict[str, str]] | None = None  # read once, then kept in step with this log's own appends
 
     def rows(self) -> list[dict[str, str]]:
+        if self._rows is None:
+            self._rows = self._read()
+        return list(self._rows)
+
+    def _read(self) -> list[dict[str, str]]:
         found = []
         for name in sorted(self.store.checksums(self.folder)):
             data = self.store.get(f"{self.folder}/{name}")
@@ -87,4 +93,26 @@ class DrivePartsRowLog(RowLog):
     def append(self, fields: tuple[str, ...], rows: list[tuple]) -> None:
         if rows:
             name = PART_NAME.format(at=self.clock())
-            self.store.put(f"{self.folder}/{name}", _csv_text(fields, rows).encode("utf-8"))
+            text = _csv_text(fields, rows)
+            self.store.put(f"{self.folder}/{name}", text.encode("utf-8"))
+            if self._rows is not None:
+                self._rows += list(csv.DictReader(text.splitlines()))
+
+
+class DriveSnapshots:
+    """A report rewritten every run, kept in Drive as one new write-once file per run: the newest file is current (a
+    gap that later clears is gone from it; nothing older is changed)."""
+
+    def __init__(self, store: RawFileStore, folder: str, clock: Callable[[], datetime]):
+        self.store, self.folder, self.clock = store, folder, clock
+
+    def write(self, fields: tuple[str, ...], rows: list[tuple]) -> None:
+        name = PART_NAME.format(at=self.clock())
+        self.store.put(f"{self.folder}/{name}", _csv_text(fields, rows).encode("utf-8"))
+
+    def latest(self) -> list[dict[str, str]]:
+        names = sorted(self.store.checksums(self.folder))
+        if not names:
+            return []
+        data = self.store.get(f"{self.folder}/{names[-1]}") or b""
+        return list(csv.DictReader(data.decode("utf-8").splitlines()))

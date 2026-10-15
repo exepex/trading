@@ -19,7 +19,7 @@ from .check_files import CueChecks
 from .collector import CueCollector
 from .job import GlobalCueJob
 from .other_sources import EiaBrentSource, FbilUsdInrSource, RbiUsdInrSource
-from .row_log import CsvRowLog, DrivePartsRowLog
+from .row_log import CsvRowLog, DrivePartsRowLog, DriveSnapshots
 from .snapshot_log import SnapshotLog
 from .source import GlobalCueSource
 from .table import CueTable
@@ -94,7 +94,11 @@ def build_tables(include_private: bool = True, env=os.environ) -> dict[str, CueT
 
 
 def _checks(tables: dict[str, CueTable], env=os.environ) -> CueChecks:
-    private = {s.cue: _private_log(env, s.cue, "checks") for s in SOURCES if s.private and s.cue in tables}
+    private = {
+        s.cue: DriveSnapshots(AreaStore(_owner_drive(env), DERIVED_AREA), f"{PRIVATE_FOLDER}/{s.cue}/checks", now_ist)
+        for s in SOURCES
+        if s.private and s.cue in tables
+    }
     return CueChecks(tables, CHECKS_FOLDER, private)
 
 

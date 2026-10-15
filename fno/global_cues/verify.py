@@ -10,10 +10,12 @@ from collections.abc import Callable
 from datetime import date, datetime
 
 from ..storage.raw_store import RawFileStore
-from .collector import UNREADABLE
+from .collection import UNREADABLE
 from .snapshot_log import SnapshotLog
 from .source import GlobalCueSource
 from .table import provenance
+
+PRIVATE_DIFFERS = "values differ (private cue: values never printed)"
 
 
 class CueTableVerifier:
@@ -38,7 +40,8 @@ class CueTableVerifier:
                 problems.append(f"{source.cue} {row['value_date']}: {values}")
             elif values.get(row["value_date"]) != float(row["value"]):
                 copy = values.get(row["value_date"])
-                problems.append(f"{source.cue} {row['value_date']}: table {row['value']}, archived copy {copy}")
+                shown = PRIVATE_DIFFERS if source.private else f"table {row['value']}, archived copy {copy}"
+                problems.append(f"{source.cue} {row['value_date']}: {shown}")
             problems += self._timing(source.cue, row, fetched.get(sha256))
         return problems
 

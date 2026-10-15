@@ -2,7 +2,8 @@
 
 - fill: downloads each cue's files, archives them in the owner's Drive, extends the tables, rewrites the checks. The
   first run back-fills from each source's first date; later runs look back 31 days. Not scheduled.
-- check: rewrites the checks from the committed tables (no network).
+- check: rewrites the checks from the tables (the public ones offline; with the Drive settings also the private
+  ones, whose gaps are written to Drive).
 - verify: recomputes every table row from the archived copy it names (read-only).
 - adopt: takes a copy already in Drive's raw area into its cue's log and table, first seen at its own fetch time.
 Commit `research/data/global-cues/` and `research/data/manifests/global-cues/` after a run.

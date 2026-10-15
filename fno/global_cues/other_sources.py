@@ -35,7 +35,7 @@ FBIL_RATES = "https://www.fbil.org.in/wasdm/refrates/fetchfiltered?fromDate={sta
 FBIL_USD = "INR / 1 USD"
 IST = "Asia/Kolkata"
 REFERENCE_RATE_OUT = time(13, 30)  # FBIL's display time: 13:30 IST until about 2025, 13:00 since (the later is used)
-EIA_WORST_LAG = timedelta(days=8)  # assumption: a weekly release publishes a value within 8 days of its date
+EIA_WORST_LAG = timedelta(days=10)  # assumption: a weekly release (US daytime) publishes a value within 10 days
 
 
 class EiaBrentSource(GlobalCueSource):
@@ -48,7 +48,7 @@ class EiaBrentSource(GlobalCueSource):
 
     def available_at(self, value_date: date) -> datetime:
         """An assumption, not an observation: EIA's weekly release dates are not archived (`live` rows are exact)."""
-        return at_local(value_date + EIA_WORST_LAG, time(0, 0), IST)
+        return at_local(value_date + EIA_WORST_LAG, time(23, 59), IST)
 
     def parse(self, data: bytes) -> list[CueValue]:
         page = data.decode("utf-8", errors="replace")

@@ -215,8 +215,9 @@ to use the sources anyway.
      - US closes: 16:00 US Eastern;
      - Treasury: 18:00 US Eastern, an assumption;
      - reference rate: 13:30 IST;
-     - Brent: 8 days after its date, an assumption.
-   - `live_only` compares `first_seen_at` with the chosen cutoff.
+     - Brent: by the end of the 10th day after its date, an assumption.
+   - The research view uses those rules. The live view (`live_only`) uses only the observed `first_seen_at` against
+     the cutoff.
    - The `provenance` column keeps the 09:15 meaning. I chose not to add a column, so the committed tables stay
      append-only.
 3. **FBIL's terms found** in its site's page code: "[FBIL does not authorize commercial use of the data available in
@@ -239,3 +240,76 @@ to use the sources anyway.
 | 15 Oct 2026 | nasdaq100 | 13 Oct (Nasdaq lacked 14 Oct) | 13 Oct |
 | 20 Jan 2026 | sp500 (after the US holiday of 19 Jan) | 16 Jan | 16 Jan |
 | 20 Jan 2026 | usdinr_rbi | 19 Jan | 20 Jan |
+
+### Self-review of the new parts (quality rule 3)
+
+One independent agent reviewed the new parts. It found no route by which a private value is in git: no sp500 or
+nasdaq100 table on any branch, none in `revisions.csv` or `gaps.csv`, and the fixtures are fake. Its findings, each
+checked in the code:
+
+**Fixed, each with a test:**
+1. **An unfinished US close could have become a permanent `live` row.** A file read during the US session may hold
+   the day's price so far. Now any value not final when its file was fetched is dropped
+   (`collection.final_values`; test with a fetch at 21:00 IST).
+2. **The Brent rule was too early** (date + 8 days, 00:00 IST, while EIA posts in US daytime). It is now the end of
+   the 10th day. The live view no longer uses the rule at all; it relies on the observed `first_seen_at`.
+3. **A failed table write on the day of the download could not be finished that day.** The once-a-day skip would
+   have turned every `live` label into `backfilled` the next day. A second run the same day now reads the day's
+   archived copy again (`archived_copies.reuse_today`; test).
+4. **A failure while writing the checks hid every cue's result line.** Now it is reported below them (test).
+5. **The private gaps log only grew** (each run appended the full list again, and cleared gaps never cleared). Each
+   run now writes a full snapshot, and the newest is current (`DriveSnapshots`; test).
+6. **`verify` printed private values** in its difference lines. It now prints "values differ (private cue: values
+   never printed)" (test).
+7. **Bad `adopt` paths** gave a traceback or a misleading message. A path that is not a copy path, sits in another
+   cue's folder or has no matching request is now named (tests).
+8. **Every read of a Drive table listed the folder again.** The Drive table now keeps its rows in step with its own
+   appends, so it is read once per run, and a lagging Drive listing cannot show an old "last" date.
+
+**Documented, not changed:**
+- A failed or refused download saved nothing and may be retried that day.
+- The once-a-day rule reads the copy log in the repository, so a run must start from a checkout that has pulled.
+- Adopt the full-history copy first. A Nasdaq copy's `--from`/`--to` must match its name.
+- `check` with the Drive settings writes the private gaps to Drive.
+
+### Broken-code proof (quality rule 4)
+
+**42 of 42 mutations caught.**
+- **26 from the first set** still apply. Three of the first set no longer matched the refactored code and were
+  replaced: the revisions log not checked first, and a same-date US close used in the research view.
+- **14 new**, all caught:
+  - an unfinished close kept;
+  - a second download the same day;
+  - an adopted copy logged twice;
+  - adopt from another cue's folder;
+  - private gaps written to the repository;
+  - private gaps not written to Drive;
+  - verify printing a private value;
+  - the Drive table cache out of step;
+  - an old gap snapshot read as current;
+  - the US close time without its time zone;
+  - the reference rate counted at the open;
+  - a non-strict cutoff;
+  - the live view using the rule;
+  - a checks failure hiding the cue lines.
+- Three of the 14 first survived because their tests were weak (they did not count log rows, used a path whose name
+  also failed, and had no failing checks). I strengthened the tests, and all three are now caught.
+
+### Cases (quality rule 5)
+
+- **Boundaries:**
+  - exactly at the publication time (not usable) and one minute later (usable);
+  - US summer and winter time;
+  - the same day's reference rate at 09:15 (no) and 15:00 (yes);
+  - a fetch during the US session;
+  - a second run the same day, and the next day.
+- **Empty:**
+  - a cleared gap snapshot;
+  - a private table with no rows.
+
+### Gates
+
+- `tests/global_cues`: 58 passed.
+- Real `check` and `verify` against Drive pass.
+
+The full-suite count is in the commit report.

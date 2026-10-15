@@ -35,7 +35,7 @@ def _json(data: bytes, what: str):
 
 
 class UsIndexSource(GlobalCueSource):
-    unit, date_zone, private, once_a_day = "index points", US_EASTERN, True, True
+    unit, date_zone, private, once_a_day, may_hold_unfinished = "index points", US_EASTERN, True, True, True
 
     def available_at(self, value_date: date) -> datetime:
         return at_local(value_date, US_CLOSE, US_EASTERN)

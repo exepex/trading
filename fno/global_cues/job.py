@@ -37,7 +37,15 @@ class GlobalCueJob:
                 break
             lines.append(line)
             ok = ok and cue_ok
-        return [*lines, *self.checks.write()], ok
+        checked, checks_ok = self._checks()
+        return [*lines, *checked], ok and checks_ok
+
+    def _checks(self) -> tuple[list[str], bool]:
+        """The checks; a failure there never hides the cue lines above it."""
+        try:
+            return self.checks.write(), True
+        except RUN_STOPPERS as exc:
+            return [f"checks FAILED ({type(exc).__name__}): {exc}"], False
 
     def _run_cue(self, source: GlobalCueSource, start: date | None, end: date) -> tuple[str, bool]:
         table = self.tables[source.cue]
@@ -48,11 +56,12 @@ class GlobalCueJob:
 
     def adopt(self, source: GlobalCueSource, path: str, start: date, end: date) -> tuple[list[str], bool]:
         """Takes a copy already in Drive into the cue's log and table, first seen at its own fetch time."""
-        collection = self.collector.adopt(source, path, start, end)
+        collection = self.collector.copies.adopt(source, path, start, end)
         if collection.failure:
             return [f"{source.cue}: FAILED, {collection.failure}"], False
         line, _ = self._merge(source, self.tables[source.cue], collection, end)
-        return [line, *self.checks.write()], True
+        checked, checks_ok = self._checks()
+        return [line, *checked], checks_ok
 
     def _merge(self, source: GlobalCueSource, table: CueTable, collection, end: date) -> tuple[str, bool]:
         done = collection.skipped or _merged(table, collection)

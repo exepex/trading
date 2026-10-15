@@ -18,7 +18,12 @@ their terms (quoted below), with these conditions:
   fixtures (the tests use made-up numbers labelled fake), claims files or logs. The repository holds code, the schema,
   this README, and counts and hashes only (`research/data/manifests/global-cues/sp500.csv`, `nasdaq100.csv`: path,
   URL, SHA-256 and size of each copy);
-- at most one download a day (the code refuses a second one on the same IST date);
+- at most one download a day: a second run on the same IST date downloads nothing and reads that day's archived copy
+  again (so a run whose table write failed can finish with the copy's true `first_seen_at`). Limits: a download that
+  failed or was refused saved nothing and may be retried that day; the rule reads the copy log in the repository, so
+  run from a checkout that has pulled the last run's log;
+- a US index file read during the US session may hold the day's price so far: a value not yet final when the file
+  was fetched (before 16:00 US Eastern on its date) never becomes a row;
 - **the card and the dashboard show nothing from them until the owner approves a display (open item).**
 
 | Private cue | Drive (derived area) | Days | Dates | Source |
@@ -27,8 +32,11 @@ their terms (quoted below), with these conditions:
 | nasdaq100 | `global-cues/nasdaq100/rows`, `/revisions`, `/checks` | 5,059 | 2007 - 13 Oct 2026 | Nasdaq's quote API |
 
 The history start is the four copies fetched once on 15 Oct 2026 before their terms were read, kept by the owner and
-adopted with `global-cues adopt` at their own fetch times (06:14:45, 06:17:18, 06:14:54 and 06:17:22 IST). Each private
-table is a folder of write-once CSV parts (one per run that adds rows); its rows are the parts in name order.
+adopted with `global-cues adopt` at their own fetch times (06:14:45, 06:17:18, 06:14:54 and 06:17:22 IST). Adopt the
+full-history copy first: a shorter copy adopted first would make every older date `late` (logged, never inserted).
+A Nasdaq copy's name carries its request's dates, so `--from`/`--to` must equal them. Each private table is a
+folder of write-once CSV parts (one per run that adds rows); its rows are the parts in name order. Its gaps are
+written each run as a new snapshot in `<cue>/checks`; the newest is current.
 
 ## Columns
 
@@ -61,18 +69,19 @@ session may use at an explicit cutoff on its India date (design 2.1: "as of 15:0
 - `OPEN` 09:15 IST: known before the open, for overnight gaps;
 - `DECISION` 15:00 IST: known at the desk's decision time. It adds the same day's USD/INR reference rate.
 
-A value is usable when its source's `available_at(value_date)` is before the cutoff:
+Research view (`live_only=False`, for back-filled history): a value is usable when its source's
+`available_at(value_date)` is before the cutoff:
 - US closes: 16:00 US Eastern on t, i.e. 01:30 IST on t+1 in US summer time, 02:30 in winter (computed with the time
   zone, daylight saving included). A US holiday has no row, so a Tuesday after a US Monday holiday gets Friday's
   close. A value dated on the India date itself is never usable (16:00 ET of d is after 15:00 IST of d).
 - US 10-year: 18:00 US Eastern on t (**assumption**: the Treasury posts the day's curve that evening).
 - USD/INR: 13:30 IST on t.
-- Brent: 8 days after t (**assumption**: EIA's weekly release; its release dates are not archived). Research on
-  Brent with the rule is therefore approximate; only `live_only` answers are exact.
+- Brent: by the end of the 10th day after t (**assumption**, on the late side: EIA's weekly release, posted in US
+  daytime; its release dates are not archived). Research on Brent with the rule is therefore approximate.
 
-With `live_only` the row must also have been first seen by this tool before the cutoff (`first_seen_at`): the honest
-answer for a live decision. The `provenance` column stays the 09:15 label (`live` when seen before the first NSE open
-after the value date); a 15:00 decision checks `first_seen_at` against 15:00 through `live_only`.
+Live view (`live_only=True`): a value is usable when this tool first saw it before the cutoff (`first_seen_at`), an
+observation and exact (a value seen before it was final never became a row). The `provenance` column stays the 09:15
+label (`live` when seen before the first NSE open after the value date); a 15:00 decision uses the live view.
 
 Real answers (15 Oct 2026, dates only): on 20 Jan 2026 (after the US holiday of 19 Jan), the S&P 500 and the US
 10-year give 16 Jan at both cutoffs; USD/INR gives 19 Jan at 09:15 and 20 Jan at 15:00.

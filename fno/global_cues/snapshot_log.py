@@ -75,3 +75,11 @@ class SnapshotLog:
         file = self.path_for(cue)
         rows = csv.DictReader(file.read_text(encoding="utf-8").splitlines()) if file.is_file() else []
         return {row["path"] for row in rows}
+
+    def latest_fetch_on(self, cue: str, day: date) -> tuple[datetime, list[str]]:
+        """The last fetch of that IST date: its time and every copy it saved (a fetch may save several files)."""
+        file = self.path_for(cue)
+        rows = list(csv.DictReader(file.read_text(encoding="utf-8").splitlines())) if file.is_file() else []
+        times = [datetime.fromisoformat(r["fetched_at"]) for r in rows]
+        last = max(t for t in times if t.date() == day)
+        return last, [r["path"] for r, t in zip(rows, times, strict=True) if t == last]

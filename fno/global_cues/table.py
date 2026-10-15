@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 
 from ..models import IST
-from .collector import SourcedValue
+from .collection import SourcedValue
 from .row_log import RowLog
 
 FIELDS = ("value_date", "value", "source_sha256", "first_seen_at", "provenance")
