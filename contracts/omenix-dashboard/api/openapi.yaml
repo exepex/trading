@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: market-brief app API
-  version: 2.6.0
+  version: 2.7.0
   summary: Read API over the precomputed read models (docs/ARCHITECTURE.md section 4), plus planned governed writes.
   description: |
     Research only: nothing here places, routes or suggests a trade, and nothing is investment advice.
@@ -63,6 +63,13 @@ info:
     circular): open_utc, close_utc and next_open_utc are then null (next_open_utc is otherwise still required as a
     time). India's session always states it; the US's may omit it (known).
 
+    Version 2.7 (story P1 of exepex/trading, owner decision 15 Oct 2026; additions only): the F&O data catalog. Five
+    India-only F&O screen pages (tag `fno-screens`, api/paths/fno-screens.yaml, api/schemas/fno-*.yaml): the daily card,
+    the weather, the Forecast lab, the Strategy lab and paper trades, each with Mock examples in its positive, negative
+    and empty cases (api/examples/fno-screens.json) and a plain-words field table (api/catalog/fno-screens.md, generated)
+    naming each field's meaning, unit, backend record, freshness, visibility and whether the backend can fill it today.
+    Both repositories test against it: tools/api/check_fno_screens.py here, the pinned copy in exepex/trading.
+
     Serve-time fields (2.0 page payloads): the stored payload carries no time of its build, so a rebuild of the same data
     keeps its hash. The route adds `cutoff` and `built_at` (the row's envelope) at the top of a page payload and
     `freshness` (`Freshness`, from `built_at` and the request time) to its `status` block; the status page gets
@@ -93,6 +100,8 @@ tags:
   - name: internal
   - name: blocks
     description: Small block endpoints of the frame and Home (story W10); each states the screen blocks it feeds (x-feeds)
+  - name: fno-screens
+    description: 'The F&O data catalog (story P1): one page per F&O screen, India only, Mock examples in three cases'
 security:
   - vercelAuthentication: []
 paths:
