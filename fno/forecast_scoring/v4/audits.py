@@ -1,13 +1,15 @@
 """AI forecasts whose audit is still open (story G11's input to G8's looks). A confirmatory look is recorded once, so it
 refuses to run while any AI forecast of a day up to the look's date is still under audit: G11 writes such a day's v4
 row only after its audit settles, and until then the day reads as a miss that would stay in the recorded look. G11
-keeps the open audits in a committed file; a missing file means no AI book has an open audit."""
+keeps the open audits in a committed file, header-only when none is open, and never deletes it: a missing file means no
+open audit only while no AI book has written a v4 row (judge 209, agreed with G11)."""
 
 from __future__ import annotations
 
 import csv
 import io
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from datetime import date
 from pathlib import Path
 
@@ -30,11 +32,13 @@ class OpenAudits(ABC):
 
 
 class OpenAuditFile(OpenAudits):
-    def __init__(self, path: Path):
-        self.path = Path(path)
+    def __init__(self, path: Path, ai_rows_exist: Callable[[], bool]):
+        self.path, self.ai_rows_exist = Path(path), ai_rows_exist
 
     def open_days(self) -> list[date]:
         if not self.path.is_file():
+            if self.ai_rows_exist():
+                raise AuditFileError(f"{self.path.name} is missing while AI books have v4 rows: it is never deleted")
             return []
         reader = csv.reader(io.StringIO(self.path.read_text(encoding="utf-8")))
         if next(reader, None) != HEADER:
@@ -50,3 +54,11 @@ def require_settled(audits: OpenAudits, look_day: date) -> None:
     due = sorted(day for day in audits.open_days() if day <= look_day)
     if due:
         raise LookBlocked(OPEN_AUDITS.format(look=look_day, count=len(due), first=due[0]))
+
+
+def has_kind(folder: Path, kind: str) -> bool:
+    """Whether any v4 record file in `folder` has a row of this `kind` (G7's schema)."""
+    for path in Path(folder).glob("*/*.csv"):
+        if any(row.get("kind") == kind for row in csv.DictReader(io.StringIO(path.read_text(encoding="utf-8")))):
+            return True
+    return False

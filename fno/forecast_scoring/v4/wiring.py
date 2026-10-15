@@ -6,8 +6,9 @@ from __future__ import annotations
 from datetime import date
 
 from ...config import ROOT
+from ...constants import V4_KIND_AI
 from ...intraday.rv_table import RvTable
-from .audits import OpenAuditFile
+from .audits import OpenAuditFile, has_kind
 from .cutoff_moves import RecordedCutoffMoves
 from .days import DayCounts, DayFiles, LateDaysOut, day_counts
 from .g7_series import G7Series
@@ -39,7 +40,7 @@ def build_day_counts(as_of: date) -> DayCounts:
 
 
 def build_open_audits() -> OpenAuditFile:
-    return OpenAuditFile(OPEN_AUDITS_FILE)
+    return OpenAuditFile(OPEN_AUDITS_FILE, lambda: has_kind(FORECASTS_FOLDER, V4_KIND_AI))
 
 
 def build_look_records() -> LookRecords:
