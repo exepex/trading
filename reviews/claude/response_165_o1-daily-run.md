@@ -142,3 +142,21 @@ E3's decisions step name, `DESK_RUN_STEPS`, `DAILY_RUN_STEPS`, O1's step statuse
 `fno/constants.py` imports it with one `import *` line (its `__all__` lists the names), so every
 `from fno.constants import ...` in the 25 files that use these names keeps working unchanged. `fno/constants.py` is
 now at 341 lines.
+
+### Judge 178 (code round 1 PASS, 3a1c1865): notes
+
+1. Tests added (accepted):
+   - `test_quotes_or_card_raising_is_recorded_failed_with_one_alert`;
+   - `test_a_quote_part_that_exits_non_zero_gets_no_o1_alert_and_the_others_still_commit` (each of the 3 parts);
+   - `test_a_failed_nifty_still_starts_the_indices_after_it_and_lets_nse_commit`.
+   The behaviour was already right, as the judge's probe showed: these are tests only.
+2. Done: the constants split and CLAUDE.md's root list keep LR1's line (sections above). The full suite ran on the
+   merged tree.
+3. Accepted: O1 merges only after A4c.
+4. Declined, with reason. A dead run's part files may be half-written, since a killed recorder can stop mid-file, and
+   only the recorder can say whether an attempt is complete. Committing them blind could put a broken sidecar or
+   canonical on `main`. This is now a Known-limits line (reasoning only; I did not test a killed recorder).
+5. The orchestrator updates the Handover row.
+
+T2/T3 builder (through the orchestrator): the card runs after `decisions` (final at 15:12) and `snapshot` (C3 final at
+15:15). That was always the order (strong evidence: the order test); the table now says so.

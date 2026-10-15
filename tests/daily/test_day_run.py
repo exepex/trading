@@ -172,3 +172,43 @@ def test_a_hung_part_is_stopped_after_the_limit_and_the_ended_parts_are_committe
     assert results["indices"]["reason"].startswith("never started")
     assert [message.split()[-1] for _, message, _ in commits] == ["nse"]  # after the limit, NIFTY's files never
     assert clock() - at(15, 15, day=NORMAL) <= timedelta(minutes=21)
+
+
+@pytest.mark.parametrize("name", ["quotes", "card"])
+def test_quotes_or_card_raising_is_recorded_failed_with_one_alert(day, alerts, name):
+    runner, run, *_ = day(steps={name: Alerted(name, RecordedStep(name, [], raises=OSError("disk full")), alerts)})
+    code, line = runner.run(NORMAL)
+    steps = run.run(NORMAL).steps
+    assert steps[name]["result"] == {"status": STEP_FAILED, "reason": "OSError: disk full"}
+    assert [text for text in alerts.sent] == [
+        f"F&O daily run 2026-10-14: step {name} failed: OSError: disk full; the run goes on"
+    ]
+    assert "exits" in steps and code == 1  # the desk went on; with no part started, quotes_done says so (no alert)
+
+
+@pytest.mark.parametrize("part", ["nifty", "nse", "indices"])
+def test_a_quote_part_that_exits_non_zero_gets_no_o1_alert_and_the_others_still_commit(day, alerts, part):
+    times = script()
+    arguments = next(p.arguments for p in QUOTE_PARTS if p.name == part)
+    ends_at, _, _ = times[arguments]
+    times[arguments] = (ends_at, 1, ["stopped, nothing recorded"])  # the part's own alert is its own (A4c)
+    runner, run, _, parts, commits, _ = day(times)
+    code, line = runner.run(NORMAL)
+    results = run.run(NORMAL).steps["quotes_done"]["result"]
+    assert alerts.sent == [] and (code, line) == (1, "day done with problems: quotes_done")
+    assert results["reason"] == f"not ok: {part}" and results["parts"][part]["reason"] == "stopped, nothing recorded"
+    assert [message.split()[-1] for _, message, _ in commits] == ["nifty", "nse", "indices"]  # its files too
+
+
+def test_a_failed_nifty_still_starts_the_indices_after_it_and_lets_nse_commit(day):
+    times = script(nse=(14, 55))
+    times[NIFTY] = (at(14, 58, day=NORMAL), 1, ["stopped, nothing recorded"])
+    runner, run, _, parts, commits, _ = day(times)
+    runner.run(NORMAL)
+    started = {arguments: when for when, arguments in parts.processes.started}
+    assert started[INDICES] == at(14, 58, day=NORMAL)  # after NIFTY ended, whatever its result
+    assert [(when, message.split()[-1]) for when, message, _ in commits] == [
+        (at(14, 58, day=NORMAL), "nifty"),
+        (at(14, 58, day=NORMAL), "nse"),
+        (at(15, 13, day=NORMAL), "indices"),
+    ]

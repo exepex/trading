@@ -80,7 +80,7 @@ In:
   | `book1` | right after `pack` | E5's `desk book1 --day <d>` (Book 1's decision, committed by itself) |
   | `decisions` ... `exits` | E3's timetable, in the foreground | E3's `DailyRun` steps, untouched |
   | `quotes_done` | after `exits`: waits for the parts still running, records each part's result line and commit | |
-  | `card` | after `quotes_done`, only if E3 did not stop | T1's `card daily --post` |
+  | `card` | after `quotes_done`, only if E3 did not stop | T1's `card daily --post`; always after `decisions` (final at 15:12) and `snapshot` (C3 final at 15:15), so a card never posts before what it shows is final (T2 builder, 15 Oct) |
 
 - **The quote parts are A4c's passed steps 2-3b** (judge 151 addendum 2 text, judge 160 code; branch
   `story/a4c-all-indices` until it merges after judge D's 16 Oct check), run by O1 as child processes beside E3's
@@ -213,6 +213,8 @@ command, which commits its own decision; its pathspecs are none, so the run swee
   evidence: the two windows; G10 moves both).
 - A part whose push fails every time leaves an unpushed commit, so E3's `GitCommitter` refuses the desk's next commit
   (decision 51) and the desk stops with E3's alert; the hand fix is the alert's.
+- A rerun after a dead run does not commit the dead run's quote part files (`quotes_done` says so): a killed recorder may
+  have left a half-written file, and only the recorder can tell a complete attempt (judge 178 note 4, declined).
 - After E3's stop the owner gets no card that day (the stop alert stands alone; the forecasts stay committed).
 
 ## Test plan
