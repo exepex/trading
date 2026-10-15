@@ -193,3 +193,7 @@ budget:
   stop_rule:
     v4_freeze_date: null
     projected_v4_freeze_month: "2026-11"  # design v2 section 8.2: "if v4 freezes in early November 2026"
+# Story O8: the daily health check reads the sessions dated from `window_days` days before its run's IST date up to
+# that date. 6 keeps every push it needs inside GitHub's 7-day activity log (judge 164).
+health:
+  window_days: 6

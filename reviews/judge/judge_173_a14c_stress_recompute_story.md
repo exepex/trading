@@ -96,3 +96,82 @@ story, not built here. No duplicate with A14 or C2 work in flight.
   windows"), and that commit holds the two 15 Oct rows.
 - **Still the owner's.** Q3 (who enters the value) and Q4 (NSE circulars) stay open, to be answered before the first
   value. C2c is with judge G.
+
+## Addendum 3 (15 Oct 2026): revision at 5bb1c5993bfa94b8eb4a9bdeab96fb0deb6b7acf (owner's Q3 and Q4 answers)
+
+**Verdict: PASS.** No should-fix findings and two notes.
+
+- **Q3 (automatic, with an alert): sound and simple.**
+  - Each run appends one row to an append-only `stress_factor.csv`. C2 and C4 read the latest row through C2d (judge
+    G). `config.yaml` is never edited.
+  - Guardrails: a result below 1.0, or a shrunk archive, is refused with no row; a rise applies; a fall is held with an
+    alert. Criteria 7-9 test each case, including a mutation that applies a fall.
+  - C2d's seed row keeps today's 1.45 until the first run, so nothing lapses in the switch.
+- **Holding every fall (the builder's choice, against the orchestrator's 0.05 proposal): accepted.**
+  - The rule is the maximum over a window that only grows. The incremental run computes `max(last unrounded, new
+    entries)`, which by construction can never fall, and rounding up to the next 0.05 keeps that order.
+  - So a fall can only come from a `--full` run that disagrees, a data fault or a method change. Each of those is
+    exactly what the owner should see before a crash buffer is lowered, and holding them costs nothing in normal
+    running.
+  - The 0.05 band would let such a fault lower k unseen.
+- **Incremental equals full (criterion 8): right.** It is also the guard for the point above.
+- **Q4 (accept the circular limit, plus one Groww comparison): sound.**
+  - The read-only Groww check runs where Groww's key already is (the daily Claude routine), never in Actions (no broker
+    key in GitHub).
+  - The tolerance (SPAN within Rs 1, exposure within 1% after rescaling to Groww's index) is met by response 77's own
+    check 2.
+  - A mismatch alerts but does not hold an NSE-based factor. That is the right split: it flags A14's coded exposure
+    rule, not the measurement.
+- **The weekly Actions job: acceptable.**
+  - The owner's 15 Oct row puts time-critical jobs on routines because GitHub's timer runs 4-5 hours late and skips
+    slots. This job has no time window: any hour on Sunday, or a late run, still writes the week's row.
+  - It also needs no broker key, which fits the same row ("downloads with no time window" stay on Actions).
+  - With `max_age_days` 30, about four Sundays must all fail before C2 refuses, and C2's refusal is loud.
+
+**Note 1 (coordination with O1).** The Groww comparison adds a step to the daily Claude routine, whose prompt O1 owns
+(orchestrator ruling, judge 169). Send that one prompt line to O1 through the orchestrator, as A4c and G10 do; do not
+write a second copy of the prompt. Name O1 in Depends.
+
+**Note 2.** The owner's Q3 and Q4 answers are not yet rows in `docs/DESK_DECISIONS.md`; Q1 and Q2 are, in d68b1a9c.
+Criterion 6 already requires the rows before the first automatic row. Adding them now keeps the story's citations
+checkable.
+
+## Addendum 4 (15 Oct 2026): revision at f2192b2f3893839844b35515fc603153e216331a (5bb1c59..f2192b2, text only)
+
+**Verdict: PASS, with no notes left.**
+
+- **Note 1: met.** The Groww check is a command (`margins stress-broker-check`), and O1 adds its one routine line (O1
+  is in Depends; no second prompt copy).
+  - It runs first in each session's daily run, before the 3 pm quote parts, so its single read-only request never
+    overlaps the 14:55 capture.
+  - It is idempotent: once per `applied` row, "nothing to check" otherwise, and a Groww failure exits 1 and retries
+    next session.
+  - It writes only `stress_broker_check.csv`. Criterion 9 tests the second-run case.
+- **Note 2: met.** `da0f769d` adds the owner's two 15 Oct rows ("applied automatically, with an alert"; "NSE circular
+  changes … with one Groww comparison"). Criterion 6 cites them, and the hold-every-fall rule is recorded there.
+- **The judge 176 point (judge G, C2d).** The first run, and any run after a row with an empty `unrounded` (C2d's hand
+  seed of 1.45), is `--full`, so the hand value is never a floor of the measured series. Criterion 8 tests planted
+  files whose true maximum is 1.30: computed 1.30, then `held` against the seed.
+- **The stated consequence: correct and intended.** If the measured whole-margin maximum is below 1.45, the first run
+  holds it, and 1.45 stays until the owner approves the lower value. A `held` row carries the run day as `as_of` with
+  the old factor, so holding never makes C2's 30-day freshness lapse.
+
+## Addendum 5 (15 Oct 2026): ChatGPT review 117 applied, at 096c94f5432b61092ead28a19fec3c3ef48c2d52 (f2192b2..096c94f)
+
+**Verdict: PASS.** One note.
+
+- **The fix is right.** A session count is passed by a same-count archive with a different date missing, and by an
+  archive that ends one session early, which would write a fresh `as_of` on stale data and reset C2's 30-day age.
+  - The run now derives the required dates from A7's calendar (regular and special, not muhurat-only) from 2 Jan
+    2020 to the latest session before the run day, and checks each against the A9 manifest. Any gap is named, no row
+    is written, and one alert goes out. `coverage_through` is recorded.
+  - Criterion 8 tests (a) the swapped missing date, (b) the missing last session (no age reset) and (c) the complete
+    case.
+- **Real-data check (mine, read-only).** NSE publishes an `i1` file for the special sessions the calendar names. HEAD
+  requests to NSE's archive returned 200 for 20 Jan 2024, 2 Mar 2024, 18 May 2024, 1 Feb 2025 and 1 Feb 2026, as well
+  as 2 Jan 2020 and 23 Mar 2020. So requiring every regular and special session is satisfiable. I found no evidence of
+  an NSE gap that would block every run.
+- **Note (text consistency).** Criterion 3 still says "a missing day in a holding is named in the report and that entry
+  is excluded, never filled". Under the new coverage check, a missing day refuses the whole run before any entry is
+  computed, so that exclusion path cannot happen. Change criterion 3 to point at criterion 8, or drop its exclusion
+  clause. If NSE ever turns out not to have published a session's file, that becomes an owner decision then.
