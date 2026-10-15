@@ -162,3 +162,4 @@ ChatGPT review 1). Earlier responses are kept; a follow-up gets a new number.
 - [Response 167: LR1 weekly post-mortem v1: story text (revisions 1-2, judge 167 PASS) and code-round claims (forecasts, weather, data health; AI summary with the exact number check; objections behind the advocate port)](response_167_lr1-weekly-postmortem.md)
 - [Response 174: T2 + T3, the devil's advocate on the daily card: story text and claims (rule outcomes reported, never re-checked; objections via fno/advocate; 3 questions)](response_174_t2-t3-advocate.md)
 - [Response 185: review request to ChatGPT for E8 owner-timing fills (story text, quality rule 9)](response_185_e8-chatgpt-request.md)
+- [Response 186: story RM2, the real-money test record: story text, claims and three owner questions](response_186_rm2-real-money-record.md)

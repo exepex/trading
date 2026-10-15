@@ -93,6 +93,129 @@ asked with options, never answered by the builder; the freeze refusal by plantin
 - The gate's conditions read data that does not exist yet (E8 fills, S6's benchmark, A16 snapshots); missing data
   counts as "not met", never as a pass.
 
-**Depends:** S1 (draft built), S6 (text on main), E8 (story) · **Size:** S · **Status:** story text PASS (judge 171
-add. 1); ChatGPT review 118 changes made; every gate item decided by the owner on 15 Oct 2026 (rows 946bb8e7,
-f0f6d2d8, 793aeb54); final delta with judge A; code waits for the orchestrator's go
+**Depends:** S1 (draft built), S6 (text on main), E8 (story) · **Size:** S · **Status:** done (merged 4777653e; text
+judge 171 addendum 4, code judge 190; every gate item decided by the owner on 15 Oct 2026)
+
+---
+
+## RM2. Real-money test record
+
+**Repository:** trading · **Issue:** #108 · **Lane:** 1 (real money, fills and the gate's pass and stop rules;
+JUDGE.md rule 9: judge, then ChatGPT, then the owner)
+
+**Description:** As the owner, I want every real trade I place by hand recorded against the card it followed, paired
+with the paper trade of the same card, and judged by the frozen gate's pass and stop rules, so that I know at once
+when to stop and, at the end, whether real trading matched paper.
+
+**Context and why:** Design v2 8.4; the frozen gate `research/evaluation/REAL_MONEY_GATE.md` (RM1, items
+`real_test_account` to `real_test_stops`, decided by the owner on 15 Oct 2026); E8's owner-timing fills
+(`docs/stories/E8-owner-timing-fills.md`); T1's card records in Drive only (8.5, owner option b); O1's day (the card
+posts after `quotes_done`, so at 15:15 or later; `docs/stories/O1-daily-run.md` on `story/o1-daily-run`).
+
+**When it runs (a real scenario, not now):** only after a version passes conditions 1-6 of the gate and the owner
+writes the yes of condition 7. Until then RM2's code may exist but records nothing; no test is open.
+
+**What happens on a real day (the only flow RM2 supports):**
+1. The day's card (T1, Slack, at 15:15 or later) carries a TRADE for the version under test.
+2. The owner places the order by hand in Groww, at a time of their choosing (the same session's last minutes or the
+   next session). Before placing it, the owner takes a screenshot of Groww's bid, ask and quantities for each leg and
+   saves it to the Drive folder `real_test/quotes/` (owner, Q12).
+3. After the fill, the owner reports it: the card's date, and per leg the contract, side, units, fill price, order
+   time and the screenshot's file name; then the contract note's total charges for the order.
+4. RM2 writes one record to Drive (`real_test/trades/`), never to the repository, and replies with one line: the
+   record's SHA-256, the execution slippage per leg, and the running test status.
+5. The exit is reported the same way (screenshot, fill, charges). The trade's real net is then known.
+6. After every recorded exit RM2 evaluates the stops; at the end of the test, the pass rule.
+
+**Scope.** In:
+- `RealTestRecord`: the test's header (version, its registration, the owner's yes row, first real entry date) and its
+  trades, kept in Drive behind a `RealTradeStore` port (`DriveRealTrades`; `RawFileStore` rules: written once, the
+  same bytes again change nothing, a correction is a new record naming the one it replaces).
+- `fno realtest record-entry|record-exit|skip|status` (CLI). A Claude session runs it at the owner's word (owner
+  question Q1). It checks the screenshot file exists in Drive and stores its id and SHA-256 with the typed values.
+- **Pairing:** each real trade is paired with Book 1's paper trade of the same card (E8, R = 60), scaled to 1 lot
+  (paper net ÷ paper lots). A card Book 1 did not fill ("missed, ...") gives an unpaired real trade: listed, kept out
+  of the paired mean, counted in the discipline and stop rules.
+- **Valid quote at the owner's order (the gate's term):** the screenshot's bid or ask with its quantity covering the
+  leg's units, taken at most 5 minutes before the order time. The screenshot's time is the one the owner types from the
+  phone's clock in the image (Drive's upload time comes after the order, so it cannot date the image); the file name's
+  timestamp, when the phone writes one, is stored beside it, and a difference of more than a minute is flagged. Fallback (owner, Q12): A16's latest mark **at or
+  before** the order time and at most 5 minutes before it. A mark exactly at the order time is valid (age 0).
+- **Execution slippage** per leg (gate): real fill minus that valid quote (sells: the reverse), worse positive;
+  unknown when there is no valid quote.
+- **Timing gap** per leg, reported only: real fill minus the paired paper fill price before pad.
+- **Discipline:** eligible cards = the version's TRADE cards delivered while the test runs. A card with no real entry
+  recorded by the close of the next session is "skipped, not recorded"; `skip` records a reason earlier. Each skip is
+  listed with its paper net (gate, Q8).
+- **Stops (gate `real_test_stops`), evaluated after every recorded exit:** (a) cumulative real net from the first
+  real entry at or below −Rs 20,000; (a2) cumulative real net Rs 20,000 or more below its highest value since the first
+  real entry; (b) mean execution slippage per unit over the legs of the last 5 real trades above Rs 2 (twice the paper
+  pad of Rs 1), unknown legs left out and listed. A stop posts one alert to #fno-desk (`FNO_SLACK_BOT_TOKEN`) naming
+  the rule and the figure, and the test status becomes "stopped: <rule>" for good.
+- **Pass (gate `real_test_pass`), evaluated once the sample is met** (the later of max(30, the registered number)
+  real trades and 6 months from the first real entry): (1) the paired one-sided 95% lower bound of mean(real − paper)
+  at or above −Rs 500 per trade; (2) the real mean at or above the prediction floor from the version's evidence
+  record; (3) mean execution slippage at most Rs 1.50 per unit, with at most 10% of legs unknown (left out and listed
+  when 10% or fewer); (4) at least 90% of eligible cards placed. Status: "passed" or "failed: <items>", posted once.
+- `status` prints the test status, trades so far, the stop figures against their limits, and the days and trades left.
+
+Out:
+- placing, modifying or cancelling any order; any Groww call (RM2 reads Drive, A16's records and Book 1's paper trades
+  only);
+- the gate's numbers (they are the frozen gate's; RM2 reads them from one constants module, checked against the gate
+  text by a test);
+- parsing Groww contract notes or screenshots (the owner types the values; owner question Q1);
+- scaling beyond 1 lot, automation (gate `scope`).
+
+**Expected design:** `fno/realtest/` with `record.py` (the record and its trade rows), `rules.py` (the gate's
+numbers as named constants), `pairing.py`, `stops.py`, `verdict.py`, `cli.py`; ports `RealTradeStore` and
+`QuoteShots` (Drive), wired only in `fno/realtest/wiring.py`. Public repository: nothing but each record's SHA-256
+and the test status line (no price, strike or rupee figure; 8.5). Every file under 350 lines.
+
+**Note carried from RM1 (judge 171 addendum 4, note 2):** the gate's `fill_honesty` (b) "next A16 snapshot after the
+fill" is the first mark **strictly after** the paper fill time. E8 fills always land on a mark (its due mark), so the
+mark at the fill time is the fill's own snapshot; using it would compare the fill with itself (gap 0). This is
+written into RM2's code and test, since RM2 is the first story that computes it from A16's records; the gate text is
+unchanged.
+
+**Acceptance criteria:**
+1. A recorded entry and exit give the trade's real net from the typed fills and the contract note's charges, its
+   paired paper net at 1 lot, the per-leg execution slippage and timing gap, all to the paisa on a constructed example.
+2. Valid quote: a screenshot 4 minutes before the order is used; 6 minutes before is not, and the A16 fallback
+   applies; an A16 mark exactly at the order time is used (age 0); one with too little size is not; no valid quote
+   gives "unknown", never zero.
+3. Stops: planted sequences trip (a) at exactly −Rs 20,000, (a2) after a Rs 20,000 fall from a +Rs 6,000 high (at
+   −Rs 14,000), and (b) at a 5-trade mean of Rs 2.01; Rs 2.00 does not trip. Each posts one alert once; a rerun posts
+   nothing new.
+4. Pass: a constructed test meets all four items; flipping each item alone gives "failed: <that item>". The sample
+   rule waits for both 30 trades (or the registered number) and 6 months.
+5. Discipline: a card with no entry by the close of the next session is "skipped, not recorded"; 90% exactly passes,
+   89.9% fails.
+6. Strictly-after rule: a paper fill at 10:15 is compared with A16's 10:30 mark, never 10:15.
+7. `rules.py` numbers equal the frozen gate's (a test reads the gate text); changing one fails the test.
+8. Nothing reaches a broker: no Groww or order module is imported under `fno/realtest/` (import test); the public
+   repository receives no price, strike or rupee figure (record-scan rule and a test on the status line).
+9. Drive down: the CLI refuses to record ("not recorded: Drive <reason>"), changes nothing, and says so; a retry
+   records once.
+
+**Test plan:** fakes for Drive, Slack, A16's marks and Book 1's paper trades; constructed tests for each criterion,
+with a broken-code proof per criterion (rule 4); one end-to-end run on a planted 30-trade test.
+
+**Owner questions (through the orchestrator):**
+
+| Q | Question | Options | Recommendation |
+|---|---|---|---|
+| Q1 | How does the owner report a real fill? | (a) tell a Claude session, which runs the CLI; (b) a fixed-format Slack message RM2 reads; (c) upload the Groww contract note for parsing | (a): simplest and checked line by line; (c) later if typing proves error-prone (reasoning only) |
+| Q2 | When does an unreported card count as skipped? | (a) at the close of the next session; (b) at the close of the same session | (a): the owner may place the order next morning, as E8's paper side does (reasoning only) |
+| Q3 | Charges: the contract note's actual total, or C1's model? | (a) actual, C1 shown beside; (b) C1 | (a): the test is about real money (reasoning only) |
+
+**Known limits:**
+- The owner types the fills, the screenshot's values and its time; a typo is caught only by the owner's check of each
+  reply and the file-name time check.
+- A partial fill or a leg filled at another time is recorded as reported; the trade counts once, at its last leg.
+- Real and paper fills are at different times (E8's paper fill is about 10:15 next session), so the paired net holds
+  market moves as well; execution alone is judged from the screenshot (gate, Known limits).
+- A Groww outage that stops the owner's exit is recorded as it happened; no rule waives it.
+
+**Depends:** RM1 (done), E8 (paper fills), T1 (card records), A16 (marks) · **Size:** M · **Status:** story text for the
+judge's story check; code starts only when a version reaches the gate and the orchestrator says go
