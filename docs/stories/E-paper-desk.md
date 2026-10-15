@@ -1178,7 +1178,9 @@ takes its entry counts from the class. S2's `book_board` adds the block. No new 
 2. An E8 miss (`not_opened`, reason `MISSED_PRICE_MOVED`) counts as one opportunity, with its reason, and 0 net; an
    E8 `entry_pending` counts as awaiting fill and is in no denominator; E8's blocked-book `refused` is a gate refusal.
 3. An unknown `not_opened` reason is counted under "other", and the totals still add up: filled + misses =
-   opportunities, with open a part of filled.
+   opportunities, with open a part of filled. "Other" is a visible catch, never a silent bucket: a test lists every
+   known reason code (E4, E4c, E4d and each of E8's constants by name), so a reason added in E8 without a table entry
+   fails that test.
 4. A trade still open is in neither net and is counted as open.
 5. Two strategies in one book: each strategy's block counts its own entries only, and the book's block is their sum.
    Two books are never pooled.
@@ -1203,6 +1205,8 @@ opportunity (criterion 1), an unknown reason dropped (criterion 3), an unwound p
 2. **S1's text: agreed** (its owner, session 0185gR5D, 15 Oct): its own item `execution_opportunities` (added to
    `REQUIRED_ITEMS`; status "proposal, owner decides" until the owner decides), worded and landed by S1's owner, with
    `fno/desk/execution_outcomes.py` named explicitly in `frozen_files` (the freezer reads explicit paths only). The
+   item, its `REQUIRED_ITEMS` entry and the path land as one S1 edit together with this story's code, never before
+   (a listed file that does not exist makes the freeze refuse); the reasons are named by code, not by a count. The
    board change touches `book_board.py` only and is built after S6's follow-ups merge (`story/s6-followups`), or on
    main merged first.
 
