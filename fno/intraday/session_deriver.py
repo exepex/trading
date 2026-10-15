@@ -1,11 +1,11 @@
 """One session's candle-close row (story A16b) from its archived inputs: the 15-minute window copy, the session's
-1-minute copy (when its 25 candles are there), NSE's day and the previous session's 15:30 level. Pure: no fetch, no
-write, so the back-fill and `backfill-verify` give the same row from the same copies.
+1-minute copy (when it has any candle), NSE's day and the previous session's 15:30 level. Pure: no fetch, no write, so
+the back-fill and `backfill-verify` give the same row from the same copies.
 
-Void reasons, all listed: `missing_candles:N` (the 1-minute check is then not made), `no_1m_check:N` (a received
-1-minute answer lacks N needed minutes), `candle_mismatch:<marks>`, `nse_unchecked` (NSE has no file for the day),
-`outside_nse_range`. Any reason but `missing_candles` makes the levels untrusted, so no figure is computed; with
-`missing_candles` only, the parts whose levels exist are computed, as A16 does."""
+Void reasons, all listed: `missing_candles:N` (the present levels are still checked, decision 62), `no_1m_check:N` (a
+received 1-minute answer lacks N minutes that present levels need), `candle_mismatch:<marks>`, `nse_unchecked` (NSE has
+no file for the day), `outside_nse_range`. Any reason but `missing_candles` makes the levels untrusted, so no figure is
+computed; with `missing_candles` only, the parts whose levels exist are computed, as A16 does."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ from .nse_days import NseReading
 from .nse_range import check_range
 from .realised_vol import IntradayRealisedVol
 from .session_rv import OK, VOID, figure
-from .slots import MARKS_PER_SESSION, marks
+from .slots import marks
 
 SOURCE = "groww_candles"
 CHECKED, UNCHECKED = "checked", "unchecked"
@@ -35,7 +35,7 @@ TRUSTED_LAST_LEVEL = ("missing_candles",)  # a void session whose 15:30 level ma
 class SessionInputs:
     session: date
     window: ArchivedCopy
-    minutes: ArchivedCopy | None  # None when the session lacks candles (the check is not made)
+    minutes: ArchivedCopy | None  # None when the session has no candle at all (nothing to check)
     nse: NseReading
     previous_close: float | None
 
@@ -53,8 +53,9 @@ class SessionDeriver:
         minutes = (
             check_minutes(given.session, found.levels, parse_candles(given.minutes.rows)) if given.minutes else None
         )
-        if not found.missing and minutes is None:  # never a full session without its check (no silent fall-back)
-            reasons.append(f"no_1m_check:{MARKS_PER_SESSION}")
+        present = sum(level is not None for level in found.levels)
+        if present and minutes is None:  # never a present level without its check (no silent fall-back)
+            reasons.append(f"no_1m_check:{present}")
         if minutes and minutes.missing:
             reasons.append(f"no_1m_check:{len(minutes.missing)}")
         if minutes and minutes.mismatched:

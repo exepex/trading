@@ -141,7 +141,7 @@ class CandleBackfill:
             report.deferred[day] = why
             return
         minutes = None
-        if not self.deriver.candles(day, window).missing:
+        if self.deriver.candles(day, window).used:  # every present level is checked (decisions 55 and 62)
             minutes = self._fetch(lambda: self.source.minute_candles(day), f"1-minute {day}", [day], report)
             if minutes is None:
                 return

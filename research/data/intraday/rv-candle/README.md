@@ -34,14 +34,14 @@ A16's columns (`rv/` beside this folder, never mixed with it), with `measure` = 
 - `copy_15m`, `copy_1m`: the Drive copies the row was computed from.
 
 The 26 levels are the 09:15 candle's open and the closes of the 25 candles starting 09:15 to 15:15. Each is checked
-against the session's 1-minute candles (within 0.05; decision 55) and against NSE's official open, high and low.
+against the session's 1-minute candles (within 0.05; decisions 55 and 62) and against NSE's official open, high and low.
 
 ## Void reasons
 
 | Reason | Meaning | Next session's overnight part |
 |---|---|---|
-| `missing_candles:N` | N of the 25 candles absent (short, halted or Groww's holes) | computed if the 15:30 candle exists |
-| `no_1m_check:N` | the 1-minute answer lacks N needed minutes | void (levels untrusted) |
+| `missing_candles:N` | N of the 25 candles absent (short, halted or Groww's holes); the present levels are still checked against 1-minute candles (decision 62) | computed if the 15:30 candle exists and passed its check |
+| `no_1m_check:N` | the 1-minute answer lacks N minutes that present levels need | void (levels untrusted) |
 | `candle_mismatch:<marks>` | a level more than 0.05 from the 1-minute value | void |
 | `outside_nse_range` | a level or a used candle's high or low outside NSE's range by more than 0.05 | void |
 | `nse_unchecked` | NSE has no index-close file for the day | void |

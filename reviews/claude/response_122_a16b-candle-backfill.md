@@ -37,7 +37,7 @@ New modules in `fno/intraday/`:
 | `dry_run.py` | the dry-run folder rule |
 | `backfill_wiring.py` | composition root, added to CLAUDE.md |
 
-Tests are in `tests/intraday_backfill/`: 83 tests. The largest file is `backfill.py` at 200 lines.
+Tests are in `tests/intraday_backfill/`: 86 tests. The largest file is `backfill.py` at 200 lines.
 
 ## A16 files changed: more than the story said (stated plainly)
 
@@ -105,7 +105,7 @@ exit 0
 | 11 | A run writes only `rv-candle/` under the intraday folder; A16's `wiring.py` is unchanged | `test_the_run_writes_only_its_own_folder_...`; diff. **Strong** |
 | 12 | Interfaces: `IntradayCandleSource`, `NseDays`, `IntradayRealisedVol`, wired only in `backfill_wiring.py`. **`CandleArchive` has no interface of its own** (see below) | code; `test_safety.py`. **Reasoning** for the archive choice |
 | 13 | Exit 0 only when every requested session has a row. A dry-run folder inside the repository is refused. An unexpected error prints its class name only. The default end date is today only from 21:00 IST | `test_cli.py`. **Strong** |
-| 15 | Gates: `pytest -q` 4737 passed; `ruff check` and `ruff format --check` clean; `check_imports` clean; code size passes | run on the merged tree before pushing. **Strong** |
+| 15 | Gates: `pytest -q` 4740 passed; `ruff check` and `ruff format --check` clean; `check_imports` clean; code size passes | run on the merged tree before pushing. **Strong** |
 
 **Criterion 12, the archive (open to the judge).** `CandleArchive` is concrete. What it stores into, Drive, is behind
 `RawFileStore`, so swapping Drive is one class plus one line in the root. CLAUDE.md says "never add a pattern without a
@@ -115,8 +115,8 @@ literally, an archive interface is 10 lines.
 
 ## Mutation proofs (rule 4)
 
-I planted 50 mutations, one at a time, against `tests/intraday_backfill`:
-- **49 caught.**
+I planted 54 mutations, one at a time, against `tests/intraday_backfill`:
+- **53 caught** (50 in the first rounds, plus 4 for decision 62 below, all caught; 1 of the 50 is the equivalent one).
 - **1 equivalent:** reading the previous close from the earliest copy instead of the previous row's copy. Every row is
   derived from the earliest copy covering its day, so the two are always the same copy; verify independently pins the
   row's own copy.
@@ -173,7 +173,8 @@ The first pass found four test gaps; tests were added for each and all four are 
 
   Test: `test_nse_s_404_defers_until_the_file_is_final_then_voids`.
 - **S1, accepted.** A full session with no 1-minute copy is now void with `no_1m_check:26`, never ok.
-- **S2, NOT changed. Open question for the orchestrator.** A `missing_candles` session (for example 23 of 25 candles)
+- **S2, decided by the orchestrator after this report (decision 62, option b); see the last section.** As first
+  reported: A `missing_candles` session (for example 23 of 25 candles)
   has no 1-minute check, by the passed story's rule. Yet its present levels give an overnight figure and its 15:30
   level starts the next overnight return.
   - What already protects it: the NSE range check still applies to those levels (within 0.05 of NSE's range).
@@ -225,3 +226,59 @@ The first pass found four test gaps; tests were added for each and all four are 
 3. Commit `research/data/intraday/rv-candle/` and `research/data/manifests/groww-candles/` together.
 4. Add here, as counts: windows and calls; sessions, ok, void by reason, void share; backfilled and live counts;
    pre-open gaps above 0.05; the verify result. Never a level.
+
+## After the first report: decision 62 and Groww's 1-minute history
+
+**Decision 62 (orchestrator, option b), built.** A session with some but not all of its 25 candles now gets the
+1-minute call too. Each present level is checked at its mark; an absent level needs no minute. Any failed present mark
+makes the session's levels untrusted: no figure, and the next overnight part is void. A session with no candle makes
+no call. The story has one added line with the tests (`docs/stories/A16b-candle-backfill.md`, "Incomplete sessions
+too"), plus the matching `nse_open_gap` sentence.
+
+New tests:
+- `test_a_missing_middle_candle_keeps_the_checked_15_30_level_...`: the call is made, the absent mark's minute is not
+  needed, and the next session is ok;
+- `test_an_incomplete_session_whose_present_level_fails_its_check_is_untrusted`;
+- `test_an_incomplete_session_whose_1_minute_call_fails_is_deferred`;
+- `test_an_incomplete_session_without_its_1_minute_copy_is_never_trusted`.
+
+Mutations, all 4 caught:
+- the absent level still needs its minute;
+- the incomplete session is not checked;
+- the incomplete session is trusted without its copy;
+- the empty session is called.
+
+**Where Groww's 1-minute history begins (judge D's question): measured, strong.** I ran a read-only binary search over
+NSE's regular sessions from 1 Jan 2019 to 31 Mar 2020 (10 calls, counts only):
+- The last session without 1-minute candles is **31 Dec 2019**; the first with them is **1 Jan 2020** (377 candles).
+  This matches the 15-minute history's start.
+- Every session from 11 to 31 Dec 2019 has 0; every session from 1 to 22 Jan 2020 has 377-379.
+- A sample of every 15th session after it found 5 of 5 with candles.
+- Judge D's 12 Mar 2019 finding fits this: that is before the start.
+
+**2020 sessions that lack it: measured, strong.** A live read-only dry run of all of 2020 on this code took 7 min
+40 s, exit 0:
+
+```
+window 2020-01-01..2020-03-30: 1571 of 1575 session candles (63 sessions)
+window 2020-03-31..2020-06-28: 1450 of 1450 session candles (58 sessions)
+window 2020-06-29..2020-09-26: 1625 of 1625 session candles (65 sessions)
+window 2020-09-28..2020-12-26: 1525 of 1525 session candles (61 sessions)
+window 2020-12-28..2020-12-31: 100 of 100 session candles (4 sessions)
+sessions 251: 251 written now, 0 held before, 0 deferred
+void 5 of 251 (2.0%); by reason: {'missing_candles': 2, 'no_1m_check': 2, 'no_previous_close': 3, 'outside_nse_range': 2}
+provenance: {'backfilled': 251}
+pre-open gap above 0.05 on 2 of 251 sessions with a 1-minute answer: 2020-01-20, 2020-09-18
+void missing_candles: 2020-03-13, 2020-03-23
+void no_1m_check: 2020-03-13, 2020-03-23
+void no_previous_close: 2020-01-01, 2020-03-16, 2020-03-24
+void outside_nse_range: 2020-03-13, 2020-03-23
+```
+
+- **Every 2020 session had a 1-minute answer: 251 of 251.**
+- `no_1m_check` hit only the two circuit-breaker days, and only under decision 62 (13 Mar lacks 2 needed minutes, 23
+  Mar lacks 1). Both were already void for `outside_nse_range`, so **no 2020 session is voided by missing 1-minute
+  history**.
+- The 2020 void share is 2.0%, under the 5% flag; Q1 alone was 7.8%.
+- Verify over the dry folder: "251 rows; every row equals its copies".
+

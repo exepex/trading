@@ -136,3 +136,14 @@ def test_a_missing_minute_and_a_mismatch_are_both_named(tmp_path):
                            ArchivedCopy("1m", day, day, "m", "b" * 64, fetched, minutes),
                            NseReading(nse_day(day, shifted), "c" * 64), 20000.0)  # fmt: skip
     assert build(tmp_path, None, None).deriver.derive(inputs)["void_reason"] == "no_1m_check:1; candle_mismatch:10:30"
+
+
+def test_an_incomplete_session_without_its_1_minute_copy_is_never_trusted(tmp_path):
+    day = date(2026, 10, 14)
+    values = levels(day)
+    rows = fifteen_minute_rows(day, values, drop=(7,))
+    window = ArchivedCopy("15m", day, day, "w", "a" * 64, datetime(2026, 10, 30, tzinfo=IST), rows)
+    row = build(tmp_path, None, None).deriver.derive(
+        SessionInputs(day, window, None, NseReading(nse_day(day, values), "c" * 64), 20000.0)
+    )
+    assert (row["void_reason"], row["rv_overnight"]) == ("missing_candles:1; no_1m_check:25", "")

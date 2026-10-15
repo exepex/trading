@@ -1,6 +1,7 @@
-"""Each session's 26 levels checked against its own 1-minute candles (story A16b, orchestrator's decision 55): the
-09:15 open against the 09:15 minute's open, each close against the close of the minute ending at the mark. Also gives
-the last pre-open 1-minute candle's close, NSE's official open by step 0 (114 of 114 sessions)."""
+"""Each session's present levels checked against its own 1-minute candles (story A16b, orchestrator's decisions 55 and
+62; an absent level needs no minute): the 09:15 open against the 09:15 minute's open, each close against the close of
+the minute ending at the mark. Also gives the last pre-open 1-minute candle's close, NSE's official open by step 0 (114
+of 114 sessions)."""
 
 from __future__ import annotations
 
@@ -31,13 +32,15 @@ def check_minutes(day: date, levels: tuple[float | None, ...], minutes: list[Can
     session_marks = marks(day)
     mismatched, missing = [], []
     for k, (mark, level) in enumerate(zip(session_marks, levels, strict=True)):
+        if level is None:  # an absent level needs no minute (decision 62: only present marks are checked)
+            continue
         start = mark if k == 0 else mark - MINUTE
         candle = by_start.get(start)
         if candle is None:
             missing.append(label(start))
             continue
         value = candle.open if k == 0 else candle.close
-        if level is not None and beyond(level - value):
+        if beyond(level - value):
             mismatched.append(label(mark))
     pre_open = [c for start, c in sorted(by_start.items()) if start < session_marks[0]]
     return MinuteCheck(tuple(mismatched), tuple(missing), pre_open[-1].close if pre_open else None)

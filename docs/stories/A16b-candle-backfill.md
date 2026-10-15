@@ -146,6 +146,11 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
   - A session whose 1-minute answer was received and archived but is empty or lacks a needed minute (a Groww cap or
     hole) gets a **void row** `no_1m_check` (permanent, below), counted and listed apart by reason. Its 15-minute
     levels are never used without the check: no silent fall-back.
+  - **Incomplete sessions too (orchestrator's decision 62, after the code round):** a session with some but not all
+    of its 25 candles gets the same call; each present level is checked at its mark (an absent level needs no
+    minute). Any failed present mark makes that session's levels untrusted (no figure; the next overnight part void).
+    A session with no candle makes no call. Tests: `test_a_missing_middle_candle_keeps_the_checked_15_30_level_...`,
+    `test_an_incomplete_session_whose_present_level_fails_its_check_is_untrusted`.
   - Rate: one call at a time, at least 0.5 s between call starts (at most 2 a second, under the 4-5 a second A16
     measured as safe). At about 0.8 s a call, the roughly 1,680 sessions take about 23 minutes, once. Three Groww
     failures in a row stop the run, naming them, rather than hammer a refusing service.
@@ -176,9 +181,8 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
   - **reported, not void:** the pre-open check (`|the last pre-open 1-minute candle's close - NSE open| > 0.05`, read
     from the session's 1-minute answer; expected equal, step 0) and
     the range gap (`NSE high - max candle high`, `min candle low - NSE low`), in points. These stay in the row
-    (`nse_open_gap`, `nse_high_gap`, `nse_low_gap`): differences of NSE's figures, never a level. A session voided
-    before its 1-minute check (`missing_candles`) has no 1-minute answer, so its `nse_open_gap` is blank (judge 122
-    addendum 3);
+    (`nse_open_gap`, `nse_high_gap`, `nse_low_gap`): differences of NSE's figures, never a level. A session with
+    no candle at all has no 1-minute answer, so its `nse_open_gap` is blank (judge 122 addendum 3; decision 62);
   - NSE's file definitively absent (Drive has no copy and NSE answers 404): `nse_check = unchecked`, and the session
     is **void** (`nse_unchecked`, permanent). Its levels cannot be shown to be inside NSE's range. Reasoning only: an
     unchecked session is safer out than in; the void share shows the cost. A failed read of the file is transient

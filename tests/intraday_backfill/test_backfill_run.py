@@ -72,11 +72,33 @@ def test_a_session_without_candles_is_a_void_row_and_the_next_has_a_void_overnig
     assert report.complete
 
 
-def test_a_missing_middle_candle_keeps_the_15_30_level_for_the_next_session(tmp_path):
+def test_a_missing_middle_candle_keeps_the_checked_15_30_level_for_the_next_session(tmp_path):
+    values = levels(WEEK[1])
+    rows = fifteen_minute_rows(WEEK[1], values, drop=(7,))  # the 11:00 candle: no 11:15 level
+    no_1114 = minute_rows(WEEK[1], values, values[0] - 3.0, skip=("11:14",))  # the absent level needs no minute
+    backfill, _, groww = run(tmp_path, WEEK, WEEK[3], overrides={("15m", WEEK[1]): rows, ("1m", WEEK[1]): no_1114})
+    assert (ONE_MINUTE, WEEK[1], WEEK[1]) in groww.calls  # decision 62: its present levels are checked too
+    held = backfill.table.row(WEEK[1])
+    assert held["void_reason"] == "missing_candles:1" and held["rv_overnight"] and not held["rv_intraday"]
+    assert backfill.table.row(WEEK[2])["status"] == "ok"  # its overnight part starts from the checked 15:30 level
+
+
+def test_an_incomplete_session_whose_present_level_fails_its_check_is_untrusted(tmp_path):
+    values = levels(WEEK[1])
+    shifted = [*values[:5], values[5] + 0.06, *values[6:]]  # the 10:30 level, more than a tick off its minute
+    rows = fifteen_minute_rows(WEEK[1], shifted, drop=(7,))
+    minutes = minute_rows(WEEK[1], values, values[0] - 3.0)
+    backfill, report, _ = run(tmp_path, WEEK, WEEK[3], overrides={("15m", WEEK[1]): rows, ("1m", WEEK[1]): minutes})
+    held = backfill.table.row(WEEK[1])
+    assert held["void_reason"] == "missing_candles:1; candle_mismatch:10:30" and held["rv_overnight"] == ""
+    assert backfill.table.row(WEEK[2])["void_reason"] == "no_previous_close" and report.complete
+
+
+def test_an_incomplete_session_whose_1_minute_call_fails_is_deferred(tmp_path):
     rows = fifteen_minute_rows(WEEK[1], levels(WEEK[1]), drop=(7,))
-    backfill, _, _ = run(tmp_path, WEEK, WEEK[3], overrides={("15m", WEEK[1]): rows})
-    assert backfill.table.row(WEEK[1])["void_reason"] == "missing_candles:1"
-    assert backfill.table.row(WEEK[2])["status"] == "ok"  # its overnight part starts from the trusted 15:30 level
+    backfill, report, _ = run(tmp_path, WEEK, WEEK[3], failing={("minutes", WEEK[1])},
+                              overrides={("15m", WEEK[1]): rows})  # fmt: skip
+    assert backfill.table.row(WEEK[1]) is None and "GrowwAPIException" in report.deferred[WEEK[1]]
 
 
 # Transient or permanent (judge 122 addendum 2): four cases.
