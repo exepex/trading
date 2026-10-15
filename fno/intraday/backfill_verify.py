@@ -7,6 +7,7 @@ from __future__ import annotations
 from datetime import date
 
 from .backfill import STORE_FAILURES, CandleBackfill
+from .candle_archive import CopyDamaged
 from .nse_days import NseReadFailed
 from .session_deriver import SessionInputs
 from .session_rv import previous_recorded_session
@@ -31,9 +32,8 @@ class CandleRowVerifier:
             try:
                 found += self._check(day, row, rows, first)
             except (*STORE_FAILURES, NseReadFailed) as failed:
-                found.append(
-                    f"{day}: not verified: {failed if isinstance(failed, NseReadFailed) else type(failed).__name__}"
-                )
+                named = isinstance(failed, (NseReadFailed, CopyDamaged))  # our own path and reason, never a secret
+                found.append(f"{day}: not verified: {failed if named else type(failed).__name__}")
         return found
 
     def _check(self, day: date, row: dict, rows: dict, first: date | None) -> list[str]:

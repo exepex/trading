@@ -19,7 +19,7 @@ from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
 from ..storage.raw_store import RawFileConflict, StoredCopyDamaged
 from .candle_archive import ArchivedCopy, CandleArchive, CopyDamaged
-from .candle_levels import CANDLES_PER_SESSION, CandleParse
+from .candle_levels import CANDLES_PER_SESSION, CandleParse, parse_candles
 from .candle_rv_table import CandleRvTable
 from .candle_source import FIFTEEN_MINUTES, CandleCallFailed, IntradayCandleSource
 from .deferral_log import DeferralLog
@@ -149,9 +149,8 @@ class CandleBackfill:
         try:
             answer = call()
             self._failures = 0
-            copy = self.archive.save(answer)
-            self.deriver.candles(days[0], copy)  # an unreadable candle row is transient too
-            return copy
+            parse_candles(answer.rows)  # an unreadable answer is transient too, and is not archived (criterion 1)
+            return self.archive.save(answer)
         except CandleCallFailed as failed:
             reason = str(failed)
             self._failures += 1

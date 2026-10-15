@@ -15,6 +15,12 @@ row keeps the result from being "complete".
 New files get their row when they are saved (`FingerprintingStore`, `fno/storage/manifest_folder.py`). A row is never
 edited or deleted by hand; a different SHA-256 for a day that has a row is refused by the code.
 
+## Groww candles (story A16b)
+
+`groww-candles/nifty.csv` lists every Groww NIFTY 50 candle answer kept in Drive (`raw/groww/indices/...`), one row per
+answer (`kind,start,end,path,sha256,size,requested_at,fetched_at`); content-addressed names, so a later answer with
+other bytes sits beside the first. See `research/data/intraday/rv-candle/README.md`.
+
 ## Revisions (story A11)
 
 `revisions/<dataset>.csv` lists the later NSE versions of archived files, kept in Drive's `revisions` area beside

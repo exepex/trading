@@ -30,4 +30,14 @@ def report_lines(report: BackfillReport, rows: list[dict], deferral_counts: Coun
         f"pre-open gap above 0.05 on {len(pre_open)} of {len(checked)} sessions with a 1-minute answer"
         + (f": {', '.join(pre_open)}" if pre_open else ""),
     ]
+    lines += _void_sessions(void)
     return lines + ([f"STOPPED: {report.stopped}"] if report.stopped else [])
+
+
+def _void_sessions(void: list[dict]) -> list[str]:
+    """Every void session by date under each of its reasons (a short or halted session is listed, never excluded)."""
+    by_reason: dict[str, list[str]] = {}
+    for row in void:
+        for reason in filter(None, row["void_reason"].split("; ")):
+            by_reason.setdefault(reason.split(":")[0], []).append(row["session"])
+    return [f"void {reason}: {', '.join(sorted(days))}" for reason, days in sorted(by_reason.items())]

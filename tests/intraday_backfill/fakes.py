@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta
 
 from fno.global_cues.cue_calendars import NseSessionCalendar
 from fno.intraday.backfill import CandleBackfill
+from fno.intraday.backfill_wiring import DEFERRALS
 from fno.intraday.candle_archive import CandleArchive
 from fno.intraday.candle_rv_table import CandleRvTable
 from fno.intraday.candle_source import FIFTEEN_MINUTES, ONE_MINUTE, CandleAnswer, CandleCallFailed, IntradayCandleSource
@@ -136,9 +137,10 @@ def session_data(days: list[date], overrides: dict | None = None):
 def build(tmp_path, groww: FakeGroww, nse: FakeNse, store=None, start: date = START) -> CandleBackfill:
     archive = CandleArchive(store or AreaStore(LocalFolderStore(tmp_path / "drive"), "raw"), tmp_path / "manifest.csv")
     deriver = SessionDeriver(CandleCloseRv15m(), _next_session)
+    repo = tmp_path / "repo"
     return CandleBackfill(
-        groww, archive, nse, CandleRvTable(tmp_path / "repo"), DeferralLog(tmp_path / "repo" / "deferred.csv"),
-        deriver, CALENDAR, lambda: FETCHED, start,
+        groww, archive, nse, CandleRvTable(repo), DeferralLog(repo / DEFERRALS), deriver, CALENDAR, lambda: FETCHED,
+        start,
     )  # fmt: skip
 
 
