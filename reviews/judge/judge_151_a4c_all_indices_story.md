@@ -80,3 +80,34 @@ the other three indices give about 586 quotes and about 4 minutes.
   step, and add the first-live-day line.
 - **Minor (open).** The one line saying NIFTY's retries to 15:10 can squeeze the index window is still missing. The
   shorter run (about 4 minutes) makes it less likely to bite.
+
+## Addendum 2 (15 Oct 2026): revision 3 at e10c811123e8ab3eee49d562145ece5c2b34360c (db4a9f7..e10c811: story text and CLAUDE.md's 3 pm section)
+
+**Verdict: PASS.** The should-fix and the minor are met. One note.
+
+- **Should-fix: met.**
+  - The routine order now matches the handover session's live routine. NIFTY (Groww) and NSE start together;
+    `record-indices` starts right after NIFTY's push, alongside NSE if it is still running.
+  - Each part commits and pushes only its own files, one commit at a time, NIFTY always first. Nothing does
+    `git add research/data/quotes/` as a whole.
+  - `CLAUDE.md` steps 2, 3 and 3b say this. On main, the 3 pm section did not mention the NSE step at all; now it does,
+    with the owner's YES cited.
+  - New criterion 8 (first live day) asks for NIFTY's, NSE's and the indices' sidecars and markers, each in its own
+    commit, NIFTY pushed first.
+- **The paths, checked against the real tree and in a scratch repository with A4b's `.gitignore` line.**
+  - The NSE recorder writes under `research/data/quotes/nse/` (e.g. `nse/derivatives/quote-snapshots/2026/10/
+    nifty_20261015.canonical` on main).
+  - `git add ':(glob)research/data/quotes/groww/**/nifty_*'` staged exactly NIFTY's `.meta.json` and `.canonical`,
+    exit 0. It did not stage `banknifty_*` (the glob anchors at the file-name start) and did not stage the ignored
+    `.csv`.
+  - So each part's paths take only its own sidecars and markers. Criterion 6's `git add --dry-run` test keeps this.
+- **Minor: met.** The text now says NIFTY's retries to 15:10 can leave the indices "none" on such a day.
+- **Gates.** A trial merge with `origin/main` has no conflict. The tests that read `CLAUDE.md` plus code size: 1,155
+  passed.
+- **Note (not a finding).** On a day when a part writes nothing, its glob `git add` matches no file and git prints
+  "pathspec did not match". The routine then simply has nothing to commit. That is the same for NIFTY's existing
+  step, so no rule is needed.
+- **Coordination.** A4c now writes the NSE step into `CLAUDE.md`, which the handover session's register row also owns.
+  The wording follows that session's own log entry ("runs the Groww and NSE recorders in parallel … pushes Groww
+  first, then NSE"), so it records, rather than contradicts, the live routine. The owner copies steps 2-3b into the
+  routine prompt.
