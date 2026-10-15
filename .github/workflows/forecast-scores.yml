@@ -1,4 +1,5 @@
-# Story G4: score the forecasts every evening and post a plain-words summary to #fno-desk every Monday. A plain
+# Story G4: score the forecasts every evening (its weekly plain-words summary is posted by LR1's Saturday post-mortem,
+# owner 15 Oct 2026: one weekly report; `forecast-scores summary` stays for a manual look). A plain
 # scheduled job (no AI; owner principle, story O6); it never places orders. Outcomes use only the official closes
 # through the as-of day (story O6's index-closes job appends them at 21:11 IST), so it runs after that job.
 # Scores are research records: research/forecasts/scores/<as-of>.json (schema forecast_scores/v1), labelled secondary
@@ -8,13 +9,7 @@ name: forecast-scores
 on:
   schedule:
     - cron: "11 17 * * *" # 22:41 IST every day: score and commit the report
-    - cron: "41 3 * * 1" # 09:11 IST on Mondays: post the weekly summary of the latest report
   workflow_dispatch:
-    inputs:
-      summary:
-        description: "Also post the summary to #fno-desk"
-        type: boolean
-        default: false
 
 permissions:
   contents: write # commits the day's report
@@ -33,7 +28,6 @@ jobs:
       FNO_GDRIVE_OAUTH_CLIENT_SECRET: ${{ secrets.FNO_GDRIVE_OAUTH_CLIENT_SECRET }}
       FNO_GDRIVE_OAUTH_REFRESH_TOKEN: ${{ secrets.FNO_GDRIVE_OAUTH_REFRESH_TOKEN }}
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
-      WEEKLY: ${{ github.event.schedule == '41 3 * * 1' || inputs.summary == true }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,19 +44,14 @@ jobs:
           git config user.name "omenix-forecast-scores"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Score every resolvable forecast (refused unless the protocol freezes hold)
-        if: ${{ env.WEEKLY != 'true' || github.event_name == 'workflow_dispatch' }}
         run: |
           set -o pipefail
           python -m fno forecast-scores run | tee scores.log
       - name: Commit the report
-        if: ${{ env.WEEKLY != 'true' || github.event_name == 'workflow_dispatch' }}
         run: |
           git add research/forecasts/scores
           git diff --cached --quiet || git commit -m "G4 Actions: forecast scores $(TZ=Asia/Kolkata date +%F)"
           git pull --no-rebase --no-edit origin main && git push origin HEAD:main
-      - name: Weekly plain-words summary to #fno-desk
-        if: ${{ env.WEEKLY == 'true' }}
-        run: python -m fno forecast-scores summary --send
       - name: Alert #fno-desk when the job itself failed
         if: ${{ failure() }}
         run: |

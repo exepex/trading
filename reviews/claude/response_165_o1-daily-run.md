@@ -133,3 +133,12 @@ Said plainly:
   - the order and failure tests now cover `margin_check`;
   - `test_the_wiring_gives_every_o1_step_and_a14c_s_check_runs_first_writing_one_file` checks that the composition
     root gives a step for every name in the tuple.
+
+### Size split (merge of `main`, 15 Oct)
+
+Merging LR1 put `fno/constants.py` at 351 lines, over the 350 limit. Following the agreed rule (split, never squeeze),
+the daily-operations block moved out whole into `fno/constants_operations.py`, with an explicit `__all__`:
+E3's decisions step name, `DESK_RUN_STEPS`, `DAILY_RUN_STEPS`, O1's step statuses and O8's health statuses.
+`fno/constants.py` imports it with one `import *` line (its `__all__` lists the names), so every
+`from fno.constants import ...` in the 25 files that use these names keeps working unchanged. `fno/constants.py` is
+now at 341 lines.
