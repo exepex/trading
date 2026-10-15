@@ -737,7 +737,7 @@ changes by exactly the entry move `C`. The families mirror each other (STR1: SF 
 with every leg reversed), so the **mean** of `C` for a seller is minus the buyer's: it is mostly price drift, chiefly
 the overnight time decay (theta), which a later seller also stops paying for. So the mean is never read as "the cost of
 waiting". The study leads with the **size** of the move (the spread of `C` and of `|C|`, the bad-side tail) and with
-the **flip share** (below), splits 1-night from 3-night (weekend and holiday) gaps, and shows the theta part
+the **flip share** (below), splits 1-night from 3-night (weekend and holiday) gaps, and shows the time part
 separately. It cannot measure what waiting costs in the decision itself (an older signal): that is out of scope and
 said on the report.
 
@@ -795,7 +795,8 @@ Out, each with its reason (gap list, judge 151 B3):
   - the time part: the Black-76 value change from the decision time to the fill time with only time moving (forward
     and IV held at the decision; forward = the same-expiry NIFTY future's 15-minute close at the decision time,
     fetched read-only with the legs; IV per leg from that forward and the leg's decision price,
-    `fno/research_engine/implied_vol.py`; time in calendar minutes / (365 x 1440)), shown beside the mean of `C`;
+    `fno/research_engine/implied_vol.py`; time in calendar minutes / (365 x 1440)), shown beside the mean of `C`; a
+    leg whose IV cannot be solved makes that structure's time part "not computed", counted, never filled in;
   - splits: 1-night vs 3-or-more-night gaps; gap band from the same 15:00-to-fill window (below 0.5%, 0.5-1%, 1% and
     more); India VIX at the decision day's open (known at decision time; below 13, 13-18, above 18). A cell with fewer
     than 30 days prints "too few days", never a number.
@@ -803,7 +804,7 @@ Out, each with its reason (gap list, judge 151 B3):
   `|C|` and the 14:00 decision's R = 60 bad-side `|C|`, with its block-bootstrap interval. What the 14:00 path gives up
   (the last hour's information) is stated as not measured.
 - **Flip share ("win at both", owner row):** for each structure, held to expiry (settled at intrinsic value against
-  NSE's final settlement price, E7), net of C1 charges (the same at both fills), with a P&L of exactly zero counted as
+  NSE's final settlement price, E7), net of C1 charges, each fill charged at its own price (STT and exchange charges are shares of premium), with a P&L of exactly zero counted as
   not a win. Printed per family and decision time at R = 60: **bad flips** (wins at the decision price that lose at
   E8's price) as a share of those wins, and **good flips** (losses that become wins) as a share of those losses. The
   report prints only these two shares, never a win rate or a mean P&L, so no strategy result leaks out. All entries
@@ -847,7 +848,7 @@ Out, each with its reason (gap list, judge 151 B3):
 6. The bootstrap uses the protocol's seed, B and block lengths; the flip-share interval resamples whole expiries. The
    same run twice gives the same intervals.
 7. The report prints, per family, decision time and R, every figure listed in the design, the paired 14:00-vs-15:00
-   difference, the flip share, the theta part, the splits, the exclusion counts, the spread caveat and the window,
+   difference, the flip share, the time part, the splits, the exclusion counts, the spread caveat and the window,
    each labelled exploratory measurement, and the "not measured" lines (signal decay, fill-time spread).
 8. The time part equals a hand Black-76 value for one fixture leg (forward, strike, IV, minutes to fill given); the
    gap, VIX, nights and sessions-to-expiry splits put fixture days in the right cells; a cell under 30 days prints

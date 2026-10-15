@@ -78,3 +78,30 @@ maximum loss).
 ## Re-judge needs
 
 N1-N3 fixed in the text; the minors fixed or answered; a new SHA.
+
+---
+
+## Addendum 1: revision 3 at 3a833565 (narrow re-check of N1-N3 and the five minors)
+
+**Verdict: PASS (0 blocking, 0 should fix, 3 minor).** The builder may fold the minors into the protocol; they need no
+new re-check.
+
+| Finding | Fix in revision 3 (`docs/stories/E-paper-desk.md`) | Result |
+|---|---|---|
+| N1 flip share | 805-811: expiry is the unit (about 33) and the interval resamples whole expiries; bad flips as a share of wins and good flips as a share of losses, printed apart; net of C1 charges; zero counts as not a win; only the two shares are printed. Criteria 6 and 9 cover these | Fixed (minor A1) |
+| N2 time part | 795-798: only time moves, from decision to fill; forward = same-expiry future's 15-minute close, fetched read-only; IV per leg; calendar minutes / (365 x 1440); hand Black-76 test (criterion 8). Fits every path and gap | Fixed (minor A2) |
+| N3 risk scale | 787-790: decision debit for LC and LP (their maximum loss), width for the rest; thresholds and the live tolerance (832) use it | Fixed |
+| M1 data spend | 823-827: `registered`, then `spent`; NSE final settlement; 2019-23 `fresh` | Fixed |
+| M2 probe | 771-773: an unanswered month is investigated, its cause recorded before the freeze | Fixed |
+| M3 terms and cells | 786 bad side means C > 0; fewer than 30 days prints "too few days" (criterion 8) | Fixed |
+| M4 E4 baseline | 748-749: labelled on the R = 5 and R = 60 rows | Fixed |
+| M5 tests | Criterion 8 | Fixed |
+
+**New minor findings**
+
+- **A1.** Line 806 says C1 charges are "the same at both fills". They are not: STT (`stt_sell_pct` 0.15) and the exchange
+  charge (`exchange_txn_pct`) are percentages of premium (`config.yaml:25-27`, `fno/costs`). *Fix:* charge each fill at
+  its own price. The amounts are small, but they can flip trades whose P&L is near zero.
+- **A2.** Line 797 has no rule for a leg whose IV cannot be solved (`implied_vol` returns None, for example a price
+  below intrinsic value). *Fix:* that structure's time part is "not computed" and counted, never filled in.
+- **A3.** Lines 740 and 850 still say "theta part", but the design now says "time part". Use one name.

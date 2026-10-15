@@ -33,3 +33,9 @@ revision 2 in `docs/stories/E-paper-desk.md` (E8a).
 | Minor: "bad side" undefined; tiny cells | True | Accept: bad side means C > 0; fewer than 30 days prints "too few days" |
 | Minor: E4 baseline duplicates R fills | True | Accept: labelled on those rows, not computed apart |
 | Minor: splits and time part untested | True | Accept: criterion 8 |
+
+## Judge 152 addendum 1 (PASS, 3 minor): folded in
+
+- A1 accepted: STT and exchange charges are shares of premium (`config.yaml:25-27`), so each fill is charged at its own price.
+- A2 accepted: a leg whose IV cannot be solved makes the time part "not computed", counted.
+- A3 accepted: one name, "time part".
