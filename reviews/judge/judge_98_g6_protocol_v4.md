@@ -221,3 +221,94 @@ cheap) and B = 10,000, or label the claim "some evidence" for thresholds below 0
 stating the size honestly; the code changes are sound. Replacing the centred bootstrap was the right call, and the
 two-look futility is right. A re-check needs section 5.3, section 11 D, the calibration files and any new test. If the
 chosen remedy changes `confirmatory.py`, I re-run my 100,000-series check on it.
+
+## Addendum 3 (15 Oct 2026): revisions 2 and 3 at 8f233f0eb846631c68e54b0a0be6a0488093e754 (dbba574..8f233f0)
+
+Two commits: 9045dc3 (revision 2: size study and claim rule E+D) and 8f233f0 (revision 3: futility study and rule
+F+D).
+
+## Gates
+
+Trial merge with `origin/main`: **3603 passed**, the full suite, which the builder had not re-run after the text fix.
+Ruff, format (765 files) and `check_imports` are clean. The trial merge now conflicts in **two** index files,
+`reviews/chatgpt/README.md` and `reviews/claude/README.md`; keep both sides' rows.
+
+## What I verified
+
+| Item | Result |
+|---|---|
+| Calibration code | Read in full: `v4_size_study.py`, `v4_claim_thresholds.py`, `v4_futility_study.py`, `confirmatory.calibrated_p` and `futility_p`. The conditional bootstrap in the size study is exact for a max test. The futility direction is right: e = d + margin x b, futile means mean(e) > 0, and `futility_p` takes the batch t of -e |
+| Reproduction | I re-ran V6a, n = 125, look 1. The threshold reproduces exactly (0.000145508...) and so does its held-out size (0.00145). It took 35 s |
+| Held-out seed separation | The words are distinct: size study 98, claim calibration 55 vs held-out 77, futility calibration 66 vs held-out 99 (plus cell, n and index words). But "held-out" here only means fresh **resamples of the same 685-day series**. It checks Monte Carlo error, **not** whether the thresholds hold on data from another period. The protocol's "strong evidence for the measured null processes" is accurate only in that narrow sense |
+| Bonferroni instead of Holm | Valid and slightly conservative: each member is compared with rate / 15, and the union bound holds whatever the dependence. It is consistent with the calibration, which only calibrated the first step. It makes claims harder than the owner's decision A ("Holm at 0.02") when several members claim at once, which the owner's "3 B" row allows ("a rule shown by the null simulation to hold its error rate"). Accepted |
+| Honest cost | Section 11 D says plainly that V1 and V2 cannot be claimed in useful time. Agreed, and it is correctly disclosed |
+
+## The question asked: do 2024-26 empirical nulls bias the thresholds? Yes, for the Brier questions, badly.
+
+The empirical nulls use only the regular sessions from 1 Jan 2024. I rebuilt the same nulls with the **builder's own
+functions**, changing only the start date to 21 Jan 2019, the first day with at least 500 resolved base-rate outcomes
+(the protocol's own minimum).
+- These are `warmup_closes.csv` rows. They are exposed and already used for the disclosed 2017-26 base rates, and
+  they are not in the golden or back-fill holdout files.
+- I then measured the **frozen** thresholds on them: 100,000 series a cell, fresh seeds.
+
+**Claim rule E+D, size against nominal (look 1 = 0.00133, look 2 = 0.00200):**
+
+| Member | n = 125, look 1 / look 2 | n = 250, look 1 / look 2 |
+|---|---|---|
+| V6a (Brier, L = 5) | **0.392 / 0.427** (about 300x and 210x) | **0.350 / 0.360** |
+| V6b and V7 (V6b's thresholds) | **0.0053 / 0.0081** (4x) | **0.0050 / 0.0087** (4x) |
+| V1 (QLIKE) | 0.00046 / 0.00079 (within) | 0.00036 / 0.00073 (within) |
+| V2 (QLIKE) | 0.00026 / 0.00038 (within) | 0.00012 / 0.00026 (within) |
+
+**Futility rule F+D, false "no" at a true improvement equal to the minimum effect (target 2.5%; 50,000 series):**
+
+| Member | n = 125, as measured / flipped | n = 250, as measured / flipped |
+|---|---|---|
+| V6a | **57.5%** / 0.1% | **47.6%** / 0.04% |
+| V6b | 0.05% / 0.01% | **11.2%** / 0.8% |
+| V1 | 0.0% / 1.5% | 0.0% / 2.1% |
+| V2 | 0.0% / 0.8% | 0.0% / 0.5% |
+
+The QLIKE thresholds are so strict (1e-9 to 1e-11) that they hold on the wider period too. The Brier thresholds do
+not. The likely reason (reasoning only): 2019-26 contains long calm stretches with few or no 2% days (2023 had about
+0.4%). In such a window the Brier difference is nearly constant, so a forecaster that always predicts lower
+probabilities "wins" every day with a tiny batch standard error. The batch t then reports overwhelming significance,
+or, in the other orientation, overwhelming futility, although over the full period there is no skill. 2024-26 had
+enough 2% days to hide this.
+
+This is not a remote case. The May 2027 review covers about 6 months that may be calm. On this evidence, a V6a "yes"
+or "no" at the review could be wrong with a probability far above the registered 0.13% or 2.5%.
+
+## Must-fix
+
+**1. The Brier claim and futility thresholds do not hold outside 2024-26 (V6a by about 300x on size and 57% false
+"no"; V6b and V7 about 4x on size and 11% false "no" at n = 250).**
+- The calibration must include regimes like the calm years, with nulls built from all exposed regular sessions that
+  have a valid base rate (from about 21 Jan 2019). It must also include a calm-window stress case.
+- A rule must be measured within tolerance on those nulls before it is operative.
+- Candidates (reasoning only until measured):
+  - a minimum number of events (2% days or 2% windows) inside the scored window before any Brier claim or futility;
+  - thresholds calibrated on the worst regime;
+  - testing within event and non-event days separately.
+- If no rule holds, say plainly that V6a, V6b and V7 cannot be judged in calm periods, and put that consequence to the
+  owner.
+- The QLIKE rules (V1, V2) hold on the wider nulls, as measured above; record that too.
+
+**2. Say what "held-out" proves.** Section 5.3 and 5.5's "strong evidence for the measured null processes" must say
+that the held-out check resamples the same series, so it measures Monte Carlo error, not robustness to another period.
+The regime check of must-fix 1 becomes the evidence for robustness.
+
+## Follow-ups (not blocking)
+
+- `_quantile` in `v4_size_study.py` takes `ordered[floor(rate x N)]`. With `p <= q` that rejects floor(rate x N) + 1
+  series, one more than the target. It is only used in the descriptive table; `conservative_rank` in the operative
+  tool errs the safe way.
+- V7 borrowing V6b's thresholds stays reasoning only. A VIX-based null should be measured when VIX history is used.
+- The orchestrator should tell the owner the cost in plain words before the freeze: V1 and V2 cannot be claimed in
+  useful time, and, after must-fix 1, possibly V6 in calm periods. This is what "3 B" turned out to mean.
+
+**Verdict: FAIL for 8f233f0eb846631c68e54b0a0be6a0488093e754**, on must-fixes 1 and 2. The direction of revisions 2
+and 3 is right: calibrated thresholds, a minimum of 12 batches, and futility held to the same standard as claims.
+The error is calibrating on one period that happens to lack calm stretches. A re-check needs the new nulls, the
+re-measured thresholds and both studies. I will re-run this 2019-26 check on whatever rule comes back.

@@ -87,7 +87,7 @@ def drop(rows: list[dict], strike: float, kind: str) -> list[dict]:
     return [r for r in rows if (float(r["strike"]), r["type"]) != (strike, kind)]
 
 
-def write_snapshot(store, snapshot_id, rows, started, finished, complete=True, day=DAY, sha=None) -> None:
+def write_snapshot(store, snapshot_id, rows, started, finished, complete=True, day=DAY, sha=None, spot=None) -> None:
     for r in rows:
         r["snapshot_id"] = snapshot_id
     csv_bytes = csv_text(COLUMNS, rows, header=True).encode()
@@ -95,6 +95,8 @@ def write_snapshot(store, snapshot_id, rows, started, finished, complete=True, d
         "snapshot_id": snapshot_id, "started_at": started.isoformat(), "finished_at": finished.isoformat(),
         "complete": complete, "csv_sha256": sha or hashlib.sha256(csv_bytes).hexdigest(),
     }  # fmt: skip
+    if spot is not None:
+        meta["spot"] = spot
     store.put(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.csv"), csv_bytes)
     store.put(QuoteSnapshotRecorder.path(day, f"{snapshot_id}.meta.json"), json.dumps(meta).encode())
 

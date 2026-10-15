@@ -1,0 +1,16 @@
+HISTORICAL EXAMPLE: entry 2026-09-16, expiry 2026-10-27, exit 2026-10-06, close 23217.6
+  LC width 300: buy 23500 CE @ 312.35; payoff bounds (0, inf); modelled max loss Rs 20,489.13
+  LP width 300: buy 22900 PE @ 207.75; payoff bounds (0, 22900); modelled max loss Rs 13,687.07
+  CDS width 200: buy 23200 CE @ 478.8, sell 23400 CE @ 363.7; payoff bounds (0, 200); modelled max loss Rs 7,895.26
+  CCS width 200: sell 23200 CE @ 478.8, buy 23400 CE @ 363.7; payoff bounds (-200, 0); modelled max loss Rs 5,949.11
+  PDS width 200: buy 23200 PE @ 301.95, sell 23000 PE @ 235.55; payoff bounds (0, 200); modelled max loss Rs 4,708.58
+  PCS width 200: sell 23200 PE @ 301.95, buy 23000 PE @ 235.55; payoff bounds (-200, 0); modelled max loss Rs 9,088.78
+  B2 refusal: more CE legs sold than bought: [(25000.0, 'CE', -1)]
+C4 on the test chain (spot 25,000, 14 Oct 2026 fixture):
+  a short call called LC: FAIL bounded_loss: naked short ['CE']
+  a short call called LC: FAIL shape: LC: the leg must be a bought CE, not sold CE
+  a short call over a bought put called CCS: FAIL bounded_loss: naked short ['CE']
+  a short call over a bought put called CCS: FAIL shape: CCS: needs two CE legs, not ['CE', 'PE']
+D2 candidate on the evaluation test chain (spot 25,000):
+  PCS: width 200: sell NIFTY26112725000PE, buy NIFTY26112724800PE; max loss Rs 8,145.15; score 0.0184
+  LC: width 300: buy NIFTY26112725300CE; max loss Rs 6,270.55; score 0.0239

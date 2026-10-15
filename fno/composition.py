@@ -18,7 +18,19 @@ from .books.lock import DEFAULT_LEASE_SECONDS, AccountLock
 from .books.version_registry import VersionRegistry
 from .books.versions import VERSIONS_FILE, Versions
 from .config import ROOT
-from .constants import ENV_FNO_SLACK_BOT_TOKEN, FNO_DESK_CHANNEL_ID, NIFTY_SYMBOL
+from .constants import (
+    ENV_FNO_SLACK_BOT_TOKEN,
+    FNO_DESK_CHANNEL_ID,
+    NIFTY_SYMBOL,
+    OPTION_CALL,
+    OPTION_PUT,
+    STRUCTURE_CALL_CREDIT_SPREAD,
+    STRUCTURE_CALL_DEBIT_SPREAD,
+    STRUCTURE_LONG_CALL,
+    STRUCTURE_LONG_PUT,
+    STRUCTURE_PUT_CREDIT_SPREAD,
+    STRUCTURE_PUT_DEBIT_SPREAD,
+)
 from .providers import AUTO_PROVIDER, get_provider
 from .providers.base import Provider
 from .providers.nse_quotes import NseQuoteProvider
@@ -50,9 +62,10 @@ from .research_engine.implied_vol import Black76
 from .research_engine.ledger import Git, Ledger
 from .research_engine.live_features import LiveAtmIvMinusRealised, LiveScheduledEventInWindow, LiveVixAboveMedian
 from .research_engine.live_validation import ValidationReport, validate
+from .research_engine.one_side import BoughtOption, VerticalSpread
 from .research_engine.runner import ExperimentRunner
 from .research_engine.simulator import CycleSimulator
-from .research_engine.structures import LongIronFly, ShortCondor, ShortIronFly, Structure
+from .research_engine.structures import BOUGHT, SOLD, LongIronFly, ShortCondor, ShortIronFly, Structure
 from .research_engine.trial_guard import LedgerTrialGuard
 from .research_engine.volatility_features import AtmIvMinusRealised, VixAboveMedian
 from .storage.raw_source import ParticipantOiSource
@@ -203,6 +216,20 @@ def build_cycles(panel: NiftyPanel) -> list[Cycle]:
 def build_structures() -> tuple[Structure, ...]:
     """Experiment 1's structures SF, SC and BF (story B2)."""
     return ShortIronFly(), ShortCondor(), LongIronFly()
+
+
+def build_tradable_structures() -> tuple[Structure, ...]:
+    """Every structure the desk may build (D2) and A14 gives margin rows: experiment 1's three, then the one- and
+    two-leg ones of story STR1 (LC, LP, CDS, CCS, PDS, PCS)."""
+    return (
+        *build_structures(),
+        BoughtOption(STRUCTURE_LONG_CALL, OPTION_CALL),
+        BoughtOption(STRUCTURE_LONG_PUT, OPTION_PUT),
+        VerticalSpread(STRUCTURE_CALL_DEBIT_SPREAD, OPTION_CALL, BOUGHT),
+        VerticalSpread(STRUCTURE_CALL_CREDIT_SPREAD, OPTION_CALL, SOLD),
+        VerticalSpread(STRUCTURE_PUT_DEBIT_SPREAD, OPTION_PUT, BOUGHT),
+        VerticalSpread(STRUCTURE_PUT_CREDIT_SPREAD, OPTION_PUT, SOLD),
+    )
 
 
 def build_cycle_simulator(cfg: dict, panel: NiftyPanel) -> CycleSimulator:

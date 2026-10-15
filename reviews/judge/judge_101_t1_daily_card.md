@@ -140,3 +140,127 @@ Four should-fixes, all in the clock contract and test coverage:
 The card itself is honest and correct: every number traced to G4's report, the hashes equal the committed bytes, the
 live post was verified in Slack and Drive, and the failure paths behave as claimed. A re-check needs `clock.py`,
 `deliveries.py` `misses`, the tests named above and the story's known limits. Criterion 16(b) is checked at the merge.
+
+## Addendum 1 (15 Oct 2026): 44fa45da5c5ac3d17d67c18408f307e4e16b7d62 (3e705bf..44fa45d: 9f540e9 and 44fa45d)
+
+### Gates
+
+- **Exact SHA:** full history, Slack token unset: **3,265 passed**. `ruff check`, `ruff format --check` (730 files)
+  and `check_imports` (740 files) are clean.
+- **Trial merge with `origin/main` e45c91e:** 3,265 passed; ruff, format and imports clean.
+  - **Merge note:** `reviews/claude/README.md` conflicts (both sides add rows). Keep both.
+- My mutations ran in a separate worktree, never in the one under test.
+
+### Should-fixes re-checked
+
+| Judge 101 finding | Status | My evidence |
+|---|---|---|
+| 1. GitHub clock trusts any `Date` | **MET** | `HttpDateClock.now` accepts only 2xx or 3xx with a readable `Date`. My C1 (status check off) is caught. Real probe from this container: the API root gives "clock NOT CHECKED: host vs GitHub (HTTP 400 from GitHub, no Date header: an error answer's time is not trusted)", stored `checked: false` |
+| 2. 5-second boundary untested | **MET** | My B1 (limit 9.9 s), B2 (resolution ignored on the early side) and new B5 (`>=` at the limit) are all caught |
+| 3. Staged-file case untested | **MET** | My T12 (read the index instead of `HEAD`) is caught |
+| 4. GitHub clock never available; unchecked never surfaced | **MET; pushback ACCEPTED** | The builder's evidence holds. Through the proxy, `HEAD https://api.github.com/repos/exepex/trading` answers **200 with GitHub's `Date`**, and my real `check_server` gives "within 0.0 s, checked: true". So the limit applied to the root path only, and `GITHUB_TIME_URL` now uses the repository path (my C8, root URL back, caught). An unchecked clock on a sent card is now named on the next card (my C2 caught) |
+
+### Minors re-checked
+
+| Minor | Status | Evidence |
+|---|---|---|
+| 1. `--post` for another day | MET | Real run: `--on 2026-10-14 --post` prints "--post issues only today's card ... nothing done", exit 2. My C3 caught |
+| 2. Exception message in the public record | MET | Type only now. My C7 (message back) caught |
+| 3. `ConnectionError` retried | Fixed in code, **untested** | Moved to "may have posted" and never retried. My C4 (move it back into the retried set) passes all 112 tests in `tests/cards`, `tests/ai` and the alert sender |
+| 4. Test post's clock entries lack `line` | Unchanged, as agreed | The file is append-only |
+
+### `fno/ai/receipts.py` (9f540e9), as the orchestrator asked
+
+- **Not frozen.** No freeze record lists it: `research/forecasts/FREEZE*.md`, `research/evaluation/`, experiment 1 and
+  the other study freezes were searched.
+- **It still fails closed.** `ReceiptAccessDenied` subclasses `ReceiptUnknown`. The only other consumer,
+  `fno/ai/submissions.py:56`, catches `ReceiptUnknown`, so a 401 or 403 still gives `Published(..., None, reason)` and
+  is never a receipt. My C6 (403 not marked access-denied) is caught.
+- **Paging is correct on real data.** I ran `GitHubActivityReceipts` against GitHub through this proxy with `per_page`
+  forced to 3 (10 pages). Page 2 is requested as `/repos/exepex/trading/activity` with GitHub's `after` cursor, and the
+  receipts of my own pushes came back: 7963b8f at 00:47:53 UTC and e45c91e at 01:50:36 UTC. My C5 (follow the numeric
+  next link) is caught.
+- **The paging test is stricter, not looser.** It now requires page 2 by owner/name, with `after` and `ref` carried.
+  The 403 case is asserted as `ReceiptAccessDenied`, and a 500 is asserted as `ReceiptUnknown` but **not**
+  access-denied. Nothing was removed.
+- **G5's collector results cannot change** for any answer that worked before:
+  - the same pushes are read, from the same activity log, in the same order;
+  - only the URL form of pages 2 and later changed;
+  - a page refused before (HTTP 403 on the numeric path) now succeeds, so a receipt that read "unknown" can now be
+    found. That is a correction, not a change of the rule.
+
+### Muhurat note and the owner's rows
+
+- **Story design note:** "a card every session with a 15:00 market" is recorded, matching the owner's "3 A". Small
+  slip: it says "one evening hour", but the 21 Oct 2025 muhurat ran 13:45-14:45. It is still no 15:00 market, so the
+  rule holds.
+- **Criterion 16(a)** stays MET on the one post that exists. The owner's row 133 ("1 B") records that the orchestrator
+  ran it on the builder's behalf, which the owner does not accept for the future.
+- **Owner's "4 A" (missing weather blocks new trades):** **not yet on the card.** The weather lines still say only "not
+  yet scored ... no colour until M1 scores one". In v1 this misleads no one, since no trade can be shown and the
+  status is NO TRADE. But the card should say "no new trades while the weather reading is missing (owner rule)" before
+  slice B. Minor; it carries to the next T1 change.
+
+### Mutations this round
+
+13 planted and **11 caught**. Survivors, both minor:
+- **T6:** the next card's line naming a clock WARNING; the code is right but untested.
+- **C4:** `ConnectionError` not retried.
+
+### Minor (open, non-blocking)
+
+1. Add tests for T6 (a WARNING named on the next card) and C4 (a `ConnectionError` is never retried).
+2. Add the owner's "4 A" wording to the weather lines, with a test.
+3. In the design note, write "one-hour Diwali session" instead of "one evening hour".
+
+**Verdict: PASS for 44fa45da5c5ac3d17d67c18408f307e4e16b7d62.** All four should-fixes are met. The SF4 pushback is
+accepted on my own probe. The receipts change is sound and fails closed. Three minors remain.
+- **Merge:** as a merge commit, keeping both rows in `reviews/claude/README.md`.
+- **At the merge check:** criterion 16(b), GitHub's push receipt of the test delivery file
+  (`research/cards/deliveries/2026/2026-10-15-a1.json`) once it reaches `main`, plus the recomputed merge, the branch
+  files equal to 44fa45d, and CI.
+
+## Addendum 2 (15 Oct 2026): merge check, T1 merged to main as f0c47ae; criterion 16(b)
+
+- **Parents.** f0c47ae's parents are 215fc26 (main) and 44fa45d (the passed tip).
+- **The merge matches my recomputation, apart from resolved conflicts.** `git merge-tree --write-tree` conflicts in
+  `fno/cli.py` and `reviews/claude/README.md`. f0c47ae's tree differs from the recomputed tree only by those files'
+  conflict-marker lines.
+  - `fno/cli.py` keeps both sides: the `vix-history` import and parser line (A15) and the `card` ones (T1).
+  - The README keeps both rows.
+- **Branch files arrived unchanged.** Every file T1 changed equals 44fa45d, except where `main`'s own additions from A15
+  share the file: `CLAUDE.md`, `fno/cli.py`, `fno/constants.py`, `fno/storage/README.md` and
+  `reviews/claude/README.md`. In each of those, T1's lines are present unchanged.
+- **Criterion 16(b), GitHub's push receipt:** **MET.** `python -m fno card witness --on 2026-10-15` on main prints:
+  `research/cards/deliveries/2026/2026-10-15-a1.json: Slack 2026-10-15 06:20:14 IST (ts 1792025414.919329); GitHub push
+  receipt 2026-10-15 07:44:39 IST (commit cc441095a4)`.
+  - cc44109 is in main's history.
+  - The receipt is the push that brought the merge to `main` (02:14:39 UTC). So for this test post it witnesses the
+    merge, not when the file was written. The file sat on the story branch from 00:50:24 UTC, and branch pushes are
+    not in main's activity log.
+  - For daily cards committed straight to `main` by the scheduled run, the two witnesses will be minutes apart.
+- **No unjudged change since.** From f0c47ae to aa2f4c3 only `reviews/`, conversation and decision files changed.
+- **CI.** The first push carrying f0c47ae is aa2f4c3: run 38669953437 (`checks`) **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records the dry run on the merged tree printing the PAPER ONLY NO TRADE
+  card with nothing written. My own dry runs at 3e705bf and 44fa45d agree.
+
+**Merge check: PASS. T1 criterion 16 is now MET in full.**
+
+## Addendum 3 (15 Oct 2026): follow-up 9d5310b177da959a1bd46ce3d8231841f5783e13 (owner "4 A" weather wording)
+
+One commit on top of 44fa45d. It changes `fno/cards/weather.py`, one test, the story's criterion 3 and response 101.
+
+- **The card now carries the owner's rule.** The weather section reads "Weather: not yet scored (M1 pending)", then
+  **"No new trades while the weather reading is missing (owner rule)."**, then the M1 line. That is the owner's "4 A"
+  (row 136: missing weather fails closed, like RED).
+  - Nothing on the card implies a trade would be allowed.
+  - The colour test still passes: "reading" is not the word RED.
+- **The test bites.** My mutation removing the line from the section fails 1 test (`tests/cards` 60 of 61 pass).
+  `tests/cards` passes 61 of 61 at 9d5310b.
+- **Gates.**
+  - At 9d5310b: `ruff check`, `ruff format --check` (730 files) and `check_imports` are clean.
+  - On a trial merge with `origin/main` 6c473ea, which already holds T1 and A15: **3,539 passed**; ruff, format and
+    imports clean.
+- Minors 1 and 3 of addendum 1 go to the builder's next follow-up, as the orchestrator says. I check them when sent.
+
+**Verdict: PASS for 9d5310b177da959a1bd46ce3d8231841f5783e13.** Merge it; I check the merge afterwards.

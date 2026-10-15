@@ -71,6 +71,13 @@ def expiry_grid(legs: Sequence[ProposedLeg]) -> list[float]:
     return [low + n * GRID_STEP for n in range(steps + 1)]
 
 
+def uncovered_types(legs: Sequence[ProposedLeg]) -> list[str]:
+    """The option types with more legs sold than bought: a naked short call has no loss limit, a naked short put none
+    short of the index at 0. With none, the payoff is flat or rising beyond the outer strikes, so the grid above holds
+    the worst level (story STR1: the maximum loss must be fixed at entry)."""
+    return [kind for kind in ("CE", "PE") if sum(leg.side for leg in legs if leg.kind == kind) < 0]
+
+
 def loss_per_unit(legs: Sequence[ProposedLeg], level: float) -> float:
     """What the position loses per unit if held to expiry with the index at `level` (entry premium included)."""
     return -sum(leg.side * (leg.value_at_expiry(level) - leg.price) for leg in legs)

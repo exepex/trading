@@ -93,6 +93,15 @@ OPTION_CALL, OPTION_PUT = "CE", "PE"
 # Cycle simulator (story B2, fno/research_engine/): structure codes, as the experiment 1 protocol names them
 STRUCTURE_SHORT_IRON_FLY, STRUCTURE_SHORT_CONDOR, STRUCTURE_LONG_IRON_FLY = "SF", "SC", "BF"
 STRUCTURES = (STRUCTURE_SHORT_IRON_FLY, STRUCTURE_SHORT_CONDOR, STRUCTURE_LONG_IRON_FLY)
+# One- and two-leg structures (story STR1), each anchored at the ATM strike: bought calls and puts, vertical spreads
+STRUCTURE_LONG_CALL, STRUCTURE_LONG_PUT = "LC", "LP"
+STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD = "CDS", "CCS"  # bull call and bear call spreads
+STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD = "PDS", "PCS"  # bear put and bull put spreads
+STRUCTURES_BOUGHT_ONLY = (STRUCTURE_LONG_CALL, STRUCTURE_LONG_PUT)  # no sold leg: width may be 0, margin may be 0
+STRUCTURES_ONE_SIDE = (
+    *STRUCTURES_BOUGHT_ONLY,
+    STRUCTURE_CALL_DEBIT_SPREAD, STRUCTURE_CALL_CREDIT_SPREAD, STRUCTURE_PUT_DEBIT_SPREAD, STRUCTURE_PUT_CREDIT_SPREAD,
+)  # fmt: skip
 
 
 class CycleStatus(StrEnum):
@@ -238,3 +247,21 @@ DEEP_OTM_EXPOSURE_RATE, DEEP_OTM_DISTANCE = 0.03, 0.10  # a short option more th
 EXPOSURE_MODEL_MAX_MONTHS = 9  # beyond 9 months (5%) and on expiry day (+2%) NSE's rule differs: not modelled
 SPAN_BOD_CREATED_BEFORE = time(9, 0)  # IST: a day's `i1` file must be written before this (point in time)
 MARGIN_SOURCE_NSE_SPAN = "NSE SPAN"  # margins.csv `source` prefix of a computed row: "NSE SPAN <file> sha256=<hex>"
+
+
+# The daily trade card (story T1, fno/cards/): its status, the reason codes of a `NO TRADE` card (design 04, 4.1),
+# where its records go (Drive only, owner 15 Oct 2026) and the clock contract of design 04 section 4.4
+class CardStatus(StrEnum):
+    TRADE = "TRADE"
+    NO_TRADE = "NO TRADE"
+    WATCH = "WATCH"
+
+
+CARD_NO_APPROVED_STRATEGY = "no_approved_strategy"  # no playbook version is at `paper`
+CARD_TRADE_FIELDS_NOT_BUILT = "trade_fields_not_built"  # a version is at `paper`; card v1 has no trade fields (slice B)
+CARD_DATA_CHECK_FAILED = "data_check_failed"  # a record the status needs could not be read
+CARDS_AREA = "cards"  # Drive area of the card records (beside raw/ and pipeline/); never the public repository
+CARD_DELIVERIES_FOLDER = "research/cards/deliveries"  # non-sensitive delivery metadata only (no card text)
+CARD_VALID_UNTIL = time(15, 25)  # IST: design 04 4.1, a card is valid until 15:25
+CLOCK_SKEW_WARNING_SECONDS = 5.0  # design 04 4.4: host clock vs Slack's and GitHub's server times
+CARD_SESSION_KINDS = (SESSION_REGULAR, SESSION_SPECIAL)  # a muhurat session is one evening hour: no 15:00 card
