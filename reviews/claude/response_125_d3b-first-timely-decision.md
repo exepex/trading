@@ -36,7 +36,7 @@ only. Orchestrator decisions 58 and 59 (b). Quality rule 9 applies after the cod
 
 ## Build claims (code)
 
-Decision 61 (ancestry first) and judge 125's minors are built in. Evidence labels: **strong** means a test fails when
+Judge 125's minors are built in. Decision 61 (ancestry first) was built and then dropped, by the owner's 15 Oct rule "keep the design simple" (orchestrator). Evidence labels: **strong** means a test fails when
 the code is broken (a plant), and **reasoning** means read in code, not tested.
 
 | # | Criterion | Code | Tests | Evidence |
@@ -44,13 +44,13 @@ the code is broken (a plant), and **reasoning** means read in code, not tested.
 | 1 | The first of two timely original runs is collected, for each of three books | `fno/desk/committed_decisions.py` `committed` | `tests/timetable/test_first_timely_decision.py::test_the_first_of_two_timely_original_runs_is_collected_for_every_book` | strong (M2: the latest rule is caught) |
 | 2 | A timely correction is never collected, and it is listed in the run log with what it corrects and why | `committed_decisions.py` `committed`, `others`; `fno/desk/daily_steps.py` `collect_decisions` | `test_a_timely_correction_is_never_collected_...`, `test_the_decisions_step_lists_the_other_runs_in_the_run_log` | strong (M1, M11, M13) |
 | 3 | A day with only a timely correction has no timely decision | `committed` | `test_a_day_with_only_a_timely_correction_has_no_timely_decision` | strong (M1) |
-| 4 | One order: ancestry, then commit time, then the counter as a number; uncommitted last | `fno/playbook/run_order.py` | `tests/decisions/test_run_order.py` (r2/r10, parallel, a fast clock, a chain with a parallel run, uncommitted, empty); real git: `test_a_fast_clock_that_pulled_the_first_run_...`, `test_a_ten_run_day_is_ordered_...`; S1: `tests/evaluation/test_order_runs.py::test_r2_before_r10_...`; only the shared function orders: `tests/decisions/test_one_run_order.py` | strong (M3, M4) |
+| 4 | One order: commit time, then the counter as a number; uncommitted last | `fno/playbook/run_order.py` | `tests/decisions/test_run_order.py` (r2/r10, commit time, uncommitted, empty); real git: `test_a_ten_run_day_is_ordered_...`; S1: `tests/evaluation/test_order_runs.py::test_r2_before_r10_...`; only the shared function orders: `tests/decisions/test_one_run_order.py` | strong (M4) |
 | 4b | An uncommitted run is never first counted; on r1 to r9 the result equals the old name order | `fno/evaluation/order.py` `first_counted_decision` | `tests/evaluation/test_order_runs.py` (three days of nine runs and four start dates; an uncommitted earlier day is skipped) | strong (M5). `main` holds no committed decision run, so today's data is empty: the fixture stands in |
 | 5 | A Book 1 trade's terms and exit come only from its opening run, and only for filled trades; another run naming it is alerted and never used; a missing, gone or changed opening run gives no terms and no exit, with the reason, never a fallback; E4's own exits still run | `fno/books/opening_runs.py`, `fno/books/book1_records.py`, `fno/books/book1_exits.py`, `fno/books/book1_wiring.py` | `tests/book1/test_opening_runs.py` (filled only; another run or a correction; a missing log; gone, re-summed and edited runs; exit-rule alerts; the first open fill's day; listing by counter); `tests/desk/test_exits.py::test_a_trade_without_exit_rules_still_gets_e4_s_risk_exits`; end to end: `tests/book1/test_book1_daily.py` | strong (M6-M10, M14, M15) |
 | 6 | Scoreboard B lists uncollected runs and corrections apart; its scored figures do not change | `fno/scoreboard/committed_runs.py` `uncollected`, `whole_system.py`, `wiring.py` | `tests/scoreboard/test_uncollected_runs.py` | strong (M12) |
 | 7 | The existing tests that changed, and why | see below | | |
 
-**Broken-code proofs:** 21 plants (M1-M21), each caught by the final tests. Two survived at first: M14 (the last open fill's day), until the first-open-fill test was added; and M20 (no sums hash in the run log), until the end-to-end daily test checked that every opened trade finds its opening run.
+**Broken-code proofs:** 19 plants (M1-M21 without M3 and M16, which tested the dropped ancestry and clock-skew rules), each caught by the final tests. Two survived at first: M14 (the last open fill's day), until the first-open-fill test was added; and M20 (no sums hash in the run log), until the end-to-end daily test checked that every opened trade finds its opening run.
 
 **Changed existing tests (criterion 7):**
 - `tests/timetable/test_parts.py` (the D3 collector test) expected r2 over r1, the latest rule. It now expects r1, the
@@ -68,7 +68,7 @@ the code is broken (a plant), and **reasoning** means read in code, not tested.
 
 **Judge 125's minors:**
 1. `recorded_c4.py` and `decision_timing.py` are added to the reader table.
-2. Ordering is by ancestry where it decides, by commit time otherwise (decision 61).
+2. Ordering: by commit time, then counter. Decision 61's ancestry order was dropped by the owner's simplicity rule; one known-limit line in the story.
 3. The opening-run fallback is stated: an alert, never the latest record. The exits are named: no time exit, E4
    holds the trade, and its protection, settlement and ordered exits still run (tested).
 4. Only filled trades from their opening run are in the book.
@@ -103,8 +103,8 @@ F&O paper desk book1_rules t1: the run log of 2026-10-14 names no decision of bo
   new trade) until the record is fixed by hand. It fails closed, but `fno desk book1`'s failure is the traceback that
   E5b removes.
 - The "other runs" alert repeats at every exit review while the trade is open: "once" means once per review.
-- Ancestry needs both commits in the local history. A shallow clone that lacks one treats the two runs as parallel,
-  so commit time decides. On the day itself, both runs are minutes old, so they are in any clone.
+- Two checkouts with skewed clocks deciding one book on one day could be ordered wrongly (commit time only). E5b
+  prevents the second run.
 
 ## Self-review by two independent agents, and what was done
 
@@ -114,9 +114,9 @@ F&O paper desk book1_rules t1: the run log of 2026-10-14 names no decision of bo
 | A hidden temporary folder left by a crashed write was read by `glob("*/*/*.json")`, and its name broke `run_counter`, failing every Book 1 exit | code review | **accepted** | Records are read through the new `DecisionStore.every_run()`, which skips hidden folders; the guard test keeps every ordered read on `ordered_runs`. Test: a hidden folder with a record naming the trade is ignored (M17) |
 | "Alerted once" disagreed with the code (once per review) | both | **accepted** | The story now says one alert at each exit review while the trade is open. Test: two reviews give two alerts, one each |
 | Other runs were listed only for trades that have an opening run | code review | **accepted** | Listed for every filled trade (M18) |
-| A first run that lands late, followed by a run made after pulling it with a slower clock: the later run was collected | code review | **accepted** | When the first committed original run is late, nothing is collected (M16) |
+| A first run that lands late, followed by a run made after pulling it with a slower clock | code review | **dropped** | A clock-skew case, outside the owner's simplicity rule. With commit-time order, a later run is never on time when the first is not |
 | One malformed record raised inside the collector and stopped the step for all books | code review | **accepted** | An unreadable record makes only its own run uncollectable; it is listed with the file, and other books are unaffected (M19) |
-| Ancestry was recomputed on every pass (about n³ `git merge-base` calls) | code review | **accepted** | Computed once per pair (n²) |
+| Ancestry was recomputed on every pass | code review | **moot** | Ancestry order removed (owner's simplicity rule) |
 | `BOOK_MODE` dead constant; `RunCommits` duplicated; `"decisions"` as a bare literal; the name `book_trades` used twice | both | **accepted** | Removed; the protocol extends run_order's; `RUN_LOG_DECISIONS_STEP` in `fno/constants.py`; renamed `opening_trades` |
 | Ten-run tests missing for Book 1's listing and S1 | test audit | **accepted** | Both now use ten runs |
 | `book1_records` does not use `ordered_runs` | test audit | **accepted as stated** | It needs no order: it takes the opening run by ID from the run log. The story text says so |

@@ -41,8 +41,8 @@ class D3CommittedDecisions(DecisionSource):
         return self.git.observed()
 
     def committed(self, book: str, day: date, deadline: datetime) -> CommittedDecision | None:
-        """The first committed original run, if it is on time. When it is late, nothing is: a run in its descent was
-        made after it, whatever its own clock says (a fast clock), so it is never taken instead."""
+        """The first committed original run, if it is on time (runs come in commit-time order, so a later one is
+        never on time when the first is not)."""
         for run in self._ordered(book, day):
             if run.commit is None or corrections(run.path):
                 continue

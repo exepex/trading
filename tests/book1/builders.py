@@ -67,10 +67,6 @@ class Commits(Committer):
         added = self.added_in(path)
         return (self.root / path).read_bytes() if added and added[0] == commit else None
 
-    def is_ancestor(self, older, newer):
-        """One line of history: each commit descends from every earlier one."""
-        return int(older, 16) < int(newer, 16)
-
 
 def book1(root, playbook, clock, inputs=None, validator=None) -> tuple[Book1, Commits]:
     commits = Commits(clock)

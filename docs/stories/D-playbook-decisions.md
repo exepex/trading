@@ -163,12 +163,13 @@ guarantee for every book, whatever writes the run.
 | C4's recorded pass (`fno/desk/recorded_c4.py`) | the collected run's record and its `edited` check | no: it follows the collector |
 | D3's timing check (`fno/playbook/decision_timing.py`) | one given run | no, and it has no caller today |
 
-**Ordering fact (strong evidence, read in code; decision 61 for the rule):** `DecisionStore.runs` sorts run folders by name, and run IDs are
-`<date>-r<n>`, so `-r10` sorts before `-r2`. "First" and "latest" by folder name are therefore wrong from the tenth run
-of a day. This story orders runs by their commit time (the commit that added `records.sha256`, E3's own timing
-source) and, first of all, by ancestry: when one run's commit is an ancestor of another's, it landed first, whatever
-the clocks say (a checkout with a fast clock that pulled the other's run still commits after it). Commit time orders
-only runs on parallel branches, then the run counter as a number breaks a tie, never the folder name.
+**Ordering fact (strong evidence, read in code):** `DecisionStore.runs` sorts run folders by name, and run IDs are
+`<date>-r<n>`, so `-r10` sorts before `-r2`. "First" and "latest" by folder name are therefore wrong from the tenth
+run of a day. This story orders runs by their commit time (the commit that added `records.sha256`, E3's own timing
+source), then by the run counter as a number, never by the folder name. Decision 61's ancestry order was dropped by
+the owner's 15 Oct rule ("keep the design simple"): one runner per book and E5b's one-a-day check make commit time
+enough. Known limit: two checkouts with skewed clocks deciding one book on one day could be ordered wrongly; E5b
+prevents that second run.
 
 **Scope.** In:
 - **A correction run:** a run any of whose records has a non-null `corrects`. D3 writes a correction as its own run.

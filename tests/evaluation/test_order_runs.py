@@ -1,4 +1,4 @@
-"""Story D3b criteria 4 and 4b for S1's first counted decision: the shared run order (ancestry, commit time, then the
+"""Story D3b criteria 4 and 4b for S1's first counted decision: the shared run order (commit time, then the
 run counter as a number), never the folder name; an uncommitted run is never first counted; on runs r1 to r9 the
 result is the same as S1's old name order (main holds no committed decision run yet, so this fixture stands in)."""
 
@@ -45,7 +45,7 @@ def test_runs_r1_to_r9_give_the_same_first_counted_decision_as_the_old_name_orde
         assert first_counted_decision(tmp_path, git, BOOK, start) == old_name_order(tmp_path, git, start)
 
 
-def test_r2_before_r10_by_landing_order_not_by_name(tmp_path):
+def test_r2_before_r10_by_commit_order_not_by_name(tmp_path):
     """Ten runs on the day: r1 stays on disk only, r2 lands first, r3 to r10 after it."""
     protocol_repo(tmp_path)
     run(tmp_path, "2026-11-02", 2)

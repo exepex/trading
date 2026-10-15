@@ -100,9 +100,6 @@ class Commits_:
     def observed(self):
         return "origin-head"
 
-    def is_ancestor(self, older, newer):
-        return False  # parallel commits: the commit time orders them
-
     def committed_bytes(self, path, commit):
         return None  # no blobs here: the run log then records no sums hash
 

@@ -53,7 +53,7 @@ def frozen_versions(root: Path) -> list[int]:
 
 def first_counted_decision(root: Path, git, book: str, common_start: date | None) -> CountedDecision | None:
     """The book's earliest committed run dated on or after the common start (every run when none is given), in the
-    shared run order (story D3b: ancestry, then commit time, then the run counter as a number). An uncommitted run is
+    shared run order (story D3b: commit time, then the run counter as a number). An uncommitted run is
     never first counted: it has no commit."""
     store = DecisionStore(root, book)
     days = sorted(p for p in store.folder.iterdir() if p.is_dir()) if store.folder.is_dir() else []

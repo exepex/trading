@@ -1,5 +1,5 @@
-"""Story D3b criteria 1-3 and decision 61, with real git: E3's collector takes each book's FIRST original run committed
-before the deadline (ancestry first, then commit time), never a correction; the decisions step lists every other run
+"""Story D3b criteria 1-3, with real git: E3's collector takes each book's FIRST original run committed
+before the deadline (commit-time order), never a correction; the decisions step lists every other run
 of the day in the run log, a correction with what it corrects and why."""
 
 import hashlib
@@ -56,14 +56,6 @@ def test_the_first_of_two_timely_original_runs_is_collected_for_every_book(tmp_p
         assert collector(tmp_path).committed(book, NORMAL, DEADLINE).run_id == f"{NORMAL}-r1"
 
 
-def test_a_fast_clock_that_pulled_the_first_run_never_makes_its_own_run_first(tmp_path):
-    """r2 is committed on top of r1 (r1 is its ancestor) by a checkout whose clock reads earlier: r1 stays first."""
-    repository(tmp_path)
-    commit_run(tmp_path, BOOK1_RULES, 1, 8)
-    commit_run(tmp_path, BOOK1_RULES, 2, 2)
-    assert collector(tmp_path).committed(BOOK1_RULES, NORMAL, DEADLINE).run_id == f"{NORMAL}-r1"
-
-
 def test_a_timely_correction_is_never_collected_and_is_listed_with_what_it_corrects(tmp_path):
     repository(tmp_path)
     commit_run(tmp_path, BOOK1_RULES, 1, 3)
@@ -103,8 +95,8 @@ def test_no_other_run_adds_no_others_key(tmp_path):
     assert collector(tmp_path).others(BOOK1_RULES, date(2026, 10, 15), None) == []
 
 
-def test_a_ten_run_day_is_ordered_by_landing_then_counter_never_by_name(tmp_path):
-    """r10 landed first; the name order would put r10 second and the old latest rule would take r9."""
+def test_a_ten_run_day_is_ordered_by_commit_time_then_counter_never_by_name(tmp_path):
+    """r10 was committed first; the name order would put r10 second and the old latest rule would take r9."""
     repository(tmp_path)
     commit_run(tmp_path, BOOK1_RULES, 10, 1)
     for n in range(1, 10):
@@ -113,14 +105,6 @@ def test_a_ten_run_day_is_ordered_by_landing_then_counter_never_by_name(tmp_path
     assert source.committed(BOOK1_RULES, NORMAL, DEADLINE).run_id == f"{NORMAL}-r10"
     listed = [o["run_id"] for o in source.others(BOOK1_RULES, NORMAL, f"{NORMAL}-r10")]
     assert listed == [f"{NORMAL}-r{n}" for n in range(1, 10)]
-
-
-def test_a_late_first_run_is_never_replaced_by_one_made_after_it(tmp_path):
-    """r1 lands late; r2, made after pulling it, shows an earlier time (a slow clock): neither is the decision."""
-    repository(tmp_path)
-    commit_run(tmp_path, BOOK1_RULES, 1, 14)
-    commit_run(tmp_path, BOOK1_RULES, 2, 6)
-    assert collector(tmp_path).committed(BOOK1_RULES, NORMAL, DEADLINE) is None
 
 
 def test_an_unreadable_record_makes_only_its_own_run_uncollectable(tmp_path):
