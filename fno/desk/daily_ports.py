@@ -39,7 +39,12 @@ class Waiter(ABC):
 
 class CommitFailed(Exception):
     """The committer could not commit and push (a refused file, a failed pull, a push rejected every time); the message
-    names why. The daily run stops at that step with one alert (decision 44)."""
+    names why, and `unpushed` says a local commit was left for the rerun to push. The daily run stops at that step with
+    one alert (decision 44)."""
+
+    def __init__(self, message: str, unpushed: bool = False):
+        super().__init__(message)
+        self.unpushed = unpushed
 
 
 class Committer(ABC):

@@ -35,6 +35,10 @@ class GitError(AccountWriteRefused):
     """A git step failed; the message names it. For the daily run, any git failure refuses that account write."""
 
 
+class PushRejected(GitError):
+    """Every push attempt was rejected: the commit stays local and unpushed."""
+
+
 class CheckoutNotDedicated(GitError):
     """Other work is in the way (unpushed commits, uncommitted work in the book's folder, or an edit a reset would
     overwrite): no account write, no reset."""
@@ -113,18 +117,21 @@ class GitCommitter(Committer):
         try:
             return self._commit(paths, message)
         except (RawQuoteCommitRefused, GitError) as failure:
-            raise CommitFailed(str(failure)) from failure
+            raise CommitFailed(str(failure), unpushed=isinstance(failure, PushRejected)) from failure
 
     def _commit(self, paths: Sequence[Path], message: str) -> str:
         self.git.guard.check(paths)
-        self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", self.git.branch())
-        if self.git.commit_paths(paths, message):
+        branch = self.git.branch()
+        self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
+        if self.git.commit_paths(paths, message) or self.git.ahead_of(f"origin/{branch}"):  # or one left unpushed
             for _ in range(PUSH_ATTEMPTS):
                 if self.git.push():
                     break
-                self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", self.git.branch())
+                self.git("pull", "-q", "--no-rebase", "--no-edit", "origin", branch)
             else:
-                raise GitError(f"push of '{message}' rejected {PUSH_ATTEMPTS} times; the commit stays local, unpushed")
+                raise PushRejected(
+                    f"push of '{message}' rejected {PUSH_ATTEMPTS} times; the commit stays local, unpushed"
+                )
         return self.git("rev-parse", "HEAD").stdout.strip()
 
 

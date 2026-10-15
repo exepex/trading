@@ -14,6 +14,7 @@ from fno.constants import BOOK1_RULES
 from fno.desk.daily_ports import CommitFailed
 from fno.desk.daily_run import RunStopped
 from fno.desk.git_sync import Git, GitCommitter
+from fno.desk.pending_commit import PendingCommitter
 
 from .fakes import C4, Commits, Decisions, Rules, daily_run
 from .test_daily_run import NORMAL, decided, run_day
@@ -43,7 +44,7 @@ def stopped_run(root, tmp_path, alerts, commits_locally=False):
     decisions = Decisions()
     decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
     run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
-    run.committer = GitCommitter(Git(root))
+    run.committer = PendingCommitter(GitCommitter(Git(root)), root)
     head = git(root, "rev-parse", "HEAD")
     with pytest.raises(RunStopped) as stopped:
         run_day(run, clock, NORMAL)
@@ -98,7 +99,7 @@ def test_a_failed_commit_inside_a_step_stops_the_run_at_that_step(root, tmp_path
     decisions = Decisions()
     decisions.add(*decided(BOOK1_RULES, "t1", NORMAL), NORMAL)
     run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), decisions, C4(), Rules())
-    run.steps.capture.committer = FailingOn(clock, "Execution capture")
+    run.steps.capture.committer = PendingCommitter(FailingOn(clock, "Execution capture"), root)
     with pytest.raises(RunStopped):
         run_day(run, clock, NORMAL)
     (sent,) = alerts.sent

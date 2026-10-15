@@ -167,3 +167,20 @@ My earlier "a sum over at least two legs" was wrong as a defence: the playbook's
 | The limit's own logic is still tested through outcomes: equal or better fills, a paisa worse refuses, the limit scales with lots (2 lots at a Rs 3 half-spread are refused though they beat a 1-lot limit) | `tests/desk/test_entry_limit.py` | strong |
 
 **Out:** a Drive-only record of the figures for research is not built (nothing needs it today).
+
+## Answer to judge 118 addendum 4 (decisions 47 and 48)
+
+| Item | Accepted? | Fix | Tests | Evidence |
+|---|---|---|---|---|
+| Should-fix 1: after a stop, the rerun skipped the failed step and never committed its files | **accepted**. The gap is wider than the step's own commit: a commit that failed inside a step (D6's registry row, the 15:15 capture record) also left files no later run would commit. A rerun of the decisions step after the deadline would also have made every book late | `fno/desk/pending_commit.py`: `PendingCommitter` wraps the run's committer (wiring: `fno/desk/daily_wiring.py`). Before each commit it writes a git-ignored marker with the paths, their SHA-256 and the message, and removes it on success. `DailyRun.run` first calls `recover()` inside the same single handler: it commits the files exactly as recorded, or stops with an alert naming the changed file. No step is re-run | `tests/timetable/test_rerun_after_stop.py`, real `GitCommitter` and a bare origin: a stop at the pack (committed byte-identical; 1 build, 1 capture, 4 fills, a third run changes nothing); a stop at the decisions (1 collection; the no-decision file byte-identical; book 1 still on time); a tampered pending file (alert, nothing committed, no rebuild) | strong. Plants caught: recover does nothing (P1), no hash check (P2), run never recovers (P3), marker removed before the commit (P4) |
+| The judge's question 1: a commit stuck local after a rejected push | **partly disagreed, with evidence**. The judge said the next successful commit pushes it. It did not when that commit had nothing new to commit: `commit_paths` returned False, so no push ran. That is exactly the recovery of an already-committed step | `GitCommitter` also pushes when `HEAD` is ahead of `origin/<branch>` (`fno/desk/git_sync.py`) | `test_a_push_rejected_every_time_is_pushed_by_the_rerun`: the exits step's push is rejected by a hook; the rerun's recovery pushes it | strong: plant P5 (push only a new commit) survived my first version of the test, so the test now rejects the last step's push |
+| Minor 1: the alert text | **accepted** | "exits not reviewed today" for a stop before `exits`; "Fix: remove the cause, then rerun `fno desk run` (...)"; "; the rerun pushes the local commit" for a rejected push (`fno/desk/daily_run.py`) | the stop tests above | strong (plants P6, P7 caught) |
+| Minor 2, decision 48: "net Rs X if closed now" in `exit_ordered` reasons | **accepted** | fixed texts `TARGET_REACHED` and `STOP_REACHED` (`fno/desk/exit_rules.py`) | `tests/desk/test_exits.py` exit-rule test: the `exit_ordered` reason equals the fixed text and has no digit | strong (plant D48 caught) |
+| Minor 3: Book 1's command | noted by the orchestrator as a follow-up | none | none | none |
+
+**Limits, said plainly:**
+- A commit that failed inside a step (the capture's) means that step is not recorded, so the rerun runs it again. The
+  15:15 capture then takes a second snapshot: both are committed, the fills read the latest, and no fill had been made
+  before. Making the capture step itself resumable would change E3, so it is left as stated.
+- The marker is local to one checkout. A rerun in a fresh container has no marker; the failed step's files are not in
+  that checkout either, so nothing is committed by mistake. That run starts the day over from what was committed.

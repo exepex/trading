@@ -21,6 +21,7 @@ from fno.desk.daily_steps import DeskSteps
 from fno.desk.entries import EntryDesk
 from fno.desk.execution_capture import CommittedExecutionSchedule, RecorderExecutionCapture
 from fno.desk.exits import ExitDesk
+from fno.desk.pending_commit import PendingCommitter
 from fno.desk.recorded_c4 import RecordedC4Pass
 from fno.desk.records import DeskRecords
 from fno.desk.snapshot import RecordedExecutionSnapshots
@@ -100,7 +101,7 @@ def run_days(root, tmp_path, alerts, c4, monkeypatch, version=None, code=SAME_CO
                                                Commits(clock)),
                       gate, RecordedC4Pass(), LocalSync(root), EntryDesk(CHARGES, clock),
                       ExitDesk(CHARGES, alerts, FakeSettlements(), clock), exits, alerts, clock)  # fmt: skip
-    run, logs = DailyRun(steps, CALENDAR, Commits(clock), clock, clock), []
+    run, logs = DailyRun(steps, CALENDAR, PendingCommitter(Commits(clock), root), clock, clock), []
     for day in DAYS:
         git.clock.set(datetime.combine(day, time(15), IST))
         decider.decide(day)

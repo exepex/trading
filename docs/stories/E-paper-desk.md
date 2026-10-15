@@ -198,6 +198,12 @@ Out:
   text "entry_worse_than_approved: entry price at the touch worse than the approved limit". Schema change:
   `desk_events.csv` loses the `shortfall_rs` column (nothing read it; no `desk_events.csv` is committed yet, the desk
   is not live). If research needs the figure, it goes to a Drive-only record, not git (not built here);
+- **removed here (orchestrator decision 48):** the "net Rs X if closed now reaches the target/stop Rs Y" reasons of
+  E4's exit rules (`fno/desk/exit_rules.py`), written to `desk_events.csv` as `exit_ordered`. X is worked out at the
+  touch of every leg, so if a leg then stays pending, X less the other legs' published close fills gives that leg's
+  touch at a snapshot where it did not fill. They now read "profit_target: the net if closed now reaches the profit
+  target" and "stop_loss: the net if closed now reaches the stop loss". The "every leg closed; net Rs N" reason stays:
+  N is the sum of the trade's published fills;
 - **kept, by decision (orchestrator for the owner, response 113):** the per-contract mids and implied volatilities of
   the 14:55 canonical snapshot in Book 1's D3 decision inputs (`fno/playbook/decision_codec.py:15-27`) and C4's
   `snapshot_mid` per leg (`fno/checks/validity_market.py:46`): derived figures the letter of "8 A" allows, which alone
@@ -271,7 +277,20 @@ the hash-checked store. The guard and the derived pack work the same with either
    no later step, nothing committed (a push rejected three times leaves its one commit local and unpushed, which
    refuses every later account write until it is resolved by hand), and `fno desk run` ends on that line with exit
    code 1, never a traceback (tests with the real `GitCommitter` in a run: staged raw file, unreachable origin,
-   rejected push; a commit failing inside a step; the command).
+   rejected push; a commit failing inside a step; the command). The alert says "exits not reviewed today" when the
+   stop comes before the exits, and gives the hand fix: remove the cause, then rerun `fno desk run` (for a rejected
+   push, "the rerun pushes the local commit"). The rerun never repeats a step (judge 118 addendum 4; decision 47).
+   Before every commit, the run keeps a local, git-ignored marker (`journal/runs/.pending_commit.json`) holding the
+   commit's paths, their SHA-256 and its message. A failed commit leaves the marker, and the rerun's first act commits
+   those files exactly as they are on disk. If one is missing or changed, the rerun stops with an alert naming it
+   instead, and nothing is regenerated (a later pack or capture, or decisions collected after the deadline, would not
+   be what happened). A commit that failed inside a step (D6's registry, the 15:15 capture record) is committed the
+   same way; that step is not recorded, so the rerun runs it again. Book 1's version keeper then finds its version
+   registered. The capture takes a second snapshot: it is committed beside the first, fills read the latest, and
+   none had been made. The committer also pushes a commit left unpushed even when it has nothing new to commit
+   (tests with the real `GitCommitter`: a stop at the pack and one at the decisions, each committed byte-identical on
+   the rerun with one build or collection, one capture and four fills; a tampered pending file; a rejected push of
+   the last step, pushed by the rerun).
 6. E2's own criteria still hold on schema 2: no book data, byte-identical rebuilds, cutoff refusals named, the
    opportunity set unchanged (existing tests, updated only where they name option items).
 7. No reader of the committed pack uses per-contract quote figures (a test lists every `option:` lookup in `fno/` and

@@ -10,3 +10,7 @@ nse_raw_download.zip
 journal/*/account/.lock
 journal/*/account/*.tmp
 .ai_book/
+
+# A daily-run commit that failed, kept for the rerun to commit as recorded (story E2b, decision 47): local only
+journal/runs/.pending_commit.json
+journal/runs/.pending_commit.json.tmp
