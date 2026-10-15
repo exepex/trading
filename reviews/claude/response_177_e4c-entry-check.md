@@ -71,6 +71,10 @@ Beyond the story's list, stated here:
 | the guard's unwind removed | 5 |
 | no alert | 2 |
 | "alert NOT sent" not printed | 1 |
+| the check moved after the entry limit (review agent 1, S1) | 1 |
+| a short leg's closing side checked too (review agent 1, S2) | 1 |
+| the alert on every `not_opened` (review agent 1, S3) | 2 |
+| the alert decided by the reason text, so replays alert again (review agent 2, finding 2) | 1 |
 
 ## Said plainly
 
@@ -79,9 +83,26 @@ Beyond the story's list, stated here:
   for a trade the book cannot hold, and no new-risk budget used by a trade that never stays open.
 - **E6's legging-cost figure** now stays at zero unless the guard fires. That is a known effect of decision 43, not a
   change to E6.
-- **The alert fires again on a rerun** of a fills step that did not complete. That is rare, and only the step's own
-  rerun, never a new trade.
+- **The alert never fires on a replay.** `EntryResult.refused_by_check` is set only by the call whose own entry
+  check refused, never by a recorded outcome returned on a rerun. This was the review agents' finding (below), and it
+  is fixed and tested.
 - **Open questions 1 and 2** (a maximum spread; a short leg's buy-back depth) stay with the owner, unchanged.
 - **A sample refusal**, from the fixture day in `test_entry_check_alert.py`:
   "F&O paper desk 2026-10-14 book1_rules: trade t1 not opened: protection_not_sellable (NIFTY26102725200CE, 65 units):
   information, no action".
+
+## Two independent review agents (quality rule 3), and what was done
+
+| Finding | Agent | Decision | Evidence |
+|---|---|---|---|
+| **Blocking: `fno/constants.py` at 352 lines** (main 348 + E4c's 4) | both | **accepted.** With the orchestrator's go, the market-weather block (M1) moved whole into `fno/weather/constants.py`, and its method hash now covers it (`story/x-weather-constants`, judge 192 PASS, on main at ac3d6abf). E4c's codes stay in `fno/constants.py` as criterion 13 says; it is 335 lines after the rebase | `tests/test_code_size.py` |
+| S1: the check's place before the entry limit is untested | 1 | **accepted** | `test_the_entry_check_is_recorded_before_the_entry_limit`; plant caught |
+| S2: nothing pins that a short leg's ask size is not checked (story Out) | 1 | **accepted** | `test_a_short_leg_s_ask_size_is_not_checked`; plant caught |
+| S3: nothing pins that only the check's refusals alert | 1 | **accepted** | `test_an_entry_refused_by_the_entry_limit_sends_no_e4c_alert`; plant caught |
+| The alert repeats when a fills step is replayed; the alert is keyed on reason text | 1 (M1), 2 (2, 3) | **accepted, root cause.** The alert is decided by `EntryResult.refused_by_check`, set only by this call's check | `test_a_replayed_fills_step_sends_no_second_alert`, and the rerun assertion in `test_the_refusals_before_the_entry_check_come_first_...` |
+| M2: criterion 5's test reads only the `reason` column | 1 | **accepted** | the test now reads every column (the snapshot hash aside) for any quote figure |
+| M3: stale E2b sentence, "pinned until the E4 story removes it" | 1 | **accepted** | E2b criterion 3's text rewritten |
+| M4: one line of the later-snapshot test changed | 1 | **accepted, stated** | listed under "Tests changed on purpose" |
+| Minor: the opening side is priced twice; `all(q.fills ...)` before the entry limit is now always true on the normal path | 2 | **partly rejected.** The `all(...)` stays: in the guard path (a fill failing after the check), `maker.fill` on a quote without a price would fail, so it still protects the guard. Pricing twice is deliberate, so the check stays one function E8 can call | code read |
+| Minor: `print(outcome)` is the only print in `daily_steps` | 2 | **kept, stated.** Criterion 7 asks for "alert NOT sent" to be printed for this alert. The other desk alerts are outside E4c | story criterion 7 |
+| Minor: the alert names only the first problem | 2 | as the story states (criterion 4) | none |
