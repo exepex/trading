@@ -374,8 +374,8 @@ it, so that the only thing that lifts a book's brake is a written owner decision
   cryptography (owner's simplicity rule, "Keep the design simple").
 - `docs/DESK_DECISIONS.md` is where the owner's decisions are recorded, each row dated, in the standard form
   `**title** (owner: "...")` in its Decision cell. Measured on main (judge 134): 152 rows; 17 have no bold title, and
-  one title ("approved") appears twice. The owner names the books "Book 1", "Book 2" and "Book 3" (14 times), never
-  by their IDs.
+  one title ("approved") is the title of 4 rows. The owner names the books "Book 1", "Book 2" and "Book 3" (14
+  times), never by their IDs.
 - Today no book has an `owner_overrides.csv` (no brake has ever fired), so the file format can change without
   migrating any record.
 
@@ -437,6 +437,8 @@ Out:
 
 **Known limits (one line each):** the decisions file is plain text in the repository; anyone who can commit could add a
 row. The protection is the judge's audit of every lane-1 change to it and to `owner_overrides.csv`.
+A deleted `docs/DESK_DECISIONS.md` fails closed by an error, not a reason. A shadow book's brake cannot be restarted
+(it is not named in the owner's decisions; its restart is refused).
 
 **Test plan:** `tests/risk/test_restart_decision.py` (C2: criteria 1-3), `tests/checks/test_validity_restart.py`
 (C4: 1-2), with planted decisions files in the standard `**title** (owner: "...")` form. Every criterion broken on
@@ -445,6 +447,5 @@ purpose once.
 **Judge verifies:** plants a restart row citing a real row, a row without the owner's words, a row for another book and
 a reused row; checks C2 and C4 refuse the bad ones; reads the JUDGE.md step.
 
-**Depends:** C2, C4, C5 · **Size:** S · **Status:** story text revision 2 (judge 134: should-fix 1 and 2) for the
-judge's check before code (claims:
-`reviews/claude/response_135_c5b-restart-decision.md`)
+**Depends:** C2, C4, C5 · **Size:** S · **Status:** text passed (judge 134 addendum 1); code built on
+`story/c5b-restart-decision` for the judge (claims: `reviews/claude/response_135_c5b-restart-decision.md`, addendum 2)

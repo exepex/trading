@@ -193,10 +193,11 @@ def test_c4_refuses_an_unsigned_restart_row_on_its_own():
     """Judge 105 should-fix 2: C4 requires `entered_by` itself, as C2 does."""
     from fno.checks.validity_account import AccountProblem, restart_days
 
-    row = {"date": "2026-10-07", "action": "restart_brake", "reason": "reviewed", "entered_by": ""}
+    row = {"date": "2026-10-07", "action": "restart_brake", "reason": "reviewed", "entered_by": "", "decision": "Go"}
+    decisions = [(date(2026, 10, 7), "Go", '| 7 Oct 2026 | **Go** (owner: "restart Book 1") | |')]
     with pytest.raises(AccountProblem, match="malformed"):
-        restart_days([row], DAY)
-    assert restart_days([row | {"entered_by": "owner"}], DAY) == (date(2026, 10, 7),)
+        restart_days([row], DAY, "book1_rules", decisions)
+    assert restart_days([row | {"entered_by": "owner"}], DAY, "book1_rules", decisions) == (date(2026, 10, 7),)
 
 
 @pytest.mark.parametrize(("limit", "ok"), [(30.0, True), (30.01, True), (29.99, False)])

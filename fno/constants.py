@@ -131,6 +131,8 @@ ENV_FNO_DB_URL = "FNO_DB_URL"  # the fno schema's runtime publisher role (storie
 # to stress a margin
 CASH_LEDGER_FILE = "cash_ledger.csv"  # journal/<book>/account/cash_ledger.csv: E1's append-only ledger
 OWNER_OVERRIDES_FILE = "owner_overrides.csv"  # journal/<book>/owner_overrides.csv, written by the owner only
+DESK_DECISIONS_FILE = "docs/DESK_DECISIONS.md"  # the owner's decisions; a brake restart cites one row (story C5b)
+BOOK_DISPLAY_NAMES = {BOOK1_RULES: "Book 1", BOOK2_HYBRID: "Book 2", BOOK3_AI: "Book 3"}  # as the owner writes them
 OVERRIDE_RESTART_BRAKE = "restart_brake"
 STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER = "scenario_lookup", "multiplier"
 STRESSED_MARGIN_METHODS = (STRESSED_MARGIN_SCENARIO_LOOKUP, STRESSED_MARGIN_MULTIPLIER)

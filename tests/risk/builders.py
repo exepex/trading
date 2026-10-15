@@ -116,3 +116,15 @@ def book(
 
 FLY = STRUCTURE_SHORT_IRON_FLY
 CONDOR = STRUCTURE_SHORT_CONDOR
+
+
+DECISIONS_HEADER = "# Desk decisions (owner)\n\n| Date | Decision | Detail |\n|---|---|---|\n"
+
+
+def owner_decision(root, title: str, book: str = "Book 1", day: str = "12 Oct 2026", words: str = "restart it") -> str:
+    """Story C5b: writes `docs/DESK_DECISIONS.md` under `root` with one owner row in the standard form; returns the
+    restart row's `decision` cell (the title)."""
+    path = root / "docs" / "DESK_DECISIONS.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(DECISIONS_HEADER + f'| {day} | **{title}** (owner: "{words}") | {book} brake restarted |\n')
+    return title

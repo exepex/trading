@@ -29,7 +29,20 @@ from fno.risk.settings import ExposureSettings, RiskSettingsError
 from fno.risk.trade_costs import SimulatorTradeCosts
 from fno.risk.wiring import RULES, build_risk_manager, build_stress_line
 
-from .builders import CHARGES, DAY, FLY, LOT, START, book, contract, market, open_trade, proposal, short_fly
+from .builders import (
+    CHARGES,
+    DAY,
+    FLY,
+    LOT,
+    START,
+    book,
+    contract,
+    market,
+    open_trade,
+    owner_decision,
+    proposal,
+    short_fly,
+)
 
 CONFIG = load_app_config()
 EXPIRY = DAY + timedelta(days=14)
@@ -196,10 +209,11 @@ def _brake(root):
 def test_the_brake_lifts_only_by_the_owners_written_restart_row(braked):
     assert not _brake(braked).ok  # no written record: stays on, never lifted by time or by a new high of marks
     path = overrides_file(braked, BOOK1_RULES)
-    path.write_text(",".join(OVERRIDE_COLUMNS) + "\n2026-10-02,restart_brake,reviewed the loss,\n")
+    owner_decision(braked, "Restart Book 1", day="2 Oct 2026")
+    path.write_text(",".join(OVERRIDE_COLUMNS) + "\n2026-10-02,restart_brake,reviewed the loss,,Restart Book 1\n")
     with pytest.raises(RiskInputError, match="entered_by"):  # unsigned: the book cannot be read, so nothing trades
         _brake(braked)
-    path.write_text(",".join(OVERRIDE_COLUMNS) + "\n2026-10-02,restart_brake,reviewed the loss,owner\n")
+    path.write_text(",".join(OVERRIDE_COLUMNS) + "\n2026-10-02,restart_brake,reviewed the loss,owner,Restart Book 1\n")
     assert _brake(braked).ok and _brake(braked).numbers["restarted_on"] == "2026-10-02"
 
 

@@ -65,11 +65,13 @@ def test_a_ledger_that_was_never_started_fails_closed(tmp_path):
 
 
 def test_restarts_dated_after_the_day_wait_and_a_bad_row_fails_closed():
-    rows = [{"date": "2026-10-10", "action": "restart_brake", "reason": "owner", "entered_by": "owner"},
-            {"date": "2026-10-20", "action": "restart_brake", "reason": "owner", "entered_by": "owner"}]  # fmt: skip
-    assert restart_days(rows, date(2026, 10, 14)) == (date(2026, 10, 10),)
+    decisions = [(date(2026, 10, 9), "First", '| x | **First** (owner: "go") Book 1 |'),
+                 (date(2026, 10, 9), "Second", '| x | **Second** (owner: "go") Book 1 |')]  # fmt: skip
+    signed = {"action": "restart_brake", "reason": "owner", "entered_by": "owner"}
+    rows = [signed | {"date": "2026-10-10", "decision": "First"}, signed | {"date": "2026-10-20", "decision": "Second"}]
+    assert restart_days(rows, date(2026, 10, 14), BOOK1_RULES, decisions) == (date(2026, 10, 10),)
     with pytest.raises(AccountProblem):
-        restart_days([rows[0] | {"action": "loosen"}], date(2026, 10, 14))
+        restart_days([rows[0] | {"action": "loosen"}], date(2026, 10, 14), BOOK1_RULES, decisions)
 
 
 def test_nse_listing_gives_lots_and_monthly_expiries():

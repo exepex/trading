@@ -16,7 +16,15 @@ from datetime import date, datetime
 from pathlib import Path
 
 from ..books.paths import account_folder, book_folder
-from ..constants import CASH_LEDGER_FILE, LEDGER_OPENING, OVERRIDE_RESTART_BRAKE, OWNER_OVERRIDES_FILE, SIDE_BUY
+from ..constants import (
+    CASH_LEDGER_FILE,
+    DESK_DECISIONS_FILE,
+    LEDGER_OPENING,
+    OVERRIDE_RESTART_BRAKE,
+    OWNER_OVERRIDES_FILE,
+    SIDE_BUY,
+)  # fmt: skip
+from .validity_decisions import decision_problem, decision_rows
 
 
 @dataclass(frozen=True)
@@ -118,15 +126,19 @@ def account_facts(rows: list[dict[str, str]], restarts: tuple[date, ...], cutoff
     return AccountFacts(cash, tuple(series), restarts, positions, _session(fills, cutoff.date()))
 
 
-def restart_days(rows: list[dict[str, str]], day: date) -> tuple[date, ...]:
-    """The owner's restart rows dated on or before `day`; any other action is malformed and fails closed."""
-    days = []
+def restart_days(rows: list[dict[str, str]], day: date, book: str, decisions) -> tuple[date, ...]:
+    """The owner's restart rows dated on or before `day`; any other action, or a restart not backed by one owner
+    decision row (story C5b, `decisions` from `validity_decisions.decision_rows`), fails closed."""
+    restarts = []
     for row in rows:
         signed = (row.get("reason") or "").strip() and (row.get("entered_by") or "").strip()
         if row.get("action") != OVERRIDE_RESTART_BRAKE or not signed:
             raise AccountProblem(f"{OWNER_OVERRIDES_FILE}: malformed row {row}")
-        days.append(date.fromisoformat(row["date"]))
-    return tuple(sorted(d for d in days if d <= day))
+        restarts.append((date.fromisoformat(row["date"]), (row.get("decision") or "").strip()))
+    problem = decision_problem(decisions, book, restarts)
+    if problem:
+        raise AccountProblem(f"{OWNER_OVERRIDES_FILE}: {problem}")
+    return tuple(sorted(d for d, _ in restarts if d <= day))
 
 
 class LedgerAccounts:
@@ -135,5 +147,6 @@ class LedgerAccounts:
 
     def facts(self, book: str, cutoff: datetime) -> AccountFacts:
         overrides = book_folder(self.root, book) / OWNER_OVERRIDES_FILE
-        restarts = restart_days(_rows(overrides), cutoff.date()) if overrides.is_file() else ()
+        decisions = decision_rows(self.root / DESK_DECISIONS_FILE) if overrides.is_file() else []
+        restarts = restart_days(_rows(overrides), cutoff.date(), book, decisions) if overrides.is_file() else ()
         return account_facts(_rows(account_folder(self.root, book) / CASH_LEDGER_FILE), restarts, cutoff)
