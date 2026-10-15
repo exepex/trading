@@ -266,7 +266,8 @@ composition root (`fno/scoreboard/wiring.py`, as E2c leaves it):
 **Judge verifies:** recomputes one opportunity's standardised result for all three books.
 
 **Depends:** E2, E4, E7, D3, D6, S1, S2 (bounds, segments), E2c (built after it: Drive board and shared download);
-F7 later, through its port (its entries must name the structure and the `common_pack_sha256`) · **Size:** M · **Status:** text revision 1, judge pending (branch
+F7 later, through its port (its entries must name the structure and the `common_pack_sha256`) · **Size:** M · **Status:** text PASS (judge 168
+add. 1); code PASS (judge 191 add. 1; claims response 179); merges after ChatGPT's review with S6 (branch
 `story/s3-scoreboard-a`, session 0185gR5DmoDh2zBAvgRU4CEB)
 
 ---
@@ -634,5 +635,6 @@ criterion gets a broken-code proof (rule 4).
 - **Scoreboard A has no view (b):** it has no account, only one-lot positions.
 
 **Depends:** S1 (draft), S2 (merged), E2c (built first: Drive board and wiring), E3, E4, E6 (reconciled), A13's index
-files; RM1 reads the gate; S3 builds scoreboard A's share · **Size:** M · **Status:** story
-text, judge pending (branch `story/s6-scorecard-measures`, owner of the work: session 0185gR5DmoDh2zBAvgRU4CEB)
+files; RM1 reads the gate; S3 builds scoreboard A's share · **Size:** M · **Status:** text PASS
+(judge 158 add. 1); code built, judge pending (branch `story/s6-scorecard-measures`, claims response 180; session
+0185gR5DmoDh2zBAvgRU4CEB); merges after ChatGPT's review with S3
