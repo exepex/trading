@@ -30,8 +30,8 @@ class ManifestRecorder(ABC):
 
 
 class GitManifestRecorder(ManifestRecorder):
-    def __init__(self, repository: Path, folder: Path, run=subprocess.run):
-        self.repository, self.run = Path(repository), run
+    def __init__(self, repository: Path, folder: Path, run=subprocess.run, message: str = COMMIT_MESSAGE):
+        self.repository, self.run, self.message = Path(repository), run, message
         self.folder = Path(folder).resolve().relative_to(self.repository.resolve()).as_posix()
 
     def _git(self, *args: str) -> subprocess.CompletedProcess:
@@ -47,7 +47,7 @@ class GitManifestRecorder(ManifestRecorder):
             return NOTHING
         for step, args in (
             ("add", ("add", "--", self.folder)),
-            ("commit", ("commit", "-m", COMMIT_MESSAGE.format(what=what), "--", self.folder)),
+            ("commit", ("commit", "-m", self.message.format(what=what), "--", self.folder)),
         ):
             result = self._git(*args)
             if result.returncode != 0:

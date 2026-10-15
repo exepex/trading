@@ -15,6 +15,7 @@ from .evaluation.cli import add_evaluation_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
 from .forecast_scoring.cli import add_forecast_scores_parser
+from .intraday.cli import add_intraday_parser
 from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
@@ -188,6 +189,7 @@ def main(argv: list[str] | None = None) -> int:
     c.set_defaults(func=cmd_chain)
 
     add_quotes_parser(sub)
+    add_intraday_parser(sub)
     add_account_parser(sub)
     add_desk_parser(sub)
     add_versions_parser(sub)

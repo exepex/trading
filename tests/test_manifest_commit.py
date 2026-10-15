@@ -116,3 +116,15 @@ def test_a_push_beaten_by_another_session_is_pulled_and_pushed_again(tmp_path, r
 
     assert Racing(clone, manifests).commit("test run") == COMMITTED.format(count=1)
     assert "theirs.txt" in git(origin, "ls-tree", "--name-only", "main")
+
+
+def test_a_committer_given_its_own_message_uses_it_and_the_default_is_unchanged(tmp_path, repository):
+    """Story A16 reuses the committer for its intraday folder with its own message."""
+    clone, origin, _ = repository
+    folder = clone / "research" / "data" / "intraday"
+    folder.mkdir(parents=True)
+    (folder / "heartbeat.json").write_text("{}\n")
+    recorder = GitManifestRecorder(clone, folder, message="Data: intraday slots ({what})")
+    assert recorder.commit("2026-10-15 09:15") == COMMITTED.format(count=1)
+    assert git(origin, "log", "-1", "--format=%s", "main").strip() == "Data: intraday slots (2026-10-15 09:15)"
+    assert GitManifestRecorder(clone, folder).message.startswith("Manifests: SHA-256 rows")

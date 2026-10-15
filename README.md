@@ -27,6 +27,7 @@ pip install -r requirements.txt                  # add requirements-groww.txt fo
 python -m fno chain NIFTY                         # option chain around the money (root `provider` in config.yaml)
 python -m fno quotes record                       # 3 pm quote recorder (story A4); run by a weekday routine
 python -m fno quotes report                       # half-spread by distance from the money, from recorded days
+python -m fno intraday run --dry-run /tmp/a16     # 15-minute snapshots (story A16); --dry-run: no Drive, no commit
 python -m fno account show book1_rules          # a book's paper account: cash, closed equity, open legs (E1)
 python -m fno groww-check                         # check the Groww data connection (prints no secrets)
 python -m fno drive-check                         # check the Google Drive archive can be read (prints no secrets)
@@ -65,6 +66,7 @@ fno/
   cli.py             the commands above
   providers/         market data: Groww, NSE public, sample
   quotes/            3 pm quote recorder and spread report (story A4)
+  intraday/          15-minute quote recorder, slot ledger and realised variance (story A16)
   storage/           raw file stores and sources (NSE archives, local folder, Google Drive)
   fo_bhavcopy.py     NSE F&O daily file reader (old and current formats)
   research_engine/   ledger guard (B4), features F1-F3 (B1), monthly cycles, structures SF/SC/BF and the cycle
