@@ -27,7 +27,7 @@ OWN = values({d: 0.3 for d in DAYS if d not in (ABSENT, MISSED)}, live=True)
 BASE = values({d: 0.2 for d in DAYS if d != ABSENT}, live=True)
 EXPECTED = MissReport(observable=9, missed=1, big_observable=2, big_missed=1, input_failures=1)
 
-NO_AUDITS = OpenAuditFile(Path("no-such-file.csv"))  # no AI book has an open audit
+NO_AUDITS = OpenAuditFile(Path("no-such-file.csv"), lambda: False)  # no AI book has written a row yet
 NO_DAYS = DayCounts(0, 0, 0, 0, 0)
 
 
