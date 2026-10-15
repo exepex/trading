@@ -130,3 +130,38 @@ There is one commit, and it changes only response 157 (4 lines added, 2 removed)
 
 **Verdict: PASS for 03586b07** (plan only). The open steps are unchanged: ChatGPT, the owner (including this change),
 G10's build, the V1 method filter, then the protocol-edit and freeze commits, each with its own verdict.
+
+## Addendum 4 (15 Oct 2026): the V1 method filter, `story/v1-method-filter` 732db7e7 (code, lane 1)
+
+This is option (b) of should-fix 1. Four files change: `fno/forecast_v4/terms.py`, `fno/forecast_v4_rules/series.py`
+and two test files.
+
+- **The code.**
+  - `terms.V1_INTRADAY_METHOD = "rv-quote-15m-v1"`.
+  - `series.live_intraday_rv` skips every row whose `method` is not the pinned one, including a missing method.
+  - It is the only path: G7's capture (`forecast_v4_rules/wiring.py:37`) and G8's outcomes (`g7_series.py:31`) both
+    read A16 rows through `live_intraday_rv`. Checked by grep. So V1's outcomes, its trailing baseline and its HAR
+    baseline are all filtered by one line.
+- **Tests.**
+  - One test feeds the same date with a v1 row, an `rv-quote-5m-v2` row and an empty-method row: only the v1 row is
+    read.
+  - `test_the_pinned_method_is_a16s_live_method` ties the pin to `QuoteSnapshotRv15m.method`, so the two cannot drift.
+  - My plant: removing the filter's two lines fails 1 test.
+  - `tests/forecast_v4` + `forecast_v4_rules` + `forecast_scoring_v4` + `weather`: 304 passed.
+- **Gates.**
+  - Trial merge with `main` 2281a679: ruff, format and imports clean; **6,120 passed, 3 failed**.
+  - **All 3 also fail on `main` 2281a679 alone**, so they are not this branch's:
+    - `tests/books/test_paper_account.py::test_the_committed_state_is_the_13_oct_rs_5_lakh_opening_topped_up_to_rs_20_lakh_on_15_oct`
+      and `tests/market_read_models/test_home_blocks.py::test_the_live_wiring_reads_the_repositorys_books_and_their_open_risk_cap`
+      expect committed account files, which E2c's merge step 3 removed (`journal/<book>/` now holds only
+      `daily_totals.csv`);
+    - `tests/forecast_v4_rules/test_v4rules_series_and_rules.py::test_committed_closes_reproduce_the_disclosed_v6_counts`
+      expects 2,409 V6a outcomes and the committed closes now give 2,410 (one more day of data).
+  - This is a red `main`, reported to the orchestrator. It is a fix for E2c's owner and G7's owner, not for this
+    branch.
+- **Note (not blocking).** A skipped row leaves its session unresolved for V1, so it is not counted as void. If A16
+  ever writes a new method, V1 simply stops resolving. That is intended ("a new version"), but the look's count line
+  should then show it. The freeze record can say so in one line.
+
+**Verdict: PASS for 732db7e7.** Merge it before the freeze commit, after `main`'s 3 failures are fixed (the full suite
+on the merged tree must pass).

@@ -812,3 +812,122 @@ settled), choosing exits (E4's rules and the playbook).
 
 **Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** done (judge 71 PASS; merged f655612; claims `reviews/claude/response_73_e7-expiry-settlement.md`)
 claims `reviews/claude/response_73_e7-expiry-settlement.md`)
+
+---
+
+## E2c. Per-contract paper fills, marks and equity history in Drive; per-book daily totals in public
+
+**Repository:** trading
+
+**Description:** As the owner, I want every paper record that names a contract's price, and every mark, kept in Drive,
+with only per-book daily totals in the public repository. Then no one can rebuild a Groww quote from the public record
+(owner "6 A" and "8 A").
+
+**Context and why:** Owner decision, 15 Oct 2026 (`docs/DESK_DECISIONS.md`): "Per-contract paper fills, marks and
+equity history move to Drive before the first counted paper fill (story E2c)" ("A: move to Drive"). ChatGPT review
+105, point 1 (strong evidence: algebra) found the leak that E2b left open. A public fill at the ask `a`, together with a
+public mark `m` of the same contract at the same snapshot, gives the bid: `b = 2m - a`. For a book with one open
+contract, `m` is `(marked_equity - cash) / units` (`equity_history.csv`, scoreboard B's `raw_account_net_rs`). STR1's
+single-leg structures (LC, LP) make this a real path, not an imagined one. Response 131 records the rule (the public
+record keeps per-book daily totals only) and review 105's point 3 (a run with an unrecovered stop opens nothing). No
+paper fill has happened yet (no strategy approved), so the move costs no history.
+
+**What is public today and where each part goes (checked in code on `main`):**
+
+| File (committed today) | What it holds | Goes to |
+|---|---|---|
+| `journal/<book>/account/cash_ledger.csv` (E1) | every fill: contract, quoted and fill price, charges | Drive |
+| `journal/<book>/account/desk_fills.csv`, `desk_events.csv` (E4) | every leg's fill; events with reasons and legging cost | Drive |
+| `journal/<book>/account/positions.json` (E1) | open and closed trades with their money | Drive |
+| `journal/<book>/account/equity_history.csv` (E1) | daily cash, closed and **marked** equity | Drive |
+| `research/scoreboards/B/<date>.json` (S2) | per-trade lines and marked results | Drive |
+| `journal/<book>/packs/<date>/private.json` (E2, committed by E3's pack step: `daily_steps.py:85`, `pack_store.py:28`) | the full text of the book's own files, its account folder included (`private_pack.py`) | Drive; its `private.json.sha256` stays public (D3 records the pack's hash as evidence) |
+| new: `journal/<book>/daily_totals.csv` | per book, one row per date with a ledger row (closed equity cannot change without one): `date`, `closed_equity_rs`, `open_trades`, `closed_trades`, `fills` (a count) | public |
+
+`closed_equity_rs` is the opening cash plus the net of closed trades only. It holds no cash for open positions and no
+mark. A closed trade's net is the sum of its fills at different snapshots, so it gives no bid-ask pair (reasoning).
+The run log keeps what it holds after E2b (outcomes, run IDs, snapshot IDs, no prices). The daily card is already
+Drive-only (T1).
+
+**Scope.** In:
+- **Where the files live.** A book's account folder becomes local and git-ignored. Its files are kept in Drive through
+  A4b's Drive store, under their repository paths in the `paper` area (`paper/journal/<book>/account/`; judge 159
+  accepted the whole path, so one rule covers accounts, packs and scoreboard B), with the same names and formats (E1,
+  E4). Shadow accounts go the same way (`paper/journal/shadow/<name>/account/`).
+- **The writer.** Every account write (fills, exits, settlement) runs as one `DriveAccountSync`, behind E3's existing
+  `AccountSync` port and replacing `GitAccountSync` in `fno/desk/daily_wiring.py`:
+  - download the book's files from Drive;
+  - apply under E1's lock;
+  - upload the changed files, the desk fills first and the desk events last (judge 159: a push that stops part way
+    leaves a state the rerun completes; an entry's event is its "done" marker, and a ledger fill never reaches Drive
+    without its desk row);
+  - then write and commit `daily_totals.csv`.
+
+  The daily run is the only writer of accounts (E3), so the git reset-and-reapply logic for competing writers goes:
+  one writer, no merge.
+- **The private packs.** E2's pack builder writes each book's `private.json` to Drive beside the account. Only its
+  `private.json.sha256` is committed, and D3 records the pack's hash, as today. Book 1's decision hashes its pack for
+  D3's record (`fno/books/book1_inputs.py:42`), so it needs the downloaded copy.
+- **The readers: one shared download at the start of each run or command that reads accounts or private packs.**
+  The function fetches every book's account and private packs from Drive into the git-ignored local folders. It runs
+  once, before anything reads them. The readers are:
+  - E3's daily run (fills, exits, settlement, the C3 and C4 checks);
+  - Book 1's decision (C2's view of the book, trade counts, opening runs, its private pack: `fno/books/book1_wiring.py`);
+  - C4's `LedgerAccounts` (`fno/checks/validity_account.py`, wired in `fno/checks/wiring.py:91`). Its replay stays
+    valid on the Drive copy, because C4 counts only the ledger rows filled by the decision cutoff, and the ledger is
+    append-only;
+  - T1's card (`fno/cards/status.py:29`, `:83-100`). It reads `positions.json` from the downloaded folder, no longer
+    from the committed record;
+  - E6's scorecards (`fno/scorecard/wiring.py`);
+  - scoreboard B (`fno/scoreboard/wiring.py`), which writes its board to Drive, not to `research/scoreboards/B/`;
+  - Home's read model (`fno/market_read_models/home_inputs.py`), which publishes to the dashboard's Azure store as
+    today;
+  - E1's account command (`fno/composition.py`), and the shadow books (`fno/desk/shadow_books.py`), whose accounts
+    are downloaded with the books'.
+- **The move itself.** Today's committed account files hold only the opening rows. They are uploaded to Drive once,
+  then removed from the repository (`git rm`, the history keeps the opening rows only), and the folder is ignored.
+- **A stop before the exits blocks new entries** (review 105 point 3; response 131). E3's rerun recovers a stop in the
+  same checkout (E2b). But the daily routine starts in a fresh container each day, so the stop can only be seen in the
+  committed run log. Before today's fills, the desk reads the last session's run log. If that log has no `exits` step
+  (the run stopped before its exits), today opens no new entry, with one alert naming the day. A stop before any
+  step (the recovery or the download) leaves no log, so a missing log blocks too once an earlier log exists (judge
+  159). A completed exits step can still hold a book whose review failed (an `error`, such as a Drive 503) or whose
+  due exits were held up for lack of a snapshot (a non-empty `waiting`): that book alone opens nothing new (ChatGPT
+  review 115). A day without a snapshot and nothing due blocks nothing. Today's exits still run, and once they are
+  done the next session opens normally.
+Out:
+- the raw quote files (A4b);
+- D3's decision records and C4's records (they hold no fill or mark; E2b's kept mids stay, as decided);
+- any change to how fills are priced (E4, E4c).
+
+**Acceptance criteria:**
+1. After a day with fills and exits, no committed file holds a contract's fill price, a mark, cash or marked equity:
+   a test runs a fixture day end to end (the pack step included) and scans every committed file, the private packs'
+   folders included, for the day's prices and marks.
+2. `daily_totals.csv` holds, per book and date with a ledger row, exactly the five columns above, matching the Drive account by
+   hand on a fixture day (one entry and one closed trade).
+3. After the shared download, the daily run, Book 1's decision (with its private pack), C4, T1's card, E6, scoreboard B
+   and Home read the same values as they read from the local folder before (one test each, on a fake Drive store).
+4. A Drive write that fails stops the account write with E3's alert. Nothing is committed for that step, and the rerun
+   repeats the write (E1's fills are idempotent by fill ID).
+5. With the last session's run log holding no `exits` step, today's fills step opens nothing and sends one alert, and
+   today's exits still run. With the step present, entries open as usual.
+
+**Test plan:** a fake Drive store (A4b's), a fixture day end to end, the committed-file scan (packs included), and one
+reader test each.
+No network, no Slack.
+
+**Judge verifies:** runs the fixture day and greps the committed tree for the day's prices; recomputes one
+`daily_totals.csv` row by hand; checks the stop-blocks-entries test.
+
+**Known limits:**
+- The read models go only to the dashboard's Azure store behind sign-in (judge 148). P2 or any later job must never
+  commit a page holding these fields to a public repository.
+- Two daily runs on one book at the same time would race on Drive (no lock across containers). Only one routine runs
+  the desk.
+- A closed single-leg trade's net, kept owner-only here, is not a bid-ask pair (its fills are at different snapshots).
+- Every command that reads the accounts needs Drive's four `FNO_GDRIVE_*` settings, `market publish --local`
+  included; without them it stops with one line rather than read a stale copy.
+
+**Depends:** A4b (the Drive store), E2b, E3, E4 · **Size:** M · **Status:** code on `story/e2c-fills-to-drive`
+(response 150, first numbered 148; story text PASS judge 148 add. 1; code judge 159 FAIL, fixes for the re-check)

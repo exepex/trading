@@ -77,6 +77,8 @@ BIG_DAY_MISS_CAP = 0.10  # share of baseline-observable 2% days it may miss (bel
 POWER_REPORT_AT = 60  # scored outcomes of a question before its noise ratio r is measured
 POWER = 0.80
 USEFUL_TIME_YEARS = 2  # a projected settle date later than this is reported as "cannot settle in useful time"
+# V1 reads only A16 rows of this method (judge 177): a new A16 sampling method is a new version, never fed in silently.
+V1_INTRADAY_METHOD = "rv-quote-15m-v1"
 
 # The day's clock (story G10, section 1.6; owner, 15 Oct 2026), IST. A quote is in the pack only if its answer was
 # received by the window end (its `observed_at`: our receipt time, never a last-trade time).

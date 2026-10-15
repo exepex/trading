@@ -21,7 +21,7 @@ def add_scorecard_command(actions) -> None:
 
 def cmd_scorecard(args) -> int:
     from ..config import load_app_config
-    from ..desk.wiring import build_execution_snapshots
+    from ..desk.wiring import build_execution_snapshots, download_private_records
     from ..models import now_ist
     from ..playbook.fields import PlaybookError
     from .report import report
@@ -29,6 +29,7 @@ def cmd_scorecard(args) -> int:
     from .wiring import build_scorecard_run
 
     on = args.on or now_ist().date()
+    download_private_records()  # story E2c: every account's records come from Drive
     marks = {}
     if args.snapshot:
         day, snapshot_id = args.snapshot.split("/", 1)

@@ -9,7 +9,7 @@ import pytest
 from fno.constants import V1_RV_1S, V4_CLAIM, V4_OPEN, V5_INSIDE_STRADDLE, V6_BIG_MOVE_5S
 from fno.forecast_scoring.v4.days import DayCounts
 from fno.forecast_scoring.v4.inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
-from fno.forecast_scoring.v4.records import EXPLORATORY, LookRecordExists, LookRecords, NoRegistrations
+from fno.forecast_scoring.v4.records import EXPLORATORY, LookRecordExists, LookRecords, NoRegistrations, Registration
 from fno.forecast_scoring.v4.render import report_json, report_lines
 from fno.forecast_scoring.v4.scoring import QUESTIONS, STATUS_NO_DATA, STATUS_NOT_STARTED, V4Scoring
 from fno.forecast_v4.terms import LOOK_SETTLE_DATE, LOOK_STOP_REVIEW
@@ -106,7 +106,7 @@ class Mixed(V4ForecastSource):
 
 class Registered(NoRegistrations):
     def registered(self):
-        return {(V6_BIG_MOVE_5S, "rules"): "weather_m1"}
+        return {(V6_BIG_MOVE_5S, "rules"): Registration("weather_m1", date(2025, 1, 1))}
 
 
 class AllResolved(V4OutcomeSource):

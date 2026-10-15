@@ -40,8 +40,8 @@ NOT_READ = "{path}: not readable ({why})"
 
 
 class RegistryStatus(StatusSource):
-    def __init__(self, records: CommittedRecords, books: Sequence[str] = BOOKS):
-        self.records, self.books = records, tuple(books)
+    def __init__(self, records: CommittedRecords, accounts: CommittedRecords, books: Sequence[str] = BOOKS):
+        self.records, self.accounts, self.books = records, accounts, tuple(books)  # accounts: Drive's copy (E2c)
 
     def status(self, day: date) -> StatusReading:
         used, missing = [], []
@@ -80,11 +80,11 @@ class RegistryStatus(StatusSource):
         return TRADES_LINE.format(total=total, books=books)
 
     def _trades_of(self, book: str, used: list, missing: list) -> int | None:
-        """Open plus closed trades in the book's committed account view; None (and named missing) when unreadable."""
+        """Open plus closed trades in the book's downloaded account view; None (and named missing) when unreadable."""
         path = POSITIONS_PATH.format(book=book)
-        data = self.records.read(path)
+        data = self.accounts.read(path)
         if data is None:
-            missing.append(NOT_READ.format(path=path, why="not committed"))
+            missing.append(NOT_READ.format(path=path, why="not downloaded from Drive"))
             return None
         try:
             view = json.loads(data)
