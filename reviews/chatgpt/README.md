@@ -81,3 +81,5 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 121: BR1a breadth protocol — ACCEPT](review_121_br1a-protocol.md)
 - [Review 122: E8 owner-timing fills — CHANGE](review_122_e8-owner-timing-fills.md)
 - [Review 123: E4c protective-leg entry check code — ACCEPT](review_123_e4c-entry-check-code.md)
+- [Review 120: S3/S6 scoreboards — PARTIAL, changes before freeze](review_120_s3-s6-scoreboards.md)
+- [Review 124: F9a role-value scoring — PARTIAL](review_124_f9a-role-value.md)

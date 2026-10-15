@@ -6,6 +6,7 @@ from __future__ import annotations
 
 __all__ = [
     "RUN_LOG_DECISIONS_STEP",
+    "RUN_LOG_EXITS_STEP",
     "DESK_RUN_STEPS",
     "DAILY_RUN_STEPS",
     "STEP_OK",
@@ -24,8 +25,9 @@ __all__ = [
 
 # Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
 RUN_LOG_DECISIONS_STEP = "decisions"
+RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)
 # E3's steps, then story O1's whole day in order (the health check O8 reads it); Book 1 decides right after the pack
-DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", "exits")
+DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", RUN_LOG_EXITS_STEP)
 DAILY_RUN_STEPS = (
     "quotes",
     "margin_check",

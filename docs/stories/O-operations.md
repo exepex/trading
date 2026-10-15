@@ -17,33 +17,12 @@ weather, v4 forecasts, quotes, data checks, desk, card). The earlier text is in 
 
 ## O2. Failure handling, end to end
 
-**Repository:** trading
+**Changed by REPLAN (line 62) and started by the owner on 16 Oct 2026:** the story text is now
+`docs/stories/O2-failure-handling.md` (one end-to-end suite over O1's real daily run: Drive, Slack and Groww/NSE
+outages, a routine that never starts, a partial run and its rerun, design 9's rows, book isolation). The earlier text
+is in this file's history.
 
-**Description:** As the risk manager, I want every failure in design section 9 tested end to end, so that a broken
-data feed, a missing AI book or a hit limit always means no new risk, running exits and an alert.
-
-**Context and why:** Design 9: data missing or stale -> no new trades, stale prices never used, alert; a role fails to
-report -> its conditions count as not met; judge or AI unavailable -> no new trades for that book, risk-reducing exits
-still run; limit hit -> code blocks the trade, broken protection is closed; brake hit -> no new trades, open trades
-continue; paper results outside the plan -> as the plan says. 13.5: one book's failure never changes another's fills.
-
-**Scope.** In: an end-to-end test suite with fakes for every row of section 9 and the 13.5 failure cases. Out: new
-behaviour (each row is implemented in its own story; this proves them together).
-
-**Expected design:** `tests/e2e/test_failures.py` driving `DailyRun` over fixture days with injected failures:
-missing snapshot, stale snapshot, invalid execution snapshot, AI session failure, model mismatch, firewall breach,
-judge timeout, limit hit, broken protection, brake hit, publication failure, Slack failure.
-
-**Acceptance criteria:**
-1. Each injected failure produces exactly the section-9 outcome and an alert naming it.
-2. In every case, scheduled exits of open positions still run (or become pending exits with an alert).
-3. A failure in one book never changes another book's decision or fills (hash comparison with a no-failure run).
-
-**Test plan:** the suite itself.
-
-**Judge verifies:** runs the suite and reads three failure transcripts.
-
-**Depends:** E3, E4, P3, P4 (F1, F4 for the AI-book cases, added in M5) · **Size:** M · **Status:** later
+**Depends:** O1, E2c, C3, C4, E3, O8 · **Size:** M · **Status:** story text (`reviews/claude/response_203_o2-failure-handling.md`)
 
 ---
 

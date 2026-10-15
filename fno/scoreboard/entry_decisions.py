@@ -39,6 +39,11 @@ class EntryDecisions:
             return None
         return entry_facts(record, self.segment(book, day, opportunity_id), self.overrides.overridden(record))
 
+    def structure(self, book: str, day: date, opportunity_id: str) -> str:
+        """The structure code the record that opened a trade names (story S6's random control); empty when none."""
+        record = self._records.get((book, day, opportunity_id)) or {}
+        return (record.get("structure") or {}).get("structure", "")
+
     def common_start(self, books: Sequence[str]) -> date | None:
         """S1's rule: the first session on which every book has an on-time committed run made under a version
         registered before it (its day record is scored by D6); None until that day comes."""
