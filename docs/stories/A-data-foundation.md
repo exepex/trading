@@ -1022,7 +1022,8 @@ Facts checked on 14 Oct 2026 (builder, response 77):
   edits or reorders a past row; the same row again is a no-op, a different figure for the same key is a conflict;
 - judge 75 (14 Oct 2026): the scanning risk, the net option value and the exposure are stored as separate columns; C2
   counts `max(0, scan - NOV) + min(0, NOV) + exposure` and stresses only the scan (`max(0, k x scan - NOV) + min(0, NOV)
-  + exposure`, k from config); with an open losing trade C2 never leaves more free than a broker that nets the
+  + exposure`, k from config; superseded by stories C2c and C2d, 15 Oct 2026: k stresses the exposure too, and comes
+  from A14c's factor file); with an open losing trade C2 never leaves more free than a broker that nets the
   premium (test);
 - a GitHub Actions job (no AI) with the A13 shape, run each morning before the open (07:45 IST, retry 08:30):
   librarian, revisions sweep, compute, commit; one #fno-desk line on any failure;

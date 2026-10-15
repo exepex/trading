@@ -135,3 +135,47 @@ after A4c) and criterion 9 (the real day).
   - `ruff check`, `ruff format --check` and `check_imports` are clean.
 - Note 3 (merge after A4c) stands, and so does optional note 6 (start `quotes` before `margin_check`). The builder
   did not mention note 6.
+
+## Addendum 3: O1 at 43943a52 (note 6 built: quotes first, 10-minute command limit)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings. Note 6 is closed. Criteria 8 and 9
+and the merge after A4c are still to come.
+
+- **Order.** `DAILY_RUN_STEPS` now starts with `quotes`, then `margin_check`, so the quote parts (child processes that
+  wait for 14:55 themselves) always start before any command that might call Groww. My mutation swapping the two
+  makes `tests/daily` fail. The story table and the "No command holds the day" line match the code.
+- **Limit.** Every O1 `CommandStep` (margin_check, weather, forecasts_v4, book1, card) is stopped after
+  `COMMAND_LIMIT_SECONDS` = 600 and recorded `failed`, with nothing committed. The new test proves the stop, the
+  10-minute bound and the empty paths. My mutation removing the limit makes it fail.
+- **Gates on a trial merge with origin/main:**
+  - 6176 passed, 3 failed: the same 3 that are red on plain main (judge 178 addendum 2), none in O1's files;
+  - `ruff check`, `ruff format --check` and `check_imports` are clean.
+
+Notes (one line each, reasoning only, not should-fix):
+
+7. A 10-minute limit does not protect the 15:12 deadline for `book1`, which starts after the pack (up to about
+   15:10). A hung `book1` could push `decisions` to about 15:20. E3's late rule then applies and the exits still run,
+   so no trade or stop is decided wrongly. The claim "never holding the deadline" is too strong for `book1`.
+8. `ChildProcess.stop()` kills only the Python child. A `git push` that `book1` started could outlive it and touch
+   the checkout while the run goes on. No evidence that this happens, and a 10-minute hang of `book1` has not been
+   seen either.
+
+## Addendum 4: O1 at 71b00878 (notes 7 and 8)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings. Notes 7 and 8 are closed.
+
+- **Note 7.** The `CommandStep` docstring and the story's "No command holds the day" line now say plainly that the
+  10-minute limit does not protect 15:12 for `book1` (which can start at about 15:10), and that E3's late rule
+  decides that case. The claim now matches the behaviour.
+- **Note 8.** Children start with `start_new_session=True`, and `stop()` kills the whole process group (`killpg`,
+  SIGKILL; a child that already ended is tolerated). This also covers a quote part stopped at `FINISH_LIMIT`. The new
+  test, `test_stopping_a_command_kills_what_it_started_too`, uses a real grandchild and checks it is dead (zombies
+  count as dead). My mutation removing `start_new_session` makes it fail.
+- **Gates on a trial merge with origin/main dd35b2e5:** the suite is now **fully green, 6180 passed** (main's fixes
+  for the 3 earlier red tests are in). `ruff check`, `ruff format --check` and `check_imports` are clean.
+- One-line note, reasoning only: in their own session, the children no longer receive a Ctrl-C or SIGTERM sent to
+  the routine's process group. If the run itself dies, a running recorder carries on with no one to commit its files.
+  That was already the case for a crashed parent, and the stated known limit (a rerun after a dead run) covers it.
+  Nothing to change.
+
+Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the real day), and the merge after A4c.
