@@ -1210,8 +1210,13 @@ opportunity (criterion 1), an unknown reason dropped (criterion 3), an unwound p
    board change touches `book_board.py` only and is built after S6's follow-ups merge (`story/s6-followups`), or on
    main merged first.
 
+**Code-round notes (judge 212):** a reason's code is matched on the text before " (" (E4c's and E4d's format);
+"partial fill, unwound" is the outcome `not_opened_partial_fill`; E4's guard with nothing filled is `not_opened` with
+free text ("<contract> did not fill: ...", `entries.py`), mapped by one named pattern constant (no change to E4's
+records), and it is in criterion 3's named test.
+
 **Depends:** E6, S2, E4c, E4d (all merged); E8 and S6's follow-ups (code only) · **Size:** S · **Status:** story
-text for the judge (response 215)
+text PASS judge 212 (0d644e83); code waits for E8 and S6's follow-ups (response 215)
 
 ---
 
