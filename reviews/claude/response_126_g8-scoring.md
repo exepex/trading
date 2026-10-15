@@ -33,3 +33,15 @@ judge D's PASS.
 4. **Futility uses the gate set and its own n** for the threshold (the protocol's 5.5 defines futility on the gate
    set; the tools calibrate at the n they are given). For Brier questions both sets are the same.
 5. **Before the freeze nothing is written as a look record**; every output says EXPLORATORY.
+
+## Revision 1 (orchestrator decisions 69 and the G7 agreement)
+
+- The crash cut is `crash_dominated(big_days, n)` in `fno/forecast_v4/confirmatory.py`, added in this branch, with
+  the boundary test 12 / 125 judged and 13 / 125 cut. The protocol's section 11 E line is the G6 session's, in the
+  freeze commit; named as a freeze dependency, not edited here.
+- Outcomes: G8 imports G7's `fno/forecast_v4_rules/series.py` (one place per rule); choice 1 above is withdrawn.
+- Forecast files: G7's agreed layout, `research/forecasts/v4/<forecaster>/<question>.csv`, `day,value,status,label`
+  first.
+- Found while checking names (strong evidence: `fno/constants.py:168`): the EWMA baseline's constant is `ewma_094`,
+  but G7's folder id is `ewma`. It is a reported baseline only (no primary uses it), but one name is needed; told
+  the G7 builder.

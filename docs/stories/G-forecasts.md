@@ -256,21 +256,28 @@ takes a few minutes.
 than 10% of its scored outcomes (`big_days / n > 0.10`, strict). A crash-dominated window is not judgeable at that
 look, exactly like a window with fewer than 5 2% days: p = 1 for claims and futility, verdict open, never "no".
 Both gates apply to every member at every look. **Said plainly:** at n = 125 the cut caps a judgeable window at
-12 2% days (13 / 125 = 10.4%), so V6's 13+ band is unused until n >= 130; at n = 250 the cap is 25. The rule is one
-function beside `judgeable` in `fno/forecast_v4/confirmatory.py` with one protocol line stating option 2 as decided,
-so it is frozen with the protocol (proposed to the orchestrator; if refused, it is one G8 function instead, same test).
+12 2% days (13 / 125 = 10.4%), so V6's 13+ band is unused until n >= 130; at n = 250 the cap is 25. **The rule is
+`crash_dominated(big_days, n)` in `fno/forecast_v4/confirmatory.py`, beside `judgeable`** (orchestrator decision 69),
+so it is frozen with the protocol; it is added in this story's branch. The protocol line stating option 2 as decided
+(section 11 E) is written by the G6 session in the freeze commit (G6 judge note 1), not by G8: **a dependency of the
+freeze**.
 
 **Expected design** (new package `fno/forecast_scoring/v4/`, each file well under 350 lines; composition root
 `fno/forecast_scoring/v4/wiring.py`, added to CLAUDE.md's list):
-- `V4ForecastSource` (interface): one row per (question, forecaster, day) with a value or none, and a label
-  (exploratory back-fill or live). Adapter for G7's committed files (layout agreed with the G7 builder through the
-  orchestrator). The primary baseline is read from the same source under its name (`terms.PRIMARY_BASELINE`; V1's
-  switch to intraday HAR by `eligibility.py`).
-- `V4Outcomes`: from A7's regular sessions only (`sessions.py`) and the official closes and closing India VIX in
-  `research/data/nifty-panel/warmup_closes.csv`: V2 and V3 the summed squared close-to-close log returns
-  (`close_proxy`), V6a, V6b and V7 the events of protocol 1.2; V1 from A16's `rv/` rows (`ok` rows only; a `void` row
-  is a void outcome). A horizon whose last session is not yet in the file is unresolved. The regime inputs of each
-  outcome: the closing VIX and the log return of its first session (`regime.py`'s definition).
+- `V4ForecastSource` (interface) and its adapter for **G7's agreed layout**: `research/forecasts/v4/<forecaster>/
+  <question>.csv`, one row per day, first four columns `day,value,status,label` (value a variance for V1-V3 or a
+  probability, empty unless status is `ok`; status `ok`, `missing`, `not_eligible` or `not_started`; label `live` or
+  `backfill_exploratory`); G7's audit columns after them are ignored. Folder names are forecaster ids; question names
+  the constants in `fno/constants.py`. Any status but `ok` is "no forecast that day". The primary baseline is read the
+  same way under its id (`terms.PRIMARY_BASELINE`: `base_rate`, `har_daily`, `har_intraday`; V1's switch to intraday
+  HAR by `eligibility.py`).
+- `V4Outcomes`: **imports G7's pure rules in `fno/forecast_v4_rules/series.py`** (one place per rule; G7 builds
+  first): the regular-session closes and VIX closes of `warmup_closes.csv`, the close-proxy `RV_s`, the V6a and V6b
+  outcome per day with its resolution session, and the A16 live `rv/` reader (live provenance only; A16b's
+  `rv-candle` never, decision 56). From those G8 forms V2 and V3 (sums of `RV_s` over the horizon's regular
+  sessions), V7 (`VIX(d+5) > VIX(d)`, strict) and V1 (an `ok` A16 row; a `void` row is a void outcome). A horizon
+  whose last session is not yet in the data is unresolved. The regime inputs of each outcome: the closing VIX and the
+  log return of its first session (`regime.py`'s definition).
 - `scores.py`: per forecaster and question. Point: count, mean ranking QLIKE, mean textbook QLIKE on RV > 0, mean
   squared error on variance, Mincer-Zarnowitz `RV = a + b f` (OLS). Probability: mean Brier, mean log score (clipped
   to [0.01, 0.99]), the 10-bin reliability table (G4's bins, reused), calibration slope and intercept (the same OLS,
@@ -334,5 +341,6 @@ boundary tests above; planted changes for criterion 10.
 **Judge verifies:** rebuilds one V6b comparison by hand from the closes; runs one look on a fixture and checks every
 gate and threshold call.
 
-**Depends:** G6 (merged), G7 (forecast files), A7, A16 (V1 only) · **Size:** M · **Status:** story text for the judge
+**Depends:** G6 (merged), G7 (its `series.py` and forecast files; built first), A7, A16 (V1 only); the freeze also
+needs the G6 session's section 11 E line · **Size:** M · **Status:** story text for the judge
 (claims `reviews/claude/response_126_g8-scoring.md`)
