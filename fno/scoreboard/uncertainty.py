@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import math
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from .series import DailySeries
@@ -29,7 +30,10 @@ class Uncertainty:
     reason: str
 
 
-def lower_bound(series: DailySeries, seed: int = SEED, resamples: int = RESAMPLES) -> float | None:
+def resampled_ratios(series: DailySeries, seed: int = SEED, resamples: int = RESAMPLES) -> list[float] | None:
+    """The moving-block bootstrap's resampled ratios of means, sorted; None when the series is shorter than one block
+    or never at risk. Each resample draws blocks of BLOCK_DAYS consecutive days until it holds as many days as the
+    series."""
     n = len(series.days)
     if n < BLOCK_DAYS or series.risk_days <= 0:
         return None
@@ -43,8 +47,31 @@ def lower_bound(series: DailySeries, seed: int = SEED, resamples: int = RESAMPLE
                 net, risk = net + series.net[i], risk + series.risk[i]
             taken += BLOCK_DAYS
         ratios.append(net / risk if risk > 0 else 0.0)  # a resample never at risk made nothing per unit of risk
-    ratios.sort()
-    return ratios[max(math.ceil(LOWER_PERCENTILE / 100 * resamples) - 1, 0)]
+    return sorted(ratios)
+
+
+def lower_bound(series: DailySeries, seed: int = SEED, resamples: int = RESAMPLES) -> float | None:
+    ratios = resampled_ratios(series, seed, resamples)
+    return None if ratios is None else ratios[max(math.ceil(LOWER_PERCENTILE / 100 * resamples) - 1, 0)]
+
+
+def p_value(series: DailySeries, seed: int = SEED, resamples: int = RESAMPLES) -> float | None:
+    """One-sided bootstrap p-value of "above zero": the share of resampled ratios at or below zero (story S3). With the
+    nearest-rank rule, p < 5% exactly when `lower_bound` is above zero."""
+    ratios = resampled_ratios(series, seed, resamples)
+    return None if ratios is None else sum(r <= 0 for r in ratios) / len(ratios)
+
+
+def holm(p_values: Sequence[float], alpha: float = LOWER_PERCENTILE / 100) -> list[bool]:
+    """Holm's step-down across the claims of one review (S1): sorted ascending, the i-th of m passes while
+    p < alpha / (m - i + 1); the first failure stops the rest. A plain list in, one verdict per claim out, in order."""
+    order = sorted(range(len(p_values)), key=lambda i: p_values[i])
+    passed = [False] * len(p_values)
+    for rank, i in enumerate(order):
+        if p_values[i] >= alpha / (len(p_values) - rank):
+            break
+        passed[i] = True
+    return passed
 
 
 def uncertainty(series: DailySeries, positions: int, months: int) -> Uncertainty:

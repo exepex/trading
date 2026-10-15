@@ -6,16 +6,16 @@ execution snapshot started (E3's late rule)."""
 from __future__ import annotations
 
 import json
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
-from ..constants import JOURNAL_FOLDER, RUN_LOG_DECISIONS_STEP
+from ..constants import JOURNAL_FOLDER, RUN_LOG_DECISIONS_STEP, RUN_LOG_EXITS_STEP
 from ..desk.run_log import RUNS_FOLDER
 from ..playbook.decision_store import INPUTS_FILE, DecisionStore
 
-DECISIONS_STEP, SNAPSHOT_STEP = RUN_LOG_DECISIONS_STEP, "snapshot"
+DECISIONS_STEP, SNAPSHOT_STEP, EXITS_STEP = RUN_LOG_DECISIONS_STEP, "snapshot", RUN_LOG_EXITS_STEP
 
 
 @dataclass(frozen=True)
@@ -69,3 +69,27 @@ class CommittedRuns:
         folder = DecisionStore(self.root, run.book).day_folder(run.day) / run.run_id
         paths = sorted(p for p in folder.glob("*.json") if p.name != INPUTS_FILE)
         return [json.loads(p.read_text(encoding="utf-8")) for p in paths]
+
+    def missed_runs(self, book: str, sessions: Sequence[date], held: Callable[[date], bool]) -> list[dict]:
+        """Scoreboard B's missed runs (story S6 section 5), read from the run logs: a session with no run of the book
+        collected is `missed_decision`; one with no exit review while a trade was held at the previous session's close
+        is `missed_exit_review`, as is an exits step where the book's review failed (`error`) or its exits were held up
+        (`waiting`), the daily run's own rule (daily_run.py). Closed days are never listed, since `sessions` holds
+        sessions only."""
+        logs, found = dict(self.logs()), []
+        for i, day in enumerate(sessions):
+            if i == len(sessions) - 1 and day not in logs:
+                continue  # the report day before its run: not run yet, not missed
+            steps = logs.get(day, {})
+            collected = "run_id" in steps.get(DECISIONS_STEP, {}).get("result", {}).get(book, {})
+            exits_missed = not _reviewed(steps, book) and i > 0 and held(sessions[i - 1])
+            if not collected or exits_missed:
+                found.append({"day": day.isoformat(), "missed_decision": not collected,
+                              "missed_exit_review": exits_missed})  # fmt: skip
+        return found
+
+
+def _reviewed(steps: dict, book: str) -> bool:
+    if EXITS_STEP not in steps:
+        return False
+    return steps[EXITS_STEP].get("result", {}).get(book, {}).get("reviewed") is True  # E3 writes it on every outcome

@@ -12,6 +12,7 @@ from datetime import date
 from ..accounting.ledgers import TradeLine, trade_line
 from ..books.equity import trade_positions
 from ..constants import OUTCOME_OPENED
+from ..desk.pricing import DeskLeg
 from ..desk.records import DeskRecords
 from .daily_values import DayMarks, TradeDay, trade_days
 from .entry_decisions import EntryDecisions
@@ -31,6 +32,9 @@ class ScoredTrade:
     line: TradeLine | None  # C1's trade ledger line once closed
     entry: EntryFacts | None  # None when the desk used no committed record for it
     days: tuple[TradeDay, ...]
+    legs: tuple[DeskLeg, ...] = ()  # what it holds (story S6's random control draws twins of it)
+    structure: str = ""  # the structure code its record names
+    units: int = 0  # units per leg (lots x lot size)
 
     @property
     def group(self) -> str:
@@ -57,8 +61,11 @@ def book_trades(
         closed = position.closed_on if position.closed_on and position.closed_on <= on else None
         line = trade_line(position.as_ledger_trade(), dict(charges)) if closed else None
         entry = decisions.entry(records.account.book, start, first["decision_id"])
-        days = trade_days(own, records.legs(trade_id), sessions(start, closed or on), marks)
-        out.append(ScoredTrade(trade_id, first["strategy"], start, closed, trade_id in opened, line, entry, days))
+        legs = records.legs(trade_id)
+        days = trade_days(own, legs, sessions(start, closed or on), marks)
+        code = decisions.structure(records.account.book, start, first["decision_id"])
+        out.append(ScoredTrade(trade_id, first["strategy"], start, closed, trade_id in opened, line, entry, days,
+                               tuple(legs.values()), code, int(own[0].order.units)))  # fmt: skip
     return sorted(out, key=lambda t: (t.opened_on, t.trade_id))
 
 

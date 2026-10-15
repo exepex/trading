@@ -3,7 +3,7 @@ is complete but not decided; only a decided protocol can be frozen."""
 
 import pytest
 
-from fno.evaluation.completeness import completeness_problems, undecided_items
+from fno.evaluation.completeness import SET_AT_FREEZE, completeness_problems, undecided_items
 from fno.evaluation.protocol import REQUIRED_ITEMS, parse_protocol
 from tests.evaluation.builders import DECIDED_ON, DRAFT, decided
 
@@ -12,18 +12,21 @@ def problems(text: str) -> list[str]:
     return completeness_problems(text, parse_protocol(text))
 
 
-# The owner's decisions of 14 Oct 2026 (docs/DESK_DECISIONS.md); every other item still awaits the owner
+# The owner's decisions of 14 and 15 Oct 2026 (docs/DESK_DECISIONS.md; story S6's five items, 15 Oct); every other item
+# still awaits the owner
 DECIDED_BY_OWNER = (
     "uncertainty_criterion", "catastrophic_loss_strategy", "ai_cost_allocation", "reporting_per_version",
-    "frozen_files",
+    "frozen_files", "do_nothing_benchmark", "scorecard_measures", "t_check", "missed_runs", "random_control",
 )  # fmt: skip
+SET_ON_FREEZE_DAY = ("do_nothing_benchmark",)  # decided, but its cash rate is set on the freeze day (judge 196)
+WAITING = [key for key in REQUIRED_ITEMS if key not in DECIDED_BY_OWNER or key in SET_ON_FREEZE_DAY]
 
 
 def test_the_committed_draft_is_complete_and_only_the_owner_s_decided_items_are_decided():
     protocol = parse_protocol(DRAFT)
     assert problems(DRAFT) == [] and protocol.version == 1
     assert set(protocol.items) == set(REQUIRED_ITEMS)
-    assert undecided_items(protocol) == [key for key in REQUIRED_ITEMS if key not in DECIDED_BY_OWNER]
+    assert undecided_items(protocol) == WAITING
 
 
 def test_a_decided_protocol_has_nothing_left_for_the_owner():
@@ -86,4 +89,24 @@ def test_the_check_command_passes_the_draft_and_refuses_it_as_decided(capsys):
     assert _check(decided=False) == 0
     assert "complete" in capsys.readouterr().out
     assert _check(decided=True) == EXIT_FAILED
-    assert f"not decided by the owner ({len(REQUIRED_ITEMS) - len(DECIDED_BY_OWNER)})" in capsys.readouterr().out
+    assert f"not decided by the owner ({len(WAITING)})" in capsys.readouterr().out
+
+
+S6_ITEMS = ("do_nothing_benchmark", "scorecard_measures", "t_check", "missed_runs", "random_control")
+
+
+@pytest.mark.parametrize("key", S6_ITEMS)
+def test_each_of_story_s6s_items_is_required(key):
+    start = DRAFT.index(f"### `{key}`")
+    without = DRAFT[:start] + DRAFT[DRAFT.index("\n### ", start + 1) + 1 :]
+    assert any(key in p for p in problems(without))
+
+
+def test_a_decided_item_whose_value_waits_for_the_freeze_day_is_not_decided():
+    """Judge 196: a number marked "(set at the freeze)" must never be frozen as it stands."""
+    text = decided()
+    start = text.index("### `do_nothing_benchmark`")
+    marked = text[:start] + text[start:].replace("5.5% a year", f"5.5% a year {SET_AT_FREEZE}", 1)
+    assert problems(marked) == []
+    assert undecided_items(parse_protocol(marked)) == ["do_nothing_benchmark"]
+    assert "do_nothing_benchmark" in undecided_items(parse_protocol(DRAFT))  # the committed draft carries it
