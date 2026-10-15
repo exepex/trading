@@ -31,7 +31,7 @@ FnoStrategyLab:
       additionalProperties: false
       required: [trials_total, by_status, expected_false_passes, pass_level]
       properties:
-        trials_total: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'ledger_csv:trial_id', description: 'Every ledger row (K in "trial k of K")'}
+        trials_total: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'ledger_csv:trial_id', description: 'The number of ledger rows, one per trial_id (K in "trial k of K")'}
         by_status:
           type: object
           description: How many trials are at each status (R1 adds the status column to the ledger)

@@ -17,7 +17,7 @@ hand or by screenshot; **reasoning only** = a design judgement.
   `render_fno_catalog.py` (CI job api-contract); mockups `design/mockups/39-trade-card` and `40-weather` built from the
   catalog (`design/mockups/_platform/catalog_data.py`); notes in 37 and 38 that the catalog supersedes their proposed F&O
   contracts.
-- **Here:** the pinned copy updated (`contracts/omenix-dashboard/`, `pin.json` at dashboard commit 1e145db, version 2.7.0,
+- **Here:** the pinned copy updated (`contracts/omenix-dashboard/`, `pin.json` at dashboard commit 01a6d57, version 2.7.0,
   the six new schema files and `fno-screens.json` added); `fno/market_read_models/contract.py:22` reads the new examples
   file; `tests/market_read_models/test_p1_data_catalog.py` (24 tests); the P6 version test now expects 2.7.0; REPLAN's P1
   row and slice A list updated (decision row of 15 Oct: "the REPLAN text is updated through it").
@@ -83,7 +83,7 @@ hand or by screenshot; **reasoning only** = a design judgement.
 - Only 26 of 228 fields can be filled from records that exist today; the rest wait for T1, M1, G7, G8, R1, S2, E8, LM1,
   C5 and RM1, and the tables say which. The catalog cannot prove those stories will produce exactly these fields: it
   makes any difference fail a test once they are built against the pin.
-- The pin names dashboard commit 1e145db on the story branch; after the dashboard merges, `contract-check` compares with
+- The pin names dashboard commit 01a6d57 on the story branch; after the dashboard merges, `contract-check` compares with
   `main` and the pin must be moved to the merge commit (same bytes, new commit id).
 - The navigation rail has no entry for screens 39 and 40 (changing the shared runtime would change every signed-off
   mockup's page.html); left for W3.

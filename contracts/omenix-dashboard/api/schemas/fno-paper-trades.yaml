@@ -28,9 +28,9 @@ FnoPaperTrades:
           family: {$ref: '#/components/schemas/FnoFamily', x-fill: built, x-record: 'paper_account:book', description: The book}
           as_of: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'equity_history:date', description: The session of the marks}
           opening_value: {type: number, exclusiveMinimum: 0, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:starting_cash', description: 'The account''s opening balance (Rs 5 lakh a book today; design v2 proposes a Rs 20 lakh account through C5)'}
-          value: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'equity_history:marked_equity_rs', description: 'Marked value: cash plus open positions at their marks'}
-          cash: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'equity_history:cash_rs', description: Cash}
-          open_trades: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'equity_history:open_trades', description: Open positions}
+          value: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:marked_equity', description: 'Marked value: cash plus open positions at their marks'}
+          cash: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'account_state:cash', description: Cash}
+          open_trades: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'account_state:open_trades', description: Open positions}
           open_max_loss: {type: number, minimum: 0, x-unit: INR (Paper), x-fill: not_built, x-catalog: {story: C5}, description: "Sum of the open positions' maximum losses (the account cap is Rs 1.5 lakh, owner 15 Oct 2026)"}
     open:
       type: array
@@ -67,7 +67,7 @@ FnoPaperTrades:
           opened_on: {type: string, format: date, x-unit: date (IST), description: The session it opened}
           closed_on: {type: string, format: date, x-unit: date (IST), x-fill: built, x-record: 'trade_line:closed_on', description: The session it closed}
           gross: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'trade_line:gross', description: "At quoted prices, before costs, at the desk's execution-snapshot fill (E4)"}
-          costs: {type: number, minimum: 0, x-unit: INR (Paper), x-fill: built, x-record: 'trade_line:charges', description: 'Charges plus pads (C1)'}
+          costs: {type: number, minimum: 0, x-unit: INR (Paper), x-catalog: {story: P2}, description: 'Charges plus pads (C1): TradeLine pads plus the sum of its charges by component; no single record field holds it, so P2 adds them up'}
           net: {type: number, x-unit: INR (Paper), x-fill: built, x-record: 'trade_line:net', description: "gross minus costs, at the desk's execution-snapshot fill (E4); the owner-timing views are in fills"}
           result: {type: string, enum: [won, lost, flat], x-unit: enum, description: 'After costs; never colour alone on screen'}
           exit: {type: string, enum: [take_profit, time_exit, max_loss_exit, expiry_settlement, safety_stop, other], x-unit: enum, description: How it closed}

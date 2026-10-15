@@ -1,6 +1,6 @@
 {
  "repository": "exepex/omenix-dashboard",
- "commit": "1e145db675ed0884408e1a404ffe2a94fa79a431",
+ "commit": "01a6d57f03985281482668873b842a1f42d72a29",
  "contract_version": "2.7.0",
  "files": {
   "api/examples/blocks-32.json": "17c455b146ee2ae778468ab779ec17d1aed08575eb04349841a780882a047498",
@@ -25,9 +25,9 @@
   "api/schemas/company.yaml": "f2e8085bc98753a8276f747f2c48e8366414cc2fd715ed29cdc01d19b3886a22",
   "api/schemas/fno-card.yaml": "85f6b45e5943fa63de16abd9c2176bd5145e7d8b1873413cc012c1d1db576439",
   "api/schemas/fno-forecast-lab.yaml": "4573fcc7b365f6973319bcbafbd6d83aca91becabd908d00746fe3b34911dbd9",
-  "api/schemas/fno-paper-trades.yaml": "a93f0482d85be7166a6be25e1016ce13c5b30f87902d3cc209bf07a384d8eeca",
+  "api/schemas/fno-paper-trades.yaml": "e30e3cc8b6b5b1603cefea25f6fbfb68387c3bffd5f79c85acddcb03770cdee9",
   "api/schemas/fno-screens-common.yaml": "ed6971dfd80495081086a0e916e7c5f253300dbb4fddbc0af083def4c0243cdc",
-  "api/schemas/fno-strategy-lab.yaml": "e6f1b9665a70ef423f93d255b3fda26d8c75ec0abac57522d42605fc46b1bab2",
+  "api/schemas/fno-strategy-lab.yaml": "3729201c8beb1f12327cfe07d7d1e30c84c96cb1fa50bcc7adcf4cd95101caf7",
   "api/schemas/fno-weather.yaml": "ff08f3e34f0ff5dd7fdeda832f73c71143437f072bc989bdc18ce5cdb6559dfb",
   "api/schemas/home.yaml": "8ca97bf5a6b70c89a1c2864311e56b4a2e0ea9999d7c6431f7cc230e19720e7b",
   "api/schemas/news.yaml": "9dc8a05e3f60ceb132435b94957b649c4c78b03f8ae0ee0317c3edfaee921d48",

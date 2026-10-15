@@ -3,7 +3,8 @@ pinned dashboard contract (contracts/omenix-dashboard, 2.7.0) holds the five F&O
 These tests fail when the backend and the catalog drift apart:
 - every catalog example validates against its pinned schema with this repository's validator, and its payload_sha256 is
   this repository's canonical hash (the publisher's);
-- every field the catalog marks as built (x-record <record>:<field>) names a record field that exists here today;
+- every x-record (<record>:<field>; the dashboard check requires one on every built field) names a record field that
+  exists here today, with a matching type where the record is typed;
 - fixtures built from this repository's own records (the trial ledger, a fresh paper account, the live forecasts of
   14 Oct 2026) validate against the schemas, so a renamed or retyped record breaks a test here;
 - no example names a strategy internal, and the card says PAPER ONLY."""
@@ -16,6 +17,9 @@ import dataclasses
 import hashlib
 import inspect
 import re
+import types
+import typing
+from datetime import date, datetime
 from pathlib import Path
 
 import pytest
@@ -41,6 +45,13 @@ SCREENS = {  # operation -> its response schema
     "getFnoForecastLab": "FnoForecastLabResponse",
     "getFnoStrategyLab": "FnoStrategyLabResponse",
     "getFnoPaperTrades": "FnoPaperTradesResponse",
+}
+PAGES = {
+    "getFnoCard": "card",
+    "getFnoWeather": "weather",
+    "getFnoForecastLab": "forecast_lab",
+    "getFnoStrategyLab": "strategy_lab",
+    "getFnoPaperTrades": "paper_trades",
 }
 CATALOG = {name: e for name, e in CONTRACT.examples().items() if name.split("_")[0] in SCREENS}
 PRIVATE = re.compile(
@@ -74,18 +85,47 @@ RECORD_FIELDS = {  # the records the catalog may name (tools/api/check_fno_scree
 }
 
 
-def x_records(node) -> list[str]:
+TYPED_RECORDS = {  # the records with Python types: the schema's type must match the field's annotation
+    "score_summary": ScoreSummary,
+    "bootstrap_result": BootstrapResult,
+    "check_report": CheckReport,
+    "account_state": AccountState,
+    "trade_line": TradeLine,
+    "desk_event": DeskEvent,
+}
+SCHEMA_TYPES = {"number": (float, int), "integer": (int,), "string": (str, date, datetime), "boolean": (bool,)}
+
+
+def x_record_nodes(node):
+    """(x-record, the schema node that carries it) of every field marked built."""
     if isinstance(node, dict):
-        own = [node["x-record"]] if "x-record" in node else []
-        return own + [r for value in node.values() for r in x_records(value)]
-    if isinstance(node, list):
-        return [r for value in node for r in x_records(value)]
-    return []
+        if "x-record" in node:
+            yield node["x-record"], node
+        for value in node.values():
+            yield from x_record_nodes(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from x_record_nodes(value)
+
+
+def catalog_nodes() -> list[tuple[str, dict]]:
+    folder = CONTRACT_FOLDER / "api" / "schemas"
+    return [
+        pair
+        for path in sorted(folder.glob("fno-*.yaml"))
+        for pair in x_record_nodes(yaml.safe_load(path.read_text("utf-8")))
+    ]
 
 
 def catalog_records() -> list[str]:
-    folder = CONTRACT_FOLDER / "api" / "schemas"
-    return sorted({r for path in folder.glob("fno-*.yaml") for r in x_records(yaml.safe_load(path.read_text("utf-8")))})
+    return sorted({record for record, _ in catalog_nodes()})
+
+
+def annotation(cls, name: str):
+    """A field's or a property's type, without None and with a tuple's element type (an interval is two numbers)."""
+    hint = typing.get_type_hints(cls).get(name) or typing.get_type_hints(getattr(cls, name).fget)["return"]
+    args = [a for a in typing.get_args(hint) if a is not type(None)] if isinstance(hint, types.UnionType) else [hint]
+    return tuple(typing.get_args(a)[0] if typing.get_origin(a) is tuple else a for a in args)
 
 
 def payload_of(name: str) -> dict:
@@ -110,6 +150,7 @@ def test_every_catalog_example_validates_here_and_carries_this_repositorys_hash(
     CONTRACT.validate(SCREENS[name.split("_")[0]], value)
     assert value["payload_sha256"] == hashlib.sha256(canonical(value["payload"])).hexdigest()
     assert value["schema_version"] == CONTRACT.version and value["product"] == "fno" and value["market"] == "india"
+    assert value["page_key"] == PAGES[name.split("_")[0]]
 
 
 def test_every_built_field_names_a_record_field_that_exists_here():
@@ -117,6 +158,23 @@ def test_every_built_field_names_a_record_field_that_exists_here():
     assert len(records) >= 15  # the catalog marks real records, not a token few
     missing = [r for r in records if r.split(":")[1] not in RECORD_FIELDS[r.split(":")[0]]()]
     assert missing == []
+
+
+def test_every_built_field_has_the_type_of_its_typed_record_field():
+    wrong = []
+    for record, node in catalog_nodes():
+        cls, name = TYPED_RECORDS.get(record.split(":")[0]), record.split(":")[1]
+        types_ = [
+            t
+            for t in ([node.get("type")] if isinstance(node.get("type"), str) else node.get("type", []))
+            if t != "null"
+        ]
+        if cls and not all(
+            issubclass(typing.get_origin(a) or a, SCHEMA_TYPES[types_[0]]) for a in annotation(cls, name)
+        ):
+            wrong.append(f"{record}: {types_[0]} vs {annotation(cls, name)}")
+    assert wrong == []
+    assert len([r for r, _ in catalog_nodes() if r.split(":")[0] in TYPED_RECORDS]) >= 10  # most built fields are typed
 
 
 def test_a_strategy_lab_fixture_from_the_real_ledger_validates():
@@ -158,10 +216,10 @@ def test_a_forecast_lab_fixture_from_the_live_forecasts_of_14_october_validates(
     validated("getFnoForecastLab", value)
 
 
-def test_a_renamed_field_or_a_planted_extra_field_fails_validation():
+def test_a_renamed_field_fails_validation():
     value = payload_of("getFnoCard_india_trade")
     value["payload"]["trade"]["entry_range"] = value["payload"]["trade"].pop("entry")
-    with pytest.raises(ContractBroken):
+    with pytest.raises(ContractBroken, match="entry_range"):
         validated("getFnoCard", value)
 
 
