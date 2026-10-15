@@ -115,6 +115,13 @@ def test_the_owners_wording_appears_in_the_protocol_and_the_readme(text):
         assert wording in flat
 
 
-def test_the_verify_command_takes_protocol_breadth(capsys):
+def test_the_verify_command_takes_protocol_breadth_and_fails_on_an_edited_frozen_target(tmp_path, monkeypatch, capsys):
+    import fno.config
+
+    breadth_repo(tmp_path, small_frozen_files(decided(TEXT)))
+    wiring.build_freezer(tmp_path, "breadth").freeze(TODAY)
+    monkeypatch.setattr(fno.config, "ROOT", tmp_path)
     assert _run(["evaluation", "verify", "--protocol", "breadth"]) == 0
-    assert "unchanged" in capsys.readouterr().out
+    (tmp_path / CODE).write_text("SCORE = 2\n")
+    assert _run(["evaluation", "verify", "--protocol", "breadth"]) == EXIT_FAILED
+    assert f"changed: v1: {CODE} changed after the freeze" in capsys.readouterr().out
