@@ -105,3 +105,18 @@ not run, stays "unresolved" instead of "void". Both are left out of the scored s
 - **The rename** `forecast-v4-scores` avoids G7's `forecast-v4`. CLAUDE.md and the docstring agree.
 
 I did not re-run the full suite on this SHA (it fails on the open should-fix anyway). I will run it on the fix SHA.
+
+## Addendum 3 (15 Oct 2026): G8 at 1e2ebf81 (fix on top of de4272e)
+
+**Verdict: PASS.** Addendum 1's should-fix is met, and nothing else is open.
+
+- **Fix.** `member_result` returns NOT_JUDGED for `terms.DESCRIPTIVE_ONLY` (V7) before the batch, gate or threshold
+  step. The new test runs a look with a registered V7 member through a threshold source that raises if asked: not
+  judged, p = 1, Test A undecided.
+- **My repro from addendum 2, on this SHA.** A real `run_look` with `FrozenToolThresholds(Path('tools'))` and the
+  same V7 member (130 outcomes, 9 2% days) now completes: Test A is "undecided", with no KeyError.
+- **Gates, run by me.** 5,074 passed and 0 failed with `FNO_SLACK_BOT_TOKEN` unset (G7 58f4329 is merged in, so
+  `test_freeze_v2` is green). ruff, format and check_imports are clean. A trial merge with `origin/main` conflicts
+  only in `reviews/claude/README.md` (keep both).
+- **Still the freeze's, not G8's.** `FREEZE_v4.md` must carry "Frozen on: YYYY-MM-DD" (addendum 2) and the section
+  11 E line. The power-report consequence (addendum 1) is for the owner and the G6 session (response 133).
