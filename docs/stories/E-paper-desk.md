@@ -707,3 +707,93 @@ settled), choosing exits (E4's rules and the playbook).
 
 **Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** done (judge 71 PASS; merged f655612; claims `reviews/claude/response_73_e7-expiry-settlement.md`)
 claims `reviews/claude/response_73_e7-expiry-settlement.md`)
+
+---
+
+## E8a. Fill-timing study: a 15:00 entry against E8's next-session 10:15 fill (history)
+
+**Repository:** trading
+
+**Description:** As the F&O trader and the risk manager, I want to know how much worse each structure family's entry
+gets when it fills at about 10:15 the next session (E8's 60-minute rule) instead of at 15:00, and how that compares
+with deciding at 14:00 and filling at 15:00, so that the owner can choose the decision time from numbers before any
+strategy is paper traded on E8's fills.
+
+**Context and why:** owner decision of 15 Oct 2026 "Fill-timing study: history now, then live"
+(`docs/DESK_DECISIONS.md`). E8's design (`docs/design_v2/03_layers_factory_desk.md:88-102`): a card at about 15:08
+with R = 60 minutes fills at the next session's 09:15 + 60, after the overnight gap; the remedy, if it costs too much,
+is an earlier decision time (an S1 `timetable` change), never a shorter R. Response 144 plan item 3: "the one item here
+that can change a trade". Facts already measured:
+- NIFTY's close-to-open move, 680 sessions of 2024-26 (`research/data/intraday/rv-candle`, `rv_overnight`): median
+  0.22%, at least 0.5% on 17% of sessions, at least 1% on 5% (some evidence: close to open, not 15:00 to 10:15).
+- Groww serves 15-minute candles of **expired** NIFTY options (read-only probe, 15 Oct 2026, scratch script, nothing
+  stored): `NSE-NIFTY-25Jan24-21500-CE` (51 candles on 10-11 Jan 2024), `27Jun24-23500-PE` (52), `27Mar25-23000-CE`
+  (53), each with volume and open interest. So the 15:00 and 10:15 leg prices are **real last trades**, not model
+  estimates (this corrects the "estimated" wording given to the owner on 15 Oct). They are candle closes, not bid and
+  ask; one symbol of Sep 2025 returned nothing (most likely a wrong expiry date after NSE's move to Tuesday expiries;
+  the build checks expiries against the panel, never by guess).
+- The daily card has no trade fields yet (`fno/cards/card.py:76-78`, always NO TRADE) and E8 is not built, so no
+  "entry range" exists: the study reports change thresholds instead (below).
+
+**Scope.** In: a frozen, registered history study, 2 Jan 2024 to 30 Sep 2026, of NIFTY monthly options, for the
+families SF, SC, BF and the STR1 codes (LC, LP, CDS, CCS, PDS, PCS); two paths, 15:00 to next session 10:15, and 14:00
+to 15:00 the same session; the raw candle answers archived; one results file. Out: the live comparison with A16's
+15-minute bid and ask (a follow-up story once A16 has 20 sessions; this story only names its rule); E8's fill code;
+any strategy P&L, edge or verdict; weekly options; a timetable change (the owner decides from the results).
+
+**Expected design:**
+- Study folder `research/2026-10-16-fill-timing/` (`PROTOCOL.md`, `FREEZE.md`, `README.md`, `results.md`,
+  `results.json`, a small `ft1study/` package), idea card `research/ideas/FT1.md`, ledger trial 54
+  (`research/ledger.csv`, kind measurement: no hypothesis on outcomes, no P&L). Protocol and code hash frozen before
+  any candle is fetched (`research/FACTORY_RULES.md` G4).
+- **Sessions:** every regular NSE session of the window (A7 calendar) whose next session exists; special and muhurat
+  sessions left out and counted. **Expiry:** the nearest monthly expiry with at least 7 sessions left (no expiry-week
+  entries, where gamma dominates; counted). **Strikes:** each family built by `fno/research_engine/structures.py` at
+  NIFTY's 15-minute close at the decision time (14:45-15:00 candle for the 15:00 path, 13:45-14:00 for the 14:00
+  path), at width 200 points for the four-leg and spread families (experiment 1's middle width; widths 100 and 300
+  reported as sensitivity), strikes from the expiry's listed strikes in the daily panel.
+- **Prices:** each leg's close of the 15-minute candle ending at the time named: 15:00 (candle 14:45), 10:15 (candle
+  10:00 of the next session), 14:00 (candle 13:45). A leg whose candle has zero volume is **stale**: the structure is
+  left out of that day's figures and counted per family, never filled from another price. All legs at the same time.
+- **Measure:** delay cost `C = signed(price_late - price_early)` per lot, signed so that positive is worse for the
+  trader (a seller receives less credit, a buyer pays more), in rupees and as a share of the early price. Per family
+  and path: n, mean, median, 10th and 90th percentiles, a 95% block-bootstrap interval of the mean (block 5 sessions,
+  B = 10,000, fixed seed), and the share of days with `C` above 5%, 10% and 20% of the early price (stand-ins for an
+  entry range, reasoning only). Split by overnight gap band (below 0.5%, 0.5-1%, 1% and more) and India VIX band
+  (below 13, 13-18, above 18; A15). Costs (C1) are equal at both times and are not part of `C`.
+- **Spread caveat, measured not assumed:** candle closes carry no spread. The report prints the median half-spread per
+  family from A4's 15:00 bid and ask since 13 Oct 2026 beside `C`, labelled as a separate cost that both times pay.
+- **Raw answers** go to Drive through `RawFileStore` (`raw/groww/options/candles-15m/<yyyy>/...`) with a manifest and
+  SHA-256 in `research/data/manifests/`, in A16b's pattern; nothing raw in the repository. Groww is reached only
+  through A16's `ReadOnlyGroww` and a paced candle source behind an interface (at most 2 calls a second).
+- **Live rule, for the follow-up:** after 20 sessions of A16 snapshots, the same `C` from bid and ask (sells at bid,
+  buys at ask) is compared with the candle-close `C` of those sessions; the history figures stand only if the two
+  agree within the bootstrap interval, otherwise the report says so.
+
+**Acceptance criteria:**
+1. Protocol, idea card, ledger row 54 and code hash committed and frozen before the first candle call; the data
+   register (`research/DATA_SPEND.md`) names Groww's historical option candles as fresh before, exposed after.
+2. One hand-checked day: the strikes, the four leg prices at 15:00 and at next-session 10:15 and `C` of one SF and one
+   LC structure, recomputed by hand from the archived raw answers, equal the study's output.
+3. Signs: a test with fixture candles where a short structure's credit falls and a long structure's debit rises gives
+   positive `C` for both; the reverse gives negative.
+4. A stale leg (zero-volume candle) removes the structure from that day and is counted; no other price stands in.
+5. Expiry and strikes come from the panel's listed contracts; a symbol Groww does not answer is counted as missing per
+   family, never replaced.
+6. The report prints, per family and path, every figure listed in the design, the stale and missing counts, the gap
+   and VIX splits, the spread caveat and the sample window, with each figure labelled exploratory measurement.
+7. Read-only: the import closure of the study reaches no order, position, margin or funds call (A16b's test pattern);
+   no credential or raw candle in the repository or the output.
+
+**Test plan:** unit tests of the strike choice, the sign rule, the stale rule, the bootstrap seed and the report
+(fixture candles); the read-only closure test; a dry run on 5 sessions with real answers before the full run.
+
+**Judge verifies:** recomputes one day by hand from the archived raw answers; plants a sign error, a stale-leg
+substitution and an expiry-week entry and sees each test fail; checks the freeze precedes the first fetch.
+
+**Depends:** A7, A15, A16 (`ReadOnlyGroww`), A16b (candle pattern), B2 and STR1 (structures), C1 · **Size:** M ·
+**Status:** proposed (story text for the judge)
+
+**Evidence labels:** the overnight-gap figures are some evidence; the 5/10/20% thresholds and the 7-session expiry rule
+are reasoning only; the study itself is exploratory measurement (no edge claim), and only the live comparison can make
+its figures strong evidence of what the owner would really get.
