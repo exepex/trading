@@ -2,7 +2,6 @@
 and the composition root."""
 
 from argparse import Namespace
-from pathlib import Path
 
 import pytest
 
@@ -47,6 +46,7 @@ def test_the_dry_run_wiring_uses_local_folders_no_alert_and_no_commit(tmp_path, 
     assert isinstance(recorder.sync, NoSync) and recorder.sync.commit("x") == recorder.sync.pull() == NOT_PUBLISHED
     assert recorder.ledger.folder == tmp_path and recorder.heartbeat.file == tmp_path / "heartbeat.json"
     assert [s.name for s in recorder.clock_check.servers] == ["github", "slack"]
+    assert recorder.session_rv.cutoff is wiring.v4_cutoff_flag  # G10: the 15:30 row carries v4's flag (judge 195)
 
 
 def test_the_live_wiring_needs_the_owners_drive_settings(monkeypatch):
@@ -105,9 +105,9 @@ def test_rv_refusals_exit_1(tmp_path, monkeypatch, capsys):
     assert "rv refused: 2026-10-20 is not a recorded session" in capsys.readouterr().out
 
 
-def test_the_nse_listing_used_for_expiries_is_read_only(monkeypatch):
+def test_the_nse_listing_used_for_expiries_is_read_only(tmp_path, monkeypatch):
     monkeypatch.setattr(wiring, "GrowwProvider", lambda cfg: FakeGrowwProvider())
-    source = wiring.build_intraday_recorder({}, Path("/tmp/a16-dry")).source
+    source = wiring.build_intraday_recorder({}, tmp_path / "dry").source
     plan = source.plan
     assert isinstance(source.client, ReadOnlyGroww) and source.lot_size == 75
     assert plan.fallback.library.archive is None and plan.monthlies.history is plan.fallback

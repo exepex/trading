@@ -78,3 +78,5 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 118: RM1 real-money gate — changes required](review_118_rm1-real-money-gate.md)
 - [Review 119: protocol v4 freeze checklist — changes required](review_119_v4-freeze.md)
 - [Review 116: BR1 breadth-track design — partial](review_116_br1-breadth-design.md)
+- [Review 121: BR1a breadth protocol — ACCEPT](review_121_br1a-protocol.md)
+- [Review 122: E8 owner-timing fills — CHANGE](review_122_e8-owner-timing-fills.md)

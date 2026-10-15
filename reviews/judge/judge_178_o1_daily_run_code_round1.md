@@ -76,3 +76,178 @@ The stated duplicate alert on a failed Book 1 commit (E5b's alert plus "step boo
    "CLAUDE.md 3 pm section, routine prompts", and O1's row claims the same files. The orchestrator's ruling gives the
    prompt to O1 (story text, "Ownership of the prompt"). The orchestrator should update the Handover row so the
    register shows one owner. The E5b row also still reads "after E2c" although E5b is merged.
+
+## Addendum 1: delta to 22e4dd7f (margin_check step, constants split)
+
+**Verdict: PASS for round 1's scope.** This delta adds no blocking or should-fix finding. Note 2 is closed. Note 1
+stays open: the criterion 2 and 4 tests have not arrived yet. Note 6 is new and optional.
+
+- **Gates on a trial merge with origin/main (4e72c4e4 line, 15 Oct evening):** 6142 passed. `ruff check`,
+  `ruff format --check` and `check_imports` are clean, and `tests/test_code_size.py` passes. `fno/constants.py` is now
+  341 lines and `fno/constants_operations.py` 37.
+- **The split (closes note 2).** The daily-operations block moved out whole. All 15 names in `__all__`
+  (`RUN_LOG_DECISIONS_STEP`, the two step tuples, O1's four statuses and O8's health names) read the same through
+  `fno.constants` as through the new module (checked in Python). The health values equal main's lines 343-346, and
+  `RUN_LOG_DECISIONS_STEP` is still "decisions". It is one `import *` driven by an explicit `__all__`, so no caller
+  changes. This is a split, not a squeeze. The CLAUDE.md conflict is resolved: both the LR1 and O1 composition roots
+  are listed.
+- **`margin_check` (text amendment, accepted).** It records A14c's agreed line (decision da0f769d; the A14c builder,
+  15 Oct) as O1's first step. It runs the unchanged command, commits only `stress_broker_check.csv`, and stays
+  `not_live` (`daily.live_from.margin_check: null`) while the command does not exist, so nothing calls Groww today.
+  Tests: the order, failure and rerun tests now include it. The new wiring test shows the composition root gives every
+  name in `DAILY_RUN_STEPS` a step.
+- **T2's note (judge 180): the card comes after `decisions` and after 15:15.** MET by the order. `card` follows
+  `quotes_done`, which follows `exits`. `exits` waits until `desk.timetable.execution_snapshot` (15:15), so the card
+  can never start before 15:15 or before `decisions` (15:12).
+
+6. **(Optional, reasoning only) Put `margin_check` after `quotes`, not before.** Each `CommandStep` waits for its
+   child with no time limit. As the first step, a Groww call in A14c's command that hangs would hold back the start of
+   the quote parts, the day's main data. The parts are child processes that wait for 14:55 themselves, so starting
+   them first costs nothing and still avoids overlapping the 14:55 capture on the Groww key. There is no evidence of a
+   Groww hang, so this is not a should-fix. Otherwise, when A14c lands, confirm its Groww request has a timeout.
+
+## Addendum 2: O1 at f22ffc42 (note 1 tests; E2c merged in)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings, and notes 1, 2 and 4 are closed.
+Criteria 2 and 4 are now MET. Still to come before the story's final code verdict: criterion 8 (the CLAUDE.md section,
+after A4c) and criterion 9 (the real day).
+
+- **Note 1 closed.** New tests:
+  - `test_quotes_or_card_raising_is_recorded_failed_with_one_alert` (quotes, card);
+  - `test_a_quote_part_that_exits_non_zero_gets_no_o1_alert_and_the_others_still_commit` (each of the 3 parts);
+  - `test_a_failed_nifty_still_starts_the_indices_after_it_and_lets_nse_commit`.
+
+  Each asserts what my probe found: one O1 alert for a step that raises, none for a part (A4c's own alerts stand),
+  the others still commit, and the indices start when NIFTY ends, whatever NIFTY's result.
+- **Note 4: declined, and I accept the reason.** A killed recorder can leave a half-written sidecar or canonical, and
+  only the recorder can tell whether an attempt is complete. Committing blind could put a broken record on `main`. The
+  limit is now a Known-limits line.
+- **E2c merge.** The resolution keeps both additions: E2c's `files` (private records downloaded before any step) with
+  `_unreviewed` passed to `fills`, and O1's `day_steps`. `build_daily_run` passes both. The real-git pathspec test now
+  stages a tracked file of another writer, because E2c ignores the account files in git. That is right: the test still
+  proves a staged file is never swept in.
+- **Gates on a trial merge with origin/main f78c7759:**
+  - 6175 passed, 3 failed;
+  - plain main at f78c7759, run at the same time: 6118 passed and **the same 3 failed** (`test_paper_account` 15 Oct
+    top-up, `test_committed_closes_reproduce_the_disclosed_v6_counts`, `test_home_blocks` live wiring);
+  - none of the 3 is in O1's files, so the builder's claim holds. Merge rule: they must be green on main (their owners'
+    fix) before O1 merges, since the merge needs the full suite green on the merged tree;
+  - `ruff check`, `ruff format --check` and `check_imports` are clean.
+- Note 3 (merge after A4c) stands, and so does optional note 6 (start `quotes` before `margin_check`). The builder
+  did not mention note 6.
+
+## Addendum 3: O1 at 43943a52 (note 6 built: quotes first, 10-minute command limit)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings. Note 6 is closed. Criteria 8 and 9
+and the merge after A4c are still to come.
+
+- **Order.** `DAILY_RUN_STEPS` now starts with `quotes`, then `margin_check`, so the quote parts (child processes that
+  wait for 14:55 themselves) always start before any command that might call Groww. My mutation swapping the two
+  makes `tests/daily` fail. The story table and the "No command holds the day" line match the code.
+- **Limit.** Every O1 `CommandStep` (margin_check, weather, forecasts_v4, book1, card) is stopped after
+  `COMMAND_LIMIT_SECONDS` = 600 and recorded `failed`, with nothing committed. The new test proves the stop, the
+  10-minute bound and the empty paths. My mutation removing the limit makes it fail.
+- **Gates on a trial merge with origin/main:**
+  - 6176 passed, 3 failed: the same 3 that are red on plain main (judge 178 addendum 2), none in O1's files;
+  - `ruff check`, `ruff format --check` and `check_imports` are clean.
+
+Notes (one line each, reasoning only, not should-fix):
+
+7. A 10-minute limit does not protect the 15:12 deadline for `book1`, which starts after the pack (up to about
+   15:10). A hung `book1` could push `decisions` to about 15:20. E3's late rule then applies and the exits still run,
+   so no trade or stop is decided wrongly. The claim "never holding the deadline" is too strong for `book1`.
+8. `ChildProcess.stop()` kills only the Python child. A `git push` that `book1` started could outlive it and touch
+   the checkout while the run goes on. No evidence that this happens, and a 10-minute hang of `book1` has not been
+   seen either.
+
+## Addendum 4: O1 at 71b00878 (notes 7 and 8)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings. Notes 7 and 8 are closed.
+
+- **Note 7.** The `CommandStep` docstring and the story's "No command holds the day" line now say plainly that the
+  10-minute limit does not protect 15:12 for `book1` (which can start at about 15:10), and that E3's late rule
+  decides that case. The claim now matches the behaviour.
+- **Note 8.** Children start with `start_new_session=True`, and `stop()` kills the whole process group (`killpg`,
+  SIGKILL; a child that already ended is tolerated). This also covers a quote part stopped at `FINISH_LIMIT`. The new
+  test, `test_stopping_a_command_kills_what_it_started_too`, uses a real grandchild and checks it is dead (zombies
+  count as dead). My mutation removing `start_new_session` makes it fail.
+- **Gates on a trial merge with origin/main dd35b2e5:** the suite is now **fully green, 6180 passed** (main's fixes
+  for the 3 earlier red tests are in). `ruff check`, `ruff format --check` and `check_imports` are clean.
+- One-line note, reasoning only: in their own session, the children no longer receive a Ctrl-C or SIGTERM sent to
+  the routine's process group. If the run itself dies, a running recorder carries on with no one to commit its files.
+  That was already the case for a crashed parent, and the stated known limit (a rerun after a dead run) covers it.
+  Nothing to change.
+
+Still to come: criterion 8 (the CLAUDE.md section, after A4c), criterion 9 (the real day), and the merge after A4c.
+
+## Addendum 5: O1 at 3e955e0c, re-run on main with parallel tests (orchestrator, 15 Oct)
+
+**Verdict: PASS for the code built so far, unchanged.**
+
+- **What moved since 71b00878:** main merges plus two story-text commits, 590d9491 (E8's `owner_timing_fills`) and
+  68e548f0 (M2's `weather_alert`). No O1 code changed.
+- **Gates on a trial merge with origin/main:** `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q -n auto` gives
+  **6579 passed in 2 min 45 s**, with no test that fails only in parallel. `ruff check` and `check_imports` are clean.
+- **The two text additions are accepted as records of agreed interfaces, not O1 scope.** Each step is built and
+  judged in its own story after O1 merges, and O1 adds no code for either. Both sit after `quotes`, so neither can
+  delay the 3 pm parts.
+
+  For E8's and M2's judges, one point, reasoning only: E8's step is planned as its own `DayStep`, not a
+  `CommandStep`, so it does not get O1's 10-minute limit. Whoever judges E8 should check it cannot hang the day
+  before the exits.
+
+## Addendum 6: O1 at ea008836 (unsent alerts are printed)
+
+**Verdict: FAIL, one should-fix.** The new `ReportedAlerts` is right as far as it goes. But checking it showed a gap
+of the same kind that I missed in addenda 0-5, so I own that miss here.
+
+- **What is right.** Every alert the run sends itself (O1's step alerts, the quote parts' "NOT committed", and E3's
+  desk alerts through the new `alerts` parameter) prints "alert NOT sent: <reason> | <text>" when Slack does not take
+  it. The default for `build_daily_run` is unchanged for E3. Two tests cover this. Gates on a trial merge with
+  origin/main: `-n auto` gives 6584 passed in 2 min 49 s; `ruff check` and `check_imports` are clean.
+- **Should-fix 9: child commands' own "alert NOT sent" lines never reach the routine.**
+  - **Path:** every O1 child (the three quote parts, `book1`, `card`, and later `margin_check`, `weather`,
+    `forecasts_v4`) prints into a temporary file (`ChildProcesses.start`, `stdout=output`). The run keeps only the
+    last 10 lines, inside the run log's `result.lines`, and never prints them.
+  - **What is lost:** the recorder sends its own three alerts ("calendar says session, no same-day trades", "stopped,
+    nothing recorded", "raw quote file NOT saved to Drive"; CLAUDE.md step 4). E5b's `cmd_book1` sends its own
+    "NOT committed" alert, and the card prints its post outcome. When Slack is down or the token is missing or
+    expired, each of these prints "alert NOT sent: ...". Today the routine sees that line and posts it with the Slack
+    connector (CLAUDE.md steps 3-4). Under O1 the line goes only into a temp file. It may fall outside the 10 kept
+    lines, and the routine is never shown it. So a "raw quote file NOT saved to Drive" day, on a day Slack also fails,
+    reaches no one.
+  - **Evidence:** the code (`processes.py` stdout to a temp file; `runner.py` prints one line; `KEPT_LINES = 10`).
+    The alert texts come from CLAUDE.md and `fno/quotes/cli.py`.
+  - **Expected fix (small):** when a child ends (or is stopped), the run prints, as they are, every line of its output
+    that contains `alert NOT sent`. Read the whole output, not just the kept 10, before the temp file closes. Add one
+    test: a fake child that prints an unsent alert line among more than 10 lines, and that line appears on the run's
+    output. Criterion 8's routine line ("if the command printed 'alert NOT sent', post its lines") then covers child
+    alerts too.
+
+Everything else stays as in addendum 5.
+
+## Addendum 7: the orchestrator's four checks on ea008836 (fix commit 48d58a97)
+
+The verdict stays **FAIL**. Should-fix 9 gains part (b), from check 1.
+
+1. **Does every alert path go through `ReportedAlerts`? No.**
+   - **Covered:** O1's steps (`Alerted`), the quote parts' "NOT committed", and E3's `DeskSteps` and `_guarded`. The
+     latter two get `alerts` from `build_daily_run`'s new parameter.
+   - **9(b), in process, bypassing the wrapper:** two more senders are built inside the run with their own
+     `build_alert_sender()` and never see the wrapper. Their "alert NOT sent" outcome is dropped exactly as before:
+     - `build_exit_desk` (`fno/desk/wiring.py:41`, `ExitDesk`), the exits' alerts;
+     - `build_book1_exit_rules` (`fno/books/book1_wiring.py:72`, `PlaybookExitRules`).
+
+     The exits are the one step that must always be seen (design 9). Fix: pass the run's `alerts` into both (the same
+     `alerts=None` default keeps their other callers unchanged). Extend the wiring test so that every sender the run
+     builds is the `ReportedAlerts` instance.
+   - **9(a), child processes:** as in addendum 6, their own lines are never relayed.
+2. **Is E3 unchanged without the parameter? Yes.** `alerts or build_alert_sender()` in `build_daily_run`, and E3's
+   tests pass unchanged.
+3. **Can the printed line hold a token or secret? No.** The line is "<outcome> | <text>". By the `AlertSender`
+   contract the outcome never holds the token: `slack_post` returns only the exception's type name or Slack's error
+   code. The text is the alert text, which is already posted to Slack and committed in run logs, so the line adds no
+   new exposure.
+4. **Would the tests catch a dropped outcome? Partly.** `test_steps.py` checks that `ReportedAlerts` prints the unsent
+   line and stays quiet on a sent one, and that the wiring hands the run a `ReportedAlerts`. It would not catch the two
+   bypassing senders in 1, or the children's lines (9(a)).

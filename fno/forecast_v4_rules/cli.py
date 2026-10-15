@@ -6,7 +6,7 @@ from __future__ import annotations
 def add_forecast_v4_parser(subparsers) -> None:
     parser = subparsers.add_parser("forecast-v4", help="protocol v4's phase-1 baselines and rule forecasters (G7)")
     actions = parser.add_subparsers(dest="forecast_v4_cmd", required=True)
-    actions.add_parser("capture", help="record today's v4 forecasts (today only, before 15:00 IST)")
+    actions.add_parser("capture", help="record today's v4 forecasts (today only, before the 14:30 IST cutoff)")
     actions.add_parser("backfill", help="write the exploratory back-fill (before the first live day)")
     parser.set_defaults(func=cmd_forecast_v4)
 

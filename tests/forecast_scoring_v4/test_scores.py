@@ -37,3 +37,11 @@ def test_empty_and_flat_inputs():
     assert point_scores([]) is None and probability_scores([], []) is None
     assert least_squares([0.1, 0.1], [0.0, 1.0]) == (None, None)
     assert probability_scores([(0.1, True)], []).brier_skill is None
+
+
+def test_the_skill_score_is_paired_and_reports_its_own_day_count():
+    pairs = [(0.2, True), (0.2, False), (0.9, True)]  # three scored days of the forecaster
+    base = [(0.2, 0.25, True), (0.9, 0.25, True)]  # the base rate exists on two of them only
+    s = probability_scores(pairs, base)
+    assert (s.n, s.skill_n) == (3, 2)
+    assert s.brier_skill == pytest.approx(1 - ((0.64 + 0.01) / 2) / 0.5625)  # the two paired days only

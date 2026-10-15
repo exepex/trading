@@ -90,10 +90,10 @@ def test_capture_writes_only_before_the_cutoff_and_only_on_a_session(tmp_path):
     def write(forecaster, question, rows):
         return records.write(tmp_path, forecaster, question, rows)
 
-    before_cutoff = datetime(2026, 10, 15, 14, 59, tzinfo=IST)
+    before_cutoff = datetime(2026, 10, 15, 14, 29, 59, tzinfo=IST)  # G10: the cutoff is 14:30
     assert capture_day(f, TODAY, before_cutoff, write) == 9
     with pytest.raises(CaptureRefused):
-        capture_day(f, TODAY, datetime(2026, 10, 15, 15, 0, tzinfo=IST), write)
+        capture_day(f, TODAY, datetime(2026, 10, 15, 14, 30, tzinfo=IST), write)
     with pytest.raises(CaptureRefused):
         capture_day(f, date(2026, 10, 17), datetime(2026, 10, 17, 11, 0, tzinfo=IST), write)  # a Saturday
     with pytest.raises(CaptureRefused):

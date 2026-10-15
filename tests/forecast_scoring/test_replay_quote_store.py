@@ -37,6 +37,12 @@ def _inputs(root, with_quote_file: bool):
     return root
 
 
+@pytest.fixture(scope="module")
+def before(tmp_path_factory):
+    """The replay of a commit from before A4b (its quote file present), computed once: two tests compare against it."""
+    return recompute_live_day(_inputs(tmp_path_factory.mktemp("before"), True), DAY, GENERATED)
+
+
 @pytest.fixture
 def drive(monkeypatch):
     drive = FakeDrive()
@@ -45,8 +51,7 @@ def drive(monkeypatch):
     return drive
 
 
-def test_a_commit_after_a4b_replays_from_drive_as_one_before_it_from_its_files(tmp_path, drive):
-    before = recompute_live_day(_inputs(tmp_path / "before", True), DAY, GENERATED)
+def test_a_commit_after_a4b_replays_from_drive_as_one_before_it_from_its_files(tmp_path, drive, before):
     after = recompute_live_day(_inputs(tmp_path / "after", False), DAY, GENERATED)
     assert after == before and json.loads(after["pack.json"])["snapshot"]["dataset"].startswith("groww/")
 
@@ -61,10 +66,9 @@ def test_a_changed_or_missing_drive_copy_stops_the_replay(tmp_path, drive):
         recompute_live_day(inputs, DAY, GENERATED)
 
 
-def test_a_mixed_export_reads_each_day_s_file_from_where_it_is(tmp_path, drive):
+def test_a_mixed_export_reads_each_day_s_file_from_where_it_is(tmp_path, drive, before):
     """Judge 111 addendum 2: an export holding an older day's quote file (pre-A4b) and only the sidecar of the replayed
     day reads the replayed day from Drive, not "no Groww snapshot" (which would switch quietly to NSE's)."""
-    before = recompute_live_day(_inputs(tmp_path / "before", True), DAY, GENERATED)
     mixed = _inputs(tmp_path / "mixed", False)
     older = mixed / "research" / "data" / "quotes" / FOLDER / "nifty_20261012_145500.csv"
     older.write_bytes(b"snapshot_id,bid\nnifty_20261012_145500,1\n")  # a pre-A4b day still in the tree

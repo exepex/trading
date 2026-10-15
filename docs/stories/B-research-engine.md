@@ -496,7 +496,9 @@ This story adds no strategy, no new code and no trading decision.
      from a BF case (response 77), so changing it is the owner's call;
    - `stress_reserve = stressed_span - max(0, scan - NOV)` (recorded; `stressed_span` is broker span plus reserve),
      `total_funds = broker_margin + premium_paid + stress_reserve` is what `margin_room` compares with cash, and
-     `capital_tied = broker_margin + premium_paid`. For SF/SC/BF this equals today's figure by algebra.
+     `capital_tied = broker_margin + premium_paid`. For SF/SC/BF this equals today's figure by algebra. Superseded in
+     part by story C2c (owner, 15 Oct 2026): k also stresses the exposure, outside the cap, so the reserve is the capped
+     SPAN extra plus `(k - 1) x exposure` (CDS 200, PDS 300 and CCS 100: Rs 13,292.34 each at k 1.45).
 
    S2's capital figure (`margin_days`) uses `broker_margin + premium_paid`, with `stress_reserve` reported apart.
 2. **Per-code broker approval dates** (minor 2, review 100 point 4.4):
@@ -558,8 +560,8 @@ Out:
 
 **Acceptance criteria (STR1b-1: 1-6):**
 1. Capital, by hand on NSE's real 14 Oct `i1` rows (SHA-256 `d85b883a…0e8b5b`) and on fixtures:
-   - LC, LP, CDS and PDS have `stress_reserve` 0;
-   - CCS/PCS's reserve is at most `width - credit`;
+   - LC, LP, CDS and PDS have `stress_reserve` 0 (since C2c: on the SPAN part; CDS and PDS add `(k - 1) x exposure`);
+   - CCS/PCS's reserve is at most `width - credit` (since C2c: on the SPAN part, plus `(k - 1) x exposure`);
    - for SF, SC and BF at every research width, `total_funds` equals today's `at_entry` to the paisa, row by row.
 2. S2's capital figure: an LC trade's capital equals its premium plus charges; a CDS's equals its exposure plus the
    bought leg's premium plus charges (Groww credits the sold premium only after settlement, judge 77 addendum 3); the

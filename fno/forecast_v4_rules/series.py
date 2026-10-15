@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from ..constants import SESSION_REGULAR
-from ..forecast_v4.terms import BIG_MOVE
+from ..forecast_v4.terms import BIG_MOVE, V1_INTRADAY_METHOD
 
 A16_OK = "ok"  # fno/intraday/session_rv.py: a session's RV row is "ok" or "void"
 
@@ -77,9 +77,12 @@ def big_move_outcomes(closes: list[DayValue], horizon: int) -> list[Outcome]:
 
 
 def live_intraday_rv(rows: list[dict]) -> list[SessionRv]:
-    """A16's live `rv/` rows (provenance live by construction: A16b writes `rv-candle/`, never read here)."""
+    """A16's live `rv/` rows (provenance live by construction: A16b writes `rv-candle/`, never read here), of the
+    pinned method only (`terms.V1_INTRADAY_METHOD`): a row of any other method is not read."""
     out = []
     for r in rows:
+        if r.get("method") != V1_INTRADAY_METHOD:
+            continue
         value = float(r["rv_session"]) if r["status"] == A16_OK else None
         out.append(SessionRv(date.fromisoformat(r["session"]), value, datetime.fromisoformat(r["first_seen_at"])))
     return sorted(out, key=lambda s: s.day)

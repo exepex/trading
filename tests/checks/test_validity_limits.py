@@ -32,6 +32,7 @@ from tests.checks.validity_sources import (
     nse_file,
 )  # fmt: skip
 from tests.desk.builders import CHARGES
+from tests.stress_factor_files import HEADER
 
 
 def at_ist(hour: int, minute: int):
@@ -104,7 +105,7 @@ def test_an_exposure_over_the_limit_is_blocked():
 def test_margin_room_too_small_is_blocked():
     report = check(proposal(premium_reserved=430_000.0))
     assert failed(report) == {"margin_room"}
-    assert report.failures[0].numbers["needed_rs"] == 78_050.0  # 1.45 x 9,000 + 65,000 (credit: NOV not netted)
+    assert report.failures[0].numbers["needed_rs"] == 107_300.0  # 1.45 x 9,000 + 1.45 x 65,000 (C2c; was 78,050)
 
 
 @pytest.mark.parametrize(
@@ -117,17 +118,24 @@ def test_margin_room_too_small_is_blocked():
     ],
 )
 def test_a_missing_stale_or_unsourced_margin_fails_closed(margins, owner, said):
-    owner_limits = limits(stressed_margin={"method": "multiplier", "multiplier": None, "source": None,
-                                           "as_of": None, "max_age_days": 30}) if owner else None  # fmt: skip
+    owner_limits = limits(stressed_margin={"factor_file": None}) if owner else None  # story C2d: no factor file
     report = check(margins=margins, owner_limits=owner_limits)
     assert failed(report) == {"margin_room"} and said in report.failures[0].reason
+
+
+def test_a_malformed_factor_file_is_a_named_margin_failure_not_a_crash(tmp_path):
+    """Story C2d (self-review): a short row in A14c's factor file once escaped C4's whole run as a TypeError."""
+    bad = tmp_path / "stress_factor.csv"
+    bad.write_text(HEADER + "2026-10-12,1.45\n", encoding="utf-8")
+    report = check(owner_limits=limits(stressed_margin={"factor_file": str(bad)}))
+    assert failed(report) == {"margin_room"} and "stress_factor.csv row 2" in report.failures[0].reason
 
 
 def test_trades_chosen_earlier_the_same_day_count_in_every_limit():
     earlier = proposal("SC")
     alone, both = check(), check(proposal(earlier=(earlier,)))
     loss = {r.name: r.numbers for r in both.results}
-    assert both.ok and loss["margin_room"]["needed_rs"] == 78_050.0 + 75_875.0
+    assert both.ok and loss["margin_room"]["needed_rs"] == 107_300.0 + 105_125.0  # SC: 1.45 x (7,500 + 65,000)
     worst_alone = next(r for r in alone.results if r.name == "stress_loss").numbers["worst_loss_rs"]
     assert loss["stress_loss"]["worst_loss_rs"] > worst_alone
     assert failed(check(proposal(earlier=(earlier,)), owner_limits=limits(max_open_trades=1))) == {"open_trades"}

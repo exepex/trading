@@ -4,6 +4,7 @@ with the fixed reason `entry_worse_than_approved` and no figure from the snapsho
 
 import re
 from dataclasses import replace
+from datetime import date
 
 import pytest
 
@@ -27,6 +28,7 @@ from fno.risk.book_view import load_risk_book
 from fno.risk.inputs import TradeTerms
 from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.wiring import build_risk_manager
+from tests.stress_factor_files import factor_file
 
 from .builders import (
     CHARGES,
@@ -152,7 +154,7 @@ def test_the_limit_comes_only_from_c2_s_decision_on_this_exact_proposal(root, st
 def test_c2_records_the_approved_entry_cash_with_the_same_cost_model(root, tmp_path):
     margins = tmp_path / "margins.csv"
     margins.write_text(",".join(MARGIN_COLUMNS) + "\nSF,200,40000,0,0,test calculator,2026-10-13\n")
-    stressed = {"multiplier": 1.5, "source": "test factor", "as_of": "2026-10-13"}
+    stressed = {"factor_file": str(factor_file(1.5, date(2026, 10, 12)))}  # the day before the decision
     cfg = load_app_config(overrides={"risk": {"margins": {"file": str(margins)}, "stressed_margin": stressed}})
     proposal = fly_proposal()
     market = decision_market()
