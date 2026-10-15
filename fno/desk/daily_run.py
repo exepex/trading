@@ -32,7 +32,7 @@ from collections.abc import Callable, Mapping
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from ..constants import DAILY_RUN_STEPS, RUN_LOG_DECISIONS_STEP
+from ..constants import DAILY_RUN_STEPS, OWNER_TIMING_STEP, RUN_LOG_DECISIONS_STEP, STEP_FAILED, STEP_REFUSED
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
 from .daily_ports import CommitFailed, DayStep, Waiter
@@ -53,6 +53,7 @@ NO_LOG = "the run of {day} stopped before any step"
 BEFORE_EXITS = "the run of {day} stopped before its exits"
 NOT_REVIEWED = "the exits of {day} were not reviewed ({why})"
 HELD_UP = "due exits held up: {exits}"
+UNFILLED = "today's owner-timing fills {status} ({reason})"
 
 
 class RunStopped(Exception):
@@ -96,7 +97,7 @@ class DailyRun:
             "snapshot": (times.execution_snapshot, lambda: steps.take_snapshot(day)),
             "fills": (times.execution_snapshot, lambda: steps.fill(day, log.result("snapshot")["valid"],
                                                                    log.result(RUN_LOG_DECISIONS_STEP),
-                                                                   self._unreviewed(day))),
+                                                                   self._unreviewed(day) | self._unfilled(log))),
             "exits": (times.execution_snapshot, lambda: steps.review_exits(day)),
         }  # fmt: skip
         return desk | {name: (None, lambda step=step: step.run(day)) for name, step in self.day_steps.items()}
@@ -121,6 +122,14 @@ class DailyRun:
         unreviewed = {book: r.get("error") or HELD_UP.format(exits="; ".join(r["waiting"]))
                       for book, r in log.result("exits").items() if r.get("error") or r.get("waiting")}  # fmt: skip
         return {book: NOT_REVIEWED.format(day=last, why=why) for book, why in unreviewed.items()}
+
+    def _unfilled(self, log: RunLog) -> dict[str, str]:
+        """Story E8 rule 11: when today's owner-timing fills failed or were refused, C2 would see yesterday's positions
+        without this morning's fills and understate open risk, so no book opens anything new today (exits still run)."""
+        result = log.result(OWNER_TIMING_STEP) if log.done(OWNER_TIMING_STEP) else {}
+        if result.get("status") not in (STEP_FAILED, STEP_REFUSED):
+            return {}
+        return dict.fromkeys(self.steps.books, UNFILLED.format(status=result["status"], reason=result["reason"]))
 
     def _pack(self, day: date) -> StepOutcome:
         """Retries while the canonical snapshot is not committed yet, until the recorder's window ends."""

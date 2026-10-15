@@ -8,6 +8,7 @@ __all__ = [
     "RUN_LOG_DECISIONS_STEP",
     "DESK_RUN_STEPS",
     "DAILY_RUN_STEPS",
+    "OWNER_TIMING_STEP",
     "STEP_OK",
     "STEP_FAILED",
     "STEP_REFUSED",
@@ -26,8 +27,10 @@ __all__ = [
 RUN_LOG_DECISIONS_STEP = "decisions"
 # E3's steps, then story O1's whole day in order (the health check O8 reads it); Book 1 decides right after the pack
 DESK_RUN_STEPS = ("versions", "pack", RUN_LOG_DECISIONS_STEP, "snapshot", "fills", "exits")
+OWNER_TIMING_STEP = "owner_timing_fills"  # story E8: right after the quote parts start, before every other step
 DAILY_RUN_STEPS = (
     "quotes",
+    OWNER_TIMING_STEP,
     "margin_check",
     "weather",
     "forecasts_v4",

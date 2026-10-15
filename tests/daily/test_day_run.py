@@ -59,6 +59,7 @@ def day(root, tmp_path, alerts):
                 "weather": RecordedStep("weather", calls),
                 "forecasts_v4": RecordedStep("forecasts_v4", calls),
                 "quotes": StartQuoteParts(parts),
+                "owner_timing_fills": RecordedStep("owner_timing_fills", calls),
                 "book1": RecordedStep("book1", calls),
                 "quotes_done": FinishQuoteParts(parts, waiter),
                 "card": RecordedStep("card", calls),
@@ -76,7 +77,9 @@ def test_a_session_runs_every_step_once_in_the_tuple_s_order(day):
     code, line = runner.run(NORMAL)
     log = run.run(NORMAL)  # a rerun the same day repeats nothing (criterion 3)
     assert (code, line) == (0, DAY_DONE)
-    assert tuple(log.steps) == DAILY_RUN_STEPS and calls == ["margin_check", "weather", "forecasts_v4", "book1", "card"]
+    assert tuple(log.steps) == DAILY_RUN_STEPS and calls == [
+        "owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1", "card",
+    ]  # fmt: skip
 
 
 def test_the_desk_s_own_steps_are_exactly_its_tuple_in_order(root, tmp_path, alerts):
@@ -159,7 +162,8 @@ def test_a_rerun_skips_every_recorded_step_and_restarts_no_part(day, alerts):
     again, rerun, _, new_parts, _, new_calls = day()
     again.run(NORMAL)
     steps = rerun.run(NORMAL).steps
-    assert calls == ["margin_check", "weather", "forecasts_v4", "book1"] and new_calls == ["card"]
+    assert calls == ["owner_timing_fills", "margin_check", "weather", "forecasts_v4", "book1"]
+    assert new_calls == ["card"]
     assert not new_parts.started
     assert steps["quotes_done"]["result"] == {"status": STEP_FAILED, "reason": NOT_IN_THIS_RUN}
 

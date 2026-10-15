@@ -39,6 +39,7 @@ from ..constants import (
 from ..models import now_ist
 from .execution import FillMaker, check_point_in_time, closing_quotes
 from .exit_rules import ExitContext, ExitRule
+from .exit_timing import ExitTiming, ImmediateExits
 from .pricing import price_leg
 from .records import DeskEvent, DeskJournal
 from .settlement import SettlementError, SettlementPrices, settlement_record
@@ -64,8 +65,10 @@ class ExitResult:
 
 
 class ExitDesk:
-    def __init__(self, charges: Mapping[str, float], alerts: AlertSender, settlements: SettlementPrices, clock=now_ist):
+    def __init__(self, charges: Mapping[str, float], alerts: AlertSender, settlements: SettlementPrices, clock=now_ist,
+                 timing: ExitTiming | None = None):  # fmt: skip
         self.charges, self.alerts, self.settlements, self.clock = dict(charges), alerts, settlements, clock
+        self.timing = timing or ImmediateExits()  # story E8: owner-timing views close at their own due mark
 
     def review(self, book: str, snapshot: ExecutionSnapshot, journal: DeskJournal,
                rules: Mapping[str, Sequence[ExitRule]], checks: CheckReport) -> list[ExitResult]:  # fmt: skip
@@ -104,7 +107,9 @@ class ExitDesk:
             return ExitResult(position.trade_id, HELD, "no exit rule reached")
         if not position.exit_reason:
             self._event(book, position, snapshot, journal, OUTCOME_EXIT_ORDERED, reason)
-        result = self._close(book, position, snapshot, journal, maker)
+        result = self.timing.defer(book, position, snapshot, journal) or self._close(
+            book, position, snapshot, journal, maker
+        )
         return ExitResult(result.trade_id, result.outcome, result.reason, alerts + result.alerts)
 
     def _wait_for_valid_quotes(self, book, position: OpenPosition, snapshot, journal, rules, checks) -> ExitResult:
@@ -117,6 +122,9 @@ class ExitDesk:
             return ExitResult(position.trade_id, HELD, checks.price_reason())
         if not position.exit_reason:
             self._event(book, position, snapshot, journal, OUTCOME_EXIT_ORDERED, reason)
+        deferred = self.timing.defer(book, position, snapshot, journal)
+        if deferred is not None:
+            return deferred
         waiting = f"{checks.price_reason()} (retried at the next valid quotes)"
         return self._event(book, position, snapshot, journal, OUTCOME_PENDING_EXIT, waiting, snapshot.snapshot_id)
 
@@ -136,7 +144,7 @@ class ExitDesk:
         if pending:
             reason = "; ".join(f"{q.leg.contract}: {q.reason}" for q in pending) + " (retried at the next snapshot)"
             return self._event(book, position, snapshot, journal, OUTCOME_PENDING_EXIT, reason, snapshot.snapshot_id)
-        return self._closed(book, position, snapshot, journal, "every leg closed")
+        return self.closed(book, position, snapshot, journal, "every leg closed")
 
     def _settle(self, book, position: OpenPosition, snapshot, journal: DeskJournal) -> ExitResult:
         """Expired legs close at NSE's final settlement (E7), one expiry at a time; a missing or unclear settlement
@@ -158,9 +166,14 @@ class ExitDesk:
             how = f"settled at NSE's final settlement price {final.price:,.2f} ({final.source})"
         if trade_positions(journal.records.account.fills())[position.trade_id].is_open:
             return ExitResult(position.trade_id, HELD, how + "; legs of later expiries stay open")
-        return self._closed(book, position, snapshot, journal, f"every leg closed, {how}")
+        return self.closed(book, position, snapshot, journal, f"every leg closed, {how}")
 
-    def _closed(self, book, position: OpenPosition, snapshot, journal: DeskJournal, how: str) -> ExitResult:
+    def pending(self, book, position: OpenPosition, snapshot, journal: DeskJournal, reason: str, once_per: str
+                ) -> ExitResult:  # fmt: skip
+        """A pending exit, recorded and alerted once per `once_per` (story E8's retries over the following marks)."""
+        return self._event(book, position, snapshot, journal, OUTCOME_PENDING_EXIT, reason, once_per)
+
+    def closed(self, book, position: OpenPosition, snapshot, journal: DeskJournal, how: str) -> ExitResult:
         net = trade_positions(journal.records.account.fills())[position.trade_id].cash_flow
         partial = any(e["outcome"] == OUTCOME_PARTIAL_FILL for e in journal.records.event_rows(position.trade_id))
         reason = f"{how}; net Rs {net:,.2f}"
