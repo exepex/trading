@@ -840,11 +840,14 @@ could have taken.
 - Paper only: an over-fill inflates the book's results by fills that could not have happened at that quote.
 
 **Scope.** In:
-- **The units a book has already taken at this snapshot** come from its own desk records: its fill rows with this
-  `snapshot_id`, summed per (contract, touch side). An opening buy takes ask size, and an opening sell takes bid size.
-  For each protective leg already opened, its sell-back need is counted on the bid side too, the same capacity E4c
-  checks. This needs no new state: the records are committed after each entry, so a rerun counts the same units
-  (E1's fills are idempotent by fill ID).
+- **The units a book has already taken at this snapshot** come from its own desk records: every fill row with this
+  `snapshot_id`, whatever its action (an unwind's closing fills on the guard path included), summed per (contract,
+  touch side): a buy takes ask size, a sell takes bid size (judge 201). For each protective leg still held from an
+  entry at this snapshot, its sell-back need (the units bought less any already sold back there) is counted on the bid
+  side too, the same capacity E4c checks. This needs no new state: the records are kept in Drive after each entry
+  (E2c) and are what the next entry reads, and a rerun counts the same units (E1's fills are idempotent by fill ID).
+  The entry being checked never counts its own trade's rows, so a rerun after a crash between its fills and its event
+  does not refuse itself.
 - **The check:** `entry_problems` takes those units as an optional argument (empty by default, so E8 and E4c's tests
   are unchanged). Each leg's side passes only if the displayed size covers this entry's units plus the units already
   taken on that contract and side. The same `price_leg` is used with the summed units, so there is no second pricing
@@ -889,7 +892,7 @@ shared code taking priority over an E4c code (criterion 3).
 - The snapshot's displayed size is all the depth the model knows. A real book could refill between two orders.
 - The units taken are those already filled at this snapshot. An entry refused for another reason takes nothing.
 
-**Depends:** E4c (merged first) · **Size:** S · **Status:** story text for the judge's check (response 195)
+**Depends:** E4c (merged first) · **Size:** S · **Status:** story text PASS judge 201; code on the branch (response 195)
 
 ---
 
