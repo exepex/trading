@@ -529,3 +529,56 @@ and its recompute (A14c); the scenario-lookup method; the STR1 cap's values; any
 spread at its cap.
 
 **Depends:** C2, C4, STR1b-1 · **Size:** S · **Status:** text for the judge (lane 1)
+
+---
+
+## C2d. C2 and C4 read the stress factor from A14c's file, not from config.yaml
+
+**Repository:** trading · **Lane:** 1 (money and risk: C2's and C4's margin input)
+
+**Description:** As the risk manager, I want C2 and C4 to take the stress factor k from the latest dated row of
+`research/data/margins/stress_factor.csv`, which story A14c's weekly job appends, so that the owner's "automatic, with
+an alert" rule works without any job editing `config.yaml`.
+
+**Context and why:** Owner, 15 Oct 2026 (relayed by the orchestrator; A14c question 3): "AUTOMATIC, with an alert. The
+job applies the new factor itself and posts it to #fno-desk." The orchestrator's design: the job never edits
+`config.yaml` (lane 1); it appends the factor and its evidence to a data file and C2 reads the latest row. Today
+`config.yaml` `risk.stressed_margin` holds `multiplier`, `source` and `as_of` by hand; `fno/risk/settings.py` and C4's
+`fno/checks/validity_settings.py` each read them. Kept apart from C2c (the formula, already judged): C2d changes only
+where k comes from, and must merge before A14c's first automatic run (about 6 Nov 2026).
+
+**Scope.** In:
+- `config.yaml` `risk.stressed_margin`: `method: multiplier`, `factor_file:
+  research/data/margins/stress_factor.csv`, `max_age_days: 30`; `multiplier`, `source` and `as_of` leave config (the
+  settings refuse them, so two sources can never disagree);
+- one reader of the file used by both C2 (`fno/risk/`) and C4 (`fno/checks/`), or two by the same rule if C4's
+  independence requires it (the builder says which and why): columns as A14c writes them (`as_of, factor, computed,
+  unrounded, status, peak, evidence_sha256`); the factor in force on day d is the `factor` of the latest row with
+  `as_of <= d` (point in time: a replay of day d never sees a later row); a missing file, a wrong header, no row on or
+  before d, a factor below 1, or a row older than `max_age_days` fails closed by name, as today;
+- the seed row, in the same commit as the switch: `2026-10-14, 1.45, 1.45, 1.45, applied, response 77 (three windows,
+  owner decision 14 Oct), -` so C2 keeps the owner's current factor and its 13 Nov lapse until A14c's first run;
+- every decision record's stressed-margin block names the row used: `as_of`, `factor`, `status` and
+  `evidence_sha256` (the judge can reproduce it from the file).
+
+Out: the factor's computation and the guardrails (A14c); the formula (C2c); the scenario-lookup method; any order.
+
+**Acceptance criteria:**
+1. Point in time: with rows dated 14 Oct (1.45) and 8 Nov (1.50), a decision on 7 Nov uses 1.45 and one on 8 Nov uses
+   1.50; a replay of 7 Nov after the 8 Nov row exists still uses 1.45 (tests, C2 and C4).
+2. Fail closed: no file, a wrong header, no row on or before the day, a factor below 1 and a row older than 30 days
+   each refuse every trade with one named reason (tests, C2 and C4); a `held` row's `factor` (the old one) is the one
+   used (test).
+3. Single source: `config.yaml` with `multiplier`, `source` or `as_of` under `stressed_margin` is refused at start-up
+   (test).
+4. Same figures: on the seed row, C2's and C4's stressed margins equal today's on every 14 Oct row (test), so the switch
+   changes no trade.
+5. The decision record names the row used (test).
+6. Code size, lint, imports and the full suite pass.
+
+**Order:** after C2c, before A14c's first automatic run and before STR1b-2 (`fno/risk/`).
+
+**Judge verifies:** plants a later row and replays an earlier day; deletes the file; checks the seed row equals the
+owner's 14 Oct decision; reads one decision record.
+
+**Depends:** C2, C2c, C4 · **Size:** S · **Status:** text for the judge (lane 1)
