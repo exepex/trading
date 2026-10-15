@@ -100,3 +100,62 @@ cover it.
 
 **Verdict: PASS for 464f5ffda2c242606a629b3ba66ff1fa471722f6** (story text). Code may start. The new minor can be
 folded into the code round; I check it there.
+
+## Addendum 2 (15 Oct 2026): A17b code at 1b4d9705373e645abfaf1f17e1f228c156b7e0c2 (response 116)
+
+### Gates
+
+- **Exact SHA** (it already holds a merge of `main` at f97c9d2), Slack token unset: **3,876 passed**. `ruff check`,
+  `ruff format --check` (827 files) and `check_imports` (839 files) are clean.
+- **`origin/main`** has moved 2 commits since, with no code, and merges cleanly.
+- **Sizes.** Largest file `wiring.py`, 151 lines; `fno/global_cues/` totals 1,724 lines.
+
+### My own checks
+
+| Check | Result |
+|---|---|
+| NYSE calendar vs the dates file | My own loop over every day from 3 Jan 2007 to 14 Oct 2026: **0 mismatches** against the 4,977 S&P 500 dates. Spot checks: 24 Dec 2021 (Christmas observed), 20 Jun 2022 and 19 Jun 2023 (Juneteenth), 18 Jun 2027 (Saturday Juneteenth observed) and 3 Jul 2026 are closed; 31 Dec 2021 is open (Saturday New Year, no Friday close). All correct |
+| Dates file vs Drive | `us_trading_dates.csv` equals the Drive-only tables' date sets exactly, for both S&P 500 and Nasdaq 100. It holds dates and 0/1 flags only, no value |
+| Readings on real tables | Dates, ages and statuses only. **15 Oct 09:15 live:** sp500 current (14 Oct); nasdaq100 **behind** (13 Oct, expected 14 Oct). **27 Nov 2026:** sp500 **stale** at 44 days, expected 25 Nov (Thanksgiving skipped). **31 Oct 2012:** sp500 **current** at 5 days (Sandy); us10y behind (29 Oct, expected 30 Oct). **14 Oct 2025** (Columbus Day): us10y behind. **10 Apr 2023:** us10y **current** with Good Friday 7 Apr. **26 Dec 2025:** nasdaq100 current with 24 Dec, so the Christmas holiday row is skipped. **USD/INR on 14 Oct 2026:** 15:00 current on the same day; 09:15 current on 13 Oct. **brent** behind at 9 days, then stale at 52. **fbil** behind at 8. **2027:** USD/INR raises `CalendarError`, naming the missing circular |
+| Mutations (12, in a separate worktree) | **11 caught:** holiday rows not skipped; `current` only within age; age boundary; future rows usable; Saturday New Year; Juneteenth before 2022; closures ignored; muhurat as a USD/INR session; adopt window off; four attempts; no `started` row. **Survived:** `available_at <= cutoff` in `expected_date`. No real source publishes exactly at 09:15 or 15:00 (US close 01:30/02:30, Treasury 03:30/04:30, rate 13:30, Brent 23:59 IST), so it is equivalent on today's sources. Minor 1 |
+| A15 minors | The sweep's exit-code test passes (9 of 9 in `test_sweep.py`). The `lambda` with `noqa` in `build_vix_table_builder` is replaced by a named function; the remaining `lambda` in `build_vix_checks` predates the story and is fine. The README's muhurat times are per year |
+
+### Criteria
+
+| # | Criterion | Result |
+|---|---|---|
+| 1 | Readings in the stated order, each status covered | MET (my readings; H2, H3, H5 caught) |
+| 2 | US calendar cases; CI test against the dates file; us10y missing weekdays never `current` | MET (0 mismatches by my own loop; H6-H8 caught) |
+| 3 | Muhurat is not an open; committed labels recompute | MET (H9 caught; `test_committed` passes) |
+| 4 | `adopt` creation-time window | MET (H10 caught). The real four copies were created 4-9 s after their path times, per the builder; not re-read by me |
+| 5 | Attempts logged and capped | MET (H11, H12 caught) |
+| 6 | A15 minors | MET |
+| 7 | FBIL owner item in the README | MET |
+| 8 | Quality rules, gates, no frozen file | MET |
+
+### Rulings on the builder's deviations
+
+- **One `CueCalendar` interface instead of `UsSessionCalendar`:** ACCEPTED. The same seam serves NYSE, weekdays and
+  NSE sessions. A US-only interface would duplicate it, which is DRY under the "one new class" rule.
+- **`CreationTimes` as its own interface:** ACCEPTED. Only adopt needs it (interface segregation), and a store without
+  it refuses, as the story asks. `GoogleDriveStore.metadata` does not check the HTTP status. A 403 or 404 gives a body
+  without `createdTime`, so the result is None and adopt refuses: it fails closed.
+- **Nasdaq cross-check against the S&P 500 table rejected (skip by the NYSE calendar):** ACCEPTED. The calendar
+  matches the S&P dates exactly, so the two rules give the same rows, and the calendar needs no Drive.
+- **Before 2017 the next NSE open is the next weekday:** ACCEPTED. Every pre-2017 row was fetched in 2026, so it is
+  `backfilled` either way; the committed recompute test passes.
+- **Owner items:** `us_trading_dates.csv` (decision 19: calendar facts; it does make the S&P's weekday gaps derivable,
+  which the builder states) and FBIL public. Both are recorded for the owner, and neither blocks.
+
+### Minor
+
+1. Add a boundary test for `expected_date` (a source whose `available_at` equals the cutoff), so a future source at
+   exactly 09:15 or 15:00 is pinned. The mutant is equivalent today.
+2. **Two of the five closure sources are not primary:** an investinglive news page and a BOX Exchange circular for
+   Hurricane Sandy. Prefer NYSE or ICE notices when next touched.
+3. Response 116's verdict table gives brent "2 Oct, behind (13 days)" for 15 Oct 09:15 without naming the view. The
+   live view gives 6 Oct at 9 days (my probe); 2 Oct is presumably the research view, where 6 Oct is not available
+   until 16 Oct. Label the view.
+
+**Verdict: PASS for 1b4d9705373e645abfaf1f17e1f228c156b7e0c2.** Merge it; then I check the merge. Consumers (M1, the
+weather, forecasts) must read cues only through `CueReader` or `reading_for` and refuse `stale` and `none`.
