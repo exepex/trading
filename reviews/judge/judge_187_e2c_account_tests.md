@@ -35,3 +35,21 @@ Both files: 22 passed. The builder reports 6,120 passed and 1 failed in a fresh 
 files on disk. The remaining failure is G7's V6a count test (judge 177 addendum 4c), the orchestrator's to fix.
 
 **Verdict: PASS for 75103ee4 (not weakened).** Merge it.
+
+## Addendum 1 (15 Oct 2026): lane 1, and the G7 count fix `fix/g7-v6-counts-fixed-date` 4b9309dd
+
+Judge A is right: editing an existing test is lane 1 (refinement 1). This verdict is therefore the lane-1 PASS for
+75103ee4, above. The orchestrator asked for one verdict covering both red-main fixes.
+
+**G7, 4b9309dd** (one test file, 7 lines added, 2 removed):
+- **The change:** `committed()` now keeps the committed panel's closes only up to
+  `DISCLOSED_THROUGH = 2026-10-14`. Both callers use it: the disclosed-counts test and judge 127's hand-value test.
+  The exact numbers are unchanged.
+- **The right date:** response 127's counts and G7's back-fill (`f891d9b`, "2017-01-03 to 2026-10-14") were taken on
+  the panel up to 14 Oct. The panel now ends on 15 Oct (checked), which is why V6a's count became 2,410.
+- **Not weakened:** both tests keep their exact expected values. My plant, moving the date to 13 Oct, fails both.
+  The tests still pin the disclosed numbers to a fixed data window, which is what they always meant. The file passes
+  with 9 tests.
+
+**Verdict: PASS for both 75103ee4 and 4b9309dd (not weakened).** Push them. Then run the full suite on `main` once,
+which should be all green.

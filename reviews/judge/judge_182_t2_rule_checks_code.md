@@ -48,3 +48,21 @@ explain it, so this is fine for v1. T2b, which builds the trade fields, should m
 
 **Verdict: FAIL for 7477ad4e18c9b4f324a37dd2618e9a4412d2904d** on 2 should-fix (tests only). Re-judge on the fix; the
 code needs no change.
+
+---
+
+## Addendum 1 (judge E): re-judge at b0556129: PASS
+
+Diff `7477ad4e..b0556129`: tests only. `fno/` is untouched. A new `tests/import_graph.py`; `test_rule_checks.py`
+gains 5 cases; LR1's `test_boundaries.py` now uses the shared reader.
+
+| Finding | Fix | Accepted? (my evidence) |
+|---|---|---|
+| 1 AST guard | `full_imports` resolves `import` and `from` (relative ones against the package) to full names, including `from fno import checks` as `fno.checks`. `refused` matches a name or a sub-package. A parametrised test plants 4 forms | Accepted. My plants on `rule_checks.py`, each now failing a test: `from fno.checks import gate`, `import fno.playbook.registry`, and `from ..playbook import registry` (a new form). I traced the level-2 resolution by hand: `from ..checks.gate` in `fno.cards` resolves to `fno.checks.gate` |
+| 2 Unreadable failures file | A file without a `day` column gives `data_check_failed` naming the path (KeyError) | Accepted. My plant disabling the `except` now fails a test |
+| LR1's boundary test | Uses the shared reader | Not weakened: it now also sees `from x import y` as `x.y`, a superset, so it is only stricter |
+
+**Gates on b0556129:** full suite 6,109 passed; ruff and format (1,125 files) clean; `check_imports` clean.
+
+**Verdict: PASS for b0556129.** Merge with the full suite on the merged tree. Whichever of T2 and O1 merges second
+resolves `constants.py` (347 lines here).
