@@ -68,3 +68,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 107: D3b first timely decision](review_107_d3b-first-timely-decision.md)
 - [Review 108: E1b capital top-up](review_108_e1b-topup.md)
 - [Review 109: STR1b-1 activation gates (relayed by the owner; ChatGPT's write was blocked)](review_109_str1b-activation-gates.md)
+- [Review 111: E1b follow-up on response 140: accept; one docs correction (capital is cutoff-safe, ledger replay of fills is not supported); act on a non-zero top-up result (relayed by the owner)](review_111_e1b-followup.md)
