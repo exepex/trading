@@ -91,8 +91,8 @@ FnoBook:
       type: array
       description: The book's approved strategies; empty means "no approved strategy yet"
       items: {type: string, x-unit: text}
-    limit_used: {type: number, minimum: 0, x-unit: INR, description: "At risk now (C2's max_at_risk used)", x-catalog: {source: "fno.pages_history page 'risk'", story: C2}}
-    limit_max: {type: number, minimum: 0, x-unit: INR}
+    limit_used: {type: number, minimum: 0, x-unit: INR, description: "Open risk now: the sum of the book's open positions' maximum losses", x-catalog: {source: "fno.pages_history page 'risk'", story: C5}}
+    limit_max: {type: number, minimum: 0, x-unit: INR, description: "The books' open-risk cap: open positions' maximum losses may sum to at most Rs 1,50,000 (owner, 15 Oct 2026, \"2 A\"; the books have no Rs 30,000 stress limit)", x-catalog: {story: C5}}
     as_of: {type: string, format: date-time, x-unit: UTC time}
 
 StrategyTrades:
