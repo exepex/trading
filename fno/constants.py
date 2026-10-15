@@ -176,6 +176,7 @@ ENV_ROUTINE_BOOK3_TRIGGER_ID = "FNO_ROUTINE_BOOK3_AI_TRIGGER_ID"
 ENV_ROUTINE_BOOK3_TOKEN = "FNO_ROUTINE_BOOK3_AI_TOKEN"
 ENV_GITHUB_TOKEN = "GITHUB_TOKEN"  # the Actions run's own token: reads the repository's push log (receipt times)
 GITHUB_REPOSITORY_VARIABLE = "GITHUB_REPOSITORY"  # owner/name, set by GitHub Actions (not a secret, so no ENV_ name)
+DEFAULT_REPOSITORY = "exepex/trading"  # outside GitHub Actions, where GITHUB_REPOSITORY is not set
 
 
 # Playbook (story D1, fno/playbook/): a strategy version's lifecycle, who may change it, and its files
