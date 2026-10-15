@@ -1,0 +1,58 @@
+# Judge 206: G11 story text, the AI books on the v4 questions: `story/g11-ai-books-v4` 762a9a56 (lane 1)
+
+Judge B. G11 builder (session 01XFXpbk...). Claims: `reviews/claude/response_202_g11-ai-books-v4.md` and addendum 1,
+agreed with the A16/G8 builder. Quality rule 1: story text only; the code waits for the v4 freeze.
+
+## The builder's facts, checked
+- **No AI book has an on-time day:** confirmed from the audit files. On 14 Oct both `book2_hybrid` and `book3_ai`
+  are `no_submission`, and on 15 Oct both are `late`. There is no 16 Oct AI audit on `main`.
+- **PROTOCOL_v4.md still says a 15:00 cutoff:** confirmed (line 38, "the cutoff is 15:00:00 IST on `d`", and the
+  15:00 pack and ATM lines). G10's protocol edits (14:30 / 14:40 / 15:10) wait for the owner's sign-off, in the freeze
+  plan's step 2. G11 takes its deadline from `terms.V4_DEADLINE` (15:10, G10), which is right. It therefore depends on
+  the protocol-edit commit landing before G11's code, as the "Depends" line implies.
+- **Reuse claims:** checked in the code.
+  - G8 discovers forecasters by folder.
+  - `records.write` refuses a changed row (`RecordConflict`), so a `pending_audit` status could never settle. Writing
+    the row only after the gate settles is the right fix.
+  - `records.record()` stamps G7's `VERSION`, so a separate writer is needed.
+  - The slot constants exist.
+  - G8 checks no `made_at`, so a live row written after the audit is read as live. Point in time is guaranteed by the
+    sealed commitment received by 15:10.
+
+## Design, judged
+- **Same questions, pack and deadline; G8 scores with no AI-specific path:** correct and simple. One question list
+  (the `rules` slot's started set), never a separate AI list.
+- **Every failure is a non-`ok` row, so a miss:** correct under G9. A BG1 stop written as `not_fired`, and so a miss,
+  is honest. A `system_late` day is out for every family, as G10 built.
+- **Pending audit.** The day has no row until the gate settles, so G8 shows it as a provisional miss that disappears
+  when the row lands (reports are recomputed from files), and "N days awaiting audit" is printed. Sound.
+- **Registration.** Rows are appended after the freeze, with `effective_start` no later than the first eligible
+  session. This matches judge 184 and protocol section 6.
+- **Owner question A/B (whether v4 replaces the v2 AI run):** judged as an open slot. No criterion depends on it, and
+  the cost line states both options. The builder's lean (A) and its reason are fair (reasoning only).
+- **Cost** against BG1's minute cap: the estimate is labelled as an estimate, and the v2 prompts write BG1's timing
+  record, so it gets measured.
+
+## Should-fix 1: criterion 6's look refusal is out of this story's scope as written
+- Criterion 6 says "a confirmatory look refuses to run while an audit up to its date is open". The Scope's Out list
+  says "G8's scoring code (the A16/G8 builder)", and design item 7 says the look side "may check later".
+- The look refusal is a change to G8's `run_look` / `LookRecords`, so G11's builder cannot meet criterion 6 without
+  building in G8, and the A16/G8 builder has not taken it on.
+- **Why it matters (normal running):** without the refusal, a look run with an audit still open would record a false
+  miss for good. `LookRecords` writes each look once.
+- **Fix (either):**
+  - (a) move the look refusal to the A16/G8 builder: a row in their register and a line in the v4 freeze checklist,
+    since the looks are frozen code (`fno/forecast_scoring/v4/` is byte-checked), so it must land **before** the
+    freeze; or
+  - (b) keep it in G11 with the A16/G8 builder's written agreement, and take it out of the Out list.
+
+  Either way, criterion 6 must name who builds it and when.
+
+## Notes (not blocking)
+1. Who owns `fno/ai` and who changes `forecast-capture.yml` are open questions for the orchestrator. G11's register
+   row lists `fno/ai/` as "later". Settle both before code.
+2. Criterion 4's 15:10:01 / 15:09:59 boundary should cite G10's receipt-time check (criterion 1b, part 2) as the
+   shared implementation, so there is no second deadline check.
+
+**Verdict: FAIL for 762a9a56 on should-fix 1** (one text change plus a coordination decision). Everything else is
+ready. A re-check needs only criterion 6, the Out list and the register line.

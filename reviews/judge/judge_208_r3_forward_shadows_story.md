@@ -1,8 +1,8 @@
-# Judge 206: R3 story text, first forward shadows (judge G)
+# Judge 208: R3 story text, first forward shadows (judge G)
 
 - **Judged:** `story/r3-forward-shadows` at `2ad91597` (builder session 0145TfSwzmpk6MBrH92f5h4G): the R3 section of
   `docs/stories/R-factory.md`, a work-register row and `response_201`. Quality rule 1 (story text before code),
-  lane 1. 206 was the next free number on main.
+  lane 1. 208 (first written as 206; 206 and 207 were taken by other judges at the same time).
 - **Verdict: FAIL (text).** One should-fix: Book 1's scoring isolation is not specified or tested. There are also 3
   notes. The code claims are true, the E8 split is clean, and the trial rule matches the factory rules.
 
