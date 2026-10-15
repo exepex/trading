@@ -1,26 +1,13 @@
-"""The live "moved after cutoff" flag (story G10, protocol section 1.6): A16's index levels at its 14:30 and 15:15
-marks, each read from the Drive copy its ledger row names, checked against the row's SHA-256 and judged by A16's own
-level rule (`status.index_check`), the rule X was calibrated with. A missing row, copy or usable level, or a Drive read
-that fails, leaves the flag not computable (None: flag, never block); a copy whose bytes differ from its row stops the
-report."""
+"""The live "moved after cutoff" flag (story G10, protocol section 1.6), as A16's 15:30 run committed it in each
+session's rv row (`moved_after_cutoff`: yes, no, or empty when the 14:30 or 15:15 level was not usable). G8 reads the
+committed value: no Drive at report time, and every re-run of a report gives the same counts."""
 
 from __future__ import annotations
 
-import hashlib
 from abc import ABC, abstractmethod
-from datetime import date, datetime, time
+from datetime import date
 
-from ...forecast_v4.cutoff_move import cutoff_move, moved_after_cutoff
-from ...forecast_v4.terms import V4_CAPTURE_START, V4_COMMON_SNAPSHOT
-from ...intraday.document import SnapshotDocument, utc_text
-from ...intraday.ledger import SlotLedger
-from ...intraday.status import index_check
-from ...models import IST
-from ...storage.raw_store import RawFileStore
-
-
-class SnapshotChanged(RuntimeError):
-    """A Drive copy whose SHA-256 is not the one its ledger row recorded."""
+from ...forecast_v4.cutoff_move import MOVED, NOT_MOVED
 
 
 class CutoffMoves(ABC):
@@ -29,30 +16,10 @@ class CutoffMoves(ABC):
         """Whether the day moved more than X from 14:30 to 15:15; None when it cannot be computed."""
 
 
-class NoCutoffLevels(CutoffMoves):
-    """Without the owner's Drive settings no level can be read: every flag is not computable."""
+class RecordedCutoffMoves(CutoffMoves):
+    def __init__(self, rows: list[dict]):
+        self.flags = {r["session"]: r.get("moved_after_cutoff") for r in rows}  # rows before G10 have no column
 
     def moved(self, day: date) -> bool | None:
-        return None
-
-
-class A16CutoffMoves(CutoffMoves):
-    def __init__(self, ledger: SlotLedger, store: RawFileStore, x: float):
-        self.ledger, self.store, self.x = ledger, store, x
-
-    def moved(self, day: date) -> bool | None:
-        start, end = self.level(day, V4_CAPTURE_START), self.level(day, V4_COMMON_SNAPSHOT)
-        return None if start is None or end is None else moved_after_cutoff(cutoff_move(start, end), self.x)
-
-    def level(self, day: date, at: time) -> float | None:
-        key = utc_text(datetime.combine(day, at, IST))
-        row = next((r for r in self.ledger.rows(day) if r["mark"] == key and r["raw_path"]), None)
-        try:
-            data = self.store.get(row["raw_path"]) if row else None
-        except Exception:  # noqa: BLE001 - a Drive outage never blocks the report; the day counts as not computable
-            return None
-        if data is None:
-            return None
-        if hashlib.sha256(data).hexdigest() != row["raw_sha256"]:
-            raise SnapshotChanged(f"{row['raw_path']}: its bytes are not the ones its ledger row recorded")
-        return index_check(SnapshotDocument.from_bytes(data)).level
+        flag = self.flags.get(day.isoformat())
+        return True if flag == MOVED else False if flag == NOT_MOVED else None
