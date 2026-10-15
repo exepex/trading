@@ -20,7 +20,13 @@ def test_real_v6b_outcomes_through_g7s_rules_match_the_hand_rebuild():
 
 def test_v1_reads_only_the_a16_rows_it_is_given():
     rows = [
-        {"session": "2026-10-16", "status": "ok", "rv_session": "0.00004", "first_seen_at": "2026-10-16T16:00:00+05:30"}
+        {
+            "session": "2026-10-16",
+            "status": "ok",
+            "rv_session": "0.00004",
+            "first_seen_at": "2026-10-16T16:00:00+05:30",
+            "method": "rv-quote-15m-v1",
+        }
     ]
     series = G7Series(WARMUP.read_text(encoding="utf-8"), lambda: rows)
     assert series.intraday_rv() == {date(2026, 10, 16): 4e-05}
