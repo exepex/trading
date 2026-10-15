@@ -176,7 +176,9 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
   - **reported, not void:** the pre-open check (`|the last pre-open 1-minute candle's close - NSE open| > 0.05`, read
     from the session's 1-minute answer; expected equal, step 0) and
     the range gap (`NSE high - max candle high`, `min candle low - NSE low`), in points. These stay in the row
-    (`nse_open_gap`, `nse_high_gap`, `nse_low_gap`): differences of NSE's figures, never a level;
+    (`nse_open_gap`, `nse_high_gap`, `nse_low_gap`): differences of NSE's figures, never a level. A session voided
+    before its 1-minute check (`missing_candles`) has no 1-minute answer, so its `nse_open_gap` is blank (judge 122
+    addendum 3);
   - NSE's file definitively absent (Drive has no copy and NSE answers 404): `nse_check = unchecked`, and the session
     is **void** (`nse_unchecked`, permanent). Its levels cannot be shown to be inside NSE's range. Reasoning only: an
     unchecked session is safer out than in; the void share shows the cost. A failed read of the file is transient
@@ -270,7 +272,8 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
    - A definitively absent NSE file voids it (`nse_unchecked`); a failed read defers it.
    - The open, high and low gaps are in the row.
    - The run prints how many sessions have a pre-open gap (the last pre-open 1-minute candle's close against NSE's
-     open) above 0.05, and every such session by date.
+     open) above 0.05, and every such session by date. The count covers sessions that had a 1-minute answer only, and
+     the line says how many those were; a session voided before the check has a blank `nse_open_gap` (test).
    - **The 1-minute check (Definitions):** a session with any of its 26 marks more than 0.05 from the 1-minute value
      voids (`candle_mismatch`, marks named); a received 1-minute answer that is empty or lacks a needed minute gives a
      void row (`no_1m_check`). Tests at 0.05 and 0.06; an empty 1-minute answer; a 1-minute answer missing one needed
