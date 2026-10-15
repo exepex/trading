@@ -223,3 +223,48 @@ and it omits that test as an option.**
 **Gates at 2945dbd8 (docs-only delta; the trial merge conflicts on index rows only):** pytest 5878 passed; `ruff check` clean; `ruff format --check` 1074 files formatted; `check_imports` clean.
 
 **A re-check needs only:** `real_test_pass` 3's unknown-leg rule, Q13's options and wording, and the Rs 2,734 figure.
+
+## Addendum 3: final text at d3d577e9 (every item decided by the owner): FAIL (2 should-fix open)
+
+The builder sent this directly, and I reported it to the orchestrator. The three DESK_DECISIONS rows are on main:
+946bb8e7 (18:45 UTC), f0f6d2d8 (18:48) and 793aeb54 (18:50). The gate's values match them item by item:
+- account Rs 2 lakh, cap Rs 5,000;
+- max(30, registered) trades and 6 months;
+- the second period as the only route;
+- one-sided, with both bounds binding;
+- replay cap Rs 5,000;
+- 90% discipline;
+- stops (a) and (a2) at Rs 20,000;
+- the paired margin of −Rs 500;
+- valid quotes no older than 5 minutes for real orders and 15 for recorder uses, with the screenshot source and more
+  than 10% unknown legs failing;
+- Q13 (a).
+All 12 items parse with a decided status and exact labels (my script on the trial merge). Depth is available, since
+A16's Groww parser keeps bid and offer quantities (`fno/providers/groww.py:82-91`).
+
+**SF1 (addendum 2): NOT MET.** `real_test_pass` 3 still gives no rule for the mean when 10% or fewer legs are unknown.
+It now says only "more than 10% of real legs with unknown slippage is not met". Stop (b) says "left out of the mean
+and listed". The fix is unchanged: one clause, the same as stop (b). This is a builder text fix, with no owner question.
+
+**SF2 (addendum 2): open, now an owner confirmation.**
+- The owner answered Q13 at 18:48. My finding came at 18:54, so the owner chose (a) from the options as asked. Those
+  options did not say that (a) relaxes the owner-accepted 8.3 condition 4 ("the mean gap between paper fill and the
+  next real snapshot is within the pad"), and they did not offer that test as an option.
+- The owner's choice stands; I do not reopen it.
+- **Expected:** the orchestrator puts one line to the owner. "Your Q13 answer replaces 8.3 condition 4's accepted
+  test (the paper fill against the next A16 snapshot, about 15 minutes later, noisy) with validity only. Keep that, or
+  add the next-snapshot gap within the pad?" Record the answer in DESK_DECISIONS. If the owner keeps (a), the row says
+  it amends 8.3 condition 4, and SF2 is closed.
+
+**Notes (one line each, no fix asked):**
+- The `real_test_pass` Reason still says the prediction floor is "about Rs 2,160 below paper's mean" at n = m = 20.
+  The formula gives Rs 2,734. The example also predates the owner's floor of 30: at n = 30 and m = 20 it is
+  1.7291 × 5,000 × √(1/30 + 1/20) = Rs 2,496.
+- `fill_honesty` (a) says "one invalid leg is not met", and validity now includes depth. The owner's row says
+  validity "(fresh, two-sided, depth)" but not that one leg fails the condition. E8 should never fill from an invalid
+  quote anyway, so this is a consistency check. State that in the code round, so one thin far strike cannot void a
+  record unseen.
+
+**Gates (trial merge with origin/main 1d85ede5, tree be5c907, clean merge):** pytest 5993 passed; `ruff check` clean; `ruff format --check` 1095 files formatted; `check_imports` clean.
+
+**A re-check needs only:** SF1's clause, and the owner's answer for SF2 with its row.
