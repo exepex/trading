@@ -57,7 +57,8 @@ class SkewCheck:
     line: str
 
     def stored(self) -> dict:
-        return {"server": self.server, "skew_seconds": self.skew_seconds, "warning": self.warning}
+        """Kept with its line, so an unchecked server says why in the record too (not only on screen)."""
+        return {"server": self.server, "skew_seconds": self.skew_seconds, "warning": self.warning, "line": self.line}
 
 
 def skew_check(

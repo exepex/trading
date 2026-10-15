@@ -5,7 +5,8 @@ Branch `story/t1-daily-card` (from `origin/main` 96ee83f). Story text: `docs/sto
 
 **Verdict in one line:** the card is built, self-reviewed by two independent agents (their 20 findings checked: 18
 fixed, 2 kept with reasons), 43 of 43 planted breaks are caught, and it prints correctly from the real repository.
-It has never been posted for real (the one test post was blocked by this session's permission system), and three
+One live TEST post went to #fno-desk (made by the orchestrator after the owner's yes; this session's permission system
+blocked my own attempt) and was read back from the channel, and three
 inputs are honest placeholders (weather, house-forecast rule, owner availability), each named on the card.
 
 ## What the card says today: the real dry-run text
@@ -61,11 +62,29 @@ Readings:
 
 ## The one live test post (criterion 16)
 
-**Not made: blocked, not failed.** The owner's yes was relayed by the orchestrator, and the run was attempted once,
-from e5dcf69: `python -m fno card daily --post --test`. This session's permission system (auto-mode classifier,
-"External System Writes") refused the command before it ran. Nothing was posted, saved or written. I did not work
-around the refusal. Criterion 16 stays NOT MET until the owner approves the command in the builder session, or runs it
-themselves. The output, the Slack `ts` and the permalink will then be added here.
+**Made once, by the orchestrator session, after the owner's yes ("test post yes").** I tried it from this builder session
+first, and this session's permission system ("External System Writes") refused the command before it ran. The
+orchestrator then ran `python -m fno card daily --post --test` from e5dcf69 and pushed the delivery file in cc44109.
+
+- **Slack:** sent to #fno-desk by the bot. ts `1792025414.919329`, which is 2026-10-15 06:20:14 IST (00:50:14 UTC).
+  Permalink: https://exepex.slack.com/archives/C0C89E8QCCD/p1792025414919329
+- **Checked independently:** I read the channel (read-only Slack connector). The message's ts equals the stored ts. Its
+  first line is "TEST — PAPER ONLY: a one-off check of live delivery, not the day's card.". The body is the e5dcf69
+  dry-run card.
+- **Drive:** "card record saved to Drive: 2026/10/2026-10-15_1792025414919329_test.json".
+- **Clock:** host vs Slack skew 0.006 s (no warning).
+- **Witness on the branch:** `python -m fno card witness --on 2026-10-15` printed
+  `research/cards/deliveries/2026/2026-10-15-a1.json: Slack 2026-10-15 06:20:14 IST (ts 1792025414.919329); GitHub push
+  receipt unknown (HTTP 403 from GitHub's activity log)`. The receipt is read from pushes to `main` only, so it is
+  checked after the merge, as criterion 16 says. The 403 is this container's token.
+
+Two things the test post showed, said plainly:
+1. **The GitHub clock check was not done, and the record did not say why.** `skew_seconds` is null, and the reason went
+   only to the screen. Fixed after the post: each clock check now stores its line, e.g. "not checked (ConnectionError)",
+   with a test. The likely cause (some evidence: the stored null is consistent with any failure) is that the routine's
+   network blocks a plain HEAD to api.github.com. The judge should check this on the first scheduled post.
+2. **That card used the same-day score report (2026-10-15).** It was built from e5dcf69, before the point-in-time
+   fix in this commit. Cards from this commit use the latest report dated before the card's day.
 
 ## Gap list: every requirement of design 04 (layer 6, section 4.4), design 6.5 and the T1 paragraph
 
@@ -202,7 +221,7 @@ Criterion 15 (structure) has no planted break; `tests/test_code_size.py` and `te
 | 13 | Secrets never in files or logs | token only in `SlackCardPoster`'s header; Drive and sign-in failures named by error type only (`record_store.py`, `wiring.py:57-63`) | `test_drive_down_...` (a "secret" in the error never reaches output), `test_the_composition_root_...` (a refused sign-in's message never reaches output) | strong evidence |
 | 14 | Non-session day: "not a trading day"; unknown calendar still gets a card naming it | `fno/cards/session.py:30-62`, `fno/cards/cli.py` | `test_a_day_that_is_not_a_session_gets_no_card`, `test_a_day_the_calendar_cannot_answer_still_gets_a_card_naming_the_gap`, `test_a_holiday_prints_not_a_trading_day` | strong evidence |
 | 15 | Interfaces, one composition root, sizes, constants | `fno/cards/wiring.py` (listed in `CLAUDE.md`); interfaces `CommittedRecords`, `StatusSource`, `WeatherSource`, `ForecastSource`, `CardRenderer`, `CardPoster`, `CardRecordStore`, `DeliveryLog`, `ServerClock`; constants in `fno/constants.py` (card block at the end) | `tests/test_code_size.py`, `tests/test_import_graph.py` | strong evidence (largest new file under 100 lines) |
-| 16 | Live delivery to #fno-desk verified once (orchestrator addendum) | `fno/cards/issue.py` (`TEST_BANNER`, `issue(..., test=True)`), `fno/cards/cli.py` (`--test` needs `--post`), `fno/cards/deliveries.py` (`misses` skips test attempts) | `tests/cards/test_issue.py::test_a_test_post_is_marked_on_its_first_line_and_records_and_never_counts_as_the_card`, `tests/cards/test_cli.py::test_test_marks_one_live_post_and_needs_post` | **NOT MET yet**: the flag is built and tested with fakes; no live post until the owner's yes is relayed. Then: `python -m fno card daily --post --test`, commit and push the delivery file, `python -m fno card witness --on <day>`, and the output goes here |
+| 16 | Live delivery to #fno-desk verified once (orchestrator addendum) | `fno/cards/issue.py` (`TEST_BANNER`, `issue(..., test=True)`), `fno/cards/cli.py` (`--test` needs `--post`), `fno/cards/deliveries.py` (`misses` skips test attempts) | `tests/cards/test_issue.py::test_a_test_post_is_marked_on_its_first_line_and_records_and_never_counts_as_the_card`, `tests/cards/test_cli.py::test_test_marks_one_live_post_and_needs_post` | Branch half (a) MET: one live post, ts 1792025414.919329, permalink above, read back from the channel. The GitHub receipt half (b) is checked at the merge. Strong evidence for (a) |
 
 DRY change outside `fno/cards/`: the Slack HTTP post moved into one function `slack_post` (`fno/alerts/sender.py:23`)
 used by both `SlackChannelAlerts` and `SlackCardPoster`; the existing alert tests still pass unchanged.
@@ -236,8 +255,7 @@ no T1 code needs it.
   standard alert to #fno-desk, because `FNO_SLACK_BOT_TOKEN` is set in this container. That alert names only the file,
   line and kind of value, never the value, and the value was fake. The fake token is now `test-token-not-real`, the
   same style the existing alert tests use. The card code itself made no live call.
-- Never run live: no real Slack post of a card, Drive write, GitHub `Date` read or activity-log read was made. First live run
-  should be one `--post` by the owner or orchestrator with the real token, then `card witness`.
+- One live TEST post only (above). No scheduled card has run yet, and the GitHub clock check has never succeeded live.
 - A retry after a lost Slack answer can post the card twice (Slack accepted the first but the answer was lost). The
   delivery metadata then shows one `ts`; the duplicate is harmless but visible.
 - The paper trade count reads each book's `positions.json` view, not the ledger it is rebuilt from.

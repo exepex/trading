@@ -126,6 +126,7 @@ def test_a_server_clock_off_by_more_than_five_seconds_is_a_warning_printed_and_s
     assert "clock: host vs Other not checked (ConnectionError)" in result.lines
     _, delivery = written(tmp_path)
     assert [c["warning"] for c in delivery["clock"]] == [False, True, False]
+    assert delivery["clock"][2]["line"] == "clock: host vs Other not checked (ConnectionError)"
 
 
 def test_slack_ts_far_from_the_host_clock_is_a_warning(tmp_path):
