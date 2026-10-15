@@ -152,3 +152,19 @@ checked deletion, on the owner's word.
 | 90 | `raw/nse/equities/filings/shareholding-xbrl/POLYCAB` | `SHP_191467_1264112_10102024113836_WEB.xml` | 435532 | 2026-10-13 14:16:57 | …F7gyi5Hr | `6a537dcfe000f66419f659872b69974e` | `2024/` yes |
 | 91 | `raw/nse/equities/filings/shareholding-xbrl/POLYCAB` | `SHP_195683_1438344_14052025024914_WEB.xml` | 429865 | 2026-10-13 14:16:55 | …muzVfGBO | `c423517240ad104d9e45706fd3f67010` | `2024/` yes |
 | 92 | `raw/nse/equities/filings/shareholding-xbrl/POLYCAB` | `SHP_197005_1413408_12042025063545_WEB.xml` | 435010 | 2026-10-13 14:16:54 | …3oVTiAyu | `84c8bf107077752fefbe2697f723891e` | `2025/` yes |
+
+## Done: the 96 moved to Drive's trash (owner, 16 Oct 2026)
+
+Owner's approval in this session: "I approve - Move the 96 files of response 194 to Drive's trash with your checked
+script." (`docs/DESK_DECISIONS.md`, row "Drive clean-up").
+
+- **Re-list just before:** 92 filings files and 4 probe files, **0 mismatches** against the table above (path, name,
+  size, MD5 and Drive-ID tail; the probes exactly the four 61-byte write-read files).
+- **Per file, just before its move:** its year-layout copy re-read in Drive with the same MD5 (92 of 92).
+- **Moved to Drive's trash: 96** (92 + 4), each confirmed `trashed: true` by Drive. Not deleted permanently:
+  restorable from the trash for 30 days.
+- One script fault on the first run: the move call used the method name `PATCH` and failed on the first file
+  before any change (Drive re-checked: nothing had moved). Fixed to `patch` and re-run with the same checks.
+- `outside-layout.csv`: each of the 92 rows now ends "deleted 16 Oct 2026 (owner): moved to Drive's trash,
+  restorable for 30 days (response 194)". `tests/filings`: 66 passed.
+- Not touched: the dry-run folders and the cards test file.
