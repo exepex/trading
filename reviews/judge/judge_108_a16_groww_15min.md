@@ -518,3 +518,45 @@ The story text otherwise matches the code it describes: `manifest_commit.py`'s a
   - The untracked-file limit is stated honestly and adds no rule.
   - Folding into the shared push-guard story (decision 64) later matches my addendum 11 ruling.
 - **Code to come.** The judge checks the A16e code against criteria 1-9, including every broken-code proof, in its own lane 1 verdict.
+
+## Addendum 13 (15 Oct 2026): A16e code at f8ba463
+
+**Verdict: PASS.** No blocking or should-fix findings. One minor (a test gap) and one note.
+
+**Gates, run by me.**
+- On f8ba463: 4,624 passed with `FNO_SLACK_BOT_TOKEN` unset; ruff check, ruff format --check and check_imports clean.
+- On a trial merge with `origin/main` (ce76e22): 4,624 passed; ruff and imports clean.
+- New and changed files are 36-128 lines each.
+
+| Criterion | Result | Evidence |
+|---|---|---|
+| 1. Only owned paths reach origin; `rv-candle/` and `heartbeat.json.tmp` stay untracked | MET | Test at the 15:30 mark checks what reaches origin and the untracked files left. My J10 (whole folder, base `_paths`) is caught. |
+| 2. Fresh folder without `rv/`; empty folder | MET | The 09:15 row and heartbeat push; an empty folder says "nothing new to commit". My J1 (blind owned paths) and J8 (no `--others`) are caught. |
+| 3. Staged inside the folder: pull and commit refused, one alert, HEAD unchanged, file still staged, row kept; after unstaging, the next commit carries it all | MET | J6 (commit skips the check) and J7 (pull skips it) are caught. |
+| 4. Manifest row staged outside the folder: refused | MET | J2 (check limited to the folder) is caught. |
+| 5. Three marks, one alert | MET | J3 (alert on every refusal) is caught. |
+| 6. Untracked stray only: no refusal | MET | Covered by test. |
+| 7. Manifest committer unchanged | MET | The base `_paths()` returns `[self.folder]`: the same `add -- <folder>` and `commit -- <folder>` arguments as before. The new empty-pathspec guard in `pending()` cannot trigger for the base class. The other users (`storage/wiring.py`'s manifest committer, `market_read_models/wiring.py`'s publication inputs) see no change, and their existing tests are green. |
+| 8. Broken-code proofs | MET | The builder reports M1-M5 caught. My own plants J1, J2, J3, J5, J6, J7, J8 and J10 are each caught; J5 drops the "/" from a folder name, so `rv` would match `rv-candle`. |
+| 9. Gates | MET | As above. |
+
+**The orchestrator's questions.**
+1. **Does `_paths()` change anything for other users?** No (row 7).
+2. **An owned file deleted on disk.** Checked with the real class on a scratch repository. `ls-files --cached` still lists a tracked `heartbeat.json` deleted from disk, so it is passed, and `git add` staged `D f/heartbeat.json`. Correct.
+3. **`--others --exclude-standard`.** Untracked owned files are listed: the fresh-folder test and J8 show this. An ignored file is not listed, as I checked with an ignored `ign.json` named as owned. That is right, because `git add` would refuse an ignored path outright.
+   - Untested: dropping `--exclude-standard` (my J9) survives. No owned path is ignored today, so this is not a finding.
+
+**Minor (test gap): the staged-file boundary for single files is untested.** My J4 makes a file name match by prefix in `_matches`, so `heartbeat.json` would count as owning `heartbeat.json.tmp`. It survives all 187 intraday tests.
+- With it, a staged `heartbeat.json.tmp` would count as owned and not be refused, and the pull would fail. The current code is correct; only the test is missing.
+- Criterion 1 tests this boundary only for untracked files.
+- Expected fix, next time this code is touched: one test with `heartbeat.json.tmp` staged, expecting a refusal.
+
+**Note (not a finding).** A staged deletion of an owned file made by another writer (`git rm --cached` on `heartbeat.json`) is neither committed nor refused: in my check `_paths` lists only `rv/` and `foreign_staged()` is empty. So such a pull would fail as "pull failed". It needs another writer to remove the recorder's own tracked file, and the recorder never deletes. The shared push guard (decision 64) can cover it.
+
+**Claims vs reality.** Response 108 part 6c matches the diff. "Beside the unchanged manifest committer" is loose wording: the manifest committer gained the `_paths()` hook, but its Git arguments are unchanged, as the next bullet says.
+
+**Rule 8 plan I accept.** No live run is possible before merge. After merge:
+- A dry run on `main` (`intraday snapshot --dry-run`) shows nothing breaks. It uses NoSync, so it cannot exercise the committer.
+- The first live routine fire after merge is recorded by the builder in `conversations/<date>.md`. It must show that fire's commit file list (`git show --stat`), containing only `slots/…` and `heartbeat.json` (plus `rv/…` at 15:30), and no refusal line.
+
+I check that commit in the merge check. Until then, A16e counts as merged but not yet proven live.
