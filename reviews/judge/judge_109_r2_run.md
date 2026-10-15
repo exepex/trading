@@ -370,3 +370,47 @@ byte-identical to 02e84d0 (`git diff --quiet`).
    SHA-256 and Drive path.
 2. Make one `study.py --run --snapshot <path without raw/> <sha256>` from a commit whose study folder equals 02e84d0's.
 3. Commit the results and the `DATA_SPEND.md` rows updated to what was read. Then I check the results.
+
+## Addendum 6 (15 Oct 2026): results check at ca8e5d5d6baf6b66e1a08a8d1a732e0f2ee83c08
+
+**Verdict: PASS.** The registered answer "NO, stopped at stage 3 (cost wall), trial 53 of 53" follows the frozen rules. There are no blocking or should-fix findings and two notes.
+
+**One run and the snapshot binding (my own checks).**
+- **Study folder unchanged.** `git diff 02e84d0 f296e25` and `git diff 02e84d0 ca8e5d5` over the study folder show only the two new files, `results.json` and `results.md`.
+- **Freeze hashes.** At ca8e5d5, the 28 revision-1 rows of `FREEZE.md` all hash OK (`sha256sum -c`), covering `PROTOCOL.md`, both amendments, `study.py` and every `r2study/` file. The original table's four superseded script rows differ, as expected.
+- **Single results commit.** `results.json` has exactly one commit in all of history, ca8e5d5. `run_commit` reads f296e25, and `trial` reads "trial 53 of 53", the ledger's last row.
+- **Snapshot.** I read the raw file from Drive read-only: `groww/derivatives/stock-option-quotes/2026/10/15/r2-snapshot_20261015_140024.json`, 1,543,104 bytes. Its SHA-256 is `b83836e32d8bdfadd5c45f0b001587c9b1086f7e95f7c6d6b794afed42bb6c3f`, equal to `results.json` `snapshot.sha256`.
+  - Its own fields: started 14:00:31, finished 14:19:18 IST (inside 14:00-15:00), 0 after the window, 0 errors, 2 legs with no previous row, 3 legs not listed, 1 stock skipped, 73 stock entries. These match the results.
+  - `results.json` has `used: true` and a no-row share of 0.2%, under the 20% rule.
+
+**The cost wall follows the frozen rules.**
+- **Code matches the protocol.** `evaluate.py`/`structures.py` compute EN = 5% x P x lot - C - T, with:
+  - C = C1 charges on entry and exit (exit at the entry price) plus one pad per leg per side (bucket p75 half-spread x leg price x lot);
+  - T = 2% of the costed maximum loss for S7 only;
+  - e\* = (C + T) / (P x lot).
+  This matches PROTOCOL 6.1.
+- **Stage logic.** Stage 3's test is criteria 1 and 2: S5, S6 and S7 pass criterion 1 with pads (50.8%, 44.3%, 48.3%, all at least 25%) and fail criterion 2 (median and mean EN below 0). So no structure passes, and section 9 says "NO, stopped at stage 3". Stages 1 and 2 pass on S5-S7 (89.3%/63.4%, 86.4%/55.2%, 79.3%/49.7%), so the stop is at stage 3, not earlier.
+- **Recomputed from `results.json`.** Since gross/cost = e/e\* for every event, the median gross/cost must equal 0.05 / median e\*.
+  - S5: 0.05/1.012106 = 0.049402. S6: 0.051876. S7: 0.101367. S1: 0.360836. S2: 0.359906. Each equals the reported `median_gross_to_cost` to 6 decimals, so EN, e\* and the cost all come from one consistent cost figure.
+  - The implied median S5 debit is about Rs 3,300 a lot (EN / (e - e\*)). That fits a one-step spread at the reported Rs 6.2 lakh median lot value and 1.3% median strike step.
+- **Rough hand check (my assumptions: ATM call about 3.4% of the underlying for one month, liquid buckets).** Pads are 2 x (0.065 x Rs 21,000 + 0.023 x Rs 17,700), about Rs 3,540, against a gross of about Rs 165. EN is about Rs -3,500 before charges, the same order as the reported Rs -3,177.
+- **Robustness.** e\* of 49-101% against 5% means even halving every pad leaves e\* around 25-50%. The NO does not hinge on the p75 pad choice or the 5% hurdle.
+- **Clusters.** 602 clusters / (744 days / 365.25) = 295.5 a year, as reported. Clusters a year are 0.0 for S5-S7 because amendment 1 counts only events with EN > 0.
+
+**The builder's three flaws and the decision window: none touches it.**
+1. **Legacy lot derivation, 13% exact.** Legacy rows exist only before July 2024. In the decision window (1 Oct 2024 on), lot unknown is 0.0%, all from the current format's `NewBrdLotQty`. It empties only the descriptive 2019 - Sep 2024 table (536 events), which never decides. The 2019-2021 correlation is reported, not deciding.
+2. **"First failed" reads "none" in the descriptive table.** A display flaw in a non-deciding table. The decision table names cap, cap, cap, cap, cost wall, cost wall, cost wall.
+3. **Duplicate meetings collapsed (32,858).** Decision-window coverage is 1,617 of 1,626 stock-quarters (99.4%), so no quarter's results date was lost. Even a few percent more or fewer events could not move medians of Rs -2,700 to -3,200 above 0.
+
+**Bookkeeping.**
+- `DATA_SPEND.md` now marks as `exposed`: the bhavcopy fields read, the 2019-2021 moves, the snapshot with its hash, and A12's dates.
+- 2022-2026 moves stay `fresh` (no exit price was read).
+- The ledger row is NO at stage 3, and the idea card is updated.
+- `tests/research` at ca8e5d5: 112 passed.
+
+**Notes (not findings).**
+1. **"Exactly one run" rests on the builder's statement** plus there being a single results commit. I cannot list every run made in another container. Some evidence.
+2. **Merge.** A trial merge with `origin/main` conflicts in three files: `conversations/2026-10-15.md`, `reviews/claude/README.md` and `research/data/manifests/board-meetings.csv`.
+   - Main's A12 job has filled 2005-2011 board-meeting rows since the branch point.
+   - I compared both sides: 1,020 days appear on both, all with identical SHA-256, and no day has two rows.
+   - So the manifest resolves as the union of both sides, sorted by date, never one side only. That needs a full suite on the merged tree before the push, as usual.
