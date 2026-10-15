@@ -810,6 +810,15 @@ ChatGPT review 104 accepted the text; claims in `reviews/claude/response_184_e4c
 2. Should a short leg's buy-back depth (ask size) also be required at entry? It causes no same-snapshot loss, but an
    exit may wait for depth.
 
+**Known limits (ChatGPT review 123, response 192; text only, no code change):**
+- **Shared displayed size.** `entry_problems` checks one entry's legs on their own. Two entries of the same book on
+  one contract at one snapshot could each pass against size they would have to share. This predates E4c. Book 1
+  trades nothing today (no approved strategy), but its orders are every traded opportunity of the day
+  (`fno/books/book1_orders.py`), so two approved strategies whose legs share a contract could reach it. The fix, once
+  that can happen, is to sum a book's required units per contract before any fill.
+- **One immutable snapshot.** The check and the fills read the same recorded snapshot, so the order book cannot
+  change between legs. A real legged entry can meet a different book at each leg; this model cannot show that.
+
 ---
 
 ## E5. Book 1: pure rules
