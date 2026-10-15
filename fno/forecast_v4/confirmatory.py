@@ -25,7 +25,8 @@ from .student_t import t_cdf
 from .terms import BOOTSTRAP_SEED, RESAMPLES
 
 STUDENTIZED_SEED_WORD = 2
-MIN_CLAIM_BATCHES = 12  # rule E+D: fewer batches cannot claim (revision 2, judge 98 addendum 2)
+MIN_CLAIM_BATCHES = 12  # rules E+D and F+D: fewer batches give neither a claim nor a futility "no"
+FUTILITY_LEVEL = 0.025  # per member and look (Bonferroni 2 x 2.5% over the two looks)
 
 
 def batch_layout(n: int, block: int) -> tuple[int, int]:
@@ -93,3 +94,17 @@ def calibrated_p(differences: Sequence[float], block: int, threshold: float, ste
     if len(differences) // block < MIN_CLAIM_BATCHES or threshold <= 0:
         return 1.0
     return min(1.0, step * batch_means_p(differences, block) / threshold)
+
+
+def futility_p(
+    differences: Sequence[float], baseline_losses: Sequence[float], block: int, margin: float, threshold: float
+) -> float:
+    """Rule F+D (revision 3, the operative futility rule): the member's futility p on the gate set, for "the true
+    relative improvement is below the minimum effect". With e_t = d_t + margin x b_t, that is mean(e) > 0; its
+    batch-means t p-value p_e is mapped to `0.025 x p_e / threshold` (capped at 1), so a member is futile at a look when
+    this is at most 0.025, i.e. p_e at or below its worst-case calibrated threshold (`tools/v4_futility_study.py`, at
+    the look's n). Fewer than 12 whole batches, or no threshold: 1 (no "no")."""
+    if len(differences) // block < MIN_CLAIM_BATCHES or threshold <= 0:
+        return 1.0
+    excess = -(np.asarray(differences, dtype=float) + margin * np.asarray(baseline_losses, dtype=float))
+    return min(1.0, FUTILITY_LEVEL * batch_means_p(excess, block) / threshold)

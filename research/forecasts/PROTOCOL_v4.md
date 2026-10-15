@@ -181,8 +181,8 @@ missing; daily HAR never stands in again.
 1. **Statistic:** `d_t = loss(forecaster) - loss(baseline)` on the scored set; `D` = their mean; negative favours the
    forecaster; one-sided.
 2. **Resampling.** For n pairs and block length L (table 1.2): B = 10,000 resamples, each drawing ceil(n / L) block
-   starts uniformly from 0..n-L with replacement (`numpy.random.default_rng(SeedSequence(words))`, all starts in one
-   draw of shape (B, ceil(n / L))), joined in draw order and cut to n. k is the member's place in the family (below);
+   starts uniformly from 0..n-L with replacement (`numpy.random.default_rng(SeedSequence(words))`, the words starting
+   with the v4 seed 20261015; all starts in one draw of shape (B, ceil(n / L))), joined in draw order and cut to n. k is the member's place in the family (below);
    reported-only comparisons are numbered after 15.
 3. **Confirmatory claim rule, revision 2: rule E+D** (owner decision "3 B", 15 Oct 2026; judge 98 addendum 2;
    `confirmatory.calibrated_p`, `tools/v4_claim_thresholds.py`). A member claims at a look only with **at least 12
@@ -212,12 +212,17 @@ missing; daily HAR never stands in again.
    for a probability question with Brier (identical to a Brier skill score of 0.02). The primary test keeps every scored
    date, zeros included. These are forecast effects only, never evidence of money. Significant but smaller: "real but
    too small to use".
-5. **Futility, with its own two-look budget (ChatGPT review 99, finding 2):** on the gate set, a one-sided **97.5%**
-   upper bound of the relative improvement at each look (Bonferroni 2 x 2.5% = 5% per member over the two looks):
-   the same resampling with seed words `[20261015, k, 1, look]` (look 1 or 2), pairs kept together, the ratio of means
-   recomputed on each resample, the nearest-rank 97.5th percentile (the 9,750th of 10,000). **Futile when the bound is
-   below the minimum effect.** Futile at look 1 is final; an open member uses its own 2.5% at look 2. Never declared
-   with fewer than 2L gate pairs. Across members, "every member futile" is an intersection-union claim (Berger 1982).
+5. **Futility, revision 3: rule F+D** (`confirmatory.futility_p`, `tools/v4_futility_study.py`; a false "no" gets the
+   false-"yes" standard). On the gate set, with e_t = d_t + margin x b_t, "improvement below the minimum effect" is
+   mean(e) > 0. A member is **futile at a look only with at least 12 batches and a batch-means t p-value for it at or
+   below its worst-case calibrated threshold**: the 2.5% quantile (at its 95% lower confidence rank) over both
+   orientations of the empirical null shifted to a true improvement exactly equal to the minimum effect, computed at
+   the look for the member's n. 2.5% per look (Bonferroni 2 x 2.5%); futile at look 1 is final. **Measured (held-out,
+   100,000 series; `v4_futility_study.md`):** F+D's false-futility rate is 0.0-2.6% in all 16 cells (V1, V2, V6a,
+   V6b; n = 125 and 250; both orientations; tolerance 2.60%). Revision 1's bootstrap bound (F0) said a false "no" in
+   **23-32%** of cases for V1 and V2 and 7-17% for V6a and V6b, against 2.5%: it is reported only. Strong evidence for
+   the measured nulls, some evidence for future data. V7 borrows V6b's threshold (reasoning only). Across members,
+   "every member futile" is an intersection-union claim (Berger 1982).
 6. **The confirmatory family (15 members, fixed now).** Targets V1, V2, V6a, V6b, V7, each with three forecaster slots:
    `rules` (the registered code forecaster: G7's rule forecaster, or M1's weather model for V6), `hybrid` (Book 2) and
    `ai_team` (Book 3), numbered k = 1..15 in the order of `terms.FAMILY`. Each slot holds the first forecaster version
@@ -247,14 +252,14 @@ missing; daily HAR never stands in again.
   question); G1 v3's family is reported beside it, never counted. Missing and void outcomes are excluded by section 4
   and counted. **yes:** a counted member claims at look 1. **no (futility):** every counted member is futile (a
   significant but too-small one included). **undecided:** anything else, including **zero counted members** and any
-  counted member with fewer than 2L pairs. Underpowered is never "no".
+  counted member with fewer than 12 batches. Underpowered is never "no".
 - **Test B** counts shadow strategies registered in the ledger before the review. **yes:** a one-sided 95% lower bound
   of net per trade after costs above zero. **no:** every counted strategy reached its registered sample and its upper
   bound is below its registered minimum useful net. **Zero counted shadows: `undecided/no_economic_test`, never "no".**
   A strategy without a resolved trade has no bound and is undecided.
 - **Table:** B yes: continue. A no and B no: stop or pivot (owner chooses). A yes and B not yes: continue 6 months with
-  the AI budget halved. Anything else: option 1 (continue to the projected settle date, a planning projection) when the best-powered question's
-  projected settle date is at most 2 years after the review, else option 2 (code only). **No power report yet means no
+  the AI budget halved. Anything else: option 1 (continue to the projected settle date, a planning projection) when
+  the best-powered question's projected settle date is at most 2 years after the review, else option 2 (code only). **No power report yet means no
   projected date: option 2** (reasoning only; flagged in section 11).
 
 ## 7. The 60-outcome power report (`power.py`): a planning projection only
@@ -265,8 +270,9 @@ Holm step) and the years remaining, at 252 / horizon independent outcomes a year
 as 60 / horizon. If that is beyond 2 years, the card and the owner are told plainly that the question cannot settle in
 useful time. **The report only states a date; it never changes a threshold, the family, a baseline, a block or a
 look's rate. It promises no settle date:** the n / horizon count is a rough heuristic, not the block-dependent
-sampling distribution (ChatGPT review 99). Arithmetic (strong evidence): r = 3 needs 114 outcomes at 0.05 / 15 (the design's table, reproduced),
-125 at look 2 and 134 at look 1; r = 5 needs 316 at 0.05 / 15.
+sampling distribution (ChatGPT review 99). Arithmetic (strong evidence): r = 3 needs 114 outcomes at 0.05 / 15 (the
+design's table, reproduced), 125 at look 2 and 134 at look 1; r = 5 needs 316 at 0.05 / 15. Under rule E+D the
+calibrated threshold replaces rate / 15 in this formula, which needs far more outcomes (section 11, D).
 
 ## 8. Disclosure: what was seen before the freeze
 
@@ -331,7 +337,7 @@ confirmation of section 11's items A-C (given, 15 Oct 2026) and of item D.
   / 316. Under E+D: V1 426 / 1,183 (about 1.7 / 4.7 years); V2 396 / 1,099 (about 8 / 22 years); V6a 180 / 499
   (about 0.7 / 2 years); V6b and V7 151 / 419 (about 3 / 8 years). **Said plainly: the QLIKE questions V1 and V2
   cannot be claimed in useful time on realistic data**; the Brier questions can, slowly. The other options' sizes
-  stay disclosed in `v4_size_study.md`. Untested: futility's percentile bound under the same nulls.
+  stay disclosed in `v4_size_study.md`. Futility is measured the same way (5.5, rule F+D).
 
 Also open to challenge: the 15-member family without V3, V5 and V4 (5.6); special sessions excluded (section 2); V2
 and V3 on `close_proxy` (1.1); the 5% spread limit and parity forward (1.4); strict "inside" for V5 (1.5).

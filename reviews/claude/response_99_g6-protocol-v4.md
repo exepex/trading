@@ -165,3 +165,25 @@ Each item was checked before it was accepted.
    - Revision 1's 1,000-series figures are relabelled "superseded; some evidence only".
 3. **Not tested:** futility's percentile bound under the same heavy-tailed nulls. It may give a false "no" too; this
    is disclosed in protocol section 11.
+
+## Revision 3: false futility (orchestrator, after revision 2)
+
+- **The test.** `tools/v4_futility_study.py` builds empirical nulls from exposed 2024-26 data (disclosed). Each one
+  pairs the real daily loss difference with the real baseline loss: QLIKE for V1 and V2 (gate set RV > 0, textbook
+  baseline loss) and Brier for V6a and V6b. The difference is shifted so the true relative improvement equals the
+  registered minimum effect exactly (3% QLIKE, Brier skill 0.02). It is tested in both orientations, resampled jointly
+  in circular 20-session blocks, at n = 125 and n = 250, at both looks.
+- **Revision 1's rule (F0, the 97.5% bootstrap bound)** gives a false "no" far too often (10,000 series per cell,
+  tolerance 2.81%). The target is at most 2.5% per look.
+  - V1: 27% at n = 125, 23% at n = 250 (the rare-big-gain orientation).
+  - V2: 32% and 23%.
+  - V6a: 16-17%.
+  - V6b: 7-12%.
+- **The operative rule is now F+D** (`confirmatory.futility_p`). A member can be called futile only with at least 12
+  batches and a batch-means t p-value for "improvement below the effect" at or below its worst-case calibrated
+  threshold. That threshold is the 2.5% quantile at its 95% lower confidence rank, over both orientations, computed at
+  the look for the member's n.
+- **F+D's held-out false-futility rate** (100,000 series per cell) is 0.0-2.6% in all 16 cells, within the 2.60%
+  tolerance (strong evidence for the measured nulls). The worst cell is V2 at n = 125: 2.58%.
+- **Tests.** `test_futility_rule.py` checks the rule's mapping, the 12-batch minimum, that the fast bound equals
+  `effect_check`, that the nulls sit exactly at the minimum effect, and the committed table.
