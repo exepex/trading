@@ -27,7 +27,7 @@ read it in full before answering the owner. The same day's log is `conversations
   - Judge lanes: lane 1 needs a judge PASS before `main` (new stories, anything touching trades, scoring, forecasts,
     frozen files, schedules, outside services); lane 2 covers tests and docs; lane 3 covers logs, decisions and data.
   - Proposals for ChatGPT go in `reviews/claude/response_<n>_<name>.md` with a README row; the next free number is
-    138. ChatGPT reviews in `reviews/chatgpt/`.
+    the next unused number at the time (138 was taken on 15 Oct; check the folder). ChatGPT reviews in `reviews/chatgpt/`.
   - Run `git pull --no-rebase origin main` before every push; never use `--no-verify`.
   - Run tests with `FNO_SLACK_BOT_TOKEN` unset.
   - Code: SOLID, DRY and KISS; no file or class over 350 lines.
@@ -203,7 +203,7 @@ forcing the same data be noise?
 5. Open BANKNIFTY to the families **only after 4-6 clean NIFTY weeks**, through a written rule.
 
 Plus **E1-E5 with the E1 amendment** and the **one timeline file**. Then the order is: a ChatGPT review proposal
-(`reviews/claude/response_138_...`), a story on a `story/<id>-<short>` branch, judge PASS, merge.
+(`reviews/claude/response_<next free n>_...`), a story on a `story/<id>-<short>` branch, judge PASS, merge.
 
 **Timing constraint:** E5 and any new questions or scoring rules must go into protocol v4 **before its freeze**. The
 judge's freeze notes for G6:

@@ -39,7 +39,7 @@ First tasks:
    - the comparison scorecard.
    Start by asking the open questions in section 10 of the handover, a few at a time.
 3. Once the owner approves:
-   - write the proposal for ChatGPT as reviews/claude/response_138_<name>.md, with a README row;
+   - write the proposal for ChatGPT as reviews/claude/response_<next free n>_<name>.md (138 is taken; check the folder), with a README row;
    - build each part as a story on a branch story/<id>-<short>;
    - get an independent judge PASS before main. Start a fresh judge session that reads docs/JUDGE.md and
      reviews/judge/README.md; the old judge is in another account.
