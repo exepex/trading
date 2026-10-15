@@ -1,0 +1,184 @@
+{
+ "seed": 20261015,
+ "f0_series": 10000,
+ "fd_series": 100000,
+ "target": 0.025000000000000022,
+ "cells": [
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "orientation": "as measured",
+   "f0": {
+    "stop_rule_review": 0.0031,
+    "projected_settle_date": 0.0027
+   },
+   "fd": 0.0,
+   "threshold": 9.17008999310133e-06
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 125,
+   "orientation": "flipped",
+   "f0": {
+    "stop_rule_review": 0.2706,
+    "projected_settle_date": 0.2704
+   },
+   "fd": 0.02454,
+   "threshold": 9.17008999310133e-06
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "orientation": "as measured",
+   "f0": {
+    "stop_rule_review": 0.005,
+    "projected_settle_date": 0.0051
+   },
+   "fd": 0.0,
+   "threshold": 9.137277860264085e-06
+  },
+  {
+   "question": "v1_rv_next_session",
+   "n": 250,
+   "orientation": "flipped",
+   "f0": {
+    "stop_rule_review": 0.2336,
+    "projected_settle_date": 0.2337
+   },
+   "fd": 0.02384,
+   "threshold": 9.137277860264085e-06
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "orientation": "as measured",
+   "f0": {
+    "stop_rule_review": 0.0066,
+    "projected_settle_date": 0.0065
+   },
+   "fd": 0.0,
+   "threshold": 2.743046374724433e-06
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 125,
+   "orientation": "flipped",
+   "f0": {
+    "stop_rule_review": 0.3225,
+    "projected_settle_date": 0.3227
+   },
+   "fd": 0.02576,
+   "threshold": 2.743046374724433e-06
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "orientation": "as measured",
+   "f0": {
+    "stop_rule_review": 0.0069,
+    "projected_settle_date": 0.0074
+   },
+   "fd": 0.0,
+   "threshold": 1.1705751209815336e-07
+  },
+  {
+   "question": "v2_rv_next_5_sessions",
+   "n": 250,
+   "orientation": "flipped",
+   "f0": {
+    "stop_rule_review": 0.226,
+    "projected_settle_date": 0.2265
+   },
+   "fd": 0.02398,
+   "threshold": 1.1705751209815336e-07
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "orientation": "as measured",
+   "f0": {
+    "stop_rule_review": 0.1619,
+    "projected_settle_date": 0.1626
+   },
+   "fd": 0.02512,
+   "threshold": 0.009452522638776122
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 125,
+   "orientation": "flipped",
+   "f0": {
+    "stop_rule_review": 0.0138,
+    "projected_settle_date": 0.0137
+   },
+   "fd": 0.00022,
+   "threshold": 0.009452522638776122
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "orientation": "as measured",
+   "f0": {
+    "stop_rule_review": 0.1724,
+    "projected_settle_date": 0.172
+   },
+   "fd": 0.02337,
+   "threshold": 0.0036263774841961867
+  },
+  {
+   "question": "v6_abs_move_2pct_next_session",
+   "n": 250,
+   "orientation": "flipped",
+   "f0": {
+    "stop_rule_review": 0.015,
+    "projected_settle_date": 0.0144
+   },
+   "fd": 0.00013,
+   "threshold": 0.0036263774841961867
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "orientation": "as measured",
+   "f0": {
+    "stop_rule_review": 0.0651,
+    "projected_settle_date": 0.065
+   },
+   "fd": 1e-05,
+   "threshold": 8.574440611609958e-05
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 125,
+   "orientation": "flipped",
+   "f0": {
+    "stop_rule_review": 0.1159,
+    "projected_settle_date": 0.1157
+   },
+   "fd": 0.02363,
+   "threshold": 8.574440611609958e-05
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "orientation": "as measured",
+   "f0": {
+    "stop_rule_review": 0.0727,
+    "projected_settle_date": 0.073
+   },
+   "fd": 0.01903,
+   "threshold": 0.0201168720391697
+  },
+  {
+   "question": "v6_abs_move_2pct_within_5_sessions",
+   "n": 250,
+   "orientation": "flipped",
+   "f0": {
+    "stop_rule_review": 0.067,
+    "projected_settle_date": 0.0677
+   },
+   "fd": 0.02369,
+   "threshold": 0.0201168720391697
+  }
+ ]
+}

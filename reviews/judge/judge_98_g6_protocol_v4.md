@@ -576,3 +576,59 @@ is exactly the unsafe part.
 **Verdict: FAIL for 41f29d3065a46024e249aba2e202a5031ead3849**, on must-fixes 1 and 2. The new stress table is honest
 and reproducible, and the local column is right. The remaining issues are one real calm-window failure, which has a
 free fix, and one mislabelled comparison that the owner's choice would rest on.
+
+## Addendum 8 (15 Oct 2026): revision 8 at a0c191ed6d2ada87c8ea4e90f698a9ec8869014b (41f29d3..a0c191e)
+
+Scope, as requested and agreed (the owner has raised over-engineering): only addendum 7's two must-fixes. Residual
+risk is recorded as disclosure unless it would change what the owner decides.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Must-fix 1: 5-day gate for every member | MET | `confirmatory.judgeable` (it replaces `brier_judgeable`) now covers every member. Protocol 5.3 line 190: "Every member also needs at least 5 2% days in the scored window ... else it is undecided"; 11 E says a calm window is undecided for every member. The regime stress and crash cut apply the gate to every member. The builder's V1 full-period false "no" of 0.56% matches my own 0.54% (addendum 7). V1/V2 banding was measured and is not needed: 47 of 48 cells are within, and the one marginal cell is band truth |
+| Must-fix 2: option 2 re-marked | MET | `v4_crash_cut.md` now judges each kept, judged set against **its own** pooled truth ("set" column), beside the same draws with no cut. "Worse" is withdrawn, and the cost table is kept. Example, V6b busy 250, n = 125, as measured: no cut gives a **bold** 3.48% false "no" (set +0.310); the share cut's 17.32% is *italic* (set -0.158), i.e. that set's truth. That is exactly the correct basis |
+
+## Gates
+
+On a trial merge with current `origin/main` (clean; README auto-merge): **4819 passed**; ruff, format (916 files) and
+`check_imports` are clean. Protocol 336 lines, calibration file 159, tool 292: all under 350.
+
+## Residual risk (disclosure, not blocking)
+
+- **Genuine errors remain inside the 2020-21 crash stretches.** For example, V6b busy 250, n = 125, no cut: a 3.48%
+  false "no" and a 0.44% false claim, both against their own set's truth. They are disclosed in the tables and in
+  11 E. They do not change the owner's E choice beyond what is already written: option 1 accepts them, and the share
+  cut removes most of them at the cost shown.
+- **`judgeable` is a predicate that G8 must call for every member at every look**, as the family code does not call
+  it itself. This goes into G8's acceptance criteria, and I will check it there.
+
+**Verdict: PASS for a0c191ed6d2ada87c8ea4e90f698a9ec8869014b** (the draft, not frozen). I agree with the builder and
+the orchestrator that this should be the last revision before ChatGPT's re-review and the owner's item E choice. The
+freeze still needs G7 and G8's code and my check of the freeze record's hashes.
+
+## Addendum 9 (15 Oct 2026): merge check, G6 v4 draft merged to main as 597487f (not frozen)
+
+- **Merge is exact.** 597487f's parents are ea18b1f (main) and 093c3ca (the branch). Recomputing the merge with
+  `git merge-tree --write-tree ea18b1f 093c3ca` gives a tree identical to 597487f's (empty diff).
+- **Merged content equals the passed SHA.** 093c3ca is a0c191e (my addendum 8 PASS) plus only ChatGPT's review 102
+  files (`review_102_g6-protocol-v4-final.md` and its README row; verdict APPROVE). Every file the branch touched is
+  identical on 597487f.
+- **No unjudged code since.** Nothing under `fno`, `tests`, `tools`, `.github` or `config.yaml` changed between
+  597487f and current `origin/main`. The later commits are decisions, logs, manifests and judge files.
+- **Owner's item E is recorded.** 67105da appends the row "G6 item E: option 2, outcome-side crash-share cut" with
+  the owner's words ("merge G6, E option 2") **and the question asked**. A window whose share of 2% days exceeds 10%
+  is undecided, with the cut-off frozen now, before any v4 score.
+- **CI.** The parent ea18b1f is green. The first run that includes the merge (4e46edc) was in progress; its result
+  follows in my report.
+
+**For the freeze check (recorded now):**
+- The protocol's section 11 E still lists the three options. The freeze commit must write option 2 in as the
+  operative rule.
+- `judgeable` (5+ 2% days) and the new cut (2%-day share at most 10%) must both be applied by G8 to **every** member,
+  at every look, with the window's mean VIX, 2%-day count and band printed beside each verdict.
+- The cut only removes verdicts, so the band thresholds stay valid (conservative); no recalibration is needed. But at
+  n = 125 the cut means at most 12 2% days, so the 13+ band is never used at that size. The freeze text should say
+  so.
+- The freeze record must hash the protocol, the calibration file, `fno/forecast_v4/`, the tools that compute the
+  operative thresholds, their committed tables, and the G7 and G8 files.
+
+**Verdict: merge check PASS** (CI on the merge to be confirmed).

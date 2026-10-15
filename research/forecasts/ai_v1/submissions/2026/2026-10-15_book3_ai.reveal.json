@@ -1,0 +1,33 @@
+{
+ "answer": {
+  "book": "book3_ai",
+  "day": "2026-10-15",
+  "export_sha256": "e9cf488193d5342f048c8cca1ce4cdd8f488d29ab6e10a2817105c45624ca612",
+  "forecasts": {
+   "q1_nifty_up_20d": {
+    "probability": 0.55,
+    "reason": "No 15:00 spot (pack problem); judged from closes only. NIFTY 22622.7 on 14 Oct, down ~8% from Aug highs; long-run 20d up rate ~55%, slight rebound tendency after drawdowns, but downtrend momentum argues against going further from base rate."
+   },
+   "q2_nifty_move_3pct_20d": {
+    "probability": 0.47,
+    "reason": "Trailing RV20 14.5 and last VIX close 14.63 imply 20d sd about 4.1%; normal P(|move|>=3%) about 0.46, fat tails add a little. No 15:00 spot, so closes only."
+   },
+   "q3_rv20_above_trailing": {
+    "probability": 0.45,
+    "reason": "Trailing RV20 from closes 14.5 points, elevated vs the calm Jul-Aug regime (~10-12); vol mean reversion favours lower next RV20, but a live downtrend can cluster vol. Shaded below 0.5."
+   },
+   "q4_vix_up_10d": {
+    "probability": 0.45,
+    "reason": "Last VIX close 14.63 sits near top of its 60-session range (10.35-15.28); mean reversion tilts down. No 15:00 VIX observed, so today's level is unknown; kept close to 0.5."
+   },
+   "q5_rv20_below_atm_iv30": {
+    "probability": null,
+    "reason": "IV30 is missing in the pack (iv30 null, no quotes observed by 15:00); cannot answer without substituting another value."
+   }
+  },
+  "model_reported": "unknown",
+  "pack_sha256": "d0dbe696728ceaba767c9bff0537f5a3e11358528c1830ab2b1cfbb10e40d2fe",
+  "version": "book3_ai/v1/sha256:6917786dac7430c951a7f80027b8d7c5ba40701d21288aebe7cfadccad77259a/isolation:sealed_same_day"
+ },
+ "salt": "ae035dee981ac233e471438d42032a0a"
+}
