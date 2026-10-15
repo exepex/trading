@@ -40,8 +40,8 @@ class SessionRv:
         result = self.strategy.compute([level for level, _, _ in readings], closing[0][0])
         row = self._row(day, result, readings + closing)
         outcome = self.table.write_once(row)
-        figure = f"RV {row['rv_session']} (vol {row['vol_pct']}%)" if row["status"] == OK else row["void_reason"]
-        return f"{day} realised variance {outcome}: {row['status']}, {figure}"
+        shown = f"RV {row['rv_session']} (vol {row['vol_pct']}%)" if row["status"] == OK else row["void_reason"]
+        return f"{day} realised variance {outcome}: {row['status']}, {shown}"
 
     def has_row(self, day: date) -> bool:
         return any(row["session"] == day.isoformat() for row in self.table.rows())
@@ -72,8 +72,8 @@ class SessionRv:
         )
         return {
             "session": day.isoformat(), "status": OK if result.session is not None else VOID,
-            "rv_session": _figure(result.session), "rv_intraday": _figure(result.intraday),
-            "rv_overnight": _figure(result.overnight),
+            "rv_session": figure(result.session), "rv_intraday": figure(result.intraday),
+            "rv_overnight": figure(result.overnight),
             "vol_pct": "" if result.vol_pct is None else f"{result.vol_pct:.4f}", "void_reason": "; ".join(reasons),
             "good_slots": len(session_marks) - len(unusable), "due_slots": len(session_marks),
             "basis_counts": _basis_counts(readings[: len(session_marks)]),
@@ -102,5 +102,5 @@ def _sha256(data: bytes | None) -> str:
     return hashlib.sha256(data).hexdigest() if data else ""
 
 
-def _figure(value: float | None) -> str:
+def figure(value: float | None) -> str:
     return "" if value is None else f"{value:.10f}"
