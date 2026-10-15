@@ -1106,29 +1106,27 @@ Facts checked on 15 Oct 2026 (builder, response to the orchestrator; strong evid
 - a read-only research command `python -m fno margins stress-factor --from <d> --to <d>` that, for every entry day in
   the range and every structure and width that C2 trades, rebuilds the entry's legs (A14's builder, the same expiry
   rule) and recomputes their margin parts (scan, NOV, exposure) on each later day's first-archived `i1` file up to the
-  exit day; it reports the largest held rise of the quantity C2 multiplies (decided by owner question 1), rounded up to
-  the next 0.05, and an evidence table (window, structure, width, entry day, day of the peak, figures);
+  exit day; it reports the largest held rise of the whole margin C2 counts (`initial()`: `max(0, scan - NOV) +
+  min(0, NOV) + exposure`, the quantity k multiplies after story C2c; owner question 1), rounded up to the next 0.05, and an evidence table (window, structure, width, entry day, day of the peak, figures);
 - the 2020 short-option minimum modelled as SPAN does (per tier: the larger of the scan and the minimum times the short
   units), behind A14's calculator interface, so the same code reads every year; any other method difference is still
   refused by name;
-- the A9 librarian back-fill of the chosen windows' `i1` files into Drive with their manifest rows (owner question 2);
+- the A9 librarian back-fill of every session's `i1` file since 1 Jan 2020 into Drive with their manifest rows
+  (owner question 2; about 1,700 files, about 16 GB);
 - the output written to `research/data/margins/stress_factor_<run day>.csv` and `.md` (append-only, the files' SHA-256
   named); a run never edits `config.yaml`.
 
-Out: changing C2's formula (owner question 1 may lead to a separate C2 story); writing `config.yaml` (the owner enters
+Out: changing C2's formula (story C2c does it); writing `config.yaml` (the owner enters
 the value, owner question 3); any order.
 
 **Owner questions (each with a recommendation):**
-1. **Which quantity does k measure? (strong evidence of the gap; recommendation is reasoning only.)** (A) Measure the
-   held rise of the scan alone, the quantity C2 multiplies; expect a much larger k (scan is small and swings), and
-   exposure is still unstressed. (B) Keep measuring the whole margin and change C2 to multiply the whole figure (`k x
-   (scan + exposure)`, netted as judge 75 decided) in a separate C2 story. **Recommended: B.** It is what the owner
-   asked for ("crash buffer for margin") and what a broker raises in a crisis; A keeps a buffer that does not cover the
-   exposure rise of a held trade. Until decided, the report gives both figures.
-2. **Which windows? (reasoning only.)** Response 77 says "every entry day since 1 Jan 2020"; `config.yaml` says "the
-   same windows, plus any later ones". **Recommended: every entry day since 1 Jan 2020.** It is not hand-picked, it is
-   a superset (its result is never below the three windows'), and the one-time cost is about 16 GB in Drive and one long
-   run; later runs add only the new month.
+1. **Which quantity does k measure? ANSWERED (owner, 15 Oct 2026, relayed by the orchestrator): "WHOLE MARGIN. k
+   multiplies the whole margin (scan plus exposure), as it was measured."** The run measures the held rise of the
+   whole margin C2 counts; story C2c makes C2 and C4 multiply the same quantity. The report also gives the scan's own
+   rise, for information only.
+2. **Which windows? ANSWERED (owner, 15 Oct 2026, relayed): everything since 1 Jan 2020.** Every entry day from
+   2 Jan 2020 to the run day; later runs add the new days. The `config.yaml` comment ("the same windows, plus any later
+   ones") is corrected when the first value from this run is entered.
 3. **Who sets the value? (reasoning only.)** (A) The owner enters each month's value by hand (today's rule). (B) The run
    may raise `multiplier` by itself (never lower it), the owner approves any lowering. **Recommended: A for now.** The
    owner keeps every risk value; the run lands on about day 23 of 30, leaving a week to decide.
@@ -1148,7 +1146,8 @@ the value, owner question 3); any order.
    method difference is refused by name (test).
 5. Output: the CSV and Markdown name every file's SHA-256, the rule, the windows and the run day; a second run on the
    same files writes byte-identical output; nothing writes `config.yaml` (test).
-6. Owner questions 1-4 answered in DESK_DECISIONS before the first value from this command is entered.
+6. Owner questions 1 and 2 are recorded in DESK_DECISIONS (answered 15 Oct); 3 and 4 are answered there before the
+   first value from this command is entered; C2c is merged before it, so the value is applied as it was measured.
 7. Code size, lint, imports and the full suite pass.
 
 **Timeline:** story text judged by about 20 Oct 2026; build and back-fill by about 3 Nov; first run about 6 Nov; owner
@@ -1157,7 +1156,8 @@ and judge by 11 Nov; 1.45 expires after 13 Nov. Then monthly, about 7 days befor
 **Judge verifies:** recomputes one held position's rise by hand from two real files; plants a late file and a missing
 day; checks the 2026 reproduction and the evidence table against the files' SHA-256.
 
-**Depends:** A9, A14, C2 · **Size:** M · **Status:** text for the judge (lane 1)
+**Depends:** A9, A14, C2, C2c · **Size:** M · **Status:** text for the judge (lane 1); owner questions 1 and 2
+answered 15 Oct
 
 ---
 
