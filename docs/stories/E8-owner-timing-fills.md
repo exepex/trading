@@ -249,7 +249,10 @@ All new code lives in one package, `fno/desk/owner_timing/`. Every file except `
    - E8's fills are applied by the daily run's first step after `quotes`; when it fails, no new entry opens that day
      and exits still run.
 3. **The decision time** (15:00, or 14:00) waits for the owner. This matches G10's open note 3 (judge 161 addendum 3).
-4. These land in `PROTOCOL.md` with S1's next edit, by its text owner.
+4. **The entry rule** (rule 6) waits for the owner. S1's freeze needs the answer wired in `wiring.py`, or a recorded
+   owner row keeping `ApprovedLimit`. Because `wiring.py` is frozen, the pending default must never quietly become the
+   answer.
+5. These land in `PROTOCOL.md` with S1's next edit, by its text owner.
 
 ## Open question for the owner (one card; owner questions go through the orchestrator)
 
