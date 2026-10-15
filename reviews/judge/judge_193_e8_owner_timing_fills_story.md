@@ -92,3 +92,67 @@ the owner see that bias.
   capture qualifies. For R = 5, 30 and 60 after should-fix 1, every due mark is next-morning, so the stand-in only
   ever serves the `e4_1515` view until A4 records mornings.
 - The fill uses A16 bid and ask, while E8a used candle last trades. The story says so.
+
+## Addendum 1: revisions 2 and 3 at 2661b503 (replaces fd3a0344): FAIL
+
+Revision 2 (fd3a0344, 20:59:40 UTC) was pushed minutes after this verdict reached main, so it answers the
+orchestrator's list, not this file. Revision 3 adds only the NIFTY-move split to the report.
+
+**Should-fix 2 (step place and failure rule): closed.**
+- Rule 11 runs `owner_timing_fills` right after `quotes`, which only starts the parts and returns, so it cannot delay
+  the 3 pm capture.
+- A failed or refused step blocks new entries for every book through the existing per-book `_unreviewed` block
+  (`fno/desk/daily_run.py:97`), and exits still run.
+- One alert, then the run goes on.
+- `DAILY_RUN_STEPS` in `fno/constants_operations.py` and the `DayStep` interface exist on `story/o1-daily-run`.
+
+Criterion 10 still says only "the step runs first". It should also name the failure test (a planted failure gives no
+new entry and `exits` still runs). This is a one-line note, to fix with the items below.
+
+**Also closed: rule 3's invalid mark.** An invalid leg at the due mark means the entry is missed and the exit waits.
+This is consistent with rule 7.
+
+**The report's NIFTY-move split (revision 3): accepted.** It is what shows the owner the adverse selection of a price
+cap, and criterion 11 tests it with one favourable and one adverse morning.
+
+**Should-fix 1 (card time): open.**
+- Lines 26, 80 and 243-245 still use a "15:08 card".
+- Point 3 still covers only R = 30 and R = 60.
+- Point 4 still says "a 14:00 decision puts R = 60 at 15:15 the same day".
+
+Under O1 the card posts after `exits`, which is after the 15:15 snapshot, so R = 5 fills at the next session's 09:30.
+Every view except `e4_1515` waits for A16. A 14:00 decision helps only with an earlier card. Revision 2's own rule 11
+line, "the 09:45 and 10:15 marks have always passed", is right. The R = 5 example is not.
+
+**Should-fix 3 (band figure): open.** Line 236 still says about 17%. The study's gap band gives about 32% at the
+10:15 fill: 204 of 645 days for SF, 210 of 660 for LC.
+
+**Should-fix 4 (new): the owner's entry-rule question is not held open.** The orchestrator lists three options: price
+cap only (recommended), cap plus a 0.5% NIFTY band, or any price. The text instead writes the price cap as the rule
+and offers only the band as an alternative:
+- Rule 6 ("fills only if ... no worse than the approved entry ... otherwise missed, price moved");
+- criterion 6 (one paisa worse gives "missed, price moved");
+- the design (`EntryRange` with `ApprovedLimit` only);
+- the scope's "Out" line ("a NIFTY band or any other entry condition beyond the approved limit, unless the owner picks
+  one");
+- the open question, which names two options and never "any price".
+
+Under "any price" there is no "price moved" miss at all, so rule 6, criterion 6 and the card's "same limit" line would
+all be wrong. That is an answer quietly assumed.
+
+Fix:
+- Write rule 6 as a slot: the entry rule is the `EntryRange` the owner chooses.
+- List the three candidates, each with what it does:
+  - `ApprovedLimit`: miss "price moved";
+  - limit plus band: also miss "NIFTY moved", about 32% of overnight entries at 0.5%;
+  - any price: no range miss, every valid quote fills.
+- Mark which one is recommended and which one is wired until the owner answers.
+- Give criterion 6 one line per option.
+- Add "any price" to the open question with its plain cost. Every entry then fills, including the mornings that
+  moved against the idea, so the verdict shows the full R = 60 cost but the trade can exceed C2's approved cash. Say
+  how C2's cap still binds in that case, or state that it does not.
+
+Would these change a trade? Yes. Each one decides whether an entry fills, at what time, or on what figure the owner
+chooses.
+
+Re-review needs should-fixes 1, 3 and 4 and the criterion 10 line.
