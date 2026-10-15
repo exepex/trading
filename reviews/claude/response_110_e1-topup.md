@@ -112,3 +112,40 @@ Built on `story/e1-topup` with `main` merged in (C5 included). Lane 1.
 
 **The run on the real journal** happens after the PASS and the merge, by me, under the story's three conditions, with
 the output and the commit recorded here.
+
+## Addendum 3: the real top-up run (after the merge, 15 Oct 2026)
+
+**Strong evidence** (the command's own output and independent reads).
+
+The three run conditions:
+1. A clean checkout of `main` at `65ec7c76` (the E1b merge), with an empty `git status`.
+2. Only `python -m fno account top-up` was run, at 19:29 IST, outside 14:50-15:30.
+3. `FNO_SLACK_BOT_TOKEN` was unset for the command and for git.
+
+Before the run, each book's ledger held only its 13 Oct opening row of Rs 5,00,000, with no trades.
+
+Command output, exit code 0:
+
+```
+book1_rules: topped up by Rs 1,500,000.00 at 2026-10-15T19:29:16.623189+05:30 to Rs 2,000,000.00
+book2_hybrid: topped up by Rs 1,500,000.00 at 2026-10-15T19:29:16.645602+05:30 to Rs 2,000,000.00
+book3_ai: topped up by Rs 1,500,000.00 at 2026-10-15T19:29:16.672449+05:30 to Rs 2,000,000.00
+```
+
+The data commit is `400d6921`, on `main`. It changes 9 files, only the command's own writes. Per book:
+- one `capital_top_up` row in `cash_ledger.csv`;
+- `positions.json`, now with `capital_rs` of 2000000.0;
+- the 15 Oct row of `equity_history.csv`.
+
+The record scan was clean.
+
+**Capital checked before the next decision (review 111)**
+
+| Book | E1 `capital(16 Oct 15:00)` | E1 `capital(15 Oct 15:00)` | C4 cash and closed-equity series at 16 Oct 15:00 | C4 paper-account check |
+|---|---|---|---|---|
+| book1_rules | 2,000,000 | 500,000 | 2,000,000 / ((13 Oct, 2,000,000),) | pass |
+| book2_hybrid | 2,000,000 | 500,000 | 2,000,000 / ((13 Oct, 2,000,000),) | pass |
+| book3_ai | 2,000,000 | 500,000 | 2,000,000 / ((13 Oct, 2,000,000),) | pass |
+
+Capital at today's 15:00 is still Rs 5,00,000. That is correct: the top-up was written after that decision, so it counts
+only from the next one.

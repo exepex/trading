@@ -195,3 +195,19 @@ M1 is done once main's CI is green again on a tree containing b29ac33. I will co
 - Addendum 2's other two checks were already MET.
 
 **M1 is done.**
+
+## Addendum (judge C, 15 Oct 2026): decision 71's wording at 70ffff1dd6190a826215ad741892a1586811555b
+
+`story/m1-decision71-text` is one commit on `main` 65ec7c76: 3 files, 5 lines, text and a comment only. It is lane 1
+because of its path.
+
+| Check | Status | Evidence |
+|---|---|---|
+| The owner's confirmation exists | MET | `docs/DESK_DECISIONS.md:173`, 15 Oct 2026: "**Market weather: the model's colour (weather_vix_v1) is operative, labelled not yet proven** (owner: \"New model, 'unproven'\")", confirming decision 71 with the fall-back to v0 |
+| No value changes | MET | `fno/constants.py:317` drops only "(owner to confirm)" from the comment. `WEATHER_OPERATIVE_MODEL = WEATHER_MODEL_VIX` and `WEATHER_OPERATIVE_PROVEN = False` are unchanged |
+| No method hash moves | MET | M1's `METHOD_FILES` (`fno/weather/wiring.py:28-32`) lists weather/*, `forecast_v4_rules/series.py`, `baselines.py` and `forecast_v4/terms.py`, `sessions.py`; `fno/constants.py` is not among them |
+| Text | MET | `M-weather.md:72` and `:252-254` and `response_139:17` now say "owner confirmed, 15 Oct 2026 (docs/DESK_DECISIONS.md)" |
+
+The builder's gates (5,565 passed) are accepted without a rerun: no code value changed.
+
+**Verdict: PASS for 70ffff1dd6190a826215ad741892a1586811555b.**
