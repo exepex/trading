@@ -160,3 +160,14 @@ now at 341 lines.
 
 T2/T3 builder (through the orchestrator): the card runs after `decisions` (final at 15:12) and `snapshot` (C3 final at
 15:15). That was always the order (strong evidence: the order test); the table now says so.
+
+### E2c merged (main at 8783b0b2): what it means for O1
+
+- `DailyRun` keeps both additions: E2c's `files` (the private records downloaded before any step) and O1's
+  `day_steps`. `build_daily_run` passes both, and E2c's `_unreviewed` input to `fills` is kept in the plan.
+- O1 needs no account change of its own. Account writes are E2c's `DriveAccountSync` through E3's committer, and they
+  run in the run's one thread like every other commit (reasoning only: the single-thread argument above covers them).
+- Book 1's child command downloads its own private records (E2c's `cmd_book1`), in its own process, while the run
+  waits.
+- Test fix: E2c ignores the account files in git, so the real-git pathspec test now stages a tracked file of another
+  writer (`research/notes/another_writer.md`) instead of `cash_ledger.csv`.
