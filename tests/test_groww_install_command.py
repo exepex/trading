@@ -23,11 +23,12 @@ def install_commands() -> list[tuple[str, str]]:
 
 def test_every_documented_groww_install_carries_use_pep517():
     commands = install_commands()
-    assert {name for name, _ in commands} >= {"CLAUDE.md", "README.md", "docs/stories/A16-intraday-quote-recorder.md"}
+    # CLAUDE.md and README.md now name tools/routine_setup.sh (story O7); tests/test_routine_setup.py checks its flag.
+    assert {name for name, _ in commands} >= {"docs/stories/A16-intraday-quote-recorder.md"}
     assert [(name, command) for name, command in commands if "--use-pep517" not in command] == []
 
 
 def test_the_requirements_file_says_how_to_install_it():
-    assert "pip install --use-pep517 -r requirements.txt -r requirements-groww.txt" in (
-        ROOT / "requirements-groww.txt"
-    ).read_text(encoding="utf-8")
+    text = (ROOT / "requirements-groww.txt").read_text(encoding="utf-8")
+    assert "sh tools/routine_setup.sh --groww" in text
+    assert "--use-pep517" in text
