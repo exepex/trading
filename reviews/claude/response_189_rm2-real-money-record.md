@@ -47,3 +47,11 @@ The orchestrator's answer is response 199 on main. The builder's own check of ea
 | Q3 late exit reports can bypass a stop | Agreed, strong evidence: the draft evaluated stops "after every recorded exit", so an unreported −Rs 21,000 exit left the next card looking placeable | "Records pending: no further test trade" status; stops in actual exit-time order, dated at the crossing exit; later trades flagged as protocol breaches; criterion 10; unknown legs out of stop (b)'s mean with their count shown |
 | Q4 strictly after | Agreed; no change to the rule | Criterion 6: a missing 10:30 quote is unknown, never 10:45 |
 | Q5 public repo and interrupted writes | Agreed | Criterion 9: no price, strike or rupee in the repository; an interrupted write never marks an exit recorded |
+
+## Judge 198 addendum 3 (FAIL, 1 should-fix): fixed
+
+Agreed, strong evidence from the text: pending began only at the next session's close, so an exit alert at 10:15
+followed by an unreported losing exit left that day's and the next morning's cards unwarned, and criterion 10 (a
+12:00 card the same day) contradicted the rule. Pending now starts at the delivered exit alert or expiry with no
+recorded exit (or a failed Drive write) and lasts until recorded; the next session's close is only the escalation
+alert. Known limit added: an exit made without an alert cannot be detected until reported.

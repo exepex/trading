@@ -167,12 +167,13 @@ writes the yes of condition 7. Until then RM2's code may exist but records nothi
   (`FNO_SLACK_BOT_TOKEN`) naming the rule, the figure and that exit's time, and the test status becomes
   "stopped: <rule>" for good. Any real trade entered after that exit is flagged a protocol breach and never counts
   toward a pass.
-- **Records pending (ChatGPT review 125, Q3):** the status is "records pending: no further test trade" whenever an
-  entered real trade has no reported exit or settlement by the close of the session after its exit alert or expiry,
-  or a reported fill's Drive write failed. While pending, every new card of the version shows "do not place:
-  unreconciled" in `status` and in the one-line reply. Once the missing records arrive, stops are re-evaluated in
-  actual exit-time order. This is a status and an instruction to the owner, never an order block: the tool cannot stop
-  the owner placing an order.
+- **Records pending (ChatGPT review 125, Q3; judge 198 addendum 3):** the status is "records pending: no further test
+  trade" from the moment an open real trade has a delivered exit alert or reaches expiry with no exit or settlement
+  recorded, or a reported fill's Drive write fails, until the record is made. While pending, every new card of the
+  version shows "do not place: unreconciled" in `status` and in the one-line reply. If still pending at the close of
+  the session after the alert or expiry, one #fno-desk alert names the trade as unreconciled. Once the missing records
+  arrive, stops are re-evaluated in actual exit-time order. This is a status and an instruction to the owner, never an
+  order block: the tool cannot stop the owner placing an order.
 - **Pass (gate `real_test_pass`), evaluated once the sample is met** (the later of max(30, the registered number)
   real trades and 6 months from the first real entry): (1) the paired one-sided 95% lower bound of mean(real − paper)
   at or above −Rs 500 per trade; (2) the real mean at or above the prediction floor from the version's evidence
@@ -244,6 +245,8 @@ with a broken-code proof per criterion (rule 4); one end-to-end run on a planted
 - Real and paper fills are at different times (E8's paper fill is about 10:15 next session), so the paired net holds
   market moves as well; execution alone is judged from the screenshot (gate, Known limits).
 - A Groww outage that stops the owner's exit is recorded as it happened; no rule waives it.
+- An exit the owner makes without an exit alert (their own decision) cannot be detected until it is reported; until
+  then no card warns.
 
 **Depends:** RM1 (done), E8 (paper fills), T1 (card records), A16 (marks) · **Size:** M · **Status:** story text for the
 judge's story check; code starts only when a version reaches the gate and the orchestrator says go
