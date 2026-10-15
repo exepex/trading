@@ -6,10 +6,10 @@ from datetime import date, datetime
 
 from fno.global_cues.collector import CueCollector
 from fno.global_cues.snapshot_log import SnapshotLog
-from fno.global_cues.table import CueTable, provenance
+from fno.global_cues.table import provenance
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
-from tests.global_cues.fakes import REFUSED, FakeSource, fake_file
+from tests.global_cues.fakes import REFUSED, FakeSource, csv_table, fake_file
 
 SEEN = datetime(2026, 10, 15, 6, 15, tzinfo=IST)
 
@@ -41,7 +41,7 @@ def test_one_failed_download_or_unreadable_file_writes_nothing_and_is_named(tmp_
 
 
 def table_after(tmp_path, *runs):
-    table = CueTable(tmp_path / "tables", "fake", next_day)
+    table = csv_table(tmp_path / "tables", "fake", next_day)
     for seen, rows in runs:
         result = collector(tmp_path, clock=lambda seen=seen: seen).collect(
             FakeSource({"a.csv": fake_file(*rows)}), date(2026, 1, 1), date(2026, 12, 31)
@@ -53,10 +53,10 @@ def table_after(tmp_path, *runs):
 def test_a_held_value_is_never_rewritten_and_a_late_value_never_inserted(tmp_path):
     first = (SEEN, [("2026-10-12", 1.0), ("2026-10-14", 2.0)])
     table = table_after(tmp_path, first)
-    before = table.path.read_bytes()
+    before = table.log.path.read_bytes()
     later = datetime(2026, 10, 16, 6, 0, tzinfo=IST)
     table = table_after(tmp_path, (later, [("2026-10-12", 1.1), ("2026-10-13", 1.5), ("2026-10-14", 2.0)]))
-    assert table.path.read_bytes() == before  # nothing changed in the table
+    assert table.log.path.read_bytes() == before  # nothing changed in the table
     revisions = (tmp_path / "tables" / "revisions.csv").read_text().splitlines()
     assert revisions[1].startswith("fake,2026-10-12,changed,1.0,1.1,")
     assert revisions[2].startswith("fake,2026-10-13,late,,1.5,")
@@ -66,10 +66,12 @@ def test_a_held_value_is_never_rewritten_and_a_late_value_never_inserted(tmp_pat
 
 def test_new_dates_are_appended_and_old_bytes_stay_a_prefix(tmp_path):
     table = table_after(tmp_path, (SEEN, [("2026-10-13", 1.0)]))
-    before = table.path.read_bytes()
+    before = table.log.path.read_bytes()
     later = datetime(2026, 10, 16, 6, 0, tzinfo=IST)
     table = table_after(tmp_path, (later, [("2026-10-13", 1.0), ("2026-10-14", 2.0)]))
-    assert table.path.read_bytes().startswith(before) and [r["value_date"] for r in table.rows()][-1] == "2026-10-14"
+    assert (
+        table.log.path.read_bytes().startswith(before) and [r["value_date"] for r in table.rows()][-1] == "2026-10-14"
+    )
 
 
 def test_live_only_when_seen_before_the_first_nse_open_after_the_value_date():

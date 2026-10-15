@@ -8,19 +8,20 @@ from pathlib import Path
 import pytest
 
 from fno.global_cues import wiring
-from fno.global_cues.as_of import value_for
+from fno.global_cues.as_of import DECISION, value_for
+from fno.global_cues.check_files import CueChecks
 from fno.global_cues.cli import cmd_global_cues
 from fno.global_cues.collector import CueCollector
-from fno.global_cues.job import CueChecks, GlobalCueJob
+from fno.global_cues.job import GlobalCueJob
 from fno.global_cues.other_sources import EiaBrentSource, FbilUsdInrSource, RbiUsdInrSource
+from fno.global_cues.row_log import TableFileBroken
 from fno.global_cues.snapshot_log import SnapshotLog
-from fno.global_cues.table import CueTable, TableFileBroken
 from fno.global_cues.treasury_source import TreasuryTenYearSource
 from fno.global_cues.verify import CueTableVerifier
 from fno.models import IST
 from fno.research_data.calendar import CalendarError
 from fno.storage.raw_store import LocalFolderStore, RawFileConflict
-from tests.global_cues.fakes import EIA, RBI, FakeSource, fake_file
+from tests.global_cues.fakes import EIA, RBI, FakeSource, csv_table, fake_file
 
 SEEN = datetime(2026, 10, 15, 6, 15, tzinfo=IST)
 GOOD = fake_file(("2026-10-13", 1.0), ("2026-10-14", 2.0))
@@ -59,24 +60,24 @@ def test_an_empty_answer_is_refused_never_taken_as_no_change(source, data, reaso
 
 
 def test_an_empty_table_file_gets_its_header_and_one_without_a_final_newline_is_refused(tmp_path):
-    table = CueTable(tmp_path, "fake", lambda d: d)
-    table.path.write_text("")
+    table = csv_table(tmp_path, "fake", lambda d: d)
+    table.log.path.write_text("")
     result = CueCollector(None, LocalFolderStore(tmp_path / "raw"), SnapshotLog(tmp_path / "log"), lambda: SEEN)
     values = result.collect(FakeSource({"a.csv": GOOD}), date(2026, 1, 1), date(2026, 12, 31)).values
     table.merge(values[:1], SEEN)
     assert table.rows()[0]["value_date"] == "2026-10-13"
-    table.path.write_text(table.path.read_text().rstrip("\n"))
-    before = table.path.read_bytes()
+    table.log.path.write_text(table.log.path.read_text().rstrip("\n"))
+    before = table.log.path.read_bytes()
     with pytest.raises(TableFileBroken):
         table.merge(values, SEEN)
-    assert table.path.read_bytes() == before
+    assert table.log.path.read_bytes() == before
 
 
 def test_verify_names_a_date_held_twice_rows_out_of_order_and_an_unreadable_copy(tmp_path):
     store, log = LocalFolderStore(tmp_path / "raw"), SnapshotLog(tmp_path / "log")
     source = FakeSource({"a.csv": GOOD})
     values = CueCollector(None, store, log, lambda: SEEN).collect(source, date(2026, 1, 1), date(2026, 12, 31)).values
-    table = CueTable(tmp_path / "tables", "fake", lambda d: d)
+    table = csv_table(tmp_path / "tables", "fake", lambda d: d)
     table.merge(values, SEEN)
     first, second = table.rows()
     verifier = CueTableVerifier(store, log, lambda d: d)
@@ -88,7 +89,7 @@ def test_verify_names_a_date_held_twice_rows_out_of_order_and_an_unreadable_copy
 
 
 def test_no_rows_gives_no_value():
-    assert value_for([], date(2026, 10, 15), live_only=False) is None
+    assert value_for([], date(2026, 10, 15), DECISION, False, FakeSource({}).available_at) is None
 
 
 def test_a_drive_or_setup_failure_stops_with_a_named_line_and_exit_1(monkeypatch, capsys):
@@ -137,19 +138,19 @@ def test_a_shifted_brent_week_an_unreadable_rbi_row_and_a_changed_rbi_form_are_r
 
 
 def test_a_broken_revisions_file_writes_no_table_row_either(tmp_path):
-    table = CueTable(tmp_path, "fake", lambda d: d)
+    table = csv_table(tmp_path, "fake", lambda d: d)
     collect = CueCollector(None, LocalFolderStore(tmp_path / "raw"), SnapshotLog(tmp_path / "log"), lambda: SEEN)
     values = collect.collect(FakeSource({"a.csv": GOOD}), date(2026, 1, 1), date(2026, 12, 31)).values
     table.merge(values[:1], SEEN)
-    table.revisions_path.write_text("cue,value_date,kind,table_value,new_value,source_sha256,seen_at")  # no newline
-    before = table.path.read_bytes()
+    table.revision_log.path.write_text("cue,value_date,kind,table_value,new_value,source_sha256,seen_at")  # no newline
+    before = table.log.path.read_bytes()
     with pytest.raises(TableFileBroken):
         table.merge(values, SEEN)
-    assert table.path.read_bytes() == before
+    assert table.log.path.read_bytes() == before
 
 
 def test_a_stale_cue_and_a_run_stopped_midway_are_reported_with_what_came_before(tmp_path):
-    tables = {c: CueTable(tmp_path / "tables", c, lambda d: d) for c in ("fake", "broken")}
+    tables = {c: csv_table(tmp_path / "tables", c, lambda d: d) for c in ("fake", "broken")}
     collect = CueCollector(None, LocalFolderStore(tmp_path / "raw"), SnapshotLog(tmp_path / "log"), lambda: SEEN)
 
     class Broken(FakeSource):
@@ -179,7 +180,7 @@ def test_verify_names_a_wrong_label_and_a_first_seen_before_its_copy(tmp_path):
     store, log = LocalFolderStore(tmp_path / "raw"), SnapshotLog(tmp_path / "log")
     source = FakeSource({"a.csv": GOOD})
     values = CueCollector(None, store, log, lambda: SEEN).collect(source, date(2026, 1, 1), date(2026, 12, 31)).values
-    table = CueTable(tmp_path / "tables", "fake", lambda d: d)
+    table = csv_table(tmp_path / "tables", "fake", lambda d: d)
     table.merge(values, SEEN)
     verifier = CueTableVerifier(store, log, lambda d: d)
     row = dict(table.rows()[0], provenance="live")
@@ -190,7 +191,7 @@ def test_verify_names_a_wrong_label_and_a_first_seen_before_its_copy(tmp_path):
 
 def test_verify_names_a_cue_whose_table_is_empty_and_fill_refuses_a_reversed_range(monkeypatch, capsys):
     monkeypatch.setattr(wiring, "build_verifier", lambda: CueTableVerifier(None, None, None))
-    empty = {s.cue: CueTable(Path("/nonexistent"), s.cue, lambda d: d) for s in wiring.SOURCES}
+    empty = {s.cue: csv_table(Path("/nonexistent"), s.cue, lambda d: d) for s in wiring.SOURCES}
     monkeypatch.setattr(wiring, "build_tables", lambda: empty)
     assert cmd_global_cues(Namespace(action="verify", cue=["brent"], start=None, end=None)) == 1
     assert "brent: the table has no rows, nothing verified" in capsys.readouterr().out

@@ -11,9 +11,12 @@ from __future__ import annotations
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, time
+from zoneinfo import ZoneInfo
 
 import requests
+
+from ..models import IST
 
 TIMEOUT_SECONDS = 120
 
@@ -39,6 +42,8 @@ class GlobalCueSource(ABC):
     date_zone: str = ""  # the time zone the publisher's dates are in
     first_value_date: date = date(2007, 1, 1)  # how far back the back-fill asks
     max_age_days: int = 7  # a newest value older than this on the run's day is reported STALE
+    private: bool = False  # values kept in Drive only, never in this public repository (owner decision a927390)
+    once_a_day: bool = False  # at most one download a day (the owner's condition for the private cues)
 
     @abstractmethod
     def requests(self, start: date, end: date) -> list[CueRequest]:
@@ -53,6 +58,15 @@ class GlobalCueSource(ABC):
     @abstractmethod
     def parse(self, data: bytes) -> list[CueValue]:
         """Every value in the file (ValueError when it is not the publisher's file)."""
+
+    @abstractmethod
+    def available_at(self, value_date: date) -> datetime:
+        """The earliest moment (IST) the value of a date is final and published: the as-of rule's input."""
+
+
+def at_local(day: date, clock: time, zone: str) -> datetime:
+    """A wall-clock time on a day in a time zone, in IST (daylight saving included)."""
+    return datetime.combine(day, clock, tzinfo=ZoneInfo(zone)).astimezone(IST)
 
 
 def positive(text, what: str) -> float:

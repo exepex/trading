@@ -2,31 +2,31 @@
 Quotes are taken near 15:30 US Eastern on each New York trading date t and published that evening, i.e. by about
 04:30 IST on t+1, before NSE opens at 09:15 IST. US Government work: public domain.
 
-The previous US closes (S&P 500, Nasdaq 100) are not collected: FRED's site was refused by this session's network
-policy; S&P Dow Jones Indices answered 403; Nasdaq's terms of use forbid "any process, whether automated or manual, to
-capture data or content" from nasdaq.com; Cboe's disclaimer forbids storing its index values "in a database or retrieval
-system" without written permission (both read on 15 Oct 2026). See `research/data/global-cues/README.md`.
 """
 
 from __future__ import annotations
 
 import csv
 import io
-from datetime import date, datetime
+from datetime import date, datetime, time
 
-from .source import CueRequest, CueValue, GlobalCueSource, checked, positive
+from .source import CueRequest, CueValue, GlobalCueSource, at_local, checked, positive
 
 TREASURY_YEAR = (
     "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/{year}/all"
     "?type=daily_treasury_yield_curve&field_tdr_date_value={year}&page&_format=csv"
 )
 TREASURY_TEN_YEAR = "10 Yr"
+TREASURY_POSTED = time(18, 0)  # assumption (reasoning only): posted by the evening of the quote day, US Eastern
 US_EASTERN = "America/New_York"
 
 
 class TreasuryTenYearSource(GlobalCueSource):
     cue, dataset, unit, date_zone = "us10y", "us-treasury/rates/par-yield-curve", "percent a year", US_EASTERN
     publisher = "US Department of the Treasury, daily par yield curve rates (10 Yr)"
+
+    def available_at(self, value_date: date) -> datetime:
+        return at_local(value_date, TREASURY_POSTED, US_EASTERN)
 
     def requests(self, start: date, end: date) -> list[CueRequest]:
         years = range(start.year, end.year + 1)

@@ -6,21 +6,22 @@ import filecmp
 from datetime import date, datetime
 
 from fno.global_cues import wiring
+from fno.global_cues.check_files import GAPS_FILE, OVERLAP_FILE, CueChecks
 from fno.global_cues.collector import CueCollector
-from fno.global_cues.job import GAPS_FILE, OVERLAP_FILE, CueChecks
 from fno.global_cues.snapshot_log import SnapshotLog
-from fno.global_cues.table import NSE_OPEN, CueTable
+from fno.global_cues.table import NSE_OPEN
 from fno.global_cues.verify import CueTableVerifier
 from fno.models import IST
 from fno.storage.raw_store import LocalFolderStore
-from tests.global_cues.fakes import FakeSource, fake_file
+from tests.global_cues.fakes import FakeSource, csv_table, fake_file
 
-TABLES = wiring.build_tables()
+TABLES = wiring.build_tables(include_private=False)  # the repository's tables only: never Drive from a test
+PUBLIC = [s for s in wiring.SOURCES if not s.private]
 
 
 def test_every_cue_has_history_from_2007_and_every_row_names_a_logged_copy():
     log = SnapshotLog(wiring.SNAPSHOT_LOG_FOLDER)
-    for source in wiring.SOURCES:
+    for source in PUBLIC:
         rows = TABLES[source.cue].rows()
         assert rows and rows[0]["value_date"] <= "2018-07-10", source.cue
         logged = log.paths_by_sha256(source.cue)
@@ -30,7 +31,7 @@ def test_every_cue_has_history_from_2007_and_every_row_names_a_logged_copy():
 def test_backfilled_rows_are_exactly_those_seen_after_their_first_nse_open():
     calendar = wiring.storage.build_session_calendar()
     after = wiring.next_nse_session(calendar, calendar.first)
-    for source in wiring.SOURCES:
+    for source in PUBLIC:
         for r in TABLES[source.cue].rows():
             first_use = datetime.combine(after(date.fromisoformat(r["value_date"])), NSE_OPEN, tzinfo=IST)
             seen_late = datetime.fromisoformat(r["first_seen_at"]) >= first_use
@@ -53,7 +54,7 @@ def test_recomputing_from_the_copies_finds_a_planted_change(tmp_path):
     source = FakeSource({"a.csv": fake_file(("2026-10-13", 1.0), ("2026-10-14", 2.0))})
     seen = datetime(2026, 10, 15, 6, 0, tzinfo=IST)
     result = CueCollector(None, store, log, lambda: seen).collect(source, date(2026, 1, 1), date(2026, 12, 31))
-    table = CueTable(tmp_path / "tables", "fake", lambda d: d)
+    table = csv_table(tmp_path / "tables", "fake", lambda d: d)
     table.merge(result.values, seen)
     verifier = CueTableVerifier(store, log, lambda d: d)
     assert verifier.problems(source, table.rows()) == []
@@ -62,3 +63,21 @@ def test_recomputing_from_the_copies_finds_a_planted_change(tmp_path):
     assert verifier.problems(source, planted) == ["fake 2026-10-14: table 2.5, archived copy 2.0"]
     planted[0]["source_sha256"] = "0" * 64
     assert "fake 2026-10-13: no logged copy with SHA-256 000000000000" in verifier.problems(source, planted)
+
+
+def test_no_private_cue_has_a_table_or_values_in_the_repository():
+    private = {s.cue for s in wiring.SOURCES if s.private}
+    assert private == {"sp500", "nasdaq100"}
+    files = {p.name for p in wiring.CUES_FOLDER.rglob("*") if p.is_file()}
+    assert not {f"{cue}.csv" for cue in private} & files
+    revisions = (
+        (wiring.CUES_FOLDER / wiring.REVISIONS_FILE).read_text()
+        if (wiring.CUES_FOLDER / wiring.REVISIONS_FILE).is_file()
+        else ""
+    )
+    gaps = (wiring.CHECKS_FOLDER / GAPS_FILE).read_text()
+    assert not any(cue in revisions or cue in gaps for cue in private)
+    for cue in private:  # the copy logs hold paths, URLs, hashes and sizes only
+        log = wiring.SNAPSHOT_LOG_FOLDER / f"{cue}.csv"
+        if log.is_file():
+            assert log.read_text().splitlines()[0] == "fetched_at,path,url,form,sha256,size_bytes"

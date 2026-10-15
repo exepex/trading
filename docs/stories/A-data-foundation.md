@@ -764,6 +764,8 @@ the decision.
 Facts checked on 15 Oct 2026 (builder, response 103):
 - FRED's site is refused by this environment's network policy, and S&P Dow Jones Indices answers 403. Nasdaq's and
   Cboe's sites are reachable, but their terms forbid automated capture (Nasdaq) and storing index values (Cboe).
+  Owner decision a927390 (15 Oct 2026): use them anyway for personal, non-commercial research, with raw files and
+  values in Drive only, at most one download a day, and no display until the owner approves one.
 - The US Treasury (yearly par-yield CSV), EIA (Brent, released weekly), RBI (reference rate archive; none from
   25 Jul 2018 to 11 Apr 2022) and FBIL (reference rates from 10 Jul 2018; public site about a week late) are
   reachable.
@@ -775,20 +777,25 @@ Facts checked on 15 Oct 2026 (builder, response 103):
   keeps the first value (A11's rule);
 - a derived table per cue in `research/data/global-cues/` with a README (source, URL, time zone, publication lag,
   terms with evidence labels), `first_seen_at` and `provenance` (`live` or `backfilled`) on every row;
-- the as-of rule for an India date across time zones and holidays, with a live-only mode;
-- commands `python -m fno global-cues fill|check|verify`.
+- the as-of rule for an India date across time zones and holidays, at an explicit cutoff (09:15 or 15:00 IST), with
+  a live-only mode;
+- the private cues (S&P 500 from Cboe, Nasdaq 100 from Nasdaq): tables in Drive only, the four copies already there
+  adopted as the history start, at most one download a day;
+- commands `python -m fno global-cues fill|check|verify|adopt`.
 
-Out: a schedule; the previous US closes until a permitted source is chosen (owner decision); any change to a frozen
-file, a forecast input or the weather.
+Out: a schedule; any display of the private cues (open owner item); any change to a frozen file, a forecast input
+or the weather.
 
 **Acceptance criteria:**
 1. Each cue names its publisher, URL, the time zone of its dates, when a value is published and the terms that apply,
-   each terms statement with an evidence label; a source whose terms or the network forbid it is not used, is named
-   with the reason, and another is proposed.
+   each terms statement with an evidence label; a source whose terms restrict this use is named with its terms quoted
+   and is used only under a recorded owner decision; a source the network refuses is named and another is proposed.
 2. Every value carries `first_seen_at`; back-filled history is marked `backfilled` and only a value first seen before
    09:15 IST on the first NSE session after its date is `live` (test on the committed tables recomputes the label).
-3. The as-of rule: an India date uses only a value dated before it; a US Monday holiday gives Tuesday the Friday
-   value; live use also needs `first_seen_at` before that day's 09:15 IST (tests).
+3. The as-of rule at an explicit cutoff (09:15 or 15:00 IST): a value is usable when its source says it was published
+   before the cutoff (US close 16:00 US Eastern with daylight saving; reference rate 13:30 IST; assumptions named);
+   a US Monday holiday gives Tuesday the Friday value; the same day's USD/INR counts at 15:00 and not at 09:15; live
+   use also needs `first_seen_at` before the cutoff (tests, including the exact publication time).
 4. Raw copies in Drive through `RawFileStore`, never overwritten, each logged; a later change to a held value is
    logged as a revision and never rewrites the table; a late value is logged, never inserted; tables are append-only
    (tests).
@@ -802,13 +809,18 @@ file, a forecast input or the weather.
    order and an empty cue table; tests plant each.
 8. Behind interfaces with one composition root (added to CLAUDE.md); no frozen file changes; code size, lint, imports
    and the full suite pass.
+9. Private cues (owner decision a927390): their rows, revisions and gaps are written to Drive only, as write-once
+   parts; the repository holds only their copy logs (paths, URLs, hashes, sizes) and code; tests use made-up values
+   labelled fake; a second download on the same IST date is refused; the kept copies are adopted at their own fetch
+   times (tests; a test checks no private table or value is in the repository).
 
 **Gap list (quality rule 2): every requirement of REPLAN's A17 paragraph, design 2.1's data row, outputs and failure
 modes, and the orchestrator's brief.**
 
 | Requirement | Where |
 |---|---|
-| previous US close, S&P 500 and Nasdaq 100 | **blocked: source terms**, out until the owner decides: S&P DJI 403; Nasdaq's and Cboe's terms forbid automated capture and storage; FRED (also refused by the network policy) carries S&P's "Reproduction ... in any form is prohibited" and Nasdaq's "Pre-Approval Required" notices; options in the README (criterion 1) |
+| previous US close, S&P 500 and Nasdaq 100 | criterion 9 (Cboe, Nasdaq; Drive only, owner decision a927390), criterion 1 (their terms and FRED's notices quoted in the README) |
+| owner's conditions: Drive only, one download a day, no display until approved | criterion 9; display **out**, an open owner item |
 | Brent | criterion 1 (EIA; weekly release, every row `backfilled`) |
 | USD/INR | criterion 1 (RBI, and FBIL for RBI's 2018-2022 hole) |
 | US 10-year yield | criterion 1 (US Treasury) |
@@ -816,9 +828,9 @@ modes, and the orchestrator's brief.**
 | `first_seen_at` on every value; back-fill marked as such | criterion 2 |
 | official or primary sources first; source, publication lag and time zone named | criterion 1 |
 | NSE currency and MCX files (design 2.1's suggestion) | **out**: NSE's currency-derivative file paths tried answered 404 and MCX answered 403 from this session; RBI and FBIL are the official reference rate, and NSE's USD/INR futures are a different quantity (a futures price) |
-| FRED for US closes (design 2.1) | **blocked** (network policy); proposal in the README |
+| FRED for US closes (design 2.1) | **out**: refused by the network policy, and carries the same owners' restrictions (quoted in the README) |
 | "previous US close known before 09:15 IST": the date mapping across time zones and US holidays | criterion 3 |
-| known before 09:15 IST (REPLAN) and "global cues as of 15:00" (2.1 outputs) | criterion 3 answers 09:15. That answer is safe for a 15:00 decision, but it leaves out the same day's USD/INR rate (published about 13:00-13:30 IST); a 15:00 variant needs each cue's publication time and is **out** until a forecast needs it |
+| known before 09:15 IST (REPLAN) and "global cues as of 15:00" (2.1 outputs) | criterion 3: both cutoffs, chosen explicitly |
 | raw files in Drive (A9) with A11's revision rule | criterion 4 |
 | derived daily table with a README | criteria 1, 2, 5 |
 | gaps recorded, never filled | criterion 5 |
@@ -832,5 +844,5 @@ modes, and the orchestrator's brief.**
 **Judge verifies:** runs `global-cues verify`; reads each source's terms itself; checks two US-holiday India dates
 with `value_for`; plants a revised value and a late value; confirms no S&P 500 or Nasdaq 100 data is in the repository.
 
-**Depends:** A7, A9, A11 · **Size:** M · **Status:** built without the US closes (blocked: source terms, owner
-decision); awaiting judge (claims: `reviews/claude/response_103_a17-global-cues.md`)
+**Depends:** A7, A9, A11 · **Size:** M · **Status:** built, with the US closes in Drive only (owner decision
+a927390); awaiting judge (claims: `reviews/claude/response_103_a17-global-cues.md`, addendum 1)

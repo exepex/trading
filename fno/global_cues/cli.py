@@ -1,9 +1,10 @@
-"""`python -m fno global-cues <fill|check|verify> [--cue NAME ...] [--from YYYY-MM-DD] [--to YYYY-MM-DD]` (story A17).
+"""`python -m fno global-cues <fill|check|verify|adopt> [--cue NAME ...] [--from DATE] [--to DATE]` (story A17).
 
 - fill: downloads each cue's files, archives them in the owner's Drive, extends the tables, rewrites the checks. The
   first run back-fills from each source's first date; later runs look back 31 days. Not scheduled.
 - check: rewrites the checks from the committed tables (no network).
 - verify: recomputes every table row from the archived copy it names (read-only).
+- adopt: takes a copy already in Drive's raw area into its cue's log and table, first seen at its own fetch time.
 Commit `research/data/global-cues/` and `research/data/manifests/global-cues/` after a run.
 """
 
@@ -32,16 +33,17 @@ def add_global_cues_parser(subparsers) -> None:
     from .wiring import SOURCES
 
     cues = subparsers.add_parser("global-cues", help="US closes, US 10-year, Brent and USD/INR (story A17)")
-    cues.add_argument("action", choices=("fill", "check", "verify"))
+    cues.add_argument("action", choices=("fill", "check", "verify", "adopt"))
     cues.add_argument("--cue", action="append", choices=[s.cue for s in SOURCES], help="one cue (repeatable)")
     cues.add_argument("--from", dest="start", type=date.fromisoformat, default=None, help="YYYY-MM-DD")
     cues.add_argument("--to", dest="end", type=date.fromisoformat, default=None, help="YYYY-MM-DD (default: today)")
+    cues.add_argument("--copy", help="adopt: a copy's path in Drive's raw area, e.g. cboe/indices/spx-history/...")
     cues.set_defaults(func=cmd_global_cues)
 
 
 def cmd_global_cues(args) -> int:
     """Every action; a Drive or setup failure stops it with one named line and exit 1, never a traceback."""
-    action = {"fill": _fill, "check": _check, "verify": _verify}[args.action]
+    action = {"fill": _fill, "check": _check, "verify": _verify, "adopt": _adopt}[args.action]
     try:
         return action(args)
     except STOPPING_FAILURES as exc:
@@ -77,3 +79,19 @@ def _verify(args) -> int:
     problems += [p for s in sources for p in verifier.problems(s, tables[s.cue].rows())]
     print("\n".join(problems) or "every cue row equals the archived copy it names")
     return 1 if problems else 0
+
+
+def _adopt(args) -> int:
+    """One copy already in Drive (owner: keep and use the four US-index files) into its cue's log and table."""
+    from .wiring import build_job, sources_named
+
+    sources = sources_named(args.cue)
+    if len(sources) != 1 or not args.copy:
+        print("adopt needs exactly one --cue and a --copy path")
+        return 1
+    source = sources[0]
+    lines, ok = build_job().adopt(
+        source, args.copy, args.start or source.first_value_date, args.end or now_ist().date()
+    )
+    print("\n".join(lines))
+    return 0 if ok else 1

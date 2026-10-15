@@ -1,7 +1,8 @@
 # Global cues (story A17)
 
-Daily cues an NSE session may know before its 09:15 IST open. Derived tables; the raw copies are in Google Drive
-(`fno-research/raw/<publisher>/...`, one copy per fetch, filed under the fetch time). First fill: 15 Oct 2026, 06:15 IST.
+Daily cues an NSE session may know at its 09:15 IST open or its 15:00 IST decision time. Derived tables (public cues
+here, private cues in Drive only); the raw copies are in Google Drive (`fno-research/raw/<publisher>/...`, one copy
+per fetch, filed under the fetch time). First fill: 15 Oct 2026, 06:15 IST.
 
 | Table | Cue | Rows | Dates | Source |
 |---|---|---|---|---|
@@ -10,8 +11,24 @@ Daily cues an NSE session may know before its 09:15 IST open. Derived tables; th
 | `usdinr_rbi.csv` | USD/INR reference rate, rupees per dollar | 3,871 | 2 Jan 2007 - 14 Oct 2026, **none 10 Jul 2018 - 11 Apr 2022 except 24 Jul 2018** | RBI |
 | `usdinr_fbil.csv` | the same reference rate | 1,981 | 10 Jul 2018 - 7 Oct 2026 | FBIL |
 
-**Not collected: the previous US closes (S&P 500, Nasdaq 100). Blocked: source terms.** No source whose terms allow
-it was found; see "Blocked".
+**Private cues: the previous US closes (S&P 500, Nasdaq 100) are in the owner's Drive only.** Owner decision of
+15 Oct 2026 (`docs/DESK_DECISIONS.md`, commit a927390): use the Cboe and Nasdaq files for personal research despite
+their terms (quoted below), with these conditions:
+- raw files **and** derived values in Drive only, never in this public repository: no rows, no real values in test
+  fixtures (the tests use made-up numbers labelled fake), claims files or logs. The repository holds code, the schema,
+  this README, and counts and hashes only (`research/data/manifests/global-cues/sp500.csv`, `nasdaq100.csv`: path,
+  URL, SHA-256 and size of each copy);
+- at most one download a day (the code refuses a second one on the same IST date);
+- **the card and the dashboard show nothing from them until the owner approves a display (open item).**
+
+| Private cue | Drive (derived area) | Days | Dates | Source |
+|---|---|---|---|---|
+| sp500 | `global-cues/sp500/rows`, `/revisions`, `/checks` | 4,977 | 3 Jan 2007 - 14 Oct 2026 | Cboe's SPX history |
+| nasdaq100 | `global-cues/nasdaq100/rows`, `/revisions`, `/checks` | 5,059 | 2007 - 13 Oct 2026 | Nasdaq's quote API |
+
+The history start is the four copies fetched once on 15 Oct 2026 before their terms were read, kept by the owner and
+adopted with `global-cues adopt` at their own fetch times (06:14:45, 06:17:18, 06:14:54 and 06:17:22 IST). Each private
+table is a folder of write-once CSV parts (one per run that adds rows); its rows are the parts in name order.
 
 ## Columns
 
@@ -30,22 +47,35 @@ archived copy it came from; its path, URL and fetch time are in `research/data/m
 | us10y | US Treasury, daily par yield curve CSV per year, `home.treasury.gov/.../daily-treasury-rates.csv/<year>/all?type=daily_treasury_yield_curve` | US Eastern (New York business days) | Quotes near 15:30 ET on t; posted the same US evening, i.e. early morning IST on t+1 (reasoning only on the posting time: on 15 Oct 2026 the 14 Oct value was there at 06:15 IST) | US Government work, public domain (some evidence: US law for federal works; Treasury's own page not quoted) |
 | brent | US EIA, Europe Brent Spot Price FOB (RBRTE) daily, `www.eia.gov/dnav/pet/hist/RBRTED.htm` | London trading days | **Weekly**: the page of 7 Oct 2026 ended on 6 Oct, next release 15 Oct. So a value is up to about 9 days old when published, never in time for the next open | EIA: "U.S. government publications are in the public domain ... You may use and/or distribute any of our data" (strong evidence, eia.gov/about/copyrights_reuse.php, read 15 Oct 2026). But EIA credits the Brent prices to Thomson Reuters (LSEG), and the same page says items licensed from others "may be protected": **some doubt** whether this series counts as EIA's |
 | usdinr_rbi | Reserve Bank of India, reference rate archive (form), `www.rbi.org.in/Scripts/ReferenceRateArchive.aspx` | IST | Computed from about 13:00-13:30 IST quotes on t, i.e. after t's open: first usable on t+1 | Not found on RBI's pages; RBI is a public authority publishing it for the public (reasoning only) |
-| usdinr_fbil | FBIL reference rates, `www.fbil.org.in/wasdm/refrates/fetchfiltered` | IST | Rate of t at 13:00 IST (13:30 before about 2025), but **FBIL's public site trails by about a week** (on 15 Oct 2026 it ended on 7 Oct) | Not read: FBIL's site is a script page whose terms could not be fetched; FBIL licenses its benchmarks commercially, so **republishing them in a public repository may need permission (reasoning only, a risk)** |
+| usdinr_fbil | FBIL reference rates, `www.fbil.org.in/wasdm/refrates/fetchfiltered` | IST | Rate of t at 13:00 IST (13:30 before about 2025), but **FBIL's public site trails by about a week** (on 15 Oct 2026 it ended on 7 Oct) | FBIL's page text (found in its site's script, 15 Oct 2026): "[FBIL does not authorize commercial use of the data available in its website without written permission]", plus an "as is" disclaimer. This tool's use is personal and non-commercial (some evidence it is allowed; whether a public repository copy counts as "use" FBIL would object to: reasoning only) |
+| sp500 (private) | Cboe, `cdn.cboe.com/api/global/delayed_quotes/charts/historical/_SPX.json` (whole history, about 1.7 MB) | US Eastern | 16:00 ET on t (01:30 IST t+1 in US summer time, 02:30 in winter); the file had 14 Oct at 00:09 UTC on 15 Oct | Cboe's disclaimer forbids storing index values "in a database or retrieval system, without the prior written permission of Cboe" (strong evidence, quoted). Used under the owner's decision a927390 |
+| nasdaq100 (private) | Nasdaq, `api.nasdaq.com/api/quote/NDX/historical` | US Eastern | 16:00 ET on t; on 15 Oct at 06:00 IST it still lacked 14 Oct | Nasdaq's terms: users must "Not access or use the Service, or any process, whether automated or manual, to capture data or content from the Service" (strong evidence, quoted). Used under the owner's decision a927390 |
 
 RBI's and FBIL's rates are the same benchmark: on all 1,086 dates both publish (24 Jul 2018 and 12 Apr 2022 on) they
 are equal (`checks/overlap_usdinr.csv` lists only differences: none). FBIL fills RBI's 2018-2022 hole.
 
-## The date rule (as-of)
+## The date rule (as-of): two cutoffs
 
-For an NSE session on India date d, a cue's usable value is the latest one dated **before d**
-(`fno/global_cues/as_of.py`). Why it is safe for each cue:
-- US data of date t (US Eastern) is final after t's US close, 16:00 ET = 01:30 IST on t+1 (US summer time) or 02:30 IST
-  (winter); never before d's 09:15 open when t < d, and a value dated d itself is never used. A US holiday has no row,
-  so a Tuesday after a US Monday holiday gets Friday's value; US early closes change nothing.
-- USD/INR of date t is fixed at 13:00-13:30 IST on t, after t's open: usable from t+1.
-- Brent: the rule gives the value dated before d, but EIA published it up to a week later. **For research on Brent the
-  rule-based answer is look-ahead by up to a week; only `live` rows (first seen before d's open) are honest.**
-- For a live decision, `value_for(..., live_only=True)` also requires `first_seen_at` before 09:15 IST on d.
+`value_for(rows, india_day, cutoff, live_only, available_at)` (`fno/global_cues/as_of.py`) gives the newest value a
+session may use at an explicit cutoff on its India date (design 2.1: "as of 15:00"; the orchestrator: both):
+- `OPEN` 09:15 IST: known before the open, for overnight gaps;
+- `DECISION` 15:00 IST: known at the desk's decision time. It adds the same day's USD/INR reference rate.
+
+A value is usable when its source's `available_at(value_date)` is before the cutoff:
+- US closes: 16:00 US Eastern on t, i.e. 01:30 IST on t+1 in US summer time, 02:30 in winter (computed with the time
+  zone, daylight saving included). A US holiday has no row, so a Tuesday after a US Monday holiday gets Friday's
+  close. A value dated on the India date itself is never usable (16:00 ET of d is after 15:00 IST of d).
+- US 10-year: 18:00 US Eastern on t (**assumption**: the Treasury posts the day's curve that evening).
+- USD/INR: 13:30 IST on t.
+- Brent: 8 days after t (**assumption**: EIA's weekly release; its release dates are not archived). Research on
+  Brent with the rule is therefore approximate; only `live_only` answers are exact.
+
+With `live_only` the row must also have been first seen by this tool before the cutoff (`first_seen_at`): the honest
+answer for a live decision. The `provenance` column stays the 09:15 label (`live` when seen before the first NSE open
+after the value date); a 15:00 decision checks `first_seen_at` against 15:00 through `live_only`.
+
+Real answers (15 Oct 2026, dates only): on 20 Jan 2026 (after the US holiday of 19 Jan), the S&P 500 and the US
+10-year give 16 Jan at both cutoffs; USD/INR gives 19 Jan at 09:15 and 20 Jan at 15:00.
 
 ## Rules
 
@@ -68,19 +98,20 @@ For an NSE session on India date d, a cue's usable value is the latest one dated
 - Gaps are listed, never filled (`checks/gaps.csv`): weekdays without a value (unverified: no US, UK or RBI holiday
   calendar is in the repository, so holiday and gap are not told apart) and values equal to the previous date's.
 
-## Blocked: source terms (previous US closes, S&P 500 and Nasdaq 100)
+## The terms of the US index sources, and why they are used anyway
 
 Tried on 15 Oct 2026 from the cloud session:
 - **FRED** (`fred.stlouisfed.org`, series SP500, NASDAQ100, and also DGS10, DCOILBRENTEU, DEXINUS): refused by this
   environment's network policy (the proxy closes the connection). FRED's API host answers but needs an API key.
 - **S&P Dow Jones Indices** (`spglobal.com/spdji`): HTTP 403.
 - **Nasdaq** (`api.nasdaq.com`): reachable, but its terms of use (nasdaq.com/legal) say users must "Not access or use
-  the Service, or any process, whether automated or manual, to capture data or content from the Service". **Not used.**
+  the Service, or any process, whether automated or manual, to capture data or content from the Service".
 - **Cboe** (`cdn.cboe.com` SPX history): reachable, but its disclaimer (cboe.com/global-disclaimers) says index values
-  may not be "stored in a database or retrieval system, without the prior written permission of Cboe". **Not used.**
+  may not be "stored in a database or retrieval system, without the prior written permission of Cboe".
 
-Both were downloaded once before their terms were read; the copies are not in this repository. Four files remain in
-Drive, listed in `reviews/claude/response_103_a17-global-cues.md`, for the owner to keep or delete.
+Both were downloaded once before their terms were read. The owner then decided (a927390, quoted above) to use them for
+personal, non-commercial research, Drive only. This README records the terms honestly; the decision does not change
+them.
 
 **FRED is not a clean path either.** FRED's own series pages, read on 15 Oct 2026 through a web fetch (this container
 cannot reach FRED):
@@ -89,13 +120,8 @@ cannot reach FRED):
   address);
 - NASDAQ100: "Copyright © 2016, NASDAQ OMX Group, Inc.", tagged "Copyrighted: Pre-Approval Required".
 
-So storing either series anywhere, Drive included, needs the index owner's permission. Options for the owner:
-1. ask S&P DJI (its permissions address is on FRED's SP500 page) and Nasdaq for permission for personal research storage; then FRED (allow
-   `fred.stlouisfed.org` in the environment's network settings, or a FRED API key as a secret) is the simplest path,
-   with the values kept in Drive only, never in this public repository;
-2. go without US closes for now; the weather can use the US 10-year, Brent and USD/INR;
-3. look for a licensed feed the owner already pays for (the broker's), read-only.
-Reasoning only: I know of no free source whose terms allow automated storage of these index levels.
+So FRED carries the same owners' restrictions. Reasoning only: no free source was found whose terms allow automated
+storage of these index levels.
 
 ## Commands
 
@@ -103,6 +129,10 @@ Reasoning only: I know of no free source whose terms allow automated storage of 
 python -m fno global-cues fill     # download, archive in Drive, extend the tables, rewrite checks (first run back-fills)
 python -m fno global-cues check    # rewrite checks/ from the committed tables (no network)
 python -m fno global-cues verify   # recompute every row from the archived copy it names (read-only)
+python -m fno global-cues adopt --cue sp500 --copy <raw path> [--from] [--to]   # a copy already in Drive into its table
 ```
+
+`check` covers the private cues only when the Drive settings are present (their tables are in Drive); without them it
+rewrites the public cues' checks alone.
 
 Not scheduled (no schedule was added by this story).

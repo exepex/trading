@@ -187,3 +187,55 @@ USD/INR RBI against FBIL: 1086 dates compared, no difference
 4. Plant a changed past value and a late value in a fake run; the table must not change and both must be logged.
 5. Confirm no S&P 500 or Nasdaq 100 data is in the repository:
    `git ls-files | grep -i -E "spx|ndx|sp500|nasdaq"` should list only code and tests.
+
+---
+
+## Addendum 1: the owner's decision on US closes (a927390) and both cutoffs (15 Oct 2026)
+
+This addendum replaces the "blocked: source terms" status above. The quotes of the terms stay; the owner has decided
+to use the sources anyway.
+
+### What changed
+
+1. **Private cues: S&P 500 (Cboe) and Nasdaq 100 (Nasdaq)**, under owner decision a927390.
+   - **Storage.** Raw files and derived values are in the owner's Drive only. Rows, revisions and gaps are write-once
+     CSV parts under `derived/global-cues/<cue>/{rows,revisions,checks}` (`row_log.py` `DrivePartsRowLog`, behind a
+     new `RowLog` interface; the public cues keep `CsvRowLog` in the repository).
+   - **What the repository holds:** code, the schema, the README and the copy logs only (path, URL, SHA-256, size).
+     The tests use made-up values labelled fake.
+   - **Downloads.** At most one download a day: a second one on the same IST date is skipped and said so
+     (`collector.py`, `once_a_day`).
+   - **History start.** The four copies kept in Drive were adopted at their own fetch times (`global-cues adopt`).
+     sp500 has 4,977 days to 14 Oct 2026; nasdaq100 has 5,059 days to 13 Oct 2026. No value is quoted in this file.
+   - **Display.** Nothing on the card or the dashboard until the owner approves. That is an open item, and no display
+     code exists.
+2. **Two cutoffs: 09:15 and 15:00.**
+   - `value_for(rows, india_day, cutoff, live_only, available_at)` takes the cutoff explicitly (`OPEN`, `DECISION`).
+   - Each source states when a value is published (`available_at`), using the time zone with daylight saving:
+     - US closes: 16:00 US Eastern;
+     - Treasury: 18:00 US Eastern, an assumption;
+     - reference rate: 13:30 IST;
+     - Brent: 8 days after its date, an assumption.
+   - `live_only` compares `first_seen_at` with the chosen cutoff.
+   - The `provenance` column keeps the 09:15 meaning. I chose not to add a column, so the committed tables stay
+     append-only.
+3. **FBIL's terms found** in its site's page code: "[FBIL does not authorize commercial use of the data available in
+   its website without written permission]", plus an "as is" disclaimer. This use is personal and non-commercial:
+   some evidence that it is allowed.
+
+### Evidence (dates and counts only)
+
+- **Adoption output:**
+  - `sp500: 4977 dates added`, then `0 dates added` for the second, identical copy;
+  - `nasdaq100: 5059 dates added`, then `0 dates added` for the one-month copy.
+  - Copy logs: `research/data/manifests/global-cues/sp500.csv` and `nasdaq100.csv`, two rows each.
+- **`verify`** against Drive, all six cues including the Drive-only tables: "every cue row equals the archived copy it
+  names".
+- **`value_for` on real tables (dates only):**
+
+| India date | Cue | 09:15 | 15:00 |
+|---|---|---|---|
+| 15 Oct 2026 | sp500 | 14 Oct (live) | 14 Oct |
+| 15 Oct 2026 | nasdaq100 | 13 Oct (Nasdaq lacked 14 Oct) | 13 Oct |
+| 20 Jan 2026 | sp500 (after the US holiday of 19 Jan) | 16 Jan | 16 Jan |
+| 20 Jan 2026 | usdinr_rbi | 19 Jan | 20 Jan |

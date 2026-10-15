@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 FIELDS = ("fetched_at", "path", "url", "form", "sha256", "size_bytes")
@@ -60,3 +60,18 @@ class SnapshotLog:
         for row in rows:
             found.setdefault(row["sha256"], datetime.fromisoformat(row["fetched_at"]))
         return found
+
+    def fetched_on(self, cue: str, day: date) -> bool:
+        """Whether a copy of this cue was fetched on that IST date (the once-a-day rule)."""
+        return any(at.date() == day for at in self._all_fetch_times(cue))
+
+    def _all_fetch_times(self, cue: str) -> list[datetime]:
+        file = self.path_for(cue)
+        rows = csv.DictReader(file.read_text(encoding="utf-8").splitlines()) if file.is_file() else []
+        return [datetime.fromisoformat(row["fetched_at"]) for row in rows]
+
+    def paths(self, cue: str) -> set[str]:
+        """Every logged copy's path."""
+        file = self.path_for(cue)
+        rows = csv.DictReader(file.read_text(encoding="utf-8").splitlines()) if file.is_file() else []
+        return {row["path"] for row in rows}

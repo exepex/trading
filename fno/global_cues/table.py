@@ -5,30 +5,26 @@ it came from, when we first saw it, and whether it was seen in time to be used l
 - `provenance`: `live` when first seen before 09:15 IST on the first NSE session after the value date (the earliest
   open that could use it), else `backfilled`: history fetched later, never known at the time by this tool.
 - A new date after the table's last one is appended. A date already held with the same value is skipped; with another
-  value the table keeps its row and the change is logged in `revisions.csv` (`changed`); a date before the last one
-  that the table lacks (a late publication) is logged (`late`) and never inserted. The table's bytes never change.
+  value the table keeps its row and the change is logged in its revision log (`changed`); a date before the last one
+  that the table lacks (a late publication) is logged (`late`) and never inserted. Rows already held never change.
+- Where the rows live is the `RowLog`'s business (`row_log.py`): a repository CSV, or Drive only for private cues.
 """
 
 from __future__ import annotations
 
-import csv
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, time
-from pathlib import Path
 
 from ..models import IST
 from .collector import SourcedValue
+from .row_log import RowLog
 
 FIELDS = ("value_date", "value", "source_sha256", "first_seen_at", "provenance")
 REVISION_FIELDS = ("cue", "value_date", "kind", "table_value", "new_value", "source_sha256", "seen_at")
 NSE_OPEN = time(9, 15)
 LIVE, BACKFILLED = "live", "backfilled"
 CHANGED, LATE = "changed", "late"
-
-
-class TableFileBroken(RuntimeError):
-    """A table file that cannot be appended to without changing its last row."""
 
 
 @dataclass
@@ -44,16 +40,16 @@ def provenance(value_date: date, seen_at: datetime, next_session: Callable[[date
 
 
 class CueTable:
-    def __init__(self, folder: Path, cue: str, next_session: Callable[[date], date]):
-        self.folder, self.cue, self.next_session = Path(folder), cue, next_session
-        self.path, self.revisions_path = self.folder / f"{cue}.csv", self.folder / "revisions.csv"
+    def __init__(self, cue: str, rows: RowLog, revisions: RowLog, next_session: Callable[[date], date]):
+        """`rows` holds this cue's table; `revisions` its revision log (shared with other cues where they agree)."""
+        self.cue, self.log, self.revision_log, self.next_session = cue, rows, revisions, next_session
 
     def rows(self) -> list[dict[str, str]]:
-        return _read(self.path)
+        return self.log.rows()
 
     def merge(self, values: list[SourcedValue], seen_at: datetime) -> MergeResult:
         held = {r["value_date"]: r for r in self.rows()}
-        logged = {_key(r["cue"], r["value_date"], r["kind"], r["new_value"]) for r in _read(self.revisions_path)}
+        logged = {_key(r["cue"], r["value_date"], r["kind"], r["new_value"]) for r in self.revision_log.rows()}
         last = max(held, default="")
         new_rows, revisions = [], []
         for sourced in sorted(values, key=lambda s: s.value.value_date):
@@ -69,33 +65,12 @@ class CueTable:
             status = provenance(sourced.value.value_date, seen_at, self.next_session)
             new_rows.append((day, repr(value), sourced.source_sha256, seen_at.isoformat(), status))
             last = day
-        _check_appendable(self.path)  # both files first: never a table row written and its revision lost
-        _check_appendable(self.revisions_path)
-        _append(self.path, FIELDS, new_rows)
-        _append(self.revisions_path, REVISION_FIELDS, [(*r[:-1], r[-1].isoformat()) for r in revisions])
+        self.log.check_appendable()  # both logs first: never a row written and its revision lost
+        self.revision_log.check_appendable()
+        self.log.append(FIELDS, new_rows)
+        self.revision_log.append(REVISION_FIELDS, [(*r[:-1], r[-1].isoformat()) for r in revisions])
         return MergeResult(len(new_rows), len(revisions))
 
 
 def _key(cue: str, day: str, kind: str, value) -> tuple:
     return cue, day, kind, float(value)
-
-
-def _read(path: Path) -> list[dict[str, str]]:
-    return list(csv.DictReader(path.read_text(encoding="utf-8").splitlines())) if path.is_file() else []
-
-
-def _check_appendable(path: Path) -> None:
-    if path.is_file() and path.stat().st_size and not path.read_bytes().endswith(b"\n"):
-        raise TableFileBroken(f"{path.name} does not end with a new line: appending would change its last row")
-
-
-def _append(path: Path, fields: tuple[str, ...], rows: list[tuple]) -> None:
-    if not rows:
-        return
-    new = not path.is_file() or path.stat().st_size == 0
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("a", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f, lineterminator="\n")
-        if new:
-            writer.writerow(fields)
-        writer.writerows(rows)

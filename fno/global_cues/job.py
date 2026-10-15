@@ -6,25 +6,20 @@ table's last date (so late values and revisions are seen) or, for an empty table
 
 from __future__ import annotations
 
-import csv
-import io
-from collections import Counter
 from datetime import date, timedelta
-from pathlib import Path
 
 import requests
 
 from ..research_data.calendar import CalendarError
 from ..storage.owner_token import DriveSignInRefused
-from .checks import GAP_FIELDS, OVERLAP_FIELDS, gap_rows, overlap_rows
+from .check_files import CueChecks
 from .collector import CueCollector
+from .row_log import TableFileBroken
 from .source import GlobalCueSource
-from .table import CueTable, TableFileBroken
+from .table import CueTable
 
 LOOK_BACK = timedelta(days=31)
 RUN_STOPPERS = (TableFileBroken, OSError, RuntimeError, DriveSignInRefused, requests.RequestException, CalendarError)
-GAPS_FILE, OVERLAP_FILE = "gaps.csv", "overlap_usdinr.csv"
-RBI_CUE, FBIL_CUE = "usdinr_rbi", "usdinr_fbil"
 
 
 class GlobalCueJob:
@@ -49,50 +44,31 @@ class GlobalCueJob:
         collection = self.collector.collect(source, start or _default_start(source, table), end)
         if collection.failure:
             return f"{source.cue}: FAILED, {collection.failure}", False
-        merged = table.merge(collection.values, collection.fetched_at)
+        return self._merge(source, table, collection, end)
+
+    def adopt(self, source: GlobalCueSource, path: str, start: date, end: date) -> tuple[list[str], bool]:
+        """Takes a copy already in Drive into the cue's log and table, first seen at its own fetch time."""
+        collection = self.collector.adopt(source, path, start, end)
+        if collection.failure:
+            return [f"{source.cue}: FAILED, {collection.failure}"], False
+        line, _ = self._merge(source, self.tables[source.cue], collection, end)
+        return [line, *self.checks.write()], True
+
+    def _merge(self, source: GlobalCueSource, table: CueTable, collection, end: date) -> tuple[str, bool]:
+        done = collection.skipped or _merged(table, collection)
         rows = table.rows()
         last = date.fromisoformat(rows[-1]["value_date"]) if rows else None
-        line = f"{source.cue}: {merged.added} dates added, {merged.revisions} revisions logged, last {last}"
+        line = f"{source.cue}: {done}, last {last}"
         if last is None or (end - last).days > source.max_age_days:
             return f"{line}; STALE: older than {source.max_age_days} days on {end}", False
         return line, True
 
 
-class CueChecks:
-    """The checks' files, rewritten from the tables on every run (reports, not records)."""
-
-    def __init__(self, tables: dict[str, CueTable], folder: Path):
-        self.tables, self.checks_folder = tables, Path(folder)
-
-    def write(self) -> list[str]:
-        gaps = [g for cue, table in sorted(self.tables.items()) for g in gap_rows(cue, table.rows())]
-        rbi, fbil = (_by_date(self.tables[c].rows()) if c in self.tables else {} for c in (RBI_CUE, FBIL_CUE))
-        overlap = overlap_rows(rbi, fbil)
-        _write(self.checks_folder / GAPS_FILE, GAP_FIELDS, gaps)
-        _write(self.checks_folder / OVERLAP_FILE, OVERLAP_FIELDS, overlap)
-        counts = Counter((g[0], g[2]) for g in gaps)
-        return [
-            "gaps: " + (", ".join(f"{cue} {kind} {n}" for (cue, kind), n in sorted(counts.items())) or "none"),
-            f"USD/INR RBI against FBIL: {len(set(rbi) & set(fbil))} dates compared, "
-            f"{dict(Counter(o[1] for o in overlap)) or 'no difference'}",
-        ]
+def _merged(table: CueTable, collection) -> str:
+    merged = table.merge(collection.values, collection.fetched_at)
+    return f"{merged.added} dates added, {merged.revisions} revisions logged"
 
 
 def _default_start(source: GlobalCueSource, table: CueTable) -> date:
     rows = table.rows()
     return date.fromisoformat(rows[-1]["value_date"]) - LOOK_BACK if rows else source.first_value_date
-
-
-def _by_date(rows: list[dict[str, str]]) -> dict[str, str]:
-    return {r["value_date"]: r["value"] for r in rows}
-
-
-def _write(path: Path, fields: tuple[str, ...], rows: list[tuple]) -> None:
-    out = io.StringIO()
-    writer = csv.writer(out, lineterminator="\n")
-    writer.writerow(fields)
-    writer.writerows(rows)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.part")
-    temporary.write_text(out.getvalue(), encoding="utf-8")
-    temporary.replace(path)  # never a half-written report

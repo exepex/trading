@@ -15,11 +15,11 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 import requests
 
-from .source import TIMEOUT_SECONDS, CueRequest, CueValue, GlobalCueSource, checked, positive
+from .source import TIMEOUT_SECONDS, CueRequest, CueValue, GlobalCueSource, at_local, checked, positive
 
 EIA_BRENT = "https://www.eia.gov/dnav/pet/hist/RBRTED.htm"
 EIA_TITLE = "Europe Brent Spot Price FOB"
@@ -34,6 +34,8 @@ RBI_FORM_FIELD = re.compile(r'name="(__[A-Z]+)"[^>]*value="([^"]*)"')
 FBIL_RATES = "https://www.fbil.org.in/wasdm/refrates/fetchfiltered?fromDate={start}&toDate={end}&authenticated=false"
 FBIL_USD = "INR / 1 USD"
 IST = "Asia/Kolkata"
+REFERENCE_RATE_OUT = time(13, 30)  # FBIL's display time: 13:30 IST until about 2025, 13:00 since (the later is used)
+EIA_WORST_LAG = timedelta(days=8)  # assumption: a weekly release publishes a value within 8 days of its date
 
 
 class EiaBrentSource(GlobalCueSource):
@@ -43,6 +45,10 @@ class EiaBrentSource(GlobalCueSource):
 
     def requests(self, start: date, end: date) -> list[CueRequest]:
         return [CueRequest("RBRTED.htm", EIA_BRENT)]
+
+    def available_at(self, value_date: date) -> datetime:
+        """An assumption, not an observation: EIA's weekly release dates are not archived (`live` rows are exact)."""
+        return at_local(value_date + EIA_WORST_LAG, time(0, 0), IST)
 
     def parse(self, data: bytes) -> list[CueValue]:
         page = data.decode("utf-8", errors="replace")
@@ -60,7 +66,14 @@ class EiaBrentSource(GlobalCueSource):
         return checked(values, self.cue)
 
 
-class RbiUsdInrSource(GlobalCueSource):
+class ReferenceRateSource(GlobalCueSource):
+    """The USD/INR reference rate of a date is fixed and published at about 13:00-13:30 IST that day."""
+
+    def available_at(self, value_date: date) -> datetime:
+        return at_local(value_date, REFERENCE_RATE_OUT, IST)
+
+
+class RbiUsdInrSource(ReferenceRateSource):
     cue, dataset, unit, date_zone = "usdinr_rbi", "rbi/currency/reference-rate", "rupees per US dollar", IST
     publisher = "Reserve Bank of India, reference rate archive (the FBIL reference rate)"
     first_value_date = date(2007, 1, 1)
@@ -92,7 +105,7 @@ class RbiUsdInrSource(GlobalCueSource):
         return checked([CueValue(day, positive(v, str(day))) for day, v in rows], self.cue)
 
 
-class FbilUsdInrSource(GlobalCueSource):
+class FbilUsdInrSource(ReferenceRateSource):
     cue, dataset, unit, date_zone = "usdinr_fbil", "fbil/currency/reference-rate", "rupees per US dollar", IST
     publisher = "Financial Benchmarks India Pvt Ltd (FBIL), reference rates (public site, about a week late)"
     first_value_date = date(2018, 7, 10)  # FBIL took over the reference rate from RBI

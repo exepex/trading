@@ -1,11 +1,15 @@
 """A cue source in memory, and builders of the publishers' file layouts as seen on 15 Oct 2026."""
 
 import json
-from datetime import date
+from datetime import date, datetime, time, timedelta
+from pathlib import Path
 
 import requests
 
+from fno.global_cues.row_log import CsvRowLog
 from fno.global_cues.source import CueRequest, CueValue, GlobalCueSource, checked, positive
+from fno.global_cues.table import CueTable
+from fno.models import IST
 
 
 class FakeSource(GlobalCueSource):
@@ -24,6 +28,9 @@ class FakeSource(GlobalCueSource):
         if isinstance(found, Exception):
             raise found
         return found
+
+    def available_at(self, value_date: date) -> datetime:
+        return datetime.combine(value_date + timedelta(days=1), time(2, 30), tzinfo=IST)
 
     def parse(self, data: bytes) -> list[CueValue]:
         if not data.startswith(b"date,value"):
@@ -64,3 +71,22 @@ def fbil(*rows) -> bytes:
         items.append({"processRunDate": stamp, "subProdName": "INR / 1 USD", "displayTime": stamp, "rate": usd})
         items.append({"processRunDate": stamp, "subProdName": "INR / 1 EUR", "displayTime": stamp, "rate": 108.4})
     return json.dumps(items).encode()
+
+
+def csv_table(folder, cue: str, next_session) -> CueTable:
+    """A cue table in a local folder, with the folder's shared revision log (the public cues' layout)."""
+    folder = Path(folder)
+    return CueTable(cue, CsvRowLog(folder / f"{cue}.csv"), CsvRowLog(folder / "revisions.csv"), next_session)
+
+
+def cboe(*rows) -> bytes:
+    """Cboe's SPX history layout with made-up closes (fake values: no real index level is in this repository)."""
+    data = [{"date": d, "volume": "0.0", "open": "0", "high": c, "low": c, "close": f"{c:.6f}"} for d, c in rows]
+    return json.dumps({"timestamp": "2026-10-15 00:09:18", "data": data}).encode()
+
+
+def nasdaq(rows, total=None) -> bytes:
+    """Nasdaq's quote-API layout with made-up closes (fake values)."""
+    table = [{"date": d, "close": c, "volume": "--", "open": c, "high": c, "low": c} for d, c in rows]
+    total = len(rows) if total is None else total
+    return json.dumps({"data": {"symbol": "NDX", "totalRecords": total, "tradesTable": {"rows": table}}}).encode()
