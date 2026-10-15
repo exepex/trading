@@ -553,15 +553,17 @@ where k comes from, and must merge before A14c's first automatic run (about 6 No
   settings refuse them, so two sources can never disagree);
 - one reader of the file used by both C2 (`fno/risk/`) and C4 (`fno/checks/`), or two by the same rule if C4's
   independence requires it (the builder says which and why): columns as A14c writes them (`as_of, factor, computed,
-  unrounded, status, peak, evidence_sha256`); the factor in force on day d is the `factor` of the latest row with
-  `as_of < d`, strictly before the decision day (point in time: a replay of day d never sees a row written on d, even
-  by a manual weekday run; the weekly Sunday row serves Monday on; judge 176 note 3); C2 and C4 read only `as_of`,
-  `factor` and `status`; a missing file, a wrong header, no row before d, a factor below 1, or a row older than
-  `max_age_days` (day 30 after `as_of` passes, day 31 refuses, as today's `(day - as_of) > 30`) fails closed by name;
+  unrounded, status, peak, coverage_through, evidence_sha256`; `coverage_through`, the last session A14c's archive
+  covered, ChatGPT review 117); the factor in force on day d is the `factor` of the latest row with `as_of < d`,
+  strictly before the decision day (point in time: a replay of day d never sees a row written on d, even by a manual
+  weekday run; the weekly Sunday row serves Monday on; judge 176 note 3); C2 and C4 read only `as_of`, `factor` and
+  `status`; a missing file, a wrong header, no row before d, a factor below 1, or a row older than `max_age_days` (day
+  30 after `as_of` passes, day 31 refuses, as today's `(day - as_of) > 30`) fails closed by name;
 - the seed row, in the same commit as the switch: `2026-10-14,1.45,,,applied,"owner seed: response 77, decision 14
-  Oct",` (`computed`, `unrounded` and `evidence_sha256` empty, `peak` quoted because it holds a comma), so C2 keeps the
-  owner's current factor and its 13 Nov lapse until A14c's first run; an empty `unrounded` marks a row A14c's
-  incremental rule never reads (A14c: its first run, and any run after such a row, is a `--full` run; judge 176);
+  Oct",,` (`computed`, `unrounded`, `coverage_through` and `evidence_sha256` empty, `peak` quoted because it holds a
+  comma), so C2 keeps the owner's current factor and its 13 Nov lapse until A14c's first run; an empty `unrounded` marks
+  a row A14c's incremental rule never reads (A14c: its first run, and any run after such a row, is a `--full` run; judge
+  176);
 - every decision record's stressed-margin block names the row used: `as_of`, `factor`, `status` and
   `evidence_sha256` (the judge can reproduce it from the file).
 
