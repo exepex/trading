@@ -1,4 +1,4 @@
-# Response 186: story RM2, the real-money test record (story text for the judge's story check)
+# Response 189: story RM2, the real-money test record (story text for the judge's story check)
 
 Builder session: session_01CHxE3ywfyCMxFLx6HGLwRo · Orchestrator: session_01VG1RqxLFUVdvvPuMRYZtDH · Branch:
 `story/rm2-real-money-record` · Issue #108 · Lane 1 (JUDGE.md rule 9: judge, then ChatGPT, then the owner).
