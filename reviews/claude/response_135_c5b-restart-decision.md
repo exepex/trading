@@ -195,4 +195,9 @@ purpose (my judgment, not tested): C4 is the independent second check, and the p
 
 ### Gates at the pushed SHA
 
-See the commit message and the orchestrator report.
+Run on the merged tree (code commit df56b69 plus main at 252a91e):
+- `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: 5468 passed.
+- `ruff check fno tests tools`: clean.
+- `ruff format --check`: 1015 files already formatted.
+- `python tools/check_imports.py`: clean, 1053 files.
+- Record scan: clean.
