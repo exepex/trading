@@ -66,6 +66,11 @@ otherwise (exit 0), exits 1 on a Groww or read failure (one O1 alert; the next s
 `fno/daily/wiring.py`; a failure fails closed for new entries through E2c's `_unreviewed` block, exits still run. E8
 builds it on `main` after O1 merges; O1 adds nothing for it now.
 
+**M2's step (agreed with the M2 builder, 15 Oct):** `weather_alert` joins `DAILY_RUN_STEPS` right after
+`weather`: one `CommandStep` (`python -m fno weather-alert --day <d>`, gated by `daily.live_from.weather`, committing
+only `research/alerts/weather/`); with no live weather record it prints one line and exits 0 (O1 has already alerted
+the weather step's failure once). M2 builds it on `main` after O1 merges.
+
 **Option B (not chosen): a GitHub Actions workflow.** Kept as the record of why: weather and v4 capture run before the
 canonical exists, so they would depend on GitHub's late timer, and the 15:15 snapshot would need Groww in GitHub.
 
