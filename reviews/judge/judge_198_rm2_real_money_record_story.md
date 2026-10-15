@@ -137,3 +137,54 @@ holds.
 
 **Verdict: PASS.** ChatGPT's review follows (rule 9). The code starts only when a version reaches the gate and the
 orchestrator says go.
+
+## Addendum 3: revision at 96c444dc (ChatGPT review 125 written in): FAIL (1 should-fix)
+
+Scope as asked: the five review-125 points. Response 199 on main is the orchestrator's answer to review 125.
+
+- **Settlement charges: MET.** Criterion 1 charges a leg settled by E7 with C1's `settlement_charges_breakdown`
+  (`fno/costs.py:43`), never an invented closing order's.
+- **Two times per leg: MET.**
+  - The quote time is the screenshot's capture time, typed from the image, with the file-name check.
+  - The order time is the submission time, from Groww's confirmation or the contract note.
+  - The two are stored apart. Age = order time − quote time; below 0 or above 5 minutes is "unknown".
+  - Criterion 2 pins a 10:00 screenshot as valid for a 10:04 order, unknown for a 10:07 order, and unknown when the
+    screenshot comes after the order.
+  - The A16 fallback is timed by its observed fetch time.
+- **Strictly after: MET, unchanged.** Criterion 6 adds that a missing 10:30 quote is "unknown", never taken from
+  10:45.
+- **No private figures in git; interrupted writes: MET.** Criterion 9 adds a test that reads the git diff after
+  `record-entry` and `record-exit`. A Drive write cut off mid-way never marks an exit as recorded.
+- **Stops in exit-time order, and breaches: MET.** A stop takes effect at the exit that crossed it. A real trade
+  entered after that exit is a protocol breach and never counts toward a pass. Unknown legs are left out of (b)'s mean
+  with their count shown.
+
+**SF1. "Records pending" starts too late, so a stop-crossing exit can go unflagged while another card is placed. This
+is the window the orchestrator asked about, and it exists.**
+- **Evidence:** the rule sets pending "whenever an entered real trade has no reported exit or settlement by the close
+  of the session after its exit alert or expiry". Criterion 10 expects an exit at 10:00 (−Rs 21,000), reported at
+  15:00, to make the 12:00 card show "do not place: unreconciled". Under the rule as written, the trade is not pending
+  until the close of the next session, so at 12:00 the card shows nothing. The criterion and the rule disagree.
+- **Path in normal running:**
+  - Session S: E8's exit alert fires at about 10:15, and the owner exits in Groww at 10:20 but reports nothing.
+  - Session S, after 15:15: the next card posts with no warning, and the owner places it.
+  - Session S+1: the owner places another card in the morning, still with no warning.
+  - Only after S+1's close does the status turn pending.
+
+  Two trades are entered after a stop-crossing exit. The breach rule then excludes them from the pass, but it cannot
+  give back the real money already risked. Stopping new real trades after a stop is the stop's whole purpose.
+- **Fix (text):**
+  - Pending starts the moment an open real trade has an exit alert or reaches expiry with no recorded exit or
+    settlement, or a Drive write fails, and it lasts until the exit is recorded.
+  - "By the close of the next session" stays only as the point where a missing report is escalated: one #fno-desk
+    alert, and the trade is listed as unreconciled.
+  - Criterion 10 then holds as written.
+  - Known limits should say that an exit the owner makes with no exit alert cannot be detected until it is reported.
+
+**Gates (trial merge with origin/main eac6b2b3, tree 4e138a1, clean, `-n auto`):**
+- pytest: 6524 passed;
+- `ruff check`: clean;
+- `ruff format --check`: 1157 files formatted;
+- `check_imports`: clean.
+
+**A re-check needs only the start of the "records pending" rule, its escalation line and the Known-limits line.**

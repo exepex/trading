@@ -70,7 +70,8 @@ def test_the_report_text_and_json_carry_the_miss_counts():
     assert f"    {EXPECTED.line()}" in report_lines(reports, frozen=False, as_of="2025-01-20", days=NO_DAYS)
     v6b = next(q for q in report_json(reports, frozen=False, as_of="2025-01-20", days=NO_DAYS)["questions"]
                if q["question"] == V6_BIG_MOVE_5S)  # fmt: skip
-    assert v6b["comparisons"][0]["misses"] == asdict(EXPECTED)
+    assert v6b["cohorts"]["live"]["comparisons"][0]["misses"] == asdict(EXPECTED)
+    assert v6b["cohorts"]["close_proxy"] == {"scores": {}, "comparisons": []}
 
 
 def test_the_recorded_look_carries_each_members_miss_line(tmp_path, capsys):

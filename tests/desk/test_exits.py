@@ -16,6 +16,7 @@ from fno.constants import (
     OPTION_PUT,
     OUTCOME_CLOSED,
     OUTCOME_EXIT_ORDERED,
+    OUTCOME_NOT_OPENED,
     OUTCOME_OPENED,
     OUTCOME_PENDING_EXIT,
     OUTCOME_PROTECTION_UNVERIFIED,
@@ -102,7 +103,8 @@ def test_unquotable_protection_marks_the_position_blocks_new_risk_and_exits_at_t
     assert "open trade t1 (protection_unverified) blocks new risk" in refused.reason
     other = enter(root, snapshots, entry_desk, fly_order("t2", book=BOOK2_HYBRID, decided_at=at(15, 5, day=NEXT)),
                   "next", NEXT)  # fmt: skip
-    assert other.reason.startswith(contract(25200, CE))  # another book is not blocked: only the bad quote stops it
+    # another book is not blocked: only the bad quote stops it (story E4c's reason code now leads the reason)
+    assert other.outcome == OUTCOME_NOT_OPENED and contract(25200, CE) in other.reason
     snapshot_on(store, clock, LATER, "later", fly_rows())
     [result] = review(root, snapshots, exit_desk, LATER, "later", HOLD)
     assert result.outcome == OUTCOME_CLOSED and not is_open(root)

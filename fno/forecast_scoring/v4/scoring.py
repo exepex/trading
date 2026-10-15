@@ -1,13 +1,20 @@
 """Protocol v4 scoring as a service (story G8): per question, every forecaster's scores and each non-baseline
 forecaster's comparison with the primary baseline; and each registered member's comparison for a look. V4 and V5 are
-not started here (their outcomes need A16's weekly ATM quotes and the expiry settlement wiring)."""
+not started here (their outcomes need A16's weekly ATM quotes and the expiry settlement wiring). The report scores the
+live rows and the back-fill rows (the close stands in for the 14:30 pack) as two cohorts, never pooled (G10)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-from ...constants import V4_BASELINE_BASE_RATE, V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE
+from ...constants import (
+    V4_BASELINE_BASE_RATE,
+    V4_COHORT_CLOSE_PROXY,
+    V4_COHORT_LIVE,
+    V4_RV_BELOW_WEEKLY_IV,
+    V5_INSIDE_STRADDLE,
+)
 from ...forecast_v4.terms import HORIZON_SESSIONS, POINT_QUESTIONS
 from .comparison import Comparison, compare, paired_rows, seed_word
 from .inputs import ForecastValue, Outcome, V4ForecastSource, V4OutcomeSource
@@ -18,14 +25,22 @@ from .scores import point_scores, probability_scores
 QUESTIONS = tuple(HORIZON_SESSIONS)  # the protocol's order
 NOT_STARTED = frozenset({V4_RV_BELOW_WEEKLY_IV, V5_INSIDE_STRADDLE})
 STATUS_NOT_STARTED, STATUS_NO_DATA, STATUS_SCORED = "not started", "not enough data yet", "scored"
+COHORTS = (V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE)
+
+
+@dataclass
+class Cohort:
+    """One cohort's forecasters (only those with a row in it), their scores and their comparisons."""
+
+    scores: dict[str, object] = field(default_factory=dict)  # forecaster -> PointScores / ProbabilityScores / None
+    comparisons: list[Comparison] = field(default_factory=list)
 
 
 @dataclass
 class QuestionReport:
     question: str
     status: str
-    scores: dict[str, object] = field(default_factory=dict)  # forecaster -> PointScores / ProbabilityScores / None
-    comparisons: list[Comparison] = field(default_factory=list)
+    cohorts: dict[str, Cohort] = field(default_factory=dict)  # COHORTS -> its scores and comparisons
     live_forecasts: int = 0  # rows labelled live, across the question's forecasters
 
 
@@ -39,16 +54,25 @@ class V4Scoring:
         names = self.forecasters(question)
         if not names:
             return QuestionReport(question, STATUS_NO_DATA)
-        outcomes, baseline = self.outcomes.outcomes(question), primary_values(question, self.forecasts)
+        outcomes = self.outcomes.outcomes(question)
         values = {name: self.forecasts.values(question, name) for name in names}
-        slots = {r.forecaster: slot for (q, slot), r in self.registry.registered().items() if q == question}
         report = QuestionReport(question, STATUS_SCORED)
         report.live_forecasts = sum(v.live and v.value is not None for vs in values.values() for v in vs.values())
-        base_rate = self.forecasts.values(question, V4_BASELINE_BASE_RATE)
-        report.scores = {name: _scores(question, values[name], outcomes, base_rate) for name in names}
-        for name in (n for n in names if n not in primary_names(question)):
-            report.comparisons.append(self._compare(question, name, values[name], baseline, outcomes, slots.get(name)))
+        report.cohorts = {
+            cohort: self._cohort(question, values, outcomes, cohort == V4_COHORT_LIVE) for cohort in COHORTS
+        }
         return report
+
+    def _cohort(self, question: str, every: dict[str, dict[date, ForecastValue]], outcomes: dict[date, Outcome],
+                live: bool) -> Cohort:  # fmt: skip
+        values = {name: rows for name, all_rows in every.items() if (rows := _in_cohort(all_rows, live))}
+        baseline = _in_cohort(primary_values(question, self.forecasts), live)
+        base_rate = _in_cohort(self.forecasts.values(question, V4_BASELINE_BASE_RATE), live)
+        slots = {r.forecaster: slot for (q, slot), r in self.registry.registered().items() if q == question}
+        cohort = Cohort({name: _scores(question, rows, outcomes, base_rate) for name, rows in values.items()})
+        for name in (n for n in values if n not in primary_names(question)):
+            cohort.comparisons.append(self._compare(question, name, values[name], baseline, outcomes, slots.get(name)))
+        return cohort
 
     def forecasters(self, question: str) -> list[str]:
         return [] if question in NOT_STARTED else self.forecasts.forecasters(question)
@@ -77,6 +101,10 @@ class V4Scoring:
 
 def _counted(values: dict[date, ForecastValue], after: date | None) -> dict[date, ForecastValue]:
     return values if after is None else {day: v for day, v in values.items() if v.live and day > after}
+
+
+def _in_cohort(values: dict[date, ForecastValue], live: bool) -> dict[date, ForecastValue]:
+    return {day: v for day, v in values.items() if v.live is live}
 
 
 def _miss_start(registration: Registration, after: date | None) -> date | None:

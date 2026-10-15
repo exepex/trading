@@ -36,11 +36,22 @@ def entry_facts(record: Mapping, segment: Segment, overridden: bool) -> EntryFac
     worst = (record.get("expected") or {}).get("worst_rs")
     if worst is None:
         raise ValueError(f"{record['run_id']}/{record['opportunity_id']}: no maximum loss at entry in the record")
-    margin, stress = _verdict(record, MARGIN_RULE), _verdict(record, STRESS_RULE)
-    trade_id = (record.get("risk") or {}).get("trade_id")
-    capital = (margin["numbers"].get("capital_rs") or {}).get(trade_id, {}) if margin else {}
+    stress, capital = _verdict(record, STRESS_RULE), record_capital(record)
     usage = stress["numbers"]["worst_loss_rs"] / stress["numbers"]["limit_rs"] if stress else None
     return EntryFacts(
         f"{record['run_id']}/{record['opportunity_id']}", date.fromisoformat(record["run_id"][:10]), -float(worst),
         capital.get("capital_tied"), capital.get("stress_reserve"), usage, overridden, segment,
     )  # fmt: skip
+
+
+def record_capital(record: Mapping) -> dict:
+    """C2's capital split of the record's trade at entry (`capital_tied`, `stress_reserve`), empty when not recorded."""
+    margin = _verdict(record, MARGIN_RULE)
+    trade_id = (record.get("risk") or {}).get("trade_id")
+    return (margin["numbers"].get("capital_rs") or {}).get(trade_id, {}) if margin else {}
+
+
+def one_lot_capital(record: Mapping) -> float | None:
+    """Scoreboard A's one-lot capital tied at entry (story S3 criterion 5): the record's capital over its lots."""
+    tied, lots = record_capital(record).get("capital_tied"), (record.get("structure") or {}).get("lots")
+    return tied / lots if tied and lots else None

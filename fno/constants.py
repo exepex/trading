@@ -191,6 +191,7 @@ V4_QUESTIONS = (
 V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI = "rules", "hybrid", "ai_team"  # one registered forecaster per slot
 V4_SLOTS = (V4_SLOT_RULES, V4_SLOT_HYBRID, V4_SLOT_AI)
 V4_DAY_A, V4_DAY_A2, V4_DAY_SYSTEM_LATE = "A", "A2", "system_late"  # G10: a day's quality label (protocol 1.6)
+V4_COHORT_CLOSE_PROXY, V4_COHORT_LIVE = "close_proxy", "live"  # G10: scored apart, never pooled
 V4_BASELINE_HAR_DAILY, V4_BASELINE_HAR_INTRADAY = "har_daily", "har_intraday"
 V4_BASELINE_TRAILING, V4_BASELINE_EWMA = "trailing", "ewma_094"
 V4_BASELINE_RAW_IMPLIED, V4_BASELINE_PREMIUM_ADJUSTED = "raw_implied", "premium_adjusted_implied"
@@ -288,6 +289,10 @@ OUTCOME_PROTECTION_UNVERIFIED = "protection_unverified"  # a protective leg is u
 OUTCOME_SETTLEMENT_NEEDED = "settlement_needed"  # a leg expired before its exit filled: NSE's settlement price needed
 # Entry limit: the net entry at the execution snapshot's touch is worse than the entry C2 approved (its modelled cash)
 ENTRY_WORSE_THAN_APPROVED = "entry_worse_than_approved"
+# Story E4c: the entry check before any leg fills (every leg's opening side, a protective leg's closing side too)
+PROTECTION_NOT_BUYABLE = "protection_not_buyable"
+PROTECTION_NOT_SELLABLE = "protection_not_sellable"
+SHORT_LEG_NOT_SELLABLE = "short_leg_not_sellable"
 DATA_UNVERIFIED = "no new trade: stale or unverified data"  # story C3: a data check failed before the decision
 NO_DECISION_LATE = "no decision (late)"  # story E3: nothing committed by the decision deadline
 NO_APPROVED_STRATEGY = "no approved strategy"  # story E5: Book 1 has no `paper` version on the day
@@ -330,6 +335,7 @@ CARD_SESSION_KINDS = (
 
 # Story E3: the daily run's step that collects the books' decisions, as its run log names it (read by D3b and S2)
 RUN_LOG_DECISIONS_STEP = "decisions"
+RUN_LOG_EXITS_STEP = "exits"  # the daily run's exit review step (scoreboard B reads it, story S6)
 
 # The daily health check (story O8, fno/health/): its statuses and its own run record
 HEALTH_OK, HEALTH_LATE, HEALTH_MISSED, HEALTH_UNKNOWN = "ok", "late", "missed", "unknown"

@@ -41,9 +41,6 @@ class HeldMaxLoss:
         for contract, count in units.items():
             quote = market.quote(contract)
             legs.append((Leg(quote.strike, quote.kind, BOUGHT if count > 0 else SOLD), abs(count)))
-        for kind in (OPTION_CALL, OPTION_PUT):
-            if sum(leg.side * n for leg, n in legs if leg.kind == kind) < 0:
-                raise RiskInputError(f"more {kind} units sold than bought: the maximum loss is not fixed")
         return legs
 
     def _exit_charges(self, legs: list[tuple[Leg, int]], level: float) -> float:
@@ -55,7 +52,13 @@ class HeldMaxLoss:
         )
 
     def max_loss(self, units: Mapping[str, int], cash_flow: float, market: Market) -> float:
-        legs = self._legs({c: n for c, n in units.items() if n}, market)
+        return self.of_legs(self._legs({c: n for c, n in units.items() if n}, market), cash_flow)
+
+    def of_legs(self, legs: list[tuple[Leg, int]], cash_flow: float) -> float:
+        """The same model on (leg, units) pairs and the cash moved so far (scoreboard A's one-lot unit, story S3)."""
+        for kind in (OPTION_CALL, OPTION_PUT):
+            if sum(leg.side * n for leg, n in legs if leg.kind == kind) < 0:
+                raise RiskInputError(f"more {kind} units sold than bought: the maximum loss is not fixed")
         if not legs:
             return 0.0
         worst = max(
