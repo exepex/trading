@@ -94,6 +94,8 @@ itself that the owner's own quoted words restart that book's drawdown brake for 
 that fired before that date, not an earlier one), and that the decisions row was added by the owner's words, not
 written for them. The code checks only the form (title once, owner quote, book named, dated on or before the restart,
 not reused); whether the words really mean "restart this brake now" is the judge's call, and a doubt is a FAIL.
+The judge also confirms the words with the owner directly (asks the owner and gets a yes in its own session); no file
+in the repository counts as proof, and no answer is a FAIL (ChatGPT review 110, response 142).
 
 ## Quality rules for every story (owner decision, 15 Oct 2026: "rules yes")
 

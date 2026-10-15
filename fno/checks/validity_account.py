@@ -4,6 +4,7 @@ reads the same account. What C4 derives here:
 - cash (every amount so far);
 - each trade's units and cash flow;
 - the trades first filled on the decision day, with their state after each fill time (story C5);
+- the capital: the opening plus every top-up written by the cutoff (story E1b), never a trade;
 - the opening cash, and closed equity at each day's close (the start, then each day a trade went flat);
 - the brake restart days."""
 
@@ -19,12 +20,18 @@ from ..books.paths import account_folder, book_folder
 from ..constants import (
     CASH_LEDGER_FILE,
     DESK_DECISIONS_FILE,
+    LEDGER_FILL,
     LEDGER_OPENING,
+    LEDGER_SETTLEMENT,
+    LEDGER_TOP_UP,
     OVERRIDE_RESTART_BRAKE,
     OWNER_OVERRIDES_FILE,
     SIDE_BUY,
 )  # fmt: skip
 from .validity_decisions import decision_problem, decision_rows
+
+TRADE_KINDS = (LEDGER_FILL, LEDGER_SETTLEMENT)  # C4's own list: rows that move a position
+CAPITAL_KINDS = (LEDGER_OPENING, LEDGER_TOP_UP)  # rows that add capital, counted by their write instant
 
 
 @dataclass(frozen=True)
@@ -108,13 +115,15 @@ def account_facts(rows: list[dict[str, str]], restarts: tuple[date, ...], cutoff
     rows = [r for r in rows if _filled_by(r, cutoff)]
     if not rows or rows[0]["kind"] != LEDGER_OPENING:
         raise AccountProblem("the ledger has no opening balance by the decision cutoff")
-    start, fills = rows[0], rows[1:]
+    start = rows[0]
+    fills = [r for r in rows if r["kind"] in TRADE_KINDS]
+    capital = sum(float(r["amount_rs"]) for r in rows if r["kind"] in CAPITAL_KINDS)  # opening plus top-ups (E1b)
     units, flows, flat_on = _trades(fills)
     by_day: dict[date, float] = {}
     for trade, day in flat_on.items():
         if day is not None:
             by_day[day] = by_day.get(day, 0.0) + flows[trade]
-    equity = float(start["amount_rs"])
+    equity = capital  # the same capital at every point: a top-up never makes a new high (story E1b)
     series = [(datetime.fromisoformat(start["filled_at"]).date(), equity)]
     for day in sorted(by_day):
         equity += by_day[day]

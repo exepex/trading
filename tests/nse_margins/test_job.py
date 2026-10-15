@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 
 from fno.models import IST
+from fno.nse_margins.broker_approvals import Approval, BrokerApprovals
 from fno.nse_margins.calculator import MarginFigure, NseIndexOptionExposure, SpanMarginCalculator
-from fno.nse_margins.independent_check import IndependentCheck
 from fno.nse_margins.job import NseMarginJob, due_session
 from fno.nse_margins.margin_log import MarginLog, MarginLogConflict
 from fno.nse_margins.rows import MarginRow, MarginRowBuilder
@@ -41,11 +41,11 @@ def margins_file(tmp_path: Path, text: str = HEADER) -> Path:
     return path
 
 
-PASSED = IndependentCheck("test: broker check", date(2026, 10, 1))
+PASSED = BrokerApprovals({code: Approval("test: broker check", date(2026, 10, 1)) for code in ("SF", "SC", "BF")})
 
 
 def make_job(path: Path, files: dict[date, bytes], now: datetime = MORNING, alerts: Alerts | None = None,
-             check: IndependentCheck = PASSED, printed: list | None = None):  # fmt: skip
+             check: BrokerApprovals = PASSED, printed: list | None = None):  # fmt: skip
     builder = MarginRowBuilder((ShortIronFly(), ShortCondor(), LongIronFly()), (100.0, 200.0),
                                SpanMarginCalculator(NseIndexOptionExposure(), LOT), 30)  # fmt: skip
     day_file = lambda day: (f"nsccl.{day:%Y%m%d}.i1.zip", files.get(day))  # noqa: E731
@@ -166,7 +166,7 @@ def test_a_calendar_without_sessions_is_an_alert_not_a_hang(tmp_path):
 def test_c2_uses_a_computed_row_from_its_day_on_and_never_before(tmp_path):
     path = margins_file(tmp_path, done_before(DAY))
     make_job(path, {DAY: span_zip()}).run()
-    table, terms = MarginTable(path, DaysOld(7)), TradeTerms("SF", 200.0, lots=2)  # width 200: no older row
+    table, terms = MarginTable(path, DaysOld(7), 65), TradeTerms("SF", 200.0, lots=2)  # width 200: no older row
     # sold C20000 and P20000, bought C20200 and P19800 at 10: scan max(100 - 20, -15 + 90) = 80 a unit, NOV -210
     assert table.parts(terms, DAY) == MarginParts(80 * 65.0, -210 * 65.0, 52000.0, "SF width 200")
     assert table.margin(terms, DAY) == pytest.approx(2 * (5200 + 52000))  # a credit: scan + exposure (judge 75)
@@ -185,9 +185,8 @@ def test_the_created_cutoff_is_9_am_ist():
 
 @pytest.mark.parametrize(
     "check",
-    [IndependentCheck(None, None), IndependentCheck("check", None), IndependentCheck(None, date(2026, 10, 1)),
-     IndependentCheck("check", date(2026, 10, 15))],
-    ids=["unset", "no_date", "no_source", "after_the_day"],
+    [BrokerApprovals({}), BrokerApprovals({"SF": Approval("check", date(2026, 10, 15))})],
+    ids=["none", "after_the_day"],
 )  # fmt: skip
 def test_without_a_passed_broker_check_rows_are_printed_and_none_written(tmp_path, check):
     path, alerts, printed = margins_file(tmp_path, done_before(DAY)), Alerts(), []
@@ -202,9 +201,7 @@ def test_without_a_passed_broker_check_rows_are_printed_and_none_written(tmp_pat
 def test_the_repository_config_records_the_groww_check_and_not_before_its_day():
     from fno.config import load_app_config
 
-    check = IndependentCheck.from_margins_block(load_app_config()["risk"]["margins"])
-    assert check.source == "Groww margin API (read-only), orchestrator run"  # claims response 77, broker check 2
-    assert check.passed_by(date(2026, 10, 14)) and not check.passed_by(date(2026, 10, 13))
-    assert IndependentCheck.from_margins_block(
-        {"nse_span_check": {"source": "x", "passed_on": "2026-10-14"}}
-    ).passed_by(DAY)
+    check = BrokerApprovals.from_margins_block(load_app_config()["risk"]["margins"])
+    groww = Approval("Groww margin API (read-only), orchestrator run", date(2026, 10, 14))  # response 77, check 2
+    assert dict(check.by_code) == {"SF": groww, "SC": groww, "BF": groww}  # story STR1b: no new code has a date
+    assert check.approves("SF", date(2026, 10, 14)) and not check.approves("SF", date(2026, 10, 13))

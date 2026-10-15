@@ -9,8 +9,8 @@ import pytest
 from fno.composition import build_tradable_structures
 from fno.config import load_app_config
 from fno.constants import STRUCTURES_BOUGHT_ONLY
+from fno.nse_margins.broker_approvals import Approval, BrokerApprovals
 from fno.nse_margins.calculator import NseIndexOptionExposure, SpanMarginCalculator
-from fno.nse_margins.independent_check import IndependentCheck
 from fno.nse_margins.job import NseMarginJob
 from fno.nse_margins.margin_log import MarginLog
 from fno.nse_margins.rows import MarginRowBuilder
@@ -66,18 +66,9 @@ def test_the_apps_builder_has_every_tradable_structure_and_the_atm_width_for_bou
     assert app.extra_widths == ATM
 
 
-def test_the_14_october_check_covers_the_four_leg_codes_only_unless_it_lists_more():
-    default = IndependentCheck.from_margins_block({"nse_span_check": {"source": "x", "passed_on": "2026-10-14"}})
-    assert [default.covers(c) for c in ("SF", "SC", "BF", "LC", "CDS", "PCS")] == [True] * 3 + [False] * 3
-    listed = IndependentCheck.from_margins_block(
-        {"nse_span_check": {"source": "x", "passed_on": "2026-10-14", "structures": ["SF", "PCS"]}}
-    )
-    assert listed.covers("PCS") and not listed.covers("SC")
-
-
-def test_rows_of_uncovered_codes_are_printed_not_written_and_the_job_does_not_fail(tmp_path):
+def test_rows_of_unapproved_codes_are_printed_not_written_and_the_job_does_not_fail(tmp_path):
     path, alerts, printed = margins_file(tmp_path, done_before(DAY)), Alerts(), []
-    check = IndependentCheck("test: broker check", date(2026, 10, 1))  # SF, SC and BF only
+    check = BrokerApprovals({c: Approval("test: broker check", date(2026, 10, 1)) for c in ("SF", "SC", "BF")})
     day_file = lambda day: (f"nsccl.{day:%Y%m%d}.i1.zip", {DAY: span_zip()}.get(day))  # noqa: E731
     job = NseMarginJob(day_file, builder(), MarginLog(path), weekday, check, alerts, lambda: MORNING, printed.append)
     assert job.run() == 0 and alerts.sent == []
@@ -86,10 +77,3 @@ def test_rows_of_uncovered_codes_are_printed_not_written_and_the_job_does_not_fa
     held = next(line for line in printed if "not written" in line)
     assert "8 rows" in held and "CCS, CDS, LC, LP, PCS, PDS" in held
     assert sum(line.split(",")[0] in ("LC", "LP", "CDS", "CCS", "PDS", "PCS") for line in printed) == 8
-
-
-@pytest.mark.parametrize("listed", ["LC", [], ["LC", "XX"], [None]])
-def test_a_structures_list_that_is_not_a_list_of_known_codes_is_refused(listed):
-    block = {"nse_span_check": {"source": "x", "passed_on": "2026-10-14", "structures": listed}}
-    with pytest.raises(ValueError, match="non-empty list of codes"):
-        IndependentCheck.from_margins_block(block)

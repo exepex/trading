@@ -203,7 +203,7 @@ def test_a_paper_trades_fixture_from_a_fresh_account_validates():
     value = payload_of("getFnoPaperTrades_india_none")
     for account in value["payload"]["accounts"]:
         account |= {
-            "opening_value": state.starting_cash,
+            "opening_value": state.capital,
             "value": state.marked_equity,
             "cash": state.cash,
             "open_trades": state.open_trades,

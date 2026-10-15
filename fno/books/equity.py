@@ -61,7 +61,7 @@ def trade_positions(fills: list[Fill]) -> dict[str, TradePosition]:
 
 @dataclass(frozen=True)
 class AccountState:
-    starting_cash: float
+    capital: float  # the opening plus top-ups in force (story E1b): never profit
     cash: float
     closed_equity: float
     open_value: float  # marked value of open positions (long +, short -)
@@ -79,14 +79,14 @@ class AccountState:
 
 
 def account_state(
-    starting_cash: float,
+    capital: float,
     fills: list[Fill],
     marks: dict[str, Mark],
     margin_blocked: float = 0.0,
     premium_reserved: float = 0.0,
 ) -> AccountState:
     trades = trade_positions(fills).values()
-    closed_equity = starting_cash + sum(t.cash_flow for t in trades if not t.is_open)
+    closed_equity = capital + sum(t.cash_flow for t in trades if not t.is_open)
     open_cash_flow, open_value, stale = 0.0, 0.0, set()
     for trade in (t for t in trades if t.is_open):
         open_cash_flow += trade.cash_flow
@@ -98,9 +98,9 @@ def account_state(
             open_value += units * marks[contract].price
             if marks[contract].stale:
                 stale.add(contract)
-    cash = starting_cash + sum(f.amount for f in fills)
+    cash = capital + sum(f.amount for f in fills)
     return AccountState(
-        starting_cash,
+        capital,
         cash,
         closed_equity,
         open_value,
@@ -112,12 +112,12 @@ def account_state(
     )
 
 
-def unmarked_state(starting_cash: float, fills: list[Fill]) -> dict:
+def unmarked_state(capital: float, fills: list[Fill]) -> dict:
     """What can be stated without marks (for the positions file): cash, closed equity and the open legs."""
     trades = trade_positions(fills)
     return {
-        "cash_rs": starting_cash + sum(f.amount for f in fills),
-        "closed_equity_rs": starting_cash + sum(t.cash_flow for t in trades.values() if not t.is_open),
+        "cash_rs": capital + sum(f.amount for f in fills),
+        "closed_equity_rs": capital + sum(t.cash_flow for t in trades.values() if not t.is_open),
         "open_trades": [
             {
                 "trade_id": t.trade_id,

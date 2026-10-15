@@ -11,7 +11,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from ..constants import PURPOSE_DATA_ROUTINES
+from .constants import PURPOSE_DATA_ROUTINES
 
 DAILY = "daily"
 SCHEDULES = (DAILY,)

@@ -317,3 +317,26 @@ My merge check verifies:
 - that both merges equal their recomputed trees;
 - that the pinned commit is an ancestor of the dashboard's `main`;
 - that no file changed except the pin.
+
+## Addendum 5 (15 Oct 2026): merge check, P1 merged as dashboard 3df9179 and trading b092c58
+
+**Order.** C5 merged first, at a8379e6, which is an ancestor of b092c58. Then the dashboard, then trading re-pinned and
+merged, as agreed.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Dashboard merge exact | MET | 3df9179's parents are 5a6a2a1 (`main`) and ff1ec22. `git merge-tree --write-tree` of the two equals 3df9179's tree (empty diff), and 3df9179 is on the dashboard's `main`. ff1ec22 is my passed 13e76b4 plus one commit, the Mock paper accounts at Rs 20 lakh after C5 (3 files), which judge A passed as judge 135 |
+| Trading merge exact | MET | b092c58's parents are d95d89f (`main`) and f20dcff; the recomputed merge equals its tree. Since 5e91b0e the branch adds only e2e3d78 (merge of `main`, with C5, and re-pin at ff1ec22; judge 135) and f20dcff (the pin's commit field set to 3df9179, one line) |
+| Pin at the dashboard merge | MET | All 33 pinned files in b092c58 have SHA-256 equal to the dashboard at 3df9179 and to `pin.json`; `pin.json` names 3df9179, which is on the dashboard's `main` |
+| Rule 8 | MET | The orchestrator's log records `python -m fno market contract-check`: "pinned W11 contract 2.7.0 (commit 3df91797c830): same as the dashboard's". I re-ran it myself: `check_fno_screens` on today's dashboard `main` holds every rule, 28/28 planted, and `check_contract` passes; `tests/market_read_models` on trading `main` gives 181 passed |
+
+**Follow-up, not a P1 defect: the pin now drifts by design.**
+- The dashboard has since merged story/p1-home-books-20lakh (b9c41ec, judge 136).
+- That changes `api/examples/blocks.json` and `api/schemas/blocks-home.yaml`: the books' description and examples move
+  to Rs 20 lakh, and the description text alone changes in the schema.
+- So trading's pinned copy at 3df9179 differs from the dashboard's `main` in those two files, and `contract-check` will
+  now report the difference.
+- No validation rule changed, so published pages still validate.
+- The re-pin to b9c41ec is a lane-1 change for trading.
+
+**Verdict: merge check PASS.** P1 is done in both repositories.
