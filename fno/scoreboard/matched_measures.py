@@ -1,0 +1,50 @@
+"""Story S6's share on scoreboard A (S3 criterion 5): the measures (rupees only: no brake applies to a shadow account)
+and the do-nothing view (a) on each book's standardised series, with each closed take's one-lot capital tied held from
+its entry session to its exit. There is no view (b): scoreboard A has no account. S6's functions, no second copy."""
+
+from __future__ import annotations
+
+from collections.abc import Sequence
+
+from .do_nothing import DoNothing
+from .entry_facts import one_lot_capital
+from .matched import DayScore, Results, series_of
+from .matched_actions import TAKE
+from .matched_days import BookDay
+from .standard_unit import CLOSED, OPEN
+from .trade_measures import drawdown, trade_measures
+
+
+def _takes(days: Sequence[BookDay], results: Results, scored: set) -> list:
+    return [(d, o, a, results[(d.book, d.day, o)]) for d in days if d.day in scored
+            for o, a in d.actions.items() if a.kind == TAKE and (d.book, d.day, o) in results]  # fmt: skip
+
+
+def a_measures(
+    days: Sequence[BookDay], results: Results, scores: Sequence[DayScore], against: DoNothing | None
+) -> dict:
+    series, scored = series_of(scores), {s.day for s in scores}
+    takes = [t for t in _takes(days, results, scored) if t[3].status == CLOSED]
+    opened = sum(r.status == OPEN for d in days for o, a in d.actions.items()
+                 if (r := results.get((d.book, d.day, o))) is not None)  # fmt: skip
+    out = {"measures": {**trade_measures([t[3].net for t in takes], opened), **drawdown(series, None)}}
+    if against is not None:
+        capital, unrecorded = capital_path(takes, series.days)
+        compared = against.compare(series, capital, 0.0, unrecorded)
+        out["do_nothing"] = {key: value for key, value in compared.items() if key != "view_b"}
+    return out
+
+
+def capital_path(takes: list, days: Sequence) -> tuple[list[float], list[str]]:
+    """Each session's one-lot capital tied by the closed takes held at its close (entry session to exit), and the takes
+    whose record holds no capital (the comparison is then not computable)."""
+    capital, unrecorded = [0.0] * len(days), []
+    for book_day, opportunity_id, action, result in takes:
+        one_lot = one_lot_capital(action.record)
+        if one_lot is None:
+            unrecorded.append(f"{book_day.day.isoformat()}/{opportunity_id}")
+            continue
+        for i, day in enumerate(days):
+            if book_day.day <= day < result.exited_on:
+                capital[i] += one_lot
+    return capital, unrecorded

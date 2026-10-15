@@ -57,12 +57,18 @@ def build_whole_system_board(cfg: dict, root: Path = ROOT) -> WholeSystemBoard:
     from .protocol_status import protocol_status
 
     marks = SnapshotMarks(build_execution_snapshots(), CommittedRuns(root).snapshot_ids())
-    books = cfg["risk"]["profiles"]["books"]  # the books' brake and account capital (story S6)
-    against = DoNothing(ArchivedIndexLevels(drive_raw_or_none()), Terms(books["paper_account_rs"]))
+    brake = cfg["risk"]["profiles"]["books"]["drawdown_brake_rs"]  # drawdown as a share of the books' brake (S6)
     return board_from(
-        root, cfg["charges"], build_session_calendar(), build_versions(root), marks, protocol_status(root),
-        books["drawdown_brake_rs"], against,
+        root, cfg["charges"], build_session_calendar(), build_versions(root), marks, protocol_status(root), brake,
+        do_nothing(cfg),
     )  # fmt: skip
+
+
+def do_nothing(cfg: dict) -> DoNothing:
+    """Story S6's comparison: the archived index-close files and the books' account capital."""
+    return DoNothing(
+        ArchivedIndexLevels(drive_raw_or_none()), Terms(cfg["risk"]["profiles"]["books"]["paper_account_rs"])
+    )
 
 
 def drive_raw_or_none():
@@ -77,7 +83,7 @@ def drive_raw_or_none():
 
 def matched_board_from(
     root: Path, cfg: dict, calendar: SessionCalendar, versions: Versions, snapshots: ExecutionSnapshotSource,
-    settlements: SettlementPrices, protocol: ProtocolStatus,
+    settlements: SettlementPrices, protocol: ProtocolStatus, against: DoNothing | None = None,
 ) -> MatchedBoard:  # fmt: skip
     runs = CommittedRuns(root)
     days = DaySnapshots(snapshots, runs.snapshot_ids())
@@ -88,7 +94,7 @@ def matched_board_from(
         BOOKS, lambda decisions: MatchedDays(runs.runs(), runs.records, decisions, CommonPacks(root).day,
                                              set(runs.snapshot_ids()), NoMatchedShadowYet()),
         lambda: EntryDecisions(runs.runs(), runs.records, versions, RecordedOwnerOverride()), CommonPacks(root).day,
-        calendar.sessions, unit, lambda: min(logged) if logged else None, protocol.label,
+        calendar.sessions, unit, lambda: min(logged) if logged else None, protocol.label, against,
     )  # fmt: skip
 
 
@@ -101,5 +107,5 @@ def build_matched_board(cfg: dict, root: Path = ROOT) -> MatchedBoard:
 
     return matched_board_from(
         root, cfg, build_session_calendar(), build_versions(root), build_execution_snapshots(),
-        NseFinalSettlement(build_nse_fo_library()), protocol_status(root),
+        NseFinalSettlement(build_nse_fo_library()), protocol_status(root), do_nothing(cfg),
     )  # fmt: skip

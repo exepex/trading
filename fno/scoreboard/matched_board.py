@@ -11,10 +11,12 @@ from itertools import permutations
 from pathlib import Path
 
 from .book_trades import Sessions
+from .do_nothing import DoNothing
 from .entry_decisions import EntryDecisions
 from .matched import counts as section_counts
 from .matched import judged, pair_series, scored_days, series_of, value_takes
 from .matched_days import F7_NOT_BUILT, MISSES, NO_PACK, NO_SNAPSHOT, UNSCORED, BookDay, CommonSet, MatchedDays
+from .matched_measures import a_measures
 from .standard_unit import StandardUnit
 from .uncertainty import holm
 from .whole_system import canonical
@@ -31,9 +33,10 @@ class MatchedBoard:
     def __init__(self, books: Sequence[str], days: Callable[[EntryDecisions], MatchedDays],
                  decisions: Callable[[], EntryDecisions], packs: Callable[[date], CommonSet | None],
                  sessions: Sessions, unit: StandardUnit, first_day: Callable[[], date | None],
-                 protocol_label: str):  # fmt: skip
+                 protocol_label: str, against: DoNothing | None = None):  # fmt: skip
         self.books, self.days, self.decisions, self.packs = tuple(books), days, decisions, packs
         self.sessions, self.unit, self.first_day, self.protocol_label = sessions, unit, first_day, protocol_label
+        self.against = against
 
     def build(self, on: date) -> dict:
         decisions, first = self.decisions(), self.first_day()
@@ -66,10 +69,10 @@ class MatchedBoard:
             head["segments"] = {s: self._section([d for d in later if d.segment == s], results) for s in labels}
         return {"verdict": "", **_misses(days), "pilot": self._section(pilot, results), "head_to_head": head}
 
-    @staticmethod
-    def _section(days: list[BookDay], results) -> dict:
+    def _section(self, days: list[BookDay], results) -> dict:
         scores = scored_days(days, results)
-        return {**section_counts(days, results), "judged": judged(series_of(scores), sum(s.closed for s in scores))}
+        judged_by = judged(series_of(scores), sum(s.closed for s in scores))
+        return {**section_counts(days, results), "judged": judged_by, **a_measures(days, results, scores, self.against)}
 
     def _pairs(self, book_days: dict[str, list[BookDay]], results, start: date | None) -> dict:
         if start is None:

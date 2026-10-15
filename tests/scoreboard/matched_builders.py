@@ -86,13 +86,17 @@ def write_pack(root: Path, day: date, *opportunities: tuple[str, date]) -> str:
 
 
 def record(opportunity_id: str, outcome: str = Decision.CHOSEN, reason: str = "rank 1", legs=(CALL,),
-           failed: tuple[tuple[str, str], ...] = (), pack: str = "", action: str | None = None) -> dict:  # fmt: skip
+           failed: tuple[tuple[str, str], ...] = (), pack: str = "", action: str | None = None,
+           capital: float | None = None) -> dict:  # fmt: skip
     """A D3 opportunity record as `decision_record.py` writes it (only the fields scoreboard A reads, plus `served`)."""
     verdicts = [{"rule": rule, "ok": False, "reason": why, "numbers": {}} for rule, why in failed]
+    if capital is not None:  # C2's margin verdict: capital tied for the record's 2 lots
+        numbers = {"capital_rs": {f"t-{opportunity_id}": {"capital_tied": capital, "stress_reserve": 0.0}}}
+        verdicts.append({"rule": "margin_room", "ok": True, "reason": "room", "numbers": numbers})
     acted = action or ("trade" if outcome == Decision.CHOSEN else "no trade")
     return {"opportunity_id": opportunity_id, "common_pack_sha256": pack, "served": dict(SERVED),
             "structure": {"structure": "LC", "lots": 2, "legs": [dict(leg) for leg in legs]} if legs else None,
-            "risk": {"verdicts": verdicts} if verdicts else None,
+            "risk": {"trade_id": f"t-{opportunity_id}", "verdicts": verdicts} if verdicts else None,
             "decision": {"action": acted, "outcome": str(outcome), "reason": reason}}  # fmt: skip
 
 
@@ -117,9 +121,11 @@ def write_day(root: Path, day: date, runs: dict[str, str | None], snapshot: bool
         path.write_text(json.dumps(log))
 
 
-def board(root: Path, quotes: dict[date, list[ExecutionQuote]], settlements: Settlements | None = None, start=None):
+def board(root: Path, quotes: dict[date, list[ExecutionQuote]], settlements: Settlements | None = None, start=None,
+          against=None):  # fmt: skip
     """Scoreboard A over the fixture records; the books' versions are registered from `start`."""
     start = start or date(2026, 10, 1)
     registry = versions(*((book, f"{book}-v1", start) for book in BOOKS))
     return matched_board_from(root, {"charges": CHARGES, "lot_sizes": {"NIFTY": LOT}}, Calendar(), registry,
-                              Snapshots(quotes), settlements or Settlements(), ProtocolStatus(None, False))  # fmt: skip
+                              Snapshots(quotes), settlements or Settlements(), ProtocolStatus(None, False),
+                              against)  # fmt: skip

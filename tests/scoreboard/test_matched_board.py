@@ -4,6 +4,7 @@ pack and snapshot, not-observed days and opportunities, Book 3 before F7, the mi
 from datetime import date
 
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, Decision
+from fno.scoreboard.do_nothing import DoNothing, IndexDay, Terms
 from fno.scoreboard.matched_board import (
     CLAIM,
     NO_CLAIM,
@@ -190,3 +191,19 @@ def test_a_d6_unscored_day_is_counted_apart_outside_the_miss_cap(tmp_path):
     entry = board(tmp_path, QUOTES).build(D2)["books"][BOOK1_RULES]
     assert (entry["eligible_days"], entry["misses"]) == (1, 0)
     assert entry["head_to_head"]["not_observed"] == {UNSCORED: 1}
+
+
+def test_scoreboard_a_carries_s6s_measures_and_do_nothing_view_a_on_one_lot_capital(tmp_path):
+    pack = write_pack(tmp_path, D1, ("O1", EXIT))
+    skip = record("O1", Decision.NO_TRADE, "no", pack=pack)
+    runs_for(tmp_path, D1, [record("O1", pack=pack, capital=20000.0)], [skip], pack=pack)
+    for day in (D2, EXIT, ON):
+        runs_for(tmp_path, day, pack=write_pack(tmp_path, day))
+    flat = DoNothing(lambda day: IndexDay(20000.0, 0.0), Terms(account_rs=2_000_000.0))
+    head = board(tmp_path, QUOTES, against=flat).build(ON)["books"][BOOK1_RULES]["head_to_head"]
+    m = head["measures"]
+    assert (m["completed"], m["net_without_best_rs"], m["profit_factor"], m["max_drawdown_rs"]) == (1, 0.0, None, 0.0)
+    assert m["max_drawdown_share_of_brake"] is None  # rupees only on scoreboard A
+    view = head["do_nothing"]["view_a"]  # one lot = 20,000 / 2 lots, held from 2 Nov to its exit on 4 Nov: 2 sessions
+    assert view["capital_days_rs"] == 20000.0 and view["book_after_tax_rs"] == round(2210 * (1 - 0.312), 2)
+    assert "view_b" not in head["do_nothing"]
