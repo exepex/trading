@@ -107,5 +107,5 @@ code path posts to Slack.
    until a newer decision changes it; a recorded payment that differs is flagged (judge 104 addendum 1).
 3. "7 A": the measured basis for two months, then a fixed figure (`measured_basis_until`, `plan_minutes_per_month`).
 
-**Depends:** F8 (minimal), C1, A7 · **Size:** S · **Status:** built on `story/f8-bg1-budget`, revised after judge 104
-(response 104)
+**Depends:** F8 (minimal), C1, A7 · **Size:** S · **Status:** done: judge 104 addendum 3 PASS (4fcea00), merged
+757c20d (addendum 4)

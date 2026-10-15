@@ -64,3 +64,9 @@ def test_anything_but_the_code_map_is_refused(block):
 
 def test_no_block_approves_nothing():
     assert not BrokerApprovals.from_margins_block({}).any_by(DAY)
+
+
+def test_the_first_day_is_the_earliest_approval_and_none_without_any():
+    later = Approval("later", date(2026, 10, 20))
+    assert BrokerApprovals({"SF": later, "SC": Approval("check", date(2026, 10, 14))}).first_day() == date(2026, 10, 14)
+    assert BrokerApprovals({}).first_day() is None

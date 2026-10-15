@@ -25,8 +25,8 @@ from .drive_day import drive_run, fresh_container
 from .fakes import C4, Decisions, Rules
 from .test_daily_run import BOOKS, NORMAL, decided, run_day
 
-CLOSE_DAY = date(2026, 10, 16)
-MONDAY = date(2026, 10, 19)  # the session after 16 Oct  # t1's time exit is due from 16 Oct (27 Oct expiry)
+CLOSE_DAY = date(2026, 10, 16)  # t1's time exit is due from 16 Oct (27 Oct expiry)
+MONDAY = date(2026, 10, 19)  # the session after 16 Oct
 NUMBER = re.compile(r"(?<![\w.])-?\d+\.\d+(?![\w.])")  # decimals only: counts, strikes and times are integers
 
 

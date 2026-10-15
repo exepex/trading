@@ -146,5 +146,5 @@ records and their hashes (`git show HEAD:<path> | sha256sum`); edits a capture f
 card does not change; plants a `paper` row; runs `--post` with a fake or no token and no Drive and checks the printed
 failures and the delivery metadata; checks the delivery file for card text and secrets; checks no colour word appears.
 
-**Depends:** D3, E2, G3, G4 (M1 for weather later) · **Size:** M · **Status:** built on `story/t1-daily-card`; one live TEST
-post made 15 Oct (ts 1792025414.919329); awaiting the judge.
+**Depends:** D3, E2, G3, G4 (M1 for weather later) · **Size:** M · **Status:** done: judge 101 PASS (44fa45d,
+merged f0c47ae; follow-ups 9d5310b and a84f92d, merged 860030c, addendum 5).

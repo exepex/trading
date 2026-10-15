@@ -237,7 +237,7 @@ source and availability time; an item available after the cutoff is refused. A p
 **Judge verifies:** rebuilds one day's packs from committed inputs and compares hashes; greps the common pack for any
 book field.
 
-**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** built on branch `story/e2-market-pack`; awaiting judge (claims: `reviews/claude/response_74_e2-market-pack.md`)
+**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** done: judge 72 PASS (be9bc5e; delta b2749a6), merged b4f1e1b (claims: `reviews/claude/response_74_e2-market-pack.md`)
 
 ---
 
@@ -601,7 +601,7 @@ it records "no approved strategy" each day (that is a result, not an error).
 
 **Judge verifies:** replays three Book-1 records.
 
-**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** built on `story/e5-book1`, judge pending; not live (no routine; until C4 merges and writes `validity.c4`, no Book 1 order can fill) (claims: reviews/claude/response_85_e5-book1.md)
+**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** done: judge 84 PASS (e3e0346), merged 58f5781; not live (no routine yet) (claims: reviews/claude/response_85_e5-book1.md)
 
 ---
 
@@ -756,7 +756,7 @@ or retires (D1). Judge 67: a paper version whose live feature drifts drops out o
 
 **Judge verifies:** recomputes one scorecard number from the records.
 
-**Depends:** C1, D1, E4 · **Size:** M · **Status:** built; awaiting judge (branch `story/e6-scorecard`, claims
+**Depends:** C1, D1, E4 · **Size:** M · **Status:** done: judge 73 PASS (round 3 be69a08), merged 374ad67 (claims
 `reviews/claude/response_75_e6-scorecard.md`)
 
 ---
