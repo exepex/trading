@@ -9,8 +9,9 @@ cannot gain by missing hard days:
 - **Input failure:** a resolved, non-void day where neither forecast (the common pack failed); counted apart, never a
   miss, never eligible.
 - **Undecided, operations:** more than `MISS_CAP` of the baseline-observable days missed, or more than
-  `BIG_DAY_MISS_CAP` of the baseline-observable 2% days missed (with fewer than `BIG_DAY_ZERO_MISS_BELOW` such days,
-  any miss). Such a member is not judged at the look: never a claim and never futile, so it keeps Test A undecided.
+  `BIG_DAY_MISS_CAP` of the baseline-observable 2% days missed (so with fewer than 10 such days, any miss: one miss
+  is already more than 10%). Such a member is not judged at the look: never a claim and never futile, so it keeps
+  Test A undecided.
 """
 
 from __future__ import annotations
@@ -20,7 +21,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from .pairs import DatedForecasts
-from .terms import BIG_DAY_MISS_CAP, BIG_DAY_ZERO_MISS_BELOW, MISS_CAP
+from .terms import BIG_DAY_MISS_CAP, MISS_CAP
 
 
 @dataclass(frozen=True)
@@ -33,11 +34,7 @@ class MissReport:
 
     @property
     def operations_undecided(self) -> bool:
-        if self.missed > MISS_CAP * self.observable:
-            return True
-        if self.big_observable < BIG_DAY_ZERO_MISS_BELOW:
-            return self.big_missed > 0
-        return self.big_missed > BIG_DAY_MISS_CAP * self.big_observable
+        return self.missed > MISS_CAP * self.observable or self.big_missed > BIG_DAY_MISS_CAP * self.big_observable
 
     def line(self) -> str:
         share = f" ({100 * self.missed / self.observable:.1f}%)" if self.observable else ""

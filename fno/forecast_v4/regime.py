@@ -29,11 +29,16 @@ class WindowRegime:
         )
 
 
+def is_big_move(log_return: float) -> bool:
+    """A 2% day: the one definition the regime's count and the miss rule's 2% days share (revision 9)."""
+    return abs(log_return) >= BIG_MOVE
+
+
 def window_regime(vix_closes: Sequence[float], log_returns: Sequence[float]) -> WindowRegime:
     """One entry per scored outcome, both lists in the same order."""
     if not vix_closes or len(vix_closes) != len(log_returns):
         raise ValueError("a regime needs one VIX close and one log return per scored outcome")
-    big_days = sum(abs(r) >= BIG_MOVE for r in log_returns)
+    big_days = sum(is_big_move(r) for r in log_returns)
     return WindowRegime(sum(vix_closes) / len(vix_closes), big_days, event_band(big_days))
 
 

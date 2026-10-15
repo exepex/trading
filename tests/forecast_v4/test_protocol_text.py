@@ -32,9 +32,9 @@ def test_registered_numbers_match_the_code():
     assert "family-wise **0.02**" in TEXT and "at\n   **0.03**" in TEXT
     assert terms.FAMILY_SIZE == 15 and "The confirmatory family (15 members, fixed now)" in TEXT
     assert terms.POWER_REPORT_AT == 60 and terms.USEFUL_TIME_YEARS == 2 and terms.BIG_MOVE == 0.02
-    assert (terms.MISS_CAP, terms.BIG_DAY_MISS_CAP, terms.BIG_DAY_ZERO_MISS_BELOW) == (0.10, 0.10, 10)
+    assert (terms.MISS_CAP, terms.BIG_DAY_MISS_CAP) == (0.10, 0.10)
     assert "missed more than **10%**" in TEXT and "more than **10%** of the baseline-observable 2% days" in TEXT
-    assert "**fewer than 10** such days" in TEXT
+    assert "with **fewer than 10**" in TEXT
 
 
 def test_block_lengths_in_the_table_match_the_code():

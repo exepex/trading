@@ -70,8 +70,7 @@ LOOK_NUMBER = {LOOK_STOP_REVIEW: 1, LOOK_SETTLE_DATE: 2}  # the futility bound's
 # Revision 9 (owner, 15 Oct 2026; responses 144-147, judge 138-139, ChatGPT review 112): misses are never imputed,
 # but a member that misses too many baseline days, or too many of its 2% days, is "undecided, operations" at a look.
 MISS_CAP = 0.10  # share of baseline-observable days the forecaster may miss
-BIG_DAY_MISS_CAP = 0.10  # share of baseline-observable 2% days it may miss
-BIG_DAY_ZERO_MISS_BELOW = 10  # with fewer such 2% days, not one may be missed
+BIG_DAY_MISS_CAP = 0.10  # share of baseline-observable 2% days it may miss (below 10 such days: none)
 
 POWER_REPORT_AT = 60  # scored outcomes of a question before its noise ratio r is measured
 POWER = 0.80

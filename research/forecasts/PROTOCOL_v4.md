@@ -182,8 +182,8 @@ missing; daily HAR never stands in again.
   - an **input failure** is a resolved, non-void day where neither forecast (the common pack failed); it is counted
     apart and is never a miss;
   - a member is **"undecided, operations"** at a look when it missed more than **10%** of its baseline-observable days,
-    or more than **10%** of the baseline-observable 2% days (the regime's 2% days, section 5), or **any** of them when
-    there are **fewer than 10** such days. Such a member is not judged at that look: never a claim, never futile.
+    or more than **10%** of the baseline-observable 2% days (the regime's 2% days, section 5); so with **fewer than 10**
+    such days, missing **any** of them is already more than 10%. Such a member is not judged at that look: never a claim, never futile.
   - Every comparison and every look prints each member's misses, 2% days missed and input failures.
 - Both sets are fixed by these rules before any score. Revision 2's floor (1% of the trailing 250-session median) is
   dropped; it is reported only as a sensitivity (it would have changed 133 of 2,159 close-proxy one-day outcomes).

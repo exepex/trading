@@ -16,9 +16,8 @@ from ...forecast_v4.confirmatory import batch_means_p, studentized_bootstrap_p
 from ...forecast_v4.misses import MissReport, miss_report
 from ...forecast_v4.pairs import DatedForecasts, Pairing, pair_point, pair_probability
 from ...forecast_v4.power import PowerReport, power_report
-from ...forecast_v4.regime import WindowRegime, window_regime
+from ...forecast_v4.regime import WindowRegime, is_big_move, window_regime
 from ...forecast_v4.terms import (
-    BIG_MOVE,
     BLOCK_LENGTH,
     BRIER_MIN_EFFECT,
     FAMILY,
@@ -84,7 +83,8 @@ def compare(question: str, forecaster: str, baseline: str, rows: list[DatedForec
         relative_improvement(gate) if gate.differences and math.fsum(gate.baseline_losses) > 0 else None,
         batch_means_p(d, block), studentized_bootstrap_p(d, block, k), one_sided_test(d, block, k).p_value,
         hac_one_sided_p(d, block), _half_signs(d), scored_regime(scored.days, outcomes),
-        _power(question, gate.differences, gate.baseline_losses), miss_report(rows, _big_day(outcomes)),
+        _power(question, gate.differences, gate.baseline_losses),
+        miss_report(_with_empty_days(rows, outcomes), _big_day(outcomes)),
     )  # fmt: skip
 
 
@@ -94,10 +94,17 @@ def scored_regime(days, outcomes: Mapping[date, Outcome]) -> WindowRegime | None
     return window_regime([outcomes[d].vix for d in days], [outcomes[d].log_return for d in days])
 
 
+def _with_empty_days(rows: list[DatedForecasts], outcomes: Mapping[date, Outcome]) -> list[DatedForecasts]:
+    """The rows plus an empty row for each outcome day neither file holds: a day the 3 pm capture never ran is an
+    input failure, not invisible (judge 149 S1). Pairing never sees these rows."""
+    held = {r.day for r in rows}
+    return rows + [DatedForecasts(d, None, None, o.value, o.void) for d, o in outcomes.items() if d not in held]
+
+
 def _big_day(outcomes: Mapping[date, Outcome]):
     def big(day: date) -> bool:
         outcome = outcomes.get(day)
-        return outcome is not None and outcome.log_return is not None and abs(outcome.log_return) >= BIG_MOVE
+        return outcome is not None and outcome.log_return is not None and is_big_move(outcome.log_return)
 
     return big
 

@@ -487,9 +487,10 @@ keeps undecided), from responses 144-147, judge 138-139 and ChatGPT review 112. 
 only; it had no miss cap and no miss report. It must land before the v4 freeze.
 
 **Scope.** In: the miss definition, the two caps, the miss report on every comparison and look, Test A, the protocol
-text. Out: scoreboard A and B misses of desk decisions (S2/S3), EQ2's release time.
+text. Out: scoreboard A and B misses of desk decisions (S2/S3), EQ2's release time, and stopping or fixing a
+failing book (BG1's operational and budget stop).
 
-**Expected design:** `fno/forecast_v4/misses.py` (pure: `MissReport`, `miss_report`), three registered constants in
+**Expected design:** `fno/forecast_v4/misses.py` (pure: `MissReport`, `miss_report`), two registered constants in
 `terms.py`, a `misses` field on G8's `Comparison`, `look.member_result` returning "not judged" for an operations-
 undecided member, and the miss line in `look.py`, `render.py` and the recorded look JSON.
 
