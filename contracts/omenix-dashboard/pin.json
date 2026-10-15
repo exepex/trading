@@ -1,12 +1,12 @@
 {
  "repository": "exepex/omenix-dashboard",
- "commit": "1b40e38b1ce5d2c0e16a2f7c4feefcecee3227d8",
+ "commit": "fd31b03564162268c84a989d7e870a9798d4076e",
  "contract_version": "2.7.0",
  "files": {
   "api/examples/blocks-32.json": "17c455b146ee2ae778468ab779ec17d1aed08575eb04349841a780882a047498",
   "api/examples/blocks-33-34.json": "ffedfc672817794ac7188b1e1d803b0ef8e7618395c92e1f4eff8bf192c10550",
   "api/examples/blocks.json": "b80a42e4ed0e3d6740292d88a70723e3aa9d6ff8705f5a21da54caedcf3af523",
-  "api/examples/fno-screens.json": "8fdc9609d51c901b9e0eccb532f0ff562f2731f63065a1626088fe5ca8856f58",
+  "api/examples/fno-screens.json": "c1f9523244216140adfde5831eb8fc3107b104ead6e816b939ac633372f44b9b",
   "api/openapi.yaml": "8ded1dd4b292c66e8a1ec0eee8ab1cd5071044bd4f3287ab0652e92a62f6f295",
   "api/schemas/blocks-chain-history.yaml": "3f381293c4a0e050be7366dd0c35a3cc5d643c379a8a0692af7f46c669d0cf6c",
   "api/schemas/blocks-chain.yaml": "4fb4d1897a50c5aa5d94a1988fe02a85800cde00838e0cd6f02c18bf6d873de4",
@@ -23,7 +23,7 @@
   "api/schemas/brief.yaml": "ce27dfd055f0b69936e0b3b120c7e77509585eddb4eed377b5ef0d1977cbdf1d",
   "api/schemas/companies.yaml": "498e380ad032c5522a202b99bdbe71c0a8d7691d9ee336856f99797e35877411",
   "api/schemas/company.yaml": "f2e8085bc98753a8276f747f2c48e8366414cc2fd715ed29cdc01d19b3886a22",
-  "api/schemas/fno-card.yaml": "3371b79d53ed67da814b2f13ad9aed21b7ad48ea96c595b03c77bc76a07f51d8",
+  "api/schemas/fno-card.yaml": "36b2d33d31abe1fc5def9e49ccc225e42038ce2401b552fa5d1dab4ec6972866",
   "api/schemas/fno-forecast-lab.yaml": "6d653884fbfb708e796d7a60662ce0051b3336ad27cfb501adffd474a5647339",
   "api/schemas/fno-paper-trades.yaml": "464cab679017f27499625b6ca7b0da166d70674bb8bbecca4f88e26332f386c9",
   "api/schemas/fno-screens-common.yaml": "3e8ae0211577d78c12615dc24d397c2fa8d3c5526aa163256716de22de895473",

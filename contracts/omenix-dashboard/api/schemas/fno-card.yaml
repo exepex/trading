@@ -52,16 +52,14 @@ FnoCard:
         max_loss_sum: {type: number, minimum: 0, x-unit: INR (Paper), description: 'The ceiling: the sum of their maximum losses'}
         scenarios:
           type: array
-          minItems: 1
-          description: One line per fixed scenario
-          items:
-            type: object
-            additionalProperties: false
-            required: [nifty_move_pct, vix_move_pct, loss]
-            properties:
-              nifty_move_pct: {type: number, x-unit: percent points, description: 'The overnight NIFTY move, e.g. -5 or -10, or +5'}
-              vix_move_pct: {type: ['number', 'null'], x-unit: percent points, description: 'The India VIX move with it, e.g. +50 or +100; null when the scenario names none'}
-              loss: {type: number, minimum: 0, x-unit: INR (Paper), description: 'The loss of all open positions together in that scenario (0 with none open); never above max_loss_sum'}
+          description: 'Exactly three paired overnight scenarios, in this order (design 6.2 as the owner accepted it, "4 A"; orchestrator, 15 Oct 2026, response 113 #4): NIFTY -5% with India VIX +50%, NIFTY -10% with VIX +100%, NIFTY +5% with volatility unchanged'
+          minItems: 3
+          maxItems: 3
+          prefixItems:
+            - {$ref: '#/components/schemas/FnoStressLine', properties: {nifty_move_pct: {const: -5}, vix_move_pct: {const: 50}}}
+            - {$ref: '#/components/schemas/FnoStressLine', properties: {nifty_move_pct: {const: -10}, vix_move_pct: {const: 100}}}
+            - {$ref: '#/components/schemas/FnoStressLine', properties: {nifty_move_pct: {const: 5}, vix_move_pct: {const: 0}}}
+          items: false
     paper_trades_so_far:
       type: object
       description: How many paper trades each book has made so far (a book that cannot be read is named in missing)
@@ -289,3 +287,12 @@ FnoTrackRecord:
     - if: {properties: {status: {const: scored}}}
       then: {properties: {said_from: {type: number}, said_to: {type: number}, days: {type: integer}, scored: {minimum: 1}}}
       else: {properties: {said_from: {type: 'null'}, said_to: {type: 'null'}, days: {type: 'null'}, happened_share: {type: 'null'}}}
+FnoStressLine:
+  type: object
+  description: One stress scenario's line
+  additionalProperties: false
+  required: [nifty_move_pct, vix_move_pct, loss]
+  properties:
+    nifty_move_pct: {type: number, x-unit: percent points, description: 'The overnight NIFTY move: -5, -10 or +5'}
+    vix_move_pct: {type: number, x-unit: percent points, description: 'The India VIX move with it: +50, +100, or 0 (unchanged)'}
+    loss: {type: number, minimum: 0, x-unit: INR (Paper), description: 'The loss of all open positions together in that scenario (0 with none open); never above max_loss_sum'}

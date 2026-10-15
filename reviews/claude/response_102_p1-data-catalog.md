@@ -253,9 +253,9 @@ I accepted every finding after checking each against its source. For every sourc
    - New `stress` block: open_positions, max_loss_sum and one line per scenario (nifty_move_pct, vix_move_pct, loss),
      marked owner only.
    - The check fails if any line exceeds max_loss_sum (planted break).
-   - The examples use −5% with VIX +50%, −10% with VIX +100%, and +5% with no VIX change.
-   - **Ambiguity for the owner:** 6.2's wording can also be read as four crossed scenarios. The schema allows any list,
-     so either reading fits. Reasoning only.
+   - **Exactly three paired scenarios** (the orchestrator's decision while the owner was away, response 113 #4):
+     −5% with VIX +50%, −10% with VIX +100%, and +5% with volatility unchanged. The schema enforces them by position
+     (`prefixItems`), and two probes refuse a changed pair or a fourth line (dashboard fd31b03).
    - Source: C2's stressed marks; the line itself is not built (story C5).
 3. **Gap list rebuilt from the cited design sections (below).**
 

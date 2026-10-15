@@ -11,7 +11,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "e78e8542504a1f8cf6c0ca408c39957f4041adfa778c8416316c5e7ce7ba0ba8",
+   "payload_sha256": "b621152103ec964562582345cef2848c2c0c9419ee63297f5e67a44ca5f8c50d",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -211,7 +211,7 @@
       },
       {
        "nifty_move_pct": 5,
-       "vix_move_pct": null,
+       "vix_move_pct": 0,
        "loss": 0
       }
      ]
@@ -286,7 +286,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "c5bd2c4c632d0050f21e4a8108588fe37ab668263a1a214f0c2ccb399e4a7c88",
+   "payload_sha256": "5e8ea05b306eba9a41ec5fb4e902f93f848f3918b610266685ddf4b31d9a34f8",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -483,7 +483,7 @@
       },
       {
        "nifty_move_pct": 5,
-       "vix_move_pct": null,
+       "vix_move_pct": 0,
        "loss": 0
       }
      ]
@@ -546,7 +546,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "75972bc1bad1d8e86b30f01615d8f41f3cf5dae3596f7dd53a9b2b753d298069",
+   "payload_sha256": "0be6d2177dadb1beb1cf4c22455fdcddd4ad91c573f796f0041e7b5e81d4207c",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -688,7 +688,7 @@
       },
       {
        "nifty_move_pct": 5,
-       "vix_move_pct": null,
+       "vix_move_pct": 0,
        "loss": 640
       }
      ]
@@ -750,7 +750,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "7f6f90804cdcf891a16325f330494051df0fd4e6f5a460cff14d78abb3b51051",
+   "payload_sha256": "d220a3f44e4ccd2f9a5baeb71c0470107005a6234ea53e579a64b0ddb04401f5",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -851,7 +851,7 @@
       },
       {
        "nifty_move_pct": 5,
-       "vix_move_pct": null,
+       "vix_move_pct": 0,
        "loss": 0
       }
      ]
@@ -920,7 +920,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "6ac6b9533a43e274b25fa54ad5d4af5ed62cec4b3e9580b7fa90049ea9936a45",
+   "payload_sha256": "d7e0361c3e3cbd2800fd0f3b258c1d0b7f1de15138175fbb400a0617e799df4e",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1064,7 +1064,7 @@
       },
       {
        "nifty_move_pct": 5,
-       "vix_move_pct": null,
+       "vix_move_pct": 0,
        "loss": 0
       }
      ]
