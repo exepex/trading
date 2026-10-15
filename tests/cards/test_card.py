@@ -188,7 +188,9 @@ def test_an_empty_capture_keeps_its_own_date(tmp_path):
 
 
 def test_a_muhurat_session_gets_no_card_and_is_skipped_as_the_previous_session(tmp_path):
-    assert card_of(planted(), tmp_path, day=date(2026, 11, 8)) is None  # Diwali muhurat, a Sunday evening hour
+    assert (
+        card_of(planted(), tmp_path, day=date(2026, 11, 8)) is None
+    )  # Diwali muhurat: the one-hour session, no 15:00 market
     card, text = card_of(planted(), tmp_path, day=date(2026, 11, 9))
     assert "Previous card: no card on record for 2026-11-06" in text
 

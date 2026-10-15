@@ -123,7 +123,8 @@ commit with `--no-verify`.
   `fno/global_cues/wiring.py` (the global cues: US closes, US 10-year, Brent and USD/INR, their tables, story A17),
   `fno/desk/daily_wiring.py` (the paper desk's daily timetable run, story E3), `fno/books/book1_wiring.py` (Book 1,
   pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
-  freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2) and
+  freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),
+  `fno/budget/wiring.py` (AI usage, the budget meter and the stop-rule tracker, stories F8 and BG1) and
   `fno/cards/wiring.py` (the daily trade card, story T1).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
