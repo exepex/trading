@@ -181,7 +181,8 @@ Terms used below:
 - **Reason:** 8.4 (owner decision 8 amended) asks for a paired test and a prediction interval, never the narrower
   interval of paper's mean; ChatGPT review 118 showed the paired comparison must bind, not only be reported. The
   margin (Q11), the one-sided side (Q5) and the discipline share (Q8) are the owner's answers of 15 Oct 2026. Only underperformance fails, so bounds are one-sided.
-  Fact: with n = m = 20 and SD Rs 5,000 the prediction floor sits about Rs 2,734 below paper's mean (1.7291 × 5,000 × √0.1), a weak filter.
+  Fact: with SD Rs 5,000 and m = 20 paper positions, the prediction floor sits about Rs 2,496 below paper's mean at
+  the owner's n = 30 real trades (1.7291 × 5,000 × √(1/30 + 1/20)), and Rs 2,734 at n = 20: a weak filter.
 - **Evidence:** some evidence
 
 ### `real_test_stops` When the test stops early
