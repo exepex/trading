@@ -9,7 +9,7 @@ import requests
 import yaml
 
 from fno.ai.coverage import coverage
-from fno.ai.receipts import GitHubActivityReceipts, ReceiptUnknown
+from fno.ai.receipts import GitHubActivityReceipts, ReceiptAccessDenied, ReceiptUnknown
 from fno.constants import BOOK2_HYBRID, BOOK3_AI
 from tests.ai.fakes import ROOT
 from tests.ai.test_fire_and_collect import Desk
@@ -33,6 +33,11 @@ class History:
 
     def is_ancestor(self, older, newer):
         return older in self.order and newer in self.order and self.order.index(older) <= self.order.index(newer)
+
+
+NUMERIC_NEXT = (
+    "https://api.github.com/repositories/1414773933/activity?ref=refs%2Fheads%2Fmain&per_page=100&after=Y3Vyc29y"
+)
 
 
 def receipts(pages):
@@ -59,16 +64,23 @@ def test_the_receipt_is_the_push_that_first_brought_the_commit_to_main():
 
 def test_the_activity_log_is_read_across_pages():
     found, calls = receipts([
-        Response([{"before": "c2", "after": "c3", "timestamp": "2026-10-13T09:46:00Z"}], next_url="https://next"),
+        Response([{"before": "c2", "after": "c3", "timestamp": "2026-10-13T09:46:00Z"}], next_url=NUMERIC_NEXT),
         Response([{"before": "c1", "after": "c2", "timestamp": "2026-10-13T09:43:00Z"}]),
     ])  # fmt: skip
-    assert found.received_at("c2").minute == 43 and calls[1][0] == "https://next"
+    assert found.received_at("c2").minute == 43
+    # page 2 is asked by owner/name with GitHub's cursor: the cloud proxy refuses numeric-ID paths (T1, 15 Oct)
+    assert calls[1][0] == "https://api.github.com/repos/exepex/trading/activity"
+    assert calls[1][1]["after"] == "Y3Vyc29y" and calls[1][1]["ref"] == "refs/heads/main"
 
 
 def test_an_unreadable_log_or_an_unknown_commit_fails_closed():
     refused, _ = receipts([Response([], status=403)])
-    with pytest.raises(ReceiptUnknown, match="HTTP 403"):
+    with pytest.raises(ReceiptAccessDenied, match="access refused: HTTP 403"):  # an access problem, named apart
         refused.received_at("c2")
+    failed, _ = receipts([Response([], status=500)])
+    with pytest.raises(ReceiptUnknown, match="HTTP 500") as raised:
+        failed.received_at("c2")
+    assert not isinstance(raised.value, ReceiptAccessDenied)
     empty, _ = receipts([Response([])])
     with pytest.raises(ReceiptUnknown, match="no push"):
         empty.received_at("c2")
