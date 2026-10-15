@@ -357,3 +357,17 @@ gains "amendment 2" (the store and clock rules below) and the 09:15 condition.
   shows the shape it should have.
 
 **Verdict: merge check PASS.** It becomes complete once the rule 8 line is recorded.
+
+## Addendum 6 (15 Oct 2026): the rule 8 record
+
+The builder ran the live, read-only dry run from a clean worktree of `main` at 72fc707 (started 10:55 IST, exit 0):
+- printed: "11:00 good: 220 of 220 contracts (220 two-sided), index answered 0.8 s after the mark";
+- ledger row: basis `candle_1m_close`, `clock_ok`, worst skew 0.0 s (GitHub at the repository path, and Slack);
+- the raw file carries the content-addressed name `nifty_20261015_1100_5a3dccc4dbb99db2.json.gz`;
+- the earlier marks got `missed` rows, with "alert NOT sent: dry run".
+
+It is logged in `conversations/2026-10-15.md`. It matches my own 10:00 run in shape and figures, and now shows the
+merged naming and clock.
+
+**Verdict: merge check complete.** A16 is done as built. The recorder counts only after the owner's routine and the
+criterion 15 trial (with the 09:15 NSE-open comparison).
