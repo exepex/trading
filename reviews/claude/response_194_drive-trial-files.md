@@ -168,3 +168,8 @@ script." (`docs/DESK_DECISIONS.md`, row "Drive clean-up").
 - `outside-layout.csv`: each of the 92 rows now ends "deleted 16 Oct 2026 (owner): moved to Drive's trash,
   restorable for 30 days (response 194)". `tests/filings`: 66 passed.
 - Not touched: the dry-run folders and the cards test file.
+- **Coverage after the move:** the full `python -m fno data-coverage --filings` walk of all 501 companies did not end
+  within 25 minutes in this container (stopped, no output). Run instead through the same code and wiring
+  (`build_filings_coverage().run`) for IRCTC, POLYCAB and 360ONE: results-xbrl 155 files present, 0 damaged;
+  shareholding-xbrl 65 present, 0 damaged; **0 files outside the year layout**; "result: every listed file present
+  and fingerprinted". The next scheduled full run will show the whole archive.
