@@ -80,3 +80,21 @@
   the broker's.
 - **Scope:** no order path and no change to k's value, which belongs to A14c (judge 173). The change is a small,
   proportionate story, with no new class and no new pattern (row 156).
+
+## Addendum 1: re-judge at `8a9a23e945c417cda528e3c4ca7388a77f3da66e` (judge G)
+
+**Verdict: PASS (text).** The should-fix and all three minors are accepted, each checked against the data. The fix
+reached me from the builder. I re-judged it as part of the judge and builder loop and report the verdict to the
+orchestrator.
+
+| # | Fix | Re-judge |
+|---|---|---|
+| 1 (should fix) | The intro and criterion 2 now give exact `k × initial` only for uncapped SF and SC, "not below" for BF, and "between initial and `k × initial`" for CCS and PCS, with 52,260.42 as the known answer | **Accepted.** I recomputed with lot 65 (`config.yaml` `lot_sizes: NIFTY: 65`). CCS 300: cap 8,193.25, 52,260.42 against 56,503.72. CCS 100: 45,788.37 / 47,119.24. PCS 300: 54,044.67 / 59,090.88. PCS 100: 46,394.17 / 47,997.65. All four lie between `initial()` and `k × initial()`. The builder's numbers are exact |
+| minor 4 | CCS 300 (capped) added to the table and to criterion 1 | **Accepted.** Broker and stressed today are both 38,968.08, because the cap keeps the broker's span: 20,736.30 − 11,306.75 + 29,538.53. At entry after C2c: 20,736.30 + 1.45 × 29,538.53 = 63,567.17. Both checked |
+| minor 2 | New criterion 6: the claims list every changed pinned figure with its recomputation | **Accepted** |
+| minor 3 | The `capital.py` text change is named in scope | **Accepted** |
+
+- CDS and PDS (debit, cap 0) equal `k × initial()`, so they also meet criterion 2's debit clause.
+- The branch head `67a254e2` adds only `reviews/claude/response_163` and its README row (`git diff 8a9a23e9 67a254e2
+  --stat`). The story text is unchanged.
+- Next, under quality rule 9: ChatGPT's review before code.
