@@ -118,3 +118,17 @@
   carry the `shadow-` prefix.
 - Isolation rested on that prefix alone. R3's explicit `mode: shadow` check makes it hold by rule.
 - Criterion 9 and test 4 are unchanged and still right.
+
+## Addendum 2: text `d10f2e91` after ChatGPT review 129 (judge G)
+
+**PASS (text).** `git diff 5605b224 d10f2e91` changes only R3's text, plus review 129 and response 208. The changes:
+
+- B0 is labelled `measurement` on every output that shows it (E6, the tracker, the post-mortem), and it is excluded
+  from G6 promotion and from every candidate count.
+- E6's B0 alert has review 129's wording, and a second loss escalates as a possible simulator defect.
+- Criterion 8 is extended to match.
+- The latent-leak correction is written into the context.
+- My misquote note is fixed: "Judge 208 asked who stops it: the owner, on E6's alert".
+
+All of this is consistent with `transitions.py` (retiring is owner-only) and `pauses.py` (research is alerted, never
+paused).
