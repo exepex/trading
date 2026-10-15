@@ -4,7 +4,7 @@ when any of the four figures is missing (owner "4 A": it blocks new trades like 
 
 from __future__ import annotations
 
-from ..constants import (
+from .constants import (
     WEATHER_AMBER_FLOORS,
     WEATHER_AMBER_MULTIPLE,
     WEATHER_RED_FLOORS,

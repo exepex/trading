@@ -115,3 +115,44 @@ by side):
 BR1a changes no code, so it neither causes nor fixes these. Main's CI is red: reported to the orchestrator.
 
 **A re-check needs only:** study 3's sign rule (SF1), the rate and look order (SF2), and study 1's fallback list (SF3).
+
+## Addendum 1: revision at bdb3b36f: PASS
+
+The orchestrator sent it, and the builder also sent it directly. The delta 8d6b5c3f..bdb3b36f is docs only
+(`BR-breadth.md`, response 177's "Judge 186" section), and the branch has no change under `fno/` or `tests/` against
+main.
+
+- **SF1: MET.** False claim is "computed for each sign separately (d as it is, and −d)". For each sign, overall and in
+  the worst year, it is at most 0.025 at each look and 0.045 at either. A rate is selected only when every limit holds
+  for both signs.
+- **SF2: MET.** There is one loop over (0.02, 0.015, 0.01, 0.005), in order:
+  1. compute the look counts by `sizing.py`'s formula at that rate: one-sided, z at 1 − rate/3, 80% power, the worst
+     year's SD and lag-1 with the AR(1) inflation, δ = 0.02 × the primary's mean Brier from study 1, look 2 rounded up
+     and look 1 half of it;
+  2. run study 3 at those looks;
+  3. take the first rate passing for both signs, or else postpone.
+
+  Futility then lowers only its own threshold at the selected looks, or is dropped, and never moves the rate or the
+  looks. The `looks` item and study 2 point to the loop, so nothing is left to choose. Criterion 7 records every
+  candidate rate tried, and its fixture test (a rate failing only for −d is not selected) pins the order.
+- **SF3: MET.** Below 97% agreement, the primary (study 1), the regime gate and its worst year (study 2), and study
+  3's null series and worst year all use 2024-2025.
+- **Notes: applied.**
+  - The seed is 20261016, and the judge re-runs with another seed (within 2 SE).
+  - The futility shift is in Brier units, added to every day of d.
+  - Known limits says BR1 freezes only after BR1b-BR1e exist.
+
+**Gates on the trial merge with origin/main ef5bd5f1 (tree 4771c0f, clean auto-merge):**
+- pytest: 6124 passed, with 0 failed (main's earlier 3 failures are fixed on main);
+- `ruff check`: clean;
+- `ruff format --check`: 1127 files formatted;
+- `check_imports`: clean.
+
+**Notes (one line each, no fix asked):**
+- δ is written two ways: "the primary's mean Brier from study 1" for the looks, and "on that path's series" for the
+  futility shift. They differ only slightly, since the path is a resample of the same series. Name one in the build.
+- "False futility … for each sign": a shift of +δ on −d is a true improvement of −d's member. Say so in the build, so
+  the two signs are mirror images.
+
+**Verdict: PASS.** ChatGPT's review follows (rule 9). Code and studies start on the orchestrator's go. The freezer
+change lands after RM1 (judge 190 PASS).

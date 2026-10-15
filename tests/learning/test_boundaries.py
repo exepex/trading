@@ -1,12 +1,10 @@
 """LR1's boundaries: it never reaches a decision, never scores a second way, reads the AI's files in one place, and
 runs on the owner's Saturday schedule with G4's Monday post retired."""
 
-import ast
-from pathlib import Path
-
 import yaml
 
 from fno.config import ROOT
+from tests.import_graph import full_imports
 
 PACKAGES = ("fno/learning", "fno/advocate")
 NEVER = ("fno.desk", "fno.books", "fno.risk", "fno.checks")  # nothing here can decide a trade
@@ -16,29 +14,17 @@ NO_SECOND_SCORING = ("fno.forecast_scoring.scores", "fno.forecast_scoring.scorin
 AI_FILES = ("_prose.md", "_objections.md")
 
 
-def _imports(path: Path) -> set[str]:
-    package = ".".join(path.relative_to(ROOT).with_suffix("").parts[:-1])
-    found = set()
-    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-        if isinstance(node, ast.Import):
-            found |= {a.name for a in node.names}
-        elif isinstance(node, ast.ImportFrom):
-            base = package.rsplit(".", node.level - 1)[0] if node.level else ""
-            found.add(".".join(p for p in (base, node.module or "") if p))
-    return found
-
-
 def _files():
     return [p for folder in PACKAGES for p in (ROOT / folder).glob("*.py")]
 
 
 def test_nothing_imports_the_desk_books_risk_or_checks():
-    bad = [(p.name, m) for p in _files() for m in _imports(p) if m.startswith(NEVER)]
+    bad = [(p.name, m) for p in _files() for m in full_imports(p) if m.startswith(NEVER)]
     assert bad == []
 
 
 def test_no_score_is_computed_a_second_way():
-    bad = [(p.name, m) for p in _files() for m in _imports(p) if m in NO_SECOND_SCORING]
+    bad = [(p.name, m) for p in _files() for m in full_imports(p) if m in NO_SECOND_SCORING]
     assert bad == []
 
 

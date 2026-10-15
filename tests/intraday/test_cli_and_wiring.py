@@ -2,7 +2,6 @@
 and the composition root."""
 
 from argparse import Namespace
-from pathlib import Path
 
 import pytest
 
@@ -106,9 +105,9 @@ def test_rv_refusals_exit_1(tmp_path, monkeypatch, capsys):
     assert "rv refused: 2026-10-20 is not a recorded session" in capsys.readouterr().out
 
 
-def test_the_nse_listing_used_for_expiries_is_read_only(monkeypatch):
+def test_the_nse_listing_used_for_expiries_is_read_only(tmp_path, monkeypatch):
     monkeypatch.setattr(wiring, "GrowwProvider", lambda cfg: FakeGrowwProvider())
-    source = wiring.build_intraday_recorder({}, Path("/tmp/a16-dry")).source
+    source = wiring.build_intraday_recorder({}, tmp_path / "dry").source
     plan = source.plan
     assert isinstance(source.client, ReadOnlyGroww) and source.lot_size == 75
     assert plan.fallback.library.archive is None and plan.monthlies.history is plan.fallback

@@ -6,9 +6,9 @@ from dataclasses import replace
 
 import pytest
 
-from fno.constants import WeatherColour
 from fno.forecast_v4_rules.baselines import MISSING, NOT_ELIGIBLE, OK
 from fno.forecast_v4_rules.series import Outcome
+from fno.weather.constants import WeatherColour
 from fno.weather.v0_live import ColourBaseRate
 from fno.weather.vix_scaled import VixScaledWeather, daily_scale
 

@@ -4,7 +4,7 @@ C2 and C4; exactly k x what C2 counts for SF and SC, never below it for BF, betw
 never below the broker's unstressed figure for any code."""
 
 import csv
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -15,6 +15,7 @@ from fno.risk.inputs import TradeTerms
 from fno.risk.margin_age import DaysOld
 from fno.risk.margins import MarginTable, MultiplierMargin
 from fno.risk.settings import StressedMarginSettings
+from tests.stress_factor_files import factor_file
 
 REAL_ROWS = Path(__file__).parent / "fixtures" / "margins_2026-10-14.csv"
 REAL = list(csv.DictReader(REAL_ROWS.open(encoding="utf-8")))
@@ -23,13 +24,13 @@ KEYS = [(r["structure"], float(r["width"])) for r in REAL]
 
 
 def c2(factor: float) -> MultiplierMargin:
-    settings = StressedMarginSettings("multiplier", factor, "owner", DAY, 30, None)
+    settings = StressedMarginSettings("multiplier", factor_file(factor, DAY - timedelta(days=1)), 30, None)
     return MultiplierMargin(MarginTable(REAL_ROWS, DaysOld(7), LOT), settings)
 
 
 def c4(code: str, width: float, factor: float) -> float:
-    return stressed_per_lot(REAL, (code, width, 1), DAY, MarginSettings(REAL_ROWS, 7, None, "multiplier", factor,
-                                                                        "owner", DAY, 30), LOT)  # fmt: skip
+    settings = MarginSettings(REAL_ROWS, 7, None, "multiplier", factor_file(factor, DAY - timedelta(days=1)), 30)
+    return stressed_per_lot(REAL, (code, width, 1), DAY, settings, LOT)
 
 
 def initial(code: str, width: float) -> float:
