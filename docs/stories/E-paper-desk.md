@@ -573,6 +573,196 @@ next valid quotes. Every fill row: book, decision ID, snapshot ID and hash, leg,
 
 ---
 
+## E4c. Refuse an entry whose protection cannot be traded both ways at the entry snapshot
+
+**Repository:** trading · **Lane:** 1 (fills and entries). **Quality rule 9 applies:** after the judge's PASS and
+before the merge, ChatGPT reviews it as a second reviewer for money; its points are checked with evidence, and any
+change made because of that review returns to the judge before the merge (`docs/JUDGE.md`).
+
+**Description:** As the risk manager, I want the desk to refuse, before any leg fills, an entry whose protective
+(bought) leg could be bought but not sold back at the same execution snapshot, so that the paper account never pays
+the spread twice for a protection it cannot hold, and the public record never shows both sides of that contract.
+
+**Context and why:** Orchestrator's decision 30 (`reviews/claude/response_113_autonomous-decisions.md`), from E2b's
+builder review (finding R2-1). E2b names it exception 3: "protection unverified at the opening snapshot".
+
+At the execution snapshot the daily run fills entries first and then reviews exits at the same snapshot
+(`fno/desk/daily_run.py`, steps `fills` then `exits`). The exit review marks a position `protection_unverified` when a
+protective leg's sell-back does not fill there (`fno/desk/exits.py`, `price_leg(..., leg.side(opening=False), ...)`).
+It then orders the exit at once:
+- short legs are bought back at the ask;
+- other protective legs are sold at the bid;
+- the unsellable protection stays a pending exit.
+
+The result is a certain loss of the spread with no purpose. The fill rows publish both sides of each leg closed there,
+and C5 (on its branch, `story/c5-risk-buckets`) counts the trade's full maximum loss against the day's Rs 50,000
+new-risk cap ("3 A": a trade opened and closed in the same session counts).
+
+**What already refuses, and what does not (strong evidence: code read, existing tests):** A4's validity rule
+(`fno/desk/snapshot.py`, `ExecutionQuote.a4_problem`) makes a quote unusable on **both** sides when:
+- there is no bid;
+- the bid is 0;
+- either size is 0 or missing;
+- the book is crossed;
+- or the contract had no trade today.
+
+So for a protective leg with **no bid, a bid of 0 or no bid size**, the buy side fails too and E4 already opens nothing
+(`tests/desk/test_entries.py::test_a_protective_leg_without_a_valid_quote_opens_nothing`). The only case that reaches
+exception 3 is a **valid two-sided quote whose bid size is above 0 but below the units held** (E2b's pinned test uses a
+bid size of 1 against 65 units). A second, related waste exists today: when a later protective leg cannot be bought,
+E4 buys the earlier protective legs and sells them back at once at the same snapshot. On paper every quote of the
+snapshot is known before the first fill (design 3.2: "all legs fill at one snapshot or none"), so both are refusable
+in advance.
+
+**Scope.** In:
+- **The protection check, before any leg fills.** In `EntryDesk.enter`, after C3's checks and E4's existing refusals,
+  every protective (bought) leg of the order must, at this execution snapshot, both:
+  - be buyable: a valid A4 quote whose ask size covers the units (`price_leg` on the opening side);
+  - be sellable back: the same quote's bid size covers the units (`price_leg` on the closing side).
+
+  If any protective leg fails either side, nothing fills. The trade is recorded `not_opened` with a reason code:
+  `protection_not_buyable` or `protection_not_sellable`, naming the contract and the units.
+- **Order of checks, fixed:** C3 data checks → E4's refusals (`refusal`) → the protection check → E4's entry limit →
+  fills. When more than one fails, the first in this order is recorded.
+- **What is recorded:**
+  - one desk event (`not_opened`, the reason code, the snapshot ID and hash);
+  - no fill row, no E1 ledger row, the account unchanged.
+
+  The reason never holds a quote figure (no bid, ask or size number), only the contract and the units held. This
+  follows E2b's rule that no committed desk record reveals a quote.
+- **What is alerted:** one #fno-desk line per refused entry, through the daily run's existing `AlertSender`, of the
+  form "F&O paper desk <book>: trade <id> not opened: protection_not_sellable (<contract>, <units> units): information,
+  no action" (design 6.5: the first line says what to do). Without the token it prints "alert NOT sent: ..." and the
+  run goes on.
+- **Tests in lane 1 that change on purpose (stated, not loosened):**
+  - `test_a_second_protective_leg_failing_unwinds_the_first_and_nothing_opens`: it now expects `not_opened` with no
+    fill and no legging cost (the protection is never bought);
+  - `test_an_unwind_leg_without_bid_size_stays_as_an_exit_order`: re-pointed at a short leg's buy-back (the only
+    unwind leg that can still be left pending), because a protective leg now always sells back at its entry snapshot;
+  - `test_a_leg_fills_only_when_the_size_at_the_touch_covers_its_units`: the same outcomes, with the new reason text;
+  - E2b's `test_unverified_protection_at_the_opening_snapshot_closes_there_the_third_exception`: it now expects
+    `not_opened` and no row revealing both sides. E2b's story text then lists two exceptions, not three (edited in
+    E4c's code commit, after E2b merges).
+
+Out (with reasons):
+- **A spread-width threshold** ("bid present but the spread is too wide"). None is set. No registered source names a
+  maximum spread. A wide spread with enough bid size can still be sold back, so it causes no same-snapshot close. And
+  the cost of crossing a wide spread on entry is already bounded by E4's entry limit (the net entry at the touch must be
+  no worse than the entry C2 approved). Any width threshold is a new rule for the owner to set, with A16's measured
+  spreads as its evidence: open question 1.
+- **Short legs' buy-back depth at entry.** A short leg whose ask size is below its units still sells at the bid. The
+  exit review does not judge price rules at the opening snapshot, so there is no same-snapshot close. A later exit
+  waits as a pending exit (E4 criterion 3): open question 2.
+- **Later snapshots.** `protection_unverified` on a position opened earlier stays exactly as E4 built it (block new
+  risk, alert, exit at the next valid quotes).
+- **E8's code.** E8 is not built. Its story must call E4c's check at each of its R = 5, 30 and 60-minute snapshots
+  (gap list).
+- **The existing size figures in E4's other reasons.** "size N at the touch is below M units" is still written for
+  short legs. It publishes a quote size in `desk_events.csv`, which E2b's review did not list. This is reported to the
+  orchestrator as an E2b finding, not changed here.
+
+**Design:** one small function in a new module `fno/desk/protection_check.py`, for example
+`protection_problems(snapshot, legs, units) -> list[str]`, built on E4's `price_leg`, so E4c adds no second pricing
+rule. `EntryDesk.enter` calls it at the fixed point, and E8 will call the same function. Constants for the two reason
+codes go in `fno/constants.py`. No new composition root and no new wiring, since `EntryDesk` already receives its
+inputs. The alert is sent from `fno/desk/daily_steps.py`, which already holds the `AlertSender`.
+
+**Gap list:**
+
+| Requirement (source) | Where |
+|---|---|
+| Refuse an entry whose protection cannot be sold back at the entry snapshot (decision 30) | criteria 1, 2 |
+| Exception 3 removed (E2b text and its pinned test) | criterion 6 |
+| "A protective leg that does not fill means nothing opens"; protection bought first and sold last (E4 design, design 8) | criteria 1, 3, 8 |
+| All legs fill at one snapshot or none (design 3.2) | criteria 1, 4 |
+| When protection cannot be verified, the desk blocks new risk, alerts and never fabricates a close (design 6.1a) | criteria 1, 7; later snapshots unchanged (criterion 9) |
+| Alerts: the first line says what to do (design 6.5) | criterion 7 |
+| No quote revealed by a committed desk record (E2b) | criterion 5 |
+| Cases: no bid, bid 0, bid present but too wide, a one-leg trade, a multi-leg STR1 structure (orchestrator) | criteria 2, 3; width: Out, open question 1 |
+| E2b's exceptions 1 (unwind) and 2 (two accounts on opposite sides) | criterion 8 (unwind sells protection at once); exception 2 unchanged |
+| C5's buckets and the new risk per day ("3 A") | criterion 10 |
+| E8's 5, 30 and 60-minute fills (design 03 item 2) | criterion 11 (one shared check); E8's code: Out |
+| E4 criterion 6: never an order call | criterion 12 |
+| Engineering standards (CLAUDE.md) | criterion 13 |
+
+**Cases** (fixture: the short iron fly of `tests/desk/builders.py`, 65 units; the protective legs are 25200 CE and
+24800 PE):
+
+| Case | Protective leg's quote | Today | With E4c |
+|---|---|---|---|
+| Positive | valid, bid size = units (65) | opens | opens (at the boundary) |
+| Boundary just over | bid size 66 | opens | opens |
+| Boundary just under | bid size 64 | opens, then closed at the same snapshot (exception 3) | `not_opened`, `protection_not_sellable`, no fill |
+| Negative | bid size 1 (E2b's case) | exception 3 | `not_opened`, no fill |
+| No bid | bid empty | `not_opened` (A4: one-sided) | the same outcome, with reason `protection_not_buyable` (A4 makes the quote unusable both ways), no fill |
+| Bid 0 | bid 0 | `not_opened` | the same as no bid |
+| No bid size | bid > 0, bid size 0 | `not_opened` (A4: no size) | the same as no bid |
+| Wide spread, enough size | for example bid 40, ask 71 | opens if within the entry limit | unchanged: no width rule (Out) |
+| Second protective leg not buyable | 24800 PE missing | first protection bought, then unwound (legging cost) | `not_opened`, nothing bought |
+| One-leg trade (STR1 LC or LP) | the bought option's bid size below units | opens, then closed at once | `not_opened` |
+| Multi-leg STR1 (SF, SC, BF, the verticals) | either wing short, alone | exception 3 | `not_opened`; the other wing never bought |
+| Short leg's bid short | short leg sells at the bid | E4's partial fill and unwind (criterion 2) | unchanged; every protective leg the unwind sells is sellable |
+| Empty: no protective leg | an order with no bought leg (a naked short) | C4 refuses it before the desk | the check returns no problem (nothing to check, tested); it never replaces C4's refusal, which stays the guard |
+| Empty: no quote at all | protective contract absent | `not_opened` | `not_opened` (`protection_not_buyable`) |
+| Prices unverified (C3) | any | `refused` before pricing | unchanged (C3 first) |
+| Rerun of the same trade | any | the recorded outcome | unchanged |
+
+**Acceptance criteria:**
+1. Before any leg fills, a protective leg whose sell-back at the entry snapshot does not fill (a valid A4 quote with a
+   bid size covering the units) makes the entry `not_opened` with `protection_not_sellable`. No fill row, no E1 ledger
+   row; the account is unchanged.
+2. Boundaries and structures: a bid size equal to the units opens, units - 1 is refused, units + 1 opens. Every bought
+   leg of a multi-leg structure is checked, and one failing leg refuses the whole structure. A one-leg bought option
+   behaves the same (tests with the fly and with STR1's codes once STR1 is merged; with the fly alone if it is not).
+3. A protective leg that cannot be bought (no quote, A4-invalid: no bid, bid 0, no size, crossed, no trade today) gives
+   `not_opened` with `protection_not_buyable` before any leg fills, including a later protective leg (no unwind, no
+   legging cost).
+4. The order of checks is C3 → E4's refusals → the protection check → the entry limit → fills. A case failing two
+   checks records the first. A rerun returns the recorded outcome.
+5. The refusal's reason and event hold no quote figure: no bid, ask or size number (a test reads `desk_events.csv` and
+   finds none of the snapshot's figures in the row).
+6. Exception 3 is gone. E2b's scenario (the fly with a wing's bid size 1) gives `not_opened`, and no committed row
+   reveals both sides of any contract. E2b's story text lists two exceptions.
+7. One #fno-desk alert per refused entry through `AlertSender`, ending "information, no action". Without the token it
+   prints "alert NOT sent: <reason>" and the run continues to its exits (test with a fake sender and with none).
+8. Unwind (E2b exception 1, E4 criterion 2): after a short leg fails, every protective leg already bought is sold back
+   at the same snapshot, never left pending because of its bid size. A pending unwind is still possible only for a
+   short leg's buy-back (test).
+9. Later snapshots: a position opened earlier whose protection becomes unquotable is still marked
+   `protection_unverified`, blocks new risk and exits at the next valid quotes, exactly as before (existing tests stay
+   green unchanged).
+10. C5: a refused entry writes no E1 ledger row, so `RiskBook.session_trades` (built from E1's ledger) does not count
+    it toward the Rs 50,000 new risk of the day. Within the decision run that chose it, D2's same-session choice
+    already counted it, which is conservative. Tested once C5 has merged; until then, by the empty ledger.
+11. E8 hook: the check is one function (`fno/desk/protection_check.py`) that `EntryDesk` calls. A test calls it on a
+    second snapshot to show it depends only on the snapshot it is given, so E8 can apply it at each R.
+12. Never an order: the provider fake fails on any order call (as E4 criterion 6).
+13. Engineering: constants in `fno/constants.py`, no file or class over 350 lines, interfaces unchanged, ruff, the
+    import check and the full suite pass.
+
+**Test plan:** unit tests with fixture snapshots (`tests/desk/builders.py`). Each case of the table, at the boundary
+(64, 65, 66 units of bid size), plus the four existing tests named in Scope, changed as stated. Builder's quality
+rules 3-6: two independent review agents, a planted break per criterion, and a real refusal sample from a dry run on a
+fixture snapshot (no live strikes).
+
+**Judge verifies:** plants a bid size of units - 1 on each protective leg in turn, and on a one-leg trade. Checks that
+no fill row is written and that the event holds no quote figure. Checks that a short leg's failure still unwinds with
+the protection sold at once. Checks that later-snapshot `protection_unverified` is unchanged. Checks the order of the
+checks, the alert with and without a token, and that E2b's third exception is gone.
+
+**Depends:** E4 (merged), A4, **E2b (its code must merge first: E4c changes E2b's pinned test and its story's
+exceptions)**, C5 (criterion 10's test), STR1 (criterion 2's codes; the fly covers the rest if STR1 has not merged) ·
+**Size:** S · **Status:** story text for the judge's check (quality rule 1); code waits for that check and for E2b's
+merge.
+
+**Open questions for the owner (reasoning only, no change in E4c):**
+1. Should a maximum entry spread exist (for example, a ratio of the spread to the premium) for protective legs? E4c
+   sets none. The evidence for a value would come from A16's recorded spreads.
+2. Should a short leg's buy-back depth (ask size) also be required at entry? It causes no same-snapshot loss, but an
+   exit may wait for depth.
+
+---
+
 ## E5. Book 1: pure rules
 
 **Repository:** trading
