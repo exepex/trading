@@ -117,6 +117,12 @@ Only the `e4_1515` view fills the same day.
      bind: the priced entry is checked again on the fill's own prices against the per-trade maximum loss in `config.yaml`
      (Rs 10,000) and the risk buckets, and a breach is "missed, over risk cap". The decision's approved entry cash no
      longer limits the price.
+   - **Funds and risk at the fill, for every candidate** (ChatGPT review 122 point 5, response 190). Approved cash,
+     available cash and margin are separate, and each can change between decision and fill (other fills that
+     morning, an overnight margin change). So before any entry is written, the existing C2 and C4 entry checks (cash,
+     stressed margin, per-trade cap, buckets) run again on the due-mark prices, the current verdict account and the
+     pending fills. A shortfall gives "missed, insufficient funds"; a cap or bucket breach gives "missed, over risk cap".
+     These are the paper desk's own checks on its own accounts, never Groww's funds or margin API.
 
    Until the owner answers, `wiring.py` wires `ApprovedLimit`, which is E4's behaviour today. The answer is one line
    in `wiring.py`. The card shows whatever the chosen rule needs (the limit, the band) and never computes its own
@@ -129,13 +135,23 @@ Only the `e4_1515` view fills the same day.
 
    It is never a synthetic fill. An exit without a valid quote stays a pending exit, retried at each following mark,
    and is never missed (E4's rule). Exits are never limited.
-8. **Availability calendar.**
-   - Format: one file, `research/desk/availability.csv`, with columns `date` and `status` (`away`). Dates only: no
-     reason and no times.
-   - An `away` row counts only if the commit that added it is earlier than the order's T, read from git's commit time
-     on `main`. A row added later is ignored, and the report counts it as "late away entry". Otherwise "away" could be
-     chosen after the prices are known.
-   - Until the owner adds rows, every session counts as available.
+8. **Availability calendar** (owner, 16 Oct 2026, `docs/DESK_DECISIONS.md:219`: away dates private in Drive, a salted
+   hash in the repository).
+   - The repository is public, so away dates are never committed. They live in one private Drive file: a first line
+     with a random salt (never committed), then one row per date with `away` or `available`. Dates only: no reason
+     and no times.
+   - The file is append-only. A date's latest row wins, so an early return is a new `available` row, never a deleted
+     line. Because every version is a prefix of the next, the one Drive file holds every version.
+   - The repository holds one hash file, `research/desk/availability_seals.csv`, one row per sealed version: the
+     SHA-256 of the file's first n lines, and n. The daily run seals the current version in `owner_timing_fills`, at
+     the start of the run and so before that day's card. The owner only edits the Drive file.
+   - For an order at T, the version used is the last seal committed before T (git's commit time on `main`). Its first
+     n lines must hash to the sealed value, or the step is refused (rule 11, fail closed). A row outside that version
+     is ignored, and the report counts it as a "late away entry". So "away" can never be chosen after the prices are
+     known.
+   - The salt is there because a calendar of a few dates is guessable: a bare hash could be reversed by trying
+     calendars.
+   - Until the owner writes the file, every session counts as available.
    - Default (reasoning only): an entry is valid only until its first available session. If the owner is away on the
      session its fill moves to, it is "missed, owner away". An exit is never dropped: it moves to the next available
      session, or settles at expiry.
@@ -147,10 +163,12 @@ Only the `e4_1515` view fills the same day.
     - Each book has four paper accounts in E1's format, all in the book's private area (E2c's Drive store):
       - `verdict` (R = 60): the book's own account, read by E6, S1, S2 and C2;
       - `r5` and `r30`;
-      - `e4_1515`: E4's fill at the execution snapshot, today's behaviour.
+      - `e4_1515`: E4's fill at the execution snapshot, today's behaviour. It is an **unexecutable timing yardstick**:
+        it fills before the card exists, so no owner could get it.
     - Each view takes the same committed decisions, fills them by its own clock, and runs E4's exit rules on its own
       positions at each daily run.
-    - C2's risk view and the book's limits read the verdict account only.
+    - C2's risk view, the book's limits, the drawdown brake and S1's stop read the verdict account only. The other
+      views are diagnostics and can never change them.
 11. **When fills are applied** (agreed with O1, 15 Oct 2026, against `story/o1-daily-run` at 71b00878).
     - A daily-run step `owner_timing_fills` runs right after `quotes` and before every other step (`quotes` only
       starts the 3 pm parts and returns at once). The run starts at 14:33 today and 14:05 once G10 goes live, so the
@@ -168,6 +186,9 @@ Only the `e4_1515` view fills the same day.
       would see yesterday's positions without today's fills and understate open risk. So that day no book opens a
       new entry, through E2c's per-book `_unreviewed` block, while exits still run. O1's `Alerted` wrapper sends one
       alert and the run goes on.
+    - **Its own time limit** (judge D, judge 178 addendum 5). The step is not under O1's 10-minute part limit, so it
+      has its own; a time-out counts as a failure (new entries fail closed, exits still run), so a hung Drive or A16
+      read can never hold up the day's exits.
 12. **Point in time.**
     - The decision must be committed before its card's T.
     - T must come from a delivery record.
@@ -189,7 +210,8 @@ All new code lives in one package, `fno/desk/owner_timing/`. Every file except `
     `quote_from_row`'s logic, never a second copy of it.
   - `CaptureStandIn` gives an A4 capture inside the mark's window.
   - `FirstAvailable` composes the two.
-- **`Availability` (interface).** `CommittedAvailability` reads the CSV with each row's commit time.
+- **`Availability` (interface).** `SealedDriveAvailability` reads the private Drive file and checks it against the
+  last seal committed before T (rule 8); `AvailabilitySealer` writes the day's seal.
 - **`EntryRange` (interface).** Three classes, one per candidate of rule 6: `ApprovedLimit` (C2's limit, wired until
   the owner answers), `ApprovedLimitWithBand` (NIFTY read from the same due-mark snapshot) and `AnyPrice` (C2's caps
   re-checked on the fill's prices). A card range from T1 plugs in later as one class plus one line in `wiring.py`.
@@ -200,11 +222,12 @@ All new code lives in one package, `fno/desk/owner_timing/`. Every file except `
 - **`TimingReport`.** Per book, strategy version and view, it gives:
   - orders, fills, and misses by reason;
   - the entry move C against the decision price (E8a's measure);
-  - net P&L after C1;
+  - net P&L after C1, both per executed fill and per eligible opportunity (a missed entry is 0 P&L but stays in the
+    denominator and in the fill rate; ChatGPT review 122 point 1);
   - the delay cost (verdict minus `e4_1515`);
   - sessions pending;
   - the late away entries.
-  - from the first day, fills and misses split by NIFTY's move between the decision and the due mark, against the
+  - from the first day, over the whole opportunity set, fills and misses split by NIFTY's move between the decision and the due mark, against the
     trade's direction. With a price cap, bought options fill mostly on mornings that went against them (adverse
     selection), so their paper results run below what the 15:00 idea alone would earn. Without this split, the owner
     could read a miss-skewed record as "the strategy is bad".
@@ -296,9 +319,14 @@ the split report shows whether a band is needed later, per strategy.
    - `AnyPrice`: a net far worse than the approved entry fills; one whose maximum loss on the fill prices is above
      Rs 10,000 gives "missed, over risk cap".
    - Until the owner answers, the wired rule is `ApprovedLimit` (a wiring test).
+   - Funds, for every candidate: a bought option whose debit at the due mark is under the loss cap but above the verdict
+     account's available cash gives "missed, insufficient funds"; a credit vertical with loss headroom but too little
+     stressed margin gives "missed, insufficient funds"; a pending fill earlier that morning counts against both.
 7. **Availability.**
-   - An `away` row committed before T moves the fill to the next session.
-   - A row committed after T is ignored and counted as a late away entry.
+   - An `away` row in a version sealed before T moves the fill to the next session.
+   - A row appended after the last seal before T is ignored and counted as a late away entry.
+   - A Drive file whose sealed prefix no longer matches its hash (a line changed or deleted) refuses the step.
+   - No committed file holds a date or the salt (the committed-file scan).
    - An entry whose moved fill lands on another away session gives "missed, owner away".
    - An exit keeps moving.
 8. **Expiry.** An entry due after its contract's last trading time gives "missed, contract expired". An exit due after
@@ -306,17 +334,21 @@ the split report shows whether a band is needed later, per strategy.
 9. **Views.**
    - One fixture decision gives four view fills at their own marks.
    - Only the verdict account changes C2's view.
-   - The `e4_1515` view equals today's E4 result on the same fixture, bit for bit.
+   - The `e4_1515` view equals today's E4 result on the same fixture, bit for bit, and the report labels it an
+     unexecutable timing yardstick.
+   - Isolation, both ways: a fixture where `e4_1515` profits while the verdict misses or loses, and the reverse, gives
+     identical verdict-account cash, caps, drawdown brake and S1 stop with the diagnostic views on or off.
 10. **Daily step.**
     - The step runs right after `quotes` and catches up after a missed run, oldest first.
     - A planted step failure gives no new entry in any book or view that day, and `exits` still runs.
+    - A step that hangs past its own time limit is a failure: no new entry, and `exits` still runs.
     - Running it twice changes nothing.
     - A fill's row carries the snapshot hash, the due mark, R, the view and T.
 11. **Report.** It gives every figure listed under `TimingReport`, the NIFTY-move split included (a fixture with one
     favourable and one adverse morning puts each in its own row). It labels the views "four views of one decision,
     not independent trials". It writes no price to the repository (the committed-file scan of E2c).
 12. **Read-only.** The package's import closure reaches no order, position, margin or funds call (A16b's test
-    pattern).
+    pattern). The funds checks of rule 6 are the desk's own C2 and C4 checks on paper accounts, never Groww's.
 13. **Size and wiring.**
     - No file over 350 lines.
     - Concrete classes are wired only in `fno/desk/owner_timing/wiring.py`.
