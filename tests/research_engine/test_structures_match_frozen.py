@@ -70,6 +70,7 @@ def test_both_periods_are_covered(cases):
     assert {2019, 2023, 2024, 2026} <= years and len(cases) >= 90  # 60 challenge + 33 discovery cycles
 
 
+@pytest.mark.usefixtures("full_history")
 def test_frozen_and_current_b2_agree_on_every_cycle_structure_and_width(frozen, cases):
     old_structures, old_costs = frozen
     terms = CycleTerms(lot=load_app_config()["lot_sizes"][NIFTY_SYMBOL], charges=load_app_config()["charges"])

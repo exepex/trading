@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 
 import pytest
 
+from tests.history import require_full_history
 from tests.live_credentials import LIVE_CREDENTIALS
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -22,6 +23,13 @@ def _snapshot() -> dict[str, float]:
             if path.is_file():
                 files[str(path)] = path.stat().st_mtime
     return files
+
+
+@pytest.fixture(scope="session")
+def full_history():
+    """For tests that read git history: fails them at once in a shallow clone, with the command that fixes it.
+    Session-scoped so it runs before any module fixture that reads history."""
+    require_full_history(ROOT)
 
 
 @pytest.fixture(scope="session", autouse=True)
