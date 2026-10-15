@@ -63,9 +63,12 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
      paper record changes only at the next daily run's execution snapshot" (today's before 15:15, the next session's
      after it);
    - one alert per condition per position per hour; after 10 DANGER alerts in a session, one summary every 30 minutes;
-   - each alert is a record (condition, position, snapshot time, sent time, outcome of the send) in
-     `research/data/monitor/alerts/<YYYY>/<date>.csv`; a send that fails is printed by `ReportedAlerts`, retried at
-     the next mark, and its record keeps the first try.
+   - each alert is a record (condition, position, snapshot time, sent time, outcome of the send). A record names a
+     position and its marked loss, so it is kept in Drive with the paper desk's other private records, through E2c's
+     store (story E2c: no public record that names a contract's price or mark; agreed with the E2c builder); a send that
+     fails is printed by `ReportedAlerts`, retried at the next mark, and its record keeps the first try.
+   - the public repository gets only one row per mark handled (below), with times, counts and status, never a position
+     or a price.
 5. **No duplicate of the daily run's alerts:**
    - an exit rule reached intraday is one information alert ("<trade> reached its <rule> at HH:MM; the paper exit
      happens at today's daily run, and its exit alert follows then"); it names no action and never sets E8's T; E8's
@@ -80,12 +83,17 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
      alerts only a colour reached after that record, and nothing when the day's record was already RED.
 6. **Silent with nothing to watch:** with no open position the monitor runs no check, sends nothing and only writes
    its heartbeat (`positions: 0`). It is wired from the start condition: no code runs before the first position.
-7. **Heartbeat and "monitor silent":** after every mark, the monitor writes `research/data/monitor/heartbeat.json`
-   (mark time, finish time, positions watched, alerts sent, the observer's failure class if any) through a
+7. **Heartbeat, mark rows and "monitor silent":** after every mark, the monitor commits one row to
+   `research/data/monitor/<YYYY>/<MM>/<DD>/marks.csv` (mark, finished at, status, positions watched, alerts sent, the
+   observer's failure class if any; counts only, like A16's ledger) and overwrites `research/data/monitor/heartbeat.json`
+   with the latest of them, through a
    `MonitorHeartbeat` in `fno/monitor/` that reuses `fno/intraday/heartbeat.py`'s `heartbeat_state`, `SILENT_AFTER`
    (30 minutes) and its 09:45-15:45 window, never a copy (A16 builder, 16 Oct). It reports "monitor silent" (WARNING)
-   only while positions are open (6.5). It runs wherever A16's silence check already runs, so one checker reads both
-   heartbeats with no new schedule (open point 1, with the O8 builder). The interface O2's suite drives (`tests/e2e/test_monitor_silent.py`, with a fake clock):
+   only while positions are open (6.5). It runs wherever A16's silence check already runs (the 3 pm routine and the
+   hourly recorder runs), so A16's one intraday checker reads both heartbeats with no new schedule (agreed with the A16
+   and O8 builders, 16 Oct). The day's uptime (marks handled / due) comes from the mark rows, not the heartbeat; an
+   uptime line in O8's 17:51 message would be new O8 work (its own expectation row), asked of the orchestrator, not
+   built here. The interface O2's suite drives (`tests/e2e/test_monitor_silent.py`, with a fake clock):
    `MonitorSilence.check(now) -> SilenceResult` (silent or not, minutes since the last finish, positions open). The
    WARNING's exact text: "Action: check the position monitor's routine (story LM1). WARNING, monitor silent: no
    monitor heartbeat for {minutes} minutes while {positions} positions are open; alert_only strategies continue and
@@ -95,13 +103,14 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    builder, not built here.
 8. **Clock (4.4):** times stored in UTC with offset, shown in IST; A16's skew flag (above 5 s) carries into the alert
    record; the monitor never uses a mark's time it cannot trust as "live" (staleness first).
-9. **Weekly replay:** `python -m fno monitor replay --week` runs the week's committed marks through the same checks and
-   compares the alerts it would send with the alert records: missed alerts, late alerts (snapshot to sent), false
+9. **Weekly replay:** `python -m fno monitor replay --week` runs the week's A16 marks through the same checks and
+   compares the alerts it would send with the alert records in Drive: missed alerts, late alerts (snapshot to sent), false
    alarms (conditions gone at the next mark). Written to `research/data/monitor/replay/<week>.md`; numbers only.
 
 **Open points, to agree before the judge (asked 16 Oct; answers in response 217):**
-1. A16 builder: **agreed 16 Oct** (the observer port, `MonitorHeartbeat` beside A16's heartbeat). Still open with the
-   O8 builder: where `MonitorSilence` runs (proposed: with A16's existing silence check).
+1. A16 and O8 builders: **agreed 16 Oct** (the observer port; `MonitorHeartbeat` beside A16's heartbeat;
+   `MonitorSilence` runs with A16's silence check, which stays A16's; per-mark rows for the uptime).
+6. E2c builder (asked 16 Oct): the alert records through E2c's Drive store.
 2. O1/O2 builder: **agreed 16 Oct** (alert path through `ReportedAlerts`, the boundary after the execution snapshot,
    the monitor-silent interface and text above).
 3. A16 builder: **answered 16 Oct**: no VIX in the mark; the VIX check waits (a later small A16 story after the trial).
@@ -120,8 +129,9 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
 5. The same condition on the same position alerts once per hour; the 11th DANGER in a session starts the 30-minute
    summary.
 6. Every alert's first line is an action or "information, no action", and it states the 60-minute assumption.
-7. Every alert is recorded; a failed send prints "alert NOT sent", is retried at the next mark and keeps its first
-   record.
+7. Every alert is recorded in the private store; a failed send prints "alert NOT sent", is retried at the next mark
+   and keeps its first record; no committed file names a position, a contract or a price (a test scans the public
+   rows).
 8. An intraday exit rule reached gives one information alert and never an E8 exit alert or T; after the execution
    snapshot an exit-rule hit the daily run handled sends nothing, while a NIFTY 1.5% move at 15:25 on a position
    kept open still gives its DANGER.
