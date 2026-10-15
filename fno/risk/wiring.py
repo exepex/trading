@@ -19,7 +19,7 @@ from .manager import RiskManager
 from .margin_age import DaysOld, MarginAge, SessionsOld
 from .margins import MarginTable, MultiplierMargin, ScenarioLookupMargin, StressedMargin
 from .open_risk import HeldMaxLoss, PositionRisks
-from .profile_settings import ProfileSettings, profile_settings
+from .profile_settings import ProfileSettings, all_profiles, profile_settings
 from .rules import ExposureLimit, MarginRoom, MaxLossPerTrade, MaxOpenTrades, StressLoss
 from .settings import RiskSettings, risk_settings
 from .stress import StressEngine
@@ -92,7 +92,7 @@ def build_risk_manager(
 ) -> RiskManager:
     """Stories C2 and C5: the rules of risk profile `profile` with their settings from config.yaml `risk`, and B2's
     cost model for a trade's money."""
-    settings, chosen = risk_settings(cfg, root), profile_settings(cfg, profile)
+    settings, chosen = risk_settings(cfg, root), all_profiles(cfg)[profile]
     costs, engine = SimulatorTradeCosts(cfg["charges"]), StressEngine(Black76())
     stressed = build_stressed_margin(settings, build_margin_age(chosen, calendar))
     risks = build_position_risks(cfg, chosen) if chosen.bucket_sides else None

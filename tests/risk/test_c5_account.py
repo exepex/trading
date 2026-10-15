@@ -211,11 +211,20 @@ def test_each_open_trade_knows_the_day_it_opened_in_every_view(braked):
     the_market = market(25000, PRICES, EXPIRY)
     with open_account_writer(BOOK1_RULES, braked) as writer:
         writer.apply_fill(_fill("o1", "held", SIDE_BUY, 150.0, date(2026, 10, 9)))
+        writer.apply_fill(_fill("o2", "held", SIDE_SELL, 70.0, date(2026, 10, 12), strike=25200))  # a later leg
     held = load_risk_book(braked, BOOK1_RULES, the_market, {"held": TradeTerms(FLY, 200, 1)})
-    assert held.open_trades[0].opened_on == date(2026, 10, 9)  # from the ledger's first fill
+    assert held.open_trades[0].opened_on == date(2026, 10, 9)  # the ledger's earliest fill, not its latest
     after = book_after_entry(held, NEW, the_market, SimulatorTradeCosts(CHARGES))
     assert after.open_trades[-1].opened_on == DAY  # chosen earlier the same session: new risk today
     assert book_from_json(book_to_json(after)) == after
     old_record = book_to_json(after)
     del old_record["open_trades"][0]["opened_on"]  # a record written before C5
     assert book_from_json(old_record).open_trades[0].opened_on is None  # then refused by the new-risk cap
+
+
+def test_a_broken_manual_profile_stops_the_books_risk_manager_too(tmp_path):
+    """Every profile is checked at start-up, so the Manual account's limits can never be wrong unnoticed."""
+    cfg = copy.deepcopy(CONFIG)
+    cfg["risk"]["profiles"]["manual"]["max_open_trades"] = 2.5
+    with pytest.raises(RiskSettingsError, match="manual"):
+        build_risk_manager(cfg, tmp_path)

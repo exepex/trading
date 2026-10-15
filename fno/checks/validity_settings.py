@@ -38,8 +38,11 @@ class MarginSettings:
         if self.previous_session is None:
             return False  # no calendar: fail closed
         oldest = day
-        for _ in range(self.max_age_sessions):
-            oldest = self.previous_session(oldest)
+        try:
+            for _ in range(self.max_age_sessions):
+                oldest = self.previous_session(oldest)
+        except ValueError:  # the calendar cannot answer for that day: fail closed
+            return False
         return as_of >= oldest
 
 
@@ -111,11 +114,32 @@ def _optional(profile: Mapping, rules: tuple[str, ...]) -> dict:
     return values
 
 
+class ValidityLimitsError(ValueError):
+    """A setting a listed rule needs is missing: C4 refuses to start rather than check with a gap."""
+
+
+NEEDS = {
+    "max_open_trades": ("max_open_trades",), "stress_loss": ("max_stress_loss_rs",), "exposure_limit": ("exposure",),
+    "bucket_cap": ("bucket_cap_rs", "bucket_sides"), "open_risk_cap": ("open_risk_cap_rs", "bucket_sides"),
+    "new_risk_per_day": ("new_risk_per_day_rs", "bucket_sides"),
+}  # fmt: skip
+ALWAYS = ("paper_account_rs", "max_loss_per_trade_rs", "drawdown_brake_rs")
+
+
+def _require(profile: Mapping, rules: tuple[str, ...], name: str) -> None:
+    needed = set(ALWAYS) | {key for rule in rules for key in NEEDS.get(rule, ())}
+    missing = sorted(key for key in needed if profile.get(key) is None)
+    ages = [key for key in ("margin_max_age_days", "margin_max_age_sessions") if profile.get(key) is not None]
+    if missing or len(ages) != 1:
+        raise ValidityLimitsError(f"risk.profiles.{name}: missing {missing}, margin ages set {ages} (need exactly one)")
+
+
 def limits_from_config(cfg: Mapping, root: Path, profile_name: str, previous_session=None) -> ValidityLimits:
     """Risk profile `profile_name`'s limits; `previous_session` is NSE's calendar step for a margin age in sessions."""
     risk = cfg["risk"]
     profile = risk["profiles"][profile_name]
     rules = tuple(profile["rules"])
+    _require(profile, rules, profile_name)
     scenarios = tuple(
         Shock(s["name"], float(s["nifty_move_pct"]), float(s["iv_factor"]), 0.0, int(s["days"]))
         for s in risk["scenarios"]

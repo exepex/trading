@@ -105,6 +105,12 @@ def _optional(block: Mapping[str, Any], rules: tuple[str, ...], where: str) -> d
     return values
 
 
+def all_profiles(config: Mapping[str, Any]) -> dict[str, ProfileSettings]:
+    """Every profile of `risk.profiles`, each checked, so a profile no run uses today is never wrong unnoticed."""
+    names = get_setting(get_setting(config, "risk", ""), "profiles", "")
+    return {name: profile_settings(config, name) for name in names}
+
+
 def profile_settings(config: Mapping[str, Any], name: str) -> ProfileSettings:
     """The checked settings of risk profile `name` of an app config (`fno.config.load_app_config`)."""
     where = _where(name)

@@ -2,9 +2,9 @@
 
 One crash or one squeeze hits a whole bucket, so its cap counts the bucket's positions together. A position is in
 exactly one bucket. Its underlying group is read from its contracts' exchange symbols (the letters before the first
-digit: `NIFTY26OCT25000CE` is NIFTY), its side from its structure code through `risk.caps.bucket_sides`. Fail closed
-(design 6.1a): a position that cannot be mapped (a structure code not listed, legs on two underlyings, a stock or an
-index 6.2 does not name) is an input error, so the trade is refused.
+digit: `NIFTY26OCT25000CE` is NIFTY), its side from its structure code through the profile's `bucket_sides`. Fail
+closed (design 6.1a): a position that cannot be mapped (a structure code not listed, legs on two underlyings, a stock
+or an index 6.2 does not name) is an input error, so the trade is refused.
 """
 
 from __future__ import annotations
@@ -43,7 +43,7 @@ def underlying_of(contract: str) -> str:
 
 
 class StructureBuckets(BucketMap):
-    """Group from the contracts, side from the structure code (`risk.caps.bucket_sides`)."""
+    """Group from the contracts, side from the structure code (`risk.profiles.<profile>.bucket_sides`)."""
 
     def __init__(self, sides: Mapping[str, str]):
         self.sides = dict(sides)
@@ -56,5 +56,7 @@ class StructureBuckets(BucketMap):
         if group not in BUCKET_INDEX_GROUPS:
             raise RiskInputError(f"unmapped bucket: underlying {group!r} is not one of {BUCKET_INDEX_GROUPS}")
         if structure not in self.sides:
-            raise RiskInputError(f"unmapped bucket: structure {structure!r} has no side in risk.caps.bucket_sides")
+            raise RiskInputError(
+                f"unmapped bucket: structure {structure!r} has no side in risk.profiles.<profile>.bucket_sides"
+            )
         return Bucket(group, self.sides[structure])

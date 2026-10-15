@@ -126,3 +126,19 @@ def test_c4s_held_maximum_loss_equals_c2s_on_the_same_position():
     assert problems == [] and c2 > 0
     assert held_max_loss(position, chain, CHARGES) == pytest.approx(c2, abs=0.01)
     assert held_max_loss(replace(position, units={}), chain, CHARGES) == 0.0
+
+
+@pytest.mark.parametrize("key", ["bucket_cap_rs", "bucket_sides", "margin_max_age_sessions", "paper_account_rs"])
+def test_c4_refuses_to_start_on_a_books_setting_missing_never_a_crash_later(key):
+    from fno.checks.validity_settings import ValidityLimitsError
+
+    with pytest.raises(ValidityLimitsError, match="risk.profiles.books"):
+        limits(RISK_PROFILE_BOOKS, **{key: None})
+
+
+def test_c4_treats_a_day_the_calendar_cannot_answer_as_a_stale_margin():
+    def no_calendar(day):
+        raise ValueError("calendar has no 2031")
+
+    settings = replace(limits(RISK_PROFILE_BOOKS).margins, previous_session=no_calendar)
+    assert not settings.fresh(date(2031, 1, 2), date(2031, 1, 2))

@@ -63,7 +63,8 @@ def _trades(rows: list[dict[str, str]]) -> tuple[dict[str, dict], dict[str, floa
     first: dict[str, date] = {}
     for row in rows:
         trade, sign = row["trade_id"], 1 if row["side"] == SIDE_BUY else -1
-        first.setdefault(trade, datetime.fromisoformat(row["filled_at"]).date())
+        filled = datetime.fromisoformat(row["filled_at"]).date()
+        first[trade] = min(filled, first.get(trade, filled))
         held = units.setdefault(trade, {})
         held[row["contract"]] = held.get(row["contract"], 0) + sign * int(row["units"])
         flows[trade] = flows.get(trade, 0.0) + float(row["amount_rs"])
