@@ -137,3 +137,57 @@ are finding 2.
 - Full suite with `-n auto` (`env -u FNO_SLACK_BOT_TOKEN`, full git history): **6,641 passed, 0 failed**.
 
 Per rule 9 (money and the real-money gate's input), ChatGPT reviews next, then the merge with S3.
+
+## Addendum 2: re-judge of revision 2 after ChatGPT review 120, at `3eb96cda` (code commit `6a26770d`) (judge G)
+
+**Verdict: PASS.** The orchestrator's answer to review 120 is response 200. I judged the code commit `6a26770d`; the
+rest of the range is main merged in.
+
+**Gates on `3eb96cda`:** ruff check, ruff format and `check_imports` are clean. Full suite with `-n auto`
+(`env -u FNO_SLACK_BOT_TOKEN`, full git history): **6,693 passed, 0 failed**.
+
+| Fix | Code | My planted break (each alone) | Result |
+|---|---|---|---|
+| 1. A fixed Holm family | `_apply_holm`: each book's head-to-head claim plus every directional pair (3 + 6 = 9 for three books); an untestable member enters with p = 1; `holm_family` is shown | Untestable members dropped, so the family shrinks | caught (4 tests) |
+| | | Pairs with no common day dropped from the family | caught |
+| 2. Own unscored days as misses | `_misses`: a D6-unscored day while another book submitted is the book's own miss and is eligible; a day unscored for every book stays apart | Own unscored day not counted as a miss | caught |
+| | | Own unscored day left apart | caught |
+| | | Every unscored day counted, including all-book days | caught |
+| 3. `_reviewed` requires True | `.get("reviewed") is True`; a missing book counts as a missed review. E3 writes `reviewed` on every outcome (`daily_steps.py:205, 215, 218`) | `reviewed: false` accepted | caught |
+| | | A missing book read as reviewed | caught |
+| Disclosure 4: `inputs` | An account limit only with the "is already open in" reason | `inputs` read as a limit for any reason | caught |
+| Disclosure 8: "not comparable" | View (a)'s verdict is withheld when `capital_cut` is not 0 | Withholding removed | caught |
+| Cash rate | `PROTOCOL.md` states the owner's 16 Oct rule (91-day T-bill on the freeze date, DESK_DECISIONS row 221), and the "(set at the freeze)" marker stays | — | `evaluation check --decided` still names `do_nothing_benchmark` |
+
+**Caught:** 9 of my 10 planted breaks; the clean tree gives 195 passed in `tests/scoreboard tests/evaluation`.
+
+### Notes (no fix required)
+
+1. **Untested design point.** Making an *incomplete* section testable in Holm (removing `not claim.get("incomplete")`)
+   survives. Its own verdict is still blocked, because `_section` sets `claim_allowed` to false. But a testable
+   incomplete member with a small p would move the other members' step-down thresholds.
+   - It needs a take open past its expiry with no settlement price, which E7 refuses only on a malformed settlement
+     file, so it is not normal running.
+   - Worth a one-line test when the file is next touched.
+2. **`reviewed` is now stricter than E3's own blocking rule.** E3 treats "no snapshot, nothing due" as nothing left
+   unreviewed (`daily_run.py:104`). With a trade held, S6 now lists it as a missed exit review.
+   - That is review 120's choice: `reviewed: false` with no error counts. It is conservative and descriptive (scoreboard
+     B's operations list).
+   - It will appear on any day the execution snapshot fails while trades are open. Read it as "exits not checked
+     against prices that day", not as a lost exit.
+3. Disclosures 5, 6, 7 and 9 (staggered exits and no-fill share, `after_cut` "not a claim" and "incomplete",
+   `net_per_risk` beside each rupee pair, random-control `flipped_share` and rejections) are reporting only, and
+   their tests pass. They change no figure that decides anything.
+
+S3 and S6 can merge, followed by the rule 8 dry run.
+
+## Addendum 3: head `7cb57e3cb8d17cb9effd6f95926d1235a86f91a6` (judge G)
+
+**The PASS stands.** `git diff 3eb96cda 7cb57e3c` touches only `research/evaluation/PROTOCOL.md`. It adds two lines to
+`missed_runs`' reason, which cite the owner's 16 Oct row "S3 missed runs: one book's unscored day counts as its miss"
+(DESK_DECISIONS line 225, owner: "Yes, count it (Recommended)"). That row is the rule judged in addendum 2.
+
+- The status stays "decided by the owner on 2026-10-15".
+- No code changed.
+- On this head, `python -m fno evaluation check` reports "complete", and `tests/evaluation tests/scoreboard` gives
+  195 passed.
