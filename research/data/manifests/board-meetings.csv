@@ -2019,3 +2019,12 @@ date,url,status,sha256,size_bytes
 2021-08-24,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=24-08-2021&to_date=24-08-2021,200,4cdaf4d36b3138e9ef24743293bf6db349d6421a1785a09b01549eec210ea93e,6621
 2021-08-25,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=25-08-2021&to_date=25-08-2021,200,9519d9a45515e36d3a8b6f77f9c7889964303274a6bbe762fd26f29eaf7610fd,8121
 2021-08-26,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=26-08-2021&to_date=26-08-2021,200,eef8f5197be835f0f921f38c93ec7ecb1b07c368c3587c0a86a31f8b206ea409,6246
+2021-08-27,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=27-08-2021&to_date=27-08-2021,200,f3874b12fa4d0310e17fe67ae02941a355a42d15f8708dda2c9e58e15794586d,12795
+2021-08-28,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=28-08-2021&to_date=28-08-2021,200,2a2c13ce6ddc97fe5de17d1a2c81f9dc494ae44f795c6f46cbf3292edf53cbe4,3195
+2021-08-29,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=29-08-2021&to_date=29-08-2021,200,baa43b4d2d8a427fe1d36263f8c22918686476f7f5a8c1fc1da7ebc994964837,1136
+2021-08-30,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=30-08-2021&to_date=30-08-2021,200,3a1c6db42ebd5f3b203bedeac78dac935704f69272123992ec9bc90219e7235f,7429
+2021-08-31,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=31-08-2021&to_date=31-08-2021,200,f2961e9f880613d8c597d0c750445b0ca33cc976f4bbed86e449ee455c8cef93,8236
+2021-09-01,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=01-09-2021&to_date=01-09-2021,200,8cad9b604971a19b23f3457840c0d62edc933be4eef07431ebb7f3dedf65fe89,9808
+2021-09-02,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=02-09-2021&to_date=02-09-2021,200,5d67424b659b835e4ca2ecb647ebbecfa06f8efacf624a3f9093d367285ce32b,11080
+2021-09-03,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=03-09-2021&to_date=03-09-2021,200,ce9e692423dd68fb1d6396595d902e90af49afbb203f9b265415a64ceb01bb50,13311
+2021-09-04,https://www.nseindia.com/api/corporate-board-meetings?index=equities&from_date=04-09-2021&to_date=04-09-2021,200,cd5714690be2353ca037406f5c3469f6de792b9617fd8ce2601802218c434400,11739
