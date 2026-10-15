@@ -100,3 +100,26 @@ def test_the_page_keys_are_the_ones_w10_names_in_the_pinned_schemas():
     books_source = CONTRACT.schemas["FnoBooks"]["x-catalog"]["source"]
     assert "page 'today'" in picks_source and FnoPicksBlock.page_key == "today"
     assert "page 'risk'" in books_source and FnoBooksBlock.page_key == "risk"  # 2.5: page risk only
+
+
+def test_a_top_up_is_capital_never_profit_on_home(tmp_path):
+    """Story E1b criterion 6: before the top-up the book's pnl is 0 against Rs 5 lakh; on and after it, 0 against
+    Rs 20 lakh; never minus Rs 15 lakh."""
+    from datetime import datetime
+
+    from fno.books.account import AccountWriter
+    from fno.books.lock import AccountLock
+    from fno.models import IST
+
+    for book in BOOKS:
+        with AccountLock(tmp_path, book) as lock:
+            AccountWriter(PaperAccount(tmp_path, book), lock, 500_000.0).start(date(2026, 10, 13))
+    with AccountLock(tmp_path, BOOKS[0]) as lock:
+        AccountWriter(PaperAccount(tmp_path, BOOKS[0]), lock, 500_000.0).top_up(
+            datetime(2026, 10, 16, 17, 0, tzinfo=IST), 2_000_000.0
+        )
+    reader = BooksReader(tmp_path, BOOKS, 2_000_000.0)
+    figures = {day: reader.on(date(2026, 10, day))[0] for day in (13, 15, 16, 19)}
+    assert [(f.value, f.pnl) for f in figures.values()] == [
+        (500_000.0, 0.0), (500_000.0, 0.0), (2_000_000.0, 0.0), (2_000_000.0, 0.0)
+    ]  # fmt: skip

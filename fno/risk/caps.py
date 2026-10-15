@@ -9,8 +9,8 @@ refusing beyond it, as C2's rules do. A cap only refuses: it never resizes a pro
   maximum loss it carried that day.
 An unmapped bucket, a held position that is not defined risk, or a book whose session trades are unknown is an input
 error, and the trade is refused (design 6.1a: fail closed). The paper-account rule refuses every trade of a book that
-opened with any other cash than its profile's `paper_account_rs`, so an account opened on the old Rs 5 lakh is never
-traded on silently.
+holds any other capital than its profile's `paper_account_rs` (its opening plus top-ups, story E1b), so an account
+opened on the old Rs 5 lakh is never traded on silently.
 """
 
 from __future__ import annotations
@@ -89,7 +89,8 @@ def _own(own: PositionRisk) -> dict[str, float]:
 
 
 class PaperAccountSize(RiskRule):
-    """The book opened with its profile's paper account (the books: Rs 20 lakh, owner 14 Oct 2026) and no other."""
+    """The book's capital (its opening plus top-ups in force, story E1b) is its profile's paper account (the books:
+    Rs 20 lakh, owner 14 Oct 2026), no more and no less."""
 
     name = "paper_account"
 
@@ -97,9 +98,9 @@ class PaperAccountSize(RiskRule):
         self.paper_account_rs = paper_account_rs
 
     def check(self, proposal: Proposal, book: RiskBook, market: Market) -> RiskVerdict:
-        opened = book.state.starting_cash
+        opened = book.state.capital
         ok = opened == self.paper_account_rs
-        reason = f"{book.name} opened with {rupees(opened)}; the paper account is {rupees(self.paper_account_rs)}" + (
+        reason = f"{book.name} has capital {rupees(opened)}; the paper account is {rupees(self.paper_account_rs)}" + (
             "" if ok else ": no trade until the owner decides how this account is reopened"
         )
-        return self.verdict(ok, reason, opened_with_rs=opened, paper_account_rs=self.paper_account_rs)
+        return self.verdict(ok, reason, capital_rs=opened, paper_account_rs=self.paper_account_rs)

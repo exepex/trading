@@ -192,8 +192,8 @@ Rs 1.3 lakh down) and checks that the top-up leaves it braked in C2 and C4; repl
 17:00 top-up in C2 and C4; runs Home over the top-up day.
 
 **Depends:** E1, C1, C2, C4, C5 (the `paper_account` rule and the books profile), P10, S2 · **Size:** S · **Status:**
-story text revision 2 (judge 110: should-fix 1 and minors 1-3) for the judge's check before code; code on `main`
-after C5 merges (claims: `reviews/claude/response_110_e1-topup.md`)
+story text PASS (judge 110 addendum 1, 9e426e8); code built on `story/e1-topup` after C5's merge, judge
+pending; the real-journal run after the merge (claims: `reviews/claude/response_110_e1-topup.md`, addendum 2)
 
 ---
 

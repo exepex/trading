@@ -47,6 +47,7 @@ SHADOW_FOLDER, SHADOW_PREFIX = "shadow", "shadow:"
 LEDGER_OPENING = "opening_balance"
 LEDGER_FILL = "fill"
 LEDGER_SETTLEMENT = "settlement"  # an option closed by NSE's cash settlement at expiry (story E7), not a trade
+LEDGER_TOP_UP = "capital_top_up"  # capital added to a book at its write instant (story E1b; owner, 15 Oct 2026, "2 B")
 
 # Order sides, one definition for the accounting ledgers, the charges model and the paper-account fills
 SIDE_BUY, SIDE_SELL = "buy", "sell"
@@ -89,6 +90,7 @@ FEATURE_ATM_IV_MINUS_RV20 = "F1_atm_iv_minus_rv20"  # ATM implied minus past 20-
 FEATURE_VIX_ABOVE_MEDIAN = "F2_vix_above_250d_median"  # India VIX close above its previous 250 closes' median
 FEATURE_EVENT_IN_WINDOW = "F3_scheduled_event_in_window"  # a known scheduled event after entry, up to exit
 SESSION_CLOSE_TIME = time(15, 30)  # IST: a regular or special session's closing prices exist from here
+DESK_DECISION_TIME = time(15, 0)  # design 13.5: books decide at about 15:00 IST; story E3 freezes the exact timetable
 OPTION_CALL, OPTION_PUT = "CE", "PE"
 
 # Cycle simulator (story B2, fno/research_engine/): structure codes, as the experiment 1 protocol names them
