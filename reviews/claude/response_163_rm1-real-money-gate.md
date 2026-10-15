@@ -104,3 +104,9 @@ Not yet answered, so every item's status stays "proposal, owner decides" until t
    it before its first counted entry?
 5. **The unnumbered parts** (scope, the evidence-record definition, `index_benchmark`, the replay windows, the cap-fit
    rule, `owner_approval`): does the owner accept them as a set?
+
+Answered later on 15 Oct (relayed): Q12 source (the owner's Groww screenshot at each real order, saved to Drive,
+A16 as fallback; 5 minutes for real orders, 15 for recorder-only uses; more than 10% unknown legs is not met) and
+Q13 (a) (validity binding, independent check reported). Depth was added to a valid quote at the owner's word
+("fresh, two-sided, depth"); A16 keeps Groww's bid and offer quantities in its raw answer (`fno/providers/groww.py:83`).
+Still open: point 4 (Q4 scope) and point 5 (the unnumbered parts as a set).

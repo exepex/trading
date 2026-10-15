@@ -25,10 +25,12 @@ Terms used below:
   of any shadow account are shown, never counted: no order check proves a shadow's decisions follow the freeze.
 - **Paper price before pad:** the quote price a paper leg filled at (E8's snapshot ask for a buy, bid for a sell),
   without `FILL_PAD_RS`. Signed so that worse is positive, like every slippage below.
-- **Valid quote:** a recorded ask (for a buy) or bid (for a sell) of the same contract, both sides present, no older
-  than 5 minutes before the moment it prices (owner, 15 Oct 2026, Q12). It comes from the recorders (A16's
-  15-minute snapshots or the 3 pm recorder, A4) or from the owner's record of Groww's bid and ask at the order (Q12).
-  No valid quote means "unknown", which counts as not met; it is never zero and never a pass.
+- **Valid quote:** a recorded ask (for a buy) or bid (for a sell) of the same contract, both sides present, with at
+  least the leg's units quoted at that price (depth: Groww's bid and offer quantities, which A16 keeps in its raw
+  answer). Its source and age (owner, 15 Oct 2026, Q12): for a real order, the owner's screenshot of Groww's bid and
+  ask at the order, saved to Drive, at most 5 minutes old, with A16's snapshot as fallback within the same 5 minutes;
+  for recorder-only uses (paper fills, cap fit), a recorder quote (A16 or the 3 pm recorder, A4) at most 15 minutes
+  old. No valid quote means "unknown", which counts as not met; it is never zero and never a pass.
 - **Execution slippage per unit:** a real leg's fill price minus the valid quote at the owner's order time (sells: the
   reverse), worse positive. This isolates execution from market movement; E8's paper fill is often next session
   (about 10:15), so the real-minus-paper price gap also holds the market's move and is reported apart as the
@@ -83,20 +85,20 @@ Terms used below:
 - **Evidence:** reasoning only
 
 ### `fill_honesty` Condition 4: paper fills were not kinder than the market
-- **Value:** Both hold on the evidence record:
-  (a) **Quote validity:** every paper fill leg was priced from a valid quote at its fill time (both sides present,
-  within the quote-age limit), checked against the hashed snapshot E8 filled from.
-  (b) **Independent check:** for each leg with a valid quote from a *different* recorder than E8's snapshot at the
-  fill time, gap per unit = that quote minus the paper price before pad (buys: its ask minus the paper price; sells:
-  the paper price minus its bid). The mean gap is at most the pad in force at each fill. What (b) requires when fewer
-  than 20 legs have an independent quote is owner question Q13.
+- **Value:** (a) **Binding, quote validity:** every paper fill leg on the evidence record was priced from a valid
+  quote at its fill time (fresh, two-sided, with depth), checked against the hashed snapshot E8 filled from; one
+  invalid leg is not met.
+  (b) **Reported, never judged, independent check:** for each leg with a valid quote from a *different* recorder at
+  the fill time, gap per unit = that quote minus the paper price before pad (buys: its ask minus the paper price;
+  sells: the paper price minus its bid), with its mean and count; with no such leg it reads "unknown" (owner,
+  15 Oct 2026, Q13 (a)).
   A16 records only the nearest weekly and nearest monthly NIFTY expiries, so a version trading any other expiry
   cannot meet (a) until A16 records it.
 - **Status:** proposal, owner decides
-- **Reason:** 8.3 condition 4. ChatGPT review 118: a later snapshot moving is not proof of a dishonest fill; checking
-  the fill against its own snapshot alone is circular, so (b) needs an independent quote at the same time. Fact for
-  Q13: E8 fills at about 10:15 next session from A16, and the only other recorder (3 pm) runs near 14:30-14:55, so
-  independent quotes at fill time will be rare.
+- **Reason:** 8.3 condition 4; the owner's answer to Q13 (a). ChatGPT review 118: a later snapshot moving is not
+  proof of a dishonest fill, and the fill's own snapshot cannot prove its price by itself. An independent quote at
+  fill time will be rare (E8 fills at about 10:15 next session from A16; the 3 pm recorder runs near 14:30-14:55), so
+  a binding independent check would block every version; the real execution cost is judged by `real_test_pass` 3.
 - **Evidence:** reasoning only
 
 ### `selection_adjustment` Condition 5: the edge survives the number of ideas tried
@@ -161,8 +163,7 @@ Terms used below:
      normally distributed trades assumed; option returns are skewed and can cluster, so it is a floor, not a
      guarantee).
   3. **Execution:** the mean execution slippage per unit over all real legs is at most the paper pad (`FILL_PAD_RS`
-     in force) + Rs 0.50; a leg with unknown slippage counts against the test (not met if more than one in ten legs
-     is unknown).
+     in force) + Rs 0.50; more than 10% of real legs with unknown slippage is not met (owner, 15 Oct 2026, Q12).
   4. **Discipline:** the owner placed at least 90% of the version's eligible cards in the period (owner, 15 Oct 2026,
      Q8); every skipped card is listed with its paper net, never counted as real.
   Reported, not judged: the timing gap per leg and its mean, and the paired mean with its two-sided 95% interval.
