@@ -41,10 +41,11 @@ class GlobalCueSource(ABC):
     unit: str = ""
     date_zone: str = ""  # the time zone the publisher's dates are in
     first_value_date: date = date(2007, 1, 1)  # how far back the back-fill asks
-    max_age_days: int = 7  # a newest value older than this on the run's day is reported STALE
+    max_age_days: int = 7  # a newest value older than this is STALE in the run and `stale` in a reading (A17b)
     private: bool = False  # values kept in Drive only, never in this public repository (owner decision a927390)
     once_a_day: bool = False  # at most one download a day (the owner's condition for the private cues)
     may_hold_unfinished: bool = False  # a file read mid-session may hold the day's price so far (US index histories)
+    holiday_rows: bool = False  # the file repeats the previous value on its calendar's holidays (Nasdaq's history)
 
     @abstractmethod
     def requests(self, start: date, end: date) -> list[CueRequest]:

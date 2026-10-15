@@ -24,6 +24,7 @@ US_EASTERN = "America/New_York"
 class TreasuryTenYearSource(GlobalCueSource):
     cue, dataset, unit, date_zone = "us10y", "us-treasury/rates/par-yield-curve", "percent a year", US_EASTERN
     publisher = "US Department of the Treasury, daily par yield curve rates (10 Yr)"
+    max_age_days = 4  # as the US closes: a Thursday value on Monday, a Friday value on Tuesday
 
     def available_at(self, value_date: date) -> datetime:
         return at_local(value_date, TREASURY_POSTED, US_EASTERN)

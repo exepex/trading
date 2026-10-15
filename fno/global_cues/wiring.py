@@ -1,24 +1,29 @@
 """Composition root of story A17, the global cues: the only place that picks the concrete sources (Cboe, Nasdaq,
 US Treasury, EIA, RBI, FBIL), the shared polite HTTP session, the owner's Drive raw area, the snapshot logs, the tables
 in the repository (public cues) or Drive's derived area (private cues: the S&P 500 and Nasdaq 100, owner decision
-a927390) and NSE's session calendar for the `live` rule. Swapping a source is one line in SOURCES."""
+a927390), NSE's session calendar for the `live` rule, and each cue's calendar for its readings (story A17b). Swapping
+a source is one line in SOURCES."""
 
 from __future__ import annotations
 
+import csv
 import os
 from collections.abc import Callable
 from datetime import date, timedelta
 
-from ..constants import DERIVED_AREA, RESEARCH_USER_AGENT
+from ..constants import DERIVED_AREA, RESEARCH_USER_AGENT, SESSION_MUHURAT
 from ..http_pacing import PacedSession
 from ..models import now_ist
 from ..research_data.calendar import SessionCalendar
 from ..storage import wiring as storage
+from ..storage.creation_times import GoogleDriveCreationTimes
 from ..storage.raw_store import AreaStore, RawFileStore
 from .check_files import CueChecks
 from .collector import CueCollector
+from .cue_calendars import CueCalendar, NseSessionCalendar, NyseCalendar, WeekdayCalendar
 from .job import GlobalCueJob
 from .other_sources import EiaBrentSource, FbilUsdInrSource, RbiUsdInrSource
+from .reading import CueReader
 from .row_log import CsvRowLog, DrivePartsRowLog, DriveSnapshots
 from .snapshot_log import SnapshotLog
 from .source import GlobalCueSource
@@ -31,6 +36,8 @@ CUES_FOLDER = storage.REPOSITORY / "research" / "data" / "global-cues"
 CHECKS_FOLDER = CUES_FOLDER / "checks"
 SNAPSHOT_LOG_FOLDER = storage.MANIFEST_FOLDER / "global-cues"  # one row per archived copy, like the manifests
 REVISIONS_FILE = "revisions.csv"  # the public cues' shared revision log
+CLOSURES_FILE = CUES_FOLDER / "us_market_closures.csv"  # NYSE's unscheduled whole-day closures, each sourced
+TRADING_DATES_FILE = CUES_FOLDER / "us_trading_dates.csv"  # dates only, from the Drive-only index tables
 PRIVATE_FOLDER = "global-cues"  # in Drive's derived area: <cue>/rows, <cue>/revisions, <cue>/checks
 SOURCES: tuple[GlobalCueSource, ...] = (
     CboeSp500Source(),
@@ -55,7 +62,10 @@ def next_nse_session(calendar: SessionCalendar, first: date) -> Callable[[date],
     def after(day: date) -> date:
         if day < first:
             return day + timedelta(days=1)
-        return calendar.next_session(day)
+        day = calendar.next_session(day)
+        while calendar.session_kind(day) == SESSION_MUHURAT:  # an evening or afternoon hour: no 09:15 open
+            day = calendar.next_session(day)
+        return day
 
     return after
 
@@ -63,6 +73,25 @@ def next_nse_session(calendar: SessionCalendar, first: date) -> Callable[[date],
 def _after() -> Callable[[date], date]:
     calendar = storage.build_session_calendar()
     return next_nse_session(calendar, calendar.first)
+
+
+def us_market_closures(path=CLOSURES_FILE) -> list[date]:
+    with open(path, encoding="utf-8") as f:
+        return [date.fromisoformat(row["date"]) for row in csv.DictReader(f)]
+
+
+def build_calendars(calendar: SessionCalendar) -> dict[str, CueCalendar | None]:
+    """Each cue's calendar for its expected date; None: age only (Brent, a weekly release)."""
+    nyse, nse = NyseCalendar(us_market_closures()), NseSessionCalendar(calendar, calendar.first)
+    by_cue = {"sp500": nyse, "nasdaq100": nyse, "us10y": WeekdayCalendar(), "usdinr_rbi": nse, "usdinr_fbil": nse}
+    return {s.cue: by_cue.get(s.cue) for s in SOURCES}
+
+
+def build_reader(include_private: bool = True, env=os.environ) -> CueReader:
+    """What every consumer reads a cue through: `reading_for` on the cue's table (private ones need Drive)."""
+    tables = build_tables(include_private, env)
+    calendars = build_calendars(storage.build_session_calendar())
+    return CueReader(tables, {s.cue: s for s in SOURCES if s.cue in tables}, calendars)
 
 
 def _owner_drive(env=os.environ):
@@ -99,7 +128,7 @@ def _checks(tables: dict[str, CueTable], env=os.environ) -> CueChecks:
         for s in SOURCES
         if s.private and s.cue in tables
     }
-    return CueChecks(tables, CHECKS_FOLDER, private)
+    return CueChecks(tables, CHECKS_FOLDER, private, TRADING_DATES_FILE)
 
 
 def build_raw_area(env=os.environ) -> RawFileStore:
@@ -109,7 +138,8 @@ def build_raw_area(env=os.environ) -> RawFileStore:
 def build_job(env=os.environ) -> GlobalCueJob:
     session = PacedSession()
     session.headers["User-Agent"] = RESEARCH_USER_AGENT
-    collector = CueCollector(session, build_raw_area(env), SnapshotLog(SNAPSHOT_LOG_FOLDER), now_ist)
+    created = GoogleDriveCreationTimes(_owner_drive(env), storage.RAW_AREA)
+    collector = CueCollector(session, build_raw_area(env), SnapshotLog(SNAPSHOT_LOG_FOLDER), now_ist, created)
     tables = build_tables(env=env)
     return GlobalCueJob(collector, tables, _checks(tables, env))
 

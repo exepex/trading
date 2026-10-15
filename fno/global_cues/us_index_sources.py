@@ -36,6 +36,7 @@ def _json(data: bytes, what: str):
 
 class UsIndexSource(GlobalCueSource):
     unit, date_zone, private, once_a_day, may_hold_unfinished = "index points", US_EASTERN, True, True, True
+    max_age_days = 4  # Thursday's close on Monday (Good Friday), Friday's on Tuesday (a US Monday holiday)
 
     def available_at(self, value_date: date) -> datetime:
         return at_local(value_date, US_CLOSE, US_EASTERN)
@@ -60,6 +61,7 @@ class CboeSp500Source(UsIndexSource):
 class NasdaqNdxSource(UsIndexSource):
     cue, dataset = "nasdaq100", "nasdaq/indices/ndx-history"
     publisher = "Nasdaq, Inc. (owner of the Nasdaq-100 index), nasdaq.com quote API"
+    holiday_rows = True  # 83 dates since 2007 that NYSE was closed, 82 repeating the previous close
 
     def requests(self, start: date, end: date) -> list[CueRequest]:
         url = NASDAQ_NDX.format(start=start.isoformat(), end=end.isoformat(), limit=NASDAQ_LIMIT)
