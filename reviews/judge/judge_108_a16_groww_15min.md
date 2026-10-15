@@ -573,3 +573,14 @@ The owner rule is in `docs/DESK_DECISIONS.md`, 15 Oct: a scenario counts only if
 - **Re-rated: addendum 11 should-fix 2, now met.** It assumed another writer stages files in the recorder's checkout. The story itself says each routine fire is a fresh clone, and A16b's backfill is a one-off command run elsewhere. Under the new rule that path is not shown to happen. It would have been at most a note, and the folder-only check the orchestrator first decided would have been enough.
   - What it added: the whole-index check is a few lines inside the same committer, with two tests.
   - The owner or orchestrator decides whether to keep it, per point 4 of the rule. I do not ask for its removal.
+
+## Addendum 15 (15 Oct 2026): merge check, part 1, A16e merged to `main` as b035811
+
+**Merge structure: complete and matching the PASS.**
+- `b035811` has parents `c6c285a` (main) and `f8ba463`, the SHA I passed, and it is on `origin/main`.
+- Leaving out judge files, the merge's change has the same stable patch-id (`bb9b3d00…`) as the branch's diff from its base `902f3b6`.
+- On b035811 with `FNO_SLACK_BOT_TOKEN` unset: 4,624 passed; ruff and check_imports clean.
+
+**Rule 8: open.** Under the plan accepted in addendum 13, I check the builder's dry run and the first live fire's commit file list when they arrive. Until then A16e is merged but not yet proven live.
+
+The orchestrator keeps the whole-index check (addendum 14, point 4).
