@@ -46,6 +46,7 @@ def _risk(trades: Sequence[ScoredTrade], series: DailySeries) -> dict:
         "stress_reserve_days_rs": rupees(sum(reserves)),
         "stress_usage_at_entry_max": round(max(usage), 6) if usage else None,
         "no_max_loss": sorted(t.trade_id for t in trades if t.entry is None),
+        "no_capital": sorted(t.trade_id for t in trades if t.entry and t.entry.capital_tied is None),
     }  # fmt: skip
 
 

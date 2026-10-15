@@ -22,3 +22,20 @@ def test_a_record_with_a_stress_reserve_keeps_it_out_of_capital_tied():
                     reserve=400.0)  # fmt: skip
     facts = entry_facts(chosen, SEGMENT, overridden=False)
     assert facts.capital_tied == 112_600.0 and facts.stress_reserve == 400.0
+
+
+def test_a_trade_whose_record_has_no_capital_is_listed_not_dropped_silently():
+    """An owner override after C2 could not compute a margin: the record's margin verdict has no numbers."""
+    from fno.scoreboard.sections import _risk
+
+    chosen = record("book1_rules", date(2026, 10, 14), "2026-10-14T1500", "o3", max_loss=6000.0)
+    chosen["risk"]["verdicts"][0]["numbers"] = {}
+    facts = entry_facts(chosen, SEGMENT, overridden=True)
+
+    class Trade:
+        trade_id, entry = "o3", facts
+
+    class Series:
+        days, risk_days, net_per_risk = (), 0.0, None
+
+    assert facts.capital_tied is None and _risk([Trade()], Series())["no_capital"] == ["o3"]

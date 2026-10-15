@@ -66,7 +66,56 @@ not its debit. Groww credits the sold premium only after settlement (judge 77 ad
 | 5 | The activation gate: an STR1 version cannot be registered as a shadow (gate STR1b-2) or approved to paper (STR1b-2, E8), and nothing is written. An unregistered draft file still loads. SF, SC and BF are unaffected. With STR1b-2 removed, a shadow is allowed and paper still waits for E8. D2 takes shadows and approved versions only from the loaded playbook, so the loader's check covers D2 | `fno/constants.py:101-105`, `fno/playbook/activation.py`, `fno/playbook/loader.py:113-115` | `tests/playbook/test_activation_gate.py` | 5a shadow use not detected; 5b gate ignored | strong |
 | 6 | No file or class over 350 lines (`constants.py` is 330); `composition.py` unchanged | n/a | `tests/test_code_size.py` | n/a | strong |
 
-Mutation script: `python research/2026-10-15-str1b-samples/mutate.py` (results below).
+Mutation script: `python research/2026-10-15-str1b-samples/mutate.py`, run on 15 Oct. All 11 mutations fail their test:
+1a, 1b, 1c, 1d, 2, 2b, 3, 3b, 4, 5a and 5b. The files are restored after each run.
+
+### Self-review (quality rule 3): two independent agents, real paths only (owner's rule)
+
+Both agents ran the full suite (5,215 passed). Neither found a blocking problem.
+
+**Correctness agent.** It confirmed by running the code:
+- the cap on all 47 real rows;
+- SF, SC and BF unchanged to the paisa;
+- C2 never below the broker's figure;
+- C2 and C4 agree on every row;
+- the approvals day boundary on the live `config.yaml`;
+- that the activation gate cannot fail the whole load on a normal path.
+
+Its findings and what I did:
+- *Should-fix:* the story said C4 also records the four capital figures, but only C2 does. **Text narrowed:** C2
+  records the split; C4 recomputes the same capped margin with its own code and names its row; S2 reads C2's record.
+- *Nit:* `stressed_span` is not recorded on its own. **Text says** it equals the broker span plus the reserve.
+- *Data note:* on the real rows, every CCS scan figure is above that spread's maximum terminal loss (CCS 200: 6,102.85
+  against 5,060.25), while PCS's are below. **For the owner** (below). The floor keeps C2 safe.
+
+**Silent-failure agent.** It confirmed:
+- the config migration changes nothing for SF, SC and BF;
+- the margin job's daily alerts are as before (the 7-13 Oct days before the 14 Oct approval, which age out about
+  21-22 Oct);
+- the gate cannot refuse today's playbook (empty registry, SC example only);
+- the key names agree between C2 and S2.
+
+Its findings and what I did:
+- *Nit, real path (owner overrides):* a trade with no capital figure, after an owner override when C2 could not compute
+  a margin, dropped silently out of S2's capital days. **Fixed:** S2 now lists such trades as `no_capital`, like
+  `no_max_loss`; tested.
+- *"Should-fix" under DRY:* the cap formula is written twice, in C2 and C4. **Rejected:** C4 must not import C2's code
+  (judge 83's independence test). The test that C2 equals C4 on all 47 real rows catches any drift.
+- *Nit:* the S2 tests write `capital_rs` by hand. **Kept:** C2's own test checks the keys it writes, and the names
+  match.
+- *Nit:* an approval added to the config after the job has run for its `passed_on` day leaves that one day without the
+  code's row. **Known limit:** the decision for that day has already run.
+- *Behaviour:* credit spreads end up with no stress reserve. **For the owner** (below).
+
+### For the owner
+
+- **Credit spreads get no stress reserve.** On every real row, NSE's own SPAN figure for CCS and PCS is already above
+  `width x lot - credit`, and the cap never goes below the broker's figure. So the owner's 1.45 adds nothing to them.
+  Evidence: strong (real rows).
+- **Check this when broker-checking CCS.** NSE's scan figure for CCS is above the spread's maximum terminal loss at
+  every width (by about Rs 400-1,250 per lot), while PCS's is below. I don't know why. One possibility is that the
+  "ATM" call is in the money against the November forward, so NSE's scenario prices differ from the terminal payoff;
+  that is reasoning only. Groww's margin for CCS should show which figure the broker really blocks.
 
 ### Real output (quality rule 6)
 

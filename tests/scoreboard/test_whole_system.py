@@ -35,7 +35,8 @@ SECTION_KEYS = {
     "operating_costs_rs", "ai_cost_allocated_rs", "raw_account_net_rs", "net_rs", "risk", "uncertainty", "valuation",
 }  # fmt: skip
 RISK_KEYS = {"max_loss_at_entry_rs", "risk_days_rs", "mean_daily_risk_rs", "net_per_unit_of_risk", "margin_days_rs",
-             "margin_days_method", "stress_reserve_days_rs", "stress_usage_at_entry_max", "no_max_loss"}  # fmt: skip
+             "margin_days_method", "stress_reserve_days_rs", "stress_usage_at_entry_max", "no_max_loss",
+             "no_capital"}  # fmt: skip
 
 
 def history(tmp_path, common=True):
