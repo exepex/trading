@@ -36,3 +36,22 @@ text only; the code waits for E8 and S6's follow-ups. This judges 0d644e83, the 
 
 **Verdict: PASS for 0d644e83 (story text).** Code waits for E8 and S6's follow-ups. Rule 9 (ChatGPT) applies to the
 code.
+
+## Addendum 1 (15 Oct 2026): b521bff0, after ChatGPT review 131 (text only)
+
+- **No code changes since 0d644e83.** The diff is the story, review 131, response 215 addendum 1, response 218 and
+  README lines.
+- **The chain bullet and criterion 9 are consistent and correct.**
+  - Decisions → gate refused (by reason, from a named prefix table, unknown as "other") → reached the fill →
+    opened / missed / awaiting fill → closed / open. Both counts are stated in words.
+  - **The numbers, recomputed:**
+    - (9 × 900 − 250) / 10 = Rs 785, and the filled-only average of the nine closes is Rs 900;
+    - 22 of 30 = 73.3% hides version 2's 2 of 10 (20%), which is why the cohort filter matters.
+  - Open trades: `open_count`, the oldest age, the "closed only, provisional" label, and the printed denominator
+    (opportunities minus open).
+  - The cohort label and the date and version filter live in the same counter, with no second engine. Still no S1
+    verdict change.
+- **Judge 212's two notes are folded in:** the reason code is matched before " ("; "partial fill, unwound" is
+  `not_opened_partial_fill`; the guard is one named pattern constant and is in criterion 3's named test.
+
+**PASS for b521bff0.**
