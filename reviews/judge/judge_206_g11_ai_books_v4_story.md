@@ -75,3 +75,20 @@ stops between the commitment and the file write would let a look pass.
 before the freeze commit. I check that at the freeze verdict.
 
 **Verdict: PASS for 6420714c (story text).** Code waits for the freeze.
+
+## Addendum 2 (15 Oct 2026): 39c2823e (text only after the PASS)
+
+- **Text only:** five files change (the story, the register row, response 202 addendum 3, response 206 and the README
+  index). There is no code.
+- **Consistent with the record:**
+  - the owner's A matches `DESK_DECISIONS.md` line 227 (16 Oct, "G11: at the v4 freeze the AI books' v4 run replaces
+    the v2 AI run");
+  - `fno/ai`'s v4 ownership is in the register row;
+  - the `forecast-capture.yml` fire step is now a named prerequisite owned by the A16/G8/G10 builder, with G11 not live
+    until it merges;
+  - the cost line follows option A;
+  - Depends adds the look refusal.
+- **Addendum 1's note is closed:** a row enters `open_audits.csv` in the same commit as the book's collected
+  submission.
+
+**PASS for 39c2823e.**
