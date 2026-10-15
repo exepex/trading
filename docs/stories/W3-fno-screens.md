@@ -63,7 +63,11 @@ E4c/E4d builder (0134MoC6f7aAJVcHRBiyATo6, dashboard `web/`). One builder per fu
    the per-input `reaches` colour over 2,409 days would let the levels be read back, reasoning only); AI model names
    and session ids (`DESK_DECISIONS.md`: no screen names an AI model); the US cue (`us_move`, Drive only).
 5. **Owner-only fields** (`x-visibility: owner`, P1) are published to Azure and shown only on the signed-in dashboard;
-   the gateway never imports the F&O screen code (a test).
+   the gateway never imports the F&O screen code: an import-graph test over everything the gateway serves
+   (`web/middleware.ts`; under `MB_GATEWAY=1`, `web/lib/tools/gateway.ts` lets through only `app/slack` (POST),
+   `app/mcp` and its OAuth rewrites to `/mcp/oauth/*`, `app/brief/<market>/<date>-<hex>`, the legal pages and the
+   site-verification file, and `/` rewritten to `/about`) fails if any of them reaches `lib/fno-*` or an F&O screen
+   page, proven with a planted import.
 6. **Paper** on every money figure; **Example** labels on states real data does not have yet; empty and
    not-published states are shown honestly, never as zero.
 
