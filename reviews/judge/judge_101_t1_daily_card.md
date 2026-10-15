@@ -219,3 +219,48 @@ accepted on my own probe. The receipts change is sound and fails closed. Three m
 - **At the merge check:** criterion 16(b), GitHub's push receipt of the test delivery file
   (`research/cards/deliveries/2026/2026-10-15-a1.json`) once it reaches `main`, plus the recomputed merge, the branch
   files equal to 44fa45d, and CI.
+
+## Addendum 2 (15 Oct 2026): merge check, T1 merged to main as f0c47ae; criterion 16(b)
+
+- **Parents.** f0c47ae's parents are 215fc26 (main) and 44fa45d (the passed tip).
+- **The merge matches my recomputation, apart from resolved conflicts.** `git merge-tree --write-tree` conflicts in
+  `fno/cli.py` and `reviews/claude/README.md`. f0c47ae's tree differs from the recomputed tree only by those files'
+  conflict-marker lines.
+  - `fno/cli.py` keeps both sides: the `vix-history` import and parser line (A15) and the `card` ones (T1).
+  - The README keeps both rows.
+- **Branch files arrived unchanged.** Every file T1 changed equals 44fa45d, except where `main`'s own additions from A15
+  share the file: `CLAUDE.md`, `fno/cli.py`, `fno/constants.py`, `fno/storage/README.md` and
+  `reviews/claude/README.md`. In each of those, T1's lines are present unchanged.
+- **Criterion 16(b), GitHub's push receipt:** **MET.** `python -m fno card witness --on 2026-10-15` on main prints:
+  `research/cards/deliveries/2026/2026-10-15-a1.json: Slack 2026-10-15 06:20:14 IST (ts 1792025414.919329); GitHub push
+  receipt 2026-10-15 07:44:39 IST (commit cc441095a4)`.
+  - cc44109 is in main's history.
+  - The receipt is the push that brought the merge to `main` (02:14:39 UTC). So for this test post it witnesses the
+    merge, not when the file was written. The file sat on the story branch from 00:50:24 UTC, and branch pushes are
+    not in main's activity log.
+  - For daily cards committed straight to `main` by the scheduled run, the two witnesses will be minutes apart.
+- **No unjudged change since.** From f0c47ae to aa2f4c3 only `reviews/`, conversation and decision files changed.
+- **CI.** The first push carrying f0c47ae is aa2f4c3: run 38669953437 (`checks`) **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records the dry run on the merged tree printing the PAPER ONLY NO TRADE
+  card with nothing written. My own dry runs at 3e705bf and 44fa45d agree.
+
+**Merge check: PASS. T1 criterion 16 is now MET in full.**
+
+## Addendum 3 (15 Oct 2026): follow-up 9d5310b177da959a1bd46ce3d8231841f5783e13 (owner "4 A" weather wording)
+
+One commit on top of 44fa45d. It changes `fno/cards/weather.py`, one test, the story's criterion 3 and response 101.
+
+- **The card now carries the owner's rule.** The weather section reads "Weather: not yet scored (M1 pending)", then
+  **"No new trades while the weather reading is missing (owner rule)."**, then the M1 line. That is the owner's "4 A"
+  (row 136: missing weather fails closed, like RED).
+  - Nothing on the card implies a trade would be allowed.
+  - The colour test still passes: "reading" is not the word RED.
+- **The test bites.** My mutation removing the line from the section fails 1 test (`tests/cards` 60 of 61 pass).
+  `tests/cards` passes 61 of 61 at 9d5310b.
+- **Gates.**
+  - At 9d5310b: `ruff check`, `ruff format --check` (730 files) and `check_imports` are clean.
+  - On a trial merge with `origin/main` 6c473ea, which already holds T1 and A15: **3,539 passed**; ruff, format and
+    imports clean.
+- Minors 1 and 3 of addendum 1 go to the builder's next follow-up, as the orchestrator says. I check them when sent.
+
+**Verdict: PASS for 9d5310b177da959a1bd46ce3d8231841f5783e13.** Merge it; I check the merge afterwards.
