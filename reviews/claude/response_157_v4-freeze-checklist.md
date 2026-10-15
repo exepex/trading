@@ -40,6 +40,9 @@ Lane 1: a judge and ChatGPT before the freeze commit. Nothing here is frozen yet
   builder moves M1's weather constants out of `fno/constants.py` into it; orchestrator, 16 Oct). **The freeze commit
   comes after that move.** If M1's `METHOD_FILES` does not list the new file, its `method_sha256` stops covering those
   values: the move should add it there too (checked when the freeze is prepared).
+- **Before the freeze commit (judge 189, judge B's condition):** G10 part 2's moved-after-cutoff flag, written by
+  A16's 15:30 run into its rv row (orchestrator's go, 16 Oct), changes `fno/intraday/session_rv.py`, which is
+  byte-checked; it lands before the freeze or becomes a new version.
 - **Recorded, not byte-checked:** `fno/constants.py`, `fno/desk/settlement.py`, `fno/research_data/calendar.py`,
   `fno/research_engine/implied_vol.py` (section 10), plus `fno/intraday/rv_table.py` (V1's outcomes) and
   `fno/forecast/iv30.py` (frozen under v1-v3 already), and the rest of `fno/weather/` (the US flag and the card stay
