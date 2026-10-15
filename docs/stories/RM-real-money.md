@@ -68,8 +68,9 @@ Out:
 5. The gate's two owner numbers of 8.4 (account size, per-trade cap) carry the owner's written decision and date
    before the freeze (decision 8): criterion 3 enforces it mechanically.
 6. The gate's terms define the evidence record by S1's version rule (Book 1 only, decisions after the freeze) and
-   measure every slippage from the paper price before pad (judge 171 SF1, SF2); `real_test_sample` keeps 8.4's
-   registered number (SF3). Checked by reading, traced in response 163.
+   measure execution slippage from a valid quote at the owner's order time (judge 171 SF1, SF2; ChatGPT review 118);
+   `real_test_sample` keeps 8.4's registered number (SF3); the paired net test binds (review 118). Checked by
+   reading, traced in response 163.
 7. No code path reads the gate to place, modify or cancel an order, and no broker write is imported (the
    `check_imports` rule and a test that `fno/evaluation/` imports no provider or broker module).
 8. Files stay under 350 lines; `fno/evaluation/freeze.py` stays one class with one job.
@@ -92,4 +93,4 @@ asked with options, never answered by the builder; the freeze refusal by plantin
   counts as "not met", never as a pass.
 
 **Depends:** S1 (draft built), S6 (text on main), E8 (story) · **Size:** S · **Status:** story text and draft gate
-revised for judge 171's three should-fixes; code waits for a text PASS, ChatGPT and the orchestrator's go
+revised for judge 171's should-fixes and ChatGPT review 118; owner questions Q1-Q13; code waits for a text PASS, ChatGPT and the orchestrator's go

@@ -50,6 +50,9 @@ questions are gaps 8.3 and 8.4 leave open; each needs an exact rule before the f
 | Q8 | Discipline: minimum share of cards the owner places | (a) 80%; (b) 90%; (c) none, report only | (a) (reasoning only) |
 | Q9 | Rs 20,000 stop measured from | (a) cumulative net from the first real entry; (b) peak to trough | (a): simplest and stricter early; (b) stops later after early gains are given back (reasoning only) |
 | Q10 | May S1's owner-decided `frozen_files` list add the gate file and `fno/evaluation/gate.py`? | (a) yes, one freeze; (b) no, a separate gate freeze record and command | (a): one freeze, one order check, no duplicate tool (some evidence) |
+| Q11 | Paired-net margin (`real_test_pass` 1): the one-sided 95% lower bound of mean(real net − paper net) per trade, 1 lot, charges included, must be at or above | (a) −Rs 500 (ChatGPT's proposal); (b) −Rs 1,000; (c) Rs 0 (real no worse than paper at all) | (a) −Rs 500 (reasoning only). Honest: with 20 trades and a paired SD near Rs 1,000, the bound sits about Rs 390 below the mean, so real must average within about Rs 110 of paper; (c) would almost always fail on noise alone (some evidence: arithmetic on an assumed SD; the real SD is unknown until trades exist) |
+| Q12 | Quote-age limit and source for a "valid quote" (execution slippage, fill honesty, cap fit). Also: share of real legs with unknown slippage that fails the test | Source: (a) the owner notes Groww's bid and ask at each real order (screenshot to Drive), A16 within the limit as fallback; (b) recorders only. Age: (i) 15 minutes (always one A16 snapshot); (ii) 5 minutes. Unknown share: 10% | (a) with (ii) 5 minutes for real orders, (i) 15 minutes for recorder-only uses; unknown share 10% (reasoning only). The owner's own note is the only quote truly at the order moment |
+| Q13 | Fill honesty's independent check when fewer than 20 paper legs have a quote from a second recorder at fill time | (a) condition 4 rests on (a) quote validity alone and reports the independent check as "unknown"; (b) strict: not met until 20 independent legs exist; (c) build a second recorder later and wait | (a): E8 fills at about 10:15 next session from A16 and no second recorder runs then, so (b) would block every version indefinitely, while `real_test_pass` 3 measures the real execution cost anyway (some evidence) |
 
 ## 4. Coordination
 
@@ -69,3 +72,15 @@ questions are gaps 8.3 and 8.4 leave open; each needs an exact rule before the f
 | Note: status and evidence fields with extra text; no version line | Agreed: the draft now parses with today's `parse_protocol` and all 12 items carry the exact status and bare labels (checked by script); the version line is exempted by a `require_version` parameter in the code round | Question references moved to Reason lines |
 | Note: A16 covers only nearest weekly and monthly expiries | Agreed | Stated in `fill_honesty` and Known limits; the owner sees it with the questions |
 | Note: `real_cap_fit` source | Agreed | Names the 3 pm recorder (A4, `research/data/quotes/`) at S1's timetable capture time |
+
+## 6. ChatGPT review 118 (PARTIAL): changes made at the commit after f8cbbc6c
+
+The orchestrator answers review 118 in response 171; these are the builder's checks and edits.
+
+| Point | Builder's check | Edit |
+|---|---|---|
+| Slippage mixes market timing with execution | Agreed (strong evidence): E8's 60-minute fill lands about 10:15 next session (`docs/stories/G-forecasts.md:541`) | New terms "valid quote" and "execution slippage" (owner's order time); real-minus-paper reported as the timing gap |
+| Paired test must bind | Agreed (strong evidence): 8.4 says "paired"; the draft judged only the unpaired bound | `real_test_pass` 1 binding paired bound with margin Q11; the prediction bound kept as floor 2 |
+| Cap fit on arbitrary days | Agreed (strong evidence) | Last 20 eligible opportunities with their own contracts; plus the next proposed trade |
+| Fill honesty against a later snapshot | Partly agreed: a later move is no proof, but the fill's own snapshot is circular. And an independent quote at fill time rarely exists (E8 at ~10:15 from A16; 3 pm recorder near 14:30-14:55) | Split into (a) validity and (b) independent check; the shortfall goes to the owner as Q13 rather than a gate that can never pass |
+| Wording (model-based bound, Bonferroni, settlement proxy) | Agreed | Done; the replay adds C1 charges and the pad. Also corrected 76.9 points as "before charges" |

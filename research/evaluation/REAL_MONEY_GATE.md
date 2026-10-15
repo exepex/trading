@@ -22,7 +22,15 @@ Terms used below:
   R = 60 minutes (owner, 15 Oct 2026), after C1 charges and pads. Pilot positions (before the freeze) and positions
   of any shadow account are shown, never counted: no order check proves a shadow's decisions follow the freeze.
 - **Paper price before pad:** the quote price a paper leg filled at (E8's snapshot ask for a buy, bid for a sell),
-  without `FILL_PAD_RS`. Every slippage below is measured from it, signed so that worse is positive.
+  without `FILL_PAD_RS`. Signed so that worse is positive, like every slippage below.
+- **Valid quote:** a recorded ask (for a buy) or bid (for a sell) of the same contract, both sides present, no older
+  than the quote-age limit before the moment it prices (owner question Q12). It comes from the recorders (A16's
+  15-minute snapshots or the 3 pm recorder, A4) or from the owner's record of Groww's bid and ask at the order (Q12).
+  No valid quote means "unknown", which counts as not met; it is never zero and never a pass.
+- **Execution slippage per unit:** a real leg's fill price minus the valid quote at the owner's order time (sells: the
+  reverse), worse positive. This isolates execution from market movement; E8's paper fill is often next session
+  (about 10:15), so the real-minus-paper price gap also holds the market's move and is reported apart as the
+  **timing gap**, never judged as slippage (ChatGPT review 118).
 - **Risk unit:** the position's modelled maximum loss at entry, every charge and pad included (B2, C2).
 - **Real cap, real account:** the two owner numbers of `real_test_account`.
 
@@ -65,20 +73,28 @@ Terms used below:
 ### `loss_caps` Condition 3: every loss stayed within its cap, in the record and in the crash replays
 - **Value:** (a) Every completed position's net loss is at most its risk unit (no loss beyond the modelled maximum).
   (b) The version's rules replayed through 20 Feb-30 Apr 2020 and 3-7 Jun 2024, at 1 lot, from NSE's daily F&O
-  settlement files: every replayed position's loss is at most the real cap. A replay that cannot be run (missing
-  data) counts as not met.
+  settlement files, with C1 charges and the pad in force at the review added to every leg: every replayed
+  position's loss is at most the real cap. This is a **daily-settlement proxy**, not an executable intraday result. A
+  replay that cannot be run (missing data) counts as not met.
 - **Status:** proposal, owner decides
 - **Reason:** 8.3 condition 3; the replay cap is owner question Q7; owner principle 4 (14 Oct 2026) names the 2020 and 2024 crashes.
 - **Evidence:** reasoning only
 
 ### `fill_honesty` Condition 4: paper fills were not kinder than the market
-- **Value:** For each paper fill leg, the gap per unit = how much better the paper price was than the first A16
-  snapshot after the fill (buys: that snapshot's ask minus the paper price before pad; sells: the paper price before
-  pad minus its bid). The mean gap over all the record's legs is at most the pad in force at each fill. Fewer than 20
-  legs with a snapshot counts as not met. A16 records only the nearest weekly and nearest monthly NIFTY expiries, so
-  a version trading any other expiry cannot meet this condition until A16 records it.
+- **Value:** Both hold on the evidence record:
+  (a) **Quote validity:** every paper fill leg was priced from a valid quote at its fill time (both sides present,
+  within the quote-age limit), checked against the hashed snapshot E8 filled from.
+  (b) **Independent check:** for each leg with a valid quote from a *different* recorder than E8's snapshot at the
+  fill time, gap per unit = that quote minus the paper price before pad (buys: its ask minus the paper price; sells:
+  the paper price minus its bid). The mean gap is at most the pad in force at each fill. What (b) requires when fewer
+  than 20 legs have an independent quote is owner question Q13.
+  A16 records only the nearest weekly and nearest monthly NIFTY expiries, so a version trading any other expiry
+  cannot meet (a) until A16 records it.
 - **Status:** proposal, owner decides
-- **Reason:** 8.3 condition 4: a positive mean gap larger than the pad means paper bought cheaper than the market let.
+- **Reason:** 8.3 condition 4. ChatGPT review 118: a later snapshot moving is not proof of a dishonest fill; checking
+  the fill against its own snapshot alone is circular, so (b) needs an independent quote at the same time. Fact for
+  Q13: E8 fills at about 10:15 next session from A16, and the only other recorder (3 pm) runs near 14:30-14:55, so
+  independent quotes at fill time will be rare.
 - **Evidence:** reasoning only
 
 ### `selection_adjustment` Condition 5: the edge survives the number of ideas tried
@@ -88,22 +104,26 @@ Terms used below:
     setting or code of the version changes between the two periods.
   - **(b) Multiplicity:** condition 1's lower bounds use one-sided level 0.05 ÷ m instead of 0.05, where m is the
     research ledger's trial count (every registered idea, screened-out and abandoned ones included) on the review
-    date (Holm's first step, which is the step the best idea faces).
+    date, fixed at that one predeclared review (Bonferroni, which is also Holm's first step; valid for one fixed
+    family and one look, so a later re-check is a new review with its own count).
 - **Status:** proposal, owner decides
 - **Reason:** The default route is owner question Q4. 8.3 condition 5 (owner decision 8 amended, "B ... => I accept"). With m = 50, route (b) needs a 99.9%
   bound: about 10 of 10,000 bootstrap resamples set it, so it is noisy; route (a) costs time but is cleaner.
 - **Evidence:** some evidence
 
 ### `real_cap_fit` Condition 6: the trade fits the real cap and the rules of the day
-- **Value:** At the review date: (a) the version's structure at 1 lot, at the NSE lot size in force that day, has a
-  risk unit at most the real cap, priced on each of the last 20 sessions' 3 pm recorder quotes (A4,
-  `research/data/quotes/`, captured at the time S1's timetable sets) and every one must fit; (b) a dated
+- **Value:** At the review date: (a) the version's last 20 eligible entry opportunities (the cards it actually
+  issued), each re-priced at 1 lot with its own contracts, its dated NSE lot size, the valid quotes at its entry and
+  C1 charges, have a risk unit at most the real cap; fewer than 20 opportunities, or any missing quote, is not met;
+  (b) the next proposed real trade fits the real cap at current valid quotes before the owner places it; (c) a dated
   note in `docs/DESK_DECISIONS.md` records a fresh check of SEBI's F&O and retail algo rules and of the tax treatment,
   with sources.
 - **Status:** proposal, owner decides
-- **Reason:** 8.3 condition 6. Fact for the owner: NIFTY's lot is 65 (`config.yaml`), so a Rs 5,000 cap allows about
-  76 index points of maximum loss per unit, charges included; one bought at-the-money monthly NIFTY option usually
-  costs more than that, so in practice only spreads or far-from-the-money options fit (some evidence).
+- **Reason:** 8.3 condition 6; ChatGPT review 118 (opportunities, not arbitrary days). Fact for the owner: NIFTY's lot
+  is 65 (`config.yaml`), so a Rs 5,000 cap allows 76.9 index points of maximum loss per unit before charges
+  (Rs 4,000: 61.5). A credit vertical's loss per lot is 65 × (width − credit) + charges: width 100, credit 30,
+  charges Rs 200 gives Rs 4,750 (fits Rs 5,000); width 200 gives Rs 11,250 (fails). One bought at-the-money monthly
+  option usually costs more than the cap, so in practice only spreads or far options fit (some evidence).
 - **Evidence:** some evidence
 
 ### `owner_approval` Condition 7: the owner says yes in writing
@@ -129,34 +149,40 @@ Terms used below:
 - **Evidence:** reasoning only
 
 ### `real_test_pass` The paired real-versus-paper test
-- **Value:** Each real trade is paired with the paper trade of the same card (E8, R = 60). At the end:
-  1. **Net:** the real trades' mean net per trade is at or above the lower end of the one-sided 95% prediction
-     interval for the mean of n new trades, built from the version's evidence record (m positions, scaled to 1 lot):
-     paper mean − t(0.95, m−1) × paper SD × √(1/n + 1/m).
-  2. **Slippage:** real slippage per unit of a leg = the owner's real fill price minus the paper price before pad of
-     the same card's leg (sells: the reverse), worse positive. Its mean over all real legs is at most the paper pad
-     (`FILL_PAD_RS` in force) + Rs 0.50.
-  3. **Discipline:** the owner placed at least 80% of the version's cards in the period; skipped cards are listed and
+- **Value:** Each real trade is paired with the paper trade of the same card (E8, R = 60, scaled to 1 lot). All four
+  must hold at the end:
+  1. **Paired net (binding):** d = real net − paper net per paired trade, charges included. The one-sided 95% lower
+     bound of the mean of d (mean − t(0.95, n−1) × SD(d) ÷ √n) is at or above the margin of owner question Q11.
+  2. **Prediction floor:** the real trades' mean net per trade is at or above paper mean − t(0.95, m−1) × paper SD ×
+     √(1/n + 1/m), from the evidence record's m positions. This is a model-based prediction bound (independent,
+     normally distributed trades assumed; option returns are skewed and can cluster, so it is a floor, not a
+     guarantee).
+  3. **Execution:** the mean execution slippage per unit over all real legs is at most the paper pad (`FILL_PAD_RS`
+     in force) + Rs 0.50; a leg with unknown slippage counts against the test (not met if more than one in ten legs
+     is unknown).
+  4. **Discipline:** the owner placed at least 80% of the version's cards in the period; skipped cards are listed and
      their paper results shown, never counted as real.
-  The paired mean real-minus-paper net and its 95% confidence interval are reported, not judged.
+  Reported, not judged: the timing gap per leg and its mean, and the paired mean with its two-sided 95% interval.
 - **Status:** proposal, owner decides
-- **Reason:** The interval's side is owner question Q5, the discipline share Q8. 8.4 (owner decision 8 amended): a prediction interval, never the narrower interval of paper's mean.
-  Only underperformance fails, so the interval is one-sided.
+- **Reason:** 8.4 (owner decision 8 amended) asks for a paired test and a prediction interval, never the narrower
+  interval of paper's mean; ChatGPT review 118 showed the paired comparison must bind, not only be reported. The
+  margin is Q11, the interval side Q5, the discipline share Q8. Only underperformance fails, so bounds are one-sided.
+  Fact: with n = m = 20 and SD Rs 5,000 the prediction floor sits about Rs 2,160 below paper's mean, a weak filter.
 - **Evidence:** some evidence
 
 ### `real_test_stops` When the test stops early
 - **Value:** Stop and report at once when either holds: (a) cumulative real net from the first real entry reaches
-  minus Rs 20,000, every charge included; (b) the mean real slippage per unit (as `real_test_pass` 2 defines it)
-  over the legs of any 5 consecutive real trades exceeds twice the paper pad. A stop is a fail; a new test needs a new owner decision.
+  minus Rs 20,000, every charge included; (b) the mean execution slippage per unit over the legs of any 5
+  consecutive real trades exceeds twice the paper pad (legs with unknown slippage left out of the mean and listed). A stop is a fail; a new test needs a new owner decision.
 - **Status:** proposal, owner decides
 - **Reason:** The base of (a) is owner question Q9. 8.4; both numbers are the owner's (decision 8).
 - **Evidence:** reasoning only
 
 ## Known limits
 
-- A real trade is filled by the owner's hand and time; the paper side uses E8's 60-minute fill, so timing differences
-  sit inside the paired gap.
+- The paired net (`real_test_pass` 1) compares the owner's fill with E8's later paper fill, so it holds market moves
+  as well as execution; execution alone is judged by `real_test_pass` 3, from quotes at the owner's order time.
 - 20 real trades give a wide prediction interval: the test finds only a large shortfall, not a small one.
-- The 2020 replay uses daily settlement prices, not intraday quotes.
+- The 2020 and 2024 replays are daily-settlement proxies with today's charges and pad, not intraday fills.
 - Shadow records never count toward the gate until a story proves their decisions follow the freeze (judge 171 SF1).
 - SEBI and tax rules can change between the freeze and the test; condition 6 re-checks them, it cannot freeze them.
