@@ -814,10 +814,96 @@ ChatGPT review 104 accepted the text; claims in `reviews/claude/response_184_e4c
 - **Shared displayed size.** `entry_problems` checks one entry's legs on their own. Two entries of the same book on
   one contract at one snapshot could each pass against size they would have to share. This predates E4c. Book 1
   trades nothing today (no approved strategy), but its orders are every traded opportunity of the day
-  (`fno/books/book1_orders.py`), so two approved strategies whose legs share a contract could reach it. The fix, once
-  that can happen, is to sum a book's required units per contract before any fill.
+  (`fno/books/book1_orders.py`), so two approved strategies whose legs share a contract could reach it. Fixed by story
+  E4d (orchestrator, 15 Oct 2026): a book's entries at one snapshot are checked together.
 - **One immutable snapshot.** The check and the fills read the same recorded snapshot, so the order book cannot
   change between legs. A real legged entry can meet a different book at each leg; this model cannot show that.
+
+---
+
+## E4d. A book's entries at one snapshot share its displayed size: the later one is refused, never over-filled
+
+**Repository:** trading · **Lane:** 1 (fills and entries). **Quality rule 9 applies** (ChatGPT after the judge's PASS).
+
+**Description:** As the risk manager, I want a book's entries at one execution snapshot to be checked against the
+displayed size *together*, so that two trades on the same contract never both fill against size only one of them
+could have taken.
+
+**Context and why:** ChatGPT review 123 (Q2) and E4c's first Known limit; orchestrator, 15 Oct 2026 (after response
+192): "it gets fixed, not just listed".
+- `entry_problems` (E4c) checks one entry's legs on their own. `DeskSteps.fill` loops over a book's orders at one
+  snapshot, so two entries needing 65 units each of one contract both pass against a displayed size of 100, and both
+  fill: 130 units at a touch that shows 100.
+- **This is a real path (code read, strong evidence):** Book 1's orders are every traded opportunity of the day
+  (`fno/books/book1_orders.py`). Two approved strategies near ATM (for example SF and BF on the monthly expiry) share
+  their short strikes.
+- Paper only: an over-fill inflates the book's results by fills that could not have happened at that quote.
+
+**Scope.** In:
+- **The units a book has already taken at this snapshot** come from its own desk records: every fill row with this
+  `snapshot_id` and this snapshot's SHA-256 (so a same-named snapshot of another day never counts), whatever its action
+  (an unwind's closing fills on the guard path included), summed per (contract, touch side): a buy takes ask size, a
+  sell takes bid size (judge 201). For each protective leg still held from an entry at this snapshot, its sell-back need
+  (the units bought less any already sold back there) is counted on the bid side too, the same capacity E4c checks. This
+  is a conservative reservation, not consumed liquidity: the sell-back is not an order, so it can refuse a short sale a
+  real book could have filled (review 126 Q2). This needs no new state: the records are kept in Drive after each entry
+  (E2c) and are what the next entry reads, and a rerun counts the same units (E1's fills are idempotent by fill ID). The
+  entry being checked never counts its own trade's rows, so a rerun after a crash between its fills and its event does
+  not refuse itself.
+- **The check:** `entry_problems` takes those units as an optional argument (empty by default, so E8 and E4c's tests
+  are unchanged). Each leg's side passes only if the displayed size covers this entry's units plus the units already
+  taken on that contract and side. The same `price_leg` is used with the summed units, so there is no second pricing
+  rule.
+- **The refusal:** the later entry is `not_opened` with a new code, `size_shared_in_book`, and
+  "(<contract>, <units> units, <taken> already taken in this book at this snapshot)". These are the book's own units,
+  never a quote figure. The information alert is the same as E4c's (`refused_by_check`).
+- **Order:** entries are checked in the order the book's orders come (the decision's order). The first that fits
+  fills; a later one that no longer fits is refused. E4c's own codes keep priority: a leg that fails on its own records
+  its E4c code. `size_shared_in_book` is recorded only when the leg would have passed alone.
+  This is a fixed, deterministic priority: Book 1's order list decides, the earlier strategy wins, and the order is
+  never changed after outcomes are seen (review 126, response 209). It is a paper execution policy, not a fair split
+  between strategies: a later strategy can lose capacity to an earlier one, and E6 and scoreboard B report such misses
+  (review 126 Q4, routed to their owners).
+- **Never pooled across books:** each book (and each shadow account) counts only its own records, as E1's firewall
+  says.
+
+Out:
+- **Exits at the same snapshot** (they run after the fills; a close that meets thin size already stays a pending exit,
+  E4 criterion 3).
+- **Across books.** Different paper accounts are independent hypothetical books.
+- **A short leg's buy-back depth.** E4c open question 2 is unchanged.
+
+**Acceptance criteria:**
+1. Two entries of one book each need 65 units of one contract on one side, against a displayed size of 100: the first
+   opens, the second is `not_opened` with `size_shared_in_book`, and no fill row or ledger row is written for it. At
+   size 130 both open; at 129 the second is refused (boundary).
+2. The same two entries in two different books both open (never pooled).
+3. A leg that would fail alone records its E4c code, not `size_shared_in_book`.
+4. A rerun of the fills step returns the recorded outcomes. The first entry's units are counted from its committed
+   fill rows, and nothing fills twice.
+5. A protective leg already opened counts its sell-back need on the bid side. A later entry that sells the same
+   contract short at the bid fits only if the bid size covers both.
+6. The reason and the alert hold no quote figure.
+7. `entry_problems` with no units taken behaves exactly as in E4c: every E4c test passes unchanged.
+8. Engineering: the code in `entry_check.py` or one small new class behind it; constants in `fno/constants.py`; no
+   file over 350 lines; ruff, imports and the full suite (`-n auto`) pass.
+
+**Test plan:** unit tests with the fly fixture (65 units) and an SF plus BF pair sharing the 25000 strikes: sizes 100,
+129, 130 and 131; two books; the rerun; a planted break per criterion. No network, no Slack.
+
+**Judge verifies:** plants the units taken as zero (criterion 1 fails), pooling across books (criterion 2), and the
+shared code taking priority over an E4c code (criterion 3).
+
+**Known limits:**
+- The snapshot's displayed size is all the depth the model knows. A real book could refill between two orders.
+- The units taken are those already filled at this snapshot. An entry refused for another reason takes nothing.
+- Every action other than `open` on a bought leg counts as reducing the protection still held. This is true for
+  `unwind`, `close` and `settle`, the only such actions today; revisit it with any new action (review 126 Q5a).
+- Two legs of one new entry on the same contract and side are not summed against each other. No STR1 structure has
+  such legs; add a focused test before any structure that does is activated (review 126 Q5b).
+
+**Depends:** E4c (merged first) · **Size:** S · **Status:** code PASS judge 205 (e33ba70d);
+ChatGPT review 126 PARTIAL, acceptable for merge (text only, response 209)
 
 ---
 
