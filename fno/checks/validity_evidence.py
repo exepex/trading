@@ -42,10 +42,19 @@ class Evidence:
     snapshot_id: str
     started_at: datetime
     rows: dict[Key, QuoteRow]
+    spot: float | None = None  # the capture's spot (meta `spot`), the one D2 prices with; None when not recorded
 
     def mids(self) -> dict[str, tuple[Key, float]]:
         """Each contract with an A4-usable quote: its key and mid."""
         return {row.contract: (key, row.mid) for key, row in self.rows.items() if row.mid is not None}
+
+    def atm_strike(self, expiry: str) -> float | None:
+        """The expiry's ATM strike as C4 re-derives it: among strikes with an A4-usable quote, the one nearest spot,
+        the lower on a tie (story STR1). None without a spot or a usable quote."""
+        strikes = {strike for (day, strike, _), row in self.rows.items() if day == expiry and row.mid is not None}
+        if self.spot is None or not strikes:
+            return None
+        return min(strikes, key=lambda strike: (abs(strike - self.spot), strike))
 
 
 def _time(text: str) -> datetime | None:
@@ -95,4 +104,5 @@ class EvidenceReader:
             return None, problems
         meta = json.loads(meta_bytes)
         rows = {_key(r): _row(r) for r in csv.DictReader(io.StringIO(csv_bytes.decode("utf-8")))}
-        return Evidence(record.snapshot_id, datetime.fromisoformat(meta["started_at"]), rows), []
+        spot = meta.get("spot")
+        return Evidence(record.snapshot_id, datetime.fromisoformat(meta["started_at"]), rows, spot), []

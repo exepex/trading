@@ -1,6 +1,7 @@
 """Composition root of story A14: the daily NSE margin job. The only place that picks its concrete parts: Drive's raw
 area (the first archived `i1` file, A9; A11 keeps later versions apart), NSE's exposure rule for index options, B2's
-structures and research widths, the entry window's near edge, `margins.csv` from `config.yaml` and #fno-desk."""
+structures (STR1's included) and research widths, the entry window's near edge, `margins.csv` from `config.yaml`
+and #fno-desk."""
 
 from __future__ import annotations
 
@@ -8,9 +9,9 @@ import os
 from datetime import date
 from pathlib import Path
 
-from ..composition import build_alert_sender, build_structures
+from ..composition import build_alert_sender, build_tradable_structures
 from ..config import ROOT
-from ..constants import NIFTY_SYMBOL
+from ..constants import NIFTY_SYMBOL, STRUCTURES_BOUGHT_ONLY
 from ..models import now_ist
 from ..research_data.expiries import DAYS_TO_EXPIRY
 from ..research_engine.cycle_costs import WIDTHS
@@ -33,9 +34,11 @@ def archived_span_file(raw: RawFileStore) -> DayFile:
 
 
 def build_row_builder(cfg: dict) -> MarginRowBuilder:
-    """SF, SC and BF at every research width, one NIFTY lot (`lot_sizes`), first monthly expiry 30+ days out."""
+    """Every tradable structure at every research width (LC and LP also at 0, the ATM strike), one NIFTY lot
+    (`lot_sizes`), first monthly expiry 30+ days out."""
     calculator = SpanMarginCalculator(NseIndexOptionExposure(), cfg["lot_sizes"][NIFTY_SYMBOL])
-    return MarginRowBuilder(build_structures(), WIDTHS, calculator, DAYS_TO_EXPIRY[0])
+    atm = dict.fromkeys(STRUCTURES_BOUGHT_ONLY, (0.0,))
+    return MarginRowBuilder(build_tradable_structures(), WIDTHS, calculator, DAYS_TO_EXPIRY[0], atm)
 
 
 def build_margin_log(cfg: dict, root: Path = ROOT) -> MarginLog:

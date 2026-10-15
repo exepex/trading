@@ -2,7 +2,8 @@
 structure and width's SPAN scan, net option value (NOV) and exposure margin, with source and date.
 
 - Stressed margin per lot: max(0, k x scan - NOV) + min(0, NOV) + exposure, with k the owner's stressed-margin
-  multiplier (which needs its source and date). A total not above 0 is refused.
+  multiplier (which needs its source and date). A total not above 0 is refused, except 0 for a bought-only
+  structure (LC, LP: NSE blocks no margin on a paid-up long option; story STR1).
 - Needed: every open trade's stressed margin, plus those of the trades chosen earlier the same day, plus the
   proposal's.
 - Available after the entry: the least of
@@ -22,7 +23,7 @@ from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
-from ..constants import STRESSED_MARGIN_MULTIPLIER
+from ..constants import STRESSED_MARGIN_MULTIPLIER, STRUCTURES_BOUGHT_ONLY
 from .validity_account import Position
 from .validity_chain import PricedChain
 from .validity_proposal import CheckResult
@@ -75,7 +76,7 @@ def stressed_per_lot(rows, terms: tuple[str, float, int], day: date, settings: M
         raise MarginProblem(f"margin for {structure} {width:g} is from {row['as_of']}, too old on {day}")
     scan, nov, exposure = (float(row[k]) for k in ("scan_per_lot_rs", "nov_per_lot_rs", "exposure_per_lot_rs"))
     per_lot = max(0.0, multiplier(settings, day) * scan - nov) + min(0.0, nov) + exposure
-    if per_lot <= 0:
+    if per_lot < 0 or (per_lot == 0 and structure not in STRUCTURES_BOUGHT_ONLY):
         raise MarginProblem(f"margin for {structure} {width:g} on {row['as_of']} is not above 0")
     return per_lot
 
