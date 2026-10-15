@@ -66,7 +66,8 @@ of the Strategy lab.
 2. Every example validates against its schema in both repositories, is labelled Mock, carries contract version 2.7.0,
    its page key and the SHA-256 of its payload by this repository's canonical JSON.
 3. Every leaf field has its meaning, unit, source record, freshness, visibility and whether the backend can fill it
-   today; every built field names a record field that exists in this repository (a test reads each one); no field the
+   today; every built field names a record field that exists in this repository, with a matching type where the record
+   is typed (a test reads each one); no field the
    backend cannot fill is filled with a made-up value outside a Mock example.
 4. Every money field says Paper; the card says PAPER ONLY; no example or schema property is named like a strategy
    internal (rule, threshold, filter, parameter, prompt, weight, feature, coefficient), and each page lists what is never
@@ -74,9 +75,11 @@ of the Strategy lab.
 5. Mockups 39 (card) and 40 (weather) read their data from the catalog only, each with data.json, template.html, a
    deterministic build.py, notes.md, rationale.md and screenshots at 1280 and 390 px with no console errors, no external
    requests and no overflow.
-6. Planted breaks are caught (an extra field, a missing field, RED without the block, NO TRADE without a reason, real money
-   eligible, a label without Mock, a stale hash, a missing empty case, money without Paper, a built field without or with
-   an unknown record, no visibility, a private key, no never-sent list), and here a renamed field fails validation.
+6. Planted breaks are caught (21 in the dashboard check: an extra or missing field, an open object, RED without the block,
+   NO TRADE without a reason, a TRADE card at rung 0 or in RED, real money eligible, a label without Mock, a stale hash, a
+   missing empty case, money without Paper, the card not PAPER ONLY, a built field without or with an unknown record, no
+   visibility, a private key or property, no never-sent list, net not gross minus costs, mockup drift); here a renamed or
+   retyped backend record field fails a test.
 7. Gates: dashboard code size, typecheck, tests and build, its api-contract checks; here pytest, ruff, ruff format and
    the import check; no file or class over 350 lines.
 

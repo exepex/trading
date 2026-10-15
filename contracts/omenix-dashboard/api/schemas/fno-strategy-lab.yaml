@@ -105,7 +105,7 @@ FnoStrategyResult:
   description: One strategy version's paper record, after every cost
   x-catalog: {source: "the strategy scorecard (E6) and scoreboard B (S2, with benchmarks and tax)", story: S2}
   additionalProperties: false
-  required: [strategy, family, rung, status, pause_reason, trades, won, lost, gross, costs, net, net_after_tax, worst_trade, max_drawdown, vs_index_fund, vs_cash]
+  required: [strategy, family, rung, status, pause_reason, trades, won, lost, gross, costs, net, net_after_tax, net_per_risk, worst_trade, max_drawdown, fill_error_per_unit, vs_index_fund, vs_cash]
   properties:
     strategy: {type: string, minLength: 1, x-unit: text, description: "The version's display name (never its rules)"}
     family: {$ref: '#/components/schemas/FnoFamily', description: Its book}
@@ -119,7 +119,21 @@ FnoStrategyResult:
     costs: {type: number, minimum: 0, x-unit: INR (Paper), description: 'Charges, pads, and its allocated AI and data costs (labelled allocated, not a bill)'}
     net: {type: number, x-unit: INR (Paper), description: gross minus costs}
     net_after_tax: {type: number, x-unit: INR (Paper), description: "net after the owner's chosen 31.2% tax scenario on a positive year"}
+    net_per_risk:
+      type: object
+      description: "S1's primary measure: net result per rupee of maximum loss at stake, after every cost, with its one-sided 95% lower bound (real-money check 1 needs the bound above zero)"
+      x-catalog: {source: "S1's evaluation protocol applied to the version's closed paper trades", story: S2}
+      additionalProperties: false
+      required: [value, lower_bound]
+      properties:
+        value: {type: ['number', 'null'], x-unit: rupees per rupee risked, description: 'Mean net per rupee at stake; null with no trade'}
+        lower_bound: {type: ['number', 'null'], x-unit: rupees per rupee risked, description: 'One-sided 95% lower bound; null below the sample S1 needs'}
+    fill_error_per_unit: {type: ['number', 'null'], x-unit: INR (Paper) per unit, x-catalog: {source: "E8's paper fills against the next real quote snapshot", story: E8}, description: 'Mean gap between the paper fill and the next real snapshot (design 3.2; real-money check 4 needs it within the pad); null until measured'}
     worst_trade: {type: ['number', 'null'], x-unit: INR (Paper), description: 'Its worst closed trade after costs; null with no trade'}
     max_drawdown: {type: number, minimum: 0, x-unit: INR (Paper), description: Largest fall from a high of its closed equity}
     vs_index_fund: {type: ['number', 'null'], x-unit: INR (Paper), description: 'net minus a NIFTY 50 index fund on the same capital and dates, after fees and tax; null until S2 publishes it'}
     vs_cash: {type: ['number', 'null'], x-unit: INR (Paper), description: 'net minus cash at the liquid-fund proxy rate on the same capital and dates; null until S2 publishes it'}
+  allOf:
+    - if: {properties: {status: {const: active}}}
+      then: {properties: {pause_reason: {type: 'null'}}}
+      else: {properties: {pause_reason: {type: string, minLength: 1}}}

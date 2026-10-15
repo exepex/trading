@@ -19,7 +19,7 @@ FnoWeather:
     missing_inputs: {type: array, description: 'What was missing (not_published only; empty otherwise)', items: {$ref: '#/components/schemas/FnoMissingInput'}}
     model_version: {type: string, minLength: 1, x-unit: id, description: 'The frozen weather version (its colour rule is in exepex/trading design 2.3 and never changes inside a version; a new rule is a new version)'}
     colour: {type: ['string', 'null'], enum: [GREEN, AMBER, RED, null], x-unit: enum, description: 'GREEN = calm, AMBER = take care, RED = a big move is much more likely than usual: no new trade today; null when not published'}
-    blocks_new_entries: {type: boolean, x-unit: yes/no, description: 'True when RED: the desk opens no new paper trade (owner''s survival rule, 14 Oct 2026)'}
+    blocks_new_entries: {type: boolean, x-unit: yes/no, description: 'True when RED, and when no weather was published (fail closed): the desk opens no new paper trade (owner''s survival rule, 14 Oct 2026)'}
     p_big_1d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, description: "Chance that NIFTY's next-session move is at least 2% either way"}
     p_big_5d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: probability 0-1, description: 'Chance that the largest move over the next 5 sessions is at least 2% either way'}
     base_rate_1d: {type: ['number', 'null'], minimum: 0, maximum: 1, x-unit: share 0-1, description: 'How often a 2% day happened over the last 750 sessions (the usual chance)'}
@@ -47,8 +47,8 @@ FnoWeather:
         required: [at, from, to, why]
         properties:
           at: {type: string, format: date-time, x-unit: UTC time, description: The snapshot time of the upgrade}
-          from: {type: string, enum: [GREEN, AMBER], x-unit: enum, description: Colour before}
-          to: {type: string, enum: [AMBER, RED], x-unit: enum, description: Colour after}
+          from: {type: string, const: AMBER, x-unit: enum, description: 'Colour before (always AMBER: design 2.3 allows only AMBER to RED inside a session)'}
+          to: {type: string, const: RED, x-unit: enum, description: Colour after (always RED)}
           why: {type: string, minLength: 1, x-unit: text, description: The driver in plain words}
     recent:
       type: array
@@ -92,11 +92,11 @@ FnoWeather:
         shadow_net: {type: ['number', 'null'], x-unit: INR (Paper), description: 'What the blocked trades would have made after costs (positive = RED cost money; negative = RED saved money)'}
   allOf:
     - if: {properties: {status: {const: not_published}}}
-      then: {properties: {colour: {type: 'null'}, missing_inputs: {minItems: 1}, blocks_new_entries: {const: false}}}
+      then: {properties: {colour: {type: 'null'}, missing_inputs: {minItems: 1}, blocks_new_entries: {const: true}}}
       else: {properties: {colour: {type: string}, missing_inputs: {maxItems: 0}, p_big_1d: {type: number}, p_big_5d: {type: number}}}
-    - if: {properties: {colour: {const: RED}}, required: [colour]}
-      then: {properties: {blocks_new_entries: {const: true}}}
-      else: {properties: {blocks_new_entries: {const: false}}}
+    - if: {properties: {colour: {enum: [GREEN, AMBER]}}, required: [colour]}
+      then: {properties: {blocks_new_entries: {const: false}}}
+      else: {properties: {blocks_new_entries: {const: true}}}
 FnoWeatherScore:
   type: object
   x-provisional: 'protocol v4 (G6) is not frozen or merged yet: this shape may change when G6 freezes'

@@ -11,7 +11,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "ceb40618fbc79a72263d0226521361193f9e704aa07224e475b5adb2548586f0",
+   "payload_sha256": "3574b60c9bfa37ad41df50c6b9fdf3674cff9edd173744dc0e8a633e57a36473",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -66,25 +66,24 @@
       "units": 65,
       "funds_at_entry": 29500
      },
-     "max_loss": 3980,
+     "max_loss": 3984,
      "worst_cases": [
       {
        "scenario": "The worst 5 sessions of March 2020",
-       "loss": 3980
+       "loss": 3984
       },
       {
        "scenario": "The week of 4 June 2024",
-       "loss": 3980
+       "loss": 3984
       }
      ],
      "exit_plan": [
-      "Closes at its registered profit target",
-      "Closes before the expiry week (its registered time exit)",
+      "Closes at its registered exits (a profit target and a time exit), checked once a day",
       "The most it can lose is fixed at entry: no stop-loss order is needed or relied on"
      ],
      "costs": {
       "charges_and_pads": 214,
-      "breakeven_per_unit": 58.3,
+      "breakeven_per_unit": 61.3,
       "tax_rate": 0.312
      },
      "vol_edge": null,
@@ -130,7 +129,7 @@
      "rung": 3,
      "label": "some evidence",
      "real_money_eligible": false,
-     "text": "Rung 3: approved to paper by the owner; 38 paper trades, lower bound -0.02 per rupee risked. Real money: not eligible (gate 8.3 not met)"
+     "text": "Rung 3: approved to paper by the owner; 38 paper trades, lower bound +0.01 per rupee risked (above zero, after every cost). Real money: not eligible (gate 8.3 not met)"
     },
     "footer": {
      "record_hashes": [
@@ -175,7 +174,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "3d77fee98c2b36f4e7749dc919d949aadb8be9c422f9d25a93b7dd20e92a6d3b",
+   "payload_sha256": "7abb71d646a841f77bd3c0ff31a98e4e0a008cca7d7dfbbea92a9426ec1be9ca",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -230,11 +229,11 @@
       "units": 65,
       "funds_at_entry": 31200
      },
-     "max_loss": 5290,
+     "max_loss": 5296,
      "worst_cases": [
       {
        "scenario": "The worst 5 sessions of March 2020",
-       "loss": 5290
+       "loss": 5296
       }
      ],
      "exit_plan": [
@@ -323,7 +322,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "603bb4562c838d9f7f463b00671198fa9f541c2739cf0e97d26051577602fc78",
+   "payload_sha256": "1ce2b3a5db761429d3d65ed151ba5f48d198e3bc3639be39f2666d48f39c8914",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -376,7 +375,7 @@
     "reason_text": "No new trade today: the weather is RED",
     "weather": {
      "colour": "RED",
-     "why": "RED: a 2% day is 2.8 times as likely as usual (India VIX up 22% in 3 sessions; Union Budget next session)"
+     "why": "RED: a 2% day is 2.8 times as likely as usual (India VIX up 22% in 3 sessions; RBI policy decision next session)"
     },
     "evidence": {
      "rung": null,
@@ -415,7 +414,7 @@
    "built_at": "2026-11-16T09:38:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "68b8fb7a9c3ca2f6adc98328d5caff893088b26fe4d4d29f1510ea60c6c64974",
+   "payload_sha256": "5e17e37bfe187de866a4eeaa11f9dcf01e7f381bedbdf1926b18069e149ca3f4",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -450,7 +449,7 @@
       {
        "input": "3 pm Groww quotes of NIFTY monthly options",
        "story": "A4",
-       "detail": "41 of 60 contracts had no bid or ask at 15:00; retried until 15:10"
+       "detail": "41 of 60 contracts had no bid or ask at 15:00; no later quote may enter the card"
       },
       {
        "input": "India VIX level at 15:00",
@@ -599,7 +598,7 @@
    "built_at": "2026-11-16T09:31:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "140d0cff3d45b70601fee98de5a268f64885e4d67518649655eb7d4087151673",
+   "payload_sha256": "a9401b3e5dc488d3fe0a41fed6c555505ad80c108239585056122dc3ab68ca3f",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -644,11 +643,6 @@
     ],
     "recent": [
      {
-      "session": "2026-11-03",
-      "colour": "GREEN",
-      "big_move": false
-     },
-     {
       "session": "2026-11-04",
       "colour": "GREEN",
       "big_move": false
@@ -660,6 +654,11 @@
      },
      {
       "session": "2026-11-06",
+      "colour": "GREEN",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-08",
       "colour": "GREEN",
       "big_move": false
      },
@@ -740,7 +739,7 @@
    "built_at": "2026-11-16T09:31:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "2989fd5819fc1c6826f82ffd5aa61396e67bf633fbde8a553d2923881995bf93",
+   "payload_sha256": "092e1c5c14db85a461c64f551ea4c4fd84448c74d478c6244f4cf5528c249244",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -781,7 +780,7 @@
      },
      {
       "driver": "scheduled_event",
-      "text": "Union Budget next session",
+      "text": "RBI policy decision next session",
       "push": "riskier"
      },
      {
@@ -792,22 +791,22 @@
     ],
     "recent": [
      {
-      "session": "2026-11-03",
-      "colour": "GREEN",
-      "big_move": false
-     },
-     {
       "session": "2026-11-04",
       "colour": "GREEN",
       "big_move": false
      },
      {
       "session": "2026-11-05",
-      "colour": "AMBER",
+      "colour": "GREEN",
       "big_move": false
      },
      {
       "session": "2026-11-06",
+      "colour": "AMBER",
+      "big_move": false
+     },
+     {
+      "session": "2026-11-08",
       "colour": "AMBER",
       "big_move": true
      },
@@ -888,7 +887,7 @@
    "built_at": "2026-11-16T09:31:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "511b97cd20fb30f9ac3eec989495b72280f1e8f93c5b8ed0315d008308151ebc",
+   "payload_sha256": "c4ca75d915ed62c8b967c9aaeaa1fc82d81bda02aa56dabc6b92f0a5d7ead59b",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -915,7 +914,7 @@
     "base_rate_5d": 0.137,
     "intraday": [],
     "colour": null,
-    "blocks_new_entries": false,
+    "blocks_new_entries": true,
     "p_big_1d": null,
     "p_big_5d": null,
     "times_usual_1d": null,
@@ -979,7 +978,7 @@
    "built_at": "2026-11-16T12:10:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "5d5ee3a60f13ef787e1940bb3abb244c710f633eae2de518844876a000bb8fe7",
+   "payload_sha256": "21ac645f078ea6712725b896614e26d308e74d31810b98d2497a4114ffb1e534",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1248,7 +1247,7 @@
          ],
          "p_value": 0.21,
          "verdict": "no_difference",
-         "min_effect_met": false
+         "min_effect_met": true
         }
        ]
       },
@@ -1327,9 +1326,9 @@
        ]
       },
       "settle": {
-       "status": "projected",
-       "r": 2.6,
-       "projected_date": "2028-02-01"
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
       }
      }
     ]
@@ -1338,7 +1337,7 @@
  },
  "getFnoForecastLab_india_losing": {
   "summary": "Mock (india): forecasters losing to their yardsticks",
-  "description": "AI team worse on Q4 (too sure when wrong) and on V2; V3 cannot be settled in useful time",
+  "description": "AI team worse on Q4 (too sure when wrong) and on V2, which cannot be settled in useful time; V3 has 6 of the 40 days its test needs",
   "x-case": "negative",
   "value": {
    "market": "india",
@@ -1348,7 +1347,7 @@
    "built_at": "2026-11-16T12:10:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "b8c5c65d4a03b62ac0816207b21a3cb75f948f14af59f1553803364a0b6ed1f5",
+   "payload_sha256": "aac36d714497bde4adc6ef9a144fccaccaeb55ab0227ea3aa8089a1b22cab082",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1455,7 +1454,7 @@
       "waiting_for": [],
       "today": {
        "made_on": "2026-11-16",
-       "answer_on": "2026-11-30",
+       "answer_on": "2026-12-01",
        "values": [
         {
          "forecaster": "book3_ai",
@@ -1534,18 +1533,18 @@
        ]
       },
       "scores": {
-       "n_scored": 26,
+       "n_scored": 64,
        "n_void": 0,
        "n_needed": 20,
        "per_forecaster": [
         {
          "forecaster": "book3_ai",
-         "n": 26,
+         "n": 64,
          "mean_loss": -3.12
         },
         {
          "forecaster": "baseline_premium_adjusted_implied",
-         "n": 26,
+         "n": 64,
          "mean_loss": -3.31
         }
        ],
@@ -1553,7 +1552,7 @@
         {
          "forecaster": "book3_ai",
          "baseline": "baseline_premium_adjusted_implied",
-         "n_pairs": 26,
+         "n_pairs": 64,
          "mean_diff": 0.19,
          "interval": [
           0.08,
@@ -1566,9 +1565,9 @@
        ]
       },
       "settle": {
-       "status": "not_measured",
-       "r": null,
-       "projected_date": null
+       "status": "beyond_2_years",
+       "r": 4.8,
+       "projected_date": "2033-03-01"
       }
      },
      {
@@ -1583,7 +1582,7 @@
       "waiting_for": [],
       "today": {
        "made_on": "2026-11-16",
-       "answer_on": "2026-12-14",
+       "answer_on": "2026-12-15",
        "values": [
         {
          "forecaster": "book1_rules",
@@ -1627,9 +1626,9 @@
        ]
       },
       "settle": {
-       "status": "beyond_2_years",
-       "r": 4.8,
-       "projected_date": "2052-06-01"
+       "status": "not_measured",
+       "r": null,
+       "projected_date": null
       }
      }
     ]
@@ -1853,7 +1852,7 @@
    "built_at": "2026-11-16T12:12:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "1485a92adb506db1b40545630927528ec35df6a3abb0bb9aaffac2c370bd2597",
+   "payload_sha256": "7b8b88db80370a46fe9e89c4faf6f86c826a8c6e680d07fe6f9931c60b963d87",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -1888,7 +1887,7 @@
     "ideas": [
      {
       "trial": 61,
-      "title": "Put spread after a calm stretch, small and protected",
+      "title": "A small protected put spread",
       "rests_on": "Q1",
       "gate": "G6",
       "status": "passed",
@@ -1950,8 +1949,13 @@
       "costs": 9860,
       "net": 11620,
       "net_after_tax": 7995,
+      "net_per_risk": {
+       "value": 0.077,
+       "lower_bound": 0.01
+      },
       "worst_trade": -3910,
       "max_drawdown": 7420,
+      "fill_error_per_unit": 0.4,
       "vs_index_fund": 2300,
       "vs_cash": 5100
      }
@@ -2011,7 +2015,7 @@
    "built_at": "2026-11-16T12:12:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "e4df82a22485e505a3367c5bca8b0e4b1fe5bf983407e348ecff4a0577a76069",
+   "payload_sha256": "379e9e492cc55f7bea0954bb5a1947cd59abc41b4e6a4d7a7ba0760b5e794b64",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2033,12 +2037,12 @@
      "by_status": {
       "idea": 2,
       "screened_out": 6,
-      "exploratory_shadow": 1,
+      "exploratory_shadow": 2,
       "registered": 1,
       "testing": 1,
       "passed": 1,
       "failed": 51,
-      "retired": 1
+      "retired": 0
      },
      "expected_false_passes": 0.64,
      "pass_level": 0.01
@@ -2046,7 +2050,7 @@
     "ideas": [
      {
       "trial": 61,
-      "title": "Put spread after a calm stretch, small and protected",
+      "title": "A small protected put spread",
       "rests_on": "Q1",
       "gate": "G6",
       "status": "passed",
@@ -2055,10 +2059,10 @@
      },
      {
       "trial": 59,
-      "title": "Iron condor in calm weather",
+      "title": "A protected four-leg structure",
       "rests_on": null,
       "gate": "G6",
-      "status": "retired",
+      "status": "failed",
       "verdict": "fail",
       "label": "strong evidence"
      }
@@ -2076,13 +2080,13 @@
       "family": "hybrid",
       "approved": [],
       "trading": false,
-      "why_not": "Books 2 and 3 trade on paper only after a strategy has passed (owner, 15 Oct 2026); until then they forecast and are scored"
+      "why_not": "No strategy of its own has passed yet"
      },
      {
       "family": "ai",
       "approved": [],
       "trading": false,
-      "why_not": "Books 2 and 3 trade on paper only after a strategy has passed (owner, 15 Oct 2026); until then they forecast and are scored"
+      "why_not": "No strategy of its own has passed yet"
      }
     ],
     "results": [
@@ -2099,8 +2103,13 @@
       "costs": 12500,
       "net": -30840,
       "net_after_tax": -30840,
+      "net_per_risk": {
+       "value": -0.352,
+       "lower_bound": -0.71
+      },
       "worst_trade": -9620,
       "max_drawdown": 34100,
+      "fill_error_per_unit": 0.6,
       "vs_index_fund": -41200,
       "vs_cash": -35600
      }
@@ -2288,7 +2297,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "8be19087d0513474da3e0d47851d43bf95960d49111c8dce6aaffcd2e209cbaa",
+   "payload_sha256": "e43e233f042181bc1a07af2d4c4e2d5dd55df2501104ec38eb5fba823c3b89ec",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2309,7 +2318,7 @@
       "value": 503054,
       "cash": 499414,
       "open_trades": 1,
-      "open_max_loss": 3980
+      "open_max_loss": 3984
      },
      {
       "family": "hybrid",
@@ -2355,7 +2364,7 @@
        }
       ],
       "opened_on": "2026-11-16",
-      "max_loss": 3980,
+      "max_loss": 3984,
       "mark_value": 3640,
       "unrealised": -42,
       "days_to_expiry": 29,
@@ -2410,7 +2419,7 @@
    "built_at": "2026-11-16T12:05:00Z",
    "schema_version": "2.7.0",
    "source_commit": "0000000mock",
-   "payload_sha256": "7cdef336ff4d6830a9cb2e080498086c3caf8762d5f21d4e6ddcffcb0375249b",
+   "payload_sha256": "9a66d004b67c56b7e40810ac2fc9738c029a300cd639520fd9d3635399ca2471",
    "publisher": "fno",
    "freshness": {
     "state": "fresh",
@@ -2428,8 +2437,8 @@
       "family": "rule",
       "as_of": "2026-11-16",
       "opening_value": 500000,
-      "value": 492896,
-      "cash": 492896,
+      "value": 492892,
+      "cash": 492892,
       "open_trades": 0,
       "open_max_loss": 0
      },
@@ -2461,21 +2470,21 @@
       "structure": "put spread",
       "opened_on": "2026-11-09",
       "closed_on": "2026-11-13",
-      "gross": -3766,
+      "gross": -3770,
       "costs": 214,
-      "net": -3980,
+      "net": -3984,
       "result": "lost",
       "exit": "max_loss_exit",
       "fills": [
        {
         "minutes": 5,
         "outcome": "filled",
-        "net": -3980
+        "net": -3984
        },
        {
         "minutes": 30,
         "outcome": "filled",
-        "net": -3980
+        "net": -3984
        },
        {
         "minutes": 60,

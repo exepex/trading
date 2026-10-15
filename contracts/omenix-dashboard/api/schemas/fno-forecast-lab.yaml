@@ -105,7 +105,7 @@ FnoForecastQuestion:
             properties:
               forecaster: {type: string, pattern: '^[a-z0-9_]+$', x-unit: id, description: The forecaster id}
               n: {type: integer, minimum: 0, x-unit: count, x-fill: built, x-record: 'score_summary:scored', description: Days scored}
-              mean_loss: {type: ['number', 'null'], x-unit: the question's metric, x-fill: built, x-record: 'score_summary:mean_brier', description: 'Mean Brier or QLIKE (v4 QLIKE: G8); null before any score'}
+              mean_loss: {type: ['number', 'null'], x-unit: the question's metric, x-fill: built, x-record: 'score_summary:mean_brier', description: 'Mean miss score: Brier (v3, G4''s ScoreSummary.mean_brier) or QLIKE (v4 variance questions: G8 adds it; the record named holds only Brier today); null before any score'}
         comparisons:
           type: array
           description: Each registered comparison against the primary baseline
@@ -124,6 +124,8 @@ FnoForecastQuestion:
     - if: {properties: {status: {const: waiting_for_data}}}
       then: {properties: {waiting_for: {minItems: 1}}}
       else: {properties: {waiting_for: {maxItems: 0}}}
+    - if: {properties: {scores: {properties: {n_scored: {maximum: 59}}}}}
+      then: {properties: {settle: {properties: {status: {const: not_measured}, r: {type: 'null'}, projected_date: {type: 'null'}}}}}
     - if: {properties: {kind: {const: probability}}}
       then: {properties: {metric: {const: brier}}}
       else: {properties: {metric: {const: qlike}}}

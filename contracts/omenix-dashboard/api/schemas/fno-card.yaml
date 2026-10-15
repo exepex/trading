@@ -109,6 +109,21 @@ FnoCard:
       else: {properties: {reason: {type: 'null'}, trade: {type: object}, price_of_staying_out: {type: 'null'}}}
     - if: {properties: {reason: {const: data_check_failed}}, required: [reason]}
       then: {properties: {data_checks: {properties: {passed: {const: false}, missing_inputs: {minItems: 1}}}}}
+    - if: {properties: {reason: {const: weather_red}}, required: [reason]}
+      then: {properties: {weather: {properties: {colour: {const: RED}}}}}
+    - if: {properties: {reason: {const: advocate_hard_rule}}, required: [reason]}
+      then: {properties: {advocate: {properties: {verdict: {const: hard_rule_breach}}}}}
+    # design 4.1: a TRADE card is only ever rung 3 (anything earlier is WATCH); RED, a failed data check and a hard-rule
+    # breach each make the card NO TRADE
+    - if: {properties: {status: {const: TRADE}}}
+      then:
+        properties:
+          evidence: {properties: {rung: {const: 3}}}
+          weather: {properties: {colour: {enum: [GREEN, AMBER]}}}
+          data_checks: {properties: {passed: {const: true}}}
+          advocate: {properties: {verdict: {enum: [no_hard_rule_breach, null]}}}
+    - if: {properties: {status: {const: WATCH}}}
+      then: {properties: {evidence: {properties: {rung: {type: integer, maximum: 2}}}}}
 FnoCardTrade:
   type: object
   description: The position of a TRADE or WATCH card; owner only (live strikes and entry ranges never enter a public repository)
