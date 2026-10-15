@@ -5,7 +5,7 @@ the small real-money test, and how that test is passed or stopped. It is the rea
 for your review after the judge's PASS (judge 171 addendum 1) and before the owner answers and the text merges.
 Nothing in RM1 places, enables or prepares any order; the owner places every real order by hand.
 
-**Exact version:** branch `story/rm1-real-money-gate` at `<head>` (the commit that adds this file).
+**Exact version:** branch `story/rm1-real-money-gate` at `46d0c1fc` or later; the gate, story and claims text under review last changed at `c27f8c64` (later commits here touch only this request and its index line).
 **Read:**
 - `research/evaluation/REAL_MONEY_GATE.md` (the 12-item draft gate);
 - `docs/stories/RM-real-money.md` (story RM1);
