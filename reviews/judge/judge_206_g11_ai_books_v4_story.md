@@ -56,3 +56,22 @@ agreed with the A16/G8 builder. Quality rule 1: story text only; the code waits 
 
 **Verdict: FAIL for 762a9a56 on should-fix 1** (one text change plus a coordination decision). Everything else is
 ready. A re-check needs only criterion 6, the Out list and the register line.
+
+## Addendum 1 (15 Oct 2026): 6420714c
+
+The diff changes only criterion 6, design item 7, the Out list, criterion 4, the register row and response 202
+addendum 2 (23 lines added, 8 removed).
+
+| Finding | Status | Evidence |
+|---|---|---|
+| Should-fix 1: who builds the look's refusal | MET | The A16/G8 builder builds it in `fno/forecast_scoring/v4/` before the freeze, with their register row and a freeze-checklist line; their written answer is quoted in addendum 2. The interface is a committed file: `research/forecasts/v4_audits/open_audits.csv` (`day,forecaster,question`). A look on date L refuses while any row has `day <= L`, a missing file means no open audit, and a bad header or date stops the look. G8 reads the file and never imports G11's code. The Out list and criterion 6 now split the two sides |
+| Note 2: reuse G10's receipt-time check | MET | Criterion 4 says so |
+
+**New note (not blocking):** say when a row *enters* `open_audits.csv`. It should be in the same commit that records
+the sealed commitment (or the fire record), so an open audit can never be missing from the file. Otherwise a run that
+stops between the commitment and the file write would let a look pass.
+
+**Open, outside this story:** the A16/G8 builder's register row and freeze-checklist line for the refusal must exist
+before the freeze commit. I check that at the freeze verdict.
+
+**Verdict: PASS for 6420714c (story text).** Code waits for the freeze.
