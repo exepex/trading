@@ -29,6 +29,7 @@ MIN_CLAIM_BATCHES = 12  # rules E+D and F+D: fewer batches give neither a claim 
 FUTILITY_LEVEL = 0.025  # per member and look (Bonferroni 2 x 2.5% over the two looks)
 MIN_EVENT_DAYS = 5  # every member (revision 8): fewer 2% days in the scored window give no claim and no "no"
 EVENT_BANDS = ((5, 7), (8, 12), (13, None))  # revision 5: each band has its own Brier thresholds
+CRASH_SHARE = 0.10  # owner, item E option 2 (15 Oct 2026): a window with more 2% days than this share is cut
 
 
 def batch_layout(n: int, block: int) -> tuple[int, int]:
@@ -118,6 +119,14 @@ def judgeable(event_days: int) -> bool:
     or more; otherwise it is not judgeable at that look (p = 1 for claims and futility: undecided, never "no"). Calm
     windows otherwise gave V1 false claims and a false "no" well above nominal (`tools/v4_regime_stress.py`)."""
     return event_days >= MIN_EVENT_DAYS
+
+
+def crash_dominated(event_days: int, n: int) -> bool:
+    """Owner's item E, option 2 (15 Oct 2026; orchestrator decision 69): a scored window of n outcomes whose share of
+    2% days is above 10% (strict) is not judgeable at that look, for every member, like a window below the 5-day gate
+    (p = 1 for claims and futility: undecided, never "no"). Measured in `tools/v4_crash_cut.py`. At n = 125 a
+    judgeable window holds at most 12 2% days, so the 13+ band is reachable only from n = 130."""
+    return event_days > CRASH_SHARE * n
 
 
 def event_band(event_days: int) -> tuple[int, int | None] | None:
