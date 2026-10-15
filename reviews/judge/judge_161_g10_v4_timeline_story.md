@@ -132,3 +132,56 @@ Checked the diff 5694825..4985c22 (4 files: G-forecasts.md, REPLAN.md, REPLAN_ne
 - The stock-chain slot remains an owner decision. It must be settled before any story that schedules stock chains.
 
 **Verdict: PASS.** ChatGPT's review follows, before the v4 freeze.
+
+## Addendum 2: revision 2 at b30a7927cef8f987ac4eec95430e974e118f8870: FAIL (1 should-fix)
+
+Checked the G10 section, response 152's revision 2 and response 159 against the owner's row ("Honest times, window to
+14:40", DESK_DECISIONS 15 Oct) and ChatGPT review 113. Gates below.
+
+**Owner row and ChatGPT's accepted points:**
+- Honest `observed_at` on every field, "observed by 14:40:00", `system_late` after: **MET in the rule text** (story
+  "Honest times" paragraph, change 1). See should-fix 1 for what `observed_at` is.
+- A/A2 only for a pack complete within the window: **MET.**
+- X frozen with value, sample count, source revision (A16b manifest commit) and nearest rank `ceil(0.95 n)`: **MET.**
+- One pack SHA-256 for all families, another hash refused (criterion 1b): **MET.**
+- GitHub receipt time, never commit time: **MET**, and it can be built: v2 already reads push receipts
+  (`fno/ai/receipts.py`, `fno/ai/collect.py:2`).
+- A/A2/system_late/flagged counts on every report; live and close-proxy cohorts apart; no v2 15:00 record read: **MET**
+  (criterion 3).
+- Judge 161 addendum 1 notes: both applied ("(G11)"; sign-ins "some evidence, once, outside market hours").
+
+**Should-fix 1: `observed_at` is not defined, and the fixture labels a quote earlier than it was observed.**
+- Groww gives no quote timestamp (`fno/quotes/recorder.py:70`, `GROWW_NOTE`: "quote age unknown"). The only times a
+  Groww quote has are its `last_trade_time` (`fno/providers/groww.py:94-103`) and the moment our request was answered.
+- Criterion 1a says "a quote observed at 14:29:59 enters the pack with that time". The capture starts at 14:30:00
+  (table; change 1 "captured from 14:30:00"; "observed between 14:30:00 and 14:40:00"), so no answer can be received
+  at 14:29:59. The only way a 14:29:59 time arises is the last trade time of a quote fetched later. Its bid and ask are
+  then as of the fetch, so labelling the field 14:29:59 is a label earlier than observed: the very error review 113
+  blocked.
+- Normal-running path: a builder takes `observed_at = last_trade_time`. A thinly traded strike (last trade 11:00) then
+  falls outside "between 14:30:00 and 14:40:00" and is dropped, or the window check is skipped for it. Either way, which
+  quotes and IV30 the pack holds, and so forecasts and trade signals, differ from what the protocol means.
+- **Expected fix (text only):**
+  - Define `observed_at` as the time our request's answer was received; it is the honest upper bound, since Groww
+    stamps no quote. Keep `last_trade_time` as its own field, used only for the existing "traded today" check.
+  - Keep provider page times as `observed_at` only where the provider stamps the value itself (NSE's VIX page time).
+  - Make the window statements agree.
+  - Change fixture 1a to: received 14:40:00 in, 14:40:01 out; a quote received 14:31:05 whose last trade was 14:29:59
+    carries 14:31:05.
+
+**Notes (one line each, no fix asked):**
+- The flag formula still reads `S_14:30` for live days. Say which level it is: the pack's spot with its `observed_at`,
+  or A16's 14:30 close (X is calibrated on the latter). The flag decides no trade.
+- Changes 3 and 6 still say "14:30" for live values ("pairs 14:30 with EOD", "live uses 14:30 values"). They should say
+  "the pack's", as change 2 does. The same goes for the heading and the owner-decision paragraph ("14:30 cutoff",
+  "14:30 values").
+- Criterion 2's "that one constant" is now ambiguous: `terms.py` holds both 14:30 (capture start) and 14:40 (cutoff).
+  Name the 14:30 one for G7 and M1. They read only sessions up to d-1, so the earlier refusal changes no value.
+- Review 113's accepted §2 items have no line in G10, so they need a home (S1 or E3): the 15:15 score is a diagnostic
+  only, nothing is promoted on it, and an instrument not there at the 60-minute fill is a no-fill.
+
+**Gates on the trial merge with origin/main 2bd1996c (tree 2b400ad, clean merge):** pytest 5861 passed; `ruff check` clean;
+`ruff format --check` 1072 files formatted; `check_imports` clean.
+
+**Verdict: FAIL (1 should-fix, no blocking).** A re-check needs only the definition of `observed_at`, the window lines
+and criterion 1a.
