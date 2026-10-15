@@ -119,3 +119,14 @@ The delta is the "Revision 2" section of response 157.
 
 **Verdict: FAIL for 10fa113c on should-fix 4** (one table row plus one owner-confirmation line). Items 1-3 are
 accepted. A re-check needs only those lines.
+
+## Addendum 3 (15 Oct 2026): 03586b07
+
+There is one commit, and it changes only response 157 (4 lines added, 2 removed).
+
+| Finding | Status | Evidence |
+|---|---|---|
+| Should-fix 4 | MET | The edit-table row now replaces section 4's start rule. A registered slot counts from its `effective_start` (a session on or after the freeze, before its first eligible session, named in its registration row). An unregistered slot is `not_started`. Its sources are review 119 and judge 156 notes 1 and 3. The owner-confirmation list carries the change as "one change for the owner to confirm before the freeze" (line 177's start moves to `effective_start`) |
+
+**Verdict: PASS for 03586b07** (plan only). The open steps are unchanged: ChatGPT, the owner (including this change),
+G10's build, the V1 method filter, then the protocol-edit and freeze commits, each with its own verdict.
