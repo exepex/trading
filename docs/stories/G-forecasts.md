@@ -508,3 +508,112 @@ undecided member, and the miss line in `look.py`, `render.py` and the recorded l
 member never asks for thresholds and leaves Test A undecided.
 
 **Depends:** G6, G8 · **Size:** S · **Status:** built on `story/g9-miss-rule`, for the judge
+
+---
+
+## G10. Protocol v4 timeline: 14:30 cutoff, one release, one 15:10 deadline (before the v4 freeze)
+
+**Repository:** trading · **Lane:** 1 (a frozen-to-be rule document and the capture times) · **Name note:** REPLAN
+already uses "G10" for "AI books on the v4 questions"; that story becomes G11 when it is written (the orchestrator
+registered this one as G10).
+
+**Description:** As the statistician and the owner, I want protocol v4's day to run on one clock that every family
+shares (one data cutoff, one release, one deadline, one common snapshot), written into the protocol before its freeze,
+so that no family gets more data or more time than another and no late or rebuilt day is scored as if it were normal.
+
+**Owner decisions (15 Oct 2026, `docs/DESK_DECISIONS.md`, rows "v4 timeline", "flagged, not blocked", "Lateness",
+"V6b stays a scored member", "The 60-minute fill decides"):** the 14:30 cutoff with retries to 14:40 and A16's 14:30
+snapshot as the fallback; one pack to every family at about 14:32 (at the latest 14:40); one 15:10 deadline; the
+15:15 common snapshot; the 3 pm routine moves to 14:05 only at go-live; two scores per desk decision (skill at the
+common snapshot, money at the 60-minute fill); "moved after cutoff" days flagged, never blocked; system-late days out
+for every family, a late family charged a miss (G9's caps); EQ2 and EQ5 and the day-quality labels into v4; 14:30
+values stand in for the close, labelled and scored separately. V6b stays a scored member (no V6 code change).
+
+### The day at go-live (a regular session `d`, IST)
+
+| Time | What happens | Who |
+|---|---|---|
+| 14:05 | The 3 pm routine starts (setup ends well before 14:30) | owner's routine |
+| 14:30:00 | **Data cutoff.** The NIFTY pack is captured (spot, near future, chains, IV30); an incomplete capture retries until 14:40 | 3 pm recorder (A4) |
+| by 14:40 | Fallback: A16's 14:30 mark, when no complete 14:30 capture exists | A16 |
+| about 14:32, at the latest 14:40 | **One release (EQ2):** the pack goes to every family at the same moment; rule outputs are computed but not published before the deadline | capture job |
+| 15:10:00 | **One deadline:** a family's forecast or decision counts only if its commitment reached GitHub by then | every family |
+| 15:15 | **Common snapshot** (A16's 15:15 mark): the skill score of every desk decision; the money verdict uses the 60-minute fill (E8, about 10:15 next session) | desk (E3, S1) |
+
+**Day-quality label (one per day, on every v4 record and report):** `A` the 14:30 live capture; `A2` A16's 14:30
+mark (fallback); `system_late` no pack by 14:40. Each label is reported apart; a protocol v4 verdict uses `A` and `A2`
+days. **Said plainly (strong evidence: `fno/intraday/expiry_plan.py`, `fno/forecast/iv30.py`):** A16 records the
+nearest weekly and the nearest monthly chain only, while IV30 interpolates the two monthlies around 30 days, so an
+`A2` day's IV30 is usually the protocol's flagged single-expiry value (or none when the monthly has under 7 days left).
+The label carries it; adding the next monthly to A16 (about 70 more quotes a mark) is the alternative, not proposed.
+
+**"Moved after cutoff" (flag, never a block):** a day with `abs(ln(S_15:15 / S_14:30)) > X` is flagged and reported
+apart; nothing is dropped. **X** is frozen before go-live as the 95th percentile of that move over A16b's 2020-26
+15-minute index candles (regular sessions; the 14:30 and 15:15 candles' opens), so about 1 day in 20 is flagged
+(reasoning only for 95th; the 99th is the alternative and would flag about 1 in 100).
+
+**Lateness (owner's row):** a `system_late` day is excluded for every family and counted ("system late"), like G9's
+input failure but decided by the pack, not by the files: with no pack, no family had the same inputs. A family whose
+commitment is after 15:10 has no forecast that day: a miss under G9's 10% caps.
+
+**14:30 values stand in for the close:** every input of `d` itself (spot, futures, IV30, quotes) is the 14:30 value,
+labelled `live_1430`. The back-fill has no 14:30 implied-volatility history (strong evidence: the panel holds end-of-day
+chains only; A16b holds index candles, no option quotes), so back-filled rows that use `d`'s level or IV use the close
+and stay labelled `backfill_exploratory`, scored apart and never pooled with live rows. **For today's forecasters this
+changes nothing:** G7's baselines and rule forecasters and M1's weather read only sessions up to `d-1` (strong
+evidence: `fno/forecast_v4_rules/baselines.py:3`, `fno/weather/day.py:3`), so their back-fill content is the same under
+either cutoff; only the capture time check moves. It matters for the implied baselines, V4, V5 and the AI books.
+
+**Outcomes do not move:** V1-V3, V6 and V7 outcomes stay measured from official closes (and A16's session RV), as
+protocol 1.1-1.2 define them.
+
+### The exact PROTOCOL_v4.md changes (applied in this story's build, before the freeze)
+
+1. Section 1.2, "the cutoff is 15:00:00 IST on `d`, as G1 v2" -> "the cutoff is **14:30:00 IST** on `d` (section 1.6;
+   G1 v2 keeps 15:00 for its own questions)".
+2. Sections 1.4, 1.5 and 3.1: every "15:00" spot, quote, spread check, pack, future and IV30 -> "14:30" (the pack of
+   section 1.6). The spread limit (5%) is unchanged.
+3. Section 3.1, premium-adjusted implied: add "live forecasts multiply the **14:30** raw implied by the ratio; no 14:30
+   IV30 history exists, so the window stays the EOD proxy and the 14:30 / EOD mismatch enters the ratio's noise
+   (reasoning only)"; `diagnostics.proxy_drift` pairs 14:30 with EOD.
+4. New section **1.6 "The day's clock"**: the table above, the day-quality labels, the moved-after-cutoff flag with X's
+   rule (its number added at the freeze), and the 15:10 deadline (GitHub's push time).
+5. Section 4, after the miss rule: "**A `system_late` day** is excluded for every member and counted apart; **a
+   commitment after 15:10** is no forecast that day (a miss). Every report states each label's day count and the
+   flagged days."
+6. Section 8, disclosure: "the back-fill uses closes where live uses 14:30 values; no 14:30 IV history exists".
+7. Section 10, freeze preconditions: X's number frozen; the go-live date stated in `FREEZE_v4.md` with its
+   `Frozen on:` line (G8).
+`tests/forecast_v4/test_protocol_text.py` gains the cutoff and deadline times so the text and `terms.py` cannot drift.
+
+### What moves with it
+
+| Item | Today | At v4 go-live |
+|---|---|---|
+| 3 pm routine (CLAUDE.md, A4, A7) | starts 14:33; `quotes record` window 14:55-15:10 (`fno/quotes/recorder.py:36`) | starts 14:05; window 14:30-14:40 (lane 1, A4 change, and the owner's schedule) |
+| v2 forecast capture (`.github/workflows/forecast-capture.yml:86-92`, `fno/ai/timing.py`) | waits to 15:10, pulls to 15:13, deadline 15:15 | **unchanged**: v2 keeps its frozen times until v4 is live, then retires or runs beside it as v2 says (its late days reported) |
+| v4 capture times | G7 `fno/forecast_v4_rules/capture.py:28` and M1 `fno/weather/capture.py:39` refuse at 15:00 | refuse at 14:30 (one `terms` constant both import) |
+| A4c's other indices (15:01-15:13) | after A16's 15:00 mark, before 15:13 | **14:41-14:58**: after NIFTY's last retry, before A16's 15:00 mark; data only, not in the pack |
+| Stock chains (response 144 step 8b) | needed a 14:20 start (owner schedule change) | **15:01-15:13**, then the 15:13-15:17 pause for the 15:15 snapshots, hard stop 15:30 (8b's own story) |
+| AI books' v4 prompt (REPLAN's "G10", to be G11) | v2: deadline 15:15, reveal 15:15:10 | v4: release about 14:32, deadline 15:10, reveal after 15:10 |
+| G7, M1 back-fill labels | `backfill_exploratory` | unchanged label; a method note says "close stands in for 14:30" (no content change, above) |
+| G8 scoring | counts live rows after the freeze | also: excludes `system_late` days, reports per label and the flagged days; reads the label from the record |
+| E3 / S1 desk | 15:15 execution snapshot, 60-minute fill | skill score at 15:15, money verdict at the 60-minute fill (owner's row); E3's timetable moves its pack time to 14:32 |
+
+**Acceptance criteria (for the build after this text passes):**
+1. The protocol text carries changes 1-7; `test_protocol_text.py` checks 14:30, 14:40 and 15:10 against `terms.py`.
+2. `terms.py` holds the cutoff, retry end, deadline and common-snapshot times and X; G7's and M1's capture refuse at
+   14:30 (boundary: 14:29:59 accepted, 14:30:00 refused) through that one constant.
+3. Each v4 record and report carries the day label; a `system_late` day is excluded for every member and counted; a
+   commitment at 15:10:01 is a miss, at 15:10:00 on time (G9's caps then apply).
+4. X is computed by a committed tool from A16b's table (count of days, the percentile, the flagged share printed); a
+   day just above X is flagged, just below is not; nothing is dropped.
+5. The back-fill's content is byte-identical before and after the change for G7 and M1 (proof that they read `d-1`
+   only); the method note is added.
+6. Gates; real-data run: one day's 14:30 capture end to end in a dry run (counts and times only).
+
+**Known limits:** an `A2` day's IV30 is usually flagged (above); X rests on 2020-26 history, one crash included (some
+evidence); a GitHub push delay near 15:10 counts as late (the push time is the only clock both sides trust).
+
+**Depends:** G6 (merged), G9 (merged), G7, M1, G8 (merged); A16 live for the `A2` fallback; the owner's routine change
+at go-live · **Size:** M · **Status:** story text for judge A, then ChatGPT (rule 9) (`reviews/claude/response_152_g10-v4-timeline.md`)
