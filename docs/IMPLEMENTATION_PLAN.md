@@ -122,7 +122,7 @@ pilot once M5 exists; the owner's rule applies: if paper trading shows no net pr
 | [G3](stories/G-forecasts.md#g3-book-1-forecast-capture) | Book 1 forecast capture | trading | G1, G2 | S | done (judge 54); live since 14 Oct |
 | [G4](stories/G-forecasts.md#g4-forecast-scoring-and-reports) | Forecast scoring and reports | trading | G1, G3 (G5 for books 2 and 3) | M | done (judge 58 passed) |
 | [G5](stories/G-forecasts.md#g5-ai-books-forecast-capture) | AI books' forecast capture | trading | G1, G3, F1 | S | done (judge 62); live since 14 Oct |
-| [S1](stories/S-scoreboards.md#s1-evaluation-protocol) | Evaluation protocol | trading | B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) | S | later |
+| [S1](stories/S-scoreboards.md#s1-evaluation-protocol) | Evaluation protocol | trading | B4, D6, E3 (S1 freezes the methods written in F8 and F9; it needs their story text, not their code) | S | Draft, not frozen. Tooling merged (judge 85); owner batch 1 FAILed (judge 94); the freeze waits for S3, F9 and E8 code (owner option A, REPLAN) |
 | [S2](stories/S-scoreboards.md#s2-scoreboard-b-whole-systems) | Scoreboard B: whole systems | trading | C1, D6, E1, E4, S1 (F8 for the AI books' allocated cost) | M | done (judge 87, merged a9a3cd1) |
 | [S3](stories/S-scoreboards.md#s3-scoreboard-a-matched-decisions) | Scoreboard A: matched decisions | trading | E2, E4, F7, D6, S1 | M | later |
 | [S4](stories/S-scoreboards.md#s4-monthly-report-and-scheduled-reviews) | Monthly report and scheduled reviews | trading | S2, S3, G4, F4, F8, F9 | M | later |
