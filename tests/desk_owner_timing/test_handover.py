@@ -144,3 +144,19 @@ def test_the_cards_order_time_is_slacks_first_accepted_non_test_post():
     cards = DeliveredCards(Attempts({"slack": {"sent": False}}, sent | {"test": True}, sent))
     assert cards.delivered(DAY) == datetime(2026, 10, 14, 9, 46, tzinfo=UTC)
     assert DeliveredCards(Attempts({"slack": {"sent": False}})).delivered(date(2026, 10, 14)) is None
+
+
+class Priced(ExitRule):
+    name = "fixture"
+
+    def reached(self, position, context):
+        return "net Rs 1,234.50: fixture"
+
+
+def test_an_exit_alert_never_carries_a_figure(root, snapshots, alerts, settlements, clock, ordered):
+    poster = Poster()
+    desk = ExitDesk(CHARGES, alerts, settlements, clock, AlertThenWait(poster, MemoryTimingLog()))
+    snapshot = snapshots.snapshot(DAY, "later")
+    with open_desk_journal(BOOK, root) as journal:
+        desk.review(BOOK, snapshot, journal, {"t1": [Priced()]}, passed(snapshot))
+    assert "(exit ordered)" in poster.posted[0] and not any(c.isdigit() for c in poster.posted[0].split("trade t1")[1])

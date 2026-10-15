@@ -5,6 +5,8 @@ alert that was not delivered is sent again at the next run, and T is its first d
 
 from __future__ import annotations
 
+import re
+
 from ...cards.posting import CardPoster
 from ...constants import OUTCOME_EXIT_ORDERED
 from ..exit_timing import ExitTiming
@@ -13,7 +15,16 @@ from .timing_log import TimingLog
 
 EXIT_ALERT = "F&O paper desk {book}: EXIT trade {trade_id} ({why}). Close it at the next session's open."
 WAITING = "exit alert delivered at {at}: filled at its owner-timing due mark"
+PLAIN_WORDS = re.compile(r"[a-z_ ]+")
+GENERIC_WHY = "exit ordered"
 UNDELIVERED = "exit alert NOT delivered ({outcome}): sent again at the next run"
+
+
+def _why(reason: str) -> str:
+    """The rule's name before the reason's first colon (profit_target, stop_loss, time_exit), only when it is plain
+    words: anything else, which could carry a figure, gives the generic wording (the card rule: never a price)."""
+    head = reason.split(":")[0].strip()
+    return head if PLAIN_WORDS.fullmatch(head) else GENERIC_WHY
 
 
 class AlertThenWait(ExitTiming):
@@ -27,7 +38,7 @@ class AlertThenWait(ExitTiming):
             ordered = [
                 e["reason"] for e in journal.records.event_rows(trade_id) if e["outcome"] == OUTCOME_EXIT_ORDERED
             ]
-            receipt = self.poster.post(EXIT_ALERT.format(book=book, trade_id=trade_id, why=ordered[0].split(":")[0]))
+            receipt = self.poster.post(EXIT_ALERT.format(book=book, trade_id=trade_id, why=_why(ordered[0])))
             if receipt.server_time is None:
                 return ExitResult(trade_id, OUTCOME_EXIT_ORDERED, UNDELIVERED.format(outcome=receipt.outcome))
             delivered = receipt.server_time

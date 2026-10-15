@@ -69,6 +69,10 @@ class DueFill:
 
 
 def _unquoted(snapshot: ExecutionSnapshot, leg: DeskLeg) -> bool:
-    """No valid quote for the leg in this copy (judge 203 condition 3); a thin size is E4c's to name, not this."""
+    """No valid quote to open the leg in this copy (judge 203 condition 3): none, no trade today, no price on the
+    opening side, or crossed or sizeless. An empty far side (protection that could not be sold back) or a thin size is
+    E4c's to name, with its own code (judge C's note on 09d14c43)."""
     quote = snapshot.quote(leg.expiry, leg.leg.strike, leg.leg.kind)
-    return quote is None or bool(quote.a4_problem)
+    if quote is None or not quote.valid or not quote.touch(leg.side(opening=True))[0]:
+        return True
+    return bool(quote.a4_problem) and bool(quote.bid and quote.ask)

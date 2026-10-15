@@ -14,14 +14,15 @@ ENTRY, EXIT = "entry", "exit"
 MISSED_NO_CARD = "missed, card not delivered"
 MISSED_OWNER_AWAY = "missed, owner away"
 MISSED_NO_QUOTE = "missed, no quote"
+MISSED_NO_FUTURE = "missed, no future for that expiry"  # A16 records the near-month future only
 MISSED_PRICE_MOVED = "missed, price moved"
 MISSED_EXPIRED = "missed, contract expired"
 MISSED_FUNDS = "missed, insufficient funds"
 MISSED_RISK_CAP = "missed, over risk cap"
 DECIDED_AFTER_CARD = "missed, decision committed after the card"
 # Every fixed miss reason, the one table E6 and S2 count from (E4c's codes and E4d's shared size come from E4c's own)
-MISSED_REASONS = (MISSED_NO_CARD, MISSED_OWNER_AWAY, MISSED_NO_QUOTE, MISSED_PRICE_MOVED, MISSED_EXPIRED, MISSED_FUNDS,
-                  MISSED_RISK_CAP, DECIDED_AFTER_CARD)  # fmt: skip
+MISSED_REASONS = (MISSED_NO_CARD, MISSED_OWNER_AWAY, MISSED_NO_QUOTE, MISSED_NO_FUTURE, MISSED_PRICE_MOVED,
+                  MISSED_EXPIRED, MISSED_FUNDS, MISSED_RISK_CAP, DECIDED_AFTER_CARD)  # fmt: skip
 
 
 @dataclass(frozen=True)

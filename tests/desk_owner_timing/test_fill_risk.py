@@ -15,7 +15,7 @@ from fno.desk.owner_timing.clock import OwnerTimingClock
 from fno.desk.owner_timing.due_fill import DueFill
 from fno.desk.owner_timing.entry_range import ApprovedLimit
 from fno.desk.owner_timing.fill_risk import FillDayRisk
-from fno.desk.owner_timing.outcomes import MISSED_FUNDS, MISSED_NO_QUOTE, MISSED_RISK_CAP, DueMark
+from fno.desk.owner_timing.outcomes import MISSED_FUNDS, MISSED_NO_FUTURE, MISSED_NO_QUOTE, MISSED_RISK_CAP, DueMark
 from fno.research_engine.implied_vol import Black76
 from fno.risk.book_view import load_risk_book
 from fno.risk.manager import RiskManager
@@ -85,9 +85,13 @@ def test_the_maximum_loss_on_the_fill_prices_over_the_cap_misses(root):
     assert risk(root, Fixed("open_trades", True), max_loss=1.0).miss(fly_order(), priced()) == MISSED_RISK_CAP
 
 
-@pytest.mark.parametrize("marks", [Marks(spot=None), Marks(futures=())], ids=["no spot", "no future"])
-def test_a_level_missing_from_the_copy_misses_with_no_quote(root, marks):
-    assert risk(root, Fixed("open_trades", True)).miss(fly_order(), priced(marks)) == MISSED_NO_QUOTE
+@pytest.mark.parametrize(
+    ("marks", "reason"),
+    [(Marks(spot=None), MISSED_NO_QUOTE), (Marks(futures=()), MISSED_NO_FUTURE)],
+    ids=["no spot", "no future for the expiry"],
+)
+def test_a_level_missing_from_the_copy_misses_with_its_reason(root, marks, reason):
+    assert risk(root, Fixed("open_trades", True)).miss(fly_order(), priced(marks)) == reason
 
 
 def test_the_check_reads_the_account_after_the_mornings_earlier_fills(root, store, snapshots, entry_desk):

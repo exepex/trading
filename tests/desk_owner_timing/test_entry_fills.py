@@ -183,3 +183,9 @@ def test_a_thin_size_is_e4cs_miss_not_a_missing_quote(root, parts, marks):
     entries, _, _, _ = parts
     marks.put(DUE, fly_rows({(25200, "CE"): {"size": 64.0}}))  # one unit below the 65 the protection needs
     assert apply(root, entries).startswith(PROTECTION_NOT_BUYABLE)
+
+
+def test_protection_without_a_bid_at_the_mark_misses_with_e4cs_code(root, parts, marks):
+    entries, _, _, _ = parts
+    marks.put(DUE, fly_rows({(25200, "CE"): {"bid": None}}))  # an ask but no bid: one-sided, so not valid by A4
+    assert apply(root, entries).startswith(PROTECTION_NOT_BUYABLE)  # E4c's own code for it, as at 15:15

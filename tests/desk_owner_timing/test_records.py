@@ -62,4 +62,4 @@ def test_every_fixed_miss_reason_is_in_the_one_table():
     reasons = {
         value for name, value in vars(outcomes).items() if name.startswith("MISSED_") and name != "MISSED_REASONS"
     }
-    assert set(outcomes.MISSED_REASONS) == reasons | {outcomes.DECIDED_AFTER_CARD} and len(outcomes.MISSED_REASONS) == 8
+    assert set(outcomes.MISSED_REASONS) == reasons | {outcomes.DECIDED_AFTER_CARD} and len(outcomes.MISSED_REASONS) == 9
