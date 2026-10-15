@@ -9,8 +9,8 @@ from datetime import datetime
 from pathlib import Path
 
 from ..alerts.sender import AlertSender
-from ..constants import AI_ROLE_STOP_ORDER, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN
 from .cap import CapReading, shown_pct
+from .constants import AI_ROLE_STOP_ORDER, BUDGET_ALERT, BUDGET_STOP, BUDGET_UNKNOWN
 
 SIGNAL_FOLDER = "accounting/budget"
 CODE_JOBS = "keep running"

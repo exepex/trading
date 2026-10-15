@@ -82,7 +82,9 @@ without rewriting their history.
 - the account's **capital** at an instant: the opening row plus every top-up written at or before that instant. For a
   decision it is the decision cutoff (E1, C2 and C4 alike), so a top-up written after a session's 15:00 decision never
   counts for that decision, live or in a replay; P10's end-of-day figures use the day's end. The account's cash,
-  closed equity and marked equity include it;
+  closed equity and marked equity include it. Only capital is cut at the decision time: fills are not, so rebuilding
+  a whole account from the ledger as of a past time is not supported (ChatGPT review 111: the live run never shows
+  an earlier decision a later fill, and Book 1 replays its decisions from stored inputs);
 - every reader of the opening cash moved to capital:
   - E1's state and `positions.json`;
   - C2's risk view (closed-equity series, paper-account rule);

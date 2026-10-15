@@ -15,7 +15,8 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from ..constants import AI_BOOKS, PURPOSE_DATA_ROUTINES, USAGE_PURPOSES
+from ..constants import AI_BOOKS
+from .constants import PURPOSE_DATA_ROUTINES, USAGE_PURPOSES
 
 
 def add_budget_parser(subparsers) -> None:

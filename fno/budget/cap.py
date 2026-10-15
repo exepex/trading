@@ -12,7 +12,7 @@ import math
 from dataclasses import dataclass
 from decimal import Decimal
 
-from ..constants import BUDGET_ALERT, BUDGET_OK, BUDGET_STOP, BUDGET_UNKNOWN, PURPOSE_BOOKS_AND_ROLES
+from .constants import BUDGET_ALERT, BUDGET_OK, BUDGET_STOP, BUDGET_UNKNOWN, PURPOSE_BOOKS_AND_ROLES
 
 BASIS_MEASURED = "measured: all recorded session minutes of the month (books, roles, development, data routines)"
 BASIS_OWNER = "owner's figure: {minutes:,.0f} plan minutes a month (config.yaml budget.plan_minutes_per_month)"
