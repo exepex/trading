@@ -15,7 +15,7 @@ from collections.abc import Mapping
 from dataclasses import replace
 
 from .validity_account import AccountFacts, Position
-from .validity_caps import CapChecks, CapProblem, Exposure, bucket_of, paper_account_check
+from .validity_caps import CapChecks, CapProblem, Exposure, buckets_of, paper_account_check
 from .validity_chain import PricedChain
 from .validity_drawdown import drawdown_check
 from .validity_evidence import Evidence
@@ -38,8 +38,7 @@ def priced(rules) -> tuple[str, ...]:
 def position_of(proposal: ValidityProposal, charges: Mapping[str, float]) -> Position:
     legs = [leg.leg for leg in proposal.legs]
     units = {leg.contract: leg.leg.side * proposal.units for leg in proposal.legs}
-    cash = entry_cash_flow(legs, proposal.units, charges)
-    return Position(proposal.opportunity_id, units, cash, proposal.terms, proposal.day)
+    return Position(proposal.opportunity_id, units, entry_cash_flow(legs, proposal.units, charges), proposal.terms)
 
 
 class LimitChecks:
@@ -69,16 +68,16 @@ class LimitChecks:
             return results + [CheckResult(name, False, "no trusted snapshot to price with") for name in unpriced]
         return results + self._priced(proposal, account, PricedChain(evidence, proposal.day, limits.rate))
 
-    def _caps(self, proposal: ValidityProposal, held, chain: PricedChain) -> list[CheckResult]:
+    def _caps(self, proposal: ValidityProposal, account: AccountFacts, chain: PricedChain) -> list[CheckResult]:
         names = [name for name in CAP_RULES if name in self.limits.rules]
         if not names:
             return []
         try:
             legs = [leg.leg for leg in proposal.legs]
-            bucket = bucket_of(proposal.structure, [leg.contract for leg in proposal.legs], self.limits.caps.sides)
-            own = Exposure(proposal.opportunity_id, bucket, max_loss(legs, proposal.units, self.charges).total,
-                           proposal.day)  # fmt: skip
-            return CapChecks(self.limits.caps, names, self.charges).checks(held, own, chain, proposal.day)
+            buckets = buckets_of(proposal.structure, [leg.contract for leg in proposal.legs], self.limits.caps.sides)
+            own = Exposure(proposal.opportunity_id, buckets, max_loss(legs, proposal.units, self.charges).total)
+            checks = CapChecks(self.limits.caps, names, self.charges)
+            return checks.checks(account.positions, account.session, own, chain)
         except (CapProblem, PricingProblem) as problem:
             return [CheckResult(name, False, str(problem)) for name in names]
 
@@ -92,7 +91,7 @@ class LimitChecks:
                                                  self.margins.rows(), self.limits.margins, proposal.day)),
         ]  # fmt: skip
         run = [_run(name, check) for name, check in checks if name in rules or name == "margin_room"]
-        return self._caps(proposal, held, chain) + run
+        return self._caps(proposal, account, chain) + run
 
 
 def _run(name: str, check) -> CheckResult:

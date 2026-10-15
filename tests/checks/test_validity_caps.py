@@ -28,14 +28,20 @@ LEGS = legs_of(SHAPES["SF"][0])
 CASH = entry_cash_flow([leg.leg for leg in LEGS], LOT, CHARGES)
 
 
-def _held(trade_id: str, opened_on: date | None = DAY - timedelta(days=3), structure: str = "SF") -> Position:
-    units = {leg.contract: leg.leg.side * LOT for leg in LEGS}
-    return Position(trade_id, units, CASH, (structure, 200.0, 1), opened_on)
+UNITS = {leg.contract: leg.leg.side * LOT for leg in LEGS}
 
 
-def _books(*positions: Position, start: float = BOOKS_START, **profile) -> dict:
-    account = AccountFacts(BOOKS_START + 0.0, ((date(2026, 10, 1), start),), (), tuple(positions))
+def _held(trade_id: str, structure: str = "SF") -> Position:
+    return Position(trade_id, UNITS, CASH, (structure, 200.0, 1))
+
+
+def _books(*positions: Position, start: float = BOOKS_START, session=(), **profile) -> dict:
+    account = AccountFacts(BOOKS_START + 0.0, ((date(2026, 10, 1), start),), (), tuple(positions), tuple(session))
     return {"account": account, "owner_limits": limits(RISK_PROFILE_BOOKS, **profile)}
+
+
+def _total(report, check_name: str, group: str) -> float:
+    return next(r for r in report.results if r.name == check_name).numbers[group]["total_rs"]
 
 
 def _terms(*positions: Position):
@@ -44,7 +50,7 @@ def _terms(*positions: Position):
 
 def _one_trade_loss() -> float:
     report = check(**_books())
-    return next(r for r in report.results if r.name == "bucket_cap").numbers["total_rs"]
+    return _total(report, "bucket_cap", "bucket NIFTY/short_volatility")
 
 
 def test_the_books_run_exactly_the_c5_checks_and_a_correct_trade_passes():
@@ -74,12 +80,40 @@ def test_a_bucket_breach_c2_allowed_is_refused_by_c4():
     assert at.ok, [r.reason for r in at.failures]
 
 
-@pytest.mark.parametrize(("opened", "counted"), [(DAY, True), (DAY - timedelta(days=1), False)])
-def test_new_risk_counts_only_trades_opened_this_session(opened, counted):
-    held = (_held("h1", opened),)
-    report = check(proposal(open_terms=_terms(*held)), **_books(*held))
-    numbers = next(r for r in report.results if r.name == "new_risk_per_day").numbers
-    assert ("h1" in numbers["counted_rs"]) is counted
+def test_new_risk_counts_only_this_sessions_trades_even_closed_ones():
+    """Owner, "3 A": a round trip today (held, then flat) still counts at its largest maximum loss; an open trade
+    from an earlier session (not in the session list) does not."""
+    one = _one_trade_loss()
+    round_trip = ("rt", ((UNITS, CASH), ({}, CASH + 500.0)))
+    report = check(proposal(open_terms=_terms(_held("earlier"))), **_books(_held("earlier"), session=[round_trip]))
+    group = next(r for r in report.results if r.name == "new_risk_per_day").numbers["trades opened this session"]
+    assert set(group["counted_rs"]) == {"rt", proposal().opportunity_id}
+    assert group["total_rs"] == pytest.approx(2 * one, abs=0.02)
+
+
+@pytest.mark.parametrize(("slack", "ok"), [(0.01, True), (0.0, True), (-0.02, False)])
+def test_new_risk_cap_at_and_over_its_number_with_a_closed_round_trip(slack, ok):
+    one = _one_trade_loss()
+    session = [("rt", ((UNITS, CASH), ({}, CASH)))]
+    total = _total(check(**_books(session=session)), "new_risk_per_day", "trades opened this session")
+    report = check(**_books(session=session, new_risk_per_day_rs=round(total, 2) + slack))
+    assert total == pytest.approx(2 * one, abs=0.02) and report.ok is ok
+    assert ok or failed(report) == {"new_risk_per_day"}
+
+
+def test_a_two_sided_position_counts_its_full_loss_in_each_bucket():
+    """Owner, "1 B": a held position listed with two sides is in both buckets; a proposal sharing either sees it."""
+    sides = {"SF": ["short_volatility", "bullish"], "SC": "short_volatility", "BF": "long_volatility"}
+    held = (_held("two_sided"),)
+    one = _one_trade_loss()
+    report = check(proposal("SC", open_terms=_terms(*held)), **_books(*held, bucket_sides=sides))
+    assert _total(report, "bucket_cap", "bucket NIFTY/short_volatility") > one  # the held fly is counted
+    sided = check(proposal(open_terms=_terms(*held)), **_books(*held, bucket_sides=sides))
+    shared = {"bucket NIFTY/short_volatility", "bucket NIFTY/bullish"}
+    numbers = next(r for r in sided.results if r.name == "bucket_cap").numbers
+    assert shared <= set(numbers) and all(numbers[g]["total_rs"] == pytest.approx(2 * one, abs=0.02) for g in shared)
+    tight = check(proposal(open_terms=_terms(*held)), **_books(*held, bucket_sides=sides, bucket_cap_rs=2 * one - 1))
+    assert failed(tight) == {"bucket_cap"}
 
 
 def test_open_risk_cap_counts_every_bucket():
@@ -89,14 +123,12 @@ def test_open_risk_cap_counts_every_bucket():
     assert failed(report) == {"open_risk_cap"}
 
 
-def test_an_unmapped_structure_or_unknown_first_fill_day_fails_every_cap():
+def test_an_unmapped_open_structure_fails_the_caps_that_read_it():
     unmapped = (_held("h1", structure="XX"),)
     report = check(proposal(open_terms=_terms(*unmapped)), **_books(*unmapped))
-    caps = [r for r in report.failures if r.name in ("bucket_cap", "open_risk_cap", "new_risk_per_day")]
-    assert len(caps) == 3 and all("unmapped" in r.reason for r in caps)
-    assert failed(report) - {r.name for r in caps} == {"margin_room"}  # no margin row for XX either
-    unknown = (_held("h1", opened_on=None),)
-    assert failed(check(proposal(open_terms=_terms(*unknown)), **_books(*unknown))) >= {"new_risk_per_day"}
+    caps = [r for r in report.failures if r.name in ("bucket_cap", "open_risk_cap")]
+    assert len(caps) == 2 and all("unmapped" in r.reason for r in caps)  # as C2: the caps that read held buckets
+    assert failed(report) == {"bucket_cap", "open_risk_cap", "margin_room"}  # no margin row for XX either
 
 
 def test_a_book_opened_on_rs_5_lakh_is_refused_for_the_books():

@@ -104,7 +104,7 @@ def test_from_the_31st_day_every_trade_is_refused_until_the_factor_is_renewed(tm
 
 @pytest.mark.parametrize(
     ("profile", "priced"),
-    [("books", {"bucket_cap", "open_risk_cap", "new_risk_per_day"}), ("manual", {"stress_loss", "exposure_limit"})],
+    [("books", {"bucket_cap", "open_risk_cap"}), ("manual", {"stress_loss", "exposure_limit"})],
 )
 def test_a_missing_quote_fails_closed_in_every_rule_that_needs_it(tmp_path, profile, priced):
     held = open_trade("held", FLY, 200, short_fly(24000, 200), EXPIRY, 0.0)  # no quotes for its contracts

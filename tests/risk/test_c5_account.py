@@ -107,7 +107,10 @@ def test_both_or_no_margin_age_is_an_error():
 @pytest.mark.parametrize(
     ("key", "value", "problem"),
     [
-        ("bucket_sides", {"SF": "sideways"}, "sides must be one of"),
+        ("bucket_sides", {"SF": "sideways"}, "distinct sides"),
+        ("bucket_sides", {"BPS": ["bullish", "bullish"]}, "distinct sides"),
+        ("bucket_sides", {"BPS": []}, "distinct sides"),
+        ("bucket_sides", {"BPS": 3}, "distinct sides"),
         ("bucket_cap_rs", 0, "positive"),
         ("open_risk_cap_rs", 2_000_001, "larger than the paper account"),
         ("max_open_trades", 3, "belong to no rule"),  # a setting without its rule is never silently ignored
@@ -120,6 +123,15 @@ def test_a_malformed_books_setting_is_an_error(key, value, problem):
     cfg["risk"]["profiles"]["books"][key] = value
     with pytest.raises(RiskSettingsError, match=problem):
         _profile(cfg=cfg)
+
+
+def test_a_two_sided_structure_is_read_as_a_list_of_sides():
+    cfg = copy.deepcopy(CONFIG)
+    cfg["risk"]["profiles"]["books"]["bucket_sides"] = {
+        "SF": "short_volatility",
+        "BPS": ["bullish", "short_volatility"],
+    }
+    assert _profile(cfg=cfg).bucket_sides == {"SF": ("short_volatility",), "BPS": ("bullish", "short_volatility")}
 
 
 def test_every_rule_name_a_profile_may_list_is_built_by_the_composition_root():
@@ -207,19 +219,37 @@ def test_the_daily_stress_line_reports_every_scenario_below_the_sum_of_maximum_l
     assert empty.max_loss_sum_rs == 0 and all(r.loss_from_entry_rs == 0 for r in empty.rows)
 
 
-def test_each_open_trade_knows_the_day_it_opened_in_every_view(braked):
-    the_market = market(25000, PRICES, EXPIRY)
+def test_the_session_trades_are_every_trade_first_filled_today_with_each_state(braked):
+    """Owner, 15 Oct 2026, "3 A": a trade opened and closed in the same session still counts; its largest maximum
+    loss that day is its new risk. A trade first filled on an earlier day is not new risk, even if it trades today."""
+    the_market = market(25000, PRICES, EXPIRY, day=DAY)
     with open_account_writer(BOOK1_RULES, braked) as writer:
-        writer.apply_fill(_fill("o1", "held", SIDE_BUY, 150.0, date(2026, 10, 9)))
-        writer.apply_fill(_fill("o2", "held", SIDE_SELL, 70.0, date(2026, 10, 12), strike=25200))  # a later leg
-    held = load_risk_book(braked, BOOK1_RULES, the_market, {"held": TradeTerms(FLY, 200, 1)})
-    assert held.open_trades[0].opened_on == date(2026, 10, 9)  # the ledger's earliest fill, not its latest
-    after = book_after_entry(held, NEW, the_market, SimulatorTradeCosts(CHARGES))
-    assert after.open_trades[-1].opened_on == DAY  # chosen earlier the same session: new risk today
+        writer.apply_fill(_fill("e1", "older", SIDE_BUY, 70.0, DAY - timedelta(days=2), strike=25200))  # opened earlier
+        writer.apply_fill(_fill("e2", "older", SIDE_BUY, 150.0, DAY))  # ... and traded again today: not new risk
+        for i, (strike, kind, side) in enumerate(short_fly(25000, 200)):  # opened at 15:15 ...
+            order = Order(SIDE_SELL if side < 0 else SIDE_BUY, PRICES[(strike, kind)], LOT, 0.0)
+            when = datetime(DAY.year, DAY.month, DAY.day, 15, 15, tzinfo=IST)
+            writer.apply_fill(Fill.priced(f"o{i}", "round_trip", when, contract(strike, kind, EXPIRY), order, CHARGES))
+        for i, (strike, kind, side) in enumerate(short_fly(25000, 200)):  # ... and closed at 15:20
+            order = Order(SIDE_BUY if side < 0 else SIDE_SELL, PRICES[(strike, kind)], LOT, 0.0)
+            when = datetime(DAY.year, DAY.month, DAY.day, 15, 20, tzinfo=IST)
+            writer.apply_fill(Fill.priced(f"c{i}", "round_trip", when, contract(strike, kind, EXPIRY), order, CHARGES))
+    the_book = load_risk_book(braked, BOOK1_RULES, the_market, {"older": TradeTerms(FLY, 200, 1)})
+    assert [t.trade_id for t in the_book.open_trades] == ["older"]
+    assert [t.trade_id for t in the_book.session_trades] == ["round_trip"]
+    (trade,) = the_book.session_trades
+    assert len(trade.states) == 2 and trade.states[1][0] == {}  # held after 15:15, flat after 15:20
+    from fno.risk.wiring import build_position_risks
+
+    risks = build_position_risks(CONFIG, _profile())
+    first = risks.held.max_loss(trade.states[0][0], trade.states[0][1], the_market)
+    assert first > 0 and risks.of_session(trade, the_market) == pytest.approx(first)
+    after = book_after_entry(the_book, NEW, the_market, SimulatorTradeCosts(CHARGES))
+    assert [t.trade_id for t in after.session_trades] == ["round_trip", "new"]  # chosen earlier the same session
     assert book_from_json(book_to_json(after)) == after
     old_record = book_to_json(after)
-    del old_record["open_trades"][0]["opened_on"]  # a record written before C5
-    assert book_from_json(old_record).open_trades[0].opened_on is None  # then refused by the new-risk cap
+    del old_record["session_trades"]  # a record written before C5
+    assert book_from_json(old_record).session_trades is None  # then refused by the new-risk cap
 
 
 def test_a_broken_manual_profile_stops_the_books_risk_manager_too(tmp_path):

@@ -50,7 +50,7 @@ class ProfileSettings:
     bucket_cap_rs: float | None = None
     open_risk_cap_rs: float | None = None
     new_risk_per_day_rs: float | None = None
-    bucket_sides: Mapping[str, str] | None = None  # structure code -> side of exposure; unlisted codes are refused
+    bucket_sides: Mapping[str, tuple[str, ...]] | None = None  # structure code -> its sides; unlisted codes refused
 
 
 def _where(name: str) -> str:
@@ -77,14 +77,24 @@ def _check_keys(block: Mapping[str, Any], rules: tuple[str, ...], where: str) ->
         raise RiskSettingsError(f"config.yaml risk{where}: set exactly one of `{AGE_DAYS}` and `{AGE_SESSIONS}`")
 
 
-def _sides(block: Mapping[str, Any], where: str) -> dict[str, str]:
+def _as_sides(value: Any) -> tuple:
+    if isinstance(value, str):
+        return (value,)
+    return tuple(value) if isinstance(value, list) else ()
+
+
+def _sides(block: Mapping[str, Any], where: str) -> dict[str, tuple[str, ...]]:
+    """Structure code -> its sides: one side, or a list (a directional spread: its direction and a volatility side)."""
     sides = get_setting(block, "bucket_sides", where)
     if not isinstance(sides, Mapping) or not sides:
         raise RiskSettingsError(f"config.yaml risk{where}: `bucket_sides` must map structure codes to sides")
-    wrong = {code: side for code, side in sides.items() if side not in BUCKET_SIDES}
+    listed = {str(code): _as_sides(side) for code, side in sides.items()}
+    wrong = {c: s for c, s in listed.items() if not s or len(set(s)) != len(s) or set(s) - set(BUCKET_SIDES)}
     if wrong:
-        raise RiskSettingsError(f"config.yaml risk{where}.bucket_sides: sides must be one of {BUCKET_SIDES}: {wrong}")
-    return {str(code): str(side) for code, side in sides.items()}
+        raise RiskSettingsError(
+            f"config.yaml risk{where}.bucket_sides: each code needs distinct sides from {BUCKET_SIDES}: {wrong}"
+        )
+    return listed
 
 
 def _optional(block: Mapping[str, Any], rules: tuple[str, ...], where: str) -> dict[str, Any]:

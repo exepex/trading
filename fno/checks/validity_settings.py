@@ -53,7 +53,7 @@ class CapLimits:
     bucket: float | None  # None: the profile does not run that cap
     open_risk: float | None
     new_risk_per_day: float | None
-    sides: Mapping[str, str]  # structure code -> side of exposure
+    sides: Mapping[str, object]  # structure code -> its side, or a list of sides (a directional spread)
 
 
 @dataclass(frozen=True)

@@ -115,3 +115,14 @@ def test_a_shock_moves_the_forward_scales_the_volatility_and_lets_days_pass():
     shocked = leg.value(day, 0.065, move_pct=-8, sigma_factor=2.0, sigma_add=0.05, days=1)
     assert shocked == pytest.approx(black76("CE", 23_000.0, 25_200.0, 29 / 365, 0.065, 0.35))
     assert leg.value(day, 0.065, days=30) == 0.0  # at expiry: intrinsic value, out of the money
+
+
+def test_c4_reads_the_sessions_trades_from_the_ledger(ledger):
+    """Story C5: the trades first filled on the decision day, with their state after each fill time; trade a was
+    first filled on 6 Oct, so on 8 Oct (when it closes) it is not new risk."""
+    on_9 = LedgerAccounts(ledger).facts(BOOK1_RULES, datetime(2026, 10, 9, 16, 0, tzinfo=IST))
+    assert [trade for trade, _ in on_9.session] == ["b"]
+    (states,) = [states for trade, states in on_9.session if trade == "b"]
+    assert states[-1][0] == {"X1PE": -65, "X2PE": 65}
+    on_8 = LedgerAccounts(ledger).facts(BOOK1_RULES, datetime(2026, 10, 8, 16, 0, tzinfo=IST))
+    assert on_8.session == ()

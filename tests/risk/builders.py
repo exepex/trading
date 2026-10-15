@@ -104,13 +104,14 @@ def book(
     marked=START,
     name="book1_rules",
     premium_reserved=0.0,
+    session_trades=(),
 ) -> RiskBook:
     """A book with its account state given directly: closed equity is the last value of `closed`."""
     closed_equity = closed[-1][1]
     state = AccountState(
         START, cash, closed_equity, marked - closed_equity, marked, 0.0, premium_reserved, len(open_trades), ()
     )
-    return RiskBook(name, state, tuple(open_trades), tuple(closed), tuple(restarts))
+    return RiskBook(name, state, tuple(open_trades), tuple(closed), tuple(restarts), tuple(session_trades))
 
 
 FLY = STRUCTURE_SHORT_IRON_FLY

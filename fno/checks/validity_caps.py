@@ -1,5 +1,7 @@
 """Story C5's caps as C4 recomputes them (judge 83: every C2 limit, with C4's own arithmetic): the paper account size,
-and the bucket, open-risk and new-risk-per-day caps on sums of maximum losses.
+and the bucket, open-risk and new-risk-per-day caps on sums of maximum losses. A position with two sides counts its
+full maximum loss in each of its buckets (owner, 15 Oct 2026, "1 B"); new risk counts every trade first filled this
+session, open or closed, at the largest maximum loss it carried (owner, "3 A").
 
 Nothing here comes from C2 (`fno.risk`). A position's bucket is its contracts' underlying (the symbol's letters before
 its first digit, NIFTY or BANKNIFTY) and its structure's side from `bucket_sides` in config.yaml. A held position's
@@ -12,7 +14,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import date
 
 from ..constants import BUCKET_INDEX_GROUPS
 from .validity_account import AccountFacts, Position
@@ -32,9 +33,8 @@ class CapProblem(ValueError):
 @dataclass(frozen=True)
 class Exposure:
     trade_id: str
-    bucket: tuple[str, str]  # (underlying group, side)
+    buckets: tuple[tuple[str, str], ...]  # (underlying group, side), one per side of the structure
     max_loss: float
-    opened_on: date | None
 
 
 def _underlying(contract: str) -> str:
@@ -42,11 +42,13 @@ def _underlying(contract: str) -> str:
     return contract[: digits[0]] if digits else contract
 
 
-def bucket_of(structure: str | None, contracts, sides: Mapping[str, str]) -> tuple[str, str]:
+def buckets_of(structure: str | None, contracts, sides: Mapping[str, object]) -> tuple[tuple[str, str], ...]:
+    """A structure's sides from config.yaml: one name, or a list (a directional spread, owner 15 Oct 2026 "1 B")."""
     groups = {_underlying(c) for c in contracts}
     if len(groups) != 1 or next(iter(groups)) not in BUCKET_INDEX_GROUPS or structure not in sides:
         raise CapProblem(f"unmapped bucket: structure {structure!r} on underlyings {sorted(groups)}")
-    return next(iter(groups)), sides[structure]
+    listed = sides[structure]
+    return tuple((next(iter(groups)), side) for side in ([listed] if isinstance(listed, str) else listed))
 
 
 def held_max_loss(position: Position, chain: PricedChain, table: Mapping[str, float]) -> float:
@@ -76,12 +78,13 @@ def held_max_loss(position: Position, chain: PricedChain, table: Mapping[str, fl
     return max(worst[0] - position.cash_flow + PAD * sum(n for _, n in legs) + worst[1], 0.0)
 
 
-def _cap(name: str, counted: Sequence[Exposure], limit: float, what: str) -> CheckResult:
-    total = sum(e.max_loss for e in counted)
-    numbers = {"what": what, "total_rs": round(total, 2), "limit_rs": limit,
-               "counted_rs": {e.trade_id: round(e.max_loss, 2) for e in counted}}  # fmt: skip
-    reason = f"{what}: maximum losses Rs {total:,.2f} against the cap Rs {limit:,.0f}"
-    return CheckResult(name, total <= limit, reason, numbers)
+def _cap(name: str, groups: Sequence[tuple[str, dict[str, float]]], limit: float) -> CheckResult:
+    totals = [(what, counted, sum(counted.values())) for what, counted in groups]
+    numbers = {what: {"total_rs": round(total, 2), "counted_rs": {k: round(v, 2) for k, v in counted.items()}}
+               for what, counted, total in totals} | {"limit_rs": limit}  # fmt: skip
+    reason = "; ".join(f"{what}: maximum losses Rs {total:,.2f} against the cap Rs {limit:,.0f}"
+                       for what, _, total in totals)  # fmt: skip
+    return CheckResult(name, all(total <= limit for _, _, total in totals), reason, numbers)
 
 
 class CapChecks:
@@ -90,24 +93,44 @@ class CapChecks:
 
     def exposure(self, position: Position, chain: PricedChain) -> Exposure:
         structure = position.terms[0] if position.terms else None
-        bucket = bucket_of(structure, position.units, self.caps.sides)
-        return Exposure(position.trade_id, bucket, held_max_loss(position, chain, self.table), position.opened_on)
+        buckets = buckets_of(structure, position.units, self.caps.sides)
+        return Exposure(position.trade_id, buckets, held_max_loss(position, chain, self.table))
 
-    def checks(self, held: Sequence[Position], own: Exposure, chain: PricedChain, day: date) -> list[CheckResult]:
-        """`held`: open trades and those chosen earlier the same day; `own`: the proposal's bucket and maximum loss."""
-        others = [self.exposure(p, chain) for p in held]
-        if any(e.opened_on is None for e in others):
-            raise CapProblem("an open trade has no recorded first fill day")
-        results = []
-        if "bucket_cap" in self.rules:
-            same = [e for e in others if e.bucket == own.bucket] + [own]
-            results.append(_cap("bucket_cap", same, self.caps.bucket, f"bucket {'/'.join(own.bucket)}"))
-        if "open_risk_cap" in self.rules:
-            results.append(_cap("open_risk_cap", [*others, own], self.caps.open_risk, "all open positions"))
-        if "new_risk_per_day" in self.rules:
-            today = [e for e in others if e.opened_on == day] + [own]
-            results.append(_cap("new_risk_per_day", today, self.caps.new_risk_per_day, "trades opened this session"))
-        return results
+    def session_risk(self, trade_id: str, states, chain: PricedChain) -> float:
+        """The largest maximum loss a session trade carried after any fill time (owner, "3 A": closed ones count)."""
+        return max((held_max_loss(Position(trade_id, u, c), chain, self.table) for u, c in states), default=0.0)
+
+    def checks(self, held: Sequence[Position], session, own: Exposure, chain: PricedChain) -> list[CheckResult]:
+        """`held`: open trades and those chosen earlier the same day; `session`: trades first filled today, with
+        their states; `own`: the proposal's buckets and maximum loss. Each cap fails closed on its own inputs."""
+        mine = {own.trade_id: own.max_loss}
+
+        def others() -> list[Exposure]:
+            return [self.exposure(p, chain) for p in held]
+
+        def bucket() -> CheckResult:
+            exposures = others()
+            groups = [(f"bucket {'/'.join(b)}", {e.trade_id: e.max_loss for e in exposures if b in e.buckets} | mine)
+                      for b in own.buckets]  # fmt: skip
+            return _cap("bucket_cap", groups, self.caps.bucket)
+
+        def open_risk() -> CheckResult:
+            everything = {e.trade_id: e.max_loss for e in others()} | mine
+            return _cap("open_risk_cap", [("all open positions", everything)], self.caps.open_risk)
+
+        def new_risk() -> CheckResult:
+            today = {trade: self.session_risk(trade, states, chain) for trade, states in session} | mine
+            return _cap("new_risk_per_day", [("trades opened this session", today)], self.caps.new_risk_per_day)
+
+        caps = {"bucket_cap": bucket, "open_risk_cap": open_risk, "new_risk_per_day": new_risk}
+        return [_failing_closed(name, caps[name]) for name in caps if name in self.rules]
+
+
+def _failing_closed(name: str, check) -> CheckResult:
+    try:
+        return check()
+    except (CapProblem, PricingProblem) as problem:
+        return CheckResult(name, False, str(problem))
 
 
 def paper_account_check(account: AccountFacts, paper_account: float) -> CheckResult:

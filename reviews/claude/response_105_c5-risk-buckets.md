@@ -4,6 +4,24 @@ Builder: Claude, 15 Oct 2026. Branch `story/c5-risk-buckets` (lane 1: money and 
 `docs/stories/C-code-roles.md` section C5. Not merged; G6 not used. Owner decisions used: 14 Oct (Rs 20 lakh, Rs 10,000
 a trade), 15 Oct (caps and brake; "1 A" and "2 A"), 13 Oct (Manual account), all quoted in the story text.
 
+## Addendum 1 (owner's answers of 15 Oct 2026, rows on main 665c835)
+
+- **"1 B" two buckets:** `bucket_sides` takes one side or a list. A position counts its full maximum loss in each of
+  its buckets; a two-sided proposal must fit every one of its buckets; open risk counts each position once. C2
+  (`fno/risk/caps.py`, `buckets.py`) and C4 (`fno/checks/validity_caps.py`). The spread codes themselves come with
+  STR1; the tests use placeholder codes.
+- **"3 A" same-session round trips count:** new risk is now every trade first filled on the decision day, open or
+  already closed, at the largest maximum loss it carried after any fill time that day (C2: `RiskBook.session_trades`
+  from the ledger, D2's same-session choices, D3's codec; C4: `AccountFacts.session` from its own ledger read). This
+  replaces the earlier "first-fill day of open trades" design (`opened_on` is removed). A trade first filled earlier
+  and traded again today is not new risk.
+- **"4 A"** stress-line assumptions accepted, information only; **"5 A"** stocks stay refused until A18. No code change.
+- **"2 B"** top-up is a separate story (`story/e1-topup`, response 110), not in C5.
+- **C4 per-cap failure:** each C4 cap now fails closed on its own inputs, so an unmappable held position fails the
+  bucket and open-risk caps in C4 exactly as in C2 (before, C4 also failed new risk).
+- Re-run of every deliberate break: 33 of 33 caught (table below); first try missed one (a trade first filled earlier
+  counted as new); a test now has such a trade.
+
 ## What changed
 
 - **Risk profiles** (`config.yaml` `risk.profiles`): `books` and `manual`. Each lists the rules it runs and holds
@@ -18,7 +36,8 @@ a trade), 15 Oct (caps and brake; "1 A" and "2 A"), 13 Oct (Manual account), all
   stress and exposure checks run for the Manual profile only.
 - **E1** opens new accounts with the books' `paper_account_rs` (the Rs 5 lakh constant is gone).
 - **Margin age:** a strategy, calendar days (Manual) or NSE sessions (books, design 6.1a), in C2 and C4.
-- **Open trades carry their first-fill day** (`opened_on`) through the ledger, D2's same-session entries and D3's codec.
+- **The session's trades** (first filled on the decision day, open or closed, with their state after each fill time)
+  come from the ledger, D2's same-session entries and D3's codec (addendum 1; this replaced `opened_on`).
 - **The daily stress line** is a computed record, not a limit (`build_stress_line`).
 
 ## Gap list: design 6.1-6.3 and the C5 paragraph, each mapped
@@ -53,15 +72,15 @@ a trade), 15 Oct (caps and brake; "1 A" and "2 A"), 13 Oct (Manual account), all
 
 | # | Criterion | Code | Test | Evidence |
 |---|---|---|---|---|
-| 1 | Bucket cap at Rs 30,000 passes, Rs 0.01 over refused, other buckets not counted | `fno/risk/caps.py:22`, `:35`, `:69` | `tests/risk/test_caps.py:46`, `:53`, `:99` (real wiring) | strong evidence |
+| 1 | Bucket cap at Rs 30,000 passes, Rs 0.01 over refused, other buckets not counted; a two-sided position counts its full loss in each bucket, a two-sided proposal must fit every one ("1 B") | `fno/risk/caps.py` (`MaxLossCap.check`, `BucketCap`); `fno/risk/buckets.py` | `tests/risk/test_caps.py` (`test_bucket_cap_at_just_under_and_just_over_rs_30000`, `test_another_bucket_does_not_count_against_this_one`, `test_a_two_bucket_proposal_must_fit_both_buckets_with_its_full_loss`, `test_a_held_two_bucket_position_counts_in_each_of_its_buckets`, `test_the_real_position_risks_count_the_held_trades_of_the_book`) | strong evidence |
 | 2 | Open-risk cap at Rs 1,50,000 across buckets | `fno/risk/caps.py:75` | `tests/risk/test_caps.py:60` | strong evidence |
-| 3 | New risk per day at Rs 50,000; earliest fill day; same-session choices count; unknown day refused | `fno/risk/caps.py:63`, `:81`; `fno/risk/book_view.py:36`; `fno/playbook/book_effects.py`; `fno/playbook/decision_codec.py` | `tests/risk/test_caps.py:68`, `:75`; `tests/risk/test_c5_account.py:210` | strong evidence |
+| 3 | New risk per day at Rs 50,000 for every trade first filled this session, open or closed ("3 A"), at its largest maximum loss; same-session choices count; earlier trades traded today do not; unknown session refused | `fno/risk/caps.py` (`NewRiskPerDay`); `fno/risk/open_risk.py` (`of_session`); `fno/risk/book_view.py` (`session_trades`); `fno/playbook/book_effects.py`; `fno/playbook/decision_codec.py` | `tests/risk/test_caps.py` (`test_new_risk_per_day_at_just_under_and_just_over_rs_50000`, `test_a_trade_opened_and_closed_this_session_still_counts`, `test_a_book_whose_session_trades_are_unknown_fails_closed`); `tests/risk/test_c5_account.py` (`test_the_session_trades_are_every_trade_first_filled_today_with_each_state`) | strong evidence |
 | 4 | A cap only refuses; same proposal, lots unchanged | `fno/risk/caps.py:35` | `tests/risk/test_caps.py:90` | strong evidence |
-| 5 | Buckets as 6.2; unmapped refused | `fno/risk/buckets.py:37`, `:45`; `config.yaml` `bucket_sides` | `tests/risk/test_buckets.py:40`, `:52`, `:56`, `:69`, `:75` | strong evidence (code); reasoning only for the SF/SC/BF sides (question 1) |
+| 5 | Buckets as 6.2: one side, or a listed pair for a directional spread ("1 B"); unmapped (incl. stocks, "5 A") refused | `fno/risk/buckets.py`; `fno/risk/profile_settings.py` (`_sides`); `config.yaml` `bucket_sides` | `tests/risk/test_buckets.py` (incl. `test_a_directional_spread_listed_with_two_sides_is_in_both_buckets`); `tests/risk/test_c5_account.py` (`test_a_two_sided_structure_is_read_as_a_list_of_sides`, malformed lists) | strong evidence (code); reasoning only for the SF/SC/BF sides; STR1 adds the spread codes |
 | 6 | Held maximum loss = B2's; net short tail refused; locked-in counts 0 | `fno/risk/open_risk.py:36`, `:60` | `tests/risk/test_buckets.py:90`, `:99`, `:106`; reviewer's 3,000 random positions agree exactly | strong evidence |
 | 7 | New accounts open with Rs 20 lakh; any other opening refused | `fno/books/account.py`, `fno/composition.py`, `fno/risk/caps.py:87` | `tests/books/test_paper_account.py`; `tests/risk/test_caps.py:82`; `tests/risk/test_c5_account.py:144` | strong evidence |
 | 8 | Brake at Rs 1,20,000; only a signed restart row lifts it | `config.yaml` books; C2's `drawdown.py`, `overrides.py` | `tests/risk/test_c5_account.py:156`, `:184` | strong evidence |
-| 9 | Daily stress line, five scenarios, below the sum of maximum losses | `fno/risk/stress_line.py:51`; `config.yaml:97` | `tests/risk/test_c5_account.py:194` | some evidence (one structure checked; the bound holds by no-arbitrage for balanced structures, reasoning only beyond) |
+| 9 | Daily stress line, five scenarios, below the sum of maximum losses (assumptions accepted, "4 A") | `fno/risk/stress_line.py`; `config.yaml` `stress_line` | `tests/risk/test_c5_account.py` (`test_the_daily_stress_line_reports_every_scenario_below_the_sum_of_maximum_losses`) | some evidence (one structure checked; reasoning beyond) |
 | 10 | Books run exactly their rules; any setting problem in any profile stops start-up | `fno/risk/profile_settings.py:60`, `:71`, `:108`; `fno/risk/wiring.py:90` | `tests/risk/test_c5_account.py:44`, `:93`, `:98`, `:118`, `:125`, `:225` | strong evidence |
 | 11 | Manual keeps its 13 Oct limits, runs exactly those rules | `config.yaml:64` | `tests/risk/test_c5_account.py:60`; `tests/risk/test_settings.py` | strong evidence |
 | 12 | Books' margin older than one session refused; weekends and holidays never age a row | `fno/risk/margin_age.py:38`; `fno/checks/validity_settings.py:35` | `tests/risk/test_margin_age.py:28`, `:37`; `tests/checks/test_validity_caps.py:107` | strong evidence |
@@ -90,11 +109,11 @@ Both read the diff only, verified claims with snippets, made no edits.
 | C4 margin check lets a `CalendarError` through | Accepted (reasoning only, unreachable today) | fixed: `fresh` fails closed; test `:139` |
 | Manual profile never read at runtime, so a wrong value passes silently | Accepted: verified | fixed: `all_profiles` checks every profile when any risk manager is built; test `tests/risk/test_c5_account.py:225` |
 | Refusal text named `risk.caps.bucket_sides` | Accepted | fixed |
-| C4 took the first ledger row as first-fill day, C2 the minimum | Accepted (reasoning only; the ledger is append-only) | fixed: C4 takes the minimum too |
+| C4 took the first ledger row as first-fill day, C2 the minimum | Accepted (reasoning only; the ledger is append-only) | fixed then; superseded by addendum 1 (both sort fills by time). Was: C4 takes the minimum too |
 | C4 needs a two-sided quote for a held leg's strike; C2 accepts a stale mark | Partly accepted: true; C4's existing `margin_room` already needs the same mid, so C4 already refuses such a book. Kept: C4 is the stricter check and fails closed | known limit 6 |
 | Stress line not shown anywhere | True; showing it is T1's scope (6.2 "every card shows") | out of scope, stated |
 | Same-session exits make room for more new risk | True, C2 and C4 agree | known limit 3, question 3 |
-| All three books refused (opened at Rs 5 lakh) | True, intended | question 2 |
+| All three books refused (opened at Rs 5 lakh) | True, intended | owner "2 B": top-up story |
 
 ## Each criterion broken on purpose (owner's step 3)
 
@@ -107,34 +126,39 @@ later fill and catches it.
 
 | Criterion broken | File | Test run | Result |
 |---|---|---|---|
-| 1 bucket cap boundary | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 2 passed in 0.14s |
-| 1 bucket selector | `fno/risk/caps.py` | `test_caps.py::test_another_bucket_does_not_count_against_this_one` | caught: 1 failed in 0.12s |
-| 2 open-risk counts all | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 5 passed in 0.12s |
-| 3 new risk counts only today | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 8 passed in 0.13s |
-| 3 unknown first-fill day | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 11 passed in 0.12s |
-| 3 ledger first-fill day | `fno/risk/book_view.py` | `test_c5_account.py` | caught: 1 failed, 25 passed in 0.60s |
-| 3 same-session entry day | `fno/playbook/book_effects.py` | `test_c5_account.py` | caught: 1 failed, 25 passed in 0.61s |
-| 4 cap never resizes (proposal kept) | `fno/risk/manager.py` | `test_caps.py` | caught: 1 failed, 15 passed in 0.12s |
-| 5 index groups only | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 8 passed in 0.14s |
-| 5 unlisted structure refused | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 7 passed in 0.12s |
-| 6 held max loss exit pads | `fno/risk/open_risk.py` | `test_buckets.py` | caught: 1 failed, 12 passed in 0.29s |
-| 6 net short tail refused | `fno/risk/open_risk.py` | `test_buckets.py` | caught: 1 failed, 15 passed in 0.22s |
-| 7 paper account exact | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 13 passed in 0.15s |
-| 7 E1 opens at books size | `fno/composition.py` | `test_paper_account.py` | caught: 1 failed in 0.35s |
-| 8 brake amount | `config.yaml` | `test_c5_account.py` | caught: 1 failed in 0.35s |
-| 8 restart needs signature | `fno/risk/overrides.py` | `test_c5_account.py` | caught: 1 failed, 23 passed in 0.54s |
-| 9 stress line max-loss sum | `fno/risk/stress_line.py` | `test_c5_account.py` | caught: 1 failed, 24 passed in 0.59s |
-| 10 unused setting refused | `fno/risk/profile_settings.py` | `test_c5_account.py` | caught: 1 failed, 14 passed in 0.34s |
-| 10 every profile checked | `fno/risk/wiring.py` | `test_c5_account.py` | caught: 1 failed, 26 passed in 0.69s |
-| 11 Manual unchanged | `config.yaml` | `test_c5_account.py` | caught: 1 failed, 1 passed in 0.33s |
-| 12 margin one session (C2) | `fno/risk/margin_age.py` | `test_margin_age.py` | caught: 1 failed, 2 passed in 0.15s |
-| 13 C4 bucket breach | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 2 passed in 0.37s |
-| 13 C4 new risk today | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 4 passed in 0.37s |
-| 13 C4 old 3-trade check off for books | `fno/checks/validity_limits.py` | `test_validity_caps.py` | caught: 1 failed in 0.17s |
-| 13 C4 paper account | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 7 passed in 0.55s |
-| 13 C4 held max loss | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 2 passed in 0.27s |
-| 13 C4 margin one session | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 9 passed in 0.66s |
-| 13 C4 checks its own settings | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 12 passed in 0.62s |
+| 1 bucket cap boundary | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 2 passed in 0.15s |
+| 2 open-risk counts all | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 11 passed in 0.21s |
+| 4 cap never resizes (proposal kept) | `fno/risk/manager.py` | `test_caps.py` | caught: 1 failed, 22 passed in 0.17s |
+| 5 index groups only | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 9 passed in 0.15s |
+| 5 unlisted structure refused | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 8 passed in 0.18s |
+| 6 held max loss exit pads | `fno/risk/open_risk.py` | `test_buckets.py` | caught: 1 failed, 13 passed in 0.28s |
+| 6 net short tail refused | `fno/risk/open_risk.py` | `test_buckets.py` | caught: 1 failed, 16 passed in 0.34s |
+| 7 paper account exact | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 20 passed in 0.16s |
+| 7 E1 opens at books size | `fno/composition.py` | `test_paper_account.py` | caught: 1 failed in 0.39s |
+| 8 brake amount | `config.yaml` | `test_c5_account.py` | caught: 1 failed in 0.46s |
+| 8 restart needs signature | `fno/risk/overrides.py` | `test_c5_account.py` | caught: 1 failed, 27 passed in 0.63s |
+| 9 stress line max-loss sum | `fno/risk/stress_line.py` | `test_c5_account.py` | caught: 1 failed, 28 passed in 0.62s |
+| 10 unused setting refused | `fno/risk/profile_settings.py` | `test_c5_account.py` | caught: 1 failed, 17 passed in 0.46s |
+| 10 every profile checked | `fno/risk/wiring.py` | `test_c5_account.py` | caught: 1 failed, 30 passed in 0.76s |
+| 11 Manual unchanged | `config.yaml` | `test_c5_account.py` | caught: 1 failed, 1 passed in 0.40s |
+| 12 margin one session (C2) | `fno/risk/margin_age.py` | `test_margin_age.py` | caught: 1 failed, 2 passed in 0.21s |
+| 13 C4 bucket breach | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 2 passed in 0.28s |
+| 13 C4 old 3-trade check off for books | `fno/checks/validity_limits.py` | `test_validity_caps.py` | caught: 1 failed in 0.23s |
+| 13 C4 paper account | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 10 passed in 0.77s |
+| 13 C4 held max loss | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 2 passed in 0.29s |
+| 13 C4 margin one session | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 12 passed in 0.87s |
+| 13 C4 checks its own settings | `fno/checks/validity_settings.py` | `test_validity_caps.py` | caught: 1 failed, 15 passed in 0.94s |
+| 1 bucket selector (per bucket) | `fno/risk/caps.py` | `test_caps.py::test_another_bucket_does_not_count_against_this_one` | caught: 1 failed in 0.13s |
+| 1B every proposal bucket checked | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 5 passed in 0.15s |
+| 1B list of sides read | `fno/risk/profile_settings.py` | `test_c5_account.py` | caught: 1 failed in 0.45s |
+| 1B both buckets mapped | `fno/risk/buckets.py` | `test_buckets.py` | caught: 1 failed, 7 passed in 0.14s |
+| 3A closed same-session trade counts (C2) | `fno/risk/open_risk.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.74s |
+| 3A session = first filled today | `fno/risk/book_view.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.83s |
+| 3A same-session choice counts | `fno/playbook/book_effects.py` | `test_c5_account.py` | caught: 1 failed, 29 passed in 0.77s |
+| 3A unknown session refused | `fno/risk/caps.py` | `test_caps.py` | caught: 1 failed, 18 passed in 0.17s |
+| 3A C4 closed round trip counts | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 3 passed in 0.40s |
+| 1B C4 per-bucket group | `fno/checks/validity_caps.py` | `test_validity_caps.py` | caught: 1 failed, 7 passed in 0.66s |
+| 3A C4 session from ledger | `fno/checks/validity_account.py` | `test_validity_inputs.py` | caught: 1 failed, 9 passed in 0.22s |
 
 ## Sample of real output (owner's step 4)
 
@@ -151,20 +175,26 @@ of about Rs 1.24 lakh and lifts after a signed `restart_brake` row.
   drawdown_brake: ok - drawdown Rs 0.00 is below the brake Rs 120,000.00
   (this trade's B2 maximum loss: Rs 3,354.54)
 
-== 8 flies already open (opened 9 Oct) in NIFTY/short_volatility, one more: REFUSED
+== 8 short flies open since an earlier session, one more: REFUSED
   bucket_cap: REFUSED - bucket NIFTY/short_volatility: maximum losses Rs 30,190.88 with this trade's Rs 3,354.54 are above the cap Rs 30,000.00
   open_risk_cap: ok - all open positions: maximum losses Rs 30,190.88 with this trade's Rs 3,354.54 are within the cap Rs 150,000.00
   new_risk_per_day: ok - trades opened this session: maximum losses Rs 3,354.54 with this trade's Rs 3,354.54 are within the cap Rs 50,000.00
   drawdown_brake: ok - drawdown Rs 0.00 is below the brake Rs 120,000.00
   (a 1-lot long fly: Rs 11,133.40)
 
-== 5 long-vol trades opened TODAY, one more short fly: REFUSED
+== 5 long flies opened THIS session, one more short fly: REFUSED
   bucket_cap: ok - bucket NIFTY/short_volatility: maximum losses Rs 3,354.54 with this trade's Rs 3,354.54 are within the cap Rs 30,000.00
   open_risk_cap: ok - all open positions: maximum losses Rs 59,021.53 with this trade's Rs 3,354.54 are within the cap Rs 150,000.00
   new_risk_per_day: REFUSED - trades opened this session: maximum losses Rs 59,021.53 with this trade's Rs 3,354.54 are above the cap Rs 50,000.00
   drawdown_brake: ok - drawdown Rs 0.00 is below the brake Rs 120,000.00
 
-== 14 long-vol trades open since 9 Oct, one more short fly: REFUSED
+== 5 long flies opened AND CLOSED this session (none open), one more short fly: REFUSED
+  bucket_cap: ok - bucket NIFTY/short_volatility: maximum losses Rs 3,354.54 with this trade's Rs 3,354.54 are within the cap Rs 30,000.00
+  open_risk_cap: ok - all open positions: maximum losses Rs 3,354.54 with this trade's Rs 3,354.54 are within the cap Rs 150,000.00
+  new_risk_per_day: REFUSED - trades opened this session: maximum losses Rs 59,021.53 with this trade's Rs 3,354.54 are above the cap Rs 50,000.00
+  drawdown_brake: ok - drawdown Rs 0.00 is below the brake Rs 120,000.00
+
+== 14 long flies open since an earlier session, one more short fly: REFUSED
   bucket_cap: ok - bucket NIFTY/short_volatility: maximum losses Rs 3,354.54 with this trade's Rs 3,354.54 are within the cap Rs 30,000.00
   open_risk_cap: REFUSED - all open positions: maximum losses Rs 159,222.12 with this trade's Rs 3,354.54 are above the cap Rs 150,000.00
   new_risk_per_day: ok - trades opened this session: maximum losses Rs 3,354.54 with this trade's Rs 3,354.54 are within the cap Rs 50,000.00
@@ -199,7 +229,7 @@ from fno.config import load_app_config
 from fno.constants import BOOK1_RULES, BOOKS, SIDE_BUY, SIDE_SELL
 from fno.models import IST
 from fno.risk.book_view import load_risk_book
-from fno.risk.inputs import TradeTerms
+from fno.risk.inputs import SessionTrade, TradeTerms
 from fno.risk.margins import MARGIN_COLUMNS
 from fno.risk.overrides import OVERRIDE_COLUMNS, overrides_file
 from fno.risk.wiring import build_risk_manager
@@ -233,19 +263,21 @@ cash = one.entry_cash_rs
 from fno.constants import STRUCTURE_LONG_IRON_FLY as LONG
 long_fly = [(k, kind, -side) for k, kind, side in short_fly(25000, 200)]
 long_cash = manager.costs.entry_cash_flow(proposal("l", LONG, 200, long_fly, EXPIRY), m)
-def held(n, opened, structure=FLY):
+def held(n, structure=FLY):
     legs, flow = (long_fly, long_cash) if structure == LONG else (short_fly(25000, 200), cash)
-    return tuple(replace(open_trade(f"h{i}", structure, 200, legs, EXPIRY, flow), opened_on=opened) for i in range(n))
-older = DAY - timedelta(days=5)
-n_bucket = int(30000 // loss)
-show(f"{n_bucket} flies already open (opened 9 Oct) in NIFTY/short_volatility, one more", manager.evaluate(new(), replace(book, open_trades=held(n_bucket, older)), m))
+    return tuple(open_trade(f"{structure}{i}", structure, 200, legs, EXPIRY, flow) for i in range(n))
+def today(trades):  # these trades were first filled this session
+    return tuple(SessionTrade(t.trade_id, ((dict(t.units), t.cash_flow),)) for t in trades)
+n_bucket = int((30000 - loss) // loss) + 1
+show(f"{n_bucket} short flies open since an earlier session, one more", manager.evaluate(new(), replace(book, open_trades=held(n_bucket)), m))
 long_loss = manager.evaluate(proposal("l", LONG, 200, long_fly, EXPIRY), book, m).verdicts[2].numbers["max_loss_rs"]
 print(f"  (a 1-lot long fly: Rs {long_loss:,.2f})")
-n_day = int((50000 - loss) // long_loss) + 1
-mixed = held(n_day, DAY, LONG)
-show(f"{n_day} long-vol trades opened TODAY, one more short fly", manager.evaluate(new(), replace(book, open_trades=mixed), m))
-many = tuple(replace(t, trade_id=f"x{t.trade_id}") for t in held(int((150000 - loss) // long_loss) + 1, older, LONG))
-show(f"{len(many)} long-vol trades open since 9 Oct, one more short fly", manager.evaluate(new(), replace(book, open_trades=many), m))
+fresh = held(int((50000 - loss) // long_loss) + 1, LONG)
+show(f"{len(fresh)} long flies opened THIS session, one more short fly", manager.evaluate(new(), replace(book, open_trades=fresh, session_trades=today(fresh)), m))
+closed = today(held(int((50000 - loss) // long_loss) + 1, LONG))
+show(f"{len(closed)} long flies opened AND CLOSED this session (none open), one more short fly", manager.evaluate(new(), replace(book, session_trades=closed), m))
+many = held(int((150000 - loss) // long_loss) + 1, LONG)
+show(f"{len(many)} long flies open since an earlier session, one more short fly", manager.evaluate(new(), replace(book, open_trades=many), m))
 
 with open_account_writer(BOOK1_RULES, root) as w:
     when = lambda d: datetime(d.year, d.month, d.day, 15, 15, tzinfo=IST)
@@ -273,35 +305,34 @@ show("after the owner's written restart row of 7 Oct", manager.evaluate(new(), l
 
 ## Known limits (said plainly)
 
-1. **Every book trade is refused today**, by design: the books opened at Rs 5 lakh (question 2) and the margins file
+1. **Every book trade is refused today**, by design: the books opened at Rs 5 lakh (the "2 B" top-up story fixes it) and the margins file
    has no rows.
 2. **Bucket side comes from the recorded structure code**, not from the legs; a wrong code in a decision record would
    put a position in the wrong bucket. C4 shape checks tie the code to the legs at entry.
-3. **New risk per day counts only trades still open**: a trade opened and closed in the same session drops out.
+3. **New risk is rebuilt from the ledger's fill times.** A state after a fill time that is not defined risk (a
+   partial fill that left a short leg unprotected) makes the new-risk cap refuse for the rest of that session (fail
+   closed). E4 fills protection first and all legs at one snapshot, so this should not happen; reasoning only.
 4. **Open trades' maximum loss is recomputed from the ledger** and can rise after a partial exit (hand check: a short
    fly with its short call bought back holds a put spread with Rs 12,350 maximum loss against Rs 2,600 at entry). The
    caps count that real number. It needs a quote for every held contract (C2 accepts a stale mark).
-5. **Records written before C5** have no `opened_on` and are refused by the new-risk cap on replay.
+5. **Records written before C5** have no `session_trades` and are refused by the new-risk cap on replay.
 6. **C4 needs a two-sided quote** for every held leg (caps and margin room); C2 does not. C4 is the stricter, so a
    thinly quoted wing refuses the whole book's entries that day.
 7. **VIX +50% is each leg's implied volatility x 1.5** (no smile change); "+5%" keeps volatility unchanged.
 8. **S1's protocol text** (`catastrophic_loss_book`: "Rs 30,000") is not edited, as instructed.
 
-## Questions for the owner (never decided by me)
+## Owner decisions (all five answered on 15 Oct 2026, rows on main 665c835)
 
-1. **Bucket side of directional structures (STR1).** A put credit spread is both bullish and short volatility. (a)
-   direction wins for verticals, volatility for flies and condors; (b) a position counts in two buckets. Until you
-   choose, those codes are refused. SF/SC short volatility and BF long volatility is my reading of 6.2: say if not.
-2. **The three books opened at Rs 5 lakh.** (a) reopen at Rs 20 lakh by replacing the 13 Oct opening rows (no fill has
-   ever been made); (b) keep them and add a dated Rs 15 lakh top-up entry (a new E1 entry kind); (c) new book folders.
-3. **Same-session exits and the Rs 50,000 a session**: should a trade opened and closed the same session still count?
-   (Today it does not; reasoning only that it is rare in a once-a-day desk.)
-4. **Stress line details:** "+5%" with volatility unchanged, and VIX moves as a factor on every leg: acceptable?
-5. **Stocks:** confirm stock buckets wait for A18.
+1. Directional spreads: **"1 B"**, both buckets, full maximum loss in each. Built (addendum 1).
+2. Books opened at Rs 5 lakh: **"2 B"**, a dated Rs 15 lakh top-up entry; separate story `story/e1-topup`.
+3. Same-session round trips: **"3 A"**, they count. Built (addendum 1).
+4. Stress-line assumptions: **"4 A"**, accepted, information only.
+5. Stocks: **"5 A"**, wait for A18.
 
 ## What the judge should test hardest
 
 - Each cap at its number and Rs 0.01 over with real B2 maximum losses, in C2 and in C4.
+- A two-sided position against proposals sharing one or both of its buckets; a round trip closed this session.
 - `HeldMaxLoss` and C4's `held_max_loss` after partial exits and with unequal units.
 - That a broken Manual profile, a missing books setting, or an unused setting stops start-up in both C2 and C4.
 - That nothing in `fno/` sizes the books on Rs 5 lakh, and the committed Rs 5 lakh books are refused.

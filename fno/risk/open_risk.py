@@ -7,30 +7,27 @@ value at expiry, plus each leg's exit pad and exit charges at that level (where 
 the one with the larger exit charges, as B2). For a trade just entered at the modelled fills the two agree (tested).
 Its extremes lie at strikes only when neither tail is net short; a held position with more calls or more puts sold than
 bought is not defined risk and is refused, never measured. A position that can no longer lose counts as zero, never as
-room for another trade.
+room for another trade. A session trade's new risk is the largest maximum loss it carried after any fill time that day.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date
 
 from ..constants import OPTION_CALL, OPTION_PUT
 from ..research_engine.cycle_costs import PAD, CycleTerms, PositionCosts
 from ..research_engine.structures import BOUGHT, SOLD, Leg
 from .buckets import Bucket, BucketMap
-from .inputs import Market, OpenTrade, Proposal, RiskBook, RiskInputError
+from .inputs import Market, OpenTrade, Proposal, RiskInputError, SessionTrade
 from .trade_costs import TradeCosts
 
 
 @dataclass(frozen=True)
 class PositionRisk:
     trade_id: str
-    bucket: Bucket
+    buckets: tuple[Bucket, ...]  # one per side of its structure (a directional spread has two)
     max_loss_rs: float
-    opened_on: date | None
-    proposed: bool = False
 
 
 class HeldMaxLoss:
@@ -70,19 +67,19 @@ class HeldMaxLoss:
 
 
 class PositionRisks:
-    """Every open trade's bucket and maximum loss, and the proposal's, for one book on one day."""
+    """Each open trade's and the proposal's buckets and maximum loss, and each session trade's new risk."""
 
     def __init__(self, buckets: BucketMap, held: HeldMaxLoss, costs: TradeCosts):
         self.buckets, self.held, self.costs = buckets, held, costs
 
     def of_open(self, trade: OpenTrade, market: Market) -> PositionRisk:
-        bucket = self.buckets.bucket_of(trade.terms.structure, trade.units)
-        loss = self.held.max_loss(trade.units, trade.cash_flow, market)
-        return PositionRisk(trade.trade_id, bucket, loss, trade.opened_on)
+        buckets = self.buckets.buckets_of(trade.terms.structure, trade.units)
+        return PositionRisk(trade.trade_id, buckets, self.held.max_loss(trade.units, trade.cash_flow, market))
 
     def of_proposal(self, proposal: Proposal, market: Market) -> PositionRisk:
-        bucket = self.buckets.bucket_of(proposal.terms.structure, proposal.signed_units())
-        return PositionRisk(proposal.trade_id, bucket, self.costs.max_loss(proposal, market), market.day, True)
+        buckets = self.buckets.buckets_of(proposal.terms.structure, proposal.signed_units())
+        return PositionRisk(proposal.trade_id, buckets, self.costs.max_loss(proposal, market))
 
-    def all(self, proposal: Proposal, book: RiskBook, market: Market) -> list[PositionRisk]:
-        return [*(self.of_open(t, market) for t in book.open_trades), self.of_proposal(proposal, market)]
+    def of_session(self, trade: SessionTrade, market: Market) -> float:
+        """The largest maximum loss the trade carried after any of the session's fill times (zero once flat)."""
+        return max((self.held.max_loss(units, cash, market) for units, cash in trade.states), default=0.0)

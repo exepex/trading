@@ -122,7 +122,16 @@ class OpenTrade:
     terms: TradeTerms
     units: Mapping[str, int]  # contract -> signed units still held (long +, short -)
     cash_flow: float  # premium received minus paid, minus charges, so far (E1)
-    opened_on: date | None = None  # the trade's first fill day (C5's new risk per day); None: not known, refused there
+
+
+@dataclass(frozen=True)
+class SessionTrade:
+    """A trade first filled on the decision day, open or already closed: its held units and cash flow after each fill
+    time that day, in order. C5's new risk per session counts the largest maximum loss it carried (owner, 15 Oct
+    2026, "3 A": a trade opened and closed in the same session still counts)."""
+
+    trade_id: str
+    states: tuple[tuple[Mapping[str, int], float], ...]
 
 
 @dataclass(frozen=True)
@@ -134,3 +143,4 @@ class RiskBook:
     open_trades: tuple[OpenTrade, ...]
     closed_equity: tuple[tuple[date, float], ...]  # (day, closed equity at that day's close): start, then each change
     restarts: tuple[date, ...]  # days of the owner's brake restarts, oldest first
+    session_trades: tuple[SessionTrade, ...] | None = None  # None: not known (an old record), so new risk is refused

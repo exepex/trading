@@ -3,7 +3,7 @@ restart rows, not through E1's or C2's code. Only ledger rows filled by the deci
 reads the same account. What C4 derives here:
 - cash (every amount so far);
 - each trade's units and cash flow;
-- each trade's first fill day;
+- the trades first filled on the decision day, with their state after each fill time (story C5);
 - the opening cash, and closed equity at each day's close (the start, then each day a trade went flat);
 - the brake restart days."""
 
@@ -25,7 +25,9 @@ class Position:
     units: Mapping[str, int]  # contract -> signed units held (long +, short -)
     cash_flow: float  # premium received minus paid, minus charges, so far
     terms: tuple[str, float, int] | None = None  # structure, width, lots (what its margin row is found by)
-    opened_on: date | None = None  # the trade's first fill day (C5's new risk per day)
+
+
+State = tuple[Mapping[str, int], float]  # units held and cash flow so far, after one fill time
 
 
 @dataclass(frozen=True)
@@ -34,10 +36,15 @@ class AccountFacts:
     closed_equity: tuple[tuple[date, float], ...]  # (day, closed equity at that day's close), oldest first
     restarts: tuple[date, ...]
     positions: tuple[Position, ...] = field(default_factory=tuple)
+    session: tuple[tuple[str, tuple[State, ...]], ...] = ()  # trades first filled on the decision day, open or closed
 
     def after_entry(self, position: Position) -> AccountFacts:
         """The account once `position` (a trade chosen earlier the same day) is entered."""
-        return replace(self, cash=self.cash + position.cash_flow, positions=(*self.positions, position))
+        entered = (position.trade_id, ((dict(position.units), position.cash_flow),))
+        return replace(
+            self, cash=self.cash + position.cash_flow, positions=(*self.positions, position),
+            session=(*self.session, entered),
+        )  # fmt: skip
 
 
 class AccountProblem(ValueError):
@@ -56,21 +63,37 @@ def _filled_by(row: dict[str, str], cutoff: datetime) -> bool:
     return (when.date() <= cutoff.date()) if when.tzinfo is None else when <= cutoff
 
 
-def _trades(rows: list[dict[str, str]]) -> tuple[dict[str, dict], dict[str, float], dict[str, date | None], dict]:
+def _trades(rows: list[dict[str, str]]) -> tuple[dict[str, dict], dict[str, float], dict[str, date | None]]:
     units: dict[str, dict[str, int]] = {}
     flows: dict[str, float] = {}
     flat_on: dict[str, date | None] = {}
-    first: dict[str, date] = {}
     for row in rows:
         trade, sign = row["trade_id"], 1 if row["side"] == SIDE_BUY else -1
-        filled = datetime.fromisoformat(row["filled_at"]).date()
-        first[trade] = min(filled, first.get(trade, filled))
         held = units.setdefault(trade, {})
         held[row["contract"]] = held.get(row["contract"], 0) + sign * int(row["units"])
         flows[trade] = flows.get(trade, 0.0) + float(row["amount_rs"])
         flat = not any(held.values())
         flat_on[trade] = datetime.fromisoformat(row["filled_at"]).date() if flat else None
-    return units, flows, flat_on, first
+    return units, flows, flat_on
+
+
+def _session(fills: list[dict[str, str]], day: date) -> tuple[tuple[str, tuple[State, ...]], ...]:
+    """Each trade first filled on `day`: its units and cash after each of that day's fill times (story C5)."""
+    by_trade: dict[str, list[dict[str, str]]] = {}
+    for row in sorted(fills, key=lambda r: datetime.fromisoformat(r["filled_at"])):
+        by_trade.setdefault(row["trade_id"], []).append(row)
+    out = []
+    for trade, rows in by_trade.items():
+        if datetime.fromisoformat(rows[0]["filled_at"]).date() != day:
+            continue
+        units, cash, states = {}, 0.0, {}
+        for row in rows:
+            sign = 1 if row["side"] == SIDE_BUY else -1
+            units[row["contract"]] = units.get(row["contract"], 0) + sign * int(row["units"])
+            cash += float(row["amount_rs"])
+            states[row["filled_at"]] = ({c: n for c, n in units.items() if n}, cash)
+        out.append((trade, tuple(states.values())))
+    return tuple(out)
 
 
 def account_facts(rows: list[dict[str, str]], restarts: tuple[date, ...], cutoff: datetime) -> AccountFacts:
@@ -78,7 +101,7 @@ def account_facts(rows: list[dict[str, str]], restarts: tuple[date, ...], cutoff
     if not rows or rows[0]["kind"] != LEDGER_OPENING:
         raise AccountProblem("the ledger has no opening balance by the decision cutoff")
     start, fills = rows[0], rows[1:]
-    units, flows, flat_on, first = _trades(fills)
+    units, flows, flat_on = _trades(fills)
     by_day: dict[date, float] = {}
     for trade, day in flat_on.items():
         if day is not None:
@@ -89,11 +112,10 @@ def account_facts(rows: list[dict[str, str]], restarts: tuple[date, ...], cutoff
         equity += by_day[day]
         series.append((day, equity))
     positions = tuple(
-        Position(t, {c: n for c, n in held.items() if n}, flows[t], None, first[t])
-        for t, held in units.items()
-        if flat_on[t] is None
+        Position(t, {c: n for c, n in held.items() if n}, flows[t]) for t, held in units.items() if flat_on[t] is None
     )
-    return AccountFacts(sum(float(r["amount_rs"]) for r in rows), tuple(series), restarts, positions)
+    cash = sum(float(r["amount_rs"]) for r in rows)
+    return AccountFacts(cash, tuple(series), restarts, positions, _session(fills, cutoff.date()))
 
 
 def restart_days(rows: list[dict[str, str]], day: date) -> tuple[date, ...]:

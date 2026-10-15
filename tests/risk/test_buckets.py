@@ -7,6 +7,7 @@ import pytest
 
 from fno.config import load_app_config
 from fno.constants import (
+    BUCKET_BULLISH,
     BUCKET_LONG_VOL,
     BUCKET_SHORT_VOL,
     OPTION_CALL,
@@ -50,11 +51,22 @@ def test_the_underlying_is_the_symbol_before_its_first_digit(contract, underlyin
     ],
 )
 def test_each_built_structure_has_one_bucket(structure, bucket):
-    assert BUCKETS.bucket_of(structure, ["NIFTY26OCT25000CE", "NIFTY26OCT25200CE"]) == bucket
+    assert BUCKETS.buckets_of(structure, ["NIFTY26OCT25000CE", "NIFTY26OCT25200CE"]) == (bucket,)
 
 
 def test_banknifty_is_its_own_group():
-    assert BUCKETS.bucket_of(FLY, ["BANKNIFTY26OCT52000CE"]).group == "BANKNIFTY"
+    assert BUCKETS.buckets_of(FLY, ["BANKNIFTY26OCT52000CE"])[0].group == "BANKNIFTY"
+
+
+def test_a_directional_spread_listed_with_two_sides_is_in_both_buckets():
+    """Owner, 15 Oct 2026, "1 B": a credit vertical in its direction and short volatility, a debit vertical in its
+    direction and long volatility (the codes are STR1's; these are placeholders)."""
+    sides = {"BPS": (BUCKET_BULLISH, BUCKET_SHORT_VOL), "BCD": (BUCKET_BULLISH, BUCKET_LONG_VOL)}
+    buckets = StructureBuckets(sides)
+    assert buckets.buckets_of("BPS", ["NIFTY26OCT24800PE", "NIFTY26OCT24600PE"]) == (
+        Bucket("NIFTY", BUCKET_BULLISH), Bucket("NIFTY", BUCKET_SHORT_VOL),
+    )  # fmt: skip
+    assert Bucket("NIFTY", BUCKET_LONG_VOL) in buckets.buckets_of("BCD", ["NIFTY26OCT25000CE"])
 
 
 @pytest.mark.parametrize(
@@ -68,7 +80,7 @@ def test_banknifty_is_its_own_group():
 )
 def test_an_unmapped_position_is_an_input_error(structure, contracts, problem):
     with pytest.raises(RiskInputError, match="unmapped bucket") as error:
-        BUCKETS.bucket_of(structure, contracts)
+        BUCKETS.buckets_of(structure, contracts)
     assert problem in str(error.value)
 
 

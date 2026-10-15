@@ -1,7 +1,9 @@
 """Risk buckets (story C5, design 6.2): positions sharing an underlying group and a side of exposure.
 
-One crash or one squeeze hits a whole bucket, so its cap counts the bucket's positions together. A position is in
-exactly one bucket. Its underlying group is read from its contracts' exchange symbols (the letters before the first
+One crash or one squeeze hits a whole bucket, so its cap counts the bucket's positions together. A position is in one
+bucket per side its structure has: a fly or condor in one volatility side; a directional spread both in its direction
+and in a volatility side (owner, 15 Oct 2026, "1 B": a crash hits both), with its full maximum loss in each. Its
+underlying group is read from its contracts' exchange symbols (the letters before the first
 digit: `NIFTY26OCT25000CE` is NIFTY), its side from its structure code through the profile's `bucket_sides`. Fail
 closed (design 6.1a): a position that cannot be mapped (a structure code not listed, legs on two underlyings, a stock
 or an index 6.2 does not name) is an input error, so the trade is refused.
@@ -30,8 +32,8 @@ class BucketMap(ABC):
     """Which bucket a position belongs to."""
 
     @abstractmethod
-    def bucket_of(self, structure: str, contracts: Iterable[str]) -> Bucket:
-        """The position's bucket; RiskInputError when it cannot be mapped."""
+    def buckets_of(self, structure: str, contracts: Iterable[str]) -> tuple[Bucket, ...]:
+        """The position's buckets; RiskInputError when it cannot be mapped."""
 
 
 def underlying_of(contract: str) -> str:
@@ -45,10 +47,10 @@ def underlying_of(contract: str) -> str:
 class StructureBuckets(BucketMap):
     """Group from the contracts, side from the structure code (`risk.profiles.<profile>.bucket_sides`)."""
 
-    def __init__(self, sides: Mapping[str, str]):
+    def __init__(self, sides: Mapping[str, tuple[str, ...]]):
         self.sides = dict(sides)
 
-    def bucket_of(self, structure: str, contracts: Iterable[str]) -> Bucket:
+    def buckets_of(self, structure: str, contracts: Iterable[str]) -> tuple[Bucket, ...]:
         groups = {underlying_of(c) for c in contracts}
         if len(groups) != 1:
             raise RiskInputError(f"unmapped bucket: the legs are on {sorted(groups) or 'no'} underlyings, not one")
@@ -59,4 +61,4 @@ class StructureBuckets(BucketMap):
             raise RiskInputError(
                 f"unmapped bucket: structure {structure!r} has no side in risk.profiles.<profile>.bucket_sides"
             )
-        return Bucket(group, self.sides[structure])
+        return tuple(Bucket(group, side) for side in self.sides[structure])
