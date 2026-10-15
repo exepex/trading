@@ -841,7 +841,7 @@ could have taken.
 
 **Scope.** In:
 - **The units a book has already taken at this snapshot** come from its own desk records: every fill row with this
-  `snapshot_id`, whatever its action (an unwind's closing fills on the guard path included), summed per (contract,
+  `snapshot_id` and this snapshot's SHA-256 (so a same-named snapshot of another day never counts), whatever its action (an unwind's closing fills on the guard path included), summed per (contract,
   touch side): a buy takes ask size, a sell takes bid size (judge 201). For each protective leg still held from an
   entry at this snapshot, its sell-back need (the units bought less any already sold back there) is counted on the bid
   side too, the same capacity E4c checks. This needs no new state: the records are kept in Drive after each entry
