@@ -54,3 +54,69 @@ post, Saturday 10:41. I will judge the revised SHA as an addendum here. Points I
 - the AI text never changes a committed number (it may only reword or comment on code-built lines);
 - the advocate's checks;
 - the week's post still goes out when the AI part fails.
+
+## Addendum 1 (15 Oct 2026): revision 1 at 86f46232b28b8e583b64706d273143ccc0b49007
+
+Owner answers (relayed by the orchestrator): one weekly report, so G4's Monday post is retired in LR1's change; the AI
+writer and the devil's advocate are both in v1, the simple way; Saturday 10:41 IST. The forecasts, weather and data
+health sections are unchanged and stay MET as above.
+
+## Verdict: PASS (text); 1 note
+
+| My hold-note point | Status | Evidence |
+|---|---|---|
+| The AI cost is counted | MET | The writer routine records its run with F8's `budget record-usage --self-timed --purpose books_and_roles` (`fno/budget/cli.py`). It is not fired when BG1's month signal (`accounting/budget/<YYYY-MM>_signal.json`, `fno/budget/signal.py`) is `stop` |
+| The AI never changes a number | MET | The code-built lines stay the source of truth and are posted every time. The prose is shown only if the code advocate passes four rules: the SHA line ties it to the committed lines; at most 150 words with no link, mention or code block; every number in the prose copied from the lines; no number written in words |
+| The post goes out if the AI part fails | MET | A `stop` signal, missing secrets (`UnconfiguredTrigger`), a failed fire (`FireFailed`), no prose by 11:41, or any failed advocate rule each give the lines alone plus one line naming why (criteria 15-17) |
+| No second AI caller | MET | The writer is fired through the existing `RoutineTrigger`/`RoutineFireTrigger` (`fno/pipeline/trigger.py`), as the AI books do (`fno/ai/fire.py`), with a pointer holding only the Saturday and the lines' SHA-256. All named classes exist on `main` |
+| Only the publisher reads the prose | MET | Criterion 18's AST test |
+| Merge-tree with `origin/main` | MET | No conflict |
+
+**Choosing a code check, not a second AI call, for the advocate is right.** It is cheaper and certain for "numbers
+copied exactly". An advocate that argues in words is T3 (slice B), as stated.
+
+## Note (does not change a trade)
+
+**Rule 3 must compare whole number tokens, not substrings.** As written ("appears as the same text in the lines"), a
+substring match would let a prose "4" pass because "40%" or "2026-10-14" contains it. Extract each number token from
+both texts with the same pattern (digits with their decimal point, sign and `%`, dates as one token) and check the
+prose's tokens are a subset of the lines' tokens. Add one test: prose "4 sessions" against lines holding only "40%"
+fails. Test 11's 41% vs 40% case does not cover this.
+
+**On coordination:** the builder sent me this SHA directly, as the orchestrator said it would. I told the orchestrator.
+
+**Verdict: PASS for 86f46232b28b8e583b64706d273143ccc0b49007** (story text). Code may start.
+
+## Note 2 (15 Oct 2026): addendum 1's PASS is superseded
+
+The owner chose, in v1, both the code number check **and** a second, objecting AI: the devil's advocate, built as the
+reusable piece T3 will use later. So addendum 1's PASS on 86f46232, whose advocate was code only, is superseded. I will
+judge the builder's next SHA as addendum 2. The same four points apply, now also for the second AI:
+- its cost is counted and it stops on BG1's `stop`;
+- it can only object, never change a number or a line;
+- the week's post goes out when it fails;
+- it is built once, as the piece T3 reuses, not as a second AI caller.
+
+## Addendum 2 (15 Oct 2026): revision 2 at 2c67480b211c626688da6cd53d766014568e9953
+
+The owner's choice is that the devil's advocate is both the code number check and an objecting AI, built once for
+T3. The forecasts, weather and data health sections are unchanged and stay MET.
+
+## Verdict: PASS (text); 1 note
+
+| Note 2's point | Status | Evidence |
+|---|---|---|
+| Cost counted; stops on BG1 `stop` | MET | One fire, one F8 `record-usage --self-timed` row for the routine's role bundle. BG1's `stop` skips both steps. BG1's signal is all-or-nothing at 100% (`stop_ai_roles`; `AI_ROLE_STOP_ORDER` in `fno/budget/constants.py` is a listed order, not a per-role switch), so one routine with one record fits it |
+| It can only object | MET | Objections are their own labelled section ("they change no number and decide no trade"). `ObjectionCheck` enforces: the SHA line; 1 to 5 objections of at most 40 words, each tied to an existing `[L<n>]` line; no link, mention or code block; numbers only as whole tokens of the lines; none in words. Only `publish.py` reads the prose and objection paths (AST test). Neither `fno/learning/` nor `fno/advocate/` imports desk, books, risk or checks |
+| The post goes out when it fails | MET | No file, a failed rule, `stop` or no configuration give "advocate not run: <reason>" and change nothing else. The lines are posted in every case (criteria 15-17, 20) |
+| Built once, for T3 | MET | `fno/advocate/`: the `Advocate` port, one adapter `RoutineFileAdvocate`, `ObjectionCheck`, and `NumberCheck` with the single tokenizer. `publish` depends only on the port (criterion 21, test 15). The register row "Devil's advocate objections" says T3 (#105) reuses it and never builds a second |
+| My addendum-1 note | MET | Rule 3 compares whole number tokens from one regex. Test 13: "4 sessions" against "40%" fails |
+| Known limits | ACCEPTED | One routine writing then objecting is less independent than two (the owner chose one routine for a small setup; T3 may revisit). Objections are checked for form and numbers, not fairness; they are labelled AI and change nothing |
+| Merge-tree with `origin/main` | MET | No conflict |
+
+## Note (does not change a trade)
+
+`docs/stories/T-cards.md:53` lists "the devil's advocate (T2, T3)" as out of scope. When T2 or T3 is written, its text
+must name `fno/advocate/` as the one objecting AI to reuse, as the register now says, so no second one is built.
+
+**Verdict: PASS for 2c67480b211c626688da6cd53d766014568e9953** (story text). Code may start.
