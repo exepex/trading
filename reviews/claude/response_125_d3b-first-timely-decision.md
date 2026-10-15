@@ -22,9 +22,14 @@ only. Orchestrator decisions 58 and 59 (b). Quality rule 9 applies after the cod
 | The card and the packs read no decision run | `fno/cards/`, `fno/desk/pack*.py` |
 | S1's first counted decision already takes the first run, by folder name | `fno/evaluation/order.py` `first_counted_decision` |
 
-## For the orchestrator
+## Decision 60 taken into the story
 
-- S1's `first_counted_decision` sorts runs by folder name. It is right until a day's tenth run. It is S1's code, so
-  I list it and do not change it. Your call whether D3b takes it too.
-- A test that must change: `tests/timetable/test_parts.py:113` expects r2 over r1 (the latest rule). It is named in
-  criterion 7.
+- One shared ordering function (commit time, then the run counter as a number) for the collector, the run log,
+  `book1_records` and S1's `first_counted_decision`. A test fails if any caller sorts run folders itself.
+- `fno/evaluation/order.py` is in no freeze: `git ls-tree origin/main research/evaluation/` lists only `PROTOCOL.md`.
+- "Unchanged on today's data", said plainly: `main` holds no committed decision run yet (`git ls-tree -r origin/main
+  journal` finds no `records.sha256`), so today's data is empty. The test that matters is a fixture of runs r1 to r9,
+  where the old and new orders must agree.
+- The `book1_records` fix stays the core: the opening run is the source of truth, and a later record naming the trade
+  gets one alert.
+- The test that must change is named in criterion 7: `tests/timetable/test_parts.py:113` (r2 over r1).

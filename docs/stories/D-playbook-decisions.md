@@ -141,7 +141,7 @@ committed before the deadline, and every correction to be recorded and shown wit
 scored as the decision. That way no later run, whether a rerun with fresher data, a second checkout or a correction,
 can replace what the book decided in time (a look-ahead hole).
 
-**Context and why:** Orchestrator decisions 58 and 59 (b), from story E5b and judge 123. D3 allows a correction as a
+**Context and why:** Orchestrator decisions 58, 59 (b) and 60, from story E5b and judge 123. D3 allows a correction as a
 new run linked to the record it corrects (D3 criterion 4; the `corrects` field, `fno/playbook/decision_record.py:93`,
 None today: no correction writer exists yet). E3's collector, `D3CommittedDecisions.committed`
 (`fno/desk/committed_decisions.py:36-41`), walks the day's runs from the last and takes the first one committed
@@ -177,13 +177,16 @@ source), with the run counter as a number to break a tie, never by folder name.
   opportunity ID (`fno/books/book1_orders.py:4`), which does not name the run, so the run log is the source. A
   record with the same trade ID in any other run, a correction included, is ignored and reported once as an alert
   ("a later record names trade t1; the trade follows its opening run").
-- **Run order** everywhere this story touches: by commit time, then by the run counter as a number.
+- **One run order, one function (decision 60):** a single shared function orders a day's runs by commit time (the
+  commit that added `records.sha256`), then by the run counter as a number. Runs not yet committed sort after every
+  committed run, by counter. It lives beside `DecisionStore`, and all four callers use it, with no sort of their own:
+  E3's collector, the run log's collected and listed runs, Book 1's records (`book1_records`) and S1's
+  `first_counted_decision` (`fno/evaluation/order.py`; it is in no freeze, since `research/evaluation/` holds no
+  `FREEZE_v*.md` on `main`).
 - **Scoreboard B** lists the day's corrections and uncollected runs apart (a `corrections` list per book and day:
   run ID, corrects, reason), never in the scored results.
 Out:
 - writing corrections (no correction writer exists; D3's format stays);
-- S1's `first_counted_decision` sort: it takes the first run by folder name, which is right until a day's tenth run.
-  It is S1's, so it is listed for the orchestrator, not changed here;
 - E5b's prevention (Book 1 never writes a second run).
 
 **Acceptance criteria:**
@@ -193,7 +196,12 @@ Out:
    lists the correction with its run ID, commit, the record it corrects and its reason (test).
 3. A day with only a correction run (its original late or missing) has no timely decision, and the book is late as
    today (test).
-4. Runs `-r2` and `-r10` are ordered by commit time, then by counter as a number, never by name (test with ten runs).
+4. Runs `-r2` and `-r10` are ordered by commit time, then by counter as a number, never by name. There is one test
+   per caller (the collector, the run log, `book1_records` and `first_counted_decision`), each with ten runs. Only
+   the shared function sorts (a test fails if another caller sorts run folders itself).
+4b. `first_counted_decision` gives the same results as today. `main` holds no committed decision run yet, so today's
+   data is empty; a fixture with runs r1 to r9 on several days gives the same first counted decision under the old
+   name order and the new order (test).
 5. A later run or correction record naming an open trade's ID never changes that trade's terms or time exit. It is
    alerted once (test).
 6. Scoreboard B shows corrections and uncollected runs apart, and its scored numbers are unchanged by them (test).
@@ -204,13 +212,13 @@ Out:
 **Test plan:** unit tests on the collector with a fake commit source; a Book 1 replay with a planted correction; a
 scoreboard B fixture with a correction day; broken-code proofs per criterion. No network, no Slack.
 
-**Judge verifies:** plants a correction before the deadline, a second original run, a ten-run day and a correction
-naming an open trade; checks each reader in the table.
+**Judge verifies:** plants a correction before the deadline, a second original run, a ten-run day for each caller, a
+caller with its own sort, and a correction naming an open trade; checks each reader in the table.
 
 **Quality rule 9:** it decides which decision trades, so after the judge's code PASS it goes to ChatGPT before the
 merge.
 
-**Depends:** D3, E3, S2 · **Size:** S · **Status:** story text on `story/d3b-first-timely-decision`, for the judge's
+**Depends:** D3, E3, S1, S2 · **Size:** S · **Status:** story text on `story/d3b-first-timely-decision`, for the judge's
 story check (response 125)
 
 ---
