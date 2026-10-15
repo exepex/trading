@@ -120,8 +120,9 @@ writes the yes of condition 7. Until then RM2's code may exist but records nothi
 2. The owner places the order by hand in Groww, at a time of their choosing (the same session's last minutes or the
    next session). Before placing it, the owner takes a screenshot of Groww's bid, ask and quantities for each leg and
    saves it to the Drive folder `real_test/quotes/` (owner, Q12).
-3. After the fill, the owner reports it: the card's date, and per leg the contract, side, units, fill price, order
-   time and the screenshot's file name; then the contract note's total charges for the order.
+3. After the fill, the owner reports it: the card's date, and per leg the contract, side, units, fill price, the order
+   submission time (from Groww's order confirmation or the contract note), the screenshot's file name and the time
+   shown in it; then the contract note's total charges for the order.
 4. RM2 writes one record to Drive (`real_test/trades/`), never to the repository, and replies with one line: the
    record's SHA-256, the execution slippage per leg, and the running test status.
 5. The exit is reported the same way (screenshot, fill, charges). The trade's real net is then known.
@@ -141,25 +142,37 @@ writes the yes of condition 7. Until then RM2's code may exist but records nothi
   real side carries the contract note's actual charges (owner, Q3), so the pair compares actual 1-lot charges with
   C1's 1-lot model. The prediction floor's evidence record is restated at 1 lot the same way. A card Book 1 did not fill ("missed, ...") gives an unpaired real trade: listed, kept out
   of the paired mean, counted in the discipline and stop rules.
+- **Two times per leg (ChatGPT review 125, Q2):** the quote time (the screenshot's capture time, typed from the
+  phone's clock in the image; Drive's upload time comes after the order, so it cannot date the image; the file name's
+  timestamp, when the phone writes one, is stored beside it and a difference of more than a minute is flagged) and the
+  order time (the order submission time from Groww's order confirmation or the contract note, typed by the owner).
+  They are stored apart and never conflated.
 - **Valid quote at the owner's order (the gate's term):** both sides present, and the leg's side (ask for a buy, bid for
-  a sell) with a quantity covering the leg's units, taken at most 5 minutes before the order time. The screenshot's time is the one the owner types from the
-  phone's clock in the image (Drive's upload time comes after the order, so it cannot date the image); the file name's
-  timestamp, when the phone writes one, is stored beside it, and a difference of more than a minute is flagged. Fallback (owner, Q12): A16's latest snapshot **at or
-  before** the order time and at most 5 minutes before it, timed by the snapshot's observed quote time (its recorded
-  fetch time), never its nominal mark; one observed exactly at the order time is valid (age 0).
+  a sell) with a quantity covering the leg's units. Quote age = order time minus quote time; an age below zero or
+  above 5 minutes makes the leg "unknown". Fallback (owner, Q12): A16's latest snapshot whose observed fetch time is at
+  or before the order time and at most 5 minutes before it (never its nominal mark); one fetched exactly at the order
+  time is valid (age 0).
 - **Execution slippage** per leg (gate): real fill minus that valid quote (sells: the reverse), worse positive;
   unknown when there is no valid quote.
 - **Timing gap** per leg, reported only: real fill minus the paired paper fill price before pad.
 - **Discipline:** eligible cards = the version's TRADE cards delivered while the test runs. A card with no real entry
   recorded by the close of the next session is "skipped, not recorded"; `skip` records a reason earlier. Each skip is
   listed with its paper net (gate, Q8).
-- **Stops (gate `real_test_stops`), evaluated after every recorded exit:** (a) cumulative real net from the first
-  real entry at or below −Rs 20,000; (a2) cumulative real net Rs 20,000 or more below its highest value since the first
-  real entry; (b) mean execution slippage per unit over the legs of the last 5 real trades above Rs 2 (trades ordered by exit time,
-  so "the last 5" checked after every exit covers every run of 5 consecutive trades, as the gate's "any 5 consecutive"
-  says) (twice the paper
-  pad of Rs 1), unknown legs left out and listed. A stop posts one alert to #fno-desk (`FNO_SLACK_BOT_TOKEN`) naming
-  the rule and the figure, and the test status becomes "stopped: <rule>" for good.
+- **Stops (gate `real_test_stops`), evaluated on trades in actual exit-time order:** (a) cumulative real net from the
+  first real entry at or below −Rs 20,000; (a2) cumulative real net Rs 20,000 or more below its highest value since the
+  first real entry; (b) mean execution slippage per unit over the legs of the 5 most recent exits above Rs 2 (twice the
+  paper pad of Rs 1). Checked after every exit in exit-time order, (b) covers every run of 5 consecutive trades, as the
+  gate's "any 5 consecutive" says. Unknown legs are left out of (b)'s mean and their count is shown beside it; the 10%
+  unknown rule applies to the pass only. A stop takes effect at the exit that crossed it, posts one alert to #fno-desk
+  (`FNO_SLACK_BOT_TOKEN`) naming the rule, the figure and that exit's time, and the test status becomes
+  "stopped: <rule>" for good. Any real trade entered after that exit is flagged a protocol breach and never counts
+  toward a pass.
+- **Records pending (ChatGPT review 125, Q3):** the status is "records pending: no further test trade" whenever an
+  entered real trade has no reported exit or settlement by the close of the session after its exit alert or expiry,
+  or a reported fill's Drive write failed. While pending, every new card of the version shows "do not place:
+  unreconciled" in `status` and in the one-line reply. Once the missing records arrive, stops are re-evaluated in
+  actual exit-time order. This is a status and an instruction to the owner, never an order block: the tool cannot stop
+  the owner placing an order.
 - **Pass (gate `real_test_pass`), evaluated once the sample is met** (the later of max(30, the registered number)
   real trades and 6 months from the first real entry): (1) the paired one-sided 95% lower bound of mean(real − paper)
   at or above −Rs 500 per trade; (2) the real mean at or above the prediction floor from the version's evidence
@@ -189,23 +202,32 @@ unchanged.
 **Acceptance criteria:**
 1. A recorded entry and exit give the trade's real net from the typed fills and the contract note's charges, its
    paired paper net restated at 1 lot (a 2-lot paper spread is charged Rs 94.40 of brokerage and GST at 1 lot, not
-   Rs 47.20, and its pad at 65 units is Rs 260 per trade: 2 legs × entry and exit × 65 × Rs 1, not Rs 65), the per-leg execution slippage and timing gap, all to the paisa on a constructed example.
-2. Valid quote: a screenshot 4 minutes before the order is used; 6 minutes before is not, and the A16 fallback
-   applies; an A16 mark exactly at the order time is used (age 0); one with too little size is not; no valid quote
-   gives "unknown", never zero.
+   Rs 47.20, and its pad at 65 units is Rs 260 per trade: 2 legs × entry and exit × 65 × Rs 1, not Rs 65), the per-leg
+   execution slippage and timing gap, all to the paisa on a constructed example. A leg settled by E7 carries C1's
+   settlement charges (`settlement_charges_breakdown`), never an invented closing order's.
+2. Valid quote: a 10:00 screenshot with a 10:04 order is valid; with a 10:07 order it is "unknown"; a screenshot
+   time after the order time is "unknown"; an A16 snapshot fetched exactly at the order time is used (age 0), one
+   fetched after it is not; one with too little size or one side missing is not; no valid quote gives "unknown",
+   never zero.
 3. Stops: planted sequences trip (a) at exactly −Rs 20,000, (a2) after a Rs 20,000 fall from a +Rs 6,000 high (at
-   −Rs 14,000), and (b) at a 5-trade mean of Rs 2.01; Rs 2.00 does not trip. Each posts one alert once; a rerun posts
-   nothing new.
+   −Rs 14,000), and (b) at a 5-trade mean of Rs 2.01; Rs 2.00 does not trip; an unknown leg is left out of (b) with
+   its count shown, never counted as zero. Each posts one alert once; a rerun posts nothing new.
 4. Pass: a constructed test meets all four items; flipping each item alone gives "failed: <that item>". The sample
    rule waits for both 30 trades (or the registered number) and 6 months.
 5. Discipline: a card with no entry by the close of the next session is "skipped, not recorded"; 90% exactly passes,
    89.9% fails.
-6. Strictly-after rule: a paper fill at 10:15 is compared with A16's 10:30 mark, never 10:15.
+6. Strictly-after rule: a paper fill at 10:15 is compared with A16's 10:30 mark, never 10:15; a missing 10:30 quote
+   is "unknown", never taken from 10:45.
 7. `rules.py` numbers equal the frozen gate's (a test reads the gate text); changing one fails the test.
 8. Nothing reaches a broker: no Groww or order module is imported under `fno/realtest/` (import test); the public
    repository receives no price, strike or rupee figure (record-scan rule and a test on the status line).
 9. Drive down: the CLI refuses to record ("not recorded: Drive <reason>"), changes nothing, and says so; a retry
-   records once.
+   records once. A Drive write interrupted mid-way never marks an exit as recorded (the status stays "records
+   pending"). `record-entry` and `record-exit` write no price, strike or rupee amount to the repository (a test reads
+   the git diff after each).
+10. Late report: an exit at 10:00 losing Rs 21,000, reported at 15:00, with a new card at 12:00: the 12:00 card shows
+    "do not place: unreconciled"; once the exit is recorded the stop is dated 10:00, and a real trade entered after
+    10:00 is flagged a protocol breach and excluded from any pass.
 
 **Test plan:** fakes for Drive, Slack, A16's marks and Book 1's paper trades; constructed tests for each criterion,
 with a broken-code proof per criterion (rule 4); one end-to-end run on a planted 30-trade test.

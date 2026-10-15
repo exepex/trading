@@ -35,3 +35,15 @@ Work register read on main at 3627d0bd: no row covers RM2. E8 (fills), T1 (cards
 | Note 2: observed time, not nominal mark | Agreed: a mark's fetch can run late | Written in |
 | Note 3: "last 5" equals "any 5 consecutive" | Agreed, when ordered by exit time and checked after every exit | Written in |
 | Rename to 189, Q2 wording | Done; the orchestrator accepted the Q2 wording | none |
+
+## ChatGPT review 125 (PARTIAL): all five points checked and written in
+
+The orchestrator's answer is response 199 on main. The builder's own check of each point:
+
+| Point | Check | Change |
+|---|---|---|
+| Q1 settlement leg | Agreed, strong evidence: `fno/costs.py:43` `settlement_charges_breakdown` differs from an order's charges | Criterion 1: an E7-settled leg uses C1's settlement charges |
+| Q2 screenshot time vs order time | Agreed: a screenshot, then several minutes placing a multi-leg order, would understate the quote's age | Two times per leg, stored apart; age = order − quote; negative or over 5 minutes is unknown; criterion 2's 10:04 and 10:07 cases |
+| Q3 late exit reports can bypass a stop | Agreed, strong evidence: the draft evaluated stops "after every recorded exit", so an unreported −Rs 21,000 exit left the next card looking placeable | "Records pending: no further test trade" status; stops in actual exit-time order, dated at the crossing exit; later trades flagged as protocol breaches; criterion 10; unknown legs out of stop (b)'s mean with their count shown |
+| Q4 strictly after | Agreed; no change to the rule | Criterion 6: a missing 10:30 quote is unknown, never 10:45 |
+| Q5 public repo and interrupted writes | Agreed | Criterion 9: no price, strike or rupee in the repository; an interrupted write never marks an exit recorded |
