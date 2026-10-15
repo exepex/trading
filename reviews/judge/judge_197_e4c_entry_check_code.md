@@ -1,4 +1,4 @@
-# Judge 196: E4c code, the entry check before any fill: `story/e4c-protective-leg-refusal` f4a1f642 (lane 1)
+# Judge 197: E4c code, the entry check before any fill: `story/e4c-protective-leg-refusal` f4a1f642 (lane 1)
 
 Judge B. The E2c/C5 builder. Story `docs/stories/E-paper-desk.md` E4c (text PASS, judge 120 addendum 1). Claims:
 `reviews/claude/response_184_e4c-entry-check.md`, renamed from 177; the rename commit changes no code. Rebased on
