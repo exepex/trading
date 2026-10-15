@@ -4,8 +4,16 @@ pack and snapshot, not-observed days and opportunities, Book 3 before F7, the mi
 from datetime import date
 
 from fno.constants import BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI, Decision
-from fno.scoreboard.matched_board import CLAIM, NO_CLAIM, UNDECIDED_F7, UNDECIDED_OPERATIONS, _verdict
-from fno.scoreboard.matched_days import F7_NOT_BUILT, NO_RECORD, NO_SNAPSHOT, OTHER_PACK
+from fno.scoreboard.matched_board import (
+    CLAIM,
+    NO_CLAIM,
+    NOT_STARTED,
+    UNDECIDED_F7,
+    UNDECIDED_OPERATIONS,
+    _apply_holm,
+    _verdict,
+)
+from fno.scoreboard.matched_days import F7_NOT_BUILT, NO_RECORD, NO_SNAPSHOT, OTHER_PACK, UNSCORED
 from fno.scoreboard.whole_system import canonical
 from tests.scoreboard.builders import write_log
 from tests.scoreboard.matched_builders import LOT, board, quote, record, write_day, write_pack, write_run
@@ -73,17 +81,26 @@ def test_a_day_without_a_valid_snapshot_scores_no_book_and_is_outside_the_miss_c
     assert (entry["eligible_days"], entry["misses"]) == (0, 0)
 
 
-def test_a_late_run_is_a_miss(tmp_path):
+def test_a_late_run_is_a_miss_and_a_book_never_collected_has_not_started(tmp_path):
+    pack = write_pack(tmp_path, D1, ("O1", EXIT))
+    runs_for(tmp_path, D1, [record("O1", pack=pack)], [record("O1", pack=pack)], pack=pack)
+    pack = write_pack(tmp_path, D2, ("O2", EXIT))
+    runs_for(tmp_path, D2, [record("O2", pack=pack)], [record("O2", pack=pack)], pack=pack, book1_on_time=False)
+    entry = board(tmp_path, QUOTES).build(D2)["books"][BOOK1_RULES]
+    assert (entry["misses"], entry["eligible_days"], entry["miss_share"]) == (1, 2, 0.5)
+    assert entry["verdict"] == UNDECIDED_OPERATIONS
+
+
+def test_a_book_with_no_collected_run_has_not_started_and_misses_nothing(tmp_path):
     pack = write_pack(tmp_path, D1, ("O1", EXIT))
     runs_for(tmp_path, D1, [record("O1", pack=pack)], [record("O1", pack=pack)], pack=pack, book1_on_time=False)
     entry = board(tmp_path, QUOTES).build(D1)["books"][BOOK1_RULES]
-    assert (entry["misses"], entry["eligible_days"], entry["miss_share"]) == (1, 1, 1.0)
-    assert entry["verdict"] == UNDECIDED_OPERATIONS
+    assert (entry["verdict"], entry["misses"], entry["eligible_days"]) == (NOT_STARTED, 0, 0)
 
 
 def verdict(share, claim=True, holm=True):
     head = {"judged": {"claim_allowed": claim, "holm_pass": holm}}
-    return _verdict({"f7_not_built": False, "miss_share": share, "head_to_head": head})
+    return _verdict({"f7_not_built": False, "started": True, "miss_share": share, "head_to_head": head})
 
 
 def test_the_miss_cap_is_over_10_percent_not_at_it():
@@ -112,8 +129,64 @@ def test_two_books_taking_the_same_opportunity_get_the_same_one_lot_result(tmp_p
 
 def test_a_run_committed_after_the_snapshot_started_is_late_and_a_miss(tmp_path):
     pack = write_pack(tmp_path, D1, ("O1", EXIT))
-    ids = {book: write_run(tmp_path, book, D1, record("O1", pack=pack), pack=pack)
+    runs_for(tmp_path, D1, [record("O1", pack=pack)], [record("O1", pack=pack)], pack=pack)
+    pack = write_pack(tmp_path, D2, ("O2", EXIT))
+    ids = {book: write_run(tmp_path, book, D2, record("O2", pack=pack), pack=pack)
            for book in (BOOK1_RULES, BOOK2_HYBRID, BOOK3_AI)}  # fmt: skip
-    write_log(tmp_path, D1, ids, committed="15:16:00")  # the snapshot started at 15:15
-    entry = board(tmp_path, QUOTES).build(D1)["books"][BOOK1_RULES]
-    assert (entry["misses"], entry["eligible_days"]) == (1, 1)
+    write_log(tmp_path, D2, ids, committed="15:16:00")  # the snapshot started at 15:15
+    entry = board(tmp_path, QUOTES).build(D2)["books"][BOOK1_RULES]
+    assert (entry["misses"], entry["eligible_days"]) == (1, 2)
+
+
+def test_pairs_run_both_ways_with_daily_differences_and_a_sample_counted_in_positions(tmp_path):
+    result = known_answer(tmp_path)
+    one_two, two_one = (result["pairs"][f"{a} - {b}"] for a, b in ((BOOK1_RULES, BOOK2_HYBRID),
+                                                                     (BOOK2_HYBRID, BOOK1_RULES)))  # fmt: skip
+    assert one_two["daily_rs"] == [[d.isoformat(), n] for d, n in ((D1, 2210.0), (D2, 0.0), (EXIT, 0.0), (ON, 0.0))]
+    assert two_one["judged"]["ratio"] == -552.5
+    assert "1 of 20 completed positions" in one_two["judged"]["reason"]  # positions, not the 4 shared days
+
+
+def test_days_before_the_common_start_are_pilot_and_head_to_head_is_split_by_d6_segment(tmp_path):
+    pack = write_pack(tmp_path, D1, ("O1", EXIT))
+    for book in (BOOK1_RULES, BOOK2_HYBRID):
+        write_run(tmp_path, book, D1, record("O1", pack=pack), pack=pack)
+    write_day(tmp_path, D1, {BOOK1_RULES: f"{D1.isoformat()}-{BOOK1_RULES}",
+                             BOOK2_HYBRID: f"{D1.isoformat()}-{BOOK2_HYBRID}", BOOK3_AI: None})  # fmt: skip
+    for day in (D2, EXIT, ON):
+        runs_for(tmp_path, day, pack=write_pack(tmp_path, day))
+    result = board(tmp_path, QUOTES).build(ON)
+    entry = result["books"][BOOK1_RULES]
+    assert result["common_start"] == D2.isoformat()  # Book 3 had no run on day 1
+    assert entry["pilot"]["takes"]["closed"] == 1 and entry["head_to_head"]["takes"]["closed"] == 0
+    assert list(entry["head_to_head"]["segments"]) == [f"{BOOK1_RULES}/{BOOK1_RULES}-v1"]
+
+
+def test_a_shadow_candidate_outside_the_common_set_never_appears(tmp_path):
+    pack = write_pack(tmp_path, D1, ("O1", EXIT))
+    shadow = record("S1", Decision.SHADOW_TRADE, "shadow", pack=pack, action="trade")
+    runs_for(tmp_path, D1, [record("O1", pack=pack), shadow], [], pack=pack)
+    rows = board(tmp_path, QUOTES).build(D1)["actions"]
+    assert {r["opportunity_id"] for r in rows} == {"O1"}
+
+
+def test_holm_runs_across_the_head_to_head_claims_whose_sample_is_met():
+    claim = lambda p, met=True: {"days": 120, "p_value": p, "sample_met": met, "claim_allowed": True}  # noqa: E731
+    books = {b: {"f7_not_built": False, "started": True, "miss_share": 0.0, "head_to_head": {"judged": claim(p)}}
+             for b, p in (("x", 0.010), ("y", 0.030))}  # fmt: skip
+    board_ = {"books": books, "pairs": {"x - y": {"judged": claim(0.040)}, "y - x": {"judged": claim(0.001, False)}}}
+    _apply_holm(board_)
+    assert [books["x"]["verdict"], books["y"]["verdict"]] == [CLAIM, NO_CLAIM]
+    assert "holm_pass" not in board_["pairs"]["y - x"]["judged"]  # sample not met: not a claim, not in Holm
+
+
+def test_a_d6_unscored_day_is_counted_apart_outside_the_miss_cap(tmp_path):
+    pack = write_pack(tmp_path, D1, ("O1", EXIT))
+    runs_for(tmp_path, D1, [record("O1", pack=pack)], [record("O1", pack=pack)], pack=pack)
+    pack = write_pack(tmp_path, D2, ("O2", EXIT))
+    unscored = {**record("O2", pack=pack), "served": {"playbook": "not registered"}}
+    write_run(tmp_path, BOOK1_RULES, D2, unscored, pack=pack)
+    write_day(tmp_path, D2, {BOOK1_RULES: f"{D2.isoformat()}-{BOOK1_RULES}", BOOK2_HYBRID: None, BOOK3_AI: None})
+    entry = board(tmp_path, QUOTES).build(D2)["books"][BOOK1_RULES]
+    assert (entry["eligible_days"], entry["misses"]) == (1, 0)
+    assert entry["head_to_head"]["not_observed"] == {UNSCORED: 1}

@@ -39,9 +39,7 @@ def summary(board: dict) -> list[str]:
 
 
 def matched_summary(board: dict) -> list[str]:
-    lines = [
-        f"scoreboard A {board['date']} ({board['protocol']}); common start {board['common_start'] or 'not reached'}"
-    ]
+    lines = [header("A", board)]
     for book, entry in board["books"].items():
         misses = f"{entry['misses']} of {entry['eligible_days']} eligible days missed"
         lines.append(LINE.format(book=book, state=f"{entry['verdict']}; {misses}"))

@@ -7,23 +7,24 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import date
-from itertools import combinations
+from itertools import permutations
 from pathlib import Path
 
 from .book_trades import Sessions
 from .entry_decisions import EntryDecisions
 from .matched import counts as section_counts
 from .matched import judged, pair_series, scored_days, series_of, value_takes
-from .matched_days import F7_NOT_BUILT, MISSES, NO_SNAPSHOT, BookDay, CommonSet, MatchedDays
-from .standard_unit import CLOSED, StandardUnit
+from .matched_days import F7_NOT_BUILT, MISSES, NO_PACK, NO_SNAPSHOT, UNSCORED, BookDay, CommonSet, MatchedDays
+from .standard_unit import StandardUnit
 from .uncertainty import holm
 from .whole_system import canonical
 
 KIND, OUTPUT_FOLDER = "scoreboard_a", "research/scoreboards/A"
 MISS_CAP = 0.10  # share of a book's eligible sessions (G9's figure, owner row 170; frozen by S1's `missed_runs`)
-UNDECIDED_OPERATIONS, UNDECIDED_F7, CLAIM, NO_CLAIM = (
-    "undecided, operations", "undecided, F7 not built", "claim allowed", "no claim",
+UNDECIDED_OPERATIONS, UNDECIDED_F7, NOT_STARTED, CLAIM, NO_CLAIM = (
+    "undecided, operations", "undecided, F7 not built", "not started", "claim allowed", "no claim",
 )  # fmt: skip
+APART = frozenset({NO_SNAPSHOT, NO_PACK, UNSCORED, F7_NOT_BUILT})
 
 
 class MatchedBoard:
@@ -68,30 +69,25 @@ class MatchedBoard:
     @staticmethod
     def _section(days: list[BookDay], results) -> dict:
         scores = scored_days(days, results)
-        scored = {s.day for s in scores}
-        positions = sum(r.status == CLOSED for (_, day, _), r in _results_of(days, results) if day in scored)
-        return {**section_counts(days, results), "judged": judged(series_of(scores), positions)}
+        return {**section_counts(days, results), "judged": judged(series_of(scores), sum(s.closed for s in scores))}
 
     def _pairs(self, book_days: dict[str, list[BookDay]], results, start: date | None) -> dict:
         if start is None:
             return {}
         pairs = {}
-        for first, second in combinations(self.books, 2):
+        for first, second in permutations(self.books, 2):  # "X beats Y" and "Y beats X" are separate claims
             a = scored_days([d for d in book_days[first] if d.day >= start], results)
             b = scored_days([d for d in book_days[second] if d.day >= start], results)
             series = pair_series(a, b)
-            positions = min(len(a), len(b))
+            shared = set(series.days)
+            positions = sum(s.closed for s in (*a, *b) if s.day in shared)  # both books' positions on shared days
             pairs[f"{first} - {second}"] = {
                 "judged": judged(series, positions) if series.days else {"days": 0, "reason": "no common day"},
+                "daily_rs": [[d.isoformat(), round(n, 2)] for d, n in zip(series.days, series.net, strict=True)],
                 "not_observed_days": {first: _unobserved(book_days[first], start),
                                       second: _unobserved(book_days[second], start)},
             }  # fmt: skip
         return pairs
-
-
-def _results_of(days: list[BookDay], results) -> list:
-    keys = [(d.book, d.day, o) for d in days for o in d.actions]
-    return [(key, results[key]) for key in keys if key in results]
 
 
 def _unobserved(days: list[BookDay], start: date) -> int:
@@ -99,11 +95,15 @@ def _unobserved(days: list[BookDay], start: date) -> int:
 
 
 def _misses(days: list[BookDay]) -> dict:
-    eligible = [d for d in days if d.observed_reason not in (NO_SNAPSHOT, F7_NOT_BUILT)]
+    """The miss cap counts from the book's first collected run ("not started" before it); days without a snapshot or a
+    common pack, D6-unscored days and Book 3's days before F7 are counted apart, outside the cap (design 6)."""
+    started = [i for i, d in enumerate(days) if d.observed or d.observed_reason == UNSCORED]
+    since = days[started[0] :] if started else []
+    eligible = [d for d in since if d.observed_reason not in APART]
     misses = sum(d.observed_reason in MISSES for d in eligible)
     share = misses / len(eligible) if eligible else None
-    f7 = any(d.observed_reason == F7_NOT_BUILT for d in days) and not eligible
-    return {"eligible_days": len(eligible), "misses": misses, "f7_not_built": f7,
+    f7 = any(d.observed_reason == F7_NOT_BUILT for d in days)
+    return {"eligible_days": len(eligible), "misses": misses, "f7_not_built": f7, "started": bool(started),
             "miss_share": None if share is None else round(share, 6)}  # fmt: skip
 
 
@@ -136,6 +136,8 @@ def _apply_holm(board: dict) -> None:
 def _verdict(entry: dict) -> str:
     if entry["f7_not_built"]:
         return UNDECIDED_F7
+    if not entry["started"]:
+        return NOT_STARTED
     if entry["miss_share"] is not None and entry["miss_share"] > MISS_CAP:
         return UNDECIDED_OPERATIONS
     head = entry["head_to_head"]

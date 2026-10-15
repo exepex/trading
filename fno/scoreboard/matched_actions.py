@@ -13,10 +13,11 @@ from ..playbook.decision_validity import BLOCKED
 
 TAKE, SKIP, NOT_OBSERVED = "take", "skip", "not observed"
 TRADE_ACTION = "trade"
-# Rules that look at the book's state, not the trade (allocation.py:18 and fno/risk/caps.py, rules.py:45-47, 82-84).
+# Rules that look at the book's state, not the trade (allocation.py:18, fno/risk/caps.py, rules.py:45-47, 82-84, and
+# manager.py:58's "inputs" check: the same trade already open in this book).
 ACCOUNT_LIMIT_RULES = frozenset(
     {"max_open_trades", "margin_room", "bucket_cap", "open_risk_cap", "new_risk_per_day", "drawdown_brake",
-     "stress_loss", "exposure_limit"}
+     "stress_loss", "exposure_limit", "inputs"}
 )  # fmt: skip
 OPERATIONS_RULES = frozenset({"paper_account"})  # an account opened with the wrong capital trades nothing
 UNPROVEN_PREFIX = "unproven:"  # allocation.py:72-77, the open-trade limit of a version with few completed trades
@@ -44,7 +45,8 @@ def _not_chosen(record: Mapping) -> Action:
         return Action(NOT_OBSERVED, "paper account refused", record)
     if reason.startswith(UNPROVEN_PREFIX) or (rules and rules <= ACCOUNT_LIMIT_RULES):
         return Action(TAKE, "account limit only", record)
-    return Action(SKIP, "refused by " + ", ".join(sorted(rules - ACCOUNT_LIMIT_RULES)), record)
+    trade_rules = sorted(rules - ACCOUNT_LIMIT_RULES)
+    return Action(SKIP, "refused by " + ", ".join(trade_rules) if trade_rules else reason, record)
 
 
 def action_of(record: Mapping) -> Action:

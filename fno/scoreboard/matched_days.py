@@ -1,7 +1,7 @@
 """What each book did on each session's common opportunities (story S3, expected design 1): its action on every
 opportunity of E2's set, or why the book or one opportunity is not observed that day. Not-observed days are never
 scored; a book's misses (no run collected) count toward S1's miss cap, while days without a valid snapshot, days D6
-leaves unscored and Book 3's days before F7 are counted apart."""
+leaves unscored, days without a common pack and Book 3's days before F7 are counted apart."""
 
 from __future__ import annotations
 
@@ -20,11 +20,12 @@ from .entry_decisions import EntryDecisions
 from .matched_actions import NOT_OBSERVED, Action, action_of
 from .ports import MatchedShadowDecisions
 
-NO_SNAPSHOT, NO_RUN, UNSCORED, F7_NOT_BUILT = (
+NO_SNAPSHOT, NO_PACK, NO_RUN, UNSCORED, F7_NOT_BUILT = (
     "no valid execution snapshot",
+    "no common pack",
     "no run collected",
     "unscored (D6)",
-    ("F7 not built"),
+    "F7 not built",
 )
 MISSES = frozenset({NO_RUN})  # the only reason that counts toward the miss cap (design 6)
 NO_RECORD, OTHER_PACK = "no record for this opportunity", "record names another common pack"
@@ -75,8 +76,10 @@ class MatchedDays:
 
     def book_day(self, book: str, day: date) -> BookDay:
         common = self.packs(day)
-        if day not in self.snapshot_days or common is None:
+        if day not in self.snapshot_days:
             return BookDay(book, day, NO_SNAPSHOT)
+        if common is None:
+            return BookDay(book, day, NO_PACK)
         if book == BOOK3_AI:
             entries = self.shadow.records(day)
             return BookDay(book, day, F7_NOT_BUILT) if entries is None else self._actions(book, day, entries, common)

@@ -28,6 +28,7 @@ class DayScore:
     net: float
     risk: float
     open: bool
+    closed: int = 0  # closed takes that day (the sample rule's completed positions)
 
 
 def unit_legs(record: Mapping, expiry: date) -> list[DeskLeg]:
@@ -51,14 +52,14 @@ def value_takes(days: Iterable[BookDay], entries: Mapping[tuple[date, str], Mapp
 
 def day_score(book_day: BookDay, results: Results) -> DayScore:
     net = risk = 0.0
-    is_open = False
+    is_open, closed = False, 0
     for opportunity_id, action in book_day.actions.items():
         result = results.get((book_day.book, book_day.day, opportunity_id)) if action.kind == TAKE else None
         if result is not None and result.status == OPEN:
             is_open = True
         elif result is not None and result.status == CLOSED:
-            net, risk = net + result.net, risk + result.max_loss
-    return DayScore(book_day.day, net, risk, is_open)
+            net, risk, closed = net + result.net, risk + result.max_loss, closed + 1
+    return DayScore(book_day.day, net, risk, is_open, closed)
 
 
 def scored_days(days: Sequence[BookDay], results: Results) -> list[DayScore]:

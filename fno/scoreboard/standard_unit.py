@@ -10,10 +10,10 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 
+from ..accounting.ledgers import Order
 from ..constants import NIFTY_SYMBOL, SIDE_BUY
-from ..costs import order_charges, settlement_charges_breakdown
 from ..desk.pricing import DeskLeg, price_leg
-from ..desk.settlement import SettlementPrices
+from ..desk.settlement import SettlementError, SettlementPrices
 from ..desk.snapshot import ExecutionSnapshot
 from ..risk.inputs import RiskInputError
 from ..risk.open_risk import HeldMaxLoss
@@ -33,10 +33,11 @@ class StandardResult:
     note: str = ""
 
 
-def cash(price: float, side: str, units: int, charges: Mapping[str, float]) -> float:
-    """What one fill moves: premium received for a sale, paid for a purchase, less the order's charges."""
-    sign = -1 if side == SIDE_BUY else 1
-    return sign * price * units - order_charges(price, units, side, dict(charges))
+def cash(order: Order, charges: Mapping[str, float]) -> float:
+    """What one order moves (C1's `Order`, a traded fill or a cash settlement): premium or intrinsic value received
+    for a sale, paid for a purchase, less its charges from the one charges model."""
+    sign = -1 if order.side == SIDE_BUY else 1
+    return sign * order.fill_price * order.units - sum(order.charges(dict(charges)).values())
 
 
 class StandardUnit:
@@ -53,7 +54,7 @@ class StandardUnit:
         if snapshot is None or missing:
             reason = "no valid execution snapshot" if snapshot is None else missing[0].reason
             return StandardResult(NOT_FILLED, note=reason)
-        flow = sum(cash(q.price, q.side, self.lot, self.charges) for q in quotes)
+        flow = sum(cash(Order(q.side, q.price, self.lot), self.charges) for q in quotes)
         try:
             max_loss = self.held.of_legs([(leg.leg, self.lot) for leg in legs], flow)
         except RiskInputError as problem:
@@ -67,20 +68,19 @@ class StandardUnit:
             for leg in [leg for leg in legs if snapshot is not None and day <= leg.expiry]:
                 quote = price_leg(snapshot, leg, leg.side(False), self.lot)
                 if quote.fills:
-                    flow, last = flow + cash(quote.price, quote.side, self.lot, self.charges), day
+                    flow, last = flow + cash(Order(quote.side, quote.price, self.lot), self.charges), day
                     legs.remove(leg)
+        note = ""
         for leg in [leg for leg in legs if leg.expiry < on]:
-            final = self.settlements.final_settlement(NIFTY_SYMBOL, leg.expiry)
+            try:
+                final = self.settlements.final_settlement(NIFTY_SYMBOL, leg.expiry)
+            except SettlementError as problem:  # a file without one clear price: open, never guessed (E7)
+                final, note = None, f"; settlement refused: {problem}"
             if final is None:
                 continue
-            flow, last = flow + self._settled(leg, final.price), max(last or leg.expiry, leg.expiry)
+            settled = Order(leg.side(False), leg.leg.intrinsic(final.price), self.lot, settlement=True)
+            flow, last = flow + cash(settled, self.charges), max(last or leg.expiry, leg.expiry)
             legs.remove(leg)
         if legs:
-            return StandardResult(OPEN, max_loss=max_loss, note=f"{len(legs)} leg(s) still open")
+            return StandardResult(OPEN, max_loss=max_loss, note=f"{len(legs)} leg(s) still open{note}")
         return StandardResult(CLOSED, round(flow, 2), round(max_loss, 2), last)
-
-    def _settled(self, leg: DeskLeg, price: float) -> float:
-        intrinsic, side = leg.leg.intrinsic(price), leg.side(False)
-        sign = -1 if side == SIDE_BUY else 1
-        charges = sum(settlement_charges_breakdown(intrinsic, self.lot, side, self.charges).values())
-        return sign * intrinsic * self.lot - charges

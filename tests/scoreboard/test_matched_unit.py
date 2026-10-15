@@ -7,6 +7,7 @@ import pytest
 
 from fno.constants import Decision
 from fno.desk.pricing import DeskLeg
+from fno.desk.settlement import SettlementError
 from fno.research_engine.structures import Leg
 from fno.risk.open_risk import HeldMaxLoss
 from fno.scoreboard.matched_actions import NOT_OBSERVED, SKIP, TAKE, action_of
@@ -71,6 +72,7 @@ def test_a_position_with_more_calls_sold_than_bought_has_no_fixed_maximum_loss()
         (record("o", Decision.NOT_CHOSEN, "unproven: 3 completed paper trades"), TAKE),
         (record("o", Decision.NOT_CHOSEN, "risk: stress", failed=(("stress_loss", "above"),)), TAKE),
         (record("o", Decision.NOT_CHOSEN, "risk: exposure", failed=(("exposure_limit", "above"),)), TAKE),
+        (record("o", Decision.NOT_CHOSEN, "risk: open", failed=(("inputs", "trade x is already open in b"),)), TAKE),
         (record("o", Decision.NOT_CHOSEN, "risk: cap", failed=(("max_loss_per_trade", "above"),)), SKIP),
         (record("o", Decision.NOT_CHOSEN, "risk", failed=(("max_loss_per_trade", "a"), ("bucket_cap", "b"))), SKIP),
         (record("o", Decision.NOT_CHOSEN, "risk", failed=(("bucket_cap", "refused, input not usable: x"),)),
@@ -83,3 +85,15 @@ def test_a_position_with_more_calls_sold_than_bought_has_no_fixed_maximum_loss()
 )  # fmt: skip
 def test_each_record_reads_as_the_story_says(body, kind):
     assert action_of(body).kind == kind
+
+
+class RefusedSettlement(Settlements):
+    def final_settlement(self, underlying, expiry):
+        raise SettlementError("two different prices in the expiry file")
+
+
+def test_a_settlement_file_without_one_clear_price_leaves_the_unit_open_with_the_reason():
+    result = unit({ENTRY: [quote(25000, "CE", 99, 100)]}, RefusedSettlement()).value(
+        [CALL], ENTRY, EXIT, date(2026, 11, 25)
+    )
+    assert result.status == OPEN and "settlement refused: two different prices" in result.note
