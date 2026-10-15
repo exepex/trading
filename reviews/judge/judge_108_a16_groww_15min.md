@@ -103,3 +103,54 @@ streak rule. Add a test, and add the Drive settings to the routine prompt's prer
 
 **Verdict: FAIL for db26fd7a329fc6605438db839ac8a66ad1634db3** (story text), on should-fixes 1-5. Code may not start until
 a revised text passes. A re-check needs the story file and response 108 only.
+
+## Addendum 1 (15 Oct 2026): story text revision at 83f3614886f0ebe9d4c63f20f7511679662fb71a (db26fd7..83f3614)
+
+One commit: the story file and response 108 part 1b. Text only. The work-in-progress code on
+`wip/a16-groww-15min-code` (5355b29) is not judged; see the process note.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Should-fix 1: source-time rule | PARTLY (see should-fix A) | Primary: the index quote's `last_trade_time` (seconds, or milliseconds above 10^11). Fallback: the end of the latest 1-minute index candle. Neither: stale (`index_time_missing`), never assumed fresh; `index_time_basis` is recorded; both branches built and tested. The rule is now fixed before code |
+| Should-fix 2: repeats | MET | `index_repeated` is a flag and voids nothing; only an old or missing source time is stale |
+| Should-fix 3: trigger | MET as a design, with one new defect (should-fix B) | Seven fires at HH:00, each running to HH+1:05, so every hour boundary is covered twice. The trial (criterion 15: 5 consecutive sessions, per-mark statuses, void share, each fire's delay and length) runs before anything counts. The consequence above 5% is stated, alternatives are left to the owner, and the routine's unknown maximum length is to be measured. The install line is stated as tested, with fixing `requirements-groww.txt` named as its own change |
+| Should-fix 4: read-only guard | MET | `ReadOnlyGroww` exposes `get_quote`, `get_option_chain`, `get_expiries`, `get_contracts`, `get_historical_candles` and constants; anything else raises `ReadOnlyViolation`. It is built only in the composition root, and the source never holds the client. Tests: refusal over the SDK's public names, a whole session with a fake whose order methods fail, and a grep over the import closure |
+| Should-fix 5: Drive write failure | MET | `failed` with `drive_write: <type>`; the document is dropped, never in the repository or the checkout; the loop goes on; the streak alert fires; test with a raising store |
+| Additions | ACCEPTED | `heartbeat-check` reads GitHub's copy, so a host whose pushes fail looks silent. `rv` settles an unfinished previous session. Alert holds and retries are stated. Per-chain emptiness counts. Dry run refused inside the repository. The commit refuses without `core.hooksPath` |
+
+## Should-fix
+
+**A. In the fallback, the level and its time come from two different calls.** The level is the quote's `last_price`,
+while its "source time" is the end of a 1-minute candle fetched in a separate call. A live candle feed proves the
+feed is running, not that this quote's value is fresh. A frozen quote beside fresh candles would be called fresh, and
+catching that is exactly what the staleness rule is for (design 5.2, "a stale quote repeated"). Fix, one of:
+- in fallback mode take the level from the same source as its time (the latest 1-minute candle's close, labelled
+  `candle_1m_close`, which is also sampled at the minute mark);
+- or require the quote's level to lie inside that candle's low-high range, else `stale`.
+
+Also state that the candle's start time is IST text without an offset (step 0) and how it is parsed.
+
+**B. Two overlapping runs live in two different checkouts, and the ledger has no rule for that.**
+- Each fire is a separate routine container with its own clone. At every boundary mark (HH:00) both runs take the
+  mark and both append that slot's row to the same daily `slots/.../nifty_<day>.csv`, then pull and push.
+- Two appends at the end of one file conflict in git (no `merge=union` there). The story's commit "aborts a failed
+  pull's merge", so the push fails, "NOT committed" follows, and the hand-commit step runs, every hour.
+- Even a clean merge would leave two rows for one mark, against criterions 1 and 5's "exactly one ledger row". The test
+  "two recorders on one store and ledger" shares one ledger, so it cannot show this.
+- Fix: define the reconciliation and test it with two git clones of one bare repository:
+  - for example, the ledger row for a mark is written only by the run whose Drive put created the first version (the
+    `FirstVersionStore` already decides this); the other run records nothing for that mark;
+  - or the slots file is merged by slot with the first-stored row kept (a merge driver or a union merge plus a
+    dedupe), so a conflict never blocks a push.
+
+## Process note (quality rule 1)
+
+The builder kept writing code after the first FAIL and pushed it to `wip/a16-groww-15min-code` (5355b29). Rule 1 says
+code starts only after the story check passes. Pushing to a separate branch, which nobody merges or judges, keeps the
+story branch clean. It is still a breach of the rule's intent, now in two builders (A4b too). Not blocking, because
+nothing unjudged reaches `main` and the code will be judged fresh. The orchestrator should tell builders to stop
+writing code until the text passes.
+
+**Verdict: FAIL for 83f3614886f0ebe9d4c63f20f7511679662fb71a** (story text), on should-fixes A and B. Should-fixes
+2-5 of judge 108 are met, and 1 is met apart from A. A re-check needs only the Definitions (source time) and the trigger
+design and criteria 1 and 5 (ledger reconciliation).
