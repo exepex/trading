@@ -105,3 +105,33 @@ stays open: the criterion 2 and 4 tests have not arrived yet. Note 6 is new and 
    the quote parts, the day's main data. The parts are child processes that wait for 14:55 themselves, so starting
    them first costs nothing and still avoids overlapping the 14:55 capture on the Groww key. There is no evidence of a
    Groww hang, so this is not a should-fix. Otherwise, when A14c lands, confirm its Groww request has a timeout.
+
+## Addendum 2: O1 at f22ffc42 (note 1 tests; E2c merged in)
+
+**Verdict: PASS for the code built so far.** No blocking or should-fix findings, and notes 1, 2 and 4 are closed.
+Criteria 2 and 4 are now MET. Still to come before the story's final code verdict: criterion 8 (the CLAUDE.md section,
+after A4c) and criterion 9 (the real day).
+
+- **Note 1 closed.** New tests:
+  - `test_quotes_or_card_raising_is_recorded_failed_with_one_alert` (quotes, card);
+  - `test_a_quote_part_that_exits_non_zero_gets_no_o1_alert_and_the_others_still_commit` (each of the 3 parts);
+  - `test_a_failed_nifty_still_starts_the_indices_after_it_and_lets_nse_commit`.
+
+  Each asserts what my probe found: one O1 alert for a step that raises, none for a part (A4c's own alerts stand),
+  the others still commit, and the indices start when NIFTY ends, whatever NIFTY's result.
+- **Note 4: declined, and I accept the reason.** A killed recorder can leave a half-written sidecar or canonical, and
+  only the recorder can tell whether an attempt is complete. Committing blind could put a broken record on `main`. The
+  limit is now a Known-limits line.
+- **E2c merge.** The resolution keeps both additions: E2c's `files` (private records downloaded before any step) with
+  `_unreviewed` passed to `fills`, and O1's `day_steps`. `build_daily_run` passes both. The real-git pathspec test now
+  stages a tracked file of another writer, because E2c ignores the account files in git. That is right: the test still
+  proves a staged file is never swept in.
+- **Gates on a trial merge with origin/main f78c7759:**
+  - 6175 passed, 3 failed;
+  - plain main at f78c7759, run at the same time: 6118 passed and **the same 3 failed** (`test_paper_account` 15 Oct
+    top-up, `test_committed_closes_reproduce_the_disclosed_v6_counts`, `test_home_blocks` live wiring);
+  - none of the 3 is in O1's files, so the builder's claim holds. Merge rule: they must be green on main (their owners'
+    fix) before O1 merges, since the merge needs the full suite green on the merged tree;
+  - `ruff check`, `ruff format --check` and `check_imports` are clean.
+- Note 3 (merge after A4c) stands, and so does optional note 6 (start `quotes` before `margin_check`). The builder
+  did not mention note 6.
