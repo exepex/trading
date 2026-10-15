@@ -80,3 +80,19 @@ story, not built here. No duplicate with A14 or C2 work in flight.
 - **On the builder's doubt about criterion 1.** Response 77's "margin (today's method)" is its table's "C2 counts"
   column, which is the quantity this revision now names. So 1.127 can be reproduced on that definition, and the
   criterion's "or explain each difference" covers any gap in response 77's hand run.
+
+## Addendum 2 (15 Oct 2026): final text at 010adb2152581670de451fd7ff62bae3e9ed53bd (83e7f6e..010adb2)
+
+**Verdict: PASS, with no notes left.**
+
+- **Note 1: met.** Criterion 1 runs after the full back-fill and says why (the archive starts on 1 Oct 2026, and the
+  2026 window has September entries).
+- **Note 2: met.** Criterion 1 now reproduces all three of response 77's windows within 0.001, or explains each
+  difference: 1.127 (2026), 1.265 (2020, the minimum binding) and 1.407 (2024, today's binding value). These are
+  anchors the builder did not write.
+- **Note 3: met.** Q1 states C2c's effect: a held SF 100 goes from about 59,900 to about 86,900 a lot (today's
+  scan-only stress gives 60,269). "About 31% fewer lots" checks out: 1 - 1/1.45 = 0.310.
+- **The decision commit.** Criterion 6 cites `d68b1a9c` ("Decision rows: … whole-margin crash buffer, recompute
+  windows"), and that commit holds the two 15 Oct rows.
+- **Still the owner's.** Q3 (who enters the value) and Q4 (NSE circulars) stay open, to be answered before the first
+  value. C2c is with judge G.
