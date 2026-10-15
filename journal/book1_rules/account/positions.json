@@ -1,9 +1,0 @@
-{
- "book": "book1_rules",
- "capital_rs": 2000000.0,
- "cash_rs": 2000000.0,
- "closed_equity_rs": 2000000.0,
- "closed_trades": [],
- "ledger_rows": 2,
- "open_trades": []
-}

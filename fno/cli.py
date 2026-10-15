@@ -13,6 +13,7 @@ from .budget.cli import add_budget_parser
 from .cards.cli import add_card_parser
 from .config import ROOT, load_app_config
 from .desk.cli import add_desk_parser
+from .desk.private_files import PrivateFilesUnavailable
 from .evaluation.cli import add_evaluation_parser
 from .filings.cli import add_filings_parser
 from .forecast.cli import add_forecast_parser
@@ -20,7 +21,9 @@ from .forecast_scoring.cli import add_forecast_scores_parser
 from .forecast_scoring.v4.cli import add_forecast_v4_scores_parser
 from .forecast_v4_rules.cli import add_forecast_v4_parser
 from .global_cues.cli import add_global_cues_parser
+from .health.cli import add_health_parser
 from .intraday.cli import add_intraday_parser
+from .learning.cli import add_postmortem_parser
 from .market_read_models.cli import add_market_parser
 from .nse_margins.cli import add_margins_parser
 from .pipeline.cli import add_pipeline_parser
@@ -221,7 +224,13 @@ def main(argv: list[str] | None = None) -> int:
     add_vix_history_parser(sub)
     add_card_parser(sub)
     add_weather_parser(sub)
+    add_postmortem_parser(sub)
     add_global_cues_parser(sub)
+    add_health_parser(sub)
 
     args = p.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except PrivateFilesUnavailable as unavailable:  # story E2c: a command that needs the paper records stops, named
+        print(f"stopped: {unavailable}")
+        return 1

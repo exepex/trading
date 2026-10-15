@@ -1,0 +1,100 @@
+{
+ "data_health": {
+  "a16_sessions": 0,
+  "days": [
+   {
+    "capture": "none",
+    "capture_complete": false,
+    "card": "no card on record for 2026-10-05",
+    "day": "2026-10-05",
+    "weather": "yes"
+   },
+   {
+    "capture": "none",
+    "capture_complete": false,
+    "card": "no card on record for 2026-10-06",
+    "day": "2026-10-06",
+    "weather": "yes"
+   },
+   {
+    "capture": "none",
+    "capture_complete": false,
+    "card": "no card on record for 2026-10-07",
+    "day": "2026-10-07",
+    "weather": "yes"
+   },
+   {
+    "capture": "none",
+    "capture_complete": false,
+    "card": "no card on record for 2026-10-08",
+    "day": "2026-10-08",
+    "weather": "yes"
+   },
+   {
+    "capture": "none",
+    "capture_complete": false,
+    "card": "no card on record for 2026-10-09",
+    "day": "2026-10-09",
+    "weather": "yes"
+   }
+  ]
+ },
+ "exploratory": true,
+ "forecasts": {
+  "g4_report": null,
+  "v4_report": "research/forecasts/v4_scores/2026-10-10.json"
+ },
+ "sessions": [
+  "2026-10-05",
+  "2026-10-06",
+  "2026-10-07",
+  "2026-10-08",
+  "2026-10-09"
+ ],
+ "weather": {
+  "days": [
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-05",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   },
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-06",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "RED"
+   },
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-07",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "GREEN"
+   },
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-08",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   },
+   {
+    "big_move": "no",
+    "colour": "GREEN",
+    "day": "2026-10-09",
+    "label": "backfill_exploratory",
+    "status": "scored",
+    "v0_colour": "AMBER"
+   }
+  ],
+  "misses": []
+ },
+ "week_ending": "2026-10-10"
+}
