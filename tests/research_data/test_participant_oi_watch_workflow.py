@@ -11,7 +11,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "participant-oi-watch.yml"
-LOG = "research/data/participant_oi/release_checks.csv"
+LOG = "research/data/participant_oi/release_checks_v2.csv"
 IST_OFFSET = timedelta(hours=5, minutes=30)
 
 

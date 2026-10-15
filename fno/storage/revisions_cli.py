@@ -15,7 +15,7 @@ from ..models import IST
 
 STORED = "REVISION {day} {path}: NSE's newer version kept as {revision_path} ({size} bytes, available from {at})"
 NOT_ARCHIVED = "not in the raw archive, so not a revision (the librarian archives it): {path}"
-UNANSWERED = "no answer: {path} (unreachable or no longer served; check again next sweep)"
+UNANSWERED = "no answer: {path}: {reason} (check again next sweep)"
 SUMMARY = "revisions sweep: {checked} files read, {stored} new revisions, {unanswered} unanswered"
 
 
@@ -60,7 +60,8 @@ def _sweep(source_type, start: date | None, end: date) -> int:
     try:
         source = wiring.build_revision_capturing_source(source_type, archive)
         result = sweep_revisions(source, [source_type.path_for(d) for d in days])
-        lines = revision_lines(archive) + [UNANSWERED.format(path=p) for p in result.unanswered]
+        unanswered = [UNANSWERED.format(path=p, reason=why) for p, why in result.unanswered.items()]
+        lines = revision_lines(archive) + unanswered
         stored, unanswered = len(archive.stored), len(result.unanswered)
         lines.append(SUMMARY.format(checked=result.checked, stored=stored, unanswered=unanswered))
         print("\n".join(lines))

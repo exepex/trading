@@ -139,7 +139,7 @@ def test_the_recorder_logs_every_check_until_the_file_appears_and_never_asks_aga
     assert archive.asked == [ParticipantOiSource.path_for(FRIDAY)] * 3
     assert rec.watch(FRIDAY, at(FRIDAY, 22), timedelta(minutes=5)) == found and len(archive.asked) == 3
     assert first_seen_times(log.checks()) == {FRIDAY: at(FRIDAY, 19)}
-    assert log.path.read_text().splitlines()[0] == "day,checked_at,outcome,sha256,last_modified"
+    assert log.path.read_text().splitlines()[0] == "day,checked_at,outcome,sha256,last_modified,started_at"
 
 
 def test_the_recorder_stops_at_the_cutoff_and_skips_closed_days(tmp_path):

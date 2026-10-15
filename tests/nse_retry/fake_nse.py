@@ -40,13 +40,13 @@ class ScriptedNse:
 
 
 def nse_source_classes() -> list[type[NseArchiveSource]]:
-    """Every NseArchiveSource subclass in the package (they all share the policy)."""
+    """Every NseArchiveSource subclass in the `fno` package (they all share the policy); test fakes are left out."""
     found, todo = [], [NseArchiveSource]
     while todo:
         for cls in todo.pop().__subclasses__():
             found.append(cls)
             todo.append(cls)
-    return sorted(set(found), key=lambda c: c.__qualname__)
+    return sorted({c for c in found if c.__module__.startswith("fno.")}, key=lambda c: c.__qualname__)
 
 
 def a_path(cls: type[NseArchiveSource]) -> str:

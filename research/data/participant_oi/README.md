@@ -1,21 +1,23 @@
 # Participant open interest: release-time evidence (story A8)
 
-`release_checks.csv` is the committed log of the release-time recorder (`fno/research_data/release_times.py`): the
+`release_checks_v2.csv` is the committed log of the release-time recorder (`fno/research_data/release_times.py`): the
 GitHub Actions job `participant-oi-watch` runs `python -m fno participant-oi check-once` every 15 minutes from 16:37 to
 23:22 IST, with no AI session (`participant-oi watch` keeps checking in one process). `.gitattributes` merges this file
 by union, so two writers' new rows never conflict. `release_rereads.csv` records, per due day, that the daily re-read
 of the last 5 seen files (rewrite detection) finished with every file answered.
 
-Each row of `release_checks.csv` is one check of NSE's archive for one session's file
-`fao_participant_oi_DDMMYYYY.csv`:
+Since story A9b (15 Oct 2026) new checks go to `release_checks_v2.csv`, which adds `started_at`; the earlier log
+`release_checks.csv` (24 checks, 13-15 Oct 2026) is kept as it is and read before it, never written. Each row is one
+check of NSE's archive for one session's file `fao_participant_oi_DDMMYYYY.csv`:
 
 | column | meaning |
 |---|---|
 | `day` | the session the file is for |
-| `checked_at` | when it was checked (IST, ISO 8601) |
-| `outcome` | `present`, `absent` (HTTP 404), `unreachable` (no answer after retries: says nothing about the file) or `rewritten` (present, with other bytes than first seen) |
+| `checked_at` | when NSE's answer came (IST, ISO 8601): after any retries (a 503 retried first is not seeing the file; orchestrator's decision 37). In `release_checks.csv`, when the single try began |
+| `outcome` | `present`, `absent` (HTTP 404), `unreachable` (no answer after the retries of `fno/storage/retry_policy.py`, or refused: says nothing about the file) or `rewritten` (present, with other bytes than first seen) |
 | `sha256` | SHA-256 of the file when present |
 | `last_modified` | NSE's own Last-Modified time for the bytes seen (ISO 8601; empty in the two rows written before 13 Oct 2026's change) |
+| `started_at` | when the check began (`release_checks_v2.csv` only): `checked_at` minus `started_at` is the retry gap (up to 65 s, or 3 x 120 s when NSE asks to wait) |
 
 Rows are only ever appended, never edited or deleted.
 
@@ -51,8 +53,8 @@ rewritten days and leaves the other 1,824 unchanged. Each recorder run also re-r
 
 ## Monthly sweep (judge 16)
 
-`python -m fno participant-oi sweep` asks NSE for the headers of every recorded file (HEAD only, through the polite
-session; about 35 minutes for 1,929 files) and compares each Last-Modified with the latest one on record. A day whose
+`python -m fno participant-oi sweep` reads every recorded file in full from NSE (through the polite session and
+`RevisionCapturingSource`, so a rewritten file is kept as a revision; about 35 minutes for 1,929 files) and compares each Last-Modified with the latest one on record. A day whose
 write time moved later gets a row in `last_modified_sweeps.csv` (`day, checked_at, last_modified`), is printed as
 `MOVED <day> ...`, and is held back by the rule from then on; the command exits 1 on any moved or unanswered file. The
 recorder's own recheck covers only the last 5 sessions, so this sweep is what catches a rewrite months later. A moved

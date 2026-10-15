@@ -1,7 +1,8 @@
 # Story A8: NSE's participant-OI release-time recorder as a plain scheduled job (no AI session). Every 15 minutes in
 # the evening, one check of today's file (`participant-oi check-once`), then exit. Research data only; never trades.
 # NSE's session calendar decides the day; once today's file is recorded present, later runs check nothing. Rows are
-# appended to research/data/participant_oi/release_checks.csv (the evidence the availability rule reads), never edited.
+# appended to research/data/participant_oi/release_checks_v2.csv (the evidence the availability rule reads, with the
+# pre-A9b release_checks.csv beside it, read only), never edited.
 # Alerts to #fno-desk (the command posts them): a rewritten file, NSE unreachable, the file still absent from 23:15 IST.
 # GitHub starts scheduled runs late (14 Oct 2026 on this repository: 4.5-5.5 hours, some never): checked_at records when
 # each check really ran, and a run that starts before noon IST checks the previous evening's file (still due).
@@ -26,7 +27,7 @@ jobs:
     timeout-minutes: 15
     env:
       FNO_SLACK_BOT_TOKEN: ${{ secrets.FNO_SLACK_BOT_TOKEN }}
-      LOG: research/data/participant_oi/release_checks.csv
+      LOG: research/data/participant_oi/release_checks_v2.csv
       REREADS: research/data/participant_oi/release_rereads.csv
     steps:
       - uses: actions/checkout@v4

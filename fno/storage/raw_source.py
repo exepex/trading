@@ -17,6 +17,7 @@ from ..http_pacing import SourceCoolingOff
 from .retry_policy import MAX_RETRY_AFTER_SECONDS, NOT_FOUND, REFUSED, RETRY, RETRY_WAITS, retry_after_seconds, verdict
 
 NOT_PUBLISHED = NOT_FOUND
+NOT_PUBLISHED_REASON = "not served (HTTP 404)"
 
 
 class RawSourceUnavailable(RuntimeError):

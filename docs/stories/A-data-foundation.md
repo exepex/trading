@@ -1121,9 +1121,13 @@ No raw file is ever written partially today (bytes are complete and checked befo
    - `Retry-After` (seconds or an HTTP date) on a retried answer: the wait is the larger of the scheduled wait and
      `Retry-After`. Above `MAX_RETRY_AFTER_SECONDS` (120) the source stops at once with `RawSourceUnavailable` naming
      it, rather than block a run; the next scheduled run tries again. A malformed or past `Retry-After` is ignored.
+     Why 120 (reasoning only; judge 119 minor 2): past two minutes NSE is blocking, not hiccuping; the pacer pauses
+     the host for 15 minutes and the next scheduled run is the right retry.
    - With the pacer: a 429 counts as a refusal, so a second 429 in a row pauses the host and the next try stops at
      once as cooling off. A 429 therefore gets one retry in practice; a 5xx up to three.
-   - Worst case per file: 65 s of waits, or 3 x 120 s with long `Retry-After` values.
+   - Worst case per file: 65 s of waits, or 3 x 120 s with long `Retry-After` values. A12's `filings archive
+     --max-minutes` checks its deadline between companies, so each slow file of the last company can carry a run
+     about 6 minutes past it.
 2. **One failure contract.** `fetch`, `fetch_published` and `last_written` of an NSE source return the bytes (or the
    time), `None` for 404, or raise `RawSourceUnavailable`; never `requests.HTTPError` or `SourceCoolingOff`.
    - New `RawFileRefused(RawSourceUnavailable)`: this one file was refused (403 or another 4xx). A subclass, so every
@@ -1155,7 +1159,9 @@ No raw file is ever written partially today (bytes are complete and checked befo
 Out:
 - `PublicData` (`fno/providers/public.py`: the option chain and the A12 filing indexes on www.nseindia.com/api) keeps
   its own three-attempt loop with cookie warm-up; it is not an `NseArchiveSource`. Bringing it under this policy is its
-  own change (it needs the warm-up kept);
+  own change (it needs the warm-up kept). Safe today (judge 119 minor 3) because its callers catch everything it
+  raises: `NseLevelSource` records any failure, and A12's indexes make a list failure that company's failure and a
+  cool-off a stop. A new caller must do the same until `PublicData` comes under this policy;
 - `tools/nse_raw_download/nse_raw_download.py` (a one-off script, stops at the first 403/429 by design);
 - the pacer's numbers (1 request a second a host, a 15-minute pause after two refusals: owner decision,
   `docs/DESK_DECISIONS.md:44`);

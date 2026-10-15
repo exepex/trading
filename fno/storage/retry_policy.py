@@ -6,7 +6,7 @@
 - `Retry-After` on a retried answer stretches the wait; above `MAX_RETRY_AFTER_SECONDS` the download stops at once.
   Reasoning only: past two minutes NSE is blocking, not hiccuping; the pacer's 15-minute pause and the next scheduled
   run are the right retry. Worst case per file: 65 s of waits, or 3 x 120 s; A12's deadline-bound backfill
-  (`filings archive --max-minutes`) can lose up to 6 minutes to one file before it stops at its deadline.
+  (`filings archive --max-minutes`) checks its deadline between companies: each slow file adds up to 6 min.
 """
 
 from __future__ import annotations

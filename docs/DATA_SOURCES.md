@@ -38,3 +38,26 @@ never does.
 
 `fno/http_pacing.py`: at most one request a second to each site; two refusals in a row ("too many requests" or
 "forbidden") pause that site for 15 minutes instead of retrying into a longer block.
+
+**NSE downloads (story A9b, `fno/storage/retry_policy.py`):** every NSE archive source (`NseArchiveSource`: the F&O,
+index, participant-OI, SPAN, equity, flows, VIX, filings and corporate-action files) follows one policy, GET and HEAD
+alike:
+
+| Answer | What happens |
+|---|---|
+| 2xx | used at once (one request, no wait) |
+| 404 | "not published" |
+| no connection, timeout, 429, any 5xx | retried: at most 4 tries, waits of 5, 15 and 45 s; NSE's `Retry-After` stretches a wait |
+| `Retry-After` over 120 s | stop at once (reasoning only: past two minutes NSE is blocking, not hiccuping; the pacer's 15-minute pause and the next scheduled run are the right retry) |
+| 403, any other 4xx | refused at once, never retried (`RawFileRefused`): retrying a refusal invites a longer block |
+| the site is in its 15-minute pause | stop at once, no wait |
+
+A final failure is always `RawSourceUnavailable` (a refused file: its subclass `RawFileRefused`), naming the file, the
+status and the tries; every command prints it as a named line, records it, or alerts; never a traceback or a silent
+skip. Worst case per file: 65 s of waits, or 3 x 120 s; A12's deadline-bound `filings archive --max-minutes` checks its
+deadline between companies, so each slow file of the last company can carry a run up to about 6 minutes past it.
+
+`PublicData` (`fno/providers/public.py`: the option-chain fallback and A12's filing indexes on www.nseindia.com/api)
+is not under this policy: it keeps its own three tries with a cookie warm-up. Safe today because its callers catch all
+it raises (`NseLevelSource` records any failure; A12's indexes turn a list failure into that company's failure and a
+cool-off into a stop). A new caller must do the same until it comes under this policy.

@@ -12,7 +12,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .raw_source import PublishedFile, RawFileSource, RawSourceUnavailable
+from .raw_source import NOT_PUBLISHED_REASON, PublishedFile, RawFileSource, RawSourceUnavailable
 from .revisions import RevisionArchive
 
 
@@ -40,7 +40,7 @@ class RevisionCapturingSource(RawFileSource):
 @dataclass
 class RevisionSweepResult:
     checked: int = 0
-    unanswered: list[str] = field(default_factory=list)  # unreachable, or no longer served
+    unanswered: dict[str, str] = field(default_factory=dict)  # path -> why: unreachable, refused or no longer served
 
 
 def sweep_revisions(source: RevisionCapturingSource, paths: Iterable[str]) -> RevisionSweepResult:
@@ -50,8 +50,9 @@ def sweep_revisions(source: RevisionCapturingSource, paths: Iterable[str]) -> Re
         result.checked += 1
         try:
             found = source.fetch_published(path)
-        except RawSourceUnavailable:
-            found = None
+        except RawSourceUnavailable as failed:
+            result.unanswered[path] = str(failed)
+            continue
         if found is None:
-            result.unanswered.append(path)
+            result.unanswered[path] = NOT_PUBLISHED_REASON
     return result

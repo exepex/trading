@@ -26,7 +26,7 @@ MONTH_FORMAT = "%Y-%m"
 RESUME = "Nothing more was done; run the same command again (only missing months are fetched)."
 STOPPING_FAILURES = (
     RawSourceUnavailable,
-    requests.RequestException,  # NSE's 403, 429 or 5xx, and Drive's network errors
+    requests.RequestException,  # Drive's network errors (NSE's failures arrive as RawSourceUnavailable, A9b)
     DriveSignInRefused,
     RawFileConflict,
     RuntimeError,  # Drive settings missing

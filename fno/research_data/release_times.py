@@ -1,7 +1,10 @@
 """Measures when NSE first publishes a session's file, and sets the availability rule from that evidence (story A8).
 
 The recorder checks the archive on a schedule and appends every check to a committed log (`day, checked_at, outcome,
-sha256, last_modified`); it never edits a row. A day counts as measured only when the log shows its file absent and
+sha256, last_modified, started_at`); it never edits a row. `checked_at` is when NSE's answer arrived (a 503 retried
+first is not seeing the file: orchestrator's decision 37, A9b) and `started_at` when the check began, so a retry gap
+shows. The log before A9b (`LEGACY_LOG_NAME`, no `started_at`: one try per check, its `checked_at` the start) is read
+beside the current one, never written. A day counts as measured only when the log shows its file absent and
 later present, so the release falls between two checks. The first `present` time is used: an upper bound on the real
 release, the safe side for look-ahead. Until `MIN_MEASURED_DAYS` days are measured, the default next-session rule
 applies.
@@ -27,7 +30,9 @@ from ..storage.raw_source import PublishedFile, RawFileSource, RawSourceUnavaila
 from .availability import AvailabilityRule, MeasuredReleaseRule, NextSessionRule, sessions_until_usable
 from .calendar import SessionCalendar
 
-LOG_FIELDS = ("day", "checked_at", "outcome", "sha256", "last_modified")
+LOG_FIELDS = ("day", "checked_at", "outcome", "sha256", "last_modified", "started_at")
+LEGACY_LOG_NAME = "release_checks.csv"  # before A9b: LOG_FIELDS without started_at; read, never written
+LEGACY_FIELDS = LOG_FIELDS[:-1]
 MIN_MEASURED_DAYS = 20
 RECHECK_SESSIONS = 5  # each run re-reads the last few seen files, so a rewrite soon after release is caught
 
@@ -39,18 +44,20 @@ class ReleaseCheck:
     outcome: str  # RELEASE_PRESENT, RELEASE_ABSENT, RELEASE_UNREACHABLE (says nothing) or RELEASE_REWRITTEN
     sha256: str = ""
     last_modified: datetime | None = None  # the source's own last-write time for the bytes seen
+    started_at: datetime | None = None  # when the check began (None in the legacy log: the same as checked_at)
 
 
 class ReleaseLog:
-    """The append-only CSV of checks."""
+    """The append-only CSV of checks, with the legacy log beside it (read first, never written)."""
 
     def __init__(self, path: Path):
         self.path = Path(path)
+        legacy = self.path.with_name(LEGACY_LOG_NAME)
+        self.legacy = None if legacy == self.path else legacy
 
     def checks(self) -> list[ReleaseCheck]:
-        if not self.path.is_file():
-            return []
-        return [_check_from(row) for row in csv.DictReader(self.path.read_text(encoding="utf-8").splitlines())]
+        legacy = _read(self.legacy, LEGACY_FIELDS) if self.legacy else []
+        return legacy + _read(self.path, LOG_FIELDS)
 
     def append(self, check: ReleaseCheck) -> None:
         new = not self.path.is_file()
@@ -62,17 +69,29 @@ class ReleaseLog:
             if new:
                 writer.writerow(LOG_FIELDS)
             written = check.last_modified.isoformat() if check.last_modified else ""
-            writer.writerow([check.day.isoformat(), check.checked_at.isoformat(), check.outcome, check.sha256, written])
+            started = check.started_at.isoformat() if check.started_at else ""
+            day, checked = check.day.isoformat(), check.checked_at.isoformat()
+            writer.writerow([day, checked, check.outcome, check.sha256, written, started])
+
+
+def _read(path: Path, fields: tuple[str, ...]) -> list[ReleaseCheck]:
+    if not path.is_file():
+        return []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if lines and lines[0] != ",".join(fields):
+        raise ValueError(f"{path.name}: its header is not {','.join(fields)}")
+    return [_check_from(row) for row in csv.DictReader(lines)]
 
 
 def _check_from(row: dict[str, str]) -> ReleaseCheck:
-    written = row["last_modified"]
+    written, started = row["last_modified"], row.get("started_at", "")
     return ReleaseCheck(
         date.fromisoformat(row["day"]),
         datetime.fromisoformat(row["checked_at"]),
         row["outcome"],
         row["sha256"],
         datetime.fromisoformat(written) if written else None,
+        datetime.fromisoformat(started) if started else None,
     )
 
 
@@ -123,24 +142,25 @@ class ReleaseTimeRecorder:
         self.clock, self.sleep = clock, sleep
 
     def check(self, day: date) -> ReleaseCheck:
-        """One check, logged. A file whose bytes differ from the first ones seen for that day is logged `rewritten`."""
-        checked_at = self.clock()
+        """One check, logged with when it began and when NSE's answer (or the final failure) came. A file whose bytes
+        differ from the first ones seen for that day is logged `rewritten`."""
+        started_at = self.clock()
         try:
             found = self.source.fetch_published(self.path_for(day))
         except RawSourceUnavailable:
-            check = ReleaseCheck(day, checked_at, RELEASE_UNREACHABLE)
+            check = ReleaseCheck(day, self.clock(), RELEASE_UNREACHABLE, started_at=started_at)
         else:
-            check = self._outcome(day, checked_at, found)
+            check = self._outcome(day, self.clock(), found, started_at)
         self.log.append(check)
         return check
 
-    def _outcome(self, day: date, checked_at: datetime, found: PublishedFile | None) -> ReleaseCheck:
+    def _outcome(self, day: date, answered_at: datetime, found: PublishedFile | None, started_at) -> ReleaseCheck:
         if found is None:
-            return ReleaseCheck(day, checked_at, RELEASE_ABSENT)
+            return ReleaseCheck(day, answered_at, RELEASE_ABSENT, started_at=started_at)
         sha = hashlib.sha256(found.data).hexdigest()
         first = self.first_present(day)
         outcome = RELEASE_REWRITTEN if first and first.sha256 != sha else RELEASE_PRESENT
-        return ReleaseCheck(day, checked_at, outcome, sha, found.last_modified)
+        return ReleaseCheck(day, answered_at, outcome, sha, found.last_modified, started_at)
 
     def first_present(self, day: date) -> ReleaseCheck | None:
         seen = [c for c in self.log.checks() if c.day == day and c.outcome == RELEASE_PRESENT]

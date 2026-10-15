@@ -153,7 +153,8 @@ def test_a_sweep_reads_every_file_in_full_and_keeps_what_differs(tmp_path):
     live = LiveNse({PATH: PublishedFile(REWRITTEN, NSE_LAST_MODIFIED), down: RawSourceUnavailable("down")})
     source = RevisionCapturingSource(live, s.archive)
     result = sweep_revisions(source, [PATH, gone, down])
-    assert (result.checked, result.unanswered) == (3, [gone, down]) and len(s.archive.stored) == 1
+    assert (result.checked, result.unanswered) == (3, {gone: "not served (HTTP 404)", down: "down"})
+    assert len(s.archive.stored) == 1
     assert source.last_written(PATH) == NSE_LAST_MODIFIED and len(s.archive.stored) == 1  # full read, kept once
 
 
