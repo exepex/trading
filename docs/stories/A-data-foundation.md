@@ -566,9 +566,9 @@ file NOT saved to Drive".
 
 **Repository:** trading · **Lane:** 1 (Groww data, the daily routine's output) · **Branch:** `story/a4c-all-indices`
 
-**Description:** As the execution specialist and the volatility trader, I want the bid/ask of every other NSE index
-option recorded after NIFTY in the 3 pm routine, each with its real capture time, so that spreads, skews and
-liquidity of BANKNIFTY, FINNIFTY, MIDCPNIFTY, NIFTYNXT50 and NIFTYFPI options are measured, not assumed.
+**Description:** As the execution specialist and the volatility trader, I want the bid/ask of the other traded NSE
+index options recorded after NIFTY in the 3 pm routine, each with its real capture time, so that spreads, skews and
+liquidity of BANKNIFTY, FINNIFTY and MIDCPNIFTY options are measured, not assumed.
 
 **Context and why:**
 - Owner, 13 Oct 2026: record all index and stock F&O. Owner, 15 Oct 2026 (`docs/DESK_DECISIONS.md`; response 144,
@@ -588,13 +588,15 @@ liquidity of BANKNIFTY, FINNIFTY, MIDCPNIFTY, NIFTYNXT50 and NIFTYFPI options ar
   | NIFTYNXT50 | 276 | 8 |
   | NIFTYFPI | 120 | 0 |
 
-  So this story adds about 980 quotes a day (plus about 10 chain and expiry calls). Every other index lists monthlies
-  only (3 expiries each), so A5's monthly rule needs no change.
+  Owner, 15 Oct 2026 (`docs/DESK_DECISIONS.md`): "drop NIFTYFPI and NIFTYNXT50, record only the traded indices". So
+  this story records BANKNIFTY, FINNIFTY and MIDCPNIFTY: about 590 quotes a day (220 + 146 + 220, plus about 6 chain
+  and expiry calls). Each lists monthlies only (3 expiries), so A5's monthly rule needs no change.
 
-**Scope.** In: the five other index-option underlyings of the previous session's NSE F&O file (point in time: the
-list and the file's SHA-256 are kept in each sidecar); the two nearest monthlies; strikes within 5% of spot; A4's
+**Scope.** In: BANKNIFTY, FINNIFTY and MIDCPNIFTY (owner's list), each checked against the previous session's NSE F&O
+file (point in time: the file's name and SHA-256 are kept in each sidecar); the two nearest monthlies; strikes within 5% of spot; A4's
 columns and validity rule; Drive-only quote files through A4b's store; one routine step after NIFTY's push.
-Out: stocks (8b: a stock expiry rule, the 14:20 start that needs an owner schedule change); NIFTY weeklies, BSE
+Out: NIFTYFPI and NIFTYNXT50 (owner, 15 Oct: barely traded; 0 and 8 of 120 and 276 contracts on 14 Oct); stocks
+(8b: a stock expiry rule, the 14:20 start that needs an owner schedule change); NIFTY weeklies, BSE
 SENSEX, futures per underlying and lot sizes (response 144 finding 8, owner's choice); any reader of the new
 snapshots (data only; no forecast, desk or card uses them); NIFTY's own recording (unchanged).
 
@@ -609,12 +611,13 @@ snapshots (data only; no forecast, desk or card uses them); NIFTY's own recordin
   finding 5).
 - Pace: the index run uses at most 3 parallel requests and at most 2.5 request starts a second (A16's `RatePacer`).
   Together with A16's 5 a second this stays under the about 10 a second where Groww began failing (A16 step 0;
-  some evidence, one morning). About 990 calls at 2.5 a second take about 6.6 minutes: done by about 15:08.
+  some evidence, one morning). About 600 calls at 2.5 a second take about 4 minutes: done by about 15:05.
 - The calendar cross-check "calendar says session, no same-day trades" stays NIFTY's only (response 144 finding 3):
-  an index whose contracts did not trade today (NIFTYFPI on 14 Oct) is recorded complete, its rows `valid=false`
-  ("no trade today") as A4 already marks them, and raises no alert.
-- The universe: index-option underlyings (`IDO`) of the latest NSE F&O file before today, minus NIFTY; read once per
-  run, and the same parsed file serves the expiry lookups (response 144 finding 6: about 0.8 s a parse).
+  an index whose contracts did not trade today is recorded complete, its rows `valid=false` ("no trade today") as A4
+  already marks them, and raises no alert (a quiet day for FINNIFTY or MIDCPNIFTY must not read as a closed market).
+- The universe: the owner's three names (a constant in `fno/constants.py`). The latest NSE F&O file before today is
+  read once per run and serves every expiry lookup (response 144 finding 6: about 0.8 s a parse); a name the file no
+  longer lists as an index option (`IDO`) gets an incomplete attempt with that reason, never a silent skip.
 - Command `python -m fno quotes record-indices`: records each underlying in turn (an incomplete one is retried while
   the window lasts, A4's rule), prints one result line per underlying, exits 1 if any is not complete, and sends one
   #fno-desk alert naming the incomplete ones (Slack token from the environment, as A4).
@@ -623,16 +626,16 @@ snapshots (data only; no forecast, desk or card uses them); NIFTY's own recordin
   routine's prompt.
 
 **Step 0 (before code; read-only, counts and names only):** one call each of Groww's expiry list and option chain for
-the five underlyings, to confirm Groww's names for them (NIFTYFPI and NIFTYNXT50 are not yet proven). A name Groww
-refuses is reported in the claims, and that underlying's attempts are recorded incomplete with the error type, never
-skipped silently.
+BANKNIFTY, FINNIFTY and MIDCPNIFTY, to confirm Groww's names for them. A name Groww refuses is reported in the claims,
+and that underlying's attempts are recorded incomplete with the error type, never skipped silently.
 
 **Acceptance criteria:**
-1. **Each index recorded.** On a session day, `record-indices` writes, for each of the five underlyings, an attempt
+1. **Each index recorded.** On a session day, `record-indices` writes, for each of the three underlyings, an attempt
    with every contract of its two nearest monthlies within 5% of spot (A4's columns, validity and freshness rules), its
    quote file in Drive only and its sidecar (with the universe file's name and SHA-256) and canonical marker in the
-   repository (tests with a fake provider and a fake Drive: positive; a provider that refuses one underlying gives
-   that underlying an incomplete attempt and canonical "none", the others complete).
+   repository (tests with a fake provider and a fake Drive: positive; a provider that refuses one underlying, or an
+   NSE file that no longer lists it, gives that underlying an incomplete attempt and canonical "none", the others
+   complete).
 2. **NIFTY unchanged.** A4's byte-for-byte baseline test, the G1 v2 golden cases and every reader's test pass
    unchanged; no reader reads the new files (they match only `nifty_*`).
 3. **Time box and pace.** No request starts before 15:01:00 or after 15:13:00 IST; request starts are at least 0.4 s
@@ -648,8 +651,8 @@ skipped silently.
 7. Code size, lint, imports and the full suite pass.
 
 **Proposed routine wording (`CLAUDE.md`, 3 pm section, new step after step 3):** "3b. After NIFTY is pushed, run
-`python -m fno quotes record-indices` (BANKNIFTY, FINNIFTY, MIDCPNIFTY, NIFTYNXT50, NIFTYFPI from the previous
-session's NSE file; 15:01-15:13 IST, paced; raw quotes to Drive only), then commit `research/data/quotes/` and push
+`python -m fno quotes record-indices` (BANKNIFTY, FINNIFTY and MIDCPNIFTY; 15:01-15:13 IST, paced; raw quotes to
+Drive only), then commit `research/data/quotes/` and push
 as in step 3. It alerts #fno-desk itself for any index not recorded."
 
 **Test plan:** A4's fake provider extended with a per-underlying chain; a fake clock for the window and pace; A4b's
@@ -662,18 +665,18 @@ first live day (rule 8); no Groww quote file in the repository.
 - A push of an index's canonical marker before 15:13 starts another forecast-capture run; it waits in the concurrency
   group and stops at its gate (the day's pack is already on main).
 - The rate figures come from one morning's measurement (A16 step 0); a slower Groww day can leave an index "none".
-- Index changes during the day (a new index listed) appear the next session (the universe is the previous day's file).
+- A new index or a change in which indices trade needs an owner decision and a one-line change of the list.
 
 **Gap list (owner decisions 13 and 15 Oct; response 144 findings 1-9 on all-F&O recording):**
 
 | Requirement | Where |
 |---|---|
-| All index F&O recorded, each quote with its real time (owner 13 and 15 Oct) | criterion 1 (A4's per-row request and response times) |
+| All index F&O recorded, each quote with its real time (owner 13 and 15 Oct), only the traded indices (owner 15 Oct: drop NIFTYFPI and NIFTYNXT50) | criterion 1 (A4's per-row request and response times); scope |
 | Time slots: NIFTY first and pushed at once, other indices next (owner 15 Oct) | design (routine step 3b), criterion 3 |
 | Finding 1: stock chains fail on the IDO-only expiry history | out of scope: stocks are 8b (indices are IDO) |
 | Finding 2: NIFTY must be pushed alone before 15:13 | unchanged step 3; indices run after it |
 | Finding 3: cross-check on NIFTY only | criterion 4 |
-| Finding 4: point-in-time universe with the file's SHA-256 | design (universe), criterion 1 |
+| Finding 4: point-in-time universe with the file's SHA-256 | design (universe: the owner's list, checked against the previous session's file, its SHA-256 kept), criterion 1 |
 | Finding 5: no rows after 15:30 | criterion 3 (nothing starts after 15:13) |
 | Finding 6: parse the NSE file once | design (universe) |
 | Finding 7: one shared Groww rate budget, NIFTY first | design (pace, window after A16's 15:00 mark), criterion 3 |
@@ -681,7 +684,7 @@ first live day (rule 8); no Groww quote file in the repository.
 | Finding 9: raw files never under `research/data/quotes/` | A4b's store (criterion 1), A4b's ignore and scan rules (criterion 6) |
 | Stocks at 14:20 need an earlier routine start (owner schedule change) | out of scope: 8b |
 
-**Depends:** A4, A4b, A5 · **Size:** M · **Status:** story text for the judge's check (15 Oct 2026)
+**Depends:** A4, A4b, A5 · **Size:** M · **Status:** story text for the judge's check, revision 2 (15 Oct 2026: three indices, owner)
 
 ---
 
