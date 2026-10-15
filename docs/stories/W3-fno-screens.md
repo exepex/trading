@@ -41,7 +41,7 @@ E4c/E4d builder (0134MoC6f7aAJVcHRBiyATo6, dashboard `web/`). One builder per fu
 | Paper books and trades | public `journal/<book>/daily_totals.csv`; **Drive only**: `journal/<book>/account/` (ledger, positions, equity, fills; E2c) | 3 books, 2 rows each, 0 open trades | after each daily run |
 | Scoreboards A and B | `research/scoreboards/{A,B}/<date>.json`, **Drive only**, no workflow runs them yet | none | when S2/S3 run |
 | Budget and AI usage | `accounting/ai_usage.csv`, `operating_costs.csv`, `accounting/budget/<month>_signal.json` (BG1) | 1 usage row; 1 cost row; no signal file | per routine run |
-| Data health | `research/data/manifests/*.csv`, `vix/checks/`, `global-cues/checks/`, `fno.run_status` (P7), O8's `research/ops/health_runs.csv` | 20 manifests (~21.7k rows); check files; O8 runs not committed yet | daily |
+| Data health | `research/data/manifests/` (CSVs), `vix/checks/`, `global-cues/checks/`, `fno.run_status` (P7), O8's `research/ops/health_runs.csv` | 33 manifest CSVs, 57,178 lines (`find research/data/manifests -name '*.csv' -exec cat {} + \| wc -l`); the 19 top-level files hold 17,910 data rows (lines minus one header each); check files; O8 runs not committed yet | daily |
 
 ## Privacy rules for every page (no shortcuts)
 
@@ -52,16 +52,23 @@ E4c/E4d builder (0134MoC6f7aAJVcHRBiyATo6, dashboard `web/`). One builder per fu
    read, the page is **not built** (it stays at the previous publication, the run status says why); never a fallback
    value. Today's publish already does this for Home's books: `fno market publish` first runs E2c's
    `download_private_records()`, which stops the command, named, when Drive cannot be read (`fno/market_read_models/
-   cli.py`, `fno/desk/wiring.py`).
+   cli.py`, `fno/desk/wiring.py`). That stop is the whole run's: every page, public ones included, stays at its
+   previous publication until the next run (judge 216).
 3. **Logs:** counts and hashes only, as today. A validation failure prints the field path and the rule, never the
    value: today `ContractBroken` prints jsonschema's `e.message` (`fno/market_read_models/contract.py:71`), which
    quotes the failing value (for example "25000 is greater than the maximum of 10000"), into the public Actions log.
    P2 changes that line for every page before the first private F&O page is published.
 4. **Never sent at all (strategy internals and owner rules):** a strategy's rules, thresholds, filters, parameters or
-   prompts (P1's `x-never-sent`); the weather's input thresholds and each driver's `reaches` colour (owner, 16 Oct:
-   the screen shows the colour, the input values and the reason, never the level at which an input turns a colour;
-   the per-input `reaches` colour over 2,409 days would let the levels be read back, reasoning only); AI model names
-   and session ids (`DESK_DECISIONS.md`: no screen names an AI model); the US cue (`us_move`, Drive only).
+   prompts (P1's `x-never-sent`); AI model names and session ids (`DESK_DECISIONS.md`: no screen names an AI model);
+   the US cue (`us_move`, Drive only). **The weather's input levels are a screen rule, not a secret** (judge 216, strong
+   evidence): the trading repository is public, the levels sit in its code (`fno/weather/checklist_v0.py:22`
+   `RED_LIMITS`, `fno/weather/constants.py:23`) and every one of the 2,409 committed weather records carries each
+   input's value beside its `reaches` colour. So the screen never shows the levels or `reaches` (owner, 16 Oct: the
+   colour, the input values and the reason only), and the pages do not carry them, but this protects nothing that is
+   not already public. **Owner question:** (a) accept the weather levels as public (they already are), or (b) make
+   them private from now on (code levels and future records' `reaches` moved to Drive; git history keeps every past
+   value public). Recommendation (a), reasoning only: (b) costs an M1 change and hides only future values of a rule
+   whose past values stay public.
 5. **Owner-only fields** (`x-visibility: owner`, P1) are published to Azure and shown only on the signed-in dashboard;
    the gateway never imports the F&O screen code: an import-graph test over everything the gateway serves
    (`web/middleware.ts`; under `MB_GATEWAY=1`, `web/lib/tools/gateway.ts` lets through only `app/slack` (POST),

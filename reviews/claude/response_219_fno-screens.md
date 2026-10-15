@@ -13,8 +13,8 @@ Story: `docs/stories/W3-fno-screens.md`. Owner decision 16 Oct: all F&O screens 
 3. **Two privacy gaps found and fixed in the text** (strong evidence, read the code):
    - `ContractBroken` prints jsonschema's message, which quotes the failing value, into the public Actions log
      (`fno/market_read_models/contract.py:71`); P2 changes it to path and rule only before any private page.
-   - The weather records carry each input's `reaches` colour; with 2,409 days of values that reveals the input levels
-     the owner said are never shown. `reaches` is never sent.
+   - The weather records carry each input's `reaches` colour. The pages never carry it (the owner's screen rule),
+     but judge 216 is right that the levels are already public (the code and 2,409 committed records): see addendum 1.
 4. **Private inputs stay in memory.** Drive-only inputs come through E2c's existing download, which stops the run when
    Drive cannot be read; a page is never built from a fallback value.
 5. **Never sent:** strategy rules and thresholds, weather input levels, AI model names and session ids, the US cue.
@@ -25,3 +25,14 @@ Story: `docs/stories/W3-fno-screens.md`. Owner decision 16 Oct: all F&O screens 
 
 Weather, Forecast lab, paper books, Strategy lab, data health, card, budget, scoreboards (the last waits for S2/S3
 runs).
+
+## Addendum 1: judge 216 (FAIL, 2 should-fix), both accepted
+
+- **Weather levels already public: accepted** (strong evidence: `fno/weather/checklist_v0.py:22`, `constants.py:23`,
+  each committed record's `reaches`). The text now calls the no-levels rule a screen rule, not a secret, and asks the
+  owner: (a) accept them as public, or (b) private from now on (history stays public). Recommendation (a), reasoning
+  only.
+- **Manifest count: accepted** and recounted: 33 CSVs, 57,178 lines; the 19 top-level files 17,910 data rows (command
+  in the table). My "20 manifests (~21.7k rows)" came from a summary I did not recount; it was wrong.
+- **Notes:** a Drive failure stops the whole publish, public pages included (rule 2 says so); the duplicate register
+  row is merged into the screens builder's own row.
