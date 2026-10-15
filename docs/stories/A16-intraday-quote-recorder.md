@@ -520,39 +520,56 @@ realised variance, `rv_table.py`) and `heartbeat.json` (`heartbeat.py`), all und
 row names the copy (amendment 2). The brief's "its manifests" therefore names nothing; adding a manifest path would
 only widen what the run can commit.
 
-**Change:**
+**Change (revised after judge 108 addendum 11, FAIL on a59b8be, both should-fix accepted and reproduced):**
 1. The committer is given its owned paths: `slots/`, `rv/` and `heartbeat.json`, named once in
    `fno/intraday/wiring.py`. It adds, counts and commits only those pathspecs (`git add -- <owned>`, `git commit
-   --only -- <owned>`); Git matches a pathspec by whole path components, so `rv/` (or `rv`) never matches `rv-candle/`
-   and `heartbeat.json` never matches `heartbeat.json.tmp` (checked: `git add -n` in a scratch repository); the test
-   keeps it proven. Without
-   owned paths the committer behaves as today (the manifest committer is unchanged).
-2. Before adding, it lists what is already staged under `research/data/intraday/`. Anything staged outside the owned
-   paths means another writer is mid-commit on this checkout: the run **refuses to commit** ("intraday files NOT
-   committed: N file(s) staged under research/data/intraday/ that are not the recorder's: <paths>"), touches nothing
-   in the index, and the next mark retries. Paths only, never file contents. The run's own rows stay on disk
-   (write-once), so nothing is lost; they are committed by the first commit after the stray staging is cleared.
-3. The first refusal in a run is sent as an alert to #fno-desk (`AlertSender`; `NoAlertSender` in dry runs and
-   tests); later refusals in the same run are printed only, so a stuck checkout sends one alert per run (at most
-   seven a session), not one per mark.
-4. Files under the folder that are not staged (untracked or modified, not the recorder's) are left alone: not added,
-   not committed, no refusal.
+   --only -- <owned>`). **Only owned paths that exist on disk or are tracked are passed**: Git refuses a whole
+   `git add` when one pathspec matches nothing (`fatal: pathspec ... did not match any files`, exit 128, reproduced),
+   and `rv/` does not exist until the first session's 15:30 mark, so naming it blindly would leave every mark of the
+   first live session uncommitted. With no owned path present the outcome is "nothing new to commit". Git matches a
+   pathspec by whole path components, so `rv/` never matches `rv-candle/` and `heartbeat.json` never matches
+   `heartbeat.json.tmp` (checked: `git add -n` in a scratch repository); the tests keep it proven. Without owned paths
+   the committer behaves as today (the manifest committer is unchanged).
+2. **The staged check covers the whole index**, not only the folder: before every pull and every commit the run lists
+   everything staged (`git diff --cached --name-only`, no pathspec). Anything staged that is not under an owned path
+   means another writer is mid-commit on this checkout, and a staged file anywhere makes the pull's merge fail
+   ("Your local changes ... would be overwritten by merge", reproduced with a staged manifest row outside the
+   folder). The run then **refuses to pull and to commit** ("intraday files NOT committed: N file(s) staged that are
+   not the recorder's: <paths>"), touches nothing in the index, and settles from its checkout as it is (the existing
+   "pull failed" rule). Paths only, never file contents. Its own rows stay on disk (write-once), so nothing is lost;
+   the first commit after the foreign staging is cleared carries them.
+3. **One alert per run, never one per mark:** the first refusal in a run is sent to #fno-desk (`AlertSender`;
+   `NoAlertSender` in dry runs and tests); later refusals in the same run are printed only, so a stuck checkout sends
+   at most seven alerts a session (one per hourly fire).
+4. Files that are not staged and not the recorder's (untracked or modified) are left alone: not added, not committed,
+   no refusal. Stated plainly: an untracked file that a pull would bring in from GitHub at the same path still makes
+   that pull fail; that is reported on the run's pull and commit lines as today, and the stale heartbeat on GitHub is
+   what the silence check sees (no new rule here).
 5. The routine prompt's hand-commit line names the three owned paths, never the whole folder (edited above).
+6. This is the same root rule as E2b's guard (refuse foreign staged work before a pull). The shared push-guard story
+   (orchestrator decision 64) will absorb this check later; until then it lives in A16's committer.
 
 **Acceptance criteria:**
 1. Real Git, two files in the folder besides A16's: an untracked `rv-candle/2026/nifty_rv_candle_20261015.csv` and an
    untracked `heartbeat.json.tmp`. A16's run commits and pushes its slot row, `rv/` file and heartbeat; the pushed
    commit holds exactly those, and both stray files are still untracked afterwards (boundary: `rv/` versus
    `rv-candle/`, `heartbeat.json` versus `heartbeat.json.tmp`).
-2. The same with `rv-candle/...csv` staged by "someone else" (`git add`): A16's commit is refused, the line names the
-   staged path, one alert is sent, HEAD is unchanged, the stray file is still staged and the run's own files are still
-   uncommitted on disk; a second refusal in the same run sends no second alert. After the stray file is unstaged, the
-   next commit carries every pending A16 file.
-3. Nothing to commit in the owned paths while a stray file sits untracked: "nothing new to commit", no refusal.
-4. The manifest committer (no owned paths) still adds and commits its whole folder (existing tests unchanged).
-5. Broken-code proof: the old whole-folder add makes criterion 1 fail; dropping the staged check makes criterion 2
-   fail.
-6. Gates: pytest, ruff, imports, code size.
+2. **Fresh folder:** a fixture with no `rv/` (and, separately, an empty folder with no owned path at all). The first
+   mark's slot row and heartbeat commit and push cleanly; the empty folder gives "nothing new to commit".
+3. **Staged inside the folder:** `rv-candle/...csv` staged by "someone else". The run refuses to pull and to commit,
+   the line names the staged path, one alert is sent, HEAD is unchanged, the stray file is still staged and the run's
+   own files are still uncommitted on disk. After the stray file is unstaged, the next commit carries every pending
+   A16 file.
+4. **Staged outside the folder:** a manifest row in `research/data/manifests/groww-candles/` staged. Refused, one
+   alert, HEAD unchanged, the row still staged.
+5. **One alert per run:** a run of three marks with the foreign file staged throughout sends exactly one alert and
+   prints three refusal lines.
+6. Nothing to commit in the owned paths while a stray file sits untracked: "nothing new to commit", no refusal.
+7. The manifest committer (no owned paths) still adds and commits its whole folder (existing tests unchanged).
+8. Broken-code proof: the old whole-folder add makes criterion 1 fail; passing every owned path whether it exists or
+   not makes criterion 2 fail; a staged check limited to the folder makes criterion 4 fail; dropping the staged check
+   makes criteria 3 and 4 fail; alerting on every refusal makes criterion 5 fail.
+9. Gates: pytest, ruff, imports, code size.
 
 **Out of scope, stated:** (a) `git push origin HEAD` publishes every unpushed commit on the checkout, including one
 another writer made locally (the class of decision 51 (b) for the desk). Each routine fire is a fresh clone that only

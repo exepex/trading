@@ -341,3 +341,17 @@ Text only, `docs/stories/A16-intraday-quote-recorder.md` section A16e; code foll
 - **Raised, not done (out of scope, stated in the text):** `git push origin HEAD` publishes any unpushed local commit
   another writer made on the same checkout (decision 51 (b)'s class). Low risk here: each routine fire is a fresh clone
   (reasoning only). A follow-up could reuse `fno/desk/git_sync.py`'s `other_work` rule; the orchestrator decides.
+
+### Part 6b: answer to judge 108 addendum 11 (FAIL on a59b8be, 2 should-fix): both accepted
+
+Both reproduced in a scratch repository before editing (strong evidence):
+1. `git add -- f/slots f/rv f/heartbeat.json` with no `f/rv` prints `fatal: pathspec 'f/rv' did not match any files`
+   and exits 128. Fixed in the text: only owned paths that exist or are tracked are passed; new criterion 2 uses a
+   fixture without `rv/` (and an empty folder), with a broken-code proof.
+2. With a file staged outside the folder (`m/r`), `git pull --no-rebase -X theirs` fails: "Your local changes to the
+   following files would be overwritten by merge: m/r", exit 2. My folder-only check was too narrow, and I was wrong
+   to call the folder the only reachable case. Fixed: the check reads the whole index before every pull and every
+   commit; new criterion 4 (a staged manifest row outside the folder: refused, one alert, HEAD unchanged) and
+   criterion 5 (one alert per run, three refusal lines, one send).
+Also stated: an untracked file that the pull would bring in at the same path still fails that pull; it is reported as
+today, with no new rule. And the text notes that the shared push-guard story (decision 64) will absorb this check.
