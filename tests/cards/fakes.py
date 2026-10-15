@@ -8,7 +8,6 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from fno.cards.card import CardBuilder
-from fno.cards.clock import ServerClock, ServerTimeUnknown
 from fno.cards.committed import CommittedRecords
 from fno.cards.daily import DailyCard
 from fno.cards.deliveries import RepoDeliveryFiles
@@ -18,6 +17,7 @@ from fno.cards.session import CALENDAR_PATH, SessionCheck
 from fno.cards.status import REGISTRY_PATH, RegistryStatus
 from fno.cards.weather import PendingWeather
 from fno.constants import BOOKS
+from fno.server_clock import ServerClock, ServerTimeUnknown
 from fno.storage.raw_store import RawFileConflict, RawFileStore
 
 ROOT = Path(__file__).resolve().parents[2]
