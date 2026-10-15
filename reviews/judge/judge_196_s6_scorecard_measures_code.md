@@ -180,3 +180,14 @@ rest of the range is main merged in.
    their tests pass. They change no figure that decides anything.
 
 S3 and S6 can merge, followed by the rule 8 dry run.
+
+## Addendum 3: head `7cb57e3cb8d17cb9effd6f95926d1235a86f91a6` (judge G)
+
+**The PASS stands.** `git diff 3eb96cda 7cb57e3c` touches only `research/evaluation/PROTOCOL.md`. It adds two lines to
+`missed_runs`' reason, which cite the owner's 16 Oct row "S3 missed runs: one book's unscored day counts as its miss"
+(DESK_DECISIONS line 225, owner: "Yes, count it (Recommended)"). That row is the rule judged in addendum 2.
+
+- The status stays "decided by the owner on 2026-10-15".
+- No code changed.
+- On this head, `python -m fno evaluation check` reports "complete", and `tests/evaluation tests/scoreboard` gives
+  195 passed.
