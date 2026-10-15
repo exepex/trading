@@ -9,8 +9,10 @@ renamed EQ1-EQ5 (stories E2 and E5 already exist).
 ## Owner decisions (docs/DESK_DECISIONS.md, 15 Oct 2026)
 1. EQ1-EQ5 (response 137's E1-E5) approved with the EQ1 amendment.
 2. Missed forecast days: verdicts on observed days only (protocol v4 section 4 already does this,
-   `PROTOCOL_v4.md:171-173`); added: misses shown beside every verdict and a miss cap (proposed 10%; its exact base and
-   the 2%-day sub-cap are open, response 141). The earlier "base rate" row is replaced. Missed desk decisions: open
+   `PROTOCOL_v4.md:171-173`); added: misses shown beside every verdict and a miss cap (proposed 10%, per question per slot,
+   over each look's scored window, counted from the slot's first counted forecast) plus a sub-cap on misses among 2%
+   days. A miss is "no forecast while the primary baseline has one"; a day with neither is an input failure, counted
+   apart. The earlier "base rate" row is replaced. Missed desk decisions: open
    owner question (response 141, S2).
 3. The 3 pm recorder records all F&O in time slots: NIFTY 14:55-15:00 and pushed at once; other indices next; stocks
    after, each quote stamped with its real time. Data only. Replaces "everything now".
@@ -36,9 +38,9 @@ renamed EQ1-EQ5 (stories E2 and E5 already exist).
 | Portfolio manager | Net per rupee of risk after every cost (headline, S1 `primary_metric`) | exists (proposal) |
 | Statistician | 120 days, one-sided 95% lower bound, block bootstrap, Holm (S1 `uncertainty_criterion`) | decided 14 Oct; 6 blocks over-claim (S1 notes it) |
 | Statistician, red team | Random-strategy percentile: 1,000 random strategies, same limits, fills, costs | **added** |
-| Owner (design v2) | Against NIFTY 50 index fund and cash, after 31.2% tax | **added** |
+| Owner (design v2) | Against NIFTY 50 index fund and cash, after tax (F&O 31.2%; a fund held under 12 months is short-term) | **added**; also criterion 2 of the real-money gate (design 08:83); owner question 3 |
 | Risk manager | Maximum drawdown and worst day, rupees and share of the brake | **added** |
-| Mathematician, behavioural | Largest loss as share of total gains; average win vs average loss | **added** |
+| Mathematician, behavioural | Largest loss as share of total gains; average win vs average loss | **added**; replacement by net without the best trade and the profit factor pending (owner question 5) |
 | Options strategist | Scoreboard A, one lot, NO TRADE = 0 | exists (proposal) |
 | Volatility trader | Edge at entry (implied paid vs realised after) | optional diagnostic, not one of the four approved |
 | Execution, tax | E6 execution costs, C1 tax line | exist |
@@ -48,11 +50,12 @@ Left out on purpose: win rate alone, Sharpe on short samples, more forecast meas
 ## Plan (each lane 1 unless noted; nothing starts before ChatGPT's review and the owner's final review)
 0. Verify the 16 Oct 3 pm run (setup before 14:52, `started_at` by 15:00, forecast v2 with IV30).
 1. This file and response 141 (lane 3).
-2. Protocol v4 miss rule (cap, 2%-day sub-cap, miss report) before the v4 freeze.
+2. Protocol v4 miss rule (miss definition, cap, 2%-day sub-cap, miss report; decision 2) before the v4 freeze.
 3. Fill-timing study: 15:00 entry vs the E8 verdict fill at next session about 10:15, on 2024-2026 data. The one item
-   here that can change a trade.
+   here that can change a trade. Reports each family's entry-range width and fill rate.
 4. EQ2 release: needs a protocol v2 amendment route first (`PROTOCOL_v2.md:80` states the 15:10 wait and is
-   byte-hashed; the capture refuses if the v2 freeze check fails, `forecast-capture.yml:96`). With it: a fixed
+   byte-hashed; the capture refuses if the v2 freeze check fails, `forecast-capture.yml:96`). The story must name the
+   route: a protocol v2.1 with a new freeze record, judge PASS and ChatGPT review (rule 9), effective from a stated date. With it: a fixed
    Groww/NSE source rule, a retry on the pack commit, a new AI prompt version (reveal timeout), and a tested
    network block for the AI books.
 5. One timing-consistency test that reads every copy of each time and fails on disagreement (replaces `fno/timeline.py`,
@@ -60,7 +63,7 @@ Left out on purpose: win rate alone, Sharpe on short samples, more forecast meas
 6. Daily 18:00 IST health check (expected state per day, last N sessions, push times from GitHub).
 7. Backfill test compares decompressed content (`tests/forecast/test_backfill.py:44`).
 8. All-F&O recording after the Drive-only story: 8a indices (about 4-5 minutes); 8b stocks with a stock expiry rule,
-   per-group completeness, a shared Groww pacer, a pause 15:13-15:17 for the paper-fill snapshots, a hard stop at 15:30.
+   per-group completeness, a measured combined Groww rate with A16 and E3 running, a pause 15:13-15:17 for the paper-fill snapshots, a hard stop at 15:30.
 9. The four scorecard measures.
 10. Rule-family history tests on 2019-2025 end-of-day data, exploratory only (the holdout is used up).
 
@@ -72,7 +75,7 @@ Left out on purpose: win rate alone, Sharpe on short samples, more forecast meas
    enough, or should stocks move to a later window?
 
 ## Red team of this plan (Claude, same day)
-1. Step 7 is exploratory only: the 2019-2023 holdout is used up (DESK_DECISIONS 13-14 Oct; experiment 2 is forward).
+1. Step 10 (was 7) is exploratory only: the 2019-2023 holdout is used up (DESK_DECISIONS 13-14 Oct; experiment 2 is forward).
 2. E2's earlier release gives AI books about 17 minutes with the pack while live prices move; verify their network
    allow-list blocks market sites and log fetches before E2 (F-ai-layer lines 34-48 say no network; the live
    forecast books push to GitHub, so this must be checked).

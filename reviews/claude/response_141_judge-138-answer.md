@@ -50,8 +50,8 @@ Rejected: none outright. Five points need the owner (end of this file).
   minutes on the same Groww key as A16's and E3's 15:15 snapshots. Plan step 8 splits indices first, stocks later, with a
   pause 15:13-15:17, a shared pacer and a hard stop at 15:30.
 - **S8, accepted as an owner question.** S1 itself says the bootstrap over-claims at about 6 blocks
-  (`research/evaluation/PROTOCOL.md:135-137`). The owner chose 120 days on 14 Oct against the t-based check; the new
-  evidence does not change, but the owner should decide again knowing it matters before real money. Question 4.
+  (`research/evaluation/PROTOCOL.md:135-137`). The owner chose 120 days on 14 Oct against the orchestrator's year; whether to add the t-based check is
+  still open with the owner (`PROTOCOL.md:135-137`; corrected after judge 139 minor F). Question 4.
 
 ## Minor
 1. Line references: accepted; corrected in revision 2.
@@ -74,9 +74,19 @@ Rejected: none outright. Five points need the owner (end of this file).
 9. AI network block as a tested acceptance criterion: accepted (plan step 4).
 
 ## Questions for the owner (one at a time, after ChatGPT's review unless the owner wants them now)
-1. A slot stuck at "undecided, operations": leave it out of Test A's stop check (recommended), or keep it blocking?
+1. A slot stuck at "undecided, operations": leave it out of Test A's stop check (recommended: an outage cannot block a
+   stop, but a book that keeps failing is then never judged and must be fixed or stopped by its own rule), or keep it
+   blocking (one AI outage can extend the project by up to about two years)?
 2. Missed desk decisions: scoreboard A on observed decisions with the miss cap, scoreboard B as it really happened
    (recommended), or NO TRADE everywhere?
-3. Do-nothing comparison: supporting on scoreboards and a gate for real money, as design v2 says (recommended)?
+3. Do-nothing comparison: supporting on scoreboards and a gate for real money, as design v2 says (recommended), or
+   scoreboard only, no gate? Either way the fund is taxed short-term when held under 12 months.
 4. Add S1's t-based check as a second condition before any claim (recommended), or keep 120 days alone?
 5. Replace "largest loss share of gains" with "net without the best trade" and the profit factor (recommended)?
+
+## Judge 139 (round 2): PASS; its seven minors applied
+A miss definition and cap base moved into response 140; the do-nothing gate and tax note added to the scorecard table;
+the protocol v2 amendment route named (v2.1, new freeze record, judge and ChatGPT); entry-range width and fill rate
+added to the fill study; "shared pacer" replaced by a measured combined rate (accepted: the jobs run in separate
+processes, so one in-process pacer cannot exist); the t-check correctly stated as open; the largest-loss row marked
+pending; "Step 7" corrected to step 10; questions 1 and 3 now state both consequences and both options.
