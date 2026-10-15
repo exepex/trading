@@ -312,3 +312,114 @@ The regime check of must-fix 1 becomes the evidence for robustness.
 and 3 is right: calibrated thresholds, a minimum of 12 batches, and futility held to the same standard as claims.
 The error is calibrating on one period that happens to lack calm stretches. A re-check needs the new nulls, the
 re-measured thresholds and both studies. I will re-run this 2019-26 check on whatever rule comes back.
+
+## Addendum 4 (15 Oct 2026): revision 4 at 2490d562da672731be83e83d8eef7e0760f14253 (ae8d563 plus a merge of main)
+
+ae8d563 adds `tools/v4_brier_regimes.py` and its tables, the 5-event gate (`confirmatory.MIN_EVENT_DAYS`,
+`brier_judgeable`), protocol text, size-study fixes and tests. The merge commit merges cleanly.
+
+## Gates
+
+On 2490d56 merged with current `origin/main`, the trial merge has no conflicts. **3716 passed**; ruff, format (792
+files) and `check_imports` are clean.
+
+## Addendum 3 must-fixes
+
+| Item | Status | Evidence |
+|---|---|---|
+| 1: Brier rules on all regimes | MET (marginal), with must-fix A below | The nulls run from the first day with 500 resolved base-rate outcomes (15 Jan 2019) to 14 Oct 2026, with calm stress stretches (the calmest 125 and 250 sessions, no 2% day). With no gate (m = 0), the old rule fails (V6b up to 99%). With the 5-event gate, every held-out cell is within tolerance |
+| 2: what "held-out" proves | MET | Section 5.3 and the tool's docstring now say it measures Monte Carlo error only, on the same days |
+| Follow-ups | MET | The `_quantile` off-by-one is fixed and `calibrated_A` dropped; the VIX null is noted as owed; `outcomes_needed` is exact |
+
+**My re-run of the 2019-26 test**, on the builder's own `brier_series`, with my own seeds and 200,000 series a cell,
+at the operative gate-5 thresholds. Unconditional, both orientations:
+- **V6a**, n = 125: claim look 1 at most 0.00089, look 2 at most 0.00140; false "no" at most 2.52%.
+- **V6a**, n = 250: claim at most 0.00137 and 0.00186; false "no" at most 2.38%.
+- **V6b**, n = 125: claim at most 0.00127 and 0.00198; false "no" at most 2.36%.
+- **V6b**, n = 250: claim at most 0.00104 and 0.00167; false "no" at most 2.40%.
+
+All are within nominal + 2 Monte Carlo SE, so the builder's table reproduces.
+
+## The question asked: does the outcome gate cause a selection effect? Yes, conditionally, near the gate.
+
+The calm stress stretches hold **zero** 2% days, so the gate simply never judges them; they cannot test a window that
+**just** clears the gate. I split the same 200,000 series by the number of 2% days in the window:
+
+| Member, n | Share of windows with 5-7 events | Claim size in 5-7, look 1 / look 2 (nominal 0.00133 / 0.002) | False "no" in 5-7 (target 0.025) |
+|---|---|---|---|
+| V6a, 125 | 25% | **0.0035 / 0.0055** (2.6x / 2.8x) | **0.086** (3.4x) |
+| V6a, 250 | 18% | **0.0059 / 0.0079** (4.4x / 4.0x) | **0.078** (3.1x) |
+| V6b, 125 | 25% | **0.0043 / 0.0068** (3.2x / 3.4x) | **0.079** (3.2x) |
+| V6b, 250 | 18% | **0.0027 / 0.0042** (2.0x / 2.1x) | **0.058** (2.3x) |
+
+In the 8-12 stratum the rates are mostly near nominal (one false-"no" cell at 3.7%). Above 13 events the rule is
+conservative. Each 5-7 stratum holds 36,000-50,000 series, so the excesses are far outside Monte Carlo error.
+
+**What this means.** The rule controls its error rates **on average over windows like 2019-26's**. But the event
+count is **seen before the verdict**. When the review window turns out to be near-calm (5-7 big days, about one window
+in four or five), the real chance of a false claim is 2-4x the registered rate, and of a false "no" about 6-9% instead
+of 2.5%. A false "no" can stop the research programme. The selection effect comes from averaging, not from
+forecasts: the thresholds are tuned to the mix of calm and busy windows, so they are too loose for calm ones and too
+strict for busy ones. Calibrating on that same observed count fixes this (conditional inference on a count that does
+not depend on the forecasts).
+
+## Must-fix
+
+**A. Calibrate the Brier claim and futility thresholds conditionally on the observed event count**, or raise the gate
+until the conditional rates are within tolerance in every stratum that can be judged. Then report the conditional
+sizes.
+- Conditional calibration: thresholds per event-count band (for example 5-7, 8-12, 13+), each calibrated on the nulls
+  with that count.
+- Measure each band's held-out size and false-"no" rate within tolerance. Without this, section 5.3's "within
+  tolerance" claim holds only on average.
+- If neither works, say plainly that a V6 or V7 verdict in a near-calm window carries 2-4x the registered error, and
+  tell the owner.
+
+## Follow-ups (not blocking)
+
+- V6a's operative claim threshold is about 2.5e-12 at n = 125 and 1e-19 at n = 250, which is honest but effectively
+  unreachable. Say plainly to the owner that V6a, like V1 and V2, will almost surely not be claimed. Its futility side
+  still works.
+- V7 still borrows V6b's rule, and VIX direction has no event structure. Fine as conservative for now; the VIX null
+  stays owed.
+
+**Verdict: FAIL for 2490d562da672731be83e83d8eef7e0760f14253**, on must-fix A only. Addendum 3's must-fixes are met on
+average, and the builder's tables reproduce with independent seeds. The remaining gap is conditional error near the
+gate, which the calm stress cannot show because those stretches hold no events.
+
+## Addendum 5 (15 Oct 2026): revision 5 at 355eae4665b3f3b0adc2fd7ca08dfdb285e683e2 (2490d56..355eae4)
+
+One commit (parent 2490d56). It adds Brier thresholds per event-count band (`tools/v4_brier_bands.py`, its tables),
+`confirmatory.event_band`, protocol text and tests.
+
+## Gates
+
+On a trial merge with current `origin/main` (it merges cleanly; `reviews/claude/README.md` auto-merges):
+**3824 passed**; ruff, format (820 files) and `check_imports` are clean. `PROTOCOL_v4.md` is exactly 350 lines, at
+the limit and not over it. Next time, split it rather than trim it.
+
+## Must-fix A (addendum 4)
+
+| Item | Status | Evidence |
+|---|---|---|
+| Thresholds by event-count band | MET | Bands 5-7, 8-12 and 13+. Each band's claim and futility thresholds are calibrated on nulls conditioned to that band: the 2019-26 empirical nulls in both orientations, plus Gaussian nulls for claims. Calibration and held-out draws use separate seed words (11/12, 13/14, 15/16). `event_band` returns None below 5 (not judgeable) and the band otherwise; G8 calls `operative_thresholds(question, n, band)` |
+| My band split, own seeds | MET | 200,000 series per n and orientation, seed words [4711, n, horizon, flip], different from the builder's, at the committed band thresholds. **All 24 cells are within nominal + 2 Monte Carlo SE.** Worst rates: claim look 1 0.00119 (V6a, n = 250, 8-12); claim look 2 0.00176; false "no" 0.0255 (V6b, n = 250, 13+; tolerance there 0.0261) |
+| Identical V6b n = 125 rows for 8-12 and 13+ | Not a bug | Each band's claim threshold is the smallest quantile over the empirical and Gaussian nulls. The Gaussian nulls have no events, so they enter every band unchanged. For V6b at n = 125 the Gaussian quantile is the binding minimum in both bands: I recomputed it at 0.000647573764932622, identical to both rows' threshold to every digit. The worst held-out claim size in both rows is then the Gaussian null's, also band-independent. The futility columns, which have no Gaussian null, differ (2.35% and 2.45%) as expected |
+| V6a declared effectively unclaimable; VIX null owed | Done | Stated in the protocol and response 99 |
+
+## Remaining notes (not blocking)
+
+- Every Brier verdict is conditional on a count of outcomes that the forecasts do not influence, so conditioning on it
+  is legitimate (conditional inference on a count that carries no information about relative skill). It must stay
+  defined exactly as in `brier_series`: 2% days of each forecast day's first outcome session within the scored window.
+  G8 must use that same definition.
+- **For the owner, plainly:** under v4 as written, V1, V2 and V6a will almost surely never be claimed. V6b and V7 need
+  about 150-200 independent outcomes at r = 3, and no verdict at all in a window with fewer than five 2% days. Futility
+  ("no") still works for every question. So the most likely May 2027 Test A result is "undecided", and the owner's
+  confirmed option B then applies.
+- `PROTOCOL_v4.md` is at the 350-line limit; any later change must split it.
+
+**Verdict: PASS for 355eae4665b3f3b0adc2fd7ca08dfdb285e683e2** (the draft, not frozen). The freeze still needs:
+ChatGPT's re-review of revisions 1-5, the G7 and G8 code (G8 must use `event_band`, the operative thresholds and the
+gate exactly), and then my check of the freeze record's hashes. Merge as a merge commit after ChatGPT, keeping both
+READMEs' rows.

@@ -264,3 +264,41 @@ One commit on top of 44fa45d. It changes `fno/cards/weather.py`, one test, the s
 - Minors 1 and 3 of addendum 1 go to the builder's next follow-up, as the orchestrator says. I check them when sent.
 
 **Verdict: PASS for 9d5310b177da959a1bd46ce3d8231841f5783e13.** Merge it; I check the merge afterwards.
+
+## Addendum 4 (15 Oct 2026): follow-up a84f92db66056cc7f8b154e17da3ebf327f70d0c (minors 1 and 3)
+
+a84f92d = 9d5310b + 8c3ab1b + one commit.
+- **8c3ab1b** is a merge of `main`. It equals my recomputed `git merge-tree` exactly.
+- **The one commit** adds two tests and changes muhurat wording in the story, `session.py`, `constants.py` and a test
+  comment. No logic changes.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Minor 1a: the next card names a clock WARNING | MET | `test_the_next_card_names_a_clock_warning`. My T6 (the WARNING line removed) now fails 1 test |
+| Minor 1b: `ConnectionError` never retried | MET | `test_a_connection_error_is_never_retried_even_when_a_retry_would_succeed` queues a success behind the error and asserts one call. My first C4 mutation was a no-op: it added `ConnectionError` to the retried set, but the "may have posted" check runs first. A real mutation (moved from "may have posted" to "retried") fails 2 tests. Correction of my addendum 1: the old code was already right; only the test was missing, and it is now there |
+| Minor 3: muhurat wording | MET | "the one-hour Diwali session; 21 Oct 2025 ran 13:45-14:45" in the story; `session.py` and `constants.py` say "one-hour Diwali session" |
+| Gates | MET | At a84f92d (clean rerun, since my first run overlapped a mutation): 3,541 passed; ruff, format (762 files) and imports clean. Trial merge with `origin/main` c8ac9fd: 3,541 passed; ruff, format and imports clean |
+
+**Style nit (not blocking).** `ruff format` moved two trailing comments after a closing parenthesis:
+`CARD_SESSION_KINDS = (...)  # ...` and the muhurat test's `assert (...)  # ...`. They read oddly; put the comment
+above the statement next time.
+
+**Merge check of 16a904a (9d5310b), done here.**
+- Its parents are b933d65 and 9d5310b, and it equals my recomputed merge exactly.
+- `fno/cards`, `tests/cards` and the story equal 9d5310b.
+- CI run 38671984351 on 16a904a: completed, success.
+
+**Verdict: PASS for a84f92db66056cc7f8b154e17da3ebf327f70d0c.** Every T1 minor is closed. Merge it; I check the merge.
+
+## Addendum 5 (15 Oct 2026): merge check, a84f92d merged to main as 860030c
+
+- **Parents.** 860030c's parents are 26f020e (main) and a84f92d (the passed tip).
+- **The merge matches my recomputation exactly** (empty diff; no conflicts).
+- **Branch files arrived unchanged.** `fno/cards`, `tests/cards`, the T1 story and `fno/constants.py` equal a84f92d.
+- **No unjudged code since.** From 860030c to c0978bd only review, log, decision and scheduled-job data files changed;
+  none under `fno/`, `tests/`, `tools/` or `.github/`.
+- **CI.** Run 38674600675 (`checks`) on c0978bd, the first push carrying the merge: **completed, success**.
+- **End-to-end run (rule 8).** The orchestrator records the dry-run card printing on the merged tree, with the tree
+  clean.
+
+**Merge check: PASS. T1 is done:** every criterion is met, every minor is closed, and both merges are checked.

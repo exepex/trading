@@ -9,6 +9,7 @@ from pathlib import Path
 from .ai.cli import add_ai_parser
 from .books.cli import add_account_parser
 from .books.versions_cli import add_versions_parser
+from .budget.cli import add_budget_parser
 from .cards.cli import add_card_parser
 from .config import ROOT, load_app_config
 from .desk.cli import add_desk_parser
@@ -209,6 +210,7 @@ def main(argv: list[str] | None = None) -> int:
     add_playbook_parser(sub)
     add_margins_parser(sub)
     add_ai_parser(sub)
+    add_budget_parser(sub)
     add_forecast_parser(sub)
     add_forecast_scores_parser(sub)
     add_vix_history_parser(sub)
