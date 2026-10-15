@@ -244,8 +244,10 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
 
 **Expected design** (pure calculations apart from I/O; G6's `fno/forecast_v4/` is called, never re-implemented):
 - `fno/forecast_v4_rules/` (new package; every file under 350 lines):
-  - `series.py`: regular-session closes from `research/data/nifty-panel/warmup_closes.csv` (`session == regular`,
-    `forecast_v4.sessions`), close-proxy `RV_s`, V6a and V6b outcomes, and A16's live intraday `RV_s` rows.
+  - `series.py`: regular-session closes (and India VIX closes) from `research/data/nifty-panel/warmup_closes.csv`
+    (`session == regular`, `forecast_v4.sessions`), close-proxy `RV_s`, V6a and V6b outcomes with their resolution
+    session, and A16's live intraday `RV_s` rows. **The one place for these rules:** G8 imports them to resolve
+    outcomes; G7 writes no outcome files (agreed with G8, 15 Oct).
   - `baselines.py`: `Trailing`, `Ewma`, `HarDaily`, `HarIntraday`, `BaseRate` behind one interface (`PointBaseline`
     for variances, `ProbabilityBaseline` for probabilities), each returning a value or `None` (missing, never filled).
   - `rules.py`: the two rule forecasters below.
@@ -292,12 +294,14 @@ v4's freeze record after G7 and G8 exist and the judge checks them, so G7's file
 7. **Trailing (V1):** the last live non-void intraday `RV_s` before the cutoff.
 8. **Rule forecasters:** `v6_ewma_t4` and `v1_close_blend` reproduce hand-computed values; missing when an input is
    missing.
-9. **Records:** one row per date, question and forecaster: date, cutoff, question, forecaster id and version, kind
-   (`baseline` or `rule`), slot or `reported`, value (probability in [0, 1] or variance finite and > 0), `None` for
-   missing (never imputed), the method file's SHA-256, the inputs' SHA-256 (closes file rows, A16 rows), `made_at` and
-   provenance (`live` or `backfill_exploratory`). Invalid values are refused, never written.
+9. **Records (layout agreed with G8, 15 Oct):** `research/forecasts/v4/<forecaster>/<question>.csv`, one row per day,
+   first columns `day,value,status,label`: value = a variance (finite, > 0) or a probability (in [0, 1]), empty unless
+   `status` is `ok` (`missing`, `not_eligible`, `not_started`: never imputed); `label` = `live` or
+   `backfill_exploratory`; then G7's audit columns: forecaster version, kind (`baseline` or `rule`), slot (`rules` or
+   `reported`), the method file's SHA-256, the inputs' SHA-256, `made_at`. Invalid values are refused, never written.
 10. **Back-fill:** V6 baselines and rule from 2017 closes, V1 from A16's live rows (none yet), every row
-    `backfill_exploratory`; written apart from live rows; re-running gives identical files.
+    `backfill_exploratory`; the back-fill ends before the first live day (one row per day); re-running gives identical
+    files.
 11. **Live capture:** `v4-capture` for today writes before 15:00 IST only from inputs first seen before the cutoff;
     a run after the cutoff writes nothing and says so (as G3); V1 rows read "not enough data yet" until criterion 6.
 
