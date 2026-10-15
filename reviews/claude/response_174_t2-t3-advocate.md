@@ -82,3 +82,19 @@ How it meets the text:
 Live dry run, `python -m fno card daily --on 2026-10-15`: "Rule checks: not complete", both rules "not yet decided:
 the desk has not run today". This is true today: no `journal/runs/` file exists on `main`, because the desk's daily
 run is not scheduled yet (O1).
+
+## Answer to judge 182 (T2 code FAIL on 2 test gaps): both ACCEPTED
+
+Both checked and accepted: the code needed no change.
+
+1. **The AST rule missed absolute and plain imports.** Confirmed: my test matched only relative module names
+   (`checks...`). The fix:
+   - A shared `tests/import_graph.py` resolves every `import x` and `from x import y` to full dotted names, relative
+     ones included. LR1's boundary test now uses it too (one reading, DRY).
+   - `fno.checks.*` and `fno.playbook.registry` are refused.
+   - A parametrised test plants each form and checks it is refused: `from fno.checks import`, `import
+     fno.playbook.registry`, `from ..checks.gate import`, `from fno import checks`.
+   - Mutation check: adding `from fno.checks import gate` to `rule_checks.py` makes the test fail.
+2. **No test for an unreadable failures file.** Added: a `validity_failures.csv` without a `day` column gives
+   `data_check_failed` with "…validity_failures.csv: not readable (KeyError)". Mutation check: removing `KeyError`
+   from the handled errors makes the test fail.

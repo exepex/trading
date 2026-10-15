@@ -5,12 +5,15 @@ import ast
 import json
 from datetime import date, time
 
+import pytest
+
 from fno.cards.rule_checks import DecisionOutcome, ExecutionOutcome, RunLogReader, failures_path, run_log_path
 from fno.cards.ruled_status import NO_BREACH, NOT_COMPLETE, REFUSED, RuleChecks, RuledStatus
 from fno.cards.sections import CardSection, StatusReading, StatusSource
 from fno.config import ROOT
 from fno.constants import CardStatus
 from fno.desk.timetable import Timetable
+from tests.import_graph import full_imports, refused
 
 from .fakes import FakeRecords
 
@@ -100,9 +103,28 @@ def test_an_unreadable_record_is_data_check_failed_naming_it():
     assert any(f"{run_log_path(DAY)}: not readable (JSONDecodeError)" in line for line in reading.section.lines)
 
 
+RULE_CHECKS = ROOT / "fno" / "cards" / "rule_checks.py"
+NEVER = ("fno.checks", "fno.playbook.registry")  # C3/C4 rules and D1's registry: read their outcomes, never re-run them
+
+
 def test_t2_recomputes_no_rule_and_reads_no_registry():
-    tree = ast.parse((ROOT / "fno" / "cards" / "rule_checks.py").read_text(encoding="utf-8"))
-    modules = {n.module for n in ast.walk(tree) if isinstance(n, ast.ImportFrom)}
-    assert not {m for m in modules if m and (m.startswith(("checks", "playbook")) or "registry" in m)}
+    assert refused(full_imports(RULE_CHECKS), NEVER) == set()
+    tree = ast.parse(RULE_CHECKS.read_text(encoding="utf-8"))
     calls = {n.func.attr for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)}
     assert not calls & {"write", "write_text", "write_bytes", "mkdir", "open"}  # it writes nothing under journal/
+
+
+@pytest.mark.parametrize("planted", ["from fno.checks import validity\n", "import fno.playbook.registry\n",
+                                     "from ..checks.gate import DataGate\n", "from fno import checks\n"])  # fmt: skip
+def test_the_import_rule_catches_every_import_form(tmp_path, planted):
+    """Judge 182: absolute and plain imports were not caught. Each planted form must be refused."""
+    plant = tmp_path / "planted.py"
+    plant.write_text(planted, encoding="utf-8")
+    assert refused(full_imports(plant, package="fno.cards"), NEVER)
+
+
+def test_an_unreadable_failures_file_is_data_check_failed_naming_it():
+    files = {run_log_path(DAY): _log(decisions=ON_TIME), failures_path("book1_rules"): b"date,book\n2026-10-15,x\n"}
+    reading = _status(files)  # no `day` column: the file is not C4's shape
+    assert reading.reason_code == "data_check_failed"
+    assert f"- decisions: {failures_path('book1_rules')}: not readable (KeyError)" in reading.section.lines
