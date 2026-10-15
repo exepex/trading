@@ -255,3 +255,45 @@ Would it change a trade? Yes: it opens trades E4 would refuse.
   exit rule's reason puts a price before its first colon (the card rule).
 
 Re-review: should-fix 3 only. The E4/E2c builder's agreement on the hooks is still awaited through the orchestrator.
+
+## Addendum 3: E8 part 1b at 09d14c43: PASS
+
+Two commits since 65ec0b05: 6e85ef7a and 09d14c43.
+
+**Should-fix 3: closed.**
+- `DueFill.price` misses an entry with "missed, no quote" only when a leg has no quote or an invalid one (A4's rule).
+- It then runs E4c's `entry_problems` with E4d's `taken_units` (the book's fill rows) on the due mark's own copy,
+  before pricing or any fill, and misses with the first problem's own code.
+- Misses now keep the copy's ID and hash, and the fixed miss reasons sit in one table, `outcomes.MISSED_REASONS`.
+
+**Tests.**
+- **E4d:** two entries of 65 units each against a displayed size of 100 at one mark. The first fills its 4 legs; the
+  second misses with `size_shared_in_book (..., 65 already taken in this book at this snapshot)`.
+- **E4c's thin size:** an ask size of 64 against 65 units on the protection gives `protection_not_buyable`, not
+  "no quote".
+
+**The orchestrator's request, a protection-with-no-bid case:** there is no test of its own on this head. I ran one as
+a probe in a scratch checkout. A protection bid size of 64 against 65 units gives
+`protection_not_sellable (NIFTY26102725200CE, 65 units)` and writes no fill, so the behaviour is right. A literal "no
+bid" is a one-sided quote, which A4 treats as invalid, so that case is correctly "missed, no quote". The builder
+should add the probe as a test in the next commit:
+
+    marks.put(DUE, fly_rows({(25200, "CE"): {"bid_qty": 64.0}}))
+    assert apply(root, entries).startswith(PROTECTION_NOT_SELLABLE)
+
+This is a note, not a blocker: the code path is E4c's own tested function, and the probe passes on this head.
+
+**Hooks:** O1's builder and the E4/E2c builder both agreed (through the orchestrator; 73 E4 tests pass on 6e85ef7a).
+
+**Gates** (trial merge with origin/main, ae7fc6ad):
+- Full suite with `-n auto`: 7,060 passed in 2 min 55 s.
+- ruff check, ruff format and check_imports are clean.
+- The merge is clean.
+
+**E8 part 1 (1a and 1b) passes.** The notes of addendum 2 still stand:
+- report the next-month future miss under its own reason;
+- the code judge checks the exit-alert text;
+- O1 fetches the full history before go-live;
+- `live_from` is set on or before S1's freeze.
+
+Under quality rule 9 (money path), ChatGPT reviews it next.

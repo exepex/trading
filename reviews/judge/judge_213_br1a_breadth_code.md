@@ -124,3 +124,47 @@ The orchestrator's two questions, answered above:
 - **S1:** S1's freeze is byte-for-byte unchanged, and nothing is weaker than before. `requires_gate=True` moved from
   the unfrozen `freeze.py` call to the unfrozen `definition.py`. Both files should join S1's `frozen_files` before
   S1's freeze.
+
+## Addendum 2: aeea15d5 (the fix, two optional tests, response 198): PASS
+
+The fix and the tests sit in merge commit aeea15d5. I read its diff against 90fe09be for the BR1 files.
+
+- **SF1: MET.** `PROTOCOL.md` `looks` now reads "the sign-flipped null (-d) on the whole window **exceeded** the
+  limits". This is its only change.
+- **The optional tests:**
+  - `test_block_starts_vary_across_paths_and_populations` is real: my plant P7 (every path starts at 0) now fails 1
+    test.
+  - `test_the_verify_command_takes_protocol_breadth` runs `evaluation verify --protocol breadth` and expects
+    "unchanged". In a repository with no breadth freeze that is true whichever definition the command passes, so my
+    plant P4 (the CLI's `verify` ignores `--protocol`) still passes all 21 tests. A note only: it was optional, CI
+    checks `verify(root, definition)` through the function, and a test with a planted breadth `FREEZE_v1.md` and an
+    edited target would close it.
+- **No other change** to `fno/evaluation/`, the studies or their results since 90fe09be. Everything else in the diff
+  comes from main, which the merge brings in.
+
+**Response 198 (the candidate comparison), a sanity read as asked, not a verdict:**
+- **Order:**
+  - Part 1, the pre-declaration, is commit 0fd0c2de at 21:54 UTC.
+  - The code (`research/breadth/candidates/`) is 76952bf2 at 22:08.
+  - The results (`results.json`, `run.log`, Part 2) arrive only in aeea15d5 at 23:19.
+  - Part 1 is unchanged, with 85 lines added after the "Part 2" heading and 0 removed.
+- **The declared pass rule is applied as written:** ≤ 0.025 at each look and ≤ 0.045 at either, both signs, the whole
+  window and the worst year; B also on the mean-centred null; C also on the 2025 hold-out.
+  - **A fails on its own reported numbers:** whole −d at 0.005 is 0.065 at either.
+  - **B fails on its own null** (0.168 at 0.005), and so cannot win.
+  - **C's α* = 0.0055 fails the declared hold-out** (2025 −d 0.072).
+  - "No candidate passes, no winner" follows.
+- **Power** was declared "for information only" for a failing candidate, and it is reported that way.
+- **Fair:** the diagnosis (dependence beyond 5-session blocks; variance ratios 1.43 and 2.08 for the `market` pairs
+  against 0.62) and the D proposal are labelled reasoning only and "not run here". I did not re-run response 198's
+  numbers.
+
+**Gates on the trial merge with origin/main 350de5df, `-n auto`:**
+- The merge conflicts in `docs/WORK_REGISTER.md`: main's side holds the "G8 look reconciliation" and "BR1 breadth
+  track" rows, and the branch's side is empty. With the markers left in, 4 record-scan tests fail.
+- With main's side kept (tree 8fa9fe9): 6864 passed. `ruff check` is clean, `ruff format --check` shows 1215 files
+  formatted, and `check_imports` is clean.
+- The merger should check that the BR1 row on main says what the branch intended.
+
+**Verdict: PASS.** Protocol v1's claims stay postponed, as its pre-registered rule says. A v2 is the owner's
+decision, through its own story text, judge and ChatGPT round.

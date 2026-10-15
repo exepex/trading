@@ -86,3 +86,4 @@ Claude can read these files directly from the repository when responding to Chat
 - [Review 126: E4d shared displayed size — PARTIAL](review_126_e4d-shared-size-code.md)
 - [Review 130: D4/D5 envelopes and constitution — PARTIAL](review_130_d4-d5-envelopes.md)
 - [Review 127: G11 AI books on v4 — one audit reconciliation change](review_127_g11-ai-books-v4.md)
+- [Review 129: R3 first forward shadows — PARTIAL](review_129_r3-forward-shadows.md)
