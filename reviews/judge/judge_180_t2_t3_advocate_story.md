@@ -79,3 +79,29 @@ be ample.
 
 **Verdict: FAIL for 1468fde744dae4219ac2cc6fe4018b2e63b2e191** (story text). Fix blocking 1-2 and should-fix 3-5, then
 re-judge.
+
+---
+
+## Addendum 1 (judge E): revision 1 at 2b30b09e: PASS (story text)
+
+| Finding | Fix | Accepted? (my evidence) |
+|---|---|---|
+| B1 timeline | Two outcomes, each final at the desk's own `Timetable` time (`fno/desk/timetable.py` has `decision_deadline` and `execution_snapshot`): `DecisionOutcome` (decisions step plus C4 rows) and `ExecutionOutcome` (snapshot step). Before its time an outcome reads "not yet decided (final at HH:MM)", and the last session's execution outcome is shown. Criteria 1-4; tests at 15:08, 15:13, 15:16 and G10's times | Accepted. **The builder's correction is right:** the decision path calls no C3 check. `DataGate`/`DataChecks` appear only in `fno/desk/daily_steps.py`, `entries.py`, `exits.py` and `execution_capture.py`, and nowhere under `fno/books`, `fno/ai` or `fno/playbook` (my grep). My "use C3's decision-time check" suggestion had no source |
+| B2 gap list | A seven-row table of design 7.3's checks. Cost wall: out, a C4 rule when a strategy needs it. Physical settlement: out, C4 before the first stock option. Failed variants: out, R1. Event in window and evidence label: T2b (criteria 12-13). Caps and stale data: reported | Accepted. Each row matches the code (C4's `day` column in `validity_failures.py:15` supports "rows dated d") |
+| S3 registry re-read | `RungOutcome` removed; T1's `RegistryStatus` stays the only registry reader; criterion 7's AST test bars `fno.playbook.registry` and the `fno.checks` rule modules | Accepted |
+| S4 event warning | T2b scope: A6 `events.csv` rows inside the window from the day after the card to the time exit or expiry; never a block; criterion 12 | Accepted |
+| S5 no run log | Criterion 5 | Accepted |
+
+**Owner's A/A/A:** recorded (`docs/DESK_DECISIONS.md` row of 16 Oct). Criterion 14 holds T3 and T2b until T1's trade
+fields and O1.
+
+### Notes (no re-judge needed)
+
+1. **Owner's wording vs the text.** The decision row says "an 'event in window' warning on the card **now**". The text
+   puts it in T2b, with the trade fields, because the window needs a trade. That is right: a `NO TRADE` card has no
+   holding window. Tell the owner in one line, so "now" is not read as "on today's cards".
+2. **The post time is O1's.** The recommendation (post after the decisions step; after 15:15 for C3) is sound. O1's
+   story must take it, or the card will routinely print "not complete".
+
+**Verdict: PASS for 2b30b09e378b84b1688bcd0f29cfa40f717114a9** (story text). T2's code may start; T3 and T2b wait as
+criterion 14 says.
