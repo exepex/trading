@@ -1,5 +1,6 @@
-"""What a back-fill run prints (story A16b): the windows, every deferred session with how many runs in a row it has
-waited, the void share by reason, and the pre-open check, as counts. Never a level."""
+"""What a back-fill run prints (story A16b): the windows, every session whose later answer differs from the copy kept,
+every deferred session with how many runs have deferred it, the void share and void sessions by reason, and the
+pre-open check, as counts. Never a level."""
 
 from __future__ import annotations
 
@@ -12,9 +13,11 @@ from .session_rv import VOID, VOID_SHARE_FLAG, VOID_SHARE_LIMIT
 
 def report_lines(report: BackfillReport, rows: list[dict], deferral_counts: Counter) -> list[str]:
     """`rows`: every written row of the requested sessions (this run's and earlier ones)."""
-    lines = list(report.windows)
+    lines = list(report.windows) + [f"CHANGED {change}" for change in report.changed]
     for day, reason in sorted(report.deferred.items()):
-        lines.append(f"DEFERRED {day}: {reason} ({deferral_counts.get(day.isoformat(), 1)} run(s) in a row)")
+        lines.append(
+            f"DEFERRED {day}: {reason} (deferred by {deferral_counts.get(day.isoformat(), 1)} run(s), never written)"
+        )
     void = [r for r in rows if r["status"] == VOID]
     reasons = Counter(reason.split(":")[0] for r in void for reason in r["void_reason"].split("; ") if reason)
     share = len(void) / len(rows) if rows else 0.0

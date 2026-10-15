@@ -1,7 +1,8 @@
 """Sessions the back-fill had to put off (story A16b): one row per run that deferred a session (time, session,
-reason), so a day Groww keeps failing shows how many runs in a row it has waited (judge 122 addendum 4). A session once
-written is never deferred again, so its row count is its consecutive deferrals. No automatic void: a stuck day stays
-visible until a person decides."""
+reason), so a day Groww keeps failing shows how many runs have deferred it (judge 122 addendum 4). A session once
+written is never deferred again, so every row counts runs it waited through; a run whose range stops before the session
+adds none, so the count is runs that tried, not calendar days. No automatic void: a stuck day stays visible until a
+person decides."""
 
 from __future__ import annotations
 

@@ -112,3 +112,27 @@ def test_first_seen_is_the_latest_copy_s_fetch_time(tmp_path):
     earlier = datetime(2026, 10, 14, 18, 0, tzinfo=IST)
     row = _derived(tmp_path, date(2026, 10, 14), datetime(2026, 10, 15, 9, 15, tzinfo=IST), window_fetched=earlier)
     assert row["first_seen_at"] == "2026-10-15T03:45:00+00:00" and row["provenance"] == "backfilled"
+
+
+def test_a_full_session_without_its_1_minute_copy_is_never_ok(tmp_path):
+    day = date(2026, 10, 14)
+    values = levels(day)
+    window = ArchivedCopy(
+        "15m", day, day, "w", "a" * 64, datetime(2026, 10, 30, tzinfo=IST), fifteen_minute_rows(day, values)
+    )
+    row = build(tmp_path, None, None).deriver.derive(
+        SessionInputs(day, window, None, NseReading(nse_day(day, values), "c" * 64), 20000.0)
+    )
+    assert (row["status"], row["void_reason"], row["rv_session"]) == ("void", "no_1m_check:26", "")
+
+
+def test_a_missing_minute_and_a_mismatch_are_both_named(tmp_path):
+    day = date(2026, 10, 14)
+    values, fetched = levels(day), datetime(2026, 10, 30, tzinfo=IST)
+    shifted = [*values[:5], values[5] + 0.06, *values[6:]]  # the 10:30 level, one tick and more off its minute
+    rows = fifteen_minute_rows(day, shifted)
+    minutes = minute_rows(day, values, values[0] - 3.0, skip=("11:44",))
+    inputs = SessionInputs(day, ArchivedCopy("15m", day, day, "w", "a" * 64, fetched, rows),
+                           ArchivedCopy("1m", day, day, "m", "b" * 64, fetched, minutes),
+                           NseReading(nse_day(day, shifted), "c" * 64), 20000.0)  # fmt: skip
+    assert build(tmp_path, None, None).deriver.derive(inputs)["void_reason"] == "no_1m_check:1; candle_mismatch:10:30"

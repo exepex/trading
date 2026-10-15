@@ -6,6 +6,7 @@ unreadable file) is **transient**: the session waits for the next run, never a v
 from __future__ import annotations
 
 import hashlib
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import date
 
@@ -28,7 +29,16 @@ class NseReading:
     sha256: str  # of the file's bytes ("" when absent)
 
 
-class NseIndexDays:
+class NseDays(ABC):
+    @abstractmethod
+    def read(self, day: date) -> NseReading:
+        """NSE's official open, high and low for `day`; NseReading(None, "") when definitively absent; NseReadFailed
+        when the read failed (transient)."""
+
+
+class NseIndexDays(NseDays):
+    """NSE's index-close files through A1's library."""
+
     def __init__(self, library: RawFileLibrary):
         self.library = library
 

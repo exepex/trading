@@ -7,18 +7,19 @@ rule, `fno/global_cues/table.py`), and `live` only when they were seen before it
 count as live forecast inputs; how a forecast built on them is labelled is G6's job.
 
 Made by `python -m fno intraday backfill [--from YYYY-MM-DD] [--to YYYY-MM-DD]`; checked by
-`python -m fno intraday backfill-verify` (every row recomputed from its Drive copies). Read-only towards Groww.
+`python -m fno intraday backfill-verify` (every row recomputed from its Drive copies; it touches neither Groww nor
+Drive's contents). Read-only towards Groww.
 
 ## Files
 
 | Path | What |
 |---|---|
 | `<YYYY>/nifty_rv_candle_<YYYYMMDD>.csv` | one row per recorded session (regular or special), written once, never edited |
-| `deferred.csv` | one row per run that put a session off (`deferred_at,session,reason`); a session's count is how many runs it has waited |
+| `deferred.csv` | one row per run that put a session off (`deferred_at,session,reason`); a session's count is the runs that tried and deferred it |
 
 Raw candle answers stay in the owner's Drive (`raw/groww/indices/nifty-candles-<15m|1m>/<YYYY>/`), listed with their
-SHA-256 in `research/data/manifests/groww-candles/nifty.csv`. No file here holds a price: only times, counts,
-statuses, SHA-256 values, the realised variance and NSE gaps (differences).
+SHA-256 in `research/data/manifests/groww-candles/nifty-15m.csv` and `nifty-1m.csv`. No file here holds a price: only
+times, counts, statuses, SHA-256 values, the realised variance and NSE gaps (differences).
 
 ## The row
 
@@ -47,3 +48,12 @@ against the session's 1-minute candles (within 0.05; decision 55) and against NS
 | `no_previous_close` | the series' first session, or the previous session's 15:30 level is missing or untrusted | — |
 
 A failed call or read (Groww, Drive, NSE) never writes a void row: the session is deferred and retried by the next run.
+NSE's 404 counts as "no file" only from 21:00 IST the day after the session (NSE's files are archived by 21:00 the
+same day; a day's grace); before that the session is deferred as "not published yet".
+
+## A later answer that differs
+
+Groww's answers are kept as first fetched. When a rerun fetches a window again (only for sessions still without a row)
+and a session's candles differ from the first copy, the run prints `CHANGED <session>: ...` and keeps the first copy:
+written rows never change, and a session still to be written is derived from the first copy too, so a row's overnight
+part always uses the 15:30 level of the previous row's own copy.

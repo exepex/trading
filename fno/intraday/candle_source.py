@@ -19,6 +19,7 @@ MIN_GAP_SECONDS = 0.5
 FIFTEEN_MINUTES, ONE_MINUTE = "15m", "1m"
 DAY_FROM, DAY_TO = "09:00:00", "15:59:59"
 CALL_TIMEOUT_SECONDS = 30
+INTERVALS = {FIFTEEN_MINUTES: "CANDLE_INTERVAL_MIN_15", ONE_MINUTE: "CANDLE_INTERVAL_MIN_1"}  # SDK constant names
 
 
 class CandleCallFailed(RuntimeError):
@@ -38,11 +39,11 @@ class CandleAnswer:
 
 class IntradayCandleSource(ABC):
     @abstractmethod
-    def window(self, start: date, end: date) -> CandleAnswer:
+    def candles(self, start: date, end: date) -> CandleAnswer:
         """15-minute candles of every day from start to end (at most 90 days)."""
 
     @abstractmethod
-    def minutes(self, day: date) -> CandleAnswer:
+    def minute_candles(self, day: date) -> CandleAnswer:
         """One day's 1-minute candles, 09:00-15:59."""
 
 
@@ -52,27 +53,28 @@ class GrowwCandleSource(IntradayCandleSource):
         self.api, self.clock, self.sleep, self.monotonic = api, clock, sleep, monotonic
         self._last_start: float | None = None
 
-    def window(self, start: date, end: date) -> CandleAnswer:
-        return self._call(FIFTEEN_MINUTES, start, end, self.api.CANDLE_INTERVAL_MIN_15)
+    def candles(self, start: date, end: date) -> CandleAnswer:
+        return self._call(FIFTEEN_MINUTES, start, end, INTERVALS[FIFTEEN_MINUTES])
 
-    def minutes(self, day: date) -> CandleAnswer:
-        return self._call(ONE_MINUTE, day, day, self.api.CANDLE_INTERVAL_MIN_1)
+    def minute_candles(self, day: date) -> CandleAnswer:
+        return self._call(ONE_MINUTE, day, day, INTERVALS[ONE_MINUTE])
 
-    def _call(self, kind: str, start: date, end: date, interval) -> CandleAnswer:
+    def _call(self, kind: str, start: date, end: date, interval: str) -> CandleAnswer:
+        """Every SDK touch inside the try: reading a constant signs in to Groww, whose error text may hold a key."""
         self._pace()
         requested = self.clock()
         try:
             answer = self.api.get_historical_candles(
                 exchange=self.api.EXCHANGE_NSE, segment=self.api.SEGMENT_CASH, groww_symbol=CANDLE_SYMBOL,
-                start_time=f"{start} {DAY_FROM}", end_time=f"{end} {DAY_TO}", candle_interval=interval,
-                timeout=CALL_TIMEOUT_SECONDS,
+                start_time=f"{start} {DAY_FROM}", end_time=f"{end} {DAY_TO}",
+                candle_interval=getattr(self.api, interval), timeout=CALL_TIMEOUT_SECONDS,
             )  # fmt: skip
+            rows = answer.get("candles") if isinstance(answer, dict) else None
+            raw = json.dumps(answer, sort_keys=True, separators=(",", ":")).encode()
         except Exception as exc:  # the SDK raises its own and requests' errors; the class name only
             raise CandleCallFailed(f"Groww {kind} {start}..{end}: {type(exc).__name__}") from None
-        rows = answer.get("candles") if isinstance(answer, dict) else None
-        if not isinstance(rows, list):
+        if not isinstance(rows, list):  # Groww answers an empty list for a day without candles (probed)
             raise CandleCallFailed(f"Groww {kind} {start}..{end}: no candle list in the answer")
-        raw = json.dumps(answer, sort_keys=True, separators=(",", ":")).encode()
         return CandleAnswer(kind, start, end, raw, rows, requested, self.clock())
 
     def _pace(self) -> None:

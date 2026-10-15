@@ -2,14 +2,17 @@
 write void rows, a failed window resumes cleanly, three Groww failures stop the run. Fake Groww, Drive and NSE."""
 
 import math
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest
 
 from fno.intraday import backfill as backfill_module
 from fno.intraday.backfill_report import report_lines
 from fno.intraday.candle_source import ONE_MINUTE
+from fno.intraday.document import utc_text
+from fno.models import IST
 from tests.intraday_backfill.fakes import (
+    FETCHED,
     START,
     FakeGroww,
     FakeNse,
@@ -18,6 +21,7 @@ from tests.intraday_backfill.fakes import (
     levels,
     minute_rows,
     session_data,
+    verifier,
 )
 
 WEEK = [date(2026, 9, 28), date(2026, 9, 29), date(2026, 9, 30), date(2026, 10, 1)]  # 2 Oct is a holiday
@@ -148,7 +152,10 @@ def test_each_window_line_shows_a_shortfall_and_deferrals_count_runs_in_a_row(tm
     second = build(tmp_path, FakeGroww(*session_data(WEEK)[:2], failing={("minutes", WEEK[2])}),
                    FakeNse(session_data(WEEK)[2])).run(START, WEEK[3])  # fmt: skip
     lines = report_lines(second, backfill.table.rows(), backfill.deferrals.counts())
-    assert f"DEFERRED {WEEK[2]}: Groww 1m {WEEK[2]}..{WEEK[2]}: GrowwAPIException (2 run(s) in a row)" in lines
+    assert (
+        f"DEFERRED {WEEK[2]}: Groww 1m {WEEK[2]}..{WEEK[2]}: GrowwAPIException (deferred by 2 run(s), never written)"
+        in lines
+    )
 
 
 def test_a_rerun_writes_nothing_new_and_fetches_nothing(tmp_path):
@@ -163,3 +170,45 @@ def test_a_range_starting_after_the_series_start_waits_for_its_earlier_sessions(
     fifteen, minutes, nse = session_data(WEEK)
     report = build(tmp_path, FakeGroww(fifteen, minutes), FakeNse(nse)).run(start, WEEK[3])
     assert not report.written and report.deferred[start].startswith("previous session")
+
+
+# Reruns (self-review M1, M2, M3): the first copy and its first fetch time are kept; NSE's 404 counts only when final.
+
+
+def test_a_rerun_after_a_deferral_keeps_the_first_fetch_time_and_verifies(tmp_path):
+    later = FETCHED + timedelta(days=1)
+    backfill, report, _ = run(tmp_path, WEEK, WEEK[3], overrides={("nse", WEEK[3]): OSError("drive")})
+    assert WEEK[3] in report.deferred
+    fifteen, minutes, nse = session_data(WEEK)
+    second = build(tmp_path, FakeGroww(fifteen, minutes, fetched=later), FakeNse(nse))
+    assert second.run(START, WEEK[3]).complete and backfill.table.row(WEEK[3])["first_seen_at"] == utc_text(FETCHED)
+    assert verifier(second).problems() == []
+
+
+def test_a_later_answer_with_other_candles_is_named_and_the_first_copy_is_kept(tmp_path):
+    days = [*WEEK, AFTER]
+    backfill, report, _ = run(tmp_path, days, AFTER, failing={("minutes", WEEK[3])})
+    first_15m = backfill.table.row(WEEK[2])["copy_15m"]
+    fifteen, minutes, nse = session_data(days)
+    for day in (WEEK[2], WEEK[3]):  # Groww revises both sessions' last candle by 10 points
+        fifteen[day][-2] = [*fifteen[day][-2][:4], fifteen[day][-2][4] + 10.0, None, None]
+    second = build(tmp_path, FakeGroww(fifteen, minutes), FakeNse(nse))
+    again = second.run(START, AFTER)
+    assert [c.split(":")[0] for c in again.changed] == [str(WEEK[2]), str(WEEK[3])]
+    assert again.complete and backfill.table.row(WEEK[3])["copy_15m"] == first_15m
+    assert backfill.table.row(WEEK[3])["status"] == "ok"  # derived from the first copy, which its 1-minute check fits
+    assert verifier(second).problems() == []
+    lines = report_lines(again, backfill.table.rows(), backfill.deferrals.counts())
+    assert f"CHANGED {again.changed[0]}" in lines
+
+
+def test_nse_s_404_defers_until_the_file_is_final_then_voids(tmp_path):
+    fifteen, minutes, nse = session_data(WEEK, {("nse", WEEK[3]): None})
+    evening = datetime(2026, 10, 2, 20, 59, tzinfo=IST)  # before 21:00 the next day: NSE may still publish
+    backfill = build(tmp_path, FakeGroww(fifteen, minutes, fetched=evening), FakeNse(nse))
+    backfill.clock = lambda: evening
+    report = backfill.run(START, WEEK[3])
+    assert report.deferred == {WEEK[3]: "NSE index-close 2026-10-01: not published yet (a 404 counts as absent from "
+                                        "2026-10-02 21:00 IST)"}  # fmt: skip
+    backfill.clock = lambda: evening + timedelta(minutes=1)
+    assert backfill.run(START, WEEK[3]).complete and backfill.table.row(WEEK[3])["void_reason"] == "nse_unchecked"

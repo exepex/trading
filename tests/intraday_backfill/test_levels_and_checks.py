@@ -120,7 +120,12 @@ class _Library:
         return RawFile(self.found, "drive")
 
 
-@pytest.mark.parametrize("error", [RawSourceUnavailable("503"), OSError("drive"), b"Index Name\nNifty Bank\n"])
+@pytest.mark.parametrize(
+    "error",
+    [RawSourceUnavailable("503"), OSError("drive"), b"Index Name\nNifty Bank\n",
+     b"Index Name,Open Index Value\nNifty 50,1\n",  # no high or low column
+     b"Index Name,Open Index Value,High Index Value,Low Index Value\nNifty 50,1\n"],  # a short row
+)  # fmt: skip
 def test_a_failed_or_unreadable_nse_read_is_transient(error):
     with pytest.raises(NseReadFailed, match=r"^NSE index-close 2026-10-14: (RawSourceUnavailable|OSError|ValueError)$"):
         NseIndexDays(_Library(error)).read(DAY)

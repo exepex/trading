@@ -6,10 +6,9 @@ from datetime import date, datetime
 import pytest
 
 from fno.intraday import backfill_cli, backfill_wiring
-from fno.intraday.backfill_verify import CandleRowVerifier
 from fno.models import IST
 from fno.storage.wiring import REPOSITORY
-from tests.intraday_backfill.fakes import FakeGroww, FakeNse, build, session_data
+from tests.intraday_backfill.fakes import FakeGroww, FakeNse, build, session_data, verifier
 
 WEEK = [date(2026, 9, 28), date(2026, 9, 29), date(2026, 9, 30), date(2026, 10, 1)]
 
@@ -31,7 +30,7 @@ def wired(tmp_path, monkeypatch):
     monkeypatch.setattr("fno.config.load_app_config", lambda path: {})
     monkeypatch.setattr(backfill_wiring, "build_candle_backfill", backfill)
     monkeypatch.setattr(backfill_wiring, "build_deferral_log", lambda folder=None: backfill({}).deferrals)
-    monkeypatch.setattr(backfill_wiring, "build_candle_verifier", lambda cfg: CandleRowVerifier(backfill(cfg)))
+    monkeypatch.setattr(backfill_wiring, "build_candle_verifier", lambda: verifier(backfill({})))
     monkeypatch.setattr("fno.intraday.backfill.SERIES_START", WEEK[0])
     return state
 
@@ -45,7 +44,10 @@ def test_a_deferred_session_exits_1_after_naming_it(wired, capsys):
     wired["failing"] = {("minutes", WEEK[2])}
     assert backfill_cli.cmd_backfill(_args()) == 1
     out = capsys.readouterr().out
-    assert f"DEFERRED {WEEK[2]}: Groww 1m {WEEK[2]}..{WEEK[2]}: GrowwAPIException (1 run(s) in a row)" in out
+    assert (
+        f"DEFERRED {WEEK[2]}: Groww 1m {WEEK[2]}..{WEEK[2]}: GrowwAPIException (deferred by 1 run(s), never written)"
+        in out
+    )
     wired["failing"] = set()
     assert backfill_cli.cmd_backfill(_args()) == 0  # the next run writes it
 
@@ -73,7 +75,7 @@ def test_verify_exits_0_when_every_row_equals_its_copies_and_1_otherwise(wired, 
 
 @pytest.mark.parametrize(
     ("now", "expected"),
-    [(datetime(2026, 10, 14, 15, 59, 59), date(2026, 10, 13)), (datetime(2026, 10, 14, 16, 0), date(2026, 10, 14))],
+    [(datetime(2026, 10, 14, 20, 59, 59), date(2026, 10, 13)), (datetime(2026, 10, 14, 21, 0), date(2026, 10, 14))],
 )
-def test_the_default_end_is_today_only_after_16_00_ist(now, expected):
+def test_the_default_end_is_today_only_from_21_00_ist_when_nse_s_file_is_out(now, expected):
     assert backfill_cli.latest_finished(now.replace(tzinfo=IST)) == expected

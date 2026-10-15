@@ -13,25 +13,33 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
+from ..models import IST
 from ..quotes.recorder import RECORDED_SESSION_KINDS
 from ..research_data.calendar import SessionCalendar
 from ..storage.raw_store import RawFileConflict, StoredCopyDamaged
-from .candle_archive import ArchivedCopy, CandleArchive, CopyDamaged
+from .candle_archive import ArchivedCopy, CandleArchive
 from .candle_levels import CANDLES_PER_SESSION, CandleParse, parse_candles
 from .candle_rv_table import CandleRvTable
 from .candle_source import FIFTEEN_MINUTES, CandleCallFailed, IntradayCandleSource
 from .deferral_log import DeferralLog
-from .nse_days import NseIndexDays, NseReadFailed
+from .nse_days import NseDays, NseReadFailed
+from .previous_close import PreviousClose
 from .session_deriver import SessionDeriver, SessionInputs
 from .session_rv import previous_recorded_session
 
 SERIES_START = date(2020, 1, 1)  # Groww's 15-minute index history starts here (step 0)
 WINDOW_DAYS = 90
 FAILURES_TO_STOP = 3
-STORE_FAILURES = (RawFileConflict, StoredCopyDamaged, CopyDamaged, OSError, RuntimeError)
+STORE_FAILURES = (RawFileConflict, StoredCopyDamaged, OSError, RuntimeError, ValueError, KeyError)  # incl. CopyDamaged
+NSE_FINAL_DAYS, NSE_FINAL_AT = (
+    1,
+    time(21, 0),
+)  # NSE's file is archived by 21:00 IST (A13); a day's grace before 404 counts
 NO_PREVIOUS_ROW = "previous session {day} has no row"
+NOT_PUBLISHED = "NSE index-close {day}: not published yet (a 404 counts as absent from {final:%Y-%m-%d %H:%M} IST)"
+CHANGED = "{day}: a later 15-minute answer differs from the first copy {path}; the row keeps the first"
 
 
 class BackfillStopped(RuntimeError):
@@ -45,6 +53,7 @@ class BackfillReport:
     held: int = 0  # sessions that already had a row
     deferred: dict[date, str] = field(default_factory=dict)
     windows: list[str] = field(default_factory=list)
+    changed: list[str] = field(default_factory=list)  # sessions whose later answer differs from the copy kept
     stopped: str = ""
 
     @property
@@ -52,12 +61,26 @@ class BackfillReport:
         return not self.deferred and not self.stopped
 
 
+def recorded_sessions(calendar: SessionCalendar, start: date, end: date) -> list[date]:
+    return [d for d in calendar.sessions(start, end) if calendar.session_kind(d) in RECORDED_SESSION_KINDS]
+
+
+def first_recorded_session(calendar: SessionCalendar, series_start: date) -> date | None:
+    """The series' first session: it has no previous close (a void overnight part)."""
+    return next(iter(recorded_sessions(calendar, series_start, series_start + timedelta(days=14))), None)
+
+
+def nse_final(day: date) -> datetime:
+    """From when NSE's 404 for `day` means the file will not come (before it, the file may simply be late)."""
+    return datetime.combine(day + timedelta(days=NSE_FINAL_DAYS), NSE_FINAL_AT, tzinfo=IST)
+
+
 class CandleBackfill:
     def __init__(
         self,
         source: IntradayCandleSource,
         archive: CandleArchive,
-        nse: NseIndexDays,
+        nse: NseDays,
         table: CandleRvTable,
         deferrals: DeferralLog,
         deriver: SessionDeriver,
@@ -67,13 +90,13 @@ class CandleBackfill:
     ):
         """`series_start`: the first day of the series (its first session has no previous close)."""
         self.source, self.archive, self.nse, self.table = source, archive, nse, table
-        self.series_start = series_start
+        self.series_start, self.previous = series_start, PreviousClose(archive, deriver)
         self.deferrals, self.deriver, self.calendar, self.clock = deferrals, deriver, calendar, clock
         self._failures, self._first = 0, None
 
     def run(self, start: date, end: date) -> BackfillReport:
-        report = BackfillReport(sessions=self.recorded_sessions(max(start, self.series_start), end))
-        self._first = self.first_session()
+        report = BackfillReport(sessions=recorded_sessions(self.calendar, max(start, self.series_start), end))
+        self._first = first_recorded_session(self.calendar, self.series_start)
         try:
             for window_start, window_end in windows(report.sessions):
                 self._window(window_start, window_end, report)
@@ -85,14 +108,6 @@ class CandleBackfill:
         self.deferrals.append(self.clock(), report.deferred)
         return report
 
-    def first_session(self) -> date | None:
-        return next(iter(self.recorded_sessions(self.series_start, self.series_start + timedelta(days=14))), None)
-
-    def recorded_sessions(self, start: date, end: date) -> list[date]:
-        return [
-            d for d in self.calendar.sessions(start, end) if self.calendar.session_kind(d) in RECORDED_SESSION_KINDS
-        ]
-
     def _window(self, start: date, end: date, report: BackfillReport) -> None:
         days = [d for d in report.sessions if start <= d <= end]
         todo = [d for d in days if self.table.row(d) is None]
@@ -100,14 +115,25 @@ class CandleBackfill:
         if not todo:
             report.windows.append(f"window {start}..{end}: {len(days)} sessions already derived, not fetched")
             return
-        copy = self._fetch(lambda: self.source.window(start, end), f"window {start}..{end}", todo, report)
-        if copy is None:
+        what = f"window {start}..{end}"
+        fresh = self._fetch(lambda: self.source.candles(start, end), what, todo, report)
+        if fresh is None:
             return
-        found = sum(len(self.deriver.candles(d, copy).used) for d in days)
-        expected = CANDLES_PER_SESSION * len(days)
-        report.windows.append(f"window {start}..{end}: {found} of {expected} session candles ({len(days)} sessions)")
-        for day in todo:
-            self._session(day, copy, report)
+        try:
+            earlier = [c for c in self.archive.copies(FIFTEEN_MINUTES, start, end) if c.path != fresh.path]
+        except STORE_FAILURES as failed:
+            report.deferred.update(dict.fromkeys(todo, f"{what}: an earlier copy: {type(failed).__name__}"))
+            return
+        found = sum(len(self.deriver.candles(d, fresh).used) for d in days)
+        report.windows.append(
+            f"{what}: {found} of {CANDLES_PER_SESSION * len(days)} session candles ({len(days)} sessions)"
+        )
+        for day in days:
+            first = next((c for c in earlier if c.start <= day <= c.end), fresh)  # the first version is kept (A11)
+            if first is not fresh and self.deriver.candles(day, first) != self.deriver.candles(day, fresh):
+                report.changed.append(CHANGED.format(day=day, path=first.path))
+            if day in todo:
+                self._session(day, first, report)
 
     def _session(self, day: date, window: ArchivedCopy, report: BackfillReport) -> None:
         previous_close, why = self._previous_close(day, report)
@@ -116,7 +142,7 @@ class CandleBackfill:
             return
         minutes = None
         if not self.deriver.candles(day, window).missing:
-            minutes = self._fetch(lambda: self.source.minutes(day), f"1-minute {day}", [day], report)
+            minutes = self._fetch(lambda: self.source.minute_candles(day), f"1-minute {day}", [day], report)
             if minutes is None:
                 return
         try:
@@ -124,25 +150,25 @@ class CandleBackfill:
         except NseReadFailed as failed:
             report.deferred[day] = str(failed)
             return
+        if nse.day is None and self.clock() < nse_final(day):
+            report.deferred[day] = NOT_PUBLISHED.format(day=day, final=nse_final(day))
+            return
         row = self.deriver.derive(SessionInputs(day, window, minutes, nse, previous_close))
         self.table.write_once(row)
         report.written[day] = row
 
     def _previous_close(self, day: date, report: BackfillReport) -> tuple[float | None, str]:
         """The previous session's 15:30 level (None at the series start or when untrusted), or why `day` must wait."""
-        if day == self._first:  # the series' first session: no previous close, a void overnight part
+        if day == self._first:
             return None, ""
         previous = previous_recorded_session(self.calendar, day)
         row = report.written.get(previous) or self.table.row(previous)
         if row is None:
             return None, NO_PREVIOUS_ROW.format(day=previous)
         try:
-            window = self.archive.first_copy(FIFTEEN_MINUTES, previous)
+            return self.previous.of(row), ""
         except STORE_FAILURES as failed:
-            return None, f"previous session {previous}: Drive read failed: {type(failed).__name__}"
-        if window is None:
-            return None, f"previous session {previous}: its 15-minute copy is not in the manifest"
-        return self.deriver.last_level(row, window), ""
+            return None, f"previous session {previous}: its 15-minute copy: {type(failed).__name__}"
 
     def _fetch(self, call, what: str, days: list[date], report: BackfillReport) -> ArchivedCopy | None:
         """The answer archived, or None with every session of `days` deferred (transient)."""
@@ -156,8 +182,7 @@ class CandleBackfill:
             self._failures += 1
         except (*STORE_FAILURES, CandleParse) as failed:
             reason = f"{what}: {type(failed).__name__}"
-        for day in days:
-            report.deferred[day] = reason
+        report.deferred.update(dict.fromkeys(days, reason))
         if self._failures >= FAILURES_TO_STOP:
             raise BackfillStopped(f"{FAILURES_TO_STOP} Groww failures in a row, the last: {reason}")
         return None

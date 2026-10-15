@@ -9,12 +9,13 @@ from datetime import date, datetime, timedelta
 
 from fno.global_cues.cue_calendars import NseSessionCalendar
 from fno.intraday.backfill import CandleBackfill
+from fno.intraday.backfill_verify import CandleRowVerifier
 from fno.intraday.backfill_wiring import DEFERRALS
 from fno.intraday.candle_archive import CandleArchive
 from fno.intraday.candle_rv_table import CandleRvTable
 from fno.intraday.candle_source import FIFTEEN_MINUTES, ONE_MINUTE, CandleAnswer, CandleCallFailed, IntradayCandleSource
 from fno.intraday.deferral_log import DeferralLog
-from fno.intraday.nse_days import NseReadFailed, NseReading
+from fno.intraday.nse_days import NseDays, NseReadFailed, NseReading
 from fno.intraday.nse_range import NseDay
 from fno.intraday.realised_vol import CandleCloseRv15m
 from fno.intraday.session_deriver import SessionDeriver
@@ -85,29 +86,30 @@ def nse_day(day: date, values: list[float]) -> NseDay:
 class FakeGroww(IntradayCandleSource):
     """Candles per day; a day mapped to an exception fails its calls."""
 
-    def __init__(self, days: dict, minutes: dict | None = None, failing: set | None = None):
+    def __init__(self, days: dict, minutes: dict | None = None, failing: set | None = None, fetched=FETCHED):
         self.days, self.minute_rows, self.failing, self.calls = days, minutes or {}, failing or set(), []
+        self.fetched = fetched  # when every answer is received
 
-    def window(self, start: date, end: date) -> CandleAnswer:
+    def candles(self, start: date, end: date) -> CandleAnswer:
         self.calls.append((FIFTEEN_MINUTES, start, end))
         if ("window", start) in self.failing:
             raise CandleCallFailed(f"Groww 15m {start}..{end}: ReadTimeout")
         rows = [r for d, rs in sorted(self.days.items()) if start <= d <= end for r in rs]
-        return _answer(FIFTEEN_MINUTES, start, end, rows)
+        return _answer(FIFTEEN_MINUTES, start, end, rows, self.fetched)
 
-    def minutes(self, day: date) -> CandleAnswer:
+    def minute_candles(self, day: date) -> CandleAnswer:
         self.calls.append((ONE_MINUTE, day, day))
         if ("minutes", day) in self.failing:
             raise CandleCallFailed(f"Groww 1m {day}..{day}: GrowwAPIException")
-        return _answer(ONE_MINUTE, day, day, self.minute_rows.get(day, []))
+        return _answer(ONE_MINUTE, day, day, self.minute_rows.get(day, []), self.fetched)
 
 
-def _answer(kind: str, start: date, end: date, rows: list) -> CandleAnswer:
+def _answer(kind: str, start: date, end: date, rows: list, fetched: datetime) -> CandleAnswer:
     raw = json.dumps({"candles": rows}, sort_keys=True, separators=(",", ":")).encode()
-    return CandleAnswer(kind, start, end, raw, rows, FETCHED, FETCHED)
+    return CandleAnswer(kind, start, end, raw, rows, fetched, fetched)
 
 
-class FakeNse:
+class FakeNse(NseDays):
     """NSE's days: a NseDay, None (definitively absent) or an exception (a failed read)."""
 
     def __init__(self, days: dict):
@@ -135,7 +137,7 @@ def session_data(days: list[date], overrides: dict | None = None):
 
 
 def build(tmp_path, groww: FakeGroww, nse: FakeNse, store=None, start: date = START) -> CandleBackfill:
-    archive = CandleArchive(store or AreaStore(LocalFolderStore(tmp_path / "drive"), "raw"), tmp_path / "manifest.csv")
+    archive = CandleArchive(store or AreaStore(LocalFolderStore(tmp_path / "drive"), "raw"), tmp_path / "manifests")
     deriver = SessionDeriver(CandleCloseRv15m(), _next_session)
     repo = tmp_path / "repo"
     return CandleBackfill(
@@ -145,6 +147,12 @@ def build(tmp_path, groww: FakeGroww, nse: FakeNse, store=None, start: date = ST
 
 
 _next_session = NseSessionCalendar(CALENDAR, CALENDAR.first).next_open
+
+
+def verifier(backfill: CandleBackfill) -> CandleRowVerifier:
+    """`backfill-verify` over the same files and fakes as `backfill`."""
+    return CandleRowVerifier(backfill.archive, backfill.nse, backfill.table, backfill.deriver, CALENDAR,
+                             backfill.series_start)  # fmt: skip
 
 
 def gunzip_json(data: bytes):

@@ -7,7 +7,6 @@ import re
 from datetime import date
 
 from fno.intraday.backfill_report import report_lines
-from fno.intraday.backfill_verify import CandleRowVerifier
 from fno.intraday.nse_range import NseDay
 from tests.intraday_backfill.fakes import (
     START,
@@ -17,6 +16,7 @@ from tests.intraday_backfill.fakes import (
     levels,
     session_data,
     t,
+    verifier,
 )
 
 WEEK = [date(2026, 9, 28), date(2026, 9, 29), date(2026, 9, 30), date(2026, 10, 1)]
@@ -59,14 +59,14 @@ def test_a_clean_report_shows_no_flag_and_no_void_lines(tmp_path):
 
 def test_verify_passes_a_clean_back_fill(tmp_path):
     backfill, _ = _run(tmp_path)
-    assert CandleRowVerifier(backfill).problems() == []
+    assert verifier(backfill).problems() == []
 
 
 def test_verify_names_a_planted_change_to_a_row(tmp_path):
     backfill, _ = _run(tmp_path)
     path = backfill.table.path(WEEK[2])
     path.write_text(path.read_text().replace(backfill.table.row(WEEK[2])["rv_intraday"], "0.0000000001"))
-    assert CandleRowVerifier(backfill).problems() == [f"{WEEK[2]}: differs from its copies in rv_intraday"]
+    assert verifier(backfill).problems() == [f"{WEEK[2]}: differs from its copies in rv_intraday"]
 
 
 def _drive_file(tmp_path, backfill, kind):
@@ -77,7 +77,7 @@ def test_verify_names_a_copy_whose_sha_differs_from_its_manifest(tmp_path):
     backfill, _ = _run(tmp_path)
     copy = _drive_file(tmp_path, backfill, "1m")
     copy.write_bytes(copy.read_bytes() + b"x")
-    assert CandleRowVerifier(backfill).problems() == [
+    assert verifier(backfill).problems() == [
         f"{WEEK[2]}: not verified: {backfill.table.row(WEEK[2])['copy_1m']}: SHA-256 differs from its manifest row"
     ]
 
@@ -88,7 +88,7 @@ def test_verify_names_a_copy_missing_from_drive_and_a_row_whose_copy_has_no_mani
     path = backfill.table.path(WEEK[3])
     held = backfill.table.row(WEEK[3])["copy_1m"]
     path.write_text(path.read_text().replace(held, held.replace(".json.gz", "x.json.gz")))
-    problems = CandleRowVerifier(backfill).problems()
+    problems = verifier(backfill).problems()
     assert problems[0] == f"{WEEK[2]}: not verified: {backfill.table.row(WEEK[2])['copy_1m']}: not in Drive"
     assert problems[1] == f"{WEEK[3]}: {held.replace('.json.gz', 'x.json.gz')} has no manifest row"
 
@@ -103,7 +103,7 @@ def test_no_repository_file_holds_a_price(tmp_path):
     _run(tmp_path)
     prices = {float(v) for rows in fifteen.values() for row in rows for v in row[1:5]}
     repository = [p for p in tmp_path.rglob("*") if p.is_file() and "drive" not in p.relative_to(tmp_path).parts]
-    assert {p.suffix for p in repository} == {".csv"} and len(repository) == 5  # 4 rows and the manifest
+    assert {p.suffix for p in repository} == {".csv"} and len(repository) == 6  # 4 rows and the two manifests
     for path in repository:
         header, rows = _cells(path)
         assert not PRICE_COLUMNS & set(header), path.name

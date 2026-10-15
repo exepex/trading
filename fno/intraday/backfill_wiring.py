@@ -23,7 +23,7 @@ from ..storage.wiring import (
     build_raw_stores,
     build_session_calendar,
 )
-from .backfill import CandleBackfill
+from .backfill import SERIES_START, CandleBackfill
 from .backfill_verify import CandleRowVerifier
 from .candle_archive import CandleArchive
 from .candle_rv_table import CandleRvTable
@@ -35,13 +35,14 @@ from .realised_vol import CandleCloseRv15m
 from .session_deriver import SessionDeriver
 from .wiring import INTRADAY_FOLDER
 
-MANIFEST = Path("groww-candles") / "nifty.csv"
+MANIFESTS = Path("groww-candles")
 DEFERRALS = Path("rv-candle") / "deferred.csv"
 DRY_RUN_DRIVE = "drive"
 
 
 def build_candle_backfill(cfg: dict, dry_run_folder: Path | None = None) -> CandleBackfill:
-    folder, archive, nse, calendar = _parts(dry_run_folder)
+    folder, archive, calendar = _parts(dry_run_folder)
+    nse = NseIndexDays(_nse_library(archive_to=None if dry_run_folder else build_owner_drive_store()))
     provider = GrowwProvider(cfg)
     source = GrowwCandleSource(ReadOnlyGroww(lambda: provider.api), now_ist)  # the only Groww object it holds
     return CandleBackfill(
@@ -50,8 +51,11 @@ def build_candle_backfill(cfg: dict, dry_run_folder: Path | None = None) -> Cand
     )  # fmt: skip
 
 
-def build_candle_verifier(cfg: dict) -> CandleRowVerifier:
-    return CandleRowVerifier(build_candle_backfill(cfg))
+def build_candle_verifier() -> CandleRowVerifier:
+    """Read-only: no Groww, and an NSE file fetched for the check is never archived."""
+    folder, archive, calendar = _parts(None)
+    nse = NseIndexDays(_nse_library(archive_to=None))
+    return CandleRowVerifier(archive, nse, CandleRvTable(folder), _deriver(calendar), calendar, SERIES_START)
 
 
 def build_deferral_log(dry_run_folder: Path | None = None) -> DeferralLog:
@@ -59,13 +63,13 @@ def build_deferral_log(dry_run_folder: Path | None = None) -> DeferralLog:
 
 
 def _parts(dry_run_folder: Path | None):
+    """The table folder, the candle archive and the calendar; a dry run keeps all files under its folder."""
     calendar = build_session_calendar()
     if dry_run_folder:
         folder = Path(dry_run_folder)
-        archive = CandleArchive(AreaStore(LocalFolderStore(folder / DRY_RUN_DRIVE), RAW_AREA), folder / MANIFEST)
-        return folder, archive, NseIndexDays(_nse_library(archive_to=None)), calendar
-    archive = CandleArchive(_owner_raw_area(), MANIFEST_FOLDER / MANIFEST)
-    return INTRADAY_FOLDER, archive, NseIndexDays(_nse_library(archive_to=build_owner_drive_store())), calendar
+        archive = CandleArchive(AreaStore(LocalFolderStore(folder / DRY_RUN_DRIVE), RAW_AREA), folder / MANIFESTS)
+        return folder, archive, calendar
+    return INTRADAY_FOLDER, CandleArchive(_owner_raw_area(), MANIFEST_FOLDER / MANIFESTS), calendar
 
 
 def _owner_raw_area() -> RawFileStore:

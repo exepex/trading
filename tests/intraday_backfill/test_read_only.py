@@ -13,8 +13,9 @@ import fno
 from fno.intraday import backfill_wiring
 from fno.intraday.candle_source import MIN_GAP_SECONDS, CandleCallFailed, GrowwCandleSource
 from fno.intraday.read_only import ReadOnlyGroww, ReadOnlyViolation
+from fno.storage.raw_store import LocalFolderStore
 from tests.intraday.groww_fakes import FORBIDDEN, ForbiddenCall
-from tests.intraday_backfill.fakes import FETCHED, START, FakeNse, build, session_data
+from tests.intraday_backfill.fakes import CALENDAR, FETCHED, START, FakeNse, build, session_data
 
 WEEK = [date(2026, 9, 28), date(2026, 9, 29), date(2026, 9, 30), date(2026, 10, 1)]
 PLANTED = "planted-secret-7f3a9c"
@@ -95,7 +96,7 @@ def test_a_failing_call_is_named_by_class_only_and_a_planted_secret_reaches_no_o
     fifteen, minutes, nse = session_data(WEEK)
     source, _ = _source(FakeCandleSdk(fifteen, minutes, error=RuntimeError(f"401 token={PLANTED}")))
     with pytest.raises(CandleCallFailed, match="^Groww 15m 2026-09-28..2026-10-01: RuntimeError$"):
-        source.window(WEEK[0], WEEK[3])
+        source.candles(WEEK[0], WEEK[3])
     report = build(tmp_path, source, FakeNse(nse)).run(START, WEEK[3])
     written = [p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()]
     assert PLANTED not in repr(report) and not [b for b in written if PLANTED.encode() in b]
@@ -108,7 +109,7 @@ def test_an_answer_without_a_candle_list_is_transient(tmp_path):
 
     source, _ = _source(Empty({}, {}))
     with pytest.raises(CandleCallFailed, match="no candle list"):
-        source.minutes(WEEK[0])
+        source.minute_candles(WEEK[0])
 
 
 def _imported(path: Path, node: ast.ImportFrom) -> list[Path]:
@@ -159,3 +160,27 @@ def test_the_cli_names_an_unexpected_error_by_class_only(tmp_path, monkeypatch, 
     out = capsys.readouterr().out
     assert out.strip() == "candle back-fill stopped (RuntimeError); what it wrote stays, run it again"
     assert PLANTED not in out  # nothing of the text, the class only
+
+
+def test_a_sign_in_failure_is_a_named_transient_failure_without_its_text():
+    def signing_in():
+        raise RuntimeError(f"login refused for key {PLANTED}")
+
+    source = GrowwCandleSource(ReadOnlyGroww(signing_in), lambda: FETCHED, lambda s: None, lambda: 0.0)
+    with pytest.raises(CandleCallFailed, match="^Groww 1m 2026-09-28..2026-09-28: RuntimeError$"):
+        source.minute_candles(WEEK[0])
+
+
+def test_the_verifier_is_built_without_groww_and_archives_nothing(tmp_path, monkeypatch):
+    def refuse(*args, **kwargs):
+        raise AssertionError("the verifier touched Groww or an archiving store")
+
+    monkeypatch.setattr(backfill_wiring, "GrowwProvider", refuse)
+    monkeypatch.setattr(backfill_wiring, "build_owner_drive_store", refuse)
+    monkeypatch.setattr(backfill_wiring, "build_owner_drive", lambda: LocalFolderStore(tmp_path))
+    monkeypatch.setattr(backfill_wiring, "build_raw_stores", lambda: [])
+    monkeypatch.setattr(backfill_wiring, "build_nse_source", lambda kind: None)
+    monkeypatch.setattr(backfill_wiring, "build_session_calendar", lambda: CALENDAR)
+    monkeypatch.setattr(backfill_wiring, "SERIES_START", START)
+    verifier = backfill_wiring.build_candle_verifier()
+    assert verifier.nse.library.archive is None and verifier.problems() == []

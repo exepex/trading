@@ -13,7 +13,7 @@ from .dry_run import inside_repository
 
 BACKFILL, VERIFY = "backfill", "backfill-verify"
 COMMANDS = (BACKFILL, VERIFY)
-SESSION_SETTLED = time(16, 0)  # IST: a session's candles are final well after its 15:30 close
+SESSION_SETTLED = time(21, 0)  # IST: NSE's index-close file, needed for the check, is archived by then (A13)
 INSIDE_REPOSITORY = "a dry-run folder must be outside the repository (raw candles never go into it): {folder}"
 STOPPED = "candle back-fill stopped ({reason}); what it wrote stays, run it again"
 VERIFIED = "every candle-close row equals its Drive copies"
@@ -38,7 +38,7 @@ def cmd_backfill(args) -> int:
     try:
         cfg = load_app_config(args.config)
         if args.intraday_cmd == VERIFY:
-            return _verify(cfg)
+            return _verify()
         return _backfill(cfg, args.start or SERIES_START, args.end or latest_finished(now_ist()), folder)
     except CalendarError as error:
         print(f"candle back-fill stopped, nothing more written: {error}")
@@ -49,7 +49,7 @@ def cmd_backfill(args) -> int:
 
 
 def latest_finished(now) -> date:
-    """Today once its candles are final (16:00 IST), else yesterday; the run keeps only recorded sessions."""
+    """Today once NSE's file for it is out (21:00 IST), else yesterday; the run keeps only recorded sessions."""
     return now.date() if now.time() >= SESSION_SETTLED else now.date() - timedelta(days=1)
 
 
@@ -65,9 +65,9 @@ def _backfill(cfg: dict, start: date, end: date, folder: Path | None) -> int:
     return 0 if report.complete and len(rows) == len(wanted) else 1
 
 
-def _verify(cfg: dict) -> int:
+def _verify() -> int:
     from .backfill_wiring import build_candle_verifier
 
-    problems = build_candle_verifier(cfg).problems()
+    problems = build_candle_verifier().problems()
     print("\n".join(problems) or VERIFIED)
     return 1 if problems else 0

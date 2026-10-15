@@ -23,7 +23,7 @@ from .nse_days import NseReading
 from .nse_range import check_range
 from .realised_vol import IntradayRealisedVol
 from .session_rv import OK, VOID, figure
-from .slots import marks
+from .slots import MARKS_PER_SESSION, marks
 
 SOURCE = "groww_candles"
 CHECKED, UNCHECKED = "checked", "unchecked"
@@ -53,9 +53,11 @@ class SessionDeriver:
         minutes = (
             check_minutes(given.session, found.levels, parse_candles(given.minutes.rows)) if given.minutes else None
         )
+        if not found.missing and minutes is None:  # never a full session without its check (no silent fall-back)
+            reasons.append(f"no_1m_check:{MARKS_PER_SESSION}")
         if minutes and minutes.missing:
             reasons.append(f"no_1m_check:{len(minutes.missing)}")
-        elif minutes and minutes.mismatched:
+        if minutes and minutes.mismatched:
             reasons.append(f"candle_mismatch:{'+'.join(minutes.mismatched)}")
         gaps = None
         if given.nse.day is None:

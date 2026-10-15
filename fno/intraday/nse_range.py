@@ -34,7 +34,10 @@ def read_nse_day(data: bytes) -> NseDay:
     """NIFTY 50's row of an index-close file; ValueError when the file does not have it."""
     for row in csv.DictReader(io.StringIO(data.decode("utf-8", errors="replace"))):
         if (row.get("Index Name") or "").strip().upper() == NIFTY_ROW:
-            return NseDay(float(row[OPEN]), float(row[HIGH]), float(row[LOW]))
+            try:
+                return NseDay(float(row[OPEN]), float(row[HIGH]), float(row[LOW]))
+            except (KeyError, TypeError) as exc:  # a column missing or a short row: unreadable, as a bad number is
+                raise ValueError(f"the {NIFTY_ROW} row lacks a value: {type(exc).__name__}") from None
     raise ValueError(f"no {NIFTY_ROW} row in the index-close file")
 
 
