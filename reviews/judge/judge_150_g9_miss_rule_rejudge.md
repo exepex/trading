@@ -108,3 +108,57 @@ day to `test_miss_outputs.py` with no rows, and assert it is not an input failur
 ## For the builder
 
 Add the S1 test (and preferably the M1 test), then send the SHA. A re-check of S1 and M1 alone will do.
+
+## Addendum 1: narrow re-check of S1 and M1 (15 Oct 2026)
+
+**Verdict: PASS.** No blocking, should-fix or minor findings left for G9. This addendum covers:
+
+- **The new tests:** commit `988166e2`, the only commit since `2521c1e1` that changes a file outside the judge
+  docs. It adds 21 lines to `tests/forecast_scoring_v4/test_miss_outputs.py`.
+- **The merges:** `c77163b1` and the branch tip `25ccb17e` are merges of main. Neither touches any G9 file: the
+  `git diff 68f42552 25ccb17e` over `fno/forecast_v4`, `fno/forecast_scoring/v4`, both test folders and
+  `research/forecasts` is empty.
+
+**S1 (late starter): fixed.**
+- What the test checks: `test_a_member_that_starts_after_the_freeze_counts_misses_only_from_its_first_forecast`.
+  The freeze is 2 Jan and the forecaster has no rows before 6 Jan.
+- Hand recount:
+  - Counted days are 6-10 Jan: 5 observable, 0 missed.
+  - 2% days are 7 Jan (+0.02) and 8 Jan (-0.02): 2 observable, 0 missed.
+  - So the expected result is `MissReport(5, 0, 2, 0, 0)`, which is what the test asserts.
+- Breaks I planted on a scratch copy, both caught by this test:
+  - `scoring.py:87` changed to always return the day after the freeze (the break that survived in judge 150).
+  - `min` used in place of `max`.
+
+**M1 (void day neither file holds): fixed.**
+- What the test checks: `test_a_void_day_neither_file_holds_is_not_an_input_failure`, on a resolved void outcome.
+- The builder is right to use `Outcome(True, True, ...)`. With a value of None the day is unresolved and the break
+  hides.
+- Hand recount:
+  - Day 5 is void, so it is excluded.
+  - Of the other 9 days, all have a baseline: 9 observable, 1 missed (7 Jan).
+  - 2% days: 2, of which 1 missed.
+  - Input failures: 0.
+- Breaks I planted, both caught:
+  - `o.void` dropped in `comparison.py:101`.
+  - void forced to True.
+
+**M2 (main's books test): resolved by main.**
+- The fix `dde9470` is now on `origin/main`, and the branch tip merges it.
+- Trial merge in a scratch git worktree: `origin/main` `2355b80b` plus `68f42552`. Its code equals the tip
+  `25ccb17e` code, since main's later commit `32361574` adds only logs and judge files.
+- Result: **5,787 passed, 0 failed** (FNO_SLACK_BOT_TOKEN unset).
+- The only conflict was the `reviews/claude/README.md` index (responses 111 and 148 rows): keep both.
+- `origin/main` has since moved to `8160e992`, so the merge itself still needs the usual pull and full suite on the
+  merged tree.
+
+**Other checks:**
+- `tests/forecast_v4` and `tests/forecast_scoring_v4`: 210 passed.
+- `ruff check fno tests tools`: clean; the test file is formatted.
+- `python tools/check_imports.py`: clean.
+- `test_miss_outputs.py` is 120 lines.
+
+**Still to do outside G9:**
+- The v4 freeze record must quote the owner confirming both 10% numbers (judge 149 M4).
+- The freeze-start reading (judge 150) is disclosed in protocol section 4.
+- The quality-rule-8 end-to-end dry run after the merge is the orchestrator's.
