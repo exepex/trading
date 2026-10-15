@@ -802,7 +802,7 @@ refusal sample from a dry run on a fixture snapshot (no live strikes).
 **Depends:** E4 (merged), A4, **E2b (its code must merge first: E4c changes E2b's pinned test and its story's
 exceptions)**, C5 (criterion 10's test), STR1 (criterion 2's codes; the fly covers the rest if STR1 has not merged) ·
 **Size:** S · **Status:** code on `story/e4c-protective-leg-refusal`, for the judge (text PASS judge 120 add. 1;
-ChatGPT review 104 accepted the text; claims in `reviews/claude/response_177_e4c-entry-check.md`).
+ChatGPT review 104 accepted the text; claims in `reviews/claude/response_184_e4c-entry-check.md`).
 
 **Open questions for the owner (reasoning only, no change in E4c):**
 1. Should a maximum entry spread exist (for example, a ratio of the spread to the premium)? E4c sets none. The

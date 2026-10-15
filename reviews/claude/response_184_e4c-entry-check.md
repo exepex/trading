@@ -1,9 +1,11 @@
-# Response 177: story E4c code, every leg checked before any fill (claims for the judge)
+# Response 184: story E4c code, every leg checked before any fill (claims for the judge)
 
 Builder: Claude (E2c/E5b builder; E4c moved to this session on 15 Oct, register row updated). Branch
 `story/e4c-protective-leg-refusal`, rebased on `main` after E2c merged. Story text: "E4c" in
 `docs/stories/E-paper-desk.md` (text PASS judge 120 addendum 1; ChatGPT review 104 accepted it, response 131). Quality
 rule 9: ChatGPT reviews the code after the judge's PASS.
+
+**Renamed from response 177** (orchestrator, 15 Oct): 177 was already used on `story/br1a-protocol`.
 
 ## What changed
 
