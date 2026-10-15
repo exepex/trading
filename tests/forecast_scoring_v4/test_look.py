@@ -57,9 +57,10 @@ def test_the_family_lists_all_15_members_with_their_regime_lines_and_test_a():
     lines = look.lines()
     assert lines[0].startswith("protocol v4 family: 15 members, 1 judged, 14 at p = 1; look stop_rule_review at "
                                "family-wise 0.02; decided at 2027-05-31T16:00:00+05:30")  # fmt: skip
-    assert len(lines) == 1 + 2 * len(FAMILY) + 1
+    assert len(lines) == 1 + 2 * len(FAMILY) + 1 + 1  # one miss line for the member with a comparison
     position = 1 + 2 * FAMILY.index(member)
     assert lines[position + 1] == "  scored window regime: mean India VIX 15.0, 9 2% days, band 8-12"
+    assert lines[position + 2] == "  misses: 0 of 125 baseline days (0.0%), 0 of 9 2% days; input failures: 0"
     assert lines[2] == f"  {NO_WINDOW}" and lines[-1] == f"Test A (forecasting): {look.test_a}"
     assert look.test_a == forecasting_test(look.decision.members, {member})
 
@@ -102,3 +103,16 @@ def test_a_registered_v7_member_is_not_judged_and_never_asks_for_thresholds():
     look = run_look(LOOK_STOP_REVIEW, AT, {(V7_VIX_UP_5S, "rules"): v7}, Refusing(), set())
     member = look.decision.members[FAMILY.index((V7_VIX_UP_5S, "rules"))]
     assert not member.judged and member.p_used == 1.0 and look.test_a == "undecided"
+
+
+def test_a_member_with_too_many_misses_is_operations_undecided_and_keeps_test_a_undecided():
+    days, outcomes = synthetic_window(140, 9)
+    own = {d: (None if i in range(130, 140) or i == 3 else 0.3) for i, d in enumerate(days)}  # day 3 is a 2% day
+    rows = paired_rows(values(own), values({d: 0.1376 for d in days}), outcomes)
+    member, source = (V6_BIG_MOVE_5S, "rules"), Recording(claim=1.0, futility=0.0)
+    comparison = compare(V6_BIG_MOVE_5S, "weather_m1", "base_rate", rows, outcomes, 4)
+    look = run_look(LOOK_STOP_REVIEW, AT, {member: comparison}, source, set())
+    verdict = look.decision.members[FAMILY.index(member)]
+    assert comparison.misses.big_missed == 1 and comparison.misses.operations_undecided
+    assert not source.calls and not verdict.judged and not verdict.futile and look.test_a == "undecided"
+    assert any(line.endswith("undecided, operations") for line in look.lines())

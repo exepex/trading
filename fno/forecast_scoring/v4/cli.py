@@ -62,6 +62,7 @@ def _look(scoring, records, thresholds, look: str, decided_at) -> int:
         print("\n".join([EXPLORATORY, *result.lines()]))
         return 0
     payload = {"lines": result.lines(), "test_a": result.test_a, "regimes": [list(k) + [v] for k, v in
-               result.regimes.items()], "members": [asdict(m) for m in result.decision.members]}  # fmt: skip
+               result.regimes.items()], "misses": [list(k) + [v] for k, v in result.misses.items()],
+               "members": [asdict(m) for m in result.decision.members]}  # fmt: skip
     print("\n".join([*result.lines(), f"recorded: {records.write(look, payload)}"]))
     return 0

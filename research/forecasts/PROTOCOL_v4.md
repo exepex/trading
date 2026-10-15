@@ -173,6 +173,18 @@ missing; daily HAR never stands in again.
   this precedence: unresolved, void, forecaster missing, baseline missing. Nothing is imputed; one row per date.
 - **Gate set (the minimum effect of a point question):** the scored dates with RV > 0. Its zero-RV exclusions are
   counted on every report. For a probability question the gate set is the scored set.
+- **Missed days (revision 9; owner decisions of 15 Oct 2026, responses 144-147, judge 138-139, ChatGPT review 112;
+  `misses.py`).** Verdicts use observed days only; a missed day is never imputed, because a filled-in day gives d = 0
+  while the futility test still adds the minimum effect, so a forecaster that never ran would be called futile. What
+  the scored set leaves out is counted from the forecaster's first forecast (earlier days are "not started"):
+  - a **miss** is a resolved, non-void day where the primary baseline forecast and the forecaster did not (a null
+    answer is a miss);
+  - an **input failure** is a resolved, non-void day where neither forecast (the common pack failed); it is counted
+    apart and is never a miss;
+  - a member is **"undecided, operations"** at a look when it missed more than **10%** of its baseline-observable days,
+    or more than **10%** of the baseline-observable 2% days (the regime's 2% days, section 5), or **any** of them when
+    there are **fewer than 10** such days. Such a member is not judged at that look: never a claim, never futile.
+  - Every comparison and every look prints each member's misses, 2% days missed and input failures.
 - Both sets are fixed by these rules before any score. Revision 2's floor (1% of the trailing 250-session median) is
   dropped; it is reported only as a sensitivity (it would have changed 133 of 2,159 close-proxy one-day outcomes).
 
@@ -189,7 +201,8 @@ missing; daily HAR never stands in again.
    df) **at or below its worst-case calibrated threshold**, computed at the look for the member's n by the frozen
    tools. **Every member also needs at least 5 2% days in the scored window** (`confirmatory.judgeable`; V1 and V2
    from revision 8), else it is undecided at that look; V6a and V6b use the thresholds of the window's band (5-7,
-   8-12, 13+ days), V1 and V2 one threshold (measured: no band needed). **V7 is descriptive-only in v4** (revision 6: no measured rule holds
+   8-12, 13+ days), V1 and V2 one threshold (measured: no band needed). A member that is "undecided, operations"
+   (section 4, revision 9) is not judged at that look. **V7 is descriptive-only in v4** (revision 6: no measured rule holds
    its size across VIX regimes; its slots stay at p = 1, never a claim, never futile, not counted in Test A). Every
    threshold, the nulls behind
    it, the measured sizes and what "held-out" proves are in **`PROTOCOL_v4_calibration.md` (part of this protocol,
@@ -237,7 +250,9 @@ missing; daily HAR never stands in again.
   question); G1 v3's family is reported beside it, never counted. Missing and void outcomes are excluded by section 4
   and counted. **yes:** a counted member claims at look 1. **no (futility):** every counted member is futile (a
   significant but too-small one included). **undecided:** anything else, including **zero counted members** and any
-  counted member with fewer than 12 batches. Underpowered is never "no".
+  counted member with fewer than 12 batches or "undecided, operations" (section 4: a member that did not run is no
+  evidence of no skill; a book that keeps failing is fixed or stopped by an operational or budget stop, recorded apart).
+  Underpowered is never "no".
 - **Test B** counts shadow strategies registered in the ledger before the review. **yes:** a one-sided 95% lower bound
   of net per trade after costs above zero. **no:** every counted strategy reached its registered sample and its upper
   bound is below its registered minimum useful net. **Zero counted shadows: `undecided/no_economic_test`, never "no".**

@@ -1,7 +1,8 @@
 """A confirmatory look of protocol v4 (sections 5-6; story G8): each registered member judged by the frozen rules, the
 family decision, Test A, and every member's scored-window regime. A member is judged only when its window passes both
 gates, the 5 2%-day gate (`judgeable`) and the owner's crash-share cut (`crash_dominated`), has at least 12 whole
-batches, and was not closed at look 1 (a claim or a futility "no" is final)."""
+batches, was not closed at look 1 (a claim or a futility "no" is final) and is not "undecided, operations" (too many
+missed days, revision 9: never a claim, never futile, so Test A stays undecided)."""
 
 from __future__ import annotations
 
@@ -34,12 +35,15 @@ class LookResult:
     decision: FamilyDecision
     test_a: str
     regimes: dict[tuple[str, str], str]  # each member's regime line (or NO_WINDOW)
+    misses: dict[tuple[str, str], str]  # each member's miss line (revision 9)
 
     def lines(self) -> list[str]:
         header, *members = self.decision.lines()
         out = [header]
         for member, row in zip(FAMILY, members, strict=True):
             out += [row, f"  {self.regimes.get(member, NO_WINDOW)}"]
+            if member in self.misses:
+                out.append(f"  {self.misses[member]}")
         return out + [f"Test A (forecasting): {self.test_a}"]
 
 
@@ -48,6 +52,8 @@ def member_result(comparison: Comparison, look: str, thresholds: ThresholdSource
     question, block = comparison.question, BLOCK_LENGTH[comparison.question]
     regime = comparison.regime
     if question in DESCRIPTIVE_ONLY:  # V7: never judged, and no threshold tool covers it (judge 128 addendum 1)
+        return NOT_JUDGED
+    if comparison.misses.operations_undecided:
         return NOT_JUDGED
     if regime is None or len(scored.differences) // block < MIN_CLAIM_BATCHES:
         return NOT_JUDGED
@@ -73,4 +79,5 @@ def run_look(look: str, decided_at: datetime, members: Mapping[tuple[str, str], 
     }
     decision = judge_family(look, decided_at, results)
     regimes = {m: c.regime.line() if c.regime else NO_WINDOW for m, c in members.items()}
-    return LookResult(decision, forecasting_test(decision.members, set(members)), regimes)
+    misses = {m: c.misses.line() for m, c in members.items()}
+    return LookResult(decision, forecasting_test(decision.members, set(members)), regimes, misses)

@@ -1,6 +1,7 @@
 """One forecaster against its question's primary baseline (protocol v4 sections 4-5 and 7; story G8): the two frozen
 date sets, the mean difference, the relative improvement, the reported sensitivities, stability, the scored window's
-regime and, from 60 scored outcomes, the power report. Descriptive: verdicts are made only at a look (`look.py`)."""
+regime, the missed days (revision 9) and, from 60 scored outcomes, the power report. Descriptive: verdicts are made
+only at a look (`look.py`)."""
 
 from __future__ import annotations
 
@@ -12,10 +13,12 @@ from datetime import date
 
 from ...forecast_v4.bootstrap import hac_one_sided_p, one_sided_test, relative_improvement
 from ...forecast_v4.confirmatory import batch_means_p, studentized_bootstrap_p
+from ...forecast_v4.misses import MissReport, miss_report
 from ...forecast_v4.pairs import DatedForecasts, Pairing, pair_point, pair_probability
 from ...forecast_v4.power import PowerReport, power_report
 from ...forecast_v4.regime import WindowRegime, window_regime
 from ...forecast_v4.terms import (
+    BIG_MOVE,
     BLOCK_LENGTH,
     BRIER_MIN_EFFECT,
     FAMILY,
@@ -43,6 +46,7 @@ class Comparison:
     half_signs: tuple[int, int] | None  # sign of D in the first and second half of the scored dates
     regime: WindowRegime | None  # None: no scored outcome
     power: PowerReport | None  # from 60 gate-set outcomes
+    misses: MissReport  # what the scored set leaves out (revision 9)
 
 
 def margin(question: str) -> float:
@@ -80,7 +84,7 @@ def compare(question: str, forecaster: str, baseline: str, rows: list[DatedForec
         relative_improvement(gate) if gate.differences and math.fsum(gate.baseline_losses) > 0 else None,
         batch_means_p(d, block), studentized_bootstrap_p(d, block, k), one_sided_test(d, block, k).p_value,
         hac_one_sided_p(d, block), _half_signs(d), scored_regime(scored.days, outcomes),
-        _power(question, gate.differences, gate.baseline_losses),
+        _power(question, gate.differences, gate.baseline_losses), miss_report(rows, _big_day(outcomes)),
     )  # fmt: skip
 
 
@@ -88,6 +92,14 @@ def scored_regime(days, outcomes: Mapping[date, Outcome]) -> WindowRegime | None
     if not days:
         return None
     return window_regime([outcomes[d].vix for d in days], [outcomes[d].log_return for d in days])
+
+
+def _big_day(outcomes: Mapping[date, Outcome]):
+    def big(day: date) -> bool:
+        outcome = outcomes.get(day)
+        return outcome is not None and outcome.log_return is not None and abs(outcome.log_return) >= BIG_MOVE
+
+    return big
 
 
 def _half_signs(d) -> tuple[int, int] | None:
