@@ -65,9 +65,7 @@ def test_weekday_gaps_and_repeated_values_are_listed():
     ]
 
 
-def test_rbi_and_fbil_differences_are_listed_on_the_dates_both_publish():
-    rbi = {"2018-07-09": "68.0", "2018-07-10": "68.79", "2018-07-11": "68.8", "2026-10-14": "95.0"}
-    fbil = {"2018-07-10": "68.7942", "2018-07-11": "68.8", "2018-07-12": "68.9", "2026-10-07": "96.6"}
-    assert overlap_rows(rbi, fbil) == [
-        ("2018-07-10", "differs", "68.79", "68.7942"),
-    ]
+def test_rbi_and_fbil_differences_are_listed_on_the_dates_both_publish_without_a_rate():
+    rbi = {"2018-07-09": "70.0", "2018-07-10": "70.12", "2018-07-11": "70.5", "2026-10-14": "90.0"}  # made up
+    fbil = {"2018-07-10": "70.1234", "2018-07-11": "70.5", "2018-07-12": "70.9", "2026-10-07": "91.0"}
+    assert overlap_rows(rbi, fbil) == [("2018-07-10", "differs")]  # A17d: a public row never holds FBIL's rate
