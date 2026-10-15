@@ -325,7 +325,7 @@ points above). So the extended void rule costs 0 of 40 sessions besides that one
 | Every day checked against the calendar; holes recorded (A16 Out of scope) | 3 (8 holes known from step 0) |
 | Raw to Drive, never in the repository (owner; 4.4) | 1, 9 |
 | One read per 90 days, about 30 calls (A16 Out of scope) | 1 (28 calls measured) |
-| Back-filled rows labelled `backfilled`, never live forecasts (orchestrator) | 6; the forecast label itself: G6 (out, with the fields it needs). G6 has no story text yet, so the condition is put to the orchestrator as a decision row in response 113 and as an open item in response 122, for G6's text to carry (judge 122 minor 3) |
+| Back-filled rows labelled `backfilled`, never live forecasts (orchestrator) | 6; the forecast label itself: G6 (out, with the fields it needs). G6 has no story text yet, so the condition is recorded as **decision 56 in response 113** (and as an open item in response 122), for G6's text to carry (judge 122 minor 3) |
 | Point in time: inputs only from rows with `first_seen_at` before the cutoff (5.7 rule 6) | 6 |
 | A16's layout read, not changed (orchestrator) | 11; the one allow-list constant stated |
 | Groww read-only, secrets only in the environment (owner; 6.6) | 10 |
