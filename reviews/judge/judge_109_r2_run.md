@@ -275,3 +275,49 @@ it be retaken next season under the same protocol.
 **Verdict: FAIL for adccf53f335c361fbace52dfa6b6a22fc99fce66** (the analysis run), on should-fixes 1-3. The code
 matches the protocol everywhere I read it. `AMENDMENT_2.md` is accepted, and the disclosure is harmless. The
 snapshot may be taken today as stated above. `study.py --run` may not run before a PASS on the fix commit.
+
+## Addendum 3 (15 Oct 2026): the fix commit at e634a36bb83d8b2f85d35fdccc437134230d14a8 (adccf53..e634a36)
+
+Changes: `snapshot_legs.py` (new), `analysis.py`, `sessions.py`, `wiring.py`, `study.py`, `FREEZE.md` (revision-1
+table), tests, `mutations.json`, response 109. Two commits beside it on the branch, 1738748 and 3ee3ab7, add only
+A12 board-meeting manifest rows: 494 appended, every status 200, 2018-12-01 to 2020-04-07 so far, none removed. The
+completeness check comes with the final fill commit.
+
+## Gates
+
+- `snapshot.py`, `r2study/snapshot_capture.py`, `PROTOCOL.md` and both amendments are byte-identical to adccf53.
+- All 28 rows of the revision-1 table match. Every `r2study/*.py` is listed.
+- Full suite at e634a36: **3,283 passed** (Slack token unset). `ruff check`, `ruff format --check` and `check_imports`
+  are clean. It merges cleanly with `origin/main`.
+
+## Findings of addendum 2
+
+| Item | Status | Evidence |
+|---|---|---|
+| SF1: my 8 surviving mutations | MET | Re-run on e634a36: M3, M10, M16, M17, M18, M23, M24 and M30 are all caught now |
+| SF2: the run rebuilds the legs and applies the 20% rule | MET | `snapshot_legs.rebuild` reads every quoted payload from the raw file and the previous session's option rows. It is the same lookup as the capture: chosen expiry, (strike, kind), `abs(steps)`, the stock's lot. "No row" (`row is None`) is now counted apart from "0 contracts". `usable` means at most 20% without a row. `analysis.py` uses the snapshot only when usable, else the answer is "cannot answer yet: no spread evidence". My plants N3 (no-row not counted), N4 (an unusable snapshot used) and N6 (signed steps) are caught |
+| SF3: the results name the snapshot | MET | `--snapshot PATH SHA256`. The raw Drive file must hash to the printed SHA-256 (`SnapshotMismatch`; plant N2 caught). `results.json["snapshot"]` records the path, SHA-256, start time, stocks, skipped stocks, legs, legs without a row, the share and whether it was used |
+| Minor 1: `check_frozen` hashes the protocol and amendments | MET in code; untested | `FROZEN` lists them. My plant N7 (dropping `PROTOCOL.md` from the list) survives; see minor A |
+| Minor 2: muhurat filing | MET | `Sessions.irregular` (days with a file that the calendar does not call sessions). A filing on such a day goes to the next session. Plant N5 is caught |
+| Minor 3: the cache outside the checkout | MET | `~/.cache/r2-study` |
+| Minor 4: the `--ready` parse disclosed | MET | In the revision-1 section of `FREEZE.md` |
+
+## New should-fix
+
+**1. The 20% boundary of the snapshot rule is untested.** Amendment 2 item 10 says "more than 20%" without a
+previous-session row, and the capture is then not used. The code (`no_row_share <= 0.20`) is right. But my plant N1
+(`<` instead of `<=`) passes all 110 research tests, so at exactly 20% (for example 200 of 1,000 legs) a wrong
+comparison would turn a usable snapshot into "cannot answer". This is the same class of rule as the 20% one-sided
+boundary, where the builder's own mutation found a real bug. Fix: a test at exactly 20% (usable) and just over it (not
+used). Tests are not frozen, so no hash changes.
+
+## Minor
+
+A. A test that `check_frozen` refuses a changed `PROTOCOL.md` or amendment (plant N7).
+
+B. Operator note: `snapshot.py` prints `Drive: raw/<path>`, while `--snapshot` wants the path under `raw/`, without
+the prefix. A wrong path stops the run loudly, so nothing is at risk, but say it in the run instructions.
+
+**Verdict: FAIL for e634a36bb83d8b2f85d35fdccc437134230d14a8**, on the one new should-fix (a boundary test). Everything
+else in addendum 2 is fixed and verified. A re-check needs only the new test or tests at the next SHA. The frozen
+files must stay as at e634a36. The snapshot plan of addendum 2 is unchanged.

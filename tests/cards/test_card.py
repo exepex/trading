@@ -39,6 +39,13 @@ def test_weather_is_never_a_colour_on_a_v1_card(tmp_path):
     assert not COLOURS.search(text)
 
 
+def test_missing_weather_says_it_blocks_new_trades_owner_rule(tmp_path):
+    _, text = card_of(planted(), tmp_path)
+    lines = text.splitlines()
+    weather = lines.index("Weather: not yet scored (M1 pending)")
+    assert lines[weather + 1] == "No new trades while the weather reading is missing (owner rule)."
+
+
 def test_each_question_shows_only_the_past_average_with_its_records_and_the_others_are_counted(tmp_path):
     _, text = card_of(planted(), tmp_path)
     assert "Forecasts on record: live capture of 2026-10-14 (not today's" in text

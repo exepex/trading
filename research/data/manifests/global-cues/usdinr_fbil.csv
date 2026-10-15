@@ -1,0 +1,3 @@
+fetched_at,path,url,form,sha256,size_bytes
+2026-10-15T06:16:31.010317+05:30,fbil/currency/reference-rate/2026/10/15/061631_reference-rates_20180710_20261015.json,https://www.fbil.org.in/wasdm/refrates/fetchfiltered?fromDate=2018-07-10&toDate=2026-10-15&authenticated=false,,9640e8714f64d679f5c7b0000d518eedacc6dadee3bb52c75b22d6843f65458e,1142651
+2026-10-15T06:17:49.533542+05:30,fbil/currency/reference-rate/2026/10/15/061749_reference-rates_20260906_20261015.json,https://www.fbil.org.in/wasdm/refrates/fetchfiltered?fromDate=2026-09-06&toDate=2026-10-15&authenticated=false,,35b253ec9761e7be59dea673487eeb89934aa994ea25473762e1685b00977c95,19465
