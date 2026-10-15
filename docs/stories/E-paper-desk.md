@@ -786,7 +786,10 @@ Drive-only (T1).
   committed run log. Before today's fills, the desk reads the last session's run log. If that log has no `exits` step
   (the run stopped before its exits), today opens no new entry, with one alert naming the day. A stop before any
   step (the recovery or the download) leaves no log, so a missing log blocks too once an earlier log exists (judge
-  159). Today's exits still run, and once they are done the next session opens normally.
+  159). A completed exits step can still hold a book whose review failed (an `error`, such as a Drive 503) or whose
+  due exits were held up for lack of a snapshot (a non-empty `waiting`): that book alone opens nothing new (ChatGPT
+  review 115). A day without a snapshot and nothing due blocks nothing. Today's exits still run, and once they are
+  done the next session opens normally.
 Out:
 - the raw quote files (A4b);
 - D3's decision records and C4's records (they hold no fill or mark; E2b's kept mids stay, as decided);
