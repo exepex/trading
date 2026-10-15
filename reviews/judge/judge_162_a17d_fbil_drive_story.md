@@ -55,3 +55,39 @@ carries the flag, the removal and the real adopt and comparison output together,
   commit the comparison read (`git log` on that path). If it changed, adopt the newer copy and compare again.
 
 **The earlier note still holds:** no FBIL fill between the adopt and the merge.
+
+## Addendum 2 (15 Oct 2026): A17d code at 2a9c8b5e23926e45dfb335ddac158fdfab4bebbe
+
+- The tip is 2a9c8b5e: a8bf179e plus the claims renamed to `response_158` (no code change).
+- The code is 7d2e647f; the removal, in its own commit, is cd29c930.
+
+### Gates
+
+- 5,862 passed (the builder's figure); ruff and imports clean.
+- `merge-tree` with `origin/main`: only `reviews/claude/README.md` (index rows); `WORK_REGISTER.md` auto-merges.
+
+## Verdict: PASS (code)
+
+| Check | Status | Evidence |
+|---|---|---|
+| The diff is what the story said | MET | The flag: `FbilUsdInrSource.private = True` (`other_sources.py`). The overlap: `OVERLAP_FIELDS = ("date", "kind")`, and `overlap_rows` returns `(day, "differs")`. The removal commit cd29c930: the table (1,982 lines) and FBIL's 171 gap rows. Plus docs and docstrings. No new class or path |
+| Committed-files test | MET | `test_no_private_cue_has_a_table_or_values_in_the_repository` now expects `{"sp500", "nasdaq100", "usdinr_fbil"}`. It fails on a private cue's `.csv`, on its name in the revisions file or in `gaps.csv`, and on a copy log with any column beyond paths, URLs, hashes and sizes |
+| No real rate in fixtures | MET | `test_sources.py` uses 91.2345 and `test_as_of_checks.py` uses 70.x, both marked "made up". The old 96.623 and 68.7942 are gone |
+| My merge-time condition | MET | The comparison read `git show origin/main:research/data/global-cues/usdinr_fbil.csv`. My own `git log -1 origin/main -- research/data/global-cues/usdinr_fbil.csv` is d359fc3e, the same commit, so no newer row was missed |
+
+### Ruling on the `first_seen_at` deviation from criterion 5's "equal SHA-256": ACCEPTED
+
+- **The fact.** On all 1,981 rows, rate, `source_sha256`, date and provenance are equal. Only `first_seen_at` differs.
+  The original fill stamped the fetch instant `06:16:31.010317`. `adopt` takes the copy's path time, which holds whole
+  seconds (`COPY_TIME = "%Y/%m/%d/%H%M%S"`). With seconds kept on both sides, the two tables hash the same
+  (`3dc8f54d…ca2b`).
+- **Why it is acceptable.** The Drive table says the rows were first seen at most 0.010317 s earlier than they truly
+  were. `first_seen_at` decides "known at decision time". Every one of these rows was first seen at 06:16 IST on
+  15 Oct, hours before any decision cutoff, so a 10-millisecond shift cannot move any row across any cutoff.
+- **The change is A17's own adopt path,** which the story chose. Matching the old sub-second stamp would need new code
+  for a difference that changes nothing.
+- **Criterion 5 is met in substance:** equal rows and equal values, with the precision difference stated.
+
+**Verdict: PASS for 2a9c8b5e23926e45dfb335ddac158fdfab4bebbe** (code). It may merge: pull, the full suite on the
+merged tree, and the FBIL path's last commit on `origin/main` checked once more at merge time. No FBIL fill runs before
+the merge.

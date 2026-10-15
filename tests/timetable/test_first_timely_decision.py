@@ -104,3 +104,31 @@ def test_a_ten_run_day_is_ordered_by_commit_time_then_counter_never_by_name(tmp_
     assert source.committed(BOOK1_RULES, NORMAL, DEADLINE).run_id == f"{NORMAL}-r10"
     listed = [o["run_id"] for o in source.others(BOOK1_RULES, NORMAL, f"{NORMAL}-r10")]
     assert listed == [f"{NORMAL}-r{n}" for n in range(1, 10)]
+
+
+def test_two_original_runs_of_a_book_give_one_integrity_alert_and_only_the_first_counts(root, tmp_path, alerts):
+    """ChatGPT review 107 (story E5b's code): a session fired twice, or two checkouts deciding at once (decision 67
+    keeps no pre-commit re-check, so both can reach origin). A correction is not a second original."""
+    repository(root)
+    commit_run(root, BOOK1_RULES, 1, 3)
+    commit_run(root, BOOK1_RULES, 2, 5)
+    commit_run(root, BOOK1_RULES, 3, 6, corrects=FIXED)
+    run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), Decisions(), C4(), Rules())
+    run.steps.decisions = collector(root)
+    run.steps.decisions.observe = lambda: "origin-head"
+    clock.now = DEADLINE
+    assert run.steps.collect_decisions(NORMAL).result[BOOK1_RULES]["run_id"] == f"{NORMAL}-r1"
+    (alert,) = alerts.sent
+    assert f"2 original runs ({NORMAL}-r1, {NORMAL}-r2): only {NORMAL}-r1 counts" in alert
+
+
+def test_one_original_and_its_correction_give_no_alert(root, tmp_path, alerts):
+    repository(root)
+    commit_run(root, BOOK1_RULES, 1, 3)
+    commit_run(root, BOOK1_RULES, 2, 5, corrects=FIXED)
+    run, clock, *_ = daily_run(root, tmp_path, alerts, (BOOK1_RULES,), Decisions(), C4(), Rules())
+    run.steps.decisions = collector(root)
+    run.steps.decisions.observe = lambda: "origin-head"
+    clock.now = DEADLINE
+    run.steps.collect_decisions(NORMAL)
+    assert alerts.sent == []

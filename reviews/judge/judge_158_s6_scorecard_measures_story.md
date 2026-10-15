@@ -129,3 +129,39 @@ simplicity rule: see (f). Rule 9 applies at code time (the do-nothing comparison
 
 **Verdict: FAIL for ba61fe04006cf19565df5b5a37c85e918d0bc636** (story text). Fix blocking 1-2 and should-fix 3-7, then
 re-judge; code waits.
+
+---
+
+## Addendum 1: re-judge at a18a6bed167fa916f9ae557abfda25f9dc8c6fca
+
+Diff `ba61fe04..a18a6bed`: `docs/stories/S-scoreboards.md` (S6, S3), the register row, plus a merge of `main`. Gates:
+ruff, format and `check_imports` clean. `tests/forecast/test_backfill.py` fails 2 of 3 here, identically on
+`origin/main` and on `ba61fe04` in this container, so it is not from this branch (orchestrator to check it on main).
+
+| Finding | Fix | Accepted? (my evidence) |
+|---|---|---|
+| B1 scoreboard A | S3 text: per book `measures` (rupees only, no brake on a shadow) and view (a), S3 criterion 5 "computed by S6's functions" | Accepted. No view (b) on A is right: A has no account, only one-lot positions |
+| B2 view (b) | Criterion 6: real October days, Rs 20 lakh, two boundaries (no trade, all tied) | Accepted (minor 2 below) |
+| S3 gap list | Table of 21 requirements to sections and criteria; bucket-weeks out, orchestrator assigns | Accepted; I traced each row to the text. One label slip (minor 1) |
+| S4 0 ÷ 0 | Null "no capital tied"; criterion 7 with the overridden and pre-trade sections | Accepted |
+| S5 E2c | "Built after E2c", adds its port to E2c's wiring; Depends lists E2c | Accepted |
+| S6 E6 | Gate stays on board B per book and version; criterion 11 checks trade IDs and closed net equal E6's card | Accepted. The reason holds: E6 has no capital, index or daily series, and `fno/scorecard/review.py` is in S1's frozen list (`PROTOCOL.md:303`) |
+| S7 boundaries | 40 sessions; exactly 10% and one over (random control); exactly 10% miss cap (S3 crit. 3) | Accepted |
+| Minors 1-4 | One fund sale at the section end, one exemption, loss untaxed (crit. 8); capital-at-entry Known limit; strike window widened to the real strike (crit. 10); bold titles cited | Accepted |
+| Cut (f) | Only per-trade and bucket caps replayed (Known limit); random control code built last | Accepted |
+
+**BR1 "luck control":** no overlap today. BR1 is a register row only (design proposal first, no text in the repo);
+its luck control belongs to cross-sectional prediction tests across underlyings, while S6's ranks a book's own closed
+trades against direction and strike twins. Reasoning only. If BR1's proposal ever adds a random-trade control on
+paper trades, it must reuse S6's.
+
+### New minor notes (no re-judge needed)
+
+1. The gap list says scoreboard A is covered by "criterion 4b"; it is S3 criterion 5.
+2. Criterion 6's "no trade: view (b) equals the cash benchmark exactly" holds only with zero operating costs (the
+   section's net subtracts them). Say "with zero operating costs" in the fixture.
+3. Per book and version: a version traded by two books gives RM1 two `beats_index_after_tax` values. RM1 (out of
+   scope) must say how it combines them; one line in RM1's text when it is written.
+
+**Verdict: PASS for a18a6bed167fa916f9ae557abfda25f9dc8c6fca** (story text). Code may start, E2c first; rule 9
+(ChatGPT after the judge) applies to the code, since the do-nothing view feeds the real-money gate.

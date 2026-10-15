@@ -237,7 +237,7 @@ source and availability time; an item available after the cutoff is refused. A p
 **Judge verifies:** rebuilds one day's packs from committed inputs and compares hashes; greps the common pack for any
 book field.
 
-**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** built on branch `story/e2-market-pack`; awaiting judge (claims: `reviews/claude/response_74_e2-market-pack.md`)
+**Depends:** A3, A4, A6, A7, D1, E1 (D4 and D5 for the private packs of books 2 and 3) · **Size:** M · **Status:** done: judge 72 PASS (be9bc5e; delta b2749a6), merged b4f1e1b (claims: `reviews/claude/response_74_e2-market-pack.md`)
 
 ---
 
@@ -601,7 +601,112 @@ it records "no approved strategy" each day (that is a result, not an error).
 
 **Judge verifies:** replays three Book-1 records.
 
-**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** built on `story/e5-book1`, judge pending; not live (no routine; until C4 merges and writes `validity.c4`, no Book 1 order can fill) (claims: reviews/claude/response_85_e5-book1.md)
+**Depends:** C4, D2, D3, E2, E3 · **Size:** S · **Status:** done: judge 84 PASS (e3e0346), merged 58f5781; not live (no routine yet) (claims: reviews/claude/response_85_e5-book1.md)
+
+---
+
+## E5b. Book 1's decision command: one decision a day, and a failed commit alerts once and is recovered
+
+**Repository:** trading
+
+**Description:** As the owner, I want Book 1 to hold at most one decision a day, and `fno desk book1` to handle a
+failed commit the way E3's daily run now does (story E2b, decisions 44 and 47): one alert, a clear line, exit code 1,
+no traceback, and a rerun that commits the recorded decision as it was made. That way a later run can never re-decide
+the day with later data (a look-ahead hole in the book's record), and a refused or rejected commit is never silent.
+
+**Context and why:** Orchestrator decisions 46, 57 and 59 (judge 118 addenda 3 and 7; judge 123). Today `Book1.decide`
+(`fno/books/book1.py:74`) calls `GitCommitter.commit`, which raises `CommitFailed` on any refusal or git failure (a
+raw quote file in the index, a failed pull, a push rejected three times, an unpushed commit it did not make). Nothing
+catches it, so the command ends in a traceback and nothing reaches #fno-desk. A rerun with byte-identical inputs then
+returns "already decided" (`DuplicateRun`, `fno/playbook/decision_store.py:72-75`) without committing, so the first
+decision stays uncommitted (or committed but unpushed) for good; with any changed input it decides again as a second
+run beside the first, so the day holds two decisions, and E3's collector takes the latest one committed before the
+deadline (`fno/desk/committed_decisions.py:36-41`). A rerun at 15:08 with fresher data would then replace the 15:00
+decision: a look-ahead hole (decision 57). The judge's note (addendum 7): a Book 1 decision commit left unpushed in a checkout
+also stops E3's daily run in that same checkout at its first commit (an unpushed commit the run did not make, decision
+51), so its exits are not reviewed until the decision is resolved.
+
+**Scope.** In:
+- **One Book 1 decision a day: the prevention (decision 59 a).** Before deciding, `Book1.decide` fetches origin and
+  looks for a Book 1 run of the day in three places: `origin/<branch>`'s decision folder, this checkout's `HEAD`, and
+  this checkout's day folder on disk. A run found anywhere means it never decides again, whatever the inputs. Then:
+  - **on origin, or committed here:** it reports "already decided" (after pushing a commit left unpushed, below);
+  - **recorded by the pending marker:** it recovers the pending commit (below);
+  - **on disk only, neither committed nor in the marker** (a stop between the decision and the marker write; judge
+    123 should-fix 2): one alert naming the run and the hand fix. The fix is to inspect it, then commit it as recorded
+    with `fno desk book1 --commit-run <run_id>`, or remove it before the deadline. Never a quiet "already decided",
+    never a new decision. `--commit-run` refuses a run whose files D3's own check finds edited
+    (`DecisionStore.edited`, the run's `records.sha256`), and it never runs D2.
+  A second check sits just before the commit. Book 1's committer is given a check of the pulled tree (one new
+  optional argument on the `Committer` port, run by `GitCommitter` after its pull and before it commits). That check
+  refuses to commit a new Book 1 run when the pulled tree already holds another for the day, through `CommitFailed`,
+  so it gets one alert. This covers two checkouts deciding at the same time (a scheduled session fired twice, or a
+  retry in a fresh container).
+- **Changed inputs on a decided day.** The day's inputs are recomputed and serialized as `DecisionRun` writes them,
+  then compared byte for byte with each input file the run records (today `inputs.json`). When they differ, one alert
+  states the fact and names each differing file and the top-level fields that differ ("inputs changed after
+  decision <run_id> ...; not re-decided"). Nothing is acted on.
+- **The guarantee is in D3b, not here (decision 59 b).** E3's collector will take the *first* non-correction run
+  committed before the deadline, for every book. Then a second run that slips past this story's checks still never
+  becomes the day's decision. This story is the prevention, and D3b carries the guarantee. Both are needed: the
+  prevention alone depends on every writer checking, and the guarantee alone would still let a second run be written
+  and published.
+- `cmd_book1` (`fno/books/book1_cli.py`) catches `CommitFailed`: one alert to #fno-desk through the same alert
+  sender as the daily run, the same text printed as one line, exit code 1, no traceback. The text names the cause and
+  what it blocks: the decision is not public yet, so it is not on time unless it is pushed before E3's deadline, and
+  a daily run in this checkout stops at its first commit until it is resolved. The hand fix: remove the cause, then
+  rerun `fno desk book1`.
+- Book 1's commit goes through E2b's `PendingCommitter` (a second use of the same class, with its own marker
+  `journal/runs/.pending_book1.json`, git-ignored), so the rerun's first act commits the recorded decision files
+  exactly as they are on disk, pushes a commit left unpushed, and never runs D2 again. A changed or missing file
+  stops the rerun with the alert naming it. Nothing is regenerated.
+- Its own marker, not the daily run's: the two commands may run in one checkout at overlapping times, and one shared
+  marker could be overwritten.
+Out:
+- D3's shared store rule (`DecisionStore`: same inputs refused, new inputs make a new run;
+  `tests/decisions/test_records.py::test_the_same_inputs_twice_are_refused_new_inputs_make_a_new_run`) stays as it is.
+  It serves every book and D3's corrections (a new run linked by `corrects`, `test_a_correction_is_a_new_run_linked_to_
+  the_record_it_corrects`). The one-a-day rule is Book 1's, in `Book1.decide`; books 2 and 3 take it when they are
+  built (F5, F6). No existing test expects Book 1 itself to decide twice (checked: `tests/book1/`);
+- E3's collector and D3 corrections: decided by decision 59 (b) and carried by story D3b (decision 58). The collector
+  takes the first non-correction run before the deadline, and corrections are recorded and shown but never become a
+  book's timely decision;
+- any change to on-time rules: E3's collector decides from what origin shows at the deadline (`committed_at` before
+  the deadline and visible then), so a decision pushed by a rerun after the deadline is late, as today;
+- automatic retries or schedules (no routine runs `fno desk book1` yet);
+- the daily run itself (E2b).
+
+**Decided (orchestrator decision 57):** option A, recovery with Book 1's own marker (one new constructor argument on
+E2b's class, the marker name), plus the one-decision-a-day rule. Option B (alert only, with a hand fix) was not taken.
+
+**Acceptance criteria:**
+0. Decide, change an input, rerun: one decision run for the day; one alert naming each input file that differs byte
+   for byte from the run's recorded copy, and the fields; the decision files byte-identical. The same holds in each of
+   three states: the decision committed, recorded only by the marker, or on disk only (then the alert gives the hand
+   fix, and `--commit-run` commits it unchanged or refuses an edited run). A rerun with unchanged inputs on a committed
+   decision reports "already decided" with no alert. Two checkouts of one bare origin each run `fno desk book1` for the
+   same day, one after the other and also with the second pulling only after the first decided: origin ends with
+   exactly one Book 1 run, and the second gets "already decided" or a refused commit, with an alert (tests).
+1. With the real `GitCommitter` and a bare origin, a staged raw quote file, an unreachable origin and a push rejected
+   three times each give exactly one alert naming the cause, one printed line, exit code 1 and no traceback (tests).
+2. After the cause is removed, a rerun commits the decision files byte-identical to the first run's, with D2 run once
+   in total, and origin then holds the decision; a push left unpushed is pushed by the rerun (tests).
+3. A decision file changed after the failure stops the rerun with an alert naming it; nothing is committed and D2 is
+   not run again (test).
+4. Book 1's marker and the daily run's marker are separate files; a pending Book 1 commit does not change what the
+   daily run's recovery commits (test).
+5. A successful decision prints the same line as today, and exit code 0 (test).
+
+**Test plan:** CLI and unit tests with real git against a bare origin, a fake alert sender (nothing posted), broken-code
+proofs per criterion.
+
+**Judge verifies:** reruns criteria 0 and 2 by hand; plants a second decision on changed inputs, a skipped origin
+check, a skipped pre-commit check, a quiet "already decided" for an on-disk-only run, a missing catch, a shared
+marker and a skipped hash check.
+
+**Depends:** E2b (merged first: `CommitFailed`, `PendingCommitter`); D3b carries the collector's guarantee
+(decision 59 b) and can merge in either order · **Size:** S · **Status:** story text on
+`story/e5b-book1-commit-failure`, for the judge's story check (response 123)
 
 ---
 
@@ -651,7 +756,7 @@ or retires (D1). Judge 67: a paper version whose live feature drifts drops out o
 
 **Judge verifies:** recomputes one scorecard number from the records.
 
-**Depends:** C1, D1, E4 · **Size:** M · **Status:** built; awaiting judge (branch `story/e6-scorecard`, claims
+**Depends:** C1, D1, E4 · **Size:** M · **Status:** done: judge 73 PASS (round 3 be69a08), merged 374ad67 (claims
 `reviews/claude/response_75_e6-scorecard.md`)
 
 ---
@@ -707,3 +812,122 @@ settled), choosing exits (E4's rules and the playbook).
 
 **Depends:** A2, C1, C2, E1, E4 · **Size:** S · **Status:** done (judge 71 PASS; merged f655612; claims `reviews/claude/response_73_e7-expiry-settlement.md`)
 claims `reviews/claude/response_73_e7-expiry-settlement.md`)
+
+---
+
+## E2c. Per-contract paper fills, marks and equity history in Drive; per-book daily totals in public
+
+**Repository:** trading
+
+**Description:** As the owner, I want every paper record that names a contract's price, and every mark, kept in Drive,
+with only per-book daily totals in the public repository. Then no one can rebuild a Groww quote from the public record
+(owner "6 A" and "8 A").
+
+**Context and why:** Owner decision, 15 Oct 2026 (`docs/DESK_DECISIONS.md`): "Per-contract paper fills, marks and
+equity history move to Drive before the first counted paper fill (story E2c)" ("A: move to Drive"). ChatGPT review
+105, point 1 (strong evidence: algebra) found the leak that E2b left open. A public fill at the ask `a`, together with a
+public mark `m` of the same contract at the same snapshot, gives the bid: `b = 2m - a`. For a book with one open
+contract, `m` is `(marked_equity - cash) / units` (`equity_history.csv`, scoreboard B's `raw_account_net_rs`). STR1's
+single-leg structures (LC, LP) make this a real path, not an imagined one. Response 131 records the rule (the public
+record keeps per-book daily totals only) and review 105's point 3 (a run with an unrecovered stop opens nothing). No
+paper fill has happened yet (no strategy approved), so the move costs no history.
+
+**What is public today and where each part goes (checked in code on `main`):**
+
+| File (committed today) | What it holds | Goes to |
+|---|---|---|
+| `journal/<book>/account/cash_ledger.csv` (E1) | every fill: contract, quoted and fill price, charges | Drive |
+| `journal/<book>/account/desk_fills.csv`, `desk_events.csv` (E4) | every leg's fill; events with reasons and legging cost | Drive |
+| `journal/<book>/account/positions.json` (E1) | open and closed trades with their money | Drive |
+| `journal/<book>/account/equity_history.csv` (E1) | daily cash, closed and **marked** equity | Drive |
+| `research/scoreboards/B/<date>.json` (S2) | per-trade lines and marked results | Drive |
+| `journal/<book>/packs/<date>/private.json` (E2, committed by E3's pack step: `daily_steps.py:85`, `pack_store.py:28`) | the full text of the book's own files, its account folder included (`private_pack.py`) | Drive; its `private.json.sha256` stays public (D3 records the pack's hash as evidence) |
+| new: `journal/<book>/daily_totals.csv` | per book, one row per date with a ledger row (closed equity cannot change without one): `date`, `closed_equity_rs`, `open_trades`, `closed_trades`, `fills` (a count) | public |
+
+`closed_equity_rs` is the opening cash plus the net of closed trades only. It holds no cash for open positions and no
+mark. A closed trade's net is the sum of its fills at different snapshots, so it gives no bid-ask pair (reasoning).
+The run log keeps what it holds after E2b (outcomes, run IDs, snapshot IDs, no prices). The daily card is already
+Drive-only (T1).
+
+**Scope.** In:
+- **Where the files live.** A book's account folder becomes local and git-ignored. Its files are kept in Drive through
+  A4b's Drive store, under their repository paths in the `paper` area (`paper/journal/<book>/account/`; judge 159
+  accepted the whole path, so one rule covers accounts, packs and scoreboard B), with the same names and formats (E1,
+  E4). Shadow accounts go the same way (`paper/journal/shadow/<name>/account/`).
+- **The writer.** Every account write (fills, exits, settlement) runs as one `DriveAccountSync`, behind E3's existing
+  `AccountSync` port and replacing `GitAccountSync` in `fno/desk/daily_wiring.py`:
+  - download the book's files from Drive;
+  - apply under E1's lock;
+  - upload the changed files, the desk fills first and the desk events last (judge 159: a push that stops part way
+    leaves a state the rerun completes; an entry's event is its "done" marker, and a ledger fill never reaches Drive
+    without its desk row);
+  - then write and commit `daily_totals.csv`.
+
+  The daily run is the only writer of accounts (E3), so the git reset-and-reapply logic for competing writers goes:
+  one writer, no merge.
+- **The private packs.** E2's pack builder writes each book's `private.json` to Drive beside the account. Only its
+  `private.json.sha256` is committed, and D3 records the pack's hash, as today. Book 1's decision hashes its pack for
+  D3's record (`fno/books/book1_inputs.py:42`), so it needs the downloaded copy.
+- **The readers: one shared download at the start of each run or command that reads accounts or private packs.**
+  The function fetches every book's account and private packs from Drive into the git-ignored local folders. It runs
+  once, before anything reads them. The readers are:
+  - E3's daily run (fills, exits, settlement, the C3 and C4 checks);
+  - Book 1's decision (C2's view of the book, trade counts, opening runs, its private pack: `fno/books/book1_wiring.py`);
+  - C4's `LedgerAccounts` (`fno/checks/validity_account.py`, wired in `fno/checks/wiring.py:91`). Its replay stays
+    valid on the Drive copy, because C4 counts only the ledger rows filled by the decision cutoff, and the ledger is
+    append-only;
+  - T1's card (`fno/cards/status.py:29`, `:83-100`). It reads `positions.json` from the downloaded folder, no longer
+    from the committed record;
+  - E6's scorecards (`fno/scorecard/wiring.py`);
+  - scoreboard B (`fno/scoreboard/wiring.py`), which writes its board to Drive, not to `research/scoreboards/B/`;
+  - Home's read model (`fno/market_read_models/home_inputs.py`), which publishes to the dashboard's Azure store as
+    today;
+  - E1's account command (`fno/composition.py`), and the shadow books (`fno/desk/shadow_books.py`), whose accounts
+    are downloaded with the books'.
+- **The move itself.** Today's committed account files hold only the opening rows. They are uploaded to Drive once,
+  then removed from the repository (`git rm`, the history keeps the opening rows only), and the folder is ignored.
+- **A stop before the exits blocks new entries** (review 105 point 3; response 131). E3's rerun recovers a stop in the
+  same checkout (E2b). But the daily routine starts in a fresh container each day, so the stop can only be seen in the
+  committed run log. Before today's fills, the desk reads the last session's run log. If that log has no `exits` step
+  (the run stopped before its exits), today opens no new entry, with one alert naming the day. A stop before any
+  step (the recovery or the download) leaves no log, so a missing log blocks too once an earlier log exists (judge
+  159). A completed exits step can still hold a book whose review failed (an `error`, such as a Drive 503) or whose
+  due exits were held up for lack of a snapshot (a non-empty `waiting`): that book alone opens nothing new (ChatGPT
+  review 115). A day without a snapshot and nothing due blocks nothing. Today's exits still run, and once they are
+  done the next session opens normally.
+Out:
+- the raw quote files (A4b);
+- D3's decision records and C4's records (they hold no fill or mark; E2b's kept mids stay, as decided);
+- any change to how fills are priced (E4, E4c).
+
+**Acceptance criteria:**
+1. After a day with fills and exits, no committed file holds a contract's fill price, a mark, cash or marked equity:
+   a test runs a fixture day end to end (the pack step included) and scans every committed file, the private packs'
+   folders included, for the day's prices and marks.
+2. `daily_totals.csv` holds, per book and date with a ledger row, exactly the five columns above, matching the Drive account by
+   hand on a fixture day (one entry and one closed trade).
+3. After the shared download, the daily run, Book 1's decision (with its private pack), C4, T1's card, E6, scoreboard B
+   and Home read the same values as they read from the local folder before (one test each, on a fake Drive store).
+4. A Drive write that fails stops the account write with E3's alert. Nothing is committed for that step, and the rerun
+   repeats the write (E1's fills are idempotent by fill ID).
+5. With the last session's run log holding no `exits` step, today's fills step opens nothing and sends one alert, and
+   today's exits still run. With the step present, entries open as usual.
+
+**Test plan:** a fake Drive store (A4b's), a fixture day end to end, the committed-file scan (packs included), and one
+reader test each.
+No network, no Slack.
+
+**Judge verifies:** runs the fixture day and greps the committed tree for the day's prices; recomputes one
+`daily_totals.csv` row by hand; checks the stop-blocks-entries test.
+
+**Known limits:**
+- The read models go only to the dashboard's Azure store behind sign-in (judge 148). P2 or any later job must never
+  commit a page holding these fields to a public repository.
+- Two daily runs on one book at the same time would race on Drive (no lock across containers). Only one routine runs
+  the desk.
+- A closed single-leg trade's net, kept owner-only here, is not a bid-ask pair (its fills are at different snapshots).
+- Every command that reads the accounts needs Drive's four `FNO_GDRIVE_*` settings, `market publish --local`
+  included; without them it stops with one line rather than read a stale copy.
+
+**Depends:** A4b (the Drive store), E2b, E3, E4 · **Size:** M · **Status:** code on `story/e2c-fills-to-drive`
+(response 150, first numbered 148; story text PASS judge 148 add. 1; code judge 159 FAIL, fixes for the re-check)

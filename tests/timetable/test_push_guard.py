@@ -10,10 +10,9 @@ import pytest
 from fno.desk.daily_run import RunStopped
 from fno.desk.git_sync import GitCommitter
 
-from .fakes import Decisions
+from .fakes import RAW_QUOTE, Decisions
 from .test_commit_failure_run import git
 from .test_daily_run import NORMAL, run_day
-from .test_raw_quote_refusal_run import RAW_QUOTE
 from .test_rerun_after_stop import REJECT_EXITS, FilePacks, origin_messages, real_run
 
 

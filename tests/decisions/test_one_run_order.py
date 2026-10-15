@@ -5,7 +5,10 @@ import ast
 
 from fno.config import ROOT
 
-OWNERS = {"fno/playbook/decision_store.py"}  # the store itself: listing, the next run ID, the duplicate check
+OWNERS = {
+    "fno/playbook/decision_store.py",  # the store itself: listing, the next run ID, the duplicate check
+    "fno/books/decided_runs.py",  # story E5b: whether any run of the day exists (a set of names), never which is first
+}
 
 
 def day_run_calls(tree: ast.AST):

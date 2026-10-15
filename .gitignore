@@ -6,14 +6,19 @@ __pycache__/
 .claude/worktrees/
 nse_raw_download.zip
 
-# Single-writer lock files of the paper accounts (journal/<book>/account/.lock): local to one machine
-journal/*/account/.lock
-journal/*/account/*.tmp
+# The paper accounts, private packs and scoreboard B live in Google Drive (story E2c, owner 15 Oct 2026, "A: move to
+# Drive"): the local copies are downloaded for reading only; the public record keeps journal/<book>/daily_totals.csv
+journal/*/account/
+journal/shadow/*/account/
+journal/*/packs/*/private.json
+research/scoreboards/B/
 .ai_book/
 
 # A daily-run commit that failed, kept for the rerun to commit as recorded (story E2b, decision 47): local only
 journal/runs/.pending_commit.json
 journal/runs/.pending_commit.json.tmp
+journal/runs/.pending_book1.json
+journal/runs/.pending_book1.json.tmp
 
 # Raw Groww quote files live in Google Drive only (owner, 15 Oct 2026, "6 A"; story A4b): the repository keeps each
 # attempt's sidecar and the day's canonical marker
