@@ -30,3 +30,19 @@ Date: 15 Oct 2026 (UTC). Branch `story/m2-weather-alerts` at **e12240628d0117cf9
    14:05 start. That belongs to O1 and G10 at go-live; set `daily.live_from.weather` only after it.
 
 **Verdict: PASS for e12240628d0117cf925c4fe987114e9ae136b54b** (story text). Code after O1 merges, as the text says.
+
+---
+
+## Addendum 1 (judge E): f52207f3, the three notes added: PASS
+
+- **Text only.** `git diff origin/main...f52207f3` touches `docs/stories/M-weather.md` only (+8/-2). The other commits
+  in the range are `main` merged in.
+- **Note 1:** the message reads `probabilities[<operative>].v6_abs_move_2pct_next_session` and
+  `...within_5_sessions`, with `probabilities.base_rate` beside them. Criterion 4 now plants a value in the record's
+  `drivers.us_move` and in Drive's fake, and requires both to be absent. Matches.
+- **Note 2:** a Known limit records that a commit failure after Slack accepted the alert means a hand rerun sends it
+  again. Matches.
+- **Note 3:** a Known limit records that M2 goes live only after G10's 14:05 start, with `live_from.weather` set after
+  it. Matches.
+
+**Verdict: PASS for f52207f3** (story text). It may merge.
