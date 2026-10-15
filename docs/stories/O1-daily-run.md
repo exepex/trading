@@ -75,8 +75,13 @@ In:
 - **The run-log contract for O8** (to agree with O8's builder; O8's text today says "all six steps present"):
   - the file's shape is E3's, unchanged: `{"day", "kind": "daily_run", "steps": {name: {started_at, finished_at,
     inputs, result}}}`;
-  - the expected step names are one tuple, `DAILY_RUN_STEPS` in `fno/constants.py`, which O8 imports (no count typed);
-  - every O1 step's `result` carries `status` (`ok`, `failed`, `refused`, `not_live`) and `reason`;
+  - the expected step names are one tuple, `DAILY_RUN_STEPS` in `fno/constants.py`, which O8 imports (no count typed),
+    and **the tuple the run itself loops over**, never a parallel copy (agreed with O8's builder, 15 Oct): O8's private
+    `DESK_RUN_STEPS` and its source-parsing test are replaced by it. `fno/constants.py` is at 337 of 350 lines (343 on
+    O8's branch): the tuple takes at most two lines, and whoever passes 350 splits out a cohesive block, never squeezes;
+  - every O1 step's `result` carries `status` (`ok`, `failed`, `refused`, `not_live`) and `reason`; O8 reads `failed`
+    and `refused` as a problem with its reason, `not_live` as present but neither missed nor a problem, and an absent
+    step as missed (as now);
   - lateness stays O8's rule: `decisions.finished_at` against `desk.timetable.decision_deadline`;
   - a closed day keeps E3's single `skipped` step.
 - **The prompt text lives once:** CLAUDE.md section "Daily desk routine" replaces the "3 pm quote recorder" section
@@ -101,8 +106,10 @@ O2's end-to-end failure suite.
    tests pass); the canonical is committed and pushed inside the step, before `pack` waits for it.
 5. **The card is T1's.** It runs after `exits`, posts once, and still posts naming any earlier step that failed.
 6. **Not live.** A step before its `live_from` is `not_live` and calls nothing (fake proves no call).
-7. **O8's contract.** `DAILY_RUN_STEPS` holds every step name the run can write; a test fails if the run writes a name
-   not in it. Whichever of O1 and O8 merges second adds the test that O8 reads this tuple.
+7. **O8's contract.** The run's plan is built from `DAILY_RUN_STEPS` (a test: the steps a full fake day writes are
+   exactly the tuple, in its order; renaming one step in the tuple renames it in the log). Whichever of O1 and O8 merges
+   second makes O8 import the tuple, deletes `DESK_RUN_STEPS` and its source-parsing test, and adds a test that O8's
+   desk check reads the tuple.
 8. **One prompt.** The CLAUDE.md section (A) or the workflow (B) is the only place the start is written; a test checks
    it names `python -m fno daily run` and `routine_setup.sh`; after the owner pastes it, the stored prompt is read back
    and matched once (conversation log).
