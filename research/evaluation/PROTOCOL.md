@@ -376,6 +376,8 @@ an item open. `--decided` also requires the owner's decision on every item; the 
     Exactly 10% is not over the cap.
 - **Status:** decided by the owner on 2026-10-15
 - **Reason:** Owner, 15 Oct 2026: "A observed, B as it ran". It matches S3 criterion 3; the 10% figure is G9's.
+  Decided 15 Oct, refined 16 Oct (owner: "Yes, count it", DESK_DECISIONS row "S3 missed runs: one book's unscored day
+  counts as its miss"): a book's own unscored day is its miss.
 - **Evidence:** reasoning only
 
 ### `random_control` Random-strategy control (story S6)
