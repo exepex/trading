@@ -143,6 +143,13 @@ Only the `e4_1515` view fills the same day.
      n lines must hash to the sealed value, or the step is refused (rule 11, fail closed). A row outside that version
      is ignored, and the report counts it as a "late away entry". So "away" can never be chosen after the prices are
      known.
+   - In plain words: an away date counts only if it is in the Drive file before the run starts on the session before
+     the trade (the decision day, whose run seals the file before the card).
+   - **The hashed lines** are the file's first n lines with trailing whitespace and CR removed, joined with LF, so an
+     editor re-saving the file with other line endings changes nothing.
+   - **Repair after a mismatch.** A changed sealed line (for example the owner fixing an old typo) refuses the step,
+     and the alert names the repair: restore the last sealed version from Drive's version history, then append any
+     change as a new row. The step never re-seals over a mismatch.
    - The salt is there because a calendar of a few dates is guessable: a bare hash could be reversed by trying
      calendars.
    - Until the owner writes the file, every session counts as available.
@@ -180,9 +187,11 @@ Only the `e4_1515` view fills the same day.
       would see yesterday's positions without today's fills and understate open risk. So that day no book opens a
       new entry, through E2c's per-book `_unreviewed` block, while exits still run. O1's `Alerted` wrapper sends one
       alert and the run goes on.
-    - **Its own time limit** (judge D, judge 178 addendum 5). The step is not under O1's 10-minute part limit, so it
-      has its own; a time-out counts as a failure (new entries fail closed, exits still run), so a hung Drive or A16
-      read can never hold up the day's exits.
+    - **Its own time limit** (judge D, judge 178 addendum 5; judge 193 addendum 4). The step has 10 minutes, O1's
+      part limit. A timer cannot stop a thread stuck inside a read, so the limit is enforced by the reads themselves:
+      every Drive and A16 read the step makes carries a network timeout of 60 seconds, and the step checks its
+      10-minute deadline before each read. A timed-out read or a passed deadline is a step failure (new entries fail
+      closed, exits still run), so a hung read can never hold up the day's exits.
 12. **Point in time.**
     - The decision must be committed before its card's T.
     - T must come from a delivery record.
@@ -305,7 +314,9 @@ one. The ±0.5% band figure behind the choice was about 32%, not the 17% of an e
 7. **Availability.**
    - An `away` row in a version sealed before T moves the fill to the next session.
    - A row appended after the last seal before T is ignored and counted as a late away entry.
-   - A Drive file whose sealed prefix no longer matches its hash (a line changed or deleted) refuses the step.
+   - A Drive file whose sealed prefix no longer matches its hash (a line changed or deleted) refuses the step, with an
+     alert naming the restore; the step writes no new seal. The same file restored to its sealed version passes.
+   - The same lines saved with CRLF endings or trailing spaces hash the same as with LF.
    - No committed file holds a date or the salt (the committed-file scan).
    - An entry whose moved fill lands on another away session gives "missed, owner away".
    - An exit keeps moving.
@@ -321,7 +332,9 @@ one. The ±0.5% band figure behind the choice was about 32%, not the 17% of an e
 10. **Daily step.**
     - The step runs right after `quotes` and catches up after a missed run, oldest first.
     - A planted step failure gives no new entry in any book or view that day, and `exits` still runs.
-    - A step that hangs past its own time limit is a failure: no new entry, and `exits` still runs.
+    - A fake Drive read that never answers hits its 60-second network timeout (a short timeout in the test); the step
+      fails, no new entry opens, and `exits` still runs. A run of slow reads that passes the 10-minute deadline fails
+      the same way.
     - Running it twice changes nothing.
     - A fill's row carries the snapshot hash, the due mark, R, the view and T.
 11. **Report.** It gives every figure listed under `TimingReport`, the NIFTY-move split included (a fixture with one
