@@ -58,3 +58,25 @@ Applied: `docs/JUDGE.md` rule 1; the owner's rules "keep the design simple" and 
 
 The work register has A14c's own row (`fno/nse_margins/` later). Owner question 1's option B would be a separate C2
 story, not built here. No duplicate with A14 or C2 work in flight.
+
+## Addendum 1 (15 Oct 2026): revision at 83e7f6ef2a454c9832a7daf9ad4f2bd1328b2021 (owner's answers to Q1 and Q2)
+
+**Verdict: PASS.** One note carried over.
+
+- **Q1 and Q2: recorded, and the text follows them.** `docs/DESK_DECISIONS.md` has both 15 Oct rows: "Crash buffer
+  applies to the whole margin" and "Stressed-factor recompute uses everything since 1 Jan 2020".
+  - The run now measures the held rise of the whole margin C2 counts (`max(0, scan - NOV) + min(0, NOV) +
+    exposure`, the "C2 counts" column of response 77's table), the same quantity C2c makes k multiply. The scan's own
+    rise is reported for information only.
+  - The back-fill covers every session since 1 Jan 2020 (about 1,700 files, about 16 GB).
+  - Criterion 6 requires C2c to merge before any value from this run is entered, so the factor is applied as it was
+    measured. Q3 and Q4 stay open with their recommendations, to be answered before the first value.
+- **My note 1: met.** The full back-fill includes the September 2026 files that criterion 1 needs.
+- **My note 3: moved to C2c**, where it belongs. C2c (branch `story/c2c-whole-margin-stress`) is the story that changes
+  C2. Its text should state the effect on C2's room, for example a held SF 100 at about 86,900 a lot at k = 1.45 against
+  about 59,900 today. I will check that when C2c comes to me.
+- **My note 2: still a note.** Reproducing response 77's 1.265 (2020) and 1.407 (2024) as well as 1.127 gives the 2020
+  short-option minimum an anchor the builder did not write. After the full back-fill it costs nothing extra.
+- **On the builder's doubt about criterion 1.** Response 77's "margin (today's method)" is its table's "C2 counts"
+  column, which is the quantity this revision now names. So 1.127 can be reproduced on that definition, and the
+  criterion's "or explain each difference" covers any gap in response 77's hand run.
