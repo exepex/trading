@@ -141,3 +141,75 @@ Three should-fixes: `verify` misses missing rows, the running-month rule has no 
 point-in-time and session-set labels. The data itself is sound: all 4,019 rows equal Drive and the manifest, 8 months
 are byte-identical to NSE today, and every number in response 100 reproduces. A re-check needs `verify.py`, one test
 each for should-fixes 1 and 2, and the README; the data files should not change.
+
+## Addendum 1 (15 Oct 2026): b377af2f676a94582596819d414c47c0163cd357 (514d43b..b377af2, response 100 addendum 1)
+
+Two commits on top of 514d43b. They touch only `fno/vix_history/`, its tests, the story text, the README, response 100
+and `checks/gaps.csv`.
+
+### Gates
+
+- **Exact SHA:** full history, Slack token unset: **3,251 passed**. `ruff check`, `ruff format --check` (726 files)
+  and `check_imports` (736 files) are clean.
+  - My first full run showed 1 error in `test_table.py`. That was my own mutation script editing the same worktree
+    during the run. A clean rerun passed, and `tests/vix_history` passed alone, 57 of 57.
+- **Trial merge with `origin/main` 56b9497:** merges cleanly; 3,251 passed; ruff and imports clean.
+
+### Data unchanged
+
+`git diff 514d43b b377af2 -- research/data/` changes only the README and `gaps.csv`:
+- `gaps.csv` gains 14 rows: 9 `muhurat_session` (19 Oct 2017 to 21 Oct 2025, the calendar's 9 muhurat dates) and
+  5 `special_session` (1 Feb 2020, 20 Jan 2024, 18 May 2024, 1 Feb 2025, 1 Feb 2026). That is the calendar's 6
+  specials less 2 Mar 2024, which NSE's history lacks.
+- The table and the manifest are byte-unchanged.
+- Real `vix-history verify` against Drive, with the new walk over every manifest month: **"all 4019 days equal their
+  archived month files"** (2 min 4 s).
+- `vix-history check` rewrites the committed checks byte-identically (`git status` clean). It reports "2415 days
+  compared (2017-01-02 to 2026-09-30): only_in_index_close 1, rounded 1488".
+
+### Findings re-checked
+
+| Judge 100 finding | Status | My evidence |
+|---|---|---|
+| Should-fix 1: `verify` misses missing rows | **MET** | My plant P1 (all of Aug 2010 deleted) now names "2010-08-02: table None, archived file (...)". My N1 (walk only the table's months) is caught |
+| Should-fix 2: running month untested | **MET** | `months_to_fetch(start, end, today)` is a pure function with tests for mid-month, `--to` the running month, the month's last day and the 1st of the next. My M5 now fails 3 tests. N6 (a start before Jul 2010 kept) caught |
+| Should-fix 3: known-at and session labels | **MET** | README "When a day's value was known": known after the 15:30 close, a 15:00 decision on d uses d-1 at the latest, `first_seen_at` is archive time and never a known-at time. "Which sessions the rows are": select `regular` through the A7 calendar. `gaps.csv` labels both kinds. My N3 (labels off) caught |
+| Minor 1: sweep silent on a missing original | **PARTLY** | My plant P3 now prints "original MISSING from the archive, nothing compared 2010-08", and `cli.py` exits 1 on it. But my N4 (drop `not_archived` from the exit code) passes all 57 tests: the exit code is untested. Minor, see below |
+| Minor 2 (A11 lookup), minor 3 (no schedule) | As agreed | Left; the README states the lane-1 rule for monthly fills |
+
+### Self-review fixes checked
+
+- **A damaged month could enter the table.** True at 514d43b: `VixTableBuilder._add` read the raw bytes without
+  checking them against the manifest. It now stops at a month without a manifest row or with other bytes. My N2 (that
+  check off) is caught.
+- **A year after the calendar's last year was labelled `unverified`.** It is now `calendar_lacks_year`; my N5 is
+  caught.
+- **A table file without a final new line is refused rather than glued; NSE 403/429/5xx and setup failures print one
+  `STOPPED` line and exit 1, with no traceback.** Read in the code.
+- **My original 11 mutations re-run on the new code:** all caught. The SHA-check mutation was re-planted on the
+  reworded line and is caught (2 tests fail).
+
+**Mutations in this round:** 7 new and 11 re-run, **17 of 18 caught**. The one survivor is N4 (the sweep's exit code
+on a missing original).
+
+### The orchestrator's question: `raw_source.py:123` (HTTPError, no retry) outside A15's scope?
+
+**Agreed, out of A15's scope.** The code is shared by every NSE dataset, so changing how it classifies and retries 403,
+429 and 5xx changes A1, A10, A11, A12 and P8 as well. That is its own lane-1 A9 change, with tests across datasets.
+A15 now handles the failure safely at its own edge:
+- the CLI prints a named `STOPPED` line and exits 1;
+- the sweep counts an `HTTPError` as no answer.
+
+So nothing wrong is stored. Record the A9 change as an open item.
+
+### Minor (new or remaining)
+
+1. **The sweep's exit code is untested** (my N4). Add an assertion on `cmd_vix_history`'s return code for a missing
+   original.
+2. **"one-hour Diwali evening sessions"** (README) is wrong for 2025: NSE's 21 Oct 2025 muhurat ran 13:45-14:45 (the
+   A7 calendar's row). Say "one-hour Diwali sessions". My judge 100 text had the same slip.
+3. `build_vix_table_builder` uses a lambda with `noqa: E731`; a small named function would avoid the suppression.
+
+**Verdict: PASS for b377af2f676a94582596819d414c47c0163cd357.** All three should-fixes are met with evidence; three
+minors remain, none blocking. Merge it. After the merge I check the recomputed merge, that the branch files are
+identical to b377af2, and CI.
