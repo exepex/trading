@@ -317,3 +317,27 @@ of 6 (+3.65 to +9.00). With the 6 recent sessions above: 12 of 12 exact for the 
 now reads "the close of the last pre-open 1-minute candle (before 09:15)", a session without one is reported as "no
 pre-open value" (never filled from 09:15), and the text carries the recount's 114 of 114 and 67 of 74. My earlier
 "4 of 6 differ, 2 of 6 equal" stands for its sample and is consistent with 67 of 74.
+
+## Part 6: A16e story text, the committer commits only A16's own paths (orchestrator decision 63)
+
+Text only, `docs/stories/A16-intraday-quote-recorder.md` section A16e; code follows after judge D's check.
+
+- **Accepted:** the risk is real (strong evidence: code reading). `GitManifestRecorder.commit` runs
+  `git add -- research/data/intraday` and `git commit -- research/data/intraday`, so any file in the folder,
+  A16b's `rv-candle/` rows included, goes into A16's commit.
+- **Partly corrected: "its manifests".** A16 writes no manifest rows. Its Drive store is the bare `AreaStore`
+  (`fno/intraday/wiring.py`), not `FingerprintingStore`; each copy's name carries its SHA-256 and the ledger row names
+  it. Its own paths are `slots/`, `rv/` and `heartbeat.json` (strong evidence: `ledger.py`, `rv_table.py`,
+  `heartbeat.py`). Naming a manifest path would only widen what the run commits.
+- **"Refuses if anything else is staged by it":** with explicit pathspecs the run can never stage anything else, so a
+  check on its own staging would be dead code. The reachable case is a file someone else staged under the folder; the
+  text refuses then (paths named, one alert per run, nothing lost: rows are write-once on disk and go in the next
+  commit). Untracked or unstaged stray files are left alone, with no refusal (reasoning only).
+- Pathspec boundary checked: `git add -n -- f/rv f/heartbeat.json` adds `f/rv/a` and `f/heartbeat.json` only, not
+  `f/rv-candle/b` or `f/heartbeat.json.tmp` (strong evidence: scratch repository).
+- Also fixed: the routine prompt's hand-commit line said "commit and push that folder"; it now names the three paths.
+- Judge D's queued minor folded in: criterion 15 and the trial paragraph now require per session the pre-open
+  comparison (the difference, or "no pre-open value").
+- **Raised, not done (out of scope, stated in the text):** `git push origin HEAD` publishes any unpushed local commit
+  another writer made on the same checkout (decision 51 (b)'s class). Low risk here: each routine fire is a fresh clone
+  (reasoning only). A follow-up could reuse `fno/desk/git_sync.py`'s `other_work` rule; the orchestrator decides.

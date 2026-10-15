@@ -230,7 +230,8 @@ New package `fno/intraday/` (each file under 350 lines):
 - `AlertSender` (existing) for alerts; `NoAlertSender` in dry runs and tests.
 - Repository files under `research/data/intraday/` (derived only, no prices), **one file per record** so two runs in
   two checkouts never append to the same file: `slots/<YYYY>/<MM>/<DD>/nifty_<YYYYMMDD>_<HHMM>.csv` (header plus the
-  one row of that mark), `rv/<YYYY>/nifty_rv_<YYYYMMDD>.csv` (header plus the session's one row), `heartbeat.json`. After every mark the recorder commits and pushes this folder itself (the existing
+  one row of that mark), `rv/<YYYY>/nifty_rv_<YYYYMMDD>.csv` (header plus the session's one row), `heartbeat.json`. After every mark the recorder commits and pushes its own paths in this folder (`slots/`, `rv/`,
+  `heartbeat.json`; nothing else, A16e) itself (the existing
   `GitManifestRecorder`, given its own commit message; hooks run, never bypassed), so GitHub's copy of the heartbeat
   is at most about 15 minutes old.
 - **Two checkouts, one ledger (judge 108 addendum 1, should-fix B).** Each fire is its own container with its own
@@ -348,7 +349,8 @@ row, not slot statuses): `clock_skew` (more than 5 s against a server), `clock_p
     (the record scan is never skipped) and aborts a failed pull's merge.
 14. **Gates:** pytest, ruff, imports, code size; no file or class over 350 lines.
 15. **Trial before live.** No session counts as recorded history until the 5-session trial of the trigger design
-    (below) is reported, with the void share and the consequence above 5% stated.
+    (below) is reported, with the void share and the consequence above 5% stated, and per session the pre-open
+    comparison (the difference, or "no pre-open value"; amendment 3).
 
 ## Gap list (design requirement -> criterion, or out of scope)
 
@@ -438,15 +440,18 @@ the missing settings and alerts, criterion 13); `FNO_SLACK_BOT_TOKEN` for alerts
 > or store a secret. In `exepex/trading` on `main`: run the install line from story A16; `git config core.hooksPath
 > .githooks`; `git pull --no-rebase origin main`; then run `python -m fno intraday run --until <HH+1>:05` in the
 > background and wait for it (it waits for each mark, records the marks up to that time, and after each mark writes
-> the ledger and heartbeat and commits and pushes `research/data/intraday/` itself; at the 15:30 mark it also writes
+> the ledger and heartbeat and commits and pushes its own files in `research/data/intraday/` itself; at the 15:30 mark it also writes
 > the session's realised variance; on a non-session day it prints "not a trading day"). If a commit line says "NOT
-> committed", commit and push that folder by hand (`git pull --no-rebase` first). Never bypass the record scan. If the
+> committed", commit and push only the recorder's own paths by hand (`git add -- research/data/intraday/slots
+> research/data/intraday/rv research/data/intraday/heartbeat.json`, `git pull --no-rebase` first); never add the
+> whole folder. Never bypass the record scan. If the
 > command exits 1, post its lines to #fno-desk only if it printed "alert NOT sent". Note any failure in
 > `conversations/<date>.md`.
 
 **Trial before live (criterion 15).** The recorder counts as live only after a measured trial of at least **5
 consecutive sessions** through the routine as set up: per session, marks good / missed / late / stale / failed /
-incomplete, the void share, each fire's start delay and run length, and any fire that did not run. The result goes in
+incomplete, the void share, each fire's start delay and run length, any fire that did not run, and the pre-open
+comparison (the last pre-open close minus NSE's official open, or "no pre-open value"; amendment 3). The result goes in
 a claims addendum. **Consequence:** if the void share over the trial (and later over any 20 sessions) is above 5%,
 design 5.2's "new version" rule applies (a new sampling rule or trigger) and the host question goes back to the owner;
 design 6.6 allows Azure (b) only "if Groww offers a data-only key", so the alternatives are stated for the owner, not
@@ -498,3 +503,60 @@ modules import `fno.server_clock` directly; `fno/cards/clock.py` is removed. No 
 
 **Out of scope:** changing the SDK version, pinning `clint`/`args`, or the container's own setuptools (not this
 repository's to change).
+
+---
+
+## A16e. The live committer commits only A16's own paths (follow-up, lane 1, 15 Oct 2026, orchestrator decision 63)
+
+**Why:** A16's committer adds and commits the whole of `research/data/intraday/` (`git add -- <folder>`, then
+`git commit -- <folder>`, `fno/storage/manifest_commit.py`). A16b writes `rv-candle/` in the same folder, with its
+manifest rows in `research/data/manifests/groww-candles/`. On a shared checkout, A16's run would commit A16b's rows
+without their manifests, or any other file someone leaves in the folder (the A16b builder's finding).
+
+**A16's own paths (checked in the code, not assumed):** `slots/` (the ledger, `ledger.py`), `rv/` (the session
+realised variance, `rv_table.py`) and `heartbeat.json` (`heartbeat.py`), all under `research/data/intraday/`.
+**A16 writes no manifest rows**, so it has none to commit: its Drive store is the bare `AreaStore(drive, raw)`
+(`fno/intraday/wiring.py`), not the fingerprinting store, because each copy's name carries its SHA-256 and the ledger
+row names the copy (amendment 2). The brief's "its manifests" therefore names nothing; adding a manifest path would
+only widen what the run can commit.
+
+**Change:**
+1. The committer is given its owned paths: `slots/`, `rv/` and `heartbeat.json`, named once in
+   `fno/intraday/wiring.py`. It adds, counts and commits only those pathspecs (`git add -- <owned>`, `git commit
+   --only -- <owned>`); Git matches a pathspec by whole path components, so `rv/` (or `rv`) never matches `rv-candle/`
+   and `heartbeat.json` never matches `heartbeat.json.tmp` (checked: `git add -n` in a scratch repository); the test
+   keeps it proven. Without
+   owned paths the committer behaves as today (the manifest committer is unchanged).
+2. Before adding, it lists what is already staged under `research/data/intraday/`. Anything staged outside the owned
+   paths means another writer is mid-commit on this checkout: the run **refuses to commit** ("intraday files NOT
+   committed: N file(s) staged under research/data/intraday/ that are not the recorder's: <paths>"), touches nothing
+   in the index, and the next mark retries. Paths only, never file contents. The run's own rows stay on disk
+   (write-once), so nothing is lost; they are committed by the first commit after the stray staging is cleared.
+3. The first refusal in a run is sent as an alert to #fno-desk (`AlertSender`; `NoAlertSender` in dry runs and
+   tests); later refusals in the same run are printed only, so a stuck checkout sends one alert per run (at most
+   seven a session), not one per mark.
+4. Files under the folder that are not staged (untracked or modified, not the recorder's) are left alone: not added,
+   not committed, no refusal.
+5. The routine prompt's hand-commit line names the three owned paths, never the whole folder (edited above).
+
+**Acceptance criteria:**
+1. Real Git, two files in the folder besides A16's: an untracked `rv-candle/2026/nifty_rv_candle_20261015.csv` and an
+   untracked `heartbeat.json.tmp`. A16's run commits and pushes its slot row, `rv/` file and heartbeat; the pushed
+   commit holds exactly those, and both stray files are still untracked afterwards (boundary: `rv/` versus
+   `rv-candle/`, `heartbeat.json` versus `heartbeat.json.tmp`).
+2. The same with `rv-candle/...csv` staged by "someone else" (`git add`): A16's commit is refused, the line names the
+   staged path, one alert is sent, HEAD is unchanged, the stray file is still staged and the run's own files are still
+   uncommitted on disk; a second refusal in the same run sends no second alert. After the stray file is unstaged, the
+   next commit carries every pending A16 file.
+3. Nothing to commit in the owned paths while a stray file sits untracked: "nothing new to commit", no refusal.
+4. The manifest committer (no owned paths) still adds and commits its whole folder (existing tests unchanged).
+5. Broken-code proof: the old whole-folder add makes criterion 1 fail; dropping the staged check makes criterion 2
+   fail.
+6. Gates: pytest, ruff, imports, code size.
+
+**Out of scope, stated:** (a) `git push origin HEAD` publishes every unpushed commit on the checkout, including one
+another writer made locally (the class of decision 51 (b) for the desk). Each routine fire is a fresh clone that only
+this recorder writes to, and A16b's backfill is a one-off command, so the risk is low (reasoning only); refusing
+unpushed commits the run did not make would reuse `fno/desk/git_sync.py`'s `other_work` rule and is a separate
+follow-up if the orchestrator wants it. (b) The `-X theirs` pull settles a conflict anywhere in the repository with
+GitHub's copy, not only in A16's paths (judged and accepted in A16, amendment 2, rule 3); unchanged here.
