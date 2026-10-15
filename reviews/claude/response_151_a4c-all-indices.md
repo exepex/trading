@@ -78,7 +78,10 @@ exit code: 1 | alert: "3 pm index recorder: not recorded today (canonical none):
 
 ## Gates
 
-GATES_PLACEHOLDER
+On f9ea121e (code final): `env -u FNO_SLACK_BOT_TOKEN python -m pytest -q`: 5891 passed, 0 failed (554 s);
+`ruff check fno tests tools`: clean; `ruff format --check`: 1080 files already formatted; `python tools/check_imports.py`:
+clean (1121 files); `python tools/check_records.py`: clean (5957 files); `python tools/forecast_live_golden.py`: "live
+golden cases unchanged: case_a, case_b"; no file over 350 lines (`recorder.py` 340, `composition.py` 340).
 
 ## Self-review
 
