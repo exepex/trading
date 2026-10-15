@@ -38,6 +38,7 @@ from tests.checks.builders import CALENDAR, nse_files
 from tests.desk.builders import CHARGES, fly_rows, write_snapshot
 from tests.desk.conftest import FakeSettlements
 
+RAW_QUOTE = "research/data/quotes/groww/derivatives/quote-snapshots/2026/10/nifty_20261014_151500.csv"
 TIMETABLE = timetable_from_config(load_app_config())
 HOLD = [StopLoss(1e9)]
 

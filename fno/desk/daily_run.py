@@ -33,6 +33,7 @@ from ..research_data.calendar import SessionCalendar
 from .daily_ports import CommitFailed, Waiter
 from .daily_steps import DeskSteps, StepOutcome
 from .pending_commit import PendingChanged, PendingCommitter
+from .private_files import PrivateFiles
 from .run_log import RunLog
 
 SKIPPED = "skipped"
@@ -41,6 +42,7 @@ EXITS_MISSED = "; exits not reviewed today"
 RERUN = "Fix: remove the cause, then rerun `fno desk run` (it commits these files as recorded, never repeating a step)"
 PUSHES = "; the rerun pushes the local commit"
 RECOVERY = "the rerun's start"
+DOWNLOAD = "the download of the private paper records"
 PACK_RETRY = timedelta(seconds=30)
 
 
@@ -50,11 +52,14 @@ class RunStopped(Exception):
 
 class DailyRun:
     def __init__(self, steps: DeskSteps, calendar: SessionCalendar, committer: PendingCommitter, waiter: Waiter,
-                 clock: Callable[[], datetime]):  # fmt: skip
+                 clock: Callable[[], datetime], files: PrivateFiles | None = None):  # fmt: skip
         self.steps, self.calendar, self.committer, self.waiter, self.clock = steps, calendar, committer, waiter, clock
+        self.files = files  # story E2c: the private records in Drive, downloaded before any step reads them
 
     def run(self, day: date) -> RunLog:
         self._guarded(day, RECOVERY, self.committer.recover)
+        if self.files is not None:
+            self._guarded(day, DOWNLOAD, self.files.pull_accounts)
         log = RunLog.open(self.steps.root, day)
         kind = self.calendar.session_kind(day)
         if kind not in RECORDED_SESSION_KINDS:
@@ -70,7 +75,12 @@ class DailyRun:
             (
                 "fills",
                 times.execution_snapshot,
-                lambda: steps.fill(day, log.result("snapshot")["valid"], log.result(RUN_LOG_DECISIONS_STEP)),
+                lambda: steps.fill(
+                    day,
+                    log.result("snapshot")["valid"],
+                    log.result(RUN_LOG_DECISIONS_STEP),
+                    self._stopped_before_exits(day),
+                ),
             ),  # fmt: skip
             ("exits", times.execution_snapshot, lambda: steps.review_exits(day)),
         )
@@ -79,6 +89,13 @@ class DailyRun:
                 self.waiter.until(times.at(day, moment))
                 self._step(log, name, action)
         return log
+
+    def _stopped_before_exits(self, day: date) -> date | None:
+        """The last session, when its run stopped before its exits (review 105 point 3): today opens nothing new. The
+        routine starts in a fresh container, so the committed run log is the only place the stop can be seen."""
+        last = self.calendar.previous_session(day)
+        steps = RunLog.open(self.steps.root, last).steps
+        return last if steps and "exits" not in steps and SKIPPED not in steps else None
 
     def _pack(self, day: date) -> StepOutcome:
         """Retries while the canonical snapshot is not committed yet, until the recorder's window ends."""
