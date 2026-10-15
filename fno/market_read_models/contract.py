@@ -1,6 +1,7 @@
-"""The dashboard's W11 contract, pinned (story P6): byte copies of omenix-dashboard's api/openapi.yaml, schemas and the
-33-34 and 32 examples, with the contract version, the source commit and each file's SHA-256 in pin.json. Every block is
-validated against these schemas before it may be published; `contract-check` compares the pin with the dashboard."""
+"""The dashboard's contract, pinned (story P6; P1 adds the F&O screens' data catalog): byte copies of omenix-dashboard's
+api/openapi.yaml, schemas and the 33-34, 32, frame and F&O screen examples, with the contract version, the source commit
+and each file's SHA-256 in pin.json. Every block is validated against these schemas before it may be published;
+`contract-check` compares the pin with the dashboard."""
 
 from __future__ import annotations
 
@@ -17,10 +18,12 @@ from jsonschema import Draft202012Validator
 PIN_FILE = "pin.json"
 OPENAPI_FILE = "api/openapi.yaml"
 SCHEMA_FOLDER = "api/schemas"
-EXAMPLES_FILES = (  # Screener and Markets; chain (P9); the frame, whose India session example states hours (2.6)
+# Screener and Markets; chain (P9); the frame, whose India session example states hours (2.6); P1's F&O screens
+EXAMPLES_FILES = (
     "api/examples/blocks-33-34.json",
     "api/examples/blocks-32.json",
     "api/examples/blocks.json",
+    "api/examples/fno-screens.json",
 )
 GITHUB_RAW = "https://raw.githubusercontent.com/{repository}/{branch}/"
 DRIFT_TIMEOUT_SECONDS = 30

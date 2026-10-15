@@ -72,7 +72,13 @@ class DecisionSource(ABC):
 
     @abstractmethod
     def committed(self, book: str, day: date, deadline: datetime) -> CommittedDecision | None:
-        """The book's latest run visible after `observe`, also committed (committer time) before `deadline`."""
+        """The book's first original run (story D3b's run order) visible after `observe`, committed (committer time)
+        before `deadline`; never a correction."""
+
+    @abstractmethod
+    def others(self, book: str, day: date, taken: str | None) -> list[dict]:
+        """Every other run of the day in the same order, for the run log: run ID, commit and time, and for a
+        correction what it corrects and why. Shown, never collected."""
 
     @abstractmethod
     def recorded(self, book: str, day: date, run_id: str, commit: str) -> CommittedDecision:

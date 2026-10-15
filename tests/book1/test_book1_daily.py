@@ -10,7 +10,7 @@ import pytest
 from fno.books.account import PaperAccount
 from fno.books.book1_exits import PlaybookExitRules
 from fno.books.book1_orders import ReplayedOrders
-from fno.books.book1_records import decided_exit_days
+from fno.books.book1_records import decided_exit_days, opening_trades
 from fno.checks.gate import DataGate
 from fno.checks.wiring import build_data_checks
 from fno.composition import open_account_writer
@@ -118,6 +118,9 @@ def test_book1_s_records_are_collected_on_time_every_fixture_day_and_a_c4_pass_f
     opened = DeskRecords(PaperAccount(root, BOOK1_RULES)).fill_rows()
     assert opened and {(r["strategy"], r["decision_id"].split(":")[0]) for r in opened} == {("sc-a-v1", "sc-a-v1")}
     assert all(r["outcome"] == "held" for log in logs[1:] for r in log.result("exits")[BOOK1_RULES]["results"])
+    # story D3b: every opened trade finds its opening run in the run log
+    found = opening_trades(root, BOOK1_RULES)
+    assert found.problems == {} and set(found.trades) == {r["trade_id"] for r in opened}
 
 
 @pytest.mark.parametrize("c4", [None, FAILED])

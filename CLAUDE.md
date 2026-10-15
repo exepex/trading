@@ -43,12 +43,12 @@ API keys or tokens.
 
 ## 3 pm quote recorder (daily routine, stories A4 and A7)
 
-Started by a scheduled session at about 14:50 IST every day; the NSE session calendar (A7) decides whether it is a
-trading day, so special weekend sessions are recorded and closed days print "not a trading day". Research data
-only: never places, modifies or cancels orders.
-1. `pip install -q --use-pep517 -r requirements.txt -r requirements-groww.txt` (the flag is needed: see
-   `requirements-groww.txt`) and `git config core.hooksPath .githooks` (turns on
-   the public-record scan, story O5, for every commit).
+Started by a scheduled session at 14:33 IST every day (owner, 15 Oct 2026: setup must end well before 14:55); the NSE
+session calendar (A7) decides whether it is a trading day, so special weekend sessions are recorded and closed days
+print "not a trading day". Research data only: never places, modifies or cancels orders.
+1. `sh tools/routine_setup.sh --groww` (story O7: installs into every Python the routine and the commit hook can call,
+   checks each imports the packages, turns on the public-record scan, story O5, and prints "routine setup ok").
+   Every scheduled routine sets up this way, never with bare `pip` (it may fill another Python).
 2. `python -m fno quotes record` (waits for 14:55 IST, records NIFTY monthly quotes, retries until 15:10 if a capture is
    incomplete). NSE's session calendar (`research/data/calendar/nse_sessions.csv`, story A7) decides the day: a
    holiday, weekend or muhurat-only day records nothing ("not a trading day"); a special weekend session is recorded.
@@ -110,11 +110,14 @@ commit with `--no-verify`.
 - Concrete classes are wired together only in the composition roots: `fno/composition.py` (the app's services),
   `fno/storage/wiring.py` (raw data stores and sources), `fno/risk/wiring.py` (the risk manager, story C2),
   `fno/forecast/wiring.py` (the forecasts, epic G), `fno/forecast/baseline_wiring.py` (forecast baselines, back-fill
-  and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`), `fno/filings/wiring.py` (the
+  and protocol v2's live capture, G2-G3; apart because the G1 freeze pins `wiring.py`),
+  `fno/forecast_v4_rules/wiring.py` (protocol v4's baselines and rule forecasters, story G7; apart because the v2 freeze
+  pins every file of `fno/forecast/`), `fno/filings/wiring.py` (the
   company filings archive, story A12), `fno/pipeline/wiring.py` (fetch-and-trigger jobs, story O6),
   `fno/pipeline/panel_wiring.py` (the daily NIFTY panel job, story A13; apart so G1 v3 can freeze it without O6),
   `fno/market_read_models/wiring.py` (the market read models and their publisher, stories P6-P9),
   `fno/forecast_scoring/wiring.py` (forecast scoring and reports, story G4; outside the frozen `fno/forecast/`),
+  `fno/forecast_scoring/v4/wiring.py` (protocol v4 scores, comparisons and the two looks, story G8),
   `fno/ai/wiring.py` (the AI books' forecasts: fire and collect, F1 and G5), `fno/ai/book_wiring.py` (the AI books'
   routine side, standard library only), `fno/playbook/wiring.py` (the playbook loader and status changes, story D1),
   `fno/desk/wiring.py` (the paper desk's fills and exits, story E4), `fno/desk/pack_wiring.py` (the daily common and
@@ -126,8 +129,11 @@ commit with `--no-verify`.
   pure rules: its decider, orders and exit rules, story E5), `fno/evaluation/wiring.py` (the evaluation protocol's
   freeze and checks, story S1), `fno/scoreboard/wiring.py` (scoreboard B, whole systems, story S2),
   `fno/budget/wiring.py` (AI usage, the budget meter and the stop-rule tracker, stories F8 and BG1),
-  `fno/cards/wiring.py` (the daily trade card, story T1) and `fno/intraday/wiring.py` (the 15-minute quote recorder:
-  Groww source behind a read-only allow-list, Drive store, clock check, story A16).
+  `fno/cards/wiring.py` (the daily trade card, story T1), `fno/weather/wiring.py` (the market weather as a
+  scored forecaster, story M1), `fno/intraday/wiring.py` (the 15-minute quote recorder:
+  Groww source behind a read-only allow-list, Drive store, clock check, story A16) and
+  `fno/intraday/backfill_wiring.py` (the 15-minute candle back-fill: Groww candles, Drive archive, NSE check, story
+  A16b).
 - Nothing in this repository places real orders. The stock tool's research is read-only: never write to its
   repository or to its `market_brief` MotherDuck database. GitHub files are the default store for research input
   and results.
