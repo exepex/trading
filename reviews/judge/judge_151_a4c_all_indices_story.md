@@ -64,3 +64,19 @@ NIFTYNXT50 (276 contracts, 8 traded on 14 Oct) and NIFTYFPI (120, 0 traded) are 
 the calls and of the run's 6.6 minutes, for 8 traded contracts. Their names are also unproven at Groww (step 0). The
 owner's "record all F&O" covers them, so this is the owner's call, not a judge's. If the owner wants the simplest version,
 the other three indices give about 586 quotes and about 4 minutes.
+
+## Addendum 1 (15 Oct 2026): revision 2 at db4a9f7dfbf3ec22ed904f51ca9bae21576e577d (2a9ff62..db4a9f7, text only)
+
+**Verdict: FAIL.** The should-fix above is still open. The revision was written before it reached the builder.
+
+- **Scope, now correct.** BANKNIFTY, FINNIFTY and MIDCPNIFTY only, per the owner's row in `docs/DESK_DECISIONS.md`
+  (15 Oct: "drop NIFTYFPI and NIFTYNXT50, record only the traded indices"). That is 586 quotes (220 + 146 + 220) plus
+  about 6 calls, about 4 minutes, done by about 15:05. The three names are a constant; a name the previous NSE file no
+  longer lists as `IDO` gives an incomplete attempt with a reason. The quiet-day no-alert rule is restated for
+  FINNIFTY and MIDCPNIFTY. The work-register row is updated. My scope point is closed.
+- **Should-fix (open).** The text still places `record-indices` "after NIFTY is pushed" with no word on the NSE
+  recorder the same 14:33 routine now runs in parallel with Groww, pushing Groww then NSE. The fix is as stated above:
+  agree the order and the push order with the handover session, write it into A4c and the proposed `CLAUDE.md`
+  step, and add the first-live-day line.
+- **Minor (open).** The one line saying NIFTY's retries to 15:10 can squeeze the index window is still missing. The
+  shorter run (about 4 minutes) makes it less likely to bite.
