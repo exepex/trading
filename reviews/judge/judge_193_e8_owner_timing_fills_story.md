@@ -313,3 +313,35 @@ it now needs an owner decision and S1, which is right for a frozen rule.
 - **Should-fix 7:** the step's time limit has no number, and there is no mechanism that stops a hung in-process read.
 
 Re-review: those two only.
+
+## Addendum 6: revision 9 at 78a51301: PASS
+
+The only change is to `docs/stories/E8-owner-timing-fills.md` (+18, -5), and it touches rules 8 and 11 and
+criteria 7 and 10 only.
+
+**Should-fix 6: closed.**
+- The hashed lines are the first n lines with trailing whitespace and CR removed, joined with LF, so re-saving with
+  other line endings changes nothing.
+- A changed sealed line refuses the step. The alert names the repair: restore the last sealed version from Drive's
+  version history, then append the change as a new row. The step never re-seals over a mismatch.
+- Criterion 7 tests that a mismatch writes no new seal, that a restored file passes, and that CRLF or trailing spaces
+  give the same hash.
+
+**Should-fix 7: closed.**
+- The limit is 10 minutes, the same as O1's command limit.
+- It is enforced by the reads themselves: every Drive and A16 read has a 60-second network time-out, and the deadline
+  is checked before each read. This answers the point that a timer cannot stop a stuck thread.
+- Worst case: one read starts just before the deadline and runs its 60 seconds, so the step ends by about 11 minutes,
+  around 14:44 today (14:16 under G10). That is before `pack` and the 15:12 decision deadline.
+- A time-out or a passed deadline is a step failure: new entries fail closed and exits still run.
+- Criterion 10 tests a read that never answers and a run of slow reads past the deadline.
+
+**The owner sentence is in rule 8:** an away date counts only if it is in the Drive file before the run starts on the
+session before the trade.
+
+Note (reasoning only, for the code round): many HTTP clients apply the time-out to each wait for data, not to a whole
+read, so a server that keeps trickling bytes can outlast 60 seconds. The deadline check before each read limits that
+to one read. The code judge should check the client's time-out semantics, or cap the whole read.
+
+**E8's story text passes at 78a51301.** Every should-fix of judge 193 (1-7) is closed, ChatGPT review 122's points
+are in, and the owner's entry rule is wired as decided. Next is the code, built in the story's two parts.
