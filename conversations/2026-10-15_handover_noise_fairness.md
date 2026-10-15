@@ -258,3 +258,60 @@ harmless). From the repository it checks:
 - A8 rows for the day.
 It posts one line to #fno-desk: "all on time", or which routine was late or missed. It catches a routine that never
 started, which today raises no alert. Lane 1 (workflow), about 50 lines.
+
+## 12. Data that arrives late: the fallback ladder (owner's question, 15 Oct evening)
+
+Owner: "we need to be prepared for all the possible scenarios, whether it is on-time data receive or whether it is
+later data receive. Only thing is we may postpone the buy and sell a day after ... What could be our fallback
+mechanism to ensure that we are able to get the data? We have Grow ... and then we have NSE. Just don't give up."
+
+**Facts (strong evidence):**
+- Live bid/ask exists only while the market is open.
+- Groww's history API gives per-contract 15-minute and 1-minute candles (OHLC, volume, OI) at any later time (A16b).
+- NSE's F&O daily file gives close, settlement price and OI every evening.
+- NSE's option-chain endpoints work from Claude's cloud (15 Oct test: 104 rows); only the homepage returns 403.
+- The 3 pm Claude routine now records Groww and NSE in parallel from 14:33; the GitHub NSE job stays as a harmless
+  fallback.
+- **Owner decision, 15 Oct:** keep GitHub Actions as backups beside Claude routines; first-write-wins, so duplicates
+  never conflict.
+
+**Ladder for a day's 15:00 inputs** (each day keeps a quality tier label and is scored and reported by tier):
+1. **A, live:** 14:55 live capture (Groww plus NSE).
+2. **A2:** A16's 15:00 Groww slot (live bid/ask); the fallback when there is no 14:55 canonical.
+3. **B, rebuilt from Groww candles:** last trade before 15:00 per contract; spread estimated from our own live-day
+   spread model by moneyness. Possible days later.
+4. **C:** NSE end-of-day close/settle (the history's basis).
+5. **Missing.**
+
+**Rules proposed** (the owner asked for them; approval pending; they must enter protocol v4 before its freeze):
+- Rule-based forecasts are deterministic on the frozen pack, so a late-generated rule forecast counts, labelled
+  `late_generated`.
+- Late AI forecasts never count (they could see later prices or news).
+- A late or rebuilt day gets no same-day trade. It is not carried to the next day: next day's decision uses next
+  day's live data.
+- An evening catch-up job re-runs every day-keyed step (scoring, panel, health check) for days whose inputs landed
+  late (all write-once and idempotent).
+
+**Independent capture backup:**
+- Google Cloud Scheduler plus a Cloud Run job at 14:55 runs the same recorder (Groww and NSE) and saves to Drive.
+  It is punctual to about a minute and costs about Rs 0 in the free tier. The Groww key lives in Google Secret
+  Manager.
+- The owner does a one-time setup. It is a lane-1 story (outside service).
+- It is the only protection for live bid/ask when Claude is down.
+
+**Stories to build (judge each):**
+1. A16 fallback.
+2. Candle rebuild (tier B) plus spread model.
+3. Tier label plus by-tier scoring.
+4. The late-forecast and late-trade rules (protocol v4).
+5. The catch-up job.
+6. Cloud Scheduler backup.
+7. The daily health check, showing each day's tier.
+
+**Limits:**
+- Real bid/ask for a day where every live capture failed is lost. Only paid tick vendors (NSE Data & Analytics,
+  TrueData, Global Datafeeds) sell historical bid/ask; reconsider only if tier B proves too rough after about 20
+  live days.
+- Tier B "last trade" can be stale for illiquid far-from-the-money strikes; the label covers it.
+
+**Open owner decisions:** approve 1-7? Will the owner do the Google Cloud setup?
