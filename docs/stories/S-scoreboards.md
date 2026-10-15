@@ -95,15 +95,22 @@ claim; "AI unavailable" excluded from judgement scores (13.5).
 and Book 2 real decisions or shadow-only actions; Book 3's F7 entry) is valued as **one standard unit** (one lot,
 standard size, no account constraints) with the E4 fill model on that day's execution snapshot and exits under the
 action's rule; paired differences between books by opportunity, with the protocol's uncertainty criterion; reported
-per segment, with the same detail list as S2 where it applies.
+per segment, with the same detail list as S2 where it applies. Each book's matched results also carry S6's `measures`
+(net without the best trade, profit factor, maximum drawdown and worst day of the standardised series, in rupees only:
+no brake applies to a shadow account) and S6's `do_nothing` view (a), on each one-lot position's capital tied at entry
+(owner, 15 Oct 2026, "Do-nothing comparison shown on every scoreboard"). There is no view (b): scoreboard A has no
+account.
 
 **Acceptance criteria:**
 1. The same opportunity set and the same snapshot are used for all books on a day (hash test).
 2. A constructed example with known outcomes reproduces the expected paired differences exactly.
 3. "AI unavailable", late, missed and unscored decisions are excluded from judgement scores and counted separately;
    above S1's `missed_runs` cap (missed decisions over 10% of the book's eligible sessions in the period) the
-   book's scoreboard A verdict reads "undecided, operations" (owner, 15 Oct 2026, row 170; story S6).
+   book's scoreboard A verdict reads "undecided, operations" (owner, 15 Oct 2026, row 170; story S6). Boundary: exactly
+   10% missed is not over the cap; one more missed session is.
 4. No report or dashboard field combines scoreboard A and B into one figure (schema test).
+5. Each book's matched results carry S6's `measures` and `do_nothing` view (a), computed by S6's functions (no second
+   implementation), with the same known answers as S6's criteria 2, 3 and 5.
 
 **Test plan:** known-answer tests; schema test.
 
@@ -187,14 +194,14 @@ check agrees with the bootstrap, and which desk runs were missed, so that a pape
 it does not have.
 
 **Context and why:** Owner decisions of 15 Oct 2026 in `docs/DESK_DECISIONS.md`:
-- **162:** S1's headline is kept (net per rupee of risk after every cost). Four measures are added on the
+- **162, "Scorecard: S1's headline kept ...; four measures added":** S1's headline is kept (net per rupee of risk after every cost). Four measures are added on the
   scoreboards, never as the verdict.
-- **167:** the t-based check is a printed warning, not a pass condition.
-- **168:** the do-nothing comparison is shown on every scoreboard and is a gate before real money (design v2
+- **167, "S1's t-based check is a printed warning":** the t-based check is a printed warning, not a pass condition.
+- **168, "Do-nothing comparison shown on every scoreboard and a gate before real money":** the do-nothing comparison is shown on every scoreboard and is a gate before real money (design v2
   08:83, RM1 criterion 2). Cash and a NIFTY 50 index fund are measured on the same capital, horizon and tax scenario.
   Tax is labelled an assumption until verified.
-- **169:** "largest loss as a share of gains" is replaced by net without the best trade and the profit factor.
-- **170:** a missed desk run is scored on observed decisions with a miss cap on scoreboard A, and as it ran on
+- **169, "Largest loss share of gains" replaced:** "largest loss as a share of gains" is replaced by net without the best trade and the profit factor.
+- **170, "Missed desk run: scoreboard A on observed decisions ...":** a missed desk run is scored on observed decisions with a miss cap on scoreboard A, and as it ran on
   scoreboard B.
 
 The plan behind them is in `reviews/claude/response_144_noise-fairness-scorecard.md` (step 9; red team items 7, 19,
@@ -210,18 +217,22 @@ What exists today:
 - **In:**
   - five new S1 protocol items;
   - the measures added to every S2 section;
-  - one section per strategy version on scoreboard B (the level RM1's gate needs);
+  - one entry per book and strategy version on scoreboard B (the level RM1's gate needs), reconciled with E6's card;
   - the missed-run list on scoreboard B;
-  - the scoreboard A miss rule, as an S3 text change (S3 builds it).
+  - scoreboard A's share, as S3 text changes in this commit (S3 builds them): the measures and the do-nothing view (a)
+    per book, and the miss rule.
 - **Out:**
   - the real-money gate file and its freeze (RM1, which reads this story's `beats_index_after_tax`);
-  - S2's other REPLAN changes (independent bucket-weeks);
+  - S2's other REPLAN change, the count of independent bucket-weeks (`REPLAN.md:47`): a different function (sample
+    size, not a benchmark); no register row builds it yet, so the orchestrator assigns it;
   - net per rupee of entry maximum loss (response 144 item 22, not in the owner's rows);
   - the protocol's brake figure (Rs 30,000 in `PROTOCOL.md`, Rs 1,20,000 in `config.yaml`; REPLAN's
     `catastrophic_loss_book` change).
 
 **Expected design:** this story extends S1 and S2 and builds nothing beside them. No new composition root:
-`fno/scoreboard/wiring.py` wires the two new sources.
+`fno/scoreboard/wiring.py` wires the new source (`IndexLevels`). **Built after E2c** (text PASS, judge 148; code in
+review), which moves scoreboard B to Drive and rewires `fno/scoreboard/wiring.py` with one shared download per run:
+S6 adds its port to E2c's wiring and reads the books' records the way E2c leaves them, never the pre-E2c layout.
 
 ### 1. S1 (`research/evaluation/PROTOCOL.md`, `fno/evaluation/protocol.py`)
 
@@ -229,11 +240,11 @@ Five items are added to `REQUIRED_ITEMS`, so `python -m fno evaluation check` re
 
 | Item | Rule (from the owner's row) | Numbers, proposals the owner decides |
 |---|---|---|
-| `do_nothing_benchmark` | Row 168, a gate before real money. Per rupee-day of capital tied, as in section 4 below. | Index fund expense 0.05% a year. Cash rate: the RBI repo rate on the freeze day, written as a number. Tax per financial year: F&O 31.2% on that year's positive net, no loss carried forward; index fund 20.8% under 12 months, else 13% above the Rs 1.25 lakh yearly exemption; cash 31.2%. |
+| `do_nothing_benchmark` | Row 168, a gate before real money. Per rupee-day of capital tied, as in section 4 below. | Index fund expense 0.05% a year. Cash rate: the RBI repo rate on the freeze day, written as a number. Tax: F&O 31.2% on each financial year's positive net, no loss carried forward; the fund is treated as sold at the section's last session, its gain taxed once at 20.8% if the section is under 12 months, else 13% above one Rs 1.25 lakh exemption, a loss untaxed; cash 31.2%. |
 | `scorecard_measures` | Rows 162 and 169: net without the best trade, profit factor, maximum drawdown and worst day. All are descriptive. | none |
 | `t_check` | Row 167: printed warning, never a pass condition. | Blocks of 20 sessions (`uncertainty_criterion`'s block), one-sided 95%. |
 | `missed_runs` | Row 170. | Scoreboard A miss cap: 10% of the book's eligible sessions in the period (G9's figure). |
-| `random_control` | Response 144 red team 7 and 26: descriptive, not in Holm, never a gate. | 1,000 runs, seed 20261014, strikes within 10 strike steps of the money. |
+| `random_control` | Response 144 red team 7 and 26: descriptive, not in Holm, never a gate. | 1,000 runs, seed 20261014, strikes within 10 strike steps of the money (widened to include the real trade's strike), the per-trade and bucket caps replayed. |
 
 `frozen_files` gains the new scoreboard files under option A (scoring code is hashed before the freeze), so that item
 is not reopened. `PROTOCOL.md`'s open question 2 is closed by row 167.
@@ -282,7 +293,8 @@ These cover completed positions, from C1 net (`line.net`). Open trades are left 
 
 **Capital tied per session:** each held trade's capital tied at entry (S2's `capital_tied`: broker margin plus premium
 paid). This is the same basis as S2's margin-days. A section holding a trade with no recorded capital (S2's
-`no_capital` list) gives "not computable" for view (a), naming the trade.
+`no_capital` list) gives "not computable" for view (a), naming the trade. A section with zero capital-days (no trade
+yet, or the overridden section, empty until F4 exists) gives `null` with the reason "no capital tied", never 0 ÷ 0.
 
 **Benchmark returns:** capital tied at the previous session's close earns:
 - the index fund's change to this session's close (the fund);
@@ -301,12 +313,17 @@ paid). This is the same basis as S2's margin-days. A section holding a trade wit
 
 **Labels:** every tax figure is labelled "assumption until verified (owner's scenario)". Each simplification leans
 against the book, never for it: the fund keeps its Rs 1.25 lakh exemption; F&O losses are not carried forward to
-later years.
+later years (the law allows 8 years). One non-tax item leans for the book: see Known limits (capital at entry).
 
-**Strategy versions (the gate's level):** RM1's criterion 2 is per strategy version (design v2 8.3), so the board's top
-level gains `strategies`: for each playbook version (`ScoredTrade.strategy`, `<name>-v<n>`), its trades in every book,
-leaving out overridden and unrecorded ones, pilot included (per-strategy evaluation comes before the common start,
-REPLAN section 4), with `measures` and `do_nothing`. `beats_index_after_tax` there is the value RM1 reads.
+**Strategy versions (the gate's level):** RM1's criterion 2 is per strategy version (design v2 8.3). Each book's board
+gains `strategies`: for each playbook version (`ScoredTrade.strategy`, `<name>-v<n>`) in that book, its closed trades,
+pilot included (per-strategy evaluation comes before the common start, REPLAN section 4), with `measures` and
+`do_nothing`. `beats_index_after_tax` there is the value RM1 reads.
+- **Why here and not on E6's card:** E6 (`fno/scorecard/`) is the same level (one version in one account) but has no
+  capital tied, no index and no daily series, and its `review.py` is an S1-frozen file. Adding them there would build a
+  second capital and index path; scoreboard B already has both.
+- **No second count:** a criterion checks that each entry's trade IDs and closed net equal E6's card for that account
+  and version (both from C1's trade ledger).
 
 ### 5. Missed runs
 
@@ -336,10 +353,11 @@ snapshot, dated that day and never backdated.
 All runs come from one `random.Random(20261014)` stream.
 
 **Redraws:** a draw that is not quotable at both ends, or breaks the trade's maximum-loss cap at those lots, is
-redrawn, up to 20 times. So is a draw the books' risk profile (`fno/risk/`, `config.yaml` `risk.profiles.books`)
-refuses given that run's own open twins: the bucket, open-risk and new-risk caps apply as they did to the real trade
-(flipping PCS to CCS changes its bucket). Structure eligibility is shared by construction: every flip is to a mapped
-code. A twin still missing is counted. Above 10% of twins missing, the percentile is "not
+redrawn, up to 20 times. So is a draw that breaks the bucket cap (`config.yaml` `risk.profiles.books.bucket_cap_rs`,
+Rs 30,000) given that run's own open twins: flipping PCS to CCS changes the twin's bucket, the one cap a flip really
+moves. The open-risk and new-risk caps are not replayed (judge 158: a flip at the same widths and lots barely changes
+them). Structure eligibility is shared by construction: every flip is to a mapped code. The strike window always
+includes the real trade's own strike (widened if needed), so the real trade is one of its possible twins. A twin still missing is counted. Above 10% of twins missing, the percentile is "not
 computable".
 
 **Measure:** both the book and each run use closed-trade net per rupee-day of risk: Σ net ÷ Σ (maximum loss at entry
@@ -350,6 +368,35 @@ luck only, same dates (not window luck); descriptive, never a gate".
 
 It reads the committed execution snapshots through the existing `ExecutionSnapshotSource` (`fno/desk/snapshot.py:128`)
 and snapshot IDs, as `fno/scoreboard/sources.py:57` already does.
+
+**Build order:** the random control's code is built last, as its own commit. No paper fill exists yet, so it has
+nothing to rank for months; its definition is in S1 now (response 144 red team 7).
+
+### Gap list (every requirement of the cited sources, mapped)
+
+| Requirement (source) | Where |
+|---|---|
+| Headline kept, measures never the verdict (row 162) | criterion 12 (no field changes `claim_allowed` or the headline) |
+| Do-nothing vs NIFTY 50 fund and cash, after tax (row 162, design 03:110-115) | section 4; criteria 5, 6, 8 |
+| Max drawdown and worst day, rupees and share of the brake (row 162, response 144 table) | section 2; criterion 3 |
+| Random-strategy percentile, 1,000 seeded runs, same structures and sizes, random direction and strike (row 162, response 144 red team 7) | section 6; criterion 10 |
+| Selection luck only, descriptive, not in Holm (response 144 item 26) | section 6 label; S1 item `random_control` |
+| Random control shares dates, universe, entry delays, structure eligibility, caps, fills, charges (response 147 item 7) | section 6: same dates and expiry, flips only to mapped codes, E4 pricing, C1 charges; caps: per-trade and bucket only (Known limits) |
+| t-check a printed warning, disagreement flagged beside every claim (row 167, response 147 item 5) | section 3; criterion 4 |
+| Do-nothing on every scoreboard (row 168) | scoreboard B: section 4, criterion 12; scoreboard A: S3 text and criterion 4b |
+| Do-nothing a gate before real money, per strategy version (row 168, design 08:83 item 2) | `strategies` entries; criterion 11; RM1 reads it (out) |
+| Same capital, horizon and tax scenario; tax an assumption (row 168, response 147 item 4) | section 4 labels; criterion 8 |
+| Per rupee-day of capital tied, the index over the same rupee-days (design 03:118-120, REPLAN.md:47) | view (a); criterion 5 |
+| Whole account, idle cash at the cash rate (design 03:116-118) | view (b); criterion 6 |
+| Point comparison with no interval; one tax treatment per instrument (response 144 item 24) | view (a) label; S1 item `do_nothing_benchmark` |
+| Net without the best trade and profit factor; PF undefined with no losses; counts printed (row 169, response 147 item 6) | section 2; criterion 2 |
+| Missed run: scoreboard B as it ran, `missed_decision`, `missed_exit_review` (row 170, response 147 item 3) | section 5; criterion 9 |
+| Catch-up exit at the next valid quote, never backdated (row 170) | section 5; criterion 9 (end to end) |
+| Scoreboard A on observed decisions with the miss cap (row 170, response 144 item 21) | S3 criterion 3 (amended, with the boundary) |
+| Zero-risk resample scores 0.0 (response 144 item 27) | note only, as the item says; unchanged |
+| Net per rupee of entry maximum loss (response 144 item 22) | out: not in the owner's rows |
+| Independent bucket-weeks (REPLAN.md:47) | out: different function; orchestrator assigns |
+| Brake figure mismatch (response 144 item 25) | out: REPLAN's `catastrophic_loss_book` change |
 
 ### Acceptance criteria
 
@@ -364,19 +411,28 @@ and snapshot IDs, as `fno/scoreboard/sources.py:57` already does.
    of Rs 4,500 and a worst day of Rs −3,000 (with their dates). The drawdown share is 4,500 ÷ 1,20,000.
 4. **t-check:**
    - a known-answer series of 6 blocks with unequal block risk reproduces a hand-computed bound (t(0.95,5) = 2.015);
-   - 39 sessions give one block and a null bound;
+   - 39 sessions give one block and a null bound; exactly 40 give two blocks and a defined bound;
    - a case where the bootstrap bound is above zero and the t bound below prints the warning, and `claim_allowed` is
      unchanged.
 5. **Do-nothing, view (a):** on real archived `ind_close_all` days (a stretch of October 2026), with Rs 1,00,000
    tied for 5 sessions and a book net of Rs 2,000, the fund's and cash's gains match a hand calculation from the
    files' closes and yields to the paisa. The verdict follows. A missing index day gives null, never true.
-6. **Do-nothing, tax:**
+6. **Do-nothing, view (b):** on the same real October 2026 days, a Rs 20,00,000 account with Rs 1,00,000 tied for 5
+   sessions and a book net of Rs 2,000: the account's after-tax net plus Rs 19,00,000 idle credited at the after-tax cash
+   rate, against the fund and against cash on Rs 20,00,000, each matches a hand calculation to the paisa. Boundary
+   cases:
+   - no trade at all: the book's view (b) equals the cash benchmark exactly;
+   - the whole Rs 20,00,000 tied: the idle credit is exactly 0.
+7. **Empty sections:** an overridden section with no trade and a head-to-head section before its first trade give
+   `do_nothing` null with "no capital tied" in view (a); view (b) still computes (all idle).
+8. **Do-nothing, tax:**
    - a book net of −Rs 2,000 pays no tax;
-   - a period of 12 months or more uses 13% on the fund above the exemption, and under 12 months uses 20.8%;
+   - a section of 12 months or more taxes the fund's gain once at 13% above one Rs 1.25 lakh exemption; one day under
+     12 months uses 20.8%; a fund loss is untaxed;
    - a section crossing 31 March taxes each financial year's F&O net apart (a loss year then a profit year: tax on the
      profit year in full);
    - every tax figure carries the assumption label.
-7. **Missed runs, scoreboard B:** in a fixture month,
+9. **Missed runs, scoreboard B:** in a fixture month,
    - a session with no run log is listed as `missed_decision` for every book; a decisions step naming Book 1's run but
      not Book 2's lists it for Book 2 only;
    - a log stopped before exits with a trade open is listed as `missed_exit_review`;
@@ -385,25 +441,28 @@ and snapshot IDs, as `fno/scoreboard/sources.py:57` already does.
 
    The next session's run then exits the open trade at that day's snapshot, dated that day (the E3 behaviour, checked
    end to end on the fixture).
-8. **Random control:**
+10. **Random control:**
    - the same records give byte-identical output twice (seed);
    - a trade whose every draw within 10 steps is unquotable is counted missing;
-   - above 10% missing, "not computable";
+   - exactly 10% missing is computable; one more twin missing (just over 10%) is "not computable";
    - a fixture whose entry snapshot allows exactly two twins per trade (the real one and a worse one) gives the
      percentile (runs below + ties ÷ 2) ÷ 1,000, with both counts read from the same seeded stream: the exact value is
      asserted, not "near the top";
-   - a flip that would put a fourth trade in a full Rs 30,000 bucket is redrawn.
-9. **Boards:** the `strategies` block holds one entry per playbook version across books; every S2 section (overall, pilot, head-to-head, segments, unscored, overridden) carries `measures` and
+   - a flip that would put a fourth Rs 10,000 trade in a full Rs 30,000 bucket is redrawn;
+   - a real strike 12 steps from the money widens the window to include it.
+11. **Strategy versions:** each book's `strategies` holds one entry per playbook version it traded; its trade IDs and
+    closed net equal E6's card for that account and version, on a fixture with two versions and a pilot trade.
+12. **Boards:** every S2 section (overall, pilot, head-to-head, segments, unscored, overridden) carries `measures` and
    `do_nothing`. Only judged sections carry `t_check` and `random_control`. No field changes `claim_allowed` or the
    headline (schema test). A rebuild is byte-identical (S2 criterion 4 still passes).
-10. **Gates:** S2's existing tests pass unchanged. No file or class is over 350 lines.
+13. **Gates:** S2's existing tests pass unchanged. No file or class is over 350 lines.
 
 **Test plan:** the known-answer tests above, built from the situations the desk really meets (closed days, a run that
 stopped before exits, an all-winning month, a short first quarter) and from real archived index files. Every
 criterion gets a broken-code proof (rule 4).
 
 **Judge verifies:**
-- recomputes one section's do-nothing view (a) from the index files by hand;
+- recomputes one section's do-nothing views (a) and (b) from the index files by hand;
 - re-runs the t-check example;
 - confirms that `claim_allowed` is unaffected.
 
@@ -415,6 +474,13 @@ criterion gets a broken-code proof (rule 4).
 - **The random control:** it holds the real exit dates, so it ignores what exit rules would do on a different strike.
   It controls direction and strike luck only.
 - **The tax figures** are the owner's scenario, not a verified personal tax position.
+- **Capital at entry leans for the book:** margin is not re-marked when the exchange raises it, and C2's stress
+  reserve is left out, so view (a)'s capital-days are understated and the book's return per rupee is overstated. View
+  (b), on the whole account, does not have this bias.
+- **The random control replays two caps only** (per-trade maximum loss and bucket); open-risk and new-risk are not
+  replayed.
+- **Scoreboard A has no view (b):** it has no account, only one-lot positions.
 
-**Depends:** S1 (draft), S2 (merged), E3, E4, A13's index files; RM1 reads the gate · **Size:** M · **Status:** story
+**Depends:** S1 (draft), S2 (merged), E2c (built first: Drive board and wiring), E3, E4, E6 (reconciled), A13's index
+files; RM1 reads the gate; S3 builds scoreboard A's share · **Size:** M · **Status:** story
 text, judge pending (branch `story/s6-scorecard-measures`, owner of the work: session 0185gR5DmoDh2zBAvgRU4CEB)

@@ -41,7 +41,8 @@ def test_the_committed_backfill_equals_a_fresh_recomputation(committed):
     history = build_forecast_history(load_app_config())
     last = max(r.date for r in committed)
     fresh = [r for r in backfill_records(history, build_baselines(history), backfill_pack_sha256()) if r.date <= last]
-    assert records_gzip(fresh) == (ROOT / BACKFILL_FILE).read_bytes()
+    # the records' exact CSV, not the gzip byte stream, which another zlib version may compress differently
+    assert gzip.decompress(records_gzip(fresh)) == gzip.decompress((ROOT / BACKFILL_FILE).read_bytes())
 
 
 def test_every_record_names_its_method_version_proxy_and_iv30_state(committed):
