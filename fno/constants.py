@@ -264,4 +264,7 @@ CARDS_AREA = "cards"  # Drive area of the card records (beside raw/ and pipeline
 CARD_DELIVERIES_FOLDER = "research/cards/deliveries"  # non-sensitive delivery metadata only (no card text)
 CARD_VALID_UNTIL = time(15, 25)  # IST: design 04 4.1, a card is valid until 15:25
 CLOCK_SKEW_WARNING_SECONDS = 5.0  # design 04 4.4: host clock vs Slack's and GitHub's server times
-CARD_SESSION_KINDS = (SESSION_REGULAR, SESSION_SPECIAL)  # a muhurat session is one evening hour: no 15:00 card
+CARD_SESSION_KINDS = (
+    SESSION_REGULAR,
+    SESSION_SPECIAL,
+)  # a muhurat session is the one-hour Diwali session: no 15:00 card

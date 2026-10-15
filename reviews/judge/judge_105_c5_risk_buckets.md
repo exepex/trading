@@ -253,3 +253,38 @@ says "STR1 adds them", but STR1 is merged without them (new should-fix 6).
 - The owner's 1 B and 3 A are built correctly and well tested: 9 of 9 plants caught, and two-bucket counting is
   correct on real STR1 structures.
 - Open: should-fixes 1-4 of judge 105, plus 5 (merge with `main`) and 6 (the verticals' mapping).
+
+## Addendum 2 (15 Oct 2026): b92974303f5399480305dcceee412380cf2e449e
+
+The code commits since 56bc6ed are f709296 (judge 105 should-fixes 1-4 and minors), 36c6172 (STR1 verticals, merge of
+`main`) and 1cccd7e (LC/LP), each merged with `main` (latest b929743).
+
+### Gates (my runs; `PYTHONDONTWRITEBYTECODE=1`, `python -B`, Slack token unset)
+
+- At b929743: **3,700 passed**; `ruff check` clean; `ruff format --check fno tests tools research` 832 files formatted;
+  imports clean (786).
+- **Trial merge with today's `main`** (A17 landed since): clean, and the merged tree gives **3,802 passed**. This time
+  I ran the full suite on the merge itself, because the last merge broke silently.
+
+### Every open item
+
+| Item | Status | My evidence |
+|---|---|---|
+| sf 1, muhurat margin age | MET | C2's `SessionsOld` now steps with `TradingDays` (A14's days: no muhurat); C4's `fresh` steps over regular and special sessions only. On the real calendar C2 and C4 agree on 9 cases (all as expected): Fri 6 Nov row fresh on Mon 9 Nov (Sun 8 Nov muhurat skipped); 5 Nov refused on 9 Nov; 9 Nov fresh on 11 Nov (10 Nov holiday); 6 Nov refused on 11 Nov; Fri 16 Oct fresh on Mon 19 Oct; 19 Oct fresh on 21 Oct; 16 Oct refused on 21 Oct; Sun 1 Feb 2026 (special session) row fresh on 2 Feb; 30 Jan refused on 2 Feb. Plants F1 (C4 counts muhurat) and F2 (C2 by plain sessions) caught |
+| sf 2, C4 unsigned restart | MET | `restart_days` requires `reason` and `entered_by`; my rows with `""` and `"  "` are refused, `"owner"` accepted. Plant F3 caught |
+| sf 3, C4 cap tests | MET | My 5 survivors re-planted on this SHA: N1 (exact limit), N2 (side ignored), N5 (negative held loss), N17 (mixed underlyings), N19 (lot size for units). **All caught** |
+| sf 4, P10 text | MET | `docs/stories/P-publishing.md` criterion 1 now says `limit_max` = the books' `open_risk_cap_rs` (owner "2 A"), `limit_used` = sum of open maximum losses once open trades publish; the dashboard owns the contract wording (the orchestrator's to send) |
+| sf 5, merge with `main` | MET | Both conflicts resolved with both sides: `MarginTable.parts` uses `self.age` and `terms.bought_only`, and `build_rule_evaluator` uses the books profile and `build_tradable_structures`. STR1's two tests are adapted to the new signatures (`MarginSettings` with `None`; `MarginTable(path, DaysOld(7))`) and not loosened |
+| sf 6, STR1 verticals mapped | MET | `config.yaml` `bucket_sides`: PCS [bullish, short_volatility], CCS [bearish, short_volatility], CDS [bullish, long_volatility], PDS [bearish, long_volatility], as the owner's 1 B row says. My C2 probe on the real config with real STR1 structures puts each of the six codes in exactly those two buckets |
+| LC/LP mapping | ACCEPTED as labelled | LC [bullish, long_volatility], LP [bearish, long_volatility]: the orchestrator's decision (response 113 #13), marked "owner to confirm" in `config.yaml`. This departs from my advice (leave them refused), but it is the stricter of the mapping choices (full maximum loss counted twice), it is labelled, and every STR1 code stays inactive under the broker check and STR1b's gate (judge 115) until the owner confirms |
+| Minor 1, stray `risk` keys | MET | `RISK_KEYS` refuses e.g. a leftover `risk.max_open_trades` at C2 start-up (my run); plant F4 caught |
+| Minor 2, C4 type checks | MET | C4 now refuses `rules` as a string, a cap as a string or bool, and `bucket_sides` as a list on its own (my run); plant F5 caught |
+| Minors 3-5 | Stated | "Signed" is a typed name (process protection, owner informed); top-up dependency handed to E1b (judge 110); per-book brake is the orchestrator's decision, owner to confirm |
+
+**All 14 of my plants on 1 B and 3 A from addendum 1 (A1-A9 plus N1, N2, N5, N17, N19) are caught on this SHA.**
+
+**Verdict: PASS for b92974303f5399480305dcceee412380cf2e449e.**
+- Every should-fix of judge 105 and its addendum 1 is met; no blocking or should-fix finding remains.
+- By quality rule 9, C5 goes to ChatGPT before the merge.
+- Merge as a merge commit, with the full suite on the merged tree; I then check `main` and CI.
+- E1b (judge 110) and STR1b-1 (judge 115) are built on `main` after this merge.

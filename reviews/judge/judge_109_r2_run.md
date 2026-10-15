@@ -275,3 +275,80 @@ it be retaken next season under the same protocol.
 **Verdict: FAIL for adccf53f335c361fbace52dfa6b6a22fc99fce66** (the analysis run), on should-fixes 1-3. The code
 matches the protocol everywhere I read it. `AMENDMENT_2.md` is accepted, and the disclosure is harmless. The
 snapshot may be taken today as stated above. `study.py --run` may not run before a PASS on the fix commit.
+
+## Addendum 3 (15 Oct 2026): the fix commit at e634a36bb83d8b2f85d35fdccc437134230d14a8 (adccf53..e634a36)
+
+Changes: `snapshot_legs.py` (new), `analysis.py`, `sessions.py`, `wiring.py`, `study.py`, `FREEZE.md` (revision-1
+table), tests, `mutations.json`, response 109. Two commits beside it on the branch, 1738748 and 3ee3ab7, add only
+A12 board-meeting manifest rows: 494 appended, every status 200, 2018-12-01 to 2020-04-07 so far, none removed. The
+completeness check comes with the final fill commit.
+
+## Gates
+
+- `snapshot.py`, `r2study/snapshot_capture.py`, `PROTOCOL.md` and both amendments are byte-identical to adccf53.
+- All 28 rows of the revision-1 table match. Every `r2study/*.py` is listed.
+- Full suite at e634a36: **3,283 passed** (Slack token unset). `ruff check`, `ruff format --check` and `check_imports`
+  are clean. It merges cleanly with `origin/main`.
+
+## Findings of addendum 2
+
+| Item | Status | Evidence |
+|---|---|---|
+| SF1: my 8 surviving mutations | MET | Re-run on e634a36: M3, M10, M16, M17, M18, M23, M24 and M30 are all caught now |
+| SF2: the run rebuilds the legs and applies the 20% rule | MET | `snapshot_legs.rebuild` reads every quoted payload from the raw file and the previous session's option rows. It is the same lookup as the capture: chosen expiry, (strike, kind), `abs(steps)`, the stock's lot. "No row" (`row is None`) is now counted apart from "0 contracts". `usable` means at most 20% without a row. `analysis.py` uses the snapshot only when usable, else the answer is "cannot answer yet: no spread evidence". My plants N3 (no-row not counted), N4 (an unusable snapshot used) and N6 (signed steps) are caught |
+| SF3: the results name the snapshot | MET | `--snapshot PATH SHA256`. The raw Drive file must hash to the printed SHA-256 (`SnapshotMismatch`; plant N2 caught). `results.json["snapshot"]` records the path, SHA-256, start time, stocks, skipped stocks, legs, legs without a row, the share and whether it was used |
+| Minor 1: `check_frozen` hashes the protocol and amendments | MET in code; untested | `FROZEN` lists them. My plant N7 (dropping `PROTOCOL.md` from the list) survives; see minor A |
+| Minor 2: muhurat filing | MET | `Sessions.irregular` (days with a file that the calendar does not call sessions). A filing on such a day goes to the next session. Plant N5 is caught |
+| Minor 3: the cache outside the checkout | MET | `~/.cache/r2-study` |
+| Minor 4: the `--ready` parse disclosed | MET | In the revision-1 section of `FREEZE.md` |
+
+## New should-fix
+
+**1. The 20% boundary of the snapshot rule is untested.** Amendment 2 item 10 says "more than 20%" without a
+previous-session row, and the capture is then not used. The code (`no_row_share <= 0.20`) is right. But my plant N1
+(`<` instead of `<=`) passes all 110 research tests, so at exactly 20% (for example 200 of 1,000 legs) a wrong
+comparison would turn a usable snapshot into "cannot answer". This is the same class of rule as the 20% one-sided
+boundary, where the builder's own mutation found a real bug. Fix: a test at exactly 20% (usable) and just over it (not
+used). Tests are not frozen, so no hash changes.
+
+## Minor
+
+A. A test that `check_frozen` refuses a changed `PROTOCOL.md` or amendment (plant N7).
+
+B. Operator note: `snapshot.py` prints `Drive: raw/<path>`, while `--snapshot` wants the path under `raw/`, without
+the prefix. A wrong path stops the run loudly, so nothing is at risk, but say it in the run instructions.
+
+**Verdict: FAIL for e634a36bb83d8b2f85d35fdccc437134230d14a8**, on the one new should-fix (a boundary test). Everything
+else in addendum 2 is fixed and verified. A re-check needs only the new test or tests at the next SHA. The frozen
+files must stay as at e634a36. The snapshot plan of addendum 2 is unchanged.
+
+## Addendum 4 (15 Oct 2026): the test commit at 02e84d029a4a94bc6122792f1f441fab91165899 (e634a36..02e84d0)
+
+Changes: two tests in `tests/research/test_r2_snapshot_sources.py`, `mutations.json`, the folder's `README.md`, and
+fill-progress manifest rows (f2a5749, 3ee3ab7). No frozen file changed: all 28 rows of `FREEZE.md`'s revision-1
+table match at 02e84d0, and every `r2study/*.py` is listed.
+
+| Item | Status | Evidence |
+|---|---|---|
+| Should-fix: exact-20% boundary | MET | 2 of 10 legs without a row is usable, 3 of 10 is not, no legs is not. My plant N1 (`<=` to `<`) is now caught |
+| Minor A: `check_frozen` and the protocol | MET | The test changes `PROTOCOL.md` and each amendment in a copy and expects `NotFrozen` naming the file. My plant N7 is now caught |
+| Minor B: run instructions | MET | `README.md` step 3: the printed Drive path **without** `raw/`, and the printed SHA-256, and the run refuses a different file |
+
+**Gates on a clean worktree at 02e84d0** (the builder's run collided with the live fill writing `board-meetings.csv`):
+- **3,285 passed** (Slack token unset).
+- `ruff check`, `ruff format --check` and `check_imports` are clean.
+- It merges cleanly with `origin/main`.
+
+**A12 fill so far.** At 1763c63: 1,000 rows appended since adccf53, every status 200, 2018-12-01 to 2021-08-26, none
+removed or edited.
+
+**Verdict: PASS for 02e84d029a4a94bc6122792f1f441fab91165899** (the analysis script, revision 1, with its tests). Before
+`study.py --run`:
+1. The A12 fill finishes and its final commit carries the fill report. I check a manifest row for every calendar day
+   from 2018-12-01 to the last F&O session, and a sample of Drive files against their rows. The run itself also
+   refuses on a missing day (`MissingResultsDates`).
+2. The snapshot is taken with adccf53's `snapshot.py` and `r2study/snapshot_capture.py`, which are byte-identical at
+   02e84d0. Its printed SHA-256 and Drive path are logged.
+3. The run is made from a commit whose study folder equals 02e84d0's (`check_frozen` enforces it), and it runs once.
+After the run: `results.json`, `results.md`, the `DATA_SPEND.md` rows updated to what was read, and my check of the
+results against the protocol.
