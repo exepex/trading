@@ -51,19 +51,26 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    A position whose legs are not on the mark (A16 keeps contracts within 6% of the index) is "unmarked": the
    loss-used check says so once an hour (WARNING, "cannot mark"), never a guessed price.
 4. **Alerts** through the one existing `AlertSender` (`fno.composition.build_alert_sender()`, #fno-desk only), no new
-   class (open point 2 with the O1/O2 builder):
+   class, wrapped in O1's `ReportedAlerts` (`fno/daily/alerts.py`, after O1 merges; no second wrapper), so an alert
+   Slack does not take is never lost: it prints "alert NOT sent: <reason> | <text>" and the routine's prompt posts those
+   lines with the Slack connector, as CLAUDE.md's 3 pm rules say (agreed with the O1/O2 builder, 16 Oct):
    - the first line says what to do, or "information, no action" (6.5);
    - each says what the paper record assumes if the owner acts 60 minutes later; in `alert_only` that is always "the
-     paper record changes only at today's daily run (15:15)";
+     paper record changes only at the next daily run's execution snapshot" (today's before 15:15, the next session's
+     after it);
    - one alert per condition per position per hour; after 10 DANGER alerts in a session, one summary every 30 minutes;
    - each alert is a record (condition, position, snapshot time, sent time, outcome of the send) in
-     `research/data/monitor/alerts/<YYYY>/<date>.csv`; a send that fails is printed "alert NOT sent" and retried at the
-     next mark, its record keeping the first try.
+     `research/data/monitor/alerts/<YYYY>/<date>.csv`; a send that fails is printed by `ReportedAlerts`, retried at
+     the next mark, and its record keeps the first try.
 5. **No duplicate of the daily run's alerts:**
    - an exit rule reached intraday is one information alert ("<trade> reached its <rule> at HH:MM; the paper exit
      happens at today's daily run, and its exit alert follows then"); it names no action and never sets E8's T; E8's
      exit alert at the daily run stays the only action alert (open point 5 with the E8 builder);
-   - from the daily run's execution snapshot (15:15) the monitor sends nothing more about that day's positions;
+   - after the day's execution snapshot (`config.yaml` `desk.timetable.execution_snapshot`, 15:15 today; read, never
+     typed) the monitor stays quiet only about an exit-rule hit that the daily run's exit review already handled (same
+     position, same rule, same session); market and loss DANGER and WARNING alerts continue to the last mark (15:30),
+     under the hourly limit, because the daily run reports only what its 15:15 snapshot decided and a position may stay
+     open overnight (O1/O2 builder, 16 Oct);
    - the daily RED weather alert is M2's; the monitor alerts only an upgrade during the session.
 6. **Silent with nothing to watch:** with no open position the monitor runs no check, sends nothing and only writes
    its heartbeat (`positions: 0`). It is wired from the start condition: no code runs before the first position.
@@ -71,7 +78,11 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
    `research/data/monitor/heartbeat.json` (mark time, finish time, positions watched, alerts sent). The existing
    silence checker (A16's `heartbeat-check`, `fno/intraday/heartbeat.py`: 30 minutes, 09:45-15:45 IST) gains this
    second heartbeat, and reports "monitor silent" (WARNING) only while positions are open (6.5). One checker, not a
-   second one (open point 1). In `alert_only` a silent monitor blocks nothing; new entries are blocked only for
+   second one (open point 1). The interface O2's suite drives (`tests/e2e/test_monitor_silent.py`, with a fake clock):
+   `MonitorSilence.check(now) -> SilenceResult` (silent or not, minutes since the last finish, positions open). The
+   WARNING's exact text: "Action: check the position monitor's routine (story LM1). WARNING, monitor silent: no
+   monitor heartbeat for {minutes} minutes while {positions} positions are open; alert_only strategies continue and
+   no exit changes." In `alert_only` a silent monitor blocks nothing; new entries are blocked only for
    `intraday_exits` strategies (LM2). The daily card reports the day's monitor uptime (marks checked / due).
 8. **Clock (4.4):** times stored in UTC with offset, shown in IST; A16's skew flag (above 5 s) carries into the alert
    record; the monitor never uses a mark's time it cannot trust as "live" (staleness first).
@@ -81,7 +92,8 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
 
 **Open points, to agree before the judge (asked 16 Oct; answers in response 217):**
 1. A16 builder: the step's place in the recorder's run; the second heartbeat in A16's checker.
-2. O1/O2 builder: the alert path, the 15:15 boundary, the monitor-silent case in O2's suite.
+2. O1/O2 builder: **agreed 16 Oct** (alert path through `ReportedAlerts`, the boundary after the execution snapshot,
+   the monitor-silent interface and text above).
 3. A16 builder: an intraday India VIX value; if none exists, the VIX check waits for a source and nothing is built.
 4. M1/M2 owner: whether M1 can read the weather on a mark; if not, the weather check waits for M1's intraday rule.
 5. E8 builder: the information-only exit alert never becomes E8's T.
@@ -98,10 +110,12 @@ E8); the daily RED weather alert (M2); a second weather or risk model; any sched
 6. Every alert's first line is an action or "information, no action", and it states the 60-minute assumption.
 7. Every alert is recorded; a failed send prints "alert NOT sent", is retried at the next mark and keeps its first
    record.
-8. An intraday exit rule reached gives one information alert and never an E8 exit alert or T; after 15:15 nothing is
-   sent for that day's positions.
-9. A heartbeat older than 30 minutes inside 09:45-15:45 with positions open gives "monitor silent" (WARNING) through
-   the existing checker; with no position open it gives nothing.
+8. An intraday exit rule reached gives one information alert and never an E8 exit alert or T; after the execution
+   snapshot an exit-rule hit the daily run handled sends nothing, while a NIFTY 1.5% move at 15:25 on a position
+   kept open still gives its DANGER.
+9. A heartbeat older than 30 minutes inside 09:45-15:45 with positions open gives "monitor silent" (WARNING, the text
+   above) through `MonitorSilence`; with no position open it gives nothing (O2's `tests/e2e/test_monitor_silent.py`
+   also pins this).
 10. The weekly replay reproduces the alert records of a fixture week and lists one planted missed alert.
 11. Gates: pytest, ruff, ruff format, the import check; no file or class over 350 lines.
 
