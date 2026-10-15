@@ -465,3 +465,14 @@ I set in addendum 7.
 
 **Merge check: PASS for d410374cdf037ff12d4625d33c1c782215077eb3.** It may merge to `main` (pull, then the full suite on
 the merged tree).
+
+## Addendum 10 (15 Oct 2026): merge check on `main`
+
+- **The merge is 4da1b850** (parents 8160e992 and d410374, my PASSed merge re-check). `main` f13c6ea2 then merged
+  more work on top.
+- **No hand edits.** 4da1b850's tree (`85f92e7…`) equals git's own `merge-tree` of its two parents byte for byte.
+- **Exactly the PASSed diff.** Against its first parent it carries 47 files, 2,062 insertions and 192 deletions, the
+  same as d410374 against `main` 2355b80b.
+- **Suite on f13c6ea2** (`main` at the orchestrator's notice): 5,861 passed (Slack token unset).
+
+**Merge check: MET.**
