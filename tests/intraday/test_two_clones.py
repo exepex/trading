@@ -14,7 +14,8 @@ from fno.intraday.rv_table import RvTable
 from fno.intraday.session_rv import SessionRv
 from fno.intraday.snapshot_files import SnapshotFiles
 from fno.intraday.sync import GitLedgerSync
-from fno.storage.manifest_commit import GitManifestRecorder
+from fno.intraday.wiring import OWNED_PATHS
+from fno.storage.owned_paths_commit import OwnedPathsCommitter
 from fno.storage.raw_store import AreaStore, LocalFolderStore
 from tests.intraday.fakes import DAY, FakeAlerts, FakeClock, FakeSource, FixedServer, calendar, ist
 
@@ -33,17 +34,18 @@ def clone(tmp_path, origin, name):
     return folder
 
 
-def recorder(checkout, drive, clock, latency=1.0):
+def recorder(checkout, drive, clock, latency=1.0, alerts=None):
     ledger_folder = checkout / FOLDER
     source = FakeSource(clock, latency=latency)  # two real runs never get byte-identical answers
     ledger = SlotLedger(ledger_folder)
     files = SnapshotFiles(source.name, AreaStore(drive, "raw"), ledger)
-    committer = GitManifestRecorder(checkout, ledger_folder, message="Data: intraday slots ({what})",
+    committer = OwnedPathsCommitter(checkout, ledger_folder, OWNED_PATHS, message="Data: intraday slots ({what})",
                                     label="intraday files", keep_remote_on_conflict=True)  # fmt: skip
+    alerts = FakeAlerts() if alerts is None else alerts
     rv = SessionRv(files, calendar(), RvTable(ledger_folder), QuoteSnapshotRv15m(), clock.now)
     clocks = ClockCheck([FixedServer("github", 0.2, clock.now)], clock.now)
     return IntradayRecorder(source, files, ledger, Heartbeat(ledger_folder), calendar(),
-                            FakeAlerts(), clocks, rv, GitLedgerSync(committer), clock.now, clock.sleep)  # fmt: skip
+                            alerts, clocks, rv, GitLedgerSync(committer, alerts), clock.now, clock.sleep)  # fmt: skip
 
 
 def test_two_overlapping_runs_in_two_clones_leave_one_row_per_mark_and_both_push(tmp_path):

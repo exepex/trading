@@ -317,3 +317,64 @@ of 6 (+3.65 to +9.00). With the 6 recent sessions above: 12 of 12 exact for the 
 now reads "the close of the last pre-open 1-minute candle (before 09:15)", a session without one is reported as "no
 pre-open value" (never filled from 09:15), and the text carries the recount's 114 of 114 and 67 of 74. My earlier
 "4 of 6 differ, 2 of 6 equal" stands for its sample and is consistent with 67 of 74.
+
+## Part 6: A16e story text, the committer commits only A16's own paths (orchestrator decision 63)
+
+Text only, `docs/stories/A16-intraday-quote-recorder.md` section A16e; code follows after judge D's check.
+
+- **Accepted:** the risk is real (strong evidence: code reading). `GitManifestRecorder.commit` runs
+  `git add -- research/data/intraday` and `git commit -- research/data/intraday`, so any file in the folder,
+  A16b's `rv-candle/` rows included, goes into A16's commit.
+- **Partly corrected: "its manifests".** A16 writes no manifest rows. Its Drive store is the bare `AreaStore`
+  (`fno/intraday/wiring.py`), not `FingerprintingStore`; each copy's name carries its SHA-256 and the ledger row names
+  it. Its own paths are `slots/`, `rv/` and `heartbeat.json` (strong evidence: `ledger.py`, `rv_table.py`,
+  `heartbeat.py`). Naming a manifest path would only widen what the run commits.
+- **"Refuses if anything else is staged by it":** with explicit pathspecs the run can never stage anything else, so a
+  check on its own staging would be dead code. The reachable case is a file someone else staged under the folder; the
+  text refuses then (paths named, one alert per run, nothing lost: rows are write-once on disk and go in the next
+  commit). Untracked or unstaged stray files are left alone, with no refusal (reasoning only).
+- Pathspec boundary checked: `git add -n -- f/rv f/heartbeat.json` adds `f/rv/a` and `f/heartbeat.json` only, not
+  `f/rv-candle/b` or `f/heartbeat.json.tmp` (strong evidence: scratch repository).
+- Also fixed: the routine prompt's hand-commit line said "commit and push that folder"; it now names the three paths.
+- Judge D's queued minor folded in: criterion 15 and the trial paragraph now require per session the pre-open
+  comparison (the difference, or "no pre-open value").
+- **Raised, not done (out of scope, stated in the text):** `git push origin HEAD` publishes any unpushed local commit
+  another writer made on the same checkout (decision 51 (b)'s class). Low risk here: each routine fire is a fresh clone
+  (reasoning only). A follow-up could reuse `fno/desk/git_sync.py`'s `other_work` rule; the orchestrator decides.
+
+### Part 6b: answer to judge 108 addendum 11 (FAIL on a59b8be, 2 should-fix): both accepted
+
+Both reproduced in a scratch repository before editing (strong evidence):
+1. `git add -- f/slots f/rv f/heartbeat.json` with no `f/rv` prints `fatal: pathspec 'f/rv' did not match any files`
+   and exits 128. Fixed in the text: only owned paths that exist or are tracked are passed; new criterion 2 uses a
+   fixture without `rv/` (and an empty folder), with a broken-code proof.
+2. With a file staged outside the folder (`m/r`), `git pull --no-rebase -X theirs` fails: "Your local changes to the
+   following files would be overwritten by merge: m/r", exit 2. My folder-only check was too narrow, and I was wrong
+   to call the folder the only reachable case. Fixed: the check reads the whole index before every pull and every
+   commit; new criterion 4 (a staged manifest row outside the folder: refused, one alert, HEAD unchanged) and
+   criterion 5 (one alert per run, three refusal lines, one send).
+Also stated: an untracked file that the pull would bring in at the same path still fails that pull; it is reported as
+today, with no new rule. And the text notes that the shared push-guard story (decision 64) will absorb this check.
+
+### Part 6c: A16e build claims (text passed: judge 108 addendum 12)
+
+- `fno/storage/owned_paths_commit.py` (new, `OwnedPathsCommitter` beside the unchanged manifest committer): adds and
+  commits only owned paths that `git ls-files --cached --others --exclude-standard` shows exist or are tracked;
+  `foreign_staged()` reads the whole index (`git diff --cached --name-only`, no pathspec).
+- `fno/storage/manifest_commit.py`: one `_paths()` hook (the whole folder, as before); `pending()` returns nothing,
+  rather than the whole repository, when there is no pathspec. Git arguments for the manifest committer are unchanged.
+- `fno/intraday/sync.py`: `GitLedgerSync(committer, alerts)` refuses the pull and the commit while anything foreign is
+  staged; at most 5 paths are named, then a count; the first refusal of a run is alerted, the rest are printed only.
+- `fno/intraday/wiring.py`: `OWNED_PATHS = (ledger ROOT "slots/", rv_table ROOT "rv/", heartbeat FILE_NAME)`, from
+  each module's own constant (one source of truth); one alert sender shared by the recorder and the sync.
+- Tests (`tests/intraday/test_owned_paths.py`, real Git, bare origin plus clone): criteria 1 (strays `rv-candle/` and
+  `heartbeat.json.tmp` stay untracked, only slots/rv/heartbeat reach origin), 2 (no `rv/`: the 09:15 row and heartbeat
+  push; nothing owned: "nothing new to commit"), 3 (staged in the folder: pull and commit refused, one alert, HEAD
+  unchanged, still staged, the row kept on disk; after unstaging the next commit pushes 2 files), 4 (staged manifest
+  row outside the folder: refused, one alert, HEAD unchanged), 5 (three marks: three refusal lines, one alert), 6
+  (stray untracked only: no refusal); 7 (existing manifest committer tests unchanged and green); plus the five-path cap.
+- Broken-code proof (strong evidence; each mutation run with `python -B` on the new tests plus the two-clone test):
+  M1 whole-folder add: criteria 1, 3 and 6 tests fail; M2 every owned path present or not: criterion 2 test and both
+  two-clone tests fail (exit 128 on `add`); M3 staged check limited to the folder: criteria 4 and 5 tests fail;
+  M4 no staged check: criteria 3, 4 and 5 tests fail; M5 alert on every refusal: criteria 3, 4 and 5 tests fail.
+  5 of 5 caught.

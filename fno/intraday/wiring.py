@@ -18,7 +18,7 @@ from ..providers.groww import GrowwProvider
 from ..quotes.expiry_listing import NseDailyFileExpiries
 from ..quotes.monthly_contracts import PointInTimeMonthlies
 from ..server_clock import GITHUB_TIME_URL, SLACK_TIME_URL, HttpDateClock
-from ..storage.manifest_commit import GitManifestRecorder
+from ..storage.owned_paths_commit import OwnedPathsCommitter
 from ..storage.raw_library import RawFileLibrary
 from ..storage.raw_source import NseDailyFoSource
 from ..storage.raw_store import AreaStore, LocalFolderStore, RawFileStore
@@ -35,10 +35,12 @@ from .clock import ClockCheck
 from .expiry_plan import UNDERLYING, ExpiryPlan
 from .groww_source import GrowwIntradaySource, groww_listed_expiries
 from .heartbeat import FILE_NAME, Heartbeat, PublishedHeartbeat
+from .ledger import ROOT as LEDGER_ROOT
 from .ledger import SlotLedger
 from .read_only import ReadOnlyGroww
 from .realised_vol import QuoteSnapshotRv15m
 from .recorder import IntradayRecorder
+from .rv_table import ROOT as RV_ROOT
 from .rv_table import RvTable
 from .session_rv import SessionRv
 from .snapshot_files import SnapshotFiles
@@ -48,6 +50,7 @@ INTRADAY_FOLDER = REPOSITORY / "research" / "data" / "intraday"  # derived files
 DRY_RUN_DRIVE = "drive"  # inside a dry-run folder: stands in for the Drive project folder
 COMMIT_MESSAGE, COMMIT_LABEL = "Data: intraday slots ({what})", "intraday files"
 DRY_RUN_ALERTS = "dry run"
+OWNED_PATHS = (LEDGER_ROOT, RV_ROOT, FILE_NAME)  # the ledger, the session RV and the heartbeat; nothing else (A16e)
 
 
 def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> IntradayRecorder:
@@ -63,9 +66,9 @@ def build_intraday_recorder(cfg: dict, dry_run_folder: Path | None = None) -> In
     github = HttpDateClock("github", GITHUB_TIME_URL.format(repository=os.environ.get(GITHUB_REPOSITORY_VARIABLE)
                                                              or DEFAULT_REPOSITORY))  # fmt: skip
     clock = ClockCheck([github, HttpDateClock("slack", SLACK_TIME_URL)], now_ist)
+    alerts = _alerts(dry_run_folder)
     return IntradayRecorder(
-        source, files, ledger, Heartbeat(folder), calendar, _alerts(dry_run_folder), clock, session_rv,
-        _sync(dry_run_folder),
+        source, files, ledger, Heartbeat(folder), calendar, alerts, clock, session_rv, _sync(dry_run_folder, alerts),
     )  # fmt: skip
 
 
@@ -95,9 +98,9 @@ def _alerts(dry_run_folder: Path | None) -> AlertSender:
     return NoAlertSender(DRY_RUN_ALERTS) if dry_run_folder else build_alert_sender()
 
 
-def _sync(dry_run_folder: Path | None) -> LedgerSync:
+def _sync(dry_run_folder: Path | None, alerts: AlertSender) -> LedgerSync:
     if dry_run_folder:
         return NoSync()
-    committer = GitManifestRecorder(REPOSITORY, INTRADAY_FOLDER, message=COMMIT_MESSAGE, label=COMMIT_LABEL,
-                                    keep_remote_on_conflict=True)  # fmt: skip
-    return GitLedgerSync(committer)
+    committer = OwnedPathsCommitter(REPOSITORY, INTRADAY_FOLDER, OWNED_PATHS, message=COMMIT_MESSAGE,
+                                    label=COMMIT_LABEL, keep_remote_on_conflict=True)  # fmt: skip
+    return GitLedgerSync(committer, alerts)
